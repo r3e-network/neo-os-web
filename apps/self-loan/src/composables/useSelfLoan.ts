@@ -30,7 +30,8 @@
  *     against; withdrawRepayCredit(account) reclaims GAS repay-credit never applied.
  *     These are the recovery paths the deposit-then-act model needs.
  *
- *   READS (app.chain.readRaw, default app contract script hash):
+ *   READS (app.chain.readRaw, default app contract script hash; the two
+ *   credit slots go through app.funds.creditOf with the app-named operation):
  *     neoPrice()                 -> Integer (GAS base units per 1 NEO; 0 = unset)
  *     pool()                     -> Integer (GAS base units)
  *     collateralCreditOf(user)   -> Integer (WHOLE NEO — never scaled)
@@ -47,11 +48,12 @@
  * ASSET CONVENTION (the #1 correctness risk — kept strictly separate end-to-end):
  *   * NEO is an INTEGER token (no decimals): 1 NEO = 1 unit. Collateral, neoBalance,
  *     collateralCredit, loan.collateral are WHOLE NEO and are NEVER multiplied by 1e8.
- *     `neoToInteger` rejects fractional NEO before any chain call.
+ *     `app.amount.parseNeoToUnits` rejects fractional NEO (to null) before any
+ *     chain call.
  *   * GAS uses BASE UNITS (×1e8). Debt (loan.borrowed), pool, repayCredit, neoPrice,
  *     totals and disbursements are GAS base units on-chain; the UI scales once on
- *     input with `gasToBaseUnits` (no floats) and divides by 1e8 (`gasFromBaseUnits`)
- *     for display.
+ *     input with `app.amount.parseGasToFixed8` (no floats) and divides by 1e8
+ *     (`gasFromBaseUnits`) for display.
  *   * neoPrice is GAS BASE UNITS per 1 NEO, so collateralValueGasBase =
  *     collateralNeoInteger × neoPrice (no extra scaling); divide by 1e8 to display.
  *
@@ -67,7 +69,6 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import { gasToBaseUnits, neoToInteger } from "@shared/utils/amounts";
 import { formatNumber } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { combineBusy } from "@shared/utils/observables";
@@ -105,13 +106,14 @@ function warnLoadFailure(scope: string, error: unknown): void {
 // ============================================================================
 // Amount helpers (NEO integer vs GAS base units kept strictly separate)
 // ============================================================================
-// gasToBaseUnits / neoToInteger come from @shared/utils/amounts — the SINGLE
-// GAS scaling point (the contract scales nothing); NEO is never ×1e8.
-// Kept ad-hoc (NOT swapped for app.amount.gasToFixed8 / neoToUnits): the GAS
-// scaler here IS ×1e8, but these return 0n on invalid/zero input so the actions
-// can raise their own localized t(...) errors (e.g. enterValidAmount,
-// neoMustBeInteger); the framework helpers THROW a different, non-localized
-// message, so swapping would change the observable error semantics.
+// Scaling goes through app.amount.parseGasToFixed8 / parseNeoToUnits — the
+// S6 null-on-invalid variants: the SINGLE GAS scaling point (the contract
+// scales nothing); NEO is never ×1e8. They return null on invalid/zero input
+// (never throw) so the actions keep raising their own localized t(...) errors
+// (e.g. enterValidAmount, neoMustBeInteger). The THROWING variants
+// (app.amount.gasToFixed8 / neoToUnits) are deliberately NOT used here —
+// their non-localized throw messages would change the observable error
+// semantics.
 
 /** Convert a GAS base-unit Integer to whole GAS as a number (÷ 1e8). */
 const gasFromBaseUnits = (base: bigint): number => Number(base) / 1e8;
@@ -509,14 +511,14 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
       return;
     }
     try {
-      const [collRaw, repayRaw] = await Promise.all([
-        app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
-        app.chain.readRaw("repayCreditOf", [app.chain.arg.hash160(hash)]),
+      const [collCredit, repayCreditRaw] = await Promise.all([
+        app.funds.creditOf(hash, "collateralCreditOf"),
+        app.funds.creditOf(hash, "repayCreditOf"),
       ]);
       // collateralCredit is WHOLE NEO — never ÷1e8.
-      collateralCredit.set(Math.max(0, Number(parseBigInt(collRaw))));
+      collateralCredit.set(Math.max(0, Number(collCredit)));
       // repayCredit is GAS base units — ÷1e8 for display.
-      repayCredit.set(gasFromBaseUnits(parseBigInt(repayRaw)));
+      repayCredit.set(gasFromBaseUnits(repayCreditRaw));
     } catch (e) {
       warnLoadFailure("loadReclaimable", e);
       collateralCredit.set(0);
@@ -556,6 +558,13 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
    * If step 1 lands but step 2 reverts, the NEO credit persists on the contract as
    * reclaimable collateral credit (withdraw) — no NEO is lost; the UI surfaces the
    * "Reclaim collateral" affordance for exactly that case.
+   *
+   * Deliberately app-side orchestration on app.chain.invoke (not
+   * app.funds.prepayAndCall): the framework prepay lane is the unconditional
+   * full-amount GAS deposit (indexer-confirmed). This deposit is NEO, tops up
+   * only the SHORTFALL over existing credit, and settles on the
+   * CollateralCredited event — and the stranded-credit copy
+   * (collateralCreditHeld) is driven by the app's own depositSettled branch.
    */
   const takeLoan = async () => {
     if (isBusy.get()) return;
@@ -569,8 +578,11 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
     const validation = validateCollateral(collateralAmount.get(), neoBalance.get());
     if (validation) throw new Error(validation);
 
-    const neoInt = neoToInteger(collateralAmount.get());
-    if (neoInt <= 0n) throw new Error(t("neoMustBeInteger"));
+    // S6 null-on-invalid scaler: null covers invalid/fractional/zero input so
+    // the localized rejection below fires before any chain call.
+    const neoUnits = app.amount.parseNeoToUnits(collateralAmount.get());
+    if (neoUnits === null) throw new Error(t("neoMustBeInteger"));
+    const neoInt = BigInt(neoUnits);
 
     // Pre-flight the pool: the contract disburses (gross − fee) GAS from pool()
     // and reverts post-deposit when it is short. Block here when a price is
@@ -600,12 +612,12 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
       // Step 1: DEPOSIT — the contract's borrow locks ALL credited collateral
       // and sizes the debt on it, so the locked total must equal the typed
       // amount for the previewed terms to hold (credit may persist from a
-      // prior aborted borrow).
+      // prior aborted borrow). app.funds.creditOf reads the app-named credit
+      // slot (collateralCreditOf); a failed read degrades to 0n so a flaky
+      // RPC never blocks the flow (the full amount is then deposited).
       let credit = 0n;
       try {
-        credit = parseBigInt(
-          await app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
-        );
+        credit = await app.funds.creditOf(hash, "collateralCreditOf");
       } catch {
         credit = 0n;
       }
@@ -709,8 +721,10 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
     const validation = validateCollateral(amount, neoBalance.get());
     if (validation) throw new Error(validation);
 
-    const neoInt = neoToInteger(amount);
-    if (neoInt <= 0n) throw new Error(t("neoMustBeInteger"));
+    // S6 null-on-invalid scaler — see takeLoan.
+    const neoUnits = app.amount.parseNeoToUnits(amount);
+    if (neoUnits === null) throw new Error(t("neoMustBeInteger"));
+    const neoInt = BigInt(neoUnits);
 
     const addr = address.get() || (await app.chain.ensureWallet());
     const hash = addr ? addressToScriptHash(addr) : null;
@@ -725,9 +739,7 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
     try {
       let credit = 0n;
       try {
-        credit = parseBigInt(
-          await app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
-        );
+        credit = await app.funds.creditOf(hash, "collateralCreditOf");
       } catch {
         credit = 0n;
       }
@@ -793,10 +805,12 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
     pendingConfirmation.set("");
     const value = String(amount || "").trim();
     // Strict decimal validation: reject NaN, scientific/hex/whitespace and
-    // non-positive amounts before any chain call.
+    // non-positive amounts before any chain call. The S6 null-on-invalid GAS
+    // scaler (×1e8, no floats) then rejects zero with the same localized copy.
     if (!/^\d+(\.\d{1,8})?$/.test(value)) throw new Error(t("enterValidAmount"));
-    const baseAmount = gasToBaseUnits(value);
-    if (baseAmount <= 0n) throw new Error(t("enterValidAmount"));
+    const baseUnits = app.amount.parseGasToFixed8(value);
+    if (baseUnits === null) throw new Error(t("enterValidAmount"));
+    const baseAmount = BigInt(baseUnits);
 
     const outstanding = loan.get().borrowed;
     // Reject when there is no active loan: depositing GAS as a "repay" against zero
@@ -824,11 +838,11 @@ export function useSelfLoan({ app, t }: UseSelfLoanOptions) {
     try {
       // Step 1: DEPOSIT GAS repay-credit — only top up when existing repay credit
       // can't cover the amount (credit may persist from a prior aborted repay).
+      // Same credit-precheck lane as takeLoan: app.funds.creditOf against the
+      // app-named slot, failed read degrading to 0n.
       let credit = 0n;
       try {
-        credit = parseBigInt(
-          await app.chain.readRaw("repayCreditOf", [app.chain.arg.hash160(hash)]),
-        );
+        credit = await app.funds.creditOf(hash, "repayCreditOf");
       } catch {
         credit = 0n;
       }

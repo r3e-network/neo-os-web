@@ -11,23 +11,24 @@
  *
  * Contract interaction model (verified against the deployed ABI):
  *
- *   READS (app.chain.readRaw, default app contract script hash):
+ *   READS (app.chain.readRaw / app.chain.readArray, default app contract):
  *     getCreatorEscrows(creator, offset, limit)      -> escrowId[]
  *     getBeneficiaryEscrows(beneficiary, offset, limit) -> escrowId[]
  *     getEscrowDetails(escrowId)                      -> Map of fields
- *   The two id-list reads use the raw chain's readArray (the framework SDK has
- *   no array-read equivalent), so a minimal chain reference is kept for those.
  *
- *   MUTATIONS (app.chain.invoke):
+ *   MUTATIONS:
+ *     createEscrow runs on app.funds.prepayAndCall's asset deposit lane:
  *     1. DEPOSIT — a NEP-17 transfer to the contract, targeting the *asset*
- *        token (scriptHash override), with a memo that MUST start with the
+ *        token (deposit.scriptHash), with a memo that MUST start with the
  *        app id + ":" so OnNEP17Payment credits the depositor's prepaid
  *        balance for that asset:
  *          transfer(from, CONTRACT, totalBaseUnits, "miniapp-milestone-escrow:fund")
  *          { scriptHash: <GAS_HASH | NEO_HASH> }
  *     2. createEscrow(creator, beneficiary, asset, totalAmount,
  *        milestoneAmounts[], title, notes) -> escrowId
- *        Consumes the creator's prepaid credit, so the deposit MUST land first.
+ *        Consumes the creator's prepaid credit, so the deposit MUST land first
+ *        (the lane settles the deposit before the consuming call).
+ *     The rest go through app.chain.invoke:
  *     approveMilestone(creator, escrowId, milestoneIndex)   — 1-BASED index
  *     claimMilestone(beneficiary, escrowId, milestoneIndex) — 1-BASED index
  *     cancelEscrow(creator, escrowId)
@@ -46,15 +47,15 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
+import { FrameworkPrepaidActionError } from "@shared/react";
 import type { MiniAppFramework } from "@shared/react";
 import { waitForDepositConfirmation } from "@shared/composables/useContractInteraction";
 import type { DepositConfirmation } from "@shared/composables/useContractInteraction";
-import type { ChainService, ContractArg } from "@shared/services/ChainService";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { formatGas, formatAddress } from "@shared/utils/format";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
-import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "@shared/constants";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { EscrowItem } from "./escrowTypes";
 
 // ============================================================================
@@ -92,14 +93,8 @@ export interface CreateEscrowParams {
 }
 
 export interface UseMilestoneEscrowOptions {
-  /** MiniApp framework SDK from ctx.framework (chain args/amounts/passthroughs). */
+  /** MiniApp framework SDK from ctx.framework — the composable's only service surface. */
   app: MiniAppFramework;
-  /**
-   * Raw chain service from ctx.services.chain, used ONLY for the escrow-id
-   * array reads (getCreatorEscrows / getBeneficiaryEscrows) — the framework SDK
-   * exposes no array-read helper, so this is the single passthrough kept ad-hoc.
-   */
-  chain: ChainService;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
   /**
@@ -190,7 +185,6 @@ const toIdString = (value: unknown): string => {
 
 export function useMilestoneEscrow({
   app,
-  chain,
   t,
   confirmDeposit,
 }: UseMilestoneEscrowOptions) {
@@ -202,6 +196,19 @@ export function useMilestoneEscrow({
     confirmDeposit ??
     ((txid: string, asset: "NEO" | "GAS") =>
       waitForDepositConfirmation(txid, { contractHash: assetHash(asset) }));
+
+  /**
+   * Parse-style Hash160 guard: build the arg or return null instead of
+   * letting arg.hash160's throw leak a raw error — callers convert null into
+   * their own localized copy (walletNotConnected / invalidAddress).
+   */
+  const hash160ArgOrNull = (addr: string) => {
+    try {
+      return app.chain.arg.hash160(addr);
+    } catch {
+      return null;
+    }
+  };
 
   // ── Reactive State ────────────────────────────────────────────────────
   const creatorEscrows = createObservable<EscrowItem[]>([]);
@@ -237,13 +244,10 @@ export function useMilestoneEscrow({
   // wallet is connected. Deriving it from the address made the disconnected case
   // show "deployment pending" and left the Connect-wallet branch (which needs
   // contractReady && !hasAddress) mathematically unreachable.
-  // The framework surfaces contractAddress as a plain { get } accessor, but the
-  // derivation needs the subscribable observable — use the raw chain's
-  // contractAddress (the same underlying RefCompatObservable) as the dependency.
-  const contractReady = createDerived(
-    () => Boolean(app.chain.contractAddress.get()),
-    [chain.contractAddress],
-  );
+  // app.chain.contractReady (S7) is exactly this derivation — a read-only
+  // observable over the deployed contract address, subscription-compatible
+  // with the manifest/PlayArea bindings.
+  const contractReady = app.chain.contractReady;
 
   // ── Display helpers (exposed for PlayArea) ────────────────────────────
 
@@ -274,15 +278,13 @@ export function useMilestoneEscrow({
     // mirrors the old `if (!hash) return []` behavior before we build the arg.
     const creatorArg = app.chain.arg.hash160(addr);
 
-    // The framework SDK has no array-read helper, so this one id-list read stays
-    // on the raw chain (readArray); its args are built via the framework though.
-    // Framework args carry the same runtime shape as ContractArg — cast at this
-    // single raw-chain boundary (the arg builders never emit nested Arrays here).
-    const idsRaw = await chain.readArray(op, [
+    // Raw ARRAY read for the id-list methods (app.chain.readArray — the
+    // framework surfaces ChainService.readArray directly).
+    const idsRaw = await app.chain.readArray(op, [
       creatorArg,
       app.chain.arg.integer(0),
       app.chain.arg.integer(LIST_PAGE_LIMIT),
-    ] as ContractArg[]);
+    ]);
 
     const ids = (Array.isArray(idsRaw) ? idsRaw : [])
       .map(toIdString)
@@ -368,15 +370,18 @@ export function useMilestoneEscrow({
   // ── Actions (direct chain invocations) ────────────────────────────────
 
   /**
-   * Create a milestone escrow against the standalone contract.
+   * Create a milestone escrow against the standalone contract, via the
+   * framework's deposit-then-act lane (app.funds.prepayAndCall).
    *
    * Two-step, both signed by the creator:
    *   1. DEPOSIT — transfer the total to the contract on the asset token, with
    *      the required memo, crediting the creator's prepaid balance.
-   *   2. createEscrow — consumes that credit and opens the escrow.
+   *   2. createEscrow — consumes that credit and opens the escrow (the lane
+   *      settles the deposit in a block before this consuming call).
    *
    * If step 1 succeeds but step 2 fails, the prepaid credit remains on the
-   * contract under (asset, creator) and can be reused on retry — we surface a
+   * contract under (asset, creator) and can be reused on retry — the lane
+   * tags that branch with FrameworkPrepaidActionError and we surface a
    * "funds prepaid, escrow not created" message rather than claiming a loss.
    */
   const createEscrow = async (data: CreateEscrowParams) => {
@@ -421,15 +426,14 @@ export function useMilestoneEscrow({
 
     // arg.hash160 THROWS on an empty/invalid address, so guard the raw address
     // strings FIRST (mirroring the old `if (!addr || !hash)` checks) and build
-    // the Hash160 args only once they are known non-empty & well-formed.
+    // the Hash160 args through the parse-style guard — a null result becomes
+    // this app's localized copy instead of a leaked raw throw.
     const creatorAddr = address.get();
     if (!creatorAddr) {
       throw new Error(t("walletNotConnected"));
     }
-    let creatorArg: ContractArg;
-    try {
-      creatorArg = app.chain.arg.hash160(creatorAddr) as ContractArg;
-    } catch {
+    const creatorArg = hash160ArgOrNull(creatorAddr);
+    if (!creatorArg) {
       throw new Error(t("walletNotConnected"));
     }
 
@@ -437,83 +441,80 @@ export function useMilestoneEscrow({
     if (!beneficiaryAddr) {
       throw new Error(t("invalidAddress"));
     }
-    let beneficiaryArg: ContractArg;
-    try {
-      beneficiaryArg = app.chain.arg.hash160(beneficiaryAddr) as ContractArg;
-    } catch {
+    const beneficiaryArg = hash160ArgOrNull(beneficiaryAddr);
+    if (!beneficiaryArg) {
       throw new Error(t("invalidAddress"));
     }
 
+    // Contract must be configured before any funds move — the prepay lane
+    // resolves the deposit recipient from this same accessor.
     const contractHash = app.chain.contractAddress.get();
     if (!contractHash) {
       throw new Error(t("contractMissing"));
     }
-    const contractArg = app.chain.arg.hash160(contractHash) as ContractArg;
-    const assetArg = app.chain.arg.hash160(assetHash(asset)) as ContractArg;
+    const assetArg = app.chain.arg.hash160(assetHash(asset));
 
     isCreating.set(true);
     try {
-      // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
-      // The scriptHash override targets the token contract (not the app), and
-      // the memo must start with the app id so OnNEP17Payment credits us.
-      const deposit = await app.chain.invoke(
-        "transfer",
-        [
-          creatorArg,
-          contractArg,
-          app.chain.arg.integer(totalAmount),
-          app.chain.arg.string(PAYMENT_MEMO),
-        ],
-        { scriptHash: assetHash(asset) },
-      );
-
-      // Wait for the deposit to land in a block before firing the consuming
-      // call — intra-block ordering is fee/hash-based, so an unconfirmed
-      // deposit lets createEscrow execute first and fault with "insufficient
-      // prepaid asset". OnNEP17Payment emits no Credited event on this
-      // contract, so the wait polls the transfer txid's own application log
-      // (the indexed Transfer event on the asset token). The fixed sleep
-      // remains only when the indexer is unreachable.
-      const settlement = await settleDeposit(deposit.txid, asset);
-      if (settlement === "unreachable") {
-        await new Promise((resolve) =>
-          setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4),
-        );
-      }
-
-      // Step 2: createEscrow — consumes the prepaid credit and opens the
-      // escrow. If this fails, the credit stays on the contract under the
-      // creator and the asset, recoverable by retrying create.
+      // Deposit-then-act on the framework prepay lane (S3):
+      //   1. DEPOSIT — NEP-17 transfer of the total to the contract on the
+      //      *asset* token (deposit.scriptHash targets the token contract,
+      //      not the app), memo prefixed with the app id so OnNEP17Payment
+      //      credits the creator's prepaid balance.
+      //   2. The lane waits for the deposit to land in a block before the
+      //      consuming call — intra-block ordering is fee/hash-based, so an
+      //      unconfirmed deposit lets createEscrow execute first and fault
+      //      with "insufficient prepaid asset". OnNEP17Payment emits no
+      //      Credited event on this contract, so deposit.confirm polls the
+      //      transfer txid's own application log (the indexed Transfer event
+      //      on the asset token); the fixed sleep remains only when the
+      //      indexer is unreachable.
+      //   3. createEscrow — consumes the prepaid credit and opens the escrow.
+      // notify:'silent' — main.tsx's action guard owns the toasts and this
+      // composable owns the localized stranded-credit copy below.
       //
-      // The milestoneAmounts param is an on-chain Array<Integer>. The wallet
-      // SDK serialises a nested ContractArg[] passed as the Array arg's value
-      // (same shape quadratic-funding uses for finalizeRound). ContractArg.value
-      // is nominally a scalar, so cast at this single boundary.
-      const milestoneArg = app.chain.arg.array(
-        milestoneBaseUnits.map((n) => app.chain.arg.integer(n)),
-      ) as unknown as ContractArg;
-
+      // The milestoneAmounts param is an on-chain Array<Integer>; the wallet
+      // SDK serialises the nested args (same shape quadratic-funding uses
+      // for finalizeRound).
       try {
-        await app.chain.invoke(
-          "createEscrow",
-          [
+        await app.funds.prepayAndCall({
+          operation: "createEscrow",
+          args: [
             creatorArg,
             beneficiaryArg,
             assetArg,
             app.chain.arg.integer(totalAmount),
-            milestoneArg,
+            app.chain.arg.array(
+              milestoneBaseUnits.map((n) => app.chain.arg.integer(n)),
+            ),
             app.chain.arg.string(data.name.trim().slice(0, 60)),
             app.chain.arg.string((data.notes ?? "").slice(0, 240)),
           ],
-          { waitForEvent: "EscrowCreated" },
-        );
+          amountFixed8: totalAmount,
+          memo: PAYMENT_MEMO,
+          deposit: {
+            scriptHash: assetHash(asset),
+            confirm: (txid) => settleDeposit(txid, asset),
+          },
+          waitForEvent: "EscrowCreated",
+          notify: "silent",
+        });
       } catch (escrowErr) {
-        console.error(
-          "[useMilestoneEscrow] createEscrow failed after deposit succeeded:",
-          escrowErr instanceof Error ? escrowErr.message : String(escrowErr),
-        );
-        // Deposit landed, escrow did not — credit is held under the creator.
-        throw new Error(t("depositPrepaidNoEscrow"));
+        // Deposit landed, escrow did not — the credit is held on the contract
+        // under (asset, creator), reusable by retrying create. The lane tags
+        // exactly this branch with the identity-stable
+        // FrameworkPrepaidActionError; anything else (e.g. the deposit
+        // transfer itself failing) propagates unmapped to the action guard.
+        if (escrowErr instanceof FrameworkPrepaidActionError) {
+          console.error(
+            "[useMilestoneEscrow] createEscrow failed after deposit succeeded:",
+            escrowErr.actionError instanceof Error
+              ? escrowErr.actionError.message
+              : String(escrowErr.actionError),
+          );
+          throw new Error(t("depositPrepaidNoEscrow"));
+        }
+        throw escrowErr;
       }
 
       await refreshEscrows();
@@ -536,12 +537,8 @@ export function useMilestoneEscrow({
 
     const creatorAddr = address.get();
     if (!creatorAddr) throw new Error(t("walletNotConnected"));
-    let creatorArg: ContractArg;
-    try {
-      creatorArg = app.chain.arg.hash160(creatorAddr) as ContractArg;
-    } catch {
-      throw new Error(t("walletNotConnected"));
-    }
+    const creatorArg = hash160ArgOrNull(creatorAddr);
+    if (!creatorArg) throw new Error(t("walletNotConnected"));
 
     try {
       approvingId.set(`${escrow.id}-${idx}`);
@@ -576,12 +573,8 @@ export function useMilestoneEscrow({
 
     const beneficiaryAddr = address.get();
     if (!beneficiaryAddr) throw new Error(t("walletNotConnected"));
-    let beneficiaryArg: ContractArg;
-    try {
-      beneficiaryArg = app.chain.arg.hash160(beneficiaryAddr) as ContractArg;
-    } catch {
-      throw new Error(t("walletNotConnected"));
-    }
+    const beneficiaryArg = hash160ArgOrNull(beneficiaryAddr);
+    if (!beneficiaryArg) throw new Error(t("walletNotConnected"));
 
     try {
       claimingId.set(`${escrow.id}-${idx}`);
@@ -606,12 +599,8 @@ export function useMilestoneEscrow({
 
     const creatorAddr = address.get();
     if (!creatorAddr) throw new Error(t("walletNotConnected"));
-    let creatorArg: ContractArg;
-    try {
-      creatorArg = app.chain.arg.hash160(creatorAddr) as ContractArg;
-    } catch {
-      throw new Error(t("walletNotConnected"));
-    }
+    const creatorArg = hash160ArgOrNull(creatorAddr);
+    if (!creatorArg) throw new Error(t("walletNotConnected"));
 
     try {
       cancellingId.set(escrow.id);

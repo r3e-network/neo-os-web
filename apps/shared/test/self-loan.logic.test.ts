@@ -243,6 +243,20 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed NEO amounts via the null-on-invalid scaler (localized copy)", async () => {
+    // "10abc" survives the parseFloat pre-validation (parseFloat -> 10) but the
+    // strict integer scaler must reject it to null -> the app's own localized
+    // t("neoMustBeInteger") throw, with no chain call (S6 parse* migration).
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    app.collateralAmount.set("10abc");
+    await expect(app.takeLoan()).rejects.toThrow(t("neoMustBeInteger"));
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
   it("surfaces a held-credit error when the deposit lands but borrow reverts", async () => {
     const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
     const app = useSelfLoan({ app: makeApp(chain), t });
@@ -374,6 +388,21 @@ describe("useSelfLoan repay flow (self-loan-2)", () => {
 
     // Debt is 20 GAS; repaying 25 must be rejected before any chain call.
     await expect(app.repay("25")).rejects.toThrow(/exceeds your outstanding debt/);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid or zero GAS amounts with the localized copy and no chain call", async () => {
+    // The GAS scaler is the S6 null-on-invalid variant: it never throws, so
+    // the action keeps raising its own localized t("enterValidAmount") for
+    // non-decimal input, more than 8 decimals, and a zero amount.
+    const { chain, invoke } = makeChain(activeLoan);
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    for (const bad of ["abc", "1.123456789", "0", "0.0", "-1", "1e2"]) {
+      await expect(app.repay(bad)).rejects.toThrow(t("enterValidAmount"));
+    }
     expect(invoke).not.toHaveBeenCalled();
   });
 

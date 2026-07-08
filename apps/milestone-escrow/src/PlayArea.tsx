@@ -48,7 +48,9 @@ function asBaseUnits(value: bigint | number | undefined): bigint {
 function normalizeAmountForAsset(value: string, asset: "GAS" | "NEO"): string {
   const text = String(value ?? "");
   if (asset === "NEO") {
-    return text.split(/[.,]/)[0].replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    // split() always yields at least one element; the ?? "" only narrows the
+    // noUncheckedIndexedAccess type — it can never change the runtime value.
+    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   }
   return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 }

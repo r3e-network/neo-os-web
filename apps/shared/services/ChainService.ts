@@ -405,7 +405,14 @@ export class ChainService {
 
       let event: unknown;
       if (options?.waitForEvent && txid) {
-        event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
+        // The tx is already broadcast: an events-API outage must not convert a
+        // successful invoke into a rejection. Treat wait failures exactly like
+        // the timeout path (event = null → verified: false).
+        try {
+          event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
+        } catch {
+          event = null;
+        }
         this.emitEventWaitOutcome(txid, operation, event);
       }
 
@@ -449,7 +456,14 @@ export class ChainService {
 
       let event: unknown;
       if (options?.waitForEvent && txid) {
-        event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
+        // The tx is already broadcast: an events-API outage must not convert a
+        // successful invoke into a rejection. Treat wait failures exactly like
+        // the timeout path (event = null → verified: false).
+        try {
+          event = await this.waitForEvent(txid, options.waitForEvent, options.waitTimeoutMs);
+        } catch {
+          event = null;
+        }
         this.emitEventWaitOutcome(txid, operation, event);
       }
 
@@ -554,9 +568,11 @@ export class ChainService {
    * steps atomically. Use this method when you need explicit control over
    * the GAS transfer and the follow-up invocation as separate transactions.
    *
-   * If the deposit was confirmed but the follow-up invocation fails, the
-   * error surfaces as {@link DepositConfirmedActionFailedError} — the credit
-   * is withdrawable, not lost.
+   * Once the deposit transfer is broadcast, any follow-up invocation failure
+   * surfaces as {@link DepositConfirmedActionFailedError} — the credit is
+   * withdrawable, not lost. Its `settlement` field records whether the
+   * deposit was proven in a block ("confirmed") or merely broadcast
+   * ("timeout"/"unreachable" — indexer lag or outage).
    *
    * @example
    * ```ts
@@ -601,14 +617,21 @@ export class ChainService {
         await new Promise((r) => setTimeout(r, TIME_CONSTANTS.SECOND_MS * 4));
       }
 
-      // Step 3: Invoke the target operation
+      // Step 3: Invoke the target operation. The deposit transfer was
+      // BROADCAST in step 1 whatever the settlement outcome — on
+      // "timeout"/"unreachable" the deposit is merely unproven by the
+      // indexer, not absent — so any consuming-call failure is the
+      // stranded-credit branch; the settlement field keeps the states
+      // distinct.
       try {
         return await this.invoke(operation, args, options);
       } catch (error: unknown) {
-        if (settlement === "confirmed") {
-          throw new DepositConfirmedActionFailedError(operation, transfer.txid, error);
-        }
-        throw error;
+        throw new DepositConfirmedActionFailedError(
+          operation,
+          transfer.txid,
+          error,
+          settlement,
+        );
       }
     });
   }

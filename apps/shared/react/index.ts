@@ -38,6 +38,7 @@ export type {
   FrameworkAaSurface,
   FrameworkBusSurface,
   FrameworkClipboardSurface,
+  FrameworkDepositSettlement,
   FrameworkEventsSurface,
   FrameworkLifecycleSurface,
   FrameworkNotifyPolicy,

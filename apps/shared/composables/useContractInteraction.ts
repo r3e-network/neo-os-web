@@ -100,26 +100,43 @@ export async function waitForDepositConfirmation(
 }
 
 /**
- * Thrown when the prepaid deposit was CONFIRMED on-chain but the follow-up
- * contract call failed: the funds are not lost — they sit as withdrawable
- * credit on the contract. Callers should surface a recovery hint (credit is
- * withdrawable / retry the action) instead of a generic payment failure.
+ * Thrown when the prepaid deposit transfer was BROADCAST on-chain but the
+ * follow-up contract call failed: the funds are not lost — they sit as
+ * withdrawable credit on the contract. Callers should surface a recovery hint
+ * (credit is withdrawable / retry the action) instead of a generic payment
+ * failure.
+ *
+ * `settlement` records how far the deposit was proven when the consuming call
+ * failed: "confirmed" means the indexer saw it in a block; "timeout" and
+ * "unreachable" mean the transfer was broadcast (funds left the wallet) but
+ * its indexing could not be proven — the credit is still on the contract once
+ * the transfer lands, so recovery copy applies either way.
  */
 export class DepositConfirmedActionFailedError extends Error {
   readonly operation: string;
   readonly depositTxid: string;
   readonly actionError: unknown;
+  /** Settlement state of the deposit when the consuming call failed. */
+  readonly settlement: DepositConfirmation;
 
-  constructor(operation: string, depositTxid: string, actionError: unknown) {
+  constructor(
+    operation: string,
+    depositTxid: string,
+    actionError: unknown,
+    settlement: DepositConfirmation = "confirmed",
+  ) {
     const reason =
       actionError instanceof Error ? actionError.message : String(actionError);
+    const depositState =
+      settlement === "confirmed" ? "confirmed" : `broadcast (settlement ${settlement})`;
     super(
-      `Deposit confirmed but "${operation}" failed — the prepaid credit remains on the contract and is withdrawable (deposit tx ${depositTxid}): ${reason}`,
+      `Deposit ${depositState} but "${operation}" failed — the prepaid credit remains on the contract and is withdrawable (deposit tx ${depositTxid}): ${reason}`,
     );
     this.name = "DepositConfirmedActionFailedError";
     this.operation = operation;
     this.depositTxid = depositTxid;
     this.actionError = actionError;
+    this.settlement = settlement;
   }
 }
 
@@ -360,9 +377,11 @@ export function useContractInteraction(options: ContractInteractionOptions) {
    * 3. Waits for the transfer to confirm in a block (indexer poll, ~2 blocks max)
    * 4. Calls the target contract method
    *
-   * If the deposit was confirmed but step 4 fails, the error surfaces as
-   * {@link DepositConfirmedActionFailedError} — the credit is withdrawable,
-   * not lost.
+   * Once the deposit transfer is broadcast (step 2), any step-4 failure
+   * surfaces as {@link DepositConfirmedActionFailedError} — the credit is
+   * withdrawable, not lost. Its `settlement` field records whether the
+   * deposit was proven in a block ("confirmed") or merely broadcast
+   * ("timeout"/"unreachable" — indexer lag or outage).
    *
    * @param waitMs Fallback settle delay used ONLY when the indexer is
    *   unreachable and the deposit could not be confirmed. Pass 0 to skip the
@@ -416,14 +435,17 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     try {
       return await invokeDirectly(operation, args, contract, signers);
     } catch (error: unknown) {
-      if (settlement === "confirmed") {
-        throw new DepositConfirmedActionFailedError(
-          operation,
-          transferTxid,
-          error,
-        );
-      }
-      throw error;
+      // The deposit transfer was BROADCAST (funds left the wallet) whatever
+      // the settlement outcome — on "timeout"/"unreachable" the deposit is
+      // merely unproven by the indexer, not absent. Wrap unconditionally so
+      // callers surface stranded-credit recovery copy instead of a generic
+      // payment failure; the settlement field keeps the states distinct.
+      throw new DepositConfirmedActionFailedError(
+        operation,
+        transferTxid,
+        error,
+        settlement,
+      );
     }
   };
 

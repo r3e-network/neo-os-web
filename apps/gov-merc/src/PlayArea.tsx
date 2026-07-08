@@ -125,7 +125,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { mode: "rewards", label: t("rewardsTitle"), value: `${amountLabel(pendingRewards, 2)} GAS`, Icon: Coins },
     { mode: "guide", label: t("flowTitle"), value: windowPhase, Icon: Landmark },
   ];
-  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.Icon;
 
   const bidPresets = useMemo(() => {

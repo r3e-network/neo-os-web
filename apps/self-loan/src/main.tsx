@@ -1,11 +1,12 @@
 /**
  * Self-Loan — React Entry Point
  *
- * Drives the standalone on-chain MiniAppSelfLoan contract directly via
- * ctx.services.chain (no OS service proxies). The composable owns all contract
- * reads/writes; this file wires the chain service, the borrow / repay /
- * addCollateral / reclaim actions, and re-loads data when the wallet connects or
- * switches.
+ * Drives the standalone on-chain MiniAppSelfLoan contract directly via the
+ * MiniApp framework SDK (ctx.framework — no OS service proxies, no raw
+ * services). The composable owns all contract reads/writes; this file wires
+ * the borrow / repay / addCollateral / reclaim actions through
+ * app.notify.guard and re-loads data when the wallet connects or switches
+ * (app.wallet.observe).
  *
  * ASSET CONVENTION (kept strictly separate end-to-end): COLLATERAL is NEO, an
  * integer token (collateral / NEO balance are WHOLE NEO, never ×1e8); DEBT is GAS
@@ -30,47 +31,47 @@ defineMiniApp({
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
     });
 
-    loan.setAddress(ctx.services.chain.address.get() ?? "");
+    loan.setAddress(ctx.framework.wallet.address() ?? "");
 
     // The wallet can connect or switch accounts after mount, so re-propagate the
     // address and reload the position / balance / credits whenever it changes.
-    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
-      loan.setAddress(ctx.services.chain.address.get() ?? "");
+    const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
+      loan.setAddress(ctx.framework.wallet.address() ?? "");
       void loan.loadAll();
     });
 
     ctx.framework.actions.register("borrow", async (formData: unknown) => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => loan.borrow(formData as Record<string, unknown>),
-        "borrowSuccess",
+        { successKey: "borrowSuccess" },
       );
     });
 
     ctx.framework.actions.register("repay", async (amount: unknown) => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => loan.repay(String(amount)),
-        "repaySuccess",
+        { successKey: "repaySuccess" },
       );
     });
 
     ctx.framework.actions.register("addCollateral", async (amount: unknown) => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => loan.addCollateral(String(amount)),
-        "collateralAdded",
+        { successKey: "collateralAdded" },
       );
     });
 
     ctx.framework.actions.register("reclaimCollateral", async () => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => loan.reclaimCollateral(),
-        "reclaimCollateralSuccess",
+        { successKey: "reclaimCollateralSuccess" },
       );
     });
 
     ctx.framework.actions.register("reclaimRepayCredit", async () => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => loan.reclaimRepayCredit(),
-        "reclaimRepaySuccess",
+        { successKey: "reclaimRepaySuccess" },
       );
     });
 

@@ -2,10 +2,10 @@
  * useGasBox — Domain logic for the GasBox (gacha/mystery box) miniapp.
  *
  * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppGasBox) via
- * the MiniApp framework chain layer (ctx.framework.chain), with the shared
- * ChainService retained only for prepayAndInvoke (deposit-then-commit) and the
- * unbounded listAllEvents recovery reads. The earlier path SIMULATED prizes
- * client-side
+ * the MiniApp framework (ctx.framework): reads/invokes on app.chain, the
+ * deposit-then-commit lane on app.funds.prepayAndCall, and the capped
+ * Committed/Settled recovery walks on app.events.listAll. The earlier path
+ * SIMULATED prizes client-side
  * (os.game.placeBet + an os.storage machine catalog) and resolved the won item
  * with Math.random — players paid but never received a real on-chain prize. The
  * old PlatformGame gacha needed the Morpheus VRF oracle's off-chain signer to
@@ -41,7 +41,7 @@
  *     getPendingBet(betId)            -> Map{machineId,player,commitIndex,settled,
  *                                            itemIndex,prize} (empty once cleared)
  *
- *   PLAYER MUTATIONS (app.chain.invoke / chain.prepayAndInvoke):
+ *   PLAYER MUTATIONS (app.chain.invoke / app.funds.prepayAndCall):
  *     1. PREPAY play credit — a GAS transfer to the contract with the memo
  *        "miniapp-gasbox:play" so OnNEP17Payment credits the player's play
  *        balance (only when playCreditOf(player) < price):
@@ -83,9 +83,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
-import type { MiniAppFramework } from "@shared/react";
-import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
+import { FrameworkPrepaidActionError, type MiniAppFramework } from "@shared/react";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { formatGas, formatAddress, sleep } from "@shared/utils/format";
@@ -178,15 +176,10 @@ export interface MachineData {
 export interface UseGasBoxOptions {
   /** MiniApp framework SDK from ctx.framework. Routes reads, invokes, wallet
    *  address/contract accessors and ensureWallet through the framework chain
-   *  layer (behavior-preserving passthroughs). */
+   *  layer, the deposit-then-commit lane through app.funds.prepayAndCall, and
+   *  the Committed / Settled recovery log walks through app.events.listAll
+   *  (capped, defensive). */
   app: MiniAppFramework;
-  /**
-   * Shared chain service from ctx.services.chain. Still required for the two
-   * calls the framework chain layer does not expose: the deposit-then-commit
-   * `prepayAndInvoke` (confirms the deposit in a block before commit) and the
-   * unbounded `listAllEvents` recovery reads (Committed / Settled log walks).
-   */
-  chain: ChainService;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -253,7 +246,7 @@ const rarityFromShare = (share: number): string => {
 // Composable
 // ============================================================================
 
-export function useGasBox({ app, chain, t }: UseGasBoxOptions) {
+export function useGasBox({ app, t }: UseGasBoxOptions) {
   // ── Machine State ──────────────────────────────────────────────────
   const machines = createObservable<Machine[]>([]);
   const selectedMachine = createObservable<Machine | null>(null);
@@ -615,7 +608,9 @@ export function useGasBox({ app, chain, t }: UseGasBoxOptions) {
     machineIdHint: string,
   ): Promise<string | null> => {
     try {
-      const events = await chain.listAllEvents("Committed");
+      // Capped recovery walk (app.events.listAll defaults to the plan's
+      // 500-event bound) — a runaway indexer page can't balloon the scan.
+      const events = await app.events.listAll("Committed");
       // Newest first — pick the latest Committed for this player that is still
       // pending on chain. betId is slot 0; player is slot 2 for gacha's
       // Committed(betId, machineId, player, commitIndex), but some indexers omit
@@ -731,7 +726,9 @@ export function useGasBox({ app, chain, t }: UseGasBoxOptions) {
       return true;
     }
     try {
-      const events = await chain.listAllEvents("Settled");
+      // Capped recovery walk (app.events.listAll defaults to the plan's
+      // 500-event bound).
+      const events = await app.events.listAll("Settled");
       const match = events.find(
         (ev) => String(eventValue(ev, 0)) === String(betId),
       );
@@ -922,26 +919,29 @@ export function useGasBox({ app, chain, t }: UseGasBoxOptions) {
         { type: "Hash160" as const, value: playerHash },
       ];
 
-      // deposit-then-commit: when credit can't cover the price, prepayAndInvoke
-      // waits for the deposit to confirm in a block before commit() test-invokes.
+      // deposit-then-commit: when credit can't cover the price,
+      // app.funds.prepayAndCall waits for the deposit to confirm in a block
+      // before commit() test-invokes. notify:'silent' — this composable owns
+      // the mid-flow messaging (playError + main.tsx's guard toasts).
       let commitResult;
       try {
         commitResult =
           credit < priceBase
-            ? await chain.prepayAndInvoke(
-                priceBase.toString(),
-                PLAY_MEMO,
-                "commit",
-                commitArgs,
-                { waitForEvent: "Committed" },
-              )
+            ? await app.funds.prepayAndCall({
+                operation: "commit",
+                args: commitArgs,
+                amountFixed8: priceBase,
+                memo: PLAY_MEMO,
+                waitForEvent: "Committed",
+                notify: "silent",
+              })
             : await app.chain.invoke("commit", commitArgs, {
                 waitForEvent: "Committed",
               });
       } catch (commitErr) {
         // Deposit confirmed but commit reverted — the prepaid play credit
         // persists on the contract and is reused on the next play (no funds lost).
-        if (commitErr instanceof DepositConfirmedActionFailedError) {
+        if (commitErr instanceof FrameworkPrepaidActionError) {
           betPhase.set("idle");
           pendingMachineId.set(null);
           await loadPlayCredit();

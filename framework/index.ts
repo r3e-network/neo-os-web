@@ -343,6 +343,35 @@ export interface FrameworkPaySpec extends FrameworkWriteSpec {
   memo: string;
 }
 
+/** Outcome of a deposit-confirmation wait (mirrors the host indexer poll). */
+export type FrameworkDepositSettlement = "confirmed" | "timeout" | "unreachable";
+
+/**
+ * Asset-parameterized deposit lane for {@link FrameworkPrepaySpec} (S3):
+ * used when the prepaid deposit is a NEP-17 transfer on a caller-chosen
+ * TOKEN contract (milestone-escrow's NEO|GAS escrows) instead of the host's
+ * GAS-only prepay lane. The framework then owns the transfer → confirmation
+ * wait → consuming call sequence itself.
+ */
+export interface FrameworkPrepayDepositLane {
+  /**
+   * NEP-17 token contract carrying the deposit transfer (e.g. the NEO or GAS
+   * token hash). The transfer recipient is always the app contract, whose
+   * OnNEP17Payment credits the sender for the memo; `amountFixed8` carries
+   * the token's BASE UNITS unchanged (GAS fixed8, NEO whole units).
+   */
+  scriptHash: string;
+  /**
+   * Deposit-confirmation wait for the transfer txid, resolving once the
+   * deposit is proven in a block ("confirmed"), gave up ("timeout"), or the
+   * indexer could not be queried ("unreachable" — falls back to a fixed
+   * settle delay). Injectable so apps keep their exact confirmation source
+   * (e.g. the asset token's indexed Transfer event) and tests stay instant.
+   * When absent the lane always applies the fixed settle delay.
+   */
+  confirm?: (txid: string) => Promise<FrameworkDepositSettlement>;
+}
+
 export interface FrameworkPrepaySpec extends FrameworkPaySpec {
   /**
    * Wait for the deposit to be confirmed in a block before the consuming
@@ -350,6 +379,13 @@ export interface FrameworkPrepaySpec extends FrameworkPaySpec {
    * deposit and call are bundled atomically via invokeWithPayment instead.
    */
   waitForCredit?: boolean;
+  /**
+   * Custom asset-token deposit lane (see {@link FrameworkPrepayDepositLane}).
+   * When present, the deposit transfer and consuming call are issued by the
+   * framework and `waitForCredit` is ignored (the lane always settles the
+   * deposit before the consuming call).
+   */
+  deposit?: FrameworkPrepayDepositLane;
 }
 
 export interface FrameworkReceiptPaySpec extends FrameworkWriteSpec {
@@ -449,36 +485,53 @@ export interface AchievementDefinition {
 }
 
 /**
- * Deposit-then-act failure envelope (S3): the prepaid GAS deposit was
- * CONFIRMED on-chain but the consuming call failed — the funds are NOT lost,
- * they sit as withdrawable credit on the contract. Apps branch on this class
- * (gasbox / dev-tipping / self-loan) to show localized recovery copy, so the
- * class identity must stay stable: it is exported here and re-exported by
- * apps/shared so `instanceof` resolves to a single class everywhere.
+ * Deposit-then-act failure envelope (S3): the prepaid GAS deposit transfer
+ * was BROADCAST on-chain but the consuming call failed — the funds are NOT
+ * lost, they sit as withdrawable credit on the contract. Apps branch on this
+ * class (gasbox / dev-tipping / self-loan / gov-merc / time-capsule) to show
+ * localized recovery copy, so the class identity must stay stable: it is
+ * exported here and re-exported by apps/shared so `instanceof` resolves to a
+ * single class everywhere.
  */
 export class FrameworkPrepaidActionError extends MiniAppError {
-  /** Txid of the CONFIRMED deposit transfer (recovery affordances link it). */
+  /** Txid of the BROADCAST deposit transfer (recovery affordances link it). */
   readonly txid: string;
-  /** The consuming operation that failed after the deposit landed. */
+  /** The consuming operation that failed after the deposit went out. */
   readonly operation: string;
   /** The underlying error thrown by the consuming call. */
   readonly actionError: unknown;
-  /** Discriminant: the deposit is in a block — the credit is withdrawable. */
-  readonly depositConfirmed = true as const;
+  /** How far the deposit was proven when the consuming call failed. */
+  readonly settlement: FrameworkDepositSettlement;
+  /**
+   * Discriminant: `settlement === "confirmed"` — the deposit is PROVEN in a
+   * block. On "timeout"/"unreachable" the deposit is merely unproven by the
+   * indexer, not absent; the stranded-credit recovery copy applies either
+   * way, which is why apps branch on `instanceof`, not on this flag.
+   */
+  readonly depositConfirmed: boolean;
 
-  constructor(operation: string, txid: string, actionError: unknown) {
+  constructor(
+    operation: string,
+    txid: string,
+    actionError: unknown,
+    settlement: FrameworkDepositSettlement = "confirmed",
+  ) {
     const reason =
       actionError instanceof Error ? actionError.message : String(actionError);
+    const depositState =
+      settlement === "confirmed" ? "confirmed" : `broadcast (settlement ${settlement})`;
     super(
-      `Deposit confirmed but "${operation}" failed — the prepaid credit remains on the contract and is withdrawable (deposit tx ${txid}): ${reason}`,
+      `Deposit ${depositState} but "${operation}" failed — the prepaid credit remains on the contract and is withdrawable (deposit tx ${txid}): ${reason}`,
       "PREPAID_ACTION_FAILED",
       undefined,
-      { operation, txid },
+      { operation, txid, settlement },
     );
     this.name = "FrameworkPrepaidActionError";
     this.txid = txid;
     this.operation = operation;
     this.actionError = actionError;
+    this.settlement = settlement;
+    this.depositConfirmed = settlement === "confirmed";
   }
 }
 
@@ -488,14 +541,27 @@ export class FrameworkPrepaidActionError extends MiniAppError {
  * framework cannot import it (package boundary), and hosts may ship their
  * own equivalent.
  */
-function isDepositConfirmedFailure(
-  error: unknown,
-): error is Error & { operation?: unknown; depositTxid: string; actionError: unknown } {
+function isDepositConfirmedFailure(error: unknown): error is Error & {
+  operation?: unknown;
+  depositTxid: string;
+  actionError: unknown;
+  settlement?: unknown;
+} {
   return (
     error instanceof Error &&
     typeof (error as { depositTxid?: unknown }).depositTxid === "string" &&
     "actionError" in error
   );
+}
+
+/**
+ * Read the host error's settlement field, defaulting to "confirmed" for host
+ * shapes that predate the field (their wrap used to be confirmed-only).
+ */
+function settlementOf(error: { settlement?: unknown }): FrameworkDepositSettlement {
+  return error.settlement === "timeout" || error.settlement === "unreachable"
+    ? error.settlement
+    : "confirmed";
 }
 
 /** Translate host deposit-confirmed failures into the stable framework class. */
@@ -506,6 +572,7 @@ function toPrepaidActionError(error: unknown): unknown {
       String(error.operation ?? ""),
       error.depositTxid,
       error.actionError,
+      settlementOf(error),
     );
   }
   return error;
@@ -603,6 +670,14 @@ function fixed8Amount(spec: FrameworkPaySpec): string {
   if (spec.amountFixed8 !== undefined) return String(spec.amountFixed8);
   return gasFixed8Amount(spec.amountGas ?? "");
 }
+
+/**
+ * Fixed settle delay applied by the custom deposit lane when no
+ * deposit-confirmation source exists or the indexer is unreachable — the
+ * same 4s fallback the host prepay lane (and the app flows this lane
+ * retires) use before the consuming call.
+ */
+const DEPOSIT_SETTLE_FALLBACK_MS = 4_000;
 
 function accountToHash160(value: string): string {
   const raw = String(value ?? "").trim();
@@ -1109,6 +1184,62 @@ export function createMiniAppFramework(
     },
   };
 
+  /**
+   * Asset-parameterized deposit-then-act lane (S3 — milestone-escrow's
+   * NEO|GAS escrows): the prepaid deposit is a NEP-17 transfer on the ASSET
+   * token contract rather than the host's GAS-only prepay lane, so the
+   * framework owns the transfer → confirmation wait → consuming call here.
+   *
+   * Once the deposit transfer has been accepted (txid), ANY consuming-call
+   * failure is wrapped in {@link FrameworkPrepaidActionError}: the credit
+   * sits on the contract under (asset, sender) and is recoverable by
+   * retrying or withdrawing, so apps surface their localized stranded-credit
+   * copy instead of a generic payment error — including on "timeout"
+   * settlements, mirroring the app flows this lane retires (the deposit is
+   * broadcast either way; only its indexing is unproven).
+   */
+  const prepayViaDepositLane = async (
+    spec: FrameworkPrepaySpec & FrameworkInvokeOptions,
+    lane: FrameworkPrepayDepositLane,
+  ): Promise<FrameworkTxResult> => {
+    const from = chain.address.get() || (await chain.ensureWallet());
+    const to = contractAddressAccessor.get();
+    if (!to) {
+      throw new MiniAppError("Contract address is not configured", "CONTRACT_MISSING");
+    }
+    // Step 1: DEPOSIT — the transfer targets the TOKEN contract
+    // (lane.scriptHash); the recipient is the app contract, whose
+    // OnNEP17Payment credits the sender's prepaid balance for the memo.
+    const transfer = await chain.invoke(
+      "transfer",
+      [
+        arg.hash160(from),
+        arg.hash160(to),
+        arg.integer(fixed8Amount(spec)),
+        arg.string(spec.memo),
+      ],
+      { scriptHash: lane.scriptHash },
+    );
+    // Step 2: wait for the deposit to land in a block before the consuming
+    // call — intra-block ordering is fee/hash-based, so an unconfirmed
+    // deposit lets the consuming call execute first and fault on missing
+    // credit. Without a confirmation source, or when the indexer is
+    // unreachable, fall back to the fixed settle delay.
+    const settlement = lane.confirm ? await lane.confirm(transfer.txid) : "unreachable";
+    if (settlement === "unreachable") {
+      await new Promise((resolve) => setTimeout(resolve, DEPOSIT_SETTLE_FALLBACK_MS));
+    }
+    // Step 3: the consuming call. Failures after the deposit are the
+    // stranded-credit branch (see the doc comment above).
+    try {
+      const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
+      if (tx.success !== false) await spec.reload?.();
+      return tx;
+    } catch (error) {
+      throw new FrameworkPrepaidActionError(spec.operation, transfer.txid, error);
+    }
+  };
+
   const operationState = <TResult>(key: string): FrameworkOperationState<TResult> => ({
     key,
     status: "idle",
@@ -1572,10 +1703,13 @@ export function createMiniAppFramework(
        * {@link FrameworkPrepaidActionError} so apps can show localized
        * recovery copy (the credit is withdrawable). Hosts without a prepay
        * lane — and specs passing `waitForCredit: false` — fall back to the
-       * atomic invokeWithPayment bundle.
+       * atomic invokeWithPayment bundle. Specs carrying a custom `deposit`
+       * lane (asset-token transfers — see {@link FrameworkPrepayDepositLane})
+       * run the framework-owned two-step sequence instead.
        */
       async prepayAndCall(spec: FrameworkPrepaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
         return runWithNotify(async () => {
+          if (spec.deposit) return prepayViaDepositLane(spec, spec.deposit);
           const amountFixed8 = fixed8Amount(spec);
           const invokeOptions = compactInvokeOptions(spec);
           let tx: FrameworkTxResult;
