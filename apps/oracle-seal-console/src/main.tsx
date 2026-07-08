@@ -1,5 +1,5 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { createObservable } from "@shared/react/context";
+import { createConsolePreviewKernel } from "@shared/components-react";
 import PlayArea from "./PlayArea";
 import { appId, appMeta, consoleConfig, manifest, messages } from "./appConfig";
 
@@ -9,34 +9,21 @@ defineMiniApp({
   manifest,
   messages,
   setup(ctx) {
-    const networkLabel = createObservable(appMeta.networkLabel);
-    const endpointLabel = createObservable(appMeta.endpointLabel);
-    const lastStatus = createObservable(ctx.t("statusReady"));
-    const lastDigest = createObservable(ctx.t("digestPlaceholder"));
-    const requestCount = createObservable(0);
-
-    ctx.framework.actions.register("buildRequest", async (...args: unknown[]) => {
-      const values = (args[0] ?? {}) as Record<string, string>;
-      const result = consoleConfig.buildResult(values, ctx.t);
-      const payload = result.payload as { status?: string; digest?: string };
-      lastStatus.set(result.status);
-      if (payload.status === "input_required") {
-        lastDigest.set(ctx.t("digestPlaceholder"));
-        return result;
-      }
-      lastDigest.set(String(payload.digest ?? ctx.t("digestPlaceholder")));
-      requestCount.set(requestCount.get() + 1);
-      return result;
+    // Shared console kernel (extraction plan §S14). notify: "silent" keeps
+    // this console's original toast-free wiring — buildRequest updates the
+    // stats trio but never toasts from the action itself.
+    const kernel = createConsolePreviewKernel({
+      t: ctx.t,
+      networkLabel: appMeta.networkLabel,
+      endpointLabel: appMeta.endpointLabel,
+      buildResult: consoleConfig.buildResult,
+      notify: "silent",
     });
 
+    ctx.framework.actions.register("buildRequest", kernel.buildRequest);
+
     return {
-      state: {
-        networkLabel,
-        endpointLabel,
-        lastStatus,
-        lastDigest,
-        requestCount,
-      },
+      state: kernel.state,
       loadData: async () => {},
     };
   },

@@ -17,13 +17,14 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy cache namespace: the pre-framework runtime-cache keys were
+  // "explorer_stats_cache" / "explorer_txs_cache:<network>", so pin
+  // app.storage.local to the same "explorer_" prefix (no orphaned cache).
+  storagePrefix: "explorer_",
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const explorer = useExplorer({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      app: ctx.framework,
       t: ctx.t,
     });
 

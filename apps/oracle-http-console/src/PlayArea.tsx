@@ -2,8 +2,9 @@
  * PlayArea.tsx — oracle http console (v2 scene-driven rebuild)
  * Tool identity. The console IS the scene: a request builder with a status readout.
  */
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { useTransientFlag } from "@shared/components-react";
 import type { ObservableState } from "@shared/react/context";
 import {
   OpenUiPanel,
@@ -101,10 +102,11 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const requestCount = num("requestCount");
 
   const [values, setValues] = useState<HttpValues>(() => defaultValues(launchContext?.params));
-  const [actionPreview, setActionPreview] = useState(false);
+  // Shared transient "previewing" pulse (console kernel §S14) — replaces the
+  // hand-rolled useState + timeout-ref + unmount-cleanup trio.
+  const previewFlag = useTransientFlag(1200);
+  const actionPreview = previewFlag.active;
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("overview");
-  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (previewTimeout.current) clearTimeout(previewTimeout.current); }, []);
   const update = (key: keyof HttpValues, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
   };
@@ -114,15 +116,10 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const resetValues = () => {
     setValues(defaultValues(launchContext?.params));
   };
-  const startPreview = () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    setActionPreview(true);
-    previewTimeout.current = setTimeout(() => { setActionPreview(false); previewTimeout.current = null; }, 1200);
-  };
 
   function handleBuild() {
     if (!canPreview) return;
-    startPreview();
+    previewFlag.trigger();
     void dispatch("buildRequest", values);
   }
   const method = values.method === "POST" ? "POST" : "GET";

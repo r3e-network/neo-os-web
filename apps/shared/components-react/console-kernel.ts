@@ -91,6 +91,11 @@ export interface ConsolePreviewKernelOptions {
 
 /** The observable trio + hero-meta labels every console spreads into state. */
 export interface ConsolePreviewKernelState {
+  /**
+   * Structural bridge so `state: kernel.state` satisfies MiniAppSetupResult's
+   * `Record<string, Observable>` without a per-app spread or cast.
+   */
+  [key: string]: Observable<string> | Observable<number>;
   networkLabel: Observable<string>;
   endpointLabel: Observable<string>;
   lastStatus: Observable<string>;

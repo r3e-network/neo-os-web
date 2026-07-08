@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { createObservable } from "../react/context";
-import { EventBus } from "../services/EventBus";
 
 // Drive the on-chain feed from the test: each leg returns a price + dataTimestamp
 // + recordTimestamp (epoch seconds). A far-past recordTimestamp exercises the
@@ -50,10 +49,11 @@ function makeChain(opts: { router?: string | null; address?: string } = {}) {
   } as never;
 }
 
+// Balances flow through app.wallet, backed by the injected platform
+// BalanceService (getBalance is the only method the wallet shorthands hit).
 function makeBalance(neo: number, gas: number) {
   return {
-    getNeoBalance: vi.fn(async () => neo),
-    getGasBalance: vi.fn(async () => gas),
+    getBalance: vi.fn(async (asset: string) => (asset === "NEO" ? neo : gas)),
   } as never;
 }
 
@@ -61,10 +61,10 @@ function setup(opts: { router?: string | null; address?: string; neo?: number; g
   const chain = makeChain(opts);
   const balance = makeBalance(opts.neo ?? 100, opts.gas ?? 50);
   const app = createMiniAppFramework(
-    { services: { chain }, t } as never,
+    { services: { chain, balance }, t } as never,
     { appId: "miniapp-neo-swap" },
   );
-  const swap = useSwapEngine({ app, balance, eventBus: new EventBus(), t });
+  const swap = useSwapEngine({ app, t });
   return { swap, chain };
 }
 

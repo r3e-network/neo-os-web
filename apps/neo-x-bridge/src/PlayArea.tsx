@@ -59,20 +59,22 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const activeStepDetail = activeTimeline
     ? t(activeTimeline.detailKey || activeTimeline.detail || "", activeTimeline.detailParams)
     : endpointLabel;
-  const modeOptions: Array<{
+  interface ModeOption {
     mode: BridgeMode;
     label: string;
     copy: string;
     actionLabel: string;
     icon: ReactNode;
-  }> = [
-    {
-      mode: "asset",
-      label: t("assetBridge"),
-      copy: t("opAssetDesc"),
-      actionLabel: t("opAssetAction"),
-      icon: <PackageCheck size={16} aria-hidden="true" />,
-    },
+  }
+  const assetModeOption: ModeOption = {
+    mode: "asset",
+    label: t("assetBridge"),
+    copy: t("opAssetDesc"),
+    actionLabel: t("opAssetAction"),
+    icon: <PackageCheck size={16} aria-hidden="true" />,
+  };
+  const modeOptions: ModeOption[] = [
+    assetModeOption,
     {
       mode: "message",
       label: t("messageBridge"),
@@ -88,7 +90,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
       icon: <ShieldCheck size={16} aria-hidden="true" />,
     },
   ];
-  const activeMode = modeOptions.find((option) => option.mode === bridgeMode) ?? modeOptions[0];
+  const activeMode = modeOptions.find((option) => option.mode === bridgeMode) ?? assetModeOption;
   const primaryAction = () => {
     if (bridgeMode === "message") {
       void dispatch("prepareMessageBridge");

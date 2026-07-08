@@ -260,6 +260,7 @@ Delete apps/shared duplicates now re-exporting framework (utils forks, eventValu
 | timestamp-proof 500ms address poll | wallet-sdk mutates address ref without notifying; keep until SDK subscription bug fixed |
 | neo-ns nnsRpc getnep11balances/invokefunction | chain bridge cannot traverse tokensOf iterators |
 | aa-session-key-lab network-conditional 7-arg/5-arg building | contract-specific business logic, correctly app-side |
+| profitanchor-admin main.tsx eventBus injection | conditional (expires Wave 3B/6): cross-app import of profitanchor's useProfitAnchor requires the shared EventBus class — private fields defeat a structural app.bus swap; migrates with that hook (Wave 3B) and the cross-app dissolve (Wave 6) |
 
 ---
 

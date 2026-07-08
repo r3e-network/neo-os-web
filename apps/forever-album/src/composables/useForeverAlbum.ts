@@ -27,8 +27,7 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService } from "@shared/services";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
+import type { MiniAppFramework } from "@shared/react";
 import { decryptPayload, encryptPayload } from "../utils/crypto";
 import type { PhotoItem, UploadItem } from "../types";
 
@@ -42,18 +41,25 @@ const MAX_PHOTO_BYTES = 46080; // 45 KiB
 // meter agree — the prior 60000-byte cap read as "58.6 KB" against the meter.
 const MAX_TOTAL_BYTES = 61440;
 
-/** localStorage key prefix for a wallet's device-local album. */
-const ALBUM_STORE_PREFIX = "forever-album:photos:";
+/**
+ * app.storage.local key prefix for a wallet's device-local album. The app's
+ * storage namespace is pinned to the legacy "forever-album:" prefix
+ * (defineMiniApp storagePrefix), so these resolve to the exact pre-framework
+ * localStorage keys ("forever-album:photos:<address>") and existing albums
+ * are not orphaned by the migration.
+ */
+const ALBUM_STORE_PREFIX = "photos:";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface UseForeverAlbumOptions {
-  /** Chain service — used ONLY to read the connected wallet address (album id). */
-  chainService: ChainService;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /**
+   * MiniApp framework — app.wallet is the album identity (connected wallet
+   * address), app.storage.local the device-local album store.
+   */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -99,31 +105,27 @@ function normalizeStoredPhoto(value: unknown): StoredPhoto | null {
   };
 }
 
-function readAlbum(walletAddress: string): StoredPhoto[] {
-  try {
-    const raw = readCachedJSON<StoredPhoto[]>(albumStoreKey(walletAddress));
-    if (!Array.isArray(raw)) return [];
-    return raw
-      .map(normalizeStoredPhoto)
-      .filter((entry): entry is StoredPhoto => Boolean(entry));
-  } catch {
-    return [];
-  }
-}
-
-function writeAlbum(walletAddress: string, photos: StoredPhoto[]): void {
-  writeCachedJSON(albumStoreKey(walletAddress), photos);
-}
-
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useForeverAlbum({
-  chainService,
-  eventBus,
-  t,
-}: UseForeverAlbumOptions) {
+export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
+  function readAlbum(walletAddress: string): StoredPhoto[] {
+    try {
+      const raw = app.storage.local.get<StoredPhoto[]>(albumStoreKey(walletAddress));
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .map(normalizeStoredPhoto)
+        .filter((entry): entry is StoredPhoto => Boolean(entry));
+    } catch {
+      return [];
+    }
+  }
+
+  function writeAlbum(walletAddress: string, photos: StoredPhoto[]): void {
+    app.storage.local.set(albumStoreKey(walletAddress), photos);
+  }
+
   // ── Photo browsing state ─────────────────────────────────────────────
   const loadingPhotos = createObservable(false);
   const photos = createObservable<PhotoItem[]>([]);
@@ -136,7 +138,7 @@ export function useForeverAlbum({
   const decrypting = createObservable(false);
   const decryptedPreview = createObservable("");
   // Wrong-password / invalid-payload feedback, rendered in the decrypt card.
-  // (The earlier code emitted on a dead "album:error" eventBus channel, so a
+  // (The earlier code emitted on a dead "album:error" bus channel, so a
   // wrong password gave the user no feedback at all.)
   const decryptError = createObservable("");
 
@@ -196,7 +198,7 @@ export function useForeverAlbum({
   const loadPhotos = async () => {
     loadingPhotos.set(true);
     try {
-      const walletAddress = chainService.address.get();
+      const walletAddress = app.wallet.address();
       if (!walletAddress) {
         photos.set([]);
         return;
@@ -317,7 +319,7 @@ export function useForeverAlbum({
   /**
    * Read browser File objects, convert to data URLs, and append as upload items.
    * Rejections (max-photos / too-large) are surfaced on the rendered uploadError
-   * observable — the earlier code emitted them on a dead eventBus channel, so an
+   * observable — the earlier code emitted them on a dead bus channel, so an
    * oversized image silently vanished from the selection.
    */
   const addFiles = async (files: File[] | FileList) => {
@@ -374,7 +376,7 @@ export function useForeverAlbum({
     uploading.set(true);
     uploadError.set(null);
     try {
-      const walletAddress = chainService.address.get() || (await chainService.ensureWallet());
+      const walletAddress = app.wallet.address() || (await app.wallet.ensure());
       if (!walletAddress) throw new Error(t("connectPromptTitle"));
 
       const records: StoredPhoto[] = [];
@@ -397,10 +399,11 @@ export function useForeverAlbum({
 
       // Persist atomically: append to the existing album and write once. A
       // device-local write either fully succeeds or throws — no partial state.
+      // (The earlier "album:uploaded" bus emit had no subscriber — the
+      // success toast comes from the host's uploadPhotos action guard.)
       const existing = readAlbum(walletAddress);
       writeAlbum(walletAddress, [...existing, ...records]);
 
-      eventBus.emit("album:uploaded", { action: t("uploadSuccess") });
       uploadError.set(null);
       closeUpload();
       selectedImages.set([]);
@@ -416,7 +419,7 @@ export function useForeverAlbum({
 
   /** Delete a photo from the wallet's device-local album. */
   const deletePhoto = async (id: string) => {
-    const walletAddress = chainService.address.get();
+    const walletAddress = app.wallet.address();
     if (!walletAddress || !id) return;
     const remaining = readAlbum(walletAddress).filter((photo) => photo.id !== id);
     writeAlbum(walletAddress, remaining);

@@ -63,8 +63,6 @@ import type { HistoryItem } from "../types";
 export interface UseGraveyardOptions {
   /** MiniApp framework (ctx.framework); its chain layer drives every read/write. */
   app: MiniAppFramework;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -180,7 +178,7 @@ const decodeEventString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
+export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const totalDestroyed = createObservable(0);
   // Total burial fees PAID across this wallet's burials, in GAS (display:
   // "Burial Fees"). Fees are spent, not reclaimed. This is an ESTIMATE: the
@@ -407,16 +405,12 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
         ...history.get(),
       ]);
 
-      eventBus.emit("graveyard:buried", { action: t("memoryBuried") });
       assetHash.set("");
       memoryText.set("");
 
       // Refresh stats + history from chain so counters and the record list
       // reflect the settled burial (and pick up any other wallets' activity).
       await loadAll();
-    } catch (e) {
-      eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
-      throw e;
     } finally {
       isDestroying.set(false);
     }
@@ -613,10 +607,6 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
           entry.id === item.id ? { ...entry, forgotten: true } : entry,
         ),
       );
-      eventBus.emit("graveyard:forgotten", { action: t("forgetSuccess") });
-    } catch (e) {
-      eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
-      throw e;
     } finally {
       forgettingId.set(null);
     }
@@ -671,11 +661,7 @@ export function useGraveyard({ app, eventBus, t }: UseGraveyardOptions) {
       );
       epitaphDraftId.set(null);
       epitaphText.set("");
-      eventBus.emit("graveyard:epitaph", { action: t("epitaphSaved") });
       await loadHistory();
-    } catch (e) {
-      eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
-      throw e;
     } finally {
       epitaphSavingId.set(null);
     }

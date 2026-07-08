@@ -83,6 +83,14 @@ export interface MiniAppDefinition {
 
   /** Optional mount target selector — defaults to "#app" */
   mountTo?: string;
+
+  /**
+   * Override for the framework `app.storage.local` key prefix (default
+   * `neo:<appId>:`). Migration lane: apps whose legacy localStorage keys
+   * lived in a different namespace pass their legacy prefix so existing
+   * user data is not orphaned.
+   */
+  storagePrefix?: string;
 }
 
 /**
@@ -103,6 +111,7 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
     messages = {},
     setup: setupFn,
     mountTo = "#app",
+    storagePrefix,
   } = definition;
 
   const container = document.querySelector(mountTo);
@@ -123,6 +132,7 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
         manifest={manifest}
         messages={messages}
         setupFn={setupFn}
+        storagePrefix={storagePrefix}
       />
     </React.StrictMode>,
   );

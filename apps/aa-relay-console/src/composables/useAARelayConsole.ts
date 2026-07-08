@@ -3,36 +3,39 @@
  *
  * Uses createObservable instead of Vue ref/computed.
  * Called once during setup, returns observables that React components subscribe to.
+ *
+ * All account-abstraction traffic goes through the framework surface
+ * (app.aa.sponsorship.check/request + app.aa.relay); the busy flags are
+ * tracked locally around each call so the PlayArea spinners behave exactly
+ * as they did against the raw AAService observables.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { AAService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import type {
-  SponsorshipStatus,
-  SponsorshipResult,
-  RelayResult,
-} from "@shared/services";
+  FrameworkAaSponsorshipStatus,
+  FrameworkAaSponsorshipResult,
+  FrameworkAaRelayResult,
+} from "@framework/aa";
 import {
   getExternalIntegrationConfig,
   getNetwork,
 } from "@shared/constants/rpc";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { getDefaultRelayPayload } from "../launch";
 
 export interface UseAARelayConsoleOptions {
-  aa: AAService;
-  eventBus: EventBus;
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-type SponsorResult = SponsorshipStatus | SponsorshipResult | RelayResult | null;
+type SponsorResult =
+  | FrameworkAaSponsorshipStatus
+  | FrameworkAaSponsorshipResult
+  | FrameworkAaRelayResult
+  | null;
 
-export function useAARelayConsole({
-  aa,
-  eventBus,
-  t,
-}: UseAARelayConsoleOptions) {
+export function useAARelayConsole({ app, t }: UseAARelayConsoleOptions) {
   const network = getNetwork();
   const integration = getExternalIntegrationConfig(network);
 
@@ -41,7 +44,13 @@ export function useAARelayConsole({
   const sponsorAmount = createObservable("0.1");
   const payloadJson = createObservable(getDefaultRelayPayload(network));
   const sponsorResult = createObservable<SponsorResult>(null);
-  const lastRelayResult = createObservable<RelayResult | null>(null);
+  const lastRelayResult = createObservable<FrameworkAaRelayResult | null>(null);
+
+  // Busy flags for the PlayArea spinners. The sponsorship lane shares one flag
+  // for check AND request (the retired AAService used a single observable for
+  // both), the relay lane has its own.
+  const isCheckingSponsorship = createObservable(false);
+  const isRelaying = createObservable(false);
 
   // Display values
   const aaAddressDisplay: Observable<string> = {
@@ -86,18 +95,6 @@ export function useAARelayConsole({
     subscribe: () => () => {},
   };
 
-  const isCheckingSponsorship: Observable<boolean> = {
-    get: () => aa.isCheckingSponsorship.get(),
-    set: () => {},
-    subscribe: (fn) => aa.isCheckingSponsorship.subscribe(fn),
-  };
-
-  const isRelaying: Observable<boolean> = {
-    get: () => aa.isRelaying.get(),
-    set: () => {},
-    subscribe: (fn) => aa.isRelaying.subscribe(fn),
-  };
-
   // Actions
   function sponsorScope() {
     return {
@@ -107,46 +104,35 @@ export function useAARelayConsole({
   }
 
   async function checkSponsor() {
+    isCheckingSponsorship.set(true);
     try {
       // Clear any prior relay result so the inline card reflects this fresh
       // sponsor action instead of a stale relay payload (relay takes precedence).
       lastRelayResult.set(null);
-      aa.setAddress(aaAddress.get() || null);
-      sponsorResult.set(await aa.checkSponsorship(sponsorScope()));
-      eventBus.emit("sponsor:checked", sponsorScope());
-    } catch (e) {
-      eventBus.emit("sponsor:error", {
-        message: formatErrorMessage(e, t("sponsorCheckError")),
-      });
-      throw e;
+      sponsorResult.set(await app.aa.sponsorship.check(sponsorScope()));
+    } finally {
+      isCheckingSponsorship.set(false);
     }
   }
 
   async function requestSponsor() {
+    isCheckingSponsorship.set(true);
     try {
       // Clear any prior relay result so the inline card reflects this fresh
       // sponsor action instead of a stale relay payload (relay takes precedence).
       lastRelayResult.set(null);
-      aa.setAddress(aaAddress.get() || null);
       sponsorResult.set(
-        await aa.requestSponsorship(sponsorAmount.get() || "0.1", sponsorScope()),
+        await app.aa.sponsorship.request(sponsorAmount.get() || "0.1", sponsorScope()),
       );
-      eventBus.emit("sponsor:requested", {
-        ...sponsorScope(),
-        amount: sponsorAmount.get() || "0.1",
-      });
-    } catch (e) {
-      eventBus.emit("sponsor:error", {
-        message: formatErrorMessage(e, t("sponsorRequestError")),
-      });
-      throw e;
+    } finally {
+      isCheckingSponsorship.set(false);
     }
   }
 
   async function submitRelay() {
+    const payload = JSON.parse(payloadJson.get());
+    isRelaying.set(true);
     try {
-      const payload = JSON.parse(payloadJson.get());
-      aa.setAddress(aaAddress.get() || null);
       const scopedPayload = {
         aaAddress: aaAddress.get(),
         ...payload,
@@ -154,15 +140,11 @@ export function useAARelayConsole({
           ? { paymaster: { dapp_id: dappId.get(), network } }
           : {}),
       };
-      const result = await aa.submitRelay(scopedPayload);
+      const result = await app.aa.relay(scopedPayload);
       lastRelayResult.set(result);
       sponsorResult.set(result);
-      eventBus.emit("relay:submitted", {});
-    } catch (e) {
-      eventBus.emit("relay:error", {
-        message: formatErrorMessage(e, t("relayError")),
-      });
-      throw e;
+    } finally {
+      isRelaying.set(false);
     }
   }
 

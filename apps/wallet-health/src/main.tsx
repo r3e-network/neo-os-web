@@ -14,27 +14,28 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy namespace for app.storage.local: the checklist persisted under the
+  // raw "miniapp-wallet-health:checklist" localStorage key before the
+  // framework migration — keep the key byte-identical so user data survives.
+  storagePrefix: "miniapp-wallet-health:",
 
   setup(ctx) {
     const health = useWalletHealth({
-      chain: ctx.services.chain,
-      balance: ctx.services.balance,
-      eventBus: ctx.services.events,
-      storage: ctx.os.storage,
+      app: ctx.framework,
       targetNetwork: ctx.launchContext.network,
       t: ctx.t,
     });
 
-    // Load persisted checklist from OS storage on mount
+    // Load persisted checklist from device-local storage on mount
     health.loadChecklist();
 
     // If the wallet connects via the host AFTER the app is open, the data
     // loaders (mount-only) would leave balances and the auto gas check at 0.
     // Refresh when the address transitions from empty to set (mirrors
     // neo-treasury's address sync).
-    let lastAddress = ctx.services.chain.address.get() ?? "";
-    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
-      const next = ctx.services.chain.address.get() ?? "";
+    let lastAddress = ctx.framework.wallet.address() ?? "";
+    const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
+      const next = ctx.framework.wallet.address() ?? "";
       if (next && next !== lastAddress) {
         void health.refreshBalances();
       }
@@ -61,15 +62,15 @@ defineMiniApp({
       },
     });
 
-    // Copy via the shared ClipboardService so we keep its execCommand fallback
-    // (which matters inside the sandboxed iframe) and its standardized toast
+    // Copy via app.clipboard so we keep the execCommand fallback (which
+    // matters inside the sandboxed iframe) and the standardized toast
     // channel, instead of a raw navigator.clipboard call that throws when
     // unavailable. The successKey localizes the toast per copy kind.
     ctx.framework.actions.register("copy", async (...args: unknown[]) => {
       const text = typeof args[0] === "string" ? args[0] : "";
       const successKey = typeof args[1] === "string" ? args[1] : "copied";
       if (!text) return false;
-      return ctx.services.clipboard.copy(text, successKey);
+      return ctx.framework.clipboard.copy(text, { successKey });
     });
 
     return {
@@ -93,7 +94,7 @@ defineMiniApp({
         recommendations: health.recommendations,
       },
       loadData: async () => {
-        if (health.address.value) {
+        if (health.address.get()) {
           await health.refreshBalances();
         }
       },

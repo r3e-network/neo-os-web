@@ -5,7 +5,7 @@
  * objects. The generated identity artwork is a quiet supporting asset, not a
  * full-stage backdrop.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   BadgeCheck,
   Fingerprint,
@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { useTransientFlag } from "@shared/components-react";
 import type { ObservableState } from "@shared/react/context";
 import {
   OpenUiNotice,
@@ -108,25 +109,12 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const requestCount = num("requestCount");
 
   const [values, setValues] = useState<NeoDidValues>(() => defaultValues(launchContext?.params));
-  const [actionPreview, setActionPreview] = useState(false);
+  // Shared transient "previewing" pulse (console kernel §S14) — replaces the
+  // hand-rolled useState + timeout-ref + unmount-cleanup trio.
+  const previewFlag = useTransientFlag(1200);
+  const actionPreview = previewFlag.active;
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("identity");
-  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(
-    () => () => {
-      if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    },
-    [],
-  );
-
-  const startPreview = () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    setActionPreview(true);
-    previewTimeout.current = setTimeout(() => {
-      setActionPreview(false);
-      previewTimeout.current = null;
-    }, 1200);
-  };
   const update = (key: keyof NeoDidValues, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
   };
@@ -136,7 +124,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
   function handleBuild() {
     if (!formatReady) return;
-    startPreview();
+    previewFlag.trigger();
     void dispatch("buildRequest", values);
   }
 

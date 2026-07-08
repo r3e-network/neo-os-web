@@ -281,6 +281,11 @@ export interface AddressScriptHash {
  * Decode a Neo N3 address to its 20-byte script hash in both byte orders. The
  * base58check payload carries the script hash little-endian; the canonical 0x…
  * display form is that reversed.
+ *
+ * framework-exempt: this conversion IS the app's product (neo-convert is a key
+ * toolkit) — it must expose {bigEndian, littleEndian} and throw on invalid
+ * input for the converter UI, unlike the framework's plumbing-oriented
+ * single-value addressToScriptHash / arg.hash160 lane.
  */
 export const addressToScriptHash = (address: string): AddressScriptHash => {
   const payload = decodeBase58Check(address.trim());

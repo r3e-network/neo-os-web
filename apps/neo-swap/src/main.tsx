@@ -18,23 +18,19 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
-
     const swap = useSwapEngine({
       app: ctx.framework,
-      balance: ctx.services.balance,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
     ctx.framework.actions.register("connectWallet", async () => {
-      await notify.guard(async () => {
-        await ctx.services.chain.ensureWallet();
+      await ctx.framework.notify.guard(async () => {
+        await ctx.framework.wallet.ensure();
         await swap.refreshBalances();
       });
     });
     ctx.framework.actions.register("executeSwap", async () => {
-      await notify.guard(() => swap.executeSwap(), "swapSuccess");
+      await ctx.framework.notify.guard(() => swap.executeSwap(), { successKey: "swapSuccess" });
     });
     ctx.framework.actions.register("swapTokens", async () => { swap.swapTokens(); });
     ctx.framework.actions.register("setFromAmount", async (value: unknown) => { swap.setFromAmount(String(value ?? "")); });

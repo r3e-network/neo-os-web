@@ -163,16 +163,16 @@ function setup(initial?: Partial<ChainState>) {
     ensureWallet: ReturnType<typeof vi.fn>;
   };
 
-  const eventBus = { emit: vi.fn() };
+  const bus = { emit: vi.fn() };
 
   const app = createMiniAppFramework(
     { services: { chain }, t } as never,
     { appId: "miniapp-event-ticket-pass" },
   );
-  const ticket = useEventTicket({ app, eventBus, t });
+  const ticket = useEventTicket({ app, bus, t });
   ticket.address.set(OWNER);
 
-  return { ticket, chain, invoke, read, eventBus, chainState };
+  return { ticket, chain, invoke, read, bus, chainState };
 }
 
 describe("useEventTicket (chain wiring)", () => {

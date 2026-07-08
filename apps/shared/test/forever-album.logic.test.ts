@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useForeverAlbum } from "../../forever-album/src/composables/useForeverAlbum";
-import type { ChainService } from "../services";
+import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 
 beforeEach(() => {
@@ -34,10 +34,15 @@ function t(key: string, params?: Record<string, string | number>) {
 function makeApp(walletAddress: string | null = WALLET) {
   const address = createObservable<string | null>(walletAddress);
   const ensureWallet = vi.fn(async () => walletAddress ?? "");
-  const chain = { address, ensureWallet } as unknown as ChainService;
-  const eventBus = { emit: vi.fn() };
-  const album = useForeverAlbum({ chainService: chain, eventBus, t });
-  return { album, address, eventBus };
+  const chain = { address, ensureWallet };
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    // Mirror the app wiring: the album store lives in the legacy
+    // "forever-album:" namespace (defineMiniApp storagePrefix).
+    { appId: "miniapp-forever-album", storagePrefix: "forever-album:" },
+  );
+  const album = useForeverAlbum({ app, t });
+  return { album, address };
 }
 
 const DATA_URL = "data:image/png;base64,aGVsbG8=";
@@ -66,6 +71,10 @@ describe("useForeverAlbum — local-only storage", () => {
       { id: "s1", dataUrl: DATA_URL, size: 10, payloadBytes: DATA_URL.length },
     ]);
     await first.album.uploadPhotos();
+
+    // The store key is byte-identical to the pre-framework localStorage key,
+    // so albums saved before the app.storage.local migration still resolve.
+    expect(globalThis.localStorage?.getItem(`forever-album:photos:${WALLET}`)).toBeTruthy();
 
     // A new instance on the SAME wallet sees the saved photo.
     const second = makeApp();
@@ -120,8 +129,8 @@ describe("useForeverAlbum — local-only storage", () => {
     expect(album.decryptedPreview.get()).toBe("");
   });
 
-  it("surfaces the max-photos rejection on the VISIBLE uploadError (not a dead eventBus emit)", async () => {
-    const { album, eventBus } = makeApp();
+  it("surfaces the max-photos rejection on the VISIBLE uploadError", async () => {
+    const { album } = makeApp();
     // Fill the selection to the max, then attempt to add one more.
     album.selectedImages.set(
       Array.from({ length: 5 }, (_v, i) => ({
@@ -132,10 +141,9 @@ describe("useForeverAlbum — local-only storage", () => {
       })),
     );
     await album.addFiles([{ type: "image/png", size: 10 } as unknown as File]);
-    // The rejection lands on the rendered uploadError observable.
+    // The rejection lands on the rendered uploadError observable (the dead
+    // "album:error" eventBus channel is gone along with the bus dependency).
     expect(album.uploadError.get()).toBe("You already selected the max photos.");
-    // It is NOT routed through the dead "album:error" eventBus channel.
-    expect(eventBus.emit).not.toHaveBeenCalledWith("album:error", expect.anything());
   });
 
   it("blocks an encrypted upload with no password via a visible uploadError", async () => {

@@ -128,6 +128,9 @@ export function useAAAccountLab({ app, storageService, t }: UseAAAccountLabOptio
   function connectedWalletHash(): string {
     const addr = app.chain.address.get();
     if (!addr) return "";
+    // framework-exempt: false-not-throw comparison key — an unparsable wallet
+    // address must compare as "" (skip the pre-flight check), not throw the
+    // way app.chain.arg.hash160 / app.wallet.scriptHash() would.
     try {
       const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
       return /^[0-9a-f]{40}$/.test(hash) ? hash : "";

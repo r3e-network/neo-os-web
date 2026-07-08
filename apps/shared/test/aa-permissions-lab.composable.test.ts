@@ -24,13 +24,16 @@ function t(key: string) {
   return messages[key] ?? key;
 }
 
-function makeChain(isConnected = false) {
+function makeChain(connected = false) {
   // refreshState now reads 7 values: verifier/hook/backupOwner (Hash160) plus
   // the two-phase pending flags and times. parseHash160 reverses Hash160 bytes;
   // repeated-byte hashes (0x22.., 0x33.., 0x44..) reverse to themselves.
+  // Connection state is derived from the address (app.wallet.isConnected()),
+  // matching the real ChainService where isConnected = Boolean(address).
   return {
-    isConnected: createObservable(isConnected),
-    address: createObservable<string | null>(null),
+    address: createObservable<string | null>(
+      connected ? "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32" : null,
+    ),
     read: vi
       .fn()
       .mockResolvedValueOnce("0x2222222222222222222222222222222222222222")
@@ -54,7 +57,7 @@ describe("AA Permissions Lab composable", () => {
   it("reads permission state without writing OS storage before a wallet is connected", async () => {
     const chain = makeChain(false);
     const storage = makeStorage();
-    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: storage, t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: storage, t });
 
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
@@ -71,7 +74,7 @@ describe("AA Permissions Lab composable", () => {
   it("persists inspected state only when a wallet is connected", async () => {
     const chain = makeChain(true);
     const storage = makeStorage();
-    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: storage, t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: storage, t });
 
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
@@ -87,12 +90,9 @@ describe("AA Permissions Lab composable", () => {
   });
 
   it("blocks a verifier rotation when the wallet is not the backup owner", async () => {
+    // Connected wallet (NR3E4...) differs from the inspected backup owner (0x4444...).
     const chain = makeChain(true);
-    // Connected wallet differs from the inspected backup owner (0x4444...).
-    (chain as unknown as { address: ReturnType<typeof createObservable> }).address.set(
-      "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
-    );
-    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: makeStorage(), t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: makeStorage(), t });
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
 
@@ -106,7 +106,6 @@ describe("AA Permissions Lab composable", () => {
 
   it("surfaces a pending verifier rotation and confirms it in a second phase", async () => {
     const chain = {
-      isConnected: createObservable(true),
       address: createObservable<string | null>(null),
       read: vi
         .fn()
@@ -124,7 +123,7 @@ describe("AA Permissions Lab composable", () => {
       read: ReturnType<typeof vi.fn>;
       invoke: ReturnType<typeof vi.fn>;
     };
-    const lab = useAAPermissionsLab({ app: makeApp(chain), chain, storageService: makeStorage(), t });
+    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: makeStorage(), t });
     lab.form.accountIdHash = ACCOUNT_ID_HASH;
     await lab.refreshState();
 
