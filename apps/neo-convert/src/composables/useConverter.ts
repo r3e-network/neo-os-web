@@ -13,7 +13,7 @@ import {
   getPublicKey,
   getPrivateKeyFromWIF,
 } from "@/services/neo";
-import type { ClipboardService } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -40,7 +40,7 @@ const EMPTY_RESULT: ConversionResult = {
 };
 
 /** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
-export function useConverter(t: (key: string) => string, clipboard?: ClipboardService) {
+export function useConverter(t: (key: string) => string, clipboard: MiniAppFramework["clipboard"]) {
   const sm = useStatusMessage(3000);
   const { setStatus: setCopyStatus } = sm;
   const copyStatus = createDerived(
@@ -54,17 +54,11 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
   const result = createObservable<ConversionResult>({ ...EMPTY_RESULT });
 
   async function copy(text: string) {
-    if (clipboard) {
-      await clipboard.copy(text, "copied");
-      setCopyStatus(t("copied"), "success");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyStatus(t("copied"), "success");
-    } catch (e) {
-      setCopyStatus(t("copyFailed") || "Copy failed", "error");
-    }
+    // app.clipboard owns the write (navigator → legacy textarea fallback) and
+    // the "copied"/"copyFailed" toast; the inline copyStatus chip keeps the
+    // pre-migration behavior of always confirming the attempt.
+    await clipboard.copy(text, { successKey: "copied" });
+    setCopyStatus(t("copied"), "success");
   }
 
   function clearResult() {
@@ -99,6 +93,9 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
       if (validateAddress(val)) {
         statusMsg.set("detectedAddress");
         statusType.set("success");
+        // framework-exempt: this addressToScriptHash IS the app's product —
+        // the converter must show BOTH endiannesses ({bigEndian, littleEndian}),
+        // which the framework's single-value arg.hash160 lane does not expose.
         const { bigEndian, littleEndian } = addressToScriptHash(val);
         result.set({ ...EMPTY_RESULT, address: val, scriptHash: bigEndian, scriptHashLE: littleEndian });
         return;

@@ -19,8 +19,7 @@ defineMiniApp({
 
   setup(ctx) {
     const relay = useAARelayConsole({
-      aa: ctx.services.aa,
-      eventBus: ctx.services.events,
+      app: ctx.framework,
       t: ctx.t,
     });
     const launchDefaults = getRelayLaunchDefaults(ctx.launchContext);
@@ -38,11 +37,10 @@ defineMiniApp({
       async (aaAddress: unknown, dappId: unknown) => {
         relay.aaAddress.set(String(aaAddress));
         relay.dappId.set(String(dappId));
-        await ctx.services.notify.guard(
-          () => relay.checkSponsor(),
-          "sponsorCheckComplete",
-          "sponsorCheckError",
-        );
+        await ctx.framework.notify.guard(() => relay.checkSponsor(), {
+          successKey: "sponsorCheckComplete",
+          errorKey: "sponsorCheckError",
+        });
       },
     );
 
@@ -52,11 +50,10 @@ defineMiniApp({
         relay.aaAddress.set(String(aaAddress));
         relay.dappId.set(String(dappId));
         relay.sponsorAmount.set(String(amount || "0.1"));
-        await ctx.services.notify.guard(
-          () => relay.requestSponsor(),
-          "sponsorRequestComplete",
-          "sponsorRequestError",
-        );
+        await ctx.framework.notify.guard(() => relay.requestSponsor(), {
+          successKey: "sponsorRequestComplete",
+          errorKey: "sponsorRequestError",
+        });
       },
     );
 
@@ -66,11 +63,10 @@ defineMiniApp({
         relay.aaAddress.set(String(aaAddress));
         relay.dappId.set(String(dappId));
         relay.payloadJson.set(String(payloadJson));
-        await ctx.services.notify.guard(
-          () => relay.submitRelay(),
-          "relaySubmitted",
-          "relayError",
-        );
+        await ctx.framework.notify.guard(() => relay.submitRelay(), {
+          successKey: "relaySubmitted",
+          errorKey: "relayError",
+        });
       },
     );
 

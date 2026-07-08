@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Copy,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
+import { useTransientFlag } from "@shared/components-react";
 import type { ConsoleResult } from "@shared/components-react";
 import {
   OpenUiNotice,
@@ -87,17 +88,17 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const [values, setValues] = useState(() => defaults(launchContext?.params));
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("seed");
-  const [building, setBuilding] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Shared transient pulses (console kernel §S14) — replace the hand-rolled
+  // useState + timeout-ref + unmount-cleanup trios for "building" and "copied".
+  const buildingFlag = useTransientFlag(900);
+  const building = buildingFlag.active;
+  const copiedFlag = useTransientFlag(1000);
+  const copied = copiedFlag.active;
   const payloadText = useMemo(
     () => (result ? JSON.stringify(result.payload, null, 2) : ""),
     [result],
   );
 
-  useEffect(() => () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-  }, []);
   useEffect(() => {
     if (drawerMode === "payload" && !payloadText) setDrawerMode("proof");
   }, [drawerMode, payloadText]);
@@ -173,7 +174,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       mode: preset.mode,
     });
     setResult(null);
-    setCopied(false);
+    copiedFlag.clear();
     setObservable(state, "lastStatus", t("statusReady"));
     setObservable(state, "lastDigest", digestPlaceholder);
   };
@@ -184,26 +185,20 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
 
   const applyResult = (next: ConsoleResult, requestValues: VrfValues) => {
     setResult(next);
-    setCopied(false);
+    copiedFlag.clear();
     void dispatch("buildRequest", requestValues);
   };
 
   const buildRequest = () => {
     if (!canBuild) return;
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    setBuilding(true);
+    buildingFlag.trigger();
     const next = consoleConfig.buildResult(values, t);
     applyResult(next, values);
-    previewTimeout.current = setTimeout(() => {
-      setBuilding(false);
-      previewTimeout.current = null;
-    }, 900);
   };
 
   const resetTicket = () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    setBuilding(false);
-    setCopied(false);
+    buildingFlag.clear();
+    copiedFlag.clear();
     setValues(defaults(launchContext?.params));
     setResult(null);
     setObservable(state, "lastStatus", t("statusReady"));
@@ -211,10 +206,12 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   };
 
   const copyPayload = () => {
+    // framework-exempt: silent component-side copy — feedback is the local
+    // "copied" pulse only; app.clipboard.copy always toasts through notify and
+    // is not reachable from the PlayArea (no ctx here).
     if (!payloadText || !navigator.clipboard) return;
     void navigator.clipboard.writeText(payloadText);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1000);
+    copiedFlag.trigger();
   };
 
   const scene = (

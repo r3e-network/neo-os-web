@@ -28,7 +28,9 @@ interface PlayAreaProps {
 type TokenLike = Token | string | null | undefined;
 type DrawerMode = "route" | "settings" | "tokens";
 
-const TOKEN_DEFAULTS: Record<string, Token> = {
+// Known symbols index as a guaranteed Token (noUncheckedIndexedAccess-safe);
+// arbitrary strings stay `Token | undefined` for the dynamic lookups below.
+const TOKEN_DEFAULTS: Record<"NEO" | "GAS", Token> & Record<string, Token | undefined> = {
   NEO: { symbol: "NEO", hash: "", balance: 0, decimals: 0 },
   GAS: { symbol: "GAS", hash: "", balance: 0, decimals: 8 },
 };
@@ -74,7 +76,7 @@ function formatBalance(token: Token): string {
 function normalizeAmountForToken(value: string, token: Token): string {
   const text = String(value ?? "");
   if (token.decimals === 0) {
-    return text.split(/[.,]/)[0].replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   }
   return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 }

@@ -46,11 +46,10 @@ defineMiniApp({
 
     ctx.framework.actions.register("inspect", async (accountIdInput: unknown) => {
       lab.inspectForm.accountIdInput = String(accountIdInput);
-      await ctx.services.notify.guard(
-        () => lab.inspectAccount(),
-        "inspectSuccess",
-        "invalidAccountId",
-      );
+      await ctx.framework.notify.guard(() => lab.inspectAccount(), {
+        successKey: "inspectSuccess",
+        errorKey: "invalidAccountId",
+      });
     });
 
     ctx.framework.actions.register(
@@ -69,20 +68,18 @@ defineMiniApp({
         lab.registerForm.hookHash = String(hookHash);
         lab.registerForm.backupOwner = String(backupOwner);
         lab.registerForm.escapeTimelock = String(escapeTimelock);
-        await ctx.services.notify.guard(
-          () => lab.submitRegister(),
-          "registerSuccess",
-          "invalidAccountId",
-        );
+        await ctx.framework.notify.guard(() => lab.submitRegister(), {
+          successKey: "registerSuccess",
+          errorKey: "invalidAccountId",
+        });
       },
     );
 
     ctx.framework.actions.register("connect", () =>
-      ctx.services.notify.guard(
-        () => ctx.services.chain.ensureWallet(),
-        "walletConnected",
-        "connectFailed",
-      ),
+      ctx.framework.notify.guard(() => ctx.framework.wallet.ensure(), {
+        successKey: "walletConnected",
+        errorKey: "connectFailed",
+      }),
     );
 
     return {

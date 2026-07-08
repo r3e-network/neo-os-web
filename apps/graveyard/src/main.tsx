@@ -16,11 +16,8 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
-
     const graveyard = useGraveyard({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -48,7 +45,10 @@ defineMiniApp({
       await graveyard.setMemoryText(String(text ?? ""));
     });
     ctx.framework.actions.register("executeDestroy", async (draft: unknown) => {
-      await notify.guard(() => graveyard.executeDestroy(draft as BurialDraftInput), "memoryBuried");
+      await ctx.framework.notify.guard(
+        () => graveyard.executeDestroy(draft as BurialDraftInput),
+        { successKey: "memoryBuried" },
+      );
     });
     ctx.framework.actions.register("requestForget", async (item: unknown) => {
       graveyard.requestForget(item as HistoryItem);
@@ -57,9 +57,9 @@ defineMiniApp({
       graveyard.cancelForget();
     });
     ctx.framework.actions.register("forgetMemory", async (item: unknown) => {
-      await notify.guard(
+      await ctx.framework.notify.guard(
         () => graveyard.forgetMemory(item as HistoryItem),
-        "forgetSuccess",
+        { successKey: "forgetSuccess" },
       );
     });
     ctx.framework.actions.register("startEpitaph", async (item: unknown) => {
@@ -72,9 +72,9 @@ defineMiniApp({
       graveyard.epitaphText.set(String(text ?? ""));
     });
     ctx.framework.actions.register("saveEpitaph", async (item: unknown) => {
-      await notify.guard(
+      await ctx.framework.notify.guard(
         () => graveyard.saveEpitaph(item as HistoryItem),
-        "epitaphSaved",
+        { successKey: "epitaphSaved" },
       );
     });
     ctx.framework.actions.register("setShowAllHistory", async (value: unknown) => {

@@ -9,7 +9,6 @@
 
 import { createObservable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { getMiniAppContractHash } from "@shared/constants/rpc";
 import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
@@ -42,7 +41,6 @@ export interface AnchorAdminInfo {
 export interface UseTrustAnchorOptions {
   /** MiniApp framework SDK from ctx.framework. */
   app: MiniAppFramework;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -131,7 +129,7 @@ function normalizeHash160OrAddress(input: unknown, t: Translate): string {
   throw new Error(t("invalidAgentAccount"));
 }
 
-export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
+export function useTrustAnchor({ app, t }: UseTrustAnchorOptions) {
   const isLoading = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
@@ -346,7 +344,6 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
         waitTimeoutMs: 30_000,
       },
     );
-    eventBus.emit("anchor:staked", { appId: APP_ID, amount });
     await loadAll();
     return result;
   };
@@ -367,7 +364,6 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
         waitTimeoutMs: 30_000,
       },
     );
-    eventBus.emit("anchor:withdrawn", { appId: APP_ID, amount });
     await loadAll();
     return result;
   };
@@ -386,7 +382,6 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
         waitTimeoutMs: 30_000,
       },
     );
-    eventBus.emit("anchor:rewards-claimed", { appId: APP_ID });
     await loadAll();
     return result;
   };
@@ -409,7 +404,6 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:credit-recovered", { appId: APP_ID, amount });
     await loadAll();
     return result;
   };
@@ -434,12 +428,6 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:agent-transfer", {
-      appId: APP_ID,
-      fromAgentId,
-      toAgentId,
-      amount,
-    });
     await loadAll();
   };
 
@@ -450,21 +438,15 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
     await app.chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
-    // PublicKey has no framework arg builder — keep the literal contract arg.
     await app.chain.invoke(
       "setAgentCandidate",
       [
         app.chain.arg.string(APP_ID),
         app.chain.arg.integer(agentId),
-        { type: "PublicKey", value: candidate },
+        app.chain.arg.publicKey(candidate),
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:candidate-updated", {
-      appId: APP_ID,
-      agentId,
-      candidate,
-    });
     await loadAll();
   };
 
@@ -479,7 +461,6 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:agent-voted", { appId: APP_ID, agentId });
     await loadAll();
   };
 
@@ -492,22 +473,16 @@ export function useTrustAnchor({ app, eventBus, t }: UseTrustAnchorOptions) {
     const agentAccount = normalizeHash160OrAddress(agentAccountInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
     const verificationScriptHash = normalizeHex(verificationScriptHashInput, t);
-    // PublicKey has no framework arg builder — keep the literal contract arg.
     await app.chain.invoke(
       "registerAgent",
       [
         app.chain.arg.string(APP_ID),
         app.chain.arg.hash160(agentAccount),
-        { type: "PublicKey", value: candidate },
+        app.chain.arg.publicKey(candidate),
         app.chain.arg.byteArray(verificationScriptHash),
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:agent-registered", {
-      appId: APP_ID,
-      agentAccount,
-      candidate,
-    });
     await loadAll();
   };
 

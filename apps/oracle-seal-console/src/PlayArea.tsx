@@ -4,7 +4,7 @@
  * Reference-envelope builder for oracle request metadata. The UI keeps the
  * critical truth visible: this creates a checksum reference, not encryption.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BadgeCheck,
   CircleAlert,
@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { useTransientFlag } from "@shared/components-react";
 import type { ObservableState } from "@shared/react/context";
 import {
   OpenUiNotice,
@@ -81,13 +82,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [purpose, setPurpose] = useState("oracle-input");
   const [recipient, setRecipient] = useState("");
   const [payload, setPayload] = useState("{\n  \"source\": \"oracle\",\n  \"ttl\": 60\n}");
-  const [actionPreview, setActionPreview] = useState(false);
+  // Shared transient "previewing" pulse (console kernel §S14) — replaces the
+  // hand-rolled useState + timeout-ref + unmount-cleanup trio.
+  const previewFlag = useTransientFlag(950);
+  const actionPreview = previewFlag.active;
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("receipt");
-  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-  }, []);
 
   const selectedPurpose = useMemo(
     () => PURPOSES.find((item) => item.value === purpose) ?? PURPOSES[0],
@@ -98,17 +97,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasDigest = lastDigest && lastDigest !== t("digestPlaceholder");
   const statusTone = payloadValid ? "ready" : "invalid";
 
-  const startPreview = () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    setActionPreview(true);
-    previewTimeout.current = setTimeout(() => {
-      setActionPreview(false);
-      previewTimeout.current = null;
-    }, 950);
-  };
-
   const handleBuild = () => {
-    startPreview();
+    previewFlag.trigger();
     void dispatch("buildRequest", {
       purpose,
       recipient: recipient.trim(),

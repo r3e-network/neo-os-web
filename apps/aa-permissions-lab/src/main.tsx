@@ -20,7 +20,6 @@ defineMiniApp({
   setup(ctx) {
     const lab = useAAPermissionsLab({
       app: ctx.framework,
-      chain: ctx.services.chain,
       storageService: ctx.os.storage,
       t: ctx.t,
     });
@@ -40,11 +39,10 @@ defineMiniApp({
 
     ctx.framework.actions.register("refresh", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
-      await ctx.services.notify.guard(
-        () => lab.refreshState(),
-        "inspectComplete",
-        "inspectFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.refreshState(), {
+        successKey: "inspectComplete",
+        errorKey: "inspectFailed",
+      });
     });
 
     ctx.framework.actions.register(
@@ -57,11 +55,10 @@ defineMiniApp({
         lab.form.accountIdHash = String(accountIdHash);
         lab.form.verifierHash = String(verifierHash);
         lab.form.verifierParamsHex = String(verifierParamsHex);
-        await ctx.services.notify.guard(
-          () => lab.submitVerifier(),
-          "successVerifier",
-          "updateVerifierFailed",
-        );
+        await ctx.framework.notify.guard(() => lab.submitVerifier(), {
+          successKey: "successVerifier",
+          errorKey: "updateVerifierFailed",
+        });
       },
     );
 
@@ -70,56 +67,50 @@ defineMiniApp({
       async (accountIdHash: unknown, hookHash: unknown) => {
         lab.form.accountIdHash = String(accountIdHash);
         lab.form.hookHash = String(hookHash);
-        await ctx.services.notify.guard(
-          () => lab.submitHook(),
-          "successHook",
-          "updateHookFailed",
-        );
+        await ctx.framework.notify.guard(() => lab.submitHook(), {
+          successKey: "successHook",
+          errorKey: "updateHookFailed",
+        });
       },
     );
 
     ctx.framework.actions.register("confirmVerifier", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
-      await ctx.services.notify.guard(
-        () => lab.confirmVerifier(),
-        "confirmVerifierSuccess",
-        "updateVerifierFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.confirmVerifier(), {
+        successKey: "confirmVerifierSuccess",
+        errorKey: "updateVerifierFailed",
+      });
     });
 
     ctx.framework.actions.register("cancelVerifier", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
-      await ctx.services.notify.guard(
-        () => lab.cancelVerifier(),
-        "cancelVerifierSuccess",
-        "updateVerifierFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.cancelVerifier(), {
+        successKey: "cancelVerifierSuccess",
+        errorKey: "updateVerifierFailed",
+      });
     });
 
     ctx.framework.actions.register("confirmHook", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
-      await ctx.services.notify.guard(
-        () => lab.confirmHook(),
-        "confirmHookSuccess",
-        "updateHookFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.confirmHook(), {
+        successKey: "confirmHookSuccess",
+        errorKey: "updateHookFailed",
+      });
     });
 
     ctx.framework.actions.register("cancelHook", async (accountIdHash: unknown) => {
       lab.form.accountIdHash = String(accountIdHash);
-      await ctx.services.notify.guard(
-        () => lab.cancelHook(),
-        "cancelHookSuccess",
-        "updateHookFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.cancelHook(), {
+        successKey: "cancelHookSuccess",
+        errorKey: "updateHookFailed",
+      });
     });
 
     ctx.framework.actions.register("connect", () =>
-      ctx.services.notify.guard(
-        () => ctx.services.chain.ensureWallet(),
-        "walletConnected",
-        "connectFailed",
-      ),
+      ctx.framework.notify.guard(() => ctx.framework.wallet.ensure(), {
+        successKey: "walletConnected",
+        errorKey: "connectFailed",
+      }),
     );
 
     return {

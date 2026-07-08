@@ -11,17 +11,15 @@
  *
  * Key design decisions:
  *   - No onMounted/onUnmounted — lifecycle is managed by defineMiniApp
- *   - Services are passed in explicitly (no inject)
+ *   - Everything rides the framework SDK (app.wallet identity + balances,
+ *     app.clipboard copy) — no raw platform services
  *   - Formatted values are provided as computed refs for manifest bindings
  *   - Account generation and conversion are pure client-side operations
- *   - The EventBus is used to emit success/error events for platform toasts
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { BalanceService, TransferService, ClipboardService } from "@shared/services";
-import { EventBus } from "@shared/services";
 import { generateAccount } from "@/services/neo";
 import type { NeoAccount } from "@/services/neo";
 import { useConverter } from "./useConverter";
@@ -39,14 +37,6 @@ const APP_ID = "miniapp-neo-convert";
 export interface UseNeoConvertOptions {
   /** MiniApp framework SDK from ctx.framework */
   app: MiniAppFramework;
-  /** BalanceService instance from PlatformServices */
-  balance: BalanceService;
-  /** TransferService instance from PlatformServices */
-  transfer: TransferService;
-  /** EventBus instance from PlatformServices */
-  eventBus: EventBus;
-  /** ClipboardService instance from PlatformServices */
-  clipboard: ClipboardService;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -55,8 +45,7 @@ export interface UseNeoConvertOptions {
 // Composable
 // ============================================================================
 
-export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoConvertOptions) {
-  const chain = app.chain;
+export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   // ── Tab & UI State ──────────────────────────────────────────────────
   const isMobile = createObservable(typeof window !== "undefined" ? window.innerWidth < 768 : false);
   const isLoading = createObservable(false);
@@ -70,7 +59,7 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
   const showConversionSecrets = createObservable(false);
 
   // ── Converter (delegates to existing useConverter) ──────────────────
-  const converter = useConverter(t as (key: string) => string, clipboard);
+  const converter = useConverter(t as (key: string) => string, app.clipboard);
 
   // ── Wallet Balances (reactive, auto-refresh on wallet connect) ──────
   const neoBalance = createObservable(0);
@@ -80,10 +69,10 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
 
   // Whether a wallet is connected — drives the hero tiles to show an em-dash
   // (rather than misleading "0 NEO / 0 GAS" zeros that read as real balances)
-  // until a wallet is present. Mirrors chain.isConnected reactively.
-  const walletConnected = createObservable(Boolean(chain.address.get()));
-  const unsubscribeAddress = chain.address.subscribe(() => {
-    const connected = Boolean(chain.address.get());
+  // until a wallet is present. Mirrors app.wallet.isConnected reactively.
+  const walletConnected = createObservable(app.wallet.isConnected());
+  const unsubscribeAddress = app.wallet.observe().subscribe(() => {
+    const connected = app.wallet.isConnected();
     walletConnected.set(connected);
     if (connected) void loadBalances();
   });
@@ -130,13 +119,13 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
   // ── Data Loading ────────────────────────────────────────────────────
 
   const loadBalances = async () => {
-    if (!chain.address.get()) return;
+    if (!app.wallet.isConnected()) return;
 
     balancesLoading.set(true);
     try {
       const [neo, gas] = await Promise.all([
-        balance.getNeoBalance(),
-        balance.getGasBalance(),
+        app.wallet.neo(),
+        app.wallet.gas(),
       ]);
       neoBalance.set(neo);
       gasBalance.set(gas);
@@ -150,30 +139,29 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
   /**
    * Set up reactive balance watchers that auto-refresh on balance changes.
    * Only useful when a wallet is connected (optional for this tool).
+   * app.wallet.observeBalance is BALANCE_CHANGED-wired internally, so the
+   * hand-rolled event-bus sync subscriptions are gone.
    */
   const setupReactiveBalances = () => {
     // Clean up any previous watchers
     cleanupBalances();
 
-    if (!chain.address.get()) return;
+    if (!app.wallet.isConnected()) return;
 
-    const neoWatcher = balance.useBalance("NEO");
-    const gasWatcher = balance.useBalance("GAS");
+    const neoWatcher = app.wallet.observeBalance("NEO");
+    const gasWatcher = app.wallet.observeBalance("GAS");
 
     // Sync reactive refs
-    const syncNeo = () => { neoBalance.set(neoWatcher.balance.get()); };
-    const syncGas = () => { gasBalance.set(gasWatcher.balance.get()); };
+    const syncNeo = () => { neoBalance.set(Number(neoWatcher.balance.get()) || 0); };
+    const syncGas = () => { gasBalance.set(Number(gasWatcher.balance.get()) || 0); };
 
     // Initial sync
     syncNeo();
     syncGas();
 
-    // Listen for updates via event bus
-    // Use the canonical event constant ("platform:balance:changed"); the bare
-    // "BALANCE_CHANGED" string never matched what BalanceService emits, so these
-    // syncs silently never fired on balance changes.
-    const unsubNeo = eventBus.on(EventBus.BALANCE_CHANGED, syncNeo);
-    const unsubGas = eventBus.on(EventBus.BALANCE_CHANGED, syncGas);
+    // Mirror watcher updates into the local refs
+    const unsubNeo = neoWatcher.balance.subscribe(syncNeo);
+    const unsubGas = gasWatcher.balance.subscribe(syncGas);
 
     balanceCleanups = [
       neoWatcher.cleanup,
@@ -210,17 +198,11 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
    * No network calls — pure client-side cryptography.
    */
   const generateNewAccount = () => {
-    try {
-      generatedAccount.set(generateAccount());
-      accountsGenerated.set(accountsGenerated.get() + 1);
-      showGeneratedSecrets.set(false);
-      eventBus.emit("convert:generated", { action: t("btnGenerate") });
-    } catch (e) {
-      eventBus.emit("convert:error", {
-        message: e instanceof Error ? e.message : t("invalidFormat"),
-      });
-      throw e;
-    }
+    // Failures propagate to the host action wrapper (errorKey toast); the
+    // earlier "convert:generated"/"convert:error" emits had no subscriber.
+    generatedAccount.set(generateAccount());
+    accountsGenerated.set(accountsGenerated.get() + 1);
+    showGeneratedSecrets.set(false);
   };
 
   /**
@@ -230,18 +212,10 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
   const convertInput = () => {
     // A new conversion starts masked so a freshly derived private key/WIF is not
     // revealed by a reveal toggle left on from a previous conversion.
+    // (Success/error toasts come from the host's convert action, which reads
+    // the status observables; the earlier "convert:*" emits had no subscriber.)
     showConversionSecrets.set(false);
     converter.detectAndConvert();
-
-    if (converter.statusType.get() === "success") {
-      eventBus.emit("convert:converted", {
-        format: converter.statusMsg.get(),
-      });
-    } else if (converter.statusType.get() === "error") {
-      eventBus.emit("convert:error", {
-        message: t(converter.statusMsg.get()),
-      });
-    }
   };
 
   /**
@@ -286,7 +260,6 @@ export function useNeoConvert({ app, balance, eventBus, clipboard, t }: UseNeoCo
       QRCode.toDataURL(account.wif, { margin: 1, width: 320 }),
     ]);
     walletPdf.generate(account, addressQr, wifQr);
-    eventBus.emit("convert:paper-wallet", { action: t("downloadPdf") });
   };
 
   // ── Cleanup ─────────────────────────────────────────────────────────

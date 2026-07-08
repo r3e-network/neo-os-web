@@ -81,15 +81,14 @@ function chainMock(opts: {
 
 function app(chainOpts: Parameters<typeof chainMock>[0] = {}) {
   const { chain, mock } = chainMock(chainOpts);
-  const eventBus = { emit: vi.fn() };
   // The composable now consumes the MiniApp framework; its arg builders and raw
   // passthroughs are behavior-preserving, so every recorded chain call matches.
   const framework = createMiniAppFramework(
     { services: { chain }, t } as never,
     { appId: "miniapp-graveyard" },
   );
-  const graveyard = useGraveyard({ app: framework, eventBus, t });
-  return { graveyard, mock, eventBus };
+  const graveyard = useGraveyard({ app: framework, t });
+  return { graveyard, mock };
 }
 
 describe("useGraveyard — local-hash compose mode", () => {

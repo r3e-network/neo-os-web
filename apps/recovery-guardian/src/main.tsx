@@ -259,31 +259,31 @@ defineMiniApp({
           escapeActiveResult,
           escapeTriggeredAtResult,
         ] = await Promise.all([
-          ctx.services.chain.read(
-            "getVerifier",
-            [{ type: "Hash160", value: accountId }],
-            { scriptHash: aaCore },
-          ),
-          ctx.services.chain.read(
-            "getBackupOwner",
-            [{ type: "Hash160", value: accountId }],
-            { scriptHash: aaCore },
-          ),
-          ctx.services.chain.read(
-            "getEscapeTimelock",
-            [{ type: "Hash160", value: accountId }],
-            { scriptHash: aaCore },
-          ),
-          ctx.services.chain.read(
-            "isEscapeActive",
-            [{ type: "Hash160", value: accountId }],
-            { scriptHash: aaCore },
-          ),
-          ctx.services.chain.read(
-            "getEscapeTriggeredAt",
-            [{ type: "Hash160", value: accountId }],
-            { scriptHash: aaCore },
-          ),
+          ctx.framework.chain.read({
+            operation: "getVerifier",
+            args: [{ type: "Hash160", value: accountId }],
+            scriptHash: aaCore,
+          }),
+          ctx.framework.chain.read({
+            operation: "getBackupOwner",
+            args: [{ type: "Hash160", value: accountId }],
+            scriptHash: aaCore,
+          }),
+          ctx.framework.chain.read({
+            operation: "getEscapeTimelock",
+            args: [{ type: "Hash160", value: accountId }],
+            scriptHash: aaCore,
+          }),
+          ctx.framework.chain.read({
+            operation: "isEscapeActive",
+            args: [{ type: "Hash160", value: accountId }],
+            scriptHash: aaCore,
+          }),
+          ctx.framework.chain.read({
+            operation: "getEscapeTriggeredAt",
+            args: [{ type: "Hash160", value: accountId }],
+            scriptHash: aaCore,
+          }),
         ]);
 
         const verifier = normalizeReadHash(verifierResult);
@@ -328,9 +328,9 @@ defineMiniApp({
           // Storage is a best-effort cache layer; ignore write failures.
         }
 
-        ctx.services.notify.success("queryLoaded");
+        ctx.framework.notify.success("queryLoaded");
       } catch (e) {
-        ctx.services.notify.error(e, ctx.t("queryFailed"));
+        ctx.framework.notify.error(e, "queryFailed");
       } finally {
         isQuerying.set(false);
       }
@@ -340,9 +340,6 @@ defineMiniApp({
       if (typeof window !== "undefined") {
         window.open(url, "_blank", "noopener,noreferrer");
       }
-    };
-    const copyText = async (text: string): Promise<void> => {
-      await navigator.clipboard?.writeText(text);
     };
     const registerLinkActions = (
       prefix: string,
@@ -356,32 +353,22 @@ defineMiniApp({
       ctx.framework.actions.register(`copy${prefix}`, async () => {
         const u = urlRef.get();
         if (!u) return;
-        try {
-          await copyText(u);
-          ctx.services.notify.success(keys.copied);
-        } catch (e) {
-          ctx.services.notify.error(e, ctx.t("clipboardFailed"));
-        }
+        await ctx.framework.clipboard.copy(u, {
+          successKey: keys.copied,
+          errorKey: "clipboardFailed",
+        });
       });
+      // app.share prefers the native share sheet and falls back to a clipboard
+      // copy (reported as a copy); a user-cancelled share rejects with an
+      // AbortError and stays silent — the S9 semantics this app defined.
       ctx.framework.actions.register(`share${prefix}`, async () => {
         const u = urlRef.get();
         if (!u) return;
-        const nav = typeof navigator !== "undefined" ? navigator : undefined;
-        try {
-          if (nav?.share) {
-            await nav.share({ url: u });
-            ctx.services.notify.success(keys.shared);
-          } else {
-            // No Web Share API: fall back to clipboard but report it as a copy.
-            await copyText(u);
-            ctx.services.notify.success(keys.copied);
-          }
-        } catch (e) {
-          // A user-cancelled share rejects with an AbortError — stay silent for
-          // that, surface anything else (e.g. clipboard fallback failure).
-          if (e instanceof Error && e.name === "AbortError") return;
-          ctx.services.notify.error(e, ctx.t("clipboardFailed"));
-        }
+        await ctx.framework.share.url(u, {
+          sharedKey: keys.shared,
+          copiedKey: keys.copied,
+          errorKey: "clipboardFailed",
+        });
       });
     };
     registerLinkActions("RecoveryPreviewLink", previewUrl, {

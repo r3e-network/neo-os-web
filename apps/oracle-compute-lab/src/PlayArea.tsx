@@ -4,7 +4,7 @@
  * Clean task desk: the compute package is the foreground, while the generated
  * art is kept as a small supporting resource preview instead of a full backdrop.
  */
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Braces,
   CheckCircle2,
@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { useTransientFlag } from "@shared/components-react";
 import type { ObservableState } from "@shared/react/context";
 import {
   OpenUiPanel,
@@ -99,31 +100,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastDigest = str("lastDigest", digestPlaceholder);
   const requestCount = num("requestCount");
 
-  const [actionPreview, setActionPreview] = useState(false);
+  // Shared transient "previewing" pulse (console kernel §S14) — replaces the
+  // hand-rolled useState + timeout-ref + unmount-cleanup trio.
+  const previewFlag = useTransientFlag(1200);
+  const actionPreview = previewFlag.active;
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("receipt");
   const [workflow, setWorkflow] = useState(defaultFieldValue("workflow") || "risk-score");
   const [privacy, setPrivacy] = useState(defaultFieldValue("privacy") || "sealed");
   const [inputPayload, setInputPayload] = useState(defaultFieldValue("input") || "{}");
-  const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    },
-    [],
-  );
-
-  const startPreview = () => {
-    if (previewTimeout.current) clearTimeout(previewTimeout.current);
-    setActionPreview(true);
-    previewTimeout.current = setTimeout(() => {
-      setActionPreview(false);
-      previewTimeout.current = null;
-    }, 1200);
-  };
 
   const handleBuild = () => {
-    startPreview();
+    previewFlag.trigger();
     void dispatch("buildRequest", { workflow, privacy, input: inputPayload });
   };
 

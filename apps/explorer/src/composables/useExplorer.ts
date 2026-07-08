@@ -14,11 +14,9 @@
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
 import { formatNumber } from "@shared/utils/format";
-import { useTicker } from "@shared/composables/useTicker";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { getHostOrigin } from "@shared/utils/runtime-origin";
 
 // ============================================================================
@@ -28,8 +26,12 @@ import { getHostOrigin } from "@shared/utils/runtime-origin";
 const APP_ID = "miniapp-explorer";
 const POLL_INTERVAL_MS = 15000;
 const RECENT_TXS_POLL_INTERVAL_MS = 30000;
-const STATS_CACHE_KEY = "explorer_stats_cache";
-const TXS_CACHE_KEY_PREFIX = "explorer_txs_cache";
+// app.storage.local keys. The app's storage namespace is pinned to the legacy
+// "explorer_" prefix (defineMiniApp storagePrefix), so these resolve to the
+// exact pre-framework runtime-cache keys ("explorer_stats_cache" /
+// "explorer_txs_cache:<network>") and existing cache entries still hit.
+const STATS_CACHE_KEY = "stats_cache";
+const TXS_CACHE_KEY_PREFIX = "txs_cache";
 
 // ============================================================================
 // Types
@@ -52,10 +54,8 @@ export interface ExplorerStats {
 }
 
 export interface UseExplorerOptions {
-  /** ChainService instance from PlatformServices */
-  chain: ChainService;
-  /** EventBus instance from PlatformServices */
-  eventBus: EventBus;
+  /** MiniApp framework — storage (cache) + lifecycle (polling) surfaces. */
+  app: MiniAppFramework;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -107,7 +107,7 @@ const normalizeTx = (tx: Record<string, unknown>): TransactionRecord => ({
 // Composable
 // ============================================================================
 
-export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
+export function useExplorer({ app, t }: UseExplorerOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const searchQuery = createObservable("");
   const selectedNetwork = createObservable<"mainnet" | "testnet">("mainnet");
@@ -154,7 +154,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   // ── Data Loading ─────────────────────────────────────────────────────
 
   const loadStats = async () => {
-    const cached = readCachedJSON<ExplorerStats>(STATS_CACHE_KEY);
+    const cached = app.storage.local.get<ExplorerStats>(STATS_CACHE_KEY);
     if (cached) stats.set(cached);
     if (!shouldUseExplorerApi()) return;
 
@@ -171,7 +171,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
     if (freshStats && typeof freshStats === "object") {
       stats.set(freshStats as ExplorerStats);
-      writeCachedJSON(STATS_CACHE_KEY, freshStats);
+      app.storage.local.set(STATS_CACHE_KEY, freshStats);
     }
   };
 
@@ -186,7 +186,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     const network = selectedNetwork.get();
     const cacheKey = `${TXS_CACHE_KEY_PREFIX}:${network}`;
     try {
-      const cached = readCachedJSON<TransactionRecord[]>(cacheKey);
+      const cached = app.storage.local.get<TransactionRecord[]>(cacheKey);
       // Only paint the cache when it still matches the active network — a stale
       // read for a network the user already toggled away from must not flash.
       if (cached && selectedNetwork.get() === network) recentTxs.set(cached);
@@ -208,7 +208,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
       }
 
       if (hasFreshTxs) {
-        writeCachedJSON(cacheKey, freshTxs);
+        app.storage.local.set(cacheKey, freshTxs);
         // Guard against a slow response landing after the user toggled networks.
         if (selectedNetwork.get() === network) recentTxs.set(freshTxs);
       }
@@ -284,19 +284,28 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
   // Stats and the recent-tx lane must both stay live: previously only the
   // height metric ticked while the transaction list went permanently stale.
-  // The recent list moves slower and is heavier, so poll it on its own cadence;
-  // the isLoadingTxs guard inside loadRecentTxs already prevents overlap.
-  const statsTicker = useTicker(loadStats, POLL_INTERVAL_MS);
-  const txsTicker = useTicker(loadRecentTxs, RECENT_TXS_POLL_INTERVAL_MS);
-
-  const startPolling = () => {
-    statsTicker.start();
-    txsTicker.start();
-  };
+  // The recent list moves slower and is heavier, so poll it on its own cadence
+  // via app.lifecycle.poll (visibility-paused, auto-disposed on unmount); the
+  // isLoadingTxs guard inside loadRecentTxs already prevents overlap.
+  let stopStatsPoll: (() => void) | null = null;
+  let stopTxsPoll: (() => void) | null = null;
 
   const stopPolling = () => {
-    statsTicker.stop();
-    txsTicker.stop();
+    stopStatsPoll?.();
+    stopStatsPoll = null;
+    stopTxsPoll?.();
+    stopTxsPoll = null;
+  };
+
+  const startPolling = () => {
+    // Restart-safe (loadAll re-runs on pull-to-refresh): drop any live pollers
+    // first so a reload never stacks a second interval.
+    stopPolling();
+    // loadAll just ran both loaders, so the pollers skip the immediate tick.
+    stopStatsPoll = app.lifecycle.poll(loadStats, POLL_INTERVAL_MS, { immediate: false });
+    stopTxsPoll = app.lifecycle.poll(loadRecentTxs, RECENT_TXS_POLL_INTERVAL_MS, {
+      immediate: false,
+    });
   };
 
   /**

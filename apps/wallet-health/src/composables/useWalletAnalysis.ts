@@ -1,34 +1,24 @@
 /**
  * useWalletAnalysis — Chain data and balance analysis for Wallet Health
  *
- * Receives ChainService + BalanceService + EventBus from PlatformServices
- * instead of wiring useContractInteraction + useStatusMessage + useWallet directly.
+ * Receives the MiniApp framework SDK (ctx.framework): wallet identity and
+ * NEO/GAS balance reads go through app.wallet instead of hand-rolled
+ * ChainService balanceOf reads.
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { ChainService, BalanceService, EventBus } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
 import { formatFixed8 } from "@shared/utils/format";
-import { parseBigInt } from "@shared/utils/parsers";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
-const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
-const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const GAS_LOW_THRESHOLD = 10000000n;
 
 export interface UseWalletAnalysisOptions {
-  chain: ChainService;
-  balance: BalanceService;
-  eventBus: EventBus;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnalysisOptions) {
-  // `balance` (BalanceService) is intentionally part of the OS-services injection
-  // contract; balance reads route through chain.read against the native NEO/GAS
-  // contracts, so it is not referenced directly here.
-  void balance;
-
+export function useWalletAnalysis({ app, t }: UseWalletAnalysisOptions) {
   const isRefreshing = createObservable(false);
   const isConnecting = createObservable(false);
   const balanceRevision = createObservable(0);
@@ -43,37 +33,24 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
   const gasDisplay = createDerived(() => formatFixed8(balances.gas, 4), [balanceRevision]);
 
   const refreshBalances = async () => {
-    const address = chain.address.get();
-    if (!address) return;
+    if (!app.wallet.isConnected()) return;
     if (isRefreshing.get()) return;
 
     try {
       isRefreshing.set(true);
-      // NEO and GAS reads are independent (same address, different scriptHash);
+      // NEO and GAS reads are independent (same address, different asset);
       // run them concurrently to roughly halve refresh latency on slow RPC.
       const [neoRaw, gasRaw] = await Promise.all([
-        chain.read(
-          "balanceOf",
-          [{ type: "Hash160", value: address }],
-          { scriptHash: NEO_HASH },
-        ),
-        chain.read(
-          "balanceOf",
-          [{ type: "Hash160", value: address }],
-          { scriptHash: GAS_HASH },
-        ),
+        app.wallet.raw("NEO"),
+        app.wallet.raw("GAS"),
       ]);
-      balances.neo = parseBigInt(neoRaw);
-      balances.gas = parseBigInt(gasRaw);
+      balances.neo = neoRaw;
+      balances.gas = gasRaw;
       balanceRevision.set(balanceRevision.get() + 1);
-      eventBus.emit("balances:refreshed", { neo: balances.neo, gas: balances.gas });
     } catch (e) {
-      eventBus.emit("balances:error", {
-        message: e instanceof Error ? e.message : t("walletNotConnected"),
-      });
       // Re-throw so the registerActions wrapper surfaces the failure via
       // ctx.setStatus instead of leaving the user with stale balances and no
-      // error indication (balances:error has no subscriber).
+      // error indication.
       throw e instanceof Error ? e : new Error(t("refreshFailed"));
     } finally {
       isRefreshing.set(false);
@@ -81,24 +58,21 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
   };
 
   const connectWallet = async () => {
-    // In-flight guard: ensureWallet() opens a wallet prompt and leaves the
+    // In-flight guard: wallet.ensure() opens a wallet prompt and leaves the
     // address null while pending, so isConnected stays false and the button
     // remains clickable. Gate entry before the first await to stop repeated
-    // taps from triggering concurrent ensureWallet() calls / duplicate popups.
+    // taps from triggering concurrent ensure() calls / duplicate popups.
     if (isConnecting.get()) return;
 
     try {
       isConnecting.set(true);
-      await chain.ensureWallet();
-      if (chain.address.get()) {
+      await app.wallet.ensure();
+      if (app.wallet.isConnected()) {
         await refreshBalances();
       }
     } catch (e) {
-      eventBus.emit("wallet:error", {
-        message: e instanceof Error ? e.message : t("walletNotConnected"),
-      });
       // Re-throw so the registerActions wrapper surfaces the failure via
-      // ctx.setStatus (wallet:error has no subscriber).
+      // ctx.setStatus.
       throw e instanceof Error ? e : new Error(t("walletNotConnected"));
     } finally {
       isConnecting.set(false);
@@ -106,7 +80,7 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
   };
 
   return {
-    address: chain.address,
+    address: app.wallet.observe(),
     isRefreshing,
     isConnecting,
     balances,

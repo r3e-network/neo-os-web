@@ -36,7 +36,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
+    const { notify } = ctx.framework;
     const workflowStatus = createObservable(ctx.t("workflowReady"));
     const lastTxid = createObservable("");
     const lastError = createObservable("");
@@ -44,7 +44,6 @@ defineMiniApp({
 
     const anchor = useTrustAnchor({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 

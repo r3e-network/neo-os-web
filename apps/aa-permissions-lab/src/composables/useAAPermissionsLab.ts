@@ -6,7 +6,6 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService } from "@shared/services";
 import type { MiniAppFramework } from "@shared/react";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import {
@@ -22,14 +21,11 @@ import {
 
 export interface UseAAPermissionsLabOptions {
   app: MiniAppFramework;
-  // The framework SDK does not expose the connection flag, so the raw chain is
-  // kept solely for `chain.isConnected` (gates the OS-storage cache write).
-  chain: ChainService;
   storageService: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAAPermissionsLab({ app, chain, storageService, t }: UseAAPermissionsLabOptions) {
+export function useAAPermissionsLab({ app, storageService, t }: UseAAPermissionsLabOptions) {
   const network = getNetwork();
   const aaCore = getExternalIntegrationConfig(network).contracts.aaCore;
 
@@ -74,6 +70,9 @@ export function useAAPermissionsLab({ app, chain, storageService, t }: UseAAPerm
   const connectedWalletHash = (): string => {
     const addr = app.chain.address.get();
     if (!addr) return "";
+    // framework-exempt: false-not-throw comparison key — an unparsable wallet
+    // address must compare as "" (assertAuthorized defers to the contract),
+    // not throw the way app.chain.arg.hash160 / app.wallet.scriptHash() would.
     try {
       const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
       return /^[0-9a-f]{40}$/.test(hash) ? hash : "";
@@ -147,7 +146,7 @@ export function useAAPermissionsLab({ app, chain, storageService, t }: UseAAPerm
       pendingHookUnlockAt.set(Number(parseInvokeResult(pendingHookTime) ?? 0));
       hasInspected.set(true);
 
-      if (chain.isConnected.get()) {
+      if (app.wallet.isConnected()) {
         storageService.set(`permissions:${accountId}`, {
           verifier: currentVerifier.get(),
           hook: currentHook.get(),

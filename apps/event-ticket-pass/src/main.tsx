@@ -15,123 +15,74 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const ticket = useEventTicket({
-      app: ctx.framework,
-      eventBus: ctx.services.events,
+      app,
+      bus: app.bus,
       t: ctx.t,
     });
 
-    ticket.address.set(ctx.services.chain.address.get() ?? "");
+    ticket.address.set(app.chain.address.get() ?? "");
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      try {
-        await ticket.connectWallet();
-        ctx.setStatus(ctx.t("walletConnected"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("walletNotConnected"),
-          "error",
-        );
-      }
+    app.actions.register("connectWallet", () => ticket.connectWallet(), {
+      successKey: "walletConnected",
+      errorKey: "walletNotConnected",
     });
-    ctx.framework.actions.register("refreshEvents", async () => {
-      try {
-        await ticket.refreshEvents();
-        ctx.setStatus(ctx.t("eventsLoaded"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("loadFailed"),
-          "error",
-        );
-      }
+    app.actions.register("refreshEvents", () => ticket.refreshEvents(), {
+      successKey: "eventsLoaded",
+      errorKey: "loadFailed",
     });
-    ctx.framework.actions.register("refreshTickets", async () => {
-      try {
-        await ticket.refreshTickets();
-        ctx.setStatus(ctx.t("ticketsLoaded"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("loadFailed"),
-          "error",
-        );
-      }
+    app.actions.register("refreshTickets", () => ticket.refreshTickets(), {
+      successKey: "ticketsLoaded",
+      errorKey: "loadFailed",
     });
-    ctx.framework.actions.register("createEvent", async (input: unknown) => {
-      try {
-        await ticket.createEvent(input);
-        ctx.setStatus(ctx.t("eventCreated"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("contractMissing"),
-          "error",
-        );
-      }
-    });
-    ctx.framework.actions.register("selectEvent", async (eventId: unknown) => {
+    app.actions.register(
+      "createEvent",
+      (input: unknown) => ticket.createEvent(input),
+      { successKey: "eventCreated", errorKey: "contractMissing" },
+    );
+    app.actions.register("selectEvent", async (eventId: unknown) => {
       ticket.selectEvent(String(eventId || ""));
     });
-    ctx.framework.actions.register("openIssueModal", async (event: unknown) => {
+    app.actions.register("openIssueModal", async (event: unknown) => {
       ticket.openIssueModal(event);
     });
-    ctx.framework.actions.register("issueTicket", async (input: unknown) => {
-      try {
-        await ticket.issueTicket(input);
-        ctx.setStatus(ctx.t("ticketIssued"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("contractMissing"),
-          "error",
-        );
-      }
-    });
-    ctx.framework.actions.register("toggleEvent", async (event: unknown) =>
-      ctx.services.notify.guard(async () => {
+    app.actions.register(
+      "issueTicket",
+      (input: unknown) => ticket.issueTicket(input),
+      { successKey: "ticketIssued", errorKey: "contractMissing" },
+    );
+    app.actions.register("toggleEvent", async (event: unknown) =>
+      app.notify.guard(async () => {
         await ticket.toggleEvent(event);
       }),
     );
-    ctx.framework.actions.register("lookupTicket", async (input: unknown) => {
-      try {
-        await ticket.lookupTicket(input);
-        ctx.setStatus(ctx.t("ticketFound"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("ticketNotFound"),
-          "error",
-        );
-      }
-    });
-    ctx.framework.actions.register("checkInTicket", async (input: unknown) => {
-      try {
-        await ticket.checkInTicket(input);
-        ctx.setStatus(ctx.t("checkinSuccess"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("contractMissing"),
-          "error",
-        );
-      }
-    });
-    ctx.framework.actions.register("startTransfer", async (item: unknown) => {
+    app.actions.register(
+      "lookupTicket",
+      (input: unknown) => ticket.lookupTicket(input),
+      { successKey: "ticketFound", errorKey: "ticketNotFound" },
+    );
+    app.actions.register(
+      "checkInTicket",
+      (input: unknown) => ticket.checkInTicket(input),
+      { successKey: "checkinSuccess", errorKey: "contractMissing" },
+    );
+    app.actions.register("startTransfer", async (item: unknown) => {
       ticket.startTransfer(item);
     });
-    ctx.framework.actions.register("copyTokenId", async (tokenId: unknown) => {
+    app.actions.register("copyTokenId", async (tokenId: unknown) => {
       const value = String(tokenId ?? "");
       if (!value) return;
-      await ctx.services.clipboard.copy(value, "tokenIdCopied");
+      await app.clipboard.copy(value, { successKey: "tokenIdCopied" });
     });
-    ctx.framework.actions.register("transferTicket", async (input: unknown) => {
-      try {
-        await ticket.transferTicket(
+    app.actions.register(
+      "transferTicket",
+      (input: unknown) =>
+        ticket.transferTicket(
           input as { tokenId?: string; recipient?: string } | undefined,
-        );
-        ctx.setStatus(ctx.t("transferSuccess"), "success");
-      } catch (error) {
-        ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("contractMissing"),
-          "error",
-        );
-      }
-    });
+        ),
+      { successKey: "transferSuccess", errorKey: "contractMissing" },
+    );
 
     return {
       state: refsToObservables({
