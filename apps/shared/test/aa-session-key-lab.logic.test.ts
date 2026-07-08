@@ -1,32 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createObservable } from "../react/context";
 import { createMiniAppFramework } from "../react";
-import type { AAService, ChainService, EventBus } from "../services";
+import type { AAService, ChainService } from "../services";
 import { useAASessionKeyLab } from "../../aa-session-key-lab/src/composables/useAASessionKeyLab";
 import { getSessionKeyLaunchDefaults } from "../../aa-session-key-lab/src/launch";
 
-/** Wrap a mock chain in the MiniApp framework (verifier reads + arg builders). */
-function makeApp(chain: ChainService) {
+/**
+ * Wrap a mock chain (+ AA service) in the MiniApp framework — verifier reads,
+ * arg builders, app.wallet identity, and the app.aa sponsorship lane the
+ * composable now consumes.
+ */
+function makeApp(chain: ChainService, aa?: AAService) {
   return createMiniAppFramework(
-    { services: { chain }, t: (key: string) => key } as never,
+    { services: { chain, aa }, t: (key: string) => key } as never,
     { appId: "miniapp-aa-session-key-lab" },
   );
 }
-
-// Mockable wallet so configure/revoke tests can capture invokeContract args.
-const invokeContractMock = vi.fn();
-vi.mock("../utils/wallet-sdk", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../utils/wallet-sdk")>();
-  return {
-    ...actual,
-    useWallet: () => ({
-      address: { value: "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32" },
-      connect: vi.fn().mockResolvedValue(undefined),
-      invokeContract: invokeContractMock,
-    }),
-  };
-});
 
 function t(key: string) {
   return key;
@@ -37,11 +26,9 @@ describe("AA Session Key Lab logic", () => {
     const aa = {
       checkSponsorship: vi.fn().mockResolvedValue({ eligible: true }),
       requestSponsorship: vi.fn().mockResolvedValue({ approved: true }),
-      isCheckingSponsorship: createObservable(false),
     } as unknown as AAService;
     const chain = {} as ChainService;
-    const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const lab = useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
+    const lab = useAASessionKeyLab({ app: makeApp(chain, aa), t });
 
     lab.form.dappId = "miniapp-aa-session-key-lab";
     lab.form.sponsorAmount = "0.2";
@@ -85,11 +72,9 @@ describe("AA Session Key Lab logic", () => {
     const aa = {
       checkSponsorship: vi.fn(),
       requestSponsorship: vi.fn(),
-      isCheckingSponsorship: createObservable(false),
     } as unknown as AAService;
     const chain = {} as ChainService;
-    const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const lab = useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
+    const lab = useAASessionKeyLab({ app: makeApp(chain, aa), t });
 
     lab.generateSessionKey();
 
@@ -110,11 +95,9 @@ describe("AA Session Key Lab logic", () => {
         requestId: "sponsor-001",
       }),
       requestSponsorship: vi.fn(),
-      isCheckingSponsorship: createObservable(false),
     } as unknown as AAService;
     const chain = {} as ChainService;
-    const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const lab = useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
+    const lab = useAASessionKeyLab({ app: makeApp(chain, aa), t });
 
     await lab.checkSponsor();
 
@@ -144,9 +127,6 @@ describe("AA Session Key Lab logic", () => {
     const PUBLIC_KEY = `03${"11".repeat(32)}`;
     const TARGET = "0xaba84da240a55410d284a656fc8dae044e6ec1a5";
 
-    beforeEach(() => {
-      invokeContractMock.mockReset();
-    });
     afterEach(() => {
       vi.useRealTimers();
     });
@@ -155,21 +135,23 @@ describe("AA Session Key Lab logic", () => {
       const aa = {
         checkSponsorship: vi.fn(),
         requestSponsorship: vi.fn(),
-        isCheckingSponsorship: createObservable(false),
       } as unknown as AAService;
-      // chain.read is the verifier confirmation poll; echo the pubKey so the
-      // configure flow confirms immediately.
+      // chain.read is the verifier confirmation poll (echo the pubKey so the
+      // configure flow confirms immediately); chain.invoke captures the
+      // callVerifier writes the composable now sends through app.chain.
+      const invoke = vi.fn().mockResolvedValue({ txid: "0xtx", success: true });
       const chain = {
+        address: { get: () => "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32", subscribe: () => () => {} },
+        ensureWallet: vi.fn(async () => "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32"),
         read: vi.fn().mockResolvedValue({ key: PUBLIC_KEY }),
+        invoke,
       } as unknown as ChainService;
-      const eventBus = { emit: vi.fn() } as unknown as EventBus;
-      return useAASessionKeyLab({ aa, app: makeApp(chain), eventBus, t });
+      return { lab: useAASessionKeyLab({ app: makeApp(chain, aa), t }), invoke };
     }
 
     it("forwards 7 inner setSessionKey args on the mainnet default network", async () => {
       vi.useFakeTimers();
-      invokeContractMock.mockResolvedValue({ txid: "0xtx" });
-      const lab = setupLab();
+      const { lab, invoke } = setupLab();
       lab.form.accountSeed = "neo-aa-001";
       lab.form.sessionPublicKey = PUBLIC_KEY;
       lab.form.targetContract = TARGET;
@@ -182,10 +164,10 @@ describe("AA Session Key Lab logic", () => {
       await vi.runAllTimersAsync();
       await pending;
 
-      const call = invokeContractMock.mock.calls[0][0];
-      expect(call.operation).toBe("callVerifier");
+      const [operation, args] = invoke.mock.calls[0];
+      expect(operation).toBe("callVerifier");
       // The inner setSessionKey arg array carries 7 entries on mainnet.
-      const innerArray = call.args[2];
+      const innerArray = args[2];
       expect(innerArray.type).toBe("Array");
       expect(innerArray.value).toHaveLength(7);
       // spendingLimit converted to base units (1.5 GAS -> 150000000).
@@ -200,15 +182,14 @@ describe("AA Session Key Lab logic", () => {
     });
 
     it("revokes via clearSessionKey on the verifier", async () => {
-      invokeContractMock.mockResolvedValue({ txid: "0xtx" });
-      const lab = setupLab();
+      const { lab, invoke } = setupLab();
       lab.form.accountSeed = "neo-aa-001";
 
       await lab.revokeSessionKey();
 
-      const call = invokeContractMock.mock.calls[0][0];
-      expect(call.operation).toBe("callVerifier");
-      expect(call.args[1]).toEqual({ type: "String", value: "clearSessionKey" });
+      const [operation, args] = invoke.mock.calls[0];
+      expect(operation).toBe("callVerifier");
+      expect(args[1]).toEqual({ type: "String", value: "clearSessionKey" });
       expect(lab.hasOnChainSession.get()).toBe(false);
     });
   });

@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGovernance } from "./useGovernance";
 import { createObservable } from "@shared/react/context";
-import type { ChainService } from "@shared/services";
+import { createMiniAppFramework } from "@framework/index";
+import type { MiniAppFramework } from "@shared/react";
 
 const t = (key: string) => key;
 
@@ -10,8 +11,11 @@ const t = (key: string) => key;
  * A contract proposal #7 (on-chain) alongside an explorer mirror proposal.
  * getProposalCount returns 7; getProposalDetails(7) returns the contract row.
  * Lower ids resolve to null so only #7 materializes from the contract.
+ *
+ * The composable consumes the MiniApp framework (ctx.framework); build it from
+ * the mock chain so recorded read/invoke calls stay byte-identical.
  */
-function makeChain(): ChainService {
+function makeApp(): MiniAppFramework {
   const read = vi.fn(async (method: string, args?: unknown[]): Promise<unknown> => {
     if (method === "getProposalCount") return 7;
     if (method === "getProposalDetails") {
@@ -41,11 +45,16 @@ function makeChain(): ChainService {
     return 0;
   });
 
-  return {
+  const chain = {
     read,
     invoke: vi.fn(async () => ({ txid: "0xtx", success: true })),
     address: createObservable<string>(""),
-  } as unknown as ChainService;
+    ensureWallet: vi.fn(async () => ""),
+  };
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-council-governance" },
+  ) as unknown as MiniAppFramework;
 }
 
 const EXPLORER_PAYLOAD = {
@@ -86,10 +95,10 @@ describe("useGovernance — mainnet merges contract + explorer proposals", () =>
   });
 
   it("surfaces BOTH the on-chain proposal and the mirror (no explorer-first short-circuit)", async () => {
-    const chain = makeChain();
+    const app = makeApp();
     // Unique network token avoids the module-level explorer cache across runs.
     const currentChainId = createObservable<string>("neo-n3-mainnet");
-    const gov = useGovernance({ chainService: chain, t, currentChainId });
+    const gov = useGovernance({ app, t, currentChainId });
 
     await gov.loadProposals();
     const list = gov.proposals.get();
@@ -112,9 +121,9 @@ describe("useGovernance — mainnet merges contract + explorer proposals", () =>
   });
 
   it("converts the contract creator to a display-order 0x hash, not raw LE bytes", async () => {
-    const chain = makeChain();
+    const app = makeApp();
     const currentChainId = createObservable<string>("neo-n3-mainnet");
-    const gov = useGovernance({ chainService: chain, t, currentChainId });
+    const gov = useGovernance({ app, t, currentChainId });
 
     await gov.loadProposals();
     const contractRow = gov.proposals.get().find((p) => p.source === "contract");

@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   canClaim,
+  deriveSchedule,
   deriveSchedulePreview,
   isFinalizedStatus,
   releasePerDayDisplay,
   statusLabelKey,
-} from "./streamDisplay";
-import { deriveSchedule } from "./composables/deriveSchedule";
+} from "@shared/composables/neo-pay";
 
 describe("neo-pay status badge i18n", () => {
   it("maps each normalized status to its locale key (never raw English)", () => {

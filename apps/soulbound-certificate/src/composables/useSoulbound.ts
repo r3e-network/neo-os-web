@@ -8,11 +8,10 @@
  */
 
 import { createDerived, createObservable } from "@shared/react/context";
-import type { MiniAppFramework } from "@shared/react";
+import type { MiniAppFramework, FrameworkClipboardSurface } from "@shared/react";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import type { ClipboardService } from "@shared/services";
 import { buildMiniAppUrl } from "@shared/utils/miniapp-routes";
 import { getLaunchParam, readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { eventValue } from "@shared/utils/chain-events";
@@ -54,8 +53,8 @@ export interface UseSoulboundOptions {
   nftService: NFTProxy;
   storageService: StorageProxy;
   badgeService: BadgeProxy;
-  clipboard: ClipboardService;
-  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Copy-with-toast surface (app.clipboard). */
+  clipboard: FrameworkClipboardSurface;
   /** MiniApp framework SDK from ctx.framework. */
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -93,6 +92,11 @@ function stringValue(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+// framework-exempt: false-not-throw semantics are load-bearing here — this is
+// the fail-closed VALIDITY/COMPARISON half of the old dual-use helper (empty
+// string on invalid input drives localized rejections and issuer-witness
+// gating); app.chain.arg.hash160 throws, so it must never replace these sites.
+// The ARG-BUILDING half migrated onto app.chain.arg.hash160 (plan §3.6).
 function normalizeHash160(value: unknown): string {
   const raw = stringValue(value);
   if (/^0x[0-9a-fA-F]{40}$/.test(raw)) return raw;
@@ -190,7 +194,6 @@ export function useSoulbound({
   storageService,
   badgeService,
   clipboard,
-  eventBus,
   app,
   t,
 }: UseSoulboundOptions) {
@@ -257,9 +260,11 @@ export function useSoulbound({
 
   const ensureIssuer = async () => {
     const wallet = await app.chain.ensureWallet();
-    const issuer = normalizeHash160(wallet) || wallet;
     address.set(wallet);
-    return issuer;
+    // ARG-BUILDING half of the old dual-use normalizeHash160: the wallet
+    // address is only ever fed to app.chain.arg.hash160, which performs the
+    // same address→Hash160 conversion — no pre-normalization needed.
+    return wallet;
   };
 
   const setSuccess = (messageKey: string, result?: TxResult | null) => {
@@ -699,10 +704,7 @@ export function useSoulbound({
       issueTemplateId: tpl.id,
       autoIssueDraft: "1",
     });
-    const ok = await clipboard.copy(url, "issueLinkCopied");
-    if (ok) {
-      eventBus.emit("soulbound:linkCopied", { action: t("issueLinkCopied") });
-    }
+    await clipboard.copy(url, { successKey: "issueLinkCopied" });
   };
 
   // Recipient-facing link: a permissionless verify deep-link (?verifyTokenId=…)
@@ -717,12 +719,7 @@ export function useSoulbound({
   const copyVerifyLink = async (tokenId: unknown) => {
     const id = stringValue(tokenId);
     if (!id) return;
-    const ok = await clipboard.copy(buildVerifyLink(id), "verifyLinkCopied");
-    if (ok) {
-      eventBus.emit("soulbound:verifyLinkCopied", {
-        action: t("verifyLinkCopied"),
-      });
-    }
+    await clipboard.copy(buildVerifyLink(id), { successKey: "verifyLinkCopied" });
   };
 
   const shareVerifyLink = async (tokenId: unknown) => {
@@ -732,9 +729,6 @@ export function useSoulbound({
     try {
       if (navigator.share) {
         await navigator.share({ title: t("verifyTab"), text: id, url });
-        eventBus.emit("soulbound:verifyLinkShared", {
-          action: t("verifyLinkShared"),
-        });
         return;
       }
       await copyVerifyLink(id);

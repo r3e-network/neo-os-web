@@ -10,7 +10,7 @@
  *
  * Contract interaction model (verified against the deployed ABI):
  *
- *   READS (app.chain.readRaw / chain.readArray, default app contract script hash):
+ *   READS (app.chain.readRaw / app.chain.readArray, default app contract script hash):
  *     getUserStreams(creator, offset, limit)            -> streamId[]
  *     getBeneficiaryStreams(beneficiary, offset, limit) -> streamId[]
  *     getStreamDetails(streamId)                        -> Map of fields
@@ -43,12 +43,10 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { ChainService, ContractArg } from "@shared/services/ChainService";
-import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import type { StreamItem, StreamStatus } from "../types";
+import type { StreamItem, StreamStatus } from "./types";
 
 // ============================================================================
 // Constants
@@ -81,13 +79,12 @@ const assetHash = (asset: "NEO" | "GAS"): string =>
 // ============================================================================
 // Amount helpers
 // ============================================================================
-// toBaseUnits (amountToBaseUnits) comes from @shared/utils/amounts — GAS is
-// scaled ×1e8 without floats; NEO is the integer token count (never scaled).
-// Kept ad-hoc (NOT swapped for app.amount.gasToFixed8 / neoToUnits): the GAS
-// scaler here IS ×1e8, but toBaseUnits returns 0n on invalid/fractional input,
-// which the create flow relies on to raise its own t("invalidAmount") — the
-// framework helpers THROW a different (non-localized) message instead, so
-// swapping would change the observable error semantics.
+// Human-entered amounts scale through app.amount.parseAssetToUnits (S6): GAS
+// ×1e8 without floats, NEO the integer token count (never scaled, fractions
+// rejected). The parse* lane returns null on ANY invalid input — it NEVER
+// throws — so the create flow keeps raising its own localized
+// t("invalidAmount") rejection (gasToFixed8/neoToUnits throw a non-localized
+// message instead; do not swap back).
 
 // ============================================================================
 // Types
@@ -96,13 +93,6 @@ const assetHash = (asset: "NEO" | "GAS"): string =>
 export interface UseNeoPayAppOptions {
   /** MiniApp framework SDK from ctx.framework. */
   app: MiniAppFramework;
-  /**
-   * Shared chain service from ctx.services.chain — retained ONLY for
-   * `readArray`, which parses a stack of items and has no framework equivalent
-   * (`app.chain.readRaw` routes through the scalar `chain.read` backend). Every
-   * other chain/arg/amount touchpoint goes through `app`.
-   */
-  chain: Pick<ChainService, "readArray">;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -193,7 +183,7 @@ const toIdString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useNeoPayApp({ app, chain, t }: UseNeoPayAppOptions) {
+export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
   // ── Reactive State ──────────────────────────────────────────────────────
   // isLoading drives the initial data load (list spinners), isRefreshing the
   // post-action re-reads, and isCreating ONLY the create flow — kept separate
@@ -238,13 +228,11 @@ export function useNeoPayApp({ app, chain, t }: UseNeoPayAppOptions) {
     const hash = addressToScriptHash(addr);
     if (!hash) return [];
 
-    // readArray has no framework equivalent; the framework arg builders produce
-    // the same {type,value} shape, so pass them through with a structural cast.
-    const idsRaw = await chain.readArray(op, [
+    const idsRaw = await app.chain.readArray(op, [
       app.chain.arg.hash160(hash),
       app.chain.arg.integer(0),
       app.chain.arg.integer(LIST_PAGE_LIMIT),
-    ] as ContractArg[]);
+    ]);
 
     const ids = (Array.isArray(idsRaw) ? idsRaw : [])
       .map(toIdString)
@@ -365,12 +353,15 @@ export function useNeoPayApp({ app, chain, t }: UseNeoPayAppOptions) {
     }
     const intervalSeconds = BigInt(intervalDays) * BigInt(SECONDS_PER_DAY);
 
-    const totalAmount = toBaseUnits(formData.total, asset);
-    const rateAmount = toBaseUnits(formData.rate, asset);
-
-    if (totalAmount <= 0n || rateAmount <= 0n) {
+    // parse* returns null for any invalid/zero/fractional-NEO input (never
+    // throws), preserving the localized invalidAmount rejection below.
+    const totalUnits = app.amount.parseAssetToUnits(asset, formData.total);
+    const rateUnits = app.amount.parseAssetToUnits(asset, formData.rate);
+    if (totalUnits === null || rateUnits === null) {
       throw new Error(t("invalidAmount"));
     }
+    const totalAmount = BigInt(totalUnits);
+    const rateAmount = BigInt(rateUnits);
     // Per-asset minimum total.
     const minimum = asset === "NEO" ? MIN_NEO_BASE : MIN_GAS_BASE;
     if (totalAmount < minimum) {

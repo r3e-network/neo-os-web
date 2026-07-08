@@ -18,7 +18,7 @@
  *     Easy=0.1 GAS, Medium=0.5 GAS, Hard=1 GAS.
  */
 
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { toSafeNumber } from "@shared/utils/format";
 
 /** Deposit memo for createVault — prepays the bounty. */
@@ -121,11 +121,11 @@ export function parseVaultDetails(
 
 /** Read a single vault's details from the contract. */
 export async function readVaultDetails(
-  chain: ChainService,
+  app: MiniAppFramework,
   vaultId: string,
 ): Promise<ChainVaultDetails | null> {
-  const raw = await chain.read("getVaultDetails", [
-    { type: "Integer", value: vaultId },
+  const raw = await app.chain.readRaw("getVaultDetails", [
+    app.chain.arg.integer(vaultId),
   ]);
   return parseVaultDetails(vaultId, raw);
 }
@@ -138,10 +138,10 @@ export async function readVaultDetails(
  * whole list.
  */
 export async function readRecentVaultDetails(
-  chain: ChainService,
+  app: MiniAppFramework,
   limit: number,
 ): Promise<ChainVaultDetails[]> {
-  const total = toSafeNumber(await chain.read("totalVaults", []));
+  const total = toSafeNumber(await app.chain.readRaw("totalVaults", []));
   const top = Math.min(total, MAX_ENUMERATE);
   if (top <= 0) return [];
 
@@ -152,7 +152,7 @@ export async function readRecentVaultDetails(
   const results = await Promise.all(
     ids.map(async (id) => {
       try {
-        return await readVaultDetails(chain, id);
+        return await readVaultDetails(app, id);
       } catch (e) {
         console.warn(
           "[unbreakable-vault] getVaultDetails failed for",

@@ -41,6 +41,7 @@ import type { Root } from "react-dom/client";
 import type { ComponentType } from "react";
 import type { MiniAppManifest } from "../types/miniapp-manifest";
 import type { TranslationMap } from "../utils/i18n";
+import type { MiniAppFrameworkOptions } from "../../../framework";
 import { MiniAppRoot } from "./MiniAppRoot";
 import type {
   MiniAppSetupContext,
@@ -91,6 +92,13 @@ export interface MiniAppDefinition {
    * user data is not orphaned.
    */
   storagePrefix?: string;
+
+  /**
+   * app.oracle extension config (framework S13). Apps that read the Morpheus
+   * DataFeed inject the network-specific deployed contract + RPC endpoint
+   * here; absent ⇒ `app.oracle.dataFeed` reads throw a typed capability error.
+   */
+  oracle?: MiniAppFrameworkOptions["oracle"];
 }
 
 /**
@@ -112,6 +120,7 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
     setup: setupFn,
     mountTo = "#app",
     storagePrefix,
+    oracle,
   } = definition;
 
   const container = document.querySelector(mountTo);
@@ -133,6 +142,7 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
         messages={messages}
         setupFn={setupFn}
         storagePrefix={storagePrefix}
+        oracle={oracle}
       />
     </React.StrictMode>,
   );

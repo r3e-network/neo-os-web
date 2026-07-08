@@ -7,7 +7,6 @@
 
 import { createObservable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { getMiniAppContractHash } from "@shared/constants/rpc";
 import { addressToScriptHash, parseHash160 } from "@shared/utils/neo";
@@ -39,7 +38,6 @@ export interface AnchorAdminInfo {
 
 export interface UseProfitAnchorOptions {
   app: MiniAppFramework;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -128,7 +126,7 @@ function normalizeHash160OrAddress(input: unknown, t: Translate): string {
   throw new Error(t("invalidAgentAccount"));
 }
 
-export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
+export function useProfitAnchor({ app, t }: UseProfitAnchorOptions) {
   const isLoading = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
@@ -331,14 +329,14 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
     const contract = getMiniAppContractHash(APP_ID) || app.chain.contractAddress.get();
     if (!contract) throw new Error(t("missingContract"));
     const amount = normalizeWholeNeo(amountInput, t);
-    // `contract` is the app contract hash (not the connected wallet), passed raw
-    // exactly as before so the wallet provider receives the identical value —
-    // mapDapiArgs only remaps the connected account.
+    // `contract` is the app contract hash (not the connected wallet) — the
+    // wallet provider must receive the identical value (mapDapiArgs only remaps
+    // the connected account), so arg.hash160Raw passes it through UNCONVERTED.
     const result = await app.chain.invoke(
       "transfer",
       [
         app.chain.arg.hash160(user),
-        { type: "Hash160", value: contract },
+        app.chain.arg.hash160Raw(contract),
         app.chain.arg.integer(amount),
         app.chain.arg.string(`stake:${APP_ID}`),
       ],
@@ -348,7 +346,6 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
         waitTimeoutMs: 30_000,
       },
     );
-    eventBus.emit("anchor:staked", { appId: APP_ID, amount });
     await loadAll();
     return result;
   };
@@ -369,7 +366,6 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
         waitTimeoutMs: 30_000,
       },
     );
-    eventBus.emit("anchor:withdrawn", { appId: APP_ID, amount });
     await loadAll();
     return result;
   };
@@ -388,7 +384,6 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
         waitTimeoutMs: 30_000,
       },
     );
-    eventBus.emit("anchor:rewards-claimed", { appId: APP_ID });
     await loadAll();
     return result;
   };
@@ -411,7 +406,6 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:credit-recovered", { appId: APP_ID, amount });
     await loadAll();
     return result;
   };
@@ -436,12 +430,6 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:agent-transfer", {
-      appId: APP_ID,
-      fromAgentId,
-      toAgentId,
-      amount,
-    });
     await loadAll();
   };
 
@@ -452,21 +440,17 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
     await app.chain.ensureWallet();
     const agentId = normalizeAgentId(agentIdInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
-    // PublicKey has no framework arg builder; kept raw to preserve the exact arg.
+    // normalizePublicKey already validated + localized the rejection path, so
+    // arg.publicKey (S7) never throws here and emits the identical bare-hex arg.
     await app.chain.invoke(
       "setAgentCandidate",
       [
         app.chain.arg.string(APP_ID),
         app.chain.arg.integer(agentId),
-        { type: "PublicKey", value: candidate },
+        app.chain.arg.publicKey(candidate),
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:candidate-updated", {
-      appId: APP_ID,
-      agentId,
-      candidate,
-    });
     await loadAll();
   };
 
@@ -481,7 +465,6 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:agent-voted", { appId: APP_ID, agentId });
     await loadAll();
   };
 
@@ -494,26 +477,22 @@ export function useProfitAnchor({ app, eventBus, t }: UseProfitAnchorOptions) {
     const agentAccount = normalizeHash160OrAddress(agentAccountInput, t);
     const candidate = normalizePublicKey(candidateInput, t);
     const verificationScriptHash = normalizeHex(verificationScriptHashInput, t);
-    // `agentAccount` is a third-party account (0x-hash, bare hex, or N-address as
-    // validated); the pre-migration code passed the raw validated value to the
-    // wallet. arg.hash160 would normalize/convert it (e.g. N-address → script
-    // hash, bare hex → 0x), changing the provider input — kept raw. PublicKey has
-    // no framework builder either.
+    // `agentAccount` is a third-party account (0x-hash, bare hex, or N-address
+    // as validated); the wallet must receive the raw validated value, so
+    // arg.hash160Raw passes it through UNCONVERTED — arg.hash160 would
+    // normalize/convert it (N-address → script hash, bare hex → 0x) and change
+    // the provider input. The candidate went through normalizePublicKey, so
+    // arg.publicKey never throws here and emits the identical bare-hex arg.
     await app.chain.invoke(
       "registerAgent",
       [
         app.chain.arg.string(APP_ID),
-        { type: "Hash160", value: agentAccount },
-        { type: "PublicKey", value: candidate },
+        app.chain.arg.hash160Raw(agentAccount),
+        app.chain.arg.publicKey(candidate),
         app.chain.arg.byteArray(verificationScriptHash),
       ],
       anchorOptions(),
     );
-    eventBus.emit("anchor:agent-registered", {
-      appId: APP_ID,
-      agentAccount,
-      candidate,
-    });
     await loadAll();
   };
 

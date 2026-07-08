@@ -1,10 +1,11 @@
 /**
  * useVaultBreaker — Vault listing, break attempts, and expired-vault reclaim
  *
- * Talks DIRECTLY to the standalone MiniAppUnbreakableVault contract via
- * ctx.services.chain. The earlier path read vault state through ctx.os.storage,
- * awarded badges through ctx.os.badge, and "claimed" bounties through
- * non-existent contract methods — all backed by the offline Morpheus OS kernel.
+ * Talks DIRECTLY to the standalone MiniAppUnbreakableVault contract via the
+ * MiniApp framework (ctx.framework / app.chain). The earlier path read vault
+ * state through ctx.os.storage, awarded badges through ctx.os.badge, and
+ * "claimed" bounties through non-existent contract methods — all backed by the
+ * offline Morpheus OS kernel.
  *
  * Contract interaction model (verified against the deployed ABI at
  * 0x78fbd57ccfae14fff4b043a82eb491de542d8eb0 + the live-validate harness):
@@ -31,7 +32,7 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
 import {
@@ -75,10 +76,8 @@ export interface RecentVault {
 }
 
 export interface UseVaultBreakerOptions {
-  /** Shared chain service for wallet-signed direct contract calls + reads. */
-  chainService: ChainService;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** MiniApp framework (ctx.framework) for wallet-signed contract calls + reads. */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string) => string;
 }
@@ -121,20 +120,6 @@ function utf8Bytes(value: string): number[] {
 /** Encode a UTF-8 secret string as base64 for the ByteArray contract arg. */
 function utf8ToBase64(value: string): string {
   return base64FromBytes(utf8Bytes(value));
-}
-
-/** Read a single state slot from an event payload. */
-function eventSlot(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
 }
 
 /** Milliseconds in one day — vault times are unix epoch milliseconds. */
@@ -180,8 +165,7 @@ function toRecentVault(detail: ChainVaultDetails): RecentVault {
 // ============================================================================
 
 export function useVaultBreaker({
-  chainService,
-  eventBus,
+  app,
   t,
 }: UseVaultBreakerOptions) {
   const vaultIdInput = createObservable("");
@@ -211,7 +195,7 @@ export function useVaultBreaker({
   const canReclaim = createDerived(() => {
     const vault = vaultDetails.get();
     if (!vault) return false;
-    const wallet = chainService.address.get();
+    const wallet = app.chain.address.get();
     if (!wallet) return false;
     const reclaimable =
       vault.status === "claimable" || vault.status === "expired";
@@ -220,7 +204,7 @@ export function useVaultBreaker({
       Boolean(vault.creator) &&
       ownerMatchesAddress(vault.creator, wallet)
     );
-  }, [vaultDetails, chainService.address]);
+  }, [vaultDetails, app.chain.address]);
 
   /**
    * Resolve the effective attempt fee (base units) for the loaded vault.
@@ -249,7 +233,7 @@ export function useVaultBreaker({
   const loadRecentVaults = async () => {
     try {
       const details = await readRecentVaultDetails(
-        chainService,
+        app,
         MAX_RECENT_VAULTS,
       );
       recentVaults.set(details.map(toRecentVault));
@@ -262,7 +246,6 @@ export function useVaultBreaker({
         "[unbreakable-vault] loadRecentVaults error:",
         e instanceof Error ? e.message : String(e),
       );
-      eventBus.emit("vault:error", { message: "Recent vaults unavailable" });
     }
   };
 
@@ -270,20 +253,18 @@ export function useVaultBreaker({
    * Load a single vault's details from the contract.
    *
    * Returns `{ error }` with a human-readable message on failure so the
-   * registered host action can surface a status toast (the "vault:*" eventBus
-   * channel is not subscribed by the runtime). Returns `undefined` on success or
-   * when there is no vault id to load.
+   * registered host action can surface a status toast. Returns `undefined` on
+   * success or when there is no vault id to load.
    */
   const loadVault = async (): Promise<{ error: string } | undefined> => {
     const id = vaultIdInput.get();
     if (!id) return undefined;
     try {
-      const detail = await readVaultDetails(chainService, id);
+      const detail = await readVaultDetails(app, id);
       if (!detail) throw new Error(t("vaultNotFound"));
       vaultDetails.set(toVaultDetails(detail));
     } catch (e) {
       const message = e instanceof Error ? e.message : t("loadFailed");
-      eventBus.emit("vault:error", { message });
       vaultDetails.set(null);
       return { error: message };
     }
@@ -310,20 +291,19 @@ export function useVaultBreaker({
     isLoading.set(true);
     try {
       const attemptFee = resolveAttemptFeeBase();
-      const attacker = await chainService.ensureWallet();
+      const attacker = await app.chain.ensureWallet();
       const targetId = vaultIdInput.get();
 
-      const result = await chainService.invokeWithPayment(
+      // The attacker Hash160 carries the RAW wallet address exactly as the
+      // pre-framework call did — arg.hash160Raw passes it through unconverted.
+      const result = await app.chain.invokeWithPayment(
         attemptFee,
         ATTEMPT_MEMO,
         "attemptBreak",
         [
-          { type: "Integer", value: targetId },
-          { type: "Hash160", value: attacker },
-          {
-            type: "ByteArray",
-            value: utf8ToBase64(attemptSecret.get().trim()),
-          },
+          app.chain.arg.integer(targetId),
+          app.chain.arg.hash160Raw(attacker),
+          app.chain.arg.byteArray(utf8ToBase64(attemptSecret.get().trim())),
         ],
         { waitForEvent: "AttemptMade" },
       );
@@ -335,20 +315,13 @@ export function useVaultBreaker({
       // AttemptMade(vaultId, attacker, success, attemptNumber) — slot 2 is the
       // boolean success flag, definitive at HALT.
       if (result.event) {
-        const successSlot = eventSlot(result.event, 2);
+        const successSlot = app.events.value(result.event, 2);
         const success =
           successSlot === true ||
           successSlot === "true" ||
           successSlot === 1 ||
           successSlot === "1";
 
-        if (success) {
-          eventBus.emit("vault:broken", { action: t("broken") });
-        } else {
-          eventBus.emit("vault:attempt_failed", {
-            message: t("vaultAttemptFailed"),
-          });
-        }
         return { success };
       }
 
@@ -362,19 +335,10 @@ export function useVaultBreaker({
         Boolean(refreshed.winner) &&
         ownerMatchesAddress(refreshed.winner, attacker);
       if (wonByMe) {
-        eventBus.emit("vault:broken", { action: t("broken") });
         return { success: true };
       }
       // Outcome still unconfirmed — surface a "confirming" state, not "failed".
-      eventBus.emit("vault:attempt_confirming", {
-        message: t("vaultAttemptConfirming"),
-      });
       return { success: false, confirming: true };
-    } catch (e) {
-      eventBus.emit("vault:error", {
-        message: e instanceof Error ? e.message : t("vaultAttemptFailed"),
-      });
-      throw e;
     } finally {
       isLoading.set(false);
     }
@@ -402,31 +366,19 @@ export function useVaultBreaker({
 
     isClaiming.set(true);
     try {
-      await chainService.ensureWallet();
-      const result = await chainService.invoke(
+      await app.chain.ensureWallet();
+      const result = await app.chain.invoke(
         "claimExpiredVault",
-        [{ type: "Integer", value: vaultIdInput.get() }],
+        [app.chain.arg.integer(vaultIdInput.get())],
         { waitForEvent: "VaultExpired" },
       );
       // The VaultExpired event firing at HALT proves the refund settled; the
       // base TxResult.success only reflects that a txid was broadcast.
       const success = Boolean(result.event) || Boolean(result.success);
 
-      if (success) {
-        eventBus.emit("vault:settled", {
-          mode: "reclaim",
-          action: t("vaultReclaimed"),
-        });
-      }
-
       await loadVault();
       await loadRecentVaults();
       return { success };
-    } catch (e) {
-      eventBus.emit("vault:error", {
-        message: e instanceof Error ? e.message : t("settleFailed"),
-      });
-      throw e;
     } finally {
       isClaiming.set(false);
     }

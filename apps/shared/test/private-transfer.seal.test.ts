@@ -1,15 +1,23 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
+import { createOracleExtensions, FrameworkSealError } from "@framework/oracle-ext";
 import {
   isPositiveAssetAmount,
   isPositiveAmount,
   isValidNeoAddress,
   normalizePrivateTransferErrorKey,
   preparePrivateTransfer,
-  PrivateTransferSealError,
 } from "../../private-transfer/src/seal";
 
 const GOLDEN_PUBLIC_KEY_RAW = "X+mfM9Lg+Tm9GBzniOC0vwDcZE857Za9AbdJCD7IsWM=";
+
+/** Framework seal lane (app.oracle.seal) wired to an injected transport. */
+function sealClient(fetcher: typeof fetch) {
+  return createOracleExtensions({
+    appId: "miniapp-private-transfer",
+    seal: { network: "testnet", fetcher },
+  }).seal;
+}
 
 describe("private-transfer sealing action helpers", () => {
   it("validates Neo address and amount before sealing", () => {
@@ -40,12 +48,13 @@ describe("private-transfer sealing action helpers", () => {
       recipient: "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
       amount: "1.25",
       memo: "private note",
-      fetcher: fetcher as unknown as typeof fetch,
+      seal: sealClient(fetcher as unknown as typeof fetch),
     });
 
     expect(sealed.secretRef).toBe("secret-ref-1");
     expect(sealed.commitment).toMatch(/^0x[0-9a-f]{64}$/);
     expect(sealed.nullifier).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(sealed.contract).toBe("0xoracle");
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
@@ -59,14 +68,33 @@ describe("private-transfer sealing action helpers", () => {
         recipient: "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
         amount: "1.25",
         asset: "NEO",
-        fetcher: fetcher as unknown as typeof fetch,
+        seal: sealClient(fetcher as unknown as typeof fetch),
       }),
     ).rejects.toThrow("errorMissingInputs");
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it("surfaces public-key failures as phase-tagged key errors", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ error: "Morpheus oracle public key is unavailable" }), { status: 503 }),
+    );
+
+    const rejection = preparePrivateTransfer({
+      appId: "miniapp-private-transfer",
+      network: "testnet",
+      recipient: "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+      amount: "1.25",
+      seal: sealClient(fetcher as unknown as typeof fetch),
+    });
+
+    await expect(rejection).rejects.toBeInstanceOf(FrameworkSealError);
+    const error = await rejection.catch((e: unknown) => e);
+    expect((error as FrameworkSealError).phase).toBe("key");
+    expect(normalizePrivateTransferErrorKey(error)).toBe("sealErrorKey");
+  });
+
   it("maps storage failures to the user-facing storage error key", () => {
-    const error = new PrivateTransferSealError("store", "Morpheus confidential store is unavailable");
+    const error = new FrameworkSealError("store", "Morpheus confidential store is unavailable");
     expect(normalizePrivateTransferErrorKey(error)).toBe("sealErrorStore");
   });
 });

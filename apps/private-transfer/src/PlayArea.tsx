@@ -43,7 +43,7 @@ function coinVariant(asset: PrivateTransferAsset): "gas" | "neo" {
 function normalizeAmountInput(value: string, asset: PrivateTransferAsset): string {
   const text = String(value ?? "");
   if (asset === "NEO") {
-    return text.split(/[.,]/)[0].replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   }
   return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 }
@@ -70,7 +70,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const canSeal = recipientReady && amountReady && !isSealing;
   const hasSealed = requestCount > 0;
   const stageState = isSealing ? "sealing" : hasSealed ? "sealed" : canSeal ? "ready" : "draft";
-  const activeAsset = ASSET_OPTIONS.find((option) => option.symbol === asset) ?? ASSET_OPTIONS[0];
+  // ASSET_OPTIONS is a non-empty literal; the [0] fallback always exists.
+  const activeAsset = ASSET_OPTIONS.find((option) => option.symbol === asset) ?? ASSET_OPTIONS[0]!;
   const packetTitle = hasSealed ? t("packetSealed") : canSeal ? t("packetReady") : t(asset === "NEO" ? "packetDraftNeo" : "packetDraftGas");
   const amountHint = asset === "NEO" ? t("amountHintNeo") : t("amountHintGas");
 

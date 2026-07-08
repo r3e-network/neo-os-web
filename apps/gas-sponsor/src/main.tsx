@@ -16,27 +16,26 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const sponsor = useGasSponsorApp({
-      app: ctx.framework,
-      balance: ctx.services.balance,
-      eventBus: ctx.services.events,
+      app,
       t: ctx.t,
       network: readMiniAppLaunchContext("miniapp-gas-sponsor").network,
     });
 
-    const { notify } = ctx.services;
-
     ctx.framework.actions.register("requestSponsorship", async (...args: unknown[]) => {
       sponsor.requestAmount.set(String(args[0] ?? ""));
-      notify.info("requestingSponsorship");
-      const result = await notify.guard(
-        () => sponsor.requestSponsorship(),
-        undefined,
-        "requestFailed",
-      );
+      app.notify.info("requestingSponsorship");
+      const result = await app.notify.guard(() => sponsor.requestSponsorship(), {
+        errorKey: "requestFailed",
+      });
+      // The success toast stays conditional on a resolved request (the
+      // composable resolves undefined on the ineligible early-return, which
+      // must NOT toast) — so it goes through app.notify.success with params
+      // rather than an unconditional guard successKey.
       if (result) {
         const requestId = result.request_id || result.requestId || result.txid || "";
-        notify.success("requestSubmitted", {
+        app.notify.success("requestSubmitted", {
           id: requestId ? `${requestId.slice(0, 8)}...` : "pending",
         });
       }
@@ -44,13 +43,19 @@ defineMiniApp({
 
     ctx.framework.actions.register("donate", async (...args: unknown[]) => {
       sponsor.donateAmount.set(String(args[0] ?? ""));
-      await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "donateFailed");
+      await app.notify.guard(() => sponsor.handleDonate(), {
+        successKey: "donateSuccess",
+        errorKey: "donateFailed",
+      });
     });
 
     ctx.framework.actions.register("send", async (...args: unknown[]) => {
       sponsor.recipientAddress.set(String(args[0] ?? ""));
       sponsor.sendAmount.set(String(args[1] ?? ""));
-      await notify.guard(() => sponsor.handleSend(), "sendSuccess", "sendFailed");
+      await app.notify.guard(() => sponsor.handleSend(), {
+        successKey: "sendSuccess",
+        errorKey: "sendFailed",
+      });
     });
 
     return {

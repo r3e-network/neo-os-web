@@ -2,11 +2,11 @@
  * Automation Copilot — React Entry Point
  *
  * Uses the React defineMiniApp runtime with createObservable state.
- * registerActions is framework-agnostic (no Vue deps), so it works as-is.
+ * Actions register directly on the framework actions table (app.actions);
+ * per-action toasts ride the framework's successKey/errorKey handling.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -21,27 +21,24 @@ defineMiniApp({
   setup(ctx) {
     const copilot = useAutomationCopilot({ t: ctx.t });
 
-    registerActions(ctx, {
-      fetchCurrentPrice: {
-        handler: () => copilot.fetchCurrentPrice(),
-        successKey: "priceLoaded",
-        errorKey: "fetchFailed",
-      },
-      buildRecipePayload: {
-        handler: () => copilot.buildRecipePayload(),
-        successKey: "recipeBuilt",
-        errorKey: "recipeFailed",
-      },
-      refreshTriggers: {
-        handler: () => copilot.refreshTriggers(),
-        successKey: "triggersLoaded",
-        errorKey: "triggerListFailed",
-      },
-      toggleLatestTrigger: {
-        handler: () => copilot.toggleLatestTrigger(),
-        successKey: "triggerStatusUpdated",
-        errorKey: "triggerStatusFailed",
-      },
+    // Framework actions table — success/error toasts (and single-flight
+    // handling) come from app.actions, same keys as the legacy registerActions
+    // table it replaces.
+    ctx.framework.actions.register("fetchCurrentPrice", () => copilot.fetchCurrentPrice(), {
+      successKey: "priceLoaded",
+      errorKey: "fetchFailed",
+    });
+    ctx.framework.actions.register("buildRecipePayload", () => copilot.buildRecipePayload(), {
+      successKey: "recipeBuilt",
+      errorKey: "recipeFailed",
+    });
+    ctx.framework.actions.register("refreshTriggers", () => copilot.refreshTriggers(), {
+      successKey: "triggersLoaded",
+      errorKey: "triggerListFailed",
+    });
+    ctx.framework.actions.register("toggleLatestTrigger", () => copilot.toggleLatestTrigger(), {
+      successKey: "triggerStatusUpdated",
+      errorKey: "triggerStatusFailed",
     });
 
     ctx.framework.actions.register("registerTrigger", async () => {
@@ -65,10 +62,9 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("deleteTrigger", async (...args: unknown[]) => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => copilot.deleteTrigger(String(args[0] ?? "")),
-        "triggerDeleted",
-        "triggerDeleteFailed",
+        { successKey: "triggerDeleted", errorKey: "triggerDeleteFailed" },
       );
     });
 

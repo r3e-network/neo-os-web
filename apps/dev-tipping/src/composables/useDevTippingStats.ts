@@ -1,6 +1,6 @@
 /**
  * useDevTippingStats — Developer registry + tip history loaded straight from the
- * standalone on-chain contract (MiniAppTipJar) via ctx.services.chain.
+ * standalone on-chain contract (MiniAppTipJar) via the framework chain layer.
  *
  * The earlier path read a developer registry and a tips:recent list from OS
  * StorageProxy that no contract ever wrote, and routed tips through the OS

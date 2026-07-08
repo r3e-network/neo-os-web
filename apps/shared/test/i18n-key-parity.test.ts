@@ -143,7 +143,13 @@ async function loadMessages(app: DiscoveredApp): Promise<Record<string, unknown>
     `${app.name}: could not find a \`messages\` import in src/main.tsx — the locale convention is undiscoverable`,
   ).toBeTruthy();
 
-  const modulePath = path.resolve(app.srcDir, app.moduleSpecifier);
+  // Handle both file conventions: relative specifiers resolve against the
+  // app's src/ (exactly as main.tsx resolves them), and `@shared/...` alias
+  // specifiers resolve into apps/shared (the shared-domain-module case, e.g.
+  // neo-pay + neo-pay-shared-example importing @shared/composables/neo-pay).
+  const modulePath = app.moduleSpecifier.startsWith("@shared/")
+    ? path.resolve(APPS_DIR, "shared", app.moduleSpecifier.slice("@shared/".length))
+    : path.resolve(app.srcDir, app.moduleSpecifier);
   const imported = (await import(/* @vite-ignore */ modulePath)) as Record<
     string,
     unknown

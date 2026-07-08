@@ -145,11 +145,15 @@ defineMiniApp({
       state.lastError.set("");
 
       try {
-        const signed = await ctx.services.chain.signMessage(canonicalize(payload));
+        // app.chain.signMessage normalizes the wallet-specific result shapes
+        // into one { signature, publicKey?, data? } envelope. Errors stay on
+        // the app's translateKnownError mapping (never surface raw resolver
+        // or wallet text) — the passthrough itself never toasts.
+        const signed = await ctx.framework.chain.signMessage(canonicalize(payload));
         const signedPayload = await attachWalletSignature(
           payload,
           signed,
-          String(ctx.services.chain.address.get() ?? ""),
+          String(ctx.framework.chain.address.get() ?? ""),
         );
         state.passportPayload.set(signedPayload);
         state.proofStatus.set(ctx.t("signedStatus"));

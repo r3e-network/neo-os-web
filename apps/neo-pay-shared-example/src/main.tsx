@@ -1,12 +1,16 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import PlayArea from "./PlayArea";
-import { useNeoPayApp } from "../../neo-pay/src/composables/useNeoPayApp";
-import { messages as neoPayMessages } from "../../neo-pay/src/locale/messages";
 import { manifest } from "./manifest";
-// Canonical schedule derivation (also unit-tested in neo-pay.logic.test.ts).
-// PlayArea imports the same helper so the on-screen preview and the dispatched
-// transaction agree on the exact per-interval rate / interval.
-import { deriveSchedule } from "../../neo-pay/src/composables/deriveSchedule";
+// Canonical shared Neo Pay domain module (composable + schedule derivation +
+// locale messages), shared with the neo-pay miniapp through the shared package
+// instead of a cross-app source import. deriveSchedule is also what PlayArea
+// uses, so the on-screen preview and the dispatched transaction agree on the
+// exact per-interval rate / interval (unit-tested in neo-pay.logic.test.ts).
+import {
+  deriveSchedule,
+  messages as neoPayMessages,
+  useNeoPayApp,
+} from "@shared/composables/neo-pay";
 
 defineMiniApp({
   appId: "miniapp-neo-pay-shared-example",
@@ -15,10 +19,9 @@ defineMiniApp({
   messages: neoPayMessages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const pay = useNeoPayApp({
-      app: ctx.framework,
-      // chain retained solely for readArray (no framework equivalent).
-      chain: ctx.services.chain,
+      app,
       t: ctx.t,
     });
 
@@ -44,7 +47,7 @@ defineMiniApp({
           : "GAS";
       const { rate, intervalDays } = deriveSchedule(amount, durationDays, token);
 
-      await ctx.services.notify.guard(
+      await app.notify.guard(
         () =>
           pay.handleCreateVault({
             name: title || `Shared stream to ${recipient.slice(0, 8)}...`,
@@ -55,7 +58,7 @@ defineMiniApp({
             intervalDays,
             notes: String(form.notes ?? ""),
           }),
-        "streamCreated",
+        { successKey: "streamCreated" },
       );
     });
 
@@ -70,9 +73,9 @@ defineMiniApp({
         ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
         return;
       }
-      await ctx.services.notify.guard(
+      await app.notify.guard(
         () => pay.cancelStream(stream),
-        "streamCancelled",
+        { successKey: "streamCancelled" },
       );
     });
 
@@ -87,9 +90,9 @@ defineMiniApp({
         ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
         return;
       }
-      await ctx.services.notify.guard(
+      await app.notify.guard(
         () => pay.claimStream(stream),
-        "streamClaimed",
+        { successKey: "streamClaimed" },
       );
     });
 

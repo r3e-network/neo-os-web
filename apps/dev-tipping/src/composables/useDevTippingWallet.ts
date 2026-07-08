@@ -1,25 +1,26 @@
 /**
  * useDevTippingWallet — On-chain mutations for the Dev Tipping miniapp.
  *
- * Talks DIRECTLY to the app's standalone contract (MiniAppTipJar) via
- * ctx.services.chain. The earlier path deposited through the OS PaymentProxy
- * edge function, which scaled the human amount itself and moved nothing once the
- * kernel degraded. This composable drives the contract directly, scaling GAS to
- * BASE UNITS in-process, so the tip is real.
+ * Talks DIRECTLY to the app's standalone contract (MiniAppTipJar) via the
+ * framework chain layer. The earlier path deposited through the OS
+ * PaymentProxy edge function, which scaled the human amount itself and moved
+ * nothing once the kernel degraded. This composable drives the contract
+ * directly, scaling GAS to BASE UNITS in-process, so the tip is real.
  *
  * Contract interaction model (verified against MiniAppTipJar.cs / ABI):
  *
- *   TIP (deposit-then-act, two signed steps by the tipper):
+ *   TIP (deposit-then-act via app.funds.payAndCall):
  *     1. DEPOSIT — a GAS transfer to the contract with the memo
  *        "miniapp-devtipping:tip" so OnNEP17Payment credits the tipper's balance:
  *          transfer(tipper, CONTRACT, amountBaseUnits, "miniapp-devtipping:tip")
  *          { scriptHash: GAS_HASH }
  *     2. tip(tipper, devId, amountBaseUnits, anonymous) — moves the amount from
  *        the tipper's credit to the developer's claimable balance. If step 1
- *        lands but step 2 reverts, the credit persists on the contract under the
- *        tipper as reusable prepaid credit (reclaimable via withdraw) — no funds
- *        are lost, and the next tip skips the deposit when credit already covers
- *        it.
+ *        lands but step 2 reverts, payAndCall surfaces a
+ *        FrameworkPrepaidActionError: the credit persists on the contract under
+ *        the tipper as reusable prepaid credit (reclaimable via withdraw) — no
+ *        funds are lost, and the next tip skips the deposit when credit already
+ *        covers it.
  *
  *   REGISTER — registerDeveloper(wallet, name, role) under the wallet's witness;
  *     each wallet registers once. Returns the new devId (read from the
@@ -35,11 +36,9 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { MiniAppFramework } from "@shared/react";
-import type { EventBus } from "@shared/services";
+import { FrameworkPrepaidActionError, type MiniAppFramework } from "@shared/react";
 import { eventValue } from "@shared/utils/chain-events";
 import { parseBigInt } from "@shared/utils/parsers";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 /** Minimum tip in GAS (mirrors the contract's MIN_TIP = 0.001 GAS). */
 export const MIN_TIP = 0.001;
@@ -56,11 +55,10 @@ const TIP_MEMO = "miniapp-devtipping:tip";
 
 export interface UseDevTippingWalletOptions {
   app: MiniAppFramework;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOptions) {
+export function useDevTippingWallet({ app, t }: UseDevTippingWalletOptions) {
   const isLoading = createObservable(false);
   const isRegistering = createObservable(false);
   const isWithdrawing = createObservable(false);
@@ -110,14 +108,13 @@ export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOpt
       }
       const tipperArg = app.chain.arg.hash160(tipperAddr);
 
-      const contractHash = app.chain.contractAddress.get();
-      if (!contractHash) {
+      if (!app.chain.contractAddress.get()) {
         throw new Error(t("contractNotReady"));
       }
 
-      // Step 1: DEPOSIT — only top up when existing tip credit can't cover the
-      // amount (credit may persist from a prior aborted tip). The contract scales
-      // nothing; the amount is already in BASE UNITS here.
+      // Only top up when existing tip credit can't cover the amount (credit
+      // may persist from a prior aborted tip). The contract scales nothing;
+      // the amount is already in BASE UNITS here.
       let credit = 0n;
       try {
         credit = parseBigInt(await app.chain.readRaw("creditOf", [tipperArg]));
@@ -125,52 +122,44 @@ export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOpt
         credit = 0n;
       }
 
-      let depositSettled = false;
-      if (credit < amountBase) {
-        await app.chain.invoke(
-          "transfer",
-          [
-            tipperArg,
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(amountBase),
-            app.chain.arg.string(TIP_MEMO),
-          ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-        );
-        depositSettled = true;
-      }
+      const tipArgs = [
+        tipperArg,
+        app.chain.arg.integer(Math.trunc(selectedDevId)),
+        app.chain.arg.integer(amountBase),
+        app.chain.arg.boolean(anonymous),
+      ];
 
-      // Step 2: tip — moves the amount from the tipper's credit to the
-      // developer's claimable balance in this tx. If the deposit landed but this
-      // reverts, the credit persists as reusable prepaid credit (reclaimable via
-      // withdraw); surface that distinctly when the deposit settled this round.
       try {
-        await app.chain.invoke(
-          "tip",
-          [
-            tipperArg,
-            app.chain.arg.integer(Math.trunc(selectedDevId)),
-            app.chain.arg.integer(amountBase),
-            app.chain.arg.boolean(anonymous),
-          ],
-          { waitForEvent: "Tipped" },
-        );
+        if (credit < amountBase) {
+          // Deposit-then-act (S3): payAndCall transfers the GAS to the
+          // contract with the tip memo, waits for the credit to confirm, then
+          // fires tip() — notify:'silent' because this composable owns the
+          // localized error copy and main.tsx's guard owns the toasts.
+          await app.funds.payAndCall({
+            amountFixed8: amountBase,
+            memo: TIP_MEMO,
+            operation: "tip",
+            args: tipArgs,
+            waitForEvent: "Tipped",
+            notify: "silent",
+          });
+        } else {
+          // Existing credit covers the tip — no deposit this round.
+          await app.chain.invoke("tip", tipArgs, { waitForEvent: "Tipped" });
+        }
       } catch (tipErr) {
-        const raw = tipErr instanceof Error ? tipErr.message : String(tipErr);
-        if (depositSettled) {
+        // Deposit landed but tip() reverted: the credit persists on the
+        // contract as reusable prepaid credit (reclaimable via withdraw) —
+        // surface the app's localized recovery copy.
+        if (tipErr instanceof FrameworkPrepaidActionError) {
           throw new Error(t("tipPrepaidNoTip"));
         }
+        const raw = tipErr instanceof Error ? tipErr.message : String(tipErr);
         throw new Error(raw || t("error"));
       }
 
-      eventBus.emit("devtipping:tipsent", { devId: selectedDevId, amount });
       if (onSuccess) onSuccess();
       return true;
-    } catch (e) {
-      eventBus.emit("devtipping:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
     } finally {
       isLoading.set(false);
     }
@@ -218,14 +207,8 @@ export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOpt
       // DeveloperRegistered(devId, wallet, name) — devId is state slot 0.
       const devId = Number(parseBigInt(eventValue(result.event, 0)));
 
-      eventBus.emit("devtipping:registered", { devId, name: trimmedName });
       if (onSuccess) onSuccess();
       return Number.isFinite(devId) && devId > 0 ? devId : 0;
-    } catch (e) {
-      eventBus.emit("devtipping:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
     } finally {
       isRegistering.set(false);
     }
@@ -257,14 +240,8 @@ export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOpt
       const amountBase = parseBigInt(eventValue(result.event, 2));
       const amount = Number(amountBase) / 1e8;
 
-      eventBus.emit("devtipping:withdrawn", { devId, amount });
       if (onSuccess) onSuccess();
       return Number.isFinite(amount) ? amount : 0;
-    } catch (e) {
-      eventBus.emit("devtipping:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
     } finally {
       isWithdrawing.set(false);
     }
@@ -294,14 +271,8 @@ export function useDevTippingWallet({ app, eventBus, t }: UseDevTippingWalletOpt
       const amountBase = parseBigInt(eventValue(result.event, 1));
       const amount = Number(amountBase) / 1e8;
 
-      eventBus.emit("devtipping:creditwithdrawn", { amount });
       if (onSuccess) onSuccess();
       return Number.isFinite(amount) ? amount : 0;
-    } catch (e) {
-      eventBus.emit("devtipping:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
     } finally {
       isWithdrawing.set(false);
     }

@@ -61,6 +61,11 @@ function readNumber(value: unknown, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+// framework-exempt: auth-header harvesting — reads the platform's own
+// session/local-storage credential keys (not app-scoped `neo:<appId>:` data),
+// so it must not move to app.storage.local; there is no framework gateway
+// client, and moving this partially would drop credentials on every request
+// (plan §3.6).
 function readRuntimeValue(keys: string[]) {
   if (typeof window === "undefined") return "";
   const stores: Storage[] = [];
@@ -161,6 +166,10 @@ export function buildAutomationTriggerRequest(input: {
   };
 }
 
+// framework-exempt: gateway envelope — the `/api/edge/*` automation gateway
+// protocol ({ok,data,meta} unwrapping + credential headers) has no framework
+// client surface; migrating the fetch alone would strip the auth headers the
+// gateway requires on every request (plan §3.6).
 export async function callAutomationEndpoint<T>(
   endpoint: string,
   options: { method?: "GET" | "POST"; body?: unknown; timeoutMs?: number } = {},

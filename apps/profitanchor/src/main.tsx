@@ -36,7 +36,6 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
     const workflowStatus = createObservable(ctx.t("workflowReady"));
     const lastTxid = createObservable("");
     const lastError = createObservable("");
@@ -44,7 +43,6 @@ defineMiniApp({
 
     const anchor = useProfitAnchor({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -130,6 +128,9 @@ defineMiniApp({
       workflowStatus.set(ctx.t("workflowSubmitting"));
       lastError.set("");
       try {
+        // The underlying writes are raw app.chain invokes (no framework
+        // toasts); this wrapper owns ALL messaging — status/history
+        // bookkeeping plus the success/error toasts via app.notify.
         const result = await run();
         const txid = result?.txid ?? "";
         lastTxid.set(txid);
@@ -140,14 +141,14 @@ defineMiniApp({
           status: ctx.t(successKey),
           txid,
         });
-        notify.success(successKey);
+        ctx.framework.notify.success(successKey);
         return result;
       } catch (error) {
         const message =
           error instanceof Error ? error.message : ctx.t("workflowFailed");
         lastError.set(message);
         workflowStatus.set(ctx.t("workflowFailed"));
-        notify.error(error, "anchorActionFailed");
+        ctx.framework.notify.error(error, "anchorActionFailed");
         throw error;
       } finally {
         submitting.set(false);
