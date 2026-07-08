@@ -21,12 +21,18 @@ and OneGate-hosted dApp launches.
   Source: https://opengameart.org/content/cc0-potion-icons
 - Snake Bounty snake board sprites: `Snake game assets` by Clear_code, CC0.
   Source: https://opengameart.org/content/snake-game-assets
+- Curve Arrow sprites, logo, and banner: original in-repo vector art (layered
+  SVG compositions rasterized to webp with sharp); no external asset packs.
+  See `apps/curve-arrow/public/art/ATTRIBUTION.md`.
 
 ## App Mapping
 
 - `aim-master`: target-range composition using Kenney platformer/request-pack
   shooter and target motifs.
 - `color-clash`: match-puzzle board composition using Kenney Puzzle Pack II.
+- `curve-arrow`: dawn archery-range scene (curving golden arrow trail, stone
+  pillars, recurve bow, and FITA target board) built from original in-repo
+  vector art.
 - `flappy-dash`: native flappy clone scene using bird, pipe, sky, and ground
   sprites from `flappy-bird-assets`.
 - `game-2048`: native 2048 board styling based on the original MIT 2048 tile
