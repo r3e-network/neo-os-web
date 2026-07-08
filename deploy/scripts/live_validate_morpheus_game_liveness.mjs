@@ -27,6 +27,7 @@ const oracleKernelGames = new Map([
   ["color-clash", "MiniAppColorClash"],
   ["flappy-dash", "MiniAppFlappyDash"],
   ["game-2048", "MiniAppGame2048"],
+  ["curve-arrow", "MiniAppCurveArrow"],
   ["merge-kingdom", "MiniAppMergeKingdom"],
   ["pet-potion", "MiniAppPetPotion"],
   ["snake-bounty", "MiniAppSnakeBounty"],

@@ -40,6 +40,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             new object[] { "MiniAppBurnLeague", "MiniAppBurnLeague/MiniAppBurnLeague.cs" },
             new object[] { "MiniAppCoinFlip", "MiniAppCoinFlip/MiniAppCoinFlip.cs" },
             new object[] { "MiniAppColorClash", "MiniAppColorClash/MiniAppColorClash.cs" },
+            new object[] { "MiniAppCurveArrow", "MiniAppCurveArrow/MiniAppCurveArrow.cs" },
             new object[] { "MiniAppDailyCheckin", "MiniAppDailyCheckin/MiniAppDailyCheckin.cs" },
             new object[] { "MiniAppDiceGame", "MiniAppDiceGame/MiniAppDiceGame.cs" },
             new object[] { "MiniAppFlappyDash", "MiniAppFlappyDash/MiniAppFlappyDash.cs" },

@@ -15,6 +15,7 @@ const phaserGames = [
   "aim-master",
   "burn-league",
   "color-clash",
+  "curve-arrow",
   "dice-game",
   "flappy-dash",
   "fogplay",
@@ -1062,6 +1063,16 @@ describe("Game miniapp motion baseline", () => {
       const appRoot = resolve(appsRoot, app);
       const playAreaScss = readIfExists(resolve(appRoot, "src/PlayArea.scss"));
       const playAreaTsx = readIfExists(resolve(appRoot, "src/PlayArea.tsx"));
+      const phaserWrapperTsx = readIfExists(resolve(appRoot, "src/PhaserPlayArea.tsx"));
+      // Phaser-first games have no DOM PlayArea: the canvas scene IS the play
+      // surface, so asset/feedback checks read the scene sources instead.
+      const isPhaserOnly = playAreaTsx === "" && phaserWrapperTsx !== "";
+      const sceneSources = existsSync(resolve(appRoot, "src/scenes"))
+        ? readdirSync(resolve(appRoot, "src/scenes"))
+            .filter((file) => file.endsWith(".ts"))
+            .map((file) => readIfExists(resolve(appRoot, "src/scenes", file)))
+            .join("\n")
+        : "";
       const publicAssets = existsSync(resolve(appRoot, "public"))
         ? readdirSync(resolve(appRoot, "public")).filter((file) =>
             /\.(?:avif|webp|jpe?g|png)$/i.test(file),
@@ -1097,26 +1108,35 @@ describe("Game miniapp motion baseline", () => {
           reason: "needs reduced-motion coverage",
         },
         {
-          ok:
-            usesSharedArt ||
-            (publicAssets.length > 0 &&
-              /\.(?:avif|webp|jpe?g|png)/i.test(`${playAreaScss}\n${playAreaTsx}`)),
+          ok: isPhaserOnly
+            ? publicAssets.length > 0 &&
+              /\.\/art\/[^"']+\.(?:avif|webp|jpe?g|png)/i.test(sceneSources)
+            : usesSharedArt ||
+              (publicAssets.length > 0 &&
+                /\.(?:avif|webp|jpe?g|png)/i.test(`${playAreaScss}\n${playAreaTsx}`)),
           reason: "needs real assets referenced by the play surface",
         },
         {
-          ok:
-            LOCAL_ACTION_PREVIEW_PATTERN.test(playAreaTsx) &&
-            PREVIEW_TIMEOUT_PATTERN.test(playAreaTsx) &&
-            PREVIEW_START_PATTERN.test(playAreaTsx),
+          // Phaser-first games give instant in-canvas feedback: pointer input
+          // wired straight to tweens + sound, no DOM preview layer needed.
+          ok: isPhaserOnly
+            ? /pointerdown|bindGameButton/.test(sceneSources) &&
+              /this\.(?:animate|tween|pressFeedback)\(/.test(sceneSources) &&
+              /this\.sfx\./.test(sceneSources)
+            : LOCAL_ACTION_PREVIEW_PATTERN.test(playAreaTsx) &&
+              PREVIEW_TIMEOUT_PATTERN.test(playAreaTsx) &&
+              PREVIEW_START_PATTERN.test(playAreaTsx),
           reason:
             "needs immediate local action preview so taps animate before chain confirmation",
         },
         {
           ok:
-            /aria-busy=/.test(playAreaTsx) ||
+            /aria-busy=/.test(playAreaTsx || phaserWrapperTsx) ||
             // v2 apps inherit the busy state from the shared ActionRail
             // (which renders aria-busy on the primary action when loading).
-            /from\s+["']@shared\/components-react\/v2["']/.test(playAreaTsx),
+            /from\s+["']@shared\/components-react\/v2["']/.test(
+              playAreaTsx || phaserWrapperTsx,
+            ),
           reason:
             "needs a busy game surface so action animations are exposed to users and assistive tech",
         },

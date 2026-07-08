@@ -112,6 +112,7 @@ const SERVER_BACKED_FLOWS = new Map([
     "miniapp-flappy-dash",
     "miniapp-game-2048",
     "miniapp-jump-rush",
+    "miniapp-curve-arrow",
     "miniapp-merge-kingdom",
     "miniapp-pet-potion",
     "miniapp-sheep-solitaire",

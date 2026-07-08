@@ -66,6 +66,7 @@ const BUNDLED_MINIAPP_ASSET_SLUGS = new Set([
   "color-clash",
   "compound-capsule",
   "council-governance",
+  "curve-arrow",
   "custom-anchor",
   "daily-checkin",
   "dev-tipping",

@@ -61,6 +61,7 @@ var deployTargets = []deployTarget{
 	{"MiniAppMergeKingdom", "contracts/build/MiniAppMergeKingdom.nef", "contracts/build/MiniAppMergeKingdom.manifest.json", "apps/merge-kingdom/neo-manifest.json"},
 	{"MiniAppPetPotion", "contracts/build/MiniAppPetPotion.nef", "contracts/build/MiniAppPetPotion.manifest.json", "apps/pet-potion/neo-manifest.json"},
 	{"MiniAppSheepSolitaire", "contracts/build/MiniAppSheepSolitaire.nef", "contracts/build/MiniAppSheepSolitaire.manifest.json", "apps/sheep-solitaire/neo-manifest.json"},
+	{"MiniAppCurveArrow", "contracts/build/MiniAppCurveArrow.nef", "contracts/build/MiniAppCurveArrow.manifest.json", "apps/curve-arrow/neo-manifest.json"},
 	{"MiniAppSnakeBounty", "contracts/build/MiniAppSnakeBounty.nef", "contracts/build/MiniAppSnakeBounty.manifest.json", "apps/snake-bounty/neo-manifest.json"},
 	{"MiniAppSudoku", "contracts/build/MiniAppSudoku.nef", "contracts/build/MiniAppSudoku.manifest.json", "apps/sudoku/neo-manifest.json"},
 	{"MiniAppEventTicketPass", "contracts/build/MiniAppEventTicketPass.nef", "contracts/build/MiniAppEventTicketPass.manifest.json", "apps/event-ticket-pass/neo-manifest.json"},

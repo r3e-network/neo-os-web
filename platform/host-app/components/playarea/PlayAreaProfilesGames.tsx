@@ -81,6 +81,24 @@ export const GAME_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       slots: ["Palette", "Move", "Round", "Receipt"],
     },
   }),
+  "miniapp-curve-arrow": gameProfile({
+    title: "Curve Arrow range",
+    subtitle:
+      "Bend the arrow around the walls in the dApp and settle every verified bullseye run on-chain.",
+    tone: "emerald",
+    icon: <Zap className="h-5 w-5" />,
+    cards: [
+      { label: "Mode", value: "archery" },
+      { label: "Control", value: "hold-to-curve" },
+      { label: "Goal", value: "bullseye" },
+    ],
+    steps: ["Start range", "Curve arrows", "Seal run", "Settle reward"],
+    primaryAction: "Start range",
+    visual: {
+      headline: "Archery range",
+      slots: ["Bow", "Walls", "Target", "Settlement"],
+    },
+  }),
   "miniapp-flappy-dash": gameProfile({
     title: "Flappy Dash course",
     subtitle:

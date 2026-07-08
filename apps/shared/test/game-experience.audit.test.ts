@@ -42,6 +42,7 @@ const BUTTON_PATTERN = /<button\b|<NeoButton\b/g;
 const TEE_REWARD_GAMES = [
   "aim-master",
   "color-clash",
+  "curve-arrow",
   "flappy-dash",
   "game-2048",
   "jump-rush",
@@ -114,6 +115,7 @@ describe("game miniapp experience audit", () => {
       "aim-master",
       "burn-league",
       "color-clash",
+      "curve-arrow",
       "daily-checkin",
       "dice-game",
       "flappy-dash",
@@ -217,7 +219,29 @@ describe("game miniapp experience audit", () => {
 
   it("keeps TEE reward-game starts gated by the available reward pool", () => {
     for (const appName of TEE_REWARD_GAMES) {
-      const playArea = readFileSync(path.join(APPS_DIR, appName, "src", "PlayArea.tsx"), "utf8");
+      const playAreaPath = path.join(APPS_DIR, appName, "src", "PlayArea.tsx");
+      if (!existsSync(playAreaPath)) {
+        // Phaser-first games have no DOM PlayArea: pool gating lives in the
+        // canvas scene (start cards disabled + low-pool copy) and main wiring.
+        const sceneDir = path.join(APPS_DIR, appName, "src", "scenes");
+        const scenes = readdirSync(sceneDir)
+          .filter((file) => file.endsWith(".ts"))
+          .map((file) => readFileSync(path.join(sceneDir, file), "utf8"))
+          .join("\n");
+        const mainSource = readFileSync(
+          path.join(APPS_DIR, appName, "src", "main.tsx"),
+          "utf8",
+        );
+        expect(scenes, `${appName}: scene must gate paid starts on the reward pool`).toMatch(
+          /poolFree/,
+        );
+        expect(scenes, `${appName}: low-pool starts need user-facing copy`).toMatch(/pool low/i);
+        expect(mainSource, `${appName}: reward-pool failures need a user-facing status`).toMatch(
+          /statusPoolLow/,
+        );
+        continue;
+      }
+      const playArea = readFileSync(playAreaPath, "utf8");
       expect(playArea, `${appName}: start controls need a shared reward-pool readiness flag`).toMatch(
         /rewardPoolReady/,
       );
