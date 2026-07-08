@@ -13,6 +13,7 @@ const phaserSceneApps = [
   ["aim-master", "AimMasterScene"],
   ["burn-league", "BurnLeagueScene"],
   ["color-clash", "ColorClashScene"],
+  ["curve-arrow", "CurveArrowScene"],
   ["dice-game", "DiceScene"],
   ["flappy-dash", "FlappyScene"],
   ["fogplay", "FogplayScene"],

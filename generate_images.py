@@ -309,6 +309,14 @@ APPS = [
         'accent': (255, 255, 255),
         'bubbles': True,
     },
+    {
+        'name': 'curve-arrow',
+        'text': 'Curve Arrow',
+        'logo_colors': [(0.0, (18, 92, 60)), (0.5, (32, 128, 84)), (1.0, (8, 46, 32))],
+        'banner_colors': [(0.0, (22, 104, 68)), (0.5, (44, 144, 96)), (1.0, (12, 60, 40))],
+        'accent': (255, 216, 115),
+        'target': True,
+    },
 ]
 
 def render_decoration(app_cfg, pixels, width, height):

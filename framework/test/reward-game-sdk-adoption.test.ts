@@ -8,6 +8,7 @@ const appsRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../apps");
 const genericRewardGames = [
   "aim-master",
   "color-clash",
+  "curve-arrow",
   "flappy-dash",
   "game-2048",
   "merge-kingdom",
