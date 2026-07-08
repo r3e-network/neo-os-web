@@ -1,28 +1,14 @@
-export const parseBigInt = (value: unknown): bigint => {
-  try {
-    return BigInt(String(value ?? "0"));
-  } catch (_e) {
-    return 0n;
-  }
-};
+/**
+ * Defensive parsers — re-exported from the framework canonical.
+ *
+ * The implementation moved to framework/utils/parsers.ts (S0 utils
+ * consolidation); this file keeps existing `@shared/utils/parsers` imports
+ * working with the SAME function identities.
+ */
 
-export const parseBool = (value: unknown): boolean =>
-  value === true || value === "true" || value === 1 || value === "1";
-
-export const encodeTokenId = (tokenId: string): string => {
-  try {
-    const bytes = new TextEncoder().encode(tokenId);
-    return btoa(String.fromCharCode(...bytes));
-  } catch (_e) {
-    return tokenId;
-  }
-};
-
-export const parseDateInput = (value: string): number => {
-  const trimmed = value.trim();
-  if (!trimmed) return 0;
-  const normalized = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
-  const parsed = Date.parse(normalized);
-  if (Number.isNaN(parsed)) return 0;
-  return Math.floor(parsed / 1000);
-};
+export {
+  parseBigInt,
+  parseBool,
+  encodeTokenId,
+  parseDateInput,
+} from "../../../framework/utils/parsers";
