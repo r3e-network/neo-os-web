@@ -326,7 +326,7 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain(`this.dispatch("recordFlap", { pipes: this.flappyState.score })`);
     expect(scene).toContain(`this.dispatch("submitSolution", { pipes: score })`);
     expect(scene).toContain("private playSfx");
-    expect(scene).toContain("AudioContext");
+    expect(scene).toContain("this.sfx.");
     expect(scene).toContain("private emitFlapBurst");
     expect(scene).toContain("private playPipePassFeedback");
     expect(scene).toContain("private playResultFeedback");
@@ -759,7 +759,7 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("Chip rail");
     expect(scene).toContain("throwTrail");
     expect(scene).toContain("private playSfx");
-    expect(scene).toContain("AudioContext");
+    expect(scene).toContain("this.sfx.");
     expect(scene).toContain("this.playSfx(\"select\")");
     expect(scene).toContain("this.playSfx(\"chip\")");
     expect(scene).toContain("this.playSfx(\"throw\")");
@@ -841,7 +841,7 @@ describe("Game miniapp motion baseline", () => {
     expect(styles).toContain("--phaser-mobile-height-ratio: 1.78");
     expect(styles).toContain(".rush-history__item");
     expect(scene).toContain("private playSfx");
-    expect(scene).toContain("AudioContext");
+    expect(scene).toContain("this.sfx.");
     expect(scene).toContain("this.playSfx(\"move\")");
     expect(scene).toContain("this.playSfx(\"merge\")");
     expect(scene).not.toContain("const GRID_TOP");

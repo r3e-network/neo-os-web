@@ -348,7 +348,7 @@ describe("game-2048 Phaser playarea", () => {
     expect(scene).toContain("private canMove(dir: number)");
     expect(scene).toContain("return applyMove([...board], dir)");
     expect(scene).toContain("private playSfx");
-    expect(scene).toContain("AudioContext");
+    expect(scene).toContain("this.sfx.");
     expect(scene).toContain("this.playSfx(\"move\")");
     expect(scene).toContain("this.playSfx(\"merge\")");
   });

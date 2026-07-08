@@ -85,6 +85,9 @@ export class FogplayScene extends BaseScene {
   private shuffleTimer: Phaser.Time.TimerEvent | null = null;
   private isAnimating = false;
   private resizeTimer: Phaser.Time.TimerEvent | null = null;
+  // Last result a cue was played for, so win/lose fires once per reveal
+  // instead of on every React state push.
+  private lastResultCue = "";
 
   constructor() {
     super("FogplayScene");
@@ -144,8 +147,13 @@ export class FogplayScene extends BaseScene {
     }
 
     if (result && !flipping) {
+      if (this.lastResultCue !== result) {
+        this.lastResultCue = result;
+        this.sfx.play(result === "won" ? "win" : "lose");
+      }
       this.showResult(result, landedSide(choice, result));
     } else {
+      this.lastResultCue = "";
       this.resultOverlay.setVisible(false);
       if (!flipping) this.drawCoinFace(choice);
     }
@@ -322,7 +330,10 @@ export class FogplayScene extends BaseScene {
       hoverScale: 1.03,
       pressScale: 0.94,
       enabled: () => !this.isAnimating,
-      onPress: () => this.dispatch("setChoice", side),
+      onPress: () => {
+        this.sfx.play("select");
+        this.dispatch("setChoice", side);
+      },
     });
 
     container.add([bg, hit, icon, text, hint]);
@@ -371,7 +382,10 @@ export class FogplayScene extends BaseScene {
       hoverScale: 1.05,
       pressScale: 0.92,
       enabled: () => !this.isAnimating,
-      onPress: () => this.dispatch("setBetAmount", amount),
+      onPress: () => {
+        this.sfx.play("chip");
+        this.dispatch("setBetAmount", amount);
+      },
     });
 
     container.add([bg, hit, icon, label]);
@@ -433,7 +447,10 @@ export class FogplayScene extends BaseScene {
       hoverScale: 1.03,
       pressScale: 0.94,
       enabled: () => this.canBet && !this.isAnimating,
-      onPress: () => this.dispatch("placeBet"),
+      onPress: () => {
+        this.sfx.play("throw");
+        this.dispatch("placeBet");
+      },
     });
 
     this.placeBetBtn.add([this.placeBetBg, hit, this.placeBetLabel]);
@@ -538,6 +555,7 @@ export class FogplayScene extends BaseScene {
       loop: true,
       callback: () => {
         this.drawCoinFace(faces[faceIndex % faces.length]!);
+        if (faceIndex % 3 === 0) this.sfx.play("tick");
         faceIndex += 1;
       },
     });
@@ -564,6 +582,7 @@ export class FogplayScene extends BaseScene {
 
   private stopFlipAnimation(side: CoinSide): void {
     this.isAnimating = false;
+    this.sfx.play("land");
     this.spinTween?.stop();
     this.spinTween = null;
     this.shuffleTimer?.remove(false);

@@ -72,8 +72,6 @@ export class DiceScene extends BaseScene {
   private isRolling      = false;
   private shuffleCounter = 0;
   private shuffleTimer: Phaser.Time.TimerEvent | null = null;
-  private audioContext: AudioContext | null = null;
-  private audioUnlocked = false;
   private lastThrowSoundAt = 0;
   private lastResultKey = "";
 
@@ -93,8 +91,6 @@ export class DiceScene extends BaseScene {
 
   create(): void {
     super.create();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.closeAudio());
-    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.closeAudio());
     this.rebuildScene();
     this.onStateUpdate(this.state);
   }
@@ -328,7 +324,7 @@ export class DiceScene extends BaseScene {
       hoverScale: 1.06,
       pressScale: 0.92,
       onPress: () => {
-        this.unlockAudio();
+        this.sfx.unlock();
         this.playSfx("select");
         this.emitTapBurst(c.x, c.y, GOLD_LIGHT);
         this.selectedFace = face;
@@ -428,7 +424,7 @@ export class DiceScene extends BaseScene {
       pressScale: 0.9,
       pressDuration: 80,
       onPress: () => {
-        this.unlockAudio();
+        this.sfx.unlock();
         this.playSfx("chip");
         this.emitTapBurst(c.x, c.y, GOLD_LIGHT);
         onPress();
@@ -511,7 +507,7 @@ export class DiceScene extends BaseScene {
       pressScale: 0.95,
       pressDuration: 80,
       onPress: () => {
-        this.unlockAudio();
+        this.sfx.unlock();
         this.playThrowSfx();
         this.emitThrowCharge();
         this.dispatch("placeDiceBet", {
@@ -774,105 +770,52 @@ export class DiceScene extends BaseScene {
     });
   }
 
-  private unlockAudio(): void {
-    const context = this.ensureAudioContext();
-    if (!context || this.audioUnlocked) return;
-    this.audioUnlocked = true;
-    if (context.state === "suspended") {
-      void context.resume().catch(() => undefined);
-    }
-  }
-
-  private ensureAudioContext(): AudioContext | null {
-    if (typeof window === "undefined") return null;
-    if (this.audioContext) return this.audioContext;
-    const AudioContextCtor =
-      window.AudioContext ??
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextCtor) return null;
-    try {
-      this.audioContext = new AudioContextCtor();
-    } catch {
-      this.audioContext = null;
-    }
-    return this.audioContext;
-  }
-
   private playSfx(kind: SfxKind): void {
-    const context = this.ensureAudioContext();
-    if (!context) return;
-
     switch (kind) {
       case "select":
-        this.playTone(context, 520, 0.045, 0, "triangle", 0.022, 700);
+        // Slightly brighter chirp than the shared "tap" preset (glides to 700 Hz).
+        this.sfx.tones([
+          { frequency: 520, duration: 0.045, type: "triangle", gain: 0.022, endFrequency: 700 },
+        ]);
         break;
       case "chip":
-        this.playTone(context, 390, 0.045, 0, "sine", 0.024, 520);
-        this.playTone(context, 780, 0.04, 0.035, "triangle", 0.018, 920);
+        this.sfx.play("chip");
         break;
       case "throw":
-        this.playTone(context, 180, 0.07, 0, "sawtooth", 0.025, 360);
-        this.playTone(context, 540, 0.08, 0.045, "triangle", 0.02, 760);
+        this.sfx.play("throw");
         break;
       case "tick":
-        this.playTone(context, 310, 0.025, 0, "square", 0.012, 220);
+        this.sfx.play("tick");
         break;
       case "land":
-        this.playTone(context, 180, 0.08, 0, "triangle", 0.032, 90);
-        this.playTone(context, 420, 0.04, 0.04, "sine", 0.016, 300);
+        this.sfx.tones([
+          { frequency: 180, duration: 0.08, type: "triangle", gain: 0.032, endFrequency: 90 },
+          { frequency: 420, duration: 0.04, delay: 0.04, type: "sine", gain: 0.016, endFrequency: 300 },
+        ]);
         break;
       case "win":
-        [523, 659, 784, 1046].forEach((frequency, index) => {
-          this.playTone(context, frequency, 0.12, index * 0.055, "triangle", 0.026);
-        });
+        this.sfx.tones(
+          [523, 659, 784, 1046].map((frequency, index) => ({
+            frequency,
+            duration: 0.12,
+            delay: index * 0.055,
+            type: "triangle" as const,
+            gain: 0.026,
+          })),
+        );
         break;
       case "lose":
-        this.playTone(context, 240, 0.12, 0, "sawtooth", 0.026, 120);
-        this.playTone(context, 120, 0.16, 0.06, "triangle", 0.02, 70);
+        this.sfx.tones([
+          { frequency: 240, duration: 0.12, type: "sawtooth", gain: 0.026, endFrequency: 120 },
+          { frequency: 120, duration: 0.16, delay: 0.06, type: "triangle", gain: 0.02, endFrequency: 70 },
+        ]);
         break;
       case "refund":
-        this.playTone(context, 320, 0.08, 0, "sine", 0.018, 430);
-        this.playTone(context, 430, 0.08, 0.055, "sine", 0.018, 320);
+        this.sfx.tones([
+          { frequency: 320, duration: 0.08, type: "sine", gain: 0.018, endFrequency: 430 },
+          { frequency: 430, duration: 0.08, delay: 0.055, type: "sine", gain: 0.018, endFrequency: 320 },
+        ]);
         break;
-    }
-  }
-
-  private playTone(
-    context: AudioContext,
-    frequency: number,
-    duration: number,
-    delay = 0,
-    type: OscillatorType = "sine",
-    gain = 0.02,
-    endFrequency?: number,
-  ): void {
-    try {
-      const start = context.currentTime + delay;
-      const oscillator = context.createOscillator();
-      const amp = context.createGain();
-      oscillator.type = type;
-      oscillator.frequency.setValueAtTime(frequency, start);
-      if (endFrequency) {
-        oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFrequency), start + duration);
-      }
-      amp.gain.setValueAtTime(0.0001, start);
-      amp.gain.exponentialRampToValueAtTime(gain, start + 0.012);
-      amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-      oscillator.connect(amp);
-      amp.connect(context.destination);
-      oscillator.start(start);
-      oscillator.stop(start + duration + 0.02);
-    } catch {
-      // Audio is non-critical; blocked autoplay or closed contexts should not interrupt gameplay.
-    }
-  }
-
-  private closeAudio(): void {
-    const context = this.audioContext;
-    this.audioContext = null;
-    this.audioUnlocked = false;
-    if (context && context.state !== "closed") {
-      void context.close().catch(() => undefined);
     }
   }
 

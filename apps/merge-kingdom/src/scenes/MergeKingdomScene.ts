@@ -261,6 +261,8 @@ export class MergeKingdomScene extends BaseScene {
   private currentPhase: "lobby" | "loading" | "play" | "result" = "lobby";
   private clockTimer: Phaser.Time.TimerEvent | null = null;
   private nowMs = Date.now();
+  private lastBestTile = 0;                  // for tier-up cue detection
+  private pendingMoveTarget: { row: number; col: number } | null = null;
 
   constructor() {
     super("MergeKingdomScene");
@@ -305,7 +307,10 @@ export class MergeKingdomScene extends BaseScene {
 
     // Determine phase
     if (status === "solved" || status === "expired") {
-      if (this.currentPhase !== "result") this.setPhase("result");
+      if (this.currentPhase !== "result") {
+        this.setPhase("result");
+        if (status === "solved") this.sfx.play("win");
+      }
       this.updateResult();
     } else if (isStarting || isDealing || status === "committed") {
       if (this.currentPhase !== "loading") this.setPhase("loading");
@@ -315,6 +320,8 @@ export class MergeKingdomScene extends BaseScene {
         this.setPhase("play");
         this.selectedCell = null;
         this.selectionRing.setVisible(false);
+        this.lastBestTile = this.num("tileAchieved", 0);
+        this.pendingMoveTarget = null;
       }
       this.updateHUD();
       this.updateBoard();
@@ -492,6 +499,8 @@ export class MergeKingdomScene extends BaseScene {
       bg.setFillStyle(diffIdx === this.selectedDiff ? C.cardActive : C.cardBg);
     });
     bg.on("pointerdown", () => {
+      this.sfx.unlock();
+      this.sfx.play("tap");
       this.selectedDiff = diffIdx;
       this.refreshDiffCards();
       this.updateLobby();
@@ -702,6 +711,7 @@ export class MergeKingdomScene extends BaseScene {
       t.container.setScale(1.0);
     });
     t.bg.on("pointerdown", () => {
+      this.sfx.unlock();
       if (this.currentPhase !== "play") return;
       this.handleTileClick(row, col);
     });
@@ -863,6 +873,8 @@ export class MergeKingdomScene extends BaseScene {
       this.tweens.add({ targets: btn, scale: 1.0, duration: 70 });
     });
     bg.on("pointerdown", () => {
+      this.sfx.unlock();
+      this.sfx.play("tap");
       this.tweens.add({ targets: btn, scale: 0.96, duration: 60, yoyo: true });
       onPress();
     });
@@ -932,12 +944,21 @@ export class MergeKingdomScene extends BaseScene {
     const board = this.val<number[][]>("board") ?? [];
     if (!Array.isArray(board) || board.length !== BOARD_SIZE) return;
 
+    const pending = this.pendingMoveTarget;
+    let boardChanged = false;
+    let spawnedTile = false;
+
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const newVal = board[r]?.[c] ?? 0;
         const oldVal = this.prevBoard[r]?.[c] ?? 0;
         const t = this.tiles[r]?.[c];
         if (!t) continue;
+
+        if (newVal !== oldVal) boardChanged = true;
+        if (pending && oldVal === 0 && newVal > 0 && !(pending.row === r && pending.col === c)) {
+          spawnedTile = true;
+        }
 
         this.setTileValue(t, newVal);
 
@@ -952,6 +973,12 @@ export class MergeKingdomScene extends BaseScene {
           });
         }
       }
+    }
+
+    // One spawn cue per confirmed move (never on the deal or idle pushes)
+    if (pending && boardChanged) {
+      if (spawnedTile) this.sfx.play("spawn");
+      this.pendingMoveTarget = null;
     }
 
     // Deep-copy board for next diff
@@ -994,6 +1021,12 @@ export class MergeKingdomScene extends BaseScene {
     // Stats
     this.movesText.setText(`Moves: ${moveCount}`);
     this.bestTileText.setText(tileAchieved > 0 ? `Best: ${tileAchieved}` : "Best: —");
+
+    // Tier-up cue: a new best building was raised (once per new best)
+    if (tileAchieved > this.lastBestTile) {
+      if (this.lastBestTile > 0) this.sfx.play("combo");
+      this.lastBestTile = tileAchieved;
+    }
 
     // Action area
     const targetReached = tileAchieved >= targetTile;
@@ -1055,6 +1088,7 @@ export class MergeKingdomScene extends BaseScene {
     if (!this.selectedCell) {
       // Select a tile that has a value
       if (val > 0) {
+        this.sfx.play("select");
         this.selectCell(row, col);
       }
       return;
@@ -1064,6 +1098,7 @@ export class MergeKingdomScene extends BaseScene {
 
     // Clicking the same tile deselects
     if (sr === row && sc === col) {
+      this.sfx.play("tap");
       this.clearSelection();
       return;
     }
@@ -1071,11 +1106,14 @@ export class MergeKingdomScene extends BaseScene {
     // Only allow orthogonally adjacent moves
     const dr = Math.abs(row - sr);
     const dc = Math.abs(col - sc);
+    let invalidMove = false;
     if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
       const srcVal = board[sr]?.[sc] ?? 0;
       const dstVal = val;
       // Valid move: destination is empty OR same value (merge)
       if (dstVal === 0 || dstVal === srcVal) {
+        this.sfx.play(dstVal === srcVal ? "merge" : "tap");
+        this.pendingMoveTarget = { row, col };
         this.clearSelection();
         // Slide animation on source tile (toward destination)
         this.animateSlide(sr, sc, row, col, () => {
@@ -1083,10 +1121,14 @@ export class MergeKingdomScene extends BaseScene {
         });
         return;
       }
+      // Adjacent but mismatched values → invalid move attempt
+      invalidMove = true;
+      this.sfx.play("error");
     }
 
     // Clicked a different tile → re-select
     if (val > 0) {
+      if (!invalidMove) this.sfx.play("select");
       this.selectCell(row, col);
     } else {
       this.clearSelection();

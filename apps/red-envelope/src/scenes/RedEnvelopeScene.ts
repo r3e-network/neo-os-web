@@ -132,6 +132,7 @@ export class RedEnvelopeScene extends BaseScene {
   create(): void {
     super.create();
 
+    this.input.on("pointerdown", () => this.sfx.unlock());
     this.buildBackground(DESIGN_W, DESIGN_H);
     this.buildHero(DESIGN_W);
     this.buildResultPill(DESIGN_W);
@@ -185,11 +186,13 @@ export class RedEnvelopeScene extends BaseScene {
 
     if (wonAmount && wonAmount !== this.lastWinAmount) {
       this.lastWinAmount = wonAmount;
+      this.sfx.play((lucky?.amount ?? 0) >= 1 ? "win" : "score");
       this.spawnRewardBurst();
     }
   }
 
   protected onBridgeError(error: GameBridgeError): void {
+    this.sfx.play("error");
     this.statusText.setText(compactError(error.message) || "The envelope action could not be completed.");
     this.setResultState(false, true);
   }
@@ -393,7 +396,10 @@ export class RedEnvelopeScene extends BaseScene {
     this.bindGameButton(bg, {
       targets: button,
       pressScale: 0.97,
-      onPress: () => this.switchMode(mode),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.switchMode(mode);
+      },
     });
     button.add([bg, text]);
     button.setData("bg", bg);
@@ -510,7 +516,10 @@ export class RedEnvelopeScene extends BaseScene {
       targets: this.shareButton,
       enabled: () => Boolean(this.lastCreatedEnvelopeId) && !this.busy,
       pressScale: 0.97,
-      onPress: () => this.dispatch("shareEnvelope", { envelopeId: this.lastCreatedEnvelopeId }),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.dispatch("shareEnvelope", { envelopeId: this.lastCreatedEnvelopeId });
+      },
     });
 
     this.sendPanel.add([this.createButton, this.shareButton]);
@@ -525,7 +534,10 @@ export class RedEnvelopeScene extends BaseScene {
     this.bindGameButton(bg, {
       targets: card,
       pressScale: 0.96,
-      onPress: () => this.selectPlan(index, true),
+      onPress: () => {
+        this.sfx.play("select");
+        this.selectPlan(index, true);
+      },
     });
     const title = this.add.text(0, -30, plan.title, {
       fontFamily: FONT,
@@ -708,6 +720,7 @@ export class RedEnvelopeScene extends BaseScene {
 
   private dispatchCreate(): void {
     const plan = ENVELOPE_PLANS[this.selectedPlanIndex]!;
+    this.sfx.play("start");
     this.dispatch("createEnvelope", {
       amount: plan.amount,
       count: plan.count,
@@ -717,6 +730,7 @@ export class RedEnvelopeScene extends BaseScene {
 
   private dispatchClaim(): void {
     if (!this.activeEnvelopeId) return;
+    this.sfx.play("reveal");
     this.dispatch("claimEnvelope", { envelopeId: this.activeEnvelopeId });
     this.playOpenAnimation();
   }

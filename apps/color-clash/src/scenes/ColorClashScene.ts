@@ -7,7 +7,7 @@
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
-import type { GameState } from "@framework/phaser";
+import type { GameState, SceneAudioPreset } from "@framework/phaser";
 import { DIFFICULTY_RULES } from "../logic/game-rules";
 
 // ── Palette ────────────────────────────────────────────────────────────────────
@@ -52,6 +52,10 @@ const BADGE_FILES = [
 const MODE_LABELS = ["Pulse", "Neon", "Master"] as const;
 const MODE_COPY = ["8 cues", "12 cues", "16 cues"] as const;
 
+// Classic Simon pad voices (Hz): red E4, blue C#4, green A3, yellow E3.
+// Matches PAD_LIT order: 0=red, 1=blue, 2=green, 3=yellow.
+const PAD_TONE_HZ = [329.6, 277.2, 220, 164.8] as const;
+
 type ModeCard = {
   container: Phaser.GameObjects.Container;
   bg: Phaser.GameObjects.Graphics;
@@ -91,6 +95,9 @@ export class ColorClashScene extends BaseScene {
   private currentSequence = "";
   private currentPlayer = "";
   private currentLastStatus = "";
+  // Last phase-cue key so one-shot sounds fire once per transition,
+  // not on every React state push.
+  private lastPhaseCue = "";
 
   constructor() { super("ColorClashScene"); }
 
@@ -199,20 +206,27 @@ export class ColorClashScene extends BaseScene {
     if (status === "dealt") {
       if (lastSt.includes("wrong") || lastSt === "wrong") {
         this.phaseLabel.setText("WRONG").setColor("#f87171");
+        this.phaseCue("wrong", "error");
       } else if (lastSt.includes("correct") || sequence.length > 0 && player.length === sequence.length) {
         this.phaseLabel.setText("CORRECT").setColor("#4ade80");
+        this.phaseCue("correct", "combo");
       } else if (player.length === 0 && sequence.length > 0) {
         this.phaseLabel.setText("WATCH").setColor("#fcd34d");
+        this.phaseCue("watch");
         this.startFlashSequence(sequence);
       } else {
         this.phaseLabel.setText("REPEAT").setColor("#60a5fa");
+        this.phaseCue("repeat");
       }
     } else if (status === "idle") {
       this.phaseLabel.setText("READY").setColor(TEXT_MAIN);
+      this.phaseCue("idle");
     } else if (status === "solved") {
       this.phaseLabel.setText("WIN!").setColor("#4ade80");
+      this.phaseCue("solved", "win");
     } else if (status === "expired") {
       this.phaseLabel.setText("END").setColor("#f87171");
+      this.phaseCue("expired", "lose");
     }
 
     // Progress dots
@@ -585,9 +599,26 @@ export class ColorClashScene extends BaseScene {
     }
   }
 
+  // ── Audio ──────────────────────────────────────────────────────────────────
+
+  /** Play the fixed classic-Simon voice for one pad. */
+  private playPadTone(index: number): void {
+    const frequency = PAD_TONE_HZ[index];
+    if (frequency === undefined) return;
+    this.sfx.tones([{ frequency, duration: 0.18, type: "sine", gain: 0.025 }]);
+  }
+
+  /** Fire a one-shot phase cue only when the phase key changes. */
+  private phaseCue(key: string, preset?: SceneAudioPreset): void {
+    if (key === this.lastPhaseCue) return;
+    this.lastPhaseCue = key;
+    if (preset) this.sfx.play(preset);
+  }
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   private handleStart(): void {
+    this.sfx.play("start");
     this.dispatch("startGame", this.selectedDifficulty);
     this.flashTimer?.destroy();
     this.flashIndex = -1;
@@ -595,7 +626,9 @@ export class ColorClashScene extends BaseScene {
   }
 
   private handlePress(colorIdx: number): void {
+    this.sfx.unlock();
     if (!this.canPressPads()) return;
+    this.playPadTone(colorIdx);
     this.flashPad(colorIdx, 180);
     this.dispatch("recordPress", colorIdx);
   }
@@ -622,6 +655,7 @@ export class ColorClashScene extends BaseScene {
       }
       if (step % 2 === 0) {
         this.flashIndex = parseInt(sequence[Math.floor(step / 2)]!, 10);
+        this.playPadTone(this.flashIndex);
       } else {
         this.flashIndex = -1;
       }

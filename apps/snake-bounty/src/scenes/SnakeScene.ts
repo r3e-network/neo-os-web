@@ -314,6 +314,10 @@ export class SnakeScene extends BaseScene {
       this.prevGameStatus = gameStatus;
       this.prevClues      = clues;
 
+      if (statusChanged && gameStatus === "solved") {
+        this.sfx.play("win");
+      }
+
       if (gameStatus === "dealt" && clues) {
         this.enterPlayPhase(clues);
       } else if (gameStatus !== "dealt") {
@@ -390,6 +394,7 @@ export class SnakeScene extends BaseScene {
     this.startTickTimer();
     this.startClockTimer();
     this.startFoodPulse();
+    this.sfx.play("start");
   }
 
   private exitPlayPhase(): void {
@@ -432,6 +437,7 @@ export class SnakeScene extends BaseScene {
       return;
     }
 
+    const prevEaten = this.snake.eaten;
     const dir = this.queuedDir ?? this.localDir;
     this.snake = step(this.snake, dir);
     this.localDir = dir;
@@ -439,6 +445,7 @@ export class SnakeScene extends BaseScene {
 
     if (this.snake.dead) {
       this.crashed = true;
+      this.sfx.play("lose");
       this.stopTickTimer();
       this.onStateUpdate(this.state);
       return;
@@ -447,8 +454,11 @@ export class SnakeScene extends BaseScene {
     const rule = ruleOf(this.num("gameDifficulty", 0));
     if (hasReachedTarget(this.snake, rule.targetLength)) {
       this.targetReached = true;
+      this.sfx.play("combo");
       this.stopTickTimer();
       this.onStateUpdate(this.state);
+    } else if (this.snake.eaten > prevEaten) {
+      this.sfx.play("score");
     }
 
     this.drawSnake();
@@ -713,6 +723,8 @@ export class SnakeScene extends BaseScene {
       fontStyle: "bold",
     }).setOrigin(0.5);
     this.overlayBtnBg.on("pointerdown", () => {
+      this.sfx.unlock();
+      if (this.overlayAction) this.sfx.play("tap");
       this.overlayAction?.();
     });
     this.overlayBtn = this.add.container(0, 0, [this.overlayBtnBg, this.overlayBtnTxt]);
@@ -963,7 +975,9 @@ export class SnakeScene extends BaseScene {
     container.setData("difficulty", difficulty);
 
     bg.on("pointerdown", () => {
+      this.sfx.unlock();
       if (this.isDifficultyLocked(difficulty)) return;
+      this.sfx.play("tap");
       this.pickedDifficulty = difficulty;
       this.dispatch("selectDifficulty", { difficulty });
       this.updateLobbyCards();
@@ -1263,6 +1277,7 @@ export class SnakeScene extends BaseScene {
   private setupInput(): void {
     if (this.input.keyboard) {
       this.input.keyboard.on("keydown", (event: KeyboardEvent) => {
+        this.sfx.unlock();
         if (this.str("gameStatus", "") !== "dealt") return;
         const map: Record<string, Direction> = {
           ArrowUp: 0, w: 0, W: 0,
@@ -1279,6 +1294,7 @@ export class SnakeScene extends BaseScene {
     }
 
     this.input.on("pointerdown", (ptr: Phaser.Input.Pointer) => {
+      this.sfx.unlock();
       this.ptrDown = { x: ptr.x, y: ptr.y };
     });
 
@@ -1311,6 +1327,10 @@ export class SnakeScene extends BaseScene {
     const opposite: Record<Direction, Direction> = { 0: 2, 1: 3, 2: 0, 3: 1 };
     if (dir === opposite[this.localDir] && snakeLength(this.snake) > 1) return;
 
+    // Short cue only on an actual direction change (not repeats of the current heading)
+    if (dir !== (this.queuedDir ?? this.localDir)) {
+      this.sfx.play("move");
+    }
     this.queuedDir = dir;
     this.dispatch("recordMove", { dir });
   }

@@ -231,7 +231,7 @@ describe("dice-game Phaser playarea", () => {
     expect(styles).not.toContain(".dice-playarea .mx2-action-rail__row");
     expect(styles).not.toContain(".dice-playarea .mx2-score");
     expect(scene).toContain("private playSfx");
-    expect(scene).toContain("AudioContext");
+    expect(scene).toContain("this.sfx.");
     expect(scene).toContain("this.playSfx(\"select\")");
     expect(scene).toContain("this.playSfx(\"chip\")");
     expect(scene).toContain("this.playSfx(\"throw\")");
