@@ -1,29 +1,29 @@
 # MiniApp PlayArea Functionality Audit
 
-Generated: 2026-07-08T05:22:47.320Z
+Generated: 2026-07-08T06:27:43.370Z
 
 ## Summary
 
-- Total active miniapps: 71
-- UI workflow surface present: 71
+- Total active miniapps: 72
+- UI workflow surface present: 72
 - Needs follow-up: 0
 
 ## Platform Surface Coverage
 
 - custom native playarea: 20
 - oracle console playarea: 6
-- profiled host + embedded real dApp: 45
+- profiled host + embedded real dApp: 46
 
 ## Business Effect Evidence
 
 - api_intent: 1
 - local_preview: 1
-- wallet_intent: 69
+- wallet_intent: 70
 
 ## Host Action Effect
 
 - api_intent: 1
-- local_preview: 59
+- local_preview: 60
 - wallet_intent: 11
 
 ## Gaps
@@ -46,6 +46,7 @@ Generated: 2026-07-08T05:22:47.320Z
 | miniapp-burn-league | profiled host + embedded real dApp | yes | yes | 9 | 20 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, host-embeds-real-dapp, wallet-write-intent, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-color-clash | profiled host + embedded real dApp | yes | yes | 10 | 21 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, host-embeds-real-dapp, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-council-governance | custom native playarea | yes | yes | 14 | 22 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, host-embeds-real-dapp, live-api-call, wallet-write-intent, action-handlers, interactive-controls | usable-surface-present |
+| miniapp-curve-arrow | profiled host + embedded real dApp | yes | yes | 3 | 16 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, host-embeds-real-dapp, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-custom-anchor | custom native playarea | yes | yes | 12 | 36 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, wallet-write-intent, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-dailycheckin | custom native playarea | yes | yes | 4 | 8 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, host-embeds-real-dapp, wallet-write-intent, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-dev-tipping | profiled host + embedded real dApp | yes | yes | 10 | 15 | wallet_intent | local_preview | built-static-dapp, standalone-playarea, host-embeds-real-dapp, wallet-write-intent, manifest-operations, action-handlers, interactive-controls | usable-surface-present |

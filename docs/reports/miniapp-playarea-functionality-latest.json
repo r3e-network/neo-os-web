@@ -1,22 +1,22 @@
 {
-  "generatedAt": "2026-07-08T05:22:47.320Z",
+  "generatedAt": "2026-07-08T06:27:43.370Z",
   "summary": {
-    "total": 71,
+    "total": 72,
     "status": {
-      "usable-surface-present": 71
+      "usable-surface-present": 72
     },
     "platformSurface": {
-      "profiled host + embedded real dApp": 45,
+      "profiled host + embedded real dApp": 46,
       "custom native playarea": 20,
       "oracle console playarea": 6
     },
     "businessEffect": {
-      "wallet_intent": 69,
+      "wallet_intent": 70,
       "api_intent": 1,
       "local_preview": 1
     },
     "hostActionEffect": {
-      "local_preview": 59,
+      "local_preview": 60,
       "api_intent": 1,
       "wallet_intent": 11
     },
@@ -379,6 +379,36 @@
         "host-embeds-real-dapp",
         "live-api-call",
         "wallet-write-intent",
+        "action-handlers",
+        "interactive-controls"
+      ],
+      "businessEffect": "wallet_intent",
+      "hostActionEffect": "local_preview",
+      "gaps": [],
+      "status": "usable-surface-present"
+    },
+    {
+      "appId": "miniapp-curve-arrow",
+      "slug": "curve-arrow",
+      "name": "Curve Arrow",
+      "category": "games",
+      "platformSurface": "profiled host + embedded real dApp",
+      "entry": "/miniapps/curve-arrow/index.html",
+      "hasStandaloneSurface": true,
+      "hasBuiltIndex": true,
+      "builtIndex": "platform/host-app/public/miniapps/curve-arrow/index.html",
+      "sourceFileCount": 7,
+      "buttonCount": 2,
+      "inputCount": 0,
+      "surfaceControlCount": 1,
+      "actionCount": 14,
+      "operationsCount": 2,
+      "hasFileUpload": false,
+      "workflowEvidence": [
+        "built-static-dapp",
+        "standalone-playarea",
+        "host-embeds-real-dapp",
+        "manifest-operations",
         "action-handlers",
         "interactive-controls"
       ],
