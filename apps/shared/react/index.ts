@@ -21,9 +21,36 @@ export type { MiniAppDefinition } from "./defineMiniApp";
 
 // MiniApp framework SDK compatibility re-export. New app code should normally
 // consume the runtime-injected `ctx.framework` or import framework types from
-// the root `@framework` package directly.
-export { createMiniAppFramework } from "../../../framework";
-export type { MiniAppFramework } from "../../../framework";
+// the root `@framework` package directly. The error classes below are
+// identity-stable framework exports (plan §2): re-exporting the SAME class
+// objects keeps `instanceof` checks true no matter which package an app
+// imports them from.
+export {
+  createMiniAppFramework,
+  FrameworkCapabilityError,
+  FrameworkPermissionError,
+  FrameworkPrepaidActionError,
+  FrameworkSealError,
+  revertKeyOf,
+} from "../../../framework";
+export type {
+  MiniAppFramework,
+  FrameworkAaSurface,
+  FrameworkBusSurface,
+  FrameworkClipboardSurface,
+  FrameworkEventsSurface,
+  FrameworkLifecycleSurface,
+  FrameworkNotifyPolicy,
+  FrameworkOracleExtensions,
+  FrameworkPermissionsSurface,
+  FrameworkPollOptions,
+  FrameworkResourcesSurface,
+  FrameworkShareOutcome,
+  FrameworkShareSurface,
+  FrameworkSuccessParams,
+  FrameworkWalletBalanceHandle,
+  FrameworkWalletSurface,
+} from "../../../framework";
 
 // Root component (internal, but exported for testing/advanced use)
 export { MiniAppRoot } from "./MiniAppRoot";

@@ -20,6 +20,21 @@ export type {
   ConsoleToolPanelProps,
 } from "./ConsoleToolPanel";
 
+export {
+  CONSOLE_INPUT_REQUIRED,
+  createConsolePreviewKernel,
+  isConsoleInputRequired,
+  useTransientFlag,
+} from "./console-kernel";
+export type {
+  ConsoleNotifyPolicy,
+  ConsolePreviewKernel,
+  ConsolePreviewKernelOptions,
+  ConsolePreviewKernelState,
+  ConsoleRequestRecord,
+  TransientFlag,
+} from "./console-kernel";
+
 export { MiniAppHomeShell } from "./MiniAppHomeShell";
 export type {
   HomeShellStat,

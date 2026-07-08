@@ -1,5 +1,30 @@
 import { createObservable, type Observable } from "./reactive";
+import { mapChainError } from "./utils/chain-errors";
+import { eventStateValue } from "./utils/chain-events";
+import { MiniAppError } from "./utils/errors";
+import { sha256Hex0x } from "./utils/hash";
 import { addressToScriptHash } from "./utils/neo";
+import { localStorageAvailable } from "./utils/safe-storage";
+import { extractTxid } from "./utils/transaction";
+import { createAaSurface } from "./aa";
+import type { FrameworkAaService } from "./aa";
+import { createClipboardSurface, createShareSurface } from "./clipboard";
+import { createBusSurface, createEventsSurface } from "./events";
+import type { FrameworkBusChannel } from "./events";
+import { createLifecycleSurface } from "./lifecycle";
+import type { LifecycleSurfaceService } from "./lifecycle";
+import { createOracleExtensions } from "./oracle-ext";
+import type {
+  FrameworkDataFeedDeps,
+  FrameworkSealDeps,
+  FrameworkSealStoreInput,
+} from "./oracle-ext";
+import { createPermissionsSurface } from "./permissions";
+import type { FrameworkPermissionsInput } from "./permissions";
+import { createResourcesSurface } from "./resources";
+import type { FrameworkTokenArtUrls } from "./resources";
+import { createWalletSurface } from "./wallet";
+import type { WalletSurfaceBalanceService } from "./wallet";
 import {
   createLocalStorageRewardGameStorage,
   expireRewardGame,
@@ -49,12 +74,87 @@ export interface FrameworkTxResult {
   verified?: boolean;
 }
 
+/**
+ * Toast policy for the framework write wrappers (S2).
+ * - `'all'` (default): success toast when a `successKey` is given + error toast
+ *   — the exact pre-policy behavior.
+ * - `'errors'`: error toast only; success toasts suppressed.
+ * - `'silent'`: no toasts at all — errors still throw (typed) so composables
+ *   that own their own multi-step messaging can branch on them.
+ */
+export type FrameworkNotifyPolicy = "all" | "errors" | "silent";
+
+/**
+ * Params interpolated into a success toast's `t(key, params)` call — either a
+ * literal params record or a builder invoked with the operation result, so
+ * post-write values ("withdrew {amount}", "vault {id} created") can drive the
+ * toast copy.
+ */
+export type FrameworkSuccessParams<TResult = unknown> =
+  | Record<string, unknown>
+  | ((result: TResult) => Record<string, unknown>);
+
 export interface FrameworkInvokeOptions {
   scriptHash?: string;
   signers?: unknown[];
   waitForEvent?: string;
   waitTimeoutMs?: number;
   onPaymentSent?: (txid: string) => void;
+  /**
+   * Toast policy consumed by the framework wrappers (write / payAndCall /
+   * prepayAndCall / receiptPay / invokeMultiple); never forwarded to the
+   * host. The raw invoke passthroughs never toast regardless of this flag.
+   */
+  notify?: FrameworkNotifyPolicy;
+}
+
+/** One call of a multi-invoke batch (single transaction, multiple scripts). */
+export interface FrameworkInvokeCall {
+  scriptHash?: string;
+  operation: string;
+  args: FrameworkContractArg[];
+}
+
+/** Result of a multi-invoke; `state`/`exception` carry the VM outcome. */
+export interface FrameworkMultiInvokeResult extends FrameworkTxResult {
+  state?: string;
+  exception?: string;
+}
+
+/** Normalized wallet message-signature envelope (see chain.signMessage). */
+export interface FrameworkSignedMessage {
+  signature: string;
+  publicKey?: string;
+  data?: string;
+}
+
+export interface FrameworkWaitForStateOptions {
+  /** Read attempts before giving up (default 4). */
+  attempts?: number;
+  /** Delay before the FIRST read (default 4000ms). */
+  firstDelayMs?: number;
+  /** Delay before every subsequent read (default 5000ms). */
+  delayMs?: number;
+}
+
+/** Count-then-page enumeration spec (see chain.enumerate). */
+export interface FrameworkEnumerateSpec<T> {
+  /** Contract read returning the total item count; ids are assumed 1..count. */
+  countOp?: string;
+  countArgs?: FrameworkContractArg[];
+  /** Explicit id list — takes precedence over `countOp`. */
+  ids?: ReadonlyArray<number | string>;
+  /** Per-id detail read operation. */
+  detailOp: string;
+  /** Args for the detail read; defaults to a single Integer id argument. */
+  detailArgs?: (id: number | string) => FrameworkContractArg[];
+  /** Decode one detail read; return `null` to skip the row. */
+  decode: (raw: unknown, id: number | string) => T | null;
+  /** Defensive cap on ids fetched (default 500) — the newest ids win. */
+  cap?: number;
+  /** Result ordering by numeric id (default 'newest' = descending). */
+  order?: "newest" | "oldest";
+  scriptHash?: string;
 }
 
 export interface MiniAppFrameworkChain {
@@ -77,6 +177,27 @@ export interface MiniAppFrameworkChain {
     options?: FrameworkInvokeOptions,
   ): Promise<FrameworkTxResult>;
   listEvents?(eventName: string, options?: { limit?: number; offset?: number }): Promise<unknown[]>;
+  /** Every matching event across all pages (ChainService.listAllEvents). */
+  listAllEvents?(eventName: string): Promise<unknown[]>;
+  /** Decode + null-filter events in one call (ChainService.listEventsParsed). */
+  listEventsParsed?<T>(eventName: string, transform: (evt: unknown) => T | null): Promise<T[]>;
+  /** Event confirming `txid`, or null on timeout (ChainService.waitForEvent). */
+  waitForEvent?(txid: string, eventName: string, timeoutMs?: number): Promise<unknown>;
+  /** Wallet message signing; result shape is wallet-specific (normalized by the framework). */
+  signMessage?(message: string): Promise<unknown>;
+  /** Two-step prepay lane: deposit confirmed in a block, then the consuming call. */
+  prepayAndInvoke?(
+    gasAmount: string,
+    memo: string,
+    operation: string,
+    args: FrameworkContractArg[],
+    options?: FrameworkInvokeOptions,
+  ): Promise<FrameworkTxResult>;
+  /** Multi-script single-transaction invoke (custom signer scopes allowed). */
+  invokeMultiple?(
+    calls: FrameworkInvokeCall[],
+    options?: { signers?: unknown[] },
+  ): Promise<FrameworkMultiInvokeResult>;
 }
 
 export interface MiniAppFrameworkNotify {
@@ -121,6 +242,13 @@ export interface FrameworkLaunchContext {
   keys?: string[];
   hasParams?: boolean;
   signature?: string;
+  /**
+   * Manifest permission declarations (S11) — a string list or the manifest's
+   * `PlatformPermissions` boolean-flag record. When the host delivers NO
+   * declaration (undefined/null — every current launch lane), gated surfaces
+   * default-allow; a present declaration is enforced verbatim.
+   */
+  permissions?: FrameworkPermissionsInput;
 }
 
 export interface MiniAppFrameworkContext {
@@ -128,6 +256,14 @@ export interface MiniAppFrameworkContext {
     chain: MiniAppFrameworkChain;
     notify?: MiniAppFrameworkNotify;
     os?: MiniAppFrameworkOS;
+    /** Platform EventBus backing app.bus (+ balance auto-refresh); optional. */
+    events?: FrameworkBusChannel;
+    /** Platform LifecycleService backing app.lifecycle; optional. */
+    lifecycle?: LifecycleSurfaceService;
+    /** Platform BalanceService backing app.wallet balances; optional. */
+    balance?: WalletSurfaceBalanceService;
+    /** Platform AAService backing app.aa; optional. */
+    aa?: FrameworkAaService;
   };
   os?: MiniAppFrameworkOS;
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -140,10 +276,35 @@ export interface MiniAppFrameworkContext {
 
 export interface MiniAppFrameworkOptions {
   appId?: string;
+  /**
+   * app.oracle extension config (S13). `dataFeed` needs the deployed
+   * MorpheusDataFeed contract + RPC endpoint (network-specific, so the app
+   * layer injects it); absent ⇒ dataFeed reads throw a typed
+   * FrameworkCapabilityError. `seal` overrides the Morpheus seal endpoints
+   * (defaults target the platform edge routes).
+   */
+  oracle?: {
+    dataFeed?: FrameworkDataFeedDeps;
+    seal?: FrameworkSealDeps;
+  };
+  /**
+   * app.resources overrides (S12): explicit base URL and bundler-resolved
+   * token-art URLs (kept byte-identical to apps/shared/art/token-assets when
+   * injected by the integration layer).
+   */
+  resources?: {
+    baseUrl?: string;
+    tokenArt?: Partial<FrameworkTokenArtUrls>;
+  };
 }
 
-export interface FrameworkActionOptions {
+export interface FrameworkActionOptions<TResult = unknown> {
   successKey?: string;
+  /**
+   * Params for the success toast (S1) — a record or a `(result) => params`
+   * builder receiving the handler's resolved value.
+   */
+  successParams?: FrameworkSuccessParams<TResult>;
   errorKey?: string;
   rethrow?: boolean;
 }
@@ -161,7 +322,11 @@ export interface FrameworkWriteSpec {
   operation: string;
   args: FrameworkContractArg[];
   successKey?: string;
+  /** Params for the success toast — a record or a `(tx) => params` builder. */
+  successParams?: FrameworkSuccessParams<FrameworkTxResult>;
   errorKey?: string;
+  /** Toast policy (S2); default `'all'` — the exact pre-policy behavior. */
+  notify?: FrameworkNotifyPolicy;
   reload?: () => Promise<void>;
 }
 
@@ -169,6 +334,25 @@ export interface FrameworkPaySpec extends FrameworkWriteSpec {
   amountFixed8?: bigint | number | string;
   amountGas?: number | string;
   memo: string;
+}
+
+export interface FrameworkPrepaySpec extends FrameworkPaySpec {
+  /**
+   * Wait for the deposit to be confirmed in a block before the consuming
+   * call (default true — the host's prepay lane). When explicitly false the
+   * deposit and call are bundled atomically via invokeWithPayment instead.
+   */
+  waitForCredit?: boolean;
+}
+
+export interface FrameworkReceiptPaySpec extends FrameworkWriteSpec {
+  /**
+   * Receipt id of the already-settled deposit transfer (positive integer).
+   * Appended as the trailing Integer argument of the consuming call — the
+   * mainnet lane where the host wallet cannot bundle a prepaid transfer
+   * (flashloan deposit, memorial-shrine tribute).
+   */
+  receiptId: string | number;
 }
 
 export type FrameworkAssetSymbol = "GAS" | "NEO";
@@ -186,7 +370,8 @@ export interface FrameworkOperationState<TResult = unknown> {
   runId: number;
 }
 
-export interface FrameworkOperationRunOptions extends FrameworkActionOptions {
+export interface FrameworkOperationRunOptions<TResult = unknown>
+  extends FrameworkActionOptions<TResult> {
   successKey?: string;
   errorKey?: string;
 }
@@ -256,6 +441,123 @@ export interface AchievementDefinition {
   criteria: string;
 }
 
+/**
+ * Deposit-then-act failure envelope (S3): the prepaid GAS deposit was
+ * CONFIRMED on-chain but the consuming call failed — the funds are NOT lost,
+ * they sit as withdrawable credit on the contract. Apps branch on this class
+ * (gasbox / dev-tipping / self-loan) to show localized recovery copy, so the
+ * class identity must stay stable: it is exported here and re-exported by
+ * apps/shared so `instanceof` resolves to a single class everywhere.
+ */
+export class FrameworkPrepaidActionError extends MiniAppError {
+  /** Txid of the CONFIRMED deposit transfer (recovery affordances link it). */
+  readonly txid: string;
+  /** The consuming operation that failed after the deposit landed. */
+  readonly operation: string;
+  /** The underlying error thrown by the consuming call. */
+  readonly actionError: unknown;
+  /** Discriminant: the deposit is in a block — the credit is withdrawable. */
+  readonly depositConfirmed = true as const;
+
+  constructor(operation: string, txid: string, actionError: unknown) {
+    const reason =
+      actionError instanceof Error ? actionError.message : String(actionError);
+    super(
+      `Deposit confirmed but "${operation}" failed — the prepaid credit remains on the contract and is withdrawable (deposit tx ${txid}): ${reason}`,
+      "PREPAID_ACTION_FAILED",
+      undefined,
+      { operation, txid },
+    );
+    this.name = "FrameworkPrepaidActionError";
+    this.txid = txid;
+    this.operation = operation;
+    this.actionError = actionError;
+  }
+}
+
+/**
+ * Recognize the host chain-service's deposit-confirmed failure shape
+ * (apps/shared DepositConfirmedActionFailedError) structurally — the
+ * framework cannot import it (package boundary), and hosts may ship their
+ * own equivalent.
+ */
+function isDepositConfirmedFailure(
+  error: unknown,
+): error is Error & { operation?: unknown; depositTxid: string; actionError: unknown } {
+  return (
+    error instanceof Error &&
+    typeof (error as { depositTxid?: unknown }).depositTxid === "string" &&
+    "actionError" in error
+  );
+}
+
+/** Translate host deposit-confirmed failures into the stable framework class. */
+function toPrepaidActionError(error: unknown): unknown {
+  if (error instanceof FrameworkPrepaidActionError) return error;
+  if (isDepositConfirmedFailure(error)) {
+    return new FrameworkPrepaidActionError(
+      String(error.operation ?? ""),
+      error.depositTxid,
+      error.actionError,
+    );
+  }
+  return error;
+}
+
+/**
+ * Map a contract revert onto an app i18n key (gov-merc's `windowRevertKey`
+ * pattern, generalized — S3). Patterns are tried in map insertion order;
+ * string patterns match as case-insensitive substrings, RegExps with their
+ * own flags. A {@link FrameworkPrepaidActionError} message embeds the
+ * consuming call's revert reason, so it matches here too. Returns the first
+ * matching key, or `null` so callers keep their own fallback handling.
+ */
+export function revertKeyOf<K extends string>(
+  error: unknown,
+  map: Record<K, RegExp | string | ReadonlyArray<RegExp | string>>,
+): K | null {
+  const message =
+    error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  if (!message) return null;
+  const haystack = message.toLowerCase();
+  for (const key of Object.keys(map) as K[]) {
+    const patterns = map[key];
+    const list: ReadonlyArray<RegExp | string> = Array.isArray(patterns)
+      ? patterns
+      : [patterns as RegExp | string];
+    for (const pattern of list) {
+      const matched =
+        typeof pattern === "string"
+          ? haystack.includes(pattern.toLowerCase())
+          : pattern.test(message);
+      if (matched) return key;
+    }
+  }
+  return null;
+}
+
+/** Resolve a success-params record or `(result) => params` builder. */
+function resolveSuccessParams<T>(
+  params: FrameworkSuccessParams<T> | undefined,
+  result: T,
+): Record<string, unknown> | undefined {
+  return typeof params === "function" ? params(result) : params;
+}
+
+/** Run `work` over `items` in fixed-size parallel chunks, preserving order. */
+async function runChunked<TIn, TOut>(
+  items: readonly TIn[],
+  chunkSize: number,
+  work: (item: TIn) => Promise<TOut>,
+): Promise<TOut[]> {
+  const results: TOut[] = [];
+  for (let start = 0; start < items.length; start += chunkSize) {
+    const chunk = items.slice(start, start + chunkSize);
+    results.push(...(await Promise.all(chunk.map((item) => work(item)))));
+  }
+  return results;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -277,31 +579,6 @@ function stableJson(value: unknown): string {
     .sort()
     .map((key) => `${JSON.stringify(key)}:${stableJson((value as Record<string, unknown>)[key])}`)
     .join(",")}}`;
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    // Oracle-envelope digests must be a real SHA-256 so an equivalent payload
-    // hashes to the same value in the UI preview, the OneGate dApp call, and the
-    // on-chain submission. A non-crypto fallback would silently diverge across
-    // environments and break that cross-check, so require a secure context here
-    // rather than return a digest that cannot be reproduced downstream.
-    throw new Error(
-      "Oracle envelope digest requires SHA-256 (crypto.subtle); run in a secure context",
-    );
-  }
-  const hash = await subtle.digest("SHA-256", bytes);
-  return `0x${[...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-}
-
-function localStorageAvailable(): Storage | null {
-  try {
-    return typeof localStorage === "undefined" ? null : localStorage;
-  } catch {
-    return null;
-  }
 }
 
 function compactInvokeOptions(spec: FrameworkWriteSpec | FrameworkPaySpec): FrameworkInvokeOptions {
@@ -369,24 +646,10 @@ function neoWholeAmount(value: bigint | number | string, allowZero = false): str
   return units.toString();
 }
 
-function txidOf(value: unknown): string {
-  if (value && typeof value === "object" && "txid" in value) {
-    return String((value as { txid?: unknown }).txid ?? "");
-  }
-  return "";
-}
-
 function errorMessage(error: unknown, fallback = "error"): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return fallback;
-}
-
-function eventValue(ev: unknown, index: number): unknown {
-  const state = (ev as { state?: unknown })?.state ?? ev;
-  if (!Array.isArray(state)) return undefined;
-  const item = state[index];
-  return (item as { value?: unknown })?.value ?? item;
 }
 
 export function createMiniAppFramework(
@@ -403,6 +666,14 @@ export function createMiniAppFramework(
   // when the host has no deployed contract accessor.
   const contractAddressAccessor: Observable<string | null> =
     chain.contractAddress ?? createObservable<string | null>(null);
+  // Derived read-only readiness flag (S7): true once the deployed contract
+  // address is known — the gate milestone-escrow derives from the raw service
+  // today. `set` is a no-op (derived value), subscriptions ride the source.
+  const contractReadyObservable: Observable<boolean> = {
+    get: () => Boolean(contractAddressAccessor.get()),
+    set: () => {},
+    subscribe: (listener) => contractAddressAccessor.subscribe(listener),
+  };
   const notify = ctx.services.notify ?? {};
   const storagePrefix = `neo:${appId}:`;
   const inFlight = new Set<string>();
@@ -489,32 +760,226 @@ export function createMiniAppFramework(
     },
   };
 
+  /** Success toast on the injected notify service, threading params (S1). */
+  const toastSuccess = <T>(
+    successKey: string | undefined,
+    successParams: FrameworkSuccessParams<T> | undefined,
+    result: T,
+  ): void => {
+    if (!successKey) return;
+    const params = resolveSuccessParams(successParams, result);
+    if (params === undefined) notify.success?.(successKey);
+    else notify.success?.(successKey, params as Record<string, string | number>);
+  };
+
   const runWithNotify = async <T>(
     work: () => Promise<T>,
-    successKey?: string,
-    errorKey?: string,
+    runOptions: {
+      successKey?: string;
+      successParams?: FrameworkSuccessParams<T>;
+      errorKey?: string;
+      notify?: FrameworkNotifyPolicy;
+    } = {},
   ): Promise<T> => {
+    const policy = runOptions.notify ?? "all";
+    // 'silent' bypasses the notify service entirely — errors still throw
+    // (typed) so multi-step composables own their own messaging (S2).
+    if (policy === "silent") return work();
+    const successKey = policy === "all" ? runOptions.successKey : undefined;
+    const successParams = policy === "all" ? runOptions.successParams : undefined;
     if (notify.guardResult) {
-      const result = await notify.guardResult(work, successKey, errorKey);
-      if (result.ok) return result.value;
+      // The host guardResult cannot thread toast params — when params are
+      // present, suppress its success toast and emit our own with them.
+      const result = await notify.guardResult(
+        work,
+        successParams === undefined ? successKey : undefined,
+        runOptions.errorKey,
+      );
+      if (result.ok) {
+        if (successParams !== undefined) toastSuccess(successKey, successParams, result.value);
+        return result.value;
+      }
       throw result.error;
     }
     try {
       const value = await work();
-      if (successKey) notify.success?.(successKey);
+      toastSuccess(successKey, successParams, value);
       return value;
     } catch (error) {
-      notify.error?.(error, errorKey);
+      notify.error?.(error, runOptions.errorKey);
       throw error;
     }
   };
+
+  /**
+   * app.notify (S1) — the single toast surface for miniapps. Delegates to the
+   * injected notify service; standalone hosts without one fall back to
+   * `ctx.setStatus` with the same localized copy (chain errors mapped through
+   * utils/chain-errors so wallet/VM/RPC strings never reach a toast verbatim).
+   */
+  const appNotify = {
+    /** Success toast — t-key + params interpolation ("withdrew {amount}"). */
+    success(key: string, params?: Record<string, unknown>): void {
+      const coerced = params as Record<string, string | number> | undefined;
+      if (notify.success) notify.success(key, coerced);
+      else ctx.setStatus?.(ctx.t(key, coerced), "success");
+    },
+    info(key: string, params?: Record<string, unknown>): void {
+      const coerced = params as Record<string, string | number> | undefined;
+      if (notify.info) notify.info(key, coerced);
+      else ctx.setStatus?.(ctx.t(key, coerced), "info");
+    },
+    warn(key: string, params?: Record<string, unknown>): void {
+      const coerced = params as Record<string, string | number> | undefined;
+      if (notify.warn) notify.warn(key, coerced);
+      else ctx.setStatus?.(ctx.t(key, coerced), "warning");
+    },
+    /** Error toast — chain/RPC failures map to localized family copy. */
+    error(error: unknown, fallbackKey?: string): void {
+      if (notify.error) {
+        notify.error(error, fallbackKey);
+        return;
+      }
+      const message =
+        mapChainError(error, ctx.t) ??
+        (error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : ctx.t(fallbackKey ?? "error"));
+      ctx.setStatus?.(message, "error");
+    },
+    /**
+     * Wrap an async operation with automatic toasts, returning an explicit
+     * `{ok}` discriminator so callers can gate post-success steps without
+     * re-implementing try/catch. `successParams` may be a `(result) => params`
+     * builder so post-write values drive the toast copy.
+     */
+    async guardResult<T>(
+      fn: () => Promise<T>,
+      guardOptions: FrameworkActionOptions<T> = {},
+    ): Promise<{ ok: true; value: T } | { ok: false; error: unknown }> {
+      try {
+        const value = await fn();
+        if (guardOptions.successKey) {
+          const params = resolveSuccessParams(guardOptions.successParams, value);
+          if (params === undefined) appNotify.success(guardOptions.successKey);
+          else appNotify.success(guardOptions.successKey, params);
+        }
+        return { ok: true, value };
+      } catch (error) {
+        appNotify.error(error, guardOptions.errorKey);
+        return { ok: false, error };
+      }
+    },
+    /**
+     * Like {@link guardResult} but resolves with the value or `undefined`
+     * (or rethrows with `rethrow: true`) — the per-action toast wrapper
+     * ~40 apps hand-roll around every registered action.
+     */
+    async guard<T>(
+      fn: () => Promise<T>,
+      guardOptions: FrameworkActionOptions<T> = {},
+    ): Promise<T | undefined> {
+      const result = await appNotify.guardResult(fn, guardOptions);
+      if (result.ok) return result.value;
+      if (guardOptions.rethrow) throw result.error;
+      return undefined;
+    },
+  };
+
+  // ── Wave-1 standalone modules (S4/S5/S8/S9/S10/S11/S12/S13) ──────────────
+  // Style contract (plan §2): each surface is a lazy module — constructed on
+  // first access and cached — so hosts that never touch one pay nothing, and
+  // graceful degradation for absent injected services lives inside the module
+  // factories themselves.
+  const lazyModule = <T>(factory: () => T): (() => T) => {
+    let instance: T | undefined;
+    return () => (instance ??= factory());
+  };
+
+  /**
+   * app.permissions (S11) — manifest permission gating sourced from the
+   * launch context. Central enforcement: `app.chain.invoke` requires
+   * "invoke:primary" and the oracle request/dispatch lane requires
+   * "oracle:request", so gating happens once here rather than per app.
+   *
+   * Default-allow semantics: when the host delivers NO manifest permission
+   * declaration (`ctx.launchContext.permissions` undefined/null — every
+   * current launch lane, and every existing test that builds the framework
+   * from bare mock services), `require()` is a no-op so ungated hosts keep
+   * working. A PRESENT declaration — even an empty one — is enforced
+   * verbatim: missing grants throw {@link FrameworkPermissionError}.
+   */
+  const getPermissions = lazyModule(() =>
+    createPermissionsSurface({
+      permissions: () => ctx.launchContext?.permissions,
+      t: (key: string) => ctx.t(key),
+    }),
+  );
+  const getEvents = lazyModule(() => createEventsSurface({ chain, appId }));
+  const getLifecycle = lazyModule(() =>
+    createLifecycleSurface({ lifecycle: ctx.services.lifecycle }),
+  );
+  const getBus = lazyModule(() =>
+    createBusSurface({
+      bus: ctx.services.events,
+      // app.lifecycle is the unmount authority for bus subscriptions (and
+      // pollers) in both the service-backed and standalone lanes.
+      lifecycle: { onUnmount: (fn) => getLifecycle().onUnmount(fn) },
+    }),
+  );
+  const getWallet = lazyModule(() => {
+    const wallet = createWalletSurface({
+      chain,
+      balance: ctx.services.balance,
+      events: ctx.services.events,
+    });
+    return {
+      ...wallet,
+      // observeBalance handles hold live event subscriptions — register the
+      // cleanup with app.lifecycle so unmount releases them automatically.
+      observeBalance(asset: string) {
+        const handle = wallet.observeBalance(asset);
+        getLifecycle().cleanup(() => handle.cleanup());
+        return handle;
+      },
+    };
+  });
+  // app.notify is the toast lane for clipboard/share so copy feedback gets
+  // the same chain-error mapping + setStatus fallback as every other surface.
+  const getClipboard = lazyModule(() =>
+    createClipboardSurface({ notify: appNotify, address: () => chain.address.get() }),
+  );
+  const getShare = lazyModule(() =>
+    createShareSurface({
+      notify: appNotify,
+      address: () => chain.address.get(),
+      clipboard: getClipboard(),
+    }),
+  );
+  const getAa = lazyModule(() => createAaSurface({ aa: ctx.services.aa }));
+  const getResources = lazyModule(() =>
+    createResourcesSurface({
+      host: () => framework.platform.host,
+      baseUrl: options.resources?.baseUrl,
+      tokenArt: options.resources?.tokenArt,
+    }),
+  );
+  const getOracleExt = lazyModule(() =>
+    createOracleExtensions({
+      appId,
+      dataFeed: options.oracle?.dataFeed,
+      seal: options.oracle?.seal,
+    }),
+  );
 
   const createEnvelope = async <TPayload extends Record<string, unknown>>(
     kind: string,
     payload: TPayload,
   ): Promise<OracleEnvelope<TPayload>> => {
     const unsigned = { kind, appId, ...payload };
-    const digest = await sha256Hex(stableJson(unsigned));
+    const digest = await sha256Hex0x(stableJson(unsigned));
     return {
       kind,
       digest,
@@ -537,6 +1002,27 @@ export function createMiniAppFramework(
     },
     hash160(value: string): FrameworkContractArg {
       return { type: "Hash160", value: accountToHash160(value) };
+    },
+    /**
+     * Hash160 argument that passes the value through UNCONVERTED.
+     *
+     * Deployed-ABI quirk lane (memorial-shrine, neo-ns): some live contracts
+     * were deployed with Hash160 parameters that actually expect the RAW
+     * base58 address literal, and the wallet/RPC layer must receive it
+     * verbatim. Routing those through {@link hash160} would convert the
+     * address to a script hash and silently change on-chain behavior — for
+     * these parameters this builder MUST be used and `arg.hash160` must NOT.
+     */
+    hash160Raw(value: string): FrameworkContractArg {
+      return { type: "Hash160", value: String(value ?? "") };
+    },
+    /** 33-byte compressed secp256r1 public key (bare hex; 0x prefix stripped). */
+    publicKey(value: string): FrameworkContractArg {
+      const raw = String(value ?? "").trim().replace(/^0x/i, "");
+      if (!/^(02|03)[0-9a-fA-F]{64}$/.test(raw)) {
+        throw new Error("PublicKey must be a 33-byte compressed key in hex");
+      }
+      return { type: "PublicKey", value: raw };
     },
     hash256(value: string): FrameworkContractArg {
       const raw = String(value ?? "").trim().toLowerCase();
@@ -572,6 +1058,47 @@ export function createMiniAppFramework(
       return asset === "NEO"
         ? BigInt(neoWholeAmount(value, options?.allowZero === true))
         : BigInt(gasFixed8Amount(value, options?.allowZero === true));
+    },
+    /**
+     * Null-on-invalid GAS scaler (S6): returns the fixed8 base-unit integer
+     * string, or `null` for ANY invalid input — NEVER throws, so app-side
+     * localized `t()` rejection paths keep working. `gasToFixed8` (above)
+     * intentionally keeps its THROW semantics — do not unify (gotcha #2).
+     */
+    parseGasToFixed8(
+      value: bigint | number | string,
+      options?: { allowZero?: boolean },
+    ): string | null {
+      try {
+        return gasFixed8Amount(value, options?.allowZero === true);
+      } catch {
+        return null;
+      }
+    },
+    /** Null-on-invalid NEO parser — NEO is indivisible, fractions reject to null. */
+    parseNeoToUnits(
+      value: bigint | number | string,
+      options?: { allowZero?: boolean },
+    ): string | null {
+      try {
+        return neoWholeAmount(value, options?.allowZero === true);
+      } catch {
+        return null;
+      }
+    },
+    /** Null-on-invalid asset scaler: GAS ×1e8, NEO whole units — never throws. */
+    parseAssetToUnits(
+      asset: FrameworkAssetSymbol,
+      value: bigint | number | string,
+      options?: { allowZero?: boolean },
+    ): string | null {
+      try {
+        return asset === "NEO"
+          ? neoWholeAmount(value, options?.allowZero === true)
+          : gasFixed8Amount(value, options?.allowZero === true);
+      } catch {
+        return null;
+      }
     },
   };
 
@@ -614,6 +1141,8 @@ export function createMiniAppFramework(
 
   const framework = {
     amount,
+
+    notify: appNotify,
 
     platform: {
       appId,
@@ -686,27 +1215,17 @@ export function createMiniAppFramework(
       register<TArgs extends unknown[], TResult>(
         key: string,
         handler: (...args: TArgs) => TResult | Promise<TResult>,
-        actionOptions: FrameworkActionOptions = {},
+        actionOptions: FrameworkActionOptions<TResult> = {},
       ): void {
         const wrapped = async (...args: unknown[]) =>
           framework.actions.run(key, ...(args as TArgs));
         actionHandlers.set(key, async (...args: unknown[]) => {
-          if (notify.guardResult) {
-            const result = await notify.guardResult(
-              async () => handler(...(args as TArgs)),
-              actionOptions.successKey,
-              actionOptions.errorKey,
-            );
-            if (result.ok) return result.value;
-            if (actionOptions.rethrow) throw result.error;
-            return undefined;
-          }
           try {
-            const value = await handler(...(args as TArgs));
-            if (actionOptions.successKey) notify.success?.(actionOptions.successKey);
-            return value;
+            return await runWithNotify(
+              async () => handler(...(args as TArgs)),
+              actionOptions,
+            );
           } catch (error) {
-            notify.error?.(error, actionOptions.errorKey);
             if (actionOptions.rethrow) throw error;
             return undefined;
           }
@@ -735,6 +1254,14 @@ export function createMiniAppFramework(
       /** Deployed contract-address observable; a null-observable when unset. */
       get contractAddress() {
         return contractAddressAccessor;
+      },
+      /**
+       * True once the app's contract address is configured for the network —
+       * NOT whether a wallet is connected (S7; the deployment-pending gate
+       * milestone-escrow hand-derives today). Read-only derived observable.
+       */
+      get contractReady(): Observable<boolean> {
+        return contractReadyObservable;
       },
       async ensureWallet() {
         return chain.ensureWallet();
@@ -766,12 +1293,19 @@ export function createMiniAppFramework(
        * Raw invoke with NO notify/reload wrapping — for composables that own
        * their own multi-step control flow and error reporting. Use
        * {@link write} instead for simple fire-and-notify writes.
+       *
+       * S11 central gate: requires the "invoke:primary" manifest permission.
+       * Hosts that deliver no manifest permission declaration at all
+       * default-allow (see the app.permissions wiring above), so existing
+       * standalone/test contexts are unaffected; `async` so a denial rejects
+       * instead of throwing synchronously.
        */
-      invoke(
+      async invoke(
         operation: string,
         args: FrameworkContractArg[],
         options?: FrameworkInvokeOptions,
       ): Promise<FrameworkTxResult> {
+        getPermissions().require("invoke:primary");
         return chain.invoke(operation, args, options);
       },
       /** Raw pay-and-call with NO notify/reload wrapping (see {@link invoke}). */
@@ -789,12 +1323,154 @@ export function createMiniAppFramework(
           const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
           if (tx.success !== false) await spec.reload?.();
           return tx;
-        }, spec.successKey, spec.errorKey);
+        }, spec);
       },
       async events(eventName: string, options?: { limit?: number; offset?: number }): Promise<unknown[]> {
         return chain.listEvents?.(eventName, options) ?? [];
       },
-      eventValue,
+      /** Canonical positional event-state slot decode (utils/chain-events). */
+      eventValue: eventStateValue,
+      /**
+       * Sign an arbitrary message with the connected wallet, normalizing the
+       * wallet-specific result shapes (bare signature string vs
+       * `{ signature | data, publicKey }` records) into one typed envelope
+       * (S7 — neo-sign-anything, neodid-passport).
+       */
+      async signMessage(message: string): Promise<FrameworkSignedMessage> {
+        if (!chain.signMessage) {
+          throw new MiniAppError(
+            "Wallet does not support message signing",
+            "SIGN_UNSUPPORTED",
+          );
+        }
+        const result = await chain.signMessage(message);
+        if (typeof result === "string" && result) return { signature: result };
+        if (isRecord(result)) {
+          const signatureSource = result.signature ?? result.data;
+          const signature =
+            signatureSource === undefined || signatureSource === null || signatureSource === ""
+              ? JSON.stringify(result)
+              : String(signatureSource);
+          const publicKey = result.publicKey ?? result.publicKeyHash ?? result.pubkey;
+          const data = typeof result.data === "string" && result.data ? result.data : undefined;
+          return {
+            signature,
+            ...(publicKey ? { publicKey: String(publicKey) } : {}),
+            ...(data ? { data } : {}),
+          };
+        }
+        throw new MiniAppError("Wallet returned no signature", "SIGN_EMPTY_RESULT");
+      },
+      /**
+       * Multi-script single-transaction invoke with custom signer scopes
+       * (S7 — aa-market-hub's transfer-then-settle with scopes-16
+       * allowedContracts). FAULT-state results throw with the VM exception
+       * SANITIZED: short assert strings pass through, anything else becomes
+       * a generic message so raw VM dumps never reach a toast.
+       */
+      async invokeMultiple(
+        calls: FrameworkInvokeCall[],
+        multiOptions: { signers?: unknown[]; notify?: FrameworkNotifyPolicy } = {},
+      ): Promise<FrameworkMultiInvokeResult> {
+        return runWithNotify(async () => {
+          if (!chain.invokeMultiple) {
+            throw new MiniAppError(
+              "Host chain service does not support invokeMultiple",
+              "INVOKE_MULTIPLE_UNSUPPORTED",
+            );
+          }
+          const result = await chain.invokeMultiple(
+            calls,
+            multiOptions.signers ? { signers: multiOptions.signers } : {},
+          );
+          if (String(result?.state ?? "").toUpperCase().includes("FAULT")) {
+            const exception = result?.exception;
+            const sanitized =
+              typeof exception === "string" && exception.length < 100
+                ? exception
+                : "Contract operation failed";
+            throw new Error(sanitized);
+          }
+          return result;
+        }, { notify: multiOptions.notify });
+      },
+      /**
+       * Post-broadcast confirmation poll (S7): RPC nodes lag behind a fresh
+       * tx, so re-read state until the predicate passes. Verbatim
+       * aa-account-lab/aa-session-key-lab semantics: 4 attempts, delay BEFORE
+       * each read (4s first, then 5s), per-attempt read errors swallowed.
+       * Resolves with the first matching value, or `null` once the attempt
+       * budget is exhausted.
+       */
+      async waitForState<T>(
+        read: () => Promise<T>,
+        until: (value: T) => boolean,
+        waitOptions: FrameworkWaitForStateOptions = {},
+      ): Promise<T | null> {
+        const attempts = waitOptions.attempts ?? 4;
+        const firstDelayMs = waitOptions.firstDelayMs ?? 4000;
+        const delayMs = waitOptions.delayMs ?? 5000;
+        for (let attempt = 0; attempt < attempts; attempt += 1) {
+          await new Promise((resolveDelay) =>
+            setTimeout(resolveDelay, attempt === 0 ? firstDelayMs : delayMs),
+          );
+          try {
+            const value = await read();
+            if (until(value)) return value;
+          } catch {
+            /* RPC hiccup or node lag — keep retrying within the budget. */
+          }
+        }
+        return null;
+      },
+      /**
+       * Count-then-page enumeration (S7): read the item count (ids assumed
+       * 1..count) or take an explicit id list, fetch details under a
+       * defensive cap (newest ids win), swallow per-id read/decode failures,
+       * and return decoded rows sorted by numeric id — newest first by
+       * default. The fan-out ~12 apps hand-roll.
+       */
+      async enumerate<T>(spec: FrameworkEnumerateSpec<T>): Promise<T[]> {
+        const cap = Math.max(1, Math.trunc(spec.cap ?? 500));
+        let ids: Array<number | string>;
+        if (spec.ids) {
+          ids = spec.ids.length > cap
+            ? [...spec.ids].slice(spec.ids.length - cap)
+            : [...spec.ids];
+        } else if (spec.countOp) {
+          const rawCount = await chain.read(spec.countOp, spec.countArgs, {
+            scriptHash: spec.scriptHash,
+          });
+          const count = Math.trunc(Number(String(rawCount ?? "0")));
+          if (!Number.isFinite(count) || count <= 0) return [];
+          const fetchCount = Math.min(count, cap);
+          const startId = count - fetchCount + 1;
+          ids = Array.from({ length: fetchCount }, (_, index) => startId + index);
+        } else {
+          return [];
+        }
+        const rows = await runChunked(ids, 10, async (id) => {
+          try {
+            const raw = await chain.read(
+              spec.detailOp,
+              spec.detailArgs ? spec.detailArgs(id) : [arg.integer(id)],
+              { scriptHash: spec.scriptHash },
+            );
+            const item = spec.decode(raw, id);
+            return item === null ? null : { id, item };
+          } catch {
+            return null; // per-id swallow: one bad row never sinks the page
+          }
+        });
+        const decoded: Array<{ id: number | string; item: T }> = [];
+        for (const row of rows) {
+          if (row !== null) decoded.push({ id: row.id, item: row.item as T });
+        }
+        const direction = (spec.order ?? "newest") === "newest" ? -1 : 1;
+        return decoded
+          .sort((left, right) => direction * (Number(left.id) - Number(right.id)))
+          .map((row) => row.item);
+      },
     },
 
     operations: {
@@ -808,7 +1484,7 @@ export function createMiniAppFramework(
           },
           async run<TValue extends TResult = TResult>(
             work: () => Promise<TValue>,
-            runOptions: FrameworkOperationRunOptions = {},
+            runOptions: FrameworkOperationRunOptions<TValue> = {},
           ): Promise<TValue | undefined> {
             const nextRunId = runId + 1;
             runId = nextRunId;
@@ -824,7 +1500,7 @@ export function createMiniAppFramework(
             try {
               const value = await work();
               if (runId !== nextRunId) return value;
-              const txid = txidOf(value);
+              const txid = extractTxid(value);
               state.set({
                 ...state.get(),
                 status: "succeeded",
@@ -833,7 +1509,7 @@ export function createMiniAppFramework(
                 value,
                 finishedAt: Date.now(),
               });
-              if (runOptions.successKey) notify.success?.(runOptions.successKey);
+              toastSuccess(runOptions.successKey, runOptions.successParams, value);
               return value;
             } catch (error) {
               if (runId !== nextRunId) {
@@ -856,18 +1532,92 @@ export function createMiniAppFramework(
     },
 
     funds: {
+      /**
+       * Pay-and-call in one step. When the host settles the payment as a
+       * separate confirmed deposit and the consuming call then fails, the
+       * error surfaces as {@link FrameworkPrepaidActionError} — the credit is
+       * withdrawable, not lost.
+       */
       async payAndCall(spec: FrameworkPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
         return runWithNotify(async () => {
-          const tx = await chain.invokeWithPayment(
-            fixed8Amount(spec),
-            spec.memo,
+          let tx: FrameworkTxResult;
+          try {
+            tx = await chain.invokeWithPayment(
+              fixed8Amount(spec),
+              spec.memo,
+              spec.operation,
+              spec.args,
+              compactInvokeOptions(spec),
+            );
+          } catch (error) {
+            throw toPrepaidActionError(error);
+          }
+          if (tx.success !== false) await spec.reload?.();
+          return tx;
+        }, spec);
+      },
+      /**
+       * Deposit-then-act (S3): transfer GAS to the contract with a memo, wait
+       * for the credit to confirm in a block, then run the consuming
+       * operation — the lane gasbox reaches via chain.prepayAndInvoke and
+       * custom-anchor via waitForDepositConfirmation. When the deposit landed
+       * but the consuming call reverted, the error is a
+       * {@link FrameworkPrepaidActionError} so apps can show localized
+       * recovery copy (the credit is withdrawable). Hosts without a prepay
+       * lane — and specs passing `waitForCredit: false` — fall back to the
+       * atomic invokeWithPayment bundle.
+       */
+      async prepayAndCall(spec: FrameworkPrepaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
+        return runWithNotify(async () => {
+          const amountFixed8 = fixed8Amount(spec);
+          const invokeOptions = compactInvokeOptions(spec);
+          let tx: FrameworkTxResult;
+          try {
+            tx = chain.prepayAndInvoke && spec.waitForCredit !== false
+              ? await chain.prepayAndInvoke(
+                  amountFixed8,
+                  spec.memo,
+                  spec.operation,
+                  spec.args,
+                  invokeOptions,
+                )
+              : await chain.invokeWithPayment(
+                  amountFixed8,
+                  spec.memo,
+                  spec.operation,
+                  spec.args,
+                  invokeOptions,
+                );
+          } catch (error) {
+            throw toPrepaidActionError(error);
+          }
+          if (tx.success !== false) await spec.reload?.();
+          return tx;
+        }, spec);
+      },
+      /**
+       * Receipt-id deposit lane (S3, mainnet): the GAS was pre-transferred
+       * with the deposit memo in a separate settled transaction; the
+       * consuming call carries the resulting receipt id as its trailing
+       * Integer argument (flashloan deposit, memorial-shrine tribute).
+       */
+      async receiptPay(spec: FrameworkReceiptPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
+        return runWithNotify(async () => {
+          const receiptId = String(spec.receiptId ?? "").trim();
+          if (!/^[1-9]\d*$/.test(receiptId)) {
+            throw new MiniAppError(
+              "Receipt id must be a positive integer",
+              "RECEIPT_ID_INVALID",
+            );
+          }
+          const tx = await chain.invoke(
             spec.operation,
-            spec.args,
+            [...spec.args, arg.integer(receiptId)],
             compactInvokeOptions(spec),
           );
           if (tx.success !== false) await spec.reload?.();
           return tx;
-        }, spec.successKey, spec.errorKey);
+        }, spec);
       },
       async creditOf(playerHash?: string, operation = "creditOf"): Promise<bigint> {
         const account = playerHash || chain.address.get() || await chain.ensureWallet();
@@ -890,8 +1640,56 @@ export function createMiniAppFramework(
       },
     },
 
+    // ── Wave-1 module surfaces (lazy; see the factories above) ──────────────
+    /** app.events (S4) — chain event queries + canonical slot decode. */
+    get events() {
+      return getEvents();
+    },
+    /** app.bus (S4) — pub/sub with lifecycle-scoped auto-unsubscribe. */
+    get bus() {
+      return getBus();
+    },
+    /** app.wallet (S5) — identity, balances, address/balance observables. */
+    get wallet() {
+      return getWallet();
+    },
+    /** app.lifecycle (S8) — mount/unmount, data loaders, visibility-aware poll. */
+    get lifecycle() {
+      return getLifecycle();
+    },
+    /** app.clipboard (S9) — copy with toast feedback via app.notify. */
+    get clipboard() {
+      return getClipboard();
+    },
+    /** app.share (S9) — native share sheet with clipboard fallback. */
+    get share() {
+      return getShare();
+    },
+    /** app.permissions (S11) — manifest gating; default-allow when undeclared. */
+    get permissions() {
+      return getPermissions();
+    },
+    /** app.resources (S12) — host-base asset resolution + token artwork. */
+    get resources() {
+      return getResources();
+    },
+    /** app.aa (S10) — sponsorship/relay/session keys; typed capability errors. */
+    get aa() {
+      return getAa();
+    },
+
+    /**
+     * app.oracle — envelope builders + dispatch, extended with the S13
+     * dataFeed reader and seal client. The request/dispatch lanes are gated
+     * on the "oracle:request" manifest permission (S11, default-allow when
+     * no manifest permissions are declared); the dataFeed reader and the
+     * seal publicKey/encrypt/store client are wallet-free read/encrypt lanes
+     * gated by their own capability config instead (absent deps throw typed
+     * FrameworkCapabilityError / FrameworkSealError).
+     */
     oracle: {
       async http(request: HttpOracleRequest) {
+        getPermissions().require("oracle:request");
         const url = new URL(request.url);
         if (url.protocol !== "http:" && url.protocol !== "https:") {
           throw new Error("HTTP oracle request must use http(s) URL");
@@ -905,6 +1703,7 @@ export function createMiniAppFramework(
         });
       },
       async vrf(request: VrfOracleRequest) {
+        getPermissions().require("oracle:request");
         const rounds = Math.max(1, Math.min(64, Math.trunc(Number(request.rounds ?? 1) || 1)));
         return createEnvelope("oracle.vrf.request", {
           consumer: request.consumer,
@@ -914,7 +1713,8 @@ export function createMiniAppFramework(
         });
       },
       async compute(request: ComputeOracleRequest) {
-        const inputDigest = await sha256Hex(stableJson(request.input));
+        getPermissions().require("oracle:request");
+        const inputDigest = await sha256Hex0x(stableJson(request.input));
         return createEnvelope("oracle.compute.request", {
           workflow: request.workflow,
           sealed: request.sealed === true,
@@ -922,18 +1722,41 @@ export function createMiniAppFramework(
           ...(request.sealed ? {} : { input: request.input }),
         });
       },
-      async seal(request: SealOracleRequest) {
-        const payloadDigest = await sha256Hex(stableJson(request.payload));
-        return createEnvelope("oracle.seal.envelope", {
-          purpose: request.purpose,
-          recipient: request.recipient ?? "",
-          payloadDigest,
-        });
+      /**
+       * Seal lane: the callable keeps the existing envelope-digest builder
+       * behavior; the S13 client methods (publicKey/encrypt/store) are
+       * attached so `app.oracle.seal.publicKey()` extends — without breaking —
+       * `app.oracle.seal(request)`.
+       */
+      seal: Object.assign(
+        async (request: SealOracleRequest) => {
+          getPermissions().require("oracle:request");
+          const payloadDigest = await sha256Hex0x(stableJson(request.payload));
+          return createEnvelope("oracle.seal.envelope", {
+            purpose: request.purpose,
+            recipient: request.recipient ?? "",
+            payloadDigest,
+          });
+        },
+        {
+          /** Oracle X25519 public key (TTL cache + stale fallback). */
+          publicKey: (sealOptions?: { forceRefresh?: boolean }) =>
+            getOracleExt().seal.publicKey(sealOptions),
+          /** Encrypt a payload under the pinned envelope algorithm. */
+          encrypt: (payload: unknown) => getOracleExt().seal.encrypt(payload),
+          /** Submit a sealed envelope to the confidential store. */
+          store: (input: FrameworkSealStoreInput) => getOracleExt().seal.store(input),
+        },
+      ),
+      /** DataFeed reader (S13): wallet-free price reads + freshness math. */
+      get dataFeed() {
+        return getOracleExt().dataFeed;
       },
       async dispatch(
         envelope: OracleEnvelope,
         spec: Omit<FrameworkWriteSpec & FrameworkInvokeOptions, "args"> & { args?: FrameworkContractArg[] },
       ) {
+        getPermissions().require("oracle:request");
         return framework.chain.write({
           ...spec,
           args: [
@@ -1174,3 +1997,105 @@ export function createMiniAppFramework(
 }
 
 export type MiniAppFramework = ReturnType<typeof createMiniAppFramework>;
+
+// ───────────────────────────────────────────────────────────────────────────
+// Wave-1 standalone module surface (plan §2) — factories, types and
+// identity-stable error classes re-exported from the framework entry so apps
+// (and the apps/shared compatibility shims) resolve a single copy of each.
+// ───────────────────────────────────────────────────────────────────────────
+
+// S4 app.events + app.bus
+export { createBusSurface, createEventsSurface } from "./events";
+export type {
+  FrameworkBusChannel,
+  FrameworkBusDeps,
+  FrameworkBusHandler,
+  FrameworkBusLifecycle,
+  FrameworkBusSurface,
+  FrameworkEventsChain,
+  FrameworkEventsDeps,
+  FrameworkEventsSurface,
+} from "./events";
+
+// S5 app.wallet
+export { createWalletSurface } from "./wallet";
+export type {
+  FrameworkWalletBalanceHandle,
+  FrameworkWalletSurface,
+  WalletContractArg,
+  WalletSurfaceBalanceService,
+  WalletSurfaceChain,
+  WalletSurfaceDeps,
+  WalletSurfaceEvents,
+} from "./wallet";
+
+// S8 app.lifecycle
+export { createLifecycleSurface } from "./lifecycle";
+export type {
+  FrameworkLifecycleSurface,
+  FrameworkPollOptions,
+  LifecycleSurfaceDeps,
+  LifecycleSurfaceService,
+} from "./lifecycle";
+
+// S9 app.clipboard + app.share
+export { createClipboardSurface, createShareSurface } from "./clipboard";
+export type {
+  ClipboardSurfaceDeps,
+  FrameworkClipboardCopyOptions,
+  FrameworkClipboardSurface,
+  FrameworkNotifyLike,
+  FrameworkShareOutcome,
+  FrameworkShareSurface,
+  FrameworkShareUrlOptions,
+  ShareSurfaceDeps,
+} from "./clipboard";
+
+// S11 app.permissions
+export { createPermissionsSurface, FrameworkPermissionError } from "./permissions";
+export type {
+  FrameworkPermissionsInput,
+  FrameworkPermissionsSurface,
+  PermissionsSurfaceDeps,
+} from "./permissions";
+
+// S12 app.resources
+export { createResourcesSurface } from "./resources";
+export type {
+  FrameworkResourcesSurface,
+  FrameworkTokenArtUrls,
+  ResourcesSurfaceDeps,
+} from "./resources";
+
+// S10 app.aa
+export { createAaSurface, FrameworkCapabilityError } from "./aa";
+export type {
+  FrameworkAaRelayPayload,
+  FrameworkAaRelayResult,
+  FrameworkAaService,
+  FrameworkAaSponsorScope,
+  FrameworkAaSponsorshipResult,
+  FrameworkAaSponsorshipStatus,
+  FrameworkAaSurface,
+  FrameworkAaSurfaceDeps,
+} from "./aa";
+
+// S13 app.oracle extensions
+export {
+  createOracleExtensions,
+  dataFeedFreshness,
+  FrameworkSealError,
+  MORPHEUS_ENCRYPTION_ALGORITHM,
+} from "./oracle-ext";
+export type {
+  FrameworkDataFeedDeps,
+  FrameworkDataFeedFreshness,
+  FrameworkDataFeedQuote,
+  FrameworkOracleExtensions,
+  FrameworkOracleExtensionsDeps,
+  FrameworkSealDeps,
+  FrameworkSealPhase,
+  FrameworkSealPublicKey,
+  FrameworkSealStoreInput,
+  FrameworkSealStoreResult,
+} from "./oracle-ext";
