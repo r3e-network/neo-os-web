@@ -88,6 +88,9 @@ export class LastSurvivorScene extends BaseScene {
   private selectedKeyCount = "1";
   private lastBuying = false;
   private lastSettling = false;
+  private lastNeedsSync = false;
+  private lastDangerTier = 0;
+  private lastUserKeys = -1;
 
   constructor() {
     super("LastSurvivorScene");
@@ -177,11 +180,28 @@ export class LastSurvivorScene extends BaseScene {
 
     if (isBuying && !this.lastBuying) this.playBuyMotion();
     if (isSettling && !this.lastSettling) this.playSettleMotion();
+    if (!isSettling && this.lastSettling) this.sfx.play("win");
+    if (needsLifecycleSync && !this.lastNeedsSync) this.sfx.play("lose");
     this.lastBuying = isBuying;
     this.lastSettling = isSettling;
+    this.lastNeedsSync = needsLifecycleSync;
+
+    // Survived another beat: your key count grew after a confirmed buy.
+    if (this.lastUserKeys >= 0 && userKeys > this.lastUserKeys && isRoundActive) {
+      this.sfx.play("score");
+    }
+    this.lastUserKeys = userKeys;
+
+    // Elimination pressure: low warning tone once per danger-tier increase.
+    const dangerTier = dangerPct > 72 ? 2 : dangerPct > 42 ? 1 : 0;
+    if (dangerTier > this.lastDangerTier && isRoundActive) {
+      this.sfx.tones([{ frequency: 196, duration: 0.1, type: "triangle", gain: 0.02, endFrequency: 147 }]);
+    }
+    this.lastDangerTier = dangerTier;
   }
 
   protected onBridgeError(error: GameBridgeError): void {
+    this.sfx.play("error");
     this.statusText?.setText(compactError(error.message));
     this.statusText?.setColor("#d84d3f");
   }
@@ -332,7 +352,10 @@ export class LastSurvivorScene extends BaseScene {
       targets: this.buyButton,
       pressScale: 0.96,
       enabled: () => this.canBuy(),
-      onPress: () => this.dispatch("buyKeys", this.selectedKeyCount),
+      onPress: () => {
+        this.sfx.play("start");
+        this.dispatch("buyKeys", this.selectedKeyCount);
+      },
     });
 
     this.settleButton = this.add.container(333, 535);
@@ -352,7 +375,10 @@ export class LastSurvivorScene extends BaseScene {
       targets: this.settleButton,
       pressScale: 0.96,
       enabled: () => this.canSettle(),
-      onPress: () => this.dispatch("settleRound"),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.dispatch("settleRound");
+      },
     });
 
     this.noticeText = this.add.text(W / 2, H - 14, "", {
@@ -392,7 +418,10 @@ export class LastSurvivorScene extends BaseScene {
     this.bindGameButton(bg, {
       targets: container,
       pressScale: 0.94,
-      onPress: () => this.selectKeyCount(value),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.selectKeyCount(value);
+      },
     });
 
     container.add([bg, label, hint]);

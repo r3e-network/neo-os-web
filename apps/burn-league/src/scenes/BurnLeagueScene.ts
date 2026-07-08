@@ -74,6 +74,12 @@ export class BurnLeagueScene extends BaseScene {
   private isBurning = false;
   private tokenPhase = 0;
 
+  // Previous async-flow flags so result cues fire once per transition,
+  // not on every React state push.
+  private wasBurning = false;
+  private wasSettling = false;
+  private settleWasLeading = false;
+
   constructor() {
     super("BurnLeagueScene");
   }
@@ -154,7 +160,20 @@ export class BurnLeagueScene extends BaseScene {
     const leaders = this.val<LeaderEntry[]>("leaderboardPreview", []) ?? [];
 
     this.isBurning = this.bool("isBurning");
+    const isSettling = this.bool("isSettling");
     this.syncSelectedAmount(amount);
+
+    // One-shot result cues on async-flow transitions.
+    if (this.wasBurning && !this.isBurning && !validationError) {
+      this.sfx.play("reveal");
+    }
+    this.wasBurning = this.isBurning;
+    if (isSettling && !this.wasSettling) {
+      this.settleWasLeading = rank === "1";
+    } else if (!isSettling && this.wasSettling) {
+      this.sfx.play(this.settleWasLeading ? "win" : "refund");
+    }
+    this.wasSettling = isSettling;
 
     this.poolValue.setText(gasText(pot));
     this.burnedValue.setText(gasText(userBurned));
@@ -519,11 +538,15 @@ export class BurnLeagueScene extends BaseScene {
     this.selectedAmount = amount;
     this.updatePresets();
     this.updateBurnButton();
-    if (notify) this.dispatch("setBurnAmount", amount);
+    if (notify) {
+      this.sfx.play("tap");
+      this.dispatch("setBurnAmount", amount);
+    }
   }
 
   private handleBurn(): void {
     if (!this.canBurn()) return;
+    this.sfx.play("throw");
     this.flashCore();
     this.dispatch("burn", this.selectedAmount);
   }

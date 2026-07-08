@@ -495,6 +495,8 @@ export class AimMasterScene extends BaseScene {
     bg.on("pointerout", () =>
       this.drawDiffCardBackground(bg, cardW, cardH, rule.difficulty === this.selectedDifficulty, false));
     bg.on("pointerdown", () => {
+      this.sfx.unlock();
+      this.sfx.play("select");
       this.selectedDifficulty = rule.difficulty;
       this.syncLobbyCards(false, this.num("poolFree", 0));
     });
@@ -990,12 +992,15 @@ export class AimMasterScene extends BaseScene {
   private onStatusTransition(newStatus: string, _prevStatus: string): void {
     if (newStatus === "dealt") {
       // Fresh round — reset local shot tracking
+      this.sfx.play("start");
       this.shotRings    = [];
       this.shotResults  = [];
       this.accuracyHits = 0;
       this.pendingSubmit = false;
       this.prevPattern  = ""; // force pattern re-parse on next sync
     } else if (newStatus === "idle" || newStatus === "solved" || newStatus === "expired") {
+      if (newStatus === "solved")  this.sfx.play("win");
+      if (newStatus === "expired") this.sfx.play("lose");
       this.isGameAnimating = false;
       this.stopPendulumTween();
       this.patternPositions = [];
@@ -1007,11 +1012,16 @@ export class AimMasterScene extends BaseScene {
   // ── Interaction ─────────────────────────────────────────────────────────────
 
   private handleTap(): void {
+    this.sfx.unlock();
     const status = this.currentGameStatus;
     if (status !== "dealt" || this.pendingSubmit) return;
 
     const pos = this.currentGaugeLogical;
     const hit = calculateHitResult(pos);
+
+    // Shot fired — short "pew", then a hit or miss tail.
+    this.sfx.tones([{ frequency: 880, duration: 0.07, type: "sawtooth", gain: 0.025, endFrequency: 220 }]);
+    this.sfx.play(isAccuracyHit(hit.ring) ? "score" : "error");
 
     // Update local state
     this.shotRings.push(hit.ring);

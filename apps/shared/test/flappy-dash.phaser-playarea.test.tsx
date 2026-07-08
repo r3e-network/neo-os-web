@@ -280,7 +280,7 @@ describe("flappy-dash Phaser playarea", () => {
     expect(styles).toContain("min-height: 100dvh");
     expect(styles).toContain("--phaser-mobile-height-ratio: 1.5");
     expect(scene).toContain("private playSfx");
-    expect(scene).toContain("AudioContext");
+    expect(scene).toContain("this.sfx.");
     expect(scene).toContain("private emitFlapBurst");
     expect(scene).toContain("private playPipePassFeedback");
     expect(scene).toContain("private playResultFeedback");

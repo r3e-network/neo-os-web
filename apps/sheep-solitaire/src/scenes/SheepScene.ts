@@ -156,6 +156,8 @@ export class SheepScene extends BaseScene {
   private currentStatus = "idle";
   private ghostInFlight = false;
   private resultAnimationKey = "";
+  private prevMatching = false;
+  private lastResultCue = "";
 
   constructor() {
     super("SheepScene");
@@ -190,6 +192,10 @@ export class SheepScene extends BaseScene {
   create(): void {
     super.create();
 
+    // Raw pointer handlers below don't go through bindGameButton, so unlock
+    // the mixer on any pointerdown.
+    this.input.on("pointerdown", () => this.sfx.unlock());
+
     this.buildBackground(DESIGN_W, DESIGN_H);
     this.buildLobby(DESIGN_W, DESIGN_H);
     this.buildLoadScreen(DESIGN_W, DESIGN_H);
@@ -218,6 +224,10 @@ export class SheepScene extends BaseScene {
 
     this.currentStatus = status;
     if (!showResult) this.resultAnimationKey = "";
+
+    const resultCue: "" | "win" | "lose" = showResult ? (status === "solved" ? "win" : "lose") : "";
+    if (resultCue && resultCue !== this.lastResultCue) this.sfx.play(resultCue);
+    this.lastResultCue = resultCue;
 
     if (showGame)   this.updateGameScreen();
     if (showResult) this.updateResultScreen();
@@ -391,6 +401,7 @@ export class SheepScene extends BaseScene {
       this.tweens.add({ targets: bg, scaleX: 1, scaleY: 1, duration: 80 });
     };
     const onPress = () => {
+      this.sfx.play("start");
       this.tweens.add({ targets: bg, scaleX: 0.97, scaleY: 0.97, duration: 60, yoyo: true });
       this.dispatch("startGame", { difficulty });
     };
@@ -549,6 +560,7 @@ export class SheepScene extends BaseScene {
     bg.on("pointerover",  () => bg.setStrokeStyle(2, C.goldLight));
     bg.on("pointerout",   () => bg.setStrokeStyle(2, C.btnBorder));
     bg.on("pointerdown",  () => {
+      this.sfx.play("chip");
       onPress();
       this.tweens.add({ targets: c, scaleX: 0.93, scaleY: 0.93, duration: 60, yoyo: true });
     });
@@ -628,6 +640,15 @@ export class SheepScene extends BaseScene {
     // ── Detect match-3 elimination: slot count dropped by 3 ─────────────────
     if (!isMatching && this.prevSlotLen === 3 && currentSlotLen === 0) {
       this.animateMatchClear();
+    }
+
+    // Match-3 dopamine hit — isMatching only rises when the TEE confirms a triple.
+    if (isMatching && !this.prevMatching) this.sfx.play("merge");
+    this.prevMatching = isMatching;
+
+    // Soft warning the moment the 6th tray slot fills.
+    if (currentSlotLen >= SLOT_COUNT - 1 && this.prevSlotLen < SLOT_COUNT - 1) {
+      this.sfx.play("error");
     }
 
     this.prevPileLen = currentPileLen;
@@ -729,6 +750,8 @@ export class SheepScene extends BaseScene {
     const slotCards = (this.val<CardView[]>("slotCards") ?? []);
     if (slotCards.length >= SLOT_COUNT) return;
 
+    this.sfx.play("tap");
+
     // Calculate target slot position
     const W = DESIGN_W;
     const H = DESIGN_H;
@@ -760,6 +783,7 @@ export class SheepScene extends BaseScene {
       onComplete: () => {
         ghost.destroy();
         this.ghostInFlight = false;
+        this.sfx.play("select");
         this.dispatch("pickCard", { cardId: card.id });
       },
     });

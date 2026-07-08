@@ -118,6 +118,8 @@ export class TarotScene extends BaseScene {
   private cardViews: CardView[] = [];
   private dealtOnce = false;
   private ambientTweens: Phaser.Tweens.Tween[] = [];
+  private readingChimed = false;
+  private lastRevealAt = 0;
 
   constructor() {
     super("TarotScene");
@@ -133,6 +135,7 @@ export class TarotScene extends BaseScene {
 
   create(): void {
     super.create();
+    this.input.on("pointerdown", () => this.sfx.unlock());
     this.rebuildScene();
     this.onStateUpdate(this.state);
   }
@@ -191,6 +194,20 @@ export class TarotScene extends BaseScene {
     this.intentButtons.forEach((button) => button.setVisible(!hasDrawn && !isLoading));
     this.updateActionButton(hasDrawn, allFlipped, isLoading);
     this.updateCards(drawn, isLoading);
+
+    if (allFlipped && hasDrawn) {
+      if (!this.readingChimed) {
+        this.readingChimed = true;
+        // Gentle closing chord once the full reading is revealed.
+        this.sfx.tones([
+          { frequency: 523, duration: 0.22, delay: 0.3, type: "sine", gain: 0.018 },
+          { frequency: 659, duration: 0.24, delay: 0.36, type: "sine", gain: 0.016 },
+          { frequency: 784, duration: 0.3, delay: 0.42, type: "sine", gain: 0.014 },
+        ]);
+      }
+    } else {
+      this.readingChimed = false;
+    }
   }
 
   protected onBridgeError(error: GameBridgeError): void {
@@ -255,7 +272,10 @@ export class TarotScene extends BaseScene {
       hoverScale: 1.035,
       pressScale: 0.96,
       enabled: () => this.canDrawFromDeck(),
-      onPress: () => this.dispatch("draw"),
+      onPress: () => {
+        this.sfx.play("start");
+        this.dispatch("draw");
+      },
     });
     this.deckStack.add(deckHit);
 
@@ -336,7 +356,10 @@ export class TarotScene extends BaseScene {
       hoverScale: 1.035,
       pressScale: 0.96,
       enabled: () => this.canFlip(index),
-      onPress: () => this.dispatch("flipCard", index),
+      onPress: () => {
+        this.sfx.play("tap");
+        this.dispatch("flipCard", index);
+      },
     });
 
     container.add([shadow, frame, back, face, emptyIndex, label, meta, hit]);
@@ -368,7 +391,10 @@ export class TarotScene extends BaseScene {
       this.bindGameButton(bg, {
         targets: button,
         pressScale: 0.95,
-        onPress: () => this.dispatch("setQuestion", option.question),
+        onPress: () => {
+          this.sfx.play("select");
+          this.dispatch("setQuestion", option.question);
+        },
         onHoverIn: () => this.renderIntentButton(bg, true),
         onHoverOut: () => this.renderIntentButton(bg, false),
       });
@@ -523,6 +549,10 @@ export class TarotScene extends BaseScene {
 
   private flipCardView(view: CardView): void {
     view.flipped = true;
+    if (this.time.now - this.lastRevealAt > 120) {
+      this.lastRevealAt = this.time.now;
+      this.sfx.play("reveal");
+    }
     if (this.reducedMotion) {
       view.back.setAlpha(0);
       view.face.setAlpha(1);
@@ -550,6 +580,13 @@ export class TarotScene extends BaseScene {
   private playDealMotion(): void {
     const deckX = this.deckStack.x + 18;
     const deckY = this.deckStack.y + 12;
+
+    // One shuffle tick per dealt card, matching the 150ms deal stagger.
+    this.sfx.tones([
+      { frequency: 310, duration: 0.025, type: "square", gain: 0.012, endFrequency: 220 },
+      { frequency: 310, duration: 0.025, delay: 0.15, type: "square", gain: 0.012, endFrequency: 220 },
+      { frequency: 310, duration: 0.025, delay: 0.3, type: "square", gain: 0.012, endFrequency: 220 },
+    ]);
 
     this.cardViews.forEach((view, index) => {
       const targetX = view.container.x;
@@ -580,17 +617,20 @@ export class TarotScene extends BaseScene {
     const allFlipped = this.bool("allFlipped");
 
     if (allFlipped) {
+      this.sfx.play("tap");
       this.dispatch("reset");
       return;
     }
 
     if (hasDrawn) {
+      this.sfx.play("tap");
       drawn.slice(0, 3).forEach((card, index) => {
         if (!card.flipped) this.dispatch("flipCard", index);
       });
       return;
     }
 
+    this.sfx.play("start");
     this.dispatch("draw");
   }
 

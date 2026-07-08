@@ -94,6 +94,22 @@ describe("root Phaser framework", () => {
     }
   });
 
+  it("gives every Phaser game scene sound effects through the shared mixer", () => {
+    for (const [app, scene] of phaserSceneApps) {
+      const source = readFileSync(
+        resolve(repoRoot, `apps/${app}/src/scenes/${scene}.ts`),
+        "utf8",
+      );
+
+      expect(source, `${app}: scene should play cues through BaseScene.sfx`).toContain(
+        "this.sfx.",
+      );
+      expect(source, `${app}: scene should not hand-roll a WebAudio mixer`).not.toContain(
+        "createOscillator",
+      );
+    }
+  });
+
   it("keeps Phaser scene text free of emoji placeholders", () => {
     const emojiPlaceholderPattern = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
 
