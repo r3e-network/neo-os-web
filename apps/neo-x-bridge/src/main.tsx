@@ -1,5 +1,6 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import { createObservable } from "@shared/react/context";
+import { createConsolePreviewKernel } from "@shared/components-react";
 import { getNetwork } from "@shared/constants/rpc";
 import PlayArea from "./PlayArea";
 import { appId, appMeta, manifest, messages } from "./appConfig";
@@ -28,9 +29,16 @@ defineMiniApp({
     // hardcoded testnet literal.
     const bridgeEnvironment: BridgeEnvironment =
       getNetwork() === "testnet" ? "testnet" : "mainnet";
-    const lastStatus = createObservable(ctx.t("statusReady"));
-    const lastDigest = createObservable(ctx.t("notAvailable"));
-    const requestCount = createObservable(0);
+    // Shared console kernel (extraction plan §S14): supplies the hero-meta
+    // labels + lastStatus/lastDigest/requestCount trio. This console registers
+    // bespoke actions, so it only uses the kernel's `recordRequest` tally core
+    // (never toasts — mid-flow messaging stays with the actions below).
+    const kernel = createConsolePreviewKernel({
+      t: ctx.t,
+      networkLabel: appMeta.networkLabel,
+      endpointLabel: appMeta.endpointLabel,
+      digestPlaceholderKey: "notAvailable",
+    });
     const lastRoute = createObservable("Neo N3 -> Neo X");
     const lastKind = createObservable("asset");
     const lastPayload = createObservable(ctx.t("emptyPayload"));
@@ -48,13 +56,14 @@ defineMiniApp({
       operationsLog.set(nextLog);
       timeline.set(intent.timeline);
       lastPayload.set(intent.payloadText);
-      lastDigest.set(intent.operation.digest);
       lastRoute.set(intent.operation.route);
       lastKind.set(intent.operation.kind);
       // Translate the operation's status key so the metrics strip never shows a
       // bare English status to a zh user.
-      lastStatus.set(ctx.t(intent.operation.statusKey));
-      requestCount.set(requestCount.get() + 1);
+      kernel.recordRequest({
+        status: ctx.t(intent.operation.statusKey),
+        digest: intent.operation.digest,
+      });
     };
 
     const asForm = (formData: unknown): Record<string, unknown> =>
@@ -131,25 +140,19 @@ defineMiniApp({
       timeline.set(nextTimeline);
       lastRoute.set(route);
       lastKind.set(bridgeKind);
-      lastDigest.set(digest);
-      lastStatus.set(ctx.t("statusTrackingReady"));
-      requestCount.set(requestCount.get() + 1);
+      kernel.recordRequest({ status: ctx.t("statusTrackingReady"), digest });
       lastPayload.set(stringifyPayload(payload));
       ctx.setStatus(ctx.t("statusTrackingReady"), "success");
     });
 
     return {
       state: {
-        networkLabel: createObservable(appMeta.networkLabel),
-        endpointLabel: createObservable(appMeta.endpointLabel),
+        ...kernel.state,
         // Surface the active bridge environment + official-bridge URL so the
         // PlayArea can render the required "Open official bridge to submit" next
         // step and a network-correct source-tx explorer link.
         bridgeEnvironment: createObservable<BridgeEnvironment>(bridgeEnvironment),
         bridgeAppUrl: createObservable(bridgeAppUrl(bridgeEnvironment)),
-        lastStatus,
-        lastDigest,
-        requestCount,
         lastRoute,
         lastKind,
         lastPayload,

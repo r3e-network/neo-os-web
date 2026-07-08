@@ -82,7 +82,7 @@ export type ChainLike = {
 
 export interface UseEventTicketOptions {
   app: MiniAppFramework;
-  eventBus: { emit: (event: string, payload?: unknown) => void };
+  bus: { emit: (event: string, payload?: unknown) => void };
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -178,7 +178,7 @@ function mergeTicket(list: TicketItem[], ticket: TicketItem) {
 const EVENT_SCAN_LIMIT = 200;
 const TICKET_SCAN_LIMIT = 500;
 
-export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
+export function useEventTicket({ app, bus, t }: UseEventTicketOptions) {
   const events = createObservable<EventItem[]>([]);
   const tickets = createObservable<TicketItem[]>([]);
   const address = createObservable("");
@@ -293,10 +293,10 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
   }
 
   async function loadEventIds(creator: string): Promise<string[]> {
-    const creatorHash = addressToScriptHash(creator);
-    if (!creatorHash) return [];
+    // arg.hash160 converts the connected wallet address to a script hash —
+    // no hand-rolled addressToScriptHash preamble needed.
     const raw = await app.chain.readRaw("getCreatorEvents", [
-      app.chain.arg.hash160(creatorHash),
+      app.chain.arg.hash160(creator),
       app.chain.arg.integer(0),
       app.chain.arg.integer(50),
     ]);
@@ -359,11 +359,14 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
    * reads, no iterator). An attendee may hold tickets for events they did not
    * create, so the scan covers all events (totalEvents), not just the creator's.
    */
-  async function loadOwnedTokenIds(ownerHash: string): Promise<string[]> {
+  async function loadOwnedTokenIds(owner: string): Promise<string[]> {
+    // arg.hash160 converts the owner address once; its value doubles as the
+    // ownerOf comparison key below (same lowercase 0x little-endian form the
+    // old addressToScriptHash preamble produced).
+    const ownerArg = app.chain.arg.hash160(owner);
+    const ownerHash = String(ownerArg.value);
     // Short-circuit: an attendee with no ticket balance holds nothing to scan.
-    const rawBalance = await app.chain.readRaw("balanceOf", [
-      app.chain.arg.hash160(ownerHash),
-    ]);
+    const rawBalance = await app.chain.readRaw("balanceOf", [ownerArg]);
     const balance = Number(parseBigInt(rawBalance));
     if (!Number.isFinite(balance) || balance <= 0) return [];
 
@@ -415,15 +418,10 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
       tickets.set([]);
       return tickets.get();
     }
-    const ownerHash = addressToScriptHash(owner);
-    if (!ownerHash) {
-      tickets.set([]);
-      return tickets.get();
-    }
     isRefreshingTickets.set(true);
     lastError.set("");
     try {
-      const tokenIds = await loadOwnedTokenIds(ownerHash);
+      const tokenIds = await loadOwnedTokenIds(owner);
       if (tokenIds.length === 0) {
         tickets.set([]);
         workflowStatus.set(t("ticketsLoaded"));
@@ -512,7 +510,7 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
         eventId,
       });
       workflowStatus.set(t("eventCreated"));
-      eventBus.emit("event-ticket:eventCreated", { id: eventId, name });
+      bus.emit("event-ticket:eventCreated", { id: eventId, name });
       const refreshed = await refreshEvents({ quiet: true });
       if (eventId) selectedEventId.set(eventId);
       return refreshed.find((event) => event.id === eventId) ?? null;
@@ -549,6 +547,9 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     if (!event.active) throw new Error(t("eventInactive"));
     if (event.minted >= event.maxSupply) throw new Error(t("soldOut"));
     const recipient = clean(issueRecipient.get());
+    // framework-exempt: false-not-throw validity check — addressToScriptHash
+    // returns "" for user-typed junk so the localized invalidRecipient copy
+    // is thrown here; arg.hash160 would throw its own English error first.
     if (!recipient || !addressToScriptHash(recipient)) {
       throw new Error(t("invalidRecipient"));
     }
@@ -591,7 +592,7 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
         eventId: event.id,
       });
       workflowStatus.set(t("ticketIssued"));
-      eventBus.emit("event-ticket:ticketIssued", { tokenId, eventId: event.id });
+      bus.emit("event-ticket:ticketIssued", { tokenId, eventId: event.id });
       await Promise.all([
         refreshEvents({ quiet: true }),
         refreshTickets({ quiet: true }),
@@ -746,7 +747,7 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
         tokenId: checkedIn.tokenId,
       });
       workflowStatus.set(t("checkinSuccess"));
-      eventBus.emit("event-ticket:checkedIn", { tokenId: checkedIn.tokenId });
+      bus.emit("event-ticket:checkedIn", { tokenId: checkedIn.tokenId });
       await refreshTickets({ quiet: true });
       return checkedIn;
     } catch (error) {
@@ -771,6 +772,9 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     const tokenId = clean(input?.tokenId ?? transferTokenId.get());
     const recipient = clean(input?.recipient ?? transferRecipient.get());
     if (!tokenId) throw new Error(t("invalidTokenId"));
+    // framework-exempt: false-not-throw validity check — addressToScriptHash
+    // returns "" for user-typed junk so the localized invalidRecipient copy
+    // is thrown here; arg.hash160 would throw its own English error first.
     if (!recipient || !addressToScriptHash(recipient)) {
       throw new Error(t("invalidRecipient"));
     }
@@ -814,7 +818,7 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
       transferTokenId.set("");
       transferRecipient.set("");
       workflowStatus.set(t("transferSuccess"));
-      eventBus.emit("event-ticket:transferred", { tokenId, recipient });
+      bus.emit("event-ticket:transferred", { tokenId, recipient });
       await refreshTickets({ quiet: true });
       return result;
     } catch (error) {

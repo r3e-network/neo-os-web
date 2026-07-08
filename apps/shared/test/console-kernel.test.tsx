@@ -5,10 +5,10 @@
  * currently copy-pasted across the 4 oracle consoles + oracle-compute-lab +
  * neo-x-bridge, using oracle-http-console as the reference: its real
  * consoleConfig.buildResult drives both the kernel and a verbatim replica of
- * the app's current main.tsx handler, and every observable transition + toast
- * must match step for step. Wave 1 is additive — the consoles migrate onto the
- * kernel in Wave 2B — so a source snapshot also pins the reference wiring the
- * kernel mirrors, flagging any drift before the migration lands.
+ * the app's pre-migration main.tsx handler, and every observable transition +
+ * toast must match step for step. The consoles adopted the kernel in Wave 2B,
+ * so a source guard now pins that every console routes through it instead of
+ * re-hand-rolling the wiring.
  */
 
 import React from "react";
@@ -189,19 +189,42 @@ describe("console preview kernel — oracle-http-console parity", () => {
     expect(kernelToasts).toEqual(referenceToasts);
   });
 
-  it("pins the reference console wiring the kernel replicates (drift guard until Wave 2B)", () => {
-    const source = readFileSync(
-      path.join(appsRoot(), "oracle-http-console", "src", "main.tsx"),
+  it("keeps every console on the kernel instead of hand-rolled preview wiring (Wave 2B)", () => {
+    // The parity spec above proves the kernel matches the historical reference
+    // handler; this guard proves the consoles actually route through it — a
+    // console quietly re-hand-rolling the trio/branch would drift undetected.
+    const consoleApps = [
+      "oracle-http-console",
+      "oracle-neodid-console",
+      "oracle-seal-console",
+      "oracle-vrf-console",
+      "oracle-compute-lab",
+    ];
+    for (const app of consoleApps) {
+      const source = readFileSync(path.join(appsRoot(), app, "src", "main.tsx"), "utf8");
+      expect(source, app).toContain("createConsolePreviewKernel");
+      expect(source, app).toContain('ctx.framework.actions.register("buildRequest", kernel.buildRequest)');
+      expect(source, app).toContain("state: kernel.state");
+      // The hand-rolled input_required branch and observable trio are retired.
+      expect(source, app).not.toContain('payload.status');
+      expect(source, app).not.toContain('"input_required"');
+      expect(source, app).not.toContain("requestCount.set(");
+    }
+    // oracle-seal-console keeps its toast-free wiring through the kernel option.
+    const seal = readFileSync(
+      path.join(appsRoot(), "oracle-seal-console", "src", "main.tsx"),
       "utf8",
     );
-    // If any of these move, the console's semantics changed after the kernel
-    // snapshot — reconcile console-kernel.ts before migrating the app onto it.
-    expect(source).toContain('payload.status !== "input_required"');
-    expect(source).toContain("lastStatus.set(result.status)");
-    expect(source).toContain('lastDigest.set(String(payload.digest ?? ctx.t("digestPlaceholder")))');
-    expect(source).toContain("requestCount.set(requestCount.get() + 1)");
-    expect(source).toContain('lastDigest.set(ctx.t("digestPlaceholder"))');
-    expect(source).toContain('ctx.setStatus(result.status, ok ? "success" : "warning")');
+    expect(seal).toContain('notify: "silent"');
+    // neo-x-bridge registers bespoke actions and uses the kernel's tally core.
+    const bridge = readFileSync(
+      path.join(appsRoot(), "neo-x-bridge", "src", "main.tsx"),
+      "utf8",
+    );
+    expect(bridge).toContain("createConsolePreviewKernel");
+    expect(bridge).toContain('digestPlaceholderKey: "notAvailable"');
+    expect(bridge).toContain("kernel.recordRequest(");
+    expect(bridge).not.toContain("requestCount.set(");
   });
 });
 

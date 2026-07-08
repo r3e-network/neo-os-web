@@ -7,7 +7,6 @@
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { BalanceService, EventBus } from "@shared/services";
 import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
 import { toFixedDecimals } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -48,12 +47,10 @@ export const POPULAR_PAIRS: ReadonlyArray<{ id: string; name: string }> = [
 
 export interface UseSwapEngineOptions {
   app: MiniAppFramework;
-  balance: BalanceService;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSwapEngine({ app, balance, eventBus, t }: UseSwapEngineOptions) {
+export function useSwapEngine({ app, t }: UseSwapEngineOptions) {
   const chain = app.chain;
   // The framework narrows contractAddress to a get-only accessor, but the
   // underlying chain service exposes the full observable (with subscribe) that
@@ -151,7 +148,7 @@ export function useSwapEngine({ app, balance, eventBus, t }: UseSwapEngineOption
   async function refreshBalances() {
     if (!chain.address.get()) { applyTokenBalances(0, 0); return; }
     try {
-      const [neo, gas] = await Promise.all([balance.getNeoBalance(), balance.getGasBalance()]);
+      const [neo, gas] = await Promise.all([app.wallet.neo(), app.wallet.gas()]);
       applyTokenBalances(neo, gas);
     } catch (e) {
       console.warn("[useSwapEngine] refreshBalances failed:", e instanceof Error ? e.message : String(e));
@@ -473,13 +470,13 @@ export function useSwapEngine({ app, balance, eventBus, t }: UseSwapEngineOption
         app.chain.arg.integer(deadline),
       ], { waitForEvent: "SwapExecuted" });
 
-      eventBus.emit("swap:success", { message: `${t("swapSuccess")}: ${parseFloat(fromAmount.get())} ${ft.symbol}` });
+      // The legacy swap:success / swap:error eventBus emits were dead channels
+      // (no subscriber anywhere) — deleted per the extraction plan, not
+      // migrated. Success/error toasts come from the notify.guard wrapper in
+      // main.tsx, exactly as before.
       fromAmount.set("");
       toAmount.set("");
       await refreshBalances();
-    } catch (e) {
-      eventBus.emit("swap:error", { message: e instanceof Error ? e.message : t("swapFailed") });
-      throw e;
     } finally {
       loading.set(false);
     }

@@ -170,6 +170,40 @@ describe("S0 utils consolidation", () => {
       atom.set(7);
       expect(localStorage.getItem("neo:prefix-app:state/round")).toBe("7");
     });
+
+    it("options.storagePrefix overrides the default so legacy namespaces survive migration", () => {
+      // An app whose pre-framework keys lived outside `neo:<appId>:` (e.g.
+      // wallet-health's raw "miniapp-wallet-health:checklist") passes its
+      // legacy prefix so existing user data still resolves byte-for-byte.
+      localStorage.setItem(
+        "miniapp-legacy:checklist",
+        JSON.stringify({ backup: true }),
+      );
+
+      const chain = {
+        address: createObservable<string | null>(ADDRESS),
+        ensureWallet: vi.fn(async () => ADDRESS),
+        read: vi.fn(async () => "0"),
+        invoke: vi.fn(async () => ({ txid: "0xinvoke", success: true })),
+        invokeWithPayment: vi.fn(async () => ({ txid: "0xpay", success: true })),
+        listEvents: vi.fn(async () => []),
+      };
+      const ctx = { services: { chain }, t } as unknown as MiniAppFrameworkContext;
+      const app = createMiniAppFramework(ctx, {
+        appId: "miniapp-legacy-app",
+        storagePrefix: "miniapp-legacy:",
+      });
+
+      expect(app.storage.local.get<{ backup: boolean }>("checklist")).toEqual({
+        backup: true,
+      });
+      app.storage.local.set("checklist", { backup: false });
+      expect(localStorage.getItem("miniapp-legacy:checklist")).toBe(
+        JSON.stringify({ backup: false }),
+      );
+      // The default namespace is untouched when a legacy prefix is supplied.
+      expect(localStorage.getItem("neo:miniapp-legacy-app:checklist")).toBeNull();
+    });
   });
 
   describe("amount error-semantics variants stay distinct (§S6 gotcha)", () => {

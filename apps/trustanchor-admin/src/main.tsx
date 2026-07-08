@@ -4,25 +4,12 @@ import {
   defineMiniApp,
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { formatNum } from "@shared/utils/format";
 import { TRUSTANCHOR_AGENT_ACCOUNTS } from "../../trustanchor/src/data/agentAccounts";
 import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./messages";
-
-/** Coerce a NEP-17 balanceOf stack item (number/bigint/string/{value}) to a number. */
-function balanceToNumber(input: unknown): number {
-  if (typeof input === "number") return input;
-  if (typeof input === "bigint") return Number(input);
-  if (typeof input === "string") return Number(input) || 0;
-  if (input && typeof input === "object") {
-    const record = input as Record<string, unknown>;
-    return balanceToNumber(record.value ?? record.integer ?? record.result);
-  }
-  return 0;
-}
 
 function shortAddress(value: string): string {
   if (!value) return "";
@@ -37,18 +24,18 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
+    const { notify } = ctx.framework;
     const anchor = useTrustAnchor({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
     const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
 
     // Per-agent NEO balances, keyed by agent account address. NEO sits in each
     // agent's own account (not in PlatformAnchor), so balance is a read-only
-    // NEO.balanceOf(agentAccount) against the native NEO contract. This turns the
-    // blind Move-NEO form into one where the operator sees source balances.
+    // NEO.balanceOf(agentAccount) via app.wallet against the native NEO
+    // contract. This turns the blind Move-NEO form into one where the operator
+    // sees source balances.
     const agentBalances = createObservable<Record<string, number>>({});
     const loadAgentBalances = async () => {
       const live = anchor.agents.get();
@@ -58,12 +45,11 @@ defineMiniApp({
           live.map(async (agent) => {
             if (!agent.account) return [agent.account, 0] as const;
             try {
-              const raw = await ctx.services.chain.read(
-                "balanceOf",
-                [{ type: "Hash160", value: agent.account }],
-                { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH },
+              const balance = await ctx.framework.wallet.balance(
+                "NEO",
+                agent.account,
               );
-              return [agent.account, balanceToNumber(raw)] as const;
+              return [agent.account, balance] as const;
             } catch {
               return [agent.account, 0] as const;
             }
@@ -139,7 +125,7 @@ defineMiniApp({
         if (result === null) return "loading";
         return result ? "admin" : "denied";
       },
-      [anchor.adminInfo, ctx.services.chain.address],
+      [anchor.adminInfo, ctx.framework.chain.address],
     );
     const expectedAdminDisplay = createDerived(
       () => {
@@ -159,21 +145,21 @@ defineMiniApp({
             form.toAgentId,
             form.amount,
           ),
-        "anchorTransferSubmitted",
+        { successKey: "anchorTransferSubmitted" },
       );
     });
     ctx.framework.actions.register("setAgentCandidate", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       await notify.guard(
         () => anchor.setAgentCandidate(form.agentId, form.candidate),
-        "candidateUpdateSubmitted",
+        { successKey: "candidateUpdateSubmitted" },
       );
     });
     ctx.framework.actions.register("voteAgent", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       await notify.guard(
         () => anchor.voteAgent(form.agentId),
-        "voteSyncSubmitted",
+        { successKey: "voteSyncSubmitted" },
       );
     });
 

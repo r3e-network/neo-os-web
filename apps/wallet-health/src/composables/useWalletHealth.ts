@@ -5,17 +5,14 @@
  * (security checklist, safety score) into a single API surface, including
  * all derived/formatted state that PlayArea.vue needs.
  *
- * Receives ChainService + BalanceService + EventBus from PlatformServices
- * and StorageProxy from OS services. Chain reads against NEO/GAS native
- * contracts stay on ChainService (external). Checklist persistence is
- * synchronous and device-local via the runtime cache under an app-namespaced
- * key (see useHealthScore); StorageProxy is wired through for API parity.
+ * Receives the MiniApp framework SDK (ctx.framework): balances and wallet
+ * identity go through app.wallet, checklist persistence goes through
+ * app.storage.local (under the app's legacy storagePrefix so existing user
+ * data keeps resolving).
  */
 
 import { createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
-import type { ChainService, BalanceService, EventBus } from "@shared/services";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { MiniAppFramework } from "@shared/react";
 import { useWalletAnalysis } from "./useWalletAnalysis";
 import { useHealthScore } from "./useHealthScore";
 import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
@@ -26,18 +23,16 @@ export interface HealthStat {
 }
 
 export interface UseWalletHealthOptions {
-  chain: ChainService;
-  balance: BalanceService;
-  eventBus: EventBus;
-  storage: StorageProxy;
+  /** MiniApp framework SDK from ctx.framework. */
+  app: MiniAppFramework;
   targetNetwork?: MiniAppLaunchNetwork | null;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useWalletHealth({ chain, balance, eventBus, storage, targetNetwork, t }: UseWalletHealthOptions) {
-  const analysis = useWalletAnalysis({ chain, balance, eventBus, t });
+export function useWalletHealth({ app, targetNetwork, t }: UseWalletHealthOptions) {
+  const analysis = useWalletAnalysis({ app, t });
   const isConnected = createDerived(() => Boolean(analysis.address.get()), [analysis.address]);
-  const health = useHealthScore(analysis.gasOk, isConnected, storage);
+  const health = useHealthScore(analysis.gasOk, isConnected, app.storage.local);
 
   // ── Formatted display values ─────────────────────────────────────────
   const connectionStatus = createDerived(

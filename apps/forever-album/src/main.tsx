@@ -14,15 +14,18 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy album namespace: pre-framework albums were stored under
+  // "forever-album:photos:<address>", so pin app.storage.local to the same
+  // "forever-album:" prefix — existing device-local albums are not orphaned.
+  storagePrefix: "forever-album:",
 
   setup(ctx) {
+    const app = ctx.framework;
     const album = useForeverAlbum({
-      chainService: ctx.services.chain,
-      eventBus: ctx.services.events,
+      app,
       t: ctx.t,
     });
 
-    const { notify } = ctx.services;
     const launchDefaults = getForeverAlbumLaunchDefaults(ctx.launchContext);
     album.isEncrypted.set(launchDefaults.isEncrypted);
 
@@ -57,19 +60,16 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("handleDecrypt", async (pwd: unknown) => {
-      await notify.guard(
-        () => album.handleDecrypt(pwd as string),
-        undefined,
-        "decryptFailed",
-      );
+      await app.notify.guard(() => album.handleDecrypt(pwd as string), {
+        errorKey: "decryptFailed",
+      });
     });
 
     ctx.framework.actions.register("uploadPhotos", async () => {
-      await notify.guard(
-        () => album.uploadPhotos(),
-        "uploadSuccess",
-        "uploadFailed",
-      );
+      await app.notify.guard(() => album.uploadPhotos(), {
+        successKey: "uploadSuccess",
+        errorKey: "uploadFailed",
+      });
     });
 
     ctx.framework.actions.register("removeImage", async (id: unknown) => {
@@ -77,7 +77,9 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("deletePhoto", async (id: unknown) => {
-      await notify.guard(() => album.deletePhoto(id as string), "photoDeleted");
+      await app.notify.guard(() => album.deletePhoto(id as string), {
+        successKey: "photoDeleted",
+      });
     });
 
     ctx.framework.actions.register("addFiles", async (...args: unknown[]) => {

@@ -277,6 +277,13 @@ export interface MiniAppFrameworkContext {
 export interface MiniAppFrameworkOptions {
   appId?: string;
   /**
+   * Override for the `app.storage.local` key prefix (default `neo:<appId>:`).
+   * Migration lane: apps whose pre-framework localStorage keys lived in a
+   * different namespace pass their legacy prefix so existing user data is not
+   * orphaned (storage keys must stay byte-identical across the migration).
+   */
+  storagePrefix?: string;
+  /**
    * app.oracle extension config (S13). `dataFeed` needs the deployed
    * MorpheusDataFeed contract + RPC endpoint (network-specific, so the app
    * layer injects it); absent ⇒ dataFeed reads throw a typed
@@ -675,7 +682,7 @@ export function createMiniAppFramework(
     subscribe: (listener) => contractAddressAccessor.subscribe(listener),
   };
   const notify = ctx.services.notify ?? {};
-  const storagePrefix = `neo:${appId}:`;
+  const storagePrefix = options.storagePrefix ?? `neo:${appId}:`;
   const inFlight = new Set<string>();
   const actionHandlers = new Map<string, (...args: unknown[]) => Promise<unknown>>();
 

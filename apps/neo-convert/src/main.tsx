@@ -20,14 +20,10 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
+    const app = ctx.framework;
 
     const convert = useNeoConvert({
-      app: ctx.framework,
-      balance: platformServices.balance,
-      transfer: platformServices.transfer,
-      eventBus: platformServices.events,
-      clipboard: platformServices.clipboard,
+      app,
       t: ctx.t,
     });
 
@@ -53,9 +49,12 @@ defineMiniApp({
       if (incoming) convert.inputKey.set(incoming);
       convert.convertInput();
       if (convert.conversionStatusType.get() === "success") {
-        ctx.setStatus(ctx.t(convert.conversionStatus.get()), "success");
+        app.notify.success(convert.conversionStatus.get());
       } else if (convert.conversionStatusType.get() === "error") {
-        ctx.setStatus(ctx.t(convert.conversionStatus.get()), "error");
+        // The status observable already carries the localized copy (or a key
+        // t() falls through verbatim) — pass it as the fallback key so the
+        // toast text matches the old setStatus branch byte-for-byte.
+        app.notify.error(undefined, convert.conversionStatus.get());
       }
     });
 

@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { useHealthScore } from "../../wallet-health/src/composables/useHealthScore";
-import type { StorageProxy } from "../services/os/StorageProxy";
+import type { ChecklistStore } from "../../wallet-health/src/composables/useHealthScore";
 
 /**
  * wallet-health findings:
@@ -10,12 +11,26 @@ import type { StorageProxy } from "../services/os/StorageProxy";
  *    denominator), NOT a failed item, so a disconnected user doesn't see a false
  *    "top up GAS" recommendation / alarming High-risk verdict;
  *  - recommendations must derive from every unchecked item, so the panel and the
- *    score/risk chip never disagree ("All checks look good" while items pending).
+ *    score/risk chip never disagree ("All checks look good" while items pending);
+ *  - checklist persistence keys stay byte-identical to the pre-framework
+ *    runtime-cache key so existing user data survives the migration.
  */
 
-// The synchronous device-local checklist never touches StorageProxy (it is wired
-// for API parity only), so an empty stub is sufficient.
-const storage = {} as StorageProxy;
+// Minimal in-memory ChecklistStore (the synchronous device-local checklist
+// only needs get/set; app.storage.local satisfies the same shape at runtime).
+function memoryStore(): ChecklistStore {
+  const data: Record<string, unknown> = {};
+  return {
+    get<T>(key: string, fallback: T | null = null): T | null {
+      return key in data ? (data[key] as T) : fallback;
+    },
+    set(key: string, value: unknown): void {
+      data[key] = value;
+    },
+  };
+}
+
+const storage = memoryStore();
 
 describe("wallet-health useHealthScore — pre-connect gating", () => {
   // The composable resolves its own `t` (createUseI18n(messages)) which, outside
@@ -85,5 +100,67 @@ describe("wallet-health useHealthScore — recommendations match the checklist",
 
     health.toggleChecklist("backup");
     expect(health.recommendations.get()).not.toContain("recommendationBackup");
+  });
+});
+
+describe("wallet-health checklist persistence — legacy storage key survives the framework migration", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function makeApp() {
+    const chain = {
+      address: createObservable<string | null>(null),
+      ensureWallet: async () => "",
+      read: async () => "0",
+      invoke: async () => ({ txid: "0x0", success: true }),
+    };
+    return createMiniAppFramework(
+      { services: { chain }, t: (key: string) => key } as never,
+      {
+        appId: "miniapp-wallet-health",
+        // Mirrors main.tsx: the checklist lived under the raw
+        // "miniapp-wallet-health:checklist" key before app.storage.local.
+        storagePrefix: "miniapp-wallet-health:",
+      },
+    );
+  }
+
+  it("writes the exact pre-framework localStorage key via app.storage.local", () => {
+    const app = makeApp();
+    const health = useHealthScore(
+      createObservable(true),
+      createObservable(true),
+      app.storage.local,
+    );
+
+    health.toggleChecklist("backup");
+
+    expect(localStorage.getItem("miniapp-wallet-health:checklist")).toBe(
+      JSON.stringify({ backup: true }),
+    );
+  });
+
+  it("resolves checklist state persisted under the legacy key (round-trip)", () => {
+    // Simulate data written by the pre-framework runtime-cache build.
+    localStorage.setItem(
+      "miniapp-wallet-health:checklist",
+      JSON.stringify({ backup: true, device: true }),
+    );
+
+    const app = makeApp();
+    const health = useHealthScore(
+      createObservable(true),
+      createObservable(true),
+      app.storage.local,
+    );
+    health.loadChecklist();
+
+    const done = health.checklistItems
+      .get()
+      .filter((item) => item.done)
+      .map((item) => item.id);
+    expect(done).toContain("backup");
+    expect(done).toContain("device");
   });
 });

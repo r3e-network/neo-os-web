@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
-import type { AAService, EventBus } from "../services";
+import type { AAService, ChainService } from "../services";
+import { createMiniAppFramework } from "../react";
 import { useAARelayConsole } from "../../aa-relay-console/src/composables/useAARelayConsole";
 import { getRelayLaunchDefaults } from "../../aa-relay-console/src/launch";
 import { getExternalIntegrationConfig } from "../constants/rpc";
@@ -10,18 +11,24 @@ function t(key: string) {
   return key;
 }
 
+function makeApp(aa: AAService) {
+  const chain = {
+    address: createObservable<string | null>(null),
+  } as unknown as ChainService;
+  return createMiniAppFramework(
+    { services: { chain, aa }, t } as never,
+    { appId: "miniapp-aa-relay-console" },
+  );
+}
+
 describe("AA Relay Console logic", () => {
   it("passes AA and paymaster scope into sponsorship and relay requests", async () => {
     const aa = {
       checkSponsorship: vi.fn().mockResolvedValue({ eligible: true }),
       requestSponsorship: vi.fn().mockResolvedValue({ approved: true }),
       submitRelay: vi.fn().mockResolvedValue({ txid: "0xrelay" }),
-      setAddress: vi.fn(),
-      isCheckingSponsorship: createObservable(false),
-      isRelaying: createObservable(false),
     } as unknown as AAService;
-    const eventBus = { emit: vi.fn() } as unknown as EventBus;
-    const relay = useAARelayConsole({ aa, eventBus, t });
+    const relay = useAARelayConsole({ app: makeApp(aa), t });
 
     relay.aaAddress.set("NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3");
     relay.dappId.set("miniapp-aa-relay-console");
@@ -29,9 +36,6 @@ describe("AA Relay Console logic", () => {
     relay.payloadJson.set('{"metaInvocation":{"operation":"transfer"}}');
 
     await relay.checkSponsor();
-    expect(aa.setAddress).toHaveBeenCalledWith(
-      "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-    );
     expect(aa.checkSponsorship).toHaveBeenCalledWith({
       aaAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
       dappId: "miniapp-aa-relay-console",

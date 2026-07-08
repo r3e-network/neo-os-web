@@ -4,7 +4,6 @@ import {
   defineMiniApp,
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { formatNum } from "@shared/utils/format";
 import { PROFITANCHOR_AGENT_ACCOUNTS } from "../../profitanchor/src/data/agentAccounts";
 import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
@@ -18,18 +17,6 @@ function shortAddress(value: string): string {
   return `${value.slice(0, 8)}…${value.slice(-6)}`;
 }
 
-/** Coerce a NEP-17 balanceOf stack item (number/bigint/string/{value}) to a number. */
-function balanceToNumber(input: unknown): number {
-  if (typeof input === "number") return input;
-  if (typeof input === "bigint") return Number(input);
-  if (typeof input === "string") return Number(input) || 0;
-  if (input && typeof input === "object") {
-    const record = input as Record<string, unknown>;
-    return balanceToNumber(record.value ?? record.integer ?? record.result);
-  }
-  return 0;
-}
-
 defineMiniApp({
   appId: "miniapp-profitanchor-admin",
   playArea: PlayArea,
@@ -37,9 +24,11 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
     const anchor = useProfitAnchor({
       app: ctx.framework,
+      // framework-exempt: useProfitAnchor (profitanchor, Wave 3B) requires the
+      // shared EventBus class — private fields defeat a structural app.bus
+      // swap; migrates with that hook (Wave 3B) / cross-app dissolve (Wave 6).
       eventBus: ctx.services.events,
       t: ctx.t,
     });
@@ -47,8 +36,9 @@ defineMiniApp({
 
     // Per-agent NEO balances, keyed by agent account address. NEO sits in each
     // agent's own account (not in PlatformAnchor), so balance is a read-only
-    // NEO.balanceOf(agentAccount) against the native NEO contract. This turns the
-    // blind Move-NEO form into one where the operator sees source balances.
+    // NEO.balanceOf(agentAccount) via app.wallet's arbitrary-address lane. This
+    // turns the blind Move-NEO form into one where the operator sees source
+    // balances.
     const agentBalances = createObservable<Record<string, number>>({});
     const loadAgentBalances = async () => {
       const live = anchor.agents.get();
@@ -58,12 +48,8 @@ defineMiniApp({
           live.map(async (agent) => {
             if (!agent.account) return [agent.account, 0] as const;
             try {
-              const raw = await ctx.services.chain.read(
-                "balanceOf",
-                [{ type: "Hash160", value: agent.account }],
-                { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH },
-              );
-              return [agent.account, balanceToNumber(raw)] as const;
+              const balance = await ctx.framework.wallet.balance("NEO", agent.account);
+              return [agent.account, balance] as const;
             } catch {
               return [agent.account, 0] as const;
             }
@@ -132,7 +118,7 @@ defineMiniApp({
         if (result === null) return "loading";
         return result ? "admin" : "denied";
       },
-      [anchor.adminInfo, ctx.services.chain.address],
+      [anchor.adminInfo, ctx.framework.wallet.observe()],
     );
     const expectedAdminDisplay = createDerived(
       () => {
@@ -145,28 +131,28 @@ defineMiniApp({
 
     ctx.framework.actions.register("transferAgentNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
+      await ctx.framework.notify.guard(
         () =>
           anchor.transferAgentNeo(
             form.fromAgentId,
             form.toAgentId,
             form.amount,
           ),
-        "anchorTransferSubmitted",
+        { successKey: "anchorTransferSubmitted" },
       );
     });
     ctx.framework.actions.register("setAgentCandidate", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
+      await ctx.framework.notify.guard(
         () => anchor.setAgentCandidate(form.agentId, form.candidate),
-        "candidateUpdateSubmitted",
+        { successKey: "candidateUpdateSubmitted" },
       );
     });
     ctx.framework.actions.register("voteAgent", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
+      await ctx.framework.notify.guard(
         () => anchor.voteAgent(form.agentId),
-        "voteSyncSubmitted",
+        { successKey: "voteSyncSubmitted" },
       );
     });
 

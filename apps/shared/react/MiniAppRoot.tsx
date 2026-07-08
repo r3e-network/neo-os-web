@@ -85,6 +85,13 @@ interface MiniAppRootProps {
   setupFn?: (
     ctx: MiniAppSetupContext,
   ) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
+  /**
+   * Override for the framework `app.storage.local` key prefix (default
+   * `neo:<appId>:`) — for apps whose legacy localStorage keys lived in a
+   * different namespace, so migrating to app.storage.local does not orphan
+   * existing user data.
+   */
+  storagePrefix?: string;
 }
 
 /** Context passed to the miniapp's setup function (React version) */
@@ -172,6 +179,7 @@ export function MiniAppRoot({
   manifest,
   messages,
   setupFn,
+  storagePrefix,
 }: MiniAppRootProps) {
   // --------------------------------------------------------------------------
   // i18n
@@ -273,7 +281,7 @@ export function MiniAppRoot({
       clearStatus,
       launchContext: frameworkLaunchContext,
       registerAction,
-    }, { appId });
+    }, { appId, storagePrefix });
   }
   const framework = frameworkRef.current;
 

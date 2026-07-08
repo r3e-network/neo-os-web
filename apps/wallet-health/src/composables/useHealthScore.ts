@@ -2,8 +2,15 @@ import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
+
+/**
+ * Synchronous device-local checklist store — structurally satisfied by
+ * `app.storage.local` (the framework local-storage surface).
+ */
+export interface ChecklistStore {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+}
 
 export interface ChecklistItem {
   id: string;
@@ -32,24 +39,23 @@ export interface UseHealthScoreReturn {
 /**
  * Computes wallet health score from a security checklist with persistent state.
  *
- * Checklist state persists synchronously via the runtime cache (safe-storage
- * backed localStorage) under an app-namespaced key so it cannot collide with
- * other miniapps. `storage` (the async OS StorageProxy) is accepted to keep the
- * OS-services injection contract intact but is not used for this synchronous,
- * device-local checklist; switching to it would require an async load/save path.
+ * Checklist state persists synchronously via `app.storage.local` (safe-storage
+ * backed localStorage). The app passes `storagePrefix: "miniapp-wallet-health:"`
+ * to defineMiniApp so the persisted key stays byte-identical to the legacy
+ * runtime-cache key ("miniapp-wallet-health:checklist") — existing user data
+ * is not orphaned by the framework migration.
  */
 export function useHealthScore(
   gasOk: Observable<boolean>,
   isConnected: Observable<boolean>,
-  storage: StorageProxy,
+  storage: ChecklistStore,
 ): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
-  void storage;
 
   const checklistState: Record<string, boolean> = {};
-  // App-namespaced key avoids collisions with other miniapps in the shared
-  // runtime cache (which is unprefixed and explicitly for cross-app data).
-  const checklistStorageKey = "miniapp-wallet-health:checklist";
+  // Composed with the app's storagePrefix this resolves to the legacy
+  // "miniapp-wallet-health:checklist" localStorage key, byte-for-byte.
+  const checklistStorageKey = "checklist";
   const checklistRevision = createObservable(0);
   const notifyChecklistChanged = () => {
     checklistRevision.set(checklistRevision.get() + 1);
@@ -154,7 +160,7 @@ export function useHealthScore(
   }, [checklistRevision, gasOk, isConnected]);
 
   const loadChecklist = () => {
-    const result = readCachedJSON<Record<string, unknown>>(checklistStorageKey);
+    const result = storage.get<Record<string, unknown>>(checklistStorageKey);
     if (result && typeof result === "object") {
       Object.keys(result).forEach((key) => {
         checklistState[key] = Boolean(result[key]);
@@ -164,7 +170,7 @@ export function useHealthScore(
   };
 
   const saveChecklist = () => {
-    writeCachedJSON(checklistStorageKey, { ...checklistState });
+    storage.set(checklistStorageKey, { ...checklistState });
   };
 
   const toggleChecklist = (id: string) => {
