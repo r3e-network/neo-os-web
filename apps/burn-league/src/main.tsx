@@ -53,8 +53,8 @@ defineMiniApp({
     if (launchAmount) burn.burnAmount.set(launchAmount);
 
     // successKey delegates the success/error toasts to the framework's own
-    // notify.guardResult wrapping — same semantics as the previous manual
-    // ctx.services.notify.guard (toast on success, toast + swallow on error).
+    // notify.guardResult wrapping — same semantics as the hand-rolled
+    // app.notify.guard (toast on success, toast + swallow on error).
     ctx.framework.actions.register(
       "burn",
       async (amount: unknown) => {
@@ -72,10 +72,10 @@ defineMiniApp({
     );
 
     ctx.framework.actions.register("withdrawCredit", async () => {
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         const { amount } = await burn.withdrawCredit();
         if (amount > 0) {
-          ctx.services.notify.success("creditWithdrawn", {
+          ctx.framework.notify.success("creditWithdrawn", {
             amount: Number(amount.toFixed(4)),
             tokenGas: ctx.t("tokenGas"),
           });

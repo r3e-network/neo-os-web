@@ -95,11 +95,33 @@ export function emptyCells(board: BoardState): number {
   return board.entries.filter((v) => v === 0).length;
 }
 
-const STORAGE_PREFIX = "miniapp-sudoku:board:";
+/**
+ * Persistence handle for the board. Structurally matches the framework's
+ * `app.storage.local` KV (JSON round-trip is owned by the store), so the setup
+ * code injects that handle once (see main.tsx) and this module stays pure and
+ * testable. The app pins `storagePrefix` to "miniapp-sudoku:" in defineMiniApp,
+ * so the "board:<gameId>" key below resolves through app.storage.local to the
+ * legacy "miniapp-sudoku:board:<gameId>" localStorage key byte-for-byte — an
+ * in-progress puzzle stored before the framework migration still restores.
+ */
+export interface BoardStorage {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
+
+let backend: BoardStorage | null = null;
+
+/** Wire the board store to the framework's local-storage surface (main.tsx). */
+export function configureBoardStorage(storage: BoardStorage | null): void {
+  backend = storage;
+}
+
+const STORAGE_PREFIX = "board:";
 
 export function persistBoard(gameId: string, board: BoardState): void {
   try {
-    window.localStorage.setItem(STORAGE_PREFIX + gameId, JSON.stringify(board));
+    backend?.set(STORAGE_PREFIX + gameId, board);
   } catch {
     /* storage full or unavailable — gameplay continues in memory */
   }
@@ -107,9 +129,8 @@ export function persistBoard(gameId: string, board: BoardState): void {
 
 export function restoreBoard(gameId: string, puzzle: string): BoardState {
   try {
-    const raw = window.localStorage.getItem(STORAGE_PREFIX + gameId);
-    if (!raw) return createBoard(puzzle);
-    const parsed = JSON.parse(raw) as BoardState;
+    const parsed = backend?.get<BoardState>(STORAGE_PREFIX + gameId, null) ?? null;
+    if (!parsed) return createBoard(puzzle);
     if (
       !Array.isArray(parsed.entries) ||
       parsed.entries.length !== 81 ||
@@ -137,7 +158,7 @@ export function restoreBoard(gameId: string, puzzle: string): BoardState {
 
 export function forgetBoard(gameId: string): void {
   try {
-    window.localStorage.removeItem(STORAGE_PREFIX + gameId);
+    backend?.delete(STORAGE_PREFIX + gameId);
   } catch {
     /* nothing to clean */
   }

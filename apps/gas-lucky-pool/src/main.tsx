@@ -82,10 +82,9 @@ defineMiniApp({
         maxClaims?: string;
         expiryHours?: string;
       };
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.createPool(form),
-        "poolCreated",
-        "createFailed",
+        { successKey: "poolCreated", errorKey: "createFailed" },
       );
     });
 
@@ -113,7 +112,7 @@ defineMiniApp({
           : String(first ?? pool.currentPoolId.get());
       if (claimKey) pool.setClaimKey(claimKey);
       if (poolId) pool.setPoolId(poolId);
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () =>
           pool.claimPool(
             claimKey
@@ -129,8 +128,10 @@ defineMiniApp({
                 }
               : { poolId },
           ),
-        isClaimLaunch ? undefined : "claimSubmitted",
-        "claimFailed",
+        {
+          successKey: isClaimLaunch ? undefined : "claimSubmitted",
+          errorKey: "claimFailed",
+        },
       );
     };
 
@@ -156,7 +157,7 @@ defineMiniApp({
             )
           : String(first ?? pool.currentClaimKey.get());
       if (claimKey) pool.setClaimKey(claimKey);
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () =>
           pool.checkClaimStatus({
             claimKey,
@@ -166,8 +167,7 @@ defineMiniApp({
             appId: params.appId ?? params.miniappId,
             ...walletAddressActionParams(params),
           }),
-        undefined,
-        "claimStatusFailed",
+        { errorKey: "claimStatusFailed" },
       );
     });
 
@@ -178,10 +178,9 @@ defineMiniApp({
           ? String((first as { poolId?: unknown }).poolId ?? pool.currentPoolId.get())
           : String(first ?? pool.currentPoolId.get());
       pool.setPoolId(poolId);
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.loadPool(poolId),
-        undefined,
-        "loadFailed",
+        { errorKey: "loadFailed" },
       );
     });
 
@@ -192,10 +191,9 @@ defineMiniApp({
           ? String((first as { poolId?: unknown }).poolId ?? pool.currentPoolId.get())
           : String(first ?? pool.currentPoolId.get());
       pool.setPoolId(poolId);
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.refundPool(poolId),
-        "refundSubmitted",
-        "refundFailed",
+        { successKey: "refundSubmitted", errorKey: "refundFailed" },
       );
     });
 
@@ -210,26 +208,23 @@ defineMiniApp({
           ? String((first as { amount?: unknown }).amount ?? "")
           : String(args[1] ?? "");
       pool.setPoolId(poolId);
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.topUpPool({ poolId, amount }),
-        "topUpSubmitted",
-        "topUpFailed",
+        { successKey: "topUpSubmitted", errorKey: "topUpFailed" },
       );
     });
 
     ctx.framework.actions.register("loadGasCredit", async () => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.loadGasCredit(),
-        "gasCreditLoaded",
-        "loadFailed",
+        { successKey: "gasCreditLoaded", errorKey: "loadFailed" },
       );
     });
 
     ctx.framework.actions.register("withdrawGasCredit", async () => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.withdrawGasCredit(),
-        "gasCreditWithdrawn",
-        "withdrawGasCreditFailed",
+        { successKey: "gasCreditWithdrawn", errorKey: "withdrawGasCreditFailed" },
       );
     });
 

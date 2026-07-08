@@ -51,7 +51,7 @@ defineMiniApp({
     // Route ad-hoc arg-building / reads / invokes / events through the MiniApp
     // framework SDK. Behaviour-preserving: arg.* builders emit the identical
     // stack items, and readRaw/invoke/events/detectNetwork are raw passthroughs
-    // to the same ctx.services.chain the framework wraps.
+    // to the host chain service the framework wraps.
     const app = ctx.framework;
 
     // TEE op log via the framework's namespaced local storage. Best-effort:
@@ -620,7 +620,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("noCreditToWithdraw"), "info");
         return;
       }
-      await ctx.services.notify.guard(async () => {
+      await app.notify.guard(async () => {
         await app.chain.ensureWallet();
         await app.chain.invoke(
           "withdraw",
@@ -628,7 +628,7 @@ defineMiniApp({
           { waitForEvent: "CreditWithdrawn" },
         );
         await refreshBalances();
-      }, "creditWithdrawn");
+      }, { successKey: "creditWithdrawn" });
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {

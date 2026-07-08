@@ -180,8 +180,6 @@ function makeDeps(opts: MakeDepsOpts = {}) {
     return {};
   });
 
-  const eventBus = { emit: vi.fn() };
-
   const chain = {
     contractAddress: { get: () => CONTRACT },
     address: { get: () => PLAYER },
@@ -200,17 +198,15 @@ function makeDeps(opts: MakeDepsOpts = {}) {
   return {
     chain,
     app,
-    eventBus: eventBus as unknown as UseCoinFlipOptions["eventBus"],
     invoke,
     invokeWithPayment,
     read,
-    eventBusMock: eventBus,
   };
 }
 
 function setup(opts: MakeDepsOpts = {}) {
   const deps = makeDeps(opts);
-  const flip = useCoinFlip({ app: deps.app, eventBus: deps.eventBus, t });
+  const flip = useCoinFlip({ app: deps.app, t });
   flip.setAddress(PLAYER);
   return { flip, ...deps };
 }
@@ -266,7 +262,7 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
   });
 
   it("commits (deposit-then-commit) reading betId from Committed, then settles reading the win from Settled", async () => {
-    const { flip, invokeWithPayment, invoke, read, eventBusMock } = setup({
+    const { flip, invokeWithPayment, invoke, read } = setup({
       betId: 7,
       outcome: 0, // heads
       won: true,
@@ -306,7 +302,6 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     expect(flip.displayOutcome.get()).toBe("heads");
     expect(flip.showWinOverlay.get()).toBe(true);
     expect(flip.winAmount.get()).toBe("2.00");
-    expect(eventBusMock.emit).toHaveBeenCalledWith("coinflip:win", expect.objectContaining({ payout: 2 }));
 
     // Pending bet cleared + flags reset once revealed.
     expect(flip.pendingBet.get()).toBeNull();
@@ -316,7 +311,7 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
   });
 
   it("maps tails to choice 1 and reveals a loss with no payout", async () => {
-    const { flip, invokeWithPayment, eventBusMock } = setup({
+    const { flip, invokeWithPayment } = setup({
       betId: 3,
       outcome: 0, // heads outcome → loss for a tails bet
       won: false,
@@ -338,7 +333,6 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
 
     expect(result).toEqual({ won: false, outcome: "HEADS" });
     expect(flip.showWinOverlay.get()).toBe(false);
-    expect(eventBusMock.emit).toHaveBeenCalledWith("coinflip:loss", expect.anything());
   });
 
   it("persists the pending bet during the reveal so a reload can resume (set after commit)", async () => {
@@ -364,7 +358,7 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
   it("revealResult() retries settle for the persisted pending bet and resolves the outcome", async () => {
     // First placeBet leaves a failed reveal; then a fresh, succeeding settle path.
     const deps = makeDeps({ betId: 55, settleFault: "reveal block not reached" });
-    const flip = useCoinFlip({ app: deps.app, eventBus: deps.eventBus, t });
+    const flip = useCoinFlip({ app: deps.app, t });
     flip.setAddress(PLAYER);
     flip.setBetAmount("1");
     await expect(runWithTimers(flip.placeBet())).rejects.toThrow();

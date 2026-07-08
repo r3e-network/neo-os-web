@@ -14,7 +14,7 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
-import { forgetBoard } from "./logic/board-store";
+import { configureBoardStorage, forgetBoard } from "./logic/board-store";
 import type { LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
@@ -54,9 +54,18 @@ defineMiniApp({
   playArea: PhaserPlayArea,
   manifest,
   messages,
+  // Pin the app.storage.local prefix so board-store's "board:<gameId>" key
+  // resolves to the legacy "miniapp-sudoku:board:<gameId>" localStorage key
+  // byte-for-byte — in-progress puzzles saved before the migration survive.
+  storagePrefix: "miniapp-sudoku:",
 
   setup(ctx) {
     const app = ctx.framework;
+
+    // Wire the pure board-store module to the framework local-storage surface
+    // (app.storage.local); with the storagePrefix above the board keys stay
+    // byte-identical to the pre-migration localStorage keys.
+    configureBoardStorage(app.storage.local);
 
     // ── Reward-game runner ────────────────────────────────────────────────────
     const rewardGame = app.game.reward<TeeOp>(rewardGameConfig, {

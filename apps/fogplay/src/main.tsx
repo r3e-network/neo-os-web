@@ -17,7 +17,6 @@ defineMiniApp({
   setup(ctx) {
     const coinFlip = useCoinFlip({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -26,20 +25,20 @@ defineMiniApp({
     // outcome-dependent toasts. A blanket action successKey cannot be used for
     // placeBet/revealResult — placeBet commits, waits the beacon window, then
     // settles and resolves on both a win and a loss, so an unconditional
-    // "youWon" key would celebrate losses. The framework exposes no
-    // success/info notify surface, so those two toasts stay on ctx.services.
+    // "youWon" key would celebrate losses. The win/loss branch instead calls
+    // app.notify.success/info directly with the outcome-specific key.
     ctx.framework.actions.register("placeBet", async () => {
       const result = await coinFlip.placeBet();
-      if (result.won) ctx.services.notify.success("youWon");
-      else ctx.services.notify.info("youLost");
+      if (result.won) ctx.framework.notify.success("youWon");
+      else ctx.framework.notify.info("youLost");
     });
 
     ctx.framework.actions.register("revealResult", async () => {
       // Permissionless, idempotent retry of settle() for the persisted pending
       // bet — used by the "Reveal result" button when the inline reveal failed.
       const result = await coinFlip.revealResult();
-      if (result.won) ctx.services.notify.success("youWon");
-      else ctx.services.notify.info("youLost");
+      if (result.won) ctx.framework.notify.success("youWon");
+      else ctx.framework.notify.info("youLost");
     });
 
     ctx.framework.actions.register(

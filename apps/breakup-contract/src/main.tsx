@@ -13,6 +13,11 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Pin app.storage.local to the legacy runtime-cache namespace so the
+  // on-device per-pact title/terms store keeps living at the exact
+  // pre-framework "breakup-contract-meta" localStorage key (prefix +
+  // META_STORE_KEY "meta") and existing pact metadata is never orphaned.
+  storagePrefix: "breakup-contract-",
 
   setup(ctx) {
     const app = ctx.framework;
