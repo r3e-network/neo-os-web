@@ -15,18 +15,18 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const breakup = useBreakup({
-      app: ctx.framework,
-      eventBus: ctx.services.events,
+      app,
       t: ctx.t,
     });
 
     // Wire the connected wallet address into the composable so per-contract
     // Sign / Break controls (gated on ContractList.isParty) render for the
     // live user. Seed the initial value and keep it in sync on wallet change.
-    breakup.address.set(ctx.services.chain.address?.get?.() ?? "");
-    ctx.services.chain.address.subscribe(() => {
-      breakup.address.set(ctx.services.chain.address?.get?.() ?? "");
+    breakup.address.set(app.chain.address.get() ?? "");
+    app.chain.address.subscribe(() => {
+      breakup.address.set(app.chain.address.get() ?? "");
     });
 
     ctx.framework.actions.register("createContract", async (...args: unknown[]) => {
@@ -45,42 +45,42 @@ defineMiniApp({
       // Surface the guard result so PlayArea only clears its (local) form fields
       // on an actual success — a validation/chain failure keeps the user's input
       // for retry (guard swallows failures into error toasts).
-      const result = await ctx.services.notify.guard(
+      const result = await app.notify.guard(
         () => breakup.createContract(),
-        "contractCreated",
+        { successKey: "contractCreated" },
       );
       return result === true;
     });
     ctx.framework.actions.register("signContract", (contract: unknown) =>
-      ctx.services.notify.guard(
+      app.notify.guard(
         () => breakup.signContract(contract as { id?: number; pactId?: string; stake?: number; stakeRaw?: string }),
-        "contractSigned",
+        { successKey: "contractSigned" },
       ),
     );
     ctx.framework.actions.register("breakContract", (contract: unknown) =>
-      ctx.services.notify.guard(
+      app.notify.guard(
         () => breakup.breakContract(contract as { id?: number; pactId?: string }),
-        "contractBroken",
+        { successKey: "contractBroken" },
       ),
     );
     ctx.framework.actions.register("settleContract", (contract: unknown) =>
-      ctx.services.notify.guard(
+      app.notify.guard(
         () => breakup.settleContract(contract as { id?: number; pactId?: string }),
-        "contractSettled",
+        { successKey: "contractSettled" },
       ),
     );
     // breakPact handles BOTH the active-break and the pending-cancel cases on the
     // contract, so the pending-cancel affordance reuses breakContract.
     ctx.framework.actions.register("cancelContract", (contract: unknown) =>
-      ctx.services.notify.guard(
+      app.notify.guard(
         () => breakup.breakContract(contract as { id?: number; pactId?: string }),
-        "contractCancelled",
+        { successKey: "contractCancelled" },
       ),
     );
     ctx.framework.actions.register("withdrawCredit", () =>
-      ctx.services.notify.guard(
+      app.notify.guard(
         () => breakup.withdrawCredit(),
-        "creditRecovered",
+        { successKey: "creditRecovered" },
       ),
     );
     ctx.framework.actions.register("refreshContracts", async () => {

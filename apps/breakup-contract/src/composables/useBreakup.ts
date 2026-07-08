@@ -117,8 +117,6 @@ export interface UseBreakupOptions {
    * current user; its amount layer scales human GAS to base units.
    */
   app: MiniAppFramework;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -153,7 +151,7 @@ const toIdString = (value: unknown): string => {
 // Composable
 // ============================================================================
 
-export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
+export function useBreakup({ app, t }: UseBreakupOptions) {
   // -- Form state -----------------------------------------------------------
   const partnerAddress = createObservable("");
   const stakeAmount = createObservable("");
@@ -358,10 +356,9 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
 
       contracts.set(views);
       serviceNotice.set("");
-    } catch (e) {
+    } catch {
       contracts.set([]);
       serviceNotice.set(t("loadFailed"));
-      eventBus.emit("breakup:error", { message: t("loadFailed") });
     } finally {
       isLoading.set(false);
     }
@@ -407,6 +404,8 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
     const addr = address.get() || (await app.chain.ensureWallet());
     // addressToScriptHash here is a validity-check + the comparison key used for
     // the self-partner guard below — kept as-is (not a contract-arg builder).
+    // framework-exempt: false-not-throw semantics are load-bearing for the
+    // localized wallet validity check; app.chain.arg.hash160 throws (plan §3.6).
     const hash = addressToScriptHash(addr || "");
     if (!addr || !hash) throw new Error(t("contractWalletUnavailable"));
     address.set(addr);
@@ -483,6 +482,8 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
       // rejects party1 == party2; surface a clean message pre-submit).
       // addressToScriptHash here is a validity-check + the comparison key, not
       // a contract-arg builder — the arg is built via app.chain.arg.hash160.
+      // framework-exempt: false-not-throw semantics are load-bearing for the
+      // localized partnerInvalid validity check; arg.hash160 throws (plan §3.6).
       const partnerHash = addressToScriptHash(partnerValue);
       if (!partnerHash) throw new Error(t("partnerInvalid"));
       if (partnerHash.toLowerCase() === creatorHash.toLowerCase()) {
@@ -548,8 +549,6 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
         saveLocalMeta(pactId, { title: titleValue, terms: termsValue });
       }
 
-      eventBus.emit("breakup:created", { action: t("contractCreated") });
-
       // Reset form.
       partnerAddress.set("");
       stakeAmount.set("");
@@ -564,7 +563,6 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       actionNotice.set(message);
-      eventBus.emit("breakup:error", { message });
       throw e;
     } finally {
       isLoading.set(false);
@@ -646,14 +644,11 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
         );
         throw new Error(t("depositPrepaidNoSign"));
       }
-
-      eventBus.emit("breakup:signed", { action: t("contractSigned") });
       actionNotice.set(t("contractSigned"));
       await loadContracts();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       actionNotice.set(message);
-      eventBus.emit("breakup:error", { message });
       throw e;
     } finally {
       isLoading.set(false);
@@ -683,14 +678,11 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
         ],
         { waitForEvent: "PactBroken" },
       );
-
-      eventBus.emit("breakup:broken", { action: t("contractBroken") });
       actionNotice.set(t("contractBroken"));
       await loadContracts();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       actionNotice.set(message);
-      eventBus.emit("breakup:error", { message });
       throw e;
     } finally {
       isLoading.set(false);
@@ -719,14 +711,11 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
         [app.chain.arg.integer(pactId)],
         { waitForEvent: "PactSettled" },
       );
-
-      eventBus.emit("breakup:settled", { action: t("contractSettled") });
       actionNotice.set(t("contractSettled"));
       await loadContracts();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       actionNotice.set(message);
-      eventBus.emit("breakup:error", { message });
       throw e;
     } finally {
       isLoading.set(false);
@@ -753,13 +742,11 @@ export function useBreakup({ app, eventBus, t }: UseBreakupOptions) {
         [app.chain.arg.hash160(accountHash)],
         { waitForEvent: "CreditWithdrawn" },
       );
-      eventBus.emit("breakup:credit-recovered", { action: t("creditRecovered") });
       actionNotice.set(t("creditRecovered"));
       await loadContracts();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       actionNotice.set(message);
-      eventBus.emit("breakup:error", { message });
       throw e;
     } finally {
       isLoading.set(false);

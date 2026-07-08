@@ -5,10 +5,19 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
+import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { usePriceConsole } from "./hooks/usePriceConsole";
+
+/**
+ * app.oracle.dataFeed lane config: the deployed MorpheusDataFeed contract and
+ * JSON-RPC endpoint are network-specific, so the app injects them (framework
+ * S13 — the reader itself is framework-owned).
+ */
+const network = getNetwork();
+const integration = EXTERNAL_INTEGRATIONS[network];
 
 /**
  * Sanitize a deep-link asset to a feed base symbol (e.g. `?asset=ETH-USD` ->
@@ -32,22 +41,30 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  oracle: {
+    dataFeed: {
+      rpcUrl: integration.rpcUrl,
+      contractHash: integration.contracts.morpheusDatafeed,
+      network,
+    },
+  },
 
   setup(ctx) {
-    const price = usePriceConsole({ t: ctx.t });
+    const app = ctx.framework;
+    const price = usePriceConsole({ app, t: ctx.t });
     const requestedAsset = launchAsset(ctx.launchContext.params);
     if (requestedAsset) price.asset.set(requestedAsset);
 
-    ctx.framework.actions.register("fetchPrice", async () => {
+    app.actions.register("fetchPrice", async () => {
       // price.fetchPrice() never throws — it catches internally and returns
-      // { success, error }. notify.guard would therefore always show the
+      // { success, error }. app.notify.guard would therefore always show the
       // success toast, even on RPC failure. Branch on the result instead so
       // exactly one (correct) toast is shown.
       const result = await price.fetchPrice();
       if (result.success) {
-        ctx.services.notify.success("priceLoaded");
+        app.notify.success("priceLoaded");
       } else {
-        ctx.services.notify.error(result.error ?? ctx.t("fetchFailed"), "fetchFailed");
+        app.notify.error(result.error ?? ctx.t("fetchFailed"), "fetchFailed");
       }
     });
 

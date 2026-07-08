@@ -3,17 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { useDevTippingWallet } from "./useDevTippingWallet";
 import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
-import type { EventBus } from "@shared/services/EventBus";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const ALICE_HASH = addressToScriptHash(ALICE);
 
 const t = (key: string) => key;
-
-function makeBus(): EventBus {
-  return { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as unknown as EventBus;
-}
 
 function makeChain() {
   // withdraw() settles on CreditWithdrawn(account, amount); amount is slot 1.
@@ -45,7 +40,7 @@ describe("dev-tipping — withdrawCredit reclaims stranded tip credit", () => {
       { services: { chain }, t } as never,
       { appId: "miniapp-dev-tipping" },
     );
-    const wallet = useDevTippingWallet({ app, eventBus: makeBus(), t });
+    const wallet = useDevTippingWallet({ app, t });
 
     const amount = await wallet.withdrawCredit();
 

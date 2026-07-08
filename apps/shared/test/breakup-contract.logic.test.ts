@@ -159,15 +159,14 @@ function frameworkFor(chain: ChainService) {
 
 function validApp(chainOpts: Parameters<typeof chainMock>[0] = {}) {
   const { chain, mock } = chainMock(chainOpts);
-  const eventBus = { emit: vi.fn() };
-  const app = useBreakup({ app: frameworkFor(chain), eventBus, t });
+  const app = useBreakup({ app: frameworkFor(chain), t });
   app.address.set(CREATOR);
   app.partnerAddress.set(PARTNER);
   app.stakeAmount.set("5");
   app.duration.set("90");
   app.contractTitle.set("Summer covenant");
   app.contractTerms.set("Shared plans and clean exit rules.");
-  return { app, mock, eventBus };
+  return { app, mock };
 }
 
 describe("useBreakup", () => {
@@ -400,7 +399,7 @@ describe("useBreakup", () => {
     mock.readArray.mockImplementation(async () => {
       throw new Error("RPC unreachable");
     });
-    const app = useBreakup({ app: frameworkFor(chain), eventBus: { emit: vi.fn() }, t });
+    const app = useBreakup({ app: frameworkFor(chain), t });
     app.address.set(CREATOR);
 
     await expect(app.loadContracts()).resolves.toBeUndefined();
@@ -410,7 +409,7 @@ describe("useBreakup", () => {
 
   it("shows no pacts (and no error) when no wallet is connected", async () => {
     const { chain } = chainMock();
-    const app = useBreakup({ app: frameworkFor(chain), eventBus: { emit: vi.fn() }, t });
+    const app = useBreakup({ app: frameworkFor(chain), t });
     app.address.set("");
 
     await app.loadContracts();

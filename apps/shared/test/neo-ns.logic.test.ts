@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import type { ChainService } from "../services/ChainService";
@@ -181,10 +181,6 @@ function makeChainMock(address: string | null) {
   } as unknown as ChainService;
 }
 
-function makeEventBus() {
-  return { emit: vi.fn(), on: vi.fn(), off: vi.fn() } as unknown as Parameters<typeof useNeoNS>[0]["eventBus"];
-}
-
 function t(key: string) {
   return key;
 }
@@ -212,7 +208,7 @@ describe("useNeoNS.loadMyDomains populates from the iterator bypass", () => {
     }) as unknown as typeof fetch;
 
     const chain = makeChainMock(OWNER_ADDRESS);
-    const ns = useNeoNS({ app: makeApp(chain), eventBus: makeEventBus(), t });
+    const ns = useNeoNS({ app: makeApp(chain), t });
 
     await ns.loadMyDomains();
 
@@ -226,7 +222,7 @@ describe("useNeoNS.loadMyDomains populates from the iterator bypass", () => {
 
   it("clears the list with no connected wallet", async () => {
     const chain = makeChainMock(null);
-    const ns = useNeoNS({ app: makeApp(chain), eventBus: makeEventBus(), t });
+    const ns = useNeoNS({ app: makeApp(chain), t });
     await ns.loadMyDomains();
     expect(ns.myDomains.get()).toEqual([]);
   });
@@ -236,7 +232,7 @@ describe("useNeoNS.getRenewPrice discloses the renewal cost", () => {
   it("reads getPrice for the domain's base-name length in GAS", async () => {
     const chain = makeChainMock(OWNER_ADDRESS);
     (chain.read as ReturnType<typeof vi.fn>).mockResolvedValueOnce(200000000); // 2 GAS in datoshi
-    const ns = useNeoNS({ app: makeApp(chain), eventBus: makeEventBus(), t });
+    const ns = useNeoNS({ app: makeApp(chain), t });
 
     const price = await ns.getRenewPrice({ name: "alice.neo", owner: OWNER_ADDRESS, expiry: 0 });
 

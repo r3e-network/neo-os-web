@@ -26,7 +26,6 @@ import {
   formatAddress,
   formatGas,
   fromFixed8,
-  parsePositiveFixed8,
   toSafeNumber,
 } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
@@ -140,18 +139,18 @@ export function useFlashloanCore({
   const fixed8ToDecimal = (value: unknown) => fromFixed8(String(value ?? "0"));
 
   const estimateFeeFixed8 = (amount: string) => {
-    const raw = BigInt(parsePositiveFixed8(amount) ?? "0");
+    const raw = BigInt(parseGasAmountFixed8(amount) ?? "0");
     return ((raw * BigInt(FLASH_FEE_BPS)) / 10_000n).toString();
   };
 
-  // GAS→base-unit scaling stays on parsePositiveFixed8 (NOT app.amount.gasToFixed8):
-  // it returns null on invalid/over-precision input, which the null-based
-  // validators (validateLoanRequest / validateLiquidityAmount) depend on to
-  // surface localized t(...) messages. The framework helper throws a different,
-  // non-localized message, so swapping would change the observable validation
-  // semantics. The scaler is ×1e8, identical to gasToFixed8.
+  // GAS→base-unit scaling uses the framework's null-on-invalid scaler (S6):
+  // app.amount.parseGasToFixed8 returns null on invalid/over-precision/zero
+  // input — same semantics as the retired parsePositiveFixed8 hand-roll — so
+  // the null-based validators (validateLoanRequest / validateLiquidityAmount)
+  // keep surfacing localized t(...) messages. app.amount.gasToFixed8 must NOT
+  // be used here: it throws a non-localized message on invalid input.
   const parseGasAmountFixed8 = (amount: string): string | null =>
-    parsePositiveFixed8(amount);
+    app.amount.parseGasToFixed8(amount);
 
   const formatTimestamp = (value: unknown) => {
     const ts = toNumber(value);
@@ -494,19 +493,28 @@ export function useFlashloanCore({
 
       let result: Awaited<ReturnType<typeof app.chain.invoke>>;
       if (isMainnet) {
+        // The receipt id is validated here (before the chain call) so the
+        // rejection carries the localized receiptIdRequired copy — the
+        // framework's receiptPay guard throws a non-localized message.
         const normalizedReceiptId = String(receiptId ?? "").trim();
         if (!/^[1-9]\d*$/.test(normalizedReceiptId)) {
           throw new Error(t("receiptIdRequired"));
         }
-        result = await app.chain.invoke(
-          "deposit",
-          [
+        // Mainnet receipt-id deposit lane (S3): the GAS was pre-transferred
+        // with the deposit memo; receiptPay appends the receipt id as the
+        // trailing Integer argument. notify:'silent' — the action wrapper in
+        // main.tsx owns the liquidityDeposited/error toasts.
+        result = await app.funds.receiptPay({
+          operation: "deposit",
+          args: [
             { type: "Hash160", value: provider },
             app.chain.arg.integer(amountFixed8),
-            app.chain.arg.integer(normalizedReceiptId),
           ],
-          { waitForEvent: "LiquidityDeposited", waitTimeoutMs: 30_000 },
-        );
+          receiptId: normalizedReceiptId,
+          notify: "silent",
+          waitForEvent: "LiquidityDeposited",
+          waitTimeoutMs: 30_000,
+        });
       } else {
         result = await app.chain.invokeWithPayment(
           amountFixed8,

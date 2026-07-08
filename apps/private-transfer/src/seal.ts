@@ -1,13 +1,28 @@
-import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
-import {
-  buildConfidentialTransferPackage,
-  encryptJsonWithOraclePublicKey,
-} from "@shared/utils/morpheus-confidential-envelope";
+/**
+ * seal.ts — Confidential-transfer sealing on the framework seal lane.
+ *
+ * The Morpheus plumbing (oracle public-key fetch + algorithm pinning,
+ * envelope encryption, confidential-store submission) lives in
+ * `app.oracle.seal` (framework S13); every failure it raises is a
+ * phase-tagged {@link FrameworkSealError} (`key` | `package` | `store`).
+ * This module keeps only the app-specific pieces: input validation, the
+ * confidential transfer-package builder, and the phase→i18n-key mapping.
+ */
+import { FrameworkSealError } from "@framework/oracle-ext";
+import type { FrameworkOracleExtensions, FrameworkSealPhase } from "@framework/oracle-ext";
+import { buildConfidentialTransferPackage } from "@shared/utils/morpheus-confidential-envelope";
 import { addressToScriptHash } from "@shared/utils/neo";
 
-const MORPHEUS_ENCRYPTION_ALGORITHM = "X25519-HKDF-SHA256-AES-256-GCM";
+export type PrivateTransferSealPhase = FrameworkSealPhase;
 
-export type PrivateTransferSealPhase = "key" | "package" | "store";
+/**
+ * The framework seal lane (`app.oracle.seal`) — public-key fetch,
+ * envelope encryption, confidential-store submission.
+ */
+export type PrivateTransferSealClient = Pick<
+  FrameworkOracleExtensions["seal"],
+  "publicKey" | "encrypt" | "store"
+>;
 
 export interface PreparePrivateTransferInput {
   appId: string;
@@ -17,7 +32,7 @@ export interface PreparePrivateTransferInput {
   asset?: "GAS" | "NEO" | string;
   memo?: string;
   senderHint?: string;
-  fetcher?: typeof fetch;
+  seal: PrivateTransferSealClient;
 }
 
 export interface PreparedPrivateTransfer {
@@ -31,17 +46,9 @@ export interface PreparedPrivateTransfer {
 
 export type PrivateTransferAsset = "GAS" | "NEO";
 
-export class PrivateTransferSealError extends Error {
-  readonly phase: PrivateTransferSealPhase;
-
-  constructor(phase: PrivateTransferSealPhase, error: unknown) {
-    const message = error instanceof Error ? error.message : String(error ?? "Private transfer sealing failed");
-    super(message);
-    this.name = "PrivateTransferSealError";
-    this.phase = phase;
-  }
-}
-
+// framework-exempt: false-not-throw validators — these validity checks are
+// load-bearing for the composer's inline error copy and the disabled-CTA
+// gating (PlayArea re-runs them per keystroke); arg.hash160 throws.
 export function isValidNeoAddress(value: string): boolean {
   const address = value.trim();
   return address.startsWith("N") && Boolean(addressToScriptHash(address));
@@ -59,7 +66,7 @@ export function isPositiveAssetAmount(value: string, asset: string = "GAS"): boo
 }
 
 export function normalizePrivateTransferErrorKey(error: unknown): string {
-  const phase = error instanceof PrivateTransferSealError ? error.phase : "package";
+  const phase = error instanceof FrameworkSealError ? error.phase : "package";
   const raw = error instanceof Error ? error.message : String(error ?? "");
   if (raw === "errorMissingInputs") {
     return "errorMissingInputs";
@@ -76,18 +83,6 @@ export function normalizePrivateTransferErrorKey(error: unknown): string {
   return "sealErrorGeneric";
 }
 
-async function fetchJson(
-  fetcher: typeof fetch,
-  input: string,
-  init?: RequestInit,
-): Promise<{ ok: boolean; body: Record<string, unknown> }> {
-  const response = fetcher === globalThis.fetch
-    ? await fetchWithTimeout(input, init)
-    : await fetcher(input, init);
-  const body = await response.json().catch(() => ({}));
-  return { ok: response.ok, body: body && typeof body === "object" ? body as Record<string, unknown> : {} };
-}
-
 export async function preparePrivateTransfer({
   appId,
   network,
@@ -96,32 +91,24 @@ export async function preparePrivateTransfer({
   asset = "GAS",
   memo = "",
   senderHint,
-  fetcher = globalThis.fetch,
+  seal,
 }: PreparePrivateTransferInput): Promise<PreparedPrivateTransfer> {
   if (!isValidNeoAddress(recipient) || !isPositiveAssetAmount(amount, asset)) {
     throw new Error("errorMissingInputs");
   }
-  if (typeof fetcher !== "function") {
-    throw new PrivateTransferSealError("key", "fetch is unavailable");
-  }
 
-  let phase: PrivateTransferSealPhase = "key";
+  // Phase "key": oracle public-key fetch + encryption-algorithm pinning.
+  // Fetched (or cache-served) before the package is built so a dead key
+  // endpoint still surfaces as `sealErrorKey`, never as a package error.
+  const key = await seal.publicKey();
+
+  // Phase "package": the confidential transfer package is app business
+  // logic (note commitment / nullifier derivation), so it is built here —
+  // but its failures are tagged with the same phase the framework uses for
+  // envelope-encryption errors.
+  let transferPackage;
   try {
-    const key = await fetchJson(
-      fetcher,
-      `/api/morpheus/oracle/public-key?network=${encodeURIComponent(String(network || "testnet"))}`,
-      { headers: { accept: "application/json" } },
-    );
-    if (!key.ok || !key.body.public_key) {
-      throw new Error(String(key.body.error || "Morpheus oracle public key is unavailable"));
-    }
-    if (key.body.algorithm && key.body.algorithm !== MORPHEUS_ENCRYPTION_ALGORITHM) {
-      phase = "package";
-      throw new Error(`Unsupported Morpheus encryption algorithm: ${key.body.algorithm}`);
-    }
-
-    phase = "package";
-    const transferPackage = await buildConfidentialTransferPackage({
+    transferPackage = await buildConfidentialTransferPackage({
       appId,
       network,
       recipient,
@@ -130,42 +117,29 @@ export async function preparePrivateTransfer({
       memo,
       senderHint,
     });
-    const ciphertext = await encryptJsonWithOraclePublicKey(
-      String(key.body.public_key),
-      transferPackage.confidentialPayload,
-    );
-
-    phase = "store";
-    const stored = await fetchJson(fetcher, "/api/morpheus/confidential/store", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        network,
-        target_chain: "neo_n3",
-        app_id: appId,
-        name: `private-transfer:${transferPackage.publicEnvelope.note_commitment}`,
-        ciphertext,
-        public_envelope: transferPackage.publicEnvelope,
-      }),
-    });
-    if (!stored.ok || stored.body.inline_fallback) {
-      throw new Error(String(stored.body.error || stored.body.message || "Morpheus confidential store is unavailable"));
-    }
-    const secretRef = String(stored.body.secret_ref || stored.body.id || stored.body.ref || "").trim();
-    if (!secretRef) {
-      throw new Error("Morpheus confidential store did not return a secret reference");
-    }
-
-    return {
-      secretRef,
-      commitment: transferPackage.publicEnvelope.note_commitment,
-      nullifier: transferPackage.publicEnvelope.nullifier_hash,
-      network: String(network || "testnet"),
-      asset: String(asset || "GAS").toUpperCase(),
-      contract: String(key.body.contract || ""),
-    };
   } catch (error) {
-    if (error instanceof PrivateTransferSealError) throw error;
-    throw new PrivateTransferSealError(phase, error);
+    throw error instanceof FrameworkSealError
+      ? error
+      : new FrameworkSealError("package", error);
   }
+  const { ciphertext } = await seal.encrypt(transferPackage.confidentialPayload);
+
+  // Phase "store": confidential-store submission (secret_ref extraction and
+  // inline-fallback rejection happen inside the framework client).
+  const stored = await seal.store({
+    name: `private-transfer:${transferPackage.publicEnvelope.note_commitment}`,
+    ciphertext,
+    publicEnvelope: transferPackage.publicEnvelope,
+    network,
+    appId,
+  });
+
+  return {
+    secretRef: stored.secretRef,
+    commitment: transferPackage.publicEnvelope.note_commitment,
+    nullifier: transferPackage.publicEnvelope.nullifier_hash,
+    network: String(network || "testnet"),
+    asset: String(asset || "GAS").toUpperCase(),
+    contract: key.contract,
+  };
 }

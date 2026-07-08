@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
-import type { BalanceService } from "../services/BalanceService";
-import { EventBus } from "../services/EventBus";
 import { createMiniAppFramework } from "@shared/react";
 
 // Shared mutable handle so each test can drive the SDK's eligibility result and
@@ -61,14 +59,17 @@ function makeChain() {
 }
 
 /**
- * Wrap a mock chain in the MiniApp framework SDK the composable now consumes.
- * The framework's chain layer is a behavior-preserving passthrough
- * (ensureWallet/address/invoke forward straight to the underlying chain), so the
- * recorded invoke calls and their arg shapes are unchanged.
+ * Wrap a mock chain (+ balance service) in the MiniApp framework SDK the
+ * composable now consumes. The framework's chain layer is a
+ * behavior-preserving passthrough (ensureWallet/address/invoke forward
+ * straight to the underlying chain), so the recorded invoke calls and their
+ * arg shapes are unchanged; app.wallet.balance("GAS", address) delegates to
+ * the injected balance service exactly as the retired direct
+ * BalanceService.getGasBalance call did.
  */
-function makeApp(chain: ChainService) {
+function makeApp(chain: ChainService, gas = 0) {
   return createMiniAppFramework(
-    { services: { chain }, t } as never,
+    { services: { chain, balance: makeBalance(gas) }, t } as never,
     { appId: "miniapp-gas-sponsor" },
   );
 }
@@ -76,14 +77,14 @@ function makeApp(chain: ChainService) {
 /** BalanceService stand-in returning a fixed chain GAS balance. */
 function makeBalance(gas: number) {
   return {
-    getGasBalance: vi.fn(async () => gas),
-  } as unknown as BalanceService;
+    getBalance: vi.fn(async () => gas),
+  };
 }
 
 describe("gas-sponsor base-unit scaling", () => {
   it("rejects over-precision donate amounts before touching the wallet", async () => {
     const chain = makeChain();
-    const app = useGasSponsorApp({ app: makeApp(chain), balance: makeBalance(10), eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ app: makeApp(chain, 10), t });
 
     app.chainGasBalance.set(10);
     app.donateAmount.set("4.000000005");
@@ -96,7 +97,7 @@ describe("gas-sponsor base-unit scaling", () => {
 
   it("preserves precision float math loses on large send amounts", async () => {
     const chain = makeChain();
-    const app = useGasSponsorApp({ app: makeApp(chain), balance: makeBalance(2_000_000_000), eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ app: makeApp(chain, 2_000_000_000), t });
 
     app.chainGasBalance.set(2_000_000_000);
     app.recipientAddress.set(ALICE);
@@ -117,7 +118,7 @@ describe("gas-sponsor honest service state + chain-read gate", () => {
     sdkState.eligibilityError.value = "";
     sdkState.eligibility = { gas_balance: "0", used_today: "0", daily_limit: "0.1", resets_at: "" };
     const chain = makeChain();
-    const app = useGasSponsorApp({ app: makeApp(chain), balance: makeBalance(5), eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ app: makeApp(chain, 5), t });
 
     await app.loadUserData();
 
@@ -131,7 +132,7 @@ describe("gas-sponsor honest service state + chain-read gate", () => {
 
   it("gates donate/send on the real chain balance, not the API balance", async () => {
     const chain = makeChain();
-    const app = useGasSponsorApp({ app: makeApp(chain), balance: makeBalance(3), eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ app: makeApp(chain, 3), t });
 
     // API is down (zeros), but the wallet really holds 3 GAS on-chain.
     await app.loadUserData();
@@ -147,7 +148,7 @@ describe("gas-sponsor honest service state + chain-read gate", () => {
 
   it("refuses sponsorship requests while the service is unavailable", async () => {
     const chain = makeChain();
-    const app = useGasSponsorApp({ app: makeApp(chain), balance: makeBalance(0), eventBus: new EventBus(), t });
+    const app = useGasSponsorApp({ app: makeApp(chain, 0), t });
 
     await app.loadUserData();
     await expect(app.requestSponsorship()).rejects.toThrow("sponsorServiceUnavailable");
@@ -156,9 +157,7 @@ describe("gas-sponsor honest service state + chain-read gate", () => {
   it("routes donations to the testnet pool when launched on testnet", async () => {
     const chain = makeChain();
     const app = useGasSponsorApp({
-      app: makeApp(chain),
-      balance: makeBalance(5),
-      eventBus: new EventBus(),
+      app: makeApp(chain, 5),
       t,
       network: "testnet",
     });

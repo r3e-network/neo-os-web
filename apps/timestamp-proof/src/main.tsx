@@ -14,9 +14,13 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Pin app.storage.local to the legacy runtime-cache namespace so the
+  // pre-framework "miniapp-timestamp-proof:proofs:v2" journal key keeps
+  // resolving byte-for-byte.
+  storagePrefix: "miniapp-timestamp-proof:",
 
   setup(ctx) {
-    const proofContract = useTimestampProofContract(ctx.t);
+    const proofContract = useTimestampProofContract({ app: ctx.framework, t: ctx.t });
 
     const totalProofs = createDerived(
       () => proofContract.proofs.get().length,

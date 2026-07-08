@@ -2,15 +2,19 @@
  * usePriceConsole — React hook for the on-chain Morpheus DataFeed price console.
  *
  * Reads prices DIRECTLY from the deployed MorpheusDataFeed contract via
- * Neo N3 JSON-RPC. No off-chain HTTP, no Phala dependency, no edge proxy.
+ * Neo N3 JSON-RPC — through the framework's `app.oracle.dataFeed` reader
+ * (main.tsx injects the network-specific contract + RPC endpoint via the
+ * defineMiniApp `oracle` option). No off-chain HTTP, no Phala dependency,
+ * no edge proxy.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
+import type { MiniAppFramework } from "@shared/react";
 import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 
 export interface UsePriceConsoleOptions {
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -58,10 +62,11 @@ export function classifyFeedError(message: string): string {
   return "errorFeedGeneric";
 }
 
-export function usePriceConsole({ t }: UsePriceConsoleOptions) {
+export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
   const network = getNetwork();
+  // Kept for the display tiles only (contract hash / network labels); the
+  // actual reads go through app.oracle.dataFeed.
   const integration = EXTERNAL_INTEGRATIONS[network];
-  const datafeed = useMorpheusDataFeed({ network });
 
   const asset = createObservable("NEO");
   const latestPrice = createObservable<number | null>(null);
@@ -164,7 +169,7 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
     isRequesting.set(true);
     errorMsg.set(null);
     try {
-      const quote = await datafeed.getPriceWithMeta(asset.get());
+      const quote = await app.oracle.dataFeed.price(asset.get(), { meta: true });
       latestPrice.set(quote.price);
       // Prefer the upstream data timestamp; fall back to the on-chain write
       // timestamp when the feed omits field [1].
@@ -184,7 +189,7 @@ export function usePriceConsole({ t }: UsePriceConsoleOptions) {
 
   async function loadPairs() {
     try {
-      const pairs = await datafeed.listPairs();
+      const pairs = await app.oracle.dataFeed.listPairs();
       const symbols = pairs
         .map((pair) => pair.replace(/^TWELVEDATA:/i, "").split("-")[0]?.toUpperCase())
         .filter((symbol): symbol is string => Boolean(symbol));

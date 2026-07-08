@@ -4,14 +4,17 @@
  * The seal flow produces a `secret_ref` that is the ONLY handle to the stored
  * ciphertext; it lived in component state, so navigating away discarded it and
  * the user had no record their intent existed. We persist a compact record per
- * successful seal to safe-storage so the "Sealed intents" card and the header
- * stat tiles (requestCount / lastDigest) survive remounts.
+ * successful seal via `app.storage.local` so the "Sealed intents" card and the
+ * header stat tiles (requestCount / lastDigest) survive remounts.
+ *
+ * Storage keys: the app pins `storagePrefix: "miniapp-private-transfer:"` in
+ * defineMiniApp, so {@link STORAGE_KEY} resolves to the legacy
+ * "miniapp-private-transfer:sealed-intents:v1" localStorage key byte-for-byte —
+ * intents sealed before the framework migration still load.
  *
  * Plaintext transfer details are NEVER persisted — only the public commitment,
  * nullifier, the opaque secret reference, and routing metadata.
  */
-
-import { safeReadJSON, safeWriteJSON, safeRemoveStorage } from "@shared/utils/safe-storage";
 
 export interface SealedIntent {
   secretRef: string;
@@ -23,7 +26,19 @@ export interface SealedIntent {
   ts: number;
 }
 
-const STORAGE_KEY = "miniapp-private-transfer:sealed-intents:v1";
+/**
+ * Synchronous device-local store — structurally satisfied by
+ * `app.storage.local` (the framework local-storage surface).
+ */
+export interface SealedIntentStore {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
+
+// Composed with the app's storagePrefix ("miniapp-private-transfer:") this
+// resolves to the legacy "miniapp-private-transfer:sealed-intents:v1" key.
+const STORAGE_KEY = "sealed-intents:v1";
 const MAX_RECORDS = 50;
 
 function isSealedIntent(value: unknown): value is SealedIntent {
@@ -42,8 +57,8 @@ function isSealedIntent(value: unknown): value is SealedIntent {
 }
 
 /** Read the persisted sealed intents, newest first. Returns [] on any failure. */
-export function readSealedIntents(): SealedIntent[] {
-  const raw = safeReadJSON<unknown>(STORAGE_KEY);
+export function readSealedIntents(store: SealedIntentStore): SealedIntent[] {
+  const raw = store.get<unknown>(STORAGE_KEY, null);
   if (!Array.isArray(raw)) {
     return [];
   }
@@ -55,13 +70,13 @@ export function readSealedIntents(): SealedIntent[] {
  * Returns the new list (newest first) so callers can update component state in
  * one step without a second read.
  */
-export function appendSealedIntent(intent: SealedIntent): SealedIntent[] {
-  const next = [intent, ...readSealedIntents()].slice(0, MAX_RECORDS);
-  safeWriteJSON(STORAGE_KEY, next);
+export function appendSealedIntent(store: SealedIntentStore, intent: SealedIntent): SealedIntent[] {
+  const next = [intent, ...readSealedIntents(store)].slice(0, MAX_RECORDS);
+  store.set(STORAGE_KEY, next);
   return next;
 }
 
 /** Drop all persisted sealed intents. */
-export function clearSealedIntents(): void {
-  safeRemoveStorage(STORAGE_KEY);
+export function clearSealedIntents(store: SealedIntentStore): void {
+  store.delete(STORAGE_KEY);
 }

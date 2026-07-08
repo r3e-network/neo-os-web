@@ -31,7 +31,8 @@
  *                                                    offeringType,offeringName,
  *                                                    message,timestamp}
  *
- *   WRITES (app.chain.invoke / app.chain.invokeWithPayment):
+ *   WRITES (app.chain.invoke / app.chain.invokeWithPayment; mainnet tribute
+ *   rides app.funds.receiptPay):
  *     createMemorial(creator, deceasedName, photoHash, relationship, birthYear,
  *                    deathYear, biography, obituary) -> Integer (free, no deposit)
  *       event: MemorialCreated(memorialId, creator, deceasedName, deathYear)
@@ -55,7 +56,6 @@ import type { MiniAppFramework } from "@shared/react";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { readQueryParam } from "@shared/utils/url";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { Memorial } from "../types";
 
 /** The framework contract-arg shape (from app.chain.arg.*); accepts the raw-address Hash160 literal too. */
@@ -65,8 +65,14 @@ type FrameworkTx = Awaited<ReturnType<MiniAppFramework["chain"]["invoke"]>>;
 
 const APP_ID = "miniapp-memorial-shrine";
 
-/** Local store of memorial ids the visitor has actually opened ("Visited"). */
-const VISITED_STORE_KEY = "memorial-shrine-visited";
+/**
+ * Local store of memorial ids the visitor has actually opened ("Visited").
+ * app.storage.local key — the app's storage namespace is pinned to the legacy
+ * "memorial-shrine-" prefix (defineMiniApp storagePrefix), so this resolves to
+ * the exact pre-framework runtime-cache key ("memorial-shrine-visited") and
+ * existing visited history still hits.
+ */
+const VISITED_STORE_KEY = "visited";
 /** How many visited ids to retain locally. */
 const MAX_VISITED = 60;
 
@@ -138,8 +144,6 @@ export interface UseMemorialShrineOptions {
   app: MiniAppFramework;
   /** Network inferred from launch params; mainnet tribute requires receipt ID. */
   launchNetwork?: "mainnet" | "testnet" | null;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -187,7 +191,6 @@ function memorialFromMap(raw: unknown): Memorial | null {
 export function useMemorialShrine({
   app,
   launchNetwork,
-  eventBus,
   t,
 }: UseMemorialShrineOptions) {
   const memorials = createObservable<Memorial[]>([]);
@@ -303,7 +306,7 @@ export function useMemorialShrine({
   /** Read the persisted visited-memorial id list (newest first). */
   const readVisitedIds = (): number[] => {
     try {
-      const raw = readCachedJSON<number[]>(VISITED_STORE_KEY);
+      const raw = app.storage.local.get<number[]>(VISITED_STORE_KEY);
       if (!Array.isArray(raw)) return [];
       return raw.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0);
     } catch {
@@ -315,7 +318,7 @@ export function useMemorialShrine({
   const persistVisitedId = (id: number) => {
     try {
       const next = [id, ...readVisitedIds().filter((existing) => existing !== id)].slice(0, MAX_VISITED);
-      writeCachedJSON(VISITED_STORE_KEY, next);
+      app.storage.local.set(VISITED_STORE_KEY, next);
     } catch {
       /* best-effort local persistence */
     }
@@ -508,7 +511,6 @@ export function useMemorialShrine({
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl);
         flashShareStatus(t("linkCopied"));
-        eventBus.emit("memorial:shared", { id: target.id, url: shareUrl });
         return;
       }
     } catch {
@@ -552,11 +554,11 @@ export function useMemorialShrine({
       const creator = await app.chain.ensureWallet();
       // NOTE: the contract's createMemorial takes the creator as a Hash160 whose
       // value is the RAW wallet address (the deployed ABI + live-validate harness
-      // expect the base58 form here, not a script hash). Keep this arg literal —
-      // routing it through arg.hash160 would convert it to a script hash and
-      // change on-chain behavior.
+      // expect the base58 form here, not a script hash). arg.hash160Raw passes it
+      // through UNCONVERTED — arg.hash160 would convert it to a script hash and
+      // change on-chain behavior, so it must never be used for this parameter.
       const args: FrameworkArg[] = [
-        { type: "Hash160", value: creator },
+        app.chain.arg.hash160Raw(creator),
         app.chain.arg.string(normalizeText(form.name, 96)),
         app.chain.arg.string(normalizeText(form.photoHash, 160)),
         app.chain.arg.string(normalizeText(form.relationship, 64)),
@@ -571,12 +573,6 @@ export function useMemorialShrine({
         waitTimeoutMs: 30_000,
       });
       lastTx.set(result);
-
-      eventBus.emit("memorial:created", {
-        name: form.name,
-        memorialId: eventValue(result.event, 0),
-        txid: result.txid,
-      });
 
       await loadMemorials();
     } finally {
@@ -610,28 +606,34 @@ export function useMemorialShrine({
       const offeringCost =
         OFFERING_COSTS_FIXED8[selectedOffering] ?? OFFERING_COSTS_FIXED8[1] ?? 1000000n;
       // The visitor Hash160 carries the RAW wallet address (deployed ABI +
-      // live-validate harness expect base58, not a script hash) — kept literal;
-      // routing it through arg.hash160 would change on-chain behavior.
+      // live-validate harness expect base58, not a script hash) — arg.hash160Raw
+      // passes it through UNCONVERTED; arg.hash160 would change on-chain behavior.
       const args: FrameworkArg[] = [
-        { type: "Hash160", value: visitor },
+        app.chain.arg.hash160Raw(visitor),
         app.chain.arg.integer(memorialId),
         app.chain.arg.integer(selectedOffering),
         app.chain.arg.string(normalizeText(message, 280)),
       ];
       let result: FrameworkTx;
       if (launchNetwork === "mainnet") {
+        // Validate BEFORE the framework lane so an absent/malformed receipt id
+        // still surfaces the app-localized copy, not the framework's typed error.
         const normalizedReceiptId = String(receiptId ?? "").trim();
         if (!/^[1-9]\d*$/.test(normalizedReceiptId)) {
           throw new Error(t("receiptIdRequired"));
         }
-        result = await app.chain.invoke(
-          "payTribute",
-          [
-            ...args,
-            app.chain.arg.integer(normalizedReceiptId),
-          ],
-          { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
-        );
+        // Mainnet receipt-id deposit lane (S3): the GAS was pre-transferred in a
+        // separate settled tx; receiptPay appends the receipt id as the trailing
+        // Integer argument. notify:'silent' — the registered action's guard owns
+        // the toasts, exactly as before.
+        result = await app.funds.receiptPay({
+          operation: "payTribute",
+          args,
+          receiptId: normalizedReceiptId,
+          waitForEvent: "TributePaid",
+          waitTimeoutMs: 30_000,
+          notify: "silent",
+        });
       } else {
         result = await app.chain.invokeWithPayment(
           offeringCost.toString(),
@@ -644,12 +646,6 @@ export function useMemorialShrine({
       lastTx.set(result);
 
       const amountGas = app.amount.fixed8ToGas(offeringCost);
-      eventBus.emit("tribute:paid", {
-        memorialId,
-        offeringType: selectedOffering,
-        amountGas,
-        txid: result.txid,
-      });
 
       // Reflect the paid tribute immediately, then reconcile from chain. The
       // optimistic record uses the TributePaid tributeId (event slot is the

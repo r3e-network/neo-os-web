@@ -36,17 +36,14 @@ function setup(options: { signResult?: unknown; txid?: string } = {}) {
     set: vi.fn(async (key: string, value: unknown) => {
       store[key] = value;
     }),
-  } as never;
-
-  const clipboard = { copy: vi.fn(async () => true) } as never;
-  const eventBus = { emit: vi.fn() } as never;
+  };
 
   const framework = createMiniAppFramework(
-    { services: { chain }, t } as never,
+    { services: { chain }, os: { storage }, t } as never,
     { appId: "miniapp-neo-sign-anything" },
   );
-  const app = useSignAnything({ app: framework, chain, eventBus, clipboard, storage, t });
-  return { app, signMessage, invoke };
+  const app = useSignAnything({ app: framework, t });
+  return { app, signMessage, invoke, storage, store };
 }
 
 beforeEach(() => {

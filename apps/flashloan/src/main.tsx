@@ -23,9 +23,9 @@ defineMiniApp({
       network: readMiniAppLaunchContext("miniapp-flashloan").network,
     });
 
-    flash.setAddress(ctx.services.chain.address?.get?.() ?? "");
-    ctx.services.chain.address.subscribe(() => {
-      flash.setAddress(ctx.services.chain.address?.get?.() ?? "");
+    flash.setAddress(ctx.framework.chain.address.get() ?? "");
+    ctx.framework.chain.address.subscribe(() => {
+      flash.setAddress(ctx.framework.chain.address.get() ?? "");
     });
 
     ctx.framework.actions.register("requestLoan", async (...args: unknown[]) => {
@@ -34,42 +34,42 @@ defineMiniApp({
         callbackContract?: string;
         callbackMethod?: string;
       };
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () =>
           flash.requestLoan({
             amount: String(data.amount ?? ""),
             callbackContract: String(data.callbackContract ?? ""),
             callbackMethod: "onFlashLoan",
           }),
-        "loanSubmitted",
+        { successKey: "loanSubmitted" },
       );
     });
 
     ctx.framework.actions.register("provideLiquidity", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as { amount?: string; receiptId?: string };
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () =>
           flash.provideLiquidity(
             String(data.amount ?? ""),
             data.receiptId == null ? undefined : String(data.receiptId),
           ),
-        "liquidityDeposited",
+        { successKey: "liquidityDeposited" },
       );
     });
 
     ctx.framework.actions.register("withdrawLiquidity", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as { amount?: string };
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => flash.withdrawLiquidity(String(data.amount ?? "")),
-        "liquidityWithdrawn",
+        { successKey: "liquidityWithdrawn" },
       );
     });
 
     ctx.framework.actions.register("connectWallet", async () => {
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         const addr = await flash.connect();
         flash.setAddress(addr);
-      }, "walletConnected");
+      }, { successKey: "walletConnected" });
     });
 
     ctx.framework.actions.register("lookupLoan", async (...args: unknown[]) => {
@@ -77,7 +77,7 @@ defineMiniApp({
       if (!id) return;
       // Guard the read so a faulting / non-existent loan surfaces the mapped
       // loanNotFound message instead of a raw VM exception in the toast.
-      await ctx.services.notify.guard(() => flash.lookupLoan(id), undefined, "loanNotFound");
+      await ctx.framework.notify.guard(() => flash.lookupLoan(id), { errorKey: "loanNotFound" });
     });
 
     // Surface stats fields individually for the manifest's sidebar bindings.
@@ -125,7 +125,7 @@ defineMiniApp({
         validationError: flash.validationError,
       },
       loadData: async () => {
-        flash.setAddress(ctx.services.chain.address?.get?.() ?? "");
+        flash.setAddress(ctx.framework.chain.address.get() ?? "");
         await flash.loadData();
       },
     };
