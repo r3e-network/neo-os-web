@@ -23,17 +23,17 @@ function makeChain(contractAddress: string | null) {
 }
 
 /**
- * Build the composable from a mock chain, wrapping it in the MiniApp framework
- * (ctx.framework) the composable now takes; the raw chain is still passed for
- * the array reads the framework has no helper for. contractReady derives from
- * the chain's contractAddress either way, so the assertions are unchanged.
+ * Build the composable from a mock chain wrapped in the MiniApp framework
+ * (ctx.framework) — the composable's only service surface. contractReady is
+ * the framework's app.chain.contractReady observable, which derives from the
+ * injected chain's contractAddress, so the assertions are unchanged.
  */
 function makeEscrow(chain: ChainService) {
   const app = createMiniAppFramework(
     { services: { chain }, t } as never,
     { appId: "miniapp-milestone-escrow" },
   );
-  return useMilestoneEscrow({ app, chain, t });
+  return useMilestoneEscrow({ app, t });
 }
 
 describe("milestone-escrow — contractReady reflects contract config, not the wallet", () => {

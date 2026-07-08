@@ -158,19 +158,55 @@ describe("invokeWithDirectPrepaidGas deposit settlement", () => {
     await pending.catch((error: DepositConfirmedActionFailedError) => {
       expect(error.operation).toBe("doThing");
       expect(error.depositTxid).toBe("0xtransfer");
+      expect(error.settlement).toBe("confirmed");
       expect(error.message).toContain("withdrawable");
     });
   });
 
-  it("propagates the raw error when the deposit was never confirmed", async () => {
-    const order: string[] = [];
-    const wallet = orderedWallet(order, true);
-    const ci = useContractInteraction({
-      appId: "test-app",
-      t,
-      wallet,
-      confirmDeposit: async () => "timeout",
-    });
+  // The deposit transfer is BROADCAST before the settlement wait — on
+  // "timeout" (indexer lag) and "unreachable" (indexer outage) the deposit is
+  // merely unproven, not absent, so a consuming-call failure must still wrap
+  // into the stranded-credit shape (funds are recoverable, not lost). The
+  // settlement field keeps the states distinct for callers that care.
+  it.each(["timeout", "unreachable"] as const)(
+    "wraps a consuming-call failure after a broadcast deposit on '%s' settlement",
+    async (settlement) => {
+      const order: string[] = [];
+      const wallet = orderedWallet(order, true);
+      const ci = useContractInteraction({
+        appId: "test-app",
+        t,
+        wallet,
+        confirmDeposit: async () => settlement,
+      });
+
+      const pending = ci.invokeWithDirectPrepaidGas(
+        "100000000",
+        "test-app:stake",
+        "doThing",
+        [],
+        CONTRACT,
+        0,
+      );
+
+      await expect(pending).rejects.toBeInstanceOf(DepositConfirmedActionFailedError);
+      await pending.catch((error: DepositConfirmedActionFailedError) => {
+        expect(error.operation).toBe("doThing");
+        expect(error.depositTxid).toBe("0xtransfer");
+        expect(error.settlement).toBe(settlement);
+        expect(error.message).toContain("withdrawable");
+        expect(error.message).toContain("FAULT: insufficient prepaid gas");
+      });
+    },
+  );
+
+  it("propagates a deposit-transfer failure raw — nothing was broadcast, nothing is stranded", async () => {
+    const wallet = makeWallet("NMockWalletAddressForTest000000000");
+    (wallet as { invokeContract: ReturnType<typeof vi.fn> }).invokeContract = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("User rejected the request"));
+    const confirmDeposit = vi.fn(async () => "confirmed" as const);
+    const ci = useContractInteraction({ appId: "test-app", t, wallet, confirmDeposit });
 
     const pending = ci.invokeWithDirectPrepaidGas(
       "100000000",
@@ -181,10 +217,12 @@ describe("invokeWithDirectPrepaidGas deposit settlement", () => {
       0,
     );
 
-    await expect(pending).rejects.toThrow("FAULT: insufficient prepaid gas");
+    await expect(pending).rejects.toThrow("User rejected the request");
     await pending.catch((error: unknown) => {
       expect(error).not.toBeInstanceOf(DepositConfirmedActionFailedError);
     });
+    // The failure was pre-broadcast — no settlement wait ever started.
+    expect(confirmDeposit).not.toHaveBeenCalled();
   });
 });
 

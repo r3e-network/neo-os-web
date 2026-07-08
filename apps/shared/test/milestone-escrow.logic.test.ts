@@ -75,9 +75,10 @@ function setup(
   ) => Promise<DepositConfirmation>,
 ) {
   const { chain, invoke, read, readArray } = makeChain();
-  // Wrap the mock chain in the MiniApp framework (ctx.framework) the composable
-  // now takes; the raw chain is still passed for the array reads the framework
-  // has no helper for. Arg builders + passthroughs produce identical calls.
+  // Wrap the mock chain in the MiniApp framework (ctx.framework) — the
+  // composable's only service surface now (reads, array reads, and the
+  // prepayAndCall deposit lane all delegate to this chain, so the recorded
+  // calls keep the exact pre-migration shapes).
   const framework = createMiniAppFramework(
     { services: { chain }, t } as never,
     { appId: "miniapp-milestone-escrow" },
@@ -86,7 +87,6 @@ function setup(
   // wait never reaches the real N3Index poller.
   const app = useMilestoneEscrow({
     app: framework,
-    chain,
     t,
     confirmDeposit: confirmDeposit ?? (async () => "confirmed" as const),
   });

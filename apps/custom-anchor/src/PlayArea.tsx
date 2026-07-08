@@ -323,7 +323,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
             onClick={() => setDrawerMode(item.mode)}
           >
             <span>{item.label}</span>
-            {typeof item.count === "number" && <em>{item.count}</em>}
           </button>
         ))}
       </div>

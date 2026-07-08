@@ -18,6 +18,20 @@
  * Everything here depends only on string/regex logic and @noble/hashes (via the
  * shared aa-account helper); there is no dependency on any host adapter, React,
  * or platform service, so it is unit-testable in isolation.
+ *
+ * Framework-extraction boundary (plan §3 Wave 4, custom-anchor): inspected and
+ * kept app/shared-side ON PURPOSE. The business-agnostic core — the AA agent
+ * account derivation — already moved to the framework canonical
+ * (framework/utils/aa-account.ts, re-exported by ./aa-account, which this file
+ * consumes). What remains here is PlatformAnchor business logic: the
+ * `custom-anchor:slug:nonce` appId product rule, the 21-agent council
+ * requirement, the deploy-default candidate, and the exact
+ * registerAccounts / registerCustomAnchorApp / registerAgents argument
+ * layouts (including the host-mirroring 0x-hash-not-reversed quirk in
+ * toHash160 that keeps derived agent accountIds byte-identical to
+ * host-provisioned ones). Moving contract-specific arg plans into the
+ * framework would violate the same boundary that keeps aa-session-key-lab's
+ * network-arity arg building app-side (plan §3.6).
  */
 import { deriveAnchorAgentAccounts, type AnchorAgentAccount } from "./aa-account";
 import { addressToScriptHash } from "./neo";
@@ -166,7 +180,7 @@ function normalizeMode(mode: unknown): 1 | 2 {
  *
  * The host submits these atomically via invokeMultiple; the standalone chain
  * service has no batch invoke, so callers submit them sequentially (with a
- * deposit-confirmation wait between each).
+ * confirmation poll — app.chain.waitForState — between the un-evented steps).
  */
 export function buildAnchorRegistrationInvocations({
   appId,

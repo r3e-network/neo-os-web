@@ -2,14 +2,16 @@ import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
 import type { MiniAppSetupContext, MiniAppSetupResult } from "@shared/react/defineMiniApp";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { EXTERNAL_INTEGRATIONS, getMiniAppContractHash, resolveNeoNetwork } from "@shared/constants/rpc";
+// eventValue/parseBigInt/parseHash160 are the framework canonicals (S0 utils
+// consolidation), consumed via the shared re-exports.
 import { eventValue } from "@shared/utils/chain-events";
 import { parseBigInt } from "@shared/utils/parsers";
+import { parseHash160 } from "@shared/utils/neo";
 import {
   buildAnchorRegistrationInvocations,
   parseAnchorCandidateKeys,
   type AnchorContractArg,
 } from "@shared/utils/anchor-agents";
-import { waitForDepositConfirmation } from "@shared/composables/useContractInteraction";
 import type { ContractArg } from "@shared/services";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
@@ -279,6 +281,11 @@ defineMiniApp({
         const seen = new Set<string>();
         const out: Array<{ appId: string; mode: number }> = [];
         // AnchorAppRegistered(appId, mode, appAdmin) — appId in slot 0, mode in 1.
+        // NOTE: kept on the strict eventValue decode (framework canonical via
+        // the shared re-export) rather than app.chain.eventValue, whose
+        // defensive eventStateValue fallback returns the raw slot item when
+        // `value` is null — a subtle shape difference this decode must not
+        // inherit (byte-identical discovery behavior).
         for (const event of events) {
           const id = String(eventValue(event, 0) ?? "").trim();
           if (!id || seen.has(id)) continue;
@@ -394,8 +401,11 @@ defineMiniApp({
     // Register a NEW custom anchor AND provision its 21 AA agents so it earns
     // immediately. The host detail page does this atomically via the wallet's
     // invokeMultiple; the standalone chain service has no batch invoke, so we
-    // submit the calls as SEQUENTIAL transactions with a deposit-confirmation
-    // wait between each:
+    // submit the calls as SEQUENTIAL transactions. This 4-step BUSINESS
+    // sequencing stays app-side by design (framework-extraction plan Wave 4);
+    // each step runs on the framework invoke surface (which never toasts —
+    // this flow owns its own workflowStatus copy), and the un-evented steps
+    // are gated by app.chain.waitForState confirmation polls:
     //   1. deposit the 1-GAS registration-fee credit (OnNEP17Payment, no event)
     //   2. registerCustomAnchorApp(appId, mode, appAdmin)   — mint the anchor
     //   3. aaCore.registerAccounts(...)                     — register AA agents
@@ -419,9 +429,11 @@ defineMiniApp({
       );
 
       // Source the AA core contract for the wallet's active network so the
-      // agent accounts register against the right deployment. detectNetwork has
-      // no framework equivalent, so it stays on the raw chain service.
-      const network = resolveNeoNetwork(await ctx.services.chain.detectNetwork());
+      // agent accounts register against the right deployment. (An earlier
+      // comment here claimed detectNetwork had no framework surface — stale:
+      // app.chain.detectNetwork exists and falls back to the launch-context
+      // network on hosts without the capability.)
+      const network = resolveNeoNetwork(await ctx.framework.chain.detectNetwork());
       const aaCoreHash = EXTERNAL_INTEGRATIONS[network].contracts.aaCore;
       if (!/^0x[0-9a-fA-F]{40}$/.test(aaCoreHash)) {
         throw new Error("AA core contract is not configured for this network.");
@@ -451,11 +463,14 @@ defineMiniApp({
       workflowStatus.set(ctx.t("registerSubmitting"));
       // Step 1: top up the 1-GAS prepaid credit (only if the wallet lacks it).
       // The contract credits the deposit in OnNEP17Payment but emits no event,
-      // so wait on the GAS transfer's on-chain confirmation (not a contract
-      // event) before the register call consumes the credit.
+      // so poll the wallet's on-contract GAS credit — the exact precondition
+      // the register call consumes — until it covers the fee. On timeout the
+      // flow proceeds exactly like the retired N3Index wait did: a premature
+      // register call faults, and the credited deposit stays reclaimable via
+      // the stranded-credit recovery lane (recoverCredit).
       const haveGas = parseBigInt(gasCreditRaw.get());
       if (haveGas < BigInt(REGISTRATION_FEE_BASE)) {
-        const deposit = await ctx.framework.chain.invoke("transfer", [
+        await ctx.framework.chain.invoke("transfer", [
           ctx.framework.chain.arg.hash160(user),
           ctx.framework.chain.arg.hash160(contract),
           ctx.framework.chain.arg.integer(REGISTRATION_FEE_BASE),
@@ -463,9 +478,13 @@ defineMiniApp({
         ], {
           scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
         });
-        await waitForDepositConfirmation(deposit.txid, {
-          contractHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-        });
+        await ctx.framework.chain.waitForState(
+          async () => parseBigInt(await ctx.framework.chain.readRaw("getCredit", [
+            ctx.framework.chain.arg.hash160(user),
+            ctx.framework.chain.arg.string("GAS"),
+          ], anchorOptions())),
+          (credit) => credit >= BigInt(REGISTRATION_FEE_BASE),
+        );
       }
       // Step 2: register the anchor app, consuming the prepaid credit.
       const result = await ctx.framework.chain.invoke("registerCustomAnchorApp", [
@@ -477,7 +496,10 @@ defineMiniApp({
       lastTxid.set(result.txid);
 
       // Step 3: register the 21 AA agent accounts with the AA core. No anchor
-      // event fires here, so confirm the tx on-chain before binding agents.
+      // event fires here, so poll the AA core until the first derived agent
+      // account exists (its backup owner reads non-zero) — the precondition
+      // step 4 needs before binding agents. On timeout the flow proceeds like
+      // the retired N3Index tx wait did and step 4 surfaces any fault.
       workflowStatus.set(ctx.t("registerProvisioningAccounts"));
       const accountsTx = await ctx.framework.chain.invoke(
         registerAccountsCall.operation,
@@ -485,7 +507,16 @@ defineMiniApp({
         { scriptHash: aaCoreHash },
       );
       lastTxid.set(accountsTx.txid);
-      await waitForDepositConfirmation(accountsTx.txid, { contractHash: aaCoreHash, network });
+      const firstAgentId = plan.agents[0]?.accountId ?? "";
+      await ctx.framework.chain.waitForState(
+        () => ctx.framework.chain.readRaw("getBackupOwner", [
+          ctx.framework.chain.arg.hash160(firstAgentId),
+        ], { scriptHash: aaCoreHash }),
+        (owner) => {
+          const hash = parseHash160(owner);
+          return Boolean(hash) && !/^0x0{40}$/i.test(hash);
+        },
+      );
 
       // Step 4: bind the 21 agents (account, candidate, script hash) to the
       // anchor. AnchorAgentRegistered fires per agent — wait on it so the

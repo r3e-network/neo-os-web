@@ -53,14 +53,15 @@
  *   deadline — the contract reverts "epoch not ended". Both reverts are mapped
  *   to friendly messages here, and mirrored locally as pre-flight guards.
  *
- *   MUTATIONS (app.chain.invoke):
+ *   MUTATIONS (app.chain.invoke / app.funds.payAndCall):
  *     STAKE — a NEO transfer to the contract with memo "govmerc:stake". The whole
  *       NEO integer is the amount; NEO is INDIVISIBLE so it is NEVER scaled.
  *         transfer(from, CONTRACT, neoInteger, "govmerc:stake") { scriptHash: NEO_HASH }
  *     withdrawStake(user, neoInteger) — returns NEO to the user (banks rewards first).
- *     BID (deposit-then-act) — a GAS transfer with memo "govmerc:bid" (only topped
- *       up when gasCreditOf(bidder) < addBase), then bid(bidder, addBase). GAS is
- *       in BASE UNITS (×1e8, scaled once, no floats); first bid >= 1 GAS.
+ *     BID (deposit-then-act via app.funds.payAndCall) — a GAS transfer with memo
+ *       "govmerc:bid" (only topped up when gasCreditOf(bidder) < addBase),
+ *       confirmed in a block, then bid(bidder, addBase). GAS is in BASE UNITS
+ *       (×1e8, scaled once, no floats); first bid >= 1 GAS.
  *     settleEpoch() — permissionless; the top bidder is paid by the contract.
  *     claimRewards(user) — staker claims accrued GAS rewards.
  *     reclaimBid(bidder, epoch) — a LOSING bidder reclaims their bid from a
@@ -77,6 +78,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
+import { FrameworkPrepaidActionError, revertKeyOf } from "@shared/react";
 import type { MiniAppFramework } from "@shared/react";
 import { gasToBaseUnits, neoToInteger } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
@@ -151,13 +153,15 @@ export function epochWindowPhase(deadlineMs: number, nowMs: number): EpochWindow
 
 /**
  * Map the v2 contract's bidding-window revert reasons onto friendly i18n
- * message keys ("bidding closed" / "epoch not ended" asserts).
+ * message keys ("bidding closed" / "epoch not ended" asserts) via the
+ * framework's revertKeyOf. A FrameworkPrepaidActionError embeds the consuming
+ * call's revert reason in its message, so it maps here too.
  */
 export function windowRevertKey(error: unknown): "biddingClosed" | "epochNotEnded" | null {
-  const message = errorMessage(error);
-  if (/bidding closed/i.test(message)) return "biddingClosed";
-  if (/epoch not ended/i.test(message)) return "epochNotEnded";
-  return null;
+  return revertKeyOf(error, {
+    biddingClosed: /bidding closed/i,
+    epochNotEnded: /epoch not ended/i,
+  });
 }
 
 // ============================================================================
@@ -575,17 +579,20 @@ export function useGovMerc({ app, t }: UseGovMercOptions) {
   // ── Bidding (GAS — base units, deposit-then-act) ───────────────────────
 
   /**
-   * Place / raise a GAS bid for the current epoch (deposit-then-act).
+   * Place / raise a GAS bid for the current epoch (deposit-then-act via
+   * app.funds.payAndCall).
    *
    * Two signed steps, both by the bidder:
-   *   1. DEPOSIT — only when gasCreditOf(bidder) < addBase, transfer the bid
-   *      amount in GAS to the contract with the "govmerc:bid" memo so
-   *      OnNEP17Payment credits the bidder's GAS bid balance. The amount is in
-   *      BASE UNITS here (scaled once, no floats).
+   *   1. DEPOSIT — only when gasCreditOf(bidder) < addBase, payAndCall
+   *      transfers the bid amount in GAS to the contract with the
+   *      "govmerc:bid" memo so OnNEP17Payment credits the bidder's GAS bid
+   *      balance, and waits for the deposit to confirm in a block. The amount
+   *      is in BASE UNITS here (scaled once, no floats).
    *   2. bid(bidder, addBase) — raises the bidder's epoch bid from their credit.
    *      The first bid for an epoch must be >= 1 GAS.
    *
-   * If step 1 lands but step 2 reverts, the credit persists on the contract as
+   * If step 1 lands but step 2 reverts, payAndCall surfaces a
+   * FrameworkPrepaidActionError: the credit persists on the contract as
    * reusable prepaid bid credit (reclaimable via withdraw) — no GAS is lost.
    */
   const placeBid = async () => {
@@ -620,10 +627,9 @@ export function useGovMerc({ app, t }: UseGovMercOptions) {
     }
 
     isProcessing.set(true);
-    let depositSettled = false;
     try {
-      // Step 1: DEPOSIT — only top up when existing bid credit can't cover the
-      // amount. The contract scales nothing; the amount is BASE UNITS here.
+      // DEPOSIT precheck — only top up when existing bid credit can't cover
+      // the amount. The contract scales nothing; the amount is BASE UNITS here.
       let credit = 0n;
       try {
         credit = parseBigInt(
@@ -633,36 +639,33 @@ export function useGovMerc({ app, t }: UseGovMercOptions) {
         credit = 0n;
       }
 
-      if (credit < addBase) {
-        // Wait for the contract's "Credited" event so the deposit is confirmed
-        // in a block before bid() consumes it — an unconfirmed deposit lets the
-        // bid execute first and fault with "insufficient prepaid asset".
-        await app.chain.invoke(
-          "transfer",
-          [
-            bidderArg,
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(addBase),
-            app.chain.arg.string(BID_MEMO),
-          ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
-        );
-        depositSettled = true;
-      }
-
-      // Step 2: bid — raises the epoch bid from credit. If the deposit landed but
-      // this reverts, the credit persists as reusable prepaid bid credit
-      // (reclaimable via withdraw); surface that distinctly.
+      const bidArgs = [bidderArg, app.chain.arg.integer(addBase)];
       try {
-        await app.chain.invoke(
-          "bid",
-          [
-            bidderArg,
-            app.chain.arg.integer(addBase),
-          ],
-          { waitForEvent: "BidPlaced" },
-        );
+        if (credit < addBase) {
+          // Deposit-then-act (S3): payAndCall transfers the GAS to the
+          // contract with the bid memo, waits for the deposit to confirm in a
+          // block, then fires bid() — an unconfirmed deposit would let the bid
+          // execute first and fault with "insufficient prepaid asset".
+          // notify:'silent' because this composable owns the revert→i18n copy
+          // below and main.tsx's guard owns the toasts.
+          await app.funds.payAndCall({
+            amountFixed8: addBase,
+            memo: BID_MEMO,
+            operation: "bid",
+            args: bidArgs,
+            waitForEvent: "BidPlaced",
+            notify: "silent",
+          });
+        } else {
+          // Existing credit covers the bid — no deposit this round.
+          await app.chain.invoke("bid", bidArgs, { waitForEvent: "BidPlaced" });
+        }
       } catch (bidErr) {
+        // Deposit CONFIRMED but bid() reverted: the credit persists as
+        // reusable prepaid bid credit (reclaimable via withdraw) — surface
+        // that distinctly. FrameworkPrepaidActionError is identity-stable
+        // (framework class, re-exported by @shared/react).
+        const depositSettled = bidErr instanceof FrameworkPrepaidActionError;
         // v2: the bid can race the deadline — map the contract's
         // "bidding closed" revert to a friendly message. When the deposit
         // already landed, say explicitly that the GAS is held as credit.

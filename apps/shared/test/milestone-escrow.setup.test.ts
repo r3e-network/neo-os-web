@@ -6,11 +6,12 @@ import { createMiniAppFramework } from "../../../framework";
 
 /**
  * Milestone Escrow setup wiring — every registered action must run through
- * ctx.services.notify.guard so a failing handler surfaces an error toast
- * instead of an unhandled rejection. This matters most for the
- * deposit-then-create flow, where "depositPrepaidNoEscrow" fires AFTER the
- * user's funds already moved: before the guard wrapping, that error was
- * silently swallowed as an unhandled promise rejection with zero feedback.
+ * app.notify.guard (delegating to the injected notify service) so a failing
+ * handler surfaces an error toast instead of an unhandled rejection. This
+ * matters most for the deposit-then-create flow, where
+ * "depositPrepaidNoEscrow" fires AFTER the user's funds already moved:
+ * before the guard wrapping, that error was silently swallowed as an
+ * unhandled promise rejection with zero feedback.
  */
 const harness = vi.hoisted(() => {
   function observable<T>(initial: T) {
@@ -123,7 +124,7 @@ const ACTION_ARGS: Record<string, unknown[]> = {
   cancelEscrow: [{ id: "1" }],
 };
 
-describe("Milestone Escrow setup (notify.guard wiring)", () => {
+describe("Milestone Escrow setup (app.notify.guard wiring)", () => {
   beforeEach(async () => {
     vi.resetModules();
     harness.reset();
