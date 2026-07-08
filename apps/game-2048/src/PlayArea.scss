@@ -19,12 +19,223 @@
   --mx2-color-accent-border: rgba(0, 175, 146, 0.35);
 }
 
+.rush-playarea .mx2-stage {
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-width: 760px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  margin-inline: auto;
+  padding: 10px 14px 12px;
+  background: #fffdf8;
+}
+
+.rush-playarea .mx2-stage__head {
+  position: absolute;
+  top: 18px;
+  left: 26px;
+  right: 26px;
+  z-index: 24;
+  margin: 0;
+  pointer-events: none;
+}
+
+.rush-playarea .mx2-stage__titles {
+  max-width: min(58%, 390px);
+  border: 1px solid rgba(0, 175, 146, 0.18);
+  border-radius: 14px;
+  padding: 8px 11px;
+  background: rgba(255, 253, 248, 0.86);
+  box-shadow: 0 10px 24px rgba(62, 48, 25, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.rush-playarea .mx2-stage__title {
+  font-size: 24px;
+  font-weight: 620;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.rush-playarea .mx2-stage__subtitle {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  line-height: 1.32;
+}
+
 .rush-playarea .mx2-stage__scene {
+  flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
-  padding: 12px 12px 0;
+  padding: 0;
+}
+
+.rush-playarea .phaser-game-host {
+  margin-inline: auto;
+}
+
+.rush-phaser-playarea .mx2-stage {
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+.rush-playstage {
+  min-height: 0;
+}
+
+.rush-phaser-canvas {
+  width: min(100%, 420px);
+}
+
+.rush-stage-shell {
+  position: relative;
+  width: 100%;
+  min-height: calc(100dvh - 22px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(0, 175, 146, 0.18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 236, 174, 0.32), transparent 34%),
+    linear-gradient(180deg, #f2fffb 0%, #fffdf8 68%, #fff7e6 100%);
+}
+
+.rush-stage-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 12;
+  width: min(100%, 520px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 7px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(0, 175, 146, 0.22);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: 0 14px 34px rgba(62, 48, 25, 0.12);
+}
+
+.rush-stage-hud__metric,
+.rush-stage-hud__submit,
+.rush-stage-hud__drawer {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(155, 121, 62, 0.13);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 7px 9px;
+}
+
+.rush-stage-hud__metric {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.rush-stage-hud__metric[data-accent="true"] {
+  border-color: rgba(0, 175, 146, 0.36);
+  box-shadow: inset 2px 0 0 #00af92;
+}
+
+.rush-stage-hud__metric span {
+  color: #665f56;
+  font-size: 0.58rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.rush-stage-hud__metric strong {
+  color: #073f36;
+  font-size: 0.84rem;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.rush-stage-hud__submit,
+.rush-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #067a5b;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.rush-stage-hud__submit {
+  border-color: rgba(246, 94, 59, 0.34);
+  background: linear-gradient(180deg, #fff3e8, #ffffff);
+  color: #b23b12;
+}
+
+.rush-stage-hud__submit:disabled {
+  opacity: 0.56;
+  cursor: default;
+}
+
+.rush-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.rush-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.rush-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(640px, calc(100% - 20px));
+  max-height: min(74vh, 620px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(0, 175, 146, 0.24);
+  border-radius: 16px;
+  background: #fffdf8;
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(62, 48, 25, 0.18);
+}
+
+.rush-ingame-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.rush-ingame-drawer__actions button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(0, 175, 146, 0.22);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #067a5b;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.rush-ingame-drawer__actions button:disabled {
+  opacity: 0.52;
+  cursor: default;
 }
 
 .rush-scene {
@@ -698,6 +909,68 @@
   }
 }
 
+.rush-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px;
+
+  span {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    border: 1px solid rgba(62, 48, 25, 0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  small {
+    color: var(--mx2-text-muted);
+    font-size: 0.68rem;
+    font-weight: 620;
+  }
+
+  strong {
+    color: #073f36;
+    font-size: 0.92rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.rush-drawer__credit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0 12px;
+  border: 1px solid rgba(0, 175, 146, 0.18);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: rgba(0, 175, 146, 0.07);
+
+  span {
+    display: grid;
+    gap: 1px;
+  }
+
+  small {
+    color: var(--mx2-text-muted);
+    font-size: 0.68rem;
+    font-weight: 620;
+  }
+
+  strong {
+    color: #067a5b;
+    font-size: 0.92rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 .rush-ranks {
   list-style: none;
   margin: 8px 0;
@@ -755,6 +1028,43 @@
   color: var(--mx2-text-muted);
   font-family: var(--mx2-font-mono, monospace);
   word-break: break-all;
+}
+
+.rush-history {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.rush-history__item {
+  display: grid;
+  grid-template-columns: 50px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(62, 48, 25, 0.08);
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: rgba(62, 48, 25, 0.03);
+  font-size: 0.78rem;
+}
+
+.rush-history__target {
+  color: #073f36;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+}
+
+.rush-history__time,
+.rush-history__undos {
+  color: var(--mx2-text-muted);
+}
+
+.rush-history__item strong {
+  color: #067a5b;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ------------------------------------------------------------ keyframes -- */
@@ -878,8 +1188,83 @@
 }
 
 @media (max-width: 560px) {
+  .rush-playarea .mx2-playstage.mx2-cat-game {
+    min-height: 100dvh;
+  }
+
+  .rush-playarea .mx2-cat-game.mx2-stage {
+    min-height: 100dvh;
+    padding: 6px 8px 8px !important;
+  }
+
+  .rush-playarea .mx2-stage__head {
+    top: 14px;
+    left: 14px;
+    right: 14px;
+  }
+
+  .rush-playarea .mx2-stage__titles {
+    max-width: 58%;
+    border-radius: 12px;
+    padding: 6px 8px 7px;
+  }
+
+  .rush-playarea .mx2-stage__title {
+    margin-top: 2px;
+    font-size: 18px;
+    line-height: 1.08;
+  }
+
+  .rush-playarea .mx2-stage__subtitle {
+    display: none;
+  }
+
   .rush-playarea .mx2-stage__scene {
-    padding: 8px 8px 0;
+    padding: 0 !important;
+  }
+
+  .rush-stage-shell {
+    min-height: calc(100dvh - 14px);
+    border-radius: 18px;
+  }
+
+  .rush-phaser-canvas {
+    --phaser-mobile-height-ratio: 1.78;
+  }
+
+  .rush-stage-hud {
+    width: min(100%, 374px);
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    gap: 5px;
+    padding: 6px;
+    border-radius: 14px;
+  }
+
+  .rush-stage-hud__metric,
+  .rush-stage-hud__submit,
+  .rush-stage-hud__drawer {
+    min-height: 46px;
+    padding: 6px 7px;
+    border-radius: 11px;
+  }
+
+  .rush-stage-hud__metric span {
+    font-size: 0.52rem;
+  }
+
+  .rush-stage-hud__metric strong {
+    font-size: 0.74rem;
+  }
+
+  .rush-stage-hud__submit,
+  .rush-stage-hud__drawer {
+    font-size: 0.66rem;
+  }
+
+  .rush-ingame-drawer {
+    width: calc(100% - 16px);
+    max-height: min(77vh, 650px);
+    padding: 16px;
   }
 
   .rush-scene {
@@ -977,5 +1362,15 @@
 
   .rush-scene__status {
     margin-top: -2px;
+  }
+
+  .rush-drawer__summary,
+  .rush-history__item {
+    grid-template-columns: 1fr;
+  }
+
+  .rush-drawer__credit {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

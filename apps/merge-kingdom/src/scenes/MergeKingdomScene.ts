@@ -80,6 +80,7 @@ const C = {
   cardBg:      0xffffff,
   cardBorder:  0xe8d5b0,
   cardActive:  0xfff3d0,
+  disabledBtn: 0xe8d5b0,
   successGreen:0x16a34a,
   dangerRed:   0xdc2626,
   timerLow:    0xdc2626,
@@ -282,6 +283,7 @@ export class MergeKingdomScene extends BaseScene {
     this.buildBoard();
     this.buildHUD();
     this.buildResult();
+    this.fitCameraToHost();
 
     // Start 1-second clock for deadline countdown
     this.clockTimer = this.time.addEvent({
@@ -885,8 +887,11 @@ export class MergeKingdomScene extends BaseScene {
     const enough     = rule ? poolFree >= Number(gasDisplay(rule.reward)) : false;
 
     const btnBg = this.startBtn.list[0] as Phaser.GameObjects.Rectangle;
+    const btnText = this.startBtn.list[1] as Phaser.GameObjects.Text;
     const canStart = walletConn && !isStarting;
-    btnBg.setFillStyle(canStart ? C.gold : C.muted);
+    btnBg.setFillStyle(canStart ? C.gold : C.disabledBtn);
+    btnBg.setStrokeStyle(2, canStart ? C.goldLight : C.cardBorder);
+    btnText.setColor(canStart ? "#2b261f" : "#8b7355");
     this.startBtnText.setText(isStarting ? "Building..." : "Build Realm");
 
     const poolMsg = !walletConn
@@ -1147,8 +1152,19 @@ export class MergeKingdomScene extends BaseScene {
 
   // ── Resize ────────────────────────────────────────────────────────────────
 
-  protected onResize(_gameSize: Phaser.Structs.Size): void {
-    this.scene.restart();
+  protected onResize(): void {
+    this.fitCameraToHost();
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || SCENE_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || SCENE_H));
+    const zoom = Math.min(viewW / SCENE_W, viewH / SCENE_H);
+
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(SCENE_W / 2, SCENE_H / 2);
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────

@@ -18,12 +18,42 @@
  * the vault reads as a flat white void on desktop. */
 .survivor-play-area .mx2-stage {
   --mx2-scene-art-opacity: 0.38;
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 8px 16px;
+}
+
+.survivor-play-area .mx2-stage__head {
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.survivor-play-area .mx2-eyebrow {
+  display: none;
+}
+
+.survivor-play-area .mx2-stage__title {
+  margin-top: 0;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.14;
+}
+
+.survivor-play-area .mx2-stage__subtitle {
+  display: none;
 }
 
 .survivor-play-area .mx2-stage__scene {
-  display: block;
+  display: flex;
   min-height: 0;
   padding: 0;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.survivor-play-area .phaser-game-host {
+  margin-inline: auto;
 }
 
 .survivor-play-area .mx2-action-rail {
@@ -46,6 +76,202 @@
 
 .survivor-play-area .mx2-score {
   display: none;
+}
+
+.survivor-drawer {
+  display: grid;
+  gap: 12px;
+}
+
+.survivor-drawer__inner {
+  width: min(100%, 720px);
+  margin-inline: auto;
+  display: grid;
+  gap: 12px;
+}
+
+.survivor-drawer__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+
+  div {
+    min-width: 0;
+    border: 1px solid rgba(148, 116, 70, 0.14);
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 248, 237, 0.74)),
+      #ffffff;
+    padding: 10px;
+  }
+
+  span {
+    display: block;
+    color: var(--mx2-text-muted);
+    font-size: 0.68rem;
+  }
+
+  strong {
+    display: block;
+    min-width: 0;
+    margin-top: 2px;
+    overflow: hidden;
+    color: #92400e;
+    font-size: 0.92rem;
+    font-weight: 680;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.survivor-drawer__panel {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid rgba(148, 116, 70, 0.14);
+  padding-top: 12px;
+
+  h4,
+  p {
+    margin: 0;
+  }
+
+  h4 {
+    color: var(--mx2-text);
+    font-size: 0.88rem;
+    font-weight: 680;
+  }
+
+  p {
+    color: var(--mx2-text-muted);
+    font-size: 0.8rem;
+    line-height: 1.48;
+  }
+}
+
+.survivor-drawer__panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  svg {
+    flex: 0 0 auto;
+    color: #b45309;
+  }
+}
+
+.survivor-state-card,
+.survivor-economy {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: center;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 247, 237, 0.72)),
+    #ffffff;
+  padding: 10px 12px;
+
+  span {
+    color: var(--mx2-text);
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+
+  strong {
+    min-width: 0;
+    color: #92400e;
+    font-size: 0.92rem;
+    font-weight: 680;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    grid-column: 1 / -1;
+    color: var(--mx2-text-muted);
+    font-size: 0.72rem;
+  }
+}
+
+.survivor-drawer__notice {
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 8px;
+  background: rgba(254, 243, 199, 0.56);
+  padding: 8px 10px;
+  color: #92400e !important;
+
+  &[data-tone="danger"] {
+    border-color: rgba(216, 77, 63, 0.24);
+    background: rgba(254, 226, 226, 0.58);
+    color: #b42318 !important;
+  }
+
+  &[data-tone="success"] {
+    border-color: rgba(22, 168, 107, 0.22);
+    background: rgba(220, 252, 231, 0.56);
+    color: #047857 !important;
+  }
+}
+
+.survivor-drawer__empty {
+  border: 1px dashed rgba(148, 116, 70, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 10px 12px;
+}
+
+.survivor-history,
+.survivor-rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.survivor-history [role="listitem"],
+.survivor-rules li {
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(148, 116, 70, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 9px 10px;
+}
+
+.survivor-history strong,
+.survivor-rules strong {
+  color: var(--mx2-text);
+  font-size: 0.8rem;
+  font-weight: 680;
+}
+
+.survivor-history span,
+.survivor-rules span,
+.survivor-drawer__wallet {
+  color: var(--mx2-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.42;
+  word-break: break-word;
+}
+
+@media (max-width: 560px) {
+  .survivor-play-area .mx2-playstage.mx2-cat-game {
+    min-height: 0;
+  }
+
+  .survivor-play-area .mx2-cat-game.mx2-stage,
+  .survivor-play-area .mx2-cat-game .mx2-stage__scene {
+    flex: 0 0 auto;
+  }
+
+  .survivor-drawer__summary,
+  .survivor-state-card,
+  .survivor-economy {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================

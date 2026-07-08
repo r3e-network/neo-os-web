@@ -227,7 +227,7 @@
 .neodid-side-panel {
   min-width: 0;
   display: grid;
-  grid-template-rows: 148px auto auto;
+  grid-template-rows: 184px auto auto;
   gap: 10px;
 }
 
@@ -236,23 +236,25 @@
   display: grid;
   place-items: center;
   min-width: 0;
-  height: 148px;
+  height: 184px;
   margin: 0;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: calc(var(--mx2-r-lg) - 6px);
-  padding: 12px;
-  background: #ffffff;
+  padding: 0;
+  background: #eef8ff;
 }
 
 .neodid-stage-art img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: contain;
-  object-position: center;
+  object-fit: cover;
+  object-position: center bottom;
   opacity: 1;
-  filter: none;
+  filter: saturate(1.08) contrast(1.03);
 }
 
 .neodid-stage-art::after {
@@ -342,6 +344,334 @@
   color: #5b21b6;
   font-size: 13px;
   font-weight: 680;
+}
+
+.neodid-drawer {
+  display: grid;
+  gap: 12px;
+}
+
+.neodid-drawer__switcher,
+.neodid-provider-switch,
+.neodid-field {
+  min-width: 0;
+  margin: 0;
+}
+
+.neodid-drawer__switcher > .mx2-open-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.neodid-drawer__switcher-group.mx2-open-segmented.semi-radioGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.075);
+  border-radius: 18px;
+  background: #f7f6fb;
+}
+
+.neodid-drawer__switcher-group .semi-radio,
+.neodid-provider-switch__group .semi-radio {
+  min-width: 0;
+  width: auto !important;
+  flex: 1 1 0 !important;
+  margin: 0;
+  padding: 0;
+}
+
+.neodid-drawer__switcher-group .semi-radio-inner-buttonRadio,
+.neodid-provider-switch__group .semi-radio-inner-buttonRadio {
+  display: none;
+}
+
+.neodid-drawer__switcher-group .semi-radio-content,
+.neodid-provider-switch__group .semi-radio-content {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  place-items: stretch;
+  padding: 0;
+}
+
+.neodid-drawer__switcher-group .semi-radio-addon-buttonRadio,
+.neodid-provider-switch__group .semi-radio-addon-buttonRadio {
+  min-width: 0;
+  display: block;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.neodid-drawer-tab {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border-radius: 14px;
+  color: var(--mx2-text-muted);
+  text-align: left;
+}
+
+.neodid-drawer-tab span,
+.neodid-drawer-tab strong {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neodid-drawer-tab span {
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.neodid-drawer-tab strong {
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 640;
+}
+
+.neodid-drawer__switcher-group .semi-radio-checked .neodid-drawer-tab {
+  background: #ffffff;
+  color: #6d28d9;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+}
+
+.neodid-drawer__panel.mx2-open-panel.semi-card {
+  min-width: 0;
+  overflow: hidden;
+  border-color: rgba(15, 23, 42, 0.09);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055);
+}
+
+.neodid-drawer__panel .mx2-open-panel__icon {
+  color: #6d28d9;
+  background: #f5f3ff;
+}
+
+.neodid-composer {
+  display: grid;
+  gap: 12px;
+}
+
+.neodid-provider-switch > .mx2-open-field__label {
+  display: inline-flex;
+  margin-bottom: 7px;
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.neodid-provider-switch__group.mx2-open-segmented.semi-radioGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.neodid-provider-card {
+  min-width: 0;
+  min-height: 58px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 15px;
+  padding: 9px 10px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-2);
+  text-align: left;
+}
+
+.neodid-provider-switch__group .semi-radio-checked .neodid-provider-card,
+.neodid-provider-switch__group .semi-radio:hover .neodid-provider-card {
+  border-color: rgba(124, 58, 237, 0.24);
+  background: #f7f4ff;
+  color: #6d28d9;
+}
+
+.neodid-provider-card strong,
+.neodid-provider-card small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.neodid-provider-card strong {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.neodid-provider-card small {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 620;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.neodid-composer__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.9fr);
+  gap: 10px;
+}
+
+.neodid-field .mx2-open-field__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.neodid-input.mx2-open-field__control {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.neodid-input.mx2-open-field__control:focus-within {
+  border-color: rgba(124, 58, 237, 0.34);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.07);
+}
+
+.neodid-input .semi-input {
+  height: 42px;
+  border: 0;
+  background: transparent;
+  color: var(--mx2-ink);
+  font: inherit;
+  font-family: var(--mx2-mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: 620;
+  outline: none;
+}
+
+.neodid-field .mx2-open-field__hint {
+  margin-top: 5px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.3;
+}
+
+.neodid-drawer__flow {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.neodid-drawer__flow li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 10px;
+  background: var(--mx2-surface-2);
+}
+
+.neodid-drawer__flow li[data-active="true"] {
+  border-color: rgba(124, 58, 237, 0.24);
+  background: #f7f4ff;
+}
+
+.neodid-drawer__flow li > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.neodid-drawer__flow div,
+.neodid-drawer__facts {
+  display: grid;
+  gap: 4px;
+}
+
+.neodid-drawer__flow strong {
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 640;
+}
+
+.neodid-drawer__flow code,
+.neodid-drawer__facts dd {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-family: var(--mx2-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 620;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
+
+.neodid-drawer__flow small {
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.neodid-drawer__facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.neodid-drawer__facts div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 10px;
+  background: var(--mx2-surface-2);
+}
+
+.neodid-drawer__facts dt {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 620;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.neodid-drawer__facts dd {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.neodid-drawer__empty.mx2-open-notice.semi-notification-notice {
+  margin: 0;
+  border-color: rgba(124, 58, 237, 0.14);
+  background: #f7f4ff;
 }
 
 .oracle-neodid-play-area .mx2-action-rail__row .mx2-btn--primary {
@@ -459,8 +789,8 @@
 
   .neodid-stage-art {
     display: grid;
-    height: 86px;
-    padding: 6px;
+    height: 112px;
+    padding: 0;
   }
 
   .neodid-catalog-card {
@@ -519,6 +849,59 @@
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+  }
+
+  .neodid-drawer__switcher-group.mx2-open-segmented.semi-radioGroup {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    border-radius: 16px;
+  }
+
+  .neodid-drawer-tab {
+    min-height: 44px;
+    text-align: center;
+  }
+
+  .neodid-drawer-tab span,
+  .neodid-drawer-tab strong {
+    padding: 0 4px;
+  }
+
+  .neodid-drawer-tab strong {
+    display: none;
+  }
+
+  .neodid-provider-switch__group.mx2-open-segmented.semi-radioGroup {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .neodid-provider-card {
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .neodid-provider-card small {
+    display: none;
+  }
+
+  .neodid-composer__grid,
+  .neodid-drawer__facts {
+    grid-template-columns: 1fr;
+  }
+
+  .neodid-input .semi-input {
+    height: 38px;
+    font-size: 12px;
+  }
+
+  .neodid-drawer__flow li {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .neodid-drawer__flow small {
+    display: none;
   }
 
   .oracle-neodid-play-area .mx2-score {

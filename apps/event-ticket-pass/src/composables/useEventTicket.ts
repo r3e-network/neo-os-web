@@ -239,6 +239,33 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     [transferTokenId, transferRecipient],
   );
 
+  function applyEventDraftInput(input?: unknown) {
+    const payload = asRecord(input);
+    if (!payload) return;
+    if (payload.eventName !== undefined) eventName.set(stringValue(payload.eventName));
+    if (payload.eventVenue !== undefined) eventVenue.set(stringValue(payload.eventVenue));
+    if (payload.eventStart !== undefined) eventStart.set(stringValue(payload.eventStart));
+    if (payload.eventEnd !== undefined) eventEnd.set(stringValue(payload.eventEnd));
+    if (payload.maxSupply !== undefined) maxSupply.set(stringValue(payload.maxSupply));
+    if (payload.notes !== undefined) notes.set(stringValue(payload.notes));
+  }
+
+  function applyIssueDraftInput(input?: unknown) {
+    const payload = asRecord(input);
+    if (!payload) return;
+    const eventId = stringValue(payload.eventId);
+    if (eventId) selectedEventId.set(eventId);
+    if (payload.recipient !== undefined) issueRecipient.set(stringValue(payload.recipient));
+    if (payload.seat !== undefined) issueSeat.set(stringValue(payload.seat));
+    if (payload.memo !== undefined) issueMemo.set(stringValue(payload.memo));
+  }
+
+  function applyCheckinDraftInput(input?: unknown) {
+    const payload = asRecord(input);
+    if (!payload) return;
+    if (payload.tokenId !== undefined) checkinTokenId.set(stringValue(payload.tokenId));
+  }
+
   function currentAddress(): string {
     return address.get() || stringValue(app.chain.address.get());
   }
@@ -432,8 +459,9 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     }
   }
 
-  async function createEvent() {
+  async function createEvent(input?: unknown) {
     if (isCreating.get()) return null;
+    applyEventDraftInput(input);
     const name = clean(eventName.get());
     const venue = clean(eventVenue.get(), t("venueFallback"));
     const startTime = parseDateInput(eventStart.get());
@@ -508,9 +536,15 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     if (evt?.id) selectEvent(evt.id);
   }
 
-  async function issueTicket() {
+  async function issueTicket(input?: unknown) {
     if (isIssuing.get()) return null;
-    const event = selectedEvent.get();
+    applyIssueDraftInput(input);
+    const eventId = selectedEventId.get();
+    const derivedEvent = selectedEvent.get();
+    const event =
+      derivedEvent && (!eventId || derivedEvent.id === eventId)
+        ? derivedEvent
+        : events.get().find((item) => item.id === eventId) ?? null;
     if (!event) throw new Error(t("selectEventFirst"));
     if (!event.active) throw new Error(t("eventInactive"));
     if (event.minted >= event.maxSupply) throw new Error(t("soldOut"));
@@ -639,8 +673,9 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     }
   }
 
-  async function lookupTicket() {
+  async function lookupTicket(input?: unknown) {
     if (isLookingUp.get()) return lookup.get();
+    applyCheckinDraftInput(input);
     const tokenId = clean(checkinTokenId.get());
     if (!tokenId) throw new Error(t("invalidTokenId"));
     isLookingUp.set(true);
@@ -668,8 +703,9 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
     }
   }
 
-  async function checkInTicket() {
+  async function checkInTicket(input?: unknown) {
     if (isCheckingIn.get()) return null;
+    applyCheckinDraftInput(input);
     const tokenId = clean(checkinTokenId.get());
     if (!tokenId) throw new Error(t("invalidTokenId"));
     isCheckingIn.set(true);
@@ -682,7 +718,7 @@ export function useEventTicket({ app, eventBus, t }: UseEventTicketOptions) {
       // so re-resolve to avoid checking in the wrong ticket.
       const cached = lookup.get();
       const ticket =
-        cached && cached.tokenId === tokenId ? cached : await lookupTicket();
+        cached && cached.tokenId === tokenId ? cached : await lookupTicket({ tokenId });
       if (!ticket) throw new Error(t("ticketNotFound"));
       if (ticket.used) throw new Error(t("ticketAlreadyUsed"));
       const request = {

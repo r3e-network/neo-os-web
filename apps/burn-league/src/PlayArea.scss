@@ -14,9 +14,15 @@
 }
 
 .burn-league-play-area .mx2-stage__scene {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 0;
   padding: 0;
+}
+
+.burn-league-play-area .phaser-game-host {
+  margin-inline: auto;
 }
 
 .burn-league-play-area .mx2-score {
@@ -812,6 +818,86 @@
   text-align: center;
 }
 
+.burn-drawer {
+  display: grid;
+  gap: 16px;
+}
+
+.burn-drawer h4 {
+  margin: 0 0 8px;
+  color: var(--mx2-ink);
+  font-size: 14px;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.burn-drawer p {
+  margin: 0;
+  color: var(--mx2-text-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.burn-drawer__summary,
+.burn-drawer__board,
+.burn-drawer__rules {
+  padding: 14px;
+  border: 1px solid rgba(146, 64, 14, 0.14);
+  border-radius: var(--mx2-r);
+  background: rgba(255, 248, 237, 0.66);
+}
+
+.burn-drawer__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.burn-drawer__metrics div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  border-radius: var(--mx2-r-sm);
+  background: #ffffff;
+}
+
+.burn-drawer__metrics dt {
+  margin: 0 0 4px;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.burn-drawer__metrics dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.burn-drawer__leaderboard {
+  margin-top: 8px;
+}
+
+.burn-drawer__you-tag {
+  color: var(--mx2-accent-strong);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 680;
+}
+
+.burn-drawer__empty,
+.burn-drawer__note {
+  padding: 10px 12px;
+  border: 1px solid rgba(146, 64, 14, 0.12);
+  border-radius: var(--mx2-r-sm);
+  background: #ffffff;
+}
+
 .burn-drawer__steps {
   margin: 8px 0 0;
   padding: 0;
@@ -881,6 +967,10 @@
   font-size: 11px;
   font-style: normal;
   opacity: 0.8;
+}
+
+.burn-drawer__credit .mx2-btn {
+  flex: 0 0 auto;
 }
 
 .burn-celebrate {

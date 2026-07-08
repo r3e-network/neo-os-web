@@ -56,11 +56,18 @@ type ModeCard = {
   container: Phaser.GameObjects.Container;
   bg: Phaser.GameObjects.Graphics;
   label: Phaser.GameObjects.Text;
+  width: number;
+  height: number;
 };
 
 // Pad layout: 4 quadrants of the circle
 // Top=0, Right=1, Bottom=2, Left=3  (matches classic Simon CCW order for colors)
 export class ColorClashScene extends BaseScene {
+  private sceneReady = false;
+  private isRebuildingScene = false;
+  private scW = 420;
+  private scH = 580;
+
   private padGraphics: Phaser.GameObjects.Graphics[] = [];
   private padGlows: Phaser.GameObjects.Ellipse[] = [];
   private padButtons: Phaser.GameObjects.Container[] = [];
@@ -98,7 +105,50 @@ export class ColorClashScene extends BaseScene {
 
   create(): void {
     super.create();
-    const { width: W, height: H } = this.scale;
+    this.syncSceneSize();
+    this.rebuildScene();
+    this.sceneReady = true;
+    this.onStateUpdate(this.state);
+  }
+
+  protected onResize(gameSize: Phaser.Structs.Size): void {
+    const previousW = this.scW;
+    const previousH = this.scH;
+    this.syncSceneSize(gameSize);
+    if (
+      !this.sceneReady ||
+      this.isRebuildingScene ||
+      (previousW === this.scW && previousH === this.scH)
+    ) {
+      return;
+    }
+    this.rebuildScene();
+    this.onStateUpdate(this.state);
+  }
+
+  private syncSceneSize(gameSize?: Phaser.Structs.Size): void {
+    this.scW = Math.max(1, Math.round(gameSize?.width || this.scale.width || 420));
+    this.scH = Math.max(1, Math.round(gameSize?.height || this.scale.height || 580));
+  }
+
+  private rebuildScene(): void {
+    this.isRebuildingScene = true;
+    this.flashTimer?.destroy();
+    this.flashTimer = null;
+    this.tweens.killAll();
+    this.children.removeAll(true);
+
+    this.padGraphics = [];
+    this.padGlows = [];
+    this.padButtons = [];
+    this.padButtonImages = [];
+    this.modeCards = [];
+    this.progressDots = [];
+    this.flashIndex = -1;
+    this.lastSequenceLen = 0;
+
+    const W = this.scW;
+    const H = this.scH;
     this.drawBackground(W, H);
     this.buildModeDock(W, H);
     this.buildBoard(W, H);
@@ -107,10 +157,15 @@ export class ColorClashScene extends BaseScene {
     this.buildHUD(W, H);
     this.buildStartButton(W, H);
     this.buildProgressRow(W, H);
-    this.onStateUpdate(this.state);
+
+    this.isRebuildingScene = false;
   }
 
   protected onStateUpdate(_state: GameState): void {
+    if (!this.sceneReady || this.isRebuildingScene || !this.statusBar || !this.phaseLabel) {
+      return;
+    }
+
     const status     = this.str("gameStatus", "idle");
     const lastSt     = this.str("lastStatus", "");
     const sequence   = this.str("sequence", "");
@@ -200,9 +255,16 @@ export class ColorClashScene extends BaseScene {
   // ── Mode dock ──────────────────────────────────────────────────────────────
 
   private buildModeDock(W: number, H: number): void {
-    const cardW = 112;
-    const cardH = 54;
-    const gap = 8;
+    const compact = W < 360;
+    const gap = compact ? 6 : 8;
+    const sideInset = compact ? 30 : 28;
+    const cardW = compact
+      ? Math.min(92, Math.max(78, (W - sideInset * 2 - gap * 2) / 3))
+      : 112;
+    const cardH = compact ? 48 : 54;
+    const badgeSize = compact ? 28 : 34;
+    const badgeX = -cardW / 2 + badgeSize / 2 + (compact ? 3 : 4);
+    const textX = -cardW / 2 + badgeSize + (compact ? 9 : 12);
     const total = cardW * 3 + gap * 2;
     const startX = W / 2 - total / 2 + cardW / 2;
     const y = H * 0.11;
@@ -211,17 +273,17 @@ export class ColorClashScene extends BaseScene {
       const container = this.add.container(startX + index * (cardW + gap), y);
       const bg = this.add.graphics();
       const hit = this.add.zone(0, 0, cardW, cardH).setInteractive({ useHandCursor: true });
-      const badge = this.add.image(-35, 0, CLASH_ASSETS.badges[index]!)
-        .setDisplaySize(34, 34);
-      const label = this.add.text(-10, -8, MODE_LABELS[index] ?? "Pulse", {
+      const badge = this.add.image(badgeX, 0, CLASH_ASSETS.badges[index]!)
+        .setDisplaySize(badgeSize, badgeSize);
+      const label = this.add.text(textX, compact ? -7 : -8, MODE_LABELS[index] ?? "Pulse", {
         fontFamily: FONT_FAMILY,
-        fontSize: "12px",
+        fontSize: compact ? "11px" : "12px",
         fontStyle: "bold",
         color: "#4f4235",
       }).setOrigin(0, 0.5);
-      const meta = this.add.text(-10, 9, MODE_COPY[index] ?? `${rule.targetSeq} cues`, {
+      const meta = this.add.text(textX, compact ? 8 : 9, MODE_COPY[index] ?? `${rule.targetSeq} cues`, {
         fontFamily: FONT_FAMILY,
-        fontSize: "10px",
+        fontSize: compact ? "9px" : "10px",
         color: TEXT_MUTED,
       }).setOrigin(0, 0.5);
 
@@ -237,37 +299,39 @@ export class ColorClashScene extends BaseScene {
       });
 
       container.add([bg, hit, badge, label, meta]);
-      this.modeCards.push({ container, bg, label });
+      this.modeCards.push({ container, bg, label, width: cardW, height: cardH });
     });
   }
 
   private updateModeCards(): void {
     this.modeCards.forEach((card, index) => {
       const active = index === this.selectedDifficulty;
-      this.drawModeCard(card.bg, active);
+      this.drawModeCard(card.bg, active, card.width, card.height);
       card.label.setColor(active ? "#123c35" : "#4f4235");
     });
   }
 
-  private drawModeCard(g: Phaser.GameObjects.Graphics, active: boolean): void {
+  private drawModeCard(g: Phaser.GameObjects.Graphics, active: boolean, width: number, height: number): void {
+    const radius = Math.min(14, height / 3.6);
     g.clear();
     g.fillStyle(active ? 0xf2fffb : 0xfffdf8, active ? 0.98 : 0.92);
-    g.fillRoundedRect(-56, -27, 112, 54, 14);
+    g.fillRoundedRect(-width / 2, -height / 2, width, height, radius);
     g.lineStyle(active ? 2 : 1, active ? 0x12a998 : 0xeadfc8, active ? 0.82 : 0.9);
-    g.strokeRoundedRect(-56, -27, 112, 54, 14);
+    g.strokeRoundedRect(-width / 2, -height / 2, width, height, radius);
   }
 
   // ── Main board (4 quadrant pads) ───────────────────────────────────────────
 
   private buildBoard(W: number, H: number): void {
     const cx = W / 2;
-    const cy = H * 0.44;
-    const R  = Math.min(W, H) * 0.41;
+    const compact = W < 400;
+    const cy = H * (compact ? 0.38 : 0.44);
+    const R  = Math.min(W, H) * (compact ? 0.30 : 0.41);
     const innerR = R * 0.18;  // center hub radius
     const gap    = 5;          // px gap between pads
 
     this.add.image(cx, cy, CLASH_ASSETS.console)
-      .setDisplaySize(R * 2.18, R * 2.18)
+      .setDisplaySize(R * (compact ? 2.02 : 2.18), R * (compact ? 2.02 : 2.18))
       .setDepth(1);
 
     // Board outline
@@ -365,9 +429,11 @@ export class ColorClashScene extends BaseScene {
   }
 
   private lightPad(index: number, on: boolean, alpha = 1): void {
-    const { width: W, height: H } = this.scale;
-    const cx = W / 2, cy = H * 0.44;
-    const R = Math.min(W, H) * 0.41;
+    const W = this.scW;
+    const H = this.scH;
+    const compact = W < 400;
+    const cx = W / 2, cy = H * (compact ? 0.38 : 0.44);
+    const R = Math.min(W, H) * (compact ? 0.30 : 0.41);
     const innerR = R * 0.18;
     this.drawPad(this.padGraphics[index]!, cx, cy, R, innerR, 5, index, on);
     this.padGlows[index]?.setAlpha(on ? alpha * 0.12 : 0);
@@ -377,8 +443,9 @@ export class ColorClashScene extends BaseScene {
 
   private buildCenterHub(W: number, H: number): void {
     const cx = W / 2;
-    const cy = H * 0.44;
-    const R  = Math.min(W, H) * 0.41 * 0.18;
+    const compact = W < 400;
+    const cy = H * (compact ? 0.38 : 0.44);
+    const R  = Math.min(W, H) * (compact ? 0.30 : 0.41) * 0.18;
 
     // Hub circle
     this.add.circle(cx, cy, R, CENTER_BG).setDepth(5);
@@ -396,24 +463,29 @@ export class ColorClashScene extends BaseScene {
   // ── Physical pad buttons ──────────────────────────────────────────────────
 
   private buildPadButtons(W: number, H: number): void {
-    const y = H * 0.745;
-    const startX = W / 2 - 102;
-    const gap = 68;
+    const compact = W < 400;
+    const y = H * (compact ? 0.73 : 0.745);
+    const gap = compact ? Math.max(52, W * 0.17) : 68;
+    const startX = W / 2 - gap * 1.5;
+    const glowSize = compact ? 48 : 58;
+    const padSize = compact ? 46 : 54;
+    const hitRadius = compact ? 26 : 30;
     const names = ["RED", "BLUE", "GREEN", "YELLOW"];
 
     for (let index = 0; index < 4; index++) {
       const container = this.add.container(startX + index * gap, y);
-      const glow = this.add.ellipse(0, 0, 58, 58, PAD_LIT[index]!, 0.16);
+      const glow = this.add.ellipse(0, 0, glowSize, glowSize, PAD_LIT[index]!, 0.16);
       const pad = this.add.image(0, 0, CLASH_ASSETS.pads[index]!)
-        .setDisplaySize(54, 54)
+        .setDisplaySize(padSize, padSize)
         .setScale(0.9);
       const label = this.add.text(0, 35, names[index]!, {
         fontFamily: FONT_FAMILY,
-        fontSize: "8px",
+        fontSize: compact ? "7px" : "8px",
         fontStyle: "bold",
         color: TEXT_MUTED,
       }).setOrigin(0.5);
-      const hit = this.add.circle(0, 0, 30, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      label.setY(compact ? 30 : 35);
+      const hit = this.add.circle(0, 0, hitRadius, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       this.bindGameButton(hit, {
         targets: container,
         pressScale: 0.93,
@@ -558,7 +630,7 @@ export class ColorClashScene extends BaseScene {
       const delay = step % 2 === 0 ? 180 : 320;
       this.flashTimer = this.time.delayedCall(delay, playStep);
     };
-    this.time.delayedCall(300, playStep);
+    this.flashTimer = this.time.delayedCall(300, playStep);
   }
 
   private flashPad(index: number, duration: number): void {

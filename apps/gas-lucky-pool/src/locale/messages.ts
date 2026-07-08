@@ -8,6 +8,7 @@ const appMessagesBase = {
     zh: "分享一份能在 OneGate 内顺畅领取的幸运 GAS 奖励。",
   },
   drawerTitle: { en: "Vault guide", zh: "金库指南" },
+  moreActions: { en: "More actions", zh: "更多操作" },
   title: { en: "OneGate Vault", zh: "OneGate 金库" },
   subtitle: {
     en: "1-50 GAS random rewards via OneGate QR",
@@ -394,6 +395,7 @@ const jaMessages = {
   appTitle: "OneGate Vault",
   appSubtitle: "OneGate内できれいに開ける幸運のGAS報酬を共有します。",
   drawerTitle: "金庫ガイド",
+  moreActions: "その他の操作",
   title: "OneGate Vault（金庫）",
   subtitle: "OneGate QRで1〜50 GASのランダム報酬",
   playTab: "プール",

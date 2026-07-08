@@ -81,6 +81,8 @@ const appMessages = {
   },
   eventHistory: { en: "Event History", zh: "事件历史" },
   historyTitle: { en: "Round history", zh: "轮次历史" },
+  drawerSummaryLabel: { en: "Last Survivor round summary", zh: "最后生还者轮次摘要" },
+  moreActions: { en: "More", zh: "更多" },
   noHistory: { en: "No events yet", zh: "暂无事件记录" },
   failedToLoad: { en: "Failed to load data", zh: "加载数据失败" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },

@@ -122,6 +122,40 @@ describe("useGraveyard — local-hash compose mode", () => {
     expect(graveyard.memoryText.get()).toBe("");
     expect(graveyard.assetHash.get()).toBe("");
   });
+
+  it("hash mode uses the pasted target directly instead of hashing it again", async () => {
+    const { graveyard } = app();
+    const pastedHash = "abc123def4567890";
+
+    graveyard.setComposeMode("hash");
+    await graveyard.setMemoryText(pastedHash, "hash");
+
+    expect(graveyard.memoryText.get()).toBe(pastedHash);
+    expect(graveyard.assetHash.get()).toBe(pastedHash);
+  });
+
+  it("executeDestroy applies the latest UI payload before spending the burial fee", async () => {
+    const { graveyard, mock } = app({ reads: { getUserMemoryCount: "0" } });
+    const expectedHash = await sha256Hex("fresh payload");
+
+    await graveyard.executeDestroy({
+      composeMode: "write",
+      memoryText: "fresh payload",
+      memoryType: 4,
+    });
+
+    expect(mock.invokeWithPayment).toHaveBeenCalledWith(
+      expect.any(String),
+      "miniapp-graveyard:memory",
+      "buryMemory",
+      expect.arrayContaining([
+        expect.objectContaining({ type: "Hash160" }),
+        { type: "String", value: expectedHash },
+        { type: "Integer", value: "4" },
+      ]),
+      expect.objectContaining({ waitForEvent: "MemoryBuried" }),
+    );
+  });
 });
 
 describe("useGraveyard — forget confirmation", () => {

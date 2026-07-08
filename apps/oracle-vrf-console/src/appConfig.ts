@@ -252,6 +252,8 @@ const appMessages = {
     en: "Enter a consumer and salt before building a VRF request.",
     zh: "请输入消费者和盐值后再生成 VRF 请求。",
   },
+  vrfConsumerRequired: { en: "Consumer seed missing", zh: "缺少消费者种子" },
+  vrfSaltRequired: { en: "Salt missing", zh: "缺少盐值" },
   vrfReady: { en: "VRF request ready", zh: "VRF 请求已准备" },
   vrfSummary: {
     en: "{rounds} randomness round(s) prepared",

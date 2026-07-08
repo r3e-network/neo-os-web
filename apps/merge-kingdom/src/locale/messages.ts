@@ -84,6 +84,17 @@ const appMessages = {
   scoreWon: { en: "Total won", zh: "累计赢取" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  drawerSummaryLabel: { en: "Merge Kingdom player summary", zh: "合并王国玩家摘要" },
+  moreActions: { en: "More actions", zh: "更多操作" },
+  poolLabel: { en: "Reward pool", zh: "奖励池" },
+  activeRouteLine: {
+    en: "{route} route · {moves} moves · target {target} · {time}",
+    zh: "{route}路线 · {moves} 步 · 目标 {target} · {time}",
+  },
+  lastResultLine: {
+    en: "Last settlement: {payout} · {time}",
+    zh: "上次结算：{payout} · {time}",
+  },
   leaderboardIntro: {
     en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
     zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",

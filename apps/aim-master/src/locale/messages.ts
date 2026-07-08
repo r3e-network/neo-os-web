@@ -97,12 +97,16 @@ const appMessages = {
   },
 
   scoreReward: { en: "Reward at stake", zh: "本局奖励" },
+  rewardMetric: { en: "Reward", zh: "奖励" },
   scoreTime: { en: "Time left", zh: "剩余时间" },
+  timeMetric: { en: "Time", zh: "时间" },
   scoreRings: { en: "Accuracy hits", zh: "精准命中" },
+  hitsMetric: { en: "Hits", zh: "命中" },
   scoreWon: { en: "Total won", zh: "累计赢取" },
   rewardNow: { en: "{amount} GAS", zh: "{amount} GAS" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  drawerTitleShort: { en: "Rules", zh: "规则" },
   leaderboardIntro: {
     en: "The global ranking is rebuilt from on-chain Solved events.",
     zh: "全网排行由链上 Solved 事件重建。",
@@ -121,10 +125,18 @@ const appMessages = {
     en: "1. Choose a target lane and pay the entry (Warm-up 0.02, Arcade 0.10, Pro 0.20 GAS). 2. The Morpheus enclave seeds a target pattern and binds its hash commitment on-chain. 3. Tap to stop the moving reticle. Land enough accuracy hits (3/5/7) before the deadline (60/90/120 s) to win 0.1/0.5/1 GAS. 4. The enclave replays your taps, gates on human-plausible timing, and signs the result — the contract verifies the signature and commitment before paying.",
     zh: "1. 选择瞄准靶道并支付报名费（热身 0.02、街机 0.10、职业 0.20 GAS）。2. Morpheus 飞地生成靶心模式并将其哈希承诺绑定上链。3. 点击停住移动的靶心。在截止时间内（60/90/120 秒）达到足够的精准命中数（3/5/7）即可赢取 0.1/0.5/1 GAS。4. 飞地回放你的点击，校验人类可信的操作节奏并对结果签名——合约核验签名与承诺一致后才发奖。",
   },
+  rulesShort: {
+    en: "Tap the range when the moving reticle crosses the bullseye.",
+    zh: "当移动准星扫过靶心时点击靶场。",
+  },
   fairnessTitle: { en: "Provably fair target", zh: "可验证公平靶心" },
   fairnessCopy: {
     en: "The target pattern is generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, so the reticle path cannot be seen ahead of time or scripted. This cannot perfectly tell humans from bots, but replaying your input makes the score unforgeable, and timing gates plus entry fees and a bounded pool make farming unprofitable.",
     zh: "靶心模式由 Morpheus TEE 用每局独立的秘密在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此靶心轨迹无法提前获知或脚本化。这无法完美区分人类与机器人，但回放你的输入让分数不可伪造，加上操作节奏校验、报名费与有上限的奖池，使刷分无利可图。",
+  },
+  fairnessShort: {
+    en: "The target path stays sealed in the Morpheus TEE until settlement.",
+    zh: "靶心轨迹在结算前始终密封在 Morpheus TEE 内。",
   },
   commitmentLine: {
     en: "Game #{gameId} · sealed commitment {commitment}",

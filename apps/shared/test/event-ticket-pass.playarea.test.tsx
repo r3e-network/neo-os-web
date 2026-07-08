@@ -210,7 +210,14 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
     expect(inputs[1].value).toBe("Builder lab");
 
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createEvent"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createEvent", expect.objectContaining({
+      eventName: "Hands-on workshop",
+      eventVenue: "Builder lab",
+      eventStart: "2026-08-21 13:00",
+      eventEnd: "2026-08-21 17:00",
+      maxSupply: "120",
+      notes: "Limited-capacity workshop pass with reserved lab seating.",
+    })));
   });
 
   it("keeps disabled live modes visible before the first event exists", () => {
@@ -255,7 +262,12 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
     fireEvent.click(container.querySelectorAll(".ticket-event-card")[1]);
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("selectEvent", "8"));
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("issueTicket"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("issueTicket", expect.objectContaining({
+      eventId: "8",
+      recipient: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq",
+      seat: "General",
+      memo: "",
+    })));
   });
 
   it("runs lookup and check-in from the scanner desk", async () => {
@@ -286,9 +298,9 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
     expect(container.querySelector(".ticket-gate-pass")?.textContent).toContain("VIP");
     expect(container.querySelector(".ticket-verdict-card")?.textContent).toContain("Neo Builder Summit");
     fireEvent.click(container.querySelector(".ticket-secondary-action") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("lookupTicket"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("lookupTicket", { tokenId: "7-1" }));
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("checkInTicket"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("checkInTicket", { tokenId: "7-1" }));
   });
 
   it("lets gate staff select an issued pass instead of typing a token id", () => {
@@ -447,6 +459,10 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
       path.join(appsRoot, "shared/styles/v2/_motion.scss"),
       "utf8",
     );
+    const playArea = fs.readFileSync(
+      path.join(appsRoot, "event-ticket-pass/src/PlayArea.tsx"),
+      "utf8",
+    );
     expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
     expect(styles).toContain("--mx2-stage-floor: #ffffff");
     expect(styles).toContain("--mx2-accent: #db2777");
@@ -480,6 +496,8 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
     expect(styles).toMatch(/ticket-recipient-chip--active[\s\S]*background:\s*var\(--mx2-accent\)/);
     expect(styles).toMatch(/ticket-empty-prompt[\s\S]*grid-column:\s*3/);
     expect(styles).toMatch(/ticket-address-strip[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/ticket-address-strip \.mx2-open-field__control\.semi-input-wrapper[\s\S]*background:\s*transparent/);
+    expect(styles).toMatch(/ticket-scan-slot \.mx2-open-field__control\.semi-input-wrapper[\s\S]*background:\s*transparent/);
     expect(styles).toMatch(/ticket-scanner-console[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\) auto/);
     expect(styles).toMatch(/ticket-gate-queue,[\s\S]*ticket-verdict-card\s*\{[\s\S]*grid-column:\s*3/);
     expect(styles).toMatch(/ticket-gate-queue__list[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
@@ -499,6 +517,14 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
     expect(sharedStyles).toMatch(/mx2-open-notice\.semi-banner[\s\S]*border-radius:\s*var\(--mx2-r-lg\)/);
     expect(motionStyles).toMatch(/@keyframes mx2-drawer-in[\s\S]*translateY\(12px\)/);
     expect(motionStyles).not.toContain("translateY(100%)");
+    expect(playArea).not.toContain('dispatch("createEvent")');
+    expect(playArea).not.toContain('dispatch("issueTicket")');
+    expect(playArea).not.toContain('dispatch("lookupTicket")');
+    expect(playArea).not.toContain('dispatch("checkInTicket")');
+    expect(playArea).toContain('dispatch("createEvent", eventDraftPayload)');
+    expect(playArea).toContain('dispatch("issueTicket", issuePayload)');
+    expect(playArea).toContain('dispatch("lookupTicket", checkinPayload)');
+    expect(playArea).toContain('dispatch("checkInTicket", checkinPayload)');
     expect(styles).toMatch(/ticket-drawer-field:not\(\.ticket-drawer-field--wide\)\.mx2-open-field[\s\S]*grid-template-columns:\s*minmax\(82px,\s*0\.42fr\) minmax\(0,\s*1fr\)/);
     expect(styles).toMatch(/ticket-drawer-field \.mx2-open-field__control[\s\S]*min-height:\s*38px/);
     expect(styles).toMatch(/ticket-drawer-panel--event \.ticket-drawer-fields[\s\S]*background:\s*var\(--mx2-brand-light\)/);

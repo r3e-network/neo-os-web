@@ -343,12 +343,61 @@
   text-align: right;
 }
 
-.selfloan-amount-box {
+.selfloan-vault-picker {
+  min-width: 0;
   display: grid;
-  gap: 7px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: var(--mx2-r-lg);
+  padding: 12px;
+  background: #ffffff;
 }
 
-.selfloan-amount-box span {
+.selfloan-vault-picker__vault {
+  width: 72px;
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(5, 150, 105, 0.18);
+  border-radius: 20px;
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+}
+
+.selfloan-vault-picker__vault .mx2-coin:first-child,
+.selfloan-vault-picker__vault .mx2-coin:nth-child(2),
+.selfloan-vault-picker__vault span {
+  grid-area: 1 / 1;
+}
+
+.selfloan-vault-picker__vault .mx2-coin:first-child {
+  transform: translate(-9px, -3px) rotate(-8deg);
+}
+
+.selfloan-vault-picker__vault .mx2-coin:nth-child(2) {
+  transform: translate(12px, 12px) rotate(9deg);
+}
+
+.selfloan-vault-picker__vault span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(5, 150, 105, 0.22);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.12);
+}
+
+.selfloan-vault-picker__amount {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.selfloan-vault-picker__amount > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -357,24 +406,81 @@
   font-weight: 620;
 }
 
-.selfloan-amount-input {
-  width: 100%;
+.selfloan-vault-picker__field {
   min-width: 0;
-  height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
   border: 1.5px solid var(--mx2-border-strong);
   border-radius: var(--mx2-r);
   padding: 0 14px;
   background: #ffffff;
+}
+
+.selfloan-vault-picker__field:focus-within {
+  border-color: var(--mx2-accent);
+  box-shadow: var(--mx2-shadow-glow);
+}
+
+.selfloan-vault-picker__field strong {
+  color: var(--mx2-brand-hover);
+  font-size: 14px;
+  font-weight: 680;
+}
+
+.selfloan-vault-picker__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.selfloan-amount-input {
+  width: 100%;
+  min-width: 0;
+  height: 54px;
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: var(--mx2-ink);
   font: inherit;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 680;
 }
 
 .selfloan-amount-input:focus {
   outline: none;
-  border-color: var(--mx2-accent);
-  box-shadow: var(--mx2-shadow-glow);
+}
+
+.selfloan-vault-picker__amount small {
+  overflow: hidden;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selfloan-vault-picker__steppers {
+  display: grid;
+  gap: 7px;
+}
+
+.selfloan-vault-picker__steppers button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mx2-brand-subtle);
+  border-radius: 13px;
+  background: var(--mx2-brand-light);
+  color: var(--mx2-brand-hover);
+  cursor: pointer;
+  font: inherit;
 }
 
 .selfloan-quick-row,
@@ -385,7 +491,7 @@
 }
 
 .selfloan-quick-row {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .selfloan-quick-row button,
@@ -407,6 +513,11 @@
   color: var(--mx2-brand-hover);
   font-size: 12px;
   font-weight: 680;
+}
+
+.selfloan-quick-row__max {
+  background: var(--mx2-accent-soft) !important;
+  color: var(--mx2-accent-strong) !important;
 }
 
 .selfloan-tier-grid {
@@ -463,6 +574,7 @@
 }
 
 .selfloan-quick-row button:disabled,
+.selfloan-vault-picker__steppers button:disabled,
 .selfloan-tier-card:disabled,
 .selfloan-amount-input:disabled,
 .selfloan-reclaim-row button:disabled {
@@ -585,10 +697,99 @@
 }
 
 @media (max-width: 560px) {
-  .selfloan-scene__route,
   .selfloan-tier-grid,
   .selfloan-reclaim-row {
     grid-template-columns: 1fr;
+  }
+
+  .selfloan-scene {
+    min-height: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .selfloan-scene__position,
+  .selfloan-scene__meter {
+    align-self: stretch;
+    padding: 12px;
+  }
+
+  .selfloan-scene__asset-row {
+    min-height: 44px;
+    justify-content: flex-start;
+  }
+
+  .selfloan-scene__asset-row .mx2-coin:first-child {
+    width: 42px;
+    height: 42px;
+  }
+
+  .selfloan-scene__asset-row .mx2-coin:nth-child(2) {
+    width: 32px;
+    height: 32px;
+  }
+
+  .selfloan-scene__lock-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
+  .selfloan-token-value strong {
+    font-size: 34px;
+  }
+
+  .selfloan-token-value span {
+    font-size: 16px;
+  }
+
+  .selfloan-scene__position p,
+  .selfloan-scene__chips span,
+  .selfloan-scene__meter-copy small {
+    font-size: 10px;
+  }
+
+  .selfloan-scene__chips {
+    gap: 5px;
+  }
+
+  .selfloan-scene__chips span {
+    padding: 6px 8px;
+  }
+
+  .selfloan-scene__meter-ring {
+    width: min(100%, 136px);
+  }
+
+  .selfloan-scene__meter-ring::before {
+    inset: 18px;
+  }
+
+  .selfloan-scene__meter-ring span {
+    font-size: 32px;
+  }
+
+  .selfloan-scene__meter-ring small {
+    margin-bottom: 30px;
+  }
+
+  .selfloan-scene__meter-copy strong {
+    font-size: 22px;
+  }
+
+  .selfloan-scene__route {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .selfloan-scene__route span {
+    min-width: 0;
+    padding: 8px 5px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .self-loan-play-area .mx2-score__item {

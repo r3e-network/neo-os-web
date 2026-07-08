@@ -22,8 +22,8 @@
  *
  * Actions dispatched to React:
  *  - "startGame"      { difficulty: number }
- *  - "recordJump"     { chargeLevel: number, platformIndex: number }
- *  - "submitSolution" {}
+ *  - "recordJump"     { chargeMs: number, chargeLevel: number, platformIndex: number }
+ *  - "submitRun"      {}
  *  - "expireGame"     {}
  */
 
@@ -55,6 +55,8 @@ const BUNNY_H = 62;
 
 /** Charge fill duration (ms) for 0→100 %. */
 const CHARGE_FULL_MS = 2000;
+const SUBMIT_BUFFER_MS = 15_000;
+const MIN_SOLVE_BUFFER_MS = 10_000;
 
 /** Jump arc height in world-space pixels above the direct line. */
 const JUMP_ARC_H = 90;
@@ -143,6 +145,9 @@ export class JumpRushScene extends BaseScene {
   private progressDots: Phaser.GameObjects.Arc[] = [];
   private perfectLabel!: Phaser.GameObjects.Text;
   private submitContainer!: Phaser.GameObjects.Container;
+  private submitButtonBg!: Phaser.GameObjects.Graphics;
+  private submitLabel!: Phaser.GameObjects.Text;
+  private submitHint!: Phaser.GameObjects.Text;
 
   private chargeBarContainer!: Phaser.GameObjects.Container;
   private chargeFill!: Phaser.GameObjects.Rectangle;
@@ -150,7 +155,13 @@ export class JumpRushScene extends BaseScene {
 
   private lobbyContainer!: Phaser.GameObjects.Container;
   private lobbyStartButton!: Phaser.GameObjects.Container;
+  private lobbyStartBg!: Phaser.GameObjects.Graphics;
+  private lobbyStartLabel!: Phaser.GameObjects.Text;
+  private lobbyStartHint!: Phaser.GameObjects.Text;
   private loadingOverlay!: Phaser.GameObjects.Container;
+  private missOverlay!: Phaser.GameObjects.Container;
+  private missUndoBg!: Phaser.GameObjects.Graphics;
+  private missUndoLabel!: Phaser.GameObjects.Text;
 
   // ── Local game state ───────────────────────────────────────────────────────
   private currentPlatformIndex = 0;
@@ -159,6 +170,7 @@ export class JumpRushScene extends BaseScene {
   private isJumping = false;
   private comboCount = 0;
   private allCleared = false;
+  private hasMissed = false;
   private platforms: PlatformData[] = [];
 
   private chargeStartTime = 0;
@@ -167,6 +179,7 @@ export class JumpRushScene extends BaseScene {
   // ── Cached state for change-detection ─────────────────────────────────────
   private prevGameStatus = "";
   private prevDeadline = 0;
+  private prevUndosUsed = 0;
   private prevPlatformsView: number[] = [];
 
   // ── World dimensions ───────────────────────────────────────────────────────
@@ -198,6 +211,8 @@ export class JumpRushScene extends BaseScene {
     this.buildChargeBar();
     this.buildLobby();
     this.buildLoadingOverlay();
+    this.buildMissOverlay();
+    this.fitCameraToHost();
 
     // Pointer / space charge mechanics
     this.input.on("pointerdown", this.onChargeStart, this);
@@ -228,17 +243,29 @@ export class JumpRushScene extends BaseScene {
     const isStarting = this.bool("isStarting");
     const isDealing  = this.bool("isDealing");
     const isSubmitting = this.bool("isSubmitting");
+    const undosUsed  = this.num("undosUsed", 0);
     const pView      = (this.val<number[]>("platformsView") ?? []) as number[];
 
     const statusChanged  = status !== this.prevGameStatus;
-    const platformsChanged = pView.length !== this.prevPlatformsView.length;
+    const platformsChanged =
+      pView.length !== this.prevPlatformsView.length ||
+      pView.some((item, index) => item !== this.prevPlatformsView[index]);
+    const undoChanged = undosUsed !== this.prevUndosUsed;
 
     this.prevGameStatus    = status;
     this.prevDeadline      = deadline;
+    this.prevUndosUsed     = undosUsed;
 
     // Loading overlay (committed / isDealing)
     const showLoading = status === "committed" || isDealing || isStarting;
     this.loadingOverlay.setVisible(showLoading);
+    this.refreshLobbyStartButton();
+
+    if (status !== "dealt") {
+      this.clearMissState(false);
+    } else if (undoChanged && this.hasMissed) {
+      this.clearMissState(true);
+    }
 
     if (status === "idle" || status === "solved" || status === "expired") {
       this.lobbyContainer.setVisible(true);
@@ -246,6 +273,7 @@ export class JumpRushScene extends BaseScene {
       this.hudContainer.setVisible(false);
       this.chargeBarContainer.setVisible(false);
       this.submitContainer.setVisible(false);
+      this.missOverlay.setVisible(false);
       if (statusChanged) this.refreshLobbyCards(difficulty);
       return;
     }
@@ -253,12 +281,13 @@ export class JumpRushScene extends BaseScene {
     this.lobbyContainer.setVisible(false);
     this.worldContainer.setVisible(true);
     this.hudContainer.setVisible(true);
-    this.chargeBarContainer.setVisible(status === "dealt" && !this.allCleared);
+    this.chargeBarContainer.setVisible(status === "dealt" && !this.allCleared && !this.hasMissed && !this.bool("timeUp"));
 
     if (status === "dealt" && platformsChanged && pView.length > 0) {
       this.prevPlatformsView = pView.slice();
       this.buildGameWorld(pView, difficulty);
       this.allCleared = false;
+      this.hasMissed = false;
       this.currentPlatformIndex = 0;
       this.comboCount = 0;
       this.chargeLevel = 0;
@@ -267,10 +296,13 @@ export class JumpRushScene extends BaseScene {
       this.refreshProgressDots();
       this.refreshCombo();
       this.scrollToPlatform(0, false);
+      this.refreshMissOverlay();
     }
 
     if (status === "dealt") {
-      this.submitContainer.setVisible(this.allCleared && !isSubmitting);
+      this.submitContainer.setVisible(this.allCleared && !this.hasMissed && !isSubmitting);
+      this.refreshSubmitButton();
+      this.refreshMissOverlay();
     }
   }
 
@@ -278,9 +310,11 @@ export class JumpRushScene extends BaseScene {
 
   private buildBackground(): void {
     this.add.rectangle(W / 2, H / 2, W, H, C.canvasWarm);
+    this.add.rectangle(W / 2, H * 0.32, W, H * 0.64, C.skyTop, 0.42);
+    this.add.rectangle(W / 2, H * 0.72, W, H * 0.2, C.skyBot, 0.72);
 
     const gfx = this.add.graphics();
-    gfx.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1);
+    gfx.fillGradientStyle(C.skyTop, C.skyTop, C.skyBot, C.skyBot, 1, 1, 1, 1);
     gfx.fillRect(0, 0, W, H * 0.82);
 
     const clouds = [
@@ -568,27 +602,92 @@ export class JumpRushScene extends BaseScene {
   private buildSubmitButton(): Phaser.GameObjects.Container {
     const cont = this.add.container(W / 2, H * 0.5);
 
-    const bg = this.add.rectangle(0, 0, 180, 50, C.submitBtn)
-      .setStrokeStyle(2, C.submitBtnHov)
-      .setOrigin(0.5)
+    this.submitButtonBg = this.add.graphics();
+    const hit = this.add.zone(0, 0, 198, 66)
       .setInteractive({ useHandCursor: true });
 
-    bg.on("pointerover",  () => bg.setFillStyle(C.submitBtnHov));
-    bg.on("pointerout",   () => bg.setFillStyle(C.submitBtn));
-    bg.on("pointerdown",  () => {
+    hit.on("pointerover",  () => this.refreshSubmitButton(true));
+    hit.on("pointerout",   () => this.refreshSubmitButton(false));
+    hit.on("pointerdown",  () => {
+      if (!this.canSubmitRun()) {
+        this.tweens.add({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
+        return;
+      }
       this.tweens.add({ targets: cont, scale: 0.94, duration: 60, yoyo: true });
-      this.dispatch("submitSolution", {});
+      this.dispatch("submitRun", {});
     });
 
-    const txt = this.add.text(0, 0, "SUBMIT RUN", {
-      fontSize:  "18px",
+    this.submitLabel = this.add.text(0, -7, "SUBMIT RUN", {
+      fontSize:  "17px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#ffffff",
     }).setOrigin(0.5);
 
-    cont.add([bg, txt]);
+    this.submitHint = this.add.text(0, 15, "TEE settlement", {
+      fontSize:  "10px",
+      fontFamily: FONT_FAMILY,
+      color:     "#ffffff",
+    }).setOrigin(0.5).setAlpha(0.82);
+
+    cont.add([this.submitButtonBg, hit, this.submitLabel, this.submitHint]);
+    this.refreshSubmitButton();
     return cont;
+  }
+
+  private canSubmitRun(): boolean {
+    return (
+      this.str("gameStatus") === "dealt" &&
+      this.allCleared &&
+      !this.hasMissed &&
+      this.bool("minSolveReached") &&
+      !this.bool("timeUp") &&
+      !this.bool("submitWindowClosed") &&
+      !this.bool("isSubmitting")
+    );
+  }
+
+  private refreshSubmitButton(hover = false): void {
+    if (!this.submitButtonBg || !this.submitLabel || !this.submitHint) return;
+    const canSubmit = this.canSubmitRun();
+    const antiBotWaitMs = this.bool("minSolveReached")
+      ? 0
+      : this.minSolveRemainingMs();
+
+    this.submitButtonBg.clear();
+    this.submitButtonBg.fillStyle(canSubmit ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    this.submitButtonBg.fillRoundedRect(-104, -30, 208, 60, 12);
+    this.submitButtonBg.lineStyle(2, canSubmit ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.submitButtonBg.strokeRoundedRect(-104, -30, 208, 60, 12);
+    this.submitLabel.setColor(canSubmit ? "#ffffff" : "#4b443c");
+    this.submitHint.setColor(canSubmit ? "#ffffff" : "#6d645b");
+    this.submitHint.setAlpha(canSubmit ? 0.82 : 1);
+
+    if (canSubmit) {
+      this.submitLabel.setText("SUBMIT RUN");
+      this.submitHint.setText("Verified payout");
+      return;
+    }
+
+    if (this.bool("timeUp") || this.bool("submitWindowClosed")) {
+      this.submitLabel.setText("TIME EXPIRED");
+      this.submitHint.setText("Release this run");
+    } else if (!this.bool("minSolveReached")) {
+      const lockedMs = Math.max(0, antiBotWaitMs || SUBMIT_BUFFER_MS);
+      this.submitLabel.setText(`WAIT ${formatClock(lockedMs)}`);
+      this.submitHint.setText("Anti-bot floor");
+    } else {
+      this.submitLabel.setText("KEEP JUMPING");
+      this.submitHint.setText("Target not cleared");
+    }
+  }
+
+  private minSolveRemainingMs(): number {
+    const difficulty = this.num("gameDifficulty", 0);
+    const elapsed = this.num("elapsedMs", 0);
+    const rules = (this.val<Array<{ difficulty: number; minSolveMs: number }>>("difficultyRules") ?? []);
+    const rule = rules.find((item) => item.difficulty === difficulty);
+    return Math.max(0, (rule?.minSolveMs ?? 0) + MIN_SOLVE_BUFFER_MS - elapsed);
   }
 
   private refreshTimerBar(): void {
@@ -756,35 +855,73 @@ export class JumpRushScene extends BaseScene {
 
   private buildLobbyStartButton(): Phaser.GameObjects.Container {
     const cont = this.add.container(W / 2, H - 72);
-    const bg = this.add.graphics();
-    const drawButton = (fill: number): void => {
-      bg.clear();
-      bg.fillStyle(fill, 1);
-      bg.fillRoundedRect(-106, -22, 212, 44, 12);
-      bg.lineStyle(2, C.submitBtnHov, 1);
-      bg.strokeRoundedRect(-106, -22, 212, 44, 12);
-    };
-    drawButton(C.submitBtn);
-    bg.setInteractive(
+    this.lobbyStartBg = this.add.graphics();
+    this.lobbyStartBg.setInteractive(
       new Phaser.Geom.Rectangle(-106, -22, 212, 44),
       Phaser.Geom.Rectangle.Contains,
     );
-    const label = this.add.text(0, 0, "Start Jump", {
+    this.lobbyStartLabel = this.add.text(0, -4, "Start Jump", {
       fontSize: "15px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
 
-    bg.on("pointerover", () => drawButton(C.submitBtnHov));
-    bg.on("pointerout", () => drawButton(C.submitBtn));
-    bg.on("pointerdown", () => {
+    this.lobbyStartHint = this.add.text(0, 14, "", {
+      fontSize: "10px",
+      fontFamily: FONT_FAMILY,
+      color: "#ffffff",
+    }).setOrigin(0.5).setAlpha(0.82);
+
+    this.lobbyStartBg.on("pointerover", () => this.refreshLobbyStartButton(true));
+    this.lobbyStartBg.on("pointerout", () => this.refreshLobbyStartButton(false));
+    this.lobbyStartBg.on("pointerdown", () => {
+      if (!this.canStartRun()) {
+        this.tweens.add({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
+        return;
+      }
       this.tweens.add({ targets: cont, scale: 0.96, duration: 80, yoyo: true });
       this.dispatch("startGame", { difficulty: this.selectedDifficulty });
     });
 
-    cont.add([bg, label]);
+    cont.add([this.lobbyStartBg, this.lobbyStartLabel, this.lobbyStartHint]);
+    this.refreshLobbyStartButton();
     return cont;
+  }
+
+  private canStartRun(): boolean {
+    const status = this.str("gameStatus", "idle");
+    return (
+      (status === "idle" || status === "solved" || status === "expired") &&
+      !this.bool("isStarting") &&
+      !this.bool("isDealing") &&
+      !this.bool("isSubmitting") &&
+      this.poolCanCoverSelectedRoute()
+    );
+  }
+
+  private poolCanCoverSelectedRoute(): boolean {
+    const poolFree = this.num("poolFree", 0);
+    const rules = (this.val<Array<{ difficulty: number; rewardGas: number }>>("difficultyRules") ?? []);
+    const rule = rules.find((item) => item.difficulty === this.selectedDifficulty);
+    return poolFree >= (rule?.rewardGas ?? 0);
+  }
+
+  private refreshLobbyStartButton(hover = false): void {
+    if (!this.lobbyStartBg || !this.lobbyStartLabel || !this.lobbyStartHint) return;
+    const canStart = this.canStartRun();
+    const isBusy = this.bool("isStarting") || this.bool("isDealing");
+
+    this.lobbyStartBg.clear();
+    this.lobbyStartBg.fillStyle(canStart ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    this.lobbyStartBg.fillRoundedRect(-106, -24, 212, 48, 12);
+    this.lobbyStartBg.lineStyle(2, canStart ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.lobbyStartBg.strokeRoundedRect(-106, -24, 212, 48, 12);
+    this.lobbyStartLabel.setColor(canStart ? "#ffffff" : "#4b443c");
+    this.lobbyStartHint.setColor(canStart ? "#ffffff" : "#6d645b");
+    this.lobbyStartHint.setAlpha(canStart ? 0.82 : 1);
+    this.lobbyStartLabel.setText(isBusy ? "Preparing..." : "Start Jump");
+    this.lobbyStartHint.setText(canStart ? "Pay entry and seal route" : "Pool refilling");
   }
 
   private refreshLobbyCards(currentDifficulty: number): void {
@@ -832,6 +969,75 @@ export class JumpRushScene extends BaseScene {
     this.loadingOverlay.setVisible(false);
   }
 
+  private buildMissOverlay(): void {
+    this.missOverlay = this.add.container(W / 2, H / 2).setDepth(40);
+
+    const dim = this.add.rectangle(0, 0, W, H, C.overlay, 0.18).setOrigin(0.5);
+    const panel = this.add.rectangle(0, 0, 260, 178, C.surface, 0.96)
+      .setStrokeStyle(1, C.border)
+      .setOrigin(0.5);
+    const bunny = this.add.image(0, -42, JR_ASSETS.bunnyHurt)
+      .setOrigin(0.5, 1)
+      .setDisplaySize(48, 64);
+    const title = this.add.text(0, -26, "Missed the platform", {
+      fontSize:  "17px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color:     "#1a1a19",
+    }).setOrigin(0.5);
+    const copy = this.add.text(0, -2, "Use an undo or wait for expiry.", {
+      fontSize:  "11px",
+      fontFamily: FONT_FAMILY,
+      color:     "#5c5a56",
+      align:     "center",
+      wordWrap:  { width: 206 },
+    }).setOrigin(0.5);
+
+    this.missUndoBg = this.add.graphics();
+    this.missUndoBg.setInteractive(
+      new Phaser.Geom.Rectangle(-88, 32, 176, 38),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    this.missUndoBg.on("pointerover", () => this.refreshMissOverlay(true));
+    this.missUndoBg.on("pointerout", () => this.refreshMissOverlay(false));
+    this.missUndoBg.on("pointerdown", () => {
+      if (this.num("undosLeft", 0) <= 0 || this.bool("isUndoing")) return;
+      this.dispatch("useUndo", {});
+    });
+    this.missUndoLabel = this.add.text(0, 51, "UNDO JUMP", {
+      fontSize:  "12px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color:     "#ffffff",
+    }).setOrigin(0.5);
+
+    this.missOverlay.add([dim, panel, bunny, title, copy, this.missUndoBg, this.missUndoLabel]);
+    this.missOverlay.setVisible(false);
+  }
+
+  private refreshMissOverlay(hover = false): void {
+    if (!this.missOverlay || !this.missUndoBg || !this.missUndoLabel) return;
+    this.missOverlay.setVisible(this.hasMissed && this.str("gameStatus") === "dealt");
+    const canUndo = this.num("undosLeft", 0) > 0 && !this.bool("isUndoing");
+    this.missUndoBg.clear();
+    this.missUndoBg.fillStyle(canUndo ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    this.missUndoBg.fillRoundedRect(-88, 32, 176, 38, 10);
+    this.missUndoBg.lineStyle(2, canUndo ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.missUndoBg.strokeRoundedRect(-88, 32, 176, 38, 10);
+    this.missUndoLabel.setText(canUndo ? `UNDO (${this.num("undosLeft", 0)} LEFT)` : "NO UNDOS LEFT");
+  }
+
+  private clearMissState(animated: boolean): void {
+    if (!this.hasMissed) return;
+    this.hasMissed = false;
+    this.setBunnyPose("idle");
+    this.bunny?.setAngle(0);
+    this.missOverlay?.setVisible(false);
+    this.chargeBarContainer?.setVisible(this.str("gameStatus") === "dealt" && !this.allCleared);
+    this.placeBunnyOnPlatform(this.currentPlatformIndex, animated);
+    this.startBunnyIdle();
+  }
+
   // ── Input handlers ─────────────────────────────────────────────────────────
 
   private onChargeStart(): void {
@@ -839,6 +1045,10 @@ export class JumpRushScene extends BaseScene {
       this.isJumping ||
       this.isCharging ||
       this.allCleared ||
+      this.hasMissed ||
+      this.bool("timeUp") ||
+      this.bool("isSubmitting") ||
+      this.bool("isUndoing") ||
       this.str("gameStatus") !== "dealt"
     ) return;
 
@@ -860,7 +1070,7 @@ export class JumpRushScene extends BaseScene {
   }
 
   private onChargeRelease(): void {
-    if (!this.isCharging || this.isJumping) return;
+    if (!this.isCharging || this.isJumping || this.hasMissed) return;
     this.isCharging = false;
     const charge    = this.chargeLevel;
     this.chargeLevel = 0;
@@ -886,10 +1096,14 @@ export class JumpRushScene extends BaseScene {
       duration: 80,
     });
 
-    // Landing X: centre of target ± horizontal offset based on charge accuracy
+    // Landing X: centre of target ± horizontal offset based on charge accuracy.
+    // Harder routes widen the possible miss band, so extreme charge values can
+    // visibly overshoot instead of always landing somewhere on the platform.
     const idealCharge = 50; // 50% is "ideal" for a centred landing
     const chargeError = (chargeLevel - idealCharge) / 100; // -0.5 → +0.5
-    const landingOffsetX = chargeError * (to.width * 0.8);
+    const difficulty = this.num("gameDifficulty", 0);
+    const missBand = to.width * (difficulty === 2 ? 1.24 : difficulty === 1 ? 1.12 : 1.0) + 18;
+    const landingOffsetX = chargeError * missBand * 2;
     const landingX = to.x + landingOffsetX;
     const landingY = to.y - 2;
 
@@ -921,6 +1135,7 @@ export class JumpRushScene extends BaseScene {
 
     // Record jump with React
     this.dispatch("recordJump", {
+      chargeMs:      Math.round((chargeLevel / 100) * CHARGE_FULL_MS),
       chargeLevel:   Math.round(chargeLevel),
       platformIndex: this.currentPlatformIndex + 1,
     });
@@ -936,6 +1151,12 @@ export class JumpRushScene extends BaseScene {
 
     // Perfect-landing detection: offset from platform centre
     const centreOffset = Math.abs(landingOffsetX);
+    const landed = centreOffset <= platform.width / 2;
+    if (!landed) {
+      this.onMissedLanding();
+      return;
+    }
+
     const isPerfect    = centreOffset <= platform.width * PERFECT_ZONE_HALF;
 
     if (isPerfect) {
@@ -960,6 +1181,30 @@ export class JumpRushScene extends BaseScene {
     } else {
       this.scrollToPlatform(this.currentPlatformIndex, true);
       this.startBunnyIdle();
+    }
+  }
+
+  private onMissedLanding(): void {
+    this.isJumping = false;
+    this.isCharging = false;
+    this.hasMissed = true;
+    this.comboCount = 0;
+    this.chargeLevel = 0;
+    this.refreshChargeFill();
+    this.refreshCombo();
+    this.setBunnyPose("hurt");
+    this.stopBunnyIdle();
+    this.chargeBarContainer.setVisible(false);
+    this.submitContainer.setVisible(false);
+    this.refreshMissOverlay();
+    if (this.bunny) {
+      this.tweens.add({
+        targets:  this.bunny,
+        angle:    this.bunny.x < W / 2 ? -8 : 8,
+        duration: 120,
+        yoyo:     true,
+        repeat:   1,
+      });
     }
   }
 
@@ -1077,9 +1322,19 @@ export class JumpRushScene extends BaseScene {
 
   // ── Resize ─────────────────────────────────────────────────────────────────
 
-  protected onResize(_gameSize: Phaser.Structs.Size): void {
-    // Restart scene to reflow at new dimensions (simplest correct approach)
-    this.scene.restart();
+  protected onResize(): void {
+    this.fitCameraToHost();
+  }
+
+  private fitCameraToHost(): void {
+    const viewW = Math.max(1, Math.round(this.scale.width || W));
+    const viewH = Math.max(1, Math.round(this.scale.height || H));
+    const zoom = Math.min(viewW / W, viewH / H);
+
+    this.cameras.main
+      .setViewport(0, 0, viewW, viewH)
+      .setZoom(zoom)
+      .centerOn(W / 2, H / 2);
   }
 
   // ── Cleanup ────────────────────────────────────────────────────────────────

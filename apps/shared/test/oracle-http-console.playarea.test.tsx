@@ -27,9 +27,24 @@ function t(key: string) {
     httpUrlReadyHint: "Ready for oracle preview.",
     httpValidationReady: "Inputs ready",
     httpPathReadyHint: "JSONPath syntax is ready.",
+    httpMethodTitle: "Transport mode",
+    httpMethodGetHint: "Read a public endpoint without a request body.",
+    httpMethodPostHint: "Include a compact body in the preview digest.",
+    httpBodyGetHint: "Disabled for GET because the digest omits request bodies.",
+    httpBodyPostHint: "Included only for POST and folded into the digest.",
+    httpBodyState: "Body",
+    httpBodyIncluded: "Body included",
+    httpBodyIgnored: "No body for GET",
+    httpInvalidPath: "Enter a valid JSON path",
+    httpInvalidUrl: "Enter a valid http(s) URL",
+    httpUrlInvalidHint: "Use a valid http(s) URL before previewing.",
+    httpPathInvalidHint: "Start with $ and avoid unfinished brackets or trailing dots.",
     httpStatusLabel: "HTTP request status",
     detailsLabel: "Details",
+    body: "Body",
+    bodyPlaceholder: "Optional POST body",
     jsonPath: "JSON Path",
+    jsonPathPlaceholder: "$.status",
     lastStatus: "Status",
     method: "Method",
     panelEyebrow: "Oracle",
@@ -40,6 +55,8 @@ function t(key: string) {
     statRequests: "Requests",
     statusReady: "Ready",
     url: "URL",
+    urlPlaceholder: "https://morpheus.example/health",
+    reset: "Reset",
   };
   return m[key] ?? key;
 }
@@ -80,7 +97,59 @@ describe("oracle-http-console PlayArea (v2)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Build Request/ }));
 
-    expect(dispatch).toHaveBeenCalledWith("buildRequest");
+    expect(dispatch).toHaveBeenCalledWith("buildRequest", expect.objectContaining({
+      method: "GET",
+      jsonPath: "$.status",
+      body: "",
+    }));
+  });
+
+  it("keeps editable HTTP parameters in the drawer and dispatches the composed request", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    expect(container.querySelector(".mx2-stage__scene input, .mx2-stage__scene textarea")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".oracle-http-composer input.semi-input"));
+    const body = container.querySelector<HTMLTextAreaElement>(".oracle-http-field--body textarea.semi-input-textarea");
+    expect(inputs.length).toBeGreaterThanOrEqual(2);
+    expect(body).toBeTruthy();
+
+    fireEvent.click(screen.getByText("POST"));
+    fireEvent.change(inputs[0], { target: { value: "https://api.example.test/prices" } });
+    fireEvent.change(inputs[1], { target: { value: "$.data.price" } });
+    fireEvent.change(body as HTMLTextAreaElement, { target: { value: "{\"symbol\":\"GAS\"}" } });
+    fireEvent.click(screen.getByRole("button", { name: /Build Request/ }));
+
+    expect(dispatch).toHaveBeenCalledWith("buildRequest", expect.objectContaining({
+      method: "POST",
+      url: "https://api.example.test/prices",
+      jsonPath: "$.data.price",
+      body: "{\"symbol\":\"GAS\"}",
+    }));
+  });
+
+  it("blocks invalid URL or JSONPath before dispatching preview", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".oracle-http-composer input.semi-input"));
+    const primary = screen.getByRole("button", { name: /Build Request/ }) as HTMLButtonElement;
+
+    fireEvent.change(inputs[0], { target: { value: "ftp://example.test/feed" } });
+    expect(primary.disabled).toBe(true);
+    expect(container.textContent).toContain("Enter a valid http(s) URL");
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(inputs[0], { target: { value: "https://api.example.test/feed" } });
+    fireEvent.change(inputs[1], { target: { value: "status." } });
+    expect(primary.disabled).toBe(true);
+    expect(container.textContent).toContain("Enter a valid JSON path");
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("uses a task-mode Open UI details drawer instead of raw paragraphs", () => {
@@ -109,6 +178,11 @@ describe("oracle-http-console PlayArea (v2)", () => {
     const source = playAreaSource("oracle-http-console");
 
     expect(source).toContain("OpenUiSegmented");
+    expect(source).toContain("OpenUiTextField");
+    expect(source).toContain("OpenUiTextArea");
+    expect(source).toContain("if (!canPreview) return;");
+    expect(source).toContain("disabled: !canPreview || actionPreview");
+    expect(source).toContain('dispatch("buildRequest", values)');
     expect(source).not.toContain('role="tablist"');
     expect(source).not.toContain('role="tab"');
     expect(s).toContain("@media (prefers-reduced-motion: reduce)");
@@ -126,12 +200,15 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(s).toMatch(/\.oracle-http-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/\.oracle-http-drawer__panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*20px/);
     expect(s).toMatch(/\.oracle-http-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(s).toMatch(/\.oracle-http-composer__grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.25fr\) minmax\(190px,\s*0\.75fr\)/);
+    expect(s).toMatch(/\.oracle-http-input--body\.mx2-open-field__control--textarea\s*\{[\s\S]*resize:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-track,\s*\n\s*\.oracle-http-receipt__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-request__copy\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-track__item small\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-lane__art\s*\{[\s\S]*height:\s*92px/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-composer__grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-drawer-tab strong\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-console-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/\.oracle-console-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 184px/);

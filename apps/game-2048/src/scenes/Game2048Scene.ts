@@ -26,8 +26,8 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
-import { tileValue } from "../logic/engine-2048";
-import { DIFFICULTY_RULES, gasDisplay } from "../logic/game-rules";
+import { applyMove, hasAnyMove, tileValue } from "../logic/engine-2048";
+import { DIFFICULTY_RULES, MAX_MOVES, gasDisplay } from "../logic/game-rules";
 
 // ── Canvas dimensions ──────────────────────────────────────────────────────────
 const CW = 400;
@@ -36,11 +36,6 @@ const CH = 580;
 // ── Grid geometry ──────────────────────────────────────────────────────────────
 const GRID_COLS   = 4;
 const GRID_GAP    = 8;
-const GRID_PAD    = 16;          // outer padding on each side
-const GRID_LEFT   = GRID_PAD;
-const GRID_TOP    = 130;
-const GRID_W      = CW - GRID_PAD * 2;  // 368
-const CELL_SIZE   = (GRID_W - GRID_GAP * (GRID_COLS + 1)) / GRID_COLS; // ~76
 const CORNER_R    = 6;           // rounded corner radius for tiles
 
 // ── Colors ─────────────────────────────────────────────────────────────────────
@@ -65,6 +60,37 @@ interface TileVisual {
   y: number;
 }
 
+type Game2048Layout = {
+  width: number;
+  height: number;
+  centerX: number;
+  sidePad: number;
+  gridGap: number;
+  gridLeft: number;
+  gridTop: number;
+  gridW: number;
+  gridH: number;
+  cellSize: number;
+  hintY: number;
+  statusY: number;
+  titleX: number;
+  titleY: number;
+  titleFontSize: string;
+  scoreX: number;
+  bestX: number;
+  scoreBoxW: number;
+  bestBoxW: number;
+  headerBoxY: number;
+  lobbyHeadingY: number;
+  lobbySubY: number;
+  lobbyHeroY: number;
+  lobbyCardsY: number;
+  lobbyStartY: number;
+  lobbyCardW: number;
+  lobbyCardH: number;
+  lobbyCardGap: number;
+};
+
 /** Tile colour keyed by exponent value (1 = tile "2", 2 = tile "4", …). */
 const TILE_PALETTE: TileColors[] = [
   { bg: 0xe2d4b4, text: "#776e65" }, // 0  – empty cell
@@ -88,21 +114,11 @@ function tileColors(exp: number): TileColors {
 }
 
 // ── Tile font size by exponent ─────────────────────────────────────────────────
-function tileFontSize(exp: number): string {
+function tileFontSize(exp: number, cellSize: number): string {
   const v = tileValue(exp);
-  if (v >= 1000) return "20px";
-  if (v >= 100)  return "26px";
-  return "32px";
-}
-
-// ── Cell index ↔ pixel position ────────────────────────────────────────────────
-function cellXY(idx: number): { x: number; y: number } {
-  const col = idx % GRID_COLS;
-  const row = Math.floor(idx / GRID_COLS);
-  return {
-    x: GRID_LEFT + GRID_GAP + col * (CELL_SIZE + GRID_GAP) + CELL_SIZE / 2,
-    y: GRID_TOP  + GRID_GAP + row * (CELL_SIZE + GRID_GAP) + CELL_SIZE / 2,
-  };
+  const scale = Math.min(1, cellSize / 76);
+  const base = v >= 1000 ? 20 : v >= 100 ? 26 : 32;
+  return `${Math.round(base * scale)}px`;
 }
 
 // ── Swipe threshold ────────────────────────────────────────────────────────────
@@ -136,10 +152,13 @@ const TILE_ART_FILES = [
 
 const DIFF_LABELS = ["Sprint", "Climb", "Summit"] as const;
 const DIFF_COPY = ["Fast 512", "Build 1024", "Reach 2048"] as const;
+type SfxKind = "select" | "start" | "move" | "merge" | "spawn" | "win";
 
 // ── Scene ──────────────────────────────────────────────────────────────────────
 
 export class Game2048Scene extends BaseScene {
+  private layout = this.computeLayout(CW, CH);
+
   // ── Scene objects ────────────────────────────────────────────────────────────
   private cellBgs:     Phaser.GameObjects.Graphics[] = [];
   private tileConts:   (TileVisual | null)[] = Array(16).fill(null);
@@ -168,6 +187,8 @@ export class Game2048Scene extends BaseScene {
   private prevStatus     = "";
   private prevIsMoving   = false;
   private shown2048      = false;
+  private audioContext: AudioContext | null = null;
+  private audioUnlocked = false;
 
   constructor() {
     super("Game2048Scene");
@@ -184,6 +205,9 @@ export class Game2048Scene extends BaseScene {
 
   create(): void {
     super.create();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.closeAudio, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.closeAudio, this);
+    this.layout = this.computeLayout(this.scale.width || CW, this.scale.height || CH);
 
     this.buildBackground();
     this.buildScoreArea();
@@ -196,6 +220,99 @@ export class Game2048Scene extends BaseScene {
 
     // Initial render from bridge state (may already be populated)
     this.onStateUpdate(this.state);
+  }
+
+  private computeLayout(width: number, height: number): Game2048Layout {
+    const sceneW = Math.max(320, Math.round(width || CW));
+    const sceneH = Math.max(520, Math.round(height || CH));
+    const centerX = Math.round(sceneW / 2);
+    const sidePad = sceneW < 380 ? 12 : 16;
+    const gridGap = sceneW < 380 ? 7 : GRID_GAP;
+    const maxGridW = Math.min(368, sceneW - sidePad * 2);
+    const maxGridH = Math.max(300, sceneH - 212);
+    const gridW = Math.floor(Math.min(maxGridW, maxGridH));
+    const cellSize = Math.floor((gridW - gridGap * (GRID_COLS + 1)) / GRID_COLS);
+    const resolvedGridW = cellSize * GRID_COLS + gridGap * (GRID_COLS + 1);
+    const gridH = resolvedGridW;
+    const gridLeft = Math.round((sceneW - resolvedGridW) / 2);
+    const gridTop = Math.round(
+      Phaser.Math.Clamp(sceneH * 0.24, sceneH < 620 ? 120 : 142, Math.max(122, sceneH - gridH - 116)),
+    );
+    const scoreBoxW = sceneW < 380 ? 58 : 70;
+    const bestBoxW = sceneW < 380 ? 56 : 60;
+    const headerBoxY = sceneW < 380 ? 18 : 20;
+    const lobbyCardGap = sceneW < 380 ? 8 : 10;
+    const lobbyCardW = Math.max(94, Math.min(108, Math.floor((sceneW - sidePad * 2 - lobbyCardGap * 2) / 3)));
+    const lobbyCardH = sceneH < 620 ? 124 : 132;
+    const lobbyHeadingY = Math.round(Phaser.Math.Clamp(sceneH * 0.145, 82, 108));
+    const lobbyHeroY = Math.round(Phaser.Math.Clamp(sceneH * 0.335, 184, 236));
+    const lobbyCardsY = Math.round(Phaser.Math.Clamp(sceneH * 0.58, 326, sceneH - 204));
+    const lobbyStartY = Math.round(Phaser.Math.Clamp(sceneH * 0.8, lobbyCardsY + lobbyCardH / 2 + 58, sceneH - 72));
+    const gridStatusY = Math.min(sceneH - 38, gridTop + gridH + 52);
+    const statusY = Math.min(sceneH - 38, Math.max(gridStatusY, lobbyStartY + 68));
+
+    return {
+      width: sceneW,
+      height: sceneH,
+      centerX,
+      sidePad,
+      gridGap,
+      gridLeft,
+      gridTop,
+      gridW: resolvedGridW,
+      gridH,
+      cellSize,
+      hintY: gridTop + gridH + 18,
+      statusY,
+      titleX: sidePad + 4,
+      titleY: sceneW < 380 ? 12 : 14,
+      titleFontSize: sceneW < 380 ? "30px" : "36px",
+      scoreX: sceneW - sidePad - scoreBoxW / 2,
+      bestX: sceneW - sidePad - scoreBoxW - 8 - bestBoxW / 2,
+      scoreBoxW,
+      bestBoxW,
+      headerBoxY,
+      lobbyHeadingY,
+      lobbySubY: lobbyHeadingY + 24,
+      lobbyHeroY,
+      lobbyCardsY,
+      lobbyStartY,
+      lobbyCardW,
+      lobbyCardH,
+      lobbyCardGap,
+    };
+  }
+
+  private rebuildScene(): void {
+    this.tweens.killAll();
+    this.children.removeAll(true);
+    this.cellBgs = [];
+    this.tileConts = Array(16).fill(null);
+    this.diffCards = [];
+    this.prevBoard = Array(16).fill(0);
+    this.curBoard = Array(16).fill(0);
+    this.prevStatus = "";
+    this.prevIsMoving = false;
+    this.layout = this.computeLayout(this.scale.width || CW, this.scale.height || CH);
+
+    this.buildBackground();
+    this.buildScoreArea();
+    this.buildGridContainer();
+    this.buildLobbyContainer();
+    this.buildDealingContainer();
+    this.buildCelebration();
+    this.buildStatusLabel();
+    this.onStateUpdate(this.state);
+  }
+
+  private cellXY(idx: number): { x: number; y: number } {
+    const { gridLeft, gridTop, gridGap, cellSize } = this.layout;
+    const col = idx % GRID_COLS;
+    const row = Math.floor(idx / GRID_COLS);
+    return {
+      x: gridLeft + gridGap + col * (cellSize + gridGap) + cellSize / 2,
+      y: gridTop + gridGap + row * (cellSize + gridGap) + cellSize / 2,
+    };
   }
 
   // ── BaseScene abstract ────────────────────────────────────────────────────────
@@ -286,9 +403,11 @@ export class Game2048Scene extends BaseScene {
   // ── Background ────────────────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    this.add.rectangle(CW / 2, CH / 2, CW, CH, C.bg);
-    this.add.rectangle(CW / 2, 126, CW, 252, 0xfff4df, 0.68);
-    this.add.rectangle(CW / 2, CH - 62, CW - 32, 110, 0xffffff, 0.54)
+    const l = this.layout;
+
+    this.add.rectangle(l.centerX, l.height / 2, l.width, l.height, C.bg);
+    this.add.rectangle(l.centerX, Math.max(120, l.height * 0.22), l.width, Math.max(238, l.height * 0.38), 0xfff4df, 0.68);
+    this.add.rectangle(l.centerX, l.height - 62, Math.max(280, l.width - 32), 110, 0xffffff, 0.54)
       .setStrokeStyle(1, 0xe9dcc7, 0.74);
   }
 
@@ -307,17 +426,19 @@ export class Game2048Scene extends BaseScene {
   // ── Score area ────────────────────────────────────────────────────────────────
 
   private buildScoreArea(): void {
+    const l = this.layout;
+
     // Title
-    this.add.text(20, 14, "2048 Rush", {
+    this.add.text(l.titleX, l.titleY, "2048 Rush", {
       fontFamily: FONT_FAMILY,
-      fontSize: "36px",
+      fontSize: l.titleFontSize,
       fontStyle: "bold",
       color: C.headerText,
     });
 
     // Score box
-    const scoreBox = this.add.container(CW - 80, 20);
-    const scoreBg = this.add.rectangle(0, 0, 70, 52, 0xbbada0).setOrigin(0.5);
+    const scoreBox = this.add.container(l.scoreX, l.headerBoxY);
+    const scoreBg = this.add.rectangle(0, 0, l.scoreBoxW, 52, 0xbbada0).setOrigin(0.5);
     const scoreCaption = this.add.text(0, -10, "SCORE", {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
@@ -333,8 +454,8 @@ export class Game2048Scene extends BaseScene {
     scoreBox.add([scoreBg, scoreCaption, this.scoreLabel]);
 
     // Best tile box
-    const bestBox = this.add.container(CW - 150, 20);
-    const bestBg = this.add.rectangle(0, 0, 60, 52, 0xbbada0).setOrigin(0.5);
+    const bestBox = this.add.container(l.bestX, l.headerBoxY);
+    const bestBg = this.add.rectangle(0, 0, l.bestBoxW, 52, 0xbbada0).setOrigin(0.5);
     const bestCaption = this.add.text(0, -10, "BEST", {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
@@ -350,7 +471,7 @@ export class Game2048Scene extends BaseScene {
     bestBox.add([bestBg, bestCaption, this.bestLabel]);
 
     // Moves label (smaller, below title)
-    this.movesLabel = this.add.text(20, 56, "Moves: 0", {
+    this.movesLabel = this.add.text(l.titleX, 56, "Moves: 0", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: C.scoreText,
@@ -360,36 +481,36 @@ export class Game2048Scene extends BaseScene {
   // ── Grid container ────────────────────────────────────────────────────────────
 
   private buildGridContainer(): void {
+    const l = this.layout;
     this.gridContainer = this.add.container(0, 0);
 
     // Grid background
-    const gridH = GRID_GAP + GRID_COLS * (CELL_SIZE + GRID_GAP);
-    const boardShadow = this.add.rectangle(CW / 2, GRID_TOP + gridH / 2 + 6, GRID_W + 16, gridH + 16, 0xb5966e, 0.18)
+    const boardShadow = this.add.rectangle(l.centerX, l.gridTop + l.gridH / 2 + 6, l.gridW + 16, l.gridH + 16, 0xb5966e, 0.18)
       .setOrigin(0.5);
-    const boardFelt = this.add.image(CW / 2, GRID_TOP + gridH / 2, RUSH_ASSETS.felt)
-      .setDisplaySize(GRID_W + 10, gridH + 10)
+    const boardFelt = this.add.image(l.centerX, l.gridTop + l.gridH / 2, RUSH_ASSETS.felt)
+      .setDisplaySize(l.gridW + 10, l.gridH + 10)
       .setAlpha(0.98);
     const gridBg = this.add.graphics();
     gridBg.fillStyle(0xd0b894, 0.22);
-    gridBg.fillRoundedRect(GRID_LEFT - 5, GRID_TOP - 5, GRID_W + 10, gridH + 10, 12);
+    gridBg.fillRoundedRect(l.gridLeft - 5, l.gridTop - 5, l.gridW + 10, l.gridH + 10, 12);
     this.gridContainer.add(boardShadow);
     this.gridContainer.add(boardFelt);
     this.gridContainer.add(gridBg);
 
     // Empty cell backgrounds
     for (let i = 0; i < 16; i++) {
-      const { x, y } = cellXY(i);
+      const { x, y } = this.cellXY(i);
       const g = this.add.graphics();
       g.fillStyle(C.white, 0.42);
-      g.fillRoundedRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, CORNER_R);
+      g.fillRoundedRect(x - l.cellSize / 2, y - l.cellSize / 2, l.cellSize, l.cellSize, CORNER_R);
       g.lineStyle(1, 0xd8c8a9, 0.58);
-      g.strokeRoundedRect(x - CELL_SIZE / 2, y - CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, CORNER_R);
+      g.strokeRoundedRect(x - l.cellSize / 2, y - l.cellSize / 2, l.cellSize, l.cellSize, CORNER_R);
       this.cellBgs.push(g);
       this.gridContainer.add(g);
     }
 
     // Controls hint
-    const hint = this.add.text(CW / 2, GRID_TOP + GRID_COLS * (CELL_SIZE + GRID_GAP) + GRID_GAP + 14, "Swipe or use arrow keys", {
+    const hint = this.add.text(l.centerX, l.hintY, "Swipe or use arrow keys", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#9a8f82",
@@ -402,62 +523,71 @@ export class Game2048Scene extends BaseScene {
   // ── Lobby container ───────────────────────────────────────────────────────────
 
   private buildLobbyContainer(): void {
+    const l = this.layout;
     this.lobbyContainer = this.add.container(0, 0);
 
-    const heading = this.add.text(CW / 2, 92, "Build the next power tile", {
+    const heading = this.add.text(l.centerX, l.lobbyHeadingY, "Build the next power tile", {
       fontFamily: FONT_FAMILY,
       fontSize: "18px",
       fontStyle: "bold",
       color: C.headerText,
     }).setOrigin(0.5);
 
-    const sub = this.add.text(CW / 2, 116, "Slide, merge, and settle a verified run", {
+    const sub = this.add.text(l.centerX, l.lobbySubY, "Slide, merge, and settle a verified run", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#776e65",
     }).setOrigin(0.5);
 
-    const heroBoard = this.buildLobbyHeroBoard(CW / 2, 192);
+    const heroBoard = this.buildLobbyHeroBoard(l.centerX, l.lobbyHeroY);
 
     this.lobbyContainer.add([heading, sub, heroBoard]);
 
     // Difficulty cards
+    const totalCardsW = l.lobbyCardW * 3 + l.lobbyCardGap * 2;
+    const firstCardX = l.centerX - totalCardsW / 2 + l.lobbyCardW / 2;
     DIFFICULTY_RULES.forEach((rule, idx) => {
-      const cardX = 82 + idx * 118;
-      const card = this.buildDiffCard(rule, idx, cardX, 336);
+      const cardX = firstCardX + idx * (l.lobbyCardW + l.lobbyCardGap);
+      const card = this.buildDiffCard(rule, idx, cardX, l.lobbyCardsY);
       this.diffCards.push(card);
       this.lobbyContainer.add(card);
     });
 
     // Start button
-    this.startBtn = this.buildStartButton(CW / 2, 460);
+    this.startBtn = this.buildStartButton(l.centerX, l.lobbyStartY);
     this.lobbyContainer.add(this.startBtn);
 
     this.lobbyContainer.setVisible(true);
   }
 
   private buildLobbyHeroBoard(x: number, y: number): Phaser.GameObjects.Container {
+    const compact = this.layout.width < 380 || this.layout.height < 620;
+    const heroW = compact ? 166 : 184;
+    const heroH = compact ? 112 : 126;
+    const tileSmall = compact ? 42 : 48;
+    const tileLarge = compact ? 48 : 54;
     const board = this.add.container(x, y);
     const panel = this.add.image(0, 0, RUSH_ASSETS.felt)
-      .setDisplaySize(184, 126)
+      .setDisplaySize(heroW, heroH)
       .setAlpha(0.92);
-    const glow = this.add.rectangle(0, 0, 194, 136, 0xffffff, 0.32)
+    const glow = this.add.rectangle(0, 0, heroW + 10, heroH + 10, 0xffffff, 0.32)
       .setStrokeStyle(1, 0xe6d4b4, 0.6)
       .setOrigin(0.5);
 
     const preview = [
-      { exp: 1, x: -60, y: -36 },
-      { exp: 2, x: -16, y: -36 },
-      { exp: 4, x: 28, y: -36 },
-      { exp: 7, x: 60, y: 8 },
-      { exp: 9, x: 16, y: 36 },
-      { exp: 11, x: -42, y: 28 },
+      { exp: 1, x: -0.33, y: -0.29 },
+      { exp: 2, x: -0.09, y: -0.29 },
+      { exp: 4, x: 0.15, y: -0.29 },
+      { exp: 7, x: 0.33, y: 0.06 },
+      { exp: 9, x: 0.09, y: 0.29 },
+      { exp: 11, x: -0.23, y: 0.22 },
     ];
 
     board.add([glow, panel]);
     preview.forEach((tile, idx) => {
-      const img = this.add.image(tile.x, tile.y, RUSH_ASSETS.tile(tile.exp))
-        .setDisplaySize(idx >= 3 ? 54 : 48, idx >= 3 ? 54 : 48)
+      const size = idx >= 3 ? tileLarge : tileSmall;
+      const img = this.add.image(tile.x * heroW, tile.y * heroH, RUSH_ASSETS.tile(tile.exp))
+        .setDisplaySize(size, size)
         .setAngle(idx % 2 === 0 ? -4 : 4);
       board.add(img);
     });
@@ -480,9 +610,10 @@ export class Game2048Scene extends BaseScene {
     cardX: number,
     cardY: number,
   ): Phaser.GameObjects.Container {
+    const l = this.layout;
     const card = this.add.container(cardX, cardY);
 
-    const bg = this.add.rectangle(0, 0, CARD_W, CARD_H, 0xfff8ee)
+    const bg = this.add.rectangle(0, 0, l.lobbyCardW, l.lobbyCardH, 0xfff8ee)
       .setStrokeStyle(2, 0xbbada0)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
@@ -492,34 +623,39 @@ export class Game2048Scene extends BaseScene {
       bg.setStrokeStyle(this.pickedDiff === idx ? 3 : 2, this.pickedDiff === idx ? 0xf65e3b : 0xbbada0);
     });
     bg.on("pointerdown", () => {
+      this.unlockAudio();
+      this.playSfx("select");
       this.pickedDiff = idx;
       this.highlightDiffCard(idx);
     });
 
     const targetExp = Math.max(1, Math.min(12, Math.round(Math.log2(rule.targetTile))));
+    const tileSize = l.lobbyCardW < 104 ? 48 : 54;
+    const targetY = l.lobbyCardH < CARD_H ? -32 : -34;
     const targetTile = this.add.image(0, -34, RUSH_ASSETS.tile(targetExp))
-      .setDisplaySize(54, 54);
+      .setY(targetY)
+      .setDisplaySize(tileSize, tileSize);
 
-    const label = this.add.text(0, 7, DIFF_LABELS[idx] ?? "Sprint", {
+    const label = this.add.text(0, l.lobbyCardH < CARD_H ? 4 : 7, DIFF_LABELS[idx] ?? "Sprint", {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
       fontStyle: "bold",
       color: "#35322e",
     }).setOrigin(0.5);
 
-    const tileTxt = this.add.text(0, 26, DIFF_COPY[idx] ?? `Reach ${rule.targetTile}`, {
+    const tileTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 22 : 26, DIFF_COPY[idx] ?? `Reach ${rule.targetTile}`, {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#776e65",
     }).setOrigin(0.5);
 
-    const timeTxt = this.add.text(0, 43, `${Math.round(rule.limitMs / 60000)} min`, {
+    const timeTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 39 : 43, `${Math.round(rule.limitMs / 60000)} min`, {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
       color: "#776e65",
     }).setOrigin(0.5);
 
-    const rewardTxt = this.add.text(0, 57, `${gasDisplay(rule.rewardFixed8)} GAS`, {
+    const rewardTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 53 : 57, `${gasDisplay(rule.rewardFixed8)} GAS`, {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       fontStyle: "bold",
@@ -548,12 +684,16 @@ export class Game2048Scene extends BaseScene {
     this.bindGameButton(bg, {
       targets: btn,
       pressScale: 0.95,
-      enabled: () => !this.bool("isStarting") && !this.bool("isDealing"),
-      onPress: () => this.dispatch("startGame", { difficulty: this.pickedDiff }),
-      onHoverIn: () => {
-        if (!this.bool("isStarting") && !this.bool("isDealing")) bg.setFillStyle(0xe04000);
+      enabled: () => this.canStartPicked(),
+      onPress: () => {
+        this.unlockAudio();
+        this.playSfx("start");
+        this.dispatch("startGame", { difficulty: this.pickedDiff });
       },
-      onHoverOut: () => bg.setFillStyle(this.bool("isStarting") ? 0xbbada0 : 0xf65e3b),
+      onHoverIn: () => {
+        if (this.canStartPicked()) bg.setFillStyle(0xe04000);
+      },
+      onHoverOut: () => this.updateStartBtn(this.bool("isStarting")),
     });
 
     btn.add([bg, txt]);
@@ -576,14 +716,23 @@ export class Game2048Scene extends BaseScene {
   private updateStartBtn(isStarting: boolean): void {
     const bg  = this.startBtn.list[0] as Phaser.GameObjects.Rectangle;
     const txt = this.startBtn.list[1] as Phaser.GameObjects.Text;
-    txt.setText(isStarting ? "Opening..." : "Open run");
-    bg.setFillStyle(isStarting ? 0xbbada0 : 0xf65e3b);
+    const canStart = this.canStartPicked();
+    txt.setText(isStarting ? "Opening..." : canStart ? "Open run" : "Pool refilling");
+    bg.setFillStyle(isStarting || !canStart ? 0xbbada0 : 0xf65e3b);
+  }
+
+  private canStartPicked(): boolean {
+    if (this.bool("isStarting") || this.bool("isDealing")) return false;
+    const rule = DIFFICULTY_RULES[this.pickedDiff] ?? DIFFICULTY_RULES[0]!;
+    const poolFree = this.num("poolFree", Number.POSITIVE_INFINITY);
+    return poolFree >= Number(gasDisplay(rule.rewardFixed8));
   }
 
   // ── Dealing container ─────────────────────────────────────────────────────────
 
   private buildDealingContainer(): void {
-    this.dealingContainer = this.add.container(CW / 2, CH / 2);
+    const l = this.layout;
+    this.dealingContainer = this.add.container(l.centerX, l.height / 2);
 
     const bg = this.add.rectangle(0, 0, 280, 140, 0xfff8ee, 0.95)
       .setStrokeStyle(2, 0xbbada0)
@@ -641,9 +790,10 @@ export class Game2048Scene extends BaseScene {
   // ── 2048 celebration ──────────────────────────────────────────────────────────
 
   private buildCelebration(): void {
-    this.celebContainer = this.add.container(CW / 2, CH / 2);
+    const l = this.layout;
+    this.celebContainer = this.add.container(l.centerX, l.height / 2);
 
-    const overlay = this.add.rectangle(0, 0, CW, CH, 0x3b2d19, 0.42).setOrigin(0.5);
+    const overlay = this.add.rectangle(0, 0, l.width, l.height, 0x3b2d19, 0.42).setOrigin(0.5);
     overlay.setInteractive(); // capture clicks so they don't bleed through
 
     const banner = this.add.rectangle(0, -12, 282, 156, 0xfff7df, 0.98)
@@ -677,6 +827,7 @@ export class Game2048Scene extends BaseScene {
     this.celebContainer.setVisible(false);
 
     overlay.on("pointerdown", () => {
+      this.playSfx("select");
       this.tweens.add({
         targets: this.celebContainer,
         alpha: 0,
@@ -690,6 +841,7 @@ export class Game2048Scene extends BaseScene {
   }
 
   private playCelebration(): void {
+    this.playSfx("win");
     this.setObjectActive(this.celebContainer, true);
     this.celebContainer.setAlpha(0);
     this.tweens.add({
@@ -703,9 +855,8 @@ export class Game2048Scene extends BaseScene {
   // ── Status label ──────────────────────────────────────────────────────────────
 
   private buildStatusLabel(): void {
-    const gridH = GRID_GAP + GRID_COLS * (CELL_SIZE + GRID_GAP);
-    const y = GRID_TOP + gridH + 52;
-    this.statusLabel = this.add.text(CW / 2, y, "", {
+    const l = this.layout;
+    this.statusLabel = this.add.text(l.centerX, l.statusY, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#9a8f82",
@@ -725,11 +876,13 @@ export class Game2048Scene extends BaseScene {
 
   private setTilesActive(active: boolean): void {
     for (const tile of this.tileConts) {
-      tile?.objects.forEach((object) => object.setVisible(active));
+      tile?.objects.forEach((object) => {
+        (object as { setVisible?: (visible: boolean) => void }).setVisible?.(active);
+      });
     }
   }
 
-  private destroyTile(tile: TileVisual | null): void {
+  private destroyTile(tile: TileVisual | null | undefined): void {
     tile?.objects.forEach((object) => object.destroy());
   }
 
@@ -742,7 +895,9 @@ export class Game2048Scene extends BaseScene {
   }
 
   private setTileScale(tile: TileVisual, scale: number): void {
-    tile.objects.forEach((object) => object.setScale(scale));
+    tile.objects.forEach((object) => {
+      (object as { setScale?: (scale: number) => void }).setScale?.(scale);
+    });
   }
 
   private tweenTileTo(tile: TileVisual, tx: number, ty: number, duration: number): void {
@@ -771,7 +926,7 @@ export class Game2048Scene extends BaseScene {
     for (let i = 0; i < 16; i++) {
       const exp = board[i] ?? 0;
       if (exp > 0) {
-        const { x, y } = cellXY(i);
+        const { x, y } = this.cellXY(i);
         this.tileConts[i] = this.createTileSprite(exp, x, y);
       }
     }
@@ -812,6 +967,12 @@ export class Game2048Scene extends BaseScene {
       }
     }
 
+    if (mergedIndices.length > 0) {
+      this.playSfx("merge");
+    } else if (newBoard.some((exp, index) => exp !== (oldBoard[index] ?? 0))) {
+      this.playSfx("move");
+    }
+
     // Slide existing tiles to new positions
     // Strategy: move all tile visuals to match new board layout
     // First, snap all tiles to reflect the new non-spawn values
@@ -834,7 +995,7 @@ export class Game2048Scene extends BaseScene {
       const isSpawned = newTileIndices.includes(i);
       if (isSpawned) continue;
 
-      const { x, y } = cellXY(i);
+      const { x, y } = this.cellXY(i);
       if (!this.tileConts[i]) {
         // Create tile immediately at its position
         const tile = this.createTileSprite(exp, x, y);
@@ -878,10 +1039,13 @@ export class Game2048Scene extends BaseScene {
 
     // Spawn new tiles after slide animation
     const spawnDelay = this.reducedMotion ? 0 : SLIDE_DUR + 10;
+    if (newTileIndices.length > 0) {
+      this.time.delayedCall(spawnDelay, () => this.playSfx("spawn"));
+    }
     for (const idx of newTileIndices) {
       const exp = newBoard[idx] ?? 0;
       if (exp === 0) continue;
-      const { x, y } = cellXY(idx);
+      const { x, y } = this.cellXY(idx);
       const tile = this.createTileSprite(exp, x, y);
       this.setTileScale(tile, 0);
       this.tileConts[idx] = tile;
@@ -906,25 +1070,26 @@ export class Game2048Scene extends BaseScene {
    */
   private createTileSprite(exp: number, x: number, y: number): TileVisual {
     const { text } = tileColors(exp);
+    const { cellSize } = this.layout;
 
-    const shadow = this.add.rectangle(x + 4, y + 6, CELL_SIZE - 4, CELL_SIZE - 4, 0x8f7555, 0.18)
+    const shadow = this.add.rectangle(x + 4, y + 6, cellSize - 4, cellSize - 4, 0x8f7555, 0.18)
       .setOrigin(0.5);
 
     const artKey = RUSH_ASSETS.tile(exp);
     let art: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
     if (this.textures.exists(artKey)) {
       art = this.add.image(x, y, artKey)
-        .setDisplaySize(CELL_SIZE + 4, CELL_SIZE + 4)
+        .setDisplaySize(cellSize + 4, cellSize + 4)
         .setAlpha(0.98);
     } else {
-      art = this.add.rectangle(x, y, CELL_SIZE, CELL_SIZE, tileColors(exp).bg)
+      art = this.add.rectangle(x, y, cellSize, cellSize, tileColors(exp).bg)
         .setOrigin(0.5);
     }
 
     // Tile value text
     const label = this.add.text(x, y, `${tileValue(exp)}`, {
       fontFamily: FONT_FAMILY,
-      fontSize: tileFontSize(exp),
+      fontSize: tileFontSize(exp, cellSize),
       fontStyle: "bold",
       color: text,
     }).setOrigin(0.5)
@@ -944,19 +1109,21 @@ export class Game2048Scene extends BaseScene {
    */
   private updateTileSprite(tile: TileVisual, exp: number): void {
     const { text } = tileColors(exp);
+    const { cellSize } = this.layout;
 
     if (tile.art instanceof Phaser.GameObjects.Image) {
       tile.art.setTexture(RUSH_ASSETS.tile(exp));
-      tile.art.setDisplaySize(CELL_SIZE + 4, CELL_SIZE + 4);
+      tile.art.setDisplaySize(cellSize + 4, cellSize + 4);
       tile.art.setAlpha(0.98);
     } else {
+      tile.art.setSize(cellSize, cellSize);
       tile.art.setFillStyle(tileColors(exp).bg);
     }
 
     tile.label
       .setText(`${tileValue(exp)}`)
       .setColor(text)
-      .setFontSize(tileFontSize(exp))
+      .setFontSize(tileFontSize(exp, cellSize))
       .setShadow(0, exp >= 3 ? 2 : 1, exp >= 3 ? "#5c3517" : "#ffffff", 3);
   }
 
@@ -981,6 +1148,97 @@ export class Game2048Scene extends BaseScene {
         onComplete: () => this.setTilePosition(tile, tile.x, tile.y),
       });
     }
+  }
+
+  private unlockAudio(): void {
+    const context = this.ensureAudioContext();
+    if (!context) return;
+    if (context.state === "suspended") {
+      void context.resume();
+    }
+    this.audioUnlocked = true;
+  }
+
+  private ensureAudioContext(): AudioContext | null {
+    if (this.audioContext) return this.audioContext;
+    const AudioCtor =
+      window.AudioContext ??
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtor) return null;
+    this.audioContext = new AudioCtor();
+    return this.audioContext;
+  }
+
+  private playSfx(kind: SfxKind): void {
+    const context = this.ensureAudioContext();
+    if (!context) return;
+    if (context.state === "suspended") {
+      if (!this.audioUnlocked) return;
+      void context.resume();
+    }
+
+    switch (kind) {
+      case "select":
+        this.playTone(context, 520, 0.045, 0, "triangle", 0.022, 680);
+        break;
+      case "start":
+        this.playTone(context, 392, 0.07, 0, "triangle", 0.03, 587);
+        this.playTone(context, 784, 0.09, 0.06, "sine", 0.026, 988);
+        break;
+      case "move":
+        this.playTone(context, 260, 0.045, 0, "triangle", 0.016, 320);
+        break;
+      case "merge":
+        this.playTone(context, 440, 0.06, 0, "sine", 0.024, 660);
+        this.playTone(context, 880, 0.07, 0.045, "triangle", 0.021, 1040);
+        break;
+      case "spawn":
+        this.playTone(context, 720, 0.045, 0, "sine", 0.016, 940);
+        break;
+      case "win":
+        [523, 659, 784, 1046].forEach((frequency, index) => {
+          this.playTone(context, frequency, 0.12, index * 0.065, "triangle", 0.026);
+        });
+        break;
+    }
+  }
+
+  private playTone(
+    context: AudioContext,
+    frequency: number,
+    duration: number,
+    delay = 0,
+    type: OscillatorType = "sine",
+    gainValue = 0.02,
+    endFrequency?: number,
+  ): void {
+    const startAt = context.currentTime + delay;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    if (endFrequency) {
+      oscillator.frequency.exponentialRampToValueAtTime(
+        Math.max(1, endFrequency),
+        startAt + duration,
+      );
+    }
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(gainValue, startAt + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration + 0.025);
+  }
+
+  private closeAudio(): void {
+    if (!this.audioContext) return;
+    void this.audioContext.close();
+    this.audioContext = null;
+    this.audioUnlocked = false;
   }
 
   // ── Input ─────────────────────────────────────────────────────────────────────
@@ -1021,16 +1279,34 @@ export class Game2048Scene extends BaseScene {
   }
 
   private handleMove(dir: number): void {
+    this.unlockAudio();
     if (this.str("gameStatus", "idle") !== "dealt") return;
     if (this.bool("isMoving") || this.bool("isSubmitting")) return;
+    if (!this.canMove(dir)) return;
 
     this.lastDir = dir;
+    this.playSfx("move");
     this.dispatch("playMove", { dir });
+  }
+
+  private canMove(dir: number): boolean {
+    if (!Number.isInteger(dir) || dir < 0 || dir > 3) return false;
+    const board = this.val<number[]>("runBoard") ?? [];
+    if (board.length !== 16) return false;
+    if (this.num("runMoveCount", 0) >= MAX_MOVES) return false;
+    const deadline = this.num("deadline", 0);
+    if (deadline > 0 && Date.now() >= deadline) return false;
+    if (!hasAnyMove(board)) return false;
+    return applyMove([...board], dir);
   }
 
   // ── Resize ────────────────────────────────────────────────────────────────────
 
-  protected onResize(_gameSize: Phaser.Structs.Size): void {
-    this.scene.restart();
+  protected onResize(gameSize: Phaser.Structs.Size): void {
+    const nextW = Math.max(1, Math.round(gameSize.width || this.scale.width || CW));
+    const nextH = Math.max(1, Math.round(gameSize.height || this.scale.height || CH));
+    if (nextW === this.layout.width && nextH === this.layout.height) return;
+
+    this.rebuildScene();
   }
 }

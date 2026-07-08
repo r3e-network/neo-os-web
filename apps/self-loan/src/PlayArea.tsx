@@ -11,6 +11,8 @@ import {
   ArrowDownRight,
   Banknote,
   LockKeyhole,
+  Minus,
+  Plus,
   PlusCircle,
   RefreshCw,
   ShieldCheck,
@@ -83,6 +85,11 @@ function isPositiveWholeNeoAmount(value: string) {
   return /^[1-9]\d*$/.test(value.trim());
 }
 
+function boundedWholeNeo(value: number, max: number) {
+  const cap = Number.isFinite(max) && max > 0 ? Math.floor(max) : Number.POSITIVE_INFINITY;
+  return String(Math.max(0, Math.min(cap, Math.floor(value))));
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
   const loan = val<Loan | null>("loan", null);
@@ -136,6 +143,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const ltvPercent = selectedLtvPercentFromState || selectedOption.percent;
   const feeBps = toFiniteNumber(platformStats.platformFeeBps, 50);
   const feePercent = feeBps / 100;
+  const walletNeo = toFiniteNumber(neoBalance, 0);
   const collateralReady = isPositiveWholeNeoAmount(draftCollateral);
   const collateralNum = collateralReady ? toFiniteNumber(draftCollateral, 0) : 0;
   const collateralValueGas = collateralNum * (neoPrice > 0 ? neoPrice : 1);
@@ -183,7 +191,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBorrow = () => {
     if (!canBorrow) return;
     startBorrowPreview();
-    void dispatch("borrow", { collateralAmount: draftCollateral.trim() });
+    void dispatch("borrow", { collateralAmount: draftCollateral.trim(), ltvTier: selectedTier });
   };
 
   const handleAddCollateral = () => {
@@ -194,6 +202,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleRepay = () => {
     if (!hasActiveLoan || isRepaying) return;
     void dispatch("repay", activeBorrowed > 0 ? String(activeBorrowed) : "");
+  };
+
+  const adjustCollateral = (delta: number) => {
+    const nextBase = isPositiveWholeNeoAmount(draftCollateral) ? Number(draftCollateral) : 0;
+    updateCollateral(boundedWholeNeo(nextBase + delta, walletNeo));
+  };
+
+  const useMaxCollateral = () => {
+    if (walletNeo <= 0) return;
+    updateCollateral(boundedWholeNeo(walletNeo, walletNeo));
   };
 
   const quickAmounts = ["10", "25", "50"];
@@ -251,23 +269,46 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span>{t("collateralPlan")}</span>
           <strong><CoinArt size={18} variant="neo" decorative /> {neoBalanceDisplay} NEO</strong>
         </div>
-        <label className="selfloan-amount-box">
-          <span><WalletCards size={15} /> {t("amountToLock")}</span>
-          <input
-            className="selfloan-amount-input"
-            value={draftCollateral}
-            onChange={(event) => updateCollateral(event.target.value)}
-            placeholder="10"
-            inputMode="numeric"
-            disabled={busy || hasActiveLoan}
-          />
-        </label>
+        <div className="selfloan-vault-picker" aria-label={t("amountToLock")}>
+          <div className="selfloan-vault-picker__vault" aria-hidden="true">
+            <CoinArt size={34} variant="neo" decorative />
+            <CoinArt size={26} variant="neo" decorative />
+            <span><LockKeyhole size={15} /></span>
+          </div>
+          <div className="selfloan-vault-picker__amount">
+            <span><WalletCards size={15} /> {t("amountToLock")}</span>
+            <label className="selfloan-vault-picker__field">
+              <span className="selfloan-vault-picker__sr">{t("amountToLock")}</span>
+              <input
+                className="selfloan-amount-input"
+                value={draftCollateral}
+                onChange={(event) => updateCollateral(event.target.value)}
+                placeholder="10"
+                inputMode="numeric"
+                disabled={busy || hasActiveLoan}
+              />
+              <strong>NEO</strong>
+            </label>
+            <small>{t("collateralAssetHint")}</small>
+          </div>
+          <div className="selfloan-vault-picker__steppers" aria-label={t("collateralStepper")}>
+            <button type="button" onClick={() => adjustCollateral(-1)} disabled={busy || hasActiveLoan || collateralNum <= 0} aria-label={t("decreaseCollateral")}>
+              <Minus size={15} />
+            </button>
+            <button type="button" onClick={() => adjustCollateral(1)} disabled={busy || hasActiveLoan || (walletNeo > 0 && collateralNum >= walletNeo)} aria-label={t("increaseCollateral")}>
+              <Plus size={15} />
+            </button>
+          </div>
+        </div>
         <div className="selfloan-quick-row" aria-label={t("quickCollateral")}>
           {quickAmounts.map((amount) => (
             <button key={amount} type="button" onClick={() => updateCollateral(amount)} disabled={busy || hasActiveLoan}>
               <CoinArt size={16} variant="neo" decorative /> {amount} NEO
             </button>
           ))}
+          <button type="button" className="selfloan-quick-row__max" onClick={useMaxCollateral} disabled={busy || hasActiveLoan || walletNeo <= 0}>
+            {t("maxCollateral")}
+          </button>
         </div>
       </section>
 

@@ -27,6 +27,7 @@ const appMessages = {
   lobbyReady: { en: "Ready to race", zh: "可以开局" },
 
   startAction: { en: "Start run", zh: "开始冲刺" },
+  moreActions: { en: "More actions", zh: "更多操作" },
   startHint: { en: "Entry {amount} GAS — deposited with this transaction", zh: "报名费 {amount} GAS——随本交易一并存入" },
   startDescription: {
     en: "Pay the entry and the Morpheus enclave seals your spawn stream — only its hash commitment goes on-chain. 512 pays 0.1 GAS, 1024 pays 0.5, 2048 pays 1.",
@@ -101,6 +102,7 @@ const appMessages = {
   },
 
   scoreReward: { en: "Reward at stake", zh: "本局奖励" },
+  scoreBest: { en: "Best tile", zh: "最大方块" },
   scoreTime: { en: "Time left", zh: "剩余时间" },
   scoreUndos: { en: "Undos left", zh: "剩余撤回" },
   scoreWon: { en: "Total won", zh: "累计赢取" },

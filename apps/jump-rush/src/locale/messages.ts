@@ -16,6 +16,8 @@ const appMessages = {
   rankLabel: { en: "Global rank", zh: "全网排名" },
   sidebarTitle: { en: "My jumping record", zh: "我的战绩" },
   creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
+  poolShort: { en: "Pool", zh: "奖池" },
+  creditShort: { en: "Credit", zh: "余额" },
 
   difficultyTitle: { en: "Jump route", zh: "跳跃路线" },
   difficulty_easy: { en: "Meadow Hop", zh: "草地小跳" },
@@ -97,6 +99,18 @@ const appMessages = {
   scoreWon: { en: "Total won", zh: "累计赢取" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
+  drawerSummaryLabel: { en: "Jump Rush account summary", zh: "跳一跳账户摘要" },
+  moreActions: { en: "More", zh: "更多" },
+  activeRunTitle: { en: "Active run", zh: "当前路线" },
+  nextRunTitle: { en: "Next run", zh: "下一局路线" },
+  runEconomyLine: {
+    en: "Entry {entry} GAS · prize {reward} GAS",
+    zh: "报名 {entry} GAS · 奖励 {reward} GAS",
+  },
+  lastRunLine: {
+    en: "Last verified: {payout} in {time}",
+    zh: "上局已验证：{payout}，用时 {time}",
+  },
   leaderboardIntro: {
     en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
     zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",
@@ -141,6 +155,7 @@ const appMessages = {
   statusSubmitting: { en: "Enclave verifying — settling on-chain…", zh: "飞地验证中——正在链上结算…" },
   statusSolved: { en: "Run verified! {payout} GAS credited", zh: "成绩验证通过！已入账 {payout} GAS" },
   statusUndoUsed: { en: "Undo recorded — reward now {pct}%", zh: "撤回已记录——奖励降至 {pct}%" },
+  undoLimitReached: { en: "No undos left for this run", zh: "本局撤回次数已用完" },
   statusExpired: { en: "Game released", zh: "对局已结算" },
   statusBoardIncomplete: { en: "Target jumps not reached yet", zh: "尚未达到目标跳跃次数" },
   statusPoolLow: {

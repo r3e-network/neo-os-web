@@ -47,7 +47,7 @@ import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { GameHomePage } from "../components-react/GameHomePage";
 import { createMiniAppFramework } from "../../../framework";
-import type { MiniAppFramework } from "../../../framework";
+import type { FrameworkLaunchContext, MiniAppFramework } from "../../../framework";
 import type { TranslationMap } from "../utils/i18n";
 import {
   readMiniAppLaunchContext,
@@ -193,6 +193,13 @@ export function MiniAppRoot({
   }
   const services = servicesRef.current;
   const launchContext = useMemo(() => readMiniAppLaunchContext(appId), [appId]);
+  const frameworkLaunchContext = useMemo<FrameworkLaunchContext>(
+    () => ({
+      ...launchContext,
+      appId: launchContext.appId ?? appId,
+    }),
+    [appId, launchContext],
+  );
 
   // --------------------------------------------------------------------------
   // Status & Fireworks
@@ -264,7 +271,7 @@ export function MiniAppRoot({
       state: appStateRef.current,
       setStatus: setStatusWithFireworks,
       clearStatus,
-      launchContext,
+      launchContext: frameworkLaunchContext,
       registerAction,
     }, { appId });
   }

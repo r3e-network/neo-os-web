@@ -117,6 +117,7 @@ export class TarotScene extends BaseScene {
   private intentButtons: Phaser.GameObjects.Container[] = [];
   private cardViews: CardView[] = [];
   private dealtOnce = false;
+  private ambientTweens: Phaser.Tweens.Tween[] = [];
 
   constructor() {
     super("TarotScene");
@@ -132,6 +133,18 @@ export class TarotScene extends BaseScene {
 
   create(): void {
     super.create();
+    this.rebuildScene();
+    this.onStateUpdate(this.state);
+  }
+
+  private rebuildScene(): void {
+    this.tweens.killAll();
+    this.children.removeAll(true);
+    this.intentButtons = [];
+    this.cardViews = [];
+    this.ambientTweens = [];
+    this.dealtOnce = false;
+
     const { width: W, height: H } = this.scale;
 
     this.buildBackground(W, H);
@@ -142,10 +155,11 @@ export class TarotScene extends BaseScene {
     this.buildActionButton(W, H);
     this.buildStatus(W, H);
     this.startAmbientMotion();
-    this.onStateUpdate(this.state);
   }
 
   protected onStateUpdate(_state: GameState): void {
+    if (!this.titleLabel || !this.statusText || !this.actionButton) return;
+
     const drawn = this.val<CardData[]>("drawn", []) ?? [];
     const hasDrawn = this.bool("hasDrawn") || drawn.length > 0;
     const allFlipped = this.bool("allFlipped");
@@ -534,15 +548,28 @@ export class TarotScene extends BaseScene {
   }
 
   private playDealMotion(): void {
+    const deckX = this.deckStack.x + 18;
+    const deckY = this.deckStack.y + 12;
+
     this.cardViews.forEach((view, index) => {
-      view.container.setAlpha(0).setScale(0.84);
+      const targetX = view.container.x;
+      const targetY = view.container.y;
+      const startAngle = -7 + index * 7;
+      view.container
+        .setAlpha(0)
+        .setScale(0.7)
+        .setPosition(deckX, deckY)
+        .setAngle(startAngle);
       this.animate({
         targets: view.container,
+        x: targetX,
+        y: targetY,
         alpha: 1,
         scale: 1,
-        delay: index * 130,
-        duration: 260,
-        ease: "Back.easeOut",
+        angle: 0,
+        delay: index * 150,
+        duration: 430,
+        ease: "Cubic.easeOut",
       });
     });
   }
@@ -569,7 +596,7 @@ export class TarotScene extends BaseScene {
 
   private startAmbientMotion(): void {
     if (this.reducedMotion) return;
-    this.animate({
+    const deckTween = this.animate({
       targets: this.deckStack,
       y: this.deckStack.y - 4,
       duration: 2200,
@@ -577,8 +604,9 @@ export class TarotScene extends BaseScene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
+    if (deckTween) this.ambientTweens.push(deckTween);
     this.cardViews.forEach((view, index) => {
-      this.animate({
+      const tween = this.animate({
         targets: view.container,
         y: view.container.y - 3,
         delay: index * 130,
@@ -587,6 +615,12 @@ export class TarotScene extends BaseScene {
         repeat: -1,
         ease: "Sine.easeInOut",
       });
+      if (tween) this.ambientTweens.push(tween);
     });
+  }
+
+  protected onResize(_gameSize: Phaser.Structs.Size): void {
+    this.rebuildScene();
+    this.onStateUpdate(this.state);
   }
 }

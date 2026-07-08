@@ -24,7 +24,13 @@
 }
 
 .aim-playarea .mx2-stage {
-  padding: 22px 24px 20px;
+  width: min(100%, 760px);
+  max-width: 760px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  margin-inline: auto;
+  padding: 8px 16px 12px;
   background: var(--aim-panel);
 }
 
@@ -53,17 +59,229 @@
 }
 
 .aim-playarea .mx2-stage__scene {
+  flex: 1 1 auto;
   min-height: 0;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: flex-start;
-  padding: 12px 12px 0;
+  padding: 8px 12px 10px;
+}
+
+.aim-playarea .phaser-game-host {
+  margin-inline: auto;
+}
+
+.aim-phaser-canvas {
+  flex: 0 0 auto;
+}
+
+.aim-stage-shell {
+  position: relative;
+  width: 100%;
+  min-height: calc(100dvh - 72px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 167, 66, 0.16);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 248, 234, 0.88)),
+    var(--aim-soft);
+}
+
+.aim-stage-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 12;
+  width: min(100%, 440px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(216, 167, 66, 0.18);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.95);
+  box-shadow: 0 10px 24px rgba(111, 76, 25, 0.1);
+}
+
+.aim-stage-hud__metric,
+.aim-stage-hud__drawer {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(216, 167, 66, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.aim-stage-hud__metric {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.aim-stage-hud__metric[data-accent="true"] {
+  border-color: color-mix(in srgb, var(--aim-teal) 38%, transparent);
+  box-shadow: inset 2px 0 0 var(--aim-teal);
+}
+
+.aim-stage-hud__metric span {
+  color: #7a5a28;
+  font-size: 0.58rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.aim-stage-hud__metric strong {
+  color: var(--aim-ink);
+  font-size: 0.82rem;
+  font-weight: 680;
+  line-height: 1.1;
+}
+
+.aim-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--aim-teal) 76%, #064e3b);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.aim-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.aim-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.aim-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(640px, calc(100% - 18px));
+  max-height: min(72vh, 580px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(216, 167, 66, 0.2);
+  border-radius: 14px;
+  background: #fffdf8;
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(111, 76, 25, 0.18);
+}
+
+.aim-ingame-drawer__head,
+.aim-ingame-drawer__fairness {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.aim-ingame-drawer__head {
+  margin-bottom: 12px;
+}
+
+.aim-ingame-drawer__head svg,
+.aim-ingame-drawer__fairness svg {
+  color: color-mix(in srgb, var(--aim-teal) 78%, #064e3b);
+}
+
+.aim-ingame-drawer__head h3 {
+  margin: 0 0 3px;
+  color: var(--aim-ink);
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.aim-ingame-drawer__head p,
+.aim-ingame-drawer__fairness p {
+  margin: 0;
+  color: var(--aim-muted);
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.aim-ingame-drawer__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.aim-ingame-drawer__grid span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(216, 167, 66, 0.14);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.aim-ingame-drawer__grid small {
+  color: var(--aim-muted);
+  font-size: 0.68rem;
+}
+
+.aim-ingame-drawer__grid strong {
+  color: var(--aim-ink);
+  font-size: 0.85rem;
+}
+
+.aim-ingame-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.aim-ingame-drawer__actions button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--aim-teal) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aim-teal) 10%, #ffffff);
+  color: color-mix(in srgb, var(--aim-teal) 76%, #064e3b);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.aim-ingame-drawer__actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.aim-ingame-drawer__fairness {
+  margin-top: 12px;
+  border: 1px solid color-mix(in srgb, var(--aim-teal) 12%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--aim-teal) 6%, #ffffff);
 }
 
 /* --------------------------------------------------------------- scene -- */
 
 .aim-scene {
   position: relative;
+  align-self: stretch;
   width: 100%;
   min-height: 500px;
   display: flex;
@@ -980,13 +1198,77 @@
 }
 
 @media (max-width: 560px) {
-  .aim-scene {
-    min-height: 0;
-    padding: 10px 8px 10px;
+  .aim-playarea .mx2-playstage.mx2-cat-game {
+    min-height: 100dvh;
+  }
+
+  .aim-playarea .mx2-cat-game.mx2-stage,
+  .aim-playarea .mx2-cat-game .mx2-stage__scene {
+    flex: 0 0 auto;
   }
 
   .aim-playarea .mx2-stage {
-    padding: 16px 16px 18px;
+    width: 100%;
+    min-height: 100dvh;
+    padding: 8px 8px 10px;
+  }
+
+  .aim-playarea .mx2-stage__scene {
+    padding: 6px 0 8px;
+  }
+
+  .aim-stage-shell {
+    min-height: calc(100dvh - 52px);
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 18px;
+  }
+
+  .aim-phaser-canvas {
+    --phaser-mobile-height-ratio: 2.08;
+  }
+
+  .aim-stage-hud {
+    width: min(100%, 378px);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    padding: 6px;
+    border-radius: 14px;
+  }
+
+  .aim-stage-hud__metric,
+  .aim-stage-hud__drawer {
+    min-height: 46px;
+    padding: 6px 7px;
+    border-radius: 11px;
+  }
+
+  .aim-stage-hud__metric span {
+    font-size: 0.54rem;
+  }
+
+  .aim-stage-hud__metric strong {
+    font-size: 0.76rem;
+  }
+
+  .aim-stage-hud__drawer {
+    font-size: 0.68rem;
+  }
+
+  .aim-ingame-drawer {
+    bottom: 10px;
+    width: calc(100% - 14px);
+    max-height: min(77vh, 650px);
+    padding: 16px;
+  }
+
+  .aim-ingame-drawer__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aim-scene {
+    min-height: 0;
+    padding: 10px 8px 10px;
   }
 
   .aim-playarea .mx2-stage__head {

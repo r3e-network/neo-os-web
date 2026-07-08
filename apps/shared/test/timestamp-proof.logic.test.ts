@@ -63,6 +63,17 @@ describe("useTimestampProofContract", () => {
     expect(proofApp.lastMessage.get()).toBe("Proof found");
   });
 
+  it("uses an existing SHA-256 digest directly instead of hashing the digest string again", async () => {
+    const proofApp = useTimestampProofContract(t);
+    const digest = "a".repeat(64);
+
+    await proofApp.createProof(digest, () => undefined, () => undefined);
+
+    const proof = proofApp.proofs.get()[0];
+    expect(proof?.content).toBe(digest);
+    expect(proof?.contentHash).toBe(digest);
+  });
+
   it("counts every device proof as 'yours' regardless of creator/wallet state", async () => {
     const proofApp = useTimestampProofContract(t);
 

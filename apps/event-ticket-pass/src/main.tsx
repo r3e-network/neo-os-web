@@ -56,9 +56,9 @@ defineMiniApp({
         );
       }
     });
-    ctx.framework.actions.register("createEvent", async () => {
+    ctx.framework.actions.register("createEvent", async (input: unknown) => {
       try {
-        await ticket.createEvent();
+        await ticket.createEvent(input);
         ctx.setStatus(ctx.t("eventCreated"), "success");
       } catch (error) {
         ctx.setStatus(
@@ -73,9 +73,9 @@ defineMiniApp({
     ctx.framework.actions.register("openIssueModal", async (event: unknown) => {
       ticket.openIssueModal(event);
     });
-    ctx.framework.actions.register("issueTicket", async () => {
+    ctx.framework.actions.register("issueTicket", async (input: unknown) => {
       try {
-        await ticket.issueTicket();
+        await ticket.issueTicket(input);
         ctx.setStatus(ctx.t("ticketIssued"), "success");
       } catch (error) {
         ctx.setStatus(
@@ -89,9 +89,9 @@ defineMiniApp({
         await ticket.toggleEvent(event);
       }),
     );
-    ctx.framework.actions.register("lookupTicket", async () => {
+    ctx.framework.actions.register("lookupTicket", async (input: unknown) => {
       try {
-        await ticket.lookupTicket();
+        await ticket.lookupTicket(input);
         ctx.setStatus(ctx.t("ticketFound"), "success");
       } catch (error) {
         ctx.setStatus(
@@ -100,9 +100,9 @@ defineMiniApp({
         );
       }
     });
-    ctx.framework.actions.register("checkInTicket", async () => {
+    ctx.framework.actions.register("checkInTicket", async (input: unknown) => {
       try {
-        await ticket.checkInTicket();
+        await ticket.checkInTicket(input);
         ctx.setStatus(ctx.t("checkinSuccess"), "success");
       } catch (error) {
         ctx.setStatus(

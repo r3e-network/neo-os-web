@@ -214,9 +214,9 @@
 
 .admin-operation-ticket {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.45fr);
+  grid-template-columns: minmax(0, 0.74fr) minmax(260px, 1fr);
   gap: 10px;
-  align-items: end;
+  align-items: stretch;
   border: 1px solid rgba(29, 78, 216, 0.16);
   border-radius: 17px;
   padding: 12px;
@@ -235,12 +235,95 @@
   line-height: 1.35;
 }
 
-.admin-operation-ticket label {
+.admin-amount-console,
+.admin-candidate-console {
+  min-width: 0;
   display: grid;
-  gap: 5px;
+  gap: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 9px;
+  background: #ffffff;
 }
 
-.admin-operation-ticket input {
+.admin-amount-console[data-invalid="true"] {
+  border-color: rgba(220, 38, 38, 0.28);
+  background: #fff7f7;
+}
+
+.admin-amount-console__asset,
+.admin-candidate-console__preview {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-amount-console__asset strong,
+.admin-candidate-console__preview strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-weight: 680;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-candidate-console__preview strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0;
+}
+
+.admin-amount-console__stepper {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.admin-amount-console__stepper button,
+.admin-amount-console__quick button {
+  border: 1px solid var(--mx2-border);
+  border-radius: 12px;
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.admin-amount-console__stepper button {
+  display: grid;
+  place-items: center;
+}
+
+.admin-amount-console__stepper button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.admin-amount-console__input,
+.admin-candidate-console__input {
+  min-width: 0;
+  display: grid;
+}
+
+.admin-amount-console__input span,
+.admin-candidate-console__input span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.admin-amount-console__input input,
+.admin-candidate-console__input input {
   width: 100%;
   border: 1.5px solid var(--mx2-border-strong);
   border-radius: 13px;
@@ -252,8 +335,42 @@
   font-weight: 620;
 }
 
-.admin-operation-ticket__candidate {
-  grid-column: span 1;
+.admin-amount-console__input input {
+  text-align: center;
+}
+
+.admin-candidate-console__input input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0;
+}
+
+.admin-amount-console__quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.admin-amount-console__quick button {
+  min-height: 30px;
+  padding: 5px 7px;
+}
+
+.admin-amount-console__quick button:hover,
+.admin-amount-console__stepper button:hover:not(:disabled) {
+  border-color: rgba(29, 78, 216, 0.22);
+  background: var(--mx2-accent-soft);
+  color: var(--mx2-accent-strong);
+}
+
+.admin-amount-console small {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+.admin-amount-console[data-invalid="true"] small {
+  color: #b91c1c;
 }
 
 .admin-operation-ticket p {
@@ -375,8 +492,7 @@
   }
 
   .admin-candidate-card,
-  .admin-policy,
-  .admin-operation-ticket__candidate {
+  .admin-policy {
     grid-column: auto;
   }
 

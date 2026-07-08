@@ -5,7 +5,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, PlayStage } from "@shared/components-react/v2";
+import {
+  OpenUiPanel,
+  OpenUiProvider,
+  OpenUiSegmented,
+  OpenUiTextArea,
+  OpenUiTextField,
+  PlayStage,
+} from "@shared/components-react/v2";
 import { appMeta, consoleConfig, isValidJsonPath } from "./appConfig";
 import {
   ArrowRight,
@@ -60,6 +67,21 @@ function isHttpUrl(url: string): boolean {
 
 const PIPELINE_IMAGE = "http-oracle-pipeline.webp";
 type DrawerMode = "overview" | "route" | "digest";
+type HttpValues = {
+  body: string;
+  jsonPath: string;
+  method: string;
+  url: string;
+};
+
+function defaultValues(params: Record<string, string> = {}): HttpValues {
+  return {
+    body: params.body ?? defaultFieldValue("body"),
+    jsonPath: params.jsonPath ?? defaultFieldValue("jsonPath") ?? "$.status",
+    method: params.method === "POST" ? "POST" : defaultFieldValue("method") || "GET",
+    url: params.url ?? defaultFieldValue("url") ?? appMeta.endpointLabel,
+  };
+}
 
 interface RouteStep {
   key: string;
@@ -70,7 +92,7 @@ interface RouteStep {
   active: boolean;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { str, num } = useStateBindings(state);
   const networkLabel = str("networkLabel");
   const endpointLabel = str("endpointLabel");
@@ -78,31 +100,53 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lastDigest = str("lastDigest", t("digestPlaceholder"));
   const requestCount = num("requestCount");
 
+  const [values, setValues] = useState<HttpValues>(() => defaultValues(launchContext?.params));
   const [actionPreview, setActionPreview] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("overview");
   const previewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (previewTimeout.current) clearTimeout(previewTimeout.current); }, []);
+  const update = (key: keyof HttpValues, value: string) => {
+    setValues((current) => ({ ...current, [key]: value }));
+  };
+  const setMethod = (method: string) => {
+    update("method", method === "POST" ? "POST" : "GET");
+  };
+  const resetValues = () => {
+    setValues(defaultValues(launchContext?.params));
+  };
   const startPreview = () => {
     if (previewTimeout.current) clearTimeout(previewTimeout.current);
     setActionPreview(true);
     previewTimeout.current = setTimeout(() => { setActionPreview(false); previewTimeout.current = null; }, 1200);
   };
 
-  const handleBuild = () => { startPreview(); void dispatch("buildRequest"); };
-  const method = defaultFieldValue("method") || "GET";
-  const url = defaultFieldValue("url") || endpointLabel || appMeta.endpointLabel;
-  const jsonPath = defaultFieldValue("jsonPath") || "$.status";
+  function handleBuild() {
+    if (!canPreview) return;
+    startPreview();
+    void dispatch("buildRequest", values);
+  }
+  const method = values.method === "POST" ? "POST" : "GET";
+  const url = values.url || endpointLabel || appMeta.endpointLabel;
+  const jsonPath = values.jsonPath || "$.status";
+  const bodyIncluded = method === "POST" && values.body.trim().length > 0;
   const digestReady = Boolean(lastDigest && lastDigest !== t("digestPlaceholder"));
   const sourceReady = isHttpUrl(url);
   const pathReady = isValidJsonPath(jsonPath);
+  const canPreview = sourceReady && pathReady;
+  const blockedReason = !sourceReady
+    ? t("httpInvalidUrl")
+    : !pathReady
+      ? t("httpInvalidPath")
+      : "";
   const statusLabel = actionPreview
     ? t("previewingRequest")
     : digestReady
       ? t("httpValidationReady")
-      : sourceReady && pathReady
+      : canPreview
         ? t("httpReady")
-        : lastStatus;
-  const primaryLabel = actionPreview ? t("previewingRequest") : (t("buildRequest") || "Build Request");
+        : blockedReason;
+  const runActionLabel = t("runAction");
+  const primaryLabel = actionPreview ? t("previewingRequest") : (runActionLabel === "runAction" ? t("buildRequest") || "Build Request" : runActionLabel);
   const digestValue = digestReady ? compactValue(lastDigest, 36) : t("digestPlaceholder");
   const detailsLabel = t("detailsLabel");
   const routeSteps: RouteStep[] = [
@@ -166,10 +210,74 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             title={t("httpRequestPlan")}
             subtitle={statusLabel}
           >
+            <div className="oracle-http-composer" aria-label={t("httpRequestPlan")}>
+              <OpenUiSegmented
+                className="oracle-http-method-switch"
+                segmentedClassName="oracle-http-method-switch__group"
+                label={t("httpMethodTitle")}
+                value={method}
+                onChange={setMethod}
+                options={[
+                  {
+                    value: "GET",
+                    label: (
+                      <span className="oracle-http-method-card">
+                        <strong>GET</strong>
+                        <small>{t("httpMethodGetHint")}</small>
+                      </span>
+                    ),
+                  },
+                  {
+                    value: "POST",
+                    label: (
+                      <span className="oracle-http-method-card">
+                        <strong>POST</strong>
+                        <small>{t("httpMethodPostHint")}</small>
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+              <div className="oracle-http-composer__grid">
+                <OpenUiTextField
+                  className="oracle-http-field oracle-http-field--url"
+                  inputClassName="oracle-http-input oracle-http-input--url"
+                  label={<><Link2 size={14} /> {t("url")}</>}
+                  value={values.url}
+                  onChange={(event) => update("url", event.target.value)}
+                  placeholder={t("urlPlaceholder")}
+                  hint={sourceReady ? t("httpUrlReadyHint") : t("httpUrlInvalidHint")}
+                  spellCheck={false}
+                  mono
+                />
+                <OpenUiTextField
+                  className="oracle-http-field oracle-http-field--path"
+                  inputClassName="oracle-http-input oracle-http-input--path"
+                  label={<><Braces size={14} /> {t("jsonPath")}</>}
+                  value={values.jsonPath}
+                  onChange={(event) => update("jsonPath", event.target.value)}
+                  placeholder={t("jsonPathPlaceholder")}
+                  hint={pathReady ? t("httpPathReadyHint") : t("httpPathInvalidHint")}
+                  spellCheck={false}
+                  mono
+                />
+              </div>
+              <OpenUiTextArea
+                className="oracle-http-field oracle-http-field--body"
+                textareaClassName="oracle-http-input oracle-http-input--body"
+                label={<><FileJson size={14} /> {t("body")}</>}
+                value={values.body}
+                onChange={(event) => update("body", event.target.value)}
+                placeholder={t("bodyPlaceholder")}
+                hint={method === "POST" ? t("httpBodyPostHint") : t("httpBodyGetHint")}
+                disabled={method !== "POST"}
+                spellCheck={false}
+              />
+            </div>
             <dl className="oracle-http-drawer__facts">
               <div><dt>{t("lastStatus")}</dt><dd>{lastStatus}</dd></div>
               <div><dt>{t("method")}</dt><dd>{method}</dd></div>
-              <div><dt>{t("statRequests")}</dt><dd>{requestCount}</dd></div>
+              <div><dt>{t("httpBodyState")}</dt><dd>{bodyIncluded ? t("httpBodyIncluded") : t("httpBodyIgnored")}</dd></div>
             </dl>
           </OpenUiPanel>
         )}
@@ -289,7 +397,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{ eyebrow: t(consoleConfig?.eyebrowKey || "panelEyebrow"), title: t(consoleConfig?.titleKey || "panelTitle"), subtitle: endpointLabel || "", badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkLabel || appMeta.networkLabel}</span> }}
         scene={scene}
         score={[{ label: t("statRequests"), value: String(requestCount), accent: true }, { label: t("lastStatus"), value: lastStatus }]}
-        actions={{ primary: { label: primaryLabel, onClick: () => void handleBuild(), loading: actionPreview } }}
+        actions={{
+          primary: {
+            label: primaryLabel,
+            onClick: () => void handleBuild(),
+            loading: actionPreview,
+            disabled: !canPreview || actionPreview,
+            hint: canPreview ? undefined : blockedReason,
+          },
+          secondary: [
+            { label: t("reset"), onClick: resetValues, disabled: actionPreview },
+          ],
+        }}
         drawerToggleLabel={detailsLabel} drawer={{ title: detailsLabel, children: drawer }}
       />
     </div>

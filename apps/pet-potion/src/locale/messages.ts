@@ -16,6 +16,19 @@ const appMessages = {
   rankLabel: { en: "Global rank", zh: "全网排名" },
   sidebarTitle: { en: "My pet record", zh: "我的战绩" },
   creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
+  moreActions: { en: "More actions", zh: "更多操作" },
+  poolLabel: { en: "Reward pool", zh: "奖励池" },
+  drawerSummaryLabel: { en: "Pet Potion player summary", zh: "宠物药水玩家摘要" },
+  activeRunTitle: { en: "Active care run", zh: "当前照护局" },
+  activeRouteLine: {
+    en: "{actions}/{max} actions · {time}",
+    zh: "{actions}/{max} 次动作 · {time}",
+  },
+  lastResultLine: {
+    en: "Last settlement: {payout} · {time}",
+    zh: "上次结算：{payout} · {time}",
+  },
+  actionTrailTitle: { en: "Care actions", zh: "照护动作" },
 
   difficultyTitle: { en: "Nursery path", zh: "育成路线" },
   difficulty_easy: { en: "Sprout Hatch", zh: "嫩芽孵化" },
