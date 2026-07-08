@@ -7,6 +7,8 @@
  */
 export { PhaserGameComponent } from "./PhaserGameComponent";
 export { BaseScene } from "./BaseScene";
+export { SceneAudio, SCENE_AUDIO_PRESETS } from "./SceneAudio";
+export type { SceneAudioPreset, SceneAudioTone } from "./SceneAudio";
 export {
   GameBridge,
   formatBridgeError,

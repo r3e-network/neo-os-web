@@ -29,6 +29,7 @@
 import * as Phaser from "phaser";
 import type { GameState } from "./types";
 import type { GameBridge, GameBridgeError } from "./GameBridge";
+import { SceneAudio } from "./SceneAudio";
 
 // Injected by PhaserGameComponent before game boot.
 declare global {
@@ -69,6 +70,7 @@ export abstract class BaseScene extends Phaser.Scene {
   /** True when prefers-reduced-motion is active. */
   protected reducedMotion: boolean = false;
 
+  private sceneAudio: SceneAudio | null = null;
   private stateUnsubscribe: (() => void) | null = null;
   private destroyUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
@@ -160,6 +162,20 @@ export abstract class BaseScene extends Phaser.Scene {
   /** Override when a scene wants to present dispatch failures in-canvas. */
   protected onBridgeError(_error: GameBridgeError): void {
     // Default: React host displays a concise recoverable error overlay.
+  }
+
+  // ── Sound effects ──────────────────────────────────────────────────────────
+
+  /**
+   * Lazily created shared SFX mixer. First access creates the mixer and ties
+   * its lifetime to this scene; scenes that never touch `sfx` allocate no
+   * audio resources. `bindGameButton` presses unlock the mixer automatically.
+   */
+  protected get sfx(): SceneAudio {
+    if (!this.sceneAudio) {
+      this.sceneAudio = new SceneAudio().attach(this);
+    }
+    return this.sceneAudio;
   }
 
   // ── Dispatch helpers ───────────────────────────────────────────────────────
@@ -272,6 +288,7 @@ export abstract class BaseScene extends Phaser.Scene {
     });
 
     hitTarget.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      this.sceneAudio?.unlock();
       if (!isEnabled()) return;
       this.pressFeedback(targets, {
         scale: pressScale,
@@ -305,6 +322,9 @@ export abstract class BaseScene extends Phaser.Scene {
   private cleanupBaseScene(): void {
     if (this.cleanedUp) return;
     this.cleanedUp = true;
+
+    this.sceneAudio?.close();
+    this.sceneAudio = null;
 
     if (this.stateUpdateTimer) {
       this.stateUpdateTimer.remove(false);
