@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
 import { createMiniAppFramework } from "../react";
 import { addressToScriptHash } from "../utils/neo";
-import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
-import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
+import { useProfitAnchor } from "../composables/profitanchor";
+import { useTrustAnchor } from "../composables/trustanchor";
 
 const OPERATOR = "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX";
 

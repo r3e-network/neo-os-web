@@ -14,8 +14,10 @@ import { formatNum } from "@shared/utils/format";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useTrustAnchor } from "./hooks/useTrustAnchor";
-import { TRUSTANCHOR_AGENT_ACCOUNTS } from "./data/agentAccounts";
+import {
+  TRUSTANCHOR_AGENT_ACCOUNTS,
+  useTrustAnchor,
+} from "@shared/composables/trustanchor";
 
 type AnchorActionHistoryItem = {
   action: string;

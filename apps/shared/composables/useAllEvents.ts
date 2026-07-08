@@ -3,6 +3,12 @@
  *
  * Wraps the SDK's `listEvents` with automatic pagination,
  * returning all matching events across pages.
+ *
+ * @deprecated Superseded by the framework events surface:
+ * `app.events.listAll(name, { cap })` (framework-extraction plan, Wave 6).
+ * No miniapp imports this composable anymore; it remains only as the
+ * internal pagination engine behind `ChainService.listAllEvents` (which
+ * itself backs the framework `listAll` fallback). Do not add new call sites.
  */
 import type { EventsListParams, EventsListResponse } from "@shared/utils/wallet-sdk";
 

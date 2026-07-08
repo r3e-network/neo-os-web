@@ -5,8 +5,10 @@ import {
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
 import { formatNum } from "@shared/utils/format";
-import { PROFITANCHOR_AGENT_ACCOUNTS } from "../../profitanchor/src/data/agentAccounts";
-import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
+import {
+  PROFITANCHOR_AGENT_ACCOUNTS,
+  useProfitAnchor,
+} from "@shared/composables/profitanchor";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./messages";

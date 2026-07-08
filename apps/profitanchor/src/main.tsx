@@ -14,8 +14,10 @@ import { formatNum, formatNumber } from "@shared/utils/format";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useProfitAnchor } from "./hooks/useProfitAnchor";
-import { PROFITANCHOR_AGENT_ACCOUNTS } from "./data/agentAccounts";
+import {
+  PROFITANCHOR_AGENT_ACCOUNTS,
+  useProfitAnchor,
+} from "@shared/composables/profitanchor";
 
 type AnchorActionHistoryItem = {
   action: string;

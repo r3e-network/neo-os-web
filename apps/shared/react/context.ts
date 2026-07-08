@@ -6,6 +6,7 @@
  */
 
 import { createContext } from "react";
+import type { Observable } from "../../../framework/reactive";
 import type { MiniAppManifest } from "../types/miniapp-manifest";
 import type { StatusType } from "../composables/useStatusMessage";
 import type { PlatformServices } from "../services";
@@ -16,38 +17,12 @@ import type { MiniAppFramework } from "../../../framework";
 // Observable State
 // ============================================================================
 
-/** A single observable value — the React equivalent of Vue's Ref<T> */
-export interface Observable<T = unknown> {
-  /** Current value */
-  get(): T;
-  /** Update the value and notify subscribers */
-  set(value: T): void;
-  /** Subscribe to changes. Returns an unsubscribe function. */
-  subscribe(listener: () => void): () => void;
-}
-
-/** Create a simple observable value (pub/sub store) */
-export function createObservable<T>(initial: T): Observable<T> {
-  let current = initial;
-  const listeners = new Set<() => void>();
-
-  return {
-    get() {
-      return current;
-    },
-    set(value: T) {
-      if (Object.is(current, value)) return;
-      current = value;
-      listeners.forEach((fn) => fn());
-    },
-    subscribe(listener: () => void) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-  };
-}
+// The Observable contract + createObservable implementation moved to the
+// framework canonical (framework/reactive.ts — Wave 6 consolidation). These
+// re-exports keep existing `@shared/react/context` imports working with the
+// SAME function identity and type.
+export type { Observable } from "../../../framework/reactive";
+export { createObservable } from "../../../framework/reactive";
 
 /**
  * Create a derived (computed) observable from one or more source observables.

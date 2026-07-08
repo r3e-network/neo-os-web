@@ -9,8 +9,6 @@ export { useI18n, createUseI18n } from "./useI18n";
 export { useAllEvents } from "./useAllEvents";
 export { useStatusMessage } from "./useStatusMessage";
 export type { StatusMessage, StatusType } from "./useStatusMessage";
-export { useTicker } from "./useTicker";
-export type { UseTickerOptions } from "./useTicker";
 export { useContractInteraction } from "./useContractInteraction";
 export type { ContractInteractionOptions } from "./useContractInteraction";
 
