@@ -52,7 +52,7 @@ defineMiniApp({
     // Route ad-hoc arg-building / reads / invokes / events through the MiniApp
     // framework SDK. Behaviour-preserving: arg.* builders emit the identical
     // stack items, and readRaw/invoke/events/detectNetwork are raw passthroughs
-    // to the same ctx.services.chain the framework wraps.
+    // to the host chain service the framework wraps.
     const app = ctx.framework;
     const credit = createObservable(0);
     const poolFree = createObservable(0);
