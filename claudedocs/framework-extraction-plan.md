@@ -2,6 +2,15 @@
 
 Date: 2026-07-08. Scope: 54 non-game apps (games already migrated). Mandate: all business-agnostic logic (chain ops, oracle ops, wallet ops, data/state RW, lifecycle, resources, permissions, notifications) becomes framework-owned (`ctx.framework` / `app.*`).
 
+## Campaign status (updated 2026-07-09)
+
+- **Wave 1 — DONE** (`ffc13f825`): S0–S14 surfaces extracted into the framework SDK + framework/test specs.
+- **Wave 2 — DONE** (`51610565f`): 18 mechanical low-risk apps onto framework surfaces (2A service-swap + 2B console kernel).
+- **Wave 3 — DONE** (`49cc0e920`): 19 medium-risk apps (3A signing/oracle + 3B amounts/events/two-step-lite); profitanchor's `useProfitAnchor` dropped its eventBus dep here, clearing the profitanchor-admin conditional exemption (§3.6).
+- **Wave 4 — DONE** (`e5561db69`): 6 deposit-then-act apps onto `app.funds`; also folds in the settlement-wrap fix (host-lane timeout/unreachable stranded-credit wrap regression — `FrameworkPrepaidActionError` now wraps confirmation-timeout/unreachable outcomes so recovery copy still shows).
+- **Wave 5 — DONE** (`62c11e7c6`): 5 bespoke rewrites (aa-market-hub, neo-multisig, neo-treasury, quadratic-funding, neo-message partial).
+- **Wave 6 — DONE** (working tree): cross-app source imports dissolved (profitanchor-admin/trustanchor-admin → `@shared/composables/{profitanchor,trustanchor}`; neo-pay-shared-example was already on `@shared/composables/neo-pay`); `TransferService`, `registerActions` (createActionHandlers), `useAllEvents`, and the positional `NotificationService.guard` path `@deprecated` toward `app.funds` / `actions.register` / `app.events.listAll` / `app.notify.guard` (consumers remain, so implementations kept); campaign-orphaned `useTicker` composable deleted; `createObservable`/`Observable` in `react/context.ts` now re-export the framework canonical.
+
 Sources: 6 sweep batches (raw-site inventory per app), framework surface+gap audit, shared-vs-framework boundary audit. This doc is the execution contract for Waves 1..6.
 
 ---

@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
 import { createMiniAppFramework } from "../react";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
-import { useProfitAnchor } from "../../profitanchor/src/hooks/useProfitAnchor";
-import { useTrustAnchor } from "../../trustanchor/src/hooks/useTrustAnchor";
+import { useProfitAnchor } from "../composables/profitanchor";
+import { useTrustAnchor } from "../composables/trustanchor";
 
 function fakeAnchorDeps() {
   const invoke = vi.fn(async () => ({ txid: "0xanchor", success: true }));

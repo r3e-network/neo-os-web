@@ -5,6 +5,13 @@
  * once. Internally it now delegates to the shared MiniApp framework so action
  * execution, notifications, and single-flight handling stay standardized.
  *
+ * @deprecated Register actions directly on the framework instead:
+ * `ctx.framework.actions.register(key, handler, { successKey, successParams,
+ * errorKey })` — the direct surface also supports `successParams`
+ * interpolation, which this bulk helper cannot express (framework-extraction
+ * plan, Wave 6). Remaining consumers (do not add more): neo-convert,
+ * explorer, wallet-health, time-capsule entrypoints.
+ *
  * @example
  * ```ts
  * registerActions(ctx, {
