@@ -1,10 +1,12 @@
 /**
  * Gov Merc — React Entry Point
  *
- * Drives the standalone on-chain MiniAppGovMerc contract directly via
- * ctx.services.chain (no OS service proxies). The composable owns all contract
- * reads/writes; this file wires the chain service, the stake/withdraw/bid/settle/
- * claim/reclaim actions, and re-loads data when the wallet connects or switches.
+ * Drives the standalone on-chain MiniAppGovMerc contract directly via the
+ * MiniApp framework SDK (ctx.framework — no OS service proxies, no raw
+ * ctx.services). The composable owns all contract reads/writes; this file
+ * wires the stake/withdraw/bid/settle/claim/reclaim actions behind
+ * app.notify.guard toasts, and re-loads data when the wallet connects or
+ * switches (app.wallet.observe).
  *
  * ASSET CONVENTION (kept strictly separate end-to-end): NEO is an integer token
  * (Total Pool / Your Deposits are WHOLE NEO, never ×1e8); bids and rewards are
@@ -31,12 +33,12 @@ defineMiniApp({
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
     });
 
-    pool.setAddress(ctx.services.chain.address.get() ?? "");
+    pool.setAddress(ctx.framework.wallet.address() ?? "");
 
     // The wallet can connect or switch accounts after mount, so re-propagate the
     // address and reload stake/bids/rewards whenever it changes.
-    const stopAddressSync = ctx.services.chain.address.subscribe(() => {
-      pool.setAddress(ctx.services.chain.address.get() ?? "");
+    const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
+      pool.setAddress(ctx.framework.wallet.address() ?? "");
       void pool.loadData();
     });
 
@@ -114,33 +116,35 @@ defineMiniApp({
     // lazily, but a disconnected user gets a clear next-step CTA up front). This
     // only links the wallet and re-propagates the address — no economic logic.
     ctx.framework.actions.register("connectWallet", async () => {
-      const addr = await ctx.services.chain.ensureWallet();
-      pool.setAddress(addr ?? ctx.services.chain.address.get() ?? "");
+      const addr = await ctx.framework.chain.ensureWallet();
+      pool.setAddress(addr ?? ctx.framework.wallet.address() ?? "");
       await pool.loadData();
     });
     ctx.framework.actions.register("depositNeo", async () => {
-      await ctx.services.notify.guard(() => pool.depositNeo(), "depositSuccess");
+      await ctx.framework.notify.guard(() => pool.depositNeo(), { successKey: "depositSuccess" });
     });
     ctx.framework.actions.register("withdrawNeo", async () => {
-      await ctx.services.notify.guard(() => pool.withdrawNeo(), "withdrawSuccess");
+      await ctx.framework.notify.guard(() => pool.withdrawNeo(), { successKey: "withdrawSuccess" });
     });
     ctx.framework.actions.register("placeBid", async () => {
-      await ctx.services.notify.guard(() => pool.placeBid(), "bidSuccess");
+      await ctx.framework.notify.guard(() => pool.placeBid(), { successKey: "bidSuccess" });
     });
     ctx.framework.actions.register("settleEpoch", async () => {
-      await ctx.services.notify.guard(() => pool.settleEpoch(), "settleSuccess");
+      await ctx.framework.notify.guard(() => pool.settleEpoch(), { successKey: "settleSuccess" });
     });
     ctx.framework.actions.register("claimRewards", async () => {
-      await ctx.services.notify.guard(() => pool.claimRewards(), "claimSuccess");
+      await ctx.framework.notify.guard(() => pool.claimRewards(), { successKey: "claimSuccess" });
     });
     ctx.framework.actions.register("reclaimBid", async (epoch: unknown) => {
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => pool.reclaimBid(Number(epoch)),
-        "reclaimSuccess",
+        { successKey: "reclaimSuccess" },
       );
     });
     ctx.framework.actions.register("withdrawCredit", async () => {
-      await ctx.services.notify.guard(() => pool.withdrawCredit(), "creditWithdrawSuccess");
+      await ctx.framework.notify.guard(() => pool.withdrawCredit(), {
+        successKey: "creditWithdrawSuccess",
+      });
     });
 
     return {

@@ -15,75 +15,75 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const escrow = useMilestoneEscrow({
-      app: ctx.framework,
-      chain: ctx.services.chain,
+      app,
       t: ctx.t,
     });
 
-    escrow.setAddress(ctx.services.chain.address.get() ?? "");
+    escrow.setAddress(app.chain.address.get() ?? "");
 
-    // Every action runs through notify.guard so a failing handler surfaces an
-    // error toast instead of an unhandled rejection — critical for the
+    // Every action runs through app.notify.guard so a failing handler surfaces
+    // an error toast instead of an unhandled rejection — critical for the
     // deposit-then-create flow, where "depositPrepaidNoEscrow" fires AFTER the
     // user's funds already moved and must never be silently swallowed.
-    ctx.framework.actions.register("refreshEscrows", async () => {
-      await ctx.services.notify.guard(() => escrow.refreshEscrows());
+    app.actions.register("refreshEscrows", async () => {
+      await app.notify.guard(() => escrow.refreshEscrows());
     });
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      await ctx.services.notify.guard(async () => {
-        await ctx.services.chain.ensureWallet();
-        escrow.setAddress(ctx.services.chain.address.get() ?? "");
+    app.actions.register("connectWallet", async () => {
+      await app.notify.guard(async () => {
+        await app.chain.ensureWallet();
+        escrow.setAddress(app.chain.address.get() ?? "");
         await escrow.connectWallet();
       });
     });
 
-    ctx.framework.actions.register("createEscrow", async (data: unknown) => {
+    app.actions.register("createEscrow", async (data: unknown) => {
       // Surface the guard result so PlayArea keeps its post-success form reset
       // behind an actual success (guard swallows failures into error toasts).
-      const result = await ctx.services.notify.guard(async () => {
+      const result = await app.notify.guard(async () => {
         await escrow.createEscrow(
           data as Parameters<typeof escrow.createEscrow>[0],
         );
         return true;
-      }, "escrowCreated");
+      }, { successKey: "escrowCreated" });
       return result === true;
     });
 
-    ctx.framework.actions.register("approveMilestone", async (escrowItem: unknown) => {
-      await ctx.services.notify.guard(
+    app.actions.register("approveMilestone", async (escrowItem: unknown) => {
+      await app.notify.guard(
         () =>
           escrow.approveMilestone(
             escrowItem as Parameters<typeof escrow.approveMilestone>[0],
           ),
-        "approveSuccess",
+        { successKey: "approveSuccess" },
       );
     });
 
-    ctx.framework.actions.register("claimMilestone", async (escrowItem: unknown) => {
-      await ctx.services.notify.guard(
+    app.actions.register("claimMilestone", async (escrowItem: unknown) => {
+      await app.notify.guard(
         () =>
           escrow.claimMilestone(
             escrowItem as Parameters<typeof escrow.claimMilestone>[0],
           ),
-        "claimSuccess",
+        { successKey: "claimSuccess" },
       );
     });
 
-    ctx.framework.actions.register("cancelEscrow", async (escrowItem: unknown) => {
-      await ctx.services.notify.guard(
+    app.actions.register("cancelEscrow", async (escrowItem: unknown) => {
+      await app.notify.guard(
         () =>
           escrow.cancelEscrow(
             escrowItem as Parameters<typeof escrow.cancelEscrow>[0],
           ),
-        "cancelSuccess",
+        { successKey: "cancelSuccess" },
       );
     });
 
     return {
       state: refsToObservables({
-        address: ctx.services.chain.address,
+        address: app.chain.address,
         contractReady: escrow.contractReady,
         creatorEscrowCount: escrow.creatorEscrowCount,
         beneficiaryEscrowCount: escrow.beneficiaryEscrowCount,
@@ -100,7 +100,7 @@ defineMiniApp({
         formatAmountFunc: createObservable(escrow.formatAmount),
         formatAddressFunc: createObservable(escrow.formatAddress),
       }),
-      
+
       loadData: escrow.loadAll,
       cleanup: () => { escrow.cleanup(); },
     };

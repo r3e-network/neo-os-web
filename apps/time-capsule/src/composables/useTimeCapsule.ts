@@ -29,19 +29,19 @@
  *     ownerCapsuleCount(owner)                 -> Integer
  *     getOwnerCapsules(owner, off, limit)      -> Integer[] (capsule ids)
  *
- *   MUTATIONS (app.chain.invoke):
- *     1. DEPOSIT (fund a bury) — a GAS transfer to the contract with the memo
- *        "miniapp-timecapsule:bury" so OnNEP17Payment credits the sender's
- *        prepaid balance:
- *          transfer(owner, CONTRACT, amountBaseUnits, "miniapp-timecapsule:bury")
- *          { scriptHash: GAS_HASH }
- *     2. bury(owner, contentHash, durationSeconds, isPublic, category, amount)
- *        -> capsuleId. Consumes the prepaid credit as the locked amount, so the
- *        deposit MUST land first. If bury fails after a successful deposit the
- *        credit simply remains on the contract as reusable prepaid credit for the
- *        next bury — it is also reclaimable to the wallet via withdraw(account)
- *        ("CreditWithdrawn" event), so no funds are lost. The new capsule id is
- *        read from the "Buried" event (state[0]).
+ *   MUTATIONS (app.funds.prepayAndCall / app.chain.invoke):
+ *     1+2. DEPOSIT-THEN-BURY — app.funds.prepayAndCall transfers the GAS
+ *        deposit to the contract with the memo "miniapp-timecapsule:bury" (so
+ *        OnNEP17Payment credits the sender's prepaid balance), waits for the
+ *        credit to confirm in a block, then fires
+ *        bury(owner, contentHash, durationSeconds, isPublic, category, amount)
+ *        -> capsuleId, which consumes that credit as the locked amount. If
+ *        bury fails AFTER the confirmed deposit the framework surfaces the
+ *        identity-stable FrameworkPrepaidActionError; the credit simply
+ *        remains on the contract as reusable prepaid credit for the next
+ *        bury — it is also reclaimable to the wallet via withdraw(account)
+ *        ("CreditWithdrawn" event), so no funds are lost. The new capsule id
+ *        is read from the "Buried" event (state[0]).
  *     withdraw(owner) -> amount. Pays the owner's whole unused prepaid deposit
  *        credit (creditOf(owner)) back to the wallet — the money-out path for a
  *        deposit that landed but whose bury never completed.
@@ -63,17 +63,18 @@
  *
  * ON-DEVICE vs ON-CHAIN: the contract stores only the content HASH + the lock.
  * The full message AND the human-readable title stay on this device in a local
- * store. createCapsule() persists the title/content/category locally (keyed by
- * capsuleId, and content also by contentHash); buildCapsuleFromStored() rebuilds
- * the display title/content from that store while the authoritative lock/flags
- * come from getCapsule(). A capsule discovered from another user via fishing has
- * no local title → it falls back to a placeholder.
+ * store (app.storage.local under the legacy "time-capsule-*" keys — see
+ * main.tsx's storagePrefix). createCapsule() persists the title/content/category
+ * locally (keyed by capsuleId, and content also by contentHash);
+ * buildCapsuleFromStored() rebuilds the display title/content from that store
+ * while the authoritative lock/flags come from getCapsule(). A capsule
+ * discovered from another user via fishing has no local title → it falls back
+ * to a placeholder.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { MiniAppFramework } from "@shared/react";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
+import { FrameworkPrepaidActionError, type MiniAppFramework } from "@shared/react";
 import { GAS_DECIMALS_MULTIPLIER } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { sha256Hex } from "@shared/utils/hash";
@@ -81,7 +82,6 @@ import { hexToBytes } from "@shared/utils/format";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { NOTIFICATION_EVENT } from "@shared/services";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 // ============================================================================
@@ -91,10 +91,18 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 const MIN_LOCK_DAYS = 1;
 const MAX_LOCK_DAYS = 3650;
 
-/** Local store for full message content, keyed by contentHash. */
-const CONTENT_STORE_KEY = "time-capsule-content";
-/** Local store for per-capsule display metadata (title/category), keyed by id. */
-const META_STORE_KEY = "time-capsule-meta";
+/**
+ * Local store for full message content, keyed by contentHash. Persisted via
+ * app.storage.local; main.tsx sets `storagePrefix: "time-capsule-"` so this
+ * resolves to the legacy pre-framework localStorage key "time-capsule-content"
+ * byte-for-byte — existing users keep their sealed messages.
+ */
+const CONTENT_STORE_KEY = "content";
+/**
+ * Local store for per-capsule display metadata (title/category), keyed by id
+ * ("time-capsule-meta" on-device — same legacy-key rule as the content store).
+ */
+const META_STORE_KEY = "meta";
 
 /** Memo the contract requires on the bury deposit transfer. */
 const BURY_MEMO = "miniapp-timecapsule:bury";
@@ -155,13 +163,13 @@ export interface CapsuleFormData {
 
 export interface UseTimeCapsuleOptions {
   /**
-   * MiniApp framework SDK from ctx.framework. Used for every on-chain read/write
-   * (bury deposit + bury, reveal, fish) and to read the connected wallet so the
-   * list and hero counts are scoped to the current user.
+   * MiniApp framework SDK from ctx.framework. Used for every on-chain
+   * read/write (deposit-then-bury via app.funds.prepayAndCall, reveal, fish),
+   * the on-device content store (app.storage.local), the user-facing toasts
+   * (app.notify), and to read the connected wallet so the list and hero
+   * counts are scoped to the current user.
    */
   app: MiniAppFramework;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -231,7 +239,6 @@ const toIdString = (value: unknown): string => {
 
 export function useTimeCapsule({
   app,
-  eventBus,
   t,
 }: UseTimeCapsuleOptions) {
   // ── State ────────────────────────────────────────────────────────────
@@ -270,19 +277,11 @@ export function useTimeCapsule({
    */
   const reusableCredit = createObservable<string>("0");
 
-  /**
-   * Emit a user-facing toast on the platform notification channel. The composable
-   * runs money-moving actions (reveal returns the deposit, fish tips an owner)
-   * whose feedback is DYNAMIC (capsule id / withdrawn amount), so it cannot ride
-   * a static successKey — MiniAppRoot subscribes to NOTIFICATION_EVENT and renders
-   * the status. This is the channel ctx.services.notify uses internally.
-   */
-  const notify = (
-    message: string,
-    type: "success" | "error" | "info",
-  ) => {
-    eventBus.emit(NOTIFICATION_EVENT, { message, type });
-  };
+  // User-facing toasts ride app.notify (S1). The composable runs money-moving
+  // actions (reveal returns the deposit, fish tips an owner) whose feedback is
+  // DYNAMIC (capsule id / withdrawn amount), so success/info copy interpolates
+  // through t(key, params) — the rendered strings are byte-identical to the
+  // pre-framework hand-composed toasts.
 
   // ── Computed ──────────────────────────────────────────────────────────
   const totalCapsules: Observable = {
@@ -335,7 +334,7 @@ export function useTimeCapsule({
 
   const loadLocalContent = (): Record<string, string> => {
     try {
-      const parsed = readCachedJSON<Record<string, string | { hash?: string; content?: string }>>(CONTENT_STORE_KEY);
+      const parsed = app.storage.local.get<Record<string, string | { hash?: string; content?: string }>>(CONTENT_STORE_KEY);
       if (!parsed || typeof parsed !== "object") return {};
       const normalized: Record<string, string> = {};
       for (const [key, value] of Object.entries(parsed)) {
@@ -356,9 +355,9 @@ export function useTimeCapsule({
   const saveLocalContent = (hash: string, content: string) => {
     if (!hash) return;
     try {
-      const store = readCachedJSON<Record<string, string>>(CONTENT_STORE_KEY) ?? {};
+      const store = app.storage.local.get<Record<string, string>>(CONTENT_STORE_KEY) ?? {};
       store[hash] = content;
-      writeCachedJSON(CONTENT_STORE_KEY, store);
+      app.storage.local.set(CONTENT_STORE_KEY, store);
     } catch (e) {
       console.warn("[useTimeCapsule] local content write failed:", e instanceof Error ? e.message : String(e));
     }
@@ -367,7 +366,7 @@ export function useTimeCapsule({
   /** Read the local per-capsule metadata store (title/category/contentHash). */
   const loadLocalMeta = (): Record<string, CapsuleMeta> => {
     try {
-      const parsed = readCachedJSON<Record<string, CapsuleMeta>>(META_STORE_KEY);
+      const parsed = app.storage.local.get<Record<string, CapsuleMeta>>(META_STORE_KEY);
       return parsed && typeof parsed === "object" ? parsed : {};
     } catch {
       return {};
@@ -382,9 +381,9 @@ export function useTimeCapsule({
   const saveLocalMeta = (id: string, meta: CapsuleMeta) => {
     if (!id) return;
     try {
-      const store = readCachedJSON<Record<string, CapsuleMeta>>(META_STORE_KEY) ?? {};
+      const store = app.storage.local.get<Record<string, CapsuleMeta>>(META_STORE_KEY) ?? {};
       store[id] = meta;
-      writeCachedJSON(META_STORE_KEY, store);
+      app.storage.local.set(META_STORE_KEY, store);
     } catch (e) {
       console.warn("[useTimeCapsule] local meta write failed:", e instanceof Error ? e.message : String(e));
     }
@@ -559,10 +558,11 @@ export function useTimeCapsule({
   /**
    * Create a capsule against the standalone vault contract.
    *
-   * Two steps, both signed by the owner:
+   * One deposit-then-act lane (app.funds.prepayAndCall), both steps signed by
+   * the owner:
    *   1. DEPOSIT — transfer the 0.2 GAS refundable deposit to the contract with
    *      the "miniapp-timecapsule:bury" memo, crediting the owner's prepaid
-   *      balance.
+   *      balance, and wait for it to confirm in a block.
    *   2. bury(owner, contentHash, days*86400, isPublic, category, amount) —
    *      consumes that credit as the locked amount and seals the capsule. The
    *      new id is read from the "Buried" event.
@@ -572,9 +572,12 @@ export function useTimeCapsule({
    * the display metadata (keyed by the on-chain capsule id) locally so the list
    * can rebuild the title later.
    *
-   * If step 2 fails after a successful deposit, the prepaid credit simply remains
-   * on the contract under the owner and is reused on the next bury — there is no
-   * refund call (and none is needed; funds are not lost).
+   * If step 2 fails after the confirmed deposit, the lane throws the
+   * identity-stable FrameworkPrepaidActionError: the prepaid credit simply
+   * remains on the contract under the owner and is reused on the next bury —
+   * there is no refund call (and none is needed; funds are not lost). That
+   * branch surfaces the app's stranded-credit recovery copy
+   * (depositPrepaidNoCapsule) and refreshes the withdraw banner.
    */
   const createCapsule = async () => {
     if (isBusy.get() || !canCreate.get()) return;
@@ -597,32 +600,22 @@ export function useTimeCapsule({
       if (!ownerAddr) throw new Error(t("walletRequired"));
       const ownerArg = app.chain.arg.hash160(ownerAddr);
 
-      const contractHash = app.chain.contractAddress.get();
-      if (!contractHash) throw new Error(t("contractNotReady"));
+      if (!app.chain.contractAddress.get()) throw new Error(t("contractNotReady"));
 
       const amountBase = app.amount.gasToFixed8(CAPSULE_CREATE_AMOUNT);
       const durationSeconds = daysValue * 86_400;
 
-      // Step 1: DEPOSIT — GAS transfer to the contract with the bury memo so
-      // OnNEP17Payment credits the owner's prepaid (refundable) deposit balance.
-      await app.chain.invoke(
-        "transfer",
-        [
-          ownerArg,
-          app.chain.arg.hash160(contractHash),
-          app.chain.arg.integer(amountBase),
-          app.chain.arg.string(BURY_MEMO),
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
-
-      // Step 2: bury — consumes the prepaid credit as the locked amount and
-      // seals the capsule. Read the new id from the Buried event (state[0]).
-      let capsuleId = "";
+      // Deposit-then-act (S3): prepayAndCall transfers the deposit to the
+      // contract with the bury memo (OnNEP17Payment credits the owner's
+      // prepaid balance), waits for the credit to confirm in a block, then
+      // fires bury(), which consumes that credit as the locked amount.
+      // notify:'silent' — this composable owns the mid-flow messaging;
+      // main.tsx's registered action surfaces the capsuleCreated/error toasts.
+      let result;
       try {
-        const result = await app.chain.invoke(
-          "bury",
-          [
+        result = await app.funds.prepayAndCall({
+          operation: "bury",
+          args: [
             ownerArg,
             app.chain.arg.byteArray(hexToBase64(contentHash)),
             app.chain.arg.integer(durationSeconds),
@@ -630,23 +623,36 @@ export function useTimeCapsule({
             app.chain.arg.integer(category),
             app.chain.arg.integer(amountBase),
           ],
-          { waitForEvent: "Buried" },
-        );
-        capsuleId = toIdString(eventValue(result.event, 0));
-        if (!capsuleId) {
-          // Event slot unavailable / unparsed — fall back to lastCapsuleId().
-          capsuleId = toIdString(await app.chain.readRaw("lastCapsuleId", []));
-        }
+          amountGas: CAPSULE_CREATE_AMOUNT,
+          memo: BURY_MEMO,
+          waitForEvent: "Buried",
+          notify: "silent",
+        });
       } catch (buryErr) {
-        console.error(
-          "[useTimeCapsule] bury failed after deposit succeeded:",
-          buryErr instanceof Error ? buryErr.message : String(buryErr),
-        );
-        // Deposit landed, capsule not buried — credit is held under the owner as
-        // reusable prepaid credit, reusable on the next bury or withdrawable to
-        // the wallet. Refresh it so the recovery banner surfaces the money-out.
-        await loadCredit();
-        throw new Error(t("depositPrepaidNoCapsule"));
+        if (buryErr instanceof FrameworkPrepaidActionError) {
+          console.error(
+            "[useTimeCapsule] bury failed after deposit succeeded:",
+            buryErr.actionError instanceof Error
+              ? buryErr.actionError.message
+              : String(buryErr.actionError),
+          );
+          // Deposit landed, capsule not buried — credit is held under the
+          // owner as reusable prepaid credit, reusable on the next bury or
+          // withdrawable to the wallet. Refresh it so the recovery banner
+          // surfaces the money-out, then show the exact stranded-credit copy.
+          await loadCredit();
+          throw new Error(t("depositPrepaidNoCapsule"));
+        }
+        // The deposit itself failed (e.g. the wallet rejected the transfer) —
+        // nothing is stranded on the contract; propagate the raw failure.
+        throw buryErr;
+      }
+
+      // Read the new id from the Buried event (state[0]).
+      let capsuleId = toIdString(eventValue(result.event, 0));
+      if (!capsuleId) {
+        // Event slot unavailable / unparsed — fall back to lastCapsuleId().
+        capsuleId = toIdString(await app.chain.readRaw("lastCapsuleId", []));
       }
 
       // Persist the full content + display metadata ON-DEVICE under the on-chain
@@ -677,7 +683,9 @@ export function useTimeCapsule({
    */
   const openCapsule = async (cap: Capsule) => {
     if (!cap.revealed && Date.now() < cap.unlockTime) {
-      notify(t("notUnlocked"), "error");
+      // Already-localized copy: the string lane of app.notify.error emits it
+      // verbatim (it matches no chain-error family).
+      app.notify.error(t("notUnlocked"));
       return;
     }
     if (isBusy.get()) return;
@@ -702,18 +710,21 @@ export function useTimeCapsule({
       // Reveal returns the locked deposit atomically — confirm the money-out, then
       // surface the message (or an on-device-fallback hash) on the live channel.
       if (wasSealed) {
-        notify(t("capsuleRevealed"), "success");
+        app.notify.success("capsuleRevealed");
       }
       const content = cap.contentHash ? localContent.get()[cap.contentHash] : "";
       if (content) {
-        notify(`${t("message")} ${content}`, "info");
+        app.notify.info("message", { content });
       } else if (cap.contentHash) {
-        notify(`${t("contentUnavailable")} ${cap.contentHash}`, "info");
+        app.notify.info("contentUnavailable", { hash: cap.contentHash });
       }
 
       capsules.set(await loadCapsules());
     } catch (e) {
-      notify(formatErrorMessage(e, t("error")), "error");
+      // Keep the app's formatErrorMessage sanitization (raw dumps → t("error"))
+      // before the toast; app.notify.error still maps known chain/RPC failure
+      // families to localized copy.
+      app.notify.error(formatErrorMessage(e, t("error")));
       throw e;
     } finally {
       isProcessing.set(false);
@@ -763,7 +774,7 @@ export function useTimeCapsule({
         : candidates[0];
 
       if (!candidate) {
-        notify(t("fishNone"), "info");
+        app.notify.info("fishNone");
         return;
       }
 
@@ -790,13 +801,13 @@ export function useTimeCapsule({
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Fished" },
       );
 
-      notify(t("fishResult", { id: candidate.id }), "success");
+      app.notify.success("fishResult", { id: candidate.id });
 
       capsules.set(await loadCapsules());
       // The tipped capsule is now flagged fished — drop it from the browsable list.
       fishCandidates.set(await loadPublicCandidates());
     } catch (e) {
-      notify(formatErrorMessage(e, t("error")), "error");
+      app.notify.error(formatErrorMessage(e, t("error")));
       throw e;
     } finally {
       isProcessing.set(false);
@@ -829,7 +840,7 @@ export function useTimeCapsule({
         creditBase = 0n;
       }
       if (creditBase <= 0n) {
-        notify(t("noCreditToWithdraw"), "info");
+        app.notify.info("noCreditToWithdraw");
         reusableCredit.set("0");
         return { amount: "0" };
       }
@@ -844,11 +855,11 @@ export function useTimeCapsule({
       const withdrawnBase = parseBigInt(eventValue(result.event, 1));
       const amount = fromBaseUnits(withdrawnBase > 0n ? withdrawnBase : creditBase);
 
-      notify(t("creditWithdrawn", { amount }), "success");
+      app.notify.success("creditWithdrawn", { amount });
       await loadCredit();
       return { amount };
     } catch (e) {
-      notify(formatErrorMessage(e, t("error")), "error");
+      app.notify.error(formatErrorMessage(e, t("error")));
       throw e;
     } finally {
       isProcessing.set(false);
@@ -883,9 +894,11 @@ export function useTimeCapsule({
       } catch (e) {
         // The contract asserts revenue > 0; an empty balance is an expected
         // "nothing to collect" outcome, not a failure to surface as an error.
+        // This expected-revert regex → info-toast classification stays
+        // app-side (plan §3 Wave 4) — it is contract-specific business copy.
         const msg = e instanceof Error ? e.message : "";
         if (/no fish revenue/i.test(msg)) {
-          notify(t("noTipsToCollect"), "info");
+          app.notify.info("noTipsToCollect");
           return { amount: "0" };
         }
         throw e;
@@ -894,10 +907,10 @@ export function useTimeCapsule({
       // FishRevenueWithdrawn(owner, amount) — amount is state index 1.
       const collectedBase = parseBigInt(eventValue(result.event, 1));
       const amount = fromBaseUnits(collectedBase);
-      notify(t("tipsCollected", { amount }), "success");
+      app.notify.success("tipsCollected", { amount });
       return { amount };
     } catch (e) {
-      notify(formatErrorMessage(e, t("error")), "error");
+      app.notify.error(formatErrorMessage(e, t("error")));
       throw e;
     } finally {
       isProcessing.set(false);

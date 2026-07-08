@@ -176,7 +176,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { mode: "public", label: t("drawerPublic"), value: String(fishCandidates.length), Icon: Sparkles },
     { mode: "deposit", label: t("drawerDeposit"), value: hasCredit ? `${reusableCredit} GAS` : t("depositShortNote"), Icon: Gift },
   ];
-  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  // drawerModes is a fixed 4-entry literal — index 0 always exists; the
+  // assertion satisfies noUncheckedIndexedAccess.
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.Icon;
 
   const startCreatePreview = () => {

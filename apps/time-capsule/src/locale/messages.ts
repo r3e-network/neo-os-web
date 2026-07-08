@@ -227,9 +227,12 @@ const appMessages = {
   fishTipThis: { en: "Tip (0.05 GAS)", zh: "打赏 (0.05 GAS)" },
   hashStored: { en: "Content hash stored on-chain", zh: "内容哈希已上链" },
   hashLabel: { en: "Hash:", zh: "哈希：" },
+  // Toast template (app.notify.info) — {hash} carries the on-chain content
+  // hash so the rendered copy stays byte-identical to the pre-framework
+  // `${t("contentUnavailable")} ${hash}` concatenation.
   contentUnavailable: {
-    en: "No local message found. The on-chain hash is shown below.",
-    zh: "未找到本地消息，下面展示链上哈希。",
+    en: "No local message found. The on-chain hash is shown below. {hash}",
+    zh: "未找到本地消息，下面展示链上哈希。 {hash}",
   },
   notUnlocked: { en: "Capsule is still locked", zh: "胶囊仍处于锁定状态" },
   notUnlockedYet: { en: "Not unlocked yet", zh: "尚未到解锁时间" },
@@ -265,7 +268,10 @@ const appMessages = {
     zh: "没有可提取的押金余额。",
   },
   untitledCapsule: { en: "Untitled capsule", zh: "无标题胶囊" },
-  message: { en: "Message:", zh: "消息：" },
+  // Toast template (app.notify.info) — {content} carries the revealed
+  // on-device message so the rendered copy stays byte-identical to the
+  // pre-framework `${t("message")} ${content}` concatenation.
+  message: { en: "Message: {content}", zh: "消息： {content}" },
   tabCapsules: { en: "Capsules", zh: "胶囊" },
   tabCreate: { en: "Create", zh: "创建" },
   docSubtitle: {

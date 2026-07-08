@@ -6,7 +6,7 @@ import type { ChainService, ContractArg, TxResult } from "../services/ChainServi
 import { DepositConfirmedActionFailedError } from "../composables/useContractInteraction";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
-import { createMiniAppFramework } from "@shared/react";
+import { createMiniAppFramework, FrameworkPrepaidActionError } from "@shared/react";
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const CREATOR = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -248,15 +248,17 @@ function makeChain(
 
 function setup(opts: Parameters<typeof makeChain>[0] = {}) {
   const { chain, invoke, prepayAndInvoke, read, listAllEvents } = makeChain(opts);
-  // The composable routes reads/invokes/address/contractAddress/ensureWallet
-  // through the framework chain layer (a behavior-preserving passthrough) and
-  // keeps the raw chain for prepayAndInvoke + listAllEvents. Wrapping the same
-  // mock chain leaves every recorded call and its arg shapes unchanged.
+  // The composable routes everything through the framework: reads/invokes/
+  // address/contractAddress/ensureWallet on app.chain, the deposit-then-commit
+  // lane on app.funds.prepayAndCall (which delegates to the host
+  // prepayAndInvoke), and the capped recovery walks on app.events.listAll
+  // (which delegates to the host listAllEvents). Wrapping the same mock chain
+  // leaves every recorded call and its arg shapes unchanged.
   const framework = createMiniAppFramework(
     { services: { chain }, t } as never,
     { appId: "miniapp-gasbox" },
   );
-  const app = useGasBox({ app: framework, chain, t });
+  const app = useGasBox({ app: framework, t });
   app.setAddress(PLAYER);
   return { app, chain, invoke, prepayAndInvoke, read, listAllEvents };
 }
@@ -448,9 +450,11 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
     await app.loadAll();
     app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
 
-    // The deposit confirmed but commit() reverted — prepayAndInvoke raises a
-    // DepositConfirmedActionFailedError, which the composable surfaces as the
-    // "credit prepaid but commit didn't settle" message (credit stays reusable).
+    // The deposit confirmed but commit() reverted — the host prepayAndInvoke
+    // raises a DepositConfirmedActionFailedError, which app.funds.prepayAndCall
+    // translates into the identity-stable FrameworkPrepaidActionError, and the
+    // composable branches on it to surface its exact localized "credit prepaid
+    // but commit didn't settle" recovery copy (credit stays reusable).
     await expect(app.playMachine()).rejects.toThrow(
       "Play credit prepaid but the commit didn't settle",
     );
@@ -458,6 +462,42 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
     expect(app.showResult.get()).toBe(false);
     // The bet never committed, so the play returns to idle (no pending reveal).
     expect(app.betPhase.get()).toBe("idle");
+  });
+
+  it("shows the same stranded-credit recovery copy when the host already throws the framework class (identity across the shared re-export)", async () => {
+    const { app, prepayAndInvoke } = setup({ playCredit: "0" });
+    // Hosts on newer framework lanes surface the deposit-confirmed failure as
+    // FrameworkPrepaidActionError directly; the class re-exported by
+    // apps/shared must be the SAME class the composable branches on.
+    prepayAndInvoke.mockRejectedValueOnce(
+      new FrameworkPrepaidActionError(
+        "commit",
+        "0xdeposit",
+        new Error("insufficient prepaid gas"),
+      ),
+    );
+
+    await app.loadAll();
+    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+
+    await expect(app.playMachine()).rejects.toThrow(
+      "Play credit prepaid but the commit didn't settle",
+    );
+    expect(app.betPhase.get()).toBe("idle");
+  });
+
+  it("recovers a lost betId by walking the Committed log through the capped events surface", async () => {
+    const { app, listAllEvents } = setup();
+    await app.loadAll();
+
+    // A commit landed but its event was never observed (no persisted betId).
+    // The reveal path walks the Committed log via app.events.listAll (bounded
+    // by the plan's cap), which delegates to the host listAllEvents. The
+    // stub's getPendingBet reports the bet as already settled, so no unsettled
+    // resume handle exists and revealPending resolves false.
+    listAllEvents.mockResolvedValueOnce([committedEvent("9")]);
+    await expect(app.revealPending()).resolves.toBe(false);
+    expect(listAllEvents).toHaveBeenCalledWith("Committed");
   });
 
   it("skips the prepay transfer when existing play credit already covers the price", async () => {

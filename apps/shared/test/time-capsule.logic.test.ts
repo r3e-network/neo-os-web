@@ -2,20 +2,30 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useTimeCapsule } from "../../time-capsule/src/composables/useTimeCapsule";
 import type { ChainService, ContractArg, TxResult } from "../services";
+import { NotificationService } from "../services";
+import type { EventBus } from "../services/EventBus";
+import { DepositConfirmedActionFailedError } from "../composables/useContractInteraction";
 import { createObservable } from "../react/context";
 import { createMiniAppFramework } from "../react";
 import { addressToScriptHash } from "../utils/neo";
 
 /**
  * These tests drive the migrated useTimeCapsule against a FAKE ChainService that
- * mirrors the standalone MiniAppTimeCapsule vault contract. The composable now
- * talks directly to the chain (deposit-then-bury, reveal, fish via memo'd GAS
- * transfers + getCapsule/getOwnerCapsules/lastCapsuleId reads) — no OS proxies.
+ * mirrors the standalone MiniAppTimeCapsule vault contract. The composable
+ * talks to the chain through the framework SDK (deposit-then-bury via
+ * app.funds.prepayAndCall, reveal, fish via memo'd GAS transfers +
+ * getCapsule/getOwnerCapsules/lastCapsuleId reads) — no OS proxies.
  *
  * The fake stores capsules exactly as getCapsule returns them: owner as a
  * "0x<hex>" script hash, contentHash as a "0x<hex>" ByteString, unlockTime in
  * milliseconds, amount in base units. invoke() records every call so we can
- * assert the deposit memo + bury/reveal/fish wiring.
+ * assert the deposit memo + bury/reveal/fish wiring. The fake prepayAndInvoke
+ * mirrors the host ChainService lane (transfer with memo → settle → consuming
+ * call, wrapping post-deposit failures in DepositConfirmedActionFailedError so
+ * the framework surfaces the identity-stable FrameworkPrepaidActionError the
+ * composable's stranded-credit recovery copy branches on). Toasts flow through
+ * a REAL NotificationService bound to the recorded event bus, so every
+ * user-visible message is asserted end-to-end (t-key + params interpolation).
  */
 
 const ME = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -40,10 +50,12 @@ function t(key: string, params?: Record<string, string | number>) {
     invalidLockDuration: "Lock duration must be between 1 and 3650 days.",
     capsuleCreated: "Capsule sealed on-chain!",
     capsuleRevealed: "Capsule revealed",
-    message: "Message:",
-    contentUnavailable: "No local message found.",
+    message: "Message: {content}",
+    contentUnavailable: "No local message found. {hash}",
     creditWithdrawn: "Withdrew {amount} GAS deposit credit",
     noCreditToWithdraw: "No reusable deposit credit to withdraw.",
+    tipsCollected: "Collected {amount} GAS in fishing tips",
+    noTipsToCollect: "No fishing tips to collect yet.",
   };
   const base = messages[key] ?? key;
   if (!params) return base;
@@ -92,6 +104,15 @@ function setup(
     failBury?: boolean;
     credit?: Record<string, string>;
     readError?: string;
+    /** Fish-revenue ledger balance (base units) for withdrawFishRevenue. */
+    fishRevenue?: string;
+    /**
+     * Settlement state the host lane observed for the bury deposit
+     * ("confirmed" when omitted). The host wraps a failing bury on ANY
+     * post-broadcast settlement — "timeout"/"unreachable" only mean the
+     * deposit is unproven by the indexer, not absent.
+     */
+    settlement?: "confirmed" | "timeout" | "unreachable";
   },
 ) {
   // Authoritative on-chain store keyed by capsule id.
@@ -163,10 +184,16 @@ function setup(
 
       if (operation === "bury") {
         if (opts?.failBury) throw new Error("bury reverted");
-        // Mint a fresh capsule from the bury args (mirrors the contract).
+        // Mint a fresh capsule from the bury args (mirrors the contract):
+        // the stored contentHash IS the buried ByteArray (base64 → hex),
+        // exactly as getCapsule echoes it back as a "0x<hex>" ByteString.
         lastId += 1;
         const id = String(lastId);
         const ownerHash = String(args[0]?.value ?? "");
+        const contentHashHex = Buffer.from(
+          String(args[1]?.value ?? ""),
+          "base64",
+        ).toString("hex");
         const durationSeconds = Number(args[2]?.value ?? 0);
         const isPublic = Boolean(args[3]?.value);
         const category = Number(args[4]?.value ?? 1);
@@ -174,7 +201,7 @@ function setup(
         store.set(id, {
           id,
           owner: ownerHash,
-          contentHash: `0x${"cd".repeat(32)}`,
+          contentHash: `0x${contentHashHex || "cd".repeat(32)}`,
           unlockTime: Date.now() + durationSeconds * 1000,
           isPublic,
           category,
@@ -209,7 +236,60 @@ function setup(
         };
       }
 
+      if (operation === "withdrawFishRevenue") {
+        // The contract asserts revenue > 0 — an empty ledger REVERTS with the
+        // "no fish revenue" text the composable classifies as an expected
+        // nothing-to-collect outcome (kept app-side, plan §3 Wave 4).
+        const revenue = BigInt(opts?.fishRevenue ?? "0");
+        if (revenue <= 0n) throw new Error("FAULT: no fish revenue");
+        const ownerHash = String(args[0]?.value ?? "").toLowerCase();
+        // FishRevenueWithdrawn(owner, amount) — amount is state index 1.
+        return {
+          txid: "0xfishrevenue",
+          success: true,
+          event: { state: [{ value: ownerHash }, { value: revenue.toString() }] },
+        };
+      }
+
       throw new Error(`unexpected invoke: ${operation}`);
+    },
+  );
+
+  /**
+   * Host prepay lane (mirrors ChainService.prepayAndInvoke): transfer the GAS
+   * deposit to the contract with the memo, settle, then run the consuming
+   * call. A consuming failure after the (test-synchronous) confirmed deposit
+   * surfaces the host DepositConfirmedActionFailedError — the framework wraps
+   * it into the identity-stable FrameworkPrepaidActionError.
+   */
+  const prepayAndInvoke = vi.fn(
+    async (
+      gasAmount: string,
+      memo: string,
+      operation: string,
+      args: ContractArg[],
+      options?: { scriptHash?: string; waitForEvent?: string },
+    ): Promise<TxResult> => {
+      const transfer = await invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: address.get()! },
+          { type: "Hash160", value: CONTRACT },
+          { type: "Integer", value: gasAmount },
+          { type: "String", value: memo },
+        ],
+        { scriptHash: GAS_HASH },
+      );
+      try {
+        return await invoke(operation, args, options);
+      } catch (error) {
+        throw new DepositConfirmedActionFailedError(
+          operation,
+          transfer.txid,
+          error,
+          opts?.settlement ?? "confirmed",
+        );
+      }
     },
   );
 
@@ -220,6 +300,7 @@ function setup(
     read,
     readArray,
     invoke,
+    prepayAndInvoke,
   } as unknown as ChainService;
 
   const events: Array<{ event: string; payload?: unknown }> = [];
@@ -229,13 +310,28 @@ function setup(
     },
   };
 
-  const app = createMiniAppFramework(
-    { services: { chain }, t } as never,
-    { appId: "miniapp-time-capsule" },
-  );
-  const composable = useTimeCapsule({ app, eventBus, t });
+  // Real NotificationService over the recorded bus: app.notify.* renders
+  // t(key, params) onto the same platform:notification channel the
+  // pre-migration composable emitted on — the toast assertions below pin the
+  // user-visible copy byte-for-byte through the new surface.
+  const notify = new NotificationService(eventBus as unknown as EventBus, t);
 
-  return { composable, chain, invokes, events, store };
+  const app = createMiniAppFramework(
+    { services: { chain, notify }, t } as never,
+    // storagePrefix mirrors main.tsx: the on-device content/meta stores keep
+    // their legacy "time-capsule-*" localStorage keys.
+    { appId: "miniapp-time-capsule", storagePrefix: "time-capsule-" },
+  );
+  const composable = useTimeCapsule({ app, t });
+
+  /**
+   * A fresh composable over the SAME framework/storage — the "reopen the
+   * app" lane: the on-device content store is re-read at init, proving the
+   * storage round-trip through the legacy localStorage keys.
+   */
+  const remount = () => useTimeCapsule({ app, t });
+
+  return { composable, chain, invokes, events, store, remount };
 }
 
 beforeEach(() => {
@@ -315,11 +411,20 @@ describe("useTimeCapsule.createCapsule (deposit + bury vault flow)", () => {
     expect(created[0].title).toBe("Note to future me");
     expect(created[0].amount).toBe("0.2");
     expect(created[0].isPublic).toBe(true);
+
+    // Migration hazard (plan §3 Wave 4): the on-device stores must keep their
+    // legacy pre-framework localStorage keys byte-for-byte so existing users
+    // keep their sealed messages.
+    expect(window.localStorage.getItem("time-capsule-content")).toContain("the secret");
+    expect(window.localStorage.getItem("time-capsule-meta")).toContain("Note to future me");
   });
 
   it("surfaces a prepaid-but-not-buried message and does not lose the deposit when bury reverts", async () => {
-    // The bury step faults AFTER the deposit lands (failBury), mirroring a
-    // post-deposit revert where the prepaid credit stays on the contract.
+    // The bury step faults AFTER the confirmed deposit (failBury): the host
+    // lane throws DepositConfirmedActionFailedError, the framework wraps it
+    // into the identity-stable FrameworkPrepaidActionError, and the composable
+    // remaps THAT branch onto the app's exact stranded-credit recovery copy —
+    // the prepaid credit stays on the contract.
     const { composable, invokes, events } = setup([], { wallet: ME, failBury: true });
 
     composable.newCapsule.set({
@@ -383,6 +488,54 @@ describe("useTimeCapsule.openCapsule (reveal returns the deposit)", () => {
     expect(note?.payload).toMatchObject({
       message: "Capsule revealed",
       type: "success",
+    });
+
+    // No on-device message for this foreign contentHash → the hash-fallback
+    // info toast interpolates the hash through t("contentUnavailable", {hash}).
+    const fallback = events.find(
+      (e) =>
+        e.event === "platform:notification" &&
+        (e.payload as { type?: string }).type === "info",
+    );
+    expect(fallback?.payload).toMatchObject({
+      message: `No local message found. ${"ab".repeat(32)}`,
+      type: "info",
+    });
+  });
+
+  it("surfaces the on-device message through the parametrized message toast on open", async () => {
+    const { composable, events, store, remount } = setup([], { wallet: ME });
+
+    composable.newCapsule.set({
+      title: "T",
+      content: "the secret",
+      days: "30",
+      isPublic: false,
+      category: 1,
+    });
+    await composable.createCapsule();
+    const id = composable.capsules.get()[0]!.id;
+
+    // Time passes: the capsule was revealed on-chain (deposit returned) and
+    // the user reopens the app — the fresh composable re-reads the on-device
+    // content store from the legacy localStorage keys.
+    store.set(id, { ...store.get(id)!, revealed: true });
+    const reopened = remount();
+    await reopened.loadAll();
+    const cap = reopened.capsules.get().find((c) => c.id === id)!;
+
+    await reopened.openCapsule(cap);
+
+    // The full message came back from the on-device content store (keyed by
+    // the on-chain contentHash) and rides t("message", {content}).
+    const note = events.find(
+      (e) =>
+        e.event === "platform:notification" &&
+        (e.payload as { type?: string }).type === "info",
+    );
+    expect(note?.payload).toMatchObject({
+      message: "Message: the secret",
+      type: "info",
     });
   });
 
@@ -585,6 +738,104 @@ describe("useTimeCapsule prepaid-deposit credit (money-out path)", () => {
       message: "No reusable deposit credit to withdraw.",
       type: "info",
     });
+  });
+
+  it("collects fish revenue and toasts the amount from the FishRevenueWithdrawn event", async () => {
+    const { composable, invokes, events } = setup([], {
+      wallet: ME,
+      fishRevenue: "5000000", // 0.05 GAS accrued tip
+    });
+
+    const { amount } = await composable.withdrawFishRevenue();
+
+    const collect = invokes.find((c) => c.operation === "withdrawFishRevenue");
+    expect(collect).toBeTruthy();
+    expect(collect?.args[0]?.value).toBe(ME_HASH);
+    expect(collect?.options?.waitForEvent).toBe("FishRevenueWithdrawn");
+
+    expect(amount).toBe("0.05");
+    const note = events.find(
+      (e) =>
+        e.event === "platform:notification" &&
+        (e.payload as { type?: string }).type === "success",
+    );
+    expect(note?.payload).toMatchObject({
+      message: "Collected 0.05 GAS in fishing tips",
+      type: "success",
+    });
+  });
+
+  it("classifies the expected no-fish-revenue revert as a clean info toast (kept app-side)", async () => {
+    const { composable, events } = setup([], { wallet: ME }); // empty ledger
+
+    // The contract reverts with "no fish revenue"; the composable's regex
+    // classification (plan §3 Wave 4: stays app-side) turns that expected
+    // outcome into localized info copy instead of an error toast.
+    const { amount } = await composable.withdrawFishRevenue();
+
+    expect(amount).toBe("0");
+    const note = events.find((e) => e.event === "platform:notification");
+    expect(note?.payload).toMatchObject({
+      message: "No fishing tips to collect yet.",
+      type: "info",
+    });
+    expect(
+      events.some(
+        (e) =>
+          e.event === "platform:notification" &&
+          (e.payload as { type?: string }).type === "error",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the stranded-credit copy and refreshes the banner when the deposit only timed out (indexer lag)", async () => {
+    // Regression pin (Wave 4 audit): the deposit transfer was BROADCAST but
+    // the indexer never proved it before bury() faulted — settlement reads
+    // "timeout". The host lane still wraps the failure, so the composable
+    // must reach the SAME recovery branch: the exact stranded-credit copy
+    // plus the loadCredit() refresh that surfaces the withdraw banner. A raw
+    // FAULT toast here would read as a lost 0.2 GAS deposit.
+    const { composable } = setup([], {
+      wallet: ME,
+      failBury: true,
+      settlement: "timeout",
+      credit: { [ME_HASH]: "20000000" },
+    });
+
+    composable.newCapsule.set({
+      title: "x",
+      content: "y",
+      days: "10",
+      isPublic: false,
+      category: 1,
+    });
+
+    await expect(composable.createCapsule()).rejects.toThrow(
+      "Deposit prepaid, capsule not buried",
+    );
+
+    expect(composable.hasCredit.get()).toBe(true);
+    expect(composable.reusableCredit.get()).toBe("0.2");
+  });
+
+  it("keeps the stranded-credit copy when the indexer was unreachable during the deposit", async () => {
+    const { composable } = setup([], {
+      wallet: ME,
+      failBury: true,
+      settlement: "unreachable",
+    });
+
+    composable.newCapsule.set({
+      title: "x",
+      content: "y",
+      days: "10",
+      isPublic: false,
+      category: 1,
+    });
+
+    await expect(composable.createCapsule()).rejects.toThrow(
+      "Deposit prepaid, capsule not buried",
+    );
   });
 
   it("refreshes the credit banner after a deposit lands but bury reverts", async () => {

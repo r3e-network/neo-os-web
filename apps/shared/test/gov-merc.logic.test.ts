@@ -6,7 +6,8 @@ import {
   useGovMerc,
   windowRevertKey,
 } from "../../gov-merc/src/hooks/useGovMerc";
-import { createMiniAppFramework } from "../react";
+import { createMiniAppFramework, FrameworkPrepaidActionError } from "../react";
+import { DepositConfirmedActionFailedError } from "../composables/useContractInteraction";
 import type { ChainService, ContractArg, TxResult } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
@@ -16,7 +17,6 @@ const BOB = "NUuPbNwrecVnAQauFTdMPaMQRgwsmFwjwR";
 const CONTRACT = "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46";
 const ALICE_HASH = addressToScriptHash(ALICE);
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
-const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const STAKE_MEMO = "govmerc:stake";
 const BID_MEMO = "govmerc:bid";
 const ZERO_HASH = "0x0000000000000000000000000000000000000000";
@@ -83,8 +83,26 @@ interface ChainOpts {
   bidOf?: Record<number, string>;
   /** BidPlaced events returned by listEvents. */
   bidEvents?: unknown[];
-  /** Force the bid() invoke to throw. */
+  /**
+   * Force the consuming bid() call to throw. On the credit-covered lane the
+   * raw error is thrown by invoke("bid"); on the funded lane the host
+   * confirmed-deposit shape (DepositConfirmedActionFailedError) wraps it —
+   * exactly what ChainService.invokeWithPayment throws when the deposit
+   * was broadcast but the consuming call faulted.
+   */
   bidThrows?: Error;
+  /**
+   * Settlement state the host lane observed for the deposit when bidThrows
+   * fires ("confirmed" when omitted). The host wraps on ANY post-broadcast
+   * settlement — "timeout"/"unreachable" only mean the deposit is unproven
+   * by the indexer, not absent.
+   */
+  bidSettlement?: "confirmed" | "timeout" | "unreachable";
+  /**
+   * Force the funded lane's deposit leg to fail BEFORE the deposit confirms
+   * (raw error — e.g. the wallet rejected the GAS transfer).
+   */
+  depositThrows?: Error;
   /** Force specific read operations to throw. */
   readThrows?: Record<string, Error>;
   /** epochDeadline(currentEpoch) read — ms timestamp (0 = window unopened). */
@@ -144,23 +162,60 @@ function makeChain(opts: ChainOpts = {}) {
 
   const listEvents = vi.fn(async (): Promise<unknown[]> => opts.bidEvents ?? []);
 
+  /**
+   * Mirror of ChainService.invokeWithPayment — the confirmed-deposit lane
+   * app.funds.payAndCall reaches: GAS transfer with the memo, deposit
+   * confirmed in a block, then the consuming call. A consuming-call fault
+   * after the confirmed deposit surfaces as DepositConfirmedActionFailedError
+   * (the framework re-wraps it as the identity-stable
+   * FrameworkPrepaidActionError the hook branches on).
+   */
+  const invokeWithPayment = vi.fn(
+    async (
+      _amount: string,
+      _memo: string,
+      op: string,
+      _args: ContractArg[],
+      options?: { waitForEvent?: string },
+    ): Promise<TxResult> => {
+      let event: unknown;
+      if (op === "bid") {
+        if (opts.depositThrows) throw opts.depositThrows;
+        if (opts.bidThrows) {
+          throw new DepositConfirmedActionFailedError(
+            "bid",
+            "0xdeposit",
+            opts.bidThrows,
+            opts.bidSettlement ?? "confirmed",
+          );
+        }
+        if (options?.waitForEvent === "BidPlaced") {
+          event = bidEvent(opts.epoch ?? 0, ALICE, "100000000");
+        }
+      }
+      return { txid: "0xtx", event, success: true };
+    },
+  );
+
   const chain = {
     contractAddress: { get: () => CONTRACT },
     address: { get: () => ALICE },
     ensureWallet: vi.fn(async () => ALICE),
     invoke,
+    invokeWithPayment,
     read,
     listEvents,
   } as unknown as ChainService & {
     invoke: typeof invoke;
+    invokeWithPayment: typeof invokeWithPayment;
     read: typeof read;
     listEvents: typeof listEvents;
   };
-  return { chain, invoke, read, listEvents };
+  return { chain, invoke, invokeWithPayment, read, listEvents };
 }
 
 function setup(opts: ChainOpts = {}) {
-  const { chain, invoke, read, listEvents } = makeChain(opts);
+  const { chain, invoke, invokeWithPayment, read, listEvents } = makeChain(opts);
   // Wrap the mock chain in the MiniApp framework the hook now takes; arg builders
   // + passthroughs produce identical invoke/read/listEvents calls.
   const framework = createMiniAppFramework(
@@ -169,7 +224,7 @@ function setup(opts: ChainOpts = {}) {
   );
   const app = useGovMerc({ app: framework, t });
   app.setAddress(ALICE);
-  return { app, chain, invoke, read, listEvents };
+  return { app, chain, invoke, invokeWithPayment, read, listEvents };
 }
 
 /** Find a recorded invoke call for an operation. */
@@ -327,28 +382,46 @@ describe("useGovMerc — staking (NEO integer, transfer IS the stake)", () => {
   });
 });
 
-describe("useGovMerc — bidding (GAS base units, deposit-then-act)", () => {
-  it("deposits the GAS bid then calls bid(bidder, addBase), in that order (×1e8 scaled once)", async () => {
-    const { app, invoke } = setup({ epoch: 4, gasCredit: "0" });
+describe("useGovMerc — bidding (GAS base units, deposit-then-act via payAndCall)", () => {
+  it("routes the funded bid through the confirmed-deposit payAndCall lane (×1e8 scaled once)", async () => {
+    const { app, invoke, invokeWithPayment } = setup({ epoch: 4, gasCredit: "0" });
     await app.loadData();
     invoke.mockClear();
 
     app.bidAmount.set("2.5");
     await app.placeBid();
 
-    // Step 1: GAS transfer to the contract with the bid memo, base units.
-    const deposit = callFor(invoke, "transfer");
-    expect(deposit).toBeTruthy();
+    // One confirmed-deposit lane call: the GAS transfer with the bid memo
+    // settles in a block FIRST, then bid(bidder, addBase) consumes the credit.
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+    const [amount, memo, op, args, options] = invokeWithPayment.mock.calls[0];
     // 2.5 GAS -> 250000000 base units (×1e8, scaled ONCE — no double-scale).
-    expect(deposit![1]).toEqual([
+    expect(amount).toBe("250000000");
+    expect(memo).toBe(BID_MEMO);
+    expect(op).toBe("bid");
+    expect(args).toEqual([
       { type: "Hash160", value: ALICE_HASH },
-      { type: "Hash160", value: CONTRACT },
       { type: "Integer", value: "250000000" },
-      { type: "String", value: BID_MEMO },
     ]);
-    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH });
+    expect(options).toMatchObject({ waitForEvent: "BidPlaced" });
 
-    // Step 2: bid(bidder, addBase) waiting for BidPlaced.
+    // No hand-rolled two-step remains — the lane owns both the deposit and
+    // the consuming call.
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+    expect(callFor(invoke, "bid")).toBeUndefined();
+    expect(app.bidAmount.get()).toBe("");
+  });
+
+  it("skips the deposit when prepaid bid credit already covers the amount", async () => {
+    const { app, invoke, invokeWithPayment } = setup({ epoch: 4, gasCredit: "300000000" }); // 3 GAS credit
+    await app.loadData();
+    invoke.mockClear();
+
+    app.bidAmount.set("2.5"); // needs 2.5 GAS, credit covers it
+    await app.placeBid();
+
+    expect(invokeWithPayment).not.toHaveBeenCalled();
+    expect(callFor(invoke, "transfer")).toBeUndefined();
     const bid = callFor(invoke, "bid");
     expect(bid).toBeTruthy();
     expect(bid![1]).toEqual([
@@ -356,37 +429,21 @@ describe("useGovMerc — bidding (GAS base units, deposit-then-act)", () => {
       { type: "Integer", value: "250000000" },
     ]);
     expect(bid![2]).toMatchObject({ waitForEvent: "BidPlaced" });
-
-    // The deposit must precede the bid.
-    const order = invoke.mock.calls.map((c) => c[0]);
-    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("bid"));
-    expect(app.bidAmount.get()).toBe("");
-  });
-
-  it("skips the deposit when prepaid bid credit already covers the amount", async () => {
-    const { app, invoke } = setup({ epoch: 4, gasCredit: "300000000" }); // 3 GAS credit
-    await app.loadData();
-    invoke.mockClear();
-
-    app.bidAmount.set("2.5"); // needs 2.5 GAS, credit covers it
-    await app.placeBid();
-
-    expect(callFor(invoke, "transfer")).toBeUndefined();
-    expect(callFor(invoke, "bid")).toBeTruthy();
   });
 
   it("rejects a first bid below 1 GAS before any chain call", async () => {
-    const { app, invoke } = setup({ epoch: 4, gasCredit: "0", bidEvents: [] });
+    const { app, invoke, invokeWithPayment } = setup({ epoch: 4, gasCredit: "0", bidEvents: [] });
     await app.loadData();
     invoke.mockClear();
 
     app.bidAmount.set("0.5");
     await expect(app.placeBid()).rejects.toThrow("First bid must be at least 1 GAS");
     expect(invoke).not.toHaveBeenCalled();
+    expect(invokeWithPayment).not.toHaveBeenCalled();
   });
 
-  it("surfaces a held-credit message when bid faults after the deposit lands", async () => {
-    const { app, invoke } = setup({
+  it("surfaces the held-credit recovery copy when bid faults after the deposit lands", async () => {
+    const { app, invokeWithPayment } = setup({
       epoch: 4,
       gasCredit: "0",
       bidThrows: new Error("some chain fault"),
@@ -394,12 +451,63 @@ describe("useGovMerc — bidding (GAS base units, deposit-then-act)", () => {
     await app.loadData();
 
     app.bidAmount.set("2");
+    // The FrameworkPrepaidActionError branch: deposit CONFIRMED but bid()
+    // faulted — the user must see the app's stranded-credit recovery copy.
     await expect(app.placeBid()).rejects.toThrow(
       "Your GAS was deposited as reusable bid credit.",
     );
     // The deposit DID go out (it landed); only the bid faulted.
-    expect(callFor(invoke, "transfer")).toBeTruthy();
-    expect(callFor(invoke, "bid")).toBeTruthy();
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces the held-credit recovery copy when bid faults after a timeout-settled deposit (indexer lag)", async () => {
+    // Regression pin (Wave 4 audit): the deposit transfer was BROADCAST but
+    // the indexer never proved it in time ("timeout"). The host lane still
+    // wraps the bid fault into the stranded-credit shape, so the user sees
+    // the recovery copy — a generic toast here reads as "funds lost".
+    const { app, invokeWithPayment } = setup({
+      epoch: 4,
+      gasCredit: "0",
+      bidThrows: new Error("FAULT: insufficient prepaid asset"),
+      bidSettlement: "timeout",
+    });
+    await app.loadData();
+
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Your GAS was deposited as reusable bid credit.",
+    );
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces the held-credit recovery copy when the indexer was unreachable during the deposit", async () => {
+    const { app } = setup({
+      epoch: 4,
+      gasCredit: "0",
+      bidThrows: new Error("some chain fault"),
+      bidSettlement: "unreachable",
+    });
+    await app.loadData();
+
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Your GAS was deposited as reusable bid credit.",
+    );
+  });
+
+  it("propagates a pre-confirmation deposit failure verbatim (no credit-held copy)", async () => {
+    const { app, invokeWithPayment } = setup({
+      epoch: 4,
+      gasCredit: "0",
+      depositThrows: new Error("User rejected the request"),
+    });
+    await app.loadData();
+
+    app.bidAmount.set("2");
+    // The wallet rejected the GAS transfer — nothing is stranded, so the raw
+    // message (mapped by the notify layer) must survive, not bidDepositHeld.
+    await expect(app.placeBid()).rejects.toThrow("User rejected the request");
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -545,6 +653,13 @@ describe("useGovMerc — v2 bidding window (epochDeadline / epochDuration)", () 
       "epochNotEnded",
     );
     expect(windowRevertKey(new Error("insufficient prepaid asset"))).toBeNull();
+    // A FrameworkPrepaidActionError embeds the consuming call's revert reason
+    // in its message, so the window mapping still recognizes it.
+    expect(
+      windowRevertKey(
+        new FrameworkPrepaidActionError("bid", "0xdeposit", new Error("bidding closed")),
+      ),
+    ).toBe("biddingClosed");
   });
 
   it("loads epochDeadline(currentEpoch) + epochDuration() into state", async () => {
@@ -588,19 +703,20 @@ describe("useGovMerc — v2 bidding window (epochDeadline / epochDuration)", () 
   });
 
   it("allows the opening bid while the window is unopened (deadline 0)", async () => {
-    const { app, invoke } = setup({ epoch: 4, epochDeadline: "0" });
+    const { app, invoke, invokeWithPayment } = setup({ epoch: 4, epochDeadline: "0" });
     await app.loadData();
     invoke.mockClear();
 
     app.bidAmount.set("2");
     await app.placeBid();
 
-    expect(callFor(invoke, "transfer")).toBeTruthy();
-    expect(callFor(invoke, "bid")).toBeTruthy();
+    // The funded opening bid goes out through the confirmed-deposit lane.
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+    expect(invokeWithPayment.mock.calls[0][2]).toBe("bid");
   });
 
   it("maps a 'bidding closed' bid revert to the credit-held message after the deposit landed", async () => {
-    const { app } = setup({
+    const { app, invokeWithPayment } = setup({
       epoch: 4,
       gasCredit: "0", // forces the deposit leg first
       epochDeadline: String(Date.now() + 60_000), // open locally, closed on-chain
@@ -612,10 +728,32 @@ describe("useGovMerc — v2 bidding window (epochDeadline / epochDuration)", () 
     await expect(app.placeBid()).rejects.toThrow(
       "Bidding closed before your bid landed",
     );
+    // The deposit leg ran (and confirmed) before the bid raced the deadline.
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps a 'bidding closed' bid revert to the credit-held message on a timeout-settled deposit too", async () => {
+    // Same race, but the indexer lagged: the deposit is broadcast (credit
+    // will land) yet settlement reads "timeout". The wrap must survive so
+    // the closed-window copy still says the GAS is HELD, not lost.
+    const { app, invokeWithPayment } = setup({
+      epoch: 4,
+      gasCredit: "0",
+      epochDeadline: String(Date.now() + 60_000),
+      bidThrows: new Error("Assert failed: bidding closed"),
+      bidSettlement: "timeout",
+    });
+    await app.loadData();
+
+    app.bidAmount.set("2");
+    await expect(app.placeBid()).rejects.toThrow(
+      "Bidding closed before your bid landed",
+    );
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
   });
 
   it("maps a 'bidding closed' bid revert to the plain message when credit already covered it", async () => {
-    const { app, invoke } = setup({
+    const { app, invoke, invokeWithPayment } = setup({
       epoch: 4,
       gasCredit: "300000000", // credit covers the bid — no deposit leg
       epochDeadline: String(Date.now() + 60_000),
@@ -628,6 +766,7 @@ describe("useGovMerc — v2 bidding window (epochDeadline / epochDuration)", () 
     await expect(app.placeBid()).rejects.toThrow(
       "Bidding for this epoch has closed",
     );
+    expect(invokeWithPayment).not.toHaveBeenCalled();
     expect(callFor(invoke, "transfer")).toBeUndefined();
   });
 

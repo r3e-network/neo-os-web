@@ -1,10 +1,11 @@
 /**
  * GasBox — React Entry Point
  *
- * Drives the standalone MiniAppGasBox contract via the framework chain layer
- * (ctx.framework.chain), with the shared ChainService retained only for
- * prepayAndInvoke and event-log recovery (see useGasBox). Prizes are drawn and
- * paid ON-CHAIN in the pull tx (no client-side simulation, no oracle).
+ * Drives the standalone MiniAppGasBox contract entirely through the MiniApp
+ * framework (ctx.framework): app.chain for reads/invokes, app.funds for the
+ * deposit-then-commit lane, app.events for the recovery log walks, and
+ * app.notify for the per-action toast guards (see useGasBox). Prizes are drawn
+ * and paid ON-CHAIN in the pull tx (no client-side simulation, no oracle).
  */
 
 import { defineMiniApp, createObservable, createDerived } from "@shared/react/defineMiniApp";
@@ -24,7 +25,6 @@ defineMiniApp({
   setup(ctx) {
     const gasbox = useGasBox({
       app: ctx.framework,
-      chain: ctx.services.chain,
       t: ctx.t,
     });
 
@@ -122,9 +122,9 @@ defineMiniApp({
       // swallows a thrown error (a committed-but-unrevealed bet stays pending so
       // the player can finish via the Reveal action). Only advance the per-user
       // pull counter on a real, settled win.
-      const settled = await ctx.services.notify.guard(
+      const settled = await ctx.framework.notify.guard(
         () => gasbox.playMachine(),
-        "pullSuccess",
+        { successKey: "pullSuccess" },
       );
       if (settled === true) {
         userPulls.set(userPulls.get() + 1);
@@ -137,9 +137,9 @@ defineMiniApp({
     // when the reveal newly settles a win here.
     ctx.framework.actions.register("reveal", async () => {
       if (!gasbox.canReveal.get()) return;
-      const settled = await ctx.services.notify.guard(
+      const settled = await ctx.framework.notify.guard(
         () => gasbox.revealPending(),
-        "pullSuccess",
+        { successKey: "pullSuccess" },
       );
       if (settled === true) {
         userPulls.set(userPulls.get() + 1);
@@ -152,11 +152,11 @@ defineMiniApp({
       // guard returns publishMachine's boolean on success, or undefined when it
       // swallows a thrown error. Propagate it so the view only clears the studio
       // form on a confirmed publish (a failed publish must keep the user's input).
-      const published = await ctx.services.notify.guard(
+      const published = await ctx.framework.notify.guard(
         () => gasbox.publishMachine(machineData, (msg, type) => {
           ctx.setStatus(msg, type === "loading" ? "info" : type);
         }),
-        "machineCreated",
+        { successKey: "machineCreated" },
       );
       return published === true;
     });
@@ -170,9 +170,9 @@ defineMiniApp({
     ctx.framework.actions.register("withdrawRevenue", async (...args: unknown[]) => {
       const id = String(args[0] ?? "");
       if (!id) return;
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => gasbox.withdrawRevenue(id),
-        "revenueClaimed",
+        { successKey: "revenueClaimed" },
       );
     });
 
@@ -180,9 +180,9 @@ defineMiniApp({
       const id = String(args[0] ?? "");
       const amount = String(args[1] ?? "");
       if (!id || !amount) return;
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => gasbox.topUpPool(id, amount),
-        "poolToppedUp",
+        { successKey: "poolToppedUp" },
       );
     });
 
@@ -190,9 +190,9 @@ defineMiniApp({
       const id = String(args[0] ?? "");
       const active = args[1] === true;
       if (!id) return;
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => gasbox.setMachineActive(id, active),
-        active ? "machineActivated" : "machineDeactivated",
+        { successKey: active ? "machineActivated" : "machineDeactivated" },
       );
     });
 

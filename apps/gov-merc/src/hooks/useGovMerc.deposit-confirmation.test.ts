@@ -4,26 +4,41 @@ import { useGovMerc } from "./useGovMerc";
 import { createMiniAppFramework } from "@shared/react";
 import type { ChainService, ContractArg, TxResult } from "@shared/services/ChainService";
 import { addressToScriptHash } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const CONTRACT = "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46";
 const ALICE_HASH = addressToScriptHash(ALICE);
-const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const BID_MEMO = "govmerc:bid";
 
 const t = (key: string) => key;
 
 /**
  * Minimal ChainService stand-in for the deposit-confirmation regression: the
- * bid-funding GAS transfer must carry waitForEvent:"Credited" so the prepaid
- * credit is CONFIRMED in a block before bid() consumes it. Without the wait
- * the consuming call can land first and fault with "insufficient prepaid
- * asset" after funds already left the wallet.
+ * bid-funding GAS deposit must be CONFIRMED in a block before bid() consumes
+ * it. Without the confirmation the consuming call can land first and fault
+ * with "insufficient prepaid asset" after funds already left the wallet.
+ *
+ * The hook reaches that guarantee through app.funds.payAndCall →
+ * ChainService.invokeWithPayment, whose lane is exactly: GAS transfer with the
+ * bid memo → deposit confirmed in a block → consuming call (see
+ * apps/shared/test/contract-interaction.deposit-settle.test.ts for the lane's
+ * own ordering spec).
  */
 function makeChain() {
   const invoke = vi.fn(
     async (_op: string, _args: ContractArg[], _options?: { waitForEvent?: string }): Promise<TxResult> => {
+      return { txid: "0xtx", success: true };
+    },
+  );
+
+  const invokeWithPayment = vi.fn(
+    async (
+      _amount: string,
+      _memo: string,
+      _op: string,
+      _args: ContractArg[],
+      _options?: { waitForEvent?: string },
+    ): Promise<TxResult> => {
       return { txid: "0xtx", success: true };
     },
   );
@@ -43,15 +58,16 @@ function makeChain() {
     address: { get: () => ALICE },
     ensureWallet: vi.fn(async () => ALICE),
     invoke,
+    invokeWithPayment,
     read,
     listEvents,
   } as unknown as ChainService;
-  return { chain, invoke };
+  return { chain, invoke, invokeWithPayment };
 }
 
-describe("useGovMerc — bid deposit waits for the Credited event before bid()", () => {
-  it("passes waitForEvent:'Credited' on the bid-funding transfer and bids only after it settles", async () => {
-    const { chain, invoke } = makeChain();
+describe("useGovMerc — bid deposit is confirmed in a block before bid()", () => {
+  it("routes the funded bid through the confirmed-deposit payAndCall lane", async () => {
+    const { chain, invoke, invokeWithPayment } = makeChain();
     const framework = createMiniAppFramework(
       { services: { chain }, t } as never,
       { appId: "miniapp-gov-merc" },
@@ -64,20 +80,25 @@ describe("useGovMerc — bid deposit waits for the Credited event before bid()",
     app.bidAmount.set("2");
     await app.placeBid();
 
-    const transfer = invoke.mock.calls.find((c) => c[0] === "transfer");
-    expect(transfer).toBeTruthy();
-    expect(transfer![1]).toEqual([
-      { type: "Hash160", value: ALICE_HASH },
-      { type: "Hash160", value: CONTRACT },
-      { type: "Integer", value: "200000000" },
-      { type: "String", value: BID_MEMO },
-    ]);
-    // The regression: the deposit must settle on the contract's Credited event
-    // (a fire-and-forget transfer races the consuming bid() into the same block).
-    expect(transfer![2]).toMatchObject({ scriptHash: GAS_HASH, waitForEvent: "Credited" });
+    // The regression: the deposit must settle in a block before the consuming
+    // bid() (a fire-and-forget transfer races bid() into the same block and
+    // faults with "insufficient prepaid asset"). invokeWithPayment owns that
+    // ordering: transfer with the bid memo → confirm deposit → bid().
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+    expect(invokeWithPayment).toHaveBeenCalledWith(
+      "200000000",
+      BID_MEMO,
+      "bid",
+      [
+        { type: "Hash160", value: ALICE_HASH },
+        { type: "Integer", value: "200000000" },
+      ],
+      { waitForEvent: "BidPlaced" },
+    );
 
-    // The consuming bid() only fires after the confirmed deposit.
-    const order = invoke.mock.calls.map((c) => c[0]);
-    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("bid"));
+    // No hand-rolled two-step remains: neither a raw transfer nor a raw bid
+    // invoke goes out beside the confirmed-deposit lane.
+    expect(invoke.mock.calls.some((c) => c[0] === "transfer")).toBe(false);
+    expect(invoke.mock.calls.some((c) => c[0] === "bid")).toBe(false);
   });
 });

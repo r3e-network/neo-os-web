@@ -42,11 +42,15 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy on-device namespace: the content/meta stores predate the framework
+  // storage surface and live under "time-capsule-content"/"time-capsule-meta".
+  // This prefix keeps app.storage.local resolving those exact keys so existing
+  // users keep their sealed messages (plan §3 Wave 4 migration hazard).
+  storagePrefix: "time-capsule-",
 
   setup(ctx) {
     const capsule = useTimeCapsule({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -114,7 +118,7 @@ defineMiniApp({
 
     return {
       state: {
-        address: ctx.services.chain.address,
+        address: ctx.framework.chain.address,
         capsules: capsule.capsules,
         totalCapsules: capsule.totalCapsules,
         lockedCount: capsule.lockedCount,

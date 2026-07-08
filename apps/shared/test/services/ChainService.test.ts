@@ -153,6 +153,31 @@ describe("ChainService event-wait honesty", () => {
     expect(unverified).not.toHaveBeenCalled();
   });
 
+  it("resolves verified:false when the events API fails after broadcast, never rejecting", async () => {
+    // A broadcast tx must survive an events-API outage: the wait failure is
+    // treated exactly like the timeout path instead of rejecting the invoke
+    // (self-loan's deposit-then-act flows set their settled flags only after
+    // the invoke resolves — a rejection here strands credit with no recovery
+    // copy).
+    const { chain } = makeChain(makeInteraction());
+    const waitForEvent = vi.fn(async () => {
+      throw new Error("Failed to fetch");
+    });
+    (chain as unknown as { listEventsComposable: { waitForEvent: typeof waitForEvent } })
+      .listEventsComposable = { waitForEvent };
+
+    const result = await chain.invoke("borrow", [], { waitForEvent: "CollateralCredited" });
+    expect(result.success).toBe(true);
+    expect(result.verified).toBe(false);
+    expect(result.txid).toBe("0xtx");
+
+    const paid = await chain.invokeWithPayment("1", "memo", "bury", [], {
+      waitForEvent: "CapsuleBuried",
+    });
+    expect(paid.success).toBe(true);
+    expect(paid.verified).toBe(false);
+  });
+
   it("emits TRANSACTION_UNVERIFIED plus a deliberate balance refresh on timeout", async () => {
     const { chain, events } = makeChain(makeInteraction());
     stubEventWait(chain, null);
@@ -280,7 +305,67 @@ describe("ChainService.prepayAndInvoke deposit settlement", () => {
     await pending.catch((error: DepositConfirmedActionFailedError) => {
       expect(error.operation).toBe("lockStake");
       expect(error.depositTxid).toBe("0xdeposit");
+      expect(error.settlement).toBe("confirmed");
     });
+  });
+
+  it("wraps a consuming-call failure as credit-withdrawable on settlement timeout too", async () => {
+    // Indexer lag: the deposit transfer was BROADCAST in step 1 but never
+    // showed up in the poll window. The credit still lands on the contract,
+    // so the failure must keep the stranded-credit shape — a raw FAULT here
+    // reads as "funds lost" to the user.
+    const ops: string[] = [];
+    const { chain } = makeChain(trackedInteraction(ops, true));
+    mocks.waitForDepositConfirmation.mockResolvedValue("timeout");
+
+    const pending = chain.prepayAndInvoke("100000000", "stake", "lockStake", []);
+
+    await expect(pending).rejects.toBeInstanceOf(DepositConfirmedActionFailedError);
+    await pending.catch((error: DepositConfirmedActionFailedError) => {
+      expect(error.operation).toBe("lockStake");
+      expect(error.depositTxid).toBe("0xdeposit");
+      expect(error.settlement).toBe("timeout");
+    });
+  });
+
+  it("wraps a consuming-call failure as credit-withdrawable when the indexer is unreachable", async () => {
+    vi.useFakeTimers();
+    const ops: string[] = [];
+    const { chain } = makeChain(trackedInteraction(ops, true));
+    mocks.waitForDepositConfirmation.mockResolvedValue("unreachable");
+
+    const pending = chain.prepayAndInvoke("100000000", "stake", "lockStake", []);
+    const outcome = pending.then(
+      () => null,
+      (error: unknown) => error,
+    );
+    // Ride out the unreachable-indexer fallback sleep before the consuming call.
+    await vi.advanceTimersByTimeAsync(4000);
+
+    const error = (await outcome) as DepositConfirmedActionFailedError;
+    expect(error).toBeInstanceOf(DepositConfirmedActionFailedError);
+    expect(error.operation).toBe("lockStake");
+    expect(error.depositTxid).toBe("0xdeposit");
+    expect(error.settlement).toBe("unreachable");
+  });
+
+  it("propagates a deposit-transfer failure raw — nothing was broadcast, nothing is stranded", async () => {
+    const { chain } = makeChain(
+      makeInteraction({
+        invokeDirectly: vi.fn(async (operation: string) => {
+          if (operation === "transfer") throw new Error("User rejected the request");
+          return { txid: "0xaction", tx: {} };
+        }),
+      }),
+    );
+
+    const pending = chain.prepayAndInvoke("100000000", "stake", "lockStake", []);
+
+    await expect(pending).rejects.toThrow("User rejected the request");
+    await pending.catch((error: unknown) => {
+      expect(error).not.toBeInstanceOf(DepositConfirmedActionFailedError);
+    });
+    expect(mocks.waitForDepositConfirmation).not.toHaveBeenCalled();
   });
 });
 
