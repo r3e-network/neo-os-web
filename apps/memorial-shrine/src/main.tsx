@@ -13,12 +13,14 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Pin app.storage.local to the legacy runtime-cache namespace so the
+  // pre-framework "memorial-shrine-visited" key keeps resolving byte-for-byte.
+  storagePrefix: "memorial-shrine-",
 
   setup(ctx) {
     const shrine = useMemorialShrine({
       app: ctx.framework,
       launchNetwork: ctx.launchContext.network,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -40,18 +42,20 @@ defineMiniApp({
         name: string; photoHash: string; relationship: string;
         birthYear: number; deathYear: number; biography: string; obituary: string;
       };
-      await ctx.services.notify.guard(() => shrine.createMemorial(form), "createSuccess");
+      await ctx.framework.notify.guard(() => shrine.createMemorial(form), {
+        successKey: "createSuccess",
+      });
     });
     ctx.framework.actions.register("payTribute", async (...args: unknown[]) => {
       const [memorialId, offeringType, message, receiptId] = args;
-      await ctx.services.notify.guard(
+      await ctx.framework.notify.guard(
         () => shrine.payTribute(
           Number(memorialId),
           Number(offeringType),
           String(message ?? ""),
           receiptId == null ? undefined : String(receiptId),
         ),
-        "tributeSuccess",
+        { successKey: "tributeSuccess" },
       );
     });
 

@@ -7,19 +7,16 @@
  * (VITE_PLATFORM_API). That API is optional and can be unreachable; when it is,
  * the SDK silently returns a fabricated zero balance. This module never presents
  * those zeros as fact — it raises an honest service-unavailable notice and falls
- * back to the REAL on-chain GAS balance (read via the framework chain layer /
- * BalanceService) to gate the donate/send "pay it forward" transfers, which are
- * pure on-chain GAS transfers and work independently of the API.
+ * back to the REAL on-chain GAS balance (read via app.wallet) to gate the
+ * donate/send "pay it forward" transfers, which are pure on-chain GAS
+ * transfers and work independently of the API.
  */
 
 import { createObservable, createDerived, refToObservable } from "@shared/react/context";
-import type { EventBus } from "@shared/services";
 import type { MiniAppFramework } from "@shared/react";
-import type { BalanceService } from "@shared/services/BalanceService";
 import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 import { useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { parsePositiveFixed8 } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // Per-network donation pool destination. Donations are pure GAS transfers; the
@@ -36,29 +33,33 @@ const ELIGIBILITY_THRESHOLD = 0.1;
 // "API not configured" apart from "wallet has a real zero balance".
 const PLATFORM_API_CONFIGURED = Boolean(import.meta.env?.VITE_PLATFORM_API);
 
-function chainGasBalanceBaseUnits(value: number): bigint {
-  if (!Number.isFinite(value) || value <= 0) return 0n;
-  const fixed8 = parsePositiveFixed8(value.toFixed(8));
-  return fixed8 ? BigInt(fixed8) : 0n;
-}
-
-function gasAmountFitsBalance(amount: string, balance: number): boolean {
-  const fixed8 = parsePositiveFixed8(amount);
-  return Boolean(
-    fixed8 && BigInt(fixed8) <= chainGasBalanceBaseUnits(balance),
-  );
-}
-
 export interface UseGasSponsorAppOptions {
   app: MiniAppFramework;
-  balance: BalanceService;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
   network?: MiniAppLaunchNetwork | null;
 }
 
-export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasSponsorAppOptions) {
+export function useGasSponsorApp({ app, t, network }: UseGasSponsorAppOptions) {
+  // framework-exempt: gas-sponsor sponsorship HTTP API lives in wallet-sdk;
+  // it moves only when wallet-sdk moves into the framework (out of campaign
+  // scope — plan §3.6).
   const gasSponsorSDK = useGasSponsorSDK();
+
+  // GAS→base-unit scaling uses the framework's null-on-invalid scaler (S6):
+  // null (never a throw) on invalid/over-precision input so the localized
+  // t("invalidAmount") rejection paths below keep working.
+  const chainGasBalanceBaseUnits = (value: number): bigint => {
+    if (!Number.isFinite(value) || value <= 0) return 0n;
+    const fixed8 = app.amount.parseGasToFixed8(value.toFixed(8));
+    return fixed8 ? BigInt(fixed8) : 0n;
+  };
+
+  const gasAmountFitsBalance = (amount: string, balance: number): boolean => {
+    const fixed8 = app.amount.parseGasToFixed8(amount);
+    return Boolean(
+      fixed8 && BigInt(fixed8) <= chainGasBalanceBaseUnits(balance),
+    );
+  };
   const isRequesting = refToObservable(gasSponsorSDK.isRequestingSponsorship);
   const { checkEligibility, requestSponsorship: apiRequest } = gasSponsorSDK;
 
@@ -191,7 +192,7 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
       return;
     }
     try {
-      const gas = await balance.getGasBalance(address);
+      const gas = await app.wallet.balance("GAS", address);
       chainGasBalance.set(Number.isFinite(gas) ? gas : 0);
     } catch {
       // Keep the last known value; do not zero it out.
@@ -231,8 +232,7 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
             : t("sponsorServiceUnavailable"),
         );
       }
-      eventBus.emit("userData:loaded", {});
-    } catch (e) {
+    } catch {
       userAddress.set("");
       gasBalance.set("0");
       usedQuota.set("0");
@@ -241,9 +241,6 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
       chainGasBalance.set(0);
       serviceAvailable.set(false);
       serviceNotice.set(t("sponsorServiceUnavailable"));
-      eventBus.emit("userData:disconnected", {
-        message: formatErrorMessage(e, t("walletNotConnected")),
-      });
     } finally {
       loading.set(false);
     }
@@ -260,27 +257,21 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
       throw new Error(t("invalidAmount"));
     }
 
-    try {
-      const result = await apiRequest(amount);
-      if (!result.success) {
-        // Map the SDK's raw error to a localized message.
-        const raw = gasSponsorSDK.sponsorshipError.value;
-        throw new Error(raw ? formatErrorMessage(new Error(raw), t("requestFailed")) : t("requestFailed"));
-      }
-      const requestId = result.request_id || result.requestId || result.txid || "";
-      eventBus.emit("sponsorship:requested", { id: requestId });
-      requestAmount.set("0.01");
-      await loadUserData();
-      return { ...result, request_id: requestId };
-    } catch (e) {
-      eventBus.emit("sponsorship:error", { message: formatErrorMessage(e, t("requestFailed")) });
-      throw e;
+    const result = await apiRequest(amount);
+    if (!result.success) {
+      // Map the SDK's raw error to a localized message.
+      const raw = gasSponsorSDK.sponsorshipError.value;
+      throw new Error(raw ? formatErrorMessage(new Error(raw), t("requestFailed")) : t("requestFailed"));
     }
+    const requestId = result.request_id || result.requestId || result.txid || "";
+    requestAmount.set("0.01");
+    await loadUserData();
+    return { ...result, request_id: requestId };
   };
 
   const handleDonate = async () => {
     if (isDonating.get()) return;
-    const amountFixed8 = parsePositiveFixed8(donateAmount.get());
+    const amountFixed8 = app.amount.parseGasToFixed8(donateAmount.get());
     if (!amountFixed8) {
       throw new Error(t("invalidAmount"));
     }
@@ -301,12 +292,8 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
-      eventBus.emit("donate:success", {});
       donateAmount.set("0.1");
       await loadUserData();
-    } catch (e) {
-      eventBus.emit("donate:error", { message: formatErrorMessage(e, t("donateFailed")) });
-      throw e;
     } finally {
       isDonating.set(false);
     }
@@ -317,7 +304,7 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
     if (!isValidNeoAddress(recipientAddress.get())) {
       throw new Error(t("invalidAddress"));
     }
-    const amountFixed8 = parsePositiveFixed8(sendAmount.get());
+    const amountFixed8 = app.amount.parseGasToFixed8(sendAmount.get());
     if (!amountFixed8) {
       throw new Error(t("invalidAmount"));
     }
@@ -338,13 +325,9 @@ export function useGasSponsorApp({ app, balance, eventBus, t, network }: UseGasS
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
-      eventBus.emit("send:success", {});
       sendAmount.set("0.1");
       recipientAddress.set("");
       await loadUserData();
-    } catch (e) {
-      eventBus.emit("send:error", { message: formatErrorMessage(e, t("sendFailed")) });
-      throw e;
     } finally {
       isSending.set(false);
     }

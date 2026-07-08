@@ -115,7 +115,6 @@ function setup(options: { revoked?: boolean } = {}) {
     storageService: storage as never,
     badgeService: { award: vi.fn(async () => undefined) } as never,
     clipboard: { copy: vi.fn(async () => true) } as never,
-    eventBus: { emit: vi.fn() },
     app,
     t,
   });
@@ -295,7 +294,6 @@ describe("useSoulbound My Certificates reconstruction", () => {
       storageService: { list: vi.fn(async () => ({})) } as never,
       badgeService: { award: vi.fn(async () => undefined) } as never,
       clipboard: { copy: vi.fn(async () => true) } as never,
-      eventBus: { emit: vi.fn() },
       app,
       t,
     });

@@ -26,10 +26,6 @@ defineMiniApp({
   setup(ctx) {
     const anchor = useProfitAnchor({
       app: ctx.framework,
-      // framework-exempt: useProfitAnchor (profitanchor, Wave 3B) requires the
-      // shared EventBus class — private fields defeat a structural app.bus
-      // swap; migrates with that hook (Wave 3B) / cross-app dissolve (Wave 6).
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
     const agentAccounts = PROFITANCHOR_AGENT_ACCOUNTS;

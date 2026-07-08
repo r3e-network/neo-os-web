@@ -1,6 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
 import { useTimestampProofContract } from "../../timestamp-proof/src/composables/useTimestampProof";
+
+// Minimal framework wrapper (mirrors main.tsx handing ctx.framework to the
+// composable). The journal tests never touch the chain; storagePrefix pins
+// app.storage.local to the legacy runtime-cache namespace.
+function makeApp() {
+  const chain = {
+    address: createObservable<string | null>(null),
+    ensureWallet: vi.fn(async () => ""),
+    read: vi.fn(async () => null),
+    invoke: vi.fn(),
+    invokeWithPayment: vi.fn(),
+  };
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-timestamp-proof", storagePrefix: "miniapp-timestamp-proof:" },
+  );
+}
 
 function t(key: string) {
   const messages: Record<string, string> = {
@@ -34,7 +53,7 @@ afterEach(() => {
 
 describe("useTimestampProofContract", () => {
   it("creates local SHA-256 proofs and verifies by id, digest, or original content", async () => {
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
     const statuses: Array<{ message: string; type: string }> = [];
 
     await proofApp.createProof(
@@ -64,7 +83,7 @@ describe("useTimestampProofContract", () => {
   });
 
   it("uses an existing SHA-256 digest directly instead of hashing the digest string again", async () => {
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
     const digest = "a".repeat(64);
 
     await proofApp.createProof(digest, () => undefined, () => undefined);
@@ -75,7 +94,7 @@ describe("useTimestampProofContract", () => {
   });
 
   it("counts every device proof as 'yours' regardless of creator/wallet state", async () => {
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
 
     // Seed two proofs with mismatched creators (e.g. one before a wallet
     // connected, one after). For a device-local journal both belong to the
@@ -92,7 +111,7 @@ describe("useTimestampProofContract", () => {
 
   it("copies proof evidence and can delete or clear saved proofs", async () => {
     const writeText = setupClipboard();
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
 
     await proofApp.createProof("audit artifact", () => undefined, () => undefined);
     const proof = proofApp.proofs.get()[0];

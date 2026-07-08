@@ -47,7 +47,11 @@ import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { GameHomePage } from "../components-react/GameHomePage";
 import { createMiniAppFramework } from "../../../framework";
-import type { FrameworkLaunchContext, MiniAppFramework } from "../../../framework";
+import type {
+  FrameworkLaunchContext,
+  MiniAppFramework,
+  MiniAppFrameworkOptions,
+} from "../../../framework";
 import type { TranslationMap } from "../utils/i18n";
 import {
   readMiniAppLaunchContext,
@@ -92,6 +96,13 @@ interface MiniAppRootProps {
    * existing user data.
    */
   storagePrefix?: string;
+  /**
+   * app.oracle extension config (framework S13). The dataFeed lane needs the
+   * network-specific deployed MorpheusDataFeed contract + RPC endpoint, so
+   * apps that read it (oracle-price-console) inject the config here; absent
+   * ⇒ `app.oracle.dataFeed` reads throw a typed FrameworkCapabilityError.
+   */
+  oracle?: MiniAppFrameworkOptions["oracle"];
 }
 
 /** Context passed to the miniapp's setup function (React version) */
@@ -180,6 +191,7 @@ export function MiniAppRoot({
   messages,
   setupFn,
   storagePrefix,
+  oracle,
 }: MiniAppRootProps) {
   // --------------------------------------------------------------------------
   // i18n
@@ -281,7 +293,7 @@ export function MiniAppRoot({
       clearStatus,
       launchContext: frameworkLaunchContext,
       registerAction,
-    }, { appId, storagePrefix });
+    }, { appId, storagePrefix, oracle });
   }
   const framework = frameworkRef.current;
 

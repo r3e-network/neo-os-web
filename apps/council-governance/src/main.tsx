@@ -22,15 +22,16 @@ defineMiniApp({
     const currentChainId = createObservable<string>(initialNetwork);
     const isCreating = createObservable(false);
 
+    const app = ctx.framework;
     const gov = useGovernance({
-      chainService: ctx.services.chain,
+      app,
       t: ctx.t,
       currentChainId,
     });
 
-    gov.setAddress(ctx.services.chain.address?.get?.() ?? "");
-    ctx.services.chain.address.subscribe(() => {
-      gov.setAddress(ctx.services.chain.address?.get?.() ?? "");
+    gov.setAddress(app.chain.address.get() ?? "");
+    app.chain.address.subscribe(() => {
+      gov.setAddress(app.chain.address.get() ?? "");
       void gov.refreshCandidateStatus();
       void gov.refreshHasVoted();
     });
@@ -44,7 +45,7 @@ defineMiniApp({
         policyValue?: string;
         duration?: number | string;
       };
-      return ctx.services.notify.guard(
+      return app.notify.guard(
         async () => {
           isCreating.set(true);
           try {
@@ -60,7 +61,7 @@ defineMiniApp({
             isCreating.set(false);
           }
         },
-        "proposalCreated",
+        { successKey: "proposalCreated" },
       );
     });
 
@@ -79,36 +80,36 @@ defineMiniApp({
           : String(data.vote ?? "for") === "against"
             ? "against"
             : "for";
-      return ctx.services.notify.guard(
+      return app.notify.guard(
         () => gov.castVote(proposalId, choice),
-        "voteRecorded",
+        { successKey: "voteRecorded" },
       );
     });
 
     ctx.framework.actions.register("finalizeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
-      return ctx.services.notify.guard(
+      return app.notify.guard(
         () => gov.finalizeProposal(proposalId),
-        "proposalFinalized",
+        { successKey: "proposalFinalized" },
       );
     });
 
     ctx.framework.actions.register("executeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
-      return ctx.services.notify.guard(
+      return app.notify.guard(
         () => gov.executeProposal(proposalId),
-        "proposalExecuted",
+        { successKey: "proposalExecuted" },
       );
     });
 
     ctx.framework.actions.register("revokeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
       if (!proposalId) return;
-      return ctx.services.notify.guard(
+      return app.notify.guard(
         () => gov.revokeProposal(proposalId),
-        "proposalRevoked",
+        { successKey: "proposalRevoked" },
       );
     });
 
@@ -151,7 +152,7 @@ defineMiniApp({
         address: gov.address,
       },
       loadData: async () => {
-        gov.setAddress(ctx.services.chain.address?.get?.() ?? "");
+        gov.setAddress(app.chain.address.get() ?? "");
         await gov.init();
       },
     };

@@ -19,14 +19,12 @@ defineMiniApp({
     const t = ctx.t as (key: string) => string;
 
     const creator = useVaultCreator({
-      chainService: ctx.services.chain,
-      eventBus: ctx.services.events,
+      app: ctx.framework,
       t,
     });
 
     const breaker = useVaultBreaker({
-      chainService: ctx.services.chain,
-      eventBus: ctx.services.events,
+      app: ctx.framework,
       t,
     });
 
@@ -72,17 +70,24 @@ defineMiniApp({
 
     ctx.framework.actions.register("increaseBounty", async (...args: unknown[]) => {
       const [vaultId, amountGas] = args;
-      await ctx.services.notify.guard(async () => {
-        const result = await creator.increaseBounty(
-          String(vaultId ?? ""),
-          String(amountGas ?? ""),
-          () => breaker.loadVault().then(() => undefined),
-        );
-        ctx.services.notify.success("increaseBountySuccess", {
-          amount: result.amountGas,
-          tokenGas: t("tokenGas"),
-        });
-      });
+      // successParams builder threads the topped-up amount into the toast
+      // ("increaseBountySuccess" interpolates {amount}/{tokenGas}) — the same
+      // copy the hand-rolled notify.success call produced.
+      await ctx.framework.notify.guard(
+        () =>
+          creator.increaseBounty(
+            String(vaultId ?? ""),
+            String(amountGas ?? ""),
+            () => breaker.loadVault().then(() => undefined),
+          ),
+        {
+          successKey: "increaseBountySuccess",
+          successParams: (result) => ({
+            amount: result.amountGas,
+            tokenGas: t("tokenGas"),
+          }),
+        },
+      );
     });
 
     const myVaultCount = {
@@ -98,7 +103,7 @@ defineMiniApp({
 
     return {
       state: refsToObservables({
-        address: ctx.services.chain.address,
+        address: ctx.framework.chain.address,
         myVaultCount,
         recentVaultCount,
         vaultDifficulty: createObservable("1"),

@@ -155,27 +155,26 @@ function createShrine(options: {
     invokeWithPayment,
   };
 
-  const events = {
-    emit: vi.fn(),
-  };
   // The composable now consumes the MiniApp framework; its arg builders and raw
   // passthroughs are behavior-preserving, so every recorded chain call matches.
+  // storagePrefix pins app.storage.local to the legacy runtime-cache namespace
+  // (defineMiniApp does the same), so the visited store still lives at the
+  // exact pre-framework "memorial-shrine-visited" localStorage key.
   const framework = createMiniAppFramework(
     { services: { chain }, t } as never,
-    { appId: "miniapp-memorial-shrine" },
+    { appId: "miniapp-memorial-shrine", storagePrefix: "memorial-shrine-" },
   );
   const shrine = useMemorialShrine({
     app: framework,
     launchNetwork: options.launchNetwork ?? "testnet",
-    eventBus: events,
     t,
   });
-  return { shrine, chain, events, memorialsById, tributesById, seedMemorial };
+  return { shrine, chain, memorialsById, tributesById, seedMemorial };
 }
 
 describe("Memorial Shrine logic", () => {
   it("creates memorials with the deployed createMemorial ABI", async () => {
-    const { shrine, chain, events } = createShrine();
+    const { shrine, chain } = createShrine();
 
     await shrine.createMemorial({
       name: "Loved one",
@@ -201,10 +200,8 @@ describe("Memorial Shrine logic", () => {
       ],
       { waitForEvent: "MemorialCreated", waitTimeoutMs: 30_000 },
     );
-    expect(events.emit).toHaveBeenCalledWith(
-      "memorial:created",
-      expect.objectContaining({ memorialId: "1", txid: "0xinvoke" }),
-    );
+    // The result of the confirmed write is surfaced through lastTx.
+    expect(shrine.lastTx.get()).toMatchObject({ txid: "0xinvoke" });
     // The created memorial is reloaded straight from the contract.
     expect(shrine.memorials.get()).toHaveLength(1);
     expect(shrine.memorials.get()[0]).toMatchObject({ id: 1, name: "Loved one" });
@@ -229,7 +226,7 @@ describe("Memorial Shrine logic", () => {
   });
 
   it("pays testnet tributes through direct prepaid GAS", async () => {
-    const { shrine, chain, events } = createShrine({ launchNetwork: "testnet" });
+    const { shrine, chain } = createShrine({ launchNetwork: "testnet" });
     await shrine.createMemorial({
       name: "Departed", photoHash: "", relationship: "friend",
       birthYear: 1950, deathYear: 2024, biography: "", obituary: "",
@@ -249,15 +246,14 @@ describe("Memorial Shrine logic", () => {
       ],
       { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
     );
-    expect(events.emit).toHaveBeenCalledWith(
-      "tribute:paid",
-      expect.objectContaining({
-        memorialId: 1,
-        offeringType: 3,
-        amountGas: "0.03",
-        txid: "0xpaid",
-      }),
-    );
+    // The paid tribute is reflected immediately (optimistic + reconcile) and
+    // the confirmed write is surfaced through lastTx.
+    expect(shrine.lastTx.get()).toMatchObject({ txid: "0xpaid" });
+    expect(shrine.myTributes.get()[0]).toMatchObject({
+      memorialId: 1,
+      offeringType: 3,
+      amountGas: "0.03",
+    });
   });
 
   it("reads My Tributes from the contract so it is not aliased to Visited", async () => {
@@ -327,6 +323,9 @@ describe("Memorial Shrine logic", () => {
 
     shrine.openMemorial(2);
     expect(shrine.visitedMemorials.get().map((m) => m.id)).toEqual([2]);
+    // Storage-prefix compatibility: the visited store still lives at the exact
+    // pre-framework runtime-cache key, so existing user history keeps resolving.
+    expect(window.localStorage.getItem("memorial-shrine-visited")).toBe("[2]");
 
     // The open is persisted and rehydrated on the next session (new composable).
     const next = createShrine({ launchNetwork: "testnet" });
@@ -338,7 +337,7 @@ describe("Memorial Shrine logic", () => {
   });
 
   it("copies the share link to the clipboard when Web Share is unavailable", async () => {
-    const { shrine, events, seedMemorial } = createShrine({ launchNetwork: "testnet" });
+    const { shrine, seedMemorial } = createShrine({ launchNetwork: "testnet" });
     seedMemorial();
     await shrine.loadAll();
 
@@ -354,12 +353,8 @@ describe("Memorial Shrine logic", () => {
 
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(String(writeText.mock.calls[0][0])).toContain("?id=1");
-    // The status surfaces (no longer a silent no-op) and an event is emitted.
+    // The status surfaces (no longer a silent no-op).
     expect(shrine.shareStatus.get()).toBeTruthy();
-    expect(events.emit).toHaveBeenCalledWith(
-      "memorial:shared",
-      expect.objectContaining({ id: 1 }),
-    );
 
     if (originalShare === undefined) {
       delete (navigator as Navigator & { share?: unknown }).share;

@@ -70,7 +70,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const setDrawerModeSafe = (mode: string) => {
     if (drawerModes.some((item) => item.mode === mode)) setDrawerMode(mode as DrawerMode);
   };
-  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  // drawerModes is a non-empty literal, so the fallback always exists.
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.icon;
 
   const scene = (

@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { useNeoPayApp } from "../../neo-pay/src/composables/useNeoPayApp";
-import { deriveSchedule } from "../../neo-pay/src/composables/deriveSchedule";
+import { useNeoPayApp, deriveSchedule } from "../composables/neo-pay";
 import { createMiniAppFramework } from "../react";
 import type { ChainService, ContractArg } from "../services/ChainService";
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
-import type { StreamItem } from "../../neo-pay/src/types";
+import type { StreamItem } from "../composables/neo-pay";
 
 const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const BENEFICIARY = "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq";
@@ -66,14 +65,14 @@ function makeChain() {
 
 function setup() {
   const { chain, invoke, read, readArray } = makeChain();
-  // The composable consumes the framework SDK for chain/arg/amount, plus the raw
-  // chain for readArray (no framework equivalent). Build the framework from the
-  // same mock chain so recorded read/invoke calls are byte-identical.
+  // The composable consumes the framework SDK for every chain/arg/amount
+  // touchpoint (incl. app.chain.readArray). Build the framework from the same
+  // mock chain so recorded read/readArray/invoke calls are byte-identical.
   const framework = createMiniAppFramework(
     { services: { chain }, t } as never,
     { appId: "miniapp-neo-pay" },
   );
-  const app = useNeoPayApp({ app: framework, chain, t });
+  const app = useNeoPayApp({ app: framework, t });
   return { app, chain, invoke, read, readArray };
 }
 

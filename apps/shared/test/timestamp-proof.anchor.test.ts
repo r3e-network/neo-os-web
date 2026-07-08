@@ -1,23 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createObservable } from "../react/context";
+import { createMiniAppFramework } from "../react";
+import type { MiniAppFramework } from "../react";
 import { GAS_HASH } from "../constants/rpc";
 
 /**
  * The anchor path turns the device-local journal into a verifiable proof: a
  * 0-GAS self-transfer that embeds the SHA-256 digest in the data field. These
- * tests stub the wallet SDK so the broadcast plumbing runs standalone, isolated
- * from the other timestamp-proof tests (which use the real useWallet).
+ * tests stub the wallet SDK (the address ref + connect stay on the SDK per the
+ * §3.6 address-poll exemption) and drive the broadcast through the framework
+ * chain surface the composable now uses (app.chain.invoke).
  */
 
 const ADDRESS = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 
 const walletState: {
   address: { value: string };
-  invokeContract: ReturnType<typeof vi.fn>;
   connect: ReturnType<typeof vi.fn>;
 } = {
   address: { value: ADDRESS },
-  invokeContract: vi.fn(async () => ({ txid: "0xanchortx" })),
   connect: vi.fn(async () => undefined),
 };
 
@@ -31,11 +33,32 @@ function t(key: string) {
   return key;
 }
 
+// Wrap a mock chain in the MiniApp framework SDK, mirroring how main.tsx hands
+// ctx.framework to the composable. storagePrefix pins app.storage.local to the
+// legacy runtime-cache namespace (defineMiniApp does the same), so the journal
+// still lives at the exact pre-framework
+// "miniapp-timestamp-proof:proofs:v2" localStorage key.
+function makeApp(invoke: ReturnType<typeof vi.fn>): MiniAppFramework {
+  const chain = {
+    address: createObservable<string | null>(null),
+    ensureWallet: vi.fn(async () => ADDRESS),
+    read: vi.fn(async () => null),
+    invoke,
+    invokeWithPayment: vi.fn(),
+  };
+  return createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-timestamp-proof", storagePrefix: "miniapp-timestamp-proof:" },
+  );
+}
+
+let invoke: ReturnType<typeof vi.fn>;
+
 beforeEach(() => {
   localStorage.clear();
   walletState.address = { value: ADDRESS };
-  walletState.invokeContract = vi.fn(async () => ({ txid: "0xanchortx" }));
   walletState.connect = vi.fn(async () => undefined);
+  invoke = vi.fn(async () => ({ txid: "0xanchortx", success: true }));
 });
 
 afterEach(() => {
@@ -44,7 +67,7 @@ afterEach(() => {
 
 describe("useTimestampProofContract anchoring", () => {
   it("anchors a proof via a 0-GAS self-transfer embedding the digest", async () => {
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(invoke), t });
     await proofApp.createProof("contract-v2.pdf", () => undefined, () => undefined);
     const proof = proofApp.proofs.get()[0];
     expect(proof?.anchored).toBe(false);
@@ -55,16 +78,23 @@ describe("useTimestampProofContract anchoring", () => {
     );
 
     expect(ok).toBe(true);
-    expect(walletState.invokeContract).toHaveBeenCalledWith({
-      scriptHash: GAS_HASH,
-      operation: "transfer",
-      args: [
+    // arg.hash160Raw passes the raw wallet address through unconverted and
+    // arg.integer stringifies — the exact args the wallet SDK call produced.
+    expect(invoke).toHaveBeenCalledWith(
+      "transfer",
+      [
         { type: "Hash160", value: ADDRESS },
         { type: "Hash160", value: ADDRESS },
         { type: "Integer", value: "0" },
         { type: "String", value: `timestamp-proof:${proof?.contentHash}` },
       ],
-    });
+      { scriptHash: GAS_HASH },
+    );
+    // Storage-prefix compatibility: the journal still lives at the exact
+    // pre-framework runtime-cache key.
+    expect(
+      window.localStorage.getItem("miniapp-timestamp-proof:proofs:v2"),
+    ).toContain("0xanchortx");
 
     const anchored = proofApp.proofs.get()[0];
     expect(anchored?.anchored).toBe(true);
@@ -73,23 +103,23 @@ describe("useTimestampProofContract anchoring", () => {
   });
 
   it("does not re-anchor an already-anchored proof", async () => {
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(invoke), t });
     await proofApp.createProof("doc", () => undefined, () => undefined);
     const id = proofApp.proofs.get()[0]?.id ?? 0;
 
     await proofApp.anchorProof(id);
-    walletState.invokeContract.mockClear();
+    invoke.mockClear();
 
     const ok = await proofApp.anchorProof(id);
     expect(ok).toBe(false);
-    expect(walletState.invokeContract).not.toHaveBeenCalled();
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("reports an error and leaves the proof local when the broadcast fails", async () => {
-    walletState.invokeContract = vi.fn(async () => {
+    invoke = vi.fn(async () => {
       throw new Error("wallet rejected");
     });
-    const proofApp = useTimestampProofContract(t);
+    const proofApp = useTimestampProofContract({ app: makeApp(invoke), t });
     await proofApp.createProof("doc", () => undefined, () => undefined);
     const id = proofApp.proofs.get()[0]?.id ?? 0;
 

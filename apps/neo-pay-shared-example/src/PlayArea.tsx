@@ -7,7 +7,7 @@ import { CoinArt } from "@shared/art";
 import { PlayStage } from "@shared/components-react/v2";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { deriveSchedulePreview } from "../../neo-pay/src/streamDisplay";
+import { deriveSchedulePreview } from "@shared/composables/neo-pay";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -39,7 +39,9 @@ function positiveNumber(value: string): boolean {
 function normalizeAmountForAsset(value: string, asset: AssetSymbol): string {
   const text = String(value ?? "");
   if (asset === "NEO") {
-    return text.split(/[.,]/)[0].replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    // split() always yields at least one element; `?? ""` only satisfies
+    // noUncheckedIndexedAccess (runtime no-op).
+    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
   }
   return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
 }

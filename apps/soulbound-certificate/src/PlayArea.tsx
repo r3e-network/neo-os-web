@@ -235,7 +235,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { mode: "certificates", label: t("certificatesTab"), value: String(certificates.length || certificatesCount), Icon: Award },
     { mode: "trust", label: t("certificateTrustSignals"), value: t("soulboundBadge"), Icon: ShieldCheck },
   ];
-  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0];
+  const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.Icon;
   const setWorkbenchMode = (value: string) => {
     if (value === "issue" || value === "templates" || value === "verify") {

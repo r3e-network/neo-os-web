@@ -1,11 +1,14 @@
 import { createObservable, createDerived, refToObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import type { MiniAppFramework } from "@shared/react";
 import { useWallet } from "@shared/utils/wallet-sdk";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { GAS_HASH } from "@shared/constants/rpc";
 
-const STORAGE_KEY = "miniapp-timestamp-proof:proofs:v2";
+// app.storage.local key. The app's storage namespace is pinned to the legacy
+// "miniapp-timestamp-proof:" prefix (defineMiniApp storagePrefix), so the
+// journal resolves to the exact pre-framework runtime-cache key
+// ("miniapp-timestamp-proof:proofs:v2") and existing proofs still load.
+const STORAGE_KEY = "proofs:v2";
 const MAX_PROOFS = 200;
 // The on-chain anchor embeds this prefix + digest in the data field of a 0-GAS
 // self-transfer, so a third party can find the proof by scanning the tx.
@@ -46,34 +49,47 @@ function sanitizeProof(item: Partial<TimestampProof> & { txHash?: string }): Tim
   };
 }
 
-function readStoredProofs(): TimestampProof[] {
-  try {
-    const parsed = readCachedJSON<unknown[]>(STORAGE_KEY);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => sanitizeProof(item as Partial<TimestampProof>))
-      .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
-      .sort((a, b) => b.id - a.id)
-      .slice(0, MAX_PROOFS);
-  } catch (_e) {
-    return [];
-  }
+export interface UseTimestampProofOptions {
+  /** MiniApp framework (ctx.framework) — journal storage + the anchor invoke. */
+  app: MiniAppFramework;
+  /** Translation function. */
+  t: (key: string) => string;
 }
 
-function writeStoredProofs(items: TimestampProof[]) {
-  writeCachedJSON(STORAGE_KEY, items);
-}
-
-export function useTimestampProofContract(t: (key: string) => string) {
+export function useTimestampProofContract({ app, t }: UseTimestampProofOptions) {
   const wallet = useWallet();
   const walletAddress = wallet.address;
   const address = refToObservable(walletAddress);
 
-  // The wallet SDK mutates `walletAddress.value` directly on connect/switch
+  const readStoredProofs = (): TimestampProof[] => {
+    try {
+      const parsed = app.storage.local.get<unknown[]>(STORAGE_KEY);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((item) => sanitizeProof(item as Partial<TimestampProof>))
+        .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
+        .sort((a, b) => b.id - a.id)
+        .slice(0, MAX_PROOFS);
+    } catch (_e) {
+      return [];
+    }
+  };
+
+  const writeStoredProofs = (items: TimestampProof[]) => {
+    try {
+      app.storage.local.set(STORAGE_KEY, items);
+    } catch (_e) {
+      /* best-effort local persistence (quota/serialization) — same as before */
+    }
+  };
+
+  // framework-exempt: timestamp-proof 500ms address poll (plan §3.6) — the
+  // wallet SDK mutates `walletAddress.value` directly on connect/switch
   // rather than routing through this wrapper's `.set()`, so subscribers are
-  // never notified by the wrapper alone. Poll the underlying ref and emit
-  // through `.set()` so any address change propagates to bound derives
-  // (e.g. `myProofsCount`). Cheap reference compare every 500ms.
+  // never notified by the wrapper alone (app.wallet.observe would inherit the
+  // same gap). Poll the underlying ref and emit through `.set()` so any
+  // address change propagates to bound derives (e.g. `myProofsCount`). Cheap
+  // reference compare every 500ms; keep until the SDK subscription bug is fixed.
   let lastSeenAddress = walletAddress.value;
   const addressPollHandle = setInterval(() => {
     if (!Object.is(lastSeenAddress, walletAddress.value)) {
@@ -220,16 +236,20 @@ export function useTimestampProofContract(t: (key: string) => string) {
       const self = String(address.get() || "");
       if (!self) throw new Error(t("connectWalletToAnchor"));
 
-      const result = await wallet.invokeContract({
-        scriptHash: GAS_HASH,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: self },
-          { type: "Hash160", value: self },
-          { type: "Integer", value: "0" },
-          { type: "String", value: `${ANCHOR_PREFIX}${proof.contentHash}` },
+      // The self-transfer Hash160s carry the RAW wallet address exactly as the
+      // pre-framework wallet.invokeContract call did — arg.hash160Raw passes it
+      // through unconverted (the wallet provider resolves the connected account).
+      // No notify wrapping: this composable owns its own status messaging.
+      const result = await app.chain.invoke(
+        "transfer",
+        [
+          app.chain.arg.hash160Raw(self),
+          app.chain.arg.hash160Raw(self),
+          app.chain.arg.integer(0),
+          app.chain.arg.string(`${ANCHOR_PREFIX}${proof.contentHash}`),
         ],
-      });
+        { scriptHash: GAS_HASH },
+      );
       const txid = String((result as { txid?: string } | null)?.txid || "");
       const updated = readStoredProofs().map((item) =>
         item.id === targetId

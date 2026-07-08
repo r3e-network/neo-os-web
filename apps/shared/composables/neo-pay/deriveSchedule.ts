@@ -7,9 +7,9 @@
  *  - GAS is divisible to 8 dp, so a fractional per-day rate is always valid, but
  *    it MUST be quantised to 8 decimals before stringifying. String(total/days)
  *    can emit a 17-significant-digit JS float (e.g. 5 GAS / 30 days ->
- *    "0.16666666666666666"), which toBaseUnits' 8-decimal validator rejects,
- *    returning 0n and failing "Create Stream" before any deposit fires.
- *    `.toFixed(8)` keeps the rate representable.
+ *    "0.16666666666666666"), which the 8-decimal amount validator
+ *    (app.amount.parseAssetToUnits) rejects to null, failing "Create Stream"
+ *    before any deposit fires. `.toFixed(8)` keeps the rate representable.
  *  - NEO is indivisible. If total / duration truncates to < 1 NEO/day, a daily
  *    rate of 0 would be rejected, so we collapse the schedule into a single
  *    interval that spans the whole duration and releases the full total at the

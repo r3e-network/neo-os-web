@@ -7,7 +7,6 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { EventBus } from "@shared/services";
 import { fetchOwnedDomains, ownerValueToAddress } from "./nnsRpc";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
@@ -65,7 +64,6 @@ export interface SearchResult {
 
 export interface UseNeoNSOptions {
   app: MiniAppFramework;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
   nnsContractHash?: string;
 }
@@ -77,7 +75,7 @@ function domainToTokenId(name: string): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
-export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions) {
+export function useNeoNS({ app, t, nnsContractHash }: UseNeoNSOptions) {
   const contractHash = nnsContractHash ?? NNS_CONTRACT_HASH;
   const readOpts = { scriptHash: contractHash };
 
@@ -205,7 +203,6 @@ export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions)
       ], { scriptHash: contractHash, waitForEvent: "Transfer" });
 
       if (result.success) {
-        eventBus.emit("neo-ns:registered", { action: `${fullName} ${t("registered")}`, domain: fullName });
         searchQuery.set("");
         searchResult.set(null);
         registrationCost.set(0);
@@ -223,9 +220,6 @@ export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions)
         }
         await loadMyDomains();
       }
-    } catch (e) {
-      eventBus.emit("neo-ns:error", { message: e instanceof Error ? e.message : t("registrationFailed") });
-      throw e;
     } finally { isLoading.set(false); }
   };
 
@@ -244,12 +238,8 @@ export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions)
         app.chain.arg.string(target),
       ], { scriptHash: contractHash });
       if (result.success) {
-        eventBus.emit("neo-ns:recordSet", { action: t("targetSet"), domain: domain.name, target });
         await loadMyDomains();
       }
-    } catch (e) {
-      eventBus.emit("neo-ns:error", { message: e instanceof Error ? e.message : t("error") });
-      throw e;
     } finally { isLoading.set(false); }
   };
 
@@ -262,22 +252,19 @@ export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions)
     try {
       await app.chain.ensureWallet();
       const tokenId = domainToTokenId(domain.name.replace(/\.neo$/, ""));
-      // `to` is a third-party recipient (not the connected wallet), and the
-      // pre-migration code passed the raw N-address as the Hash160 value — the
-      // wallet provider resolves it, and mapDapiArgs only remaps the connected
-      // account. Keep the raw value to preserve exactly what reaches the wallet.
+      // `to` is a third-party recipient (not the connected wallet): the raw
+      // N-address must reach the wallet provider verbatim (it resolves it, and
+      // mapDapiArgs only remaps the connected account). arg.hash160Raw passes it
+      // through UNCONVERTED — arg.hash160 would rewrite it to a script hash and
+      // change what the provider receives.
       const result = await app.chain.invoke("transfer", [
-        { type: "Hash160", value: to },
+        app.chain.arg.hash160Raw(to),
         app.chain.arg.byteArray(tokenId),
         app.chain.arg.string(""),
       ], { scriptHash: contractHash, waitForEvent: "Transfer" });
       if (result.success) {
-        eventBus.emit("neo-ns:transferred", { action: t("transferred"), domain: domain.name, to });
         await loadMyDomains();
       }
-    } catch (e) {
-      eventBus.emit("neo-ns:error", { message: e instanceof Error ? e.message : t("error") });
-      throw e;
     } finally { isLoading.set(false); }
   };
 
@@ -299,12 +286,8 @@ export function useNeoNS({ app, eventBus, t, nnsContractHash }: UseNeoNSOptions)
       await app.chain.ensureWallet();
       const result = await app.chain.invoke("renew", [app.chain.arg.string(domain.name)], { scriptHash: contractHash });
       if (result.success) {
-        eventBus.emit("neo-ns:renewed", { action: `${domain.name} ${t("renewed")}`, domain: domain.name });
         await loadMyDomains();
       }
-    } catch (e) {
-      eventBus.emit("neo-ns:error", { message: e instanceof Error ? e.message : t("error") });
-      throw e;
     } finally { isLoading.set(false); }
   };
 

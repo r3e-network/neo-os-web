@@ -13,6 +13,10 @@ defineMiniApp({
   playArea: PlayArea,
   manifest,
   messages,
+  // Legacy storage namespace: the pre-framework sealed-intents log lived at
+  // "miniapp-private-transfer:sealed-intents:v1", so pin app.storage.local to
+  // the same "miniapp-private-transfer:" prefix (no orphaned history).
+  storagePrefix: "miniapp-private-transfer:",
   setup(ctx) {
     const privacyMode = createObservable(ctx.t("privacyModeLabel"));
     const networkLabel = createObservable(ctx.t("networkTestnet"));
@@ -40,8 +44,9 @@ defineMiniApp({
           amount,
           asset,
           memo,
+          seal: ctx.framework.oracle.seal,
         });
-        const next = appendSealedIntent({
+        const next = appendSealedIntent(ctx.framework.storage.local, {
           secretRef: sealed.secretRef,
           commitment: sealed.commitment,
           nullifier: sealed.nullifier,
@@ -82,7 +87,7 @@ defineMiniApp({
       // so requestCount and the commitment digest survive a remount instead of
       // resetting to 0 / "—" every time the miniapp re-opens.
       loadData: async () => {
-        const intents = readSealedIntents();
+        const intents = readSealedIntents(ctx.framework.storage.local);
         const latest = intents[0];
         if (!latest) {
           return;

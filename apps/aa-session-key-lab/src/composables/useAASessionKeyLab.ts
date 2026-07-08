@@ -8,15 +8,11 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { AAService, EventBus } from "@shared/services";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import {
   deriveAAAccountIdHash,
   generateAASessionKeyPair,
 } from "@shared/utils/aa-account";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import {
   getExternalIntegrationConfig,
   getNetwork,
@@ -50,21 +46,18 @@ type SessionConfiguration = {
 };
 
 export interface UseAASessionKeyLabOptions {
-  aa: AAService;
-  /** MiniApp framework SDK (ctx.framework) — verifier reads + contract-arg builders. */
+  /**
+   * MiniApp framework SDK (ctx.framework) — verifier reads/writes,
+   * contract-arg builders, wallet identity, and the app.aa sponsorship lane.
+   */
   app: MiniAppFramework;
-  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 export function useAASessionKeyLab({
-  aa,
   app,
-  eventBus,
   t,
 }: UseAASessionKeyLabOptions) {
-  const wallet = useWallet() as WalletSDK;
-  const { address, connect, invokeContract } = wallet;
   const network = getNetwork();
   const integration = getExternalIntegrationConfig(network);
   const aaCore = integration.contracts.aaCore;
@@ -234,7 +227,7 @@ export function useAASessionKeyLab({
   };
 
   const walletDisplay: Observable<string> = {
-    get: () => address.value || t("notConnected"),
+    get: () => app.wallet.address() || t("notConnected"),
     set: () => {},
     subscribe: () => () => {},
   };
@@ -245,14 +238,11 @@ export function useAASessionKeyLab({
     subscribe: (fn) => sponsorState.subscribe(fn),
   };
 
-  // Delegate to the live AA flag so host bindings re-render on toggle. A no-op
-  // subscribe here would leave the sponsorship spinner stuck on after the
-  // request completes, because the finally(false) would never notify React.
-  const isCheckingSponsorship: Observable<boolean> = {
-    get: () => aa.isCheckingSponsorship.get(),
-    set: () => {},
-    subscribe: (fn) => aa.isCheckingSponsorship.subscribe(fn),
-  };
+  // Busy flag flipped around the app.aa sponsorship calls (mirroring the host
+  // AA service's own isCheckingSponsorship semantics: set during check AND
+  // request). A live createObservable so host bindings re-render on toggle —
+  // the finally(false) must notify React or the spinner sticks on.
+  const isCheckingSponsorship = createObservable(false);
 
   // Detail items for display
   const detailItems: Observable<Array<{ label: string; value: string }>> = {
@@ -311,27 +301,24 @@ export function useAASessionKeyLab({
     form.sessionPublicKey = pair.publicKey;
     generatedPublicKey.set(pair.publicKey);
     generatedPrivateKey.set(pair.privateKey);
-    eventBus.emit("sessionKey:generated", {});
   }
 
   async function checkSponsor() {
+    isCheckingSponsorship.set(true);
     try {
-      const result = await aa.checkSponsorship({
+      const result = await app.aa.sponsorship.check({
         dappId: form.dappId,
       });
       sponsorState.set(result as unknown as Record<string, unknown>);
-      eventBus.emit("sponsor:checked", {});
-    } catch (error: unknown) {
-      eventBus.emit("sponsor:error", {
-        message: formatErrorMessage(error, t("sponsorCheckFailed")),
-      });
-      throw error;
+    } finally {
+      isCheckingSponsorship.set(false);
     }
   }
 
   async function requestSponsor() {
+    isCheckingSponsorship.set(true);
     try {
-      const result = await aa.requestSponsorship(
+      const result = await app.aa.sponsorship.request(
         form.sponsorAmount || DEFAULT_SESSION_SPONSOR_AMOUNT,
         {
           dappId: form.dappId,
@@ -341,12 +328,8 @@ export function useAASessionKeyLab({
       if (!result.approved) {
         throw new Error(t("sponsorRequestUnavailable"));
       }
-      eventBus.emit("sponsor:requested", {});
-    } catch (error: unknown) {
-      eventBus.emit("sponsor:error", {
-        message: formatErrorMessage(error, t("sponsorRequestFailed")),
-      });
-      throw error;
+    } finally {
+      isCheckingSponsorship.set(false);
     }
   }
 
@@ -355,6 +338,8 @@ export function useAASessionKeyLab({
   // signature. The contracts are frozen, so branch on the active network to
   // forward the right arity — a 5-arg call on mainnet arity-mismatches and
   // faults after the user signs.
+  // framework-exempt: network-conditional 7-arg/5-arg building is
+  // contract-specific business logic, correctly app-side (plan §3.6).
   function buildSessionKeyArgs(params: {
     accountIdHash: string;
     publicKey: string;
@@ -399,34 +384,31 @@ export function useAASessionKeyLab({
   // Poll the verifier for the configured key so "Configured" reflects on-chain
   // truth, not just a broadcast txid. A matching pubKey read means the tx
   // HALTed and the verifier stored the key; otherwise leave the prior state.
+  // app.chain.waitForState carries the exact retired poll semantics: 4
+  // attempts, delay BEFORE each read (4s first, then 5s), per-attempt read
+  // errors swallowed, null once the budget is exhausted.
   async function confirmSessionKey(accountIdHash: string, publicKey: string): Promise<boolean> {
     if (!sessionVerifier) return false;
     const accountId = `0x${accountIdHash}`;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 4000 : 5000));
-      try {
-        const read = await app.chain.readRaw(
+    const confirmed = await app.chain.waitForState(
+      () =>
+        app.chain.readRaw(
           "getSessionKey",
           [app.chain.arg.hash160(accountId)],
           { scriptHash: sessionVerifier },
-        );
-        const text = JSON.stringify(read ?? "").toLowerCase();
-        if (text.includes(publicKey.toLowerCase())) {
-          onChainSession.set(JSON.stringify(read));
-          hasOnChainSession.set(true);
-          return true;
-        }
-      } catch {
-        // RPC lag — keep retrying within the attempt budget.
-      }
-    }
-    return false;
+        ),
+      (read) => JSON.stringify(read ?? "").toLowerCase().includes(publicKey.toLowerCase()),
+    );
+    if (confirmed === null) return false;
+    onChainSession.set(JSON.stringify(confirmed));
+    hasOnChainSession.set(true);
+    return true;
   }
 
   async function configureSessionKey() {
     try {
       isSubmitting.set(true);
-      if (!address.value) await connect();
+      if (!app.wallet.isConnected()) await app.wallet.ensure();
 
       const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
       const publicKey = normalizeSessionPublicKey(form.sessionPublicKey);
@@ -435,10 +417,12 @@ export function useAASessionKeyLab({
       const expiresAt = normalizeExpiry(form.expiresAt);
       const spendingLimit = normalizeSpendingLimit(form.spendingLimit);
 
-      const result = await invokeContract({
-        scriptHash: aaCore,
-        operation: "callVerifier",
-        args: [
+      // Raw framework invoke (implicitly silent — no notify/reload wrapping):
+      // this flow owns its own confirmation + error copy, and main.tsx's
+      // action guard owns the toasts.
+      const result = await app.chain.invoke(
+        "callVerifier",
+        [
           app.chain.arg.hash160(`0x${accountIdHash}`),
           app.chain.arg.string("setSessionKey"),
           app.chain.arg.array(
@@ -453,7 +437,8 @@ export function useAASessionKeyLab({
             }),
           ),
         ],
-      });
+        { scriptHash: aaCore },
+      );
 
       // Confirm on-chain before flipping to "Configured" so a faulted mainnet
       // arity mismatch no longer shows a green success for a key that does not
@@ -472,12 +457,6 @@ export function useAASessionKeyLab({
         allowedMethod,
         expiresAt,
       });
-      eventBus.emit("session:configured", { txid: lastConfigured.get()!.txid });
-    } catch (error: unknown) {
-      eventBus.emit("session:error", {
-        message: formatErrorMessage(error, t("sessionConfigureFailed")),
-      });
-      throw error;
     } finally {
       isSubmitting.set(false);
     }
@@ -523,8 +502,6 @@ export function useAASessionKeyLab({
     } else {
       onChainSessionView.set(null);
     }
-
-    eventBus.emit("session:inspected", { present });
   }
 
   // Revoke the delegated session key — the permission-out path the verifier
@@ -532,27 +509,21 @@ export function useAASessionKeyLab({
   async function revokeSessionKey() {
     try {
       isRevoking.set(true);
-      if (!address.value) await connect();
+      if (!app.wallet.isConnected()) await app.wallet.ensure();
       const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
-      await invokeContract({
-        scriptHash: aaCore,
-        operation: "callVerifier",
-        args: [
+      await app.chain.invoke(
+        "callVerifier",
+        [
           app.chain.arg.hash160(`0x${accountIdHash}`),
           app.chain.arg.string("clearSessionKey"),
           app.chain.arg.array([app.chain.arg.hash160(`0x${accountIdHash}`)]),
         ],
-      });
+        { scriptHash: aaCore },
+      );
       onChainSession.set(null);
       hasOnChainSession.set(false);
       onChainSessionView.set(null);
       lastConfigured.set(null);
-      eventBus.emit("session:revoked", {});
-    } catch (error: unknown) {
-      eventBus.emit("session:error", {
-        message: formatErrorMessage(error, t("sessionRevokeFailed")),
-      });
-      throw error;
     } finally {
       isRevoking.set(false);
     }

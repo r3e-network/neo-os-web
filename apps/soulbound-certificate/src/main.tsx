@@ -15,32 +15,32 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const soulbound = useSoulbound({
       nftService: ctx.os.nft,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
-      clipboard: ctx.services.clipboard,
-      eventBus: ctx.services.events,
-      app: ctx.framework,
+      clipboard: app.clipboard,
+      app,
       t: ctx.t,
     });
 
     ctx.framework.actions.register("refreshTemplates", async () => { await soulbound.refreshTemplates(); });
     ctx.framework.actions.register("connectWallet", async () => { await soulbound.connectWallet(); });
     ctx.framework.actions.register("createTemplate", (form: unknown) =>
-      ctx.services.notify.guard(() => soulbound.createTemplate(form as never)),
+      app.notify.guard(() => soulbound.createTemplate(form as never)),
     );
     ctx.framework.actions.register("issueCertificate", (form: unknown) =>
-      ctx.services.notify.guard(() => soulbound.issueCertificate(form as never)),
+      app.notify.guard(() => soulbound.issueCertificate(form as never)),
     );
     ctx.framework.actions.register("toggleTemplate", (template: unknown) =>
-      ctx.services.notify.guard(() => soulbound.toggleTemplate(template)),
+      app.notify.guard(() => soulbound.toggleTemplate(template)),
     );
     ctx.framework.actions.register("verifyCertificate", (form: unknown) =>
-      ctx.services.notify.guard(() => soulbound.verifyCertificate(form as never)),
+      app.notify.guard(() => soulbound.verifyCertificate(form as never)),
     );
     ctx.framework.actions.register("revokeCertificate", (form: unknown) =>
-      ctx.services.notify.guard(() => soulbound.revokeCertificate(form as never)),
+      app.notify.guard(() => soulbound.revokeCertificate(form as never)),
     );
     ctx.framework.actions.register("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
     ctx.framework.actions.register("copyVerifyLink", async (tokenId: unknown) => { await soulbound.copyVerifyLink(tokenId); });
@@ -58,7 +58,7 @@ defineMiniApp({
         verifiedCertificate: soulbound.verifiedCertificate,
         verifiedIsIssuer: soulbound.verifiedIsIssuer,
         // Bind the live wallet observable so the connect prompt reacts.
-        address: ctx.services.chain.address,
+        address: app.chain.address,
         isRefreshing: soulbound.isRefreshing,
         isConnecting: soulbound.isConnecting,
         isCreatingTemplate: soulbound.isCreatingTemplate,

@@ -2,9 +2,10 @@
  * Neo Sign Anything — Entry Point (React)
  *
  * This app is a thin wrapper around wallet signing and GAS self-transfer
- * broadcast. All chain calls target the native GAS contract (external),
- * so they stay on ctx.services.chain. Session counters are persisted
- * via ctx.os.storage so they survive page reloads.
+ * broadcast, fully on the framework SDK: signing via app.chain.signMessage,
+ * the broadcast invoke via app.chain (native GAS contract), toasts via
+ * app.notify, clipboard via app.clipboard, and session counters via
+ * app.storage.remote so they survive page reloads.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
@@ -20,41 +21,37 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const { notify } = ctx.services;
+    const app = ctx.framework;
 
     const signAnything = useSignAnything({
-      app: ctx.framework,
-      chain: ctx.services.chain,
-      eventBus: ctx.services.events,
-      clipboard: ctx.services.clipboard,
-      storage: ctx.os.storage,
+      app,
       t: ctx.t,
     });
 
-    ctx.framework.actions.register("signMessage", async (...args: unknown[]) => {
-      await notify.guard(
-        () => signAnything.signMessage(String(args[0] ?? "")),
-        "signSuccess",
-      );
-    });
+    app.actions.register(
+      "signMessage",
+      (...args: unknown[]) => signAnything.signMessage(String(args[0] ?? "")),
+      { successKey: "signSuccess" },
+    );
 
-    ctx.framework.actions.register("broadcastMessage", async (...args: unknown[]) => {
-      await notify.guard(
-        () => signAnything.broadcastMessage(String(args[0] ?? "")),
-        "broadcastSuccess",
-      );
-    });
+    app.actions.register(
+      "broadcastMessage",
+      (...args: unknown[]) => signAnything.broadcastMessage(String(args[0] ?? "")),
+      { successKey: "broadcastSuccess" },
+    );
 
-    ctx.framework.actions.register("copyToClipboard", async (...args: unknown[]) => {
+    app.actions.register("copyToClipboard", async (...args: unknown[]) => {
       await signAnything.copyToClipboard(String(args[0] ?? ""));
     });
-    ctx.framework.actions.register("loadFileDigest", async (...args: unknown[]) => {
+    app.actions.register("loadFileDigest", async (...args: unknown[]) => {
       const file = args[0];
       if (file instanceof File) {
-        await notify.guard(() => signAnything.loadFileDigest(file), "fileHashed");
+        await app.notify.guard(() => signAnything.loadFileDigest(file), {
+          successKey: "fileHashed",
+        });
       }
     });
-    ctx.framework.actions.register("setMessage", async (...args: unknown[]) => {
+    app.actions.register("setMessage", async (...args: unknown[]) => {
       signAnything.message.set(String(args[0] ?? ""));
     });
 

@@ -16,9 +16,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "src/**/*.tsx",
-    "../neo-pay/src/**/*.ts",
-    "../neo-pay/src/**/*.tsx"
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

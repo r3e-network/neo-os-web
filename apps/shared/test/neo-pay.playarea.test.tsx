@@ -18,7 +18,7 @@ function source() {
 }
 
 function messages() {
-  return fs.readFileSync(`${process.cwd()}/../neo-pay/src/locale/messages.ts`, "utf8") as string;
+  return fs.readFileSync(`${process.cwd()}/composables/neo-pay/messages.ts`, "utf8") as string;
 }
 
 describe("neo-pay PlayArea (v2)", () => {

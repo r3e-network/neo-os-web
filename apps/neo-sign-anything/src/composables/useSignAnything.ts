@@ -1,17 +1,17 @@
 /**
  * useSignAnything — Domain logic for the Neo Sign Anything miniapp (React)
  *
- * Wallet address, wallet connect, the broadcast invoke, and the transfer arg
- * builders are routed through the MiniApp framework SDK (ctx.framework). The
- * broadcast targets the native GAS contract (external). `signMessage` is a raw
- * wallet capability with no framework surface, so it stays on ChainService.
- * Session sign/broadcast counters are persisted via OS storage.
+ * Everything is routed through the MiniApp framework SDK (ctx.framework):
+ * wallet address/connect, the broadcast invoke and transfer arg builders
+ * (app.chain), message signing via app.chain.signMessage (which normalizes
+ * the wallet-specific string vs `{ signature | data, publicKey }` result
+ * shapes into one typed envelope), clipboard via app.clipboard, and session
+ * sign/broadcast counters via app.storage.remote (OS storage passthrough —
+ * keys unchanged). The broadcast targets the native GAS contract (external).
  */
 
 import { createObservable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { ChainService, EventBus, ClipboardService } from "@shared/services";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const MAX_MESSAGE_BYTES = 1024;
@@ -25,19 +25,10 @@ const getMessageBytes = (value: string): number => {
 
 export interface UseSignAnythingOptions {
   app: MiniAppFramework;
-  /**
-   * Raw chain service — used ONLY for `signMessage`, a wallet capability the
-   * framework SDK does not surface. Address, connect, invoke, and arg builders
-   * all go through `app.chain`.
-   */
-  chain: ChainService;
-  eventBus: EventBus;
-  clipboard: ClipboardService;
-  storage: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSignAnything({ app, chain, eventBus, clipboard, storage, t }: UseSignAnythingOptions) {
+export function useSignAnything({ app, t }: UseSignAnythingOptions) {
   const message = createObservable("");
   const signature = createObservable("");
   // The signer's public key, captured alongside the signature so the produced
@@ -80,38 +71,17 @@ export function useSignAnything({ app, chain, eventBus, clipboard, storage, t }:
     signature.set("");
     publicKey.set("");
     try {
-      const result = await chain.signMessage(msg);
-
-      // Parse the result — may be an object { signature, publicKey, data } or string
-      if (typeof result === "string") {
-        signature.set(result);
-      } else if (result && typeof result === "object") {
-        const resultRecord = result as Record<string, unknown>;
-        if (resultRecord.signature) {
-          signature.set(String(resultRecord.signature));
-        } else if (resultRecord.data) {
-          signature.set(String(resultRecord.data));
-        } else {
-          try { signature.set(JSON.stringify(result)); }
-          catch { signature.set(String(result)); }
-        }
-        // Capture the public key when the wallet returns it, so the signature
-        // can actually be verified later (address alone is not enough).
-        const pk = resultRecord.publicKey ?? resultRecord.publicKeyHash ?? resultRecord.pubkey;
-        if (pk) publicKey.set(String(pk));
-      } else {
-        try { signature.set(JSON.stringify(result)); }
-        catch { signature.set(String(result)); }
-      }
+      // app.chain.signMessage normalizes the wallet-specific result shapes
+      // (bare signature string vs { signature | data, publicKey } records)
+      // into one typed { signature, publicKey?, data? } envelope.
+      const result = await app.chain.signMessage(msg);
+      signature.set(result.signature);
+      // Capture the public key when the wallet returns it, so the signature
+      // can actually be verified later (address alone is not enough).
+      if (result.publicKey) publicKey.set(result.publicKey);
 
       signCount.set(signCount.get() + 1);
-      storage.set("signCount", signCount.get()).catch(() => {});
-      eventBus.emit("sign:success", { action: t("signBtn") });
-    } catch (e) {
-      eventBus.emit("sign:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
+      app.storage.remote.set("signCount", signCount.get()).catch(() => {});
     } finally {
       isSigning.set(false);
     }
@@ -156,13 +126,7 @@ export function useSignAnything({ app, chain, eventBus, clipboard, storage, t }:
         txPending.set(true);
       }
       broadcastCount.set(broadcastCount.get() + 1);
-      storage.set("broadcastCount", broadcastCount.get()).catch(() => {});
-      eventBus.emit("broadcast:success", { action: t("broadcastBtn") });
-    } catch (e) {
-      eventBus.emit("broadcast:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
+      app.storage.remote.set("broadcastCount", broadcastCount.get()).catch(() => {});
     } finally {
       isBroadcasting.set(false);
     }
@@ -200,15 +164,15 @@ export function useSignAnything({ app, chain, eventBus, clipboard, storage, t }:
   };
 
   const copyToClipboard = async (text: string) => {
-    await clipboard.copy(text, "copySuccess");
+    await app.clipboard.copy(text, { successKey: "copySuccess" });
   };
 
   const loadData = async () => {
     // Restore persisted counters from OS storage
     try {
       const [sc, bc] = await Promise.all([
-        storage.get("signCount"),
-        storage.get("broadcastCount"),
+        app.storage.remote.get("signCount"),
+        app.storage.remote.get("broadcastCount"),
       ]);
       if (typeof sc === "number") signCount.set(sc);
       if (typeof bc === "number") broadcastCount.set(bc);

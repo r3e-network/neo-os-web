@@ -1,6 +1,7 @@
 import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { ChainService, ContractArg, TxResult } from "@shared/services";
+import type { MiniAppFramework } from "@shared/react";
+import type { FrameworkContractArg, FrameworkTxResult } from "@framework/index";
 import { MINIAPP_CONTRACTS } from "@shared/constants/rpc";
 import { parseInvokeResult, parseHash160, ownerMatchesAddress } from "@shared/utils/neo";
 import { getHostOrigin } from "@shared/utils/runtime-origin";
@@ -60,7 +61,8 @@ export interface Proposal {
 export type VoteChoice = "for" | "against";
 
 export interface UseGovernanceOptions {
-  chainService: ChainService;
+  /** MiniApp framework (ctx.framework); its chain layer drives every read/write. */
+  app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
   currentChainId: Observable<string>;
 }
@@ -279,7 +281,7 @@ function fetchExplorerGovernanceData(url: string): Promise<unknown> {
 export const resolveStatus = (proposal: Proposal) => proposal.statusKey;
 
 export function useGovernance({
-  chainService,
+  app,
   t,
   currentChainId,
 }: UseGovernanceOptions) {
@@ -292,7 +294,7 @@ export function useGovernance({
   const hasVotedMap = createObservable<Record<number, boolean>>({});
   const isVoting = createObservable(false);
   const address = createObservable("");
-  const lastTx = createObservable<TxResult | null>(null);
+  const lastTx = createObservable<FrameworkTxResult | null>(null);
 
   const activeProposals = createDerived(
     () => proposals.get().filter((p) => p.statusKey === "active"),
@@ -309,10 +311,14 @@ export function useGovernance({
   const currentOrigin = typeof window === "undefined" ? "" : window.location.origin;
   const API_HOST = hostOrigin && hostOrigin !== currentOrigin ? hostOrigin : "";
 
-  async function readContract(method: string, args: ContractArg[] = []): Promise<unknown> {
+  // framework-exempt: readContract's HTTP fallback deliberately rethrows the
+  // ORIGINAL wallet read error after a failed /api/rpc/neo-read bridge attempt —
+  // app.chain.readRaw alone cannot replicate that error contract (plan §3.6).
+  // The wallet-lane read itself goes through the framework (app.chain.readRaw).
+  async function readContract(method: string, args: FrameworkContractArg[] = []): Promise<unknown> {
     const scriptHash = contractHashFor(currentChainId.get());
     try {
-      return await chainService.read(method, args, scriptHash ? { scriptHash } : undefined);
+      return await app.chain.readRaw(method, args, scriptHash ? { scriptHash } : undefined);
     } catch (walletReadError) {
       if (!scriptHash) throw walletReadError;
       const res = await fetch(`${API_HOST}/api/rpc/neo-read`, {
@@ -334,9 +340,9 @@ export function useGovernance({
     }
   }
 
-  async function invokeContract(method: string, args: ContractArg[]): Promise<TxResult> {
+  async function invokeContract(method: string, args: FrameworkContractArg[]): Promise<FrameworkTxResult> {
     const scriptHash = contractHashFor(currentChainId.get());
-    const tx = await chainService.invoke(method, args, scriptHash ? { scriptHash } : undefined);
+    const tx = await app.chain.invoke(method, args, scriptHash ? { scriptHash } : undefined);
     lastTx.set(tx);
     return tx;
   }
@@ -358,9 +364,9 @@ export function useGovernance({
     try {
       isVoting.set(true);
       await invokeContract("vote", [
-        { type: "Hash160", value: address.get() },
-        { type: "Integer", value: String(proposalId) },
-        { type: "Boolean", value: voteType === "for" },
+        app.chain.arg.hash160(address.get()),
+        app.chain.arg.integer(proposalId),
+        app.chain.arg.boolean(voteType === "for"),
       ]);
       await loadProposals();
       await refreshHasVoted([proposalId]);
@@ -402,12 +408,12 @@ export function useGovernance({
 
     const duration = proposalData.duration > 0 ? proposalData.duration : 7 * 24 * 60 * 60 * 1000;
     const tx = await invokeContract("createProposal", [
-      { type: "Hash160", value: address.get() },
-      { type: "Integer", value: String(proposalData.type || 0) },
-      { type: "String", value: title },
-      { type: "String", value: description },
-      { type: "ByteArray", value: policyData },
-      { type: "Integer", value: String(duration) },
+      app.chain.arg.hash160(address.get()),
+      app.chain.arg.integer(proposalData.type || 0),
+      app.chain.arg.string(title),
+      app.chain.arg.string(description),
+      app.chain.arg.byteArray(policyData),
+      app.chain.arg.integer(duration),
     ]);
     await loadProposals();
     return tx;
@@ -416,7 +422,7 @@ export function useGovernance({
   const finalizeProposal = async (proposalId: number) => {
     if (!proposalId) return null;
     const tx = await invokeContract("finalizeProposal", [
-      { type: "Integer", value: String(proposalId) },
+      app.chain.arg.integer(proposalId),
     ]);
     await loadProposals();
     return tx;
@@ -432,7 +438,7 @@ export function useGovernance({
   const executeProposal = async (proposalId: number) => {
     if (!proposalId || proposalId <= 0) return null;
     const tx = await invokeContract("executeProposal", [
-      { type: "Integer", value: String(proposalId) },
+      app.chain.arg.integer(proposalId),
     ]);
     await loadProposals();
     return tx;
@@ -447,8 +453,8 @@ export function useGovernance({
     if (!proposalId || proposalId <= 0) return null;
     if (!address.get()) throw new Error(t("connectWallet"));
     const tx = await invokeContract("revokeProposal", [
-      { type: "Hash160", value: address.get() },
-      { type: "Integer", value: String(proposalId) },
+      app.chain.arg.hash160(address.get()),
+      app.chain.arg.integer(proposalId),
     ]);
     await loadProposals();
     return tx;
@@ -485,7 +491,7 @@ export function useGovernance({
     const reads: Array<Promise<Proposal | null>> = [];
     for (let id = count; id >= first; id -= 1) {
       reads.push(
-        readContract("getProposalDetails", [{ type: "Integer", value: String(id) }])
+        readContract("getProposalDetails", [app.chain.arg.integer(id)])
           .then(parseProposal)
           .catch(() => null),
       );
@@ -562,7 +568,7 @@ export function useGovernance({
 
     try {
       const result = await readContract("isCandidate", [
-        { type: "Hash160", value: walletAddress },
+        app.chain.arg.hash160(walletAddress),
       ]);
       const eligible = asBoolean(result);
       isCandidate.set(eligible);
@@ -596,8 +602,8 @@ export function useGovernance({
         try {
           updates[id] = asBoolean(
             await readContract("hasVoted", [
-              { type: "Hash160", value: walletAddress },
-              { type: "Integer", value: String(id) },
+              app.chain.arg.hash160(walletAddress),
+              app.chain.arg.integer(id),
             ]),
           );
         } catch {

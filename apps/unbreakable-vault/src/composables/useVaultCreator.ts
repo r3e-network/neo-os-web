@@ -1,10 +1,10 @@
 /**
  * useVaultCreator — Vault creation + "my vaults" listing
  *
- * Talks DIRECTLY to the standalone MiniAppUnbreakableVault contract via
- * ctx.services.chain. The earlier path routed reads through ctx.os.storage and
- * badges through ctx.os.badge — both backed by the Morpheus OS kernel/edge,
- * which is offline, so the app was broken at runtime.
+ * Talks DIRECTLY to the standalone MiniAppUnbreakableVault contract via the
+ * MiniApp framework (ctx.framework / app.chain). The earlier path routed reads
+ * through ctx.os.storage and badges through ctx.os.badge — both backed by the
+ * Morpheus OS kernel/edge, which is offline, so the app was broken at runtime.
  *
  * Contract interaction model (verified against the deployed ABI at
  * 0x78fbd57ccfae14fff4b043a82eb491de542d8eb0):
@@ -33,7 +33,7 @@
  */
 
 import { createObservable } from "@shared/react/context";
-import type { ChainService } from "@shared/services/ChainService";
+import type { MiniAppFramework } from "@shared/react";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import { sha256Hex } from "@shared/utils/hash";
 import { parsePositiveFixed8 } from "@shared/utils/format";
@@ -67,10 +67,8 @@ export interface VaultCreateForm {
 }
 
 export interface UseVaultCreatorOptions {
-  /** Shared chain service for wallet-signed direct contract calls + reads. */
-  chainService: ChainService;
-  /** EventBus for UI events. */
-  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** MiniApp framework (ctx.framework) for wallet-signed contract calls + reads. */
+  app: MiniAppFramework;
   /** Translation function. */
   t: (key: string) => string;
 }
@@ -78,20 +76,6 @@ export interface UseVaultCreatorOptions {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-/** Read a single state slot from a VaultCreated event payload. */
-function eventSlot(entry: unknown, index: number): unknown {
-  if (!entry || typeof entry !== "object") return undefined;
-  const state = (entry as { state?: unknown }).state;
-  if (Array.isArray(state)) {
-    const item = state[index] as unknown;
-    if (item && typeof item === "object" && "value" in item) {
-      return (item as { value?: unknown }).value;
-    }
-    return item;
-  }
-  return undefined;
-}
 
 function base64FromBytes(bytes: number[]): string {
   const alphabet =
@@ -138,8 +122,7 @@ function parseBountyFixed8(value: string, minimumFixed8: bigint): string | null 
 // ============================================================================
 
 export function useVaultCreator({
-  chainService,
-  eventBus,
+  app,
   t,
 }: UseVaultCreatorOptions) {
   const myVaults = createObservable<MyVault[]>([]);
@@ -152,7 +135,7 @@ export function useVaultCreator({
    */
   const loadMyVaults = async () => {
     try {
-      const wallet = chainService.address.get();
+      const wallet = app.chain.address.get();
       if (!wallet) {
         myVaults.set([]);
         return;
@@ -160,7 +143,7 @@ export function useVaultCreator({
       // Scan deep so a creator's older vaults (past the newest 12) stay
       // discoverable for reclaim — the contract has no per-creator index.
       const details = await readRecentVaultDetails(
-        chainService,
+        app,
         MAX_MY_VAULTS_SCAN,
       );
       const mine = details
@@ -177,7 +160,6 @@ export function useVaultCreator({
         "[unbreakable-vault] loadMyVaults error:",
         e instanceof Error ? e.message : String(e),
       );
-      eventBus.emit("vault:error", { message: "My vaults unavailable" });
     }
   };
 
@@ -205,41 +187,37 @@ export function useVaultCreator({
         throw new Error(t("secretRequired"));
       }
       const hash = form.secretHash || (await sha256Hex(form.secret));
-      const creator = await chainService.ensureWallet();
+      const creator = await app.chain.ensureWallet();
 
-      const result = await chainService.invokeWithPayment(
+      // The creator Hash160 carries the RAW wallet address exactly as the
+      // pre-framework call did — arg.hash160Raw passes it through unconverted
+      // (the wallet provider resolves the connected account).
+      const result = await app.chain.invokeWithPayment(
         bountyFixed8,
         CREATE_MEMO,
         "createVault",
         [
-          { type: "Hash160", value: creator },
-          { type: "ByteArray", value: hashHexToBase64(hash) },
-          { type: "Integer", value: bountyFixed8 },
-          { type: "Integer", value: String(difficulty) },
-          { type: "String", value: form.title.trim().slice(0, 100) },
-          { type: "String", value: form.description.trim().slice(0, 300) },
+          app.chain.arg.hash160Raw(creator),
+          app.chain.arg.byteArray(hashHexToBase64(hash)),
+          app.chain.arg.integer(bountyFixed8),
+          app.chain.arg.integer(difficulty),
+          app.chain.arg.string(form.title.trim().slice(0, 100)),
+          app.chain.arg.string(form.description.trim().slice(0, 300)),
         ],
         { waitForEvent: "VaultCreated" },
       );
 
       // The new vault id is the first slot of the VaultCreated event.
-      const eventId = parseBigInt(eventSlot(result.event, 0));
+      const eventId = parseBigInt(app.events.value(result.event, 0));
       const vaultId = eventId > 0n ? eventId.toString() : "";
 
       if (vaultId) {
         createdVaultId.set(vaultId);
       }
 
-      eventBus.emit("vault:created", { action: t("vaultCreated") });
-
       onSuccess(vaultId);
       await loadRecentVaults();
       await loadMyVaults();
-    } catch (e) {
-      eventBus.emit("vault:error", {
-        message: e instanceof Error ? e.message : t("vaultCreateFailed"),
-      });
-      throw e;
     } finally {
       isCreating.set(false);
     }
@@ -267,27 +245,21 @@ export function useVaultCreator({
 
     isCreating.set(true);
     try {
-      await chainService.ensureWallet();
-      await chainService.invokeWithPayment(
+      await app.chain.ensureWallet();
+      await app.chain.invokeWithPayment(
         amountFixed8,
         CREATE_MEMO,
         "increaseBounty",
         [
-          { type: "Integer", value: id },
-          { type: "Integer", value: amountFixed8 },
+          app.chain.arg.integer(id),
+          app.chain.arg.integer(amountFixed8),
         ],
         { waitForEvent: "BountyIncreased" },
       );
 
-      eventBus.emit("vault:bounty_increased", { vaultId: id, amountGas });
       if (onDone) await onDone();
       await loadMyVaults();
       return { vaultId: id, amountGas };
-    } catch (e) {
-      eventBus.emit("vault:error", {
-        message: e instanceof Error ? e.message : t("increaseBountyFailed"),
-      });
-      throw e;
     } finally {
       isCreating.set(false);
     }

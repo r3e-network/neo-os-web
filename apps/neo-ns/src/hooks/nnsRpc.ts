@@ -50,6 +50,9 @@ interface RpcInvokeResult {
   stack?: RpcStackItem[];
 }
 
+// framework-exempt: neo-ns nnsRpc getnep11balances/invokefunction — the
+// chain bridge cannot traverse tokensOf iterators (plan §3.6); these direct
+// read-only JSON-RPC calls stay until n3index moves into the framework.
 async function rpcCall<T>(network: NeoNetwork, method: string, params: unknown[]): Promise<T> {
   const response = await fetch(getRpcUrl(network), {
     method: "POST",

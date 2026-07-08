@@ -19,9 +19,7 @@ defineMiniApp({
 
   setup(ctx) {
     const lab = useAASessionKeyLab({
-      aa: ctx.services.aa,
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
     const launchDefaults = getSessionKeyLaunchDefaults(ctx.launchContext);
@@ -34,7 +32,7 @@ defineMiniApp({
     lab.form.sponsorAmount = launchDefaults.sponsorAmount;
 
     ctx.framework.actions.register("generateKey", async () => {
-      const result = await ctx.services.notify.guard(
+      const result = await ctx.framework.notify.guard(
         async () => {
           lab.generateSessionKey();
           return {
@@ -42,8 +40,7 @@ defineMiniApp({
             privateKey: lab.generatedPrivateKey.get(),
           };
         },
-        "sessionKeyGenerated",
-        "sessionKeyGenerateFailed",
+        { successKey: "sessionKeyGenerated", errorKey: "sessionKeyGenerateFailed" },
       );
       return result;
     });
@@ -53,11 +50,10 @@ defineMiniApp({
       (accountSeed: unknown, dappId: unknown) => {
         lab.form.accountSeed = String(accountSeed);
         lab.form.dappId = String(dappId);
-        return ctx.services.notify.guard(
-          () => lab.checkSponsor(),
-          "sponsorCheckComplete",
-          "sponsorCheckFailed",
-        );
+        return ctx.framework.notify.guard(() => lab.checkSponsor(), {
+          successKey: "sponsorCheckComplete",
+          errorKey: "sponsorCheckFailed",
+        });
       },
     );
 
@@ -67,11 +63,10 @@ defineMiniApp({
         lab.form.accountSeed = String(accountSeed);
         lab.form.dappId = String(dappId);
         lab.form.sponsorAmount = String(sponsorAmount);
-        return ctx.services.notify.guard(
-          () => lab.requestSponsor(),
-          "sponsorRequestComplete",
-          "sponsorRequestFailed",
-        );
+        return ctx.framework.notify.guard(() => lab.requestSponsor(), {
+          successKey: "sponsorRequestComplete",
+          errorKey: "sponsorRequestFailed",
+        });
       },
     );
 
@@ -97,30 +92,27 @@ defineMiniApp({
         if (description !== undefined) {
           lab.form.description = String(description);
         }
-        await ctx.services.notify.guard(
-          () => lab.configureSessionKey(),
-          "sessionConfigured",
-          "sessionConfigureFailed",
-        );
+        await ctx.framework.notify.guard(() => lab.configureSessionKey(), {
+          successKey: "sessionConfigured",
+          errorKey: "sessionConfigureFailed",
+        });
       },
     );
 
     ctx.framework.actions.register("inspectSession", async (accountSeed: unknown) => {
       lab.form.accountSeed = String(accountSeed);
-      await ctx.services.notify.guard(
-        () => lab.inspectSessionKey(),
-        "sessionInspected",
-        "sessionInspectFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.inspectSessionKey(), {
+        successKey: "sessionInspected",
+        errorKey: "sessionInspectFailed",
+      });
     });
 
     ctx.framework.actions.register("revokeSession", async (accountSeed: unknown) => {
       lab.form.accountSeed = String(accountSeed);
-      await ctx.services.notify.guard(
-        () => lab.revokeSessionKey(),
-        "sessionRevoked",
-        "sessionRevokeFailed",
-      );
+      await ctx.framework.notify.guard(() => lab.revokeSessionKey(), {
+        successKey: "sessionRevoked",
+        errorKey: "sessionRevokeFailed",
+      });
     });
 
     return {

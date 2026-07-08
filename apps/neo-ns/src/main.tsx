@@ -21,7 +21,6 @@ defineMiniApp({
   setup(ctx) {
     const ns = useNeoNS({
       app: ctx.framework,
-      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -51,7 +50,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("registerDomain", async () => {
-      await ctx.services.notify.guard(() => ns.registerDomain(), "registered");
+      await ctx.framework.notify.guard(() => ns.registerDomain(), { successKey: "registered" });
     });
 
     ctx.framework.actions.register("fetchRenewPrice", async (domain: unknown) => {
@@ -65,23 +64,23 @@ defineMiniApp({
 
     ctx.framework.actions.register("handleRenew", async (domain: unknown) => {
       if (!domain) return;
-      await ctx.services.notify.guard(() => ns.renewDomain(domain as Domain), "renewed");
+      await ctx.framework.notify.guard(() => ns.renewDomain(domain as Domain), { successKey: "renewed" });
     });
 
     ctx.framework.actions.register("handleSetTarget", async (targetAddress: unknown) => {
       if (!targetAddress || !ns.managingDomain.get()) return;
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         await ns.setRecord(ns.managingDomain.get()!, String(targetAddress));
         ns.cancelManage();
-      }, "targetSet");
+      }, { successKey: "targetSet" });
     });
 
     ctx.framework.actions.register("handleTransfer", async (transferAddress: unknown) => {
       if (!transferAddress || !ns.managingDomain.get()) return;
-      await ctx.services.notify.guard(async () => {
+      await ctx.framework.notify.guard(async () => {
         await ns.transferDomain(ns.managingDomain.get()!, String(transferAddress));
         ns.cancelManage();
-      }, "transferred");
+      }, { successKey: "transferred" });
     });
 
     ctx.framework.actions.register("showManage", async (domain?: unknown) => {

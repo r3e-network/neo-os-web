@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMiniAppFramework } from "../react";
+import { createObservable } from "../react/context";
+import { EXTERNAL_INTEGRATIONS, getNetwork } from "../constants/rpc";
 import {
   STALE_THRESHOLD_SECONDS,
   classifyFeedError,
@@ -7,6 +10,31 @@ import {
   usePriceConsole,
 } from "../../oracle-price-console/src/hooks/usePriceConsole";
 import { messages } from "../../oracle-price-console/src/locale/messages";
+
+/**
+ * Build the hook the way main.tsx does: on a framework whose
+ * app.oracle.dataFeed lane is configured with the network-specific deployed
+ * MorpheusDataFeed contract + RPC endpoint. Reads go through the framework
+ * reader and hit the (stubbed) global fetch.
+ */
+function buildPriceConsole() {
+  const network = getNetwork();
+  const integration = EXTERNAL_INTEGRATIONS[network];
+  const framework = createMiniAppFramework(
+    { services: { chain: { address: createObservable<string | null>(null) } }, t } as never,
+    {
+      appId: "miniapp-oracle-price-console",
+      oracle: {
+        dataFeed: {
+          rpcUrl: integration.rpcUrl,
+          contractHash: integration.contracts.morpheusDatafeed,
+          network,
+        },
+      },
+    },
+  );
+  return usePriceConsole({ app: framework, t });
+}
 
 type LocalizedMessage = { en: string; zh: string };
 const appMessages = messages as Record<string, LocalizedMessage>;
@@ -88,7 +116,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     fetchMock.mockResolvedValue(
       rpcResponse({ state: "HALT", exception: null, stack: [struct(nowSec - 30, "2185000")] }),
     );
-    const price = usePriceConsole({ t });
+    const price = buildPriceConsole();
     const result = await price.fetchPrice();
     expect(result.success).toBe(true);
     expect(price.freshness.get()).toBe("fresh");
@@ -103,7 +131,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     fetchMock.mockResolvedValue(
       rpcResponse({ state: "HALT", exception: null, stack: [struct(oldTs, "2185000")] }),
     );
-    const price = usePriceConsole({ t });
+    const price = buildPriceConsole();
     await price.fetchPrice();
     expect(price.freshness.get()).toBe("stale");
     const label = price.freshnessLabel.get();
@@ -120,7 +148,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     fetchMock.mockResolvedValue(
       rpcResponse({ state: "HALT", exception: null, stack: [struct(nowSec - 30, "0")] }),
     );
-    const price = usePriceConsole({ t });
+    const price = buildPriceConsole();
     const result = await price.fetchPrice();
     expect(result.success).toBe(true);
     expect(price.freshness.get()).toBe("idle");
@@ -133,7 +161,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     fetchMock.mockResolvedValue(
       rpcResponse({ state: "FAULT", exception: "no data for pair", stack: [] }),
     );
-    const price = usePriceConsole({ t });
+    const price = buildPriceConsole();
     const result = await price.fetchPrice();
     expect(result.success).toBe(false);
     expect(price.errorMsg.get()).toBe(t("errorFeedFault"));

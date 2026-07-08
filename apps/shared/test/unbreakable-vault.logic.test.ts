@@ -1,18 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
-import type { ChainService, ContractArg, TxResult } from "../services";
+import { createMiniAppFramework } from "../react";
+import type { ContractArg, TxResult } from "../services";
 import { useVaultBreaker } from "../../unbreakable-vault/src/composables/useVaultBreaker";
 import { useVaultCreator } from "../../unbreakable-vault/src/composables/useVaultCreator";
 import { addressToScriptHash } from "../utils/neo";
 
 /**
- * Drives the unbreakable-vault composables against a fake ChainService that
- * mirrors the deployed MiniAppUnbreakableVault read model. Focuses on the
+ * Drives the unbreakable-vault composables against a fake chain wrapped in the
+ * MiniApp framework SDK (mirroring how main.tsx hands ctx.framework to them);
+ * the framework arg builders and raw passthroughs are behavior-preserving, so
+ * every recorded chain call matches the pre-migration shapes. Focuses on the
  * behaviour the UX fixes change:
  *   - attemptBreak must NOT report a wrong-secret failure when the AttemptMade
  *     event wait times out (event=null) — it re-checks the winner and otherwise
- *     surfaces a "confirming" state.
+ *     surfaces a "confirming" state via its return value.
  *   - increaseBounty deposits then calls increaseBounty(vaultId, amount).
  *   - loadMyVaults scans deeper than the 12-newest public catalog.
  */
@@ -74,7 +77,6 @@ function setup(
   const store = new Map<string, ChainVault>();
   for (const v of vaults) store.set(v.id, v);
   const invokes: InvokeCall[] = [];
-  const events: Array<{ event: string; payload?: unknown }> = [];
 
   const address = createObservable<string | null>(
     opts && "wallet" in opts ? opts.wallet ?? null : ME,
@@ -124,24 +126,22 @@ function setup(
     readArray: vi.fn(),
     invoke,
     invokeWithPayment,
-  } as unknown as ChainService;
-
-  const eventBus = {
-    emit: (event: string, payload?: unknown) => {
-      events.push({ event, payload });
-    },
   };
 
   const t = (key: string) => key;
-  const breaker = useVaultBreaker({ chainService: chain, eventBus, t });
-  const creator = useVaultCreator({ chainService: chain, eventBus, t });
-  return { breaker, creator, chain, invokes, events, store, address };
+  const app = createMiniAppFramework(
+    { services: { chain }, t } as never,
+    { appId: "miniapp-unbreakablevault" },
+  );
+  const breaker = useVaultBreaker({ app, t });
+  const creator = useVaultCreator({ app, t });
+  return { breaker, creator, chain, invokes, store, address };
 }
 
 describe("useVaultBreaker.attemptBreak (event-timeout handling)", () => {
   it("does NOT report a failed attempt when AttemptMade times out and the wallet did not win", async () => {
     // event=null mirrors an indexer-lag timeout on a HALTed tx.
-    const { breaker, events } = setup([vault({ id: "1", status: "active" })], {
+    const { breaker } = setup([vault({ id: "1", status: "active" })], {
       attemptEvent: null,
     });
     await breaker.selectVault("1");
@@ -149,15 +149,14 @@ describe("useVaultBreaker.attemptBreak (event-timeout handling)", () => {
 
     const result = await breaker.attemptBreak();
 
+    // It must NOT report the wrong-secret failure shape ({success:false} with
+    // no confirming flag) — that would lie to a user whose tx may have HALTed
+    // (and even won). The host action surfaces this "confirming" outcome.
     expect(result).toEqual({ success: false, confirming: true });
-    // It must NOT emit the wrong-secret "attempt_failed" — that would lie to a
-    // user whose tx may have HALTed (and even won).
-    expect(events.some((e) => e.event === "vault:attempt_failed")).toBe(false);
-    expect(events.some((e) => e.event === "vault:attempt_confirming")).toBe(true);
   });
 
   it("declares a win when the re-read shows this wallet as the winner after a timeout", async () => {
-    const { breaker, store, events } = setup([vault({ id: "1", status: "active" })], {
+    const { breaker, store } = setup([vault({ id: "1", status: "active" })], {
       attemptEvent: null,
     });
     await breaker.selectVault("1");
@@ -168,11 +167,10 @@ describe("useVaultBreaker.attemptBreak (event-timeout handling)", () => {
     const result = await breaker.attemptBreak();
 
     expect(result).toEqual({ success: true });
-    expect(events.some((e) => e.event === "vault:broken")).toBe(true);
   });
 
   it("reports the explicit failure when AttemptMade fires with success=false", async () => {
-    const { breaker, events } = setup([vault({ id: "1", status: "active" })], {
+    const { breaker } = setup([vault({ id: "1", status: "active" })], {
       attemptEvent: { state: [{ value: "1" }, { value: ME_HASH }, { value: false }] },
     });
     await breaker.selectVault("1");
@@ -180,8 +178,8 @@ describe("useVaultBreaker.attemptBreak (event-timeout handling)", () => {
 
     const result = await breaker.attemptBreak();
 
+    // The definitive wrong-secret failure has NO confirming flag.
     expect(result).toEqual({ success: false });
-    expect(events.some((e) => e.event === "vault:attempt_failed")).toBe(true);
   });
 });
 
