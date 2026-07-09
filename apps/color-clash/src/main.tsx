@@ -15,6 +15,7 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf } from "./logic/game-rules";
+import { createGuestEngine } from "./logic/guest-engine";
 import type { GameSessionStatus, LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
@@ -102,8 +103,28 @@ defineMiniApp({
 
     let session: RewardGameSession | null = null;
 
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local Simon engine — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      obs,
+      sequence,
+      playerSequence,
+      seqAchieved,
+      lastPayoutFixed8,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Switching to guest at the launcher resets to a clean local lobby and loads
+    // the off-chain guest board (replacing the on-chain read done on mount).
+    app.mode.onChange((mode) => {
+      if (mode === "guest") void guest.enter();
+    });
+
     // ── Data refresh ──────────────────────────────────────────────────────────
     const refreshBalances = async () => {
+      if (app.mode.isGuest()) return;
       try {
         const balances = await rewardGame.balances(app.game.player.scriptHash());
         obs.poolFree.set(balances.poolFreeGas);
@@ -112,6 +133,7 @@ defineMiniApp({
     };
 
     const refreshStats = async () => {
+      if (app.mode.isGuest()) return;
       const { solves, totalWon } = await app.game.stats.load();
       obs.mySolves.set(solves);
       obs.myTotalWon.set(totalWon);
@@ -120,6 +142,7 @@ defineMiniApp({
     // Color-clash leaderboard has `player` + `solved` field names (not address/solves).
     // Keep a custom implementation that handles the unique field layout.
     const loadLeaderboard = async () => {
+      if (app.mode.isGuest()) return;
       const playerHash = app.game.player.scriptHash();
       try {
         const events = await app.chain.events("Solved", { limit: LEADERBOARD_EVENT_LIMIT });
@@ -205,6 +228,7 @@ defineMiniApp({
 
     // ── Actions ───────────────────────────────────────────────────────────────
     app.actions.register("startGame", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) { guest.startGame(Number(args[0] ?? 0)); return; }
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const difficulty = Math.max(0, Math.min(2, Number(args[0] ?? 0) || 0));
       obs.isStarting.set(true);
@@ -231,12 +255,14 @@ defineMiniApp({
     });
 
     app.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = obs.activeGameId.get();
       if (!gameId || gameId === "0" || obs.isDealing.get()) return;
       await openSession(gameId, obs.gameDifficulty.get());
     });
 
     app.actions.register("recordPress", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) { guest.recordPress(Number(args[0])); return; }
       const color  = Number(args[0]);
       const gameId = obs.activeGameId.get();
       if (!Number.isInteger(color) || color < 0 || color > 3) return;
@@ -268,6 +294,7 @@ defineMiniApp({
     });
 
     app.actions.register("submitSolution", async () => {
+      if (app.mode.isGuest()) { await guest.submitSolution(); return; }
       const gameId = obs.activeGameId.get();
       if (!gameId || gameId === "0" || obs.isSubmitting.get() || obs.gameStatus.get() !== "dealt") return;
       obs.isSubmitting.set(true);
@@ -308,6 +335,7 @@ defineMiniApp({
     });
 
     app.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = obs.activeGameId.get();
       if (!gameId || gameId === "0") return;
       try {
@@ -325,6 +353,7 @@ defineMiniApp({
 
     const withdrawOp = app.operations.create("withdrawWinnings");
     app.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       if (obs.credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       await withdrawOp.run(async () => {
         await rewardGame.withdrawCredit(app.amount.gasToFixed8(obs.credit.get()));
@@ -333,6 +362,7 @@ defineMiniApp({
     });
 
     app.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
