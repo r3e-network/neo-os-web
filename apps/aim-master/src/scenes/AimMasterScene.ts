@@ -595,12 +595,15 @@ export class AimMasterScene extends BaseScene {
     const chipR = 8;
     const chip = this.add.circle(-cardW / 2 + chipR + 5, -cardH / 2 + chipR + 5, chipR, C.accent)
       .setStrokeStyle(1.5, C.white);
-    const check = this.add.text(chip.x, chip.y - 0.5, "✓", {
-      fontSize: "11px",
-      fontFamily: FONT_FAMILY,
-      fontStyle: "bold",
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    // Drawn checkmark (vector, not a glyph) so the selected lane reads as real
+    // game art rather than an emoji/text placeholder.
+    const check = this.add.graphics();
+    check.lineStyle(1.8, C.white, 1);
+    check.beginPath();
+    check.moveTo(chip.x - 3.4, chip.y + 0.2);
+    check.lineTo(chip.x - 1.1, chip.y + 2.7);
+    check.lineTo(chip.x + 3.6, chip.y - 2.9);
+    check.strokePath();
     const underline = this.add.rectangle(0, nameY + (compactCard ? 11 : 12), 34, 3, C.accent)
       .setOrigin(0.5);
     sel.add([underline, chip, check]);

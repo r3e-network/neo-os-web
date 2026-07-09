@@ -150,7 +150,7 @@ describe("root Phaser framework", () => {
           "./logo.webp",
           "officialGasTokenPhaserUrl",
         ],
-        usage: ["BURN_ASSETS", "gasTokens", "brazierImage", "dispatch(\"burn\""],
+        usage: ["BURN_ASSETS", "gasTokens", "brazierBody", "dispatch(\"burn\""],
       },
       {
         app: "gas-lucky-pool",
