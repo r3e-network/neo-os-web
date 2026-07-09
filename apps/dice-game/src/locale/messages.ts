@@ -203,6 +203,42 @@ const appMessages = {
     en: "The chain reveals your roll on the next block — your stake is safe and fully refundable.",
     zh: "链会在下一个区块揭晓你的掷骰——你的筹码是安全的，可完整退回。",
   },
+
+  // ── Guest (free / local) mode copy ─────────────────────────────────────────
+  // Guest is a purely local practice table — no wallet, no chain, no GAS at
+  // stake. These strings replace the GAS-/house-centric copy so nothing implies
+  // real value moves. GameFi copy above is untouched.
+  guestUnit: { en: "chips", zh: "筹码" },
+  guestBadge: { en: "Local play", zh: "本地游玩" },
+  guestSubtitle: {
+    en: "Practice table — pick a face, stack a chip, and throw. Rolls are drawn locally on your device; nothing is staked.",
+    zh: "练习桌——选择点数、放上筹码、掷骰。掷骰在你的本地设备上生成，不下注任何资产。",
+  },
+  guestFairnessShort: {
+    en: "Local practice rolls — no wallet, no stake.",
+    zh: "本地练习掷骰——无需钱包，无需下注。",
+  },
+  guestRulesShort: {
+    en: "Pick a die face, stack a practice chip, then roll — just for fun.",
+    zh: "选择骰子点数，放上练习筹码，然后掷骰——纯属娱乐。",
+  },
+  guestNetworkValue: { en: "This device", zh: "本设备" },
+  guestUnlimitedValue: { en: "Unlimited", zh: "不限" },
+  guestRangeValue: { en: "Any chip", zh: "任意筹码" },
+  guestFeeValue: { en: "None", zh: "无" },
+  guestHowItWorksBody: {
+    en: "Pick a face from 1 to 6, choose a practice chip, and throw. The die is rolled locally on your device — a matching face is a win.",
+    zh: "选择 1-6 的点数，挑一枚练习筹码，然后掷骰。骰子在你的本地设备上掷出——点数一致即获胜。",
+  },
+  guestSafetyBody: {
+    en: "Guest mode is fully local: no wallet, no transaction, and no GAS is ever staked. Every roll is generated on your device with the browser's secure random number generator.",
+    zh: "游客模式完全本地运行：无需钱包、无需交易，也绝不下注任何 GAS。每次掷骰都由浏览器的安全随机数在你的设备上生成。",
+  },
+  guestPayoutTitle: { en: "Practice payout", zh: "练习赔付" },
+  guestRiskBody: {
+    en: "A matching face pays 5.70x in practice chips. It's just for fun — no real value is at stake.",
+    zh: "命中点数按 5.70 倍赔付练习筹码。纯属娱乐——不涉及任何真实价值。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

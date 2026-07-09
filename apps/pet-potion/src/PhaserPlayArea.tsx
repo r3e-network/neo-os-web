@@ -86,6 +86,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const mySolves = val<number>("mySolves", 0) ?? 0;
   const myTotalWon = val<number>("myTotalWon", 0) ?? 0;
   const myHistory = val<SolveRow[]>("myHistory", []) ?? [];
+  const appMode = str("appMode", "gamefi");
+  const isGuest = appMode === "guest";
 
   const rule = ruleFor(gameDifficulty);
   const isPlaying = gameStatus === "dealt";
@@ -122,6 +124,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     isDealing,
     isSubmitting,
     lastStatus,
+    // Play mode (guest | gamefi) — lets the scene drop the GAS reward tier and
+    // entry/reward subtitle in guest while keeping the GAMEFI lobby exactly as-is.
+    appMode,
+    // Localized in-canvas tag (the scene has no translator of its own).
+    guestLaneTag: t("guestRunValue"),
   };
 
   const stageTitle = isStarting || isDealing
@@ -142,11 +149,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         { label: t("actionTrailTitle"), value: `${actionsUsed}/${MAX_MOVES}` },
         { label: t("scoreTime"), value: isPlaying ? formatClock(remainingMs) : formatClock(rule.limitMs) },
       ]
-    : [
-        { label: t("scoreReward"), value: `${gasDisplay(rule.reward)} GAS`, accent: true },
-        { label: t("poolLabel"), value: gasLabel(poolFree) },
-        { label: t("creditLabel"), value: gasLabel(credit) },
-      ];
+    : isGuest
+      ? [
+          // Guest has no stake — local framing instead of "REWARD AT STAKE" / pool / credit.
+          { label: t("guestRunLabel"), value: t("guestRunValue"), accent: true },
+          { label: t("scoreHappiness"), value: `0/${rule.targetHappiness}` },
+          { label: t("scoreTime"), value: formatClock(rule.limitMs) },
+        ]
+      : [
+          { label: t("scoreReward"), value: `${gasDisplay(rule.reward)} GAS`, accent: true },
+          { label: t("poolLabel"), value: gasLabel(poolFree) },
+          { label: t("creditLabel"), value: gasLabel(credit) },
+        ];
 
   const secondary = [
     ...(isCommitted && !isDealing && activeGameId !== "0"
@@ -219,7 +233,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="pp-drawer__inner">
                 <div className="pp-drawer__head">
                   <img src="./logo.webp" alt="" width={42} height={42} draggable={false} />
-                  <p>{t("leaderboardIntro")}</p>
+                  <p>{isGuest ? t("guestModeLine") : t("leaderboardIntro")}</p>
                 </div>
 
                 <div className="pp-drawer__summary" aria-label={t("drawerSummaryLabel")}>
@@ -228,24 +242,28 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <strong>{myRank > 0 ? `#${myRank}` : "--"}</strong>
                   </div>
                   <div>
-                    <span>{t("scoreWon")}</span>
-                    <strong>{gasLabel(myTotalWon)}</strong>
+                    <span>{isGuest ? t("guestBestLabel") : t("scoreWon")}</span>
+                    <strong>{isGuest ? `${Math.round(myTotalWon)}` : gasLabel(myTotalWon)}</strong>
                   </div>
                   <div>
                     <span>{t("historyTitle")}</span>
                     <strong>{t("solvesCount", { count: mySolves })}</strong>
                   </div>
-                  <div>
-                    <span>{t("poolLabel")}</span>
-                    <strong>{gasLabel(poolFree)}</strong>
-                  </div>
-                  <div>
-                    <span>{t("creditLabel")}</span>
-                    <strong>{gasLabel(credit)}</strong>
-                  </div>
+                  {!isGuest && (
+                    <div>
+                      <span>{t("poolLabel")}</span>
+                      <strong>{gasLabel(poolFree)}</strong>
+                    </div>
+                  )}
+                  {!isGuest && (
+                    <div>
+                      <span>{t("creditLabel")}</span>
+                      <strong>{gasLabel(credit)}</strong>
+                    </div>
+                  )}
                 </div>
 
-                {credit > 0 && (
+                {!isGuest && credit > 0 && (
                   <section className="pp-drawer__credit" aria-label={t("withdrawTitle")}>
                     <span>
                       <small>{t("withdrawHint")}</small>
@@ -287,10 +305,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   )}
                   {(isSolved || isExpired) && (
                     <p className="pp-drawer__notice" data-tone={isSolved ? "success" : undefined}>
-                      {t("lastResultLine", {
-                        payout: fixed8Label(lastPayoutFixed8),
-                        time: formatClock(lastElapsedMs),
-                      })}
+                      {isGuest
+                        ? t("guestResultLine", {
+                            happiness: Math.round(currentHappiness),
+                            time: formatClock(lastElapsedMs),
+                          })
+                        : t("lastResultLine", {
+                            payout: fixed8Label(lastPayoutFixed8),
+                            time: formatClock(lastElapsedMs),
+                          })}
                     </p>
                   )}
                   {actionHistory.length > 0 && (
@@ -313,7 +336,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <span className="pp-ranks__rank">#{entry.rank}</span>
                         <span className="pp-ranks__addr">{shortHash(entry.address)}</span>
                         <span className="pp-ranks__solves">{t("solvesCount", { count: entry.solves })}</span>
-                        <span className="pp-ranks__won">{gasLabel(entry.totalWon)}</span>
+                        <span className="pp-ranks__won">{isGuest ? `${Math.round(entry.totalWon)}` : gasLabel(entry.totalWon)}</span>
                         {entry.isUser && <span className="pp-ranks__me">{t("youTag")}</span>}
                       </li>
                     ))}
@@ -354,17 +377,23 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <section className="pp-drawer__section pp-drawer__fairness">
                   <div className="pp-drawer__section-head">
                     <ShieldCheck size={16} aria-hidden="true" />
-                    <h4>{t("fairnessTitle")}</h4>
+                    <h4>{isGuest ? t("rulesTitle") : t("fairnessTitle")}</h4>
                   </div>
-                  <p>{t("rulesCopy")}</p>
-                  <p>{t("fairnessCopy")}</p>
-                  {commitment && (
-                    <p className="pp-drawer__seed">
-                      {t("commitmentLine", {
-                        gameId: activeGameId,
-                        commitment: shortHash(commitment, 12, 8),
-                      })}
-                    </p>
+                  {isGuest ? (
+                    <p>{t("guestRulesCopy")}</p>
+                  ) : (
+                    <>
+                      <p>{t("rulesCopy")}</p>
+                      <p>{t("fairnessCopy")}</p>
+                      {commitment && (
+                        <p className="pp-drawer__seed">
+                          {t("commitmentLine", {
+                            gameId: activeGameId,
+                            commitment: shortHash(commitment, 12, 8),
+                          })}
+                        </p>
+                      )}
+                    </>
                   )}
                 </section>
               </div>

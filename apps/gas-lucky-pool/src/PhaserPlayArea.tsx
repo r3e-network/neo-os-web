@@ -35,10 +35,20 @@ function statusLabel(t: PlayAreaProps["t"], status: string): string {
 
 export default function PhaserPlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
+  // Guest (free / local) play — surfaced from app.mode via main.tsx so the copy
+  // drops all GAS-at-stake / pool / reward framing in favour of local points.
+  const isGuest = str("appMode", "gamefi") === "guest";
+  const guestUnit = t("guestUnit");
+  const guestBest = val<number>("guestBest", 0) ?? 0;
+  const guestLast = val<number>("guestLast", 0) ?? 0;
+  const guestDraws = val<number>("guestDraws", 0) ?? 0;
+  const guestBoard = val<Array<{ user: string; score: number }>>("guestBoard", []) ?? [];
   const currentClaimKey = str("currentClaimKey", "");
   const currentPoolId = str("currentPoolId", "");
-  const hasClaimContext = Boolean(currentClaimKey || currentPoolId);
-  const currentRange = str("currentRange", "") || t("rewardRangeDefault");
+  const hasClaimContext = !isGuest && Boolean(currentClaimKey || currentPoolId);
+  const currentRange = isGuest
+    ? t("guestRangeDefault")
+    : str("currentRange", "") || t("rewardRangeDefault");
   const currentPool = val<GasLuckyPool | null>("currentPool", null) ?? null;
   const recentPools = val<GasLuckyPool[]>("recentPools", []) ?? [];
   const recentClaims = val<GasLuckyClaim[]>("recentClaims", []) ?? [];
@@ -87,33 +97,37 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   // locale accessor, so the shell hands the scene a translated bundle through the
   // bridge (new key, existing contract keys untouched) and the scene reads it via
   // this.val("sceneText"). Templates keep {placeholders} the scene interpolates.
+  // Mode-aware scene string: guest uses local (points) framing, gamefi keeps the
+  // exact vault copy. The frozen scene reads the same bundle keys either way.
+  const sx = (guestKey: string, gamefiKey: string): string =>
+    isGuest ? t(guestKey) : t(gamefiKey);
   const sceneText: Record<string, string> = {
-    tabFund: t("vaultTabFund"),
-    tabClaim: t("vaultTabClaim"),
-    choosePack: t("vaultChoosePack"),
+    tabFund: sx("guestTabDraw", "vaultTabFund"),
+    tabClaim: sx("guestTabQuick", "vaultTabClaim"),
+    choosePack: sx("guestChooseTier", "vaultChoosePack"),
     packStarter: t("vaultPackStarter"),
     packParty: t("vaultPackParty"),
     packJackpot: t("vaultPackJackpot"),
-    gasUnit: t("gasUnit"),
-    slotsTemplate: t("rewardSlotsCount"),
-    summaryTemplate: t("vaultPackSummary"),
-    actionPack: t("vaultActionPack"),
+    gasUnit: sx("guestUnit", "gasUnit"),
+    slotsTemplate: sx("guestSlots", "rewardSlotsCount"),
+    summaryTemplate: sx("guestPackSummary", "vaultPackSummary"),
+    actionPack: sx("guestActionDraw", "vaultActionPack"),
     actionWorking: t("vaultActionWorking"),
-    unwrapTitle: t("vaultUnwrapTitle"),
+    unwrapTitle: sx("guestUnwrapTitle", "vaultUnwrapTitle"),
     actionCheck: t("vaultActionCheck"),
     actionWait: t("vaultActionWait"),
-    actionClaim: t("vaultActionClaim"),
+    actionClaim: sx("guestActionDraw", "vaultActionClaim"),
     actionClaiming: t("vaultActionClaiming"),
     actionNoLink: t("vaultActionNoLink"),
-    tagline: t("vaultTagline"),
-    statusIdle: t("vaultStatusIdle"),
+    tagline: sx("guestTagline", "vaultTagline"),
+    statusIdle: sx("guestStatusIdle", "vaultStatusIdle"),
     readyToUnwrap: t("vaultReadyToUnwrap"),
     openClaimLink: t("vaultOpenClaimLink"),
     rangePending: t("vaultRangePending"),
     poolNumberTemplate: t("vaultPoolNumber"),
     luckTemplate: t("vaultLuckSuffix"),
     latestTxTemplate: t("vaultLatestTx"),
-    rangeDefault: t("rewardRangeDefault"),
+    rangeDefault: sx("guestRangeDefault", "rewardRangeDefault"),
     progWallet: t("claimProgressWallet"),
     progSubmitted: t("claimProgressSubmitted"),
     progSubmitting: t("claimProgressSubmitting"),
@@ -123,6 +137,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   };
 
   const bridgeState = {
+    appMode: isGuest ? "guest" : "gamefi",
     currentClaimKey,
     currentPoolId,
     currentRange,
@@ -140,7 +155,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   };
 
   const primaryAction =
-    lastTxid && lastSuccessType
+    !isGuest && lastTxid && lastSuccessType
       ? {
           label: t("viewOnExplorer"),
           onClick: () => window.open(explorerTxUrl(lastTxid, launchContext.network), "_blank"),
@@ -149,7 +164,9 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         }
       : undefined;
 
-  const secondaryActions = [
+  // Guest play has no on-chain pool / credit / claim controls — hide them all so
+  // the free surface never presents GAS actions.
+  const secondaryActions = isGuest ? [] : [
     ...(currentPoolId
       ? [
           {
@@ -212,18 +229,25 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
       : []),
   ];
 
-  const score = hasClaimContext
+  const pointsLabel = (value: number): string => `${value.toFixed(2)} ${guestUnit}`;
+  const score = isGuest
     ? [
-        { label: t("rewardRange"), value: currentRange, accent: true },
-        { label: t("claimProgressTitle"), value: claimProgress ? t(`claimProgress${claimProgress[0]?.toUpperCase() ?? ""}${claimProgress.slice(1)}`) : "—" },
-        { label: t("claimAmountLabel"), value: lastClaimAmount > 0n ? gasLabel(lastClaimAmount) : "—" },
+        { label: t("guestBestLabel"), value: guestBest > 0 ? pointsLabel(guestBest) : "—", accent: guestBest > 0 },
+        { label: t("guestLastLabel"), value: guestLast > 0 ? pointsLabel(guestLast) : "—" },
+        { label: t("guestDrawsLabel"), value: String(guestDraws) },
       ]
-    : [
-        { label: t("activePools"), value: String(activePoolCount), accent: activePoolCount > 0 },
-        { label: t("remainingGas"), value: `${totalRemainingGas.toFixed(2)} GAS` },
-        { label: t("claims"), value: String(claimCount) },
-        { label: t("gasCredit"), value: gasLabel(gasCredit) },
-      ];
+    : hasClaimContext
+      ? [
+          { label: t("rewardRange"), value: currentRange, accent: true },
+          { label: t("claimProgressTitle"), value: claimProgress ? t(`claimProgress${claimProgress[0]?.toUpperCase() ?? ""}${claimProgress.slice(1)}`) : "—" },
+          { label: t("claimAmountLabel"), value: lastClaimAmount > 0n ? gasLabel(lastClaimAmount) : "—" },
+        ]
+      : [
+          { label: t("activePools"), value: String(activePoolCount), accent: activePoolCount > 0 },
+          { label: t("remainingGas"), value: `${totalRemainingGas.toFixed(2)} GAS` },
+          { label: t("claims"), value: String(claimCount) },
+          { label: t("gasCredit"), value: gasLabel(gasCredit) },
+        ];
 
   const resultText = claimSucceeded
     ? t("claimCongratsBody", {
@@ -246,10 +270,14 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         category="game"
         className={hasClaimContext ? "gas-pool-playstage--claim" : "gas-pool-playstage--creator"}
         stage={{
-          eyebrow:  t("appEyebrow"),
-          title:    hasClaimContext ? t("claimPoolTitle") : t("appTitle"),
-          subtitle: hasClaimContext ? t("claimPoolDescription") : t("appSubtitle"),
-          badges: (
+          eyebrow:  isGuest ? t("guestEyebrow") : t("appEyebrow"),
+          title:    isGuest ? t("guestTitle") : hasClaimContext ? t("claimPoolTitle") : t("appTitle"),
+          subtitle: isGuest ? t("guestSubtitle") : hasClaimContext ? t("claimPoolDescription") : t("appSubtitle"),
+          badges: isGuest ? (
+            <span className="mx2-badge" data-tone="accent">
+              <span className="mx2-badge__dot" /> {t("guestModeBadge")}
+            </span>
+          ) : (
             <>
               <span className="mx2-badge" data-tone="accent">
                 <span className="mx2-badge__dot" /> {currentRange}
@@ -276,10 +304,55 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
           secondary: secondaryActions.length > 0 ? secondaryActions : undefined,
           secondaryToggleLabel: t("moreActions"),
         }}
-        drawerToggleLabel={t("drawerTitle")}
+        drawerToggleLabel={isGuest ? t("guestDrawerTitle") : t("drawerTitle")}
         drawer={{
-          title: t("drawerTitle"),
-          children: (
+          title: isGuest ? t("guestDrawerTitle") : t("drawerTitle"),
+          children: isGuest ? (
+            <div className="gas-pool-drawer">
+              <div className="gas-pool-drawer__summary">
+                <span>
+                  <small>{t("guestBestLabel")}</small>
+                  <strong>{guestBest > 0 ? pointsLabel(guestBest) : "—"}</strong>
+                </span>
+                <span>
+                  <small>{t("guestLastLabel")}</small>
+                  <strong>{guestLast > 0 ? pointsLabel(guestLast) : "—"}</strong>
+                </span>
+                <span>
+                  <small>{t("guestDrawsLabel")}</small>
+                  <strong>{guestDraws}</strong>
+                </span>
+              </div>
+
+              <section className="gas-pool-drawer__section">
+                <div className="gas-pool-drawer__section-head">
+                  <h4>{t("guestBoardTitle")}</h4>
+                </div>
+                {guestBoard.length > 0 ? (
+                  <ul className="gas-pool-list gas-pool-list--claims">
+                    {guestBoard.slice(0, 8).map((row, index) => (
+                      <li key={`${row.user}-${index}`}>
+                        <span>#{index + 1}</span>
+                        <strong>{pointsLabel(row.score)}</strong>
+                        <small>{shortValue(row.user)}</small>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{t("guestBoardEmpty")}</p>
+                )}
+              </section>
+
+              <section className="gas-pool-drawer__guide">
+                <h4>{t("guestHowTitle")}</h4>
+                <p>{t("guestHowBody")}</p>
+                <p className="gas-pool-drawer__seed">
+                  <ShieldCheck size={14} aria-hidden="true" />
+                  <span>{t("guestSeedNote")}</span>
+                </p>
+              </section>
+            </div>
+          ) : (
             <div className="gas-pool-drawer">
               <div className="gas-pool-drawer__summary">
                 <span>

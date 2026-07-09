@@ -266,6 +266,73 @@ const appMessages = {
   statusConnect: { en: "Connect wallet and sync the arena.", zh: "连接钱包并同步竞技场。" },
   noticeBuying: { en: "Wallet confirmation in progress...", zh: "正在等待钱包确认..." },
   noticeSettling: { en: "Settling round...", zh: "正在结算本轮..." },
+
+  // ── Guest (free / local) mode copy ─────────────────────────────────────────
+  // Guest is a purely local doomsday-clock drill: no token, no pot, no GAS at
+  // stake. Every string below drops the reward framing and speaks in local /
+  // practice / survival-streak terms.
+  guestBadge: { en: "Local", zh: "本地" },
+  guestStageTitle: { en: "Local doomsday drill", zh: "本地末日演练" },
+  guestStageSubtitle: {
+    en: "Load keys to outlast your own clock. Practice run — no GAS, scores saved off-chain.",
+    zh: "装填钥匙撑过自己的倒计时。练习局——无 GAS，成绩离线保存。",
+  },
+  guestStreakLabel: { en: "Survival streak", zh: "生还连击" },
+  guestStreakValue: { en: "{count} keys", zh: "{count} 把钥匙" },
+  guestClaimReady: { en: "Claim ready", zh: "可领取" },
+  guestPotLabel: { en: "Survival streak", zh: "生还连击" },
+  guestClockHint: { en: "Load keys to stay last", zh: "装填钥匙保持最后一位" },
+  guestYouLeader: { en: "You are last standing", zh: "你是最后的生还者" },
+  guestNoBuyerYet: { en: "Load a key to take the lead", zh: "装填钥匙取得领先" },
+  guestStatusBuy: {
+    en: "Load keys to keep your clock alive.",
+    zh: "装填钥匙让倒计时保持存活。",
+  },
+  guestStatusWaiting: {
+    en: "Load a key to start a fresh local clock.",
+    zh: "装填钥匙开启新的本地倒计时。",
+  },
+  guestStatusStart: {
+    en: "Load a key to start the local clock.",
+    zh: "装填钥匙启动本地倒计时。",
+  },
+  guestStatusClaim: {
+    en: "Claim your run to bank the streak.",
+    zh: "领取本局以记录你的连击。",
+  },
+  guestReadyToClaim: { en: "Your run is ready to claim.", zh: "本局已可领取。" },
+  guestClaimWord: { en: "Claim", zh: "领取" },
+  guestClaiming: { en: "Claiming...", zh: "领取中..." },
+  guestPressToStay: { en: "Load keys to stay alive", zh: "装填钥匙保持存活" },
+  guestBuyVerb: { en: "Load", zh: "装填" },
+  guestLoading: { en: "Loading...", zh: "装填中..." },
+  guestNoticeBuying: { en: "Loading keys...", zh: "正在装填钥匙..." },
+  guestNoticeClaiming: { en: "Claiming run...", zh: "正在领取本局..." },
+  guestNoCostLine: { en: "Local · no cost", zh: "本地 · 无消耗" },
+  guestNextCost: { en: "Local run · no GAS", zh: "本地对局 · 无 GAS" },
+  guestNonRefundable: {
+    en: "Local practice — no GAS moves. Keep loading keys to grow your streak.",
+    zh: "本地练习——不涉及 GAS。持续装填钥匙以提升连击。",
+  },
+  guestShareHint: {
+    en: "Single-player drill: you are always the last one standing.",
+    zh: "单人演练：你始终是最后的生还者。",
+  },
+  guestRuleDeposit: { en: "Load keys", zh: "装填钥匙" },
+  guestRuleDepositDesc: {
+    en: "Each key you load extends your local survival clock.",
+    zh: "每装填一把钥匙都会延长你的本地生还倒计时。",
+  },
+  guestRuleTimerDesc: {
+    en: "The clock counts down live — keep loading to stay ahead of zero.",
+    zh: "倒计时实时流逝——持续装填以领先于归零。",
+  },
+  guestRuleWinDesc: {
+    en: "When the clock hits zero you are last standing — claim the run to log your streak off-chain.",
+    zh: "倒计时归零时你便是最后生还者——领取本局即可离线记录连击。",
+  },
+  guestBoardTitle: { en: "Local survival board", zh: "本地生还榜" },
+  guestBoardEntry: { en: "Survivor", zh: "生还者" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

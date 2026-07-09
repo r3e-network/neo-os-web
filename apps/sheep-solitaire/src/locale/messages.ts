@@ -206,6 +206,43 @@ const appMessages = {
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
 
+  // ── Guest (free / local) mode copy ─────────────────────────────────────────
+  freePlayLabel: { en: "Free play", zh: "自由练习" },
+  modeMetric: { en: "Mode", zh: "模式" },
+  clearGoalLabel: { en: "Clear {count} tiles", zh: "清除 {count} 张牌" },
+  guestBadge: { en: "Free play", zh: "自由练习" },
+  guestDealtStage: {
+    en: "Pick exposed tiles — match three to clear the board",
+    zh: "选择可见卡片——三张相同即消除",
+  },
+  guestDealing: { en: "Shuffling the board…", zh: "正在洗牌…" },
+  guestClearedTitle: { en: "Board cleared!", zh: "牌面清空！" },
+  guestRunSub: {
+    en: "Nice clear — your score is saved to the free board.",
+    zh: "漂亮！成绩已存入自由榜。",
+  },
+  guestPlayAgainAction: { en: "Play again", zh: "再来一局" },
+  guestResetAction: { en: "Reset run", zh: "重置对局" },
+  guestRunComplete: {
+    en: "Local run — {count} tiles cleared!",
+    zh: "本地对局——清除 {count} 张牌！",
+  },
+  guestUndoUsed: { en: "Tray returned to the pile", zh: "卡槽已洗回牌堆" },
+  guestShuffled: { en: "Board reshuffled", zh: "牌面已重洗" },
+  guestRemoved3: { en: "3 tiles returned to the pile", zh: "3 张牌已移回牌堆" },
+  guestFairnessNote: {
+    en: "Local practice board — no wallet needed. Scores save to the free leaderboard.",
+    zh: "本地练习牌局——无需钱包。成绩存入自由榜。",
+  },
+  guestActiveLine: {
+    en: "Local run in progress — clear the board!",
+    zh: "本地对局进行中——清空牌面！",
+  },
+  guestModeLine: {
+    en: "Guest mode — local play, scores saved off-chain.",
+    zh: "游客模式——本地游玩，成绩离线保存。",
+  },
+
   // ── In-canvas (Phaser scene) strings ──────────────────────────────────────
   boardTagline: {
     en: "Match 3 tiles to clear the board",

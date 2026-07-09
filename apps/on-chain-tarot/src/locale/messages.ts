@@ -281,6 +281,66 @@ const appMessages = {
   },
   noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
   tokenGas: { en: "GAS", zh: "GAS" },
+
+  // ── Guest (free / local) mode copy ─────────────────────────────────────────
+  // Guest is a purely local tarot reading — no fee, no wallet, no chain. These
+  // strings reframe every GAS-at-stake / draw-fee label for local play. The
+  // gamefi copy above is unchanged.
+  guestBadge: { en: "Local reading", zh: "本地读牌" },
+  guestSubtitle: {
+    en: "Ask a question, draw three Neo-styled cards, and reveal the spread — free, on this device.",
+    zh: "提出问题，抽取三张 Neo 风格塔罗牌，并揭示牌阵——本地免费。",
+  },
+  guestDrawnBadge: { en: "Drawn locally", zh: "本地抽取" },
+  guestRevealed: { en: "Reading revealed", zh: "读牌已揭示" },
+  guestDrawHint: {
+    en: "Draw your Past · Present · Future cards — free, on this device.",
+    zh: "抽取你的过去 · 现在 · 未来三张牌——本地免费。",
+  },
+  guestSceneTagline: {
+    en: "Local draw · secure device shuffle",
+    zh: "本地抽牌 · 设备安全洗牌",
+  },
+  guestSceneIdleStatus: {
+    en: "Pick an intent, then draw three cards locally.",
+    zh: "选择意图，然后在本地抽取三张牌。",
+  },
+  guestSceneDrawingStatus: {
+    en: "Shuffling the deck for your spread.",
+    zh: "正在为你的牌阵洗牌。",
+  },
+  guestSceneRevealedStatus: {
+    en: "All three cards from your local spread are revealed.",
+    zh: "本地牌阵的三张牌均已揭示。",
+  },
+  guestReadingIntentCopy: {
+    en: "Choose a quick intent or write one focused question. Everything stays on your device — a free local reading.",
+    zh: "选择快捷意图或写下一个明确问题。一切都保留在你的设备上——免费的本地读牌。",
+  },
+  guestVerificationTitle: { en: "Local reading", zh: "本地读牌" },
+  guestVerificationPointOne: {
+    en: "No fee — this is a free local reading.",
+    zh: "无需费用——这是免费的本地读牌。",
+  },
+  guestVerificationPointTwo: {
+    en: "Cards are shuffled on your device with a secure random generator.",
+    zh: "卡牌在你的设备上使用安全随机数生成器洗牌。",
+  },
+  guestVerificationPointThree: {
+    en: "Nothing is sent on-chain in guest mode.",
+    zh: "游客模式下不会向链上发送任何内容。",
+  },
+  guestFairnessCopy: {
+    en: "Guest mode shuffles the deck locally with your device's secure random generator and deals three distinct cards — no wallet, no fee, no chain.",
+    zh: "游客模式使用你设备的安全随机数生成器在本地洗牌，并发出三张不同的卡牌——无需钱包、无需费用、不上链。",
+  },
+  guestRouteLabel: { en: "Draw path", zh: "抽牌路径" },
+  guestContractRoute: { en: "local shuffle -> deal", zh: "本地洗牌 -> 发牌" },
+  guestStepTwoShort: { en: "Draw", zh: "抽牌" },
+  guestStepTwoCopy: {
+    en: "Tap the deck to shuffle and deal three cards instantly — no payment.",
+    zh: "点击牌组即可洗牌并立即发出三张牌——无需付款。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

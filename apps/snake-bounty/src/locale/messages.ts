@@ -273,6 +273,30 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Guest (free / local) mode ─────────────────────────────────────────────
+  // Guest is a plain local snake: no token, no oracle, no chain, no reward pool.
+  // These strings swap the GAS-at-stake / reward / pool framing for local play.
+  guestStatusDealt: { en: "Local run — grow to the target!", zh: "本地对局——努力达到目标长度！" },
+  guestRunComplete: { en: "Local run complete — {count} cells!", zh: "本地对局完成——{count} 格！" },
+  guestTagline: { en: "Grow the snake and beat your best length.", zh: "壮大贪吃蛇，刷新你的最长纪录。" },
+  guestChooseRoute: { en: "Choose your practice trail", zh: "选择你的练习蛇道" },
+  guestLobbyStatus: { en: "Tap a trail to start a local run", zh: "点选蛇道即可开始本地对局" },
+  guestCardWin: { en: "Local run", zh: "本地对局" },
+  guestCardEntry: { en: "Free practice", zh: "自由练习" },
+  guestRewardBadge: { en: "Local practice run", zh: "本地练习局" },
+  guestGateReady: { en: "Submit your run before time runs out.", zh: "在倒计时结束前提交本局。" },
+  guestGameOverBtn: { en: "Play again", zh: "再玩一局" },
+  guestSolvedTitle: { en: "Trail cleared", zh: "蛇道通关" },
+  guestSolvedSub: { en: "Nice run — you reached the target.", zh: "漂亮——你达到了目标长度。" },
+  guestTargetMetric: { en: "Target", zh: "目标" },
+  guestBestMetric: { en: "Best", zh: "最佳" },
+  guestBestLabel: { en: "Best length", zh: "最长纪录" },
+  guestCells: { en: "{count} cells", zh: "{count} 格" },
+  guestModeLine: {
+    en: "Guest mode — local play, scores saved off-chain.",
+    zh: "游客模式——本地游玩，成绩离线保存。",
+  },
 };
 
 export const messages = mergeMessages(appMessages);

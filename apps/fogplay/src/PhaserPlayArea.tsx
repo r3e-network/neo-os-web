@@ -63,6 +63,11 @@ function formatHistoryAmount(value: string | number | undefined): string {
 
 export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
+  // Guest (free / local) mode branches every GAS-centric label to local framing
+  // (no wager/pool/reward). GameFi copy is kept exactly as-is (mode defaults to
+  // "gamefi", so a state object without a `mode` key renders the GameFi surface).
+  const isGuest = str("mode", "gamefi") === "guest";
+  const streak = num("streak");
   const coinAnimating = bool("isFlipping") || bool("revealing");
   const rawResult = val<unknown>("result", null);
   const result = normalizeResult(rawResult);
@@ -106,9 +111,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     tailsLabel:      t("tails"),
     headsHint:       t("headsHint"),
     tailsHint:       t("tailsHint"),
-    payoutCaption:   t("payoutPreviewLabel"),
-    statusIdle:      t("oddsShort"),
-    statusFlipping:  t("awaitingReveal"),
+    // Mode-aware in-canvas copy: guest reframes the GAS payout row + status line
+    // as a local streak run (no wager/pool). `payoutValue` is the value the
+    // scene renders in the payout row (GameFi keeps the "N.NN GAS" string).
+    payoutCaption:   isGuest ? t("guestStreak") : t("payoutPreviewLabel"),
+    payoutValue:     isGuest ? String(streak) : payoutPreview,
+    statusIdle:      isGuest ? t("guestStatusIdle") : t("oddsShort"),
+    statusFlipping:  isGuest ? t("guestStatusFlipping") : t("awaitingReveal"),
     flipCta:         t("flipCta"),
     flippingCta:     t("flippingCta"),
     resultWin:       t("resultWin"),
@@ -151,14 +160,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> Neo N3
+                <span className="mx2-badge__dot" /> {isGuest ? t("guestModeBadge") : "Neo N3"}
               </span>
               <span className="mx2-badge">{wins}W / {losses}L</span>
-              {hasCredit && (
+              {!isGuest && hasCredit && (
                 <span className="mx2-badge" data-tone="success">
                   <WalletCards size={14} aria-hidden="true" /> {formattedCredit}
                 </span>
@@ -176,13 +185,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
             loadingLabel="Opening flip table"
           />
         }
-        score={[
-          { label: t("choiceHeader"), value: t(choice), accent: true },
-          { label: t("wager"), value: `${betAmount} GAS` },
-          { label: t("payoutPreviewLabel"), value: payoutPreview },
-          { label: t("totalGames"), value: String(totalGames) },
-          { label: t("totalWon"), value: totalWon },
-        ]}
+        score={isGuest
+          ? [
+              { label: t("choiceHeader"), value: t(choice), accent: true },
+              { label: t("guestStreak"), value: String(streak), accent: true },
+              { label: t("wins"), value: String(wins) },
+              { label: t("losses"), value: String(losses) },
+              { label: t("totalGames"), value: String(totalGames) },
+            ]
+          : [
+              { label: t("choiceHeader"), value: t(choice), accent: true },
+              { label: t("wager"), value: `${betAmount} GAS` },
+              { label: t("payoutPreviewLabel"), value: payoutPreview },
+              { label: t("totalGames"), value: String(totalGames) },
+              { label: t("totalWon"), value: totalWon },
+            ]}
         actions={{
           primary: hasPendingBet || revealFailed
             ? {
@@ -210,8 +227,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                   <strong>{losses}</strong>
                 </div>
                 <div>
-                  <span>{t("totalWon")}</span>
-                  <strong>{totalWon}</strong>
+                  <span>{isGuest ? t("guestBestStreak") : t("totalWon")}</span>
+                  <strong>{isGuest ? streak : totalWon}</strong>
                 </div>
               </section>
 
@@ -222,7 +239,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                 </section>
               )}
 
-              {hasCredit && (
+              {!isGuest && hasCredit && (
                 <section className="fogplay-phaser-drawer__credit" aria-label={t("prepaidCredit")}>
                   <span>
                     {t("prepaidCredit")}: <strong>{formattedCredit}</strong>
@@ -253,9 +270,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                           data-outcome={outcome || undefined}
                         >
                           <span>{t(side)}</span>
-                          <span>{formatHistoryAmount(row.amount)}</span>
+                          {!isGuest && <span>{formatHistoryAmount(row.amount)}</span>}
                           <span>{outcome === "won" ? t("youWon") : outcome === "lost" ? t("youLost") : "--"}</span>
-                          <strong>{formatHistoryAmount(row.payout)}</strong>
+                          {!isGuest && <strong>{formatHistoryAmount(row.payout)}</strong>}
                         </li>
                       );
                     })}
@@ -265,20 +282,27 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                 )}
               </section>
 
-              <section className="fogplay-phaser-drawer__section fogplay-phaser-drawer__fairness" aria-label={t("commitRevealTimeline")}>
-                <h4><ShieldCheck size={16} aria-hidden="true" /> {t("commitRevealTimeline")}</h4>
-                <p>{t("fairnessNote")}</p>
-                <div className="fogplay-phaser-timeline" aria-label={t("commitRevealTimeline")}>
-                  <span>{t("timelineCommit")}</span>
-                  <span>{t("timelineBlock")}</span>
-                  <span>{t("timelineReveal")}</span>
-                  <span>{t("timelineSettle")}</span>
-                </div>
-                <p>{t("maxPayableHint", { max: formattedMaxPayable })}</p>
-                {revealFailed && (
-                  <p className="fogplay-phaser-drawer__retry">{t("revealFailedRetry")}</p>
-                )}
-              </section>
+              {isGuest ? (
+                <section className="fogplay-phaser-drawer__section fogplay-phaser-drawer__fairness" aria-label={t("guestModeBadge")}>
+                  <h4><ShieldCheck size={16} aria-hidden="true" /> {t("guestModeBadge")}</h4>
+                  <p>{t("guestFairnessNote")}</p>
+                </section>
+              ) : (
+                <section className="fogplay-phaser-drawer__section fogplay-phaser-drawer__fairness" aria-label={t("commitRevealTimeline")}>
+                  <h4><ShieldCheck size={16} aria-hidden="true" /> {t("commitRevealTimeline")}</h4>
+                  <p>{t("fairnessNote")}</p>
+                  <div className="fogplay-phaser-timeline" aria-label={t("commitRevealTimeline")}>
+                    <span>{t("timelineCommit")}</span>
+                    <span>{t("timelineBlock")}</span>
+                    <span>{t("timelineReveal")}</span>
+                    <span>{t("timelineSettle")}</span>
+                  </div>
+                  <p>{t("maxPayableHint", { max: formattedMaxPayable })}</p>
+                  {revealFailed && (
+                    <p className="fogplay-phaser-drawer__retry">{t("revealFailedRetry")}</p>
+                  )}
+                </section>
+              )}
             </div>
           ),
         }}

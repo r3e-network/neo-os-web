@@ -73,6 +73,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const mySolves       = val<number>("mySolves", 0) ?? 0;
   const myTotalWon     = val<number>("myTotalWon", 0) ?? 0;
   const lastStatus     = str("lastStatus", t("statusReady"));
+  const appMode        = str("appMode", "gamefi");
+  const isGuest        = appMode === "guest";
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -126,12 +128,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     myTotalWon,
     lastStatus,
     balancesReady,
+    // Play mode (guest | gamefi) — lets the scene drop pool gating + GAS copy
+    // in guest while keeping the GAMEFI lobby exactly as-is.
+    appMode,
     // Localized in-canvas labels (the scene has no translator of its own).
     scoreMovesCaption: t("scoreMovesCaption"),
     startOpenRun: t("startOpenRun"),
     startOpening: t("startOpening"),
     startCheckingPool: t("startCheckingPool"),
     startPoolLow: t("startPoolLow"),
+    guestLaneTag: t("guestRunValue"),
   };
 
   const stageTitle = isSolved
@@ -183,11 +189,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   ];
 
   const hudItems = [
-    {
-      label: t("scoreReward"),
-      value: `${projectedPayout.toFixed(2)} GAS`,
-      accent: true,
-    },
+    isGuest
+      ? {
+          // Guest has no stake — surface local framing instead of "REWARD AT STAKE".
+          label: t("guestRunLabel"),
+          value: t("guestRunValue"),
+          accent: true,
+        }
+      : {
+          label: t("scoreReward"),
+          value: `${projectedPayout.toFixed(2)} GAS`,
+          accent: true,
+        },
     {
       label: t("scoreBest"),
       value: `${tileValue(runMaxExp)}/${rule.targetTile}`,
@@ -270,7 +283,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               <section className="rush-ingame-drawer" aria-label={t("drawerTitle")}>
                 <div className="rush-drawer__head">
                   <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
-                  <p>{t("leaderboardIntro")}</p>
+                  <p>{isGuest ? t("guestModeLine") : t("leaderboardIntro")}</p>
                 </div>
 
                 <div className="rush-drawer__summary">
@@ -279,8 +292,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <strong>{myRank > 0 ? `#${myRank}` : "—"}</strong>
                   </span>
                   <span>
-                    <small>{t("scoreWon")}</small>
-                    <strong>{myTotalWon.toFixed(2)} GAS</strong>
+                    <small>{isGuest ? t("guestBestLabel") : t("scoreWon")}</small>
+                    <strong>{isGuest ? `${myTotalWon}` : `${myTotalWon.toFixed(2)} GAS`}</strong>
                   </span>
                   <span>
                     <small>{t("historyTitle")}</small>
@@ -340,7 +353,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <span className="rush-ranks__solves">
                           {t("solvesCount", { count: entry.solves })}
                         </span>
-                        <span className="rush-ranks__won">{entry.totalWon.toFixed(2)} GAS</span>
+                        <span className="rush-ranks__won">
+                          {isGuest ? `${entry.totalWon}` : `${entry.totalWon.toFixed(2)} GAS`}
+                        </span>
                         {entry.isUser && <span className="rush-ranks__me">{t("youTag")}</span>}
                       </li>
                     ))}
@@ -379,9 +394,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
 
                 <h4>{t("rulesTitle")}</h4>
-                <p>{t("rulesCopy")}</p>
-                <h4>{t("fairnessTitle")}</h4>
-                <p>{t("fairnessCopy")}</p>
+                <p>{isGuest ? t("guestRulesCopy") : t("rulesCopy")}</p>
+                {!isGuest && (
+                  <>
+                    <h4>{t("fairnessTitle")}</h4>
+                    <p>{t("fairnessCopy")}</p>
+                  </>
+                )}
                 {commitmentHex && (
                   <p className="rush-drawer__seed">
                     {t("commitmentLine", {

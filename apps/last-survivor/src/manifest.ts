@@ -13,7 +13,14 @@ export const manifest: MiniAppManifest = {
   description: "Last buyer wins the entire prize pool",
   icon: "skull",
   category: "game",
-  shell: "launcher",
+  // "game" shell renders the focused two-CTA launcher entry (the only shell the
+  // shared GameHomePageWrapper serves) — required for the guest opt-in below to
+  // reach players, and consistent with every other guest-enabled game.
+  shell: "game",
+
+  // Two-mode entry: primary "Earn GAS" (GameFi) + secondary "Play free" (Guest).
+  // Guest is a purely local doomsday-clock drill — no token, oracle, or chain.
+  supportsGuest: true,
 
   // ── Tabs ──────────────────────────────────────────────────────────────
   tabs: [

@@ -46,6 +46,33 @@ function t(key: string, params?: Record<string, string | number>) {
     leaderboardTitle: "Global leaderboard",
     leaderboardIntro: "Rebuilt from on-chain events.",
     leaderboardEmpty: "No solves recorded yet.",
+    guestBestLabel: "Best local score",
+    guestBoardTitle: "Guest leaderboard",
+    guestDrawerTitle: "Guest board & rules",
+    guestEyebrow: "Color Clash · Guest",
+    guestExpiredTitle: "Local run ended",
+    guestFairnessCopy: "Guest mode uses local randomness.",
+    guestFairnessTitle: "Local random sequence",
+    guestHistoryEmpty: "Saved guest runs appear here.",
+    guestHistoryTitle: "Local runs",
+    guestLeaderboardEmpty: "No local scores yet.",
+    guestLeaderboardIntro: "Guest scores record cue counts.",
+    guestLobbyTitle: "Local memory board",
+    guestModeBadge: "Guest mode",
+    guestModeLabel: "Mode",
+    guestModeValue: "No token",
+    guestPlayingTitle: "Local sequence in play",
+    guestProgressLabel: "Local progress",
+    guestRefreshBoard: "Refresh board",
+    guestRestartAction: "Restart run",
+    guestRestartHint: "Clear this local sequence.",
+    guestRulesCopy: "Repeat the local sequence. No token or chain action is involved.",
+    guestScoreValue: "{count} cues",
+    guestSolvedTitle: "Local sequence mastered",
+    guestStatusSaving: "Saving local score...",
+    guestSubmitAction: "Save score",
+    guestSubmitHint: "Save the cue count.",
+    guestSubtitle: "Play locally with no GAS, transaction, or oracle request.",
     lobbyTitle: "Enter the arcade",
     networkBadge: "Neo N3",
     rankBadge: "Rank #{rank}",
@@ -88,6 +115,7 @@ function t(key: string, params?: Record<string, string | number>) {
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
+    appMode: "gamefi",
     gameStatus: "idle",
     gameDifficulty: 2,
     sequence: "",
@@ -134,12 +162,51 @@ describe("color-clash Phaser playarea", () => {
 
     expect(props.state.gameStatus).toBe("idle");
     expect(props.state.gameDifficulty).toBe(2);
+    expect(props.state.appMode).toBe("gamefi");
     expect(props.state.poolFree).toBe(25);
     expect(props.state.sequence).toBe("");
     expect(props.state.activeGameId).toBe("0");
     expect(props.state.deadline).toBe(0);
     expect(props.state.undosUsed).toBe(0);
     expect(queryByText("Play sequence")).toBeNull();
+  });
+
+  it("renders guest mode without GAS, Neo, or withdraw framing", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByText, queryByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          gameStatus: "dealt",
+          gameDifficulty: 0,
+          sequence: "01230123",
+          playerSequence: "0123",
+          seqAchieved: 4,
+          credit: 1,
+          leaderboard: [
+            { address: "Nlocal111111111111111111111111111111", rank: 1, totalWon: 8, solves: 1 },
+          ],
+          myRank: 1,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
+
+    expect(props.state.appMode).toBe("guest");
+    expect(getByText("Color Clash · Guest")).toBeTruthy();
+    expect(getByText("Local sequence in play")).toBeTruthy();
+    expect(getByText("Local progress")).toBeTruthy();
+    expect(getByText("4/8")).toBeTruthy();
+    expect(getByText("No token")).toBeTruthy();
+    expect(queryByText("Neo N3")).toBeNull();
+    expect(queryByText("Withdraw 1.00 GAS")).toBeNull();
+    expect(container.textContent).not.toContain("Reward at stake");
+    expect(container.textContent).not.toContain("Total won");
   });
 
   it("shows the settlement action only after the sequence is completed", () => {

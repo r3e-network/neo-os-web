@@ -53,6 +53,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     dealtAt:         val<number>("dealtAt", 0) ?? 0,
     // Localized "how to play" hint rendered by the lobby scene (from messages).
     rulesShort:      t("rulesShort"),
+    // Play mode + localized guest labels so the scene can branch GAS-centric
+    // lobby copy (pool line, lane reward/entry) into local/practice framing.
+    mode:            str("mode", "gamefi"),
+    guestPoolLabel:  t("guestPoolLabel"),
+    guestRewardLabel: t("guestRewardLabel"),
+    guestEntryLabel: t("guestEntryLabel"),
   };
 
   // ── Derived display values (for PlayStage chrome) ─────────────────────────
@@ -71,6 +77,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isSubmitting   = bool("isSubmitting");
   const isDealing      = bool("isDealing") || bool("isStarting");
   const timeUp         = gameStatus === "dealt" && deadline > 0 && deadline <= Date.now();
+  const mode           = str("mode", "gamefi");
+  const isGuest        = mode === "guest";
 
   const rule = ruleOf(
     gameStatus === "dealt" || gameStatus === "committed" ? gameDifficulty : 0,
@@ -92,11 +100,19 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // not live, so show a neutral placeholder instead of implying a running clock.
   const roundLive = gameStatus === "dealt" || gameStatus === "committed";
   const hudItems = [
-    {
-      label: t("rewardMetric"),
-      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
-      accent: true,
-    },
+    isGuest
+      ? {
+          // Guest has no GAS at stake — surface the local best score instead of
+          // a "REWARD … GAS" line.
+          label: t("guestBestLabel"),
+          value: `${myTotalWon}`,
+          accent: true,
+        }
+      : {
+          label: t("rewardMetric"),
+          value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+          accent: true,
+        },
     {
       label: t("timeMetric"),
       value: roundLive ? formatClock(remainingMs) : "—",
@@ -144,7 +160,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
@@ -198,14 +214,29 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                 </div>
                 <div className="aim-ingame-drawer__grid">
-                  <span>
-                    <small>{t("creditLabel")}</small>
-                    <strong>{creditGas.toFixed(2)} GAS</strong>
-                  </span>
-                  <span>
-                    <small>{t("scoreWon")}</small>
-                    <strong>{myTotalWon.toFixed(2)} GAS</strong>
-                  </span>
+                  {isGuest ? (
+                    <>
+                      <span>
+                        <small>{t("guestBestLabel")}</small>
+                        <strong>{myTotalWon}</strong>
+                      </span>
+                      <span>
+                        <small>{t("guestModeTag")}</small>
+                        <strong>{t("guestModeValue")}</strong>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>
+                        <small>{t("creditLabel")}</small>
+                        <strong>{creditGas.toFixed(2)} GAS</strong>
+                      </span>
+                      <span>
+                        <small>{t("scoreWon")}</small>
+                        <strong>{myTotalWon.toFixed(2)} GAS</strong>
+                      </span>
+                    </>
+                  )}
                   <span>
                     <small>{t("scoreRings")}</small>
                     <strong>{ringsHit}/{targetAccuracy}</strong>
@@ -234,7 +265,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div className="aim-drawer">
                   <div className="aim-drawer__head">
                     <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
-                    <p>{t("leaderboardIntro")}</p>
+                    <p>{isGuest ? t("guestLeaderboardIntro") : t("leaderboardIntro")}</p>
                   </div>
                   <h4>{t("leaderboardTitle")}</h4>
                   {leaderboard.length > 0 ? (
@@ -248,7 +279,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                           <span className="aim-ranks__rank">#{entry.rank}</span>
                           <span className="aim-ranks__addr">{shortHash(entry.address)}</span>
                           <span className="aim-ranks__solves">{t("solvesCount", { count: entry.solves })}</span>
-                          <span className="aim-ranks__won">{entry.totalWon.toFixed(2)} GAS</span>
+                          <span className="aim-ranks__won">
+                            {isGuest ? `${entry.totalWon}` : `${entry.totalWon.toFixed(2)} GAS`}
+                          </span>
                           {entry.isUser && <span className="aim-ranks__me">{t("youTag")}</span>}
                         </li>
                       ))}

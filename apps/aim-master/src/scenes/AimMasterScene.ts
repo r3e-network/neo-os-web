@@ -334,13 +334,19 @@ export class AimMasterScene extends BaseScene {
     const deadline     = this.num("deadline", 0);
     const dealtAt      = this.num("dealtAt", 0);
     const lastStatus   = this.str("lastStatus", "");
+    const guest        = this.str("mode", "gamefi") === "guest";
 
     this.deadline  = deadline;
     this.dealtAt   = dealtAt;
     this.currentDifficulty = difficulty;
 
-    // Pool text in lobby
-    this.poolText.setText(`Pool: ${poolFree.toFixed(2)} GAS`);
+    // Pool text in lobby — guest has no reward pool, so show a local range label
+    // instead of a "Pool … GAS" line.
+    this.poolText.setText(
+      guest
+        ? this.str("guestPoolLabel", "Local practice range")
+        : `Pool: ${poolFree.toFixed(2)} GAS`,
+    );
 
     // Determine which layer to show
     const showLobby   = (status === "idle" || status === "solved" || status === "expired") && !isStarting;
@@ -612,12 +618,18 @@ export class AimMasterScene extends BaseScene {
     c.add([bg, badge, nameTxt, accTxt, rewardTxt, entryTxt, sel]);
     c.setData("bg", bg);
     c.setData("sel", sel);
+    // Refs for mode-aware lane copy (guest hides the GAS reward/entry framing).
+    c.setData("reward", rewardTxt);
+    c.setData("entry", entryTxt);
+    c.setData("rule", rule);
     return c;
   }
 
   private syncLobbyCards(isStarting: boolean, poolFree: number): void {
+    const guest = this.str("mode", "gamefi") === "guest";
     const rule = ruleOf(this.selectedDifficulty);
-    const poolEnough = poolFree >= Number(gasDisplay(rule.rewardFixed8));
+    // Guest is a free local game — the reward pool never gates the start.
+    const poolEnough = guest || poolFree >= Number(gasDisplay(rule.rewardFixed8));
 
     this.diffCards.forEach((card, i) => {
       const bg  = card.getData("bg") as Phaser.GameObjects.Graphics;
@@ -625,6 +637,25 @@ export class AimMasterScene extends BaseScene {
       const active = i === this.selectedDifficulty;
       this.drawDiffCardBackground(bg, this.lobbyCardW, this.lobbyCardH, active, false);
       sel?.setAlpha(active ? 1 : 0);
+      // Mode-aware lane copy: guest replaces "X GAS" / "Entry X" with local
+      // framing so no reward/entry-fee text appears in the free game.
+      const rewardTxt = card.getData("reward") as Phaser.GameObjects.Text | undefined;
+      const entryTxt  = card.getData("entry") as Phaser.GameObjects.Text | undefined;
+      const cardRule  = card.getData("rule") as (typeof DIFFICULTY_RULES)[number] | undefined;
+      if (rewardTxt) {
+        rewardTxt.setText(
+          guest
+            ? this.str("guestRewardLabel", "Local")
+            : `${gasDisplay(cardRule?.rewardFixed8 ?? rule.rewardFixed8)} GAS`,
+        );
+      }
+      if (entryTxt) {
+        entryTxt.setText(
+          guest
+            ? this.str("guestEntryLabel", "Free")
+            : `Entry ${gasDisplay(cardRule?.entryFixed8 ?? rule.entryFixed8)}`,
+        );
+      }
     });
 
     if (this.lobbyHintText) {
@@ -928,8 +959,10 @@ export class AimMasterScene extends BaseScene {
         ? "Submit your verified shot sequence"
         : "Tap the gauge when the reticle crosses center";
     }
-    if (showDealing) return "TEE is sealing the aim pattern";
+    const guest = this.str("mode", "gamefi") === "guest";
+    if (showDealing) return guest ? "Setting up your local run" : "TEE is sealing the aim pattern";
     if (showLobby) {
+      if (guest) return "Pick a lane to start a local run";
       const rule = ruleOf(this.selectedDifficulty);
       const poolEnough = poolFree >= Number(gasDisplay(rule.rewardFixed8));
       if (isStarting) return "Starting sealed round";
@@ -941,6 +974,8 @@ export class AimMasterScene extends BaseScene {
   }
 
   private selectedPoolIsReady(poolFree: number): boolean {
+    // Guest never stakes a reward pool, so the lane is always "ready".
+    if (this.str("mode", "gamefi") === "guest") return true;
     const rule = ruleOf(this.selectedDifficulty);
     return poolFree >= Number(gasDisplay(rule.rewardFixed8));
   }

@@ -39,8 +39,18 @@ function burnedAmount(entry: LeaderboardEntry): string {
   return Number.isFinite(entry.burned) ? `${entry.burned.toFixed(2)} GAS` : "--";
 }
 
+/** Strip a GAS suffix so guest (local) mode renders a bare heat number. */
+function stripGas(value: string): string {
+  return String(value ?? "").replace(/\s*GAS\b/i, "").trim() || "0";
+}
+
 export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
+  // Two-mode surface: guest is a local burn-streak game with NO GAS / pool /
+  // reward / season framing; gamefi copy stays exactly as-is.
+  const mode = str("appMode", "gamefi");
+  const guest = mode === "guest";
+  const guestStreak = num("guestStreak", 0);
   const seasonPhase = (str("seasonPhase", "dormant") || "dormant") as SeasonPhase;
   const prizePoolDisplay = str("prizePoolDisplay", "0");
   const userBurnedDisplay = str("userBurnedDisplay", "0");
@@ -67,6 +77,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const settleResult = val<SettleResult | null>("lastSettleResult");
   const hasLeaderboard = leaderboardPreview.length > 0;
   const topEntry = leaderboardPreview[0];
+  // Guest "top run" = the best banked heat on the local board ("--" when none).
+  const guestTopValue = Number(stripGas(topBurnedDisplay)) > 0 ? stripGas(topBurnedDisplay) : "--";
   const [celebration, setCelebration] = useState<SettleResult | null>(null);
   const lastCelebratedToken = useRef<number | null>(null);
 
@@ -99,6 +111,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     maxBurnGas: num("maxBurnGas"),
     prepaidCredit,
     prepaidCreditDisplay,
+    // Two-mode surface + localized guest labels the scene swaps in (gamefi
+    // ignores them). Passing them (not hardcoding in-scene) keeps the canvas
+    // guest copy localized in every locale.
+    appMode: mode,
+    guestStreak,
+    guestPoolLabel: t("guestBest"),
+    guestSeasonLabel: t("guestStreakLabel"),
+    guestRunLabel: t("guestRun"),
+    guestBoardLabel: t("guestBoardTitle"),
+    guestEmptyLabel: t("guestNoRuns"),
+    guestBurnVerb: t("guestStokeVerb"),
+    guestUnit: t("guestHeatUnit"),
   };
 
   const seasonLine =
@@ -110,8 +134,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           ? t("seasonDormantHintWithLength", { length: seasonDurationLabel })
           : t("seasonDormantHint");
 
-  const stageTitle =
-    isBurning
+  const stageTitle = guest
+    ? isBurning
+      ? t("burning")
+      : t("guestStageTitle")
+    : isBurning
       ? t("burning")
       : needsSettle
         ? t("settleSeason")
@@ -130,10 +157,22 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
       <PlayStage
         category="game"
         stage={{
-          eyebrow: seasonPhase === "active" ? t("liveLeague") : seasonStatusLabel || t("seasonStatus"),
+          eyebrow: guest
+            ? t("guestEyebrow")
+            : seasonPhase === "active"
+              ? t("liveLeague")
+              : seasonStatusLabel || t("seasonStatus"),
           title: stageTitle,
-          subtitle: t("subtitle"),
-          badges: (
+          subtitle: guest ? t("guestSubtitle") : t("subtitle"),
+          badges: guest ? (
+            <>
+              {guestStreak > 0 && (
+                <span className="mx2-badge" data-tone="success">
+                  <Flame size={14} aria-hidden="true" /> {t("guestStreakBadge", { streak: guestStreak })}
+                </span>
+              )}
+            </>
+          ) : (
             <>
               {formattedSeason !== "--" && (
                 <span className="mx2-badge" data-tone="accent">
@@ -154,7 +193,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           ),
         }}
         scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
-        score={[
+        score={guest ? [
+          { label: t("guestBest"), value: stripGas(prizePoolDisplay), accent: true },
+          { label: t("guestRun"), value: stripGas(userBurnedDisplay) },
+          { label: t("yourRank"), value: formattedRank },
+          { label: t("guestTopRun"), value: guestTopValue },
+        ] : [
           { label: t("prizePool"), value: prizePoolDisplay, accent: true },
           { label: t("youBurned"), value: userBurnedDisplay },
           { label: t("yourRank"), value: formattedRank },
@@ -181,32 +225,56 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
               : []),
           ],
         }}
-        drawerToggleLabel={t("leaderboard")}
+        drawerToggleLabel={guest ? t("guestBoardTitle") : t("leaderboard")}
         drawer={{
-          title: t("leaderboard"),
+          title: guest ? t("guestBoardTitle") : t("leaderboard"),
           children: (
             <div className="burn-drawer">
-              <section className="burn-drawer__summary" aria-label={t("seasonStatus")}>
-                <h4>{t("seasonLabel")} {formattedSeason}</h4>
-                <p>{seasonLine}</p>
-                <dl className="burn-drawer__metrics">
-                  <div>
-                    <dt>{t("prizePool")}</dt>
-                    <dd>{prizePoolDisplay}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("currentLeader")}</dt>
-                    <dd>{leaderDisplay}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("burned")}</dt>
-                    <dd>{topBurnedDisplay}</dd>
-                  </div>
-                </dl>
-              </section>
+              {guest ? (
+                <section className="burn-drawer__summary" aria-label={t("guestBoardTitle")}>
+                  <h4>{t("guestSummaryTitle")}</h4>
+                  <p>{t("guestSummaryLine")}</p>
+                  <dl className="burn-drawer__metrics">
+                    <div>
+                      <dt>{t("guestBest")}</dt>
+                      <dd>{stripGas(prizePoolDisplay)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("guestStreakLabel")}</dt>
+                      <dd>{guestStreak > 0 ? `x${guestStreak}` : "--"}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("guestTopRun")}</dt>
+                      <dd>{guestTopValue}</dd>
+                    </div>
+                  </dl>
+                </section>
+              ) : (
+                <section className="burn-drawer__summary" aria-label={t("seasonStatus")}>
+                  <h4>{t("seasonLabel")} {formattedSeason}</h4>
+                  <p>{seasonLine}</p>
+                  <dl className="burn-drawer__metrics">
+                    <div>
+                      <dt>{t("prizePool")}</dt>
+                      <dd>{prizePoolDisplay}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("currentLeader")}</dt>
+                      <dd>{leaderDisplay}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("burned")}</dt>
+                      <dd>{topBurnedDisplay}</dd>
+                    </div>
+                  </dl>
+                </section>
+              )}
 
-              <section className="burn-drawer__board" aria-label={t("leaderboard")}>
-                <h4>{t("leaderboard")}</h4>
+              <section
+                className="burn-drawer__board"
+                aria-label={guest ? t("guestBoardTitle") : t("leaderboard")}
+              >
+                <h4>{guest ? t("guestBoardTitle") : t("leaderboard")}</h4>
                 {hasLeaderboard ? (
                   <ul className="mx2-history burn-drawer__leaderboard">
                     {leaderboardPreview.slice(0, 10).map((entry) => (
@@ -222,29 +290,49 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                         <span className="mx2-history__face" aria-hidden="true">#{entry.rank}</span>
                         <span className="mx2-history__stake">
                           {shortAddr(entry.address)}
-                          {entry.isUser && <em className="burn-drawer__you-tag"> {t("youBurned")}</em>}
+                          {entry.isUser && (
+                            <em className="burn-drawer__you-tag"> {guest ? t("guestYouTag") : t("youBurned")}</em>
+                          )}
                         </span>
-                        <span className="mx2-history__result">{burnedAmount(entry)}</span>
+                        <span className="mx2-history__result">
+                          {guest ? `${entry.burned.toFixed(0)} ${t("guestHeatUnit")}` : burnedAmount(entry)}
+                        </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="burn-drawer__empty">{t("noEntries")}</p>
+                  <p className="burn-drawer__empty">{guest ? t("guestNoRuns") : t("noEntries")}</p>
                 )}
               </section>
 
-              <section className="burn-drawer__rules" aria-label={t("howItWorks")}>
-                <h4>{t("howItWorks")}</h4>
-                <ol className="burn-drawer__steps">
-                  <li>{t("howStepPick")}</li>
-                  <li>{t("howStepBurn")}</li>
-                  <li>{t("howStepClimb")}</li>
-                  <li>{t("howStepWin")}</li>
-                </ol>
-              </section>
+              {guest ? (
+                <section className="burn-drawer__rules" aria-label={t("guestHowTitle")}>
+                  <h4>{t("guestHowTitle")}</h4>
+                  <ol className="burn-drawer__steps">
+                    <li>{t("guestStepPick")}</li>
+                    <li>{t("guestStepStoke")}</li>
+                    <li>{t("guestStepStreak")}</li>
+                    <li>{t("guestStepBank")}</li>
+                  </ol>
+                </section>
+              ) : (
+                <section className="burn-drawer__rules" aria-label={t("howItWorks")}>
+                  <h4>{t("howItWorks")}</h4>
+                  <ol className="burn-drawer__steps">
+                    <li>{t("howStepPick")}</li>
+                    <li>{t("howStepBurn")}</li>
+                    <li>{t("howStepClimb")}</li>
+                    <li>{t("howStepWin")}</li>
+                  </ol>
+                </section>
+              )}
 
-              {projectedTotalDisplay !== "--" && (
-                <p className="burn-drawer__note">{t("projectedTotal")}: {projectedTotalDisplay}</p>
+              {guest ? (
+                <p className="burn-drawer__note">{t("guestNextStoke")}: {stripGas(projectedTotalDisplay)}</p>
+              ) : (
+                projectedTotalDisplay !== "--" && (
+                  <p className="burn-drawer__note">{t("projectedTotal")}: {projectedTotalDisplay}</p>
+                )
               )}
 
               {prepaidCredit > 0 && (

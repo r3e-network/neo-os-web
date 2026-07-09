@@ -142,6 +142,10 @@ export class LastSurvivorScene extends BaseScene {
     const cost = this.str("estimatedCost", "0.00");
     const validation = this.str("keyValidationError", "");
     const serviceNotice = this.str("serviceNotice", "");
+    // Guest is a purely local drill — nothing is at stake, so the per-key GAS
+    // cost is replaced by a neutral local label (all other copy arrives
+    // pre-localized + mode-aware through the bridge from PhaserPlayArea).
+    const guestMode = this.str("appMode", "gamefi") === "guest";
     const bridgeKeyCount = this.str("keyCount", this.selectedKeyCount);
     const dangerPct = clampPct(this.num("dangerProgress", 0));
     const totalKeys = this.num("totalKeys", this.num("totalKeysDisplay", 0));
@@ -178,7 +182,7 @@ export class LastSurvivorScene extends BaseScene {
     this.leaderText.setText(this.str("sceneLeaderLine", leader && leader !== "--" ? leader : "No buyer yet"));
     this.totalKeysText.setText(this.str("sceneKeysSoldLine", `${totalKeys} keys sold`));
     this.userKeysText.setText(this.str("sceneYoursLine", `${userKeys} yours`));
-    this.costText.setText(`${cost} GAS`);
+    this.costText.setText(guestMode ? this.str("sceneGuestCost", "Local · no cost") : `${cost} GAS`);
 
     this.statusText.setText(
       validation

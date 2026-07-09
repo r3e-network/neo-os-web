@@ -133,7 +133,7 @@ function normalizeReadingCards(cards: unknown): number[] {
 }
 
 /** Map a validated card index to a deck entry (or a neutral fallback card). */
-function cardFromIndex(cardId: number): Card {
+export function cardFromIndex(cardId: number): Card {
   const card = TAROT_DECK.find((item) => item.id === cardId);
   if (!card) {
     return {

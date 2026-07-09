@@ -180,6 +180,41 @@ const appMessages = {
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
 
+  // ── Guest (free / local) mode ─────────────────────────────────────────────
+  // Guest is a plain local puzzle: no token, no pool, no reward at stake. These
+  // strings replace the GAS-centric copy while GAMEFI copy stays unchanged.
+  guestSubtitle: {
+    en: "Solve the board at your own pace — a local puzzle with no stakes.",
+    zh: "按自己的节奏解题——本地谜题，无需下注。",
+  },
+  guestLobbyTitle: { en: "Start a local puzzle", zh: "开始本地谜题" },
+  guestRunLabel: { en: "Local run", zh: "本地对局" },
+  guestRunValue: { en: "Practice", zh: "练习" },
+  guestDiffTag: { en: "Free play", zh: "自由练习" },
+  guestPoolLine: { en: "Local practice · unlimited", zh: "本地练习 · 不限次数" },
+  guestVaultSub: { en: "Pick a grid to solve", zh: "选择一张棋盘开始解题" },
+  guestGateChoose: { en: "Pick a grid, then start solving", zh: "选择棋盘后开始解题" },
+  guestResultSolved: { en: "Puzzle solved", zh: "谜题已解开" },
+  guestResultExpired: { en: "Run ended", zh: "本局结束" },
+  guestModeLabel: { en: "Mode", zh: "模式" },
+  guestModeValue: { en: "Local play", zh: "本地游玩" },
+  guestBestLabel: { en: "Best score", zh: "最佳分数" },
+  guestFairnessShort: {
+    en: "A local puzzle — no chain, no stakes.",
+    zh: "本地谜题——无链上操作，无需下注。",
+  },
+  guestRulesShort: {
+    en: "Fill the grid, use pencil notes freely, and beat the clock. Scores save off-chain.",
+    zh: "填满棋盘，可自由使用笔记，并在计时结束前完成。成绩离线保存。",
+  },
+  guestUndoUsed: { en: "Move taken back", zh: "已撤回一步" },
+  guestNotSolved: { en: "Not the correct solution yet", zh: "尚未得到正确答案" },
+  guestExpired: { en: "Time's up — start a fresh grid", zh: "时间到——开启新棋盘" },
+  guestRunComplete: {
+    en: "Local puzzle solved — score {score}!",
+    zh: "本地谜题已解开——得分 {score}！",
+  },
+
   // ── Canvas (Phaser scene) labels ──────────────────────────────────────────
   // The Phaser scene cannot localise on its own (BaseScene only reads bridge
   // state), so every string it draws is pre-translated here and pushed through

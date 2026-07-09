@@ -55,19 +55,42 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     lastBuyerLabel !== "--" &&
     lastBuyerLabel !== noAddressLabel &&
     lastBuyerLabel !== "N/A";
+
+  // ── Mode-aware copy ────────────────────────────────────────────────────────
+  // In guest the game is a purely local doomsday drill: no token, no pot, no GAS
+  // at stake. Reframe every GAS-centric label as a local survival streak; keep
+  // the GameFi copy exactly as-is. The Phaser scene reads the SAME bridge keys —
+  // we just feed guest-appropriate values into them.
+  const appMode = str("appMode", "gamefi");
+  const isGuest = appMode === "guest";
+  const keysWord = totalKeys === 1 ? t("keyUnitOne") : t("keyUnitMany");
+  const streakDisplay = `${totalKeys} ${keysWord}`;
+  const potDisplay = isGuest ? streakDisplay : totalPotDisplay;
+  const guestHasBuyer = userKeys > 0;
+  const leaderDisplay = isGuest
+    ? guestHasBuyer
+      ? t("guestYouLeader")
+      : t("guestNoBuyerYet")
+    : lastBuyerLabel;
+
   const bridgeState = {
+    // Surface the play mode so the scene can drop the hardcoded " GAS" cost.
+    appMode,
     countdown,
     dangerProgress:   num("dangerProgress"),
     dangerLevel:      str("dangerLevel", "low"),
-    dangerLevelText,
-    totalPotDisplay,
+    // Guest never wants an alarmist "CRITICAL" tier on a compressed local clock —
+    // show a friendly local prompt instead; GameFi keeps its danger tier text.
+    dangerLevelText:  isGuest ? t("guestClockHint") : dangerLevelText,
+    // Pot → survival streak (key count) in guest; GAS pot in GameFi.
+    totalPotDisplay:  potDisplay,
     keyCount,
     keyValidationError,
     estimatedCost,
     userKeys,
     totalKeys,
     totalKeysDisplay: totalKeys,
-    lastBuyerLabel,
+    lastBuyerLabel:   leaderDisplay,
     isRoundActive,
     isBuyingKeys,
     isSettling,
@@ -81,34 +104,43 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     // Localized in-canvas copy so the Phaser scene never hardcodes English.
     sceneLiveRound:         t("liveRound"),
     sceneWaitingRound:      t("waitingForRound"),
-    sceneSettleWord:        t("sceneSettleWord"),
-    sceneReadyToPay:        t("readyToPay"),
-    scenePressToStay:       t("pressToStay"),
+    sceneSettleWord:        isGuest ? t("guestClaimWord") : t("sceneSettleWord"),
+    sceneReadyToPay:        isGuest ? t("guestReadyToClaim") : t("readyToPay"),
+    scenePressToStay:       isGuest ? t("guestPressToStay") : t("pressToStay"),
     sceneRoundAfterSync:    t("roundAfterSync"),
-    sceneLeaderLine:        hasBuyer ? `${t("lastBuyerPrefix")} ${lastBuyerLabel}` : t("noBuyerYet"),
+    sceneLeaderLine:        isGuest
+      ? (guestHasBuyer ? t("guestYouLeader") : t("guestNoBuyerYet"))
+      : (hasBuyer ? `${t("lastBuyerPrefix")} ${lastBuyerLabel}` : t("noBuyerYet")),
     sceneKeysSoldLine:      t("keysSoldLine", { count: totalKeys }),
     sceneYoursLine:         t("yoursLine", { count: userKeys }),
     sceneChoosePack:        t("choosePackLabel"),
-    scenePrizePool:         t("prizePoolLabel"),
-    sceneBuyVerb:           t("buyVerb"),
+    scenePrizePool:         isGuest ? t("guestPotLabel") : t("prizePoolLabel"),
+    sceneGuestCost:         t("guestNoCostLine"),
+    sceneBuyVerb:           isGuest ? t("guestBuyVerb") : t("buyVerb"),
     sceneKeyUnitOne:        t("keyUnitOne"),
     sceneKeyUnitMany:       t("keyUnitMany"),
-    sceneBuying:            t("buyingLabel"),
-    sceneSettling:          t("settlingRound"),
+    sceneBuying:            isGuest ? t("guestLoading") : t("buyingLabel"),
+    sceneSettling:          isGuest ? t("guestClaiming") : t("settlingRound"),
     sceneStatusServiceDown: t("statusServiceDown"),
-    sceneStatusSettle:      t("statusSettle"),
-    sceneStatusBuy:         t("statusBuy"),
-    sceneStatusWaiting:     t("statusWaiting"),
-    sceneStatusConnect:     t("statusConnect"),
-    sceneNoticeBuying:      t("noticeBuying"),
-    sceneNoticeSettling:    t("noticeSettling"),
+    sceneStatusSettle:      isGuest ? t("guestStatusClaim") : t("statusSettle"),
+    sceneStatusBuy:         isGuest ? t("guestStatusBuy") : t("statusBuy"),
+    sceneStatusWaiting:     isGuest ? t("guestStatusWaiting") : t("statusWaiting"),
+    sceneStatusConnect:     isGuest ? t("guestStatusStart") : t("statusConnect"),
+    sceneNoticeBuying:      isGuest ? t("guestNoticeBuying") : t("noticeBuying"),
+    sceneNoticeSettling:    isGuest ? t("guestNoticeClaiming") : t("noticeSettling"),
   };
 
-  const scoreItems = [
-    { label: t("totalPot"), value: totalPotDisplay, accent: true },
-    { label: t("sidebarTimeLeft"), value: needsLifecycleSync ? t("inactiveRound") : countdown },
-    { label: t("yourKeys"), value: String(userKeys) },
-  ];
+  const scoreItems = isGuest
+    ? [
+        { label: t("guestStreakLabel"), value: streakDisplay, accent: true },
+        { label: t("sidebarTimeLeft"), value: needsLifecycleSync ? t("guestClaimReady") : countdown },
+        { label: t("yourKeys"), value: String(userKeys) },
+      ]
+    : [
+        { label: t("totalPot"), value: totalPotDisplay, accent: true },
+        { label: t("sidebarTimeLeft"), value: needsLifecycleSync ? t("inactiveRound") : countdown },
+        { label: t("yourKeys"), value: String(userKeys) },
+      ];
 
   const secondaryActions = [
     {
@@ -121,11 +153,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     ...(needsLifecycleSync
       ? [
           {
-            label:   t("settleRound"),
+            label:   isGuest ? t("guestClaimWord") : t("settleRound"),
             onClick: () => void dispatch("settleRound"),
             loading: isSettling,
             icon:    <Trophy size={16} aria-hidden="true" />,
-            hint:    t("settleRoundHint"),
+            hint:    isGuest ? t("guestReadyToClaim") : t("settleRoundHint"),
           },
         ]
       : []),
@@ -149,9 +181,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
         className="survivor-playstage"
         stage={{
           eyebrow:  t("appEyebrow"),
-          title:    isRoundActive ? t("roundActive") : t("waitingForRound"),
-          subtitle: t("appSubtitle"),
-          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> Neo</span>,
+          title:    isGuest
+            ? t("guestStageTitle")
+            : isRoundActive ? t("roundActive") : t("waitingForRound"),
+          subtitle: isGuest ? t("guestStageSubtitle") : t("appSubtitle"),
+          badges: (
+            <span className="mx2-badge" data-tone="accent">
+              <span className="mx2-badge__dot" /> {isGuest ? t("guestBadge") : "Neo"}
+            </span>
+          ),
         }}
         scene={
           <PhaserGameComponent
@@ -168,9 +206,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           secondaryToggleLabel: t("moreActions"),
         }}
         score={scoreItems}
-        drawerToggleLabel={t("historyTitle")}
+        drawerToggleLabel={isGuest ? t("guestBoardTitle") : t("historyTitle")}
         drawer={{
-          title: t("historyTitle"),
+          title: isGuest ? t("guestBoardTitle") : t("historyTitle"),
           children: (
             <div className="survivor-drawer">
               <div className="survivor-drawer__inner">
@@ -188,8 +226,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                     <strong>{userSharePercent.toFixed(1)}%</strong>
                   </div>
                   <div>
-                    <span>{t("prepaidCreditLabel")}</span>
-                    <strong>{gasLabel(prepaidCredit)}</strong>
+                    <span>{isGuest ? t("guestStreakLabel") : t("prepaidCreditLabel")}</span>
+                    <strong>{isGuest ? streakDisplay : gasLabel(prepaidCredit)}</strong>
                   </div>
                 </div>
 
@@ -200,8 +238,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                   </div>
                   <div className="survivor-state-card">
                     <span>{t("currentLeader")}</span>
-                    <strong>{shortValue(lastBuyerLabel)}</strong>
-                    <small>{dangerLevelText || (roundReady ? t("safe") : t("roundStateRequired"))}</small>
+                    <strong>{isGuest ? leaderDisplay : shortValue(lastBuyerLabel)}</strong>
+                    <small>
+                      {isGuest
+                        ? t("guestClockHint")
+                        : dangerLevelText || (roundReady ? t("safe") : t("roundStateRequired"))}
+                    </small>
                   </div>
                   {keyValidationError && (
                     <p className="survivor-drawer__notice" data-tone="danger">{keyValidationError}</p>
@@ -222,10 +264,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                   <div className="survivor-economy">
                     <span>{t("keyCapsules")}</span>
                     <strong>{keyCount}</strong>
-                    <small>{t("nextCost", { amount: estimatedCost })}</small>
+                    <small>{isGuest ? t("guestNextCost") : t("nextCost", { amount: estimatedCost })}</small>
                   </div>
-                  <p>{t("nonRefundableNote")}</p>
-                  <p>{t("shareHint")}</p>
+                  <p>{isGuest ? t("guestNonRefundable") : t("nonRefundableNote")}</p>
+                  <p>{isGuest ? t("guestShareHint") : t("shareHint")}</p>
                 </section>
 
                 <section className="survivor-drawer__panel">
@@ -253,9 +295,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                     <h4>{t("rulesTitle")}</h4>
                   </div>
                   <ul className="survivor-rules">
-                    <li><strong>{t("ruleDeposit")}</strong><span>{t("ruleDepositDesc")}</span></li>
-                    <li><strong>{t("ruleTimer")}</strong><span>{t("ruleTimerDesc")}</span></li>
-                    <li><strong>{t("ruleWin")}</strong><span>{t("ruleWinDesc")}</span></li>
+                    <li>
+                      <strong>{isGuest ? t("guestRuleDeposit") : t("ruleDeposit")}</strong>
+                      <span>{isGuest ? t("guestRuleDepositDesc") : t("ruleDepositDesc")}</span>
+                    </li>
+                    <li>
+                      <strong>{t("ruleTimer")}</strong>
+                      <span>{isGuest ? t("guestRuleTimerDesc") : t("ruleTimerDesc")}</span>
+                    </li>
+                    <li>
+                      <strong>{isGuest ? t("guestYouLeader") : t("ruleWin")}</strong>
+                      <span>{isGuest ? t("guestRuleWinDesc") : t("ruleWinDesc")}</span>
+                    </li>
                   </ul>
                   {viewerAddress && (
                     <p className="survivor-drawer__wallet">{t("playerMarker")}: {shortValue(viewerAddress)}</p>

@@ -470,6 +470,10 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
    * Load all data. Called by defineMiniApp on mount and wallet reconnect.
    */
   const loadAll = async () => {
+    // GUEST mode owns the arena locally (guest-engine drives the observables).
+    // Skip every on-chain read so a mount-time / refresh load never clobbers the
+    // local surface after the player switches to guest.
+    if (app.mode.isGuest()) return;
     isLoading.set(true);
     try {
       setAddress(app.chain.address.get() ?? address.get() ?? null);
@@ -712,6 +716,9 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     address,
 
     // ── Timer State ─────────────────────────────────────────────────
+    // endTime is exposed so the guest engine can drive the local doomsday clock
+    // (the same base the countdown derives from) without a chain read.
+    endTime,
     countdown,
     dangerLevel,
     dangerLevelText,

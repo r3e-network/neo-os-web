@@ -119,6 +119,8 @@ export class PetPotionScene extends BaseScene {
   private statBars: StatBar[] = [];
   private actionButtons: Phaser.GameObjects.Container[] = [];
   private modeCards: ModeCard[] = [];
+  private modeCardRewards: Phaser.GameObjects.Text[] = [];
+  private prevAppMode = "";
   private primaryButton!: Phaser.GameObjects.Container;
   private primaryButtonBg!: Phaser.GameObjects.Graphics;
   private primaryButtonLabel!: Phaser.GameObjects.Text;
@@ -172,6 +174,14 @@ export class PetPotionScene extends BaseScene {
 
   protected onStateUpdate(_state: GameState): void {
     const status = this.str("gameStatus", "idle");
+    // Play mode (guest | gamefi) — guest drops the GAS reward tier + entry/reward
+    // subtitle so the lobby carries no reward framing. GAMEFI copy stays as-is.
+    const appMode = this.str("appMode", "gamefi");
+    const isGuest = appMode === "guest";
+    if (appMode !== this.prevAppMode) {
+      this.prevAppMode = appMode;
+      this.applyRewardLabels(isGuest);
+    }
     const isPlaying = isPlayingStatus(status);
     const isLoading = this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting");
     const stateDifficulty = Math.max(0, Math.min(2, this.num("gameDifficulty", this.selectedDifficulty)));
@@ -204,7 +214,9 @@ export class PetPotionScene extends BaseScene {
     this.subtitleText.setText(
       isPlaying
         ? `${activeMode.label} path · target ${activeMode.target}`
-        : `${activeMode.entry} GAS entry · ${activeMode.reward} GAS reward`,
+        : isGuest
+          ? `${activeMode.label} path · goal ${activeMode.target}`
+          : `${activeMode.entry} GAS entry · ${activeMode.reward} GAS reward`,
     );
 
     const visibleStage = status === "idle" || status === "expired" || status === "refunded"
@@ -472,6 +484,7 @@ export class PetPotionScene extends BaseScene {
         color: "#0c705d",
         fontStyle: "bold",
       }).setOrigin(0.5);
+      this.modeCardRewards.push(reward);
 
       bg.setInteractive(new Phaser.Geom.Rectangle(-45, -43, 90, 84), Phaser.Geom.Rectangle.Contains);
       this.bindGameButton(bg, {
@@ -637,7 +650,7 @@ export class PetPotionScene extends BaseScene {
     const label = isLoading
       ? "Working..."
       : isPlaying
-        ? "Claim reward"
+        ? (this.isGuestMode() ? "Save score" : "Claim reward")
         : status === "solved"
           ? "Raise another pet"
           : status === "expired" || status === "refunded"
@@ -758,14 +771,33 @@ export class PetPotionScene extends BaseScene {
   }
 
   private statusCopy(status: string, isLoading: boolean, targetReached: boolean, actionsUsed: number): string {
-    if (isLoading) return "Wallet and enclave are preparing the run.";
-    if (status === "solved") return "Reward credited. Start another care run when ready.";
+    const guest = this.isGuestMode();
+    if (isLoading) return guest ? "Preparing your pet…" : "Wallet and enclave are preparing the run.";
+    if (status === "solved") {
+      return guest ? "Run saved. Raise another pet when ready." : "Reward credited. Start another care run when ready.";
+    }
     if (status === "expired" || status === "refunded") return "This run is closed. Start a fresh pet when ready.";
     if (isPlayingStatus(status)) {
-      if (targetReached) return "Target reached. Claim before the deadline.";
+      if (targetReached) return guest ? "Target reached. Save your score." : "Target reached. Claim before the deadline.";
       return `${actionsUsed} / 40 care actions used`;
     }
     return "";
+  }
+
+  private isGuestMode(): boolean {
+    return this.str("appMode", "gamefi") === "guest";
+  }
+
+  /**
+   * Refresh the lobby mode-card reward tier for the current play mode: guest is a
+   * free local game, so it shows a "Free play" tag instead of the GAS reward.
+   */
+  private applyRewardLabels(isGuest: boolean): void {
+    const tag = this.str("guestLaneTag", "Free play");
+    this.modeCardRewards.forEach((text, index) => {
+      const mode = DIFFICULTIES[index];
+      text.setText(isGuest ? tag : `${mode?.reward ?? ""} GAS`);
+    });
   }
 
   private coverImage(image: Phaser.GameObjects.Image, W: number, H: number): void {
