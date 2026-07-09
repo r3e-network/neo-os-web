@@ -320,6 +320,18 @@ export function MiniAppRoot({
   ctxRef.current.clearStatus = clearStatus;
   ctxRef.current.framework = framework;
 
+  // Reflect app.mode onto <html data-app-mode> so host chrome / e2e probes can
+  // observe the guest/gamefi switch. Purely a signal — no behavior depends on it.
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const root = document.documentElement;
+    const apply = () => {
+      root.dataset.appMode = framework.mode.get();
+    };
+    apply();
+    return framework.mode.current.subscribe(apply);
+  }, [framework]);
+
   // --------------------------------------------------------------------------
   // Setup Hook Execution & Lifecycle
   // --------------------------------------------------------------------------
@@ -586,6 +598,8 @@ export function MiniAppRoot({
       t={tFn}
       stateVersion={stateVersion}
       skipLaunchPage={oneGateDirectPlay}
+      framework={framework}
+      reloadData={reloadData}
     >
       {playArea}
     </GameHomePageWrapper>
@@ -954,6 +968,8 @@ function GameHomePageWrapper({
   t,
   stateVersion,
   skipLaunchPage = false,
+  framework,
+  reloadData,
   children,
 }: {
   manifest: MiniAppManifest;
@@ -961,11 +977,30 @@ function GameHomePageWrapper({
   t: (key: string, params?: Record<string, string | number>) => string;
   stateVersion: number;
   skipLaunchPage?: boolean;
+  framework: MiniAppFramework;
+  reloadData: () => Promise<void>;
   children: React.ReactNode;
 }) {
   const gamePage = manifest.gamePage;
   const [showGame, setShowGame] = useState(false);
   const _sv = stateVersion; // re-render when observables change
+
+  // Two-mode entry — opt-in via `gamePage.modes.guest` (or top-level
+  // `supportsGuest`). Selecting a mode records it on app.mode SYNCHRONOUSLY
+  // before the play area mounts, so the scene + main.tsx observe the correct
+  // mode on their first render (no race). Guest additionally reloads data so
+  // the off-chain guest board replaces the on-chain read that ran on mount
+  // under the default "gamefi" mode.
+  const guestSupported =
+    manifest.gamePage?.modes?.guest === true || manifest.supportsGuest === true;
+  const enterWithMode = useCallback(
+    (mode: "guest" | "gamefi") => {
+      framework.mode.set(mode);
+      setShowGame(true);
+      if (mode === "guest") void reloadData();
+    },
+    [framework, reloadData],
+  );
 
   // ── Auto-switch to game when gameStatus leaves idle ──
   const gameStatusObs = appState["gameStatus"];
@@ -1050,7 +1085,12 @@ function GameHomePageWrapper({
       heroTitle={heroTitle}
       heroTitleAccent={heroTitleAccent}
       heroDesc={heroDesc}
-      primaryLabel={primaryLabel}
+      primaryLabel={
+        guestSupported ? translate("entryGameFiCta", "Earn GAS") : primaryLabel
+      }
+      secondaryLabel={
+        guestSupported ? translate("entryGuestCta", "Play free") : undefined
+      }
       ghostLabel={
         gamePage?.ghostLabelKey
           ? translate(gamePage.ghostLabelKey, translate("rulesTitle", "How to play"))
@@ -1058,7 +1098,12 @@ function GameHomePageWrapper({
             ? translate("rulesTitle", "How to play")
             : undefined
       }
-      onPrimaryClick={() => setShowGame(true)}
+      onPrimaryClick={
+        guestSupported ? () => enterWithMode("gamefi") : () => setShowGame(true)
+      }
+      onSecondaryClick={
+        guestSupported ? () => enterWithMode("guest") : undefined
+      }
       onGhostClick={() => setShowGame(true)}
       stats={[]}
       featuresEyebrow={

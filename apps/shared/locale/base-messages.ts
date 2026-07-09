@@ -21,6 +21,10 @@ export const baseMessages = {
   docOnChainFeatures: { en: "On-Chain Features", zh: "链上特性" },
   errorFallback: { en: "Something went wrong", zh: "出现错误" },
 
+  // --- Two-mode game entry CTAs (launcher; opt-in via gamePage.modes.guest) ---
+  entryGameFiCta: { en: "Earn GAS", zh: "赚取 GAS" },
+  entryGuestCta: { en: "Play free", zh: "免费试玩" },
+
   // --- Common status / UI keys ---
   error: { en: "Error", zh: "错误" },
   loading: { en: "Loading...", zh: "加载中..." },

@@ -292,6 +292,16 @@ export interface PlatformPermissions {
 // Game Page (focused launch page for game-type miniapps)
 // ============================================================================
 
+/**
+ * Two-mode opt-in for game-type miniapps. When `guest` is true the launcher
+ * renders a two-choice entry — a primary "Earn GAS" (GameFi) CTA and a
+ * secondary "Play free" (Guest) CTA — instead of the single start button.
+ */
+export interface MiniAppGameModes {
+  /** Opt into the guest (free, local, off-chain) play mode. */
+  guest?: boolean;
+}
+
 /** Feature card definition for the game page features section */
 export interface GamePageFeature {
   /** Optional icon identifier; rendered only when a concrete icon component exists. */
@@ -352,6 +362,8 @@ export interface GamePageConfig {
   categoryColor?: string;
   /** Optional icon identifier for future concrete icon rendering. Prefer app logo assets. */
   appIcon?: string;
+  /** Two-mode (guest/gamefi) opt-in — enables the two-CTA launcher entry. */
+  modes?: MiniAppGameModes;
 }
 
 // ============================================================================
@@ -422,4 +434,11 @@ export interface MiniAppManifest {
    *  Every `shell: "game"` miniapp gets a focused launch page before
    *  entering the game; this config customizes that default. */
   gamePage?: GamePageConfig;
+
+  /**
+   * Two-mode (guest/gamefi) opt-in for apps without a full `gamePage` block.
+   * Equivalent to `gamePage.modes.guest`; either enables the two-CTA launcher
+   * entry ("Earn GAS" + "Play free").
+   */
+  supportsGuest?: boolean;
 }
