@@ -17,6 +17,7 @@ import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 const BURN_ASSETS = {
   arena: "burn-league-arena",
   gas: "burn-league-gas-token",
+  logo: "burn-league-logo",
 } as const;
 
 const C = {
@@ -116,6 +117,7 @@ export class BurnLeagueScene extends BaseScene {
   preload(): void {
     this.load.image(BURN_ASSETS.arena, "./burn-league-arena.webp");
     this.load.image(BURN_ASSETS.gas, officialGasTokenPhaserUrl);
+    this.load.image(BURN_ASSETS.logo, "./logo.webp");
   }
 
   create(): void {
@@ -418,7 +420,11 @@ export class BurnLeagueScene extends BaseScene {
     g.fillEllipse(0, 64, 92, 16);
     g.fillStyle(C.gold, 1);
     g.fillEllipse(0, 63, 74, 12);
-    return this.add.container(0, 0, [g]);
+    // League crest: the app logo embossed as a ceremonial seal on the pedestal
+    // front (real art asset, tucked below the bowl so it never clips the HUD).
+    const crestRing = this.add.circle(0, 78, 15, C.goldDeep, 1).setStrokeStyle(2, C.goldLight, 0.9);
+    const crest = this.add.image(0, 78, BURN_ASSETS.logo).setDisplaySize(22, 22);
+    return this.add.container(0, 0, [g, crestRing, crest]);
   }
 
   /** Wide golden brazier bowl with a dark cavity and a glowing coal bed. */
