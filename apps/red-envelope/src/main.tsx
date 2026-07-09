@@ -7,6 +7,7 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useRedEnvelope } from "./composables/useRedEnvelope";
+import { createGuestEngine, type GuestBoardRow } from "./logic/guest-engine";
 
 defineMiniApp({
   appId: "miniapp-redenvelope",
@@ -22,12 +23,48 @@ defineMiniApp({
         launchParams.id ||
         launchParams.packet,
     );
+    const app = ctx.framework;
     const envelope = useRedEnvelope({
-      app: ctx.framework,
+      app,
       t: ctx.t,
     });
 
-    envelope.setAddress(ctx.framework.chain.address.get() ?? null);
+    envelope.setAddress(app.chain.address.get() ?? null);
+
+    // ── Guest (free / local) mode ─────────────────────────────────────────────
+    // GUEST reuses the SAME dispatch actions + scene observables, driven by a
+    // purely local packet engine — no chain/oracle/reward calls. `appMode` is
+    // surfaced to the PlayArea so its copy branches to local framing; the guest
+    // stat observables feed the local score panel + off-chain board.
+    const appMode = createObservable<string>(app.mode.get());
+    const guestBest = createObservable(0);
+    const guestTotal = createObservable(0);
+    const guestOpened = createObservable(0);
+    const guestBoard = createObservable<GuestBoardRow[]>([]);
+
+    const guest = createGuestEngine({
+      envelopes: envelope.envelopes,
+      pools: envelope.pools,
+      claims: envelope.claims,
+      isLoading: envelope.isLoading,
+      luckyMessage: envelope.luckyMessage,
+      openingId: envelope.openingId,
+      prepaidCredit: envelope.prepaidCredit,
+      lastCreatedEnvelopeId: envelope.lastCreatedEnvelopeId,
+      guestBest,
+      guestTotal,
+      guestOpened,
+      guestBoard,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Switching to guest at the launcher resets to a clean local lobby and loads
+    // the off-chain guest board (replacing the on-chain read done on mount).
+    app.mode.onChange((mode) => {
+      appMode.set(mode);
+      if (mode === "guest") void guest.enter();
+    });
 
     ctx.framework.actions.register("createEnvelope", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
@@ -36,6 +73,14 @@ defineMiniApp({
         expiryHours?: string;
         memo?: string;
       };
+      if (app.mode.isGuest()) {
+        guest.createEnvelope({
+          amount: String(form.amount ?? ""),
+          count: String(form.count ?? "1"),
+          expiryHours: String(form.expiryHours ?? "24"),
+        });
+        return;
+      }
       await ctx.framework.notify.guard(
         () =>
           envelope.create({
@@ -51,6 +96,7 @@ defineMiniApp({
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
+      if (app.mode.isGuest()) { guest.claimEnvelope(id); return; }
       if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
       await ctx.framework.notify.guard(
         () => envelope.handleClaimFromPool(id),
@@ -62,6 +108,7 @@ defineMiniApp({
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
+      if (app.mode.isGuest()) { guest.reclaimEnvelope(id); return; }
       if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
       await ctx.framework.notify.guard(async () => {
         const { amount } = await envelope.reclaimEnvelope(id);
@@ -75,6 +122,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawCredit", async () => {
+      if (app.mode.isGuest()) { guest.withdrawCredit(); return; }
       await ctx.framework.notify.guard(async () => {
         const { amount } = await envelope.withdrawCredit();
         if (amount > 0) {
@@ -98,6 +146,7 @@ defineMiniApp({
       const first = args[0];
       const form = first && typeof first === "object" ? (first as Record<string, unknown>) : null;
       const id = String(form?.envelopeId ?? first ?? envelope.lastCreatedEnvelopeId.get() ?? "").trim();
+      if (app.mode.isGuest()) { guest.shareEnvelope(id); return; }
       if (!id) return;
       const deeplink = `neomainapp://red-envelope?envelopeId=${id}`;
       await ctx.services.clipboard.copy(deeplink, "shareLinkCopied");
@@ -140,10 +189,19 @@ defineMiniApp({
         createAmount,
         createCount,
         createMemo,
+        appMode,
+        guestBest,
+        guestTotal,
+        guestOpened,
+        guestBoard,
       },
+      // loadData runs on mount (default "gamefi") and again on a guest switch. In
+      // guest we skip every on-chain read and (re)initialize the local lobby so a
+      // mount-time gamefi read never overwrites the guest surface.
       loadData: hasLaunchEnvelopeId
         ? async () => {
-            envelope.setAddress(ctx.framework.chain.address.get() ?? null);
+            if (app.mode.isGuest()) { await guest.enter(); return; }
+            envelope.setAddress(app.chain.address.get() ?? null);
             // Deep-link / QR claim: hydrate the launched envelope so the recipient
             // sees its remaining-packets / pool-progress preview before claiming,
             // rather than landing on an empty list (it is not their own envelope,
@@ -158,7 +216,8 @@ defineMiniApp({
             await envelope.hydrateEnvelope(launchId);
           }
         : async () => {
-            envelope.setAddress(ctx.framework.chain.address.get() ?? null);
+            if (app.mode.isGuest()) { await guest.enter(); return; }
+            envelope.setAddress(app.chain.address.get() ?? null);
             await envelope.loadAll();
           },
     };

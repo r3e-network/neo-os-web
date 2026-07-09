@@ -13,6 +13,7 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
+import { createGuestEngine } from "./logic/guest-engine";
 import type { LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
@@ -72,10 +73,34 @@ defineMiniApp({
     // ── Curve-arrow-specific observables ──────────────────────────────────────
     const clues = createObservable("");   // dealt level layouts from enclave
 
+    // ── Mode surface ──────────────────────────────────────────────────────────
+    // `appMode` mirrors app.mode.current into the PlayArea/scene bridge so the
+    // GAS-centric copy can branch to local framing in guest. Kept in sync via
+    // app.mode.onChange; read lazily by the UI (never captured).
+    const appMode = createObservable(app.mode.get());
+
     let session: RewardGameSession | null = null;
+
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local archery engine — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      obs,
+      clues,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Switching to guest at the launcher resets to a clean local lobby and loads
+    // the off-chain guest board (replacing the on-chain reads done on mount).
+    app.mode.onChange((mode) => {
+      appMode.set(mode);
+      if (mode === "guest") void guest.enter();
+    });
 
     // ── Data refresh ──────────────────────────────────────────────────────────
     const refreshBalances = async () => {
+      if (app.mode.isGuest()) return;
       try {
         const balances = await rewardGame.balances(app.game.player.scriptHash());
         obs.poolFree.set(balances.poolFreeGas);
@@ -84,12 +109,14 @@ defineMiniApp({
     };
 
     const refreshStats = async () => {
+      if (app.mode.isGuest()) return;
       const { solves, totalWon } = await app.game.stats.load();
       obs.mySolves.set(solves);
       obs.myTotalWon.set(totalWon);
     };
 
     const loadLeaderboard = async () => {
+      if (app.mode.isGuest()) return;
       const { ranked, mine } = await app.game.leaderboard.load<SolveRow>(
         "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
       );
@@ -99,6 +126,7 @@ defineMiniApp({
     };
 
     const refreshProgression = async () => {
+      if (app.mode.isGuest()) return;
       try {
         const progression = await rewardGame.progression(2);
         obs.progressionRequiredDifficulty.set(progression.requiredDifficulty);
@@ -163,6 +191,11 @@ defineMiniApp({
 
     // ── Actions ───────────────────────────────────────────────────────────────
     app.actions.register("startGame", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { difficulty?: unknown };
+        guest.startGame(Number(form.difficulty ?? 0));
+        return;
+      }
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form       = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
@@ -199,12 +232,14 @@ defineMiniApp({
 
     app.actions.register("selectDifficulty", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { difficulty?: unknown };
+      if (app.mode.isGuest()) { guest.selectDifficulty(Number(form.difficulty ?? 0)); return; }
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
       if (obs.progressionReady.get() && difficulty < obs.progressionRequiredDifficulty.get()) return;
       obs.gameDifficulty.set(difficulty);
     });
 
     app.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isDealing.get() || obs.gameStatus.get() !== "committed") return;
       await openSession(gameId, obs.gameDifficulty.get());
@@ -215,10 +250,12 @@ defineMiniApp({
       const holds = form.holds;
       if (!Array.isArray(holds)) return;
       if (!holds.every((tick) => Number.isInteger(tick))) return;
+      if (app.mode.isGuest()) { guest.recordShot(holds as number[]); return; }
       try { await sendOp({ type: "shot", holds: holds as number[] }); } catch { /* telemetry */ }
     });
 
     app.actions.register("submitSolution", async () => {
+      if (app.mode.isGuest()) { await guest.submitSolution(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isSubmitting.get() || obs.gameStatus.get() !== "dealt") return;
       obs.isSubmitting.set(true);
@@ -253,6 +290,7 @@ defineMiniApp({
     });
 
     app.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0") return;
       try {
@@ -271,6 +309,7 @@ defineMiniApp({
 
     const withdrawOp = app.operations.create("withdrawWinnings");
     app.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       if (!app.game.player.scriptHash()) { ctx.setStatus(ctx.t("statusFailed"), "error"); return; }
       if (obs.credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       await withdrawOp.run(async () => {
@@ -280,13 +319,18 @@ defineMiniApp({
     });
 
     app.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, clues },
+      state: { ...obs, clues, appMode },
       loadData: async () => {
+        // Guest owns its own lobby setup via guest.enter() (fired on the mode
+        // switch); skip every on-chain read so nothing bleeds into the guest
+        // surface once the player has chosen free play.
+        if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
         const playerHash = app.game.player.scriptHash();
         if (playerHash) {

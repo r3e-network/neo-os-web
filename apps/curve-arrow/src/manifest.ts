@@ -13,6 +13,7 @@ export const manifest: MiniAppManifest = {
     // shell injects this as its --n3h-accent inline, so it must be the same
     // pine green the in-game shell renders.
     categoryColor: "#2f7d4e",
+    modes: { guest: true },
     heroBadgeKey: "networkBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",

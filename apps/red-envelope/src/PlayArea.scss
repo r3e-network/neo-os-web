@@ -850,6 +850,23 @@
   padding: 10px 12px;
 }
 
+// Guest (free / local) luck board — a compact off-chain board shown only in
+// guest mode. Reuses the shared history-list rows for the entries.
+.redenv-guest-board {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.14);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 10px 12px;
+}
+
+.redenv-guest-board__head strong {
+  color: #7f1d1d;
+  font-size: 0.86rem;
+  font-weight: 680;
+}
+
 .redenv-credit-card {
   grid-template-columns: auto minmax(0, 1fr) auto;
   background: #fffdf7;

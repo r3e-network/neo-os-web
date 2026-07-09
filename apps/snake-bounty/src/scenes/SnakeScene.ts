@@ -310,6 +310,14 @@ export class SnakeScene extends BaseScene {
     return labels[difficulty] ?? DIFF_LABELS[difficulty] ?? "";
   }
 
+  // Guest (free / local) mode: a plain local snake with no token, pool, wallet,
+  // progression, or anti-bot gating. Reads the play-mode mirror pushed by the
+  // PlayArea (bridgeState.appMode). GameFi is the default, so the frozen scene
+  // contract is untouched whenever this is false.
+  private isGuest(): boolean {
+    return this.str("appMode", "gamefi") === "guest";
+  }
+
   // ── Phaser lifecycle ──────────────────────────────────────────────────────
 
   preload(): void {
@@ -410,9 +418,12 @@ export class SnakeScene extends BaseScene {
     } else if (isSubmitting) {
       this.showOverlay(this.txt("ovSubmittingTitle", "Submitting"), this.txt("ovSubmittingSub", "Verifying your solution"));
     } else if (this.crashed && gameStatus === "dealt") {
+      // Guest crashes have nothing to settle on-chain, so the button resets to a
+      // local lobby (expireGame) instead of submitting a run.
+      const guest = this.isGuest();
       this.showOverlay(this.txt("ovGameOverTitle", "Game Over"), this.txt("ovGameOverSub", "The snake crashed."), {
-        label: this.txt("ovGameOverBtn", "Settle Run"),
-        onPress: () => this.dispatch("submitSolution"),
+        label: guest ? this.txt("ovGameOverGuestBtn", "Play again") : this.txt("ovGameOverBtn", "Settle Run"),
+        onPress: () => this.dispatch(guest ? "expireGame" : "submitSolution"),
       });
     } else if (this.targetReached && gameStatus === "dealt") {
       const canSubmit = this.canSubmitTarget();
@@ -1162,6 +1173,14 @@ export class SnakeScene extends BaseScene {
   }
 
   private updateLobbyStatus(): void {
+    // Guest has no wallet / pool / progression gating — one local-run status line.
+    if (this.isGuest()) {
+      if (!this.lobbyStatusText) return;
+      this.lobbyStatusText.setText(this.txt("guestLobbyStatus", "Tap a trail to start a local run"));
+      this.lobbyStatusText.setColor("#d4f9df");
+      this.drawStatusPill();
+      return;
+    }
     const poolFree = this.num("poolFree", 0);
     const rule     = ruleOf(this.pickedDifficulty);
     const needed   = Number(gasDisplay(rule.rewardFixed8));
@@ -1223,6 +1242,7 @@ export class SnakeScene extends BaseScene {
   }
 
   private isDifficultyLocked(difficulty: Difficulty): boolean {
+    if (this.isGuest()) return false;   // no route progression in local play
     return this.bool("progressionReady") && difficulty < this.requiredDifficulty();
   }
 
@@ -1234,6 +1254,8 @@ export class SnakeScene extends BaseScene {
 
   private canStartDifficulty(difficulty: Difficulty): boolean {
     if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
+    // Guest is a free local snake: no wallet, no reward pool, no progression gate.
+    if (this.isGuest()) return true;
     if (!this.bool("walletConnected")) return false;
     if (!this.bool("progressionReady")) return false;
     if (this.isDifficultyLocked(difficulty)) return false;
@@ -1245,6 +1267,8 @@ export class SnakeScene extends BaseScene {
   private canSubmitTarget(): boolean {
     if (!this.targetReached || this.str("gameStatus", "") !== "dealt") return false;
     if (this.bool("isSubmitting")) return false;
+    // Guest has no reward at stake, so no anti-bot floor / deadline buffer gate.
+    if (this.isGuest()) return true;
     const deadline = this.num("deadline", 0);
     const dealtAt = this.num("dealtAt", 0);
     const difficulty = this.num("gameDifficulty", 0);
@@ -1416,7 +1440,8 @@ export class SnakeScene extends BaseScene {
 
     // Hint label
     const elapsedMs = dealtAt > 0 ? this.nowMs - dealtAt : 0;
-    const minSolveReached = dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
+    // Guest has no anti-bot floor, so the settlement unlock is always reached.
+    const minSolveReached = this.isGuest() || (dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS);
     const timeUp    = gameStatus === "dealt" && deadline > 0 && remainingMs <= 0;
     const submitWindowClosed = gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
 

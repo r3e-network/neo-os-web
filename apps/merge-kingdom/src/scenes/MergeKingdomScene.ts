@@ -248,9 +248,11 @@ export class MergeKingdomScene extends BaseScene {
   private bestTileText!: Phaser.GameObjects.Text;
   private hintText!:     Phaser.GameObjects.Text;
   private submitBtn!:    Phaser.GameObjects.Container;
+  private submitBtnText!: Phaser.GameObjects.Text;
   private expireBtn!:    Phaser.GameObjects.Container;
   private wonBanner!:    Phaser.GameObjects.Container;
   private wonBannerCrest!: Phaser.GameObjects.Image;
+  private wonBannerSub!: Phaser.GameObjects.Text;
 
   // ── Lobby ─────────────────────────────────────────────────────────────────
   private diffCards: Phaser.GameObjects.Container[]  = [];
@@ -494,7 +496,7 @@ export class MergeKingdomScene extends BaseScene {
     });
 
     this.startBtn = this.buildActionButton(SCENE_W / 2, 502, 216, 48, "Build Realm", () => {
-      if (this.bool("walletConnected") === false) return;
+      if (!this.isGuestMode() && this.bool("walletConnected") === false) return;
       this.dispatch("startGame", this.selectedDiff);
     });
     this.startBtnText = this.startBtn.list[1] as Phaser.GameObjects.Text;
@@ -623,8 +625,14 @@ export class MergeKingdomScene extends BaseScene {
     this.routeTargetArt.setTexture(this.tileAssetKey(rule.targetTile));
     this.routeTitleText.setText(`${DIFF_LABELS[this.selectedDiff] ?? "Easy"} route`);
     this.routeGoalText.setText(`Reach ${TILE_NAME[rule.targetTile] ?? rule.targetTile} before the timer`);
-    this.routeRewardText.setText(`${gasDisplay(rule.reward)} GAS`);
-    this.routeEntryText.setText(`Entry ${gasDisplay(rule.entry)} GAS`);
+    if (this.isGuestMode()) {
+      // Guest carries no stake — drop the reward/entry GAS framing.
+      this.routeRewardText.setText("Local run");
+      this.routeEntryText.setText("Free practice");
+    } else {
+      this.routeRewardText.setText(`${gasDisplay(rule.reward)} GAS`);
+      this.routeEntryText.setText(`Entry ${gasDisplay(rule.entry)} GAS`);
+    }
     this.routeTimeText.setText(`${Math.round(rule.limitMs / 60000)} min limit`);
   }
 
@@ -782,6 +790,11 @@ export class MergeKingdomScene extends BaseScene {
     return board?.[row]?.[col] ?? 0;
   }
 
+  /** Guest is a free local game — no wallet, no pool, no reward/GAS framing. */
+  private isGuestMode(): boolean {
+    return this.str("appMode", "gamefi") === "guest";
+  }
+
   // ── Build: HUD ────────────────────────────────────────────────────────────
 
   private buildHUD(): void {
@@ -843,6 +856,7 @@ export class MergeKingdomScene extends BaseScene {
       SCENE_W / 2, BOARD_BOTTOM + 46, 188, 44, "Claim Reward",
       () => { this.dispatch("submitSolution"); },
     );
+    this.submitBtnText = this.submitBtn.list[1] as Phaser.GameObjects.Text;
     this.submitBtn.setVisible(false);
 
     // ── Expire button (shown when time is up) ─────────────────────────────
@@ -868,12 +882,12 @@ export class MergeKingdomScene extends BaseScene {
       resolution: TEXT_RESOLUTION,
       fontSize: "14px", fontStyle: "bold", color: "#2b261f",
     }).setOrigin(0, 0.5);
-    const bannerSub = this.add.text(-66, 9, "Claim your reward below", {
+    this.wonBannerSub = this.add.text(-66, 9, "Claim your reward below", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "10px", color: "#0f9f6e",
     }).setOrigin(0, 0.5);
-    this.wonBanner.add([bannerBg, this.wonBannerCrest, bannerTitle, bannerSub]);
+    this.wonBanner.add([bannerBg, this.wonBannerCrest, bannerTitle, this.wonBannerSub]);
     this.wonBanner.setVisible(false);
 
     this.playObjects.push(
@@ -959,27 +973,31 @@ export class MergeKingdomScene extends BaseScene {
     const poolFree   = this.num("poolFree", 0);
     const walletConn = this.bool("walletConnected");
     const isStarting = this.bool("isStarting");
+    const guestMode  = this.isGuestMode();
     const enough     = rule ? poolFree >= Number(gasDisplay(rule.reward)) : false;
 
     const btnBg = this.startBtn.list[0] as Phaser.GameObjects.Rectangle;
     const btnText = this.startBtn.list[1] as Phaser.GameObjects.Text;
-    const canStart = walletConn && !isStarting;
+    // Guest is a free local game — no wallet required to build the realm.
+    const canStart = (guestMode || walletConn) && !isStarting;
     btnBg.setFillStyle(canStart ? C.gold : C.disabledBtn);
     btnBg.setStrokeStyle(2, canStart ? C.goldLight : C.cardBorder);
     btnText.setColor(canStart ? "#2b261f" : "#8b7355");
     // A gated hero button reads as an intentional next step ("Connect wallet")
     // rather than a faded "Build Realm".
     this.startBtnText.setText(
-      isStarting ? "Building..." : walletConn ? "Build Realm" : "Connect wallet",
+      isStarting ? "Building..." : (guestMode || walletConn) ? "Build Realm" : "Connect wallet",
     );
 
-    const poolMsg = !walletConn
-      ? "Connect wallet to play"
-      : !enough
-        ? `Pool low (${poolFree.toFixed(2)} GAS available)`
-        : rule
-          ? `Entry: ${gasDisplay(rule.entry)} GAS · Reward: ${gasDisplay(rule.reward)} GAS`
-          : "";
+    const poolMsg = guestMode
+      ? "Local practice — merge tiles, no GAS at stake"
+      : !walletConn
+        ? "Connect wallet to play"
+        : !enough
+          ? `Pool low (${poolFree.toFixed(2)} GAS available)`
+          : rule
+            ? `Entry: ${gasDisplay(rule.entry)} GAS · Reward: ${gasDisplay(rule.reward)} GAS`
+            : "";
     this.poolText.setText(poolMsg);
   }
 
@@ -1106,6 +1124,10 @@ export class MergeKingdomScene extends BaseScene {
     const railOwnsClaim = deadline <= 0 || timeLeft > SUBMIT_BUFFER_MS;
     const bannerVisible = showClaim && railOwnsClaim;
 
+    // Guest carries no reward — reframe the claim affordances as a local finish.
+    const guestMode = this.isGuestMode();
+    this.wonBannerSub.setText(guestMode ? "Finish your local run" : "Claim your reward below");
+    this.submitBtnText.setText(guestMode ? "Finish Run" : "Claim Reward");
     if (showClaim) this.wonBannerCrest.setTexture(this.tileAssetKey(targetTile));
     this.wonBanner.setVisible(bannerVisible);
     this.submitBtn.setVisible(showClaim && !railOwnsClaim);
@@ -1137,13 +1159,20 @@ export class MergeKingdomScene extends BaseScene {
     const elapsedMs    = this.num("lastElapsedMs", 0);
 
     if (status === "solved") {
-      this.resultTitle.setText("Victory!").setColor("#16a34a");
-      const payoutGas = (lastPayout / 1e8).toFixed(2);
-      this.resultBody.setText(
-        `Best tile: ${tileAchieved}\nTime: ${formatClock(elapsedMs)}\nReward: ${payoutGas} GAS`,
-      );
+      this.resultTitle.setText(this.isGuestMode() ? "Kingdom raised!" : "Victory!").setColor("#16a34a");
+      if (this.isGuestMode()) {
+        // Guest run — no GAS payout; celebrate the local best tile instead.
+        this.resultBody.setText(
+          `Best tile: ${tileAchieved}\nTime: ${formatClock(elapsedMs)}\nLocal run saved`,
+        );
+      } else {
+        const payoutGas = (lastPayout / 1e8).toFixed(2);
+        this.resultBody.setText(
+          `Best tile: ${tileAchieved}\nTime: ${formatClock(elapsedMs)}\nReward: ${payoutGas} GAS`,
+        );
+      }
     } else {
-      this.resultTitle.setText("Time's Up").setColor("#dc2626");
+      this.resultTitle.setText(this.isGuestMode() ? "Run over" : "Time's Up").setColor("#dc2626");
       this.resultBody.setText(`Best tile: ${tileAchieved}`);
     }
 

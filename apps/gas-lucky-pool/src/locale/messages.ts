@@ -432,6 +432,60 @@ const appMessagesBase = {
   vaultLuckSuffix: { en: "{percent}% luck", zh: "手气 {percent}%" },
   vaultLatestTx: { en: "Latest tx {tx}", zh: "最新交易 {tx}" },
   claimProgressSubmitted: { en: "Submitted", zh: "已提交" },
+
+  // ── Guest (free / local) lucky-draw strings ───────────────────────────────
+  // GUEST reframes the vault as a stakes-free local lucky draw: no GAS, no pool,
+  // no wallet — just crypto-random "luck points". Every key is guest-only; the
+  // gamefi copy above is untouched.
+  guestUnit: { en: "pts", zh: "分" },
+  guestTabDraw: { en: "Lucky draw", zh: "幸运抽奖" },
+  guestTabQuick: { en: "Quick draw", zh: "快速抽奖" },
+  guestChooseTier: { en: "Choose a luck tier", zh: "选择幸运档位" },
+  guestUnwrapTitle: { en: "Reveal your prize", zh: "揭晓你的奖品" },
+  guestActionDraw: { en: "Draw", zh: "抽奖" },
+  guestTagline: {
+    en: "Local luck draw — no GAS, just points.",
+    zh: "本地幸运抽奖——无 GAS，只赢积分。",
+  },
+  guestStatusIdle: {
+    en: "Tap Draw to test your luck",
+    zh: "点击抽奖试试手气",
+  },
+  guestPackSummary: {
+    en: "{min}-{max} pts per draw",
+    zh: "每次抽奖 {min}-{max} 分",
+  },
+  guestSlots: { en: "tap to draw", zh: "点击抽奖" },
+  guestRangeDefault: { en: "Luck draw", zh: "幸运抽奖" },
+  guestEyebrow: { en: "Lucky Draw", zh: "幸运抽奖" },
+  guestTitle: { en: "Local Lucky Draw", zh: "本地幸运抽奖" },
+  guestSubtitle: {
+    en: "Practice your luck locally — pick a tier and draw for points. No GAS, no wallet needed.",
+    zh: "本地练手气——选择档位抽取积分。无需 GAS 或钱包。",
+  },
+  guestModeBadge: { en: "Local play", zh: "本地游玩" },
+  guestBestLabel: { en: "Best draw", zh: "最佳一抽" },
+  guestLastLabel: { en: "Last draw", zh: "上一抽" },
+  guestDrawsLabel: { en: "Draws", zh: "抽奖次数" },
+  guestBoardTitle: { en: "Local luck board", zh: "本地手气榜" },
+  guestBoardEmpty: {
+    en: "Draw a prize to start your local board.",
+    zh: "抽一次奖开启你的本地榜单。",
+  },
+  guestDrawerTitle: { en: "Play & scores", zh: "玩法与积分" },
+  guestHowTitle: { en: "How to play", zh: "玩法" },
+  guestHowBody: {
+    en: "Pick a luck tier and tap Draw. A random prize is revealed with crypto-random luck — all local, nothing on chain. Your best draws are saved to the off-chain board.",
+    zh: "选择一个幸运档位并点击抽奖。系统用加密随机数揭晓一份奖品——完全本地，不上链。你的最佳成绩会保存到离线榜单。",
+  },
+  guestSeedNote: {
+    en: "Prizes are rolled locally with your device's secure RNG. Nothing is staked and nothing touches the chain.",
+    zh: "奖品由你设备的安全随机数在本地生成。不下注、不上链。",
+  },
+  guestDrawResult: {
+    en: "You drew {amount} pts — {luck}% luck!",
+    zh: "你抽到 {amount} 分——手气 {luck}%！",
+  },
 } as const;
 
 const jaMessages = {
@@ -671,6 +725,34 @@ const jaMessages = {
   vaultLuckSuffix: "運 {percent}%",
   vaultLatestTx: "最新Tx {tx}",
   claimProgressSubmitted: "送信済み",
+  guestUnit: "pt",
+  guestTabDraw: "ラッキードロー",
+  guestTabQuick: "クイックドロー",
+  guestChooseTier: "運の段を選ぶ",
+  guestUnwrapTitle: "景品を公開",
+  guestActionDraw: "ドロー",
+  guestTagline: "ローカル抽選 — GASなし、ポイントだけ。",
+  guestStatusIdle: "ドローを押して運試し",
+  guestPackSummary: "1回 {min}-{max} pt",
+  guestSlots: "タップで抽選",
+  guestRangeDefault: "ラッキードロー",
+  guestEyebrow: "ラッキードロー",
+  guestTitle: "ローカル・ラッキードロー",
+  guestSubtitle:
+    "ローカルで運試し — 段を選んでポイントを引こう。GASもウォレットも不要。",
+  guestModeBadge: "ローカルプレイ",
+  guestBestLabel: "ベストドロー",
+  guestLastLabel: "直近のドロー",
+  guestDrawsLabel: "ドロー数",
+  guestBoardTitle: "ローカル運ランキング",
+  guestBoardEmpty: "1回引くとローカルボードが始まります。",
+  guestDrawerTitle: "遊び方とスコア",
+  guestHowTitle: "遊び方",
+  guestHowBody:
+    "運の段を選んでドローをタップ。デバイスの安全な乱数で景品が公開されます — すべてローカルで、チェーンには触れません。ベスト記録はオフチェーンのボードに保存されます。",
+  guestSeedNote:
+    "景品はデバイスの安全な乱数でローカルに抽選されます。賭けもチェーンへの送信もありません。",
+  guestDrawResult: "{amount} pt 獲得 — 運 {luck}%！",
 } satisfies Record<keyof typeof appMessagesBase, string>;
 
 const appMessages = Object.fromEntries(

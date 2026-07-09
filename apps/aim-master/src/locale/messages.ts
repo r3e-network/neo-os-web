@@ -169,6 +169,28 @@ const appMessages = {
   deadlineBufferHint: { en: "Too close to the deadline — a transaction can no longer land in time.", zh: "距离截止太近——交易已无法及时上链。" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Guest (free / local) mode copy ──────────────────────────────────────────
+  guestSubtitle: {
+    en: "Free local target practice — no wallet needed. Best scores are saved off-chain.",
+    zh: "免费的本地打靶练习——无需钱包。最佳成绩离线保存。",
+  },
+  guestModeLine: { en: "Guest mode — local play, scores saved off-chain.", zh: "游客模式——本地游玩，成绩离线保存。" },
+  guestBestLabel: { en: "Best score", zh: "最佳成绩" },
+  guestModeTag: { en: "Mode", zh: "模式" },
+  guestModeValue: { en: "Local run", zh: "本地练习" },
+  guestPoolLabel: { en: "Local practice range", zh: "本地练习靶场" },
+  guestRewardLabel: { en: "Local", zh: "本地" },
+  guestEntryLabel: { en: "Free", zh: "免费" },
+  guestLobbyStatus: { en: "Pick a lane to start a local run", zh: "选择靶道开始本地练习" },
+  guestDealt: { en: "Local run live — tap as the reticle crosses center", zh: "本地练习进行中——准星过中心时点击" },
+  guestRunComplete: { en: "Local run complete — {points} pts!", zh: "本地练习完成——{points} 分！" },
+  guestScoreValue: { en: "{points} pts", zh: "{points} 分" },
+  guestExpired: { en: "Time up — run the range again", zh: "时间到——再来一局" },
+  guestLeaderboardIntro: {
+    en: "Local scores are saved off-chain — no wallet or GAS required.",
+    zh: "本地成绩离线保存——无需钱包或 GAS。",
+  },
 };
 
 export const messages = mergeMessages(appMessages);

@@ -123,6 +123,18 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const isCreating = bool("isCreating");
   const isOpening = Boolean(openingId) || isLoading;
 
+  // Guest (free / local) play — surfaced from app.mode via main.tsx so the copy
+  // drops all GAS-at-stake / pool / credit / on-chain framing in favour of local,
+  // practice-run framing. GAMEFI copy is untouched.
+  const isGuest = str("appMode", "gamefi") === "guest";
+  const guestBest = val<number>("guestBest", 0) ?? 0;
+  const guestTotal = val<number>("guestTotal", 0) ?? 0;
+  const guestOpened = val<number>("guestOpened", 0) ?? 0;
+  const guestBoard = val<Array<{ user: string; score: number }>>("guestBoard", []) ?? [];
+  // Mode-aware string: guest uses the local variant, gamefi keeps the original.
+  const sx = (guestKey: string, gamefiKey: string): string =>
+    isGuest ? t(guestKey) : t(gamefiKey);
+
   const openEnvelopes = uniqueById([...pools, ...envelopes].filter(isEnvelopeOpen));
   const reclaimableEnvelopes = envelopes.filter((env) => env.reclaimable);
   const claimableGas = openEnvelopes.reduce((sum, env) => sum + envelopeGas(env), 0);
@@ -136,7 +148,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     modeSend: t("sceneModeSend"),
     modeClaim: t("sceneModeClaim"),
     sendHeading: t("sceneSendHeading"),
-    claimHeading: t("sceneClaimHeading"),
+    claimHeading: sx("sceneClaimHeadingGuest", "sceneClaimHeading"),
     planLucky: t("scenePlanLucky"),
     planParty: t("scenePlanParty"),
     planFestival: t("scenePlanFestival"),
@@ -148,21 +160,21 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     opening: t("sceneOpening"),
     noEnvelope: t("sceneNoEnvelope"),
     summaryTpl: t("sceneSummaryTpl"),
-    resultReceivedTpl: t("sceneResultReceivedTpl"),
+    resultReceivedTpl: sx("sceneResultReceivedTplGuest", "sceneResultReceivedTpl"),
     resultShareReadyTpl: t("sceneResultShareReadyTpl"),
     resultClaimReady: t("sceneResultClaimReady"),
-    resultClaimIdle: t("sceneResultClaimIdle"),
-    resultSendIdle: t("sceneResultSendIdle"),
+    resultClaimIdle: sx("sceneResultClaimIdleGuest", "sceneResultClaimIdle"),
+    resultSendIdle: sx("sceneResultSendIdleGuest", "sceneResultSendIdle"),
     ticketEnvelopeTpl: t("sceneTicketEnvelopeTpl"),
     ticketEmpty: t("sceneTicketEmpty"),
-    claimReadyMeta: t("sceneClaimReadyMeta"),
-    claimEmptyMeta: t("sceneClaimEmptyMeta"),
+    claimReadyMeta: sx("sceneClaimReadyMetaGuest", "sceneClaimReadyMeta"),
+    claimEmptyMeta: sx("sceneClaimEmptyMetaGuest", "sceneClaimEmptyMeta"),
     packetsLeftTpl: t("scenePacketsLeftTpl"),
     packetStatusReady: t("scenePacketStatusReady"),
     gasLeftTpl: t("sceneGasLeftTpl"),
     randomAmount: t("sceneRandomAmount"),
-    statusClaimIdle: t("sceneStatusClaimIdle"),
-    statusSendIdle: t("sceneStatusSendIdle"),
+    statusClaimIdle: sx("sceneStatusClaimIdleGuest", "sceneStatusClaimIdle"),
+    statusSendIdle: sx("sceneStatusSendIdleGuest", "sceneStatusSendIdle"),
     prepaidTpl: t("scenePrepaidTpl"),
     errorFallback: t("sceneErrorFallback"),
   };
@@ -197,11 +209,17 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
           ? t("envelopeSent")
           : t("appTitle");
 
-  const score = [
-    { label: t("availableEnvelopes"), value: String(openEnvelopes.length), accent: openEnvelopes.length > 0 },
-    { label: t("claimablePool"), value: formatGas(claimableGas) },
-    { label: prepaidCredit > 0 ? t("prepaidCreditLabel") : t("recentClaimsTitle"), value: prepaidCredit > 0 ? formatGas(prepaidCredit) : String(claimCount) },
-  ];
+  const score = isGuest
+    ? [
+        { label: t("guestBestLabel"), value: guestBest > 0 ? formatGas(guestBest) : "--", accent: guestBest > 0 },
+        { label: t("guestTotalLabel"), value: formatGas(guestTotal) },
+        { label: t("guestOpenedLabel"), value: String(guestOpened) },
+      ]
+    : [
+        { label: t("availableEnvelopes"), value: String(openEnvelopes.length), accent: openEnvelopes.length > 0 },
+        { label: t("claimablePool"), value: formatGas(claimableGas) },
+        { label: prepaidCredit > 0 ? t("prepaidCreditLabel") : t("recentClaimsTitle"), value: prepaidCredit > 0 ? formatGas(prepaidCredit) : String(claimCount) },
+      ];
 
   const drawerModes: Array<{
     mode: DrawerMode;
@@ -290,12 +308,19 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
       <div className="redenv-drawer__panel-body" data-mode="safety">
         <div className="redenv-safety-card">
           <ShieldCheck size={18} aria-hidden="true" />
-          <span>{t("safetyPanelCopy")}</span>
+          <span>{isGuest ? t("guestHowBody") : t("safetyPanelCopy")}</span>
         </div>
-        <div className="redenv-route">
-          <span>{t("contractRoute")}</span>
-          <code>{t("claimContractRoute")}</code>
-        </div>
+        {isGuest ? (
+          <div className="redenv-route" data-mode="guest">
+            <span>{t("guestHowTitle")}</span>
+            <code>{t("guestBadge")}</code>
+          </div>
+        ) : (
+          <div className="redenv-route">
+            <span>{t("contractRoute")}</span>
+            <code>{t("claimContractRoute")}</code>
+          </div>
+        )}
       </div>
     ),
   };
@@ -305,39 +330,63 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
       <div className="redenv-drawer__head">
         <img src="./red-envelope-claim-card.webp" alt="" width={52} height={52} draggable={false} />
         <div>
-          <strong>{lastCreatedEnvelopeId ? t("shareReadyTitle") : t("claimPanelTitle")}</strong>
-          <span>{lastError || serviceNotice || t("docDescription")}</span>
+          <strong>
+            {isGuest
+              ? t("guestHowTitle")
+              : lastCreatedEnvelopeId
+                ? t("shareReadyTitle")
+                : t("claimPanelTitle")}
+          </strong>
+          <span>{lastError || serviceNotice || (isGuest ? t("guestHowBody") : t("docDescription"))}</span>
         </div>
       </div>
 
       <div className="redenv-drawer__summary-grid" aria-label={t("drawerSummaryLabel")}>
-        <div>
-          <span>{t("availableEnvelopes")}</span>
-          <strong>{String(openEnvelopes.length)}</strong>
-        </div>
-        <div>
-          <span>{t("claimablePool")}</span>
-          <strong>{formatGas(claimableGas)}</strong>
-        </div>
-        <div>
-          <span>{t("createdGasLabel")}</span>
-          <strong>{formatGas(totalCreated)}</strong>
-        </div>
-        <div>
-          <span>{t("claimedGasLabel")}</span>
-          <strong>{formatGas(totalClaimed)}</strong>
-        </div>
-        <div>
-          <span>{t("prepaidCreditLabel")}</span>
-          <strong>{formatGas(prepaidCredit)}</strong>
-        </div>
-        <div>
-          <span>{t("sidebarEnvelopes")}</span>
-          <strong>{String(envelopeCount + poolCount)}</strong>
-        </div>
+        {(isGuest
+          ? [
+              { label: t("guestBestLabel"), value: guestBest > 0 ? formatGas(guestBest) : "--" },
+              { label: t("guestTotalLabel"), value: formatGas(guestTotal) },
+              { label: t("guestOpenedLabel"), value: String(guestOpened) },
+              { label: t("availableEnvelopes"), value: String(openEnvelopes.length) },
+            ]
+          : [
+              { label: t("availableEnvelopes"), value: String(openEnvelopes.length) },
+              { label: t("claimablePool"), value: formatGas(claimableGas) },
+              { label: t("createdGasLabel"), value: formatGas(totalCreated) },
+              { label: t("claimedGasLabel"), value: formatGas(totalClaimed) },
+              { label: t("prepaidCreditLabel"), value: formatGas(prepaidCredit) },
+              { label: t("sidebarEnvelopes"), value: String(envelopeCount + poolCount) },
+            ]
+        ).map((cell) => (
+          <div key={String(cell.label)}>
+            <span>{cell.label}</span>
+            <strong>{cell.value}</strong>
+          </div>
+        ))}
       </div>
 
-      {lastCreatedEnvelopeId && (
+      {isGuest && (
+        <div className="redenv-guest-board" aria-label={t("guestBoardTitle")}>
+          <div className="redenv-guest-board__head">
+            <strong>{t("guestBoardTitle")}</strong>
+          </div>
+          {guestBoard.length > 0 ? (
+            <ul className="mx2-history redenv-drawer-list">
+              {guestBoard.slice(0, 8).map((row, index) => (
+                <li key={`${row.user}-${index}`} className="mx2-history__item redenv-drawer-list__item">
+                  <span className="mx2-history__face">#{index + 1}</span>
+                  <span className="mx2-history__stake">{shortId(row.user, 6, 4)}</span>
+                  <span className="mx2-history__result">{formatGas(row.score)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="redenv-drawer__empty">{t("guestBoardEmpty")}</div>
+          )}
+        </div>
+      )}
+
+      {!isGuest && lastCreatedEnvelopeId && (
         <div className="redenv-share-card">
           <div>
             <span>{t("shareTitle")}</span>
@@ -408,11 +457,11 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         stage={{
           eyebrow: t("appEyebrow"),
           title: stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {t("tokenGas")}
+                <span className="mx2-badge__dot" /> {isGuest ? t("guestBadge") : t("tokenGas")}
               </span>
               {lastCreatedEnvelopeId && (
                 <span className="mx2-badge">

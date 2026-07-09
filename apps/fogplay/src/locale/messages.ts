@@ -216,6 +216,26 @@ const appMessages = {
     en: "House bankroll too low for this bet — max payable bet is {max} {tokenGas}",
     zh: "庄家奖池余额不足以支付此注 — 当前最大可下注 {max} {tokenGas}",
   },
+
+  // -- Guest (free / local) mode --------------------------------------------
+  // Local framing: no GAS at stake, no pool, no chain. Guest builds a win streak.
+  guestSubtitle: {
+    en: "Pick heads or tails and flip locally — build your best win streak.",
+    zh: "选择正面或反面，本地抛掷 — 冲击你的最佳连胜。",
+  },
+  guestModeBadge: { en: "Local play", zh: "本地游玩" },
+  guestStreak: { en: "Streak", zh: "连胜" },
+  guestBestStreak: { en: "Best streak", zh: "最佳连胜" },
+  guestStreakBadge: { en: "Streak {n}", zh: "连胜 {n}" },
+  guestStatusIdle: {
+    en: "Local flip · 50/50 · build a streak",
+    zh: "本地抛掷 · 五五开 · 冲击连胜",
+  },
+  guestStatusFlipping: { en: "Flipping the coin…", zh: "抛掷硬币中…" },
+  guestFairnessNote: {
+    en: "Guest mode runs every flip locally with in-browser randomness — no wallet, no GAS, no chain. Scores are kept off-chain.",
+    zh: "游客模式使用浏览器内随机数在本地完成每次抛掷 — 无需钱包、不涉及 GAS、不上链。成绩离线保存。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

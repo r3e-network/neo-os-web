@@ -14,6 +14,7 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
+import { createGuestEngine } from "./logic/guest-engine";
 import type { LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
@@ -77,10 +78,36 @@ defineMiniApp({
     const seed        = createObservable("");   // deterministic pipe layout seed
     const pipesPassed = createObservable(0);
 
+    // ── Play mode (guest | gamefi) mirrored into an observable for the PlayArea ─
+    // The PlayArea/scene read this to switch to local (guest) framing and hide
+    // the GAS-at-stake / pool / reward copy. Kept in sync with app.mode.
+    const appMode = createObservable<string>(app.mode.get());
+
     let session: RewardGameSession | null = null;
 
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local runner — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      obs,
+      seed,
+      pipesPassed,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Switching to guest at the launcher resets to a clean local lobby and loads
+    // the off-chain guest board (replacing the on-chain read done on mount).
+    app.mode.onChange((mode) => {
+      appMode.set(mode);
+      if (mode === "guest") void guest.enter();
+    });
+
     // ── Data refresh ──────────────────────────────────────────────────────────
+    // Every chain-reading loader early-returns in guest mode so a mount-time
+    // gamefi read never clobbers the local guest surface after the switch.
     const refreshBalances = async () => {
+      if (app.mode.isGuest()) return;
       try {
         const balances = await reward.balances();
         obs.poolFree.set(balances.poolFreeGas);
@@ -89,12 +116,14 @@ defineMiniApp({
     };
 
     const refreshStats = async () => {
+      if (app.mode.isGuest()) return;
       const { solves, totalWon } = await app.game.stats.load();
       obs.mySolves.set(solves);
       obs.myTotalWon.set(totalWon);
     };
 
     const loadLeaderboard = async () => {
+      if (app.mode.isGuest()) return;
       const { ranked, mine } = await app.game.leaderboard.load<FlappyRow>(
         "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
         (ev) => {
@@ -148,6 +177,11 @@ defineMiniApp({
 
     // ── Actions ───────────────────────────────────────────────────────────────
     app.actions.register("startGame", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { difficulty?: unknown };
+        guest.startGame(Number(form.difficulty ?? 0));
+        return;
+      }
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form       = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
@@ -183,12 +217,18 @@ defineMiniApp({
     });
 
     app.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isDealing.get() || obs.gameStatus.get() !== "committed") return;
       await openSession(gameId, obs.gameDifficulty.get());
     });
 
     app.actions.register("recordFlap", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { pipes?: unknown };
+        guest.recordFlap(Number(form.pipes ?? pipesPassed.get()));
+        return;
+      }
       const form    = (args[0] ?? {}) as { pipes?: unknown };
       const pipes   = Number(form.pipes ?? pipesPassed.get());
       const gameId  = obs.activeGameId.get();
@@ -200,6 +240,11 @@ defineMiniApp({
     });
 
     app.actions.register("submitSolution", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { pipes?: unknown };
+        await guest.submitSolution(Number(form.pipes ?? pipesPassed.get()));
+        return;
+      }
       const form       = (args[0] ?? {}) as { stateHash?: unknown; pipes?: unknown };
       const pipes      = Number(form.pipes ?? pipesPassed.get());
       const gameId     = obs.activeGameId.get();
@@ -237,6 +282,7 @@ defineMiniApp({
     });
 
     app.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0") return;
       try {
@@ -255,6 +301,7 @@ defineMiniApp({
 
     const withdrawOp = app.operations.create("withdrawWinnings");
     app.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       if (!app.game.player.scriptHash()) { ctx.setStatus(ctx.t("statusFailed"), "error"); return; }
       if (obs.credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       await withdrawOp.run(async () => {
@@ -264,13 +311,15 @@ defineMiniApp({
     });
 
     app.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, seed, pipesPassed },
+      state: { ...obs, seed, pipesPassed, appMode },
       loadData: async () => {
+        if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
         const playerHash = app.game.player.scriptHash();
         if (playerHash) {

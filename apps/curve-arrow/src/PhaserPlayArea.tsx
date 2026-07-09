@@ -76,6 +76,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const progressionReady = bool("progressionReady");
   const requiredDifficulty = val<number>("progressionRequiredDifficulty", 0) ?? 0;
   const activeGameId   = str("activeGameId", "0");
+  const appMode        = str("appMode", "gamefi");
+  const isGuest        = appMode === "guest";
 
   const rule     = ruleOf(gameDifficulty);
   const nowMs    = Date.now();
@@ -99,6 +101,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     walletConnected,
     progressionReady,
     progressionRequiredDifficulty: requiredDifficulty,
+    appMode,
   };
 
   // ── Dispatch forwarding ───────────────────────────────────────────────────
@@ -153,23 +156,56 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : routeLocked
       ? t("progressionNextRoute", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) })
       : t(`difficulty_${rule.key}`);
-  const hudItems = [
-    {
-      label: t("rewardMetric"),
-      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
-      accent: true,
-    },
-    {
-      label: t("timeMetric"),
-      value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
-      accent: timeUp,
-    },
-    {
-      label: t("wonMetric"),
-      value: `${myTotalWon.toFixed(2)} GAS`,
-      accent: false,
-    },
-  ];
+  const hudItems = isGuest
+    ? [
+        {
+          label: t("guestGoalMetric"),
+          value: t("targetRibbon", { target: rule.targetLevels }),
+          accent: true,
+        },
+        {
+          label: t("timeMetric"),
+          value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
+          accent: timeUp,
+        },
+        {
+          label: t("guestBestMetric"),
+          value: `${Math.round(myTotalWon)}`,
+          accent: false,
+        },
+      ]
+    : [
+        {
+          label: t("rewardMetric"),
+          value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+          accent: true,
+        },
+        {
+          label: t("timeMetric"),
+          value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
+          accent: timeUp,
+        },
+        {
+          label: t("wonMetric"),
+          value: `${myTotalWon.toFixed(2)} GAS`,
+          accent: false,
+        },
+      ];
+
+  // Drawer detail cells — GAS/pool/credit framing in gamefi, local framing in guest.
+  const drawerCells = isGuest
+    ? [
+        { label: t("guestModeLabel"), value: t("guestLocalRun") },
+        { label: t("guestBestMetric"), value: `${Math.round(myTotalWon)}` },
+        { label: t("scoreLevels"), value: t("targetRibbon", { target: rule.targetLevels }) },
+        { label: t("timeMetric"), value: formatClock(rule.limitMs) },
+      ]
+    : [
+        { label: t("progressionStatusLabel"), value: routeStatus },
+        { label: t("creditLabel"), value: `${creditGas.toFixed(2)} GAS` },
+        { label: t("scoreReward"), value: `${gasDisplay(rule.rewardFixed8)} GAS` },
+        { label: t("scoreWon"), value: `${myTotalWon.toFixed(2)} GAS` },
+      ];
 
   return (
     <div className="curve-arrow-playarea mx2 mx2-cat-game" aria-busy={busy || undefined}>
@@ -184,9 +220,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
             <>
               <span className="mx2-badge" data-tone="accent">
                 <span className="mx2-badge__dot" />
-                {t("networkBadge")}
+                {isGuest ? t("guestBadge") : t("networkBadge")}
               </span>
-              {myRank > 0 && (
+              {!isGuest && myRank > 0 && (
                 <span className="mx2-badge">{t("rankBadge", { rank: myRank })}</span>
               )}
             </>
@@ -229,7 +265,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Trophy size={18} aria-hidden="true" />
                   <div>
                     <h3>{t("drawerTitle")}</h3>
-                    <p>{t("fairnessShort")}</p>
+                    <p>{isGuest ? t("guestDrawerHint") : t("fairnessShort")}</p>
                   </div>
                   <img
                     className="curve-arrow-ingame-drawer__medal"
@@ -239,22 +275,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   />
                 </div>
                 <div className="curve-arrow-ingame-drawer__grid">
-                  <span>
-                    <small>{t("progressionStatusLabel")}</small>
-                    <strong>{routeStatus}</strong>
-                  </span>
-                  <span>
-                    <small>{t("creditLabel")}</small>
-                    <strong>{creditGas.toFixed(2)} GAS</strong>
-                  </span>
-                  <span>
-                    <small>{t("scoreReward")}</small>
-                    <strong>{gasDisplay(rule.rewardFixed8)} GAS</strong>
-                  </span>
-                  <span>
-                    <small>{t("scoreWon")}</small>
-                    <strong>{myTotalWon.toFixed(2)} GAS</strong>
-                  </span>
+                  {drawerCells.map((cell) => (
+                    <span key={cell.label}>
+                      <small>{cell.label}</small>
+                      <strong>{cell.value}</strong>
+                    </span>
+                  ))}
                 </div>
                 {drawerActions.length > 0 && (
                   <div className="curve-arrow-ingame-drawer__actions">

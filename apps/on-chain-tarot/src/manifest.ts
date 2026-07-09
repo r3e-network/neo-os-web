@@ -13,7 +13,15 @@ export const manifest: MiniAppManifest = {
   description: "Blockchain-powered divination",
   icon: "star",
   category: "game",
-  shell: "launcher",
+  // Game shell → focused two-choice launch page (the two-mode guest entry is
+  // rendered only for shell "game"). Matches every other guest-enabled game
+  // (color-clash, fogplay, dice-game, ...).
+  shell: "game",
+
+  // Two-mode launcher entry: primary "Earn GAS" (GameFi, unchanged) + secondary
+  // "Play free" (Guest — a purely local tarot reading). On-Chain Tarot has no
+  // gamePage block, so it opts in via the top-level supportsGuest flag.
+  supportsGuest: true,
 
   // -- Tabs -------------------------------------------------------------------
   tabs: [

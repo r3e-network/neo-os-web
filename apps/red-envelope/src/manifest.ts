@@ -14,7 +14,15 @@ export const manifest: MiniAppManifest = {
     "Scan, claim, and optionally send lucky GAS red envelopes on Neo N3",
   icon: "gift",
   category: "social",
-  shell: "launcher",
+  // `shell: "game"` renders the two-choice launcher entry (Earn GAS / Play free);
+  // because this manifest has `operations`, the host template still resolves to
+  // its two-column layout, so the gamefi surface is unchanged — the launcher just
+  // adds the guest/gamefi choice in front.
+  shell: "game",
+  // Two-mode opt-in. No full gamePage block, so opt in via the top-level flag —
+  // GUEST is a purely local packet game (see logic/guest-engine.ts); GAMEFI is the
+  // existing on-chain create/claim flow, unchanged.
+  supportsGuest: true,
 
   // -- Tabs -------------------------------------------------------------------
   tabs: [

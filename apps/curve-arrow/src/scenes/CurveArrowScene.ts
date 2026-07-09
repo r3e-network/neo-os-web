@@ -509,13 +509,13 @@ export class CurveArrowScene extends BaseScene {
       this.showOverlay("Submitting", "Enclave verifying your shots");
     } else if (this.run?.done && !this.run.won && gameStatus === "dealt") {
       this.showOverlay("Out of Arrows", "Every arrow is spent.", {
-        label: "Settle Run",
+        label: this.isGuest() ? "See Score" : "Settle Run",
         onPress: () => this.dispatch("submitSolution"),
       });
     } else if (this.run?.done && this.run.won && gameStatus === "dealt") {
       const canSubmit = this.canSubmitRun();
       this.showOverlay("Range Cleared", this.submitGateMessage(canSubmit), {
-        label: canSubmit ? "Submit Win" : "Waiting",
+        label: canSubmit ? (this.isGuest() ? "Save Score" : "Submit Win") : "Waiting",
         disabled: !canSubmit,
         onPress: () => this.dispatch("submitSolution"),
         icon: true,
@@ -1369,11 +1369,18 @@ export class CurveArrowScene extends BaseScene {
       color: "#f3cf7f",
     }).setOrigin(0.5);
 
-    const sub = this.add.text(this.scW / 2, layout.lobbySubY, "Curve arrows over the walls to win GAS", {
-      fontFamily: FONT_FAMILY,
-      fontSize: "12px",
-      color: "#cdeed8",
-    }).setOrigin(0.5);
+    const sub = this.add.text(
+      this.scW / 2,
+      layout.lobbySubY,
+      this.isGuest()
+        ? "Curve arrows over the walls and clear every target"
+        : "Curve arrows over the walls to win GAS",
+      {
+        fontFamily: FONT_FAMILY,
+        fontSize: "12px",
+        color: "#cdeed8",
+      },
+    ).setOrigin(0.5);
 
     // ── How-to-Play panel ────────────────────────────────────────────────────
     const arenaGfx = this.add.graphics();
@@ -1557,7 +1564,7 @@ export class CurveArrowScene extends BaseScene {
       color: "#d9f2e1",
     }).setOrigin(0.5);
 
-    const entryTxt = this.add.text(0, 28, `${gasDisplay(rule.entryFixed8)} GAS`, {
+    const entryTxt = this.add.text(0, 28, this.isGuest() ? "Free play" : `${gasDisplay(rule.entryFixed8)} GAS`, {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#8fe6b6",
@@ -1614,7 +1621,11 @@ export class CurveArrowScene extends BaseScene {
       bg.setStrokeStyle(2, locked ? 0x425846 : isActive ? C.cardActive : C.cardBorder);
       label.setColor(locked ? "#9fb7a6" : "#f3cf7f");
       target.setColor(locked ? "#8aa493" : "#d9f2e1");
-      entry.setText(locked ? "Completed" : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`);
+      entry.setText(
+        this.isGuest()
+          ? "Free play"
+          : locked ? "Completed" : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`,
+      );
       entry.setColor(locked ? "#9fb7a6" : "#8fe6b6");
       lock.setVisible(locked);
       card.setAlpha(locked ? 0.58 : 1);
@@ -1630,24 +1641,40 @@ export class CurveArrowScene extends BaseScene {
     const busy     = this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting");
     const ready    = this.canStartDifficulty(this.pickedDifficulty);
     if (this.lobbyStatusText) {
-      const reward  = gasDisplay(rule.rewardFixed8);
-      const time    = Math.round(rule.limitMs / 60000);
-      const statusText = busy
-        ? "Preparing your archery range"
-        : !walletConnected
-          ? "Connect wallet to start a range"
-          : !progressionReady
-            ? "Checking account range history"
-            : locked
-              ? `Range cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
-              : ready
-                ? `Tap a range to start  ·  Win: ${reward} GAS  ·  ${time} min`
-                : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
-      this.lobbyStatusText.setText(statusText);
-      // Caption sits on the pale shell just above the cards — use dark-on-light
-      // tones (pine when ready, deep amber for a wait/warn state).
-      this.lobbyStatusText.setColor(ready ? "#266542" : "#a87722");
+      if (this.isGuest()) {
+        // Local run: no GAS/pool/wallet framing — just an invitation to play.
+        const time = Math.round(rule.limitMs / 60000);
+        this.lobbyStatusText.setText(
+          busy
+            ? "Setting up your range"
+            : `Tap a range to play  ·  ${rule.targetLevels} targets  ·  ${time} min`,
+        );
+        this.lobbyStatusText.setColor("#266542");
+      } else {
+        const reward  = gasDisplay(rule.rewardFixed8);
+        const time    = Math.round(rule.limitMs / 60000);
+        const statusText = busy
+          ? "Preparing your archery range"
+          : !walletConnected
+            ? "Connect wallet to start a range"
+            : !progressionReady
+              ? "Checking account range history"
+              : locked
+                ? `Range cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
+                : ready
+                  ? `Tap a range to start  ·  Win: ${reward} GAS  ·  ${time} min`
+                  : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
+        this.lobbyStatusText.setText(statusText);
+        // Caption sits on the pale shell just above the cards — use dark-on-light
+        // tones (pine when ready, deep amber for a wait/warn state).
+        this.lobbyStatusText.setColor(ready ? "#266542" : "#a87722");
+      }
     }
+  }
+
+  /** Guest (free / local) mode surfaced from app.mode via the bridge state. */
+  private isGuest(): boolean {
+    return this.str("appMode", "gamefi") === "guest";
   }
 
   private requiredDifficulty(): Difficulty {
@@ -1670,6 +1697,8 @@ export class CurveArrowScene extends BaseScene {
 
   private canStartDifficulty(difficulty: Difficulty): boolean {
     if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
+    // Guest is a local run: no wallet, no reward pool, no progression gate.
+    if (this.isGuest()) return !this.isDifficultyLocked(difficulty);
     if (!this.bool("walletConnected")) return false;
     if (!this.bool("progressionReady")) return false;
     if (this.isDifficultyLocked(difficulty)) return false;
@@ -1683,6 +1712,8 @@ export class CurveArrowScene extends BaseScene {
   private canSubmitRun(): boolean {
     if (!this.run?.won || this.str("gameStatus", "") !== "dealt") return false;
     if (this.bool("isSubmitting")) return false;
+    // Local runs settle instantly — no anti-bot floor or deadline buffer.
+    if (this.isGuest()) return true;
     const deadline = this.num("deadline", 0);
     const dealtAt = this.num("dealtAt", 0);
     const difficulty = this.num("gameDifficulty", 0);
@@ -1694,6 +1725,11 @@ export class CurveArrowScene extends BaseScene {
   }
 
   private submitGateMessage(canSubmit: boolean): string {
+    if (this.isGuest()) {
+      return canSubmit
+        ? "Save your local run score."
+        : "Clear every target to finish the run.";
+    }
     if (canSubmit) return "Submit for GAS before time runs out.";
     const deadline = this.num("deadline", 0);
     const dealtAt = this.num("dealtAt", 0);

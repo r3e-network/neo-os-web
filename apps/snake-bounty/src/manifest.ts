@@ -13,6 +13,9 @@ export const manifest: MiniAppManifest = {
     // shell injects this as its --n3h-accent inline, so it must be the same
     // jade the in-game shell renders.
     categoryColor: "#00af92",
+    // Two-mode entry: primary "Earn GAS" (GameFi) + secondary "Play free"
+    // (guest = a fully local snake, no token/oracle/chain/reward).
+    modes: { guest: true },
     heroBadgeKey: "networkBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",

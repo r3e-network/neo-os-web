@@ -326,6 +326,68 @@ const appMessages = {
     en: "The envelope action could not be completed.",
     zh: "红包操作未能完成。",
   },
+
+  // ── Guest (free / local) mode ───────────────────────────────────────
+  // GUEST is a purely local packet game: no token, no chain, no reward. The
+  // copy below drops all GAS-at-stake / pool / credit / on-chain framing in
+  // favour of local, practice-run framing. GAMEFI copy is untouched.
+  guestBadge: { en: "Local run", zh: "本地畅玩" },
+  guestSubtitle: {
+    en: "Practice red envelopes locally — open packets to test your luck. Nothing goes on-chain.",
+    zh: "本地练习红包 — 开红包试试手气，全程不上链。",
+  },
+  guestLocalSender: { en: "Local", zh: "本地" },
+  guestBestLabel: { en: "Best luck", zh: "最佳手气" },
+  guestTotalLabel: { en: "Total grabbed", zh: "累计抢到" },
+  guestOpenedLabel: { en: "Packets opened", zh: "已开红包" },
+  guestBoardTitle: { en: "Local luck board", zh: "本地手气榜" },
+  guestBoardEmpty: { en: "Open packets to post your luck score.", zh: "开红包即可上榜。" },
+  guestHowTitle: { en: "Local practice", zh: "本地练习" },
+  guestHowBody: {
+    en: "Create a bundle, then open packets one by one. Amounts are rolled on your device — no GAS moves and nothing is sent on-chain.",
+    zh: "创建一个套餐，然后逐个开红包。金额在本地随机生成 — 不动用 GAS，也不上链。",
+  },
+  // Engine status lines.
+  guestEnvelopeReady: {
+    en: "Local envelope ready — {count} packets to open",
+    zh: "本地红包已就绪 — {count} 个待开",
+  },
+  guestGrabbed: { en: "You grabbed {amount} GAS!", zh: "你抢到了 {amount} GAS！" },
+  guestReclaimed: { en: "Local envelope cleared", zh: "本地红包已清除" },
+  guestNoCredit: { en: "Guest mode has no credit to withdraw", zh: "游客模式没有可提取额度" },
+  guestShareLocal: {
+    en: "Guest envelopes are local — there is no share link",
+    zh: "游客红包为本地红包，暂无分享链接",
+  },
+  guestNoEnvelope: { en: "Create a local envelope to open", zh: "先创建一个本地红包再打开" },
+  // Mode-aware Phaser scene copy (injected through the same sceneCopy keys, so
+  // the frozen scene stays unchanged — it just renders local framing in guest).
+  sceneStatusSendIdleGuest: {
+    en: "Local practice — packets are split on your device.",
+    zh: "本地练习 — 红包在本地随机拆分。",
+  },
+  sceneStatusClaimIdleGuest: {
+    en: "Open a packet to test your luck.",
+    zh: "开一个红包试试手气。",
+  },
+  sceneResultSendIdleGuest: {
+    en: "Create packets, then open them for luck.",
+    zh: "创建红包，然后逐个开出手气。",
+  },
+  sceneResultClaimIdleGuest: {
+    en: "Create a local envelope to start opening.",
+    zh: "创建本地红包即可开始。",
+  },
+  sceneClaimEmptyMetaGuest: {
+    en: "Create a local envelope, then open it.",
+    zh: "创建本地红包后再打开。",
+  },
+  sceneClaimReadyMetaGuest: {
+    en: "Ready to open — no wallet needed.",
+    zh: "可直接打开 — 无需钱包。",
+  },
+  sceneClaimHeadingGuest: { en: "Open a local packet", zh: "打开本地红包" },
+  sceneResultReceivedTplGuest: { en: "+{amount} GAS luck!", zh: "手气 +{amount} GAS！" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -25,6 +25,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Guest (free / local) mode surfaces from app.mode via main.tsx. When guest,
+  // the panel drops all GAS-at-stake / pool / reward framing for local framing.
+  const isGuest     = str("appMode", "gamefi") === "guest";
   const gameStatus  = str("gameStatus", "idle");
   const isDealing   = bool("isDealing");
   const isStarting  = bool("isStarting");
@@ -58,33 +61,40 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     diffInfos: diffTileCounts.map(
       (count, i) => `${t("tileTypesLabel", { count })} · ${diffTimers[i]}`,
     ),
-    diffEntries: ["0.02", "0.10", "0.20"].map((amount) => t("entryAmount", { amount })),
-    diffRewards: ["0.10", "0.50", "1.00"].map((amount) => t("winAmount", { amount })),
+    // Guest boards carry no entry / reward: show the clear goal + a free tag
+    // instead of "Entry 0.02 GAS" / "Win 0.10 GAS".
+    diffEntries: isGuest
+      ? diffTileCounts.map(() => t("freePlayLabel"))
+      : ["0.02", "0.10", "0.20"].map((amount) => t("entryAmount", { amount })),
+    diffRewards: isGuest
+      ? diffTileCounts.map((count) => t("clearGoalLabel", { count: count * 3 }))
+      : ["0.10", "0.50", "1.00"].map((amount) => t("winAmount", { amount })),
     undo:     t("undoLabel"),
     shuffle:  t("shuffleLabel"),
     remove3:  t("remove3Label"),
     tray:     t("trayLabel"),
-    loadTitle: t("loadingBoard"),
-    loadSub:   t("securingPuzzle"),
+    loadTitle: isGuest ? t("guestDealing") : t("loadingBoard"),
+    loadSub:   isGuest ? t("guestModeLine") : t("securingPuzzle"),
     progress:  t("progressStat"),
     matched:   t("matchedStat"),
-    wonTitle:      t("wonTitle"),
-    creditedTitle: t("creditedTitle"),
+    wonTitle:      isGuest ? t("guestClearedTitle") : t("wonTitle"),
+    creditedTitle: isGuest ? t("guestClearedTitle") : t("creditedTitle"),
     gameOverTitle: t("gameOverTitle"),
-    boardClearedSub:  t("boardClearedSub"),
-    boardVerifiedSub: t("boardVerifiedSub"),
+    boardClearedSub:  isGuest ? t("guestRunSub") : t("boardClearedSub"),
+    boardVerifiedSub: isGuest ? t("guestRunSub") : t("boardVerifiedSub"),
     payoutSub:     t("payoutSub"),
     creditReadySub: t("creditReadySub"),
     trayFullSub:   t("trayFullSub"),
-    playAgain:    t("playAgainAction"),
-    claim:        t("claimRewardAction"),
+    playAgain:    isGuest ? t("guestPlayAgainAction") : t("playAgainAction"),
+    claim:        isGuest ? t("guestPlayAgainAction") : t("claimRewardAction"),
     withdraw:     t("withdrawShortAction"),
-    backToRoutes: t("backToRoutesAction"),
+    backToRoutes: isGuest ? t("guestPlayAgainAction") : t("backToRoutesAction"),
     tryAgain:     t("tryAgainAction"),
   };
 
   // Bridge state snapshot: all values must be plain (serializable)
   const bridgeState = {
+    appMode: isGuest ? "guest" : "gamefi",
     activeGameId,
     gameStatus,
     gameDifficulty: num("gameDifficulty", 0),
@@ -109,26 +119,30 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     loc,
   };
 
-  // Derive stage header text
+  // Derive stage header text — guest drops the on-chain / GAS framing.
   const isLoading = isStarting || isDealing || gameStatus === "committed";
   const stageTitle = isLoading
-    ? t("statusSealing")
+    ? (isGuest ? t("guestDealing") : t("statusSealing"))
     : gameStatus === "solved"
-    ? t("statusSolved", { payout: str("lastPayout", "") })
+    ? (isGuest ? t("guestClearedTitle") : t("statusSolved", { payout: str("lastPayout", "") }))
     : isGameOver
     ? t("gameOverBanner")
     : gameStatus === "dealt"
-    ? t("statusDealt")
+    ? (isGuest ? t("guestDealtStage") : t("statusDealt"))
     : t("statusReady");
 
   const stageSubtitle = gameStatus === "dealt"
-    ? t("statusDealt")
+    ? (isGuest ? t("guestDealtStage") : t("statusDealt"))
     : t("rollDescription");
 
   const hudItems = [
     {
-      label: gameStatus === "dealt" ? t("scoreCards") : t("poolMetric"),
-      value: gameStatus === "dealt" ? String(cardsLeft) : `${poolFree.toFixed(2)} GAS`,
+      label: gameStatus === "dealt"
+        ? t("scoreCards")
+        : (isGuest ? t("modeMetric") : t("poolMetric")),
+      value: gameStatus === "dealt"
+        ? String(cardsLeft)
+        : (isGuest ? t("freePlayLabel") : `${poolFree.toFixed(2)} GAS`),
       accent: gameStatus === "dealt",
     },
     {
@@ -146,7 +160,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const drawerActions = [
     ...(canRelease
       ? [{
-          label: t("expireGame"),
+          label: isGuest ? t("guestResetAction") : t("expireGame"),
           icon: <RotateCcw size={16} aria-hidden="true" />,
           onClick: () => void dispatch("expireGame"),
         }]
@@ -172,7 +186,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           badges: (
             <span className="mx2-badge" data-tone="accent">
               <span className="mx2-badge__dot" />
-              {str("chainLabel", "") || "Neo"}
+              {isGuest ? t("guestBadge") : (str("chainLabel", "") || "Neo")}
             </span>
           ),
         }}
@@ -213,13 +227,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Trophy size={18} aria-hidden="true" />
                   <div>
                     <h3>{t("historyTitle")}</h3>
-                    <p>{t("fairnessNote")}</p>
+                    <p>{isGuest ? t("guestFairnessNote") : t("fairnessNote")}</p>
                   </div>
                 </div>
                 <div className="sheep-ingame-drawer__grid">
                   <span>
-                    <small>{t("creditLabel")}</small>
-                    <strong>{credit.toFixed(2)} GAS</strong>
+                    <small>{isGuest ? t("modeMetric") : t("creditLabel")}</small>
+                    <strong>{isGuest ? t("freePlayLabel") : `${credit.toFixed(2)} GAS`}</strong>
                   </span>
                   <span>
                     <small>{t("scoreTime")}</small>
@@ -246,7 +260,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
                 <div className="sheep-ingame-drawer__fairness">
                   <ShieldCheck size={17} aria-hidden="true" />
-                  <p>{activeGameId !== "0" ? t("activeGameLine", { gameId: activeGameId }) : t("fairnessShort")}</p>
+                  <p>
+                    {isGuest
+                      ? (activeGameId !== "0" ? t("guestActiveLine") : t("guestFairnessNote"))
+                      : (activeGameId !== "0" ? t("activeGameLine", { gameId: activeGameId }) : t("fairnessShort"))}
+                  </p>
                 </div>
               </section>
             )}

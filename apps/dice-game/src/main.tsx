@@ -24,6 +24,7 @@ import { eventStateValue } from "@shared/utils/chain-events";
 import { eventHashMatches as addrEq } from "@framework/gamefi";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { createBetTracker } from "./bet-tracker";
+import { createDiceGuestEngine } from "./logic/guest-engine";
 
 const appId = "miniapp-dice-game";
 const PAYOUT_MULTIPLIER = 5.7;
@@ -185,6 +186,38 @@ defineMiniApp({
     const houseLiquidity = createObservable(0);
     const directCredit = createObservable(0);
     const maxPayableStake = createObservable(0);
+
+    // ── Play mode (guest | gamefi) ────────────────────────────────────────────
+    // Surfaced to the PlayArea + scene so GAS-at-stake copy can be reframed for
+    // guest (local practice) play. Kept in sync with the launcher-selected
+    // app.mode; defaults to "gamefi" so existing behavior is unchanged.
+    const mode = createObservable(app.mode.get());
+
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local crypto-RNG dice table — no chain/oracle/reward
+    // calls, so the framework guest guard never fires.
+    const guest = createDiceGuestEngine({
+      tracker,
+      selectedFace,
+      stakeAmount,
+      payoutPreview,
+      lastStatus,
+      isSubmitting,
+      chainLabel,
+      houseLiquidity,
+      directCredit,
+      maxPayableStake,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Track mode changes for the UI and, on switching to guest, reset to a clean
+    // local table (replacing the on-chain reads done on mount).
+    app.mode.onChange((next) => {
+      mode.set(next);
+      if (next === "guest") void guest.enter();
+    });
 
     /**
      * Read the house bankroll and the player's standing bet credit on Neo N3
@@ -512,6 +545,7 @@ defineMiniApp({
     // funds subsequent rolls and is fully WITHDRAWABLE via the Withdraw action.
     // Neo N3 only — the EVM path is atomic (no pre-funded credit).
     ctx.framework.actions.register("fundGameCredit", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) { guest.fundGameCredit(); return; }
       const form = (args[0] ?? {}) as { amount?: unknown };
       const network = await refreshNetwork();
       // framework-exempt: EVM lane (plan §3.6) — pre-funded credit is N3-only.
@@ -551,6 +585,7 @@ defineMiniApp({
     // contract (the core fix the kernel path lacked). Neo N3 only — the EVM path
     // is atomic and holds no withdrawable credit.
     ctx.framework.actions.register("withdrawCredit", async () => {
+      if (app.mode.isGuest()) { guest.withdrawCredit(); return; }
       const network = await refreshNetwork();
       // framework-exempt: EVM lane (plan §3.6) — no withdrawable credit on EVM.
       if (ctx.services.chain.isEvmNetwork(network)) {
@@ -579,6 +614,10 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("placeDiceBet", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        guest.placeDiceBet((args[0] ?? {}) as { chosenNumber?: unknown; amount?: unknown });
+        return;
+      }
       if (isSubmitting.get()) return;
       const form = (args[0] ?? {}) as {
         chosenNumber?: unknown;
@@ -810,6 +849,7 @@ defineMiniApp({
     // reconciled by re-reading the Settled event). The wager is escrowed and the
     // outcome is fixed once a later block exists, so this never loses funds.
     ctx.framework.actions.register("recheckSettlement", async () => {
+      if (app.mode.isGuest()) { guest.recheckSettlement(); return; }
       if (!recheckActiveBet || isResolving.get()) return;
       isUnresolved.set(false);
       isResolving.set(true);
@@ -835,8 +875,12 @@ defineMiniApp({
         lastOutcome,
         isResolving,
         isUnresolved,
+        mode,
       },
       loadData: async () => {
+        // Guest is a purely local table — never touch the chain on load, and
+        // never let a mount-time gamefi read clobber the guest surface.
+        if (app.mode.isGuest()) return;
         const net = await refreshNetwork();
         await hydrateHistory(net);
       },

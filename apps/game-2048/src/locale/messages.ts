@@ -167,6 +167,34 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Guest (free / local) mode ─────────────────────────────────────────────
+  // GUEST is a purely local 2048: no wallet, no fees, no chain/oracle/reward.
+  // These strings replace the GAS-at-stake / pool / reward framing in guest.
+  guestModeLine: {
+    en: "Guest mode — local play, best tiles saved off-chain.",
+    zh: "游客模式——本地游玩，最大方块离线保存。",
+  },
+  guestDealt: {
+    en: "Local run started — merge up to the target tile.",
+    zh: "本地对局开始——合成到目标方块。",
+  },
+  guestRunComplete: {
+    en: "Local run complete — reached tile {tile}!",
+    zh: "本地对局完成——达成方块 {tile}！",
+  },
+  guestGameOver: {
+    en: "No moves left — best tile {tile}. Start a fresh board!",
+    zh: "已无可行操作——最大方块 {tile}。开始新的一局！",
+  },
+  guestUndo: { en: "Move undone", zh: "已撤销一步" },
+  guestRunLabel: { en: "Local run", zh: "本地对局" },
+  guestRunValue: { en: "Free play", zh: "自由练习" },
+  guestBestLabel: { en: "Best tile", zh: "最大方块" },
+  guestRulesCopy: {
+    en: "Guest mode is a free local 2048 — merge tiles up to the target with no wallet, no fees, and nothing on-chain. Your best tile is saved to an off-chain practice board (connect a wallet to record it). Switch to Earn GAS for the provably fair on-chain reward game.",
+    zh: "游客模式是免费的本地 2048——无需钱包、无手续费、完全不上链，合成方块冲击目标即可。你的最大方块会保存到离线练习榜（连接钱包即可记录）。切换到「赢取 GAS」体验可验证公平的链上奖励对局。",
+  },
 };
 
 export const messages = mergeMessages(appMessages);

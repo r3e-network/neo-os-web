@@ -80,6 +80,15 @@ export class DiceScene extends BaseScene {
 
   constructor() { super("DiceScene"); }
 
+  /**
+   * Currency word for the on-table / payout labels. GameFi stakes real GAS;
+   * guest (local practice) plays with practice chips, so no GAS-at-stake framing
+   * appears on the canvas. Reads the launcher-selected mode from bridge state.
+   */
+  private currencyUnit(): string {
+    return this.str("mode", "gamefi") === "guest" ? "chips" : "GAS";
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   preload(): void {
@@ -167,8 +176,9 @@ export class DiceScene extends BaseScene {
     });
 
     // Labels
-    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} GAS`);
-    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
+    const unit = this.currencyUnit();
+    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} ${unit}`);
+    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${unit}`);
     const normalizedStatus = status.trim();
     this.statusBar.setText(normalizedStatus === "Ready" || normalizedStatus === "就绪" ? "" : status);
 
@@ -569,8 +579,9 @@ export class DiceScene extends BaseScene {
       const presetAmt = parseFloat(CHIP_PRESETS[i]!.amount);
       this.highlightChipBtn(btn, i, Math.abs(presetAmt - this.stakeAmount) < 0.001);
     });
-    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} GAS`);
-    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
+    const unit = this.currencyUnit();
+    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} ${unit}`);
+    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${unit}`);
     if (!this.isRolling) this.setDieFace(this.selectedFace);
   }
 
@@ -640,7 +651,7 @@ export class DiceScene extends BaseScene {
     switch (outcome) {
       case "won":
         title.setText("YOU WIN").setColor("#f0c866");
-        sub.setText(`Rolled: ${roll}  •  +${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} GAS`);
+        sub.setText(`Rolled: ${roll}  •  +${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${this.currencyUnit()}`);
         if (firstShow) {
           this.playSfx("win");
           this.addGoldCoins();
