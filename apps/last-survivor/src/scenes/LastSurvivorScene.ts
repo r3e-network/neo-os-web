@@ -39,6 +39,16 @@ const DESIGN_W = 420;
 const DESIGN_H = 600;
 const KEY_PRESETS = ["1", "3", "5", "10"] as const;
 
+// Timer console geometry — a floating HUD that overlaps the arena's lower third
+// yet clears the controls card (top y=336). Kept as constants so the danger
+// elements never poke above the panel edge.
+const CONSOLE_TOP = 216;
+const CONSOLE_H = 112;
+const COUNTDOWN_Y = 250;
+const SUBTEXT_Y = 285;
+const LEADER_Y = 303;
+const METER_Y = 317;
+
 type PresetView = {
   value: string;
   container: Phaser.GameObjects.Container;
@@ -65,17 +75,20 @@ export class LastSurvivorScene extends BaseScene {
   private orbitTokens: Phaser.GameObjects.Image[] = [];
 
   private potText!: Phaser.GameObjects.Text;
+  private prizePoolText!: Phaser.GameObjects.Text;
   private roundText!: Phaser.GameObjects.Text;
   private countdownText!: Phaser.GameObjects.Text;
   private timerSubtext!: Phaser.GameObjects.Text;
-  private dangerRing!: Phaser.GameObjects.Graphics;
-  private dangerFill!: Phaser.GameObjects.Rectangle;
+  private dangerMeter!: Phaser.GameObjects.Graphics;
+  private dangerHalo!: Phaser.GameObjects.Graphics;
   private leaderText!: Phaser.GameObjects.Text;
+  private choosePackText!: Phaser.GameObjects.Text;
   private totalKeysText!: Phaser.GameObjects.Text;
   private userKeysText!: Phaser.GameObjects.Text;
   private costText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private noticeText!: Phaser.GameObjects.Text;
+  private dangerPulse: Phaser.Tweens.Tween | null = null;
 
   private presetViews: PresetView[] = [];
   private buyButton!: Phaser.GameObjects.Container;
@@ -143,40 +156,61 @@ export class LastSurvivorScene extends BaseScene {
       this.selectedKeyCount = bridgeKeyCount;
     }
 
+    this.prizePoolText.setText(this.str("scenePrizePool", "Prize pool"));
+    this.choosePackText.setText(this.str("sceneChoosePack", "Choose key pack"));
     this.potText.setText(pot);
-    this.roundText.setText(roundStatus || (isRoundActive ? "Live round" : "Waiting for round"));
-    this.countdownText.setText(needsLifecycleSync ? "Settle" : countdown);
+    this.roundText.setText(
+      roundStatus ||
+        (isRoundActive
+          ? this.str("sceneLiveRound", "Live round")
+          : this.str("sceneWaitingRound", "Waiting for round")),
+    );
+    this.countdownText.setText(needsLifecycleSync ? this.str("sceneSettleWord", "Settle") : countdown);
     this.timerSubtext.setText(
       needsLifecycleSync
-        ? "Last buyer can be paid now"
+        ? this.str("sceneReadyToPay", "Last buyer can be paid now")
         : isRoundActive
-          ? (dangerText || "Press to stay alive")
-          : "Round will open after sync",
+          ? (dangerText || this.str("scenePressToStay", "Press to stay alive"))
+          : this.str("sceneRoundAfterSync", "Round will open after sync"),
     );
-    this.leaderText.setText(leader && leader !== "--" ? `Last buyer ${leader}` : "No buyer yet");
-    this.totalKeysText.setText(`${totalKeys} keys sold`);
-    this.userKeysText.setText(`${userKeys} yours`);
+    // Leader line arrives pre-formatted + localized from the shell; it already
+    // resolves the no-buyer / N/A fallback, so an idle round reads friendly.
+    this.leaderText.setText(this.str("sceneLeaderLine", leader && leader !== "--" ? leader : "No buyer yet"));
+    this.totalKeysText.setText(this.str("sceneKeysSoldLine", `${totalKeys} keys sold`));
+    this.userKeysText.setText(this.str("sceneYoursLine", `${userKeys} yours`));
     this.costText.setText(`${cost} GAS`);
 
     this.statusText.setText(
       validation
         ? compactError(validation)
         : serviceNotice
-          ? "Arena service unavailable. Connect wallet and refresh."
+          ? this.str("sceneStatusServiceDown", "Arena service unavailable. Connect wallet and refresh.")
           : needsLifecycleSync
-            ? "Settle to pay the winner and open a fresh round."
+            ? this.str("sceneStatusSettle", "Settle to pay the winner and open a fresh round.")
             : isRoundActive
-              ? "Choose keys, then buy to extend the clock."
+              ? this.str("sceneStatusBuy", "Choose keys, then buy to extend the clock.")
               : roundReady
-                ? "Waiting for the next live round."
-                : "Connect wallet and sync the arena.",
+                ? this.str("sceneStatusWaiting", "Waiting for the next live round.")
+                : this.str("sceneStatusConnect", "Connect wallet and sync the arena."),
     );
     this.statusText.setColor(validation ? "#d84d3f" : "#806f56");
-    this.noticeText.setText(isBuying ? "Wallet confirmation in progress..." : isSettling ? "Settling round..." : "");
+    this.noticeText.setText(
+      isBuying
+        ? this.str("sceneNoticeBuying", "Wallet confirmation in progress...")
+        : isSettling
+          ? this.str("sceneNoticeSettling", "Settling round...")
+          : "",
+    );
 
     this.renderDanger(dangerPct);
     this.renderPresets();
     this.renderButtons();
+
+    // Doomsday escalation: the danger glow breathes once the clock is nearly
+    // out (shell shouldPulse, or the danger meter is in the red band).
+    const critical = dangerPct > 72;
+    this.countdownText.setColor(!needsLifecycleSync && critical ? "#d84d3f" : "#2b2418");
+    this.setDangerPulse(isRoundActive && !needsLifecycleSync && (this.bool("shouldPulse") || critical));
 
     if (isBuying && !this.lastBuying) this.playBuyMotion();
     if (isSettling && !this.lastSettling) this.playSettleMotion();
@@ -216,9 +250,9 @@ export class LastSurvivorScene extends BaseScene {
     g.strokeRoundedRect(14, 14, W - 28, H - 28, 22);
 
     g.fillStyle(0xffffff, 0.55);
-    g.fillRoundedRect(26, 330, W - 52, 242, 20);
+    g.fillRoundedRect(26, 336, W - 52, 236, 20);
     g.lineStyle(1, C.stroke, 0.9);
-    g.strokeRoundedRect(26, 330, W - 52, 242, 20);
+    g.strokeRoundedRect(26, 336, W - 52, 236, 20);
   }
 
   private buildHero(W: number): void {
@@ -252,7 +286,7 @@ export class LastSurvivorScene extends BaseScene {
       fontStyle: "700",
       color: "#2b2418",
     });
-    this.add.text(84, 67, "Prize pool", {
+    this.prizePoolText = this.add.text(84, 67, this.str("scenePrizePool", "Prize pool"), {
       fontFamily: FONT,
       fontSize: "11px",
       color: "#806f56",
@@ -271,40 +305,44 @@ export class LastSurvivorScene extends BaseScene {
   }
 
   private buildTimerConsole(W: number): void {
-    const y = 285;
+    const top = CONSOLE_TOP;
     const panel = this.add.graphics();
     panel.fillStyle(C.surface, 0.96);
-    panel.fillRoundedRect(48, y - 52, W - 96, 104, 22);
+    panel.fillRoundedRect(48, top, W - 96, CONSOLE_H, 22);
     panel.lineStyle(1, C.stroke, 1);
-    panel.strokeRoundedRect(48, y - 52, W - 96, 104, 22);
+    panel.strokeRoundedRect(48, top, W - 96, CONSOLE_H, 22);
 
-    this.dangerRing = this.add.graphics();
-    this.renderDanger(0);
+    // Soft danger glow behind the countdown — invisible at idle, breathes as the
+    // clock nears zero (see setDangerPulse). Sits above the panel, below the text.
+    this.dangerHalo = this.add.graphics().setAlpha(0);
 
-    this.countdownText = this.add.text(W / 2, y - 11, "00:00:00", {
+    // Horizontal doomsday meter along the console floor (track + fill).
+    this.dangerMeter = this.add.graphics();
+
+    this.countdownText = this.add.text(W / 2, COUNTDOWN_Y, "00:00:00", {
       fontFamily: FONT,
       fontSize: "34px",
       fontStyle: "800",
       color: "#2b2418",
     }).setOrigin(0.5);
 
-    this.timerSubtext = this.add.text(W / 2, y + 24, "Press to stay alive", {
+    this.timerSubtext = this.add.text(W / 2, SUBTEXT_Y, this.str("scenePressToStay", "Press to stay alive"), {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#806f56",
     }).setOrigin(0.5);
 
-    this.leaderText = this.add.text(W / 2, y + 38, "No buyer yet", {
+    this.leaderText = this.add.text(W / 2, LEADER_Y, this.str("sceneLeaderLine", "No buyer yet"), {
       fontFamily: FONT,
-      fontSize: "12px",
+      fontSize: "11px",
       color: "#806f56",
     }).setOrigin(0.5);
 
-    this.dangerFill = this.add.rectangle(64, y + 47, 0, 6, C.green).setOrigin(0, 0.5);
+    this.renderDanger(0);
   }
 
   private buildControls(W: number, H: number): void {
-    this.add.text(50, 356, "Choose key pack", {
+    this.choosePackText = this.add.text(50, 356, this.str("sceneChoosePack", "Choose key pack"), {
       fontFamily: FONT,
       fontSize: "13px",
       fontStyle: "700",
@@ -408,7 +446,7 @@ export class LastSurvivorScene extends BaseScene {
       fontStyle: "800",
       color: "#2b2418",
     }).setOrigin(0.5);
-    const hint = this.add.text(0, 17, Number(value) === 1 ? "key" : "keys", {
+    const hint = this.add.text(0, 17, this.presetUnit(value), {
       fontFamily: FONT,
       fontSize: "10px",
       color: "#806f56",
@@ -436,6 +474,12 @@ export class LastSurvivorScene extends BaseScene {
     this.dispatch("setKeyCount", value);
   }
 
+  private presetUnit(value: string): string {
+    return Number(value) === 1
+      ? this.str("sceneKeyUnitOne", "key")
+      : this.str("sceneKeyUnitMany", "keys");
+  }
+
   private renderPresets(): void {
     for (const view of this.presetViews) {
       const active = view.value === this.selectedKeyCount;
@@ -445,6 +489,7 @@ export class LastSurvivorScene extends BaseScene {
       view.bg.lineStyle(active ? 2 : 1, active ? C.strokeStrong : C.stroke, 1);
       view.bg.strokeRoundedRect(-34, -30, 68, 60, 16);
       view.label.setColor(active ? "#2b2418" : "#604d35");
+      view.hint.setText(this.presetUnit(view.value));
       view.hint.setColor(active ? "#b87917" : "#806f56");
     }
   }
@@ -475,8 +520,8 @@ export class LastSurvivorScene extends BaseScene {
     }
     this.buyButtonLabel.setText(
       isBuying
-        ? "Buying..."
-        : `Buy ${this.selectedKeyCount} key${this.selectedKeyCount === "1" ? "" : "s"}`,
+        ? this.str("sceneBuying", "Buying...")
+        : `${this.str("sceneBuyVerb", "Buy")} ${this.selectedKeyCount} ${this.presetUnit(this.selectedKeyCount)}`,
     );
     this.buyButtonLabel.setColor(canBuy ? "#3a2609" : "#806f56");
 
@@ -486,29 +531,69 @@ export class LastSurvivorScene extends BaseScene {
     this.settleButtonBg.fillRoundedRect(-61, -25, 122, 50, 16);
     this.settleButtonBg.lineStyle(2, canSettle ? 0x0c8150 : C.stroke, 0.8);
     this.settleButtonBg.strokeRoundedRect(-61, -25, 122, 50, 16);
-    this.settleButtonLabel.setText(isSettling ? "Settling..." : "Settle");
+    this.settleButtonLabel.setText(
+      isSettling ? this.str("sceneSettling", "Settling...") : this.str("sceneSettleWord", "Settle"),
+    );
     this.settleButtonLabel.setColor(canSettle ? "#ffffff" : "#806f56");
   }
 
   private renderDanger(dangerPct: number): void {
-    if (!this.dangerRing) return;
-    const cx = DESIGN_W / 2;
-    const cy = 285;
-    const radius = 44;
+    if (!this.dangerMeter) return;
     const pct = Phaser.Math.Clamp(dangerPct / 100, 0, 1);
     const dangerColor = pct > 0.72 ? C.red : pct > 0.42 ? C.orange : C.green;
 
-    this.dangerRing.clear();
-    this.dangerRing.lineStyle(9, 0xf2e2c2, 1);
-    this.dangerRing.strokeCircle(cx, cy - 7, radius);
-    this.dangerRing.lineStyle(9, dangerColor, 0.88);
-    this.dangerRing.beginPath();
-    this.dangerRing.arc(cx, cy - 7, radius, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + pct * 360), false);
-    this.dangerRing.strokePath();
+    const left = 72;
+    const width = DESIGN_W - 144; // 276, centred inside the console
+    const h = 7;
+    const top = METER_Y - h / 2;
 
-    if (this.dangerFill) {
-      this.dangerFill.setFillStyle(dangerColor);
-      this.dangerFill.setDisplaySize((DESIGN_W - 128) * pct, 6);
+    // Clean horizontal doomsday meter: a faint full track plus a colored fill
+    // that grows with danger. At idle only the track shows — a deliberate
+    // element, not a stray arc.
+    this.dangerMeter.clear();
+    this.dangerMeter.fillStyle(0xf2e2c2, 1);
+    this.dangerMeter.fillRoundedRect(left, top, width, h, h / 2);
+    if (pct > 0) {
+      const fillW = Math.max(h, width * pct);
+      this.dangerMeter.fillStyle(dangerColor, 1);
+      this.dangerMeter.fillRoundedRect(left, top, fillW, h, h / 2);
+      this.dangerMeter.fillStyle(dangerColor, 0.32);
+      this.dangerMeter.fillCircle(left + fillW, METER_Y, 5);
+    }
+
+    // The halo tint follows the danger band; its visibility is the pulse's job.
+    if (this.dangerHalo) {
+      this.dangerHalo.clear();
+      this.dangerHalo.fillStyle(dangerColor, 1);
+      this.dangerHalo.fillRoundedRect(DESIGN_W / 2 - 128, COUNTDOWN_Y - 30, 256, 60, 18);
+    }
+  }
+
+  /**
+   * Breathe the danger halo behind the countdown when the clock nears zero.
+   * Reduced-motion falls back to a static faint tint (no infinite tween).
+   */
+  private setDangerPulse(active: boolean): void {
+    if (!this.dangerHalo) return;
+    if (this.reducedMotion) {
+      this.dangerHalo.setAlpha(active ? 0.14 : 0);
+      return;
+    }
+    if (active) {
+      if (this.dangerPulse) return;
+      this.dangerHalo.setAlpha(0.06);
+      this.dangerPulse = this.tweens.add({
+        targets: this.dangerHalo,
+        alpha: 0.22,
+        duration: 640,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    } else if (this.dangerPulse) {
+      this.dangerPulse.stop();
+      this.dangerPulse = null;
+      this.dangerHalo.setAlpha(0);
     }
   }
 

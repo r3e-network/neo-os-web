@@ -138,6 +138,7 @@ export class JumpRushScene extends BaseScene {
   private bunny!: Phaser.GameObjects.Container;
   private bunnySprite!: Phaser.GameObjects.Image;
   private bunnyIdleTween: Phaser.Tweens.Tween | null = null;
+  private goalCarrot: Phaser.GameObjects.Image | null = null;
 
   private hudContainer!: Phaser.GameObjects.Container;
   private timerBarFill!: Phaser.GameObjects.Rectangle;
@@ -312,6 +313,40 @@ export class JumpRushScene extends BaseScene {
     }
   }
 
+  // ── Localization ───────────────────────────────────────────────────────────
+
+  /**
+   * Resolve an in-canvas string from the localized `sceneText` map pushed
+   * through bridgeState (built in PhaserPlayArea from messages.ts). Falls back
+   * to a plain-English default only when no bridge state is present (standalone
+   * dev); production and the capture harness always supply the localized map.
+   */
+  private tr(key: string, fallback = ""): string {
+    const map = this.val<Record<string, string>>("sceneText") ?? {};
+    const value = map[key];
+    return typeof value === "string" && value.length > 0 ? value : fallback;
+  }
+
+  /** Localized display copy for a difficulty card, sourced from bridgeState. */
+  private cardText(diffIdx: number): { label: string; jumps: string; reward: string; entry: string } {
+    const rules =
+      this.val<Array<{
+        difficulty: number;
+        label?: string;
+        jumpsText?: string;
+        rewardText?: string;
+        entryText?: string;
+      }>>("difficultyRules") ?? [];
+    const found = rules.find((r) => r.difficulty === diffIdx);
+    const rule = DIFFICULTY_RULES[diffIdx];
+    return {
+      label:  found?.label      ?? (rule ? rule.key.toUpperCase() : ""),
+      jumps:  found?.jumpsText   ?? (rule ? `${rule.targetJumps} jumps` : ""),
+      reward: found?.rewardText  ?? (rule ? `${gasDisplay(rule.rewardFixed8)} GAS` : ""),
+      entry:  found?.entryText   ?? (rule ? `Entry ${gasDisplay(rule.entryFixed8)}` : ""),
+    };
+  }
+
   // ── Background ─────────────────────────────────────────────────────────────
 
   private buildBackground(): void {
@@ -332,14 +367,17 @@ export class JumpRushScene extends BaseScene {
       const sprite = this.add.image(cloud.x, cloud.y, JR_ASSETS.cloud)
         .setScale(cloud.scale)
         .setAlpha(cloud.alpha);
-      this.tweens.add({
-        targets: sprite,
-        x: cloud.x + cloud.drift,
-        duration: 2400,
-        ease: "Sine.easeInOut",
-        yoyo: true,
-        repeat: -1,
-      });
+      // Ambient drift is pure decoration — skip entirely under reduced-motion.
+      if (!this.reducedMotion) {
+        this.tweens.add({
+          targets: sprite,
+          x: cloud.x + cloud.drift,
+          duration: 2400,
+          ease: "Sine.easeInOut",
+          yoyo: true,
+          repeat: -1,
+        });
+      }
     }
   }
 
@@ -354,6 +392,7 @@ export class JumpRushScene extends BaseScene {
     for (const obj of this.platformObjects) obj.destroy();
     this.platformObjects = [];
     this.bunny?.destroy();
+    this.goalCarrot = null;
 
     const platformCount = Math.min(MAX_PLATFORMS, Math.max(5, view.length + 1));
     this.platforms = this.decodePlatforms(view, platformCount, difficulty);
@@ -422,14 +461,18 @@ export class JumpRushScene extends BaseScene {
       const carrot = this.add.image(0, -24, JR_ASSETS.carrotGold)
         .setDisplaySize(30, 28);
       cont.add(carrot);
-      this.tweens.add({
-        targets: carrot,
-        y: -30,
-        duration: 700,
-        ease: "Sine.easeInOut",
-        yoyo: true,
-        repeat: -1,
-      });
+      this.goalCarrot = carrot;
+      // Gentle hover on the goal reward — ambient loop, gated for reduced-motion.
+      if (!this.reducedMotion) {
+        this.tweens.add({
+          targets: carrot,
+          y: -30,
+          duration: 700,
+          ease: "Sine.easeInOut",
+          yoyo: true,
+          repeat: -1,
+        });
+      }
     }
 
     return cont;
@@ -462,7 +505,8 @@ export class JumpRushScene extends BaseScene {
 
   private startBunnyIdle(): void {
     this.bunnyIdleTween?.stop();
-    if (!this.bunny) return;
+    this.bunnyIdleTween = null;
+    if (!this.bunny || this.reducedMotion) return;
     this.bunnyIdleTween = this.tweens.add({
       targets:  this.bunny,
       y:        this.bunny.y - 6,
@@ -478,12 +522,26 @@ export class JumpRushScene extends BaseScene {
     this.bunnyIdleTween = null;
   }
 
+  /** Honor a live prefers-reduced-motion toggle: kill the idle loop at once. */
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (enabled) {
+      this.stopBunnyIdle();
+    } else if (
+      this.bunny &&
+      this.str("gameStatus") === "dealt" &&
+      !this.allCleared &&
+      !this.hasMissed
+    ) {
+      this.startBunnyIdle();
+    }
+  }
+
   // ── Charge bar ─────────────────────────────────────────────────────────────
 
   private buildChargeBar(): void {
     const barW  = W - 48;
     const barH  = 22;
-    const barY  = H - 44;
+    const barY  = H - 52;
     const barX  = W / 2;
 
     this.chargeBarContainer = this.add.container(barX, barY);
@@ -502,8 +560,9 @@ export class JumpRushScene extends BaseScene {
       C.chargeFill0,
     ).setOrigin(0, 0.5);
 
-    // Label
-    this.chargeHint = this.add.text(0, barH / 2 + 10, "HOLD TO CHARGE", {
+    // Label — placed ABOVE the bar so it clears the progress-dot row that sits
+    // just below the charge bar (avoids a text/dots collision during play).
+    this.chargeHint = this.add.text(0, -(barH / 2 + 11), this.tr("chargeHold", "Hold to charge"), {
       fontSize:  "11px",
       fontFamily: FONT_FAMILY,
       color:     "#5c5a56",
@@ -560,8 +619,8 @@ export class JumpRushScene extends BaseScene {
       strokeThickness: 2,
     });
 
-    // "PERFECT!" label (centre, hidden by default)
-    this.perfectLabel = this.add.text(W / 2, H * 0.42, "PERFECT!", {
+    // Perfect-landing label (centre, hidden by default)
+    this.perfectLabel = this.add.text(W / 2, H * 0.42, this.tr("perfect", "Perfect!"), {
       fontSize:  "26px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
@@ -615,22 +674,23 @@ export class JumpRushScene extends BaseScene {
     hit.on("pointerover",  () => this.refreshSubmitButton(true));
     hit.on("pointerout",   () => this.refreshSubmitButton(false));
     hit.on("pointerdown",  () => {
+      this.sfx.unlock();
       if (!this.canSubmitRun()) {
-        this.tweens.add({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
+        this.tween({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
         return;
       }
-      this.tweens.add({ targets: cont, scale: 0.94, duration: 60, yoyo: true });
+      this.tween({ targets: cont, scale: 0.94, duration: 60, yoyo: true });
       this.dispatch("submitRun", {});
     });
 
-    this.submitLabel = this.add.text(0, -7, "SUBMIT RUN", {
+    this.submitLabel = this.add.text(0, -7, this.tr("submitRun", "Submit run"), {
       fontSize:  "17px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#ffffff",
     }).setOrigin(0.5);
 
-    this.submitHint = this.add.text(0, 15, "TEE settlement", {
+    this.submitHint = this.add.text(0, 15, this.tr("submitSettleHint", "TEE settlement"), {
       fontSize:  "10px",
       fontFamily: FONT_FAMILY,
       color:     "#ffffff",
@@ -670,21 +730,23 @@ export class JumpRushScene extends BaseScene {
     this.submitHint.setAlpha(canSubmit ? 0.82 : 1);
 
     if (canSubmit) {
-      this.submitLabel.setText("SUBMIT RUN");
-      this.submitHint.setText("Verified payout");
+      this.submitLabel.setText(this.tr("submitRun", "Submit run"));
+      this.submitHint.setText(this.tr("submitVerifiedHint", "Verified payout"));
       return;
     }
 
     if (this.bool("timeUp") || this.bool("submitWindowClosed")) {
-      this.submitLabel.setText("TIME EXPIRED");
-      this.submitHint.setText("Release this run");
+      this.submitLabel.setText(this.tr("timeExpired", "Time expired"));
+      this.submitHint.setText(this.tr("releaseThisRun", "Release this run"));
     } else if (!this.bool("minSolveReached")) {
       const lockedMs = Math.max(0, antiBotWaitMs || SUBMIT_BUFFER_MS);
-      this.submitLabel.setText(`WAIT ${formatClock(lockedMs)}`);
-      this.submitHint.setText("Anti-bot floor");
+      this.submitLabel.setText(
+        this.tr("waitLabel", "Wait {clock}").replace("{clock}", formatClock(lockedMs)),
+      );
+      this.submitHint.setText(this.tr("antiBotFloor", "Anti-bot floor"));
     } else {
-      this.submitLabel.setText("KEEP JUMPING");
-      this.submitHint.setText("Target not cleared");
+      this.submitLabel.setText(this.tr("keepJumping", "Keep jumping"));
+      this.submitHint.setText(this.tr("targetNotCleared", "Target not cleared"));
     }
   }
 
@@ -748,29 +810,65 @@ export class JumpRushScene extends BaseScene {
     const carrot = this.add.image(W / 2 + 104, 186, JR_ASSETS.carrotGold)
       .setDisplaySize(34, 30);
 
-    this.tweens.add({
-      targets: heroBunny,
-      y: 190,
-      duration: 760,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-    this.tweens.add({
-      targets: carrot,
-      angle: 8,
-      y: 178,
-      duration: 900,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
+    // Hero idle + carrot bob are ambient loops — only run them with motion on.
+    if (!this.reducedMotion) {
+      this.tweens.add({
+        targets: heroBunny,
+        y: 190,
+        duration: 760,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+      this.tweens.add({
+        targets: carrot,
+        angle: 8,
+        y: 178,
+        duration: 900,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    }
 
     this.lobbyContainer.add([veil, heroCloud, heroPlatform, heroBunny, carrot]);
     this.buildDifficultyCards();
+    this.lobbyContainer.add(this.buildLobbyHint());
     this.lobbyStartButton = this.buildLobbyStartButton();
     this.lobbyContainer.add(this.lobbyStartButton);
     this.lobbyContainer.setVisible(true);
+  }
+
+  /**
+   * Fills the empty band between the difficulty cards and the start button with
+   * a compact "how to play" hint, teaching the charge-and-release mechanic
+   * before the player commits. Localized via bridgeState.
+   */
+  private buildLobbyHint(): Phaser.GameObjects.Container {
+    const cont = this.add.container(0, 0);
+    const y = 446;
+    const pill = this.add.graphics();
+    pill.fillStyle(0xffffff, 0.68);
+    pill.fillRoundedRect(W / 2 - 132, y - 14, 264, 28, 14);
+    pill.lineStyle(1, C.border, 1);
+    pill.strokeRoundedRect(W / 2 - 132, y - 14, 264, 28, 14);
+
+    // A tiny charge-bar glyph to visually anchor the mechanic.
+    const glyph = this.add.graphics();
+    glyph.fillStyle(C.chargeEmpty, 1);
+    glyph.fillRoundedRect(W / 2 - 118, y - 4, 26, 8, 4);
+    glyph.fillStyle(C.chargeFill50, 1);
+    glyph.fillRoundedRect(W / 2 - 118, y - 4, 16, 8, 4);
+
+    const hint = this.add.text(W / 2 + 6, y, this.tr("chargeTip", "Hold to charge, release to jump"), {
+      fontSize:  "11px",
+      fontFamily: FONT_FAMILY,
+      color:     "#5c5a56",
+      fontStyle: "bold",
+    }).setOrigin(0.5);
+
+    cont.add([pill, glyph, hint]);
+    return cont;
   }
 
   private buildDifficultyCards(): void {
@@ -815,46 +913,73 @@ export class JumpRushScene extends BaseScene {
       drawCard(isSelected ? C.cardSelected : C.cardBg, isSelected ? 0.98 : 0.92, isSelected ? 0xf59e0b : C.cardBorder));
     bg.on("pointerdown",  () => {
       this.selectedDifficulty = diffIdx;
-      this.tweens.add({ targets: cont, scale: 0.95, duration: 60, yoyo: true });
+      this.tween({ targets: cont, scale: 0.95, duration: 60, yoyo: true });
       // Re-render all cards to reflect new selection
       this.lobbyContainer.destroy();
       this.buildLobby();
       this.lobbyContainer.setVisible(true);
     });
 
+    const copy = this.cardText(diffIdx);
+
+    // Route-height motif: a rising staircase of grass platforms whose step count
+    // encodes the difficulty (Meadow 1 · Cloud 2 · Summit 3) so the climb reads
+    // at a glance even before reading the label.
+    const steps = diffIdx + 1;
+    const stepW = 20;
+    const stepH = 6;
+    const stepDX = 14;
+    const stepDY = 9;
+    // Bunny stands centred on the TOP step; lower steps trail down to the left,
+    // so the climb reads at a glance while the focal bunny stays centred.
+    const stairBaseX = -((steps - 1) * stepDX);
+    const stairBaseY = -14;
+    const stairs = this.add.graphics();
+    for (let s = 0; s < steps; s++) {
+      const cx = stairBaseX + s * stepDX;
+      const cy = stairBaseY - s * stepDY;
+      stairs.fillStyle(0x8a5a34, 0.9); // dirt band under the grass cap
+      stairs.fillRoundedRect(cx - stepW / 2, cy - stepH / 2 + 2, stepW, stepH, 2);
+      stairs.fillStyle(C.dotDone, 1);  // grass cap
+      stairs.fillRoundedRect(cx - stepW / 2, cy - stepH / 2 - 1, stepW, stepH - 1, 2);
+    }
+
     const iconKeys = [JR_ASSETS.bunnyStand, JR_ASSETS.bunnyReady, JR_ASSETS.bunnyJump] as const;
-    const icon = this.add.image(0, -34, iconKeys[diffIdx] ?? JR_ASSETS.bunnyStand)
-      .setDisplaySize(34, 46);
+    const bunnyX = 0;
+    const bunnyY = stairBaseY - (steps - 1) * stepDY - 3;
+    const icon = this.add.image(bunnyX, bunnyY, iconKeys[diffIdx] ?? JR_ASSETS.bunnyStand)
+      .setOrigin(0.5, 1)
+      .setDisplaySize(30, 40);
 
     // Difficulty name
-    const name = this.add.text(0, -h / 2 + 50, rule.key.toUpperCase(), {
+    const name = this.add.text(0, -h / 2 + 52, copy.label, {
       fontSize:  "13px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#1a1a19",
     }).setOrigin(0.5);
 
-    const jumpsLabel = this.add.text(0, -h / 2 + 70, `${rule.targetJumps} jumps`, {
+    const jumpsLabel = this.add.text(0, -h / 2 + 71, copy.jumps, {
       fontSize: "11px",
       fontFamily: FONT_FAMILY,
       color:    "#5c5a56",
     }).setOrigin(0.5);
 
-    const rewardLabel = this.add.text(0, -h / 2 + 88, `${gasDisplay(rule.rewardFixed8)} GAS`, {
+    const rewardLabel = this.add.text(0, -h / 2 + 89, copy.reward, {
       fontSize:  "11px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#0ea371",
     }).setOrigin(0.5);
 
-    const entryLabel = this.add.text(0, h / 2 - 14, `Entry ${gasDisplay(rule.entryFixed8)}`, {
+    const entryLabel = this.add.text(0, h / 2 - 14, copy.entry, {
       fontSize: "10px",
       fontFamily: FONT_FAMILY,
       color:    "#8b8984",
     }).setOrigin(0.5);
 
     const selectedDot = this.add.circle(-w / 2 + 13, -h / 2 + 13, 5, 0xf59e0b, isSelected ? 1 : 0);
-    cont.add([bg, icon, name, jumpsLabel, rewardLabel, entryLabel, selectedDot]);
+    cont.add([bg, stairs, icon, name, jumpsLabel, rewardLabel, entryLabel, selectedDot]);
 
     return cont;
   }
@@ -866,7 +991,7 @@ export class JumpRushScene extends BaseScene {
       new Phaser.Geom.Rectangle(-106, -22, 212, 44),
       Phaser.Geom.Rectangle.Contains,
     );
-    this.lobbyStartLabel = this.add.text(0, -4, "Start Jump", {
+    this.lobbyStartLabel = this.add.text(0, -4, this.tr("startJump", "Start jump"), {
       fontSize: "15px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
@@ -884,11 +1009,11 @@ export class JumpRushScene extends BaseScene {
     this.lobbyStartBg.on("pointerdown", () => {
       this.sfx.unlock();
       if (!this.canStartRun()) {
-        this.tweens.add({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
+        this.tween({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
         return;
       }
       this.sfx.play("start");
-      this.tweens.add({ targets: cont, scale: 0.96, duration: 80, yoyo: true });
+      this.tween({ targets: cont, scale: 0.96, duration: 80, yoyo: true });
       this.dispatch("startGame", { difficulty: this.selectedDifficulty });
     });
 
@@ -921,15 +1046,34 @@ export class JumpRushScene extends BaseScene {
     const isBusy = this.bool("isStarting") || this.bool("isDealing");
 
     this.lobbyStartBg.clear();
-    this.lobbyStartBg.fillStyle(canStart ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    if (canStart) {
+      // Live brand-green CTA.
+      this.lobbyStartBg.fillStyle(hover ? C.submitBtnHov : C.submitBtn, 1);
+      this.lobbyStartBg.fillRoundedRect(-106, -24, 212, 48, 12);
+      this.lobbyStartBg.lineStyle(2, C.submitBtnHov, 1);
+      this.lobbyStartBg.strokeRoundedRect(-106, -24, 212, 48, 12);
+      this.lobbyStartLabel.setColor("#ffffff");
+      this.lobbyStartHint.setColor("#ffffff");
+      this.lobbyStartHint.setAlpha(0.82);
+      this.lobbyStartLabel.setText(this.tr("startJump", "Start jump"));
+      this.lobbyStartHint.setText(this.tr("startSealHint", "Pay entry and seal route"));
+      return;
+    }
+
+    // Disabled reads as PENDING, not broken: a warm, brand-tinted ghost fill
+    // with a green outline instead of a heavy grey slab. Busy states surface a
+    // "Loading route…" hint so the wait reads as progress.
+    this.lobbyStartBg.fillStyle(isBusy ? 0xe7f4ec : 0xf1efe9, 1);
     this.lobbyStartBg.fillRoundedRect(-106, -24, 212, 48, 12);
-    this.lobbyStartBg.lineStyle(2, canStart ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.lobbyStartBg.lineStyle(2, C.submitBtn, isBusy ? 0.7 : 0.4);
     this.lobbyStartBg.strokeRoundedRect(-106, -24, 212, 48, 12);
-    this.lobbyStartLabel.setColor(canStart ? "#ffffff" : "#4b443c");
-    this.lobbyStartHint.setColor(canStart ? "#ffffff" : "#6d645b");
-    this.lobbyStartHint.setAlpha(canStart ? 0.82 : 1);
-    this.lobbyStartLabel.setText(isBusy ? "Preparing..." : "Start Jump");
-    this.lobbyStartHint.setText(canStart ? "Pay entry and seal route" : "Pool refilling");
+    this.lobbyStartLabel.setColor(isBusy ? "#0ea371" : "#6d645b");
+    this.lobbyStartHint.setColor(isBusy ? "#0ea371" : "#8b8984");
+    this.lobbyStartHint.setAlpha(isBusy ? 0.9 : 0.95);
+    this.lobbyStartLabel.setText(isBusy ? this.tr("preparing", "Preparing…") : this.tr("startJump", "Start jump"));
+    this.lobbyStartHint.setText(
+      isBusy ? this.tr("loadingRouteHint", "Loading route…") : this.tr("poolRefilling", "Pool refilling"),
+    );
   }
 
   private refreshLobbyCards(currentDifficulty: number): void {
@@ -951,27 +1095,30 @@ export class JumpRushScene extends BaseScene {
       .setOrigin(0.5, 1)
       .setDisplaySize(48, 64);
 
-    const txt = this.add.text(0, -46, "Preparing platforms", {
+    const txt = this.add.text(0, -46, this.tr("preparingPlatforms", "Preparing platforms"), {
       fontSize: "16px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:    "#1a1a19",
     }).setOrigin(0.5);
 
-    const hint = this.add.text(0, -22, "TEE is sealing a fair route", {
+    const hint = this.add.text(0, -22, this.tr("sealingFairRoute", "TEE is sealing a fair route"), {
       fontSize:  "11px",
       fontFamily: FONT_FAMILY,
       color:     "#5c5a56",
     }).setOrigin(0.5);
 
-    this.tweens.add({
-      targets:  bunny,
-      y:        12,
-      duration: 520,
-      ease:     "Sine.easeInOut",
-      yoyo:     true,
-      repeat:   -1,
-    });
+    // Hopping loader — ambient loop, gated for reduced-motion.
+    if (!this.reducedMotion) {
+      this.tweens.add({
+        targets:  bunny,
+        y:        12,
+        duration: 520,
+        ease:     "Sine.easeInOut",
+        yoyo:     true,
+        repeat:   -1,
+      });
+    }
 
     this.loadingOverlay.add([bg, panel, txt, hint, platform, bunny]);
     this.loadingOverlay.setVisible(false);
@@ -987,13 +1134,13 @@ export class JumpRushScene extends BaseScene {
     const bunny = this.add.image(0, -42, JR_ASSETS.bunnyHurt)
       .setOrigin(0.5, 1)
       .setDisplaySize(48, 64);
-    const title = this.add.text(0, -26, "Missed the platform", {
+    const title = this.add.text(0, -26, this.tr("missedTitle", "Missed the platform"), {
       fontSize:  "17px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:     "#1a1a19",
     }).setOrigin(0.5);
-    const copy = this.add.text(0, -2, "Use an undo or wait for expiry.", {
+    const copy = this.add.text(0, -2, this.tr("missedCopy", "Use an undo or wait for expiry."), {
       fontSize:  "11px",
       fontFamily: FONT_FAMILY,
       color:     "#5c5a56",
@@ -1012,7 +1159,7 @@ export class JumpRushScene extends BaseScene {
       if (this.num("undosLeft", 0) <= 0 || this.bool("isUndoing")) return;
       this.dispatch("useUndo", {});
     });
-    this.missUndoLabel = this.add.text(0, 51, "UNDO JUMP", {
+    this.missUndoLabel = this.add.text(0, 51, this.tr("undoJump", "Undo jump"), {
       fontSize:  "12px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
@@ -1032,7 +1179,11 @@ export class JumpRushScene extends BaseScene {
     this.missUndoBg.fillRoundedRect(-88, 32, 176, 38, 10);
     this.missUndoBg.lineStyle(2, canUndo ? C.submitBtnHov : 0xb8b1a6, 1);
     this.missUndoBg.strokeRoundedRect(-88, 32, 176, 38, 10);
-    this.missUndoLabel.setText(canUndo ? `UNDO (${this.num("undosLeft", 0)} LEFT)` : "NO UNDOS LEFT");
+    this.missUndoLabel.setText(
+      canUndo
+        ? this.tr("undoLeft", "Undo ({n} left)").replace("{n}", String(this.num("undosLeft", 0)))
+        : this.tr("noUndos", "No undos left"),
+    );
   }
 
   private clearMissState(animated: boolean): void {
@@ -1065,12 +1216,12 @@ export class JumpRushScene extends BaseScene {
     this.chargeStartTime = this.time.now;
     this.chargeLevel    = 0;
     this.refreshChargeFill();
-    this.chargeHint.setText("RELEASE TO JUMP");
+    this.chargeHint.setText(this.tr("chargeRelease", "Release to jump"));
     this.stopBunnyIdle();
     this.setBunnyPose("ready");
 
     // Squish bunny slightly on charge start
-    this.tweens.add({
+    this.tween({
       targets:  this.bunny,
       scaleY:   0.88,
       duration: 150,
@@ -1084,7 +1235,7 @@ export class JumpRushScene extends BaseScene {
     const charge    = this.chargeLevel;
     this.chargeLevel = 0;
     this.refreshChargeFill();
-    this.chargeHint.setText("HOLD TO CHARGE");
+    this.chargeHint.setText(this.tr("chargeHold", "Hold to charge"));
     this.executeJump(charge);
   }
 
@@ -1100,7 +1251,7 @@ export class JumpRushScene extends BaseScene {
     this.sfx.play("flap");
 
     // Restore bunny scale from charge squish
-    this.tweens.add({
+    this.tween({
       targets:  this.bunny,
       scaleY:   1,
       duration: 80,
@@ -1125,14 +1276,14 @@ export class JumpRushScene extends BaseScene {
     const upDuration   = JUMP_DURATION_MS * 0.48;
     const downDuration = JUMP_DURATION_MS * 0.52;
 
-    this.tweens.add({
+    this.tween({
       targets:  this.bunny,
       x:        midX,
       y:        midY,
       duration: upDuration,
       ease:     "Sine.easeOut",
       onComplete: () => {
-        this.tweens.add({
+        this.tween({
           targets:  this.bunny,
           x:        landingX,
           y:        landingY,
@@ -1212,7 +1363,7 @@ export class JumpRushScene extends BaseScene {
     this.submitContainer.setVisible(false);
     this.refreshMissOverlay();
     if (this.bunny) {
-      this.tweens.add({
+      this.tween({
         targets:  this.bunny,
         angle:    this.bunny.x < W / 2 ? -8 : 8,
         duration: 120,
@@ -1224,10 +1375,19 @@ export class JumpRushScene extends BaseScene {
 
   private showPerfectLabel(): void {
     this.perfectLabel
-      .setText("PERFECT!")
+      .setText(this.tr("perfect", "Perfect!"))
       .setVisible(true)
       .setAlpha(1)
       .setScale(0.6);
+
+    // Reduced-motion: hold the label briefly then hide (no scale/slide juice).
+    if (this.reducedMotion) {
+      this.perfectLabel.setScale(1);
+      this.time.delayedCall(700, () => {
+        this.perfectLabel.setVisible(false).setAlpha(1).setScale(1).setY(H * 0.42);
+      });
+      return;
+    }
 
     this.tweens.add({
       targets:  this.perfectLabel,
@@ -1260,6 +1420,7 @@ export class JumpRushScene extends BaseScene {
     const glow = this.add.circle(this.bunny.x, this.bunny.y, 36, C.bunnyGlow, 0.55);
     // Ensure glow sits behind the bunny in the world container
     this.worldContainer.addAt(glow, 0);
+    if (this.reducedMotion) { glow.destroy(); return; }
     this.tweens.add({
       targets:  glow,
       alpha:    0,
@@ -1270,11 +1431,97 @@ export class JumpRushScene extends BaseScene {
     });
   }
 
+  /**
+   * Radial burst of gold sparks behind the bunny for the route-clear payoff.
+   * Skipped under reduced-motion (a single static glow stands in via caller).
+   */
+  private playGoldBurst(x: number, y: number): void {
+    if (this.reducedMotion) return;
+    const ring = this.add.circle(x, y, 20, C.perfectGold, 0.5);
+    this.worldContainer.addAt(ring, 0);
+    this.tweens.add({
+      targets:  ring,
+      scale:    3.4,
+      alpha:    0,
+      duration: 620,
+      ease:     "Cubic.easeOut",
+      onComplete: () => ring.destroy(),
+    });
+
+    const sparks = 10;
+    for (let i = 0; i < sparks; i++) {
+      const angle = (Math.PI * 2 * i) / sparks;
+      const dist  = 46 + (i % 3) * 14;
+      const spark = this.add.circle(x, y, 4 - (i % 2), C.perfectGold, 0.95);
+      this.worldContainer.addAt(spark, 0);
+      this.tweens.add({
+        targets:  spark,
+        x:        x + Math.cos(angle) * dist,
+        y:        y + Math.sin(angle) * dist,
+        alpha:    0,
+        scale:    0.4,
+        duration: 560,
+        delay:    i * 12,
+        ease:     "Cubic.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
   private playVictoryCelebration(): void {
-    // Bounce bunny up and down in celebration
     if (!this.bunny) return;
     this.setBunnyPose("jump");
-    this.tweens.add({
+
+    const bunnyX = this.bunny.x;
+    const bunnyY = this.bunny.y - 30;
+
+    // Collect the goal carrot: fly it into the bunny, pop, then burst.
+    const carrot = this.goalCarrot;
+    const finishBurst = (): void => {
+      this.addGoldGlow();
+      this.playGoldBurst(bunnyX, bunnyY);
+    };
+
+    if (carrot && carrot.active) {
+      // Carrot world position → target the bunny's chest.
+      const startX = carrot.getWorldTransformMatrix().tx;
+      const startY = carrot.getWorldTransformMatrix().ty;
+      const flyer = this.add.image(startX, startY, JR_ASSETS.carrotGold)
+        .setDisplaySize(30, 28)
+        .setDepth(60);
+      carrot.setVisible(false);
+      const targetX = this.bunny.getWorldTransformMatrix().tx;
+      const targetY = this.bunny.getWorldTransformMatrix().ty - 34;
+      if (this.reducedMotion) {
+        flyer.destroy();
+        finishBurst();
+      } else {
+        this.tweens.add({
+          targets:  flyer,
+          x:        targetX,
+          y:        targetY,
+          scale:    1.35,
+          duration: 340,
+          ease:     "Back.easeIn",
+          onComplete: () => {
+            this.tweens.add({
+              targets:  flyer,
+              scale:    0,
+              alpha:    0,
+              duration: 160,
+              ease:     "Back.easeIn",
+              onComplete: () => flyer.destroy(),
+            });
+            finishBurst();
+          },
+        });
+      }
+    } else {
+      finishBurst();
+    }
+
+    // Bunny celebration hop — reduced-motion snaps to rest.
+    this.tween({
       targets:  this.bunny,
       y:        this.bunny.y - 40,
       duration: 250,
@@ -1298,7 +1545,7 @@ export class JumpRushScene extends BaseScene {
     const targetContainerY = BUNNY_SCREEN_Y - pd.y;
     const clampedY = Math.min(0, Math.max(-(this.worldHeight - H), targetContainerY));
 
-    if (animated) {
+    if (animated && !this.reducedMotion) {
       this.tweens.add({
         targets:  this.worldContainer,
         y:        clampedY,
@@ -1320,7 +1567,7 @@ export class JumpRushScene extends BaseScene {
     const targetX = pd.x;
     const targetY = pd.y - 2;
 
-    if (animated) {
+    if (animated && !this.reducedMotion) {
       this.tweens.add({
         targets:  this.bunny,
         x:        targetX,

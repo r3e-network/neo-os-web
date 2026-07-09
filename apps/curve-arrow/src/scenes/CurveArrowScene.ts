@@ -84,6 +84,8 @@ type RangeLayout = {
   shootY: number;
   hintY: number;
   statusY: number;
+  lobbyHeaderY: number;
+  lobbyHeaderH: number;
   lobbyTitleY: number;
   lobbySubY: number;
   lobbyPanelX: number;
@@ -95,6 +97,7 @@ type RangeLayout = {
   lobbyCardH: number;
   lobbyCardGap: number;
   lobbyStatusY: number;
+  lobbyFooterY: number;
 };
 
 // ── Colours ───────────────────────────────────────────────────────────────────
@@ -243,6 +246,7 @@ export class CurveArrowScene extends BaseScene {
   private lobbyContainer!:  Phaser.GameObjects.Container;
   private lobbyCards:       Phaser.GameObjects.Container[] = [];
   private lobbyStatusText!: Phaser.GameObjects.Text;
+  private lobbyPreviewArrow: Phaser.GameObjects.Image | null = null;
   private pickedDifficulty: Difficulty = 0;
 
   // ── Local run simulation ─────────────────────────────────────────────────
@@ -287,20 +291,36 @@ export class CurveArrowScene extends BaseScene {
     const hintY = shootY + 42;
     const statusY = height - 14;
 
-    const lobbyTitleY = Math.max(26, Math.round(height * 0.05));
-    const lobbySubY = lobbyTitleY + 24;
+    // ── Lobby: one connected, vertically-centred column ────────────────────
+    // header band → how-to panel → status caption → difficulty cards →
+    // footer status. The whole stack is measured, then centred, so there is
+    // never a dead band floating between the panel and the cards.
     const lobbyPanelX = pad;
-    const lobbyPanelY = lobbySubY + 18;
-    const lobbyCardW = Math.min(118, Math.floor((width - pad * 2 - 16) / 3));
-    const lobbyCardH = height < 620 ? 96 : 108;
-    const lobbyCardGap = Math.max(6, Math.floor((width - pad * 2 - lobbyCardW * 3) / 2));
-    const lobbyPanelH = Math.max(178, Math.min(240, Math.round(height * 0.3)));
-    const lobbyCardsY = Math.max(
-      lobbyPanelY + lobbyPanelH + lobbyCardH / 2 + 34,
-      height - (height < 620 ? 126 : 148),
-    );
-    const lobbyStatusY = lobbyCardsY - lobbyCardH / 2 - 20;
     const lobbyPanelW = width - pad * 2;
+    const lobbyCardW = Math.min(118, Math.floor((width - pad * 2 - 16) / 3));
+    const lobbyCardH = height < 620 ? 100 : 112;
+    const lobbyCardGap = Math.max(6, Math.floor((width - pad * 2 - lobbyCardW * 3) / 2));
+    const lobbyPanelH = Math.max(168, Math.min(214, Math.round(height * 0.3)));
+
+    const lobbyHeaderH = 62;
+    const gapHeaderPanel = 16;
+    const gapPanelStatus = 16;
+    const gapStatusCards = 14;
+    const gapCardsFooter = 18;
+    const statusRowH = 16;
+    const footerRowH = 14;
+
+    const clusterH =
+      lobbyHeaderH + gapHeaderPanel + lobbyPanelH + gapPanelStatus + statusRowH +
+      gapStatusCards + lobbyCardH + gapCardsFooter + footerRowH;
+    const lobbyHeaderY = Math.max(18, Math.round((height - clusterH) / 2));
+
+    const lobbyTitleY = lobbyHeaderY + 26;
+    const lobbySubY = lobbyHeaderY + 46;
+    const lobbyPanelY = lobbyHeaderY + lobbyHeaderH + gapHeaderPanel;
+    const lobbyStatusY = lobbyPanelY + lobbyPanelH + gapPanelStatus + statusRowH / 2;
+    const lobbyCardsY = lobbyStatusY + statusRowH / 2 + gapStatusCards;
+    const lobbyFooterY = lobbyCardsY + lobbyCardH + gapCardsFooter + footerRowH / 2;
 
     return {
       pad,
@@ -314,6 +334,8 @@ export class CurveArrowScene extends BaseScene {
       shootY,
       hintY,
       statusY,
+      lobbyHeaderY,
+      lobbyHeaderH,
       lobbyTitleY,
       lobbySubY,
       lobbyPanelX,
@@ -325,6 +347,7 @@ export class CurveArrowScene extends BaseScene {
       lobbyCardH,
       lobbyCardGap,
       lobbyStatusY,
+      lobbyFooterY,
     };
   }
 
@@ -407,6 +430,7 @@ export class CurveArrowScene extends BaseScene {
     // and no local arrow was consumed, so client and enclave stay in step.
     this.flight = null;
     this.lobbyCards = [];
+    this.lobbyPreviewArrow = null;
     this.fieldLayers = [];
     this.overlayAction = null;
 
@@ -468,6 +492,9 @@ export class CurveArrowScene extends BaseScene {
     this.hintLabel.setVisible(inPlay);
     this.shootBtn.setVisible(inPlay);
     this.statusLabel.setVisible(true);
+    // Footer status rides at the very bottom in play, but tucks directly under
+    // the difficulty cards in the lobby so it reads as their caption.
+    this.statusLabel.setY(inPlay ? this.layout.statusY : this.layout.lobbyFooterY);
 
     if (inPlay) {
       this.updateHUD();
@@ -1224,7 +1251,9 @@ export class CurveArrowScene extends BaseScene {
       {
         fontFamily: FONT_FAMILY,
         fontSize: "10px",
-        color: "#8fb9a0",
+        // Sits on the pale shell (below the field in play, under the cards in
+        // the lobby) — deep pine keeps it legible on light.
+        color: "#1f5636",
       },
     ).setOrigin(0.5);
   }
@@ -1318,14 +1347,24 @@ export class CurveArrowScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0);
     const layout = this.layout;
-    const panelMidY = layout.lobbyPanelY + layout.lobbyPanelH / 2;
 
-    const titleMark = this.add.image(this.scW / 2 - 96, layout.lobbyTitleY, ARROW_ASSETS.bow)
-      .setDisplaySize(34, 44);
+    // ── Header band ─────────────────────────────────────────────────────────
+    // Seats the gold title + subtitle on deep green so both read crisply
+    // instead of washing out against the pale shell backdrop.
+    const headerBandW = Math.min(layout.lobbyPanelW, 306);
+    const headerBandX = (this.scW - headerBandW) / 2;
+    const headerGfx = this.add.graphics();
+    headerGfx.fillStyle(C.cardBg, 1);
+    headerGfx.fillRoundedRect(headerBandX, layout.lobbyHeaderY, headerBandW, layout.lobbyHeaderH, 14);
+    headerGfx.lineStyle(1, C.cardBorder, 0.55);
+    headerGfx.strokeRoundedRect(headerBandX, layout.lobbyHeaderY, headerBandW, layout.lobbyHeaderH, 14);
 
-    const title = this.add.text(this.scW / 2 + 12, layout.lobbyTitleY, "Curve Arrow", {
+    const titleMark = this.add.image(this.scW / 2 - 82, layout.lobbyTitleY, ARROW_ASSETS.bow)
+      .setDisplaySize(28, 38);
+
+    const title = this.add.text(this.scW / 2 + 14, layout.lobbyTitleY, "Curve Arrow", {
       fontFamily: FONT_FAMILY,
-      fontSize: "20px",
+      fontSize: "21px",
       fontStyle: "bold",
       color: "#f3cf7f",
     }).setOrigin(0.5);
@@ -1336,7 +1375,7 @@ export class CurveArrowScene extends BaseScene {
       color: "#cdeed8",
     }).setOrigin(0.5);
 
-    // Range preview panel
+    // ── How-to-Play panel ────────────────────────────────────────────────────
     const arenaGfx = this.add.graphics();
     arenaGfx.fillStyle(C.cardBg, 1);
     arenaGfx.fillRoundedRect(
@@ -1355,28 +1394,37 @@ export class CurveArrowScene extends BaseScene {
       12,
     );
 
-    const preview = this.buildMiniRangePreview();
+    // Left column: heading + steps. Right column: framed range diorama.
+    const copyX = layout.lobbyPanelX + 18;
+    const copyW = Math.round(layout.lobbyPanelW * 0.5);
+    const previewLeft = copyX + copyW + 6;
+    const previewRight = layout.lobbyPanelX + layout.lobbyPanelW - 14;
+    const previewCx = (previewLeft + previewRight) / 2;
+    const previewCy = layout.lobbyPanelY + layout.lobbyPanelH / 2;
+    const previewW = Math.max(120, previewRight - previewLeft);
+    const previewH = layout.lobbyPanelH - 26;
+    const preview = this.buildMiniRangePreview(previewCx, previewCy, previewW, previewH);
 
-    const arenaTitle = this.add.text(layout.lobbyPanelX + 18, panelMidY - 56, "How to Play", {
+    const arenaTitle = this.add.text(copyX, layout.lobbyPanelY + 20, "How to Play", {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
       fontStyle: "bold",
       color: "#ffe066",
     });
-    const arenaCopy = this.add.text(layout.lobbyPanelX + 18, panelMidY - 30, [
+    const arenaCopy = this.add.text(copyX, layout.lobbyPanelY + 46, [
       "• Tap SHOOT to loose an arrow",
-      "• Press and hold to curve it upward",
-      "• Release to let it level out",
-      "• Clear every target within your quiver",
+      "• Hold to curve the arrow up",
+      "• Release to level it out",
+      "• Clear every target to win",
     ].join("\n"), {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
       color: "#d9f2e1",
-      lineSpacing: 5,
-      wordWrap: { width: Math.max(200, layout.lobbyPanelW - 130) },
+      lineSpacing: 6,
+      wordWrap: { width: copyW },
     });
 
-    // Difficulty cards row
+    // ── Difficulty cards row ──────────────────────────────────────────────────
     const cardsY = layout.lobbyCardsY;
     const cardW  = layout.lobbyCardW;
     const cardH  = layout.lobbyCardH;
@@ -1396,13 +1444,15 @@ export class CurveArrowScene extends BaseScene {
     const poolText = this.add.text(this.scW / 2, layout.lobbyStatusY, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
-      color: "#ffd166",
+      fontStyle: "bold",
+      color: "#a87722",
       align: "center",
       wordWrap: { width: this.scW - layout.pad * 2 },
     }).setOrigin(0.5);
     this.lobbyStatusText = poolText;
 
     this.lobbyContainer.add([
+      headerGfx,
       titleMark,
       title,
       sub,
@@ -1413,37 +1463,66 @@ export class CurveArrowScene extends BaseScene {
       ...this.lobbyCards,
       poolText,
     ]);
+
+    // Idle cue: a slow, reduced-motion-gated bob on the diorama arrow so the
+    // start screen feels alive instead of like a static screenshot.
+    if (this.lobbyPreviewArrow) {
+      this.tween({
+        targets: this.lobbyPreviewArrow,
+        y: this.lobbyPreviewArrow.y - 5,
+        duration: 1500,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    }
   }
 
-  private buildMiniRangePreview(): Phaser.GameObjects.Container {
+  private buildMiniRangePreview(
+    cx: number,
+    cy: number,
+    w: number,
+    h: number,
+  ): Phaser.GameObjects.Container {
     const preview = this.add.container(0, 0);
-    const { lobbyPanelX, lobbyPanelY, lobbyPanelW, lobbyPanelH } = this.layout;
-    const right = lobbyPanelX + lobbyPanelW - 56;
-    const baseY = lobbyPanelY + lobbyPanelH - 44;
 
-    // Miniature curved-flight vignette: bow, dotted arc over a wall, target.
-    const bow = this.add.image(right - 118, baseY, ARROW_ASSETS.bow)
-      .setDisplaySize(22, 32);
-    const wall = this.add.image(right - 58, baseY - 2, ARROW_ASSETS.wall)
-      .setDisplaySize(14, 46);
-    const board = this.add.image(right + 4, baseY, ARROW_ASSETS.target)
-      .setDisplaySize(34, 34);
+    // Framed inset so the right half of the panel reads as a little archery
+    // range rather than a few icons floating in an empty quadrant.
+    const insetX = cx - w / 2;
+    const insetY = cy - h / 2;
+    const frame = this.add.graphics();
+    frame.fillStyle(C.pineDeep, 0.6);
+    frame.fillRoundedRect(insetX, insetY, w, h, 10);
+    frame.lineStyle(1, C.cardBorder, 0.5);
+    frame.strokeRoundedRect(insetX, insetY, w, h, 10);
+
+    const baseY = insetY + h * 0.72;
+    const spanLeft = insetX + w * 0.16;
+    const spanRight = insetX + w * 0.82;
+    const span = spanRight - spanLeft;
+    const arcH = h * 0.44;
+
+    // Bow (left) → dotted parabola over a wall (mid) → ringed target (right).
+    const bow = this.add.image(spanLeft, baseY, ARROW_ASSETS.bow).setDisplaySize(26, 38);
+    const wall = this.add.image(spanLeft + span * 0.5, baseY - 6, ARROW_ASSETS.wall).setDisplaySize(16, 54);
+    const board = this.add.image(spanRight, baseY, ARROW_ASSETS.target).setDisplaySize(38, 38);
 
     const arc = this.add.graphics();
-    arc.fillStyle(C.goldLight, 0.85);
-    const steps = 9;
+    arc.fillStyle(C.goldLight, 0.9);
+    const steps = 11;
     for (let i = 0; i <= steps; i += 1) {
       const t = i / steps;
-      const x = right - 112 + t * 108;
-      const y = baseY - Math.sin(t * Math.PI) * 34;
-      arc.fillCircle(x, y, i === steps ? 2.6 : 1.7);
+      const x = spanLeft + t * span;
+      const y = baseY - Math.sin(t * Math.PI) * arcH;
+      arc.fillCircle(x, y, i === steps ? 2.8 : 1.9);
     }
 
-    const arrow = this.add.image(right - 58, baseY - 34, ARROW_ASSETS.arrow)
-      .setDisplaySize(26, 7)
-      .setRotation(Phaser.Math.DegToRad(-8));
+    const arrow = this.add.image(spanLeft + span * 0.5, baseY - arcH, ARROW_ASSETS.arrow)
+      .setDisplaySize(28, 8)
+      .setRotation(Phaser.Math.DegToRad(-6));
+    this.lobbyPreviewArrow = arrow;
 
-    preview.add([arc, wall, bow, board, arrow]);
+    preview.add([frame, arc, wall, bow, board, arrow]);
     return preview;
   }
 
@@ -1565,7 +1644,9 @@ export class CurveArrowScene extends BaseScene {
                 ? `Tap a range to start  ·  Win: ${reward} GAS  ·  ${time} min`
                 : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
       this.lobbyStatusText.setText(statusText);
-      this.lobbyStatusText.setColor(ready ? "#d9f2e1" : "#ffd166");
+      // Caption sits on the pale shell just above the cards — use dark-on-light
+      // tones (pine when ready, deep amber for a wait/warn state).
+      this.lobbyStatusText.setColor(ready ? "#266542" : "#a87722");
     }
   }
 

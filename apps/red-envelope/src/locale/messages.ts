@@ -259,6 +259,73 @@ const appMessages = {
   holdDuration: { en: "hold", zh: "持有" },
   timeLeftDays: { en: "{days}d {hours}h left", zh: "{days}天{hours}小时" },
   timeLeftHours: { en: "{hours}h left", zh: "{hours}小时" },
+
+  // ── In-canvas Phaser scene copy ─────────────────────────────────────
+  // Every display string the RedEnvelopeScene renders is resolved here and
+  // passed into the scene via the `sceneCopy` bridge key so zh users read
+  // localized text inside the canvas instead of hardcoded English.
+  sceneModeSend: { en: "Send", zh: "发送" },
+  sceneModeClaim: { en: "Claim", zh: "领取" },
+  sceneSendHeading: { en: "Pick a packet bundle", zh: "选择红包套餐" },
+  sceneClaimHeading: { en: "Open a shared envelope", zh: "打开收到的红包" },
+  scenePlanLucky: { en: "Lucky 8", zh: "手气 8" },
+  scenePlanParty: { en: "Party 20", zh: "派对 20" },
+  scenePlanFestival: { en: "Festival 50", zh: "节庆 50" },
+  scenePacketsTpl: { en: "{count} packets", zh: "{count} 个红包" },
+  sceneCreate: { en: "Create", zh: "创建" },
+  sceneWorking: { en: "Working...", zh: "处理中..." },
+  sceneShare: { en: "Share", zh: "分享" },
+  sceneOpen: { en: "Open envelope", zh: "打开红包" },
+  sceneOpening: { en: "Opening...", zh: "开启中..." },
+  sceneNoEnvelope: { en: "No envelope", zh: "暂无红包" },
+  sceneSummaryTpl: {
+    en: "{count} random packets - {hours}h expiry",
+    zh: "{count} 个拼手气红包 · {hours} 小时有效",
+  },
+  sceneResultReceivedTpl: { en: "+{amount} GAS received", zh: "已领取 +{amount} GAS" },
+  sceneResultShareReadyTpl: {
+    en: "Envelope #{id} is ready to share",
+    zh: "红包 #{id} 已可分享",
+  },
+  sceneResultClaimReady: {
+    en: "Envelope ready. Open once for GAS.",
+    zh: "红包已就绪，开启一次即可领取 GAS。",
+  },
+  sceneResultClaimIdle: {
+    en: "Open a shared link or active pool.",
+    zh: "打开分享链接或选择可领取的奖池。",
+  },
+  sceneResultSendIdle: {
+    en: "Create packets. Share a link. Open for GAS.",
+    zh: "创建红包，分享链接，开启领取 GAS。",
+  },
+  sceneTicketEnvelopeTpl: { en: "Envelope #{id}", zh: "红包 #{id}" },
+  sceneTicketEmpty: { en: "Open a claim link", zh: "打开领取链接" },
+  sceneClaimReadyMeta: { en: "Ready to open with your wallet", zh: "可用钱包开启" },
+  sceneClaimEmptyMeta: {
+    en: "Use a shared envelope link to claim.",
+    zh: "使用分享的红包链接来领取。",
+  },
+  scenePacketsLeftTpl: { en: "{count} packets left", zh: "剩余 {count} 个红包" },
+  scenePacketStatusReady: { en: "Packet status ready", zh: "红包状态就绪" },
+  sceneGasLeftTpl: { en: "{amount} GAS left", zh: "剩余 {amount} GAS" },
+  sceneRandomAmount: { en: "Random amount", zh: "随机金额" },
+  sceneStatusClaimIdle: {
+    en: "Use a shared envelope link before opening.",
+    zh: "开启前请先使用分享的红包链接。",
+  },
+  sceneStatusSendIdle: {
+    en: "Random packet split is settled by the on-chain contract.",
+    zh: "拼手气金额由链上合约结算。",
+  },
+  scenePrepaidTpl: {
+    en: "Prepaid credit {amount} GAS available",
+    zh: "可用预付额度 {amount} GAS",
+  },
+  sceneErrorFallback: {
+    en: "The envelope action could not be completed.",
+    zh: "红包操作未能完成。",
+  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -83,6 +83,45 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const withdrawSucceeded = lastSuccessType === "withdraw" && !lastError;
   const hasRecoverableCredit = gasCredit > 0n;
 
+  // Localized string bundle for the Phaser vault scene. The canvas has no direct
+  // locale accessor, so the shell hands the scene a translated bundle through the
+  // bridge (new key, existing contract keys untouched) and the scene reads it via
+  // this.val("sceneText"). Templates keep {placeholders} the scene interpolates.
+  const sceneText: Record<string, string> = {
+    tabFund: t("vaultTabFund"),
+    tabClaim: t("vaultTabClaim"),
+    choosePack: t("vaultChoosePack"),
+    packStarter: t("vaultPackStarter"),
+    packParty: t("vaultPackParty"),
+    packJackpot: t("vaultPackJackpot"),
+    gasUnit: t("gasUnit"),
+    slotsTemplate: t("rewardSlotsCount"),
+    summaryTemplate: t("vaultPackSummary"),
+    actionPack: t("vaultActionPack"),
+    actionWorking: t("vaultActionWorking"),
+    unwrapTitle: t("vaultUnwrapTitle"),
+    actionCheck: t("vaultActionCheck"),
+    actionWait: t("vaultActionWait"),
+    actionClaim: t("vaultActionClaim"),
+    actionClaiming: t("vaultActionClaiming"),
+    actionNoLink: t("vaultActionNoLink"),
+    tagline: t("vaultTagline"),
+    statusIdle: t("vaultStatusIdle"),
+    readyToUnwrap: t("vaultReadyToUnwrap"),
+    openClaimLink: t("vaultOpenClaimLink"),
+    rangePending: t("vaultRangePending"),
+    poolNumberTemplate: t("vaultPoolNumber"),
+    luckTemplate: t("vaultLuckSuffix"),
+    latestTxTemplate: t("vaultLatestTx"),
+    rangeDefault: t("rewardRangeDefault"),
+    progWallet: t("claimProgressWallet"),
+    progSubmitted: t("claimProgressSubmitted"),
+    progSubmitting: t("claimProgressSubmitting"),
+    progConfirming: t("claimProgressConfirming"),
+    progPaid: t("claimProgressPaid"),
+    progFailed: t("claimProgressFailed"),
+  };
+
   const bridgeState = {
     currentClaimKey,
     currentPoolId,
@@ -97,6 +136,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     isCreating,
     isClaiming,
     isLoading,
+    sceneText,
   };
 
   const primaryAction =
@@ -179,7 +219,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         { label: t("claimAmountLabel"), value: lastClaimAmount > 0n ? gasLabel(lastClaimAmount) : "—" },
       ]
     : [
-        { label: t("activePools"), value: String(activePoolCount), accent: true },
+        { label: t("activePools"), value: String(activePoolCount), accent: activePoolCount > 0 },
         { label: t("remainingGas"), value: `${totalRemainingGas.toFixed(2)} GAS` },
         { label: t("claims"), value: String(claimCount) },
         { label: t("gasCredit"), value: gasLabel(gasCredit) },

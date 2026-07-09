@@ -1296,6 +1296,33 @@ $game-accent: #00af92;
   }
 }
 
+// ─── Desktop / wide-viewport layout ──────────────────────────────────────────
+// The canvas keeps its fixed 400x600 logical size on wide viewports, so the
+// framed shell must hug that content instead of stretching to full height and
+// stranding the HUD bar in a dead band far below the canvas. Grouping the HUD
+// just under the canvas makes it read as part of the play surface. Mobile
+// (which fills the shell) is handled in the block below and left untouched.
+@media (min-width: 561px) {
+  .flappy-playarea .mx2-stage__scene {
+    justify-content: center;
+  }
+
+  .flappy-stage-shell {
+    height: auto;
+    min-height: 0;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    max-width: 460px;
+    margin-inline: auto;
+    padding: 16px 16px 84px;
+  }
+
+  .flappy-stage-hud {
+    bottom: 16px;
+    width: min(100%, 400px);
+  }
+}
+
 // ─── Responsive ──────────────────────────────────────────────────────────────
 
 @media (max-width: 560px) {

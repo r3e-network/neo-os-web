@@ -16,7 +16,7 @@ import { PlayStage } from "@shared/components-react/v2";
 import { PhaserGameComponent } from "@framework/phaser";
 import { ChevronDown, RefreshCw, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
 import { FlappyScene } from "./scenes/FlappyScene";
-import { formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
+import { DIFFICULTY_RULES, formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
 import type { LeaderEntry, SolveRow } from "./main";
 import "./PlayArea.scss";
 
@@ -93,6 +93,44 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const timeUp  = isPlaying && deadline > 0 && remMs <= 0;
   const busy    = isStarting || isDealing || isSubmitting;
 
+  // ── Localized labels handed to the canvas ────────────────────────────────
+  // The Phaser scene only sees the raw bridge snapshot, so every in-canvas
+  // string is pre-resolved here through `t` and read back via this.str/val.
+  // Templates keep their {placeholders}; the scene substitutes live values.
+  const sceneLabels = {
+    eyebrow:      t("canvasEyebrow"),
+    heroTagline:  t("canvasHeroTagline"),
+    title:        t("appEyebrow"),
+    poolChip:     t("canvasPoolChip"),
+    awaitingPool: t("canvasAwaitingPool"),
+    launch:       t("canvasLaunch"),
+    launching:    t("canvasLaunching"),
+    flyAgain:     t("canvasFlyAgain"),
+    retryRun:     t("canvasRetryRun"),
+    tapTitle:     t("canvasTapTitle"),
+    tapHint:      t("canvasTapHint"),
+    sealingTitle: t("canvasSealingTitle"),
+    sealingHint:  t("canvasSealingHint"),
+    winTitle:     t("canvasWinTitle"),
+    crashTitle:   t("canvasCrashTitle"),
+    timeUpTitle:  t("canvasTimeUpTitle"),
+    winBody:      t("canvasWinBody"),
+    crashBody:    t("canvasCrashBody"),
+    timeUpBody:   t("canvasTimeUpBody"),
+    submitScore:  t("canvasSubmitScore"),
+    submitting:   t("canvasSubmitting"),
+    playAgain:    t("canvasPlayAgain"),
+    backToLobby:  t("canvasBackToLobby"),
+    tryAgain:     t("canvasTryAgain"),
+    routes: DIFFICULTY_RULES.map((r) => ({
+      title:     t("canvasRouteTitle", { name: t(`difficulty_${r.key}`) }),
+      meta:      t("canvasRouteMeta", { gates: r.targetPipes, minutes: Math.round(r.limitMs / 60000) }),
+      cardName:  t(`difficulty_${r.key}`),
+      cardGates: t("canvasCardGates", { gates: r.targetPipes }),
+      entry:     t("canvasEntry", { amount: gasDisplay(r.entryFixed8) }),
+    })),
+  };
+
   // ── Bridge state pushed into the Phaser scene ────────────────────────────
   const bridgeState = {
     gameStatus,
@@ -112,6 +150,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     myRank,
     myTotalWon,
     lastStatus,
+    sceneLabels,
   };
 
   // ── PlayStage chrome ─────────────────────────────────────────────────────

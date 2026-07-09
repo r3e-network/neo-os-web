@@ -234,6 +234,38 @@ const appMessages = {
     zh: "结算本轮即可在链上领取你的奖金。",
   },
   refreshToPlay: { en: "Refresh round to play", zh: "刷新轮次以开始游戏" },
+  // ── In-canvas arena labels (read by LastSurvivorScene via the bridge) ──────
+  liveRound: { en: "Live round", zh: "本轮进行中" },
+  sceneSettleWord: { en: "Settle", zh: "结算" },
+  readyToPay: { en: "Last buyer can be paid now", zh: "最后买家现可领取奖池" },
+  pressToStay: { en: "Press to stay alive", zh: "按下按钮保持存活" },
+  roundAfterSync: { en: "Round will open after sync", zh: "同步后开启本轮" },
+  lastBuyerPrefix: { en: "Last buyer", zh: "最后买家" },
+  noBuyerYet: { en: "No buyer yet", zh: "暂无买家" },
+  keysSoldLine: { en: "{count} keys sold", zh: "已售 {count} 把" },
+  yoursLine: { en: "{count} yours", zh: "你持有 {count}" },
+  choosePackLabel: { en: "Choose key pack", zh: "选择钥匙套餐" },
+  prizePoolLabel: { en: "Prize pool", zh: "奖池" },
+  buyVerb: { en: "Buy", zh: "装入" },
+  keyUnitOne: { en: "key", zh: "把" },
+  keyUnitMany: { en: "keys", zh: "把" },
+  buyingLabel: { en: "Buying...", zh: "购买中..." },
+  statusServiceDown: {
+    en: "Arena service unavailable. Connect wallet and refresh.",
+    zh: "竞技场服务不可用，请连接钱包并刷新。",
+  },
+  statusSettle: {
+    en: "Settle to pay the winner and open a fresh round.",
+    zh: "结算以支付赢家并开启新一轮。",
+  },
+  statusBuy: {
+    en: "Choose keys, then buy to extend the clock.",
+    zh: "选择钥匙，然后购买以延长倒计时。",
+  },
+  statusWaiting: { en: "Waiting for the next live round.", zh: "等待下一轮开始。" },
+  statusConnect: { en: "Connect wallet and sync the arena.", zh: "连接钱包并同步竞技场。" },
+  noticeBuying: { en: "Wallet confirmation in progress...", zh: "正在等待钱包确认..." },
+  noticeSettling: { en: "Settling round...", zh: "正在结算本轮..." },
 } as const;
 
 export const messages = mergeMessages(appMessages);

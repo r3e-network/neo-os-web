@@ -74,6 +74,8 @@ type SnakeLayout = {
   lobbyCardH: number;
   lobbyCardGap: number;
   lobbyStatusY: number;
+  lobbyHeadingY: number;
+  lobbyTrailY: number;
 };
 
 // ── Colours ───────────────────────────────────────────────────────────────────
@@ -109,6 +111,9 @@ const C = {
 	  cardBorder:  0x56a979,
   cardActive:  0x047857,
   cardActiveBg:0x0d5740,
+  cardActiveBorder: 0x6ff2d2,   // bright teal — selected route border
+  cardActiveGlow:   0x5af5d0,   // soft halo behind the selected route
+  cardActiveFill:   0x0f6446,   // brighter felt for the selected route
   white:       0xffffff,
   cream:       0xfff8e8,
 	  muted:       0xc7f9d4,
@@ -173,6 +178,12 @@ export class SnakeScene extends BaseScene {
   private lobbyContainer!:   Phaser.GameObjects.Container;
   private lobbyCards:        Phaser.GameObjects.Container[] = [];
   private lobbyStatusText!:  Phaser.GameObjects.Text;
+  private lobbyStatusPill!:  Phaser.GameObjects.Graphics;
+  private lobbyTitleText!:   Phaser.GameObjects.Text;
+  private lobbySubText!:     Phaser.GameObjects.Text;
+  private howToTitleText!:   Phaser.GameObjects.Text;
+  private howToCopyText!:    Phaser.GameObjects.Text;
+  private lobbyHeadingText!: Phaser.GameObjects.Text;
   private pickedDifficulty: Difficulty = 0;
 
   // ── Food pulse ───────────────────────────────────────────────────────────
@@ -217,20 +228,25 @@ export class SnakeScene extends BaseScene {
     const controlsY = gridTop + gridPx + 18;
     const hintY = controlsY + 18;
 
-    const lobbyTitleY = Math.max(26, Math.round(height * 0.05));
+    const lobbyTitleY = Math.max(30, Math.round(height * 0.058));
     const lobbySubY = lobbyTitleY + 24;
     const lobbyPanelX = outerPad;
-    const lobbyPanelY = lobbySubY + 18;
-    const lobbyCardW = Math.min(118, Math.floor((width - outerPad * 2 - 16) / 3));
-    const lobbyCardH = height < 620 ? 92 : 104;
-    const lobbyCardGap = Math.max(6, Math.floor((width - outerPad * 2 - lobbyCardW * 3) / 2));
-    const lobbyPanelH = Math.max(178, Math.min(236, Math.round(height * 0.29)));
-    const lobbyCardsY = Math.max(
-      lobbyPanelY + lobbyPanelH + lobbyCardH / 2 + 34,
-      height - (height < 620 ? 124 : 146),
-    );
-    const lobbyStatusY = lobbyCardsY - lobbyCardH / 2 - 20;
+    const lobbyPanelY = lobbySubY + 20;
     const lobbyPanelW = width - outerPad * 2;
+    // Taller "How to Play" panel closes the mid-canvas void.
+    const lobbyPanelH = Math.max(200, Math.min(262, Math.round(height * 0.44)));
+    const lobbyCardW = Math.min(118, Math.floor((width - outerPad * 2 - 16) / 3));
+    const lobbyCardH = height < 620 ? 118 : 126;
+    const lobbyCardGap = Math.max(6, Math.floor((width - outerPad * 2 - lobbyCardW * 3) / 2));
+    // Route band sits near the bottom of the canvas (arcade convention).
+    const lobbyCardsY = Math.max(
+      lobbyPanelY + lobbyPanelH + 26,
+      height - (lobbyCardH + 22),
+    );
+    // Section heading + status pill fill the gap between panel and cards.
+    const lobbyHeadingY = lobbyPanelY + lobbyPanelH + 24;
+    const lobbyStatusY = lobbyCardsY - 22;
+    const lobbyTrailY = Math.round((lobbyHeadingY + lobbyStatusY) / 2);
 
     return {
       cell,
@@ -252,7 +268,46 @@ export class SnakeScene extends BaseScene {
       lobbyCardH,
       lobbyCardGap,
       lobbyStatusY,
+      lobbyHeadingY,
+      lobbyTrailY,
     };
+  }
+
+  // ── Localization helpers ──────────────────────────────────────────────────
+  // Localized canvas strings arrive via the `sceneText` bridge payload (built
+  // from t(...) in PhaserPlayArea). Fallbacks keep the scene readable before the
+  // first push and satisfy source-pinned literals.
+
+  private sceneTextMap(): Record<string, unknown> {
+    const raw = this.state.sceneText;
+    return raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  }
+
+  private txt(
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number>,
+  ): string {
+    const raw = this.sceneTextMap()[key];
+    let value = typeof raw === "string" && raw.length > 0 ? raw : fallback;
+    if (params) {
+      for (const [param, replacement] of Object.entries(params)) {
+        value = value.replaceAll(`{${param}}`, String(replacement));
+      }
+    }
+    return value;
+  }
+
+  private txtList(key: string, fallback: readonly string[]): string[] {
+    const raw = this.sceneTextMap()[key];
+    return Array.isArray(raw) && raw.length > 0
+      ? raw.map((entry) => String(entry))
+      : [...fallback];
+  }
+
+  private diffLabel(difficulty: number): string {
+    const labels = this.txtList("diffLabels", DIFF_LABELS);
+    return labels[difficulty] ?? DIFF_LABELS[difficulty] ?? "";
   }
 
   // ── Phaser lifecycle ──────────────────────────────────────────────────────
@@ -297,6 +352,9 @@ export class SnakeScene extends BaseScene {
   // ── BaseScene abstract implementation ─────────────────────────────────────
 
   protected onStateUpdate(_state: GameState): void {
+    // Keep static localized labels in sync with the latest locale payload.
+    this.refreshLocaleText();
+
     const gameStatus = this.str("gameStatus", "idle");
     const clues      = this.str("clues", "");
     const isDealing  = this.bool("isDealing");
@@ -348,25 +406,25 @@ export class SnakeScene extends BaseScene {
 
     // ── Overlay ───────────────────────────────────────────────────────────
     if (isDealing || (gameStatus === "committed" && !inPlay)) {
-      this.showOverlay("Dealing", "Preparing your game");
+      this.showOverlay(this.txt("ovDealingTitle", "Dealing"), this.txt("ovDealingSub", "Preparing your game"));
     } else if (isSubmitting) {
-      this.showOverlay("Submitting", "Verifying your solution");
+      this.showOverlay(this.txt("ovSubmittingTitle", "Submitting"), this.txt("ovSubmittingSub", "Verifying your solution"));
     } else if (this.crashed && gameStatus === "dealt") {
-      this.showOverlay("Game Over", "The snake crashed.", {
-        label: "Settle Run",
+      this.showOverlay(this.txt("ovGameOverTitle", "Game Over"), this.txt("ovGameOverSub", "The snake crashed."), {
+        label: this.txt("ovGameOverBtn", "Settle Run"),
         onPress: () => this.dispatch("submitSolution"),
       });
     } else if (this.targetReached && gameStatus === "dealt") {
       const canSubmit = this.canSubmitTarget();
-      this.showOverlay("Target Reached", this.submitGateMessage(canSubmit), {
-        label: canSubmit ? "Submit Win" : "Waiting",
+      this.showOverlay(this.txt("ovTargetTitle", "Target Reached"), this.submitGateMessage(canSubmit), {
+        label: canSubmit ? this.txt("ovSubmitBtn", "Submit Win") : this.txt("ovWaitingBtn", "Waiting"),
         disabled: !canSubmit,
         onPress: () => this.dispatch("submitSolution"),
       });
     } else if (gameStatus === "solved") {
-      this.showOverlay("Solved", "Congratulations, you won.");
+      this.showOverlay(this.txt("ovSolvedTitle", "Solved"), this.txt("ovSolvedSub", "Congratulations, you won."));
     } else if (gameStatus === "expired") {
-      this.showOverlay("Expired", "Time ran out.");
+      this.showOverlay(this.txt("ovExpiredTitle", "Expired"), this.txt("ovExpiredSub", "Time ran out."));
     } else {
       this.overlayContainer.setVisible(false);
     }
@@ -499,6 +557,12 @@ export class SnakeScene extends BaseScene {
   private startFoodPulse(): void {
     this.stopFoodPulse();
     this.foodPulse = 0;
+    // Reduced-motion: render the food static (no infinite tween, no per-frame
+    // redraw) so a core object never animates against the user's preference.
+    if (this.reducedMotion) {
+      this.drawFood();
+      return;
+    }
     this.foodPulseTween = this.tweens.addCounter({
       from: 0,
       to: 100,
@@ -538,23 +602,15 @@ export class SnakeScene extends BaseScene {
     // Full canvas fill — warm deep green felt
     gfx.fillStyle(C.felt);
     gfx.fillRect(0, stageTop, this.scW, stageHeight);
+    // On tall (mobile) viewports the world extends past the design height. Read
+    // the overflow as more table: a plain felt continuation with a soft seam and
+    // a faint alternating tint — no diagonal scratches, no stray dots.
     if (stageBottom > DESIGN_H + 20) {
-      const trailTop = DESIGN_H - 8;
-      const trailHeight = stageBottom - trailTop - 8;
-      gfx.fillStyle(0x2f6f50, 0.82);
-      gfx.fillRoundedRect(16, trailTop, this.scW - 32, trailHeight, {
-        tl: 20,
-        tr: 20,
-        bl: 0,
-        br: 0,
-      });
-      gfx.lineStyle(1, 0x79cfa4, 0.26);
-      for (let x = 42; x < this.scW - 16; x += 44) {
-        gfx.lineBetween(x, trailTop + 28, x + 22, stageBottom - 28);
-      }
-      gfx.fillStyle(C.gold, 0.46);
-      gfx.fillCircle(this.scW * 0.5, trailTop + 58, 4);
-      gfx.fillCircle(this.scW * 0.72, trailTop + 92, 3);
+      const seamY = DESIGN_H - 6;
+      gfx.fillStyle(C.feltAlt, 0.35);
+      gfx.fillRect(0, seamY, this.scW, stageBottom - seamY);
+      gfx.lineStyle(1, C.feltInner, 0.22);
+      gfx.lineBetween(14, seamY, this.scW - 14, seamY);
     }
     // Subtle inner rim for depth
     gfx.lineStyle(3, C.feltBorder, 0.6);
@@ -663,7 +719,7 @@ export class SnakeScene extends BaseScene {
 	    this.controlsHint = this.add.text(
       this.scW / 2,
       this.layout.controlsY,
-      "Arrow keys / WASD / Swipe",
+      this.txt("controlsHint", "Arrow keys / WASD / Swipe"),
       {
         fontSize: "11px",
 	        color: "#c7f9d4",
@@ -717,7 +773,7 @@ export class SnakeScene extends BaseScene {
       .setStrokeStyle(1, C.goldLight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    this.overlayBtnTxt = this.add.text(0, 44, "Play Again", {
+    this.overlayBtnTxt = this.add.text(0, 44, this.txt("ovPlayAgain", "Play Again"), {
       fontSize: "13px",
       color: "#1a3a2b",
       fontStyle: "bold",
@@ -757,7 +813,8 @@ export class SnakeScene extends BaseScene {
     }
     this.overlayContainer.setVisible(true);
     this.overlayContainer.setScale(0.8);
-    this.tweens.add({
+    // this.tween collapses to the end state instantly under reduced-motion.
+    this.tween({
       targets: this.overlayContainer,
       scale: 1,
       duration: 200,
@@ -770,23 +827,24 @@ export class SnakeScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0);
     const layout = this.layout;
-    const panelMidY = layout.lobbyPanelY + layout.lobbyPanelH / 2;
 
     const titleMark = this.add.image(this.scW / 2 - 96, layout.lobbyTitleY, SNAKE_ASSETS.head)
       .setDisplaySize(40, 40);
 
-    const title = this.add.text(this.scW / 2 + 12, layout.lobbyTitleY, "Snake Bounty", {
+    const title = this.add.text(this.scW / 2 + 12, layout.lobbyTitleY, this.txt("title", "Snake Bounty"), {
       fontSize: "20px",
       fontStyle: "bold",
 	      color: "#ffcf68",
     }).setOrigin(0.5);
+    this.lobbyTitleText = title;
 
-    const sub = this.add.text(this.scW / 2, layout.lobbySubY, "Grow the snake to win GAS", {
+    const sub = this.add.text(this.scW / 2, layout.lobbySubY, this.txt("tagline", "Grow the snake to win GAS"), {
       fontSize: "12px",
 	      color: "#c7f9d4",
     }).setOrigin(0.5);
+    this.lobbySubText = sub;
 
-    // Arena preview panel
+    // "How to Play" panel — the arcade instruction board
     const arenaGfx = this.add.graphics();
     arenaGfx.fillStyle(C.cardBg, 1);
     arenaGfx.fillRoundedRect(
@@ -805,27 +863,36 @@ export class SnakeScene extends BaseScene {
       12,
     );
 
-    // Mini snake preview (decorative)
-    const preview = this.buildMiniSnakePreview();
-    const trail = this.buildBountyTrail();
-
-    // Labels inside arena
-    const arenaTitle = this.add.text(layout.lobbyPanelX + 18, panelMidY - 54, "How to Play", {
+    // Labels inside the panel — instructions column on the left
+    const arenaTitle = this.add.text(layout.lobbyPanelX + 18, layout.lobbyPanelY + 20, this.txt("howToTitle", "How to Play"), {
       fontSize: "13px",
       fontStyle: "bold",
       color: "#ffe066",
     });
-    const arenaCopy = this.add.text(layout.lobbyPanelX + 18, panelMidY - 28, [
-      "• Navigate the snake to eat food",
-      "• Grow to the target length",
-      "• Don't hit walls or yourself",
-      "• Submit before time runs out",
-    ].join("\n"), {
-      fontSize: "11px",
-	      color: "#d4f9df",
-      lineSpacing: 5,
-      wordWrap: { width: Math.max(220, layout.lobbyPanelW - 36) },
-    });
+    this.howToTitleText = arenaTitle;
+
+    const arenaCopy = this.add.text(
+      layout.lobbyPanelX + 18,
+      layout.lobbyPanelY + 46,
+      this.txtList("howToSteps", [
+        "Navigate the snake to eat food",
+        "Grow to the target length",
+        "Don't hit walls or yourself",
+        "Submit before time runs out",
+      ]).map((line) => `• ${line}`).join("\n"),
+      {
+        fontSize: "11px",
+        color: "#d4f9df",
+        lineSpacing: 6,
+        wordWrap: { width: Math.round(layout.lobbyPanelW * 0.54) },
+      },
+    );
+    this.howToCopyText = arenaCopy;
+
+    // Decorative connected mini snake chasing a bounty fruit (lower-right)
+    const preview = this.buildMiniSnakePreview();
+    // Section heading + trail rail bridging the panel and the route cards
+    const trail = this.buildBountyTrail();
 
     // Difficulty cards row
     const cardsY = layout.lobbyCardsY;
@@ -844,7 +911,9 @@ export class SnakeScene extends BaseScene {
       this.lobbyCards.push(card);
     }
 
-    // Pool info line
+    // Status pill — anchored just above the route cards it gates
+    const statusPill = this.add.graphics();
+    this.lobbyStatusPill = statusPill;
     const poolText = this.add.text(this.scW / 2, layout.lobbyStatusY, "", {
       fontSize: "11px",
 	      color: "#ffd166",
@@ -857,20 +926,40 @@ export class SnakeScene extends BaseScene {
       sub,
       arenaGfx,
       preview,
-      trail,
       arenaTitle,
       arenaCopy,
+      trail,
       ...this.lobbyCards,
+      statusPill,
       poolText,
     ]);
+  }
+
+  // Refresh the static localized lobby labels whenever a state push arrives
+  // (covers the initial empty push and any live locale change).
+  private refreshLocaleText(): void {
+    this.lobbyTitleText?.setText(this.txt("title", "Snake Bounty"));
+    this.lobbySubText?.setText(this.txt("tagline", "Grow the snake to win GAS"));
+    this.howToTitleText?.setText(this.txt("howToTitle", "How to Play"));
+    this.howToCopyText?.setText(
+      this.txtList("howToSteps", [
+        "Navigate the snake to eat food",
+        "Grow to the target length",
+        "Don't hit walls or yourself",
+        "Submit before time runs out",
+      ]).map((line) => `• ${line}`).join("\n"),
+    );
+    this.lobbyHeadingText?.setText(this.txt("chooseRoute", "Choose your bounty route"));
+    this.controlsHint?.setText(this.txt("controlsHint", "Arrow keys / WASD / Swipe"));
   }
 
   private buildMiniSnakePreview(): Phaser.GameObjects.Container {
     const preview = this.add.container(0, 0);
     const { lobbyPanelX, lobbyPanelY, lobbyPanelW, lobbyPanelH } = this.layout;
-    const right = lobbyPanelX + lobbyPanelW - 52;
-    const midY = lobbyPanelY + Math.min(lobbyPanelH - 72, Math.max(78, lobbyPanelH * 0.48));
-    const foodY = lobbyPanelY + lobbyPanelH - 42;
+    // A single continuous snake (tail → body → body → head) chasing a gold
+    // bounty fruit, seated in the lower-right of the instruction panel.
+    const headX = lobbyPanelX + lobbyPanelW - 66;
+    const midY  = lobbyPanelY + lobbyPanelH - 46;
     const pieces: Array<{
       key: string;
       x: number;
@@ -879,13 +968,15 @@ export class SnakeScene extends BaseScene {
       height: number;
       angle?: number;
     }> = [
-      { key: SNAKE_ASSETS.tail, x: right - 86, y: midY, width: 30, height: 22, angle: 180 },
-      { key: SNAKE_ASSETS.body, x: right - 58, y: midY, width: 34, height: 22 },
-      { key: SNAKE_ASSETS.body, x: right - 30, y: midY, width: 34, height: 22 },
-      { key: SNAKE_ASSETS.head, x: right + 2, y: midY - 4, width: 42, height: 42 },
-      { key: SNAKE_ASSETS.food, x: right + 22, y: foodY, width: 28, height: 28 },
+      // Tail: rotated so its taper points left and the thick end butts the body.
+      { key: SNAKE_ASSETS.tail, x: headX - 74, y: midY, width: 34, height: 30, angle: -45 },
+      { key: SNAKE_ASSETS.body, x: headX - 48, y: midY, width: 30, height: 24 },
+      { key: SNAKE_ASSETS.body, x: headX - 26, y: midY, width: 30, height: 24 },
+      { key: SNAKE_ASSETS.head, x: headX,      y: midY - 3, width: 46, height: 46 },
+      { key: SNAKE_ASSETS.food, x: headX + 34, y: midY,     width: 30, height: 30 },
     ];
 
+    // Add body/tail first, then the head on top so overlaps read as one snake.
     for (const piece of pieces) {
       preview.add(
         this.add.image(piece.x, piece.y, piece.key)
@@ -897,38 +988,44 @@ export class SnakeScene extends BaseScene {
     return preview;
   }
 
-  private buildBountyTrail(): Phaser.GameObjects.Graphics {
-    const gfx = this.add.graphics();
-    const {
-      lobbyPanelY,
-      lobbyPanelH,
-      lobbyCardsY,
-      lobbyCardH,
-      lobbyStatusY,
-    } = this.layout;
-    const startY = lobbyPanelY + lobbyPanelH + 18;
-    const endY = Math.min(lobbyStatusY - 20, lobbyCardsY - lobbyCardH / 2 - 28);
-    if (endY <= startY) return gfx;
+  private buildBountyTrail(): Phaser.GameObjects.Container {
+    const container = this.add.container(0, 0);
+    const { lobbyHeadingY, lobbyTrailY } = this.layout;
 
-    const points = 8;
-    gfx.lineStyle(2, C.cardBorder, 0.26);
-    for (let i = 0; i < points; i++) {
-      const progress = i / (points - 1);
-      const x = this.scW / 2 + Math.sin(progress * Math.PI * 2) * 44;
-      const y = startY + (endY - startY) * progress;
-      gfx.fillStyle(i === points - 1 ? C.gold : C.cardBorder, i === points - 1 ? 0.46 : 0.32);
-      gfx.fillCircle(x, y, i === points - 1 ? 5 : 3);
-      if (i > 0) {
-        const prev = (i - 1) / (points - 1);
-        const px = this.scW / 2 + Math.sin(prev * Math.PI * 2) * 44;
-        const py = startY + (endY - startY) * prev;
-        gfx.beginPath();
-        gfx.moveTo(px, py);
-        gfx.lineTo(x, y);
-        gfx.strokePath();
-      }
+    const heading = this.add.text(
+      this.scW / 2,
+      lobbyHeadingY,
+      this.txt("chooseRoute", "Choose your bounty route"),
+      { fontSize: "13px", fontStyle: "bold", color: "#ffcf68" },
+    ).setOrigin(0.5);
+    this.lobbyHeadingText = heading;
+
+    // A short bounty-trail rail: a teal snake node, a dashed path, and a gold
+    // bounty node — an intentional bridge to the route cards below.
+    const gfx = this.add.graphics();
+    const laneW = Math.min(300, this.scW - 96);
+    const laneX = (this.scW - laneW) / 2;
+    const y = lobbyTrailY;
+    gfx.fillStyle(C.cardBg, 0.55);
+    gfx.fillRoundedRect(laneX, y - 5, laneW, 10, 5);
+    gfx.lineStyle(1, C.cardBorder, 0.5);
+    gfx.strokeRoundedRect(laneX, y - 5, laneW, 10, 5);
+    const dashN = 7;
+    gfx.fillStyle(C.lengthFill, 0.65);
+    for (let i = 0; i < dashN; i++) {
+      const dx = laneX + 18 + (laneW - 36) * (i / (dashN - 1));
+      gfx.fillCircle(dx, y, 1.6);
     }
-    return gfx;
+    // Snake-head node (left) and gold bounty node (right)
+    gfx.fillStyle(C.head, 0.95);
+    gfx.fillCircle(laneX + 8, y, 4);
+    gfx.fillStyle(C.goldLight, 0.4);
+    gfx.fillCircle(laneX + laneW - 8, y, 7);
+    gfx.fillStyle(C.gold, 0.95);
+    gfx.fillCircle(laneX + laneW - 8, y, 4.5);
+
+    container.add([gfx, heading]);
+    return container;
   }
 
   private makeCard(
@@ -941,38 +1038,59 @@ export class SnakeScene extends BaseScene {
   ): Phaser.GameObjects.Container {
     const container = this.add.container(cx, cy);
 
+    // Soft halo behind the card — only shown for the selected route.
+    const glow = this.add.rectangle(0, 0, cardW + 12, cardH + 12, C.cardActiveGlow, 0.22)
+      .setOrigin(0.5)
+      .setVisible(false);
+
     const bg = this.add.rectangle(0, 0, cardW, cardH, C.cardBg)
       .setStrokeStyle(2, C.cardBorder)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const badge = this.add.image(0, -28, SNAKE_ASSETS.badges[difficulty])
-      .setDisplaySize(42, 42);
+    const badge = this.add.image(0, -42, SNAKE_ASSETS.badges[difficulty])
+      .setDisplaySize(40, 40);
 
-    const label = this.add.text(0, -6, DIFF_LABELS[difficulty], {
+    const label = this.add.text(0, -15, this.diffLabel(difficulty), {
       fontSize: "13px",
       fontStyle: "bold",
       color: "#ffcf68",
     }).setOrigin(0.5);
 
-    const targetTxt = this.add.text(0, 12, `${rule.targetLength} cells`, {
-      fontSize: "11px",
-      color: "#d4f9df",
-    }).setOrigin(0.5);
-
-    const entryTxt = this.add.text(0, 28, `${gasDisplay(rule.entryFixed8)} GAS`, {
+    const targetTxt = this.add.text(0, 3, this.txt("targetCells", "{target} cells", { target: rule.targetLength }), {
       fontSize: "10px",
-      color: "#66ffe0",
+      color: "#c7f9d4",
     }).setOrigin(0.5);
 
-    const lockTxt = this.add.text(0, 42, "Cleared", {
+    // Win reward is the payoff anchor — bright gold, prominent.
+    const winTxt = this.add.text(0, 21, this.txt("winLine", "Win {amount} GAS", { amount: gasDisplay(rule.rewardFixed8) }), {
+      fontSize: "12px",
+      fontStyle: "bold",
+      color: "#ffcf68",
+    }).setOrigin(0.5);
+
+    // Entry cost is secondary — muted so it never reads as the prize.
+    const entryTxt = this.add.text(0, 39, this.txt("entryLine", "Entry {amount} GAS", { amount: gasDisplay(rule.entryFixed8) }), {
+      fontSize: "10px",
+      color: "#9ec7ac",
+    }).setOrigin(0.5);
+
+    const lockTxt = this.add.text(0, 39, this.txt("cleared", "Cleared"), {
       fontSize: "10px",
       color: "#f9d27a",
       fontStyle: "bold",
     }).setOrigin(0.5).setVisible(false);
 
-    container.add([bg, badge, label, targetTxt, entryTxt, lockTxt]);
+    container.add([glow, bg, badge, label, targetTxt, winTxt, entryTxt, lockTxt]);
     container.setData("difficulty", difficulty);
+    container.setData("glow", glow);
+    container.setData("bg", bg);
+    container.setData("badge", badge);
+    container.setData("label", label);
+    container.setData("target", targetTxt);
+    container.setData("win", winTxt);
+    container.setData("entry", entryTxt);
+    container.setData("lock", lockTxt);
 
     bg.on("pointerdown", () => {
       this.sfx.unlock();
@@ -981,13 +1099,7 @@ export class SnakeScene extends BaseScene {
       this.pickedDifficulty = difficulty;
       this.dispatch("selectDifficulty", { difficulty });
       this.updateLobbyCards();
-      this.tweens.add({
-        targets: container,
-        scaleX: 0.94,
-        scaleY: 0.94,
-        duration: 80,
-        yoyo: true,
-      });
+      this.pressFeedback(container, { scale: 0.94, duration: 80 });
       if (this.canStartDifficulty(difficulty)) {
         this.dispatch("startGame", { difficulty });
       }
@@ -1008,24 +1120,48 @@ export class SnakeScene extends BaseScene {
     this.ensureSelectableDifficulty();
     for (let i = 0; i < this.lobbyCards.length; i++) {
       const card     = this.lobbyCards[i]!;
-      const bg       = card.list[0] as Phaser.GameObjects.Rectangle;
-      const label    = card.list[2] as Phaser.GameObjects.Text;
-      const target   = card.list[3] as Phaser.GameObjects.Text;
-      const entry    = card.list[4] as Phaser.GameObjects.Text;
-      const lock     = card.list[5] as Phaser.GameObjects.Text;
+      const glow     = card.getData("glow") as Phaser.GameObjects.Rectangle;
+      const bg       = card.getData("bg") as Phaser.GameObjects.Rectangle;
+      const badge    = card.getData("badge") as Phaser.GameObjects.Image;
+      const label    = card.getData("label") as Phaser.GameObjects.Text;
+      const target   = card.getData("target") as Phaser.GameObjects.Text;
+      const win      = card.getData("win") as Phaser.GameObjects.Text;
+      const entry    = card.getData("entry") as Phaser.GameObjects.Text;
+      const lock     = card.getData("lock") as Phaser.GameObjects.Text;
+      const rule     = ruleOf(i as Difficulty);
       const locked   = this.isDifficultyLocked(i as Difficulty);
-      const isActive = i === this.pickedDifficulty;
-      bg.setFillStyle(locked ? 0x183226 : isActive ? C.cardActiveBg : C.cardBg);
-      bg.setStrokeStyle(2, locked ? 0x425846 : isActive ? C.cardActive : C.cardBorder);
+      const isActive = i === this.pickedDifficulty && !locked;
+
+      glow.setVisible(isActive);
+      bg.setFillStyle(locked ? 0x183226 : isActive ? C.cardActiveFill : C.cardBg);
+      bg.setStrokeStyle(
+        isActive ? 3 : 2,
+        locked ? 0x425846 : isActive ? C.cardActiveBorder : C.cardBorder,
+      );
+      // setDisplaySize (not setScale) — the badge textures are 384px; setScale
+      // would discard the makeCard display sizing and render them full-size.
+      badge.setDisplaySize(isActive ? 44 : 40, isActive ? 44 : 40);
+
+      label.setText(this.diffLabel(i));
       label.setColor(locked ? "#9fb7a6" : "#ffcf68");
-      target.setColor(locked ? "#8aa493" : "#d4f9df");
-      entry.setText(locked ? "Completed" : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`);
-      entry.setColor(locked ? "#9fb7a6" : "#66ffe0");
+      target.setText(this.txt("targetCells", "{target} cells", { target: rule.targetLength }));
+      target.setColor(locked ? "#8aa493" : "#c7f9d4");
+      // Win reward stays the visual anchor; entry is demoted / hidden when locked.
+      win.setText(this.txt("winLine", "Win {amount} GAS", { amount: gasDisplay(rule.rewardFixed8) }));
+      win.setColor(locked ? "#9fb7a6" : "#ffcf68");
+      win.setVisible(!locked);
+      entry.setText(this.txt("entryLine", "Entry {amount} GAS", { amount: gasDisplay(rule.entryFixed8) }));
+      entry.setColor("#9ec7ac");
+      entry.setVisible(!locked);
+      lock.setText(this.txt("completed", "Completed"));
       lock.setVisible(locked);
-      card.setAlpha(locked ? 0.58 : 1);
+      card.setAlpha(locked ? 0.6 : 1);
       if (bg.input) bg.input.enabled = !locked;
     }
-    // Update pool text
+    this.updateLobbyStatus();
+  }
+
+  private updateLobbyStatus(): void {
     const poolFree = this.num("poolFree", 0);
     const rule     = ruleOf(this.pickedDifficulty);
     const needed   = Number(gasDisplay(rule.rewardFixed8));
@@ -1034,23 +1170,48 @@ export class SnakeScene extends BaseScene {
     const walletConnected = this.bool("walletConnected");
     const busy     = this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting");
     const ready    = this.canStartDifficulty(this.pickedDifficulty);
-    if (this.lobbyStatusText) {
-      const reward  = gasDisplay(rule.rewardFixed8);
-      const time    = Math.round(rule.limitMs / 60000);
-      const statusText = busy
-        ? "Preparing your bounty route"
-        : !walletConnected
-          ? "Connect wallet to start a bounty route"
-          : !progressionReady
-        ? "Checking account route history"
-        : locked
-          ? `Route cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
-          : ready
-            ? `Tap a route to start  ·  Win: ${reward} GAS  ·  ${time} min`
-            : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
-      this.lobbyStatusText.setText(statusText);
-      this.lobbyStatusText.setColor(ready ? "#d4f9df" : "#ffd166");
-    }
+    if (!this.lobbyStatusText) return;
+
+    const reward  = gasDisplay(rule.rewardFixed8);
+    const time    = Math.round(rule.limitMs / 60000);
+    const statusText = busy
+      ? this.txt("lobbyPreparing", "Preparing your bounty route")
+      : !walletConnected
+        ? this.txt("lobbyConnectWallet", "Connect wallet to start a bounty route")
+        : !progressionReady
+          ? this.txt("lobbyCheckingHistory", "Checking account route history")
+          : locked
+            ? this.txt("lobbyRouteCleared", "Route cleared. Play {difficulty} next.", {
+                difficulty: this.routeName(this.requiredDifficulty()),
+              })
+            : ready
+              ? this.txt("lobbyTapToStart", "Tap a route to start  ·  Win {amount} GAS  ·  {minutes} min", {
+                  amount: reward,
+                  minutes: time,
+                })
+              : this.txt("lobbyPoolLow", "Pool low ({pool} / {needed} GAS reward needed)", {
+                  pool: poolFree.toFixed(2),
+                  needed,
+                });
+    this.lobbyStatusText.setText(statusText);
+    this.lobbyStatusText.setColor(ready ? "#d4f9df" : "#ffd166");
+    this.drawStatusPill();
+  }
+
+  private drawStatusPill(): void {
+    if (!this.lobbyStatusPill || !this.lobbyStatusText) return;
+    const gfx = this.lobbyStatusPill;
+    gfx.clear();
+    const text = this.lobbyStatusText;
+    if (!text.text) return;
+    const w = Math.min(this.scW - 32, text.width + 30);
+    const h = 24;
+    const x = this.scW / 2 - w / 2;
+    const y = this.layout.lobbyStatusY - h / 2;
+    gfx.fillStyle(C.hudBg, 0.82);
+    gfx.fillRoundedRect(x, y, w, h, h / 2);
+    gfx.lineStyle(1, C.cardBorder, 0.55);
+    gfx.strokeRoundedRect(x, y, w, h, h / 2);
   }
 
   private requiredDifficulty(): Difficulty {
@@ -1058,7 +1219,7 @@ export class SnakeScene extends BaseScene {
   }
 
   private routeName(difficulty: Difficulty): string {
-    return DIFF_LABELS[difficulty] ?? "next route";
+    return this.diffLabel(difficulty) || DIFF_LABELS[difficulty] || "next route";
   }
 
   private isDifficultyLocked(difficulty: Difficulty): boolean {
@@ -1095,16 +1256,16 @@ export class SnakeScene extends BaseScene {
   }
 
   private submitGateMessage(canSubmit: boolean): string {
-    if (canSubmit) return "Submit for GAS before time runs out.";
+    if (canSubmit) return this.txt("gateSubmitReady", "Submit for GAS before time runs out.");
     const deadline = this.num("deadline", 0);
     const dealtAt = this.num("dealtAt", 0);
     const difficulty = this.num("gameDifficulty", 0);
     const rule = ruleOf(difficulty as Difficulty);
     const remainingMs = deadline > 0 ? deadline - this.nowMs : Number.POSITIVE_INFINITY;
-    if (remainingMs <= SUBMIT_BUFFER_MS) return "Too close to the deadline.";
-    if (dealtAt <= 0) return "Settlement unlock is being checked.";
+    if (remainingMs <= SUBMIT_BUFFER_MS) return this.txt("gateTooClose", "Too close to the deadline.");
+    if (dealtAt <= 0) return this.txt("gateUnlockChecking", "Settlement unlock is being checked.");
     const waitMs = rule.minSolveMs + MIN_SOLVE_BUFFER_MS - (this.nowMs - dealtAt);
-    return `Settlement unlocks in ${formatClock(waitMs)}.`;
+    return this.txt("gateUnlockIn", "Settlement unlocks in {clock}.", { clock: formatClock(waitMs) });
   }
 
   // ── Draw: snake ───────────────────────────────────────────────────────────
@@ -1243,12 +1404,15 @@ export class SnakeScene extends BaseScene {
     this.timerLabel.setColor(isLow ? "#ffd166" : "#66ffe0");
 
     // Length label
-    this.lengthLabel.setText(`${currentLen} / ${rule.targetLength} cells`);
+    this.lengthLabel.setText(this.txt("lengthReadout", "{len} / {target} cells", {
+      len: currentLen,
+      target: rule.targetLength,
+    }));
     this.lengthLabel.setColor(this.targetReached ? "#66ffe0" : "#ffcf68");
 
     // Target badge
     const reward = gasDisplay(rule.rewardFixed8);
-    this.targetBadge.setText(`${reward} GAS reward`);
+    this.targetBadge.setText(this.txt("rewardBadge", "{amount} GAS reward", { amount: reward }));
 
     // Hint label
     const elapsedMs = dealtAt > 0 ? this.nowMs - dealtAt : 0;
@@ -1257,16 +1421,16 @@ export class SnakeScene extends BaseScene {
     const submitWindowClosed = gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
 
     if (this.crashed || (this.snake && this.snake.dead)) {
-      this.hintLabel.setText("Snake crashed.").setVisible(true);
+      this.hintLabel.setText(this.txt("hintCrashed", "Snake crashed.")).setVisible(true);
     } else if (timeUp) {
-      this.hintLabel.setText("Time's up.").setVisible(true);
+      this.hintLabel.setText(this.txt("hintTimeUp", "Time's up.")).setVisible(true);
     } else if (submitWindowClosed && !timeUp) {
-      this.hintLabel.setText("Closing soon — submit now!").setVisible(true);
+      this.hintLabel.setText(this.txt("hintClosingSoon", "Closing soon — submit now!")).setVisible(true);
     } else if (this.targetReached && !minSolveReached) {
       const wait = rule.minSolveMs + MIN_SOLVE_BUFFER_MS - elapsedMs;
-      this.hintLabel.setText(`Wait ${formatClock(wait)} to submit`).setVisible(true);
+      this.hintLabel.setText(this.txt("hintWaitSubmit", "Wait {clock} to submit", { clock: formatClock(wait) })).setVisible(true);
     } else if (this.targetReached && minSolveReached) {
-      this.hintLabel.setText("Target reached. Submit now.").setVisible(true);
+      this.hintLabel.setText(this.txt("hintTargetSubmit", "Target reached. Submit now.")).setVisible(true);
     } else {
       this.hintLabel.setText("").setVisible(true);
     }
@@ -1358,8 +1522,10 @@ export class SnakeScene extends BaseScene {
   // ── update (Phaser frame loop) ────────────────────────────────────────────
 
   update(_time: number, _delta: number): void {
-    // Food pulse is driven by a tween counter; redraw food every frame
-    // only when in play to keep the animation smooth.
+    // Food pulse is driven by a tween counter; redraw food every frame only when
+    // in play to keep the animation smooth. Under reduced-motion the food is
+    // static, so skip the per-frame redraw entirely.
+    if (this.reducedMotion) return;
     if (
       this.str("gameStatus", "") === "dealt" &&
       this.snake &&

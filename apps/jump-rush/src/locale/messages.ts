@@ -172,6 +172,33 @@ const appMessages = {
   chargeHint: { en: "Hold to charge, release to jump", zh: "按住蓄力，松开跳跃" },
   jumpsCount: { en: "{count} platforms", zh: "{count}个平台" },
   targetJumps: { en: "Target: {count}", zh: "目标: {count}次" },
+
+  // ── In-canvas (Phaser) strings — routed to the scene via bridgeState so the
+  //    canvas honors the active locale instead of hardcoding English. ──────────
+  chargeHold: { en: "Hold to charge", zh: "按住蓄力" },
+  chargeRelease: { en: "Release to jump", zh: "松开跳跃" },
+  submitSettleHint: { en: "TEE settlement", zh: "TEE 结算" },
+  submitVerifiedHint: { en: "Verified payout", zh: "已验证奖励" },
+  timeExpiredLabel: { en: "Time expired", zh: "时间已到" },
+  releaseThisRun: { en: "Release this run", zh: "结算本局" },
+  waitLabel: { en: "Wait {clock}", zh: "等待 {clock}" },
+  antiBotFloor: { en: "Anti-bot floor", zh: "防脚本下限" },
+  keepJumping: { en: "Keep jumping", zh: "继续跳跃" },
+  targetNotCleared: { en: "Target not cleared", zh: "尚未通关" },
+  startJump: { en: "Start jump", zh: "开始跳跃" },
+  preparingLabel: { en: "Preparing…", zh: "准备中…" },
+  startSealHint: { en: "Pay entry and seal route", zh: "支付报名并密封路线" },
+  loadingRouteHint: { en: "Loading route…", zh: "路线加载中…" },
+  preparingPlatforms: { en: "Preparing platforms", zh: "正在准备平台" },
+  sealingFairRoute: { en: "TEE is sealing a fair route", zh: "TEE 正在密封公平路线" },
+  missedTitle: { en: "Missed the platform", zh: "没踩中平台" },
+  missedCopy: { en: "Use an undo or wait for expiry.", zh: "使用撤回或等待过期。" },
+  clearedTitle: { en: "Route cleared!", zh: "路线通关！" },
+  undoLeftLabel: { en: "Undo ({n} left)", zh: "撤回（剩 {n} 次）" },
+  noUndosLabel: { en: "No undos left", zh: "撤回次数已用完" },
+  cardJumps: { en: "{count} jumps", zh: "{count} 跳" },
+  cardReward: { en: "{amount} GAS", zh: "{amount} GAS" },
+  cardEntry: { en: "Entry {amount}", zh: "报名 {amount}" },
 };
 
 export const messages = mergeMessages(appMessages);

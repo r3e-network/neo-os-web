@@ -99,6 +99,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     hasCredit,
     hasPendingBet,
     revealFailed,
+    // Localized in-canvas copy (additive — the scene reads these via this.str
+    // so the coin table never renders hardcoded English under a non-en locale).
+    tableTitle:      t("tableTitle"),
+    headsLabel:      t("heads"),
+    tailsLabel:      t("tails"),
+    headsHint:       t("headsHint"),
+    tailsHint:       t("tailsHint"),
+    payoutCaption:   t("payoutPreviewLabel"),
+    statusIdle:      t("oddsShort"),
+    statusFlipping:  t("awaitingReveal"),
+    flipCta:         t("flipCta"),
+    flippingCta:     t("flippingCta"),
+    resultWin:       t("resultWin"),
+    resultMiss:      t("resultMiss"),
+    tryAgainShort:   t("tryAgainShort"),
   };
 
   const stageTitle = (() => {

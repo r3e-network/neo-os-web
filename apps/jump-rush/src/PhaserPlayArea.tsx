@@ -122,7 +122,43 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       limitMs:    r.limitMs,
       minSolveMs: r.minSolveMs,
       targetJumps: r.targetJumps,
+      // Localized card copy so the canvas mirrors the themed route names and
+      // language used everywhere else in the app (never hardcode in the scene).
+      label:      t(`difficulty_${r.key}`),
+      jumpsText:  t("cardJumps",  { count: r.targetJumps }),
+      rewardText: t("cardReward", { amount: gasDisplay(r.rewardFixed8) }),
+      entryText:  t("cardEntry",  { amount: gasDisplay(r.entryFixed8) }),
     })),
+    // Flat i18n string map consumed by the scene (this.tr) so every in-canvas
+    // HUD/overlay label is localized rather than a hardcoded English literal.
+    sceneText: {
+      chargeHold:         t("chargeHold"),
+      chargeRelease:      t("chargeRelease"),
+      chargeTip:          t("chargeHint"),
+      perfect:            t("perfectLanding"),
+      submitRun:          t("submitAction"),
+      submitSettleHint:   t("submitSettleHint"),
+      submitVerifiedHint: t("submitVerifiedHint"),
+      timeExpired:        t("timeExpiredLabel"),
+      releaseThisRun:     t("releaseThisRun"),
+      waitLabel:          t("waitLabel"),
+      antiBotFloor:       t("antiBotFloor"),
+      keepJumping:        t("keepJumping"),
+      targetNotCleared:   t("targetNotCleared"),
+      startJump:          t("startJump"),
+      preparing:          t("preparingLabel"),
+      startSealHint:      t("startSealHint"),
+      poolRefilling:      t("statusPoolLow"),
+      loadingRouteHint:   t("loadingRouteHint"),
+      preparingPlatforms: t("preparingPlatforms"),
+      sealingFairRoute:   t("sealingFairRoute"),
+      missedTitle:        t("missedTitle"),
+      missedCopy:         t("missedCopy"),
+      clearedTitle:       t("clearedTitle"),
+      undoJump:           t("undoAction"),
+      undoLeft:           t("undoLeftLabel"),
+      noUndos:            t("noUndosLabel"),
+    },
   };
 
   // ── Stage title ──────────────────────────────────────────────────────────

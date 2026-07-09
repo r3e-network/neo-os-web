@@ -10,8 +10,11 @@ import type { GameState } from "@framework/phaser";
 import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 // ── Casino color palette ─────────────────────────────────────────────────────
-const FELT_GREEN   = 0x65c983;
-const FELT_DARK    = 0x2f9f63;
+// Richer bottle-green felt (was a bright mint) reads closer to a real casino
+// table while keeping the warm gold rail + cream dice popping for contrast.
+const FELT_GREEN   = 0x2c8a56;
+const FELT_DARK    = 0x18683d;
+const FELT_SHADOW  = 0x123524;
 const GOLD         = 0xd4a843;
 const GOLD_LIGHT   = 0xf0c866;
 const CREAM        = 0xfff8e8;
@@ -52,7 +55,7 @@ export class DiceScene extends BaseScene {
   // ── Scene objects ──────────────────────────────────────────────────────────
   private diceGroup!: Phaser.GameObjects.Container;
   private dieFace1!: Phaser.GameObjects.Image;   // main die
-  private dieShadowRect!: Phaser.GameObjects.Rectangle;
+  private dieShadow!: Phaser.GameObjects.Ellipse;
   private throwTrail!: Phaser.GameObjects.Graphics;
 
   private faceButtons: Phaser.GameObjects.Container[] = [];
@@ -119,12 +122,15 @@ export class DiceScene extends BaseScene {
     const tallTable = H / Math.max(W, 1) > 1.55;
 
     return {
-      matY: tallTable ? H * 0.37 : H * 0.42,
-      matHeight: tallTable ? H * 0.48 : H * 0.54,
-      trailStartY: tallTable ? H * 0.33 : H * 0.36,
-      trailControlY: tallTable ? H * 0.17 : H * 0.18,
+      // Tighter felt oval centred on the hero die: the mat bottom now clears the
+      // prediction rail (so the gold trim no longer bisects the lower panels) and
+      // the die sits in the visual centre instead of floating in an empty void.
+      matY: tallTable ? H * 0.275 : H * 0.30,
+      matHeight: tallTable ? H * 0.325 : H * 0.38,
+      trailStartY: tallTable ? H * 0.305 : H * 0.335,
+      trailControlY: tallTable ? H * 0.15 : H * 0.17,
       heroDieY: tallTable ? H * 0.16 : H * 0.18,
-      diceY: tallTable ? H * 0.255 : H * 0.28,
+      diceY: tallTable ? H * 0.28 : H * 0.305,
       ghostLeftY: tallTable ? H * 0.305 : H * 0.33,
       ghostTopY: tallTable ? H * 0.21 : H * 0.22,
       predictionY: tallTable ? H * 0.50 : H * 0.56,
@@ -201,22 +207,30 @@ export class DiceScene extends BaseScene {
     const rimDepth = 20;
     this.add.rectangle(W / 2, H / 2, W, H, 0xb77b39);
     this.add.rectangle(W / 2, H / 2, W - rimDepth * 2, H - rimDepth * 2, FELT_GREEN);
-    this.add.rectangle(W / 2, H / 2 + 2, W - 52, H - 72, 0x23824e, 0.82)
-      .setStrokeStyle(2, 0x74d49a, 0.28);
+    this.add.rectangle(W / 2, H / 2 + 2, W - 52, H - 72, 0x1c6e42, 0.82)
+      .setStrokeStyle(2, 0x4fbb82, 0.26);
 
     // Main throw mat: a clean visual stage, not a configuration form.
-    this.add.ellipse(W / 2, layout.matY, W * 0.78, layout.matHeight, FELT_DARK, 0.86);
+    const matRx = (W * 0.78) / 2;
+    const matRy = layout.matHeight / 2;
+    this.add.ellipse(W / 2, layout.matY, W * 0.78, layout.matHeight, FELT_DARK, 0.9);
+
+    // Felt weave: soft horizontal grain confined to the throw-mat oval only, so
+    // the panels below sit on plain felt instead of lined-notebook rules.
+    const grain = this.add.graphics();
+    grain.lineStyle(1, 0x0c4d2b, 0.08);
+    for (let dy = -matRy + 8; dy < matRy; dy += 13) {
+      const t = dy / matRy;
+      const halfW = matRx * Math.sqrt(Math.max(0, 1 - t * t));
+      const yy = layout.matY + dy;
+      grain.lineBetween(W / 2 - halfW, yy, W / 2 + halfW, yy);
+    }
+
     const trimG = this.add.graphics();
     trimG.lineStyle(3, GOLD, 0.62);
     trimG.strokeEllipse(W / 2, layout.matY, W * 0.78 + 8, layout.matHeight + 8);
-    trimG.lineStyle(1, 0xffffff, 0.22);
+    trimG.lineStyle(1, 0xffffff, 0.2);
     trimG.strokeEllipse(W / 2, layout.matY, W * 0.78 - 24, layout.matHeight - 24);
-
-    const grain = this.add.graphics();
-    grain.lineStyle(1, 0x0d5a32, 0.16);
-    for (let y = rimDepth; y < H - rimDepth; y += 22) {
-      grain.lineBetween(rimDepth, y, W - rimDepth, y);
-    }
 
     this.throwTrail = this.add.graphics();
     this.throwTrail.lineStyle(3, GOLD_LIGHT, 0.18);
@@ -256,16 +270,17 @@ export class DiceScene extends BaseScene {
     const cx = W / 2;
     const cy = this.tableLayout(W, H).diceY;
 
-    // Shadow
-    this.dieShadowRect = this.add.rectangle(
-      cx + 6,
-      cy + 10,
-      DIE_SIZE,
-      DIE_SIZE * 0.88,
-      0x000000,
-      0.28,
+    // Soft grounded contact shadow: a low-alpha ellipse pooled on the felt at the
+    // base of the die (replaces the hard opaque square block that read as a
+    // misplaced dark tile on the bright felt).
+    this.dieShadow = this.add.ellipse(
+      cx,
+      cy + DIE_SIZE * 0.52,
+      DIE_SIZE * 0.96,
+      DIE_SIZE * 0.30,
+      FELT_SHADOW,
+      0.32,
     );
-    this.dieShadowRect.setBlendMode(Phaser.BlendModes.MULTIPLY);
 
     // Die texture object
     this.dieFace1 = this.add.image(0, 0, this.dieAssetKey(this.selectedFace))
@@ -329,16 +344,17 @@ export class DiceScene extends BaseScene {
         this.emitTapBurst(c.x, c.y, GOLD_LIGHT);
         this.selectedFace = face;
         this.refreshBettingState();
+        this.pulseHeroDie();
         this.dispatch("setSelectedFace", { face: String(face) });
       },
       onHoverIn: () => bg.setAlpha(0.86),
       onHoverOut: () => bg.setAlpha(1.0),
     });
 
-    const die = this.add.image(0, 0, this.dieAssetKey(face))
+    const die = this.add.image(0, -4, this.dieAssetKey(face))
       .setDisplaySize(34, 34)
       .setAlpha(0.9);
-    const odd = this.add.text(0, 22, "5.7x", {
+    const odd = this.add.text(0, 18, `${PAYOUT_MULT.toFixed(1)}x`, {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "9px",
@@ -558,6 +574,17 @@ export class DiceScene extends BaseScene {
     if (!this.isRolling) this.setDieFace(this.selectedFace);
   }
 
+  /** Quick spring-in on the hero die when the picked face changes (idle only). */
+  private pulseHeroDie(): void {
+    if (this.isRolling || !this.diceGroup) return;
+    this.tween({
+      targets: this.diceGroup,
+      scale: { from: 0.82, to: 1 },
+      duration: 240,
+      ease: "Back.easeOut",
+    });
+  }
+
   // ── Result banner ──────────────────────────────────────────────────────────
 
   private buildResultBanner(W: number, H: number): void {
@@ -662,11 +689,13 @@ export class DiceScene extends BaseScene {
           duration: 60,
           ease: "Power1",
         });
-        // Bounce shadow
+        // Grounded shadow reacts to the tumble: widens as the die drops,
+        // pinches as it lifts, so it stays read as contact shadow.
         this.tweens.add({
-          targets: this.dieShadowRect,
-          scaleX: { from: 1.1, to: 0.9 },
-          scaleY: { from: 0.7, to: 1.1 },
+          targets: this.dieShadow,
+          scaleX: { from: 1.12, to: 0.78 },
+          scaleY: { from: 1.1, to: 0.62 },
+          alpha: { from: 0.34, to: 0.16 },
           duration: 80,
           yoyo: true,
         });
@@ -702,9 +731,20 @@ export class DiceScene extends BaseScene {
     this.shuffleTimer?.remove(false);
     this.shuffleTimer = null;
     this.tweens.killTweensOf(this.diceGroup);
-    this.tweens.killTweensOf(this.dieShadowRect);
+    this.tweens.killTweensOf(this.dieShadow);
     this.tweens.killTweensOf(this.throwTrail);
     this.throwTrail.setAlpha(1);
+
+    // Settle the grounded shadow: snap back wide + soft as the die lands.
+    this.dieShadow.setScale(1);
+    this.tweens.add({
+      targets: this.dieShadow,
+      scaleX: { from: 0.7, to: 1 },
+      scaleY: { from: 0.7, to: 1 },
+      alpha: { from: 0.16, to: 0.32 },
+      duration: 220,
+      ease: "Back.easeOut",
+    });
 
     // Settle animation
     this.tweens.add({

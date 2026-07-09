@@ -44,6 +44,45 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canRelease  = gameStatus === "dealt" || isGameOver;
   const canWithdraw = credit > 0 && gameStatus !== "dealt";
 
+  // Localized copy for the presentation-only Phaser scene. The scene never
+  // calls t(); it reads these resolved strings via this.str/this.val so zh users
+  // see translated in-canvas text. English defaults still live in the scene as
+  // fallbacks. Interpolated subs (payout/credit) are passed as templates the
+  // scene fills with values it already holds.
+  const diffTimers = ["5:00", "8:00", "12:00"];
+  const diffTileCounts = [8, 12, 15];
+  const loc = {
+    title:    t("appEyebrow"),
+    subtitle: t("boardTagline"),
+    diffNames: [t("easyLabel"), t("mediumLabel"), t("hardLabel")],
+    diffInfos: diffTileCounts.map(
+      (count, i) => `${t("tileTypesLabel", { count })} · ${diffTimers[i]}`,
+    ),
+    diffEntries: ["0.02", "0.10", "0.20"].map((amount) => t("entryAmount", { amount })),
+    diffRewards: ["0.10", "0.50", "1.00"].map((amount) => t("winAmount", { amount })),
+    undo:     t("undoLabel"),
+    shuffle:  t("shuffleLabel"),
+    remove3:  t("remove3Label"),
+    tray:     t("trayLabel"),
+    loadTitle: t("loadingBoard"),
+    loadSub:   t("securingPuzzle"),
+    progress:  t("progressStat"),
+    matched:   t("matchedStat"),
+    wonTitle:      t("wonTitle"),
+    creditedTitle: t("creditedTitle"),
+    gameOverTitle: t("gameOverTitle"),
+    boardClearedSub:  t("boardClearedSub"),
+    boardVerifiedSub: t("boardVerifiedSub"),
+    payoutSub:     t("payoutSub"),
+    creditReadySub: t("creditReadySub"),
+    trayFullSub:   t("trayFullSub"),
+    playAgain:    t("playAgainAction"),
+    claim:        t("claimRewardAction"),
+    withdraw:     t("withdrawShortAction"),
+    backToRoutes: t("backToRoutesAction"),
+    tryAgain:     t("tryAgainAction"),
+  };
+
   // Bridge state snapshot: all values must be plain (serializable)
   const bridgeState = {
     activeGameId,
@@ -67,6 +106,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     lastPayout:     str("lastPayout", ""),
     credit,
     poolFree,
+    loc,
   };
 
   // Derive stage header text

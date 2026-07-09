@@ -49,6 +49,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const history = val<HistoryEvent[]>("history", []) ?? [];
   const roundReady = bool("roundDataAvailable");
   const busy = isBuyingKeys || isSettling || isLoading;
+  const noAddressLabel = t("notAvailable");
+  const hasBuyer =
+    !!lastBuyerLabel &&
+    lastBuyerLabel !== "--" &&
+    lastBuyerLabel !== noAddressLabel &&
+    lastBuyerLabel !== "N/A";
   const bridgeState = {
     countdown,
     dangerProgress:   num("dangerProgress"),
@@ -72,6 +78,30 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     serviceNotice,
     prepaidCredit,
     viewerAddress,
+    // Localized in-canvas copy so the Phaser scene never hardcodes English.
+    sceneLiveRound:         t("liveRound"),
+    sceneWaitingRound:      t("waitingForRound"),
+    sceneSettleWord:        t("sceneSettleWord"),
+    sceneReadyToPay:        t("readyToPay"),
+    scenePressToStay:       t("pressToStay"),
+    sceneRoundAfterSync:    t("roundAfterSync"),
+    sceneLeaderLine:        hasBuyer ? `${t("lastBuyerPrefix")} ${lastBuyerLabel}` : t("noBuyerYet"),
+    sceneKeysSoldLine:      t("keysSoldLine", { count: totalKeys }),
+    sceneYoursLine:         t("yoursLine", { count: userKeys }),
+    sceneChoosePack:        t("choosePackLabel"),
+    scenePrizePool:         t("prizePoolLabel"),
+    sceneBuyVerb:           t("buyVerb"),
+    sceneKeyUnitOne:        t("keyUnitOne"),
+    sceneKeyUnitMany:       t("keyUnitMany"),
+    sceneBuying:            t("buyingLabel"),
+    sceneSettling:          t("settlingRound"),
+    sceneStatusServiceDown: t("statusServiceDown"),
+    sceneStatusSettle:      t("statusSettle"),
+    sceneStatusBuy:         t("statusBuy"),
+    sceneStatusWaiting:     t("statusWaiting"),
+    sceneStatusConnect:     t("statusConnect"),
+    sceneNoticeBuying:      t("noticeBuying"),
+    sceneNoticeSettling:    t("noticeSettling"),
   };
 
   const scoreItems = [

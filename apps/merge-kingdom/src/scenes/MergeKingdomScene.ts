@@ -53,7 +53,11 @@ const BOARD_PAD = 10;
 // Outer board dimensions: 2*pad + 4*tile + 3*gap = 332 × 332
 const BOARD_W   = BOARD_PAD * 2 + BOARD_SIZE * TILE_SIZE + (BOARD_SIZE - 1) * TILE_GAP;
 const BOARD_X   = (SCENE_W - BOARD_W) / 2; // 34
-const BOARD_Y   = 68;
+// Play-state board top. Nudged down from the old top-weighted 68 so the board +
+// stats + action cluster reads as a vertically centered play field (the HUD
+// bars stay pinned at the very top). The lobby preview uses its own coordinates
+// and is unaffected.
+const BOARD_Y   = 104;
 
 // Centers of each tile cell
 function tileX(col: number): number {
@@ -85,6 +89,12 @@ const C = {
   dangerRed:   0xdc2626,
   timerLow:    0xdc2626,
   empty:       0x9e7b50,
+  // Lobby preview plots — open land reads light & buildable, occupied crests
+  // get a warmer rim so they lift off the cream board panel.
+  plotEmpty:       0xefe1c4,
+  plotEmptyStroke: 0xdcc496,
+  plotFilled:      0xfff8e6,
+  plotFilledStroke:0xcaa35c,
 };
 
 const TILE_ASSETS: Record<number, string> = {
@@ -188,6 +198,13 @@ const TILE_NAME: Record<number, string> = {
 
 const DIFF_LABELS = ["Easy", "Medium", "Hard"];
 
+// Mirrors PhaserPlayArea.SUBMIT_BUFFER_MS: the React rail hides its "Claim
+// reward" primary inside the final buffer window. The scene uses the same
+// threshold only to decide *which* single claim affordance to surface (the
+// celebratory banner while the rail owns claiming, or the in-canvas claim
+// button once the rail has stepped back) — no chain logic lives here.
+const SUBMIT_BUFFER_MS = 15_000;
+
 // ── Tile object (holds the Phaser renderables for one board cell) ───────────
 
 interface TileObj {
@@ -232,6 +249,8 @@ export class MergeKingdomScene extends BaseScene {
   private hintText!:     Phaser.GameObjects.Text;
   private submitBtn!:    Phaser.GameObjects.Container;
   private expireBtn!:    Phaser.GameObjects.Container;
+  private wonBanner!:    Phaser.GameObjects.Container;
+  private wonBannerCrest!: Phaser.GameObjects.Image;
 
   // ── Lobby ─────────────────────────────────────────────────────────────────
   private diffCards: Phaser.GameObjects.Container[]  = [];
@@ -248,7 +267,7 @@ export class MergeKingdomScene extends BaseScene {
   private routeTimeText!: Phaser.GameObjects.Text;
 
   // ── Loading ───────────────────────────────────────────────────────────────
-  private loadingTiles: Phaser.GameObjects.Rectangle[] = [];
+  private loadingTiles: Phaser.GameObjects.Container[] = [];
   private loadingText!: Phaser.GameObjects.Text;
   private loadTween:    Phaser.Tweens.Tween | null = null;
 
@@ -263,6 +282,7 @@ export class MergeKingdomScene extends BaseScene {
   private nowMs = Date.now();
   private lastBestTile = 0;                  // for tier-up cue detection
   private pendingMoveTarget: { row: number; col: number } | null = null;
+  private wonBannerActive = false;      // for one-shot celebration pop
 
   constructor() {
     super("MergeKingdomScene");
@@ -322,6 +342,7 @@ export class MergeKingdomScene extends BaseScene {
         this.selectionRing.setVisible(false);
         this.lastBestTile = this.num("tileAchieved", 0);
         this.pendingMoveTarget = null;
+        this.wonBannerActive = false;
       }
       this.updateHUD();
       this.updateBoard();
@@ -357,15 +378,26 @@ export class MergeKingdomScene extends BaseScene {
   // ── Build: background ────────────────────────────────────────────────────
 
   private buildBackground(): void {
-    // Parchment gradient using two overlapping rectangles
+    // Base parchment fill
     const bg = this.add.rectangle(SCENE_W / 2, SCENE_H / 2, SCENE_W, SCENE_H, C.bg);
-    const overlay = this.add.rectangle(SCENE_W / 2, SCENE_H * 0.3, SCENE_W, SCENE_H * 0.6, C.bgDark, 80);
+
+    // Full-height soft vignette (no hard seam): a smooth top→bottom gradient of
+    // the darker parchment tone, transparent at the top and gently deepening
+    // toward the base so the board floats on seamless aged paper.
+    const vignette = this.add.graphics();
+    vignette.fillGradientStyle(C.bgDark, C.bgDark, C.bgDark, C.bgDark, 0, 0, 0.5, 0.5);
+    vignette.fillRect(0, 0, SCENE_W, SCENE_H);
+    // Faint warm top glow to keep the header area luminous.
+    const topGlow = this.add.graphics();
+    topGlow.fillGradientStyle(C.cream, C.cream, C.cream, C.cream, 0.34, 0.34, 0, 0);
+    topGlow.fillRect(0, 0, SCENE_W, SCENE_H * 0.42);
+
     // Decorative border frame
     const frame = this.add.rectangle(SCENE_W / 2, SCENE_H / 2, SCENE_W - 12, SCENE_H - 12);
     frame.setStrokeStyle(2, C.goldDim, 60);
     frame.setFillStyle(0, 0);
     // These are always visible, not in any phase group
-    void bg; void overlay; void frame;
+    void bg; void vignette; void topGlow; void frame;
   }
 
   // ── Build: lobby ─────────────────────────────────────────────────────────
@@ -394,10 +426,11 @@ export class MergeKingdomScene extends BaseScene {
       color: "#8b7355",
     }).setOrigin(0.5);
 
+    // Even, centered soft shadow (halo) rather than a one-sided offset drop.
+    const boardShadow = this.add.rectangle(SCENE_W / 2, 208, 226, 226, 0x8b5e24, 0.1)
+      .setOrigin(0.5);
     const boardPanel = this.add.rectangle(SCENE_W / 2, 205, 214, 214, C.cream, 0.94)
       .setStrokeStyle(2, C.goldDim, 0.75)
-      .setOrigin(0.5);
-    const boardShadow = this.add.rectangle(SCENE_W / 2 + 6, 212, 214, 214, 0x8b5e24, 0.14)
       .setOrigin(0.5);
     this.lobbyObjects.push(boardShadow, boardPanel);
     this.buildLobbyPreviewBoard(SCENE_W / 2, 205);
@@ -556,8 +589,8 @@ export class MergeKingdomScene extends BaseScene {
       for (let c = 0; c < BOARD_SIZE; c++) {
         const x = startX + c * (tile + gap);
         const y = startY + r * (tile + gap);
-        const bg = this.add.rectangle(x, y, tile, tile, 0xb9955e, 0.3)
-          .setStrokeStyle(1, 0xd9bd80, 0.82)
+        const bg = this.add.rectangle(x, y, tile, tile, C.plotEmpty, 0.5)
+          .setStrokeStyle(1.5, C.plotEmptyStroke, 0.6)
           .setOrigin(0.5);
         const art = this.add.image(x, y, this.tileAssetKey(2))
           .setDisplaySize(tile - 5, tile - 5)
@@ -574,10 +607,11 @@ export class MergeKingdomScene extends BaseScene {
       const row = Math.floor(idx / BOARD_SIZE);
       const col = idx % BOARD_SIZE;
       const value = preview[row]?.[col] ?? 0;
-      tile.bg.setFillStyle(value > 0 ? 0xfff8e6 : 0xb9955e, value > 0 ? 0.96 : 0.28);
       if (value > 0) {
+        tile.bg.setFillStyle(C.plotFilled, 0.98).setStrokeStyle(1.5, C.plotFilledStroke, 0.9);
         tile.art.setTexture(this.tileAssetKey(value)).setVisible(true);
       } else {
+        tile.bg.setFillStyle(C.plotEmpty, 0.5).setStrokeStyle(1.5, C.plotEmptyStroke, 0.6);
         tile.art.setVisible(false);
       }
     });
@@ -609,20 +643,25 @@ export class MergeKingdomScene extends BaseScene {
       fontSize: "12px", color: "#8b7355",
     }).setOrigin(0.5);
 
-    // 2×2 animated tile grid
-    const gridOffsets = [
-      [-28, -28], [28, -28], [-28, 28], [28, 28],
+    // 2×2 grid of building crests that pulse & climb the merge ladder
+    // (grass → hut → cottage → house), reinforcing the build motif over
+    // generic blocks.
+    const cells: Array<{ ox: number; oy: number; value: number }> = [
+      { ox: -30, oy: -30, value: 2 },
+      { ox: 30, oy: -30, value: 4 },
+      { ox: -30, oy: 30, value: 8 },
+      { ox: 30, oy: 30, value: 16 },
     ];
-    this.loadingTiles = gridOffsets.map((offset, i) => {
-      const ox = offset[0] ?? 0;
-      const oy = offset[1] ?? 0;
-      const r = this.add.rectangle(
-        SCENE_W / 2 + ox,
-        SCENE_H / 2 - 30 + oy,
-        46, 46, C.gold,
-      ).setStrokeStyle(2, C.goldLight);
-      r.setAlpha(0.3 + (i % 2) * 0.1);
-      return r;
+    this.loadingTiles = cells.map(({ ox, oy, value }, i) => {
+      const container = this.add.container(SCENE_W / 2 + ox, SCENE_H / 2 + 18 + oy);
+      const plate = this.add.rectangle(0, 0, 52, 52, C.cream, 0.92)
+        .setStrokeStyle(2, C.goldLight, 0.9)
+        .setOrigin(0.5);
+      const crest = this.add.image(0, -1, this.tileAssetKey(value))
+        .setDisplaySize(42, 42);
+      container.add([plate, crest]);
+      container.setAlpha(0.5 + (i % 2) * 0.12);
+      return container;
     });
 
     this.loadingObjects.push(title, this.loadingText, ...this.loadingTiles);
@@ -813,11 +852,35 @@ export class MergeKingdomScene extends BaseScene {
     );
     this.expireBtn.setVisible(false);
 
+    // ── Target-reached celebration banner (non-interactive) ────────────────
+    // Once the target building is raised, the React rail owns the single
+    // "Claim reward" primary; the canvas celebrates the win instead of
+    // presenting a competing claim button. (In the final buffer window the
+    // rail steps back and the in-canvas submitBtn becomes the sole claim.)
+    this.wonBanner = this.add.container(SCENE_W / 2, BOARD_BOTTOM + 46);
+    const bannerBg = this.add.rectangle(0, 0, 236, 46, C.cardActive, 0.96)
+      .setStrokeStyle(2, C.gold, 0.9)
+      .setOrigin(0.5);
+    this.wonBannerCrest = this.add.image(-92, 0, this.tileAssetKey(64))
+      .setDisplaySize(34, 34);
+    const bannerTitle = this.add.text(-66, -8, "Target reached!", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "14px", fontStyle: "bold", color: "#2b261f",
+    }).setOrigin(0, 0.5);
+    const bannerSub = this.add.text(-66, 9, "Claim your reward below", {
+      fontFamily: FONT_FAMILY,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "10px", color: "#0f9f6e",
+    }).setOrigin(0, 0.5);
+    this.wonBanner.add([bannerBg, this.wonBannerCrest, bannerTitle, bannerSub]);
+    this.wonBanner.setVisible(false);
+
     this.playObjects.push(
       this.timerTrack, this.timerFill, this.timerText, timerLabel,
       this.targetFill, this.targetText,
       this.movesText, this.bestTileText,
-      this.hintText, this.submitBtn, this.expireBtn,
+      this.hintText, this.submitBtn, this.expireBtn, this.wonBanner,
     );
   }
 
@@ -904,7 +967,11 @@ export class MergeKingdomScene extends BaseScene {
     btnBg.setFillStyle(canStart ? C.gold : C.disabledBtn);
     btnBg.setStrokeStyle(2, canStart ? C.goldLight : C.cardBorder);
     btnText.setColor(canStart ? "#2b261f" : "#8b7355");
-    this.startBtnText.setText(isStarting ? "Building..." : "Build Realm");
+    // A gated hero button reads as an intentional next step ("Connect wallet")
+    // rather than a faded "Build Realm".
+    this.startBtnText.setText(
+      isStarting ? "Building..." : walletConn ? "Build Realm" : "Connect wallet",
+    );
 
     const poolMsg = !walletConn
       ? "Connect wallet to play"
@@ -924,12 +991,13 @@ export class MergeKingdomScene extends BaseScene {
       status === "shuffling" ? "Sealing the realm board..." : "Opening the kingdom gate...",
     );
 
-    // Kick off pulsing animation if not already running
-    if (!this.loadTween && this.loadingTiles.length > 0) {
+    // Kick off pulsing animation if not already running. Gated on reduced-motion
+    // so the looping crest pulse never runs for motion-sensitive users.
+    if (!this.loadTween && this.loadingTiles.length > 0 && !this.reducedMotion) {
       this.loadTween = this.tweens.add({
         targets: this.loadingTiles,
-        scaleX: 1.15, scaleY: 1.15,
-        alpha: { from: 0.4, to: 0.9 },
+        scaleX: 1.12, scaleY: 1.12,
+        alpha: { from: 0.55, to: 1 },
         duration: 480,
         ease: "Sine.easeInOut",
         yoyo: true, repeat: -1,
@@ -1028,12 +1096,27 @@ export class MergeKingdomScene extends BaseScene {
       this.lastBestTile = tileAchieved;
     }
 
-    // Action area
+    // Action area — exactly one claim affordance is ever surfaced. While the
+    // rail still shows its "Claim reward" primary, the canvas celebrates with a
+    // banner; once the rail steps back inside the final buffer window, the
+    // in-canvas claim button takes over.
     const targetReached = tileAchieved >= targetTile;
     const timeUp        = timeLeft <= 0 && deadline > 0;
+    const showClaim     = targetReached && !timeUp && !isSubmitting;
+    const railOwnsClaim = deadline <= 0 || timeLeft > SUBMIT_BUFFER_MS;
+    const bannerVisible = showClaim && railOwnsClaim;
 
-    this.submitBtn.setVisible(targetReached && !timeUp && !isSubmitting);
+    if (showClaim) this.wonBannerCrest.setTexture(this.tileAssetKey(targetTile));
+    this.wonBanner.setVisible(bannerVisible);
+    this.submitBtn.setVisible(showClaim && !railOwnsClaim);
     this.expireBtn.setVisible(timeUp);
+
+    // One-shot celebratory pop when the banner first appears.
+    if (bannerVisible && !this.wonBannerActive && !this.reducedMotion) {
+      this.wonBanner.setScale(0.82);
+      this.tween({ targets: this.wonBanner, scale: 1, duration: 260, ease: "Back.easeOut" });
+    }
+    this.wonBannerActive = bannerVisible;
 
     if (this.selectedCell) {
       this.hintText.setText("Tap adjacent tile to move or merge");
