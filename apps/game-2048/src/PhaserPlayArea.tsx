@@ -57,6 +57,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isSubmitting   = bool("isSubmitting");
   const isMoving       = bool("isMoving");
   const isUndoing      = bool("isUndoing");
+  const balancesReady  = bool("balancesReady");
   const runBoard       = val<number[]>("runBoard") ?? [];
   const runMoveCount   = val<number>("runMoveCount", 0) ?? 0;
   const runMaxExp      = val<number>("runMaxExp", 0) ?? 0;
@@ -124,6 +125,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     mySolves,
     myTotalWon,
     lastStatus,
+    balancesReady,
+    // Localized in-canvas labels (the scene has no translator of its own).
+    scoreMovesCaption: t("scoreMovesCaption"),
+    startOpenRun: t("startOpenRun"),
+    startOpening: t("startOpening"),
+    startCheckingPool: t("startCheckingPool"),
+    startPoolLow: t("startPoolLow"),
   };
 
   const stageTitle = isSolved

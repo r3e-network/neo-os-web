@@ -1227,7 +1227,9 @@
   }
 
   .sudoku-stage-hud {
-    width: min(100%, 378px);
+    // Keep a small horizontal inset so the first tile's accent left-border
+    // does not read as clipped against the viewport edge.
+    width: min(calc(100% - 16px), 378px);
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 5px;
     padding: 6px;

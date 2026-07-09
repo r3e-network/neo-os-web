@@ -73,6 +73,7 @@ type Game2048Layout = {
   cellSize: number;
   hintY: number;
   statusY: number;
+  lobbyStatusY: number;
   titleX: number;
   titleY: number;
   titleFontSize: string;
@@ -165,7 +166,6 @@ export class Game2048Scene extends BaseScene {
 
   private scoreLabel!: Phaser.GameObjects.Text;
   private bestLabel!:  Phaser.GameObjects.Text;
-  private movesLabel!: Phaser.GameObjects.Text;
   private statusLabel!:Phaser.GameObjects.Text;
 
   private gridContainer!:  Phaser.GameObjects.Container;
@@ -240,12 +240,15 @@ export class Game2048Scene extends BaseScene {
     const lobbyCardGap = sceneW < 380 ? 8 : 10;
     const lobbyCardW = Math.max(94, Math.min(108, Math.floor((sceneW - sidePad * 2 - lobbyCardGap * 2) / 3)));
     const lobbyCardH = sceneH < 620 ? 124 : 132;
-    const lobbyHeadingY = Math.round(Phaser.Math.Clamp(sceneH * 0.145, 82, 108));
-    const lobbyHeroY = Math.round(Phaser.Math.Clamp(sceneH * 0.335, 184, 236));
-    const lobbyCardsY = Math.round(Phaser.Math.Clamp(sceneH * 0.58, 326, sceneH - 204));
-    const lobbyStartY = Math.round(Phaser.Math.Clamp(sceneH * 0.8, lobbyCardsY + lobbyCardH / 2 + 58, sceneH - 72));
+    const lobbyHeadingY = Math.round(Phaser.Math.Clamp(sceneH * 0.15, 82, 116));
+    const lobbyHeroY = Math.round(Phaser.Math.Clamp(sceneH * 0.36, 196, 280));
+    const lobbyCardsY = Math.round(Phaser.Math.Clamp(sceneH * 0.62, 348, sceneH - 172));
+    const lobbyStartY = Math.round(Phaser.Math.Clamp(sceneH * 0.87, lobbyCardsY + lobbyCardH / 2 + 48, sceneH - 60));
+    // In-play status keeps its grid-anchored slot; the lobby tucks its hint just
+    // under the Start button so the lower third no longer reads as empty.
     const gridStatusY = Math.min(sceneH - 38, gridTop + gridH + 52);
-    const statusY = Math.min(sceneH - 38, Math.max(gridStatusY, lobbyStartY + 68));
+    const lobbyStatusY = Math.min(sceneH - 20, lobbyStartY + 46);
+    const statusY = gridStatusY;
 
     return {
       width: sceneW,
@@ -260,6 +263,7 @@ export class Game2048Scene extends BaseScene {
       cellSize,
       hintY: gridTop + gridH + 18,
       statusY,
+      lobbyStatusY,
       titleX: sidePad + 4,
       titleY: sceneW < 380 ? 12 : 14,
       titleFontSize: sceneW < 380 ? "30px" : "36px",
@@ -336,6 +340,9 @@ export class Game2048Scene extends BaseScene {
       this.setObjectActive(this.lobbyContainer, isLobby);
       this.setObjectActive(this.dealingContainer, status === "committed" || (isDealing && !isPlaying));
 
+      // Lobby tucks the hint just under the Start CTA; play uses the grid slot.
+      this.statusLabel.setY(isLobby ? this.layout.lobbyStatusY : this.layout.statusY);
+
       if (isLobby) {
         this.shown2048 = false;
         this.clearTiles();
@@ -348,7 +355,6 @@ export class Game2048Scene extends BaseScene {
     // ── Score area ─────────────────────────────────────────────────────────────
     this.scoreLabel.setText(`${moveCount}`);
     this.bestLabel.setText(maxExp > 0 ? `${tileValue(maxExp)}` : "–");
-    this.movesLabel.setText(`Moves: ${moveCount}`);
     this.statusLabel.setText(lastStatus);
 
     // ── Lobby buttons ──────────────────────────────────────────────────────────
@@ -402,9 +408,24 @@ export class Game2048Scene extends BaseScene {
     const l = this.layout;
 
     this.add.rectangle(l.centerX, l.height / 2, l.width, l.height, C.bg);
-    this.add.rectangle(l.centerX, Math.max(120, l.height * 0.22), l.width, Math.max(238, l.height * 0.38), 0xfff4df, 0.68);
-    this.add.rectangle(l.centerX, l.height - 62, Math.max(280, l.width - 32), 110, 0xffffff, 0.54)
-      .setStrokeStyle(1, 0xe9dcc7, 0.74);
+
+    // Warm top wash that ends just above the difficulty lanes, so the hero board
+    // sits fully inside one warm zone instead of straddling a seam.
+    const washH = Math.max(238, l.lobbyCardsY - l.lobbyCardH / 2 - 10);
+    this.add.rectangle(l.centerX, washH / 2, l.width, washH, 0xfff4df, 0.68);
+
+    // Warm rounded footer panel that frames the Start CTA + status hint, so the
+    // lower third reads as an intentional footer instead of an empty white void.
+    const footerTop = l.lobbyStartY - 36;
+    const footerBottom = Math.min(l.height - 8, l.lobbyStatusY + 20);
+    const footerLeft = l.sidePad + 6;
+    const footerW = l.width - footerLeft * 2;
+    const footerH = Math.max(72, footerBottom - footerTop);
+    const footer = this.add.graphics();
+    footer.fillStyle(0xffffff, 0.5);
+    footer.fillRoundedRect(footerLeft, footerTop, footerW, footerH, 16);
+    footer.lineStyle(1, 0xe9dcc7, 0.7);
+    footer.strokeRoundedRect(footerLeft, footerTop, footerW, footerH, 16);
   }
 
   private setObjectActive(object: Phaser.GameObjects.GameObject, active: boolean): void {
@@ -432,10 +453,10 @@ export class Game2048Scene extends BaseScene {
       color: C.headerText,
     });
 
-    // Score box
+    // Moves box (the run's move counter — the only "score" 2048 tracks)
     const scoreBox = this.add.container(l.scoreX, l.headerBoxY);
     const scoreBg = this.add.rectangle(0, 0, l.scoreBoxW, 52, 0xbbada0).setOrigin(0.5);
-    const scoreCaption = this.add.text(0, -10, "SCORE", {
+    const scoreCaption = this.add.text(0, -10, this.str("scoreMovesCaption", "MOVES"), {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#f9f6f2",
@@ -465,13 +486,6 @@ export class Game2048Scene extends BaseScene {
       color: "#ffffff",
     }).setOrigin(0.5);
     bestBox.add([bestBg, bestCaption, this.bestLabel]);
-
-    // Moves label (smaller, below title)
-    this.movesLabel = this.add.text(l.titleX, 56, "Moves: 0", {
-      fontFamily: FONT_FAMILY,
-      fontSize: "12px",
-      color: C.scoreText,
-    });
   }
 
   // ── Grid container ────────────────────────────────────────────────────────────
@@ -558,35 +572,51 @@ export class Game2048Scene extends BaseScene {
 
   private buildLobbyHeroBoard(x: number, y: number): Phaser.GameObjects.Container {
     const compact = this.layout.width < 380 || this.layout.height < 620;
-    const heroW = compact ? 166 : 184;
-    const heroH = compact ? 112 : 126;
-    const tileSmall = compact ? 42 : 48;
-    const tileLarge = compact ? 48 : 54;
+    const cols = 3;
+    const rows = 2;
+    const cell = compact ? 44 : 50;
+    const gap = compact ? 7 : 8;
+    const gridW = cols * cell + (cols + 1) * gap;
+    const gridH = rows * cell + (rows + 1) * gap;
+
     const board = this.add.container(x, y);
-    const panel = this.add.image(0, 0, RUSH_ASSETS.felt)
-      .setDisplaySize(heroW, heroH)
-      .setAlpha(0.92);
-    const glow = this.add.rectangle(0, 0, heroW + 10, heroH + 10, 0xffffff, 0.32)
-      .setStrokeStyle(1, 0xe6d4b4, 0.6)
+
+    // Board frame — a felt tray with a soft drop shadow, echoing the 4x4 grid.
+    const shadow = this.add.rectangle(3, 6, gridW + 12, gridH + 12, 0x8f7555, 0.16).setOrigin(0.5);
+    const tray = this.add.graphics();
+    tray.fillStyle(0xbbada0, 0.96);
+    tray.fillRoundedRect(-gridW / 2, -gridH / 2, gridW, gridH, 10);
+    const felt = this.add.image(0, 0, RUSH_ASSETS.felt)
+      .setDisplaySize(gridW - 4, gridH - 4)
+      .setAlpha(0.5);
+    const frame = this.add.rectangle(0, 0, gridW + 8, gridH + 8, 0xffffff, 0)
+      .setStrokeStyle(2, 0xe6d4b4, 0.6)
       .setOrigin(0.5);
+    board.add([shadow, tray, felt, frame]);
 
-    const preview = [
-      { exp: 1, x: -0.33, y: -0.29 },
-      { exp: 2, x: -0.09, y: -0.29 },
-      { exp: 4, x: 0.15, y: -0.29 },
-      { exp: 7, x: 0.33, y: 0.06 },
-      { exp: 9, x: 0.09, y: 0.29 },
-      { exp: 11, x: -0.23, y: 0.22 },
-    ];
+    // 3x2 preview of ascending power tiles (2 → 2048), laid on an aligned grid
+    // with numerals so the lobby reads unmistakably as 2048, not match-3.
+    const preview = [1, 2, 4, 7, 9, 11]; // exponents → 2,4,16,128,512,2048
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const exp = preview[r * cols + c]!;
+        const cx = -gridW / 2 + gap + cell / 2 + c * (cell + gap);
+        const cy = -gridH / 2 + gap + cell / 2 + r * (cell + gap);
 
-    board.add([glow, panel]);
-    preview.forEach((tile, idx) => {
-      const size = idx >= 3 ? tileLarge : tileSmall;
-      const img = this.add.image(tile.x * heroW, tile.y * heroH, RUSH_ASSETS.tile(tile.exp))
-        .setDisplaySize(size, size)
-        .setAngle(idx % 2 === 0 ? -4 : 4);
-      board.add(img);
-    });
+        // Recessed cell for edge separation behind the jewel art.
+        const recess = this.add.graphics();
+        recess.fillStyle(C.white, 0.4);
+        recess.fillRoundedRect(cx - cell / 2, cy - cell / 2, cell, cell, CORNER_R);
+        recess.lineStyle(1, 0xd8c8a9, 0.55);
+        recess.strokeRoundedRect(cx - cell / 2, cy - cell / 2, cell, cell, CORNER_R);
+        board.add(recess);
+
+        const img = this.add.image(cx, cy, RUSH_ASSETS.tile(exp))
+          .setDisplaySize(cell - 2, cell - 2);
+        board.add(img);
+        board.add(this.makeTileNumeral(cx, cy, exp, cell));
+      }
+    }
 
     this.animate({
       targets: board,
@@ -598,6 +628,23 @@ export class Game2048Scene extends BaseScene {
     });
 
     return board;
+  }
+
+  /**
+   * Bold tile numeral matching the gameplay treatment (createTileSprite): white
+   * on dark tiles, warm brown on light ones, with an exp-based shadow so digits
+   * stay legible over the jewel art.
+   */
+  private makeTileNumeral(x: number, y: number, exp: number, size: number): Phaser.GameObjects.Text {
+    const value = tileValue(exp);
+    const ratio = value >= 1000 ? 0.3 : value >= 100 ? 0.36 : 0.44;
+    return this.add.text(x, y, `${value}`, {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${Math.max(12, Math.round(size * ratio))}px`,
+      fontStyle: "bold",
+      color: tileColors(exp).text,
+    }).setOrigin(0.5)
+      .setShadow(0, exp >= 3 ? 2 : 1, exp >= 3 ? "#5c3517" : "#ffffff", 3);
   }
 
   private buildDiffCard(
@@ -632,6 +679,15 @@ export class Game2048Scene extends BaseScene {
       .setY(targetY)
       .setDisplaySize(tileSize, tileSize);
 
+    // Target value printed on the jewel so each lane names its 2048-style goal.
+    const targetNum = this.add.text(0, targetY, `${rule.targetTile}`, {
+      fontFamily: FONT_FAMILY,
+      fontSize: rule.targetTile >= 1000 ? "16px" : "18px",
+      fontStyle: "bold",
+      color: tileColors(targetExp).text,
+    }).setOrigin(0.5)
+      .setShadow(0, targetExp >= 3 ? 2 : 1, targetExp >= 3 ? "#5c3517" : "#ffffff", 3);
+
     const label = this.add.text(0, l.lobbyCardH < CARD_H ? 4 : 7, DIFF_LABELS[idx] ?? "Sprint", {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
@@ -658,7 +714,7 @@ export class Game2048Scene extends BaseScene {
       color: "#e05000",
     }).setOrigin(0.5);
 
-    card.add([bg, targetTile, label, tileTxt, timeTxt, rewardTxt]);
+    card.add([bg, targetTile, targetNum, label, tileTxt, timeTxt, rewardTxt]);
     return card;
   }
 
@@ -713,8 +769,30 @@ export class Game2048Scene extends BaseScene {
     const bg  = this.startBtn.list[0] as Phaser.GameObjects.Rectangle;
     const txt = this.startBtn.list[1] as Phaser.GameObjects.Text;
     const canStart = this.canStartPicked();
-    txt.setText(isStarting ? "Opening..." : canStart ? "Open run" : "Pool refilling");
-    bg.setFillStyle(isStarting || !canStart ? 0xbbada0 : 0xf65e3b);
+    const poolConfirmed = this.bool("balancesReady");
+
+    // Only the label + fill are gated here — canStartPicked's enable logic (and
+    // its test-pinned poolFree comparison) is untouched. While balances are
+    // still unknown we show an inviting "checking pool" state instead of the
+    // discouraging "pool low" copy; that hardens into "pool low" only once the
+    // pool is confirmed insufficient.
+    let label: string;
+    let active: boolean;
+    if (isStarting) {
+      label = this.str("startOpening", "Opening…");
+      active = false;
+    } else if (canStart) {
+      label = this.str("startOpenRun", "Open run");
+      active = true;
+    } else if (!poolConfirmed) {
+      label = this.str("startCheckingPool", "Checking pool…");
+      active = true;
+    } else {
+      label = this.str("startPoolLow", "Pool low");
+      active = false;
+    }
+    txt.setText(label);
+    bg.setFillStyle(active ? 0xf65e3b : 0xbbada0);
   }
 
   private canStartPicked(): boolean {

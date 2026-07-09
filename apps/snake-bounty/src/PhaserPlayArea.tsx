@@ -83,6 +83,57 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const remainMs = deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
   const busy     = isStarting || isDealing || isSubmitting;
 
+  // ── Localized canvas strings (additive bridge payload) ────────────────────
+  // Passed by reference into the scene (no serialization), so the SnakeScene can
+  // render every user-visible label through the active locale via this.str/txt.
+  // Templates keep their {placeholders}; the scene fills them with live values.
+  const sceneText = {
+    title: t("appEyebrow"),
+    tagline: t("sceneTagline"),
+    howToTitle: t("howToTitle"),
+    howToSteps: [t("howToStep1"), t("howToStep2"), t("howToStep3"), t("howToStep4")],
+    chooseRoute: t("routeChooseHeading"),
+    diffLabels: [t("diffEasyShort"), t("diffMediumShort"), t("diffHardShort")],
+    targetCells: t("targetCells"),
+    winLine: t("winAmount"),
+    entryLine: t("entryAmount"),
+    cleared: t("routeClearedShort"),
+    completed: t("routeCompletedShort"),
+    lengthReadout: t("lengthReadout"),
+    rewardBadge: t("rewardBadge"),
+    controlsHint: t("controlsHintScene"),
+    hintCrashed: t("hintCrashed"),
+    hintTimeUp: t("hintTimeUp"),
+    hintClosingSoon: t("hintClosingSoon"),
+    hintWaitSubmit: t("hintWaitSubmit"),
+    hintTargetSubmit: t("hintTargetSubmit"),
+    ovDealingTitle: t("ovDealingTitle"),
+    ovDealingSub: t("ovDealingSub"),
+    ovSubmittingTitle: t("ovSubmittingTitle"),
+    ovSubmittingSub: t("ovSubmittingSub"),
+    ovGameOverTitle: t("ovGameOverTitle"),
+    ovGameOverSub: t("ovGameOverSub"),
+    ovGameOverBtn: t("ovGameOverBtn"),
+    ovTargetTitle: t("ovTargetTitle"),
+    ovSubmitBtn: t("ovSubmitBtn"),
+    ovWaitingBtn: t("ovWaitingBtn"),
+    ovSolvedTitle: t("ovSolvedTitle"),
+    ovSolvedSub: t("ovSolvedSub"),
+    ovExpiredTitle: t("ovExpiredTitle"),
+    ovExpiredSub: t("ovExpiredSub"),
+    ovPlayAgain: t("ovPlayAgainBtn"),
+    gateSubmitReady: t("gateSubmitReady"),
+    gateTooClose: t("gateTooClose"),
+    gateUnlockChecking: t("gateUnlockChecking"),
+    gateUnlockIn: t("gateUnlockIn"),
+    lobbyPreparing: t("lobbyPreparing"),
+    lobbyConnectWallet: t("lobbyConnectWallet"),
+    lobbyCheckingHistory: t("lobbyCheckingHistory"),
+    lobbyRouteCleared: t("progressionCleared"),
+    lobbyTapToStart: t("lobbyTapToStart"),
+    lobbyPoolLow: t("lobbyPoolLow"),
+  };
+
   // ── Bridge state snapshot (plain object pushed into the Phaser scene) ─────
   const bridgeState = {
     activeGameId,
@@ -100,6 +151,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     walletConnected,
     progressionReady,
     progressionRequiredDifficulty: requiredDifficulty,
+    sceneText,
   };
 
   // ── Dispatch forwarding ───────────────────────────────────────────────────

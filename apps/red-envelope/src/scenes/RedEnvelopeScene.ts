@@ -79,6 +79,90 @@ function compactError(value: string): string {
   return firstLine.length > 58 ? `${firstLine.slice(0, 55)}...` : firstLine;
 }
 
+function fillTemplate(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_match, key: string) =>
+    params[key] !== undefined ? String(params[key]) : `{${key}}`,
+  );
+}
+
+/**
+ * Every user-visible string the scene renders. Resolved from the locale system
+ * in PhaserPlayArea and delivered through the `sceneCopy` bridge key; the
+ * English literals below are the fallback defaults (also keeping the pinned
+ * literals in-source for the guard tests).
+ */
+type SceneCopy = {
+  modeSend: string;
+  modeClaim: string;
+  sendHeading: string;
+  claimHeading: string;
+  planLucky: string;
+  planParty: string;
+  planFestival: string;
+  packetsTpl: string;
+  create: string;
+  working: string;
+  share: string;
+  open: string;
+  opening: string;
+  noEnvelope: string;
+  summaryTpl: string;
+  resultReceivedTpl: string;
+  resultShareReadyTpl: string;
+  resultClaimReady: string;
+  resultClaimIdle: string;
+  resultSendIdle: string;
+  ticketEnvelopeTpl: string;
+  ticketEmpty: string;
+  claimReadyMeta: string;
+  claimEmptyMeta: string;
+  packetsLeftTpl: string;
+  packetStatusReady: string;
+  gasLeftTpl: string;
+  randomAmount: string;
+  statusClaimIdle: string;
+  statusSendIdle: string;
+  prepaidTpl: string;
+  errorFallback: string;
+};
+
+const DEFAULT_SCENE_COPY: SceneCopy = {
+  modeSend: "Send",
+  modeClaim: "Claim",
+  sendHeading: "Pick a packet bundle",
+  claimHeading: "Open a shared envelope",
+  planLucky: "Lucky 8",
+  planParty: "Party 20",
+  planFestival: "Festival 50",
+  packetsTpl: "{count} packets",
+  create: "Create",
+  working: "Working...",
+  share: "Share",
+  open: "Open envelope",
+  opening: "Opening...",
+  noEnvelope: "No envelope",
+  summaryTpl: "{count} random packets - {hours}h expiry",
+  resultReceivedTpl: "+{amount} GAS received",
+  resultShareReadyTpl: "Envelope #{id} is ready to share",
+  resultClaimReady: "Envelope ready. Open once for GAS.",
+  resultClaimIdle: "Open a shared link or active pool.",
+  resultSendIdle: "Create packets. Share a link. Open for GAS.",
+  ticketEnvelopeTpl: "Envelope #{id}",
+  ticketEmpty: "Open a claim link",
+  claimReadyMeta: "Ready to open with your wallet",
+  claimEmptyMeta: "Use a shared envelope link to claim.",
+  packetsLeftTpl: "{count} packets left",
+  packetStatusReady: "Packet status ready",
+  gasLeftTpl: "{amount} GAS left",
+  randomAmount: "Random amount",
+  statusClaimIdle: "Use a shared envelope link before opening.",
+  statusSendIdle: "Random packet split is settled by the on-chain contract.",
+  prepaidTpl: "Prepaid credit {amount} GAS available",
+  errorFallback: "The envelope action could not be completed.",
+};
+
+const PLAN_TITLE_KEYS: Array<keyof SceneCopy> = ["planLucky", "planParty", "planFestival"];
+
 export class RedEnvelopeScene extends BaseScene {
   private heroContainer!: Phaser.GameObjects.Container;
   private heroImage!: Phaser.GameObjects.Image;
@@ -86,13 +170,16 @@ export class RedEnvelopeScene extends BaseScene {
   private sceneBackdrop!: Phaser.GameObjects.Rectangle;
   private sceneFrame!: Phaser.GameObjects.Graphics;
   private tallStageDock!: Phaser.GameObjects.Graphics;
-  private tallStageCoins: Phaser.GameObjects.Container[] = [];
   private floatingCoins: Phaser.GameObjects.Container[] = [];
 
   private modeButtons = new Map<Mode, Phaser.GameObjects.Container>();
   private sendPanel!: Phaser.GameObjects.Container;
   private claimPanel!: Phaser.GameObjects.Container;
   private planCards: Phaser.GameObjects.Container[] = [];
+  private sendHeadingText!: Phaser.GameObjects.Text;
+  private claimHeadingText!: Phaser.GameObjects.Text;
+  private claimHintGlow!: Phaser.GameObjects.Ellipse;
+  private copy: SceneCopy = DEFAULT_SCENE_COPY;
 
   private resultPill!: Phaser.GameObjects.Container;
   private resultText!: Phaser.GameObjects.Text;
@@ -132,6 +219,7 @@ export class RedEnvelopeScene extends BaseScene {
   create(): void {
     super.create();
 
+    this.copy = this.resolveSceneCopy();
     this.input.on("pointerdown", () => this.sfx.unlock());
     this.buildBackground(DESIGN_W, DESIGN_H);
     this.buildHero(DESIGN_W);
@@ -149,7 +237,27 @@ export class RedEnvelopeScene extends BaseScene {
     this.fitCameraToHost();
   }
 
+  private resolveSceneCopy(): SceneCopy {
+    return { ...DEFAULT_SCENE_COPY, ...(this.val<Partial<SceneCopy>>("sceneCopy", undefined) ?? {}) };
+  }
+
+  private applyStaticCopy(): void {
+    this.modeButtons.get("send")?.getData("text")?.setText(this.copy.modeSend);
+    this.modeButtons.get("claim")?.getData("text")?.setText(this.copy.modeClaim);
+    this.sendHeadingText?.setText(this.copy.sendHeading);
+    this.claimHeadingText?.setText(this.copy.claimHeading);
+    this.planCards.forEach((card, index) => {
+      const title = card.getData("title") as Phaser.GameObjects.Text | undefined;
+      const count = card.getData("count") as Phaser.GameObjects.Text | undefined;
+      const plan = ENVELOPE_PLANS[index]!;
+      title?.setText(this.copy[PLAN_TITLE_KEYS[index]!]);
+      count?.setText(fillTemplate(this.copy.packetsTpl, { count: plan.count }));
+    });
+  }
+
   protected onStateUpdate(_state: GameState): void {
+    this.copy = this.resolveSceneCopy();
+    this.applyStaticCopy();
     const openingId = asEnvelopeId(this.val<string | null>("openingId", null));
     const lucky = this.val<{ amount?: number; from?: string } | null>("luckyMessage", null);
     const envelopes = this.val<EnvelopePreview[]>("envelopes", []) ?? [];
@@ -175,9 +283,12 @@ export class RedEnvelopeScene extends BaseScene {
     this.updateResultPillCopy(lucky, lastCreated, lastError);
 
     this.activeEnvelopeText.setText(
-      this.activeEnvelopeId ? `Envelope #${truncateMiddle(this.activeEnvelopeId, 8, 4)}` : "Open a claim link",
+      this.activeEnvelopeId
+        ? fillTemplate(this.copy.ticketEnvelopeTpl, { id: truncateMiddle(this.activeEnvelopeId, 8, 4) })
+        : this.copy.ticketEmpty,
     );
     this.claimMetaText.setText(this.claimMeta(pools, envelopes));
+    this.claimHintGlow?.setVisible(this.activeMode === "claim" && !this.activeEnvelopeId);
 
     this.updateStatusCopy(lastError, serviceNotice, credit);
 
@@ -193,7 +304,7 @@ export class RedEnvelopeScene extends BaseScene {
 
   protected onBridgeError(error: GameBridgeError): void {
     this.sfx.play("error");
-    this.statusText.setText(compactError(error.message) || "The envelope action could not be completed.");
+    this.statusText.setText(compactError(error.message) || this.copy.errorFallback);
     this.setResultState(false, true);
   }
 
@@ -210,11 +321,13 @@ export class RedEnvelopeScene extends BaseScene {
 
   private claimMeta(...lists: EnvelopePreview[][]): string {
     const target = lists.flat().find((item) => asEnvelopeId(item.id) === this.activeEnvelopeId);
-    if (!target) return this.activeEnvelopeId ? "Ready to open with your wallet" : "Use a shared envelope link to claim.";
+    if (!target) return this.activeEnvelopeId ? this.copy.claimReadyMeta : this.copy.claimEmptyMeta;
     const packets = Number(target.remainingPackets ?? 0);
     const amount = Number(target.remainingAmount ?? target.totalAmount ?? target.amount ?? 0);
-    const packetText = packets > 0 ? `${packets} packets left` : "Packet status ready";
-    const amountText = amount > 0 ? `${fmtGas(amount)} GAS left` : "Random amount";
+    const packetText =
+      packets > 0 ? fillTemplate(this.copy.packetsLeftTpl, { count: packets }) : this.copy.packetStatusReady;
+    const amountText =
+      amount > 0 ? fillTemplate(this.copy.gasLeftTpl, { amount: fmtGas(amount) }) : this.copy.randomAmount;
     return `${packetText} - ${amountText}`;
   }
 
@@ -232,22 +345,6 @@ export class RedEnvelopeScene extends BaseScene {
     });
 
     this.tallStageDock = this.add.graphics();
-    for (let i = 0; i < 6; i += 1) {
-      const coin = this.makeGasBadge(58 + i * 61, H + 34 + (i % 2) * 14, 22)
-        .setAlpha(0.32);
-      this.tallStageCoins.push(coin);
-      if (!this.reducedMotion) {
-        this.animate({
-          targets: coin,
-          y: coin.y - 5,
-          angle: i % 2 === 0 ? 7 : -7,
-          duration: 1500 + i * 90,
-          yoyo: true,
-          repeat: -1,
-          ease: "Sine.easeInOut",
-        });
-      }
-    }
 
     this.sceneFrame = this.add.graphics();
     this.renderResponsiveStage(H, H / 2);
@@ -268,27 +365,40 @@ export class RedEnvelopeScene extends BaseScene {
 
     this.tallStageDock.clear();
     this.tallStageDock.setVisible(hasTallDock);
-    for (const coin of this.tallStageCoins) coin.setVisible(hasTallDock);
 
     if (hasTallDock) {
-      this.tallStageDock.fillStyle(0xfff4da, 0.78);
-      this.tallStageDock.fillRoundedRect(18, dockTop, DESIGN_W - 36, dockHeight + 18, {
-        tl: 22,
-        tr: 22,
-        bl: 0,
-        br: 0,
-      });
-      this.tallStageDock.lineStyle(1, 0xf2d2a1, 0.7);
-      this.tallStageDock.lineBetween(38, dockTop + 26, DESIGN_W - 38, dockTop + 26);
-      this.tallStageDock.lineStyle(1, 0xf5ddb5, 0.46);
-      for (let x = 54; x < DESIGN_W - 24; x += 46) {
-        this.tallStageDock.lineBetween(x, dockTop + 50, x + 28, stageBottom - 18);
-      }
+      const g = this.tallStageDock;
+      const left = 18;
+      const width = DESIGN_W - 36;
+      const totalHeight = dockHeight + 18;
+      // Warm festive floor: a solid warm base with a lighter top band gives a
+      // soft top-lit gradient feel without the broken hatch/ghost-coin look.
+      g.fillStyle(0xffe6bd, 0.9);
+      g.fillRoundedRect(left, dockTop, width, totalHeight, { tl: 22, tr: 22, bl: 0, br: 0 });
+      g.fillStyle(0xfff6e2, 0.6);
+      g.fillRoundedRect(left, dockTop, width, Math.min(52, totalHeight), { tl: 22, tr: 22, bl: 0, br: 0 });
+      // Thin gold divider reads as the lip of the festive shelf.
+      g.lineStyle(1, 0xf0c67a, 0.55);
+      g.lineBetween(left + 24, dockTop + 24, DESIGN_W - left - 24, dockTop + 24);
 
-      const coinY = Math.min(stageBottom - 34, dockTop + 46);
-      this.tallStageCoins.forEach((coin, index) => {
-        coin.setPosition(58 + index * 61, coinY + (index % 2) * 13);
-      });
+      // A small centered coin-shelf medallion: three gold coins resting in a
+      // shallow arc, echoing the spilling-coins hero as an intentional accent.
+      const accentY = Math.min(stageBottom - 44, dockTop + 62);
+      g.lineStyle(2, 0xefc47c, 0.34);
+      g.lineBetween(DESIGN_W / 2 - 46, accentY + 15, DESIGN_W / 2 + 46, accentY + 15);
+      const shelfCoins = [
+        { x: DESIGN_W / 2 - 34, y: accentY + 2, r: 10 },
+        { x: DESIGN_W / 2, y: accentY - 4, r: 12 },
+        { x: DESIGN_W / 2 + 34, y: accentY + 2, r: 10 },
+      ];
+      for (const c of shelfCoins) {
+        g.fillStyle(0xffcf63, 0.5);
+        g.fillCircle(c.x, c.y, c.r);
+        g.fillStyle(0xffffff, 0.16);
+        g.fillCircle(c.x - c.r * 0.3, c.y - c.r * 0.32, c.r * 0.32);
+        g.lineStyle(1.4, C.goldDeep, 0.32);
+        g.strokeCircle(c.x, c.y, c.r);
+      }
     }
 
     this.sceneFrame.clear();
@@ -303,6 +413,14 @@ export class RedEnvelopeScene extends BaseScene {
       .setDisplaySize(390, 220)
       .setOrigin(0.5);
     this.heroContainer.add(this.heroImage);
+    // Soft rounded frame drawn over the hero edge so the photo's corners read as
+    // rounded (echoing the stage frame) without a camera-fighting geometry mask.
+    const heroFrame = this.add.graphics();
+    heroFrame.lineStyle(6, C.canvas, 1);
+    heroFrame.strokeRoundedRect(-198, -113, 396, 226, 20);
+    heroFrame.lineStyle(1.5, C.stroke, 0.9);
+    heroFrame.strokeRoundedRect(-196, -111, 392, 222, 19);
+    this.heroContainer.add(heroFrame);
 
     this.animate({
       targets: this.heroContainer,
@@ -313,21 +431,28 @@ export class RedEnvelopeScene extends BaseScene {
       ease: "Sine.easeInOut",
     });
 
-    for (let i = 0; i < 5; i += 1) {
-      const coin = this.makeGasBadge(W / 2 + (i - 2) * 35, 220 + (i % 2) * 8, 25)
-        .setAlpha(0.88);
+    // Three faint lucky coins scattered around the bowl spill (staggered x/y and
+    // varied size) — reads as coins tumbling out of the photo, not a UI strip.
+    const spill = [
+      { x: 150, y: 234, size: 25, alpha: 0.62 },
+      { x: 192, y: 246, size: 19, alpha: 0.52 },
+      { x: 120, y: 248, size: 16, alpha: 0.5 },
+    ];
+    spill.forEach((c, i) => {
+      const coin = this.makeGasBadge(c.x, c.y, c.size).setAlpha(c.alpha);
+      coin.setData("baseAlpha", c.alpha);
       this.floatingCoins.push(coin);
       this.animate({
         targets: coin,
-        y: coin.y - 8,
-        angle: i % 2 === 0 ? 8 : -8,
-        duration: 1200 + i * 110,
-        delay: i * 75,
+        y: coin.y - 6,
+        angle: i % 2 === 0 ? 7 : -7,
+        duration: 1300 + i * 140,
+        delay: i * 90,
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
       });
-    }
+    });
   }
 
   private makeGasBadge(x: number, y: number, size: number): Phaser.GameObjects.Container {
@@ -347,7 +472,7 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private buildResultPill(W: number): void {
-    this.resultPill = this.add.container(W / 2, 266);
+    this.resultPill = this.add.container(W / 2, 274);
     const bg = this.add.graphics();
     bg.fillStyle(C.surface, 0.96);
     bg.fillRoundedRect(-168, -23, 336, 46, 23);
@@ -376,8 +501,8 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private buildModeTabs(W: number): void {
-    this.makeModeButton(W / 2 - 72, 315, "send", "Send");
-    this.makeModeButton(W / 2 + 72, 315, "claim", "Claim");
+    this.makeModeButton(W / 2 - 72, 315, "send", this.copy.modeSend);
+    this.makeModeButton(W / 2 + 72, 315, "claim", this.copy.modeClaim);
   }
 
   private makeModeButton(x: number, y: number, mode: Mode, label: string): void {
@@ -445,22 +570,20 @@ export class RedEnvelopeScene extends BaseScene {
     const wonAmount = lucky?.amount && lucky.amount > 0 ? fmtGas(lucky.amount) : "";
     this.resultText.setText(
       wonAmount
-        ? `+${wonAmount} GAS received`
+        ? fillTemplate(this.copy.resultReceivedTpl, { amount: wonAmount })
         : lastCreated
-          ? `Envelope #${lastCreated} is ready to share`
+          ? fillTemplate(this.copy.resultShareReadyTpl, { id: lastCreated })
           : this.activeMode === "claim"
             ? this.activeEnvelopeId
-              ? "Envelope ready. Open once for GAS."
-              : "Open a shared link or active pool."
-            : "Create packets. Share a link. Open for GAS.",
+              ? this.copy.resultClaimReady
+              : this.copy.resultClaimIdle
+            : this.copy.resultSendIdle,
     );
     this.setResultState(Boolean(wonAmount || lastCreated), Boolean(lastError));
   }
 
   private defaultStatusCopy(): string {
-    return this.activeMode === "claim"
-      ? "Use a shared envelope link before opening."
-      : "Random packet split is settled by the on-chain contract.";
+    return this.activeMode === "claim" ? this.copy.statusClaimIdle : this.copy.statusSendIdle;
   }
 
   private updateStatusCopy(lastError: string, serviceNotice: string, credit: number): void {
@@ -468,21 +591,20 @@ export class RedEnvelopeScene extends BaseScene {
     this.statusText.setText(
       compactError(lastError) ||
         serviceNotice ||
-        (credit > 0 ? `Prepaid credit ${fmtGas(credit)} GAS available` : "") ||
+        (credit > 0 ? fillTemplate(this.copy.prepaidTpl, { amount: fmtGas(credit) }) : "") ||
         this.defaultStatusCopy(),
     );
   }
 
   private buildSendPanel(W: number): void {
     this.sendPanel = this.add.container(0, 0);
-    this.sendPanel.add(
-      this.add.text(W / 2, 355, "Pick a packet bundle", {
-        fontFamily: FONT,
-        fontSize: "14px",
-        color: "#2e2116",
-        fontStyle: "600",
-      }).setOrigin(0.5),
-    );
+    this.sendHeadingText = this.add.text(W / 2, 355, this.copy.sendHeading, {
+      fontFamily: FONT,
+      fontSize: "14px",
+      color: "#2e2116",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    this.sendPanel.add(this.sendHeadingText);
 
     ENVELOPE_PLANS.forEach((_, index) => {
       const card = this.makePlanCard(70 + index * 140, 415, index);
@@ -499,7 +621,7 @@ export class RedEnvelopeScene extends BaseScene {
     }).setOrigin(0.5);
     this.sendPanel.add(this.sendSummaryText);
 
-    this.createButton = this.makeActionButton(W / 2 - 62, 535, "Create", "primary", 138);
+    this.createButton = this.makeActionButton(W / 2 - 62, 535, this.copy.create, "primary", 138);
     this.createButtonBg = this.createButton.getData("bg") as Phaser.GameObjects.Graphics;
     this.createButtonLabel = this.createButton.getData("label") as Phaser.GameObjects.Text;
     this.bindGameButton(this.createButtonBg, {
@@ -509,7 +631,7 @@ export class RedEnvelopeScene extends BaseScene {
       onPress: () => this.dispatchCreate(),
     });
 
-    this.shareButton = this.makeActionButton(W / 2 + 92, 535, "Share", "secondary", 126);
+    this.shareButton = this.makeActionButton(W / 2 + 92, 535, this.copy.share, "secondary", 126);
     this.shareButtonBg = this.shareButton.getData("bg") as Phaser.GameObjects.Graphics;
     this.shareButtonLabel = this.shareButton.getData("label") as Phaser.GameObjects.Text;
     this.bindGameButton(this.shareButtonBg, {
@@ -539,7 +661,7 @@ export class RedEnvelopeScene extends BaseScene {
         this.selectPlan(index, true);
       },
     });
-    const title = this.add.text(0, -30, plan.title, {
+    const title = this.add.text(0, -30, this.copy[PLAN_TITLE_KEYS[index]!], {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#765230",
@@ -558,7 +680,7 @@ export class RedEnvelopeScene extends BaseScene {
       fontStyle: "600",
       letterSpacing: 1,
     }).setOrigin(0.5);
-    const count = this.add.text(0, 34, `${plan.count} packets`, {
+    const count = this.add.text(0, 34, fillTemplate(this.copy.packetsTpl, { count: plan.count }), {
       fontFamily: FONT,
       fontSize: "10px",
       color: "#765230",
@@ -567,6 +689,7 @@ export class RedEnvelopeScene extends BaseScene {
     card.setData("bg", bg);
     card.setData("title", title);
     card.setData("amount", amount);
+    card.setData("count", count);
     return card;
   }
 
@@ -574,7 +697,9 @@ export class RedEnvelopeScene extends BaseScene {
     this.selectedPlanIndex = index;
     this.planCards.forEach((card, cardIndex) => this.renderPlanCard(card, cardIndex === index));
     const plan = ENVELOPE_PLANS[index]!;
-    this.sendSummaryText?.setText(`${plan.count} random packets - ${plan.expiryHours}h expiry`);
+    this.sendSummaryText?.setText(
+      fillTemplate(this.copy.summaryTpl, { count: plan.count, hours: plan.expiryHours }),
+    );
     if (animate) {
       this.animate({
         targets: this.heroGlow,
@@ -600,14 +725,13 @@ export class RedEnvelopeScene extends BaseScene {
 
   private buildClaimPanel(W: number): void {
     this.claimPanel = this.add.container(0, 0);
-    this.claimPanel.add(
-      this.add.text(W / 2, 356, "Open a shared envelope", {
-        fontFamily: FONT,
-        fontSize: "14px",
-        color: "#2e2116",
-        fontStyle: "600",
-      }).setOrigin(0.5),
-    );
+    this.claimHeadingText = this.add.text(W / 2, 356, this.copy.claimHeading, {
+      fontFamily: FONT,
+      fontSize: "14px",
+      color: "#2e2116",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    this.claimPanel.add(this.claimHeadingText);
 
     const ticket = this.add.container(W / 2, 420);
     const ticketBg = this.add.graphics();
@@ -618,6 +742,18 @@ export class RedEnvelopeScene extends BaseScene {
     ticketBg.lineStyle(1, C.stroke, 0.5);
     ticketBg.lineBetween(-118, -48, -118, 48);
     ticketBg.lineBetween(118, -48, 118, 48);
+    // Soft pulsing halo behind the ticket seal — an idle hint that points the
+    // user to paste/scan a link when no envelope is loaded.
+    this.claimHintGlow = this.add.ellipse(-124, -15, 58, 58, C.gold, 0.3).setVisible(false);
+    this.animate({
+      targets: this.claimHintGlow,
+      alpha: { from: 0.08, to: 0.34 },
+      scale: { from: 0.92, to: 1.08 },
+      duration: 940,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
     const coin = this.makeGasBadge(-124, -15, 36);
     this.activeEnvelopeText = this.add.text(-78, -18, "", {
       fontFamily: FONT,
@@ -632,10 +768,13 @@ export class RedEnvelopeScene extends BaseScene {
       color: "#765230",
       fixedWidth: 205,
     }).setOrigin(0, 0.5);
-    ticket.add([ticketBg, coin, this.activeEnvelopeText, this.claimMetaText]);
+    // Fill the right perforated stub with a small coin token so the tear-off
+    // tab reads as a real ticket stub instead of blank padding.
+    const stubCoin = this.makeGasBadge(134, 0, 22).setAlpha(0.85);
+    ticket.add([ticketBg, this.claimHintGlow, coin, this.activeEnvelopeText, this.claimMetaText, stubCoin]);
     this.claimPanel.add(ticket);
 
-    this.claimButton = this.makeActionButton(W / 2, 515, "Open envelope", "primary", 230);
+    this.claimButton = this.makeActionButton(W / 2, 515, this.copy.open, "primary", 230);
     this.claimButtonBg = this.claimButton.getData("bg") as Phaser.GameObjects.Graphics;
     this.claimButtonLabel = this.claimButton.getData("label") as Phaser.GameObjects.Text;
     this.bindGameButton(this.claimButtonBg, {
@@ -680,12 +819,14 @@ export class RedEnvelopeScene extends BaseScene {
     const width = button.getData("width") as number;
     bg.clear();
     if (!enabled) {
-      bg.fillStyle(C.disabled, 0.92);
+      // Warm "awaiting" state (soft gold + accent-ink) rather than a flat gray
+      // pill, so an idle claim button reads as ready-and-waiting, not broken.
+      bg.fillStyle(0xfdeccb, 0.96);
       bg.fillRoundedRect(-width / 2, -21, width, 42, 21);
-      bg.lineStyle(1, C.disabled, 1);
+      bg.lineStyle(1, 0xf0d29a, 0.92);
       bg.strokeRoundedRect(-width / 2, -21, width, 42, 21);
-      label.setColor("#8f806e");
-      button.setAlpha(0.8);
+      label.setColor("#a87943");
+      button.setAlpha(0.92);
       return;
     }
     if (tone === "primary") {
@@ -710,9 +851,11 @@ export class RedEnvelopeScene extends BaseScene {
     const canCreate = !this.busy;
     const canShare = Boolean(this.lastCreatedEnvelopeId) && !this.busy;
     const canClaim = Boolean(this.activeEnvelopeId) && !this.busy;
-    this.createButtonLabel.setText(this.busy ? "Working..." : "Create");
-    this.shareButtonLabel.setText("Share");
-    this.claimButtonLabel.setText(this.busy ? "Opening..." : this.activeEnvelopeId ? "Open envelope" : "No envelope");
+    this.createButtonLabel.setText(this.busy ? this.copy.working : this.copy.create);
+    this.shareButtonLabel.setText(this.copy.share);
+    this.claimButtonLabel.setText(
+      this.busy ? this.copy.opening : this.activeEnvelopeId ? this.copy.open : this.copy.noEnvelope,
+    );
     this.renderActionButton(this.createButton, canCreate);
     this.renderActionButton(this.shareButton, canShare);
     this.renderActionButton(this.claimButton, canClaim);
@@ -736,6 +879,15 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private playOpenAnimation(): void {
+    // Seal/flap pop — a quick scale punch sells the envelope tearing open before
+    // the coin burst. Reduced-motion safe: this.tween skips the yoyo entirely.
+    this.tween({
+      targets: this.heroContainer,
+      scale: { from: 1, to: 1.12 },
+      duration: 130,
+      yoyo: true,
+      ease: "Back.easeOut",
+    });
     this.animate({
       targets: this.heroContainer,
       angle: { from: -3, to: 3 },
@@ -749,7 +901,8 @@ export class RedEnvelopeScene extends BaseScene {
   private updateHeroMotion(opening: boolean): void {
     this.heroContainer.setAlpha(opening ? 0.9 : 1);
     this.floatingCoins.forEach((coin, index) => {
-      coin.setAlpha(opening || this.activeMode === "claim" ? 1 : 0.82);
+      const baseAlpha = (coin.getData("baseAlpha") as number | undefined) ?? 0.55;
+      coin.setAlpha(opening ? Math.min(1, baseAlpha + 0.25) : baseAlpha);
       if (opening) {
         coin.setRotation(Phaser.Math.DegToRad((this.time.now / 20 + index * 38) % 360));
       }

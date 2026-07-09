@@ -49,18 +49,23 @@ const BASE_TARGET_RADIUS = 88; // outer white ring outer edge at 400px baseline
 // Ring visual radii (outer edge, px) — 5 rings + bullseye
 const RING_OUTER_RADII = [14, 28, 42, 56, 70, BASE_TARGET_RADIUS] as const;
 
-// Ring fill colors: bullseye(0)…outer(5)
+// Ring fill colors: bullseye(0)…outer(5).
+// Tuned to the actual target-board.webp art (gold / coral / cream / teal) so a
+// hit pulse blends with the board instead of flashing foreign archery colors.
 const RING_COLORS: readonly number[] = [
-  0xffd700, // gold   — bullseye
-  0xe03030, // red    — ring 1
-  0xe03030, // red    — ring 2  (standard double red)
-  0x2860c8, // blue   — ring 3
-  0x000000, // black  — ring 4
-  0xffffff, // white  — ring 5
+  0xf2b23a, // gold  — bullseye
+  0xe8705d, // coral — ring 1
+  0xf3e6cb, // cream — ring 2
+  0x49b6a6, // teal  — ring 3
+  0xf3e6cb, // cream — ring 4
+  0xe7cf98, // soft gold rim — ring 5
 ];
 
 // Gauge strip
 const GAUGE_HEIGHT = 16;
+
+// Lobby "how to play" hint fallback (localized value comes from messages.rulesShort).
+const DEFAULT_HOWTO = "Tap the range when the moving reticle crosses the bullseye.";
 
 // ── Color palette ────────────────────────────────────────────────────────────
 
@@ -123,6 +128,7 @@ export class AimMasterScene extends BaseScene {
   private lobbyContainer!: Phaser.GameObjects.Container;
   private diffCards: Phaser.GameObjects.Container[] = [];
   private poolText!: Phaser.GameObjects.Text;
+  private lobbyHintText!: Phaser.GameObjects.Text;
   private lobbyStartBtnBg!: Phaser.GameObjects.Graphics;
   private lobbyStartBtnLabel!: Phaser.GameObjects.Text;
   private selectedDifficulty = 0;
@@ -359,7 +365,7 @@ export class AimMasterScene extends BaseScene {
     const forceFallback = showLobby && !this.selectedPoolIsReady(poolFree);
     this.statusText.setPosition(
       this.scW / 2,
-      showLobby ? Math.min(this.scH - 46, this.lobbyButtonY + 62) : this.scH - 18,
+      showLobby ? Math.min(this.scH - 18, this.lobbyButtonY + 46) : this.scH - 18,
     );
     this.statusText.setText(forceFallback ? fallbackStatus : lastStatus || fallbackStatus);
 
@@ -388,7 +394,11 @@ export class AimMasterScene extends BaseScene {
       .setOrigin(0.5, 0)
       .setDisplaySize(w, rangeH)
       .setAlpha(0.96);
-    this.add.rectangle(w / 2, rangeH + 8, w, 82, 0xffffff, 0.42);
+    // Soft vertical fade blends the range floor into the warm canvas so the
+    // backdrop reads as one continuous surface instead of a hard seam.
+    const fade = this.add.graphics();
+    fade.fillGradientStyle(0xffffff, 0xffffff, C.canvas, C.canvas, 0.5, 0.5, 0, 0);
+    fade.fillRect(0, rangeH - 10, w, 92);
     this.add.rectangle(w / 2, h * 0.72, w, h * 0.56, 0xf4f2ef, 0.82);
   }
 
@@ -398,10 +408,11 @@ export class AimMasterScene extends BaseScene {
     this.lobbyContainer = this.add.container(0, 0).setDepth(20);
     const w = this.scW;
     const h = this.scH;
-    const heroY = Math.round(Math.min(210, Math.max(142, h * 0.22)));
+    const heroY = Math.round(Math.min(206, Math.max(140, h * 0.21)));
     const heroSize = Math.round(Math.min(132, Math.max(104, Math.min(w * 0.33, h * 0.18))));
 
     const veil = this.add.rectangle(w / 2, h / 2, w, h, 0xffffff, 0.14);
+    const heroGlow = this.add.ellipse(w / 2, heroY, heroSize * 1.5, heroSize * 1.5, 0xffffff, 0.24);
     const heroTarget = this.add.image(w / 2, heroY, AIM_ASSETS.target)
       .setDisplaySize(heroSize, heroSize);
     const reticleSize = heroSize * 0.58;
@@ -410,28 +421,65 @@ export class AimMasterScene extends BaseScene {
       .setAlpha(0.72);
     const heroReticleScaleX = heroReticle.scaleX;
     const heroReticleScaleY = heroReticle.scaleY;
-    this.tweens.add({
-      targets: heroReticle,
-      angle: 8,
-      scaleX: heroReticleScaleX * 1.04,
-      scaleY: heroReticleScaleY * 1.04,
-      duration: 900,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-    this.lobbyContainer.add([veil, heroTarget, heroReticle]);
+    // Ambient "breathing" reticle — gated so reduced-motion users get a calm,
+    // static hero at rest (no unconditional infinite tween on a core object).
+    if (!this.reducedMotion) {
+      this.tween({
+        targets: heroReticle,
+        angle: 8,
+        scaleX: heroReticleScaleX * 1.04,
+        scaleY: heroReticleScaleY * 1.04,
+        duration: 900,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    }
+    this.lobbyContainer.add([veil, heroGlow, heroTarget, heroReticle]);
 
+    // ── Vertical rhythm for the lower "range console" cluster ────────────────
     const cardW = Math.max(96, Math.floor((w - 38) / 3));
     const cardH = Math.round(Math.min(112, Math.max(100, h * 0.14)));
     this.lobbyCardW = cardW;
     this.lobbyCardH = cardH;
     const gap = Math.max(8, Math.floor((w - cardW * 3) / 4));
-    const cardY = Math.min(
-      h - 300,
-      Math.max(heroY + heroSize * 0.62 + cardH / 2 + 24, h * 0.52),
-    );
     const startX = gap + cardW / 2;
+
+    // Center the cards→CTA group inside the region below the hero so the lobby
+    // never leaves a hollow band between the pool line and the Start button.
+    const gapCardsToPool = 28;
+    const gapPoolToHint = 24;
+    const gapHintToButton = 34;
+    const btnHalf = 22;
+    const groupH = cardH + gapCardsToPool + gapPoolToHint + gapHintToButton + btnHalf + btnHalf;
+    const heroBottom = heroY + heroSize / 2;
+    const regionTop = heroBottom + 20;
+    const regionBottom = h - 62;
+    const slack = Math.max(0, (regionBottom - regionTop - groupH) / 2);
+    const groupTop = Math.round(regionTop + slack);
+
+    const cardY = groupTop + cardH / 2;
+    const poolY = Math.round(cardY + cardH / 2 + gapCardsToPool);
+    const hintY = Math.round(poolY + gapPoolToHint);
+    this.lobbyButtonY = Math.round(hintY + gapHintToButton + btnHalf);
+
+    // Grouping surface behind the console so the cards sit on a range panel
+    // rather than floating on bare canvas.
+    const panelPadX = Math.max(10, Math.min(20, gap));
+    const lastCx = startX + 2 * (cardW + gap);
+    const panelLeft = startX - cardW / 2 - panelPadX;
+    const panelRight = lastCx + cardW / 2 + panelPadX;
+    const panelW = panelRight - panelLeft;
+    const panelTop = cardY - cardH / 2 - 18;
+    const panelBottom = this.lobbyButtonY + btnHalf + 14;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a1a19, 0.06);
+    panel.fillRoundedRect(panelLeft + 3, panelTop + 6, panelW, panelBottom - panelTop, 20);
+    panel.fillStyle(C.white, 0.72);
+    panel.fillRoundedRect(panelLeft, panelTop, panelW, panelBottom - panelTop, 20);
+    panel.lineStyle(1.5, C.border, 0.9);
+    panel.strokeRoundedRect(panelLeft, panelTop, panelW, panelBottom - panelTop, 20);
+    this.lobbyContainer.add(panel);
 
     DIFFICULTY_RULES.forEach((rule, i) => {
       const cx = startX + i * (cardW + gap);
@@ -440,15 +488,26 @@ export class AimMasterScene extends BaseScene {
       this.lobbyContainer.add(card);
     });
 
-    this.poolText = this.add.text(w / 2, Math.min(h - 222, cardY + cardH / 2 + 34), "Pool: 0.00 GAS", {
+    this.poolText = this.add.text(w / 2, poolY, "Pool: 0.00 GAS", {
       fontSize: "12px",
       fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
       color: "#5c5a56",
     }).setOrigin(0.5);
     this.lobbyContainer.add(this.poolText);
 
+    // Genre "how to play" hint — fills the space between pool and CTA and comes
+    // from messages.rulesShort (localized via the bridge).
+    this.lobbyHintText = this.add.text(w / 2, hintY, this.str("rulesShort", DEFAULT_HOWTO), {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      color: "#8b8984",
+      align: "center",
+      wordWrap: { width: panelW - 36 },
+    }).setOrigin(0.5);
+    this.lobbyContainer.add(this.lobbyHintText);
+
     this.lobbyStartBtnBg = this.add.graphics();
-    this.lobbyButtonY = Math.min(h - 82, Math.max(this.poolText.y + 82, h * 0.81));
     this.drawLobbyStartButton(false, false);
     this.lobbyStartBtnBg.setInteractive(
       this.lobbyButtonHitArea(),
@@ -530,8 +589,26 @@ export class AimMasterScene extends BaseScene {
       color: "#8b8984",
     }).setOrigin(0.5);
 
-    const dot = this.add.circle(-cardW / 2 + 12, -cardH / 2 + 12, 5, C.accent, active ? 1 : 0);
-    c.add([bg, badge, nameTxt, accTxt, rewardTxt, entryTxt, dot]);
+    // Selected-lane treatment: an accent check chip (top-left) plus an accent
+    // underline beneath the lane name — an unambiguous "this lane is chosen".
+    const sel = this.add.container(0, 0);
+    const chipR = 8;
+    const chip = this.add.circle(-cardW / 2 + chipR + 5, -cardH / 2 + chipR + 5, chipR, C.accent)
+      .setStrokeStyle(1.5, C.white);
+    const check = this.add.text(chip.x, chip.y - 0.5, "✓", {
+      fontSize: "11px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    const underline = this.add.rectangle(0, nameY + (compactCard ? 11 : 12), 34, 3, C.accent)
+      .setOrigin(0.5);
+    sel.add([underline, chip, check]);
+    sel.setAlpha(active ? 1 : 0);
+
+    c.add([bg, badge, nameTxt, accTxt, rewardTxt, entryTxt, sel]);
+    c.setData("bg", bg);
+    c.setData("sel", sel);
     return c;
   }
 
@@ -540,12 +617,16 @@ export class AimMasterScene extends BaseScene {
     const poolEnough = poolFree >= Number(gasDisplay(rule.rewardFixed8));
 
     this.diffCards.forEach((card, i) => {
-      const bg  = card.list[0] as Phaser.GameObjects.Graphics;
-      const dot = card.list[card.list.length - 1] as Phaser.GameObjects.Arc;
+      const bg  = card.getData("bg") as Phaser.GameObjects.Graphics;
+      const sel = card.getData("sel") as Phaser.GameObjects.Container;
       const active = i === this.selectedDifficulty;
       this.drawDiffCardBackground(bg, this.lobbyCardW, this.lobbyCardH, active, false);
-      dot.setAlpha(active ? 1 : 0);
+      sel?.setAlpha(active ? 1 : 0);
     });
+
+    if (this.lobbyHintText) {
+      this.lobbyHintText.setText(this.str("rulesShort", DEFAULT_HOWTO));
+    }
 
     this.drawLobbyStartButton(isStarting || !poolEnough, false);
     this.lobbyStartBtnLabel.setText(isStarting ? "Starting…" : "Start Aim");
@@ -574,11 +655,17 @@ export class AimMasterScene extends BaseScene {
 
   private drawLobbyStartButton(disabled: boolean, hover: boolean): void {
     this.lobbyStartBtnBg.clear();
-    const fill = disabled ? C.borderStrong : hover ? C.brandHover : C.brand;
+    // Disabled keeps a muted brand tint (not a dead grey slab) so it still reads
+    // as the game's primary control while the low-pool status sits right beneath.
+    const fill = disabled ? 0xb7e2d1 : hover ? C.brandHover : C.brand;
+    const stroke = disabled ? 0x94ccb8 : C.brandHover;
     this.lobbyStartBtnBg.fillStyle(fill, 1);
     this.lobbyStartBtnBg.fillRoundedRect(this.scW / 2 - 112, this.lobbyButtonY - 22, 224, 44, 12);
-    this.lobbyStartBtnBg.lineStyle(2, disabled ? C.borderStrong : C.brandHover, 1);
+    this.lobbyStartBtnBg.lineStyle(2, stroke, 1);
     this.lobbyStartBtnBg.strokeRoundedRect(this.scW / 2 - 112, this.lobbyButtonY - 22, 224, 44, 12);
+    if (this.lobbyStartBtnLabel) {
+      this.lobbyStartBtnLabel.setColor(disabled ? "#2f7a5f" : "#ffffff");
+    }
   }
 
   private lobbyButtonHitArea(): Phaser.Geom.Rectangle {
@@ -643,13 +730,16 @@ export class AimMasterScene extends BaseScene {
     }).setOrigin(0.5);
     this.gameContainer.add(this.scoreText);
 
-    // Feedback text (hit/miss overlay)
+    // Feedback text (hit/miss overlay). A dark stroke + drop shadow keeps
+    // BULLSEYE/HIT/MISS legible over the light cream range and target art.
     this.feedbackText = this.add.text(centerX, this.targetY() - 10, "", {
       fontSize: "22px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5).setDepth(10);
+    this.feedbackText.setStroke("#241d16", 5);
+    this.feedbackText.setShadow(0, 2, "rgba(26,21,16,0.45)", 4, true, true);
     this.gameContainer.add(this.feedbackText);
 
     // Submit button (shown when pendingSubmit)
@@ -966,6 +1056,9 @@ export class AimMasterScene extends BaseScene {
 
   private startDealingAnimation(): void {
     if (this.dealingTween) return;
+    // Reduced-motion: leave the dealing reticle static rather than spinning it
+    // on an unconditional infinite tween.
+    if (this.reducedMotion) return;
     const baseScaleX = this.dealingReticle.scaleX;
     const baseScaleY = this.dealingReticle.scaleY;
     this.dealingTween = this.tweens.add({
@@ -1080,9 +1173,11 @@ export class AimMasterScene extends BaseScene {
   private showHitFeedback(ring: number): void {
     let label  = "";
     let color  = "#ffffff";
-    if (ring === 0)      { label = "BULLSEYE!"; color = "#ffd700"; }
-    else if (ring <= 2)  { label = "HIT!";      color = "#48d890"; }
-    else                 { label = "MISS";       color = "#e04040"; }
+    // Darker, saturated fills (paired with the dark stroke) so the most
+    // rewarding hit is also the most readable on the light canvas.
+    if (ring === 0)      { label = "BULLSEYE!"; color = "#f59e0b"; }
+    else if (ring <= 2)  { label = "HIT!";      color = "#12a45f"; }
+    else                 { label = "MISS";       color = "#e23b3b"; }
 
     this.feedbackText.setText(label).setColor(color).setAlpha(1).setScale(1.4);
     this.tweens.add({

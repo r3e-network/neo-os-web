@@ -87,6 +87,10 @@ defineMiniApp({
     const runMoveCount = createObservable(0);
     const runMaxExp    = createObservable(0);
     const isMoving     = createObservable(false);
+    // True once the reward-pool balance has been confirmed at least once, so the
+    // in-canvas start button can show a neutral "checking pool" state instead of
+    // a discouraging "pool low" while balances are still unknown.
+    const balancesReady = createObservable(false);
 
     let session: RewardGameSession | null = null;
     let run: LiveRun | null = null;
@@ -106,6 +110,7 @@ defineMiniApp({
         const balances = await rewardGame.balances(app.game.player.scriptHash());
         obs.poolFree.set(balances.poolFreeGas);
         obs.credit.set(balances.creditGas);
+        balancesReady.set(true);
       } catch { /* best-effort */ }
     };
 
@@ -340,7 +345,7 @@ defineMiniApp({
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, runBoard, runMoveCount, runMaxExp, isMoving },
+      state: { ...obs, runBoard, runMoveCount, runMaxExp, isMoving, balancesReady },
       loadData: async () => {
         await refreshBalances();
         const playerHash = app.game.player.scriptHash();

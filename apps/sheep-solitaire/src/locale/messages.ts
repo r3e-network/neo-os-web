@@ -205,6 +205,40 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── In-canvas (Phaser scene) strings ──────────────────────────────────────
+  boardTagline: {
+    en: "Match 3 tiles to clear the board",
+    zh: "凑齐三张相同图案即可消除清盘",
+  },
+  tileTypesLabel: { en: "{count} tile types", zh: "{count} 种图案" },
+  undoLabel: { en: "Undo", zh: "撤回" },
+  shuffleLabel: { en: "Shuffle", zh: "洗牌" },
+  remove3Label: { en: "Remove 3", zh: "移出三张" },
+  trayLabel: { en: "Tray", zh: "卡槽" },
+  loadingBoard: { en: "Preparing your board…", zh: "正在准备牌面…" },
+  securingPuzzle: { en: "Securing puzzle on-chain", zh: "正在链上锁定牌面" },
+  progressStat: {
+    en: "Time {clock}  ·  Pile {pile}  ·  Tray {tray}/{cap}",
+    zh: "时间 {clock}  ·  牌堆 {pile}  ·  卡槽 {tray}/{cap}",
+  },
+  matchedStat: { en: "Matched {matched}/{total}", zh: "已消除 {matched}/{total}" },
+  wonTitle: { en: "You Won", zh: "你赢了" },
+  creditedTitle: { en: "Reward Credited", zh: "奖励已入账" },
+  gameOverTitle: { en: "Game Over", zh: "游戏结束" },
+  boardClearedSub: { en: "Board cleared!", zh: "牌面已清空！" },
+  boardVerifiedSub: { en: "Board verified on-chain", zh: "牌面已链上验证" },
+  payoutSub: { en: "Payout: {payout}", zh: "奖励：{payout}" },
+  creditReadySub: {
+    en: "{amount} GAS is ready to withdraw",
+    zh: "{amount} GAS 可提取",
+  },
+  trayFullSub: { en: "Tray is full — no more moves!", zh: "卡槽已满——无法继续！" },
+  playAgainAction: { en: "Play Again", zh: "再玩一次" },
+  claimRewardAction: { en: "Claim Reward", zh: "领取奖励" },
+  withdrawShortAction: { en: "Withdraw", zh: "提取" },
+  backToRoutesAction: { en: "Back to Routes", zh: "返回牌局" },
+  tryAgainAction: { en: "Try Again", zh: "再试一次" },
 };
 
 export const messages = mergeMessages(appMessages);

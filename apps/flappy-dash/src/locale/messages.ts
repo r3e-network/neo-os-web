@@ -214,6 +214,56 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ─── In-canvas (Phaser scene) labels ─────────────────────────────────────
+  // Pre-resolved and handed to the flight scene through bridgeState.sceneLabels
+  // so the canvas honours the active locale. {placeholders} are substituted by
+  // the scene at draw time.
+  canvasEyebrow: { en: "Verified flight challenge", zh: "链上飞行挑战" },
+  canvasHeroTagline: {
+    en: "Pass the gates, prove the run, claim GAS.",
+    zh: "穿越管道，验证飞行，赢取 GAS。",
+  },
+  canvasLaunch: { en: "Launch Run", zh: "开始飞行" },
+  canvasLaunching: { en: "Launching…", zh: "起飞中…" },
+  canvasFlyAgain: { en: "Fly Again", zh: "再飞一次" },
+  canvasRetryRun: { en: "Retry Run", zh: "重试挑战" },
+  canvasAwaitingPool: { en: "Awaiting pool", zh: "等待奖池" },
+  canvasPoolChip: { en: "Pool {pool} GAS", zh: "奖池 {pool} GAS" },
+  canvasTapTitle: { en: "Tap to Fly!", zh: "点击起飞！" },
+  canvasTapHint: { en: "Space / ↑ on desktop", zh: "桌面端按 空格 / ↑" },
+  canvasSealingTitle: { en: "Sealing Pipes…", zh: "正在密封管道…" },
+  canvasSealingHint: {
+    en: "Waiting for on-chain randomness",
+    zh: "等待链上随机数",
+  },
+  canvasWinTitle: { en: "You Win!", zh: "你赢了！" },
+  canvasCrashTitle: { en: "Crashed!", zh: "坠机了！" },
+  canvasTimeUpTitle: { en: "Time Up!", zh: "时间到！" },
+  canvasWinBody: {
+    en: "{score} pipes passed\nWin {reward} GAS",
+    zh: "已通过 {score} 根管道\n奖励 {reward} GAS",
+  },
+  canvasCrashBody: {
+    en: "{score} pipes passed\nTarget {target}",
+    zh: "已通过 {score} 根管道\n目标 {target} 根",
+  },
+  canvasTimeUpBody: {
+    en: "{score} pipes passed\nDeadline reached",
+    zh: "已通过 {score} 根管道\n已到截止时间",
+  },
+  canvasSubmitScore: { en: "Submit Score", zh: "提交成绩" },
+  canvasSubmitting: { en: "Submitting…", zh: "提交中…" },
+  canvasPlayAgain: { en: "Play Again", zh: "再玩一次" },
+  canvasBackToLobby: { en: "Back to Lobby", zh: "返回大厅" },
+  canvasTryAgain: { en: "Try Again", zh: "再试一次" },
+  canvasRouteTitle: { en: "{name} route", zh: "{name}路线" },
+  canvasRouteMeta: {
+    en: "{gates} gate run · {minutes} min timer",
+    zh: "{gates} 管道挑战 · {minutes} 分钟计时",
+  },
+  canvasCardGates: { en: "{gates} gates", zh: "{gates} 根管道" },
+  canvasEntry: { en: "Entry {amount} GAS", zh: "报名 {amount} GAS" },
 };
 
 export const messages = mergeMessages(appMessages);

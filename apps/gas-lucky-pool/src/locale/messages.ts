@@ -388,6 +388,50 @@ const appMessagesBase = {
     en: "The claim QR opens OneGate app 23 directly and only carries key, pool, and network. OneGate opens the dApp, the dApp pre-fills the claim key, injects the wallet address, and submits the backend claim.",
     zh: "领取二维码直接打开 OneGate app 23，只携带 key、pool 和 network。OneGate 打开小程序后，小程序自动填入领取 key、注入钱包地址，并提交后端领取请求。",
   },
+
+  // ── In-canvas (Phaser scene) strings ──────────────────────────────────────
+  // These feed the vault scene through the bridge string bundle so the canvas
+  // localizes the same as the shell. Add keys here in every locale.
+  gasUnit: { en: "GAS", zh: "GAS" },
+  vaultTabFund: { en: "Fund vault", zh: "注资金库" },
+  vaultTabClaim: { en: "Claim GAS", zh: "领取 GAS" },
+  vaultChoosePack: { en: "Choose a reward pack", zh: "选择奖励方案" },
+  vaultPackStarter: { en: "Starter", zh: "入门" },
+  vaultPackParty: { en: "Party", zh: "派对" },
+  vaultPackJackpot: { en: "Jackpot", zh: "大奖" },
+  vaultPackSummary: {
+    en: "{claims} claims · {min}-{max} GAS each · {hours}h expiry",
+    zh: "{claims} 个名额 · 每份 {min}-{max} GAS · {hours} 小时后过期",
+  },
+  vaultActionPack: { en: "Pack vault", zh: "装填金库" },
+  vaultActionWorking: { en: "Working...", zh: "处理中..." },
+  vaultUnwrapTitle: { en: "Unwrap your reward", zh: "拆开你的奖励" },
+  vaultActionCheck: { en: "Check", zh: "查询" },
+  vaultActionWait: { en: "Wait", zh: "请稍候" },
+  vaultActionClaim: { en: "Claim", zh: "领取" },
+  vaultActionClaiming: { en: "Claiming...", zh: "领取中..." },
+  vaultActionNoLink: { en: "No link", zh: "无链接" },
+  vaultTagline: {
+    en: "Pack a vault. Share a claim. Let GAS land.",
+    zh: "装填金库，分享领取，让 GAS 到账。",
+  },
+  vaultStatusIdle: {
+    en: "OneGate-ready GAS reward vault",
+    zh: "支持 OneGate 的 GAS 奖励金库",
+  },
+  vaultReadyToUnwrap: { en: "Ready to unwrap", zh: "可以拆奖了" },
+  vaultOpenClaimLink: {
+    en: "Open a OneGate claim link",
+    zh: "打开 OneGate 领取链接",
+  },
+  vaultRangePending: {
+    en: "Reward range updates after loading",
+    zh: "加载后更新奖励范围",
+  },
+  vaultPoolNumber: { en: "Pool #{id}", zh: "奖池 #{id}" },
+  vaultLuckSuffix: { en: "{percent}% luck", zh: "手气 {percent}%" },
+  vaultLatestTx: { en: "Latest tx {tx}", zh: "最新交易 {tx}" },
+  claimProgressSubmitted: { en: "Submitted", zh: "已提交" },
 } as const;
 
 const jaMessages = {
@@ -602,6 +646,31 @@ const jaMessages = {
     "フロントエンドは報酬額を決めず、生のキャンペーンkeyも保存しません。サーバーがkeyハッシュ、ネットワーク、キャンペーン状態、残高、一回限りの利用、ウォレット紐付け、ランダム報酬額、tx-proxy送金結果を検証します。",
   docOneGateFlow:
     "受取QRはOneGate app 23を直接開き、key、pool、networkだけを渡します。OneGateがdAppを開くと、dAppはclaim keyを事前入力し、ウォレットアドレスを注入してバックエンドの受取処理を実行します。",
+  gasUnit: "GAS",
+  vaultTabFund: "金庫に入金",
+  vaultTabClaim: "GASを受取",
+  vaultChoosePack: "報酬パックを選ぶ",
+  vaultPackStarter: "スターター",
+  vaultPackParty: "パーティー",
+  vaultPackJackpot: "ジャックポット",
+  vaultPackSummary: "{claims}件 · 各{min}-{max} GAS · {hours}時間で終了",
+  vaultActionPack: "金庫に詰める",
+  vaultActionWorking: "処理中...",
+  vaultUnwrapTitle: "報酬を開ける",
+  vaultActionCheck: "確認",
+  vaultActionWait: "お待ちを",
+  vaultActionClaim: "受け取る",
+  vaultActionClaiming: "受取中...",
+  vaultActionNoLink: "リンクなし",
+  vaultTagline: "金庫を詰めて、受取を共有し、GASを届けよう。",
+  vaultStatusIdle: "OneGate対応のGAS報酬金庫",
+  vaultReadyToUnwrap: "開封できます",
+  vaultOpenClaimLink: "OneGateの受取リンクを開く",
+  vaultRangePending: "読み込み後に報酬範囲を更新します",
+  vaultPoolNumber: "プール #{id}",
+  vaultLuckSuffix: "運 {percent}%",
+  vaultLatestTx: "最新Tx {tx}",
+  claimProgressSubmitted: "送信済み",
 } satisfies Record<keyof typeof appMessagesBase, string>;
 
 const appMessages = Object.fromEntries(

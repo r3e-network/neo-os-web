@@ -179,6 +179,65 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Canvas (Phaser scene) labels ──────────────────────────────────────────
+  // The Phaser scene cannot localise on its own (BaseScene only reads bridge
+  // state), so every string it draws is pre-translated here and pushed through
+  // the React shell into bridgeState.labels.
+  lobbyVaultTitle: { en: "Sudoku Vault", zh: "数独宝库" },
+  lobbyVaultSub: { en: "Pick a sealed puzzle route", zh: "选择一条密封谜题路线" },
+  diffName_0: { en: "Easy", zh: "简单" },
+  diffName_1: { en: "Medium", zh: "中等" },
+  diffName_2: { en: "Hard", zh: "困难" },
+
+  playAgainAction: { en: "Play again", zh: "再玩一局" },
+  tryAgainAction: { en: "Try again", zh: "重新挑战" },
+  startingShort: { en: "Starting…", zh: "开局中…" },
+  connectWalletAction: { en: "Connect wallet", zh: "连接钱包" },
+  routeLockedAction: { en: "Route locked", zh: "路线未解锁" },
+  poolLowShort: { en: "Pool low", zh: "奖池不足" },
+  submittingShort: { en: "Submitting…", zh: "提交中…" },
+  workingShort: { en: "Working…", zh: "处理中…" },
+  tooLateAction: { en: "Too late to submit", zh: "已错过提交" },
+  waitToSubmitAction: { en: "Wait to submit", zh: "稍候再提交" },
+  solveToUnlockAction: { en: "Solve to unlock", zh: "解开后可提交" },
+
+  undoLeftTemplate: { en: "Undo ({left} left)", zh: "撤回（剩 {left} 次）" },
+  undoNoneLabel: { en: "No undos left", zh: "没有撤回次数" },
+
+  poolLimitTemplate: {
+    en: "Pool: {pool} GAS  ·  {min} min limit",
+    zh: "奖池：{pool} GAS  ·  {min} 分钟限时",
+  },
+  gateConnect: {
+    en: "Connect wallet to open a sealed board",
+    zh: "连接钱包以开启密封棋盘",
+  },
+  gateChecking: { en: "Checking account route history", zh: "正在检查账户路线记录" },
+  gateRouteLockedTemplate: {
+    en: "Clear {difficulty} before replaying this route",
+    zh: "先通关{difficulty}后再重玩此路线",
+  },
+  gatePoolLowTemplate: {
+    en: "Pool low ({have} / {need} GAS reward needed)",
+    zh: "奖池不足（{have} / {need} GAS 奖励需求）",
+  },
+  gateChoose: { en: "Choose a route, then open the board", zh: "选择路线后开启棋盘" },
+
+  deadlinePassedMsg: {
+    en: "Deadline passed. Release this board to start a new one.",
+    zh: "已超过截止时间。请结算本局后再开新局。",
+  },
+  deadlineCloseMsg: {
+    en: "Too close to the deadline for settlement.",
+    zh: "距截止时间太近，无法完成结算。",
+  },
+  submitUnlockTemplate: {
+    en: "Submission unlocks in {clock}",
+    zh: "{clock} 后可提交",
+  },
+  resultCaptionSolved: { en: "Reward secured", zh: "奖励已入账" },
+  resultCaptionExpired: { en: "Board released", zh: "棋局已释放" },
 };
 
 export const messages = mergeMessages(appMessages);

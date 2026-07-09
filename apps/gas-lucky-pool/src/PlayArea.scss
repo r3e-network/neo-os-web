@@ -9,13 +9,15 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* domain-theme (auto) */
+/* domain-theme (auto) — warm gold vault accent (was alarm-red, which read as an
+ * error against the all-gold + mint canvas). Brand now matches the vault's own
+ * gold so the range badge and accent score card read as "lucky", not "danger". */
 :root,
 .mx2 {
-  --mx2-brand: #dc2626;
-  --mx2-brand-hover: #b91c1c;
-  --mx2-brand-light: #fce9e9;
-  --mx2-brand-subtle: #f4c6c6;
+  --mx2-brand: #b77915;
+  --mx2-brand-hover: #955f0f;
+  --mx2-brand-light: #fbeccb;
+  --mx2-brand-subtle: #f2ddab;
   --mx2-ring: rgba(0, 0, 0, 0.06);
   --mx2-accent: #d97706;
   --mx2-accent-strong: #92400e;

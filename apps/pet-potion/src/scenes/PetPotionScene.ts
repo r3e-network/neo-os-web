@@ -25,6 +25,18 @@ const PET_ASSETS = {
 const DESIGN_W = 420;
 const DESIGN_H = 580;
 
+// Shared vertical rhythm for the bottom content stack. Bands are tuned so the
+// care goal, stat rows, and the difficulty/action cards never crowd or clip.
+const GUTTER_L = 46;               // shared left edge for every label column
+const GUTTER_R = DESIGN_W - 46;    // shared right edge for stat values
+const STAT_BAR_L = 108;            // stat bars start after the label column
+const STAT_BAR_W = GUTTER_R - 26 - STAT_BAR_L; // 240
+const GOAL_BAR_W = GUTTER_R - GUTTER_L;        // 328
+const STAGE_BADGE_DY = 94;         // stage pill offset below the pet centre
+const GOAL_Y = 330;                // care-goal / progress-meter band centre
+const STAT_Y0 = 358;               // first stat row centre
+const STAT_ROW_DY = 20;            // stat row spacing
+
 const C = {
   canvas: 0xfffbef,
   surface: 0xffffff,
@@ -59,6 +71,7 @@ type PetActionKey = keyof typeof PET_ASSETS.actions;
 type StatBar = {
   fill: Phaser.GameObjects.Rectangle;
   value: Phaser.GameObjects.Text;
+  label: Phaser.GameObjects.Text;
 };
 
 type ModeCard = {
@@ -97,8 +110,12 @@ export class PetPotionScene extends BaseScene {
   private actionCue!: Phaser.GameObjects.Image;
   private stageBadge!: Phaser.GameObjects.Text;
   private targetText!: Phaser.GameObjects.Text;
+  private careGoalText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
+  private goalBox!: Phaser.GameObjects.Rectangle;
+  private goalTrack!: Phaser.GameObjects.Rectangle;
   private goalFill!: Phaser.GameObjects.Rectangle;
+  private brewBubbles: Phaser.GameObjects.Ellipse[] = [];
   private statBars: StatBar[] = [];
   private actionButtons: Phaser.GameObjects.Container[] = [];
   private modeCards: ModeCard[] = [];
@@ -194,8 +211,20 @@ export class PetPotionScene extends BaseScene {
       ? -1
       : stage;
     this.updatePet(visibleStage, status);
-    this.updateStats(happiness, hunger, energy);
-    this.updateGoal(Math.max(achieved, happiness), activeMode.target);
+
+    // Care band: live runs (and the solved recap) show the progress meter and
+    // real stats; idle/expired states show a static goal line with sealed,
+    // preview stats so the secret starting values never look known.
+    const runLive = isPlaying || status === "solved";
+    this.goalBox.setVisible(runLive);
+    this.goalTrack.setVisible(runLive);
+    this.goalFill.setVisible(runLive);
+    this.targetText.setVisible(runLive);
+    this.careGoalText.setVisible(!runLive);
+    this.updateStats(happiness, hunger, energy, runLive);
+    if (runLive) {
+      this.updateGoal(Math.max(achieved, happiness), activeMode.target);
+    }
     this.updatePrimaryButton(status, isPlaying, isLoading, targetReached);
 
     if (isPlaying && actionsUsed > this.lastActionCount) {
@@ -211,7 +240,8 @@ export class PetPotionScene extends BaseScene {
     if (potionReady && !this.lastTargetReached) this.sfx.play("reveal");
     this.lastTargetReached = potionReady;
 
-    this.targetText.setText(isPlaying ? `Goal ${Math.round(Math.max(achieved, happiness))}/${activeMode.target}` : `${activeMode.label} care path`);
+    this.targetText.setText(`Goal ${Math.round(Math.max(achieved, happiness))}/${activeMode.target}`);
+    this.careGoalText.setText(`Raise happiness to ${activeMode.target}`);
     const statusCopy = this.statusCopy(status, isLoading, targetReached, actionsUsed);
     this.statusText.setColor("#7b6d5a");
     this.statusText.setVisible(Boolean(statusCopy));
@@ -271,6 +301,7 @@ export class PetPotionScene extends BaseScene {
 
     this.petGlow = this.add.ellipse(cx, cy + 8, 224, 168, C.jade, 0.12).setDepth(4);
     this.petShadow = this.add.ellipse(cx, cy + 92, 164, 34, 0x5c4b2c, 0.16).setDepth(4);
+    this.buildBrewBubbles(cx, cy);
     this.petImage = this.add.image(cx, cy, PET_ASSETS.egg)
       .setDisplaySize(190, 190)
       .setDepth(6);
@@ -279,63 +310,146 @@ export class PetPotionScene extends BaseScene {
       .setAlpha(0)
       .setDepth(7);
 
-    this.stageBadge = this.add.text(cx, cy + 112, "", {
+    // Stage nameplate — tucked up near the pet/shadow so it reads as part of
+    // the pet rather than crowding the care band beneath it.
+    this.stageBadge = this.add.text(cx, cy + STAGE_BADGE_DY, "", {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#0c705d",
       fontStyle: "bold",
-      backgroundColor: "rgba(255,255,255,0.78)",
+      backgroundColor: "rgba(255,255,255,0.82)",
       padding: { x: 12, y: 5 },
     }).setOrigin(0.5).setDepth(7);
   }
 
+  /**
+   * Alchemy brew effervescence around the egg/pet — leans the fixed nursery art
+   * toward the "bubbling brew" potion anchor. Two layers:
+   *  1. A few static motes resting at the vessel base — created unconditionally
+   *     (no tween), so the potion cue reads in the idle first frame AND for
+   *     prefers-reduced-motion users who never see the rising loop below.
+   *  2. Rising, sine-fading bubbles — an ambient loop, so created only when
+   *     reduced-motion is off (those users keep a calm, still brew surface).
+   */
+  private buildBrewBubbles(cx: number, cy: number): void {
+    // Layer 1 — settled brew, always present, reduced-motion safe (no tween).
+    // Each mote is a tinted bubble with a soft white rim + specular highlight so
+    // it still reads as effervescence against the bright gold vessel.
+    const restSpecs = [
+      { dx: -70, dy: 66, r: 3.6, tint: C.jade, alpha: 0.5 },
+      { dx: -44, dy: 58, r: 4.6, tint: 0xbfe8d6, alpha: 0.56 },
+      { dx: -20, dy: 68, r: 3.0, tint: C.gold, alpha: 0.5 },
+      { dx: 22, dy: 66, r: 4.4, tint: C.jade, alpha: 0.54 },
+      { dx: 46, dy: 58, r: 3.4, tint: 0xbfe8d6, alpha: 0.5 },
+      { dx: 70, dy: 66, r: 3.0, tint: C.gold, alpha: 0.5 },
+    ];
+    restSpecs.forEach((spec) => {
+      this.add
+        .ellipse(cx + spec.dx, cy + spec.dy, spec.r * 2, spec.r * 2, spec.tint, spec.alpha)
+        .setStrokeStyle(1, C.white, 0.62)
+        .setDepth(7);
+      this.add
+        .ellipse(cx + spec.dx - spec.r * 0.32, cy + spec.dy - spec.r * 0.32, spec.r * 0.7, spec.r * 0.7, C.white, 0.7)
+        .setDepth(7);
+    });
+
+    // Layer 2 — rising loop, motion users only.
+    if (this.reducedMotion) return;
+    const specs = [
+      { dx: -90, r: 6, tint: C.jade, peak: 0.62, depth: 7 },
+      { dx: -60, r: 5, tint: 0xbfe8d6, peak: 0.5, depth: 5 },
+      { dx: -30, r: 7, tint: C.gold, peak: 0.44, depth: 5 },
+      { dx: 34, r: 6, tint: 0xbfe8d6, peak: 0.52, depth: 5 },
+      { dx: 64, r: 5, tint: C.jade, peak: 0.6, depth: 7 },
+      { dx: 92, r: 7, tint: C.gold, peak: 0.46, depth: 5 },
+    ];
+    specs.forEach((spec, index) => {
+      const baseY = cy + 78 - (index % 3) * 6;
+      const bubble = this.add
+        .ellipse(cx + spec.dx, baseY, spec.r * 2, spec.r * 2, spec.tint, 0.92)
+        .setAlpha(0)
+        .setDepth(spec.depth);
+      this.brewBubbles.push(bubble);
+      // Ambient rise + sine-fade. Guarded above, so raw tweens here are safe.
+      this.tweens.add({
+        targets: bubble,
+        y: baseY - 128,
+        scale: 1.35,
+        duration: 2300 + index * 220,
+        delay: index * 130,
+        repeat: -1,
+        repeatDelay: 140,
+        ease: "Sine.easeOut",
+        onUpdate: (tween) => bubble.setAlpha(Math.sin(tween.progress * Math.PI) * spec.peak),
+        onRepeat: () => {
+          bubble.setPosition(cx + spec.dx, baseY);
+          bubble.setScale(1);
+        },
+      });
+    });
+  }
+
   private buildGoalMeter(W: number, H: number): void {
-    const y = H * 0.58;
-    this.add.rectangle(W / 2, y, W - 86, 42, C.surface, 0.86)
+    void H;
+    const y = GOAL_Y;
+    // Progress meter — shown only while a run is live (or solved). Kept out of
+    // idle so an empty track never reads as a stuck near-full progress bar.
+    this.goalBox = this.add.rectangle(W / 2, y, W - 84, 34, C.surface, 0.9)
       .setStrokeStyle(1, C.stroke, 0.62)
       .setDepth(5);
-    this.targetText = this.add.text(64, y - 10, "", {
+    this.targetText = this.add.text(GUTTER_L, y - 9, "", {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#2f291f",
       fontStyle: "bold",
-    }).setDepth(6);
-    this.add.rectangle(W / 2, y + 10, W - 128, 9, 0xeadfc8, 0.95)
-      .setOrigin(0.5)
+    }).setOrigin(0, 0.5).setDepth(6);
+    this.goalTrack = this.add.rectangle(GUTTER_L, y + 9, GOAL_BAR_W, 8, 0xeadfc8, 0.95)
+      .setOrigin(0, 0.5)
       .setDepth(6);
-    this.goalFill = this.add.rectangle(64, y + 10, 0, 9, C.jade, 0.95)
+    this.goalFill = this.add.rectangle(GUTTER_L, y + 9, 0, 8, C.jade, 0.95)
       .setOrigin(0, 0.5)
       .setDepth(7);
+
+    // Idle care-goal — a single, static line (no track) that states the aim
+    // without implying live progress. Occupies the same band as the meter.
+    this.careGoalText = this.add.text(W / 2, y, "", {
+      fontFamily: FONT,
+      fontSize: "13px",
+      color: "#3f7a5f",
+      fontStyle: "bold",
+      align: "center",
+    }).setOrigin(0.5).setDepth(6);
   }
 
   private buildStats(W: number, H: number): void {
+    void W;
+    void H;
     const defs = [
       { label: "Happy", color: C.rose },
       { label: "Fed", color: C.orange },
       { label: "Energy", color: C.blue },
     ] as const;
-    const y0 = H * 0.615;
     defs.forEach((def, index) => {
-      const y = y0 + index * 24;
-      this.add.text(44, y, def.label, {
+      const y = STAT_Y0 + index * STAT_ROW_DY;
+      const label = this.add.text(GUTTER_L, y, def.label, {
         fontFamily: FONT,
         fontSize: "11px",
         color: "#7b6d5a",
         fontStyle: "bold",
       }).setOrigin(0, 0.5).setDepth(6);
-      this.add.rectangle(112, y, W - 178, 9, 0xeadfc8, 0.88)
+      this.add.rectangle(STAT_BAR_L, y, STAT_BAR_W, 8, 0xeadfc8, 0.88)
         .setOrigin(0, 0.5)
         .setDepth(6);
-      const fill = this.add.rectangle(112, y, 1, 9, def.color, 0.95)
+      const fill = this.add.rectangle(STAT_BAR_L, y, 1, 8, def.color, 0.95)
         .setOrigin(0, 0.5)
         .setDepth(7);
-      const value = this.add.text(W - 50, y, "0", {
+      const value = this.add.text(GUTTER_R, y, "--", {
         fontFamily: FONT,
         fontSize: "11px",
         color: "#2f291f",
         fontStyle: "bold",
       }).setOrigin(1, 0.5).setDepth(6);
-      this.statBars.push({ fill, value });
+      this.statBars.push({ fill, value, label });
     });
   }
 
@@ -454,7 +568,7 @@ export class PetPotionScene extends BaseScene {
       this.petImage.setTexture(texture);
       const size = stage < 0 ? 178 : stage === 0 ? 182 : stage === 1 ? 202 : 218;
       this.petImage.setDisplaySize(size, size);
-      this.tweens.add({
+      this.animate({
         targets: this.petImage,
         scaleX: this.petImage.scaleX * 1.04,
         scaleY: this.petImage.scaleY * 1.04,
@@ -471,26 +585,44 @@ export class PetPotionScene extends BaseScene {
     this.petGlow.setFillStyle(stage === 2 ? C.gold : C.jade, stage === 2 ? 0.18 : 0.12);
   }
 
-  private updateStats(happiness: number, hunger: number, energy: number): void {
+  private updateStats(happiness: number, hunger: number, energy: number, live: boolean): void {
     [happiness, 100 - hunger, energy].forEach((value, index) => {
       const stat = this.statBars[index];
       if (!stat) return;
-      const pct = clamp01(value / 100);
-      this.tweens.add({
-        targets: stat.fill,
-        displayWidth: pct * (DESIGN_W - 178),
-        duration: 220,
-        ease: "Sine.easeOut",
-      });
-      stat.value.setText(String(Math.round(value)));
+      if (live) {
+        const pct = clamp01(value / 100);
+        this.animate({
+          targets: stat.fill,
+          displayWidth: pct * STAT_BAR_W,
+          duration: 220,
+          ease: "Sine.easeOut",
+        });
+        stat.fill.setAlpha(0.95);
+        stat.label.setAlpha(1);
+        stat.value.setText(String(Math.round(value)));
+        stat.value.setColor("#2f291f");
+      } else {
+        // Sealed preview: empty, faded bar + dash so the enclave's secret
+        // starting stats never read as live known values before the run.
+        this.animate({
+          targets: stat.fill,
+          displayWidth: 0,
+          duration: 200,
+          ease: "Sine.easeOut",
+        });
+        stat.fill.setAlpha(0.35);
+        stat.label.setAlpha(0.72);
+        stat.value.setText("--");
+        stat.value.setColor("#b6a68c");
+      }
     });
   }
 
   private updateGoal(value: number, target: number): void {
     const pct = target > 0 ? clamp01(value / target) : 0;
-    this.tweens.add({
+    this.animate({
       targets: this.goalFill,
-      displayWidth: pct * (DESIGN_W - 128),
+      displayWidth: pct * GOAL_BAR_W,
       duration: 260,
       ease: "Sine.easeOut",
     });
@@ -532,7 +664,7 @@ export class PetPotionScene extends BaseScene {
     this.cueTimer?.remove(false);
     this.actionCue.setTexture(PET_ASSETS.actions[key]);
     this.actionCue.setAlpha(0).setScale(0.72).setRotation(Phaser.Math.DegToRad(-6));
-    this.tweens.add({
+    this.animate({
       targets: this.actionCue,
       alpha: 1,
       scale: 1,
@@ -547,7 +679,7 @@ export class PetPotionScene extends BaseScene {
   }
 
   private pulsePet(): void {
-    this.tweens.add({
+    this.animate({
       targets: this.petImage,
       scaleX: this.petImage.scaleX * 1.04,
       scaleY: this.petImage.scaleY * 1.04,
@@ -558,7 +690,9 @@ export class PetPotionScene extends BaseScene {
   }
 
   private startAmbientMotion(): void {
-    this.tweens.add({
+    // Reduced-motion aware: this.animate() no-ops (leaving a still pet, glow,
+    // and overlay) when prefers-reduced-motion is on.
+    this.animate({
       targets: this.petImage,
       y: this.petImage.y - 7,
       duration: 1800,
@@ -566,7 +700,7 @@ export class PetPotionScene extends BaseScene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
-    this.tweens.add({
+    this.animate({
       targets: this.petGlow,
       scaleX: 1.08,
       scaleY: 1.08,
@@ -576,7 +710,7 @@ export class PetPotionScene extends BaseScene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
-    this.tweens.add({
+    this.animate({
       targets: this.labOverlay,
       alpha: 0.6,
       duration: 2800,
