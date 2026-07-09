@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "contracts": {
+    "neo-n3-testnet": "0x0000000000000000000000000000000000000000"
+  },
+  "createdAt": "2026-07-09T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "Catch the Goose — a free, fast-paced find-and-clear game. Tap three identical items to clear them before the timer runs out, empty the pen, and snatch the runaway goose. Twelve levels of rising clutter, all played locally with no entry fee.",
+  "description_zh": "抓大鹅——一款轻松上手的限时找物消除小游戏。在倒计时归零前点掉三个相同物品把它们消除，清空鹅栏，抓住四处乱跑的大鹅。12 关 clutter 递进，纯本地免费游玩，无需报名费。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": false,
+  "features": {
+    "deeplink": "neomainapp://zhuada-e",
+    "offlineSupport": true,
+    "stateless": true
+  },
+  "id": "miniapp-zhuada-e",
+  "name": "Catch the Goose",
+  "name_zh": "抓大鹅",
+  "operation_panel": {
+    "operations": [],
+    "subtitle": "Tap three matching items, clear the pen, and catch the goose.",
+    "title": "Catch the Goose"
+  },
+  "permissions": [],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "puzzle",
+    "casual",
+    "merge",
+    "goose",
+    "game"
+  ],
+  "technologies": {
+    "aa": {
+      "description": "Not used — free local play.",
+      "enabled": false
+    },
+    "oracle": {
+      "description": "Not used — level seeds come from Web Crypto locally.",
+      "enabled": false
+    },
+    "tee": {
+      "enabled": false,
+      "description": "Not used — no on-chain settlement in free mode."
+    }
+  },
+  "updatedAt": "2026-07-09T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/zhuada-e/banner.png",
+    "entry": "/miniapps/zhuada-e/index.html",
+    "icon": "/miniapps/zhuada-e/logo.png"
+  },
+  "version": "1.0.0"
+}
