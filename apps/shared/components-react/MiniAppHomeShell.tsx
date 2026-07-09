@@ -44,8 +44,11 @@ export interface MiniAppHomeShellProps {
   heroDesc: string;
   primaryLabel: string;
   ghostLabel?: string;
+  /** Optional second entry CTA (e.g. "Play free" for guest mode). */
+  secondaryLabel?: string;
   onPrimaryClick?: () => void;
   onGhostClick?: () => void;
+  onSecondaryClick?: () => void;
   stats: HomeShellStat[];
   featuresEyebrow?: string;
   featuresTitle?: string;
@@ -426,6 +429,19 @@ export function MiniAppHomeShell(props: MiniAppHomeShellProps) {
 
         .n3h-button--primary:hover {
           background: var(--sd-brand-hover, #0EA371);
+          transform: translateY(-1px);
+        }
+
+        .n3h-button--secondary {
+          background: var(--sd-surface, #fff);
+          border-color: var(--sd-border-strong, #D4D0C9);
+          color: var(--sd-ink, #1A1A19);
+          box-shadow: var(--sd-shadow-card, 0 1px 3px rgba(0, 0, 0, 0.04));
+        }
+
+        .n3h-button--secondary:hover {
+          background: var(--sd-surface-hover, #F1EFEC);
+          border-color: var(--sd-ink-tertiary, #8B8984);
           transform: translateY(-1px);
         }
 
@@ -831,6 +847,15 @@ export function MiniAppHomeShell(props: MiniAppHomeShellProps) {
             >
               {props.primaryLabel}
             </button>
+            {props.secondaryLabel && (
+              <button
+                type="button"
+                className="n3h-button n3h-button--secondary"
+                onClick={props.onSecondaryClick}
+              >
+                {props.secondaryLabel}
+              </button>
+            )}
             {props.ghostLabel && (
               <button
                 type="button"

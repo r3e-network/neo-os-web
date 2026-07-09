@@ -152,6 +152,8 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+  guestRunComplete: { en: "Local run complete — {count} in a row!", zh: "本地对局完成——连对 {count} 个！" },
+  guestModeLine: { en: "Guest mode — local play, scores saved off-chain.", zh: "游客模式——本地游玩，成绩离线保存。" },
 
   color_red: { en: "Red", zh: "红" },
   color_blue: { en: "Blue", zh: "蓝" },

@@ -400,6 +400,41 @@ export interface FrameworkReceiptPaySpec extends FrameworkWriteSpec {
 
 export type FrameworkAssetSymbol = "GAS" | "NEO";
 
+/**
+ * Two-mode game surface. GUEST is a purely local game with NO chain/oracle/
+ * reward access (write/oracle/reward entry points throw when current is
+ * "guest"); GAMEFI is the chain + oracle + reward-pool flow. Defaults to
+ * "gamefi" for back-compat.
+ */
+export type FrameworkAppMode = "guest" | "gamefi";
+
+/**
+ * Off-chain guest leaderboard. Delegates to the OS leaderboard (os.leaderboard)
+ * but under a guest namespace so guest scores never mix with on-chain results.
+ */
+export interface FrameworkGuestLeaderboard {
+  submit(score: number | string): Promise<void>;
+  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
+}
+
+/**
+ * app.mode — launcher-selected play mode, guest guard, and guest leaderboard.
+ * The launcher sets {@link FrameworkModeSurface.set} before the play area
+ * mounts; game main.tsx branches its actions on {@link isGuest}.
+ */
+export interface FrameworkModeSurface {
+  /** Current play mode (default "gamefi"). */
+  current: Observable<FrameworkAppMode>;
+  set(mode: FrameworkAppMode): void;
+  get(): FrameworkAppMode;
+  isGuest(): boolean;
+  isGameFi(): boolean;
+  /** Subscribe to mode changes; returns an unsubscribe. */
+  onChange(callback: (mode: FrameworkAppMode) => void): () => void;
+  /** Off-chain, guest-namespaced leaderboard for guest scores. */
+  guestLeaderboard: FrameworkGuestLeaderboard;
+}
+
 export type FrameworkOperationStatus = "idle" | "running" | "succeeded" | "failed";
 
 export interface FrameworkOperationState<TResult = unknown> {
@@ -1279,8 +1314,61 @@ export function createMiniAppFramework(
       : {}),
   });
 
+  // ── app.mode: two-mode game surface + guest guard ──────────────────────────
+  // GUEST mode disables every on-chain/oracle/reward WRITE lane (defense in
+  // depth). Read-only lanes (chain.read/readRaw/readArray/events) stay allowed
+  // so a guest can still read the reward pool for an upsell.
+  const GUEST_BLOCKED_MESSAGE =
+    "guest-mode: on-chain/oracle operations are disabled";
+  const modeObservable = createObservable<FrameworkAppMode>("gamefi");
+  const assertNotGuest = (): void => {
+    if (modeObservable.get() === "guest") {
+      throw new MiniAppError(GUEST_BLOCKED_MESSAGE, "GUEST_MODE_BLOCKED");
+    }
+  };
+  // Guest scores go to the off-chain OS leaderboard under an app+":guest"
+  // namespace prefix so they never mix with any on-chain / gamefi result.
+  const GUEST_BOARD_PREFIX = `${appId}:guest:`;
+  const guestLeaderboard: FrameworkGuestLeaderboard = {
+    async submit(score: number | string): Promise<void> {
+      await os.leaderboard?.submitScore(`${GUEST_BOARD_PREFIX}${score}`);
+    },
+    async get(limit = 100): Promise<Array<{ user: string; score: string }>> {
+      const rows = (await os.leaderboard?.get(limit)) ?? [];
+      return rows
+        .filter((row) => String(row.score ?? "").startsWith(GUEST_BOARD_PREFIX))
+        .map((row) => ({
+          user: row.user,
+          score: String(row.score).slice(GUEST_BOARD_PREFIX.length),
+        }))
+        .slice(0, limit);
+    },
+  };
+  const modeSurface: FrameworkModeSurface = {
+    current: modeObservable,
+    set(mode: FrameworkAppMode): void {
+      modeObservable.set(mode === "guest" ? "guest" : "gamefi");
+    },
+    get(): FrameworkAppMode {
+      return modeObservable.get();
+    },
+    isGuest(): boolean {
+      return modeObservable.get() === "guest";
+    },
+    isGameFi(): boolean {
+      return modeObservable.get() !== "guest";
+    },
+    onChange(callback: (mode: FrameworkAppMode) => void): () => void {
+      return modeObservable.subscribe(() => callback(modeObservable.get()));
+    },
+    guestLeaderboard,
+  };
+
   const framework = {
     amount,
+
+    /** app.mode — two-mode (guest|gamefi) surface + guest guard + leaderboard. */
+    mode: modeSurface,
 
     notify: appNotify,
 
@@ -1445,6 +1533,7 @@ export function createMiniAppFramework(
         args: FrameworkContractArg[],
         options?: FrameworkInvokeOptions,
       ): Promise<FrameworkTxResult> {
+        assertNotGuest();
         getPermissions().require("invoke:primary");
         return chain.invoke(operation, args, options);
       },
@@ -1456,9 +1545,11 @@ export function createMiniAppFramework(
         args: FrameworkContractArg[],
         options?: FrameworkInvokeOptions,
       ): Promise<FrameworkTxResult> {
+        assertNotGuest();
         return chain.invokeWithPayment(amount, memo, operation, args, options);
       },
       async write(spec: FrameworkWriteSpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
+        assertNotGuest();
         return runWithNotify(async () => {
           const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
           if (tx.success !== false) await spec.reload?.();
@@ -1512,6 +1603,7 @@ export function createMiniAppFramework(
         calls: FrameworkInvokeCall[],
         multiOptions: { signers?: unknown[]; notify?: FrameworkNotifyPolicy } = {},
       ): Promise<FrameworkMultiInvokeResult> {
+        assertNotGuest();
         return runWithNotify(async () => {
           if (!chain.invokeMultiple) {
             throw new MiniAppError(
@@ -1679,6 +1771,7 @@ export function createMiniAppFramework(
        * withdrawable, not lost.
        */
       async payAndCall(spec: FrameworkPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
+        assertNotGuest();
         return runWithNotify(async () => {
           let tx: FrameworkTxResult;
           try {
@@ -1710,6 +1803,7 @@ export function createMiniAppFramework(
        * run the framework-owned two-step sequence instead.
        */
       async prepayAndCall(spec: FrameworkPrepaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
+        assertNotGuest();
         return runWithNotify(async () => {
           if (spec.deposit) return prepayViaDepositLane(spec, spec.deposit);
           const amountFixed8 = fixed8Amount(spec);
@@ -1745,6 +1839,7 @@ export function createMiniAppFramework(
        * Integer argument (flashloan deposit, memorial-shrine tribute).
        */
       async receiptPay(spec: FrameworkReceiptPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
+        assertNotGuest();
         return runWithNotify(async () => {
           const receiptId = String(spec.receiptId ?? "").trim();
           if (!/^[1-9]\d*$/.test(receiptId)) {
@@ -1773,6 +1868,7 @@ export function createMiniAppFramework(
         }
       },
       async withdrawCredit(operation = "withdraw", successKey?: string): Promise<FrameworkTxResult> {
+        assertNotGuest();
         const user = accountToHash160(await chain.ensureWallet());
         return framework.chain.write({
           operation,
@@ -1832,6 +1928,7 @@ export function createMiniAppFramework(
      */
     oracle: {
       async http(request: HttpOracleRequest) {
+        assertNotGuest();
         getPermissions().require("oracle:request");
         const url = new URL(request.url);
         if (url.protocol !== "http:" && url.protocol !== "https:") {
@@ -1846,6 +1943,7 @@ export function createMiniAppFramework(
         });
       },
       async vrf(request: VrfOracleRequest) {
+        assertNotGuest();
         getPermissions().require("oracle:request");
         const rounds = Math.max(1, Math.min(64, Math.trunc(Number(request.rounds ?? 1) || 1)));
         return createEnvelope("oracle.vrf.request", {
@@ -1856,6 +1954,7 @@ export function createMiniAppFramework(
         });
       },
       async compute(request: ComputeOracleRequest) {
+        assertNotGuest();
         getPermissions().require("oracle:request");
         const inputDigest = await sha256Hex0x(stableJson(request.input));
         return createEnvelope("oracle.compute.request", {
@@ -1873,6 +1972,7 @@ export function createMiniAppFramework(
        */
       seal: Object.assign(
         async (request: SealOracleRequest) => {
+          assertNotGuest();
           getPermissions().require("oracle:request");
           const payloadDigest = await sha256Hex0x(stableJson(request.payload));
           return createEnvelope("oracle.seal.envelope", {
@@ -1899,6 +1999,7 @@ export function createMiniAppFramework(
         envelope: OracleEnvelope,
         spec: Omit<FrameworkWriteSpec & FrameworkInvokeOptions, "args"> & { args?: FrameworkContractArg[] },
       ) {
+        assertNotGuest();
         getPermissions().require("oracle:request");
         return framework.chain.write({
           ...spec,
@@ -1973,12 +2074,15 @@ export function createMiniAppFramework(
             return readRewardGameProgression(config, chainAdapter, hash, difficulty);
           },
           start(difficulty: number) {
+            assertNotGuest();
             return startRewardGame(config, chainAdapter, difficulty, storage);
           },
           openSession(gameId: string, difficulty: number) {
+            assertNotGuest();
             return openRewardGameSession(config, chainAdapter, gameId, difficulty, rewardOptions.fetcher);
           },
           recordOp(session: RewardGameSession, op: Op) {
+            assertNotGuest();
             return recordRewardGameOp(session, storage, op, rewardOptions.fetcher);
           },
           replayOps(
@@ -1992,6 +2096,7 @@ export function createMiniAppFramework(
             session: RewardGameSession,
             finalizeOptions?: FrameworkRewardGameFinalizeOptions,
           ) {
+            assertNotGuest();
             return finalizeRewardGame(config, chainAdapter, session, storage, {
               ...finalizeOptions,
               fetcher: finalizeOptions?.fetcher ?? rewardOptions.fetcher,
@@ -2001,9 +2106,11 @@ export function createMiniAppFramework(
             return recoverActiveRewardGame(config, chainAdapter);
           },
           expire(gameId: string) {
+            assertNotGuest();
             return expireRewardGame(config, chainAdapter, gameId, storage);
           },
           withdrawCredit(creditFixed8?: bigint | number | string) {
+            assertNotGuest();
             return withdrawRewardCredit(config, chainAdapter, creditFixed8);
           },
           snapshot(gameId: string) {
