@@ -20,6 +20,18 @@ const appMessages = {
     en: "50% chance · pays 2x · no house edge",
     zh: "50% 胜率 · 2 倍赔付 · 无庄家抽水",
   },
+  // In-canvas (Phaser scene) strings — surfaced to the scene through
+  // bridgeState so the coin table honors the active locale.
+  tableTitle: { en: "FOGPLAY FLIP TABLE", zh: "迷雾对决翻转台" },
+  headsHint: { en: "bright side", zh: "亮面" },
+  tailsHint: { en: "quiet side", zh: "静面" },
+  oddsShort: { en: "50/50 · pays 2x", zh: "五五开 · 2 倍赔付" },
+  awaitingReveal: { en: "Waiting for block reveal", zh: "等待区块揭晓" },
+  flipCta: { en: "FLIP", zh: "抛掷" },
+  flippingCta: { en: "FLIPPING", zh: "抛掷中" },
+  resultWin: { en: "WIN", zh: "赢" },
+  resultMiss: { en: "MISS", zh: "输" },
+  tryAgainShort: { en: "Try again", zh: "再试一次" },
   wager: { en: "Wager Amount", zh: "下注金额" },
   betAmountPlaceholder: { en: "0.05", zh: "0.05" },
   heads: { en: "Heads", zh: "正面" },

@@ -41,6 +41,7 @@ type Mode = "create" | "claim";
 const REWARD_PLANS = [
   {
     key: "small",
+    titleKey: "packStarter",
     title: "Starter",
     amount: "20",
     minClaim: "1",
@@ -50,6 +51,7 @@ const REWARD_PLANS = [
   },
   {
     key: "balanced",
+    titleKey: "packParty",
     title: "Party",
     amount: "50",
     minClaim: "1",
@@ -59,6 +61,7 @@ const REWARD_PLANS = [
   },
   {
     key: "jackpot",
+    titleKey: "packJackpot",
     title: "Jackpot",
     amount: "100",
     minClaim: "5",
@@ -68,6 +71,7 @@ const REWARD_PLANS = [
   },
 ] as const;
 
+// English fallbacks used before the localized bridge bundle arrives.
 const PROGRESS_LABEL: Record<string, string> = {
   wallet: "Wallet ready",
   submitted: "Submitted",
@@ -75,6 +79,16 @@ const PROGRESS_LABEL: Record<string, string> = {
   confirming: "Confirming on chain",
   paid: "GAS received",
   failed: "Needs retry",
+};
+
+// Maps a claim-progress/status key to its localized bundle key (see PhaserPlayArea).
+const PROGRESS_BUNDLE_KEY: Record<string, string> = {
+  wallet: "progWallet",
+  submitted: "progSubmitted",
+  submitting: "progSubmitting",
+  confirming: "progConfirming",
+  paid: "progPaid",
+  failed: "progFailed",
 };
 
 function truncateMiddle(value: string, head = 7, tail = 4): string {
@@ -102,8 +116,12 @@ export class GasLuckyPoolScene extends BaseScene {
 
   private resultPill!: Phaser.GameObjects.Container;
   private resultText!: Phaser.GameObjects.Text;
+  private resultCoin!: Phaser.GameObjects.Container;
   private statusText!: Phaser.GameObjects.Text;
+  private createHeadingText!: Phaser.GameObjects.Text;
   private createSummaryText!: Phaser.GameObjects.Text;
+  private claimHeadingText!: Phaser.GameObjects.Text;
+  private claimTicketCoin!: Phaser.GameObjects.Container;
   private claimKeyText!: Phaser.GameObjects.Text;
   private claimRangeText!: Phaser.GameObjects.Text;
   private claimProgressText!: Phaser.GameObjects.Text;
@@ -127,9 +145,71 @@ export class GasLuckyPoolScene extends BaseScene {
   private lastRewardText = "";
   private lastProgressKey = "";
   private lastErrorCue = "";
+  private rewardRolling = false;
 
   constructor() {
     super("GasLuckyPoolScene");
+  }
+
+  // ── Localized text bundle ──────────────────────────────────────────────────
+  // The Phaser layer has no direct locale accessor, so the React shell hands the
+  // scene a translated bundle through bridge state (`sceneText`). `txt` reads a
+  // key with an English fallback; `fmt` interpolates {placeholder} templates.
+  private txt(key: string, fallback = ""): string {
+    const bundle = this.val<Record<string, string>>("sceneText");
+    const value = bundle?.[key];
+    return value === undefined || value === null || value === "" ? fallback : String(value);
+  }
+
+  private fmt(template: string, params: Record<string, string>): string {
+    return template.replace(/\{(\w+)\}/g, (_, token: string) =>
+      params[token] !== undefined ? params[token] : `{${token}}`,
+    );
+  }
+
+  private applyLocale(): void {
+    const fundText = this.modeButtons.get("create")?.getData("text") as Phaser.GameObjects.Text | undefined;
+    const claimText = this.modeButtons.get("claim")?.getData("text") as Phaser.GameObjects.Text | undefined;
+    fundText?.setText(this.txt("tabFund", "Fund vault"));
+    claimText?.setText(this.txt("tabClaim", "Claim GAS"));
+
+    this.createHeadingText?.setText(this.txt("choosePack", "Choose a reward pack"));
+    this.claimHeadingText?.setText(this.txt("unwrapTitle", "Unwrap your reward"));
+
+    const slotsTemplate = this.txt("slotsTemplate", "{count} claims");
+    const gasUnit = this.txt("gasUnit", "GAS");
+    this.planCards.forEach((card, index) => {
+      const plan = REWARD_PLANS[index]!;
+      (card.getData("title") as Phaser.GameObjects.Text | undefined)?.setText(
+        this.txt(plan.titleKey, plan.title),
+      );
+      (card.getData("detail") as Phaser.GameObjects.Text | undefined)?.setText(
+        this.fmt(slotsTemplate, { count: plan.maxClaims }),
+      );
+      (card.getData("gas") as Phaser.GameObjects.Text | undefined)?.setText(gasUnit);
+    });
+
+    this.updatePlanSummary();
+  }
+
+  private updatePlanSummary(): void {
+    const plan = REWARD_PLANS[this.selectedPlanIndex]!;
+    this.createSummaryText?.setText(
+      this.fmt(this.txt("summaryTemplate", "{claims} claims · {min}-{max} GAS each · {hours}h expiry"), {
+        claims: plan.maxClaims,
+        min: plan.minClaim,
+        max: plan.maxClaim,
+        hours: plan.expiryHours,
+      }),
+    );
+  }
+
+  private progressLabel(progress: string, status: string): string {
+    const bundleKey = PROGRESS_BUNDLE_KEY[progress] ?? PROGRESS_BUNDLE_KEY[status];
+    if (bundleKey) {
+      return this.txt(bundleKey, PROGRESS_LABEL[progress] ?? PROGRESS_LABEL[status] ?? "");
+    }
+    return this.txt("readyToUnwrap", "Ready to unwrap");
   }
 
   preload(): void {
@@ -157,9 +237,11 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   protected onStateUpdate(_state: GameState): void {
+    this.applyLocale();
+
     const claimKey = this.str("currentClaimKey", "");
     const poolId = this.str("currentPoolId", "");
-    const range = this.str("currentRange", "1-5 GAS");
+    const range = this.str("currentRange", "") || this.txt("rangeDefault", "1-50 GAS");
     const progress = this.str("claimProgress", "");
     const status = this.str("claimStatus", "");
     const lastError = this.str("lastError", "");
@@ -176,26 +258,32 @@ export class GasLuckyPoolScene extends BaseScene {
       this.switchMode(this.hasClaimContext ? "claim" : "create");
     }
 
-    const rewardText = amount && amount !== "0" ? `+${formatGas(amount, 4)} GAS` : "";
-    this.resultText.setText(
-      rewardText ? `${rewardText}${luck ? `  ${luck}% luck` : ""}` : "Pack a vault. Share a claim. Let GAS land.",
-    );
-    this.setResultState(Boolean(rewardText), Boolean(lastError));
+    const gasUnit = this.txt("gasUnit", "GAS");
+    const rewardStr = amount && amount !== "0" ? formatGas(amount, 4) : "";
+    const luckSuffix = luck
+      ? `  ${this.fmt(this.txt("luckTemplate", "{percent}% luck"), { percent: luck })}`
+      : "";
+    const rewardKey = rewardStr ? `+${rewardStr} ${gasUnit}` : "";
+    const isNewReward = Boolean(rewardStr) && rewardKey !== this.lastRewardText;
+
+    this.setResultState(Boolean(rewardStr), Boolean(lastError));
 
     this.claimKeyText.setText(
       claimKey
         ? truncateMiddle(claimKey)
         : poolId
-          ? `Pool #${poolId}`
-          : "Open a OneGate claim link",
+          ? this.fmt(this.txt("poolNumberTemplate", "Pool #{id}"), { id: poolId })
+          : this.txt("openClaimLink", "Open a OneGate claim link"),
     );
-    this.claimRangeText.setText(range || "Reward range updates after loading");
-    this.claimProgressText.setText(PROGRESS_LABEL[progress] ?? PROGRESS_LABEL[status] ?? "Ready to unwrap");
+    this.claimRangeText.setText(range || this.txt("rangePending", "Reward range updates after loading"));
+    this.claimProgressText.setText(this.progressLabel(progress, status));
 
     this.statusText.setText(
       compactError(lastError) ||
-        (lastTxid ? `Latest tx ${truncateMiddle(lastTxid, 8, 6)}` : "") ||
-        "OneGate-ready GAS reward vault",
+        (lastTxid
+          ? this.fmt(this.txt("latestTxTemplate", "Latest tx {tx}"), { tx: truncateMiddle(lastTxid, 8, 6) })
+          : "") ||
+        this.txt("statusIdle", "OneGate-ready GAS reward vault"),
     );
 
     this.updateButtons();
@@ -214,10 +302,21 @@ export class GasLuckyPoolScene extends BaseScene {
     }
     this.lastErrorCue = lastError;
 
-    if (rewardText && rewardText !== this.lastRewardText) {
-      this.lastRewardText = rewardText;
+    if (isNewReward) {
+      // The signature lucky-draw beat: roll the reward number up and shimmer the
+      // ticket coin before it settles (reduced-motion falls back to the final
+      // value instantly via animateCounter / this.tween).
+      this.lastRewardText = rewardKey;
       this.sfx.play("win");
       this.spawnRewardBurst();
+      this.revealReward(rewardStr, luckSuffix);
+    } else if (!this.rewardRolling) {
+      this.resultText.setText(
+        rewardStr
+          ? `+${rewardStr} ${gasUnit}${luckSuffix}`
+          : this.txt("tagline", "Pack a vault. Share a claim. Let GAS land."),
+      );
+      if (!rewardStr) this.lastRewardText = "";
     }
   }
 
@@ -246,9 +345,11 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private buildHero(W: number): void {
-    this.vaultGlow = this.add.ellipse(W / 2, 142, 286, 170, C.gold, 0.18);
-    this.heroImage = this.add.image(W / 2, 144, GAS_POOL_ASSETS.vaultStage)
-      .setDisplaySize(360, 238)
+    // Hero is scaled down a touch (aspect preserved — 330/360 ≈ 218/238) so a
+    // clean gap opens between the photo's bottom rim and the result pill below.
+    this.vaultGlow = this.add.ellipse(W / 2, 136, 268, 158, C.gold, 0.18);
+    this.heroImage = this.add.image(W / 2, 138, GAS_POOL_ASSETS.vaultStage)
+      .setDisplaySize(330, 218)
       .setOrigin(0.5);
 
     this.animate({
@@ -262,16 +363,19 @@ export class GasLuckyPoolScene extends BaseScene {
       ease: "Sine.easeInOut",
     });
 
-    for (let i = 0; i < 5; i += 1) {
-      const coin = this.makeGasBadge(W / 2 + (i - 2) * 34, 206 + (i % 2) * 10, 26)
-        .setAlpha(0.82);
+    // A restrained 3-coin foreground tray at the podium base. Fewer coins at
+    // lower opacity read as a distinct front accent instead of competing with
+    // the spilling coins already in the stock hero photo.
+    for (let i = 0; i < 3; i += 1) {
+      const coin = this.makeGasBadge(W / 2 + (i - 1) * 34, 220 + (i % 2 === 0 ? 6 : 0), 22)
+        .setAlpha(0.5);
       this.coinStream.push(coin);
       this.animate({
         targets: coin,
-        y: coin.y - 8,
+        y: coin.y - 7,
         angle: i % 2 === 0 ? 8 : -8,
-        duration: 1200 + i * 90,
-        delay: i * 80,
+        duration: 1200 + i * 110,
+        delay: i * 90,
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
@@ -296,14 +400,15 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private buildResultPill(W: number): void {
-    this.resultPill = this.add.container(W / 2, 268);
+    // Sits a few px lower than the shrunk hero so its top edge clears the photo.
+    this.resultPill = this.add.container(W / 2, 272);
     const bg = this.add.graphics();
     bg.fillStyle(C.surface, 0.94);
     bg.fillRoundedRect(-165, -22, 330, 44, 22);
     bg.lineStyle(1, C.stroke, 0.86);
     bg.strokeRoundedRect(-165, -22, 330, 44, 22);
 
-    const icon = this.makeGasBadge(-140, 0, 28);
+    this.resultCoin = this.makeGasBadge(-140, 0, 28);
     this.resultText = this.add.text(-108, 0, "", {
       fontFamily: FONT,
       fontSize: "13px",
@@ -312,7 +417,7 @@ export class GasLuckyPoolScene extends BaseScene {
       fixedWidth: 242,
     }).setOrigin(0, 0.5);
 
-    this.resultPill.add([bg, icon, this.resultText]);
+    this.resultPill.add([bg, this.resultCoin, this.resultText]);
     this.resultPill.setData("bg", bg);
   }
 
@@ -381,14 +486,13 @@ export class GasLuckyPoolScene extends BaseScene {
 
   private buildCreatePanel(W: number): void {
     this.createPanel = this.add.container(0, 0);
-    this.createPanel.add(
-      this.add.text(W / 2, 355, "Choose a reward pack", {
-        fontFamily: FONT,
-        fontSize: "14px",
-        color: "#2a2117",
-        fontStyle: "600",
-      }).setOrigin(0.5),
-    );
+    this.createHeadingText = this.add.text(W / 2, 355, "Choose a reward pack", {
+      fontFamily: FONT,
+      fontSize: "14px",
+      color: "#2a2117",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    this.createPanel.add(this.createHeadingText);
 
     REWARD_PLANS.forEach((_, index) => {
       const card = this.makePlanCard(70 + index * 140, 415, index);
@@ -451,7 +555,7 @@ export class GasLuckyPoolScene extends BaseScene {
     const gas = this.add.text(0, 17, "GAS", {
       fontFamily: FONT,
       fontSize: "10px",
-      color: "#a18455",
+      color: "#7a623a",
       fontStyle: "600",
       letterSpacing: 1,
     }).setOrigin(0.5);
@@ -465,6 +569,8 @@ export class GasLuckyPoolScene extends BaseScene {
     card.setData("bg", bg);
     card.setData("title", title);
     card.setData("amount", amount);
+    card.setData("gas", gas);
+    card.setData("detail", detail);
     return card;
   }
 
@@ -472,10 +578,7 @@ export class GasLuckyPoolScene extends BaseScene {
     this.selectedPlanIndex = index;
     this.planCards.forEach((card, cardIndex) => this.renderPlanCard(card, cardIndex === index));
 
-    const plan = REWARD_PLANS[index]!;
-    this.createSummaryText?.setText(
-      `${plan.maxClaims} claims - ${plan.minClaim}-${plan.maxClaim} GAS each - ${plan.expiryHours}h expiry`,
-    );
+    this.updatePlanSummary();
     if (animate) {
       this.animate({
         targets: this.vaultGlow,
@@ -513,14 +616,13 @@ export class GasLuckyPoolScene extends BaseScene {
 
   private buildClaimPanel(W: number): void {
     this.claimPanel = this.add.container(0, 0);
-    this.claimPanel.add(
-      this.add.text(W / 2, 356, "Unwrap your reward", {
-        fontFamily: FONT,
-        fontSize: "14px",
-        color: "#2a2117",
-        fontStyle: "600",
-      }).setOrigin(0.5),
-    );
+    this.claimHeadingText = this.add.text(W / 2, 356, "Unwrap your reward", {
+      fontFamily: FONT,
+      fontSize: "14px",
+      color: "#2a2117",
+      fontStyle: "600",
+    }).setOrigin(0.5);
+    this.claimPanel.add(this.claimHeadingText);
 
     const ticket = this.add.container(W / 2, 421);
     const ticketBg = this.add.graphics();
@@ -532,7 +634,7 @@ export class GasLuckyPoolScene extends BaseScene {
     ticketBg.lineBetween(-118, -48, -118, 48);
     ticketBg.lineBetween(118, -48, 118, 48);
 
-    const coin = this.makeGasBadge(-124, -15, 36);
+    this.claimTicketCoin = this.makeGasBadge(-124, -15, 36);
     this.claimKeyText = this.add.text(-78, -19, "", {
       fontFamily: FONT,
       fontSize: "17px",
@@ -553,7 +655,7 @@ export class GasLuckyPoolScene extends BaseScene {
       fixedWidth: 205,
     }).setOrigin(0, 0.5);
 
-    ticket.add([ticketBg, coin, this.claimKeyText, this.claimRangeText, this.claimProgressText]);
+    ticket.add([ticketBg, this.claimTicketCoin, this.claimKeyText, this.claimRangeText, this.claimProgressText]);
     this.claimPanel.add(ticket);
 
     this.checkButton = this.makeActionButton(W / 2 - 72, 515, "Check", "secondary", 122);
@@ -652,15 +754,23 @@ export class GasLuckyPoolScene extends BaseScene {
     const claimEnabled = this.hasClaimContext && !this.busy;
     const checkEnabled = this.hasClaimKey && !this.busy;
     if (this.createButton) {
-      this.createButtonLabel.setText(this.busy ? "Working..." : "Pack vault");
+      this.createButtonLabel.setText(
+        this.busy ? this.txt("actionWorking", "Working...") : this.txt("actionPack", "Pack vault"),
+      );
       this.renderActionButton(this.createButton, createEnabled);
     }
     if (this.claimButton) {
-      this.claimButtonLabel.setText(this.busy ? "Claiming..." : this.hasClaimContext ? "Claim" : "No link");
+      this.claimButtonLabel.setText(
+        this.busy
+          ? this.txt("actionClaiming", "Claiming...")
+          : this.hasClaimContext
+            ? this.txt("actionClaim", "Claim")
+            : this.txt("actionNoLink", "No link"),
+      );
       this.renderActionButton(this.claimButton, claimEnabled);
     }
     if (this.checkButton) {
-      this.checkButtonLabel.setText(this.busy ? "Wait" : "Check");
+      this.checkButtonLabel.setText(this.busy ? this.txt("actionWait", "Wait") : this.txt("actionCheck", "Check"));
       this.renderActionButton(this.checkButton, checkEnabled);
     }
   }
@@ -695,7 +805,7 @@ export class GasLuckyPoolScene extends BaseScene {
   private updateCoinMotion(): void {
     this.coinStream.forEach((coin, index) => {
       const active = this.busy || this.activeMode === "claim";
-      coin.setAlpha(active ? 1 : 0.76);
+      coin.setAlpha(active ? 0.85 : 0.5);
       if (!active) return;
       coin.setRotation(Phaser.Math.DegToRad((this.time.now / 28 + index * 36) % 360));
     });
@@ -722,6 +832,61 @@ export class GasLuckyPoolScene extends BaseScene {
       scaleX: { from: 1.03, to: 1 },
       scaleY: { from: 1.03, to: 1 },
       duration: 260,
+      ease: "Back.easeOut",
+    });
+  }
+
+  /**
+   * Lucky-draw reveal: roll the reward number up to its final value while the
+   * ticket/result coins shimmer, then settle on the exact formatted amount.
+   * animateCounter and this.tween both honor reduced-motion (they jump straight
+   * to the end state), so no motion is forced on users who opted out.
+   */
+  private revealReward(finalStr: string, luckSuffix: string): void {
+    const gasUnit = this.txt("gasUnit", "GAS");
+    const finalNum = Number(finalStr);
+    const setLine = (text: string): void => {
+      this.resultText.setText(`+${text} ${gasUnit}${luckSuffix}`);
+    };
+
+    this.shimmerCoin(this.resultCoin);
+    if (this.activeMode === "claim") this.shimmerCoin(this.claimTicketCoin);
+
+    if (!Number.isFinite(finalNum) || finalNum <= 0) {
+      this.rewardRolling = false;
+      setLine(finalStr);
+      return;
+    }
+
+    this.rewardRolling = true;
+    this.animateCounter({
+      from: 0,
+      to: finalNum,
+      duration: 720,
+      ease: "Cubic.easeOut",
+      onUpdate: (tween) => {
+        const value = Number(tween.getValue());
+        setLine(value >= finalNum ? finalStr : value.toFixed(value < 10 ? 2 : 1));
+      },
+      onComplete: () => {
+        this.rewardRolling = false;
+        setLine(finalStr);
+      },
+    });
+  }
+
+  private shimmerCoin(coin?: Phaser.GameObjects.Container): void {
+    if (!coin) return;
+    this.tween({
+      targets: coin,
+      angle: { from: 0, to: 360 },
+      duration: 640,
+      ease: "Cubic.easeOut",
+    });
+    this.tween({
+      targets: coin,
+      scale: { from: 0.7, to: 1 },
+      duration: 460,
       ease: "Back.easeOut",
     });
   }

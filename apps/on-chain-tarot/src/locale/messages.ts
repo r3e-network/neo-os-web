@@ -135,6 +135,30 @@ const appMessages = {
     en: "Set the tone for this spread.",
     zh: "为这次牌阵设定主题。",
   },
+  // ── In-canvas tarot table strings (fed to the Phaser scene) ─────────────
+  sceneChooseIntent: { en: "Choose an intent", zh: "选择意图" },
+  sceneTapToReveal: { en: "Tap cards to reveal", zh: "点击卡牌揭示" },
+  sceneHeaderTagline: {
+    en: "Neo N3 · 0.1 GAS verified draw",
+    zh: "Neo N3 · 0.1 GAS 链上抽牌",
+  },
+  sceneIdleStatus: {
+    en: "Pick an intent, then draw three cards on-chain.",
+    zh: "选择意图，然后在链上抽取三张牌。",
+  },
+  sceneDrawingStatus: {
+    en: "Wallet confirms the draw, then the contract seals the spread.",
+    zh: "钱包确认抽牌后，合约封存牌阵。",
+  },
+  sceneRevealedStatus: {
+    en: "All three cards are revealed from the contract reading.",
+    zh: "三张牌均已从合约读牌中揭示。",
+  },
+  sceneRevealCount: {
+    en: "{revealed} / 3 revealed",
+    zh: "已揭示 {revealed} / 3",
+  },
+  tapToDraw: { en: "Tap to draw", zh: "点击抽牌" },
   oracleLaneLabel: { en: "Oracle draw lane", zh: "预言抽牌轨道" },
   oracleLaneIntent: { en: "Intent", zh: "意图" },
   oracleLaneDraw: { en: "Draw", zh: "抽牌" },

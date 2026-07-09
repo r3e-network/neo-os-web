@@ -111,6 +111,89 @@ const SUDOKU_ASSETS = {
   seals: ["sudoku-seal-easy", "sudoku-seal-medium", "sudoku-seal-hard"],
 } as const;
 
+// ── Localised canvas labels (pushed from the React shell via bridgeState) ──────
+interface SudokuLabels {
+  vaultTitle: string;
+  vaultSub: string;
+  diffNames: string[];
+  diffCopy: string[];
+  diffRewards: string[];
+  sealing: string;
+  undoTemplate: string;
+  undoNone: string;
+  poolTemplate: string;
+  gateConnect: string;
+  gateChecking: string;
+  gateRouteLocked: string;
+  gatePoolLow: string;
+  gateChoose: string;
+  act: {
+    open: string;
+    playAgain: string;
+    tryAgain: string;
+    starting: string;
+    connect: string;
+    routeLocked: string;
+    poolLow: string;
+    submit: string;
+    submitting: string;
+    working: string;
+    timeUp: string;
+    tooLate: string;
+    wait: string;
+    solve: string;
+  };
+  msg: {
+    deadlinePassed: string;
+    deadlineClose: string;
+    submitUnlock: string;
+  };
+  resultSolved: string;
+  resultExpired: string;
+}
+
+// English fallback — used before the React shell pushes its first snapshot and
+// in standalone dev, so the scene always renders complete copy.
+const DEFAULT_LABELS: SudokuLabels = {
+  vaultTitle: "Sudoku Vault",
+  vaultSub: "Pick a sealed puzzle route",
+  diffNames: [...DIFF_LABELS],
+  diffCopy: [...DIFF_COPY],
+  diffRewards: [...DIFF_REWARDS],
+  sealing: "Sealing your puzzle…",
+  undoTemplate: "Undo ({left} left)",
+  undoNone: "No undos left",
+  poolTemplate: "Pool: {pool} GAS  ·  {min} min limit",
+  gateConnect: "Connect wallet to open a sealed board",
+  gateChecking: "Checking account route history",
+  gateRouteLocked: "Clear {difficulty} before replaying this route",
+  gatePoolLow: "Pool low ({have} / {need} GAS reward needed)",
+  gateChoose: "Choose a route, then open the board",
+  act: {
+    open: "Open board",
+    playAgain: "Play again",
+    tryAgain: "Try again",
+    starting: "Starting…",
+    connect: "Connect wallet",
+    routeLocked: "Route locked",
+    poolLow: "Pool low",
+    submit: "Submit solution",
+    submitting: "Submitting…",
+    working: "Working…",
+    timeUp: "Time is up",
+    tooLate: "Too late to submit",
+    wait: "Wait to submit",
+    solve: "Solve to unlock",
+  },
+  msg: {
+    deadlinePassed: "Deadline passed. Release this board to start a new one.",
+    deadlineClose: "Too close to the deadline for settlement.",
+    submitUnlock: "Submission unlocks in {clock}",
+  },
+  resultSolved: "Reward secured",
+  resultExpired: "Board released",
+};
+
 // ── Move history entry ─────────────────────────────────────────────────────────
 interface MoveEntry { cell: number; prev: number; }
 
@@ -130,6 +213,7 @@ export class SudokuScene extends BaseScene {
   private dealtAt               = 0;
   private boardComplete         = false;
   private expireDispatched      = false;
+  private L: SudokuLabels       = DEFAULT_LABELS;
 
   // ── Scene-level display objects ────────────────────────────────────────────
 
@@ -172,14 +256,20 @@ export class SudokuScene extends BaseScene {
   // Lobby
   private lobbyContainer!: Phaser.GameObjects.Container;
   private diffBtns!: Phaser.GameObjects.Container[];
+  private diffNameTexts: Phaser.GameObjects.Text[] = [];
+  private diffRouteTexts: Phaser.GameObjects.Text[] = [];
+  private diffRewardTexts: Phaser.GameObjects.Text[] = [];
   private lobbyPoolText!: Phaser.GameObjects.Text;
   private lobbyTitleText!: Phaser.GameObjects.Text;
   private lobbySubText!: Phaser.GameObjects.Text;
+  private lobbyMiniGrid!: Phaser.GameObjects.Container;
   private lobbyRewardArt!: Phaser.GameObjects.Image;
   private lobbyResultBadge!: Phaser.GameObjects.Image;
+  private lobbyResultCaption!: Phaser.GameObjects.Text;
 
   // Dealing overlay
   private dealingContainer!: Phaser.GameObjects.Container;
+  private dealingTitle!: Phaser.GameObjects.Text;
   private dealingDots: Phaser.GameObjects.Arc[] = [];
 
   // Game group (all non-lobby objects)
@@ -212,7 +302,11 @@ export class SudokuScene extends BaseScene {
     const stageW = Math.max(W, visibleWorldW + 40);
     const stageH = Math.max(H, visibleWorldH + 34);
     const stageCenterY = viewTop + stageH / 2;
-    const warmH = Math.max(236, Math.min(stageH * 0.36, 330));
+    // Warm header wash always ends on a fixed design line just above the
+    // difficulty card row (cards top ≈ 212), so no colour seam ever cuts across
+    // the cards regardless of viewport height.
+    const WARM_BOTTOM = 202;
+    const warmH = Math.max(140, WARM_BOTTOM - viewTop);
     const paperH = Math.max(150, Math.min(stageH * 0.22, 190));
 
     this.backgroundBase
@@ -244,7 +338,7 @@ export class SudokuScene extends BaseScene {
 
       const art = this.add.image(cx, cy, SUDOKU_ASSETS.cellPlaced)
         .setDisplaySize(CELL - 3, CELL - 3)
-        .setAlpha(0.32);
+        .setAlpha(0.14);
 
       const txt = this.add.text(cx, cy, "", {
         fontFamily: FONT_FAMILY,
@@ -368,7 +462,7 @@ export class SudokuScene extends BaseScene {
     const pencil = this.add.image(-58, 0, SUDOKU_ASSETS.pencil)
       .setDisplaySize(24, 24);
 
-    this.undoBtnText = this.add.text(12, 0, "Undo (3 left)", {
+    this.undoBtnText = this.add.text(12, 0, DEFAULT_LABELS.undoTemplate.replace("{left}", String(MAX_UNDOS)), {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
       color: "#4b351c",
@@ -391,7 +485,7 @@ export class SudokuScene extends BaseScene {
       onPress: () => this.handleActionButton(),
     });
 
-    this.actionBtnText = this.add.text(0, 0, "Start game", {
+    this.actionBtnText = this.add.text(0, 0, DEFAULT_LABELS.act.open, {
       fontFamily: FONT_FAMILY,
       fontSize: "17px",
       fontStyle: "bold",
@@ -415,20 +509,23 @@ export class SudokuScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0);
     this.diffBtns = [];
+    this.diffNameTexts = [];
+    this.diffRouteTexts = [];
+    this.diffRewardTexts = [];
 
-    const envelope = this.add.image(W / 2, 72, SUDOKU_ASSETS.sealedEnvelope)
-      .setDisplaySize(92, 74)
+    const envelope = this.add.image(W / 2, 70, SUDOKU_ASSETS.sealedEnvelope)
+      .setDisplaySize(88, 71)
       .setAlpha(0.96);
 
     // Lobby title
-    this.lobbyTitleText = this.add.text(W / 2, 132, "Sudoku Vault", {
+    this.lobbyTitleText = this.add.text(W / 2, 128, DEFAULT_LABELS.vaultTitle, {
       fontFamily: FONT_FAMILY,
       fontSize: "26px",
       fontStyle: "bold",
       color: "#2d2114",
     }).setOrigin(0.5);
 
-    this.lobbySubText = this.add.text(W / 2, 162, "Pick a sealed puzzle route", {
+    this.lobbySubText = this.add.text(W / 2, 158, DEFAULT_LABELS.vaultSub, {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
       color: "#7a5a28",
@@ -436,38 +533,103 @@ export class SudokuScene extends BaseScene {
 
     this.lobbyContainer.add([envelope, this.lobbyTitleText, this.lobbySubText]);
 
-    // 3 difficulty seal buttons
+    // 3 difficulty seal buttons — tighter cards so the seal + text stack keeps a
+    // clean vertical rhythm instead of a dead gap mid-card.
     const cardW  = 104;
-    const cardH  = 130;
+    const cardH  = 112;
     const startX = (W - 3 * cardW - 2 * 10) / 2 + cardW / 2; // 10px gap
 
     for (let d = 0; d < 3; d++) {
       const x   = startX + d * (cardW + 10);
-      const btn = this.makeDiffCard(x, 270, cardW, cardH, d);
+      const btn = this.makeDiffCard(x, 268, cardW, cardH, d);
       this.diffBtns.push(btn);
       this.lobbyContainer.add(btn);
     }
 
     // Pool info
-    this.lobbyPoolText = this.add.text(W / 2, 364, "", {
+    this.lobbyPoolText = this.add.text(W / 2, 336, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#7a5a28",
       align: "center",
     }).setOrigin(0.5);
+    this.lobbyContainer.add(this.lobbyPoolText);
 
-    this.lobbyRewardArt = this.add.image(W / 2 - 38, 420, SUDOKU_ASSETS.rewardTrophy)
+    // Idle-state genre signal: a small decorative Sudoku preview grid anchors
+    // the lower lobby so the canvas reads as Sudoku before a board is dealt.
+    this.lobbyMiniGrid = this.buildLobbyMiniGrid(W / 2, 410);
+    this.lobbyContainer.add(this.lobbyMiniGrid);
+
+    // Result art (trophy + solved badge) — shown only after a solve/expiry, in
+    // the same lower zone the preview grid occupies while idle.
+    this.lobbyRewardArt = this.add.image(W / 2 - 40, 400, SUDOKU_ASSETS.rewardTrophy)
       .setDisplaySize(58, 58)
-      .setAlpha(0.82);
-    this.lobbyResultBadge = this.add.image(W / 2 + 38, 420, SUDOKU_ASSETS.solvedBadge)
+      .setAlpha(0.95);
+    this.lobbyResultBadge = this.add.image(W / 2 + 40, 400, SUDOKU_ASSETS.solvedBadge)
       .setDisplaySize(58, 58)
-      .setAlpha(0.42);
+      .setAlpha(1);
+    this.lobbyResultCaption = this.add.text(W / 2, 444, DEFAULT_LABELS.resultSolved, {
+      fontFamily: FONT_FAMILY,
+      fontSize: "13px",
+      fontStyle: "bold",
+      color: "#8a6820",
+    }).setOrigin(0.5);
 
     this.lobbyContainer.add([
-      this.lobbyPoolText,
       this.lobbyRewardArt,
       this.lobbyResultBadge,
+      this.lobbyResultCaption,
     ]);
+  }
+
+  /** Small decorative 9×9 preview grid for the idle lobby (presentation only). */
+  private buildLobbyMiniGrid(cx: number, cy: number): Phaser.GameObjects.Container {
+    const c = this.add.container(cx, cy);
+    const MG   = 108;            // grid pixel extent
+    const cell = MG / 9;
+    const half = MG / 2;
+
+    const backing = this.add.image(0, 0, SUDOKU_ASSETS.paperGrid)
+      .setDisplaySize(MG + 18, MG + 18)
+      .setAlpha(0.96);
+
+    const g = this.add.graphics();
+    g.lineStyle(0.5, C.gridLine, 0.6);
+    for (let i = 0; i <= 9; i++) {
+      const p = -half + i * cell;
+      g.strokeLineShape(new Phaser.Geom.Line(p, -half, p, half));
+      g.strokeLineShape(new Phaser.Geom.Line(-half, p, half, p));
+    }
+    g.lineStyle(2.5, C.boxLine, 0.95);
+    for (let b = 0; b <= 3; b++) {
+      const p = -half + b * cell * 3;
+      g.strokeLineShape(new Phaser.Geom.Line(p, -half, p, half));
+      g.strokeLineShape(new Phaser.Geom.Line(-half, p, half, p));
+    }
+
+    c.add([backing, g]);
+
+    // A handful of sample givens (decorative — not a solvable board).
+    const sample: ReadonlyArray<readonly [number, number, number]> = [
+      [0, 0, 5], [0, 3, 8], [0, 7, 1], [1, 1, 3], [1, 4, 6], [1, 8, 7],
+      [2, 2, 9], [2, 5, 2], [3, 0, 6], [3, 4, 4], [4, 3, 7], [4, 5, 3],
+      [4, 8, 8], [5, 4, 1], [6, 1, 2], [6, 6, 5], [7, 0, 4], [7, 3, 9],
+      [7, 7, 6], [8, 2, 8], [8, 5, 7], [8, 8, 3],
+    ];
+    for (const [r, col, d] of sample) {
+      const x = -half + col * cell + cell / 2;
+      const y = -half + r * cell + cell / 2;
+      c.add(
+        this.add.text(x, y, String(d), {
+          fontFamily: FONT_FAMILY,
+          fontSize: "9px",
+          fontStyle: "bold",
+          color: "#3a2c17",
+        }).setOrigin(0.5).setAlpha(0.9),
+      );
+    }
+
+    return c;
   }
 
   private makeDiffCard(
@@ -491,17 +653,17 @@ export class SudokuScene extends BaseScene {
       },
     });
 
-    const seal = this.add.image(0, -34, SUDOKU_ASSETS.seals[difficulty] ?? SUDOKU_ASSETS.seals[0])
-      .setDisplaySize(58, 58);
+    const seal = this.add.image(0, -30, SUDOKU_ASSETS.seals[difficulty] ?? SUDOKU_ASSETS.seals[0])
+      .setDisplaySize(54, 54);
 
-    const name = this.add.text(0, 5, DIFF_LABELS[difficulty] ?? "Easy", {
+    const name = this.add.text(0, 8, DIFF_LABELS[difficulty] ?? "Easy", {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
       fontStyle: "bold",
       color: "#2d2114",
     }).setOrigin(0.5);
 
-    const route = this.add.text(0, 25, DIFF_COPY[difficulty] ?? "Warm-up grid", {
+    const route = this.add.text(0, 27, DIFF_COPY[difficulty] ?? "Warm-up grid", {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#7a5a28",
@@ -513,6 +675,10 @@ export class SudokuScene extends BaseScene {
       fontStyle: "bold",
       color: "#8a6820",
     }).setOrigin(0.5);
+
+    this.diffNameTexts[difficulty] = name;
+    this.diffRouteTexts[difficulty] = route;
+    this.diffRewardTexts[difficulty] = reward;
 
     container.add([bg, seal, name, route, reward]);
     return container;
@@ -526,7 +692,7 @@ export class SudokuScene extends BaseScene {
     const envelope = this.add.image(0, -54, SUDOKU_ASSETS.sealedEnvelope)
       .setDisplaySize(112, 90);
 
-    const title = this.add.text(0, 24, "Sealing puzzle...", {
+    this.dealingTitle = this.add.text(0, 24, DEFAULT_LABELS.sealing, {
       fontFamily: FONT_FAMILY,
       fontSize: "20px",
       fontStyle: "bold",
@@ -538,20 +704,24 @@ export class SudokuScene extends BaseScene {
     const dot3 = this.add.circle(24,  62, 5, C.gold).setOrigin(0.5);
     this.dealingDots = [dot1, dot2, dot3];
 
-    this.dealingContainer.add([overlay, envelope, title, dot1, dot2, dot3]);
+    this.dealingContainer.add([overlay, envelope, this.dealingTitle, dot1, dot2, dot3]);
     this.dealingContainer.setVisible(false);
 
-    // Animate dots
-    [dot1, dot2, dot3].forEach((dot, i) => {
-      this.tweens.add({
-        targets: dot,
-        alpha: 0.2,
-        duration: 400,
-        delay: i * 150,
-        yoyo: true,
-        repeat: -1,
+    // Animate the sealing dots through the reduced-motion-aware helper: when
+    // reduced motion is on we render them as steady dots instead of an
+    // unconditional infinite loop.
+    if (!this.reducedMotion) {
+      [dot1, dot2, dot3].forEach((dot, i) => {
+        this.tween({
+          targets: dot,
+          alpha: 0.2,
+          duration: 400,
+          delay: i * 150,
+          yoyo: true,
+          repeat: -1,
+        });
       });
-    });
+    }
   }
 
   /** Compact button helper for digit bar */
@@ -689,13 +859,65 @@ export class SudokuScene extends BaseScene {
       bg.setFillStyle(active ? C.btnActive : C.btnBg, active ? 1 : 0.98);
       bg.setStrokeStyle(active ? 3 : 1.5, DIFF_COLORS[d] ?? C.btnBorder);
       seal.setAlpha(active ? 1 : 0.72);
-      seal.setDisplaySize(active ? 64 : 58, active ? 64 : 58);
+      seal.setDisplaySize(active ? 60 : 54, active ? 60 : 54);
     });
+  }
+
+  /** Push the latest localized bundle onto the scene's static text objects. */
+  private applyLabels(): void {
+    this.lobbyTitleText.setText(this.L.vaultTitle);
+    this.lobbySubText.setText(this.L.vaultSub);
+    this.dealingTitle.setText(this.L.sealing);
+    for (let d = 0; d < 3; d++) {
+      this.diffNameTexts[d]?.setText(this.L.diffNames[d] ?? DIFF_LABELS[d] ?? "");
+      this.diffRouteTexts[d]?.setText(this.L.diffCopy[d] ?? DIFF_COPY[d] ?? "");
+      this.diffRewardTexts[d]?.setText(this.L.diffRewards[d] ?? DIFF_REWARDS[d] ?? "");
+    }
+  }
+
+  /** Short celebratory pop + sparkle on the dealt → solved transition. */
+  private celebrateSolve(): void {
+    if (this.reducedMotion) return;
+
+    const pop = (img: Phaser.GameObjects.Image) => {
+      const s = img.scaleX;
+      img.setScale(s * 0.5);
+      this.tween({
+        targets: img,
+        scaleX: s,
+        scaleY: s,
+        ease: "Back.easeOut",
+        duration: 520,
+      });
+    };
+    pop(this.lobbyRewardArt);
+    pop(this.lobbyResultBadge);
+
+    const cxs = this.lobbyRewardArt.x;
+    const cys = this.lobbyRewardArt.y;
+    for (let i = 0; i < 8; i++) {
+      const ang = (Math.PI * 2 * i) / 8;
+      const spark = this.add.circle(cxs, cys, 3, C.goldLight).setDepth(4);
+      this.lobbyContainer.add(spark);
+      this.tween({
+        targets: spark,
+        x: cxs + Math.cos(ang) * 54,
+        y: cys + Math.sin(ang) * 54,
+        alpha: 0,
+        scale: 0.3,
+        duration: 640,
+        ease: "Cubic.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
   }
 
   // ── BaseScene: state handler ───────────────────────────────────────────────
 
   protected onStateUpdate(_state: GameState): void {
+    this.L = this.val<SudokuLabels>("labels") ?? DEFAULT_LABELS;
+    this.applyLabels();
+
     const gameStatus = this.str("gameStatus", "idle");
     const clues      = this.str("clues", "");
     const undosUsed  = this.num("undosUsed", 0);
@@ -740,50 +962,69 @@ export class SudokuScene extends BaseScene {
       const routeLocked = progressionReady && this.pickedDifficulty < this.requiredDifficulty();
       const canStart = this.canStartDifficulty(this.pickedDifficulty);
       const gateLine = !walletConnected
-        ? "Connect wallet to open a sealed board"
+        ? this.L.gateConnect
         : !progressionReady
-          ? "Checking account route history"
+          ? this.L.gateChecking
           : routeLocked
-            ? `Clear ${DIFF_LABELS[this.requiredDifficulty()]} before replaying this route`
+            ? this.L.gateRouteLocked.replace(
+                "{difficulty}",
+                this.L.diffNames[this.requiredDifficulty()] ?? "",
+              )
             : poolFree < rewardGas
-              ? `Pool low (${poolFree.toFixed(2)} / ${rewardGas.toFixed(2)} GAS reward needed)`
-              : "Choose a route, then open the board";
+              ? this.L.gatePoolLow
+                  .replace("{have}", poolFree.toFixed(2))
+                  .replace("{need}", rewardGas.toFixed(2))
+              : this.L.gateChoose;
       displayStatus = gateLine;
-      this.lobbyPoolText.setText(`Pool: ${poolFree.toFixed(2)} GAS  ·  ${limitMin} min limit`);
+      this.lobbyPoolText.setText(
+        this.L.poolTemplate
+          .replace("{pool}", poolFree.toFixed(2))
+          .replace("{min}", String(limitMin)),
+      );
       this.updateDiffCards();
       this.actionButtonEnabled = canStart;
 
+      // The trophy + solved badge belong to a finished result; while idle the
+      // preview grid holds the lower zone instead of two orphan icons.
+      const showResult = gameStatus === "solved" || gameStatus === "expired";
+      this.lobbyMiniGrid.setVisible(!showResult);
+      this.lobbyRewardArt.setVisible(showResult);
+      this.lobbyResultBadge.setVisible(showResult);
+      this.lobbyResultCaption.setVisible(showResult);
+
       if (gameStatus === "solved") {
-        this.actionBtnText.setText("Play again");
+        this.actionBtnText.setText(this.L.act.playAgain);
         this.actionBtnText.setColor("#ffffff");
         this.actionBtnBg.setFillStyle(C.green);
         this.actionBtnBg.setStrokeStyle(2, 0x3cbf66);
         this.lobbyRewardArt.setAlpha(0.95);
         this.lobbyResultBadge.setAlpha(1);
+        this.lobbyResultCaption.setText(this.L.resultSolved);
+        this.lobbyResultCaption.setColor("#1a7a30");
       } else if (gameStatus === "expired") {
-        this.actionBtnText.setText("Try again");
+        this.actionBtnText.setText(this.L.act.tryAgain);
         this.actionBtnText.setColor("#ffffff");
         this.actionBtnBg.setFillStyle(C.red);
         this.actionBtnBg.setStrokeStyle(2, 0xe27d66);
-        this.lobbyRewardArt.setAlpha(0.58);
-        this.lobbyResultBadge.setAlpha(0.34);
+        this.lobbyRewardArt.setAlpha(0.7);
+        this.lobbyResultBadge.setAlpha(0.5);
+        this.lobbyResultCaption.setText(this.L.resultExpired);
+        this.lobbyResultCaption.setColor("#a5502e");
       } else {
         this.actionBtnText.setText(
           busy
-            ? "Starting..."
+            ? this.L.act.starting
             : canStart
-              ? "Open board"
+              ? this.L.act.open
               : !walletConnected
-                ? "Connect wallet"
+                ? this.L.act.connect
                 : routeLocked
-                  ? "Route locked"
-                  : "Pool low",
+                  ? this.L.act.routeLocked
+                  : this.L.act.poolLow,
         );
         this.actionBtnText.setColor(canStart && !busy ? "#2d2114" : "#7a5a28");
         this.actionBtnBg.setFillStyle(canStart && !busy ? C.gold : 0xf1e0be);
         this.actionBtnBg.setStrokeStyle(2, C.goldLight);
-        this.lobbyRewardArt.setAlpha(0.82);
-        this.lobbyResultBadge.setAlpha(0.42);
       }
     }
 
@@ -800,7 +1041,7 @@ export class SudokuScene extends BaseScene {
       const rewardPct = rewardPctAfterUndos(undosUsed);
       this.rewardLabel.setText(`${rewardPct}%`);
       this.undoBtnText.setText(
-        undosLeft > 0 ? `Undo (${undosLeft} left)` : "No undos left",
+        undosLeft > 0 ? this.L.undoTemplate.replace("{left}", String(undosLeft)) : this.L.undoNone,
       );
 
       this.setUndoButtonState(undosLeft > 0 && !busy && this.moveHistory.length > 0);
@@ -811,6 +1052,7 @@ export class SudokuScene extends BaseScene {
     // Solved fanfare fires once, on the dealt → solved transition only
     if (gameStatus === "solved" && this.prevStatus === "dealt") {
       this.sfx.play("win");
+      this.celebrateSolve();
     }
 
     this.prevStatus = gameStatus;
@@ -863,7 +1105,9 @@ export class SudokuScene extends BaseScene {
       art.clearTint();
 
       let texture: string = SUDOKU_ASSETS.cellPlaced;
-      let alpha = digit ? 0.9 : 0.28;
+      // Empty cells keep only a whisper of tile texture so the paper stays
+      // clean; filled/given/selected/conflict cells carry full art.
+      let alpha = digit ? 0.9 : 0.14;
       if (isGiven) {
         texture = SUDOKU_ASSETS.cellGiven;
         alpha = 0.98;
@@ -937,37 +1181,37 @@ export class SudokuScene extends BaseScene {
   private setGameActionState(busy: boolean): void {
     if (busy) {
       this.actionButtonEnabled = false;
-      this.actionBtnText.setText(this.bool("isSubmitting") ? "Submitting..." : "Working...");
+      this.actionBtnText.setText(this.bool("isSubmitting") ? this.L.act.submitting : this.L.act.working);
       this.actionBtnText.setColor("#ffffff");
       this.actionBtnBg.setFillStyle(C.muted);
       this.actionBtnBg.setStrokeStyle(2, C.btnBorder);
     } else if (this.canSubmitSolution()) {
       this.actionButtonEnabled = true;
-      this.actionBtnText.setText("Submit solution");
+      this.actionBtnText.setText(this.L.act.submit);
       this.actionBtnText.setColor("#ffffff");
       this.actionBtnBg.setFillStyle(C.green);
       this.actionBtnBg.setStrokeStyle(2, 0x3cbf66);
     } else if (this.timeUp()) {
       this.actionButtonEnabled = false;
-      this.actionBtnText.setText("Time is up");
+      this.actionBtnText.setText(this.L.act.timeUp);
       this.actionBtnText.setColor("#ffffff");
       this.actionBtnBg.setFillStyle(C.red);
       this.actionBtnBg.setStrokeStyle(2, 0xe27d66);
     } else if (this.boardComplete && this.submitWindowClosed()) {
       this.actionButtonEnabled = false;
-      this.actionBtnText.setText("Too late to submit");
+      this.actionBtnText.setText(this.L.act.tooLate);
       this.actionBtnText.setColor("#7a5a28");
       this.actionBtnBg.setFillStyle(0xf1e0be);
       this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
     } else if (this.boardComplete && !this.minSolveReached()) {
       this.actionButtonEnabled = false;
-      this.actionBtnText.setText("Wait to submit");
+      this.actionBtnText.setText(this.L.act.wait);
       this.actionBtnText.setColor("#7a5a28");
       this.actionBtnBg.setFillStyle(0xf1e0be);
       this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
     } else {
       this.actionButtonEnabled = false;
-      this.actionBtnText.setText("Solve to unlock");
+      this.actionBtnText.setText(this.L.act.solve);
       this.actionBtnText.setColor("#7a5a28");
       this.actionBtnBg.setFillStyle(0xf1e0be);
       this.actionBtnBg.setStrokeStyle(1.5, C.btnBorder, 0.8);
@@ -1139,12 +1383,12 @@ export class SudokuScene extends BaseScene {
   }
 
   private gameStatusMessage(fallback: string): string {
-    if (this.timeUp()) return "Deadline passed. Release this board to start a new one.";
-    if (this.submitWindowClosed()) return "Too close to the deadline for settlement.";
+    if (this.timeUp()) return this.L.msg.deadlinePassed;
+    if (this.submitWindowClosed()) return this.L.msg.deadlineClose;
     if (this.boardComplete && !this.minSolveReached()) {
       const rule = ruleOf(this.num("gameDifficulty", 0));
       const wait = Math.max(0, rule.minSolveMs + MIN_SOLVE_BUFFER_MS - this.elapsedMs());
-      return `Submission unlocks in ${formatClock(wait)}`;
+      return this.L.msg.submitUnlock.replace("{clock}", formatClock(wait));
     }
     return fallback;
   }

@@ -32,6 +32,15 @@ const C = {
   shadow: 0x2a1508,
 };
 
+// Graduated gold denominations so the four wager chips read as distinct poker
+// chips (pale → deep) rather than four copies of the same token disc.
+const CHIP_TIERS = [
+  { fill: 0xfff4d2, ring: 0xe4c489 },
+  { fill: 0xfce7b4, ring: 0xd3a955 },
+  { fill: 0xf6d99b, ring: 0xc4923b },
+  { fill: 0xefcb82, ring: 0xb37e26 },
+] as const;
+
 const FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
 const TEXT_RESOLUTION = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 const ASSET_GAS = "fogplay-official-gas-token";
@@ -49,6 +58,7 @@ type ChoiceButton = {
 
 type BetButton = {
   amount: string;
+  tier: number;
   container: Phaser.GameObjects.Container;
   bg: Phaser.GameObjects.Graphics;
   icon: Phaser.GameObjects.Image;
@@ -136,7 +146,10 @@ export class FogplayScene extends BaseScene {
 
     const quietStatus = validationError.trim();
     this.statusLabel.setText(
-      quietStatus || (flipping ? "Waiting for block reveal" : "50/50 · pays 2x"),
+      quietStatus ||
+        (flipping
+          ? this.str("statusFlipping", "Waiting for block reveal")
+          : this.str("statusIdle", "50/50 · pays 2x")),
     );
     this.statusLabel.setColor(quietStatus ? "#9f321f" : "#5c634f");
 
@@ -213,7 +226,7 @@ export class FogplayScene extends BaseScene {
     felt.fillStyle(C.feltDeep, 0.28);
     felt.fillEllipse(W / 2, H * 0.34, W * 0.78, H * 0.38);
 
-    const title = this.add.text(W / 2, 52, "FOGPLAY FLIP TABLE", {
+    const title = this.add.text(W / 2, 52, this.str("tableTitle", "FOGPLAY FLIP TABLE"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
@@ -248,25 +261,31 @@ export class FogplayScene extends BaseScene {
     const cx = W / 2;
     const cy = H * 0.31;
 
-    this.orbitOuter = this.add.ellipse(cx, cy + 7, 202, 48, C.cream, 0.08)
-      .setStrokeStyle(2, C.cream, 0.46);
-    this.orbitInner = this.add.ellipse(cx, cy + 7, 146, 31, C.gold, 0.1)
-      .setStrokeStyle(2, C.gold, 0.56);
+    // Orbit rings sit lower and quieter so they read as behind the coin and
+    // clear of the lower face where the H/T letter lives.
+    this.orbitOuter = this.add.ellipse(cx, cy + 16, 202, 46, C.cream, 0.07)
+      .setStrokeStyle(2, C.cream, 0.32);
+    this.orbitInner = this.add.ellipse(cx, cy + 20, 146, 29, C.gold, 0.09)
+      .setStrokeStyle(2, C.gold, 0.4);
 
     this.coinGlow = this.add.ellipse(cx, cy + 18, 156, 54, C.gold, 0.24);
 
     this.coinContainer = this.add.container(cx, cy);
     const shadow = this.add.ellipse(6, 58, 118, 31, C.shadow, 0.2);
     this.coinBase = this.add.graphics();
-    this.coinIcon = this.add.image(0, -2, ASSET_GAS).setDisplaySize(54, 54);
-    this.coinFace = this.add.text(0, 38, "H", {
+    this.coinIcon = this.add.image(0, -15, ASSET_GAS).setDisplaySize(46, 46);
+    // Primary heads/tails signifier: centered under the token, enlarged, with a
+    // deep stroke + shadow so the letter stays legible against the light gold.
+    this.coinFace = this.add.text(0, 21, "H", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
-      fontSize: "18px",
-      fontStyle: "800",
+      fontSize: "26px",
+      fontStyle: "900",
       color: "#fffdf1",
       letterSpacing: 0,
     }).setOrigin(0.5);
+    this.coinFace.setStroke("#7a4f14", 5);
+    this.coinFace.setShadow(0, 2, "rgba(80, 47, 8, 0.55)", 4, true, true);
 
     this.coinContainer.add([shadow, this.coinBase, this.coinIcon, this.coinFace]);
     this.drawCoinFace(this.selectedChoice);
@@ -296,8 +315,8 @@ export class FogplayScene extends BaseScene {
     const y = H * 0.56;
     const gap = Math.min(150, W * 0.35);
     this.choiceButtons = [
-      this.makeChoiceBtn(W / 2 - gap / 2, y, "heads", "Heads"),
-      this.makeChoiceBtn(W / 2 + gap / 2, y, "tails", "Tails"),
+      this.makeChoiceBtn(W / 2 - gap / 2, y, "heads", this.str("headsLabel", "Heads")),
+      this.makeChoiceBtn(W / 2 + gap / 2, y, "tails", this.str("tailsLabel", "Tails")),
     ];
   }
 
@@ -318,12 +337,20 @@ export class FogplayScene extends BaseScene {
       fontStyle: "800",
       color: "#253428",
     }).setOrigin(0, 0.5);
-    const hint = this.add.text(-16, 11, side === "heads" ? "bright side" : "quiet side", {
-      fontFamily: FONT_FAMILY,
-      resolution: TEXT_RESOLUTION,
-      fontSize: "10px",
-      color: "#6f765f",
-    }).setOrigin(0, 0.5);
+    const hint = this.add.text(
+      -16,
+      11,
+      side === "heads" ? this.str("headsHint", "bright side") : this.str("tailsHint", "quiet side"),
+      {
+        fontFamily: FONT_FAMILY,
+        resolution: TEXT_RESOLUTION,
+        fontSize: "10px",
+        color: "#6f765f",
+      },
+    ).setOrigin(0, 0.5);
+    // Echo the coin's own heads/tails language: the tails token reads upside-down
+    // so the two choices differ at a glance, mirroring drawCoinFace's rotation.
+    icon.setAngle(side === "tails" ? 180 : 0);
 
     this.bindGameButton(hit, {
       targets: container,
@@ -360,19 +387,19 @@ export class FogplayScene extends BaseScene {
     const gap = Math.min(76, Math.max(62, W * 0.18));
     const startX = W / 2 - ((BET_PRESETS.length - 1) * gap) / 2;
     this.betButtons = BET_PRESETS.map((amount, index) =>
-      this.makeBetBtn(startX + index * gap, y, amount),
+      this.makeBetBtn(startX + index * gap, y, amount, index),
     );
   }
 
-  private makeBetBtn(x: number, y: number, amount: string): BetButton {
+  private makeBetBtn(x: number, y: number, amount: string, tier: number): BetButton {
     const container = this.add.container(x, y);
     const bg = this.add.graphics();
     const hit = this.add.zone(0, 0, 58, 58).setInteractive({ useHandCursor: true });
-    const icon = this.add.image(0, -7, ASSET_GAS).setDisplaySize(24, 24);
-    const label = this.add.text(0, 14, amount, {
+    const icon = this.add.image(0, -8, ASSET_GAS).setDisplaySize(18, 18);
+    const label = this.add.text(0, 12, amount, {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
-      fontSize: "12px",
+      fontSize: "13px",
       fontStyle: "800",
       color: "#253428",
     }).setOrigin(0.5);
@@ -389,21 +416,22 @@ export class FogplayScene extends BaseScene {
     });
 
     container.add([bg, hit, icon, label]);
-    const button = { amount, container, bg, icon, label };
+    const button = { amount, tier, container, bg, icon, label };
     this.renderBetButton(button, amountsEqual(amount, this.selectedBet));
     return button;
   }
 
   private renderBetButton(button: BetButton, active: boolean): void {
+    const chip = CHIP_TIERS[button.tier] ?? CHIP_TIERS[0]!;
     button.bg.clear();
-    button.bg.fillStyle(active ? C.gold : 0xfff6da, 1);
+    button.bg.fillStyle(active ? C.gold : chip.fill, 1);
     button.bg.fillCircle(0, 0, active ? 30 : 28);
-    button.bg.lineStyle(active ? 4 : 2, active ? C.goldDeep : 0xd8a34c, active ? 0.72 : 0.42);
+    button.bg.lineStyle(active ? 4 : 2, active ? C.goldDeep : chip.ring, active ? 0.72 : 0.5);
     button.bg.strokeCircle(0, 0, active ? 30 : 28);
-    button.bg.lineStyle(1, C.cream, active ? 0.76 : 0.48);
+    button.bg.lineStyle(1, C.cream, active ? 0.76 : 0.5);
     button.bg.strokeCircle(0, 0, 21);
-    button.icon.setTint(active ? C.tealDeep : C.teal).setAlpha(active ? 1 : 0.78);
-    button.label.setColor(active ? "#253428" : "#667055");
+    button.icon.setTint(active ? C.tealDeep : C.teal).setAlpha(active ? 0.95 : 0.6);
+    button.label.setColor(active ? "#253428" : "#5f5230");
   }
 
   private buildPayoutRow(W: number, H: number): void {
@@ -413,7 +441,7 @@ export class FogplayScene extends BaseScene {
     panel.fillRoundedRect(W / 2 - 106, y - 20, 212, 40, 20);
     panel.lineStyle(1, 0xe8bf68, 0.58);
     panel.strokeRoundedRect(W / 2 - 106, y - 20, 212, 40, 20);
-    this.add.text(W / 2 - 68, y, "2x payout", {
+    this.add.text(W / 2 - 68, y, this.str("payoutCaption", "2x payout"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
@@ -433,7 +461,7 @@ export class FogplayScene extends BaseScene {
     this.placeBetBtn = this.add.container(W / 2, H * 0.88);
     this.placeBetBg = this.add.graphics();
     const hit = this.add.zone(0, 0, 208, 52).setInteractive({ useHandCursor: true });
-    this.placeBetLabel = this.add.text(0, 0, "FLIP", {
+    this.placeBetLabel = this.add.text(0, 0, this.str("flipCta", "FLIP"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "18px",
@@ -466,7 +494,7 @@ export class FogplayScene extends BaseScene {
     this.placeBetBg.fillStyle(0xffffff, enabled ? 0.16 : 0.08);
     this.placeBetBg.fillRoundedRect(-98, -20, 196, 18, 12);
     this.placeBetLabel
-      .setText(flipping ? "FLIPPING" : "FLIP")
+      .setText(flipping ? this.str("flippingCta", "FLIPPING") : this.str("flipCta", "FLIP"))
       .setColor(enabled || flipping ? "#ffffff" : "#726f5e");
     this.placeBetBtn.setAlpha(enabled || flipping ? 1 : 0.78);
   }
@@ -604,10 +632,14 @@ export class FogplayScene extends BaseScene {
     this.resultBg.lineStyle(2, won ? 0xa8f7c8 : 0xffc2a8, 0.72);
     this.resultBg.strokeRoundedRect(-84, -44, 168, 88, 18);
     this.resultText
-      .setText(won ? "WIN" : "MISS")
+      .setText(won ? this.str("resultWin", "WIN") : this.str("resultMiss", "MISS"))
       .setColor(won ? "#eafff4" : "#fff2e8");
     this.resultAmount
-      .setText(won ? this.str("winAmount", "") || this.str("displayOutcome", "") : this.str("displayOutcome", "Try again"))
+      .setText(
+        won
+          ? this.str("winAmount", "") || this.str("displayOutcome", "")
+          : this.str("displayOutcome", "") || this.str("tryAgainShort", "Try again"),
+      )
       .setColor(won ? "#dcffd9" : "#ffe2c9");
 
     this.resultOverlay.setVisible(true).setAlpha(0).setScale(0.76);

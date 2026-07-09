@@ -129,6 +129,44 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const lastCreatedLabel = lastCreatedEnvelopeId ? `#${shortId(lastCreatedEnvelopeId, 10, 4)}` : "--";
   const activeHintId = asId(openingId) || launchedEnvelopeId || asId(openEnvelopes[0]?.id);
 
+  // Localized copy for every string the Phaser scene renders. Passed as a new
+  // bridge key (does not touch the frozen contract keys) so zh users read
+  // localized text inside the canvas instead of hardcoded English.
+  const sceneCopy = {
+    modeSend: t("sceneModeSend"),
+    modeClaim: t("sceneModeClaim"),
+    sendHeading: t("sceneSendHeading"),
+    claimHeading: t("sceneClaimHeading"),
+    planLucky: t("scenePlanLucky"),
+    planParty: t("scenePlanParty"),
+    planFestival: t("scenePlanFestival"),
+    packetsTpl: t("scenePacketsTpl"),
+    create: t("sceneCreate"),
+    working: t("sceneWorking"),
+    share: t("sceneShare"),
+    open: t("sceneOpen"),
+    opening: t("sceneOpening"),
+    noEnvelope: t("sceneNoEnvelope"),
+    summaryTpl: t("sceneSummaryTpl"),
+    resultReceivedTpl: t("sceneResultReceivedTpl"),
+    resultShareReadyTpl: t("sceneResultShareReadyTpl"),
+    resultClaimReady: t("sceneResultClaimReady"),
+    resultClaimIdle: t("sceneResultClaimIdle"),
+    resultSendIdle: t("sceneResultSendIdle"),
+    ticketEnvelopeTpl: t("sceneTicketEnvelopeTpl"),
+    ticketEmpty: t("sceneTicketEmpty"),
+    claimReadyMeta: t("sceneClaimReadyMeta"),
+    claimEmptyMeta: t("sceneClaimEmptyMeta"),
+    packetsLeftTpl: t("scenePacketsLeftTpl"),
+    packetStatusReady: t("scenePacketStatusReady"),
+    gasLeftTpl: t("sceneGasLeftTpl"),
+    randomAmount: t("sceneRandomAmount"),
+    statusClaimIdle: t("sceneStatusClaimIdle"),
+    statusSendIdle: t("sceneStatusSendIdle"),
+    prepaidTpl: t("scenePrepaidTpl"),
+    errorFallback: t("sceneErrorFallback"),
+  };
+
   const bridgeState = {
     openingId: openingId ?? null,
     luckyMessage,
@@ -146,6 +184,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     totalClaimed,
     lastError: lastError,
     serviceNotice: serviceNotice,
+    sceneCopy,
   };
 
   const stageTitle = isOpening

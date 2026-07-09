@@ -2,8 +2,12 @@
  * BurnLeagueScene - Phaser 3 arena view for the Burn League GameFi contest.
  *
  * The blockchain flow stays in useBurnLeague/main.tsx. This scene owns only the
- * playable surface: bright arena art, GAS fuel capsules, leaderboard preview,
- * and the burn action.
+ * playable surface: bright arena art, a lit ceremonial GAS brazier (drawn
+ * in-scene with a layered green->gold flame and rising embers), a fuel/heat
+ * gauge fed by the pool, GAS fuel capsules, the leaderboard preview, and the
+ * burn action. The brazier + flame echo the arena backdrop (a golden bowl with
+ * a green ceremonial flame and GAS coins streaming in) so the surface reads as a
+ * furnace you feed fuel into rather than a pasted app icon.
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
@@ -12,7 +16,6 @@ import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 const BURN_ASSETS = {
   arena: "burn-league-arena",
-  brazier: "burn-league-brazier",
   gas: "burn-league-gas-token",
 } as const;
 
@@ -26,9 +29,15 @@ const C = {
   inkSoft: 0x765c38,
   inkMuted: 0x9a825d,
   gold: 0xf5b640,
+  goldLight: 0xfbd977,
   goldDeep: 0xb45309,
   green: 0x16a86b,
   greenDeep: 0x0f7d56,
+  teal: 0x2fbf8f,
+  flameGreen: 0x3ad39a,
+  hot: 0xfff3c4,
+  coal: 0x3a2411,
+  coalDark: 0x271607,
   ember: 0xf97316,
   emberDeep: 0xc2410c,
   danger: 0xdc2626,
@@ -46,6 +55,8 @@ type LeaderEntry = {
   isUser?: boolean;
 };
 
+type Pt = { x: number; y: number };
+
 export class BurnLeagueScene extends BaseScene {
   private sceneReady = false;
   private isRebuildingScene = false;
@@ -53,21 +64,39 @@ export class BurnLeagueScene extends BaseScene {
   private scH = 600;
 
   private coreContainer!: Phaser.GameObjects.Container;
+  private coreArt!: Phaser.GameObjects.Container;
   private coreGlow!: Phaser.GameObjects.Ellipse;
-  private brazierImage!: Phaser.GameObjects.Image;
+  private coreGlowInner!: Phaser.GameObjects.Ellipse;
+  private brazierBody!: Phaser.GameObjects.Container;
+  private flameHolder!: Phaser.GameObjects.Container;
+  private flame!: Phaser.GameObjects.Container;
   private gasTokens: Phaser.GameObjects.Image[] = [];
+
+  private coreCX = 210;
+  private coreCY = 208;
+  private coreScale = 1;
+
+  private heatGauge!: Phaser.GameObjects.Container;
+  private heatFill!: Phaser.GameObjects.Graphics;
+  private heatFlame!: Phaser.GameObjects.Container;
+  private heatTrackTop = 0;
+  private heatTrackH = 84;
+  private heatTrackW = 12;
 
   private poolValue!: Phaser.GameObjects.Text;
   private phaseValue!: Phaser.GameObjects.Text;
   private burnedValue!: Phaser.GameObjects.Text;
   private rankValue!: Phaser.GameObjects.Text;
   private leaderList!: Phaser.GameObjects.Container;
+  private ghostRows!: Phaser.GameObjects.Container;
+  private emptyLeaderChip!: Phaser.GameObjects.Graphics;
   private emptyLeaderLabel!: Phaser.GameObjects.Text;
 
   private presetBtns: Phaser.GameObjects.Container[] = [];
   private burnBtn!: Phaser.GameObjects.Container;
   private burnBtnBg!: Phaser.GameObjects.Graphics;
   private burnBtnLabel!: Phaser.GameObjects.Text;
+  private statusScrim!: Phaser.GameObjects.Graphics;
   private statusLabel!: Phaser.GameObjects.Text;
 
   private selectedAmount = "1";
@@ -86,7 +115,6 @@ export class BurnLeagueScene extends BaseScene {
 
   preload(): void {
     this.load.image(BURN_ASSETS.arena, "./burn-league-arena.webp");
-    this.load.image(BURN_ASSETS.brazier, "./logo.webp");
     this.load.image(BURN_ASSETS.gas, officialGasTokenPhaserUrl);
   }
 
@@ -99,6 +127,9 @@ export class BurnLeagueScene extends BaseScene {
   }
 
   update(_time: number, delta: number): void {
+    // Reduced-motion honors the per-frame orbit: tokens are placed once during
+    // buildCore and left static when the user opts out of motion.
+    if (this.reducedMotion) return;
     this.tokenPhase += delta * (this.isBurning ? 0.006 : 0.0028);
     this.updateGasOrbit();
   }
@@ -135,6 +166,7 @@ export class BurnLeagueScene extends BaseScene {
     this.buildBackground(width, height);
     this.buildHud(width);
     this.buildCore(width, height);
+    this.buildHeatGauge();
     this.buildLeaderboard(width, height);
     this.buildPresets(width, height);
     this.buildBurnButton(width, height);
@@ -184,8 +216,10 @@ export class BurnLeagueScene extends BaseScene {
     this.updateBurnButton();
     this.updateLeaderboard(leaders);
 
-    this.coreGlow.setAlpha(this.isBurning ? 0.36 : 0.2);
-    this.brazierImage.setAlpha(phase === "ended" ? 0.76 : 1);
+    this.applyHeat(this.poolHeat(), this.isBurning);
+    const dim = phase === "ended" ? 0.82 : 1;
+    this.brazierBody.setAlpha(dim);
+    this.flameHolder.setAlpha(dim);
 
     this.statusLabel.setText(
       validationError ||
@@ -193,10 +227,12 @@ export class BurnLeagueScene extends BaseScene {
         serviceNotice ||
         this.defaultStatus(phase, leaders.length),
     );
+    this.layoutStatus();
   }
 
   protected onBridgeError(error: GameBridgeError): void {
     this.statusLabel?.setText(error.message);
+    this.layoutStatus();
   }
 
   private buildBackground(width: number, height: number): void {
@@ -232,9 +268,9 @@ export class BurnLeagueScene extends BaseScene {
   ): { value: Phaser.GameObjects.Text } {
     const group = this.add.container(x, y);
     const bg = this.add.graphics();
-    bg.fillStyle(withIcon ? C.surfaceWarm : C.surface, 0.94);
+    bg.fillStyle(withIcon ? C.surfaceWarm : C.surface, 0.97);
     bg.fillRoundedRect(-w / 2, -h / 2, w, h, 16);
-    bg.lineStyle(1.5, withIcon ? C.strokeStrong : C.stroke, 0.72);
+    bg.lineStyle(1.75, withIcon ? C.strokeStrong : C.stroke, 0.85);
     bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 16);
     group.add(bg);
 
@@ -244,10 +280,11 @@ export class BurnLeagueScene extends BaseScene {
       group.add(icon);
     }
 
-    const labelText = this.add.text(textX, -11, label, {
+    const labelText = this.add.text(textX, -12, label, {
       fontFamily: FONT,
-      fontSize: "10px",
-      color: "#765c38",
+      fontSize: "11px",
+      fontStyle: "bold",
+      color: "#6b4a1f",
     }).setOrigin(withIcon ? 0 : 0.5, 0.5);
     const value = this.add.text(textX, 11, "--", {
       fontFamily: FONT,
@@ -262,14 +299,15 @@ export class BurnLeagueScene extends BaseScene {
   private buildTinyMetric(x: number, y: number, label: string): { value: Phaser.GameObjects.Text } {
     const group = this.add.container(x, y);
     const bg = this.add.graphics();
-    bg.fillStyle(C.surface, 0.9);
+    bg.fillStyle(C.surface, 0.96);
     bg.fillRoundedRect(-70, -18, 140, 36, 12);
-    bg.lineStyle(1, C.stroke, 0.72);
+    bg.lineStyle(1.25, C.stroke, 0.85);
     bg.strokeRoundedRect(-70, -18, 140, 36, 12);
     const labelText = this.add.text(-54, 0, label, {
       fontFamily: FONT,
-      fontSize: "9px",
-      color: "#9a825d",
+      fontSize: "10px",
+      fontStyle: "bold",
+      color: "#8a7048",
     }).setOrigin(0, 0.5);
     const value = this.add.text(56, 0, "--", {
       fontFamily: FONT,
@@ -283,31 +321,51 @@ export class BurnLeagueScene extends BaseScene {
 
   private buildCore(width: number, height: number): void {
     const cx = width / 2;
-    const cy = height * 0.335;
+    const cy = Math.round(height * 0.347);
+    const scale = Phaser.Math.Clamp(Math.min(width / 420, height / 600), 0.8, 1.06);
+    this.coreCX = cx;
+    this.coreCY = cy;
+    this.coreScale = scale;
+
     this.coreContainer = this.add.container(cx, cy).setDepth(4);
+    this.coreArt = this.add.container(0, 0).setScale(scale);
+    this.coreContainer.add(this.coreArt);
 
-    this.coreGlow = this.add.ellipse(0, 12, 238, 204, C.gold, 0.2);
-    const pedestal = this.add.graphics();
-    pedestal.fillStyle(C.surface, 0.72);
-    pedestal.fillRoundedRect(-106, 74, 212, 42, 18);
-    pedestal.lineStyle(1, C.strokeStrong, 0.6);
-    pedestal.strokeRoundedRect(-106, 74, 212, 42, 18);
+    // Heat glow — two layers (outer wide + warmer inner) so it reads as furnace
+    // heat rather than a flat disc.
+    this.coreGlow = this.add.ellipse(0, 10, 246, 172, C.gold, 0.2);
+    this.coreGlowInner = this.add.ellipse(0, 14, 150, 104, C.ember, 0.16)
+      .setBlendMode(Phaser.BlendModes.ADD);
 
-    this.brazierImage = this.add.image(0, 0, BURN_ASSETS.brazier)
-      .setDisplaySize(172, 172);
+    const pedestal = this.buildPedestal();
+    this.brazierBody = this.buildBrazier();
+    this.flameHolder = this.buildFlame();
 
     for (let i = 0; i < 8; i++) {
-      const size = 18 + (i % 3) * 2;
+      const size = 17 + (i % 3) * 2;
       const token = this.add.image(0, 0, BURN_ASSETS.gas)
         .setDisplaySize(size, size)
         .setData("baseSize", size)
-        .setAlpha(0.8);
+        .setAlpha(0.6);
       this.gasTokens.push(token);
     }
 
-    this.coreContainer.add([this.coreGlow, pedestal, ...this.gasTokens, this.brazierImage]);
+    const embers = this.buildEmbers();
 
-    const hitZone = this.add.zone(cx, cy, 210, 206).setInteractive({ useHandCursor: true });
+    // Layer order: glow → pedestal → bowl → tokens (circling in front of the
+    // bowl) → flame → embers.
+    this.coreArt.add([
+      this.coreGlow,
+      this.coreGlowInner,
+      pedestal,
+      this.brazierBody,
+      ...this.gasTokens,
+      this.flameHolder,
+      embers,
+    ]);
+
+    const hitZone = this.add.zone(cx, cy, 220 * scale, 210 * scale)
+      .setInteractive({ useHandCursor: true });
     this.bindGameButton(hitZone, {
       targets: this.coreContainer,
       hoverScale: 1.025,
@@ -324,46 +382,351 @@ export class BurnLeagueScene extends BaseScene {
       yoyo: true,
       repeat: -1,
     });
+
+    // Slow additive shimmer so the heat feels alive, not a static blob.
+    this.tween({
+      targets: this.coreGlowInner,
+      scaleX: 1.12,
+      scaleY: 1.16,
+      duration: 2200,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.updateGasOrbit();
+  }
+
+  /** Green-and-gold ceremonial pedestal echoing the arena backdrop. */
+  private buildPedestal(): Phaser.GameObjects.Container {
+    const g = this.add.graphics();
+    // stem/foot under the bowl
+    g.fillStyle(C.goldDeep, 1);
+    g.fillRoundedRect(-22, 48, 44, 20, 6);
+    g.fillStyle(C.gold, 1);
+    g.fillRoundedRect(-19, 46, 38, 14, 5);
+    // tiered disc: outer gold rim, green band, lit gold top
+    g.fillStyle(C.goldDeep, 0.95);
+    g.fillEllipse(0, 70, 196, 44);
+    g.fillStyle(C.gold, 1);
+    g.fillEllipse(0, 68, 190, 40);
+    g.fillStyle(C.greenDeep, 1);
+    g.fillEllipse(0, 68, 150, 30);
+    g.fillStyle(C.green, 1);
+    g.fillEllipse(0, 67, 132, 24);
+    g.fillStyle(C.goldLight, 1);
+    g.fillEllipse(0, 64, 92, 16);
+    g.fillStyle(C.gold, 1);
+    g.fillEllipse(0, 63, 74, 12);
+    return this.add.container(0, 0, [g]);
+  }
+
+  /** Wide golden brazier bowl with a dark cavity and a glowing coal bed. */
+  private buildBrazier(): Phaser.GameObjects.Container {
+    const g = this.add.graphics();
+
+    // Gold rim/lip
+    g.fillStyle(C.goldDeep, 1);
+    g.fillEllipse(0, 15, 158, 36);
+    g.fillStyle(C.gold, 1);
+    g.fillEllipse(0, 14, 150, 30);
+    g.fillStyle(C.goldLight, 0.85);
+    g.fillEllipse(0, 11, 138, 20);
+
+    // Dark interior cavity
+    g.fillStyle(C.coalDark, 1);
+    g.fillEllipse(0, 15, 118, 22);
+    g.fillStyle(C.coal, 1);
+    g.fillEllipse(0, 15, 104, 18);
+
+    // Front wall of the bowl (covers the lower half of the cavity so the
+    // opening reads as a top-lit rim).
+    const wall: Pt[] = [
+      { x: -74, y: 22 }, { x: 74, y: 22 }, { x: 60, y: 42 },
+      { x: 34, y: 55 }, { x: -34, y: 55 }, { x: -60, y: 42 },
+    ];
+    g.fillStyle(C.gold, 1);
+    g.fillPoints(wall, true);
+    // bottom shade for volume
+    g.fillStyle(C.goldDeep, 0.5);
+    g.fillPoints(
+      [{ x: -52, y: 44 }, { x: 52, y: 44 }, { x: 32, y: 55 }, { x: -32, y: 55 }],
+      true,
+    );
+    // left highlight stripe
+    g.fillStyle(C.goldLight, 0.55);
+    g.fillPoints(
+      [{ x: -70, y: 24 }, { x: -60, y: 24 }, { x: -50, y: 42 }, { x: -57, y: 43 }],
+      true,
+    );
+
+    const bowl = this.add.container(0, 0, [g]);
+
+    // Glowing coal bed (additive) at the rim.
+    const coals = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
+    coals.fillStyle(C.emberDeep, 0.5);
+    coals.fillEllipse(0, 16, 90, 16);
+    coals.fillStyle(C.ember, 0.7);
+    coals.fillEllipse(0, 17, 62, 12);
+    coals.fillStyle(C.hot, 0.85);
+    coals.fillEllipse(0, 18, 34, 8);
+    bowl.add(coals);
+
+    // GAS emblem gem on the bowl face — ties the object to the token/arena.
+    const emblem = this.add.graphics();
+    emblem.fillStyle(C.goldDeep, 1);
+    emblem.fillEllipse(0, 41, 30, 30);
+    emblem.fillStyle(C.gold, 1);
+    emblem.fillEllipse(0, 41, 24, 24);
+    emblem.fillStyle(C.teal, 1);
+    emblem.fillEllipse(0, 41, 15, 15);
+    emblem.fillStyle(C.hot, 0.85);
+    emblem.fillEllipse(-3, 38, 5, 5);
+    bowl.add(emblem);
+
+    return bowl;
+  }
+
+  /** Layered green->gold->hot flame with a reduced-motion-safe flicker. */
+  private buildFlame(): Phaser.GameObjects.Container {
+    this.flame = this.add.container(0, 0);
+
+    const outer = this.flameShape(1, C.flameGreen, 0.92);
+    const mid = this.flameShape(0.68, C.gold, 0.95);
+    const inner = this.flameShape(0.42, C.hot, 0.95, true);
+    this.flame.add([outer, mid, inner]);
+
+    // Flicker: subtle vertical breathe + sway, honored under reduced motion by
+    // this.tween (which applies the end-state and skips the loop).
+    this.tween({
+      targets: this.flame,
+      scaleY: 1.12,
+      scaleX: 0.93,
+      duration: 520,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tween({
+      targets: this.flame,
+      x: 3,
+      duration: 700,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tween({
+      targets: inner,
+      alpha: 0.7,
+      duration: 300,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Root the flame at the coal bed.
+    const holder = this.add.container(0, 12, [this.flame]);
+    return holder;
+  }
+
+  private flameShape(
+    scale: number,
+    color: number,
+    alpha: number,
+    additive = false,
+  ): Phaser.GameObjects.Graphics {
+    const g = this.add.graphics();
+    g.fillStyle(color, alpha);
+    g.fillPoints(this.flamePoints(scale), true);
+    if (additive) g.setBlendMode(Phaser.BlendModes.ADD);
+    return g;
+  }
+
+  private flamePoints(scale: number): Pt[] {
+    const raw = [
+      -20, 8, -24, -10, -13, -26, -6, -44, 0, -58,
+      6, -42, 13, -26, 22, -8, 18, 8,
+    ];
+    const pts: Pt[] = [];
+    for (let i = 0; i < raw.length; i += 2) {
+      pts.push({ x: raw[i]! * scale, y: raw[i + 1]! * scale });
+    }
+    return pts;
+  }
+
+  private buildEmbers(): Phaser.GameObjects.Container {
+    const embers = this.add.container(0, 0);
+    for (let i = 0; i < 5; i++) {
+      const e = this.add.ellipse(
+        Phaser.Math.Between(-10, 10),
+        12,
+        5,
+        6,
+        i % 2 ? C.ember : C.gold,
+        0.9,
+      ).setBlendMode(Phaser.BlendModes.ADD);
+      embers.add(e);
+      this.tween({
+        targets: e,
+        y: -52 - Phaser.Math.Between(0, 18),
+        x: e.x + Phaser.Math.Between(-16, 16),
+        alpha: 0,
+        scaleX: 0.3,
+        scaleY: 0.3,
+        duration: 1200 + i * 130,
+        delay: i * 220,
+        repeat: -1,
+        repeatDelay: Phaser.Math.Between(120, 420),
+        ease: "Sine.easeOut",
+      });
+    }
+    return embers;
+  }
+
+  /** Vertical fuel/heat gauge fed by the pool, beside the brazier. */
+  private buildHeatGauge(): void {
+    const scale = this.coreScale;
+    const gaugeX = Phaser.Math.Clamp(
+      Math.round(this.coreCX - 126 * scale),
+      30,
+      this.coreCX - 96,
+    );
+    this.heatGauge = this.add.container(gaugeX, this.coreCY + 4).setDepth(4).setScale(scale);
+
+    const card = this.add.graphics();
+    card.fillStyle(C.surface, 0.94);
+    card.fillRoundedRect(-16, -66, 32, 134, 13);
+    card.lineStyle(1.5, C.strokeStrong, 0.55);
+    card.strokeRoundedRect(-16, -66, 32, 134, 13);
+
+    // track
+    this.heatTrackTop = -34;
+    this.heatTrackH = 86;
+    this.heatTrackW = 12;
+    const track = this.add.graphics();
+    track.fillStyle(C.surfaceWarm, 1);
+    track.fillRoundedRect(-this.heatTrackW / 2, this.heatTrackTop, this.heatTrackW, this.heatTrackH, 6);
+    track.lineStyle(1, C.stroke, 0.8);
+    track.strokeRoundedRect(-this.heatTrackW / 2, this.heatTrackTop, this.heatTrackW, this.heatTrackH, 6);
+
+    this.heatFill = this.add.graphics();
+
+    // tick marks
+    const ticks = this.add.graphics();
+    ticks.lineStyle(1, C.goldDeep, 0.35);
+    for (let i = 1; i <= 3; i++) {
+      const ty = this.heatTrackTop + (this.heatTrackH * i) / 4;
+      ticks.beginPath();
+      ticks.moveTo(-this.heatTrackW / 2 - 3, ty);
+      ticks.lineTo(-this.heatTrackW / 2, ty);
+      ticks.strokePath();
+    }
+
+    // small flame glyph crowning the gauge
+    this.heatFlame = this.add.container(0, -50);
+    const gf = this.add.graphics();
+    gf.fillStyle(C.ember, 0.95);
+    gf.fillPoints(this.flamePoints(0.3), true);
+    gf.fillStyle(C.hot, 0.95);
+    gf.fillPoints(this.flamePoints(0.16), true);
+    this.heatFlame.add(gf);
+
+    this.heatGauge.add([card, track, this.heatFill, ticks, this.heatFlame]);
+    this.drawHeatFill(0.08, false);
+  }
+
+  private drawHeatFill(heat: number, burning: boolean): void {
+    if (!this.heatFill) return;
+    const h = Math.max(4, this.heatTrackH * Phaser.Math.Clamp(heat, 0.06, 1));
+    const y = this.heatTrackTop + this.heatTrackH - h;
+    const color = burning || heat > 0.7 ? C.ember : heat > 0.34 ? C.gold : C.green;
+    this.heatFill.clear();
+    this.heatFill.fillStyle(color, 1);
+    this.heatFill.fillRoundedRect(-this.heatTrackW / 2, y, this.heatTrackW, h, 6);
+    this.heatFill.fillStyle(C.hot, 0.4);
+    this.heatFill.fillRoundedRect(-this.heatTrackW / 2, y, this.heatTrackW, Math.min(10, h), 6);
   }
 
   private buildLeaderboard(width: number, height: number): void {
-    const panelY = height * 0.61;
+    const panelCY = Math.round(height * 0.63);
+    const panelH = 108;
+    const panelTop = panelCY - 54;
     const panel = this.add.graphics();
-    panel.fillStyle(C.surface, 0.92);
-    panel.fillRoundedRect(28, panelY - 48, width - 56, 112, 18);
-    panel.lineStyle(1, C.stroke, 0.78);
-    panel.strokeRoundedRect(28, panelY - 48, width - 56, 112, 18);
+    panel.fillStyle(C.surface, 0.95);
+    panel.fillRoundedRect(28, panelTop, width - 56, panelH, 18);
+    panel.lineStyle(1.25, C.stroke, 0.85);
+    panel.strokeRoundedRect(28, panelTop, width - 56, panelH, 18);
 
-    this.add.text(width / 2, panelY - 28, "Live leaderboard", {
+    this.add.text(width / 2, panelTop + 15, "Live leaderboard", {
       fontFamily: FONT,
       fontSize: "11px",
       fontStyle: "bold",
-      color: "#765c38",
+      color: "#6b4a1f",
     }).setOrigin(0.5);
 
-    this.leaderList = this.add.container(0, panelY - 4);
-    this.emptyLeaderLabel = this.add.text(width / 2, panelY + 12, "No burns yet - ignite first", {
+    const rowsTop = panelTop + 40;
+    const rowGap = 21;
+
+    // Dim ghost rows keep the empty panel dense and legible about its structure.
+    this.ghostRows = this.add.container(0, rowsTop);
+    for (let i = 0; i < 3; i++) {
+      this.ghostRows.add(this.buildGhostRow(width / 2, i * rowGap, i + 1));
+    }
+
+    // Real rows overlay the ghosts once burns land.
+    this.leaderList = this.add.container(0, rowsTop);
+
+    // Centered empty-state chip in front of the ghost structure.
+    this.emptyLeaderChip = this.add.graphics();
+    this.emptyLeaderLabel = this.add.text(width / 2, panelCY + 14, "No burns yet - ignite first", {
       fontFamily: FONT,
       fontSize: "12px",
-      color: "#9a825d",
+      fontStyle: "bold",
+      color: "#8a5a1a",
     }).setOrigin(0.5);
   }
 
-  private buildPresets(width: number, height: number): void {
-    this.add.text(width / 2, height * 0.775, "Fuel capsules", {
+  private buildGhostRow(x: number, y: number, rank: number): Phaser.GameObjects.Container {
+    const row = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.fillStyle(C.surfaceWarm, 0.5);
+    bg.fillRoundedRect(-166, -9, 332, 18, 8);
+    row.add(bg);
+    row.add(this.add.text(-150, 0, `#${rank}`, {
       fontFamily: FONT,
       fontSize: "10px",
       fontStyle: "bold",
-      color: "#765c38",
+      color: "#c2ac82",
+    }).setOrigin(0, 0.5));
+    row.add(this.add.text(-92, 0, "— — — —", {
+      fontFamily: FONT,
+      fontSize: "10px",
+      color: "#c2ac82",
+    }).setOrigin(0, 0.5));
+    row.add(this.add.text(150, 0, "-- GAS", {
+      fontFamily: FONT,
+      fontSize: "10px",
+      fontStyle: "bold",
+      color: "#c2ac82",
+    }).setOrigin(1, 0.5));
+    return row;
+  }
+
+  private buildPresets(width: number, height: number): void {
+    this.add.text(width / 2, height * 0.772, "Fuel capsules", {
+      fontFamily: FONT,
+      fontSize: "10px",
+      fontStyle: "bold",
+      color: "#6b4a1f",
     }).setOrigin(0.5);
 
     const gap = 68;
     const startX = width / 2 - (BURN_PRESETS.length / 2 - 0.5) * gap;
     BURN_PRESETS.forEach((amount, index) => {
-      const button = this.add.container(startX + index * gap, height * 0.82);
+      const button = this.add.container(startX + index * gap, height * 0.817);
       const bg = this.add.graphics();
-      const icon = this.add.image(-18, 0, BURN_ASSETS.gas).setDisplaySize(18, 18);
-      const label = this.add.text(8, 0, amount, {
+      const glyph = this.add.graphics();
+      const label = this.add.text(9, 0, amount, {
         fontFamily: FONT,
         fontSize: "13px",
         fontStyle: "bold",
@@ -381,8 +744,9 @@ export class BurnLeagueScene extends BaseScene {
         onPress: () => this.selectPreset(amount, true),
       });
 
-      button.add([bg, icon, label]);
+      button.add([bg, glyph, label]);
       button.setData("bg", bg);
+      button.setData("glyph", glyph);
       button.setData("label", label);
       this.presetBtns.push(button);
     });
@@ -412,13 +776,28 @@ export class BurnLeagueScene extends BaseScene {
   }
 
   private buildStatusLabel(width: number, height: number): void {
-    this.statusLabel = this.add.text(width / 2, height * 0.965, "", {
+    this.statusScrim = this.add.graphics().setDepth(6);
+    this.statusLabel = this.add.text(width / 2, height * 0.962, "", {
       fontFamily: FONT,
       fontSize: "11px",
-      color: "#765c38",
+      fontStyle: "bold",
+      color: "#6b4a1f",
       align: "center",
-      wordWrap: { width: width - 52 },
-    }).setOrigin(0.5);
+      wordWrap: { width: width - 40 },
+    }).setOrigin(0.5).setDepth(7);
+  }
+
+  private layoutStatus(): void {
+    if (!this.statusScrim || !this.statusLabel) return;
+    this.statusScrim.clear();
+    if (!this.statusLabel.text) return;
+    const b = this.statusLabel.getBounds();
+    const padX = 14;
+    const padY = 6;
+    this.statusScrim.fillStyle(C.canvas, 0.9);
+    this.statusScrim.fillRoundedRect(b.x - padX, b.y - padY, b.width + padX * 2, b.height + padY * 2, 12);
+    this.statusScrim.lineStyle(1, C.stroke, 0.6);
+    this.statusScrim.strokeRoundedRect(b.x - padX, b.y - padY, b.width + padX * 2, b.height + padY * 2, 12);
   }
 
   private addCoverImage(key: string, width: number, height: number, alpha: number): Phaser.GameObjects.Image {
@@ -430,22 +809,44 @@ export class BurnLeagueScene extends BaseScene {
     return image;
   }
 
+  private poolHeat(): number {
+    const parse = (s: string): number => {
+      const n = Number(String(s).replace(/[^0-9.]/g, ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const pool = parse(this.str("prizePoolDisplay", "0"));
+    const projected = parse(this.str("projectedTotalBurnedDisplay", "0"));
+    const armed = Number(this.selectedAmount);
+    const basis = Math.max(pool, projected * 0.5, Number.isFinite(armed) ? armed * 0.4 : 0);
+    const heat = 1 - 1 / (1 + basis / 22);
+    return Phaser.Math.Clamp(heat, 0.08, 1);
+  }
+
+  private applyHeat(heat: number, burning: boolean): void {
+    if (!this.coreGlow) return;
+    const glowBase = 0.13 + heat * 0.16;
+    this.coreGlow.setAlpha(glowBase + (burning ? 0.16 : 0));
+    this.coreGlowInner.setAlpha(glowBase + (burning ? 0.22 : 0.06));
+    const tall = (0.9 + heat * 0.42) * (burning ? 1.18 : 1);
+    const wide = 0.94 + heat * 0.1;
+    this.flameHolder.setScale(wide, tall);
+    this.drawHeatFill(heat, burning);
+  }
+
   private updateGasOrbit(): void {
-    const fast = this.isBurning ? 1.5 : 1;
+    const burning = this.isBurning;
+    const rx = burning ? 96 : 84;
+    const ry = burning ? 40 : 34;
     this.gasTokens.forEach((token, index) => {
       const offset = (Math.PI * 2 * index) / this.gasTokens.length;
-      const t = this.tokenPhase * fast + offset;
-      const radiusX = this.isBurning ? 104 : 88;
-      const radiusY = this.isBurning ? 58 : 46;
-      const x = Math.cos(t) * radiusX;
-      const y = Math.sin(t * 1.12) * radiusY - 8;
-      const depth = y > -8 ? 5 : 2;
+      const t = this.tokenPhase * (burning ? 1.6 : 1) + offset;
+      const x = Math.cos(t) * rx;
+      const y = Math.sin(t * 1.05) * ry + 4;
       token.setPosition(x, y);
-      token.setDepth(depth);
-      token.setAlpha(this.isBurning ? 0.86 : 0.38 + Math.sin(t) * 0.1);
-      token.setAngle((t * 80) % 360);
-      const baseSize = Number(token.getData("baseSize") ?? 20);
-      const size = baseSize + (this.isBurning ? 5 : 0);
+      token.setAlpha(burning ? 0.95 : 0.52 + Math.sin(t) * 0.16);
+      token.setAngle((t * 70) % 360);
+      const baseSize = Number(token.getData("baseSize") ?? 18);
+      const size = baseSize + (burning ? 4 : 0);
       token.setDisplaySize(size, size);
     });
   }
@@ -455,13 +856,29 @@ export class BurnLeagueScene extends BaseScene {
       const amount = BURN_PRESETS[index]!;
       const active = amount === this.selectedAmount;
       const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
+      const glyph = button.getData("glyph") as Phaser.GameObjects.Graphics;
       const label = button.getData("label") as Phaser.GameObjects.Text;
+
       bg.clear();
-      bg.fillStyle(active ? C.surfaceWarm : C.surface, 0.96);
+      // Active capsule = filled ember chip; inactive = warm surface.
+      bg.fillStyle(active ? C.ember : C.surface, active ? 1 : 0.96);
       bg.fillRoundedRect(-30, -18, 60, 36, 12);
-      bg.lineStyle(2, active ? C.strokeStrong : C.stroke, 0.9);
+      if (active) {
+        bg.fillStyle(C.white, 0.18);
+        bg.fillRoundedRect(-30, -18, 60, 15, { tl: 12, tr: 12, bl: 0, br: 0 });
+      }
+      bg.lineStyle(2, active ? C.emberDeep : C.stroke, active ? 1 : 0.9);
       bg.strokeRoundedRect(-30, -18, 60, 36, 12);
-      label.setColor(active ? "#92400e" : "#765c38");
+
+      // Small flame/capsule glyph reads as "fuel", not a bare token mark.
+      glyph.clear();
+      glyph.setPosition(-16, 1);
+      glyph.fillStyle(active ? C.white : C.ember, active ? 0.95 : 0.85);
+      glyph.fillPoints(this.flamePoints(0.2), true);
+      glyph.fillStyle(active ? C.hot : C.gold, active ? 0.95 : 0.8);
+      glyph.fillPoints(this.flamePoints(0.11), true);
+
+      label.setColor(active ? "#ffffff" : "#8a5a1a");
     });
   }
 
@@ -490,15 +907,22 @@ export class BurnLeagueScene extends BaseScene {
 
   private updateLeaderboard(entries: LeaderEntry[]): void {
     this.leaderList.removeAll(true);
-    this.emptyLeaderLabel.setVisible(entries.length === 0);
+    const empty = entries.length === 0;
+    this.ghostRows.setVisible(empty);
+    this.emptyLeaderLabel.setVisible(empty);
+    this.layoutEmptyChip(empty);
 
     entries.slice(0, 4).forEach((entry, index) => {
-      const y = index * 22;
+      const y = index * 21;
       const row = this.add.container(this.scale.width / 2, y);
       const rankColor = entry.rank === 1 ? C.goldDeep : C.inkSoft;
       const bg = this.add.graphics();
-      bg.fillStyle(entry.isUser ? 0xfff7df : 0xffffff, entry.isUser ? 0.95 : 0.62);
+      bg.fillStyle(entry.isUser ? 0xfff7df : 0xffffff, entry.isUser ? 0.95 : 0.72);
       bg.fillRoundedRect(-166, -9, 332, 18, 8);
+      if (entry.rank === 1) {
+        bg.lineStyle(1.25, C.strokeStrong, 0.85);
+        bg.strokeRoundedRect(-166, -9, 332, 18, 8);
+      }
       row.add(bg);
       row.add(this.add.text(-150, 0, `#${entry.rank}`, {
         fontFamily: FONT,
@@ -521,6 +945,19 @@ export class BurnLeagueScene extends BaseScene {
     });
   }
 
+  private layoutEmptyChip(empty: boolean): void {
+    if (!this.emptyLeaderChip) return;
+    this.emptyLeaderChip.clear();
+    if (!empty) return;
+    const b = this.emptyLeaderLabel.getBounds();
+    const padX = 12;
+    const padY = 5;
+    this.emptyLeaderChip.fillStyle(C.surfaceWarm, 0.94);
+    this.emptyLeaderChip.fillRoundedRect(b.x - padX, b.y - padY, b.width + padX * 2, b.height + padY * 2, 10);
+    this.emptyLeaderChip.lineStyle(1, C.strokeStrong, 0.5);
+    this.emptyLeaderChip.strokeRoundedRect(b.x - padX, b.y - padY, b.width + padX * 2, b.height + padY * 2, 10);
+  }
+
   private syncSelectedAmount(value: string): void {
     const normalized = String(value || this.selectedAmount).replace(/\s*GAS$/i, "");
     if (BURN_PRESETS.includes(normalized as (typeof BURN_PRESETS)[number])) {
@@ -538,6 +975,7 @@ export class BurnLeagueScene extends BaseScene {
     this.selectedAmount = amount;
     this.updatePresets();
     this.updateBurnButton();
+    this.applyHeat(this.poolHeat(), this.isBurning);
     if (notify) {
       this.sfx.play("tap");
       this.dispatch("setBurnAmount", amount);
@@ -548,18 +986,42 @@ export class BurnLeagueScene extends BaseScene {
     if (!this.canBurn()) return;
     this.sfx.play("throw");
     this.flashCore();
+    this.emitFuelBurst();
     this.dispatch("burn", this.selectedAmount);
   }
 
   private flashCore(): void {
     this.pressFeedback(this.coreContainer, { scale: 0.965, duration: 80 });
     this.tween({
-      targets: this.coreGlow,
-      alpha: 0.46,
-      duration: 140,
+      targets: this.coreGlowInner,
+      alpha: 0.5,
+      duration: 150,
       yoyo: true,
       ease: "Sine.easeOut",
     });
+  }
+
+  /** Fuel capsules arc up into the flame and are consumed on a burn. */
+  private emitFuelBurst(): void {
+    if (!this.coreArt) return;
+    for (let i = 0; i < 5; i++) {
+      const token = this.add.image(Phaser.Math.Between(-72, 72), 44, BURN_ASSETS.gas)
+        .setDisplaySize(16, 16)
+        .setAlpha(0.92);
+      this.coreArt.add(token);
+      this.tween({
+        targets: token,
+        x: Phaser.Math.Between(-8, 8),
+        y: 6,
+        displayWidth: 5,
+        displayHeight: 5,
+        alpha: 0,
+        duration: 460,
+        delay: i * 60,
+        ease: "Cubic.easeIn",
+        onComplete: () => token.destroy(),
+      });
+    }
   }
 
   private canBurn(): boolean {

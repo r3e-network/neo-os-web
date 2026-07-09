@@ -51,6 +51,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     lastStatus:      str("lastStatus", ""),
     deadline:        val<number>("deadline", 0) ?? 0,
     dealtAt:         val<number>("dealtAt", 0) ?? 0,
+    // Localized "how to play" hint rendered by the lobby scene (from messages).
+    rulesShort:      t("rulesShort"),
   };
 
   // ── Derived display values (for PlayStage chrome) ─────────────────────────
@@ -86,6 +88,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : gameStatus === "expired" ? t("expiredBanner")
     : t("lobbyTitle");
 
+  // Before a round exists (idle/solved/expired) the timer and hit counters are
+  // not live, so show a neutral placeholder instead of implying a running clock.
+  const roundLive = gameStatus === "dealt" || gameStatus === "committed";
   const hudItems = [
     {
       label: t("rewardMetric"),
@@ -94,12 +99,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     },
     {
       label: t("timeMetric"),
-      value: formatClock(remainingMs),
+      value: roundLive ? formatClock(remainingMs) : "—",
       accent: timeUp,
     },
     {
       label: t("hitsMetric"),
-      value: `${ringsHit}/${targetAccuracy}`,
+      value: roundLive ? `${ringsHit}/${targetAccuracy}` : "—",
       accent: false,
     },
   ];

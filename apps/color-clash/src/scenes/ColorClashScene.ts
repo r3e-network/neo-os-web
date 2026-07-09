@@ -16,6 +16,8 @@ const PAD_GLOW  = [0xff9999, 0x93c5fd, 0x86efac, 0xfde68a] as const; // glow hal
 const BOARD_BG  = 0xf4ead6;
 const BOARD_RIM = 0xb9873c;
 const CENTER_BG = 0x3a2f23;
+const CENTER_CORE = 0x241a12; // warm near-black knob core (unlit hub center)
+const DOT_UNLIT   = 0xcabfa8; // warm stone for unlit progress dots
 const TEXT_MUTED = "#7c6a52";
 const TEXT_MAIN  = "#fff8e8";
 const FONT_FAMILY = "Inter, Arial, sans-serif";
@@ -75,7 +77,7 @@ export class ColorClashScene extends BaseScene {
   private padGraphics: Phaser.GameObjects.Graphics[] = [];
   private padGlows: Phaser.GameObjects.Ellipse[] = [];
   private padButtons: Phaser.GameObjects.Container[] = [];
-  private padButtonImages: Phaser.GameObjects.Image[] = [];
+  private padButtonImages: Phaser.GameObjects.Graphics[] = [];
 
   private roundLabel!: Phaser.GameObjects.Text;
   private phaseLabel!: Phaser.GameObjects.Text;
@@ -235,7 +237,7 @@ export class ColorClashScene extends BaseScene {
       this.lastSequenceLen = sequence.length;
     }
     this.progressDots.forEach((dot, i) => {
-      dot.setFillStyle(i < player.length ? PAD_LIT[i % 4]! : 0x334155);
+      dot.setFillStyle(i < player.length ? PAD_LIT[i % 4]! : DOT_UNLIT);
     });
 
     // Pad interactivity
@@ -336,11 +338,28 @@ export class ColorClashScene extends BaseScene {
 
   // ── Main board (4 quadrant pads) ───────────────────────────────────────────
 
+  /**
+   * Pad-ring radius. The non-compact (desktop) disc is scaled down from the raw
+   * ratio so the console art clears the mode dock above and the pad-button row
+   * below inside the fixed 420×580 logical canvas.
+   */
+  private boardRadius(W: number, H: number): number {
+    const compact = W < 400;
+    const base = Math.min(W, H) * (compact ? 0.30 : 0.41);
+    return compact ? base : base * 0.78;
+  }
+
+  /** Vertical center of the board disc (pushed down on desktop for dock clearance). */
+  private boardCenterY(W: number, H: number): number {
+    const compact = W < 400;
+    return H * (compact ? 0.38 : 0.46);
+  }
+
   private buildBoard(W: number, H: number): void {
     const cx = W / 2;
     const compact = W < 400;
-    const cy = H * (compact ? 0.38 : 0.44);
-    const R  = Math.min(W, H) * (compact ? 0.30 : 0.41);
+    const cy = this.boardCenterY(W, H);
+    const R  = this.boardRadius(W, H);
     const innerR = R * 0.18;  // center hub radius
     const gap    = 5;          // px gap between pads
 
@@ -397,6 +416,15 @@ export class ColorClashScene extends BaseScene {
     }
   }
 
+  /** Scale an RGB hex by `factor` (<1 darken, >1 lighten), clamped per channel. */
+  private static shade(color: number, factor: number): number {
+    const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+    const r = clamp(((color >> 16) & 0xff) * factor);
+    const g = clamp(((color >> 8) & 0xff) * factor);
+    const b = clamp((color & 0xff) * factor);
+    return (r << 16) | (g << 8) | b;
+  }
+
   /** Map 360° angle to pad index: top=0, right=1, bottom=2, left=3. */
   private static angleToPad(angleDeg: number): number {
     if (angleDeg >= 315 || angleDeg < 45)  return 1; // right
@@ -445,9 +473,8 @@ export class ColorClashScene extends BaseScene {
   private lightPad(index: number, on: boolean, alpha = 1): void {
     const W = this.scW;
     const H = this.scH;
-    const compact = W < 400;
-    const cx = W / 2, cy = H * (compact ? 0.38 : 0.44);
-    const R = Math.min(W, H) * (compact ? 0.30 : 0.41);
+    const cx = W / 2, cy = this.boardCenterY(W, H);
+    const R = this.boardRadius(W, H);
     const innerR = R * 0.18;
     this.drawPad(this.padGraphics[index]!, cx, cy, R, innerR, 5, index, on);
     this.padGlows[index]?.setAlpha(on ? alpha * 0.12 : 0);
@@ -458,47 +485,46 @@ export class ColorClashScene extends BaseScene {
   private buildCenterHub(W: number, H: number): void {
     const cx = W / 2;
     const compact = W < 400;
-    const cy = H * (compact ? 0.38 : 0.44);
-    const R  = Math.min(W, H) * (compact ? 0.30 : 0.41) * 0.18;
+    const cy = this.boardCenterY(W, H);
+    // Knob is floored so the phase word always sits on a dark disc, but stays
+    // inside the pad inner-hole so it never clips the coloured quadrants.
+    const knobR = Math.max(this.boardRadius(W, H) * 0.18, compact ? 21 : 25);
 
-    // Hub circle
-    this.add.circle(cx, cy, R, CENTER_BG).setDepth(5);
-    this.add.circle(cx, cy, R - 2, 0x0f172a).setDepth(5);
+    // Hub circle (warm dark core, echoing the console art hub)
+    this.add.circle(cx, cy, knobR, CENTER_BG).setDepth(5);
+    this.add.circle(cx, cy, knobR - 2, CENTER_CORE).setDepth(6);
 
-    this.phaseLabel = this.add.text(cx, cy, "SIMON", {
+    this.phaseLabel = this.add.text(cx, cy, "READY", {
       fontFamily: FONT_FAMILY,
-      fontSize: "13px",
+      fontSize: compact ? "11px" : "12px",
       fontStyle: "bold",
       color: TEXT_MAIN,
-      letterSpacing: 3,
-    }).setOrigin(0.5).setDepth(6);
+      letterSpacing: 1,
+    }).setOrigin(0.5).setDepth(7);
+    // Dark outline + shadow keep every phase word legible even where a long
+    // label (CORRECT/REPEAT) overhangs the knob onto the light board.
+    this.phaseLabel.setStroke("#241a12", compact ? 3 : 4);
+    this.phaseLabel.setShadow(0, 1, "rgba(20,12,4,0.7)", 3, false, true);
   }
 
   // ── Physical pad buttons ──────────────────────────────────────────────────
 
   private buildPadButtons(W: number, H: number): void {
     const compact = W < 400;
-    const y = H * (compact ? 0.73 : 0.745);
+    const y = H * (compact ? 0.73 : 0.78);
     const gap = compact ? Math.max(52, W * 0.17) : 68;
     const startX = W / 2 - gap * 1.5;
     const glowSize = compact ? 48 : 58;
     const padSize = compact ? 46 : 54;
     const hitRadius = compact ? 26 : 30;
-    const names = ["RED", "BLUE", "GREEN", "YELLOW"];
 
     for (let index = 0; index < 4; index++) {
       const container = this.add.container(startX + index * gap, y);
       const glow = this.add.ellipse(0, 0, glowSize, glowSize, PAD_LIT[index]!, 0.16);
-      const pad = this.add.image(0, 0, CLASH_ASSETS.pads[index]!)
-        .setDisplaySize(padSize, padSize)
-        .setScale(0.9);
-      const label = this.add.text(0, 35, names[index]!, {
-        fontFamily: FONT_FAMILY,
-        fontSize: compact ? "7px" : "8px",
-        fontStyle: "bold",
-        color: TEXT_MUTED,
-      }).setOrigin(0.5);
-      label.setY(compact ? 30 : 35);
+      // Crisp drawn glossy chip — no baked-in colour name, no translucent stack.
+      const chip = this.add.graphics();
+      this.drawPadChip(chip, padSize / 2, PAD_LIT[index]!);
+      chip.setScale(0.9);
       const hit = this.add.circle(0, 0, hitRadius, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       this.bindGameButton(hit, {
         targets: container,
@@ -507,10 +533,30 @@ export class ColorClashScene extends BaseScene {
         onPress: () => this.handlePress(index),
       });
 
-      container.add([glow, pad, label, hit]);
+      container.add([glow, chip, hit]);
       this.padButtons.push(container);
-      this.padButtonImages.push(pad);
+      this.padButtonImages.push(chip);
     }
+  }
+
+  /** Draw one crisp glossy colour chip (replaces the text-baked pad-*.webp art). */
+  private drawPadChip(g: Phaser.GameObjects.Graphics, radius: number, base: number): void {
+    g.clear();
+    // Outer rim ring
+    g.fillStyle(ColorClashScene.shade(base, 0.5), 1);
+    g.fillCircle(0, 0, radius);
+    // Main face
+    g.fillStyle(base, 1);
+    g.fillCircle(0, 0, radius - Math.max(2, radius * 0.1));
+    // Glossy upper dome
+    g.fillStyle(ColorClashScene.shade(base, 1.45), 0.7);
+    g.fillCircle(0, -radius * 0.28, radius * 0.55);
+    // Specular highlight
+    g.fillStyle(0xffffff, 0.5);
+    g.fillCircle(-radius * 0.22, -radius * 0.4, radius * 0.16);
+    // Crisp rim stroke
+    g.lineStyle(Math.max(1.5, radius * 0.07), ColorClashScene.shade(base, 0.72), 0.95);
+    g.strokeCircle(0, 0, radius - 1);
   }
 
   // ── HUD ────────────────────────────────────────────────────────────────────

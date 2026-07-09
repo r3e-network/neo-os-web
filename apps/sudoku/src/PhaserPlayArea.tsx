@@ -13,7 +13,7 @@ import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { PhaserGameComponent } from "@framework/phaser";
 import { SudokuScene } from "./scenes/SudokuScene";
-import { formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
+import { DIFFICULTY_RULES, formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
 import "./PlayArea.scss";
 
 // GameConfig — scene array must not be readonly (satisfies Phaser.Types.Core.GameConfig)
@@ -50,6 +50,49 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const progressionRequiredDifficulty =
     val<number>("progressionRequiredDifficulty", 0) ?? 0;
 
+  // Pre-translated canvas strings. BaseScene reads only bridge state, so every
+  // label the Phaser scene draws is localised here and handed over as a plain
+  // object under `labels` — new bridge data only, no renamed/removed keys.
+  const canvasLabels = {
+    vaultTitle: t("lobbyVaultTitle"),
+    vaultSub: t("lobbyVaultSub"),
+    diffNames: [t("diffName_0"), t("diffName_1"), t("diffName_2")],
+    diffCopy: [t("difficulty_easy"), t("difficulty_medium"), t("difficulty_hard")],
+    diffRewards: DIFFICULTY_RULES.map((r) => `${gasDisplay(r.rewardFixed8)} GAS`),
+    sealing: t("statusShuffling"),
+    undoTemplate: t("undoLeftTemplate"),
+    undoNone: t("undoNoneLabel"),
+    poolTemplate: t("poolLimitTemplate"),
+    gateConnect: t("gateConnect"),
+    gateChecking: t("gateChecking"),
+    gateRouteLocked: t("gateRouteLockedTemplate"),
+    gatePoolLow: t("gatePoolLowTemplate"),
+    gateChoose: t("gateChoose"),
+    act: {
+      open: t("startAction"),
+      playAgain: t("playAgainAction"),
+      tryAgain: t("tryAgainAction"),
+      starting: t("startingShort"),
+      connect: t("connectWalletAction"),
+      routeLocked: t("routeLockedAction"),
+      poolLow: t("poolLowShort"),
+      submit: t("submitAction"),
+      submitting: t("submittingShort"),
+      working: t("workingShort"),
+      timeUp: t("timeUpAction"),
+      tooLate: t("tooLateAction"),
+      wait: t("waitToSubmitAction"),
+      solve: t("solveToUnlockAction"),
+    },
+    msg: {
+      deadlinePassed: t("deadlinePassedMsg"),
+      deadlineClose: t("deadlineCloseMsg"),
+      submitUnlock: t("submitUnlockTemplate"),
+    },
+    resultSolved: t("resultCaptionSolved"),
+    resultExpired: t("resultCaptionExpired"),
+  };
+
   // Plain-object snapshot pushed into the Phaser bridge on every render
   const bridgeState = {
     activeGameId,
@@ -69,6 +112,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     credit: creditGas,
     progressionReady,
     progressionRequiredDifficulty,
+    labels: canvasLabels,
   };
 
   // Stage title follows game phase

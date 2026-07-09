@@ -28,6 +28,13 @@ const appMessages = {
 
   startAction: { en: "Start run", zh: "开始冲刺" },
   moreActions: { en: "More actions", zh: "更多操作" },
+
+  // In-canvas board labels (bridged into the Phaser scene).
+  scoreMovesCaption: { en: "MOVES", zh: "步数" },
+  startOpenRun: { en: "Open run", zh: "开始对局" },
+  startOpening: { en: "Opening…", zh: "开局中…" },
+  startCheckingPool: { en: "Checking pool…", zh: "正在检查奖池…" },
+  startPoolLow: { en: "Pool low", zh: "奖池不足" },
   startHint: { en: "Entry {amount} GAS — deposited with this transaction", zh: "报名费 {amount} GAS——随本交易一并存入" },
   startDescription: {
     en: "Pay the entry and the Morpheus enclave seals your spawn stream — only its hash commitment goes on-chain. 512 pays 0.1 GAS, 1024 pays 0.5, 2048 pays 1.",

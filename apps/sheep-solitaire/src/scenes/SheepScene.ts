@@ -35,9 +35,10 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 
-const DIFFICULTY_LABELS = ["Easy", "Medium", "Hard"] as const;
-const DIFFICULTY_ENTRY   = ["0.02 GAS", "0.10 GAS", "0.20 GAS"] as const;
-const DIFFICULTY_REWARD  = ["0.10 GAS", "0.50 GAS", "1.00 GAS"] as const;
+// Themed board names (English fallback; localized copy arrives via bridgeState.loc).
+const DIFFICULTY_LABELS = ["Meadow Board", "Festival Board", "Mountain Board"] as const;
+const DIFFICULTY_ENTRY   = ["Entry 0.02 GAS", "Entry 0.10 GAS", "Entry 0.20 GAS"] as const;
+const DIFFICULTY_REWARD  = ["Win 0.10 GAS", "Win 0.50 GAS", "Win 1.00 GAS"] as const;
 const DIFFICULTY_TIMER   = ["5:00",     "8:00",     "12:00"] as const;
 
 const SHEEP_ASSETS = {
@@ -150,6 +151,25 @@ export class SheepScene extends BaseScene {
   private resultActionBg!: Phaser.GameObjects.Rectangle;
   private resultActionTxt!: Phaser.GameObjects.Text;
 
+  // ── Localized text references (updated from React locale via applyLocale) ────
+  private lobbyTitleTxt?:  Phaser.GameObjects.Text;
+  private lobbySubTxt?:    Phaser.GameObjects.Text;
+  private cardNameTxts:    Phaser.GameObjects.Text[] = [];
+  private cardInfoTxts:    Phaser.GameObjects.Text[] = [];
+  private cardEntryTxts:   Phaser.GameObjects.Text[] = [];
+  private cardRewardTxts:  Phaser.GameObjects.Text[] = [];
+  private undoLabelTxt?:   Phaser.GameObjects.Text;
+  private shuffleLabelTxt?: Phaser.GameObjects.Text;
+  private remove3LabelTxt?: Phaser.GameObjects.Text;
+  private trayLabelTxt?:   Phaser.GameObjects.Text;
+  private loadTitleTxt?:   Phaser.GameObjects.Text;
+  private loadSubTxt?:     Phaser.GameObjects.Text;
+
+  // Loading spinner bob (reduced-motion aware).
+  private spinner?:        Phaser.GameObjects.Container;
+  private spinnerBaseY = 0;
+  private spinnerBob: Phaser.Tweens.Tween | null = null;
+
   // ── State mirrors ──────────────────────────────────────────────────────────
   private prevSlotLen = 0;
   private prevPileLen = 0;
@@ -161,6 +181,21 @@ export class SheepScene extends BaseScene {
 
   constructor() {
     super("SheepScene");
+  }
+
+  // ── Locale helpers (React resolves strings via bridgeState.loc) ─────────────
+  private locBag(): Record<string, unknown> {
+    return this.val<Record<string, unknown>>("loc") ?? {};
+  }
+
+  private locStr(key: string, fallback: string): string {
+    const v = this.locBag()[key];
+    return typeof v === "string" && v.length > 0 ? v : fallback;
+  }
+
+  private locArr(key: string, fallback: string[]): string[] {
+    const v = this.locBag()[key];
+    return Array.isArray(v) && v.length === fallback.length ? (v as string[]) : fallback;
   }
 
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
@@ -207,6 +242,8 @@ export class SheepScene extends BaseScene {
   }
 
   protected onStateUpdate(_state: GameState): void {
+    this.applyLocale();
+
     const status     = this.str("gameStatus", "idle");
     const isStarting = this.bool("isStarting");
     const isDealing  = this.bool("isDealing");
@@ -236,6 +273,34 @@ export class SheepScene extends BaseScene {
     this.statusLabel?.setText(this.str("lastStatus", ""));
   }
 
+  /** Push the React-resolved locale strings onto every static scene label. */
+  private applyLocale(): void {
+    this.lobbyTitleTxt?.setText(this.locStr("title", "Sheep Solitaire"));
+    this.lobbySubTxt?.setText(this.locStr("subtitle", "Match 3 tiles to clear the board"));
+
+    const names = this.locArr("diffNames", [...DIFFICULTY_LABELS]);
+    const infos = this.locArr("diffInfos", [
+      `8 tile types · ${DIFFICULTY_TIMER[0]}`,
+      `12 tile types · ${DIFFICULTY_TIMER[1]}`,
+      `15 tile types · ${DIFFICULTY_TIMER[2]}`,
+    ]);
+    const entries = this.locArr("diffEntries", [...DIFFICULTY_ENTRY]);
+    const rewards = this.locArr("diffRewards", [...DIFFICULTY_REWARD]);
+    for (let d = 0; d < 3; d++) {
+      this.cardNameTxts[d]?.setText(names[d] ?? "");
+      this.cardInfoTxts[d]?.setText(infos[d] ?? "");
+      this.cardEntryTxts[d]?.setText(entries[d] ?? "");
+      this.cardRewardTxts[d]?.setText(rewards[d] ?? "");
+    }
+
+    this.undoLabelTxt?.setText(this.locStr("undo", "Undo"));
+    this.shuffleLabelTxt?.setText(this.locStr("shuffle", "Shuffle"));
+    this.remove3LabelTxt?.setText(this.locStr("remove3", "Remove 3"));
+    this.trayLabelTxt?.setText(this.locStr("tray", "Tray"));
+    this.loadTitleTxt?.setText(this.locStr("loadTitle", "Preparing your board…"));
+    this.loadSubTxt?.setText(this.locStr("loadSub", "Securing puzzle on-chain"));
+  }
+
   // ── Background ─────────────────────────────────────────────────────────────
 
   private buildBackground(W: number, H: number): void {
@@ -245,12 +310,16 @@ export class SheepScene extends BaseScene {
 
     const table = this.add.image(W / 2, H * 0.36, SHEEP_ASSETS.table)
       .setDisplaySize(W - 18, 148)
-      .setAlpha(0.98);
+      .setAlpha(0.5);
     table.setDepth(0);
 
-    this.add.rectangle(W / 2, H * 0.36, W - 24, 150, 0xffffff, 28)
-      .setStrokeStyle(1, 0xffffff, 50);
-    this.add.rectangle(W / 2, 78, W - 38, 74, C.panel, 235)
+    // Soft cream sheen that lifts the meadow-table art into the light theme so
+    // it reads as a faint pastoral wash behind the cards.
+    // (Alpha must be 0–1; a stray `28` here rendered an opaque white slab that
+    // showed as false "letterbox" bars in the strips flanking the route cards.)
+    this.add.rectangle(W / 2, H * 0.36, W - 24, 150, 0xfffbef, 0.55)
+      .setStrokeStyle(1, 0xffffff, 0.5);
+    this.add.rectangle(W / 2, 78, W - 38, 74, C.panel, 0.95)
       .setStrokeStyle(1, 0xe7d19b);
     this.tallMeadow = this.add.graphics();
     this.stageFrame = this.add.graphics();
@@ -265,13 +334,32 @@ export class SheepScene extends BaseScene {
     const stageTop = Math.min(0, viewTop - 12);
     const stageBottom = Math.max(DESIGN_H, Math.min(viewBottom + 10, DESIGN_H + 170));
     const stageHeight = stageBottom - stageTop;
+    const stageMidY = stageTop + stageHeight / 2;
+
+    // Horizontal extension — mirror the vertical logic. When the host viewport
+    // is wider than the 400:640 design ratio the camera reveals world beyond
+    // DESIGN_W; without this the transparent canvas exposes the white React
+    // shell + its green gradient as letterbox bars beside the cream stage. The
+    // camera always centres on DESIGN_W / 2, so exposure is symmetric.
+    const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
+    const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
+    const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H) || 1;
+    const visibleWorldW = viewW / zoom;
+    // When the host viewport is wider than the 400:640 design ratio (e.g. small
+    // downscaled canvases) the camera reveals world beyond DESIGN_W; bleed the
+    // cream backdrop + panel past it so no transparent letterbox exposes the
+    // white/green React shell. The camera centres on DESIGN_W / 2, so exposure
+    // is symmetric.
+    const wide = visibleWorldW > DESIGN_W + 1;
+    const backdropWidth = wide ? visibleWorldW + 48 : DESIGN_W;
+    const panelWidth = wide ? visibleWorldW + 48 : DESIGN_W - 18;
 
     this.sceneBackdrop
-      .setPosition(DESIGN_W / 2, stageTop + stageHeight / 2)
-      .setDisplaySize(DESIGN_W, stageHeight);
+      .setPosition(DESIGN_W / 2, stageMidY)
+      .setDisplaySize(backdropWidth, stageHeight);
     this.stagePanel
-      .setPosition(DESIGN_W / 2, stageTop + stageHeight / 2)
-      .setDisplaySize(DESIGN_W - 18, Math.max(1, stageHeight - 18));
+      .setPosition(DESIGN_W / 2, stageMidY)
+      .setDisplaySize(panelWidth, Math.max(1, stageHeight - 18));
 
     this.tallMeadow.clear();
     if (stageBottom > DESIGN_H + 20) {
@@ -300,34 +388,39 @@ export class SheepScene extends BaseScene {
 
   // ── Lobby ──────────────────────────────────────────────────────────────────
 
-  private buildLobby(W: number, _H: number): void {
+  private buildLobby(W: number, H: number): void {
     this.lobbyGroup = this.add.container(0, 0);
+
+    // Soft pastoral ground filling the band below the route stack so the lower
+    // third reads as intentional meadow rather than dead cream space.
+    this.buildLobbyGround(W, H);
 
     const mascot = this.add.image(W / 2 - 130, 57, SHEEP_ASSETS.mascot)
       .setDisplaySize(52, 52);
 
     const headerTextX = W / 2 + 38;
-    const title = this.add.text(headerTextX, 52, "Sheep Solitaire", {
+    this.lobbyTitleTxt = this.add.text(headerTextX, 52, "Sheep Solitaire", {
       fontFamily: FONT,
       fontSize: "21px",
       fontStyle: "700",
       color: "#2f281d",
     }).setOrigin(0.5);
 
-    const sub = this.add.text(headerTextX, 82, "Match 3 tiles to clear the board", {
+    this.lobbySubTxt = this.add.text(headerTextX, 82, "Match 3 tiles to clear the board", {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#7a6544",
-      wordWrap: { width: 230 },
+      wordWrap: { width: 236 },
       align: "center",
     }).setOrigin(0.5);
 
-    this.lobbyGroup.add([mascot, title, sub]);
+    this.lobbyGroup.add([mascot, this.lobbyTitleTxt, this.lobbySubTxt]);
 
-    // 3 difficulty cards
-    const cardTopY = 184;
+    // 3 difficulty cards — a touch more breathing room lets the stack reach
+    // lower into the tall canvas. firstCenterY is the centre of the top card.
+    const firstCenterY = 182;
     const cardH    = 132;
-    const gap      = 12;
+    const gap      = 16;
     const cardW    = W - 60;
     const cx       = W / 2;
 
@@ -335,9 +428,41 @@ export class SheepScene extends BaseScene {
     const diffBorders = [0x9aca76, 0xdab159, 0xe78b77];
 
     for (let d = 0; d < 3; d++) {
-      const y = cardTopY + d * (cardH + gap);
+      const y = firstCenterY + d * (cardH + gap);
       this.buildLobbyCard(cx, y, cardW, cardH, d, diffColors[d]!, diffBorders[d]!);
     }
+  }
+
+  /** Subtle meadow ground (ellipses, grass blades, flower dots) in the lower band. */
+  private buildLobbyGround(W: number, H: number): void {
+    const g = this.add.graphics();
+    const baseY = H - 72;
+
+    g.fillStyle(0xd9edb7, 0.55);
+    g.fillEllipse(W * 0.30, baseY, 168, 34);
+    g.fillStyle(0xd9edb7, 0.42);
+    g.fillEllipse(W * 0.70, baseY + 30, 190, 38);
+
+    g.lineStyle(1, 0xa9c877, 0.45);
+    for (let x = 34; x < W - 24; x += 26) {
+      const sway = ((x / 26) % 2 === 0) ? 6 : -6;
+      g.lineBetween(x, baseY + 20, x + sway, baseY - 12);
+    }
+
+    // A few tiny flower dots for warmth.
+    const flowers: Array<[number, number, number]> = [
+      [W * 0.22, baseY - 4, 0xf2b8c6],
+      [W * 0.5, baseY + 20, 0xf6d98a],
+      [W * 0.8, baseY + 8, 0xc7b6ea],
+    ];
+    for (const [fx, fy, color] of flowers) {
+      g.fillStyle(color, 0.7);
+      g.fillCircle(fx, fy, 3.2);
+      g.fillStyle(0xfff8e8, 0.85);
+      g.fillCircle(fx, fy, 1.2);
+    }
+
+    this.lobbyGroup.add(g);
   }
 
   private buildLobbyCard(
@@ -347,73 +472,84 @@ export class SheepScene extends BaseScene {
     bgColor: number,
     borderColor: number,
   ): void {
-    const bg = this.add.rectangle(cx, cy, w, h, bgColor)
+    // Card as a container centred on (cx, cy) so hover/press scale about the
+    // card's own centre and children ride along.
+    const card = this.add.container(cx, cy);
+
+    const bg = this.add.rectangle(0, 0, w, h, bgColor)
       .setStrokeStyle(2, borderColor);
-    bg.setInteractive({ useHandCursor: true });
 
-    const badge = this.add.image(cx - w / 2 + 54, cy - 36, SHEEP_ASSETS.badges[difficulty] ?? SHEEP_ASSETS.badges[0])
-      .setDisplaySize(58, 58);
+    const badge = this.add.image(-w / 2 + 44, -h / 2 + 42, SHEEP_ASSETS.badges[difficulty] ?? SHEEP_ASSETS.badges[0])
+      .setDisplaySize(56, 56);
 
-    const label = this.add.text(cx - 4, cy - 48, DIFFICULTY_LABELS[difficulty]!, {
+    // Left column: themed board name + tile-type / clock info, left-aligned
+    // beside the badge.
+    const textLeft = -w / 2 + 80;
+    const label = this.add.text(textLeft, -30, DIFFICULTY_LABELS[difficulty]!, {
       fontFamily: FONT,
-      fontSize: "20px",
+      fontSize: "17px",
       fontStyle: "700",
       color: "#2f281d",
-    }).setOrigin(0.5);
-
-    const cardTypes = difficulty === 0 ? 8 : difficulty === 1 ? 12 : 15;
-    const infoText  = `${cardTypes} tile types  ·  ${DIFFICULTY_TIMER[difficulty]}`;
-    const infoLabel = this.add.text(cx - 4, cy - 18, infoText, {
-      fontFamily: FONT,
-      fontSize: "13px",
-      color: "#7a6544",
-    }).setOrigin(0.5);
-
-    const entryLabel = this.add.text(cx - w / 2 + 112, cy + 12, `Entry ${DIFFICULTY_ENTRY[difficulty]}`, {
-      fontFamily: FONT,
-      fontSize: "12px",
-      color: "#8f6a20",
     }).setOrigin(0, 0.5);
 
-    const rewardLabel = this.add.text(cx + w / 2 - 22, cy + 12, `Win ${DIFFICULTY_REWARD[difficulty]}`, {
+    const cardTypes = difficulty === 0 ? 8 : difficulty === 1 ? 12 : 15;
+    const infoText  = `${cardTypes} tile types · ${DIFFICULTY_TIMER[difficulty]}`;
+    const infoLabel = this.add.text(textLeft, -6, infoText, {
       fontFamily: FONT,
-      fontSize: "13px",
+      fontSize: "12px",
+      color: "#7a6544",
+    }).setOrigin(0, 0.5);
+
+    // Right column: reward + entry, right-aligned so the card reads as a
+    // balanced two-column route card instead of a left-heavy block.
+    const textRight = w / 2 - 16;
+    const rewardLabel = this.add.text(textRight, -30, DIFFICULTY_REWARD[difficulty]!, {
+      fontFamily: FONT,
+      fontSize: "14px",
       fontStyle: "700",
       color: "#217d4d",
     }).setOrigin(1, 0.5);
 
-    // Preview real tile assets.
+    const entryLabel = this.add.text(textRight, -6, DIFFICULTY_ENTRY[difficulty]!, {
+      fontFamily: FONT,
+      fontSize: "11.5px",
+      color: "#8f6a20",
+    }).setOrigin(1, 0.5);
+
+    // Preview real tile assets along the bottom row.
     const tileCount = Math.min(cardTypes, 8);
-    const tileStartX = cx - (tileCount / 2 - 0.5) * 30;
+    const tileStartX = -(tileCount / 2 - 0.5) * 30;
     const previewLabels: Phaser.GameObjects.Image[] = [];
     for (let i = 0; i < tileCount; i++) {
-      const tile = this.add.image(tileStartX + i * 30, cy + 46, this.tileAssetKey(i))
+      const tile = this.add.image(tileStartX + i * 30, h / 2 - 26, this.tileAssetKey(i))
         .setDisplaySize(30, 30);
       previewLabels.push(tile);
     }
 
-    const onHoverIn = () => {
-      bg.setStrokeStyle(3, C.goldLight);
-      this.tweens.add({ targets: bg, scaleX: 1.01, scaleY: 1.01, duration: 80 });
-    };
-    const onHoverOut = () => {
-      bg.setStrokeStyle(2, borderColor);
-      this.tweens.add({ targets: bg, scaleX: 1, scaleY: 1, duration: 80 });
-    };
-    const onPress = () => {
-      this.sfx.play("start");
-      this.tweens.add({ targets: bg, scaleX: 0.97, scaleY: 0.97, duration: 60, yoyo: true });
-      this.dispatch("startGame", { difficulty });
-    };
-    const bindStart = (target: Phaser.GameObjects.GameObject) => {
-      target.setInteractive({ useHandCursor: true });
-      target.on("pointerover", onHoverIn);
-      target.on("pointerout", onHoverOut);
-      target.on("pointerdown", onPress);
-    };
-    [bg, badge, label, infoLabel, entryLabel, rewardLabel, ...previewLabels].forEach(bindStart);
+    card.add([bg, badge, label, infoLabel, entryLabel, rewardLabel, ...previewLabels]);
 
-    this.lobbyGroup.add([bg, badge, label, infoLabel, entryLabel, rewardLabel, ...previewLabels]);
+    // Store refs so applyLocale can retranslate this card.
+    this.cardNameTxts[difficulty]   = label;
+    this.cardInfoTxts[difficulty]   = infoLabel;
+    this.cardEntryTxts[difficulty]  = entryLabel;
+    this.cardRewardTxts[difficulty] = rewardLabel;
+
+    // Reduced-motion-aware hover/press via the framework helper; the whole card
+    // scales, and hover repaints the border.
+    bg.setInteractive({ useHandCursor: true });
+    this.bindGameButton(bg, {
+      targets: card,
+      hoverScale: 1.015,
+      pressScale: 0.97,
+      onHoverIn: () => bg.setStrokeStyle(3, C.goldLight),
+      onHoverOut: () => bg.setStrokeStyle(2, borderColor),
+      onPress: () => {
+        this.sfx.play("start");
+        this.dispatch("startGame", { difficulty });
+      },
+    });
+
+    this.lobbyGroup.add(card);
   }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
@@ -428,30 +564,49 @@ export class SheepScene extends BaseScene {
     const spinnerArt = this.add.image(0, 0, SHEEP_ASSETS.mascot)
       .setDisplaySize(70, 70);
     spinner.add(spinnerArt);
+    this.spinner = spinner;
+    this.spinnerBaseY = spinner.y;
 
-    const loadText = this.add.text(W / 2, H / 2 + 24, "Preparing your board…", {
+    this.loadTitleTxt = this.add.text(W / 2, H / 2 + 24, "Preparing your board…", {
       fontFamily: FONT,
       fontSize: "16px",
       color: "#2f281d",
     }).setOrigin(0.5);
 
-    const subText = this.add.text(W / 2, H / 2 + 48, "Securing puzzle on-chain", {
+    this.loadSubTxt = this.add.text(W / 2, H / 2 + 48, "Securing puzzle on-chain", {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#7a6544",
     }).setOrigin(0.5);
 
-    // Spin animation on spinner
-    this.tweens.add({
-      targets: spinner,
-      y: spinner.y - 12,
+    // Gentle bob — gated so prefers-reduced-motion users get a static mascot
+    // (no unconditional infinite tween on a core object).
+    this.startSpinnerBob();
+
+    this.loadGroup.add([bg, spinner, this.loadTitleTxt, this.loadSubTxt]);
+  }
+
+  private startSpinnerBob(): void {
+    if (this.reducedMotion || !this.spinner || this.spinnerBob) return;
+    this.spinnerBob = this.tweens.add({
+      targets: this.spinner,
+      y: this.spinnerBaseY - 12,
       duration: 700,
       ease: "Sine.easeInOut",
       yoyo: true,
       repeat: -1,
     });
+  }
 
-    this.loadGroup.add([bg, spinner, loadText, subText]);
+  private stopSpinnerBob(): void {
+    this.spinnerBob?.stop();
+    this.spinnerBob = null;
+    if (this.spinner) this.spinner.y = this.spinnerBaseY;
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (enabled) this.stopSpinnerBob();
+    else this.startSpinnerBob();
   }
 
   // ── Game screen scaffold ───────────────────────────────────────────────────
@@ -464,10 +619,13 @@ export class SheepScene extends BaseScene {
     this.gameGroup.add(this.pileContainer);
 
     // ── Progress label ───────────────────────────────────────────────────────
+    // Warm dark ink so it reads on the cream stage (retinted from the old
+    // dark-felt pale greens).
     this.progressLabel = this.add.text(W / 2, 30, "", {
       fontFamily: FONT,
       fontSize: "13px",
-      color: "#c8d8b0",
+      fontStyle: "600",
+      color: "#5a4a37",
     }).setOrigin(0.5);
     this.gameGroup.add(this.progressLabel);
 
@@ -478,12 +636,13 @@ export class SheepScene extends BaseScene {
     this.gameGroup.add(trayBg);
 
     // Tray label
-    const trayLabel = this.add.text(16, trayY - 46, "Tray", {
+    this.trayLabelTxt = this.add.text(16, trayY - 46, "Tray", {
       fontFamily: FONT,
       fontSize: "11px",
+      fontStyle: "600",
       color: "#8f6a20",
-    }).setAlpha(0.8);
-    this.gameGroup.add(trayLabel);
+    }).setAlpha(0.9);
+    this.gameGroup.add(this.trayLabelTxt);
 
     // Slot outlines (7 static slots)
     const slotStep = (W - 32) / SLOT_COUNT;
@@ -510,17 +669,19 @@ export class SheepScene extends BaseScene {
     this.statusLabel = this.add.text(W / 2, H * STATUS_Y_FRAC, "", {
       fontFamily: FONT,
       fontSize: "12px",
-      color: "#a0c090",
+      color: "#5a4a37",
       wordWrap: { width: W - 40 },
       align: "center",
     }).setOrigin(0.5);
     this.gameGroup.add(this.statusLabel);
 
     // ── Matched counter ──────────────────────────────────────────────────────
+    // Deep meadow green (matches the lobby reward ink) — legible on cream.
     this.matchedLabel = this.add.text(W - 18, 30, "", {
       fontFamily: FONT,
       fontSize: "12px",
-      color: "#7dd87d",
+      fontStyle: "700",
+      color: "#217d4d",
       align: "right",
     }).setOrigin(1, 0.5);
     this.gameGroup.add(this.matchedLabel);
@@ -536,12 +697,17 @@ export class SheepScene extends BaseScene {
 
     this.undoBtn    = this.makeToolBtn(startX,              toolY, "Undo",    "0", () => this.dispatch("useUndo"));
     this.shuffleBtn = this.makeToolBtn(startX + btnW + gap, toolY, "Shuffle", "1", () => this.dispatch("useShuffle"));
-    this.remove3Btn = this.makeToolBtn(startX + 2*(btnW+gap), toolY, "Clear 3", "1", () => this.dispatch("useRemove3"));
+    this.remove3Btn = this.makeToolBtn(startX + 2*(btnW+gap), toolY, "Remove 3", "1", () => this.dispatch("useRemove3"));
 
     // Extract count text refs from last item in each container (index 2)
     this.undoCountTxt    = this.undoBtn.list[2]    as Phaser.GameObjects.Text;
     this.shuffleCountTxt = this.shuffleBtn.list[2] as Phaser.GameObjects.Text;
     this.remove3CountTxt = this.remove3Btn.list[2] as Phaser.GameObjects.Text;
+
+    // Extract label text refs (index 1) so applyLocale can retranslate them.
+    this.undoLabelTxt    = this.undoBtn.list[1]    as Phaser.GameObjects.Text;
+    this.shuffleLabelTxt = this.shuffleBtn.list[1] as Phaser.GameObjects.Text;
+    this.remove3LabelTxt = this.remove3Btn.list[1] as Phaser.GameObjects.Text;
 
     this.toolsContainer.add([this.undoBtn, this.shuffleBtn, this.remove3Btn]);
   }
@@ -562,7 +728,7 @@ export class SheepScene extends BaseScene {
     bg.on("pointerdown",  () => {
       this.sfx.play("chip");
       onPress();
-      this.tweens.add({ targets: c, scaleX: 0.93, scaleY: 0.93, duration: 60, yoyo: true });
+      this.pressFeedback(c, { scale: 0.93, duration: 60 });
     });
 
     const txt = this.add.text(0, -2, label, {
@@ -732,10 +898,10 @@ export class SheepScene extends BaseScene {
 
       tile.on("pointerover", () => {
         tile.clearTint();
-        this.tweens.add({ targets: c, scaleX: 1.07, scaleY: 1.07, duration: 80 });
+        this.animate({ targets: c, scaleX: 1.07, scaleY: 1.07, duration: 80 });
       });
       tile.on("pointerout", () => {
-        this.tweens.add({ targets: c, scaleX: 1, scaleY: 1, duration: 80 });
+        this.animate({ targets: c, scaleX: 1, scaleY: 1, duration: 80 });
       });
       tile.on("pointerdown", () => {
         if (this.ghostInFlight) return;
@@ -788,8 +954,8 @@ export class SheepScene extends BaseScene {
       },
     });
 
-    // Visual press feedback on original sprite
-    this.tweens.add({ targets: sprite, alpha: 0.3, duration: 120 });
+    // Visual press feedback on original sprite (snaps under reduced motion)
+    this.animate({ targets: sprite, alpha: 0.3, duration: 120 });
   }
 
   private rebuildTray(slotCards: CardView[]): void {
@@ -885,10 +1051,20 @@ export class SheepScene extends BaseScene {
     const remaining   = pileCards.length + slotCards.length;
     const matched     = totalCards - remaining;
     const deadline    = this.num("deadline", 0);
-    const clock       = deadline > 0 ? `Time ${this.formatTimeLeft(deadline)}` : "Time --";
+    const clock       = deadline > 0 ? this.formatTimeLeft(deadline) : "--";
 
-    this.progressLabel.setText(`${clock}  ·  Pile: ${pileCards.length}  ·  Tray: ${slotCards.length}/${SLOT_COUNT}`);
-    this.matchedLabel.setText(`Matched ${matched}/${totalCards}`);
+    this.progressLabel.setText(
+      this.locStr("progress", "Time {clock}  ·  Pile {pile}  ·  Tray {tray}/{cap}")
+        .replace("{clock}", clock)
+        .replace("{pile}", String(pileCards.length))
+        .replace("{tray}", String(slotCards.length))
+        .replace("{cap}", String(SLOT_COUNT)),
+    );
+    this.matchedLabel.setText(
+      this.locStr("matched", "Matched {matched}/{total}")
+        .replace("{matched}", String(matched))
+        .replace("{total}", String(totalCards)),
+    );
   }
 
   private updateResultScreen(): void {
@@ -900,15 +1076,26 @@ export class SheepScene extends BaseScene {
     const canSettle = status === "solved" && activeGameId !== "0";
 
     if (status === "solved") {
-      this.resultTitle.setText(canSettle ? "You Won" : "Reward Credited").setColor("#f0c866");
+      this.resultTitle
+        .setText(canSettle ? this.locStr("wonTitle", "You Won") : this.locStr("creditedTitle", "Reward Credited"))
+        .setColor("#f0c866");
+      const payoutSub = this.locStr("payoutSub", "Payout: {payout}").replace("{payout}", payout);
+      const creditSub = this.locStr("creditReadySub", "{amount} GAS is ready to withdraw")
+        .replace("{amount}", credit.toFixed(2));
       this.resultSub.setText(
         canSettle
-          ? (payout ? `Payout: ${payout}` : "Board cleared!")
+          ? (payout ? payoutSub : this.locStr("boardClearedSub", "Board cleared!"))
           : credit > 0
-          ? `${credit.toFixed(2)} GAS is ready to withdraw`
-          : "Board verified on-chain",
+          ? creditSub
+          : this.locStr("boardVerifiedSub", "Board verified on-chain"),
       );
-      this.resultActionTxt.setText(canSettle ? "Claim Reward" : credit > 0 ? "Withdraw" : "Back to Routes");
+      this.resultActionTxt.setText(
+        canSettle
+          ? this.locStr("claim", "Claim Reward")
+          : credit > 0
+          ? this.locStr("withdraw", "Withdraw")
+          : this.locStr("backToRoutes", "Back to Routes"),
+      );
       this.resultActionBg.setFillStyle(C.green);
       this.resultActionBg.off("pointerdown");
       this.resultActionBg.on("pointerdown", () => {
@@ -921,9 +1108,9 @@ export class SheepScene extends BaseScene {
         }
       });
     } else if (isGameOver) {
-      this.resultTitle.setText("Game Over").setColor("#e25d4d");
-      this.resultSub.setText("Tray is full — no more moves!");
-      this.resultActionTxt.setText("Try Again");
+      this.resultTitle.setText(this.locStr("gameOverTitle", "Game Over")).setColor("#e25d4d");
+      this.resultSub.setText(this.locStr("trayFullSub", "Tray is full — no more moves!"));
+      this.resultActionTxt.setText(this.locStr("tryAgain", "Try Again"));
       this.resultActionBg.setFillStyle(C.btnBg);
       this.resultActionBg.off("pointerdown");
       this.resultActionBg.on("pointerdown", () => this.dispatch("expireGame"));
@@ -933,7 +1120,8 @@ export class SheepScene extends BaseScene {
     if (this.resultAnimationKey !== animationKey) {
       this.resultAnimationKey = animationKey;
       this.resultGroup.setAlpha(0).setScale(0.85);
-      this.tweens.add({
+      // Reduced-motion-aware pop (snaps to the end state when motion is off).
+      this.tween({
         targets: this.resultGroup,
         alpha: 1,
         scaleX: 1,

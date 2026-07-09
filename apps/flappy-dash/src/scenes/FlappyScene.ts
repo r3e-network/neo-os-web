@@ -92,6 +92,81 @@ const BACKGROUND_VISIBLE_SOURCE_HEIGHT = 120;
 const BACKGROUND_SCALE = (H - GROUND_HEIGHT) / BACKGROUND_VISIBLE_SOURCE_HEIGHT;
 const GROUND_TILE_SCALE = GROUND_HEIGHT / 24;
 
+// ─── Localized labels (handed in via bridgeState.sceneLabels) ──────────────────
+
+interface RouteLabel {
+  title: string;      // "{name} route" (already resolved)
+  meta: string;       // "5 gate run · 2 min timer"
+  cardName: string;   // localized route name
+  cardGates: string;  // "5 gates"
+  entry: string;      // "Entry 0.02 GAS"
+}
+
+interface SceneLabels {
+  eyebrow: string;
+  heroTagline: string;
+  title: string;
+  poolChip: string;      // "Pool {pool} GAS"
+  awaitingPool: string;
+  launch: string;
+  launching: string;
+  flyAgain: string;
+  retryRun: string;
+  tapTitle: string;
+  tapHint: string;
+  sealingTitle: string;
+  sealingHint: string;
+  winTitle: string;
+  crashTitle: string;
+  timeUpTitle: string;
+  winBody: string;       // "{score} pipes passed\nWin {reward} GAS"
+  crashBody: string;     // "{score} pipes passed\nTarget {target}"
+  timeUpBody: string;    // "{score} pipes passed\nDeadline reached"
+  submitScore: string;
+  submitting: string;
+  playAgain: string;
+  backToLobby: string;
+  tryAgain: string;
+  routes: RouteLabel[];
+}
+
+// English fallback so the scene renders even before the label map arrives (or
+// when running standalone without the React shell). Live locales override this
+// through bridgeState.sceneLabels.
+const FALLBACK_LABELS: SceneLabels = {
+  eyebrow: "Verified flight challenge",
+  heroTagline: "Pass the gates, prove the run, claim GAS.",
+  title: "Flappy Dash",
+  poolChip: "Pool {pool} GAS",
+  awaitingPool: "Awaiting pool",
+  launch: "Launch Run",
+  launching: "Launching…",
+  flyAgain: "Fly Again",
+  retryRun: "Retry Run",
+  tapTitle: "Tap to Fly!",
+  tapHint: "Space / ↑ on desktop",
+  sealingTitle: "Sealing Pipes…",
+  sealingHint: "Waiting for on-chain randomness",
+  winTitle: "You Win!",
+  crashTitle: "Crashed!",
+  timeUpTitle: "Time Up!",
+  winBody: "{score} pipes passed\nWin {reward} GAS",
+  crashBody: "{score} pipes passed\nTarget {target}",
+  timeUpBody: "{score} pipes passed\nDeadline reached",
+  submitScore: "Submit Score",
+  submitting: "Submitting…",
+  playAgain: "Play Again",
+  backToLobby: "Back to Lobby",
+  tryAgain: "Try Again",
+  routes: DIFFICULTY_RULES.map((rule) => ({
+    title: `${rule.key.charAt(0).toUpperCase() + rule.key.slice(1)} route`,
+    meta: `${rule.targetPipes} gate run · ${Math.round(rule.limitMs / 60000)} min timer`,
+    cardName: rule.key.charAt(0).toUpperCase() + rule.key.slice(1),
+    cardGates: `${rule.targetPipes} gates`,
+    entry: `Entry ${gasDisplay(rule.entryFixed8)} GAS`,
+  })),
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type LocalPhase = "idle" | "ready" | "playing" | "crashed" | "won";
@@ -119,6 +194,8 @@ export class FlappyScene extends BaseScene {
   // ── Lobby layer ───────────────────────────────────────────────────────────
   private lobbyContainer!: Phaser.GameObjects.Container;
   private difficultyCards: Phaser.GameObjects.Container[] = [];
+  private cardNameLabels: Phaser.GameObjects.Text[] = [];
+  private cardGatesLabels: Phaser.GameObjects.Text[] = [];
   private startButton!: Phaser.GameObjects.Container;
   private startBtnBg!: Phaser.GameObjects.Rectangle;
   private startBtnLabel!: Phaser.GameObjects.Text;
@@ -128,6 +205,15 @@ export class FlappyScene extends BaseScene {
   private routeTargetLabel!: Phaser.GameObjects.Text;
   private routeRewardLabel!: Phaser.GameObjects.Text;
   private routeEntryLabel!: Phaser.GameObjects.Text;
+  private eyebrowLabel!: Phaser.GameObjects.Text;
+  private titleLabel!: Phaser.GameObjects.Text;
+  private heroTaglineLabel!: Phaser.GameObjects.Text;
+
+  // ── Dealing / ready overlay text refs (locale-refreshed) ───────────────────
+  private sealingTitleLabel!: Phaser.GameObjects.Text;
+  private sealingHintLabel!: Phaser.GameObjects.Text;
+  private readyTitleLabel!: Phaser.GameObjects.Text;
+  private readyHintLabel!: Phaser.GameObjects.Text;
 
   // ── Overlay layer ─────────────────────────────────────────────────────────
   private overlayContainer!: Phaser.GameObjects.Container;
@@ -364,6 +450,52 @@ export class FlappyScene extends BaseScene {
     if (status === "idle" || status === "solved" || status === "expired") {
       this.updateCardHighlights();
     }
+
+    // Keep every static caption in sync with the active locale.
+    this.applyStaticLabels();
+  }
+
+  // ── Localization ───────────────────────────────────────────────────────────
+
+  /** Current locale label map, merged over the English fallback. */
+  private labels(): SceneLabels {
+    const provided = this.val<Partial<SceneLabels>>("sceneLabels");
+    if (!provided) return FALLBACK_LABELS;
+    return {
+      ...FALLBACK_LABELS,
+      ...provided,
+      routes:
+        Array.isArray(provided.routes) && provided.routes.length === FALLBACK_LABELS.routes.length
+          ? provided.routes
+          : FALLBACK_LABELS.routes,
+    };
+  }
+
+  /** Substitute {token} placeholders in a localized template. */
+  private fmt(template: string, vars: Record<string, string | number>): string {
+    return template.replace(/\{(\w+)\}/g, (_match, key: string) => {
+      const value = vars[key];
+      return value === undefined ? "" : String(value);
+    });
+  }
+
+  /** Re-apply every persistent caption from the current label map. */
+  private applyStaticLabels(): void {
+    const L = this.labels();
+    this.eyebrowLabel?.setText(L.eyebrow);
+    this.titleLabel?.setText(L.title);
+    this.heroTaglineLabel?.setText(L.heroTagline);
+    this.sealingTitleLabel?.setText(L.sealingTitle);
+    this.sealingHintLabel?.setText(L.sealingHint);
+    this.readyTitleLabel?.setText(L.tapTitle);
+    this.readyHintLabel?.setText(L.tapHint);
+    this.applyCardLabels(L);
+    this.updateRoutePanel();
+  }
+
+  private applyCardLabels(L: SceneLabels): void {
+    this.cardNameLabels.forEach((label, i) => label.setText(L.routes[i]?.cardName ?? ""));
+    this.cardGatesLabels.forEach((label, i) => label.setText(L.routes[i]?.cardGates ?? ""));
   }
 
   private fitCameraToHost(): void {
@@ -708,15 +840,21 @@ export class FlappyScene extends BaseScene {
   private buildLobby(): void {
     this.lobbyContainer = this.add.container(0, 0).setDepth(20);
 
-    const eyebrow = this.add.text(W / 2, 24, "VERIFIED FLIGHT CHALLENGE", {
+    // Eyebrow: near-white with a dark stroke + shadow so it reads on the dark
+    // sky band; raised well clear of the title cap-height.
+    this.eyebrowLabel = this.add.text(W / 2, 15, FALLBACK_LABELS.eyebrow, {
       fontFamily: UI_FONT,
-      fontSize: "10px",
-      color: "#247a99",
+      fontSize: "11px",
+      color: "#eaf6ff",
       fontStyle: "bold",
+      stroke: "#0b2f45",
+      strokeThickness: 3,
+      shadow: { color: "#0b2f45", blur: 4, offsetY: 1, fill: true },
     }).setOrigin(0.5, 0);
-    this.lobbyContainer.add(eyebrow);
+    this.eyebrowLabel.setLetterSpacing?.(1.5);
+    this.lobbyContainer.add(this.eyebrowLabel);
 
-    const titleTxt = this.add.text(W / 2, 42, "Flappy Dash", {
+    this.titleLabel = this.add.text(W / 2, 47, FALLBACK_LABELS.title, {
       fontFamily: UI_FONT,
       fontSize: "31px",
       color: "#173247",
@@ -724,12 +862,19 @@ export class FlappyScene extends BaseScene {
       stroke: "#ffffff",
       strokeThickness: 5,
     }).setOrigin(0.5, 0);
-    this.lobbyContainer.add(titleTxt);
+    this.lobbyContainer.add(this.titleLabel);
 
-    const heroPanel = this.add.rectangle(W / 2, 174, 330, 176, C.white, 0.6)
-      .setStrokeStyle(1, 0xffffff, 0.58)
-      .setOrigin(0.5);
-    this.lobbyContainer.add(heroPanel);
+    // Soft radial-style vignette (stacked low-alpha ellipses) instead of a
+    // bordered box, so the hero region reads as ambient depth behind the bird.
+    for (const [w, h, a] of [
+      [318, 214, 0.1],
+      [244, 168, 0.12],
+      [168, 122, 0.14],
+    ] as const) {
+      this.lobbyContainer.add(
+        this.add.ellipse(W / 2, 176, w, h, C.white, a).setOrigin(0.5),
+      );
+    }
 
     const heroPipeTopLeft = this.add.image(70, 130, FLAPPY_ASSETS.pipeTop)
       .setDisplaySize(58, 166)
@@ -750,20 +895,24 @@ export class FlappyScene extends BaseScene {
       heroPipeBottomRight,
     ]);
 
-    const heroBirdShadow = this.add.ellipse(W / 2, 238, 84, 18, 0x0f3a50, 0.14);
+    // Shadow tucked just under the bird's resting position so the two read as a
+    // connected pair, well clear of the tagline below.
+    const heroBirdShadow = this.add.ellipse(W / 2, 214, 78, 16, 0x0f3a50, 0.16);
     const heroBird = this.add.image(W / 2, 176, FLAPPY_ASSETS.birdMid)
       .setDisplaySize(76, 64)
       .setAngle(-6);
-    const heroCopy = this.add.text(W / 2, 258, "Pass the gates, prove the run, claim GAS.", {
+    this.heroTaglineLabel = this.add.text(W / 2, 262, FALLBACK_LABELS.heroTagline, {
       fontFamily: UI_FONT,
       fontSize: "12px",
       color: "#173247",
       stroke: "#ffffff",
       strokeThickness: 3,
     }).setOrigin(0.5);
-    this.lobbyContainer.add([heroBirdShadow, heroBird, heroCopy]);
+    this.lobbyContainer.add([heroBirdShadow, heroBird, this.heroTaglineLabel]);
 
-    this.tweens.add({
+    // Ambient float — routed through this.tween so reduced-motion users get a
+    // still hero instead of an unconditional infinite loop.
+    this.tween({
       targets: heroBird,
       y: heroBird.y - 10,
       angle: 5,
@@ -772,10 +921,10 @@ export class FlappyScene extends BaseScene {
       yoyo: true,
       repeat: -1,
     });
-    this.tweens.add({
+    this.tween({
       targets: heroBirdShadow,
       scaleX: 0.82,
-      alpha: 0.08,
+      alpha: 0.09,
       duration: 760,
       ease: "Sine.easeInOut",
       yoyo: true,
@@ -817,10 +966,12 @@ export class FlappyScene extends BaseScene {
     ]);
 
     this.difficultyCards = [];
+    this.cardNameLabels = [];
+    this.cardGatesLabels = [];
     DIFFICULTY_RULES.forEach((rule, i) => {
       const cardX = 75 + i * 125;
       const cardY = 408;
-      const card  = this.buildDifficultyCard(cardX, cardY, rule);
+      const card  = this.buildDifficultyCard(cardX, cardY, rule, i);
       this.difficultyCards.push(card);
       this.lobbyContainer.add(card);
     });
@@ -854,7 +1005,7 @@ export class FlappyScene extends BaseScene {
       pressScale: 0.95,
       onPress: () => this.onStartPressed(),
     });
-    this.startBtnLabel = this.add.text(0, 0, "Launch Run", {
+    this.startBtnLabel = this.add.text(0, 0, FALLBACK_LABELS.launch, {
       fontFamily: UI_FONT,
       fontSize: "16px",
       fontStyle: "bold",
@@ -868,10 +1019,12 @@ export class FlappyScene extends BaseScene {
     cx: number,
     cy: number,
     rule: typeof DIFFICULTY_RULES[number],
+    index: number,
   ): Phaser.GameObjects.Container {
     const c     = this.add.container(cx, cy);
-    const cardW = 104;
+    const cardW = 110;
     const cardH = 58;
+    const route = this.labels().routes[index] ?? FALLBACK_LABELS.routes[index]!;
 
     const bg = this.add.rectangle(0, 0, cardW, cardH, C.chipBg, 0.92)
       .setStrokeStyle(2, C.chipBorder)
@@ -886,26 +1039,34 @@ export class FlappyScene extends BaseScene {
     bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0xffffff, 0.98); });
     bg.on("pointerout",   () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(C.chipBg, 0.92); });
 
-    const bird = this.add.image(-cardW / 2 + 22, -12, FLAPPY_ASSETS.birdMid)
-      .setDisplaySize(28, 24)
-      .setAngle(-8);
+    // Small genre bird tucked in the top-left corner as an accent; the route
+    // name is centred so localized names have the full card width.
+    const bird = this.add.image(-cardW / 2 + 14, -cardH / 2 + 13, FLAPPY_ASSETS.birdMid)
+      .setDisplaySize(18, 15)
+      .setAngle(-8)
+      .setAlpha(0.9);
 
-    const diffLabel = this.add.text(-cardW / 2 + 42, -19, this.routeName(rule), {
+    const nameLabel = this.add.text(0, -4, route.cardName, {
       fontFamily: UI_FONT,
-      fontSize: "12px",
+      fontSize: "12.5px",
       fontStyle: "bold",
       color: "#173247",
-    }).setOrigin(0, 0.5);
+      align: "center",
+    }).setOrigin(0.5);
 
-    const pipesLabel = this.add.text(-cardW / 2 + 14, 16, `${rule.targetPipes} gates`, {
+    const gatesLabel = this.add.text(0, 16, route.cardGates, {
       fontFamily: UI_FONT,
       fontSize: "11px",
       color: "#42677c",
-    }).setOrigin(0, 0.5);
+      align: "center",
+    }).setOrigin(0.5);
 
-    const dot = this.add.circle(cardW / 2 - 14, -cardH / 2 + 14, 5, C.chipAccent, 0);
+    const dot = this.add.circle(cardW / 2 - 13, -cardH / 2 + 13, 4.5, C.chipAccent, 0);
 
-    c.add([bg, bird, diffLabel, pipesLabel, dot]);
+    this.cardNameLabels[index] = nameLabel;
+    this.cardGatesLabels[index] = gatesLabel;
+
+    c.add([bg, bird, nameLabel, gatesLabel, dot]);
     return c;
   }
 
@@ -924,15 +1085,13 @@ export class FlappyScene extends BaseScene {
 
   private updateRoutePanel(): void {
     if (!this.routeTitleLabel) return;
-    const rule = ruleOf(this.pickedDifficulty);
-    this.routeTitleLabel.setText(`${this.routeName(rule)} route`);
-    this.routeTargetLabel.setText(`${rule.targetPipes} gate run - ${Math.round(rule.limitMs / 60000)} min timer`);
+    const rule  = ruleOf(this.pickedDifficulty);
+    const L     = this.labels();
+    const route = L.routes[this.pickedDifficulty] ?? L.routes[0]!;
+    this.routeTitleLabel.setText(route.title);
+    this.routeTargetLabel.setText(route.meta);
     this.routeRewardLabel.setText(`${gasDisplay(rule.rewardFixed8)} GAS`);
-    this.routeEntryLabel.setText(`Entry ${gasDisplay(rule.entryFixed8)} GAS`);
-  }
-
-  private routeName(rule: typeof DIFFICULTY_RULES[number]): string {
-    return rule.key.charAt(0).toUpperCase() + rule.key.slice(1);
+    this.routeEntryLabel.setText(route.entry);
   }
 
   private updateLobbyUI(
@@ -941,23 +1100,25 @@ export class FlappyScene extends BaseScene {
     isStarting: boolean,
     _difficulty: number,
   ): void {
-    const rule           = ruleOf(this.pickedDifficulty);
-    const rewardGas      = Number(gasDisplay(rule.rewardFixed8));
-    const poolReady      = poolFree >= rewardGas;
-    const busy           = isStarting;
+    const L          = this.labels();
+    const rule       = ruleOf(this.pickedDifficulty);
+    const rewardGas  = Number(gasDisplay(rule.rewardFixed8));
+    const poolReady  = poolFree >= rewardGas;
 
-    this.poolLabel.setText(`Pool: ${poolFree.toFixed(2)} GAS`);
-    this.lobbyStatusLabel.setText(poolReady ? "" : "Pool too low to cover reward");
+    // Pool stays informative (neutral chip), never an alarm — an unfunded pool
+    // is a waiting state, not an error.
+    this.poolLabel.setText(this.fmt(L.poolChip, { pool: poolFree.toFixed(2) }));
+    this.lobbyStatusLabel.setText("");
 
-    this.startBtnBg.setFillStyle(busy || !poolReady ? C.btnDisabled : C.btnPrimary);
-    this.startBtnLabel.setText(isStarting ? "Launching..." : "Launch Run");
+    // Button copy reads as intent: launch when ready, or a calm "Awaiting pool".
+    let label = L.launch;
+    if (isStarting)              label = L.launching;
+    else if (status === "solved")  label = L.flyAgain;
+    else if (status === "expired") label = L.retryRun;
+    else if (!poolReady)           label = L.awaitingPool;
+    this.startBtnLabel.setText(label);
 
-    // Show result banners by tinting the eyebrow area
-    if (status === "solved") {
-      this.startBtnLabel.setText("Fly Again");
-    } else if (status === "expired") {
-      this.startBtnLabel.setText("Retry Run");
-    }
+    this.startBtnBg.setFillStyle(isStarting || !poolReady ? C.btnDisabled : C.btnPrimary);
 
     // Update card highlights to match current difficulty from bridge
     this.updateCardHighlights();
@@ -982,7 +1143,7 @@ export class FlappyScene extends BaseScene {
     const bg = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.24);
     this.dealingContainer.add(bg);
 
-    const title = this.add.text(W / 2, H / 2 - 60, "Sealing Pipes…", {
+    this.sealingTitleLabel = this.add.text(W / 2, H / 2 - 60, FALLBACK_LABELS.sealingTitle, {
       fontFamily: UI_FONT,
       fontSize: "22px",
       fontStyle: "bold",
@@ -990,14 +1151,14 @@ export class FlappyScene extends BaseScene {
       stroke: "#000000",
       strokeThickness: 3,
     }).setOrigin(0.5);
-    this.dealingContainer.add(title);
+    this.dealingContainer.add(this.sealingTitleLabel);
 
-    const hint = this.add.text(W / 2, H / 2 - 20, "Waiting for on-chain randomness", {
+    this.sealingHintLabel = this.add.text(W / 2, H / 2 - 20, FALLBACK_LABELS.sealingHint, {
       fontFamily: UI_FONT,
       fontSize: "13px",
       color: "#7a9ab5",
     }).setOrigin(0.5);
-    this.dealingContainer.add(hint);
+    this.dealingContainer.add(this.sealingHintLabel);
 
     // Animated pipe sprites cycling while the verified pipe route is prepared.
     const pipeIcons: Phaser.GameObjects.Image[] = [];
@@ -1010,7 +1171,7 @@ export class FlappyScene extends BaseScene {
       this.dealingContainer.add(pipe);
       pipeIcons.push(pipe);
 
-      this.tweens.add({
+      this.tween({
         targets: pipe,
         alpha: 1,
         scaleY: 1.3,
@@ -1032,23 +1193,23 @@ export class FlappyScene extends BaseScene {
       .setStrokeStyle(1, C.white, 0.25)
       .setOrigin(0.5);
 
-    const tapLabel = this.add.text(0, -14, "Tap to Fly!", {
+    this.readyTitleLabel = this.add.text(0, -14, FALLBACK_LABELS.tapTitle, {
       fontFamily: UI_FONT,
       fontSize: "24px",
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
 
-    const hintLabel = this.add.text(0, 16, "Space / ↑ on desktop", {
+    this.readyHintLabel = this.add.text(0, 16, FALLBACK_LABELS.tapHint, {
       fontFamily: UI_FONT,
       fontSize: "12px",
       color: "#dff9ff",
     }).setOrigin(0.5);
 
-    this.readyContainer.add([bg, tapLabel, hintLabel]);
+    this.readyContainer.add([bg, this.readyTitleLabel, this.readyHintLabel]);
 
-    // Gentle pulse
-    this.tweens.add({
+    // Gentle pulse — reduced-motion users get a steady, fully-opaque prompt.
+    this.tween({
       targets: this.readyContainer,
       alpha: 0.7,
       duration: 800,
@@ -1091,7 +1252,7 @@ export class FlappyScene extends BaseScene {
       targets: this.overlayActionBtn,
       onPress: () => this.onOverlayAction(),
     });
-    this.overlayActionLabel = this.add.text(0, 0, "Try Again", {
+    this.overlayActionLabel = this.add.text(0, 0, FALLBACK_LABELS.tryAgain, {
       fontFamily: UI_FONT,
       fontSize: "15px",
       fontStyle: "bold",
@@ -1111,7 +1272,7 @@ export class FlappyScene extends BaseScene {
       pressScale: 0.96,
       onPress: () => this.onOverlaySecondAction(),
     });
-    this.overlaySecondLabel = this.add.text(0, 0, "Submit Score", {
+    this.overlaySecondLabel = this.add.text(0, 0, FALLBACK_LABELS.submitScore, {
       fontFamily: UI_FONT,
       fontSize: "13px",
       color: "#7a9ab5",
@@ -1147,26 +1308,27 @@ export class FlappyScene extends BaseScene {
       this.playResultFeedback(outcome);
     }
 
+    const L = this.labels();
     if (outcome === "won") {
-      this.overlayTitle.setText("You Win!").setColor("#16c784");
+      this.overlayTitle.setText(L.winTitle).setColor("#16c784");
       this.overlayBody.setText(
-        `${score} pipes passed\nWin: ${gasDisplay(rule.rewardFixed8)} GAS`,
+        this.fmt(L.winBody, { score, reward: gasDisplay(rule.rewardFixed8) }),
       );
       this.overlayBg.setFillStyle(C.overlayWin, 0.88);
-      this.overlayActionLabel.setText("Submit Score");
+      this.overlayActionLabel.setText(L.submitScore);
       this.overlaySecondBtn.setVisible(true);
-      this.overlaySecondLabel.setText("Play Again");
+      this.overlaySecondLabel.setText(L.playAgain);
     } else if (outcome === "expired") {
-      this.overlayTitle.setText("Time Up!").setColor("#e8a800");
-      this.overlayBody.setText(`${score} pipes passed\nDeadline reached`);
+      this.overlayTitle.setText(L.timeUpTitle).setColor("#e8a800");
+      this.overlayBody.setText(this.fmt(L.timeUpBody, { score }));
       this.overlayBg.setFillStyle(C.overlayCrash, 0.88);
-      this.overlayActionLabel.setText("Back to Lobby");
+      this.overlayActionLabel.setText(L.backToLobby);
       this.overlaySecondBtn.setVisible(false);
     } else {
-      this.overlayTitle.setText("Crashed!").setColor("#e25d4d");
-      this.overlayBody.setText(`${score} pipes passed\nTarget: ${rule.targetPipes}`);
+      this.overlayTitle.setText(L.crashTitle).setColor("#e25d4d");
+      this.overlayBody.setText(this.fmt(L.crashBody, { score, target: rule.targetPipes }));
       this.overlayBg.setFillStyle(C.overlayCrash, 0.88);
-      this.overlayActionLabel.setText("Try Again");
+      this.overlayActionLabel.setText(L.tryAgain);
       this.overlaySecondBtn.setVisible(false);
     }
   }
@@ -1182,7 +1344,7 @@ export class FlappyScene extends BaseScene {
       const score = this.flappyState?.score ?? 0;
       this.playSfx("select");
       this.dispatch("submitSolution", { pipes: score });
-      this.overlayActionLabel.setText("Submitting…");
+      this.overlayActionLabel.setText(this.labels().submitting);
       return;
     }
 
