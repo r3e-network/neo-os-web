@@ -141,7 +141,9 @@ export class FogplayScene extends BaseScene {
       this.renderBetButton(button, amountsEqual(button.amount, betAmount));
     });
 
-    this.payoutLabel.setText(`${formatPayout(betAmount)} GAS`);
+    // GameFi renders the "N.NN GAS" 2x payout; guest supplies a local streak
+    // value via bridgeState so the row never shows GAS at stake.
+    this.payoutLabel.setText(this.str("payoutValue", `${formatPayout(betAmount)} GAS`));
     this.renderPlaceBetButton(canBet && !flipping, flipping);
 
     const quietStatus = validationError.trim();

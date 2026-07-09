@@ -174,6 +174,7 @@ export class Game2048Scene extends BaseScene {
   private celebContainer!: Phaser.GameObjects.Container;
 
   private diffCards: Phaser.GameObjects.Container[] = [];
+  private diffRewardLabels: Phaser.GameObjects.Text[] = [];
   private startBtn!: Phaser.GameObjects.Container;
 
   // ── Input state ───────────────────────────────────────────────────────────────
@@ -185,6 +186,7 @@ export class Game2048Scene extends BaseScene {
   private curBoard:      number[] = Array(16).fill(0);
   private pickedDiff     = 0;
   private prevStatus     = "";
+  private prevAppMode    = "";
   private prevIsMoving   = false;
   private shown2048      = false;
 
@@ -289,9 +291,11 @@ export class Game2048Scene extends BaseScene {
     this.cellBgs = [];
     this.tileConts = Array(16).fill(null);
     this.diffCards = [];
+    this.diffRewardLabels = [];
     this.prevBoard = Array(16).fill(0);
     this.curBoard = Array(16).fill(0);
     this.prevStatus = "";
+    this.prevAppMode = "";
     this.prevIsMoving = false;
     this.layout = this.computeLayout(this.scale.width || CW, this.scale.height || CH);
 
@@ -326,6 +330,21 @@ export class Game2048Scene extends BaseScene {
     const isDealing   = this.bool("isDealing");
     const isStarting  = this.bool("isStarting");
     const lastStatus  = this.str("lastStatus", "");
+
+    // ── Play-mode copy (guest drops the GAS reward tier on the lobby cards) ─────
+    const appMode = this.str("appMode", "gamefi");
+    if (appMode !== this.prevAppMode) {
+      this.prevAppMode = appMode;
+      const guestMode = appMode === "guest";
+      this.diffRewardLabels.forEach((rewardLabel, idx) => {
+        const rule = DIFFICULTY_RULES[idx];
+        if (!rule) return;
+        rewardLabel.setText(
+          guestMode ? this.str("guestLaneTag", "Free play") : `${gasDisplay(rule.rewardFixed8)} GAS`,
+        );
+      });
+      this.updateStartBtn(this.bool("isStarting"));
+    }
 
     // ── Phase transitions ──────────────────────────────────────────────────────
     const statusChanged = status !== this.prevStatus;
@@ -534,6 +553,7 @@ export class Game2048Scene extends BaseScene {
 
   private buildLobbyContainer(): void {
     const l = this.layout;
+    this.diffRewardLabels = [];
     this.lobbyContainer = this.add.container(0, 0);
 
     const heading = this.add.text(l.centerX, l.lobbyHeadingY, "Build the next power tile", {
@@ -707,12 +727,18 @@ export class Game2048Scene extends BaseScene {
       color: "#776e65",
     }).setOrigin(0.5);
 
-    const rewardTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 53 : 57, `${gasDisplay(rule.rewardFixed8)} GAS`, {
+    // Guest is a free local game — show a "Free play" tag instead of the GAS
+    // reward tier so the lobby carries no reward framing in guest mode.
+    const rewardStr = this.isGuestMode()
+      ? this.str("guestLaneTag", "Free play")
+      : `${gasDisplay(rule.rewardFixed8)} GAS`;
+    const rewardTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 53 : 57, rewardStr, {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       fontStyle: "bold",
       color: "#e05000",
     }).setOrigin(0.5);
+    this.diffRewardLabels.push(rewardTxt);
 
     card.add([bg, targetTile, targetNum, label, tileTxt, timeTxt, rewardTxt]);
     return card;
@@ -795,8 +821,14 @@ export class Game2048Scene extends BaseScene {
     bg.setFillStyle(active ? 0xf65e3b : 0xbbada0);
   }
 
+  private isGuestMode(): boolean {
+    return this.str("appMode", "gamefi") === "guest";
+  }
+
   private canStartPicked(): boolean {
     if (this.bool("isStarting") || this.bool("isDealing")) return false;
+    // Guest is a free local game — there is no reward pool to gate on.
+    if (this.isGuestMode()) return true;
     const rule = DIFFICULTY_RULES[this.pickedDiff] ?? DIFFICULTY_RULES[0]!;
     const poolFree = this.num("poolFree", Number.POSITIVE_INFINITY);
     return poolFree >= Number(gasDisplay(rule.rewardFixed8));

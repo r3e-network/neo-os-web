@@ -23,7 +23,13 @@ export const manifest: MiniAppManifest = {
   description: "Burn tokens, earn rewards",
   icon: "flame",
   category: "game",
-  shell: "launcher",
+  // shell "game" gives the focused launch page that renders the two-mode entry
+  // (primary "Earn GAS" / secondary "Play free") wired by the shared launcher.
+  shell: "game",
+
+  // Two-mode opt-in (burn-league has no full gamePage block, so use the
+  // top-level flag). Enables the guest "Play free" CTA alongside the GameFi one.
+  supportsGuest: true,
 
   // ── Tabs ──────────────────────────────────────────────────────────────
   // The platform appends a "docs" tab automatically via defineMiniApp.

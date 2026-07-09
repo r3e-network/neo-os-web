@@ -199,6 +199,56 @@ const appMessages = {
   cardJumps: { en: "{count} jumps", zh: "{count} 跳" },
   cardReward: { en: "{amount} GAS", zh: "{amount} GAS" },
   cardEntry: { en: "Entry {amount}", zh: "报名 {amount}" },
+
+  // ── Guest (free / local) mode copy — shown only when app.mode is "guest".
+  //    Guest has no token, so it never uses GAS / pool / reward framing. ────────
+  guestSubtitle: {
+    en: "Hold, jump, land clean, and clear the local route. Free practice — no GAS.",
+    zh: "按住蓄力，精准跳跃，完成本地路线。免费练习——无需 GAS。",
+  },
+  guestJumpsValue: { en: "{count} jumps", zh: "{count} 跳" },
+  guestBestLabel: { en: "Best run", zh: "最佳" },
+  guestRouteLabel: { en: "Route", zh: "路线" },
+  guestJumpsLabel: { en: "Jumps", zh: "跳跃" },
+  guestModeLabel: { en: "Mode", zh: "模式" },
+  guestModeValue: { en: "Local", zh: "本地" },
+  guestRunsLabel: { en: "Runs", zh: "局数" },
+  guestRunEconomyLine: {
+    en: "Free local run · clear {jumps} jumps",
+    zh: "本地免费对局 · 通关 {jumps} 跳",
+  },
+  guestLastRunLine: {
+    en: "Last local run: {count} jumps in {time}",
+    zh: "上局本地：{count} 跳，用时 {time}",
+  },
+  guestLeaderboardIntro: {
+    en: "Local practice scores, saved to an off-chain board — no GAS, no chain.",
+    zh: "本地练习成绩，保存在离线榜单——无 GAS、不上链。",
+  },
+  guestGuideTitle: { en: "Local practice", zh: "本地练习" },
+  guestRulesCopy: {
+    en: "Pick a route, hold to charge, and release to jump. Land on each platform to clear the route — missing ends the run, so use an undo to retry. Everything runs locally: no entry, no GAS, nothing on-chain.",
+    zh: "选择路线，按住蓄力，松开跳跃。落在每个平台上以通关——未踩中即出局，可使用撤回重试。全部在本地运行：无报名费、无 GAS、不涉及链上。",
+  },
+  guestModeLine: {
+    en: "Guest mode — local play, scores saved off-chain.",
+    zh: "游客模式——本地游玩，成绩离线保存。",
+  },
+  guestRunComplete: { en: "Local run complete — {count} jumps cleared!", zh: "本地对局完成——通关 {count} 跳！" },
+  guestStatusReady: { en: "Pick a route to start a local run", zh: "选择路线开始本地对局" },
+  guestStatusStarting: { en: "Building your local route…", zh: "正在生成本地路线…" },
+  guestStatusDealt: { en: "Local route ready — jump!", zh: "本地路线就绪——开跳！" },
+  guestStatusUndo: { en: "Undo used — {left} left", zh: "已撤回——剩 {left} 次" },
+  // In-canvas (scene) guest overrides, routed through sceneText under the SAME
+  // keys the scene reads, so the canvas swaps GAS/TEE framing for local framing.
+  guestStartHint: { en: "Start a local run", zh: "开始本地对局" },
+  guestSubmitHint: { en: "Local score", zh: "本地成绩" },
+  guestSubmitDoneHint: { en: "Saved off-chain", zh: "离线保存" },
+  guestBuildingTitle: { en: "Building route", zh: "正在生成路线" },
+  guestBuildingHint: { en: "Laying out your local route", zh: "正在铺设本地路线" },
+  guestReadyHint: { en: "Ready to jump", zh: "准备起跳" },
+  guestCardReward: { en: "Free play", zh: "免费畅玩" },
+  guestCardEntry: { en: "Local run", zh: "本地对局" },
 };
 
 export const messages = mergeMessages(appMessages);

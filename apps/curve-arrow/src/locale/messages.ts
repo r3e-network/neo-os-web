@@ -213,6 +213,27 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Guest (free / local) mode — no token, no chain, no reward framing ──────
+  guestBadge: { en: "Local play", zh: "本地畅玩" },
+  guestGoalMetric: { en: "Goal", zh: "目标" },
+  guestBestMetric: { en: "Best", zh: "最佳" },
+  guestModeLabel: { en: "Mode", zh: "模式" },
+  guestLocalRun: { en: "Local run", zh: "本地对局" },
+  guestDrawerHint: {
+    en: "Local practice — scores are saved off-chain, no GAS at stake.",
+    zh: "本地练习——成绩离线保存，不涉及 GAS。",
+  },
+  guestStatusReady: { en: "Choose a range for a local run", zh: "选择靶场开始本地对局" },
+  guestStatusDealt: { en: "Range ready — curve every arrow home", zh: "靶场就绪——让每支箭命中目标" },
+  guestRunComplete: {
+    en: "Local run complete — {cleared}/{target} targets cleared!",
+    zh: "本地对局完成——命中 {cleared}/{target} 个箭靶！",
+  },
+  guestRunOver: {
+    en: "Out of arrows — {cleared}/{target} cleared",
+    zh: "箭已用完——命中 {cleared}/{target}",
+  },
 };
 
 export const messages = mergeMessages(appMessages);

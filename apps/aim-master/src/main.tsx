@@ -17,6 +17,7 @@ import {
   type RewardGameSession,
 } from "@framework/gamefi";
 import type { HitResult } from "./logic/aim-engine";
+import { createGuestEngine } from "./logic/guest-engine";
 
 const appId = "miniapp-aim-master";
 // Operator-whitelisted engine pin (sha-256 of the reviewed aim engine wrapper).
@@ -51,6 +52,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const app = ctx.framework;
     const obs = ctx.framework.game.session.observables(ctx.t);
 
     // Game-specific observables not covered by the shared session surface.
@@ -59,9 +61,33 @@ defineMiniApp({
     const roundIndex = createObservable(0);
     const roundResults = createObservable<HitResult[]>([]);
     const targetAccuracy = createObservable(3);
+    // Mirror app.mode into the play-area state so PhaserPlayArea + scene copy can
+    // branch GAS-centric labels into local/practice framing in guest mode.
+    const mode = createObservable(app.mode.get());
 
     // Enclave session context for the active game.
     let session: RewardGameSession | null = null;
+
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local target engine — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      obs,
+      pattern,
+      targetAccuracy,
+      ringsHit,
+      roundIndex,
+      roundResults,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Keep the surfaced mode in sync, and on switching to guest reset to a clean
+    // local lobby + load the off-chain guest board (replacing the mount read).
+    app.mode.onChange((next) => {
+      mode.set(next);
+      if (next === "guest") void guest.enter();
+    });
 
     // Reward-game plumbing (session open/start/finalize/expire/withdraw + the
     // per-game op-log store) via the framework SDK. The storage prefix pins
@@ -75,6 +101,7 @@ defineMiniApp({
     const { start: startRewardGame, finalize: finalizeRewardGame } = rewardGame;
 
     const refreshBalances = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       try {
         const balances = await rewardGame.balances(ctx.framework.game.player.scriptHash());
         obs.poolFree.set(balances.poolFreeGas);
@@ -85,6 +112,7 @@ defineMiniApp({
     };
 
     const refreshStats = async () => {
+      if (app.mode.isGuest()) return;
       const { solves, totalWon } = await ctx.framework.game.stats.load();
       obs.mySolves.set(solves);
       obs.myTotalWon.set(totalWon);
@@ -94,6 +122,7 @@ defineMiniApp({
      * Rebuild the global ranking from Solved events.
      */
     const loadLeaderboard = async () => {
+      if (app.mode.isGuest()) return;
       const { ranked, mine } = await ctx.framework.game.leaderboard.load("Solved", SOLVED_SLOTS, 200);
       obs.leaderboard.set(ranked);
       const me = ranked.find(e => e.isUser);
@@ -162,6 +191,7 @@ defineMiniApp({
         roundResults?: unknown;
         totalPoints?: unknown;
       };
+      if (app.mode.isGuest()) { guest.aimHit(form); return; }
       const hitRings = Number(form.ringsHit ?? 0);
       const total = Number(form.totalRings ?? 0);
       const results = (form.roundResults ?? []) as HitResult[];
@@ -187,8 +217,9 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
-      if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form = (args[0] ?? {}) as { difficulty?: unknown };
+      if (app.mode.isGuest()) { guest.startGame(Number(form.difficulty ?? 0)); return; }
+      if (obs.isStarting.get() || obs.isDealing.get()) return;
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
       const rule = ruleOf(difficulty);
       obs.isStarting.set(true);
@@ -227,12 +258,14 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isDealing.get() || obs.gameStatus.get() !== "committed") return;
       await openSession(gameId, obs.gameDifficulty.get());
     });
 
     ctx.framework.actions.register("submitSolution", async () => {
+      if (app.mode.isGuest()) { await guest.submitSolution(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isSubmitting.get() || obs.gameStatus.get() !== "dealt") return;
       obs.isSubmitting.set(true);
@@ -271,6 +304,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0") return;
       try {
@@ -289,6 +323,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       const playerHash = ctx.framework.game.player.scriptHash();
       if (!playerHash) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
@@ -305,12 +340,17 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
     return {
-      state: { ...obs, pattern, patternData: pattern, targetAccuracy, ringsHit, roundIndex, roundResults },
+      state: { ...obs, pattern, patternData: pattern, targetAccuracy, ringsHit, roundIndex, roundResults, mode },
       loadData: async () => {
+        // Guest is a purely local game: skip every chain read on mount and load
+        // the off-chain guest board instead. (Guarded loaders below also early
+        // return, but this keeps guest mount entirely chain-free.)
+        if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
         const playerHash = ctx.framework.game.player.scriptHash();
         if (playerHash) {

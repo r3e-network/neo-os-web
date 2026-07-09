@@ -164,6 +164,29 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Guest (free / local) mode ─────────────────────────────────────────────
+  // Local-play framing that replaces the GAS-at-stake / pool / reward copy in
+  // guest. GAMEFI copy above stays exactly as-is.
+  guestRunLabel: { en: "Local run", zh: "本地对局" },
+  guestRunValue: { en: "Free play", zh: "自由练习" },
+  guestBestLabel: { en: "Best happiness", zh: "最佳快乐值" },
+  guestModeLine: {
+    en: "Guest mode — local play, best happiness saved off-chain.",
+    zh: "游客模式——本地游玩，最佳快乐值离线保存。",
+  },
+  guestRunComplete: {
+    en: "Local run complete — happiness {happiness}!",
+    zh: "本地对局完成——快乐值 {happiness}！",
+  },
+  guestResultLine: {
+    en: "Last run: happiness {happiness} · {time}",
+    zh: "上次对局：快乐值 {happiness} · {time}",
+  },
+  guestRulesCopy: {
+    en: "Guest mode is a free local pet-care game — feed, play, pet, and rest to raise happiness to the target with no wallet, no fees, and nothing on-chain. A starving or tired pet is harder to please, so balance every action. Your best happiness is saved to an off-chain practice board (connect a wallet to record it). Switch to Earn GAS for the provably fair on-chain reward game.",
+    zh: "游客模式是免费的本地宠物照护游戏——通过喂食、玩耍、抚摸和休息把快乐值提升到目标，无需钱包、无手续费、完全不上链。饥饿或疲惫的宠物更难取悦，所以要平衡每个动作。你的最佳快乐值会保存到离线练习榜（连接钱包即可记录）。切换到「赚取 GAS」即可体验可验证公平的链上奖励游戏。",
+  },
 };
 
 export const messages = mergeMessages(appMessages);

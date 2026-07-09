@@ -78,6 +78,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const requiredDifficulty = val<number>("progressionRequiredDifficulty", 0) ?? 0;
   const activeGameId   = str("activeGameId", "0");
 
+  // ── Play mode (guest = plain local snake, no token/pool/reward) ────────────
+  const appMode  = str("appMode", "gamefi");
+  const isGuest  = appMode === "guest";
+
   const rule     = ruleOf(gameDifficulty);
   const nowMs    = Date.now();
   const remainMs = deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
@@ -89,18 +93,20 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Templates keep their {placeholders}; the scene fills them with live values.
   const sceneText = {
     title: t("appEyebrow"),
-    tagline: t("sceneTagline"),
+    // Guest strings swap the reward/pool/TEE framing for local-play framing;
+    // GameFi copy is unchanged.
+    tagline: isGuest ? t("guestTagline") : t("sceneTagline"),
     howToTitle: t("howToTitle"),
     howToSteps: [t("howToStep1"), t("howToStep2"), t("howToStep3"), t("howToStep4")],
-    chooseRoute: t("routeChooseHeading"),
+    chooseRoute: isGuest ? t("guestChooseRoute") : t("routeChooseHeading"),
     diffLabels: [t("diffEasyShort"), t("diffMediumShort"), t("diffHardShort")],
     targetCells: t("targetCells"),
-    winLine: t("winAmount"),
-    entryLine: t("entryAmount"),
+    winLine: isGuest ? t("guestCardWin") : t("winAmount"),
+    entryLine: isGuest ? t("guestCardEntry") : t("entryAmount"),
     cleared: t("routeClearedShort"),
     completed: t("routeCompletedShort"),
     lengthReadout: t("lengthReadout"),
-    rewardBadge: t("rewardBadge"),
+    rewardBadge: isGuest ? t("guestRewardBadge") : t("rewardBadge"),
     controlsHint: t("controlsHintScene"),
     hintCrashed: t("hintCrashed"),
     hintTimeUp: t("hintTimeUp"),
@@ -114,15 +120,17 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     ovGameOverTitle: t("ovGameOverTitle"),
     ovGameOverSub: t("ovGameOverSub"),
     ovGameOverBtn: t("ovGameOverBtn"),
+    // Guest crashes route to a local reset instead of an on-chain settle.
+    ovGameOverGuestBtn: t("guestGameOverBtn"),
     ovTargetTitle: t("ovTargetTitle"),
     ovSubmitBtn: t("ovSubmitBtn"),
     ovWaitingBtn: t("ovWaitingBtn"),
-    ovSolvedTitle: t("ovSolvedTitle"),
-    ovSolvedSub: t("ovSolvedSub"),
+    ovSolvedTitle: isGuest ? t("guestSolvedTitle") : t("ovSolvedTitle"),
+    ovSolvedSub: isGuest ? t("guestSolvedSub") : t("ovSolvedSub"),
     ovExpiredTitle: t("ovExpiredTitle"),
     ovExpiredSub: t("ovExpiredSub"),
     ovPlayAgain: t("ovPlayAgainBtn"),
-    gateSubmitReady: t("gateSubmitReady"),
+    gateSubmitReady: isGuest ? t("guestGateReady") : t("gateSubmitReady"),
     gateTooClose: t("gateTooClose"),
     gateUnlockChecking: t("gateUnlockChecking"),
     gateUnlockIn: t("gateUnlockIn"),
@@ -132,10 +140,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     lobbyRouteCleared: t("progressionCleared"),
     lobbyTapToStart: t("lobbyTapToStart"),
     lobbyPoolLow: t("lobbyPoolLow"),
+    // Guest lobby: one local-run status line (no wallet/pool/progression gating).
+    guestLobbyStatus: t("guestLobbyStatus"),
   };
 
   // ── Bridge state snapshot (plain object pushed into the Phaser scene) ─────
   const bridgeState = {
+    appMode,
     activeGameId,
     gameStatus,
     clues,
@@ -206,23 +217,57 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : routeLocked
       ? t("progressionNextRoute", { difficulty: t(`difficulty_${ruleOf(requiredDifficulty).key}`) })
       : t(`difficulty_${rule.key}`);
-  const hudItems = [
-    {
-      label: t("rewardMetric"),
-      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
-      accent: true,
-    },
-    {
-      label: t("timeMetric"),
-      value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
-      accent: timeUp,
-    },
-    {
-      label: t("wonMetric"),
-      value: `${myTotalWon.toFixed(2)} GAS`,
-      accent: false,
-    },
-  ];
+  // Guest shows local metrics (trail target, live clock, best length) with no
+  // GAS-at-stake / reward framing; GameFi keeps its reward + total-won strip.
+  const hudItems = isGuest
+    ? [
+        {
+          label: t("guestTargetMetric"),
+          value: t("guestCells", { count: rule.targetLength }),
+          accent: true,
+        },
+        {
+          label: t("timeMetric"),
+          value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
+          accent: timeUp,
+        },
+        {
+          label: t("guestBestMetric"),
+          value: myTotalWon > 0 ? t("guestCells", { count: myTotalWon }) : "--",
+          accent: false,
+        },
+      ]
+    : [
+        {
+          label: t("rewardMetric"),
+          value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+          accent: true,
+        },
+        {
+          label: t("timeMetric"),
+          value: gameStatus === "dealt" ? formatClock(remainMs) : formatClock(rule.limitMs),
+          accent: timeUp,
+        },
+        {
+          label: t("wonMetric"),
+          value: `${myTotalWon.toFixed(2)} GAS`,
+          accent: false,
+        },
+      ];
+
+  // In-stage drawer summary — guest drops the credit / reward-at-stake columns
+  // for local trail + best-length readouts; GameFi keeps the GAS economy.
+  const drawerStats = isGuest
+    ? [
+        { label: t("guestTargetMetric"), value: t("guestCells", { count: rule.targetLength }) },
+        { label: t("guestBestLabel"), value: myTotalWon > 0 ? t("guestCells", { count: myTotalWon }) : "--" },
+      ]
+    : [
+        { label: t("progressionStatusLabel"), value: routeStatus },
+        { label: t("creditLabel"), value: `${creditGas.toFixed(2)} GAS` },
+        { label: t("scoreReward"), value: `${gasDisplay(rule.rewardFixed8)} GAS` },
+        { label: t("scoreWon"), value: `${myTotalWon.toFixed(2)} GAS` },
+      ];
 
   return (
     <div className="snake-playarea mx2 mx2-cat-game" aria-busy={busy || undefined}>
@@ -282,26 +327,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Trophy size={18} aria-hidden="true" />
                   <div>
                     <h3>{t("drawerTitle")}</h3>
-                    <p>{t("fairnessShort")}</p>
+                    <p>{isGuest ? t("guestModeLine") : t("fairnessShort")}</p>
                   </div>
                 </div>
                 <div className="snake-ingame-drawer__grid">
-                  <span>
-                    <small>{t("progressionStatusLabel")}</small>
-                    <strong>{routeStatus}</strong>
-                  </span>
-                  <span>
-                    <small>{t("creditLabel")}</small>
-                    <strong>{creditGas.toFixed(2)} GAS</strong>
-                  </span>
-                  <span>
-                    <small>{t("scoreReward")}</small>
-                    <strong>{gasDisplay(rule.rewardFixed8)} GAS</strong>
-                  </span>
-                  <span>
-                    <small>{t("scoreWon")}</small>
-                    <strong>{myTotalWon.toFixed(2)} GAS</strong>
-                  </span>
+                  {drawerStats.map((stat) => (
+                    <span key={stat.label}>
+                      <small>{stat.label}</small>
+                      <strong>{stat.value}</strong>
+                    </span>
+                  ))}
                 </div>
                 {drawerActions.length > 0 && (
                   <div className="snake-ingame-drawer__actions">

@@ -88,8 +88,15 @@ export class BurnLeagueScene extends BaseScene {
   private phaseValue!: Phaser.GameObjects.Text;
   private burnedValue!: Phaser.GameObjects.Text;
   private rankValue!: Phaser.GameObjects.Text;
+  // HUD/board label handles so guest mode can swap the GAS-centric copy for
+  // local (heat / streak) framing without rebuilding the scene.
+  private poolLabel?: Phaser.GameObjects.Text;
+  private seasonLabelText?: Phaser.GameObjects.Text;
+  private burnedLabel?: Phaser.GameObjects.Text;
+  private boardTitle?: Phaser.GameObjects.Text;
   private leaderList!: Phaser.GameObjects.Container;
   private ghostRows!: Phaser.GameObjects.Container;
+  private ghostAmounts: Phaser.GameObjects.Text[] = [];
   private emptyLeaderChip!: Phaser.GameObjects.Graphics;
   private emptyLeaderLabel!: Phaser.GameObjects.Text;
 
@@ -193,6 +200,20 @@ export class BurnLeagueScene extends BaseScene {
     const actionNotice = this.str("actionNotice", "");
     const leaders = this.val<LeaderEntry[]>("leaderboardPreview", []) ?? [];
 
+    // Guest (local) mode swaps the GAS-at-stake / pool / season framing for a
+    // local burn-streak read: "Best heat", "This run", a streak counter, and a
+    // heat-unit leaderboard — no GAS anywhere.
+    const guest = this.str("appMode", "gamefi") === "guest";
+    const streak = this.num("guestStreak", 0);
+    if (guest) {
+      this.poolLabel?.setText(this.str("guestPoolLabel", "Best heat"));
+      this.seasonLabelText?.setText(this.str("guestSeasonLabel", "Streak"));
+      this.burnedLabel?.setText(this.str("guestRunLabel", "This run"));
+      this.boardTitle?.setText(this.str("guestBoardLabel", "Local runs"));
+      // Drop the "-- GAS" ghost-row placeholders — guest has no GAS framing.
+      this.ghostAmounts.forEach((txt) => txt.setText("--"));
+    }
+
     this.isBurning = this.bool("isBurning");
     const isSettling = this.bool("isSettling");
     this.syncSelectedAmount(amount);
@@ -209,10 +230,14 @@ export class BurnLeagueScene extends BaseScene {
     }
     this.wasSettling = isSettling;
 
-    this.poolValue.setText(gasText(pot));
-    this.burnedValue.setText(gasText(userBurned));
-    this.rankValue.setText(rank === "--" ? "--" : `#${rank}`);
-    this.phaseValue.setText(this.phaseCopy(phase, countdown));
+    this.poolValue.setText(guest ? heatText(pot) : gasText(pot));
+    this.burnedValue.setText(guest ? heatText(userBurned) : gasText(userBurned));
+    // formattedRank already carries its own "#" — in gamefi the extra "#" is the
+    // pre-existing look; guest renders the value verbatim (a clean "#1").
+    this.rankValue.setText(rank === "--" ? "--" : guest ? rank : `#${rank}`);
+    this.phaseValue.setText(
+      guest ? (streak > 0 ? `x${streak}` : "Ready") : this.phaseCopy(phase, countdown),
+    );
 
     this.updatePresets();
     this.updateBurnButton();
@@ -227,7 +252,7 @@ export class BurnLeagueScene extends BaseScene {
       validationError ||
         actionNotice ||
         serviceNotice ||
-        this.defaultStatus(phase, leaders.length),
+        (guest ? this.guestDefaultStatus(streak) : this.defaultStatus(phase, leaders.length)),
     );
     this.layoutStatus();
   }
@@ -253,11 +278,14 @@ export class BurnLeagueScene extends BaseScene {
     const right = this.buildStatCard(width - 96, 48, 164, 58, "Season", false);
     this.poolValue = left.value;
     this.phaseValue = right.value;
+    this.poolLabel = left.label;
+    this.seasonLabelText = right.label;
 
     const lowerLeft = this.buildTinyMetric(94, 108, "You burned");
     const lowerRight = this.buildTinyMetric(width - 94, 108, "Rank");
     this.burnedValue = lowerLeft.value;
     this.rankValue = lowerRight.value;
+    this.burnedLabel = lowerLeft.label;
   }
 
   private buildStatCard(
@@ -267,7 +295,7 @@ export class BurnLeagueScene extends BaseScene {
     h: number,
     label: string,
     withIcon: boolean,
-  ): { value: Phaser.GameObjects.Text } {
+  ): { value: Phaser.GameObjects.Text; label: Phaser.GameObjects.Text } {
     const group = this.add.container(x, y);
     const bg = this.add.graphics();
     bg.fillStyle(withIcon ? C.surfaceWarm : C.surface, 0.97);
@@ -295,10 +323,14 @@ export class BurnLeagueScene extends BaseScene {
       color: withIcon ? "#92400e" : "#2a2018",
     }).setOrigin(withIcon ? 0 : 0.5, 0.5);
     group.add([labelText, value]);
-    return { value };
+    return { value, label: labelText };
   }
 
-  private buildTinyMetric(x: number, y: number, label: string): { value: Phaser.GameObjects.Text } {
+  private buildTinyMetric(
+    x: number,
+    y: number,
+    label: string,
+  ): { value: Phaser.GameObjects.Text; label: Phaser.GameObjects.Text } {
     const group = this.add.container(x, y);
     const bg = this.add.graphics();
     bg.fillStyle(C.surface, 0.96);
@@ -318,7 +350,7 @@ export class BurnLeagueScene extends BaseScene {
       color: "#2a2018",
     }).setOrigin(1, 0.5);
     group.add([bg, labelText, value]);
-    return { value };
+    return { value, label: labelText };
   }
 
   private buildCore(width: number, height: number): void {
@@ -663,7 +695,7 @@ export class BurnLeagueScene extends BaseScene {
     panel.lineStyle(1.25, C.stroke, 0.85);
     panel.strokeRoundedRect(28, panelTop, width - 56, panelH, 18);
 
-    this.add.text(width / 2, panelTop + 15, "Live leaderboard", {
+    this.boardTitle = this.add.text(width / 2, panelTop + 15, "Live leaderboard", {
       fontFamily: FONT,
       fontSize: "11px",
       fontStyle: "bold",
@@ -675,6 +707,7 @@ export class BurnLeagueScene extends BaseScene {
 
     // Dim ghost rows keep the empty panel dense and legible about its structure.
     this.ghostRows = this.add.container(0, rowsTop);
+    this.ghostAmounts = [];
     for (let i = 0; i < 3; i++) {
       this.ghostRows.add(this.buildGhostRow(width / 2, i * rowGap, i + 1));
     }
@@ -709,12 +742,14 @@ export class BurnLeagueScene extends BaseScene {
       fontSize: "10px",
       color: "#c2ac82",
     }).setOrigin(0, 0.5));
-    row.add(this.add.text(150, 0, "-- GAS", {
+    const amount = this.add.text(150, 0, "-- GAS", {
       fontFamily: FONT,
       fontSize: "10px",
       fontStyle: "bold",
       color: "#c2ac82",
-    }).setOrigin(1, 0.5));
+    }).setOrigin(1, 0.5);
+    this.ghostAmounts.push(amount);
+    row.add(amount);
     return row;
   }
 
@@ -901,21 +936,29 @@ export class BurnLeagueScene extends BaseScene {
     this.burnBtnBg.strokeRoundedRect(-116, -26, 232, 52, 16);
 
     const phase = this.str("seasonPhase", "dormant");
+    const guest = this.str("appMode", "gamefi") === "guest";
     this.burnBtnLabel.setColor(enabled ? "#ffffff" : "#fffaf0");
     this.burnBtnLabel.setText(
       this.isBurning
         ? "Burning..."
         : phase === "ended"
           ? "Settle season first"
-          : `Ignite ${this.selectedAmount} GAS`,
+          : guest
+            ? `${this.str("guestBurnVerb", "Stoke")} ${this.selectedAmount}`
+            : `Ignite ${this.selectedAmount} GAS`,
     );
   }
 
   private updateLeaderboard(entries: LeaderEntry[]): void {
     this.leaderList.removeAll(true);
+    const guest = this.str("appMode", "gamefi") === "guest";
+    const unit = this.str("guestUnit", "heat");
     const empty = entries.length === 0;
     this.ghostRows.setVisible(empty);
     this.emptyLeaderLabel.setVisible(empty);
+    this.emptyLeaderLabel.setText(
+      guest ? this.str("guestEmptyLabel", "No runs yet - stoke to start") : "No burns yet - ignite first",
+    );
     this.layoutEmptyChip(empty);
 
     entries.slice(0, 4).forEach((entry, index) => {
@@ -941,12 +984,17 @@ export class BurnLeagueScene extends BaseScene {
         fontSize: "10px",
         color: "#765c38",
       }).setOrigin(0, 0.5));
-      row.add(this.add.text(150, 0, `${entry.burned.toFixed(1)} GAS`, {
-        fontFamily: FONT,
-        fontSize: "10px",
-        fontStyle: "bold",
-        color: entry.isUser ? "#0f7d56" : "#2a2018",
-      }).setOrigin(1, 0.5));
+      row.add(this.add.text(
+        150,
+        0,
+        guest ? `${entry.burned.toFixed(0)} ${unit}` : `${entry.burned.toFixed(1)} GAS`,
+        {
+          fontFamily: FONT,
+          fontSize: "10px",
+          fontStyle: "bold",
+          color: entry.isUser ? "#0f7d56" : "#2a2018",
+        },
+      ).setOrigin(1, 0.5));
       this.leaderList.add(row);
     });
   }
@@ -1059,6 +1107,12 @@ export class BurnLeagueScene extends BaseScene {
     if (entryCount === 0) return "Top burner wins the whole pool";
     return "Burn more GAS to climb the live board";
   }
+
+  private guestDefaultStatus(streak: number): string {
+    if (this.isBurning) return "Stoking the fire...";
+    if (streak === 0) return "Stoke the fire and build a heat streak";
+    return "Keep stoking — but a cooling fire can flare out";
+  }
 }
 
 function shortAddress(address: string): string {
@@ -1075,4 +1129,10 @@ function gasText(value: string): string {
   const text = String(value || "0").trim();
   if (!text || text === "--") return "--";
   return /\bGAS\b/i.test(text) ? text : `${text} GAS`;
+}
+
+/** Strip any GAS suffix so guest (local) mode shows a bare heat number. */
+function heatText(value: string): string {
+  const text = String(value ?? "0").replace(/\s*GAS\b/i, "").trim();
+  return text || "0";
 }

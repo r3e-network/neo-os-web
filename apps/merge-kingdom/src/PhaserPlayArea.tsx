@@ -103,6 +103,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isDealing = bool("isDealing");
   const isSubmitting = bool("isSubmitting");
   const walletConnected = bool("walletConnected");
+  const appMode = str("appMode", "gamefi");
+  const isGuest = appMode === "guest";
 
   const rule = ruleFor(gameDifficulty);
   const isPlaying = status === "dealt";
@@ -140,6 +142,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     lastPayoutFixed8:Number(lastPayoutFixed8),
     lastElapsedMs,
     lastStatus,
+    // Play mode (guest | gamefi) — lets the scene drop pool gating + GAS copy in
+    // guest while keeping the GAMEFI lobby/HUD exactly as-is.
+    appMode,
   };
 
   // ── Derive UI state for PlayStage chrome ──────────────────────────────────
@@ -158,22 +163,24 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   if (canSubmit) {
     primary = {
-      label:    t("submitAction"),
+      label:    isGuest ? t("guestSubmitAction") : t("submitAction"),
       onClick:  () => void dispatch("submitSolution"),
       disabled: busy,
       loading:  isSubmitting,
       icon:     <Trophy size={18} aria-hidden="true" />,
-      hint:     t("submitHint"),
+      hint:     isGuest ? t("guestSubmitHint") : t("submitHint"),
     };
   } else if (isSolved || isExpired) {
     primary = {
       label:    t("startAction"),
       onClick:  () => void dispatch("startGame", gameDifficulty),
-      disabled: busy || !walletConnected,
+      disabled: busy || (!isGuest && !walletConnected),
       loading:  isStarting || isDealing,
-      hint: !walletConnected
-        ? t("walletRequiredStatus")
-        : t("startHint", { amount: gasDisplay(rule.entry) }),
+      hint: isGuest
+        ? t("guestStartHint")
+        : !walletConnected
+          ? t("walletRequiredStatus")
+          : t("startHint", { amount: gasDisplay(rule.entry) }),
     };
   }
 
@@ -212,7 +219,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const score = isPlaying || isSolved || isExpired
     ? [
-        { label: t("scoreReward"), value: `${gasDisplay(rule.reward)} GAS`, accent: true },
+        isGuest
+          // Guest has no stake — surface local framing instead of "REWARD AT STAKE".
+          ? { label: t("guestRunLabel"), value: t("guestRunValue"), accent: true }
+          : { label: t("scoreReward"), value: `${gasDisplay(rule.reward)} GAS`, accent: true },
         { label: t("scoreTile"), value: `${tileAchieved}/${rule.targetTile}` },
         { label: t("scoreTime"), value: isPlaying ? formatClock(remainingMs) : formatClock(rule.limitMs) },
       ]
@@ -257,7 +267,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="mk-drawer__inner">
                 <div className="mk-drawer__head">
                   <img src="./logo.webp" alt="" width={42} height={42} draggable={false} />
-                  <p>{t("leaderboardIntro")}</p>
+                  <p>{isGuest ? t("guestModeLine") : t("leaderboardIntro")}</p>
                 </div>
 
                 <div className="mk-drawer__summary" aria-label={t("drawerSummaryLabel")}>
@@ -266,21 +276,25 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <strong>{myRank > 0 ? `#${myRank}` : "--"}</strong>
                   </div>
                   <div>
-                    <span>{t("scoreWon")}</span>
-                    <strong>{gasLabel(myTotalWon)}</strong>
+                    <span>{isGuest ? t("guestBestLabel") : t("scoreWon")}</span>
+                    <strong>{isGuest ? `${myTotalWon}` : gasLabel(myTotalWon)}</strong>
                   </div>
                   <div>
                     <span>{t("historyTitle")}</span>
                     <strong>{t("solvesCount", { count: mySolves })}</strong>
                   </div>
-                  <div>
-                    <span>{t("poolLabel")}</span>
-                    <strong>{gasLabel(poolFree)}</strong>
-                  </div>
-                  <div>
-                    <span>{t("creditLabel")}</span>
-                    <strong>{gasLabel(creditGas)}</strong>
-                  </div>
+                  {!isGuest && (
+                    <div>
+                      <span>{t("poolLabel")}</span>
+                      <strong>{gasLabel(poolFree)}</strong>
+                    </div>
+                  )}
+                  {!isGuest && (
+                    <div>
+                      <span>{t("creditLabel")}</span>
+                      <strong>{gasLabel(creditGas)}</strong>
+                    </div>
+                  )}
                 </div>
 
                 {creditGas > 0 && (
@@ -311,7 +325,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <span className="mk-ranks__rank">#{entry.rank}</span>
                         <span className="mk-ranks__addr">{shortHash(entry.address)}</span>
                         <span className="mk-ranks__solves">{t("solvesCount", { count: entry.solves })}</span>
-                        <span className="mk-ranks__won">{gasLabel(entry.totalWon)}</span>
+                        <span className="mk-ranks__won">{isGuest ? `${entry.totalWon}` : gasLabel(entry.totalWon)}</span>
                         {entry.isUser && <span className="mk-ranks__me">{t("youTag")}</span>}
                       </li>
                     ))}
@@ -352,11 +366,17 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <section className="mk-drawer__section mk-drawer__fairness">
                   <div className="mk-drawer__section-head">
                     <ShieldCheck size={16} aria-hidden="true" />
-                    <h4>{t("fairnessTitle")}</h4>
+                    <h4>{isGuest ? t("guestRulesTitle") : t("fairnessTitle")}</h4>
                   </div>
-                  <p>{t("rulesCopy")}</p>
-                  <p>{t("fairnessCopy")}</p>
-                  {commitment && (
+                  {isGuest ? (
+                    <p>{t("guestRulesCopy")}</p>
+                  ) : (
+                    <>
+                      <p>{t("rulesCopy")}</p>
+                      <p>{t("fairnessCopy")}</p>
+                    </>
+                  )}
+                  {!isGuest && commitment && (
                     <p className="mk-drawer__seed">
                       {t("commitmentLine", {
                         gameId: activeGameId,
@@ -364,7 +384,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                       })}
                     </p>
                   )}
-                  {(isSolved || isExpired) && (
+                  {!isGuest && (isSolved || isExpired) && (
                     <p className="mk-drawer__seed">
                       {t("lastResultLine", {
                         payout: fixed8Label(lastPayoutFixed8),

@@ -41,6 +41,8 @@ const GAME_CONFIG = {
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const mode = str("mode", "gamefi");
+  const isGuest = mode === "guest";
   const chainLabel = str("chainLabel") || t("networkLabel");
   const maxStake = val<number>("maxStake", 20) ?? 20;
   const maxPayableStake = val<number>("maxPayableStake", 0) ?? 0;
@@ -49,6 +51,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isUnresolved = bool("isUnresolved");
   const isEvmChain = chainLabel.startsWith("Neo X");
   const effectiveMaxStake = maxPayableStake > 0 ? Math.min(maxStake, maxPayableStake) : maxStake;
+  // In guest (local practice) the amounts are practice chips, not GAS at stake —
+  // reframe the currency word so no GAS-at-stake framing leaks. GameFi is "GAS".
+  const localizeAmount = (value: string): string =>
+    isGuest ? value.replace(/\bGAS\b/g, t("guestUnit")) : value;
 
   // Build the bridge state snapshot (plain object from observables)
   const bridgeState = {
@@ -67,6 +73,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     directCredit,
     walletConnected: bool("walletConnected"),
     rollHistory,
+    mode,
   };
 
   const isRolling  = bool("isSubmitting") || bool("isResolving");
@@ -85,12 +92,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     },
     {
       label: t("stakeMetric"),
-      value: bridgeState.stakeAmount,
+      value: localizeAmount(bridgeState.stakeAmount),
       accent: false,
     },
     {
       label: t("payoutMetric"),
-      value: bridgeState.payoutPreview,
+      value: localizeAmount(bridgeState.payoutPreview),
       accent: lastOutcome === "won",
     },
   ];
@@ -121,14 +128,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{
           eyebrow:  t("rollTab"),
           title:    stageTitle,
-          subtitle: t("rollDescription"),
+          subtitle: isGuest ? t("guestSubtitle") : t("rollDescription"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
                 <span className="mx2-badge__dot" />
-                {chainLabel}
+                {isGuest ? t("guestBadge") : chainLabel}
               </span>
-              {directCredit > 0 && !isEvmChain && (
+              {!isGuest && directCredit > 0 && !isEvmChain && (
                 <span className="mx2-badge">
                   <CoinArt size={14} variant="gas" /> {directCredit.toFixed(2)}
                 </span>
@@ -173,25 +180,25 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Trophy size={18} aria-hidden="true" />
                   <div>
                     <h3>{t("diceHistoryTitle")}</h3>
-                    <p>{t("fairnessShort")}</p>
+                    <p>{isGuest ? t("guestFairnessShort") : t("fairnessShort")}</p>
                   </div>
                 </div>
                 <div className="dice-ingame-drawer__grid">
                   <span>
                     <small>{t("networkLabel")}</small>
-                    <strong>{chainLabel}</strong>
+                    <strong>{isGuest ? t("guestNetworkValue") : chainLabel}</strong>
                   </span>
                   <span>
                     <small>{t("maxStakeNote")}</small>
-                    <strong>{effectiveMaxStake} GAS</strong>
+                    <strong>{isGuest ? t("guestUnlimitedValue") : `${effectiveMaxStake} GAS`}</strong>
                   </span>
                   <span>
                     <small>{t("rangeLabel")}</small>
-                    <strong>0.05-{effectiveMaxStake} GAS</strong>
+                    <strong>{isGuest ? t("guestRangeValue") : `0.05-${effectiveMaxStake} GAS`}</strong>
                   </span>
                   <span>
                     <small>{t("feeLabel")}</small>
-                    <strong>5%</strong>
+                    <strong>{isGuest ? t("guestFeeValue") : "5%"}</strong>
                   </span>
                 </div>
                 {drawerActions.length > 0 && (
@@ -208,7 +215,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <section className="dice-drawer__section dice-drawer__section--history">
                     <div className="dice-drawer__section-head">
                       <strong>{t("networkLabel")}</strong>
-                      <span>{chainLabel}</span>
+                      <span>{isGuest ? t("guestNetworkValue") : chainLabel}</span>
                     </div>
                     {rollHistory.length > 0 ? (
                       <ul className="mx2-history">
@@ -240,14 +247,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <article className="dice-drawer__rule-card">
                       <span className="dice-drawer__rule-index">1</span>
                       <strong>{t("howItWorks")}</strong>
-                      <p>{t("docHowItWorks")}</p>
+                      <p>{isGuest ? t("guestHowItWorksBody") : t("docHowItWorks")}</p>
                     </article>
                     <article className="dice-drawer__rule-card">
                       <span className="dice-drawer__rule-index">2</span>
                       <strong>{t("safetyModel")}</strong>
-                      <p>{t("docSafetyModel")}</p>
+                      <p>{isGuest ? t("guestSafetyBody") : t("docSafetyModel")}</p>
                     </article>
-                    {!isEvmChain && (
+                    {!isEvmChain && !isGuest && (
                       <article className="dice-drawer__rule-card">
                         <span className="dice-drawer__rule-index">3</span>
                         <strong>{t("diceVrfRouteTitle")}</strong>
@@ -255,15 +262,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                       </article>
                     )}
                     <article className="dice-drawer__rule-card">
-                      <span className="dice-drawer__rule-index">{isEvmChain ? "3" : "4"}</span>
-                      <strong>{t("diceRiskTitle")}</strong>
-                      <p>{t("diceRiskCopy")}</p>
+                      <span className="dice-drawer__rule-index">{isEvmChain || isGuest ? "3" : "4"}</span>
+                      <strong>{isGuest ? t("guestPayoutTitle") : t("diceRiskTitle")}</strong>
+                      <p>{isGuest ? t("guestRiskBody") : t("diceRiskCopy")}</p>
                     </article>
                   </div>
                 </div>
                 <div className="dice-ingame-drawer__fairness">
                   <ShieldCheck size={17} aria-hidden="true" />
-                  <p>{t("rulesShort")}</p>
+                  <p>{isGuest ? t("guestRulesShort") : t("rulesShort")}</p>
                 </div>
               </section>
             )}

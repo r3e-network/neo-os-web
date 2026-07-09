@@ -249,6 +249,48 @@ const appMessages = {
   rankGold: { en: "1st place", zh: "第一名" },
   rankSilver: { en: "2nd place", zh: "第二名" },
   rankBronze: { en: "3rd place", zh: "第三名" },
+
+  // ── Guest (local) mode — a local burn-streak game, NO GAS / pool / reward ──
+  // framing. All copy avoids on-chain / stake language.
+  guestEyebrow: { en: "Local run", zh: "本地对局" },
+  guestStageTitle: { en: "Stoke the fire", zh: "添柴燃烧" },
+  guestSubtitle: {
+    en: "A local burn-streak challenge — push your heat, bank it before the fire flares out.",
+    zh: "本地热度连击挑战——尽情累积热度，在炉火熄灭前记入成绩。",
+  },
+  guestBest: { en: "Best heat", zh: "最佳热度" },
+  guestRun: { en: "This run", zh: "本轮热度" },
+  guestTopRun: { en: "Top run", zh: "最高热度" },
+  guestStreakLabel: { en: "Streak", zh: "连击" },
+  guestStreakBadge: { en: "Streak x{streak}", zh: "连击 x{streak}" },
+  guestStokeVerb: { en: "Stoke", zh: "添柴" },
+  guestHeatUnit: { en: "heat", zh: "热度" },
+  guestBoardTitle: { en: "Local runs", zh: "本地榜单" },
+  guestNoRuns: { en: "No runs yet - stoke to start", zh: "还没有记录 - 添柴开始" },
+  guestYouTag: { en: "you", zh: "你" },
+  guestSummaryTitle: { en: "Local burn streak", zh: "本地热度连击" },
+  guestSummaryLine: {
+    en: "Every stoke rolls a local heat bonus. Push the streak, but a cooling fire can flare out and bank your run.",
+    zh: "每次添柴都会掷出本地热度加成。尽力累积连击，但炉火渐冷可能爆燃熄灭并记入本轮。",
+  },
+  guestHowTitle: { en: "How the streak works", zh: "连击玩法" },
+  guestStepPick: { en: "Pick a fuel load", zh: "选择燃料量" },
+  guestStepStoke: { en: "Stoke the fire for RNG heat", zh: "添柴获得随机热度" },
+  guestStepStreak: { en: "Chain stokes to grow the streak", zh: "连续添柴提升连击" },
+  guestStepBank: { en: "A flare-out banks your run to the local board", zh: "爆燃会将本轮记入本地榜单" },
+  guestNextStoke: { en: "Next stoke", zh: "下次添柴" },
+  guestIntro: {
+    en: "Stoke the fire to build a heat streak — the local board is yours to top.",
+    zh: "点燃炉火，累积热度连击——本地榜单等你登顶。",
+  },
+  guestStoking: { en: "Stoking the fire...", zh: "正在添柴..." },
+  guestStoked: { en: "+{gained} heat - streak x{streak}", zh: "+{gained} 热度 - 连击 x{streak}" },
+  guestSurge: { en: "Surge! +{gained} heat - streak x{streak}", zh: "爆燃！+{gained} 热度 - 连击 x{streak}" },
+  guestFlareOut: {
+    en: "Flare-out at {score} heat after {streak} stokes - run banked, fresh fire ready.",
+    zh: "连击 {streak} 次、{score} 热度时爆燃熄灭 - 本轮已记入，炉火重燃。",
+  },
+  guestFuelInvalid: { en: "Choose a fuel load between {min} and {max}.", zh: "请选择 {min} 到 {max} 之间的燃料量。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

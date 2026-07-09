@@ -7,6 +7,11 @@ export const manifest: MiniAppManifest = {
   category: "game",
   shell: "game",
 
+  // Two-mode opt-in (dice-game has no full gamePage block, so use the top-level
+  // flag). GUEST = a purely local dice table (crypto-RNG rolls, no wallet/chain);
+  // GAMEFI = the existing on-chain commit/reveal flow, unchanged.
+  supportsGuest: true,
+
   tabs: [
     { key: "roll", labelKey: "rollTab", icon: "dice", default: true },
     { key: "rules", labelKey: "rulesTab", icon: "shield" },

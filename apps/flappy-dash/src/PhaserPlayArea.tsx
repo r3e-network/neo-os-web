@@ -82,6 +82,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const leaderboard    = val<LeaderEntry[]>("leaderboard", []) ?? [];
   const myHistory      = val<SolveRow[]>("myHistory", []) ?? [];
   const lastStatus     = str("lastStatus", "");
+  // Play mode — guest hides GAS-at-stake / pool / reward framing and shows a
+  // purely local ("practice") framing. GameFi copy is unchanged.
+  const appMode        = str("appMode", "gamefi");
+  const isGuest        = appMode === "guest";
 
   const rule    = ruleOf(gameDifficulty);
   const nowMs   = Date.now();
@@ -99,9 +103,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Templates keep their {placeholders}; the scene substitutes live values.
   const sceneLabels = {
     eyebrow:      t("canvasEyebrow"),
-    heroTagline:  t("canvasHeroTagline"),
+    heroTagline:  isGuest ? t("canvasGuestHeroTagline") : t("canvasHeroTagline"),
     title:        t("appEyebrow"),
-    poolChip:     t("canvasPoolChip"),
+    poolChip:     isGuest ? t("canvasGuestPoolChip") : t("canvasPoolChip"),
     awaitingPool: t("canvasAwaitingPool"),
     launch:       t("canvasLaunch"),
     launching:    t("canvasLaunching"),
@@ -114,7 +118,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     winTitle:     t("canvasWinTitle"),
     crashTitle:   t("canvasCrashTitle"),
     timeUpTitle:  t("canvasTimeUpTitle"),
-    winBody:      t("canvasWinBody"),
+    winBody:      isGuest ? t("canvasGuestWinBody") : t("canvasWinBody"),
     crashBody:    t("canvasCrashBody"),
     timeUpBody:   t("canvasTimeUpBody"),
     submitScore:  t("canvasSubmitScore"),
@@ -127,12 +131,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       meta:      t("canvasRouteMeta", { gates: r.targetPipes, minutes: Math.round(r.limitMs / 60000) }),
       cardName:  t(`difficulty_${r.key}`),
       cardGates: t("canvasCardGates", { gates: r.targetPipes }),
-      entry:     t("canvasEntry", { amount: gasDisplay(r.entryFixed8) }),
+      entry:     isGuest ? t("canvasGuestEntry") : t("canvasEntry", { amount: gasDisplay(r.entryFixed8) }),
+      reward:    isGuest
+        ? t("canvasGuestRouteReward", { gates: r.targetPipes })
+        : `${gasDisplay(r.rewardFixed8)} GAS`,
     })),
   };
 
   // ── Bridge state pushed into the Phaser scene ────────────────────────────
   const bridgeState = {
+    appMode,
     gameStatus,
     seed,
     activeGameId,
@@ -165,8 +173,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const hudItems = [
     {
-      label: t("scoreReward"),
-      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+      label: isGuest ? t("guestModeHudLabel") : t("scoreReward"),
+      value: isGuest ? t("guestModeHudValue") : `${gasDisplay(rule.rewardFixed8)} GAS`,
       accent: true,
     },
     {
@@ -210,7 +218,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
@@ -271,8 +279,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
                 <section className="flappy-ingame-drawer__summary" aria-label={t("sidebarTitle")}>
                   <span>
-                    <small>{t("scoreWon")}</small>
-                    <strong>{gasAmountDisplay(myTotalWon)} GAS</strong>
+                    <small>{isGuest ? t("guestPlayModeLabel") : t("scoreWon")}</small>
+                    <strong>
+                      {isGuest ? t("guestPlayModeValue") : `${gasAmountDisplay(myTotalWon)} GAS`}
+                    </strong>
                   </span>
                   <span>
                     <small>{t("rankLabel")}</small>
@@ -302,7 +312,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div className="flappy-drawer">
                   <div className="flappy-drawer__head">
                     <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
-                    <p>{t("leaderboardIntro")}</p>
+                    <p>{isGuest ? t("guestLeaderboardIntro") : t("leaderboardIntro")}</p>
                   </div>
 
                   <section className="flappy-drawer__section" aria-label={t("leaderboardTitle")}>
@@ -331,7 +341,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                               {t("solvesCount", { count: entry.solves })}
                             </span>
                             <span className="flappy-ranks__won">
-                              {gasAmountDisplay(entry.totalWon)} GAS
+                              {isGuest
+                                ? t("historyPipes", { pipes: entry.totalWon })
+                                : `${gasAmountDisplay(entry.totalWon)} GAS`}
                             </span>
                             {entry.isUser && (
                               <span className="flappy-ranks__me">{t("youTag")}</span>

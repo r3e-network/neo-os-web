@@ -100,6 +100,7 @@ defineMiniApp({
     const seqAchieved    = createObservable(0);
     // lastPayout is a number (fixed8 bigint) in this game
     const lastPayoutFixed8 = createObservable<bigint>(0n);
+    const appMode = createObservable<string>(app.mode.get());
 
     let session: RewardGameSession | null = null;
 
@@ -119,6 +120,7 @@ defineMiniApp({
     // Switching to guest at the launcher resets to a clean local lobby and loads
     // the off-chain guest board (replacing the on-chain read done on mount).
     app.mode.onChange((mode) => {
+      appMode.set(mode);
       if (mode === "guest") void guest.enter();
     });
 
@@ -374,6 +376,7 @@ defineMiniApp({
         playerSequence,
         seqAchieved,
         lastPayoutFixed8,
+        appMode,
       },
       loadData: async () => {
         await refreshBalances();

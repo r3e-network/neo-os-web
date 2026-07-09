@@ -13,6 +13,7 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { DIFFICULTY_RULES, ENTRY_MEMO, statusOf, gasDisplay } from "./logic/game-rules";
+import { createGuestEngine } from "./logic/guest-engine";
 import type { LeaderEntry, SolveRow } from "@framework/game";
 import { asNumber } from "@framework/game";
 
@@ -71,10 +72,34 @@ defineMiniApp({
     // ── Snake-specific observables ────────────────────────────────────────────
     const clues = createObservable("");   // initial board clues from enclave
 
+    // Current play mode, mirrored into an observable the PlayArea/scene read so
+    // the GAS-centric copy can switch to local/practice framing in guest mode.
+    // Kept in sync with the launcher-selected framework mode via app.mode.onChange.
+    const appMode = createObservable(app.mode.get());
+
     let session: RewardGameSession | null = null;
+
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local snake game — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      obs,
+      clues,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Keep the PlayArea's mode mirror in sync, and — on switching to guest at the
+    // launcher — reset to a clean local lobby and load the off-chain guest board
+    // (replacing the on-chain read done on mount).
+    app.mode.onChange((mode) => {
+      appMode.set(mode);
+      if (mode === "guest") void guest.enter();
+    });
 
     // ── Data refresh ──────────────────────────────────────────────────────────
     const refreshBalances = async () => {
+      if (app.mode.isGuest()) return;
       try {
         const balances = await rewardGame.balances(app.game.player.scriptHash());
         obs.poolFree.set(balances.poolFreeGas);
@@ -83,12 +108,14 @@ defineMiniApp({
     };
 
     const refreshStats = async () => {
+      if (app.mode.isGuest()) return;
       const { solves, totalWon } = await app.game.stats.load();
       obs.mySolves.set(solves);
       obs.myTotalWon.set(totalWon);
     };
 
     const loadLeaderboard = async () => {
+      if (app.mode.isGuest()) return;
       const { ranked, mine } = await app.game.leaderboard.load<SolveRow>(
         "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
       );
@@ -98,6 +125,7 @@ defineMiniApp({
     };
 
     const refreshProgression = async () => {
+      if (app.mode.isGuest()) return;
       try {
         const progression = await rewardGame.progression(2);
         obs.progressionRequiredDifficulty.set(progression.requiredDifficulty);
@@ -162,6 +190,11 @@ defineMiniApp({
 
     // ── Actions ───────────────────────────────────────────────────────────────
     app.actions.register("startGame", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { difficulty?: unknown };
+        guest.startGame(Number(form.difficulty ?? 0));
+        return;
+      }
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form       = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
@@ -198,18 +231,21 @@ defineMiniApp({
 
     app.actions.register("selectDifficulty", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { difficulty?: unknown };
+      if (app.mode.isGuest()) { guest.selectDifficulty(Number(form.difficulty ?? 0)); return; }
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
       if (obs.progressionReady.get() && difficulty < obs.progressionRequiredDifficulty.get()) return;
       obs.gameDifficulty.set(difficulty);
     });
 
     app.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isDealing.get() || obs.gameStatus.get() !== "committed") return;
       await openSession(gameId, obs.gameDifficulty.get());
     });
 
     app.actions.register("recordMove", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) return;   // scene owns the local snake simulation
       const form = (args[0] ?? {}) as { dir?: unknown };
       const dir  = Number(form.dir);
       if (!Number.isInteger(dir) || dir < 0 || dir > 3) return;
@@ -217,6 +253,7 @@ defineMiniApp({
     });
 
     app.actions.register("submitSolution", async () => {
+      if (app.mode.isGuest()) { await guest.submitSolution(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isSubmitting.get() || obs.gameStatus.get() !== "dealt") return;
       obs.isSubmitting.set(true);
@@ -251,6 +288,7 @@ defineMiniApp({
     });
 
     app.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0") return;
       try {
@@ -269,6 +307,7 @@ defineMiniApp({
 
     const withdrawOp = app.operations.create("withdrawWinnings");
     app.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       if (!app.game.player.scriptHash()) { ctx.setStatus(ctx.t("statusFailed"), "error"); return; }
       if (obs.credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       await withdrawOp.run(async () => {
@@ -278,13 +317,19 @@ defineMiniApp({
     });
 
     app.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, clues },
+      // `appMode` is the play-mode mirror the PlayArea reads to pick local vs
+      // GAS copy; the scene reads it (via bridgeState) to unlock local play.
+      state: { ...obs, clues, appMode },
       loadData: async () => {
+        // Guest never reads the chain — reset to a local lobby and load the
+        // off-chain board instead, so no chain/oracle call is made in guest mode.
+        if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
         const playerHash = app.game.player.scriptHash();
         if (playerHash) {

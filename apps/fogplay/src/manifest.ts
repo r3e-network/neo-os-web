@@ -25,6 +25,10 @@ export const manifest: MiniAppManifest = {
   category: "game",
   shell: "game",
 
+  // Two-mode launcher: primary "Earn GAS" (GameFi) + secondary "Play free"
+  // (Guest). FogPlay has no gamePage block, so it opts in via supportsGuest.
+  supportsGuest: true,
+
   // -- Tabs -------------------------------------------------------------------
   // The platform appends a "docs" tab automatically via defineMiniApp.
   tabs: [

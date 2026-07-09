@@ -36,6 +36,11 @@ function cardKeywords(card: Card): string {
 
 export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const { bool, num, str, val } = useStateBindings(state);
+  // Launcher-selected play mode. In guest the reading is a free local draw, so
+  // every GAS-at-stake / draw-fee label is reframed to local framing; gamefi
+  // (the default) keeps its on-chain copy exactly as-is.
+  const mode = str("mode", "gamefi");
+  const isGuest = mode === "guest";
   const hasDrawn = bool("hasDrawn");
   const allFlipped = bool("allFlipped");
   const isLoading = bool("isLoading");
@@ -68,10 +73,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
       chooseIntent: t("sceneChooseIntent"),
       drawing: t("dealingCards"),
       tapToReveal: t("sceneTapToReveal"),
-      verified: t("oracleVerifiedShort"),
-      idleStatus: t("sceneIdleStatus"),
-      drawingStatus: t("sceneDrawingStatus"),
-      revealedStatus: t("sceneRevealedStatus"),
+      verified: isGuest ? t("guestRevealed") : t("oracleVerifiedShort"),
+      idleStatus: isGuest ? t("guestSceneIdleStatus") : t("sceneIdleStatus"),
+      drawingStatus: isGuest ? t("guestSceneDrawingStatus") : t("sceneDrawingStatus"),
+      revealedStatus: isGuest ? t("guestSceneRevealedStatus") : t("sceneRevealedStatus"),
       revealCount: t("sceneRevealCount"),
       focusLabel: t("questionPreviewLabel"),
       focusFallback: t("questionPreviewFallback"),
@@ -83,7 +88,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
       actionNew: t("newReading"),
       actionDrawing: t("drawing"),
       tapToDraw: t("tapToDraw"),
-      tagline: t("sceneHeaderTagline"),
+      tagline: isGuest ? t("guestSceneTagline") : t("sceneHeaderTagline"),
     },
     drawn,
     isLoading,
@@ -91,6 +96,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     readingsCount,
     cardsDrawnCount,
     walletConnected: Boolean(walletAddress),
+    mode,
   };
 
   const revealRemainingCards = () => {
@@ -102,13 +108,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const stageTitle = isLoading
     ? t("dealingCards")
     : allFlipped
-      ? t("oracleVerifiedShort")
+      ? (isGuest ? t("guestRevealed") : t("oracleVerifiedShort"))
       : hasDrawn
         ? t("tapToReveal")
         : t("drawYourCards");
 
   const readingStateValue = allFlipped
-    ? t("oracleVerifiedShort")
+    ? (isGuest ? t("guestRevealed") : t("oracleVerifiedShort"))
     : hasDrawn
       ? t("oracleSealed")
       : t("awaitingDraw");
@@ -116,7 +122,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const score = [
     { label: t("readingStateLabel"), value: readingStateValue, accent: allFlipped },
     { label: t("readings"), value: String(readingsCount) },
-    { label: t("prepaidCreditLabel"), value: formatGas(prepaidCredit) },
+    // Guest has no draw fee / prepaid credit — swap the GAS tile for a neutral
+    // cards-drawn count so no GAS-at-stake framing leaks into local play.
+    isGuest
+      ? { label: t("cardsDrawnCount"), value: String(cardsDrawnCount) }
+      : { label: t("prepaidCreditLabel"), value: formatGas(prepaidCredit) },
   ];
 
   const primary = allFlipped
@@ -140,7 +150,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
           disabled: busy,
           loading: isLoading,
           icon: <Sparkles size={18} aria-hidden="true" />,
-          hint: t("drawValueHint"),
+          hint: isGuest ? t("guestDrawHint") : t("drawValueHint"),
         };
 
   const secondary = [
@@ -181,7 +191,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
       onClick: () => void dispatch("refreshReadingState"),
       disabled: busy,
       icon: <RefreshCw size={16} aria-hidden="true" />,
-      hint: t("verificationPanelTitle"),
+      hint: isGuest ? t("guestVerificationTitle") : t("verificationPanelTitle"),
     },
   ];
 
@@ -193,13 +203,17 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {t("tarotFee")}
+                <span className="mx2-badge__dot" /> {isGuest ? t("guestBadge") : t("tarotFee")}
               </span>
-              <span className="mx2-badge">{oracleReady ? t("oracleVerifiedShort") : t("oraclePendingShort")}</span>
+              <span className="mx2-badge">
+                {oracleReady
+                  ? (isGuest ? t("guestDrawnBadge") : t("oracleVerifiedShort"))
+                  : t("oraclePendingShort")}
+              </span>
             </>
           ),
         }}
@@ -227,7 +241,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
               <div className="tarot-drawer__inner">
                 <div className="tarot-drawer__head">
                   <img src="./logo.webp" alt="" width={42} height={42} draggable={false} />
-                  <p>{t("readingIntentCopy")}</p>
+                  <p>{isGuest ? t("guestReadingIntentCopy") : t("readingIntentCopy")}</p>
                 </div>
 
                 <div className="tarot-drawer__summary" aria-label={t("drawerSummaryLabel")}>
@@ -247,10 +261,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                     <span>{t("cardsDrawnCount")}</span>
                     <strong>{cardsDrawnCount}</strong>
                   </div>
-                  <div>
-                    <span>{t("prepaidCreditLabel")}</span>
-                    <strong>{formatGas(prepaidCredit)}</strong>
-                  </div>
+                  {!isGuest && (
+                    <div>
+                      <span>{t("prepaidCreditLabel")}</span>
+                      <strong>{formatGas(prepaidCredit)}</strong>
+                    </div>
+                  )}
                   <div>
                     <span>{t("readerWalletLabel")}</span>
                     <strong>{walletAddress ? shortValue(walletAddress) : t("readerWalletMissing")}</strong>
@@ -303,17 +319,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                 <section className="tarot-drawer__section">
                   <div className="tarot-drawer__section-head">
                     <ShieldCheck size={16} aria-hidden="true" />
-                    <h4>{t("verificationPanelTitle")}</h4>
+                    <h4>{isGuest ? t("guestVerificationTitle") : t("verificationPanelTitle")}</h4>
                   </div>
                   <ul className="tarot-drawer__verify">
-                    <li>{t("verificationPointFee")}</li>
-                    <li>{t("verificationPointRandom")}</li>
-                    <li>{t("verificationPointWallet")}</li>
+                    <li>{isGuest ? t("guestVerificationPointOne") : t("verificationPointFee")}</li>
+                    <li>{isGuest ? t("guestVerificationPointTwo") : t("verificationPointRandom")}</li>
+                    <li>{isGuest ? t("guestVerificationPointThree") : t("verificationPointWallet")}</li>
                   </ul>
                   <p className="tarot-drawer__route">
-                    {t("contractRouteLabel")}: <code>{t("tarotContractRoute")}</code>
+                    {isGuest ? t("guestRouteLabel") : t("contractRouteLabel")}:{" "}
+                    <code>{isGuest ? t("guestContractRoute") : t("tarotContractRoute")}</code>
                   </p>
-                  <p>{t("fairnessCopy")}</p>
+                  <p>{isGuest ? t("guestFairnessCopy") : t("fairnessCopy")}</p>
                 </section>
 
                 <ol className="tarot-drawer__flow" aria-label={t("readingFlowTitle")}>
@@ -322,8 +339,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                     <em>{t("readingStepOneCopy")}</em>
                   </li>
                   <li>
-                    <strong>{t("readingStepTwoShort")}</strong>
-                    <em>{t("readingStepTwoCopy")}</em>
+                    <strong>{isGuest ? t("guestStepTwoShort") : t("readingStepTwoShort")}</strong>
+                    <em>{isGuest ? t("guestStepTwoCopy") : t("readingStepTwoCopy")}</em>
                   </li>
                   <li>
                     <strong>{t("readingStepThreeShort")}</strong>

@@ -215,6 +215,27 @@ const appMessages = {
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
 
+  // ─── Guest (free / local) mode ───────────────────────────────────────────
+  // Local play: no token, no entry, no reward pool. Scores are saved to the
+  // off-chain guest leaderboard only.
+  guestStatusReady: { en: "Local practice — pick a route and tap to fly", zh: "本地练习——选择路线并点击飞行" },
+  guestStatusDealt: { en: "Local run ready — tap to fly!", zh: "本地对局就绪——点击飞行！" },
+  guestRunComplete: { en: "Local run complete — {count} pipes cleared!", zh: "本地对局完成——通过 {count} 根管道！" },
+  guestExpired: { en: "Local run ended — time's up", zh: "本地对局结束——时间到" },
+  guestLastPayout: { en: "{pipes} pipes", zh: "{pipes} 根管道" },
+  guestLeaderboardIntro: {
+    en: "Local practice scores, saved off-chain. Connect a wallet to save yours.",
+    zh: "本地练习成绩，离线保存。连接钱包即可保存你的成绩。",
+  },
+  guestPlayModeLabel: { en: "Play mode", zh: "游玩模式" },
+  guestPlayModeValue: { en: "Local · free", zh: "本地 · 免费" },
+  guestModeHudLabel: { en: "Mode", zh: "模式" },
+  guestModeHudValue: { en: "Local run", zh: "本地对局" },
+  guestSubtitle: {
+    en: "Tap, dodge the pipes, and beat your best — free local practice.",
+    zh: "点击振翅，穿越管道，刷新纪录——免费本地练习。",
+  },
+
   // ─── In-canvas (Phaser scene) labels ─────────────────────────────────────
   // Pre-resolved and handed to the flight scene through bridgeState.sceneLabels
   // so the canvas honours the active locale. {placeholders} are substituted by
@@ -264,6 +285,19 @@ const appMessages = {
   },
   canvasCardGates: { en: "{gates} gates", zh: "{gates} 根管道" },
   canvasEntry: { en: "Entry {amount} GAS", zh: "报名 {amount} GAS" },
+
+  // ─── In-canvas guest (local) overrides — no GAS / entry / pool framing ────
+  canvasGuestHeroTagline: {
+    en: "Pass the gates, beat your best — free local practice.",
+    zh: "穿越管道，刷新纪录——免费本地练习。",
+  },
+  canvasGuestPoolChip: { en: "Free practice — no entry", zh: "自由练习——无需报名" },
+  canvasGuestEntry: { en: "No entry — free", zh: "免费——无需报名" },
+  canvasGuestRouteReward: { en: "{gates} pipes", zh: "{gates} 根管道" },
+  canvasGuestWinBody: {
+    en: "{score} pipes cleared\nNew local run!",
+    zh: "已通过 {score} 根管道\n本地新纪录！",
+  },
 };
 
 export const messages = mergeMessages(appMessages);

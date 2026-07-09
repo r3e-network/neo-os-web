@@ -57,6 +57,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const sequence = str("sequence", "");
   const playerSequence = str("playerSequence", "");
   const commitment = str("commitment", "");
+  const appMode = str("appMode", "gamefi");
+  const isGuest = appMode === "guest";
   const deadline = val<number>("deadline", 0) ?? 0;
   const dealtAt = val<number>("dealtAt", 0) ?? 0;
   const undosUsed = val<number>("undosUsed", 0) ?? 0;
@@ -84,8 +86,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canClaim = isPlaying && completedSequence && !isSubmitting;
   const canRelease = timeUp || (isPlaying && lastStatus === "wrong") || dealPending;
   const busy = isStarting || isDealing || isSubmitting;
+  const guestProgress = Math.max(seqAchieved, playerSequence.length);
+  const guestTopScore = leaderboard.reduce(
+    (best, entry) => Math.max(best, Number(entry.totalWon ?? 0)),
+    0,
+  );
 
   const bridgeState = {
+    appMode,
     activeGameId,
     gameStatus,
     gameDifficulty,
@@ -104,8 +112,17 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     lastStatus,
   };
 
-  const stageTitle =
-    isSubmitting
+  const stageTitle = isGuest
+    ? isSubmitting
+      ? t("guestStatusSaving")
+      : isPlaying
+        ? t("guestPlayingTitle")
+        : isSolved
+          ? t("guestSolvedTitle")
+          : gameStatus === "expired" || gameStatus === "refunded"
+            ? t("guestExpiredTitle")
+            : t("guestLobbyTitle")
+    : isSubmitting
       ? t("statusSubmitting")
       : isDealing || dealPending
         ? t("statusShuffling")
@@ -128,13 +145,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       : []),
     ...(canRelease
       ? [{
-          label: timeUp ? t("timeUpAction") : t("releaseAction"),
+          label: isGuest ? t("guestRestartAction") : timeUp ? t("timeUpAction") : t("releaseAction"),
           onClick: () => void dispatch("expireGame"),
           icon: <RotateCcw size={16} aria-hidden="true" />,
-          hint: t("releaseHint"),
+          hint: isGuest ? t("guestRestartHint") : t("releaseHint"),
         }]
       : []),
-    ...(credit > 0 && !isPlaying
+    ...(!isGuest && credit > 0 && !isPlaying
       ? [{
           label: t("withdrawAction", { amount: gasAmountDisplay(credit) }),
           onClick: () => void dispatch("withdrawWinnings"),
@@ -150,16 +167,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         category="game"
         className="cclash-stage"
         stage={{
-          eyebrow: t("appEyebrow"),
+          eyebrow: isGuest ? t("guestEyebrow") : t("appEyebrow"),
           title: stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {t("networkBadge")}
+                <span className="mx2-badge__dot" /> {isGuest ? t("guestModeBadge") : t("networkBadge")}
               </span>
-              {myRank > 0 && <span className="mx2-badge">{t("rankBadge", { rank: myRank })}</span>}
-              {credit > 0 && (
+              {!isGuest && myRank > 0 && <span className="mx2-badge">{t("rankBadge", { rank: myRank })}</span>}
+              {!isGuest && credit > 0 && (
                 <span className="mx2-badge" data-tone="success">
                   <WalletCards size={14} aria-hidden="true" /> {t("creditLabel")}
                 </span>
@@ -168,67 +185,84 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           ),
         }}
         scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
-        score={[
-          {
-            label: t("scoreReward"),
-            value: `${gasDisplay(payoutFixed8(rule.reward, undosUsed))} GAS`,
-            accent: true,
-          },
-          {
-            label: t("scoreTime"),
-            value: isPlaying && deadline > 0 ? formatClock(remainingMs) : formatClock(rule.limitMs),
-          },
-          { label: t("scoreWon"), value: `${gasAmountDisplay(myTotalWon)} GAS` },
-          { label: t("rankLabel"), value: myRank > 0 ? `#${myRank}` : "--" },
-        ]}
+        score={isGuest
+          ? [
+              {
+                label: t("guestProgressLabel"),
+                value: `${guestProgress}/${rule.targetSeq}`,
+                accent: true,
+              },
+              {
+                label: t("scoreTime"),
+                value: isPlaying && deadline > 0 ? formatClock(remainingMs) : formatClock(rule.limitMs),
+              },
+              {
+                label: t("guestBestLabel"),
+                value: guestTopScore > 0 ? t("guestScoreValue", { count: guestTopScore }) : "--",
+              },
+              { label: t("guestModeLabel"), value: t("guestModeValue") },
+            ]
+          : [
+              {
+                label: t("scoreReward"),
+                value: `${gasDisplay(payoutFixed8(rule.reward, undosUsed))} GAS`,
+                accent: true,
+              },
+              {
+                label: t("scoreTime"),
+                value: isPlaying && deadline > 0 ? formatClock(remainingMs) : formatClock(rule.limitMs),
+              },
+              { label: t("scoreWon"), value: `${gasAmountDisplay(myTotalWon)} GAS` },
+              { label: t("rankLabel"), value: myRank > 0 ? `#${myRank}` : "--" },
+            ]}
         actions={{
           primary: canClaim
             ? {
-                label: t("submitAction"),
+                label: isGuest ? t("guestSubmitAction") : t("submitAction"),
                 onClick: () => void dispatch("submitSolution"),
                 disabled: isSubmitting,
                 loading: isSubmitting,
                 icon: <Trophy size={16} aria-hidden="true" />,
-                hint: t("submitHint"),
+                hint: isGuest ? t("guestSubmitHint") : t("submitHint"),
               }
             : undefined,
           secondary: secondaryActions.length > 0 ? secondaryActions : undefined,
         }}
-        drawerToggleLabel={t("leaderboardTitle")}
+        drawerToggleLabel={isGuest ? t("guestBoardTitle") : t("leaderboardTitle")}
         drawer={{
-          title: t("drawerTitle"),
+          title: isGuest ? t("guestDrawerTitle") : t("drawerTitle"),
           children: (
             <div className="cclash-drawer">
               <div className="cclash-drawer__head">
                 <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
-                <p>{t("leaderboardIntro")}</p>
+                <p>{isGuest ? t("guestLeaderboardIntro") : t("leaderboardIntro")}</p>
               </div>
 
               <section className="cclash-drawer__summary" aria-label={t("sidebarTitle")}>
                 <div>
-                  <span>{t("scoreWon")}</span>
-                  <strong>{gasAmountDisplay(myTotalWon)} GAS</strong>
+                  <span>{isGuest ? t("guestProgressLabel") : t("scoreWon")}</span>
+                  <strong>{isGuest ? `${guestProgress}/${rule.targetSeq}` : `${gasAmountDisplay(myTotalWon)} GAS`}</strong>
                 </div>
                 <div>
-                  <span>{t("rankLabel")}</span>
-                  <strong>{myRank > 0 ? `#${myRank}` : "--"}</strong>
+                  <span>{isGuest ? t("guestBestLabel") : t("rankLabel")}</span>
+                  <strong>{isGuest ? (guestTopScore > 0 ? t("guestScoreValue", { count: guestTopScore }) : "--") : (myRank > 0 ? `#${myRank}` : "--")}</strong>
                 </div>
                 <div>
-                  <span>{t("solvesCount", { count: mySolves })}</span>
-                  <strong>{mySolves}</strong>
+                  <span>{isGuest ? t("guestModeLabel") : t("solvesCount", { count: mySolves })}</span>
+                  <strong>{isGuest ? t("guestModeValue") : mySolves}</strong>
                 </div>
               </section>
 
-              <section className="cclash-drawer__section" aria-label={t("leaderboardTitle")}>
+              <section className="cclash-drawer__section" aria-label={isGuest ? t("guestBoardTitle") : t("leaderboardTitle")}>
                 <div className="cclash-drawer__section-head">
-                  <h4>{t("leaderboardTitle")}</h4>
+                  <h4>{isGuest ? t("guestBoardTitle") : t("leaderboardTitle")}</h4>
                   <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("refreshLeaderboard")}>
                     <RefreshCw size={16} aria-hidden="true" />
-                    {t("refreshRanks")}
+                    {isGuest ? t("guestRefreshBoard") : t("refreshRanks")}
                   </button>
                 </div>
                 {leaderboard.length === 0 ? (
-                  <p className="cclash-drawer__empty">{t("leaderboardEmpty")}</p>
+                  <p className="cclash-drawer__empty">{isGuest ? t("guestLeaderboardEmpty") : t("leaderboardEmpty")}</p>
                 ) : (
                   <ol className="cclash-ranks">
                     {leaderboard.slice(0, 10).map((rawEntry, index) => {
@@ -241,7 +275,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                           <span className="cclash-ranks__rank">#{rank}</span>
                           <span className="cclash-ranks__addr">{shortAddr(address)}</span>
                           <span className="cclash-ranks__solves">{t("solvesCount", { count: solves })}</span>
-                          <span className="cclash-ranks__won">{gasAmountDisplay(Number(rawEntry.totalWon ?? 0))} GAS</span>
+                          <span className="cclash-ranks__won">
+                            {isGuest
+                              ? t("guestScoreValue", { count: Number(rawEntry.totalWon ?? 0) })
+                              : `${gasAmountDisplay(Number(rawEntry.totalWon ?? 0))} GAS`}
+                          </span>
                           {isUser && <span className="cclash-ranks__me">{t("youTag")}</span>}
                         </li>
                       );
@@ -250,10 +288,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
               </section>
 
-              <section className="cclash-drawer__section" aria-label={t("historyTitle")}>
-                <h4>{t("historyTitle")}</h4>
+              <section className="cclash-drawer__section" aria-label={isGuest ? t("guestHistoryTitle") : t("historyTitle")}>
+                <h4>{isGuest ? t("guestHistoryTitle") : t("historyTitle")}</h4>
                 {myHistory.length === 0 ? (
-                  <p className="cclash-drawer__empty">{t("historyEmpty")}</p>
+                  <p className="cclash-drawer__empty">{isGuest ? t("guestHistoryEmpty") : t("historyEmpty")}</p>
                 ) : (
                   <ul className="cclash-history">
                     {myHistory.slice(0, 8).map((row) => (
@@ -270,20 +308,20 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
               <section className="cclash-drawer__section cclash-drawer__rules" aria-label={t("rulesTitle")}>
                 <h4>{t("rulesTitle")}</h4>
-                <p>{t("rulesCopy")}</p>
+                <p>{isGuest ? t("guestRulesCopy") : t("rulesCopy")}</p>
               </section>
 
-              <section className="cclash-drawer__section cclash-drawer__fairness" aria-label={t("fairnessTitle")}>
-                <h4><ShieldCheck size={16} aria-hidden="true" /> {t("fairnessTitle")}</h4>
-                <p>{t("fairnessCopy")}</p>
-                {activeGameId !== "0" && commitment && (
+              <section className="cclash-drawer__section cclash-drawer__fairness" aria-label={isGuest ? t("guestFairnessTitle") : t("fairnessTitle")}>
+                <h4><ShieldCheck size={16} aria-hidden="true" /> {isGuest ? t("guestFairnessTitle") : t("fairnessTitle")}</h4>
+                <p>{isGuest ? t("guestFairnessCopy") : t("fairnessCopy")}</p>
+                {!isGuest && activeGameId !== "0" && commitment && (
                   <p className="cclash-drawer__commitment">
                     {t("commitmentLine", { gameId: activeGameId, commitment: shortAddr(commitment) })}
                   </p>
                 )}
               </section>
 
-              {credit > 0 && (
+              {!isGuest && credit > 0 && (
                 <section className="cclash-drawer__credit" aria-label={t("withdrawTitle")}>
                   <span>
                     {t("creditLabel")}: <strong>{gasAmountDisplay(credit)} GAS</strong>

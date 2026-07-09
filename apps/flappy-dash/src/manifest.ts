@@ -12,6 +12,7 @@ export const manifest: MiniAppManifest = {
   gamePage: {
     appIcon: "🐦",
     categoryColor: "#10B981",
+    modes: { guest: true },
     heroBadgeKey: "homeBadge",
     heroTitleKey: "homeTitle",
     heroTitleAccent: "homeTitleAccent",

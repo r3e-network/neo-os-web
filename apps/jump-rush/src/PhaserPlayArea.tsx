@@ -57,8 +57,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const leaderboard     = val<LeaderEntry[]>("leaderboard", []) ?? [];
   const myRank          = val<number>("myRank", 0) ?? 0;
   const myTotalWon      = val<number>("myTotalWon", 0) ?? 0;
+  const myRuns          = val<number>("myRuns", 0) ?? 0;
   const myHistory       = val<RunRow[]>("myHistory", []) ?? [];
   const lastElapsedMs   = val<number>("lastElapsedMs", 0) ?? 0;
+  const jumpCount       = val<number>("jumpCount", 0) ?? 0;
+
+  // ── Play mode (guest = local practice, no token/pool/reward) ──────────────
+  // Defaults to gamefi so existing tests + OneGate direct-play are unaffected.
+  const appMode         = str("appMode", "gamefi");
+  const isGuest         = appMode === "guest";
 
   const isStarting      = bool("isStarting");
   const isDealing       = bool("isDealing");
@@ -75,8 +82,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const elapsedMs       = dealtAt > 0 ? nowMs - dealtAt : 0;
   const timeUp          = gameStatus === "dealt" && deadline > 0 && remainingMs <= 0;
   const submitWindowClosed = gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
-  const minSolveReached = dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
-  const rewardPoolReady = poolFree >= Number(gasDisplay(rule.rewardFixed8));
+  // Guest has no anti-bot floor (no reward at stake), so submit unlocks the
+  // moment the local route is cleared.
+  const minSolveReached = isGuest || (dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS);
+  const rewardPoolReady = isGuest || poolFree >= Number(gasDisplay(rule.rewardFixed8));
   const undosLeft       = MAX_UNDOS - undosUsed;
   const projectedPayout = (Number(gasDisplay(rule.rewardFixed8)) * rewardPctAfterUndos(undosUsed)) / 100;
   const selectedEntryGas = Number(gasDisplay(rule.entryFixed8));
@@ -98,6 +107,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     elapsedMs,
     timeLimitMs:  rule.limitMs,
     platformsView,
+    isGuest,
     isStarting,
     isDealing,
     isSubmitting,
@@ -118,7 +128,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       difficulty: r.difficulty,
       key:        r.key,
       entryGas:   Number(gasDisplay(r.entryFixed8)),
-      rewardGas:  Number(gasDisplay(r.rewardFixed8)),
+      // Guest has no reward pool — zero the gate so every route is playable
+      // locally, and swap the GAS reward/entry chips for local-play copy.
+      rewardGas:  isGuest ? 0 : Number(gasDisplay(r.rewardFixed8)),
       limitMs:    r.limitMs,
       minSolveMs: r.minSolveMs,
       targetJumps: r.targetJumps,
@@ -126,19 +138,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       // language used everywhere else in the app (never hardcode in the scene).
       label:      t(`difficulty_${r.key}`),
       jumpsText:  t("cardJumps",  { count: r.targetJumps }),
-      rewardText: t("cardReward", { amount: gasDisplay(r.rewardFixed8) }),
-      entryText:  t("cardEntry",  { amount: gasDisplay(r.entryFixed8) }),
+      rewardText: isGuest ? t("guestCardReward") : t("cardReward", { amount: gasDisplay(r.rewardFixed8) }),
+      entryText:  isGuest ? t("guestCardEntry")  : t("cardEntry",  { amount: gasDisplay(r.entryFixed8) }),
     })),
     // Flat i18n string map consumed by the scene (this.tr) so every in-canvas
     // HUD/overlay label is localized rather than a hardcoded English literal.
+    // Guest overrides swap the TEE/GAS framing for local-play framing under the
+    // SAME keys the scene reads, so no scene change is needed.
     sceneText: {
       chargeHold:         t("chargeHold"),
       chargeRelease:      t("chargeRelease"),
       chargeTip:          t("chargeHint"),
       perfect:            t("perfectLanding"),
       submitRun:          t("submitAction"),
-      submitSettleHint:   t("submitSettleHint"),
-      submitVerifiedHint: t("submitVerifiedHint"),
+      submitSettleHint:   isGuest ? t("guestSubmitHint")     : t("submitSettleHint"),
+      submitVerifiedHint: isGuest ? t("guestSubmitDoneHint") : t("submitVerifiedHint"),
       timeExpired:        t("timeExpiredLabel"),
       releaseThisRun:     t("releaseThisRun"),
       waitLabel:          t("waitLabel"),
@@ -147,11 +161,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       targetNotCleared:   t("targetNotCleared"),
       startJump:          t("startJump"),
       preparing:          t("preparingLabel"),
-      startSealHint:      t("startSealHint"),
-      poolRefilling:      t("statusPoolLow"),
+      startSealHint:      isGuest ? t("guestStartHint")      : t("startSealHint"),
+      poolRefilling:      isGuest ? t("guestReadyHint")      : t("statusPoolLow"),
       loadingRouteHint:   t("loadingRouteHint"),
-      preparingPlatforms: t("preparingPlatforms"),
-      sealingFairRoute:   t("sealingFairRoute"),
+      preparingPlatforms: isGuest ? t("guestBuildingTitle")  : t("preparingPlatforms"),
+      sealingFairRoute:   isGuest ? t("guestBuildingHint")   : t("sealingFairRoute"),
       missedTitle:        t("missedTitle"),
       missedCopy:         t("missedCopy"),
       clearedTitle:       t("clearedTitle"),
@@ -173,7 +187,23 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           : t("lobbyTitle");
 
   // ── Score bar items ──────────────────────────────────────────────────────
-  const scoreItems = gameStatus === "idle"
+  // Guest shows local/practice metrics (best run, route length, live jumps) with
+  // no GAS-at-stake / pool / credit framing; gamefi keeps the reward economy.
+  const guestScoreItems = gameStatus === "idle"
+    ? [
+        { label: t("guestBestLabel"), value: myTotalWon > 0 ? t("guestJumpsValue", { count: myTotalWon }) : "--", accent: true },
+        { label: t("guestRouteLabel"), value: t("guestJumpsValue", { count: rule.targetJumps }) },
+        { label: t("guestModeLabel"), value: t("guestModeValue") },
+      ]
+    : [
+        { label: t("guestJumpsLabel"), value: String(jumpCount), accent: true },
+        {
+          label: t("scoreTime"),
+          value: gameStatus === "dealt" ? formatClock(remainingMs) : formatClock(rule.limitMs),
+        },
+        { label: t("scoreUndos"), value: `${undosLeft}/${MAX_UNDOS}` },
+      ];
+  const gamefiScoreItems = gameStatus === "idle"
     ? [
         { label: t("scoreReward"), value: gasLabel(Number(gasDisplay(rule.rewardFixed8))), accent: true },
         { label: t("poolShort"), value: gasLabel(poolFree) },
@@ -187,6 +217,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         },
         { label: t("scoreUndos"), value: `${undosLeft}/${MAX_UNDOS}` },
       ];
+  const scoreItems = isGuest ? guestScoreItems : gamefiScoreItems;
 
   // ── Action buttons ───────────────────────────────────────────────────────
   const primaryAction =
@@ -244,7 +275,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       label:   t("refreshRanks"),
       onClick: () => void dispatch("refreshLeaderboard", {}),
       icon:    <Trophy size={16} aria-hidden="true" />,
-      hint:    t("leaderboardIntro"),
+      hint:    isGuest ? t("guestLeaderboardIntro") : t("leaderboardIntro"),
     },
   ];
 
@@ -256,7 +287,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <span className="mx2-badge" data-tone="accent">
               <span className="mx2-badge__dot" /> Neo
@@ -290,12 +321,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <strong>{myRank > 0 ? `#${myRank}` : "--"}</strong>
                 </div>
                 <div>
-                  <span>{t("scoreWon")}</span>
-                  <strong>{gasLabel(myTotalWon)}</strong>
+                  <span>{isGuest ? t("guestBestLabel") : t("scoreWon")}</span>
+                  <strong>
+                    {isGuest
+                      ? (myTotalWon > 0 ? t("guestJumpsValue", { count: myTotalWon }) : "--")
+                      : gasLabel(myTotalWon)}
+                  </strong>
                 </div>
                 <div>
-                  <span>{t("creditLabel")}</span>
-                  <strong>{gasLabel(creditGas)}</strong>
+                  <span>{isGuest ? t("guestRunsLabel") : t("creditLabel")}</span>
+                  <strong>{isGuest ? String(myRuns) : gasLabel(creditGas)}</strong>
                 </div>
               </div>
 
@@ -308,10 +343,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span>{t(`difficulty_${rule.key}`)}</span>
                   <strong>{gameStatus === "dealt" ? formatClock(remainingMs) : formatClock(rule.limitMs)}</strong>
                   <small>
-                    {t("runEconomyLine", {
-                      entry:  selectedEntryGas.toFixed(selectedEntryGas >= 1 ? 0 : 2),
-                      reward: Number(gasDisplay(rule.rewardFixed8)).toFixed(Number(gasDisplay(rule.rewardFixed8)) >= 1 ? 0 : 1),
-                    })}
+                    {isGuest
+                      ? t("guestRunEconomyLine", { jumps: rule.targetJumps })
+                      : t("runEconomyLine", {
+                          entry:  selectedEntryGas.toFixed(selectedEntryGas >= 1 ? 0 : 2),
+                          reward: Number(gasDisplay(rule.rewardFixed8)).toFixed(Number(gasDisplay(rule.rewardFixed8)) >= 1 ? 0 : 1),
+                        })}
                   </small>
                 </div>
                 {!rewardPoolReady && gameStatus !== "dealt" && (
@@ -319,7 +356,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
                 {gameStatus === "solved" && lastPayout && (
                   <p className="jr-drawer__notice" data-tone="success">
-                    {t("lastRunLine", { payout: lastPayout, time: runTimeLabel(lastElapsedMs) })}
+                    {isGuest
+                      ? t("guestLastRunLine", { count: lastPayout, time: runTimeLabel(lastElapsedMs) })
+                      : t("lastRunLine", { payout: lastPayout, time: runTimeLabel(lastElapsedMs) })}
                   </p>
                 )}
               </section>
@@ -340,7 +379,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                         <span className="jr-ranks__rank">#{entry.rank}</span>
                         <span className="jr-ranks__addr">{shortAddress(entry.address)}</span>
                         <span className="jr-ranks__runs">{t("solvesCount", { count: entry.runs })}</span>
-                        <strong className="jr-ranks__won">{gasLabel(entry.totalWon)}</strong>
+                        <strong className="jr-ranks__won">
+                          {isGuest ? t("guestJumpsValue", { count: entry.totalWon }) : gasLabel(entry.totalWon)}
+                        </strong>
                         {entry.isUser && <span className="jr-ranks__me">{t("youTag")}</span>}
                       </li>
                     ))}
@@ -372,10 +413,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               <section className="jr-drawer__panel jr-drawer__panel--guide">
                 <div className="jr-drawer__guide-title">
                   <ShieldCheck size={16} aria-hidden="true" />
-                  <h4>{t("fairnessTitle")}</h4>
+                  <h4>{isGuest ? t("guestGuideTitle") : t("fairnessTitle")}</h4>
                 </div>
-                <p>{t("rulesCopy")}</p>
-                <p>{t("fairnessCopy")}</p>
+                <p>{isGuest ? t("guestRulesCopy") : t("rulesCopy")}</p>
+                <p>{isGuest ? t("guestModeLine") : t("fairnessCopy")}</p>
               </section>
 
               {commitment && (

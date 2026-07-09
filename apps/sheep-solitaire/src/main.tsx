@@ -14,6 +14,7 @@ import { messages } from "./locale/messages";
 import { ENTRY_MEMO, ruleOf, statusOf, gasDisplay } from "./logic/game-rules";
 import { morpheusNetworkOf, teeFinalize, teeMove, teeStart } from "./logic/tee-session";
 import type { CardView, TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
+import { createGuestEngine } from "./logic/guest-engine";
 
 const appId = "miniapp-sheep-solitaire";
 
@@ -111,8 +112,55 @@ defineMiniApp({
     const isSubmitting = createObservable(false);
     const isUndoing = createObservable(false);
     const lastStatus = createObservable(ctx.t("statusReady"));
+    // Current play mode, mirrored from app.mode so the PlayArea can branch its
+    // GAS-centric copy to local framing in guest. Kept in sync via onChange.
+    const appMode = createObservable<"guest" | "gamefi">(app.mode.get());
 
     let session: (TeeStartResult & { identity: TeeIdentity }) | null = null;
+
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local match-3 engine — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      gameStatus,
+      activeGameId,
+      gameDifficulty,
+      commitment,
+      dealtAt,
+      deadline,
+      undosUsed,
+      pileCards,
+      slotCards,
+      isMatching,
+      isGameOver,
+      shuffleLeft,
+      remove3Left,
+      isStarting,
+      isDealing,
+      isSubmitting,
+      isUndoing,
+      isPicking,
+      lastPayout,
+      lastElapsedMs,
+      leaderboard,
+      myRank,
+      myTotalWon,
+      mySolves,
+      myHistory,
+      credit,
+      poolFree,
+      lastStatus,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Keep the mirrored mode in sync; switching to guest at the launcher resets
+    // to a clean local lobby and loads the off-chain guest board (replacing the
+    // on-chain read done on mount).
+    app.mode.onChange((mode) => {
+      appMode.set(mode);
+      if (mode === "guest") void guest.enter();
+    });
 
     const playerScriptHash = (): string => {
       const player = app.chain.address.get();
@@ -141,6 +189,7 @@ defineMiniApp({
     };
 
     const refreshBalances = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       try {
         poolFree.set(fromFixed8(parseBigInt(await app.chain.readRaw("freePool", []))));
       } catch {
@@ -159,6 +208,7 @@ defineMiniApp({
     };
 
     const refreshStats = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       const playerHash = playerScriptHash();
       if (!playerHash) return;
       try {
@@ -176,6 +226,7 @@ defineMiniApp({
      * Rebuild the global ranking from Solved events.
      */
     const loadLeaderboard = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       const playerHash = playerScriptHash();
       try {
         const events = await app.chain.events("Solved", {
@@ -319,8 +370,9 @@ defineMiniApp({
     };
 
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
-      if (isStarting.get() || isDealing.get()) return;
       const form = (args[0] ?? {}) as { difficulty?: unknown };
+      if (app.mode.isGuest()) { guest.startGame(Number(form.difficulty ?? 0)); return; }
+      if (isStarting.get() || isDealing.get()) return;
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
       const rule = ruleOf(difficulty);
       isStarting.set(true);
@@ -388,6 +440,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) return;
       const gameId = activeGameId.get();
       if (gameId === "0" || isDealing.get() || gameStatus.get() !== "committed") return;
       await sealAndBind(gameId, gameDifficulty.get());
@@ -398,6 +451,7 @@ defineMiniApp({
       const form = (args[0] ?? {}) as { cardId?: unknown };
       const cardId = Number(form.cardId);
       if (!Number.isInteger(cardId) || cardId < 0) return;
+      if (app.mode.isGuest()) { guest.pickCard(cardId); return; }
       if (!session || gameStatus.get() !== "dealt" || isPicking.get() || isGameOver.get()) return;
       const currentSlots = slotCards.get();
       if (currentSlots.length >= 7) return; // slots full
@@ -457,6 +511,7 @@ defineMiniApp({
 
     // Paid undo: recorded in the TEE session (no transaction).
     ctx.framework.actions.register("useUndo", async () => {
+      if (app.mode.isGuest()) { guest.useUndo(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || isUndoing.get() || gameStatus.get() !== "dealt") return;
       const currentSlots = slotCards.get();
@@ -485,6 +540,7 @@ defineMiniApp({
 
     // Shuffle: return slot cards back to the pile.
     ctx.framework.actions.register("useShuffle", async () => {
+      if (app.mode.isGuest()) { guest.useShuffle(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || gameStatus.get() !== "dealt" || shuffleLeft.get() <= 0) return;
       const currentSlots = slotCards.get();
@@ -506,6 +562,7 @@ defineMiniApp({
 
     // Remove 3: remove any 3 cards from the slot bar.
     ctx.framework.actions.register("useRemove3", async () => {
+      if (app.mode.isGuest()) { guest.useRemove3(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || gameStatus.get() !== "dealt" || remove3Left.get() <= 0) return;
       const currentSlots = slotCards.get();
@@ -527,6 +584,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("submitRun", async () => {
+      if (app.mode.isGuest()) { await guest.submitRun(); return; }
       const gameId = activeGameId.get();
       const status = gameStatus.get();
       if (gameId === "0" || isSubmitting.get() || (status !== "dealt" && status !== "solved")) return;
@@ -577,6 +635,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("returnToLobby", async () => {
+      if (app.mode.isGuest()) { guest.returnToLobby(); return; }
       if (isSubmitting.get() || isDealing.get() || isStarting.get()) return;
       const gameId = activeGameId.get();
       if (gameId !== "0" && gameStatus.get() === "dealt") return;
@@ -590,6 +649,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0") return;
       try {
@@ -611,6 +671,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       const playerHash = playerScriptHash();
       if (!playerHash) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
@@ -632,6 +693,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
@@ -665,8 +727,10 @@ defineMiniApp({
         isSubmitting,
         isUndoing,
         lastStatus,
+        appMode,
       },
       loadData: async () => {
+        if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
         const playerHash = playerScriptHash();
         if (playerHash) {

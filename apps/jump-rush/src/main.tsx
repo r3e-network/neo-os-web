@@ -14,6 +14,7 @@ import { messages } from "./locale/messages";
 import { ENTRY_MEMO, MAX_UNDOS, ruleOf, statusOf, gasDisplay } from "./logic/game-rules";
 import { morpheusNetworkOf, teeFinalize, teeMove, teeStart } from "./logic/tee-session";
 import type { TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
+import { createGuestEngine } from "./logic/guest-engine";
 
 const appId = "miniapp-jump-rush";
 
@@ -87,6 +88,11 @@ defineMiniApp({
     const isJumping = createObservable(false);
     const missedPlatform = createObservable(false);
 
+    // Current play mode, mirrored into an observable the PlayArea reads so the
+    // GAS-centric copy can switch to local/practice framing in guest mode. Kept
+    // in sync with the launcher-selected framework mode via app.mode.onChange.
+    const appMode = createObservable(app.mode.get());
+
     // TEE session context for the active game (rebuilt idempotently from the
     // deterministic teeStart, so nothing here needs durable storage).
     let session: (TeeStartResult & { identity: TeeIdentity }) | null = null;
@@ -142,6 +148,7 @@ defineMiniApp({
     };
 
     const refreshBalances = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       try {
         poolFree.set(fromFixed8(parseBigInt(await app.chain.readRaw("freePool", []))));
       } catch {
@@ -160,6 +167,7 @@ defineMiniApp({
     };
 
     const refreshStats = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       const playerHash = playerScriptHash();
       if (!playerHash) return;
       try {
@@ -179,6 +187,7 @@ defineMiniApp({
      * MAX per player is order-independent (robust to indexer sort direction).
      */
     const loadLeaderboard = async (): Promise<void> => {
+      if (app.mode.isGuest()) return;
       const playerHash = playerScriptHash();
       try {
         const events = await app.chain.events("Solved", {
@@ -318,7 +327,55 @@ defineMiniApp({
       return result;
     };
 
+    // ── Guest (free / local) engine ───────────────────────────────────────────
+    // Guest mode reuses the SAME observables + dispatch actions the scene reads,
+    // driven by a purely local platform runner — no chain/oracle/reward calls.
+    const guest = createGuestEngine({
+      gameStatus,
+      activeGameId,
+      gameDifficulty,
+      platformsView,
+      commitment,
+      dealtAt,
+      deadline,
+      undosUsed,
+      lastPayout,
+      lastElapsedMs,
+      leaderboard,
+      myRank,
+      myTotalWon,
+      myRuns,
+      myHistory,
+      isStarting,
+      isDealing,
+      isSubmitting,
+      isUndoing,
+      lastStatus,
+      jumpCount,
+      currentPlatform,
+      perfectCount,
+      comboCount,
+      chargeLevel,
+      isCharging,
+      isJumping,
+      missedPlatform,
+      guestLeaderboard: app.mode.guestLeaderboard,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+    });
+    // Keep the PlayArea's mode mirror in sync, and — when switching to guest at
+    // the launcher — reset to a clean local lobby + load the off-chain board.
+    app.mode.onChange((mode) => {
+      appMode.set(mode);
+      if (mode === "guest") void guest.enter();
+    });
+
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { difficulty?: unknown };
+        guest.startGame(Number(form.difficulty ?? 0));
+        return;
+      }
       if (isStarting.get() || isDealing.get()) return;
       const form = (args[0] ?? {}) as { difficulty?: unknown };
       const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
@@ -385,6 +442,7 @@ defineMiniApp({
 
     // Retry handle for a seal/bind that failed (TEE unreachable, tx rejected).
     ctx.framework.actions.register("retryDeal", async () => {
+      if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || isDealing.get() || gameStatus.get() !== "committed") return;
       await sealAndBind(gameId, gameDifficulty.get());
@@ -392,6 +450,11 @@ defineMiniApp({
 
     // Record a jump in the TEE session for telemetry + undo accounting.
     ctx.framework.actions.register("recordJump", async (...args: unknown[]) => {
+      if (app.mode.isGuest()) {
+        const form = (args[0] ?? {}) as { platformIndex?: unknown };
+        guest.recordJump(Number(form.platformIndex ?? 0));
+        return;
+      }
       const form = (args[0] ?? {}) as { chargeMs?: unknown };
       const chargeMs = Number(form.chargeMs);
       if (!Number.isInteger(chargeMs) || chargeMs < 0) return;
@@ -404,6 +467,7 @@ defineMiniApp({
 
     // Paid undo: recorded in the TEE session (no transaction).
     ctx.framework.actions.register("useUndo", async () => {
+      if (app.mode.isGuest()) { guest.useUndo(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || isUndoing.get() || gameStatus.get() !== "dealt") return;
       if (undosUsed.get() >= MAX_UNDOS) {
@@ -427,6 +491,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("submitRun", async () => {
+      if (app.mode.isGuest()) { await guest.submitRun(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0" || isSubmitting.get() || gameStatus.get() !== "dealt") return;
       isSubmitting.set(true);
@@ -476,6 +541,7 @@ defineMiniApp({
     // Permissionless housekeeping: release the reward reservation of a game
     // whose deadline passed (or refund an entry that was never bound).
     ctx.framework.actions.register("expireGame", async () => {
+      if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0") return;
       try {
@@ -500,6 +566,7 @@ defineMiniApp({
     const withdrawOp = app.operations.create("withdrawWinnings");
 
     ctx.framework.actions.register("withdrawWinnings", async () => {
+      if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
       const playerHash = playerScriptHash();
       if (!playerHash) {
         ctx.setStatus(ctx.t("statusFailed"), "error");
@@ -521,6 +588,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("refreshLeaderboard", async () => {
+      if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
     });
 
@@ -557,8 +625,13 @@ defineMiniApp({
         isCharging,
         isJumping,
         missedPlatform,
+        // Play mode mirror consumed by the PlayArea to pick local vs GAS copy.
+        appMode,
       },
       loadData: async () => {
+        // Guest is a local game: skip every chain read and load the off-chain
+        // board instead, so no chain/oracle call is made in guest mode.
+        if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
         const playerHash = playerScriptHash();
         if (playerHash) {

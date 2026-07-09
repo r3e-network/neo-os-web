@@ -99,7 +99,8 @@ interface RouteLabel {
   meta: string;       // "5 gate run · 2 min timer"
   cardName: string;   // localized route name
   cardGates: string;  // "5 gates"
-  entry: string;      // "Entry 0.02 GAS"
+  entry: string;      // "Entry 0.02 GAS" (gamefi) / "No entry" (guest)
+  reward: string;     // "0.1 GAS" (gamefi) / "5 pipes" (guest)
 }
 
 interface SceneLabels {
@@ -164,6 +165,7 @@ const FALLBACK_LABELS: SceneLabels = {
     cardName: rule.key.charAt(0).toUpperCase() + rule.key.slice(1),
     cardGates: `${rule.targetPipes} gates`,
     entry: `Entry ${gasDisplay(rule.entryFixed8)} GAS`,
+    reward: `${gasDisplay(rule.rewardFixed8)} GAS`,
   })),
 };
 
@@ -469,6 +471,11 @@ export class FlappyScene extends BaseScene {
           ? provided.routes
           : FALLBACK_LABELS.routes,
     };
+  }
+
+  /** Guest (free / local) mode — supplied by the bridge; hides GAS/pool framing. */
+  private isGuestMode(): boolean {
+    return this.str("appMode", "gamefi") === "guest";
   }
 
   /** Substitute {token} placeholders in a localized template. */
@@ -1085,12 +1092,11 @@ export class FlappyScene extends BaseScene {
 
   private updateRoutePanel(): void {
     if (!this.routeTitleLabel) return;
-    const rule  = ruleOf(this.pickedDifficulty);
     const L     = this.labels();
     const route = L.routes[this.pickedDifficulty] ?? L.routes[0]!;
     this.routeTitleLabel.setText(route.title);
     this.routeTargetLabel.setText(route.meta);
-    this.routeRewardLabel.setText(`${gasDisplay(rule.rewardFixed8)} GAS`);
+    this.routeRewardLabel.setText(route.reward);
     this.routeEntryLabel.setText(route.entry);
   }
 
@@ -1103,10 +1109,12 @@ export class FlappyScene extends BaseScene {
     const L          = this.labels();
     const rule       = ruleOf(this.pickedDifficulty);
     const rewardGas  = Number(gasDisplay(rule.rewardFixed8));
-    const poolReady  = poolFree >= rewardGas;
+    // Guest (local) play has no reward pool, so it is never pool-gated — the
+    // launch button stays live regardless of the (zeroed) pool value.
+    const poolReady  = this.isGuestMode() ? true : poolFree >= rewardGas;
 
     // Pool stays informative (neutral chip), never an alarm — an unfunded pool
-    // is a waiting state, not an error.
+    // is a waiting state, not an error. In guest the chip carries local framing.
     this.poolLabel.setText(this.fmt(L.poolChip, { pool: poolFree.toFixed(2) }));
     this.lobbyStatusLabel.setText("");
 
@@ -1129,7 +1137,8 @@ export class FlappyScene extends BaseScene {
     const poolFree    = this.num("poolFree", 0);
     const rule        = ruleOf(this.pickedDifficulty);
     const rewardGas   = Number(gasDisplay(rule.rewardFixed8));
-    if (isStarting || poolFree < rewardGas) return;
+    // Guest (local) play has no reward pool, so it is never pool-gated.
+    if (isStarting || (!this.isGuestMode() && poolFree < rewardGas)) return;
     this.playSfx("start");
     this.dispatch("startGame", { difficulty: this.pickedDifficulty });
   }

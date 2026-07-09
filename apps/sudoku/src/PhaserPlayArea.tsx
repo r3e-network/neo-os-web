@@ -49,25 +49,31 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const progressionReady = bool("progressionReady");
   const progressionRequiredDifficulty =
     val<number>("progressionRequiredDifficulty", 0) ?? 0;
+  // Play mode (guest | gamefi). Guest is a plain local puzzle, so every
+  // GAS-at-stake / pool / reward label is swapped for local framing while the
+  // GAMEFI copy stays exactly as-is.
+  const isGuest        = str("appMode", "gamefi") === "guest";
 
   // Pre-translated canvas strings. BaseScene reads only bridge state, so every
   // label the Phaser scene draws is localised here and handed over as a plain
   // object under `labels` — new bridge data only, no renamed/removed keys.
   const canvasLabels = {
     vaultTitle: t("lobbyVaultTitle"),
-    vaultSub: t("lobbyVaultSub"),
+    vaultSub: isGuest ? t("guestVaultSub") : t("lobbyVaultSub"),
     diffNames: [t("diffName_0"), t("diffName_1"), t("diffName_2")],
     diffCopy: [t("difficulty_easy"), t("difficulty_medium"), t("difficulty_hard")],
-    diffRewards: DIFFICULTY_RULES.map((r) => `${gasDisplay(r.rewardFixed8)} GAS`),
+    diffRewards: isGuest
+      ? DIFFICULTY_RULES.map(() => t("guestDiffTag"))
+      : DIFFICULTY_RULES.map((r) => `${gasDisplay(r.rewardFixed8)} GAS`),
     sealing: t("statusShuffling"),
     undoTemplate: t("undoLeftTemplate"),
     undoNone: t("undoNoneLabel"),
-    poolTemplate: t("poolLimitTemplate"),
+    poolTemplate: isGuest ? t("guestPoolLine") : t("poolLimitTemplate"),
     gateConnect: t("gateConnect"),
     gateChecking: t("gateChecking"),
     gateRouteLocked: t("gateRouteLockedTemplate"),
     gatePoolLow: t("gatePoolLowTemplate"),
-    gateChoose: t("gateChoose"),
+    gateChoose: isGuest ? t("guestGateChoose") : t("gateChoose"),
     act: {
       open: t("startAction"),
       playAgain: t("playAgainAction"),
@@ -89,8 +95,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       deadlineClose: t("deadlineCloseMsg"),
       submitUnlock: t("submitUnlockTemplate"),
     },
-    resultSolved: t("resultCaptionSolved"),
-    resultExpired: t("resultCaptionExpired"),
+    resultSolved: isGuest ? t("guestResultSolved") : t("resultCaptionSolved"),
+    resultExpired: isGuest ? t("guestResultExpired") : t("resultCaptionExpired"),
   };
 
   // Plain-object snapshot pushed into the Phaser bridge on every render
@@ -112,6 +118,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     credit: creditGas,
     progressionReady,
     progressionRequiredDifficulty,
+    appMode: isGuest ? "guest" : "gamefi",
     labels: canvasLabels,
   };
 
@@ -121,7 +128,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : isDealing || gameStatus === "committed" ? t("statusShuffling")
     : gameStatus === "dealt"                  ? t("playingTitle", { difficulty: t(`difficulty_${gameDifficulty}`) })
     : gameStatus === "solved"                 ? t("statusWonTitle")
-    : gameStatus === "expired"                ? t("expiredBanner")
+    : gameStatus === "expired"                ? (isGuest ? t("guestResultExpired") : t("expiredBanner"))
+    : isGuest                                 ? t("guestLobbyTitle")
     : t("lobbyTitle");
 
   const hasCredit =
@@ -155,11 +163,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       : []),
   ];
   const hudItems = [
-    {
-      label: t("rewardMetric"),
-      value: `${gasDisplay(rule.rewardFixed8)} GAS`,
-      accent: true,
-    },
+    isGuest
+      ? {
+          // Guest has no stake — surface local framing instead of a GAS reward.
+          label: t("guestRunLabel"),
+          value: t("guestRunValue"),
+          accent: true,
+        }
+      : {
+          label: t("rewardMetric"),
+          value: `${gasDisplay(rule.rewardFixed8)} GAS`,
+          accent: true,
+        },
     {
       label: t("timeMetric"),
       value: gameStatus === "dealt" && deadline > 0
@@ -182,7 +197,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
@@ -231,18 +246,33 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <Trophy size={18} aria-hidden="true" />
                   <div>
                     <h3>{t("drawerTitle")}</h3>
-                    <p>{t("fairnessShort")}</p>
+                    <p>{isGuest ? t("guestFairnessShort") : t("fairnessShort")}</p>
                   </div>
                 </div>
                 <div className="sudoku-ingame-drawer__grid">
-                  <span>
-                    <small>{t("creditLabel")}</small>
-                    <strong>{creditGas.toFixed(2)} GAS</strong>
-                  </span>
-                  <span>
-                    <small>{t("scoreWon")}</small>
-                    <strong>{myTotalWon.toFixed(2)} GAS</strong>
-                  </span>
+                  {isGuest ? (
+                    <>
+                      <span>
+                        <small>{t("guestModeLabel")}</small>
+                        <strong>{t("guestModeValue")}</strong>
+                      </span>
+                      <span>
+                        <small>{t("guestBestLabel")}</small>
+                        <strong>{myTotalWon}</strong>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span>
+                        <small>{t("creditLabel")}</small>
+                        <strong>{creditGas.toFixed(2)} GAS</strong>
+                      </span>
+                      <span>
+                        <small>{t("scoreWon")}</small>
+                        <strong>{myTotalWon.toFixed(2)} GAS</strong>
+                      </span>
+                    </>
+                  )}
                   <span>
                     <small>{t("scoreTime")}</small>
                     <strong>{deadline > 0 ? formatClock(remainMs) : "--"}</strong>
@@ -264,7 +294,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 )}
                 <div className="sudoku-ingame-drawer__fairness">
                   <ShieldCheck size={17} aria-hidden="true" />
-                  <p>{t("rulesShort")}</p>
+                  <p>{isGuest ? t("guestRulesShort") : t("rulesShort")}</p>
                 </div>
               </section>
             )}

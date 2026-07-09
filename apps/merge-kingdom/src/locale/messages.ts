@@ -146,6 +146,40 @@ const appMessages = {
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+
+  // ── Guest (free / local) mode ─────────────────────────────────────────────
+  // GUEST is a purely local merge puzzle: no wallet, no fees, no chain/oracle/
+  // reward. These strings replace the GAS-at-stake / pool / reward framing so
+  // guest carries only local practice framing.
+  guestModeLine: {
+    en: "Guest mode — local play, best tiles saved off-chain.",
+    zh: "游客模式——本地游玩，最高方块离线保存。",
+  },
+  guestRunLabel: { en: "Local run", zh: "本地对局" },
+  guestRunValue: { en: "Free play", zh: "自由练习" },
+  guestBestLabel: { en: "Best tile", zh: "最大方块" },
+  guestStartHint: {
+    en: "Free local run — no wallet or entry needed",
+    zh: "免费本地对局——无需钱包或报名费",
+  },
+  guestSubmitAction: { en: "Finish run", zh: "结束对局" },
+  guestSubmitHint: {
+    en: "Target tile reached — save your local run",
+    zh: "已达目标方块——保存本地对局",
+  },
+  guestRunComplete: {
+    en: "Local run complete — raised tile {tile}!",
+    zh: "本地对局完成——达成方块 {tile}！",
+  },
+  guestGameOver: {
+    en: "Run over — best tile {tile}.",
+    zh: "对局结束——最高方块 {tile}。",
+  },
+  guestRulesTitle: { en: "How guest mode works", zh: "游客模式说明" },
+  guestRulesCopy: {
+    en: "Guest mode is a free local merge puzzle — slide and merge adjacent tiles up to the target with no wallet, no fees, and nothing on-chain. Your best tile is saved to an off-chain practice board (connect a wallet to record it). Switch to Earn GAS for the provably fair on-chain reward game.",
+    zh: "游客模式是一款免费的本地合并益智游戏——移动并合并相邻方块冲向目标，无需钱包、没有费用、也不涉及任何链上操作。你的最高方块会保存到离线练习榜（连接钱包即可记录）。切换到「赢取 GAS」即可体验可验证公平的链上奖励游戏。",
+  },
 };
 
 export const messages = mergeMessages(appMessages);
