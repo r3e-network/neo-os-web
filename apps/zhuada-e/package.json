@@ -1,0 +1,14 @@
+{
+  "name": "miniapp-zhuada-e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@types/three": "^0.169.0",
+    "cannon-es": "^0.20.0",
+    "three": "^0.169.0"
+  }
+}

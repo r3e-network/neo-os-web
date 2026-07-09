@@ -1,0 +1,660 @@
+// PlayArea.scss — Catch the Goose (B-class physics edition)
+// Uses the mx2 design tokens. The 3D canvas + tray live in a centered stage.
+
+.goose-playarea {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.goose-playarea[data-action-preview="true"] .goose-canvas-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  z-index: 5;
+  border-radius: 18px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px rgba(22, 199, 132, 0.38);
+  animation: goose-action-preview 0.42s ease-out both;
+}
+
+.goose-playstage {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.goose-stage-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+// ── Canvas wrapper (holds the 3D host + overlay only) ────────────
+.goose-canvas-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  // Mobile: let the canvas own all touch gestures so a tap reads as a pick
+  // instead of a page scroll / pull-to-refresh, and never shows the blue flash.
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+}
+
+// The WebGL canvas element itself should also swallow touch gestures.
+.goose-three-canvas {
+  touch-action: none;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+// Overlay: start / win / fail — covers ONLY the canvas, not tray/HUD.
+.goose-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(247, 243, 236, 0.52) 0%,
+    rgba(231, 247, 241, 0.66) 100%
+  );
+  backdrop-filter: blur(2px);
+  animation: goose-overlay-fade 0.24s ease-out both;
+}
+
+.goose-overlay__card {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 20px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 22px 50px rgba(31, 49, 58, 0.22),
+    inset 0 0 0 1.5px rgba(22, 199, 132, 0.22);
+  text-align: center;
+  animation: goose-overlay-card 0.34s cubic-bezier(0.2, 0.9, 0.2, 1.12) both;
+}
+
+.goose-overlay__mascot {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 16px;
+  filter: drop-shadow(0 6px 12px rgba(22, 199, 132, 0.25));
+  animation: goose-overlay-mascot 1.8s ease-in-out infinite;
+}
+
+.goose-overlay__mascot[data-tone="fail"] {
+  filter: drop-shadow(0 6px 12px rgba(226, 93, 77, 0.18)) saturate(0.86);
+}
+
+.goose-overlay__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--mx2-text, #19313a);
+}
+
+.goose-overlay__score {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #16c784;
+}
+
+.goose-overlay__status {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0ea371;
+}
+
+.goose-overlay__body {
+  margin: 2px 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mx2-text-sub, #5c5a56);
+}
+
+.goose-overlay__btn {
+  margin-top: 4px;
+  border: none;
+  background: #16c784;
+  color: #fff;
+  font: 800 15px/1 system-ui, sans-serif;
+  min-height: 44px;
+  padding: 0 28px;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(22, 199, 132, 0.28);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+  animation: goose-button-glow 2.4s ease-in-out infinite;
+}
+
+.goose-overlay__btn:hover {
+  box-shadow: 0 16px 32px rgba(22, 199, 132, 0.34);
+}
+
+.goose-overlay__btn:active {
+  transform: scale(0.97);
+}
+
+.goose-overlay__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+// ── 3D canvas host ───────────────────────────────────────────────
+.goose-three-canvas.three-game-host {
+  width: 100% !important;
+  max-width: 420px;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    linear-gradient(160deg, rgba(251, 247, 240, 0.78) 0%, rgba(241, 232, 218, 0.86) 100%),
+    url("/banner.png") center / cover no-repeat,
+    linear-gradient(160deg, #fbf7f0 0%, #f1e8da 100%);
+  background-blend-mode: lighten, normal, normal;
+  box-shadow:
+    0 18px 40px rgba(31, 49, 58, 0.14),
+    inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+  animation: goose-canvas-breathe 4s ease-in-out infinite;
+}
+
+// Placeholder shown while the 3D scene chunk loads (lobby / pre-start).
+.goose-canvas-placeholder {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 400 / 540;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(22, 199, 132, 0.10), transparent 60%),
+    linear-gradient(160deg, #fbf7f0 0%, #f1e8da 100%);
+  box-shadow:
+    0 18px 40px rgba(31, 49, 58, 0.14),
+    inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+}
+
+// ── Power-up bar ─────────────────────────────────────────────────
+.goose-powerbar {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.07);
+}
+
+.goose-powerbar__btn {
+  flex: 1;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: linear-gradient(180deg, #ffffff, #f3faf6);
+  color: var(--mx2-text, #19313a);
+  font: 700 12px/1 system-ui, sans-serif;
+  padding: 8px 6px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(22, 199, 132, 0.12), inset 0 0 0 1px rgba(22, 199, 132, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.goose-powerbar__btn:hover {
+  box-shadow: 0 10px 20px rgba(22, 199, 132, 0.2), inset 0 0 0 1px rgba(22, 199, 132, 0.3);
+}
+
+.goose-powerbar__btn:active {
+  transform: scale(0.96);
+}
+
+.goose-powerbar__label {
+  font-size: 11px;
+}
+
+.goose-powerbar__count {
+  font-size: 11px;
+  font-weight: 800;
+  color: #16c784;
+  font-variant-numeric: tabular-nums;
+}
+
+.goose-powerbar__btn[data-empty="true"] {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.1);
+}
+
+.goose-powerbar__btn[data-empty="true"] .goose-powerbar__count {
+  color: var(--mx2-text-sub, #5c5a56);
+}
+
+// ── Tray strip ────────────────────────────────────────────────────
+.goose-tray {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.08);
+  backdrop-filter: blur(6px);
+  animation: goose-tray-enter 0.38s ease-out both;
+}
+
+.goose-tray__slot {
+  flex: 1 1 0;
+  aspect-ratio: 1 / 1;
+  max-width: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(31, 49, 58, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.08);
+  transition: transform 0.12s ease, background 0.2s ease;
+}
+
+.goose-tray__slot[data-filled="true"] {
+  background: rgba(22, 199, 132, 0.12);
+  box-shadow: inset 0 0 0 1.5px rgba(22, 199, 132, 0.42);
+  animation: goose-slot-land 0.26s ease-out both;
+}
+
+.goose-tray__slot:active {
+  transform: scale(0.92);
+}
+
+.goose-tray__emoji {
+  font-size: 22px;
+  line-height: 1;
+  user-select: none;
+}
+
+// ── HUD (score / time / combo) ────────────────────────────────────
+.goose-stage-hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+  padding: 8px 12px;
+}
+
+.goose-stage-hud__metric {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.07);
+  min-width: 64px;
+}
+
+.goose-stage-hud__metric span {
+  font-size: 11px;
+  color: var(--mx2-text-sub, #5c5a56);
+  font-weight: 600;
+}
+
+.goose-stage-hud__metric strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--mx2-text, #19313a);
+  font-variant-numeric: tabular-nums;
+}
+
+.goose-stage-hud__metric[data-accent="true"] strong {
+  color: #16c784;
+  animation: goose-score-pulse 1.2s ease-in-out infinite;
+}
+
+.goose-stage-hud__drawer {
+  margin-left: auto;
+  border: none;
+  background: rgba(31, 49, 58, 0.06);
+  color: var(--mx2-text, #19313a);
+  font: 600 13px/1 system-ui, sans-serif;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.goose-stage-hud__sound {
+  margin-left: 2px;
+  border: none;
+  background: rgba(31, 49, 58, 0.06);
+  color: var(--mx2-text, #19313a);
+  width: 40px;
+  height: 40px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.goose-stage-hud__sound:hover {
+  background: rgba(22, 199, 132, 0.12);
+  color: #16c784;
+}
+
+.goose-stage-hud__sound[aria-pressed="true"] {
+  color: var(--mx2-text-sub, #5c5a56);
+  background: rgba(31, 49, 58, 0.04);
+}
+
+.goose-stage-hud__sound:active {
+  transform: scale(0.94);
+}
+
+.goose-stage-hud__drawer:active {
+  transform: scale(0.96);
+}
+
+// ── In-game drawer (rules + controls) ─────────────────────────────
+.goose-ingame-drawer {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: goose-drawer-enter 0.22s ease-out both;
+}
+
+.goose-drawer__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.goose-drawer__mascot {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.goose-drawer__head p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mx2-text-sub, #5c5a56);
+}
+
+.goose-drawer__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.goose-drawer__actions button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: #16c784;
+  color: #fff;
+  font: 700 14px/1 system-ui, sans-serif;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(22, 199, 132, 0.18);
+}
+
+.goose-drawer__actions button:active {
+  transform: scale(0.97);
+}
+
+.goose-ingame-drawer h4 {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--mx2-text, #19313a);
+}
+
+.goose-ingame-drawer p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--mx2-text-sub, #5c5a56);
+}
+
+.goose-drawer__status {
+  font-weight: 600;
+  color: #0ea371 !important;
+}
+
+@keyframes goose-action-preview {
+  from {
+    opacity: 0.8;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes goose-overlay-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes goose-overlay-card {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes goose-overlay-mascot {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+
+@keyframes goose-button-glow {
+  0%,
+  100% {
+    box-shadow: 0 12px 26px rgba(22, 199, 132, 0.24);
+  }
+
+  50% {
+    box-shadow: 0 18px 34px rgba(22, 199, 132, 0.36);
+  }
+}
+
+@keyframes goose-canvas-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 18px 40px rgba(31, 49, 58, 0.14),
+      inset 0 0 0 1px rgba(22, 199, 132, 0.12);
+  }
+
+  50% {
+    box-shadow:
+      0 22px 46px rgba(31, 49, 58, 0.18),
+      inset 0 0 0 1px rgba(22, 199, 132, 0.18);
+  }
+}
+
+@keyframes goose-tray-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes goose-slot-land {
+  0% {
+    transform: scale(0.72);
+  }
+
+  70% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes goose-score-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes goose-drawer-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── Reduced motion ────────────────────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  .goose-playarea[data-action-preview="true"] .goose-canvas-wrap::after,
+  .goose-overlay,
+  .goose-overlay__card,
+  .goose-overlay__mascot,
+  .goose-overlay__btn,
+  .goose-three-canvas.three-game-host,
+  .goose-tray,
+  .goose-tray__slot,
+  .goose-stage-hud__metric[data-accent="true"] strong,
+  .goose-stage-hud__drawer,
+  .goose-ingame-drawer,
+  .goose-drawer__actions button {
+    animation: none;
+    transition: none;
+  }
+}
+
+// ── Playtest debug panel (?debug=1 only) ──────────────────────────
+.goose-debug {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 9999;
+  width: 232px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(20, 30, 36, 0.92);
+  color: #d7f5e8;
+  font: 12px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.goose-debug__title {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #16c784;
+  margin-bottom: 6px;
+}
+
+.goose-debug__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.goose-debug__row span {
+  opacity: 0.72;
+}
+
+.goose-debug__row b {
+  font-weight: 700;
+}
+
+.goose-debug__tune b {
+  color: #ffd479;
+}
+
+.goose-debug__hint {
+  margin: 6px 0 4px;
+  font-size: 10.5px;
+  opacity: 0.6;
+  word-break: break-all;
+}
+
+.goose-debug__btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.goose-debug__btns button {
+  border: none;
+  border-radius: 8px;
+  padding: 7px 4px;
+  background: rgba(22, 199, 132, 0.22);
+  color: #eafff5;
+  font: 600 11px/1 ui-monospace, monospace;
+  cursor: pointer;
+}
+
+.goose-debug__btns button:hover {
+  background: rgba(22, 199, 132, 0.4);
+}
