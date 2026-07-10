@@ -14,6 +14,7 @@
 
 import * as THREE from "three";
 import type { ModelKind } from "../logic/engine-zhuada";
+import type { GooseVariant } from "../logic/scenes";
 
 const GREEN = 0x3fa34d;
 const GREEN_DARK = 0x2f7d3a;
@@ -242,10 +243,17 @@ export function buildModelMesh(kind: ModelKind, color: number, scale = 0.62): TH
   return g;
 }
 
-/** A small original low-poly goose used for the win celebration. */
-export function buildGoose(): THREE.Group {
+/**
+ * A small original low-poly goose used for the win celebration.
+ *
+ * Passing a `variant` (see logic/scenes.ts) dresses the goose in that scene's
+ * LIMITED-EDITION accessories — a scarf ring plus a primitive-built hat. Every
+ * accessory is composed from Three.js primitives (cones/cylinders/spheres/
+ * torus): these remain our own original designs.
+ */
+export function buildGoose(variant?: GooseVariant): THREE.Group {
   const g = new THREE.Group();
-  const bodyMat = mat(WHITE, 0.5);
+  const bodyMat = mat(variant?.body ?? WHITE, 0.5);
   const body = part(new THREE.SphereGeometry(1.1, 22, 18), bodyMat);
   body.scale.set(1.1, 0.95, 1.2);
   body.position.y = -0.2;
@@ -275,5 +283,87 @@ export function buildGoose(): THREE.Group {
   wing.position.set(-0.3, 0.05, 0.7);
   g.add(wing);
 
+  if (variant) {
+    // Scarf: a snug torus around the neck base, angled with the neck.
+    const scarf = part(new THREE.TorusGeometry(0.42, 0.14, 10, 20), mat(variant.scarf, 0.7));
+    scarf.position.set(0.62, 0.32, 0);
+    scarf.rotation.x = Math.PI / 2;
+    scarf.rotation.y = -0.35;
+    g.add(scarf);
+    const hat = buildGooseHat(variant);
+    // Sit the hat on the crown of the head, tilted with the neck line.
+    hat.position.set(0.9, 1.86, 0);
+    hat.rotation.z = -0.12;
+    g.add(hat);
+  }
+
+  return g;
+}
+
+/** Primitive-built hats for the limited-edition geese (original designs). */
+function buildGooseHat(variant: GooseVariant): THREE.Group {
+  const g = new THREE.Group();
+  const main = mat(variant.hatColor, 0.65);
+  const accent = mat(variant.hatAccent, 0.6);
+  switch (variant.hat) {
+    case "straw": {
+      const brim = part(new THREE.CylinderGeometry(0.62, 0.66, 0.07, 18), main);
+      g.add(brim);
+      const crown = part(new THREE.CylinderGeometry(0.3, 0.36, 0.3, 16), main);
+      crown.position.y = 0.17;
+      g.add(crown);
+      const band = part(new THREE.CylinderGeometry(0.345, 0.37, 0.1, 16), accent);
+      band.position.y = 0.08;
+      g.add(band);
+      break;
+    }
+    case "beret": {
+      const puff = part(new THREE.SphereGeometry(0.45, 16, 12), main);
+      puff.scale.set(1.15, 0.5, 1.15);
+      g.add(puff);
+      const stalk = part(new THREE.CylinderGeometry(0.04, 0.05, 0.14, 8), accent);
+      stalk.position.y = 0.26;
+      g.add(stalk);
+      break;
+    }
+    case "cap": {
+      const dome = part(new THREE.SphereGeometry(0.42, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), main);
+      dome.scale.set(1, 0.75, 1);
+      g.add(dome);
+      const band = part(new THREE.CylinderGeometry(0.43, 0.44, 0.1, 16), accent);
+      band.position.y = 0.02;
+      g.add(band);
+      const visor = part(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 12), accent);
+      visor.scale.set(1, 1, 0.7);
+      visor.position.set(0.36, 0.02, 0);
+      g.add(visor);
+      break;
+    }
+    case "beanie": {
+      const dome = part(new THREE.SphereGeometry(0.44, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), main);
+      dome.scale.set(1, 0.9, 1);
+      g.add(dome);
+      const fold = part(new THREE.CylinderGeometry(0.46, 0.47, 0.14, 16), accent);
+      fold.position.y = 0.03;
+      g.add(fold);
+      const pompom = part(new THREE.SphereGeometry(0.13, 10, 8), accent);
+      pompom.position.y = 0.46;
+      g.add(pompom);
+      break;
+    }
+    case "party": {
+      const cone = part(new THREE.ConeGeometry(0.34, 0.72, 14), main);
+      cone.position.y = 0.32;
+      g.add(cone);
+      const brim = part(new THREE.TorusGeometry(0.32, 0.05, 8, 18), accent);
+      brim.rotation.x = Math.PI / 2;
+      brim.position.y = 0.0;
+      g.add(brim);
+      const pompom = part(new THREE.SphereGeometry(0.11, 10, 8), accent);
+      pompom.position.y = 0.72;
+      g.add(pompom);
+      break;
+    }
+  }
   return g;
 }

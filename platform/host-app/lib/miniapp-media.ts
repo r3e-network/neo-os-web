@@ -146,6 +146,7 @@ const BUNDLED_MINIAPP_ASSET_SLUGS = new Set([
   "unbreakable-vault",
   "voting",
   "wallet-health",
+  "zhuada-e",
   "zk-privacy",
 ]);
 

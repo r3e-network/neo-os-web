@@ -48,6 +48,8 @@ export interface ThreeSceneController {
   mount(host: HTMLElement, bridge: GameBridge): void;
   /** Push a fresh state snapshot from React. */
   setState?(state: GameState): void;
+  /** Host size changed — update renderer size + camera aspect. */
+  resize?(width: number, height: number): void;
   /** Tear down renderer + listeners. */
   unmount(): void;
 }
@@ -77,6 +79,9 @@ export function ThreeGameComponent({
   const [error, setError] = useState<{ message: string; mode: "dismiss" | "retry" } | null>(null);
   const [autoSize, setAutoSize] = useState<{ width: number; height: number } | null>(null);
   const fallbackSizeRef = useRef({ width: 400, height: 580 });
+  // True only after scene.mount() succeeded — state pushes into a
+  // half-initialized scene (e.g. WebGL unavailable) would crash it.
+  const mountedOkRef = useRef(false);
 
   // Keep latest onReady without re-running the boot effect.
   useEffect(() => {
@@ -107,8 +112,10 @@ export function ThreeGameComponent({
     window.__phaserBridge = bridge;
 
     // Hand control to the scene. It owns the WebGLRenderer + rAF loop.
+    mountedOkRef.current = false;
     try {
       scene.mount(mount, bridge);
+      mountedOkRef.current = true;
     } catch (err) {
       setError({
         message: err instanceof Error && err.message ? err.message : errorLabel,
@@ -116,7 +123,25 @@ export function ThreeGameComponent({
       });
     }
 
+    // Keep renderer size + camera aspect in sync with the host box (mobile
+    // auto-size changes, orientation flips, window resizes).
+    let sceneResizeObserver: ResizeObserver | null = null;
+    if (mountedOkRef.current && scene.resize && typeof ResizeObserver !== "undefined") {
+      let lastW = mount.clientWidth;
+      let lastH = mount.clientHeight;
+      sceneResizeObserver = new ResizeObserver(() => {
+        const w = mount.clientWidth;
+        const h = mount.clientHeight;
+        if (w <= 0 || h <= 0 || (w === lastW && h === lastH)) return;
+        lastW = w;
+        lastH = h;
+        scene.resize?.(w, h);
+      });
+      sceneResizeObserver.observe(mount);
+    }
+
     return () => {
+      sceneResizeObserver?.disconnect();
       unsubReady();
       unsubError();
       scene.unmount();
@@ -134,9 +159,11 @@ export function ThreeGameComponent({
     bridgeRef.current.setDispatch(dispatch);
   }, [dispatch]);
 
-  // Push state updates into the running scene.
+  // Push state updates into the running scene. Short-circuit when mount
+  // failed (e.g. no WebGL): pushing into a half-initialized scene crashes it,
+  // replacing the graceful error UI with the global boundary.
   useEffect(() => {
-    if (!state) return;
+    if (!state || !mountedOkRef.current) return;
     bridgeRef.current.sendState(state);
     scene.setState?.(state);
   }, [state, scene]);

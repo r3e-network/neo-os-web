@@ -31,6 +31,7 @@ import {
   Vec3,
   World,
   type Body as CannonBody,
+  type GSSolver,
 } from "cannon-es";
 import { GameBridge } from "@framework/phaser";
 import type { GameState } from "@framework/phaser/types";
@@ -38,11 +39,15 @@ import {
   ITEM_DEFS,
   TRAY_SLOTS,
   type GeometryKind,
+  type ItemDef,
   type ItemInstance,
 } from "../logic/engine-zhuada";
 import { buildGoose, buildModelMesh } from "./models";
+import { pickItemAt } from "./pick";
 import { sound } from "../logic/sound";
+import { haptics } from "../logic/haptics";
 import { tuneGravity } from "../logic/game-rules";
+import { sceneOfLevel } from "../logic/scenes";
 
 // Logical scene size (CSS pixels of the canvas host on desktop).
 const SCENE_W = 400;
@@ -68,9 +73,13 @@ const C = {
 interface ItemVisual {
   id: number;
   kind: number;
-  mesh: THREE.Mesh;
+  /** Composed model root (models.ts builders return a Group of Meshes). */
+  mesh: THREE.Group;
   body: CannonBody;
-  /** when true the item is being pulled to the tray (physics off). */
+  /**
+   * True from the instant a pick is dispatched (synchronous in-flight guard
+   * against double-taps) until the visual is removed after the tray fly.
+   */
   extracting: boolean;
   /** when true the body is asleep / not yet spawned. */
   spawned: boolean;
@@ -90,6 +99,13 @@ export class ZhuaDaScene {
 
   private itemVisuals = new Map<number, ItemVisual>();
   private boxMeshes: THREE.Object3D[] = [];
+  // Themed pen materials + lights (retinted per scene, see applyTheme).
+  private floorMat: THREE.MeshStandardMaterial | null = null;
+  private wallMat: THREE.MeshStandardMaterial | null = null;
+  private rimMat: THREE.MeshStandardMaterial | null = null;
+  private hemiLight: THREE.HemisphereLight | null = null;
+  /** Scene id currently painted (-1 = default palette, forces first apply). */
+  private themedScene = -1;
   private trayGroup!: THREE.Group;
   private traySlots: (THREE.Group | null)[] = new Array(TRAY_SLOTS).fill(null);
   private overlayGroup!: THREE.Group;
@@ -100,6 +116,15 @@ export class ZhuaDaScene {
   private level = 1;
   private lastShuffleNonce = 0;
   private lastHintNonce = 0;
+  private lastShakeNonce = 0;
+  /** Camera rest position — the shake offset oscillates around this. */
+  private cameraBase = new THREE.Vector3();
+  /** Wall-clock start of the current camera micro-shake (0 = idle). */
+  private cameraShakeT0 = 0;
+  /** Last clearedFx pulse consumed (dedupes repeated state pushes). */
+  private lastClearedFx: number[] = [];
+  /** Why the current loss happened ("timeout" | "trayFull") — drives the stamp. */
+  private failReason = "";
   private spawnQueue: ItemInstance[] = [];
   private spawnTimer = 0;
   private boxHalf = BOX_HALF;
@@ -128,7 +153,10 @@ export class ZhuaDaScene {
     const h = host.clientHeight || SCENE_H;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setSize(w, h, false);
+    // updateStyle=true: the canvas MUST get explicit CSS width/height, or on
+    // dpr>=2 devices it lays out at its attribute size (2x the host, clipped
+    // to a magnified top-left quadrant).
+    this.renderer.setSize(w, h, true);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     host.appendChild(this.renderer.domElement);
@@ -140,12 +168,14 @@ export class ZhuaDaScene {
     this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
     this.camera.position.set(0, BOX_HEIGHT + 4.6, BOX_HEIGHT + 5.2);
     this.camera.lookAt(0, BOX_HEIGHT * 0.35, 0);
+    this.cameraBase.copy(this.camera.position);
 
     this.setupLights();
     this.setupWorld();
     this.buildBox(boxHalfFromBoxHeight(BOX_HEIGHT), BOX_HEIGHT);
     this.buildTray();
     this.buildOverlay();
+    this.applyTheme(this.level);
 
     // Bridge wiring.
     this.unsubState = bridge.on("state", (s) => this.applyState(s as GameState));
@@ -161,6 +191,11 @@ export class ZhuaDaScene {
     // Pointer pick.
     this.renderer.domElement.addEventListener("pointerdown", this.onPointerDown);
 
+    // Physics pauses while the tab is hidden; on return the accumulated clock
+    // delta is discarded so the pile resumes exactly where it froze (paired
+    // with the engine's countdown pause — the deadline shifts by the same gap).
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
+
     this.clock.start();
     this.loop();
   }
@@ -174,20 +209,14 @@ export class ZhuaDaScene {
     this.disposed = true;
     cancelAnimationFrame(this.rafId);
     this.renderer?.domElement.removeEventListener("pointerdown", this.onPointerDown);
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
     this.unsubState?.();
     this.unsubReady?.();
     this.unsubError?.();
     this.unsubDestroy?.();
-    // Dispose geometry/material to avoid GPU leaks across remounts.
-    this.scene?.traverse((obj) => {
-      const mesh = obj as THREE.Mesh;
-      if (mesh.isMesh) {
-        mesh.geometry?.dispose();
-        const mat = mesh.material;
-        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-        else mat?.dispose();
-      }
-    });
+    // Dispose geometry/material/textures to avoid GPU leaks across remounts
+    // (traverse-based, so composed Groups and the emoji Sprite are covered).
+    if (this.scene) disposeObject(this.scene);
     this.renderer?.dispose();
     if (this.renderer?.domElement.parentElement === this.host) {
       this.host?.removeChild(this.renderer.domElement);
@@ -199,6 +228,7 @@ export class ZhuaDaScene {
 
   private setupLights(): void {
     const hemi = new THREE.HemisphereLight(0xffffff, 0xe7d9c4, 0.9);
+    this.hemiLight = hemi;
     this.scene.add(hemi);
     const key = new THREE.DirectionalLight(0xffffff, 1.1);
     key.position.set(4, 12, 6);
@@ -221,8 +251,9 @@ export class ZhuaDaScene {
     this.world = new World({ gravity: new Vec3(0, tuneGravity(), 0) });
     this.world.broadphase = new SAPBroadphase(this.world);
     this.world.allowSleep = true;
-    // A few solver iterations is plenty for a small pile.
-    (this.world.solver as { iterations: number }).iterations = 8;
+    // A few solver iterations is plenty for a small pile (the default World
+    // solver is a GSSolver; the base Solver type just doesn't expose it).
+    (this.world.solver as GSSolver).iterations = 8;
   }
 
   private buildBox(half: number, height: number): void {
@@ -231,6 +262,7 @@ export class ZhuaDaScene {
     // Visual box: floor + four thin walls (open top).
     const floorGeo = new THREE.BoxGeometry(half * 2 + 0.4, 0.4, half * 2 + 0.4);
     const floorMat = new THREE.MeshStandardMaterial({ color: C.boxFloor, roughness: 0.95 });
+    this.floorMat = floorMat;
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.position.set(0, -0.2, 0);
     floor.receiveShadow = true;
@@ -240,6 +272,7 @@ export class ZhuaDaScene {
     const wallMat = new THREE.MeshStandardMaterial({
       color: C.boxWall, roughness: 0.9, transparent: true, opacity: 0.5,
     });
+    this.wallMat = wallMat;
     const wallThick = 0.3;
     const wallDefs: [number, number, number, number, number, number][] = [
       // x, y, z, sx, sy, sz
@@ -259,6 +292,7 @@ export class ZhuaDaScene {
     // Bright rim at the top to read as the "pen".
     const rimGeo = new THREE.TorusGeometry(half + 0.32, 0.08, 8, 4);
     const rimMat = new THREE.MeshStandardMaterial({ color: C.boxEdge, roughness: 0.5, emissive: C.boxEdge, emissiveIntensity: 0.2 });
+    this.rimMat = rimMat;
     const rim = new THREE.Mesh(rimGeo, rimMat);
     rim.rotation.x = Math.PI / 2;
     rim.position.y = height;
@@ -291,7 +325,9 @@ export class ZhuaDaScene {
   }
 
   private layoutTray(): void {
-    // Clear old slot meshes.
+    // Clear old slot meshes (dispose first — every level start rebuilds the
+    // 7 slots; without disposal each rebuild leaks 7x geometry+material).
+    for (const child of [...this.trayGroup.children]) disposeObject(child);
     this.trayGroup.clear();
     this.traySlots = new Array(TRAY_SLOTS).fill(null);
     const gap = 0.92;
@@ -326,9 +362,32 @@ export class ZhuaDaScene {
     this.scene.add(this.overlayGroup);
   }
 
+  /**
+   * Repaint the pen with the themed palette of `level`'s scene (G4). Colors
+   * are retinted in place on the shared materials — no geometry rebuilds, so
+   * switching scenes is free even mid-session.
+   */
+  private applyTheme(level: number): void {
+    const theme = sceneOfLevel(level);
+    if (theme.id === this.themedScene) return;
+    this.themedScene = theme.id;
+    const p = theme.palette;
+    this.scene.background = new THREE.Color(p.bg);
+    this.floorMat?.color.set(p.floor);
+    this.wallMat?.color.set(p.wall);
+    if (this.rimMat) {
+      this.rimMat.color.set(p.rim);
+      this.rimMat.emissive.set(p.rim);
+    }
+    this.hemiLight?.groundColor.set(p.hemiGround);
+  }
+
   // ── State reconciliation ─────────────────────────────────────────────────────
 
   private applyState(state: GameState): void {
+    // Guard against pushes before (or after a failed) mount: the scene graph
+    // only exists once mount() succeeded past renderer construction.
+    if (!this.scene) return;
     if (!state || Object.keys(state).length === 0) return;
     const nextStatus = (state.gameStatus as string) ?? this.gameStatus;
     const nextLevel = Number(state.level ?? this.level) || this.level;
@@ -339,6 +398,24 @@ export class ZhuaDaScene {
     const levelChanged = nextLevel !== this.level;
     const shuffleNonce = Number(state.shuffleNonce ?? 0) || 0;
     const hintNonce = Number(state.hintNonce ?? 0) || 0;
+    const shakeNonce = Number(state.shakeNonce ?? 0) || 0;
+    this.failReason = typeof state.failReason === "string" ? state.failReason : this.failReason;
+
+    // ── 3-match clear celebration ──
+    // clearedFx is a transient pulse of the 3 tray indices that just cleared
+    // (reset to [] by the shell ~200ms later). It arrives in the SAME snapshot
+    // that already nulled those tray slots, so the cleared KIND must be read
+    // from the PREVIOUS trayKinds before we overwrite them below.
+    const clearedNow = Array.isArray(state.clearedFx) ? (state.clearedFx as number[]) : [];
+    if (clearedNow.length > 0 && !sameIndexList(clearedNow, this.lastClearedFx)) {
+      this.lastClearedFx = clearedNow.slice();
+      const clearedKind = clearedNow
+        .map((i) => this.trayKinds[i])
+        .find((k): k is number => k !== null && k !== undefined) ?? null;
+      this.playClearPop(clearedNow, clearedKind);
+    } else if (clearedNow.length === 0 && this.lastClearedFx.length > 0) {
+      this.lastClearedFx = [];
+    }
 
     this.trayKinds = tray.slice();
 
@@ -361,9 +438,16 @@ export class ZhuaDaScene {
       }
     }
 
+    // ── Shake (G3 晃一晃): jolt every pile body + camera micro-shake ──
+    if (shakeNonce !== this.lastShakeNonce) {
+      this.lastShakeNonce = shakeNonce;
+      if (shakeNonce > 0 && nextStatus === "dealt") this.applyShake();
+    }
+
     if (statusChanged || levelChanged) {
       this.gameStatus = nextStatus;
       this.level = nextLevel;
+      this.applyTheme(nextLevel);
       if (nextStatus === "dealt") {
         // New level / retry → reset visuals.
         this.resetScene();
@@ -388,6 +472,25 @@ export class ZhuaDaScene {
         this.sendToTray(vis);
       }
     }
+    // …and ADDED items (G2 撤回: an undone grab returns to the top of the
+    // pile). "Added" means absent from the PREVIOUS logical snapshot — an id
+    // whose pick-dispatch is merely still in flight (extracting=true but still
+    // listed) must NOT be treated as an add, or normal rapid play would kill
+    // and respawn in-flight picks. A genuine undo mid-fly (id re-added while
+    // its old visual still animates to the tray) cancels the fly and re-drops.
+    const prevIds = new Set(this.logicalItems.map((it) => it.id));
+    for (const it of items) {
+      if (prevIds.has(it.id)) continue;
+      const vis = this.itemVisuals.get(it.id);
+      if (!vis) {
+        if (!this.spawnQueue.some((q) => q.id === it.id)) this.spawnQueue.push(it);
+      } else if (vis.extracting) {
+        this.scene.remove(vis.mesh);
+        disposeObject(vis.mesh);
+        this.itemVisuals.delete(it.id);
+        this.spawnQueue.push(it);
+      }
+    }
     this.logicalItems = items.slice();
 
     // Reflect tray contents in the HUD slots.
@@ -398,12 +501,19 @@ export class ZhuaDaScene {
     for (const vis of this.itemVisuals.values()) {
       this.scene.remove(vis.mesh);
       this.world.removeBody(vis.body);
-      disposeMesh(vis.mesh);
+      disposeObject(vis.mesh);
     }
     this.itemVisuals.clear();
     this.spawnQueue = [];
-    this.overlayGroup.clear();
+    this.clearOverlay();
     this.layoutTray();
+  }
+
+  /** Clear the win/fail overlay, disposing its GPU resources (goose meshes,
+   * emoji sprite CanvasTexture) instead of orphaning them. */
+  private clearOverlay(): void {
+    for (const child of [...this.overlayGroup.children]) disposeObject(child);
+    this.overlayGroup.clear();
   }
 
   // ── Spawning ────────────────────────────────────────────────────────────────
@@ -453,7 +563,7 @@ export class ZhuaDaScene {
     while (g.children.length > 2) {
       const c = g.children[g.children.length - 1]!;
       g.remove(c);
-      disposeMesh(c as THREE.Mesh);
+      disposeObject(c);
     }
     if (kind === null || kind === undefined) return;
     const def = ITEM_DEFS[kind] ?? ITEM_DEFS[0]!;
@@ -470,31 +580,141 @@ export class ZhuaDaScene {
     this.world.removeBody(vis.body);
     // Animate the mesh up to the tray then remove (the HUD slot is re-rendered by React state).
     const start = vis.mesh.position.clone();
+    // Shrink relative to the model's current scale (base 0.62 from
+    // buildModelMesh, possibly popped by press feedback) instead of stomping
+    // it with an absolute value.
+    const startScale = vis.mesh.scale.x;
     const t0 = performance.now();
     const dur = this.reducedMotion ? 1 : 220;
     const step = () => {
       const t = Math.min(1, (performance.now() - t0) / dur);
       const e = easeOutCubic(t);
       vis.mesh.position.lerpVectors(start, target ?? new THREE.Vector3(), e);
-      vis.mesh.scale.setScalar(1 - 0.7 * e);
+      vis.mesh.scale.setScalar(startScale * (1 - 0.7 * e));
       if (t < 1 && !this.disposed) {
         requestAnimationFrame(step);
       } else {
         this.scene.remove(vis.mesh);
-        disposeMesh(vis.mesh);
-        this.itemVisuals.delete(vis.id);
+        disposeObject(vis.mesh);
+        // Identity check: an undo during the fly may have already replaced
+        // this id with a fresh re-dropped visual — never delete that one.
+        if (this.itemVisuals.get(vis.id) === vis) this.itemVisuals.delete(vis.id);
       }
     };
     if (!this.reducedMotion) requestAnimationFrame(step);
     else step();
   }
 
+  // ── 3-match clear celebration ───────────────────────────────────────────────
+
+  /**
+   * Pop the 3 just-cleared tray minis: a ghost mini scales up + fades at each
+   * cleared slot while a small particle burst scatters in the kind's color.
+   * The match/combo SFX is already played by the engine at clear time.
+   * Reduced motion: skip entirely — the slots empty instantly (refreshTraySlot).
+   */
+  private playClearPop(indices: number[], kind: number | null): void {
+    if (this.reducedMotion || kind === null) return;
+    const def = ITEM_DEFS[kind] ?? ITEM_DEFS[0]!;
+    for (const idx of indices) {
+      const slot = this.traySlots[idx];
+      if (!slot) continue;
+      const origin = slot.position.clone().add(new THREE.Vector3(0, 0.28, 0));
+      this.spawnPopMini(def, origin);
+      this.spawnPopBurst(def.color, origin);
+    }
+  }
+
+  /** Ghost mini at a cleared slot: quick scale-up + rise + fade, then dispose. */
+  private spawnPopMini(def: ItemDef, origin: THREE.Vector3): void {
+    const mini = buildModelMesh(def.model, def.color, 0.3);
+    mini.position.copy(origin);
+    this.overlayGroup.add(mini);
+    const meshes = collectMeshes(mini);
+    for (const m of meshes) {
+      const mm = m.material as THREE.MeshStandardMaterial;
+      if (mm) mm.transparent = true;
+    }
+    const t0 = performance.now();
+    const dur = 420;
+    const step = (): void => {
+      if (this.disposed) return;
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      const e = easeOutCubic(t);
+      mini.scale.setScalar(0.3 * (1 + 0.9 * e));
+      mini.position.y = origin.y + 0.35 * e;
+      const fade = Math.max(0, 1 - t * t);
+      for (const m of meshes) {
+        const mm = m.material as THREE.MeshStandardMaterial;
+        if (mm) mm.opacity = fade;
+      }
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        this.overlayGroup.remove(mini);
+        disposeObject(mini);
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
+  /** Small radial particle burst in the cleared kind's color. */
+  private spawnPopBurst(color: number, origin: THREE.Vector3): void {
+    const count = 10;
+    const geo = new THREE.TetrahedronGeometry(0.09);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true });
+    const group = new THREE.Group();
+    const parts: { mesh: THREE.Mesh; vel: THREE.Vector3; spin: THREE.Vector3 }[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(origin);
+      const a = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      parts.push({
+        mesh,
+        vel: new THREE.Vector3(
+          Math.cos(a) * (1.2 + Math.random() * 0.9),
+          1.8 + Math.random() * 1.3,
+          Math.sin(a) * (1.2 + Math.random() * 0.9),
+        ),
+        spin: new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8),
+      });
+      group.add(mesh);
+    }
+    this.overlayGroup.add(group);
+    const t0 = performance.now();
+    const dur = 550;
+    let last = t0;
+    const step = (): void => {
+      if (this.disposed) return;
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const t = Math.min(1, (now - t0) / dur);
+      for (const p of parts) {
+        p.vel.y -= 7.5 * dt; // light gravity arc
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.mesh.rotation.x += p.spin.x * dt;
+        p.mesh.rotation.y += p.spin.y * dt;
+        p.mesh.rotation.z += p.spin.z * dt;
+      }
+      mat.opacity = Math.max(0, 1 - t * t);
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        this.overlayGroup.remove(group);
+        geo.dispose();
+        mat.dispose();
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
   // ── Win / Fail sequences ────────────────────────────────────────────────────
 
   private playWin(): void {
     sound.play("win");
-    this.overlayGroup.clear();
-    const goose = buildGoose();
+    this.clearOverlay();
+    // The celebration goose wears the CURRENT scene's limited-edition outfit
+    // (scarf + primitive hat) so every scene's win moment reads distinct.
+    const goose = buildGoose(sceneOfLevel(this.level).goose);
     goose.scale.setScalar(1.5);
     goose.position.set(0, this.boxHeight + 1.8, 0);
     goose.rotation.y = Math.PI * 0.1;
@@ -513,8 +733,11 @@ export class ZhuaDaScene {
 
   private playFail(): void {
     sound.play("fail");
-    this.overlayGroup.clear();
-    const stamp = makeEmojiSprite("⏰", 2.0);
+    this.clearOverlay();
+    // Failure is readable: the stamp names the loss. Timeout → drawn alarm
+    // clock; jammed tray → drawn padlock. Both are canvas-DRAWN original
+    // glyphs (no emoji / no fonts) so the art stays ours everywhere.
+    const stamp = makeGlyphSprite(this.failReason === "trayFull" ? drawLockGlyph : drawClockGlyph, 2.2);
     stamp.position.set(0, this.boxHeight + 2.0, 0);
     this.overlayGroup.add(stamp);
   }
@@ -538,13 +761,16 @@ export class ZhuaDaScene {
     return best;
   }
 
-  /** Pulse a box item of `kind` with a brief highlight so the player can spot it. */
+  /** Pulse a box item of `kind` with a brief highlight so the player can spot
+   * it. Reduced motion: a STEADY emissive highlight for the same duration —
+   * the information survives, the flashing and scale-throb do not. */
   private pulseHint(kind: number): void {
     let target: ItemVisual | undefined;
     for (const v of this.itemVisuals.values()) {
       if (!v.extracting && v.kind === kind) { target = v; break; }
     }
     if (!target) return;
+    const reduced = this.reducedMotion;
     const meshes = collectMeshes(target.mesh);
     const tint = new THREE.Color(C.brand);
     const baseScale = target.mesh.scale.x;
@@ -561,15 +787,63 @@ export class ZhuaDaScene {
         target!.mesh.scale.setScalar(baseScale);
         return;
       }
-      const p = 0.5 + 0.5 * Math.sin(t * Math.PI * 6);
+      const p = reduced ? 0.8 : 0.5 + 0.5 * Math.sin(t * Math.PI * 6);
       meshes.forEach((m) => {
         const mm = m.material as THREE.MeshStandardMaterial;
         if (mm) { mm.emissive = tint; mm.emissiveIntensity = p * 0.9; }
       });
-      target!.mesh.scale.setScalar(baseScale + p * 0.14);
+      if (!reduced) target!.mesh.scale.setScalar(baseScale + p * 0.14);
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+  }
+
+  // ── Shake (G3 晃一晃) ───────────────────────────────────────────────────────
+
+  /**
+   * Jolt the pile: every settled body gets a random capped impulse (mostly
+   * upward, some lateral scatter) so buried items surface. The pen's physics
+   * walls are infinite planes, so no impulse can throw an item out sideways;
+   * the cap keeps the vertical hop well below the drop height. A camera
+   * micro-shake sells the jolt — skipped under prefers-reduced-motion (the
+   * physics re-settle is the information, the camera wobble is decoration).
+   */
+  private applyShake(): void {
+    for (const vis of this.itemVisuals.values()) {
+      if (vis.extracting) continue;
+      vis.body.wakeUp();
+      const impulse = new Vec3(
+        (Math.random() * 2 - 1) * 2.4,
+        2.2 + Math.random() * 2.2,
+        (Math.random() * 2 - 1) * 2.4,
+      );
+      vis.body.applyImpulse(impulse);
+      vis.body.angularVelocity.set(
+        (Math.random() - 0.5) * 6,
+        (Math.random() - 0.5) * 6,
+        (Math.random() - 0.5) * 6,
+      );
+    }
+    if (!this.reducedMotion) this.cameraShakeT0 = performance.now();
+  }
+
+  /** Per-frame camera micro-shake: damped noise around the rest position. */
+  private updateCameraShake(): void {
+    if (this.cameraShakeT0 === 0) return;
+    const SHAKE_MS = 360;
+    const t = (performance.now() - this.cameraShakeT0) / SHAKE_MS;
+    if (t >= 1) {
+      this.cameraShakeT0 = 0;
+      this.camera.position.copy(this.cameraBase);
+      return;
+    }
+    const damp = (1 - t) * (1 - t);
+    const amp = 0.12 * damp;
+    this.camera.position.set(
+      this.cameraBase.x + Math.sin(t * 40) * amp,
+      this.cameraBase.y + Math.sin(t * 53 + 1.7) * amp * 0.6,
+      this.cameraBase.z + Math.cos(t * 47 + 0.6) * amp,
+    );
   }
 
   // ── Pointer pick ────────────────────────────────────────────────────────────
@@ -587,33 +861,45 @@ export class ZhuaDaScene {
     this.scene.updateMatrixWorld(true);
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    const meshes = Array.from(this.itemVisuals.values())
-      .filter((v) => !v.extracting)
-      .map((v) => v.mesh);
-    const hits = this.raycaster.intersectObjects(meshes, false);
-    if (hits.length === 0) return;
-    // Pick the closest hit; map mesh → visual → item id.
-    const hitMesh = hits[0]!.object as THREE.Mesh;
-    let picked: ItemVisual | undefined;
+    // Item visuals are composed Groups (Group.raycast is a no-op): intersect
+    // recursively so the child Meshes are tested, then backtrack the nearest
+    // hit up its parent chain to the owning item root (see pick.ts). Nearest
+    // hit wins, so a fully occluded item can't steal the pick.
+    const roots = new Map<THREE.Object3D, ItemVisual>();
     for (const v of this.itemVisuals.values()) {
-      if (v.mesh === hitMesh) { picked = v; break; }
+      if (!v.extracting) roots.set(v.mesh, v);
     }
-    if (!picked || picked.extracting) return;
-    // Pick SFX — immediate tactile feedback on a successful pull.
+    const picked = pickItemAt(this.raycaster, roots);
+    if (!picked) return;
+    // Synchronous in-flight guard: flag the visual BEFORE the async React
+    // round-trip so a same-frame double-tap can't dispatch a duplicate
+    // extract (the roots filter above skips extracting visuals).
+    picked.extracting = true;
+    // Pick SFX + light haptic tap — immediate tactile feedback on a pull.
     sound.play("pick");
-    // Light press feedback.
+    haptics.play("pick");
+    // Light press pop, relative to the model's base scale; the tray fly
+    // animation (sendToTray) takes over from whatever scale this reaches.
     if (!this.reducedMotion) {
-      hitMesh.scale.setScalar(1.18);
-      setTimeout(() => hitMesh.scale.setScalar(1), 90);
+      picked.mesh.scale.multiplyScalar(1.15);
     }
     this.bridge?.dispatch("extract", { itemId: picked.id, kind: picked.kind });
   };
 
   // ── Render loop ─────────────────────────────────────────────────────────────
 
+  /** Tab became visible again: throw away the delta accumulated while hidden
+   * so physics + spawn pacing resume from a standstill instead of a jump. */
+  private onVisibilityChange = (): void => {
+    if (!document.hidden) this.clock.getDelta();
+  };
+
   private loop = (): void => {
     if (this.disposed) return;
     this.rafId = requestAnimationFrame(this.loop);
+    // Hidden tab → hard pause. Most browsers stop rAF while hidden anyway;
+    // this guard covers the ones that keep throttled frames alive.
+    if (document.hidden) return;
     const rawDt = this.clock.getDelta();
 
     // Spawn queued items gradually so they cascade in. Pace with the UNCLAMPED
@@ -628,9 +914,12 @@ export class ZhuaDaScene {
       }
     }
 
-    // Step physics with a fixed timestep (cannon-es `step(dt)` with a single
-    // arg runs a fixed internal step and keeps the pile stable).
-    this.world.step(1 / 60);
+    // Variable-step physics: fixed 1/60 internal step fed with the REAL
+    // elapsed time (clamped so a tab refocus can't explode the pile) and up
+    // to 3 catch-up substeps. A bare step(1/60) would advance exactly one
+    // fixed step per rAF, scaling game speed with the display refresh rate
+    // (2x on 120Hz, slow-motion under throttling).
+    this.world.step(1 / 60, Math.min(rawDt, 0.1), 3);
 
     // Sync mesh transforms from bodies (skip extracting items).
     for (const vis of this.itemVisuals.values()) {
@@ -642,15 +931,19 @@ export class ZhuaDaScene {
       );
     }
 
+    // Camera micro-shake (G3) — a no-op unless a shake just fired.
+    this.updateCameraShake();
+
     // Keep the box centered as the camera frame is fixed.
     this.renderer.render(this.scene, this.camera);
   };
 
   // ── Resize ──────────────────────────────────────────────────────────────────
 
+  /** Host size changed (called by ThreeGameComponent's ResizeObserver). */
   resize(width: number, height: number): void {
-    if (!this.renderer) return;
-    this.renderer.setSize(width, height, false);
+    if (!this.renderer || width <= 0 || height <= 0) return;
+    this.renderer.setSize(width, height, true);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
@@ -678,14 +971,19 @@ function makeItemBody(geometry: GeometryKind, half: number): CannonBody {
   return body;
 }
 
-function makeEmojiSprite(emoji: string, size: number): THREE.Sprite {
+/** Two clearedFx pulses are the same event iff they list the same indices. */
+function sameIndexList(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** Render an original canvas-DRAWN glyph (no fonts, no emoji) onto a sprite. */
+function makeGlyphSprite(draw: (ctx: CanvasRenderingContext2D) => void, size: number): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 256; canvas.height = 256;
   const ctx = canvas.getContext("2d")!;
-  ctx.font = "200px serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(emoji, 128, 140);
+  draw(ctx);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
@@ -694,14 +992,99 @@ function makeEmojiSprite(emoji: string, size: number): THREE.Sprite {
   return sprite;
 }
 
-function disposeMesh(obj: THREE.Object3D): void {
-  const mesh = obj as THREE.Mesh;
-  if (mesh.isMesh) {
-    mesh.geometry?.dispose();
-    const mat = mesh.material;
-    if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-    else mat?.dispose();
-  }
+/** Timeout stamp: a hand-drawn alarm clock (ring + bells + hands + feet). */
+function drawClockGlyph(ctx: CanvasRenderingContext2D): void {
+  const red = "#ef4444";
+  ctx.lineCap = "round";
+  // Face.
+  ctx.strokeStyle = red;
+  ctx.lineWidth = 18;
+  ctx.beginPath();
+  ctx.arc(128, 140, 82, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  ctx.beginPath();
+  ctx.arc(128, 140, 73, 0, Math.PI * 2);
+  ctx.fill();
+  // Bells (two arcs on top) + feet.
+  ctx.lineWidth = 16;
+  ctx.beginPath();
+  ctx.arc(62, 58, 26, Math.PI * 0.75, Math.PI * 1.85);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(194, 58, 26, Math.PI * 1.15, Math.PI * 2.25);
+  ctx.stroke();
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.moveTo(66, 210); ctx.lineTo(48, 232);
+  ctx.moveTo(190, 210); ctx.lineTo(208, 232);
+  ctx.stroke();
+  // Hands, pointing at "time's up".
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.moveTo(128, 140); ctx.lineTo(128, 88);
+  ctx.moveTo(128, 140); ctx.lineTo(170, 158);
+  ctx.stroke();
+  ctx.fillStyle = red;
+  ctx.beginPath();
+  ctx.arc(128, 140, 9, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Tray-jam stamp: a hand-drawn padlock (shackle + body + keyhole cutout). */
+function drawLockGlyph(ctx: CanvasRenderingContext2D): void {
+  const red = "#ef4444";
+  ctx.lineCap = "round";
+  // Shackle.
+  ctx.strokeStyle = red;
+  ctx.lineWidth = 22;
+  ctx.beginPath();
+  ctx.arc(128, 98, 46, Math.PI, Math.PI * 2);
+  ctx.moveTo(82, 98); ctx.lineTo(82, 124);
+  ctx.moveTo(174, 98); ctx.lineTo(174, 124);
+  ctx.stroke();
+  // Body.
+  ctx.fillStyle = red;
+  ctx.beginPath();
+  ctx.roundRect(52, 118, 152, 108, 22);
+  ctx.fill();
+  // Keyhole cutout (punched out of the body, not painted over it).
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.beginPath();
+  ctx.arc(128, 158, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(120, 164, 16, 40, 8);
+  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function disposeMaterial(mat: THREE.Material | THREE.Material[] | undefined): void {
+  if (!mat) return;
+  if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+  else mat.dispose();
+}
+
+/**
+ * Dispose every GPU resource under `root`. Item visuals and tray minis are
+ * composed Groups, so disposal MUST traverse (a root-only isMesh check
+ * disposes nothing for them); Sprites need their material + CanvasTexture
+ * freed explicitly (material.dispose() does not free .map).
+ */
+function disposeObject(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.isMesh) {
+      mesh.geometry?.dispose();
+      disposeMaterial(mesh.material);
+      return;
+    }
+    const sprite = obj as THREE.Sprite;
+    if (sprite.isSprite) {
+      sprite.material.map?.dispose();
+      sprite.material.dispose();
+    }
+  });
 }
 
 /** Collect every Mesh (with a material) under a group, for hint pulsing. */

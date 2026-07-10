@@ -163,11 +163,9 @@
   max-width: 420px;
   border-radius: 20px;
   overflow: hidden;
-  background:
-    linear-gradient(160deg, rgba(251, 247, 240, 0.78) 0%, rgba(241, 232, 218, 0.86) 100%),
-    url("/banner.png") center / cover no-repeat,
-    linear-gradient(160deg, #fbf7f0 0%, #f1e8da 100%);
-  background-blend-mode: lighten, normal, normal;
+  // NOTE: no url() image layer here — an absolute "/banner.png" would 404
+  // under the host's /miniapps/zhuada-e/ layout; the gradients carry the look.
+  background: linear-gradient(160deg, #fbf7f0 0%, #f1e8da 100%);
   box-shadow:
     0 18px 40px rgba(31, 49, 58, 0.14),
     inset 0 0 0 1px rgba(22, 199, 132, 0.12);
@@ -248,12 +246,22 @@
   color: var(--mx2-text-sub, #5c5a56);
 }
 
-// ── Tray strip ────────────────────────────────────────────────────
+// ── Tray strip + side shelf (G2 移出 target) ─────────────────────
+.goose-tray-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: stretch;
+  width: 100%;
+  max-width: 560px;
+  flex-wrap: wrap;
+}
+
 .goose-tray {
   display: flex;
   gap: 8px;
   justify-content: center;
-  width: 100%;
+  flex: 1 1 300px;
   max-width: 420px;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.72);
@@ -261,6 +269,41 @@
   box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.08);
   backdrop-filter: blur(6px);
   animation: goose-tray-enter 0.38s ease-out both;
+}
+
+// Side shelf: 3 parked slots — visually a smaller sibling of the tray with a
+// dashed accent border so it reads as "temporary parking", not scoring slots.
+.goose-shelf {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255, 250, 235, 0.82);
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1.5px rgba(245, 158, 11, 0.35);
+  backdrop-filter: blur(6px);
+  animation: goose-tray-enter 0.38s ease-out both;
+}
+
+.goose-shelf__label {
+  font: 700 10px/1.1 system-ui, sans-serif;
+  color: #b45309;
+  letter-spacing: 0.06em;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  user-select: none;
+}
+
+.goose-shelf__slot {
+  max-width: 38px;
+  min-width: 30px;
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.28);
+}
+
+.goose-shelf__slot[data-filled="true"] {
+  background: rgba(245, 158, 11, 0.16);
+  box-shadow: inset 0 0 0 1.5px rgba(245, 158, 11, 0.5);
 }
 
 .goose-tray__slot {
@@ -285,20 +328,39 @@
   transform: scale(0.92);
 }
 
-.goose-tray__emoji {
-  font-size: 22px;
-  line-height: 1;
+// Original SVG silhouette chip (KindChip.tsx) — replaces the old emoji icon.
+.goose-tray__chip {
+  display: block;
+  width: 22px;
+  height: 22px;
   user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(31, 49, 58, 0.18));
 }
 
 // ── HUD (score / time / combo) ────────────────────────────────────
+// flex-wrap: at narrow mobile widths (≤390px) the 4 metrics + sound +
+// vibration + drawer buttons exceed one row — without wrapping the drawer
+// button forces horizontal page overflow.
 .goose-stage-hud {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   width: 100%;
   max-width: 420px;
   padding: 8px 12px;
+}
+
+@media (max-width: 460px) {
+  .goose-stage-hud {
+    gap: 6px;
+  }
+
+  .goose-stage-hud__metric {
+    min-width: 56px;
+    padding: 5px 8px;
+  }
 }
 
 .goose-stage-hud__metric {
@@ -328,6 +390,17 @@
 .goose-stage-hud__metric[data-accent="true"] strong {
   color: #16c784;
   animation: goose-score-pulse 1.2s ease-in-out infinite;
+}
+
+// Countdown urgency (last 10s): time flips to the danger color and pulses.
+// Under prefers-reduced-motion the pulse is disabled but the color stays.
+.goose-stage-hud__metric[data-danger="true"] strong {
+  color: #ef4444;
+  animation: goose-time-pulse 1s ease-in-out infinite;
+}
+
+.goose-stage-hud__metric[data-danger="true"] span {
+  color: #ef4444;
 }
 
 .goose-stage-hud__drawer {
@@ -558,6 +631,19 @@
   }
 }
 
+@keyframes goose-time-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.14);
+    opacity: 0.82;
+  }
+}
+
 @keyframes goose-drawer-enter {
   from {
     opacity: 0;
@@ -568,6 +654,370 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+// ── Meta progression: level-select map (idle overlay, G4) ─────────
+.goose-overlay__card[data-wide="true"] {
+  max-width: 356px;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.goose-map {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  animation: goose-map-enter 0.28s ease-out both;
+}
+
+.goose-map__scene {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(31, 49, 58, 0.045);
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.06);
+}
+
+.goose-map__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goose-map__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.12);
+}
+
+.goose-map__name {
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--mx2-text, #19313a);
+}
+
+.goose-map__goose {
+  display: inline-flex;
+  align-items: center;
+}
+
+.goose-map__levels {
+  display: flex;
+  gap: 6px;
+}
+
+.goose-map__level {
+  flex: 1;
+  min-height: 40px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: none;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--mx2-text, #19313a);
+  font: 800 14px/1 system-ui, sans-serif;
+  cursor: pointer;
+  box-shadow:
+    0 4px 12px rgba(31, 49, 58, 0.1),
+    inset 0 0 0 1.5px rgba(22, 199, 132, 0.3);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+
+.goose-map__level:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 18px rgba(22, 199, 132, 0.24),
+    inset 0 0 0 1.5px rgba(22, 199, 132, 0.5);
+}
+
+.goose-map__level:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.goose-map__level[data-locked="true"] {
+  background: rgba(31, 49, 58, 0.06);
+  color: rgba(31, 49, 58, 0.4);
+  box-shadow: none;
+  cursor: default;
+}
+
+.goose-map__best {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #0ea371;
+}
+
+// ── Goose collection book (idle overlay toggle, G4) ───────────────
+.goose-collection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: goose-map-enter 0.28s ease-out both;
+}
+
+.goose-collection__count {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0ea371;
+}
+
+.goose-collection__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.goose-collection__card {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 0 1.5px rgba(22, 199, 132, 0.22);
+  text-align: left;
+}
+
+.goose-collection__card[data-locked="true"] {
+  background: rgba(31, 49, 58, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.08);
+  filter: saturate(0.4);
+}
+
+.goose-collection__card figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.goose-collection__card strong {
+  font-size: 12px;
+  color: var(--mx2-text, #19313a);
+}
+
+.goose-collection__card span {
+  font-size: 10.5px;
+  color: var(--mx2-text-sub, #5c5a56);
+}
+
+.goose-collection__chip {
+  flex: 0 0 auto;
+}
+
+// ── Limited-goose unlock celebration (win overlay, G4) ────────────
+.goose-unlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(242, 193, 78, 0.16);
+  box-shadow: inset 0 0 0 1.5px rgba(242, 193, 78, 0.5);
+  animation: goose-unlock-pop 0.5s cubic-bezier(0.2, 0.9, 0.2, 1.25) both;
+}
+
+.goose-unlock p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #a16a10;
+}
+
+// ── All-clear ending screen (final level cleared) ──────────────────
+.goose-allclear {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: goose-map-enter 0.32s ease-out both;
+}
+
+.goose-allclear__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.goose-allclear__stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 6px;
+  border-radius: 12px;
+  background: rgba(22, 199, 132, 0.08);
+}
+
+.goose-allclear__stats span {
+  font-size: 10.5px;
+  color: var(--mx2-text-sub, #5c5a56);
+}
+
+.goose-allclear__stats strong {
+  font-size: 15px;
+  color: var(--mx2-text, #19313a);
+}
+
+.goose-allclear__geese {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+// Ghost toggle under the primary button (collection book open/close).
+.goose-overlay__ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: #0ea371;
+  font: 700 12.5px/1 system-ui, sans-serif;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.goose-overlay__ghost:hover {
+  background: rgba(22, 199, 132, 0.1);
+}
+
+// ── Timed-challenge toggle (G1: untimed is the default mode) ─────
+.goose-timed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(31, 49, 58, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(31, 49, 58, 0.1);
+  color: var(--mx2-text, #19313a);
+  font: 700 12px/1 system-ui, sans-serif;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.goose-timed-toggle:hover {
+  background: rgba(22, 199, 132, 0.08);
+}
+
+.goose-timed-toggle input {
+  accent-color: #16c784;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.goose-timed-toggle:has(input:checked) {
+  background: rgba(22, 199, 132, 0.14);
+  box-shadow: inset 0 0 0 1.5px rgba(22, 199, 132, 0.45);
+  color: #0ea371;
+}
+
+// ── Guest leaderboard (drawer, G6) ────────────────────────────────
+.goose-drawer__empty {
+  font-style: italic;
+}
+
+.goose-drawer__ranks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.goose-drawer__ranks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(31, 49, 58, 0.04);
+  font-size: 12px;
+}
+
+.goose-rank__pos {
+  font-weight: 800;
+  color: #0ea371;
+  min-width: 26px;
+}
+
+.goose-rank__addr {
+  flex: 1;
+  text-align: left;
+  color: var(--mx2-text, #19313a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goose-rank__score {
+  font-weight: 700;
+  color: var(--mx2-text, #19313a);
+}
+
+@keyframes goose-map-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes goose-unlock-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  60% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes goose-chip-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.goose-unlock .goose-collection__chip {
+  animation: goose-chip-hop 1.4s ease-in-out infinite;
 }
 
 // ── Reduced motion ────────────────────────────────────────────────
@@ -581,8 +1031,15 @@
   .goose-tray,
   .goose-tray__slot,
   .goose-stage-hud__metric[data-accent="true"] strong,
+  .goose-stage-hud__metric[data-danger="true"] strong,
   .goose-stage-hud__drawer,
   .goose-ingame-drawer,
+  .goose-map,
+  .goose-map__level,
+  .goose-collection,
+  .goose-unlock,
+  .goose-unlock .goose-collection__chip,
+  .goose-allclear,
   .goose-drawer__actions button {
     animation: none;
     transition: none;
