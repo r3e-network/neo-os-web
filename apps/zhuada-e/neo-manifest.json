@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-09T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Catch the Goose — a free, fast-paced find-and-clear game. Tap three identical items to clear them before the timer runs out, empty the pen, and snatch the runaway goose. Twelve levels of rising clutter, all played locally with no entry fee.",
-  "description_zh": "抓大鹅——一款轻松上手的限时找物消除小游戏。在倒计时归零前点掉三个相同物品把它们消除，清空鹅栏，抓住四处乱跑的大鹅。12 关 clutter 递进，纯本地免费游玩，无需报名费。",
+  "description": "Catch the Goose — a free, fast-paced find-and-clear game. Tap three identical items to clear them before the timer runs out, empty the pen, and snatch the runaway goose. Fifteen levels across six themed scenes, each hiding a limited-edition goose to collect — all played locally with no entry fee.",
+  "description_zh": "抓大鹅——一款轻松上手的限时找物消除小游戏。在倒计时归零前点掉三个相同物品把它们消除，清空鹅栏，抓住四处乱跑的大鹅。15 关分布在 6 个主题场景，每个场景都藏着一只可收藏的限定大鹅，纯本地免费游玩，无需报名费。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",

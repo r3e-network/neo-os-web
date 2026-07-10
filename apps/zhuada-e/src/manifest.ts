@@ -3,7 +3,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Catch the Goose",
   description:
-    "A free, physics-driven find-and-clear game. Items tumble into the pen; tap to pull them into your 7-slot tray, match three of a kind to clear, empty the pen, and snatch the runaway goose before time runs out. Fifteen levels of rising clutter, all played locally with no entry fee.",
+    "A free, physics-driven find-and-clear game. Items tumble into the pen; tap to pull them into your 7-slot tray, match three of a kind to clear, empty the pen, and snatch the runaway goose before time runs out. Fifteen levels across six themed scenes — clear a scene to collect its limited-edition goose. All played locally with no entry fee.",
   icon: "bird",
   category: "game",
   shell: "game",
@@ -37,18 +37,22 @@ export const manifest: MiniAppManifest = {
     { key: "play", labelKey: "playTab", icon: "grid", default: true },
   ],
 
+  // Stats bind LOCALLY-derived observables (statWins/statBest/statCleared/
+  // statGeese, fed from the persisted guest progress) — the chain-fed
+  // mySolves/myTotalWon stay 0 in this guest-only app and would read dead.
   stats: [
-    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "scoreLevel", valueKey: "gameDifficulty", format: "text", variant: "accent", icon: "layers" },
-    { labelKey: "creditLabel", valueKey: "mySolves", format: "text", icon: "check" },
+    { labelKey: "statBest", valueKey: "statBest", format: "text", variant: "success", icon: "trophy" },
+    { labelKey: "creditLabel", valueKey: "statCleared", format: "text", variant: "accent", icon: "layers" },
+    { labelKey: "statGeese", valueKey: "statGeese", format: "text", icon: "check" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
-      { labelKey: "scoreLevel", valueKey: "gameDifficulty", format: "text" },
-      { labelKey: "creditLabel", valueKey: "mySolves", format: "text" },
+      { labelKey: "statBest", valueKey: "statBest", format: "text" },
+      { labelKey: "statWins", valueKey: "statWins", format: "text" },
+      { labelKey: "creditLabel", valueKey: "statCleared", format: "text" },
+      { labelKey: "statGeese", valueKey: "statGeese", format: "text" },
     ],
   },
 
@@ -69,7 +73,6 @@ export const manifest: MiniAppManifest = {
 
   permissions: {},
 
-  contract: {
-    mode: "none",
-  },
+  // Guest-only miniapp: no contract binding (the field is optional and
+  // "none" is not a valid ContractMode).
 };
