@@ -13,7 +13,7 @@
  *  - Mute is persisted to localStorage and applied to the master gain.
  */
 
-type Sfx =
+export type Sfx =
   | "land" // item settles in the pen (velocity-scaled thud)
   | "pick" // player pulls an item out
   | "match" // three-of-a-kind clears
@@ -22,7 +22,21 @@ type Sfx =
   | "fail" // tray jammed / time up
   | "powerup" // hint / add-time used
   | "shuffle" // pen reshuffled
-  | "click"; // generic UI tick
+  | "click" // generic UI tick
+  | "tick" // countdown urgency tick (last 5 seconds)
+  | "unlock" // limited-edition goose unlocked (collection fanfare)
+  | "shake"; // pen jolt (G3 晃一晃) — rattling noise bursts
+
+/** Every cue name — kept in sync with `Sfx` (compile-checked below) so tests
+ * can assert cue-table completeness without duplicating the union. */
+export const SFX_NAMES = [
+  "land", "pick", "match", "combo", "win", "fail", "powerup", "shuffle", "click", "tick", "unlock", "shake",
+] as const satisfies readonly Sfx[];
+
+/** Compile-time exhaustiveness: a new `Sfx` member missing from SFX_NAMES
+ * violates the `extends never` constraint and fails the build. */
+type AssertAllSfxListed<T extends never = Exclude<Sfx, (typeof SFX_NAMES)[number]>> = T;
+export type SfxTableComplete = AssertAllSfxListed;
 
 const MUTE_KEY = "zhuada-e:sound-muted";
 const MASTER_GAIN = 0.5;
@@ -178,6 +192,31 @@ class SoundEngine {
       }
       case "click": {
         this.tone(1200, t, 0.03, "square", 0.06);
+        break;
+      }
+      case "tick": {
+        // Countdown urgency — a short woodblock-style knock, deliberately
+        // quieter than gameplay cues so it pressures without drowning them.
+        this.tone(1050, t, 0.035, "square", 0.07);
+        this.tone(520, t, 0.06, "sine", 0.09);
+        break;
+      }
+      case "unlock": {
+        // Collection fanfare — a wider, slower flourish than "win" (major
+        // sixth chord roll + top sparkle) marking the limited-goose moment.
+        [523.25, 659.25, 880, 1046.5].forEach((f, i) => this.tone(f, t + i * 0.09, 0.4, "triangle", 0.2));
+        this.tone(1318.5, t + 0.42, 0.5, "sine", 0.16);
+        this.tone(1760, t + 0.5, 0.4, "sine", 0.1);
+        break;
+      }
+      case "shake": {
+        // Pen jolt — a quick run of low filtered-noise rattles (the pile
+        // clattering) under a descending wobble tone.
+        for (let i = 0; i < 4; i += 1) {
+          this.noise(t + i * 0.06, 0.07, 0.14 - i * 0.02, 700 - i * 90);
+        }
+        this.tone(180, t, 0.12, "triangle", 0.12);
+        this.tone(140, t + 0.1, 0.14, "triangle", 0.1);
         break;
       }
     }

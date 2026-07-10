@@ -243,4 +243,22 @@ export const GAME_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       slots: ["Grid", "Notes", "Check", "Receipt"],
     },
   }),
+  "miniapp-zhuada-e": gameProfile({
+    title: "Goose pen",
+    subtitle:
+      "Pull items from the physics pile into the tray, match three of a kind, and clear the pen in the embedded dApp.",
+    tone: "emerald",
+    icon: <Layers3 className="h-5 w-5" />,
+    cards: [
+      { label: "Mode", value: "3-match" },
+      { label: "Pen", value: "physics" },
+      { label: "Goal", value: "clear" },
+    ],
+    steps: ["Pick a pen", "Grab items", "Match triples", "Catch the goose"],
+    primaryAction: "Start grabbing",
+    visual: {
+      headline: "Physics pen",
+      slots: ["Pile", "Tray", "Shelf", "Goose"],
+    },
+  }),
 };
