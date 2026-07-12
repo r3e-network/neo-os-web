@@ -547,9 +547,13 @@ describe("PlayAreaRegistry", () => {
       "src",
       expect.stringContaining("/miniapps/forever-album/index.html?"),
     );
+    // Assertion update (audit fix C-4, commit a8101a750): the album iframe
+    // previously carried allow-same-origin; that grant was removed so every
+    // miniapp keeps the opaque-origin sandbox, and the contract regression
+    // AuditFixC4_MiniAppIframesAreSandboxed forbids it in PlayAreaMedia.tsx.
     expect(screen.getByTitle("Forever Album local photo workspace")).toHaveAttribute(
       "sandbox",
-      expect.stringContaining("allow-same-origin"),
+      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
     );
     expect(getNativePlayAreaOperationFallback("miniapp-forever-album")).toEqual([]);
     expect(screen.queryByText("Sign storage write")).not.toBeInTheDocument();
@@ -557,7 +561,13 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("Wallet album preview")).not.toBeInTheDocument();
   });
 
-  it("opens Automation Copilot with its first-party host-session capability", () => {
+  // Assertion update (audit fix C-4, commit a8101a750): this test previously
+  // pinned the copilot's app-scoped allow-same-origin grant. The grant was
+  // deliberately removed — it let a compromised bundle reach host session
+  // storage — so the copilot now keeps the opaque sandbox like every miniapp
+  // and receives its host session through the appId-gated credential bridge
+  // (covered in PlayAreaShared.embedded-surface.test.tsx).
+  it("opens Automation Copilot inside the opaque sandbox", () => {
     renderPlayarea({
       app_id: "miniapp-automation-copilot",
       name: "Automation Copilot",
@@ -571,7 +581,7 @@ describe("PlayAreaRegistry", () => {
     );
     expect(frame).toHaveAttribute(
       "sandbox",
-      "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox",
+      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
     );
     expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
     expect(screen.queryByText("Enable automation")).not.toBeInTheDocument();

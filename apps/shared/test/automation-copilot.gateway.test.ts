@@ -5,7 +5,42 @@ import {
   callAutomationEndpoint,
   isLocalAutomationIntent,
   normalizeTriggerList,
+  resolveRuntimeCredentialHeaders,
 } from "../../automation-copilot/src/automationGateway";
+
+// Simulates the embedded opaque-sandbox context (audit fix C-4): the copilot
+// document has a parent window that is not itself. Returns the fake parent so
+// tests can assert on the credential bridge request envelope.
+function stubEmbeddedHost(respond?: (message: Record<string, unknown>) => void) {
+  const fakeParent = {
+    postMessage: vi.fn((message: unknown) => {
+      if (!respond) return;
+      const record = message as Record<string, unknown>;
+      setTimeout(() => respond(record), 0);
+    }),
+  };
+  vi.stubGlobal("parent", fakeParent);
+  return fakeParent;
+}
+
+function dispatchCredentialResponse(overrides: Record<string, unknown>) {
+  window.dispatchEvent(
+    new MessageEvent("message", {
+      // Default MessageEvent source is null, which the client treats as a
+      // synthetic same-document event (same convention as the wallet SDK
+      // bridge tests); origin matches the URL-derived host origin.
+      origin: window.location.origin,
+      data: {
+        type: "neo-miniapp-credential:response",
+        version: 1,
+        ok: true,
+        token: "",
+        apiKey: "",
+        ...overrides,
+      },
+    }),
+  );
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -101,6 +136,79 @@ describe("Automation Copilot gateway helpers", () => {
         }),
       }),
     );
+  });
+
+  it("obtains the host session over the credential bridge inside the opaque sandbox", async () => {
+    // Audit fix C-4: embedded copilot documents cannot reach same-origin
+    // storage, so the credential must arrive from the host bridge.
+    const fakeParent = stubEmbeddedHost((request) => {
+      dispatchCredentialResponse({
+        requestId: request.requestId,
+        token: "bridge-session-token",
+      });
+    });
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      text: async () => JSON.stringify({ ok: true, data: [] }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await callAutomationEndpoint("automation-triggers", { method: "GET" });
+
+    expect(fakeParent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "neo-miniapp-credential:request",
+        version: 1,
+        appId: "miniapp-automation-copilot",
+        scope: "automation-gateway",
+      }),
+      window.location.origin,
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/edge/automation-triggers",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer bridge-session-token",
+        }),
+      }),
+    );
+  });
+
+  it("prefers the direct storage credential over a bridge roundtrip", async () => {
+    const fakeParent = stubEmbeddedHost();
+    window.sessionStorage.setItem("sb-access-token", "storage-session-token");
+
+    const headers = await resolveRuntimeCredentialHeaders({ bridgeTimeoutMs: 20 });
+
+    expect(headers.Authorization).toBe("Bearer storage-session-token");
+    expect(fakeParent.postMessage).not.toHaveBeenCalled();
+  });
+
+  it("falls back to unauthenticated headers when the credential bridge does not answer", async () => {
+    const fakeParent = stubEmbeddedHost();
+
+    const headers = await resolveRuntimeCredentialHeaders({ bridgeTimeoutMs: 20 });
+
+    expect(fakeParent.postMessage).toHaveBeenCalledTimes(1);
+    expect(headers).toEqual({ "Content-Type": "application/json" });
+  });
+
+  it("ignores forged bridge responses that do not match the outstanding request", async () => {
+    stubEmbeddedHost((request) => {
+      // Wrong requestId first (must be ignored), then the real answer.
+      dispatchCredentialResponse({
+        requestId: "attacker-guess-000",
+        token: "forged-token",
+      });
+      dispatchCredentialResponse({
+        requestId: request.requestId,
+        token: "bridge-session-token",
+      });
+    });
+
+    const headers = await resolveRuntimeCredentialHeaders({ bridgeTimeoutMs: 500 });
+
+    expect(headers.Authorization).toBe("Bearer bridge-session-token");
   });
 
   it("normalizes trigger arrays and wrapped trigger lists", () => {

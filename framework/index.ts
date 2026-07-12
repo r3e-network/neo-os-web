@@ -1040,13 +1040,14 @@ export function createMiniAppFramework(
   /**
    * app.permissions (S11) — manifest permission gating sourced from the
    * launch context. Central enforcement: EVERY primary-contract invoke lane —
-   * `app.chain.invoke` / `write` / `invokeWithPayment` / `invokeMultiple` and
+   * `app.chain.invoke` / `write` / `invokeWithPayment` / `invokeMultiple`,
    * the mutating `app.funds.*` lanes (payAndCall / prepayAndCall / receiptPay /
    * withdrawCredit), which are payment-carrying invokes of the same primary
-   * contract — requires "invoke:primary", and the oracle request/dispatch
-   * lane requires "oracle:request", so gating happens once here rather than
-   * per app. Read lanes (chain.read/readRaw/readArray/events, funds.creditOf)
-   * stay ungated.
+   * contract, and the `app.game.reward` broadcast lanes (start / finalize /
+   * expire / withdrawCredit through the reward-chain adapter) — requires
+   * "invoke:primary", and the oracle request/dispatch lane requires
+   * "oracle:request", so gating happens once here rather than per app. Read
+   * lanes (chain.read/readRaw/readArray/events, funds.creditOf) stay ungated.
    *
    * Default-allow semantics: when the host delivers NO manifest permission
    * declaration (`ctx.launchContext.permissions` undefined/null — every
@@ -1378,24 +1379,46 @@ export function createMiniAppFramework(
     runId: 0,
   });
 
+  /**
+   * Chain adapter for the reward-game SDK (app.game.reward). The broadcast
+   * lanes (invoke / invokeWithPayment) wrap the RAW host chain service, so
+   * they carry the SAME guards as app.chain.invoke — guest guard first, then
+   * the S11 "invoke:primary" manifest gate (ordering matches the round-2
+   * idiom) — otherwise the entire app.game.reward surface (start / finalize /
+   * expire / withdrawCredit) would broadcast primary-contract invokes with no
+   * permission check. `async` so a denial rejects instead of throwing
+   * synchronously. Hosts that deliver NO permission declaration default-allow
+   * (see app.permissions), so existing games are unchanged; TEE games with
+   * pinned empty declarations are guest-only, where this firing is desired
+   * defense-in-depth. Read lanes (read / listEvents / address / detectNetwork)
+   * stay ungated so guests can still read the reward pool.
+   */
   const rewardChain = () => ({
     address: chain.address,
     contractAddress: chain.contractAddress ?? { get: () => "" },
     ensureWallet: () => chain.ensureWallet(),
     detectNetwork: async () => chain.detectNetwork?.() ?? String(ctx.launchContext?.network ?? "testnet"),
     read: (operation: string, args?: FrameworkContractArg[]) => chain.read(operation, args),
-    invoke: (
+    invoke: async (
       operation: string,
       args: FrameworkContractArg[],
       invokeOptions?: FrameworkInvokeOptions,
-    ) => chain.invoke(operation, args, invokeOptions),
-    invokeWithPayment: (
+    ) => {
+      assertNotGuest();
+      getPermissions().require("invoke:primary");
+      return chain.invoke(operation, args, invokeOptions);
+    },
+    invokeWithPayment: async (
       paymentAmount: string,
       memo: string,
       operation: string,
       args: FrameworkContractArg[],
       invokeOptions?: FrameworkInvokeOptions,
-    ) => chain.invokeWithPayment(paymentAmount, memo, operation, args, invokeOptions),
+    ) => {
+      assertNotGuest();
+      getPermissions().require("invoke:primary");
+      return chain.invokeWithPayment(paymentAmount, memo, operation, args, invokeOptions);
+    },
     ...(chain.listEvents
       ? {
           listEvents: (eventName: string, options?: { limit?: number; offset?: number }) =>
@@ -2249,6 +2272,10 @@ export function createMiniAppFramework(
           },
           start(difficulty: number) {
             assertNotGuest();
+            // S11 pre-gate (same "invoke:primary" as the adapter's invoke
+            // lanes): deny BEFORE the SDK's ensureWallet fires a wallet
+            // prompt; the adapter gate backstops the broadcast itself.
+            getPermissions().require("invoke:primary");
             return startRewardGame(config, chainAdapter, difficulty, storage);
           },
           openSession(gameId: string, difficulty: number) {
@@ -2274,6 +2301,9 @@ export function createMiniAppFramework(
             finalizeOptions?: FrameworkRewardGameFinalizeOptions,
           ) {
             assertNotGuest();
+            // S11 pre-gate: deny before the TEE seal round-trip — the sealed
+            // op-log is useless when the finalize broadcast would be denied.
+            getPermissions().require("invoke:primary");
             return finalizeRewardGame(config, chainAdapter, session, storage, {
               ...finalizeOptions,
               fetcher: finalizeOptions?.fetcher ?? rewardOptions.fetcher,
@@ -2284,10 +2314,14 @@ export function createMiniAppFramework(
           },
           expire(gameId: string) {
             assertNotGuest();
+            // S11 pre-gate — see start(); expire broadcasts expireGame.
+            getPermissions().require("invoke:primary");
             return expireRewardGame(config, chainAdapter, gameId, storage);
           },
           withdrawCredit(creditFixed8?: bigint | number | string) {
             assertNotGuest();
+            // S11 pre-gate: deny BEFORE the SDK's ensureWallet wallet prompt.
+            getPermissions().require("invoke:primary");
             return withdrawRewardCredit(config, chainAdapter, creditFixed8);
           },
           snapshot(gameId: string) {
