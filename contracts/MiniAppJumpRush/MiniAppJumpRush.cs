@@ -229,7 +229,7 @@ namespace NeoMiniAppPlatform.Contracts
             OnUpgradeScheduled(executeAt);
         }
 
-        public static void ExecuteUpgrade(ByteString nef, string manifest)
+        public static void Update(ByteString nef, string manifest)
         {
             BigInteger executeAt = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_UPGRADE_TIME);
             ExecutionEngine.Assert(executeAt > 0, "no upgrade scheduled");
