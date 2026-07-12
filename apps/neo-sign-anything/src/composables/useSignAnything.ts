@@ -122,7 +122,6 @@ export function useSignAnything({ app, t }: UseSignAnythingOptions) {
   let fileGeneration = 0;
   let previewGeneration = 0;
   let walletGeneration = 0;
-  let lastWalletAddress = text(app.chain.address.get());
 
   const clearProof = () => {
     signature.set("");
@@ -468,12 +467,10 @@ export function useSignAnything({ app, t }: UseSignAnythingOptions) {
     if (!isSigning.get()) operationStatus.set("idle");
     void refreshPayloadPreview();
   });
-  const addressUnsubscribe = app.chain.address.subscribe(() => {
-    const nextAddress = text(app.chain.address.get());
-    if (nextAddress === lastWalletAddress) return;
-    const hadBoundResult = Boolean(artifact.get() || (isSigning.get() && lastWalletAddress));
+  const addressUnsubscribe = app.wallet.onAccountChanged(({ previous, current }) => {
+    const nextAddress = current ?? "";
+    const hadBoundResult = Boolean(artifact.get() || (isSigning.get() && previous));
     walletGeneration += 1;
-    lastWalletAddress = nextAddress;
     network.set("");
     clearProof();
     if (hadBoundResult) {

@@ -48,7 +48,14 @@ describe("wallet-health production safety", () => {
 
     expect(entry).not.toContain("chain.invoke");
     expect(entry).not.toContain("invoke:primary");
-    expect(entry).toContain("health.handleAddressChange(next || null)");
+    // Address-sync wiring pin (assertion updated with the framework P0-5
+    // migration, same safety property): the entry point must reset
+    // address-derived state and refresh balances when the wallet identity
+    // changes. Previously hand-rolled as `health.handleAddressChange(next ||
+    // null)` behind a lastAddress diff; now expressed through the framework's
+    // identity-diff hook, which delivers `current: string | null` directly.
+    expect(entry).toContain("wallet.onAccountChanged");
+    expect(entry).toContain("health.handleAddressChange(current)");
     expect(entry).toContain("health.refreshBalances().catch");
     expect(analysis).toContain('app.wallet.raw("NEO", address)');
     expect(analysis).toContain('app.wallet.raw("GAS", address)');

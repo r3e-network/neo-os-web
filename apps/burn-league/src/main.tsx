@@ -78,7 +78,10 @@ defineMiniApp({
       }, BURN_CONFIRM_WINDOW_MS);
     };
 
-    const addressUnsubscribe = app.chain.address.subscribe(() => {
+    // RFC P0-5: identity-diff account hook — fires only when the normalized
+    // wallet address actually changes (extension account switch / disconnect);
+    // handler errors are isolated by the framework.
+    const addressUnsubscribe = app.wallet.onAccountChanged(() => {
       disarmBurnConfirmation();
       const nextAddress = app.chain.address.get() ?? null;
       burn.setAddress(nextAddress);

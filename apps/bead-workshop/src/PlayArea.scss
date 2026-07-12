@@ -1,3 +1,15 @@
+@use "@shared/styles/v2/tokens" as *;
+
+:root,
+.bead-workshop {
+  /* Domain theme — bead-workshop (warm wood). Centralized for themeability. */
+  --bw-bg: #fff5dc;
+  --bw-wood: #643c2b;
+  --bw-ink: #43271d;
+  --bw-surface: #fffaf0;
+  --bw-live: #37bd83;
+}
+
 .bead-workshop {
   --phaser-mobile-bottom-reserve: 0;
   --phaser-mobile-height-ratio: 2.1641;
@@ -7,7 +19,7 @@
   margin-inline: auto;
   overflow: hidden;
   border-radius: 26px;
-  background-color: #fff5dc;
+  background-color: var(--bw-bg);
   background-image: url("/art/workshop-bg.webp");
   background-size: cover;
   box-shadow: 0 20px 55px rgb(117 66 37 / 18%);
@@ -59,13 +71,12 @@
 .bead-workshop__a11y-controls button {
   min-height: 40px;
   padding: 0 12px;
-  border: 2px solid #643c2b;
+  border: 2px solid var(--bw-wood);
   border-radius: 12px;
-  color: #43271d;
-  background: #fffaf0;
+  color: var(--bw-ink);
+  background: var(--bw-surface);
   font:
-    700 13px/1 system-ui,
-    sans-serif;
+    700 13px/1 var(--mx2-font-sans);
 }
 
 .bead-workshop__heartbeat {
@@ -75,9 +86,11 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #37bd83;
+  background: var(--bw-live);
   box-shadow: 0 0 0 0 rgb(55 189 131 / 38%);
-  animation: bead-live-pulse 2.4s ease-out infinite;
+  /* Functional live-status cue (connection/alive). Calm cadence; disabled
+     under prefers-reduced-motion below. */
+  animation: bead-live-pulse 2.8s ease-out infinite;
   pointer-events: none;
 }
 
@@ -88,7 +101,7 @@
   }
   80%,
   100% {
-    box-shadow: 0 0 0 9px rgb(55 189 131 / 0%);
+    box-shadow: 0 0 0 6px rgb(55 189 131 / 0%);
   }
 }
 

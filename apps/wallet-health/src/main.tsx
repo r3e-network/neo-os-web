@@ -30,15 +30,12 @@ defineMiniApp({
 
     // If the wallet connects via the host AFTER the app is open, the data
     // loaders (mount-only) would leave balances and the auto gas check at 0.
-    // Refresh when the address transitions from empty to set (mirrors
-    // neo-treasury's address sync).
-    let lastAddress = ctx.framework.wallet.address() ?? "";
-    const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
-      const next = ctx.framework.wallet.address() ?? "";
-      if (next === lastAddress) return;
-      health.handleAddressChange(next || null);
-      lastAddress = next;
-      if (next) void health.refreshBalances().catch(() => undefined);
+    // Refresh when the address actually changes — the framework hook carries
+    // the identity diff (RFC P0-5), replacing the hand-rolled lastAddress
+    // bookkeeping this entry point used to maintain.
+    const stopAddressSync = ctx.framework.wallet.onAccountChanged(({ current }) => {
+      health.handleAddressChange(current);
+      if (current) void health.refreshBalances().catch(() => undefined);
     });
 
     ctx.framework.actions.register("connectWallet", health.connectWallet, {

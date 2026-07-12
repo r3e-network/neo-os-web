@@ -16,7 +16,7 @@
  * (`assets/tokens/*.{svg,png}`) against the host base.
  */
 
-import type { FrameworkHost } from "./index";
+import type { FrameworkHost } from "./types";
 
 export interface FrameworkTokenArtUrls {
   /** Official GAS token artwork (SVG) for DOM renderers. */

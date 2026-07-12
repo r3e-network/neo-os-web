@@ -28,12 +28,8 @@ defineMiniApp({
     // switching wallets in the host no longer strands the previous account's
     // (or empty) list until a write action happens. Debounced to coalesce the
     // connect→address bursts a wallet emits.
-    let lastAddress = ctx.framework.chain.address.get();
     let accountChangeTimer: ReturnType<typeof setTimeout> | null = null;
-    const unsubscribeAddress = ctx.framework.chain.address.subscribe(() => {
-      const next = ctx.framework.chain.address.get();
-      if (next === lastAddress) return;
-      lastAddress = next;
+    const unsubscribeAddress = ctx.framework.wallet.onAccountChanged(() => {
       ns.handleAccountChanged();
       if (accountChangeTimer) clearTimeout(accountChangeTimer);
       accountChangeTimer = setTimeout(() => {

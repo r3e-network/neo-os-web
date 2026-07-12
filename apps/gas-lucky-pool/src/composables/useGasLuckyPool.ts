@@ -274,7 +274,7 @@ export function useGasLuckyPool({
       await Promise.all(tasks);
     } catch (error) {
       if (!isWalletUnavailableError(error)) {
-        lastError.set(error instanceof Error ? error.message : t("loadFailed"));
+        lastError.set(app.errors.messageOf(error, t("loadFailed")));
       }
     } finally {
       isLoading.set(false);
@@ -361,7 +361,7 @@ export function useGasLuckyPool({
       return result;
     } catch (error) {
       lastSuccessType.set("");
-      lastError.set(error instanceof Error ? error.message : t("createFailed"));
+      lastError.set(app.errors.messageOf(error, t("createFailed")));
       await loadGasCredit().catch(() => undefined);
       throw error;
     } finally {
@@ -376,14 +376,13 @@ export function useGasLuckyPool({
     lastError.set("");
     try {
       const user = await app.chain.ensureWallet();
-      const raw = await app.chain.readRaw("getDirectGasCredit", [
-        { type: "Hash160", value: user },
-      ]);
-      const amount = asBigInt(raw);
+      const amount = await app.chain
+        .query("getDirectGasCredit", [{ type: "Hash160", value: user }])
+        .asBigInt();
       gasCredit.set(amount);
       return amount;
     } catch (error) {
-      lastError.set(error instanceof Error ? error.message : t("loadFailed"));
+      lastError.set(app.errors.messageOf(error, t("loadFailed")));
       throw error;
     } finally {
       isCreditLoading.set(false);
@@ -425,9 +424,7 @@ export function useGasLuckyPool({
       return result;
     } catch (error) {
       lastSuccessType.set("");
-      lastError.set(
-        error instanceof Error ? error.message : t("withdrawGasCreditFailed"),
-      );
+      lastError.set(app.errors.messageOf(error, t("withdrawGasCreditFailed")));
       throw error;
     } finally {
       isWithdrawingCredit.set(false);
@@ -863,7 +860,7 @@ export function useGasLuckyPool({
       return result;
     } catch (error) {
       lastSuccessType.set("");
-      lastError.set(error instanceof Error ? error.message : t("refundFailed"));
+      lastError.set(app.errors.messageOf(error, t("refundFailed")));
       throw error;
     } finally {
       isRefunding.set(false);
@@ -913,7 +910,7 @@ export function useGasLuckyPool({
       return result;
     } catch (error) {
       lastSuccessType.set("");
-      lastError.set(error instanceof Error ? error.message : t("topUpFailed"));
+      lastError.set(app.errors.messageOf(error, t("topUpFailed")));
       await loadGasCredit().catch(() => undefined);
       throw error;
     } finally {

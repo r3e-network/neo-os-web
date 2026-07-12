@@ -357,7 +357,6 @@ export function createNftFactorySetupWithOptions(
 
     let metadataGeneration = 0;
     let walletGeneration = 0;
-    let observedWallet = String(ctx.framework.chain.address.get() ?? "").trim();
     let disposed = false;
 
     const clearSignature = () => {
@@ -539,10 +538,7 @@ export function createNftFactorySetupWithOptions(
       fail(NFT_FACTORY_EXECUTION_BLOCK_REASON);
     });
 
-    const stopWalletWatch = ctx.framework.chain.address.subscribe(() => {
-      const nextWallet = String(ctx.framework.chain.address.get() ?? "").trim();
-      if (nextWallet === observedWallet) return;
-      observedWallet = nextWallet;
+    const stopWalletWatch = ctx.framework.wallet.onAccountChanged(() => {
       walletGeneration += 1;
       clearSignature();
     });

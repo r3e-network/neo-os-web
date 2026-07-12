@@ -243,7 +243,7 @@ defineMiniApp({
       } catch (error) {
         if (!disposed && epoch === n3WalletEpoch) {
           n3Wallet.set(null);
-          walletError.set(error instanceof Error ? error.message : ctx.t("errBridgeGeneric"));
+          walletError.set(ctx.framework.errors.messageOf(error, ctx.t("errBridgeGeneric")));
         }
         throw error;
       } finally {
@@ -295,7 +295,7 @@ defineMiniApp({
       } catch (error) {
         if (!disposed && epoch === neoXWalletEpoch) {
           neoXWallet.set(null);
-          walletError.set(error instanceof Error ? error.message : ctx.t("errBridgeGeneric"));
+          walletError.set(ctx.framework.errors.messageOf(error, ctx.t("errBridgeGeneric")));
         }
         throw error;
       } finally {
@@ -365,11 +365,7 @@ defineMiniApp({
       return { source, asset, amount };
     }
 
-    let lastN3Address = ctx.framework.wallet.address() ?? "";
-    const unsubscribeN3Wallet = ctx.framework.wallet.observe().subscribe(() => {
-      const next = ctx.framework.wallet.address() ?? "";
-      if (next === lastN3Address) return;
-      lastN3Address = next;
+    const unsubscribeN3Wallet = ctx.framework.wallet.onAccountChanged(() => {
       n3WalletEpoch += 1;
       n3Wallet.set(null);
       walletError.set("");

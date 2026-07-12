@@ -4,6 +4,8 @@
  * lockstep with contracts/MiniAppSnakeBounty (getConfig() exposes the live values
  * for cross-checks).
  */
+import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
+import { formatGas } from "@framework/utils/format";
 
 export type Difficulty = 0 | 1 | 2;
 
@@ -76,18 +78,14 @@ export function tickMsOf(difficulty: number): number {
   return 230;
 }
 
+/** Full-precision fixed8 display — delegates to the framework formatter (RFC P0-3). */
 export function gasDisplay(fixed8: bigint): string {
-  const whole = fixed8 / 100_000_000n;
-  const fraction = fixed8 % 100_000_000n;
-  if (fraction === 0n) return whole.toString();
-  return `${whole}.${fraction.toString().padStart(8, "0").replace(/0+$/, "")}`;
+  return formatGas(fixed8, 8);
 }
 
+/** Zero-padded mm:ss — delegates to the fleet-standard clock (RFC P0-3). */
 export function formatClock(ms: number): string {
-  const clamped = Math.max(0, Math.floor(ms / 1000));
-  const minutes = Math.floor(clamped / 60);
-  const seconds = clamped % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return fleetFormatClock(ms);
 }
 
 export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded" | "unknown";

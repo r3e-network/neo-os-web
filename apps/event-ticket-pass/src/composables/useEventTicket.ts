@@ -825,7 +825,7 @@ export function useEventTicket({
       workflowStatus.set(t("eventsLoaded"));
       return items;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("loadFailed");
+      const message = app.errors.messageOf(error, t("loadFailed"));
       if (
         generation === eventsGeneration &&
         walletRequestIsCurrent(requestWalletGeneration, creator) &&
@@ -898,7 +898,7 @@ export function useEventTicket({
         accountKey(currentAddress()) === accountKey(account) &&
         !options.quiet
       ) {
-        const message = error instanceof Error ? error.message : t("loadFailed");
+        const message = app.errors.messageOf(error, t("loadFailed"));
         lastError.set(message);
         workflowStatus.set(message);
         throw error;
@@ -1065,7 +1065,7 @@ export function useEventTicket({
       );
       return items;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("loadFailed");
+      const message = app.errors.messageOf(error, t("loadFailed"));
       const current =
         generation === ticketsGeneration &&
         walletRequestIsCurrent(requestWalletGeneration, owner);
@@ -1165,7 +1165,7 @@ export function useEventTicket({
         walletRequestIsCurrent(requestWalletGeneration, organizer);
       if (current) gateTicketsVerification.set("unavailable");
       if (current && !options.quiet) {
-        const message = error instanceof Error ? error.message : t("loadFailed");
+        const message = app.errors.messageOf(error, t("loadFailed"));
         lastError.set(message);
         workflowStatus.set(message);
         throw error;
@@ -1288,7 +1288,7 @@ export function useEventTicket({
       ]);
       return events.get().find((event) => event.id === eventId) ?? confirmed;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("contractMissing");
+      const message = app.errors.messageOf(error, t("contractMissing"));
       lastError.set(message);
       workflowStatus.set(message);
       throw error;
@@ -1439,7 +1439,7 @@ export function useEventTicket({
       }
       return confirmedTicket;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("contractMissing");
+      const message = app.errors.messageOf(error, t("contractMissing"));
       lastError.set(message);
       workflowStatus.set(message);
       throw error;
@@ -1523,7 +1523,7 @@ export function useEventTicket({
       await refreshEvents({ quiet: true });
       return confirmed;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("contractMissing");
+      const message = app.errors.messageOf(error, t("contractMissing"));
       lastError.set(message);
       workflowStatus.set(message);
       throw error;
@@ -1565,7 +1565,7 @@ export function useEventTicket({
         !walletRequestIsCurrent(requestWalletGeneration, account) ||
         checkinTokenId.get().trim() !== tokenId
       ) return lookup.get();
-      const message = error instanceof Error ? error.message : t("ticketNotFound");
+      const message = app.errors.messageOf(error, t("ticketNotFound"));
       lastError.set(message);
       workflowStatus.set(message);
       throw error;
@@ -1663,7 +1663,7 @@ export function useEventTicket({
       await refreshTickets({ quiet: true });
       return checkedIn;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("contractMissing");
+      const message = app.errors.messageOf(error, t("contractMissing"));
       lastError.set(message);
       workflowStatus.set(message);
       throw error;
@@ -1781,7 +1781,7 @@ export function useEventTicket({
       await refreshTickets({ quiet: true });
       return result;
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("contractMissing");
+      const message = app.errors.messageOf(error, t("contractMissing"));
       lastError.set(message);
       workflowStatus.set(message);
       throw error;
@@ -2028,7 +2028,7 @@ export function useEventTicket({
         generation !== recoveryGeneration ||
         !walletRequestIsCurrent(requestWalletGeneration, account)
       ) return pendingOperation.get();
-      const message = error instanceof Error ? error.message : t("pendingStillConfirming");
+      const message = app.errors.messageOf(error, t("pendingStillConfirming"));
       workflowStatus.set(message);
       if (!options.quiet) {
         lastError.set(message);

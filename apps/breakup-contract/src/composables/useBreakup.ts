@@ -801,7 +801,7 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       await loadContracts();
       return { created: true, pactId, metadataSaved };
     } catch (error) {
-      actionNotice.set(error instanceof Error ? error.message : String(error));
+      actionNotice.set(app.errors.messageOf(error));
       throw error;
     } finally {
       isLoading.set(false);
@@ -841,7 +841,7 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       actionNotice.set(t("contractSigned"));
       await loadContracts();
     } catch (error) {
-      actionNotice.set(error instanceof Error ? error.message : String(error));
+      actionNotice.set(app.errors.messageOf(error));
       throw error;
     } finally {
       isLoading.set(false);
@@ -896,7 +896,7 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       actionNotice.set(t(kind === "cancel" ? "contractCancelled" : "contractBroken"));
       await loadContracts();
     } catch (error) {
-      actionNotice.set(error instanceof Error ? error.message : String(error));
+      actionNotice.set(app.errors.messageOf(error));
       throw error;
     } finally {
       isLoading.set(false);
@@ -932,7 +932,7 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       actionNotice.set(t("contractSettled"));
       await loadContracts();
     } catch (error) {
-      actionNotice.set(error instanceof Error ? error.message : String(error));
+      actionNotice.set(app.errors.messageOf(error));
       throw error;
     } finally {
       isLoading.set(false);
@@ -962,7 +962,7 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       actionNotice.set(t("creditRecovered", { amount: String(parseGas(before)) }));
       await loadContracts();
     } catch (error) {
-      actionNotice.set(error instanceof Error ? error.message : String(error));
+      actionNotice.set(app.errors.messageOf(error));
       throw error;
     } finally {
       isLoading.set(false);

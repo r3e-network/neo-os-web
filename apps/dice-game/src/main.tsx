@@ -318,10 +318,10 @@ defineMiniApp({
       }
       let liquidity = 0;
       let credit = 0;
+      // RFC P0-6: typed read lane — `asBigInt()` keeps the parseBigInt-to-0n
+      // decode semantics; read errors still land in the catch fallbacks below.
       try {
-        liquidity = fromFixed8(
-          parseBigInt(await app.chain.readRaw("bankroll", [])),
-        );
+        liquidity = fromFixed8(await app.chain.query("bankroll", []).asBigInt());
       } catch {
         liquidity = houseLiquidity.get();
       }
@@ -329,10 +329,9 @@ defineMiniApp({
         const player = app.chain.address.get();
         const playerHash = player ? addressToScriptHash(player) : "";
         if (playerHash) {
-          const creditRaw = await app.chain.readRaw("creditOf", [
-            app.chain.arg.hash160(playerHash),
-          ]);
-          directCreditFixed8 = parseBigInt(creditRaw);
+          directCreditFixed8 = await app.chain
+            .query("creditOf", [app.chain.arg.hash160(playerHash)])
+            .asBigInt();
           directCreditOwner = playerHash.toLowerCase();
           credit = fromFixed8(directCreditFixed8);
         } else {

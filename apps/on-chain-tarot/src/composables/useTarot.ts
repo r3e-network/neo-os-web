@@ -200,8 +200,9 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
   };
 
   const readReading = async (readingId: string): Promise<ContractReading> => {
-    const raw = await app.chain.readRaw("getReading", [app.chain.arg.integer(readingId)]);
-    const reading = parseReading(raw);
+    const reading = await app.chain
+      .query("getReading", [app.chain.arg.integer(readingId)])
+      .as(parseReading);
     if (reading.id !== readingId) throw new Error("reading id mismatch");
     return reading;
   };
@@ -242,8 +243,8 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     applyReading(await readReading(readingId));
 
   const loadFees = async (): Promise<{ reading: bigint; oracle: bigint }> => {
-    const reading = parseBigInt(await app.chain.readRaw("readingFee", []));
-    const oracle = parseBigInt(await app.chain.readRaw("currentOracleFee", []));
+    const reading = await app.chain.query("readingFee", []).asBigInt();
+    const oracle = await app.chain.query("currentOracleFee", []).asBigInt();
     if (reading <= 0n || oracle < 0n || oracle > reading) {
       throw new Error(t("readingUnavailable"));
     }
@@ -253,7 +254,7 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
   };
 
   const activeReadingId = async (playerArg: ReturnType<typeof app.chain.arg.hash160>) => {
-    const active = parseBigInt(await app.chain.readRaw("activeReadingOf", [playerArg]));
+    const active = await app.chain.query("activeReadingOf", [playerArg]).asBigInt();
     if (active < 0n) throw new Error("invalid active reading");
     return active.toString();
   };
@@ -304,7 +305,7 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
       }
 
       const fees = await loadFees();
-      const credit = parseBigInt(await app.chain.readRaw("creditOf", [playerArg]));
+      const credit = await app.chain.query("creditOf", [playerArg]).asBigInt();
       if (credit < 0n) throw new Error(t("readingUnavailable"));
 
       if (credit < fees.reading) {
@@ -412,15 +413,15 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
       const playerAddr = address.get();
 
       if (playerAddr) {
-        const raw = await app.chain.readRaw("playerCompletedReadingCount", [
-          app.chain.arg.hash160(playerAddr),
-        ]);
-        readingsCount.set(Number(parseBigInt(raw)));
+        readingsCount.set(
+          await app.chain
+            .query("playerCompletedReadingCount", [app.chain.arg.hash160(playerAddr)])
+            .asInt(),
+        );
         return;
       }
 
-      const globalRaw = await app.chain.readRaw("completedReadingsCount", []);
-      readingsCount.set(Number(parseBigInt(globalRaw)));
+      readingsCount.set(await app.chain.query("completedReadingsCount", []).asInt());
     } catch (e) {
       console.warn(
         "[on-chain-tarot] reading count load failed:",
@@ -442,10 +443,10 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
       return;
     }
     try {
-      const raw = await app.chain.readRaw("creditOf", [
-        app.chain.arg.hash160(playerAddr),
-      ]);
-      prepaidCredit.set(fromFixed8(parseBigInt(raw)));
+      const credit = await app.chain
+        .query("creditOf", [app.chain.arg.hash160(playerAddr)])
+        .asBigInt();
+      prepaidCredit.set(fromFixed8(credit));
     } catch (e) {
       console.warn(
         "[on-chain-tarot] creditOf read failed:",
@@ -467,9 +468,7 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
       // Read the live credit first — the contract reverts "no credit" on an empty
       // balance, so surface a clean message before prompting the wallet. RPC
       // failures propagate instead of being misreported as a zero balance.
-      const credit = parseBigInt(
-        await app.chain.readRaw("creditOf", [accountArg]),
-      );
+      const credit = await app.chain.query("creditOf", [accountArg]).asBigInt();
       if (credit <= 0n) throw new Error(t("noCredit"));
 
       const result = await app.chain.invoke(

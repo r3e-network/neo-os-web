@@ -614,8 +614,10 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     catalogStatus.set("loading");
     catalogError.set(null);
     try {
-      const lastRaw = await app.chain.readRaw("lastMachineId", []);
-      const last = Math.min(asNumber(lastRaw), MAX_MACHINES);
+      const last = Math.min(
+        await app.chain.query("lastMachineId", []).asInt(),
+        MAX_MACHINES,
+      );
 
       const ids: number[] = [];
       for (let id = 1; id <= last; id += 1) ids.push(id);
@@ -763,7 +765,9 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     }
     try {
       playCreditBase.set(
-        parseBigInt(await app.chain.readRaw("playCreditOf", [{ type: "Hash160", value: playerHash }])),
+        await app.chain
+          .query("playCreditOf", [{ type: "Hash160", value: playerHash }])
+          .asBigInt(),
       );
     } catch (e) {
       console.warn(
@@ -1103,8 +1107,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     // No reveal obtained. Keep the bet pending so the Reveal-retry button can
     // try again later (settle is permissionless + idempotent-safe).
     betPhase.set("committed");
-    const msg =
-      lastErr instanceof Error ? lastErr.message : t("revealPendingRetry");
+    const msg = app.errors.messageOf(lastErr, t("revealPendingRetry"));
     playError.set(msg);
     throw new Error(msg);
   };
@@ -1207,16 +1210,10 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       // ── Step 1: COMMIT ────────────────────────────────────────────
       // Top up only when the existing play credit can't cover the price (credit
       // may persist from a prior aborted commit).
-      let credit = 0n;
-      try {
-        credit = parseBigInt(
-          await app.chain.readRaw("playCreditOf", [
-            { type: "Hash160", value: playerHash },
-          ]),
-        );
-      } catch {
-        credit = 0n;
-      }
+      // Any failed/invalid read counts as zero credit (RFC P0-6 fallback lane).
+      const credit = await app.chain
+        .query("playCreditOf", [{ type: "Hash160", value: playerHash }])
+        .asBigInt(0n);
 
       const commitArgs = [
         { type: "Integer" as const, value: machineIdInt },
@@ -1300,7 +1297,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       // Surface the failure so notify.guard reports the real error and suppresses
       // the false success toast. A committed-but-unrevealed bet stays pending
       // (canReveal) so the player can finish the reveal from the Reveal button.
-      playError.set(e instanceof Error ? e.message : t("error"));
+      playError.set(app.errors.messageOf(e, t("error")));
       throw e;
     } finally {
       isPlaying.set(false);
@@ -1415,7 +1412,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
         machineId = Number(parseBigInt(eventValue(createResult.event, 1)));
       }
       if (!Number.isInteger(machineId) || machineId <= 0) {
-        machineId = asNumber(await app.chain.readRaw("lastMachineId", []));
+        machineId = await app.chain.query("lastMachineId", []).asInt();
       }
       if (!Number.isInteger(machineId) || machineId <= 0) {
         throw new Error(t("createPending"));
@@ -1478,7 +1475,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       // Confirmed success — the view resets the studio form only on `true`.
       return true;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : t("error");
+      const msg = app.errors.messageOf(e, t("error"));
       setStatus(msg, "error");
       throw e;
     } finally {
@@ -1515,11 +1512,9 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     if (!playerAddr || !playerHash) throw new Error(t("connectWallet"));
     setAddress(playerAddr);
 
-    const before = parseBigInt(
-      await app.chain.readRaw("playCreditOf", [
-        { type: "Hash160", value: playerHash },
-      ]),
-    );
+    const before = await app.chain
+      .query("playCreditOf", [{ type: "Hash160", value: playerHash }])
+      .asBigInt();
     if (before <= 0n) throw new Error(t("gasboxNoPlayCredit"));
 
     try {

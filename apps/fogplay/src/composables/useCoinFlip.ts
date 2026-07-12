@@ -531,14 +531,9 @@ export function useCoinFlip({
     try {
       // The on-chain index is appended in play order; page in the most-recent
       // window from the highest offset so the newest games are returned.
-      let total = 0n;
-      try {
-        total = parseBigInt(
-          await app.chain.readRaw("playerBetCount", [app.chain.arg.hash160(playerHash)]),
-        );
-      } catch {
-        total = 0n;
-      }
+      const total = await app.chain
+        .query("playerBetCount", [app.chain.arg.hash160(playerHash)])
+        .asBigInt(0n);
       if (total <= 0n) {
         gameHistory.set([]);
         return;
@@ -576,7 +571,7 @@ export function useCoinFlip({
    */
   const loadBankrollAndCredit = async () => {
     try {
-      bankrollBase.set(parseBigInt(await app.chain.readRaw("bankroll", [])));
+      bankrollBase.set(await app.chain.query("bankroll", []).asBigInt());
     } catch (e) {
       console.warn(
         "[useCoinFlip] bankroll read failed:",
@@ -584,7 +579,7 @@ export function useCoinFlip({
       );
     }
     try {
-      freeBankrollBase.set(parseBigInt(await app.chain.readRaw("freeBankroll", [])));
+      freeBankrollBase.set(await app.chain.query("freeBankroll", []).asBigInt());
       bankrollLoaded.set(true);
     } catch (e) {
       // Never substitute total bankroll for free bankroll: reserved exposure may
@@ -605,7 +600,7 @@ export function useCoinFlip({
     }
     try {
       creditBase.set(
-        parseBigInt(await app.chain.readRaw("creditOf", [app.chain.arg.hash160(playerHash)])),
+        await app.chain.query("creditOf", [app.chain.arg.hash160(playerHash)]).asBigInt(),
       );
       creditLoaded.set(true);
     } catch (e) {
@@ -1177,7 +1172,7 @@ export function useCoinFlip({
    */
   const bankrollTooLowMessage = async (): Promise<string> => {
     try {
-      const free = parseBigInt(await app.chain.readRaw("freeBankroll", []));
+      const free = await app.chain.query("freeBankroll", []).asBigInt();
       if (free > 0n) {
         return t("bankrollTooLowCap", {
           max: formatGas(free / 2n, 4),

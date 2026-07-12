@@ -966,7 +966,7 @@ export function useNeoPayProduction({
         try {
           await recoverPending();
         } catch (error) {
-          serviceNotice.set(error instanceof Error ? error.message : t("neoPayConfirmationNeedsReview"));
+          serviceNotice.set(app.errors.messageOf(error, t("neoPayConfirmationNeedsReview")));
         }
       }
     } finally {
@@ -978,7 +978,7 @@ export function useNeoPayProduction({
     }
   };
 
-  const stopAddressSync = app.chain.address.subscribe(() => {
+  const stopAddressSync = app.wallet.onAccountChanged(() => {
     refreshGeneration += 1;
     refreshQueued = true;
     loadQueued = true;

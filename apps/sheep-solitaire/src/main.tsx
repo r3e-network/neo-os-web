@@ -540,7 +540,7 @@ defineMiniApp({
         } catch {
           /* leave the exact game id recoverable */
         }
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         gameStatus.set("unknown");
         lastStatus.set(ctx.t("statusDealPending"));
         ctx.setStatus(message, "error");
@@ -677,7 +677,7 @@ defineMiniApp({
         gameStatus.set("unknown");
         lastStatus.set(ctx.t("statusSettlementPending"));
         if (announce) {
-          ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         }
         return false;
       } finally {
@@ -776,7 +776,7 @@ defineMiniApp({
             ctx.setStatus(ctx.t("statusRecovered"), "info");
             return undefined;
           }
-          const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
           lastStatus.set(message);
           ctx.setStatus(message, "error");
           return undefined;
@@ -840,7 +840,7 @@ defineMiniApp({
           shuffleLeft.set(result.shuffleLeft);
           remove3Left.set(result.remove3Left);
         } catch (error) {
-          const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
           ctx.setStatus(message, "error");
         } finally {
           isPicking.set(false);
@@ -875,7 +875,7 @@ defineMiniApp({
           lastStatus.set(ctx.t("statusUndoUsed", { pct: String(100 - 30 * undos) }));
           ctx.setStatus(lastStatus.get(), "info");
         } catch (error) {
-          const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
           ctx.setStatus(message, "error");
         } finally {
           isUndoing.set(false);
@@ -906,7 +906,7 @@ defineMiniApp({
           remove3Left.set(result.remove3Left);
           ctx.setStatus(ctx.t("shuffleAction", { left: result.shuffleLeft }), "info");
         } catch (error) {
-          const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
           ctx.setStatus(message, "error");
         }
       });
@@ -935,7 +935,7 @@ defineMiniApp({
           remove3Left.set(result.remove3Left);
           ctx.setStatus(ctx.t("remove3Action", { left: result.remove3Left }), "info");
         } catch (error) {
-          const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
           ctx.setStatus(message, "error");
         }
       });
@@ -1059,7 +1059,7 @@ defineMiniApp({
             gameStatus.set("unknown");
             lastStatus.set(ctx.t("statusSettlementPending"));
             ctx.setStatus(
-              error instanceof Error ? error.message : ctx.t("statusSettlementPending"),
+              app.errors.messageOf(error, ctx.t("statusSettlementPending")),
               "error",
             );
           }
@@ -1099,7 +1099,7 @@ defineMiniApp({
             ctx.setStatus(ctx.t("creditWithdrawn"), "success");
             return;
           }
-          ctx.setStatus(error instanceof Error ? error.message : ctx.t("withdrawPending"), "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("withdrawPending")), "error");
         }
       });
     });

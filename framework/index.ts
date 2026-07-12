@@ -1,11 +1,64 @@
 import { createObservable, type Observable } from "./reactive";
-import { mapChainError } from "./utils/chain-errors";
+import { singleFlight } from "./utils/async-utils";
 import { eventStateValue } from "./utils/chain-events";
 import { MiniAppError } from "./utils/errors";
 import { sha256Hex0x } from "./utils/hash";
 import { addressToScriptHash } from "./utils/neo";
 import { localStorageAvailable } from "./utils/safe-storage";
 import { extractTxid } from "./utils/transaction";
+import { createAmountSurface, gasFixed8Amount } from "./amounts-surface";
+import { createQueryResult } from "./chain-query";
+import type { FrameworkQueryResult, FrameworkReadOptions } from "./chain-query";
+import { createErrorsSurface } from "./errors-surface";
+import { createFmtSurface } from "./fmt-surface";
+import { createGameRules } from "./game-rules";
+import { guardedWrite } from "./internal/guards";
+import type { FrameworkWritePolicy } from "./internal/guards";
+import { createModeModule } from "./mode";
+import { createNotifyModule } from "./notify-surface";
+import { createStorageSurface } from "./storage-surface";
+import type {
+  AchievementDefinition,
+  ComputeOracleRequest,
+  FrameworkActionOptions,
+  FrameworkAppMode,
+  FrameworkAssetSymbol,
+  FrameworkContractArg,
+  FrameworkDepositSettlement,
+  FrameworkEnumerateSpec,
+  FrameworkGuestLeaderboard,
+  FrameworkHost,
+  FrameworkInvokeCall,
+  FrameworkInvokeOptions,
+  FrameworkModeSurface,
+  FrameworkMultiInvokeOptions,
+  FrameworkMultiInvokeResult,
+  FrameworkNotifyPolicy,
+  FrameworkOperationRunOptions,
+  FrameworkOperationState,
+  FrameworkPaySpec,
+  FrameworkPrepayDepositLane,
+  FrameworkPrepaySpec,
+  FrameworkReadSpec,
+  FrameworkReceiptPaySpec,
+  FrameworkRewardGameConfig,
+  FrameworkRewardGameFinalizeOptions,
+  FrameworkRewardGameOptions,
+  FrameworkRewardGameSettlementOptions,
+  FrameworkRewardGameSurface,
+  FrameworkSignedMessage,
+  FrameworkSuccessParams,
+  FrameworkTxResult,
+  FrameworkWaitForStateOptions,
+  FrameworkWriteSpec,
+  HttpOracleRequest,
+  MiniAppFramework,
+  MiniAppFrameworkContext,
+  MiniAppFrameworkOptions,
+  OracleEnvelope,
+  SealOracleRequest,
+  VrfOracleRequest,
+} from "./types";
 import { createAaSurface } from "./aa";
 import type { FrameworkAaService } from "./aa";
 import { createClipboardSurface, createShareSurface } from "./clipboard";
@@ -29,6 +82,7 @@ import { createWalletSurface } from "./wallet";
 import type { WalletSurfaceBalanceService } from "./wallet";
 import {
   createLocalStorageRewardGameStorage,
+  createRewardRunner,
   expireRewardGame,
   finalizeRewardGame,
   fixed8ToGasString,
@@ -40,12 +94,19 @@ import {
   recordRewardGameOp,
   refreshRewardGameBalances,
   replayRewardGameOps,
+  rewardGameEvents,
   rewardGameModeOf,
   rewardGameProgressionOf,
   startRewardGame,
   withdrawRewardCredit,
 } from "./gamefi";
-import type { RewardGameConfig, RewardGameSession, RewardGameStorage } from "./gamefi";
+import type {
+  FrameworkRewardRunner,
+  FrameworkRewardRunnerHooks,
+  RewardGameConfig,
+  RewardGameSession,
+  RewardGameStorage,
+} from "./gamefi";
 import type { TeeSessionOp, TeeStepResult } from "./logic/tee-session";
 import {
   toScriptHash,
@@ -62,481 +123,12 @@ import type {
   GameSessionObservables,
 } from "./game";
 
-export type FrameworkHost = "onegate" | "miniapp-platform" | "standalone";
-
-export interface FrameworkContractArg {
-  type: "String" | "Integer" | "Boolean" | "Hash160" | "Hash256" | "PublicKey" | "ByteArray" | "Array";
-  value: string | number | boolean | FrameworkContractArg[];
-}
-
-export interface FrameworkTxResult {
-  txid: string;
-  event?: unknown;
-  success?: boolean;
-  verified?: boolean;
-}
-
-/**
- * Toast policy for the framework write wrappers (S2).
- * - `'all'` (default): success toast when a `successKey` is given + error toast
- *   — the exact pre-policy behavior.
- * - `'errors'`: error toast only; success toasts suppressed.
- * - `'silent'`: no toasts at all — errors still throw (typed) so composables
- *   that own their own multi-step messaging can branch on them.
- */
-export type FrameworkNotifyPolicy = "all" | "errors" | "silent";
-
-/**
- * Params interpolated into a success toast's `t(key, params)` call — either a
- * literal params record or a builder invoked with the operation result, so
- * post-write values ("withdrew {amount}", "vault {id} created") can drive the
- * toast copy.
- */
-export type FrameworkSuccessParams<TResult = unknown> =
-  | Record<string, unknown>
-  | ((result: TResult) => Record<string, unknown>);
-
-export interface FrameworkInvokeOptions {
-  scriptHash?: string;
-  signers?: unknown[];
-  waitForEvent?: string;
-  waitTimeoutMs?: number;
-  onPaymentSent?: (txid: string) => void;
-  onTransactionSent?: (txid: string) => void;
-  /**
-   * Toast policy consumed by the framework wrappers (write / payAndCall /
-   * prepayAndCall / receiptPay / invokeMultiple); never forwarded to the
-   * host. The raw invoke passthroughs never toast regardless of this flag.
-   */
-  notify?: FrameworkNotifyPolicy;
-}
-
-/** One call of a multi-invoke batch (single transaction, multiple scripts). */
-export interface FrameworkInvokeCall {
-  scriptHash?: string;
-  operation: string;
-  args: FrameworkContractArg[];
-}
-
-/** Result of a multi-invoke; `state`/`exception` carry the VM outcome. */
-export interface FrameworkMultiInvokeResult extends FrameworkTxResult {
-  state?: string;
-  exception?: string;
-}
-
-export interface FrameworkMultiInvokeOptions {
-  signers?: unknown[];
-  onTransactionSent?: (txid: string) => void;
-  notify?: FrameworkNotifyPolicy;
-}
-
-/** Normalized wallet message-signature envelope (see chain.signMessage). */
-export interface FrameworkSignedMessage {
-  signature: string;
-  publicKey?: string;
-  data?: string;
-  /** Wallet-reported signing account/address when the provider exposes it. */
-  account?: string;
-}
-
-export interface FrameworkWaitForStateOptions {
-  /** Read attempts before giving up (default 4). */
-  attempts?: number;
-  /** Delay before the FIRST read (default 4000ms). */
-  firstDelayMs?: number;
-  /** Delay before every subsequent read (default 5000ms). */
-  delayMs?: number;
-}
-
-/** Count-then-page enumeration spec (see chain.enumerate). */
-export interface FrameworkEnumerateSpec<T> {
-  /** Contract read returning the total item count; ids are assumed 1..count. */
-  countOp?: string;
-  countArgs?: FrameworkContractArg[];
-  /** Explicit id list — takes precedence over `countOp`. */
-  ids?: ReadonlyArray<number | string>;
-  /** Per-id detail read operation. */
-  detailOp: string;
-  /** Args for the detail read; defaults to a single Integer id argument. */
-  detailArgs?: (id: number | string) => FrameworkContractArg[];
-  /** Decode one detail read; return `null` to skip the row. */
-  decode: (raw: unknown, id: number | string) => T | null;
-  /** Defensive cap on ids fetched (default 500) — the newest ids win. */
-  cap?: number;
-  /** Result ordering by numeric id (default 'newest' = descending). */
-  order?: "newest" | "oldest";
-  scriptHash?: string;
-}
-
-export interface MiniAppFrameworkChain {
-  address: Observable<string | null>;
-  contractAddress?: Observable<string | null>;
-  ensureWallet(): Promise<string>;
-  detectNetwork?(): Promise<string>;
-  read(operation: string, args?: FrameworkContractArg[], options?: unknown): Promise<unknown>;
-  readArray?(operation: string, args?: FrameworkContractArg[], options?: unknown): Promise<unknown[]>;
-  invoke(
-    operation: string,
-    args: FrameworkContractArg[],
-    options?: FrameworkInvokeOptions,
-  ): Promise<FrameworkTxResult>;
-  invokeWithPayment(
-    amount: string,
-    memo: string,
-    operation: string,
-    args: FrameworkContractArg[],
-    options?: FrameworkInvokeOptions,
-  ): Promise<FrameworkTxResult>;
-  listEvents?(eventName: string, options?: { limit?: number; offset?: number }): Promise<unknown[]>;
-  /** Every matching event across all pages (ChainService.listAllEvents). */
-  listAllEvents?(eventName: string): Promise<unknown[]>;
-  /** Decode + null-filter events in one call (ChainService.listEventsParsed). */
-  listEventsParsed?<T>(eventName: string, transform: (evt: unknown) => T | null): Promise<T[]>;
-  /** Event confirming `txid`, or null on timeout (ChainService.waitForEvent). */
-  waitForEvent?(txid: string, eventName: string, timeoutMs?: number): Promise<unknown>;
-  /** Wallet message signing; result shape is wallet-specific (normalized by the framework). */
-  signMessage?(message: string): Promise<unknown>;
-  /** Two-step prepay lane: deposit confirmed in a block, then the consuming call. */
-  prepayAndInvoke?(
-    gasAmount: string,
-    memo: string,
-    operation: string,
-    args: FrameworkContractArg[],
-    options?: FrameworkInvokeOptions,
-  ): Promise<FrameworkTxResult>;
-  /** Multi-script single-transaction invoke (custom signer scopes allowed). */
-  invokeMultiple?(
-    calls: FrameworkInvokeCall[],
-    options?: FrameworkMultiInvokeOptions,
-  ): Promise<FrameworkMultiInvokeResult>;
-}
-
-export interface MiniAppFrameworkNotify {
-  success?(messageKey: string, params?: Record<string, string | number>): void;
-  error?(error: unknown, fallbackKey?: string): void;
-  info?(messageKey: string, params?: Record<string, string | number>): void;
-  warn?(messageKey: string, params?: Record<string, string | number>): void;
-  guardResult?<T>(
-    fn: () => Promise<T>,
-    successKey?: string,
-    errorKey?: string,
-  ): Promise<{ ok: true; value: T } | { ok: false; error: unknown }>;
-}
-
-export interface MiniAppFrameworkOS {
-  storage?: {
-    get(key: string): Promise<unknown>;
-    set(key: string, value: unknown): Promise<unknown>;
-    delete(key: string): Promise<unknown>;
-    list(prefix: string, limit?: number): Promise<Record<string, unknown>>;
-  };
-  badge?: {
-    define(badgeId: string, name: string, criteria: string): Promise<void>;
-    award(badgeId: string, user: string): Promise<void>;
-    list(user?: string): Promise<unknown[]>;
-    updateStat?(user: string, statKey: string, value: string): Promise<void>;
-    getStat?(user: string, statKey: string): Promise<string>;
-  };
-  leaderboard?: {
-    submitScore(score: string): Promise<void>;
-    get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-  };
-}
-
-export interface FrameworkLaunchContext {
-  appId?: string;
-  source?: string | null;
-  operation?: string | null;
-  tab?: string | null;
-  network?: string | null;
-  params?: Record<string, string>;
-  keys?: string[];
-  hasParams?: boolean;
-  signature?: string;
-  /**
-   * Manifest permission declarations (S11) — a string list or the manifest's
-   * `PlatformPermissions` boolean-flag record. When the host delivers NO
-   * declaration (undefined/null — every current launch lane), gated surfaces
-   * default-allow; a present declaration is enforced verbatim.
-   */
-  permissions?: FrameworkPermissionsInput;
-}
-
-export interface MiniAppFrameworkContext {
-  services: {
-    chain: MiniAppFrameworkChain;
-    notify?: MiniAppFrameworkNotify;
-    os?: MiniAppFrameworkOS;
-    /** Platform EventBus backing app.bus (+ balance auto-refresh); optional. */
-    events?: FrameworkBusChannel;
-    /** Platform LifecycleService backing app.lifecycle; optional. */
-    lifecycle?: LifecycleSurfaceService;
-    /** Platform BalanceService backing app.wallet balances; optional. */
-    balance?: WalletSurfaceBalanceService;
-    /** Platform AAService backing app.aa; optional. */
-    aa?: FrameworkAaService;
-  };
-  os?: MiniAppFrameworkOS;
-  t: (key: string, params?: Record<string, string | number>) => string;
-  state?: Record<string, Observable>;
-  setStatus?: (message: string, type: "success" | "error" | "warning" | "info") => void;
-  clearStatus?: () => void;
-  launchContext?: Partial<FrameworkLaunchContext>;
-  registerAction?: (key: string, handler: (...args: unknown[]) => Promise<unknown>) => void;
-}
-
-export interface MiniAppFrameworkOptions {
-  appId?: string;
-  /**
-   * Override for the `app.storage.local` key prefix (default `neo:<appId>:`).
-   * Migration lane: apps whose pre-framework localStorage keys lived in a
-   * different namespace pass their legacy prefix so existing user data is not
-   * orphaned (storage keys must stay byte-identical across the migration).
-   */
-  storagePrefix?: string;
-  /**
-   * app.oracle extension config (S13). `dataFeed` needs the deployed
-   * MorpheusDataFeed contract + RPC endpoint (network-specific, so the app
-   * layer injects it); absent ⇒ dataFeed reads throw a typed
-   * FrameworkCapabilityError. `seal` overrides the Morpheus seal endpoints
-   * (defaults target the platform edge routes).
-   */
-  oracle?: {
-    dataFeed?: FrameworkDataFeedDeps;
-    seal?: FrameworkSealDeps;
-  };
-  /**
-   * app.resources overrides (S12): explicit base URL and bundler-resolved
-   * token-art URLs (kept byte-identical to apps/shared/art/token-assets when
-   * injected by the integration layer).
-   */
-  resources?: {
-    baseUrl?: string;
-    tokenArt?: Partial<FrameworkTokenArtUrls>;
-  };
-  /**
-   * app.credits config (Credits v2): the credits-ledger endpoint URL plus the
-   * network's deployed MiniAppCredits contract hash (network-specific, so the
-   * app layer injects it — same pattern as `oracle.dataFeed`). Absent ⇒ every
-   * app.credits method throws a typed FrameworkCapabilityError.
-   */
-  credits?: FrameworkCreditsConfig;
-}
-
-export interface FrameworkActionOptions<TResult = unknown> {
-  successKey?: string;
-  /**
-   * Params for the success toast (S1) — a record or a `(result) => params`
-   * builder receiving the handler's resolved value.
-   */
-  successParams?: FrameworkSuccessParams<TResult>;
-  errorKey?: string;
-  rethrow?: boolean;
-}
-
-export interface FrameworkReadSpec<T = unknown> {
-  operation: string;
-  args?: FrameworkContractArg[];
-  scriptHash?: string;
-  cache?: boolean;
-  cacheTtlMs?: number;
-  parse?: (raw: unknown) => T;
-}
-
-export interface FrameworkWriteSpec {
-  operation: string;
-  args: FrameworkContractArg[];
-  successKey?: string;
-  /** Params for the success toast — a record or a `(tx) => params` builder. */
-  successParams?: FrameworkSuccessParams<FrameworkTxResult>;
-  errorKey?: string;
-  /** Toast policy (S2); default `'all'` — the exact pre-policy behavior. */
-  notify?: FrameworkNotifyPolicy;
-  reload?: () => Promise<void>;
-}
-
-export interface FrameworkPaySpec extends FrameworkWriteSpec {
-  amountFixed8?: bigint | number | string;
-  amountGas?: number | string;
-  memo: string;
-}
-
-/** Outcome of a deposit-confirmation wait (mirrors the host indexer poll). */
-export type FrameworkDepositSettlement = "confirmed" | "timeout" | "unreachable";
-
-/**
- * Asset-parameterized deposit lane for {@link FrameworkPrepaySpec} (S3):
- * used when the prepaid deposit is a NEP-17 transfer on a caller-chosen
- * TOKEN contract (milestone-escrow's NEO|GAS escrows) instead of the host's
- * GAS-only prepay lane. The framework then owns the transfer → confirmation
- * wait → consuming call sequence itself.
- */
-export interface FrameworkPrepayDepositLane {
-  /**
-   * NEP-17 token contract carrying the deposit transfer (e.g. the NEO or GAS
-   * token hash). The transfer recipient is always the app contract, whose
-   * OnNEP17Payment credits the sender for the memo; `amountFixed8` carries
-   * the token's BASE UNITS unchanged (GAS fixed8, NEO whole units).
-   */
-  scriptHash: string;
-  /**
-   * Deposit-confirmation wait for the transfer txid, resolving once the
-   * deposit is proven in a block ("confirmed"), gave up ("timeout"), or the
-   * indexer could not be queried ("unreachable" — falls back to a fixed
-   * settle delay). Injectable so apps keep their exact confirmation source
-   * (e.g. the asset token's indexed Transfer event) and tests stay instant.
-   * When absent the lane always applies the fixed settle delay.
-   */
-  confirm?: (txid: string) => Promise<FrameworkDepositSettlement>;
-}
-
-export interface FrameworkPrepaySpec extends FrameworkPaySpec {
-  /**
-   * Wait for the deposit to be confirmed in a block before the consuming
-   * call (default true — the host's prepay lane). When explicitly false the
-   * deposit and call are bundled atomically via invokeWithPayment instead.
-   */
-  waitForCredit?: boolean;
-  /**
-   * Custom asset-token deposit lane (see {@link FrameworkPrepayDepositLane}).
-   * When present, the deposit transfer and consuming call are issued by the
-   * framework and `waitForCredit` is ignored (the lane always settles the
-   * deposit before the consuming call).
-   */
-  deposit?: FrameworkPrepayDepositLane;
-}
-
-export interface FrameworkReceiptPaySpec extends FrameworkWriteSpec {
-  /**
-   * Receipt id of the already-settled deposit transfer (positive integer).
-   * Appended as the trailing Integer argument of the consuming call — the
-   * mainnet lane where the host wallet cannot bundle a prepaid transfer
-   * (flashloan deposit, memorial-shrine tribute).
-   */
-  receiptId: string | number;
-}
-
-export type FrameworkAssetSymbol = "GAS" | "NEO";
-
-/**
- * Two-mode game surface. GUEST is a purely local game with NO chain/oracle/
- * reward access (write/oracle/reward entry points throw when current is
- * "guest"); GAMEFI is the chain + oracle + reward-pool flow. Defaults to
- * "gamefi" for back-compat.
- */
-export type FrameworkAppMode = "guest" | "gamefi";
-
-/**
- * Off-chain guest leaderboard. Delegates to the OS leaderboard (os.leaderboard)
- * but under a guest namespace so guest scores never mix with on-chain results.
- */
-export interface FrameworkGuestLeaderboard {
-  submit(score: number | string): Promise<void>;
-  /** Decoded guest rows, ranked by numeric score descending. */
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
-
-/**
- * app.mode — launcher-selected play mode, guest guard, and guest leaderboard.
- * The launcher sets {@link FrameworkModeSurface.set} before the play area
- * mounts; game main.tsx branches its actions on {@link isGuest}.
- */
-export interface FrameworkModeSurface {
-  /** Current play mode (default "gamefi"). */
-  current: Observable<FrameworkAppMode>;
-  set(mode: FrameworkAppMode): void;
-  get(): FrameworkAppMode;
-  isGuest(): boolean;
-  isGameFi(): boolean;
-  /** Subscribe to mode changes; returns an unsubscribe. */
-  onChange(callback: (mode: FrameworkAppMode) => void): () => void;
-  /** Off-chain, guest-namespaced leaderboard for guest scores. */
-  guestLeaderboard: FrameworkGuestLeaderboard;
-}
-
-export type FrameworkOperationStatus = "idle" | "running" | "succeeded" | "failed";
-
-export interface FrameworkOperationState<TResult = unknown> {
-  key: string;
-  status: FrameworkOperationStatus;
-  txid: string;
-  error: string;
-  value: TResult | null;
-  startedAt: number;
-  finishedAt: number;
-  runId: number;
-}
-
-export interface FrameworkOperationRunOptions<TResult = unknown>
-  extends FrameworkActionOptions<TResult> {
-  successKey?: string;
-  errorKey?: string;
-}
-
-export type FrameworkRewardGameConfig = Omit<RewardGameConfig, "appId"> & {
-  appId?: string;
-};
-
-export interface FrameworkRewardGameOptions<Op extends TeeSessionOp = TeeSessionOp> {
-  storage?: RewardGameStorage<Op>;
-  storagePrefix?: string;
-  fetcher?: typeof fetch;
-}
-
-export interface FrameworkRewardGameFinalizeOptions {
-  pollAttempts?: number;
-  pollDelayMs?: number;
-  delay?: (ms: number) => Promise<void>;
-  fetcher?: typeof fetch;
-}
-
-export interface FrameworkRewardGameSettlementOptions {
-  pollAttempts?: number;
-  pollDelayMs?: number;
-  delay?: (ms: number) => Promise<void>;
-}
-
-export interface OracleEnvelope<TPayload extends Record<string, unknown> = Record<string, unknown>> {
-  kind: string;
-  digest: string;
-  payload: TPayload & {
-    kind: string;
-    appId: string;
-    digest: string;
-  };
-}
-
-export interface HttpOracleRequest {
-  url: string;
-  method?: "GET" | "POST";
-  path?: string;
-  body?: unknown;
-}
-
-export interface VrfOracleRequest {
-  consumer: string;
-  salt: string;
-  rounds?: number;
-  proofMode?: "single" | "batch";
-}
-
-export interface ComputeOracleRequest {
-  workflow: string;
-  input: unknown;
-  sealed?: boolean;
-}
-
-export interface SealOracleRequest {
-  purpose: string;
-  recipient?: string;
-  payload: unknown;
-}
-
-export interface AchievementDefinition {
-  id: string;
-  name: string;
-  criteria: string;
-}
+// ───────────────────────────────────────────────────────────────────────────
+// App-facing types + the explicit MiniAppFramework interface live in ./types
+// (RFC P0-1) and are re-exported here so every existing import path keeps
+// resolving — zero import breaks fleet-wide.
+// ───────────────────────────────────────────────────────────────────────────
+export * from "./types";
 
 /**
  * Deposit-then-act failure envelope (S3): the prepaid GAS deposit transfer
@@ -664,14 +256,6 @@ export function revertKeyOf<K extends string>(
   return null;
 }
 
-/** Resolve a success-params record or `(result) => params` builder. */
-function resolveSuccessParams<T>(
-  params: FrameworkSuccessParams<T> | undefined,
-  result: T,
-): Record<string, unknown> | undefined {
-  return typeof params === "function" ? params(result) : params;
-}
-
 /** Run `work` over `items` in fixed-size parallel chunks, preserving order. */
 async function runChunked<TIn, TOut>(
   items: readonly TIn[],
@@ -688,15 +272,6 @@ async function runChunked<TIn, TOut>(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function parseJson<T>(raw: string | null, fallback: T): T {
-  if (raw === null) return fallback;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 function stableJson(value: unknown): string {
@@ -746,55 +321,42 @@ function accountToHash160(value: string): string {
   throw new Error("Account must be a valid Neo N3 address or Hash160");
 }
 
-function gasFixed8Amount(value: bigint | number | string, allowZero = false): string {
-  if (typeof value === "bigint") {
-    if (value < 0n) throw new Error("GAS amount cannot be negative");
-    if (!allowZero && value === 0n) throw new Error("GAS amount must be positive");
-    return value.toString();
-  }
-  const raw = typeof value === "number"
-    ? Number.isFinite(value)
-      ? value.toFixed(8).replace(/\.?0+$/, "")
-      : ""
-    : String(value ?? "").trim();
-  if (raw.startsWith("-")) throw new Error("GAS amount cannot be negative");
-  if (!/^\d+(?:\.\d+)?$/.test(raw)) {
-    throw new Error("GAS amount must be a positive decimal amount");
-  }
-  const [whole = "0", fraction = ""] = raw.split(".");
-  if (fraction.length > 8) throw new Error("GAS amount cannot have more than 8 decimals");
-  const fixed8 = BigInt(whole) * 100_000_000n + BigInt(fraction.padEnd(8, "0") || "0");
-  if (!allowZero && fixed8 <= 0n) throw new Error("GAS amount must be positive");
-  return fixed8.toString();
-}
-
-function neoWholeAmount(value: bigint | number | string, allowZero = false): string {
-  if (typeof value === "bigint") {
-    if (value < 0n) throw new Error("NEO amount cannot be negative");
-    if (!allowZero && value === 0n) throw new Error("NEO amount must be positive");
-    return value.toString();
-  }
-  const raw = String(value ?? "").trim();
-  if (raw.startsWith("-")) throw new Error("NEO amount cannot be negative");
-  if (!/^\d+$/.test(raw)) {
-    throw new Error("NEO amount must be a whole number");
-  }
-  const units = BigInt(raw);
-  if (units < 0n) throw new Error("NEO amount cannot be negative");
-  if (!allowZero && units === 0n) throw new Error("NEO amount must be positive");
-  return units.toString();
-}
-
 function errorMessage(error: unknown, fallback = "error"): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return fallback;
 }
 
+/**
+ * Dev-only console warning (RFC P0-2): silent in production builds so the
+ * drop-mode DX warnings never reach end users.
+ */
+function devWarn(message: string): void {
+  const env = (import.meta as unknown as { env?: { PROD?: boolean } }).env;
+  if (env?.PROD) return;
+  console.warn(message);
+}
+
+/** Named write-lane policies (RFC P0-2) — see internal/guards.ts. */
+const WRITE_PRIMARY: FrameworkWritePolicy = { permission: "invoke:primary" };
+const ORACLE_REQUEST: FrameworkWritePolicy = { permission: "oracle:request" };
+/**
+ * Documented exemption: guest-guarded write with deliberately NO S11 gate
+ * (oracle.seal.store — the confidential-store write predates a permission).
+ */
+const GUEST_GUARD_ONLY: FrameworkWritePolicy = { permission: null };
+/**
+ * app.aa write lanes (relay / sponsorship.request / sessionKey.create): the
+ * "aa" S11 permission, registered DEFAULT-ALLOW (see app.permissions wiring)
+ * so no app behavior changes — the gate now exists and manifests can opt out
+ * with `{ aa: false }`.
+ */
+const AA_WRITE: FrameworkWritePolicy = { permission: "aa" };
+
 export function createMiniAppFramework(
   ctx: MiniAppFrameworkContext,
   options: MiniAppFrameworkOptions = {},
-) {
+): MiniAppFramework {
   const appId =
     options.appId ||
     ctx.launchContext?.appId ||
@@ -815,217 +377,39 @@ export function createMiniAppFramework(
   };
   const notify = ctx.services.notify ?? {};
   const storagePrefix = options.storagePrefix ?? `neo:${appId}:`;
-  const inFlight = new Set<string>();
   const actionHandlers = new Map<string, (...args: unknown[]) => Promise<unknown>>();
+  // Drop-mode single-flight for actions.run (RFC P0-2): a re-entrant run of
+  // the same key resolves `undefined` without running — exactly the previous
+  // in-flight Set semantics — now with a dev-visible warning on the drop.
+  const runActionFlight = singleFlight<
+    [key: string, handler: (...args: unknown[]) => Promise<unknown>, args: readonly unknown[]],
+    unknown
+  >(
+    (key) => key,
+    async (_key, handler, args) => handler(...args),
+    {
+      mode: "drop",
+      onDrop: (key) =>
+        devWarn(`[framework] actions.run("${key}") dropped — this action is already running`),
+    },
+  );
 
-  const localKey = (key: string) => `${storagePrefix}${key}`;
-  const local = {
-    get<T>(key: string, fallback: T | null = null): T | null {
-      return parseJson<T | null>(localStorageAvailable()?.getItem(localKey(key)) ?? null, fallback);
-    },
-    set(key: string, value: unknown): void {
-      localStorageAvailable()?.setItem(localKey(key), JSON.stringify(value));
-    },
-    delete(key: string): void {
-      localStorageAvailable()?.removeItem(localKey(key));
-    },
-    list(prefix: string): Record<string, unknown> {
-      const store = localStorageAvailable();
-      const out: Record<string, unknown> = {};
-      if (!store) return out;
-      const fullPrefix = localKey(prefix);
-      for (let index = 0; index < store.length; index += 1) {
-        const key = store.key(index);
-        if (!key?.startsWith(fullPrefix)) continue;
-        out[key.slice(storagePrefix.length)] = parseJson(store.getItem(key), null);
-      }
-      return out;
-    },
-  };
+  // app.storage — extracted module (RFC P0-1 §2 step 5). `local`/`hybrid`
+  // are also consumed by state.persisted / achievements / db.collection.
+  const storageSurface = createStorageSurface({
+    prefix: storagePrefix,
+    osStorage: () => os.storage,
+  });
+  const { local, hybrid } = storageSurface;
 
-  const remote = {
-    async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
-      if (!os.storage) return fallback;
-      const value = await os.storage.get(key);
-      return value === undefined || value === null ? fallback : value as T;
-    },
-    async set(key: string, value: unknown): Promise<void> {
-      if (!os.storage) return;
-      await os.storage.set(key, value);
-    },
-    async delete(key: string): Promise<void> {
-      if (!os.storage) return;
-      await os.storage.delete(key);
-    },
-    async list(prefix: string, limit = 100): Promise<Record<string, unknown>> {
-      if (!os.storage) return {};
-      return os.storage.list(prefix, limit);
-    },
-  };
-
-  const hybrid = {
-    async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
-      try {
-        const value = await remote.get<T>(key, null);
-        if (value !== null) return value;
-      } catch {
-        /* OneGate/standalone embeds may not expose OS storage; local survives. */
-      }
-      return local.get<T>(key, fallback);
-    },
-    async set(key: string, value: unknown): Promise<void> {
-      local.set(key, value);
-      try {
-        await remote.set(key, value);
-      } catch {
-        /* Keep the local copy; remote sync can be retried by the app later. */
-      }
-    },
-    async delete(key: string): Promise<void> {
-      local.delete(key);
-      try {
-        await remote.delete(key);
-      } catch {
-        /* local delete already completed */
-      }
-    },
-    async list(prefix: string, limit = 100): Promise<Record<string, unknown>> {
-      const localValues = local.list(prefix);
-      try {
-        return { ...localValues, ...(await remote.list(prefix, limit)) };
-      } catch {
-        return localValues;
-      }
-    },
-  };
-
-  /** Success toast on the injected notify service, threading params (S1). */
-  const toastSuccess = <T>(
-    successKey: string | undefined,
-    successParams: FrameworkSuccessParams<T> | undefined,
-    result: T,
-  ): void => {
-    if (!successKey) return;
-    const params = resolveSuccessParams(successParams, result);
-    if (params === undefined) notify.success?.(successKey);
-    else notify.success?.(successKey, params as Record<string, string | number>);
-  };
-
-  const runWithNotify = async <T>(
-    work: () => Promise<T>,
-    runOptions: {
-      successKey?: string;
-      successParams?: FrameworkSuccessParams<T>;
-      errorKey?: string;
-      notify?: FrameworkNotifyPolicy;
-    } = {},
-  ): Promise<T> => {
-    const policy = runOptions.notify ?? "all";
-    // 'silent' bypasses the notify service entirely — errors still throw
-    // (typed) so multi-step composables own their own messaging (S2).
-    if (policy === "silent") return work();
-    const successKey = policy === "all" ? runOptions.successKey : undefined;
-    const successParams = policy === "all" ? runOptions.successParams : undefined;
-    if (notify.guardResult) {
-      // The host guardResult cannot thread toast params — when params are
-      // present, suppress its success toast and emit our own with them.
-      const result = await notify.guardResult(
-        work,
-        successParams === undefined ? successKey : undefined,
-        runOptions.errorKey,
-      );
-      if (result.ok) {
-        if (successParams !== undefined) toastSuccess(successKey, successParams, result.value);
-        return result.value;
-      }
-      throw result.error;
-    }
-    try {
-      const value = await work();
-      toastSuccess(successKey, successParams, value);
-      return value;
-    } catch (error) {
-      notify.error?.(error, runOptions.errorKey);
-      throw error;
-    }
-  };
-
-  /**
-   * app.notify (S1) — the single toast surface for miniapps. Delegates to the
-   * injected notify service; standalone hosts without one fall back to
-   * `ctx.setStatus` with the same localized copy (chain errors mapped through
-   * utils/chain-errors so wallet/VM/RPC strings never reach a toast verbatim).
-   */
-  const appNotify = {
-    /** Success toast — t-key + params interpolation ("withdrew {amount}"). */
-    success(key: string, params?: Record<string, unknown>): void {
-      const coerced = params as Record<string, string | number> | undefined;
-      if (notify.success) notify.success(key, coerced);
-      else ctx.setStatus?.(ctx.t(key, coerced), "success");
-    },
-    info(key: string, params?: Record<string, unknown>): void {
-      const coerced = params as Record<string, string | number> | undefined;
-      if (notify.info) notify.info(key, coerced);
-      else ctx.setStatus?.(ctx.t(key, coerced), "info");
-    },
-    warn(key: string, params?: Record<string, unknown>): void {
-      const coerced = params as Record<string, string | number> | undefined;
-      if (notify.warn) notify.warn(key, coerced);
-      else ctx.setStatus?.(ctx.t(key, coerced), "warning");
-    },
-    /** Error toast — chain/RPC failures map to localized family copy. */
-    error(error: unknown, fallbackKey?: string): void {
-      if (notify.error) {
-        notify.error(error, fallbackKey);
-        return;
-      }
-      const message =
-        mapChainError(error, ctx.t) ??
-        (error instanceof Error
-          ? error.message
-          : typeof error === "string"
-            ? error
-            : ctx.t(fallbackKey ?? "error"));
-      ctx.setStatus?.(message, "error");
-    },
-    /**
-     * Wrap an async operation with automatic toasts, returning an explicit
-     * `{ok}` discriminator so callers can gate post-success steps without
-     * re-implementing try/catch. `successParams` may be a `(result) => params`
-     * builder so post-write values drive the toast copy.
-     */
-    async guardResult<T>(
-      fn: () => Promise<T>,
-      guardOptions: FrameworkActionOptions<T> = {},
-    ): Promise<{ ok: true; value: T } | { ok: false; error: unknown }> {
-      try {
-        const value = await fn();
-        if (guardOptions.successKey) {
-          const params = resolveSuccessParams(guardOptions.successParams, value);
-          if (params === undefined) appNotify.success(guardOptions.successKey);
-          else appNotify.success(guardOptions.successKey, params);
-        }
-        return { ok: true, value };
-      } catch (error) {
-        appNotify.error(error, guardOptions.errorKey);
-        return { ok: false, error };
-      }
-    },
-    /**
-     * Like {@link guardResult} but resolves with the value or `undefined`
-     * (or rethrows with `rethrow: true`) — the per-action toast wrapper
-     * ~40 apps hand-roll around every registered action.
-     */
-    async guard<T>(
-      fn: () => Promise<T>,
-      guardOptions: FrameworkActionOptions<T> = {},
-    ): Promise<T | undefined> {
-      const result = await appNotify.guardResult(fn, guardOptions);
-      if (result.ok) return result.value;
-      if (guardOptions.rethrow) throw result.error;
-      return undefined;
-    },
-  };
+  // app.notify + the S1/S2 toast wrappers — extracted module (RFC P0-1 §2
+  // step 3). setStatus/t thread as live accessors so late ctx mutation keeps
+  // working exactly as before.
+  const { appNotify, toastSuccess, runWithNotify } = createNotifyModule({
+    notify,
+    t: (key, params) => ctx.t(key, params),
+    setStatus: (message, type) => ctx.setStatus?.(message, type),
+  });
 
   // ── Wave-1 standalone modules (S4/S5/S8/S9/S10/S11/S12/S13) ──────────────
   // Style contract (plan §2): each surface is a lazy module — constructed on
@@ -1060,6 +444,11 @@ export function createMiniAppFramework(
     createPermissionsSurface({
       permissions: () => ctx.launchContext?.permissions,
       t: (key: string) => ctx.t(key),
+      // "aa" is a DEFAULT-ALLOW permission (RFC P0-2): the app.aa write lanes
+      // carried no S11 gate historically, so the gate must not break apps
+      // whose pinned declarations predate it. A manifest can still opt out
+      // explicitly with `{ aa: false }`.
+      defaultAllow: ["aa"],
     }),
   );
   const getEvents = lazyModule(() => createEventsSurface({ chain, appId }));
@@ -1109,27 +498,30 @@ export function createMiniAppFramework(
     // relay submission broadcasts a transaction, sponsorship.request moves
     // sponsor GAS, and sessionKey.create provisions an on-chain-scoped key —
     // all three are write lanes and must throw in guest mode. Reads
-    // (`available`, sponsorship.check) stay allowed.
+    // (`available`, sponsorship.check) stay allowed. The write lanes carry
+    // the DEFAULT-ALLOW "aa" S11 permission (see AA_WRITE) so manifests can
+    // opt out with `{ aa: false }` without any default behavior change.
     const guarded: typeof aa = {
       get available() {
         return aa.available;
       },
       sponsorship: {
         check: (scope) => aa.sponsorship.check(scope),
-        request: async (amount, scope) => {
-          assertNotGuest();
-          return aa.sponsorship.request(amount, scope);
-        },
+        request: guardedWrite(
+          guardDeps,
+          AA_WRITE,
+          (...args: Parameters<typeof aa.sponsorship.request>) => aa.sponsorship.request(...args),
+        ),
       },
-      relay: async (payload) => {
-        assertNotGuest();
-        return aa.relay(payload);
-      },
+      relay: guardedWrite(guardDeps, AA_WRITE, (...args: Parameters<typeof aa.relay>) =>
+        aa.relay(...args),
+      ),
       sessionKey: {
-        create: async (permissions, expiresAt) => {
-          assertNotGuest();
-          return aa.sessionKey.create(permissions, expiresAt);
-        },
+        create: guardedWrite(
+          guardDeps,
+          AA_WRITE,
+          (...args: Parameters<typeof aa.sessionKey.create>) => aa.sessionKey.create(...args),
+        ),
       },
     };
     return guarded;
@@ -1248,67 +640,8 @@ export function createMiniAppFramework(
     },
   };
 
-  const amount = {
-    gasToFixed8(value: bigint | number | string, options?: { allowZero?: boolean }): bigint {
-      return BigInt(gasFixed8Amount(value, options?.allowZero === true));
-    },
-    fixed8ToGas(value: bigint | number | string, maxDecimals = 8): string {
-      return fixed8ToGasString(value, maxDecimals);
-    },
-    neoToUnits(value: bigint | number | string, options?: { allowZero?: boolean }): bigint {
-      return BigInt(neoWholeAmount(value, options?.allowZero === true));
-    },
-    assetToUnits(
-      asset: FrameworkAssetSymbol,
-      value: bigint | number | string,
-      options?: { allowZero?: boolean },
-    ): bigint {
-      return asset === "NEO"
-        ? BigInt(neoWholeAmount(value, options?.allowZero === true))
-        : BigInt(gasFixed8Amount(value, options?.allowZero === true));
-    },
-    /**
-     * Null-on-invalid GAS scaler (S6): returns the fixed8 base-unit integer
-     * string, or `null` for ANY invalid input — NEVER throws, so app-side
-     * localized `t()` rejection paths keep working. `gasToFixed8` (above)
-     * intentionally keeps its THROW semantics — do not unify (gotcha #2).
-     */
-    parseGasToFixed8(
-      value: bigint | number | string,
-      options?: { allowZero?: boolean },
-    ): string | null {
-      try {
-        return gasFixed8Amount(value, options?.allowZero === true);
-      } catch {
-        return null;
-      }
-    },
-    /** Null-on-invalid NEO parser — NEO is indivisible, fractions reject to null. */
-    parseNeoToUnits(
-      value: bigint | number | string,
-      options?: { allowZero?: boolean },
-    ): string | null {
-      try {
-        return neoWholeAmount(value, options?.allowZero === true);
-      } catch {
-        return null;
-      }
-    },
-    /** Null-on-invalid asset scaler: GAS ×1e8, NEO whole units — never throws. */
-    parseAssetToUnits(
-      asset: FrameworkAssetSymbol,
-      value: bigint | number | string,
-      options?: { allowZero?: boolean },
-    ): string | null {
-      try {
-        return asset === "NEO"
-          ? neoWholeAmount(value, options?.allowZero === true)
-          : gasFixed8Amount(value, options?.allowZero === true);
-      } catch {
-        return null;
-      }
-    },
-  };
+  // app.amount — extracted module (RFC P0-1 §2 step 9).
+  const amount = createAmountSurface();
 
   /**
    * Asset-parameterized deposit-then-act lane (S3 — milestone-escrow's
@@ -1428,81 +761,38 @@ export function createMiniAppFramework(
   });
 
   // ── app.mode: two-mode game surface + guest guard ──────────────────────────
-  // GUEST mode disables every on-chain/oracle/reward WRITE lane (defense in
-  // depth). Read-only lanes (chain.read/readRaw/readArray/events) stay allowed
-  // so a guest can still read the reward pool for an upsell.
-  const GUEST_BLOCKED_MESSAGE =
-    "guest-mode: on-chain/oracle operations are disabled";
-  const modeObservable = createObservable<FrameworkAppMode>("gamefi");
-  const assertNotGuest = (): void => {
-    if (modeObservable.get() === "guest") {
-      throw new MiniAppError(GUEST_BLOCKED_MESSAGE, "GUEST_MODE_BLOCKED");
-    }
-  };
-  // Guest scores go to the off-chain OS leaderboard under an app+":guest"
-  // namespace prefix so they never mix with any on-chain / gamefi result.
-  const GUEST_BOARD_PREFIX = `${appId}:guest:`;
-  /**
-   * Rows scanned from the OS board per guest read. The board can mix guest
-   * and non-guest rows (stats.leaderboard shares it), so a `limit`-sized
-   * window could miss every guest row; scan a defensive window instead
-   * (same 500 cap chain.enumerate / events.listAll use) before filtering.
-   */
-  const GUEST_BOARD_SCAN_LIMIT = 500;
-  const isGuestBoardRow = (row: { score?: unknown }): boolean =>
-    String(row?.score ?? "").startsWith(GUEST_BOARD_PREFIX);
-  /** Numeric rank for a decoded guest score; non-numeric rows sink last. */
-  const guestScoreRank = (score: string): number => {
-    const value = Number(score);
-    return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
-  };
-  const guestLeaderboard: FrameworkGuestLeaderboard = {
-    async submit(score: number | string): Promise<void> {
-      await os.leaderboard?.submitScore(`${GUEST_BOARD_PREFIX}${score}`);
-    },
-    async get(limit = 100): Promise<Array<{ user: string; score: string }>> {
-      const rows =
-        (await os.leaderboard?.get(Math.max(limit, GUEST_BOARD_SCAN_LIMIT))) ?? [];
-      // Re-rank numerically after decoding: the host board orders the RAW
-      // prefixed strings ("app:guest:9" sorts above "app:guest:100"), so its
-      // ordering is meaningless for guest rows.
-      return rows
-        .filter(isGuestBoardRow)
-        .map((row) => ({
-          user: row.user,
-          score: String(row.score).slice(GUEST_BOARD_PREFIX.length),
-        }))
-        .sort((left, right) => guestScoreRank(right.score) - guestScoreRank(left.score))
-        .slice(0, limit);
-    },
-  };
-  const modeSurface: FrameworkModeSurface = {
-    current: modeObservable,
-    set(mode: FrameworkAppMode): void {
-      modeObservable.set(mode === "guest" ? "guest" : "gamefi");
-    },
-    get(): FrameworkAppMode {
-      return modeObservable.get();
-    },
-    isGuest(): boolean {
-      return modeObservable.get() === "guest";
-    },
-    isGameFi(): boolean {
-      return modeObservable.get() !== "guest";
-    },
-    onChange(callback: (mode: FrameworkAppMode) => void): () => void {
-      return modeObservable.subscribe(() => callback(modeObservable.get()));
-    },
-    guestLeaderboard,
+  // Extracted module (RFC P0-1 §2 step 4): GUEST mode disables every
+  // on-chain/oracle/reward WRITE lane (defense in depth); read-only lanes
+  // stay allowed so a guest can still read the reward pool for an upsell.
+  const { mode: modeSurface, assertNotGuest, isGuestBoardRow } = createModeModule({
+    appId,
+    leaderboard: () => os.leaderboard,
+  });
+  // The two guard dependencies every write lane threads (RFC P0-2). NOTE:
+  // this is declared before the framework literal because guardedWrite(...)
+  // is invoked eagerly while the literal is constructed.
+  const guardDeps = {
+    assertNotGuest: () => assertNotGuest(),
+    requirePermission: (name: string) => getPermissions().require(name),
   };
 
-  const framework = {
+  const framework: MiniAppFramework = {
     amount,
 
     /** app.mode — two-mode (guest|gamefi) surface + guest guard + leaderboard. */
     mode: modeSurface,
 
     notify: appNotify,
+
+    /** app.fmt (RFC P0-3) — blessed display formatters (delegates to utils/format). */
+    fmt: createFmtSurface(),
+
+    /**
+     * app.errors (RFC P0-4) — one-liner error→message extraction routed
+     * through the same chain-error mapping app.notify.error uses, so the
+     * setStatus and toast lanes show identical copy.
+     */
+    errors: createErrorsSurface({ t: ctx.t }),
 
     platform: {
       appId,
@@ -1521,6 +811,50 @@ export function createMiniAppFramework(
       },
       param(key: string, fallback = ""): string {
         return ctx.launchContext?.params?.[key] ?? fallback;
+      },
+      /**
+       * Typed launch-param decode (RFC P1-7): field-name → coercer, invoked
+       * with the RAW param string (or undefined when absent).
+       */
+      params<T>(schema: { [K in keyof T]: (raw: string | undefined) => T[K] }): T {
+        const out = {} as T;
+        for (const key of Object.keys(schema) as Array<keyof T & string>) {
+          out[key] = schema[key](ctx.launchContext?.params?.[key]);
+        }
+        return out;
+      },
+      /**
+       * Sync network info from the launch context (default testnet). For the
+       * wallet-verified network use the async `chain.detectNetwork()`.
+       */
+      network(): { name: string; isMainnet: boolean } {
+        const name = String(ctx.launchContext?.network ?? "testnet").trim().toLowerCase() || "testnet";
+        return { name, isMainnet: name.includes("mainnet") };
+      },
+      /**
+       * Canonical Dora explorer links (RFC P1-7) — the platform host-app's
+       * URL scheme (`https://dora.coz.io/<kind>/neo3/<network>/<value>`),
+       * previously copy-pasted per app in utils/explorer.ts.
+       */
+      explorer: {
+        tx(txid: string): string {
+          const id = String(txid ?? "").trim();
+          if (!id) return "";
+          const segment = framework.platform.network().isMainnet ? "mainnet" : "testnet";
+          return `https://dora.coz.io/transaction/neo3/${segment}/${encodeURIComponent(id)}`;
+        },
+        address(address: string): string {
+          const value = String(address ?? "").trim();
+          if (!value) return "";
+          const segment = framework.platform.network().isMainnet ? "mainnet" : "testnet";
+          return `https://dora.coz.io/address/neo3/${segment}/${encodeURIComponent(value)}`;
+        },
+        contract(scriptHash: string): string {
+          const value = String(scriptHash ?? "").trim();
+          if (!value) return "";
+          const segment = framework.platform.network().isMainnet ? "mainnet" : "testnet";
+          return `https://dora.coz.io/contract/neo3/${segment}/${encodeURIComponent(value)}`;
+        },
       },
     },
 
@@ -1544,11 +878,7 @@ export function createMiniAppFramework(
       },
     },
 
-    storage: {
-      local,
-      remote,
-      hybrid,
-    },
+    storage: storageSurface,
 
     db: {
       collection<T extends Record<string, unknown>>(name: string) {
@@ -1580,6 +910,17 @@ export function createMiniAppFramework(
         const wrapped = async (...args: unknown[]) =>
           framework.actions.run(key, ...(args as TArgs));
         actionHandlers.set(key, async (...args: unknown[]) => {
+          // RFC P1-3 guestBlocked: the standard early-return guard — show the
+          // status copy and resolve undefined (never throw), exactly the
+          // hand-written `if (app.mode.isGuest()) { …; return; }` semantics.
+          if (actionOptions.guestBlocked && modeSurface.isGuest()) {
+            const statusKey =
+              typeof actionOptions.guestBlocked === "object"
+                ? actionOptions.guestBlocked.statusKey
+                : "guestModeBlocked";
+            appNotify.warn(statusKey);
+            return undefined;
+          }
           try {
             return await runWithNotify(
               async () => handler(...(args as TArgs)),
@@ -1592,16 +933,43 @@ export function createMiniAppFramework(
         });
         ctx.registerAction?.(key, wrapped);
       },
+      /**
+       * The standard connectWallet body (RFC P1-3): ensureWallet → refresh
+       * fan-out (each loader error-isolated) → optional success toast.
+       * Re-entry collapses via the run lane's drop-mode single-flight.
+       */
+      registerConnectWallet(connectOptions: {
+        refresh?: Array<() => Promise<void>>;
+        successKey?: string;
+      } = {}): void {
+        framework.actions.register(
+          "connectWallet",
+          async () => {
+            const address = await chain.ensureWallet();
+            await Promise.all(
+              (connectOptions.refresh ?? []).map((load) =>
+                load().catch(() => undefined),
+              ),
+            );
+            return address;
+          },
+          connectOptions.successKey ? { successKey: connectOptions.successKey } : {},
+        );
+      },
+      /**
+       * Run a registered action. DROP-mode single-flight per key (RFC P0-2):
+       * a re-entrant run resolves `undefined` without running, and an unknown
+       * key resolves `undefined` — both now emit a DEV-ONLY console warning
+       * (production behavior unchanged) so the silent-undefined DX trap is
+       * visible while developing.
+       */
       async run<TResult = unknown>(key: string, ...args: unknown[]): Promise<TResult | undefined> {
-        if (inFlight.has(key)) return undefined;
         const handler = actionHandlers.get(key);
-        if (!handler) return undefined;
-        inFlight.add(key);
-        try {
-          return await handler(...args) as TResult;
-        } finally {
-          inFlight.delete(key);
+        if (!handler) {
+          devWarn(`[framework] actions.run("${key}") — no action registered under this key`);
+          return undefined;
         }
+        return await runActionFlight(key, handler, args) as TResult | undefined;
       },
     },
 
@@ -1630,6 +998,11 @@ export function createMiniAppFramework(
       async detectNetwork(): Promise<string> {
         return (await chain.detectNetwork?.()) ?? String(ctx.launchContext?.network ?? "testnet");
       },
+      /**
+       * Typed read via a spec object.
+       * @deprecated Use {@link query} — `chain.query(op, args).as(parse)` is
+       * the chainable successor (the spec-object form found no adopters).
+       */
       async read<T = unknown>(spec: FrameworkReadSpec<T>): Promise<T> {
         const raw = await chain.read(spec.operation, spec.args, {
           scriptHash: spec.scriptHash,
@@ -1641,13 +1014,41 @@ export function createMiniAppFramework(
       /**
        * Raw contract read by operation + args, for app-specific parse/guard
        * flows that don't want the {@link FrameworkReadSpec} envelope.
+       * Prefer {@link query} for typed decodes (`readRaw` ≡ `query(...).raw()`).
        */
-      async readRaw(operation: string, args?: FrameworkContractArg[], options?: unknown): Promise<unknown> {
+      async readRaw(
+        operation: string,
+        args?: FrameworkContractArg[],
+        options?: FrameworkReadOptions,
+      ): Promise<unknown> {
         return chain.read(operation, args, options);
       },
       /** Raw ARRAY read — for contract methods returning a list stack item. */
-      async readArray(operation: string, args?: FrameworkContractArg[], options?: unknown): Promise<unknown[]> {
+      async readArray(
+        operation: string,
+        args?: FrameworkContractArg[],
+        options?: FrameworkReadOptions,
+      ): Promise<unknown[]> {
         return (await chain.readArray?.(operation, args, options)) ?? [];
+      },
+      /**
+       * Chainable typed read (RFC P0-6): one RPC read, decoded via
+       * `asInt`/`asBigInt`/`asString`/`asBool`/`asAddress`/`asArray`/`asMap`/
+       * `as(parse)` — see {@link FrameworkQueryResult} for the coercion
+       * contract. Read lane: NOT guest-guarded, NOT permission-gated.
+       *
+       * @example
+       * ```ts
+       * const total = await app.chain.query("totalGames").asInt();
+       * const paused = await app.chain.query("isPaused").asBool(false);
+       * ```
+       */
+      query(
+        operation: string,
+        args?: FrameworkContractArg[],
+        options?: FrameworkReadOptions,
+      ): FrameworkQueryResult {
+        return createQueryResult(() => chain.read(operation, args, options));
       },
       /**
        * Raw invoke with NO notify/reload wrapping — for composables that own
@@ -1660,43 +1061,50 @@ export function createMiniAppFramework(
        * standalone/test contexts are unaffected; `async` so a denial rejects
        * instead of throwing synchronously.
        */
-      async invoke(
-        operation: string,
-        args: FrameworkContractArg[],
-        options?: FrameworkInvokeOptions,
-      ): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        getPermissions().require("invoke:primary");
-        return chain.invoke(operation, args, options);
-      },
+      invoke: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (
+          operation: string,
+          args: FrameworkContractArg[],
+          options?: FrameworkInvokeOptions,
+        ): Promise<FrameworkTxResult> => chain.invoke(operation, args, options),
+      ),
       /**
        * Raw pay-and-call with NO notify/reload wrapping (see {@link invoke}).
        * S11: a payment-carrying invoke of the primary contract — same
-       * "invoke:primary" gate as {@link invoke}; `async` so a denial rejects.
+       * "invoke:primary" gate as {@link invoke}; denials reject.
        */
-      async invokeWithPayment(
-        amount: string,
-        memo: string,
-        operation: string,
-        args: FrameworkContractArg[],
-        options?: FrameworkInvokeOptions,
-      ): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        getPermissions().require("invoke:primary");
-        return chain.invokeWithPayment(amount, memo, operation, args, options);
-      },
-      async write(spec: FrameworkWriteSpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        // S11: write is the fire-and-notify wrapper over chain.invoke — the
-        // same "invoke:primary" gate, checked before any notify wrapping so a
-        // denial rejects exactly like the raw invoke lane.
-        getPermissions().require("invoke:primary");
-        return runWithNotify(async () => {
-          const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
-          if (tx.success !== false) await spec.reload?.();
-          return tx;
-        }, spec);
-      },
+      invokeWithPayment: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (
+          amount: string,
+          memo: string,
+          operation: string,
+          args: FrameworkContractArg[],
+          options?: FrameworkInvokeOptions,
+        ): Promise<FrameworkTxResult> =>
+          chain.invokeWithPayment(amount, memo, operation, args, options),
+      ),
+      // S11: write is the fire-and-notify wrapper over chain.invoke — the
+      // same "invoke:primary" gate, composed BEFORE the notify wrapping so a
+      // denial rejects exactly like the raw invoke lane (RFC P0-2 ordering:
+      // guest guard → permission gate → notify wrap → reload-on-success).
+      write: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (spec: FrameworkWriteSpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> =>
+          runWithNotify(async () => {
+            const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
+            if (tx.success !== false) await spec.reload?.();
+            return tx;
+          }, spec),
+      ),
+      /**
+       * Raw event page.
+       * @deprecated Alias of `app.events.list` — one concept, one home (S4).
+       */
       async events(eventName: string, options?: { limit?: number; offset?: number }): Promise<unknown[]> {
         return chain.listEvents?.(eventName, options) ?? [];
       },
@@ -1742,15 +1150,16 @@ export function createMiniAppFramework(
        * SANITIZED: short assert strings pass through, anything else becomes
        * a generic message so raw VM dumps never reach a toast.
        */
-      async invokeMultiple(
-        calls: FrameworkInvokeCall[],
-        multiOptions: FrameworkMultiInvokeOptions = {},
-      ): Promise<FrameworkMultiInvokeResult> {
-        assertNotGuest();
-        // S11: multi-call transactions broadcast invokes like the single-call
-        // lanes — uniform "invoke:primary" gate.
-        getPermissions().require("invoke:primary");
-        return runWithNotify(async () => {
+      // S11: multi-call transactions broadcast invokes like the single-call
+      // lanes — uniform "invoke:primary" gate (composed via guardedWrite).
+      invokeMultiple: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (
+          calls: FrameworkInvokeCall[],
+          multiOptions: FrameworkMultiInvokeOptions = {},
+        ): Promise<FrameworkMultiInvokeResult> =>
+          runWithNotify(async () => {
           if (!chain.invokeMultiple) {
             throw new MiniAppError(
               "Host chain service does not support invokeMultiple",
@@ -1775,8 +1184,8 @@ export function createMiniAppFramework(
             throw new Error(sanitized);
           }
           return result;
-        }, { notify: multiOptions.notify });
-      },
+        }, { notify: multiOptions.notify }),
+      ),
       /**
        * Post-broadcast confirmation poll (S7): RPC nodes lag behind a fresh
        * tx, so re-read state until the predicate passes. Verbatim
@@ -1812,6 +1221,8 @@ export function createMiniAppFramework(
        * defensive cap (newest ids win), swallow per-id read/decode failures,
        * and return decoded rows sorted by numeric id — newest first by
        * default. The fan-out ~12 apps hand-roll.
+       * @deprecated 0 fleet consumers — use {@link query} with an explicit
+       * loop (or `readArray`) instead; kept for back-compat.
        */
       async enumerate<T>(spec: FrameworkEnumerateSpec<T>): Promise<T[]> {
         const cap = Math.max(1, Math.trunc(spec.cap ?? 500));
@@ -1921,12 +1332,13 @@ export function createMiniAppFramework(
        * error surfaces as {@link FrameworkPrepaidActionError} — the credit is
        * withdrawable, not lost.
        */
-      async payAndCall(spec: FrameworkPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        // S11: every mutating funds lane is a payment-carrying invoke of the
-        // primary contract — uniform "invoke:primary" gate (see app.permissions).
-        getPermissions().require("invoke:primary");
-        return runWithNotify(async () => {
+      // S11: every mutating funds lane is a payment-carrying invoke of the
+      // primary contract — uniform "invoke:primary" gate (see app.permissions).
+      payAndCall: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (spec: FrameworkPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> =>
+          runWithNotify(async () => {
           let tx: FrameworkTxResult;
           try {
             tx = await chain.invokeWithPayment(
@@ -1941,8 +1353,8 @@ export function createMiniAppFramework(
           }
           if (tx.success !== false) await spec.reload?.();
           return tx;
-        }, spec);
-      },
+        }, spec),
+      ),
       /**
        * Deposit-then-act (S3): transfer GAS to the contract with a memo, wait
        * for the credit to confirm in a block, then run the consuming
@@ -1956,11 +1368,12 @@ export function createMiniAppFramework(
        * lane (asset-token transfers — see {@link FrameworkPrepayDepositLane})
        * run the framework-owned two-step sequence instead.
        */
-      async prepayAndCall(spec: FrameworkPrepaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        // S11: uniform "invoke:primary" gate for mutating funds lanes.
-        getPermissions().require("invoke:primary");
-        return runWithNotify(async () => {
+      // S11: uniform "invoke:primary" gate for mutating funds lanes.
+      prepayAndCall: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (spec: FrameworkPrepaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> =>
+          runWithNotify(async () => {
           if (spec.deposit) return prepayViaDepositLane(spec, spec.deposit);
           const amountFixed8 = fixed8Amount(spec);
           const invokeOptions = compactInvokeOptions(spec);
@@ -1986,35 +1399,36 @@ export function createMiniAppFramework(
           }
           if (tx.success !== false) await spec.reload?.();
           return tx;
-        }, spec);
-      },
+        }, spec),
+      ),
       /**
        * Receipt-id deposit lane (S3, mainnet): the GAS was pre-transferred
        * with the deposit memo in a separate settled transaction; the
        * consuming call carries the resulting receipt id as its trailing
        * Integer argument (flashloan deposit, memorial-shrine tribute).
        */
-      async receiptPay(spec: FrameworkReceiptPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        // S11: uniform "invoke:primary" gate for mutating funds lanes.
-        getPermissions().require("invoke:primary");
-        return runWithNotify(async () => {
-          const receiptId = String(spec.receiptId ?? "").trim();
-          if (!/^[1-9]\d*$/.test(receiptId)) {
-            throw new MiniAppError(
-              "Receipt id must be a positive integer",
-              "RECEIPT_ID_INVALID",
+      // S11: uniform "invoke:primary" gate for mutating funds lanes.
+      receiptPay: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (spec: FrameworkReceiptPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> =>
+          runWithNotify(async () => {
+            const receiptId = String(spec.receiptId ?? "").trim();
+            if (!/^[1-9]\d*$/.test(receiptId)) {
+              throw new MiniAppError(
+                "Receipt id must be a positive integer",
+                "RECEIPT_ID_INVALID",
+              );
+            }
+            const tx = await chain.invoke(
+              spec.operation,
+              [...spec.args, arg.integer(receiptId)],
+              compactInvokeOptions(spec),
             );
-          }
-          const tx = await chain.invoke(
-            spec.operation,
-            [...spec.args, arg.integer(receiptId)],
-            compactInvokeOptions(spec),
-          );
-          if (tx.success !== false) await spec.reload?.();
-          return tx;
-        }, spec);
-      },
+            if (tx.success !== false) await spec.reload?.();
+            return tx;
+          }, spec),
+      ),
       async creditOf(playerHash?: string, operation = "creditOf"): Promise<bigint> {
         const account = playerHash || chain.address.get() || await chain.ensureWallet();
         const hash = accountToHash160(account);
@@ -2025,19 +1439,21 @@ export function createMiniAppFramework(
           return 0n;
         }
       },
-      async withdrawCredit(operation = "withdraw", successKey?: string): Promise<FrameworkTxResult> {
-        assertNotGuest();
-        // S11: gate explicitly (chain.write below re-checks) so a denial
-        // rejects BEFORE ensureWallet() can pop a wallet prompt.
-        getPermissions().require("invoke:primary");
-        const user = accountToHash160(await chain.ensureWallet());
-        return framework.chain.write({
-          operation,
-          args: [{ type: "Hash160", value: user }],
-          waitForEvent: "CreditWithdrawn",
-          successKey,
-        });
-      },
+      // S11: gate explicitly (chain.write inside re-checks) so a denial
+      // rejects BEFORE ensureWallet() can pop a wallet prompt.
+      withdrawCredit: guardedWrite(
+        guardDeps,
+        WRITE_PRIMARY,
+        async (operation = "withdraw", successKey?: string): Promise<FrameworkTxResult> => {
+          const user = accountToHash160(await chain.ensureWallet());
+          return framework.chain.write({
+            operation,
+            args: [{ type: "Hash160", value: user }],
+            waitForEvent: "CreditWithdrawn",
+            successKey,
+          });
+        },
+      ),
     },
 
     // ── Wave-1 module surfaces (lazy; see the factories above) ──────────────
@@ -2095,9 +1511,7 @@ export function createMiniAppFramework(
      * FrameworkCapabilityError / FrameworkSealError).
      */
     oracle: {
-      async http(request: HttpOracleRequest) {
-        assertNotGuest();
-        getPermissions().require("oracle:request");
+      http: guardedWrite(guardDeps, ORACLE_REQUEST, async (request: HttpOracleRequest) => {
         const url = new URL(request.url);
         if (url.protocol !== "http:" && url.protocol !== "https:") {
           throw new Error("HTTP oracle request must use http(s) URL");
@@ -2109,10 +1523,8 @@ export function createMiniAppFramework(
           path: request.path ?? "$",
           ...(method === "POST" && request.body !== undefined ? { body: request.body } : {}),
         });
-      },
-      async vrf(request: VrfOracleRequest) {
-        assertNotGuest();
-        getPermissions().require("oracle:request");
+      }),
+      vrf: guardedWrite(guardDeps, ORACLE_REQUEST, async (request: VrfOracleRequest) => {
         const rounds = Math.max(1, Math.min(64, Math.trunc(Number(request.rounds ?? 1) || 1)));
         return createEnvelope("oracle.vrf.request", {
           consumer: request.consumer,
@@ -2120,10 +1532,8 @@ export function createMiniAppFramework(
           rounds,
           proofMode: request.proofMode ?? (rounds > 1 ? "batch" : "single"),
         });
-      },
-      async compute(request: ComputeOracleRequest) {
-        assertNotGuest();
-        getPermissions().require("oracle:request");
+      }),
+      compute: guardedWrite(guardDeps, ORACLE_REQUEST, async (request: ComputeOracleRequest) => {
         const inputDigest = await sha256Hex0x(stableJson(request.input));
         return createEnvelope("oracle.compute.request", {
           workflow: request.workflow,
@@ -2131,7 +1541,7 @@ export function createMiniAppFramework(
           inputDigest,
           ...(request.sealed ? {} : { input: request.input }),
         });
-      },
+      }),
       /**
        * Seal lane: the callable keeps the existing envelope-digest builder
        * behavior; the S13 client methods (publicKey/encrypt/store) are
@@ -2139,16 +1549,14 @@ export function createMiniAppFramework(
        * `app.oracle.seal(request)`.
        */
       seal: Object.assign(
-        async (request: SealOracleRequest) => {
-          assertNotGuest();
-          getPermissions().require("oracle:request");
+        guardedWrite(guardDeps, ORACLE_REQUEST, async (request: SealOracleRequest) => {
           const payloadDigest = await sha256Hex0x(stableJson(request.payload));
           return createEnvelope("oracle.seal.envelope", {
             purpose: request.purpose,
             recipient: request.recipient ?? "",
             payloadDigest,
           });
-        },
+        }),
         {
           /** Oracle X25519 public key (TTL cache + stale fallback). */
           publicKey: (sealOptions?: { forceRefresh?: boolean }) =>
@@ -2159,32 +1567,35 @@ export function createMiniAppFramework(
            * Submit a sealed envelope to the confidential store. Unlike the
            * wallet-free publicKey/encrypt read/compute lanes, `store` WRITES
            * to the oracle's confidential store, so it is guest-guarded like
-           * every other oracle write entry point.
+           * every other oracle write entry point — a DOCUMENTED exemption
+           * from the "oracle:request" gate (named GUEST_GUARD_ONLY policy).
            */
-          store: async (input: FrameworkSealStoreInput) => {
-            assertNotGuest();
-            return getOracleExt().seal.store(input);
-          },
+          store: guardedWrite(guardDeps, GUEST_GUARD_ONLY, async (input: FrameworkSealStoreInput) =>
+            getOracleExt().seal.store(input),
+          ),
         },
       ),
       /** DataFeed reader (S13): wallet-free price reads + freshness math. */
       get dataFeed() {
         return getOracleExt().dataFeed;
       },
-      async dispatch(
-        envelope: OracleEnvelope,
-        spec: Omit<FrameworkWriteSpec & FrameworkInvokeOptions, "args"> & { args?: FrameworkContractArg[] },
-      ) {
-        assertNotGuest();
-        getPermissions().require("oracle:request");
-        return framework.chain.write({
-          ...spec,
-          args: [
-            ...(spec.args ?? []),
-            { type: "String", value: JSON.stringify(envelope.payload) },
-          ],
-        });
-      },
+      dispatch: guardedWrite(
+        guardDeps,
+        ORACLE_REQUEST,
+        async (
+          envelope: OracleEnvelope,
+          spec: Omit<FrameworkWriteSpec & FrameworkInvokeOptions, "args"> & {
+            args?: FrameworkContractArg[];
+          },
+        ) =>
+          framework.chain.write({
+            ...spec,
+            args: [
+              ...(spec.args ?? []),
+              { type: "String", value: JSON.stringify(envelope.payload) },
+            ],
+          }),
+      ),
     },
 
     stats: {
@@ -2211,8 +1622,8 @@ export function createMiniAppFramework(
          * mode.guestLeaderboard.get() is the guest read lane.
          */
         async submit(score: number | string): Promise<void> {
-          if (modeObservable.get() === "guest") {
-            await guestLeaderboard.submit(score);
+          if (modeSurface.isGuest()) {
+            await modeSurface.guestLeaderboard.submit(score);
             return;
           }
           await os.leaderboard?.submitScore(String(score));
@@ -2243,6 +1654,13 @@ export function createMiniAppFramework(
     },
 
     game: {
+      /**
+       * Standard game-rules helpers from the game's constants (RFC P1-2) —
+       * see {@link createGameRules}. Apps re-export the result from their
+       * `logic/game-rules.ts`; per-game constants stay in the app.
+       */
+      rules: createGameRules,
+
       reward<Op extends TeeSessionOp = TeeSessionOp>(
         rewardConfig: FrameworkRewardGameConfig,
         rewardOptions: FrameworkRewardGameOptions<Op> = {},
@@ -2256,7 +1674,7 @@ export function createMiniAppFramework(
           localStorageAvailable(),
         );
         const chainAdapter = rewardChain();
-        return {
+        const rewardSurface: FrameworkRewardGameSurface<Op> = {
           config,
           storage,
           mode(difficulty: number | string) {
@@ -2334,7 +1752,49 @@ export function createMiniAppFramework(
           ) {
             return observeRewardGameSettlement(config, chainAdapter, gameId, solvedEvent, settlementOptions);
           },
+          /**
+           * Reward-game lifecycle runner (RFC P0-7): composes the primitives
+           * above into the standard start/resume/record/finalize/refresh
+           * state machine, with the wallet-change session reset wired in via
+           * app.wallet.onAccountChanged. See {@link FrameworkRewardRunner}.
+           */
+          runner<View>(
+            hooks: FrameworkRewardRunnerHooks<Op, View>,
+          ): FrameworkRewardRunner<Op, View> {
+            return createRewardRunner<Op, View>(
+              {
+                config,
+                handle: {
+                  mode: (difficulty) => rewardSurface.mode(difficulty),
+                  start: (difficulty) => rewardSurface.start(difficulty),
+                  openSession: (gameId, difficulty) => rewardSurface.openSession(gameId, difficulty),
+                  recordOp: (session, op) => rewardSurface.recordOp(session, op),
+                  replayOps: (session, ops) => rewardSurface.replayOps(session, ops),
+                  finalize: (session) => rewardSurface.finalize(session),
+                  recoverActive: () => rewardSurface.recoverActive(),
+                  expire: (gameId) => rewardSurface.expire(gameId),
+                  withdrawCredit: () => rewardSurface.withdrawCredit(),
+                  snapshot: (gameId) => rewardSurface.snapshot(gameId),
+                  balances: () => rewardSurface.balances(),
+                  storage,
+                },
+                loadStats: () => framework.game.stats.load(),
+                loadLeaderboard: async () => {
+                  const { ranked } = await framework.game.leaderboard.load(
+                    rewardGameEvents(config).solved,
+                  );
+                  return ranked.map((entry) => ({
+                    user: entry.address,
+                    score: String(entry.totalWon),
+                  }));
+                },
+                onAccountChanged: (handler) => framework.wallet.onAccountChanged(handler),
+              },
+              hooks,
+            );
+          },
         };
+        return rewardSurface;
       },
 
       // ── player helpers ────────────────────────────────────────────────────
@@ -2457,13 +1917,59 @@ export function createMiniAppFramework(
   return framework;
 }
 
-export type MiniAppFramework = ReturnType<typeof createMiniAppFramework>;
+// NOTE: `MiniAppFramework` is now the EXPLICIT interface in ./types (RFC
+// P0-1), re-exported above via `export * from "./types"` — same name, same
+// shape, now with per-member JSDoc.
 
 // ───────────────────────────────────────────────────────────────────────────
 // Wave-1 standalone module surface (plan §2) — factories, types and
 // identity-stable error classes re-exported from the framework entry so apps
 // (and the apps/shared compatibility shims) resolve a single copy of each.
 // ───────────────────────────────────────────────────────────────────────────
+
+// RFC P1-2 game.rules factory
+export { createGameRules, DEFAULT_SETTLEMENT_GRACE_MS } from "./game-rules";
+
+// RFC P0-1 extracted surface factories (index.ts decomposition)
+export { createModeModule } from "./mode";
+export type { ModeModule, ModeModuleDeps } from "./mode";
+export { createNotifyModule } from "./notify-surface";
+export type { NotifyModule, NotifySurfaceDeps, RunWithNotifyOptions } from "./notify-surface";
+export { createStorageSurface } from "./storage-surface";
+export type { StorageSurfaceDeps } from "./storage-surface";
+export { createAmountSurface, gasFixed8Amount, neoWholeAmount } from "./amounts-surface";
+
+// RFC P0-3 app.fmt
+export { createFmtSurface, formatClock } from "./fmt-surface";
+export type {
+  FrameworkFmt,
+  FrameworkFmtDecimalsOptions,
+  FrameworkFmtTruncateOptions,
+} from "./fmt-surface";
+
+// RFC P0-4 app.errors (+ the translator-free one-liner from utils/errors)
+export { createErrorsSurface } from "./errors-surface";
+export type { ErrorsSurfaceDeps, FrameworkErrorsSurface } from "./errors-surface";
+export { errorMessage } from "./utils/errors";
+
+// RFC P0-6 chain.query
+export { createQueryResult } from "./chain-query";
+export type { FrameworkQueryResult, FrameworkReadOptions } from "./chain-query";
+
+// RFC P0-2 singleFlight (guardedWrite stays framework-internal by design)
+export { singleFlight } from "./utils/async-utils";
+export type { SingleFlightDropOptions, SingleFlightJoinOptions } from "./utils/async-utils";
+
+// RFC P0-7 reward-game lifecycle runner
+export { createRewardRunner } from "./gamefi";
+export type {
+  FrameworkRewardLeaderboardEntry,
+  FrameworkRewardPhase,
+  FrameworkRewardRunner,
+  FrameworkRewardRunnerHooks,
+  FrameworkRewardStartOptions,
+  RewardRunnerActionsSurface,
+} from "./gamefi";
 
 // S4 app.events + app.bus
 export { createBusSurface, createEventsSurface } from "./events";
@@ -2478,9 +1984,10 @@ export type {
   FrameworkEventsSurface,
 } from "./events";
 
-// S5 app.wallet
+// S5 app.wallet (+ RFC P0-5 onAccountChanged)
 export { createWalletSurface } from "./wallet";
 export type {
+  FrameworkAccountChange,
   FrameworkWalletBalanceHandle,
   FrameworkWalletSurface,
   WalletContractArg,

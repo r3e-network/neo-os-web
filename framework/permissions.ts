@@ -38,6 +38,15 @@ export interface PermissionsSurfaceDeps {
   permissions?: FrameworkPermissionsInput | (() => FrameworkPermissionsInput);
   /** Optional translator for the localized permission-denied user message. */
   t?: Translator;
+  /**
+   * DEFAULT-ALLOW permissions (RFC P0-2): granted even under a PRESENT
+   * declaration unless the declaration explicitly denies them (a
+   * `PlatformPermissions` record entry of `false`). Used for gates
+   * introduced AFTER apps pinned their manifests (e.g. "aa") so the gate
+   * exists without changing any existing app's behavior. String-list
+   * declarations cannot express a denial, so absence there still allows.
+   */
+  defaultAllow?: readonly string[];
 }
 
 export interface FrameworkPermissionsSurface {
@@ -69,9 +78,16 @@ export class FrameworkPermissionError extends MiniAppError {
   }
 }
 
-function normalizePermissions(input: FrameworkPermissionsInput): string[] | null {
+interface NormalizedDeclaration {
+  granted: string[];
+  /** Explicit `false` entries of a PlatformPermissions record declaration. */
+  denied: Set<string>;
+}
+
+function normalizePermissions(input: FrameworkPermissionsInput): NormalizedDeclaration | null {
   if (input === undefined || input === null) return null;
   const granted: string[] = [];
+  const denied = new Set<string>();
   const seen = new Set<string>();
   const push = (value: string) => {
     const permission = value.trim();
@@ -81,32 +97,41 @@ function normalizePermissions(input: FrameworkPermissionsInput): string[] | null
   };
   if (Array.isArray(input)) {
     for (const entry of input) push(String(entry ?? ""));
-    return granted;
+    return { granted, denied };
   }
   for (const [key, enabled] of Object.entries(input as Record<string, boolean | undefined>)) {
     if (enabled === true) push(key);
+    else if (enabled === false) {
+      const permission = key.trim();
+      if (permission) denied.add(permission);
+    }
   }
-  return granted;
+  return { granted, denied };
 }
 
 export function createPermissionsSurface(
   deps: PermissionsSurfaceDeps = {},
 ): FrameworkPermissionsSurface {
   // Re-read on every call: launch contexts can hydrate after boot.
-  const declared = (): string[] | null =>
+  const declared = (): NormalizedDeclaration | null =>
     normalizePermissions(
       typeof deps.permissions === "function" ? deps.permissions() : deps.permissions,
     );
 
   const has = (permission: string): boolean => {
-    const granted = declared();
-    if (granted === null) return true;
-    return granted.includes(String(permission ?? "").trim());
+    const declaration = declared();
+    if (declaration === null) return true;
+    const name = String(permission ?? "").trim();
+    if (declaration.granted.includes(name)) return true;
+    // Default-allow permissions stay granted under a present declaration
+    // unless it explicitly denies them (record entry of `false`).
+    if (deps.defaultAllow?.includes(name)) return !declaration.denied.has(name);
+    return false;
   };
 
   return {
     list() {
-      return declared() ?? [];
+      return declared()?.granted ?? [];
     },
 
     has,
