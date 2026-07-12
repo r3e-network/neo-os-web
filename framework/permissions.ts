@@ -15,7 +15,9 @@
  *   `require()` throws {@link FrameworkPermissionError} for anything not
  *   granted. Framework internals call `require()` (chain.invoke / write /
  *   invokeWithPayment / invokeMultiple and the mutating funds.* lanes →
- *   "invoke:primary", oracle request/dispatch → "oracle:request") so gating
+ *   "invoke:primary", oracle request/dispatch AND the app.game.reward TEE
+ *   session lanes (openSession / recordOp / replayOps — direct enclave
+ *   round-trips on the same oracle host) → "oracle:request") so gating
  *   happens once, centrally.
  */
 

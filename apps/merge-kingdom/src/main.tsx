@@ -238,7 +238,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -275,7 +275,7 @@ defineMiniApp({
         inputSyncFailed.set(true);
         obs.lastStatus.set("input-sync-failed");
         if (announce) {
-          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+          ctx.setError(error, "statusFailed");
         }
         return false;
       }
@@ -361,7 +361,7 @@ defineMiniApp({
         return true;
       } catch (error) {
         if (announce) {
-          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+          ctx.setError(error, "statusFailed");
         }
         return false;
       } finally {
@@ -393,8 +393,7 @@ defineMiniApp({
         obs.lastStatus.set("ready");
         ctx.setStatus(ctx.t("walletConnectedReady"), "success");
       } catch (error) {
-        const message = app.errors.messageOf(error, ctx.t("walletUnavailable"));
-        ctx.setStatus(message, "error");
+        ctx.setError(error, "walletUnavailable");
         throw error;
       } finally {
         isConnectingWallet.set(false);
@@ -480,7 +479,7 @@ defineMiniApp({
         if (definitelyNotBroadcast) {
           obs.gameStatus.set("idle");
           obs.lastStatus.set("failed");
-          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+          ctx.setError(error, "statusFailed");
           throw error;
         }
 
@@ -542,10 +541,7 @@ defineMiniApp({
       } catch (error) {
         inputSyncFailed.set(true);
         obs.lastStatus.set("input-sync-failed");
-        ctx.setStatus(
-          app.errors.messageOf(error, ctx.t("statusInputSyncFailed")),
-          "error",
-        );
+        ctx.setError(error, "statusInputSyncFailed");
         throw error;
       } finally {
         isMoving.set(false);
@@ -607,7 +603,7 @@ defineMiniApp({
         session = null;
         obs.gameStatus.set("unknown");
         obs.lastStatus.set("settlement-pending");
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
         throw error;
       } finally {
         obs.isSubmitting.set(false);
@@ -647,7 +643,7 @@ defineMiniApp({
         session = null;
         obs.gameStatus.set("unknown");
         obs.lastStatus.set("settlement-pending");
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
         throw error;
       } finally {
         isRecovering.set(false);

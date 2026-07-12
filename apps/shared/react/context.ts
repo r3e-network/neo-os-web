@@ -205,6 +205,14 @@ export interface MiniAppContextValue {
   setStatus: (msg: string, type: StatusType) => void;
   /** Clear the current status message */
   clearStatus: () => void;
+  /**
+   * One-liner error feedback (RFC P0-4): sugar for
+   * `setStatus(framework.errors.messageOf(error, t(fallbackKey)), "error")`
+   * so status-strip copy matches what `app.notify.error` shows for the same
+   * chain/RPC failure. `fallbackKey` is an i18n KEY resolved through the app
+   * translator.
+   */
+  setError: (error: unknown, fallbackKey?: string) => void;
   /** Shared MiniApp framework SDK */
   framework: MiniAppFramework;
   /** Register an action handler for operation panel buttons */

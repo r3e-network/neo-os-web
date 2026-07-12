@@ -2,13 +2,15 @@
 
 - **Date:** 2026-07-12
 - **Status:** IMPLEMENTED — P0-1..P0-7 + P1-2/P1-3/P1-7 landed (see §4 Status
-  column). Framework vitest 433/433 (34 files — 354 baseline + 79 new), tsc
+  column), plus the Lane 3 TEE fetcher-lane S11 gate (§7). Framework vitest
+  438/438 (34 files — 354 baseline + 84 new), tsc
   clean, apps/shared quick regression (mode-surface / defineMiniApp-services /
   game-guest-mode-adoption) 214/214 + miniapp-framework(-adoption) 12/12.
-  App migrations: all 6 per-batch migration sweeps landed. Remaining
-  follow-ups: finish the index.ts body split (`chain-surface.ts` / `funds.ts` /
-  `oracle-surface.ts` / `game-facade.ts`), wire `ctx.setError` in defineMiniApp
-  (apps/shared).
+  App migrations: all 6 per-batch migration sweeps landed. The index.ts body
+  split is complete (`chain-surface.ts` / `funds.ts` / `oracle-surface.ts` /
+  `game-facade.ts` — see the P0-1 row). Remaining follow-ups: extract the
+  small inline index.ts members (platform / state / db / actions / operations /
+  stats / achievements), ~~wire `ctx.setError` in defineMiniApp~~ (LANDED — see P0-4 row).
 - **Inputs:** `fw-evolution/census.md` (fleet usage census, 76 apps / 77 entries),
   `fw-evolution/internal-audit.md` (framework architecture audit),
   `fw-evolution/external-lessons.md` (WeChat / Telegram / CrazyGames SDK patterns)
@@ -745,10 +747,10 @@ To be committed as `framework/CONVENTIONS.md`; enforced in review and by the exp
 
 | Change | Framework-only | App migration | Apps touched | Status |
 |---|---|---|---|---|
-| P0-1 index.ts split + interface | ✅ | — | 0 | **LANDED (core)** — `types.ts` + explicit `MiniAppFramework` interface (factory annotated, excess-property-checked); step-0 safety net landed (shape-snapshot walk + achievements/db/stats/state.persisted/storage.hybrid/platform.host suites); `mode.ts`, `notify-surface.ts`, `storage-surface.ts`, `amounts-surface.ts` extracted (index.ts 2,588 → ~2,000). Remaining: `chain-surface.ts` / `funds.ts` / `oracle-surface.ts` / `game-facade.ts` extraction to hit the <400-line target. |
+| P0-1 index.ts split + interface | ✅ | — | 0 | **LANDED** — `types.ts` + explicit `MiniAppFramework` interface (factory annotated, excess-property-checked); step-0 safety net landed (shape-snapshot walk + achievements/db/stats/state.persisted/storage.hybrid/platform.host suites); all eight surface factories extracted verbatim in the credits.ts deps-injection style: `mode.ts`, `notify-surface.ts`, `storage-surface.ts`, `amounts-surface.ts`, `chain-surface.ts` (incl. arg builders + query wiring; named write policies moved to `internal/guards.ts`), `funds.ts` (incl. `FrameworkPrepaidActionError` / `revertKeyOf`, identity preserved via re-export), `oracle-surface.ts`, `game-facade.ts` (incl. the guarded reward-chain adapter + runner wiring). index.ts 2,588 → 912 (types + composition root + barrel); the <400 target is not reachable while the ~190-line back-compat re-export barrel and the remaining small inline members (platform / state / db / actions / operations / stats / achievements, ~290 lines — no homes named in §2) stay in index.ts — extracting those is the residual follow-up. Gates: framework vitest 433/433 + tsc clean after each extraction; apps/shared quick regression 214/214 + prepaid-error identity consumers (gov-merc / time-capsule / gasbox logic) 99/99. |
 | P0-2 guard middleware + singleFlight | ✅ | — | 0 | **LANDED** — `internal/guards.ts` `guardedWrite` adopted on chain/funds/oracle/aa async write lanes (ordering by construction, named exemption policies); `singleFlight` in utils/async-utils; `actions.run` drop-mode via singleFlight + dev-only warnings (drop + unknown key); `"aa"` S11 permission registered DEFAULT-ALLOW (explicit `{ aa: false }` opt-out). game.reward's sync-throwing guards kept inline (sync-throw semantics preserved). credits.spend kept its local join map (byte-identical; refactor optional). |
 | P0-3 `app.fmt` | surface | mechanical sweep | ~45 | **LANDED** (`fmt-surface.ts`, delegates to utils/format; new fleet-standard `clock`). App sweep landed with the migration batches. |
-| P0-4 `errors.messageOf` / `ctx.setError` | surface | regex-assisted sweep | 61 (232 sites) | **LANDED** (`errors-surface.ts` + `utils/errors.errorMessage` export; copy-convergence with notify.error locked by test). App sweep landed with the migration batches. `ctx.setError` published as an optional member on `MiniAppFrameworkContext`; the defineMiniApp (apps/shared) wiring is the remaining follow-up. |
+| P0-4 `errors.messageOf` / `ctx.setError` | surface | regex-assisted sweep | 61 (232 sites) | **LANDED** (`errors-surface.ts` + `utils/errors.errorMessage` export; copy-convergence with notify.error locked by test). App sweep landed with the migration batches. `ctx.setError` wiring **LANDED**: defineMiniApp/MiniAppRoot publishes `setError(error, fallbackKey?)` on the setup ctx + `MiniAppContextValue` and hands it to the framework ctx (`MiniAppFrameworkContext.setError`); routes through `framework.errors.messageOf` → `setStatus(…, "error")` (fireworks-wrapped lane), with a pre-init raw-message fallback via `utils/errors.errorMessage` (never crashes before framework construction). Pinned by `apps/shared/test/defineMiniApp-setError.test.tsx` (copy-convergence with notify.error, plain Error/string/fallbackKey paths, pre-init safety). Reference recipe migrated in 3 exemplars: color-clash, snake-bounty, merge-kingdom (`ctx.setStatus(app.errors.messageOf(e, ctx.t(k)), "error")` → `ctx.setError(e, k)`; non-"error"-type messageOf sites intentionally kept). |
 | P0-5 `wallet.onAccountChanged` | surface | per-site rewrite | 35 (43 sites) | **LANDED** (wallet.ts; identity diff, error-isolated handlers, `immediate` option). App sweep landed with the migration batches. |
 | P0-6 `chain.query` typed reads | surface | mechanical, hotspots first | 39–45 (342 sites) | **LANDED** (`chain-query.ts`; lazy single read, value-safe fallback lanes, `asAddress` via new `utils/neo.scriptHashToAddress`; `chain.read(spec)`/`enumerate` @deprecated; readRaw/readArray options typed `FrameworkReadOptions`). App sweep landed with the migration batches (hotspot-first; `raw()` escape hatch remains valid). |
 | P0-7 reward runner | surface | flagship migration, pilot color-clash | 11 | **LANDED** (`gamefi/reward-runner.ts` + `game.reward(config).runner(hooks)`; wallet-change reset via P0-5; standard actions; single-flighted start/resume/finalize/refresh). Pilot (color-clash) + game migration landed with the migration batches. |
@@ -805,3 +807,76 @@ build + the apps/shared suite; i18n (en+zh) and design-token governance apply to
 - **Refactor risk:** index.ts split. Mitigation: step-0 test suites for the exact gaps the audit
   verified (achievements/db/stats/state/hybrid/platform.host) + shape-snapshot test + one-surface-
   per-change discipline.
+
+## 7. TEE fetcher lane gating — S11 "oracle:request" on the reward session lanes (Lane 3) — **LANDED**
+
+**Problem.** The reward TEE session lanes (`app.game.reward(...).openSession / recordOp /
+replayOps`, threading `rewardOptions.fetcher`) hit the Morpheus oracle session host with NO
+manifest permission gate — they bypass `app.oracle`'s "oracle:request" gate; only the guest guard
+covered them. Every other side-effect lane on the reward surface (start / finalize / expire /
+withdrawCredit) already carries the S11 "invoke:primary" gate.
+
+### 7.1 Call-site enumeration (post-split — the factory files are authoritative)
+
+| Facade lane (`framework/game-facade.ts`) | SDK primitive (`gamefi/reward-game-sdk.ts`) | TEE client call (`logic/tee-session.ts`) | Network traffic | Guards before this change |
+|---|---|---|---|---|
+| `openSession` | `openRewardGameSession` | `teeSessionStart` | POST `/api/morpheus/session/start` | guest guard only |
+| `recordOp` | `recordRewardGameOp` | `teeSessionStep` (+ recovery replay retry) | POST `/api/morpheus/session/step` | guest guard only |
+| `replayOps` | `replayRewardGameOps` | `teeSessionStep` per op | POST `/api/morpheus/session/step` | guest guard only |
+| `finalize` | `finalizeRewardGame` | `teeSessionSealOpLog` | GET `/api/morpheus/oracle/public-key` + LOCAL encrypt (no session traffic), then the gated broadcast | guest guard + "invoke:primary" pre-gate |
+| `runner(hooks)` | delegates to the facade lanes above via its handle | — | — | covered transitively |
+| — | — | `teeSessionFinalizePreview` | POST `/api/morpheus/session/finalize` | ZERO framework/app callers (exported, unused) |
+
+The SDK primitives stay exported guard-free (the documented RFC escape hatch, same as
+start/expire); no app imports `logic/tee-session` or the primitives directly — all 9 TEE-session
+apps go through the facade, so the facade is the correct (and sufficient) gate point.
+
+### 7.2 Permission decision: reuse "oracle:request" (enforced, NOT default-allow)
+
+Weighed "TEE sessions are oracle traffic" (reuse) against "free / no-broadcast — a distinct trust
+lane" (new `tee:session`). Reuse wins:
+
+- **Same trust authority.** The session lanes are direct requests to the SAME Morpheus oracle
+  host as the `app.oracle` request/dispatch lanes; "may this app request oracle work?" is one
+  decision, and `permissions.ts` already documents "oracle:request" as the oracle-lane gate.
+- **Negligible over-grant.** Granting "oracle:request" additionally unlocks only the local
+  envelope builders (no side effects); `oracle.dispatch` still independently requires
+  "invoke:primary" through the `chain.write` lane.
+- **No new manifest vocabulary.** A `tee:session` permission would ship with zero live grantees
+  and force hosts/console/checklists to learn a fourth permission for what is functionally the
+  existing oracle lane.
+- **NOT default-allow (unlike "aa").** Fail-closed under a present declaration is the desired
+  shape here — see the back-compat table: the only manifests it denies are the pinned-empty
+  guest-only releases, whose entire gamefi lifecycle is ALREADY denied at start/finalize/expire/
+  withdrawCredit by "invoke:primary". The gate closes the residual ungated path
+  (`recoverActive` → `openSession`/`recordOp` reaches the enclave with no broadcast and hence no
+  invoke:primary check).
+
+### 7.3 Back-compat table
+
+| Fleet cohort | Facts (verified against the repo) | Effect of the gate |
+|---|---|---|
+| Hosts delivering NO permission declaration | every current launch lane; `require()` is a no-op | **Unchanged** (default-allow; pinned by test) |
+| The 9 pinned-empty TEE session games (aim-master, color-clash, curve-arrow, flappy-dash, game-2048, merge-kingdom, pet-potion, snake-bounty, sudoku) | `neo-manifest.json` `permissions: []` + `platform.transactions: false`; in-app manifest `gamePage.modes: { guest: true, gamefi: false }` → MiniAppRoot forces `mode.set("guest")` at mount, so the guest guard already blocks all three lanes in every real launch | **Deny — desired fail-closed**, unreachable in production (guest guard fires first); only bites a hypothetical gamefi flip that skips the manifest update, which "invoke:primary" already denies at start |
+| game.reward consumers WITHOUT the TEE session lanes (red-envelope, gas-lucky-pool — `['invoke:primary','read:blockchain']`, gamefi enabled for red-envelope) | never call openSession/recordOp/replayOps/runner | **Unaffected** |
+| Future re-enabled gamefi TEE games | must grant `"oracle:request"` alongside `"invoke:primary"` | **One line in the re-enable checklist** — consistent with how the S11 gates already work |
+
+### 7.4 Implementation + verification
+
+- `game-facade.ts`: `requireOracleRequest()` inline after `assertNotGuest()` on
+  openSession/recordOp/replayOps — standard guest→permission→call ordering, kept as INLINE
+  SYNC-THROW guards (the P0-2 documented game.reward exemption; `guardedWrite` would convert the
+  denial into a rejection and change un-awaited-call semantics). `finalize` deliberately does NOT
+  add the gate: its fetcher use is the oracle public-key READ (same endpoint as the ungated
+  `app.oracle.seal.publicKey` client) + local encryption; the broadcast stays the
+  "invoke:primary"-gated side effect (comment in code).
+- Docs: `permissions.ts` header, index.ts `app.permissions` JSDoc, and the
+  `FrameworkRewardGameSurface` method JSDoc now name the session-lane gate.
+- Tests (`framework/test/reward-permission-gate.test.ts`, +5): pinned-empty denial with ZERO
+  fetcher/wallet/read traffic on all three lanes; `['invoke:primary']`-only denial (the
+  re-enable-checklist gap); default-allow round-trip through the REAL tee-session client against
+  a mock session host; `["oracle:request"]`-alone grant works (free lane needs no
+  invoke:primary); guest guard fires before the permission gate on all three lanes.
+- Gates: framework vitest 438/438 (34 files) + tsc clean; apps/shared
+  `game-guest-mode-adoption` 205/205 + reward-game-sdk / mode-surface /
+  miniapp-framework(-adoption) spot-run 37/37.

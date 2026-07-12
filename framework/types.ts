@@ -1061,11 +1061,11 @@ export interface FrameworkRewardGameSurface<Op extends TeeSessionOp = TeeSession
   ): Promise<RewardGameProgressionState>;
   /** Pay/credit the entry and start a game (guest-guarded, S11 pre-gated). */
   start(difficulty: number): Promise<RewardGameStartResult>;
-  /** Open the TEE session for a started game. */
+  /** Open the TEE session for a started game (guest-guarded; requires "oracle:request" under a present declaration). */
   openSession(gameId: string, difficulty: number): Promise<RewardGameSession>;
-  /** Record one op on the TEE session (per-session serialized). */
+  /** Record one op on the TEE session (per-session serialized; guest-guarded, "oracle:request"-gated). */
   recordOp(session: RewardGameSession, op: Op): Promise<RewardGameStepResult<Op>>;
-  /** Replay a persisted op-log against the TEE (recovery lane). */
+  /** Replay a persisted op-log against the TEE (recovery lane; guest-guarded, "oracle:request"-gated). */
   replayOps(
     session: RewardGameSession,
     ops: readonly Op[],

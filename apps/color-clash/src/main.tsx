@@ -529,7 +529,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         obs.isDealing.set(false);
       }
@@ -567,7 +567,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -719,7 +719,7 @@ defineMiniApp({
           // No exact active-id proof is available; retain the original error.
         }
         obs.lastStatus.set("failed");
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         obs.isStarting.set(false);
       }
@@ -763,7 +763,7 @@ defineMiniApp({
           await applyObservedSettlement(snapshot);
         }
       } catch (error) {
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         isRecovering.set(false);
       }
@@ -803,7 +803,7 @@ defineMiniApp({
         // losing op would let a refresh replay only the successful prefix.
         applyVerifiedPress(view, color);
       } catch (error) {
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         pressInFlight = false;
         isPressing.set(false);
@@ -862,10 +862,7 @@ defineMiniApp({
           // A later Retry rebuilds the TEE session from the persisted op-log.
         }
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(
-          app.errors.messageOf(error, ctx.t("sessionRecoveryReady")),
-          "error",
-        );
+        ctx.setError(error, "sessionRecoveryReady");
       } finally {
         obs.isSubmitting.set(false);
       }
@@ -896,7 +893,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("settlementStillPending"), "info");
       } catch (error) {
         rewardGame.storage.save(gameId, persistedOps);
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       }
     });
 
