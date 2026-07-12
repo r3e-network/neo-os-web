@@ -538,12 +538,12 @@ export function EmbeddedDappSurface({
 
   const retryFrameLoad = () => setFrameAttempt((attempt) => attempt + 1);
   const showLoadFailure = showLoading && loadTimedOut && !frameLoaded;
-  // Automation Copilot is a first-party built-in whose gateway client reads
-  // the host session credential from same-origin storage. Keep that capability
-  // app-scoped; every other generic MiniApp stays on the opaque-origin policy.
-  const sandboxPolicy = appId === "miniapp-automation-copilot"
-    ? "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-    : "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox";
+  // Audit fix C-4: every miniapp iframe keeps the opaque-origin sandbox —
+  // allow-same-origin combined with allow-scripts would let a compromised
+  // bundle reach window.parent and the host's session storage. First-party
+  // apps that need a host credential (e.g. Automation Copilot's gateway
+  // client) must receive it through the host<->miniapp postMessage bridge,
+  // never via same-origin storage access.
 
   return (
     <section className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
@@ -582,7 +582,7 @@ export function EmbeddedDappSurface({
            first-party exception because its host automation gateway needs the
            existing signed-in session; the exception is keyed to its canonical
            app id and is not inherited by profiles or catalog apps. */
-        sandbox={sandboxPolicy}
+        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
       {showLoadFailure ? (
         <div
