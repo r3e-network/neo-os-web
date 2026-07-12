@@ -1,6 +1,4 @@
 import { createObservable, type Observable } from "./reactive";
-import { singleFlight } from "./utils/async-utils";
-import { extractTxid } from "./utils/transaction";
 import { createAmountSurface } from "./amounts-surface";
 import { createChainSurface } from "./chain-surface";
 import { createErrorsSurface } from "./errors-surface";
@@ -10,22 +8,20 @@ import { createGameFacade } from "./game-facade";
 import { AA_WRITE, guardedWrite } from "./internal/guards";
 import { createOracleSurface } from "./oracle-surface";
 import { createModeModule } from "./mode";
+import { createActionsSurface, createOperationsSurface } from "./actions-surface";
+import { createDbSurface, createStateSurface } from "./app-state";
+import { createAchievementsSurface, createStatsSurface } from "./stats-surface";
 import { createNotifyModule } from "./notify-surface";
+import { createPlatformSurface } from "./platform-surface";
 import { createStorageSurface } from "./storage-surface";
 import type {
-  AchievementDefinition,
-  FrameworkActionOptions,
   FrameworkAppMode,
   FrameworkAssetSymbol,
   FrameworkContractArg,
   FrameworkGuestLeaderboard,
-  FrameworkHost,
   FrameworkInvokeOptions,
   FrameworkModeSurface,
   FrameworkNotifyPolicy,
-  FrameworkOperationRunOptions,
-  FrameworkOperationState,
-  FrameworkSuccessParams,
   MiniAppFramework,
   MiniAppFrameworkContext,
   MiniAppFrameworkOptions,
@@ -54,27 +50,6 @@ import type { WalletSurfaceBalanceService } from "./wallet";
 // ───────────────────────────────────────────────────────────────────────────
 export * from "./types";
 
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function errorMessage(error: unknown, fallback = "error"): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
-  return fallback;
-}
-
-/**
- * Dev-only console warning (RFC P0-2): silent in production builds so the
- * drop-mode DX warnings never reach end users.
- */
-function devWarn(message: string): void {
-  const env = (import.meta as unknown as { env?: { PROD?: boolean } }).env;
-  if (env?.PROD) return;
-  console.warn(message);
-}
-
 export function createMiniAppFramework(
   ctx: MiniAppFrameworkContext,
   options: MiniAppFrameworkOptions = {},
@@ -91,22 +66,6 @@ export function createMiniAppFramework(
     chain.contractAddress ?? createObservable<string | null>(null);
   const notify = ctx.services.notify ?? {};
   const storagePrefix = options.storagePrefix ?? `neo:${appId}:`;
-  const actionHandlers = new Map<string, (...args: unknown[]) => Promise<unknown>>();
-  // Drop-mode single-flight for actions.run (RFC P0-2): a re-entrant run of
-  // the same key resolves `undefined` without running — exactly the previous
-  // in-flight Set semantics — now with a dev-visible warning on the drop.
-  const runActionFlight = singleFlight<
-    [key: string, handler: (...args: unknown[]) => Promise<unknown>, args: readonly unknown[]],
-    unknown
-  >(
-    (key) => key,
-    async (_key, handler, args) => handler(...args),
-    {
-      mode: "drop",
-      onDrop: (key) =>
-        devWarn(`[framework] actions.run("${key}") dropped — this action is already running`),
-    },
-  );
 
   // app.storage — extracted module (RFC P0-1 §2 step 5). `local`/`hybrid`
   // are also consumed by state.persisted / achievements / db.collection.
@@ -115,6 +74,11 @@ export function createMiniAppFramework(
     osStorage: () => os.storage,
   });
   const { local, hybrid } = storageSurface;
+
+  // app.state + app.db — extracted module (RFC P0-1 residual split): atoms
+  // registered on the ctx state record; collections over the hybrid lane.
+  const stateSurface = createStateSurface({ local, stateHost: ctx });
+  const dbSurface = createDbSurface({ hybrid });
 
   // app.notify + the S1/S2 toast wrappers — extracted module (RFC P0-1 §2
   // step 3). setStatus/t thread as live accessors so late ctx mutation keeps
@@ -293,17 +257,6 @@ export function createMiniAppFramework(
   // app.amount — extracted module (RFC P0-1 §2 step 9).
   const amount = createAmountSurface();
 
-  const operationState = <TResult>(key: string): FrameworkOperationState<TResult> => ({
-    key,
-    status: "idle",
-    txid: "",
-    error: "",
-    value: null,
-    startedAt: 0,
-    finishedAt: 0,
-    runId: 0,
-  });
-
   // ── app.mode: two-mode game surface + guest guard ──────────────────────────
   // Extracted module (RFC P0-1 §2 step 4): GUEST mode disables every
   // on-chain/oracle/reward WRITE lane (defense in depth); read-only lanes
@@ -340,6 +293,41 @@ export function createMiniAppFramework(
     write: (spec) => chainSurface.write(spec),
   });
 
+  // app.platform — extracted module (RFC P0-1 residual split): host detection,
+  // launch params, network info + Dora explorer links.
+  const platformSurface = createPlatformSurface({
+    appId,
+    launchContext: () => ctx.launchContext,
+  });
+
+  // app.actions + app.operations — extracted module (RFC P0-1 residual
+  // split): drop-mode single-flight action runner + keyed operation cells.
+  const actionsSurface = createActionsSurface({
+    isGuest: () => modeSurface.isGuest(),
+    notify: appNotify,
+    runWithNotify,
+    ensureWallet: () => chain.ensureWallet(),
+    registerAction: (key, handler) => ctx.registerAction?.(key, handler),
+  });
+  const operationsSurface = createOperationsSurface({ toastSuccess, notify });
+
+  // app.stats + app.achievements — extracted module (RFC P0-1 residual
+  // split): OS-board leaderboard glue (guest-namespaced) + OS badge helpers.
+  const statsSurface = createStatsSurface({
+    db: dbSurface,
+    address: chain.address,
+    ensureWallet: () => chain.ensureWallet(),
+    leaderboard: () => os.leaderboard,
+    mode: modeSurface,
+    isGuestBoardRow,
+  });
+  const achievementsSurface = createAchievementsSurface({
+    address: chain.address,
+    ensureWallet: () => chain.ensureWallet(),
+    local,
+    badge: () => os.badge,
+  });
+
   const framework: MiniAppFramework = {
     amount,
 
@@ -358,245 +346,25 @@ export function createMiniAppFramework(
      */
     errors: createErrorsSurface({ t: ctx.t }),
 
-    platform: {
-      appId,
-      launch: ctx.launchContext ?? {},
-      get host(): FrameworkHost {
-        const source = String(ctx.launchContext?.source ?? "").trim().toLowerCase();
-        if (source === "onegate") return "onegate";
-        if (typeof window !== "undefined" && window.parent !== window) return "miniapp-platform";
-        return "standalone";
-      },
-      get isOneGate() {
-        return this.host === "onegate";
-      },
-      get isMiniAppPlatform() {
-        return this.host === "miniapp-platform";
-      },
-      param(key: string, fallback = ""): string {
-        return ctx.launchContext?.params?.[key] ?? fallback;
-      },
-      /**
-       * Typed launch-param decode (RFC P1-7): field-name → coercer, invoked
-       * with the RAW param string (or undefined when absent).
-       */
-      params<T>(schema: { [K in keyof T]: (raw: string | undefined) => T[K] }): T {
-        const out = {} as T;
-        for (const key of Object.keys(schema) as Array<keyof T & string>) {
-          out[key] = schema[key](ctx.launchContext?.params?.[key]);
-        }
-        return out;
-      },
-      /**
-       * Sync network info from the launch context (default testnet). For the
-       * wallet-verified network use the async `chain.detectNetwork()`.
-       */
-      network(): { name: string; isMainnet: boolean } {
-        const name = String(ctx.launchContext?.network ?? "testnet").trim().toLowerCase() || "testnet";
-        return { name, isMainnet: name.includes("mainnet") };
-      },
-      /**
-       * Canonical Dora explorer links (RFC P1-7) — the platform host-app's
-       * URL scheme (`https://dora.coz.io/<kind>/neo3/<network>/<value>`),
-       * previously copy-pasted per app in utils/explorer.ts.
-       */
-      explorer: {
-        tx(txid: string): string {
-          const id = String(txid ?? "").trim();
-          if (!id) return "";
-          const segment = framework.platform.network().isMainnet ? "mainnet" : "testnet";
-          return `https://dora.coz.io/transaction/neo3/${segment}/${encodeURIComponent(id)}`;
-        },
-        address(address: string): string {
-          const value = String(address ?? "").trim();
-          if (!value) return "";
-          const segment = framework.platform.network().isMainnet ? "mainnet" : "testnet";
-          return `https://dora.coz.io/address/neo3/${segment}/${encodeURIComponent(value)}`;
-        },
-        contract(scriptHash: string): string {
-          const value = String(scriptHash ?? "").trim();
-          if (!value) return "";
-          const segment = framework.platform.network().isMainnet ? "mainnet" : "testnet";
-          return `https://dora.coz.io/contract/neo3/${segment}/${encodeURIComponent(value)}`;
-        },
-      },
-    },
+    /** app.platform — extracted module (RFC P0-1 residual split). */
+    platform: platformSurface,
 
-    state: {
-      atom<T>(key: string, initial: T): Observable<T> {
-        const value = createObservable(initial);
-        (ctx as { state?: Record<string, Observable> }).state ??= {};
-        (ctx as { state?: Record<string, Observable> }).state![key] = value;
-        return value;
-      },
-      persisted<T>(key: string, initial: T): Observable<T> {
-        const storageKey = `state/${key}`;
-        const value = createObservable(local.get<T>(storageKey, initial) as T);
-        value.subscribe(() => local.set(storageKey, value.get()));
-        (ctx as { state?: Record<string, Observable> }).state ??= {};
-        (ctx as { state?: Record<string, Observable> }).state![key] = value;
-        return value;
-      },
-      snapshot(values: Record<string, Observable>): Record<string, unknown> {
-        return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.get()]));
-      },
-    },
+    /** app.state — extracted module (RFC P0-1 residual split). */
+    state: stateSurface,
 
     storage: storageSurface,
 
-    db: {
-      collection<T extends Record<string, unknown>>(name: string) {
-        const prefix = `db/${name}/`;
-        return {
-          async get(id: string): Promise<T | null> {
-            return hybrid.get<T>(`${prefix}${id}`, null);
-          },
-          async set(id: string, value: T): Promise<void> {
-            await hybrid.set(`${prefix}${id}`, value);
-          },
-          async delete(id: string): Promise<void> {
-            await hybrid.delete(`${prefix}${id}`);
-          },
-          async list(limit = 100): Promise<T[]> {
-            const values = await hybrid.list(prefix, limit);
-            return Object.values(values).filter(isRecord) as T[];
-          },
-        };
-      },
-    },
+    /** app.db — extracted module (RFC P0-1 residual split). */
+    db: dbSurface,
 
-    actions: {
-      register<TArgs extends unknown[], TResult>(
-        key: string,
-        handler: (...args: TArgs) => TResult | Promise<TResult>,
-        actionOptions: FrameworkActionOptions<TResult> = {},
-      ): void {
-        const wrapped = async (...args: unknown[]) =>
-          framework.actions.run(key, ...(args as TArgs));
-        actionHandlers.set(key, async (...args: unknown[]) => {
-          // RFC P1-3 guestBlocked: the standard early-return guard — show the
-          // status copy and resolve undefined (never throw), exactly the
-          // hand-written `if (app.mode.isGuest()) { …; return; }` semantics.
-          if (actionOptions.guestBlocked && modeSurface.isGuest()) {
-            const statusKey =
-              typeof actionOptions.guestBlocked === "object"
-                ? actionOptions.guestBlocked.statusKey
-                : "guestModeBlocked";
-            appNotify.warn(statusKey);
-            return undefined;
-          }
-          try {
-            return await runWithNotify(
-              async () => handler(...(args as TArgs)),
-              actionOptions,
-            );
-          } catch (error) {
-            if (actionOptions.rethrow) throw error;
-            return undefined;
-          }
-        });
-        ctx.registerAction?.(key, wrapped);
-      },
-      /**
-       * The standard connectWallet body (RFC P1-3): ensureWallet → refresh
-       * fan-out (each loader error-isolated) → optional success toast.
-       * Re-entry collapses via the run lane's drop-mode single-flight.
-       */
-      registerConnectWallet(connectOptions: {
-        refresh?: Array<() => Promise<void>>;
-        successKey?: string;
-      } = {}): void {
-        framework.actions.register(
-          "connectWallet",
-          async () => {
-            const address = await chain.ensureWallet();
-            await Promise.all(
-              (connectOptions.refresh ?? []).map((load) =>
-                load().catch(() => undefined),
-              ),
-            );
-            return address;
-          },
-          connectOptions.successKey ? { successKey: connectOptions.successKey } : {},
-        );
-      },
-      /**
-       * Run a registered action. DROP-mode single-flight per key (RFC P0-2):
-       * a re-entrant run resolves `undefined` without running, and an unknown
-       * key resolves `undefined` — both now emit a DEV-ONLY console warning
-       * (production behavior unchanged) so the silent-undefined DX trap is
-       * visible while developing.
-       */
-      async run<TResult = unknown>(key: string, ...args: unknown[]): Promise<TResult | undefined> {
-        const handler = actionHandlers.get(key);
-        if (!handler) {
-          devWarn(`[framework] actions.run("${key}") — no action registered under this key`);
-          return undefined;
-        }
-        return await runActionFlight(key, handler, args) as TResult | undefined;
-      },
-    },
+    /** app.actions — extracted module (RFC P0-1 residual split). */
+    actions: actionsSurface,
 
     /** app.chain — extracted module (RFC P0-1 §2 step 6). */
     chain: chainSurface,
 
-    operations: {
-      create<TResult = unknown>(key: string) {
-        const state = createObservable<FrameworkOperationState<TResult>>(operationState<TResult>(key));
-        let runId = 0;
-        return {
-          state,
-          reset(): void {
-            state.set(operationState<TResult>(key));
-          },
-          async run<TValue extends TResult = TResult>(
-            work: () => Promise<TValue>,
-            runOptions: FrameworkOperationRunOptions<TValue> = {},
-          ): Promise<TValue | undefined> {
-            const nextRunId = runId + 1;
-            runId = nextRunId;
-            state.set({
-              ...state.get(),
-              status: "running",
-              txid: "",
-              error: "",
-              startedAt: Date.now(),
-              finishedAt: 0,
-              runId: nextRunId,
-            });
-            try {
-              const value = await work();
-              if (runId !== nextRunId) return value;
-              const txid = extractTxid(value);
-              state.set({
-                ...state.get(),
-                status: "succeeded",
-                txid,
-                error: "",
-                value,
-                finishedAt: Date.now(),
-              });
-              toastSuccess(runOptions.successKey, runOptions.successParams, value);
-              return value;
-            } catch (error) {
-              if (runId !== nextRunId) {
-                if (runOptions.rethrow) throw error;
-                return undefined;
-              }
-              state.set({
-                ...state.get(),
-                status: "failed",
-                error: errorMessage(error, runOptions.errorKey),
-                finishedAt: Date.now(),
-              });
-              notify.error?.(error, runOptions.errorKey);
-              if (runOptions.rethrow) throw error;
-              return undefined;
-            }
-          },
-        };
-      },
-    },
+    /** app.operations — extracted module (RFC P0-1 residual split). */
+    operations: operationsSurface,
 
     /** app.funds — extracted module (RFC P0-1 §2 step 7). */
     funds: fundsSurface,
@@ -654,60 +422,11 @@ export function createMiniAppFramework(
       write: (spec) => chainSurface.write(spec),
     }),
 
-    stats: {
-      async increment(key: string, by = 1, scope: "global" | "user" = "global"): Promise<number> {
-        const id = scope === "user" ? `${chain.address.get() || await chain.ensureWallet()}:${key}` : key;
-        const stats = framework.db.collection<{ value: number }>("stats");
-        const current = await stats.get(id);
-        const next = Number(current?.value ?? 0) + by;
-        await stats.set(id, { value: next });
-        return next;
-      },
-      leaderboard: {
-        /**
-         * Submit a score to the shared OS board.
-         *
-         * GUEST-MODE DESIGN (aligned with app.mode semantics): the OS board
-         * is an off-chain lane guests ARE allowed to use — that is exactly
-         * why app.mode.guestLeaderboard exists — so a guest submit is NOT a
-         * guarded write like chain/oracle lanes. Instead it is routed through
-         * the guest namespace (`<appId>:guest:<score>`, the same encoding as
-         * mode.guestLeaderboard.submit) so a guest run can never place an
-         * unprefixed score on the shared gamefi board. Cross-mode isolation
-         * is two-sided: `top()` below filters the guest namespace out, and
-         * mode.guestLeaderboard.get() is the guest read lane.
-         */
-        async submit(score: number | string): Promise<void> {
-          if (modeSurface.isGuest()) {
-            await modeSurface.guestLeaderboard.submit(score);
-            return;
-          }
-          await os.leaderboard?.submitScore(String(score));
-        },
-        async top(limit = 100): Promise<Array<{ user: string; score: string }>> {
-          const rows = (await os.leaderboard?.get(limit)) ?? [];
-          // Guest rows are namespaced (`<appId>:guest:<score>`) on the same
-          // OS board — never leak them into the non-guest board view
-          // (cross-mode isolation of app.mode.guestLeaderboard).
-          return rows.filter((row) => !isGuestBoardRow(row));
-        },
-      },
-    },
+    /** app.stats — extracted module (RFC P0-1 residual split). */
+    stats: statsSurface,
 
-    achievements: {
-      async awardOnce(definition: AchievementDefinition, user?: string): Promise<{ awarded: boolean }> {
-        const recipient = user || chain.address.get() || await chain.ensureWallet();
-        const marker = `achievements/awarded/${recipient}/${definition.id}`;
-        if (local.get<boolean>(marker, false)) return { awarded: false };
-        await os.badge?.define(definition.id, definition.name, definition.criteria);
-        await os.badge?.award(definition.id, recipient);
-        local.set(marker, true);
-        return { awarded: true };
-      },
-      async list(user?: string): Promise<unknown[]> {
-        return os.badge?.list(user) ?? [];
-      },
-    },
+    /** app.achievements — extracted module (RFC P0-1 residual split). */
+    achievements: achievementsSurface,
 
     /** app.game — extracted module (RFC P0-1 §2 step 10). */
     game: createGameFacade({
@@ -757,6 +476,16 @@ export { createOracleSurface } from "./oracle-surface";
 export type { OracleSurfaceDeps } from "./oracle-surface";
 export { createGameFacade } from "./game-facade";
 export type { GameFacadeDeps } from "./game-facade";
+
+// RFC P0-1 residual split — the small inline members extracted from index.ts
+export { createPlatformSurface } from "./platform-surface";
+export type { PlatformSurfaceDeps } from "./platform-surface";
+export { createDbSurface, createStateSurface } from "./app-state";
+export type { DbSurfaceDeps, StateSurfaceDeps } from "./app-state";
+export { createActionsSurface, createOperationsSurface } from "./actions-surface";
+export type { ActionsSurfaceDeps, OperationsSurfaceDeps } from "./actions-surface";
+export { createAchievementsSurface, createStatsSurface } from "./stats-surface";
+export type { AchievementsSurfaceDeps, StatsSurfaceDeps } from "./stats-surface";
 
 // RFC P0-3 app.fmt
 export { createFmtSurface, formatClock } from "./fmt-surface";
