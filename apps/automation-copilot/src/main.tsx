@@ -60,7 +60,7 @@ defineMiniApp({
         );
       } catch (error) {
         ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("triggerFailed"),
+          ctx.framework.errors.messageOf(error, ctx.t("triggerFailed")),
           "error",
         );
       }

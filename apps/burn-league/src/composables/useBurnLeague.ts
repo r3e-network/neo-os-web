@@ -479,51 +479,53 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       return false;
     }
     try {
+      // RFC P0-6: typed read lane — the `as*` decoders keep the exact
+      // parseBigInt-based coercions (malformed values decode to 0 / 0n);
+      // read errors still land in this try/catch.
       const [
-        seasonRaw,
-        endRaw,
-        poolRaw,
-        countRaw,
-        topBurnerRaw,
-        topBurnedRaw,
-        durationRaw,
-        minBurnRaw,
-        maxBurnRaw,
+        seasonIdValue,
+        seasonEndValue,
+        poolFixed8,
+        burnCountValue,
+        topBurnerValue,
+        topBurnedFixed8,
+        durationMs,
+        minBurnFixed8,
+        maxBurnFixed8,
       ] = await Promise.all([
-        app.chain.readRaw("currentSeason", []),
-        app.chain.readRaw("seasonEnd", []),
-        app.chain.readRaw("rewardPool", []),
-        app.chain.readRaw("burnCount", []),
-        app.chain.readRaw("topBurner", []),
-        app.chain.readRaw("topBurned", []),
-        app.chain.readRaw("seasonDuration", []),
-        app.chain.readRaw("minBurn", []),
-        app.chain.readRaw("maxBurn", []),
+        app.chain.query("currentSeason", []).asInt(),
+        app.chain.query("seasonEnd", []).asInt(),
+        app.chain.query("rewardPool", []).asBigInt(),
+        app.chain.query("burnCount", []).asInt(),
+        app.chain.query("topBurner", []).asString(),
+        app.chain.query("topBurned", []).asBigInt(),
+        app.chain.query("seasonDuration", []).asInt(),
+        app.chain.query("minBurn", []).asBigInt(),
+        app.chain.query("maxBurn", []).asBigInt(),
       ]);
 
-      seasonId.set(Number(parseBigInt(seasonRaw)));
-      seasonEndMs.set(Number(parseBigInt(endRaw)));
+      seasonId.set(seasonIdValue);
+      seasonEndMs.set(seasonEndValue);
       // Disclose the season length so a first burner knows how long the round
       // they open will run (live mainnet value is currently 120s).
-      const durationMs = Number(parseBigInt(durationRaw));
       seasonDurationMs.set(durationMs);
 
       // Bind the burn bounds to the live contract values (base units → whole
       // GAS), keeping the literals when a read returns a non-positive value.
-      const minGas = fromBaseUnits(parseBigInt(minBurnRaw));
-      const maxGas = fromBaseUnits(parseBigInt(maxBurnRaw));
+      const minGas = fromBaseUnits(minBurnFixed8);
+      const maxGas = fromBaseUnits(maxBurnFixed8);
       if (minGas > 0) minBurnGas.set(minGas);
       if (maxGas > 0) maxBurnGas.set(maxGas);
 
-      const poolGas = fromBaseUnits(parseBigInt(poolRaw));
+      const poolGas = fromBaseUnits(poolFixed8);
       // TotalBurned() == RewardPool() on the contract — both are the season pool.
       totalBurned.set(poolGas);
       rewardPool.set(poolGas);
-      burnCount.set(Number(parseBigInt(countRaw)));
+      burnCount.set(burnCountValue);
 
-      const topAddr = String(topBurnerRaw ?? "").trim();
+      const topAddr = topBurnerValue.trim();
       topBurnerAddress.set(isZeroAddress(topAddr) ? "" : topAddr);
-      topBurnedGas.set(fromBaseUnits(parseBigInt(topBurnedRaw)));
+      topBurnedGas.set(fromBaseUnits(topBurnedFixed8));
 
       // The connected player's CURRENT-season total via userBurned(player) and
       // their unused prepaid burn-credit via creditOf(player) (the withdraw
@@ -532,19 +534,19 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       const myHash = myAddr ? addressToScriptHash(myAddr) || null : null;
       if (myHash) {
         try {
-          const userRaw = await app.chain.readRaw("userBurned", [
-            app.chain.arg.hash160(myHash),
-          ]);
-          userBurned.set(fromBaseUnits(parseBigInt(userRaw)));
+          const userFixed8 = await app.chain
+            .query("userBurned", [app.chain.arg.hash160(myHash)])
+            .asBigInt();
+          userBurned.set(fromBaseUnits(userFixed8));
         } catch (e) {
           console.warn("[useBurnLeague] userBurned read failed:", errorMessage(e));
           userBurned.set(0);
         }
         try {
-          const creditRaw = await app.chain.readRaw("creditOf", [
-            app.chain.arg.hash160(myHash),
-          ]);
-          prepaidCredit.set(fromFixed8(parseBigInt(creditRaw)));
+          const creditFixed8 = await app.chain
+            .query("creditOf", [app.chain.arg.hash160(myHash)])
+            .asBigInt();
+          prepaidCredit.set(fromFixed8(creditFixed8));
         } catch (e) {
           console.warn("[useBurnLeague] creditOf read failed:", errorMessage(e));
         }

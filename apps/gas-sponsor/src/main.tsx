@@ -37,7 +37,7 @@ defineMiniApp({
         publishOutcome();
         return result;
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("actionFailed");
+        const message = ctx.framework.errors.messageOf(error, ctx.t("actionFailed"));
         ctx.setStatus(message || ctx.t("actionFailed"), "error");
         return null;
       }

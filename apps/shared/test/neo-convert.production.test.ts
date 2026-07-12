@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 
 import type { MiniAppFramework } from "../../shared/react";
-import { createObservable } from "../react/context";
+import { createObservable, type Observable } from "../react/context";
 import { useConverter } from "../../neo-convert/src/composables/useConverter";
 import { useNeoConvert } from "../../neo-convert/src/composables/useNeoConvert";
 import {
@@ -32,6 +32,33 @@ function converterWithCopy(copy: (text: string) => Promise<boolean>) {
   );
   disposables.push(converter.dispose);
   return converter;
+}
+
+/**
+ * Mock of the framework's wallet.onAccountChanged identity-diff hook (RFC
+ * P0-5), mirroring framework/wallet.ts semantics against the test-local
+ * address observable: normalize (trim, "" → null), fire only on actual
+ * identity change, return the unsubscribe. Added when useNeoConvert migrated
+ * from the hand-rolled `wallet.observe().subscribe` block to the hook — the
+ * hand-built wallet mocks below gain the member the composable now calls.
+ */
+function onAccountChangedMock(address: Observable<string | null>) {
+  return (
+    handler: (change: { previous: string | null; current: string | null }) => void,
+  ): (() => void) => {
+    const normalize = (value: string | null | undefined): string | null => {
+      const trimmed = String(value ?? "").trim();
+      return trimmed ? trimmed : null;
+    };
+    let last = normalize(address.get());
+    return address.subscribe(() => {
+      const next = normalize(address.get());
+      if (next === last) return;
+      const previous = last;
+      last = next;
+      handler({ previous, current: next });
+    });
+  };
 }
 
 describe("neo-convert production invariants", () => {
@@ -146,6 +173,7 @@ describe("neo-convert production invariants", () => {
         address: () => address.get(),
         isConnected: () => Boolean(address.get()),
         observe: () => address,
+        onAccountChanged: onAccountChangedMock(address),
         raw,
         observeBalance: () => ({ balance: createObservable("0"), refresh: vi.fn(), cleanup: vi.fn() }),
       },
@@ -171,6 +199,7 @@ describe("neo-convert production invariants", () => {
         address: () => currentAddress,
         isConnected: () => Boolean(currentAddress),
         observe: () => address,
+        onAccountChanged: onAccountChangedMock(address),
         raw,
         observeBalance: () => ({ balance: createObservable("0"), refresh: vi.fn(), cleanup: vi.fn() }),
       },
@@ -202,6 +231,7 @@ describe("neo-convert production invariants", () => {
         address: () => currentAddress,
         isConnected: () => Boolean(currentAddress),
         observe: () => address,
+        onAccountChanged: onAccountChangedMock(address),
         raw,
         observeBalance: () => ({ balance: createObservable("0"), refresh: vi.fn(), cleanup: vi.fn() }),
       },
@@ -237,6 +267,7 @@ describe("neo-convert production invariants", () => {
         address: () => address.get(),
         isConnected: () => true,
         observe: () => address,
+        onAccountChanged: onAccountChangedMock(address),
         raw,
         observeBalance: () => ({ balance: createObservable("0"), refresh: vi.fn(), cleanup: vi.fn() }),
       },

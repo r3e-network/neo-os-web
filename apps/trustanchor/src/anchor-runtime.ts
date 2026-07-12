@@ -555,7 +555,7 @@ export function createAnchorRuntime(
       if (disposed || epoch !== loadEpoch) return;
       readStatus.set(classifyBindingError(error));
       readError.set(t(errorKey(error)));
-      diagnosticError.set(error instanceof Error ? error.message : String(error));
+      diagnosticError.set(app.errors.messageOf(error));
       stats.set(null);
       user.set(null);
     } finally {
@@ -604,7 +604,7 @@ export function createAnchorRuntime(
       try {
         outcome = await transactionReader(record.network, record.txid);
       } catch (error) {
-        diagnosticError.set(error instanceof Error ? error.message : String(error));
+        diagnosticError.set(app.errors.messageOf(error));
         actionStatus.set(t("transactionPending"));
         return { status: "pending" as const, record };
       }
@@ -624,7 +624,7 @@ export function createAnchorRuntime(
       try {
         eventMatched = outcome.notifications.some((notification) => notificationMatches(record, notification));
       } catch (error) {
-        diagnosticError.set(error instanceof Error ? error.message : String(error));
+        diagnosticError.set(app.errors.messageOf(error));
       }
       if (!eventMatched) {
         clearPending();
@@ -652,7 +652,7 @@ export function createAnchorRuntime(
         stats.set(binding.stats);
         user.set(latest);
       } catch (error) {
-        diagnosticError.set(error instanceof Error ? error.message : String(error));
+        diagnosticError.set(app.errors.messageOf(error));
         actionStatus.set(t("transactionReadbackPending"));
         return { status: "pending" as const, record };
       }
@@ -751,7 +751,7 @@ export function createAnchorRuntime(
         }
       } catch (error) {
         if (pendingTransaction.get()) {
-          diagnosticError.set(error instanceof Error ? error.message : String(error));
+          diagnosticError.set(app.errors.messageOf(error));
           actionStatus.set(t("transactionPending"));
           return { txid: pendingTransaction.get()?.txid ?? "", confirmed: false };
         }
@@ -785,7 +785,7 @@ export function createAnchorRuntime(
       const friendly = t(key);
       actionError.set(friendly);
       actionStatus.set(friendly);
-      diagnosticError.set(error instanceof Error ? error.message : String(error));
+      diagnosticError.set(app.errors.messageOf(error));
       throw new Error(friendly);
     } finally {
       submitting.set(false);
@@ -805,8 +805,8 @@ export function createAnchorRuntime(
     }
   }
 
-  const stopAddress = app.chain.address.subscribe(() => {
-    walletAddress.set(app.chain.address.get() ?? "");
+  const stopAddress = app.wallet.onAccountChanged(({ current }) => {
+    walletAddress.set(current ?? "");
     void loadAll();
   });
 

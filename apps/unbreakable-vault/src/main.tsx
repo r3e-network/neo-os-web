@@ -55,7 +55,7 @@ defineMiniApp({
         } catch (error) {
           writeReady.set(false);
           writeBlockReason.set(
-            error instanceof Error ? error.message : t("writeUnavailable"),
+            ctx.framework.errors.messageOf(error, t("writeUnavailable")),
           );
         }
         return true;

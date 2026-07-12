@@ -80,7 +80,7 @@ defineMiniApp({
           }
           return result;
         } catch (error) {
-          const message = error instanceof Error ? error.message : ctx.t("registrationFailed");
+          const message = ctx.framework.errors.messageOf(error, ctx.t("registrationFailed"));
           ctx.setStatus(message, "error");
           throw error;
         }

@@ -137,13 +137,13 @@ defineMiniApp({
 
     let session: RewardGameSession | null = null;
     let pressInFlight = false;
-    let walletIdentity = String(app.chain.address.get() ?? "").trim().toLowerCase();
 
-    const stopWalletSync = app.chain.address.subscribe(() => {
-      const nextIdentity = String(app.chain.address.get() ?? "").trim().toLowerCase();
-      const identityChanged = Boolean(walletIdentity) && nextIdentity !== walletIdentity;
-      walletIdentity = nextIdentity;
-      if (!identityChanged || app.mode.isGuest()) return;
+    // RFC P0-5: identity-diff account hook — fires only when the normalized
+    // address actually changes (handler errors are isolated by the framework).
+    // The previous-identity guard keeps the original "first connect is not a
+    // change" semantics.
+    const stopWalletSync = app.wallet.onAccountChanged(({ previous }) => {
+      if (!previous || app.mode.isGuest()) return;
       session = null;
       pressInFlight = false;
       if (
@@ -283,10 +283,10 @@ defineMiniApp({
     };
     const contractBindingIsExact = (): boolean =>
       normalizeContractHash(app.chain.contractAddress.get()) === COLOR_CLASH_TESTNET_CONTRACT;
+    // RFC P0-6: typed read lane — `asBigInt()` keeps the parseBigInt-to-0n
+    // decode semantics; read errors still propagate to the caller.
     const readActiveGameId = async (playerHash: string): Promise<string> => String(
-      parseBigInt(
-        await app.chain.readRaw("activeGameOf", [app.chain.arg.hash160(playerHash)]),
-      ) ?? "0",
+      await app.chain.query("activeGameOf", [app.chain.arg.hash160(playerHash)]).asBigInt(),
     );
     const readGame = (gameId: string): Promise<unknown> =>
       app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
@@ -529,7 +529,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         obs.isDealing.set(false);
       }
@@ -567,7 +567,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -719,7 +719,7 @@ defineMiniApp({
           // No exact active-id proof is available; retain the original error.
         }
         obs.lastStatus.set("failed");
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         obs.isStarting.set(false);
       }
@@ -763,7 +763,7 @@ defineMiniApp({
           await applyObservedSettlement(snapshot);
         }
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         isRecovering.set(false);
       }
@@ -803,7 +803,7 @@ defineMiniApp({
         // losing op would let a refresh replay only the successful prefix.
         applyVerifiedPress(view, color);
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         pressInFlight = false;
         isPressing.set(false);
@@ -863,7 +863,7 @@ defineMiniApp({
         }
         obs.lastStatus.set("deal-pending");
         ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("sessionRecoveryReady"),
+          app.errors.messageOf(error, ctx.t("sessionRecoveryReady")),
           "error",
         );
       } finally {
@@ -896,7 +896,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("settlementStillPending"), "info");
       } catch (error) {
         rewardGame.storage.save(gameId, persistedOps);
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       }
     });
 
@@ -990,7 +990,7 @@ defineMiniApp({
             if (obs.activeGameId.get() !== "0") obs.gameStatus.set("unknown");
             obs.lastStatus.set("settlement-pending");
             ctx.setStatus(
-              error instanceof Error ? error.message : ctx.t("statusRecoveryUnavailable"),
+              app.errors.messageOf(error, ctx.t("statusRecoveryUnavailable")),
               "warning",
             );
           }

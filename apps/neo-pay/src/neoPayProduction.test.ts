@@ -217,6 +217,32 @@ function productionApp(options: {
       },
     },
     events: { waitFor, value: eventValue },
+    // Harness mirror of the framework surfaces the composable adopted in the
+    // RFC migration (wallet.onAccountChanged identity diff + errors.messageOf
+    // Error-message extraction). No assertion depends on these bodies beyond
+    // the framework-documented semantics.
+    wallet: {
+      onAccountChanged: (
+        handler: (change: { previous: string | null; current: string | null }) => void,
+      ) => {
+        let last = address.get() || null;
+        return address.subscribe(() => {
+          const next = address.get() || null;
+          if (next === last) return;
+          const previous = last;
+          last = next;
+          handler({ previous, current: next });
+        });
+      },
+    },
+    errors: {
+      messageOf: (error: unknown, fallback?: string) =>
+        error instanceof Error && error.message
+          ? error.message
+          : typeof error === "string" && error
+            ? error
+            : fallback ?? "error",
+    },
   } as unknown as MiniAppFramework;
   return { app, address, persisted, storage, readArray, readRaw, invokeMultiple, invoke, waitFor };
 }

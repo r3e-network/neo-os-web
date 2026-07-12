@@ -250,7 +250,7 @@ defineMiniApp({
       return result.ok;
     });
 
-    const stopWalletSync = ctx.framework.wallet.observe().subscribe(() => {
+    const stopWalletSync = ctx.framework.wallet.onAccountChanged(() => {
       refreshGeneration += 1;
       clearWalletSnapshot();
       wallet.clearRecoveryView();

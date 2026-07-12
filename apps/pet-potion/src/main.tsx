@@ -139,8 +139,10 @@ defineMiniApp({
     let session: RewardGameSession | null = null;
     let walletIdentity = String(app.chain.address.get() ?? "").trim().toLowerCase();
 
-    const stopWalletSync = app.chain.address.subscribe(() => {
-      const address = String(app.chain.address.get() ?? "").trim().toLowerCase();
+    // RFC P0-5: identity-diff account hook (fires only on real identity
+    // changes; handler errors are isolated by the framework).
+    const stopWalletSync = app.wallet.onAccountChanged(({ current }) => {
+      const address = String(current ?? "").trim().toLowerCase();
       const identityChanged = Boolean(walletIdentity && address && walletIdentity !== address);
       walletIdentity = address;
       walletConnected.set(Boolean(address));
@@ -352,7 +354,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set("deal-pending");
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         obs.isDealing.set(false);
       }
@@ -474,7 +476,7 @@ defineMiniApp({
         return true;
       } catch (error) {
         if (announce) {
-          ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         }
         return false;
       } finally {
@@ -520,7 +522,7 @@ defineMiniApp({
         await recoverCurrentGame(undefined, false);
         ctx.setStatus(ctx.t("walletConnected"), "success");
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         isConnectingWallet.set(false);
       }
@@ -570,7 +572,7 @@ defineMiniApp({
           ctx.setStatus(ctx.t("statusRecovered"), "info");
         } else {
           obs.lastStatus.set("failed");
-          ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         }
       } finally {
         obs.isStarting.set(false);
@@ -618,7 +620,7 @@ defineMiniApp({
       } catch (error) {
         inputSyncFailed.set(true);
         obs.lastStatus.set("input-sync-failed");
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusInputSyncFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusInputSyncFailed")), "error");
       } finally {
         isActing.set(false);
       }
@@ -679,7 +681,7 @@ defineMiniApp({
         session = null;
         obs.gameStatus.set("unknown");
         obs.lastStatus.set("settlement-pending");
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         obs.isSubmitting.set(false);
       }
@@ -714,7 +716,7 @@ defineMiniApp({
         }
         await finishFromSnapshot(gameId, snapshot);
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         isRecovering.set(false);
       }

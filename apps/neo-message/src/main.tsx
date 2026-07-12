@@ -369,7 +369,7 @@ defineMiniApp({
           ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
         } catch (error) {
           if (disposed || !addressesEqual(address.get(), who)) return;
-          const message = error instanceof Error ? error.message : ctx.t("error");
+          const message = app.errors.messageOf(error, ctx.t("error"));
           lastStatus.set(message);
           ctx.setStatus(message, "error");
         }
@@ -492,7 +492,7 @@ defineMiniApp({
           lastStatus.set(ctx.t("statusInboxLoaded"));
           ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
         } catch (e) {
-          const msg = e instanceof Error ? e.message : ctx.t("error");
+          const msg = app.errors.messageOf(e, ctx.t("error"));
           lastStatus.set(msg);
           ctx.setStatus(msg, "error");
         }
@@ -607,7 +607,7 @@ defineMiniApp({
             ? ctx.t("statusSendPending")
             : e instanceof Error && e.message === EVM_ACCOUNT_CHANGED_ERROR
               ? ctx.t("errorWalletChanged")
-              : e instanceof Error ? e.message : ctx.t("statusFailed");
+              : app.errors.messageOf(e, ctx.t("statusFailed"));
           lastStatus.set(msg);
           ctx.setStatus(msg, "error");
           failure = { error: e };
@@ -671,7 +671,7 @@ defineMiniApp({
           lastStatus.set(recoveryStatus);
           ctx.setStatus(recoveryStatus, recoveryCleared ? "success" : "info");
         } catch (error) {
-          const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+          const message = app.errors.messageOf(error, ctx.t("statusFailed"));
           lastStatus.set(message);
           ctx.setStatus(message, "error");
         }
@@ -707,7 +707,7 @@ defineMiniApp({
         lastStatus.set(ctx.t("pendingCleared"));
         ctx.setStatus(ctx.t("pendingCleared"), "info");
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         lastStatus.set(message);
         ctx.setStatus(message, "error");
       }
@@ -787,7 +787,7 @@ defineMiniApp({
         } catch (e) {
           const m = e instanceof Error && e.message === EVM_ACCOUNT_CHANGED_ERROR
             ? ctx.t("errorWalletChanged")
-            : e instanceof Error ? e.message : ctx.t("statusFailed");
+            : app.errors.messageOf(e, ctx.t("statusFailed"));
           lastStatus.set(m);
           ctx.setStatus(m, "error");
         }
@@ -923,7 +923,7 @@ defineMiniApp({
         } catch (e) {
           const m = e instanceof Error && e.message === EVM_ACCOUNT_CHANGED_ERROR
             ? ctx.t("errorWalletChanged")
-            : e instanceof Error ? e.message : ctx.t("statusFailed");
+            : app.errors.messageOf(e, ctx.t("statusFailed"));
           lastStatus.set(m);
           ctx.setStatus(m, "error");
         }
@@ -944,7 +944,7 @@ defineMiniApp({
           ctx.setStatus(ctx.t("statusInboxLoaded"), "success");
         } catch (e) {
           pageLimit.set(previousLimit);
-          const msg = e instanceof Error ? e.message : ctx.t("error");
+          const msg = app.errors.messageOf(e, ctx.t("error"));
           lastStatus.set(msg);
           ctx.setStatus(msg, "error");
         }
@@ -996,7 +996,7 @@ defineMiniApp({
               if (await refreshLists(addr) === "stale") return;
               lastStatus.set(ctx.t("statusInboxLoaded"));
             } catch (error) {
-              const message = error instanceof Error ? error.message : ctx.t("error");
+              const message = app.errors.messageOf(error, ctx.t("error"));
               lastStatus.set(message);
               ctx.setStatus(message, "error");
             }

@@ -62,8 +62,9 @@ defineMiniApp({
 
     envelope.setAddress(app.chain.address.get() ?? null);
     const isConnectingWallet = createObservable(false);
-    const stopAddressSync = app.chain.address.subscribe(() => {
-      envelope.setAddress(app.chain.address.get() ?? null);
+    // RFC P0-5: identity-diff account hook (fires only on real identity changes).
+    const stopAddressSync = app.wallet.onAccountChanged(({ current }) => {
+      envelope.setAddress(current);
     });
 
     // ── Guest (free / local) mode ─────────────────────────────────────────────

@@ -169,17 +169,16 @@ defineMiniApp({
     const refreshBalances = async (): Promise<void> => {
       if (app.mode.isGuest()) return;
       try {
-        poolFree.set(fromFixed8(parseBigInt(await app.chain.readRaw("freePool", []))));
+        poolFree.set(fromFixed8(await app.chain.query("freePool", []).asBigInt()));
       } catch {
         /* keep the previous value — reads are best-effort */
       }
       const playerHash = playerScriptHash();
       if (!playerHash) return;
       try {
-        const raw = await app.chain.readRaw("creditOf", [
-          app.chain.arg.hash160(playerHash),
-        ]);
-        credit.set(fromFixed8(parseBigInt(raw)));
+        credit.set(fromFixed8(
+          await app.chain.query("creditOf", [app.chain.arg.hash160(playerHash)]).asBigInt(),
+        ));
       } catch {
         /* keep the previous value */
       }
@@ -317,7 +316,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("statusDealt"), "success");
         return true;
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         lastStatus.set(ctx.t("statusDealPending"));
         ctx.setStatus(message, "error");
         return false;
@@ -462,13 +461,9 @@ defineMiniApp({
         let gameId =
           result.event != null ? String(parseBigInt(eventStateValue(result.event, 0)) ?? "") : "";
         if (!gameId || gameId === "0") {
-          gameId = String(
-            parseBigInt(
-              await app.chain.readRaw("activeGameOf", [
-                app.chain.arg.hash160(playerHash),
-              ]),
-            ) ?? "0",
-          );
+          gameId = (
+            await app.chain.query("activeGameOf", [app.chain.arg.hash160(playerHash)]).asBigInt()
+          ).toString();
         }
         if (!gameId || gameId === "0") throw new Error(ctx.t("statusFailed"));
         activeGameId.set(gameId);
@@ -488,7 +483,7 @@ defineMiniApp({
         void sealAndBind(gameId, difficulty);
         return result;
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         lastStatus.set(message);
         ctx.setStatus(message, "error");
         throw error;
@@ -548,7 +543,7 @@ defineMiniApp({
         }
       } catch (error) {
         inputSyncFailed.set(true);
-        const message = error instanceof Error ? error.message : ctx.t("statusInputSyncFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusInputSyncFailed"));
         lastStatus.set(ctx.t("statusInputSyncFailed"));
         ctx.setStatus(message, "error");
         throw error;
@@ -574,7 +569,7 @@ defineMiniApp({
         lastStatus.set(ctx.t("statusUndoUsed", { pct: String(100 - 30 * undos) }));
         ctx.setStatus(lastStatus.get(), "info");
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         ctx.setStatus(message, "error");
         throw error;
       } finally {
@@ -621,7 +616,7 @@ defineMiniApp({
         await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
         return result;
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         lastStatus.set(message);
         ctx.setStatus(message, "error");
         throw error;
@@ -657,7 +652,7 @@ defineMiniApp({
         ctx.setStatus(ctx.t("statusExpired"), "info");
         await refreshBalances();
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         ctx.setStatus(message, "error");
         throw error;
       }
@@ -741,13 +736,9 @@ defineMiniApp({
         const playerHash = playerScriptHash();
         if (playerHash) {
           try {
-            const active = String(
-              parseBigInt(
-                await app.chain.readRaw("activeGameOf", [
-                  app.chain.arg.hash160(playerHash),
-                ]),
-              ) ?? "0",
-            );
+            const active = (
+              await app.chain.query("activeGameOf", [app.chain.arg.hash160(playerHash)]).asBigInt()
+            ).toString();
             if (active !== "0") {
               activeGameId.set(active);
               const game = await app.chain.readRaw("getGame", [

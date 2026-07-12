@@ -37,8 +37,8 @@ defineMiniApp({
 
     // The wallet can connect or switch accounts after mount, so re-propagate the
     // address and reload stake/bids/rewards whenever it changes.
-    const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
-      pool.setAddress(ctx.framework.wallet.address() ?? "");
+    const stopAddressSync = ctx.framework.wallet.onAccountChanged(({ current }) => {
+      pool.setAddress(current ?? "");
       void pool.loadData();
     });
 

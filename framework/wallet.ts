@@ -71,6 +71,14 @@ export interface WalletSurfaceDeps {
   events?: WalletSurfaceEvents;
 }
 
+/** One identity change delivered by {@link createWalletSurface}.onAccountChanged. */
+export interface FrameworkAccountChange {
+  /** Address before the change; `null` when nothing was connected. */
+  previous: string | null;
+  /** Address after the change; `null` on disconnect. */
+  current: string | null;
+}
+
 export interface FrameworkWalletBalanceHandle {
   /** Display-string balance, updated by refresh() and BALANCE_CHANGED events. */
   balance: Observable<string>;
@@ -190,6 +198,62 @@ export function createWalletSurface(deps: WalletSurfaceDeps) {
      */
     observe(): Observable<string | null> {
       return chain.address;
+    },
+
+    /**
+     * Identity-diff account-change hook (RFC P0-5) — the blessed replacement
+     * for the fleet's hand-rolled `chain.address.subscribe` + `lastIdentity`
+     * bookkeeping blocks.
+     *
+     * Semantics:
+     * - Fires ONLY when the normalized address actually differs (identity
+     *   diff built in) — never for repeated emissions of the same address.
+     * - Handler errors (sync throws AND async rejections) are caught and
+     *   logged; they never propagate into the address subscription.
+     * - `immediate: true` fires once synchronously at subscription time with
+     *   `{ previous: null, current }` (default `false`).
+     *
+     * @returns unsubscribe function.
+     *
+     * @example
+     * ```ts
+     * const stop = app.wallet.onAccountChanged(({ current }) => {
+     *   resetSession();
+     *   if (current) void reloadAll();
+     * });
+     * // later: stop();
+     * ```
+     */
+    onAccountChanged(
+      handler: (change: FrameworkAccountChange) => void | Promise<void>,
+      options?: { immediate?: boolean },
+    ): () => void {
+      const normalize = (value: string | null | undefined): string | null => {
+        const trimmed = String(value ?? "").trim();
+        return trimmed ? trimmed : null;
+      };
+      const emit = (previous: string | null, current: string | null): void => {
+        try {
+          const result = handler({ previous, current });
+          if (result && typeof (result as Promise<void>).catch === "function") {
+            (result as Promise<void>).catch((error) => {
+              console.error("[framework] onAccountChanged handler rejected:", error);
+            });
+          }
+        } catch (error) {
+          console.error("[framework] onAccountChanged handler threw:", error);
+        }
+      };
+      let last = normalize(chain.address.get());
+      const unsubscribe = chain.address.subscribe(() => {
+        const next = normalize(chain.address.get());
+        if (next === last) return;
+        const previous = last;
+        last = next;
+        emit(previous, next);
+      });
+      if (options?.immediate) emit(null, last);
+      return unsubscribe;
     },
 
     /**

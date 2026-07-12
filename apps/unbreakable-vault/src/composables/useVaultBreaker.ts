@@ -284,7 +284,7 @@ export function useVaultBreaker({
       vaultDetails.set(toVaultDetails(detail));
     } catch (e) {
       if (epoch !== vaultLoadEpoch || vaultIdInput.get().trim() !== id) return undefined;
-      const message = e instanceof Error ? e.message : t("loadFailed");
+      const message = app.errors.messageOf(e, t("loadFailed"));
       vaultDetails.set(null);
       return { error: message };
     }

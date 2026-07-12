@@ -359,14 +359,14 @@ export function useRedEnvelope({
       // Exercise one common safe method through the host bridge as a second
       // source of truth: attestation alone must not authorize a stale bridge
       // that is actually bound to another script hash.
-      parseBigInt(await app.chain.readRaw("lastEnvelopeId", []));
+      await app.chain.query("lastEnvelopeId", []).asBigInt();
       contractCompatible.set(true);
       activeNetwork.set(detected);
 
       if (!attestation.boundedCreate) return true;
       try {
         const owner = canonicalHash160(
-          parseHash160(await app.chain.readRaw("getOwner", [])),
+          await app.chain.query("getOwner", []).as(parseHash160),
         );
         createAvailable.set(Boolean(owner && owner !== ZERO_HASH));
       } catch {
@@ -576,9 +576,9 @@ export function useRedEnvelope({
     listMethod: "getCreatorEnvelopes" | "getClaimerEnvelopes",
     limit: number,
   ): Promise<string[]> => {
-    const count = Number(parseBigInt(await app.chain.readRaw(countMethod, [
-      app.chain.arg.hash160(accountHash),
-    ])));
+    const count = await app.chain
+      .query(countMethod, [app.chain.arg.hash160(accountHash)])
+      .asInt();
     if (!Number.isSafeInteger(count) || count <= 0) return [];
     const pageSize = Math.min(limit, count);
     const offset = Math.max(0, count - pageSize);
@@ -809,10 +809,10 @@ export function useRedEnvelope({
    */
   const loadCredit = async (accountHash: string) => {
     try {
-      const raw = await app.chain.readRaw("creditOf", [
-        app.chain.arg.hash160(accountHash),
-      ]);
-      prepaidCredit.set(fromFixed8(parseBigInt(raw)));
+      const credit = await app.chain
+        .query("creditOf", [app.chain.arg.hash160(accountHash)])
+        .asBigInt();
+      prepaidCredit.set(fromFixed8(credit));
     } catch (e) {
       serviceNotice.set(t("chainReadUnavailable"));
       console.warn(
@@ -1265,9 +1265,9 @@ export function useRedEnvelope({
       // instead of accumulating.
       let credit = 0n;
       try {
-        credit = parseBigInt(
-          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(creatorHash)]),
-        );
+        credit = await app.chain
+          .query("creditOf", [app.chain.arg.hash160(creatorHash)])
+          .asBigInt();
       } catch {
         // Never assume zero after a failed read: doing so could deposit the
         // full amount on top of existing prepaid credit.
@@ -1663,9 +1663,9 @@ export function useRedEnvelope({
       // empty balance, so surface a clean message before prompting the wallet.
       let credit = 0n;
       try {
-        credit = parseBigInt(
-          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
-        );
+        credit = await app.chain
+          .query("creditOf", [app.chain.arg.hash160(accountHash)])
+          .asBigInt();
       } catch {
         throw new Error(t("chainReadUnavailable"));
       }

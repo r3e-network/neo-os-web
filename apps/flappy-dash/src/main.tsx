@@ -10,7 +10,6 @@ import { createGameCreditsLane } from "@shared/react/game-credits";
 import { createDerived } from "@shared/react/context";
 import type { RewardGameSession } from "@framework/gamefi";
 import { mapField } from "@framework/gamefi";
-import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
 import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
@@ -205,7 +204,7 @@ defineMiniApp({
         return true;
       } catch (error) {
         obs.lastStatus.set(ctx.t("statusDealPending"));
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -305,7 +304,7 @@ defineMiniApp({
         return true;
       } catch (error) {
         if (announce) {
-          ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+          ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         }
         return false;
       } finally {
@@ -336,7 +335,7 @@ defineMiniApp({
         obs.lastStatus.set(ctx.t("walletConnectedReady"));
         ctx.setStatus(ctx.t("walletConnectedReady"), "success");
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("walletUnavailable");
+        const message = app.errors.messageOf(error, ctx.t("walletUnavailable"));
         obs.lastStatus.set(message);
         ctx.setStatus(message, "error");
         throw error;
@@ -408,7 +407,7 @@ defineMiniApp({
         inputSyncFailed.set(false);
       } catch (error) {
         inputSyncFailed.set(true);
-        const message = error instanceof Error ? error.message : ctx.t("statusInputSyncFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusInputSyncFailed"));
         obs.lastStatus.set(ctx.t("statusInputSyncFailed"));
         ctx.setStatus(message, "error");
         throw error;
@@ -475,7 +474,7 @@ defineMiniApp({
         session = null;
         obs.gameStatus.set("unknown");
         obs.lastStatus.set(ctx.t("statusSettlementPending"));
-        const msg = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const msg = app.errors.messageOf(error, ctx.t("statusFailed"));
         ctx.setStatus(msg, "error");
         throw error;
       } finally {
@@ -503,7 +502,7 @@ defineMiniApp({
           obs.lastStatus.set(ctx.t("statusSettlementPending"));
         }
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         throw error;
       }
     });
@@ -544,10 +543,13 @@ defineMiniApp({
         const playerHash = app.game.player.scriptHash();
         if (playerHash) {
           try {
+            // RFC P0-6: typed read lane — `asBigInt()` keeps the
+            // parseBigInt-to-0n decode semantics; read errors still land in
+            // this catch.
             const active = String(
-              parseBigInt(
-                await app.chain.readRaw("activeGameOf", [app.chain.arg.hash160(playerHash)]),
-              ) ?? "0",
+              await app.chain
+                .query("activeGameOf", [app.chain.arg.hash160(playerHash)])
+                .asBigInt(),
             );
             if (active !== "0") await recoverCurrentGame(active, false);
           } catch { /* no active game */ }

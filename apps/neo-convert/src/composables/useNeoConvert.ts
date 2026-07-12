@@ -84,10 +84,12 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
 
   // Whether a wallet is connected — drives the hero tiles to show an em-dash
   // (rather than misleading "0 NEO / 0 GAS" zeros that read as real balances)
-  // until a wallet is present. Mirrors app.wallet.isConnected reactively.
+  // until a wallet is present. Mirrors app.wallet.isConnected reactively via
+  // the framework identity-diff hook (RFC P0-5), which only fires when the
+  // connected address actually changes.
   const walletConnected = createObservable(app.wallet.isConnected());
-  const unsubscribeAddress = app.wallet.observe().subscribe(() => {
-    const connected = app.wallet.isConnected();
+  const unsubscribeAddress = app.wallet.onAccountChanged(({ current }) => {
+    const connected = current !== null;
     walletConnected.set(connected);
     // Invalidate and clear the previous identity's snapshot immediately. A
     // newly connected wallet must never spend a loading interval beside the

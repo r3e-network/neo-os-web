@@ -1016,7 +1016,7 @@ export function useMemorialShrine({
       const settlement = await confirmPendingWrite(active);
       return { txid: active.txid, confirmed: settlement?.status === "confirmed" };
     } catch (error) {
-      writeError.set(error instanceof Error ? error.message : t("unknownError"));
+      writeError.set(app.errors.messageOf(error, t("unknownError")));
       if (!pendingWrite.get()) writePhase.set("idle");
       throw error;
     } finally {
@@ -1162,7 +1162,7 @@ export function useMemorialShrine({
       const settlement = await confirmPendingWrite(active);
       return { txid: active.txid, confirmed: settlement?.status === "confirmed" };
     } catch (error) {
-      writeError.set(error instanceof Error ? error.message : t("unknownError"));
+      writeError.set(app.errors.messageOf(error, t("unknownError")));
       if (!pendingWrite.get()) writePhase.set("idle");
       throw error;
     } finally {

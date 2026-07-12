@@ -23,12 +23,7 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      await ctx.framework.notify.guard(async () => {
-        await ctx.framework.wallet.ensure();
-        await swap.refreshBalances();
-      });
-    });
+    ctx.framework.actions.registerConnectWallet({ refresh: [swap.refreshBalances] });
     ctx.framework.actions.register("executeSwap", async () => {
       await ctx.framework.notify.guard(() => swap.executeSwap(), { successKey: "swapSuccess" });
     });

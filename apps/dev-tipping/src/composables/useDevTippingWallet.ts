@@ -246,7 +246,7 @@ export function useDevTippingWallet({
     } catch (error) {
       setRuntimeFailure(
         generation,
-        error instanceof Error ? error.message : t("runtimeUnavailable"),
+        app.errors.messageOf(error, t("runtimeUnavailable")),
       );
       return null;
     }
