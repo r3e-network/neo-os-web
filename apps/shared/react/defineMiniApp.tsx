@@ -99,6 +99,15 @@ export interface MiniAppDefinition {
    * here; absent ⇒ `app.oracle.dataFeed` reads throw a typed capability error.
    */
   oracle?: MiniAppFrameworkOptions["oracle"];
+
+  /**
+   * app.credits config (platform Credits v2). Hosts that expose the credits
+   * ledger inject the credits-ledger endpoint URL + the network's deployed
+   * MiniAppCredits contract hash here; absent ⇒ `app.credits.available` is
+   * false and every app.credits method throws a typed capability error, so
+   * credit UI degrades away cleanly in dev/standalone.
+   */
+  credits?: MiniAppFrameworkOptions["credits"];
 }
 
 /**
@@ -121,6 +130,7 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
     mountTo = "#app",
     storagePrefix,
     oracle,
+    credits,
   } = definition;
 
   const container = document.querySelector(mountTo);
@@ -143,6 +153,7 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
         setupFn={setupFn}
         storagePrefix={storagePrefix}
         oracle={oracle}
+        credits={credits}
       />
     </React.StrictMode>,
   );

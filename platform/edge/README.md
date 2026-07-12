@@ -43,6 +43,9 @@ See `platform/edge/functions/`:
 - `automation-trigger-delete`: delete a trigger via `neoflow` (host-gated; uses POST in Edge).
 - `automation-trigger-enable`, `automation-trigger-disable`, `automation-trigger-resume`: lifecycle controls.
 - `automation-trigger-executions`: list executions (audit log).
+- `credits-ledger`: MiniApp credit balance/history (GET) and instant DB-first spend with idempotency dedupe (POST). Typed `INSUFFICIENT_CREDITS` on shortfall. See `docs/MINIAPP_CREDITS_LEDGER.md`.
+- `credits-indexer`: cron poller crediting on-chain `CreditsPurchased` events (and mirroring `CreditsExited`) into the DB ledger; replay-safe block cursor + tx/event dedupe. Cron auth via `X-Cron-Secret`.
+- `credits-settler`: cron batcher posting one operator-signed `MiniAppCredits.postSettlement` epoch per run via TxProxy, checkpointing net spend deltas on-chain. Cron auth via `X-Cron-Secret`.
 
 The old TEE-forwarding gateway functions (`rng-request`, `datafeed-price`,
 `oracle-query`, `compute-execute`, `compute-jobs`, `compute-job`,

@@ -21,11 +21,69 @@ interface ContractParam {
   value: string | number | boolean;
 }
 
-interface InvokeResponse {
+/**
+ * ContractParameter that also allows nested Array values (standard Neo RPC
+ * ContractParameter JSON, e.g. {type:"Array", value:[{type:"Hash160",...}]}).
+ * Used by batch invocations such as MiniAppCredits.postSettlement.
+ */
+export interface TxProxyParam {
+  type: string;
+  value: string | number | boolean | TxProxyParam[];
+}
+
+export interface TxProxyInvokeRequest {
+  request_id: string;
+  intent?: string;
+  contract_hash: string;
+  method: string;
+  params: TxProxyParam[];
+  wait?: boolean;
+}
+
+export interface InvokeResponse {
   request_id: string;
   tx_hash?: string;
   vm_state?: string;
   exception?: string;
+}
+
+/**
+ * Generic TxProxy invocation (platform-operator signed). Same transport and
+ * timeout behavior as transferGas, but for arbitrary contract methods.
+ */
+export async function invokeViaTxProxy(request: TxProxyInvokeRequest): Promise<InvokeResponse> {
+  const config = getServiceConfig();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+  let res: Response;
+  try {
+    res = await fetch(`${config.txProxyUrl}/invoke`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("TxProxy request timed out after 15s");
+    }
+    throw new Error(
+      `TxProxy request failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!res.ok) {
+    throw new Error(`TxProxy request failed (${res.status})`);
+  }
+
+  try {
+    return await res.json();
+  } catch {
+    throw new Error("TxProxy returned invalid JSON");
+  }
 }
 
 /**

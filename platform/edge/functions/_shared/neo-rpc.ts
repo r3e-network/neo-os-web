@@ -60,7 +60,7 @@ interface Nep17BalancesResult {
 /**
  * Call Neo RPC method
  */
-async function rpcCall<T>(method: string, params: string[]): Promise<T> {
+export async function rpcCall<T>(method: string, params: (string | number | boolean)[]): Promise<T> {
   const rpcUrl = getNeoRpcUrl();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);

@@ -295,6 +295,98 @@ $game-accent: #00af92;
   transform: rotate(180deg);
 }
 
+/* Platform credits (Credits v2): HUD balance chip + fail-overlay relaunch
+ * offer. GameFi-only; both are absent in guest mode and on hosts without a
+ * credits config, so no reserved space is needed. */
+.flappy-credits-chip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  border: 1px solid rgba(77, 201, 246, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.94);
+  padding: 4px 10px;
+  color: #173247;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 680;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(11, 103, 125, 0.12);
+}
+
+.flappy-credits-chip svg {
+  color: $bird-wing;
+}
+
+.flappy-credits-chip span {
+  color: #496477;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.58rem;
+}
+
+.flappy-credits-chip strong {
+  font-size: 0.78rem;
+}
+
+.flappy-credits-chip[data-stale="true"] {
+  border-style: dashed;
+  opacity: 0.82;
+}
+
+.flappy-credits-offer {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  z-index: 14;
+  width: min(340px, calc(100% - 24px));
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(77, 201, 246, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.97);
+  padding: 12px 14px;
+  text-align: center;
+  box-shadow: 0 14px 36px rgba(11, 103, 125, 0.16);
+}
+
+.flappy-credits-offer h4 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  color: #173247;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.flappy-credits-offer h4 svg {
+  color: $bird-wing;
+}
+
+.flappy-credits-offer p {
+  margin: 0;
+  color: #496477;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.flappy-credits-offer__balance {
+  font-size: 0.64rem;
+}
+
+.flappy-credits-offer__balance em {
+  font-style: normal;
+  color: $bird-wing;
+}
+
 .flappy-ingame-drawer {
   position: absolute;
   left: 50%;

@@ -103,6 +103,13 @@ interface MiniAppRootProps {
    * ⇒ `app.oracle.dataFeed` reads throw a typed FrameworkCapabilityError.
    */
   oracle?: MiniAppFrameworkOptions["oracle"];
+  /**
+   * app.credits config (platform Credits v2): credits-ledger endpoint URL +
+   * the network's deployed MiniAppCredits contract hash. Absent ⇒
+   * `app.credits.available` is false (typed capability errors on use), so
+   * credit UI degrades away on hosts without the ledger.
+   */
+  credits?: MiniAppFrameworkOptions["credits"];
 }
 
 /** Context passed to the miniapp's setup function (React version) */
@@ -246,6 +253,7 @@ export function MiniAppRoot({
   setupFn,
   storagePrefix,
   oracle,
+  credits,
 }: MiniAppRootProps) {
   // --------------------------------------------------------------------------
   // i18n
@@ -363,7 +371,7 @@ export function MiniAppRoot({
       clearStatus,
       launchContext: frameworkLaunchContext,
       registerAction,
-    }, { appId, storagePrefix, oracle });
+    }, { appId, storagePrefix, oracle, credits });
     if (launchGameMode !== null) {
       frameworkRef.current.mode.set(launchGameMode);
     }

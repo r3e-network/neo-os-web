@@ -197,6 +197,98 @@
   transform: rotate(180deg);
 }
 
+/* Platform credits (Credits v2): HUD balance chip + fail-overlay retry offer.
+ * GameFi-only; both are absent in guest mode and on hosts without a credits
+ * config, so no reserved space is needed. */
+.cclash-credits-chip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  border: 1px solid rgba(216, 167, 66, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.95);
+  padding: 4px 10px;
+  color: var(--cclash-ink);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 680;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(74, 52, 22, 0.12);
+}
+
+.cclash-credits-chip svg {
+  color: var(--cclash-gold);
+}
+
+.cclash-credits-chip span {
+  color: var(--cclash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.58rem;
+}
+
+.cclash-credits-chip strong {
+  font-size: 0.78rem;
+}
+
+.cclash-credits-chip[data-stale="true"] {
+  border-style: dashed;
+  opacity: 0.82;
+}
+
+.cclash-credits-offer {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  z-index: 14;
+  width: min(340px, calc(100% - 24px));
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(216, 167, 66, 0.3);
+  border-radius: 14px;
+  background: var(--cclash-panel);
+  padding: 12px 14px;
+  text-align: center;
+  box-shadow: 0 14px 36px rgba(74, 52, 22, 0.16);
+}
+
+.cclash-credits-offer h4 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--cclash-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.cclash-credits-offer h4 svg {
+  color: var(--cclash-gold);
+}
+
+.cclash-credits-offer p {
+  margin: 0;
+  color: var(--cclash-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.cclash-credits-offer__balance {
+  font-size: 0.64rem;
+}
+
+.cclash-credits-offer__balance em {
+  font-style: normal;
+  color: var(--cclash-gold);
+}
+
 .cclash-ingame-drawer {
   position: absolute;
   left: 50%;
