@@ -948,8 +948,13 @@
  * out around 60% of a 1365x900 viewport, leaving a dead gray band under the
  * action rail. Let the playstage own the viewport height, grow the stage, and
  * center a width-capped workbench inside it so the breathing room lives on
- * the tool surface instead of below the page. */
-@media (min-width: 900px) and (min-height: 620px) {
+ * the tool surface instead of below the page.
+ *
+ * Round 4 extends the same composition to the tablet band: the mobile layout
+ * ends at 720px, so everything from 721px up gets the console presentation
+ * and had the same dead band (~340px at 800x1024). The 1200px cap never
+ * bites below 900px, so only the vertical rebalance takes effect there. */
+@media (min-width: 721px) and (min-height: 620px) {
   .oracle-console-play-area .mx2-playstage {
     min-height: 100dvh;
     display: flex;
