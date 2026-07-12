@@ -20,7 +20,7 @@ import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
-import { ChevronDown, RefreshCw, RotateCcw, ShieldCheck, Trophy, WalletCards, X } from "lucide-react";
+import { ChevronDown, Coins, RefreshCw, RotateCcw, ShieldCheck, Trophy, WalletCards, X } from "lucide-react";
 import {
   DIFFICULTY_RULES,
   SETTLE_GRACE_MS,
@@ -108,6 +108,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // purely local ("practice") framing. GameFi copy is unchanged.
   const appMode        = str("appMode", "guest");
   const isGuest        = appMode === "guest";
+  // Platform credits (Credits v2) — GameFi-only, hidden when the host injects
+  // no credits config (dev/standalone) and always hidden in guest mode.
+  const creditsAvailable = bool("creditsAvailable");
+  const creditsBalance = val<number>("creditsBalance", -1) ?? -1;
+  const creditsStale = bool("creditsStale");
+  const creditsBusy = bool("creditsBusy");
+  const creditsNeedsTopUp = bool("creditsNeedsTopUp");
+  const creditsReviveEnabled = bool("creditsReviveEnabled");
+  const creditsReviveCost = val<number>("creditsReviveCost", 5) ?? 5;
+  const creditsBuyGas = val<number>("creditsBuyGas", 1) ?? 1;
+  const creditsBuyCredits = val<number>("creditsBuyCredits", 50) ?? 50;
+  const creditsRate = val<number>("creditsRate", 50) ?? 50;
   const [clockNow, setClockNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -163,6 +175,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const lobbyAvailable = ["idle", "solved", "expired", "refunded"].includes(gameStatus)
     && !busy;
   const drawerId = "flappy-ingame-drawer";
+  // Credits UI gates: the chip needs only a configured host + GameFi mode;
+  // the relaunch offer additionally needs a settled failed run AND a game
+  // whose paid starts are currently enabled.
+  const showCreditsChip = !isGuest && creditsAvailable;
+  const showCreditsOffer = showCreditsChip && creditsReviveEnabled && isExpired;
+  const creditsInsufficient = creditsNeedsTopUp
+    || (creditsBalance >= 0 && creditsBalance < creditsReviveCost);
+  const creditsBalanceDisplay = creditsBalance >= 0 ? String(creditsBalance) : "--";
 
   const difficultyOptions = DIFFICULTY_RULES.map((difficultyRule) => ({
     difficulty: difficultyRule.difficulty,
@@ -437,6 +457,58 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
             <p className="flappy-a11y-status" aria-live="polite" aria-atomic="true">
               {`${stageTitle}. ${t("scorePipes")}: ${pipesPassed}/${rule.targetPipes}. ${t("scoreTime")}: ${isPlaying ? formatClock(remMs) : formatClock(rule.limitMs)}.`}
             </p>
+
+            {showCreditsChip && (
+              <button
+                type="button"
+                className="flappy-credits-chip"
+                data-stale={creditsStale ? "true" : undefined}
+                title={creditsStale ? t("creditsStaleHint") : t("creditsChipRefresh")}
+                aria-label={`${t("creditsChipLabel")}: ${creditsBalanceDisplay}. ${t("creditsChipRefresh")}`}
+                onClick={() => runAction("refreshCredits")}
+              >
+                <Coins size={14} aria-hidden="true" />
+                <span>{t("creditsChipLabel")}</span>
+                <strong>{creditsBalanceDisplay}</strong>
+              </button>
+            )}
+
+            {showCreditsOffer && (
+              <section className="flappy-credits-offer" aria-label={t("creditsOfferTitle")}>
+                <h4>
+                  <Coins size={15} aria-hidden="true" /> {t("creditsOfferTitle")}
+                </h4>
+                {creditsInsufficient ? (
+                  <>
+                    <p>{t("creditsInsufficientBody", { cost: creditsReviveCost, rate: creditsRate })}</p>
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--primary flappy-credits-offer__buy"
+                      disabled={creditsBusy}
+                      onClick={() => runAction("buyCredits")}
+                    >
+                      {t("creditsBuyAction", { gas: creditsBuyGas, credits: creditsBuyCredits })}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p>{t("creditsOfferBody", { cost: creditsReviveCost })}</p>
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--primary flappy-credits-offer__retry"
+                      disabled={creditsBusy}
+                      onClick={() => runAction("retryWithCredits")}
+                    >
+                      {t("creditsOfferAction", { cost: creditsReviveCost })}
+                    </button>
+                  </>
+                )}
+                <p className="flappy-credits-offer__balance">
+                  {t("creditsBalanceLine", { balance: creditsBalanceDisplay })}
+                  {creditsStale && <em> · {t("creditsStaleTag")}</em>}
+                </p>
+              </section>
+            )}
             <div className="flappy-stage-hud" aria-label={t("routeSummary")}>
               {hudItems.map((item) => (
                 <div

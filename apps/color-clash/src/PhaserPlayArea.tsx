@@ -8,7 +8,7 @@ import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
-import { ChevronDown, RefreshCw, ShieldCheck, WalletCards, X } from "lucide-react";
+import { ChevronDown, Coins, RefreshCw, ShieldCheck, WalletCards, X } from "lucide-react";
 import {
   canReleaseExpiredGame,
   formatClock,
@@ -101,6 +101,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const settlementGraceMs = val<number>("settlementGraceMs", SETTLEMENT_GRACE_MS)
     ?? SETTLEMENT_GRACE_MS;
   const lastStatus = str("lastStatus", "");
+  // Platform credits (Credits v2) — GameFi-only, hidden when the host injects
+  // no credits config (dev/standalone) and always hidden in guest mode.
+  const creditsAvailable = bool("creditsAvailable");
+  const creditsBalance = val<number>("creditsBalance", -1) ?? -1;
+  const creditsStale = bool("creditsStale");
+  const creditsBusy = bool("creditsBusy");
+  const creditsNeedsTopUp = bool("creditsNeedsTopUp");
+  const creditsReviveEnabled = bool("creditsReviveEnabled");
+  const creditsReviveCost = val<number>("creditsReviveCost", 5) ?? 5;
+  const creditsBuyGas = val<number>("creditsBuyGas", 1) ?? 1;
+  const creditsBuyCredits = val<number>("creditsBuyCredits", 50) ?? 50;
+  const creditsRate = val<number>("creditsRate", 50) ?? 50;
   const isLobby = ["idle", "solved", "expired", "refunded"].includes(gameStatus);
   const activeDifficulty = isLobby ? selectedDifficulty : gameDifficulty;
   const rule = ruleOf(activeDifficulty);
@@ -126,6 +138,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     nowMs,
   );
   const completedSequence = roundPhase === "complete" || lastStatus === "all-correct";
+  // Credits UI gates: the chip needs only a configured host + GameFi mode;
+  // the retry offer additionally needs a settled failed run AND a game whose
+  // paid starts are currently enabled (never sell a retry that start refuses).
+  const showCreditsChip = !isGuest && creditsAvailable;
+  const showCreditsOffer = showCreditsChip
+    && creditsReviveEnabled
+    && (gameStatus === "expired" || gameStatus === "refunded");
+  const creditsInsufficient = creditsNeedsTopUp
+    || (creditsBalance >= 0 && creditsBalance < creditsReviveCost);
+  const creditsBalanceDisplay = creditsBalance >= 0 ? String(creditsBalance) : "--";
   const canPressPads = isPlaying
     && roundPhase === "input"
     && !busy
@@ -612,6 +634,58 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               {stageTitle}. {roundNumber > 0 ? `${t("roundLabel")} ${roundNumber}.` : ""}{" "}
               {isPlaying && deadline > 0 ? `${formatClock(remainingMs)}.` : ""}
             </p>
+
+            {showCreditsChip && (
+              <button
+                type="button"
+                className="cclash-credits-chip"
+                data-stale={creditsStale ? "true" : undefined}
+                title={creditsStale ? t("creditsStaleHint") : t("creditsChipRefresh")}
+                aria-label={`${t("creditsChipLabel")}: ${creditsBalanceDisplay}. ${t("creditsChipRefresh")}`}
+                onClick={() => void dispatch("refreshCredits")}
+              >
+                <Coins size={14} aria-hidden="true" />
+                <span>{t("creditsChipLabel")}</span>
+                <strong>{creditsBalanceDisplay}</strong>
+              </button>
+            )}
+
+            {showCreditsOffer && (
+              <section className="cclash-credits-offer" aria-label={t("creditsOfferTitle")}>
+                <h4>
+                  <Coins size={15} aria-hidden="true" /> {t("creditsOfferTitle")}
+                </h4>
+                {creditsInsufficient ? (
+                  <>
+                    <p>{t("creditsInsufficientBody", { cost: creditsReviveCost, rate: creditsRate })}</p>
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--primary cclash-credits-offer__buy"
+                      disabled={creditsBusy}
+                      onClick={() => void dispatch("buyCredits")}
+                    >
+                      {t("creditsBuyAction", { gas: creditsBuyGas, credits: creditsBuyCredits })}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p>{t("creditsOfferBody", { cost: creditsReviveCost })}</p>
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--primary cclash-credits-offer__retry"
+                      disabled={creditsBusy}
+                      onClick={() => void dispatch("retryWithCredits")}
+                    >
+                      {t("creditsOfferAction", { cost: creditsReviveCost })}
+                    </button>
+                  </>
+                )}
+                <p className="cclash-credits-offer__balance">
+                  {t("creditsBalanceLine", { balance: creditsBalanceDisplay })}
+                  {creditsStale && <em> · {t("creditsStaleTag")}</em>}
+                </p>
+              </section>
+            )}
 
             <div className="cclash-stage-hud" aria-label={drawerTitle}>
               {scoreItems.map((item) => (

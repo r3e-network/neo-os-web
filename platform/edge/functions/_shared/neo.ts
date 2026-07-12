@@ -150,6 +150,33 @@ export function addressToScriptHash(addressOrHash: string): string {
   return `0x${scriptHash}`;
 }
 
+/**
+ * Convert a UInt160 script hash in display form ("0x" + 40 big-endian hex
+ * chars, as returned by addressToScriptHash and Neo RPC notifications) into a
+ * Neo N3 address. Inverse of addressToScriptHash.
+ */
+export function scriptHashToAddress(scriptHash: string): string {
+  const value = String(scriptHash ?? "").trim().replace(/^0x/i, "");
+  if (!/^[0-9a-fA-F]{40}$/.test(value)) {
+    throw new Error("invalid script hash (expected 40 hex chars)");
+  }
+
+  // Display hex is big-endian; the address payload carries the raw
+  // little-endian bytes (same order ripemd160(sha256(script)) produces).
+  const rawBytes = Uint8Array.from(decodeHex(value)).reverse();
+
+  const payload = new Uint8Array(1 + rawBytes.length);
+  payload[0] = 0x35;
+  payload.set(rawBytes, 1);
+
+  const checksum = sha256(sha256(payload)).slice(0, 4);
+  const addressBytes = new Uint8Array(payload.length + checksum.length);
+  addressBytes.set(payload, 0);
+  addressBytes.set(checksum, payload.length);
+
+  return base58Encode(addressBytes);
+}
+
 export function verifyNeoSignature(
   address: string,
   message: string,

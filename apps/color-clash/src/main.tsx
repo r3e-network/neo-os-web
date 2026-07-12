@@ -6,6 +6,7 @@
  * logic: sequence reveal-per-round, press recording, and solution finalization.
  */
 import { createObservable, defineMiniApp } from "@shared/react";
+import { createGameCreditsLane } from "@shared/react/game-credits";
 import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { eventStateValue } from "@shared/utils/chain-events";
@@ -246,6 +247,24 @@ defineMiniApp({
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
+    // ── Platform credits (Credits v2 reference integration) ──────────────────
+    // HUD balance chip + fail-overlay "instant retry" offer + buy prompt.
+    // Renders only in GameFi mode on hosts that inject a credits config;
+    // everywhere else (guest, dev without the ledger) it degrades away.
+    const creditsLane = createGameCreditsLane({
+      app,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+      reviveAction: "revive",
+      reviveCostCredits: 5,
+      // Paid color-clash starts are fail-closed (NEW_PAID_RUNS_ENABLED). Never
+      // sell a credits retry that the start gate would immediately refuse.
+      reviveEnabled: NEW_PAID_RUNS_ENABLED && manifest.supportsGameFi !== false,
+      onReviveUnlocked: async () => {
+        await app.actions.run("startGame", selectedDifficulty.get());
+      },
+    });
+
     // Switching to guest at the launcher resets to a clean local lobby and loads
     // the off-chain guest board (replacing the on-chain read done on mount).
     const stopModeSync = app.mode.onChange((mode) => {
@@ -253,6 +272,7 @@ defineMiniApp({
       session = null;
       pressInFlight = false;
       if (mode === "guest") void guest.enter();
+      else void creditsLane.refresh();
     });
 
     const normalizeContractHash = (value: unknown): string => {
@@ -929,6 +949,7 @@ defineMiniApp({
         settlementGraceMs,
         lastPayoutFixed8,
         appMode,
+        ...creditsLane.state,
       },
       loadData: async () => {
         if (app.mode.isGuest()) { await guest.enter(); return; }
@@ -937,6 +958,7 @@ defineMiniApp({
           ctx.setStatus(ctx.t("statusContractMismatch"), "error");
           return;
         }
+        void creditsLane.refresh();
         await Promise.all([refreshBalances(), refreshGameConfig()]);
         if (!contractConfigCompatible) {
           obs.lastStatus.set("failed");
