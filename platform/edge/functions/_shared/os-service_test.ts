@@ -52,34 +52,66 @@ Deno.test("createOSHandler returns a function", () => {
 // ---------------------------------------------------------------------------
 // createOSHandler — CORS preflight
 //
-// The handler delegates to handleCorsPreflight which returns a Response for
-// OPTIONS requests. In non-production without EDGE_CORS_ORIGINS, CORS sets
-// Access-Control-Allow-Origin: *.
+// The handler delegates to handleCorsPreflight. Hardened behavior: until
+// EDGE_CORS_ORIGINS is explicitly configured, preflight is rejected with 403
+// in ALL environments. When the request Origin is in the configured
+// allowlist, preflight succeeds with 204 and echoes that origin back.
 // ---------------------------------------------------------------------------
 
 Deno.test("handler returns CORS headers on OPTIONS preflight", async () => {
-  // Ensure non-production environment so CORS allows "*"
-  Deno.env.delete("EDGE_ENV");
-  Deno.env.delete("DENO_ENV");
-  Deno.env.delete("ENV");
-  Deno.env.delete("NODE_ENV");
-  Deno.env.delete("SUPABASE_ENV");
-  Deno.env.delete("EDGE_CORS_ORIGINS");
+  const prev = Deno.env.get("EDGE_CORS_ORIGINS");
+  try {
+    Deno.env.set("EDGE_CORS_ORIGINS", "http://localhost:3000");
 
-  const handler = createOSHandler(
-    { scopeName: "test" },
-    async () => ({ ok: true }),
-  );
+    const handler = createOSHandler(
+      { scopeName: "test" },
+      async () => ({ ok: true }),
+    );
 
-  const req = new Request("http://localhost/test", { method: "OPTIONS" });
-  const res = await handler(req);
+    const req = new Request("http://localhost/test", {
+      method: "OPTIONS",
+      headers: { Origin: "http://localhost:3000" },
+    });
+    const res = await handler(req);
 
-  assertEquals(res.status, 204);
-  assertEquals(res.headers.get("Access-Control-Allow-Origin"), "*");
-  assertEquals(
-    res.headers.get("Access-Control-Allow-Methods"),
-    "GET,POST,OPTIONS",
-  );
+    assertEquals(res.status, 204);
+    assertEquals(
+      res.headers.get("Access-Control-Allow-Origin"),
+      "http://localhost:3000",
+    );
+    assertEquals(
+      res.headers.get("Access-Control-Allow-Methods"),
+      "GET,POST,OPTIONS",
+    );
+  } finally {
+    if (prev === undefined) Deno.env.delete("EDGE_CORS_ORIGINS");
+    else Deno.env.set("EDGE_CORS_ORIGINS", prev);
+  }
+});
+
+Deno.test("handler rejects OPTIONS preflight when EDGE_CORS_ORIGINS is unset", async () => {
+  const prev = Deno.env.get("EDGE_CORS_ORIGINS");
+  try {
+    Deno.env.delete("EDGE_CORS_ORIGINS");
+
+    const handler = createOSHandler(
+      { scopeName: "test" },
+      async () => ({ ok: true }),
+    );
+
+    const res = await handler(
+      new Request("http://localhost/test", {
+        method: "OPTIONS",
+        headers: { Origin: "http://localhost:3000" },
+      }),
+    );
+
+    assertEquals(res.status, 403);
+    assertEquals(res.headers.get("Access-Control-Allow-Origin"), null);
+  } finally {
+    if (prev === undefined) Deno.env.delete("EDGE_CORS_ORIGINS");
+    else Deno.env.set("EDGE_CORS_ORIGINS", prev);
+  }
 });
 
 // ---------------------------------------------------------------------------
