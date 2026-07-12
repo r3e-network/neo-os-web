@@ -814,8 +814,14 @@
  * out around 65% of a 1365x900 viewport, leaving a dead gray band under the
  * action rail. Let the playstage own the viewport height, grow the stage, and
  * center the width-capped evidence scene inside it so the breathing room
- * lives on the warm tool surface instead of below the page. */
-@media (min-width: 900px) and (min-height: 620px) {
+ * lives on the warm tool surface instead of below the page.
+ *
+ * Round 4 extends the same composition to the tablet band (721px up): the
+ * 880px reflow only collapses the scene to one column — still the console
+ * presentation — and tall tablet viewports showed the same dead band. The
+ * 1200px cap never bites below 900px, so only the vertical rebalance takes
+ * effect there. */
+@media (min-width: 721px) and (min-height: 620px) {
   .oracle-neodid-play-area .mx2-playstage {
     min-height: 100dvh;
     display: flex;

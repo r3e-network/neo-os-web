@@ -638,8 +638,14 @@
  * used to bottom out around 80% of a 1365x900 viewport, leaving a dead gray
  * band under the action rail. Let the playstage own the viewport height, grow
  * the stage, and center the width-capped stage stack inside it so the
- * breathing room lives on the tool surface instead of below the page. */
-@media (min-width: 900px) and (min-height: 620px) {
+ * breathing room lives on the tool surface instead of below the page.
+ *
+ * Round 4 extends the same composition to the tablet band. This console's
+ * mobile presentation (hidden market/feed panels) runs to 760px, so the
+ * rebalance follows the console presentation from 761px up — the band that
+ * showed the same dead band (~280px at 800x1024). The 1200px cap never bites
+ * below 900px, so only the vertical rebalance takes effect there. */
+@media (min-width: 761px) and (min-height: 620px) {
   .oracle-price-play-area .mx2-playstage {
     min-height: 100dvh;
     display: flex;
