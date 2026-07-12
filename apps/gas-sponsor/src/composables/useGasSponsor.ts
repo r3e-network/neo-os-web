@@ -367,7 +367,7 @@ export function useGasSponsorApp({
       return nextStats;
     } catch (error) {
       if (generation === platformGeneration) {
-        poolsError.set(error instanceof Error ? error.message : t("sponsorPoolsUnavailable"));
+        poolsError.set(app.errors.messageOf(error, t("sponsorPoolsUnavailable")));
       }
       return platformStats.get();
     } finally {
@@ -398,7 +398,7 @@ export function useGasSponsorApp({
       hasMorePools.set(nextCursor >= 1);
     } catch (error) {
       if (generation === platformGeneration) {
-        poolsError.set(error instanceof Error ? error.message : t("sponsorPoolsUnavailable"));
+        poolsError.set(app.errors.messageOf(error, t("sponsorPoolsUnavailable")));
       }
       throw error;
     } finally {
@@ -445,7 +445,7 @@ export function useGasSponsorApp({
       return pool;
     } catch (error) {
       if (generation === selectedGeneration) {
-        selectedPoolError.set(error instanceof Error ? error.message : t("sponsorPoolUnavailable"));
+        selectedPoolError.set(app.errors.messageOf(error, t("sponsorPoolUnavailable")));
       }
       throw error;
     } finally {
@@ -905,7 +905,7 @@ export function useGasSponsorApp({
       outcome.set({
         status: "failed",
         operation: kind,
-        message: error instanceof Error ? error.message : t("sponsorOperationFailed"),
+        message: app.errors.messageOf(error, t("sponsorOperationFailed")),
       });
       throw error;
     } finally {

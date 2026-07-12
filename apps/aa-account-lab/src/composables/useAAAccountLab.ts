@@ -288,7 +288,7 @@ export function useAAAccountLab({
       if (epoch === inspectEpoch) {
         hasInspected.set(false);
         inspectedAccountId.set("");
-        lastError.set(error instanceof Error ? error.message : t("accountReadFailed"));
+        lastError.set(app.errors.messageOf(error, t("accountReadFailed")));
       }
       throw error;
     } finally {
@@ -470,7 +470,7 @@ export function useAAAccountLab({
       return await settlePending(saved);
     } catch (error) {
       if (!pendingRegistration.get()) {
-        lastError.set(error instanceof Error ? error.message : t("registrationFailed"));
+        lastError.set(app.errors.messageOf(error, t("registrationFailed")));
       }
       throw error;
     } finally {

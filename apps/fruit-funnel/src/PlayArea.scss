@@ -1,9 +1,24 @@
+@use "@shared/styles/v2/tokens" as *;
+
+:root,
+.fruit-funnel {
+  /* Domain theme — fruit-funnel (warm citrus). Centralized for themeability;
+     --fruit-* brand ramp is defined on .fruit-funnel below. */
+  --ff-bg: #f7d98e;
+  --ff-stage: #fff4c7;
+  --ff-a11y-bg: #fffdf5;
+  --ff-a11y-btn: #fff2bd;
+  --ff-grad-1: #fff3bd;
+  --ff-grad-2: #f8db91;
+  --ff-grad-3: #e5ae5b;
+}
+
 html,
 body,
 #app {
   min-height: 100%;
   margin: 0;
-  background: #f7d98e;
+  background: var(--ff-bg);
 }
 
 body,
@@ -22,7 +37,7 @@ body,
   min-height: 100dvh;
   min-width: 0;
   align-content: start;
-  background: linear-gradient(180deg, #fff3bd 0%, #f8db91 55%, #e5ae5b 100%);
+  background: linear-gradient(180deg, var(--ff-grad-1) 0%, var(--ff-grad-2) 55%, var(--ff-grad-3) 100%);
   color: var(--fruit-ink);
 }
 
@@ -32,10 +47,10 @@ body,
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid rgba(112, 67, 35, 0.18);
-  border-radius: 28px;
-  background: #fff4c7;
+  border-radius: 20px;
+  background: var(--ff-stage);
   box-shadow:
-    0 24px 58px rgba(120, 72, 25, 0.2),
+    0 12px 30px rgba(120, 72, 25, 0.1),
     inset 0 1px rgba(255, 255, 255, 0.9);
   isolation: isolate;
 }
@@ -82,8 +97,8 @@ body,
   clip-path: none;
   border: 2px solid var(--fruit-coral);
   border-radius: 18px;
-  background: #fffdf5;
-  box-shadow: 0 18px 48px rgba(63, 42, 31, 0.22);
+  background: var(--ff-a11y-bg);
+  box-shadow: 0 14px 32px rgba(63, 42, 31, 0.16);
   white-space: normal;
 }
 
@@ -92,9 +107,9 @@ body,
   min-height: 42px;
   border: 1px solid rgba(112, 67, 35, 0.24);
   border-radius: 999px;
-  background: #fff2bd;
+  background: var(--ff-a11y-btn);
   color: var(--fruit-ink);
-  font: 750 13px/1 system-ui, sans-serif;
+  font: 750 13px/1 var(--mx2-font-sans);
 }
 
 .fruit-funnel__live {
@@ -120,8 +135,8 @@ body,
 @media (max-width: 520px) {
   .fruit-funnel__stage {
     width: 100%;
-    border-radius: 22px;
-    box-shadow: 0 16px 38px rgba(120, 72, 25, 0.16);
+    border-radius: 18px;
+    box-shadow: 0 10px 26px rgba(120, 72, 25, 0.1);
   }
 }
 

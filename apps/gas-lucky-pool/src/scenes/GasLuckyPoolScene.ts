@@ -9,7 +9,7 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameBridgeError, GameState } from "@framework/phaser";
 import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
-import { formatGas } from "@shared/utils/format";
+import { formatGas, formatHash } from "@shared/utils/format";
 import { GAS_LUCKY_REWARD_PLANS } from "../logic/game-rules";
 
 const GAS_POOL_ASSETS = {
@@ -60,11 +60,9 @@ const PROGRESS_BUNDLE_KEY: Record<string, string> = {
   failed: "progFailed",
 };
 
+/** Middle-truncation for keys/txids (delegates to the shared formatter). */
 function truncateMiddle(value: string, head = 7, tail = 4): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  if (trimmed.length <= head + tail + 3) return trimmed;
-  return `${trimmed.slice(0, head)}...${trimmed.slice(-tail)}`;
+  return formatHash(value, head, tail);
 }
 
 function compactError(value: string): string {

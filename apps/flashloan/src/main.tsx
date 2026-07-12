@@ -24,8 +24,8 @@ defineMiniApp({
     });
 
     flash.setAddress(ctx.framework.chain.address.get() ?? "");
-    ctx.framework.chain.address.subscribe(() => {
-      flash.setAddress(ctx.framework.chain.address.get() ?? "");
+    ctx.framework.wallet.onAccountChanged(({ current }) => {
+      flash.setAddress(current ?? "");
       void flash.loadData();
     });
 

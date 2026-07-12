@@ -31,8 +31,8 @@ defineMiniApp({
     // Sign / Break controls (gated on ContractList.isParty) render for the
     // live user. Seed the initial value and keep it in sync on wallet change.
     breakup.setWalletAddress(app.chain.address.get() ?? "");
-    app.chain.address.subscribe(() => {
-      breakup.setWalletAddress(app.chain.address.get() ?? "");
+    app.wallet.onAccountChanged(({ current }) => {
+      breakup.setWalletAddress(current ?? "");
       void breakup.loadContracts();
     });
 

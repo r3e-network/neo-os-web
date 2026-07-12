@@ -44,8 +44,8 @@ defineMiniApp({
     };
 
     gov.setAddress(app.chain.address.get() ?? "");
-    const unsubscribeAddress = app.chain.address.subscribe(() => {
-      gov.setAddress(app.chain.address.get() ?? "");
+    const unsubscribeAddress = app.wallet.onAccountChanged(({ current }) => {
+      gov.setAddress(current ?? "");
       void Promise.allSettled([
         gov.refreshCandidateStatus(),
         gov.refreshHasVoted(),

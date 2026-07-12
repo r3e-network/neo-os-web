@@ -341,7 +341,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set(ctx.t("statusDealPending"));
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -366,7 +366,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set(ctx.t("statusDealPending"));
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -422,11 +422,9 @@ defineMiniApp({
         await openSession(gameId, difficulty);
         return started.tx;
       } catch (error) {
-        const msg = error instanceof Error && "code" in error && error.code === "POOL_LOW"
+        const msg = app.errors.is(error, "POOL_LOW")
           ? ctx.t("statusPoolLow")
-          : error instanceof Error
-            ? error.message
-            : ctx.t("statusFailed");
+          : app.errors.messageOf(error, ctx.t("statusFailed"));
         obs.lastStatus.set(msg);
         ctx.setStatus(msg, "error");
         throw error;
@@ -476,7 +474,7 @@ defineMiniApp({
           await applyObservedSettlement(snapshot);
         }
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         isRecovering.set(false);
       }
@@ -510,7 +508,7 @@ defineMiniApp({
         scheduleMoveUnlock();
         animationQueued = true;
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
       } finally {
         if (!animationQueued) isMoving.set(false);
       }
@@ -544,7 +542,7 @@ defineMiniApp({
         obs.lastStatus.set(ctx.t("statusUndoUsed", { pct: String(100 - 30 * undos) }));
         ctx.setStatus(obs.lastStatus.get(), "info");
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
         throw error;
       } finally {
         obs.isUndoing.set(false);
@@ -625,7 +623,7 @@ defineMiniApp({
         }
         obs.lastStatus.set(ctx.t("sessionRecoveryReady"));
         ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("sessionRecoveryReady"),
+          app.errors.messageOf(error, ctx.t("sessionRecoveryReady")),
           "error",
         );
       } finally {
@@ -662,7 +660,7 @@ defineMiniApp({
         obs.gameStatus.set("unknown");
         obs.lastStatus.set(ctx.t("settlementStillPending"));
         ctx.setStatus(
-          error instanceof Error ? error.message : ctx.t("settlementStillPending"),
+          app.errors.messageOf(error, ctx.t("settlementStillPending")),
           "error",
         );
       }

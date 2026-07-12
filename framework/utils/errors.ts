@@ -185,6 +185,35 @@ export function formatErrorMessage(
   return defaultMessage;
 }
 
+/**
+ * One-liner error → display-string extraction (RFC P0-4) — the exported home
+ * of the `error instanceof Error ? error.message : fallback` ternary the
+ * fleet hand-rolls at every `ctx.setStatus(…, "error")` site.
+ *
+ * Priority: `MiniAppError` user message (translated when a translator is
+ * attached) > `Error.message` > string errors verbatim > `fallback`.
+ *
+ * Translator-free by design — chain-error family mapping (localized copy for
+ * wallet/VM/RPC failures) needs the app's `t()` and lives on the framework
+ * surface: prefer `app.errors.messageOf(error, fallback)` inside miniapps.
+ *
+ * @example
+ * ```ts
+ * ctx.setStatus(errorMessage(error, t("swapFailed")), "error");
+ * ```
+ */
+export function errorMessage(error: unknown, fallback = "error"): string {
+  if (isMiniAppError(error)) {
+    const user = error.translatedUserMessage || error.userMessage;
+    if (user) return user;
+    if (error.message) return error.message;
+    return fallback;
+  }
+  if (error instanceof Error) return error.message || fallback;
+  if (typeof error === "string" && error) return error;
+  return fallback;
+}
+
 export function createStatusRef() {
   let value: { msg: string; type: "success" | "error" } | null = null;
 

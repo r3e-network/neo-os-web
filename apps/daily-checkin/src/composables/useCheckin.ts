@@ -911,7 +911,9 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     tickerInterval = null;
   };
 
-  const walletUnsubscribe = app.chain.address.subscribe(() => {
+  // RFC P0-5: identity-diff account hook (fires only on real identity changes;
+  // handler errors are isolated by the framework).
+  const walletUnsubscribe = app.wallet.onAccountChanged(() => {
     const actorHash = normalizeDailyCheckinAccount(walletAddress.get());
     if (!dailyCheckinAccountMatches(actorHash, loadedActorHash.get())) clearUserState();
     if (pendingOperation.get()) setPending("pendingWalletCheck");

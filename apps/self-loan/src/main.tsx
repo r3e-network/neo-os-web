@@ -38,8 +38,8 @@ defineMiniApp({
 
     // The wallet can connect or switch accounts after mount, so re-propagate the
     // address and reload the position / balance / credits whenever it changes.
-    const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
-      loan.setAddress(ctx.framework.wallet.address() ?? "");
+    const stopAddressSync = ctx.framework.wallet.onAccountChanged(({ current }) => {
+      loan.setAddress(current ?? "");
       void loan.loadAll();
     });
 

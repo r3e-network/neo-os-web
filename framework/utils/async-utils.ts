@@ -201,3 +201,75 @@ export async function safeAsync<T>(
     return defaultValue;
   }
 }
+
+/** Options for {@link singleFlight} — `"join"` shares the in-flight promise. */
+export interface SingleFlightJoinOptions {
+  mode: "join";
+}
+
+/** Options for {@link singleFlight} — `"drop"` resolves `undefined` for re-entry. */
+export interface SingleFlightDropOptions {
+  mode: "drop";
+  /** Observer invoked (with the computed key) whenever a call is dropped. */
+  onDrop?: (key: string) => void;
+}
+
+/**
+ * Per-key concurrency limiter — the ONE canonical single-flight used by the
+ * framework's two write-lane idioms (RFC P0-2):
+ *
+ * - `"join"`: a second call for the same key while one is in flight receives
+ *   the SAME promise (exactly one underlying run — the `credits.spend`
+ *   semantics). Use when callers need the result (payments, spends).
+ * - `"drop"`: a second call for the same key resolves `undefined` without
+ *   running (the `actions.run` double-click semantics). `onDrop` gives the
+ *   host a dev-visibility hook so silent drops stop being a DX trap.
+ *
+ * Keys are computed per call via `keyOf(...args)`; different keys run
+ * concurrently. The key is released when the underlying promise settles
+ * (resolve or reject).
+ *
+ * @example
+ * ```ts
+ * const spend = singleFlight((action: string) => action, doSpend, { mode: "join" });
+ * const [a, b] = [spend("buy"), spend("buy")]; // one doSpend call, shared result
+ *
+ * const run = singleFlight((key: string) => key, doRun, {
+ *   mode: "drop",
+ *   onDrop: (key) => console.warn(`[actions] dropped re-entrant run: ${key}`),
+ * });
+ * ```
+ */
+export function singleFlight<A extends unknown[], R>(
+  keyOf: (...args: A) => string,
+  fn: (...args: A) => Promise<R>,
+  options: SingleFlightJoinOptions,
+): (...args: A) => Promise<R>;
+export function singleFlight<A extends unknown[], R>(
+  keyOf: (...args: A) => string,
+  fn: (...args: A) => Promise<R>,
+  options: SingleFlightDropOptions,
+): (...args: A) => Promise<R | undefined>;
+export function singleFlight<A extends unknown[], R>(
+  keyOf: (...args: A) => string,
+  fn: (...args: A) => Promise<R>,
+  options: SingleFlightJoinOptions | SingleFlightDropOptions,
+): (...args: A) => Promise<R | undefined> {
+  const inFlight = new Map<string, Promise<R>>();
+  return (...args: A): Promise<R | undefined> => {
+    const key = keyOf(...args);
+    const existing = inFlight.get(key);
+    if (existing) {
+      if (options.mode === "join") return existing;
+      options.onDrop?.(key);
+      return Promise.resolve(undefined);
+    }
+    const flight = (async () => fn(...args))();
+    inFlight.set(key, flight);
+    const release = () => {
+      if (inFlight.get(key) === flight) inFlight.delete(key);
+    };
+    flight.then(release, release);
+    return flight;
+  };
+}

@@ -743,7 +743,7 @@ export function useGovernance({
     } catch (error) {
       if (run === overviewRun) {
         governanceOverview.set(emptyOverview());
-        governanceOverviewError.set(error instanceof Error ? error.message : t("governanceRulesUnavailable"));
+        governanceOverviewError.set(app.errors.messageOf(error, t("governanceRulesUnavailable")));
       }
       return null;
     }

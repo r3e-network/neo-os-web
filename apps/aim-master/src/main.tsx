@@ -104,13 +104,13 @@ defineMiniApp({
 
     // Enclave session context for the active game.
     let session: RewardGameSession | null = null;
-    let walletIdentity = String(app.chain.address.get() ?? "").trim().toLowerCase();
 
-    const stopWalletSync = app.chain.address.subscribe(() => {
-      const nextIdentity = String(app.chain.address.get() ?? "").trim().toLowerCase();
-      const identityLostOrChanged = Boolean(walletIdentity) && nextIdentity !== walletIdentity;
-      walletIdentity = nextIdentity;
-      if (!identityLostOrChanged || app.mode.isGuest()) return;
+    // RFC P0-5: identity-diff account hook — fires only when the normalized
+    // address actually changes (handler errors are isolated by the framework).
+    // The previous-identity guard keeps the original "first connect is not a
+    // change" semantics.
+    const stopWalletSync = app.wallet.onAccountChanged(({ previous }) => {
+      if (!previous || app.mode.isGuest()) return;
       session = null;
       if (
         obs.activeGameId.get() !== "0"
@@ -213,8 +213,10 @@ defineMiniApp({
       obs.myHistory.set(mine);
     };
 
+    // RFC P0-6: typed read lane — `asBigInt()` keeps the parseBigInt-to-0n
+    // decode semantics; read errors still propagate to the caller.
     const readActiveGameId = async (playerHash: string): Promise<string> => String(
-      parseBigInt(await app.chain.readRaw("activeGameOf", [app.chain.arg.hash160(playerHash)])) ?? "0",
+      await app.chain.query("activeGameOf", [app.chain.arg.hash160(playerHash)]).asBigInt(),
     );
     const readGame = (gameId: string): Promise<unknown> =>
       app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
@@ -361,7 +363,7 @@ defineMiniApp({
         return true;
       } catch (error) {
         session = null;
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         obs.lastStatus.set(ctx.t("statusDealPending"));
         ctx.setStatus(message, "error");
         return false;
@@ -454,7 +456,7 @@ defineMiniApp({
         // op-log append succeed. A failed step must never become UI authority.
         await streamAim(position);
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusShotSyncFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusShotSyncFailed"));
         obs.lastStatus.set(ctx.t("statusShotSyncFailed"));
         ctx.setStatus(message, "error");
         throw error;
@@ -654,7 +656,7 @@ defineMiniApp({
         session = null;
         obs.gameStatus.set("unknown");
         obs.lastStatus.set(ctx.t("statusSettlementPending"));
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         ctx.setStatus(message, "error");
         throw error;
       } finally {
@@ -706,7 +708,7 @@ defineMiniApp({
       try {
         await refreshActiveGame();
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         ctx.setStatus(message, "error");
         throw error;
       }
@@ -738,7 +740,7 @@ defineMiniApp({
         // instead of claiming the reservation was released.
         await refreshActiveGame(false);
       } catch (error) {
-        const message = error instanceof Error ? error.message : ctx.t("statusFailed");
+        const message = app.errors.messageOf(error, ctx.t("statusFailed"));
         ctx.setStatus(message, "error");
         throw error;
       }
@@ -852,7 +854,7 @@ defineMiniApp({
             if (obs.activeGameId.get() !== "0") obs.gameStatus.set("unknown");
             obs.lastStatus.set(ctx.t("statusRecoveryUnavailable"));
             ctx.setStatus(
-              error instanceof Error ? error.message : ctx.t("statusRecoveryUnavailable"),
+              app.errors.messageOf(error, ctx.t("statusRecoveryUnavailable")),
               "warning",
             );
           }

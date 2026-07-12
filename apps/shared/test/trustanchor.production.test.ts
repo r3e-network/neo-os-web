@@ -84,6 +84,32 @@ function harness(options: HarnessOptions = {}) {
       ensureWallet: vi.fn(async () => WALLET),
       detectNetwork: vi.fn(async () => options.detectNetwork ?? "neo-n3-testnet"),
     },
+    // Harness mirror of the framework surfaces the runtime adopted in the RFC
+    // migration (wallet.onAccountChanged identity diff over chain.address +
+    // errors.messageOf Error-message extraction). Assertions are unchanged —
+    // these follow the framework-documented semantics.
+    wallet: {
+      onAccountChanged: (
+        handler: (change: { previous: string | null; current: string | null }) => void,
+      ) => {
+        let last = address.get() || null;
+        return address.subscribe(() => {
+          const next = address.get() || null;
+          if (next === last) return;
+          const previous = last;
+          last = next;
+          handler({ previous, current: next });
+        });
+      },
+    },
+    errors: {
+      messageOf: (error: unknown, fallback?: string) =>
+        error instanceof Error && error.message
+          ? error.message
+          : typeof error === "string" && error
+            ? error
+            : fallback ?? "error",
+    },
   };
   return { app: app as never, store, storage, invoke, readRaw };
 }

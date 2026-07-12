@@ -400,6 +400,62 @@ export function addressToScriptHash(address: string): string {
   }
 }
 
+function base58Encode(bytes: Uint8Array): string {
+  // Count leading zero bytes (each becomes a leading "1").
+  let leadingZeros = 0;
+  for (const byte of bytes) {
+    if (byte !== 0) break;
+    leadingZeros += 1;
+  }
+  let num = 0n;
+  for (const byte of bytes) {
+    num = num * 256n + BigInt(byte);
+  }
+  let out = "";
+  while (num > 0n) {
+    const rem = Number(num % 58n);
+    num /= 58n;
+    out = BASE58_ALPHABET[rem] + out;
+  }
+  return "1".repeat(leadingZeros) + out;
+}
+
+/**
+ * Convert a display-order Hash160 (`0x`-prefixed, 40 hex chars — the form
+ * {@link parseHash160} emits for chain reads) into its Neo N3 address.
+ *
+ * The exact inverse of {@link addressToScriptHash}: Neo N3 addresses are
+ * Base58Check(0x35 + 20-byte-script-hash + 4-byte-checksum) with the script
+ * hash in CHAIN (little-endian) byte order — the reverse of the display-order
+ * hex — so `scriptHashToAddress(addressToScriptHash(addr)) === addr`.
+ *
+ * Canonical home of the converter previously duplicated app-side (e.g.
+ * breakup-contract's utils/address.ts).
+ *
+ * @param scriptHash - Display-order `0x` Hash160 hex (parseHash160 output)
+ * @returns Neo N3 address (e.g. "NR3E4D8N…"), or "" on malformed input
+ */
+export function scriptHashToAddress(scriptHash: string): string {
+  const value = String(scriptHash ?? "").trim();
+  if (!value) return "";
+  const hex = value.startsWith("0x") || value.startsWith("0X") ? value.slice(2) : value;
+  if (!/^[0-9a-fA-F]{40}$/.test(hex)) return "";
+  const displayOrder = new Uint8Array(20);
+  for (let i = 0; i < 20; i += 1) {
+    displayOrder[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  // Display order is the reverse of chain (little-endian) order.
+  const chainOrder = Uint8Array.from(displayOrder).reverse();
+  const payload = new Uint8Array(21);
+  payload[0] = NEO_N3_ADDRESS_VERSION;
+  payload.set(chainOrder, 1);
+  const checksum = sha256(sha256(payload)).subarray(0, 4);
+  const full = new Uint8Array(25);
+  full.set(payload, 0);
+  full.set(checksum, 21);
+  return base58Encode(full);
+}
+
 /**
  * Normalize script hash format
  *

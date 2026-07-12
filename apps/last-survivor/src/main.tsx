@@ -73,9 +73,10 @@ defineMiniApp({
     const guestMoveReady = createObservable(true);
     // Keep the composable identity aligned with host connect/disconnect events.
     // The explicit connect action below also refreshes the balance + round; this
-    // subscription only mirrors identity and never submits a purchase.
-    const stopAddressSync = app.chain.address.subscribe(() => {
-      game.setAddress(app.chain.address.get() ?? null);
+    // hook only mirrors identity (fires solely on an actual account change) and
+    // never submits a purchase.
+    const stopAddressSync = app.wallet.onAccountChanged(({ current }) => {
+      game.setAddress(current);
       void refreshGasBalance();
     });
 

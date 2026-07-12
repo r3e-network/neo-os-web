@@ -524,8 +524,7 @@ export function createAssetFactorySetup(appId: string) {
         signatureState.set(ctx.t("signed"));
         ctx.setStatus(ctx.t("planSigned"), "success");
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : ctx.t("signFailed");
+        const message = ctx.framework.errors.messageOf(error, ctx.t("signFailed"));
         lastError.set(message);
         ctx.setStatus(message, "error");
       } finally {
