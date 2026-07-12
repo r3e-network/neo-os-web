@@ -153,6 +153,36 @@ describe("guest board isolation", () => {
     expect(rows).toEqual([{ user: "gamefi-player", score: "77" }]);
   });
 
+  it("routes stats.leaderboard.submit through the guest namespace in guest mode", async () => {
+    const { app, os } = makeApp("submit-guard-app");
+    app.mode.set("guest");
+
+    // Pre-fix failure mode: a guest run wrote the UNPREFIXED score straight
+    // onto the shared OS board, mixing guest and gamefi rows.
+    await app.stats.leaderboard.submit(31);
+    expect(os.leaderboard.submitScore).toHaveBeenCalledWith(
+      "submit-guard-app:guest:31",
+    );
+    expect(os.leaderboard.submitScore).not.toHaveBeenCalledWith("31");
+
+    // The routed row stays invisible to the gamefi board view and readable
+    // through the guest lane — same isolation as mode.guestLeaderboard.
+    await expect(app.stats.leaderboard.top()).resolves.toEqual([]);
+    await expect(app.mode.guestLeaderboard.get()).resolves.toEqual([
+      { user: ADDRESS, score: "31" },
+    ]);
+  });
+
+  it("keeps stats.leaderboard.submit unprefixed in gamefi mode", async () => {
+    const { app, os } = makeApp("submit-gamefi-app");
+
+    await app.stats.leaderboard.submit(64);
+    expect(os.leaderboard.submitScore).toHaveBeenCalledWith("64");
+    await expect(app.stats.leaderboard.top()).resolves.toEqual([
+      { user: ADDRESS, score: "64" },
+    ]);
+  });
+
   it("guestLeaderboard.get scans past the requested window on a mixed board", async () => {
     const { app, board, os } = makeApp("window-app");
     // 120 non-guest rows ahead of the guest rows: a limit-sized (100) window

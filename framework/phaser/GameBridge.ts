@@ -157,3 +157,28 @@ export function releaseBridge(gameId: string): void {
   bridgeRegistry.get(gameId)?.destroy();
   bridgeRegistry.delete(gameId);
 }
+
+// ── Per-game-instance bridge channel ────────────────────────────────────────
+// PhaserGameComponent attaches its bridge to the Phaser.Game it boots (via
+// config.callbacks.preBoot, so the attachment exists before any scene runs).
+// BaseScene resolves the bridge through `scene.game`, which means every
+// mounted game talks to ITS OWN bridge — two simultaneously mounted
+// PhaserGameComponents can no longer clobber each other through the single
+// `window.__phaserBridge` global. That global is still written as a
+// back-compat alias for the MOST RECENT mount (standalone scenes and older
+// integrations read it), but it is only a fallback for scenes whose game
+// carries no attachment.
+
+/** Structural host for a per-instance bridge attachment (a Phaser.Game). */
+type GameBridgeCarrier = { __phaserBridge?: GameBridge };
+
+/** Attach `bridge` to a booted/booting Phaser.Game instance. */
+export function attachBridgeToGame(game: object, bridge: GameBridge): void {
+  (game as GameBridgeCarrier).__phaserBridge = bridge;
+}
+
+/** Resolve the bridge attached to a Phaser.Game instance, if any. */
+export function bridgeOfGame(game: unknown): GameBridge | undefined {
+  if (typeof game !== "object" || game === null) return undefined;
+  return (game as GameBridgeCarrier).__phaserBridge;
+}

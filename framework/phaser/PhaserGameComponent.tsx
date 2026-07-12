@@ -32,7 +32,7 @@
 import { useEffect, useRef, useId, useState, type CSSProperties } from "react";
 import * as Phaser from "phaser";
 import { Volume2, VolumeX } from "lucide-react";
-import { GameBridge } from "./GameBridge";
+import { GameBridge, attachBridgeToGame } from "./GameBridge";
 import {
   SCENE_AUDIO_MUTE_EVENT,
   SCENE_AUDIO_MUTE_STORAGE_KEY,
@@ -136,10 +136,14 @@ export function PhaserGameComponent({
       setError({ message: event.message || errorLabel, mode: "dismiss" });
     });
 
-    // Inject bridge so BaseScene can pick it up synchronously in create()
+    // Back-compat alias for the MOST RECENT mount only: standalone scenes
+    // (and older integrations) read window.__phaserBridge. The authoritative
+    // per-instance channel is the preBoot attachment below — BaseScene
+    // resolves the bridge via its own Phaser.Game first, so two mounted
+    // PhaserGameComponents never clobber each other through this global.
     window.__phaserBridge = bridge;
 
-    const { scene, scale, ...restConfig } = config;
+    const { scene, scale, callbacks, ...restConfig } = config;
     const sceneConfig = Array.isArray(scene) ? [...scene] : scene;
     const mergedConfig: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
@@ -156,6 +160,15 @@ export function PhaserGameComponent({
         ...scale,
       },
       audio: { disableWebAudio: false },
+      callbacks: {
+        ...callbacks,
+        // Attach THIS component's bridge to THIS Phaser.Game before any
+        // scene boots, so BaseScene.create() resolves its own instance.
+        preBoot: (game) => {
+          attachBridgeToGame(game, bridge);
+          callbacks?.preBoot?.(game);
+        },
+      },
     };
 
     try {

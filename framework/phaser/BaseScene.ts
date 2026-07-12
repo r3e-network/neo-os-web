@@ -29,9 +29,12 @@
 import * as Phaser from "phaser";
 import type { GameState } from "./types";
 import type { GameBridge, GameBridgeError } from "./GameBridge";
+import { bridgeOfGame } from "./GameBridge";
 import { SceneAudio } from "./SceneAudio";
 
-// Injected by PhaserGameComponent before game boot.
+// Back-compat alias written by PhaserGameComponent for the most recent mount.
+// The authoritative per-instance channel is the bridge attached to each
+// Phaser.Game (see GameBridge.attachBridgeToGame); scenes resolve that first.
 declare global {
   interface Window {
     __phaserBridge?: GameBridge;
@@ -85,7 +88,12 @@ export abstract class BaseScene extends Phaser.Scene {
     }
   }
 
-  /** Bridge instance injected by PhaserGameComponent via window.__phaserBridge. */
+  /**
+   * Bridge instance injected by PhaserGameComponent. Resolved per game
+   * instance (the bridge attached to `this.game`), so simultaneously mounted
+   * games never share a bridge; `window.__phaserBridge` is only the
+   * most-recent-mount fallback for standalone/legacy hosts.
+   */
   protected bridge!: GameBridge;
 
   /** Latest state snapshot received from the React shell. */
@@ -110,13 +118,14 @@ export abstract class BaseScene extends Phaser.Scene {
     this.cleanupBaseScene();
     this.cleanedUp = false;
 
-    // Wire up the bridge
-    if (window.__phaserBridge) {
-      this.bridge = window.__phaserBridge;
-    } else {
-      // Fallback no-op bridge for standalone development
-      this.bridge = createNopBridge();
-    }
+    // Wire up the bridge. Precedence:
+    // 1. The bridge attached to THIS scene's Phaser.Game (per-instance channel
+    //    set by PhaserGameComponent via preBoot) — required so two mounted
+    //    games never read each other's bridge.
+    // 2. window.__phaserBridge — back-compat alias for the most recent mount.
+    // 3. A no-op bridge for standalone development without a React shell.
+    this.bridge =
+      bridgeOfGame(this.game) ?? window.__phaserBridge ?? createNopBridge();
 
     // Subscribe to state updates from React
     this.stateUnsubscribe = this.bridge.on("state", (newState) => {
