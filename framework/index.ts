@@ -1030,9 +1030,14 @@ export function createMiniAppFramework(
 
   /**
    * app.permissions (S11) — manifest permission gating sourced from the
-   * launch context. Central enforcement: `app.chain.invoke` requires
-   * "invoke:primary" and the oracle request/dispatch lane requires
-   * "oracle:request", so gating happens once here rather than per app.
+   * launch context. Central enforcement: EVERY primary-contract invoke lane —
+   * `app.chain.invoke` / `write` / `invokeWithPayment` / `invokeMultiple` and
+   * the mutating `app.funds.*` lanes (payAndCall / prepayAndCall / receiptPay /
+   * withdrawCredit), which are payment-carrying invokes of the same primary
+   * contract — requires "invoke:primary", and the oracle request/dispatch
+   * lane requires "oracle:request", so gating happens once here rather than
+   * per app. Read lanes (chain.read/readRaw/readArray/events, funds.creditOf)
+   * stay ungated.
    *
    * Default-allow semantics: when the host delivers NO manifest permission
    * declaration (`ctx.launchContext.permissions` undefined/null — every
@@ -1599,8 +1604,12 @@ export function createMiniAppFramework(
         getPermissions().require("invoke:primary");
         return chain.invoke(operation, args, options);
       },
-      /** Raw pay-and-call with NO notify/reload wrapping (see {@link invoke}). */
-      invokeWithPayment(
+      /**
+       * Raw pay-and-call with NO notify/reload wrapping (see {@link invoke}).
+       * S11: a payment-carrying invoke of the primary contract — same
+       * "invoke:primary" gate as {@link invoke}; `async` so a denial rejects.
+       */
+      async invokeWithPayment(
         amount: string,
         memo: string,
         operation: string,
@@ -1608,10 +1617,15 @@ export function createMiniAppFramework(
         options?: FrameworkInvokeOptions,
       ): Promise<FrameworkTxResult> {
         assertNotGuest();
+        getPermissions().require("invoke:primary");
         return chain.invokeWithPayment(amount, memo, operation, args, options);
       },
       async write(spec: FrameworkWriteSpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
         assertNotGuest();
+        // S11: write is the fire-and-notify wrapper over chain.invoke — the
+        // same "invoke:primary" gate, checked before any notify wrapping so a
+        // denial rejects exactly like the raw invoke lane.
+        getPermissions().require("invoke:primary");
         return runWithNotify(async () => {
           const tx = await chain.invoke(spec.operation, spec.args, compactInvokeOptions(spec));
           if (tx.success !== false) await spec.reload?.();
@@ -1668,6 +1682,9 @@ export function createMiniAppFramework(
         multiOptions: FrameworkMultiInvokeOptions = {},
       ): Promise<FrameworkMultiInvokeResult> {
         assertNotGuest();
+        // S11: multi-call transactions broadcast invokes like the single-call
+        // lanes — uniform "invoke:primary" gate.
+        getPermissions().require("invoke:primary");
         return runWithNotify(async () => {
           if (!chain.invokeMultiple) {
             throw new MiniAppError(
@@ -1841,6 +1858,9 @@ export function createMiniAppFramework(
        */
       async payAndCall(spec: FrameworkPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
         assertNotGuest();
+        // S11: every mutating funds lane is a payment-carrying invoke of the
+        // primary contract — uniform "invoke:primary" gate (see app.permissions).
+        getPermissions().require("invoke:primary");
         return runWithNotify(async () => {
           let tx: FrameworkTxResult;
           try {
@@ -1873,6 +1893,8 @@ export function createMiniAppFramework(
        */
       async prepayAndCall(spec: FrameworkPrepaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
         assertNotGuest();
+        // S11: uniform "invoke:primary" gate for mutating funds lanes.
+        getPermissions().require("invoke:primary");
         return runWithNotify(async () => {
           if (spec.deposit) return prepayViaDepositLane(spec, spec.deposit);
           const amountFixed8 = fixed8Amount(spec);
@@ -1909,6 +1931,8 @@ export function createMiniAppFramework(
        */
       async receiptPay(spec: FrameworkReceiptPaySpec & FrameworkInvokeOptions): Promise<FrameworkTxResult> {
         assertNotGuest();
+        // S11: uniform "invoke:primary" gate for mutating funds lanes.
+        getPermissions().require("invoke:primary");
         return runWithNotify(async () => {
           const receiptId = String(spec.receiptId ?? "").trim();
           if (!/^[1-9]\d*$/.test(receiptId)) {
@@ -1938,6 +1962,9 @@ export function createMiniAppFramework(
       },
       async withdrawCredit(operation = "withdraw", successKey?: string): Promise<FrameworkTxResult> {
         assertNotGuest();
+        // S11: gate explicitly (chain.write below re-checks) so a denial
+        // rejects BEFORE ensureWallet() can pop a wallet prompt.
+        getPermissions().require("invoke:primary");
         const user = accountToHash160(await chain.ensureWallet());
         return framework.chain.write({
           operation,
@@ -2098,7 +2125,24 @@ export function createMiniAppFramework(
         return next;
       },
       leaderboard: {
+        /**
+         * Submit a score to the shared OS board.
+         *
+         * GUEST-MODE DESIGN (aligned with app.mode semantics): the OS board
+         * is an off-chain lane guests ARE allowed to use — that is exactly
+         * why app.mode.guestLeaderboard exists — so a guest submit is NOT a
+         * guarded write like chain/oracle lanes. Instead it is routed through
+         * the guest namespace (`<appId>:guest:<score>`, the same encoding as
+         * mode.guestLeaderboard.submit) so a guest run can never place an
+         * unprefixed score on the shared gamefi board. Cross-mode isolation
+         * is two-sided: `top()` below filters the guest namespace out, and
+         * mode.guestLeaderboard.get() is the guest read lane.
+         */
         async submit(score: number | string): Promise<void> {
+          if (modeObservable.get() === "guest") {
+            await guestLeaderboard.submit(score);
+            return;
+          }
           await os.leaderboard?.submitScore(String(score));
         },
         async top(limit = 100): Promise<Array<{ user: string; score: string }>> {

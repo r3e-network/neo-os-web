@@ -102,7 +102,7 @@ defineMiniApp({
       ctx.t(network === "testnet" ? "networkTestnet" : "networkMainnet"),
     );
     const serviceLabel = createObservable(
-      cachedService ? ctx.t("serviceStale") : ctx.t("serviceChecking"),
+      cachedService ? ctx.t("serviceStale") : ctx.t("serviceNotChecked"),
     );
     const lastStatus = createObservable(
       recoveredDraft ? ctx.t("statusDraftRecovered") : ctx.t("statusReady"),
@@ -423,7 +423,11 @@ defineMiniApp({
         draftPersisted,
       },
       loadData: async () => {
-        await refreshService(false);
+        // First paint stays network-quiet: the cross-origin service/chain
+        // probes only run when the user asks (Refresh bindings), so booting
+        // the console never spams CORS errors or flashes "Degraded" chips.
+        // A cached snapshot (already marked stale) still lets a recovered
+        // response re-verify without any live fetch.
         const recoveredDraftStillActive = Boolean(
           recoveredDraft
           && draft.get()?.request.request_id === recoveredDraft.request.request_id,
@@ -432,6 +436,7 @@ defineMiniApp({
           recoveredDraftStillActive
           && recoveredResponse
           && responseText.get() === recoveredResponse
+          && serviceSnapshot.get()
         ) {
           await applyVerification(recoveredResponse, false);
         } else if (recoveredDraftStillActive) {

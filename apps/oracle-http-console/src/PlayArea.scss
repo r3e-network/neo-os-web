@@ -943,3 +943,35 @@
     transform: none;
   }
 }
+
+/* Desktop rebalance (polish-pass deferred item): the console used to bottom
+ * out around 60% of a 1365x900 viewport, leaving a dead gray band under the
+ * action rail. Let the playstage own the viewport height, grow the stage, and
+ * center a width-capped workbench inside it so the breathing room lives on
+ * the tool surface instead of below the page. */
+@media (min-width: 900px) and (min-height: 620px) {
+  .oracle-console-play-area .mx2-playstage {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .oracle-console-play-area .mx2-playstage > .mx2-stage {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .oracle-console-play-area .mx2-stage__scene {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .oracle-http-workbench {
+    width: 100%;
+    max-width: 1200px;
+    margin-inline: auto;
+  }
+}

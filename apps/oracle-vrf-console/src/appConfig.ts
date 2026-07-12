@@ -66,6 +66,11 @@ const appMessages = {
   networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
 
   serviceChecking: { en: "Checking bindings", zh: "正在检查绑定" },
+  serviceNotChecked: { en: "Not checked yet", zh: "尚未检查" },
+  serviceNotCheckedCopy: {
+    en: "Live service and chain bindings are only read when you ask. Run Refresh bindings to fetch health, key, and callback evidence.",
+    zh: "只有在您主动请求时才会读取服务与链上绑定。点击“刷新绑定”获取健康、密钥和回调证据。",
+  },
   serviceProtected: { en: "Integration only", zh: "仅限集成调用" },
   serviceMismatch: { en: "Network mismatch", zh: "网络不匹配" },
   serviceDegraded: { en: "Degraded", zh: "服务降级" },

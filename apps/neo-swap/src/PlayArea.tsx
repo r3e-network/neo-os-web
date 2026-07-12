@@ -193,6 +193,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const minReceivedLabel = routerAvailable
     ? shortLabel("minReceivedShort", t("minReceived"))
     : t("planningFloor");
+  // Awaiting-input state: with no quoted output the engine's derived floor is
+  // a meaningless "0", so the readout stays an em-dash until an amount exists.
+  // A genuine 0 floor (NEO indivisibility) still renders once quoted.
+  const minReceivedDisplay = toAmount && minReceived ? `${minReceived} ${toToken.symbol}` : "—";
   const slippageLabel = shortLabel("slippageShort", t("slippage"));
   const exchangeRateLabel = shortLabel("exchangeRateShort", t("exchangeRate"));
   const drawerModes: Array<{ mode: DrawerMode; label: string }> = [
@@ -242,6 +246,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     const preset = SLIPPAGE_PRESETS.find((item) => String(item.bps) === value);
     if (preset) dispatchSafely("setSlippage", preset.value);
   };
+
+  // Route-review facts shared by the desktop rail and the drawer panel. The
+  // class name is parameterized because tests pin the drawer row count and the
+  // two surfaces must not collide in selectors.
+  const renderRouteChecks = (className: string) => (
+    <dl className={className}>
+      <div>
+        <dt>{t("quoteNetwork")}</dt>
+        <dd>{quoteNetwork.toUpperCase()}</dd>
+      </div>
+      <div data-tone={networkError ? "warning" : "neutral"}>
+        <dt>{t("walletNetwork")}</dt>
+        <dd>{networkError || (networkVerified ? walletNetwork.toUpperCase() : t("walletNotChecked"))}</dd>
+      </div>
+      <div>
+        <dt>{t("priceImpact")}</dt>
+        <dd>{t("priceImpactUnavailable")}</dd>
+      </div>
+      <div>
+        <dt>{t("approvalLabel")}</dt>
+        <dd>{routerAvailable ? t("approvalWalletTransaction") : t("approvalNotRequested")}</dd>
+      </div>
+      <div data-tone={transactionStatus === "unverified" || transactionStatus === "failed" ? "warning" : "neutral"}>
+        <dt>{t("transactionLabel")}</dt>
+        <dd>{transactionLabel}</dd>
+      </div>
+      {pendingTxid && (
+        <div data-tone="warning">
+          <dt>{t("pendingTxLabel")}</dt>
+          <dd title={pendingTxid}>{shortTxid(pendingTxid)}</dd>
+        </div>
+      )}
+    </dl>
+  );
+  const renderRouteSteps = () => (
+    <div className="swap-route-steps">
+      <span>{t("routeStepQuote")}</span>
+      <span>{t("routeDirectValue", { pair: `${fromToken.symbol} → ${toToken.symbol}` })}</span>
+      <span>{t("routeStepWallet")}</span>
+    </div>
+  );
 
   const scene = (
     <div
@@ -327,10 +372,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <button
                 type="button"
                 className="swap-receive-value"
+                data-empty={toAmount ? "false" : "true"}
                 onClick={() => dispatchSafely("openToSelector")}
                 disabled={loading || isSwapping}
               >
-                <strong>{toAmount || "0"}</strong>
+                <strong>{toAmount || "—"}</strong>
                 <em>{toToken.symbol}</em>
               </button>
               <span className="swap-leg__balance" aria-live="polite">{t("balance")}: {balanceText(toToken)}</span>
@@ -380,7 +426,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="swap-quote-card__metrics">
               <span>
                 <small>{minReceivedLabel}</small>
-                <strong>{minReceived || "0"} {toToken.symbol}</strong>
+                <strong>{minReceivedDisplay}</strong>
               </span>
               <span>
                 <small>{slippageLabel}</small>
@@ -388,11 +434,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </span>
               <span>
                 <small>{exchangeRateLabel}</small>
-                <strong>{exchangeRate || "-"}</strong>
+                <strong>{exchangeRate || "—"}</strong>
               </span>
             </div>
             <div className="swap-station__review">
-              <span><ShieldCheck size={15} /> {minReceivedLabel}: <strong>{minReceived || "0"} {toToken.symbol}</strong></span>
+              <span><ShieldCheck size={15} /> {minReceivedLabel}: <strong>{minReceivedDisplay}</strong></span>
               <span><Wallet size={15} /> {routerAvailable ? t("routeModeLive") : t("routeModePreview")}</span>
               <span data-tone={networkError ? "warning" : "neutral"}>
                 {t("quoteNetwork")}: <strong>{quoteNetwork.toUpperCase()}</strong>
@@ -401,6 +447,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </aside>
         </div>
       </section>
+
+      <aside className="swap-route-rail" aria-label={t("routeReview")}>
+        <div className="swap-route-rail__head">
+          <h4>{t("routeReview")}</h4>
+          <button
+            type="button"
+            className="swap-refresh-btn swap-refresh-btn--rail"
+            onClick={() => dispatchSafely("refreshRate")}
+            disabled={rateLoading}
+          >
+            <RefreshCw size={15} />
+            {t("refreshRate")}
+          </button>
+        </div>
+        <p>{routerAvailable ? t("routeModeLiveBody") : t("routeModePreviewBody")}</p>
+        {renderRouteSteps()}
+        {renderRouteChecks("swap-route-rail__checks")}
+        {transactionError && <p className="swap-transaction-note" role="status">{transactionError}</p>}
+      </aside>
     </div>
   );
 
@@ -428,39 +493,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </button>
           </div>
           <p>{routerAvailable ? t("routeModeLiveBody") : t("routeModePreviewBody")}</p>
-          <div className="swap-route-steps">
-            <span>{t("routeStepQuote")}</span>
-            <span>{t("routeDirectValue", { pair: `${fromToken.symbol} → ${toToken.symbol}` })}</span>
-            <span>{t("routeStepWallet")}</span>
-          </div>
-          <dl className="swap-settlement-checks">
-            <div>
-              <dt>{t("quoteNetwork")}</dt>
-              <dd>{quoteNetwork.toUpperCase()}</dd>
-            </div>
-            <div data-tone={networkError ? "warning" : "neutral"}>
-              <dt>{t("walletNetwork")}</dt>
-              <dd>{networkError || (networkVerified ? walletNetwork.toUpperCase() : t("walletNotChecked"))}</dd>
-            </div>
-            <div>
-              <dt>{t("priceImpact")}</dt>
-              <dd>{t("priceImpactUnavailable")}</dd>
-            </div>
-            <div>
-              <dt>{t("approvalLabel")}</dt>
-              <dd>{routerAvailable ? t("approvalWalletTransaction") : t("approvalNotRequested")}</dd>
-            </div>
-            <div data-tone={transactionStatus === "unverified" || transactionStatus === "failed" ? "warning" : "neutral"}>
-              <dt>{t("transactionLabel")}</dt>
-              <dd>{transactionLabel}</dd>
-            </div>
-            {pendingTxid && (
-              <div data-tone="warning">
-                <dt>{t("pendingTxLabel")}</dt>
-                <dd title={pendingTxid}>{shortTxid(pendingTxid)}</dd>
-              </div>
-            )}
-          </dl>
+          {renderRouteSteps()}
+          {renderRouteChecks("swap-settlement-checks")}
           {transactionError && <p className="swap-transaction-note" role="status">{transactionError}</p>}
         </section>
       )}

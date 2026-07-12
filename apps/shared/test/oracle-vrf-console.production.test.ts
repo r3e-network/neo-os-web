@@ -234,11 +234,28 @@ describe("Oracle VRF Workbench production state", () => {
     expect(app.result.state.verification.get()).toMatchObject({ status: "invalid" });
   });
 
-  it("does not let a late startup refresh overwrite a draft created by the user", async () => {
+  it("boots without probing the oracle service and shows a neutral unchecked state", async () => {
+    // Startup is network-quiet by contract: cross-origin health/key/chain
+    // probes only run from the user-triggered refreshService action, never on
+    // first paint (which used to spam CORS errors and "Degraded" chips).
+    const probe = vi.fn(async () => serviceSnapshot());
+    workbenchHarness.probe = probe;
+    const app = setupMainApp();
+
+    await app.result.loadData();
+
+    expect(probe).not.toHaveBeenCalled();
+    expect(app.result.state.serviceSnapshot.get()).toBeNull();
+    expect(app.result.state.serviceLabel.get()).toBe("serviceNotChecked");
+    expect(app.result.state.lastStatus.get()).toBe("statusReady");
+  });
+
+  it("does not let a late on-demand refresh overwrite a draft created by the user", async () => {
     let release!: (value: VrfServiceSnapshot) => void;
     workbenchHarness.probe = () => new Promise((resolve) => { release = resolve; });
     const app = setupMainApp();
-    const load = app.result.loadData();
+    await app.result.loadData();
+    const refresh = app.actions.get("refreshService")?.();
 
     await app.actions.get("buildDraft")?.({
       consumer: "live-user",
@@ -246,11 +263,14 @@ describe("Oracle VRF Workbench production state", () => {
       purpose: "allocation",
     });
     release(serviceSnapshot());
-    await load;
+    await refresh;
 
     expect(app.result.state.draft.get()).toMatchObject({
       context: { consumer: "live-user", reference: "new-session", purpose: "allocation" },
     });
-    expect(app.result.state.lastStatus.get()).toBe("statusDraftReady");
+    // The user asked for this refresh, so its completion announcement is the
+    // honest final status; the draft itself must survive untouched.
+    expect(app.result.state.lastStatus.get()).toBe("statusServiceRefreshed");
+    expect(app.result.state.serviceLabel.get()).toBe("serviceProtected");
   });
 });

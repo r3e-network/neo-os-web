@@ -13,9 +13,10 @@
  *   no-op while `list()` stays empty.
  * - A present declaration — even an empty one — is enforced verbatim:
  *   `require()` throws {@link FrameworkPermissionError} for anything not
- *   granted. Framework internals call `require()` (e.g. chain.invoke →
- *   "invoke:primary", oracle.* → "oracle:request") so gating happens once,
- *   centrally.
+ *   granted. Framework internals call `require()` (chain.invoke / write /
+ *   invokeWithPayment / invokeMultiple and the mutating funds.* lanes →
+ *   "invoke:primary", oracle request/dispatch → "oracle:request") so gating
+ *   happens once, centrally.
  */
 
 import { MiniAppError } from "./utils/errors";

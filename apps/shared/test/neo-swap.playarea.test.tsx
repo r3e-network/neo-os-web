@@ -129,11 +129,22 @@ describe("Neo Swap PlayArea (v2)", () => {
     expect(container.querySelectorAll(".swap-quote-card__metrics span")).toHaveLength(3);
     expect(container.querySelector(".swap-quote-card__metrics")?.textContent).toContain("Min received");
     expect(container.querySelector(".swap-quote-card__metrics")?.textContent).toContain("Slippage");
+    // First-run: no quoted output yet, so the floor readout is an em-dash, not "0 GAS".
+    expect(container.querySelector(".swap-quote-card__metrics")?.textContent).not.toContain("0 GAS");
+    expect(container.querySelector(".swap-quote-card__metrics")?.textContent).toContain("—");
     expect(container.querySelector(".mx2-score")).toBeNull();
     expect(container.querySelector(".swap-station")?.textContent).toContain("NEO");
     expect(container.querySelector(".swap-station")?.textContent).toContain("GAS");
     expect(container.querySelectorAll(".swap-leg .neo-swap-token-icon")).toHaveLength(2);
     expect(container.querySelectorAll(".swap-station__review span")).toHaveLength(3);
+    // Desktop route rail mirrors the drawer facts without colliding with the
+    // drawer's pinned .swap-settlement-checks selector count.
+    expect(container.querySelector(".swap-route-rail")).toBeTruthy();
+    expect(container.querySelectorAll(".swap-route-rail__checks > div")).toHaveLength(5);
+    expect(container.querySelector(".swap-route-rail .swap-route-steps")).toBeTruthy();
+    // First-run receive leg is a neutral awaiting-input em-dash, never a fake zero.
+    expect(container.querySelector(".swap-receive-value")?.getAttribute("data-empty")).toBe("true");
+    expect(container.querySelector(".swap-receive-value strong")?.textContent).toBe("—");
     expect(container.querySelector(".swap-token-list")).toBeNull();
     expect(container.querySelector(".swap-slippage-grid")).toBeNull();
     expect(container.querySelector(".swap-amount-field")).toBeTruthy();
@@ -292,7 +303,7 @@ describe("Neo Swap PlayArea (v2)", () => {
     expect(dispatch).not.toHaveBeenCalledWith("setSlippage", 0.1);
 
     const drawerTabs = container.querySelectorAll(".swap-drawer-tab");
-    fireEvent.click(container.querySelector(".swap-refresh-btn") as Element);
+    fireEvent.click(container.querySelector(".swap-drawer-panel--route .swap-refresh-btn") as Element);
     fireEvent.click(drawerTabs[1]);
     fireEvent.click(container.querySelector(".swap-slippage-option") as Element);
     fireEvent.click(drawerTabs[2]);
@@ -336,11 +347,20 @@ describe("Neo Swap PlayArea (v2)", () => {
     expect(scss).toMatch(/\.neo-swap-play-area \.mx2-stage__scene\s*\{[\s\S]*display:\s*block/);
     expect(scss).toMatch(/\.neo-swap-play-area \.mx2-stage__scene\s*\{[\s\S]*contain:\s*layout;[\s\S]*overflow:\s*visible/);
     expect(scss).toMatch(/\.neo-swap-play-area \.mx2-playstage,[\s\S]*\.neo-swap-play-area \.mx2-stage__scene\s*\{[\s\S]*width:\s*100%;[\s\S]*min-width:\s*0;[\s\S]*max-width:\s*100%/);
-    expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*width:\s*min\(100%,\s*860px\)/);
+    // Desktop rebalance (2026-07): the scene widens to fill the stage and the
+    // terminal fills its grid column; the old centered 860/820px pins are
+    // re-pinned to the new intentional composition, not loosened.
+    expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*width:\s*min\(100%,\s*1240px\)/);
     expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*border:\s*0/);
     expect(scss).toMatch(/\.swap-scene\s*\{[\s\S]*background:\s*transparent/);
-    expect(scss).toMatch(/\.swap-terminal\s*\{[\s\S]*width:\s*min\(100%,\s*820px\)/);
+    expect(scss).toMatch(/@media \(min-width:\s*1024px\)[\s\S]*\.swap-scene\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(300px,\s*360px\)/);
+    expect(scss).toMatch(/@media \(min-width:\s*1024px\)[\s\S]*\.swap-route-rail\s*\{[\s\S]*display:\s*grid/);
+    expect(scss).toMatch(/\.swap-terminal\s*\{\s*width:\s*100%/);
     expect(scss).toMatch(/\.swap-terminal\s*\{[\s\S]*background:\s*#ffffff/);
+    // The receive leg awaiting state must stay neutral -- no amber first-run panel.
+    expect(scss).not.toMatch(/#fffaf0/i);
+    expect(scss).toMatch(/\.swap-leg--to\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(scss).toMatch(/\.swap-receive-value\[data-empty="true"\] strong\s*\{[\s\S]*color:\s*var\(--mx2-text-muted\)/);
     expect(scss).toMatch(/\.swap-terminal__body\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.14fr\) minmax\(230px,\s*0\.86fr\)/);
     expect(scss).toMatch(/\.swap-station\s*\{[\s\S]*width:\s*100%/);
     expect(scss).toMatch(/\.swap-quote-card__visual\s*\{[\s\S]*overflow:\s*hidden/);

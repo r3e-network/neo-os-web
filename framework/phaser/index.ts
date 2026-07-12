@@ -22,6 +22,8 @@ export {
   formatBridgeError,
   getBridge,
   releaseBridge,
+  attachBridgeToGame,
+  bridgeOfGame,
 } from "./GameBridge";
 export type { GameBridgeError } from "./GameBridge";
 export type {
