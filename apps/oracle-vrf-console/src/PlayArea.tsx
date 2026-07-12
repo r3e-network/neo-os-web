@@ -68,8 +68,10 @@ const CHECK_LABELS: Record<VerificationCheckKey, string> = {
   attestation: "checkAttestation",
 };
 
-function serviceLabelKey(snapshot: VrfServiceSnapshot | null): string {
-  if (!snapshot) return "serviceChecking";
+function serviceLabelKey(snapshot: VrfServiceSnapshot | null, busy = false): string {
+  // Checks are on-demand: before the first user-triggered probe there is no
+  // snapshot, and the honest state is "not checked" rather than degraded.
+  if (!snapshot) return busy ? "serviceChecking" : "serviceNotChecked";
   if (snapshot.freshness === "stale") return "serviceStale";
   if (snapshot.availability === "network-mismatch") return "serviceMismatch";
   if (snapshot.availability === "degraded") return "serviceDegraded";
@@ -129,7 +131,7 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
     () => draft ? JSON.stringify(draft.request, null, 2) : "",
     [draft],
   );
-  const serviceTitle = t(serviceLabelKey(snapshot));
+  const serviceTitle = t(serviceLabelKey(snapshot, serviceBusy));
   const serviceNeedsAttention = Boolean(
     snapshot
     && (snapshot.freshness === "stale" || snapshot.availability !== "protected"),
@@ -410,10 +412,24 @@ export default function PlayArea({ t, state, dispatch, setStatus }: PlayAreaProp
               : `${t("serviceAuthRequired")} ${t("serviceRoleSeparation")} ${!snapshot.workflowAdvertised ? t("serviceWorkflowMissing") : ""} ${t("serviceFreshAt", { time: formatCheckedAt(snapshot.checkedAt) })}`}
           </OpenUiNotice>
         </>
-      ) : (
-        <OpenUiNotice icon={<RefreshCw size={17} />} title={t("serviceChecking")}>
+      ) : serviceBusy ? (
+        <OpenUiNotice icon={<RefreshCw className="is-spinning" size={17} />} title={t("serviceChecking")}>
           {t("statusCheckingService")}
         </OpenUiNotice>
+      ) : (
+        <>
+          <OpenUiNotice icon={<Activity size={17} />} title={t("serviceNotChecked")}>
+            {t("serviceNotCheckedCopy")}
+          </OpenUiNotice>
+          <button
+            className="vrf-inline-action vrf-inline-action--primary"
+            type="button"
+            onClick={() => void dispatch("refreshService")}
+            disabled={serviceBusy}
+          >
+            <RefreshCw size={16} /> {t("refreshService")}
+          </button>
+        </>
       )}
     </OpenUiPanel>
   );

@@ -339,6 +339,68 @@ describe("app.permissions gating (S11)", () => {
       FrameworkPermissionError,
     );
   });
+
+  it("gates every chain write lane and mutating funds lane on invoke:primary", async () => {
+    // Hardening round 2: the original S11 gate covered only chain.invoke +
+    // the oracle lanes — write / invokeWithPayment / invokeMultiple and the
+    // mutating funds.* lanes reached the host chain service ungated.
+    const { app, chain, notify } = makeFramework({
+      launchContext: { permissions: ["oracle:request"] },
+    });
+
+    const expectDenied = (fn: () => unknown) =>
+      expect((async () => fn())()).rejects.toSatisfy(
+        (error: unknown) =>
+          error instanceof FrameworkPermissionError && error.permission === "invoke:primary",
+      );
+
+    await expectDenied(() => app.chain.write({ operation: "op", args: [] }));
+    await expectDenied(() => app.chain.invokeWithPayment("1", "m", "op", []));
+    await expectDenied(() => app.chain.invokeMultiple([{ operation: "op", args: [] }]));
+    await expectDenied(() =>
+      app.funds.payAndCall({ operation: "op", args: [], memo: "m", amountGas: 1 }),
+    );
+    await expectDenied(() =>
+      app.funds.prepayAndCall({ operation: "op", args: [], memo: "m", amountGas: 1 }),
+    );
+    await expectDenied(() =>
+      app.funds.receiptPay({ operation: "op", args: [], receiptId: 1 }),
+    );
+    await expectDenied(() => app.funds.withdrawCredit());
+
+    // Denials happen before the notify wrapper and before any wallet prompt.
+    expect(chain.invoke).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(notify.error).not.toHaveBeenCalled();
+  });
+
+  it("keeps the extended lanes working when invoke:primary is granted", async () => {
+    const { app, chain } = makeFramework({
+      launchContext: { permissions: ["invoke:primary"] },
+    });
+
+    await expect(app.chain.write({ operation: "op", args: [] })).resolves.toMatchObject({
+      txid: "0xinvoke",
+    });
+    await expect(app.chain.invokeWithPayment("1", "m", "op", [])).resolves.toMatchObject({
+      txid: "0xpay",
+    });
+    await expect(
+      app.funds.payAndCall({ operation: "op", args: [], memo: "m", amountGas: 1 }),
+    ).resolves.toMatchObject({ txid: "0xpay" });
+    await expect(app.funds.withdrawCredit()).resolves.toMatchObject({ txid: "0xinvoke" });
+    // invokeMultiple passes the gate and fails only on the missing host lane.
+    await expect(
+      app.chain.invokeMultiple([{ operation: "op", args: [] }]),
+    ).rejects.toSatisfy(
+      (error: unknown) =>
+        !(error instanceof FrameworkPermissionError) &&
+        (error as Error).message.includes("invokeMultiple"),
+    );
+    expect(chain.invoke).toHaveBeenCalled();
+    expect(chain.invokeWithPayment).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("app.resources wiring (S12)", () => {
