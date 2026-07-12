@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
@@ -25,8 +27,10 @@ describe("oracle-compute-lab integration: dispatch + state", () => {
     }
   });
   it("has reduced-motion CSS guard", () => {
-    const fs = require("node:fs");
-    const s = fs.readFileSync(`${process.cwd()}/../oracle-compute-lab/src/PlayArea.scss`, "utf8");
+    const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+      ? path.resolve(process.cwd(), "..")
+      : path.resolve(process.cwd(), "apps");
+    const s = readFileSync(path.join(appsRoot, "oracle-compute-lab/src/PlayArea.scss"), "utf8");
     expect(s).toMatch(/prefers-reduced-motion/);
   });
 });

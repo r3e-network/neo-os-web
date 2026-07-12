@@ -3,11 +3,11 @@
  *
  * A client-side Neo N3 key toolkit that generates accounts and converts
  * between key formats (WIF, private key, public key, script hex).
- * All operations run on-device with no server calls.
+ * Key and script operations run on-device. The optional wallet balance card
+ * is a separate read-only RPC surface.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -27,22 +27,25 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    registerActions(ctx, {
-      generate: {
-        handler: async () => convert.generateNewAccount(),
-        successKey: "btnGenerate",
-        errorKey: "invalidFormat",
-      },
-      // Route the paper-wallet export through registerActions so its
-      // genuinely failure-prone steps (dynamic qrcode/pdf imports,
-      // QRCode.toDataURL) surface a localized error toast instead of
-      // rejecting silently. The host dispatch does not wrap handlers.
-      downloadPaperWallet: {
-        handler: async () => convert.downloadPaperWallet(),
-        successKey: "paperWalletReady",
-        errorKey: "paperWalletFailed",
-      },
+    app.actions.register("generate", async () => {
+      convert.generateNewAccount();
+    }, {
+      successKey: "accountGeneratedToast",
+      errorKey: "accountGenerationFailed",
     });
+
+    // QR/PDF work stays behind the framework single-flight action wrapper so
+    // repeated clicks cannot overlap and failures never become false success.
+    app.actions.register("downloadPaperWallet", async () => {
+      await convert.downloadPaperWallet();
+    }, {
+      successKey: "paperWalletReady",
+      errorKey: "paperWalletFailed",
+    });
+
+    app.actions.register("reset", async () => {
+      convert.resetWorkbench();
+    }, { successKey: "workbenchCleared" });
 
     ctx.framework.actions.register("convert", async (...args: unknown[]) => {
       const incoming = typeof args[0] === "string" ? args[0] : "";
@@ -68,7 +71,7 @@ defineMiniApp({
 
     ctx.framework.actions.register("copy", async (...args: unknown[]) => {
       const text = typeof args[0] === "string" ? args[0] : "";
-      if (text) convert.copyToClipboard(text);
+      if (text) await convert.copyToClipboard(text);
     });
 
     return {
@@ -87,12 +90,14 @@ defineMiniApp({
         conversionStatus: convert.conversionStatus,
         conversionStatusType: convert.conversionStatusType,
         copyStatus: convert.copyStatus,
+        copyStatusType: convert.copyStatusType,
         hasConversionResult: convert.hasConversionResult,
         neoBalance: convert.neoBalance,
         gasBalance: convert.gasBalance,
         formattedNeoBalance: convert.formattedNeoBalance,
         formattedGasBalance: convert.formattedGasBalance,
         balancesLoading: convert.balancesLoading,
+        balanceStatus: convert.balanceStatus,
         walletConnected: convert.walletConnected,
       },
       loadData: convert.loadAll,

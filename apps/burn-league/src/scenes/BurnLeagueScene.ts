@@ -2,12 +2,10 @@
  * BurnLeagueScene - Phaser 3 arena view for the Burn League GameFi contest.
  *
  * The blockchain flow stays in useBurnLeague/main.tsx. This scene owns only the
- * playable surface: bright arena art, a lit ceremonial GAS brazier (drawn
- * in-scene with a layered green->gold flame and rising embers), a fuel/heat
- * gauge fed by the pool, GAS fuel capsules, the leaderboard preview, and the
- * burn action. The brazier + flame echo the arena backdrop (a golden bowl with
- * a green ceremonial flame and GAS coins streaming in) so the surface reads as a
- * furnace you feed fuel into rather than a pasted app icon.
+ * playable surface: bright arena art, the real league cauldron/trophy asset,
+ * a fuel/heat gauge, official GAS fuel capsules, the leaderboard preview, and
+ * the burn action. HUD and hit areas remain code-native; the game object itself
+ * is repository artwork rather than a canvas-drawn placeholder.
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
@@ -26,22 +24,14 @@ const C = {
   surfaceWarm: 0xfff7df,
   stroke: 0xe7d8b8,
   strokeStrong: 0xf2b84b,
-  ink: 0x2a2018,
   inkSoft: 0x765c38,
-  inkMuted: 0x9a825d,
   gold: 0xf5b640,
-  goldLight: 0xfbd977,
   goldDeep: 0xb45309,
   green: 0x16a86b,
   greenDeep: 0x0f7d56,
-  teal: 0x2fbf8f,
-  flameGreen: 0x3ad39a,
   hot: 0xfff3c4,
-  coal: 0x3a2411,
-  coalDark: 0x271607,
   ember: 0xf97316,
   emberDeep: 0xc2410c,
-  danger: 0xdc2626,
   disabled: 0xd5cec2,
   white: 0xffffff,
 };
@@ -56,7 +46,24 @@ type LeaderEntry = {
   isUser?: boolean;
 };
 
-type Pt = { x: number; y: number };
+type SceneText = {
+  poolLabel?: string;
+  seasonLabel?: string;
+  burnedLabel?: string;
+  rankLabel?: string;
+  boardTitle?: string;
+  emptyBoard?: string;
+  fuelLabel?: string;
+  phaseEnded?: string;
+  phaseDormant?: string;
+  ready?: string;
+  walletBurning?: string;
+  endedStatus?: string;
+  dormantStatus?: string;
+  emptyStatus?: string;
+  activeStatus?: string;
+  guestContinue?: string;
+};
 
 export class BurnLeagueScene extends BaseScene {
   private sceneReady = false;
@@ -68,9 +75,8 @@ export class BurnLeagueScene extends BaseScene {
   private coreArt!: Phaser.GameObjects.Container;
   private coreGlow!: Phaser.GameObjects.Ellipse;
   private coreGlowInner!: Phaser.GameObjects.Ellipse;
-  private brazierBody!: Phaser.GameObjects.Container;
-  private flameHolder!: Phaser.GameObjects.Container;
-  private flame!: Phaser.GameObjects.Container;
+  private coreMachineHolder!: Phaser.GameObjects.Container;
+  private coreMachine!: Phaser.GameObjects.Image;
   private gasTokens: Phaser.GameObjects.Image[] = [];
 
   private coreCX = 210;
@@ -79,7 +85,7 @@ export class BurnLeagueScene extends BaseScene {
 
   private heatGauge!: Phaser.GameObjects.Container;
   private heatFill!: Phaser.GameObjects.Graphics;
-  private heatFlame!: Phaser.GameObjects.Container;
+  private heatToken!: Phaser.GameObjects.Image;
   private heatTrackTop = 0;
   private heatTrackH = 84;
   private heatTrackW = 12;
@@ -99,16 +105,24 @@ export class BurnLeagueScene extends BaseScene {
   private ghostAmounts: Phaser.GameObjects.Text[] = [];
   private emptyLeaderChip!: Phaser.GameObjects.Graphics;
   private emptyLeaderLabel!: Phaser.GameObjects.Text;
+  private boardRowWidth = 332;
+  private boardRankX = -150;
+  private boardAddressX = -92;
+  private boardValueX = 150;
+  private boardRows = 4;
+  private boardRowGap = 21;
 
   private presetBtns: Phaser.GameObjects.Container[] = [];
   private burnBtn!: Phaser.GameObjects.Container;
   private burnBtnBg!: Phaser.GameObjects.Graphics;
   private burnBtnLabel!: Phaser.GameObjects.Text;
+  private burnButtonHeight = 52;
   private statusScrim!: Phaser.GameObjects.Graphics;
   private statusLabel!: Phaser.GameObjects.Text;
 
   private selectedAmount = "1";
   private isBurning = false;
+  private primaryAction: "connect" | "burn" | "settle" | "recheck" = "burn";
   private tokenPhase = 0;
 
   // Previous async-flow flags so result cues fire once per transition,
@@ -158,6 +172,15 @@ export class BurnLeagueScene extends BaseScene {
     this.onStateUpdate(this.state);
   }
 
+  protected onReducedMotionChange(_enabled: boolean): void {
+    if (!this.sceneReady || this.isRebuildingScene) return;
+    // Existing infinite tweens were created under the previous preference.
+    // Rebuilding applies the new reduced-motion contract immediately and also
+    // restores every animated object's canonical transform.
+    this.rebuildScene();
+    this.onStateUpdate(this.state);
+  }
+
   private syncSceneSize(): void {
     this.scW = Math.max(1, Math.round(this.scale.width || 420));
     this.scH = Math.max(1, Math.round(this.scale.height || 600));
@@ -173,7 +196,7 @@ export class BurnLeagueScene extends BaseScene {
     const width = this.scW;
     const height = this.scH;
     this.buildBackground(width, height);
-    this.buildHud(width);
+    this.buildHud(width, height);
     this.buildCore(width, height);
     this.buildHeatGauge();
     this.buildLeaderboard(width, height);
@@ -199,20 +222,27 @@ export class BurnLeagueScene extends BaseScene {
     const validationError = this.str("burnValidationError", "");
     const actionNotice = this.str("actionNotice", "");
     const leaders = this.val<LeaderEntry[]>("leaderboardPreview", []) ?? [];
+    const needsSettle = this.bool("needsSettle");
 
     // Guest (local) mode swaps the GAS-at-stake / pool / season framing for a
     // local burn-streak read: "Best heat", "This run", a streak counter, and a
     // heat-unit leaderboard — no GAS anywhere.
     const guest = this.str("appMode", "gamefi") === "guest";
     const streak = this.num("guestStreak", 0);
-    if (guest) {
-      this.poolLabel?.setText(this.str("guestPoolLabel", "Best heat"));
-      this.seasonLabelText?.setText(this.str("guestSeasonLabel", "Streak"));
-      this.burnedLabel?.setText(this.str("guestRunLabel", "This run"));
-      this.boardTitle?.setText(this.str("guestBoardLabel", "Local runs"));
-      // Drop the "-- GAS" ghost-row placeholders — guest has no GAS framing.
-      this.ghostAmounts.forEach((txt) => txt.setText("--"));
-    }
+    this.poolLabel?.setText(
+      guest ? this.str("guestPoolLabel", "Best heat") : this.copy("poolLabel", "Prize pool"),
+    );
+    this.seasonLabelText?.setText(
+      guest ? this.str("guestSeasonLabel", "Streak") : this.copy("seasonLabel", "Season"),
+    );
+    this.burnedLabel?.setText(
+      guest ? this.str("guestRunLabel", "This run") : this.copy("burnedLabel", "You burned"),
+    );
+    this.boardTitle?.setText(
+      guest ? this.str("guestBoardLabel", "Local runs") : this.copy("boardTitle", "Leaderboard"),
+    );
+    const tokenLabel = this.str("tokenGasLabel", "GAS");
+    this.ghostAmounts.forEach((txt) => txt.setText(guest ? "--" : `-- ${tokenLabel}`));
 
     this.isBurning = this.bool("isBurning");
     const isSettling = this.bool("isSettling");
@@ -232,11 +262,13 @@ export class BurnLeagueScene extends BaseScene {
 
     this.poolValue.setText(guest ? heatText(pot) : gasText(pot));
     this.burnedValue.setText(guest ? heatText(userBurned) : gasText(userBurned));
-    // formattedRank already carries its own "#" — in gamefi the extra "#" is the
-    // pre-existing look; guest renders the value verbatim (a clean "#1").
-    this.rankValue.setText(rank === "--" ? "--" : guest ? rank : `#${rank}`);
+    // formattedRank already carries its own "#". Rendering it verbatim avoids
+    // the former "##2" GameFi label while still accepting plain numeric mocks.
+    this.rankValue.setText(rank === "--" ? "--" : rank.startsWith("#") ? rank : `#${rank}`);
     this.phaseValue.setText(
-      guest ? (streak > 0 ? `x${streak}` : "Ready") : this.phaseCopy(phase, countdown),
+      guest
+        ? (streak > 0 ? `x${streak}` : this.copy("ready", "Ready"))
+        : this.phaseCopy(phase, countdown),
     );
 
     this.updatePresets();
@@ -245,13 +277,19 @@ export class BurnLeagueScene extends BaseScene {
 
     this.applyHeat(this.poolHeat(), this.isBurning);
     const dim = phase === "ended" ? 0.82 : 1;
-    this.brazierBody.setAlpha(dim);
-    this.flameHolder.setAlpha(dim);
+    this.coreMachineHolder.setAlpha(dim);
 
+    const insufficientFunding =
+      !guest &&
+      this.bool("walletConnected") &&
+      !this.bool("hasUnknownBurn") &&
+      !needsSettle &&
+      !this.hasEnoughFunding();
     this.statusLabel.setText(
       validationError ||
         actionNotice ||
         serviceNotice ||
+        (insufficientFunding ? this.str("burnInsufficientHint", "Insufficient GAS") : "") ||
         (guest ? this.guestDefaultStatus(streak) : this.defaultStatus(phase, leaders.length)),
     );
     this.layoutStatus();
@@ -273,16 +311,55 @@ export class BurnLeagueScene extends BaseScene {
       .setStrokeStyle(1, C.stroke, 0.7);
   }
 
-  private buildHud(width: number): void {
-    const left = this.buildStatCard(104, 48, 184, 58, "Prize pool", true);
-    const right = this.buildStatCard(width - 96, 48, 164, 58, "Season", false);
+  private buildHud(width: number, height: number): void {
+    const side = width < 340 ? 10 : 12;
+    const gap = width < 340 ? 8 : 10;
+    const cardW = Math.max(112, (width - side * 2 - gap) / 2);
+    const topY = height < 450 ? 38 : 48;
+    const cardH = height < 450 ? 50 : 58;
+    const leftX = side + cardW / 2;
+    const rightX = width - side - cardW / 2;
+    const left = this.buildStatCard(
+      leftX,
+      topY,
+      cardW,
+      cardH,
+      this.copy("poolLabel", "Prize pool"),
+      cardW >= 150,
+    );
+    const right = this.buildStatCard(
+      rightX,
+      topY,
+      cardW,
+      cardH,
+      this.copy("seasonLabel", "Season"),
+      false,
+    );
     this.poolValue = left.value;
     this.phaseValue = right.value;
     this.poolLabel = left.label;
     this.seasonLabelText = right.label;
 
-    const lowerLeft = this.buildTinyMetric(94, 108, "You burned");
-    const lowerRight = this.buildTinyMetric(width - 94, 108, "Rank");
+    const tinyW = Math.max(112, (width - side * 2 - gap) / 2);
+    const tinyY = height < 450 ? 94 : 108;
+    const lowerLeft = this.buildTinyMetric(
+      side + tinyW / 2,
+      tinyY,
+      tinyW,
+      this.copy("burnedLabel", "You burned"),
+    );
+    const lowerRight = this.buildTinyMetric(
+      width - side - tinyW / 2,
+      tinyY,
+      tinyW,
+      this.copy("rankLabel", "Rank"),
+    );
+    // The outer semantic HUD already repeats these values. On micro-height
+    // canvases, removing the second row gives the resource-led core breathing
+    // room instead of stacking labels over the flame.
+    const showTinyMetrics = height >= 420;
+    lowerLeft.group.setVisible(showTinyMetrics);
+    lowerRight.group.setVisible(showTinyMetrics);
     this.burnedValue = lowerLeft.value;
     this.rankValue = lowerRight.value;
     this.burnedLabel = lowerLeft.label;
@@ -296,7 +373,7 @@ export class BurnLeagueScene extends BaseScene {
     label: string,
     withIcon: boolean,
   ): { value: Phaser.GameObjects.Text; label: Phaser.GameObjects.Text } {
-    const group = this.add.container(x, y);
+    const group = this.add.container(x, y).setDepth(8);
     const bg = this.add.graphics();
     bg.fillStyle(withIcon ? C.surfaceWarm : C.surface, 0.97);
     bg.fillRoundedRect(-w / 2, -h / 2, w, h, 16);
@@ -310,15 +387,16 @@ export class BurnLeagueScene extends BaseScene {
       group.add(icon);
     }
 
+    const compact = w < 150;
     const labelText = this.add.text(textX, -12, label, {
       fontFamily: FONT,
-      fontSize: "11px",
+      fontSize: compact ? "9px" : "11px",
       fontStyle: "bold",
       color: "#6b4a1f",
     }).setOrigin(withIcon ? 0 : 0.5, 0.5);
     const value = this.add.text(textX, 11, "--", {
       fontFamily: FONT,
-      fontSize: withIcon ? "16px" : "14px",
+      fontSize: compact ? "12px" : withIcon ? "16px" : "14px",
       fontStyle: "bold",
       color: withIcon ? "#92400e" : "#2a2018",
     }).setOrigin(withIcon ? 0 : 0.5, 0.5);
@@ -329,34 +407,42 @@ export class BurnLeagueScene extends BaseScene {
   private buildTinyMetric(
     x: number,
     y: number,
+    w: number,
     label: string,
-  ): { value: Phaser.GameObjects.Text; label: Phaser.GameObjects.Text } {
-    const group = this.add.container(x, y);
+  ): {
+    value: Phaser.GameObjects.Text;
+    label: Phaser.GameObjects.Text;
+    group: Phaser.GameObjects.Container;
+  } {
+    const group = this.add.container(x, y).setDepth(8);
+    const half = w / 2;
     const bg = this.add.graphics();
     bg.fillStyle(C.surface, 0.96);
-    bg.fillRoundedRect(-70, -18, 140, 36, 12);
+    bg.fillRoundedRect(-half, -18, w, 36, 12);
     bg.lineStyle(1.25, C.stroke, 0.85);
-    bg.strokeRoundedRect(-70, -18, 140, 36, 12);
-    const labelText = this.add.text(-54, 0, label, {
+    bg.strokeRoundedRect(-half, -18, w, 36, 12);
+    const labelText = this.add.text(-half + 12, 0, label, {
       fontFamily: FONT,
-      fontSize: "10px",
+      fontSize: w < 135 ? "9px" : "10px",
       fontStyle: "bold",
       color: "#8a7048",
     }).setOrigin(0, 0.5);
-    const value = this.add.text(56, 0, "--", {
+    const value = this.add.text(half - 12, 0, "--", {
       fontFamily: FONT,
       fontSize: "12px",
       fontStyle: "bold",
       color: "#2a2018",
     }).setOrigin(1, 0.5);
     group.add([bg, labelText, value]);
-    return { value, label: labelText };
+    return { value, label: labelText, group };
   }
 
   private buildCore(width: number, height: number): void {
     const cx = width / 2;
-    const cy = Math.round(height * 0.347);
-    const scale = Phaser.Math.Clamp(Math.min(width / 420, height / 600), 0.8, 1.06);
+    const micro = height < 450;
+    const cy = Math.round(height * (micro ? 0.37 : 0.347));
+    const minScale = micro || width < 340 ? 0.58 : 0.72;
+    const scale = Phaser.Math.Clamp(Math.min(width / 420, height / 600), minScale, 1.06);
     this.coreCX = cx;
     this.coreCY = cy;
     this.coreScale = scale;
@@ -371,9 +457,18 @@ export class BurnLeagueScene extends BaseScene {
     this.coreGlowInner = this.add.ellipse(0, 14, 150, 104, C.ember, 0.16)
       .setBlendMode(Phaser.BlendModes.ADD);
 
-    const pedestal = this.buildPedestal();
-    this.brazierBody = this.buildBrazier();
-    this.flameHolder = this.buildFlame();
+    // The cauldron/trophy is real project artwork. A restrained code-native
+    // frame provides hit-area contrast without redrawing the game object.
+    const machineFrame = this.add.graphics();
+    machineFrame.fillStyle(C.surface, 0.97);
+    machineFrame.fillRoundedRect(-94, -82, 188, 188, 42);
+    machineFrame.lineStyle(4, C.gold, 0.95);
+    machineFrame.strokeRoundedRect(-94, -82, 188, 188, 42);
+    machineFrame.lineStyle(1.5, C.greenDeep, 0.65);
+    machineFrame.strokeRoundedRect(-87, -75, 174, 174, 36);
+    this.coreMachine = this.add.image(0, 12, BURN_ASSETS.logo)
+      .setDisplaySize(174, 174);
+    this.coreMachineHolder = this.add.container(0, 0, [machineFrame, this.coreMachine]);
 
     for (let i = 0; i < 8; i++) {
       const size = 17 + (i % 3) * 2;
@@ -384,18 +479,12 @@ export class BurnLeagueScene extends BaseScene {
       this.gasTokens.push(token);
     }
 
-    const embers = this.buildEmbers();
-
-    // Layer order: glow → pedestal → bowl → tokens (circling in front of the
-    // bowl) → flame → embers.
+    // Layer order: glow → real league machine → official GAS fuel orbit.
     this.coreArt.add([
       this.coreGlow,
       this.coreGlowInner,
-      pedestal,
-      this.brazierBody,
+      this.coreMachineHolder,
       ...this.gasTokens,
-      this.flameHolder,
-      embers,
     ]);
 
     const hitZone = this.add.zone(cx, cy, 220 * scale, 210 * scale)
@@ -429,196 +518,6 @@ export class BurnLeagueScene extends BaseScene {
     });
 
     this.updateGasOrbit();
-  }
-
-  /** Green-and-gold ceremonial pedestal echoing the arena backdrop. */
-  private buildPedestal(): Phaser.GameObjects.Container {
-    const g = this.add.graphics();
-    // stem/foot under the bowl
-    g.fillStyle(C.goldDeep, 1);
-    g.fillRoundedRect(-22, 48, 44, 20, 6);
-    g.fillStyle(C.gold, 1);
-    g.fillRoundedRect(-19, 46, 38, 14, 5);
-    // tiered disc: outer gold rim, green band, lit gold top
-    g.fillStyle(C.goldDeep, 0.95);
-    g.fillEllipse(0, 70, 196, 44);
-    g.fillStyle(C.gold, 1);
-    g.fillEllipse(0, 68, 190, 40);
-    g.fillStyle(C.greenDeep, 1);
-    g.fillEllipse(0, 68, 150, 30);
-    g.fillStyle(C.green, 1);
-    g.fillEllipse(0, 67, 132, 24);
-    g.fillStyle(C.goldLight, 1);
-    g.fillEllipse(0, 64, 92, 16);
-    g.fillStyle(C.gold, 1);
-    g.fillEllipse(0, 63, 74, 12);
-    // League crest: the app logo embossed as a ceremonial seal on the pedestal
-    // front (real art asset, tucked below the bowl so it never clips the HUD).
-    const crestRing = this.add.circle(0, 78, 15, C.goldDeep, 1).setStrokeStyle(2, C.goldLight, 0.9);
-    const crest = this.add.image(0, 78, BURN_ASSETS.logo).setDisplaySize(22, 22);
-    return this.add.container(0, 0, [g, crestRing, crest]);
-  }
-
-  /** Wide golden brazier bowl with a dark cavity and a glowing coal bed. */
-  private buildBrazier(): Phaser.GameObjects.Container {
-    const g = this.add.graphics();
-
-    // Gold rim/lip
-    g.fillStyle(C.goldDeep, 1);
-    g.fillEllipse(0, 15, 158, 36);
-    g.fillStyle(C.gold, 1);
-    g.fillEllipse(0, 14, 150, 30);
-    g.fillStyle(C.goldLight, 0.85);
-    g.fillEllipse(0, 11, 138, 20);
-
-    // Dark interior cavity
-    g.fillStyle(C.coalDark, 1);
-    g.fillEllipse(0, 15, 118, 22);
-    g.fillStyle(C.coal, 1);
-    g.fillEllipse(0, 15, 104, 18);
-
-    // Front wall of the bowl (covers the lower half of the cavity so the
-    // opening reads as a top-lit rim).
-    const wall: Pt[] = [
-      { x: -74, y: 22 }, { x: 74, y: 22 }, { x: 60, y: 42 },
-      { x: 34, y: 55 }, { x: -34, y: 55 }, { x: -60, y: 42 },
-    ];
-    g.fillStyle(C.gold, 1);
-    g.fillPoints(wall, true);
-    // bottom shade for volume
-    g.fillStyle(C.goldDeep, 0.5);
-    g.fillPoints(
-      [{ x: -52, y: 44 }, { x: 52, y: 44 }, { x: 32, y: 55 }, { x: -32, y: 55 }],
-      true,
-    );
-    // left highlight stripe
-    g.fillStyle(C.goldLight, 0.55);
-    g.fillPoints(
-      [{ x: -70, y: 24 }, { x: -60, y: 24 }, { x: -50, y: 42 }, { x: -57, y: 43 }],
-      true,
-    );
-
-    const bowl = this.add.container(0, 0, [g]);
-
-    // Glowing coal bed (additive) at the rim.
-    const coals = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
-    coals.fillStyle(C.emberDeep, 0.5);
-    coals.fillEllipse(0, 16, 90, 16);
-    coals.fillStyle(C.ember, 0.7);
-    coals.fillEllipse(0, 17, 62, 12);
-    coals.fillStyle(C.hot, 0.85);
-    coals.fillEllipse(0, 18, 34, 8);
-    bowl.add(coals);
-
-    // GAS emblem gem on the bowl face — ties the object to the token/arena.
-    const emblem = this.add.graphics();
-    emblem.fillStyle(C.goldDeep, 1);
-    emblem.fillEllipse(0, 41, 30, 30);
-    emblem.fillStyle(C.gold, 1);
-    emblem.fillEllipse(0, 41, 24, 24);
-    emblem.fillStyle(C.teal, 1);
-    emblem.fillEllipse(0, 41, 15, 15);
-    emblem.fillStyle(C.hot, 0.85);
-    emblem.fillEllipse(-3, 38, 5, 5);
-    bowl.add(emblem);
-
-    return bowl;
-  }
-
-  /** Layered green->gold->hot flame with a reduced-motion-safe flicker. */
-  private buildFlame(): Phaser.GameObjects.Container {
-    this.flame = this.add.container(0, 0);
-
-    const outer = this.flameShape(1, C.flameGreen, 0.92);
-    const mid = this.flameShape(0.68, C.gold, 0.95);
-    const inner = this.flameShape(0.42, C.hot, 0.95, true);
-    this.flame.add([outer, mid, inner]);
-
-    // Flicker: subtle vertical breathe + sway, honored under reduced motion by
-    // this.tween (which applies the end-state and skips the loop).
-    this.tween({
-      targets: this.flame,
-      scaleY: 1.12,
-      scaleX: 0.93,
-      duration: 520,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-    this.tween({
-      targets: this.flame,
-      x: 3,
-      duration: 700,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-    this.tween({
-      targets: inner,
-      alpha: 0.7,
-      duration: 300,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-
-    // Root the flame at the coal bed.
-    const holder = this.add.container(0, 12, [this.flame]);
-    return holder;
-  }
-
-  private flameShape(
-    scale: number,
-    color: number,
-    alpha: number,
-    additive = false,
-  ): Phaser.GameObjects.Graphics {
-    const g = this.add.graphics();
-    g.fillStyle(color, alpha);
-    g.fillPoints(this.flamePoints(scale), true);
-    if (additive) g.setBlendMode(Phaser.BlendModes.ADD);
-    return g;
-  }
-
-  private flamePoints(scale: number): Pt[] {
-    const raw = [
-      -20, 8, -24, -10, -13, -26, -6, -44, 0, -58,
-      6, -42, 13, -26, 22, -8, 18, 8,
-    ];
-    const pts: Pt[] = [];
-    for (let i = 0; i < raw.length; i += 2) {
-      pts.push({ x: raw[i]! * scale, y: raw[i + 1]! * scale });
-    }
-    return pts;
-  }
-
-  private buildEmbers(): Phaser.GameObjects.Container {
-    const embers = this.add.container(0, 0);
-    for (let i = 0; i < 5; i++) {
-      const e = this.add.ellipse(
-        Phaser.Math.Between(-10, 10),
-        12,
-        5,
-        6,
-        i % 2 ? C.ember : C.gold,
-        0.9,
-      ).setBlendMode(Phaser.BlendModes.ADD);
-      embers.add(e);
-      this.tween({
-        targets: e,
-        y: -52 - Phaser.Math.Between(0, 18),
-        x: e.x + Phaser.Math.Between(-16, 16),
-        alpha: 0,
-        scaleX: 0.3,
-        scaleY: 0.3,
-        duration: 1200 + i * 130,
-        delay: i * 220,
-        repeat: -1,
-        repeatDelay: Phaser.Math.Between(120, 420),
-        ease: "Sine.easeOut",
-      });
-    }
-    return embers;
   }
 
   /** Vertical fuel/heat gauge fed by the pool, beside the brazier. */
@@ -660,16 +559,11 @@ export class BurnLeagueScene extends BaseScene {
       ticks.strokePath();
     }
 
-    // small flame glyph crowning the gauge
-    this.heatFlame = this.add.container(0, -50);
-    const gf = this.add.graphics();
-    gf.fillStyle(C.ember, 0.95);
-    gf.fillPoints(this.flamePoints(0.3), true);
-    gf.fillStyle(C.hot, 0.95);
-    gf.fillPoints(this.flamePoints(0.16), true);
-    this.heatFlame.add(gf);
+    // Official GAS token crowns the heat gauge; no hand-drawn token stand-in.
+    this.heatToken = this.add.image(0, -50, BURN_ASSETS.gas)
+      .setDisplaySize(22, 22);
 
-    this.heatGauge.add([card, track, this.heatFill, ticks, this.heatFlame]);
+    this.heatGauge.add([card, track, this.heatFill, ticks, this.heatToken]);
     this.drawHeatFill(0.08, false);
   }
 
@@ -686,30 +580,45 @@ export class BurnLeagueScene extends BaseScene {
   }
 
   private buildLeaderboard(width: number, height: number): void {
-    const panelCY = Math.round(height * 0.63);
-    const panelH = 108;
-    const panelTop = panelCY - 54;
+    const compact = height < 540;
+    const panelCY = Math.round(height * (compact ? 0.6 : 0.63));
+    const panelH = compact ? 76 : 108;
+    const panelTop = panelCY - panelH / 2;
+    const panelMargin = Phaser.Math.Clamp(Math.round(width * 0.067), 12, 28);
+    const panelW = width - panelMargin * 2;
+    this.boardRowWidth = Math.max(196, Math.min(332, panelW - 18));
+    const halfRow = this.boardRowWidth / 2;
+    this.boardRankX = -halfRow + 14;
+    this.boardAddressX = -halfRow + (width < 330 ? 50 : 74);
+    this.boardValueX = halfRow - 14;
+    this.boardRows = compact ? 2 : 4;
+    this.boardRowGap = compact ? 19 : 21;
     const panel = this.add.graphics();
     panel.fillStyle(C.surface, 0.95);
-    panel.fillRoundedRect(28, panelTop, width - 56, panelH, 18);
+    panel.fillRoundedRect(panelMargin, panelTop, panelW, panelH, 18);
     panel.lineStyle(1.25, C.stroke, 0.85);
-    panel.strokeRoundedRect(28, panelTop, width - 56, panelH, 18);
+    panel.strokeRoundedRect(panelMargin, panelTop, panelW, panelH, 18);
 
-    this.boardTitle = this.add.text(width / 2, panelTop + 15, "Live leaderboard", {
+    this.boardTitle = this.add.text(
+      width / 2,
+      panelTop + (compact ? 11 : 15),
+      this.copy("boardTitle", "Leaderboard"),
+      {
       fontFamily: FONT,
-      fontSize: "11px",
+      fontSize: compact ? "10px" : "11px",
       fontStyle: "bold",
       color: "#6b4a1f",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
-    const rowsTop = panelTop + 40;
-    const rowGap = 21;
+    const rowsTop = panelTop + (compact ? 29 : 40);
 
     // Dim ghost rows keep the empty panel dense and legible about its structure.
     this.ghostRows = this.add.container(0, rowsTop);
     this.ghostAmounts = [];
-    for (let i = 0; i < 3; i++) {
-      this.ghostRows.add(this.buildGhostRow(width / 2, i * rowGap, i + 1));
+    const ghostCount = compact ? 2 : 3;
+    for (let i = 0; i < ghostCount; i++) {
+      this.ghostRows.add(this.buildGhostRow(width / 2, i * this.boardRowGap, i + 1));
     }
 
     // Real rows overlay the ghosts once burns land.
@@ -717,32 +626,39 @@ export class BurnLeagueScene extends BaseScene {
 
     // Centered empty-state chip in front of the ghost structure.
     this.emptyLeaderChip = this.add.graphics();
-    this.emptyLeaderLabel = this.add.text(width / 2, panelCY + 14, "No burns yet - ignite first", {
+    this.emptyLeaderLabel = this.add.text(
+      width / 2,
+      panelCY + (compact ? 9 : 14),
+      this.copy("emptyBoard", "No burns yet - ignite first"),
+      {
       fontFamily: FONT,
-      fontSize: "12px",
+      fontSize: compact ? "10px" : "12px",
       fontStyle: "bold",
       color: "#8a5a1a",
-    }).setOrigin(0.5);
+      align: "center",
+      wordWrap: { width: this.boardRowWidth - 20 },
+      },
+    ).setOrigin(0.5);
   }
 
   private buildGhostRow(x: number, y: number, rank: number): Phaser.GameObjects.Container {
     const row = this.add.container(x, y);
     const bg = this.add.graphics();
     bg.fillStyle(C.surfaceWarm, 0.5);
-    bg.fillRoundedRect(-166, -9, 332, 18, 8);
+    bg.fillRoundedRect(-this.boardRowWidth / 2, -9, this.boardRowWidth, 18, 8);
     row.add(bg);
-    row.add(this.add.text(-150, 0, `#${rank}`, {
+    row.add(this.add.text(this.boardRankX, 0, `#${rank}`, {
       fontFamily: FONT,
       fontSize: "10px",
       fontStyle: "bold",
       color: "#c2ac82",
     }).setOrigin(0, 0.5));
-    row.add(this.add.text(-92, 0, "— — — —", {
+    row.add(this.add.text(this.boardAddressX, 0, "— — —", {
       fontFamily: FONT,
       fontSize: "10px",
       color: "#c2ac82",
     }).setOrigin(0, 0.5));
-    const amount = this.add.text(150, 0, "-- GAS", {
+    const amount = this.add.text(this.boardValueX, 0, `-- ${this.str("tokenGasLabel", "GAS")}`, {
       fontFamily: FONT,
       fontSize: "10px",
       fontStyle: "bold",
@@ -754,19 +670,30 @@ export class BurnLeagueScene extends BaseScene {
   }
 
   private buildPresets(width: number, height: number): void {
-    this.add.text(width / 2, height * 0.772, "Fuel capsules", {
+    const compact = height < 540;
+    this.add.text(
+      width / 2,
+      height * (compact ? 0.715 : 0.772),
+      this.copy("fuelLabel", "Fuel capsules"),
+      {
       fontFamily: FONT,
       fontSize: "10px",
       fontStyle: "bold",
       color: "#6b4a1f",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
-    const gap = 68;
+    const gap = Math.min(68, Math.max(52, (width - 76) / 3));
+    const buttonW = Math.min(60, Math.max(48, gap - 8));
     const startX = width / 2 - (BURN_PRESETS.length / 2 - 0.5) * gap;
     BURN_PRESETS.forEach((amount, index) => {
-      const button = this.add.container(startX + index * gap, height * 0.817);
+      const button = this.add.container(
+        startX + index * gap,
+        height * (compact ? 0.762 : 0.817),
+      );
       const bg = this.add.graphics();
-      const glyph = this.add.graphics();
+      const glyph = this.add.image(-16, 0, BURN_ASSETS.gas)
+        .setDisplaySize(20, 20);
       const label = this.add.text(9, 0, amount, {
         fontFamily: FONT,
         fontSize: "13px",
@@ -775,13 +702,14 @@ export class BurnLeagueScene extends BaseScene {
       }).setOrigin(0.5);
 
       bg.setInteractive(
-        new Phaser.Geom.Rectangle(-30, -18, 60, 36),
+        new Phaser.Geom.Rectangle(-buttonW / 2, -22, buttonW, 44),
         Phaser.Geom.Rectangle.Contains,
       );
       this.bindGameButton(bg, {
         targets: button,
         hoverScale: 1.05,
         pressScale: 0.94,
+        enabled: () => this.canSelectPreset(),
         onPress: () => this.selectPreset(amount, true),
       });
 
@@ -789,27 +717,31 @@ export class BurnLeagueScene extends BaseScene {
       button.setData("bg", bg);
       button.setData("glyph", glyph);
       button.setData("label", label);
+      button.setData("buttonW", buttonW);
       this.presetBtns.push(button);
     });
   }
 
   private buildBurnButton(width: number, height: number): void {
-    this.burnBtn = this.add.container(width / 2, height * 0.9);
+    const compact = height < 540;
+    this.burnButtonHeight = compact ? 44 : 52;
+    const halfH = this.burnButtonHeight / 2;
+    this.burnBtn = this.add.container(width / 2, height * (compact ? 0.88 : 0.9));
     this.burnBtnBg = this.add.graphics();
     this.burnBtnBg.setInteractive(
-      new Phaser.Geom.Rectangle(-116, -26, 232, 52),
+      new Phaser.Geom.Rectangle(-116, -halfH, 232, this.burnButtonHeight),
       Phaser.Geom.Rectangle.Contains,
     );
     this.bindGameButton(this.burnBtnBg, {
       targets: this.burnBtn,
       pressScale: 0.95,
-      enabled: () => this.canBurn(),
+      enabled: () => this.canPrimaryAction(),
       onPress: () => this.handleBurn(),
     });
 
     this.burnBtnLabel = this.add.text(0, 0, "", {
       fontFamily: FONT,
-      fontSize: "16px",
+      fontSize: compact ? "14px" : "16px",
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -818,9 +750,9 @@ export class BurnLeagueScene extends BaseScene {
 
   private buildStatusLabel(width: number, height: number): void {
     this.statusScrim = this.add.graphics().setDepth(6);
-    this.statusLabel = this.add.text(width / 2, height * 0.962, "", {
+    this.statusLabel = this.add.text(width / 2, height * (height < 540 ? 0.968 : 0.962), "", {
       fontFamily: FONT,
-      fontSize: "11px",
+      fontSize: height < 450 ? "9px" : "11px",
       fontStyle: "bold",
       color: "#6b4a1f",
       align: "center",
@@ -868,9 +800,8 @@ export class BurnLeagueScene extends BaseScene {
     const glowBase = 0.13 + heat * 0.16;
     this.coreGlow.setAlpha(glowBase + (burning ? 0.16 : 0));
     this.coreGlowInner.setAlpha(glowBase + (burning ? 0.22 : 0.06));
-    const tall = (0.9 + heat * 0.42) * (burning ? 1.18 : 1);
-    const wide = 0.94 + heat * 0.1;
-    this.flameHolder.setScale(wide, tall);
+    const machineScale = 0.98 + heat * 0.025 + (burning ? 0.035 : 0);
+    this.coreMachineHolder.setScale(machineScale);
     this.drawHeatFill(heat, burning);
   }
 
@@ -897,55 +828,98 @@ export class BurnLeagueScene extends BaseScene {
       const amount = BURN_PRESETS[index]!;
       const active = amount === this.selectedAmount;
       const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
-      const glyph = button.getData("glyph") as Phaser.GameObjects.Graphics;
+      const glyph = button.getData("glyph") as Phaser.GameObjects.Image;
       const label = button.getData("label") as Phaser.GameObjects.Text;
+      const buttonW = Number(button.getData("buttonW") ?? 60);
+      const half = buttonW / 2;
+      const selectable = this.canSelectPreset();
 
       bg.clear();
       // Active capsule = filled ember chip; inactive = warm surface.
       bg.fillStyle(active ? C.ember : C.surface, active ? 1 : 0.96);
-      bg.fillRoundedRect(-30, -18, 60, 36, 12);
+      bg.fillRoundedRect(-half, -18, buttonW, 36, 12);
       if (active) {
         bg.fillStyle(C.white, 0.18);
-        bg.fillRoundedRect(-30, -18, 60, 15, { tl: 12, tr: 12, bl: 0, br: 0 });
+        bg.fillRoundedRect(-half, -18, buttonW, 15, { tl: 12, tr: 12, bl: 0, br: 0 });
       }
       bg.lineStyle(2, active ? C.emberDeep : C.stroke, active ? 1 : 0.9);
-      bg.strokeRoundedRect(-30, -18, 60, 36, 12);
+      bg.strokeRoundedRect(-half, -18, buttonW, 36, 12);
 
-      // Small flame/capsule glyph reads as "fuel", not a bare token mark.
-      glyph.clear();
-      glyph.setPosition(-16, 1);
-      glyph.fillStyle(active ? C.white : C.ember, active ? 0.95 : 0.85);
-      glyph.fillPoints(this.flamePoints(0.2), true);
-      glyph.fillStyle(active ? C.hot : C.gold, active ? 0.95 : 0.8);
-      glyph.fillPoints(this.flamePoints(0.11), true);
+      glyph.setPosition(-16, 0);
+      glyph.setDisplaySize(active ? 21 : 19, active ? 21 : 19);
+      glyph.setAlpha(active ? 1 : 0.78);
 
       label.setColor(active ? "#ffffff" : "#8a5a1a");
+      button.setAlpha(selectable ? 1 : 0.58);
     });
   }
 
   private updateBurnButton(): void {
-    const enabled = this.canBurn();
+    const needsSettle = this.bool("needsSettle");
+    const guest = this.str("appMode", "gamefi") === "guest";
+    const connected = this.bool("walletConnected");
+    const pending = this.bool("hasUnknownBurn");
+    this.primaryAction = guest
+      ? "burn"
+      : !connected
+        ? "connect"
+        : pending
+          ? "recheck"
+          : needsSettle
+            ? "settle"
+            : "burn";
+    const enabled = this.canPrimaryAction();
+    const greenAction = this.primaryAction === "connect" || this.primaryAction === "settle";
+    const recheckAction = this.primaryAction === "recheck";
+    const halfH = this.burnButtonHeight / 2;
     this.burnBtnBg.clear();
-    this.burnBtnBg.fillStyle(enabled ? C.ember : C.disabled, 1);
-    this.burnBtnBg.fillRoundedRect(-116, -26, 232, 52, 16);
+    this.burnBtnBg.fillStyle(
+      enabled ? (greenAction ? C.green : recheckAction ? C.goldDeep : C.ember) : C.disabled,
+      1,
+    );
+    this.burnBtnBg.fillRoundedRect(-116, -halfH, 232, this.burnButtonHeight, 16);
     if (enabled) {
       this.burnBtnBg.fillStyle(C.white, 0.18);
-      this.burnBtnBg.fillRoundedRect(-116, -26, 232, 21, { tl: 16, tr: 16, bl: 0, br: 0 });
+      this.burnBtnBg.fillRoundedRect(
+        -116,
+        -halfH,
+        232,
+        Math.min(21, this.burnButtonHeight * 0.42),
+        { tl: 16, tr: 16, bl: 0, br: 0 },
+      );
     }
-    this.burnBtnBg.lineStyle(2, enabled ? C.emberDeep : C.stroke, 1);
-    this.burnBtnBg.strokeRoundedRect(-116, -26, 232, 52, 16);
+    this.burnBtnBg.lineStyle(
+      2,
+      enabled ? (greenAction ? C.greenDeep : recheckAction ? C.goldDeep : C.emberDeep) : C.stroke,
+      1,
+    );
+    this.burnBtnBg.strokeRoundedRect(-116, -halfH, 232, this.burnButtonHeight, 16);
 
     const phase = this.str("seasonPhase", "dormant");
-    const guest = this.str("appMode", "gamefi") === "guest";
+    const confirmingThisAmount =
+      this.bool("burnConfirmArmed") &&
+      this.str("burnConfirmAmount", "") === this.selectedAmount;
     this.burnBtnLabel.setColor(enabled ? "#ffffff" : "#fffaf0");
     this.burnBtnLabel.setText(
-      this.isBurning
-        ? "Burning..."
-        : phase === "ended"
-          ? "Settle season first"
-          : guest
-            ? `${this.str("guestBurnVerb", "Stoke")} ${this.selectedAmount}`
-            : `Ignite ${this.selectedAmount} GAS`,
+      this.primaryAction === "connect"
+        ? this.bool("isConnectingWallet")
+          ? this.str("connectingAction", "Connecting...")
+          : this.str("connectAction", "Connect wallet")
+        : this.primaryAction === "recheck"
+          ? this.str("burnTransactionState", "unknown") === "broadcast"
+            ? this.str("checkingBurnAction", "Checking...")
+            : this.str("recheckBurnAction", "Check transaction")
+          : this.primaryAction === "settle"
+            ? this.str("settleAction", "Settle season")
+            : this.isBurning
+              ? this.str("burningAction", "Burning...")
+              : phase === "ended"
+                ? this.str("settleAction", "Settle season")
+                : guest
+                  ? `${this.str("guestBurnVerb", "Stoke")} ${this.selectedAmount}`
+                  : confirmingThisAmount
+                    ? this.str("confirmBurnAction", `Confirm ${this.selectedAmount} GAS`)
+                    : this.str("igniteAction", `Ignite ${this.selectedAmount} GAS`),
     );
   }
 
@@ -957,35 +931,37 @@ export class BurnLeagueScene extends BaseScene {
     this.ghostRows.setVisible(empty);
     this.emptyLeaderLabel.setVisible(empty);
     this.emptyLeaderLabel.setText(
-      guest ? this.str("guestEmptyLabel", "No runs yet - stoke to start") : "No burns yet - ignite first",
+      guest
+        ? this.str("guestEmptyLabel", "No runs yet - stoke to start")
+        : this.copy("emptyBoard", "No burns yet - ignite first"),
     );
     this.layoutEmptyChip(empty);
 
-    entries.slice(0, 4).forEach((entry, index) => {
-      const y = index * 21;
-      const row = this.add.container(this.scale.width / 2, y);
+    entries.slice(0, this.boardRows).forEach((entry, index) => {
+      const y = index * this.boardRowGap;
+      const row = this.add.container(this.scW / 2, y);
       const rankColor = entry.rank === 1 ? C.goldDeep : C.inkSoft;
       const bg = this.add.graphics();
       bg.fillStyle(entry.isUser ? 0xfff7df : 0xffffff, entry.isUser ? 0.95 : 0.72);
-      bg.fillRoundedRect(-166, -9, 332, 18, 8);
+      bg.fillRoundedRect(-this.boardRowWidth / 2, -9, this.boardRowWidth, 18, 8);
       if (entry.rank === 1) {
         bg.lineStyle(1.25, C.strokeStrong, 0.85);
-        bg.strokeRoundedRect(-166, -9, 332, 18, 8);
+        bg.strokeRoundedRect(-this.boardRowWidth / 2, -9, this.boardRowWidth, 18, 8);
       }
       row.add(bg);
-      row.add(this.add.text(-150, 0, `#${entry.rank}`, {
+      row.add(this.add.text(this.boardRankX, 0, `#${entry.rank}`, {
         fontFamily: FONT,
         fontSize: "10px",
         fontStyle: "bold",
         color: toHex(rankColor),
       }).setOrigin(0, 0.5));
-      row.add(this.add.text(-92, 0, shortAddress(entry.address), {
+      row.add(this.add.text(this.boardAddressX, 0, shortAddress(entry.address, this.scW < 330), {
         fontFamily: FONT,
         fontSize: "10px",
         color: "#765c38",
       }).setOrigin(0, 0.5));
       row.add(this.add.text(
-        150,
+        this.boardValueX,
         0,
         guest ? `${entry.burned.toFixed(0)} ${unit}` : `${entry.burned.toFixed(1)} GAS`,
         {
@@ -1026,6 +1002,7 @@ export class BurnLeagueScene extends BaseScene {
   }
 
   private selectPreset(amount: string, notify: boolean): void {
+    if (notify && !this.canSelectPreset()) return;
     this.selectedAmount = amount;
     this.updatePresets();
     this.updateBurnButton();
@@ -1037,10 +1014,35 @@ export class BurnLeagueScene extends BaseScene {
   }
 
   private handleBurn(): void {
-    if (!this.canBurn()) return;
-    this.sfx.play("throw");
-    this.flashCore();
-    this.emitFuelBurst();
+    if (!this.canPrimaryAction()) return;
+    if (this.primaryAction === "connect") {
+      this.sfx.play("tap");
+      this.dispatch("connectWallet");
+      return;
+    }
+    if (this.primaryAction === "recheck") {
+      this.sfx.play("tap");
+      this.dispatch("recheckBurn");
+      return;
+    }
+    if (this.primaryAction === "settle") {
+      this.sfx.play("reveal");
+      this.dispatch("settle");
+      return;
+    }
+    const guest = this.str("appMode", "gamefi") === "guest";
+    const confirmedGesture =
+      this.bool("burnConfirmArmed") &&
+      this.str("burnConfirmAmount", "") === this.selectedAmount;
+    // The first GameFi press only arms an explicit irreversible-action review;
+    // consume the fuel/throw animation only on the second, confirmed gesture.
+    if (guest || confirmedGesture) {
+      this.sfx.play("throw");
+      this.flashCore();
+      this.emitFuelBurst();
+    } else {
+      this.sfx.play("tap");
+    }
     this.dispatch("burn", this.selectedAmount);
   }
 
@@ -1080,6 +1082,7 @@ export class BurnLeagueScene extends BaseScene {
 
   private canBurn(): boolean {
     const phase = this.str("seasonPhase", "dormant");
+    const guest = this.str("appMode", "gamefi") === "guest";
     const amount = Number(this.selectedAmount);
     const min = this.num("minBurnGas", 1);
     const max = this.num("maxBurnGas", 1000);
@@ -1087,38 +1090,118 @@ export class BurnLeagueScene extends BaseScene {
       phase !== "ended" &&
       !this.bool("isBurning") &&
       !this.bool("isSettling") &&
+      !this.bool("isLoading") &&
+      !this.bool("isConnectingWallet") &&
+      (guest || this.bool("walletConnected")) &&
+      (guest || this.bool("leagueDataAvailable")) &&
+      (guest || !this.str("serviceNotice", "")) &&
+      (guest || !this.bool("hasUnknownBurn")) &&
       !this.str("burnValidationError", "") &&
       Number.isFinite(amount) &&
       amount >= min &&
-      amount <= max
+      amount <= max &&
+      (guest || this.hasEnoughFunding())
     );
+  }
+
+  private canSelectPreset(): boolean {
+    return (
+      !this.bool("isBurning") &&
+      !this.bool("isSettling") &&
+      !this.bool("isLoading") &&
+      !this.bool("isConnectingWallet") &&
+      !this.bool("hasUnknownBurn")
+    );
+  }
+
+  private hasEnoughFunding(): boolean {
+    const amount = Number(this.selectedAmount);
+    const walletGas = this.num("walletGasBalance", 0);
+    const prepaid = this.num("prepaidCredit", 0);
+    return (
+      Number.isFinite(amount) &&
+      amount > 0 &&
+      Number.isFinite(walletGas) &&
+      Number.isFinite(prepaid) &&
+      walletGas + prepaid >= amount
+    );
+  }
+
+  private canConnect(): boolean {
+    return (
+      this.str("appMode", "gamefi") !== "guest" &&
+      !this.bool("walletConnected") &&
+      !this.bool("isConnectingWallet") &&
+      !this.bool("isBurning") &&
+      !this.bool("isSettling")
+    );
+  }
+
+  private canRecheck(): boolean {
+    return (
+      this.str("appMode", "gamefi") !== "guest" &&
+      this.bool("walletConnected") &&
+      this.bool("hasUnknownBurn") &&
+      !this.bool("isLoading") &&
+      !this.bool("isBurning") &&
+      !this.bool("isSettling")
+    );
+  }
+
+  private canSettle(): boolean {
+    return (
+      this.str("appMode", "gamefi") !== "guest" &&
+      this.bool("needsSettle") &&
+      !this.bool("isBurning") &&
+      !this.bool("isSettling") &&
+      !this.bool("isLoading") &&
+      this.bool("walletConnected") &&
+      !this.bool("hasUnknownBurn")
+    );
+  }
+
+  private canPrimaryAction(): boolean {
+    switch (this.primaryAction) {
+      case "connect": return this.canConnect();
+      case "recheck": return this.canRecheck();
+      case "settle": return this.canSettle();
+      default: return this.canBurn();
+    }
   }
 
   private phaseCopy(phase: string, countdown: string): string {
     if (phase === "active") return countdown;
-    if (phase === "ended") return "Ended";
-    return "Open on first burn";
+    if (phase === "ended") return this.copy("phaseEnded", "Ended");
+    return this.copy("phaseDormant", "Open on first burn");
   }
 
   private defaultStatus(phase: string, entryCount: number): string {
-    if (this.isBurning) return "Wallet burn in progress";
-    if (phase === "ended") return "Season ended. Settle before the next burn";
-    if (phase === "dormant") return "First burn opens a fresh season";
-    if (entryCount === 0) return "Top burner wins the whole pool";
-    return "Burn more GAS to climb the live board";
+    if (this.isBurning) return this.copy("walletBurning", "Wallet burn in progress");
+    if (phase === "ended") return this.copy("endedStatus", "Season ended. Settle before the next burn");
+    if (phase === "dormant") return this.copy("dormantStatus", "First burn opens a fresh season");
+    if (entryCount === 0) return this.copy("emptyStatus", "Top burner wins the whole pool");
+    return this.copy("activeStatus", "Burn more GAS to climb the live board");
   }
 
   private guestDefaultStatus(streak: number): string {
-    if (this.isBurning) return "Stoking the fire...";
-    if (streak === 0) return "Stoke the fire and build a heat streak";
-    return "Keep stoking — but a cooling fire can flare out";
+    if (this.isBurning) return this.str("guestStokingAction", "Stoking the fire...");
+    if (streak === 0) return this.str("guestIntroAction", "Stoke the fire and build a heat streak");
+    return this.copy("guestContinue", "Keep stoking - a cooling fire can flare out");
+  }
+
+  private copy<K extends keyof SceneText>(key: K, fallback: string): string {
+    const value = this.val<SceneText>("sceneText", {})?.[key];
+    return typeof value === "string" && value.trim() ? value : fallback;
   }
 }
 
-function shortAddress(address: string): string {
+function shortAddress(address: string, compact = false): string {
   const clean = String(address || "").trim();
-  if (clean.length <= 12) return clean || "--";
-  return `${clean.slice(0, 6)}...${clean.slice(-4)}`;
+  const max = compact ? 9 : 12;
+  if (clean.length <= max) return clean || "--";
+  return compact
+    ? `${clean.slice(0, 3)}...${clean.slice(-3)}`
+    : `${clean.slice(0, 6)}...${clean.slice(-4)}`;
 }
 
 function toHex(value: number): string {

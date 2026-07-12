@@ -108,6 +108,72 @@ describe("useEvents waitForEvent abort handling", () => {
 });
 
 describe("useEvents list pagination over N3Index", () => {
+  it("accepts the current {data,paging} response and verifies its exact event", async () => {
+    const expected = {
+      id: "evt-1",
+      event_name: "EscrowCreated",
+      state: [{ value: "1" }],
+      txid: "0xescrow",
+      block_time: "2026-07-11T00:00:00Z",
+      block_index: 123,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          data: [expected],
+          paging: { count: 1, limit: 1, offset: 0 },
+        }),
+      })),
+    );
+
+    const events = createEventsComposable(makeDeps());
+    await expect(
+      events.waitForEvent("0xescrow", "EscrowCreated", APP_ID, 1_000),
+    ).resolves.toMatchObject({
+      id: "evt-1",
+      event_name: "EscrowCreated",
+      tx_hash: "0xescrow",
+      state: expected.state,
+    });
+  });
+
+  it.each([
+    ["null payload", { ok: true, json: async () => null }],
+    ["malformed envelope", { ok: true, json: async () => ({ data: null }) }],
+    ["non-200 response", { ok: false, json: async () => ({ data: [] }) }],
+  ])("fails closed for %s", async (_label, response) => {
+    vi.stubGlobal("fetch", vi.fn(async () => response));
+    const events = createEventsComposable(makeDeps());
+    await expect(
+      events.list({ app_id: APP_ID, event_name: "EscrowCreated", limit: 1 }),
+    ).resolves.toEqual({ events: [], total: 0 });
+  });
+
+  it("drops malformed event rows instead of exposing unverifiable matches", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          data: [
+            null,
+            {},
+            { id: "missing-tx", event_name: "EscrowCreated", state: [] },
+            { id: "missing-state", event_name: "EscrowCreated", txid: "0xtx" },
+          ],
+          paging: { count: 4, limit: 4, offset: 0 },
+        }),
+      })),
+    );
+
+    const events = createEventsComposable(makeDeps());
+    await expect(
+      events.list({ app_id: APP_ID, event_name: "EscrowCreated", limit: 4 }),
+    ).resolves.toEqual({ events: [] });
+  });
+
   it("falls back quietly when an app has no registered contract hash", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     warnSpy.mockClear();
@@ -151,8 +217,8 @@ describe("useEvents list pagination over N3Index", () => {
     }
   });
 
-  // The N3Index endpoint returns a bare page array with no overall count.
-  // list() must therefore leave `total` undefined so useAllEvents keeps
+  // The legacy N3Index endpoint returned a bare page array with no overall
+  // count. list() must leave `total` undefined so useAllEvents keeps
   // paginating on full pages — synthesizing total = page length made
   // listAllEvents stop after the first 50 events for every app.
   it("paginates through two full pages instead of stopping at a synthesized total", async () => {

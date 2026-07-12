@@ -1,45 +1,37 @@
-/**
- * Neo Sign Anything Manifest
- *
- * Declarative configuration that tells the platform how to render
- * every section of the miniapp *except* the play area.
- */
-
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
-  name: "Neo Sign Anything",
-  description: "Cryptographically sign any message with your Neo address",
+  name: "Neo Signature Desk",
+  description: "Review exact UTF-8 payloads and capture Neo N3 wallet signature records",
   icon: "pen-tool",
   category: "tool",
   shell: "launcher",
-
-  tabs: [
-    { key: "home", labelKey: "home", icon: "pen-tool", default: true },
-  ],
-
-  stats: [
-    { labelKey: "signCount", valueKey: "signCount", format: "number", icon: "pen-tool" },
-    { labelKey: "broadcastCount", valueKey: "broadcastCount", format: "number", icon: "radio" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "signCount", valueKey: "signCount", format: "number" },
-      { labelKey: "broadcastCount", valueKey: "broadcastCount", format: "number" },
-    ],
+  theme: {
+    family: "default",
+    accentColor: "#17734b",
+    density: "comfortable",
   },
 
-  features: { walletRequired: true, chainWarning: true },
+  // The app-owned desk already renders the composer, exact payload, wallet
+  // context, record, encoding options, and local history. Empty shell chrome
+  // prevents a second generic form/dashboard from competing with that flow.
+  tabs: [],
+  stats: [],
+  sidebar: {
+    titleKey: "title",
+    items: [],
+  },
+
+  features: { walletRequired: false, chainWarning: true },
 
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },
-    { titleKey: "docDescription", contentKey: "step2", type: "steps" },
+    { titleKey: "docDescription", contentKey: "messageHint", type: "steps" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
 
-  permissions: {},
-
-  contract: { mode: "custom" },
+  // Message signing is declared by neo-manifest.json. This internal capability
+  // map only needs local storage for metadata-only history; there is no app
+  // contract, transaction, oracle, payment, or data-feed integration.
+  permissions: { storage: true },
 };

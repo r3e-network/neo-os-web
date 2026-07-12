@@ -5,6 +5,7 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
+import { createObservable } from "@shared/react/context";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -43,6 +44,15 @@ defineMiniApp({
         { successKey: "sessionKeyGenerated", errorKey: "sessionKeyGenerateFailed" },
       );
       return result;
+    });
+
+    ctx.framework.actions.register("copyPrivateKey", async () => {
+      const privateKey = lab.generatedPrivateKey.get();
+      if (!privateKey) throw new Error(ctx.t("sessionKeyMissing"));
+      await ctx.framework.clipboard.copy(privateKey, {
+        successKey: "copiedPrivateKey",
+        errorKey: "copyPrivateKeyFailed",
+      });
     });
 
     ctx.framework.actions.register(
@@ -102,8 +112,20 @@ defineMiniApp({
     ctx.framework.actions.register("inspectSession", async (accountSeed: unknown) => {
       lab.form.accountSeed = String(accountSeed);
       await ctx.framework.notify.guard(() => lab.inspectSessionKey(), {
-        successKey: "sessionInspected",
         errorKey: "sessionInspectFailed",
+      });
+    });
+
+    ctx.framework.actions.register("connectOwner", async (accountSeed: unknown) => {
+      lab.form.accountSeed = String(accountSeed);
+      await ctx.framework.notify.guard(() => lab.connectOwnerWallet(), {
+        errorKey: "sessionOwnerConnectFailed",
+      });
+    });
+
+    ctx.framework.actions.register("recoverPending", async () => {
+      await ctx.framework.notify.guard(() => lab.recoverPendingWrite(), {
+        errorKey: "sessionRecoveryFailed",
       });
     });
 
@@ -119,13 +141,34 @@ defineMiniApp({
       state: {
         isSubmitting: lab.isSubmitting,
         isRevoking: lab.isRevoking,
+        isInspecting: lab.isInspecting,
+        isRecovering: lab.isRecovering,
         hasOnChainSession: lab.hasOnChainSession,
         onChainSession: lab.onChainSession,
         onChainSessionView: lab.onChainSessionView,
         generatedPublicKey: lab.generatedPublicKey,
+        generatedPrivateKey: lab.generatedPrivateKey,
         isCheckingSponsorship: lab.isCheckingSponsorship,
         detailItems: lab.detailItems,
         derivedAccountIdHash: lab.derivedAccountIdHash,
+        inspectedAccountIdHash: lab.inspectedAccountIdHash,
+        accountOwner: lab.accountOwner,
+        accountVerifier: lab.accountVerifier,
+        accountReadStatus: lab.accountReadStatus,
+        sessionReadStatus: lab.sessionReadStatus,
+        verifierBound: lab.verifierBound,
+        ownerAuthorityStatus: lab.ownerAuthorityStatus,
+        allowanceSupported: lab.allowanceSupported,
+        activeNetwork: lab.activeNetwork,
+        walletNetwork: lab.walletNetwork,
+        networkDisplay: lab.networkDisplay,
+        accountStatusDisplay: lab.accountStatusDisplay,
+        writePhase: lab.writePhase,
+        pendingWrite: lab.pendingWrite,
+        canConfigure: lab.canConfigure,
+        canRevoke: lab.canRevoke,
+        lastError: lab.lastError,
+        lastTransactionId: lab.lastTransactionId,
         normalizedTargetContract: lab.normalizedTargetContract,
         normalizedAllowedMethod: lab.normalizedAllowedMethod,
         aaCoreDisplay: lab.aaCoreDisplay,
@@ -133,6 +176,7 @@ defineMiniApp({
         sessionVerifierDisplay: lab.sessionVerifierDisplay,
         walletDisplay: lab.walletDisplay,
         sponsorStatusDisplay: lab.sponsorStatusDisplay,
+        launchAccountId: createObservable(launchDefaults.accountSeed),
       },
       loadData: lab.loadAll,
     };

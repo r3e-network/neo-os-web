@@ -29,24 +29,25 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
     tracker.settleBet(first, {
       outcome: "won",
       rolled: 3,
-      result: "Won · 🎲 3",
+      result: "Won · Rolled 3",
       payout: "2.85 GAS",
     });
 
     const [secondRow, firstRow] = tracker.rollHistory.get();
-    expect(firstRow).toMatchObject({ id: first, outcome: "won", rolled: "3", result: "Won · 🎲 3", payout: "2.85 GAS" });
+    expect(firstRow).toMatchObject({ id: first, outcome: "won", rolled: "3", result: "Won · Rolled 3", payout: "2.85 GAS" });
     expect(secondRow).toMatchObject({ id: second, outcome: "pending", result: "Rolling…" });
 
     // The reveal banner still tracks the ACTIVE (second) bet — it stays rolling.
     expect(tracker.isResolving.get()).toBe(true);
     expect(tracker.lastOutcome.get()).toBe("pending");
     expect(tracker.lastRoll.get()).toBe("");
+    expect(tracker.lastPayout.get()).toBe("");
 
     // Now the second bet settles: its row updates and the banner reveals it.
     tracker.settleBet(second, {
       outcome: "lost",
       rolled: 1,
-      result: "Lost · 🎲 1",
+      result: "Lost · Rolled 1",
       payout: "0 GAS",
     });
 
@@ -55,6 +56,7 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
     expect(tracker.isResolving.get()).toBe(false);
     expect(tracker.lastOutcome.get()).toBe("lost");
     expect(tracker.lastRoll.get()).toBe("1");
+    expect(tracker.lastPayout.get()).toBe("0 GAS");
   });
 
   it("keeps the banner on the newest result when an OLDER bet settles last", () => {
@@ -67,25 +69,27 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
     const secondWasActive = tracker.settleBet(second, {
       outcome: "won",
       rolled: 5,
-      result: "Won · 🎲 5",
+      result: "Won · Rolled 5",
       payout: "1.14 GAS",
     });
     expect(secondWasActive).toBe(true);
     expect(tracker.lastOutcome.get()).toBe("won");
     expect(tracker.lastRoll.get()).toBe("5");
+    expect(tracker.lastPayout.get()).toBe("1.14 GAS");
     expect(tracker.isResolving.get()).toBe(false);
 
     // The older bet settles afterwards: its row updates, the banner does NOT.
     const firstWasActive = tracker.settleBet(first, {
       outcome: "lost",
       rolled: 4,
-      result: "Lost · 🎲 4",
+      result: "Lost · Rolled 4",
       payout: "0 GAS",
     });
     expect(firstWasActive).toBe(false);
     expect(tracker.rollHistory.get()[1]).toMatchObject({ id: first, outcome: "lost", rolled: "4" });
     expect(tracker.lastOutcome.get()).toBe("won");
     expect(tracker.lastRoll.get()).toBe("5");
+    expect(tracker.lastPayout.get()).toBe("1.14 GAS");
     expect(tracker.isResolving.get()).toBe(false);
   });
 
@@ -120,7 +124,7 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
 
     // The oracle finally calls back (e.g. via "Check again"): the unresolved flag
     // clears and the row reveals its result.
-    tracker.settleBet(bet, { outcome: "won", rolled: 4, result: "Won · 🎲 4", payout: "2.85 GAS" });
+    tracker.settleBet(bet, { outcome: "won", rolled: 4, result: "Won · Rolled 4", payout: "2.85 GAS" });
     expect(tracker.isUnresolved.get()).toBe(false);
     expect(tracker.isResolving.get()).toBe(false);
     expect(tracker.lastOutcome.get()).toBe("won");
@@ -151,7 +155,7 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
     expect(history.some((r) => r.id === firstId)).toBe(false);
 
     // Settling the evicted bet must not throw or corrupt the remaining rows.
-    tracker.settleBet(firstId, { outcome: "won", rolled: 1, result: "Won · 🎲 1", payout: "0.57 GAS" });
+    tracker.settleBet(firstId, { outcome: "won", rolled: 1, result: "Won · Rolled 1", payout: "0.57 GAS" });
     expect(tracker.rollHistory.get()).toHaveLength(6);
     expect(tracker.rollHistory.get().every((r) => r.outcome === "pending")).toBe(true);
   });
@@ -173,7 +177,7 @@ describe("createBetTracker — interleaved bets settle into their own rows", () 
     expect(tracker.rollHistory.get()[0]?.result).toBe("Funds recoverable");
     expect(tracker.isResolving.get()).toBe(true);
 
-    tracker.settleBet(active, { outcome: "won", rolled: 6, result: "Won · 🎲 6", payout: "5.70 GAS" });
+    tracker.settleBet(active, { outcome: "won", rolled: 6, result: "Won · Rolled 6", payout: "5.70 GAS" });
     expect(tracker.rollHistory.get()[1]).toMatchObject({ id: active, outcome: "won" });
     expect(tracker.lastOutcome.get()).toBe("won");
   });

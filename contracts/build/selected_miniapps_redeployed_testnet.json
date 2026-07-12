@@ -1,70 +1,8 @@
 [
   {
-    "name": "MiniAppAimMaster",
+    "name": "MiniAppRedEnvelope",
     "network": "testnet",
-    "hash": "0xed26866fb59219db8743c7673df098f363bac9ec",
-    "app_manifest": "apps/aim-master/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppColorClash",
-    "network": "testnet",
-    "hash": "0xb2d0f46da6981e4613ce8476eadcc1ea26f9858f",
-    "app_manifest": "apps/color-clash/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppFlappyDash",
-    "network": "testnet",
-    "hash": "0x39a16708c9057830718cd813956ebc084a8fafa4",
-    "app_manifest": "apps/flappy-dash/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppGame2048",
-    "network": "testnet",
-    "hash": "0x7511eefa066820a440db5f94d9cbc1d711a598f9",
-    "app_manifest": "apps/game-2048/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppJumpRush",
-    "network": "testnet",
-    "hash": "0xd98c65af1500cb17417db0ffd1d724f1ccd494cb",
-    "app_manifest": "apps/jump-rush/neo-manifest.json"
-  },
-  {
-    "name": "MiniAppMergeKingdom",
-    "network": "testnet",
-    "hash": "0x3fa9eb983a49ee181748778286a704f1ad55ff75",
-    "app_manifest": "apps/merge-kingdom/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppPetPotion",
-    "network": "testnet",
-    "hash": "0xa611f038371f49b6e46c992e9aa95f53d6ac2b38",
-    "app_manifest": "apps/pet-potion/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppSheepSolitaire",
-    "network": "testnet",
-    "hash": "0x7541e13629eb35ec54181be2772bff34e39d3c35",
-    "app_manifest": "apps/sheep-solitaire/neo-manifest.json"
-  },
-  {
-    "name": "MiniAppSnakeBounty",
-    "network": "testnet",
-    "hash": "0x33a85b08419be290c7a5c38689c846da1a533131",
-    "app_manifest": "apps/snake-bounty/neo-manifest.json",
-    "oracle_set": true
-  },
-  {
-    "name": "MiniAppSudoku",
-    "network": "testnet",
-    "hash": "0xd4ba00fb7297d08d563d8c281541dbb22725dad1",
-    "app_manifest": "apps/sudoku/neo-manifest.json",
-    "oracle_set": true
+    "hash": "0x5a5ecc80cd5225acd7431a5dd6f0e32bb9260a87",
+    "app_manifest": "apps/red-envelope/neo-manifest.json"
   }
 ]

@@ -19,15 +19,54 @@ import { getRpcUrl, resolveNeoNetwork, type NeoNetwork } from "@shared/constants
 import { sha256 } from "@shared/shims/noble-hashes-sha256.js";
 
 const RPC_TIMEOUT_MS = 12_000;
-/** NNS `resolve` record type for an address target (NEP-12 RecordType.A). */
+const OWNED_DOMAIN_READ_CONCURRENCY = 6;
+const MAX_OWNED_DOMAIN_ROWS = 10_000;
+const MAX_TOKEN_ID_HEX_CHARS = (63 + ".neo".length) * 2;
+/** NNS TXT record used by the platform to store a Neo N3 address target. */
 const RECORD_TYPE_ADDRESS = 16;
+const MAX_PLAUSIBLE_EXPIRY_MS = Date.UTC(2200, 0, 1);
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const NEO_N3_ADDRESS_VERSION = 0x35;
+const NNS_ROOT_NAME_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.neo$/;
 
 export interface OwnedDomain {
   name: string;
   expiration: number;
   target?: string;
+}
+
+export type NnsAvailability = "available" | "owned" | "restricted";
+
+export interface NnsNameSnapshot extends OwnedDomain {
+  owner: string;
+}
+
+export interface NnsSearchSnapshot {
+  name: string;
+  availability: NnsAvailability;
+  /** Exact Fixed8 GAS amount in datoshi. `-1` means committee-reserved. */
+  priceBase: string;
+  owner?: string;
+  expiration?: number;
+}
+
+export interface NnsTransferEvent {
+  from: string;
+  to: string;
+  amount: string;
+  name: string;
+}
+
+export interface NnsRenewEvent {
+  name: string;
+  oldExpiration: number;
+  newExpiration: number;
+}
+
+export interface NnsTransactionOutcome {
+  state: "halt" | "fault" | "unknown";
+  transfer: NnsTransferEvent | null;
+  renew: NnsRenewEvent | null;
 }
 
 interface Nep11Token {
@@ -47,6 +86,7 @@ interface RpcStackItem {
 
 interface RpcInvokeResult {
   state?: string;
+  exception?: string | null;
   stack?: RpcStackItem[];
 }
 
@@ -60,10 +100,57 @@ async function rpcCall<T>(network: NeoNetwork, method: string, params: unknown[]
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
     signal: AbortSignal.timeout(RPC_TIMEOUT_MS),
   });
+  if (response.ok === false) throw new Error(`${method} RPC request failed (${response.status})`);
   const payload = (await response.json()) as { result?: T; error?: { message?: string } };
   if (payload.error) throw new Error(payload.error.message || `${method} failed`);
   if (payload.result === undefined) throw new Error(`${method} returned an empty result`);
   return payload.result;
+}
+
+function requireHalt(result: RpcInvokeResult, operation: string): RpcStackItem[] {
+  if (String(result.state ?? "").toUpperCase() !== "HALT") {
+    throw new Error(result.exception || `${operation} returned a non-HALT VM state`);
+  }
+  if (!Array.isArray(result.stack)) throw new Error(`${operation} returned no stack`);
+  return result.stack;
+}
+
+function strictInteger(value: unknown, label: string, allowNegative = false): bigint {
+  const raw = String(value ?? "").trim();
+  if (!(allowNegative ? /^-?\d+$/ : /^\d+$/).test(raw)) {
+    throw new Error(`${label} is malformed`);
+  }
+  return BigInt(raw);
+}
+
+function strictBoolean(item: RpcStackItem | undefined, label: string): boolean {
+  if (!item || item.type !== "Boolean") throw new Error(`${label} is malformed`);
+  if (typeof item.value === "boolean") return item.value;
+  const normalized = String(item.value ?? "").trim().toLowerCase();
+  if (normalized === "true" || normalized === "1") return true;
+  if (normalized === "false" || normalized === "0") return false;
+  throw new Error(`${label} is malformed`);
+}
+
+/** Convert the contract's seconds-or-milliseconds expiration into epoch ms. */
+export function normalizeNnsExpiryMs(raw: unknown): number {
+  let ms = Number(strictInteger(raw, "NNS expiration"));
+  if (!Number.isFinite(ms) || ms <= 0) throw new Error("NNS expiration is malformed");
+  if (ms < 1e12) ms *= 1000;
+  if (ms > MAX_PLAUSIBLE_EXPIRY_MS) ms = Math.floor(ms / 1000);
+  if (!Number.isSafeInteger(ms) || ms <= 0 || ms > MAX_PLAUSIBLE_EXPIRY_MS) {
+    throw new Error("NNS expiration is outside the supported range");
+  }
+  return ms;
+}
+
+/** Format an exact Fixed8 GAS integer without passing through floating point. */
+export function formatGasBaseUnits(raw: unknown): string {
+  const units = strictInteger(raw, "NNS price", true);
+  if (units < 0n) return "";
+  const whole = units / 100_000_000n;
+  const fraction = (units % 100_000_000n).toString().padStart(8, "0").replace(/0+$/, "");
+  return `${whole}${fraction ? `.${fraction}` : ""}`;
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -181,12 +268,19 @@ function readByteStringText(item: RpcStackItem | undefined): string {
       const binary = atob(String(item.value));
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-      return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     } catch {
       return "";
     }
   }
-  return String(item.value);
+  return item.type === "String" ? String(item.value) : "";
+}
+
+function readOptionalText(item: RpcStackItem | undefined, label: string): string | undefined {
+  if (!item || item.type === "Any" || item.value == null) return undefined;
+  const text = readByteStringText(item).trim();
+  if (!text) throw new Error(`${label} is malformed`);
+  return text;
 }
 
 function findMapValue(stack: RpcStackItem[] | undefined, key: string): RpcStackItem | undefined {
@@ -199,20 +293,31 @@ function findMapValue(stack: RpcStackItem[] | undefined, key: string): RpcStackI
   return undefined;
 }
 
+async function invokeRead(
+  network: NeoNetwork,
+  scriptHash: string,
+  operation: string,
+  args: unknown[],
+): Promise<RpcStackItem[]> {
+  const result = await rpcCall<RpcInvokeResult>(network, "invokefunction", [
+    scriptHash,
+    operation,
+    args,
+  ]);
+  return requireHalt(result, operation);
+}
+
 async function readProperties(
   network: NeoNetwork,
   scriptHash: string,
   tokenIdBase64: string,
-): Promise<{ expiration: number }> {
-  const result = await rpcCall<RpcInvokeResult>(network, "invokefunction", [
-    scriptHash,
-    "properties",
-    [{ type: "ByteArray", value: tokenIdBase64 }],
+): Promise<{ name?: string; expiration: number }> {
+  const stack = await invokeRead(network, scriptHash, "properties", [
+    { type: "ByteArray", value: tokenIdBase64 },
   ]);
-  if (result.state !== "HALT") return { expiration: 0 };
-  const expirationItem = findMapValue(result.stack, "expiration");
-  const expiration = Number(expirationItem?.value ?? 0);
-  return { expiration: Number.isFinite(expiration) ? expiration : 0 };
+  const name = readOptionalText(findMapValue(stack, "name"), "NNS property name");
+  const expirationItem = findMapValue(stack, "expiration");
+  return { ...(name ? { name } : {}), expiration: normalizeNnsExpiryMs(expirationItem?.value) };
 }
 
 async function readTarget(
@@ -220,21 +325,77 @@ async function readTarget(
   scriptHash: string,
   name: string,
 ): Promise<string | undefined> {
-  try {
-    const result = await rpcCall<RpcInvokeResult>(network, "invokefunction", [
-      scriptHash,
-      "resolve",
-      [
-        { type: "String", value: name },
-        { type: "Integer", value: String(RECORD_TYPE_ADDRESS) },
-      ],
-    ]);
-    if (result.state !== "HALT") return undefined;
-    const text = readByteStringText(result.stack?.[0]);
-    return text || undefined;
-  } catch {
-    return undefined;
+  const stack = await invokeRead(network, scriptHash, "resolve", [
+    { type: "String", value: name },
+    { type: "Integer", value: String(RECORD_TYPE_ADDRESS) },
+  ]);
+  return readOptionalText(stack[0], "NNS target");
+}
+
+async function readOwner(
+  network: NeoNetwork,
+  scriptHash: string,
+  tokenIdBase64: string,
+): Promise<string> {
+  const stack = await invokeRead(network, scriptHash, "ownerOf", [
+    { type: "ByteArray", value: tokenIdBase64 },
+  ]);
+  const owner = ownerValueToAddress(stack[0]?.value);
+  if (!/^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(owner)) throw new Error("NNS owner is malformed");
+  return owner;
+}
+
+/** Strict owner/expiry read for one registered root name. Target is opt-in. */
+export async function readNnsNameSnapshot(
+  network: NeoNetwork,
+  scriptHash: string,
+  name: string,
+  options: { includeTarget?: boolean } = {},
+): Promise<NnsNameSnapshot> {
+  if (!normalizeContractHash(scriptHash)) throw new Error("NNS contract hash is malformed");
+  if (!NNS_ROOT_NAME_PATTERN.test(name)) throw new Error("NNS name is malformed");
+  const tokenIdBase64 = bytesToBase64(new TextEncoder().encode(name));
+  const [owner, properties, target] = await Promise.all([
+    readOwner(network, scriptHash, tokenIdBase64),
+    readProperties(network, scriptHash, tokenIdBase64),
+    options.includeTarget ? readTarget(network, scriptHash, name) : Promise.resolve(undefined),
+  ]);
+  if (!properties.name || properties.name !== name) throw new Error("NNS property name does not match the requested name");
+  return { name, owner, expiration: properties.expiration, ...(target ? { target } : {}) };
+}
+
+/**
+ * Read availability and exact price. A false availability with a negative
+ * price is committee-reserved rather than owned, so owner/expiry reads are not
+ * attempted for that legitimate state.
+ */
+export async function readNnsSearchSnapshot(
+  network: NeoNetwork,
+  scriptHash: string,
+  name: string,
+): Promise<NnsSearchSnapshot> {
+  if (!normalizeContractHash(scriptHash)) throw new Error("NNS contract hash is malformed");
+  if (!NNS_ROOT_NAME_PATTERN.test(name)) throw new Error("NNS name is malformed");
+  const baseName = name.endsWith(".neo") ? name.slice(0, -4) : name;
+  const [availabilityStack, priceStack] = await Promise.all([
+    invokeRead(network, scriptHash, "isAvailable", [{ type: "String", value: name }]),
+    invokeRead(network, scriptHash, "getPrice", [{ type: "Integer", value: String(baseName.length) }]),
+  ]);
+  const available = strictBoolean(availabilityStack[0], "NNS availability");
+  const priceBase = strictInteger(priceStack[0]?.value, "NNS price", true).toString();
+  if (available) {
+    if (BigInt(priceBase) < 0n) throw new Error("NNS returned an available name with a restricted price");
+    return { name, availability: "available", priceBase };
   }
+  if (BigInt(priceBase) < 0n) return { name, availability: "restricted", priceBase };
+  const registered = await readNnsNameSnapshot(network, scriptHash, name);
+  return {
+    name,
+    availability: "owned",
+    priceBase,
+    owner: registered.owner,
+    expiration: registered.expiration,
+  };
 }
 
 /**
@@ -251,33 +412,163 @@ export async function fetchOwnedDomains(
   contractHash: string,
 ): Promise<OwnedDomain[]> {
   if (!address) return [];
+  const networkName = String(network ?? "").trim().toLowerCase();
+  if (!["mainnet", "testnet", "neo-n3-mainnet", "neo-n3-testnet"].includes(networkName)) {
+    throw new Error("NNS network is malformed");
+  }
   const net = resolveNeoNetwork(network);
-  const normalizedContract = contractHash.toLowerCase();
+  const normalizedContract = normalizeContractHash(contractHash);
+  if (!normalizedContract) throw new Error("NNS contract hash is malformed");
 
   const result = await rpcCall<{ balance?: Nep11Balance[] }>(net, "getnep11balances", [address]);
-  const nnsBalance = (result.balance ?? []).find(
+  if (!Array.isArray(result.balance)) throw new Error("getnep11balances returned a malformed balance list");
+  const nnsBalance = result.balance.find(
     (balance) => String(balance.assethash ?? "").toLowerCase() === normalizedContract,
   );
+  if (nnsBalance && !Array.isArray(nnsBalance.tokens)) throw new Error("NNS balance returned a malformed token list");
   const tokens = nnsBalance?.tokens ?? [];
   if (tokens.length === 0) return [];
+  if (tokens.length > MAX_OWNED_DOMAIN_ROWS) {
+    throw new Error("NNS balance returned too many token rows");
+  }
 
-  const domains = await Promise.all(
-    tokens.map(async (token) => {
-      const tokenIdHex = String(token.tokenid ?? "");
-      const name = tokenIdHexToName(tokenIdHex);
-      if (!name) return null;
-      const tokenIdBase64 = bytesToBase64(hexToBytes(tokenIdHex));
-      try {
-        const [{ expiration }, target] = await Promise.all([
+  const domains = new Array<OwnedDomain>(tokens.length);
+  const seenTokenIds = new Set<string>();
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(OWNED_DOMAIN_READ_CONCURRENCY, tokens.length) },
+    async () => {
+      while (cursor < tokens.length) {
+        const index = cursor;
+        cursor += 1;
+        const token = tokens[index]!;
+        const tokenIdHex = String(token.tokenid ?? "").toLowerCase();
+        if (
+          !tokenIdHex || tokenIdHex.length > MAX_TOKEN_ID_HEX_CHARS ||
+          tokenIdHex.length % 2 !== 0 || !/^[0-9a-f]+$/.test(tokenIdHex)
+        ) throw new Error("NNS balance returned a malformed token id");
+        if (seenTokenIds.has(tokenIdHex)) throw new Error("NNS balance returned a duplicate token id");
+        seenTokenIds.add(tokenIdHex);
+        const name = tokenIdHexToName(tokenIdHex);
+        if (!NNS_ROOT_NAME_PATTERN.test(name)) throw new Error("NNS balance returned a malformed token id");
+        if (String(token.amount ?? "") !== "1") {
+          throw new Error("NNS balance returned a non-unique token amount");
+        }
+        const tokenIdBase64 = bytesToBase64(hexToBytes(tokenIdHex));
+        const [properties, target] = await Promise.all([
           readProperties(net, contractHash, tokenIdBase64),
           readTarget(net, contractHash, name),
         ]);
-        return { name, expiration, target } satisfies OwnedDomain;
-      } catch {
-        return { name, expiration: 0 } satisfies OwnedDomain;
+        if (!properties.name || properties.name !== name) {
+          throw new Error("NNS balance and properties names do not match");
+        }
+        domains[index] = { name, expiration: properties.expiration, ...(target ? { target } : {}) };
       }
-    }),
+    },
   );
+  await Promise.all(workers);
 
-  return domains.filter((domain): domain is OwnedDomain => domain !== null);
+  return domains;
+}
+
+function normalizeContractHash(value: unknown): string {
+  const raw = String(value ?? "").trim().toLowerCase();
+  return /^0x[0-9a-f]{40}$/.test(raw) ? raw : "";
+}
+
+function reverseHash(value: string): string {
+  const clean = normalizeContractHash(value);
+  if (!clean) return "";
+  return `0x${(clean.slice(2).match(/../g) ?? []).reverse().join("")}`;
+}
+
+function contractMatches(value: unknown, expected: string): boolean {
+  const actual = normalizeContractHash(value);
+  const canonical = normalizeContractHash(expected);
+  return Boolean(actual && canonical && (actual === canonical || reverseHash(actual) === canonical));
+}
+
+function notificationState(value: unknown): RpcStackItem[] | null {
+  if (Array.isArray(value)) return value as RpcStackItem[];
+  if (value && typeof value === "object") {
+    const record = value as RpcStackItem;
+    if (record.type === "Array" && Array.isArray(record.value)) return record.value as RpcStackItem[];
+  }
+  return null;
+}
+
+function parseTransferNotification(state: RpcStackItem[]): NnsTransferEvent | null {
+  if (state.length !== 4) return null;
+  const from = state[0]?.type === "Any" ? "" : ownerValueToAddress(state[0]?.value);
+  const to = ownerValueToAddress(state[1]?.value);
+  const amount = String(state[2]?.value ?? "").trim();
+  const name = readByteStringText(state[3]).trim();
+  if ((from && !/^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(from)) || !/^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(to)) return null;
+  if (!/^\d+$/.test(amount) || !name) return null;
+  return { from, to, amount, name };
+}
+
+function parseRenewNotification(state: RpcStackItem[]): NnsRenewEvent | null {
+  if (state.length !== 3) return null;
+  const name = readByteStringText(state[0]).trim();
+  if (!name) return null;
+  try {
+    return {
+      name,
+      oldExpiration: normalizeNnsExpiryMs(state[1]?.value),
+      newExpiration: normalizeNnsExpiryMs(state[2]?.value),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Read the VM result and exact NNS notifications for a broadcast txid. */
+export async function readNnsTransactionOutcome(
+  network: NeoNetwork,
+  txid: string,
+  contractHash: string,
+): Promise<NnsTransactionOutcome> {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(String(txid ?? "").trim()) || !normalizeContractHash(contractHash)) {
+    return { state: "unknown", transfer: null, renew: null };
+  }
+  try {
+    const result = await rpcCall<{
+      executions?: Array<{
+        vmstate?: unknown;
+        notifications?: Array<{ contract?: unknown; eventname?: unknown; state?: unknown }>;
+      }>;
+    }>(network, "getapplicationlog", [txid]);
+    const executions = result.executions ?? [];
+    if (executions.length === 0) return { state: "unknown", transfer: null, renew: null };
+    const states = executions.map((execution) => String(execution.vmstate ?? "").toUpperCase());
+    if (states.some((state) => state.includes("FAULT"))) {
+      return { state: "fault", transfer: null, renew: null };
+    }
+    if (!states.every((state) => state.includes("HALT"))) {
+      return { state: "unknown", transfer: null, renew: null };
+    }
+    let transfer: NnsTransferEvent | null = null;
+    let renew: NnsRenewEvent | null = null;
+    let transferCount = 0;
+    let renewCount = 0;
+    for (const notification of executions.flatMap((execution) => execution.notifications ?? [])) {
+      if (!contractMatches(notification.contract, contractHash)) continue;
+      const state = notificationState(notification.state);
+      if (!state) continue;
+      if (notification.eventname === "Transfer") {
+        transferCount += 1;
+        transfer = parseTransferNotification(state);
+      }
+      if (notification.eventname === "Renew") {
+        renewCount += 1;
+        renew = parseRenewNotification(state);
+      }
+    }
+    if (transferCount !== 1) transfer = null;
+    if (renewCount !== 1) renew = null;
+    return { state: "halt", transfer, renew };
+  } catch {
+    return { state: "unknown", transfer: null, renew: null };
+  }
 }

@@ -8,15 +8,105 @@ import {
   symbolLabel,
 } from "../../sheep-solitaire/src/logic/sheep-engine";
 import type { CardData } from "../../sheep-solitaire/src/logic/sheep-engine";
+import {
+  DIFFICULTY_RULES,
+  MATCH_COUNT,
+  MAX_SLOTS,
+} from "../../sheep-solitaire/src/logic/game-rules";
 
 /**
  * Sheep Solitaire engine tests.
  *
  * The engine generates a deterministic 3-layer card layout from a seed integer
  * and the number of symbol types to use. Each symbol appears exactly 3 times
- * (once per layer) to enable match-3 elimination. A simple exposure algorithm
- * determines which cards are visible based on overlapping positions.
+ * on one layer to provide a constructive top-to-bottom match-3 solution. A
+ * simple exposure algorithm determines which cards are visible based on
+ * overlapping positions.
  */
+
+interface SolveResult {
+  solved: boolean;
+  pickedCards: number;
+  peakTraySize: number;
+  remainingCards: number;
+  stalledTraySize: number;
+}
+
+/**
+ * Play only complete, currently exposed triples. This is intentionally stricter
+ * than a normal player: if it clears every board, it witnesses the generator's
+ * documented top-to-bottom solution without relying on undo/shuffle/remove-3.
+ */
+function solveByExposedTriples(layout: readonly CardData[]): SolveResult {
+  const pile = layout.map((card) => ({ ...card }));
+  let tray: CardData[] = [];
+  let pickedCards = 0;
+  let peakTraySize = 0;
+
+  while (pile.length > 0) {
+    const exposed = computeExposed(pile);
+    const groups = new Map<number, CardData[]>();
+    for (const card of pile) {
+      if (exposed[card.id] !== true) continue;
+      const group = groups.get(card.symbol) ?? [];
+      group.push(card);
+      groups.set(card.symbol, group);
+    }
+
+    const triple = [...groups.values()].find((group) => group.length >= MATCH_COUNT);
+    if (!triple) {
+      return {
+        solved: false,
+        pickedCards,
+        peakTraySize,
+        remainingCards: pile.length,
+        stalledTraySize: tray.length,
+      };
+    }
+
+    for (const candidate of triple.slice(0, MATCH_COUNT)) {
+      // Match the real engine's per-pick exposure gate rather than removing the
+      // witnessed triple atomically.
+      const currentExposed = computeExposed(pile);
+      if (currentExposed[candidate.id] !== true) {
+        return {
+          solved: false,
+          pickedCards,
+          peakTraySize,
+          remainingCards: pile.length,
+          stalledTraySize: tray.length,
+        };
+      }
+
+      const index = pile.findIndex((card) => card.id === candidate.id);
+      if (index < 0) throw new Error(`solver lost card ${candidate.id}`);
+      const [picked] = pile.splice(index, 1);
+      tray.push(picked!);
+      pickedCards += 1;
+      peakTraySize = Math.max(peakTraySize, tray.length);
+
+      const matching = tray.filter((card) => card.symbol === picked!.symbol);
+      if (matching.length >= MATCH_COUNT) {
+        let removed = 0;
+        tray = tray.filter((card) => {
+          if (card.symbol === picked!.symbol && removed < MATCH_COUNT) {
+            removed += 1;
+            return false;
+          }
+          return true;
+        });
+      }
+    }
+  }
+
+  return {
+    solved: tray.length === 0,
+    pickedCards,
+    peakTraySize,
+    remainingCards: pile.length,
+    stalledTraySize: tray.length,
+  };
+}
 
 describe("sheep-solitaire card layout generation", () => {
   it("produces deterministic layouts for the same seed and cardTypes", () => {
@@ -100,11 +190,68 @@ describe("sheep-solitaire card layout generation", () => {
     expect(result.cards).toHaveLength(0);
   });
 
+  it("normalizes negative, fractional, and non-finite cardTypes safely", () => {
+    expect(generateCardLayout(42, -4)).toMatchObject({ totalCards: 0, cardTypes: 0 });
+    expect(generateCardLayout(42, 2.9)).toMatchObject({ totalCards: 6, cardTypes: 2 });
+    expect(generateCardLayout(42, Number.NaN)).toMatchObject({ totalCards: 0, cardTypes: 0 });
+    expect(generateCardLayout(42, Number.POSITIVE_INFINITY)).toMatchObject({
+      totalCards: 0,
+      cardTypes: 0,
+    });
+  });
+
   it("assigns unique id to every card", () => {
     const result = generateCardLayout(42, 15);
     const ids = result.cards.map((c) => c.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(ids.length);
+  });
+
+  it("keeps every symbol's complete match-3 group on exactly one layer", () => {
+    for (const rule of DIFFICULTY_RULES) {
+      for (let seed = 0; seed < 64; seed += 1) {
+        const result = generateCardLayout(seed, rule.cardTypes);
+        const groups = new Map<number, CardData[]>();
+        for (const card of result.cards) {
+          const group = groups.get(card.symbol) ?? [];
+          group.push(card);
+          groups.set(card.symbol, group);
+        }
+
+        expect(groups.size).toBe(rule.cardTypes);
+        for (const group of groups.values()) {
+          expect(group).toHaveLength(MATCH_COUNT);
+          expect(new Set(group.map((card) => card.layer)).size).toBe(1);
+        }
+
+        const initiallyExposed = computeExposed(result.cards);
+        const exposedCounts = new Map<number, number>();
+        for (const card of result.cards) {
+          if (initiallyExposed[card.id] === true) {
+            exposedCounts.set(card.symbol, (exposedCounts.get(card.symbol) ?? 0) + 1);
+          }
+        }
+        expect([...exposedCounts.values()].some((count) => count >= MATCH_COUNT)).toBe(true);
+      }
+    }
+  });
+
+  it("constructively solves easy, medium, and hard across many seeds below tray capacity", () => {
+    for (const rule of DIFFICULTY_RULES) {
+      for (let seed = 0; seed < 128; seed += 1) {
+        const layout = generateCardLayout(seed, rule.cardTypes);
+        const result = solveByExposedTriples(layout.cards);
+
+        expect(result, `${rule.key} seed ${seed}`).toEqual({
+          solved: true,
+          pickedCards: layout.totalCards,
+          peakTraySize: MATCH_COUNT,
+          remainingCards: 0,
+          stalledTraySize: 0,
+        });
+        expect(result.peakTraySize, `${rule.key} seed ${seed}`).toBeLessThan(MAX_SLOTS);
+      }
+    }
   });
 });
 

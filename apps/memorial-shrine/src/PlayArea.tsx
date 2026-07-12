@@ -7,10 +7,13 @@
 import { useState } from "react";
 import {
   Apple,
+  CircleAlert,
   Flame,
   Flower2,
   Image as ImageIcon,
+  LoaderCircle,
   PenLine,
+  RefreshCw,
   ScrollText,
   Sprout,
   Utensils,
@@ -20,7 +23,13 @@ import {
 
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import { OpenUiPanel, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import {
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteTextArea as OpenUiTextArea,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { validateMemorialDraft } from "./logic/memorial-draft";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -40,6 +49,13 @@ interface Memorial {
   obituary?: string;
   photoHash?: string;
   offerings?: Record<string, number>;
+}
+
+interface PendingMemorialWriteView {
+  txid: string;
+  network: string;
+  contractHash: string;
+  intent?: { kind?: string };
 }
 
 type FormState = {
@@ -121,15 +137,25 @@ function totalOfferings(memorial: Memorial) {
 }
 
 export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
-  const { num, bool } = useStateBindings(state);
+  const { num, bool, str } = useStateBindings(state);
   const memorialCount = num("memorialCount");
   const tributeCount = num("tributeCount");
   const isSubmitting = bool("isSubmitting");
   const isPaying = bool("isPaying");
+  const catalogStatus = str("catalogStatus", "loading");
+  const catalogError = str("catalogError", "");
+  const networkStatus = str("networkStatus", "loading");
+  const networkMessage = str("networkMessage", "");
+  const writePhase = str("writePhase", "idle");
+  const writeNotice = str("writeNotice", "");
+  const writeError = str("writeError", "");
+  const confirmationChecking = bool("confirmationChecking");
+  const storageHealthy = bool("storageHealthy");
   const memorials = (state.memorials?.get() ?? []) as Memorial[];
   const recentObituaries = (state.recentObituaries?.get() ?? []) as Array<{ id: number; name: string; text: string }>;
   const myTributes = (state.myTributes?.get() ?? []) as Array<{ tributeId: number; memorialId: number; offeringName: string; message: string; amountGas: string }>;
   const selectedMemorial = (state.selectedMemorial?.get() ?? null) as Memorial | null;
+  const pendingWrite = (state.pendingWrite?.get() ?? null) as PendingMemorialWriteView | null;
   const isMainnet = launchContext?.network === "mainnet";
 
   const [tab, setTab] = useState<"memorials" | "create">("memorials");
@@ -148,7 +174,15 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const [activeMemoryPreset, setActiveMemoryPreset] = useState("");
 
   const hasMemorials = memorials.length > 0 || Boolean(selectedMemorial);
-  const mode: "tribute" | "create" = tab === "create" || !hasMemorials ? "create" : "tribute";
+  const catalogUnavailable = !hasMemorials && catalogStatus === "error";
+  const catalogLoading = !hasMemorials && catalogStatus === "loading";
+  const mode: "tribute" | "create" | "recovery" | "loading" = catalogUnavailable
+    ? "recovery"
+    : catalogLoading
+      ? "loading"
+      : tab === "create" || !hasMemorials
+        ? "create"
+        : "tribute";
   const activeMemorial = mode === "tribute" ? selectedMemorial ?? memorials[0] ?? null : null;
   const activeOffering = OFFERINGS.find((offering) => offering.type === tributeOffering) ?? OFFERINGS[2];
   const activePhoto = resolvePhotoSrc(activeMemorial?.photoHash);
@@ -156,6 +190,11 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const memorialRail = [...(activeMemorial ? [activeMemorial] : []), ...memorials]
     .filter((memorial, index, source) => source.findIndex((item) => item.id === memorial.id) === index)
     .slice(0, 6);
+  const draftValidation = validateMemorialDraft(form);
+  const hasDraftDetails = Object.values(form).some((value) => value.trim());
+  const draftErrorKey = !draftValidation.ok && hasDraftDetails
+    ? draftValidation.errorKey
+    : "";
 
   const updateForm = (key: keyof FormState, value: string) => {
     if (key === "relationship" || key === "biography") setActiveMemoryPreset("");
@@ -171,8 +210,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   };
 
   const handleCreate = () => {
-    if (!form.name.trim()) return;
-    void dispatch("createMemorial", form);
+    if (!draftValidation.ok) return;
+    void dispatch("createMemorial", draftValidation.value);
   };
 
   const handlePayTribute = () => {
@@ -184,9 +223,27 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     setTab("memorials");
     void dispatch("openMemorial", id);
   };
+  const refreshMemorials = () => {
+    void dispatch("refreshMemorials");
+  };
+  const recoverPendingWrite = () => {
+    void dispatch("recoverPendingWrite");
+  };
 
-  const canCreate = form.name.trim() !== "";
-  const canPay = Boolean(activeMemorial) && (!isMainnet || tributeReceiptId.trim() !== "");
+  const hasPendingWrite = Boolean(pendingWrite);
+  const networkAllowsCreate = networkStatus === "ready" || networkStatus === "tribute-unavailable";
+  const canCreate = draftValidation.ok && catalogStatus !== "error" && networkAllowsCreate &&
+    storageHealthy && !hasPendingWrite;
+  const canPay = Boolean(activeMemorial) && networkStatus === "ready" &&
+    (!isMainnet || /^[1-9]\d*$/.test(tributeReceiptId.trim())) && storageHealthy && !hasPendingWrite;
+  const surfaceNotice = writeError || (!storageHealthy
+    ? t("recoveryStorageUnavailable")
+    : writeNotice || catalogError || networkMessage);
+  const surfaceNoticeTone = writeError || !storageHealthy
+    ? "error"
+    : catalogStatus === "partial" || networkStatus === "tribute-unavailable"
+      ? "warning"
+      : "info";
 
   const createScene = (
     <div className="shrine-create-card" data-ready={canCreate ? "true" : "false"}>
@@ -229,12 +286,18 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             </button>
           ))}
         </div>
+        {draftErrorKey && (
+          <p className="shrine-draft-hint" role="status">
+            <CircleAlert size={14} aria-hidden="true" />
+            <span>{t(draftErrorKey)}</span>
+          </p>
+        )}
       </div>
     </div>
   );
 
   const tributeScene = activeMemorial ? (
-    <div className="shrine-tribute-card" data-state={isPaying ? "paying" : "ready"}>
+    <div className="shrine-tribute-card" data-phase={writePhase}>
       <div className="shrine-tribute-card__portrait">
         <img src={activePhoto ?? ALTAR_IMAGE} alt="" aria-hidden="true" loading="eager" decoding="async" />
       </div>
@@ -267,8 +330,24 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     </div>
   ) : null;
 
-  const scene = (
-    <div className="shrine-workbench" data-mode={mode} data-state={isPaying ? "paying" : "idle"}>
+  const recoveryScene = (
+    <div className="shrine-recovery" data-state={mode}>
+      <img src={GARDEN_IMAGE} alt={t("gardenAlt")} loading="eager" decoding="async" />
+      <div className="shrine-recovery__copy">
+        {mode === "loading"
+          ? <LoaderCircle className="shrine-recovery__spinner" size={24} aria-hidden="true" />
+          : <CircleAlert size={24} aria-hidden="true" />}
+        <strong>{mode === "loading" ? t("catalogLoadingTitle") : t("catalogLoadFailedTitle")}</strong>
+        <p>{mode === "loading" ? t("catalogLoadingBody") : t("catalogLoadFailed")}</p>
+        {mode === "recovery" && catalogError && catalogError !== t("catalogLoadFailed") && (
+          <small>{catalogError}</small>
+        )}
+      </div>
+    </div>
+  );
+
+  const scene = mode === "recovery" || mode === "loading" ? recoveryScene : (
+    <div className="shrine-workbench" data-mode={mode} data-phase={writePhase}>
       <div className="shrine-garden-panel" aria-hidden={mode === "create" ? "true" : undefined}>
         <img src={GARDEN_IMAGE} alt={t("gardenAlt")} loading="eager" decoding="async" />
         <div className="shrine-garden-panel__caption">
@@ -307,12 +386,42 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       </div>
       <div className="shrine-workbench__focus">
         {mode === "create" ? createScene : tributeScene}
+        {surfaceNotice && (
+          <p
+            className="shrine-chain-notice"
+            data-tone={surfaceNoticeTone}
+            role={surfaceNoticeTone === "error" ? "alert" : "status"}
+          >
+            <CircleAlert size={15} aria-hidden="true" />
+            <span>{surfaceNotice}</span>
+          </p>
+        )}
       </div>
     </div>
   );
 
   const drawer = (
     <div className="shrine-drawer-shell">
+      {(pendingWrite || writeNotice || writeError) && (
+        <OpenUiPanel
+          className="shrine-drawer-panel shrine-drawer-panel--transaction"
+          icon={<RefreshCw size={16} />}
+          title={pendingWrite ? t("pendingTransactionTitle") : t("latestTransactionTitle")}
+          subtitle={writeError || writeNotice || t("transactionIdle")}
+          titleId="shrine-drawer-transaction"
+        >
+          <div className="shrine-transaction-record" data-phase={writePhase}>
+            <span>{t("transactionPhase")}</span>
+            <strong>{t(`writePhase_${writePhase}`)}</strong>
+            {pendingWrite?.txid && <code>{pendingWrite.txid}</code>}
+            {pendingWrite && (
+              <small>
+                {pendingWrite.network} · {pendingWrite.contractHash}
+              </small>
+            )}
+          </div>
+        </OpenUiPanel>
+      )}
       {mode === "create" ? (
         <OpenUiPanel
           className="shrine-drawer-panel shrine-drawer-panel--studio"
@@ -330,7 +439,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             <OpenUiTextArea className="shrine-drawer-field shrine-drawer-field--wide mx2-open-field--compact" label={t("labelObituary")} value={form.obituary} onChange={(event) => updateForm("obituary", event.target.value)} placeholder={t("placeholderObituary")} disabled={isSubmitting} rows={3} />
           </div>
         </OpenUiPanel>
-      ) : (
+      ) : mode === "tribute" ? (
         <OpenUiPanel
           className="shrine-drawer-panel shrine-drawer-panel--tribute"
           icon={<Flame size={16} />}
@@ -344,7 +453,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           )}
           <p className="shrine-disclosure">{isMainnet ? t("mainnetTributeNote") : t("offeringDisclosure")}</p>
         </OpenUiPanel>
-      )}
+      ) : null}
       <OpenUiPanel
         className="shrine-drawer-panel shrine-drawer-panel--records"
         icon={<ScrollText size={16} />}
@@ -408,36 +517,62 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   );
 
   return (
-    <div className="memorial-play-area mx2 mx2-cat-nft">
+    <div className="memorial-play-area mx2 mx2-cat-social">
       <PlayStage
-        category="nft"
+        category="social"
         stage={{
           eyebrow: t("heroKicker"),
-          title: mode === "create" ? t("createTitle") : activeMemorial?.name ?? t("title"),
-          subtitle: mode === "create" ? t("previewBioEmpty") : t("subtitle"),
-          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {memorialCount} {t("memorials").toLowerCase()}</span>,
+          title: mode === "recovery"
+            ? t("catalogLoadFailedTitle")
+            : mode === "loading"
+              ? t("catalogLoadingTitle")
+              : mode === "create"
+                ? t("createTitle")
+                : activeMemorial?.name ?? t("title"),
+          subtitle: mode === "recovery"
+            ? t("catalogLoadFailed")
+            : mode === "loading"
+              ? t("catalogLoadingBody")
+              : mode === "create"
+                ? t("previewBioEmpty")
+                : t("subtitle"),
+          badges: mode === "recovery" || mode === "loading"
+            ? undefined
+            : <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {memorialCount} {t("memorials").toLowerCase()}</span>,
         }}
         scene={scene}
-        score={[
+        score={mode === "recovery" || mode === "loading" ? undefined : [
           { label: t("memorials"), value: String(memorialCount), accent: true },
           { label: t("myTributes"), value: String(tributeCount) },
         ]}
         actions={{
-          primary: mode === "tribute"
+          primary: hasPendingWrite
+            ? {
+                label: confirmationChecking ? t("transactionChecking") : t("checkPendingTransaction"),
+                onClick: recoverPendingWrite,
+                disabled: confirmationChecking,
+                loading: confirmationChecking,
+                icon: <RefreshCw size={18} />,
+              }
+            : mode === "recovery"
+            ? { label: t("retry"), onClick: refreshMemorials, icon: <RefreshCw size={18} /> }
+            : mode === "loading"
+              ? undefined
+              : mode === "tribute"
             ? { label: isPaying ? t("paying") : t("payTributeBtn"), onClick: handlePayTribute, disabled: !canPay || isPaying, loading: isPaying, icon: <Flame size={18} /> }
             : { label: t("createMemorial"), onClick: handleCreate, disabled: !canCreate || isSubmitting, loading: isSubmitting, icon: <ImageIcon size={18} /> },
-          secondary: hasMemorials ? [
+          secondary: !hasPendingWrite && mode !== "recovery" && mode !== "loading" && hasMemorials ? [
             {
               label: mode === "create" ? t("memorials") : t("createMemorial"),
               onClick: () => setTab(mode === "create" ? "memorials" : "create"),
-              disabled: isSubmitting || isPaying,
+              disabled: isSubmitting || isPaying || confirmationChecking,
               icon: mode === "create" ? <ScrollText size={17} /> : <PenLine size={17} />,
             },
           ] : undefined,
         }}
-        drawerToggleLabel={mode === "create" ? t("memoryStudio") : t("obituaries")}
-        drawer={{
-          title: mode === "create" ? t("memoryStudio") : t("obituaries"),
+        drawerToggleLabel={hasPendingWrite ? t("pendingTransactionTitle") : mode === "create" ? t("memoryStudio") : t("obituaries")}
+        drawer={!hasPendingWrite && (mode === "recovery" || mode === "loading") ? undefined : {
+          title: hasPendingWrite ? t("pendingTransactionTitle") : mode === "create" ? t("memoryStudio") : t("obituaries"),
           children: drawer,
         }}
       />

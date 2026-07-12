@@ -10,7 +10,9 @@ import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
+import { eventStateValue } from "@shared/utils/chain-events";
 import type { QuadraticFlowKit, Translator } from "./quadraticFlowKit";
+import type { QuadraticPendingTracker } from "./quadraticPending";
 import type { ProjectItem, RoundItem } from "./quadraticTypes";
 
 export interface UseQuadraticProjectsOptions {
@@ -22,6 +24,23 @@ export interface UseQuadraticProjectsOptions {
   kit: QuadraticFlowKit;
   /** Currently selected round (owned by useQuadraticRounds). */
   selectedRound: Observable<RoundItem | null>;
+  /** Fail-closed deployment capability gate for every contract write. */
+  ensureFundingWritesEnabled?: () => Promise<boolean>;
+  pending?: QuadraticPendingTracker;
+}
+
+function normalizeProjectLink(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (raw.length > 200) return null;
+  try {
+    const url = new URL(raw);
+    return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password
+      ? raw
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export function useQuadraticProjects({
@@ -29,14 +48,40 @@ export function useQuadraticProjects({
   t,
   kit,
   selectedRound,
+  ensureFundingWritesEnabled = async () => true,
+  pending,
 }: UseQuadraticProjectsOptions) {
   const { arg } = app.chain;
   const address = app.chain.address as Observable<string | null>;
 
   const projects = createObservable<ProjectItem[]>([]);
   const isRefreshingProjects = createObservable(false);
+  const projectsComplete = createObservable(false);
   const isRegisteringProject = createObservable(false);
   const claimingProjectId = createObservable<string | null>(null);
+  let refreshGeneration = 0;
+
+  const reservePendingWrite = (): string | undefined | null => {
+    if (!pending) return undefined;
+    const reservation = pending.reserve();
+    if (!reservation) kit.setStatus(t("pendingBlocksWrites"), "error");
+    return reservation;
+  };
+  const revalidateFundingWriteScope = async () => {
+    if (!(await ensureFundingWritesEnabled())) {
+      throw new Error(t("fundingWriteScopeChanged"));
+    }
+  };
+
+  const eventInteger = (event: unknown, index: number): bigint | null => {
+    const text = String(eventStateValue(event, index) ?? "").trim();
+    if (!/^-?\d+$/.test(text)) return null;
+    try {
+      return BigInt(text);
+    } catch {
+      return null;
+    }
+  };
 
   const parseProject = (raw: Record<string, unknown>, id: string): ProjectItem | null => {
     if (!raw || typeof raw !== "object") return null;
@@ -58,17 +103,30 @@ export function useQuadraticProjects({
     };
   };
 
-  const fetchProjectIds = async (roundId: string) => {
-    const parsed = await app.chain.readRaw("getRoundProjects", [
-      arg.integer(roundId),
-      arg.integer(0),
-      arg.integer(50),
-    ]);
-    if (!Array.isArray(parsed)) return [] as string[];
-    return parsed
-      .map((value) => Number.parseInt(String(value || "0"), 10))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .map((value) => String(value));
+  const fetchProjectIds = async (roundId: string, expectedCount: bigint) => {
+    const maxProjects = 5_000n;
+    if (expectedCount < 0n || expectedCount > maxProjects) {
+      throw new Error(t("collectionTooLarge"));
+    }
+    const ids: string[] = [];
+    const pageSize = 50;
+    for (let offset = 0; BigInt(offset) < expectedCount; offset += pageSize) {
+      const parsed = await app.chain.readRaw("getRoundProjects", [
+        arg.integer(roundId),
+        arg.integer(offset),
+        arg.integer(pageSize),
+      ]);
+      if (!Array.isArray(parsed)) throw new Error(t("chainSnapshotUnavailable"));
+      ids.push(...parsed
+        .map((value) => String(value ?? "").trim())
+        .filter((value) => /^[1-9]\d*$/.test(value)));
+      if (parsed.length < pageSize && BigInt(ids.length) < expectedCount) {
+        throw new Error(t("chainSnapshotUnavailable"));
+      }
+    }
+    const unique = [...new Set(ids)];
+    if (BigInt(unique.length) !== expectedCount) throw new Error(t("chainSnapshotUnavailable"));
+    return unique;
   };
 
   const fetchProjectDetails = async (projectId: string) => {
@@ -78,17 +136,38 @@ export function useQuadraticProjects({
   };
 
   const refreshProjects = async () => {
-    if (!selectedRound.get()) return;
-    if (isRefreshingProjects.get()) return;
+    const targetRound = selectedRound.get();
+    const targetRoundId = targetRound?.id ?? "";
+    refreshGeneration += 1;
+    const generation = refreshGeneration;
+    if (!targetRoundId) {
+      projects.set([]);
+      projectsComplete.set(false);
+      isRefreshingProjects.set(false);
+      return;
+    }
     try {
       isRefreshingProjects.set(true);
-      const ids = await fetchProjectIds(selectedRound.get()!.id);
-      const details = await Promise.all(ids.map(fetchProjectDetails));
-      projects.set(details.filter(Boolean) as ProjectItem[]);
+      projectsComplete.set(false);
+      const expectedCount = targetRound?.projectCount ?? 0n;
+      const ids = await fetchProjectIds(targetRoundId, expectedCount);
+      const details: Array<ProjectItem | null> = [];
+      for (let offset = 0; offset < ids.length; offset += 25) {
+        details.push(...await Promise.all(ids.slice(offset, offset + 25).map(fetchProjectDetails)));
+      }
+      if (details.some((project) => !project)) throw new Error(t("chainSnapshotUnavailable"));
+      if (generation === refreshGeneration && selectedRound.get()?.id === targetRoundId) {
+        projects.set(details as ProjectItem[]);
+        projectsComplete.set(true);
+      }
     } catch (e) {
-      kit.reportError(e);
+      if (generation === refreshGeneration) {
+        projects.set([]);
+        projectsComplete.set(false);
+        kit.reportError(e);
+      }
     } finally {
-      isRefreshingProjects.set(false);
+      if (generation === refreshGeneration) isRefreshingProjects.set(false);
     }
   };
 
@@ -99,8 +178,13 @@ export function useQuadraticProjects({
   }): Promise<boolean> => {
     if (!(await kit.onNeoChain())) return false;
     if (isRegisteringProject.get()) return false;
-    if (!selectedRound.get()) {
+    const targetRound = selectedRound.get();
+    if (!targetRound) {
       kit.setStatus(t("noSelectedRound"), "error");
+      return false;
+    }
+    if (targetRound.cancelled || targetRound.finalized || Date.now() > targetRound.endTime) {
+      kit.setStatus(t("roundStateChanged"), "error");
       return false;
     }
 
@@ -109,25 +193,83 @@ export function useQuadraticProjects({
       kit.setStatus(t("invalidProject"), "error");
       return false;
     }
+    const link = normalizeProjectLink(data.link);
+    if (link === null) {
+      kit.setStatus(t("invalidProjectLink"), "error");
+      return false;
+    }
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
 
     isRegisteringProject.set(true);
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
         const description = data.description.trim().slice(0, 300);
-        const link = data.link.trim().slice(0, 200);
+        const roundId = targetRound.id;
+        await kit.ensureContract();
+        const liveRoundRaw = await app.chain.readRaw("getRoundDetails", [arg.integer(roundId)]);
+        if (!liveRoundRaw || typeof liveRoundRaw !== "object" || Array.isArray(liveRoundRaw)) {
+          throw new Error(t("chainSnapshotUnavailable"));
+        }
+        const liveRound = liveRoundRaw as Record<string, unknown>;
+        const liveStatus = String(liveRound.status ?? "");
+        if (liveStatus !== "upcoming" && liveStatus !== "active") {
+          throw new Error(t("roundStateChanged"));
+        }
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "register-project",
+              eventName: "ProjectRegistered",
+              wallet: caller,
+              roundId,
+              name,
+              description,
+              link,
+            })
+          : null;
 
-        await app.chain.invoke("registerProject", [
+        await revalidateFundingWriteScope();
+
+        let registeredId = "";
+        const result = await app.chain.invoke("registerProject", [
           arg.hash160(caller),
-          arg.integer(selectedRound.get()!.id),
+          arg.integer(roundId),
           arg.string(name),
           arg.string(description),
           arg.string(link),
-        ]);
+        ], {
+          waitForEvent: "ProjectRegistered",
+          waitTimeoutMs: 30_000,
+          ...(pendingDraft
+            ? { onTransactionSent: (txid: string) => pending?.persistBroadcast(reservation!, pendingDraft, txid) }
+            : {}),
+        });
+        kit.requireVerifiedTransaction(result, (event) => {
+          const id = eventInteger(event, 0);
+          if (id && id > 0n) registeredId = id.toString();
+          return Boolean(registeredId)
+            && eventInteger(event, 1) === BigInt(roundId)
+            && ownerMatchesAddress(eventStateValue(event, 2), caller);
+        });
+        const readback = await fetchProjectDetails(registeredId);
+        if (
+          !readback
+          || readback.roundId !== roundId
+          || !ownerMatchesAddress(readback.owner, caller)
+          || readback.name !== name
+          || readback.description !== description
+          || readback.link !== link
+        ) {
+          throw new Error(t("chainReadbackMismatch"));
+        }
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "projectRegistered");
       if (ok) await refreshProjects();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       isRegisteringProject.set(false);
     }
   };
@@ -139,7 +281,7 @@ export function useQuadraticProjects({
       round.finalized &&
       !round.cancelled &&
       !project.claimed &&
-      project.matchedAmount > 0n &&
+      project.totalContributed + project.matchedAmount > 0n &&
       ownerMatchesAddress(project.owner, address.get())
     );
   };
@@ -154,19 +296,56 @@ export function useQuadraticProjects({
   const claimProject = async (project: ProjectItem): Promise<boolean> => {
     if (!(await kit.onNeoChain())) return false;
     if (claimingProjectId.get()) return false;
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
 
     claimingProjectId.set(project.id);
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
-        await app.chain.invoke("claimProject", [
+        const liveProject = await fetchProjectDetails(project.id);
+        if (!liveProject || !canClaimProject(liveProject)) {
+          throw new Error(t("projectStateChanged"));
+        }
+        const expectedAmount = liveProject.totalContributed + liveProject.matchedAmount;
+        await kit.ensureContract();
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "claim-project",
+              eventName: "ProjectClaimed",
+              wallet: caller,
+              roundId: liveProject.roundId,
+              projectId: liveProject.id,
+              amount: expectedAmount.toString(),
+            })
+          : null;
+        await revalidateFundingWriteScope();
+        const result = await app.chain.invoke("claimProject", [
           arg.hash160(caller),
           arg.integer(project.id),
-        ]);
+        ], {
+          waitForEvent: "ProjectClaimed",
+          waitTimeoutMs: 30_000,
+          ...(pendingDraft
+            ? { onTransactionSent: (txid: string) => pending?.persistBroadcast(reservation!, pendingDraft, txid) }
+            : {}),
+        });
+        kit.requireVerifiedTransaction(
+          result,
+          (event) =>
+            eventInteger(event, 0) === BigInt(project.id)
+            && ownerMatchesAddress(eventStateValue(event, 1), caller)
+            && eventInteger(event, 2) === expectedAmount,
+        );
+        const readback = await fetchProjectDetails(project.id);
+        if (!readback?.claimed) throw new Error(t("chainReadbackMismatch"));
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "projectClaimed");
       if (ok) await refreshProjects();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       claimingProjectId.set(null);
     }
   };
@@ -183,6 +362,7 @@ export function useQuadraticProjects({
 
   return {
     projects,
+    projectsComplete,
     isRefreshingProjects,
     isRegisteringProject,
     claimingProjectId,

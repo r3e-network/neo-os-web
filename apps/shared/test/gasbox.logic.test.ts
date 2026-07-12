@@ -7,6 +7,7 @@ import { DepositConfirmedActionFailedError } from "../composables/useContractInt
 import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 import { createMiniAppFramework, FrameworkPrepaidActionError } from "@shared/react";
+import { LEGACY_SETTLE_REROLL_HASH } from "../../gasbox/src/deployment";
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const CREATOR = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
@@ -42,6 +43,16 @@ function t(key: string) {
     playPrepaidNoCommit: "Play credit prepaid but the commit didn't settle",
     commitPendingRetry: "Bet committed — tap Reveal shortly to draw your prize.",
     revealPendingRetry: "Reveal not ready yet — tap Reveal again in a moment.",
+    gasboxContractMissing: "GasBox contract missing",
+    gasboxContractIdentityMismatch: "GasBox contract identity mismatch",
+    gasboxUnsupportedNetwork: "Unsupported GasBox network",
+    gasboxDeploymentIncompatible: "Paid pulls paused for incompatible deployment",
+    gasboxCatalogReadFailed: "Machine catalog read failed",
+    gasboxCatalogPartial: "Machine catalog is incomplete",
+    gasboxItemReadFailed: "Machine prize reel is incomplete",
+    gasboxNoPlayCredit: "There is no unused play credit to return.",
+    gasboxPoolAmountTooHigh: "The amount exceeds the machine's exact free pool.",
+    gasboxCreatorOnly: "Only the creator can manage bankroll.",
     tokenGas: "GAS",
     none: "None",
     yes: "Yes",
@@ -53,7 +64,7 @@ function t(key: string) {
 
 /**
  * Build a `Committed` event payload: Committed(betId, machineId, player,
- * commitIndex). The composable reads betId from slot 0 (same shape the live v2
+ * wager, commitIndex). The composable reads betId from slot 0 (same shape the live v2
  * contract emits).
  */
 function committedEvent(betId: string = BET_ID) {
@@ -62,6 +73,7 @@ function committedEvent(betId: string = BET_ID) {
       { type: "Integer", value: betId },
       { type: "Integer", value: "1" },
       { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: "10000000" },
       { type: "Integer", value: "1000" },
     ],
   };
@@ -98,17 +110,19 @@ function machineMap(
     totalWeight: 100,
     maxPrize: 100_000_000, // 1 GAS
     poolBalance: 1_000_000_000, // 10 GAS — covers max prize
+    reservedPool: 0,
+    freePool: 1_000_000_000,
     revenue: 0,
     active: true,
     ...overrides,
   };
 }
 
-/** getItem maps for machine 1 (index -> {index,name,weight,amount}). */
+/** getItem maps for machine 1 (V2 indices are 1..itemCount). */
 function itemMap(index: number): Record<string, unknown> {
   const items: Record<number, Record<string, unknown>> = {
-    0: { index: 0, name: "Legend Capsule", weight: 5, amount: 100_000_000 },
-    1: { index: 1, name: "GAS Rebate", weight: 95, amount: 10_000_000 },
+    1: { index: 1, name: "Legend Capsule", weight: 5, amount: 100_000_000 },
+    2: { index: 2, name: "GAS Rebate", weight: 95, amount: 10_000_000 },
   };
   return items[index] ?? {};
 }
@@ -135,9 +149,19 @@ function makeChain(
     commitFault?: string;
     settleFault?: string;
     betId?: string;
+    machineOverrides?: Record<string, unknown>;
+    pendingSettled?: boolean;
+    gasBalance?: string;
+    neoBalance?: string;
+    network?: string;
+    contractHash?: string;
+    invalidRuntimeRead?: boolean;
+    machineReadFault?: boolean;
   } = {},
 ) {
   const betId = opts.betId ?? BET_ID;
+  let playCredit = BigInt(opts.playCredit ?? "0");
+  let currentMachine = machineMap(opts.machineOverrides);
 
   const runCommit = (options?: { waitForEvent?: string }): TxResult => {
     if (opts.commitFault) throw new Error(opts.commitFault);
@@ -151,7 +175,7 @@ function makeChain(
     const event =
       options?.waitForEvent === "Settled"
         ? settledEvent(
-            opts.settledItemIndex ?? 0,
+            opts.settledItemIndex ?? 1,
             opts.settledPrize ?? "100000000",
             betId,
           )
@@ -160,10 +184,27 @@ function makeChain(
   };
 
   const invoke = vi.fn(
-    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
+    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string; scriptHash?: string }): Promise<TxResult> => {
       let event: unknown;
       if (op === "commit") return runCommit(options);
       if (op === "settle") return runSettle(options);
+      if (op === "withdraw") {
+        const withdrawn = playCredit;
+        playCredit = 0n;
+        event = options?.waitForEvent === "CreditWithdrawn"
+          ? { state: [{ type: "Hash160", value: PLAYER_HASH }, { type: "Integer", value: withdrawn.toString() }] }
+          : undefined;
+      }
+      if (op === "withdrawPool") {
+        const amount = BigInt(String(_args[3]?.value ?? "0"));
+        const pool = BigInt(String(currentMachine.poolBalance ?? "0"));
+        const reserved = BigInt(String(currentMachine.reservedPool ?? "0"));
+        currentMachine = {
+          ...currentMachine,
+          poolBalance: (pool - amount).toString(),
+          freePool: (pool - amount - reserved).toString(),
+        };
+      }
       if (op === "createMachine" && options?.waitForEvent === "MachineCreated") {
         event = { state: [{ type: "Integer", value: "1" }] };
       }
@@ -202,10 +243,16 @@ function makeChain(
   );
 
   const read = vi.fn(
-    async (op: string, args?: ContractArg[]): Promise<unknown> => {
-      if (op === "lastMachineId") return 1;
-      if (op === "playCreditOf") return opts.playCredit ?? "0";
-      if (op === "getMachine") return machineMap();
+    async (op: string, args?: ContractArg[], options?: { scriptHash?: string }): Promise<unknown> => {
+      if (op === "lastMachineId") return opts.invalidRuntimeRead ? {} : 1;
+      if (op === "lastBetId") return 0;
+      if (op === "pendingBetCount") return 0;
+      if (op === "getOwner") return CREATOR_HASH;
+      if (op === "playCreditOf") return playCredit.toString();
+      if (op === "getMachine") {
+        if (opts.machineReadFault) throw new Error("machine read unavailable");
+        return currentMachine;
+      }
       if (op === "getItem") {
         const index = Number(args?.[1]?.value ?? 0);
         return itemMap(index);
@@ -214,12 +261,15 @@ function makeChain(
         // The bet has settled by the time the recovery path would read it.
         return {
           machineId: "1",
+          player: PLAYER_HASH,
+          wager: "10000000",
+          reserved: "100000000",
           commitIndex: 1000,
-          settled: true,
-          itemIndex: opts.settledItemIndex ?? 0,
-          prize: opts.settledPrize ?? "100000000",
+          settled: opts.pendingSettled ?? true,
         };
       }
+      if (op === "balanceOf" && options?.scriptHash === GAS_HASH) return opts.gasBalance ?? "0";
+      if (op === "balanceOf" && options?.scriptHash === NEO_HASH) return opts.neoBalance ?? "0";
       return {};
     },
   );
@@ -228,9 +278,10 @@ function makeChain(
   const listAllEvents = vi.fn(async (): Promise<unknown[]> => []);
 
   const chain = {
-    contractAddress: { get: () => CONTRACT },
+    contractAddress: { get: () => opts.contractHash ?? CONTRACT },
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
+    detectNetwork: vi.fn(async () => opts.network ?? "testnet"),
     invoke,
     prepayAndInvoke,
     read,
@@ -272,16 +323,25 @@ function setup(opts: Parameters<typeof makeChain>[0] = {}) {
  */
 async function runWithTimers<T>(action: Promise<T>): Promise<T> {
   let settled = false;
-  const wrapped = action.finally(() => {
-    settled = true;
-  });
+  const wrapped = action.then(
+    (value) => {
+      settled = true;
+      return { ok: true as const, value };
+    },
+    (error: unknown) => {
+      settled = true;
+      return { ok: false as const, error };
+    },
+  );
   // Yield to let the synchronous part of playMachine() schedule its first sleep,
   // then keep running queued timers until the whole flow resolves.
   for (let i = 0; i < 50 && !settled; i += 1) {
     await Promise.resolve();
     await vi.runAllTimersAsync();
   }
-  return wrapped;
+  const outcome = await wrapped;
+  if (!outcome.ok) throw outcome.error;
+  return outcome.value;
 }
 
 /** Find a recorded invoke call for an operation. */
@@ -303,12 +363,14 @@ function studioMachine(overrides: Partial<Machine> = {}): Machine {
     ownerHash: CREATOR_HASH,
     price: "0.1",
     priceRaw: 10_000_000,
+    priceBaseUnits: "10000000",
     itemCount: 2,
     totalWeight: 100,
     availableWeight: 100,
     plays: 0,
     revenue: "0",
     revenueRaw: 0,
+    revenueBaseUnits: "0",
     sales: 0,
     salesVolume: "0",
     salesVolumeRaw: 0,
@@ -328,8 +390,14 @@ function studioMachine(overrides: Partial<Machine> = {}): Machine {
     prizeAsset: "GAS",
     poolBalance: "10",
     poolBalanceRaw: 1_000_000_000,
+    poolBalanceBaseUnits: "1000000000",
+    reservedPool: "0",
+    reservedPoolBaseUnits: "0",
+    freePool: "10",
+    freePoolBaseUnits: "1000000000",
     maxPrize: "1",
     maxPrizeRaw: 100_000_000,
+    maxPrizeBaseUnits: "100000000",
     poolReady: true,
     ...overrides,
   };
@@ -362,7 +430,7 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
   it("prepays play credit then commits + settles on-chain (via prepayAndInvoke, deposit confirmed first), reading the won item from the Settled event", async () => {
     vi.useFakeTimers();
     try {
-      const { app, invoke, prepayAndInvoke } = setup({ playCredit: "0", settledItemIndex: 0, settledPrize: "100000000" });
+      const { app, invoke, prepayAndInvoke } = setup({ playCredit: "0", settledItemIndex: 1, settledPrize: "100000000" });
 
       await app.loadAll();
       app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
@@ -405,7 +473,7 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
       expect(settle![1]).toEqual([{ type: "Integer", value: BET_ID }]);
       expect(settle![2]).toMatchObject({ waitForEvent: "Settled" });
 
-      // The won item came from the Settled event (itemIndex 0) + getItem amount.
+      // The won item came from the Settled event (V2 itemIndex 1) + getItem amount.
       const result = app.resultItem.get();
       expect(result).toBeTruthy();
       expect(result!.name).toBe("Legend Capsule");
@@ -421,7 +489,7 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
   it("reuses existing play credit (no prepayAndInvoke) when it already covers the price", async () => {
     vi.useFakeTimers();
     try {
-      const { app, prepayAndInvoke, invoke } = setup({ playCredit: "10000000", settledItemIndex: 1, settledPrize: "10000000" });
+      const { app, prepayAndInvoke, invoke } = setup({ playCredit: "10000000", settledItemIndex: 2, settledPrize: "10000000" });
 
       await app.loadAll();
       app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
@@ -503,7 +571,7 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
   it("skips the prepay transfer when existing play credit already covers the price", async () => {
     vi.useFakeTimers();
     try {
-      const { app, invoke } = setup({ playCredit: "10000000", settledItemIndex: 1, settledPrize: "10000000" });
+      const { app, invoke } = setup({ playCredit: "10000000", settledItemIndex: 2, settledPrize: "10000000" });
 
       await app.loadAll();
       app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
@@ -516,7 +584,7 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
       // The commit + settle still run.
       expect(callFor(invoke, "commit")).toBeTruthy();
       expect(callFor(invoke, "settle")).toBeTruthy();
-      // Won item resolves from the Settled event itemIndex (1 -> "GAS Rebate").
+      // Won item resolves from the Settled event itemIndex (2 -> "GAS Rebate").
       expect(app.resultItem.get()?.name).toBe("GAS Rebate");
     } finally {
       vi.useRealTimers();
@@ -779,5 +847,171 @@ describe("useGasBox (direct MiniAppGasBoxV2 contract)", () => {
     expect(app.playCreditBase.get()).toBe(150000000n);
     expect(app.hasPlayCredit.get()).toBe(true);
     expect(app.formattedPlayCredit.get()).toContain("1.5");
+  });
+
+  it("uses the exact free pool, not total pool, to decide whether another pull is payable", async () => {
+    const { app } = setup({
+      machineOverrides: {
+        poolBalance: "1000000000",
+        reservedPool: "950000000",
+        freePool: "50000000",
+        maxPrize: "100000000",
+        active: true,
+      },
+    });
+
+    await app.loadAll();
+
+    const machine = app.machines.get()[0];
+    expect(machine.poolBalanceBaseUnits).toBe("1000000000");
+    expect(machine.reservedPoolBaseUnits).toBe("950000000");
+    expect(machine.freePoolBaseUnits).toBe("50000000");
+    expect(machine.poolReady).toBe(false);
+    expect(machine.inventoryReady).toBe(false);
+  });
+
+  it("reads exact GAS and NEO wallet balances through the framework wallet surface", async () => {
+    const { app } = setup({ gasBalance: "250000001", neoBalance: "7" });
+
+    await app.loadAll();
+
+    expect(app.walletGasBase.get()).toBe(250000001n);
+    expect(app.walletNeoBase.get()).toBe(7n);
+    expect(app.formattedWalletGas.get()).toBe("2.50000001");
+    expect(app.formattedWalletNeo.get()).toBe("7");
+    expect(app.walletStatus.get()).toBe("ready");
+  });
+
+  it("keeps play disabled on a non-Neo-N3 MainNet/TestNet network", async () => {
+    const { app, read } = setup({ network: "neo-x-mainnet" });
+
+    await app.loadAll();
+
+    expect(app.runtimeStatus.get()).toBe("error");
+    expect(app.runtimeError.get()).toBe("Unsupported GasBox network");
+    expect(app.catalogStatus.get()).toBe("error");
+    expect(read.mock.calls.some((call) => call[0] === "getMachine")).toBe(false);
+  });
+
+  it("keeps the known settle-reroll live deployment readable but blocks new paid writes", async () => {
+    const { app, invoke } = setup({
+      contractHash: LEGACY_SETTLE_REROLL_HASH,
+      playCredit: "150000000",
+    });
+
+    await app.loadAll();
+
+    expect(app.runtimeStatus.get()).toBe("incompatible");
+    expect(app.runtimeReady.get()).toBe(false);
+    expect(app.catalogStatus.get()).toBe("ready");
+    expect(app.machines.get()).toHaveLength(1);
+    app.selectMachine(studioMachine({ items: app.machines.get()[0].items }));
+    await expect(app.playMachine()).rejects.toThrow(
+      "Paid pulls paused for incompatible deployment",
+    );
+    await expect(app.topUpPool("1", "1")).rejects.toThrow(
+      "Paid pulls paused for incompatible deployment",
+    );
+    expect(callFor(invoke, "commit")).toBeUndefined();
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+
+    // Recovery remains available: unused credit can still leave the contract.
+    await expect(app.withdrawPlayCredit()).resolves.toBeUndefined();
+    expect(callFor(invoke, "withdraw")).toBeTruthy();
+  });
+
+  it("treats an invalid required runtime read as an error, never as a zero-machine deployment", async () => {
+    const { app } = setup({ invalidRuntimeRead: true });
+
+    await app.loadAll();
+
+    expect(app.runtimeStatus.get()).toBe("error");
+    expect(app.catalogStatus.get()).toBe("error");
+    expect(app.catalogStatus.get()).not.toBe("empty");
+    expect(app.machines.get()).toEqual([]);
+  });
+
+  it("treats all failed machine reads as a catalog error, never as an empty catalog", async () => {
+    const { app } = setup({ machineReadFault: true });
+
+    await app.loadAll();
+
+    expect(app.runtimeStatus.get()).toBe("ready");
+    expect(app.catalogStatus.get()).toBe("error");
+    expect(app.catalogStatus.get()).not.toBe("empty");
+    expect(app.machines.get()).toEqual([]);
+  });
+
+  it("returns all unused prepaid GAS credit through withdraw(account)", async () => {
+    const { app, invoke } = setup({ playCredit: "150000000" });
+    await app.loadAll();
+
+    await app.withdrawPlayCredit();
+
+    const withdraw = callFor(invoke, "withdraw");
+    expect(withdraw?.[1]).toEqual([{ type: "Hash160", value: PLAYER_HASH }]);
+    expect(withdraw?.[2]).toMatchObject({ waitForEvent: "CreditWithdrawn" });
+    expect(app.playCreditBase.get()).toBe(0n);
+  });
+
+  it("withdraws creator bankroll only through the exact free-pool V2 operation", async () => {
+    const { app, invoke } = setup();
+    await app.loadAll();
+
+    await app.withdrawPool("1", "1.5");
+
+    const withdraw = callFor(invoke, "withdrawPool");
+    expect(withdraw?.[1]).toEqual([
+      { type: "Hash160", value: CREATOR_HASH },
+      { type: "Integer", value: "1" },
+      { type: "Hash160", value: CREATOR_HASH },
+      { type: "Integer", value: "150000000" },
+    ]);
+    expect(app.machines.get()[0].freePoolBaseUnits).toBe("850000000");
+  });
+
+  it("rejects creator bankroll withdrawal above the exact free pool", async () => {
+    const { app, invoke } = setup({
+      machineOverrides: {
+        poolBalance: "1000000000",
+        reservedPool: "950000000",
+        freePool: "50000000",
+      },
+    });
+    await app.loadAll();
+
+    await expect(app.withdrawPool("1", "0.50000001")).rejects.toThrow(
+      "The amount exceeds the machine's exact free pool.",
+    );
+    expect(callFor(invoke, "withdrawPool")).toBeUndefined();
+  });
+
+  it("restores a committed pull after remount without automatically broadcasting settle", async () => {
+    vi.useFakeTimers();
+    try {
+      const first = setup({
+        playCredit: "10000000",
+        pendingSettled: false,
+        settleFault: "reveal must be a later block",
+      });
+      await first.app.loadAll();
+      first.app.selectMachine(studioMachine({ items: first.app.machines.get()[0].items }));
+      await expect(runWithTimers(first.app.playMachine())).rejects.toThrow(
+        "reveal must be a later block",
+      );
+      expect(first.app.betPhase.get()).toBe("committed");
+
+      const restored = setup({ playCredit: "0", pendingSettled: false });
+      await restored.app.loadAll();
+      expect(restored.app.pendingBetId.get()).toBe(BET_ID);
+      expect(restored.app.betPhase.get()).toBe("committed");
+      expect(callFor(restored.invoke, "settle")).toBeUndefined();
+
+      await expect(restored.app.revealPending()).resolves.toBe(true);
+      expect(callFor(restored.invoke, "settle")).toBeTruthy();
+      expect(restored.app.resultItem.get()?.name).toBe("Legend Capsule");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

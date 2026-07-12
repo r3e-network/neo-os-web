@@ -20,13 +20,14 @@ function makeApp(): MiniAppFramework {
     if (method === "getProposalCount") return 7;
     if (method === "getProposalDetails") {
       const idArg = (args?.[0] as { value?: string } | undefined)?.value;
-      if (idArg === "7") {
+      const id = Number(idArg);
+      if (Number.isSafeInteger(id) && id >= 1 && id <= 7) {
         return {
-          id: 7,
-          status: 0,
+          id,
+          status: 1,
           statusString: "active",
           type: 0,
-          title: "On-chain proposal",
+          title: id === 7 ? "On-chain proposal" : `Earlier proposal ${id}`,
           description: "Created via the contract",
           creator: "AReallyLongHashValue",
           yesVotes: 0,
@@ -38,7 +39,7 @@ function makeApp(): MiniAppFramework {
           expiryTime: 0,
         };
       }
-      return null;
+      throw new Error("unexpected proposal id");
     }
     if (method === "isCandidate") return false;
     if (method === "hasVoted") return false;

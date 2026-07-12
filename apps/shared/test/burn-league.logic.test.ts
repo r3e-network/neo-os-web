@@ -7,7 +7,7 @@ import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const CONTRACT = "0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f";
+const CONTRACT = "0x21a527b50b839efeb73721a886c9b5994a206316";
 const PLAYER_HASH = addressToScriptHash(PLAYER);
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const BURN_MEMO = "miniapp-burnleague:burn";
@@ -17,10 +17,21 @@ function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     burnActionUnavailable: "The burn could not be submitted to the contract.",
     burnServiceUnavailable: "Stats unavailable; you can still prepare a burn. Pool and rank refresh later.",
+    seasonDurationUnsafe: "Demo season; burns paused.",
     burnDepositHeld: "Your GAS was deposited as reusable burn credit.",
     burnPreparing: `Preparing a ${params?.amount ?? ""} burn wallet confirmation.`,
     burnSubmitted: "Burn confirmed on chain. Refreshing the pool and leaderboard.",
     burnWalletUnavailable: "Connect your wallet to confirm the burn transaction.",
+    burnBusy: "A burn is already in progress.",
+    burnPendingBlocksNew: "Resolve the pending burn first.",
+    burnDepositUnknown: "Deposit pending.",
+    burnTransactionUnknown: "Burn pending.",
+    burnDepositReady: "Deposit ready.",
+    burnRecoveryUnavailable: "Recovery unavailable.",
+    burnBalanceUnavailable: "Balance unavailable.",
+    burnInsufficientBalance: "Not enough GAS.",
+    settleTransactionUnknown: "Settlement pending.",
+    withdrawTransactionUnknown: "Withdrawal pending.",
     maxBurn: `Maximum burn is ${params?.amount ?? ""} ${params?.tokenGas ?? ""}`,
     minBurn: `Minimum burn is ${params?.amount ?? ""} ${params?.tokenGas ?? ""}`,
     missingContract: "Contract not configured",
@@ -76,6 +87,8 @@ interface ChainOpts {
   burnedEvents?: unknown[];
   /** Force the burn() invoke to throw. */
   burnThrows?: Error;
+  /** Force settle() to return an unverified broadcast. */
+  settleVerified?: boolean;
 }
 
 /**
@@ -84,19 +97,63 @@ interface ChainOpts {
  * leaderboard-from-events wiring. No OS proxies are involved.
  */
 function makeChain(opts: ChainOpts = {}) {
+  let liveCredit = BigInt(opts.credit ?? "0");
+  let liveUserBurned = BigInt(opts.userBurned ?? "0");
   const invoke = vi.fn(
-    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
+    async (
+      op: string,
+      args: ContractArg[],
+      options?: {
+        waitForEvent?: string;
+        onTransactionSent?: (txid: string) => void;
+      },
+    ): Promise<TxResult> => {
       let event: unknown;
       if (op === "burn") {
         if (opts.burnThrows) throw opts.burnThrows;
+        const burned = BigInt(String(args[1]?.value ?? "0"));
+        liveCredit -= burned;
+        liveUserBurned += burned;
         if (options?.waitForEvent === "Burned") {
-          event = burnedEvent(opts.season ?? 1, PLAYER, "500000000", "500000000");
+          event = {
+            ...(burnedEvent(
+              opts.season ?? 1,
+              PLAYER,
+              String(args[1]?.value ?? "0"),
+              String(args[1]?.value ?? "0"),
+            ) as Record<string, unknown>),
+            tx_hash: "0xtx",
+          };
         }
       }
-      if (op === "settle" && options?.waitForEvent === "SeasonSettled") {
-        event = { state: [{ type: "Integer", value: String(opts.season ?? 1) }] };
+      if (op === "transfer" && options?.waitForEvent === "Credited") {
+        liveCredit += BigInt(String(args[2]?.value ?? "0"));
+        event = {
+          tx_hash: "0xtx",
+          state: [
+            { type: "Hash160", value: PLAYER },
+            { type: "Integer", value: String(args[2]?.value ?? "0") },
+            { type: "Integer", value: String(args[2]?.value ?? "0") },
+          ],
+        };
       }
-      return { txid: "0xtx", event, success: true };
+      if (op === "settle" && options?.waitForEvent === "SeasonSettled") {
+        const verified = opts.settleVerified !== false;
+        event = verified
+          ? {
+              tx_hash: "0xtx",
+              state: [
+                { type: "Integer", value: String(opts.season ?? 1) },
+                { type: "Hash160", value: opts.topBurner ?? PLAYER_HASH },
+                { type: "Integer", value: opts.pool ?? "500000000" },
+              ],
+            }
+          : undefined;
+        options?.onTransactionSent?.("0xtx");
+        return { txid: "0xtx", event, success: true, verified };
+      }
+      options?.onTransactionSent?.("0xtx");
+      return { txid: "0xtx", event, success: true, verified: true };
     },
   );
 
@@ -104,13 +161,15 @@ function makeChain(opts: ChainOpts = {}) {
     switch (op) {
       case "currentSeason": return String(opts.season ?? 1);
       case "seasonEnd": return String(opts.seasonEnd ?? Date.now() + 120_000);
+      case "seasonDuration": return "86400000";
       case "rewardPool":
       case "totalBurned": return opts.pool ?? "0";
       case "burnCount": return String(opts.burnCount ?? 0);
       case "topBurner": return opts.topBurner ?? ZERO_HASH;
       case "topBurned": return opts.topBurned ?? "0";
-      case "userBurned": return opts.userBurned ?? "0";
-      case "creditOf": return opts.credit ?? "0";
+      case "userBurned": return liveUserBurned.toString();
+      case "creditOf": return liveCredit.toString();
+      case "balanceOf": return "100000000000";
       default: return "0";
     }
   });
@@ -121,9 +180,11 @@ function makeChain(opts: ChainOpts = {}) {
     contractAddress: { get: () => CONTRACT },
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
+    detectNetwork: vi.fn(async () => "neo-n3-testnet"),
     invoke,
     read,
     listEvents,
+    listAllEvents: listEvents,
   } as unknown as ChainService & {
     invoke: typeof invoke;
     read: typeof read;
@@ -234,7 +295,7 @@ describe("useBurnLeague (direct MiniAppBurnLeague contract)", () => {
     expect(board.find((e) => e.isUser)?.address).toBe(mid);
     expect(board.filter((e) => e.isUser)).toHaveLength(1);
     // The leaderboard was read from Burned events, filtered to the current season.
-    expect(listEvents).toHaveBeenCalledWith("Burned", { limit: 200 });
+    expect(listEvents).toHaveBeenCalledWith("Burned");
   });
 
   it("leaves rank unresolved when the connected wallet has no current-season burns", async () => {
@@ -366,12 +427,44 @@ describe("useBurnLeague (direct MiniAppBurnLeague contract)", () => {
     const { app, invoke } = setup({ season: 1, seasonEnd: Date.now() - 1_000, pool: "500000000" });
 
     await app.loadAll();
-    await app.settleSeason();
+    const result = await app.settleSeason();
 
     const settle = callFor(invoke, "settle");
     expect(settle).toBeTruthy();
     expect(settle![1]).toEqual([]); // no args — pays the on-chain top burner
     expect(settle![2]).toMatchObject({ waitForEvent: "SeasonSettled" });
+    expect(result).toMatchObject({ status: "confirmed", txid: "0xtx" });
+    expect(app.lastSettleResult.get()).toMatchObject({
+      won: true,
+      amount: "5.00 GAS",
+    });
+  });
+
+  it("never celebrates an unverified settlement broadcast as a win", async () => {
+    const { app } = setup({
+      season: 1,
+      seasonEnd: Date.now() - 1_000,
+      pool: "500000000",
+      settleVerified: false,
+    });
+    await app.loadAll();
+
+    await expect(app.settleSeason()).resolves.toMatchObject({
+      status: "unknown",
+      txid: "0xtx",
+    });
+    expect(app.lastSettleResult.get()).toBeNull();
+    expect(app.actionNotice.get()).toBe("Settlement pending.");
+  });
+
+  it("matches a Hash160 leader read to the connected base58 wallet", async () => {
+    const { app } = setup({
+      topBurner: PLAYER_HASH ?? ZERO_HASH,
+      topBurned: "500000000",
+    });
+    await app.loadAll();
+
+    expect(app.userIsLeader.get()).toBe(true);
   });
 
   it("exposes the whole reward pool as the prize (no 0.1x estimate)", async () => {

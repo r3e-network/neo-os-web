@@ -14,7 +14,7 @@ import React from "react";
  */
 export interface StageProps {
   /** Category identity class applied to the root (e.g. "mx2-cat-game"). */
-  category?: "game" | "defi" | "nft" | "tool";
+  category?: "game" | "defi" | "nft" | "tool" | "social" | "governance";
   className?: string;
   /** The scene itself — the die/cards/gauge/flow diagram. */
   children?: React.ReactNode;

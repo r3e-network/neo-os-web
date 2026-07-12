@@ -13,92 +13,90 @@ function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-function assertZeroLetterSpacing(styles) {
-  const values = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)].map(
-    (match) => match[1].trim(),
-  );
-  assert.ok(values.length > 0, "expected explicit letter-spacing declarations");
-  for (const value of values) {
-    assert.equal(value, "0", `unexpected letter-spacing value: ${value}`);
-  }
-}
-
-test("On-Chain Tarot renders a clean v2 card-reading table", () => {
-  const playArea = read("apps/on-chain-tarot/src/PlayArea.tsx");
+test("On-Chain Tarot renders the selected Phaser reading-table experience", () => {
+  const playArea = read("apps/on-chain-tarot/src/PhaserPlayArea.tsx");
+  const scene = read("apps/on-chain-tarot/src/scenes/TarotScene.ts");
   const styles = read("apps/on-chain-tarot/src/PlayArea.scss");
   const messages = read("apps/on-chain-tarot/src/locale/messages.ts");
+  const main = read("apps/on-chain-tarot/src/main.tsx");
 
-  for (const className of [
-    "tarot-play-area",
-    "tarot-scene",
-    "tarot-scene__cloth",
-    "tarot-scene__deck",
-    "tarot-scene__slip",
-    "tarot-scene__deal-paths",
-    "tarot-scene__dealing",
-    "tarot-scene__spread",
-    "tarot-scene__slot",
-    "tarot-scene__card-flip",
-    "tarot-scene__card-face",
-    "tarot-drawer__intent-grid",
-    "tarot-drawer__question-card",
-    "tarot-drawer__flow",
-    "tarot-drawer__safety",
-  ]) {
-    assert.ok(playArea.includes(className), className);
-  }
-
+  assert.match(main, /import PhaserPlayArea from "\.\/PhaserPlayArea"/);
+  assert.match(main, /playArea: PhaserPlayArea/);
+  assert.match(playArea, /LazyPhaserGameComponent as PhaserGameComponent/);
+  assert.match(playArea, /import\("\.\/scenes\/TarotScene"\)/);
   assert.match(playArea, /<PlayStage/);
   assert.match(playArea, /category="game"/);
-  assert.match(playArea, /dispatch\("draw"\)/);
-  assert.match(playArea, /dispatch\("reset"\)/);
-  assert.match(playArea, /dispatch\("flipCard",\s*index\)/);
-  assert.match(playArea, /dispatch\("setQuestion"/);
-  assert.match(playArea, /TAROT_CARD_BACK/);
-  assert.match(playArea, /src=\{card\.image \|\| TAROT_CARD_BACK\}/);
-  assert.ok(fs.existsSync(path.join(ROOT, "apps/on-chain-tarot/public/cards/back.webp")));
-  assert.ok(fs.existsSync(path.join(ROOT, "apps/on-chain-tarot/public/cards/index.json")));
+  assert.match(playArea, /className="tarot-play-area mx2 mx2-cat-game"/);
+  assert.match(playArea, /className="tarot-stage-shell"/);
+  assert.match(playArea, /className="tarot-phaser-canvas"/);
+  assert.match(playArea, /className="tarot-a11y-layer"/);
+  assert.match(playArea, /className="tarot-ingame-drawer"/);
+  assert.match(playArea, /role="radiogroup"/);
+  assert.match(playArea, /runAction\("setIntent", option\.id\)/);
+  assert.match(playArea, /runAction\("flipCard", index\)/);
+  assert.match(playArea, /runAction\("draw"\)/);
+  assert.match(playArea, /runAction\("reset"\)/);
+  assert.match(playArea, /runAction\("recoverExpiredReading"\)/);
+  assert.match(playArea, /runAction\("retryTarotAssets"\)/);
+
+  assert.match(scene, /import \* as Phaser from "phaser"/);
+  assert.match(scene, /extends BaseScene/);
+  assert.match(scene, /CRITICAL_ASSET_RETRIES = 2/);
+  assert.match(scene, /this\.load\.image\(TAROT_ASSETS\.ritual/);
+  assert.match(scene, /this\.load\.image\(TAROT_ASSETS\.back/);
+  assert.match(scene, /this\.load\.image\(TAROT_ASSETS\.clarity/);
+  assert.match(scene, /this\.load\.image\(TAROT_ASSETS\.choice/);
+  assert.match(scene, /this\.load\.image\(TAROT_ASSETS\.momentum/);
+  assert.match(scene, /private playDealMotion\(\)/);
+  assert.match(scene, /delay: index \* 150/);
+  assert.match(scene, /private flipCardView\(view: CardView\)/);
+  assert.match(scene, /scaleX: 0/);
+  assert.match(scene, /this\.dispatch\("flipTarotReading"\)/);
+  assert.match(scene, /private playReadingCelebration\(\)/);
+  assert.match(scene, /if \(this\.reducedMotion\) return/);
+  assert.match(scene, /buildCriticalAssetRecovery\(\)/);
+  assert.doesNotMatch(scene, /generateTexture\(/);
+
+  const publicRoot = path.join(ROOT, "apps/on-chain-tarot/public");
+  for (const asset of [
+    "ritual/ritual-table.webp",
+    "logo.webp",
+    "intentions/clarity-token.webp",
+    "intentions/choice-token.webp",
+    "intentions/momentum-token.webp",
+    "cards/back.webp",
+    "cards/index.json",
+    "cards/ATTRIBUTION.md",
+  ]) {
+    assert.ok(fs.existsSync(path.join(publicRoot, asset)), `missing tarot asset: ${asset}`);
+  }
   const cardImages = fs
-    .readdirSync(path.join(ROOT, "apps/on-chain-tarot/public/cards"))
+    .readdirSync(path.join(publicRoot, "cards"))
     .filter((name) => /^\d{2}-.+\.webp$/.test(name));
   assert.equal(cardImages.length, 78, "tarot deck must ship all 78 card faces");
-  assert.match(playArea, /mx2-deal/);
-  assert.match(playArea, /tarot-reading-table\.webp/);
-  assert.match(playArea, /tarot-scene__table-art/);
 
   for (const key of [
-    "neoTarot",
-    "tarotHeroSubtitle",
-    "tarotFee",
-    "drawCards",
+    "readingIntentTitle",
+    "ritualActionConfirm",
     "dealingCards",
     "revealAllCards",
-    "readingIntentTitle",
-    "questionLabel",
     "verificationPanelTitle",
-    "contractRouteLabel",
-    "tarotContractRoute",
-    "cardsDrawnCount",
+    "assetErrorTitle",
+    "assetRetry",
+    "gameFiMaintenanceShort",
   ]) {
     assert.match(messages, new RegExp(`${key}:`), key);
   }
 
-  assert.match(styles, /\.tarot-play-area\s*\{[^}]*--mx2-stage-floor:\s*#ffffff/s);
-  assert.match(styles, /--mx2-scene-art-opacity:\s*0\.16/);
-  assert.match(styles, /\.tarot-scene__cloth\s*\{[^}]*background:\s*#fffaf3/s);
-  assert.match(styles, /\.tarot-scene__spread\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(var\(--tarot-card-w\),\s*150px\)\)/s);
-  assert.match(styles, /\.tarot-scene__spread::before\s*\{[^}]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.72\)/s);
-  assert.match(styles, /\.tarot-scene__card-flip\s*\{[^}]*transform-style:\s*preserve-3d/s);
-  assert.match(styles, /\.tarot-scene__slot--revealed \.tarot-scene__card-flip\s*\{[^}]*rotateY\(180deg\)/s);
-  assert.match(styles, /\.tarot-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[^}]*white-space:\s*nowrap/s);
-  assert.match(styles, /@keyframes tarot-card-deal/);
-  assert.match(styles, /@keyframes tarot-path-light/);
-  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.tarot-scene__spread[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(96px,\s*1fr\)\)/s);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/s);
-
-  assertZeroLetterSpacing(styles);
-  assert.match(styles, /text-transform:\s*uppercase/);
-  assert.doesNotMatch(styles, /radial-gradient|backdrop-filter/);
+  assert.match(styles, /\.tarot-stage-shell\s*\{/);
+  assert.match(styles, /\.tarot-stage-shell \.phaser-game-host/);
+  assert.match(styles, /\.tarot-a11y-layer\s*\{/);
+  assert.match(styles, /\.tarot-ingame-drawer\s*\{/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
-  assert.doesNotMatch(styles, /border-radius:\s*(?:2[9]|[3-9][0-9])px/);
+  assert.doesNotMatch(styles, /radial-gradient|backdrop-filter/);
+  const tracking = [...styles.matchAll(/letter-spacing:\s*([^;]+);/g)]
+    .map((match) => match[1].trim());
+  assert.ok(tracking.length > 0, "tarot styles should pin readable tracking");
+  assert.deepEqual(tracking.filter((value) => value !== "0"), []);
 });

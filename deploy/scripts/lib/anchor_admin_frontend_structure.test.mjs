@@ -15,13 +15,24 @@ const APPS = [
 ];
 
 test("Anchor admin miniapps render the v2 operator routing workspace", () => {
+  const workspace = read(
+    "apps/shared/components-react/v2/anchor-admin/AnchorAdminWorkspace.tsx",
+  );
+  const model = read("apps/shared/components-react/v2/anchor-admin/model.ts");
+  const workspaceStyles = read(
+    "apps/shared/components-react/v2/anchor-admin/_workspace.scss",
+  );
+
   for (const app of APPS) {
     const playArea = read(`apps/${app.slug}/src/PlayArea.tsx`);
     const styles = read(`apps/${app.slug}/src/PlayArea.scss`);
     const messages = read(`apps/${app.slug}/src/messages.ts`);
+    const combinedStyles = `${workspaceStyles}\n${styles}`;
 
-    assertPlayStage(playArea, "defi", app.name);
-    assertClasses(playArea, [
+    assert.match(playArea, /AnchorAdminWorkspace/);
+    assert.match(playArea, new RegExp(`flavor="${app.slug.startsWith("trust") ? "trust" : "profit"}"`));
+    assertPlayStage(workspace, "defi", app.name);
+    assertClasses(workspace, [
       "anchor-admin-play-area",
       "admin-scene",
       "admin-workspace",
@@ -30,11 +41,11 @@ test("Anchor admin miniapps render the v2 operator routing workspace", () => {
       "admin-route-board",
       "admin-operation-ticket",
       "admin-ledger",
-      "admin-agent-grid",
-      "admin-policy",
+      "admin-topology__network",
+      "admin-drawer__policy",
       "admin-drawer",
     ], app.name);
-    assertDispatches(playArea, ["transferAgentNeo", "setAgentCandidate", "voteAgent"], app.name);
+    assertDispatches(workspace, ["transferAgentNeo", "setAgentCandidate", "voteAgent"], app.name);
     assertMessageKeys(messages, [
       "adminHeroTitle",
       "adminHeroSubtitle",
@@ -47,10 +58,10 @@ test("Anchor admin miniapps render the v2 operator routing workspace", () => {
     ], app.name);
 
     // NEO must remain whole-unit only.
-    assert.match(playArea, /function normalizeWholeNeoAmount/);
-    assert.match(playArea, /Number\(normalizeWholeNeoAmount\(amount\)\)/);
-    assert.match(styles, /\.admin-workspace\s*\{[\s\S]*grid-template-columns:/);
-    assert.match(styles, /@media \(max-width:/);
-    assertModernTypography(styles, app.name);
+    assert.match(model, /export function normalizeWholeNeoInput/);
+    assert.match(workspace, /const normalizedAmount = normalizeWholeNeoInput\(amount\)/);
+    assert.match(combinedStyles, /\.admin-workspace\s*\{[\s\S]*grid-template-columns:/);
+    assert.match(combinedStyles, /@media \(max-width:/);
+    assertModernTypography(combinedStyles, app.name);
   }
 });

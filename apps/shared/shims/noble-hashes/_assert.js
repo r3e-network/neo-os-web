@@ -39,4 +39,3 @@ function output(out, instance) {
 export { number, bool, bytes, hash, exists, output };
 const assert = { number, bool, bytes, hash, exists, output };
 export default assert;
-//# sourceMappingURL=_assert.js.map

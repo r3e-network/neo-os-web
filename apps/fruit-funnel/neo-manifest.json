@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-fruit-funnel",
+  "name": "Fruit Funnel",
+  "name_zh": "果园漏斗",
+  "version": "1.0.0",
+  "description": "A bright deterministic Phaser pair puzzle with 48 playable fruit, a seven-slot chute, bounded certified hints, full recovery, and no wallet or chain dependency.",
+  "description_zh": "明亮温暖的 Phaser 水果配对游戏，拥有 48 个可操作水果、7 格漏斗、带边界的可验证提示与完整恢复能力，无需钱包或链上依赖。",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": ["puzzle", "fruit", "matching", "orchard", "casual", "phaser", "local"],
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "contracts": {},
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/fruit-funnel/index.html",
+    "icon": "/miniapps/fruit-funnel/logo.webp",
+    "banner": "/miniapps/fruit-funnel/banner.webp"
+  },
+  "permissions": [],
+  "features": {
+    "stateless": false,
+    "offlineSupport": true,
+    "deeplink": "neomainapp://fruit-funnel"
+  },
+  "stateSource": {
+    "type": "platform-storage"
+  },
+  "operation_panel": {
+    "title": "Fruit Funnel",
+    "subtitle": "Play directly with the fruit and basket. No wallet, parameters, or transaction panel is needed.",
+    "operations": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-07-11T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z"
+}

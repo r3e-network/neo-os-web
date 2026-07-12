@@ -1,5 +1,5 @@
 /**
- * tune.mjs — Monte-Carlo balance validation for Catch the Goose (抓大鹅).
+ * tune.mjs — Monte-Carlo balance validation for Goose Basket Shuffle.
  *
  * S5 rewrite. What changed vs the v2.1 script (audit findings):
  *   1. NO MANUAL CURVE COPY — the level curve, scene kind pools, tray size and
@@ -16,19 +16,18 @@
  *      script still emits a recommended time budget from greedy pick counts as
  *      a FAIRNESS FLOOR for the currently shipped timed mode, and gates that
  *      the shipped timeMs never sits below it.
- *   4. OCCLUSION-AWARE PICK POOLS — the 3D pile buries items; only an exposed
- *      top layer is tappable. Approximation: the pile is the drop-ordered item
- *      array (end = top), and only the last E(n) = max(6, round(n^0.72)) items
- *      are pickable (n=18 → 8 exposed, n=144 → 36; a thinning pile approaches
- *      full visibility, like the real pen).
+ *   4. STREAM + OCCLUSION MODEL — hundreds of logical items are packetized as
+ *      complete triples, but item-stream.ts exposes only 48 initially and one
+ *      9-item bottom-up wave after the live pile falls to 42. Within that live
+ *      physics window only E(n) = max(6, round(n^0.72)) top items are pickable
+ *      (n=18 → 8 exposed, n=48 → 16), matching the shipped reservoir model.
  *   5. STRATEGY OPTIONS — policies can spend rescue moves:
  *        shuffle : re-roll kind assignment + re-pile (shipped power-up, 1/level
  *                  grant read from guest-engine.ts)
  *        remove  : bank the first 3 tray items to a side shelf that still
- *                  participates in matching (parity-spec G2 三件套 "移出" —
- *                  NOT in the shipped build; simulated to pre-validate G2)
+ *                  participates in matching (shipped parity tool "移出")
  *        undo    : return the last non-matching grab to the top of the pile
- *                  (parity-spec G2 "撤回" — NOT shipped; simulated for G2)
+ *                  (shipped parity tool "撤回")
  *
  * Policies:
  *   random     : careless player — uniform pick among EXPOSED items, no rescues.
@@ -41,7 +40,7 @@
  *                               count is a multiple of 3)
  *                  greedy0      occlusion, no rescues (structural floor)
  *                  greedyS      occlusion + shipped shuffle grant ← difficulty
- *                  greedyTrio   occlusion + shuffle/remove/undo   (G2 preview)
+ *                  greedyTrio   occlusion + shipped shuffle/remove/undo
  *
  * Output per level: solve% (full-info gate), greedyWin% (occlusion, shipped
  * loadout — the honest focused-player difficulty), randomWin%, stuckRate
@@ -124,11 +123,16 @@ const gameRulesSrc = readSrc("src/logic/game-rules.ts");
 const scenesSrc = readSrc("src/logic/scenes.ts");
 const engineSrc = readSrc("src/logic/engine-zhuada.ts");
 const guestSrc = readSrc("src/logic/guest-engine.ts");
+const streamSrc = readSrc("src/logic/item-stream.ts");
 
 const CURVE = extractLevelCurve(gameRulesSrc);
 const SCENES = extractScenes(scenesSrc);
 const TRAY_SLOTS = extractIntConst(engineSrc, "TRAY_SLOTS", "engine-zhuada.ts");
 const GRANT_SHUFFLE = extractIntConst(guestSrc, "GRANT_SHUFFLE", "guest-engine.ts");
+const STREAM_INITIAL_VISIBLE = extractIntConst(streamSrc, "STREAM_INITIAL_VISIBLE", "item-stream.ts");
+const STREAM_REFILL_TRIGGER = extractIntConst(streamSrc, "STREAM_REFILL_TRIGGER", "item-stream.ts");
+const STREAM_REFILL_BATCH = extractIntConst(streamSrc, "STREAM_REFILL_BATCH", "item-stream.ts");
+const STREAM_VISIBLE_CEILING = extractIntConst(streamSrc, "STREAM_VISIBLE_CEILING", "item-stream.ts");
 const SCORE_PER_MATCH_DEFAULT = 10; // default of readTuneNum("score", 10, …)
 const KIND_COUNT = 12; // ITEM_DEFS size
 
@@ -183,6 +187,81 @@ function generateItems(spec, kindPool, rng) {
   return pool;
 }
 
+/** Shipped reservoir ordering: shuffle complete-triple packets, not singles. */
+function createItemStream(items, rng) {
+  const byKind = new Map();
+  for (const item of items) {
+    const group = byKind.get(item.kind) ?? [];
+    group.push(item);
+    byKind.set(item.kind, group);
+  }
+  const packetsByKind = new Map();
+  for (const group of byKind.values()) {
+    for (let i = group.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      const tmp = group[i];
+      group[i] = group[j];
+      group[j] = tmp;
+    }
+    const kindPackets = [];
+    for (let i = 0; i < group.length; i += 3) kindPackets.push(group.slice(i, i + 3));
+    packetsByKind.set(group[0].kind, kindPackets);
+  }
+  const kindOrder = [...packetsByKind.keys()];
+  for (let i = kindOrder.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = kindOrder[i];
+    kindOrder[i] = kindOrder[j];
+    kindOrder[j] = tmp;
+  }
+  const packetTotal = [...packetsByKind.values()].reduce((sum, group) => sum + group.length, 0);
+  const initialPacketCount = Math.min(STREAM_INITIAL_VISIBLE / 3, packetTotal);
+  const initialPackets = [];
+  while (initialPackets.length < initialPacketCount) {
+    const eligible = kindOrder.filter((kind) => packetsByKind.get(kind).length > 0);
+    for (let i = eligible.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      const tmp = eligible[i];
+      eligible[i] = eligible[j];
+      eligible[j] = tmp;
+    }
+    if (eligible.length === 0) break;
+    for (const kind of eligible) {
+      initialPackets.push(packetsByKind.get(kind).pop());
+      if (initialPackets.length >= initialPacketCount) break;
+    }
+  }
+  const active = initialPackets.flat();
+  for (let i = active.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = active[i];
+    active[i] = active[j];
+    active[j] = tmp;
+  }
+  const packets = [...packetsByKind.values()].flat();
+  for (let i = packets.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = packets[i];
+    packets[i] = packets[j];
+    packets[j] = tmp;
+  }
+  const reserve = [];
+  for (let i = 0; i < packets.length; i += STREAM_REFILL_BATCH / 3) {
+    const wave = packets.slice(i, i + STREAM_REFILL_BATCH / 3).flat();
+    for (let j = wave.length - 1; j > 0; j -= 1) {
+      const k = Math.floor(rng() * (j + 1));
+      const tmp = wave[j];
+      wave[j] = wave[k];
+      wave[k] = tmp;
+    }
+    reserve.push(...wave);
+  }
+  return {
+    active,
+    reserve,
+  };
+}
+
 function isTrayStuck(slots) {
   if (!slots.every((s) => s !== null)) return false;
   const c = new Map();
@@ -209,13 +288,16 @@ function exposedWindow(n) {
 function playTrial(spec, kindPool, rng, policy, loadoutIn) {
   const loadout = { ...loadoutIn };
   const windowOf = (n) => (loadout.fullVision ? n : exposedWindow(n));
-  const box = generateItems(spec, kindPool, rng);
+  const stream = createItemStream(generateItems(spec, kindPool, rng), rng);
+  const box = stream.active;
+  const reserve = stream.reserve;
   let tray = new Array(TRAY_SLOTS).fill(null);
   const shelf = []; // side shelf (remove target); participates in matching
   let picks = 0;
   let rescues = { shuffle: 0, remove: 0, undo: 0 };
   let lastGrab = null; // { kind } of the last NON-matching grab (undo target)
-  const stepLimit = box.length * 4 + 64;
+  const totalItems = box.length + reserve.length;
+  const stepLimit = totalItems * 4 + 64;
   let steps = 0;
 
   const countsAcross = () => {
@@ -267,6 +349,13 @@ function playTrial(spec, kindPool, rng, policy, loadoutIn) {
       box[i] = box[j];
       box[j] = tmp;
     }
+  };
+
+  const refill = () => {
+    if (reserve.length === 0 || box.length > STREAM_REFILL_TRIGGER) return;
+    const capacity = Math.max(0, STREAM_VISIBLE_CEILING - box.length);
+    const take = Math.min(STREAM_REFILL_BATCH, reserve.length, capacity);
+    box.push(...reserve.splice(0, take));
   };
 
   const greedyDecide = () => {
@@ -336,7 +425,9 @@ function playTrial(spec, kindPool, rng, policy, loadoutIn) {
     return pickKind(forced);
   };
 
-  while (box.length > 0) {
+  while (box.length > 0 || reserve.length > 0) {
+    refill();
+    if (box.length === 0) return { win: false, picks, jam: false, rescues };
     steps += 1;
     if (steps > stepLimit) return { win: false, picks, jam: false, rescues };
     let action;
@@ -386,6 +477,7 @@ function playTrial(spec, kindPool, rng, policy, loadoutIn) {
     picks += 1;
     const matched = place(item.kind);
     lastGrab = matched ? null : { kind: item.kind };
+    refill();
     if (isTrayStuck(tray)) return { win: false, picks, jam: true, rescues };
   }
   return { win: true, picks, rescues };
@@ -397,7 +489,7 @@ const TRIALS_MAIN = 4000; // greedyS (gate) + random (stuckRate)
 const TRIALS_SIDE = 1500; // greedy0 + greedyTrio (informational)
 const SEC_PER_PICK = 1.5; // human tap + think
 const BUFFER_SEC = 12;
-const roundTo5s = (sec) => Math.round(sec / 5) * 5;
+const roundTo5s = (sec) => Math.ceil(sec / 5) * 5;
 
 const rows = [];
 for (let i = 0; i < CURVE.length; i += 1) {
@@ -481,7 +573,7 @@ for (let i = 0; i < CURVE.length; i += 1) {
 
 const pct = (v) => `${(v * 100).toFixed(1)}%`.padStart(7);
 console.log("Occlusion-aware Monte-Carlo (no timer — tray jam is the only loss)");
-console.log(`trials: ${TRIALS_MAIN} main / ${TRIALS_SIDE} side · exposed window E(n)=max(6, n^0.72) · shipped shuffle grant: ${GRANT_SHUFFLE}`);
+console.log(`trials: ${TRIALS_MAIN} main / ${TRIALS_SIDE} side · live stream ${STREAM_INITIAL_VISIBLE}→${STREAM_REFILL_TRIGGER}+${STREAM_REFILL_BATCH} (cap ${STREAM_VISIBLE_CEILING}) · exposed E(n)=max(6, n^0.72)`);
 console.log("");
 console.log("level | kinds | per | items | solve% | greedyWin | rndWin | stuckRate | avgPicks | shufUse | recTime | shipped");
 console.log("------+-------+-----+-------+--------+-----------+--------+-----------+----------+---------+---------+--------");
@@ -492,7 +584,7 @@ for (const r of rows) {
 }
 
 console.log("\nStrategy options (win rate): rescue value per level");
-console.log("level | greedy no-rescue | greedy +shuffle (SHIPPED) | greedy +shuffle+remove+undo (G2 preview)");
+console.log("level | greedy no-rescue | greedy +shuffle | greedy +shuffle+remove+undo (SHIPPED)");
 for (const r of rows) {
   console.log(
     `${String(r.level).padStart(5)} | ${pct(r.greedy0Win).padStart(16)} | ${pct(r.greedyWin).padStart(25)} | ${pct(r.greedyTrioWin).padStart(30)}`,

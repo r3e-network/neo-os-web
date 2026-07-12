@@ -3,7 +3,6 @@ import test from "node:test";
 import {
   assertAssets,
   assertClasses,
-  assertDispatches,
   assertMessageKeys,
   assertModernTypography,
   assertPlayStage,
@@ -14,65 +13,85 @@ const APPS = [
   {
     slug: "trustanchor",
     name: "TrustAnchor",
+    category: "governance",
     root: "trustanchor-play-area",
-    scene: "trust-scene",
-    stageCard: "trust-stage-card",
-    console: "trust-console",
-    ticket: "trust-ticket",
+    scene: "trust-product-scene",
+    visual: "trust-visual",
+    command: "trust-command",
+    deck: "trust-amount-deck",
     drawer: "trust-drawer",
     asset: "apps/trustanchor/public/trustanchor-stage.webp",
   },
   {
     slug: "profitanchor",
     name: "ProfitAnchor",
+    category: "defi",
     root: "profitanchor-play-area",
-    scene: "anchor-scene",
-    stageCard: "anchor-vault-card",
-    console: "anchor-console",
-    ticket: "anchor-ticket",
-    drawer: "anchor-drawer",
+    scene: "profit-product-scene",
+    visual: "profit-visual",
+    command: "profit-command",
+    deck: "profit-amount-deck",
+    drawer: "profit-drawer",
     asset: "apps/profitanchor/public/profitanchor-stage.webp",
   },
 ];
 
-test("Anchor staking miniapps use the v2 scene-led staking flow", () => {
+test("Anchor user miniapps use a resource-led single-primary production flow", () => {
   for (const app of APPS) {
     const playArea = read(`apps/${app.slug}/src/PlayArea.tsx`);
     const styles = read(`apps/${app.slug}/src/PlayArea.scss`);
     const messages = read(`apps/${app.slug}/src/locale/messages.ts`);
+    const manifest = read(`apps/${app.slug}/src/manifest.ts`);
+    const main = read(`apps/${app.slug}/src/main.tsx`);
+    const runtime = read("apps/trustanchor/src/anchor-runtime.ts");
+    const runtimeEntry = read(`apps/${app.slug}/src/anchor-runtime.ts`);
 
-    assertPlayStage(playArea, "defi", app.name);
+    assertPlayStage(playArea, app.category, app.name);
     assertClasses(playArea, [
       app.root,
       "tool-scene",
       app.scene,
-      app.stageCard,
-      app.console,
-      app.ticket,
+      app.visual,
+      app.command,
+      app.deck,
       app.drawer,
     ], app.name);
-    assertDispatches(playArea, [
+    for (const action of [
       "stakeNeo",
       "withdrawNeo",
       "claimRewards",
       "recoverNeoCredit",
       "refreshAnchor",
-    ], app.name);
-    assert.match(playArea, /normalizeWholeNeoAmount/);
-    assert.match(playArea, /OpenUiTextField/);
+      "recoverPendingAnchor",
+    ]) {
+      assert.match(playArea, new RegExp(`run\\(\\"${action}\\"`), `${app.name} missing ${action}`);
+    }
+    assert.match(playArea, /OpenUiLite/);
+    assert.match(playArea, /components-react\/v2\/PlayStage/);
+    assert.doesNotMatch(playArea, /<svg|ParticleBurst|scene__orbit|scene__node/);
     assertAssets([app.asset, `apps/${app.slug}/public/banner.webp`, `apps/${app.slug}/public/logo.webp`]);
     assertMessageKeys(messages, [
       "heroTitle",
       "heroDescription",
       "stageAria",
       "stakePresetLabel",
-      "submitStake",
-      "submitWithdraw",
-      "submitClaim",
-      "lastTxid",
-      "actionHistory",
+      "transactionPending",
+      "transactionConfirmed",
+      "transactionFaulted",
+      "bindingModeMismatch",
     ], app.name);
     assert.match(styles, /@media \(max-width:/);
+    assert.match(styles, /prefers-reduced-motion/);
+    assert.doesNotMatch(styles, /radial-gradient|linear-gradient|backdrop-filter/);
     assertModernTypography(styles, app.name);
+
+    assert.match(manifest, /directPlay:\s*true/);
+    assert.doesNotMatch(manifest, /\btabs\s*:|\bstats\s*:|\bsidebar\s*:|\boperations\s*:/);
+    assert.match(main, /expectedMode:\s*[12]/);
+    assert.match(main, /recoverPendingAnchor/);
+    assert.match(runtime, /getapplicationlog/);
+    assert.match(runtime, /onTransactionSent/);
+    assert.match(runtime, /restorePendingAnchorTransaction/);
+    assert.match(runtimeEntry, app.slug === "profitanchor" ? /trustanchor\/src\/anchor-runtime/ : /createAnchorRuntime/);
   }
 });

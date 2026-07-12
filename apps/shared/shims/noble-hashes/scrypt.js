@@ -221,4 +221,3 @@ export async function scryptAsync(password, salt, opts) {
         byteSwap32(B32);
     return scryptOutput(password, dkLen, B, V, tmp);
 }
-//# sourceMappingURL=scrypt.js.map

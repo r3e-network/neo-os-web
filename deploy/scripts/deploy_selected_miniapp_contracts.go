@@ -53,6 +53,7 @@ type appManifest struct {
 
 var deployTargets = []deployTarget{
 	{"MiniAppMultisig", "contracts/build/MiniAppMultisig.nef", "contracts/build/MiniAppMultisig.manifest.json", "apps/neo-multisig/neo-manifest.json"},
+	{"MiniAppBurnLeague", "contracts/build/MiniAppBurnLeague.nef", "contracts/build/MiniAppBurnLeague.manifest.json", "apps/burn-league/neo-manifest.json"},
 	{"MiniAppAimMaster", "contracts/build/MiniAppAimMaster.nef", "contracts/build/MiniAppAimMaster.manifest.json", "apps/aim-master/neo-manifest.json"},
 	{"MiniAppColorClash", "contracts/build/MiniAppColorClash.nef", "contracts/build/MiniAppColorClash.manifest.json", "apps/color-clash/neo-manifest.json"},
 	{"MiniAppFlappyDash", "contracts/build/MiniAppFlappyDash.nef", "contracts/build/MiniAppFlappyDash.manifest.json", "apps/flappy-dash/neo-manifest.json"},
@@ -69,6 +70,11 @@ var deployTargets = []deployTarget{
 	{"MiniAppQuadraticFunding", "contracts/build/MiniAppQuadraticFunding.nef", "contracts/build/MiniAppQuadraticFunding.manifest.json", "apps/quadratic-funding/neo-manifest.json"},
 	{"MiniAppSoulboundCertificate", "contracts/build/MiniAppSoulboundCertificate.nef", "contracts/build/MiniAppSoulboundCertificate.manifest.json", "apps/soulbound-certificate/neo-manifest.json"},
 	{"MiniAppDiceGame", "contracts/build/MiniAppDiceGame.nef", "contracts/build/MiniAppDiceGame.manifest.json", ""},
+	{"MiniAppDiceGameV2", "contracts/build/MiniAppDiceGameV2.nef", "contracts/build/MiniAppDiceGameV2.manifest.json", "apps/dice-game/neo-manifest.json"},
+	{"MiniAppCoinFlipV2", "contracts/build/MiniAppCoinFlipV2.nef", "contracts/build/MiniAppCoinFlipV2.manifest.json", "apps/fogplay/neo-manifest.json"},
+	{"MiniAppLastSurvivor", "contracts/build/MiniAppLastSurvivor.nef", "contracts/build/MiniAppLastSurvivor.manifest.json", "apps/last-survivor/neo-manifest.json"},
+	{"MiniAppTarot", "contracts/build/MiniAppTarot.nef", "contracts/build/MiniAppTarot.manifest.json", "apps/on-chain-tarot/neo-manifest.json"},
+	{"MiniAppRedEnvelope", "contracts/build/MiniAppRedEnvelope.nef", "contracts/build/MiniAppRedEnvelope.manifest.json", "apps/red-envelope/neo-manifest.json"},
 	{"MiniAppDevTipping", "contracts/build/MiniAppDevTipping.nef", "contracts/build/MiniAppDevTipping.manifest.json", "apps/dev-tipping/neo-manifest.json"},
 	{"MiniAppGasCircle", "contracts/build/MiniAppGasCircle.nef", "contracts/build/MiniAppGasCircle.manifest.json", ""},
 	{"MiniAppExFiles", "contracts/build/MiniAppExFiles.nef", "contracts/build/MiniAppExFiles.manifest.json", ""},

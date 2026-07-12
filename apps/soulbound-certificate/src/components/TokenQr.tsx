@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 interface TokenQrProps {
-  /** Value encoded into the QR (the certificate token id). */
+  /** Value encoded into the QR (the permissionless verification deep link). */
   value: string;
   /** Pixel size of the rendered square QR. */
   size?: number;
@@ -10,7 +10,7 @@ interface TokenQrProps {
 }
 
 /**
- * Dependency-light token-ID QR.
+ * Dependency-light certificate verification QR.
  *
  * The `qrcode` package is already a declared dependency of this app; it is
  * dynamically imported so the encoder never lands in the initial bundle and is

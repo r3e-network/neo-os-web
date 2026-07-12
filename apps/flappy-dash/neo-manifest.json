@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-03T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Timed on-chain Flappy Bird with provably fair TEE-generated pipe layouts. Pick a flight route and tap to fly through pipes — every flap is recorded in a Morpheus TEE session for deterministic replay. Pay a small GAS entry, clear the route target before the deadline, and win a fixed GAS reward: 0.1 for Meadow Hop (5 pipes), 0.5 for Sky Sprint (10 pipes), 1 for Pipe Gauntlet (20 pipes). All-or-nothing payout: reach the target to win, crash and you lose the entry. Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
-  "description_zh": "限时链上 Flappy Bird，管道布局由 TEE 保证可验证公平。选择飞行路线并点击让鸟儿穿越管道——每次拍翼都会被记录在 Morpheus TEE 会话中，用于确定性回放。支付少量 GAS 报名费，在截止时间内穿越路线目标管道即可赢取固定 GAS 奖励：草地起飞 0.1（5 根管道）、云端冲刺 0.5（10 根）、管道试炼 1（20 根）。全有或全无：达到目标即获胜，撞管则输掉报名费。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "description": "A polished Flappy-style arcade challenge with real bird and pipe artwork, responsive input, sound, three distinct difficulty curves, and instant free-practice restarts. The wallet-backed reward route is intentionally hidden until Morpheus replay cadence and deployed settlement timing pass production validation.",
+  "description_zh": "精心打磨的飞鸟街机挑战，拥有真实小鸟与管道资源、灵敏操作、音效、三档不同难度曲线和即时重开的免费练习。钱包奖励路线将在 Morpheus 重放节奏与已部署结算计时通过生产验证后开放。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -25,61 +25,16 @@
   "name": "Flappy Dash",
   "name_zh": "飞鸟冲刺",
   "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Start the selected in-game flight route. Meadow 0.02 GAS entry wins 0.1 (pass 5 pipes); Sky 0.10 wins 0.5 (pass 10); Gauntlet 0.20 wins 1 (pass 20).",
-        "method": "startGame",
-        "name": "Take Off",
-        "params": [
-          {
-            "default_value": "0",
-            "hidden": true,
-            "label": "Flight Route",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Meadow Hop — win 0.1 GAS (5 pipes)",
-                "value": "0"
-              },
-              {
-                "label": "Sky Sprint — win 0.5 GAS (10 pipes)",
-                "value": "1"
-              },
-              {
-                "label": "Pipe Gauntlet — win 1 GAS (20 pipes)",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, tap through TEE-generated pipes, and submit your run before the deadline to win GAS.",
+    "operations": [],
+    "subtitle": "Launch the arcade surface to choose a route and play. Free practice never opens a wallet prompt or writes to chain.",
     "title": "Flappy Dash"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -99,15 +54,15 @@
       "enabled": false
     },
     "oracle": {
-      "description": "Pipe layouts are generated inside a Morpheus TEE enclave from a deterministic seed. The seed is derived from the game id, player, and difficulty, so every participant gets a reproducible layout. The commitment is bound on-chain before the run begins; at settlement the TEE signs the state hash after replaying all recorded flaps.",
-      "enabled": true
+      "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and the real input replay cadence completes an end-to-end settlement.",
+      "enabled": false
     },
     "tee": {
-      "enabled": true,
-      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+      "enabled": false,
+      "description": "Free practice is local and makes no TEE request. Morpheus replay remains a gated future lane until production validation is complete."
     }
   },
-  "updatedAt": "2026-07-03T00:00:00Z",
+  "updatedAt": "2026-07-10T00:00:00Z",
   "urls": {
     "banner": "/miniapps/flappy-dash/banner.webp",
     "entry": "/miniapps/flappy-dash/index.html",

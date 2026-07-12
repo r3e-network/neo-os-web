@@ -1,11 +1,11 @@
 /**
- * models.ts — original low-poly item + goose models for Catch the Goose.
+ * models.ts — original low-poly item + goose models for Goose Basket Shuffle.
  *
- * Every shape here is built from Three.js primitives composed into a cute,
- * readable form (a tomato with a calyx, a carrot with greens, a fish with a
- * tail…). These are our OWN original placeholder art: they are intentionally
- * generic produce / critters and do NOT reproduce the original game's IP
- * assets. They replace the earlier bare-primitive + emoji visuals.
+ * Every shape here is an original production model recipe built from composed
+ * Three.js geometry. The three player-selectable themes expose 36 distinct
+ * objects; matching dedicated transparent item renders are used by the React
+ * tray while these recipes drive the physical pile. No third-party game art
+ * is reproduced.
  *
  * Each builder returns a THREE.Group so multiple sub-meshes compose into one
  * pickable object. `buildModelMesh(kind, color, scale)` is the single entry
@@ -15,6 +15,20 @@
 import * as THREE from "three";
 import type { ModelKind } from "../logic/engine-zhuada";
 import type { GooseVariant } from "../logic/scenes";
+import type { GameThemeId } from "../logic/themes";
+import { buildFarmKitchenModel } from "./farm-kitchen-models";
+import { buildFreshMarketModel } from "./fresh-market-models";
+import { buildNightMarketModel } from "./night-market-models";
+import { interactionProxy } from "./model-kit";
+import { physicsProfileOf } from "./physics-profiles";
+
+/**
+ * The catalogue has a fixed color for every theme/kind pair. Building those
+ * detailed procedural geometries for every streamed copy is pure duplicate
+ * work, so keep one immutable geometry template per rendered catalogue entry.
+ * Object transforms and materials are still cloned for every live instance.
+ */
+const THEME_MODEL_TEMPLATES = new Map<string, THREE.Group>();
 
 const GREEN = 0x3fa34d;
 const GREEN_DARK = 0x2f7d3a;
@@ -241,6 +255,78 @@ export function buildModelMesh(kind: ModelKind, color: number, scale = 0.62): TH
   const g = (BUILDERS[kind] ?? buildTomato)(color);
   g.scale.setScalar(scale);
   return g;
+}
+
+
+/** Build one of the 36 production physical objects for the WebGL pile.
+ *
+ * Every catalog entry is a real multi-surface 3D mesh. Its quaternion follows
+ * the cannon body, so the player sees honest rolling, tumbling and settling —
+ * no camera-facing sprites or invisible stand-in visuals. */
+export function buildThemeModelMesh(
+  themeId: GameThemeId,
+  kind: number,
+  color: number,
+  scale?: number,
+): THREE.Group {
+  const safeKind = Math.max(0, Math.min(11, Math.floor(kind)));
+  const normalizedColor = color & 0xffffff;
+  const templateKey = `${themeId}:${safeKind}:${normalizedColor}`;
+  let template = THEME_MODEL_TEMPLATES.get(templateKey);
+  if (!template) {
+    template = themeId === "farm-kitchen"
+      ? buildFarmKitchenModel(safeKind, normalizedColor)
+      : themeId === "night-market"
+        ? buildNightMarketModel(safeKind, normalizedColor)
+        : buildFreshMarketModel(safeKind, normalizedColor);
+    // A compact center volume makes finger input forgiving for hollow/open
+    // models (cup, bowl, doughnut) without changing their visible geometry or
+    // their profile-driven cannon collision shape.
+    template.add(interactionProxy(new THREE.SphereGeometry(0.3, 8, 6)));
+    template.userData.themeId = themeId;
+    template.userData.kind = safeKind;
+    // Cloned instances share these immutable buffers. The scene disposal path
+    // recognizes this marker and leaves them alive for subsequent stream waves.
+    template.traverse((object) => {
+      const mesh = object as THREE.Mesh;
+      if (mesh.isMesh) mesh.geometry.userData.sharedAsset = true;
+    });
+    THEME_MODEL_TEMPLATES.set(templateKey, template);
+  }
+
+  const group = cloneThemeModelTemplate(template);
+  group.scale.setScalar(scale ?? physicsProfileOf(themeId, safeKind).visualScale);
+  return group;
+}
+
+/** Clone transforms recursively while keeping geometry buffers shared.
+ *
+ * Three's Object3D.clone intentionally shares both geometry and material.
+ * Materials cannot be shared here: hint emissive pulses and clear-pop opacity
+ * animate an individual object and must never tint its matching copies.
+ */
+function cloneThemeModelTemplate(template: THREE.Group): THREE.Group {
+  const instance = template.clone(true);
+  const materials = new Map<THREE.Material, THREE.Material>();
+  const cloneMaterial = (material: THREE.Material): THREE.Material => {
+    const cached = materials.get(material);
+    if (cached) return cached;
+    const clone = material.clone();
+    materials.set(material, clone);
+    return clone;
+  };
+  instance.traverse((object) => {
+    const mesh = object as THREE.Mesh;
+    if (mesh.isMesh) {
+      mesh.material = Array.isArray(mesh.material)
+        ? mesh.material.map(cloneMaterial)
+        : cloneMaterial(mesh.material);
+      return;
+    }
+    const sprite = object as THREE.Sprite;
+    if (sprite.isSprite) sprite.material = cloneMaterial(sprite.material) as THREE.SpriteMaterial;
+  });
+  return instance;
 }
 
 /**

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   BIRD_HEIGHT,
-  BIRD_WIDTH,
   BIRD_X,
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
@@ -10,9 +9,9 @@ import {
   PIPE_WIDTH,
   SeededRandom,
   createGameState,
+  flightTuningOf,
   flap,
   updateFrame,
-  computeStateHash,
 } from "../../flappy-dash/src/logic/flappy-engine";
 
 const BIRD_START_Y = CANVAS_HEIGHT / 2 - BIRD_HEIGHT / 2;
@@ -71,7 +70,22 @@ describe("flappy-dash game state and physics", () => {
     expect(state.bird.rotation).toBe(0);
     expect(state.pipes).toEqual([]);
     expect(state.flaps).toEqual([]);
-    expect(state.nextSpawnFrame).toBe(60);
+    expect(state.difficulty).toBe(0);
+    expect(state.tuning).toEqual(flightTuningOf(0));
+    expect(state.nextSpawnFrame).toBe(state.tuning.firstPipeFrame);
+  });
+
+  it("uses distinct, progressively tighter flight tuning for every route", () => {
+    const easy = createGameState("route-tuning", 0);
+    const medium = createGameState("route-tuning", 1);
+    const hard = createGameState("route-tuning", 2);
+
+    expect(easy.tuning.pipeGap).toBeGreaterThan(medium.tuning.pipeGap);
+    expect(medium.tuning.pipeGap).toBeGreaterThan(hard.tuning.pipeGap);
+    expect(easy.tuning.pipeSpeed).toBeLessThan(medium.tuning.pipeSpeed);
+    expect(medium.tuning.pipeSpeed).toBeLessThan(hard.tuning.pipeSpeed);
+    expect(easy.tuning.pipeSpawnInterval).toBeGreaterThan(medium.tuning.pipeSpawnInterval);
+    expect(medium.tuning.pipeSpawnInterval).toBeGreaterThan(hard.tuning.pipeSpawnInterval);
   });
 
   it("flap sets upward velocity and records the frame when playing", () => {
@@ -79,7 +93,7 @@ describe("flappy-dash game state and physics", () => {
     state.phase = "playing";
     state.frame = 42;
     flap(state);
-    expect(state.bird.vy).toBe(-7.2); // FLAP_VELOCITY
+    expect(state.bird.vy).toBe(state.tuning.flapVelocity);
     expect(state.flaps).toEqual([42]);
   });
 
@@ -98,11 +112,11 @@ describe("flappy-dash game state and physics", () => {
     const startY = state.bird.y;
     updateFrame(state);
     // Bird should have fallen by gravity amount
-    expect(state.bird.vy).toBe(0.45); // GRAVITY
+    expect(state.bird.vy).toBe(state.tuning.gravity);
     expect(state.bird.y).toBeGreaterThan(startY);
   });
 
-  it("updateFrame caps fall velocity at MAX_FALL_VELOCITY (10)", () => {
+  it("updateFrame caps fall velocity at the route maximum", () => {
     const state = createGameState("max-fall-test");
     state.phase = "playing";
     // Simulate many frames of falling without flapping
@@ -110,7 +124,7 @@ describe("flappy-dash game state and physics", () => {
       updateFrame(state);
     }
     // Velocity should not exceed MAX_FALL_VELOCITY
-    expect(state.bird.vy).toBeLessThanOrEqual(10);
+    expect(state.bird.vy).toBeLessThanOrEqual(state.tuning.maxFallVelocity);
   });
 
   it("updateFrame detects ground collision and transitions to crashed", () => {
@@ -135,22 +149,22 @@ describe("flappy-dash game state and physics", () => {
     expect(state.bird.vy).toBe(0);
   });
 
-  it("pipes spawn at the configured interval (100 frames)", () => {
+  it("pipes spawn at the configured first-gate frame", () => {
     const state = createGameState("pipe-spawn");
     state.phase = "playing";
     // Advance to just before first spawn — flap when the bird sinks so it does
     // not crash into the ground before the first pipe spawns at frame 60.
-    while (state.frame < 59) {
+    while (state.frame < state.tuning.firstPipeFrame - 1) {
       if (state.bird.y > CANVAS_HEIGHT / 2) flap(state);
       updateFrame(state);
     }
     expect(state.pipes.length).toBe(0); // not yet spawned
-    updateFrame(state); // frame 60 → first spawn
+    updateFrame(state); // configured frame → first spawn
     expect(state.pipes.length).toBe(1);
-    // The pipe spawns at CANVAS_WIDTH then scrolls left by PIPE_SPEED (2.5) in
+    // The pipe spawns at CANVAS_WIDTH then scrolls left by the route speed in
     // the same frame.
-    expect(state.pipes[0].x).toBe(CANVAS_WIDTH - 2.5);
-    expect(state.pipes[0].gapY).toBeGreaterThanOrEqual(60);
+    expect(state.pipes[0].x).toBe(CANVAS_WIDTH - state.tuning.pipeSpeed);
+    expect(state.pipes[0].gapY).toBeGreaterThanOrEqual(state.tuning.pipeMargin);
     expect(state.pipes[0].scored).toBe(false);
   });
 
@@ -165,8 +179,7 @@ describe("flappy-dash game state and physics", () => {
     }
     const pipeX = state.pipes[0].x;
     updateFrame(state);
-    // Pipe moved left by PIPE_SPEED (2.5)
-    expect(state.pipes[0].x).toBe(pipeX - 2.5);
+    expect(state.pipes[0].x).toBe(pipeX - state.tuning.pipeSpeed);
   });
 });
 
@@ -208,7 +221,7 @@ describe("flappy-dash scoring and collision", () => {
     state.bird.y = CANVAS_HEIGHT - GROUND_HEIGHT - BIRD_HEIGHT - 10;
     state.pipes.push({
       x: BIRD_X - 10,
-      gapY: 100, // bottom pipe starts at gapY + PIPE_GAP (140) = 240
+      gapY: 100,
       scored: false,
     });
     updateFrame(state);
@@ -218,7 +231,7 @@ describe("flappy-dash scoring and collision", () => {
   it("no collision when bird passes cleanly through the gap", () => {
     const state = createGameState("clean-pass");
     state.phase = "playing";
-    // Gap from y=250 to y=390 (250 + 140). Keep the bird centred in the gap and
+    // Keep the bird centred in the route's gap and
     // scroll the pipe fully past the bird — it should score, never crash.
     state.pipes.push({
       x: BIRD_X - 10,
@@ -228,41 +241,22 @@ describe("flappy-dash scoring and collision", () => {
     // A pipe scores once its right edge (x + PIPE_WIDTH) clears the bird's left
     // edge (BIRD_X); advance enough frames for the pipe to fully pass.
     for (let i = 0; i < 60 && state.pipes.length > 0 && !state.pipes[0]?.scored; i++) {
-      state.bird.y = 320; // hold the bird in the middle of the gap
+      state.bird.y = 250 + state.tuning.pipeGap / 2 - BIRD_HEIGHT / 2;
       updateFrame(state);
     }
     expect(state.phase).toBe("playing");
     expect(state.score).toBe(1);
   });
-});
 
-describe("flappy-dash state hash", () => {
-  it("computeStateHash returns a 64-char hex string", () => {
-    const state = createGameState("hash-test");
+  it("uses the artwork body rather than transparent sprite padding for near misses", () => {
+    const state = createGameState("forgiving-hitbox", 0);
     state.phase = "playing";
-    state.score = 7;
-    state.flaps = [10, 25, 40];
-    const hash = computeStateHash(state);
-    expect(hash).toMatch(/^[0-9a-f]{64}$/);
-  });
+    state.bird.y = 198;
+    state.bird.vy = 0;
+    state.pipes.push({ x: BIRD_X, gapY: 200, scored: false });
 
-  it("computeStateHash is deterministic for the same state", () => {
-    const a = createGameState("hash-det");
-    const b = createGameState("hash-det");
-    a.score = 5;
-    b.score = 5;
-    a.flaps = [1, 2, 3];
-    b.flaps = [1, 2, 3];
-    expect(computeStateHash(a)).toBe(computeStateHash(b));
-  });
+    updateFrame(state);
 
-  it("computeStateHash differs when score changes", () => {
-    const a = createGameState("hash-diff");
-    const b = createGameState("hash-diff");
-    a.score = 5;
-    b.score = 8;
-    a.flaps = [1, 2, 3];
-    b.flaps = [1, 2, 3];
-    expect(computeStateHash(a)).not.toBe(computeStateHash(b));
+    expect(state.phase).toBe("playing");
   });
 });

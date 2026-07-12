@@ -21,19 +21,78 @@ export const BIRD_WIDTH = 34;
 export const BIRD_HEIGHT = 24;
 export const BIRD_X = 80; // fixed horizontal position; pipes scroll toward it
 
-/** Physics (per-frame at 60 fps). */
-const GRAVITY = 0.45; // px per frame²
-const FLAP_VELOCITY = -7.2; // px per frame (upward)
-const MAX_FALL_VELOCITY = 10;
 const BIRD_START_Y = CANVAS_HEIGHT / 2 - BIRD_HEIGHT / 2;
 
 /** Pipe geometry. */
 export const PIPE_WIDTH = 52;
-export const PIPE_GAP = 140; // vertical gap between top and bottom pipe
-const PIPE_SPEED = 2.5; // px per frame (scrolls left)
-const PIPE_SPAWN_INTERVAL = 100; // frames between pipes
-const MIN_PIPE_TOP = 60; // min top-edge of the gap from canvas top
-const MAX_PIPE_BOTTOM = CANVAS_HEIGHT - GROUND_HEIGHT - PIPE_GAP - 60;
+
+/**
+ * Per-route flight tuning. Difficulty changes the actual play rhythm instead
+ * of merely changing the target score: easy has a roomy gap and slower scroll,
+ * while hard tightens the gap and shortens the time between gates.
+ *
+ * Values are expressed per fixed 60 fps engine step so seeded runs stay fully
+ * deterministic across displays and refresh rates.
+ */
+export interface FlightTuning {
+  gravity: number;
+  flapVelocity: number;
+  maxFallVelocity: number;
+  pipeGap: number;
+  pipeSpeed: number;
+  pipeSpawnInterval: number;
+  firstPipeFrame: number;
+  pipeMargin: number;
+  hitboxInsetX: number;
+  hitboxInsetY: number;
+}
+
+const FLIGHT_TUNINGS: readonly FlightTuning[] = [
+  {
+    gravity: 0.42,
+    flapVelocity: -7,
+    maxFallVelocity: 9.2,
+    pipeGap: 164,
+    pipeSpeed: 2.3,
+    pipeSpawnInterval: 105,
+    firstPipeFrame: 74,
+    pipeMargin: 56,
+    hitboxInsetX: 4,
+    hitboxInsetY: 3,
+  },
+  {
+    gravity: 0.45,
+    flapVelocity: -7.2,
+    maxFallVelocity: 10,
+    pipeGap: 148,
+    pipeSpeed: 2.55,
+    pipeSpawnInterval: 96,
+    firstPipeFrame: 68,
+    pipeMargin: 58,
+    hitboxInsetX: 4,
+    hitboxInsetY: 3,
+  },
+  {
+    gravity: 0.48,
+    flapVelocity: -7.35,
+    maxFallVelocity: 10.8,
+    pipeGap: 132,
+    pipeSpeed: 2.8,
+    pipeSpawnInterval: 88,
+    firstPipeFrame: 64,
+    pipeMargin: 62,
+    hitboxInsetX: 3,
+    hitboxInsetY: 2,
+  },
+] as const;
+
+export function flightTuningOf(difficulty: number): FlightTuning {
+  const index = Math.max(0, Math.min(2, Number.isFinite(difficulty) ? Math.round(difficulty) : 0));
+  return FLIGHT_TUNINGS[index] ?? FLIGHT_TUNINGS[0]!;
+}
+
+/** Easy-route gap retained as a compatibility export for layout consumers. */
+export const PIPE_GAP = FLIGHT_TUNINGS[0]!.pipeGap;
 
 // ─── Seeded RNG (simple xoshiro‑style for determinism) ─────────────────────
 
@@ -97,16 +156,23 @@ export interface GameState {
   score: number; // pipes passed
   frame: number;
   seed: string;
+  difficulty: number;
+  tuning: FlightTuning;
   rng: SeededRandom;
   nextSpawnFrame: number;
-  /** Flap timestamps (frame numbers) sent to TEE. */
+  /** Local frame markers used for deterministic replay/debugging. */
   flaps: number[];
 }
 
 // ─── Initialisation ─────────────────────────────────────────────────────────
 
-export function createGameState(seed: string): GameState {
+export function createGameState(seed: string, difficulty = 0): GameState {
   const rng = new SeededRandom(seed);
+  const normalizedDifficulty = Math.max(
+    0,
+    Math.min(2, Number.isFinite(difficulty) ? Math.round(difficulty) : 0),
+  );
+  const tuning = flightTuningOf(normalizedDifficulty);
   return {
     bird: {
       y: BIRD_START_Y,
@@ -118,8 +184,10 @@ export function createGameState(seed: string): GameState {
     score: 0,
     frame: 0,
     seed,
+    difficulty: normalizedDifficulty,
+    tuning,
     rng,
-    nextSpawnFrame: 60, // first pipe after 1 second
+    nextSpawnFrame: tuning.firstPipeFrame,
     flaps: [],
   };
 }
@@ -127,7 +195,9 @@ export function createGameState(seed: string): GameState {
 // ─── Pipe generation ────────────────────────────────────────────────────────
 
 function spawnPipe(state: GameState): Pipe {
-  const gapY = state.rng.nextInt(MIN_PIPE_TOP, MAX_PIPE_BOTTOM);
+  const { pipeGap, pipeMargin } = state.tuning;
+  const maxGapY = CANVAS_HEIGHT - GROUND_HEIGHT - pipeGap - pipeMargin;
+  const gapY = state.rng.nextInt(pipeMargin, maxGapY);
   return {
     x: CANVAS_WIDTH,
     gapY,
@@ -139,7 +209,7 @@ function spawnPipe(state: GameState): Pipe {
 
 export function flap(state: GameState): void {
   if (state.phase !== "playing") return;
-  state.bird.vy = FLAP_VELOCITY;
+  state.bird.vy = state.tuning.flapVelocity;
   state.flaps.push(state.frame);
 }
 
@@ -150,8 +220,8 @@ export function updateFrame(state: GameState): void {
 
   // ── Bird physics ──
   const b = state.bird;
-  b.vy += GRAVITY;
-  if (b.vy > MAX_FALL_VELOCITY) b.vy = MAX_FALL_VELOCITY;
+  b.vy += state.tuning.gravity;
+  if (b.vy > state.tuning.maxFallVelocity) b.vy = state.tuning.maxFallVelocity;
   b.y += b.vy;
 
   // Rotation follows velocity
@@ -171,14 +241,14 @@ export function updateFrame(state: GameState): void {
   // ── Spawn pipes ──
   if (state.frame >= state.nextSpawnFrame) {
     state.pipes.push(spawnPipe(state));
-    state.nextSpawnFrame = state.frame + PIPE_SPAWN_INTERVAL;
+    state.nextSpawnFrame = state.frame + state.tuning.pipeSpawnInterval;
   }
 
   // ── Move pipes ──
   const pipes = state.pipes;
   for (let i = pipes.length - 1; i >= 0; i--) {
     const p = pipes[i] as Pipe; // i is always valid in this loop
-    p.x -= PIPE_SPEED;
+    p.x -= state.tuning.pipeSpeed;
 
     // Score when bird passes the right edge of a pipe
     if (!p.scored && p.x + PIPE_WIDTH < BIRD_X) {
@@ -193,16 +263,21 @@ export function updateFrame(state: GameState): void {
   }
 
   // ── Pipe collision ──
-  const bx = BIRD_X;
-  const by = b.y;
+  // Transparent pixels around the bird artwork are not part of the collision
+  // body. A small inset makes near-misses read fairly without making the bird
+  // visually clip through a pipe.
+  const bx = BIRD_X + state.tuning.hitboxInsetX;
+  const by = b.y + state.tuning.hitboxInsetY;
+  const bw = BIRD_WIDTH - state.tuning.hitboxInsetX * 2;
+  const bh = BIRD_HEIGHT - state.tuning.hitboxInsetY * 2;
   for (const p of pipes) {
-    if (rectOverlap(bx, by, BIRD_WIDTH, BIRD_HEIGHT, p.x, 0, PIPE_WIDTH, p.gapY)) {
+    if (rectOverlap(bx, by, bw, bh, p.x, 0, PIPE_WIDTH, p.gapY)) {
       state.phase = "crashed";
       return;
     }
-    const bottomPipeY = p.gapY + PIPE_GAP;
+    const bottomPipeY = p.gapY + state.tuning.pipeGap;
     if (rectOverlap(
-      bx, by, BIRD_WIDTH, BIRD_HEIGHT,
+      bx, by, bw, bh,
       p.x, bottomPipeY, PIPE_WIDTH, CANVAS_HEIGHT - GROUND_HEIGHT - bottomPipeY,
     )) {
       state.phase = "crashed";
@@ -216,25 +291,4 @@ function rectOverlap(
   bx: number, by: number, bw: number, bh: number,
 ): boolean {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-}
-
-// ─── State hash (lightweight digest for settlement) ─────────────────────────
-
-/**
- * Produces a deterministic hex string that summarises the run outcome.
- * The TEE signs this so the contract can verify the result was not forged.
- * We hash: score + last flap frame + total flaps + pipe count at end.
- */
-export function computeStateHash(state: GameState): string {
-  const lastFlap = state.flaps.length > 0 ? state.flaps[state.flaps.length - 1] : 0;
-  const raw = `${state.score}:${lastFlap}:${state.flaps.length}:${state.pipes.length}`;
-  let h = 0;
-  for (let i = 0; i < raw.length; i++) {
-    h = (Math.imul(31, h) + raw.charCodeAt(i)) | 0;
-  }
-  // Return a 64-char hex string (simulating SHA‑256 length; in prod the TEE
-  // signs a real hash — this is a placeholder that matches the contract's
-  // expectation of a 64-char hex string for the stateHash field).
-  const hex = (h >>> 0).toString(16).padStart(8, "0");
-  return hex.repeat(8); // pad to 64 chars
 }

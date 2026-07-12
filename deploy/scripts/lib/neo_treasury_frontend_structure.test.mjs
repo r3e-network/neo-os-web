@@ -33,7 +33,8 @@ test("Neo Treasury renders a v2 payout and watched-wallet dashboard", () => {
     "submitDisbursement",
     "refresh",
   ], "Neo Treasury");
-  assert.match(playArea, /normalizeAmountForAsset\(amount, asset\)/);
+  assert.match(playArea, /normalizeAmountInput\(amount\)\.trim\(\)/);
+  assert.match(playArea, /buildTreasuryDisbursementPreview\(\{ asset, amount, recipient, memo \}/);
   assert.match(playArea, /CoinArt size=\{18\} variant="neo"/);
   assert.match(playArea, /CoinArt size=\{18\} variant="gas"/);
   assertAssets(["apps/neo-treasury/public/treasury-vault-desk.webp"]);

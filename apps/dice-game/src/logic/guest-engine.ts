@@ -18,12 +18,10 @@ import type { BetTracker } from "../bet-tracker";
 
 // Mirrors the deployed 5.70x payout (see main.tsx / DiceScene PAYOUT_MULT).
 const PAYOUT_MULT = 5.7;
-// The local currency word shown in guest history rows. The scene/HUD reframe
-// the "GAS" token to this same word so no GAS-at-stake framing leaks in guest.
-const GUEST_UNIT = "chips";
 // Let the tumble animation play before the local result is revealed. The scene
 // keeps "rolling" while isResolving is true, so this is purely cosmetic pacing.
 const REVEAL_MS = 1100;
+const REDUCED_MOTION_REVEAL_MS = 120;
 const MIN_STAKE = 0.05;
 const MAX_STAKE = 20;
 
@@ -82,15 +80,24 @@ function sanitizeStake(value: unknown): number {
   return Math.min(MAX_STAKE, Math.max(MIN_STAKE, raw));
 }
 
-/** Web-Crypto (Math.random fallback) die roll in 1..6. */
-function rollDie(): number {
-  const buf = new Uint32Array(1);
-  const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(buf);
-    return (buf[0]! % 6) + 1;
+/**
+ * Draw an unbiased local die with rejection sampling.
+ *
+ * 252 is the largest multiple of six below 256, so accepting only bytes below
+ * that boundary gives every face exactly 42 source values. A missing browser
+ * CSPRNG fails closed instead of quietly downgrading to non-cryptographic input.
+ */
+export function rollLocalDie(
+  cryptoSource: Pick<Crypto, "getRandomValues"> | undefined = globalThis.crypto,
+): number | null {
+  if (!cryptoSource?.getRandomValues) return null;
+  const sample = new Uint8Array(1);
+  for (let attempt = 0; attempt < 128; attempt += 1) {
+    cryptoSource.getRandomValues(sample);
+    const value = sample[0]!;
+    if (value < 252) return (value % 6) + 1;
   }
-  return Math.floor(Math.random() * 6) + 1;
+  return null;
 }
 
 export function createDiceGuestEngine(deps: DiceGuestEngineDeps): DiceGuestEngine {
@@ -134,36 +141,48 @@ export function createDiceGuestEngine(deps: DiceGuestEngineDeps): DiceGuestEngin
       const stake = sanitizeStake(form.amount);
       const stakeDisplay = stake.toFixed(2);
       const payout = payoutOf(stake).toFixed(2);
+      const guestUnit = t("guestUnit");
 
       // Reflect the chosen bet on the shared observables (HUD + scene read them).
       selectedFace.set(String(face));
-      stakeAmount.set(`${stakeDisplay} GAS`);
-      payoutPreview.set(`${payout} GAS`);
+      stakeAmount.set(`${stakeDisplay} ${guestUnit}`);
+      payoutPreview.set(`${payout} ${guestUnit}`);
+
+      // Draw before opening a pending row. If the browser CSPRNG is unavailable,
+      // the local table stays idle and makes no fairness claim it cannot uphold.
+      const rolled = rollLocalDie();
+      if (rolled === null) {
+        const message = t("guestRandomUnavailable");
+        lastStatus.set(message);
+        setStatus(message, "error");
+        return;
+      }
 
       // Start the roll: beginBet flips isResolving → the scene tumbles the die.
       const rowId = tracker.beginBet({
         face: String(face),
-        stake: `${stakeDisplay} ${GUEST_UNIT}`,
+        stake: `${stakeDisplay} ${guestUnit}`,
         result: t("statusRolling"),
-        payout: `${payout} ${GUEST_UNIT}`,
+        payout: `${payout} ${guestUnit}`,
         outcome: "pending",
         at: new Date().toISOString(),
       });
       lastStatus.set(t("statusRolling"));
 
-      // Draw the outcome now (crypto RNG) but reveal it after the tumble so the
-      // animation reads naturally. No chain/oracle call is ever made.
-      const rolled = rollDie();
+      // Reveal the already-drawn outcome after the tumble so the animation reads
+      // naturally. No chain/oracle call is ever made.
       const won = rolled === face;
 
+      const reduceMotion = typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
       revealTimer = setTimeout(() => {
         revealTimer = null;
         const label = won ? t("outcomeWon") : t("outcomeLost");
         tracker.settleBet(rowId, {
           outcome: won ? "won" : "lost",
           rolled,
-          result: `${label} · 🎲 ${rolled}`,
-          payout: won ? `${payout} ${GUEST_UNIT}` : `0 ${GUEST_UNIT}`,
+          result: `${label} · ${t("rolledLabel")} ${rolled}`,
+          payout: won ? `${payout} ${guestUnit}` : `0 ${guestUnit}`,
         });
         if (won) {
           guestWins += 1;
@@ -174,7 +193,7 @@ export function createDiceGuestEngine(deps: DiceGuestEngineDeps): DiceGuestEngin
           lastStatus.set(t("statusLost"));
           setStatus(t("statusLost"), "info");
         }
-      }, REVEAL_MS);
+      }, reduceMotion ? REDUCED_MOTION_REVEAL_MS : REVEAL_MS);
     },
 
     withdrawCredit(): void {
@@ -199,6 +218,7 @@ export function createDiceGuestEngine(deps: DiceGuestEngineDeps): DiceGuestEngin
       tracker.rollHistory.set([]);
       tracker.lastRoll.set("");
       tracker.lastOutcome.set("");
+      tracker.lastPayout.set("");
       tracker.isResolving.set(false);
       tracker.isUnresolved.set(false);
       isSubmitting.set(false);

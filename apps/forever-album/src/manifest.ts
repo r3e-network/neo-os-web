@@ -2,37 +2,10 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Forever Album",
-  description: "A private, wallet-scoped photo album kept on your device, with optional local encryption",
+  description: "A wallet-scoped photo album kept only on this device, with optional AES-GCM encryption",
   icon: "camera",
   category: "social",
   shell: "launcher",
-
-  tabs: [
-    { key: "album", labelKey: "albumTab", icon: "camera", default: true },
-  ],
-
-  stats: [
-    { labelKey: "albumTab", valueKey: "photosCount", format: "number", icon: "image" },
-    { labelKey: "sidebarEncrypted", valueKey: "encryptedCount", format: "number", icon: "lock" },
-    { labelKey: "sidebarPublic", valueKey: "publicCount", format: "number", icon: "unlock" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "albumTab", valueKey: "photosCount", format: "number" },
-      { labelKey: "sidebarEncrypted", valueKey: "encryptedCount", format: "number" },
-      { labelKey: "sidebarPublic", valueKey: "publicCount", format: "number" },
-    ],
-  },
-
-  features: { walletRequired: true, chainWarning: true },
-
-  docs: [
-    { titleKey: "title", contentKey: "subtitle", type: "text" },
-  ],
-
-  permissions: { payments: true },
-
-  contract: { mode: "custom" },
+  features: { walletRequired: true, chainWarning: false },
+  permissions: {},
 };

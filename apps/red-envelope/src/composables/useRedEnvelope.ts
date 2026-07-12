@@ -40,8 +40,8 @@
  *        no refund call (and none is needed; funds are not lost).
  *     claim(envelopeId, claimer) -> share. Draws one random packet and pays the
  *        claimer atomically. One claim per address per envelope. The won amount
- *        is read from the "Claimed" event (state[2] = share), falling back to
- *        claimedAmount(envId, claimer).
+ *        is read from the "Claimed" event (state[2] = share), or recovered only
+ *        when hasClaimed + claimedAmount authoritatively prove settlement.
  *     reclaim(envelopeId, creator) -> amount. After expiry, pays the unclaimed
  *        remainder of the creator's own envelope back to the creator's wallet
  *        ("Reclaimed" event, state[2] = amount).
@@ -64,25 +64,50 @@ import type { MiniAppFramework } from "@shared/react";
 import { gasToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { fromFixed8, formatHash } from "@shared/utils/format";
-import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
+import {
+  addressToScriptHash,
+  normalizeScriptHash,
+  ownerMatchesAddress,
+  parseHash160,
+} from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import {
+  createPendingRedEnvelopeOperation,
+  createRedEnvelopeOperationStore,
+  type PendingRedEnvelopeOperation,
+  type RedEnvelopeOperationStorage,
+  type RedEnvelopeOperationScope,
+} from "../red-envelope-operation-store";
+import {
+  attestRedEnvelopeContract,
+  normalizeRedEnvelopeId,
+  normalizeRedEnvelopeNetwork,
+  readRedEnvelopeExecutionState,
+  type RedEnvelopeAttestation,
+  type RedEnvelopeExecutionState,
+  type RedEnvelopeNetwork,
+} from "../red-envelope-rpc";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const MIN_AMOUNT = 10000000n; // 0.1 GAS in base units
+const MAX_AMOUNT = 20_00000000n; // 20 GAS; contract-enforced low-stakes ceiling
 const MAX_PACKETS = 100;
 const MIN_PER_PACKET = 1000000n; // 0.01 GAS in base units
+const MIN_EXPIRY_HOURS = 1;
+const MAX_EXPIRY_HOURS = 7 * 24;
 
 /** Memo the contract requires on the create-funding transfer. */
 const CREATE_MEMO = "miniapp-redenvelope:create";
 
 /**
- * How many of the NEWEST envelopes a full refresh pages in. Each envelope
- * costs two reads (getEnvelope + hasClaimed), so this bounds a refresh at
- * ~60 RPC reads instead of the former 200-id scan (~400 reads).
+ * How many of the connected wallet's own creator/claimer envelopes a refresh
+ * reads. Predictable global ids are not access control, so the app never
+ * advertises a public "latest envelopes" pool; recipients arrive by a
+ * network-bound shared link and hydrate that exact id.
  */
 const ENVELOPE_PAGE_SIZE = 30;
 
@@ -91,6 +116,15 @@ const LIST_PAGE_LIMIT = 100;
 
 /** Upper bound on chain reads in flight at once during list refreshes. */
 const MAX_CONCURRENT_READS = 8;
+
+/** A short exact-tx recheck after the invoke's normal confirmation wait. */
+const EXACT_EVENT_RECHECK_MS = 2_500;
+
+const compareNumericIdsDescending = (left: string, right: string): number => {
+  const a = BigInt(left);
+  const b = BigInt(right);
+  return a === b ? 0 : a > b ? -1 : 1;
+};
 
 // ============================================================================
 // Types
@@ -139,6 +173,31 @@ export interface UseRedEnvelopeOptions {
   app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Network explicitly encoded in a shared launch link, when present. */
+  launchNetwork?: "mainnet" | "testnet" | null;
+  /** Injectable only for deterministic unit tests; production pins live bytecode. */
+  attestContract?: (
+    network: RedEnvelopeNetwork,
+    contractHash: string,
+  ) => Promise<RedEnvelopeAttestation>;
+  /** Injectable only for deterministic unit tests; production reads exact VM state. */
+  readExecutionState?: (
+    network: unknown,
+    txid: unknown,
+  ) => Promise<RedEnvelopeExecutionState>;
+  /** Injectable durable storage for deterministic recovery tests. */
+  operationStorage?: RedEnvelopeOperationStorage;
+}
+
+interface OperationConfirmation {
+  confirmed: boolean;
+  amountBase?: bigint;
+  envelopeId?: string;
+}
+
+export interface RedEnvelopeRecoveryResult {
+  status: "none" | "pending" | "confirmed" | "failed";
+  operation: PendingRedEnvelopeOperation | null;
 }
 
 // ============================================================================
@@ -163,6 +222,30 @@ const toIdString = (value: unknown): string => {
     return "";
   }
 };
+
+const toBigInt = (value: unknown): bigint => {
+  try {
+    return parseBigInt(value);
+  } catch {
+    return 0n;
+  }
+};
+
+const chainBoolean = (value: unknown): boolean =>
+  value === true || value === 1 || value === 1n || value === "1" || value === "true";
+
+const canonicalHash160 = (value: unknown): string => {
+  const raw = String(value ?? "").trim();
+  if (!/^(?:0x)?[0-9a-fA-F]{40}$/.test(raw)) return "";
+  return normalizeScriptHash(raw);
+};
+
+const accountMatches = (value: unknown, expectedHash: string): boolean =>
+  Boolean(canonicalHash160(expectedHash)) &&
+  (
+    canonicalHash160(value) === canonicalHash160(expectedHash) ||
+    canonicalHash160(parseHash160(value)) === canonicalHash160(expectedHash)
+  );
 
 /**
  * Map items through an async fn with at most `limit` calls in flight —
@@ -194,13 +277,45 @@ const mapWithConcurrency = async <T, R>(
 // Composable
 // ============================================================================
 
-export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
+export function useRedEnvelope({
+  app,
+  t,
+  launchNetwork = null,
+  attestContract = attestRedEnvelopeContract,
+  readExecutionState = readRedEnvelopeExecutionState,
+  operationStorage,
+}: UseRedEnvelopeOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const envelopes = createObservable<EnvelopeItem[]>([]);
   const claims = createObservable<ClaimItem[]>([]);
   const pools = createObservable<EnvelopeItem[]>([]);
   const loadingEnvelopes = createObservable(false);
   const isLoading = createObservable(false);
+  const isRecovering = createObservable(false);
+  const pendingOperation = createObservable<PendingRedEnvelopeOperation | null>(null);
+  const transactionNotice = createObservable("");
+  const serviceNotice = createObservable("");
+  const operationStore = createRedEnvelopeOperationStore(
+    operationStorage ?? app.storage.local,
+  );
+  let activeFinancialAction: PendingRedEnvelopeOperation["phase"] | "recover" | null = null;
+  const beginFinancialAction = (
+    action: PendingRedEnvelopeOperation["phase"] | "recover",
+  ): void => {
+    if (activeFinancialAction) throw new Error(t("operationBusy"));
+    activeFinancialAction = action;
+  };
+  const endFinancialAction = (
+    action: PendingRedEnvelopeOperation["phase"] | "recover",
+  ): void => {
+    if (activeFinancialAction === action) activeFinancialAction = null;
+  };
+  /** New creates require the bounded v1.1 ABI; legacy envelopes stay claimable. */
+  const createAvailable = createObservable(false);
+  /** True only after network, script hash, NEF checksum and ABI all match. */
+  const contractCompatible = createObservable(false);
+  /** Active, attested network used for recovery scopes and share links. */
+  const activeNetwork = createObservable<RedEnvelopeNetwork | "">("");
   /** Connected wallet's unused prepaid create-credit (human GAS). */
   const prepaidCredit = createObservable(0);
   /**
@@ -219,7 +334,63 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
   const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
+    if (String(address.get() ?? "") !== String(addr ?? "")) {
+      pendingOperation.set(null);
+      transactionNotice.set("");
+    }
     address.set(addr ?? null);
+  };
+
+  const refreshContractCompatibility = async (): Promise<boolean> => {
+    contractCompatible.set(false);
+    createAvailable.set(false);
+    activeNetwork.set("");
+    try {
+      const detected = normalizeRedEnvelopeNetwork(await app.chain.detectNetwork());
+      const expectedLaunch = normalizeRedEnvelopeNetwork(launchNetwork);
+      const contractHash = canonicalHash160(app.chain.contractAddress.get());
+      if (!detected || !contractHash || (expectedLaunch && expectedLaunch !== detected)) {
+        return false;
+      }
+
+      const attestation = await attestContract(detected, contractHash);
+      if (!attestation.compatible) return false;
+
+      // Exercise one common safe method through the host bridge as a second
+      // source of truth: attestation alone must not authorize a stale bridge
+      // that is actually bound to another script hash.
+      parseBigInt(await app.chain.readRaw("lastEnvelopeId", []));
+      contractCompatible.set(true);
+      activeNetwork.set(detected);
+
+      if (!attestation.boundedCreate) return true;
+      try {
+        const owner = canonicalHash160(
+          parseHash160(await app.chain.readRaw("getOwner", [])),
+        );
+        createAvailable.set(Boolean(owner && owner !== ZERO_HASH));
+      } catch {
+        createAvailable.set(false);
+      }
+      return true;
+    } catch {
+      contractCompatible.set(false);
+      createAvailable.set(false);
+      activeNetwork.set("");
+      return false;
+    }
+  };
+
+  const assertCompatibleContract = async (): Promise<void> => {
+    if (!(await refreshContractCompatibility())) {
+      throw new Error(t("contractCompatibilityUnproven"));
+    }
+  };
+
+  const assertDurableRecovery = (scope: RedEnvelopeOperationScope): void => {
+    if (!operationStore.canPersist(scope)) {
+      throw new Error(t("transactionRecoveryUnavailable"));
+    }
   };
 
   // ── Computed ─────────────────────────────────────────────────────────
@@ -229,6 +400,10 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
   const isConnected = createDerived(() => Boolean(address.get()), [address]);
   const isOpening = createDerived(() => Boolean(openingId.get()), [openingId]);
   const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
+  const hasPendingOperation = createDerived(
+    () => Boolean(pendingOperation.get()),
+    [pendingOperation],
+  );
 
   // ── Preview Distribution (pure computation) ─────────────────────────
 
@@ -312,7 +487,7 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
   ): EnvelopeItem | null => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
     const v = raw as Record<string, unknown>;
-    const creator = String(v.creator ?? "");
+    const creator = parseHash160(v.creator);
     if (!creator || creator === ZERO_HASH) return null;
 
     const totalAmountBase = parseBigInt(v.totalAmount);
@@ -320,9 +495,19 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
     const packetCount = toFinite(v.packetCount);
     const openedCount = toFinite(v.openedCount);
     const expiryTimeMs = toFinite(v.expiryTime); // milliseconds
-    const bestLuckAddress = String(v.bestLuckAddress ?? "");
+    const bestLuckAddress = parseHash160(v.bestLuckAddress);
     const bestLuckAmountBase = parseBigInt(v.bestLuckAmount);
-    const active = Boolean(v.active);
+    const active = chainBoolean(v.active);
+
+    if (
+      !Number.isSafeInteger(packetCount) ||
+      packetCount <= 0 ||
+      !Number.isSafeInteger(openedCount) ||
+      openedCount < 0 ||
+      openedCount > packetCount ||
+      !Number.isSafeInteger(expiryTimeMs) ||
+      expiryTimeMs <= 0
+    ) return null;
 
     const now = Date.now();
     const expired = expiryTimeMs > 0 && now >= expiryTimeMs;
@@ -373,15 +558,11 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
 
     let claimedByMe = false;
     if (claimerHash) {
-      try {
-        const claimed = await app.chain.readRaw("hasClaimed", [
-          app.chain.arg.integer(id),
-          app.chain.arg.hash160(claimerHash),
-        ]);
-        claimedByMe = Boolean(claimed);
-      } catch {
-        claimedByMe = false;
-      }
+      const claimed = await app.chain.readRaw("hasClaimed", [
+        app.chain.arg.integer(id),
+        app.chain.arg.hash160(claimerHash),
+      ]);
+      claimedByMe = chainBoolean(claimed);
     }
 
     return mapEnvelope(raw, id, claimedByMe);
@@ -389,35 +570,81 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
 
   // ── Data Loading (direct chain reads) ──────────────────────────────
 
+  const readLatestIndexedIds = async (
+    accountHash: string,
+    countMethod: "creatorEnvelopeCount" | "claimerEnvelopeCount",
+    listMethod: "getCreatorEnvelopes" | "getClaimerEnvelopes",
+    limit: number,
+  ): Promise<string[]> => {
+    const count = Number(parseBigInt(await app.chain.readRaw(countMethod, [
+      app.chain.arg.hash160(accountHash),
+    ])));
+    if (!Number.isSafeInteger(count) || count <= 0) return [];
+    const pageSize = Math.min(limit, count);
+    const offset = Math.max(0, count - pageSize);
+    const raw = await app.chain.readArray(listMethod, [
+      app.chain.arg.hash160(accountHash),
+      app.chain.arg.integer(offset),
+      app.chain.arg.integer(pageSize),
+    ]);
+    return raw.map(toIdString).filter(Boolean);
+  };
+
   /**
    * Rebuild the envelopes/pools/claims lists straight from the contract.
    *
-   * PAGED refresh: only the NEWEST ENVELOPE_PAGE_SIZE ids ending at
-   * lastEnvelopeId() are read (via getEnvelope + hasClaimed, at most
-   * MAX_CONCURRENT_READS in flight). Pools = the claimable subset
-   * (active && canOpen). Claims for the connected wallet are resolved from
-   * getClaimerEnvelopes + claimedAmount.
+   * Only the connected wallet's creator/claimer indexes are read. Sequential
+   * envelope ids are public and predictable, so scanning lastEnvelopeId would
+   * advertise unrelated bearer-link gifts as a public free-for-all. A shared
+   * link is hydrated separately by its exact network-bound id.
    */
   const loadEnvelopes = async () => {
     if (loadingEnvelopes.get()) return;
     loadingEnvelopes.set(true);
+    serviceNotice.set("");
     try {
+      if (!contractCompatible.get() && !(await refreshContractCompatibility())) {
+        envelopes.set([]);
+        pools.set([]);
+        claims.set([]);
+        prepaidCredit.set(0);
+        serviceNotice.set(t("contractCompatibilityUnproven"));
+        return;
+      }
       const claimerAddr = address.get();
       const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || null : null;
+      if (!claimerHash) {
+        envelopes.set([]);
+        pools.set([]);
+        claims.set([]);
+        prepaidCredit.set(0);
+        return;
+      }
 
-      const lastRaw = await app.chain.readRaw("lastEnvelopeId", []);
-      const last = toFinite(lastRaw);
+      const [createdIds, claimedIds] = await Promise.all([
+        readLatestIndexedIds(
+          claimerHash,
+          "creatorEnvelopeCount",
+          "getCreatorEnvelopes",
+          ENVELOPE_PAGE_SIZE,
+        ),
+        readLatestIndexedIds(
+          claimerHash,
+          "claimerEnvelopeCount",
+          "getClaimerEnvelopes",
+          ENVELOPE_PAGE_SIZE,
+        ),
+      ]);
+      const ids = [...new Set([...createdIds, ...claimedIds])]
+        .sort(compareNumericIdsDescending)
+        .slice(0, ENVELOPE_PAGE_SIZE);
 
-      // Scan newest-first, one page, so a long history never reads more than
-      // ENVELOPE_PAGE_SIZE envelopes per refresh.
-      const start = Math.max(1, last - ENVELOPE_PAGE_SIZE + 1);
-      const ids: string[] = [];
-      for (let id = last; id >= start; id -= 1) ids.push(String(id));
-
+      let readFailures = 0;
       const results = await mapWithConcurrency(ids, MAX_CONCURRENT_READS, async (id) => {
         try {
           return await readEnvelope(id, claimerHash);
         } catch (e) {
+          readFailures += 1;
           console.warn(
             "[useRedEnvelope] getEnvelope failed for",
             id,
@@ -430,21 +657,18 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
 
       const allEnvelopes = results
         .filter((item): item is EnvelopeItem => item !== null)
-        .sort((a, b) => Number(b.id) - Number(a.id));
+        .sort((a, b) => compareNumericIdsDescending(a.id, b.id));
 
       envelopes.set(allEnvelopes);
       pools.set(allEnvelopes.filter((item) => item.active && item.canOpen));
+      if (readFailures > 0) serviceNotice.set(t("chainReadUnavailable"));
 
       // Claims for the connected wallet: the envelopes this address has claimed
       // from, each with the share it drew. The prepaid create-credit refreshes
       // alongside so the withdraw affordance stays honest after every action.
-      if (claimerHash) {
-        await Promise.all([loadClaims(claimerHash), loadCredit(claimerHash)]);
-      } else {
-        claims.set([]);
-        prepaidCredit.set(0);
-      }
+      await Promise.all([loadClaims(claimerHash), loadCredit(claimerHash)]);
     } catch (e) {
+      serviceNotice.set(t("chainReadUnavailable"));
       console.warn(
         "[useRedEnvelope] loadEnvelopes failed:",
         e instanceof Error ? e.message : String(e),
@@ -460,15 +684,12 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
    */
   const loadClaims = async (claimerHash: string) => {
     try {
-      const idsRaw = await app.chain.readArray("getClaimerEnvelopes", [
-        app.chain.arg.hash160(claimerHash),
-        app.chain.arg.integer(0),
-        app.chain.arg.integer(LIST_PAGE_LIMIT),
-      ]);
-
-      const ids = (Array.isArray(idsRaw) ? idsRaw : [])
-        .map(toIdString)
-        .filter((id) => id !== "");
+      const ids = await readLatestIndexedIds(
+        claimerHash,
+        "claimerEnvelopeCount",
+        "getClaimerEnvelopes",
+        LIST_PAGE_LIMIT,
+      );
 
       const items = await mapWithConcurrency(ids, MAX_CONCURRENT_READS, async (envelopeId) => {
         try {
@@ -500,9 +721,10 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
       claims.set(
         items
           .filter((item): item is ClaimItem => item !== null)
-          .sort((a, b) => Number(b.poolId) - Number(a.poolId)),
+          .sort((a, b) => compareNumericIdsDescending(a.poolId, b.poolId)),
       );
     } catch (e) {
+      serviceNotice.set(t("chainReadUnavailable"));
       console.warn(
         "[useRedEnvelope] loadClaims failed:",
         e instanceof Error ? e.message : String(e),
@@ -532,6 +754,7 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
       envelopes.set(patched);
       pools.set(patched.filter((item) => item.active && item.canOpen));
     } catch (e) {
+      serviceNotice.set(t("chainReadUnavailable"));
       console.warn(
         "[useRedEnvelope] refreshEnvelope failed for",
         envelopeId,
@@ -550,9 +773,14 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
    * preview (remaining packets, pool progress) renders before claiming.
    */
   const hydrateEnvelope = async (envelopeId: string) => {
-    const id = String(envelopeId || "").trim();
+    const id = normalizeRedEnvelopeId(envelopeId);
     if (!id) return;
+    serviceNotice.set("");
     try {
+      if (!contractCompatible.get() && !(await refreshContractCompatibility())) {
+        serviceNotice.set(t("contractCompatibilityUnproven"));
+        return;
+      }
       const claimerAddr = address.get();
       const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || null : null;
       const item = await readEnvelope(id, claimerHash);
@@ -564,6 +792,7 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
       envelopes.set(next);
       pools.set(next.filter((e) => e.active && e.canOpen));
     } catch (e) {
+      serviceNotice.set(t("chainReadUnavailable"));
       console.warn(
         "[useRedEnvelope] hydrateEnvelope failed for",
         id,
@@ -585,10 +814,365 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
       ]);
       prepaidCredit.set(fromFixed8(parseBigInt(raw)));
     } catch (e) {
+      serviceNotice.set(t("chainReadUnavailable"));
       console.warn(
         "[useRedEnvelope] creditOf failed:",
         e instanceof Error ? e.message : String(e),
       );
+    }
+  };
+
+  // ── Transaction confirmation + recovery ───────────────────────────
+
+  const resolveOperationScope = async (
+    accountHash?: string,
+    contractHash?: string,
+  ): Promise<RedEnvelopeOperationScope | null> => {
+    const account = canonicalHash160(
+      accountHash || addressToScriptHash(address.get() || ""),
+    );
+    const contract = canonicalHash160(
+      contractHash || app.chain.contractAddress.get() || "",
+    );
+    if (!account || !contract) return null;
+    try {
+      const network = normalizeRedEnvelopeNetwork(await app.chain.detectNetwork());
+      return network ? { account, contract, network } : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const persistBroadcast = (
+    scope: RedEnvelopeOperationScope,
+    input: Omit<
+      Parameters<typeof createPendingRedEnvelopeOperation>[0],
+      keyof RedEnvelopeOperationScope | "txid"
+    >,
+    txid: string,
+  ): PendingRedEnvelopeOperation | null => {
+    if (!String(txid ?? "").trim()) return null;
+    const operation = operationStore.set(
+      createPendingRedEnvelopeOperation({ ...scope, ...input, txid }),
+    );
+    pendingOperation.set(operation);
+    transactionNotice.set(t("transactionConfirmationPending"));
+    return operation;
+  };
+
+  const clearOperation = (scope: RedEnvelopeOperationScope): void => {
+    operationStore.clear(scope);
+    pendingOperation.set(null);
+    transactionNotice.set("");
+  };
+
+  const pendingConfirmationError = (): Error =>
+    new Error(t("transactionConfirmationPending"));
+
+  const assertNoStoredOperation = (scope: RedEnvelopeOperationScope): void => {
+    const stored = operationStore.get(scope);
+    if (!stored) return;
+    pendingOperation.set(stored);
+    transactionNotice.set(t("transactionConfirmationPending"));
+    // Never continue the new click after discovering an older broadcast. Even
+    // if a refresh can now confirm it, continuing could duplicate a create or
+    // claim. Recovery is an explicit, non-replaying step.
+    throw pendingConfirmationError();
+  };
+
+  const exactEvent = async (
+    result: { txid?: string; verified?: boolean; event?: unknown },
+    eventName: string,
+  ): Promise<unknown> => {
+    if (result.verified === true && result.event) return result.event;
+    const txid = String(result.txid ?? "").trim();
+    if (!txid) return null;
+    try {
+      return await app.events.waitFor(txid, eventName, EXACT_EVENT_RECHECK_MS);
+    } catch {
+      return null;
+    }
+  };
+
+  const eventNameFor = (phase: PendingRedEnvelopeOperation["phase"]): string => {
+    switch (phase) {
+      case "deposit": return "Credited";
+      case "create": return "EnvelopeCreated";
+      case "claim": return "Claimed";
+      case "reclaim": return "Reclaimed";
+      case "withdraw": return "CreditWithdrawn";
+    }
+  };
+
+  const exactExecutionState = async (
+    operation: PendingRedEnvelopeOperation,
+    event: unknown,
+  ): Promise<RedEnvelopeExecutionState> =>
+    event ? "halt" : readExecutionState(operation.network, operation.txid);
+
+  const assertTransactionDidNotFault = async (
+    scope: RedEnvelopeOperationScope,
+    operation: PendingRedEnvelopeOperation,
+    event: unknown,
+  ): Promise<void> => {
+    if ((await exactExecutionState(operation, event)) !== "fault") return;
+    clearOperation(scope);
+    throw new Error(t("transactionExecutionFailed"));
+  };
+
+  const confirmOperation = async (
+    operation: PendingRedEnvelopeOperation,
+    event: unknown,
+  ): Promise<OperationConfirmation> => {
+    const expectedAmount = toBigInt(operation.amountBase);
+
+    if (operation.phase === "deposit") {
+      const targetCredit = toBigInt(operation.targetCreditBase);
+      const eventAmount = toBigInt(eventValue(event, 1));
+      const eventBalance = toBigInt(eventValue(event, 2));
+      if (
+        event &&
+        accountMatches(eventValue(event, 0), operation.account) &&
+        eventAmount === expectedAmount &&
+        eventBalance >= targetCredit
+      ) {
+        return { confirmed: true, amountBase: eventAmount };
+      }
+      try {
+        const credit = toBigInt(
+          await app.chain.readRaw("creditOf", [
+            app.chain.arg.hash160(operation.account),
+          ]),
+        );
+        return { confirmed: credit >= targetCredit, amountBase: expectedAmount };
+      } catch {
+        return { confirmed: false };
+      }
+    }
+
+    if (operation.phase === "create") {
+      const eventId = toIdString(eventValue(event, 0));
+      if (
+        event &&
+        eventId &&
+        accountMatches(eventValue(event, 1), operation.account) &&
+        toBigInt(eventValue(event, 2)) === expectedAmount &&
+        Number(toBigInt(eventValue(event, 3))) === operation.packetCount
+      ) {
+        return { confirmed: true, envelopeId: eventId, amountBase: expectedAmount };
+      }
+
+      // Authoritative create recovery is anchored to the creator-list length
+      // captured before broadcast. `lastEnvelopeId` or the newest event could
+      // belong to another wallet and must never be substituted.
+      try {
+        const before = Number(operation.creatorCountBefore);
+        const current = Number(
+          toBigInt(
+            await app.chain.readRaw("creatorEnvelopeCount", [
+              app.chain.arg.hash160(operation.account),
+            ]),
+          ),
+        );
+        if (!Number.isSafeInteger(before) || current !== before + 1) {
+          return { confirmed: false };
+        }
+        const ids = await app.chain.readArray("getCreatorEnvelopes", [
+          app.chain.arg.hash160(operation.account),
+          app.chain.arg.integer(before),
+          app.chain.arg.integer(1),
+        ]);
+        const id = toIdString(ids[0]);
+        if (!id || ids.length !== 1) return { confirmed: false };
+        const raw = await app.chain.readRaw("getEnvelope", [
+          app.chain.arg.integer(id),
+        ]);
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          return { confirmed: false };
+        }
+        const envelope = raw as Record<string, unknown>;
+        if (
+          !accountMatches(envelope.creator, operation.account) ||
+          toBigInt(envelope.totalAmount) !== expectedAmount ||
+          Number(toBigInt(envelope.packetCount)) !== operation.packetCount
+        ) {
+          return { confirmed: false };
+        }
+        return { confirmed: true, envelopeId: id, amountBase: expectedAmount };
+      } catch {
+        return { confirmed: false };
+      }
+    }
+
+    if (operation.phase === "claim") {
+      const eventShare = toBigInt(eventValue(event, 2));
+      if (
+        event &&
+        toIdString(eventValue(event, 0)) === operation.envelopeId &&
+        accountMatches(eventValue(event, 1), operation.account) &&
+        eventShare > 0n
+      ) {
+        return { confirmed: true, amountBase: eventShare, envelopeId: operation.envelopeId };
+      }
+      try {
+        const args = [
+          app.chain.arg.integer(operation.envelopeId || "0"),
+          app.chain.arg.hash160(operation.account),
+        ];
+        const [claimed, shareRaw] = await Promise.all([
+          app.chain.readRaw("hasClaimed", args),
+          app.chain.readRaw("claimedAmount", args),
+        ]);
+        const share = toBigInt(shareRaw);
+        return {
+          confirmed: chainBoolean(claimed) && share > 0n,
+          amountBase: share,
+          envelopeId: operation.envelopeId,
+        };
+      } catch {
+        return { confirmed: false };
+      }
+    }
+
+    if (operation.phase === "reclaim") {
+      const eventAmount = toBigInt(eventValue(event, 2));
+      if (
+        event &&
+        toIdString(eventValue(event, 0)) === operation.envelopeId &&
+        accountMatches(eventValue(event, 1), operation.account) &&
+        eventAmount === expectedAmount
+      ) {
+        return { confirmed: true, amountBase: eventAmount, envelopeId: operation.envelopeId };
+      }
+      try {
+        const raw = await app.chain.readRaw("getEnvelope", [
+          app.chain.arg.integer(operation.envelopeId || "0"),
+        ]);
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+          return { confirmed: false };
+        }
+        const envelope = raw as Record<string, unknown>;
+        return {
+          confirmed:
+            accountMatches(envelope.creator, operation.account) &&
+            !chainBoolean(envelope.active) &&
+            toBigInt(envelope.remainingAmount) === 0n &&
+            Number(toBigInt(envelope.openedCount)) === operation.openedCountBefore &&
+            Number(toBigInt(envelope.packetCount)) === operation.packetCount,
+          amountBase: expectedAmount,
+          envelopeId: operation.envelopeId,
+        };
+      } catch {
+        return { confirmed: false };
+      }
+    }
+
+    const eventAmount = toBigInt(eventValue(event, 1));
+    if (
+      event &&
+      accountMatches(eventValue(event, 0), operation.account) &&
+      eventAmount === expectedAmount
+    ) {
+      return { confirmed: true, amountBase: eventAmount };
+    }
+    // creditOf(account) == 0 is not proof of a withdrawal: another tab may
+    // have consumed the credit in createEnvelope. Only this exact tx's matching
+    // CreditWithdrawn event can prove that GAS reached the wallet.
+    return { confirmed: false };
+  };
+
+  const recordClaimLocally = (
+    envelopeId: string,
+    claimerHash: string,
+    amountBase: bigint,
+  ): void => {
+    const claimId = `${envelopeId}:${claimerHash}`;
+    if (claims.get().some((item) => item.id === claimId)) return;
+    claims.set(
+      [
+        {
+          id: claimId,
+          poolId: envelopeId,
+          holder: claimerHash,
+          amount: fromFixed8(amountBase),
+          opened: true,
+          message: "",
+        },
+        ...claims.get(),
+      ].sort((a, b) => compareNumericIdsDescending(a.poolId, b.poolId)),
+    );
+  };
+
+  /** Reconcile one exact persisted tx. This function never invokes a contract. */
+  const recoverPendingOperation = async (): Promise<RedEnvelopeRecoveryResult> => {
+    if (isRecovering.get()) {
+      return { status: pendingOperation.get() ? "pending" : "none", operation: pendingOperation.get() };
+    }
+    if (activeFinancialAction) {
+      return { status: pendingOperation.get() ? "pending" : "none", operation: pendingOperation.get() };
+    }
+    if (!contractCompatible.get() && !(await refreshContractCompatibility())) {
+      serviceNotice.set(t("contractCompatibilityUnproven"));
+      return { status: "none", operation: null };
+    }
+    beginFinancialAction("recover");
+    try {
+      const scope = await resolveOperationScope();
+      if (!scope) return { status: "none", operation: null };
+      const operation = operationStore.get(scope);
+      if (!operation) {
+        pendingOperation.set(null);
+        return { status: "none", operation: null };
+      }
+
+      isRecovering.set(true);
+      pendingOperation.set(operation);
+      transactionNotice.set(t("transactionConfirmationPending"));
+      try {
+        let event: unknown = null;
+        try {
+          event = await app.events.waitFor(
+            operation.txid,
+            eventNameFor(operation.phase),
+            EXACT_EVENT_RECHECK_MS,
+          );
+        } catch {
+          event = null;
+        }
+        const executionState = await exactExecutionState(operation, event);
+        if (executionState === "fault") {
+          clearOperation(scope);
+          transactionNotice.set(t("transactionExecutionFailed"));
+          return { status: "failed", operation };
+        }
+        const confirmation = await confirmOperation(operation, event);
+        if (!confirmation.confirmed) {
+          return { status: "pending", operation };
+        }
+
+        clearOperation(scope);
+        transactionNotice.set(t("transactionRecovered"));
+        if (operation.phase === "create" && confirmation.envelopeId) {
+          lastCreatedEnvelopeId.set(confirmation.envelopeId);
+        }
+        if (
+          operation.phase === "claim" &&
+          confirmation.envelopeId &&
+          (confirmation.amountBase ?? 0n) > 0n
+        ) {
+          const share = confirmation.amountBase ?? 0n;
+          luckyMessage.set({
+            amount: Number(fromFixed8(share).toFixed(4)),
+            from: `#${confirmation.envelopeId}`,
+          });
+          recordClaimLocally(confirmation.envelopeId, operation.account, share);
+        }
+        return { status: "confirmed", operation };
+      } finally {
+        isRecovering.set(false);
+      }
+    } finally {
+      endFinancialAction("recover");
     }
   };
 
@@ -601,7 +1185,7 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
   const handleConnect = async () => {
     const addr = address.get() || (await app.chain.ensureWallet());
     setAddress(addr ?? null);
-    await loadEnvelopes();
+    await loadAll();
   };
 
   /**
@@ -625,36 +1209,54 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
     amount: string;
     count: string;
     expiryHours: string;
-  }) => {
-    if (isLoading.get()) return;
-
-    isLoading.set(true);
-    // Clear any prior share card so a fresh attempt never shows a stale id.
-    lastCreatedEnvelopeId.set("");
+  }): Promise<{ envelopeId: string }> => {
+    if (isLoading.get() || openingId.get() || isRecovering.get()) {
+      throw new Error(t("operationBusy"));
+    }
+    beginFinancialAction("create");
     try {
+      await assertCompatibleContract();
+      if (!createAvailable.get()) {
+        throw new Error(t("createContractUpgradeRequired"));
+      }
+
+      isLoading.set(true);
+      // Clear any prior share card so a fresh attempt never shows a stale id.
+      lastCreatedEnvelopeId.set("");
       const totalValue = Number(formData.amount);
       const packetCount = Number(formData.count);
       const expiryValue = Number(formData.expiryHours);
 
-      if (!Number.isFinite(totalValue) || totalValue < 0.1) throw new Error(t("invalidAmount"));
-      if (!Number.isFinite(packetCount) || packetCount < 1 || packetCount > 100)
+      if (!Number.isFinite(totalValue) || totalValue < 0.1 || totalValue > 20)
+        throw new Error(t("invalidAmount"));
+      if (!Number.isInteger(packetCount) || packetCount < 1 || packetCount > 100)
         throw new Error(t("invalidPackets"));
       if (totalValue < packetCount * 0.01) throw new Error(t("invalidPerPacket"));
-      if (!Number.isFinite(expiryValue) || expiryValue <= 0) throw new Error(t("invalidExpiry"));
+      if (
+        !Number.isFinite(expiryValue) ||
+        expiryValue < MIN_EXPIRY_HOURS ||
+        expiryValue > MAX_EXPIRY_HOURS
+      ) throw new Error(t("invalidExpiry"));
 
       const totalBase = toBaseUnits(formData.amount);
-      if (totalBase < MIN_AMOUNT) throw new Error(t("invalidAmount"));
-      // The contract requires total >= packetCount (one base unit per packet);
-      // the per-packet >= 0.01 GAS guard above already implies this.
-      if (totalBase < BigInt(packetCount)) throw new Error(t("invalidPerPacket"));
+      if (totalBase < MIN_AMOUNT || totalBase > MAX_AMOUNT) throw new Error(t("invalidAmount"));
+      if (totalBase < BigInt(packetCount) * MIN_PER_PACKET) {
+        throw new Error(t("invalidPerPacket"));
+      }
 
-      const creatorAddr = address.get() || (await app.chain.ensureWallet());
+      // Connecting and spending are intentionally separate gestures. A create
+      // action can only use an address that was already connected beforehand.
+      const creatorAddr = address.get();
       const creatorHash = addressToScriptHash(creatorAddr || "");
       if (!creatorAddr || !creatorHash) throw new Error(t("walletNotConnected"));
       setAddress(creatorAddr);
 
       const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("envelopeNotReady"));
+      const scope = await resolveOperationScope(creatorHash, contractHash);
+      if (!scope) throw new Error(t("transactionRecoveryUnavailable"));
+      assertNoStoredOperation(scope);
+      assertDurableRecovery(scope);
 
       const durationSeconds = Math.round(expiryValue * 3600);
 
@@ -667,30 +1269,81 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
           await app.chain.readRaw("creditOf", [app.chain.arg.hash160(creatorHash)]),
         );
       } catch {
-        credit = 0n;
+        // Never assume zero after a failed read: doing so could deposit the
+        // full amount on top of existing prepaid credit.
+        throw new Error(t("chainReadUnavailable"));
       }
 
       if (credit < totalBase) {
-        // Wait for the contract's "Credited" event so the deposit is confirmed
-        // in a block before createEnvelope consumes it — an unconfirmed deposit
-        // lets the create execute first and fault on "insufficient deposit
-        // credit" with the funds already in flight.
-        await app.chain.invoke(
-          "transfer",
-          [
-            app.chain.arg.hash160(creatorHash),
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer((totalBase - credit).toString()),
-            app.chain.arg.string(CREATE_MEMO),
-          ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
-        );
+        const shortfall = totalBase - credit;
+        const depositInput = {
+          phase: "deposit" as const,
+          amountBase: shortfall.toString(),
+          creditBeforeBase: credit.toString(),
+          targetCreditBase: totalBase.toString(),
+        };
+        let depositResult;
+        try {
+          depositResult = await app.chain.invoke(
+            "transfer",
+            [
+              app.chain.arg.hash160(creatorHash),
+              app.chain.arg.hash160(contractHash),
+              app.chain.arg.integer(shortfall.toString()),
+              app.chain.arg.string(CREATE_MEMO),
+            ],
+            {
+              scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+              waitForEvent: "Credited",
+              onTransactionSent: (txid) => {
+                persistBroadcast(scope, depositInput, txid);
+              },
+            },
+          );
+        } catch (error) {
+          if (operationStore.get(scope)?.phase === "deposit") {
+            throw pendingConfirmationError();
+          }
+          throw error;
+        }
+        const depositOperation =
+          operationStore.get(scope) ??
+          persistBroadcast(scope, depositInput, depositResult.txid);
+        if (!depositOperation) throw new Error(t("transactionRecoveryUnavailable"));
+        const depositEvent = await exactEvent(depositResult, "Credited");
+        await assertTransactionDidNotFault(scope, depositOperation, depositEvent);
+        const depositConfirmation = await confirmOperation(depositOperation, depositEvent);
+        if (!depositConfirmation.confirmed) throw pendingConfirmationError();
+        clearOperation(scope);
       }
 
       // Step 2: createEnvelope — consumes the prepaid credit and opens the
       // envelope. If this fails the credit persists on the contract under the
       // creator and is reusable on the next create (or withdrawable).
       try {
+        let creatorCountBefore: number;
+        try {
+          creatorCountBefore = Number(
+            toBigInt(
+              await app.chain.readRaw("creatorEnvelopeCount", [
+                app.chain.arg.hash160(creatorHash),
+              ]),
+            ),
+          );
+        } catch {
+          throw new Error(t("transactionRecoveryUnavailable"));
+        }
+        if (!Number.isSafeInteger(creatorCountBefore) || creatorCountBefore < 0) {
+          throw new Error(t("transactionRecoveryUnavailable"));
+        }
+
+        const createInput = {
+          phase: "create" as const,
+          amountBase: totalBase.toString(),
+          packetCount: Math.trunc(packetCount),
+          durationSeconds,
+          creatorCountBefore,
+        };
         const result = await app.chain.invoke(
           "createEnvelope",
           [
@@ -699,16 +1352,36 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
             app.chain.arg.integer(Math.trunc(packetCount)),
             app.chain.arg.integer(durationSeconds),
           ],
-          { waitForEvent: "EnvelopeCreated" },
+          {
+            waitForEvent: "EnvelopeCreated",
+            onTransactionSent: (txid) => {
+              persistBroadcast(scope, createInput, txid);
+            },
+          },
         );
-
-        // OnEnvelopeCreated(envId, creator, total, packets, expiry) — envId is
-        // state index 0. Capture it so the UI can show a share affordance (the
-        // distribution journey the product is named for). When the event wait
-        // times out the id stays empty and the share card is simply not shown.
-        const envId = parseBigInt(eventValue(result.event, 0));
-        lastCreatedEnvelopeId.set(envId > 0n ? envId.toString() : "");
+        const createOperation =
+          operationStore.get(scope) ?? persistBroadcast(scope, createInput, result.txid);
+        if (!createOperation) throw new Error(t("transactionRecoveryUnavailable"));
+        const createEvent = await exactEvent(result, "EnvelopeCreated");
+        await assertTransactionDidNotFault(scope, createOperation, createEvent);
+        const confirmation = await confirmOperation(createOperation, createEvent);
+        if (!confirmation.confirmed || !confirmation.envelopeId) {
+          throw pendingConfirmationError();
+        }
+        clearOperation(scope);
+        lastCreatedEnvelopeId.set(confirmation.envelopeId);
       } catch (createErr) {
+        if (
+          createErr instanceof Error &&
+          (createErr.message === t("transactionConfirmationPending") ||
+            createErr.message === t("transactionRecoveryUnavailable") ||
+            createErr.message === t("transactionExecutionFailed"))
+        ) {
+          throw createErr;
+        }
+        if (operationStore.get(scope)?.phase === "create") {
+          throw pendingConfirmationError();
+        }
         console.error(
           "[useRedEnvelope] createEnvelope failed after deposit succeeded:",
           createErr instanceof Error ? createErr.message : String(createErr),
@@ -718,10 +1391,10 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
       }
 
       await loadEnvelopes();
-    } catch (e) {
-      throw e;
+      return { envelopeId: lastCreatedEnvelopeId.get() };
     } finally {
       isLoading.set(false);
+      endFinancialAction("create");
     }
   };
 
@@ -730,59 +1403,85 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
    *
    * claim(envelopeId, claimer) draws a random share and pays the claimer
    * atomically in the same tx. The won share is read from the "Claimed" event
-   * (state[2] = share), falling back to claimedAmount(envId, claimer). Guards
-   * against a re-claim via hasClaimed before signing. Returns the share in human
-   * GAS (already converted from base units).
+   * (state[2] = share), or from authoritative hasClaimed + claimedAmount
+   * readback for this exact envelope/account. Guards against a re-claim via
+   * hasClaimed before signing. Returns the share in human GAS.
    */
-  const claimEnvelope = async (envelopeId: string): Promise<{ amount: number }> => {
-    const id = String(envelopeId ?? "").trim();
+  const claimEnvelope = async (
+    envelopeId: string,
+  ): Promise<{ amount: number; amountBase: bigint }> => {
+    const id = normalizeRedEnvelopeId(envelopeId);
     if (!id) throw new Error(t("envelopeIdRequired"));
+    beginFinancialAction("claim");
+    try {
+      await assertCompatibleContract();
 
-    const claimerAddr = address.get() || (await app.chain.ensureWallet());
-    const claimerHash = addressToScriptHash(claimerAddr || "");
-    if (!claimerAddr || !claimerHash) throw new Error(t("walletNotConnected"));
-    setAddress(claimerAddr);
+      const claimerAddr = address.get();
+      const claimerHash = addressToScriptHash(claimerAddr || "");
+      if (!claimerAddr || !claimerHash) throw new Error(t("walletNotConnected"));
+      setAddress(claimerAddr);
+
+    const contractHash = app.chain.contractAddress.get();
+    if (!contractHash) throw new Error(t("envelopeNotReady"));
+    const scope = await resolveOperationScope(claimerHash, contractHash);
+    if (!scope) throw new Error(t("transactionRecoveryUnavailable"));
+    assertNoStoredOperation(scope);
+    assertDurableRecovery(scope);
 
     // Re-claim guard: one claim per address per envelope (the contract enforces
     // this too, but surface a clean message before prompting the wallet).
+    let already: unknown;
     try {
-      const already = await app.chain.readRaw("hasClaimed", [
+      already = await app.chain.readRaw("hasClaimed", [
         app.chain.arg.integer(id),
         app.chain.arg.hash160(claimerHash),
       ]);
-      if (already) throw new Error(t("alreadyOpened"));
-    } catch (e) {
-      // A read failure must not block a legitimate claim; only the explicit
-      // "already claimed" signal short-circuits.
-      if (e instanceof Error && e.message === t("alreadyOpened")) throw e;
+    } catch {
+      throw new Error(t("claimEligibilityUnavailable"));
     }
+    if (chainBoolean(already)) throw new Error(t("alreadyOpened"));
 
-    const result = await app.chain.invoke(
-      "claim",
-      [
-        app.chain.arg.integer(id),
-        app.chain.arg.hash160(claimerHash),
-      ],
-      { waitForEvent: "Claimed" },
-    );
-
-    // OnClaimed(id, claimer, share, remainingPackets) — share is state index 2.
-    let shareBase = parseBigInt(eventValue(result.event, 2));
-    if (shareBase <= 0n) {
-      // Event unavailable / unparsed — read the recorded share back.
-      try {
-        shareBase = parseBigInt(
-          await app.chain.readRaw("claimedAmount", [
-            app.chain.arg.integer(id),
-            app.chain.arg.hash160(claimerHash),
-          ]),
-        );
-      } catch {
-        shareBase = 0n;
+    const claimInput = {
+      phase: "claim" as const,
+      amountBase: "0", // actual random share is learned only after confirmation
+      envelopeId: id,
+    };
+    let result;
+    try {
+      result = await app.chain.invoke(
+        "claim",
+        [
+          app.chain.arg.integer(id),
+          app.chain.arg.hash160(claimerHash),
+        ],
+        {
+          waitForEvent: "Claimed",
+          onTransactionSent: (txid) => {
+            persistBroadcast(scope, claimInput, txid);
+          },
+        },
+      );
+    } catch (error) {
+      if (operationStore.get(scope)?.phase === "claim") {
+        throw pendingConfirmationError();
       }
+      throw error;
     }
-
-    return { amount: fromFixed8(shareBase) };
+    const operation =
+      operationStore.get(scope) ?? persistBroadcast(scope, claimInput, result.txid);
+    if (!operation) throw new Error(t("transactionRecoveryUnavailable"));
+    const event = await exactEvent(result, "Claimed");
+    await assertTransactionDidNotFault(scope, operation, event);
+    const confirmation = await confirmOperation(operation, event);
+    const shareBase = confirmation.amountBase ?? 0n;
+    if (!confirmation.confirmed || shareBase <= 0n) {
+      throw pendingConfirmationError();
+    }
+      clearOperation(scope);
+      return { amount: fromFixed8(shareBase), amountBase: shareBase };
+    } finally {
+      endFinancialAction("claim");
+    }
   };
 
   /**
@@ -795,9 +1494,15 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
    * envelope, and the prepaid credit is untouched by claims).
    */
   const handleClaimFromPool = async (envelopeId: string) => {
-    if (openingId.get()) return;
+    if (openingId.get() || isLoading.get() || isRecovering.get()) {
+      throw new Error(t("operationBusy"));
+    }
 
     try {
+      // A fresh attempt must not inherit an earlier success overlay. If the
+      // wallet rejects or the invocation fails, the result remains empty and
+      // the same claim can be retried after openingId is cleared in finally.
+      luckyMessage.set(null);
       openingId.set(envelopeId);
       const result = await claimEnvelope(envelopeId);
 
@@ -815,22 +1520,7 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
       const claimerAddr = address.get();
       const claimerHash = claimerAddr ? addressToScriptHash(claimerAddr) || "" : "";
       if (claimerHash) {
-        const claimId = `${envelopeId}:${claimerHash}`;
-        if (!claims.get().some((item) => item.id === claimId)) {
-          claims.set(
-            [
-              {
-                id: claimId,
-                poolId: envelopeId,
-                holder: claimerHash,
-                amount: result.amount,
-                opened: true,
-                message: "",
-              },
-              ...claims.get(),
-            ].sort((a, b) => Number(b.poolId) - Number(a.poolId)),
-          );
-        }
+        recordClaimLocally(envelopeId, claimerHash, result.amountBase);
       }
     } finally {
       openingId.set(null);
@@ -841,39 +1531,103 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
    * Reclaim the unclaimed remainder of the creator's OWN expired envelope via
    * reclaim(envelopeId, creator). The contract pays the remainder straight back
    * to the creator's wallet and deactivates the envelope. Returns the reclaimed
-   * amount in human GAS (from the "Reclaimed" event, state[2] = amount, falling
-   * back to the locally known remainder when the event wait times out).
+   * amount in human GAS only after the matching event, or after the same expired
+   * envelope authoritatively reads inactive with zero remaining. The UI's local
+   * remainder is never accepted as proof.
    */
   const reclaimEnvelope = async (envelopeId: string): Promise<{ amount: number }> => {
-    const id = String(envelopeId ?? "").trim();
+    const id = normalizeRedEnvelopeId(envelopeId);
     if (!id) throw new Error(t("envelopeIdRequired"));
-    if (isLoading.get()) return { amount: 0 };
+    if (isLoading.get() || openingId.get() || isRecovering.get()) {
+      throw new Error(t("operationBusy"));
+    }
 
+    beginFinancialAction("reclaim");
     isLoading.set(true);
     try {
-      const creatorAddr = address.get() || (await app.chain.ensureWallet());
+      await assertCompatibleContract();
+      const creatorAddr = address.get();
       const creatorHash = addressToScriptHash(creatorAddr || "");
       if (!creatorAddr || !creatorHash) throw new Error(t("walletNotConnected"));
       setAddress(creatorAddr);
 
-      const result = await app.chain.invoke(
-        "reclaim",
-        [
-          app.chain.arg.integer(id),
-          app.chain.arg.hash160(creatorHash),
-        ],
-        { waitForEvent: "Reclaimed" },
-      );
+      const contractHash = app.chain.contractAddress.get();
+      if (!contractHash) throw new Error(t("envelopeNotReady"));
+      const scope = await resolveOperationScope(creatorHash, contractHash);
+      if (!scope) throw new Error(t("transactionRecoveryUnavailable"));
+      assertNoStoredOperation(scope);
+      assertDurableRecovery(scope);
 
-      // OnReclaimed(id, creator, amount) — amount is state index 2.
-      const amountBase = parseBigInt(eventValue(result.event, 2));
-      const local = envelopes.get().find((item) => item.id === id);
-      const amount = amountBase > 0n ? fromFixed8(amountBase) : local?.remainingAmount ?? 0;
+      // Capture the exact pre-reclaim remainder. A missing event can only be
+      // recovered if the same envelope later reads inactive with zero left;
+      // never substitute a stale UI amount.
+      const raw = await app.chain.readRaw("getEnvelope", [app.chain.arg.integer(id)]);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new Error(t("envelopeNotReady"));
+      }
+      const envelope = raw as Record<string, unknown>;
+      const expectedAmount = toBigInt(envelope.remainingAmount);
+      const expiryTime = Number(envelope.expiryTime ?? 0);
+      const openedCountBefore = Number(toBigInt(envelope.openedCount));
+      const packetCount = Number(toBigInt(envelope.packetCount));
+      if (
+        !accountMatches(envelope.creator, creatorHash) ||
+        !chainBoolean(envelope.active) ||
+        expectedAmount <= 0n ||
+        !Number.isSafeInteger(openedCountBefore) ||
+        openedCountBefore < 0 ||
+        !Number.isSafeInteger(packetCount) ||
+        packetCount <= openedCountBefore ||
+        !Number.isFinite(expiryTime) ||
+        expiryTime <= 0 ||
+        Date.now() < expiryTime
+      ) {
+        throw new Error(t("envelopeNotReclaimable"));
+      }
+
+      const reclaimInput = {
+        phase: "reclaim" as const,
+        envelopeId: id,
+        amountBase: expectedAmount.toString(),
+        openedCountBefore,
+        packetCount,
+      };
+      let result;
+      try {
+        result = await app.chain.invoke(
+          "reclaim",
+          [
+            app.chain.arg.integer(id),
+            app.chain.arg.hash160(creatorHash),
+          ],
+          {
+            waitForEvent: "Reclaimed",
+            onTransactionSent: (txid) => {
+              persistBroadcast(scope, reclaimInput, txid);
+            },
+          },
+        );
+      } catch (error) {
+        if (operationStore.get(scope)?.phase === "reclaim") {
+          throw pendingConfirmationError();
+        }
+        throw error;
+      }
+      const operation =
+        operationStore.get(scope) ?? persistBroadcast(scope, reclaimInput, result.txid);
+      if (!operation) throw new Error(t("transactionRecoveryUnavailable"));
+      const event = await exactEvent(result, "Reclaimed");
+      await assertTransactionDidNotFault(scope, operation, event);
+      const confirmation = await confirmOperation(operation, event);
+      if (!confirmation.confirmed) throw pendingConfirmationError();
+      clearOperation(scope);
+      const amount = fromFixed8(confirmation.amountBase ?? expectedAmount);
 
       await loadEnvelopes();
       return { amount };
     } finally {
       isLoading.set(false);
+      endFinancialAction("reclaim");
     }
   };
 
@@ -885,14 +1639,25 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
    * event, state[1] = amount).
    */
   const withdrawCredit = async (): Promise<{ amount: number }> => {
-    if (isLoading.get()) return { amount: 0 };
+    if (isLoading.get() || openingId.get() || isRecovering.get()) {
+      throw new Error(t("operationBusy"));
+    }
 
+    beginFinancialAction("withdraw");
     isLoading.set(true);
     try {
-      const accountAddr = address.get() || (await app.chain.ensureWallet());
+      await assertCompatibleContract();
+      const accountAddr = address.get();
       const accountHash = addressToScriptHash(accountAddr || "");
       if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
       setAddress(accountAddr);
+
+      const contractHash = app.chain.contractAddress.get();
+      if (!contractHash) throw new Error(t("envelopeNotReady"));
+      const scope = await resolveOperationScope(accountHash, contractHash);
+      if (!scope) throw new Error(t("transactionRecoveryUnavailable"));
+      assertNoStoredOperation(scope);
+      assertDurableRecovery(scope);
 
       // Read the live credit first — the contract reverts "no credit" on an
       // empty balance, so surface a clean message before prompting the wallet.
@@ -902,31 +1667,73 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
           await app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
         );
       } catch {
-        credit = 0n;
+        throw new Error(t("chainReadUnavailable"));
       }
       if (credit <= 0n) throw new Error(t("noCredit"));
 
-      const result = await app.chain.invoke(
-        "withdraw",
-        [app.chain.arg.hash160(accountHash)],
-        { waitForEvent: "CreditWithdrawn" },
-      );
-
-      // OnCreditWithdrawn(account, amount) — amount is state index 1.
-      const amountBase = parseBigInt(eventValue(result.event, 1));
-      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+      const withdrawInput = {
+        phase: "withdraw" as const,
+        amountBase: credit.toString(),
+      };
+      let result;
+      try {
+        result = await app.chain.invoke(
+          "withdraw",
+          [app.chain.arg.hash160(accountHash)],
+          {
+            waitForEvent: "CreditWithdrawn",
+            onTransactionSent: (txid) => {
+              persistBroadcast(scope, withdrawInput, txid);
+            },
+          },
+        );
+      } catch (error) {
+        if (operationStore.get(scope)?.phase === "withdraw") {
+          throw pendingConfirmationError();
+        }
+        throw error;
+      }
+      const operation =
+        operationStore.get(scope) ?? persistBroadcast(scope, withdrawInput, result.txid);
+      if (!operation) throw new Error(t("transactionRecoveryUnavailable"));
+      const event = await exactEvent(result, "CreditWithdrawn");
+      await assertTransactionDidNotFault(scope, operation, event);
+      const confirmation = await confirmOperation(operation, event);
+      if (!confirmation.confirmed) throw pendingConfirmationError();
+      clearOperation(scope);
+      const amount = fromFixed8(confirmation.amountBase ?? credit);
 
       await loadEnvelopes();
       return { amount };
     } finally {
       isLoading.set(false);
+      endFinancialAction("withdraw");
     }
   };
 
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
-    setAddress(app.chain.address.get() ?? null);
+    // Some wallet bridges resolve ensureWallet() a tick before their address
+    // observable updates. Preserve the explicitly connected identity instead
+    // of briefly overwriting it with null during the connect-only action.
+    setAddress(app.chain.address.get() ?? address.get() ?? null);
+    const compatible = await refreshContractCompatibility();
+    if (!compatible) {
+      transactionNotice.set(t("contractCompatibilityUnproven"));
+      envelopes.set([]);
+      pools.set([]);
+      claims.set([]);
+      prepaidCredit.set(0);
+      return;
+    }
+    await recoverPendingOperation();
+    const canCreate = createAvailable.get();
+    if (!canCreate && !pendingOperation.get() && !transactionNotice.get()) {
+      transactionNotice.set(t("createContractUpgradeRequired"));
+    } else if (canCreate && transactionNotice.get() === t("createContractUpgradeRequired")) {
+      transactionNotice.set("");
+    }
     await loadEnvelopes();
   };
 
@@ -937,6 +1744,13 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
     pools,
     loadingEnvelopes,
     isLoading,
+    isRecovering,
+    pendingOperation,
+    transactionNotice,
+    serviceNotice,
+    createAvailable,
+    contractCompatible,
+    activeNetwork,
     luckyMessage,
     openingId,
     address,
@@ -950,6 +1764,7 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
     isConnected,
     isOpening,
     hasCredit,
+    hasPendingOperation,
 
     // Preview
     previewDistribution,
@@ -965,6 +1780,8 @@ export function useRedEnvelope({ app, t }: UseRedEnvelopeOptions) {
     claimEnvelope,
     reclaimEnvelope,
     withdrawCredit,
+    recoverPendingOperation,
+    refreshContractCompatibility,
 
     // Lifecycle
     loadAll,

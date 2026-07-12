@@ -10,11 +10,15 @@ import {
   CalendarDays,
   CheckCircle2,
   DoorOpen,
+  ExternalLink,
+  Gift,
   IdCard,
   MapPin,
   QrCode,
   RefreshCw,
   Send,
+  ShieldAlert,
+  ShieldCheck,
   Ticket,
   UserPlus,
   WalletCards,
@@ -23,8 +27,17 @@ import {
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextArea as OpenUiTextArea,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
 import TokenQr from "./components/TokenQr";
+import { explorerTxUrl } from "./utils/explorer";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -54,6 +67,7 @@ interface TicketItem {
   owner?: string;
   used?: boolean;
   checkedIn?: boolean;
+  active?: boolean;
   [k: string]: unknown;
 }
 
@@ -132,10 +146,13 @@ function ticketId(ticket: TicketItem | null | undefined) {
   return String(ticket?.tokenId ?? ticket?.id ?? "");
 }
 
+function isTicketTokenId(value: string) {
+  return /^\d+-\d+$/.test(value.trim());
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
-  const eventsCount = num("eventsCount");
   const ticketsCount = num("ticketsCount");
   const activeEventsCount = num("activeEventsCount");
   const address = str("address");
@@ -154,12 +171,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const transferRecipient = str("transferRecipient");
   const workflowStatus = str("workflowStatus", t("ready"));
   const lastError = str("lastError");
+  const ticketsVerification = str("ticketsVerification", "wallet");
+  const ticketsExpectedCount = num("ticketsExpectedCount");
+  const gateTicketsVerification = str("gateTicketsVerification", "event");
+  const gateTicketsExpectedCount = num("gateTicketsExpectedCount");
+  const runtimeStatus = str("runtimeStatus", "wallet");
+  const runtimeMessage = str("runtimeMessage", t("runtimeConnectWallet"));
+  const activeNetwork = str("activeNetwork");
+  const pendingOperation = val<Record<string, unknown> | null>("pendingOperation");
   const isLoading = bool("isLoading");
+  const isConnecting = bool("isConnecting");
   const isCreating = bool("isCreating");
   const isIssuing = bool("isIssuing");
   const isCheckingIn = bool("isCheckingIn");
   const isLookingUp = bool("isLookingUp");
   const isTransferring = bool("isTransferring");
+  const isRefreshingGateTickets = bool("isRefreshingGateTickets");
+  const isRefreshingDiscovery = bool("isRefreshingDiscovery");
+  const isRecovering = bool("isRecovering");
+  const togglingId = str("togglingId");
   const canIssueTicket = bool("canIssueTicket");
   const canCheckInTicket = bool("canCheckInTicket");
   const canTransferTicket = bool("canTransferTicket");
@@ -168,9 +198,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const latestRequest = val<Record<string, unknown> | null>("latestRequest");
   const latestResult = val<Record<string, unknown> | null>("latestResult");
   const eventsValue = val("events");
+  const discoveredEventsValue = val("discoveredEvents");
   const ticketsValue = val("tickets");
+  const gateTicketsValue = val("gateTickets");
   const events = useMemo(() => (eventsValue ?? []) as EventItem[], [eventsValue]);
+  const discoveredEvents = useMemo(
+    () => (discoveredEventsValue ?? []) as EventItem[],
+    [discoveredEventsValue],
+  );
   const tickets = useMemo(() => (ticketsValue ?? []) as TicketItem[], [ticketsValue]);
+  const gateTickets = useMemo(
+    () => (gateTicketsValue ?? []) as TicketItem[],
+    [gateTicketsValue],
+  );
   const lookupTicket = lookupValue && typeof lookupValue === "object" ? lookupValue : null;
 
   const [mode, setMode] = useState<DeskMode>(() => (events.length > 0 ? "issue" : "create"));
@@ -179,29 +219,47 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [customDetailsOpen, setCustomDetailsOpen] = useState(false);
 
   const selectedEventMatchesId = selectedEvent && (!selectedEventId || String(selectedEvent.id) === selectedEventId);
-  const activeEvent = (selectedEventMatchesId ? selectedEvent : events.find((event) => String(event.id) === selectedEventId)) ?? events[0] ?? null;
+  const catalogEvents = discoveredEvents.length > 0 ? discoveredEvents : events;
+  const activeEvent =
+    (selectedEventMatchesId
+      ? selectedEvent
+      : events.find((event) => String(event.id) === selectedEventId) ??
+        catalogEvents.find((event) => String(event.id) === selectedEventId)) ??
+    catalogEvents[0] ??
+    events[0] ??
+    null;
+  const activeEventIsOwned = Boolean(
+    activeEvent && events.some((event) => String(event.id) === String(activeEvent.id)),
+  );
   const activeTicket = tickets[0] ?? null;
-  const checkinTicket = lookupTicket ?? tickets.find((ticket) => ticketId(ticket) === checkinTokenId) ?? null;
-  const guestWallets = useMemo(() => {
-    const seen = new Set<string>();
-    const wallets: string[] = [];
-    for (const ticket of tickets) {
-      const owner = String(ticket.owner ?? "").trim();
-      if (!owner || seen.has(owner)) continue;
-      seen.add(owner);
-      wallets.push(owner);
-      if (wallets.length >= 4) break;
-    }
-    return wallets;
-  }, [tickets]);
-  const busy = isLoading || isCreating || isIssuing || isCheckingIn || isLookingUp || isTransferring;
-  const passName = eventTitle(activeEvent, eventName || t("eventNamePlaceholder"));
-  const passVenue = String(activeEvent?.venue ?? eventVenue ?? t("eventVenuePlaceholder"));
-  const passDate = formatEventDate(activeEvent?.startTime, eventStart || t("eventStartPlaceholder"));
-  const selectedToken = ticketId(activeTicket) || checkinTokenId || "1-001";
+  const checkinTicket =
+    lookupTicket ??
+    gateTickets.find((ticket) => ticketId(ticket) === checkinTokenId) ??
+    tickets.find((ticket) => ticketId(ticket) === checkinTokenId) ??
+    null;
+  const displayTicket = checkinTicket ?? activeTicket;
+  const busy = isLoading || isConnecting || isCreating || isIssuing || isCheckingIn || isLookingUp || isTransferring || Boolean(togglingId) || isRefreshingDiscovery || isRefreshingGateTickets || isRecovering;
+  const runtimeReady = runtimeStatus === "ready";
+  const hasPendingOperation = Boolean(pendingOperation);
+  const passName = String(displayTicket?.eventName ?? eventTitle(activeEvent, eventName || t("eventNamePlaceholder")));
+  const passVenue = String(displayTicket?.venue ?? activeEvent?.venue ?? eventVenue ?? t("eventVenuePlaceholder"));
+  const passDate = formatEventDate(displayTicket?.startTime ?? activeEvent?.startTime, eventStart || t("eventStartPlaceholder"));
+  const selectedToken = ticketId(displayTicket);
+  const passSeat = String(displayTicket?.seat ?? issueSeat ?? t("seatFallback"));
   const sceneState = isCheckingIn || isLookingUp ? "scanning" : isIssuing ? "issuing" : isCreating ? "publishing" : "idle";
   const hasLiveEvent = Boolean(activeEvent);
   const hasTransferContext = tickets.length > 0 || transferTokenId.trim().length > 0 || transferRecipient.trim().length > 0;
+  const ticketsAreVerified = ticketsVerification === "verified";
+  const ticketsArePartial = ticketsVerification === "partial";
+  const ticketsScore = ticketsAreVerified
+    ? String(ticketsCount)
+    : ticketsExpectedCount > 0
+      ? `${ticketsCount}/${ticketsExpectedCount}`
+      : "—";
+  const latestTxid = String(latestResult?.txid ?? "").trim();
+  const latestExplorerUrl = explorerTxUrl(latestTxid);
+  const checkinTokenHasValue = checkinTokenId.trim().length > 0;
+  const checkinTokenFormatValid = isTicketTokenId(checkinTokenId);
   const eventDraftPayload = {
     eventName: eventName.trim(),
     eventVenue: eventVenue.trim(),
@@ -265,6 +323,33 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const primaryAction = (() => {
+    if (!address) {
+      return {
+        label: t("connectWallet"),
+        onClick: () => void dispatch("connectWallet"),
+        disabled: busy,
+        loading: isConnecting || isLoading,
+        hint: t("connectWalletHint"),
+      };
+    }
+    if (hasPendingOperation) {
+      return {
+        label: isRecovering ? t("recoveringPending") : t("recoverPending"),
+        onClick: () => void dispatch("recoverPending"),
+        disabled: busy,
+        loading: isRecovering,
+        hint: t("pendingOperationHint"),
+      };
+    }
+    if (!runtimeReady) {
+      return {
+        label: runtimeStatus === "checking" ? t("runtimeChecking") : t("retryRuntimeCheck"),
+        onClick: () => void dispatch("connectWallet"),
+        disabled: busy,
+        loading: runtimeStatus === "checking",
+        hint: runtimeMessage,
+      };
+    }
     if (mode === "create") {
       return {
         label: isCreating ? t("creatingEvent") : t("createEvent"),
@@ -279,13 +364,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         onClick: () => void dispatch("checkInTicket", checkinPayload),
         disabled: busy || !canCheckInTicket,
         loading: isCheckingIn,
+        hint: !checkinTokenFormatValid
+          ? t("invalidTokenIdHint")
+          : !canCheckInTicket
+            ? t("lookupBeforeCheckin")
+            : undefined,
       };
     }
     return {
       label: isIssuing ? t("issuing") : t("issueTicket"),
       onClick: () => void dispatch("issueTicket", issuePayload),
-      disabled: busy || !canIssueTicket,
+      disabled: busy || !canIssueTicket || !activeEventIsOwned,
       loading: isIssuing,
+      hint: !hasLiveEvent
+        ? t("modeOperateDisabled")
+        : !activeEventIsOwned
+          ? t("invitationOnlyHint")
+          : !canIssueTicket
+            ? t("invalidRecipient")
+            : undefined,
     };
   })();
 
@@ -293,20 +390,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="ticket-scene" data-state={sceneState}>
       <div className="ticket-scene__phone" aria-hidden="true">
         <QrCode size={34} />
-        <span>{selectedToken}</span>
+        <span>{selectedToken || t("previewTokenLabel")}</span>
       </div>
 
-      <article className="ticket-pass" aria-label={passName}>
+      <article
+        className="ticket-pass"
+        aria-label={passName}
+        data-provenance={displayTicket ? "verified-ticket" : hasLiveEvent ? "onchain-event" : "preview"}
+      >
         <img className="ticket-pass__texture" src={PASS_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
         <div className="ticket-pass__main">
-          <span className="ticket-pass__eyebrow">{t("eventPass")}</span>
+          <span className="ticket-pass__eyebrow">{displayTicket ? t("verifiedTicket") : hasLiveEvent ? t("eventPass") : t("passPreview")}</span>
           <strong>{passName}</strong>
           <span><MapPin size={14} /> {passVenue}</span>
           <span><CalendarDays size={14} /> {passDate}</span>
         </div>
         <div className="ticket-pass__stub">
-          <span>{t("sampleAdmitOne")}</span>
-          <strong>{issueSeat || activeTicket?.seat || t("seatFallback")}</strong>
+          {selectedToken ? (
+            <>
+              <TokenQr value={selectedToken} size={86} label={t("ticketQrLabel")} />
+              <span className="ticket-pass__token-id">{selectedToken}</span>
+              <strong>{passSeat || t("seatFallback")}</strong>
+            </>
+          ) : (
+            <>
+              <span>{t("sampleAdmitOne")}</span>
+              <strong>{passSeat || t("seatFallback")}</strong>
+            </>
+          )}
         </div>
         <span className="ticket-pass__scanline" aria-hidden="true" />
       </article>
@@ -319,13 +430,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <span className={["ticket-gate__step", mode === "checkin" ? "ticket-gate__step--active" : null].filter(Boolean).join(" ")}><DoorOpen size={15} />{t("studioStepCheckin")}</span>
       </div>
 
-      <p className="ticket-scene__status" aria-live="polite">{workflowStatus}</p>
+      <div className="ticket-scene__footer">
+        <p className="ticket-scene__status" aria-live="polite">{workflowStatus}</p>
+        <span
+          className={runtimeReady ? "ticket-runtime-chip ticket-runtime-chip--ready" : "ticket-runtime-chip"}
+          data-state={hasPendingOperation ? "pending" : runtimeStatus}
+        >
+          {runtimeReady && !hasPendingOperation ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+          {hasPendingOperation
+            ? t("transactionPending")
+            : runtimeMessage || t("runtimeUnavailable")}
+        </span>
+        <span
+          className={ticketsAreVerified ? "ticket-trust-chip ticket-trust-chip--verified" : "ticket-trust-chip"}
+          data-state={ticketsVerification}
+        >
+          {ticketsAreVerified ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
+          {ticketsAreVerified
+            ? t("walletPassesVerified")
+            : ticketsArePartial
+              ? t("walletPassesPartial", { verified: ticketsCount, total: ticketsExpectedCount })
+              : ticketsVerification === "loading"
+                ? t("walletPassesLoading")
+                : address
+                  ? t("walletPassesUnavailable")
+                  : t("walletPassesConnect")}
+        </span>
+      </div>
     </div>
   );
 
   const eventCards = (
-    <div className="ticket-event-rail" aria-label={t("eventsCountLabel", { count: eventsCount })}>
-      {events.slice(0, 6).map((event) => {
+    <div className="ticket-event-rail" aria-label={t("discoveredEventsCount", { count: catalogEvents.length })}>
+      {catalogEvents.slice(0, 6).map((event) => {
         const active = String(activeEvent?.id) === String(event.id);
         return (
           <button
@@ -347,7 +484,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </button>
         );
       })}
-      {events.length === 0 && (
+      {catalogEvents.length === 0 && (
         <button type="button" className="ticket-event-card ticket-event-card--empty" onClick={() => setMode("create")}>
           <span className="ticket-event-card__icon"><Wand2 size={18} /></span>
           <span className="ticket-event-card__copy">
@@ -362,6 +499,42 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const modePanel = (
     <div className="ticket-desk">
       {lastError && <p className="ticket-desk__error" role="alert">{lastError}</p>}
+      {hasPendingOperation && (
+        <div className="ticket-pending-recovery" role="status">
+          <span><ShieldAlert size={17} /></span>
+          <div>
+            <strong>{t("pendingOperationTitle")}</strong>
+            <p>{t("pendingOperationHint")}</p>
+          </div>
+          <button
+            type="button"
+            className="mx2-btn mx2-btn--ghost"
+            onClick={() => void dispatch("recoverPending")}
+            disabled={busy}
+          >
+            <RefreshCw size={15} />
+            {isRecovering ? t("recoveringPending") : t("recoverPending")}
+          </button>
+        </div>
+      )}
+      <section className="ticket-discovery-strip" aria-labelledby="ticket-discovery-title">
+        <div className="ticket-discovery-strip__head">
+          <div>
+            <strong id="ticket-discovery-title">{t("discoverEvents")}</strong>
+            <span>{t("invitationOnlyHint")}</span>
+          </div>
+          <button
+            type="button"
+            className="ticket-secondary-action"
+            onClick={() => void dispatch("refreshDiscovery")}
+            disabled={busy || !runtimeReady}
+          >
+            <RefreshCw size={14} />
+            {isRefreshingDiscovery ? t("refreshingDiscovery") : t("refresh")}
+          </button>
+        </div>
+        {eventCards}
+      </section>
       <OpenUiSegmented
         className="ticket-mode-switch"
         label={t("studioModeLabel")}
@@ -441,6 +614,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={eventName}
                 onChange={(e) => updateEventDraft("eventName", e.target.value)}
                 placeholder={t("eventNamePlaceholder")}
+                maxLength={60}
                 disabled={busy}
               />
               <OpenUiTextField
@@ -449,6 +623,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={eventVenue}
                 onChange={(e) => updateEventDraft("eventVenue", e.target.value)}
                 placeholder={t("eventVenuePlaceholder")}
+                maxLength={60}
                 disabled={busy}
               />
             </div>
@@ -463,7 +638,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{t("issueTicketTitle")}</strong>
             <span>{activeEvent ? eventTitle(activeEvent, t("eventNamePlaceholder")) : t("modeOperateDisabled")}</span>
           </div>
-          {activeEvent ? (
+          {activeEvent && activeEventIsOwned ? (
             <div className="ticket-guest-lane" aria-label={t("guestLaneLabel")}>
               <OpenUiTextField
                 className="ticket-address-strip"
@@ -471,26 +646,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={issueRecipient}
                 onChange={(e) => state.issueRecipient?.set(e.target.value)}
                 placeholder={t("issueRecipientPlaceholder")}
+                maxLength={34}
                 disabled={busy}
               />
-              {guestWallets.length > 0 && (
-                <div className="ticket-recipient-picks" aria-label={t("recentGuests")}>
-                  <span>{t("recentGuests")}</span>
-                  <div>
-                    {guestWallets.map((wallet) => (
-                      <button
-                        key={wallet}
-                        type="button"
-                        className={issueRecipient === wallet ? "ticket-recipient-chip ticket-recipient-chip--active" : "ticket-recipient-chip"}
-                        onClick={() => state.issueRecipient?.set(wallet)}
-                        disabled={busy}
-                      >
-                        {compactAddress(wallet)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div className="ticket-seat-board">
                 <span className="ticket-seat-board__label">{t("seatLaneLabel")}</span>
                 <div className="ticket-seat-picks" aria-label={t("issueSeat")}>
@@ -513,9 +671,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={issueMemo}
                 onChange={(e) => state.issueMemo?.set(e.target.value)}
                 placeholder={t("issueMemoPlaceholder")}
+                maxLength={160}
                 disabled={busy}
               />
             </div>
+          ) : activeEvent ? (
+            <OpenUiNotice
+              className="ticket-invitation-notice"
+              icon={<Ticket size={17} />}
+              title={t("invitationOnlyTitle")}
+            >
+              {t("invitationOnlyHint")}
+            </OpenUiNotice>
           ) : (
             <div className="ticket-empty-prompt">
               <span className="ticket-empty-prompt__icon"><Ticket size={17} /></span>
@@ -541,20 +708,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               className="ticket-scan-slot"
               label={t("checkinTokenId")}
               value={checkinTokenId}
-              onChange={(e) => state.checkinTokenId?.set(e.target.value)}
+              onChange={(e) => {
+                state.checkinTokenId?.set(e.target.value);
+                state.lookup?.set(null);
+              }}
               placeholder={t("checkinTokenIdPlaceholder")}
+              hint={checkinTokenHasValue && !checkinTokenFormatValid ? t("invalidTokenIdHint") : undefined}
+              aria-invalid={checkinTokenHasValue && !checkinTokenFormatValid}
+              maxLength={32}
               disabled={busy}
             />
-            <button type="button" className="ticket-secondary-action" onClick={() => void dispatch("lookupTicket", checkinPayload)} disabled={busy || !checkinTokenId.trim()}>
+            <button type="button" className="ticket-secondary-action" onClick={() => void dispatch("lookupTicket", checkinPayload)} disabled={busy || !checkinTokenFormatValid}>
               <RefreshCw size={15} />
               {isLookingUp ? t("lookingUp") : t("lookup")}
             </button>
           </div>
-          {tickets.length > 0 ? (
+          {gateTickets.length > 0 ? (
             <div className="ticket-gate-queue" aria-label={t("gateQueueLabel")}>
-              <span className="ticket-gate-queue__label">{t("gateQueueLabel")}</span>
+              <div className="ticket-gate-queue__head">
+                <span className="ticket-gate-queue__label">{t("gateQueueLabel")}</span>
+                <span className="ticket-gate-queue__status" data-state={gateTicketsVerification}>
+                  {gateTicketsVerification === "verified"
+                    ? t("gateQueueVerified", { count: gateTickets.length })
+                    : t("gateQueuePartial", {
+                        shown: gateTickets.length,
+                        total: gateTicketsExpectedCount,
+                      })}
+                </span>
+                <button
+                  type="button"
+                  className="ticket-secondary-action"
+                  onClick={() => void dispatch("refreshGateTickets", String(activeEvent?.id ?? ""))}
+                  disabled={busy || !activeEventIsOwned || !runtimeReady}
+                >
+                  <RefreshCw size={14} />
+                  {isRefreshingGateTickets ? t("refreshingGateQueue") : t("refresh")}
+                </button>
+              </div>
               <div className="ticket-gate-queue__list">
-                {tickets.slice(0, 4).map((ticket) => {
+                {gateTickets.slice(0, 6).map((ticket) => {
                   const id = ticketId(ticket);
                   const used = Boolean(ticket.used ?? ticket.checkedIn);
                   const active = id === checkinTokenId;
@@ -578,22 +770,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 })}
               </div>
             </div>
+          ) : gateTicketsVerification === "loading" ? (
+            <div className="ticket-empty-prompt ticket-empty-prompt--gate" role="status">
+              <span className="ticket-empty-prompt__icon"><RefreshCw size={17} /></span>
+              <div>
+                <strong>{t("refreshingGateQueue")}</strong>
+                <p>{t("gateQueueLoadingHint")}</p>
+              </div>
+            </div>
           ) : (
             <div className="ticket-empty-prompt ticket-empty-prompt--gate">
               <span className="ticket-empty-prompt__icon"><IdCard size={17} /></span>
               <div>
-                <strong>{t("emptyTickets")}</strong>
-                <p>{t("emptyTicketsHint")}</p>
+                <strong>{gateTicketsVerification === "unavailable" ? t("gateQueueUnavailable") : t("gateQueueEmpty")}</strong>
+                <p>{gateTicketsVerification === "unavailable" ? t("gateQueueUnavailableHint") : activeEventIsOwned ? t("gateQueueEmptyHint") : t("gateQueueSelectOwnedEvent")}</p>
+                {activeEventIsOwned && (
+                  <button
+                    type="button"
+                    className="ticket-secondary-action ticket-gate-refresh"
+                    onClick={() => void dispatch("refreshGateTickets", String(activeEvent?.id ?? ""))}
+                    disabled={busy || !runtimeReady}
+                  >
+                    <RefreshCw size={14} />
+                    {t("refresh")}
+                  </button>
+                )}
               </div>
             </div>
           )}
           {checkinTicket && (
-            <div className={["ticket-verdict-card", checkinTicket.used || checkinTicket.checkedIn ? "ticket-verdict-card--used" : null].filter(Boolean).join(" ")}>
+            <div className={["ticket-verdict-card", checkinTicket.used || checkinTicket.checkedIn || checkinTicket.active === false ? "ticket-verdict-card--used" : null].filter(Boolean).join(" ")}>
               <span className="ticket-verdict-card__icon">
-                <CheckCircle2 size={18} />
+                {checkinTicket.used || checkinTicket.checkedIn || checkinTicket.active === false ? <ShieldAlert size={18} /> : <CheckCircle2 size={18} />}
               </span>
               <div className="ticket-verdict-card__copy">
-                <strong>{t("ticketFound")}</strong>
+                <strong>{checkinTicket.used || checkinTicket.checkedIn ? t("ticketAlreadyUsed") : checkinTicket.active === false ? t("eventInactive") : t("ticketFound")}</strong>
                 <span>{String(checkinTicket.eventName ?? ticketId(checkinTicket))}</span>
               </div>
               <dl>
@@ -607,7 +818,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
                 <div>
                   <dt>{t("statusActive")}</dt>
-                  <dd>{checkinTicket.used || checkinTicket.checkedIn ? t("ticketUsed") : t("ticketValid")}</dd>
+                  <dd>{checkinTicket.used || checkinTicket.checkedIn ? t("ticketUsed") : checkinTicket.active === false ? t("statusInactive") : t("ticketValid")}</dd>
                 </div>
               </dl>
             </div>
@@ -627,7 +838,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { id: "event", label: t("eventIdentity"), Icon: Wand2 },
     { id: "issue", label: t("issueTicketTitle"), Icon: UserPlus },
     { id: "tickets", label: t("ticketsTab"), Icon: WalletCards },
-    { id: "events", label: t("sidebarEvents"), Icon: Ticket },
+    { id: "events", label: t("discoverEvents"), Icon: Ticket },
     { id: "transfer", label: t("transferTicket"), Icon: Send },
     { id: "evidence", label: t("evidenceShort"), Icon: IdCard },
   ];
@@ -638,7 +849,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       icon={<Wand2 size={16} />}
       title={t("eventIdentity")}
       subtitle={passName}
-      titleId="ticket-drawer-event"
     >
       <div className="ticket-drawer-fields">
         <OpenUiTextField
@@ -647,6 +857,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           value={eventName}
           onChange={(e) => updateEventDraft("eventName", e.target.value)}
           placeholder={t("eventNamePlaceholder")}
+          maxLength={60}
           disabled={busy}
         />
         <OpenUiTextField
@@ -655,6 +866,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           value={eventVenue}
           onChange={(e) => updateEventDraft("eventVenue", e.target.value)}
           placeholder={t("eventVenuePlaceholder")}
+          maxLength={60}
           disabled={busy}
         />
         <div className="ticket-drawer-grid">
@@ -691,6 +903,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           value={notes}
           onChange={(e) => updateEventDraft("notes", e.target.value)}
           placeholder={t("notesPlaceholder")}
+          maxLength={240}
           disabled={busy}
           rows={2}
         />
@@ -704,7 +917,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       icon={<UserPlus size={16} />}
       title={t("issueTicketTitle")}
       subtitle={activeEvent ? eventTitle(activeEvent, t("eventNamePlaceholder")) : t("modeOperateDisabled")}
-      titleId="ticket-drawer-issue"
     >
       {hasLiveEvent ? (
         <div className="ticket-drawer-fields">
@@ -714,6 +926,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={issueRecipient}
             onChange={(e) => state.issueRecipient?.set(e.target.value)}
             placeholder={t("issueRecipientPlaceholder")}
+            maxLength={34}
             disabled={busy}
           />
           <OpenUiTextField
@@ -722,6 +935,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={issueSeat}
             onChange={(e) => state.issueSeat?.set(e.target.value)}
             placeholder={t("issueSeatPlaceholder")}
+            maxLength={24}
             disabled={busy}
           />
           <OpenUiTextField
@@ -730,6 +944,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={issueMemo}
             onChange={(e) => state.issueMemo?.set(e.target.value)}
             placeholder={t("issueMemoPlaceholder")}
+            maxLength={160}
             disabled={busy}
           />
         </div>
@@ -743,8 +958,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       icon={<WalletCards size={16} />}
       title={t("ticketsTab")}
       subtitle={`${tickets.length} ${t("ticketsCount")}`}
-      titleId="ticket-drawer-tickets"
     >
+      {ticketsVerification !== "verified" && address && (
+        <OpenUiNotice
+          className="ticket-drawer-notice"
+          icon={<ShieldAlert size={17} />}
+          title={ticketsArePartial ? t("walletPassesPartialTitle") : t("walletPassesUnavailable")}
+        >
+          {ticketsArePartial
+            ? t("walletPassesPartial", { verified: ticketsCount, total: ticketsExpectedCount })
+            : t("walletPassesUnavailableHint")}
+        </OpenUiNotice>
+      )}
       {tickets.length > 0 ? (
         <ul className="ticket-list">
           {tickets.slice(0, 8).map((ticket) => {
@@ -757,7 +982,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <span>{String(ticket.seat ?? t("seatFallback"))} · {used ? t("ticketUsed") : t("ticketValid")}</span>
                 </div>
                 {id && <TokenQr value={id} size={64} label={t("ticketQrLabel")} />}
-                <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("copyTokenId", id)} disabled={!id}>{t("copyTokenId")}</button>
+                <div className="ticket-list__actions">
+                  <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("copyTokenId", id)} disabled={!id}>{t("copyTokenId")}</button>
+                  <button
+                    type="button"
+                    className="mx2-btn mx2-btn--ghost"
+                    onClick={() => {
+                      void dispatch("startTransfer", ticket);
+                      setDrawerMode("transfer");
+                    }}
+                    disabled={!id || used || busy}
+                  >
+                    <Gift size={14} />
+                    {t("transferTicket")}
+                  </button>
+                </div>
               </li>
             );
           })}
@@ -770,24 +1009,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <OpenUiPanel
       className="ticket-drawer-panel ticket-drawer-panel--events"
       icon={<Ticket size={16} />}
-      title={t("eventsCountLabel", { count: events.length })}
+      title={t("discoverEvents")}
       subtitle={activeEvent ? eventTitle(activeEvent, t("eventNamePlaceholder")) : t("emptyEvents")}
-      titleId="ticket-drawer-events"
     >
       {eventCards}
-      {events.length > 0 ? (
+      {catalogEvents.length > 0 ? (
         <ul className="mx2-history ticket-drawer-history">
-          {events.slice(0, 8).map((event) => (
+          {catalogEvents.slice(0, 8).map((event) => {
+            const owned = events.some((item) => String(item.id) === String(event.id));
+            return (
             <li key={event.id} className="mx2-history__item">
               <button type="button" className="ticket-event-list__select" onClick={() => selectEvent(event)}>
                 <span className="mx2-history__face">{eventTitle(event, t("eventNamePlaceholder"))}</span>
                 <span className="mx2-history__stake">{displayCount(event.minted)} / {displayCount(event.maxSupply)}</span>
               </button>
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("toggleEvent", event)}>
-                {event.active ? t("deactivate") : t("activate")}
-              </button>
+              {owned ? (
+                <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("toggleEvent", event)} disabled={busy || hasPendingOperation || !runtimeReady}>
+                  {event.active ? t("deactivate") : t("activate")}
+                </button>
+              ) : (
+                <span className="ticket-invitation-label">{t("invitationOnlyShort")}</span>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : <p className="ticket-drawer-empty">{t("emptyEvents")}</p>}
     </OpenUiPanel>
@@ -799,7 +1044,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       icon={<Send size={16} />}
       title={t("transferTicket")}
       subtitle={hasTransferContext ? transferTokenId || t("ticketTokenId") : t("emptyTickets")}
-      titleId="ticket-drawer-transfer"
     >
       {hasTransferContext ? (
         <>
@@ -810,6 +1054,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               value={transferTokenId}
               onChange={(e) => state.transferTokenId?.set(e.target.value)}
               placeholder={t("ticketTokenId")}
+              maxLength={32}
               disabled={busy}
             />
             <OpenUiTextField
@@ -818,6 +1063,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               value={transferRecipient}
               onChange={(e) => state.transferRecipient?.set(e.target.value)}
               placeholder={t("transferRecipientPlaceholder")}
+              maxLength={34}
               disabled={busy}
             />
           </div>
@@ -836,7 +1082,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       icon={<IdCard size={16} />}
       title={t("evidence")}
       subtitle={workflowStatus}
-      titleId="ticket-drawer-evidence"
     >
       <div className="ticket-evidence-grid">
         <div className="ticket-evidence">
@@ -848,6 +1093,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <code>{latestResult ? JSON.stringify(latestResult) : t("resultEmpty")}</code>
         </div>
       </div>
+      {latestExplorerUrl && (
+        <a
+          className="ticket-explorer-link"
+          href={latestExplorerUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <ExternalLink size={14} />
+          {t("viewOnExplorer")}
+        </a>
+      )}
     </OpenUiPanel>
   );
 
@@ -899,15 +1155,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             subtitle: mode === "checkin" ? t("gateDeskSubtitle") : t("studioSubtitle"),
             badges: (
               <>
-                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {eventsCount} {t("sidebarEvents")}</span>
-                <span className="mx2-badge">{address ? compactAddress(address) : t("walletNotConnected")}</span>
+                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {catalogEvents.length} {t("sidebarEvents")}</span>
+                <span className="mx2-badge">{activeNetwork ? `${activeNetwork} · ${compactAddress(address)}` : address ? compactAddress(address) : t("walletNotConnected")}</span>
               </>
             ),
           }}
           scene={<div className="ticket-stage-stack">{scene}{modePanel}</div>}
           score={[
-            { label: t("sidebarEvents"), value: String(eventsCount), accent: true },
-            { label: t("ticketsCount"), value: String(ticketsCount) },
+            { label: t("discoverEvents"), value: String(catalogEvents.length), accent: true },
+            { label: t("ticketsCount"), value: ticketsScore },
             { label: t("active"), value: String(activeEventsCount) },
           ]}
           actions={{ primary: primaryAction }}

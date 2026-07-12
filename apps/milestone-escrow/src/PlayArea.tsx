@@ -2,15 +2,16 @@ import { useState, type ReactElement } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { amountToBaseUnits } from "@shared/utils/amounts";
+import { addressToScriptHash } from "@shared/utils/neo";
 import { CoinArt } from "@shared/art";
 import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
-import { BadgeCheck, Info, ListChecks, LockKeyhole, Plus, Route, ShieldCheck, SlidersHorizontal, UserRound, WalletCards, X } from "lucide-react";
+import { BadgeCheck, CheckCircle2, CircleDollarSign, Clock3, FileCheck2, Info, ListChecks, LockKeyhole, Plus, RefreshCw, Route, ShieldCheck, SlidersHorizontal, UserRound, WalletCards, X } from "lucide-react";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  dispatch: (name: string, ...args: unknown[]) => Promise<unknown>;
 }
 
 interface EscrowItem {
@@ -21,9 +22,12 @@ interface EscrowItem {
   creator?: string;
   assetSymbol?: string;
   totalAmount?: bigint | number;
+  releasedAmount?: bigint | number;
   milestoneAmounts?: Array<bigint | number>;
   milestoneApproved?: boolean[];
   milestoneClaimed?: boolean[];
+  milestoneApprovedTimes?: Array<bigint | number>;
+  notes?: string;
   [key: string]: unknown;
 }
 
@@ -59,7 +63,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
   const hasAddress = Boolean(state.address?.get());
   const contractReady = bool("contractReady");
+  const isLoading = bool("isLoading");
+  const isRefreshing = bool("isRefreshing");
   const isCreating = bool("isCreating");
+  const dataError = str("dataError");
+  const deploymentStatus = str("deploymentStatus");
+  const deploymentMessage = str("deploymentMessage");
+  const deploymentReady = bool("deploymentReady");
+  const fundingWritesEnabled = bool("fundingWritesEnabled");
+  const recoveryCapable = bool("recoveryCapable");
+  const recoveryCreditError = str("recoveryCreditError");
+  const gasRecoveryCredit = asBaseUnits(val("gasRecoveryCredit") as bigint | number | undefined);
+  const neoRecoveryCredit = asBaseUnits(val("neoRecoveryCredit") as bigint | number | undefined);
+  const isRecoveringCredit = str("isRecoveringCredit");
+  const reclaimingId = str("reclaimingId");
+  const pendingTxid = str("pendingTxid");
+  const pendingOperation = str("pendingOperation");
   const approvingId = str("approvingId");
   const claimingId = str("claimingId");
   const cancellingId = str("cancellingId");
@@ -79,13 +98,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [description, setDescription] = useState("");
   const [stationMode, setStationMode] = useState<StationMode>("setup");
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("setup");
+  const [confirmingCancelId, setConfirmingCancelId] = useState("");
 
   const parseAmount = (raw: string): bigint => amountToBaseUnits(String(raw ?? "").trim(), asset);
   const totalAmount = milestoneAmounts.reduce((sum, amt) => sum + parseAmount(amt), 0n);
   const allAmountsPositive = milestoneAmounts.every((a) => parseAmount(a) > 0n);
-  const canSubmit = hasAddress && contractReady && beneficiary.trim() !== "" && allAmountsPositive && !isCreating;
+  const beneficiaryDraft = beneficiary.trim();
+  const beneficiaryValid = Boolean(addressToScriptHash(beneficiaryDraft));
+  const minimumMet = asset === "NEO" ? totalAmount >= 1n : totalAmount >= 10_000_000n;
+  const chainBusy = isLoading || isRefreshing;
+  const canSubmit = hasAddress && contractReady && fundingWritesEnabled && !dataError && beneficiaryValid && allAmountsPositive && minimumMet && !isCreating && !chainBusy;
   const totalDisplay = formatBaseUnits(totalAmount, asset);
-  const beneficiaryPreview = beneficiary.trim() ? formatAddress(beneficiary.trim()) : t("beneficiaryPlaceholder");
+  const beneficiaryPreview = beneficiaryDraft ? formatAddress(beneficiaryDraft) : t("beneficiaryPlaceholder");
   const fundedMilestones = milestoneAmounts.filter((amount) => parseAmount(amount) > 0n).length;
   const releaseSteps = [
     {
@@ -99,7 +123,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       key: "beneficiary",
       label: t("beneficiary"),
       value: beneficiary.trim() ? formatAddress(beneficiary.trim()) : t("recipientPending"),
-      complete: beneficiary.trim() !== "",
+      complete: beneficiaryValid,
       icon: <UserRound size={15} aria-hidden="true" />,
     },
     {
@@ -168,14 +192,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? t("connectWallet")
     : !contractReady
       ? t("deploymentPendingTitle")
+      : !fundingWritesEnabled
+        ? t("newEscrowLockedTitle")
       : isCreating
         ? t("twoStepSignBadge")
         : t("createEscrow");
 
   const primaryHint = !hasAddress
-    ? t("connectToStart")
+    ? deploymentStatus === "legacy" ? t("connectToManageExisting") : t("connectToStart")
     : !contractReady
       ? t("deploymentPendingDesc")
+      : !fundingWritesEnabled
+        ? deploymentMessage || t("deploymentUnavailable")
+      : dataError
+        ? t("chainSnapshotUnavailable")
+      : beneficiaryDraft && !beneficiaryValid
+        ? t("invalidAddress")
+      : allAmountsPositive && !minimumMet
+        ? asset === "NEO" ? t("minNeo") : t("minGas")
       : canSubmit
         ? t("twoStepSignNotice", { asset })
         : t("dealControlsHint");
@@ -235,6 +269,68 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </div>
     </section>
   );
+
+  const hasRecoverySurface = Boolean(
+    hasAddress &&
+    (gasRecoveryCredit > 0n || neoRecoveryCredit > 0n || recoveryCreditError || pendingTxid),
+  );
+  const recoveryPanel = hasRecoverySurface ? (
+    <section className="escrow-recovery-pocket" aria-label={t("recoveryPocketTitle")}>
+      <header>
+        <span className="escrow-recovery-pocket__icon"><RefreshCw size={17} aria-hidden="true" /></span>
+        <span>
+          <strong>{t("recoveryPocketTitle")}</strong>
+          <small>{t("recoveryPocketCopy")}</small>
+        </span>
+        <button
+          type="button"
+          className="mx2-btn mx2-btn--ghost"
+          onClick={() => void dispatch("refreshEscrows")}
+          disabled={isLoading || isRefreshing}
+        >
+          {isRefreshing || isLoading ? t("refreshing") : t("checkChainState")}
+        </button>
+      </header>
+      {pendingTxid && (
+        <div className="escrow-pending-write" role="status">
+          <Clock3 size={16} aria-hidden="true" />
+          <span>
+            <strong>{t("pendingWriteTitle")}</strong>
+            <small>{t("pendingWriteCopy", { operation: t(`pendingOperation_${pendingOperation}`) })}</small>
+          </span>
+          <code title={pendingTxid}>{pendingTxid.length > 18 ? `${pendingTxid.slice(0, 10)}…${pendingTxid.slice(-6)}` : pendingTxid}</code>
+        </div>
+      )}
+      {recoveryCreditError && (
+        <p className="escrow-recovery-pocket__error">{recoveryCreditError}</p>
+      )}
+      {(gasRecoveryCredit > 0n || neoRecoveryCredit > 0n) && (
+        <div className="escrow-recovery-assets">
+          {(["GAS", "NEO"] as const).map((creditAsset) => {
+            const credit = creditAsset === "GAS" ? gasRecoveryCredit : neoRecoveryCredit;
+            if (credit <= 0n) return null;
+            return (
+              <div key={creditAsset} className="escrow-recovery-assets__row">
+                <CoinArt size={26} variant={creditAsset === "GAS" ? "gas" : "neo"} />
+                <span>
+                  <small>{t("unconsumedCredit")}</small>
+                  <strong>{formatBaseUnits(credit, creditAsset)}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="mx2-btn mx2-btn--primary"
+                  onClick={() => void dispatch("reclaimDirectAssetCredit", creditAsset)}
+                  disabled={!recoveryCapable || Boolean(isRecoveringCredit) || chainBusy}
+                >
+                  {isRecoveringCredit === creditAsset ? t("recoveringCredit") : t("recoverCredit")}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  ) : null;
 
   const scene = (
     <div className="escrow-workbench" data-state={isCreating ? "creating" : canSubmit ? "ready" : "draft"}>
@@ -311,10 +407,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     onChange={(e) => setBeneficiary(e.target.value)}
                     placeholder={t("beneficiaryPlaceholder")}
                     spellCheck={false}
-                    disabled={isCreating || !contractReady}
+                    disabled={isCreating || chainBusy || !contractReady}
+                    aria-invalid={beneficiaryDraft && !beneficiaryValid ? "true" : undefined}
+                    aria-describedby="escrow-recipient-hint"
                   />
                 </span>
-                <strong>{beneficiary.trim() ? t("recipientReady") : t("recipientPending")}</strong>
+                <strong id="escrow-recipient-hint" data-invalid={beneficiaryDraft && !beneficiaryValid ? "true" : undefined}>
+                  {beneficiaryDraft ? beneficiaryValid ? t("recipientReady") : t("invalidAddress") : t("recipientPending")}
+                </strong>
               </label>
             </div>
             {milestoneEditor("station")}
@@ -354,31 +454,45 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         {stationMode === "safety" && (
           <div className="escrow-station__panel escrow-station__panel--safety">
             <OpenUiNotice className="escrow-station-notice" icon={<BadgeCheck size={17} aria-hidden="true" />} title={t("noFeeNotice")}>
-              {t("twoStepSignNotice", { asset })}
+              {fundingWritesEnabled ? t("twoStepSignNotice", { asset }) : t("legacyDepositBlockedDisclosure")}
             </OpenUiNotice>
             <div className="escrow-safety-grid">
+              <span data-deployment={deploymentStatus}><ShieldCheck size={16} aria-hidden="true" />{deploymentMessage || t("deploymentChecking")}</span>
               <span><ShieldCheck size={16} aria-hidden="true" />{t("beneficiaryApprovalNote")}</span>
-              <span><LockKeyhole size={16} aria-hidden="true" />{t("depositPrepaidNoEscrow")}</span>
+              <span><LockKeyhole size={16} aria-hidden="true" />{fundingWritesEnabled ? t("prepayRecoveryDisclosure") : t("legacyDepositBlockedDisclosure")}</span>
+              <span><FileCheck2 size={16} aria-hidden="true" />{t("proofAndDisputeDisclosure")}</span>
+              <span><CheckCircle2 size={16} aria-hidden="true" />{t("verifiedEventDisclosure")}</span>
               <span><ListChecks size={16} aria-hidden="true" />{contractReady ? primaryHint : t("deploymentPendingDesc")}</span>
             </div>
           </div>
         )}
       </section>
+      {recoveryPanel}
     </div>
   );
 
   const renderLedgerItem = (esc: EscrowItem, role: "creator" | "beneficiary") => {
     const sym = String(esc.assetSymbol ?? "GAS");
-    const total = formatBaseUnits(asBaseUnits(esc.totalAmount), sym);
+    const totalAmountBase = asBaseUnits(esc.totalAmount);
+    const releasedAmountBase = asBaseUnits(esc.releasedAmount);
+    const remainingAmountBase = totalAmountBase > releasedAmountBase ? totalAmountBase - releasedAmountBase : 0n;
+    const total = formatBaseUnits(totalAmountBase, sym);
+    const released = formatBaseUnits(releasedAmountBase, sym);
+    const remaining = formatBaseUnits(remainingAmountBase, sym);
     const approved = esc.milestoneApproved ?? [];
     const claimed = esc.milestoneClaimed ?? [];
-    const allClaimed = claimed.length > 0 && claimed.every(Boolean);
-    const hasApproved = approved.some((a, i) => a && !claimed[i]);
+    const amounts = esc.milestoneAmounts ?? [];
+    const approvedTimes = esc.milestoneApprovedTimes ?? [];
+    const milestoneCount = Math.max(amounts.length, approved.length, claimed.length);
+    const active = String(esc.status ?? "active") === "active";
+    const hasApprovedAwaitingClaim = approved.some((value, index) => value && !claimed[index]);
     const isApproving = approvingId === esc.id || approvingId.startsWith(`${esc.id}-`);
     const isClaiming = claimingId === esc.id || claimingId.startsWith(`${esc.id}-`);
-    const milestoneCount = Array.isArray(esc.milestoneAmounts) ? esc.milestoneAmounts.length : Math.max(approved.length, claimed.length);
     const approvedCount = approved.filter(Boolean).length;
     const claimedCount = claimed.filter(Boolean).length;
+    const progress = milestoneCount > 0 ? Math.round((claimedCount / milestoneCount) * 100) : 0;
+    const writeDisabled = !deploymentReady || chainBusy || Boolean(dataError) || isApproving || isClaiming || cancellingId === esc.id;
+    const canCancel = role === "creator" && active && remainingAmountBase > 0n && !hasApprovedAwaitingClaim;
     const counterparty = role === "creator" ? formatAddress(String(esc.beneficiary ?? "")) : formatAddress(String(esc.creator ?? ""));
     return (
       <li key={`${role}-${esc.id}`} className="escrow-ledger__item" data-role={role}>
@@ -396,6 +510,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <span className="escrow-ledger__amount">{total}</span>
         </div>
+        <div className="escrow-ledger__bar" aria-label={t("releaseProgress", { progress })}>
+          <span style={{ width: `${progress}%` }} />
+        </div>
         <dl className="escrow-ledger__progress">
           <div>
             <dt>{t("milestonesLabel")}</dt>
@@ -406,33 +523,149 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <dd>{approvedCount}</dd>
           </div>
           <div>
-            <dt>{t("claim")}</dt>
-            <dd>{claimedCount}</dd>
+            <dt>{t("released")}</dt>
+            <dd>{released}</dd>
           </div>
         </dl>
-        <div className="escrow-ledger__actions">
-          {role === "creator" && !allClaimed && (
-            <>
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("approveMilestone", esc)} disabled={isApproving}>{isApproving ? t("approving") : t("approve")}</button>
+        <ol className="escrow-milestone-track" aria-label={t("milestonesLabel")}>
+          {Array.from({ length: milestoneCount }, (_, index) => {
+            const isClaimed = Boolean(claimed[index]);
+            const isApproved = Boolean(approved[index]);
+            const amount = formatBaseUnits(asBaseUnits(amounts[index]), sym);
+            const milestoneBusy = approvingId === `${esc.id}-${index}` || claimingId === `${esc.id}-${index}`;
+            const reclaimBusy = reclaimingId === `${esc.id}-${index}`;
+            const phase = isClaimed ? "settled" : isApproved ? "approved" : "pending";
+            const phaseLabel = isClaimed ? t("settledOnChain") : isApproved ? t("readyToClaim") : t("awaitingAcceptance");
+            const PhaseIcon = isClaimed ? CheckCircle2 : isApproved ? CircleDollarSign : Clock3;
+            const approvedTime = asBaseUnits(approvedTimes[index]);
+            const reclaimAt = approvedTime > 0n ? approvedTime + 2_592_000_000n : 0n;
+            const graceElapsed = reclaimAt > 0n && BigInt(Date.now()) >= reclaimAt;
+            const reclaimDate = reclaimAt > 0n
+              ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(Number(reclaimAt)))
+              : "";
+            return (
+              <li key={`${esc.id}-milestone-${index}`} data-phase={phase}>
+                <span className="escrow-milestone-track__node"><PhaseIcon size={15} aria-hidden="true" /></span>
+                <span className="escrow-milestone-track__copy">
+                  <small>{t("milestoneNumber", { n: index + 1 })}</small>
+                  <strong>{amount}</strong>
+                  <em>{phaseLabel}</em>
+                </span>
+                {role === "creator" && active && !isApproved && (
+                  <button
+                    type="button"
+                    className="mx2-btn mx2-btn--ghost"
+                    onClick={() => void dispatch("approveMilestone", esc, index)}
+                    disabled={writeDisabled}
+                    aria-label={t("approveMilestone", { n: index + 1, amount })}
+                  >
+                    {milestoneBusy ? t("approving") : t("acceptAndUnlock")}
+                  </button>
+                )}
+                {role === "beneficiary" && active && isApproved && !isClaimed && (
+                  <button
+                    type="button"
+                    className="mx2-btn mx2-btn--primary"
+                    onClick={() => void dispatch("claimMilestone", esc, index)}
+                    disabled={writeDisabled}
+                    aria-label={t("claimMilestone", { n: index + 1, amount })}
+                  >
+                    {milestoneBusy ? t("claiming") : t("claimFunds")}
+                  </button>
+                )}
+                {role === "creator" && active && isApproved && !isClaimed && graceElapsed && recoveryCapable && (
+                  <button
+                    type="button"
+                    className="mx2-btn mx2-btn--ghost"
+                    onClick={() => void dispatch("reclaimApprovedMilestone", esc, index)}
+                    disabled={writeDisabled || Boolean(reclaimingId)}
+                    aria-label={t("reclaimMilestone", { n: index + 1, amount })}
+                  >
+                    {reclaimBusy ? t("reclaimingMilestone") : t("reclaimAfterGrace")}
+                  </button>
+                )}
+                {role === "creator" && active && isApproved && !isClaimed && recoveryCapable && !graceElapsed && reclaimDate && (
+                  <small className="escrow-milestone-track__recovery">{t("graceRecoveryDate", { date: reclaimDate })}</small>
+                )}
+                {role === "creator" && active && isApproved && !isClaimed && !recoveryCapable && (
+                  <small className="escrow-milestone-track__recovery">{t("graceRecoveryUnavailable")}</small>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        <details className="escrow-evidence-brief">
+          <summary><FileCheck2 size={15} aria-hidden="true" />{t("acceptanceBrief")}</summary>
+          <p>{String(esc.notes ?? "").trim() || t("noAcceptanceBrief")}</p>
+          <span>{t("evidenceHandoffBoundary")}</span>
+        </details>
+        <div className="escrow-ledger__contract-note">
+          <FileCheck2 size={15} aria-hidden="true" />
+          <span>{t("evidenceOffchainShort")}</span>
+        </div>
+        {role === "creator" && active && hasApprovedAwaitingClaim && (
+          <p className="escrow-ledger__guard"><LockKeyhole size={14} aria-hidden="true" />{t("cancelBlockedByApproved")}</p>
+        )}
+        {canCancel && confirmingCancelId !== esc.id && (
+          <div className="escrow-ledger__actions">
+            <button
+              type="button"
+              className="mx2-btn mx2-btn--ghost"
+              onClick={() => setConfirmingCancelId(esc.id)}
+              disabled={writeDisabled}
+            >
+              {t("reviewRefund")}
+            </button>
+          </div>
+        )}
+        {canCancel && confirmingCancelId === esc.id && (
+          <div className="escrow-cancel-review" role="alertdialog" aria-labelledby={`cancel-title-${esc.id}`} aria-describedby={`cancel-copy-${esc.id}`}>
+            <div>
+              <small id={`cancel-title-${esc.id}`}>{t("refundReviewTitle")}</small>
+              <strong>{remaining}</strong>
+              <p id={`cancel-copy-${esc.id}`}>{t("refundReviewCopy")}</p>
+            </div>
+            <div className="escrow-cancel-review__actions">
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => setConfirmingCancelId("")} disabled={cancellingId === esc.id}>{t("keepEscrow")}</button>
               <button
                 type="button"
-                className="mx2-btn mx2-btn--ghost"
+                className="mx2-btn mx2-btn--primary"
+                autoFocus
                 onClick={() => {
-                  if (window.confirm(t("confirmCancelRefund", { amount: total }))) void dispatch("cancelEscrow", esc);
+                  void dispatch("cancelEscrow", esc).then((ok) => {
+                    if (ok === true) setConfirmingCancelId("");
+                  });
                 }}
                 disabled={cancellingId === esc.id}
               >
-                {cancellingId === esc.id ? t("cancelling") : t("cancel")}
+                {cancellingId === esc.id ? t("cancelling") : t("confirmRefund")}
               </button>
-            </>
-          )}
-          {role === "beneficiary" && hasApproved && !allClaimed && (
-            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("claimMilestone", esc)} disabled={isClaiming}>{isClaiming ? t("claiming") : t("claim")}</button>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </li>
     );
   };
+
+  const ledgerToolbar = (
+    <div className="escrow-ledger-toolbar">
+      <span><ShieldCheck size={14} aria-hidden="true" />{t("onChainSnapshot")}</span>
+      <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("refreshEscrows")} disabled={isRefreshing || isLoading}>
+        <RefreshCw size={14} aria-hidden="true" data-spinning={isRefreshing ? "true" : undefined} />
+        {isRefreshing ? t("refreshing") : t("refresh")}
+      </button>
+    </div>
+  );
+
+  const ledgerHealth = dataError ? (
+    <OpenUiNotice className="escrow-drawer__warning" icon={<ShieldCheck size={18} aria-hidden="true" />} title={t("chainDataUnavailableTitle")}>
+      {t("chainSnapshotUnavailable")}
+    </OpenUiNotice>
+  ) : isLoading ? (
+    <OpenUiNotice className="escrow-drawer__loading" icon={<RefreshCw size={18} aria-hidden="true" />} title={t("loadingEscrows")}>
+      {t("onChainSnapshot")}
+    </OpenUiNotice>
+  ) : null;
 
   const drawerPanel = (() => {
     if (drawerMode === "created") {
@@ -443,13 +676,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           title={t("createdByYou")}
           subtitle={String(creatorEscrows.length)}
         >
-          {creatorEscrows.length > 0 ? (
+          {ledgerToolbar}
+          {ledgerHealth}
+          {!ledgerHealth && creatorEscrows.length > 0 ? (
             <ul className="escrow-ledger">{creatorEscrows.slice(0, 10).map((esc) => renderLedgerItem(esc, "creator"))}</ul>
-          ) : (
+          ) : !ledgerHealth ? (
             <OpenUiNotice className="escrow-drawer__empty" icon={<LockKeyhole size={18} strokeWidth={2.35} aria-hidden="true" />} title={t("emptyEscrows")}>
-              {t("createdByYou")}
+              {t("emptyCreatorEscrows")}
             </OpenUiNotice>
-          )}
+          ) : null}
         </OpenUiPanel>
       );
     }
@@ -461,13 +696,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           title={t("forYou")}
           subtitle={String(beneficiaryEscrows.length)}
         >
-          {beneficiaryEscrows.length > 0 ? (
+          {ledgerToolbar}
+          {ledgerHealth}
+          {!ledgerHealth && beneficiaryEscrows.length > 0 ? (
             <ul className="escrow-ledger">{beneficiaryEscrows.slice(0, 10).map((esc) => renderLedgerItem(esc, "beneficiary"))}</ul>
-          ) : (
+          ) : !ledgerHealth ? (
             <OpenUiNotice className="escrow-drawer__empty" icon={<UserRound size={18} strokeWidth={2.35} aria-hidden="true" />} title={t("emptyEscrows")}>
-              {t("forYou")}
+              {t("emptyBeneficiaryEscrows")}
             </OpenUiNotice>
-          )}
+          ) : null}
           <OpenUiNotice className="escrow-drawer__notice" icon={<BadgeCheck size={18} strokeWidth={2.35} aria-hidden="true" />} title={t("beneficiaryApprovalNote")} />
         </OpenUiPanel>
       );
@@ -477,7 +714,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         className="escrow-drawer__panel escrow-drawer__panel--details"
         icon={<BadgeCheck size={18} strokeWidth={2.35} aria-hidden="true" />}
         title={t("setupPlan")}
-        subtitle={t("twoStepSignNotice", { asset })}
+        subtitle={fundingWritesEnabled ? t("twoStepSignNotice", { asset }) : deploymentMessage}
       >
         <div className="escrow-drawer__form-grid escrow-drawer__form-grid--setup">
           <OpenUiSegmented
@@ -489,7 +726,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               { value: "GAS", label: "GAS" },
               { value: "NEO", label: "NEO" },
             ]}
-            disabled={isCreating}
+            disabled={isCreating || chainBusy}
             hint={asset === "NEO" ? t("assetNeoHint") : t("assetGasHint")}
           />
           <OpenUiTextField
@@ -498,9 +735,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={beneficiary}
             onChange={(e) => setBeneficiary(e.target.value)}
             placeholder={t("beneficiaryPlaceholder")}
-            disabled={isCreating || !contractReady}
+            disabled={isCreating || chainBusy || !contractReady}
             spellCheck={false}
             mono
+            aria-invalid={beneficiaryDraft && !beneficiaryValid ? "true" : undefined}
+            hint={beneficiaryDraft ? beneficiaryValid ? t("recipientReady") : t("invalidAddress") : t("beneficiaryAddressHint")}
           />
           <OpenUiTextField
             className="escrow-detail-field"
@@ -508,7 +747,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={escrowName}
             onChange={(e) => setEscrowName(e.target.value)}
             placeholder={t("escrowNamePlaceholder")}
-            disabled={isCreating}
+            disabled={isCreating || chainBusy}
           />
           <OpenUiTextArea
             className="escrow-detail-field mx2-open-field--compact"
@@ -516,7 +755,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("notesPlaceholder")}
-            disabled={isCreating}
+            disabled={isCreating || chainBusy}
             rows={3}
           />
         </div>
@@ -526,7 +765,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           icon={<Route size={18} strokeWidth={2.35} aria-hidden="true" />}
           title={t("releaseRouteTitle")}
         >
-          {contractReady ? t("twoStepSignNotice", { asset }) : t("deploymentPendingDesc")}
+          {contractReady
+            ? fundingWritesEnabled ? t("twoStepSignNotice", { asset }) : t("legacyDepositBlockedDisclosure")
+            : t("deploymentPendingDesc")}
         </OpenUiNotice>
       </OpenUiPanel>
     );
@@ -566,8 +807,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           category="defi"
           stage={{
             eyebrow: t("title"),
-            title: t("releaseDeskTitle"),
-            subtitle: hasAddress ? t("releaseDeskCopy") : t("introLede"),
+            title: deploymentStatus === "legacy" ? t("manageExistingDeskTitle") : t("releaseDeskTitle"),
+            subtitle: hasAddress
+              ? deploymentStatus === "legacy" ? t("legacyIntroLede") : t("releaseDeskCopy")
+              : deploymentStatus === "legacy" ? t("connectToManageExisting") : t("introLede"),
             badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {activeCount} {t("statusActive").toLowerCase()}</span>,
           }}
           scene={scene}

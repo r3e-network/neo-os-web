@@ -59,25 +59,27 @@ export interface GuestEngine {
   placeBet(): Promise<GameResult>;
   /** Reset to a clean local lobby + zero the on-chain-only surfaces. */
   enter(): Promise<void>;
+  /** Cancel a pending local reveal when the mode or app is torn down. */
+  dispose(): void;
 }
 
 /** How long the local flip animates before the outcome lands (ms). */
 const FLIP_DURATION_MS = 780;
+const REDUCED_MOTION_FLIP_MS = 120;
 
 /** Most-recent local flips kept in the drawer history. */
 const HISTORY_LIMIT = 12;
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Web-Crypto (Math.random fallback) fair coin side. */
+/** Web-Crypto fair coin side. Never silently downgrade to a weaker RNG. */
 function randomSide(): "heads" | "tails" {
   const bytes = new Uint8Array(1);
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(bytes);
-  } else {
-    bytes[0] = Math.floor(Math.random() * 256);
+  if (!webCrypto?.getRandomValues) {
+    throw new Error("secure-random-unavailable");
   }
+  webCrypto.getRandomValues(bytes);
   return (bytes[0]! & 1) === 0 ? "heads" : "tails";
 }
 
@@ -106,6 +108,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   let bestStreak = 0;
   let flipCount = 0;
+  let generation = 0;
+  let disposed = false;
 
   const submitScore = async (score: number): Promise<void> => {
     if (score <= 0) return;
@@ -128,6 +132,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       }
       const side: "heads" | "tails" = choice.get() === "tails" ? "tails" : "heads";
       const wager = Number(betAmount.get()) || 0;
+      const flipGeneration = ++generation;
 
       // Reset transient result surfaces and start the local flip animation.
       validationError.set(null);
@@ -139,9 +144,31 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       revealing.set(false);
 
       // Brief spin so the scene shows the flip animation before the outcome.
-      await delay(FLIP_DURATION_MS);
+      // Reduced-motion users still receive a clear state transition without
+      // waiting through an animation they asked the system to suppress.
+      const reduceMotion = globalThis.matchMedia?.(
+        "(prefers-reduced-motion: reduce)",
+      ).matches ?? false;
+      await delay(reduceMotion ? REDUCED_MOTION_FLIP_MS : FLIP_DURATION_MS);
 
-      const outcome = randomSide();
+      // A mode switch, reset, or unmount may happen while the timer is in
+      // flight. Never let that stale callback overwrite the next surface.
+      if (disposed || flipGeneration !== generation) {
+        return result.get() ?? { won: false, outcome: "" };
+      }
+
+      let outcome: "heads" | "tails";
+      try {
+        outcome = randomSide();
+      } catch {
+        // A fair local round requires Web Crypto. Leave the table ready for a
+        // retry and fail visibly instead of pretending Math.random is fair.
+        isFlipping.set(false);
+        revealing.set(false);
+        const message = t("secureRandomUnavailable");
+        validationError.set(message);
+        throw new Error(message);
+      }
       const won = outcome === side;
 
       isFlipping.set(false);
@@ -179,6 +206,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     },
 
     async enter(): Promise<void> {
+      disposed = false;
+      generation += 1;
       isFlipping.set(false);
       revealing.set(false);
       result.set(null);
@@ -198,6 +227,13 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       bankrollBase.set(0n);
       freeBankrollBase.set(0n);
       creditBase.set(0n);
+    },
+
+    dispose(): void {
+      disposed = true;
+      generation += 1;
+      isFlipping.set(false);
+      revealing.set(false);
     },
   };
 }

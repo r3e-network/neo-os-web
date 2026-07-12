@@ -15,9 +15,16 @@
  * guest run is mechanically identical to a reward run minus the chain.
  */
 import type { GameSessionObservables } from "@framework/game";
-import { applyMove, hasAnyMove, tileValue } from "./engine-2048";
-import { MAX_MOVES, ruleOf } from "./game-rules";
-import { applyStep, buildRun, trimLastMove } from "./run-store";
+import type { SolveRow } from "@framework/game";
+import {
+  MOVE_ANIMATION_MS,
+  applyMove,
+  hasAnyMove,
+  tileValue,
+} from "./engine-2048";
+import type { MoveTransition } from "./engine-2048";
+import { MAX_MOVES, MAX_UNDOS, ruleOf } from "./game-rules";
+import { applyStepWithTransition, buildRun, trimLastMove } from "./run-store";
 import type { LiveRun, TeeSpawn } from "./run-store";
 
 /** Structural (method-syntax, so bivariant) observable handle. */
@@ -33,14 +40,24 @@ interface GuestLeaderboardApi {
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
+interface LocalStore {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
+
 export interface GuestEngineDeps {
   obs: GameSessionObservables;
   runBoard: Obs<number[]>;
   runMoveCount: Obs<number>;
   runMaxExp: Obs<number>;
+  moveTransition: Obs<MoveTransition | null>;
   isMoving: Obs<boolean>;
   balancesReady: Obs<boolean>;
   guestLeaderboard: GuestLeaderboardApi;
+  storage: LocalStore;
+  /** Deterministic test seam; production omits it and uses secure local RNG. */
+  initialBoardFactory?: () => number[];
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
 }
@@ -58,6 +75,8 @@ export interface GuestEngine {
 }
 
 const GUEST_GAME_ID = "guest";
+const GUEST_PROFILE_KEY = "guest:2048:profile:v1";
+const GUEST_RUN_KEY = "guest:2048:active-run:v1";
 /**
  * Local move latency. A valid move flips `isMoving` true, then commits the fold
  * one macrotask later — mirroring the gamefi enclave round-trip so the scene
@@ -69,20 +88,62 @@ const MOVE_LATENCY_MS = 110;
 /** Chance (out of this many) that a spawned tile is a "4" (exp 2) instead of "2". */
 const FOUR_SPAWN_IN = 10;
 
+interface PersistedGuestProfile {
+  bestTile?: unknown;
+  runsPlayed?: unknown;
+  history?: unknown;
+}
+
+interface PersistedGuestRun {
+  difficulty?: unknown;
+  dealtAt?: unknown;
+  deadline?: unknown;
+  undosUsed?: unknown;
+  initBoard?: unknown;
+  moves?: unknown;
+  spawns?: unknown;
+}
+
+function nonNegativeInt(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : fallback;
+}
+
+function validGuestHistory(value: unknown): SolveRow[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const row = candidate as Record<string, unknown>;
+    const gameId = typeof row.gameId === "string" ? row.gameId : "";
+    if (!gameId.startsWith("guest-")) return [];
+    return [{
+      gameId,
+      difficulty: clampDifficulty(Number(row.difficulty)),
+      payout: "0 GAS",
+      solveMs: nonNegativeInt(row.solveMs),
+      undos: Math.min(MAX_UNDOS, nonNegativeInt(row.undos)),
+      bestTile: nonNegativeInt(row.bestTile),
+      moves: Math.min(MAX_MOVES, nonNegativeInt(row.moves)),
+      won: row.won === true,
+    } satisfies SolveRow];
+  }).slice(0, 20);
+}
+
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
-/** Uniform integer in [0, maxExclusive) from Web-Crypto (Math.random fallback). */
+/** Uniform integer in [0, maxExclusive). Local fairness fails closed without Web Crypto. */
 function randomInt(maxExclusive: number): number {
   if (maxExclusive <= 1) return 0;
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    const buffer = new Uint32Array(1);
+  if (!webCrypto?.getRandomValues) throw new Error("secureRandomUnavailable");
+  const buffer = new Uint32Array(1);
+  const ceiling = Math.floor(0x1_0000_0000 / maxExclusive) * maxExclusive;
+  do {
     webCrypto.getRandomValues(buffer);
-    return (buffer[0] ?? 0) % maxExclusive;
-  }
-  return Math.floor(Math.random() * maxExclusive);
+  } while ((buffer[0] ?? 0) >= ceiling);
+  return (buffer[0] ?? 0) % maxExclusive;
 }
 
 /** Pick a random empty cell + exponent for the next spawn, or null if full. */
@@ -113,17 +174,58 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     runBoard,
     runMoveCount,
     runMaxExp,
+    moveTransition,
     isMoving,
     balancesReady,
     guestLeaderboard,
+    storage,
+    initialBoardFactory,
     t,
     setStatus,
   } = deps;
 
-  // Internal run + session-scoped guest stats (never touch the chain).
+  const loadProfile = (): { bestTile: number; runsPlayed: number; history: SolveRow[] } => {
+    try {
+      const raw = storage.get<PersistedGuestProfile>(GUEST_PROFILE_KEY, {}) ?? {};
+      return {
+        bestTile: nonNegativeInt(raw.bestTile),
+        runsPlayed: nonNegativeInt(raw.runsPlayed),
+        history: validGuestHistory(raw.history),
+      };
+    } catch {
+      return { bestTile: 0, runsPlayed: 0, history: [] };
+    }
+  };
+
+  const saveProfile = (): void => {
+    try {
+      storage.set(GUEST_PROFILE_KEY, {
+        bestTile: guestBestTile,
+        runsPlayed,
+        history: guestHistory,
+      });
+    } catch {
+      // Private browsing or a full quota must not make an active board fail.
+    }
+  };
+
+  const initialProfile = loadProfile();
+
+  // Internal run + locally persisted guest stats (never touch the chain).
   let run: LiveRun | null = null;
-  let guestBestTile = 0;
-  let runsPlayed = 0;
+  let guestBestTile = initialProfile.bestTile;
+  let runsPlayed = initialProfile.runsPlayed;
+  let guestHistory: SolveRow[] = initialProfile.history;
+  let moveSequence = 0;
+  let moveCommitTimer: ReturnType<typeof setTimeout> | null = null;
+  let moveUnlockTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const clearMoveTimers = (): void => {
+    if (moveCommitTimer !== null) clearTimeout(moveCommitTimer);
+    if (moveUnlockTimer !== null) clearTimeout(moveUnlockTimer);
+    moveCommitTimer = null;
+    moveUnlockTimer = null;
+  };
 
   const publishRun = (): void => {
     runBoard.set(run ? [...run.board] : []);
@@ -131,8 +233,80 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     runMaxExp.set(run ? run.maxExp : 0);
   };
 
+  const saveActiveRun = (): void => {
+    if (!run || obs.gameStatus.get() !== "dealt") return;
+    try {
+      storage.set(GUEST_RUN_KEY, {
+        difficulty: obs.gameDifficulty.get(),
+        dealtAt: obs.dealtAt.get(),
+        deadline: obs.deadline.get(),
+        undosUsed: obs.undosUsed.get(),
+        initBoard: run.initBoard,
+        moves: run.moves,
+        spawns: run.spawns,
+      });
+    } catch {
+      // Continue in memory when local persistence is unavailable.
+    }
+  };
+
+  const clearActiveRun = (): void => {
+    try {
+      storage.delete(GUEST_RUN_KEY);
+    } catch {
+      // Nothing else is required for an already terminal local run.
+    }
+  };
+
+  const restoreActiveRun = (): boolean => {
+    try {
+      const raw = storage.get<PersistedGuestRun>(GUEST_RUN_KEY, null);
+      if (!raw) return false;
+      const dealtAt = nonNegativeInt(raw.dealtAt);
+      const deadline = nonNegativeInt(raw.deadline);
+      const difficulty = clampDifficulty(Number(raw.difficulty));
+      if (
+        deadline <= Date.now()
+        || !Array.isArray(raw.initBoard)
+        || !Array.isArray(raw.moves)
+        || !Array.isArray(raw.spawns)
+      ) {
+        clearActiveRun();
+        return false;
+      }
+      const restored = buildRun(
+        raw.initBoard as number[],
+        raw.moves as number[],
+        raw.spawns as TeeSpawn[],
+      );
+      if (!restored || restored.moves.length > MAX_MOVES) {
+        clearActiveRun();
+        return false;
+      }
+      run = restored;
+      moveSequence = restored.moves.length;
+      obs.gameDifficulty.set(difficulty);
+      obs.activeGameId.set(GUEST_GAME_ID);
+      obs.commitment.set("");
+      obs.dealtAt.set(dealtAt);
+      obs.deadline.set(deadline);
+      obs.undosUsed.set(Math.min(MAX_UNDOS, nonNegativeInt(raw.undosUsed)));
+      publishRun();
+      obs.gameStatus.set("dealt");
+      obs.lastStatus.set(t("guestRunRecovered"));
+      return true;
+    } catch {
+      clearActiveRun();
+      return false;
+    }
+  };
+
   const resetToLobby = (): void => {
+    clearMoveTimers();
     run = null;
+    moveSequence = 0;
+    moveTransition.set(null);
+    isMoving.set(false);
     obs.gameStatus.set("idle");
     obs.activeGameId.set("0");
     obs.commitment.set("");
@@ -174,9 +348,17 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   /** Settle the current run (win or dead board), record + submit the best tile. */
   const finishRun = async (won: boolean): Promise<void> => {
     const score = run ? tileValue(run.maxExp) : 0;
-    obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
+    const difficulty = obs.gameDifficulty.get();
+    const moves = run?.moves.length ?? 0;
+    const elapsedMs = Math.max(0, Date.now() - obs.dealtAt.get());
+    const undos = obs.undosUsed.get();
+    clearMoveTimers();
+    moveTransition.set(null);
+    isMoving.set(false);
+    obs.lastElapsedMs.set(elapsedMs);
     run = null;
     obs.activeGameId.set("0");
+    clearActiveRun();
     publishRun();
 
     if (score > 0) {
@@ -184,6 +366,18 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       runsPlayed += 1;
       obs.myTotalWon.set(guestBestTile);
       obs.mySolves.set(runsPlayed);
+      guestHistory = [{
+        gameId: `guest-${runsPlayed}`,
+        difficulty,
+        payout: "0 GAS",
+        solveMs: elapsedMs,
+        undos,
+        bestTile: score,
+        moves,
+        won,
+      }, ...guestHistory].slice(0, 20);
+      obs.myHistory.set([...guestHistory]);
+      saveProfile();
     }
 
     obs.gameStatus.set(won ? "solved" : "expired");
@@ -200,6 +394,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   };
 
   const commitMove = (dir: number): void => {
+    moveCommitTimer = null;
     // Guard against a reset/stop landing during the move latency window.
     if (!run || obs.gameStatus.get() !== "dealt") {
       isMoving.set(false);
@@ -211,20 +406,34 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       return;
     }
     const spawn = pickSpawn(post);
-    const next = spawn ? applyStep(run, dir, spawn) : null;
-    if (!next) {
+    const applied = spawn
+      ? applyStepWithTransition(run, dir, spawn, moveSequence + 1)
+      : null;
+    if (!applied) {
       isMoving.set(false);
       return;
     }
-    run = next;
+    moveSequence += 1;
+    // Publish the identity map before the final board so the Scene can begin
+    // from its current visuals even when observable notifications are unbatched.
+    moveTransition.set(applied.transition);
+    run = applied.run;
     publishRun();
-    isMoving.set(false);
-
-    const rule = ruleOf(obs.gameDifficulty.get());
-    if (run.maxExp < rule.targetExp && !hasAnyMove(run.board)) {
-      // Local game over: no target, no moves left — settle to a fresh lobby.
-      void finishRun(false);
-    }
+    saveActiveRun();
+    moveUnlockTimer = setTimeout(() => {
+      moveUnlockTimer = null;
+      isMoving.set(false);
+      if (!run) return;
+      const rule = ruleOf(obs.gameDifficulty.get());
+      if (
+        run.maxExp < rule.targetExp
+        && (!hasAnyMove(run.board) || run.moves.length >= MAX_MOVES)
+      ) {
+        // Let the confirmed slide/merge/spawn finish before replacing the board
+        // with the game-over surface.
+        void finishRun(false);
+      }
+    }, MOVE_ANIMATION_MS);
   };
 
   return {
@@ -233,19 +442,39 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       const difficulty = clampDifficulty(Number((form as { difficulty?: unknown })?.difficulty ?? 0));
       const rule = ruleOf(difficulty);
       obs.isStarting.set(true);
-      run = buildRun(initialBoard(), [], []);
-      const now = Date.now();
-      obs.gameDifficulty.set(difficulty);
-      obs.activeGameId.set(GUEST_GAME_ID);
-      obs.commitment.set("");
-      obs.undosUsed.set(0);
-      obs.dealtAt.set(now);
-      obs.deadline.set(now + rule.limitMs);
-      obs.lastPayout.set("");
-      publishRun();
-      obs.gameStatus.set("dealt");
-      obs.lastStatus.set(t("guestDealt"));
-      obs.isStarting.set(false);
+      try {
+        clearMoveTimers();
+        moveSequence = 0;
+        moveTransition.set(null);
+        isMoving.set(false);
+        run = buildRun((initialBoardFactory ?? initialBoard)(), [], []);
+        if (!run) throw new Error(t("invalidBoardPayload"));
+        const now = Date.now();
+        obs.gameDifficulty.set(difficulty);
+        obs.activeGameId.set(GUEST_GAME_ID);
+        obs.commitment.set("");
+        obs.undosUsed.set(0);
+        obs.dealtAt.set(now);
+        obs.deadline.set(now + rule.limitMs);
+        obs.lastPayout.set("");
+        publishRun();
+        obs.gameStatus.set("dealt");
+        obs.lastStatus.set(t("guestDealt"));
+        saveActiveRun();
+      } catch (error) {
+        clearActiveRun();
+        resetToLobby();
+        const message = error instanceof Error && error.message === "secureRandomUnavailable"
+          ? t("secureRandomUnavailable")
+          : error instanceof Error
+            ? error.message
+            : t("statusFailed");
+        obs.lastStatus.set(message);
+        setStatus(message, "error");
+        throw error;
+      } finally {
+        obs.isStarting.set(false);
+      }
     },
 
     playMove(form: unknown): void {
@@ -257,24 +486,40 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       if (deadline > 0 && Date.now() >= deadline) return;
       if (!applyMove([...run.board], dir)) return; // no-op move
       isMoving.set(true);
-      setTimeout(() => commitMove(dir), MOVE_LATENCY_MS);
+      moveCommitTimer = setTimeout(() => commitMove(dir), MOVE_LATENCY_MS);
     },
 
     useUndo(): void {
       if (!run || run.moves.length === 0) return;
       if (obs.gameStatus.get() !== "dealt" || obs.isUndoing.get() || isMoving.get()) return;
+      if (obs.deadline.get() > 0 && Date.now() >= obs.deadline.get()) return;
+      if (obs.undosUsed.get() >= MAX_UNDOS) return;
       obs.isUndoing.set(true);
       run = trimLastMove(run);
+      moveTransition.set(null);
       publishRun();
+      obs.undosUsed.set(obs.undosUsed.get() + 1);
+      saveActiveRun();
       obs.lastStatus.set(t("guestUndo"));
       obs.isUndoing.set(false);
     },
 
     async submitRun(): Promise<void> {
       if (!run || obs.gameStatus.get() !== "dealt" || obs.isSubmitting.get()) return;
+      const rule = ruleOf(obs.gameDifficulty.get());
+      const expired = obs.deadline.get() > 0 && Date.now() >= obs.deadline.get();
+      const won = !expired && run.maxExp >= rule.targetExp;
+      const ended = expired || won || !hasAnyMove(run.board) || run.moves.length >= MAX_MOVES;
+      if (!ended) {
+        obs.lastStatus.set(t("guestTargetPending", { tile: rule.targetTile }));
+        return;
+      }
       obs.isSubmitting.set(true);
-      await finishRun(true);
-      obs.isSubmitting.set(false);
+      try {
+        await finishRun(won);
+      } finally {
+        obs.isSubmitting.set(false);
+      }
     },
 
     async expireGame(): Promise<void> {
@@ -299,11 +544,15 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
+      const profile = loadProfile();
+      guestBestTile = profile.bestTile;
+      runsPlayed = profile.runsPlayed;
+      guestHistory = profile.history;
       obs.myTotalWon.set(guestBestTile);
       obs.mySolves.set(runsPlayed);
-      obs.myHistory.set([]);
+      obs.myHistory.set([...guestHistory]);
       balancesReady.set(true);
-      obs.lastStatus.set(t("statusReady"));
+      if (!restoreActiveRun()) obs.lastStatus.set(t("statusReady"));
       await refreshLeaderboard();
     },
   };

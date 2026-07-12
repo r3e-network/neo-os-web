@@ -34,6 +34,36 @@ export type WalletSdkComposableDeps = {
   errorCodes: WalletSdkComposableErrorCodes;
 };
 
+function normalizeN3IndexEvent(entry: unknown): ContractEvent | null {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
+  const record = entry as Record<string, unknown>;
+  const id = record.id;
+  const eventName = typeof record.event_name === "string"
+    ? record.event_name.trim()
+    : "";
+  const txHash = typeof record.txid === "string" ? record.txid.trim() : "";
+  if (
+    (typeof id !== "string" && typeof id !== "number")
+    || !eventName
+    || !txHash
+    || !("state" in record)
+  ) {
+    return null;
+  }
+
+  const blockIndex = Number(record.block_index);
+  return {
+    id,
+    event_name: eventName,
+    state: record.state,
+    tx_hash: txHash,
+    ...(typeof record.block_time === "string"
+      ? { created_at: record.block_time }
+      : {}),
+    ...(Number.isFinite(blockIndex) ? { block_index: blockIndex } : {}),
+  };
+}
+
 async function fetchEvents(
   params: EventsListParams,
   platformApi: string,
@@ -330,21 +360,23 @@ export function createEventsComposable(deps: WalletSdkComposableDeps) {
         const res = await fetchWithTimeout(url.toString(), { signal });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data)) {
-            // The N3Index endpoint returns a bare page array with no overall
-            // count, so leave `total` undefined: useAllEvents then falls back
-            // to its full-page continuation heuristic. Synthesizing
-            // `total: data.length` made offset + page length === total on any
-            // full page, stopping pagination after the first 50 events.
+          // N3Index has shipped both a legacy bare page array and the current
+          // `{ data, paging }` envelope. Neither shape exposes a trustworthy
+          // overall total (`paging.count` is the current page count), so keep
+          // total undefined and let useAllEvents use its full-page continuation
+          // heuristic. Malformed/null payloads deliberately fall through to
+          // the platform API rather than being misreported as an empty page.
+          const page = Array.isArray(data)
+            ? data
+            : data && typeof data === "object" && Array.isArray(data.data)
+              ? data.data
+              : null;
+          if (page) {
             return {
-              events: data.map((e: Record<string, unknown>) => ({
-                id: e.id as string | number,
-                event_name: e.event_name as string,
-                state: e.state,
-                tx_hash: e.txid as string,
-                created_at: e.block_time as string,
-                block_index: e.block_index as number,
-              })),
+              events: page.flatMap((entry: unknown) => {
+                const event = normalizeN3IndexEvent(entry);
+                return event ? [event] : [];
+              }),
             };
           }
         }

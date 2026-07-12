@@ -13,7 +13,12 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 function base64ToBytes(value: string): Uint8Array {
-  const binary = atob(value);
+  let binary: string;
+  try {
+    binary = atob(value);
+  } catch {
+    throw new Error("Invalid payload format: malformed base64");
+  }
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);
@@ -25,6 +30,72 @@ function bytesToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const copy = new Uint8Array(bytes.byteLength);
   copy.set(bytes);
   return copy.buffer as ArrayBuffer;
+}
+
+/**
+ * Exact string length of the v1 AES-GCM envelope produced below. Photo data
+ * URLs are ASCII, so their UTF-8 byte length and JavaScript string length are
+ * identical. Keeping the estimate beside the serializer prevents the capacity
+ * meter from drifting away from the payload that is actually stored.
+ */
+export function estimateEncryptedPayloadLength(plainTextLength: number): number {
+  const cipherBase64Length = Math.ceil((Math.max(0, plainTextLength) + 16) / 3) * 4;
+  return 91 + cipherBase64Length;
+}
+
+interface EncryptedPayloadEnvelope {
+  v: 1;
+  alg: "AES-GCM";
+  salt: string;
+  iv: string;
+  data: string;
+}
+
+function canonicalBase64ByteLength(value: string): number | null {
+  if (
+    value.length === 0
+    || value.length % 4 !== 0
+    || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)
+  ) return null;
+  const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  return value.length / 4 * 3 - padding;
+}
+
+function parseEncryptedPayloadEnvelope(payload: string): EncryptedPayloadEnvelope {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload);
+  } catch {
+    throw new Error("Invalid payload format: failed to parse JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid payload format");
+  }
+  const typed = parsed as Partial<EncryptedPayloadEnvelope>;
+  if (typed.v !== 1 || typed.alg !== "AES-GCM") {
+    throw new Error("Invalid payload format");
+  }
+  if (typeof typed.salt !== "string" || typeof typed.iv !== "string" || typeof typed.data !== "string") {
+    throw new Error("Invalid payload format: missing required fields");
+  }
+  if (
+    canonicalBase64ByteLength(typed.salt) !== 16
+    || canonicalBase64ByteLength(typed.iv) !== 12
+    || (canonicalBase64ByteLength(typed.data) ?? 0) < 16
+  ) {
+    throw new Error("Invalid payload format: invalid AES-GCM envelope");
+  }
+  return typed as EncryptedPayloadEnvelope;
+}
+
+/** Cheap structural check used while recovering a wallet album. */
+export function isEncryptedPayloadEnvelope(payload: string): boolean {
+  try {
+    parseEncryptedPayloadEnvelope(payload);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function deriveKey(password: string, salt: Uint8Array) {
@@ -73,22 +144,7 @@ export async function encryptPayload(payload: string, password: string): Promise
 
 export async function decryptPayload(payload: string, password: string): Promise<string> {
   ensureCrypto();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(payload);
-  } catch (_e) {
-    throw new Error("Invalid payload format: failed to parse JSON");
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Invalid payload format");
-  }
-  const typed = parsed as { v?: unknown; alg?: unknown; salt?: unknown; iv?: unknown; data?: unknown };
-  if (typed.v !== 1 || typed.alg !== "AES-GCM") {
-    throw new Error("Invalid payload format");
-  }
-  if (typeof typed.salt !== "string" || typeof typed.iv !== "string" || typeof typed.data !== "string") {
-    throw new Error("Invalid payload format: missing required fields");
-  }
+  const typed = parseEncryptedPayloadEnvelope(payload);
   const salt = base64ToBytes(typed.salt);
   const iv = base64ToBytes(typed.iv);
   const data = base64ToBytes(typed.data);

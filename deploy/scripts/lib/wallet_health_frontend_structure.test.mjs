@@ -21,11 +21,11 @@ test("Wallet Health renders a v2 safety workspace with local checklist state", (
   assertPlayStage(playArea, "tool", "Wallet Health");
   assertClasses(playArea, [
     "wallet-health-play-area",
-    "health-workspace",
-    "health-summary-card",
+    "wallet-health-stage",
+    "health-overview",
     "health-scanner-art",
-    "health-gauge",
-    "health-balances",
+    "health-progress",
+    "health-balance-strip",
     "health-checklist-card",
     "health-checklist",
     "health-next-card",
@@ -33,10 +33,12 @@ test("Wallet Health renders a v2 safety workspace with local checklist state", (
   ], "Wallet Health");
   assertDispatches(playArea, [
     "copy",
-    "connectWallet",
     "toggleChecklist",
-    "refreshBalances",
   ], "Wallet Health");
+  assert.match(
+    playArea,
+    /dispatch\(isConnected \? "refreshBalances" : "connectWallet"\)/,
+  );
   assert.match(main, /checklistItems:\s*health\.checklistItems/);
   assert.match(hook, /checklistRevision\s*=\s*createObservable/);
   assert.match(analysis, /balanceRevision\s*=\s*createObservable/);
@@ -49,7 +51,7 @@ test("Wallet Health renders a v2 safety workspace with local checklist state", (
     "refreshBalances",
     "recommendationsTitle",
   ], "Wallet Health");
-  assert.match(styles, /\.health-workspace\s*\{/);
+  assert.match(styles, /\.health-overview\s*\{/);
   assert.match(styles, /@media \(max-width:/);
   assertModernTypography(styles, "Wallet Health");
 });

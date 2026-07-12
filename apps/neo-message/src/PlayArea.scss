@@ -777,16 +777,47 @@
 
 .neomsg-drawer__notice.mx2-open-notice.semi-banner,
 .neomsg-empty.mx2-open-notice.semi-banner,
+.neomsg-pending-delivery.mx2-open-notice.semi-banner,
 .neomsg-last-status.mx2-open-notice.semi-banner {
   border-radius: 16px;
   background: rgba(248, 250, 249, 0.9);
 }
 
+.neomsg-pending-delivery .semi-banner-description {
+  display: grid;
+  gap: 8px;
+}
+
+.neomsg-pending-delivery .semi-banner-description > strong {
+  color: #8a4a12;
+  font-size: 11px;
+}
+
+.neomsg-pending-delivery__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.neomsg-pending-delivery__actions .mx2-btn {
+  width: auto;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
 .neomsg-drawer-panel--list ul {
   display: grid;
   gap: 8px;
+  max-height: min(56vh, 560px);
   margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0;
+  padding-right: 3px;
   list-style: none;
 }
 
@@ -830,6 +861,16 @@
 .neomsg-message__status[data-status="revealed"] {
   background: rgba(57, 181, 128, 0.2);
   color: #1f4f3b;
+}
+
+.neomsg-message__status[data-status="private-open"] {
+  background: #e6f1ff;
+  color: #24517c;
+}
+
+.neomsg-message__status[data-status="pending"] {
+  background: #fff0d5;
+  color: #74420f;
 }
 
 .neomsg-message__meta {

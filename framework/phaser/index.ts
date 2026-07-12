@@ -7,7 +7,15 @@
  */
 export { PhaserGameComponent } from "./PhaserGameComponent";
 export { BaseScene } from "./BaseScene";
-export { SceneAudio, SCENE_AUDIO_PRESETS } from "./SceneAudio";
+export {
+  SceneAudio,
+  SCENE_AUDIO_PRESETS,
+  SCENE_AUDIO_MUTE_EVENT,
+  SCENE_AUDIO_MUTE_STORAGE_KEY,
+  isSceneAudioMuted,
+  setSceneAudioMuted,
+  toggleSceneAudioMuted,
+} from "./SceneAudio";
 export type { SceneAudioPreset, SceneAudioTone } from "./SceneAudio";
 export {
   GameBridge,

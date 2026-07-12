@@ -8,6 +8,10 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useRedEnvelope } from "./composables/useRedEnvelope";
 import { createGuestEngine, type GuestBoardRow } from "./logic/guest-engine";
+import {
+  buildRedEnvelopeShareUrl,
+  normalizeRedEnvelopeId,
+} from "./red-envelope-rpc";
 
 defineMiniApp({
   appId: "miniapp-redenvelope",
@@ -17,19 +21,50 @@ defineMiniApp({
 
   setup(ctx) {
     const launchParams = ctx.launchContext.params ?? {};
+    const rawLaunchEnvelopeId = String(
+      launchParams.envelopeId ??
+        launchParams.poolId ??
+        launchParams.id ??
+        launchParams.packet ??
+        "",
+    ).trim();
+    const launchEnvelopeId = normalizeRedEnvelopeId(rawLaunchEnvelopeId);
+    // Envelope ids are sequential independently on each network. A legacy
+    // link without `network` is ambiguous and must never fall through to the
+    // manifest's MainNet default, where the same id may name another packet.
     const hasLaunchEnvelopeId = Boolean(
-      launchParams.envelopeId ||
-        launchParams.poolId ||
-        launchParams.id ||
-        launchParams.packet,
+      launchEnvelopeId && ctx.launchContext.network,
+    );
+    const invalidLaunchLink = Boolean(
+      rawLaunchEnvelopeId && (!launchEnvelopeId || !ctx.launchContext.network),
     );
     const app = ctx.framework;
+    // Defence in depth for releases that have not completed the live paid-flow
+    // gate. The manifest hides GameFi; these action guards also protect stale
+    // hosts and deep links. Recovery/reclaim/withdraw remain available because
+    // they can be required to finish or unwind an already-broadcast operation.
+    const paidActionsEnabled = manifest.supportsGameFi !== false;
     const envelope = useRedEnvelope({
       app,
       t: ctx.t,
+      launchNetwork: ctx.launchContext.network,
     });
+    const paidActionsAvailable = createDerived(
+      () => paidActionsEnabled && envelope.contractCompatible.get(),
+      [envelope.contractCompatible],
+    );
+    const assertNewPaidActionEnabled = () => {
+      if (!paidActionsEnabled) throw new Error(ctx.t("entryGameFiUnavailable"));
+      if (!envelope.contractCompatible.get()) {
+        throw new Error(ctx.t("contractCompatibilityUnproven"));
+      }
+    };
 
     envelope.setAddress(app.chain.address.get() ?? null);
+    const isConnectingWallet = createObservable(false);
+    const stopAddressSync = app.chain.address.subscribe(() => {
+      envelope.setAddress(app.chain.address.get() ?? null);
+    });
 
     // ── Guest (free / local) mode ─────────────────────────────────────────────
     // GUEST reuses the SAME dispatch actions + scene observables, driven by a
@@ -64,6 +99,20 @@ defineMiniApp({
     app.mode.onChange((mode) => {
       appMode.set(mode);
       if (mode === "guest") void guest.enter();
+      else guest.leave();
+    });
+
+    ctx.framework.actions.register("connectWallet", async () => {
+      if (app.mode.isGuest() || isConnectingWallet.get()) return;
+      isConnectingWallet.set(true);
+      try {
+        // This action is deliberately terminal: it connects, refreshes and
+        // reconciles an exact pending tx, but never falls through to create or
+        // claim in the same click.
+        await ctx.framework.notify.guard(() => envelope.handleConnect());
+      } finally {
+        isConnectingWallet.set(false);
+      }
     });
 
     ctx.framework.actions.register("createEnvelope", async (...args: unknown[]) => {
@@ -81,6 +130,11 @@ defineMiniApp({
         });
         return;
       }
+      if (!app.wallet.isConnected() || !app.chain.address.get()) {
+        app.notify.info("connectWalletFirst");
+        return;
+      }
+      assertNewPaidActionEnabled();
       await ctx.framework.notify.guard(
         () =>
           envelope.create({
@@ -95,9 +149,15 @@ defineMiniApp({
     ctx.framework.actions.register("claimEnvelope", async (...args: unknown[]) => {
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
-      const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
-      if (app.mode.isGuest()) { guest.claimEnvelope(id); return; }
+      const rawId = String(form?.envelopeId ?? form?.poolId ?? first ?? "").trim();
+      if (app.mode.isGuest()) { guest.claimEnvelope(rawId); return; }
+      const id = normalizeRedEnvelopeId(rawId);
       if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
+      if (!app.wallet.isConnected() || !app.chain.address.get()) {
+        app.notify.info("connectWalletFirst");
+        return;
+      }
+      assertNewPaidActionEnabled();
       await ctx.framework.notify.guard(
         () => envelope.handleClaimFromPool(id),
         { successKey: "envelopeClaimed" },
@@ -107,9 +167,14 @@ defineMiniApp({
     ctx.framework.actions.register("reclaimEnvelope", async (...args: unknown[]) => {
       const first = args[0];
       const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
-      const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
-      if (app.mode.isGuest()) { guest.reclaimEnvelope(id); return; }
+      const rawId = String(form?.envelopeId ?? form?.poolId ?? first ?? "").trim();
+      if (app.mode.isGuest()) { guest.reclaimEnvelope(rawId); return; }
+      const id = normalizeRedEnvelopeId(rawId);
       if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired"));
+      if (!app.wallet.isConnected() || !app.chain.address.get()) {
+        app.notify.info("connectWalletFirst");
+        return;
+      }
       await ctx.framework.notify.guard(async () => {
         const { amount } = await envelope.reclaimEnvelope(id);
         if (amount > 0) {
@@ -123,6 +188,10 @@ defineMiniApp({
 
     ctx.framework.actions.register("withdrawCredit", async () => {
       if (app.mode.isGuest()) { guest.withdrawCredit(); return; }
+      if (!app.wallet.isConnected() || !app.chain.address.get()) {
+        app.notify.info("connectWalletFirst");
+        return;
+      }
       await ctx.framework.notify.guard(async () => {
         const { amount } = await envelope.withdrawCredit();
         if (amount > 0) {
@@ -145,15 +214,31 @@ defineMiniApp({
     ctx.framework.actions.register("shareEnvelope", async (...args: unknown[]) => {
       const first = args[0];
       const form = first && typeof first === "object" ? (first as Record<string, unknown>) : null;
-      const id = String(form?.envelopeId ?? first ?? envelope.lastCreatedEnvelopeId.get() ?? "").trim();
-      if (app.mode.isGuest()) { guest.shareEnvelope(id); return; }
+      const rawId = String(
+        form?.envelopeId ?? first ?? envelope.lastCreatedEnvelopeId.get() ?? "",
+      ).trim();
+      if (app.mode.isGuest()) { guest.shareEnvelope(rawId); return; }
+      const id = normalizeRedEnvelopeId(rawId);
       if (!id) return;
-      const deeplink = `neomainapp://red-envelope?envelopeId=${id}`;
+      const network = envelope.activeNetwork.get();
+      if (!network) throw new Error(ctx.t("shareNetworkUnavailable"));
+      const deeplink = buildRedEnvelopeShareUrl(id, network);
+      if (!deeplink) throw new Error(ctx.t("shareNetworkUnavailable"));
       await ctx.services.clipboard.copy(deeplink, "shareLinkCopied");
     });
 
     ctx.framework.actions.register("dismissShare", async () => {
       envelope.lastCreatedEnvelopeId.set("");
+    });
+
+    ctx.framework.actions.register("retryEnvelopeData", async () => {
+      if (app.mode.isGuest()) {
+        await guest.enter();
+        return;
+      }
+      envelope.setAddress(app.chain.address.get() ?? null);
+      await envelope.loadAll();
+      if (launchEnvelopeId) await envelope.hydrateEnvelope(launchEnvelopeId);
     });
 
     // Synthetic stats (composable doesn't expose totalCreated/totalClaimed yet)
@@ -175,6 +260,16 @@ defineMiniApp({
         claims: envelope.claims,
         pools: envelope.pools,
         isLoading: envelope.isLoading,
+        isRecovering: envelope.isRecovering,
+        isConnectingWallet,
+        walletConnected: envelope.isConnected,
+        pendingOperation: envelope.pendingOperation,
+        transactionNotice: envelope.transactionNotice,
+        serviceNotice: envelope.serviceNotice,
+        createAvailable: envelope.createAvailable,
+        contractCompatible: envelope.contractCompatible,
+        activeNetwork: envelope.activeNetwork,
+        paidActionsAvailable,
         // composable folds isCreating into isLoading
         isCreating: envelope.isLoading,
         luckyMessage: envelope.luckyMessage,
@@ -206,20 +301,21 @@ defineMiniApp({
             // sees its remaining-packets / pool-progress preview before claiming,
             // rather than landing on an empty list (it is not their own envelope,
             // so the paged loadEnvelopes would not surface it).
-            const launchId = String(
-              launchParams.envelopeId ??
-                launchParams.poolId ??
-                launchParams.id ??
-                launchParams.packet ??
-                "",
-            );
-            await envelope.hydrateEnvelope(launchId);
+            await envelope.loadAll();
+            await envelope.hydrateEnvelope(launchEnvelopeId);
           }
         : async () => {
             if (app.mode.isGuest()) { await guest.enter(); return; }
             envelope.setAddress(app.chain.address.get() ?? null);
             await envelope.loadAll();
+            if (invalidLaunchLink) {
+              envelope.serviceNotice.set(ctx.t("shareLinkNetworkRequired"));
+            }
           },
+      cleanup: () => {
+        stopAddressSync();
+        guest.destroy();
+      },
     };
   },
 });

@@ -22,7 +22,16 @@ import {
 import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextArea as OpenUiTextArea,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import type { PendingAnchorOperation } from "./anchor-production";
 import "./PlayArea.scss";
 
 interface P {
@@ -71,16 +80,23 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const anchorAppId = str("anchorAppId");
-  const totalStaked = str("totalStaked", "0");
-  const rewardReserve = str("rewardReserve", "0");
-  const userStake = str("userStake", "0");
-  const pendingRewards = str("pendingRewards", "0");
-  const rewardPerNeo = str("rewardPerNeo", "0");
+  const totalStaked = str("totalStaked", "—");
+  const rewardReserve = str("rewardReserve", "—");
+  const userStake = str("userStake", "—");
+  const pendingRewards = str("pendingRewards", "—");
+  const rewardPerNeo = str("rewardPerNeo", "—");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
+  const errorDetail = str("errorDetail");
   const lastTxid = str("lastTxid");
-  const neoCredit = str("neoCredit", "0");
-  const gasCredit = str("gasCredit", "0");
+  const neoCredit = str("neoCredit", "—");
+  const gasCredit = str("gasCredit", "—");
+  const dataStatus = str("dataStatus", "idle");
+  const creditStatus = str("creditStatus", "idle");
+  const networkStatus = str("networkStatus", "bound");
+  const storageStatus = str("storageStatus", "ready");
+  const pendingState = str("pendingState", "none");
+  const pendingOperation = val<PendingAnchorOperation | null>("pendingOperation", null);
   const anchorMode = num("anchorMode", -1);
   const agentCount = num("agentCount");
   const isLoading = bool("isLoading");
@@ -90,7 +106,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const [anchorDraft, setAnchorDraft] = useState(anchorAppId);
   const [amountDraft, setAmountDraft] = useState("1");
   const [agentAcknowledged, setAgentAcknowledged] = useState(false);
-  const [registerDraft, setRegisterDraft] = useState(anchorAppId || "custom-anchor:team:nonce");
+  const [registerDraft, setRegisterDraft] = useState(anchorAppId);
   const [registerMode, setRegisterMode] = useState<1 | 2>(2);
   const [candidateDraft, setCandidateDraft] = useState("");
   const [pulseAction, setPulseAction] = useState<string | null>(null);
@@ -113,13 +129,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const registered = anchorMode > 0;
   const unregistered = anchorMode === 0;
   const noAgents = registered && agentCount === 0;
+  const hasPending = Boolean(pendingOperation);
   const busy = isLoading || submitting || Boolean(pulseAction);
+  const writesBlocked = busy || hasPending || networkStatus === "mismatch" || storageStatus === "unavailable";
   const stakeBlockedByAgents = noAgents && !agentAcknowledged;
-  const canStake = anchorReady && wholeNeoReady && registered && !stakeBlockedByAgents && !busy;
-  const canWithdraw = anchorReady && wholeNeoReady && registered && hasPositiveAmount(userStake) && !busy;
-  const canClaim = anchorReady && registered && hasPositiveAmount(pendingRewards) && !busy;
+  const canStake = anchorReady && wholeNeoReady && registered && !stakeBlockedByAgents && !writesBlocked;
+  const canWithdraw = anchorReady && wholeNeoReady && registered && hasPositiveAmount(userStake) && !writesBlocked;
+  const canClaim = anchorReady && registered && hasPositiveAmount(pendingRewards) && !writesBlocked;
   const candidateCount = validCandidateCount(candidateDraft);
-  const canRegister = registerDraft.trim().length > 0 && candidateCount === 21 && !busy;
+  const canRegister = registerDraft.trim().length > 0 && candidateCount === 21 && !writesBlocked;
   const creditAvailable = hasPositiveAmount(neoCredit) || hasPositiveAmount(gasCredit);
 
   const modeLabel = anchorMode === 2 ? t("modeProfit") : anchorMode === 1 ? t("modeTrust") : t("anchorMissing");
@@ -130,13 +148,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
     { mode: "safety", label: t("docSafety"), meta: creditAvailable ? t("creditTitle") : workflowStatus, icon: <ShieldCheck size={15} aria-hidden="true" /> },
   ];
   const readinessLabel = useMemo(() => {
+    if (hasPending) return t("pendingOperationActive");
+    if (dataStatus === "unavailable") return t("anchorDataUnavailable");
     if (!anchorReady) return t("anchorLaneAnchorPending");
     if (!wholeNeoReady) return t("anchorLaneAmountPending");
     if (unregistered) return t("anchorNotRegisteredBadge");
     if (noAgents) return t("anchorLaneStateBlocked");
     if (registered) return t("anchorLaneStateReady");
     return t("anchorLaneStateDraft");
-  }, [anchorReady, noAgents, registered, t, unregistered, wholeNeoReady]);
+  }, [anchorReady, dataStatus, hasPending, noAgents, registered, t, unregistered, wholeNeoReady]);
 
   const runAction = (name: "stake" | "withdraw" | "claimRewards") => {
     if (name === "stake" && !canStake) return;
@@ -167,6 +187,13 @@ export default function PlayArea({ t, state, dispatch }: P) {
     setAmountDraft(String(next));
   };
 
+  const pendingLabel = pendingOperation
+    ? t(`pendingStage_${pendingOperation.stage.replace(/-/g, "_")}`)
+    : "";
+  const pendingPrimary = pendingOperation?.phase === "prepared"
+    ? { label: t("pendingContinue"), action: "resumePending" }
+    : { label: t("pendingCheck"), action: "recoverPending" };
+
   const scene = (
     <div className="anchor-workspace" data-state={pulseAction ? "submitting" : noAgents ? "blocked" : registered ? "ready" : "draft"}>
       <section className="anchor-console" aria-label={t("actionPanelLabel")}>
@@ -174,6 +201,18 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <span><Anchor size={16} />{t("anchorWorkspaceLabel")}</span>
           <strong>{readinessLabel}</strong>
         </div>
+
+        {pendingOperation && (
+          <div className="anchor-pending" role="status" data-phase={pendingOperation.phase}>
+            <RefreshCw size={18} aria-hidden="true" />
+            <div>
+              <strong>{pendingLabel}</strong>
+              <p>{t("pendingOperationBody")}</p>
+              {pendingOperation.txid && <small>{compact(pendingOperation.txid)}</small>}
+            </div>
+            <span>{t(`pendingState_${pendingState}`)}</span>
+          </div>
+        )}
 
         <div className="anchor-console__mobile-art" aria-hidden="true">
           <img src={STAGE_IMAGE} alt="" />
@@ -237,12 +276,12 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <div className="anchor-route__step" data-ready={agentCount > 0 ? "true" : undefined}>
             <UsersRound size={17} />
             <span>{t("anchorLaneStepAgents")}</span>
-            <strong>{agentCount}/21</strong>
+            <strong>{agentCount < 0 ? "—" : `${agentCount}/21`}</strong>
           </div>
           <div className="anchor-route__step" data-ready={hasPositiveAmount(pendingRewards) ? "true" : undefined}>
             <Coins size={17} />
             <span>{t("anchorLaneStepRewards")}</span>
-            <strong>{pendingRewards} GAS</strong>
+            <strong>{pendingRewards === "—" ? "—" : `${pendingRewards} GAS`}</strong>
           </div>
         </div>
 
@@ -290,16 +329,19 @@ export default function PlayArea({ t, state, dispatch }: P) {
       <section className="anchor-visual" aria-label={t("anchorLaneLabel")}>
         <div className="anchor-visual__media">
           <img className="anchor-visual__image" src={STAGE_IMAGE} alt="" aria-hidden="true" />
-          <span className="anchor-visual__chip"><Sparkles size={14} />{t("agentModel")}</span>
+          <span className="anchor-visual__chip">
+            <Sparkles size={14} />
+            {t("agentModel")} · {totalStaked === "—" ? "—" : `${totalStaked} NEO`}
+          </span>
         </div>
         <div className="anchor-visual__stats">
           <div>
             <span>{t("userStake")}</span>
-            <strong>{userStake} NEO</strong>
+            <strong>{userStake === "—" ? "—" : `${userStake} NEO`}</strong>
           </div>
           <div>
             <span>{t("rewardReserve")}</span>
-            <strong>{rewardReserve} GAS</strong>
+            <strong>{rewardReserve === "—" ? "—" : `${rewardReserve} GAS`}</strong>
           </div>
           <div>
             <span>{t("rewardPerNeoLabel")}</span>
@@ -361,9 +403,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
             />
           </div>
           <div className="anchor-drawer__summary">
-            <span>{t("userStake")} <strong>{userStake} NEO</strong></span>
-            <span>{t("pendingRewards")} <strong>{pendingRewards} GAS</strong></span>
-            <span>{t("agentCount")} <strong>{agentCount}/21</strong></span>
+            <span>{t("userStake")} <strong>{userStake === "—" ? "—" : `${userStake} NEO`}</strong></span>
+            <span>{t("pendingRewards")} <strong>{pendingRewards === "—" ? "—" : `${pendingRewards} GAS`}</strong></span>
+            <span>{t("agentCount")} <strong>{agentCount < 0 ? "—" : `${agentCount}/21`}</strong></span>
           </div>
           <div className="anchor-drawer__action-strip">
             <button type="button" onClick={refresh} disabled={busy}>
@@ -437,8 +479,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 { value: "1", label: t("registerModeTrust") },
                 { value: "2", label: t("registerModeProfit") },
               ]}
-              hint={registerMode === 1 ? t("registerModeTrustDesc") : t("registerModeProfitDesc")}
             />
+            <p className="anchor-mode-hint">{registerMode === 1 ? t("registerModeTrustDesc") : t("registerModeProfitDesc")}</p>
             <OpenUiTextArea
               className="anchor-field anchor-field--candidates"
               textareaClassName="anchor-candidates-input"
@@ -473,20 +515,42 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <OpenUiNotice className="anchor-drawer__notice" icon={<ShieldCheck size={17} aria-hidden="true" />} title={t("safetyRail")}>
             {t("docSafetyBody")}
           </OpenUiNotice>
-          {creditAvailable && (
+          {creditStatus === "ready" && creditAvailable && (
             <div className="anchor-credit-card">
               <span><WalletCards size={15} />{t("creditTitle")}</span>
               <p>{t("creditBody")}</p>
               <div className="anchor-credit">
                 <span>{t("creditNeo")}: <strong>{neoCredit}</strong></span>
-                <button type="button" onClick={() => void dispatch("recoverCredit", "NEO")} disabled={!hasPositiveAmount(neoCredit) || busy}>{t("recoverNeo")}</button>
+                <button type="button" onClick={() => void dispatch("recoverCredit", "NEO")} disabled={!hasPositiveAmount(neoCredit) || writesBlocked}>{t("recoverNeo")}</button>
                 <span>{t("creditGas")}: <strong>{gasCredit}</strong></span>
-                <button type="button" onClick={() => void dispatch("recoverCredit", "GAS")} disabled={!hasPositiveAmount(gasCredit) || busy}>{t("recoverGas")}</button>
+                <button type="button" onClick={() => void dispatch("recoverCredit", "GAS")} disabled={!hasPositiveAmount(gasCredit) || writesBlocked}>{t("recoverGas")}</button>
               </div>
             </div>
           )}
+          {creditStatus !== "ready" && (
+            <OpenUiNotice
+              className="anchor-credit-unavailable"
+              icon={<WalletCards size={17} aria-hidden="true" />}
+              title={t("creditUnavailableTitle")}
+              type="warning"
+            >
+              {creditStatus === "disconnected" ? t("creditDisconnectedBody") : t("creditUnavailableBody")}
+            </OpenUiNotice>
+          )}
+          <div className="anchor-context-grid">
+            <span>{t("networkBindingLabel")}<strong>{t(`networkState_${networkStatus}`)}</strong></span>
+            <span>{t("recoveryStorageLabel")}<strong>{t(`storageState_${storageStatus}`)}</strong></span>
+          </div>
           <p className="anchor-drawer-status" role="status">{workflowStatus}</p>
           {lastTxid && <p className="anchor-tx">{t("lastTxid")}: {compact(lastTxid)}</p>}
+          {pendingOperation?.phase === "attempted" && !pendingOperation.txid && (
+            <div className="anchor-drawer__action-strip anchor-drawer__action-strip--recovery">
+              <button type="button" onClick={() => void dispatch("clearUnbroadcastPending")} disabled={busy}>
+                {t("pendingClearRejected")}
+              </button>
+            </div>
+          )}
+          {errorDetail && <p className="anchor-error-detail">{errorDetail}</p>}
         </OpenUiPanel>
       )}
     </div>
@@ -504,20 +568,24 @@ export default function PlayArea({ t, state, dispatch }: P) {
             badges: (
               <>
                 <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{modeLabel}</span>
-                <span className="mx2-badge">{agentCount}/21 {t("agentCount")}</span>
+                <span className="mx2-badge">{agentCount < 0 ? "—" : `${agentCount}/21`} {t("agentCount")}</span>
               </>
             ),
           }}
           scene={scene}
           actions={{
             primary: {
-              label: submitting || pulseAction === "stake" ? t("stakeSubmitting") : t("stakeAction"),
-              onClick: () => runAction("stake"),
-              loading: submitting || pulseAction === "stake",
-              disabled: !canStake,
-              icon: <LockKeyhole size={17} />,
+              label: hasPending
+                ? pendingPrimary.label
+                : submitting || pulseAction === "stake" ? t("stakeSubmitting") : t("stakeAction"),
+              onClick: hasPending
+                ? () => void dispatch(pendingPrimary.action)
+                : () => runAction("stake"),
+              loading: submitting || (!hasPending && pulseAction === "stake"),
+              disabled: hasPending ? busy || pendingState === "corrupted" : !canStake,
+              icon: hasPending ? <RefreshCw size={17} /> : <LockKeyhole size={17} />,
             },
-            secondary: [
+            secondary: hasPending ? [] : [
               {
                 label: t("withdrawAction"),
                 onClick: () => runAction("withdraw"),

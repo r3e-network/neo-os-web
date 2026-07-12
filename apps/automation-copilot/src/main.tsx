@@ -40,6 +40,15 @@ defineMiniApp({
       successKey: "triggerStatusUpdated",
       errorKey: "triggerStatusFailed",
     });
+    ctx.framework.actions.register("copyTriggerRequest", async () => {
+      if (!copilot.triggerRequest.get()) {
+        throw new Error(ctx.t("triggerRequestUnavailable"));
+      }
+      await ctx.framework.clipboard.copy(copilot.renderedTriggerRequest.get(), {
+        successKey: "copied",
+        errorKey: "copyFailed",
+      });
+    });
 
     ctx.framework.actions.register("registerTrigger", async () => {
       try {
@@ -75,6 +84,9 @@ defineMiniApp({
         schedule: copilot.schedule,
         actionName: copilot.actionName,
         currentPrice: copilot.priceDisplay,
+        priceDataTimestamp: copilot.priceDataTimestamp,
+        priceRecordTimestamp: copilot.priceRecordTimestamp,
+        priceFreshnessState: copilot.priceFreshnessState,
         renderedPayload: copilot.renderedPayload,
         renderedTriggerRequest: copilot.renderedTriggerRequest,
         isRequesting: copilot.isRequesting,
@@ -85,8 +97,10 @@ defineMiniApp({
         datafeedHash: copilot.datafeedHash,
         latestTriggerId: copilot.latestTriggerId,
         latestTriggerState: copilot.latestTriggerState,
+        latestTriggerMode: copilot.latestTriggerMode,
         latestTrigger: copilot.latestTrigger,
         triggers: copilot.triggers,
+        triggersLoaded: copilot.triggersLoaded,
         triggerCount: copilot.triggerCount,
         apiStatus: copilot.apiStatus,
         lastError: copilot.lastError,

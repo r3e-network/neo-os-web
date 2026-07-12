@@ -13,16 +13,288 @@
   display: block;
 }
 
+.burn-league-play-area .mx2-stage {
+  box-sizing: border-box;
+  width: min(100%, 760px);
+  max-width: 760px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  margin-inline: auto;
+  padding: 8px 16px 12px;
+  background: #fffdf8;
+}
+
 .burn-league-play-area .mx2-stage__scene {
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: stretch;
   min-height: 0;
-  padding: 0;
+  padding: 10px 12px 0;
 }
 
 .burn-league-play-area .phaser-game-host {
   margin-inline: auto;
+}
+
+.burn-phaser-stage {
+  min-height: 0;
+}
+
+.burn-stage-shell {
+  position: relative;
+  width: 100%;
+  height: clamp(660px, calc(100dvh - 156px), 742px);
+  min-height: 660px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(146, 64, 14, 0.14);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 55% 22%, rgba(254, 243, 199, 0.78), transparent 43%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(255, 247, 237, 0.84)),
+    #fffdf8;
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.06);
+}
+
+.burn-stage-shell .phaser-game-host,
+.burn-phaser-canvas {
+  flex: 0 0 auto;
+}
+
+.burn-game-surface {
+  position: relative;
+  width: min(100%, 420px);
+  max-width: 100%;
+  display: inline-block;
+  flex: 0 1 auto;
+  line-height: normal;
+}
+
+.burn-game-surface .phaser-game-host {
+  --phaser-mobile-height-ratio: 1.4286;
+  --phaser-mobile-bottom-reserve: 68;
+}
+
+/* Phaser owns the visible arena assets. These semantic twins give the same
+ * fuel and primary actions to keyboard/assistive-technology users without
+ * adding a second form-like control panel or intercepting pointer input. */
+.burn-a11y-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.burn-a11y-presets {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.burn-a11y-hit {
+  position: absolute;
+  z-index: 1;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: transparent;
+  pointer-events: none;
+}
+
+.burn-a11y-hit > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: calc(100% - 10px);
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(146, 64, 14, 0.24);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 7px 18px rgba(146, 64, 14, 0.16);
+  color: #44210c;
+  font-size: 0.72rem;
+  font-weight: 760;
+  line-height: 1.15;
+  opacity: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.burn-a11y-hit:focus-visible {
+  z-index: 4;
+  border-color: #7c2d12;
+  background: rgba(255, 253, 248, 0.16);
+  outline: 3px solid rgba(254, 243, 199, 0.98);
+  outline-offset: 2px;
+}
+
+.burn-a11y-hit:focus-visible > span {
+  opacity: 1;
+}
+
+.burn-a11y-preset {
+  top: 74.5%;
+  width: 15%;
+  height: 11%;
+}
+
+.burn-a11y-preset[data-index="0"] { left: 18.2%; }
+.burn-a11y-preset[data-index="1"] { left: 34.4%; }
+.burn-a11y-preset[data-index="2"] { left: 50.6%; }
+.burn-a11y-preset[data-index="3"] { left: 66.8%; }
+
+.burn-a11y-primary {
+  left: 22%;
+  top: 85.5%;
+  width: 56%;
+  height: 9%;
+  border-radius: 18px;
+}
+
+.burn-a11y-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.burn-stage-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 12;
+  width: min(100%, 560px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(92px, 1.08fr);
+  gap: 6px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(146, 64, 14, 0.16);
+  border-radius: 16px;
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.95);
+  box-shadow: 0 10px 24px rgba(146, 64, 14, 0.12);
+}
+
+.burn-stage-hud__metric,
+.burn-stage-hud__bank,
+.burn-stage-hud__drawer {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(146, 64, 14, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.burn-stage-hud__bank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-color: rgba(15, 125, 86, 0.42);
+  background: #ecfdf5;
+  color: #075f43;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.burn-stage-hud__bank:hover:not(:disabled),
+.burn-stage-hud__bank:focus-visible {
+  border-color: #0f7d56;
+  background: #d1fae5;
+  outline: 2px solid rgba(15, 125, 86, 0.22);
+  outline-offset: 2px;
+}
+
+.burn-stage-hud__bank:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.burn-stage-hud__metric {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.burn-stage-hud__metric[data-accent="true"] {
+  border-color: rgba(245, 158, 11, 0.38);
+  box-shadow: inset 2px 0 0 #f59e0b;
+}
+
+.burn-stage-hud__metric span {
+  overflow: hidden;
+  color: #8a5b2d;
+  font-size: 0.58rem;
+  font-weight: 680;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.burn-stage-hud__metric strong {
+  overflow: hidden;
+  color: #44210c;
+  font-size: 0.8rem;
+  font-weight: 680;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.burn-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #9a4f03;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.burn-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.burn-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.burn-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(650px, calc(100% - 18px));
+  max-height: min(72vh, 580px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  border: 1px solid rgba(146, 64, 14, 0.2);
+  border-radius: 14px;
+  background: #fffdf8;
+  padding: 16px;
+  box-shadow: 0 18px 48px rgba(146, 64, 14, 0.2);
+  animation: burn-drawer-enter 180ms var(--mx2-ease-snap) both;
 }
 
 .burn-league-play-area .mx2-score {
@@ -823,8 +1095,33 @@
   gap: 16px;
 }
 
+.burn-drawer__close {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  margin: 0 0 -52px auto;
+  border: 1px solid rgba(146, 64, 14, 0.18);
+  border-radius: 50%;
+  background: #ffffff;
+  color: #7c2d12;
+  box-shadow: 0 6px 16px rgba(146, 64, 14, 0.12);
+  cursor: pointer;
+}
+
+.burn-drawer__close:hover,
+.burn-drawer__close:focus-visible {
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #b45309;
+  outline: 3px solid rgba(180, 83, 9, 0.24);
+  outline-offset: 2px;
+}
+
 .burn-drawer h4 {
-  margin: 0 0 8px;
+  margin: 0 52px 8px 0;
   color: var(--mx2-ink);
   font-size: 14px;
   font-weight: 680;
@@ -1090,6 +1387,18 @@
   }
 }
 
+@keyframes burn-drawer-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 .burn-league-play-area .mx2-action-rail__row .mx2-btn--primary {
   display: none;
 }
@@ -1105,7 +1414,37 @@
 
 @media (max-width: 680px) {
   .burn-league-play-area .mx2-stage {
-    padding: 14px 18px 18px;
+    padding: 8px 6px 10px;
+  }
+
+  .burn-league-play-area .mx2-stage__scene {
+    padding-inline: 0;
+  }
+
+  .burn-stage-shell {
+    height: calc(100dvh - 136px);
+    min-height: 620px;
+    border-radius: 16px;
+  }
+
+  .burn-stage-hud {
+    width: calc(100% - 12px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    bottom: 6px;
+    padding: 6px;
+  }
+
+  .burn-stage-hud__metric,
+  .burn-stage-hud__drawer {
+    min-height: 42px;
+    padding: 6px 7px;
+  }
+
+  .burn-ingame-drawer {
+    width: calc(100% - 12px);
+    bottom: 6px;
+    max-height: min(74vh, 560px);
+    padding: 12px;
   }
 
   .burn-league-play-area .mx2-stage__head {
@@ -1396,7 +1735,62 @@
   }
 }
 
+@media (max-width: 320px) {
+  .burn-a11y-preset {
+    width: 20.5%;
+  }
+
+  .burn-a11y-preset[data-index="0"] { left: 3.5%; }
+  .burn-a11y-preset[data-index="1"] { left: 28%; }
+  .burn-a11y-preset[data-index="2"] { left: 52%; }
+  .burn-a11y-preset[data-index="3"] { left: 76.5%; }
+}
+
+/* Short landscape phones and split-screen windows must keep the arena's main
+ * loop reachable without the old 620-660px minimum forcing it below the fold. */
+@media (max-height: 720px) {
+  .burn-league-play-area .mx2-stage {
+    padding-block: 4px 6px;
+  }
+
+  .burn-league-play-area .mx2-stage__head {
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .burn-league-play-area .mx2-stage__subtitle {
+    display: none;
+  }
+
+  .burn-stage-shell {
+    height: calc(100dvh - 104px);
+    min-height: 440px;
+  }
+}
+
+@media (max-height: 560px) {
+  .burn-league-play-area .mx2-stage__badges {
+    display: none;
+  }
+
+  .burn-stage-shell {
+    height: calc(100dvh - 78px);
+    min-height: 360px;
+  }
+
+  .burn-stage-hud {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(88px, 1fr);
+  }
+
+  .burn-stage-hud__metric:nth-child(3),
+  .burn-stage-hud__metric:nth-child(4) {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .burn-ingame-drawer,
+  .burn-stage-hud__drawer svg,
   .burn-scene[data-state="burning"] .burn-scene__brazier,
   .burn-scene__token,
   .burn-scene__spark,

@@ -7,10 +7,11 @@ import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const CONTRACT = "0xe238516951196b87406d39b2b9d35809f6d857fb";
+const CONTRACT = "0xff122a6cf7f22a88d059d61a9d9c07e84a2b56b9";
 const PLAYER_HASH = addressToScriptHash(PLAYER);
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const BUY_MEMO = "miniapp-lastsurvivor:buy";
+const TXID = `0x${"a1".repeat(32)}`;
 
 function t(key: string) {
   const messages: Record<string, string> = {
@@ -23,9 +24,25 @@ function t(key: string) {
     walletNotConnected: "Wallet Not Connected",
     settleBeforeBuy: "Settle the round first.",
     keyPurchaseDepositHeld: "Deposit held as reusable credit.",
+    keyPurchasePending: "Purchase confirmation pending.",
+    keyDepositConfirmationPending: "Deposit confirmation pending.",
+    settlementConfirmationPending: "Settlement confirmation pending.",
+    contractUpgradeRequired: "Legacy payout contract.",
     roundStateUnavailable: "The countdown service is not available yet.",
     winnerDeclared: "Winner declared",
     tokenGas: "GAS",
+    recoveryStorageUnavailable: "Recovery storage unavailable",
+    recoveryStorageUnavailableAfterBroadcast: "Transaction {txid} broadcast; recovery storage unavailable",
+    transactionFault: "Transaction faulted",
+    transactionEventMismatch: "Transaction event mismatch",
+    transactionRecoveryPending: "Transaction pending",
+    transactionRecoveryStillPending: "Transaction still pending",
+    transactionRecoveryConfirmed: "Transaction confirmed",
+    recoveryRecordInvalid: "Recovery record invalid",
+    chainBindingMismatch: "Chain binding mismatch",
+    walletBindingMismatch: "Wallet binding mismatch",
+    contractReadUnavailable: "Contract read unavailable",
+    keyQuoteUnavailable: "Quote unavailable",
   };
   return messages[key] ?? key;
 }
@@ -79,29 +96,79 @@ interface ChainOpts {
  * options above.
  */
 function makeChain(opts: ChainOpts = {}) {
+  const initialRound = opts.round ?? roundMap();
+  const initialRoundId = Number(initialRound.roundId ?? 4);
+  let liveCredit = 0n;
+  let bought = false;
+  let settled = false;
   const invoke = vi.fn(
-    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
+    async (
+      op: string,
+      _args: ContractArg[],
+      options?: { waitForEvent?: string; onTransactionSent?: (txid: string) => void },
+    ): Promise<TxResult> => {
       let event: unknown;
       if (op === "buyKeys") {
         if (opts.buyThrows) throw opts.buyThrows;
+        bought = true;
+        liveCredit = 0n;
         if (options?.waitForEvent === "KeysBought") event = keysBoughtEvent("2000095000");
       }
-      if (op === "settle" && options?.waitForEvent === "RoundSettled") {
-        event = { state: [{ type: "Integer", value: "4" }] };
+      if (op === "transfer" && options?.waitForEvent === "Credited") {
+        const amount = String(_args[2]?.value ?? "0");
+        liveCredit += BigInt(amount);
+        event = {
+          state: [
+            { type: "Hash160", value: PLAYER_HASH },
+            { type: "Integer", value: liveCredit.toString() },
+            { type: "Integer", value: amount },
+          ],
+        };
       }
-      return { txid: "0xtx", event, success: true };
+      if (op === "settle" && options?.waitForEvent === "RoundSettled") {
+        const current = initialRound;
+        const roundId = Number(current.roundId ?? 4);
+        settled = true;
+        event = {
+          state: [
+            { type: "Integer", value: String(roundId) },
+            { type: "Hash160", value: String(current.lastBuyer ?? PLAYER_HASH) },
+            { type: "Integer", value: String(current.pot ?? "0") },
+            { type: "Integer", value: String(roundId + 1) },
+          ],
+        };
+      }
+      options?.onTransactionSent?.(TXID);
+      return { txid: TXID, event, success: true, verified: true };
     },
   );
 
   const read = vi.fn(
     async (op: string, args?: ContractArg[]): Promise<unknown> => {
-      if (op === "getCurrentRound") return opts.round ?? roundMap();
+      if (op === "getOwner") return PLAYER_HASH;
+      if (op === "getCurrentRound") {
+        if (!settled) return initialRound;
+        return roundMap({
+          roundId: initialRoundId + 1,
+          pot: "0",
+          totalKeys: 0,
+          lastBuyer: "0x0000000000000000000000000000000000000000",
+        });
+      }
       if (op === "getRound") {
         const id = Number(args?.[0]?.value ?? 0);
-        return opts.rounds?.[id] ?? {};
+        if (opts.rounds?.[id]) return opts.rounds[id];
+        if (settled && id === initialRoundId) {
+          return { ...initialRound, settled: true, active: false, remainingTime: 0 };
+        }
+        if (bought && id === initialRoundId) {
+          return { ...initialRound, totalKeys: Math.max(1, Number(initialRound.totalKeys ?? 0)) };
+        }
+        return {};
       }
       if (op === "currentRoundId") return opts.currentRoundId ?? 4;
-      if (op === "playerKeys") return opts.playerKeys ?? "0";
+      if (op === "playerKeys") return bought ? "1" : opts.playerKeys ?? "0";
+      if (op === "creditOf") return liveCredit.toString();
       if (op === "currentKeyCost") return opts.currentKeyCost ?? "2000095000";
       return {};
     },
@@ -130,7 +197,18 @@ function setup(opts: ChainOpts = {}) {
     { services: { chain }, t } as never,
     { appId: "miniapp-last-survivor" },
   );
-  const app = useLastSurvivor({ app: framework, t });
+  const stored = new Map<string, unknown>();
+  Object.assign(framework.storage.local, {
+    get: <T,>(key: string, fallback: T | null = null) =>
+      (stored.has(key) ? stored.get(key) : fallback) as T | null,
+    set: (key: string, value: unknown) => { stored.set(key, value); },
+    delete: (key: string) => { stored.delete(key); },
+  });
+  const app = useLastSurvivor({
+    app: framework,
+    t,
+    transactionOutcomeReader: async () => ({ state: "unknown", event: null }),
+  });
   app.setAddress(PLAYER);
   return { app, chain, invoke, read };
 }
@@ -191,14 +269,21 @@ describe("useLastSurvivor (direct MiniAppLastSurvivor contract)", () => {
   it("surfaces a service notice when the round read fails", async () => {
     const { chain, invoke } = makeChain();
     (chain.read as ReturnType<typeof vi.fn>).mockImplementation(async (op: string) => {
+      if (op === "getOwner") return PLAYER_HASH;
       if (op === "getCurrentRound") throw new Error("rpc unavailable");
+      if (op === "currentKeyCost") return "2000095000";
+      if (op === "creditOf") return "0";
       return {};
     });
     const framework = createMiniAppFramework(
       { services: { chain }, t } as never,
       { appId: "miniapp-last-survivor" },
     );
-    const app = useLastSurvivor({ app: framework, t });
+    const app = useLastSurvivor({
+      app: framework,
+      t,
+      transactionOutcomeReader: async () => ({ state: "unknown", event: null }),
+    });
     app.setAddress(PLAYER);
 
     await expect(app.loadAll()).resolves.toBeUndefined();
@@ -304,7 +389,15 @@ describe("useLastSurvivor (direct MiniAppLastSurvivor contract)", () => {
   });
 
   it("settles a round permissionlessly via settle()", async () => {
-    const { app, invoke } = setup();
+    const { app, invoke } = setup({
+      round: roundMap({
+        active: false,
+        remainingTime: 0,
+        totalKeys: 8,
+        pot: "200000000",
+        lastBuyer: "0x3333333333333333333333333333333333333333",
+      }),
+    });
 
     await app.loadAll();
     await app.settleRound();

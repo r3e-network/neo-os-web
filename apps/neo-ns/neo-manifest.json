@@ -3,9 +3,9 @@
   "id": "miniapp-neo-ns",
   "name": "Neo Name Service",
   "name_zh": "Neo 域名服务",
-  "version": "1.0.0",
-  "description": "Register and manage human-readable .neo domain names for your wallet",
-  "description_zh": "Neo 域名服务 — 注册和管理 .neo 链上域名",
+  "version": "1.1.0",
+  "description": "Search, register, route, renew, and transfer official .neo name NFTs with exact chain confirmation.",
+  "description_zh": "查询、注册、解析、续费和转让官方 .neo 域名 NFT，并进行准确的链上确认。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -24,6 +24,20 @@
     "neo-n3-mainnet": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
     "neo-n3-testnet": "0x50ac1c37690cc2cfc594472833cf57505d5f46de"
   },
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deployed",
+      "contract_hash": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+      "reason": "Official NameService ABI, NNS symbol, totalSupply=3906, 5-character price=2 GAS, availability, and neo.neo properties were verified through read-only N3Index RPC.",
+      "verified_at": "2026-07-11T00:00:00Z"
+    },
+    "neo-n3-testnet": {
+      "status": "deployed",
+      "contract_hash": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+      "reason": "Official NameService ABI, NNS symbol, totalSupply=100, 5-character price=2 GAS, availability, and neo.neo properties were verified through read-only N3Index RPC.",
+      "verified_at": "2026-07-11T00:00:00Z"
+    }
+  },
   "contract_domains": {
     "neo-n3-mainnet": "neons.miniapp.neo"
   },
@@ -35,23 +49,22 @@
   "urls": {
     "entry": "/miniapps/neo-ns/index.html",
     "icon": "/miniapps/neo-ns/logo.webp",
-    "banner": "/miniapps/neo-ns/banner.webp"
+    "banner": "/miniapps/neo-ns/neo-ns-registry-desk.webp"
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-ns"
   },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
+  "operation_panel": {
+    "title": "Neo Name Service",
+    "subtitle": "Search, register, and manage names inside the designed registry desk.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -60,5 +73,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

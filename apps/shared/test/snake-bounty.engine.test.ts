@@ -15,6 +15,12 @@ import {
   stateToSolutionString,
   step,
 } from "../../snake-bounty/src/logic/snake-engine";
+import {
+  SETTLEMENT_GRACE_MS,
+  canExpireAfterGrace,
+  statusOf,
+  tickMsOf,
+} from "../../snake-bounty/src/logic/game-rules";
 
 /**
  * Snake Bounty engine tests.
@@ -91,6 +97,54 @@ describe("parseInitialState", () => {
   it("throws on malformed JSON", () => {
     expect(() => parseInitialState("not-json")).toThrow();
   });
+
+  it("rejects out-of-bounds, overlapping, and invalid-direction boards", () => {
+    expect(() => parseInitialState(JSON.stringify({
+      body: [{ x: -1, y: 0 }], direction: 1, food: { x: 1, y: 1 },
+    }))).toThrow();
+    expect(() => parseInitialState(JSON.stringify({
+      body: [{ x: 1, y: 1 }, { x: 1, y: 1 }], direction: 1, food: { x: 2, y: 2 },
+    }))).toThrow();
+    expect(() => parseInitialState(JSON.stringify({
+      body: [{ x: 1, y: 1 }], direction: 8, food: { x: 2, y: 2 },
+    }))).toThrow();
+    expect(() => parseInitialState(JSON.stringify({
+      body: [{ x: 1, y: 1 }, { x: 3, y: 1 }], direction: 1, food: { x: 2, y: 2 },
+    }))).toThrow("disconnected");
+    expect(() => parseInitialState(JSON.stringify({
+      body: [{ x: 1, y: 1 }], direction: 1, food: { x: 2, y: 2 }, eaten: -1,
+    }))).toThrow("eaten");
+    expect(() => parseInitialState(JSON.stringify({
+      body: [{ x: 1, y: 1 }], direction: 1, food: { x: 2, y: 2 }, dead: "no",
+    }))).toThrow("dead");
+  });
+});
+
+describe("settlement grace", () => {
+  it("allows expiry only strictly after deadline plus the contract grace", () => {
+    const deadline = 1_000_000;
+    expect(canExpireAfterGrace(deadline, deadline + SETTLEMENT_GRACE_MS)).toBe(false);
+    expect(canExpireAfterGrace(deadline, deadline + SETTLEMENT_GRACE_MS + 1)).toBe(true);
+    expect(canExpireAfterGrace(0, Number.MAX_SAFE_INTEGER)).toBe(false);
+  });
+});
+
+describe("contract status decoding", () => {
+  it("fails unknown status codes closed instead of treating them as a fresh game", () => {
+    expect(statusOf(0)).toBe("committed");
+    expect(statusOf(5)).toBe("unknown");
+    expect(statusOf(99)).toBe("unknown");
+  });
+});
+
+describe("arcade difficulty balance", () => {
+  it("increases steering pressure on higher bounty trails", () => {
+    expect(tickMsOf(0)).toBe(230);
+    expect(tickMsOf(1)).toBe(180);
+    expect(tickMsOf(2)).toBe(145);
+    expect(tickMsOf(0)).toBeGreaterThan(tickMsOf(1));
+    expect(tickMsOf(1)).toBeGreaterThan(tickMsOf(2));
+  });
 });
 
 describe("inBounds", () => {
@@ -146,16 +200,19 @@ describe("step (movement and collision)", () => {
   });
 
   it("moves the snake in each cardinal direction", () => {
-    const s = makeSnake({
+    const downStart = makeSnake({
       body: [{ x: 10, y: 10 }, { x: 10, y: 9 }],
       direction: 2 as Direction, // down
     });
     // Move down
-    const down = step(s, 2);
+    const down = step(downStart, 2);
     expect(down.body[0]).toEqual({ x: 10, y: 11 });
 
     // Move up
-    const up = step(s, 0);
+    const up = step(makeSnake({
+      body: [{ x: 10, y: 10 }, { x: 10, y: 11 }],
+      direction: 0 as Direction,
+    }), 0);
     expect(up.body[0]).toEqual({ x: 10, y: 9 });
 
     // Move left
@@ -169,14 +226,10 @@ describe("step (movement and collision)", () => {
     expect(left.body[0]).toEqual({ x: 9, y: 10 });
   });
 
-  it("does not change direction when given the opposite direction (180° reversal is allowed in this engine)", () => {
-    // The engine does NOT prevent 180° reversal — if the player queues an opposite
-    // direction the snake simply moves that way (which likely causes a self-collision
-    // on the next frame). This test verifies that opposite-direction moves do
-    // execute (the snake head moves in the given direction).
+  it("ignores a reversal into the neck exactly like the Morpheus engine", () => {
     const s = makeSnake({ direction: 1 as Direction }); // moving right
     const next = step(s, 3); // try to go left (opposite)
-    expect(next.body[0].x).toBeLessThan(s.body[0].x); // head moved left
+    expect(next).toEqual(s);
   });
 
   it("detects wall collision and sets dead=true", () => {
@@ -219,64 +272,21 @@ describe("step (movement and collision)", () => {
   });
 
   it("detects self-collision and sets dead=true", () => {
-    // Place food elsewhere so the snake does not eat (eating would keep the tail
-    // and change the collision check).
-    const s = makeSnake({
-      body: [
-        { x: 10, y: 10 },
-        { x: 9, y: 10 },
-        { x: 9, y: 11 },
-        { x: 10, y: 11 }, // This segment will be the tail after removing it...
-      ],
-      direction: 2 as Direction, // moving down
-      food: { x: 0, y: 0 }, // far away, will not eat
-    });
-    // Head is at (10,10). Moving down → (10,11). After tail removal the body
-    // without tail is: (10,10), (9,10), (9,11). (10,11) is removed as tail.
-    // (10,11) is NOT in bodyWithoutTail, so no self-collision.
-    // Let's construct a proper self-collision scenario:
-    const s2 = makeSnake({
-      body: [
-        { x: 10, y: 10 },
-        { x: 11, y: 10 },
-        { x: 11, y: 11 },
-        { x: 10, y: 11 },
-        { x: 9, y: 11 },
-      ],
-      direction: 3 as Direction, // moving left
-      food: { x: 0, y: 0 }, // will not eat
-    });
-    // Head (10,10). Move left → (9,10). bodyWithoutTail (exclude last):
-    // (10,10), (11,10), (11,11), (10,11). (9,10) is NOT in bodyWithoutTail.
-    // Let me construct a clearer one where the snake is long enough to loop back.
-    // Snake heading right, body goes right then down then left so head catches up.
-    const s3 = makeSnake({
+    const looped = makeSnake({
       body: [
         { x: 5, y: 5 },
-        { x: 6, y: 5 },
-        { x: 6, y: 6 },
         { x: 5, y: 6 },
-        { x: 4, y: 6 },
+        { x: 6, y: 6 },
+        { x: 6, y: 5 },
+        { x: 6, y: 4 },
       ],
-      direction: 3 as Direction, // moving left from (5,5)
+      direction: 0 as Direction,
       food: { x: 0, y: 0 },
     });
-    // Head (5,5), left → (4,5). bodyWithoutTail: (5,5), (6,5), (6,6), (5,6).
-    // (4,5) not there. OK let me try a simpler approach.
-    // Self-collision: head moves into a segment that remains after tail removal.
-    // With a 3-segment snake: A-B-C, head at A, moving into B.
-    const s4 = makeSnake({
-      body: [
-        { x: 5, y: 5 },
-        { x: 6, y: 5 },
-        { x: 6, y: 6 },
-      ],
-      direction: 1 as Direction, // moving right from (5,5) → (6,5)
-      food: { x: 0, y: 0 }, // not eating
-    });
-    // bodyWithoutTail: (5,5), (6,5). Moving right → (6,5) which IS in bodyWithoutTail.
-    const next4 = step(s4, 1);
-    expect(next4.dead).toBe(true);
+    const next = step(looped, 1);
+    expect(next.dead).toBe(true);
+    expect(next.body).toEqual(looped.body);
+    expect(next.direction).toBe(1);
   });
 
   it("returns a new object without mutating the original state", () => {
@@ -343,16 +353,19 @@ describe("step (eating mechanics)", () => {
     const s = makeSnake({
       body: [
         { x: 5, y: 5 }, // head
-        { x: 6, y: 5 },
+        { x: 5, y: 6 },
         { x: 6, y: 6 },
+        { x: 6, y: 5 },
+        { x: 6, y: 4 },
       ],
-      direction: 1 as Direction, // moving right
-      food: { x: 6, y: 5 }, // food is right at the next body segment
+      direction: 0 as Direction,
+      food: { x: 6, y: 5 },
     });
     // Head (5,5) → (6,5) which is food. Since eating, checks against ALL body:
     // (5,5), (6,5), (6,6). (6,5) overlaps! → dead.
     const next = step(s, 1);
     expect(next.dead).toBe(true);
+    expect(next.body).toEqual(s.body);
   });
 });
 

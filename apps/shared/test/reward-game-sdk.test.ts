@@ -397,6 +397,116 @@ describe("reward-game SDK", () => {
     expect(teeMocks.step).toHaveBeenNthCalledWith(2, identity, "token", 1, op, replay, undefined);
   });
 
+  it("serializes rapid session ops so sequence numbers and persisted logs stay monotonic", async () => {
+    const identity = makeIdentity("43");
+    const session = {
+      identity,
+      commitment: "a".repeat(64),
+      publicKey: "pub",
+      sessionToken: "queue-token",
+      view: {},
+      config: { limitMs: 0, minSolveMs: 0, maxUndos: 0, revealPolicy: "", raw: {} },
+    };
+    const storage = createMemoryRewardGameStorage<TeeSessionOp>();
+    const firstOp: TeeSessionOp = { type: "move", dir: 0 };
+    const secondOp: TeeSessionOp = { type: "move", dir: 1 };
+    let releaseFirst!: () => void;
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    teeMocks.step.mockImplementation(
+      async (_identity: TeeIdentity, _token: string, seq: number) => {
+        if (seq === 0) await firstGate;
+        return { seq: seq + 1, opCount: seq + 1, resumed: false, view: { seq } };
+      },
+    );
+
+    const first = recordRewardGameOp(session, storage, firstOp);
+    await Promise.resolve();
+    expect(teeMocks.step).toHaveBeenCalledTimes(1);
+
+    const second = recordRewardGameOp(session, storage, secondOp);
+    await Promise.resolve();
+    expect(teeMocks.step).toHaveBeenCalledTimes(1);
+
+    releaseFirst();
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+
+    expect(firstResult.opLog).toEqual([firstOp]);
+    expect(secondResult.opLog).toEqual([firstOp, secondOp]);
+    expect(storage.load("43")).toEqual([firstOp, secondOp]);
+    expect(teeMocks.step).toHaveBeenNthCalledWith(
+      1,
+      identity,
+      "queue-token",
+      0,
+      firstOp,
+      undefined,
+      undefined,
+    );
+    expect(teeMocks.step).toHaveBeenNthCalledWith(
+      2,
+      identity,
+      "queue-token",
+      1,
+      secondOp,
+      undefined,
+      undefined,
+    );
+  });
+
+  it("waits for queued ops before sealing and single-flights concurrent finalization", async () => {
+    const identity = makeIdentity("44");
+    const session = {
+      identity,
+      commitment: "a".repeat(64),
+      publicKey: "pub",
+      sessionToken: "finalize-token",
+      view: {},
+      config: { limitMs: 0, minSolveMs: 0, maxUndos: 0, revealPolicy: "", raw: {} },
+    };
+    const chain = makeChain({ solvedEvent: solvedEvent(0) });
+    const storage = createMemoryRewardGameStorage<TeeSessionOp>();
+    const op: TeeSessionOp = { type: "move", dir: 2 };
+    let releaseStep!: () => void;
+    const stepGate = new Promise<void>((resolve) => {
+      releaseStep = resolve;
+    });
+    teeMocks.step.mockImplementation(async () => {
+      await stepGate;
+      return { seq: 1, opCount: 1, resumed: false, view: {} };
+    });
+    teeMocks.seal.mockResolvedValue({ sealedOpLogHex: "cafebabe" });
+
+    const pendingOp = recordRewardGameOp(session, storage, op);
+    await Promise.resolve();
+    const firstFinalize = finalizeRewardGame(config, chain, session, storage, {
+      pollDelayMs: 0,
+      delay: async () => {},
+    });
+    const secondFinalize = finalizeRewardGame(config, chain, session, storage, {
+      pollDelayMs: 0,
+      delay: async () => {},
+    });
+    await Promise.resolve();
+
+    expect(teeMocks.seal).not.toHaveBeenCalled();
+    await expect(recordRewardGameOp(session, storage, { type: "late" })).rejects.toMatchObject({
+      code: "SESSION_FINALIZING",
+    });
+
+    releaseStep();
+    await pendingOp;
+    const [firstResult, secondResult] = await Promise.all([firstFinalize, secondFinalize]);
+
+    expect(firstResult.opCount).toBe(1);
+    expect(secondResult).toEqual(firstResult);
+    expect(teeMocks.seal).toHaveBeenCalledTimes(1);
+    expect(teeMocks.seal).toHaveBeenCalledWith(identity, [op], undefined);
+    expect(chain.invoke).toHaveBeenCalledTimes(1);
+    expect(storage.load("44")).toEqual([]);
+  });
+
   it("replays a stored op-log through the TEE without mutating storage", async () => {
     const identity = makeIdentity();
     const session = {
@@ -486,6 +596,33 @@ describe("reward-game SDK", () => {
       status: "solved",
     });
     expect(storage.load("42")).toEqual([]);
+  });
+
+  it("retains the op-log when a broadcast finalization remains unconfirmed", async () => {
+    const identity = makeIdentity("45");
+    const session = {
+      identity,
+      commitment: "a".repeat(64),
+      publicKey: "pub",
+      sessionToken: "unconfirmed-token",
+      view: {},
+      config: { limitMs: 0, minSolveMs: 0, maxUndos: 0, revealPolicy: "", raw: {} },
+    };
+    const op: TeeSessionOp = { type: "move", dir: 3 };
+    const storage = createMemoryRewardGameStorage<TeeSessionOp>({ "45": [op] });
+    const chain = makeChain({
+      gameSnapshots: [{ status: "1", payout: "0", solveMs: "0" }],
+    });
+    teeMocks.seal.mockResolvedValue({ sealedOpLogHex: "still-pending" });
+
+    const result = await finalizeRewardGame(config, chain, session, storage, {
+      pollAttempts: 1,
+      pollDelayMs: 0,
+      delay: async () => {},
+    });
+
+    expect(result.settlement).toMatchObject({ status: "unknown", source: "timeout" });
+    expect(storage.load("45")).toEqual([op]);
   });
 
   it("polls getGame when the finalize event is not observed", async () => {

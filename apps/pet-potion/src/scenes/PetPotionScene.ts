@@ -2,8 +2,10 @@
  * PetPotionScene - Phaser 3 virtual pet nursery.
  *
  * Chain, wallet, TEE, and settlement stay in main.tsx. This scene owns the
- * playable surface: pick a nursery path, start a paid run, nurture the pet with
- * real action assets, and claim once the happiness target is reached.
+ * playable surface: pick a nursery path, nurture the pet through illustrated
+ * care tools, collect the recipe, brew a potion, and save the completed run.
+ * Historical paid sessions can still recover through the same scene, while
+ * new wallet-funded starts remain fail-closed in main.tsx.
  */
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
@@ -54,17 +56,19 @@ const C = {
 
 const FONT = "Inter, Arial, sans-serif";
 const ACTIONS = [
-  { key: "feed", label: "Feed", asset: PET_ASSETS.actions.feed, color: C.orange },
-  { key: "play", label: "Play", asset: PET_ASSETS.actions.play, color: C.purple },
-  { key: "pet", label: "Pet", asset: PET_ASSETS.actions.pet, color: C.rose },
-  { key: "rest", label: "Rest", asset: PET_ASSETS.actions.rest, color: C.blue },
+  { key: "feed", labelKey: "actionFeed", fallback: "Feed", asset: PET_ASSETS.actions.feed, color: C.orange },
+  { key: "play", labelKey: "actionPlay", fallback: "Play", asset: PET_ASSETS.actions.play, color: C.purple },
+  { key: "pet", labelKey: "actionPet", fallback: "Pet", asset: PET_ASSETS.actions.pet, color: C.rose },
+  { key: "rest", labelKey: "actionRest", fallback: "Rest", asset: PET_ASSETS.actions.rest, color: C.blue },
 ] as const;
 
 const DIFFICULTIES = [
-  { id: 0, key: "easy", label: "Sprout", target: 50, entry: "0.02", reward: "0.10", badge: PET_ASSETS.badges[0] },
-  { id: 1, key: "medium", label: "Glow", target: 70, entry: "0.10", reward: "0.50", badge: PET_ASSETS.badges[1] },
-  { id: 2, key: "hard", label: "Royal", target: 100, entry: "0.20", reward: "1.00", badge: PET_ASSETS.badges[2] },
+  { id: 0, key: "easy", labelKey: "pathEasy", fallback: "Sprout", target: 50, entry: "0.02", reward: "0.10", badge: PET_ASSETS.badges[0] },
+  { id: 1, key: "medium", labelKey: "pathMedium", fallback: "Glow", target: 70, entry: "0.10", reward: "0.50", badge: PET_ASSETS.badges[1] },
+  { id: 2, key: "hard", labelKey: "pathHard", fallback: "Royal", target: 100, entry: "0.20", reward: "1.00", badge: PET_ASSETS.badges[2] },
 ] as const;
+
+const MAX_CARE_ACTIONS = 40;
 
 type PetActionKey = keyof typeof PET_ASSETS.actions;
 
@@ -99,6 +103,19 @@ function isPlayingStatus(status: string): boolean {
   return status === "dealt" || status === "playing";
 }
 
+function fillTemplate(template: string, params: Record<string, string | number>): string {
+  return Object.entries(params).reduce(
+    (copy, [key, value]) => copy.replaceAll(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  return `${minutes}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
 export class PetPotionScene extends BaseScene {
   private labImage!: Phaser.GameObjects.Image;
   private labOverlay!: Phaser.GameObjects.Rectangle;
@@ -108,6 +125,9 @@ export class PetPotionScene extends BaseScene {
   private petShadow!: Phaser.GameObjects.Ellipse;
   private petImage!: Phaser.GameObjects.Image;
   private actionCue!: Phaser.GameObjects.Image;
+  private potionHalo!: Phaser.GameObjects.Ellipse;
+  private potionImage!: Phaser.GameObjects.Image;
+  private potionText!: Phaser.GameObjects.Text;
   private stageBadge!: Phaser.GameObjects.Text;
   private targetText!: Phaser.GameObjects.Text;
   private careGoalText!: Phaser.GameObjects.Text;
@@ -118,21 +138,39 @@ export class PetPotionScene extends BaseScene {
   private brewBubbles: Phaser.GameObjects.Ellipse[] = [];
   private statBars: StatBar[] = [];
   private actionButtons: Phaser.GameObjects.Container[] = [];
+  private ingredientCountLabels: Phaser.GameObjects.Text[] = [];
   private modeCards: ModeCard[] = [];
   private modeCardRewards: Phaser.GameObjects.Text[] = [];
+  private actionButtonLabels: Phaser.GameObjects.Text[] = [];
+  private brandText!: Phaser.GameObjects.Text;
   private prevAppMode = "";
   private primaryButton!: Phaser.GameObjects.Container;
   private primaryButtonBg!: Phaser.GameObjects.Graphics;
   private primaryButtonLabel!: Phaser.GameObjects.Text;
+  private retryButton!: Phaser.GameObjects.Container;
+  private retryButtonBg!: Phaser.GameObjects.Graphics;
+  private retryButtonLabel!: Phaser.GameObjects.Text;
+  private releaseButton!: Phaser.GameObjects.Container;
+  private releaseButtonBg!: Phaser.GameObjects.Graphics;
+  private releaseButtonLabel!: Phaser.GameObjects.Text;
   private selectedDifficulty = 0;
   private currentStage = -1;
   private lastActionCount = 0;
   private cueTimer?: Phaser.Time.TimerEvent;
   private lastGameStatus = "idle";
   private lastTargetReached = false;
+  private potionRevealed = false;
 
   constructor() {
     super("PetPotionScene");
+  }
+
+  private copy(key: string, fallback: string): string {
+    return this.val<Record<string, string>>("sceneText", {})?.[key] || fallback;
+  }
+
+  private fmt(key: string, fallback: string, params: Record<string, string | number>): string {
+    return fillTemplate(this.copy(key, fallback), params);
   }
 
   preload(): void {
@@ -153,7 +191,8 @@ export class PetPotionScene extends BaseScene {
   create(): void {
     super.create();
 
-    this.input.on("pointerdown", () => this.sfx.unlock());
+    this.input.on("pointerdown", this.unlockAudio, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.fitCameraToHost();
     this.buildBackground(DESIGN_W, DESIGN_H);
     this.buildHeader(DESIGN_W);
@@ -163,6 +202,7 @@ export class PetPotionScene extends BaseScene {
     this.buildModeCards(DESIGN_W, DESIGN_H);
     this.buildActionButtons(DESIGN_W, DESIGN_H);
     this.buildPrimaryButton(DESIGN_W, DESIGN_H);
+    this.buildRecoveryButtons(DESIGN_W, DESIGN_H);
     this.buildStatus(DESIGN_W, DESIGN_H);
     this.startAmbientMotion();
     this.onStateUpdate(this.state);
@@ -174,18 +214,24 @@ export class PetPotionScene extends BaseScene {
 
   protected onStateUpdate(_state: GameState): void {
     const status = this.str("gameStatus", "idle");
-    // Play mode (guest | gamefi) — guest drops the GAS reward tier + entry/reward
-    // subtitle so the lobby carries no reward framing. GAMEFI copy stays as-is.
-    const appMode = this.str("appMode", "gamefi");
+    const appMode = this.str("appMode", "guest");
     const isGuest = appMode === "guest";
     if (appMode !== this.prevAppMode) {
       this.prevAppMode = appMode;
       this.applyRewardLabels(isGuest);
     }
+    this.applyLocalizedLabels();
     const isPlaying = isPlayingStatus(status);
-    const isLoading = this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting");
+    const isLoading = this.bool("isStarting") ||
+      this.bool("isDealing") ||
+      this.bool("isSubmitting") ||
+      this.bool("isRecovering") ||
+      this.bool("isConnectingWallet");
+    const isActing = this.bool("isActing");
     const stateDifficulty = Math.max(0, Math.min(2, this.num("gameDifficulty", this.selectedDifficulty)));
-    if (!isPlaying && status !== "idle") this.selectedDifficulty = stateDifficulty;
+    if (!isPlaying && this.selectedDifficulty !== stateDifficulty) {
+      this.selectedDifficulty = stateDifficulty;
+    }
 
     const happiness = this.num("petHappiness", 50);
     const hunger = this.num("petHunger", 50);
@@ -194,29 +240,52 @@ export class PetPotionScene extends BaseScene {
     const actionsUsed = this.num("actionsUsed", 0);
     const stage = Math.max(0, Math.min(2, this.num("petStage", 0)));
     const activeMode = modeOf(isPlaying ? stateDifficulty : this.selectedDifficulty);
+    const pathLabel = this.copy(activeMode.labelKey, activeMode.fallback);
     const targetReached = Math.max(achieved, happiness) >= activeMode.target;
+    const timeUp = this.isRunTimedOut(status);
+    const recipeComplete = !isGuest || this.bool("recipeReady");
+    const potionBrewed = this.bool("potionBrewed");
+    const careActionsOpen = isPlaying &&
+      !timeUp &&
+      !potionBrewed &&
+      (!targetReached || !recipeComplete) &&
+      actionsUsed < MAX_CARE_ACTIONS;
 
     this.modeCards.forEach((card) => card.container.setVisible(status === "idle" && !isLoading));
     this.updateModeCards();
-    this.actionButtons.forEach((button) => button.setVisible(isPlaying && !this.bool("isSubmitting")));
+    this.updateIngredientCounts();
+    this.actionButtons.forEach((button) => button.setVisible(careActionsOpen).setAlpha(isLoading || isActing ? 0.52 : 1));
 
     this.titleText.setText(
       isLoading
-        ? "Sealing pet"
-        : status === "solved"
-          ? "Pet evolved"
-          : status === "expired" || status === "refunded"
-            ? "Run closed"
-            : isPlaying
-              ? "Nurture the pet"
-              : "Open the nursery",
+        ? this.copy("titlePreparing", "Preparing pet")
+        : status === "committed"
+          ? this.copy("titleSealPending", "Seal pending")
+          : status === "unknown"
+            ? this.copy("titleSettlementPending", "Settlement pending")
+            : status === "solved"
+              ? this.copy("titleSolved", "Potion complete")
+              : status === "expired" || status === "refunded"
+                ? this.copy("titleClosed", "Run closed")
+                : timeUp
+                  ? this.copy("titleTimedOut", "Time is up")
+                  : isPlaying
+                    ? this.copy("titlePlaying", "Nurture the pet")
+                    : this.copy("titleLobby", "Open the nursery"),
     );
     this.subtitleText.setText(
-      isPlaying
-        ? `${activeMode.label} path · target ${activeMode.target}`
-        : isGuest
-          ? `${activeMode.label} path · goal ${activeMode.target}`
-          : `${activeMode.entry} GAS entry · ${activeMode.reward} GAS reward`,
+      status === "committed"
+        ? this.copy("subtitleSealPending", "Retry the exact sealed run")
+        : status === "unknown"
+          ? this.copy("subtitleSettlementPending", "Recheck this exact game on-chain")
+          : isPlaying
+            ? this.fmt("subtitlePath", "{path} path · target {target}", { path: pathLabel, target: activeMode.target })
+            : isGuest
+              ? this.fmt("subtitleGuestPath", "{path} · goal {target}", { path: pathLabel, target: activeMode.target })
+              : this.fmt("subtitleGameFiPath", "{entry} GAS entry · {reward} GAS reward", {
+                  entry: activeMode.entry,
+                  reward: activeMode.reward,
+                }),
     );
 
     const visibleStage = status === "idle" || status === "expired" || status === "refunded"
@@ -227,7 +296,7 @@ export class PetPotionScene extends BaseScene {
     // Care band: live runs (and the solved recap) show the progress meter and
     // real stats; idle/expired states show a static goal line with sealed,
     // preview stats so the secret starting values never look known.
-    const runLive = isPlaying || status === "solved";
+    const runLive = isPlaying || status === "solved" || status === "unknown";
     this.goalBox.setVisible(runLive);
     this.goalTrack.setVisible(runLive);
     this.goalFill.setVisible(runLive);
@@ -237,8 +306,11 @@ export class PetPotionScene extends BaseScene {
     if (runLive) {
       this.updateGoal(Math.max(achieved, happiness), activeMode.target);
     }
-    this.updatePrimaryButton(status, isPlaying, isLoading, targetReached);
+    this.updatePotion(activeMode.badge, potionBrewed || status === "solved");
+    this.updatePrimaryButton(status, isPlaying, isLoading, targetReached, recipeComplete, potionBrewed, timeUp);
+    this.updateRecoveryButtons();
 
+    if (actionsUsed < this.lastActionCount) this.lastActionCount = actionsUsed;
     if (isPlaying && actionsUsed > this.lastActionCount) {
       this.pulsePet();
     }
@@ -248,13 +320,26 @@ export class PetPotionScene extends BaseScene {
       if (status === "solved") this.sfx.play("win");
       this.lastGameStatus = status;
     }
-    const potionReady = isPlaying && targetReached;
+    const potionReady = potionBrewed || status === "solved";
     if (potionReady && !this.lastTargetReached) this.sfx.play("reveal");
     this.lastTargetReached = potionReady;
 
-    this.targetText.setText(`Goal ${Math.round(Math.max(achieved, happiness))}/${activeMode.target}`);
-    this.careGoalText.setText(`Raise happiness to ${activeMode.target}`);
-    const statusCopy = this.statusCopy(status, isLoading, targetReached, actionsUsed);
+    this.targetText.setText(this.fmt("goalProgress", "Goal {current}/{target}", {
+      current: Math.round(Math.max(achieved, happiness)),
+      target: activeMode.target,
+    }));
+    this.careGoalText.setText(this.fmt("careGoal", "Raise happiness to {happiness}", {
+      happiness: activeMode.target,
+    }));
+    const statusCopy = this.statusCopy(
+      status,
+      isLoading,
+      targetReached,
+      recipeComplete,
+      potionBrewed,
+      timeUp,
+      actionsUsed,
+    );
     this.statusText.setColor("#7b6d5a");
     this.statusText.setVisible(Boolean(statusCopy));
     this.statusText.setText(statusCopy);
@@ -284,7 +369,7 @@ export class PetPotionScene extends BaseScene {
   }
 
   private buildHeader(W: number): void {
-    this.add.text(W / 2, 34, "PET POTION", {
+    this.brandText = this.add.text(W / 2, 34, "PET POTION", {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#0c705d",
@@ -321,6 +406,22 @@ export class PetPotionScene extends BaseScene {
       .setDisplaySize(62, 62)
       .setAlpha(0)
       .setDepth(7);
+    this.potionHalo = this.add.ellipse(cx + 104, cy + 26, 104, 124, C.gold, 0.14)
+      .setStrokeStyle(1, C.white, 0.72)
+      .setVisible(false)
+      .setDepth(6);
+    this.potionImage = this.add.image(cx + 104, cy + 24, PET_ASSETS.badges[0])
+      .setDisplaySize(94, 94)
+      .setVisible(false)
+      .setDepth(8);
+    this.potionText = this.add.text(cx + 104, cy - 44, "", {
+      fontFamily: FONT,
+      fontSize: "11px",
+      color: "#7a5712",
+      fontStyle: "bold",
+      backgroundColor: "rgba(255,253,248,0.92)",
+      padding: { x: 10, y: 4 },
+    }).setOrigin(0.5).setVisible(false).setDepth(9);
 
     // Stage nameplate — tucked up near the pet/shadow so it reads as part of
     // the pet rather than crowding the care band beneath it.
@@ -381,23 +482,8 @@ export class PetPotionScene extends BaseScene {
         .ellipse(cx + spec.dx, baseY, spec.r * 2, spec.r * 2, spec.tint, 0.92)
         .setAlpha(0)
         .setDepth(spec.depth);
+      bubble.setData({ baseX: cx + spec.dx, baseY, peak: spec.peak, index });
       this.brewBubbles.push(bubble);
-      // Ambient rise + sine-fade. Guarded above, so raw tweens here are safe.
-      this.tweens.add({
-        targets: bubble,
-        y: baseY - 128,
-        scale: 1.35,
-        duration: 2300 + index * 220,
-        delay: index * 130,
-        repeat: -1,
-        repeatDelay: 140,
-        ease: "Sine.easeOut",
-        onUpdate: (tween) => bubble.setAlpha(Math.sin(tween.progress * Math.PI) * spec.peak),
-        onRepeat: () => {
-          bubble.setPosition(cx + spec.dx, baseY);
-          bubble.setScale(1);
-        },
-      });
     });
   }
 
@@ -472,7 +558,7 @@ export class PetPotionScene extends BaseScene {
       const container = this.add.container(startX + index * 116, y).setDepth(8);
       const bg = this.add.graphics();
       const badge = this.add.image(0, -16, mode.badge).setDisplaySize(38, 38);
-      const label = this.add.text(0, 13, mode.label, {
+      const label = this.add.text(0, 13, mode.fallback, {
         fontFamily: FONT,
         fontSize: "12px",
         color: "#2f291f",
@@ -494,8 +580,8 @@ export class PetPotionScene extends BaseScene {
         onPress: () => {
           this.sfx.play("select");
           this.selectedDifficulty = mode.id;
+          this.dispatch("selectDifficulty", { difficulty: mode.id });
           this.updateModeCards();
-          this.onStateUpdate(this.state);
         },
       });
 
@@ -514,9 +600,11 @@ export class PetPotionScene extends BaseScene {
       bg.setInteractive(new Phaser.Geom.Rectangle(-37, -44, 74, 88), Phaser.Geom.Rectangle.Contains);
       this.bindGameButton(bg, {
         targets: container,
+        enabled: () => this.canRecordCareAction(),
         hoverScale: 1.05,
         pressScale: 0.91,
         onPress: () => {
+          if (!this.canRecordCareAction()) return;
           // Cute care chirp for every feed/play/pet/rest interaction.
           this.sfx.tones([{ frequency: 900, duration: 0.06, type: "triangle", gain: 0.022, endFrequency: 1400 }]);
           this.showActionCue(action.key);
@@ -527,13 +615,23 @@ export class PetPotionScene extends BaseScene {
       });
 
       const icon = this.add.image(0, -12, action.asset).setDisplaySize(50, 50);
-      const label = this.add.text(0, 30, action.label, {
+      const countBg = this.add.circle(26, -34, 11, C.jade, 0.96)
+        .setStrokeStyle(2, C.white, 0.88);
+      const count = this.add.text(26, -34, "0", {
+        fontFamily: FONT,
+        fontSize: "10px",
+        color: "#ffffff",
+        fontStyle: "bold",
+      }).setOrigin(0.5);
+      const label = this.add.text(0, 30, action.fallback, {
         fontFamily: FONT,
         fontSize: "11px",
         color: "#2f291f",
         fontStyle: "bold",
       }).setOrigin(0.5);
-      container.add([bg, icon, label]);
+      this.actionButtonLabels.push(label);
+      this.ingredientCountLabels.push(count);
+      container.add([bg, icon, countBg, count, label]);
       container.setVisible(false);
       this.actionButtons.push(container);
     });
@@ -545,6 +643,7 @@ export class PetPotionScene extends BaseScene {
     this.primaryButtonBg.setInteractive(new Phaser.Geom.Rectangle(-114, -23, 228, 46), Phaser.Geom.Rectangle.Contains);
     this.bindGameButton(this.primaryButtonBg, {
       targets: this.primaryButton,
+      enabled: () => this.canUsePrimaryAction(),
       hoverScale: 1.03,
       pressScale: 0.95,
       onPress: () => this.handlePrimaryAction(),
@@ -557,6 +656,61 @@ export class PetPotionScene extends BaseScene {
       fontStyle: "bold",
     }).setOrigin(0.5);
     this.primaryButton.add([this.primaryButtonBg, this.primaryButtonLabel]);
+  }
+
+  private buildRecoveryButtons(W: number, H: number): void {
+    this.retryButton = this.add.container(W / 2 - 76, H - 42).setDepth(10);
+    this.retryButtonBg = this.add.graphics();
+    this.retryButtonBg.setInteractive(new Phaser.Geom.Rectangle(-72, -21, 144, 42), Phaser.Geom.Rectangle.Contains);
+    this.bindGameButton(this.retryButtonBg, {
+      targets: this.retryButton,
+      hoverScale: 1.03,
+      pressScale: 0.95,
+      onPress: () => {
+        if (!this.canRecoverRun()) return;
+        this.sfx.play("select");
+        if (!this.isGuestMode() && !this.bool("walletConnected")) {
+          this.dispatch("connectWallet");
+          return;
+        }
+        this.dispatch(this.str("gameStatus", "idle") === "unknown" || this.bool("inputSyncFailed")
+          ? "recoverGame"
+          : "retryDeal");
+      },
+    });
+    this.retryButtonLabel = this.add.text(0, 0, "Retry sealing", {
+      fontFamily: FONT,
+      fontSize: "13px",
+      color: "#ffffff",
+      fontStyle: "bold",
+    }).setOrigin(0.5);
+    this.retryButton.add([this.retryButtonBg, this.retryButtonLabel]);
+
+    this.releaseButton = this.add.container(W / 2 + 92, H - 42).setDepth(10);
+    this.releaseButtonBg = this.add.graphics();
+    this.releaseButtonBg.setInteractive(new Phaser.Geom.Rectangle(-62, -21, 124, 42), Phaser.Geom.Rectangle.Contains);
+    this.bindGameButton(this.releaseButtonBg, {
+      targets: this.releaseButton,
+      hoverScale: 1.03,
+      pressScale: 0.95,
+      onPress: () => {
+        if (!this.canReleaseAbandoned()) return;
+        this.sfx.play("chip");
+        this.dispatch("expireGame");
+      },
+    });
+    this.releaseButtonLabel = this.add.text(0, 0, "Release run", {
+      fontFamily: FONT,
+      fontSize: "13px",
+      color: "#ffffff",
+      fontStyle: "bold",
+    }).setOrigin(0.5);
+    this.releaseButton.add([this.releaseButtonBg, this.releaseButtonLabel]);
+
+    this.retryButton.setVisible(false);
+    this.releaseButton.setVisible(false);
+    this.renderRecoveryButton(this.retryButtonBg, 144, C.jade, true);
+    this.renderRecoveryButton(this.releaseButtonBg, 124, 0xd95e4f, true);
   }
 
   private buildStatus(W: number, H: number): void {
@@ -592,14 +746,21 @@ export class PetPotionScene extends BaseScene {
     }
 
     const label = stage < 0
-      ? status === "expired" || status === "refunded" ? "Pet resting" : "Sealed egg"
-      : stage === 0 ? "Baby stage" : stage === 1 ? "Teen stage" : "Adult stage";
+      ? status === "expired" || status === "refunded"
+        ? this.copy("stageResting", "Pet resting")
+        : this.copy("stageEgg", "Sealed egg")
+      : stage === 0
+        ? this.copy("stageBaby", "Baby")
+        : stage === 1
+          ? this.copy("stageTeen", "Teen")
+          : this.copy("stageAdult", "Adult");
     this.stageBadge.setText(label);
     this.petGlow.setFillStyle(stage === 2 ? C.gold : C.jade, stage === 2 ? 0.18 : 0.12);
   }
 
   private updateStats(happiness: number, hunger: number, energy: number, live: boolean): void {
-    [happiness, 100 - hunger, energy].forEach((value, index) => {
+    // `hunger` is the Morpheus engine's satiety/fuel meter: feeding raises it.
+    [happiness, hunger, energy].forEach((value, index) => {
       const stat = this.statBars[index];
       if (!stat) return;
       if (live) {
@@ -642,31 +803,133 @@ export class PetPotionScene extends BaseScene {
     this.goalFill.setFillStyle(pct >= 1 ? C.gold : C.jade);
   }
 
-  private updatePrimaryButton(status: string, isPlaying: boolean, isLoading: boolean, targetReached: boolean): void {
-    const show = status === "idle" || status === "solved" || status === "expired" || status === "refunded" || (isPlaying && targetReached);
+  private updatePotion(texture: string, visible: boolean): void {
+    this.potionImage.setTexture(texture);
+    this.potionText.setText(this.copy("potionReady", "Potion ready!"));
+    if (!visible) {
+      this.potionHalo.setVisible(false);
+      this.potionImage.setVisible(false);
+      this.potionText.setVisible(false);
+      this.potionRevealed = false;
+      return;
+    }
+
+    this.potionHalo.setVisible(true);
+    this.potionImage.setVisible(true);
+    this.potionText.setVisible(true);
+    if (this.potionRevealed) return;
+    this.potionRevealed = true;
+
+    const targetY = DESIGN_H * 0.34 + 24;
+    this.potionImage.setDisplaySize(58, 58).setAlpha(0).setY(targetY + 14);
+    this.potionHalo.setScale(0.72).setAlpha(0);
+    this.potionText.setAlpha(0).setY(DESIGN_H * 0.34 - 36);
+    this.animate({
+      targets: this.potionImage,
+      displayWidth: 94,
+      displayHeight: 94,
+      alpha: 1,
+      y: targetY,
+      duration: 360,
+      ease: "Back.easeOut",
+    });
+    this.animate({
+      targets: this.potionHalo,
+      scaleX: 1,
+      scaleY: 1,
+      alpha: 0.2,
+      duration: 440,
+      ease: "Sine.easeOut",
+    });
+    this.animate({
+      targets: this.potionText,
+      alpha: 1,
+      y: DESIGN_H * 0.34 - 44,
+      duration: 260,
+      delay: 120,
+      ease: "Sine.easeOut",
+    });
+  }
+
+  private updatePrimaryButton(
+    status: string,
+    isPlaying: boolean,
+    isLoading: boolean,
+    targetReached: boolean,
+    recipeComplete: boolean,
+    potionBrewed: boolean,
+    timeUp: boolean,
+  ): void {
+    const moveCapReached = this.num("actionsUsed", 0) >= MAX_CARE_ACTIONS;
+    const show = status === "idle" ||
+      status === "solved" ||
+      status === "expired" ||
+      status === "refunded" ||
+      (isPlaying && ((targetReached && recipeComplete) || potionBrewed || timeUp || moveCapReached));
     this.primaryButton.setVisible(show);
     if (!show) return;
 
-    const label = isLoading
-      ? "Working..."
+    const disconnected = !this.isGuestMode() && !this.bool("walletConnected");
+    const label = this.bool("isConnectingWallet")
+      ? this.copy("connectingWallet", "Connecting wallet…")
+      : isLoading
+        ? this.copy("working", "Working…")
       : isPlaying
-        ? (this.isGuestMode() ? "Save score" : "Claim reward")
+        ? (timeUp || moveCapReached
+            ? this.copy("settleRun", "Settle run")
+            : !potionBrewed
+              ? this.copy("brewPotion", "Brew potion")
+              : this.isGuestMode()
+                ? this.copy("saveScore", "Save score")
+                : this.copy("claimReward", "Claim reward"))
         : status === "solved"
-          ? "Raise another pet"
+          ? this.copy("raiseAnother", "Raise another pet")
           : status === "expired" || status === "refunded"
-            ? "Try again"
-            : "Begin care";
-    const enabled = !isLoading;
+            ? this.copy("tryAgain", "Try again")
+            : disconnected
+              ? this.copy("connectWallet", "Connect wallet")
+              : !this.isGuestMode() && !this.bool("newPaidRunsEnabled")
+                ? this.copy("paidLocked", "Paid care unavailable")
+                : this.copy("beginCare", "Begin care");
+    const enabled = this.canUsePrimaryAction();
     this.primaryButtonLabel.setText(label);
-    this.renderPrimaryButton(enabled, isPlaying);
+    this.renderPrimaryButton(enabled, isPlaying ? "reward" : "start");
+  }
+
+  private updateRecoveryButtons(): void {
+    const canRecover = this.canRecoverRun();
+    const canRelease = this.canReleaseAbandoned();
+    this.retryButton.setVisible(canRecover);
+    this.releaseButton.setVisible(canRelease);
+    this.retryButton.setX(canRelease ? DESIGN_W / 2 - 76 : DESIGN_W / 2);
+    this.retryButtonLabel.setText(
+      !this.isGuestMode() && !this.bool("walletConnected")
+        ? this.copy("connectWallet", "Connect wallet")
+        : this.str("gameStatus", "idle") === "unknown"
+        ? this.copy("checkSettlement", "Check settlement")
+        : this.copy("retrySealing", "Retry sealing"),
+    );
+    this.releaseButtonLabel.setText(this.copy("releaseRun", "Release run"));
+    this.renderRecoveryButton(this.retryButtonBg, 144, C.jade, canRecover);
+    this.renderRecoveryButton(this.releaseButtonBg, 124, 0xd95e4f, canRelease);
   }
 
   private handlePrimaryAction(): void {
     const status = this.str("gameStatus", "idle");
-    if (this.bool("isStarting") || this.bool("isSubmitting") || this.bool("isDealing")) return;
+    if (!this.canUsePrimaryAction()) return;
+    if (!this.isGuestMode() && !this.bool("walletConnected")) {
+      this.sfx.play("select");
+      this.dispatch("connectWallet");
+      return;
+    }
     if (isPlayingStatus(status)) {
       this.sfx.play("chip");
-      this.dispatch("submitSolution");
+      const moveCapReached = this.num("actionsUsed", 0) >= MAX_CARE_ACTIONS;
+      if (!this.isRunTimedOut(status) && !moveCapReached && !this.bool("potionBrewed")) {
+        this.dispatch("brewPotion");
+      } else {
+        this.dispatch("submitSolution");
+      }
       return;
     }
     this.sfx.play("throw");
@@ -675,13 +938,25 @@ export class PetPotionScene extends BaseScene {
 
   private showActionCue(key: PetActionKey): void {
     this.cueTimer?.remove(false);
+    this.tweens.killTweensOf(this.actionCue);
     this.actionCue.setTexture(PET_ASSETS.actions[key]);
-    this.actionCue.setAlpha(0).setScale(0.72).setRotation(Phaser.Math.DegToRad(-6));
+    const targetY = this.petImage.y + 42;
+    this.actionCue
+      .setDisplaySize(this.reducedMotion ? 62 : 48, this.reducedMotion ? 62 : 48)
+      .setAlpha(this.reducedMotion ? 1 : 0)
+      .setY(targetY + (this.reducedMotion ? 0 : 8))
+      .setRotation(Phaser.Math.DegToRad(-6));
+    if (this.reducedMotion) {
+      this.cueTimer = this.time.delayedCall(520, () => this.actionCue.setAlpha(0));
+      this.pulsePet();
+      return;
+    }
     this.animate({
       targets: this.actionCue,
       alpha: 1,
-      scale: 1,
-      y: this.petImage.y + 42,
+      displayWidth: 62,
+      displayHeight: 62,
+      y: targetY,
       duration: 120,
       ease: "Back.easeOut",
       yoyo: true,
@@ -705,6 +980,7 @@ export class PetPotionScene extends BaseScene {
   private startAmbientMotion(): void {
     // Reduced-motion aware: this.animate() no-ops (leaving a still pet, glow,
     // and overlay) when prefers-reduced-motion is on.
+    this.stopAmbientMotion();
     this.animate({
       targets: this.petImage,
       y: this.petImage.y - 7,
@@ -731,6 +1007,44 @@ export class PetPotionScene extends BaseScene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
+    this.startBrewBubbleMotion();
+  }
+
+  private startBrewBubbleMotion(): void {
+    if (this.reducedMotion) return;
+    this.brewBubbles.forEach((bubble) => {
+      const baseX = Number(bubble.getData("baseX"));
+      const baseY = Number(bubble.getData("baseY"));
+      const peak = Number(bubble.getData("peak"));
+      const index = Number(bubble.getData("index"));
+      bubble.setPosition(baseX, baseY).setScale(1).setAlpha(0);
+      this.tweens.add({
+        targets: bubble,
+        y: baseY - 128,
+        scale: 1.35,
+        duration: 2300 + index * 220,
+        delay: index * 130,
+        repeat: -1,
+        repeatDelay: 140,
+        ease: "Sine.easeOut",
+        onUpdate: (tween) => bubble.setAlpha(Math.sin(tween.progress * Math.PI) * peak),
+        onRepeat: () => bubble.setPosition(baseX, baseY).setScale(1),
+      });
+    });
+  }
+
+  private stopAmbientMotion(): void {
+    if (!this.petImage || !this.petGlow || !this.labOverlay) return;
+    this.tweens.killTweensOf([this.petImage, this.petGlow, this.labOverlay, ...this.brewBubbles]);
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    this.stopAmbientMotion();
+    if (enabled) {
+      this.brewBubbles.forEach((bubble) => bubble.setAlpha(0.18).setScale(1));
+      return;
+    }
+    this.startAmbientMotion();
   }
 
   private updateModeCards(): void {
@@ -738,6 +1052,15 @@ export class PetPotionScene extends BaseScene {
       const active = card.id === this.selectedDifficulty;
       this.renderModeCard(card.bg, active, false);
       card.label.setColor(active ? "#0c705d" : "#2f291f");
+    });
+  }
+
+  private updateIngredientCounts(): void {
+    const counts = this.val<Record<string, number>>("ingredientCounts", {}) ?? {};
+    this.ingredientCountLabels.forEach((label, index) => {
+      const action = ACTIONS[index];
+      const value = action ? Math.max(0, Math.floor(Number(counts[action.key]) || 0)) : 0;
+      label.setText(String(value));
     });
   }
 
@@ -759,9 +1082,10 @@ export class PetPotionScene extends BaseScene {
     bg.strokeRoundedRect(-37, -44, 74, 88, 14);
   }
 
-  private renderPrimaryButton(enabled: boolean, rewardTone: boolean): void {
+  private renderPrimaryButton(enabled: boolean, tone: "start" | "reward" | "danger"): void {
     this.primaryButtonBg.clear();
-    this.primaryButtonBg.fillStyle(enabled ? (rewardTone ? C.gold : C.jade) : 0xcdbf9c, enabled ? 0.96 : 0.72);
+    const color = tone === "danger" ? 0xd95e4f : tone === "reward" ? C.gold : C.jade;
+    this.primaryButtonBg.fillStyle(enabled ? color : 0xcdbf9c, enabled ? 0.96 : 0.72);
     this.primaryButtonBg.fillRoundedRect(-114, -23, 228, 46, 16);
     this.primaryButtonBg.fillStyle(C.white, 0.13);
     this.primaryButtonBg.fillRoundedRect(-114, -23, 228, 19, { tl: 16, tr: 16, bl: 0, br: 0 });
@@ -770,18 +1094,149 @@ export class PetPotionScene extends BaseScene {
     this.primaryButtonBg.setAlpha(enabled ? 1 : 0.72);
   }
 
-  private statusCopy(status: string, isLoading: boolean, targetReached: boolean, actionsUsed: number): string {
+  private renderRecoveryButton(bg: Phaser.GameObjects.Graphics, width: number, color: number, enabled: boolean): void {
+    const half = width / 2;
+    bg.clear();
+    bg.fillStyle(enabled ? color : 0xcdbf9c, enabled ? 0.95 : 0.68);
+    bg.fillRoundedRect(-half, -21, width, 42, 14);
+    bg.fillStyle(C.white, 0.12);
+    bg.fillRoundedRect(-half, -21, width, 17, { tl: 14, tr: 14, bl: 0, br: 0 });
+    bg.lineStyle(1, C.white, enabled ? 0.32 : 0.2);
+    bg.strokeRoundedRect(-half, -21, width, 42, 14);
+    bg.setAlpha(enabled ? 1 : 0.72);
+  }
+
+  private statusCopy(
+    status: string,
+    isLoading: boolean,
+    targetReached: boolean,
+    recipeComplete: boolean,
+    potionBrewed: boolean,
+    timeUp: boolean,
+    actionsUsed: number,
+  ): string {
     const guest = this.isGuestMode();
-    if (isLoading) return guest ? "Preparing your pet…" : "Wallet and enclave are preparing the run.";
-    if (status === "solved") {
-      return guest ? "Run saved. Raise another pet when ready." : "Reward credited. Start another care run when ready.";
+    if (this.bool("inputSyncFailed")) {
+      return !guest && !this.bool("walletConnected")
+        ? this.copy("statusReconnectWallet", "Reconnect your wallet to recover this exact run.")
+        : this.copy("statusInputSyncFailed", "Care verification paused. Recover this exact run.");
     }
-    if (status === "expired" || status === "refunded") return "This run is closed. Start a fresh pet when ready.";
+    if (isLoading) {
+      return guest
+        ? this.copy("statusPreparingGuest", "Preparing your pet…")
+        : this.copy("statusPreparingGameFi", "Wallet and enclave are preparing the run.");
+    }
+    if (status === "committed") {
+      return this.copy("statusSealPending", "Sealing is taking longer than usual. Retry this run.");
+    }
+    if (status === "unknown") {
+      const releaseIn = this.num("releaseInMs", 0);
+      return releaseIn > 0
+        ? this.fmt("statusReleaseCountdown", "Settlement pending · recovery unlocks in {time}", {
+            time: formatCountdown(releaseIn),
+          })
+        : this.copy("statusReleaseReady", "Check settlement or release the abandoned run.");
+    }
+    if (status === "solved") {
+      return guest
+        ? this.copy("statusSolvedGuest", "Run saved. Raise another pet when ready.")
+        : this.copy("statusSolvedGameFi", "Reward credited. Start another care run when ready.");
+    }
+    if (status === "expired" || status === "refunded") {
+      return this.copy("statusClosed", "This run is closed. Start a fresh pet when ready.");
+    }
     if (isPlayingStatus(status)) {
-      if (targetReached) return guest ? "Target reached. Save your score." : "Target reached. Claim before the deadline.";
-      return `${actionsUsed} / 40 care actions used`;
+      if (timeUp) return this.copy("statusTimeUp", "Time is up. Settle this exact run.");
+      if (potionBrewed) return this.copy("statusPotionBrewed", "Potion ready. Save this run.");
+      if (targetReached && !recipeComplete) {
+        return this.copy("statusRecipeMissing", "Happiness ready — collect one essence from every care tool.");
+      }
+      if (targetReached) {
+        return guest
+          ? this.copy("statusTargetGuest", "Recipe ready! Brew the potion.")
+          : this.copy("statusTargetGameFi", "Care target ready. Brew before settlement.");
+      }
+      return this.fmt("statusActionCount", "{used} / {max} care actions used", {
+        used: actionsUsed,
+        max: MAX_CARE_ACTIONS,
+      });
     }
     return "";
+  }
+
+  private canRecordCareAction(): boolean {
+    const status = this.str("gameStatus", "idle");
+    const mode = modeOf(this.num("gameDifficulty", this.selectedDifficulty));
+    const happiness = Math.max(this.num("happinessAchieved", 0), this.num("petHappiness", 0));
+    const targetReached = happiness >= mode.target;
+    const recipeComplete = !this.isGuestMode() || this.bool("recipeReady");
+    return (
+      isPlayingStatus(status) &&
+      !this.bool("isActing") &&
+      !this.bool("isSubmitting") &&
+      !this.bool("isRecovering") &&
+      !this.bool("isDealing") &&
+      !this.bool("inputSyncFailed") &&
+      !this.isRunTimedOut(status) &&
+      (!targetReached || !recipeComplete) &&
+      this.num("actionsUsed", 0) < MAX_CARE_ACTIONS
+    );
+  }
+
+  private canUsePrimaryAction(): boolean {
+    const status = this.str("gameStatus", "idle");
+    const busy = this.bool("isStarting") ||
+      this.bool("isDealing") ||
+      this.bool("isSubmitting") ||
+      this.bool("isRecovering") ||
+      this.bool("isConnectingWallet") ||
+      this.bool("isActing");
+    if (busy) return false;
+    const lobby = status === "idle" || status === "solved" || status === "expired" || status === "refunded";
+    if (!this.isGuestMode() && !this.bool("walletConnected")) return lobby;
+    if (lobby) return this.isGuestMode() || this.bool("newPaidRunsEnabled");
+    if (!isPlayingStatus(status)) return false;
+    const mode = modeOf(this.num("gameDifficulty", this.selectedDifficulty));
+    const targetReached = Math.max(this.num("happinessAchieved", 0), this.num("petHappiness", 0)) >= mode.target;
+    const recipeComplete = !this.isGuestMode() || this.bool("recipeReady");
+    const moveCapReached = this.num("actionsUsed", 0) >= MAX_CARE_ACTIONS;
+    return (targetReached && recipeComplete) ||
+      moveCapReached ||
+      this.bool("potionBrewed") ||
+      this.isRunTimedOut(status);
+  }
+
+  private canRecoverRun(): boolean {
+    const status = this.str("gameStatus", "idle");
+    return (
+      (
+        status === "committed" ||
+        status === "unknown" ||
+        this.str("lastStatus", "") === "deal-pending" ||
+        this.bool("inputSyncFailed")
+      ) &&
+      this.str("activeGameId", "0") !== "0" &&
+      !this.bool("isStarting") &&
+      !this.bool("isDealing") &&
+      !this.bool("isSubmitting") &&
+      !this.bool("isRecovering")
+    );
+  }
+
+  private canReleaseAbandoned(): boolean {
+    const releaseAt = this.num("releaseAt", 0);
+    const nowMs = this.num("nowMs", Date.now());
+    return this.str("gameStatus", "idle") === "unknown" &&
+      this.str("activeGameId", "0") !== "0" &&
+      releaseAt > 0 &&
+      nowMs > releaseAt &&
+      !this.bool("isRecovering") &&
+      !this.bool("isSubmitting");
+  }
+
+  private isRunTimedOut(status = this.str("gameStatus", "idle")): boolean {
+    const deadline = this.num("deadline", 0);
+    return isPlayingStatus(status) && deadline > 0 && deadline <= this.num("nowMs", Date.now());
   }
 
   private isGuestMode(): boolean {
@@ -793,10 +1248,38 @@ export class PetPotionScene extends BaseScene {
    * free local game, so it shows a "Free play" tag instead of the GAS reward.
    */
   private applyRewardLabels(isGuest: boolean): void {
-    const tag = this.str("guestLaneTag", "Free play");
+    const tag = this.copy("freePlay", "Free play");
+    const paidLocked = this.copy("paidLocked", "Unavailable");
     this.modeCardRewards.forEach((text, index) => {
       const mode = DIFFICULTIES[index];
-      text.setText(isGuest ? tag : `${mode?.reward ?? ""} GAS`);
+      text.setText(
+        isGuest
+          ? tag
+          : this.bool("newPaidRunsEnabled")
+            ? `${mode?.reward ?? ""} GAS`
+            : paidLocked,
+      );
+    });
+  }
+
+  private applyLocalizedLabels(): void {
+    this.brandText?.setText(this.copy("brand", "PET POTION"));
+    this.modeCards.forEach((card, index) => {
+      const mode = DIFFICULTIES[index];
+      if (mode) card.label.setText(this.copy(mode.labelKey, mode.fallback));
+    });
+    this.actionButtonLabels.forEach((label, index) => {
+      const action = ACTIONS[index];
+      if (action) label.setText(this.copy(action.labelKey, action.fallback));
+    });
+    const statKeys = [
+      ["statHappy", "Happy"],
+      ["statFed", "Fed"],
+      ["statEnergy", "Energy"],
+    ] as const;
+    this.statBars.forEach((stat, index) => {
+      const copy = statKeys[index];
+      if (copy) stat.label.setText(this.copy(copy[0], copy[1]));
     });
   }
 
@@ -816,5 +1299,21 @@ export class PetPotionScene extends BaseScene {
       .setViewport(0, 0, viewW, viewH)
       .setZoom(zoom)
       .centerOn(DESIGN_W / 2, DESIGN_H / 2);
+  }
+
+  private unlockAudio(): void {
+    this.sfx.unlock();
+  }
+
+  private cleanupScene(): void {
+    this.input.off("pointerdown", this.unlockAudio, this);
+    this.cueTimer?.remove(false);
+    this.cueTimer = undefined;
+    this.stopAmbientMotion();
+  }
+
+  destroy(fromScene = false): void {
+    this.cleanupScene();
+    super.destroy(fromScene);
   }
 }

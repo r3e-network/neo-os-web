@@ -294,4 +294,3 @@ function argon2(type, password, salt, opts) {
 export const argon2d = (password, salt, opts) => argon2(0 /* Types.Argond2d */, password, salt, opts);
 export const argon2i = (password, salt, opts) => argon2(1 /* Types.Argon2i */, password, salt, opts);
 export const argon2id = (password, salt, opts) => argon2(2 /* Types.Argon2id */, password, salt, opts);
-//# sourceMappingURL=argon2.js.map

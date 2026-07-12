@@ -22,6 +22,9 @@
  * ```
  */
 
+export const SCENE_AUDIO_MUTE_STORAGE_KEY = "neo-miniapps:phaser-audio-muted";
+export const SCENE_AUDIO_MUTE_EVENT = "neo-miniapps:phaser-audio-muted-change";
+
 export type SceneAudioTone = {
   /** Oscillator start frequency in Hz. */
   frequency: number;
@@ -111,11 +114,48 @@ export const SCENE_AUDIO_PRESETS: Record<SceneAudioPreset, SceneAudioTone[]> = {
   ],
 };
 
+export function isSceneAudioMuted(): boolean {
+  const win = getBrowserWindow();
+  if (!win) return false;
+  try {
+    return win.localStorage.getItem(SCENE_AUDIO_MUTE_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setSceneAudioMuted(muted: boolean): void {
+  const win = getBrowserWindow();
+  if (!win) return;
+  try {
+    win.localStorage.setItem(SCENE_AUDIO_MUTE_STORAGE_KEY, muted ? "true" : "false");
+  } catch {
+    // Private browsing / disabled storage should not break game input.
+  }
+  const event =
+    typeof win.CustomEvent === "function"
+      ? new win.CustomEvent(SCENE_AUDIO_MUTE_EVENT, { detail: { muted } })
+      : new Event(SCENE_AUDIO_MUTE_EVENT);
+  win.dispatchEvent(event);
+}
+
+export function toggleSceneAudioMuted(): boolean {
+  const muted = !isSceneAudioMuted();
+  setSceneAudioMuted(muted);
+  return muted;
+}
+
 /** Minimal structural slice of Phaser.Scene needed for lifecycle binding. */
 type SceneAudioHost = {
   events: {
     once(event: string, handler: () => void, context?: unknown): unknown;
   };
+};
+
+type SceneAudioWindow = Window & {
+  AudioContext?: typeof AudioContext;
+  CustomEvent?: typeof CustomEvent;
+  webkitAudioContext?: typeof AudioContext;
 };
 
 export class SceneAudio {
@@ -125,6 +165,19 @@ export class SceneAudio {
   /** True once a user gesture has unlocked the mixer. */
   get unlocked(): boolean {
     return this.isUnlocked;
+  }
+
+  /** Global miniapp game-audio preference shared by every Phaser scene. */
+  get muted(): boolean {
+    return isSceneAudioMuted();
+  }
+
+  setMuted(muted: boolean): void {
+    setSceneAudioMuted(muted);
+  }
+
+  toggleMuted(): boolean {
+    return toggleSceneAudioMuted();
   }
 
   /** Bind close() to the scene's shutdown/destroy events. */
@@ -139,6 +192,10 @@ export class SceneAudio {
    * Call from pointer/keyboard handlers; safe to call repeatedly.
    */
   unlock(): void {
+    if (this.muted) {
+      this.isUnlocked = true;
+      return;
+    }
     const context = this.ensureContext();
     if (!context) return;
     if (context.state === "suspended") {
@@ -154,6 +211,7 @@ export class SceneAudio {
 
   /** Schedule an ad-hoc set of tones (game-specific cues). */
   tones(tones: readonly SceneAudioTone[]): void {
+    if (this.muted) return;
     const context = this.ensureContext();
     if (!context) return;
     if (context.state === "suspended") {
@@ -170,7 +228,10 @@ export class SceneAudio {
   close(): void {
     if (!this.context) return;
     try {
-      void this.context.close();
+      // close() on an already-closed context (e.g. the browser tore the page
+      // down first) REJECTS asynchronously — consume it so scene shutdown
+      // never surfaces an unhandled promise rejection.
+      void this.context.close()?.catch?.(() => {});
     } catch {
       // Context may already be closing during page teardown.
     }
@@ -180,10 +241,9 @@ export class SceneAudio {
 
   private ensureContext(): AudioContext | null {
     if (this.context) return this.context;
-    const AudioCtor =
-      window.AudioContext ??
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
+    const win = getBrowserWindow();
+    if (!win) return null;
+    const AudioCtor = win.AudioContext ?? win.webkitAudioContext;
     if (!AudioCtor) return null;
     try {
       this.context = new AudioCtor();
@@ -217,4 +277,8 @@ export class SceneAudio {
     oscillator.start(startAt);
     oscillator.stop(startAt + tone.duration + 0.025);
   }
+}
+
+function getBrowserWindow(): SceneAudioWindow | null {
+  return typeof window === "undefined" ? null : (window as SceneAudioWindow);
 }

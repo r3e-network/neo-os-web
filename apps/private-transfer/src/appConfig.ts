@@ -5,11 +5,11 @@ export const appId = "miniapp-private-transfer";
 
 export const manifest: MiniAppManifest = {
   name: "Confidential Transfer",
-  description: "Private Neo N3 transfer intents sealed locally and verified by Morpheus confidential compute.",
+  description: "Encrypt a Neo N3 transfer intent locally and store its ciphertext for downstream Morpheus processing. This app does not move funds or verify settlement.",
   icon: "locked",
   category: "defi",
   shell: "console",
-  theme: { family: "finance", accentColor: "#16c784", density: "comfortable" },
+  theme: { family: "finance", accentColor: "#07966f", density: "comfortable" },
   tabs: [{ key: "transfer", labelKey: "tabTransfer", icon: "locked", default: true }],
   stats: [
     { labelKey: "statPrivacy", valueKey: "privacyMode", format: "text", icon: "locked" },
@@ -27,9 +27,9 @@ export const manifest: MiniAppManifest = {
   },
   features: { walletRequired: false, chainWarning: true },
   permissions: {
-    payments: true,
+    payments: false,
     oracle: true,
-    compute: true,
+    compute: false,
     confidential: true,
   },
   docs: [
@@ -52,24 +52,30 @@ const appMessages = {
   lastStatus: { en: "Last Status", zh: "最近状态" },
   docsTitle: { en: "How it works", zh: "工作方式" },
   docsBody: {
-    en: "The MiniApp does not put zk curve verification inside Neo VM. It seals transfer details in the browser, stores only ciphertext through Morpheus, and uses confidential compute to produce an attestable settlement intent.",
-    zh: "该小程序不会在 Neo VM 内直接做 zk 曲线验证，而是在浏览器本地封装转账细节，只通过 Morpheus 存储密文，并由隐私计算生成可验证的结算意图。",
+    en: "This MiniApp encrypts transfer-intent fields in the browser and submits only ciphertext for Morpheus storage. It does not lock funds, verify a TEE attestation, or execute settlement.",
+    zh: "本小程序在浏览器中加密转账意图字段，仅向 Morpheus 存储提交密文。它不会锁定资金、验证 TEE 证明或执行结算。",
   },
   feature1Name: { en: "Browser Sealed", zh: "浏览器封装" },
   feature1Desc: { en: "Recipient, amount, memo, and note secret are encrypted before they leave the page.", zh: "收款方、金额、备注和 note secret 在离开页面前完成加密。" },
-  feature2Name: { en: "TEE Verified", zh: "TEE 校验" },
-  feature2Desc: { en: "Morpheus confidential compute decrypts and validates the private payload inside the TEE.", zh: "Morpheus 隐私计算在 TEE 内解密并校验隐私载荷。" },
+  feature2Name: { en: "TEE Delivery Target", zh: "TEE 交付目标" },
+  feature2Desc: { en: "Stored ciphertext is prepared for downstream Morpheus processing; this app does not attest or verify that execution.", zh: "保存后的密文用于后续 Morpheus 处理；本应用不会证明或验证该执行过程。" },
   feature3Name: { en: "No Neo zk Curve Assumption", zh: "不依赖 Neo zk 曲线" },
   feature3Desc: { en: "The workflow is designed for Neo N3 without requiring unsupported zk curve verification on-chain.", zh: "该流程面向 Neo N3 设计，不要求链上支持特定 zk 曲线验证。" },
 
   // Placeholder / status seeds
   digestPlaceholder: { en: "—", zh: "—" },
   statusSealed: { en: "Sealed", zh: "已封装" },
-  privacyModeLabel: { en: "Morpheus TEE", zh: "Morpheus TEE" },
+  privacyModeLabel: { en: "Local ciphertext", zh: "本地密文" },
 
   // Network labels
   networkTestnet: { en: "Testnet", zh: "测试网" },
   networkMainnet: { en: "Mainnet", zh: "主网" },
+  networkChecking: { en: "Checking network", zh: "正在检查网络" },
+  networkUnknown: { en: "Unknown network", zh: "未知网络" },
+  networkTestnetOnly: {
+    en: "New encrypted intents are enabled only on Neo N3 Testnet.",
+    zh: "新建加密意图仅在 Neo N3 测试网开放。",
+  },
   networkStatusLive: { en: "Live", zh: "可用" },
   networkStatusDegraded: { en: "Degraded", zh: "降级" },
   networkStatusChecking: { en: "Checking", zh: "检查中" },
@@ -80,8 +86,8 @@ const appMessages = {
   // Plain-language reassurance paired with the degraded chip so a first-time
   // user reads it as "a runtime token is needed", not "the app is broken".
   networkDegradedNote: {
-    en: "Nothing is broken — you can fill in and preview the form now; live sealing just needs the runtime back online.",
-    zh: "应用并未出错 — 您现在即可填写并预览表单；实时封装只需等待运行时恢复。",
+    en: "Your draft stays local. New encrypted intents remain paused until the runtime is verified again.",
+    zh: "草稿仍保留在本地；重新验证运行时之前，不会创建新的加密意图。",
   },
   // Actionable nudge shown when the selected lane is degraded but the other one
   // is live, so the default-path user can switch to a working lane in one tap
@@ -96,11 +102,11 @@ const appMessages = {
   },
 
   // Hero
-  heroEyebrow: { en: "Neo N3 private payments", zh: "Neo N3 隐私支付" },
-  heroTitle: { en: "Seal a private transfer intent", zh: "封装隐私转账意图" },
+  heroEyebrow: { en: "Neo N3 encrypted intent", zh: "Neo N3 加密意图" },
+  heroTitle: { en: "Create a confidential transfer intent", zh: "创建隐私转账意图" },
   heroBody: {
-    en: "Seal recipient, amount, memo, and note secret in the browser for Morpheus confidential compute. This produces an encrypted intent reference — no funds are moved by this app.",
-    zh: "在浏览器中封装收款方、金额、备注与 note secret，交由 Morpheus 隐私计算处理。本步骤生成一个加密意图引用 — 本应用不会转移任何资金。",
+    en: "Encrypt locally. Store ciphertext for Morpheus. No wallet signature or funds move here.",
+    zh: "本地加密，向 Morpheus 保存密文。本应用不请求钱包签名，也不转移资金。",
   },
   heroBadge: { en: "No on-chain zk curve dependency", zh: "无需链上 zk 曲线依赖" },
   heroStageAria: {
@@ -111,11 +117,11 @@ const appMessages = {
     en: "Recipient details stay sealed until Morpheus opens the intent inside confidential compute.",
     zh: "收款细节会保持封装，直到 Morpheus 在隐私计算中打开该意图。",
   },
-  composerTitle: { en: "Seal desk", zh: "封装台" },
-  composerLead: { en: "Compose encrypted transfer details", zh: "编排加密转账细节" },
+  composerTitle: { en: "Encrypted intent", zh: "加密意图" },
+  composerLead: { en: "Set the private transfer", zh: "设置隐私转账" },
   composerSubtitle: {
-    en: "Choose the lane, fill the intent, then create the encrypted reference.",
-    zh: "选择通道、填写意图，然后生成加密引用。",
+    en: "Choose the asset, amount, and recipient. They are encrypted before storage.",
+    zh: "选择资产、金额和收款方；保存前会先完成加密。",
   },
   packetDraft: { en: "Assemble a sealed packet", zh: "组装加密封装包" },
   packetDraftGas: { en: "Assemble a sealed GAS packet", zh: "组装加密 GAS 封装包" },
@@ -156,10 +162,13 @@ const appMessages = {
     zh: "NEO 不可分割——请输入大于零的整数。",
   },
   errorInvalidAmount: { en: "Enter an amount greater than zero.", zh: "请输入大于零的金额。" },
+  errorInvalidAsset: { en: "Choose GAS or NEO before sealing.", zh: "封装前请选择 GAS 或 NEO。" },
+  recipientValid: { en: "Valid Neo N3 address", zh: "有效的 Neo N3 地址" },
+  recipientHint: { en: "A full Neo N3 address beginning with N", zh: "请输入以 N 开头的完整 Neo N3 地址" },
 
   // Seal button + busy state
   sealButton: { en: "Seal private transfer intent", zh: "封装隐私转账意图" },
-  sealCtaShort: { en: "Seal intent", zh: "封装意图" },
+  sealCtaShort: { en: "Seal encrypted intent", zh: "封装加密意图" },
   sealing: { en: "Sealing...", zh: "封装中…" },
   sealAriaIdle: { en: "Seal private transfer intent", zh: "封装隐私转账意图" },
   sealAriaBusy: { en: "Sealing private transfer intent", zh: "正在封装隐私转账意图" },
@@ -168,6 +177,11 @@ const appMessages = {
   noFundsBanner: {
     en: "No funds were moved — this seals an encrypted intent for Morpheus confidential compute, not a payment.",
     zh: "未转移任何资金 — 本步骤为 Morpheus 隐私计算封装加密意图，并非一笔支付。",
+  },
+  boundaryTitle: { en: "Wallet fee 0 GAS · no payment is sent", zh: "钱包费用 0 GAS · 不会发起支付" },
+  boundaryBody: {
+    en: "No wallet signature or funds are involved. TEE execution and settlement are outside this app.",
+    zh: "本应用不请求钱包签名、不涉及资金；TEE 执行与结算不在本应用内。",
   },
 
   // Pre-seal confirm summary — echoes the exact values being encrypted so the
@@ -195,13 +209,13 @@ const appMessages = {
   // empty rail with a short marketing/how-it-works panel and the seal CTA hint.
   introTitle: { en: "Encrypted before it leaves your browser", zh: "在离开浏览器前完成加密" },
   introBody: {
-    en: "Your recipient, amount, and memo are sealed locally with end-to-end encryption. Only ciphertext leaves this page — no funds move.",
-    zh: "您的收款方、金额与备注在本地完成端到端加密封装。仅密文会离开此页面——不会转移任何资金。",
+    en: "Your recipient, amount, and memo are encrypted locally for the current Morpheus key. Only ciphertext leaves this page — no funds move.",
+    zh: "您的收款方、金额与备注会在本地使用当前 Morpheus 密钥加密。仅密文会离开此页面——不会转移任何资金。",
   },
   introPointLocal: { en: "Sealed locally", zh: "本地封装" },
   introPointLocalDesc: { en: "Private fields encrypted in your browser.", zh: "隐私字段在浏览器中加密。" },
-  introPointTee: { en: "TEE verified", zh: "TEE 校验" },
-  introPointTeeDesc: { en: "Only Morpheus confidential compute can decrypt.", zh: "仅 Morpheus 隐私计算可解密。" },
+  introPointTee: { en: "TEE target", zh: "TEE 目标" },
+  introPointTeeDesc: { en: "Downstream execution is not verified by this app.", zh: "后续执行不会由本应用验证。" },
   introPointNoFunds: { en: "No funds moved", zh: "不转移资金" },
   introPointNoFundsDesc: { en: "This seals an intent, never a payment.", zh: "本步骤封装意图，而非支付。" },
   routeAria: { en: "Private transfer sealing route", zh: "隐私转账封装路线" },
@@ -218,6 +232,15 @@ const appMessages = {
   routeStepCompose: { en: "Compose intent", zh: "填写意图" },
   routeStepEncrypt: { en: "Encrypt locally", zh: "本地加密" },
   routeStepMorpheus: { en: "Store for Morpheus", zh: "交给 Morpheus" },
+  routeKeyTitle: { en: "Check fresh Oracle key", zh: "检查新鲜 Oracle 密钥" },
+  routeKeyBody: { en: "Require the current testnet contract key.", zh: "必须取得当前测试网合约密钥。" },
+  routeEncryptTitle: { en: "Encrypt locally", zh: "本地加密" },
+  routeEncryptBody: { en: "Private fields stay on this device.", zh: "隐私字段保留在本设备。" },
+  routeStoreTitle: { en: "Store ciphertext", zh: "保存密文" },
+  routeStoreBody: { en: "Success requires a secret reference.", zh: "仅取得密文引用才算成功。" },
+  routeTeeTitle: { en: "Downstream TEE", zh: "后续 TEE" },
+  routeTeeBody: { en: "Not verified by this app.", zh: "本应用不验证此阶段。" },
+  visualCaption: { en: "Ciphertext packet — plaintext stays local", zh: "密文封装包 — 明文保留在本地" },
 
   // Submit status
   statusInitial: { en: "Local lane idle. Details stay on this device until you seal.", zh: "本地通道待命。封装前细节只保留在此设备上。" },
@@ -226,10 +249,17 @@ const appMessages = {
     zh: "正在获取 Morpheus 密钥、本地加密并存储密文。",
   },
   statusSealingShort: { en: "Sealing private transfer", zh: "正在封装隐私转账" },
-  statusSealedToast: { en: "Private transfer sealed", zh: "隐私转账已封装" },
+  statusSealedToast: { en: "Ciphertext stored", zh: "密文已保存" },
+  statusCheckingRuntime: { en: "Checking network and a fresh Morpheus Oracle key…", zh: "正在检查网络与新鲜 Morpheus Oracle 密钥…" },
+  statusRuntimeReady: { en: "Fresh testnet Oracle key is ready. Storage is checked on submit.", zh: "测试网新鲜 Oracle 密钥已就绪；密文存储将在提交时检查。" },
+  statusRuntimeUnavailable: { en: "The private sealing lane is not ready", zh: "隐私封装通道尚未就绪" },
+  statusRecoveryReady: { en: "A saved ciphertext packet is ready to retry.", zh: "已有本地密文封装包可安全重试。" },
+  statusCiphertextStored: { en: "Ciphertext stored and secret reference confirmed. No payment occurred.", zh: "密文已保存并确认引用；未发生支付。" },
+  statusStoredToast: { en: "Ciphertext reference confirmed", zh: "密文引用已确认" },
+  statusRetryingStorage: { en: "Retrying the exact saved ciphertext packet…", zh: "正在重试同一份已保存密文封装包…" },
   statusStored: {
-    en: "Intent sealed — ciphertext stored. Morpheus confidential compute can decrypt and validate this payload inside the TEE. No funds were moved by this app; the references below identify the sealed intent.",
-    zh: "意图已封装 — 密文已存储。Morpheus 隐私计算可在 TEE 内解密并校验该载荷。本应用未转移任何资金；下方引用用于标识该已封装意图。",
+    en: "Intent sealed — ciphertext stored for downstream Morpheus processing. This app did not verify TEE execution or move funds; the references below identify only the stored intent.",
+    zh: "意图已封装 — 密文已保存，供后续 Morpheus 处理。本应用未验证 TEE 执行，也未转移资金；下方引用仅标识已保存的意图。",
   },
   statusBlockHeader: { en: "Morpheus confidential compute", zh: "Morpheus 隐私计算" },
   safeCopy: {
@@ -257,6 +287,10 @@ const appMessages = {
     en: "Morpheus confidential storage is temporarily unavailable. Your transfer details remain local.",
     zh: "Morpheus 隐私存储暂时不可用。您的转账细节仍保留在本地。",
   },
+  sealErrorTimeout: {
+    en: "Morpheus did not respond in time. Any prepared ciphertext remains on this device for retry.",
+    zh: "Morpheus 未及时响应；已生成的密文会保留在本设备，供稍后重试。",
+  },
   sealErrorGeneric: {
     en: "Private transfer sealing is unavailable right now. Your transfer details remain local.",
     zh: "隐私转账封装当前不可用。您的转账细节仍保留在本地。",
@@ -268,8 +302,8 @@ const appMessages = {
   resultNullifier: { en: "Nullifier", zh: "作废符" },
   // One-line purpose captions so the sealed-intent output is legible.
   resultSecretRefHint: {
-    en: "Keep this to retrieve or settle the sealed intent later via Morpheus.",
-    zh: "请保留此引用，以便稍后通过 Morpheus 找回或结算该已封装意图。",
+    en: "Keep this to retrieve the stored ciphertext later via Morpheus.",
+    zh: "请保留此引用，以便稍后通过 Morpheus 找回已保存的密文。",
   },
   resultCommitmentHint: {
     en: "Public anchor a verifier can check without seeing the private fields.",
@@ -294,6 +328,7 @@ const appMessages = {
     en: "Sealed transfer intents will appear here after you seal one.",
     zh: "封装一次后，已封装的转账意图会显示在这里。",
   },
+  historyCount: { en: "{count} stored ciphertext references on this device", zh: "本设备保存了 {count} 条密文引用" },
   historyClear: { en: "Clear history", zh: "清除历史" },
   historyClearAria: { en: "Clear sealed intents history", zh: "清除已封装意图历史" },
   historyMetaNetwork: { en: "Network", zh: "网络" },
@@ -317,8 +352,8 @@ const appMessages = {
   },
   step3Title: { en: "TEE validation", zh: "TEE 校验" },
   step3Body: {
-    en: "Morpheus decrypts, checks nullifier reuse, and signs the settlement envelope.",
-    zh: "Morpheus 解密、检查作废符复用并签署结算信封。",
+    en: "A downstream Morpheus service may decrypt and validate the packet. This app does not receive or verify a TEE attestation.",
+    zh: "后续 Morpheus 服务可能解密并校验封装包；本应用不会接收或验证 TEE 证明。",
   },
   step4Title: { en: "Release or refund", zh: "释放或退款" },
   step4Body: {
@@ -326,6 +361,50 @@ const appMessages = {
     zh: "由您的钱包与结算服务处理 — 本应用不会释放或退款资金。",
   },
   heroFacts: { en: "{network} · {asset}", zh: "{network} · {asset}" },
+
+  // Runtime boundary, recovery, and tucked-away technical details.
+  serviceStatusTitle: { en: "Private lane status", zh: "隐私通道状态" },
+  serviceNetworkDetail: { en: "New intents: testnet only", zh: "新建意图：仅测试网" },
+  serviceOracleReady: { en: "Oracle key matches contract", zh: "Oracle 密钥与合约一致" },
+  serviceOracleChecking: { en: "Checking Oracle key", zh: "正在检查 Oracle 密钥" },
+  serviceOracleBlocked: { en: "Oracle key unavailable", zh: "Oracle 密钥不可用" },
+  serviceFreshKeyRequired: { en: "Fresh contract key required", zh: "必须取得新鲜合约密钥" },
+  serviceStorageStored: { en: "Ciphertext stored", zh: "密文已保存" },
+  serviceStorageWorking: { en: "Saving ciphertext", zh: "正在保存密文" },
+  serviceStorageRecoverable: { en: "Retry available", zh: "可恢复重试" },
+  serviceStorageSubmit: { en: "Storage checked on submit", zh: "提交时检查存储" },
+  serviceStorageDetail: { en: "Storage reference required", zh: "必须取得存储引用" },
+  pendingTitle: { en: "Pending encrypted intent", zh: "待恢复的加密意图" },
+  pendingBody: {
+    en: "The exact {asset} ciphertext packet is saved locally. Storage attempts: {attempts}.",
+    zh: "同一份 {asset} 密文封装包已保存在本地。存储尝试：{attempts} 次。",
+  },
+  pendingRetry: { en: "Retry storage", zh: "重试存储" },
+  pendingDiscard: { en: "Discard packet", zh: "丢弃封装包" },
+  pendingDiscardConfirm: { en: "Confirm discard", zh: "确认丢弃" },
+  pendingMustResolve: { en: "Retry or discard the pending encrypted packet before creating another.", zh: "创建新意图前，请先重试或丢弃待恢复密文封装包。" },
+  pendingMissing: { en: "No recoverable ciphertext packet was found.", zh: "未找到可恢复的密文封装包。" },
+  pendingWrongNetwork: { en: "This encrypted packet belongs to another network.", zh: "此密文封装包属于其他网络。" },
+  pendingDiscarded: { en: "Pending ciphertext packet discarded from this device.", zh: "待恢复密文封装包已从本设备移除。" },
+  errorOperationInProgress: { en: "A sealing operation is already in progress.", zh: "已有封装操作正在进行。" },
+  retryRuntime: { en: "Check service again", zh: "重新检查服务" },
+  detailsRecovery: { en: "Details & recovery", zh: "详情与恢复" },
+  memoPlaceholder: { en: "Optional private note", zh: "选填的隐私备注" },
+  memoHint: { en: "Up to 160 characters; encrypted locally and never persisted as plaintext.", zh: "最多 160 个字符；本地加密，不以明文持久化。" },
+  privacyBoundaryTitle: { en: "What is and is not private", zh: "隐私边界" },
+  privacyBoundarySubtitle: { en: "Exact fields exposed by this envelope", zh: "此封装包实际暴露的字段" },
+  privacyPrivateFields: { en: "Encrypted fields", zh: "加密字段" },
+  privacyPrivateFieldsValue: { en: "Recipient, amount, memo, note secret", zh: "收款方、金额、备注、note secret" },
+  privacyPublicFields: { en: "Public metadata", zh: "公开元数据" },
+  privacyPublicFieldsValue: { en: "Network, asset, commitment, nullifier", zh: "网络、资产、承诺、作废符" },
+  privacyNotVerified: { en: "Not verified here", zh: "本应用不验证" },
+  privacyNotVerifiedValue: { en: "TEE execution, settlement, payment, anonymity", zh: "TEE 执行、结算、支付、匿名性" },
+  cryptoDetailsTitle: { en: "Encryption & source", zh: "加密与来源" },
+  oracleSourceContract: { en: "Oracle key contract", zh: "Oracle 密钥合约" },
+  oracleNefChecksum: { en: "Pinned Oracle NEF checksum", zh: "固定 Oracle NEF 校验和" },
+  walletStatus: { en: "Wallet", zh: "钱包" },
+  walletNotRequested: { en: "Not connected · no signature or fee", zh: "不连接 · 无签名、无费用" },
+  latestReceiptTitle: { en: "Latest stored reference", zh: "最近保存的引用" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -5,11 +5,12 @@
  * and attempt fee, then crack the lock. Creation, lists, and reclaim controls
  * stay close, but secondary to the break ritual.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  AlertTriangle,
   BadgeCheck,
   Binary,
-  CircleDollarSign,
+  Clock3,
   Crown,
   Gauge,
   KeyRound,
@@ -24,13 +25,27 @@ import {
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { CoinArt, ParticleBurst } from "@shared/art";
-import { OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { formatGas, parsePositiveFixed8 } from "@shared/utils/format";
+import {
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, p?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (n: string, ...a: unknown[]) => Promise<void>;
+}
+
+interface PendingVaultOperation {
+  kind?: "create" | "attempt" | "increase" | "reclaim";
+  stage?: "payment" | "action";
+  txid?: string;
+  paymentTxid?: string;
+  vaultId?: string;
 }
 
 interface VaultDetails {
@@ -60,13 +75,18 @@ const DIFFICULTIES = [
   { id: 3, key: "difficultyHard", hint: "difficultyHardHint" },
 ] as const;
 
-function formatGasValue(value: unknown, fallback = "-") {
+function formatGasBaseUnits(value: unknown, fallback = "-") {
   if (value == null || value === "") return fallback;
   if (typeof value === "string" && /gas/i.test(value)) return value;
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return String(value);
-  const gas = Math.abs(numeric) >= 100_000 ? numeric / 100_000_000 : numeric;
-  return `${gas.toLocaleString(undefined, { maximumFractionDigits: 4 })} GAS`;
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) return fallback;
+  return `${formatGas(normalized, 8)} GAS`;
+}
+
+function formatNetPayout(value: unknown, fallback: string) {
+  const normalized = String(value ?? "").trim();
+  if (!/^\d+$/.test(normalized)) return fallback;
+  return `${formatGas(BigInt(normalized) * 9_800n / 10_000n, 8)} GAS`;
 }
 
 function shortText(value: unknown, fallback = "-") {
@@ -86,10 +106,14 @@ function vaultTitle(vault: VaultDetails | null | undefined, fallback: string) {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
 
-  const address = str("address", "");
   const isLoading = bool("isLoading");
   const isCreating = bool("isCreating");
   const isClaiming = bool("isClaiming");
+  const isRecovering = bool("isRecovering");
+  const recoveryStorageHealthy = val<boolean>("recoveryStorageHealthy", true) ?? true;
+  const chainReady = bool("chainReady");
+  const writeReady = bool("writeReady");
+  const writeBlockReason = str("writeBlockReason", "");
   const canAttempt = bool("canAttempt");
   const canReclaim = bool("canReclaim");
   const vaultIdInput = str("vaultIdInput");
@@ -99,32 +123,65 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const vaultDetails = val<VaultDetails | null>("vaultDetails", null);
   const recentVaults = val<VaultDetails[]>("recentVaults", []) ?? [];
   const myVaults = val<VaultDetails[]>("myVaults", []) ?? [];
+  const pendingOperation = val<PendingVaultOperation | null>("pendingOperation", null);
+  const networkName = str("networkName", "").toLowerCase();
+  const catalogReadError = str("catalogReadError", "");
+  const myVaultsReadError = str("myVaultsReadError", "");
 
-  const [mode, setMode] = useState<Mode>(() =>
-    vaultDetails || recentVaults.length > 0 || vaultIdInput.trim() ? "break" : "create",
-  );
+  const [mode, setMode] = useState<Mode>("break");
   const [createSecret, setCreateSecret] = useState("");
   const [confirmSecret, setConfirmSecret] = useState("");
   const [createBounty, setCreateBounty] = useState("5");
   const [createTitle, setCreateTitle] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [difficulty, setDifficulty] = useState(2);
+  const [createReceiptId, setCreateReceiptId] = useState("");
+  const [attemptReceiptId, setAttemptReceiptId] = useState("");
+  const [topupAmount, setTopupAmount] = useState("1");
+  const [topupReceiptId, setTopupReceiptId] = useState("");
   const [attemptPreview, setAttemptPreview] = useState(false);
   const attemptPreviewTimeout = useRef<number | null>(null);
 
-  const busy = isLoading || isCreating || isClaiming;
+  const busy = isLoading || isCreating || isClaiming || isRecovering;
+  const pendingWrite = Boolean(pendingOperation);
+  const writesBlocked = busy || pendingWrite || !writeReady || !recoveryStorageHealthy;
+  const isMainnet = networkName.includes("mainnet");
+  const showsMainnetReceipt = isMainnet && writeReady;
   const loaded = Boolean(vaultDetails);
   const broken = Boolean(vaultDetails?.broken || vaultDetails?.status === "broken");
   const expired = Boolean(vaultDetails?.expired || vaultDetails?.status === "expired" || vaultDetails?.status === "claimable");
   const challengeName = vaultTitle(vaultDetails, t("challengeDeskEmpty"));
   const challengeHint = shortText(vaultDetails?.description, t("challengeDeskHint"));
-  const bountyDisplay = formatGasValue(vaultDetails?.bounty, createBounty ? `${createBounty} GAS` : "-");
-  const attemptFee = attemptFeeDisplay || formatGasValue(vaultDetails?.attemptFee, "-");
+  const createBountyBase = parsePositiveFixed8(createBounty);
+  const topupBase = parsePositiveFixed8(topupAmount);
+  const bountyDisplay = mode === "create"
+    ? createBountyBase
+      ? `${formatGas(createBountyBase, 8)} GAS`
+      : "-"
+    : formatGasBaseUnits(vaultDetails?.bounty, "-");
+  const attemptFee = attemptFeeDisplay
+    ? `${attemptFeeDisplay.replace(/\s*GAS$/i, "")} GAS`
+    : formatGasBaseUnits(vaultDetails?.attemptFee, t("selectVaultFee"));
+  const netPayoutDisplay = formatNetPayout(
+    mode === "create" ? createBountyBase : vaultDetails?.bounty,
+    t("winnerShare"),
+  );
+  const statusLabel = (status: unknown) => {
+    const normalized = String(status ?? "").trim().toLowerCase();
+    return ["active", "broken", "expired", "claimable", "reclaimed"].includes(normalized)
+      ? t(normalized)
+      : shortText(status, t("active"));
+  };
   const normalizedCreateSecret = createSecret.trim();
   const normalizedConfirmSecret = confirmSecret.trim();
-  const createReady = normalizedCreateSecret !== "" && normalizedCreateSecret === normalizedConfirmSecret && createBounty.trim() !== "";
+  const validCreateBounty = Boolean(
+    createBountyBase && BigInt(createBountyBase) >= 100_000_000n,
+  );
+  const createReady = normalizedCreateSecret !== ""
+    && normalizedCreateSecret === normalizedConfirmSecret
+    && validCreateBounty
+    && (!showsMainnetReceipt || /^[1-9]\d*$/.test(createReceiptId.trim()));
   const activeDifficulty = DIFFICULTIES.find((item) => item.id === difficulty) ?? DIFFICULTIES[1];
-  const sceneDoorLabel = mode === "create" ? t("blueprintTitle") : loaded ? `#${vaultDetails?.id}` : t("vaultIdLabel");
   const sceneSecondaryLabel = mode === "create" ? t("difficultyLabel") : t("attemptFee");
   const sceneSecondaryValue = mode === "create" ? t(activeDifficulty.key) : attemptFee;
   const sceneStatusValue = mode === "create" ? t("blueprintTitle") : broken ? t("broken") : expired ? t("expired") : loaded ? t("active") : t("challengeDeskEmpty");
@@ -135,6 +192,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : loaded
         ? challengeHint
         : t("challengeDeskHint");
+  const expiryDisplay = mode === "create"
+    ? `30 ${t("daysUnit")}`
+    : loaded
+      ? `${vaultDetails?.remainingDays ?? 0} ${t("daysUnit")}`
+      : t("selectVaultExpiry");
 
   const startAttemptPreview = () => {
     if (attemptPreviewTimeout.current) window.clearTimeout(attemptPreviewTimeout.current);
@@ -144,6 +206,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       attemptPreviewTimeout.current = null;
     }, 1200);
   };
+
+  useEffect(() => {
+    if (!createdVaultId) return;
+    // A created id is exposed only after event + readback verification. This is
+    // the safe boundary for removing plaintext from component memory.
+    setCreateSecret("");
+    setConfirmSecret("");
+    setCreateReceiptId("");
+  }, [createdVaultId]);
+
+  useEffect(() => () => {
+    if (attemptPreviewTimeout.current) {
+      window.clearTimeout(attemptPreviewTimeout.current);
+      attemptPreviewTimeout.current = null;
+    }
+  }, []);
 
   const selectVault = (vault: VaultDetails) => {
     state.vaultIdInput?.set(String(vault.id));
@@ -157,13 +235,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleAttempt = () => {
-    if (!canAttempt || busy) return;
+    if (
+      !canAttempt
+      || writesBlocked
+      || (showsMainnetReceipt && !/^[1-9]\d*$/.test(attemptReceiptId.trim()))
+    ) return;
     startAttemptPreview();
-    void dispatch("attemptBreak");
+    void dispatch("attemptBreak", {
+      receiptId: showsMainnetReceipt ? attemptReceiptId.trim() : undefined,
+    });
   };
 
   const handleCreate = () => {
-    if (!createReady || busy) return;
+    if (!createReady || writesBlocked) return;
     void dispatch("createVault", {
       secret: normalizedCreateSecret,
       secretHash: "",
@@ -171,27 +255,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       title: createTitle.trim() || t("blueprintUntitled"),
       description: createDescription.trim(),
       difficulty,
+      receiptId: showsMainnetReceipt ? createReceiptId.trim() : undefined,
+    });
+  };
+
+  const handleIncreaseBounty = () => {
+    if (
+      !vaultDetails?.id
+      || writesBlocked
+      || !topupBase
+      || (showsMainnetReceipt && !/^[1-9]\d*$/.test(topupReceiptId.trim()))
+    ) return;
+    void dispatch("increaseBounty", {
+      vaultId: String(vaultDetails.id),
+      amountGas: topupAmount.trim(),
+      receiptId: showsMainnetReceipt ? topupReceiptId.trim() : undefined,
     });
   };
   const sceneState = attemptPreview || isLoading ? "attempting" : broken ? "broken" : loaded ? "loaded" : "empty";
 
   const scene = (
     <div className="vault-brk-scene" data-state={sceneState}>
-      <figure className="vault-brk-scene__art-card" aria-hidden="true">
-        <img className="vault-brk-scene__artwork" src={VAULT_IMAGE} alt="" loading="eager" decoding="async" draggable={false} />
+      <figure className="vault-brk-scene__art-card">
+        <img className="vault-brk-scene__artwork" src={VAULT_IMAGE} alt={t("vaultHeroImageAlt")} loading="eager" decoding="async" draggable={false} />
+        <figcaption className="vault-brk-scene__asset-caption">
+          <CoinArt size={34} variant="gas" />
+          <span>
+            <small>{mode === "create" ? t("create") : t("challengeDeskTitle")}</small>
+            <strong>{mode === "create" ? (createTitle.trim() || t("blueprintUntitled")) : challengeName}</strong>
+          </span>
+          <em>{bountyDisplay}</em>
+        </figcaption>
       </figure>
-      <div className="vault-core" aria-label={challengeName}>
-        <div className="vault-core__door">
-          <span className="vault-core__ring" aria-hidden="true" />
-          <Vault size={52} />
-          <strong>{sceneDoorLabel}</strong>
-        </div>
-        <div className="vault-core__laser vault-core__laser--left" aria-hidden="true" />
-        <div className="vault-core__laser vault-core__laser--right" aria-hidden="true" />
-      </div>
 
       <div className="vault-readout vault-readout--bounty">
-        <CircleDollarSign size={17} />
+        <CoinArt size={22} variant="gas" />
         <span>{t("bountyLabel")}</span>
         <strong>{bountyDisplay}</strong>
       </div>
@@ -206,12 +304,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <strong>{sceneStatusValue}</strong>
       </div>
 
-      <div className="vault-crack-route">
-        <span className="vault-crack-route__node"><Radar size={15} />{mode === "create" ? t("blueprintTitle") : t("loadVault")}</span>
-        <span className={["vault-crack-route__beam", mode === "create" || loaded ? "vault-crack-route__beam--active" : null].filter(Boolean).join(" ")} />
-        <span className={["vault-crack-route__node", mode === "create" || canAttempt ? "vault-crack-route__node--active" : null].filter(Boolean).join(" ")}><KeyRound size={15} />{mode === "create" ? t("secretLabel") : t("attemptBreak")}</span>
-        <span className={["vault-crack-route__beam", createReady || attemptPreview || broken ? "vault-crack-route__beam--active" : null].filter(Boolean).join(" ")} />
-        <span className={["vault-crack-route__node", createReady || broken ? "vault-crack-route__node--active" : null].filter(Boolean).join(" ")}><Trophy size={15} />{t("bountyLabel")}</span>
+      <div className="vault-asset-journey" aria-label={t("challengeConsole")}>
+        <span data-active={mode === "create" || loaded ? "true" : undefined}><Radar size={15} />{mode === "create" ? t("blueprintTitle") : t("loadVault")}</span>
+        <span data-active={mode === "create" || canAttempt ? "true" : undefined}><KeyRound size={15} />{mode === "create" ? t("secretLabel") : t("attemptBreak")}</span>
+        <span data-active={createReady || broken ? "true" : undefined}><Trophy size={15} />{t("bountyLabel")}</span>
       </div>
 
       {(attemptPreview || isLoading) && <ParticleBurst coins count={10} />}
@@ -237,9 +333,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="vault-target-card__icon"><LockKeyhole size={18} /></span>
             <span className="vault-target-card__copy">
               <strong>{vaultTitle(vault, `#${vault.id}`)}</strong>
-              <em>{formatGasValue(vault.bounty)}</em>
+              <em>{formatGasBaseUnits(vault.bounty)}</em>
             </span>
-            <span className="vault-target-card__status">{shortText(vault.status, t("active"))}</span>
+            <span className="vault-target-card__status">{statusLabel(vault.status)}</span>
           </button>
         );
       })}
@@ -257,6 +353,78 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const controls = (
     <div className="vault-brk-controls">
+      {!chainReady && (
+        <div className="vault-operation-notice vault-operation-notice--error" role="alert">
+          <AlertTriangle size={18} />
+          <span><strong>{t("chainUnavailableTitle")}</strong>{t("chainContextMismatch")}</span>
+        </div>
+      )}
+      {chainReady && !writeReady && (
+        <div className="vault-operation-notice" role="status">
+          <AlertTriangle size={18} />
+          <span>
+            <strong>{t("writeUnavailableTitle")}</strong>
+            {writeBlockReason || t("writeUnavailable")}
+          </span>
+        </div>
+      )}
+      {!recoveryStorageHealthy && !pendingOperation && (
+        <div className="vault-operation-notice vault-operation-notice--error" role="alert">
+          <AlertTriangle size={18} />
+          <span>
+            <strong>{t("recoveryStorageTitle")}</strong>
+            {t("recoveryStorageUnavailable")}
+          </span>
+          <button
+            type="button"
+            className="vault-secondary-action vault-storage-action"
+            onClick={() => void dispatch("refreshVaultRecoveryStorage")}
+            disabled={busy}
+          >
+            {t("retryRecoveryStorage")}
+          </button>
+        </div>
+      )}
+      {(catalogReadError || myVaultsReadError) && (
+        <div className="vault-operation-notice vault-operation-notice--read" role="status">
+          <Radar size={18} />
+          <span>
+            <strong>{t("readUnavailableTitle")}</strong>
+            {[catalogReadError, myVaultsReadError].filter(Boolean).join(" ")}
+          </span>
+        </div>
+      )}
+      {pendingOperation && (
+        <div className="vault-operation-notice" role="status">
+          <RefreshCw size={18} />
+          <span>
+            <strong>{t("pendingTitle")}</strong>
+            {pendingOperation.stage === "payment"
+              ? t("paymentRecoveryReady")
+              : t("transactionPending")}
+            <small>{compactAddress(pendingOperation.txid || pendingOperation.paymentTxid)}</small>
+          </span>
+          <button
+            type="button"
+            className="vault-secondary-action vault-recovery-action"
+            onClick={() => void dispatch(
+              recoveryStorageHealthy ? "recoverPendingVault" : "refreshVaultRecoveryStorage",
+            )}
+            disabled={busy || (recoveryStorageHealthy && !chainReady)}
+          >
+            {!recoveryStorageHealthy
+              ? t("retryRecoveryStorage")
+              : isRecovering
+                ? t("recoveringTransaction")
+                : t("recoverTransaction")}
+          </button>
+        </div>
+      )}
+      <div className="vault-risk-summary" aria-label={t("riskSummaryTitle")}>
+        <span><ShieldCheck size={17} /><strong>{netPayoutDisplay}</strong><em>{t("netPayoutCompact")}</em></span>
+        <span><AlertTriangle size={17} /><strong>{attemptFee}</strong><em>{t("attemptRiskCompact")}</em></span>
+        <span><Clock3 size={17} /><strong>{expiryDisplay}</strong><em>{t("expiryRiskCompact")}</em></span>
+      </div>
       <div className="vault-mode-switch" role="tablist" aria-label={t("challengeConsole")}>
         <button
           type="button"
@@ -270,7 +438,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{t("break")}</strong>
             <em>{loaded ? challengeName : t("challengeDeskHint")}</em>
           </span>
-          <span className="vault-mode-card__status">{loaded ? t("active") : t("loadVault")}</span>
+          <span className="vault-mode-card__status">{loaded ? statusLabel(vaultDetails?.status) : t("loadVault")}</span>
         </button>
         <button
           type="button"
@@ -291,7 +459,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {(mode === "break" || recentVaults.length > 0) && vaultRail}
 
       {mode === "break" && (
-        <div className="vault-work-card vault-work-card--break">
+        <div className="vault-work-card vault-work-card--break" data-mainnet={isMainnet ? "true" : undefined}>
           <div className="vault-work-card__hero">
             <div className="vault-work-card__icon"><Binary size={19} /></div>
             <div className="vault-work-card__copy">
@@ -330,8 +498,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={attemptSecret}
             onChange={(e) => state.attemptSecret?.set(e.target.value)}
             placeholder={t("secretAttemptPlaceholder")}
-            disabled={busy || !loaded}
+            disabled={busy || !loaded || (pendingWrite && pendingOperation?.kind !== "attempt")}
+            type="password"
+            autoComplete="off"
           />
+
+          {showsMainnetReceipt && (
+            <OpenUiTextField
+              className="vault-field vault-field--receipt"
+              inputClassName="vault-input"
+              label={t("receiptIdLabel")}
+              value={attemptReceiptId}
+              onChange={(event) => setAttemptReceiptId(event.target.value)}
+              placeholder={t("receiptIdPlaceholder")}
+              disabled={busy || !loaded || pendingWrite}
+              inputMode="numeric"
+            />
+          )}
 
           <div className="vault-attempt-meter" aria-label={t("attemptFee")}>
             <span>{t("attemptFee")}</span>
@@ -375,7 +558,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={createSecret}
                 onChange={(e) => setCreateSecret(e.target.value)}
                 placeholder={t("secretLabel")}
-                disabled={busy}
+                disabled={busy || pendingWrite}
               />
               <OpenUiTextField
                 className="vault-field vault-key-slot vault-field--secret vault-field--confirm-secret"
@@ -391,7 +574,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 value={confirmSecret}
                 onChange={(e) => setConfirmSecret(e.target.value)}
                 placeholder={t("confirmSecretLabel")}
-                disabled={busy}
+                disabled={busy || pendingWrite}
               />
             </div>
             <div className="vault-create-dossier">
@@ -413,7 +596,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className={["vault-bounty", createBounty === amount ? "vault-bounty--active" : null].filter(Boolean).join(" ")}
                     onClick={() => setCreateBounty(amount)}
-                    disabled={busy}
+                    disabled={busy || pendingWrite}
                   >
                     <CoinArt size={16} variant="gas" />
                     <span>{amount}</span>
@@ -431,7 +614,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className={["vault-difficulty", difficulty === item.id ? "vault-difficulty--active" : null].filter(Boolean).join(" ")}
                     onClick={() => setDifficulty(item.id)}
-                    disabled={busy}
+                    disabled={busy || pendingWrite}
                   >
                     <strong>{t(item.key)}</strong>
                     <span>{t(item.hint)}</span>
@@ -447,31 +630,24 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <OpenUiProvider>
-      <div className="unbreakable-vault-play-area mx2 mx2-cat-game">
+      <div className="unbreakable-vault-play-area mx2 mx2-cat-defi">
         <PlayStage
-          category="game"
+          category="defi"
           stage={{
             eyebrow: t("challengeConsole"),
             title: mode === "create" ? t("createVault") : t("breakVault"),
             subtitle: t("docSubtitle"),
-            badges: (
-              <>
-                <span className="mx2-badge vault-stage-badge vault-stage-badge--status" data-tone="accent"><span className="mx2-badge__dot" /> {t("challengeConsoleTitle")}</span>
-                <span className="mx2-badge vault-stage-badge vault-stage-badge--wallet">{address ? compactAddress(address) : t("creator")}</span>
-              </>
-            ),
           }}
           scene={<>{scene}{controls}</>}
-          score={[
-            { label: t("attempts"), value: String(vaultDetails?.attempts ?? 0), accent: true },
-            { label: t("bountyLabel"), value: bountyDisplay },
-            { label: t("active"), value: broken ? t("broken") : expired ? t("expired") : t("active") },
-          ]}
           actions={{
             primary: {
               label: mode === "break" ? (isLoading ? t("attempting") : t("attemptBreak")) : (isCreating ? t("creatingVault") : t("createVaultButton")),
               onClick: () => void (mode === "break" ? handleAttempt() : handleCreate()),
-              disabled: mode === "break" ? busy || !canAttempt : busy || !createReady,
+              disabled: mode === "break"
+                ? writesBlocked
+                  || !canAttempt
+                  || (showsMainnetReceipt && !/^[1-9]\d*$/.test(attemptReceiptId.trim()))
+                : writesBlocked || !createReady,
               loading: mode === "break" ? isLoading : isCreating,
             },
           }}
@@ -499,6 +675,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   />
                   <button type="button" className="mx2-btn mx2-btn--ghost vault-drawer-load" onClick={handleLoadVault} disabled={busy || !vaultIdInput.trim()}>{t("loadVault")}</button>
                 </div>
+                {loaded && !broken && !expired && (
+                  <div className="vault-topup-row">
+                    <OpenUiTextField
+                      className="vault-drawer-field vault-drawer-field--topup"
+                      label={t("increaseBountyLabel")}
+                      value={topupAmount}
+                      onChange={(event) => setTopupAmount(event.target.value)}
+                      placeholder={t("increaseBountyPlaceholder")}
+                      inputMode="decimal"
+                      disabled={writesBlocked}
+                    />
+                    {showsMainnetReceipt && (
+                      <OpenUiTextField
+                        className="vault-drawer-field vault-drawer-field--receipt"
+                        label={t("receiptIdLabel")}
+                        value={topupReceiptId}
+                        onChange={(event) => setTopupReceiptId(event.target.value)}
+                        placeholder={t("receiptIdPlaceholder")}
+                        inputMode="numeric"
+                        disabled={writesBlocked}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--ghost vault-topup-action"
+                      onClick={handleIncreaseBounty}
+                      disabled={writesBlocked || !topupBase || (showsMainnetReceipt && !/^[1-9]\d*$/.test(topupReceiptId.trim()))}
+                    >
+                      {t("increaseBounty")}
+                    </button>
+                  </div>
+                )}
               </OpenUiPanel>
 
               <OpenUiPanel
@@ -515,7 +723,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     value={createTitle}
                     onChange={(e) => setCreateTitle(e.target.value)}
                     placeholder={t("titlePlaceholder")}
-                    disabled={busy}
+                    disabled={busy || pendingWrite}
                   />
                   <OpenUiTextField
                     className="vault-drawer-field"
@@ -524,7 +732,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     onChange={(e) => setCreateBounty(e.target.value)}
                     placeholder={t("bountyPlaceholder")}
                     inputMode="decimal"
-                    disabled={busy}
+                    disabled={busy || pendingWrite}
                   />
                   <OpenUiTextField
                     className="vault-drawer-field vault-drawer-field--wide"
@@ -532,8 +740,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
                     placeholder={t("descriptionPlaceholder")}
-                    disabled={busy}
+                    disabled={busy || pendingWrite}
                   />
+                  {showsMainnetReceipt && (
+                    <OpenUiTextField
+                      className="vault-drawer-field vault-drawer-field--wide vault-drawer-field--receipt"
+                      label={t("receiptIdLabel")}
+                      value={createReceiptId}
+                      onChange={(event) => setCreateReceiptId(event.target.value)}
+                      placeholder={t("receiptIdPlaceholder")}
+                      inputMode="numeric"
+                      disabled={busy || pendingWrite}
+                    />
+                  )}
                 </div>
                 <p className="vault-drawer-note">{t("secretNote")}</p>
                 {createdVaultId && <p className="vault-drawer-note vault-drawer-note--success"><BadgeCheck size={14} /> {t("vaultCreated")}: #{createdVaultId}</p>}
@@ -552,7 +771,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <li key={vault.id} className="mx2-history__item">
                         <button type="button" className="vault-list__select" onClick={() => selectVault(vault)}>
                           <span className="mx2-history__face">{vaultTitle(vault, `#${vault.id}`)}</span>
-                          <span className="mx2-history__stake">{formatGasValue(vault.bounty)}</span>
+                          <span className="mx2-history__stake">{formatGasBaseUnits(vault.bounty)}</span>
                         </button>
                       </li>
                     ))}
@@ -573,7 +792,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <li key={vault.id} className="mx2-history__item">
                         <button type="button" className="vault-list__select" onClick={() => selectVault(vault)}>
                           <span className="mx2-history__face">{vaultTitle(vault, `#${vault.id}`)}</span>
-                          <span className="mx2-history__stake">{formatGasValue(vault.bounty)}</span>
+                          <span className="mx2-history__stake">{formatGasBaseUnits(vault.bounty)}</span>
                         </button>
                       </li>
                     ))}
@@ -582,7 +801,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </OpenUiPanel>
 
               {canReclaim && (
-                <button type="button" className="mx2-btn mx2-btn--ghost vault-drawer-reclaim" onClick={() => void dispatch("settleVault")} disabled={busy}>
+                <button type="button" className="mx2-btn mx2-btn--ghost vault-drawer-reclaim" onClick={() => void dispatch("settleVault")} disabled={writesBlocked}>
                   {isClaiming ? t("claimBounty") : t("reclaimVault")}
                 </button>
               )}

@@ -29,6 +29,20 @@ defineMiniApp({
     const launchDefaults = getForeverAlbumLaunchDefaults(ctx.launchContext);
     album.isEncrypted.set(launchDefaults.isEncrypted);
 
+    let observedWallet = app.wallet.address() || "";
+    const stopWalletObservation = app.wallet.observe().subscribe(() => {
+      const nextWallet = app.wallet.address() || "";
+      if (nextWallet === observedWallet) return;
+      // A first connection establishes the partition for an unowned draft;
+      // switching away from an existing wallet still clears every draft/view.
+      const preserveDraft = !observedWallet && Boolean(nextWallet);
+      observedWallet = nextWallet;
+      void app.notify.guard(
+        () => album.handleWalletChange({ preserveDraft }),
+        { errorKey: "loadFailed" },
+      );
+    });
+
     ctx.framework.actions.register("viewPhoto", async (photo: unknown) => {
       album.viewPhoto(
         photo as {
@@ -40,14 +54,8 @@ defineMiniApp({
       );
     });
 
-    ctx.framework.actions.register("openUpload", async () => {
-      album.openUpload();
-    });
-    ctx.framework.actions.register("closeUpload", async () => {
-      album.closeUpload();
-    });
     ctx.framework.actions.register("refreshPhotos", async () => {
-      await album.loadPhotos();
+      await app.notify.guard(() => album.loadPhotos(), { errorKey: "loadFailed" });
     });
     ctx.framework.actions.register("closeViewer", async () => {
       album.closeViewer();
@@ -79,6 +87,14 @@ defineMiniApp({
     ctx.framework.actions.register("deletePhoto", async (id: unknown) => {
       await app.notify.guard(() => album.deletePhoto(id as string), {
         successKey: "photoDeleted",
+        errorKey: "deleteFailed",
+      });
+    });
+
+    ctx.framework.actions.register("resetDamagedAlbum", async () => {
+      await app.notify.guard(() => album.resetDamagedAlbum(), {
+        successKey: "albumReset",
+        errorKey: "albumResetFailed",
       });
     });
 
@@ -94,7 +110,14 @@ defineMiniApp({
         photosCount: album.photosCount,
         encryptedCount: album.encryptedCount,
         publicCount: album.publicCount,
+        albumPayloadSize: album.albumPayloadSize,
+        maxAlbumBytes: album.maxAlbumBytes,
+        walletAddress: album.walletAddress,
+        storageIssue: album.storageIssue,
+        storageMessage: album.storageMessage,
+        storageNotice: album.storageNotice,
         loadingPhotos: album.loadingPhotos,
+        processingFiles: album.processingFiles,
         uploading: album.uploading,
         uploadError: album.uploadError,
         showViewer: album.showViewer,
@@ -103,15 +126,17 @@ defineMiniApp({
         decryptTarget: album.decryptTarget,
         decrypting: album.decrypting,
         decryptedPreview: album.decryptedPreview,
+        decryptPassword: album.decryptPassword,
         decryptError: album.decryptError,
-        showUpload: album.showUpload,
         selectedImages: album.selectedImages,
         isEncrypted: album.isEncrypted,
         password: album.password,
+        passwordConfirm: album.passwordConfirm,
         totalPayloadSize: album.totalPayloadSize,
         maxTotalBytes: album.maxTotalBytes,
       },
       loadData: album.loadPhotos,
+      cleanup: stopWalletObservation,
     };
   },
 });

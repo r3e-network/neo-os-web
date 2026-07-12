@@ -7,7 +7,6 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   CheckCircle2,
   CircleDashed,
-  Coins,
   FileSignature,
   History,
   KeyRound,
@@ -23,6 +22,8 @@ import {
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
+import { ownerMatchesAddress } from "@shared/utils/neo";
 import {
   OpenUiNotice,
   OpenUiPanel,
@@ -32,7 +33,6 @@ import {
   OpenUiTextField,
   PlayStage,
 } from "@shared/components-react/v2";
-import { CoinArt } from "@shared/art";
 import {
   fromBaseUnits,
   isValidAddress,
@@ -45,8 +45,8 @@ import "./PlayArea.scss";
 
 interface P { t: (k: string, p?: Record<string, string|number>) => string; state: ObservableState; dispatch: (n: string, ...a: unknown[]) => Promise<void>; }
 
-const VAULT_STAGE_IMAGE = "multisig-vault-stage.webp";
-const PROPOSAL_CARD_IMAGE = "multisig-proposal-card.webp";
+const VAULT_STAGE_IMAGE = new URL("../public/multisig-vault-stage.webp", import.meta.url).href;
+const PROPOSAL_CARD_IMAGE = new URL("../public/multisig-proposal-card.webp", import.meta.url).href;
 type DrawerMode = "create" | "fund" | "spend" | "load" | "history";
 
 function text(t: P["t"], key: string, fallback: string, params?: Record<string, string | number>) {
@@ -91,10 +91,7 @@ function short(value: unknown, head = 6, tail = 4) {
 }
 
 export default function PlayArea({ t, state, dispatch }: P) {
-  const { str, bool, num, val } = useStateBindings(state);
-  const vaultCount = num("vaultCount");
-  const pendingCount = num("pendingCount");
-  const completedCount = num("completedCount");
+  const { str, bool, val } = useStateBindings(state);
   const connectedAddress = str("connectedAddress");
   const connectedIsSigner = bool("connectedIsSigner");
   const connectedHasApproved = bool("connectedHasApproved");
@@ -106,6 +103,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const isApproving = bool("isApproving");
   const isCancelling = bool("isCancelling");
   const isLoading = bool("isLoading");
+  const isRecovering = bool("isRecovering");
+  const vaultSource = str("vaultSource", "none");
+  const requestSource = str("requestSource", "none");
+  const approvalSource = str("approvalSource", "none");
+  const historySource = str("historySource", "none");
+  const contractHash = str("contractHash");
+  const transactionNotice = str("transactionNotice");
+  const pendingOperation = val<Record<string, unknown> | null>("pendingOperation", null);
+  const signerApprovals = val<Array<{ signer: string; approved: boolean }>>("signerApprovals", []) ?? [];
   const history = (val("history") ?? []) as Array<Record<string, unknown>>;
   const rawUnfundedNotice = val<Record<string, unknown> | null>("unfundedNotice", null);
   const unfundedNotice = rawUnfundedNotice && typeof rawUnfundedNotice === "object" ? rawUnfundedNotice : null;
@@ -125,7 +131,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const [loadRequestIdInput, setLoadRequestIdInput] = useState("");
 
   const hasActiveRequest = Boolean(activeRequest);
-  const busy = isApproving || isCancelling || isProposing || isCreatingVault || isDepositing || isLoading;
+  const requestIsPending = activeRequest?.status === "pending";
+  const busy = isApproving || isCancelling || isProposing || isCreatingVault || isDepositing || isLoading || isRecovering;
+  const writesBlocked = Boolean(pendingOperation);
   const vaultId = parsePositiveId(activeVault?.id);
   const requestId = parsePositiveId(activeRequest?.id);
   const signers = Array.isArray(activeVault?.signers) ? activeVault.signers.map(String) : [];
@@ -136,15 +144,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const approvalCount = asNum(activeRequest?.approvalCount, connectedHasApproved ? 1 : 0);
   const approvalTotal = Math.max(threshold || signerCount || 2, 1);
   const approvalPercent = hasActiveRequest
-    ? Math.max(8, Math.min(100, Math.round((approvalCount / approvalTotal) * 100)))
-    : Math.max(16, Math.min(100, Math.round(((threshold || 1) / Math.max(signerCount || 3, 1)) * 100)));
+    ? Math.max(0, Math.min(100, Math.round((approvalCount / approvalTotal) * 100)))
+    : 0;
   const requestAsset = asAsset(activeRequest?.assetSymbol || activeRequest?.asset);
   const requestStatusKey = String(activeRequest?.status || "");
   const requestStatus = requestStatusKey
     ? text(t, `status${requestStatusKey[0]?.toUpperCase()}${requestStatusKey.slice(1)}`, requestStatusKey)
     : text(t, "multisigCreateReady", "Ready to deploy");
   const requestAmount = hasActiveRequest
-    ? `${fromBaseUnits(asNum(activeRequest?.amount), requestAsset)} ${requestAsset}`
+    ? `${fromBaseUnits(String(activeRequest?.amount ?? "0"), requestAsset)} ${requestAsset}`
     : text(t, "multisigAmountPreview", "Amount to release");
   const requestRecipient = hasActiveRequest
     ? short(activeRequest?.recipient, 8, 6)
@@ -157,13 +165,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const thresholdSummary = threshold > 0
     ? `${threshold}/${Math.max(signerCount, threshold)} ${text(t, "multisigQuorumTitle", "threshold").toLowerCase()}`
     : text(t, "multisigQuorumTitle", "Threshold");
-  const displayedSigners = (signers.length > 0 ? signers : cleanSignerDrafts).slice(0, 4);
-  const gasBalance = fromBaseUnits(asNum(activeVault?.gasBalance), "GAS");
-  const neoBalance = fromBaseUnits(asNum(activeVault?.neoBalance), "NEO");
+  const displayedSigners = (signers.length > 0 ? signers : cleanSignerDrafts).slice(0, 6);
+  const gasBalance = fromBaseUnits(String(activeVault?.gasBalance ?? "0"), "GAS");
+  const neoBalance = fromBaseUnits(String(activeVault?.neoBalance ?? "0"), "NEO");
   const createSignersUnique = new Set(cleanSignerDrafts).size === cleanSignerDrafts.length;
   const createSignersReady = cleanSignerDrafts.length >= MIN_SIGNERS && cleanSignerDrafts.length <= MAX_SIGNERS && cleanSignerDrafts.every(isValidAddress) && createSignersUnique;
   const thresholdReady = Number.isInteger(thresholdDraftValue) && thresholdDraftValue > 0 && thresholdDraftValue <= cleanSignerDrafts.length;
-  const createReady = createSignersReady && thresholdReady;
+  const creatorIncluded = !connectedAddress || cleanSignerDrafts.some((signer) => ownerMatchesAddress(signer, connectedAddress));
+  const createReady = createSignersReady && thresholdReady && creatorIncluded;
+  const lowThresholdWarning = createReady && thresholdDraftValue === 1 && cleanSignerDrafts.length > 1;
   const createHint = cleanSignerDrafts.length < MIN_SIGNERS
     ? text(t, "multisigNeedSigners", "Add at least two signer addresses before creating a vault.")
     : cleanSignerDrafts.length > MAX_SIGNERS
@@ -174,7 +184,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
           ? text(t, "multisigDuplicateSigners", "Signer addresses must be distinct.")
           : !thresholdReady
             ? text(t, "multisigThresholdBlocked", "Threshold cannot be greater than the number of signers.")
-            : text(t, "multisigCreateReady", "Ready to deploy an on-chain custody vault.");
+            : !creatorIncluded
+              ? text(t, "multisigCreatorMustBeSigner", "The connected wallet must be included in the signer set.")
+            : lowThresholdWarning
+              ? text(t, "multisigLowThresholdWarning", "1-of-N allows any single member to release funds. Use it only when that is intentional.")
+              : text(t, "multisigCreateReady", "Ready to deploy an on-chain custody vault.");
   const createPayload = { signers: cleanSignerDrafts, threshold: thresholdDraftValue };
   const depositTargetVault = parsePositiveId(depositVaultId || vaultId);
   const depositReady = depositTargetVault > 0 && isValidAmount(depositAmount, depositAsset);
@@ -188,8 +202,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
     amount: proposalAmount.trim(),
     memo: proposalMemo.trim(),
   };
-  const canApprove = hasActiveRequest && requestId > 0 && connectedIsSigner && !connectedHasApproved;
-  const canCancel = hasActiveRequest && requestId > 0 && connectedIsSigner;
+  const canApprove = hasActiveRequest && requestIsPending && requestId > 0 && connectedIsSigner && !connectedHasApproved && approvalSource === "chain" && !writesBlocked;
+  const canCancel = hasActiveRequest && requestIsPending && requestId > 0 && connectedIsSigner && !writesBlocked;
   const activeRouteIndex = hasActiveRequest ? 2 : vaultId > 0 ? 1 : 0;
   const balanceFor = (asset: VaultAsset) => (asset === "NEO" ? neoBalance : gasBalance);
   const quickAmounts = (asset: VaultAsset) => (asset === "NEO" ? ["1", "5", "10"] : ["0.25", "1", "5"]);
@@ -203,6 +217,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
     if (vaultId <= 0) return;
     setDepositVaultId(String(vaultId));
     setProposalVaultId(String(vaultId));
+    setDrawerMode((current) => current === "create" ? "spend" : current);
   }, [vaultId]);
 
   const setSignerAt = (index: number, value: string) => {
@@ -242,7 +257,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           data-active={value === asset ? "true" : undefined}
           onClick={() => onChange(asset)}
         >
-          <Coins size={15} />
+          <CoinArt variant={asset === "GAS" ? "gas" : "neo"} size={26} decorative />
           <span>{asset}</span>
           <em>{asset === "GAS" ? text(t, "multisigGasAssetHint", "Fee token, 8 decimals") : text(t, "multisigNeoAssetHint", "Whole-token custody")}</em>
         </button>
@@ -263,7 +278,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
     return (
       <div className={`multisig-amount-console ${className}`} role="group" aria-label={label} data-asset={asset}>
         <div className="multisig-amount-console__asset">
-          <CoinArt size={30} variant={asset.toLowerCase() as "gas" | "neo"} decorative />
+          <CoinArt variant={asset === "GAS" ? "gas" : "neo"} size={30} decorative />
           <span>{asset}</span>
           <strong>{value || "0"}</strong>
         </div>
@@ -295,7 +310,21 @@ export default function PlayArea({ t, state, dispatch }: P) {
   };
 
   const scene = (
-    <div className="multisig-workbench" data-state={busy ? "active" : hasActiveRequest ? "request" : "idle"} data-approved={connectedHasApproved ? "true" : "false"}>
+    <div className="multisig-stage-stack">
+      {(pendingOperation || transactionNotice) && (
+        <section className="multisig-recovery" aria-live="polite">
+          <div>
+            <strong>{text(t, "multisigRecoveryTitle", "Transaction confirmation")}</strong>
+            <span>{transactionNotice || text(t, "multisigTransactionPending", "Broadcast received. Waiting for the exact event and readback before success.")}</span>
+          </div>
+          {pendingOperation && (
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("recoverPending")} disabled={busy}>
+              {isRecovering ? text(t, "multisigRecovering", "Checking…") : text(t, "multisigRecover", "Check transaction")}
+            </button>
+          )}
+        </section>
+      )}
+      <div className="multisig-workbench" data-state={busy ? "active" : hasActiveRequest ? "request" : "idle"} data-approved={connectedHasApproved ? "true" : "false"}>
       <section className="multisig-vault-card" aria-label={text(t, "multisigVaultTitle", "Custody vault")}>
         <div className="multisig-vault-card__copy">
           <span><ShieldCheck size={15} /> {text(t, "multisigVaultBadge", "Vault")}</span>
@@ -306,12 +335,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <em><KeyRound size={14} /> {thresholdSummary}</em>
           </div>
           <div className="multisig-signer-board" aria-label={text(t, "multisigSignerRoster", "Signer roster")}>
-            {displayedSigners.length > 0 ? displayedSigners.map((signer, index) => (
-              <span key={`${signer}-${index}`}>
-                <small>{index + 1}</small>
+            {displayedSigners.length > 0 ? displayedSigners.map((signer, index) => {
+              const approval = signerApprovals.find((entry) => ownerMatchesAddress(entry.signer, signer));
+              return (
+              <span key={`${signer}-${index}`} data-approved={approval?.approved ? "true" : undefined}>
+                <small>{approval?.approved ? <CheckCircle2 size={13} /> : index + 1}</small>
                 <strong>{short(signer)}</strong>
+                <em>{hasActiveRequest ? approval?.approved ? text(t, "multisigSignerApproved", "Approved") : text(t, "multisigSignerWaiting", "Waiting") : text(t, "multisigSignerMember", "Member")}</em>
               </span>
-            )) : (
+            );}) : (
               <span className="is-empty">
                 <small>0</small>
                 <strong>{text(t, "multisigNeedSigners", "Add at least two signer addresses")}</strong>
@@ -319,39 +351,39 @@ export default function PlayArea({ t, state, dispatch }: P) {
             )}
           </div>
         </div>
-        <div className="multisig-vault-card__art" aria-hidden="true">
-          <img className="multisig-vault-card__image" src={VAULT_STAGE_IMAGE} alt="" />
-          <div className="multisig-keyring">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <span key={i} className={i < Math.min(signerCount || 1, 3) ? "is-lit" : undefined}>
-                {i < Math.min(approvalCount || (connectedHasApproved ? 1 : 0), 3) ? <CheckCircle2 size={16} /> : <KeyRound size={16} />}
-              </span>
-            ))}
-          </div>
+        <div className="multisig-vault-card__art">
+          <img className="multisig-vault-card__image" src={VAULT_STAGE_IMAGE} alt={text(t, "multisigVaultStageAlt", "Bright shared custody vault with three signer keys")} />
         </div>
       </section>
 
       <section className="multisig-approval-card" aria-label={text(t, "multisigApprovalBoard", "Approval board")}>
-        <div className="multisig-approval-card__head">
-          <span><FileSignature size={15} /> {requestLabel}</span>
-          <strong>{requestStatus}</strong>
-        </div>
-        <div className="multisig-approval-meter" style={{ "--approval": `${approvalPercent}%` } as CSSProperties}>
-          <div className="multisig-approval-meter__label">
-            <span>{text(t, "approvalProgress", "Approval progress", { count: approvalCount, total: approvalTotal })}</span>
-            <strong>{approvalCount}/{approvalTotal}</strong>
+        <img className="multisig-approval-card__image" src={PROPOSAL_CARD_IMAGE} alt={text(t, "multisigProposalStageAlt", "Bright proposal card showing a payment route and approval seals")} />
+        <div className="multisig-approval-card__body">
+          <div className="multisig-approval-card__head">
+            <span><FileSignature size={15} /> {requestLabel}</span>
+            <strong>{requestStatus}</strong>
           </div>
-          <div className="multisig-approval-meter__track">
-            <div className="multisig-approval-meter__bar" />
+          <div className="multisig-request-summary">
+            <strong>{requestAmount}</strong>
+            <span>{requestRecipient}</span>
           </div>
-        </div>
-        <div className="multisig-route">
-          {[text(t, "multisigRouteCreate", "Create vault"), text(t, "multisigRouteSign", "Propose spend"), text(t, "multisigRouteBroadcast", "Approve & release")].map((label, index) => (
-            <span key={label} className={index === activeRouteIndex ? "is-current" : undefined}>
-              {index < activeRouteIndex ? <CheckCircle2 size={14} /> : <CircleDashed size={14} />}
-              {label}
-            </span>
-          ))}
+          <div className="multisig-approval-meter" style={{ "--approval": `${approvalPercent}%` } as CSSProperties}>
+            <div className="multisig-approval-meter__label">
+              <span>{text(t, "approvalProgress", "Approval progress", { count: approvalCount, total: approvalTotal })}</span>
+              <strong>{approvalCount}/{approvalTotal}</strong>
+            </div>
+            <div className="multisig-approval-meter__track">
+              <div className="multisig-approval-meter__bar" />
+            </div>
+          </div>
+          <div className="multisig-route">
+            {[text(t, "multisigRouteCreate", "Create vault"), text(t, "multisigRouteSign", "Propose spend"), text(t, "multisigRouteBroadcast", "Approve & release")].map((label, index) => (
+              <span key={label} className={index === activeRouteIndex ? "is-current" : undefined}>
+                {index < activeRouteIndex ? <CheckCircle2 size={14} /> : <CircleDashed size={14} />}
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -362,9 +394,19 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <em>{connectedAddress ? `${text(t, "multisigConnectedAs", "Connected as")} ${short(connectedAddress, 8, 6)}` : text(t, "multisigNotConnected", "Connect a wallet to create or sign")}</em>
         </div>
         <div className="multisig-balance-strip" aria-label={text(t, "multisigBalanceTitle", "Vault balance")}>
-          <span><strong>{gasBalance}</strong><small>GAS</small></span>
-          <span><strong>{neoBalance}</strong><small>NEO</small></span>
+          <span><CoinArt variant="gas" size={26} decorative /><strong>{vaultSource === "chain" ? gasBalance : "—"}</strong><small>GAS</small></span>
+          <span><CoinArt variant="neo" size={26} decorative /><strong>{vaultSource === "chain" ? neoBalance : "—"}</strong><small>NEO</small></span>
         </div>
+        <p className="multisig-custody-boundary">
+          <ShieldCheck size={14} />
+          <span>{text(t, "multisigCustodyBoundary", "This is a contract custody vault, not a native Neo multisig address. Funds share the canonical contract address and are separated by vault ID.")}</span>
+          {contractHash && <code>{short(contractHash, 8, 6)}</code>}
+        </p>
+        {(vaultSource === "failed" || requestSource === "failed" || approvalSource === "failed") && (
+          <p className="multisig-source-error" role="alert">
+            {text(t, "multisigDataUnavailable", "Some chain state could not be verified. Writes stay disabled until the relevant reads recover.")}
+          </p>
+        )}
         {unfundedNotice && (
           <p className="multisig-workbench__notice" role="alert">
             {text(t, "multisigUnfundedNotice", "Auto-cancelled at threshold: the vault was underfunded.", {
@@ -375,15 +417,16 @@ export default function PlayArea({ t, state, dispatch }: P) {
           </p>
         )}
       </section>
+      </div>
     </div>
   );
 
   const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; icon: ReactNode }> = [
     { mode: "create", label: text(t, "buttonCreateVault", "Create Vault"), value: createReady ? text(t, "multisigCreateReady", "Ready") : `${cleanSignerDrafts.length}/${MIN_SIGNERS}`, icon: <UsersRound size={16} /> },
-    { mode: "fund", label: text(t, "buttonDeposit", "Deposit"), value: vaultId ? vaultLabel : text(t, "multisigVaultIdLabel", "Vault ID"), icon: <WalletCards size={16} /> },
+    { mode: "fund", label: text(t, "buttonDeposit", "Deposit"), value: vaultSource === "chain" && vaultId ? vaultLabel : text(t, "multisigVaultIdLabel", "Vault ID"), icon: <WalletCards size={16} /> },
     { mode: "spend", label: text(t, "buttonPropose", "Propose Spend"), value: proposalReady ? `${proposalAmount} ${proposalAsset}` : text(t, "multisigProposalPreview", "Proposal docket"), icon: <Send size={16} /> },
     { mode: "load", label: text(t, "multisigLoadTitle", "Load vault or request"), value: requestId ? requestLabel : text(t, "loadButton", "Load"), icon: <Search size={16} /> },
-    { mode: "history", label: text(t, "recentTitle", "Recent Activity"), value: String(history.length), icon: <History size={16} /> },
+    { mode: "history", label: text(t, "recentTitle", "Recent Activity"), value: historySource === "chain" || historySource === "partial" ? String(history.length) : "—", icon: <History size={16} /> },
   ];
   const activeDrawer = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
 
@@ -425,10 +468,10 @@ export default function PlayArea({ t, state, dispatch }: P) {
           inputMode="numeric"
           mono
         />
-        <OpenUiNotice type={createReady ? "success" : "warning"} title={createHint}>
+        <OpenUiNotice type={createReady && !lowThresholdWarning ? "success" : "warning"} title={createHint}>
           <span>{text(t, "multisigVaultCopy", "Enter 2-16 signer addresses and a threshold to deploy a shared custody vault on-chain.")}</span>
         </OpenUiNotice>
-        <button type="button" className="multisig-drawer-action" disabled={busy || !createReady} onClick={() => void dispatch("createVault", createPayload)}>
+        <button type="button" className="multisig-drawer-action" disabled={busy || writesBlocked || !createReady} onClick={() => void dispatch("createVault", createPayload)}>
           <ShieldCheck size={16} />
           <span>{isCreatingVault ? text(t, "buttonCreateVault", "Create Vault") : text(t, "buttonCreateVault", "Create Vault")}</span>
         </button>
@@ -465,7 +508,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           text(t, "multisigDepositAmountHint", "Paid from the connected wallet into this vault."),
           "multisig-deposit-amount",
         )}
-        <button type="button" className="multisig-drawer-action" disabled={busy || !depositReady} onClick={() => void dispatch("deposit", depositPayload)}>
+        <button type="button" className="multisig-drawer-action" disabled={busy || writesBlocked || !depositReady} onClick={() => void dispatch("deposit", depositPayload)}>
           <WalletCards size={16} />
           <span>{text(t, "buttonDeposit", "Deposit")}</span>
         </button>
@@ -528,7 +571,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             placeholder={text(t, "memoPlaceholder", "Short note for signers")}
           />
           <OpenUiNotice type="info" title={text(t, "multisigPooledBalanceNote", "Vault balance is shared across all pending requests.")} />
-          <button type="button" className="multisig-drawer-action" disabled={busy || !proposalReady} onClick={() => void dispatch("proposeRequest", proposalPayload)}>
+          <button type="button" className="multisig-drawer-action" disabled={busy || writesBlocked || !proposalReady} onClick={() => void dispatch("proposeRequest", proposalPayload)}>
             <Send size={16} />
             <span>{text(t, "buttonPropose", "Propose Spend")}</span>
           </button>
@@ -595,14 +638,13 @@ export default function PlayArea({ t, state, dispatch }: P) {
     ),
   };
 
-  const secondaryActions = hasActiveRequest
+  const secondaryActions = hasActiveRequest && requestIsPending
     ? [
-        { label: isCancelling ? text(t, "buttonCancelling", "Cancelling...") : text(t, "buttonCancel", "Cancel"), onClick: () => void dispatch("cancelRequest", requestId), loading: isCancelling, disabled: !canCancel || busy, hint: canCancel ? undefined : text(t, "multisigNotSignerHint", "Only the vault's signer addresses can approve or cancel this request.") },
+        { label: isCancelling ? text(t, "buttonCancelling", "Cancelling...") : text(t, "buttonCancel", "Cancel"), onClick: () => void dispatch("cancelRequest", requestId), loading: isCancelling, disabled: !canCancel || busy || writesBlocked, hint: canCancel ? undefined : text(t, "multisigNotSignerHint", "Only the vault's signer addresses can approve or cancel this request.") },
       ]
-    : [
-        { label: text(t, "buttonDeposit", "Deposit"), onClick: () => void dispatch("deposit", depositPayload), loading: isDepositing, disabled: !depositReady || busy, hint: depositReady ? undefined : text(t, "toastInvalidAmount", "Invalid amount.") },
-        { label: text(t, "buttonPropose", "Propose Spend"), onClick: () => void dispatch("proposeRequest", proposalPayload), loading: isProposing, disabled: !proposalReady || busy, hint: proposalReady ? undefined : text(t, "toastInvalidAddress", "Invalid address.") },
-      ];
+    : vaultId > 0 ? [
+        { label: text(t, "buttonDeposit", "Deposit"), onClick: () => void dispatch("deposit", depositPayload), loading: isDepositing, disabled: !depositReady || busy || writesBlocked, hint: depositReady ? undefined : text(t, "toastInvalidAmount", "Invalid amount.") },
+      ] : [];
 
   return (
     <OpenUiProvider>
@@ -615,19 +657,32 @@ export default function PlayArea({ t, state, dispatch }: P) {
             subtitle: hasActiveRequest
               ? `${requestAmount} · ${requestRecipient}`
               : text(t, "multisigHeroSubtitle", "Deposit GAS or NEO into a shared vault, propose a spend, and release funds once the approval threshold is met."),
-            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {vaultCount} {text(t, "sidebarTotalTxs", "Vaults").toLowerCase()}</span>,
+            badges: (
+              <span className="mx2-badge" data-tone="accent">
+                <span className="mx2-badge__dot" />
+                {vaultId ? `${threshold}/${signers.length} ${text(t, "multisigApprovalPolicy", "approval policy")}` : text(t, "multisigContractCustody", "Contract custody")}
+              </span>
+            ),
           }}
           scene={scene}
-          score={[{ label: text(t, "sidebarTotalTxs", "Vaults"), value: String(vaultCount), accent: true }, { label: text(t, "statPending", "Pending"), value: String(pendingCount) }, { label: text(t, "statCompleted", "Executed"), value: String(completedCount) }]}
+          score={vaultId && vaultSource === "chain" ? [
+            { label: text(t, "multisigQuorumTitle", "Threshold"), value: `${threshold}/${signers.length}`, accent: true },
+            { label: "GAS", value: gasBalance },
+            { label: "NEO", value: neoBalance },
+          ] : []}
           actions={{
-            primary: hasActiveRequest
-              ? { label: isApproving ? text(t, "buttonApproving", "Approving...") : text(t, "buttonApprove", "Approve"), onClick: () => void dispatch("approveRequest", requestId), loading: isApproving, disabled: !canApprove || busy, hint: connectedHasApproved ? text(t, "multisigAlreadyApprovedHint", "You have already approved this request.") : !connectedIsSigner ? text(t, "multisigNotSignerHint", "Only the vault's signer addresses can approve or cancel this request.") : undefined }
-              : { label: text(t, "buttonCreateVault", "Create Vault"), onClick: () => void dispatch("createVault", createPayload), loading: isCreatingVault, disabled: !createReady || busy, hint: createHint },
+            primary: pendingOperation
+              ? { label: isRecovering ? text(t, "multisigRecovering", "Checking…") : text(t, "multisigRecover", "Check transaction"), onClick: () => void dispatch("recoverPending"), loading: isRecovering, disabled: busy }
+              : hasActiveRequest && requestIsPending
+              ? { label: isApproving ? text(t, "buttonApproving", "Approving...") : text(t, "buttonApprove", "Approve"), onClick: () => void dispatch("approveRequest", requestId), loading: isApproving, disabled: !canApprove || busy, hint: approvalSource === "failed" ? text(t, "multisigApprovalUnavailable", "Approval state is unavailable; retry the request load before signing.") : connectedHasApproved ? text(t, "multisigAlreadyApprovedHint", "You have already approved this request.") : !connectedIsSigner ? text(t, "multisigNotSignerHint", "Only the vault's signer addresses can approve or cancel this request.") : undefined }
+              : vaultId > 0
+                ? { label: text(t, "buttonPropose", "Propose Spend"), onClick: () => void dispatch("proposeRequest", proposalPayload), loading: isProposing, disabled: !proposalReady || busy, hint: proposalReady ? undefined : text(t, "multisigOpenSpendTools", "Open Vault tools to prepare recipient and amount.") }
+                : { label: text(t, "buttonCreateVault", "Create Vault"), onClick: () => void dispatch("createVault", createPayload), loading: isCreatingVault, disabled: !createReady || busy, hint: createHint },
             secondary: secondaryActions,
           }}
-          drawerToggleLabel={text(t, "multisigLoadTitle", "Vault tools")}
+          drawerToggleLabel={text(t, "multisigVaultTools", "Vault tools")}
           drawer={{
-            title: text(t, "multisigLoadTitle", "Vault tools"),
+            title: text(t, "multisigVaultTools", "Vault tools"),
             children: (
               <div className="multisig-drawer">
                 <OpenUiSegmented

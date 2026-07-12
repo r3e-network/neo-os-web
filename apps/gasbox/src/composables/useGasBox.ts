@@ -20,14 +20,21 @@
  *   1. commit(machineId, player) -> betId   (deposit-then-commit, one tx)
  *      Consumes the machine price from prepaid play credit and RESERVES the
  *      machine's worst-case prize from its pool. The bet is escrowed and
- *      irrevocable. Emits Committed(betId, machineId, player, commitIndex).
+ *      irrevocable. Emits Committed(betId, machineId, player, wager, commitIndex).
  *   2. settle(betId) -> itemIndex            (a STRICTLY LATER block, permissionless)
  *      Reverts unless Ledger.CurrentIndex > commitIndex, so it can only run from
  *      the next block onward. Draws the weighted item from that block's
- *      Runtime.GetRandom, pays it, and emits
+ *      a fixed commitIndex+1 block beacon, pays it, and emits
  *      Settled(betId, machineId, player, itemIndex, prize). Safe to retry.
  *
- * The prize is real — drawn and paid ON-CHAIN, no oracle.
+ * The prize is real — drawn and paid ON-CHAIN, no oracle. The fixed
+ * commitIndex+1 beacon closes abort-and-retry grinding, but it is intentionally
+ * described as low-stakes commit/reveal rather than VRF-grade randomness.
+ *
+ * DEPLOYMENT GATE: the hash currently present in both app manifest bindings is
+ * an older settle-block Runtime.GetRandom build. It remains readable so users
+ * can inspect and recover funds, but new commits/publishing/top-ups/activation
+ * are rejected until a fixed-beacon deployment replaces that binding.
  *
  * Contract interaction model (verified against the deployed v2 ABI):
  *
@@ -38,8 +45,9 @@
  *                                            poolBalance,revenue,active}
  *     getItem(machineId,index)        -> Map{index,name,weight,amount}
  *     playCreditOf(player)            -> Integer (prepaid GAS credit in base units)
- *     getPendingBet(betId)            -> Map{machineId,player,commitIndex,settled,
- *                                            itemIndex,prize} (empty once cleared)
+ *     getPendingBet(betId)            -> Map{betId,machineId,player,wager,reserved,
+ *                                            commitIndex,settled}
+ *     withdraw(account)               -> all unused prepaid GAS credit
  *
  *   PLAYER MUTATIONS (app.chain.invoke / app.funds.prepayAndCall):
  *     1. PREPAY play credit — a GAS transfer to the contract with the memo
@@ -68,6 +76,7 @@
  *         { scriptHash: prizeAssetHash }
  *     setActive(creator, machineId, active)        — activates only if pool >= maxPrize
  *     withdrawRevenue(creator, machineId, to)
+ *     withdrawPool(creator, machineId, to, amount) — FREE pool only
  *
  * AMOUNT CONVENTION: the contract takes BASE UNITS. GAS is 1e8 base units per
  * GAS; NEO is indivisible (the integer token count, no scaling). The play price
@@ -91,6 +100,7 @@ import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Machine, MachineItem } from "../types";
+import { assessGasBoxDeployment } from "../deployment";
 
 // ============================================================================
 // Constants
@@ -137,6 +147,20 @@ const isAlreadySettledRevert = (message: string): boolean =>
 
 /** Player-facing phase of a two-step play (commit → reveal → done). */
 export type BetPhase = "idle" | "committing" | "committed" | "settling" | "settled";
+export type CatalogStatus = "idle" | "loading" | "ready" | "empty" | "error";
+export type RuntimeStatus = "idle" | "checking" | "ready" | "incompatible" | "error";
+export type WalletStatus = "disconnected" | "loading" | "ready" | "error";
+
+interface PendingBetJournal {
+  version: 1;
+  network: string;
+  contractHash: string;
+  playerHash: string;
+  machineId: string;
+  betId: string | null;
+  commitTxid: string;
+  committedAt: number;
+}
 
 // ============================================================================
 // Types
@@ -225,6 +249,11 @@ const asNumber = (value: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const isIntegerLike = (value: unknown): boolean =>
+  typeof value === "bigint" ||
+  (typeof value === "number" && Number.isFinite(value) && Number.isInteger(value)) ||
+  (typeof value === "string" && /^-?\d+$/.test(value.trim()));
+
 /** Build the icon hint for an item from its rarity / prize asset. */
 const iconForItem = (rarity: string, asset: PrizeAsset): string => {
   const r = rarity.toUpperCase();
@@ -251,6 +280,19 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   const machines = createObservable<Machine[]>([]);
   const selectedMachine = createObservable<Machine | null>(null);
   const isLoadingMachines = createObservable(false);
+  const catalogStatus = createObservable<CatalogStatus>("idle");
+  const catalogError = createObservable<string | null>(null);
+
+  // ── Runtime / Wallet Evidence ─────────────────────────────────────
+  const runtimeStatus = createObservable<RuntimeStatus>("idle");
+  const runtimeNetwork = createObservable("");
+  const runtimeContract = createObservable("");
+  const runtimeError = createObservable<string | null>(null);
+  const pendingBetCount = createObservable("0");
+  const walletStatus = createObservable<WalletStatus>("disconnected");
+  const walletError = createObservable<string | null>(null);
+  const walletGasBase = createObservable(0n);
+  const walletNeoBase = createObservable(0n);
 
   // ── Play State ─────────────────────────────────────────────────────
   // isPlaying is true for the WHOLE two-step play (commit through settle) so the
@@ -261,8 +303,8 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   const playError = createObservable<string | null>(null);
   const showFireworks = createObservable(false);
   // Prepaid play credit (base units, GAS) held on the contract under the player.
-  // Surfaced so a stranded prepay (aborted commit) is visible and auto-consumed
-  // by the next play — the contract has no play-credit-withdraw method.
+  // Surfaced so a stranded prepay is visible, auto-consumed by the next play,
+  // or explicitly reclaimable through withdraw(account).
   const playCreditBase = createObservable(0n);
 
   // ── Commit/Reveal (two-step) State ─────────────────────────────────
@@ -290,12 +332,86 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   // ── Publish State ──────────────────────────────────────────────────
   const isPublishing = createObservable(false);
   const studioOpen = createObservable(false);
+  const isWithdrawingCredit = createObservable(false);
+  const isWithdrawingPool = createObservable(false);
 
   // ── Address State ──────────────────────────────────────────────────
   const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
+  };
+
+  const normalizeBinding = (value: string): string =>
+    String(value ?? "").trim().toLowerCase();
+
+  const pendingJournalKey = (
+    network: string,
+    contractHash: string,
+    playerHash: string,
+  ): string =>
+    `pending-bet:v1:${normalizeBinding(network)}:${normalizeBinding(contractHash)}:${normalizeBinding(playerHash)}`;
+
+  const currentPendingBinding = (): {
+    network: string;
+    contractHash: string;
+    playerHash: string;
+  } | null => {
+    const playerAddr = address.get();
+    const playerHash = playerAddr ? addressToScriptHash(playerAddr) : "";
+    const network = runtimeNetwork.get();
+    const contractHash = runtimeContract.get() || app.chain.contractAddress.get() || "";
+    if (!network || !contractHash || !playerHash) return null;
+    return { network, contractHash, playerHash };
+  };
+
+  const persistPendingJournal = (
+    machineId: string,
+    betId: string | null,
+    commitTxid: string,
+  ): void => {
+    const binding = currentPendingBinding();
+    if (!binding) return;
+    const record: PendingBetJournal = {
+      version: 1,
+      ...binding,
+      machineId,
+      betId,
+      commitTxid,
+      committedAt: Date.now(),
+    };
+    app.storage.local.set(
+      pendingJournalKey(binding.network, binding.contractHash, binding.playerHash),
+      record,
+    );
+  };
+
+  const readPendingJournal = (): PendingBetJournal | null => {
+    const binding = currentPendingBinding();
+    if (!binding) return null;
+    const key = pendingJournalKey(binding.network, binding.contractHash, binding.playerHash);
+    const record = app.storage.local.get<PendingBetJournal | null>(key, null);
+    const valid =
+      record?.version === 1 &&
+      normalizeBinding(record.network) === normalizeBinding(binding.network) &&
+      normalizeBinding(record.contractHash) === normalizeBinding(binding.contractHash) &&
+      normalizeBinding(record.playerHash) === normalizeBinding(binding.playerHash) &&
+      /^\d+$/.test(record.machineId) &&
+      (record.betId === null || /^\d+$/.test(record.betId)) &&
+      Number.isFinite(record.committedAt) && record.committedAt > 0;
+    if (!valid) {
+      app.storage.local.delete(key);
+      return null;
+    }
+    return record;
+  };
+
+  const clearPendingJournal = (): void => {
+    const binding = currentPendingBinding();
+    if (!binding) return;
+    app.storage.local.delete(
+      pendingJournalKey(binding.network, binding.contractHash, binding.playerHash),
+    );
   };
 
   // ── Helpers ────────────────────────────────────────────────────────
@@ -321,11 +437,13 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     asset: PrizeAsset,
     totalWeight: number,
   ): MachineItem => {
+    const index = asNumber(raw.index);
     const weight = asNumber(raw.weight);
     const amountBase = parseBigInt(raw.amount);
     const share = totalWeight > 0 ? Number(((weight / totalWeight) * 100).toFixed(2)) : 0;
     const rarity = rarityFromShare(share);
     return {
+      index,
       name: String(raw.name ?? ""),
       probability: weight,
       displayProbability: share,
@@ -334,6 +452,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       assetType: 1,
       assetHash: assetHash(asset),
       amountRaw: Number(amountBase),
+      amountBaseUnits: amountBase.toString(),
       amountDisplay: `${formatPrizeAmount(amountBase, asset)} ${asset}`,
       tokenId: "",
       stockRaw: 0,
@@ -363,13 +482,21 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     const totalWeight = asNumber(record.totalWeight);
     const maxPrize = parseBigInt(record.maxPrize);
     const poolBalance = parseBigInt(record.poolBalance);
+    const reservedPool = parseBigInt(record.reservedPool);
+    const reportedFreePool = parseBigInt(record.freePool);
+    const freePool =
+      record.freePool !== undefined
+        ? reportedFreePool
+        : poolBalance >= reservedPool
+          ? poolBalance - reservedPool
+          : 0n;
     const revenue = parseBigInt(record.revenue);
     const active = Boolean(record.active);
 
-    // Read every item (indices 0..itemCount-1). Best-effort: a single failed
+    // V2 stores every item at indices 1..itemCount. Best-effort: a single failed
     // read drops that item rather than failing the whole machine.
     const itemPromises: Promise<MachineItem | null>[] = [];
-    for (let index = 0; index < itemCount; index += 1) {
+    for (let index = 1; index <= itemCount; index += 1) {
       itemPromises.push(
         (async () => {
           try {
@@ -396,11 +523,15 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     const items = (await Promise.all(itemPromises)).filter(
       (item): item is MachineItem => item !== null,
     );
+    if (items.length !== itemCount) {
+      throw new Error(t("gasboxItemReadFailed"));
+    }
 
     const availableItems = items.filter((item) => item.available);
     const availableWeight = availableItems.reduce((sum, item) => sum + item.probability, 0);
-    // Pool covers the max prize ⇒ the machine can pay any draw.
-    const poolReady = maxPrize > 0n ? poolBalance >= maxPrize : poolBalance > 0n;
+    // Only the FREE pool can accept another commit. Reserved funds already
+    // belong to unsettled pulls and must never arm the next play.
+    const poolReady = maxPrize > 0n ? freePool >= maxPrize : freePool > 0n;
     const inventoryReady = availableWeight > 0 && poolReady;
 
     const firstAvailable = availableItems[0];
@@ -426,6 +557,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       owner: formatAddress(creator),
       ownerHash: creator,
       priceRaw: Number(priceBase),
+      priceBaseUnits: priceBase.toString(),
       price: formatGas(priceBase, 4),
       itemCount: items.length,
       totalWeight,
@@ -435,6 +567,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       // the card labels it "est. plays". 0 when price unknown.
       plays: priceBase > 0n ? Number(revenue / priceBase) : 0,
       revenueRaw: Number(revenue),
+      revenueBaseUnits: revenue.toString(),
       revenue: formatGas(revenue, 4),
       sales: 0,
       salesVolume: "0",
@@ -455,8 +588,14 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       // GasBox-specific on-chain economics.
       prizeAsset: asset,
       poolBalanceRaw: Number(poolBalance),
+      poolBalanceBaseUnits: poolBalance.toString(),
       poolBalance: formatPrizeAmount(poolBalance, asset),
+      reservedPool: formatPrizeAmount(reservedPool, asset),
+      reservedPoolBaseUnits: reservedPool.toString(),
+      freePool: formatPrizeAmount(freePool, asset),
+      freePoolBaseUnits: freePool.toString(),
       maxPrizeRaw: Number(maxPrize),
+      maxPrizeBaseUnits: maxPrize.toString(),
       maxPrize: formatPrizeAmount(maxPrize, asset),
       poolReady,
     };
@@ -472,6 +611,8 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   const loadMachines = async () => {
     if (isLoadingMachines.get()) return;
     isLoadingMachines.set(true);
+    catalogStatus.set("loading");
+    catalogError.set(null);
     try {
       const lastRaw = await app.chain.readRaw("lastMachineId", []);
       const last = Math.min(asNumber(lastRaw), MAX_MACHINES);
@@ -479,11 +620,13 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       const ids: number[] = [];
       for (let id = 1; id <= last; id += 1) ids.push(id);
 
+      let failedMachineReads = 0;
       const results = await Promise.all(
         ids.map(async (id) => {
           try {
             return await readMachine(id);
           } catch (e) {
+            failedMachineReads += 1;
             console.warn(
               "[useGasBox] getMachine failed for",
               id,
@@ -495,10 +638,20 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
         }),
       );
 
+      if (ids.length > 0 && failedMachineReads === ids.length) {
+        throw new Error(t("gasboxCatalogReadFailed"));
+      }
+
       const collected = results
         .filter((m): m is Machine => m !== null)
         .sort((a, b) => b.createdAt - a.createdAt);
       machines.set(collected);
+      if (failedMachineReads > 0) {
+        catalogError.set(t("gasboxCatalogPartial"));
+        catalogStatus.set("error");
+      } else {
+        catalogStatus.set(collected.length > 0 ? "ready" : "empty");
+      }
 
       // Sync the selected machine with the reloaded data.
       const current = selectedMachine.get();
@@ -506,12 +659,97 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
         selectedMachine.set(collected.find((m) => m.id === current.id) || null);
       }
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
       console.warn(
         "[useGasBox] loadMachines failed:",
-        e instanceof Error ? e.message : String(e),
+        message,
       );
+      catalogError.set(message);
+      catalogStatus.set("error");
     } finally {
       isLoadingMachines.set(false);
+    }
+  };
+
+  /** Verify that the selected network exposes the expected GasBox V2 reads. */
+  const checkRuntime = async (): Promise<RuntimeStatus> => {
+    runtimeStatus.set("checking");
+    runtimeError.set(null);
+    const contractHash = String(app.chain.contractAddress.get() ?? "").trim();
+    runtimeContract.set(contractHash);
+    if (!/^0x[0-9a-f]{40}$/i.test(contractHash)) {
+      runtimeStatus.set("error");
+      runtimeError.set(t("gasboxContractMissing"));
+      return "error";
+    }
+    try {
+      const network = String(await app.chain.detectNetwork()).trim() || "unknown";
+      runtimeNetwork.set(network);
+      const networkKey = network.toLowerCase().replace(/[\s_]+/g, "-");
+      const supportedNetwork =
+        networkKey === "mainnet" ||
+        networkKey === "testnet" ||
+        /^neo-?n3-?(?:mainnet|testnet)$/.test(networkKey) ||
+        /^n3-?(?:mainnet|testnet)$/.test(networkKey);
+      if (!supportedNetwork) {
+        throw new Error(t("gasboxUnsupportedNetwork"));
+      }
+      const [owner, lastMachine, lastBet, pending] = await Promise.all([
+        app.chain.readRaw("getOwner", []),
+        app.chain.readRaw("lastMachineId", []),
+        app.chain.readRaw("lastBetId", []),
+        app.chain.readRaw("pendingBetCount", []),
+      ]);
+      if (!/^(0x)?[0-9a-f]{40}$/i.test(String(owner ?? "").trim())) {
+        throw new Error(t("gasboxContractIdentityMismatch"));
+      }
+      // Parsing these reads is the functional ABI check; zero is valid on a new
+      // deployment, while a missing/faulting operation is not.
+      if (![lastMachine, lastBet, pending].every(isIntegerLike)) {
+        throw new Error(t("gasboxContractIdentityMismatch"));
+      }
+      pendingBetCount.set(parseBigInt(pending).toString());
+      const compatibility = assessGasBoxDeployment(contractHash);
+      if (!compatibility.writeCompatible) {
+        runtimeError.set(t("gasboxDeploymentIncompatible"));
+        runtimeStatus.set("incompatible");
+        return "incompatible";
+      }
+      runtimeStatus.set("ready");
+      return "ready";
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      runtimeError.set(message);
+      runtimeStatus.set("error");
+      return "error";
+    }
+  };
+
+  /** Read exact connected-wallet NEO/GAS balances without floating-point math. */
+  const loadWalletBalances = async (): Promise<void> => {
+    const owner = address.get();
+    if (!owner) {
+      walletGasBase.set(0n);
+      walletNeoBase.set(0n);
+      walletError.set(null);
+      walletStatus.set("disconnected");
+      return;
+    }
+    walletStatus.set("loading");
+    walletError.set(null);
+    try {
+      const [gas, neo] = await Promise.all([
+        app.wallet.raw("GAS", owner),
+        app.wallet.raw("NEO", owner),
+      ]);
+      walletGasBase.set(gas);
+      walletNeoBase.set(neo);
+      walletStatus.set("ready");
+    } catch (e) {
+      walletGasBase.set(0n);
+      walletNeoBase.set(0n);
+      walletError.set(e instanceof Error ? e.message : String(e));
+      walletStatus.set("error");
     }
   };
 
@@ -537,7 +775,24 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
 
   const loadAll = async () => {
     setAddress(app.chain.address.get() ?? null);
-    await Promise.all([loadMachines(), loadPlayCredit()]);
+    const checkedRuntime = await checkRuntime();
+    const contractReadable = checkedRuntime === "ready" || checkedRuntime === "incompatible";
+    await Promise.all([
+      contractReadable ? loadMachines() : Promise.resolve(),
+      contractReadable ? loadPlayCredit() : Promise.resolve(),
+      loadWalletBalances(),
+    ]);
+    if (checkedRuntime === "error") {
+      catalogStatus.set("error");
+      catalogError.set(runtimeError.get());
+    }
+    if (contractReadable) await restorePendingBet();
+  };
+
+  const connectWallet = async (): Promise<void> => {
+    const connected = await app.wallet.ensure();
+    setAddress(connected || app.chain.address.get() || null);
+    await loadAll();
   };
 
   // ── Machine Selection ──────────────────────────────────────────────
@@ -553,6 +808,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   // ── Studio (publish) panel routing ─────────────────────────────────
 
   const openStudio = () => {
+    if (runtimeStatus.get() !== "ready") return;
     studioOpen.set(true);
   };
 
@@ -564,17 +820,18 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
 
   /**
    * Read getPendingBet(betId) into a normalized record. Returns null when the
-   * bet is unknown / already cleared (the contract yields an empty map with no
-   * machineId once a bet settles and is purged).
+   * bet is unknown. Settled V2 records remain readable but intentionally do not
+   * contain the outcome item/prize; Settled events carry those fields.
    */
   const readPendingBet = async (
     betId: string,
   ): Promise<{
     machineId: string;
+    player: string;
+    wager: bigint;
+    reserved: bigint;
     commitIndex: bigint;
     settled: boolean;
-    itemIndex: number;
-    prize: bigint;
   } | null> => {
     try {
       const raw = await app.chain.readRaw("getPendingBet", [
@@ -582,14 +839,15 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       ]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
       const record = raw as Record<string, unknown>;
-      // A purged / unknown bet yields an empty map (no machineId key).
+      // An unknown/faulting bet yields no usable machine id.
       if (record.machineId === undefined && record.machine === undefined) return null;
       return {
         machineId: String(record.machineId ?? record.machine ?? ""),
+        player: String(record.player ?? ""),
+        wager: parseBigInt(record.wager ?? 0),
+        reserved: parseBigInt(record.reserved ?? 0),
         commitIndex: parseBigInt(record.commitIndex ?? record.commitBlock ?? 0),
         settled: Boolean(record.settled),
-        itemIndex: Number(parseBigInt(record.itemIndex ?? -1)),
-        prize: parseBigInt(record.prize ?? record.prizeAmount ?? 0),
       };
     } catch {
       return null;
@@ -613,7 +871,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       const events = await app.events.listAll("Committed");
       // Newest first — pick the latest Committed for this player that is still
       // pending on chain. betId is slot 0; player is slot 2 for gacha's
-      // Committed(betId, machineId, player, commitIndex), but some indexers omit
+      // Committed(betId, machineId, player, wager, commitIndex), but some indexers omit
       // the machineId, so match the player defensively across slots 1 and 2.
       const mine = events
         .filter((ev) => {
@@ -654,11 +912,11 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     const asset: PrizeAsset = machine?.prizeAsset ?? "GAS";
 
     let wonItem: MachineItem | null =
-      machine && Number.isInteger(itemIndex) && itemIndex >= 0
-        ? machine.items[itemIndex] ?? null
+      machine && Number.isInteger(itemIndex) && itemIndex >= 1
+        ? machine.items.find((item) => item.index === itemIndex) ?? null
         : null;
 
-    if (!wonItem && Number.isInteger(itemIndex) && itemIndex >= 0) {
+    if (!wonItem && Number.isInteger(itemIndex) && itemIndex >= 1) {
       try {
         const itemRaw = await app.chain.readRaw("getItem", [
           { type: "Integer", value: String(Math.trunc(Number(machineId))) },
@@ -681,6 +939,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       resultItem.set({
         ...wonItem,
         amountRaw: Number(prizeAmount),
+        amountBaseUnits: prizeAmount.toString(),
         amountDisplay:
           prizeAmount > 0n
             ? `${formatPrizeAmount(prizeAmount, asset)} ${asset}`
@@ -688,6 +947,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       });
     } else {
       resultItem.set({
+        index: itemIndex,
         name: t("unknownPrize"),
         probability: 0,
         displayProbability: 0,
@@ -695,6 +955,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
         assetType: 1,
         assetHash: assetHash(asset),
         amountRaw: Number(prizeAmount),
+        amountBaseUnits: prizeAmount.toString(),
         amountDisplay:
           prizeAmount > 0n ? `${formatPrizeAmount(prizeAmount, asset)} ${asset}` : "0",
         tokenId: "",
@@ -710,21 +971,17 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     showResult.set(true);
     showFireworks.set(true);
     betPhase.set("settled");
-    await Promise.all([loadMachines(), loadPlayCredit()]);
+    clearPendingJournal();
+    await Promise.all([loadMachines(), loadPlayCredit(), loadWalletBalances()]);
   };
 
   /**
    * Recover and show the recorded outcome of an already-settled bet (the retry
-   * path raced a prior settle). Reads getPendingBet first; if it's already
-   * purged, the most recent Settled event for this betId is the source of truth.
+   * path raced a prior settle). The Settled event is the source of truth because
+   * V2 pending records retain only bet accounting, not itemIndex/prize.
    * Returns true when an outcome was recovered and displayed.
    */
   const recoverSettledOutcome = async (betId: string): Promise<boolean> => {
-    const pending = await readPendingBet(betId);
-    if (pending && pending.settled && pending.itemIndex >= 0) {
-      await setResultFromOutcome(pending.machineId, pending.itemIndex, pending.prize);
-      return true;
-    }
     try {
       // Capped recovery walk (app.events.listAll defaults to the plan's
       // 500-event bound).
@@ -743,6 +1000,48 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       /* fall through */
     }
     return false;
+  };
+
+  /**
+   * Restore a network + contract + wallet-scoped pending pull after reload.
+   * The journal is only a resume hint: getPendingBet and Settled logs remain
+   * authoritative, and this function never broadcasts a settle automatically.
+   */
+  const restorePendingBet = async (): Promise<void> => {
+    const binding = currentPendingBinding();
+    if (!binding) return;
+    const journal = readPendingJournal();
+    let betId = journal?.betId ?? null;
+    const machineHint = journal?.machineId ?? "";
+
+    if (!betId) {
+      betId = await recoverPendingBetId(binding.playerHash, machineHint);
+    }
+
+    if (!betId) {
+      if (journal) {
+        pendingMachineId.set(machineHint || null);
+        betPhase.set("committed");
+      }
+      return;
+    }
+
+    const pending = await readPendingBet(betId);
+    if (pending && !pending.settled) {
+      pendingBetId.set(betId);
+      pendingMachineId.set(pending.machineId || machineHint || null);
+      betPhase.set("committed");
+      persistPendingJournal(
+        pending.machineId || machineHint,
+        betId,
+        journal?.commitTxid ?? "",
+      );
+      return;
+    }
+
+    // Settled records contain no item/prize fields. Recover the result from the
+    // Settled event, then clear a stale journal if the indexer has no outcome.
+    if (!(await recoverSettledOutcome(betId))) clearPendingJournal();
   };
 
   /**
@@ -866,8 +1165,13 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       playError.set(msg);
       throw new Error(msg);
     }
+    if (runtimeStatus.get() === "incompatible" || runtimeStatus.get() === "error") {
+      const msg = runtimeError.get() || t("gasboxDeploymentIncompatible");
+      playError.set(msg);
+      throw new Error(msg);
+    }
 
-    const priceBase = BigInt(Math.max(0, Math.trunc(machine.priceRaw)));
+    const priceBase = parseBigInt(machine.priceBaseUnits ?? machine.priceRaw);
     if (priceBase <= 0n) {
       const msg = t("invalidPlayPrice");
       playError.set(msg);
@@ -950,8 +1254,15 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
         throw commitErr;
       }
 
-      // betId is slot 0 of Committed(betId, machineId, player, commitIndex).
+      // betId is slot 0 of Committed(betId, machineId, player, wager, commitIndex).
       let betId = String(parseBigInt(eventValue(commitResult.event, 0)));
+      // Persist only after commit returned from the host. The journal is scoped
+      // to network + contract + wallet and is a recovery hint, never proof.
+      persistPendingJournal(
+        machineIdInt,
+        betId && betId !== "0" ? betId : null,
+        String(commitResult.txid ?? ""),
+      );
       if (!betId || betId === "0") {
         // The commit broadcast but its event wasn't observed in the wait window;
         // the bet is on chain. Recover the latest still-pending betId for this
@@ -962,6 +1273,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
           pendingBetId.set(recovered);
           betPhase.set("committed");
           betId = recovered;
+          persistPendingJournal(machineIdInt, recovered, String(commitResult.txid ?? ""));
         } else {
           // No betId yet — leave pending without a handle and ask the player to
           // tap Reveal shortly (a later getPendingBet/Committed read will resolve
@@ -972,6 +1284,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       } else {
         pendingBetId.set(betId);
         betPhase.set("committed");
+        persistPendingJournal(machineIdInt, betId, String(commitResult.txid ?? ""));
         await loadPlayCredit();
       }
 
@@ -1017,6 +1330,11 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     setStatus: (msg: string, type: "success" | "error" | "loading") => void,
   ): Promise<boolean> => {
     if (isPublishing.get()) return false; // double-submit guard
+    if (runtimeStatus.get() === "incompatible" || runtimeStatus.get() === "error") {
+      const message = runtimeError.get() || t("gasboxDeploymentIncompatible");
+      setStatus(message, "error");
+      throw new Error(message);
+    }
 
     const asset: PrizeAsset = machineData.prizeAsset === "NEO" ? "NEO" : "GAS";
 
@@ -1186,7 +1504,35 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       ],
       { waitForEvent: "RevenueWithdrawn" },
     );
-    await loadMachines();
+    await Promise.all([loadMachines(), loadWalletBalances()]);
+  };
+
+  /** Return all unused prepaid GAS play credit to the connected wallet. */
+  const withdrawPlayCredit = async (): Promise<void> => {
+    if (isWithdrawingCredit.get()) return;
+    const playerAddr = address.get() || (await app.chain.ensureWallet());
+    const playerHash = addressToScriptHash(playerAddr || "");
+    if (!playerAddr || !playerHash) throw new Error(t("connectWallet"));
+    setAddress(playerAddr);
+
+    const before = parseBigInt(
+      await app.chain.readRaw("playCreditOf", [
+        { type: "Hash160", value: playerHash },
+      ]),
+    );
+    if (before <= 0n) throw new Error(t("gasboxNoPlayCredit"));
+
+    try {
+      isWithdrawingCredit.set(true);
+      await app.chain.invoke(
+        "withdraw",
+        [{ type: "Hash160", value: playerHash }],
+        { waitForEvent: "CreditWithdrawn" },
+      );
+      await Promise.all([loadPlayCredit(), loadWalletBalances()]);
+    } finally {
+      isWithdrawingCredit.set(false);
+    }
   };
 
   /**
@@ -1196,6 +1542,9 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
    * reactivated — the contract already supports this; only the UI lacked it.
    */
   const topUpPool = async (machineId: string, amount: string): Promise<void> => {
+    if (runtimeStatus.get() === "incompatible" || runtimeStatus.get() === "error") {
+      throw new Error(runtimeError.get() || t("gasboxDeploymentIncompatible"));
+    }
     const machine =
       machines.get().find((m) => String(m.id) === String(machineId)) ?? null;
     if (!machine) throw new Error(t("machineNotFound"));
@@ -1225,7 +1574,46 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       ],
       { scriptHash: assetHash(asset) },
     );
-    await loadMachines();
+    await Promise.all([loadMachines(), loadWalletBalances()]);
+  };
+
+  /** Withdraw only unreserved creator bankroll from a machine's prize pool. */
+  const withdrawPool = async (machineId: string, amount: string): Promise<void> => {
+    if (isWithdrawingPool.get()) return;
+    const machine =
+      machines.get().find((m) => String(m.id) === String(machineId)) ?? null;
+    if (!machine) throw new Error(t("machineNotFound"));
+
+    const asset: PrizeAsset = machine.prizeAsset ?? "GAS";
+    const amountBase = toBaseUnits(amount, asset);
+    if (amountBase <= 0n) {
+      throw new Error(asset === "NEO" ? t("invalidNeoAmount") : t("invalidAmount"));
+    }
+    const freePool = parseBigInt(machine.freePoolBaseUnits);
+    if (amountBase > freePool) throw new Error(t("gasboxPoolAmountTooHigh"));
+
+    const creatorAddr = address.get() || (await app.chain.ensureWallet());
+    const creatorHash = addressToScriptHash(creatorAddr || "");
+    if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
+    if (normalizeBinding(creatorHash) !== normalizeBinding(machine.creatorHash)) {
+      throw new Error(t("gasboxCreatorOnly"));
+    }
+    setAddress(creatorAddr);
+
+    try {
+      isWithdrawingPool.set(true);
+      // V2 intentionally emits no WithdrawPool event; refresh exact getMachine
+      // state after confirmation instead of pretending an event exists.
+      await app.chain.invoke("withdrawPool", [
+        { type: "Hash160", value: creatorHash },
+        { type: "Integer", value: String(Math.trunc(Number(machineId))) },
+        { type: "Hash160", value: creatorHash },
+        { type: "Integer", value: amountBase.toString() },
+      ]);
+      await Promise.all([loadMachines(), loadWalletBalances()]);
+    } finally {
+      isWithdrawingPool.set(false);
+    }
   };
 
   /**
@@ -1237,6 +1625,9 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     machineId: string,
     active: boolean,
   ): Promise<void> => {
+    if (active && (runtimeStatus.get() === "incompatible" || runtimeStatus.get() === "error")) {
+      throw new Error(runtimeError.get() || t("gasboxDeploymentIncompatible"));
+    }
     const creatorAddr = address.get() || (await app.chain.ensureWallet());
     const creatorHash = addressToScriptHash(creatorAddr || "");
     if (!creatorAddr || !creatorHash) throw new Error(t("connectWallet"));
@@ -1257,7 +1648,7 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       if (active) throw new Error(t("poolCannotCoverMaxPrize"));
       throw activateErr;
     }
-    await loadMachines();
+    await Promise.all([loadMachines(), loadWalletBalances()]);
   };
 
   // ── Derived display values ─────────────────────────────────────────
@@ -1272,8 +1663,24 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   );
   const hasPlayCredit = createDerived(() => playCreditBase.get() > 0n, [playCreditBase]);
   const formattedPlayCredit = createDerived(
-    () => `${formatGas(playCreditBase.get(), 4)} ${t("tokenGas")}`,
+    () => formatGas(playCreditBase.get(), 8),
     [playCreditBase],
+  );
+  const formattedWalletGas = createDerived(
+    () => formatGas(walletGasBase.get(), 8),
+    [walletGasBase],
+  );
+  const formattedWalletNeo = createDerived(
+    () => walletNeoBase.get().toString(),
+    [walletNeoBase],
+  );
+  const runtimeReady = createDerived(
+    () => runtimeStatus.get() === "ready",
+    [runtimeStatus],
+  );
+  const walletConnected = createDerived(
+    () => Boolean(address.get()),
+    [address],
   );
   // True only while a bet is committed and awaiting its later-block reveal — the
   // "drawing on next block" pending state. Distinct from canReveal (which also
@@ -1288,12 +1695,27 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     machines,
     selectedMachine,
     isLoadingMachines,
+    catalogStatus,
+    catalogError,
+    runtimeStatus,
+    runtimeNetwork,
+    runtimeContract,
+    runtimeError,
+    pendingBetCount,
+    runtimeReady,
+    walletStatus,
+    walletError,
+    walletGasBase,
+    walletNeoBase,
+    walletConnected,
     isPlaying,
     showResult,
     resultItem,
     playError,
     showFireworks,
     isPublishing,
+    isWithdrawingCredit,
+    isWithdrawingPool,
     studioOpen,
     address,
     // Commit/reveal (two-step) state.
@@ -1310,9 +1732,12 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     playCreditBase,
     hasPlayCredit,
     formattedPlayCredit,
+    formattedWalletGas,
+    formattedWalletNeo,
 
     // ── Actions ─────────────────────────────────────────────────────
     setAddress,
+    connectWallet,
     selectMachine,
     deselectMachine,
     openStudio,
@@ -1323,7 +1748,9 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     revealPending,
     publishMachine,
     withdrawRevenue,
+    withdrawPlayCredit,
     topUpPool,
+    withdrawPool,
     setMachineActive,
     loadAll,
   };

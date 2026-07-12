@@ -3,14 +3,16 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Pet Potion",
   description:
-    "Timed on-chain virtual pet care game with provably fair TEE-nurtured pets. Choose a nursery path, feed, play, pet, and rest your magical creature to raise happiness before the deadline. Win a fixed GAS reward: 0.1 Sprout, 0.5 Glow, 1 Royal. Every solve climbs a global leaderboard rebuilt from chain events.",
+    "A warm Phaser pet-care and potion-brewing game built around illustrated pets, care tools, nursery paths, balanced stats, ingredient collection, evolution, and a complete local brew-and-save loop. New wallet-funded runs stay gated until the deployed pool and the full Morpheus settlement path have production evidence; historical recovery remains available in the runtime.",
   icon: "heart",
   category: "game",
   shell: "game",
+  supportsGuest: true,
+  supportsGameFi: false,
 
   gamePage: {
     categoryColor: "#14B8A6",
-    modes: { guest: true },
+    modes: { guest: true, gamefi: false },
     heroBadgeKey: "networkBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
@@ -18,24 +20,24 @@ export const manifest: MiniAppManifest = {
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
     featuresEyebrowKey: "networkBadge",
-    featuresTitleKey: "fairnessTitle",
+    featuresTitleKey: "gameplayFeatureTitle",
     features: [
       {
-        titleKey: "fairnessTitle",
-        descKey: "fairnessCopy",
+        titleKey: "gameplayFeatureTitle",
+        descKey: "gameplayFeatureCopy",
         large: true,
         gradient: "linear-gradient(135deg, #F0FDFA 0%, #99F6E4 44%, #14B8A6 100%)",
       },
-      { titleKey: "difficultyTitle", descKey: "startDescription" },
-      { titleKey: "leaderboardTitle", descKey: "leaderboardIntro" },
+      { titleKey: "difficultyTitle", descKey: "guestStartDescription" },
+      { titleKey: "leaderboardTitle", descKey: "guestLeaderboardIntro" },
     ],
     lbEyebrowKey: "ranksTab",
     lbTitleKey: "leaderboardTitle",
-    lbScoreLabelKey: "scoreWon",
+    lbScoreLabelKey: "guestBestLabel",
     ctaTitleKey: "lobbyTitle",
-    ctaDescKey: "startDescription",
+    ctaDescKey: "guestStartDescription",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["networkBadge", "fairnessTitle", "rankLabel"],
+    trustBadgeKeys: ["guestRunValue", "gameplayFeatureTitle", "rankLabel"],
   },
 
   tabs: [
@@ -44,54 +46,24 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "scoreReward", valueKey: "lastPayout", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", icon: "coin" },
+    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
+    { labelKey: "historyTitle", valueKey: "mySolves", format: "text", icon: "heart" },
     { labelKey: "rankLabel", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
+      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text" },
       { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
+      { labelKey: "historyTitle", valueKey: "mySolves", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Sprout Hatch — win 0.1 GAS" },
-            { value: "1", label: "Glow Garden — win 0.5 GAS" },
-            { value: "2", label: "Royal Bloom — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  // Historical GameFi recovery remains implemented, but the public operation
+  // panel exposes no wallet-funded start while live production evidence is
+  // incomplete. Runtime startGame has an independent fail-closed guard.
+  operations: [],
 
   docs: [
     { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
@@ -99,8 +71,8 @@ export const manifest: MiniAppManifest = {
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -108,10 +80,10 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {

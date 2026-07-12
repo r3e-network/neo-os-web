@@ -62,7 +62,14 @@
 
 .snake-playarea {
   display: block;
+  min-height: 100dvh;
+  background: #faf9f7;
   --mx2-stage-floor: #faf9f7;
+}
+
+.snake-playarea .mx2-playstage,
+.snake-playarea .mx2-stage {
+  background: #faf9f7;
 }
 
 .snake-playarea .mx2-stage {
@@ -92,10 +99,68 @@
   flex: 0 0 auto;
 }
 
+.snake-touch-controls {
+  width: min(100%, 244px);
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.snake-touch-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 175, 146, 0.28);
+  border-radius: 14px;
+  background: #fffdf4;
+  color: #075f50;
+  box-shadow: 0 5px 12px rgba(7, 95, 80, 0.09);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.snake-touch-controls button:active {
+  background: #e4f8ed;
+  transform: translateY(1px);
+}
+
+.snake-touch-controls button:focus-visible,
+.snake-run-action:focus-visible,
+.snake-stage-hud__drawer:focus-visible,
+.snake-ingame-drawer button:focus-visible {
+  outline: 3px solid rgba(0, 175, 146, 0.3);
+  outline-offset: 2px;
+}
+
+.snake-run-action {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: #00af92;
+  color: #ffffff;
+  padding: 10px 22px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 750;
+  box-shadow: 0 8px 18px rgba(0, 175, 146, 0.2);
+  cursor: pointer;
+}
+
+.snake-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .snake-stage-shell {
   position: relative;
   width: 100%;
-  min-height: calc(100dvh - 72px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -192,6 +257,21 @@
   background: rgba(255, 253, 248, 0.97);
   padding: 16px;
   box-shadow: 0 18px 48px rgba(10, 80, 62, 0.18);
+}
+
+.snake-ingame-drawer__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(0, 175, 146, 0.18);
+  border-radius: 50%;
+  background: #ffffff;
+  color: #075f50;
+  cursor: pointer;
 }
 
 .snake-ingame-drawer__head,
@@ -1202,14 +1282,26 @@
   }
 
   .snake-stage-shell {
-    min-height: calc(100dvh - 52px);
-    justify-content: space-between;
+    min-height: 0;
+    justify-content: flex-start;
     gap: 8px;
     border-radius: 18px;
   }
 
   .snake-phaser-canvas {
-    --phaser-mobile-height-ratio: 1.91;
+    --phaser-mobile-height-ratio: 1.318;
+    --phaser-mobile-bottom-reserve: 128px;
+  }
+
+  .snake-touch-controls {
+    display: grid;
+    width: min(100%, 232px);
+    gap: 7px;
+  }
+
+  .snake-touch-controls button {
+    min-height: 42px;
+    border-radius: 13px;
   }
 
   .snake-stage-hud {
@@ -1253,6 +1345,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .snake-touch-controls button,
+  .snake-stage-hud__drawer svg,
   .snake-scene *,
   .snake-scene *::before,
   .snake-scene *::after {

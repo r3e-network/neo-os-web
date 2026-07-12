@@ -10,11 +10,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="sheep-solitaire-phaser-host" />;
     },
@@ -45,6 +43,21 @@ function t(key: string, params?: Record<string, string | number>) {
     creditLabel: "Withdrawable credit",
     drawerTitle: "Leaderboard & rules",
     fairnessShort: "TEE-sealed cards and contract-verified payout.",
+    gameAriaLabel: "Sheep Solitaire tile game",
+    gameLoadingLabel: "Opening sheep board",
+    gameLoadError: "The sheep board could not load",
+    retryLoadAction: "Retry loading",
+    keyboardControls: "Keyboard game controls",
+    pickTileAction: "Pick exposed tile {index}, pattern {symbol}",
+    paidRunsUnavailable: "New paid boards are temporarily unavailable.",
+    paidRunsUnavailableShort: "Paid boards paused",
+    recoverAction: "Recover game",
+    recoveryTitle: "Confirming your game",
+    recoveryHint: "Read the exact game before retrying.",
+    openRouteAction: "Open {route}",
+    easyLabel: "Meadow Board",
+    mediumLabel: "Festival Board",
+    hardLabel: "Mountain Board",
     submitSolution: "Submit win",
     scoreCards: "Cards left",
     scoreTime: "Time left",
@@ -73,11 +86,16 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     gameStatus: "idle",
     isDealing: false,
     isGameOver: false,
+    failureReason: "none",
     isMatching: false,
     isPicking: false,
     isStarting: false,
     isSubmitting: false,
     isUndoing: false,
+    isTeeBusy: false,
+    isRecovering: false,
+    isFinancialAction: false,
+    newPaidRunsEnabled: false,
     lastPayout: "",
     lastStatus: "",
     pileCards: [],
@@ -130,6 +148,7 @@ describe("sheep-solitaire Phaser playarea", () => {
       <PhaserPlayArea
         t={t}
         state={state({
+          appMode: "gamefi",
           activeGameId: "91",
           credit: 1.25,
           deadline: Date.now() + 180_000,
@@ -162,5 +181,49 @@ describe("sheep-solitaire Phaser playarea", () => {
     expect(container.querySelector(".sheep-ingame-drawer")).toBeTruthy();
     expect(getByText("Withdraw 1.25 GAS")).toBeTruthy();
     expect(queryByText("Submit win")).toBeNull();
+  });
+
+  it("keeps stale GameFi lobbies fail-closed while exposing an explicit recovery action", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const { getAllByRole, getByRole, rerender } = render(
+      <PhaserPlayArea t={t} state={state({ appMode: "gamefi" })} dispatch={dispatch} />,
+    );
+
+    const routeButtons = getAllByRole("button", { name: /^Open /i });
+    expect(routeButtons).toHaveLength(3);
+    routeButtons.forEach((button) => expect(button.hasAttribute("disabled")).toBe(true));
+
+    rerender(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "gamefi",
+          activeGameId: "77",
+          gameStatus: "unknown",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(getByRole("button", { name: "Recover game" }));
+    expect(dispatch).toHaveBeenCalledWith("recoverGame");
+  });
+
+  it("announces tile patterns in the keyboard and screen-reader control layer", () => {
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          gameStatus: "dealt",
+          deadline: Date.now() + 60_000,
+          pileCards: [
+            { id: 7, symbol: 4, layer: 0, exposed: true, picked: false },
+          ],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByRole("button", { name: "Pick exposed tile 1, pattern 5" })).toBeTruthy();
   });
 });

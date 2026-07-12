@@ -116,4 +116,3 @@ class BLAKE2s extends BLAKE {
  * @param opts - dkLen, key, salt, personalization
  */
 export const blake2s = /* @__PURE__ */ wrapConstructorWithOpts((opts) => new BLAKE2s(opts));
-//# sourceMappingURL=blake2s.js.map

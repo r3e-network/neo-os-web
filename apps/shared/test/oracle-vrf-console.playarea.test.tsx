@@ -5,142 +5,200 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../oracle-vrf-console/src/PlayArea";
+import {
+  buildVrfRequestDraft,
+  getVrfEnvironment,
+  type VrfServiceSnapshot,
+  type VrfVerificationResult,
+} from "../../oracle-vrf-console/src/vrf-workbench";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
-function t(key: string) {
-  const m: Record<string,string> = {
-    statusReady:"Ready",
-    digestPlaceholder:"No digest",
-    panelTitle:"Console",
-    panelEyebrow:"Oracle",
-    buildRequest:"Build",
-    runAction:"Build VRF Request",
-    consumerPlaceholder:"Consumer",
-    saltPlaceholder:"Salt",
-    vrfConsumerRequired:"Consumer seed missing",
-    vrfSaltRequired:"Salt missing",
-  };
-  return m[key] ?? key;
-}
-function state(o: Partial<Record<string,unknown>> = {}): ObservableState {
-  const b: Record<string,unknown> = { networkLabel:"Mainnet", endpointLabel:"Preview", lastStatus:"Ready", lastDigest:"No digest", requestCount:0, ...o };
-  return Object.fromEntries(Object.entries(b).map(([k,v]) => [k, createObservable(v)]));
-}
-function appScssPath(app: string) {
-  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
-    ? path.resolve(process.cwd(), "..")
-    : path.resolve(process.cwd(), "apps");
-  return path.join(appsRoot, app, "src/PlayArea.scss");
-}
-function appSourcePath(app: string) {
-  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
-    ? path.resolve(process.cwd(), "..")
-    : path.resolve(process.cwd(), "apps");
-  return path.join(appsRoot, app, "src/PlayArea.tsx");
-}
-describe("oracle-vrf-console PlayArea (v2)", () => {
-  it("renders the terminal scene", () => { const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />); expect(container.querySelector(".oracle-console-scene")).toBeTruthy(); });
-  it("has reduced-motion", () => { const s = readFileSync(appScssPath("oracle-vrf-console"), "utf8"); expect(s).toContain("@media (prefers-reduced-motion: reduce)"); expect(s).toMatch(/animation-duration:\s*0\.001ms/); });
-  it("keeps the VRF request builder foreground-led with clean resource art", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-    const s = readFileSync(appScssPath("oracle-vrf-console"), "utf8");
 
-    expect(container.querySelector<HTMLImageElement>(".oracle-console-scene__image img")?.getAttribute("src")).toContain("oracle-workspace-stage.webp");
-    expect(container.querySelector(".oracle-console-scene__shade")).toBeNull();
-    expect(container.querySelector(".vrf-ticket__seed-summary")).toBeTruthy();
-    expect(container.querySelector(".vrf-ticket__seed input")).toBeNull();
-    expect(s).toMatch(/\.oracle-console-scene\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.oracle-console-scene__image\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.oracle-console-scene__image img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(s).toMatch(/\.oracle-console-scene__capsule\s*\{[\s\S]*background:\s*#f7faf8/);
-    expect(s).toMatch(/\.oracle-console-scene__proof\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.oracle-console-scene__ticket-strip\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.vrf-ticket__compose\s*\{[\s\S]*grid-template-columns:\s*minmax\(152px,\s*0\.64fr\) minmax\(0,\s*1fr\)/);
-    expect(s).toMatch(/\.oracle-console-scene__beam\s*\{[\s\S]*opacity:\s*0;/);
-    expect(s).toMatch(/\.oracle-console-scene\[data-state="building"\] \.oracle-console-scene__beam\s*\{[\s\S]*opacity:\s*1;/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.oracle-console-scene__image img\s*\{[\s\S]*height:\s*86px/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.oracle-console-scene__ticket-strip,\s*[\s\S]*\.vrf-ticket__seed-summary\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.vrf-ticket__compose\s*\{[\s\S]*grid-template-columns:\s*minmax\(128px,\s*0\.72fr\) minmax\(0,\s*1fr\)/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.vrf-preset-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.vrf-preset-grid small\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.oracle-console-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*520px\)[\s\S]*\.vrf-mode-card\s*\{[\s\S]*min-height:\s*42px/);
-    expect(s).not.toMatch(/vrf-randomness-stage\.jpg/);
-    expect(s).not.toMatch(/background-image:\s*url/);
-    expect(s).not.toMatch(/backdrop-filter/);
+function t(key: string) {
+  return key;
+}
+
+function snapshot(overrides: Partial<VrfServiceSnapshot> = {}): VrfServiceSnapshot {
+  const environment = getVrfEnvironment("mainnet");
+  return {
+    network: "mainnet",
+    freshness: "live",
+    availability: "protected",
+    checkedAt: "2026-07-11T00:00:00.000Z",
+    apiBaseUrl: environment.apiBaseUrl,
+    requestEndpoint: environment.requestEndpoint,
+    rpcUrl: environment.rpcUrl,
+    reportedNetwork: "mainnet",
+    healthReady: true,
+    runtimeOperational: true,
+    workflowAdvertised: false,
+    dispatchMode: "authenticated-consumer-integration",
+    apiVerifierKey: `03${"11".repeat(32)}`,
+    healthVerifierKey: `03${"11".repeat(32)}`,
+    contractVerifierKey: `03${"11".repeat(32)}`,
+    responseSignerKey: environment.responseSignerKey,
+    responseSignerPinned: true,
+    registryFulfillmentKey: environment.fulfillmentVerifierKey,
+    keysMatch: true,
+    runtimeKeyMatches: true,
+    oracleContract: environment.oracleContract,
+    oracleContractName: "MorpheusOracle",
+    oracleChecksum: 454480263,
+    callbackConsumer: environment.callbackConsumer,
+    callbackContractName: "OracleCallbackConsumer",
+    callbackChecksum: 1435370910,
+    callbackBound: true,
+    totalRequests: 7,
+    totalFulfilled: 6,
+    pendingRequests: 1,
+    requestFeeGas: 0.01,
+    errors: [],
+    ...overrides,
+  };
+}
+
+function verifiedResult(): VrfVerificationResult {
+  return {
+    status: "verified",
+    reason: "ok",
+    requestId: "vrf:mainnet:consumer:test",
+    randomness: "ab".repeat(32),
+    outputHash: "cd".repeat(32),
+    signerKey: `03${"11".repeat(32)}`,
+    verifiedAt: "2026-07-11T00:00:00.000Z",
+    requestCorrelationSigned: false,
+    attestation: "hash-bound-not-independently-verified",
+    checks: [
+      { key: "schema", status: "pass" },
+      { key: "request", status: "pass" },
+      { key: "network-key", status: "pass" },
+      { key: "attestation", status: "info" },
+    ],
+  };
+}
+
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const values: Record<string, unknown> = {
+    networkLabel: "Neo N3 Mainnet",
+    serviceLabel: "Integration only",
+    lastStatus: "Ready",
+    lastDigest: "No draft",
+    serviceSnapshot: snapshot(),
+    draft: null,
+    responseText: "",
+    verification: null,
+    actionBusy: false,
+    actionKind: "",
+    serviceBusy: false,
+    ...overrides,
+  };
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+  ) as ObservableState;
+}
+
+function appFile(file: string) {
+  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+    ? path.resolve(process.cwd(), "..")
+    : path.resolve(process.cwd(), "apps");
+  return path.join(appsRoot, "oracle-vrf-console", "src", file);
+}
+
+describe("Oracle VRF Workbench PlayArea", () => {
+  it("uses real bright workspace art with clean foreground surfaces", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const scss = readFileSync(appFile("PlayArea.scss"), "utf8");
+    const image = container.querySelector<HTMLImageElement>(".vrf-workbench__visual img");
+
+    expect(image?.getAttribute("src")).toContain("oracle-workspace-stage.webp");
+    expect(image?.getAttribute("alt")).toBe("heroAlt");
+    expect(scss).toMatch(/\.vrf-workbench,\s*\n\.vrf-request-board\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(scss).toMatch(/\.vrf-workbench__visual img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(scss).toMatch(/\.vrf-path\s*\{[\s\S]*background:\s*var\(--vrf-mint\)/);
+    expect(scss).not.toContain("background-image: url");
+    expect(scss).not.toContain("backdrop-filter");
+    expect(scss).not.toContain("#000000");
   });
 
-  it("uses Open UI panels for secondary seed and proof details", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    expect(container.querySelector(".vrf-mode-switch__group.mx2-open-segmented.semi-radioGroup")).toBeTruthy();
-    expect(container.querySelectorAll(".vrf-mode-switch__group .semi-radio")).toHaveLength(2);
+  it("keeps the core business path visually dominant and unsupported parameters absent", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const source = readFileSync(appFile("PlayArea.tsx"), "utf8");
+
+    expect(container.querySelector(".vrf-path")).toBeTruthy();
+    expect(container.querySelectorAll(".vrf-path li")).toHaveLength(3);
+    expect(container.querySelector(".vrf-request-board")).toBeTruthy();
+    expect(container.querySelectorAll(".vrf-purpose-grid button")).toHaveLength(3);
+    expect(source).not.toMatch(/batch-proof|single-proof|adjustRounds|roundsPlaceholder|saltPlaceholder/);
+    expect(source).toContain('dispatch("buildDraft", context)');
+    expect(source).toContain('dispatch("verifyResponse", { responseText })');
+  });
+
+  it("keeps parameter fields behind the drawer and disables payload until a draft exists", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".vrf-context-grid")).toBeNull();
+
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
     const tabs = Array.from(container.querySelectorAll<HTMLElement>(".vrf-drawer__switcher-group .semi-radio"));
-
     expect(tabs).toHaveLength(4);
+    expect(container.querySelectorAll(".vrf-context-grid input.semi-input")).toHaveLength(2);
     expect(tabs[3].classList.contains("semi-radio-disabled")).toBe(true);
-    expect(container.querySelectorAll('.vrf-drawer__switcher [role="tab"]')).toHaveLength(0);
-    expect(container.querySelectorAll(".vrf-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelectorAll(".vrf-field .mx2-open-field__control input.semi-input")).toHaveLength(2);
-    expect(container.querySelector(".vrf-seed-editor")).toBeNull();
-    expect(container.querySelector(".vrf-drawer h4")).toBeNull();
-
-    fireEvent.click(tabs[1]);
-    expect(container.querySelectorAll(".vrf-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelector(".vrf-flow")).toBeTruthy();
-
-    fireEvent.click(tabs[2]);
-    expect(container.querySelectorAll(".vrf-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelector(".vrf-empty.mx2-open-notice.semi-banner")).toBeTruthy();
-
-    fireEvent.click(container.querySelector(".mx2-btn--primary") as HTMLButtonElement);
-    expect(dispatch).toHaveBeenCalledWith("buildRequest", expect.objectContaining({ consumer: "miniapp-oracle-vrf-console" }));
-    const updatedTabs = Array.from(container.querySelectorAll<HTMLElement>(".vrf-drawer__switcher-group .semi-radio"));
-    expect(updatedTabs[3].classList.contains("semi-radio-disabled")).toBe(false);
-    fireEvent.click(updatedTabs[3]);
-    expect(container.querySelectorAll(".vrf-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelector(".vrf-payload")).toBeTruthy();
+    expect(container.querySelector(".vrf-payload")).toBeNull();
   });
 
-  it("blocks missing consumer or salt before dispatching a VRF preview", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+  it("renders service mismatch as a warning instead of calling it ready", () => {
+    const mismatch = snapshot({
+      availability: "network-mismatch",
+      reportedNetwork: "mainnet",
+      runtimeKeyMatches: false,
+    });
+    const { container } = render(<PlayArea t={t} state={state({ serviceSnapshot: mismatch })} dispatch={vi.fn()} />);
+    expect(container.querySelector(".vrf-workbench__service-seal")?.getAttribute("data-tone"))
+      .toBe("network-mismatch");
+    expect(container.textContent).toContain("serviceMismatch");
+  });
+
+  it("keeps an in-session draft usable while clearly marking failed local recovery", () => {
+    const draft = buildVrfRequestDraft({}, "mainnet", { nonce: () => "local-only" });
+    const { container } = render(<PlayArea
+      t={t}
+      state={state({ draft, storageHealthy: false, draftPersisted: false })}
+      dispatch={vi.fn()}
+    />);
+
+    expect(container.textContent).toContain("draftLocalOnly");
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
-    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
-    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".vrf-field .mx2-open-field__control input.semi-input"));
-
-    fireEvent.change(inputs[0], { target: { value: "" } });
-    expect(primary.disabled).toBe(true);
-    expect(container.textContent).toContain("Consumer seed missing");
-    fireEvent.click(primary);
-    expect(dispatch).not.toHaveBeenCalled();
-
-    fireEvent.change(inputs[0], { target: { value: "miniapp-custom-game" } });
-    fireEvent.change(inputs[1], { target: { value: "" } });
-    expect(primary.disabled).toBe(true);
-    expect(container.textContent).toContain("Salt missing");
-    fireEvent.click(primary);
-    expect(dispatch).not.toHaveBeenCalled();
+    const tabs = Array.from(container.querySelectorAll<HTMLElement>(".vrf-drawer__switcher-group .semi-radio"));
+    fireEvent.click(tabs[0]);
+    expect(container.querySelector(".vrf-storage-notice")).toBeTruthy();
+    expect(container.textContent).toContain("storageUnavailableCopy");
   });
 
-  it("keeps VRF drawer responsive and free of local native input styling", () => {
-    const s = readFileSync(appScssPath("oracle-vrf-console"), "utf8");
-    const source = readFileSync(appSourcePath("oracle-vrf-console"), "utf8");
+  it("shows a verified response with check-level evidence and limited attestation scope", () => {
+    const draft = buildVrfRequestDraft({}, "mainnet", { nonce: () => "test" });
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ draft, verification: verifiedResult(), responseText: "{}" })}
+        dispatch={vi.fn()}
+      />,
+    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+    const tabs = Array.from(container.querySelectorAll<HTMLElement>(".vrf-drawer__switcher-group .semi-radio"));
+    fireEvent.click(tabs[2]);
 
-    expect(source).toContain("OpenUiSegmented");
-    expect(source).toContain("if (!canBuild) return;");
-    expect(source).toContain("disabled: !canBuild || building");
-    expect(source).not.toContain('role="tablist"');
-    expect(source).not.toContain('role="tab"');
-    expect(source).not.toContain('role="radiogroup"');
-    expect(s).toMatch(/\.vrf-mode-switch__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.vrf-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.vrf-drawer__switcher-group \.semi-radio-checked \.vrf-drawer-tab\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.vrf-empty\.mx2-open-notice\.semi-banner\s*\{[\s\S]*min-height:\s*88px/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.vrf-drawer\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
-    expect(s).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.vrf-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).not.toMatch(/\.vrf-seed-editor/);
-    expect(s).not.toMatch(/\.vrf-field input\s*\{/);
+    expect(container.querySelector(".vrf-verification")?.getAttribute("data-state")).toBe("verified");
+    expect(container.querySelectorAll(".vrf-verification li")).toHaveLength(4);
+    expect(container.textContent).toContain("attestationLimited");
+    expect(container.textContent).toContain("checkAttestation");
+  });
+
+  it("has compact responsive hierarchy rather than stretched controls", () => {
+    const scss = readFileSync(appFile("PlayArea.scss"), "utf8");
+    expect(scss).toMatch(/\.vrf-stage-layout\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.32fr\) minmax\(310px,\s*0\.68fr\)/);
+    expect(scss).toMatch(/\.vrf-inline-action\s*\{[\s\S]*width:\s*fit-content/);
+    expect(scss).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vrf-workbench\s*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(scss).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vrf-purpose-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(scss).toMatch(/@media \(max-width:\s*460px\)[\s\S]*\.oracle-vrf-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
   });
 });

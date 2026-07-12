@@ -5,108 +5,241 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../neo-sign-anything/src/PlayArea";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+
 afterEach(() => cleanup());
-function t(k: string) { return k; }
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
+
+function t(key: string, params?: Record<string, string | number>) {
+  if (!params) return key;
+  return Object.entries(params).reduce(
+    (message, [name, value]) => message.replace(`{${name}}`, String(value)),
+    key,
+  );
 }
-function playAreaStyles(app: string): string {
+
+function state(values: Partial<Record<string, unknown>> = {}): ObservableState {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+  ) as ObservableState;
+}
+
+function appPath(file: string): string {
   const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
     ? path.resolve(process.cwd(), "..")
     : path.resolve(process.cwd(), "apps");
-  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
+  return path.join(appsRoot, "neo-sign-anything", file);
 }
-describe("neo-sign-anything PlayArea (v2)", () => {
-  it("renders the tool scene", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-    expect(container.querySelector(".sign-desk")).toBeTruthy();
-    expect(container.querySelector(".sign-desk__paper")).toBeTruthy();
-    expect(container.querySelector(".sign-desk__photo")).toBeTruthy();
-    expect(container.querySelector(".sign-desk__payload-preview")).toBeTruthy();
-    expect(container.querySelector(".sign-desk__handoff")).toBeTruthy();
-  });
-  it("uses designed Open UI panels for proof details instead of raw drawer sections", () => {
+
+describe("neo-sign-anything PlayArea", () => {
+  it("renders a foreground-led signing document and real scene resource", () => {
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          address: "NZExampleSignerAddress",
-          message: "release digest",
-          signature: "signature-abcdef0123456789",
-          txHash: "0x1234567890abcdef",
+          address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+          network: "neo-n3-mainnet",
+          message: "release statement",
+          payloadText: "neo-sign-anything:v1\n\nrelease statement",
+          payloadHash: "a".repeat(64),
+          payloadBytes: 48,
+          payloadStatus: "ready",
+          signingMode: "bound",
+          signingDomain: "neo-sign-anything",
+          historyStorageHealthy: true,
         })}
-        dispatch={vi.fn()}
+        dispatch={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(container.querySelector(".sign-desk")).toBeTruthy();
+    expect(container.querySelector(".sign-desk__paper")).toBeTruthy();
+    expect(container.querySelector(".sign-desk__payload-card pre")?.textContent)
+      .toContain("neo-sign-anything:v1");
+    expect(container.querySelector(".sign-desk__digest code")?.textContent).toBe("a".repeat(64));
+    const image = container.querySelector(".sign-desk__photo img") as HTMLImageElement;
+    expect(image).toBeTruthy();
+    expect(image.src).toContain("signature-desk.webp");
+    expect(image.alt).toBe("deskImageAlt");
+  });
+
+  it("keeps one primary sign action and demotes file, encoding, proof, and history", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
+          network: "neo-n3-mainnet",
+          message: "sign me",
+          payloadText: "sign me",
+          payloadHash: "b".repeat(64),
+          payloadBytes: 7,
+          payloadStatus: "ready",
+          signingMode: "bound",
+          signingDomain: "neo-sign-anything",
+          historyStorageHealthy: true,
+        })}
+        dispatch={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    expect(container.querySelectorAll(".mx2-action-rail__row .mx2-btn--primary")).toHaveLength(1);
+    expect(container.querySelectorAll(".mx2-action-rail__row .mx2-btn--ghost")).toHaveLength(2);
+    expect(container.textContent).not.toContain("broadcast");
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+    expect(container.querySelectorAll(".sign-details__tabs [role='tab']")).toHaveLength(3);
+    expect(container.querySelector(".sign-details__panel--proof.mx2-open-panel.semi-card")).toBeTruthy();
+
+    fireEvent.click(container.querySelectorAll(".sign-details__tabs [role='tab']")[1]);
+    expect(container.querySelector(".sign-details__panel--encoding")).toBeTruthy();
+    expect(container.querySelector(".sign-details__mode-control [role='radiogroup']")).toBeTruthy();
+    expect(container.querySelector(".sign-details__domain-field input")).toBeTruthy();
+
+    fireEvent.click(container.querySelectorAll(".sign-details__tabs [role='tab']")[2]);
+    expect(container.querySelector(".sign-details__panel--history")).toBeTruthy();
+  });
+
+  it("shows a wallet-returned assurance label instead of claiming local verification", () => {
+    const proof = {
+      schema: "neo-sign-anything-proof:v1",
+      createdAt: "2026-07-11T00:00:00.000Z",
+      signer: { address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs", network: "neo-n3-mainnet", binding: "signed-envelope" },
+      payload: {
+        mode: "bound",
+        kind: "text",
+        domain: "neo-sign-anything",
+        encoding: "utf-8",
+        exactText: "payload",
+        bytes: 7,
+        sha256: "c".repeat(64),
+        contentSha256: "d".repeat(64),
+        file: null,
+      },
+      signature: { value: `0x${"11".repeat(64)}`, encoding: "hex", publicKey: null },
+      assurance: { status: "wallet-returned", cryptographicallyVerifiedHere: false },
+    } as const;
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: proof.signer.address,
+          network: proof.signer.network,
+          message: "payload",
+          payloadText: "payload",
+          payloadHash: proof.payload.sha256,
+          payloadBytes: 7,
+          payloadStatus: "ready",
+          signingMode: "bound",
+          signingDomain: "neo-sign-anything",
+          signature: proof.signature.value,
+          signatureEncoding: "hex",
+          artifact: proof,
+          proofBundle: JSON.stringify(proof),
+          historyStorageHealthy: true,
+        })}
+        dispatch={vi.fn().mockResolvedValue(undefined)}
       />,
     );
 
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
-
-    expect(container.querySelector(".sign-details__tabs")).toBeTruthy();
-    expect(container.querySelectorAll(".sign-details__tabs [role='tab']")).toHaveLength(3);
-    expect(container.querySelectorAll(".sign-details__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelector(".sign-details__summary")).toBeTruthy();
-    expect(container.querySelectorAll(".sign-details__status-chip[data-active='true']")).toHaveLength(2);
-
-    fireEvent.click(container.querySelectorAll(".sign-details__tabs [role='tab']")[1]);
-    expect(container.querySelector(".sign-details__panel--signature")).toBeTruthy();
-    expect(container.querySelectorAll(".sign-details__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelectorAll(".sign-details__artifact")).toHaveLength(1);
-
-    fireEvent.click(container.querySelectorAll(".sign-details__tabs [role='tab']")[2]);
-    expect(container.querySelector(".sign-details__panel--broadcast")).toBeTruthy();
-    expect(container.querySelectorAll(".sign-details__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(container.querySelector(".sign-details__notice.mx2-open-notice.semi-banner")).toBeTruthy();
-    expect(container.querySelector(".sign-details__panel h3")).toBeNull();
-    expect(container.querySelector("section.sign-details__panel")).toBeNull();
+    expect(container.querySelector(".sign-details__notice")?.textContent).toContain("boundAssuranceTitle");
+    expect(container.textContent).not.toContain("cryptographically verified");
   });
-  it("has reduced-motion", () => {
-    const s = playAreaStyles("neo-sign-anything");
-    
-    expect(s).toMatch(/prefers-reduced-motion/); expect(s).toMatch(/0\.001ms/);
-  });
-  it("keeps the signing desk foreground-led instead of using a dirty scenic background", () => {
-    const s = playAreaStyles("neo-sign-anything");
 
-    expect(s).toMatch(/\.sign-desk\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.tool-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/\.tool-play-area \.mx2-action-rail,[\s\S]*\.tool-play-area \.mx2-drawer\s*\{[\s\S]*width:\s*min\(100%,\s*920px\)/);
-    expect(s).toMatch(/\.tool-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 156px/);
-    expect(s).toMatch(/\.sign-desk__workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(360px,\s*1\.18fr\) minmax\(280px,\s*0\.82fr\)/);
-    expect(s).toMatch(/\.sign-desk__workspace\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-desk__paper\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-desk__proof\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-desk__photo\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-desk__photo img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(s).toMatch(/\.sign-desk__photo img\s*\{[\s\S]*opacity:\s*1/);
-    expect(s).toMatch(/\.sign-desk__photo img\s*\{[\s\S]*filter:\s*none/);
-    expect(s).toMatch(/\.sign-desk__photo::after\s*\{[\s\S]*content:\s*none/);
-    expect(s).toMatch(/\.sign-desk__mode\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-desk__payload-sheet\s*\{/);
-    expect(s).toMatch(/\.sign-desk__payload-sheet\s*\{[\s\S]*box-shadow:\s*inset 0 -1px 0 rgba\(31,\s*138,\s*83,\s*0\.1\)/);
-    expect(s).toMatch(/\.sign-desk__textarea\s*\{[\s\S]*font:\s*620 14px/);
-    expect(s).toMatch(/\.sign-desk__textarea\s*\{[\s\S]*min-height:\s*132px/);
-    expect(s).toMatch(/\.sign-desk__textarea\s*\{[\s\S]*resize:\s*none/);
-    expect(s).toMatch(/\.sign-desk__payload-preview\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
-    expect(s).toMatch(/\.sign-desk__handoff\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-details__panel\.mx2-open-panel\.semi-card\s*\{/);
-    expect(s).toMatch(/\.sign-details__tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.sign-details__tabs button\.is-active,[\s\S]*\.sign-details__tabs button:hover\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.sign-details__panel\.mx2-open-panel \.mx2-open-panel__copy span\s*\{[\s\S]*line-height:\s*1\.3/);
-    expect(s).toMatch(/\.sign-details__summary\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.sign-details__status-chip\s*\{[\s\S]*min-height:\s*40px/);
-    expect(s).toMatch(/\.sign-details__facts div\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
-    expect(s).toMatch(/\.sign-details__artifact\s*\{[\s\S]*border-radius:\s*16px/);
-    expect(s).toMatch(/\.sign-details__artifact code\s*\{[\s\S]*font:\s*650 11px/);
-    expect(s).toMatch(/\.sign-details__notice\.mx2-open-notice\.semi-banner\s*\{[\s\S]*min-height:\s*72px/);
-    expect(s).toMatch(/@keyframes sign-desk-handoff/);
-    expect(s).not.toMatch(/\.sign-desk__textarea\s*\{[\s\S]*min-height:\s*150px/);
-    expect(s).not.toMatch(/\.sign-desk__textarea\s*\{[\s\S]*min-height:\s*96px/);
-    expect(s).not.toMatch(/\.sign-desk__photo img\s*\{[^}]*filter:\s*saturate/);
-    expect(s).not.toMatch(/\.sign-desk__photo::after\s*\{[^}]*linear-gradient/);
-    expect(s).not.toMatch(/sign-scene-art\.jpg/);
-    expect(s).not.toMatch(/repeating-linear-gradient/);
-    expect(s).not.toMatch(/backdrop-filter/);
-    expect(s).not.toMatch(/\.sign-details__panel h3/);
+  it("labels exact-mode account and network as observed context rather than signed claims", () => {
+    const proof = {
+      schema: "neo-sign-anything-proof:v1",
+      createdAt: "2026-07-11T00:00:00.000Z",
+      signer: { address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs", network: "neo-n3-testnet", binding: "observed-request-context" },
+      payload: {
+        mode: "exact",
+        kind: "text",
+        domain: null,
+        encoding: "utf-8",
+        exactText: "challenge",
+        bytes: 9,
+        sha256: "e".repeat(64),
+        contentSha256: "e".repeat(64),
+        file: null,
+      },
+      signature: { value: `0x${"22".repeat(64)}`, encoding: "hex", publicKey: null },
+      assurance: { status: "wallet-returned", cryptographicallyVerifiedHere: false },
+    } as const;
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: proof.signer.address,
+          network: proof.signer.network,
+          message: "challenge",
+          payloadText: "challenge",
+          payloadHash: proof.payload.sha256,
+          payloadBytes: 9,
+          payloadStatus: "ready",
+          signingMode: "exact",
+          signingDomain: "neo-sign-anything",
+          signature: proof.signature.value,
+          signatureEncoding: "hex",
+          artifact: proof,
+          proofBundle: JSON.stringify(proof),
+          historyStorageHealthy: true,
+        })}
+        dispatch={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+    expect(container.querySelector(".sign-details__notice")?.textContent).toContain("exactAssuranceTitle");
+  });
+
+  it("uses semantic OpenUiLite controls and avoids the heavy OpenUi runtime", () => {
+    const source = readFileSync(appPath("src/PlayArea.tsx"), "utf8");
+    expect(source).toContain("@shared/components-react/v2/OpenUiLite");
+    expect(source).not.toContain('from "@shared/components-react/v2"');
+    expect(source).toContain("OpenUiTextArea");
+    expect(source).toContain("OpenUiSegmented");
+  });
+
+  it("publishes a sign-only manifest with no transaction or fake chain-state claims", () => {
+    const manifest = JSON.parse(readFileSync(appPath("neo-manifest.json"), "utf8")) as {
+      version: string;
+      supported_networks: string[];
+      permissions: string[];
+      features: { stateless: boolean };
+      platform: { transactions: boolean };
+    };
+    const packageJson = JSON.parse(readFileSync(appPath("package.json"), "utf8")) as { version: string };
+    const mainSource = readFileSync(appPath("src/main.tsx"), "utf8");
+    const domainSource = readFileSync(appPath("src/composables/useSignAnything.ts"), "utf8");
+    const internalManifest = readFileSync(appPath("src/manifest.ts"), "utf8");
+
+    expect(manifest.version).toBe(packageJson.version);
+    expect(manifest.supported_networks).toEqual(["neo-n3-mainnet", "neo-n3-testnet"]);
+    expect(manifest.permissions).toEqual(["wallet:sign-message"]);
+    expect(manifest.features.stateless).toBe(false);
+    expect(manifest.platform.transactions).toBe(false);
+    expect(mainSource).not.toContain("broadcastMessage");
+    expect(domainSource).not.toContain("app.chain.invoke");
+    expect(internalManifest).toContain("tabs: []");
+    expect(internalManifest).toContain("stats: []");
+    expect(internalManifest).toContain("permissions: { storage: true }");
+    expect(internalManifest).not.toContain("contract:");
+  });
+
+  it("keeps high-contrast white foregrounds, bounded controls, responsive layout, and reduced motion", () => {
+    const styles = readFileSync(appPath("src/PlayArea.scss"), "utf8");
+    expect(styles).toMatch(/\.sign-desk\s*\{[\s\S]*background:\s*#fffefa/);
+    expect(styles).toMatch(/\.sign-desk__workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(390px,\s*1\.16fr\) minmax\(290px,\s*0\.84fr\)/);
+    expect(styles).toMatch(/\.sign-desk__paper,[\s\S]*\.sign-desk__proof\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/\.sign-desk__message-field textarea\.semi-input-textarea\s*\{[\s\S]*min-height:\s*84px/);
+    expect(styles).toMatch(/\.sign-desk__payload-card pre\s*\{[\s\S]*max-height:\s*76px/);
+    expect(styles).toMatch(/\.tool-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
+    expect(styles).toMatch(/\.sign-details__tabs\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*760px\)/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)/);
+    expect(styles).toMatch(/0\.001ms/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+    expect(styles).not.toMatch(/repeating-linear-gradient/);
   });
 });

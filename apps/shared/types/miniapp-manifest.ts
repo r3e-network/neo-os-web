@@ -300,6 +300,12 @@ export interface PlatformPermissions {
 export interface MiniAppGameModes {
   /** Opt into the guest (free, local, off-chain) play mode. */
   guest?: boolean;
+  /**
+   * Whether the wallet-backed GameFi path is currently safe to expose.
+   * Defaults to true. Set false while contracts, reward pools, or oracle
+   * infrastructure are unavailable; the launcher will offer free play only.
+   */
+  gamefi?: boolean;
 }
 
 /** Feature card definition for the game page features section */
@@ -394,6 +400,13 @@ export interface MiniAppManifest {
   /** Top-level shell type determining the app frame chrome */
   shell?: ShellType;
 
+  /**
+   * Open a game shell directly on its playable surface instead of rendering
+   * the generic launch card first. Use this only when the play area itself is
+   * a deliberately designed, self-explanatory entry experience.
+   */
+  directPlay?: boolean;
+
   // ── Theme ──
 
   /** Theme configuration for visual customization */
@@ -441,4 +454,7 @@ export interface MiniAppManifest {
    * entry ("Earn GAS" + "Play free").
    */
   supportsGuest?: boolean;
+
+  /** Top-level equivalent of `gamePage.modes.gamefi` for apps without gamePage. */
+  supportsGameFi?: boolean;
 }

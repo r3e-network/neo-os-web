@@ -2,7 +2,7 @@
  * PlayArea.tsx — oracle http console (v2 scene-driven rebuild)
  * Tool identity. The console IS the scene: a request builder with a status readout.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { useTransientFlag } from "@shared/components-react";
 import type { ObservableState } from "@shared/react/context";
@@ -14,11 +14,22 @@ import {
   OpenUiTextField,
   PlayStage,
 } from "@shared/components-react/v2";
-import { appMeta, consoleConfig, isValidJsonPath } from "./appConfig";
+import {
+  appMeta,
+  consoleConfig,
+  MAX_ORACLE_HTTP_BODY_BYTES,
+  MAX_ORACLE_HTTP_PATH_LENGTH,
+  MAX_ORACLE_HTTP_URL_LENGTH,
+  resolveOracleHttpEnvironment,
+  validateOracleHttpBody,
+  validateOracleHttpEndpoint,
+  validateOracleHttpPath,
+} from "./appConfig";
 import {
   ArrowRight,
   Braces,
   CheckCircle2,
+  Copy,
   FileJson,
   KeyRound,
   Link2,
@@ -31,8 +42,8 @@ import "./PlayArea.scss";
 interface PlayAreaProps {
   t: (key: string, p?: Record<string, string | number>) => string;
   state: ObservableState;
-  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
-  launchContext?: { params?: Record<string, string> };
+  dispatch: (name: string, ...args: unknown[]) => Promise<unknown>;
+  launchContext?: { network?: string | null; params?: Record<string, string> };
 }
 
 function defaultFieldValue(key: string): string {
@@ -57,15 +68,6 @@ function hostLabel(url: string, fallback: string): string {
   }
 }
 
-function isHttpUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 const PIPELINE_IMAGE = "http-oracle-pipeline.webp";
 type DrawerMode = "overview" | "route" | "digest";
 type HttpValues = {
@@ -75,12 +77,13 @@ type HttpValues = {
   url: string;
 };
 
-function defaultValues(params: Record<string, string> = {}): HttpValues {
+function defaultValues(params: Record<string, string> = {}, network?: string | null): HttpValues {
+  const environment = resolveOracleHttpEnvironment(network);
   return {
     body: params.body ?? defaultFieldValue("body"),
-    jsonPath: params.jsonPath ?? defaultFieldValue("jsonPath") ?? "$.status",
-    method: params.method === "POST" ? "POST" : defaultFieldValue("method") || "GET",
-    url: params.url ?? defaultFieldValue("url") ?? appMeta.endpointLabel,
+    jsonPath: params.jsonPath ?? defaultFieldValue("jsonPath") ?? "status",
+    method: String(params.method ?? "").toUpperCase() === "POST" ? "POST" : defaultFieldValue("method") || "GET",
+    url: params.url ?? environment.defaultUrl,
   };
 }
 
@@ -101,50 +104,99 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const lastDigest = str("lastDigest", t("digestPlaceholder"));
   const requestCount = num("requestCount");
 
-  const [values, setValues] = useState<HttpValues>(() => defaultValues(launchContext?.params));
+  const [values, setValues] = useState<HttpValues>(() => defaultValues(launchContext?.params, launchContext?.network));
   // Shared transient "previewing" pulse (console kernel §S14) — replaces the
   // hand-rolled useState + timeout-ref + unmount-cleanup trio.
   const previewFlag = useTransientFlag(1200);
   const actionPreview = previewFlag.active;
+  const copyFlag = useTransientFlag(1200);
+  const [copying, setCopying] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("overview");
   const update = (key: keyof HttpValues, value: string) => {
     setValues((current) => ({ ...current, [key]: value }));
+    // Clear the host-shell digest as soon as an already-prepared draft is
+    // edited. The scene also compares digests locally, so the receipt cannot
+    // remain copyable while this handled action updates shared state.
+    void dispatch("invalidateRequest").catch(() => undefined);
   };
   const setMethod = (method: string) => {
     update("method", method === "POST" ? "POST" : "GET");
   };
   const resetValues = () => {
-    setValues(defaultValues(launchContext?.params));
+    setValues(defaultValues(launchContext?.params, launchContext?.network));
+    previewFlag.clear();
+    copyFlag.clear();
+    setCopying(false);
+    void dispatch("resetRequest").catch(() => undefined);
   };
 
   function handleBuild() {
     if (!canPreview) return;
     previewFlag.trigger();
-    void dispatch("buildRequest", values);
+    void dispatch("buildRequest", {
+      ...values,
+      network: launchContext?.network ?? "",
+    }).catch(() => undefined);
   }
   const method = values.method === "POST" ? "POST" : "GET";
   const url = values.url || endpointLabel || appMeta.endpointLabel;
-  const jsonPath = values.jsonPath || "$.status";
+  const jsonPath = values.jsonPath || "status";
   const bodyIncluded = method === "POST" && values.body.trim().length > 0;
-  const digestReady = Boolean(lastDigest && lastDigest !== t("digestPlaceholder"));
-  const sourceReady = isHttpUrl(url);
-  const pathReady = isValidJsonPath(jsonPath);
-  const canPreview = sourceReady && pathReady;
+  const pathValidation = validateOracleHttpPath(jsonPath);
+  const canonicalPath = pathValidation.normalizedPath || jsonPath;
+  const endpointValidation = validateOracleHttpEndpoint(url);
+  const sourceReady = endpointValidation.valid;
+  const pathReady = pathValidation.valid;
+  const bodyValidation = validateOracleHttpBody(method, values.body);
+  const bodyReady = bodyValidation.valid;
+  const canPreview = sourceReady && pathReady && bodyReady;
+  const currentResult = useMemo(
+    () => consoleConfig.buildResult(
+      { ...values, network: launchContext?.network ?? "" },
+      t,
+    ),
+    [launchContext?.network, t, values],
+  );
+  const currentDigest = String(currentResult.payload.digest ?? "");
+  const digestPlaceholder = t("digestPlaceholder");
+  const hasPreviousDigest = Boolean(lastDigest && lastDigest !== digestPlaceholder);
+  const digestReady = canPreview && hasPreviousDigest && lastDigest === currentDigest;
+  const draftDirty = (hasPreviousDigest && !digestReady)
+    || (!hasPreviousDigest && lastStatus === t("httpDraftChanged"));
   const blockedReason = !sourceReady
-    ? t("httpInvalidUrl")
+    ? t(endpointValidation.errorKey || "httpInvalidUrl")
     : !pathReady
       ? t("httpInvalidPath")
-      : "";
+      : !bodyReady
+        ? t(bodyValidation.errorKey)
+        : "";
   const statusLabel = actionPreview
     ? t("previewingRequest")
-    : digestReady
-      ? t("httpValidationReady")
-      : canPreview
-        ? t("httpReady")
-        : blockedReason;
+    : draftDirty
+      ? t("httpDraftChanged")
+      : digestReady
+        ? t("httpValidationReady")
+        : canPreview
+          ? t("httpInputsReady")
+          : blockedReason;
   const runActionLabel = t("runAction");
-  const primaryLabel = actionPreview ? t("previewingRequest") : (runActionLabel === "runAction" ? t("buildRequest") || "Build Request" : runActionLabel);
+  const primaryLabel = actionPreview
+    ? t("previewingRequest")
+    : runActionLabel === "runAction"
+      ? t("buildRequest") || "Prepare Payload"
+      : runActionLabel;
   const digestValue = digestReady ? compactValue(lastDigest, 36) : t("digestPlaceholder");
+  const morpheusPayload = currentResult.payload.morpheusPayload as Record<string, unknown>;
+  const copyPayload = () => {
+    if (!digestReady || !morpheusPayload || copying) return;
+    setCopying(true);
+    void dispatch("copyPayload", JSON.stringify(morpheusPayload, null, 2))
+      .then((copied) => {
+        if (copied === true) copyFlag.trigger();
+      })
+      .catch(() => undefined)
+      .finally(() => setCopying(false));
+  };
   const detailsLabel = t("detailsLabel");
   const routeSteps: RouteStep[] = [
     {
@@ -152,14 +204,14 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       icon: Link2,
       label: t("httpRouteSourceNode"),
       value: hostLabel(url, endpointLabel || appMeta.endpointLabel),
-      detail: sourceReady ? t("httpUrlReadyHint") : t("httpUrlInvalidHint"),
+      detail: sourceReady ? t("httpUrlReadyHint") : blockedReason,
       active: sourceReady,
     },
     {
       key: "extractor",
       icon: Braces,
       label: t("httpRouteExtractNode"),
-      value: jsonPath,
+      value: canonicalPath,
       detail: pathReady ? t("httpPathReadyHint") : t("httpPathInvalidHint"),
       active: pathReady,
     },
@@ -168,7 +220,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       icon: digestReady ? CheckCircle2 : KeyRound,
       label: t("httpRouteDigestNode"),
       value: digestValue,
-      detail: digestReady ? lastDigest : t("httpEmptyTitle"),
+      detail: digestReady ? lastDigest : draftDirty ? t("httpDraftChanged") : t("httpEmptyTitle"),
       active: digestReady,
     },
   ];
@@ -243,7 +295,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   value={values.url}
                   onChange={(event) => update("url", event.target.value)}
                   placeholder={t("urlPlaceholder")}
-                  hint={sourceReady ? t("httpUrlReadyHint") : t("httpUrlInvalidHint")}
+                  hint={sourceReady ? t("httpUrlReadyHint") : blockedReason}
+                  maxLength={MAX_ORACLE_HTTP_URL_LENGTH}
                   spellCheck={false}
                   mono
                 />
@@ -255,6 +308,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                   onChange={(event) => update("jsonPath", event.target.value)}
                   placeholder={t("jsonPathPlaceholder")}
                   hint={pathReady ? t("httpPathReadyHint") : t("httpPathInvalidHint")}
+                  maxLength={MAX_ORACLE_HTTP_PATH_LENGTH}
                   spellCheck={false}
                   mono
                 />
@@ -266,15 +320,29 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
                 value={values.body}
                 onChange={(event) => update("body", event.target.value)}
                 placeholder={t("bodyPlaceholder")}
-                hint={method === "POST" ? t("httpBodyPostHint") : t("httpBodyGetHint")}
+                hint={method !== "POST"
+                  ? t("httpBodyGetHint")
+                  : bodyReady
+                    ? t("httpBodyPostHint")
+                    : t(bodyValidation.errorKey)}
                 disabled={method !== "POST"}
+                maxLength={MAX_ORACLE_HTTP_BODY_BYTES}
                 spellCheck={false}
               />
             </div>
             <dl className="oracle-http-drawer__facts">
-              <div><dt>{t("lastStatus")}</dt><dd>{lastStatus}</dd></div>
+              <div><dt>{t("lastStatus")}</dt><dd>{statusLabel}</dd></div>
               <div><dt>{t("method")}</dt><dd>{method}</dd></div>
-              <div><dt>{t("httpBodyState")}</dt><dd>{bodyIncluded ? t("httpBodyIncluded") : t("httpBodyIgnored")}</dd></div>
+              <div>
+                <dt>{t("httpBodyState")}</dt>
+                <dd>{!bodyReady
+                  ? t(bodyValidation.errorKey)
+                  : bodyIncluded
+                    ? t("httpBodyIncluded")
+                    : method === "POST"
+                      ? t("httpBodyEmpty")
+                      : t("httpBodyIgnored")}</dd>
+              </div>
             </dl>
           </OpenUiPanel>
         )}
@@ -314,7 +382,18 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             <div className="oracle-http-drawer__digest">
               <span>{t("statDigest")}</span>
               <code>{digestReady ? lastDigest : t("digestPlaceholder")}</code>
-              <small>{digestReady ? t("httpValidationReady") : t("httpPipelineCopy")}</small>
+              <small>{digestReady ? t("httpEmptyCopy") : draftDirty ? t("httpDraftChanged") : t("httpPipelineCopy")}</small>
+              <button
+                type="button"
+                className="oracle-http-copy-action"
+                onClick={copyPayload}
+                disabled={!digestReady || copying || copyFlag.active}
+              >
+                {copyFlag.active
+                  ? <CheckCircle2 size={15} aria-hidden="true" />
+                  : <Copy size={15} aria-hidden="true" />}
+                <span>{copying ? t("copyingPayload") : copyFlag.active ? t("payloadCopied") : t("copyPayload")}</span>
+              </button>
             </div>
           </OpenUiPanel>
         )}
@@ -376,7 +455,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             </div>
             <div>
               <dt>{t("jsonPath")}</dt>
-              <dd>{jsonPath}</dd>
+              <dd>{canonicalPath}</dd>
             </div>
             <div>
               <dt>{t("statDigest")}</dt>
@@ -393,7 +472,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
       <PlayStage category="tool"
         stage={{ eyebrow: t(consoleConfig?.eyebrowKey || "panelEyebrow"), title: t(consoleConfig?.titleKey || "panelTitle"), subtitle: endpointLabel || "", badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkLabel || appMeta.networkLabel}</span> }}
         scene={scene}
-        score={[{ label: t("statRequests"), value: String(requestCount), accent: true }, { label: t("lastStatus"), value: lastStatus }]}
+        score={[{ label: t("statRequests"), value: String(requestCount), accent: true }, { label: t("lastStatus"), value: statusLabel }]}
         actions={{
           primary: {
             label: primaryLabel,

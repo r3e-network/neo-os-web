@@ -14,7 +14,9 @@ export const GRAVEYARD_APP_ID = "miniapp-graveyard";
 export const GRAVEYARD_DEFAULT_BURY_FEE_FIXED8 = "10000000";
 export const GRAVEYARD_DEFAULT_FORGET_FEE_FIXED8 = "100000000";
 export const GRAVEYARD_BURY_MEMO = "miniapp-graveyard:memory";
-export const GRAVEYARD_FORGET_MEMO = "miniapp-graveyard:forget";
+// The deployed contract credits both buryMemory and forgetMemory through the
+// same `:memory` prepaid lane (verified against the live TestNet harness).
+export const GRAVEYARD_FORGET_MEMO = "miniapp-graveyard:memory";
 
 export const RED_ENVELOPE_APP_ID = "miniapp-redenvelope";
 export const RED_ENVELOPE_CREATE_MEMO = "miniapp-redenvelope:create";
@@ -30,10 +32,6 @@ export const SELF_LOAN_APP_ID = "miniapp-self-loan";
 export const SELF_LOAN_COLLATERAL_MEMO = "selfloan:collateral";
 export const SELF_LOAN_FUND_MEMO = "selfloan:fund";
 export const SELF_LOAN_REPAY_MEMO = "selfloan:repay";
-
-export const DEV_TIPPING_APP_ID = "miniapp-dev-tipping";
-export const DEV_TIPPING_TIP_MEMO = "miniapp-dev-tipping:tip";
-export const DEV_TIPPING_MIN_TIP_FIXED8 = 100000n;
 
 export const MEMORIAL_SHRINE_APP_ID = "miniapp-memorial-shrine";
 export const MEMORIAL_SHRINE_TRIBUTE_MEMO = "miniapp-memorial-shrine:tribute";

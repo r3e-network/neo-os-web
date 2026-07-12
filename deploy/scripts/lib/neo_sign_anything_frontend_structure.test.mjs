@@ -22,7 +22,7 @@ test("Neo Sign Anything renders a v2 signature desk with proof drawer", () => {
     "sign-desk",
     "sign-desk__workspace",
     "sign-desk__paper",
-    "sign-desk__payload-sheet",
+    "sign-desk__payload-card",
     "sign-desk__proof",
     "sign-desk__photo",
     "sign-desk__route",
@@ -33,19 +33,20 @@ test("Neo Sign Anything renders a v2 signature desk with proof drawer", () => {
     "loadFileDigest",
     "copyToClipboard",
     "signMessage",
-    "broadcastMessage",
+    "clearHistory",
   ], "Neo Sign Anything");
   assert.match(main, /ctx\.framework\.actions\.register\("signMessage"/);
-  assert.match(main, /ctx\.framework\.actions\.register\("broadcastMessage"/);
+  assert.match(main, /ctx\.framework\.actions\.register\("setSigningMode"/);
+  assert.doesNotMatch(main, /broadcastMessage/);
   assertAssets(["apps/neo-sign-anything/public/signature-desk.webp"]);
   assertMessageKeys(messages, [
-    "signHeroKicker",
-    "signHeroTitle",
+    "heroKicker",
+    "heroTitle",
     "messageLabel",
-    "signatureResult",
-    "broadcastResult",
-    "proofDetails",
-    "copyVerifyBundle",
+    "signaturePending",
+    "proofPanelTitle",
+    "copyProofBundle",
+    "boundAssuranceTitle",
   ], "Neo Sign Anything");
   assert.match(styles, /\.sign-desk\s*\{/);
   assert.match(styles, /@media \(max-width:/);

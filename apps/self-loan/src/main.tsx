@@ -17,7 +17,8 @@ import { defineMiniApp } from "@shared/react/defineMiniApp";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useSelfLoan } from "./composables/useSelfLoan";
+import { useSelfLoan, type ActionOutcome } from "./composables/useSelfLoan";
+import { attestSelfLoanContract } from "./self-loan-rpc";
 
 defineMiniApp({
   appId: "miniapp-self-loan",
@@ -29,6 +30,8 @@ defineMiniApp({
     const loan = useSelfLoan({
       app: ctx.framework,
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      launchNetwork: ctx.launchContext.network,
+      attestContract: attestSelfLoanContract,
     });
 
     loan.setAddress(ctx.framework.wallet.address() ?? "");
@@ -40,39 +43,64 @@ defineMiniApp({
       void loan.loadAll();
     });
 
+    const runWrite = async (
+      work: () => Promise<ActionOutcome>,
+      successKey: string,
+    ): Promise<ActionOutcome | false> => {
+      const outcome = await ctx.framework.notify.guardResult(work);
+      if (!outcome.ok) return false;
+      if (outcome.value === "confirmed") ctx.framework.notify.success(successKey);
+      else ctx.framework.notify.info("pendingConfirmationLabel");
+      return outcome.value;
+    };
+
     ctx.framework.actions.register("borrow", async (formData: unknown) => {
-      await ctx.framework.notify.guard(
+      return runWrite(
         () => loan.borrow(formData as Record<string, unknown>),
-        { successKey: "borrowSuccess" },
+        "borrowSuccess",
       );
     });
 
     ctx.framework.actions.register("repay", async (amount: unknown) => {
-      await ctx.framework.notify.guard(
+      return runWrite(
         () => loan.repay(String(amount)),
-        { successKey: "repaySuccess" },
+        "repaySuccess",
       );
     });
 
     ctx.framework.actions.register("addCollateral", async (amount: unknown) => {
-      await ctx.framework.notify.guard(
+      return runWrite(
         () => loan.addCollateral(String(amount)),
-        { successKey: "collateralAdded" },
+        "collateralAdded",
       );
     });
 
     ctx.framework.actions.register("reclaimCollateral", async () => {
-      await ctx.framework.notify.guard(
+      return runWrite(
         () => loan.reclaimCollateral(),
-        { successKey: "reclaimCollateralSuccess" },
+        "reclaimCollateralSuccess",
       );
     });
 
     ctx.framework.actions.register("reclaimRepayCredit", async () => {
-      await ctx.framework.notify.guard(
+      return runWrite(
         () => loan.reclaimRepayCredit(),
-        { successKey: "reclaimRepaySuccess" },
+        "reclaimRepaySuccess",
       );
+    });
+
+    ctx.framework.actions.register("connectWallet", async () => {
+      const outcome = await ctx.framework.notify.guardResult(async () => {
+        const next = await ctx.framework.chain.ensureWallet();
+        loan.setAddress(next);
+        await loan.loadAll();
+      });
+      return outcome.ok;
+    });
+
+    ctx.framework.actions.register("refresh", async () => {
+      await loan.loadAll();
+      return true;
     });
 
     ctx.framework.actions.register("setCollateralAmount", async (amount: unknown) => {
@@ -90,8 +118,11 @@ defineMiniApp({
       state: {
         loan: loan.loan,
         neoBalance: loan.neoBalance,
+        gasBalance: loan.gasBalance,
         neoPrice: loan.neoPrice,
+        neoPriceBase: loan.neoPriceBase,
         neoPriceDisplay: loan.neoPriceDisplay,
+        poolGas: loan.poolGas,
         poolDisplay: loan.poolDisplay,
         hasActiveLoan: loan.hasActiveLoan,
         borrowOkNonce: loan.borrowOkNonce,
@@ -108,17 +139,36 @@ defineMiniApp({
         isRepaying: loan.isRepaying,
         isAddingCollateral: loan.isAddingCollateral,
         isProcessing: loan.isProcessing,
+        isRefreshing: loan.isRefreshing,
         isConnected: loan.isConnected,
+        marketStatus: loan.marketStatus,
+        balancesStatus: loan.balancesStatus,
+        positionStatus: loan.positionStatus,
+        recoveryStatus: loan.recoveryStatus,
+        statsStatus: loan.statsStatus,
+        marketReady: loan.marketReady,
+        borrowDataReady: loan.borrowDataReady,
+        manageDataReady: loan.manageDataReady,
+        readError: loan.readError,
+        lastRefreshAt: loan.lastRefreshAt,
+        runtimeStatus: loan.runtimeStatus,
+        runtimeCompatible: loan.runtimeCompatible,
+        repayRecoveryAvailable: loan.repayRecoveryAvailable,
+        activeNetwork: loan.activeNetwork,
+        runtimeChecksum: loan.runtimeChecksum,
         selectedLtvPercent: loan.selectedLtvPercent,
         healthFactor: loan.healthFactor,
+        coverageRatio: loan.coverageRatio,
         currentLTV: loan.currentLTV,
         collateralDisplay: loan.collateralDisplay,
         borrowedDisplay: loan.borrowedDisplay,
         healthFactorDisplay: loan.healthFactorDisplay,
+        coverageRatioDisplay: loan.coverageRatioDisplay,
         currentLTVDisplay: loan.currentLTVDisplay,
         healthMetricLabel: loan.healthMetricLabel,
         hasLoanDisplay: loan.hasLoanDisplay,
         neoBalanceDisplay: loan.neoBalanceDisplay,
+        gasBalanceDisplay: loan.gasBalanceDisplay,
         totalLoans: loan.totalLoans,
         totalBorrowedDisplay: loan.totalBorrowedDisplay,
         totalRepaidDisplay: loan.totalRepaidDisplay,
@@ -126,6 +176,8 @@ defineMiniApp({
         // Relayed-but-unconfirmed notice (chain.invoke verified=false)
         pendingConfirmation: loan.pendingConfirmation,
         hasPendingConfirmation: loan.hasPendingConfirmation,
+        hasPendingOperation: loan.hasPendingOperation,
+        journalReady: loan.journalReady,
         // Reclaim affordances (deposit-then-act recovery paths)
         collateralCredit: loan.collateralCredit,
         repayCredit: loan.repayCredit,

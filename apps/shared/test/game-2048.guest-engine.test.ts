@@ -4,7 +4,11 @@ import { createObservable } from "../react/context";
 import { createGameSessionObservables } from "@framework/game";
 import { createGuestEngine } from "../../game-2048/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../game-2048/src/logic/guest-engine";
-import { applyMove } from "../../game-2048/src/logic/engine-2048";
+import {
+  MOVE_ANIMATION_MS,
+  applyMove,
+} from "../../game-2048/src/logic/engine-2048";
+import type { MoveTransition } from "../../game-2048/src/logic/engine-2048";
 import { ruleOf } from "../../game-2048/src/logic/game-rules";
 
 /**
@@ -21,11 +25,27 @@ function makeObs<T>(initial: T) {
   return createObservable<T>(initial);
 }
 
-function setup() {
+function memoryStorage() {
+  const values = new Map<string, unknown>();
+  return {
+    get<T>(key: string, fallback: T | null = null): T | null {
+      return values.has(key) ? values.get(key) as T : fallback;
+    },
+    set(key: string, value: unknown): void {
+      values.set(key, structuredClone(value));
+    },
+    delete(key: string): void {
+      values.delete(key);
+    },
+  };
+}
+
+function setup(overrides: Partial<GuestEngineDeps> = {}) {
   const obs = createGameSessionObservables();
   const runBoard = makeObs<number[]>([]);
   const runMoveCount = makeObs<number>(0);
   const runMaxExp = makeObs<number>(0);
+  const moveTransition = makeObs<MoveTransition | null>(null);
   const isMoving = makeObs<boolean>(false);
   const balancesReady = makeObs<boolean>(false);
 
@@ -33,6 +53,7 @@ function setup() {
   const board: Array<{ user: string; score: string }> = [];
   const get = vi.fn(async (_limit?: number) => board.slice());
   const guestLeaderboard = { submit, get };
+  const storage = overrides.storage ?? memoryStorage();
 
   const setStatus = vi.fn();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -43,14 +64,31 @@ function setup() {
     runBoard,
     runMoveCount,
     runMaxExp,
+    moveTransition,
     isMoving,
     balancesReady,
     guestLeaderboard,
+    storage,
     t,
     setStatus,
+    ...overrides,
   };
   const engine = createGuestEngine(deps);
-  return { engine, obs, runBoard, runMoveCount, runMaxExp, isMoving, balancesReady, submit, get, board, setStatus };
+  return {
+    engine,
+    obs,
+    runBoard,
+    runMoveCount,
+    runMaxExp,
+    moveTransition,
+    isMoving,
+    balancesReady,
+    submit,
+    get,
+    board,
+    storage,
+    setStatus,
+  };
 }
 
 /** Find a direction (0..3) that changes the given board, or -1 if none. */
@@ -67,6 +105,7 @@ describe("game-2048 guest engine", () => {
   });
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("deals a fully local board on startGame with no leaderboard writes", () => {
@@ -86,23 +125,36 @@ describe("game-2048 guest engine", () => {
     expect(h.get).not.toHaveBeenCalled();
   });
 
-  it("commits a valid move after the local latency and spawns a tile, no writes", () => {
+  it("commits a valid move with an authoritative trace and holds the animation lock", () => {
     const h = setup();
     h.engine.startGame({ difficulty: 0 });
-    const dir = firstValidDir(h.runBoard.get());
+    const before = [...h.runBoard.get()];
+    const dir = firstValidDir(before);
     expect(dir).toBeGreaterThanOrEqual(0);
 
     h.engine.playMove({ dir });
     // Move is pending: board unchanged, isMoving true (mirrors gamefi round-trip).
     expect(h.isMoving.get()).toBe(true);
     expect(h.runMoveCount.get()).toBe(0);
+    expect(h.moveTransition.get()).toBeNull();
 
     vi.advanceTimersByTime(200);
 
-    expect(h.isMoving.get()).toBe(false);
+    // The local move has committed, but input stays locked through Phaser's
+    // slide + merge/spawn window.
+    expect(h.isMoving.get()).toBe(true);
     expect(h.runMoveCount.get()).toBe(1);
     const after = h.runBoard.get();
     expect(after.filter((v) => v > 0).length).toBeGreaterThanOrEqual(2); // move + spawn
+    const transition = h.moveTransition.get();
+    expect(transition?.before).toEqual(before);
+    expect(transition?.after).toEqual(after);
+    expect(transition?.motions.map((motion) => motion.source).sort((a, b) => a - b)).toEqual(
+      before.flatMap((exp, index) => (exp > 0 ? [index] : [])),
+    );
+
+    vi.advanceTimersByTime(MOVE_ANIMATION_MS);
+    expect(h.isMoving.get()).toBe(false);
     // A normal move never hits the off-chain board (guard-never-fires analog).
     expect(h.submit).not.toHaveBeenCalled();
   });
@@ -116,12 +168,13 @@ describe("game-2048 guest engine", () => {
     expect(h.isMoving.get()).toBe(true);
     // Second move while in flight is dropped.
     h.engine.playMove({ dir });
-    vi.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200 + MOVE_ANIMATION_MS);
     expect(h.runMoveCount.get()).toBe(1);
   });
 
   it("submitRun settles the run, records the best tile off-chain, and returns to lobby", async () => {
-    const h = setup();
+    const winningBoard = [9, ...new Array(15).fill(0)];
+    const h = setup({ initialBoardFactory: () => winningBoard });
     h.engine.startGame({ difficulty: 0 });
     const maxExp = h.runMaxExp.get();
 
@@ -133,21 +186,88 @@ describe("game-2048 guest engine", () => {
     expect(h.submit).toHaveBeenCalledWith(2 ** maxExp); // highest tile value
     expect(h.get).toHaveBeenCalled(); // guest board refreshed after settle
     expect(h.obs.myTotalWon.get()).toBe(2 ** maxExp); // best tile, not GAS
+    expect(h.obs.myHistory.get()[0]).toMatchObject({
+      difficulty: 0,
+      payout: "0 GAS",
+      bestTile: 512,
+      won: true,
+    });
   });
 
-  it("undo trims the last move locally with no penalty status", async () => {
+  it("rejects an early guest settlement before the target or game-over state", async () => {
+    const h = setup();
+    h.engine.startGame({ difficulty: 0 });
+
+    await h.engine.submitRun();
+
+    expect(h.obs.gameStatus.get()).toBe("dealt");
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.obs.lastStatus.get()).toContain("guestTargetPending");
+  });
+
+  it("fails closed when secure randomness is unavailable", () => {
+    vi.stubGlobal("crypto", undefined);
+    const h = setup();
+
+    expect(() => h.engine.startGame({ difficulty: 0 })).toThrow("secureRandomUnavailable");
+    expect(h.obs.gameStatus.get()).toBe("idle");
+    expect(h.setStatus).toHaveBeenCalledWith("secureRandomUnavailable", "error");
+  });
+
+  it("undo trims the last move locally and consumes one of the three rescues", async () => {
     const h = setup();
     h.engine.startGame({ difficulty: 0 });
     const dir = firstValidDir(h.runBoard.get());
     h.engine.playMove({ dir });
-    vi.advanceTimersByTime(200);
+    vi.advanceTimersByTime(200 + MOVE_ANIMATION_MS);
     expect(h.runMoveCount.get()).toBe(1);
 
     h.engine.useUndo();
 
     expect(h.runMoveCount.get()).toBe(0);
+    expect(h.moveTransition.get()).toBeNull();
     expect(h.obs.lastStatus.get()).toBe("guestUndo");
-    expect(h.obs.undosUsed.get()).toBe(0); // no reward penalty tracked in guest
+    expect(h.obs.undosUsed.get()).toBe(1);
+  });
+
+  it("restores an unfinished board, timer, and undo count after reload", async () => {
+    const first = setup();
+    first.engine.startGame({ difficulty: 1 });
+    const dir = firstValidDir(first.runBoard.get());
+    first.engine.playMove({ dir });
+    vi.advanceTimersByTime(200 + MOVE_ANIMATION_MS);
+    first.engine.useUndo();
+
+    const expectedBoard = [...first.runBoard.get()];
+    const expectedDeadline = first.obs.deadline.get();
+    const second = setup({ storage: first.storage });
+    await second.engine.enter();
+
+    expect(second.obs.gameStatus.get()).toBe("dealt");
+    expect(second.obs.activeGameId.get()).toBe("guest");
+    expect(second.obs.gameDifficulty.get()).toBe(1);
+    expect(second.obs.deadline.get()).toBe(expectedDeadline);
+    expect(second.obs.undosUsed.get()).toBe(1);
+    expect(second.runBoard.get()).toEqual(expectedBoard);
+    expect(second.obs.lastStatus.get()).toBe("guestRunRecovered");
+  });
+
+  it("persists best tile and local history across sessions", async () => {
+    const winningBoard = [9, ...new Array(15).fill(0)];
+    const first = setup({ initialBoardFactory: () => winningBoard });
+    first.engine.startGame({ difficulty: 0 });
+    await first.engine.submitRun();
+
+    const second = setup({ storage: first.storage });
+    await second.engine.enter();
+
+    expect(second.obs.myTotalWon.get()).toBe(512);
+    expect(second.obs.mySolves.get()).toBe(1);
+    expect(second.obs.myHistory.get()[0]).toMatchObject({
+      bestTile: 512,
+      difficulty: 0,
+      won: true,
+    });
   });
 
   it("enter() zeroes on-chain counters and loads the off-chain board", async () => {

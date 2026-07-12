@@ -38,10 +38,6 @@ const copies = [
     from: path.join(appRoot, "public"),
     to: path.join(standaloneRoot, "public"),
   },
-  {
-    from: path.join(repoRoot, "apps"),
-    to: path.join(standaloneBase, "apps"),
-  },
 ];
 
 const hoistedPackages = [
@@ -82,6 +78,66 @@ function copyWithRetry(from, to, { attempts = 3, backoffMs = 250 } = {}) {
     }
   }
   throw lastError;
+}
+
+function copyRuntimeAppPayload(fromRoot, toRoot) {
+  const entries = fs
+    .readdirSync(fromRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const manifestSources = entries
+    .map((entry) => ({
+      slug: entry.name,
+      from: path.join(fromRoot, entry.name, "neo-manifest.json"),
+    }))
+    .filter((entry) => fs.existsSync(entry.from));
+
+  if (manifestSources.length === 0) {
+    throw new Error(
+      `[prepare-standalone] no MiniApp manifests found under ${fromRoot}`,
+    );
+  }
+
+  rmWithRetry(toRoot);
+  fs.mkdirSync(toRoot, { recursive: true });
+  for (const manifest of manifestSources) {
+    const target = path.join(toRoot, manifest.slug, "neo-manifest.json");
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    copyWithRetry(manifest.from, target);
+  }
+
+  // The Tarot card API resolves these files from ../../apps at runtime. Other
+  // MiniApp public assets and built dApps already live under host-app/public and
+  // are copied by the normal public payload above.
+  const tarotCardsFrom = path.join(
+    fromRoot,
+    "on-chain-tarot",
+    "public",
+    "cards",
+  );
+  const tarotCardsTo = path.join(
+    toRoot,
+    "on-chain-tarot",
+    "public",
+    "cards",
+  );
+  if (fs.existsSync(tarotCardsFrom)) {
+    fs.mkdirSync(path.dirname(tarotCardsTo), { recursive: true });
+    copyWithRetry(tarotCardsFrom, tarotCardsTo);
+  }
+
+  const copiedManifestCount = manifestSources.filter((manifest) =>
+    fs.existsSync(path.join(toRoot, manifest.slug, "neo-manifest.json")),
+  ).length;
+  if (copiedManifestCount !== manifestSources.length) {
+    throw new Error(
+      `[prepare-standalone] MiniApp manifest copy incomplete (${copiedManifestCount}/${manifestSources.length})`,
+    );
+  }
+
+  console.log(
+    `[prepare-standalone] copied runtime MiniApp payload (${copiedManifestCount} manifests${fs.existsSync(tarotCardsTo) ? " + Tarot cards" : ""}) -> ${toRoot}`,
+  );
 }
 
 const REQUIRED_STANDALONE_PAGE_FILES = [
@@ -236,6 +292,11 @@ for (const { from, to } of copies) {
   copyWithRetry(from, to);
   console.log(`[prepare-standalone] copied ${from} -> ${to}`);
 }
+
+copyRuntimeAppPayload(
+  path.join(repoRoot, "apps"),
+  path.join(standaloneBase, "apps"),
+);
 
 for (const pkg of hoistedPackages) {
   const src = path.join(repoRoot, "node_modules", pkg);

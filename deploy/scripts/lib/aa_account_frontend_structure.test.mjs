@@ -18,7 +18,8 @@ test("AA Account Lab exposes a scene-led AA registration workspace", () => {
   const styles = read("apps/aa-account-lab/src/PlayArea.scss");
   const messages = read("apps/aa-account-lab/src/locale/messages.ts");
 
-  assert.match(playArea, /from "@shared\/components-react\/v2"/);
+  assert.match(playArea, /from "@shared\/components-react\/v2\/OpenUiLite"/);
+  assert.match(playArea, /from "@shared\/components-react\/v2\/PlayStage"/);
   assert.match(playArea, /OpenUiProvider/);
   assert.match(playArea, /PlayStage/);
   assert.match(playArea, /OpenUiPanel/);
@@ -36,21 +37,23 @@ test("AA Account Lab exposes a scene-led AA registration workspace", () => {
   assert.match(playArea, /className="aa-scene__diagram"/);
   assert.match(playArea, /className="aa-scene__segments"/);
   assert.match(playArea, /className="aa-controls"/);
-  assert.match(playArea, /className="aa-visual-card"/);
+  assert.match(playArea, /className="aa-scene__visual"/);
+  assert.match(playArea, /className="aa-owner-card"/);
   assert.match(playArea, /className="aa-plan-grid"/);
   assert.match(playArea, /className="aa-drawer"/);
 
   assert.match(playArea, /void dispatch\("inspect", draftAccountId\)/);
   assert.match(playArea, /void dispatch\(\s*"register"/s);
   assert.match(playArea, /void dispatch\("connect"\)/);
-  assert.match(playArea, /if \(!shellReady\) return/);
-  assert.match(playArea, /disabled: Boolean\(connectedWallet\) && !shellReady/);
-  assert.match(playArea, /secondary: \[\{ label: t\("inspect"\), onClick: handleInspect, disabled: !draftAccountId\.trim\(\) \|\| busy \}\]/);
+  assert.match(playArea, /if \(!shellReady \|\| pendingRegistration\) return/);
+  assert.match(playArea, /disabled: busy \|\| \(!pendingRegistration && Boolean\(connectedWallet\) && !shellReady\)/);
+  assert.match(playArea, /secondary: \[\{ label: t\("inspect"\), onClick: handleInspect, disabled: !draftAccountId\.trim\(\) \|\| draftLocked \}\]/);
+  assert.match(playArea, /void dispatch\("recoverRegistration"\)/);
   assert.match(playArea, /drawerToggleLabel=\{t\("registerTitle"\)\}/);
   assert.match(playArea, /drawer=\{\{ title: t\("registerTitle"\), children: drawer \}\}/);
   assert.match(styles, /\.aa-play-area \.mx2-action-rail__row \.mx2-btn--primary:disabled/);
   assert.match(styles, /\.aa-workspace\s*\{[^}]*grid-template-columns/s);
-  assert.match(styles, /\.aa-scene\s*\{[^}]*background:\s*#ffffff/s);
+  assert.match(styles, /\.aa-scene\s*\{/);
   assert.match(styles, /\.aa-drawer\s*\{/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 

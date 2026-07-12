@@ -547,93 +547,6 @@ describe("useMiniAppDetailInvoke", () => {
     });
   });
 
-  it("sends Dev Tipping tips through a funded batch transaction", async () => {
-    const invokeMultiple = jest.fn().mockResolvedValue({ txid: "0xdevtiptx" });
-    (getWalletAdapter as jest.Mock).mockReturnValue({ invokeMultiple });
-    const setInvokeFeedback = jest.fn();
-    const router = {
-      pathname: "/miniapps/dev-tipping",
-      query: { network: "testnet" },
-      replace: jest.fn(),
-    };
-
-    const { result } = renderHook(() =>
-      useMiniAppDetailInvoke({
-        app: { app_id: "miniapp-dev-tipping" } as never,
-        appSupportsTargetNetwork: true,
-        directContractHash: "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
-        launchContext: {} as never,
-        networkAvailabilityReason: null,
-        resolvedRuntime: null,
-        router: router as never,
-        setInvokeFeedback,
-        sharedRuntime: null,
-        targetCatalogNetwork: "neo-n3-testnet" as never,
-        targetNetwork: "testnet",
-        walletAddress: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-        walletConnected: true,
-        walletNetwork: "testnet",
-      }),
-    );
-
-    await act(async () => {
-      await result.current(
-        { method: "sendTip", name: "Send Tip" } as never,
-        {
-          devId: "7",
-          amount: "0.05",
-          message: "Thanks for building",
-          tipperName: "Neo supporter",
-        },
-      );
-    });
-
-    expect(invokeMultiple).toHaveBeenCalledWith(
-      [
-        {
-          scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-          operation: "transfer",
-          args: [
-            {
-              type: "Hash160",
-              value: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-            },
-            {
-              type: "Hash160",
-              value: "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
-            },
-            { type: "Integer", value: "5000000" },
-            { type: "String", value: "miniapp-dev-tipping:tip" },
-          ],
-        },
-        {
-          scriptHash: "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
-          operation: "tip",
-          args: [
-            {
-              type: "Hash160",
-              value: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-            },
-            { type: "Integer", value: "7" },
-            { type: "Integer", value: "5000000" },
-            { type: "String", value: "Thanks for building" },
-            { type: "String", value: "Neo supporter" },
-          ],
-        },
-      ],
-      [
-        {
-          account: "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu",
-          scopes: 1,
-        },
-      ],
-    );
-    expect(setInvokeFeedback).toHaveBeenLastCalledWith({
-      type: "success",
-      message: "Tip sent: 0xdevtiptx",
-    });
-  });
-
   it("creates Memorial Shrine records through a direct wallet invoke", async () => {
     const invoke = jest.fn().mockResolvedValue({ txid: "0xmemorialcreate" });
     (getWalletAdapter as jest.Mock).mockReturnValue({ invoke });
@@ -1991,7 +1904,7 @@ describe("useMiniAppDetailInvoke", () => {
               value: "0xb55aa635b10a5abb5cbac169db26a38df739778e",
             },
             { type: "Integer", value: "100000000" },
-            { type: "String", value: "miniapp-graveyard:forget" },
+            { type: "String", value: "miniapp-graveyard:memory" },
           ],
         },
         {

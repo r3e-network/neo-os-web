@@ -5,17 +5,24 @@
  * All blockchain logic stays in main.tsx; this component bridges the
  * observable state into Game2048Scene and forwards dispatch calls back.
  */
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@framework/phaser";
-import { ChevronDown, RefreshCw, RotateCcw, Trophy, WalletCards } from "lucide-react";
-import { Game2048Scene } from "./scenes/Game2048Scene";
-import { hasAnyMove, tileValue } from "./logic/engine-2048";
+import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
+import { ChevronDown, RefreshCw, RotateCcw, Trophy, WalletCards, X } from "lucide-react";
+import { applyMove, hasAnyMove, tileValue } from "./logic/engine-2048";
+import type { MoveTransition } from "./logic/engine-2048";
 import {
-  MAX_MOVES,
   MAX_UNDOS,
+  MAX_MOVES,
+  SETTLEMENT_GRACE_MS,
+  canReleaseExpiredGame,
   formatClock,
   gasDisplay,
   rewardPctAfterUndos,
@@ -26,15 +33,17 @@ import "./PlayArea.scss";
 
 const SUBMIT_BUFFER_MS = 15_000;
 const MIN_SOLVE_BUFFER_MS = 10_000;
+const DIFFICULTY_KEYS = ["sprint", "climb", "summit"] as const;
 
 const GAME_CONFIG = {
-  // Cast to mutable array so it satisfies Phaser's SceneType[] expectation
-  scene: [Game2048Scene] as (typeof Game2048Scene)[],
   width:  400,
   height: 580,
   backgroundColor: "transparent",
   transparent: true,
 };
+
+const loadGame2048Scene = () =>
+  import("./scenes/Game2048Scene").then((module) => module.Game2048Scene);
 
 function shortHash(value: string, head = 10, tail = 6): string {
   if (!value || value.length <= head + tail + 1) return value;
@@ -57,10 +66,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isSubmitting   = bool("isSubmitting");
   const isMoving       = bool("isMoving");
   const isUndoing      = bool("isUndoing");
+  const isRecovering   = bool("isRecovering");
   const balancesReady  = bool("balancesReady");
   const runBoard       = val<number[]>("runBoard") ?? [];
   const runMoveCount   = val<number>("runMoveCount", 0) ?? 0;
   const runMaxExp      = val<number>("runMaxExp", 0) ?? 0;
+  const moveTransition = val<MoveTransition | null>("moveTransition") ?? null;
   const creditGas      = val<number>("credit", 0) ?? 0;
   const poolFree       = val<number>("poolFree", 0) ?? 0;
   const dealtAt        = val<number>("dealtAt", 0) ?? 0;
@@ -73,35 +84,161 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const mySolves       = val<number>("mySolves", 0) ?? 0;
   const myTotalWon     = val<number>("myTotalWon", 0) ?? 0;
   const lastStatus     = str("lastStatus", t("statusReady"));
-  const appMode        = str("appMode", "gamefi");
+  const appMode        = str("appMode", "guest");
   const isGuest        = appMode === "guest";
+  const selectedDifficulty = val<number>("selectedDifficulty", gameDifficulty)
+    ?? gameDifficulty;
+  const settlementGraceMs = val<number>("settlementGraceMs", SETTLEMENT_GRACE_MS)
+    ?? SETTLEMENT_GRACE_MS;
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const difficultyRadioRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
-    if (gameStatus !== "dealt") return undefined;
+    if (!["committed", "dealt", "unknown"].includes(gameStatus)) return undefined;
+    // A finished run stops the ticker, so the cached clock can otherwise make
+    // a newly opened board briefly show more time than the lane allows.
+    const immediateNow = Date.now();
+    setNowMs((current) => (
+      Math.abs(immediateNow - current) > 1_000 ? immediateNow : current
+    ));
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [gameStatus]);
+  }, [deadline, gameStatus]);
+
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [drawerOpen]);
 
   const rule = ruleOf(gameDifficulty);
   const isPlaying = gameStatus === "dealt";
   const isSolved = gameStatus === "solved";
+  const isExpired = gameStatus === "expired" || gameStatus === "refunded";
   const isCommitted = gameStatus === "committed";
+  const settlementPending = gameStatus === "unknown";
   const hasActiveGame = activeGameId !== "0";
-  const busy = isStarting || isDealing || isSubmitting || isMoving || isUndoing;
+  const busy = isStarting || isDealing || isSubmitting || isMoving || isUndoing || isRecovering;
   const boardReady = runBoard.length === 16;
+  const dealPending = hasActiveGame && (isCommitted || (isPlaying && !boardReady));
   const targetReached = boardReady && runMaxExp >= rule.targetExp;
   const boardDead = boardReady && !targetReached && !hasAnyMove(runBoard);
+  const moveCapReached = runMoveCount >= MAX_MOVES;
   const remainingMs = deadline > 0 ? deadline - nowMs : 0;
   const elapsedMs = dealtAt > 0 ? nowMs - dealtAt : 0;
   const minSolveReached = dealtAt > 0 && elapsedMs >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
   const timeUp = isPlaying && deadline > 0 && remainingMs <= 0;
   const submitWindowClosed = isPlaying && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
-  const canSubmit = isPlaying && targetReached && minSolveReached && !submitWindowClosed;
+  const runEnded = targetReached || boardDead || moveCapReached;
+  const canSubmit = isPlaying
+    && runEnded
+    && !timeUp
+    && (isGuest || minSolveReached)
+    && (isGuest || !submitWindowClosed);
+  const releaseReady = !isGuest && hasActiveGame && canReleaseExpiredGame(
+    deadline,
+    settlementGraceMs,
+    nowMs,
+  );
+  const recoveryPending = !isGuest
+    && hasActiveGame
+    && deadline > 0
+    && (dealPending || settlementPending || timeUp);
   const undosLeft = Math.max(0, MAX_UNDOS - undosUsed);
   const currentRewardPct = rewardPctAfterUndos(undosUsed);
   const projectedPayout = (Number(gasDisplay(rule.rewardFixed8)) * currentRewardPct) / 100;
+  const isLobby = ["idle", "solved", "expired", "refunded"].includes(gameStatus);
+  const difficultyOptions = DIFFICULTY_KEYS.map((key, index) => {
+    const optionRule = ruleOf(index);
+    return {
+      id: index,
+      label: t(`difficulty_${key}`),
+      target: t("targetTile", { tile: optionRule.targetTile }),
+    };
+  });
+  const canMoveControls = isPlaying
+    && boardReady
+    && !busy
+    && !timeUp
+    && !boardDead
+    && !moveCapReached;
+
+  const handleDifficultyKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    if (!isLobby || busy) return;
+    const direction =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? 1
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (direction === 0) return;
+    event.preventDefault();
+    const next = (index + direction + difficultyOptions.length) % difficultyOptions.length;
+    difficultyRadioRefs.current[next]?.focus();
+    void dispatch("setDifficulty", next);
+  };
+
+  const semanticPrimary: {
+    action: string;
+    args?: unknown[];
+    disabled: boolean;
+    label: string;
+  } | null = (() => {
+    if (isGuest && timeUp) {
+      return { action: "expireGame", args: [{}], disabled: busy, label: t("endRunAction") };
+    }
+    if (releaseReady && recoveryPending) {
+      return { action: "expireGame", args: [{}], disabled: busy, label: t("releaseAction") };
+    }
+    if (settlementPending) {
+      return {
+        action: "checkSettlement",
+        args: [{}],
+        disabled: busy,
+        label: isRecovering ? t("settlementCheckingTitle") : t("checkSettlementAction"),
+      };
+    }
+    if (dealPending) {
+      return {
+        action: "retryDeal",
+        args: [{}],
+        disabled: busy,
+        label: isDealing ? t("statusShuffling") : t("checkDealAgain"),
+      };
+    }
+    if (isLobby) {
+      return {
+        action: "startGame",
+        args: [{ difficulty: selectedDifficulty }],
+        disabled: busy,
+        label: isStarting ? t("startOpening") : t("startOpenRun"),
+      };
+    }
+    if (canSubmit) {
+      return {
+        action: "submitRun",
+        args: [{}],
+        disabled: busy,
+        label: targetReached ? t("submitAction") : t("endRunAction"),
+      };
+    }
+    if (recoveryPending) {
+      return {
+        action: "expireGame",
+        args: [{}],
+        disabled: true,
+        label: t("releaseWaitAction"),
+      };
+    }
+    return null;
+  })();
 
   // Bridge state pushed into the Phaser scene via GameBridge
   const bridgeState = {
@@ -109,9 +246,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     commitment: commitmentHex,
     gameStatus,
     gameDifficulty,
+    selectedDifficulty,
     runBoard,
     runMoveCount,
     runMaxExp,
+    moveTransition,
     isStarting,
     isDealing,
     isSubmitting,
@@ -138,19 +277,38 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     startCheckingPool: t("startCheckingPool"),
     startPoolLow: t("startPoolLow"),
     guestLaneTag: t("guestRunValue"),
+    scoreBestCaption: t("scoreBestCaption"),
+    boardControlsHint: t("controlsHint"),
+    lobbyHeading: t("lobbyHeading"),
+    lobbySubtitle: isGuest ? t("guestLobbySubtitle") : t("lobbySubtitle"),
+    difficultyLabels: DIFFICULTY_KEYS.map((key) => t(`difficulty_${key}`)),
+    difficultyCopy: DIFFICULTY_KEYS.map((key) => t(`difficulty_${key}_copy`)),
+    difficultyTimes: DIFFICULTY_KEYS.map((_, index) => t("timeAmount", {
+      minutes: Math.round(ruleOf(index).limitMs / 60_000),
+    })),
+    dealingLabel: t("dealingLabel"),
+    celebrationTitle: t("celebrationTitle"),
+    celebrationCopy: t("celebrationCopy"),
+    celebrationDismiss: t("celebrationDismiss"),
   };
 
   const stageTitle = isSolved
     ? t("statusWonTitle")
+    : isExpired
+      ? (isGuest ? t("guestGameOverTitle") : t("expiredBanner"))
     : isPlaying
       ? t("playingTitle", { tile: rule.targetTile })
       : isCommitted
         ? t("statusShuffling")
-        : t("lobbyTitle");
+        : settlementPending
+          ? t("settlementPendingTitle")
+          : recoveryPending
+            ? t("releaseWaitTitle")
+            : t("lobbyTitle");
 
   const submitAction = canSubmit
     ? {
-        label:    t("submitAction"),
+        label:    targetReached ? t("submitAction") : t("endRunAction"),
         onClick:  () => void dispatch("submitRun", {}),
         disabled: busy,
         loading:  isSubmitting,
@@ -170,7 +328,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           hint:    t("undoHint"),
         }]
       : []),
-    ...(((timeUp || (isCommitted && !isDealing)) && hasActiveGame)
+    ...(((releaseReady || (isGuest && timeUp)) && hasActiveGame)
       ? [{
           label:   t("releaseAction") ?? "Release",
           onClick: () => void dispatch("expireGame", {}),
@@ -178,12 +336,22 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           hint:    timeUp || boardDead ? t("timeUpHint") : t("releaseHint"),
         }]
       : []),
-    ...(isCommitted && !isDealing
+    ...(dealPending && !isDealing
       ? [{
           label:   t("checkDealAgain"),
           onClick: () => void dispatch("retryDeal", {}),
           icon:    <RefreshCw size={16} aria-hidden="true" />,
           hint:    t("statusDealPending"),
+        }]
+      : []),
+    ...(settlementPending
+      ? [{
+          label: t("checkSettlementAction"),
+          onClick: () => void dispatch("checkSettlement", {}),
+          disabled: busy,
+          loading: isRecovering,
+          icon: <RefreshCw size={16} aria-hidden="true" />,
+          hint: t("settlementStillPending"),
         }]
       : []),
   ];
@@ -206,8 +374,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       value: `${tileValue(runMaxExp)}/${rule.targetTile}`,
     },
     {
-      label: t("scoreTime"),
-      value: isPlaying ? formatClock(remainingMs) : formatClock(rule.limitMs),
+      label: recoveryPending ? t("scoreReleaseIn") : t("scoreTime"),
+      value: recoveryPending
+        ? formatClock(deadline + settlementGraceMs - nowMs)
+        : isPlaying
+          ? formatClock(remainingMs)
+          : formatClock(rule.limitMs),
     },
   ];
 
@@ -219,11 +391,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         stage={{
           eyebrow:  t("appEyebrow"),
           title:    stageTitle,
-          subtitle: t("appSubtitle"),
+          subtitle: isGuest ? t("guestModeLine") : t("appSubtitle"),
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {t("networkBadge")}
+                <span className="mx2-badge__dot" /> {isGuest ? t("guestRunValue") : t("networkBadge")}
               </span>
               {myRank > 0 && (
                 <span className="mx2-badge">{t("rankBadge", { rank: myRank })}</span>
@@ -240,12 +412,89 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="rush-stage-shell">
             <PhaserGameComponent
               config={GAME_CONFIG}
+              loadScene={loadGame2048Scene}
               state={bridgeState}
               dispatch={dispatch}
               className="rush-phaser-canvas"
-              ariaLabel="2048 Rush tile merge game"
-              loadingLabel="Loading tile table"
+              ariaLabel={t("game2048StageAlt")}
+              loadingLabel={t("openingTileBoard")}
+              errorLabel={t("game2048ActionFailed")}
+              retryLabel={t("retry")}
+              continueLabel={t("continue")}
+              enableSoundLabel={t("enableGameSound")}
+              muteSoundLabel={t("muteGameSound")}
             />
+
+            <div className="rush-a11y-layer">
+              <div
+                className="rush-a11y-difficulties"
+                role="radiogroup"
+                aria-label={t("difficultyTitle")}
+              >
+                {difficultyOptions.map((option, index) => {
+                  const selected = option.id === selectedDifficulty;
+                  return (
+                    <button
+                      key={option.id}
+                      ref={(node) => {
+                        difficultyRadioRefs.current[index] = node;
+                      }}
+                      type="button"
+                      role="radio"
+                      className="rush-a11y-hit rush-a11y-difficulty"
+                      data-index={index}
+                      aria-checked={selected}
+                      aria-label={`${option.label}. ${option.target}`}
+                      tabIndex={selected ? 0 : -1}
+                      disabled={!isLobby || busy}
+                      onClick={() => void dispatch("setDifficulty", option.id)}
+                      onKeyDown={(event) => handleDifficultyKeyDown(event, index)}
+                    >
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rush-a11y-moves" role="group" aria-label={t("padLabel")}>
+                {[
+                  { dir: 0, label: t("moveUp") },
+                  { dir: 1, label: t("moveRight") },
+                  { dir: 2, label: t("moveDown") },
+                  { dir: 3, label: t("moveLeft") },
+                ].map((move) => (
+                  <button
+                    key={move.dir}
+                    type="button"
+                    className="rush-a11y-hit rush-a11y-move"
+                    data-dir={move.dir}
+                    aria-label={move.label}
+                    disabled={!canMoveControls || !applyMove([...runBoard], move.dir)}
+                    onClick={() => void dispatch("playMove", { dir: move.dir })}
+                  >
+                    <span>{move.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {semanticPrimary && (
+                <button
+                  type="button"
+                  className="rush-a11y-hit rush-a11y-primary"
+                  aria-label={semanticPrimary.label}
+                  disabled={semanticPrimary.disabled}
+                  onClick={() => void dispatch(
+                    semanticPrimary.action,
+                    ...(semanticPrimary.args ?? []),
+                  )}
+                >
+                  <span>{semanticPrimary.label}</span>
+                </button>
+              )}
+            </div>
+            <p className="rush-a11y-status" aria-live="polite" aria-atomic="true">
+              {stageTitle}. {lastStatus}. {isPlaying && deadline > 0 ? `${formatClock(remainingMs)}.` : ""}
+            </p>
             <div className="rush-stage-hud" aria-label={t("sidebarTitle")}>
               {hudItems.map((item) => (
                 <div
@@ -284,6 +533,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <div className="rush-drawer__head">
                   <img src="./logo.webp" alt="" width={40} height={40} draggable={false} />
                   <p>{isGuest ? t("guestModeLine") : t("leaderboardIntro")}</p>
+                  <button
+                    type="button"
+                    className="rush-drawer__close"
+                    aria-label={t("close")}
+                    title={t("close")}
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    <X size={17} aria-hidden="true" />
+                  </button>
                 </div>
 
                 <div className="rush-drawer__summary">
@@ -322,7 +580,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </div>
                 )}
 
-                {creditGas > 0 && (
+                {!isGuest && creditGas > 0 && (
                   <div className="rush-drawer__credit">
                     <span>
                       <small>{t("creditLabel")}</small>
@@ -384,7 +642,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                           <span className="rush-history__undos">
                             {t("historyUndos", { undos: row.undos })}
                           </span>
-                          <strong>{historyPayout(row)}</strong>
+                          <strong>
+                            {isGuest
+                              ? t("bestTile", { tile: Number(row.bestTile ?? 0) })
+                              : historyPayout(row)}
+                          </strong>
                         </li>
                       );
                     })}
@@ -401,7 +663,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <p>{t("fairnessCopy")}</p>
                   </>
                 )}
-                {commitmentHex && (
+                {!isGuest && commitmentHex && (
                   <p className="rush-drawer__seed">
                     {t("commitmentLine", {
                       commitment: shortHash(commitmentHex, 12, 8),
@@ -409,7 +671,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     })}
                   </p>
                 )}
-                {lastPayout && (
+                {!isGuest && lastPayout && (
                   <p className="rush-drawer__seed">{t("solvedBanner", { payout: lastPayout })}</p>
                 )}
               </section>

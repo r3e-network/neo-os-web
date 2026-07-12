@@ -131,11 +131,26 @@
 }
 
 .neopay-drawer-tabs__group .semi-radio {
+  position: relative;
   min-width: 0;
   width: auto !important;
   flex: 1 1 0 !important;
   margin: 0;
   padding: 0;
+}
+
+.neopay-drawer-tabs__group .semi-radio > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.neopay-drawer-tabs__group .semi-radio:focus-within .neopay-drawer-tab {
+  outline: 3px solid rgba(3, 105, 161, 0.2);
+  outline-offset: 2px;
 }
 
 .neopay-drawer-tabs__group .semi-radio-inner-buttonRadio {
@@ -254,6 +269,16 @@
   gap: 12px;
 }
 
+@media (min-width: 721px) {
+  .neopay-ticket-board__hero {
+    grid-template-columns: minmax(230px, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .neopay-terminal__art {
+    height: 210px;
+  }
+}
+
 .neopay-ticket-board__media {
   min-width: 0;
   display: grid;
@@ -327,6 +352,20 @@
   font: inherit;
 }
 
+.neopay-token-icon {
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.neopay-token-option small {
+  overflow: hidden;
+  color: var(--mx2-text-muted);
+  font-size: 9px;
+  font-weight: 540;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .neopay-amount-console__main button {
   width: 42px;
   height: 42px;
@@ -348,6 +387,14 @@
 .neopay-amount-field {
   min-width: 0;
   margin: 0;
+}
+
+.neopay-amount-console__hint {
+  margin: 0;
+  color: #9f1239;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .neopay-input.mx2-open-field__control {
@@ -459,6 +506,19 @@
   font-size: 12px;
   font-weight: 520;
   line-height: 1.35;
+}
+
+.neopay-recipient-card[data-state="invalid"] .neopay-recipient-card__entry {
+  border-color: rgba(185, 28, 28, 0.24);
+  background: #fef2f2;
+}
+
+.neopay-recipient-card[data-state="invalid"] p {
+  color: #b91c1c;
+}
+
+.neopay-recipient-card[data-state="valid"] .neopay-recipient-card__entry {
+  border-color: rgba(15, 118, 110, 0.32);
 }
 
 .neopay-schedule-card {
@@ -713,6 +773,9 @@
 }
 
 .neopay-stream-card strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--mx2-ink);
   font-weight: 620;
 }
@@ -832,6 +895,14 @@
 }
 
 @media (max-width: 720px) {
+  .neo-pay-play-area {
+    padding-bottom: 82px;
+  }
+
+  .neo-pay-play-area:has(.mx2-action-rail__row > .mx2-btn--ghost:not(.mx2-action-rail__drawer-toggle)) {
+    padding-bottom: 142px;
+  }
+
   .neopay-terminal {
     width: 100%;
     gap: 10px;
@@ -855,7 +926,9 @@
   }
 
   .neopay-stream {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+    gap: 7px;
+    padding: 9px;
   }
 
   .neopay-stream__rail {
@@ -864,18 +937,22 @@
   }
 
   .neopay-stream__rail::before {
-    inset: 2px auto 2px 50%;
-    width: 2px;
-    height: auto;
-    transform: translateX(-50%);
+    inset: auto 3px 50%;
+    width: auto;
+    height: 2px;
+    transform: translateY(50%);
   }
 
   .neopay-stream__rail svg {
-    transform: rotate(90deg);
+    width: 16px;
   }
 
   .neopay-stream__pulse {
-    animation-name: neopay-stream-flow-y;
+    animation-name: neopay-stream-flow;
+  }
+
+  .neopay-stream__node {
+    padding: 9px;
   }
 
   .neopay-ticket-board {
@@ -977,6 +1054,34 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) 104px;
     gap: 8px;
+  }
+
+  .neo-pay-play-area .mx2-action-rail__row:has(> .mx2-btn--ghost:not(.mx2-action-rail__drawer-toggle)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .neo-pay-play-area .mx2-action-rail__row:has(> .mx2-btn--ghost:not(.mx2-action-rail__drawer-toggle)) > .mx2-btn--primary {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .neo-pay-play-area .mx2-action-rail__row:has(> .mx2-btn--ghost:not(.mx2-action-rail__drawer-toggle)) > .mx2-btn--ghost {
+    width: 100%;
+  }
+
+  .neo-pay-play-area .mx2-action-rail {
+    position: fixed;
+    left: 50%;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 40;
+    width: min(calc(100% - 20px), 480px);
+    margin: 0;
+    padding: 7px;
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    border-radius: 18px;
+    background: rgba(255, 253, 248, 0.96);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+    transform: translateX(-50%);
   }
 
   .neo-pay-play-area .mx2-action-rail__row .mx2-btn--primary {

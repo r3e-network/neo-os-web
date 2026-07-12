@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import React from "react";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -12,16 +12,12 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
-  return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
-      mocks.phaserGame(props);
-      return <div data-testid="sudoku-phaser-host" />;
-    },
-  };
-});
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => ({
+  LazyPhaserGameComponent: (props: unknown) => {
+    mocks.phaserGame(props);
+    return <div data-testid="sudoku-phaser-host" />;
+  },
+}));
 
 import PhaserPlayArea from "../../sudoku/src/PhaserPlayArea";
 
@@ -32,45 +28,83 @@ afterEach(() => {
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
+    a11yBoardLabel: "Nine by nine Sudoku board",
+    a11yCellConflict: "Conflict",
+    a11yCellEmpty: "Row {row}, column {col}, empty",
+    a11yCellGiven: "Row {row}, column {col}, fixed clue {digit}",
+    a11yCellNotes: "Candidates {notes}",
+    a11yCellPlaced: "Row {row}, column {col}, placed digit {digit}",
+    a11yControlsLabel: "Accessible Sudoku controls",
+    a11yDigitPadLabel: "Sudoku digit pad",
+    a11ySelectedCell: "Selected row {row}, column {col}",
+    a11yStartGuest: "Start {difficulty} local puzzle",
     appEyebrow: "Sudoku Arena",
-    appSubtitle: "Solve the sealed board, protect your reward, and settle the win on Neo.",
+    appSubtitle: "Solve locally with candidates and recovery.",
+    boardReadyMessage: "Board complete — submit to verify",
+    canvasAriaLabel: "Sudoku Arena interactive puzzle",
+    canvasLoadingLabel: "Opening sealed Sudoku board",
     checkDealAgain: "Retry sealing",
+    closeDrawer: "Close leaderboard and rules",
+    conflictMessage: "Conflict highlighted",
     creditLabel: "Withdrawable credit",
+    diffName_0: "Easy",
+    diffName_1: "Medium",
+    diffName_2: "Hard",
     difficulty_0: "Warm-up Grid",
     difficulty_1: "Ranked Grid",
     difficulty_2: "Master Grid",
+    difficultyTitle: "Board route",
     drawerTitle: "Leaderboard & rules",
     drawerTitleShort: "Rules",
+    eraseNotesShort: "Clear",
     expiredBanner: "That board got away",
-    fairnessCopy: "TEE puzzle generation stays private.",
-    fairnessShort: "TEE settlement stays private until signed.",
+    fairnessShort: "Local unique puzzle.",
+    gameFiMaintenanceBody: "Verified GAS entry is paused.",
+    gameFiMaintenanceShort: "GAS mode paused",
+    guestFairnessShort: "Local unique puzzle.",
+    guestLobbyTitle: "Start a local puzzle",
+    guestModeLabel: "Mode",
+    guestModeValue: "Local play",
+    guestBestLabel: "Best score",
+    guestResultExpired: "Run ended",
+    guestRulesShort: "Fill the grid and beat the clock.",
+    guestRunLabel: "Local run",
+    guestRunValue: "Practice",
+    guestSubtitle: "Local puzzle with no stakes.",
+    hintLeftTemplate: "Hint {left}",
     lobbyTitle: "Open the sealed board",
     networkBadge: "Neo N3",
+    notesOnShort: "Notes on",
+    notesShort: "Notes",
+    padNoteLabel: "Add note {digit}",
+    padPlaceLabel: "Place {digit}",
+    pauseShort: "Pause",
     playingTitle: "{difficulty} board in play",
     rankBadge: "Rank #{rank}",
+    recoverAction: "Check settlement",
     releaseAction: "Release game",
-    releaseHint: "Frees the reservation.",
+    restartShort: "New board",
+    resumeShort: "Resume",
     rewardMetric: "Reward",
-    rulesCopy: "Solve within the limit.",
-    rulesShort: "Fill the sealed board and submit before the deadline.",
+    routeSummary: "Current board difficulty, clock, and tools",
     scoreTime: "Time left",
     scoreUndos: "Undos left",
     scoreWon: "Total won",
-    statusDealPending: "Retry shortly.",
+    startAction: "Open board",
+    statusInputSyncFailed: "Latest paid move restored safely.",
     statusReady: "Choose a board route to open",
     statusShuffling: "Sealing your puzzle...",
     statusWonTitle: "Puzzle solved!",
+    submitAction: "Submit solution",
     submittingTitle: "Submitting solution",
     timeMetric: "Time",
     undosMetric: "Undos",
+    undoLeftTemplate: "Undo ({left} left)",
     withdrawAction: "Withdraw {amount} GAS",
-    withdrawHint: "Pulls winnings back.",
   };
   let value = messages[key] ?? key;
-  if (params) {
-    for (const [paramKey, paramValue] of Object.entries(params)) {
-      value = value.replaceAll(`{${paramKey}}`, String(paramValue));
-    }
+  for (const [paramKey, paramValue] of Object.entries(params ?? {})) {
+    value = value.replaceAll(`{${paramKey}}`, String(paramValue));
   }
   return value;
 }
@@ -78,22 +112,35 @@ function t(key: string, params?: Record<string, string | number>) {
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
     activeGameId: "0",
+    appMode: "guest",
+    boardRecoveryNonce: 0,
     clues: "",
     credit: 0,
     deadline: 0,
     dealtAt: 0,
     gameDifficulty: 0,
     gameStatus: "idle",
+    hintCell: -1,
+    hintDigit: 0,
+    hintNonce: 0,
+    hintsUsed: 0,
+    inputSyncFailed: false,
+    isActing: false,
+    isConnectingWallet: false,
     isDealing: false,
+    isPaused: false,
+    isRecovering: false,
     isStarting: false,
     isSubmitting: false,
     isUndoing: false,
     lastStatus: "Choose a board route to open",
     myRank: 0,
     myTotalWon: 0,
-    poolFree: 25,
+    poolFree: 9999,
     progressionReady: true,
     progressionRequiredDifficulty: 0,
+    rollbackNonce: 0,
+    undoNonce: 0,
     undosUsed: 0,
     walletConnected: true,
   };
@@ -102,100 +149,185 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
   );
 }
 
+function latestPhaserProps() {
+  return mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+    ariaLabel?: string;
+    className?: string;
+    config?: { width?: number; height?: number };
+    dispatch: (action: string, ...args: unknown[]) => unknown;
+    loadingLabel?: string;
+    state: Record<string, unknown>;
+  };
+}
+
 describe("sudoku Phaser playarea", () => {
-  it("mounts the production puzzle game in Phaser with state required by canvas-owned starts", () => {
-    const { container, queryByText } = render(
+  it("mounts the compact Phaser board and exposes a semantic guest start", () => {
+    const dispatch = vi.fn();
+    const { container, getByRole } = render(
       <PhaserPlayArea
         t={t}
-        state={state({ credit: 1.2, gameDifficulty: 2, poolFree: 12, progressionRequiredDifficulty: 1 })}
-        dispatch={vi.fn()}
+        state={state({ gameDifficulty: 2 })}
+        dispatch={dispatch}
       />,
     );
 
-    expect(container.querySelector(".sudoku-playstage")).toBeTruthy();
     expect(container.querySelector(".sudoku-stage-shell")).toBeTruthy();
     expect(container.querySelector(".sudoku-stage-hud")).toBeTruthy();
-    expect(container.querySelector(".mx2-score")).toBeNull();
-    expect(container.querySelector(".mx2-action-rail")).toBeNull();
-    expect(mocks.phaserGame).toHaveBeenCalledTimes(1);
+    expect(container.querySelector(".sudoku-a11y-controls")).toBeTruthy();
+    expect(mocks.phaserGame).toHaveBeenCalled();
 
-    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
-      ariaLabel?: string;
-      className?: string;
-      config?: { width?: number; height?: number };
-      loadingLabel?: string;
-      state: Record<string, unknown>;
-    };
-
+    const props = latestPhaserProps();
     expect(props.className).toBe("sudoku-phaser-canvas");
-    expect(props.ariaLabel).toBe("Sudoku Arena puzzle game");
-    expect(props.loadingLabel).toBe("Opening sealed sudoku board");
-    expect(props.config?.width).toBe(520);
-    expect(props.config?.height).toBe(720);
-    expect(props.state.activeGameId).toBe("0");
-    expect(props.state.credit).toBe(1.2);
-    expect(props.state.gameDifficulty).toBe(2);
-    expect(props.state.poolFree).toBe(12);
-    expect(props.state.progressionReady).toBe(true);
-    expect(props.state.progressionRequiredDifficulty).toBe(1);
-    expect(props.state.walletConnected).toBe(true);
-    expect(queryByText("Open board")).toBeNull();
-    expect(queryByText("Submit solution")).toBeNull();
+    expect(props.ariaLabel).toBe("Sudoku Arena interactive puzzle");
+    expect(props.loadingLabel).toBe("Opening sealed Sudoku board");
+    expect(props.config).toMatchObject({ width: 400, height: 600 });
+    expect(props.state.appMode).toBe("guest");
+    expect(props.state.gameFiNewEntriesEnabled).toBe(false);
+
+    fireEvent.click(getByRole("button", { name: "Start Hard local puzzle" }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", { difficulty: 2 });
   });
 
-  it("keeps recovery and withdraw actions inside the in-game drawer while passing active timing into Phaser", () => {
-    const { container, getByRole, getByText, queryByText } = render(
+  it("keeps new paid entry fail-closed while preserving recovery controls", () => {
+    const dispatch = vi.fn();
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", gameStatus: "unknown", activeGameId: "88" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Check settlement" }));
+    expect(dispatch).toHaveBeenCalledWith("recoverGame", {});
+  });
+
+  it("mirrors the Phaser board into readable cells and forwards note commands", () => {
+    const { getByRole } = render(
       <PhaserPlayArea
         t={t}
         state={state({
-          activeGameId: "22",
-          credit: 0.75,
-          deadline: Date.now() - 1_000,
-          dealtAt: Date.now() - 300_000,
-          gameStatus: "solved",
-          isDealing: false,
-          undosUsed: 2,
+          activeGameId: "guest",
+          clues: "5" + "0".repeat(80),
+          deadline: Date.now() + 900_000,
+          dealtAt: Date.now(),
+          gameStatus: "dealt",
         })}
         dispatch={vi.fn()}
       />,
     );
 
-    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
-      state: Record<string, unknown>;
+    const snapshot = {
+      entries: [5, ...Array(80).fill(0)],
+      given: [true, ...Array(80).fill(false)],
+      notes: Array(81).fill(0),
+      selectedCell: -1,
+      notesMode: false,
+      conflicts: [],
+      complete: false,
     };
+    act(() => {
+      latestPhaserProps().dispatch("sudokuBoardState", snapshot);
+    });
 
-    expect(props.state.activeGameId).toBe("22");
-    expect(props.state.credit).toBe(0.75);
-    expect(props.state.deadline).toBeGreaterThan(0);
-    expect(props.state.dealtAt).toBeGreaterThan(0);
-    expect(props.state.undosUsed).toBe(2);
-    expect(queryByText("Withdraw 0.75 GAS")).toBeNull();
-    fireEvent.click(getByRole("button", { name: /Rules/i }));
-    expect(container.querySelector(".sudoku-ingame-drawer")).toBeTruthy();
-    expect(getByText("Withdraw 0.75 GAS")).toBeTruthy();
-    expect(queryByText("Submit solution")).toBeNull();
+    const given = document.querySelector(
+      'button[aria-label="Row 1, column 1, fixed clue 5"]',
+    );
+    const empty = document.querySelector(
+      'button[aria-label="Row 1, column 2, empty"]',
+    );
+    expect(given).toBeTruthy();
+    expect(empty).toBeTruthy();
+
+    fireEvent.click(empty as HTMLButtonElement);
+    expect(latestPhaserProps().state.a11yCommand).toMatchObject({
+      type: "select-cell",
+      cell: 1,
+    });
+
+    fireEvent.click(getByRole("button", { name: "Notes" }));
+    expect(latestPhaserProps().state.a11yCommand).toMatchObject({ type: "toggle-notes" });
   });
 
-  it("keeps Phaser canvas, HUD, and secondary controls inside the full-height game stage", () => {
+  it("keeps correction and erase accessible in local practice", () => {
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          activeGameId: "guest",
+          clues: "5" + "0".repeat(80),
+          deadline: Date.now() + 900_000,
+          dealtAt: Date.now(),
+          gameStatus: "dealt",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    act(() => {
+      latestPhaserProps().dispatch("sudokuBoardState", {
+        entries: [5, 4, ...Array(79).fill(0)],
+        given: [true, ...Array(80).fill(false)],
+        notes: Array(81).fill(0),
+        selectedCell: 1,
+        notesMode: false,
+        conflicts: [],
+        complete: false,
+      });
+    });
+
+    const selectedCell = getByRole("button", { name: "Row 1, column 2, placed digit 4" });
+    selectedCell.focus();
+    fireEvent.keyDown(selectedCell, { key: "ArrowRight" });
+    expect(latestPhaserProps().state.a11yCommand).toMatchObject({
+      type: "select-cell",
+      cell: 2,
+    });
+    expect((document.activeElement as HTMLElement | null)?.dataset.sudokuCell).toBe("2");
+
+    const replace = getByRole("button", { name: "Place 7" });
+    expect((replace as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(replace);
+    expect(latestPhaserProps().state.a11yCommand).toMatchObject({ type: "digit", digit: 7 });
+
+    const erase = getByRole("button", { name: "Clear" });
+    expect((erase as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(erase);
+    expect(latestPhaserProps().state.a11yCommand).toMatchObject({ type: "clear-notes" });
+  });
+
+  it("keeps withdrawal and restart secondary inside a focus-managed drawer", () => {
+    const { container, getByRole, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", gameStatus: "solved", credit: 0.75 })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Rules" }));
+    expect(container.querySelector('[role="dialog"]')).toBeTruthy();
+    expect(getByText("Withdraw 0.75 GAS")).toBeTruthy();
+    fireEvent.click(getByRole("button", { name: "Close leaderboard and rules" }));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  it("uses compact mobile canvas sizing instead of the old stretched lobby", () => {
     const sharedRoot = process.cwd().endsWith("/apps/shared")
       ? process.cwd()
       : resolve(process.cwd(), "apps/shared");
-    const styles = readFileSync(
-      resolve(sharedRoot, "../sudoku/src/PlayArea.scss"),
-      "utf8",
-    );
+    const styles = readFileSync(resolve(sharedRoot, "../sudoku/src/PlayArea.scss"), "utf8");
+    const scene = readFileSync(resolve(sharedRoot, "../sudoku/src/scenes/SudokuScene.ts"), "utf8");
 
-    expect(styles).toMatch(
-      /\.sudoku-playarea \.mx2-stage\s*\{[\s\S]*min-height:\s*100dvh/,
-    );
-    expect(styles).toContain(".sudoku-stage-shell");
-    expect(styles).toContain(".sudoku-stage-hud");
-    expect(styles).toContain(".sudoku-ingame-drawer");
-    expect(styles).toContain("--phaser-mobile-height-ratio: 2.08");
-    expect(styles).toMatch(
-      /@media \(max-width:\s*560px\)[\s\S]*\.sudoku-playarea \.mx2-playstage\.mx2-cat-game\s*\{[\s\S]*min-height:\s*100dvh/,
-    );
-    expect(styles).not.toContain(".sudoku-playstage > .mx2-score");
-    expect(styles).not.toContain(".sudoku-playstage > .mx2-action-rail");
+    expect(styles).toContain("--phaser-mobile-height-ratio: 1.62");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 72px");
+    expect(styles).toContain(".sudoku-a11y-controls:focus-within");
+    expect(styles).not.toContain("--phaser-mobile-height-ratio: 2.08");
+    expect(scene).toContain("toggleNotesMode");
+    expect(scene).toContain("bindKeyboardControls");
+    expect(scene).toContain("applyRollbackRequest");
+    expect(scene).toContain("applyConfirmedUndoRequest");
+    expect(scene).toContain("applyBoardRecoveryRequest");
+    expect(scene).toContain("GAMEFI_NEW_ENTRIES_ENABLED");
   });
 });

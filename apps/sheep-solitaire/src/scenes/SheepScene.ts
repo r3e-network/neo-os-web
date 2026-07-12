@@ -78,10 +78,10 @@ const C = {
   tray:        0x6b4820,
   traySlot:    0x3a2808,
   traySlotBdr: 0x8b6030,
-  btnBg:       0x2a5c34,
-  btnBorder:   0x4a9c58,
-  btnDisabled: 0x3a3a3a,
-  btnText:     0xf0c866,
+  btnBg:       0xeaf7d0,
+  btnBorder:   0x84cc16,
+  btnDisabled: 0xeee9dd,
+  btnText:     0x365314,
   white:       0xffffff,
   red:         0xe25d4d,
   green:       0x16a34a,
@@ -98,6 +98,8 @@ interface CardView {
   id: number;
   symbol: number;
   layer: number;
+  col?: number;
+  row?: number;
   exposed: boolean;
   picked: boolean;
 }
@@ -144,6 +146,8 @@ export class SheepScene extends BaseScene {
   private undoCountTxt!:    Phaser.GameObjects.Text;
   private shuffleCountTxt!: Phaser.GameObjects.Text;
   private remove3CountTxt!: Phaser.GameObjects.Text;
+  private lobbyCards: Phaser.GameObjects.Container[] = [];
+  private lobbyCardBgs: Phaser.GameObjects.Rectangle[] = [];
 
   // Result overlay elements
   private resultTitle!:   Phaser.GameObjects.Text;
@@ -178,6 +182,9 @@ export class SheepScene extends BaseScene {
   private resultAnimationKey = "";
   private prevMatching = false;
   private lastResultCue = "";
+  private keyboardHandler?: (event: KeyboardEvent) => void;
+  private renderedPileKey = "";
+  private renderedTrayKey = "";
 
   constructor() {
     super("SheepScene");
@@ -237,6 +244,7 @@ export class SheepScene extends BaseScene {
     this.buildGameScreen(DESIGN_W, DESIGN_H);
     this.buildResultScreen(DESIGN_W, DESIGN_H);
     this.fitCameraToHost();
+    this.bindKeyboardControls();
 
     this.onStateUpdate(this.state);
   }
@@ -250,16 +258,31 @@ export class SheepScene extends BaseScene {
     const isGameOver = this.bool("isGameOver");
 
     const showLobby  = (status === "idle" || status === "expired" || status === "refunded") && !isStarting && !isDealing;
-    const showLoad   = isStarting || isDealing || status === "committed";
-    const showResult = status === "solved" || (status === "dealt" && isGameOver);
-    const showGame   = status === "dealt" && !isGameOver;
+    const deadlineExpired = this.bool("deadlineExpired");
+    const showLoad   = isStarting || isDealing || status === "committed" || status === "unknown";
+    const showResult = status === "solved" || (status === "dealt" && (isGameOver || deadlineExpired));
+    const showGame   = status === "dealt" && !isGameOver && !deadlineExpired;
+
+    // A new round can reuse the same Phaser scene. Reset the transition
+    // sentinels while we are off the board so the next deal still cascades in
+    // and an old tray/match state cannot trigger a phantom warning or effect.
+    if (!showGame) {
+      this.prevPileLen = 0;
+      this.prevSlotLen = 0;
+      this.prevMatching = false;
+      this.renderedPileKey = "";
+      this.renderedTrayKey = "";
+    }
 
     this.setGroupActive(this.lobbyGroup, showLobby && !showLoad);
     this.setGroupActive(this.loadGroup, showLoad);
     this.setGroupActive(this.gameGroup, showGame);
     this.setGroupActive(this.resultGroup, showResult);
+    if (showLoad) this.startSpinnerBob();
+    else this.stopSpinnerBob();
 
     this.currentStatus = status;
+    this.updateLobbyAvailability();
     if (!showResult) this.resultAnimationKey = "";
 
     const resultCue: "" | "win" | "lose" = showResult ? (status === "solved" ? "win" : "lose") : "";
@@ -539,17 +562,34 @@ export class SheepScene extends BaseScene {
     bg.setInteractive({ useHandCursor: true });
     this.bindGameButton(bg, {
       targets: card,
+      enabled: () => this.canStartNewRun(),
       hoverScale: 1.015,
       pressScale: 0.97,
       onHoverIn: () => bg.setStrokeStyle(3, C.goldLight),
       onHoverOut: () => bg.setStrokeStyle(2, borderColor),
       onPress: () => {
+        if (!this.canStartNewRun()) return;
         this.sfx.play("start");
         this.dispatch("startGame", { difficulty });
       },
     });
 
+    this.lobbyCards[difficulty] = card;
+    this.lobbyCardBgs[difficulty] = bg;
     this.lobbyGroup.add(card);
+  }
+
+  private canStartNewRun(): boolean {
+    return this.str("appMode", "guest") === "guest" || this.bool("newPaidRunsEnabled");
+  }
+
+  private updateLobbyAvailability(): void {
+    const enabled = this.canStartNewRun() && !this.bool("isFinancialAction") && !this.bool("isRecovering");
+    this.lobbyCards.forEach((card) => card.setAlpha(enabled ? 1 : 0.62));
+    this.lobbyCardBgs.forEach((bg) => {
+      if (bg.input) bg.input.enabled = enabled;
+      bg.setStrokeStyle(2, enabled ? C.cardBorder : 0xc9bfae);
+    });
   }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
@@ -606,7 +646,7 @@ export class SheepScene extends BaseScene {
 
   protected onReducedMotionChange(enabled: boolean): void {
     if (enabled) this.stopSpinnerBob();
-    else this.startSpinnerBob();
+    else if (this.loadGroup?.visible) this.startSpinnerBob();
   }
 
   // ── Game screen scaffold ───────────────────────────────────────────────────
@@ -719,7 +759,7 @@ export class SheepScene extends BaseScene {
     onPress: () => void,
   ): Phaser.GameObjects.Container {
     const c  = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, 96, 38, C.btnBg)
+    const bg = this.add.rectangle(0, 0, 96, 44, C.btnBg)
       .setStrokeStyle(2, C.btnBorder)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
@@ -734,13 +774,13 @@ export class SheepScene extends BaseScene {
     const txt = this.add.text(0, -2, label, {
       fontFamily: FONT,
       fontSize: "13px",
-      color: "#f0c866",
+      color: "#365314",
     }).setOrigin(0.5);
 
-    const countTxt = this.add.text(36, -16, countStr, {
+    const countTxt = this.add.text(36, -18, countStr, {
       fontFamily: FONT,
       fontSize: "10px",
-      color: "#7dd87d",
+      color: "#3f6212",
     }).setOrigin(0.5);
 
     c.add([bg, txt, countTxt]);
@@ -752,21 +792,21 @@ export class SheepScene extends BaseScene {
   private buildResultScreen(W: number, H: number): void {
     this.resultGroup = this.add.container(0, 0);
 
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, C.overlayDark, 140);
-    const card    = this.add.rectangle(W / 2, H / 2, W - 60, 240, C.meadowDark)
+    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x385b2a, 0.18);
+    const card    = this.add.rectangle(W / 2, H / 2, W - 60, 240, C.panel, 0.98)
       .setStrokeStyle(3, C.gold);
 
     this.resultTitle = this.add.text(W / 2, H / 2 - 72, "", {
       fontFamily: FONT,
       fontSize: "32px",
       fontStyle: "700",
-      color: "#f0c866",
+      color: "#365314",
     }).setOrigin(0.5);
 
     this.resultSub = this.add.text(W / 2, H / 2 - 22, "", {
       fontFamily: FONT,
       fontSize: "16px",
-      color: "#c8d8b0",
+      color: "#5a4a37",
     }).setOrigin(0.5);
 
     // Action button
@@ -774,14 +814,7 @@ export class SheepScene extends BaseScene {
       .setStrokeStyle(2, 0x20d060)
       .setOrigin(0.5);
     this.resultActionBg.setInteractive({ useHandCursor: true });
-    this.resultActionBg.on("pointerdown", () => {
-      const status = this.str("gameStatus", "idle");
-      if (status === "solved") {
-        this.dispatch("expireGame");
-      } else {
-        this.dispatch("expireGame");
-      }
-    });
+    this.resultActionBg.on("pointerdown", () => this.triggerResultAction());
 
     this.resultActionTxt = this.add.text(W / 2, H / 2 + 52, "Play Again", {
       fontFamily: FONT,
@@ -802,9 +835,16 @@ export class SheepScene extends BaseScene {
 
     const currentPileLen = pileCards.length;
     const currentSlotLen = slotCards.length;
+    const initialDeal = this.prevPileLen === 0 && currentPileLen > 0;
+    const pileKey = pileCards
+      .map((card) => `${card.id}:${card.symbol}:${card.layer}:${card.col ?? ""}:${card.row ?? ""}:${card.exposed ? 1 : 0}`)
+      .join("|");
+    const trayKey = slotCards
+      .map((card) => `${card.id}:${card.symbol}`)
+      .join("|");
 
     // ── Detect match-3 elimination: slot count dropped by 3 ─────────────────
-    if (!isMatching && this.prevSlotLen === 3 && currentSlotLen === 0) {
+    if (isMatching && !this.prevMatching) {
       this.animateMatchClear();
     }
 
@@ -817,27 +857,27 @@ export class SheepScene extends BaseScene {
       this.sfx.play("error");
     }
 
-    this.prevPileLen = currentPileLen;
-    this.prevSlotLen = currentSlotLen;
-
-    this.rebuildPile(pileCards);
-    this.rebuildTray(slotCards);
+    if (pileKey !== this.renderedPileKey) {
+      this.rebuildPile(pileCards, initialDeal);
+      this.renderedPileKey = pileKey;
+    }
+    if (trayKey !== this.renderedTrayKey) {
+      this.rebuildTray(slotCards);
+      this.renderedTrayKey = trayKey;
+    }
     this.updateTools();
     this.updateProgress(pileCards, slotCards);
+    this.prevPileLen = currentPileLen;
+    this.prevSlotLen = currentSlotLen;
   }
 
-  private rebuildPile(pileCards: CardView[]): void {
+  private rebuildPile(pileCards: CardView[], animateDeal = false): void {
     // Clear existing pile sprites
     this.pileContainer.removeAll(true);
 
     if (pileCards.length === 0) return;
 
     const W = DESIGN_W;
-    const difficulty = this.num("gameDifficulty", 0);
-
-    // Columns per layer based on difficulty
-    const numCols = difficulty === 2 ? 5 : 4;
-
     // Sort: render layer 2 first (back), then 1, then 0 (front)
     const byLayer: CardView[][] = [[], [], []];
     for (const card of pileCards) {
@@ -854,6 +894,9 @@ export class SheepScene extends BaseScene {
       const layerCards = byLayer[layerIdx] ?? [];
       if (layerCards.length === 0) continue;
 
+      const numCols = layerIdx === 0 ? 4 : layerIdx === 1 ? 5 : 6;
+      const numRows = layerIdx === 0 ? 3 : layerIdx === 1 ? 4 : 5;
+
       // Each layer is shifted slightly up and right for 3-D stacking
       const layerXShift = (2 - layerIdx) * 3;
       const layerYShift = (2 - layerIdx) * 16;
@@ -862,18 +905,30 @@ export class SheepScene extends BaseScene {
       const gridLeft = cx - gridW / 2 + CARD_STEP_X / 2;
 
       layerCards.forEach((card, idx) => {
-        const col = idx % numCols;
-        const row = Math.floor(idx / numCols);
-        const nRows = Math.ceil(layerCards.length / numCols);
+        const col = card.col ?? idx % numCols;
+        const row = card.row ?? Math.floor(idx / numCols);
 
         // Cards in bottom row have larger y (lower on screen)
-        const rowFromBottom = nRows - 1 - row;
+        const rowFromBottom = numRows - 1 - row;
         const x = gridLeft + col * CARD_STEP_X + layerXShift;
         const y = pileBaseY - rowFromBottom * (CARD_STEP_Y * 0.72) - layerYShift;
 
         const sprite = this.makeCardSprite(card);
         sprite.setPosition(x, y);
         this.pileContainer.add(sprite);
+        if (animateDeal) {
+          sprite.setAlpha(0).setScale(0.72).setY(y - 18);
+          this.tween({
+            targets: sprite,
+            alpha: 1,
+            scaleX: 1,
+            scaleY: 1,
+            y,
+            duration: 220,
+            delay: Math.min(360, idx * 14 + (2 - layerIdx) * 55),
+            ease: "Back.easeOut",
+          });
+        }
       });
     }
   }
@@ -895,6 +950,11 @@ export class SheepScene extends BaseScene {
 
     if (card.exposed) {
       tile.setInteractive({ useHandCursor: true });
+      if (tile.input) {
+        tile.input.enabled = !this.bool("isTeeBusy") &&
+          !this.bool("isFinancialAction") &&
+          !this.bool("deadlineExpired");
+      }
 
       tile.on("pointerover", () => {
         tile.clearTint();
@@ -914,7 +974,12 @@ export class SheepScene extends BaseScene {
 
   private handleCardClick(card: CardView, sprite: Phaser.GameObjects.Container): void {
     const slotCards = (this.val<CardView[]>("slotCards") ?? []);
-    if (slotCards.length >= SLOT_COUNT) return;
+    if (
+      slotCards.length >= SLOT_COUNT ||
+      this.bool("isTeeBusy") ||
+      this.bool("isFinancialAction") ||
+      this.bool("deadlineExpired")
+    ) return;
 
     this.sfx.play("tap");
 
@@ -951,6 +1016,11 @@ export class SheepScene extends BaseScene {
         this.ghostInFlight = false;
         this.sfx.play("select");
         this.dispatch("pickCard", { cardId: card.id });
+        // If the authoritative engine rejects a stale/covered pick, restore the
+        // source tile instead of leaving a permanently faded false-success cue.
+        if (sprite.active) {
+          this.tween({ targets: sprite, alpha: 1, duration: 100, ease: "Quad.easeOut" });
+        }
       },
     });
 
@@ -1018,11 +1088,15 @@ export class SheepScene extends BaseScene {
     const shuffleLeft = this.num("shuffleLeft", 1);
     const remove3Left = this.num("remove3Left", 1);
     const status      = this.str("gameStatus", "idle");
-    const isActive    = status === "dealt";
+    const slotCount   = (this.val<CardView[]>("slotCards") ?? []).length;
+    const isActive    = status === "dealt" &&
+      !this.bool("isTeeBusy") &&
+      !this.bool("isFinancialAction") &&
+      !this.bool("deadlineExpired");
 
-    const undoAvail    = isActive && undosUsed < 3;
-    const shuffleAvail = isActive && shuffleLeft > 0;
-    const remove3Avail = isActive && remove3Left > 0;
+    const undoAvail    = isActive && slotCount > 0 && undosUsed < 3;
+    const shuffleAvail = isActive && slotCount > 0 && shuffleLeft > 0;
+    const remove3Avail = isActive && slotCount >= 3 && remove3Left > 0;
 
     this.setToolBtnActive(this.undoBtn,    undoAvail);
     this.setToolBtnActive(this.shuffleBtn, shuffleAvail);
@@ -1030,9 +1104,9 @@ export class SheepScene extends BaseScene {
 
     // Update count labels
     const undosLeft = Math.max(0, 3 - undosUsed);
-    this.undoCountTxt.setText(String(undosLeft)).setColor(undoAvail ? "#7dd87d" : "#666655");
-    this.shuffleCountTxt.setText(String(shuffleLeft)).setColor(shuffleAvail ? "#7dd87d" : "#666655");
-    this.remove3CountTxt.setText(String(remove3Left)).setColor(remove3Avail ? "#7dd87d" : "#666655");
+    this.undoCountTxt.setText(String(undosLeft)).setColor(undoAvail ? "#3f6212" : "#81796c");
+    this.shuffleCountTxt.setText(String(shuffleLeft)).setColor(shuffleAvail ? "#3f6212" : "#81796c");
+    this.remove3CountTxt.setText(String(remove3Left)).setColor(remove3Avail ? "#3f6212" : "#81796c");
   }
 
   private setToolBtnActive(btn: Phaser.GameObjects.Container, active: boolean): void {
@@ -1040,7 +1114,7 @@ export class SheepScene extends BaseScene {
     const txt = btn.list[1] as Phaser.GameObjects.Text;
     bg.setFillStyle(active ? C.btnBg : C.btnDisabled);
     bg.setStrokeStyle(2, active ? C.btnBorder : 0x555544);
-    txt.setColor(active ? "#f0c866" : "#666655");
+    txt.setColor(active ? "#365314" : "#81796c");
     (bg as Phaser.GameObjects.Rectangle & { input: { enabled: boolean } }).input.enabled = active;
   }
 
@@ -1071,6 +1145,9 @@ export class SheepScene extends BaseScene {
     const status  = this.str("gameStatus", "idle");
     const payout  = this.str("lastPayout", "");
     const isGameOver = this.bool("isGameOver");
+    const timedOut = this.bool("deadlineExpired") || this.str("failureReason", "none") === "timeout";
+    const isGuest = this.str("appMode", "guest") === "guest";
+    const canExpire = this.bool("canExpire");
     const activeGameId = this.str("activeGameId", "0");
     const credit = this.num("credit", 0);
     const canSettle = status === "solved" && activeGameId !== "0";
@@ -1097,23 +1174,29 @@ export class SheepScene extends BaseScene {
           : this.locStr("backToRoutes", "Back to Routes"),
       );
       this.resultActionBg.setFillStyle(C.green);
-      this.resultActionBg.off("pointerdown");
-      this.resultActionBg.on("pointerdown", () => {
-        if (canSettle) {
-          this.dispatch("submitRun");
-        } else if (credit > 0) {
-          this.dispatch("withdrawWinnings", {});
-        } else {
-          this.dispatch("returnToLobby");
-        }
-      });
-    } else if (isGameOver) {
-      this.resultTitle.setText(this.locStr("gameOverTitle", "Game Over")).setColor("#e25d4d");
-      this.resultSub.setText(this.locStr("trayFullSub", "Tray is full — no more moves!"));
-      this.resultActionTxt.setText(this.locStr("tryAgain", "Try Again"));
-      this.resultActionBg.setFillStyle(C.btnBg);
-      this.resultActionBg.off("pointerdown");
-      this.resultActionBg.on("pointerdown", () => this.dispatch("expireGame"));
+      this.resultActionTxt.setColor("#ffffff");
+      this.setResultButtonActive(!this.bool("isFinancialAction"));
+    } else if (isGameOver || timedOut) {
+      this.resultTitle
+        .setText(timedOut ? this.locStr("timeUpTitle", "Time is up") : this.locStr("gameOverTitle", "Game Over"))
+        .setColor(timedOut ? "#8a5a16" : "#b83f32");
+      this.resultSub.setText(
+        timedOut
+          ? this.locStr("timeUpSub", "The board is locked until it can be released.")
+          : this.locStr("trayFullSub", "Tray is full — no more moves!"),
+      );
+      const enabled = isGuest || canExpire;
+      this.resultActionTxt
+        .setText(
+          isGuest
+            ? this.locStr("tryAgain", "Try Again")
+            : canExpire
+            ? this.locStr("releaseReady", "Release game")
+            : this.locStr("releaseWait", "Release later"),
+        )
+        .setColor(enabled ? "#365314" : "#746756");
+      this.resultActionBg.setFillStyle(enabled ? C.btnBg : C.btnDisabled);
+      this.setResultButtonActive(enabled && !this.bool("isFinancialAction"));
     }
 
     const animationKey = `${status}:${isGameOver ? "gameover" : "ok"}:${activeGameId}:${credit > 0 ? "credit" : "no-credit"}`;
@@ -1130,6 +1213,107 @@ export class SheepScene extends BaseScene {
         ease: "Back.easeOut",
       });
     }
+  }
+
+  private setResultButtonActive(active: boolean): void {
+    if (this.resultActionBg.input) this.resultActionBg.input.enabled = active;
+    this.resultActionBg.setAlpha(active ? 1 : 0.82);
+  }
+
+  private triggerResultAction(): void {
+    if (!this.resultActionBg.input?.enabled || this.bool("isFinancialAction")) return;
+    const status = this.str("gameStatus", "idle");
+    const activeGameId = this.str("activeGameId", "0");
+    const credit = this.num("credit", 0);
+    if (status === "solved" && activeGameId !== "0") {
+      this.dispatch("submitRun");
+    } else if (status === "solved" && credit > 0 && this.str("appMode", "guest") !== "guest") {
+      this.dispatch("withdrawWinnings", {});
+    } else if (status === "solved") {
+      this.dispatch("returnToLobby");
+    } else {
+      this.dispatch("expireGame");
+    }
+  }
+
+  private bindKeyboardControls(): void {
+    const keyboard = this.input.keyboard;
+    if (!keyboard || this.keyboardHandler) return;
+    this.keyboardHandler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        target?.isContentEditable ||
+        ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target?.tagName ?? "")
+      ) return;
+
+      const digitMatch = /^(?:Digit|Numpad)([1-9])$/.exec(event.code);
+      const status = this.str("gameStatus", "idle");
+      if ((status === "idle" || status === "expired" || status === "refunded") && digitMatch) {
+        const difficulty = Number(digitMatch[1]) - 1;
+        if (difficulty >= 0 && difficulty <= 2 && this.canStartNewRun()) {
+          this.dispatch("startGame", { difficulty });
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (status === "unknown" && event.code === "Enter") {
+        this.dispatch("recoverGame");
+        event.preventDefault();
+        return;
+      }
+
+      if ((status === "solved" || this.bool("isGameOver") || this.bool("deadlineExpired")) && event.code === "Enter") {
+        this.triggerResultAction();
+        event.preventDefault();
+        return;
+      }
+
+      if (
+        status !== "dealt" ||
+        this.bool("isGameOver") ||
+        this.bool("deadlineExpired") ||
+        this.bool("isTeeBusy") ||
+        this.bool("isFinancialAction")
+      ) return;
+
+      if (digitMatch) {
+        const exposed = (this.val<CardView[]>("pileCards") ?? [])
+          .filter((card) => card.exposed && !card.picked)
+          .slice(0, 9);
+        const card = exposed[Number(digitMatch[1]) - 1];
+        if (card) {
+          this.dispatch("pickCard", { cardId: card.id });
+          event.preventDefault();
+        }
+        return;
+      }
+
+      const action = event.code === "KeyU"
+        ? "useUndo"
+        : event.code === "KeyS"
+        ? "useShuffle"
+        : event.code === "KeyR"
+        ? "useRemove3"
+        : "";
+      if (action) {
+        this.dispatch(action);
+        event.preventDefault();
+      }
+    };
+    keyboard.on("keydown", this.keyboardHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.unbindKeyboardControls, this);
+  }
+
+  private unbindKeyboardControls(): void {
+    if (this.keyboardHandler) {
+      this.input.keyboard?.off("keydown", this.keyboardHandler);
+      this.keyboardHandler = undefined;
+    }
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.unbindKeyboardControls, this);
   }
 
   // ── Resize ─────────────────────────────────────────────────────────────────

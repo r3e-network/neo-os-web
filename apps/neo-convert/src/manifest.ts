@@ -14,15 +14,15 @@ export const manifest: MiniAppManifest = {
   category: "tool",
   shell: "launcher",
 
-  tabs: [
-    { key: "generate", labelKey: "tabGenerate", icon: "wallet", default: true },
-    { key: "convert", labelKey: "tabConvert", icon: "repeat" },
-  ],
+  // The PlayStage is one unified workbench. Decorative Generate/Convert tabs
+  // would imply navigation that does not exist, so mode is shown as state
+  // rather than a fake tab control.
+  tabs: [],
 
   sidebar: {
     titleKey: "appTitle",
     items: [
-      { labelKey: "sidebarActiveTab", valueKey: "activeTab", format: "text" },
+      { labelKey: "sidebarWorkspace", valueKey: "activeTab", format: "text" },
       { labelKey: "sidebarMode", valueKey: "deviceMode", format: "text" },
     ],
   },

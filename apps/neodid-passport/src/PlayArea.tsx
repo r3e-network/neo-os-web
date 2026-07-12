@@ -1,33 +1,38 @@
-/**
- * PlayArea.tsx — NeoDID Passport (v2 scene-driven rebuild)
- *
- * NFT/tool identity. The passport card IS the scene: a DID identity document
- * being assembled with a holographic seal, identity fields lighting up as the
- * document resolves, and a signature stamp on sign. Build Passport is the
- * primary write once the foreground credential lane is ready; proof provider,
- * sign, and reset live in the drawer. Real state bound throughout.
- */
-import { useState, useEffect, useRef } from "react";
-import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { ObservableState } from "@shared/react/context";
-import { CoinArt } from "@shared/art";
-import {
-  OpenUiNotice,
-  OpenUiPanel,
-  OpenUiProvider,
-  OpenUiTextField,
-  PlayStage,
-} from "@shared/components-react/v2";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   BadgeCheck,
+  CircleAlert,
+  ClipboardCopy,
   FileCheck2,
   Fingerprint,
-  Github,
-  Mail,
+  KeyRound,
+  Landmark,
+  RefreshCw,
+  RotateCcw,
   ShieldCheck,
   WalletCards,
   type LucideIcon,
 } from "lucide-react";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import type { ObservableState } from "@shared/react/context";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import {
+  canonicalMorpheusDid,
+  PASSPORT_FIELD_LIMITS,
+  passportUtf8Length,
+  passportMatchesForm,
+  truncatePassportUtf8,
+  validatePassportForm,
+  type NeoDidRegistryProbe,
+  type PassportForm,
+  type PassportPayload,
+} from "./passport";
 import "./PlayArea.scss";
 
 interface P {
@@ -36,13 +41,17 @@ interface P {
   dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-const DEFAULT_SUBJECT = "did:morpheus:neo_n3:service:neodid";
-const DEFAULT_CLAIM = "wallet-ownership";
-const DEFAULT_AUDIENCE = "miniapp-neodid-passport";
+const DEFAULT_FORM: PassportForm = {
+  subject: "did:morpheus:neo_n3:service:neodid",
+  claim: "wallet-signature-context",
+  audience: "miniapp-neodid-passport",
+};
 
-interface CredentialTemplate {
+const PASSPORT_DESK = new URL("../public/passport-desk.webp", import.meta.url).href;
+const PASSPORT_MARK = new URL("../public/logo.webp", import.meta.url).href;
+
+interface ReviewTemplate {
   key: string;
-  subject: string;
   claim: string;
   audience: string;
   labelKey: string;
@@ -50,185 +59,283 @@ interface CredentialTemplate {
   icon: LucideIcon;
 }
 
-const CREDENTIAL_TEMPLATES: CredentialTemplate[] = [
+const REVIEW_TEMPLATES: ReviewTemplate[] = [
   {
-    key: "wallet",
-    subject: DEFAULT_SUBJECT,
-    claim: DEFAULT_CLAIM,
-    audience: DEFAULT_AUDIENCE,
+    key: "wallet-context",
+    claim: "wallet-signature-context",
+    audience: "miniapp-neodid-passport",
     labelKey: "passportTemplateWallet",
     hintKey: "passportTemplateWalletHint",
     icon: WalletCards,
   },
   {
-    key: "relying-party",
-    subject: DEFAULT_SUBJECT,
-    claim: "relying-party-access",
-    audience: "miniapp-onegate-vault",
+    key: "app-context",
+    claim: "relying-party-context",
+    audience: "miniapp-relying-party",
     labelKey: "passportTemplateRelying",
     hintKey: "passportTemplateRelyingHint",
     icon: ShieldCheck,
   },
   {
-    key: "developer",
-    subject: DEFAULT_SUBJECT,
-    claim: "developer-pass",
+    key: "developer-context",
+    claim: "developer-context",
     audience: "miniapp-oracle-services",
     labelKey: "passportTemplateDeveloper",
     hintKey: "passportTemplateDeveloperHint",
-    icon: BadgeCheck,
+    icon: KeyRound,
   },
 ];
 
-function shortHash(value: string): string {
-  const v = String(value || "").trim();
-  if (!v || v === "—") return "—";
-  if (v.length <= 20) return v;
-  return `${v.slice(0, 12)}…${v.slice(-6)}`;
+function compact(value: string, head = 12, tail = 7): string {
+  const text = String(value || "").trim();
+  if (!text || text === "—") return "—";
+  if (text.length <= head + tail + 1) return text;
+  return `${text.slice(0, head)}…${text.slice(-tail)}`;
+}
+
+function registryLabel(probe: NeoDidRegistryProbe | null, t: P["t"]) {
+  if (!probe || probe.status === "idle") return t("registryNotChecked");
+  if (probe.status === "checking") return t("registryChecking");
+  if (probe.status === "verified") return t("registryDeploymentVerified");
+  if (probe.status === "mismatch") {
+    if (probe.reason === "resolver-anchor-mismatch") return t("registryAnchorMismatch");
+    if (probe.reason === "contract-state-mismatch") return t("registryContractMismatch");
+    return t("registryNetworkMismatch");
+  }
+  if (probe.reason === "resolver-anchor-missing") return t("registryAnchorMissing");
+  return probe.reason === "no-network-deployment"
+    ? t("registryNoDeployment")
+    : t("registryUnavailable");
+}
+
+function assuranceIcon(tone: string): ReactNode {
+  if (tone === "ready") return <BadgeCheck size={17} aria-hidden="true" />;
+  if (tone === "warning") return <CircleAlert size={17} aria-hidden="true" />;
+  return <FileCheck2 size={17} aria-hidden="true" />;
 }
 
 export default function PlayArea({ t, state, dispatch }: P) {
-  const { str, bool, num } = useStateBindings(state);
-
-  const lastStatus = str("lastStatus");
-  const lastDigest = str("lastDigest");
-  const requestCount = num("requestCount");
-  const proofStatus = str("proofStatus");
-  const documentId = str("documentId");
-  const documentVersion = str("documentVersion");
+  const { str, bool, num, val } = useStateBindings(state);
+  const network = str("network", "testnet");
+  const networkLabel = str("networkLabel", t("testnet"));
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const lastDigest = str("lastDigest", "—");
+  const resolverStatus = str("resolverStatus", t("resolverNotCheckedStatus"));
+  const runtimeStatus = str("runtimeStatus", t("runtimeNotCheckedStatus"));
+  const documentId = str("documentId", "—");
+  const documentVersion = str("documentVersion", "—");
+  const anchorContract = str("anchorContract", "—");
   const serviceCount = num("serviceCount");
+  const verificationMethodCount = num("verificationMethodCount");
   const lastError = str("lastError");
+  const recoveryStatus = str("recoveryStatus");
   const isResolving = bool("isResolving");
   const isSigning = bool("isSigning");
+  const storageHealthy = bool("storageHealthy");
+  const payload = val<PassportPayload>("passportPayload");
+  const recoveredForm = val<PassportForm>("recoveryForm", DEFAULT_FORM) ?? DEFAULT_FORM;
+  const registryProbe = val<NeoDidRegistryProbe>("registryProbe");
 
-  const [subject, setSubject] = useState(DEFAULT_SUBJECT);
-  const [claim, setClaim] = useState(DEFAULT_CLAIM);
-  const [audience, setAudience] = useState(DEFAULT_AUDIENCE);
-  const [provider, setProvider] = useState("wallet");
+  const [subject, setSubject] = useState(() => truncatePassportUtf8(
+    recoveredForm.subject || DEFAULT_FORM.subject,
+    PASSPORT_FIELD_LIMITS.subject,
+  ));
+  const [claim, setClaim] = useState(() => truncatePassportUtf8(
+    recoveredForm.claim || DEFAULT_FORM.claim,
+    PASSPORT_FIELD_LIMITS.claim,
+  ));
+  const [audience, setAudience] = useState(() => truncatePassportUtf8(
+    recoveredForm.audience || DEFAULT_FORM.audience,
+    PASSPORT_FIELD_LIMITS.audience,
+  ));
+  const [now, setNow] = useState(() => Date.now());
+  const hydratedRecoveryRef = useRef("");
+  const discardedDraftRef = useRef("");
+  const busy = isResolving || isSigning;
+  const form = useMemo<PassportForm>(() => ({ subject, claim, audience }), [audience, claim, subject]);
+  const canonicalSubject = canonicalMorpheusDid(subject);
+  const draftValidationKey = validatePassportForm(form);
+  const draftReady = !draftValidationKey && !busy;
+  const payloadMatchesDraft = Boolean(payload && passportMatchesForm(payload, form));
+  const visiblePayload = payloadMatchesDraft ? payload : null;
+  const expired = Boolean(visiblePayload && Date.parse(visiblePayload.expiresAt) <= now);
+  const proofAttached = visiblePayload?.proof.status === "attached";
 
-  const [buildPreview, setBuildPreview] = useState(false);
-  const buildPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (buildPreviewTimeout.current) clearTimeout(buildPreviewTimeout.current); }, []);
-  const startBuildPreview = () => {
-    if (buildPreviewTimeout.current) clearTimeout(buildPreviewTimeout.current);
-    setBuildPreview(true);
-    buildPreviewTimeout.current = setTimeout(() => { setBuildPreview(false); buildPreviewTimeout.current = null; }, 1200);
-  };
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  const busy = isResolving || isSigning || buildPreview;
-  const hasPayload =
-    requestCount > 0 ||
-    lastStatus === t("passportReady") ||
-    lastStatus === t("passportSigned");
-  const isSigned = proofStatus === t("signedStatus") || /^signed$/i.test(proofStatus.trim());
-  const subjectReady = subject.trim().length > 0;
-  const claimReady = claim.trim().length > 0;
-  const laneReady = subjectReady && claimReady && !busy;
-  const passportStateLabel = isSigned
-    ? t("passportSigned")
-    : hasPayload
-      ? t("passportReady")
-      : laneReady
-        ? t("passportSealHint")
-        : t("emptyPayloadTitle");
-  const passportSubject = hasPayload ? shortHash(documentId) : (subject.trim() || t("previewSubjectFallback"));
-  const passportClaim = claim.trim() || t("claimPlaceholder");
-  const passportAudience = audience.trim() || t("audiencePlaceholder");
-  const activeTemplate = CREDENTIAL_TEMPLATES.find((template) =>
-    template.subject === subject &&
-    template.claim === claim &&
-    template.audience === audience,
+  useEffect(() => {
+    const fingerprint = JSON.stringify([
+      recoveredForm.subject,
+      recoveredForm.claim,
+      recoveredForm.audience,
+    ]);
+    if (!fingerprint || hydratedRecoveryRef.current === fingerprint) return;
+    hydratedRecoveryRef.current = fingerprint;
+    setSubject(truncatePassportUtf8(
+      recoveredForm.subject || DEFAULT_FORM.subject,
+      PASSPORT_FIELD_LIMITS.subject,
+    ));
+    setClaim(truncatePassportUtf8(
+      recoveredForm.claim || DEFAULT_FORM.claim,
+      PASSPORT_FIELD_LIMITS.claim,
+    ));
+    setAudience(truncatePassportUtf8(
+      recoveredForm.audience || DEFAULT_FORM.audience,
+      PASSPORT_FIELD_LIMITS.audience,
+    ));
+  }, [recoveredForm.audience, recoveredForm.claim, recoveredForm.subject]);
+
+  useEffect(() => {
+    if (!payload || payloadMatchesDraft) return;
+    const fingerprint = `${payload.digest}:${canonicalSubject ?? subject}:${claim}:${audience}`;
+    if (discardedDraftRef.current === fingerprint) return;
+    discardedDraftRef.current = fingerprint;
+    void dispatch("discardPassportReview");
+  }, [audience, canonicalSubject, claim, dispatch, payload, payloadMatchesDraft, subject]);
+
+  const activeTemplate = REVIEW_TEMPLATES.find((template) =>
+    template.claim === claim && template.audience === audience
   );
-  const statusLabel = lastError || (busy
-    ? (isSigning ? `${t("signAction")}...` : `${t("routeResolve")}...`)
-    : hasPayload ? proofStatus : laneReady ? t("passportSealHint") : t("emptyPayloadTitle"));
-  const routeSteps = [
-    { key: "subject", label: t("sealSubject"), value: hasPayload ? t("resolvedStatus") : t("routeResolve"), active: hasPayload || busy, icon: Fingerprint },
-    { key: "payload", label: t("sealPayload"), value: hasPayload ? shortHash(lastDigest) : t("emptyPayloadTitle"), active: hasPayload, icon: FileCheck2 },
-    { key: "proof", label: t("sealProof"), value: isSigned ? t("signedStatus") : t("notSignedStatus"), active: isSigned, icon: BadgeCheck },
-  ];
 
-  const handleBuild = () => {
-    if (!laneReady) return;
-    startBuildPreview();
-    void dispatch("buildPassport", {
-      subject: subject.trim(),
-      claim: claim.trim(),
-      audience: audience.trim(),
-      provider,
-    });
-  };
-  const applyTemplate = (template: CredentialTemplate) => {
+  const applyTemplate = (template: ReviewTemplate) => {
     if (busy) return;
-    setSubject(template.subject);
     setClaim(template.claim);
     setAudience(template.audience);
   };
-  const handleSign = () => { void dispatch("signPassport"); };
-  const handleReset = () => {
-    setSubject(DEFAULT_SUBJECT);
-    setClaim(DEFAULT_CLAIM);
-    setAudience(DEFAULT_AUDIENCE);
+  const build = () => {
+    if (!draftReady) return;
+    void dispatch("buildPassport", form);
+  };
+  const sign = () => {
+    if (!visiblePayload || expired || proofAttached || busy) return;
+    void dispatch("signPassport", form);
+  };
+  const copy = () => {
+    if (!visiblePayload) return;
+    void dispatch("copyPassportPayload");
+  };
+  const reset = () => {
+    if (busy) return;
     void dispatch("resetPassport");
   };
+  const retryStorage = () => {
+    if (!visiblePayload || storageHealthy || busy) return;
+    void dispatch("retryPassportStorage");
+  };
+
+  const passportStateLabel = proofAttached
+    ? t("proofAttachedUnverifiedStatus")
+    : visiblePayload
+      ? expired
+        ? t("passportExpiredStatus")
+        : t("reviewEnvelopeReady")
+      : t("reviewNotBuilt");
+
+  const assuranceItems = [
+    {
+      key: "document",
+      label: t("assuranceDocument"),
+      value: visiblePayload ? resolverStatus : t("resolverNotCheckedStatus"),
+      tone: visiblePayload ? "ready" : "idle",
+    },
+    {
+      key: "runtime",
+      label: t("assuranceRuntime"),
+      value: visiblePayload ? runtimeStatus : t("runtimeNotCheckedStatus"),
+      tone: visiblePayload?.assurance.runtimeAttestation === "metadata-available" ? "ready" : "warning",
+    },
+    {
+      key: "registry",
+      label: t("assuranceRegistry"),
+      value: registryLabel(registryProbe, t),
+      tone: registryProbe?.status === "verified" ? "ready" : "warning",
+    },
+    {
+      key: "proof",
+      label: t("assuranceWallet"),
+      value: proofAttached ? t("proofAttachedUnverifiedStatus") : t("proofNotAttachedStatus"),
+      tone: proofAttached ? "warning" : "idle",
+    },
+    {
+      key: "recovery",
+      label: t("assuranceRecovery"),
+      value: storageHealthy ? t("storageAvailable") : t("storageUnavailableStatus"),
+      tone: storageHealthy ? "ready" : "warning",
+    },
+  ];
 
   const scene = (
-    <div className="did-scene" data-state={busy ? "busy" : isSigned ? "signed" : hasPayload ? "resolved" : "idle"}>
-      <section className={["did-passport", busy ? "is-resolving" : "", isSigned ? "is-signed" : ""].filter(Boolean).join(" ")} aria-label={t("passportPreview")}>
-        <div className="did-passport__cover">
-          <span className="did-passport__seal" aria-hidden="true">
-            <CoinArt size={34} variant="gas" />
-          </span>
-          <div className="did-passport__heading">
-            <span>{t("credentialCardTitle")}</span>
-            <strong>{passportSubject}</strong>
+    <div
+      className="did-scene"
+      data-state={busy ? "busy" : proofAttached ? "attached" : visiblePayload ? "resolved" : "idle"}
+      aria-busy={busy || undefined}
+    >
+      <section className="did-identity-stage" aria-label={t("passportPreview")}>
+        <img className="did-identity-stage__art" src={PASSPORT_DESK} alt={t("heroVisualAlt")} loading="eager" decoding="async" />
+        <div className="did-identity-stage__veil" aria-hidden="true" />
+        <div className="did-identity-stage__meta">
+          <span>{networkLabel}</span>
+          <strong>{t("localReviewBoundary")}</strong>
+        </div>
+
+        <article className="did-passport" data-attached={proofAttached ? "true" : undefined}>
+          <header className="did-passport__cover">
+            <img className="did-passport__mark" src={PASSPORT_MARK} alt="" aria-hidden="true" />
+            <div className="did-passport__heading">
+              <span>{t("credentialCardTitle")}</span>
+              <strong>{visiblePayload ? compact(documentId, 18, 8) : compact(subject, 18, 8)}</strong>
+            </div>
+            <span className="did-passport__stamp" data-attached={proofAttached ? "true" : undefined}>
+              {passportStateLabel}
+            </span>
+          </header>
+          <div className="did-passport__fields">
+            <span>
+              <small>{t("claimContext")}</small>
+              <strong>{claim || t("claimPlaceholder")}</strong>
+            </span>
+            <span>
+              <small>{t("audience")}</small>
+              <strong>{audience || t("audiencePlaceholder")}</strong>
+            </span>
+            <span>
+              <small>{t("reviewExpiry")}</small>
+              <strong>{visiblePayload ? new Date(visiblePayload.expiresAt).toLocaleString() : t("tenMinuteReview")}</strong>
+            </span>
           </div>
-          <span className="did-passport__stamp" data-signed={isSigned ? "true" : undefined}>
-            {isSigned ? t("signedStatus") : hasPayload ? t("preparedStatus") : t("notSignedStatus")}
-          </span>
-        </div>
-        <div className="did-passport__fields">
-          <span>
-            <small>{t("documentId")}</small>
-            <strong>{hasPayload ? shortHash(documentId) : t("previewSubjectFallback")}</strong>
-          </span>
-          <span>
-            <small>{t("previewClaimLabel")}</small>
-            <strong>{passportClaim}</strong>
-          </span>
-          <span>
-            <small>{t("audience")}</small>
-            <strong>{passportAudience}</strong>
-          </span>
-        </div>
-        <div className="did-passport__footer">
-          <span>{t("documentVersion")}: <strong>{hasPayload ? shortHash(documentVersion) : "—"}</strong></span>
-          <span>{t("services")}: <strong>{serviceCount || 0}</strong></span>
-        </div>
+          <footer className="did-passport__footer">
+            <span>{t("documentVersion")}: <strong>{visiblePayload ? compact(documentVersion) : "—"}</strong></span>
+            <span>{t("services")}: <strong>{visiblePayload ? serviceCount : 0}</strong></span>
+            <span>{t("verificationMethods")}: <strong>{visiblePayload ? verificationMethodCount : 0}</strong></span>
+          </footer>
+        </article>
       </section>
 
-      <section className="did-credential-lane" data-ready={laneReady ? "true" : undefined} aria-label={t("passportWorkspaceTitle")}>
+      <section className="did-credential-lane" data-ready={draftReady ? "true" : undefined} aria-label={t("passportWorkspaceTitle")}>
         <header className="did-credential-lane__head">
-          <span>{t("passportWorkspaceTitle")}</span>
-          <strong>{activeTemplate ? t(activeTemplate.labelKey) : t("passportCustomCredential")}</strong>
+          <div>
+            <span>{t("passportTemplateTitle")}</span>
+            <strong>{activeTemplate ? t(activeTemplate.labelKey) : t("passportCustomCredential")}</strong>
+          </div>
+          <Fingerprint size={24} aria-hidden="true" />
         </header>
-        <div className="did-template-deck" role="radiogroup" aria-label={t("passportTemplateTitle")}>
-          {CREDENTIAL_TEMPLATES.map((template) => {
+        <div className="did-template-deck" aria-label={t("passportTemplateTitle")}>
+          {REVIEW_TEMPLATES.map((template) => {
             const Icon = template.icon;
             const selected = activeTemplate?.key === template.key;
             return (
               <button
                 key={template.key}
                 type="button"
-                role="radio"
-                aria-checked={selected}
+                aria-pressed={selected}
                 className={selected ? "is-active" : undefined}
                 onClick={() => applyTemplate(template)}
                 disabled={busy}
               >
-                <span className="did-template-card__icon" aria-hidden="true">
-                  <Icon size={18} strokeWidth={2.35} />
-                </span>
+                <span className="did-template-card__icon" aria-hidden="true"><Icon size={18} /></span>
                 <span>
                   <strong>{t(template.labelKey)}</strong>
                   <small>{t(template.hintKey)}</small>
@@ -237,61 +344,38 @@ export default function PlayArea({ t, state, dispatch }: P) {
             );
           })}
         </div>
-        <dl className="did-lane-summary">
-          <div data-ready={subjectReady ? "true" : undefined}>
-            <dt>{t("subject")}</dt>
-            <dd>{shortHash(subject)}</dd>
-          </div>
-          <div data-ready={claimReady ? "true" : undefined}>
-            <dt>{t("claim")}</dt>
-            <dd>{passportClaim}</dd>
-          </div>
-          <div data-ready={audience.trim() ? "true" : undefined}>
-            <dt>{t("audience")}</dt>
-            <dd>{passportAudience}</dd>
-          </div>
-        </dl>
+        <p className="did-credential-lane__truth"><CircleAlert size={15} aria-hidden="true" />{t("selfAuthoredClaimNote")}</p>
       </section>
 
-      <section className="did-issuance" aria-label={t("passportSealTrack")}>
-        <div className="did-issuance__head">
-          <ShieldCheck size={20} aria-hidden="true" />
+      <section className="did-assurance" aria-label={t("assuranceTitle")}>
+        <header className="did-assurance__head">
+          <Landmark size={20} aria-hidden="true" />
           <div>
-            <span>{t("passportSealTrack")}</span>
-            <strong>{passportStateLabel}</strong>
+            <span>{t("assuranceTitle")}</span>
+            <strong>{t("assuranceSubtitle")}</strong>
           </div>
-        </div>
-        <div className="did-issuance__steps">
-          {routeSteps.map(({ key, label, value, active, icon: Icon }) => (
-            <div key={key} className="did-issuance__step" data-active={active ? "true" : undefined}>
-              <span className="did-issuance__icon" aria-hidden="true"><Icon size={17} /></span>
-              <span>
-                <strong>{label}</strong>
-                <small>{value}</small>
-              </span>
+        </header>
+        <div className="did-assurance__list">
+          {assuranceItems.map((item) => (
+            <div key={item.key} data-tone={item.tone}>
+              <span>{assuranceIcon(item.tone)}</span>
+              <div><strong>{item.label}</strong><small>{item.value}</small></div>
             </div>
           ))}
         </div>
-        <p className="did-issuance__copy">{t("credentialFlowCopy")}</p>
       </section>
 
-      <p className="did-scene__status" data-error={lastError ? "true" : undefined}>
-        {statusLabel}
+      <p className="did-scene__status" data-error={lastError ? "true" : undefined} role="status" aria-live="polite">
+        {busy ? (isSigning ? t("waitingWalletStatus") : t("resolvingStatus")) : lastError || recoveryStatus || lastStatus}
       </p>
     </div>
   );
-
-  const score = [
-    { label: t("payloadDigest"), value: shortHash(lastDigest), accent: true },
-    { label: t("tabPassport"), value: String(requestCount) },
-    { label: t("signedStatus"), value: isSigned ? "✓" : "—" },
-  ];
 
   const drawer = (
     <div className="did-drawer">
       <OpenUiNotice
         className="did-drawer__notice"
-        icon={<ShieldCheck size={18} strokeWidth={2.35} aria-hidden="true" />}
+        icon={<ShieldCheck size={18} aria-hidden="true" />}
         title={t("proofLaneHint")}
       >
         {t("offChainNote")}
@@ -299,7 +383,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
       <OpenUiPanel
         className="did-drawer__panel did-drawer__panel--wide"
-        icon={<Fingerprint size={18} strokeWidth={2.35} aria-hidden="true" />}
+        icon={<Fingerprint size={18} aria-hidden="true" />}
         title={t("advancedFieldsTitle")}
         subtitle={t("advancedFieldsCopy")}
       >
@@ -308,18 +392,32 @@ export default function PlayArea({ t, state, dispatch }: P) {
             className="did-drawer__field did-drawer__field--wide"
             label={t("subject")}
             value={subject}
-            onChange={(e) => setSubject(e.target.value)}
+            onChange={(event) => setSubject(truncatePassportUtf8(
+              event.target.value,
+              PASSPORT_FIELD_LIMITS.subject,
+            ))}
             placeholder={t("subjectPlaceholder")}
+            hint={t("byteLimitHint", {
+              count: passportUtf8Length(subject),
+              max: PASSPORT_FIELD_LIMITS.subject,
+            })}
             disabled={busy}
             mono
             spellCheck={false}
           />
           <OpenUiTextField
             className="did-drawer__field"
-            label={t("claim")}
+            label={t("claimContext")}
             value={claim}
-            onChange={(e) => setClaim(e.target.value)}
+            onChange={(event) => setClaim(truncatePassportUtf8(
+              event.target.value,
+              PASSPORT_FIELD_LIMITS.claim,
+            ))}
             placeholder={t("claimPlaceholder")}
+            hint={t("byteLimitHint", {
+              count: passportUtf8Length(claim),
+              max: PASSPORT_FIELD_LIMITS.claim,
+            })}
             disabled={busy}
             mono
             spellCheck={false}
@@ -328,8 +426,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
             className="did-drawer__field"
             label={t("audience")}
             value={audience}
-            onChange={(e) => setAudience(e.target.value)}
+            onChange={(event) => setAudience(truncatePassportUtf8(
+              event.target.value,
+              PASSPORT_FIELD_LIMITS.audience,
+            ))}
             placeholder={t("audiencePlaceholder")}
+            hint={t("byteLimitHint", {
+              count: passportUtf8Length(audience),
+              max: PASSPORT_FIELD_LIMITS.audience,
+            })}
             disabled={busy}
             mono
             spellCheck={false}
@@ -338,46 +443,33 @@ export default function PlayArea({ t, state, dispatch }: P) {
       </OpenUiPanel>
 
       <OpenUiPanel
-        className="did-drawer__panel"
-        icon={<BadgeCheck size={18} strokeWidth={2.35} aria-hidden="true" />}
-        title={t("provider")}
-        subtitle={provider === "wallet" ? t("walletProviderTile") : t("apiProofHint")}
+        className="did-drawer__panel did-drawer__panel--wide"
+        icon={<FileCheck2 size={18} aria-hidden="true" />}
+        title={t("reviewEvidenceTitle")}
+        subtitle={t("reviewEvidenceCopy")}
       >
-        <div className="did-provider-deck" role="radiogroup" aria-label={t("provider")}>
-          {[
-            { key: "wallet", icon: WalletCards, hint: "walletProviderTile" },
-            { key: "email", icon: Mail, hint: "emailProviderTile" },
-            { key: "github", icon: Github, hint: "githubProviderTile" },
-          ].map(({ key, icon: Icon, hint }) => (
-            <button
-              key={key}
-              type="button"
-              role="radio"
-              aria-checked={provider === key}
-              className={provider === key ? "is-active" : ""}
-              onClick={() => setProvider(key)}
-              disabled={busy}
-            >
-              <Icon size={17} strokeWidth={2.35} aria-hidden="true" />
-              <span>
-                <strong>{t(`${key}Provider`) || key}</strong>
-                <small>{t(hint)}</small>
-              </span>
-            </button>
-          ))}
-        </div>
-      </OpenUiPanel>
-
-      <OpenUiPanel
-        className="did-drawer__panel"
-        icon={<FileCheck2 size={18} strokeWidth={2.35} aria-hidden="true" />}
-        title={t("passportActionsTitle")}
-        subtitle={statusLabel}
-      >
+        <dl className="did-evidence-list">
+          <div><dt>{t("payloadDigest")}</dt><dd><code title={visiblePayload?.digest}>{visiblePayload?.digest ?? lastDigest}</code></dd></div>
+          <div><dt>{t("anchorContract")}</dt><dd><code title={visiblePayload?.didDocument.anchorContract}>{visiblePayload?.didDocument.anchorContract || anchorContract}</code></dd></div>
+          <div><dt>{t("reviewNonce")}</dt><dd><code>{visiblePayload?.nonce ?? "—"}</code></dd></div>
+          <div><dt>{t("registryObservation")}</dt><dd><code>{visiblePayload ? `${visiblePayload.registry.status} · ${visiblePayload.registry.reason}` : "—"}</code></dd></div>
+          <div><dt>{t("registryCheckedAt")}</dt><dd>{visiblePayload?.registry.checkedAt ? new Date(visiblePayload.registry.checkedAt).toLocaleString() : "—"}</dd></div>
+          <div><dt>{t("proofAddress")}</dt><dd><code>{visiblePayload?.proof.address ?? "—"}</code></dd></div>
+          <div><dt>{t("messageDigest")}</dt><dd><code>{visiblePayload?.proof.messageDigest ?? "—"}</code></dd></div>
+          <div><dt>{t("proofVerification")}</dt><dd>{t("proofNotVerifiedHere")}</dd></div>
+        </dl>
         <div className="did-drawer__row">
-          <button type="button" className="did-drawer__primary" onClick={handleBuild} disabled={busy || !subject.trim() || !claim.trim()}>{t("routeBuild") || t("tabPassport")}</button>
-          <button type="button" onClick={handleSign} disabled={busy || !hasPayload}>{t("signAction")}</button>
-          <button type="button" className="did-drawer__reset" onClick={handleReset} disabled={busy}>{t("reset")}</button>
+          {!storageHealthy && visiblePayload ? (
+            <button type="button" className="did-drawer__recovery" onClick={retryStorage} disabled={busy}>
+              <RefreshCw size={16} aria-hidden="true" />{t("retryStorageAction")}
+            </button>
+          ) : null}
+          <button type="button" className="did-drawer__primary" onClick={copy} disabled={!visiblePayload || busy}>
+            <ClipboardCopy size={16} aria-hidden="true" />{t("copyAction")}
+          </button>
+          <button type="button" className="did-drawer__reset" onClick={reset} disabled={busy}>
+            <RotateCcw size={16} aria-hidden="true" />{t("reset")}
+          </button>
         </div>
       </OpenUiPanel>
     </div>
@@ -385,18 +477,34 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
   return (
     <OpenUiProvider>
-      <div className="neodid-passport-play-area mx2 mx2-cat-nft">
+      <div className="neodid-passport-play-area mx2 mx2-cat-tool">
         <PlayStage
-          category="nft"
-          stage={{ eyebrow: t("panelTitle"), title: t("title"), subtitle: t("credentialFlowCopy") }}
-          scene={scene}
-          score={score}
-          actions={{
-            primary: { label: busy ? "…" : t("routeBuild") || t("tabPassport"), onClick: handleBuild, loading: busy, disabled: !laneReady },
-            secondary: hasPayload ? [{ label: t("signAction"), onClick: handleSign }] : undefined,
+          category="tool"
+          stage={{
+            title: t("title"),
+            subtitle: t("passportProductSubtitle"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{network === "mainnet" ? t("mainnet") : t("testnet")}</span>,
           }}
-          drawerToggleLabel={t("panelTitle")}
-          drawer={{ title: t("panelTitle"), children: drawer }}
+          scene={scene}
+          actions={{
+            primary: {
+              label: isResolving ? t("resolvingStatus") : t("routeBuild"),
+              onClick: build,
+              loading: isResolving,
+              disabled: !draftReady,
+              icon: <FileCheck2 size={17} aria-hidden="true" />,
+            },
+            secondary: visiblePayload && !expired && !proofAttached
+              ? [{
+                  label: isSigning ? t("waitingWalletStatus") : t("signAction"),
+                  onClick: sign,
+                  disabled: busy,
+                  icon: <WalletCards size={16} aria-hidden="true" />,
+                }]
+              : undefined,
+          }}
+          drawerToggleLabel={t("details")}
+          drawer={{ title: t("reviewDetailsTitle"), children: drawer }}
         />
       </div>
     </OpenUiProvider>

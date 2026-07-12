@@ -24,6 +24,14 @@ export const baseMessages = {
   // --- Two-mode game entry CTAs (launcher; opt-in via gamePage.modes.guest) ---
   entryGameFiCta: { en: "Earn GAS", zh: "赚取 GAS" },
   entryGuestCta: { en: "Play free", zh: "免费试玩" },
+  entryGameFiUnavailable: {
+    en: "Earn GAS temporarily unavailable",
+    zh: "赚取 GAS 暂时不可用",
+  },
+  entryGuestMaintenanceCopy: {
+    en: "Free play is available while verified GAS rewards are under maintenance.",
+    zh: "免费模式正常开放；可验证 GAS 奖励正在维护中。",
+  },
 
   // --- Common status / UI keys ---
   error: { en: "Error", zh: "错误" },

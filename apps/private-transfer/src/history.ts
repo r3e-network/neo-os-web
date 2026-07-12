@@ -1,3 +1,8 @@
+import {
+  isMorpheusCiphertextEnvelope,
+  PRIVATE_TRANSFER_TESTNET_ORACLE_CONTRACT,
+} from "./protocol";
+
 /**
  * history.ts — Local, device-scoped persistence for sealed transfer intents.
  *
@@ -27,6 +32,29 @@ export interface SealedIntent {
 }
 
 /**
+ * Ciphertext-only recovery record written before the confidential-store call.
+ *
+ * A store timeout can mean either "nothing was saved" or "the response was
+ * lost after saving". Keeping the exact encrypted packet lets the user retry
+ * without rebuilding a second intent. No recipient, amount, memo, note secret,
+ * or other plaintext field is persisted here.
+ */
+export interface PendingSealedIntent {
+  version: 1;
+  name: string;
+  ciphertext: string;
+  publicEnvelope: Record<string, unknown>;
+  commitment: string;
+  nullifier: string;
+  network: string;
+  asset: string;
+  contract: string;
+  createdAt: number;
+  attempts: number;
+  lastError?: string;
+}
+
+/**
  * Synchronous device-local store — structurally satisfied by
  * `app.storage.local` (the framework local-storage surface).
  */
@@ -39,21 +67,38 @@ export interface SealedIntentStore {
 // Composed with the app's storagePrefix ("miniapp-private-transfer:") this
 // resolves to the legacy "miniapp-private-transfer:sealed-intents:v1" key.
 const STORAGE_KEY = "sealed-intents:v1";
+const PENDING_STORAGE_KEY = "pending-intent:v1";
 const MAX_RECORDS = 50;
 
-function isSealedIntent(value: unknown): value is SealedIntent {
+function parseSealedIntent(value: unknown): SealedIntent | null {
   if (!value || typeof value !== "object") {
-    return false;
+    return null;
   }
   const record = value as Record<string, unknown>;
-  return (
-    typeof record.secretRef === "string" &&
-    typeof record.commitment === "string" &&
-    typeof record.nullifier === "string" &&
-    typeof record.network === "string" &&
-    typeof record.asset === "string" &&
-    typeof record.ts === "number"
-  );
+  if (
+    typeof record.secretRef !== "string" ||
+    record.secretRef.trim().length === 0 ||
+    record.secretRef.length > 512 ||
+    typeof record.commitment !== "string" ||
+    !/^0x[0-9a-f]{64}$/i.test(record.commitment) ||
+    typeof record.nullifier !== "string" ||
+    !/^0x[0-9a-f]{64}$/i.test(record.nullifier) ||
+    record.network !== "testnet" ||
+    (record.asset !== "GAS" && record.asset !== "NEO") ||
+    typeof record.ts !== "number" ||
+    !Number.isFinite(record.ts) ||
+    record.ts <= 0
+  ) {
+    return null;
+  }
+  return {
+    secretRef: record.secretRef.trim(),
+    commitment: record.commitment,
+    nullifier: record.nullifier,
+    network: record.network,
+    asset: record.asset,
+    ts: record.ts,
+  };
 }
 
 /** Read the persisted sealed intents, newest first. Returns [] on any failure. */
@@ -62,7 +107,10 @@ export function readSealedIntents(store: SealedIntentStore): SealedIntent[] {
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw.filter(isSealedIntent);
+  return raw
+    .slice(0, MAX_RECORDS)
+    .map(parseSealedIntent)
+    .filter((record): record is SealedIntent => record !== null);
 }
 
 /**
@@ -79,4 +127,82 @@ export function appendSealedIntent(store: SealedIntentStore, intent: SealedInten
 /** Drop all persisted sealed intents. */
 export function clearSealedIntents(store: SealedIntentStore): void {
   store.delete(STORAGE_KEY);
+}
+
+function isPendingSealedIntent(value: unknown): value is PendingSealedIntent {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  const publicEnvelope = record.publicEnvelope as Record<string, unknown> | null;
+  const allowedEnvelopeKeys = new Set([
+    "kind",
+    "app_id",
+    "target_chain",
+    "network",
+    "asset",
+    "note_commitment",
+    "nullifier_hash",
+    "privacy_model",
+  ]);
+  const hasPlaintextField = ["recipient", "amount", "memo", "noteSecret", "note_secret"]
+    .some((key) => Object.prototype.hasOwnProperty.call(record, key));
+  return (
+    !hasPlaintextField &&
+    record.version === 1 &&
+    isMorpheusCiphertextEnvelope(record.ciphertext) &&
+    publicEnvelope !== null &&
+    typeof publicEnvelope === "object" &&
+    !Array.isArray(record.publicEnvelope) &&
+    Object.keys(publicEnvelope).every((key) => allowedEnvelopeKeys.has(key)) &&
+    Object.keys(publicEnvelope).length === allowedEnvelopeKeys.size &&
+    typeof record.commitment === "string" &&
+    /^0x[0-9a-f]{64}$/i.test(record.commitment) &&
+    typeof record.nullifier === "string" &&
+    /^0x[0-9a-f]{64}$/i.test(record.nullifier) &&
+    record.name === `private-transfer:${record.commitment}` &&
+    publicEnvelope.kind === "miniapp.private_transfer.intent.v1" &&
+    publicEnvelope.app_id === "miniapp-private-transfer" &&
+    publicEnvelope.target_chain === "neo_n3" &&
+    publicEnvelope.note_commitment === record.commitment &&
+    publicEnvelope.nullifier_hash === record.nullifier &&
+    publicEnvelope.privacy_model === "morpheus_confidential_compute" &&
+    record.network === "testnet" &&
+    (record.asset === "GAS" || record.asset === "NEO") &&
+    publicEnvelope.network === record.network &&
+    publicEnvelope.asset === record.asset &&
+    typeof record.contract === "string" &&
+    record.contract.toLowerCase() === PRIVATE_TRANSFER_TESTNET_ORACLE_CONTRACT.toLowerCase() &&
+    typeof record.createdAt === "number" &&
+    Number.isFinite(record.createdAt) &&
+    typeof record.attempts === "number" &&
+    Number.isInteger(record.attempts) &&
+    record.attempts >= 0 &&
+    record.attempts <= 10_000 &&
+    (
+      record.lastError === undefined ||
+      (typeof record.lastError === "string" && record.lastError.length <= 128)
+    )
+  );
+}
+
+/** Read the one unresolved ciphertext packet, rejecting malformed local data. */
+export function readPendingSealedIntent(store: SealedIntentStore): PendingSealedIntent | null {
+  const value = store.get<unknown>(PENDING_STORAGE_KEY, null);
+  return isPendingSealedIntent(value) ? value : null;
+}
+
+/** Persist the exact ciphertext packet before its first storage attempt. */
+export function savePendingSealedIntent(
+  store: SealedIntentStore,
+  pending: PendingSealedIntent,
+): PendingSealedIntent {
+  if (!isPendingSealedIntent(pending)) {
+    throw new Error("Invalid private-transfer recovery packet");
+  }
+  store.set(PENDING_STORAGE_KEY, pending);
+  return pending;
+}
+
+/** Remove recovery state only after a confirmed secret reference or user discard. */
+export function clearPendingSealedIntent(store: SealedIntentStore): void {
+  store.delete(PENDING_STORAGE_KEY);
 }

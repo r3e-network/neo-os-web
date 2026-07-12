@@ -1,25 +1,34 @@
 /**
- * PlayArea.tsx - Explorer
+ * Neo Explorer — production read-only chain workspace.
  *
- * Explorer is a read-only chain scanner: the main surface shows live network
- * telemetry, a search radar, and the current lookup result. Recent activity and
- * raw evidence stay in the drawer so the first screen feels like a tool, not a
- * plain query form.
+ * Search is the single primary action. Real transaction, block, address, and
+ * contract fields occupy the main surface; network telemetry and recent chain
+ * objects form a compact secondary rail. Complete records stay in the drawer.
  */
 import {
   Activity,
   Blocks,
+  Braces,
   CheckCircle2,
-  CircleDot,
-  DatabaseZap,
+  CircleAlert,
+  Database,
+  FileText,
   History,
   RadioTower,
+  RefreshCw,
   Search,
-  ShieldCheck,
+  Server,
+  WalletCards,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import { OpenUiProvider, OpenUiSegmented, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import {
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -27,6 +36,9 @@ interface PlayAreaProps {
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
+
+type ExplorerNetwork = "mainnet" | "testnet";
+type ExplorerDataStatus = "loading" | "live" | "cached" | "empty" | "unavailable";
 
 interface TxItem {
   hash: string;
@@ -39,40 +51,316 @@ interface TxItem {
 
 interface SearchResult {
   type?: string;
+  found?: boolean;
+  network?: ExplorerNetwork;
+  source?: string;
+  query?: string;
   hash?: string;
   label?: string;
   address?: string;
-  name?: string;
-  blockIndex?: number;
-  vmState?: string;
+  contract_hash?: string;
+  tx_count?: number;
+  call_count?: number;
+  transactions?: Array<Record<string, unknown>>;
+  calls?: Array<Record<string, unknown>>;
+  data?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
+interface ResultField {
+  label: string;
+  value: string;
+  mono?: boolean;
+  tone?: "success" | "danger";
+}
+
 const SEARCH_TYPES = ["explorerTipTx", "explorerTipAddress", "explorerTipContract", "explorerTipBlock"];
+const EXPLORER_BANNER_ART = "banner.webp";
 
-function compactHash(value: unknown, empty = "-") {
-  const text = String(value ?? "").trim();
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function textValue(...values: unknown[]) {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function compactHash(value: unknown, empty = "—") {
+  const text = textValue(value);
   if (!text) return empty;
-  return text.length > 18 ? `${text.slice(0, 10)}...${text.slice(-6)}` : text;
+  return text.length > 20 ? `${text.slice(0, 10)}…${text.slice(-8)}` : text;
 }
 
-function resultTitle(result: SearchResult | null, t: PlayAreaProps["t"]) {
-  if (!result) return t("searchResultNone");
-  if (result.type === "none") return t("searchUnknownTitle");
-  return String(result.label ?? result.name ?? result.hash ?? result.address ?? t("explorerResultReady"));
+function formatChainTime(value: unknown) {
+  if (value == null || value === "") return "—";
+  const numeric = Number(value);
+  const date = Number.isFinite(numeric)
+    ? new Date(numeric < 10_000_000_000 ? numeric * 1000 : numeric)
+    : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
 
-function resultMeta(result: SearchResult | null, t: PlayAreaProps["t"]) {
-  if (!result) return t("explorerSearchHint");
-  if (result.type === "none") return t("searchUnknownDesc");
-  const type = String(result.type ?? t("searchResult"));
-  const block = result.blockIndex != null ? ` #${result.blockIndex}` : "";
-  return `${type}${block}`;
+function formatIntegerValue(value: unknown, fallback = "—") {
+  const text = textValue(value);
+  if (!/^\d+$/.test(text)) return text || fallback;
+  try {
+    return BigInt(text).toLocaleString();
+  } catch {
+    return text;
+  }
+}
+
+function formatUpdatedAt(value: unknown) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return "";
+  const date = new Date(numeric);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function resultFound(result: SearchResult | null) {
+  if (!result) return false;
+  if (["invalid", "unavailable", "none", "unknown"].includes(String(result.type))) return false;
+  return result.found !== false;
+}
+
+function resultUnavailable(result: SearchResult | null) {
+  return result?.type === "unavailable" || result?.source === "indexer_unavailable";
 }
 
 function resultTone(result: SearchResult | null) {
   if (!result) return "idle";
-  return result.type === "none" ? "empty" : "ready";
+  if (result.type === "invalid") return "invalid";
+  if (resultUnavailable(result)) return "error";
+  return resultFound(result) ? "ready" : "empty";
+}
+
+function resultTypeLabel(result: SearchResult | null, t: PlayAreaProps["t"]) {
+  switch (result?.type) {
+    case "transaction": return t("transaction");
+    case "block": return t("explorerTypeBlock");
+    case "address": return t("address");
+    case "contract": return t("contract");
+    default: return t("searchResult");
+  }
+}
+
+function notFoundCopy(result: SearchResult, t: PlayAreaProps["t"]) {
+  switch (result.type) {
+    case "transaction": return t("transactionNotFound");
+    case "block": return t("blockNotFound");
+    case "address": return t("addressNoActivity");
+    case "contract": return t("contractNotFound");
+    default: return t("searchUnknownDesc");
+  }
+}
+
+function resultIdentifier(result: SearchResult | null) {
+  if (!result) return "";
+  const data = asRecord(result.data);
+  if (result.type === "address") return textValue(result.address, result.query);
+  if (result.type === "contract") return textValue(result.contract_hash, data.hash, result.query);
+  return textValue(data.hash, result.hash, result.query, result.label);
+}
+
+function resultSourceLabel(result: SearchResult | null, t: PlayAreaProps["t"]) {
+  switch (result?.source) {
+    case "rpc": return t("explorerSourceRpc");
+    case "indexer": return t("explorerSourceIndexer");
+    case "indexer_unavailable": return t("explorerSourceIndexerUnavailable");
+    default: return t("explorerSourceApi");
+  }
+}
+
+function resultFields(result: SearchResult, t: PlayAreaProps["t"]): ResultField[] {
+  const data = asRecord(result.data);
+  const manifest = asRecord(data.manifest);
+
+  if (result.type === "transaction") {
+    const vmState = textValue(data.vm_state, data.vmstate, result.vmState, "—");
+    return [
+      { label: t("hash"), value: textValue(data.hash, result.hash, result.query, "—"), mono: true },
+      { label: t("resultStatus"), value: vmState, tone: vmState === "HALT" ? "success" : vmState === "FAULT" ? "danger" : undefined },
+      { label: t("block"), value: formatIntegerValue(data.block_index ?? data.blockindex ?? result.blockIndex) },
+      { label: t("sender"), value: textValue(data.sender, result.sender, "—"), mono: true },
+      { label: t("gasConsumed"), value: textValue(data.gas_consumed, data.sysfee, "—") },
+      { label: t("time"), value: formatChainTime(data.block_time ?? data.blocktime) },
+    ];
+  }
+
+  if (result.type === "block") {
+    const transactions = Array.isArray(data.tx) ? data.tx.length : data.tx_count;
+    return [
+      { label: t("blockHeight"), value: formatIntegerValue(data.index ?? result.query) },
+      { label: t("hash"), value: textValue(data.hash, result.hash, "—"), mono: true },
+      { label: t("transactions"), value: formatIntegerValue(data.tx_count ?? transactions, "0") },
+      { label: t("time"), value: formatChainTime(data.time) },
+      { label: t("previousBlock"), value: textValue(data.previousblockhash, "—"), mono: true },
+      { label: t("resultSource"), value: resultSourceLabel(result, t) },
+    ];
+  }
+
+  if (result.type === "address") {
+    return [
+      { label: t("address"), value: textValue(result.address, result.query, "—"), mono: true },
+      { label: t("indexedTransactions"), value: formatIntegerValue(result.tx_count ?? result.transactions?.length, "0") },
+      { label: t("resultNetwork"), value: result.network === "testnet" ? t("testnet") : t("mainnet") },
+      { label: t("resultSource"), value: resultSourceLabel(result, t) },
+    ];
+  }
+
+  if (result.type === "contract") {
+    return [
+      { label: t("hash"), value: textValue(result.contract_hash, data.hash, result.query, "—"), mono: true },
+      { label: t("contractName"), value: textValue(manifest.name, data.name, "—") },
+      { label: t("contractMethods"), value: formatIntegerValue(Array.isArray(asRecord(manifest.abi).methods) ? (asRecord(manifest.abi).methods as unknown[]).length : null) },
+      { label: t("contractUpdates"), value: formatIntegerValue(data.updatecounter ?? data.update_counter) },
+      { label: t("contractCalls"), value: formatIntegerValue(result.call_count ?? result.calls?.length, "0") },
+      { label: t("resultSource"), value: resultSourceLabel(result, t) },
+    ];
+  }
+
+  return [];
+}
+
+function resultIcon(type: string | undefined): ReactNode {
+  switch (type) {
+    case "transaction": return <FileText size={22} />;
+    case "block": return <Blocks size={22} />;
+    case "address": return <WalletCards size={22} />;
+    case "contract": return <Braces size={22} />;
+    default: return <Search size={22} />;
+  }
+}
+
+function safeJson(value: unknown) {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return "{}";
+  }
+}
+
+function ResultSurface({
+  isSearching,
+  networkLabel,
+  result,
+  t,
+}: {
+  isSearching: boolean;
+  networkLabel: string;
+  result: SearchResult | null;
+  t: PlayAreaProps["t"];
+}) {
+  if (isSearching) {
+    return (
+      <section className="explorer-result-surface" data-state="loading" aria-busy="true" aria-live="polite">
+        <div className="explorer-loading-head"><RefreshCw size={22} className="is-spinning" /><strong>{t("searching")}</strong></div>
+        <span className="explorer-loading-line" />
+        <span className="explorer-loading-line explorer-loading-line--short" />
+        <div className="explorer-loading-grid"><span /><span /><span /><span /></div>
+      </section>
+    );
+  }
+
+  if (!result) {
+    return (
+      <section className="explorer-result-surface explorer-result-surface--idle" data-state="idle" aria-label={t("explorerSearchDeck")}>
+        <div className="explorer-idle-copy">
+          <strong>{t("explorerScannerTargetEmpty")}</strong>
+          <p>{t("explorerSearchHint")}</p>
+          <div className="explorer-type-strip" aria-label={t("explorerSearchableTypes")}>
+            {SEARCH_TYPES.map((key) => <span key={key}>{t(key)}</span>)}
+          </div>
+        </div>
+        <img src={EXPLORER_BANNER_ART} alt={t("explorerHeroAlt")} loading="eager" decoding="async" />
+      </section>
+    );
+  }
+
+  if (result.type === "invalid" || resultUnavailable(result)) {
+    const unavailable = resultUnavailable(result);
+    const unavailableCopy = result.source === "indexer_unavailable"
+      ? t("explorerIndexerUnavailableDesc")
+      : t("explorerServiceUnavailable");
+    return (
+      <section className="explorer-result-surface explorer-result-message" data-state={unavailable ? "error" : "invalid"} role="alert">
+        <span className="explorer-result-message__icon"><CircleAlert size={24} /></span>
+        <div>
+          <strong>{unavailable ? t("searchFailed") : t("searchUnknownTitle")}</strong>
+          <p>{unavailable ? unavailableCopy : t("searchUnknownDesc")}</p>
+          <code>{textValue(result.query)}</code>
+        </div>
+      </section>
+    );
+  }
+
+  if (!resultFound(result)) {
+    return (
+      <section className="explorer-result-surface explorer-result-message" data-state="empty" role="status">
+        <span className="explorer-result-message__icon"><Search size={24} /></span>
+        <div>
+          <strong>{t("explorerNoMatchTitle", { type: resultTypeLabel(result, t) })}</strong>
+          <p>{notFoundCopy(result, t)}</p>
+          <code>{resultIdentifier(result)}</code>
+        </div>
+      </section>
+    );
+  }
+
+  const fields = resultFields(result, t);
+  const relatedTransactions = Array.isArray(result.transactions) ? result.transactions.slice(0, 3) : [];
+  const relatedCalls = Array.isArray(result.calls) ? result.calls.slice(0, 3) : [];
+  return (
+    <section className="explorer-result-surface" data-state="ready" aria-live="polite">
+      <header className="explorer-object-head">
+        <span className="explorer-object-head__icon" aria-hidden="true">{resultIcon(result.type)}</span>
+        <div>
+          <span>{resultTypeLabel(result, t)}</span>
+          <strong>{t("explorerRecordFound")}</strong>
+        </div>
+        <em><CheckCircle2 size={14} />{networkLabel}</em>
+      </header>
+
+      <code className="explorer-object-id" title={resultIdentifier(result)}>{resultIdentifier(result)}</code>
+
+      <dl className="explorer-field-grid">
+        {fields.map((field, index) => (
+          <div key={`${field.label}-${index}`} data-tone={field.tone}>
+            <dt>{field.label}</dt>
+            <dd className={field.mono ? "is-mono" : undefined} title={field.value}>{field.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {(relatedTransactions.length > 0 || relatedCalls.length > 0) && (
+        <div className="explorer-related-list">
+          <strong>{result.type === "address" ? t("recentTransactions") : t("contractCalls")}</strong>
+          {(relatedTransactions.length > 0 ? relatedTransactions : relatedCalls).map((row, index) => (
+            <div key={textValue(row.tx_hash, row.hash, row.id, index)}>
+              <code>{compactHash(textValue(row.tx_hash, row.hash, row.contract_hash, resultIdentifier(result)))}</code>
+              <span>{textValue(row.role, row.method, row.vm_state, "—")}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function statusLabel(status: ExplorerDataStatus, t: PlayAreaProps["t"]) {
+  switch (status) {
+    case "live": return t("explorerDataLive");
+    case "cached": return t("explorerDataCached");
+    case "empty": return t("explorerDataEmpty");
+    case "unavailable": return t("explorerDataUnavailable");
+    default: return t("explorerDataLoading");
+  }
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -82,25 +370,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const mainnetTxCount = str("mainnetTxCount");
   const testnetHeight = str("testnetHeight");
   const testnetTxCount = str("testnetTxCount");
-  const selectedNetwork = str("selectedNetwork", "mainnet") as "mainnet" | "testnet";
+  const selectedNetworkValue = str("selectedNetwork", "mainnet");
+  const selectedNetwork: ExplorerNetwork = selectedNetworkValue === "testnet" ? "testnet" : "mainnet";
   const recentTxCount = num("recentTxCount");
   const isLoading = bool("isLoading");
   const isSearching = bool("isSearching");
   const searchQuery = str("searchQuery");
   const searchResult = val<SearchResult | null>("searchResult", null);
   const recentTxs = (val("recentTxs") ?? []) as TxItem[];
+  const statsStatus = str("statsStatus", isLoading ? "loading" : "live") as ExplorerDataStatus;
+  const recentStatus = str("recentStatus", isLoading ? "loading" : recentTxs.length > 0 ? "live" : "empty") as ExplorerDataStatus;
+  const statsUpdatedAt = val<number | null>("statsUpdatedAt", null);
 
-  const height = selectedNetwork === "mainnet" ? mainnetHeight : testnetHeight;
-  const txCount = selectedNetwork === "mainnet" ? mainnetTxCount : testnetTxCount;
-  const query = searchQuery.trim();
-  const sceneState = isSearching ? "searching" : isLoading ? "syncing" : searchResult ? "result" : "live";
+  const selectedHeight = selectedNetwork === "mainnet" ? mainnetHeight : testnetHeight;
+  const selectedTxCount = selectedNetwork === "mainnet" ? mainnetTxCount : testnetTxCount;
+  const otherHeight = selectedNetwork === "mainnet" ? testnetHeight : mainnetHeight;
+  const otherNetworkLabel = selectedNetwork === "mainnet" ? t("testnet") : t("mainnet");
   const networkLabel = selectedNetwork === "mainnet" ? t("mainnet") : t("testnet");
+  const query = searchQuery.trim();
+  const resultIsUnavailable = searchResult?.type === "unavailable";
+  const notAvailableLabel = t("notAvailable");
+  const hasHeight = Boolean(selectedHeight && !["—", "-", notAvailableLabel].includes(selectedHeight));
+  const hasTxCount = Boolean(selectedTxCount && !["—", "-", notAvailableLabel].includes(selectedTxCount));
+  const railStatsStatus: ExplorerDataStatus = statsStatus === "live" && !hasHeight && !hasTxCount
+    ? "unavailable"
+    : statsStatus;
+  const updatedAt = formatUpdatedAt(statsUpdatedAt);
 
-  const selectNetwork = (network: "mainnet" | "testnet") => {
-    state.selectedNetwork?.set(network);
-  };
   const setNetworkSafe = (network: string) => {
-    if (network === "mainnet" || network === "testnet") selectNetwork(network);
+    if (network === "mainnet" || network === "testnet") state.selectedNetwork?.set(network);
   };
 
   const runSearch = () => {
@@ -108,59 +406,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     void dispatch("search");
   };
 
-  const scene = (
-    <div className="explorer-scene" data-state={sceneState}>
-      <div className="explorer-network-orbit" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-
-      <section className="explorer-network-card explorer-network-card--mainnet" data-active={selectedNetwork === "mainnet" ? "true" : undefined}>
-        <span><RadioTower size={15} />{t("mainnet")}</span>
-        <strong>{mainnetHeight || "-"}</strong>
-        <em>{t("blockHeight")}</em>
-      </section>
-
-      <section className="explorer-network-card explorer-network-card--testnet" data-active={selectedNetwork === "testnet" ? "true" : undefined}>
-        <span><Activity size={15} />{t("testnet")}</span>
-        <strong>{testnetHeight || "-"}</strong>
-        <em>{t("blockHeight")}</em>
-      </section>
-
-      <section className="explorer-scanner" aria-label={t("explorerSearchDeck")}>
-        <div className="explorer-scanner__lens" aria-hidden="true">
-          <Search size={34} />
-          <span className="explorer-scanner__sweep" />
-        </div>
-        <span className="explorer-scanner__eyebrow">{networkLabel} / {t("explorerSignalReady")}</span>
-        <strong>{query || t("explorerScannerTargetEmpty")}</strong>
-        <p>{resultMeta(searchResult, t)}</p>
-      </section>
-
-      <div className="explorer-result-card" data-tone={resultTone(searchResult)}>
-        <span className="explorer-result-card__icon">
-          {searchResult ? <CheckCircle2 size={17} /> : <CircleDot size={17} />}
-        </span>
-        <span>
-          <em>{t("searchResult")}</em>
-          <strong>{resultTitle(searchResult, t)}</strong>
-        </span>
-      </div>
-
-      <div className="explorer-pulse-strip" aria-label={t("explorerWorkflowTitle")}>
-        <span><Blocks size={14} />{height || "-"}</span>
-        <span><DatabaseZap size={14} />{txCount || "-"}</span>
-        <span><History size={14} />{recentTxCount}</span>
-      </div>
-    </div>
-  );
-
   const controls = (
     <div className="explorer-controls">
-      <div className="explorer-controls__header">
-        <span>{t("explorerSearchDeck")}</span>
-        <strong>{t("explorerNoSignature")}</strong>
+      <div className="explorer-controls__identity">
+        <strong>{networkLabel}</strong>
+        <span>{t("explorerSourceSummary")}</span>
       </div>
 
       <OpenUiSegmented
@@ -176,27 +426,88 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       />
 
       <div className="explorer-search-shell">
-        <Search size={18} aria-hidden="true" />
+        <Search size={19} aria-hidden="true" />
         <OpenUiTextField
           className="explorer-search-box"
           inputClassName="explorer-search-box__control"
           label={t("explorerSearchDeck")}
           value={searchQuery}
-          onChange={(e) => state.searchQuery?.set(e.target.value)}
+          onChange={(event) => state.searchQuery?.set(event.target.value.slice(0, 128))}
           placeholder={t("searchPlaceholder")}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") runSearch();
+          maxLength={128}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") runSearch();
           }}
           disabled={isSearching}
+          aria-invalid={searchResult?.type === "invalid" || undefined}
         />
       </div>
-
-      <div className="explorer-type-strip" aria-label={t("explorerSearchableTypes")}>
-        {SEARCH_TYPES.map((key) => (
-          <span key={key}>{t(key)}</span>
-        ))}
-      </div>
     </div>
+  );
+
+  const liveRail = (
+    <aside className="explorer-live-rail" aria-label={t("explorerNetworkTelemetry")}>
+      <header>
+        <span className="explorer-status-dot" data-status={railStatsStatus} />
+        <div>
+          <strong>{networkLabel}</strong>
+          <span>{statusLabel(railStatsStatus, t)}{updatedAt ? ` · ${updatedAt}` : ""}</span>
+        </div>
+        <RadioTower size={18} aria-hidden="true" />
+      </header>
+
+      <dl className="explorer-network-metrics">
+        <div><dt>{t("blockHeight")}</dt><dd>{hasHeight ? selectedHeight : "—"}</dd><span>{hasHeight ? t("explorerSourceRpc") : t("explorerDataUnavailable")}</span></div>
+        <div><dt>{t("transactions")}</dt><dd>{hasTxCount ? selectedTxCount : "—"}</dd><span>{hasTxCount ? t("explorerSourceIndexer") : t("explorerSourceIndexerUnavailable")}</span></div>
+      </dl>
+
+      <div className="explorer-other-network">
+        <span>{otherNetworkLabel}</span>
+        <strong>{otherHeight || "—"}</strong>
+        <em>{t("blockHeight")}</em>
+      </div>
+
+      <section className="explorer-recent-rail">
+        <header>
+          <div><History size={16} /><strong>{t("recentTransactions")}</strong></div>
+          <span>{recentTxCount}</span>
+        </header>
+        {recentTxs.length > 0 ? (
+          <ul>
+            {recentTxs.slice(0, 4).map((tx) => (
+              <li key={tx.hash}>
+                <button type="button" onClick={() => void dispatch("viewTx", tx.hash)}>
+                  <code>{compactHash(tx.hash)}</code>
+                  <span>{tx.vmState || t("vmUnknown")} · #{tx.blockIndex ?? "—"}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="explorer-recent-state" data-status={recentStatus}>
+            <p>{recentStatus === "unavailable" ? t("explorerRecentUnavailable") : statusLabel(recentStatus, t)}</p>
+            {(recentStatus === "unavailable" || recentStatus === "empty" || recentStatus === "cached") && (
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("refreshExplorer")}>
+                <RefreshCw size={14} />{t("refresh")}
+              </button>
+            )}
+          </div>
+        )}
+      </section>
+    </aside>
+  );
+
+  const scene = (
+    <>
+      {controls}
+      <div className="explorer-workspace">
+        <ResultSurface isSearching={isSearching} networkLabel={networkLabel} result={searchResult} t={t} />
+        {liveRail}
+      </div>
+    </>
   );
 
   return (
@@ -205,71 +516,66 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <PlayStage
           category="tool"
           stage={{
-            eyebrow: t("explorerReadOnly"),
-            title: t("explorerLiveScanner"),
-            subtitle: t("explorerSearchDeckCopy"),
-            badges: (
-              <>
-                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkLabel}</span>
-                <span className="mx2-badge">{recentTxCount} {t("sidebarRecentTxs")}</span>
-              </>
-            ),
+            title: t("title"),
+            subtitle: t("explorerSearchScope"),
           }}
-          scene={<>{scene}{controls}</>}
-          score={[
-            { label: t("blockHeight"), value: height || "-", accent: true },
-            { label: t("transactions"), value: txCount || "-" },
-            { label: t("searchResult"), value: searchResult ? t("explorerResultReady") : "-" },
-          ]}
+          scene={scene}
           actions={{
             primary: {
-              label: isSearching ? t("searching") : t("search"),
+              label: isSearching ? t("searching") : (resultIsUnavailable || searchResult?.source === "indexer_unavailable") ? t("retrySearch") : t("search"),
               onClick: runSearch,
-              loading: isSearching || isLoading,
+              loading: isSearching,
               disabled: !query || isSearching,
               icon: <Search size={17} />,
             },
+            secondary: [
+              { label: t("refresh"), onClick: () => void dispatch("refreshExplorer"), hint: t("refreshData") },
+            ],
           }}
-          drawerToggleLabel={t("recentTransactions")}
+          drawerToggleLabel={t("explorerDetails")}
           drawer={{
-            title: t("recentTransactions"),
+            title: t("explorerDetails"),
             children: (
-              <>
-                <section className="explorer-drawer-section">
-                  <h4>{t("explorerSafetyTitle")}</h4>
-                  <p className="explorer-safe-note"><ShieldCheck size={15} />{t("explorerSafetyDesc")}</p>
-                </section>
-
+              <div className="explorer-drawer">
                 <section className="explorer-drawer-section">
                   <h4>{t("searchResult")}</h4>
                   <div className="explorer-drawer-result" data-tone={resultTone(searchResult)}>
-                    <strong>{resultTitle(searchResult, t)}</strong>
-                    <span>{resultMeta(searchResult, t)}</span>
-                    {searchResult?.hash && <code>{String(searchResult.hash)}</code>}
+                    <strong>{searchResult ? resultTypeLabel(searchResult, t) : t("searchResultNone")}</strong>
+                    <span>{searchResult ? resultIdentifier(searchResult) || (searchResult.type === "unavailable" ? t("explorerServiceUnavailable") : t("searchUnknownDesc")) : t("explorerSearchHint")}</span>
+                    {searchResult && resultFound(searchResult) && (
+                      <details>
+                        <summary>{t("rawRecord")}</summary>
+                        <pre>{safeJson(searchResult)}</pre>
+                      </details>
+                    )}
                   </div>
                 </section>
 
                 <section className="explorer-drawer-section">
-                  <h4>{t("sidebarRecentTxs")}</h4>
+                  <h4>{t("recentTransactions")}</h4>
                   {recentTxs.length > 0 ? (
                     <ul className="explorer-tx-list">
                       {recentTxs.slice(0, 10).map((tx) => (
-                        <li key={tx.hash} className="explorer-tx-list__item">
-                          <span>
-                            <strong>{compactHash(tx.hash)}</strong>
-                            <em>{tx.vmState || t("vmUnknown")} · #{tx.blockIndex ?? "-"}</em>
-                          </span>
-                          <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("viewTx", tx.hash)}>
-                            {t("viewFullRecord")}
+                        <li key={tx.hash}>
+                          <button type="button" onClick={() => void dispatch("viewTx", tx.hash)}>
+                            <span><strong>{compactHash(tx.hash)}</strong><em>{tx.vmState || t("vmUnknown")} · #{tx.blockIndex ?? "—"}</em></span>
+                            <span>{t("viewFullRecord")}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="explorer-empty">{t("explorerRecentEmptyDesc")}</p>
+                    <p className="explorer-empty">{recentStatus === "unavailable" ? t("explorerRecentUnavailable") : t("explorerRecentEmptyDesc")}</p>
                   )}
                 </section>
-              </>
+
+                <section className="explorer-drawer-section explorer-source-note">
+                  <h4>{t("dataSources")}</h4>
+                  <p><Server size={15} />{t("explorerSourceDescription")}</p>
+                  <p><Database size={15} />{t("explorerIndexerDescription")}</p>
+                  <p><Activity size={15} />{t("explorerPollingDescription")}</p>
+                </section>
+              </div>
             ),
           }}
         />

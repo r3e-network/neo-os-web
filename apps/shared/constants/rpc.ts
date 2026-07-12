@@ -1,6 +1,7 @@
 import { GENERATED_MINIAPP_CONTRACTS } from './generated-miniapp-contracts';
 import { MORPHEUS_PUBLIC_REGISTRY } from './generated-morpheus-registry';
 import { MORPHEUS_PUBLIC_RUNTIME_CATALOG } from './generated-morpheus-runtime-catalog';
+import { MORPHEUS_PUBLIC_SIGNER_REGISTRY } from './generated-morpheus-signer-registry';
 
 /**
  * Canonical Neo N3 + Morpheus / AA integration registry for the MiniApp platform.
@@ -53,6 +54,8 @@ export type ExternalIntegrationConfig = {
   morpheusRiskPlane: string;
   morpheusRiskActions: string[];
   morpheusAutomationTriggerKinds: string[];
+  morpheusWorkerSignerPublicKey: string;
+  morpheusOracleVerifierPublicKey: string;
   morpheusOracleCvmId: string;
   morpheusOracleCvmName: string;
   morpheusOracleAttestationExplorerUrl: string;
@@ -129,6 +132,8 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
     morpheusRiskPlane: MORPHEUS_PUBLIC_RUNTIME_CATALOG.topology.riskPlane,
     morpheusRiskActions: [...MORPHEUS_PUBLIC_RUNTIME_CATALOG.risk.actions],
     morpheusAutomationTriggerKinds: [...MORPHEUS_PUBLIC_RUNTIME_CATALOG.automation.triggerKinds],
+    morpheusWorkerSignerPublicKey: MORPHEUS_PUBLIC_SIGNER_REGISTRY[network].worker.publicKey,
+    morpheusOracleVerifierPublicKey: MORPHEUS_PUBLIC_SIGNER_REGISTRY[network].oracleVerifier.publicKey,
     morpheusOracleCvmId: registry.morpheus.oracleCvmId,
     morpheusOracleCvmName: registry.morpheus.oracleCvmName,
     morpheusOracleAttestationExplorerUrl: registry.morpheus.oracleAttestationExplorerUrl,

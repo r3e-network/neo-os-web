@@ -1,11 +1,14 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
+  // Machine-readable locale marker for card presentation. This deliberately
+  // avoids inferring language from translated labels such as "Past" / "过去".
+  localeCode: { en: "en", zh: "zh", ja: "en" },
   // App translations
   appEyebrow: { en: "Neo Tarot", zh: "Neo 塔罗" },
   appSubtitle: {
-    en: "Ask a question, draw three Neo-styled cards, and reveal the spread on-chain.",
-    zh: "提出问题，抽取三张 Neo 风格塔罗牌，并在链上揭示牌阵。",
+    en: "Ask a question, record a three-card draw on-chain, then reveal the spread.",
+    zh: "提出问题，在链上记录三张牌的抽取结果，然后揭示牌阵。",
   },
   title: { en: "On-Chain Tarot", zh: "链上塔罗" },
   subtitle: { en: "Blockchain-powered divination", zh: "区块链占卜" },
@@ -43,6 +46,15 @@ const appMessages = {
   yourReading: { en: "Your Reading", zh: "您的解读" },
   readingSummary: { en: "Your Reading", zh: "您的解读" },
   cardsDrawn: { en: "Cards drawn!", zh: "牌已抽取！" },
+  readingRequested: {
+    en: "Reading requested. The oracle is shuffling your spread.",
+    zh: "读牌请求已提交，预言机正在洗牌。",
+  },
+  cardsReady: { en: "The oracle spread is ready to reveal.", zh: "预言机牌阵已就绪，可以揭示。" },
+  readingRequestUnconfirmed: {
+    en: "The request was submitted, but its reading ID could not be confirmed. Refresh before trying again.",
+    zh: "请求已提交，但暂未确认读牌编号。请先刷新状态，不要重复提交。",
+  },
   drawingCards: { en: "Drawing cards...", zh: "正在抽取牌..." },
   dealingCards: { en: "Dealing the spread...", zh: "正在发牌..." },
   flipCard: { en: "Flip card", zh: "翻开卡牌" },
@@ -65,19 +77,19 @@ const appMessages = {
     zh: "请连接钱包以抽牌",
   },
   depositPrepaidNoReading: {
-    en: "Draw fee prepaid, but the reading did not complete. The credit is held on the contract and will be reused on your next draw.",
-    zh: "抽牌费用已预付，但解读未完成。该额度已保存在合约中，将在你下次抽牌时复用。",
+    en: "Reading credit was deposited, but the oracle request did not start. The credit remains withdrawable or reusable.",
+    zh: "读牌额度已存入，但预言机请求未启动。该额度仍可提取或再次使用。",
   },
   cardsDrawnCount: { en: "Cards Drawn", zh: "抽取卡牌数" },
   totalSpent: { en: "Total Spent", zh: "总花费" },
   oracleVerified: {
-    en: "The three cards are drawn on-chain by the contract using Neo N3's Runtime.GetRandom and stored on-chain, so the reading is authoritative and auditable from the ReadingDrawn event.",
-    zh: "三张牌由合约在链上使用 Neo N3 的 Runtime.GetRandom 抽取并上链存储，因此该解读具权威性，可凭 ReadingDrawn 事件审计。",
+    en: "Morpheus returns signed randomness asynchronously. The contract binds it to this request, draws three distinct cards, and stores the terminal reading on-chain.",
+    zh: "Morpheus 异步返回签名随机数；合约将其绑定到本次请求，抽取三张不同卡牌并保存最终链上读牌。",
   },
   fairnessTitle: { en: "On-chain draw proof", zh: "链上抽牌证明" },
   fairnessCopy: {
-    en: "The wallet pays the draw fee, then the contract draws three distinct cards using Neo N3 randomness and emits the reading event for audit.",
-    zh: "钱包支付抽牌费用后，合约使用 Neo N3 随机数抽取三张不同卡牌，并发出读牌事件以供审计。",
+    en: "Your wallet deposits reusable credit and signs one oracle request. Cards remain sealed until the contract accepts the bound Morpheus result; oracle failure or timeout restores the full reading fee to your credit.",
+    zh: "钱包存入可复用额度并签署一次预言机请求。合约接受绑定的 Morpheus 结果后才会生成牌阵；预言机失败或超时会将完整读牌费用退回额度。",
   },
   tarotHeroTitle: { en: "On-Chain Tarot Reading Desk", zh: "链上塔罗读牌台" },
   tarotHeroSubtitle: {
@@ -98,17 +110,17 @@ const appMessages = {
     zh: "Neo N3 可分享读牌",
   },
   readingFlowTitle: { en: "Reading flow", zh: "读牌流程" },
-  readingStepOne: { en: "Write the question", zh: "写下问题" },
-  readingStepOneShort: { en: "Ask", zh: "提问" },
+  readingStepOne: { en: "Choose an intention", zh: "选择意图" },
+  readingStepOneShort: { en: "Intend", zh: "意图" },
   readingStepOneCopy: {
-    en: "The prompt is capped at 200 characters and kept on your device — it is not stored on-chain.",
-    zh: "问题限制为 200 个字符，仅保存在你的设备上，不会上链存储。",
+    en: "Pick Clarity, Decision, or Momentum. The selected focus stays on your device.",
+    zh: "选择看清、选择或势能；所选读牌主题仅保存在你的设备上。",
   },
   readingStepTwo: { en: "Pay the draw fee", zh: "支付抽牌费用" },
   readingStepTwoShort: { en: "Pay", zh: "付款" },
   readingStepTwoCopy: {
-    en: "You pay the on-chain draw fee in GAS to the contract; it credits your draw balance, then the contract draws your three cards in the same transaction.",
-    zh: "你向合约支付链上 GAS 抽牌费用；费用记入你的抽牌额度，随后合约在同一笔交易中抽出你的三张牌。",
+    en: "If needed, approve the reusable GAS credit deposit. Then approve the oracle request; the cards arrive asynchronously.",
+    zh: "如额度不足，先确认可复用的 GAS 额度存入；随后确认预言机请求，卡牌将异步返回。",
   },
   readingStepThree: { en: "Reveal the spread", zh: "揭示牌阵" },
   readingStepThreeShort: { en: "Reveal", zh: "揭示" },
@@ -119,12 +131,36 @@ const appMessages = {
   oraclePromptLabel: { en: "Question prompt", zh: "问题提示" },
   readingIntentTitle: { en: "Reading intent", zh: "读牌意图" },
   readingIntentCopy: {
-    en: "Choose a quick intent or write one focused question. The prompt stays local; only the draw and card ids are handled on-chain.",
-    zh: "选择快捷意图或写下一个明确问题。问题保留在本地；链上只处理抽牌和卡牌编号。",
+    en: "Choose one tactile intent token. The selected focus stays local; only a future verified GameFi draw would involve the chain.",
+    zh: "选择一个意图令牌；所选主题保留在本地。只有未来经验证的 GameFi 抽牌才会涉及链上操作。",
   },
   moreActions: { en: "More actions", zh: "更多操作" },
   drawerSummaryLabel: { en: "Tarot reading summary", zh: "塔罗读牌摘要" },
   refreshReadingState: { en: "Refresh state", zh: "刷新状态" },
+  checkingOracle: { en: "Checking the oracle...", zh: "正在检查预言机…" },
+  checkOracleResult: { en: "Check oracle result", zh: "检查预言机结果" },
+  recoverReadingFee: { en: "Recover reading fee", zh: "取回读牌费用" },
+  oracleWaitingTitle: { en: "The oracle is shuffling", zh: "预言机正在洗牌" },
+  oracleWaitingStatus: {
+    en: "Your request is sealed on-chain. Check again when Morpheus returns the result.",
+    zh: "请求已在链上封存。Morpheus 返回结果后再次检查即可。",
+  },
+  oracleTimeoutTitle: { en: "The oracle window has closed", zh: "预言机等待时间已结束" },
+  oracleTimedOut: { en: "Fee recovery ready", zh: "可取回费用" },
+  oracleFeeLabel: { en: "Oracle fee cap", zh: "预言机费用上限" },
+  pendingReadingLabel: { en: "Pending reading", zh: "待完成读牌" },
+  oracleRequestLabel: { en: "Oracle request", zh: "预言机请求" },
+  expiresLabel: { en: "Recovery after", zh: "可恢复时间" },
+  noPendingReading: { en: "No pending reading to recover", zh: "没有可恢复的待完成读牌" },
+  readingNotExpired: {
+    en: "The oracle still has time to settle this reading. Check again shortly.",
+    zh: "预言机仍可完成本次读牌，请稍后再次检查。",
+  },
+  readingFeeRestored: { en: "Reading fee restored", zh: "读牌费用已退回" },
+  readingFeeRecovered: {
+    en: "Recovered {amount} {tokenGas} to prepaid credit",
+    zh: "已将 {amount} {tokenGas} 退回预付额度",
+  },
   currentSpreadTitle: { en: "Current spread", zh: "当前牌阵" },
   sealedReadingHint: { en: "Tap the card to reveal.", zh: "点击卡牌揭示。" },
   readerWalletLabel: { en: "Wallet", zh: "钱包" },
@@ -135,6 +171,37 @@ const appMessages = {
     en: "Set the tone for this spread.",
     zh: "为这次牌阵设定主题。",
   },
+  ritualNetworkStatus: { en: "Neo N3 online", zh: "Neo N3 在线" },
+  guestRitualStatus: { en: "Local · no wallet", zh: "本地 · 无需钱包" },
+  ritualStepChooseIntent: {
+    en: "Step one · Choose an intention",
+    zh: "第一步 · 选择意图",
+  },
+  ritualIntentPrompt: {
+    en: "What do you most want to understand right now?",
+    zh: "此刻，你最想看清什么？",
+  },
+  ritualStepIntent: { en: "Intention", zh: "意图" },
+  ritualStepDraw: { en: "Draw", zh: "抽牌" },
+  ritualStepRead: { en: "Reading", zh: "解读" },
+  ritualActionConfirm: {
+    en: "Confirm intention · Draw 3 cards",
+    zh: "确认意图，抽取 3 张牌",
+  },
+  ritualOpeningTable: {
+    en: "Opening the ritual table",
+    zh: "正在打开仪式牌桌",
+  },
+  gameFiMaintenanceShort: {
+    en: "GameFi rewards under maintenance",
+    zh: "GameFi 奖励维护中",
+  },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
+  gameActionFailed: { en: "The reading could not continue", zh: "读牌暂时无法继续" },
+  retry: { en: "Retry", zh: "重试" },
+  continue: { en: "Continue", zh: "继续" },
+  rulesTitle: { en: "How to play", zh: "怎么玩" },
   // ── In-canvas tarot table strings (fed to the Phaser scene) ─────────────
   sceneChooseIntent: { en: "Choose an intent", zh: "选择意图" },
   sceneTapToReveal: { en: "Tap cards to reveal", zh: "点击卡牌揭示" },
@@ -147,8 +214,8 @@ const appMessages = {
     zh: "选择意图，然后在链上抽取三张牌。",
   },
   sceneDrawingStatus: {
-    en: "Wallet confirms the draw, then the contract seals the spread.",
-    zh: "钱包确认抽牌后，合约封存牌阵。",
+    en: "Confirm the credit and oracle request in your wallet.",
+    zh: "请在钱包中确认额度与预言机请求。",
   },
   sceneRevealedStatus: {
     en: "All three cards are revealed from the contract reading.",
@@ -159,7 +226,7 @@ const appMessages = {
     zh: "已揭示 {revealed} / 3",
   },
   tapToDraw: { en: "Tap to draw", zh: "点击抽牌" },
-  oracleLaneLabel: { en: "Oracle draw lane", zh: "预言抽牌轨道" },
+  oracleLaneLabel: { en: "On-chain draw lane", zh: "链上抽牌轨道" },
   oracleLaneIntent: { en: "Intent", zh: "意图" },
   oracleLaneDraw: { en: "Draw", zh: "抽牌" },
   oracleLaneReveal: { en: "Reveal", zh: "揭示" },
@@ -171,6 +238,11 @@ const appMessages = {
   requestReady: { en: "Ready", zh: "就绪" },
   awaitingCards: { en: "Awaiting draw", zh: "等待抽牌" },
   awaitingDraw: { en: "Awaiting draw", zh: "等待抽牌" },
+  loadingCard: { en: "Loading card…", zh: "正在加载卡牌…" },
+  cardUnavailable: {
+    en: "Card art unavailable · try a new reading",
+    zh: "卡面暂不可用 · 请开启新读牌重试",
+  },
   notDrawnYet: { en: "Not drawn yet", zh: "尚未抽取" },
   submitQuestionFirst: { en: "Submit a question first", zh: "先提交问题" },
   hiddenCard: { en: "Sealed card", zh: "封存卡牌" },
@@ -178,28 +250,31 @@ const appMessages = {
   revealProgress: { en: "Revealed", zh: "已揭示" },
   verificationPanelTitle: { en: "Transaction safety", zh: "交易安全" },
   verificationPanelCopy: {
-    en: "The miniapp talks directly to the on-chain tarot contract through the wallet. Every draw is a wallet-reviewed GAS transfer plus a draw call — no silent raw transaction is built inside the play area.",
-    zh: "小程序通过钱包直接与链上塔罗合约交互。每次抽牌都是经钱包确认的 GAS 转账加一次抽牌调用，不会在 play area 内静默构造原始交易。",
+    en: "The miniapp talks directly to the tarot VRF contract through the wallet. Deposits and requests are separately reviewed; the play area never treats submission as a completed reading.",
+    zh: "小程序通过钱包直接与塔罗 VRF 合约交互。额度存入与请求分别确认；play area 不会把提交请求误当作读牌完成。",
   },
   verificationPointFee: {
     en: "0.1 GAS draw fee is shown in the wallet before you approve.",
     zh: "0.1 GAS 抽牌费用会在你确认前显示在钱包中。",
   },
   verificationPointRandom: {
-    en: "Cards are picked on-chain via Runtime.GetRandom — not by this app.",
-    zh: "卡牌由链上 Runtime.GetRandom 抽取，而非本应用。",
+    en: "Cards appear only after a bound Morpheus randomness result is stored on-chain.",
+    zh: "只有绑定的 Morpheus 随机结果上链后，卡牌才会出现。",
   },
   verificationPointWallet: {
-    en: "The result is recorded in the ReadingDrawn event for auditing.",
-    zh: "结果记录在 ReadingDrawn 事件中以供审计。",
+    en: "Oracle failure and timeout return the full reading fee to withdrawable credit.",
+    zh: "预言机失败或超时会将完整读牌费用退回可提取额度。",
   },
   contractRouteLabel: { en: "Contract route", zh: "合约路径" },
-  tarotContractRoute: { en: "transfer -> draw()", zh: "transfer -> draw()" },
+  tarotContractRoute: {
+    en: "GAS credit -> requestReading -> Morpheus callback",
+    zh: "GAS 额度 -> requestReading -> Morpheus 回调",
+  },
   feeLabel: { en: "Draw fee", zh: "抽牌费用" },
   tarotFee: { en: "0.1 GAS on-chain", zh: "0.1 GAS（链上）" },
   readingStateLabel: { en: "Reading state", zh: "读牌状态" },
   revealed: { en: "revealed", zh: "已揭示" },
-  oracleVerifiedShort: { en: "On-chain verified", zh: "链上已验证" },
+  oracleVerifiedShort: { en: "Recorded on-chain", zh: "链上已记录" },
   oraclePendingShort: { en: "Waiting", zh: "等待中" },
   deckPanelTitle: { en: "Neo tarot deck", zh: "Neo 塔罗牌组" },
   spreadPanelTitle: { en: "Three-card spread", zh: "三张牌阵" },
@@ -217,8 +292,8 @@ const appMessages = {
     zh: "由合约在链上抽取、上链存储且可审计的三牌解读",
   },
   docDescription: {
-    en: "On-Chain Tarot provides mystical three-card readings drawn on-chain. Ask your question, pay a 0.1 GAS draw fee to the contract, and the contract picks three distinct Past-Present-Future cards using Neo N3's Runtime.GetRandom in the same transaction, so the reading is authoritative and auditable from the ReadingDrawn event.",
-    zh: "链上塔罗提供在链上抽取的神秘三牌解读。提出问题，向合约支付 0.1 GAS 抽牌费用，合约即在同一笔交易中使用 Neo N3 的 Runtime.GetRandom 抽出三张不同的过去-现在-未来牌，解读具权威性，可凭 ReadingDrawn 事件审计。",
+    en: "On-Chain Tarot requests a Morpheus-backed three-card reading. The contract binds the asynchronous result to the player and request, stores three distinct Past-Present-Future cards, and restores the full reading fee if the oracle fails or times out.",
+    zh: "链上塔罗通过 Morpheus 请求三牌解读。合约将异步结果绑定到玩家与请求，保存三张不重复的过去-现在-未来卡牌；预言机失败或超时则完整退回读牌费用。",
   },
   step1: {
     en: "Connect your wallet and enter your question.",
@@ -229,8 +304,8 @@ const appMessages = {
     zh: "向合约支付 0.1 GAS 抽牌费用。",
   },
   step3: {
-    en: "The contract draws your three cards on-chain in the same transaction.",
-    zh: "合约在同一笔交易中于链上抽出你的三张牌。",
+    en: "Morpheus settles the request asynchronously; refresh when the sealed spread is ready.",
+    zh: "Morpheus 异步结算请求；封存牌阵就绪后刷新即可。",
   },
   step4: {
     en: "Flip each card to reveal your Past, Present, and Future.",
@@ -238,8 +313,8 @@ const appMessages = {
   },
   feature1Name: { en: "On-Chain Draw", zh: "链上抽牌" },
   feature1Desc: {
-    en: "Cards are drawn on-chain by the contract using Neo N3's Runtime.GetRandom, so anyone can audit the reading from the ReadingDrawn event.",
-    zh: "卡牌由合约在链上使用 Neo N3 的 Runtime.GetRandom 抽取，任何人都可凭 ReadingDrawn 事件审计该解读。",
+    en: "Cards are derived from a request-bound Morpheus result and accepted only after terminal contract readback.",
+    zh: "卡牌由绑定请求的 Morpheus 结果生成，并且只有最终合约状态读回后才会被接受。",
   },
   feature2Name: { en: "78-Card Deck", zh: "78 张牌组" },
   feature2Desc: {
@@ -288,10 +363,12 @@ const appMessages = {
   // gamefi copy above is unchanged.
   guestBadge: { en: "Local reading", zh: "本地读牌" },
   guestSubtitle: {
-    en: "Ask a question, draw three Neo-styled cards, and reveal the spread — free, on this device.",
-    zh: "提出问题，抽取三张 Neo 风格塔罗牌，并揭示牌阵——本地免费。",
+    en: "Choose an intent, draw three Neo-styled cards, and reveal the spread — free, on this device.",
+    zh: "选择意图，抽取三张 Neo 风格塔罗牌并揭示牌阵——本地免费。",
   },
   guestDrawnBadge: { en: "Drawn locally", zh: "本地抽取" },
+  guestAwaitingBadge: { en: "Ready to shuffle", zh: "等待洗牌" },
+  guestSealed: { en: "Dealt locally", zh: "本地已发牌" },
   guestRevealed: { en: "Reading revealed", zh: "读牌已揭示" },
   guestDrawHint: {
     en: "Draw your Past · Present · Future cards — free, on this device.",
@@ -314,8 +391,8 @@ const appMessages = {
     zh: "本地牌阵的三张牌均已揭示。",
   },
   guestReadingIntentCopy: {
-    en: "Choose a quick intent or write one focused question. Everything stays on your device — a free local reading.",
-    zh: "选择快捷意图或写下一个明确问题。一切都保留在你的设备上——免费的本地读牌。",
+    en: "Choose Clarity, Decision, or Momentum. The intent and draw stay on this device — a free local reading.",
+    zh: "选择看清、选择或势能。意图和抽牌都留在当前设备——免费的本地读牌。",
   },
   guestVerificationTitle: { en: "Local reading", zh: "本地读牌" },
   guestVerificationPointOne: {
@@ -334,6 +411,20 @@ const appMessages = {
     en: "Guest mode shuffles the deck locally with your device's secure random generator and deals three distinct cards — no wallet, no fee, no chain.",
     zh: "游客模式使用你设备的安全随机数生成器在本地洗牌，并发出三张不同的卡牌——无需钱包、无需费用、不上链。",
   },
+  secureRandomUnavailable: {
+    en: "Secure shuffle is unavailable on this device. Nothing was drawn — please retry in a supported browser.",
+    zh: "当前设备无法安全洗牌，本次没有抽牌。请在受支持的浏览器中重试。",
+  },
+  assetErrorTitle: {
+    en: "Ritual artwork unavailable",
+    zh: "读牌资源暂时不可用",
+  },
+  assetErrorBody: {
+    en: "The game could not load its visual assets. Check your connection and try again.",
+    zh: "游戏资源加载失败。请检查网络后重试。",
+  },
+  assetRetry: { en: "Retry artwork", zh: "重新加载资源" },
+  assetRetrying: { en: "Reloading the original artwork...", zh: "正在重新加载原始资源……" },
   guestRouteLabel: { en: "Draw path", zh: "抽牌路径" },
   guestContractRoute: { en: "local shuffle -> deal", zh: "本地洗牌 -> 发牌" },
   guestStepTwoShort: { en: "Draw", zh: "抽牌" },

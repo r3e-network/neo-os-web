@@ -24,6 +24,10 @@ export const manifest: MiniAppManifest = {
     items: [],
   },
 
+  // The designed mail desk owns compose, delivery, mailbox and recovery. A
+  // generic operation form would duplicate those flows and flatten hierarchy.
+  operations: [],
+
   features: { walletRequired: true, chainWarning: true },
 
   docs: [
@@ -33,5 +37,10 @@ export const manifest: MiniAppManifest = {
 
   contract: { mode: "custom" },
 
-  permissions: { payments: true },
+  permissions: {
+    payments: true,
+    confidential: true,
+    oracle: true,
+    storage: true,
+  },
 };

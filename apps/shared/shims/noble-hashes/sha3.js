@@ -211,4 +211,3 @@ export const keccak_512 = /* @__PURE__ */ gen(0x01, 72, 512 / 8);
 const genShake = (suffix, blockLen, outputLen) => wrapXOFConstructorWithOpts((opts = {}) => new Keccak(blockLen, suffix, opts.dkLen === undefined ? outputLen : opts.dkLen, true));
 export const shake128 = /* @__PURE__ */ genShake(0x1f, 168, 128 / 8);
 export const shake256 = /* @__PURE__ */ genShake(0x1f, 136, 256 / 8);
-//# sourceMappingURL=sha3.js.map

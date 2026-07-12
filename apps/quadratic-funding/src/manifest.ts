@@ -6,7 +6,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Quadratic Funding",
-  description: "Community-driven quadratic funding for public goods",
+  description: "Public-goods rounds with operator-reviewed aggregate matching estimates",
   icon: "heart",
   category: "governance",
   shell: "launcher",
@@ -35,7 +35,9 @@ export const manifest: MiniAppManifest = {
   },
 
   features: {
-    walletRequired: true,
+    // Round and project discovery is public. Ask for a wallet only when the
+    // user starts a transaction, so browse-only deployments remain useful.
+    walletRequired: false,
     chainWarning: true,
   },
 

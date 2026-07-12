@@ -1,22 +1,21 @@
 /**
- * useAASessionKeyLab -- Domain logic for AA Session Key Lab
+ * Production session-key lifecycle for one Neo Abstract Account.
  *
- * Uses createObservable instead of Vue ref/computed/reactive.
- * Called once during setup, returns observables that React components subscribe to.
+ * Local draft state never claims chain authority. Account ownership, verifier
+ * binding, session state, allowance, writes, and recovery all come from the
+ * exact network/account/contract tuple inspected immediately before use.
  */
-
-import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createObservable, type Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
+import {
+  getNetwork,
+  resolveNeoNetwork,
+  type NeoNetwork,
+} from "@shared/constants/rpc";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import {
-  deriveAAAccountIdHash,
   generateAASessionKeyPair,
 } from "@shared/utils/aa-account";
-import {
-  getExternalIntegrationConfig,
-  getNetwork,
-} from "@shared/constants/rpc";
 import {
   DEFAULT_SESSION_ALLOWED_METHOD,
   DEFAULT_SESSION_DAPP_ID,
@@ -24,16 +23,55 @@ import {
   getDefaultSessionExpiryTimestamp,
 } from "../launch";
 import {
-  decodeSessionKey,
-  formatGasBaseUnits,
-  type DecodedSessionKey,
-} from "../utils/sessionKeyDecode";
+  CANONICAL_SESSION_KEY_CONTRACTS,
+  explicitNeoNetwork,
+  matchesConfiguredSession,
+  normalizeSessionAccount,
+  readSessionAccount,
+  readSessionRecord,
+  readSessionTransactionState,
+  requireSessionWriteContext,
+  resolveSessionReadContext,
+  sessionAccountsMatch,
+  type SessionAccountSnapshot,
+  type SessionAccountReadStatus,
+  type SessionKeyContext,
+  type SessionRecordRead,
+  type SessionRecordStatus,
+  type SessionTransactionState,
+} from "../session-key-chain";
+import type { DecodedSessionKey } from "../utils/sessionKeyDecode";
 
-/** Decoded on-chain session key plus accrued spend, for the labeled detail view. */
 export interface OnChainSessionView {
   decoded: DecodedSessionKey;
-  /** Accrued spend (getSpentAmount) in GAS decimal, "" when unread. */
   spentGas: string;
+}
+
+type SessionWriteKind = "configure" | "revoke";
+export type SessionWritePhase =
+  | "idle"
+  | "preparing"
+  | "confirming"
+  | "confirmed"
+  | "recoverable"
+  | "context-mismatch"
+  | "failed";
+
+export interface PendingSessionWrite {
+  version: 1;
+  kind: SessionWriteKind;
+  network: NeoNetwork;
+  aaCore: string;
+  verifier: string;
+  accountIdHash: string;
+  owner: string;
+  txid: string;
+  createdAt: number;
+  publicKey?: string;
+  targetContract?: string;
+  allowedMethod?: string;
+  expiresAt?: number;
+  spendingLimitRaw?: string;
 }
 
 type SessionConfiguration = {
@@ -46,32 +84,73 @@ type SessionConfiguration = {
 };
 
 export interface UseAASessionKeyLabOptions {
-  /**
-   * MiniApp framework SDK (ctx.framework) — verifier reads/writes,
-   * contract-arg builders, wallet identity, and the app.aa sponsorship lane.
-   */
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
+  transactionStateReader?: (network: NeoNetwork, txid: string) => Promise<SessionTransactionState>;
+}
+
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function derived<T>(get: () => T, dependencies: Observable<unknown>[]): Observable<T> {
+  return {
+    get,
+    set: () => {},
+    subscribe: (listener) => {
+      const unsubs = dependencies.map((dependency) => dependency.subscribe(listener));
+      return () => unsubs.forEach((unsubscribe) => unsubscribe());
+    },
+  };
+}
+
+function validTxid(value: unknown): string {
+  const txid = clean(value).toLowerCase();
+  return /^0x[0-9a-f]{64}$/.test(txid) ? txid : "";
+}
+
+export function isPendingSessionWrite(value: unknown): value is PendingSessionWrite {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const pending = value as Partial<PendingSessionWrite>;
+  if (
+    pending.version !== 1 ||
+    (pending.kind !== "configure" && pending.kind !== "revoke") ||
+    !explicitNeoNetwork(pending.network) ||
+    !normalizeSessionAccount(pending.aaCore, true) ||
+    !normalizeSessionAccount(pending.verifier, true) ||
+    !normalizeSessionAccount(pending.accountIdHash, true) ||
+    !normalizeSessionAccount(pending.owner, true) ||
+    (pending.txid !== "" && !validTxid(pending.txid)) ||
+    !Number.isFinite(pending.createdAt) || Number(pending.createdAt) <= 0
+  ) return false;
+  if (pending.kind === "revoke") return true;
+  return /^(02|03)[0-9a-f]{64}$/i.test(clean(pending.publicKey)) &&
+    Boolean(normalizeSessionAccount(pending.targetContract, true)) &&
+    Boolean(clean(pending.allowedMethod)) &&
+    Number.isSafeInteger(pending.expiresAt) && Number(pending.expiresAt) > 0 &&
+    /^\d+$/.test(clean(pending.spendingLimitRaw));
+}
+
+function errorKey(error: unknown, fallback: string): string {
+  const key = error instanceof Error ? clean(error.message) : clean(error);
+  return key || fallback;
 }
 
 export function useAASessionKeyLab({
   app,
   t,
+  transactionStateReader = readSessionTransactionState,
 }: UseAASessionKeyLabOptions) {
-  const network = getNetwork();
-  const integration = getExternalIntegrationConfig(network);
-  const aaCore = integration.contracts.aaCore;
+  const initialNetwork = explicitNeoNetwork(app.platform.launch.network) || resolveNeoNetwork(getNetwork());
+  const initialContracts = CANONICAL_SESSION_KEY_CONTRACTS[initialNetwork];
 
-  const sessionVerifier = integration.contracts.aaSessionKeyVerifier || "";
-
-  // Form state (plain object, mutations happen through actions)
   const form = {
     accountSeed: "",
     sessionPublicKey: "",
     targetContract: "",
     allowedMethod: DEFAULT_SESSION_ALLOWED_METHOD,
     expiresAt: getDefaultSessionExpiryTimestamp(),
-    spendingLimit: "0",
+    spendingLimit: "0.1",
     description: "",
     dappId: DEFAULT_SESSION_DAPP_ID,
     sponsorAmount: DEFAULT_SESSION_SPONSOR_AMOUNT,
@@ -81,234 +160,220 @@ export function useAASessionKeyLab({
   const generatedPrivateKey = createObservable("");
   const generatedPublicKey = createObservable("");
   const lastConfigured = createObservable<SessionConfiguration | null>(null);
+  const lastTransactionId = createObservable("");
   const isSubmitting = createObservable(false);
   const isRevoking = createObservable(false);
-  // The on-chain session key read back from the verifier (or null when none).
+  const isInspecting = createObservable(false);
+  const isRecovering = createObservable(false);
+  const isCheckingSponsorship = createObservable(false);
+  const accountReadStatus = createObservable<SessionAccountReadStatus>("idle");
+  const sessionReadStatus = createObservable<SessionRecordStatus>("idle");
+  const inspectedAccountIdHash = createObservable("");
+  const accountOwner = createObservable("");
+  const accountVerifier = createObservable("");
+  const verifierBound = createObservable(false);
+  const walletNetwork = createObservable("");
+  const activeNetwork = createObservable<NeoNetwork>(initialNetwork);
+  const allowanceSupported = createObservable(initialContracts.allowanceSupported);
+  const lastError = createObservable("");
+  const writePhase = createObservable<SessionWritePhase>("idle");
   const onChainSession = createObservable<string | null>(null);
   const hasOnChainSession = createObservable(false);
-  // Decoded labeled view of the on-chain session key + accrued spend, so the
-  // owner can verify scope/expiry/spend instead of reading raw JSON.
   const onChainSessionView = createObservable<OnChainSessionView | null>(null);
+  const pendingWrite = app.state.persisted<PendingSessionWrite | null>("pendingSessionWrite", null);
 
-  // Helpers
+  const restoredPending = pendingWrite.get();
+  if (restoredPending && !isPendingSessionWrite(restoredPending)) {
+    pendingWrite.set(null);
+  } else if (restoredPending) {
+    writePhase.set(restoredPending.txid ? "recoverable" : "preparing");
+    activeNetwork.set(restoredPending.network);
+  }
+
+  let inspectEpoch = 0;
+
   function normalizeHashOrAddress(value: string): string {
-    const trimmed = String(value || "").trim();
-    if (!trimmed) throw new Error(t("invalidTargetContract"));
+    const trimmed = clean(value);
+    if (!trimmed) throw new Error("invalidTargetContract");
     const normalized = trimmed.startsWith("N")
       ? addressToScriptHash(trimmed)
       : normalizeScriptHash(trimmed);
-    if (!/^0x[0-9a-f]{40}$/i.test(normalized))
-      throw new Error(t("invalidTargetContract"));
+    if (!/^0x[0-9a-f]{40}$/i.test(normalized)) throw new Error("invalidTargetContract");
     return normalized.toLowerCase();
   }
 
   function normalizeSessionPublicKey(value: string): string {
-    const normalized = String(value || "")
-      .trim()
-      .replace(/^0x/i, "")
-      .toLowerCase();
-    if (!/^[0-9a-f]{66}$/i.test(normalized))
-      throw new Error(t("invalidSessionPublicKey"));
+    const normalized = clean(value).replace(/^0x/i, "").toLowerCase();
+    if (!/^(02|03)[0-9a-f]{64}$/.test(normalized)) {
+      throw new Error("invalidSessionPublicKey");
+    }
     return normalized;
   }
 
   function normalizeExpiry(value: string): number {
-    const parsed = Number.parseInt(String(value || "").trim(), 10);
-    if (!Number.isFinite(parsed) || parsed <= Math.floor(Date.now() / 1000))
-      throw new Error(t("invalidExpiry"));
+    const parsed = Number.parseInt(clean(value), 10);
+    if (!Number.isSafeInteger(parsed) || parsed <= Math.floor(Date.now() / 1000)) {
+      throw new Error("invalidExpiry");
+    }
     return parsed;
   }
 
+  function normalizeAllowedMethod(value: string): string {
+    const method = clean(value);
+    if (!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(method)) {
+      throw new Error("invalidAllowedMethod");
+    }
+    return method;
+  }
+
+  function normalizeSpendingLimit(value: string): string {
+    const trimmed = clean(value);
+    if (!/^\d+(\.\d+)?$/.test(trimmed)) throw new Error("invalidSpendingLimit");
+    const [whole, fraction = ""] = trimmed.split(".");
+    if (fraction.length > 8) throw new Error("invalidSpendingLimit");
+    const base = `${whole}${(fraction + "00000000").slice(0, 8)}`.replace(/^0+(?=\d)/, "");
+    return base || "0";
+  }
+
+  function accountIdHash(): string {
+    const normalized = normalizeSessionAccount(form.accountSeed);
+    if (!normalized) throw new Error("invalidSessionAccountId");
+    return normalized;
+  }
+
+  const derivedAccountIdHash = derived(() => {
+    try {
+      return form.accountSeed.trim() ? accountIdHash() : "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const normalizedAllowedMethod = derived(
+    () => clean(form.allowedMethod) || t("notAvailable"),
+    [],
+  );
+  const normalizedTargetContract = derived(() => {
+    try {
+      return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const walletDisplay = derived(
+    () => app.chain.address.get() || t("notConnected"),
+    [app.chain.address],
+  );
+  const ownerAuthorityStatus = derived(() => {
+    if (accountReadStatus.get() !== "ready" || !accountOwner.get()) return "unverified";
+    const wallet = app.chain.address.get();
+    if (!wallet) return "disconnected";
+    return sessionAccountsMatch(wallet, accountOwner.get()) ? "owner" : "mismatch";
+  }, [accountReadStatus, accountOwner, app.chain.address]);
+  const sessionStatusDisplay = derived(() => {
+    const status = sessionReadStatus.get();
+    if (status === "active") return t("sessionActive");
+    if (status === "expired") return t("sessionExpired");
+    if (status === "absent") return t("sessionAbsent");
+    if (status === "unavailable") return t("sessionUnavailable");
+    return t("sessionNotInspected");
+  }, [sessionReadStatus]);
+  const accountStatusDisplay = derived(() => t(`sessionAccount${accountReadStatus.get()[0]?.toUpperCase()}${accountReadStatus.get().slice(1)}`), [accountReadStatus]);
+  const sessionVerifierDisplay = derived(
+    () => CANONICAL_SESSION_KEY_CONTRACTS[activeNetwork.get()].verifier,
+    [activeNetwork],
+  );
+  const aaCoreDisplay = derived(
+    () => CANONICAL_SESSION_KEY_CONTRACTS[activeNetwork.get()].aaCore,
+    [activeNetwork],
+  );
+  const networkDisplay = derived(() => t(activeNetwork.get() === "mainnet" ? "mainnet" : "testnet"), [activeNetwork]);
+  const sponsorStatusDisplay = derived(
+    () => sponsorStatusText(sponsorState.get()),
+    [sponsorState],
+  );
+  const canConfigure = derived(() =>
+    accountReadStatus.get() === "ready" && verifierBound.get() &&
+    ownerAuthorityStatus.get() === "owner" && sessionReadStatus.get() === "absent" &&
+    !pendingWrite.get(),
+  [accountReadStatus, verifierBound, ownerAuthorityStatus, sessionReadStatus, pendingWrite]);
+  const canRevoke = derived(() =>
+    accountReadStatus.get() === "ready" && verifierBound.get() &&
+    ownerAuthorityStatus.get() === "owner" &&
+    (sessionReadStatus.get() === "active" || sessionReadStatus.get() === "expired") &&
+    !pendingWrite.get(),
+  [accountReadStatus, verifierBound, ownerAuthorityStatus, sessionReadStatus, pendingWrite]);
+
   function sponsorStatusText(state: Record<string, unknown> | null): string {
     if (!state) return t("sponsorNotChecked");
-    if (typeof state.approved === "boolean") {
-      return state.approved ? t("sponsorApproved") : t("sponsorNotApproved");
-    }
-    if (typeof state.eligible === "boolean") {
-      return state.eligible ? t("sponsorEligible") : t("sponsorNotEligible");
-    }
+    if (typeof state.approved === "boolean") return state.approved ? t("sponsorApproved") : t("sponsorNotApproved");
+    if (typeof state.eligible === "boolean") return state.eligible ? t("sponsorEligible") : t("sponsorNotEligible");
     return t("checked");
   }
 
-  function pickSponsorValue(
-    state: Record<string, unknown>,
-    keys: string[],
-  ): string {
-    for (const key of keys) {
-      const value = state[key];
-      if (value === undefined || value === null || value === "") continue;
-      return String(value);
-    }
-    return "";
-  }
-
-  function sponsorDetailItems(
-    state: Record<string, unknown> | null,
-  ): Array<{ label: string; value: string }> {
-    if (!state) {
-      return [{ label: t("sponsorship"), value: t("sponsorNotChecked") }];
-    }
-
+  function sponsorDetails(state: Record<string, unknown> | null) {
+    if (!state) return [{ label: t("sponsorship"), value: t("sponsorNotChecked") }];
     const items = [{ label: t("sponsorship"), value: sponsorStatusText(state) }];
-    const amount = pickSponsorValue(state, [
-      "amount",
-      "sponsorAmount",
-      "sponsoredAmount",
-      "gas",
-      "budget",
-    ]);
-    const requestId = pickSponsorValue(state, [
-      "requestId",
-      "id",
-      "sponsorRequestId",
-      "txid",
-    ]);
-
+    const amount = clean(state.amount ?? state.sponsorAmount ?? state.sponsoredAmount ?? state.gas ?? state.budget);
+    const requestId = clean(state.requestId ?? state.id ?? state.sponsorRequestId ?? state.txid);
     if (amount) items.push({ label: t("sponsorAmount"), value: amount });
-    if (requestId) {
-      items.push({ label: t("sponsorRequestId"), value: requestId });
-    }
-
+    if (requestId) items.push({ label: t("sponsorRequestId"), value: requestId });
     return items;
   }
 
-  // Derived values
-  const derivedAccountIdHash: Observable<string> = {
-    get: () => {
-      try {
-        return form.accountSeed.trim()
-          ? `0x${deriveAAAccountIdHash(form.accountSeed)}`
-          : "";
-      } catch (_e) {
-        return "";
-      }
-    },
-    set: () => {},
-    subscribe: () => () => {},
-  };
+  const detailItems = derived(() => [
+    { label: t("network"), value: networkDisplay.get() },
+    { label: t("accountIdHash"), value: inspectedAccountIdHash.get() || derivedAccountIdHash.get() || t("notAvailable") },
+    { label: t("accountOwner"), value: accountOwner.get() || t("notAvailable") },
+    { label: t("sessionVerifier"), value: accountVerifier.get() || sessionVerifierDisplay.get() },
+    { label: t("sessionPublicKey"), value: onChainSessionView.get()?.decoded.pubKey || generatedPublicKey.get() || t("notAvailable") },
+    { label: t("targetContract"), value: onChainSessionView.get()?.decoded.targetContract || normalizedTargetContract.get() || t("notAvailable") },
+    { label: t("allowedMethod"), value: onChainSessionView.get()?.decoded.method || normalizedAllowedMethod.get() },
+    { label: t("lastTx"), value: lastTransactionId.get() || pendingWrite.get()?.txid || t("notAvailable") },
+    ...sponsorDetails(sponsorState.get()),
+  ], [activeNetwork, inspectedAccountIdHash, accountOwner, accountVerifier, onChainSessionView, generatedPublicKey, lastTransactionId, pendingWrite, sponsorState]);
 
-  const normalizedAllowedMethod: Observable<string> = {
-    get: () => String(form.allowedMethod || "").trim() || t("anyMethod"),
-    set: () => {},
-    subscribe: () => () => {},
-  };
+  function applySessionRecord(record: SessionRecordRead) {
+    sessionReadStatus.set(record.status);
+    const present = Boolean(record.decoded) && (record.status === "active" || record.status === "expired");
+    hasOnChainSession.set(present);
+    onChainSession.set(record.decoded ? JSON.stringify(record.decoded) : null);
+    onChainSessionView.set(record.decoded ? { decoded: record.decoded, spentGas: record.spentGas } : null);
+  }
 
-  const normalizedTargetContract: Observable<string> = {
-    get: () => {
-      try {
-        return form.targetContract.trim()
-          ? normalizeHashOrAddress(form.targetContract)
-          : "";
-      } catch (_e) {
-        return "";
-      }
-    },
-    set: () => {},
-    subscribe: () => () => {},
-  };
+  function applySnapshot(snapshot: SessionAccountSnapshot) {
+    accountReadStatus.set(snapshot.status);
+    inspectedAccountIdHash.set(snapshot.accountIdHash);
+    accountOwner.set(snapshot.owner);
+    accountVerifier.set(snapshot.verifier);
+    verifierBound.set(snapshot.verifierBound && snapshot.canonicalCoreBound);
+    applySessionRecord(snapshot.session);
+  }
 
-  // Display values
-  const sessionStatusDisplay: Observable<string> = {
-    get: () => (lastConfigured.get() ? t("configured") : t("pending")),
-    set: () => {},
-    subscribe: (fn) => lastConfigured.subscribe(fn),
-  };
+  function clearLiveSnapshot(status: SessionAccountReadStatus = "idle") {
+    accountReadStatus.set(status);
+    accountOwner.set("");
+    accountVerifier.set("");
+    verifierBound.set(false);
+    sessionReadStatus.set(status === "unavailable" ? "unavailable" : "idle");
+    hasOnChainSession.set(false);
+    onChainSession.set(null);
+    onChainSessionView.set(null);
+  }
 
-  const sessionVerifierDisplay: Observable<string> = {
-    get: () => integration.contracts.aaSessionKeyVerifier || t("notAvailable"),
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  const aaCoreDisplay: Observable<string> = {
-    get: () => aaCore,
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  const walletDisplay: Observable<string> = {
-    get: () => app.wallet.address() || t("notConnected"),
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  const sponsorStatusDisplay: Observable<string> = {
-    get: () => sponsorStatusText(sponsorState.get()),
-    set: () => {},
-    subscribe: (fn) => sponsorState.subscribe(fn),
-  };
-
-  // Busy flag flipped around the app.aa sponsorship calls (mirroring the host
-  // AA service's own isCheckingSponsorship semantics: set during check AND
-  // request). A live createObservable so host bindings re-render on toggle —
-  // the finally(false) must notify React or the spinner sticks on.
-  const isCheckingSponsorship = createObservable(false);
-
-  // Detail items for display
-  const detailItems: Observable<Array<{ label: string; value: string }>> = {
-    get: () => {
-      const lc = lastConfigured.get();
-      return [
-        {
-          label: t("accountIdHash"),
-          value:
-            lc?.accountIdHash ||
-            derivedAccountIdHash.get() ||
-            t("notAvailable"),
-        },
-        {
-          label: t("sessionPublicKey"),
-          value: lc?.publicKey || form.sessionPublicKey || t("notAvailable"),
-        },
-        {
-          label: t("targetContract"),
-          value:
-            lc?.targetContract ||
-            normalizedTargetContract.get() ||
-            t("notAvailable"),
-        },
-        {
-          label: t("allowedMethod"),
-          value:
-            lc?.allowedMethod ||
-            normalizedAllowedMethod.get() ||
-            t("anyMethod"),
-        },
-        {
-          label: t("expiresAt"),
-          value: String(lc?.expiresAt || form.expiresAt || t("notAvailable")),
-        },
-        { label: t("lastTx"), value: lc?.txid || t("notAvailable") },
-        ...sponsorDetailItems(sponsorState.get()),
-      ];
-    },
-    set: () => {},
-    subscribe: (fn) => {
-      const u1 = lastConfigured.subscribe(fn);
-      const u2 = generatedPrivateKey.subscribe(fn);
-      const u3 = sponsorState.subscribe(fn);
-      return () => {
-        u1();
-        u2();
-        u3();
-      };
-    },
-  };
-
-  // Actions
   function generateSessionKey() {
     const pair = generateAASessionKeyPair();
     form.sessionPublicKey = pair.publicKey;
     generatedPublicKey.set(pair.publicKey);
     generatedPrivateKey.set(pair.privateKey);
+    lastError.set("");
   }
 
   async function checkSponsor() {
     isCheckingSponsorship.set(true);
     try {
-      const result = await app.aa.sponsorship.check({
-        dappId: form.dappId,
-      });
+      const result = await app.aa.sponsorship.check({ dappId: form.dappId });
       sponsorState.set(result as unknown as Record<string, unknown>);
     } finally {
       isCheckingSponsorship.set(false);
@@ -318,248 +383,415 @@ export function useAASessionKeyLab({
   async function requestSponsor() {
     isCheckingSponsorship.set(true);
     try {
-      const result = await app.aa.sponsorship.request(
-        form.sponsorAmount || DEFAULT_SESSION_SPONSOR_AMOUNT,
-        {
-          dappId: form.dappId,
-        },
-      );
+      const amount = clean(form.sponsorAmount);
+      if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) throw new Error("invalidSponsorAmount");
+      const result = await app.aa.sponsorship.request(amount, { dappId: form.dappId });
       sponsorState.set(result as unknown as Record<string, unknown>);
-      if (!result.approved) {
-        throw new Error(t("sponsorRequestUnavailable"));
-      }
+      if (!result.approved) throw new Error("sponsorRequestUnavailable");
     } finally {
       isCheckingSponsorship.set(false);
     }
   }
 
-  // Mainnet SessionKeyVerifier.setSessionKey takes 7 params (adds
-  // spendingLimit:Integer, description:String); testnet still has the 5-param
-  // signature. The contracts are frozen, so branch on the active network to
-  // forward the right arity — a 5-arg call on mainnet arity-mismatches and
-  // faults after the user signs.
-  // framework-exempt: network-conditional 7-arg/5-arg building is
-  // contract-specific business logic, correctly app-side (plan §3.6).
-  function buildSessionKeyArgs(params: {
+  async function inspectSessionKey() {
+    const requestId = ++inspectEpoch;
+    isInspecting.set(true);
+    clearLiveSnapshot("loading");
+    lastError.set("");
+    try {
+      const requestedHash = accountIdHash();
+      inspectedAccountIdHash.set(requestedHash);
+      const { context, detectedNetwork } = await resolveSessionReadContext(app);
+      if (requestId !== inspectEpoch || accountIdHash() !== requestedHash) return null;
+      activeNetwork.set(context.network);
+      walletNetwork.set(detectedNetwork);
+      allowanceSupported.set(context.allowanceSupported);
+      const snapshot = await readSessionAccount(app, context, requestedHash);
+      if (requestId !== inspectEpoch || accountIdHash() !== requestedHash) return null;
+      applySnapshot(snapshot);
+      if (snapshot.status === "unavailable") lastError.set(t("sessionAccountReadUnavailable"));
+      return snapshot;
+    } catch (error) {
+      if (requestId === inspectEpoch) {
+        clearLiveSnapshot("unavailable");
+        lastError.set(t(errorKey(error, "sessionAccountReadUnavailable")));
+      }
+      return null;
+    } finally {
+      if (requestId === inspectEpoch) isInspecting.set(false);
+    }
+  }
+
+  async function connectOwnerWallet() {
+    await app.chain.ensureWallet();
+    return inspectSessionKey();
+  }
+
+  function buildSessionKeyArgs(context: SessionKeyContext, params: {
     accountIdHash: string;
     publicKey: string;
     targetContract: string;
     allowedMethod: string;
     expiresAt: number;
-    spendingLimit: string;
+    spendingLimitRaw: string;
     description: string;
   }) {
-    const base = [
-      app.chain.arg.hash160(`0x${params.accountIdHash}`),
+    const args = [
+      app.chain.arg.hash160(params.accountIdHash),
       app.chain.arg.byteArray(params.publicKey),
       app.chain.arg.hash160(params.targetContract),
       app.chain.arg.string(params.allowedMethod),
-      app.chain.arg.integer(params.expiresAt),
+      // Neo Runtime.Time and the deployed verifier store milliseconds.
+      app.chain.arg.integer(BigInt(params.expiresAt) * 1000n),
     ];
-    if (network === "mainnet") {
-      base.push(app.chain.arg.integer(params.spendingLimit));
-      base.push(app.chain.arg.string(params.description));
+    if (context.allowanceSupported) {
+      args.push(app.chain.arg.integer(params.spendingLimitRaw));
+      args.push(app.chain.arg.string(params.description));
     }
-    return base;
+    if (args.length !== context.setSessionKeyArity) throw new Error("sessionCanonicalContextMismatch");
+    return args;
   }
 
-  // GAS spending limit as a base-unit integer string (0 = unlimited). Rejects
-  // non-numeric / negative input before it reaches the contract.
-  function normalizeSpendingLimit(value: string): string {
-    const trimmed = String(value || "").trim();
-    if (!trimmed) return "0";
-    if (!/^\d+(\.\d+)?$/.test(trimmed)) {
-      throw new Error(t("invalidSpendingLimit"));
-    }
-    const [whole, frac = ""] = trimmed.split(".");
-    const padded = (frac + "00000000").slice(0, 8);
-    const base = `${whole}${padded}`.replace(/^0+(?=\d)/, "");
-    return base || "0";
+  async function requireFreshOwnerContext(options: { requireExistingSession: boolean }) {
+    if (pendingWrite.get()) throw new Error("sessionPendingBlocksWrites");
+    const wallet = await app.chain.ensureWallet();
+    const context = await requireSessionWriteContext(app);
+    activeNetwork.set(context.network);
+    walletNetwork.set(context.network);
+    allowanceSupported.set(context.allowanceSupported);
+    const hash = accountIdHash();
+    const snapshot = await readSessionAccount(app, context, hash);
+    applySnapshot(snapshot);
+    if (snapshot.status !== "ready") throw new Error(snapshot.status === "missing" ? "sessionAccountMissing" : "sessionAccountReadUnavailable");
+    if (!snapshot.verifierBound) throw new Error("sessionVerifierBindingMismatch");
+    if (!sessionAccountsMatch(wallet, snapshot.owner)) throw new Error("sessionOwnerWalletRequired");
+    const hasRecord = snapshot.session.status === "active" || snapshot.session.status === "expired";
+    if (options.requireExistingSession && !hasRecord) throw new Error("sessionRevokeRequiresLiveRecord");
+    if (!options.requireExistingSession && hasRecord) throw new Error("sessionExistingMustRevoke");
+    return { context, hash, snapshot };
   }
 
-  function txidOf(result: { txid?: string; tx?: string } | null | undefined): string {
-    return String(result?.txid || result?.tx || "");
+  function persistDraft(value: PendingSessionWrite) {
+    pendingWrite.set(value);
+    writePhase.set(value.txid ? "confirming" : "preparing");
   }
 
-  // Poll the verifier for the configured key so "Configured" reflects on-chain
-  // truth, not just a broadcast txid. A matching pubKey read means the tx
-  // HALTed and the verifier stored the key; otherwise leave the prior state.
-  // app.chain.waitForState carries the exact retired poll semantics: 4
-  // attempts, delay BEFORE each read (4s first, then 5s), per-attempt read
-  // errors swallowed, null once the budget is exhausted.
-  async function confirmSessionKey(accountIdHash: string, publicKey: string): Promise<boolean> {
-    if (!sessionVerifier) return false;
-    const accountId = `0x${accountIdHash}`;
-    const confirmed = await app.chain.waitForState(
-      () =>
-        app.chain.readRaw(
-          "getSessionKey",
-          [app.chain.arg.hash160(accountId)],
-          { scriptHash: sessionVerifier },
-        ),
-      (read) => JSON.stringify(read ?? "").toLowerCase().includes(publicKey.toLowerCase()),
+  function persistTxid(draft: PendingSessionWrite, txidValue: unknown) {
+    const txid = validTxid(txidValue);
+    if (!txid) return null;
+    const next = { ...draft, txid };
+    persistDraft(next);
+    lastTransactionId.set(txid);
+    return next;
+  }
+
+  function clearPendingAsConfirmed(txid: string) {
+    pendingWrite.set(null);
+    lastTransactionId.set(txid);
+    writePhase.set("confirmed");
+    lastError.set("");
+  }
+
+  async function confirmConfigure(pending: PendingSessionWrite) {
+    const context: SessionKeyContext = {
+      network: pending.network,
+      aaCore: pending.aaCore,
+      verifier: pending.verifier,
+      allowanceSupported: CANONICAL_SESSION_KEY_CONTRACTS[pending.network].allowanceSupported,
+      setSessionKeyArity: CANONICAL_SESSION_KEY_CONTRACTS[pending.network].setSessionKeyArity,
+    };
+    return app.chain.waitForState(
+      () => readSessionRecord(app, context, pending.accountIdHash),
+      (record) => matchesConfiguredSession(record, {
+        publicKey: pending.publicKey!,
+        targetContract: pending.targetContract!,
+        allowedMethod: pending.allowedMethod!,
+        expiresAt: pending.expiresAt!,
+        spendingLimitRaw: pending.spendingLimitRaw!,
+      }, context.allowanceSupported),
     );
-    if (confirmed === null) return false;
-    onChainSession.set(JSON.stringify(confirmed));
-    hasOnChainSession.set(true);
-    return true;
+  }
+
+  async function confirmRevoke(pending: PendingSessionWrite) {
+    const contracts = CANONICAL_SESSION_KEY_CONTRACTS[pending.network];
+    const context: SessionKeyContext = {
+      network: pending.network,
+      aaCore: pending.aaCore,
+      verifier: pending.verifier,
+      allowanceSupported: contracts.allowanceSupported,
+      setSessionKeyArity: contracts.setSessionKeyArity,
+    };
+    return app.chain.waitForState(
+      () => readSessionRecord(app, context, pending.accountIdHash),
+      (record) => record.status === "absent",
+    );
   }
 
   async function configureSessionKey() {
+    isSubmitting.set(true);
+    writePhase.set("preparing");
+    lastError.set("");
     try {
-      isSubmitting.set(true);
-      if (!app.wallet.isConnected()) await app.wallet.ensure();
-
-      const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
+      const { context, hash, snapshot } = await requireFreshOwnerContext({ requireExistingSession: false });
       const publicKey = normalizeSessionPublicKey(form.sessionPublicKey);
       const targetContract = normalizeHashOrAddress(form.targetContract);
-      const allowedMethod = normalizedAllowedMethod.get();
+      const allowedMethod = normalizeAllowedMethod(form.allowedMethod);
       const expiresAt = normalizeExpiry(form.expiresAt);
-      const spendingLimit = normalizeSpendingLimit(form.spendingLimit);
-
-      // Raw framework invoke (implicitly silent — no notify/reload wrapping):
-      // this flow owns its own confirmation + error copy, and main.tsx's
-      // action guard owns the toasts.
-      const result = await app.chain.invoke(
-        "callVerifier",
-        [
-          app.chain.arg.hash160(`0x${accountIdHash}`),
-          app.chain.arg.string("setSessionKey"),
-          app.chain.arg.array(
-            buildSessionKeyArgs({
-              accountIdHash,
-              publicKey,
-              targetContract,
-              allowedMethod,
-              expiresAt,
-              spendingLimit,
-              description: form.description.trim(),
-            }),
-          ),
-        ],
-        { scriptHash: aaCore },
-      );
-
-      // Confirm on-chain before flipping to "Configured" so a faulted mainnet
-      // arity mismatch no longer shows a green success for a key that does not
-      // exist. Only set lastConfigured (which drives the green status) once the
-      // verifier actually reports the key.
-      const confirmed = await confirmSessionKey(accountIdHash, publicKey);
-      if (!confirmed) {
-        throw new Error(t("sessionNotConfirmed"));
-      }
-
-      lastConfigured.set({
-        txid: txidOf(result),
-        accountIdHash: `0x${accountIdHash}`,
+      const spendingLimitRaw = context.allowanceSupported ? normalizeSpendingLimit(form.spendingLimit) : "0";
+      const draft: PendingSessionWrite = {
+        version: 1,
+        kind: "configure",
+        network: context.network,
+        aaCore: context.aaCore,
+        verifier: context.verifier,
+        accountIdHash: hash,
+        owner: snapshot.owner,
+        txid: "",
+        createdAt: Date.now(),
         publicKey,
         targetContract,
         allowedMethod,
         expiresAt,
-      });
+        spendingLimitRaw,
+      };
+      persistDraft(draft);
+      let submitted = draft;
+      const result = await app.chain.invoke(
+        "callVerifier",
+        [
+          app.chain.arg.hash160(hash),
+          app.chain.arg.string("setSessionKey"),
+          app.chain.arg.array(buildSessionKeyArgs(context, {
+            accountIdHash: hash,
+            publicKey,
+            targetContract,
+            allowedMethod,
+            expiresAt,
+            spendingLimitRaw,
+            description: clean(form.description),
+          })),
+        ],
+        {
+          scriptHash: context.aaCore,
+          onTransactionSent: (txid) => {
+            submitted = persistTxid(draft, txid) ?? submitted;
+          },
+        },
+      );
+      submitted = persistTxid(draft, result.txid) ?? submitted;
+      if (!submitted.txid) throw new Error("sessionTransactionIdMissing");
+      const confirmed = await confirmConfigure(submitted);
+      if (!confirmed) {
+        writePhase.set("recoverable");
+        throw new Error("sessionConfirmationPending");
+      }
+      applySessionRecord(confirmed);
+      lastConfigured.set({ txid: submitted.txid, accountIdHash: hash, publicKey, targetContract, allowedMethod, expiresAt });
+      clearPendingAsConfirmed(submitted.txid);
+      return { status: "confirmed" as const, txid: submitted.txid };
+    } catch (error) {
+      const key = errorKey(error, "sessionConfigureFailed");
+      const pending = pendingWrite.get();
+      if (!pending?.txid) {
+        pendingWrite.set(null);
+        writePhase.set("failed");
+      } else {
+        writePhase.set("recoverable");
+      }
+      if (key === "sessionWalletNetworkMismatch" || key === "sessionWalletNetworkUnverified" || key === "sessionCanonicalContextMismatch") {
+        walletNetwork.set("");
+        clearLiveSnapshot("unavailable");
+      }
+      lastError.set(t(key));
+      throw error;
     } finally {
       isSubmitting.set(false);
     }
   }
 
-  // Read the active session key directly from the verifier (key/target/method/
-  // expiry/spent) — the security-critical "what did I delegate?" view.
-  async function inspectSessionKey() {
-    if (!sessionVerifier) throw new Error(t("sessionVerifierMissing"));
-    const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
-    const accountId = `0x${accountIdHash}`;
-    const read = await app.chain.readRaw(
-      "getSessionKey",
-      [app.chain.arg.hash160(accountId)],
-      { scriptHash: sessionVerifier },
-    );
-    const present =
-      read !== null &&
-      read !== undefined &&
-      read !== "" &&
-      !(Array.isArray(read) && read.length === 0);
-    onChainSession.set(present ? JSON.stringify(read) : null);
-    hasOnChainSession.set(present);
-
-    // Decode the struct into labeled fields and read the accrued spend so the
-    // budget half of the safety model (spent vs limit) is visible — a pure
-    // added read against the same verifier; failures degrade to no-view.
-    if (present) {
-      const decoded = decodeSessionKey(read);
-      let spentGas = "";
-      try {
-        const spentRaw = await app.chain.readRaw(
-          "getSpentAmount",
-          [app.chain.arg.hash160(accountId)],
-          { scriptHash: sessionVerifier },
-        );
-        spentGas = formatGasBaseUnits(spentRaw);
-      } catch {
-        // getSpentAmount unavailable / RPC lag — leave spend blank, still show scope.
-        spentGas = "";
-      }
-      onChainSessionView.set(decoded ? { decoded, spentGas } : null);
-    } else {
-      onChainSessionView.set(null);
-    }
-  }
-
-  // Revoke the delegated session key — the permission-out path the verifier
-  // exposes (clearSessionKey) but the app previously never wired.
   async function revokeSessionKey() {
+    isRevoking.set(true);
+    writePhase.set("preparing");
+    lastError.set("");
     try {
-      isRevoking.set(true);
-      if (!app.wallet.isConnected()) await app.wallet.ensure();
-      const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
-      await app.chain.invoke(
+      const { context, hash, snapshot } = await requireFreshOwnerContext({ requireExistingSession: true });
+      const draft: PendingSessionWrite = {
+        version: 1,
+        kind: "revoke",
+        network: context.network,
+        aaCore: context.aaCore,
+        verifier: context.verifier,
+        accountIdHash: hash,
+        owner: snapshot.owner,
+        txid: "",
+        createdAt: Date.now(),
+      };
+      persistDraft(draft);
+      let submitted = draft;
+      const result = await app.chain.invoke(
         "callVerifier",
         [
-          app.chain.arg.hash160(`0x${accountIdHash}`),
+          app.chain.arg.hash160(hash),
           app.chain.arg.string("clearSessionKey"),
-          app.chain.arg.array([app.chain.arg.hash160(`0x${accountIdHash}`)]),
+          app.chain.arg.array([app.chain.arg.hash160(hash)]),
         ],
-        { scriptHash: aaCore },
+        {
+          scriptHash: context.aaCore,
+          onTransactionSent: (txid) => {
+            submitted = persistTxid(draft, txid) ?? submitted;
+          },
+        },
       );
-      onChainSession.set(null);
-      hasOnChainSession.set(false);
-      onChainSessionView.set(null);
+      submitted = persistTxid(draft, result.txid) ?? submitted;
+      if (!submitted.txid) throw new Error("sessionTransactionIdMissing");
+      const confirmed = await confirmRevoke(submitted);
+      if (!confirmed) {
+        writePhase.set("recoverable");
+        throw new Error("sessionConfirmationPending");
+      }
+      applySessionRecord(confirmed);
       lastConfigured.set(null);
+      clearPendingAsConfirmed(submitted.txid);
+      return { status: "confirmed" as const, txid: submitted.txid };
+    } catch (error) {
+      const key = errorKey(error, "sessionRevokeFailed");
+      const pending = pendingWrite.get();
+      if (!pending?.txid) {
+        pendingWrite.set(null);
+        writePhase.set("failed");
+      } else {
+        writePhase.set("recoverable");
+      }
+      if (key === "sessionWalletNetworkMismatch" || key === "sessionWalletNetworkUnverified" || key === "sessionCanonicalContextMismatch") {
+        walletNetwork.set("");
+        clearLiveSnapshot("unavailable");
+      }
+      lastError.set(t(key));
+      throw error;
     } finally {
       isRevoking.set(false);
     }
   }
 
-  const loadAll = async () => {};
+  async function recoverPendingWrite() {
+    const pending = pendingWrite.get();
+    if (!pending) return { status: "none" as const, txid: "" };
+    if (!pending.txid) {
+      pendingWrite.set(null);
+      writePhase.set("failed");
+      lastError.set(t("sessionUnsignedDraftCleared"));
+      return { status: "cleared" as const, txid: "" };
+    }
+    if (isRecovering.get()) return { status: "pending" as const, txid: pending.txid };
+    isRecovering.set(true);
+    try {
+      const { context } = await resolveSessionReadContext(app);
+      if (
+        context.network !== pending.network ||
+        !sessionAccountsMatch(context.aaCore, pending.aaCore) ||
+        !sessionAccountsMatch(context.verifier, pending.verifier)
+      ) {
+        writePhase.set("context-mismatch");
+        lastError.set(t("sessionPendingContextMismatch"));
+        return { status: "context-mismatch" as const, txid: pending.txid };
+      }
+      const record = await readSessionRecord(app, context, pending.accountIdHash);
+      const confirmed = pending.kind === "revoke"
+        ? record.status === "absent"
+        : matchesConfiguredSession(record, {
+            publicKey: pending.publicKey!,
+            targetContract: pending.targetContract!,
+            allowedMethod: pending.allowedMethod!,
+            expiresAt: pending.expiresAt!,
+            spendingLimitRaw: pending.spendingLimitRaw!,
+          }, context.allowanceSupported);
+      if (!confirmed) {
+        const transactionState = await transactionStateReader(pending.network, pending.txid);
+        if (transactionState === "fault") {
+          pendingWrite.set(null);
+          writePhase.set("failed");
+          lastError.set(t("sessionTransactionFaulted"));
+          return { status: "fault" as const, txid: pending.txid };
+        }
+        writePhase.set("recoverable");
+        lastError.set(t(record.status === "unavailable" ? "sessionAccountReadUnavailable" : "sessionConfirmationPending"));
+        return { status: "pending" as const, txid: pending.txid };
+      }
+      applySessionRecord(record);
+      clearPendingAsConfirmed(pending.txid);
+      return { status: "confirmed" as const, txid: pending.txid };
+    } catch (error) {
+      const key = errorKey(error, "sessionRecoveryFailed");
+      writePhase.set(
+        key === "sessionWalletNetworkMismatch" || key === "sessionCanonicalContextMismatch"
+          ? "context-mismatch"
+          : "recoverable",
+      );
+      walletNetwork.set("");
+      lastError.set(t(key));
+      return {
+        status: writePhase.get() === "context-mismatch" ? "context-mismatch" as const : "pending" as const,
+        txid: pending.txid,
+      };
+    } finally {
+      isRecovering.set(false);
+    }
+  }
+
+  async function loadAll() {
+    if (pendingWrite.get()) await recoverPendingWrite();
+    if (form.accountSeed.trim()) await inspectSessionKey();
+  }
 
   return {
     form,
     generatedPrivateKey,
     generatedPublicKey,
     lastConfigured,
+    lastTransactionId,
     isSubmitting,
     isRevoking,
+    isInspecting,
+    isRecovering,
+    isCheckingSponsorship,
     onChainSession,
     hasOnChainSession,
     onChainSessionView,
+    accountReadStatus,
+    sessionReadStatus,
+    inspectedAccountIdHash,
+    accountOwner,
+    accountVerifier,
+    verifierBound,
+    walletNetwork,
+    activeNetwork,
+    allowanceSupported,
+    ownerAuthorityStatus,
+    lastError,
+    writePhase,
+    pendingWrite,
+    canConfigure,
+    canRevoke,
     sponsorState,
     derivedAccountIdHash,
     normalizedAllowedMethod,
     normalizedTargetContract,
     sessionStatusDisplay,
+    accountStatusDisplay,
     sessionVerifierDisplay,
     aaCoreDisplay,
+    networkDisplay,
     walletDisplay,
     sponsorStatusDisplay,
     detailItems,
-    isCheckingSponsorship,
-    aaCore,
-    integration,
     generateSessionKey,
     checkSponsor,
     requestSponsor,
-    configureSessionKey,
     inspectSessionKey,
+    connectOwnerWallet,
+    configureSessionKey,
     revokeSessionKey,
+    recoverPendingWrite,
     loadAll,
   };
 }

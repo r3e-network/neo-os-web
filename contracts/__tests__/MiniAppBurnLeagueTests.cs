@@ -155,6 +155,32 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void BurnLeague_TieKeepsFirstPlayerToReachTheTotal()
+        {
+            var engine = new TestEngine(true);
+            var (nef, manifest) = Load("MiniAppBurnLeague");
+            var league = engine.Deploy<BurnLeagueContract>(nef, manifest);
+
+            var alice = TestEngine.GetNewSigner().Account;
+            var bob = TestEngine.GetNewSigner().Account;
+            FundGas(engine, alice, 2L * GAS);
+            FundGas(engine, bob, 2L * GAS);
+
+            engine.SetTransactionSigners(alice);
+            engine.Native.GAS.Transfer(alice, league.Hash, 2L * GAS, "miniapp-burnleague:burn");
+            league.burn(alice, 2L * GAS);
+
+            engine.SetTransactionSigners(bob);
+            engine.Native.GAS.Transfer(bob, league.Hash, 2L * GAS, "miniapp-burnleague:burn");
+            league.burn(bob, 2L * GAS);
+
+            // The contract replaces the leader only on a strictly greater total.
+            // This pins the UI rule: ties keep the first player to reach the score.
+            Assert.Equal(alice, league.topBurner());
+            Assert.Equal(new BigInteger(2L * GAS), league.topBurned());
+        }
+
+        [Fact]
         public void BurnLeague_GuardsRejectInvalidBurns()
         {
             var engine = new TestEngine(true);

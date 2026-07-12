@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
+import { messages as tarotMessages } from "../../on-chain-tarot/src/locale/messages";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -12,11 +13,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="tarot-phaser-host" />;
     },
@@ -36,6 +35,9 @@ function t(key: string, params?: Record<string, string | number>) {
     appSubtitle: "Ask, draw, and reveal three cards.",
     awaitingDraw: "Awaiting draw",
     cardsDrawnCount: "Cards drawn",
+    cardUnavailable: "Card art unavailable · try a new reading",
+    close: "Close",
+    continue: "Continue",
     copyReading: "Copy reading",
     currentSpreadTitle: "Current spread",
     dealingCards: "Dealing the spread...",
@@ -50,6 +52,7 @@ function t(key: string, params?: Record<string, string | number>) {
     intentClarityLabel: "Clarity",
     intentDecisionLabel: "Decision",
     intentMomentumLabel: "Momentum",
+    localeCode: "en",
     moreActions: "More actions",
     newReading: "New reading",
     notDrawnYet: "Not drawn yet",
@@ -63,9 +66,24 @@ function t(key: string, params?: Record<string, string | number>) {
     questionPresetClarity: "What needs clarity right now?",
     questionPresetDecision: "Which path should I choose?",
     questionPresetMomentum: "Where is momentum building?",
+    ritualActionConfirm: "Confirm intention · Draw 3 cards",
+    ritualIntentPrompt: "What do you most want to understand right now?",
+    ritualNetworkStatus: "Neo N3 online",
+    ritualOpeningTable: "Opening the ritual table",
+    ritualStepChooseIntent: "Step one · Choose an intention",
+    ritualStepDraw: "Draw",
+    ritualStepIntent: "Intention",
+    ritualStepRead: "Reading",
+    rulesTitle: "How to play",
+    gameFiMaintenanceShort: "GameFi rewards under maintenance",
+    guestRitualStatus: "Local · no wallet",
+    enableGameSound: "Enable game sound",
+    gameActionFailed: "The reading could not continue",
+    muteGameSound: "Mute game sound",
     quickIntentLabel: "Quick reading intents",
     readerWalletLabel: "Wallet",
     readerWalletMissing: "Not connected",
+    retry: "Retry",
     readingCopied: "Reading copied",
     readingFlowTitle: "Reading flow",
     readingIntentCopy: "Choose a quick intent. The prompt stays local.",
@@ -85,6 +103,7 @@ function t(key: string, params?: Record<string, string | number>) {
     tapToReveal: "Tap to reveal",
     tarotContractRoute: "transfer -> draw()",
     tarotFee: "0.1 GAS",
+    tarotStageAlt: "Three Neo tarot cards arranged on a bright reading table.",
     verificationPanelTitle: "Transaction safety",
     verificationPointFee: "0.1 GAS draw fee is shown in wallet.",
     verificationPointRandom: "Cards are picked on-chain.",
@@ -93,6 +112,22 @@ function t(key: string, params?: Record<string, string | number>) {
     withdrawCredit: "Withdraw credit",
   };
   let value = messages[key] ?? key;
+  if (params) {
+    for (const [paramKey, paramValue] of Object.entries(params)) {
+      value = value.replaceAll(`{${paramKey}}`, String(paramValue));
+    }
+  }
+  return value;
+}
+
+function zhT(key: string, params?: Record<string, string | number>) {
+  const entry = (
+    tarotMessages as unknown as Record<
+      string,
+      string | { en: string; zh?: string }
+    >
+  )[key];
+  let value = typeof entry === "string" ? entry : entry?.zh ?? entry?.en ?? key;
   if (params) {
     for (const [paramKey, paramValue] of Object.entries(params)) {
       value = value.replaceAll(`{${paramKey}}`, String(paramValue));
@@ -137,9 +172,12 @@ const cards = [
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
     allFlipped: false,
+    assetRecoveryCount: 0,
+    assetRetryNonce: 0,
     cardsDrawnCount: 0,
     drawn: [],
     hasDrawn: false,
+    intentId: "decision",
     isLoading: false,
     prepaidCredit: 0,
     question: "",
@@ -154,37 +192,133 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 
 describe("on-chain-tarot Phaser playarea", () => {
   it("mounts the real Phaser tarot table with intent options and production labels", () => {
-    const { queryByText } = render(
-      <PhaserPlayArea t={t} state={state()} dispatch={vi.fn()} />,
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getAllByRole, getByRole, queryByText } = render(
+      <PhaserPlayArea t={t} state={state()} dispatch={dispatch} />,
     );
 
+    expect(container.querySelector(".tarot-stage-shell")).toBeTruthy();
+    expect(container.querySelector(".tarot-stage-hud")).toBeTruthy();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".mx2-action-rail__drawer-toggle")).toBeNull();
     expect(mocks.phaserGame).toHaveBeenCalledTimes(1);
     const props = mocks.phaserGame.mock.calls[0]?.[0] as {
       ariaLabel?: string;
       className?: string;
+      continueLabel?: string;
       config?: { width?: number; height?: number };
+      enableSoundLabel?: string;
+      errorLabel?: string;
       loadingLabel?: string;
+      muteSoundLabel?: string;
+      retryLabel?: string;
       state: Record<string, unknown>;
     };
 
     expect(props.className).toBe("tarot-phaser-canvas");
-    expect(props.ariaLabel).toBe("On-chain tarot reading table");
-    expect(props.loadingLabel).toBe("Opening tarot table");
-    expect(props.config?.width).toBe(420);
-    expect(props.config?.height).toBe(520);
+    expect(props.ariaLabel).toBe("Three Neo tarot cards arranged on a bright reading table.");
+    expect(props.loadingLabel).toBe("Opening the ritual table");
+    expect(props.errorLabel).toBe("The reading could not continue");
+    expect(props.retryLabel).toBe("Retry");
+    expect(props.continueLabel).toBe("Continue");
+    expect(props.enableSoundLabel).toBe("Enable game sound");
+    expect(props.muteSoundLabel).toBe("Mute game sound");
+    expect(props.config?.width).toBe(390);
+    expect(props.config?.height).toBe(780);
     expect(props.state.intentOptions).toHaveLength(3);
     expect(props.state.walletConnected).toBe(false);
-    expect(queryByText("Draw 3 Cards")).toBeTruthy();
+    expect(props.state.sceneText).toMatchObject({
+      actionConfirm: "Confirm intention · Draw 3 cards",
+      actionReveal: "Reveal cards",
+      actionNew: "New reading",
+    });
+    expect(getAllByRole("radio")).toHaveLength(3);
+    fireEvent.click(getByRole("button", { name: "Confirm intention · Draw 3 cards" }));
+    expect(dispatch).toHaveBeenCalledWith("draw");
+    expect(queryByText("Draw 3 Cards")).toBeNull();
   });
 
-  it("keeps draw, reveal, reset, copy, withdraw, and refresh wired without exposing a form UI", () => {
+  it("uses roving radio focus and arrow keys to select reading intents", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container, getByText, rerender } = render(
+    const { getAllByRole } = render(
+      <PhaserPlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+    const radios = getAllByRole("radio") as HTMLButtonElement[];
+
+    expect(radios.map((radio) => radio.tabIndex)).toEqual([-1, 0, -1]);
+    expect(radios.map((radio) => radio.getAttribute("aria-checked"))).toEqual([
+      "false",
+      "true",
+      "false",
+    ]);
+
+    dispatch.mockClear();
+    radios[1]!.focus();
+    fireEvent.keyDown(radios[1]!, { key: "ArrowRight" });
+    expect(dispatch).toHaveBeenNthCalledWith(1, "setIntent", "momentum");
+    expect(document.activeElement).toBe(radios[2]);
+
+    fireEvent.keyDown(radios[2]!, { key: "ArrowDown" });
+    expect(dispatch).toHaveBeenNthCalledWith(2, "setIntent", "clarity");
+    expect(document.activeElement).toBe(radios[0]);
+
+    fireEvent.keyDown(radios[0]!, { key: "ArrowLeft" });
+    expect(dispatch).toHaveBeenNthCalledWith(3, "setIntent", "momentum");
+    expect(document.activeElement).toBe(radios[2]);
+
+    fireEvent.keyDown(radios[2]!, { key: "ArrowUp" });
+    expect(dispatch).toHaveBeenNthCalledWith(4, "setIntent", "decision");
+    expect(document.activeElement).toBe(radios[1]);
+  });
+
+  it("restores focus to the help trigger after Close and Escape", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PhaserPlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+    const trigger = getByRole("button", { name: "How to play" });
+
+    fireEvent.click(trigger);
+    const close = getByRole("button", { name: "Close" });
+    close.focus();
+    fireEvent.click(close);
+    expect(document.activeElement).toBe(trigger);
+
+    fireEvent.click(trigger);
+    getByRole("button", { name: "Close" }).focus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("mirrors critical artwork recovery into an accessible retry path", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ assetRecoveryCount: 2 })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(getByRole("alert").textContent).toContain("assetErrorTitle");
+    expect(
+      (getByRole("button", {
+        name: "Confirm intention · Draw 3 cards",
+      }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.click(getByRole("button", { name: "assetRetry" }));
+    expect(dispatch).toHaveBeenCalledWith("retryTarotAssets");
+  });
+
+  it("keeps primary reading actions canvas-owned and support actions inside the drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByRole, getByText, queryByText, rerender } = render(
       <PhaserPlayArea
         t={t}
         state={state({
           drawn: cards,
           hasDrawn: true,
+          mode: "gamefi",
           prepaidCredit: 0.25,
           walletAddress: "Nabc1234567890abcdef1234567890abcdef",
         })}
@@ -192,20 +326,24 @@ describe("on-chain-tarot Phaser playarea", () => {
       />,
     );
 
-    fireEvent.click(getByText("Reveal cards"));
-    expect(dispatch).toHaveBeenCalledWith("flipCard", 0);
-    expect(dispatch).toHaveBeenCalledWith("flipCard", 1);
-    expect(dispatch).toHaveBeenCalledWith("flipCard", 2);
+    expect(getByRole("button", { name: "Reveal cards" })).toBeTruthy();
+    expect(queryByText("Draw 3 Cards")).toBeNull();
+    expect(queryByText("More actions")).toBeNull();
 
-    fireEvent.click(getByText("More actions"));
+    fireEvent.click(getByRole("button", { name: "Reveal cards" }));
+    expect(dispatch).toHaveBeenCalledWith("flipTarotReading");
+
+    fireEvent.click(getByText("How to play"));
+    expect(container.querySelector(".tarot-ingame-drawer")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
     fireEvent.click(getByText("Draw again"));
-    fireEvent.click(getByText("More actions"));
     fireEvent.click(getByText("Withdraw credit"));
-    fireEvent.click(getByText("More actions"));
     fireEvent.click(getByText("Refresh state"));
     expect(dispatch).toHaveBeenCalledWith("reset");
     expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
     expect(dispatch).toHaveBeenCalledWith("refreshReadingState");
+    expect(dispatch).not.toHaveBeenCalledWith("draw");
+    expect(dispatch).not.toHaveBeenCalledWith("flipCard", 0);
 
     rerender(
       <PhaserPlayArea
@@ -214,13 +352,17 @@ describe("on-chain-tarot Phaser playarea", () => {
           allFlipped: true,
           drawn: cards.map((card) => ({ ...card, flipped: true })),
           hasDrawn: true,
+          mode: "gamefi",
         })}
         dispatch={dispatch}
       />,
     );
-    fireEvent.click(getByText("New reading"));
+    fireEvent.click(container.querySelector(".tarot-a11y-primary") as HTMLButtonElement);
     fireEvent.click(getByText("Copy reading"));
+    expect(dispatch).toHaveBeenCalledWith("reset");
     expect(dispatch).toHaveBeenCalledWith("copyReading");
+    fireEvent.click(getByRole("button", { name: "Close" }));
+    expect(container.querySelector(".tarot-ingame-drawer")).toBeNull();
     expect(container.querySelector("form,input,textarea,select")).toBeNull();
   });
 
@@ -238,6 +380,8 @@ describe("on-chain-tarot Phaser playarea", () => {
           cardsDrawnCount: 24,
           drawn: revealed,
           hasDrawn: true,
+          intentId: "clarity",
+          mode: "gamefi",
           prepaidCredit: 0.25,
           question: "What needs clarity right now?",
           readingMode: "oracle",
@@ -249,20 +393,85 @@ describe("on-chain-tarot Phaser playarea", () => {
     );
 
     expect(container.querySelector(".tarot-drawer__summary")).toBeNull();
-    fireEvent.click(getByText("Reading intent"));
+    fireEvent.click(getByText("How to play"));
 
+    expect(container.querySelector(".tarot-ingame-drawer")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
     expect(container.querySelector(".tarot-drawer__summary")?.textContent).toContain("8");
     expect(container.querySelector(".tarot-drawer__summary")?.textContent).toContain("0.25 GAS");
     expect(container.querySelector(".tarot-drawer__intent-grid")?.textContent).toContain("Clarity");
+    const intentButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".tarot-drawer__intent-card"),
+    );
+    expect(intentButtons.map((button) => button.getAttribute("aria-pressed"))).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
+    expect(intentButtons.every((button) => button.disabled)).toBe(true);
     expect(container.querySelector(".tarot-spread-list")?.textContent).toContain("The Fool");
     expect(container.querySelector(".tarot-spread-list")?.textContent).toContain("Sealed card");
     expect(container.querySelector(".tarot-drawer__verify")?.textContent).toContain("Cards are picked on-chain");
+    expect(container.querySelector(".tarot-drawer__actions")?.textContent).toContain("Draw again");
+    expect(container.querySelector(".tarot-drawer__actions")?.textContent).toContain("Refresh state");
     expect(container.querySelector(".tarot-drawer__credit")?.textContent).toContain("Withdraw credit");
 
-    fireEvent.click(getByText("Which path should I choose?"));
     fireEvent.click(container.querySelector(".tarot-drawer__credit button") as Element);
-    expect(dispatch).toHaveBeenCalledWith("setQuestion", "Which path should I choose?");
+    expect(dispatch).not.toHaveBeenCalledWith("setIntent", "decision");
     expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
+  });
+
+  it("uses one Chinese card presentation across canvas, drawer, and ARIA", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const revealed = cards.map((card) => ({ ...card, flipped: true }));
+    const { container, getByRole, getByText } = render(
+      <PhaserPlayArea
+        t={zhT}
+        state={state({
+          allFlipped: true,
+          drawn: revealed,
+          hasDrawn: true,
+          mode: "guest",
+          readingMode: "local",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+      state: {
+        localeCode?: string;
+        drawn?: Array<{
+          id: number;
+          name: string;
+          image: string;
+          keywords?: string[];
+        }>;
+      };
+    };
+    expect(props.state.localeCode).toBe("zh");
+    expect(props.state.drawn?.map((card) => card.name)).toEqual([
+      "愚者",
+      "魔术师",
+      "女祭司",
+    ]);
+    expect(props.state.drawn?.[0]).toMatchObject({
+      id: 0,
+      image: "./cards/00-the-fool.webp",
+      keywords: ["启示", "大阿卡纳"],
+    });
+
+    expect(getByRole("button", { name: "过去: 愚者" })).toBeTruthy();
+    expect(getByRole("button", { name: "现在: 魔术师" })).toBeTruthy();
+    expect(getByRole("button", { name: "未来: 女祭司" })).toBeTruthy();
+
+    fireEvent.click(getByText("怎么玩"));
+    const spread = container.querySelector(".tarot-spread-list")?.textContent ?? "";
+    expect(spread).toContain("愚者");
+    expect(spread).toContain("魔术师");
+    expect(spread).toContain("女祭司");
+    expect(spread).toContain("启示 / 大阿卡纳");
+    expect(spread).not.toContain("The Fool");
   });
 
   it("guards the Phaser shell against a flat form-style tarot UI", () => {
@@ -271,19 +480,53 @@ describe("on-chain-tarot Phaser playarea", () => {
     const scene = readFileSync(resolve(root, "on-chain-tarot/src/scenes/TarotScene.ts"), "utf8");
     const styles = readFileSync(resolve(root, "on-chain-tarot/src/PlayArea.scss"), "utf8");
     const main = readFileSync(resolve(root, "on-chain-tarot/src/main.tsx"), "utf8");
+    const manifest = readFileSync(resolve(root, "on-chain-tarot/src/manifest.ts"), "utf8");
 
     expect(wrapper).toContain("tarot-drawer__summary");
     expect(wrapper).toContain("tarot-spread-list");
-    expect(wrapper).toContain(`dispatch("withdrawCredit"`);
-    expect(wrapper).toContain(`dispatch("refreshReadingState"`);
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain("tarot-drawer__actions");
+    expect(wrapper).toContain("tarot-stage-shell");
+    expect(wrapper).toContain("tarot-stage-hud");
+    expect(wrapper).toContain("tarot-ingame-drawer");
+    expect(wrapper).toContain(`runAction("withdrawCredit"`);
+    expect(wrapper).toContain(`runAction("refreshReadingState"`);
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
+    expect(wrapper).not.toContain("primary,");
+    expect(wrapper).not.toContain("secondary,");
+    expect(wrapper).toContain("tarot-a11y-layer");
+    expect(wrapper).toContain('role="radiogroup"');
+    expect(wrapper).toContain(`runAction("draw"`);
+    expect(wrapper).toContain(`runAction("flipCard"`);
+    expect(wrapper).toContain(`runAction("flipTarotReading"`);
+    expect(wrapper).toContain("MiniAppRoot already displayed the action failure");
     expect(wrapper).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
     expect(scene).toContain(`this.dispatch("draw")`);
     expect(scene).toContain(`this.dispatch("flipCard", index)`);
+    expect(scene).toContain(`this.dispatch("flipTarotReading")`);
+    expect(scene).toContain(`this.dispatch("reset")`);
     expect(scene).toContain("playDealMotion");
-    expect(styles).toContain(".tarot-play-area .mx2-drawer.mx2-drawer--open");
+    expect(styles).toContain(".tarot-stage-shell");
+    expect(styles).toContain(".tarot-stage-hud");
+    expect(styles).toContain(".tarot-ingame-drawer");
     expect(styles).toContain(".tarot-drawer__summary");
+    expect(styles).toContain(".tarot-drawer__actions");
     expect(styles).toContain(".tarot-spread-list");
+    expect(styles).toContain("min-width: 44px;");
+    expect(styles).toContain("min-height: 44px;");
+    expect(styles).toContain(".tarot-drawer__close:focus-visible");
+    expect(styles).toContain("outline: 3px solid #0b6257;");
+    expect(styles).toContain("@media (max-height: 900px)");
+    expect(styles).not.toContain(".tarot-play-area .mx2-drawer.mx2-drawer--open");
     expect(main).toContain(`actions.register("refreshReadingState"`);
+    expect(main).toContain(`actions.register("setAssetRecoveryState"`);
+    expect(main).toContain(`actions.register("retryTarotAssets"`);
+    expect(main).toContain("manifest.supportsGameFi === false");
     expect(main).toContain("walletAddress: tarot.address");
+    expect(manifest).toContain("supportsGameFi: false");
+    expect(manifest).toContain("walletRequired: false");
+    expect(manifest).toContain("payments: false");
   });
 });

@@ -51,34 +51,77 @@ defineMiniApp({
       return result === true;
     });
 
-    app.actions.register("approveMilestone", async (escrowItem: unknown) => {
-      await app.notify.guard(
-        () =>
-          escrow.approveMilestone(
+    app.actions.register("approveMilestone", async (escrowItem: unknown, milestoneIndex?: unknown) => {
+      const parsedIndex = Number(milestoneIndex);
+      const safeIndex = Number.isInteger(parsedIndex) ? parsedIndex : undefined;
+      const result = await app.notify.guard(
+        async () => {
+          await escrow.approveMilestone(
             escrowItem as Parameters<typeof escrow.approveMilestone>[0],
-          ),
+            safeIndex,
+          );
+          return true;
+        },
         { successKey: "approveSuccess" },
       );
+      return result !== undefined;
     });
 
-    app.actions.register("claimMilestone", async (escrowItem: unknown) => {
-      await app.notify.guard(
-        () =>
-          escrow.claimMilestone(
+    app.actions.register("claimMilestone", async (escrowItem: unknown, milestoneIndex?: unknown) => {
+      const parsedIndex = Number(milestoneIndex);
+      const safeIndex = Number.isInteger(parsedIndex) ? parsedIndex : undefined;
+      const result = await app.notify.guard(
+        async () => {
+          await escrow.claimMilestone(
             escrowItem as Parameters<typeof escrow.claimMilestone>[0],
-          ),
+            safeIndex,
+          );
+          return true;
+        },
         { successKey: "claimSuccess" },
       );
+      return result !== undefined;
     });
 
     app.actions.register("cancelEscrow", async (escrowItem: unknown) => {
-      await app.notify.guard(
-        () =>
-          escrow.cancelEscrow(
+      const result = await app.notify.guard(
+        async () => {
+          await escrow.cancelEscrow(
             escrowItem as Parameters<typeof escrow.cancelEscrow>[0],
-          ),
+          );
+          return true;
+        },
         { successKey: "cancelSuccess" },
       );
+      return result !== undefined;
+    });
+
+    app.actions.register("reclaimApprovedMilestone", async (escrowItem: unknown, milestoneIndex?: unknown) => {
+      const parsedIndex = Number(milestoneIndex);
+      if (!Number.isInteger(parsedIndex)) return false;
+      const result = await app.notify.guard(
+        async () => {
+          await escrow.reclaimApprovedMilestone(
+            escrowItem as Parameters<typeof escrow.reclaimApprovedMilestone>[0],
+            parsedIndex,
+          );
+          return true;
+        },
+        { successKey: "reclaimApprovedSuccess" },
+      );
+      return result !== undefined;
+    });
+
+    app.actions.register("reclaimDirectAssetCredit", async (asset?: unknown) => {
+      if (asset !== "NEO" && asset !== "GAS") return false;
+      const result = await app.notify.guard(
+        async () => {
+          await escrow.reclaimDirectAssetCredit(asset);
+          return true;
+        },
+        { successKey: "reclaimCreditSuccess" },
+      );
+      return result !== undefined;
     });
 
     return {
@@ -91,8 +134,22 @@ defineMiniApp({
         completedCount: escrow.completedCount,
         creatorEscrows: escrow.creatorEscrows,
         beneficiaryEscrows: escrow.beneficiaryEscrows,
+        isLoading: escrow.isLoading,
         isRefreshing: escrow.isRefreshing,
         isCreating: escrow.isCreating,
+        dataError: escrow.dataError,
+        deploymentStatus: escrow.deploymentStatus,
+        deploymentMessage: escrow.deploymentMessage,
+        deploymentReady: escrow.deploymentReady,
+        fundingWritesEnabled: escrow.fundingWritesEnabled,
+        recoveryCapable: escrow.recoveryCapable,
+        recoveryCreditError: escrow.recoveryCreditError,
+        gasRecoveryCredit: escrow.gasRecoveryCredit,
+        neoRecoveryCredit: escrow.neoRecoveryCredit,
+        isRecoveringCredit: escrow.isRecoveringCredit,
+        reclaimingId: escrow.reclaimingId,
+        pendingTxid: escrow.pendingTxid,
+        pendingOperation: escrow.pendingOperation,
         approvingId: escrow.approvingId,
         claimingId: escrow.claimingId,
         cancellingId: escrow.cancellingId,

@@ -1,243 +1,190 @@
 import React from "react";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import path from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../daily-checkin/src/PlayArea";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
+const WALLET = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const CONTRACT = "0x25db219a701a2b23130788723fcf9a2e76857235";
+
 afterEach(() => cleanup());
 
-function t(key: string, params: Record<string, string | number> = {}) {
-  const messages: Record<string, string> = {
-    bestStreak: "Best",
-    checkInNow: "Check In Now",
-    checkInReady: "Ready",
-    claimRewards: "Claim Rewards",
-    connectPrompt: "Connect to start",
-    connectWallet: "Connect Wallet",
-    currentStreak: "Current Streak",
-    dayCompleted: "Completed",
-    dayPending: "Pending",
-    dayPrefix: "D",
-    days: "Days",
-    daysToReward: "{days} days to reward",
-    highestStreak: "Highest Streak",
-    milestoneReached: "Milestone reached",
-    milestones: "Milestones",
-    nextCheckin: "Next Check-in",
-    nextReward: "Next reward",
-    notCheckedIn: "Not checked in today",
-    recentCheckins: "Recent Check-ins",
-    refreshStatus: "Refresh Status",
-    rewardPlanEmpty: "Nothing to claim",
-    rewardPlanEmptyCopy: "Claim activates after a milestone reward is recorded.",
-    rewardPlanReady: "Rewards claimable",
-    rewardPlanReadyCopy: "{amount} is available through the claim wallet action.",
-    rewardPool: "Reward pool",
-    statusReady: "Complete your daily check-in now!",
-    streakStageCopy: "Today advances the chain-recorded path.",
-    streakStageEyebrow: "Streak plaza",
-    streakStageProgress: "Path progress",
-    streakStageTitle: "Complete the seven-day path.",
-    todayPlanReady: "Check-in available",
-    totalClaimed: "Total Claimed",
-    unclaimed: "Unclaimed",
-    waitForNext: "Wait for Next",
-    workflowCheckingIn: "Submitting check-in",
-    workflowClaiming: "Claiming rewards",
-    yourRewards: "Your Rewards",
-    yourStats: "Your Stats",
-  };
-  let text = messages[key] ?? key;
-  for (const [param, value] of Object.entries(params)) {
-    text = text.replace(`{${param}}`, String(value));
-  }
-  return text;
+function t(key: string) {
+  return key;
 }
 
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  const base: Record<string, unknown> = {
-    canCheckIn: false,
-    checkinHistory: [],
-    currentStreak: "0 Days",
-    currentStreakRaw: 0,
-    hasLoadedStatus: true,
-    highestStreak: "0 Days",
-    isCheckingIn: false,
-    isClaiming: false,
-    isPaused: false,
-    nextUtcMidnight: 0,
-    rewardPoolBalance: "0 GAS",
-    rewardsUnderfunded: false,
-    totalClaimed: "0 GAS",
-    twoWeekRewardLabel: "0.02 GAS",
+function state(values: Partial<Record<string, unknown>> = {}): ObservableState {
+  const defaults: Record<string, unknown> = {
+    network: "mainnet",
+    contractHash: CONTRACT,
+    dataSource: "chain",
+    walletAddress: WALLET,
+    currentStreak: "6 days",
+    highestStreak: "8 days",
+    currentStreakRaw: 6,
+    totalUserCheckins: 12,
     unclaimedRewards: "0 GAS",
+    totalClaimed: "0.03 GAS",
+    checkInFee: "0.001 GAS",
+    rewardPoolBalance: "1.002 GAS",
     weekRewardLabel: "0.01 GAS",
-    ...o,
+    twoWeekRewardLabel: "0.02 GAS",
+    utcTimeDisplay: "12:30:00",
+    nextUtcMidnight: Date.now() + 3_600_000,
+    canCheckIn: true,
+    hasLoadedStatus: true,
+    hasLoadedPlatform: true,
+    checkinHistory: [],
+    pendingOperation: null,
   };
   return Object.fromEntries(
-    Object.entries(base).map(([key, value]) => [key, createObservable(value)]),
-  );
+    Object.entries({ ...defaults, ...values }).map(([key, value]) => [key, createObservable(value)]),
+  ) as ObservableState;
 }
 
-function appFile(app: string, ...segments: string[]): string {
-  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
-    ? path.resolve(process.cwd(), "..")
-    : path.resolve(process.cwd(), "apps");
-  return path.join(appsRoot, app, ...segments);
-}
+describe("Daily Check-in ritual-first product surface", () => {
+  it("uses the real sunlit streak plaza and a focused seven-day ritual console", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-function playAreaStyles(app: string): string {
-  return readFileSync(appFile(app, "src/PlayArea.scss"), "utf8");
-}
+    expect(container.querySelector(".dci-ritual")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".dci-plaza > img")?.src).toContain("streak-plaza.webp");
+    expect(container.querySelector(".dci-console")).toBeTruthy();
+    expect(container.querySelector(".dci-streak-focus")?.textContent).toContain("6 days");
+    expect(container.querySelectorAll(".dci-path .dci-day")).toHaveLength(7);
+    expect(container.querySelectorAll(".dci-path .dci-day.is-complete")).toHaveLength(6);
+    expect(container.querySelectorAll(".dci-path .dci-day.is-ready")).toHaveLength(1);
+    expect(container.querySelector(".dci-plaza__reward")?.textContent).toContain("0.01 GAS");
+    expect(container.querySelectorAll('[aria-label="GAS token"]').length).toBeGreaterThan(0);
+  });
 
-function playAreaSource(app: string): string {
-  return readFileSync(appFile(app, "src/PlayArea.tsx"), "utf8");
-}
-
-describe("daily-checkin PlayArea (v2)", () => {
-  it("renders an asset-led seven-day reward board instead of a flat card grid", () => {
-    const { container } = render(
-      <PlayArea t={t} state={state({ currentStreakRaw: 3, currentStreak: "3 Days" })} dispatch={vi.fn()} />,
+  it("moves the visible chapter from days 1–7 to days 8–14 without inventing later rewards", () => {
+    const { container, rerender } = render(
+      <PlayArea
+        t={t}
+        state={state({ currentStreak: "8 days", currentStreakRaw: 8, canCheckIn: false })}
+        dispatch={vi.fn()}
+      />,
     );
 
-    expect(container.querySelector(".dci-reward-board")).toBeTruthy();
-    expect(container.querySelector(".dci-streak-card")).toBeTruthy();
-    expect(container.querySelector(".dci-plaza-art")).toBeTruthy();
-    expect(container.querySelector(".dci-plaza-art img")?.getAttribute("src")).toBe("streak-plaza.webp");
-    expect(container.querySelector(".dci-plaza-art figcaption")).toBeTruthy();
-    expect(container.querySelector(".dci-plaza-art__meter")).toBeTruthy();
-    expect(container.querySelector(".dci-streak-card__summary")).toBeTruthy();
-    expect(container.querySelectorAll(".dci-day-node")).toHaveLength(7);
-    expect(container.querySelectorAll(".dci-day-node--complete")).toHaveLength(3);
-    // The reward node advertises the contract-reported milestone payout.
-    expect(container.querySelectorAll(".dci-day-node")[6]?.textContent).toContain("0.01 GAS");
-    expect(container.querySelector(".dci-side-panel")).toBeNull();
-    expect(container.querySelector(".dci-focus-card")).toBeNull();
-    expect(container.querySelector(".mx2-score")).toBeNull();
-    expect(container.querySelector(".dci-chest-card")).toBeNull();
-    expect(container.querySelector(".dci-scene__backdrop")).toBeNull();
+    const chapter = container.querySelector(".dci-chapter");
+    expect(chapter?.textContent).toContain("8");
+    expect(chapter?.textContent).toContain("14");
+    expect(container.querySelector(".dci-plaza__reward")?.textContent).toContain("0.02 GAS");
+
+    rerender(
+      <PlayArea
+        t={t}
+        state={state({ currentStreak: "14 days", currentStreakRaw: 14, canCheckIn: false })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(container.querySelector(".dci-plaza__caption")?.textContent).toContain("journeyCompleteTitle");
+    expect(container.querySelector(".dci-plaza__reward")?.textContent).toContain("milestonesComplete");
+    expect(container.querySelectorAll(".dci-path .dci-day.is-complete")).toHaveLength(7);
   });
 
-  it("uses check-in as the primary action when today is available", () => {
+  it("warns clearly when today's verified check-in will restart the streak", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ streakWillReset: true, canCheckIn: true })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".dci-reset-note")?.textContent).toContain("streakRestartTitle");
+    expect(container.querySelector(".dci-reset-note")?.textContent).toContain("streakRestartCopy");
+  });
+
+  it("keeps activity, reward ledger, and technical trust in three secondary drawer panels", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(<PlayArea t={t} state={state({ canCheckIn: true })} dispatch={dispatch} />);
-
-    fireEvent.click(screen.getByRole("button", { name: /Check In Now/ }));
-
-    expect(dispatch).toHaveBeenCalledWith("doCheckIn");
-  });
-
-  it("shows the next check-in countdown once today's check-in is locked", () => {
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          canCheckIn: false,
-          hasLoadedStatus: true,
-          nextUtcMidnight: Date.now() + 3_600_000,
+          hasClaimableRewards: true,
+          unclaimedRewards: "0.01 GAS",
+          checkinHistory: [{
+            action: "checkin",
+            streak: 7,
+            rewardRaw: "1000000",
+            time: "2026-07-11T00:00:00.000Z",
+            txid: `0x${"11".repeat(32)}`,
+          }],
         })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    const countdown = container.querySelector(".dci-streak-card__countdown");
-    expect(countdown).toBeTruthy();
-    expect(countdown?.textContent).toContain("Next Check-in");
-    expect(countdown?.textContent).toMatch(/\d{2}:\d{2}:\d{2}/);
-    // Zero progress hides the meter so the artwork never shows an empty pill.
-    expect(container.querySelector(".dci-plaza-art__meter")).toBeNull();
-  });
-
-  it("hides the countdown while a check-in is still available", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({ canCheckIn: true, nextUtcMidnight: Date.now() + 3_600_000 })}
-        dispatch={vi.fn()}
-      />,
-    );
-
-    expect(container.querySelector(".dci-streak-card__countdown")).toBeNull();
-  });
-
-  it("invites the wallet connection before the first status load", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(
-      <PlayArea t={t} state={state({ hasLoadedStatus: false })} dispatch={dispatch} />,
-    );
-
-    expect(container.querySelector(".dci-streak-card__badge")?.textContent).toContain(
-      "Connect to start",
-    );
-    expect(container.querySelector(".dci-streak-card__countdown")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /Connect Wallet/ }));
-
-    expect(dispatch).toHaveBeenCalledWith("refreshStatus");
-  });
-
-  it("uses claim as the primary action only when rewards are claimable", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={state({ canCheckIn: false, unclaimedRewards: "0.01 GAS" })}
         dispatch={dispatch}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Claim Rewards/ }));
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle")!);
+    const drawer = container.querySelector(".dci-drawer");
+    expect(drawer).toBeTruthy();
+    expect(drawer?.querySelectorAll(".dci-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(drawer?.querySelector(".dci-history")?.textContent).toContain("historyCheckin");
+    expect(drawer?.querySelector(".dci-reward-ledger")?.textContent).toContain("0.01 GAS");
+    expect(drawer?.querySelector(".dci-trust-list")?.textContent).toContain("eventAndReadback");
+    expect(drawer?.querySelectorAll("input, textarea, select")).toHaveLength(0);
 
+    fireEvent.click(drawer!.querySelector<HTMLButtonElement>(".dci-claim")!);
     expect(dispatch).toHaveBeenCalledWith("claimRewards");
   });
 
-  it("keeps the scene foreground-led, clean, and motion-accessible", () => {
-    const styles = playAreaStyles("daily-checkin");
-    const source = playAreaSource("daily-checkin");
-    const streakAsset = appFile("daily-checkin", "public/streak-plaza.webp");
+  it("shows pending and failed states without replacing them with zero-value success", () => {
+    const txid = `0x${"ab".repeat(32)}`;
+    const { container, rerender } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          pendingOperation: { kind: "checkin", txid },
+          transactionNotice: "transactionPending",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(container.querySelector(".dci-feedback.is-pending")?.textContent).toContain("transactionPending");
 
-    expect(existsSync(streakAsset)).toBe(true);
-    expect(statSync(streakAsset).size).toBeGreaterThan(50_000);
-    expect(source).toContain('const STREAK_IMAGE = "streak-plaza.webp";');
-    expect(source).toContain('className="dci-plaza-art"');
-    expect(source).not.toContain("checkin-scene-art.webp");
-    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(/animation-duration:\s*0\.001ms/);
-    expect(styles).toMatch(/\.daily-checkin-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
-    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*max-width:\s*880px/);
-    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*background:\s*#fffdf8/);
-    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*box-shadow:\s*0 1px 3px/);
-    expect(styles).toMatch(/\.dci-reward-board\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
-    expect(styles).toMatch(/\.dci-streak-card__summary\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.dci-plaza-art\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.dci-plaza-art img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(styles).toMatch(/\.dci-plaza-art img\s*\{[\s\S]*filter:\s*none/);
-    expect(styles).toMatch(/\.dci-plaza-art figcaption\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.dci-plaza-art__meter span\s*\{[\s\S]*transition:\s*width 220ms/);
-    expect(styles).toMatch(/\.dci-path::before\s*\{[\s\S]*background:\s*rgba\(217,\s*119,\s*6,\s*0\.18\)/);
-    expect(styles).toMatch(/\.dci-day-node\s*\{[\s\S]*background:\s*transparent/);
-    expect(styles).toMatch(/\.dci-day-node--complete\s*\{[\s\S]*color:\s*#0f766e/);
-    expect(styles).toMatch(/\.dci-day-node--active\s*\{[\s\S]*color:\s*#92400e/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.daily-checkin-play-area \.mx2-action-rail\s*\{[\s\S]*padding:\s*0 14px/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.daily-checkin-play-area \.mx2-action-rail__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.daily-checkin-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*width:\s*100%/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-plaza-art img\s*\{[\s\S]*height:\s*250px/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-path\s*\{[\s\S]*grid-auto-columns:\s*66px/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-path\s*\{[\s\S]*overflow-x:\s*auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-day-node\s*\{[\s\S]*scroll-snap-align:\s*start/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)\s*\{[\s\S]*\.dci-day-node small\s*\{[\s\S]*display:\s*none/);
-    expect(styles).not.toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.daily-checkin-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*max-width:\s*168px/);
-    expect(styles).not.toMatch(/\.dci-chest-card/);
-    expect(styles).toMatch(/\.dci-streak-card__badge\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(source).not.toMatch(/dci-side-panel|dci-focus-card|dci-reward-card/);
-    expect(styles).not.toMatch(/dci-side-panel|dci-focus-card|dci-reward-card|mx2-score/);
-    expect(styles).not.toMatch(/__backdrop/);
-    expect(styles).not.toMatch(/backdrop-filter/);
-    expect(styles).not.toMatch(/radial-gradient/);
-    expect(styles).not.toMatch(/tool-scene/);
+    rerender(
+      <PlayArea
+        t={t}
+        state={state({
+          dataSource: "failed",
+          walletAddress: "",
+          currentStreak: "—",
+          highestStreak: "—",
+          unclaimedRewards: "—",
+          hasLoadedStatus: false,
+          lastError: "Platform state read is unavailable.",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(container.querySelector(".dci-feedback.is-error")?.textContent).toContain("unavailable");
+    expect(container.querySelector(".dci-streak-focus")?.textContent).not.toContain("0 days");
+  });
+});
+
+describe("Daily Check-in visual production locks", () => {
+  it("keeps a bright high-contrast responsive ritual with restrained actions", () => {
+    const styles = readFileSync(`${process.cwd()}/../daily-checkin/src/PlayArea.scss`, "utf8");
+    const source = readFileSync(`${process.cwd()}/../daily-checkin/src/PlayArea.tsx`, "utf8");
+
+    expect(styles).toMatch(/\.dci-ritual\s*\{[\s\S]*?background:\s*transparent/);
+    expect(styles).toMatch(/\.dci-ritual__layout\s*\{[\s\S]*?grid-template-columns:/);
+    expect(styles).toMatch(/\.dci-plaza,[\s\S]*?\.dci-console\s*\{[\s\S]*?background:\s*#fff/);
+    expect(styles).toMatch(/\.dci-plaza > img\s*\{[\s\S]*?object-fit:\s*cover/);
+    expect(styles).toMatch(/\.dci-plaza__shade\s*\{[\s\S]*?rgba\(10,\s*55,\s*42,\s*0\.78\)/);
+    expect(styles).toMatch(/\.dci-plaza__caption\s*\{[\s\S]*?color:\s*#fff/);
+    expect(styles).toMatch(/\.dci-drawer\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,/);
+    expect(styles).toMatch(/\.daily-checkin-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*?flex:\s*0 0 188px/);
+    expect(styles).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.dci-path\s*\{[\s\S]*?overflow-x:\s*auto/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)/);
+
+    expect(source).toMatch(/const STREAK_IMAGE = "\.\/streak-plaza\.webp"/);
+    expect(source).toMatch(/<CoinArt[^>]*variant="gas"/);
+    expect(source).toContain("@shared/components-react/v2/OpenUiLite");
+    expect(source).not.toMatch(/checkin-scene-art|emoji|marketHashPlaceholder|OpenUiTextField/);
   });
 });

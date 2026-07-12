@@ -16,40 +16,54 @@ import type { GameBridgeError, GameState } from "@framework/phaser";
 import { TAROT_CARD_BACK, TAROT_DECK } from "../data/tarot-data";
 
 const TAROT_ASSETS = {
-  table: "tarot-reading-table",
+  ritual: "tarot-ritual-table",
+  logo: "tarot-logo",
   back: "tarot-card-back",
+  clarity: "tarot-intent-clarity",
+  choice: "tarot-intent-choice",
+  momentum: "tarot-intent-momentum",
 } as const;
 
 const C = {
   canvas: 0xfffbef,
   surface: 0xffffff,
-  surfaceWarm: 0xfff7e8,
   plate: 0xf6ead2,
   jade: 0x0b6257,
-  jadeDeep: 0x06443d,
   gold: 0xdca84a,
-  goldDeep: 0x9a681c,
   stroke: 0xead7ad,
   ink: 0x2b2418,
   muted: 0x7b6a54,
   disabled: 0xd9cbb7,
-  vignette: 0x2a1c08,
-  danger: 0xd84d3f,
   white: 0xffffff,
 } as const;
 
 const FONT = "Inter, Arial, sans-serif";
+const TEXT_RESOLUTION =
+  typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 // Base card geometry — actual on-screen size is derived per rebuild to fit the
 // available height (CARD_W/CARD_H only fix the aspect ratio).
 const CARD_W = 88;
 const CARD_H = 148;
-const ACTION_W = 260;
+const ACTION_W = 304;
 const POSITIONS = ["Past", "Present", "Future"] as const;
 const DEFAULT_INTENTS = [
-  { label: "Clarity", question: "What needs clarity right now?" },
-  { label: "Decision", question: "Which path should I choose?" },
-  { label: "Momentum", question: "Where is momentum building?" },
+  { id: "clarity", label: "Clarity", question: "What needs clarity right now?" },
+  { id: "decision", label: "Decision", question: "Which path should I choose?" },
+  { id: "momentum", label: "Momentum", question: "Where is momentum building?" },
 ] as const;
+
+const CRITICAL_ASSET_FILES = [
+  { key: TAROT_ASSETS.ritual, url: "./ritual/ritual-table.webp" },
+  { key: TAROT_ASSETS.logo, url: "./logo.webp" },
+  { key: TAROT_ASSETS.back, url: TAROT_CARD_BACK },
+  { key: TAROT_ASSETS.clarity, url: "./intentions/clarity-token.webp" },
+  { key: TAROT_ASSETS.choice, url: "./intentions/choice-token.webp" },
+  { key: TAROT_ASSETS.momentum, url: "./intentions/momentum-token.webp" },
+] as const;
+const CRITICAL_ASSET_KEYS = new Set<string>(
+  CRITICAL_ASSET_FILES.map(({ key }) => key),
+);
+const CRITICAL_ASSET_RETRIES = 2;
 
 type CardData = {
   id?: number;
@@ -63,6 +77,7 @@ type CardData = {
 };
 
 type IntentOption = {
+  id: string;
   label: string;
   question: string;
 };
@@ -70,24 +85,39 @@ type IntentOption = {
 type TarotLayout = {
   W: number;
   H: number;
+  micro: boolean;
+  compact: boolean;
   titleY: number;
   taglineY: number;
-  deskTop: number;
-  deskH: number;
   chipY: number;
+  chipSize: number;
+  chipLabelOffset: number;
+  intentGap: number;
   cardW: number;
   cardH: number;
   cardCenterY: number;
   startX: number;
   gap: number;
-  creamTop: number;
-  creamH: number;
+  stepsY: number;
+  progressW: number;
+  progressH: number;
   actionY: number;
+  actionW: number;
+  actionH: number;
   statusY: number;
+};
+
+type IntentView = {
+  container: Phaser.GameObjects.Container;
+  ring: Phaser.GameObjects.Graphics;
+  image: Phaser.GameObjects.Image;
+  label: Phaser.GameObjects.Text;
+  id: string;
 };
 
 type CardView = {
   container: Phaser.GameObjects.Container;
+  body: Phaser.GameObjects.Container;
   plate: Phaser.GameObjects.Graphics;
   emptyGroup: Phaser.GameObjects.Container;
   back: Phaser.GameObjects.Image;
@@ -115,21 +145,16 @@ function compactError(value: string): string {
   return firstLine.length > 66 ? `${firstLine.slice(0, 63)}...` : firstLine;
 }
 
-function keywordsFor(card: CardData): string {
-  const keywords = card.keywords?.filter(Boolean).slice(0, 2) ?? [];
-  if (keywords.length > 0) return keywords.join(" / ");
-  return card.suitLabel || card.arcana || "Oracle";
-}
-
 function intentOptionsFromState(value: unknown): IntentOption[] {
   if (!Array.isArray(value)) return [...DEFAULT_INTENTS];
   const options = value
     .map((item) => {
       if (!item || typeof item !== "object") return null;
       const entry = item as Record<string, unknown>;
+      const id = String(entry.id ?? "").trim();
       const label = String(entry.label ?? "").trim();
       const question = String(entry.question ?? "").trim();
-      return label && question ? { label, question } : null;
+      return id && label && question ? { id, label, question } : null;
     })
     .filter((item): item is IntentOption => Boolean(item));
   return options.length ? options.slice(0, 3) : [...DEFAULT_INTENTS];
@@ -138,95 +163,406 @@ function intentOptionsFromState(value: unknown): IntentOption[] {
 export class TarotScene extends BaseScene {
   private tableImage!: Phaser.GameObjects.Image;
   private deckStack!: Phaser.GameObjects.Container;
-  private deckCaption!: Phaser.GameObjects.Text;
+  private appTitleLabel!: Phaser.GameObjects.Text;
+  private networkLabel!: Phaser.GameObjects.Text;
   private taglineLabel!: Phaser.GameObjects.Text;
-  private focusLabel!: Phaser.GameObjects.Text;
   private titleLabel!: Phaser.GameObjects.Text;
-  private questionText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private actionButton!: Phaser.GameObjects.Container;
   private actionButtonBg!: Phaser.GameObjects.Graphics;
   private actionButtonLabel!: Phaser.GameObjects.Text;
   private intentButtons: Phaser.GameObjects.Container[] = [];
+  private intentViews: IntentView[] = [];
+  private intentPath!: Phaser.GameObjects.Graphics;
+  private intentMasks: Phaser.Display.Masks.GeometryMask[] = [];
+  private intentMaskSources: Phaser.GameObjects.Graphics[] = [];
+  private stepLabels: Phaser.GameObjects.Text[] = [];
+  private stepTrack!: Phaser.GameObjects.Graphics;
   private cardViews: CardView[] = [];
   private layout!: TarotLayout;
   private dealtOnce = false;
   private ambientTweens: Phaser.Tweens.Tween[] = [];
+  private celebrationMotes = new Set<Phaser.GameObjects.Arc>();
+  private criticalAssetFailures = new Set<string>();
+  private assetRecoveryActive = false;
+  private assetRetryInFlight = false;
+  private lastAssetRetryNonce = 0;
   private readingChimed = false;
   private lastRevealAt = 0;
+  private pendingCardTextures = new Set<string>();
+  private failedCardTextures = new Map<string, number>();
+  private restoringLayout = false;
 
   constructor() {
     super("TarotScene");
   }
 
   preload(): void {
-    this.load.image(TAROT_ASSETS.table, "./tarot-reading-table.webp");
+    // Phaser copies this value into every File when it is queued. Two means
+    // two real network retries after the initial request, not two attempts in
+    // total. ImageFile does not currently expose maxRetries in its TS config.
+    this.load.maxRetries = CRITICAL_ASSET_RETRIES;
+    this.load.off(
+      Phaser.Loader.Events.FILE_LOAD_ERROR,
+      this.handleCriticalAssetLoadError,
+      this,
+    );
+    this.load.off(
+      Phaser.Loader.Events.FILE_COMPLETE,
+      this.handleCriticalAssetLoadComplete,
+      this,
+    );
+    this.load.on(
+      Phaser.Loader.Events.FILE_LOAD_ERROR,
+      this.handleCriticalAssetLoadError,
+      this,
+    );
+    this.load.on(
+      Phaser.Loader.Events.FILE_COMPLETE,
+      this.handleCriticalAssetLoadComplete,
+      this,
+    );
+    this.load.image(TAROT_ASSETS.ritual, "./ritual/ritual-table.webp");
+    this.load.image(TAROT_ASSETS.logo, "./logo.webp");
     this.load.image(TAROT_ASSETS.back, TAROT_CARD_BACK);
-    TAROT_DECK.forEach((card) => {
-      this.load.image(cardKey(card.id), card.image);
-    });
+    this.load.image(TAROT_ASSETS.clarity, "./intentions/clarity-token.webp");
+    this.load.image(TAROT_ASSETS.choice, "./intentions/choice-token.webp");
+    this.load.image(TAROT_ASSETS.momentum, "./intentions/momentum-token.webp");
   }
 
   create(): void {
     super.create();
     this.input.on("pointerdown", () => this.sfx.unlock());
+    this.events.once(
+      Phaser.Scenes.Events.SHUTDOWN,
+      this.unbindCriticalAssetLoader,
+      this,
+    );
+    this.events.once(
+      Phaser.Scenes.Events.DESTROY,
+      this.unbindCriticalAssetLoader,
+      this,
+    );
+    this.missingCriticalAssetKeys().forEach((key) =>
+      this.criticalAssetFailures.add(key),
+    );
+    if (this.criticalAssetFailures.size > 0) {
+      this.buildCriticalAssetRecovery();
+      return;
+    }
     this.rebuildScene();
     this.onStateUpdate(this.state);
   }
 
+  private handleCriticalAssetLoadError(file: Phaser.Loader.File): void {
+    if (CRITICAL_ASSET_KEYS.has(file.key)) {
+      this.criticalAssetFailures.add(file.key);
+    }
+  }
+
+  private handleCriticalAssetLoadComplete(key: string): void {
+    if (CRITICAL_ASSET_KEYS.has(key)) {
+      this.criticalAssetFailures.delete(key);
+    }
+  }
+
+  private unbindCriticalAssetLoader(): void {
+    this.load.off(
+      Phaser.Loader.Events.FILE_LOAD_ERROR,
+      this.handleCriticalAssetLoadError,
+      this,
+    );
+    this.load.off(
+      Phaser.Loader.Events.FILE_COMPLETE,
+      this.handleCriticalAssetLoadComplete,
+      this,
+    );
+  }
+
+  private missingCriticalAssetKeys(): string[] {
+    return CRITICAL_ASSET_FILES
+      .map(({ key }) => key)
+      .filter((key) => !this.textures.exists(key));
+  }
+
+  /**
+   * A critical texture failure is not papered over with generated geometry or
+   * a missing-texture sprite. Keep the game fail-clear, explain what happened,
+   * and let the player retry the real files when their connection recovers.
+   */
+  private buildCriticalAssetRecovery(): void {
+    this.assetRecoveryActive = true;
+    this.dispatch("setAssetRecoveryState", Math.max(
+      this.criticalAssetFailures.size,
+      this.missingCriticalAssetKeys().length,
+    ));
+    this.tweens.killAll();
+    this.children.removeAll(true);
+
+    const { width: W, height: H } = this.scale;
+    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+
+    const panelW = Math.min(340, W - 28);
+    const panelH = Math.min(244, H - 32);
+    const panelY = H / 2;
+    const panel = this.add.graphics();
+    panel.fillStyle(C.surface, 0.98);
+    panel.fillRoundedRect(
+      W / 2 - panelW / 2,
+      panelY - panelH / 2,
+      panelW,
+      panelH,
+      22,
+    );
+    panel.lineStyle(2, C.gold, 0.72);
+    panel.strokeRoundedRect(
+      W / 2 - panelW / 2,
+      panelY - panelH / 2,
+      panelW,
+      panelH,
+      22,
+    );
+
+    this.add.text(
+      W / 2,
+      panelY - panelH / 2 + 42,
+      this.sceneStr("assetErrorTitle", "Ritual artwork unavailable"),
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: H <= 440 ? "17px" : "20px",
+        fontStyle: "800",
+        color: "#2b2418",
+        align: "center",
+        wordWrap: { width: panelW - 36 },
+      },
+    ).setOrigin(0.5);
+
+    this.add.text(
+      W / 2,
+      panelY - 22,
+      this.assetRetryInFlight
+        ? this.sceneStr("assetRetrying", "Retrying the original artwork...")
+        : this.sceneStr(
+            "assetErrorBody",
+            "The game could not load its visual assets. Check your connection and try again.",
+          ),
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: "12px",
+        color: "#665d50",
+        align: "center",
+        wordWrap: { width: panelW - 42 },
+        lineSpacing: 2,
+      },
+    ).setOrigin(0.5);
+
+    const retryW = Math.min(240, panelW - 32);
+    const retryY = panelY + panelH / 2 - 42;
+    const retryButton = this.add.container(W / 2, retryY);
+    const retryBg = this.add.graphics();
+    retryBg.fillStyle(this.assetRetryInFlight ? C.disabled : C.jade, 1);
+    retryBg.fillRoundedRect(-retryW / 2, -22, retryW, 44, 18);
+    retryBg.lineStyle(2, this.assetRetryInFlight ? C.stroke : C.gold, 0.9);
+    retryBg.strokeRoundedRect(-retryW / 2, -22, retryW, 44, 18);
+    const retryLabel = this.add.text(
+      0,
+      0,
+      this.assetRetryInFlight
+        ? this.sceneStr("assetRetrying", "Retrying...")
+        : this.sceneStr("assetRetry", "Retry artwork"),
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: "14px",
+        fontStyle: "800",
+        color: this.assetRetryInFlight ? "#7b6a54" : "#fff7dc",
+      },
+    ).setOrigin(0.5);
+    retryButton.add([retryBg, retryLabel]);
+
+    if (!this.assetRetryInFlight) {
+      retryBg.setInteractive(
+        new Phaser.Geom.Rectangle(-retryW / 2, -22, retryW, 44),
+        Phaser.Geom.Rectangle.Contains,
+      );
+      this.bindGameButton(retryBg, {
+        targets: retryButton,
+        pressScale: 0.96,
+        onPress: () => this.retryCriticalAssets(),
+      });
+    }
+  }
+
+  private retryCriticalAssets(): void {
+    if (this.assetRetryInFlight) return;
+
+    const missing = this.missingCriticalAssetKeys();
+    if (missing.length === 0) {
+      this.criticalAssetFailures.clear();
+      this.assetRecoveryActive = false;
+      this.dispatch("setAssetRecoveryState", 0);
+      this.rebuildScene();
+      this.onStateUpdate(this.state);
+      return;
+    }
+
+    this.assetRetryInFlight = true;
+    this.criticalAssetFailures.clear();
+    this.buildCriticalAssetRecovery();
+
+    const missingSet = new Set(missing);
+    this.load.maxRetries = CRITICAL_ASSET_RETRIES;
+    CRITICAL_ASSET_FILES.forEach(({ key, url }) => {
+      if (missingSet.has(key)) {
+        this.load.image({ key, url });
+      }
+    });
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      this.assetRetryInFlight = false;
+      this.missingCriticalAssetKeys().forEach((key) =>
+        this.criticalAssetFailures.add(key),
+      );
+      if (this.criticalAssetFailures.size > 0) {
+        this.buildCriticalAssetRecovery();
+        return;
+      }
+
+      this.assetRecoveryActive = false;
+      this.dispatch("setAssetRecoveryState", 0);
+      this.rebuildScene();
+      this.onStateUpdate(this.state);
+    });
+    this.load.start();
+  }
+
   private computeLayout(W: number, H: number): TarotLayout {
-    const deskTop = 66;
-    const deskH = 148;
-    const deskBottom = deskTop + deskH; // 214
-    const chipY = deskBottom - 20; // 194 — intent chips sit in the desk's lower strip
-    const cardZoneTop = deskBottom + 8; // 222
+    // 400-520px canvases need their own vertical rhythm. Treating them as a
+    // slightly shorter phone layout makes the card captions collide with the
+    // progress rail and CTA. The micro tier keeps every primary object while
+    // reducing decorative spacing and physical-object size.
+    const micro = H <= 520;
+    // Include the boundary itself so 680px never switches to the roomy values
+    // whose larger intent tokens and title need more vertical space.
+    const compact = !micro && H <= 680;
+    const titleY = micro
+      ? 91
+      : compact
+        ? Math.max(96, Math.round(H * 0.165))
+        : 124;
+    const taglineY = micro
+      ? 67
+      : compact
+        ? Math.max(70, Math.round(H * 0.125))
+        : 92;
+    const chipY = micro
+      ? Math.round(150 + Math.max(0, Math.min(120, H - 400)) / 6)
+      : compact
+        ? Math.max(176, Math.min(190, Math.round(H * 0.29)))
+        : 236;
+    const widthLimitedChipSize = Math.max(56, Math.floor((W - 24) / 3));
+    const heightLimitedChipSize = micro
+      ? Math.round(64 + Math.max(0, Math.min(120, H - 400)) * 0.15)
+      : compact
+        ? 94
+        : 118;
+    const chipSize = Math.min(heightLimitedChipSize, widthLimitedChipSize);
+    const chipLabelOffset = Math.round(chipSize / 2 - 4);
+    const ringRadius = Math.max(38, chipSize * 0.45) + 4;
+    const intentGap = Math.min(
+      micro ? 92 : compact ? 94 : 108,
+      Math.max(chipSize * 0.8, W / 2 - ringRadius - 8),
+    );
+    const cardZoneTop = micro
+      ? chipY + chipLabelOffset + 18
+      : compact
+        ? chipY + chipLabelOffset + 38
+        : 328;
+    const stepsY = H - (micro ? 88 : compact ? 106 : 134);
+    const actionY = H - (micro ? 44 : compact ? 53 : 72);
+    const actionH = micro ? 44 : 52;
+    const actionW = Math.min(ACTION_W, Math.max(180, W - 24));
+    const actionTop = actionY - actionH / 2;
+    const statusY = H - (micro ? 8 : compact ? 13 : 18);
+    const progressW = Math.min(236, Math.max(180, W - 24));
+    const progressH = micro ? 28 : 38;
 
-    const actionY = H - 54;
-    const actionTop = actionY - 22;
-    const statusY = H - 15;
-
-    // Cards shrink on short (mobile) canvases so the spread + labels always
-    // clear the bottom action band. Aspect ratio is preserved from CARD_W/CARD_H.
-    const cardH = Math.round(Math.min(CARD_H, Math.max(112, H - 340)));
+    // Keep the cards large enough to feel tactile while preserving a clear
+    // lower action lane. Short viewports use a smaller physical deck instead
+    // of allowing captions to collide with the progress/action cluster.
+    const idealCardH = micro
+      ? Math.round(66 + Math.max(0, Math.min(120, H - 400)) * 0.2)
+      : compact
+        ? Math.min(126, Math.max(98, H * 0.18))
+        : Math.min(CARD_H, Math.max(126, H * 0.205));
+    const microCardLimit = Math.max(
+      60,
+      stepsY - progressH / 2 - cardZoneTop - 37,
+    );
+    const cardH = Math.round(
+      micro ? Math.min(idealCardH, microCardLimit) : idealCardH,
+    );
     const cardW = Math.round(cardH * (CARD_W / CARD_H));
-    const gap = cardW + 24;
+    const maxFittingGap = (W - cardW - 24) / 2;
+    const minimumReadableGap = Math.max(52, cardW * 0.86);
+    const gap = Math.max(
+      minimumReadableGap,
+      Math.min(cardW + 25, maxFittingGap),
+    );
 
     const blockH = cardH + 37; // card + label + two-line meta
-    const zoneBottom = actionTop - 5;
+    const zoneBottom = micro
+      ? stepsY - progressH / 2
+      : compact
+        ? stepsY - 24
+        : actionTop - 5;
     const slack = Math.max(0, zoneBottom - cardZoneTop - blockH);
     const cardTop = cardZoneTop + slack / 2;
     const cardCenterY = cardTop + cardH / 2;
 
-    const creamTop = cardZoneTop - 4;
-    const creamH = actionTop - 4 - creamTop;
-
     return {
       W,
       H,
-      titleY: 34,
-      taglineY: 55,
-      deskTop,
-      deskH,
+      micro,
+      compact,
+      titleY,
+      taglineY,
       chipY,
+      chipSize,
+      chipLabelOffset,
+      intentGap,
       cardW,
       cardH,
       cardCenterY,
       startX: W / 2 - gap,
       gap,
-      creamTop,
-      creamH,
+      stepsY,
+      progressW,
+      progressH,
       actionY,
+      actionW,
+      actionH,
       statusY,
     };
   }
 
-  private rebuildScene(): void {
+  private rebuildScene(restoringLayout = false): void {
+    this.restoringLayout = restoringLayout;
     this.tweens.killAll();
+    this.intentMasks.forEach((mask) => mask.destroy());
+    this.intentMaskSources.forEach((source) => source.destroy());
     this.children.removeAll(true);
     this.intentButtons = [];
+    this.intentViews = [];
     this.cardViews = [];
+    this.stepLabels = [];
     this.ambientTweens = [];
-    this.dealtOnce = false;
+    this.celebrationMotes.clear();
+    this.intentMasks = [];
+    this.intentMaskSources = [];
+    const currentDraw = this.val<CardData[]>("drawn", []) ?? [];
+    this.dealtOnce = restoringLayout && currentDraw.length > 0;
 
     const { width: W, height: H } = this.scale;
     this.layout = this.computeLayout(W, H);
@@ -234,8 +570,10 @@ export class TarotScene extends BaseScene {
     this.buildBackground(W, H);
     this.buildHeader(W);
     this.buildDesk(W);
+    this.buildIntentPath();
     this.buildSpread(W);
     this.buildIntentButtons(W);
+    this.buildProgress(W);
     this.buildActionButton(W, H);
     this.buildStatus(W, H);
     this.startAmbientMotion();
@@ -263,34 +601,56 @@ export class TarotScene extends BaseScene {
   }
 
   protected onStateUpdate(_state: GameState): void {
+    const retryNonce = this.num("assetRetryNonce");
+    if (retryNonce !== this.lastAssetRetryNonce) {
+      this.lastAssetRetryNonce = retryNonce;
+      if (this.assetRecoveryActive) {
+        this.retryCriticalAssets();
+        return;
+      }
+    }
+    if (this.assetRecoveryActive) return;
     if (!this.titleLabel || !this.statusText || !this.actionButton) return;
 
     const drawn = this.val<CardData[]>("drawn", []) ?? [];
     const hasDrawn = this.bool("hasDrawn") || drawn.length > 0;
     const allFlipped = this.bool("allFlipped");
     const isLoading = this.bool("isLoading");
-    const question = this.str("question", "");
+    const hasPending = this.bool("hasPending");
+    const pendingExpired = this.bool("pendingExpired");
+    const intentId = this.str("intentId", "decision");
     const revealedCount = drawn.filter((card) => card.flipped).length;
 
     // Static localized chrome (may arrive after the first build) — refresh here.
-    this.taglineLabel?.setText(
-      this.sceneStr("tagline", "Neo N3 · 0.1 GAS verified draw"),
+    this.appTitleLabel.setText(this.sceneStr("appTitle", "On-Chain Tarot"));
+    this.networkLabel.setText(this.sceneStr("networkStatus", "Neo N3 online"));
+    const activeStep = allFlipped ? 2 : hasDrawn || hasPending || isLoading ? 1 : 0;
+    this.taglineLabel.setText(
+      activeStep === 0
+        ? this.sceneStr("stepChooseIntent", "Step one · Choose an intention")
+        : activeStep === 1
+          ? hasPending
+            ? this.sceneStr("oracleWaiting", "The oracle is shuffling")
+            : this.sceneStr("drawing", "Drawing the spread")
+          : this.sceneStr("verified", "Reading complete"),
     );
-    this.focusLabel?.setText(this.sceneStr("focusLabel", "Focus"));
-    this.deckCaption?.setText(this.sceneStr("tapToDraw", "Tap to draw"));
-    this.deckCaption?.setVisible(!hasDrawn && !isLoading);
-
     this.titleLabel.setText(
       isLoading
-        ? this.sceneStr("drawing", "Drawing from Neo N3")
-        : allFlipped
-          ? this.sceneStr("verified", "On-chain verified")
+        ? hasPending
+          ? this.sceneStr("oracleWaiting", "The oracle is shuffling")
+          : this.sceneStr("drawing", "Drawing the spread")
+        : hasPending
+          ? pendingExpired
+            ? this.sceneStr("actionRecover", "Recover reading fee")
+            : this.sceneStr("oracleWaiting", "The oracle is shuffling")
+          : allFlipped
+          ? this.sceneStr("verified", "Reading complete")
           : hasDrawn
             ? this.sceneStr("tapToReveal", "Tap cards to reveal")
-            : this.sceneStr("chooseIntent", "Choose an intent"),
-    );
-    this.questionText.setText(
-      question || this.sceneStr("focusFallback", "Set the tone for this spread."),
+            : this.sceneStr(
+                "intentPrompt",
+                "What do you most want to understand right now?",
+              ),
     );
     this.statusText.setText(
       isLoading
@@ -298,6 +658,11 @@ export class TarotScene extends BaseScene {
             "drawingStatus",
             "Wallet confirms the draw, then the contract seals the spread.",
           )
+        : hasPending
+          ? this.sceneStr(
+              "oracleWaitingStatus",
+              "Your request is sealed on-chain. Check again when the oracle returns.",
+            )
         : !hasDrawn
           ? this.sceneStr(
               "idleStatus",
@@ -315,9 +680,26 @@ export class TarotScene extends BaseScene {
     );
     this.statusText.setColor("#7b6a54");
 
-    this.intentButtons.forEach((button) => button.setVisible(!hasDrawn && !isLoading));
-    this.updateActionButton(hasDrawn, allFlipped, isLoading);
-    this.updateCards(drawn, isLoading);
+    this.intentButtons.forEach((button) => button.setVisible(!hasDrawn && !hasPending && !isLoading));
+    this.updateIntentPath(intentId, !hasDrawn && !hasPending && !isLoading);
+    this.intentViews.forEach((view) => {
+      const selected = view.id === intentId;
+      this.renderIntentButton(view.ring, selected, false);
+      view.image.setAlpha(selected ? 1 : 0.9);
+      view.label.setColor(selected ? "#06443d" : "#5f5548");
+    });
+    const localizedSteps = this.val<Record<string, unknown>>(
+      "sceneText",
+      undefined,
+    )?.steps;
+    if (Array.isArray(localizedSteps) && localizedSteps.length === 3) {
+      this.stepLabels.forEach((label, index) =>
+        label.setText(String(localizedSteps[index] ?? label.text)),
+      );
+    }
+    this.updateProgress(activeStep);
+    this.updateActionButton(hasDrawn, allFlipped, isLoading, hasPending, pendingExpired);
+    this.updateCards(drawn, isLoading, hasPending);
 
     if (allFlipped && hasDrawn) {
       if (!this.readingChimed) {
@@ -341,120 +723,139 @@ export class TarotScene extends BaseScene {
   }
 
   private buildBackground(W: number, H: number): void {
-    const L = this.layout;
     this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+    this.tableImage = this.add.image(W / 2, H / 2, TAROT_ASSETS.ritual);
+    const source = this.tableImage.texture.getSourceImage() as {
+      width: number;
+      height: number;
+    };
+    const scale = Math.max(W / source.width, H / source.height);
+    this.tableImage.setScale(scale);
 
-    const shell = this.add.graphics();
-    shell.fillStyle(0xfff6df, 1);
-    shell.fillRoundedRect(14, 14, W - 28, H - 28, 24);
-    shell.lineStyle(1, C.stroke, 1);
-    shell.strokeRoundedRect(14, 14, W - 28, H - 28, 24);
-
-    // Cream reading panel — the three-card spread sits cleanly on this, below
-    // the desk photo, so no baked table silhouettes ghost behind the cards.
-    shell.fillStyle(C.surface, 0.82);
-    shell.fillRoundedRect(26, L.creamTop, W - 52, L.creamH, 22);
-    shell.lineStyle(1, C.stroke, 0.9);
-    shell.strokeRoundedRect(26, L.creamTop, W - 52, L.creamH, 22);
+    // The generated plate deliberately leaves a calm upper band. A quiet
+    // translucent veil guarantees title contrast without dirtying the mat.
+    this.add.rectangle(W / 2, 76, W, 152, C.surface, 0.44);
   }
 
   private buildHeader(W: number): void {
     const L = this.layout;
-    this.titleLabel = this.add.text(W / 2, L.titleY, "Choose an intent", {
-      fontFamily: FONT,
-      fontSize: "18px",
-      fontStyle: "800",
-      color: "#2b2418",
-    }).setOrigin(0.5);
+    const logoPlate = this.add.graphics();
+    logoPlate.fillStyle(C.surface, 0.96);
+    logoPlate.fillRoundedRect(14, 10, 50, 50, 14);
+    logoPlate.lineStyle(1, C.stroke, 0.72);
+    logoPlate.strokeRoundedRect(14, 10, 50, 50, 14);
+    const logo = this.add.image(39, 35, TAROT_ASSETS.logo);
+    logo.setDisplaySize(38, 38);
 
-    // Repurposed subtitle: an on-chain cue instead of a Past/Present/Future
-    // line that would just repeat the labeled spread below.
-    this.taglineLabel = this.add.text(W / 2, L.taglineY, "Neo N3 · 0.1 GAS verified draw", {
+    this.appTitleLabel = this.add.text(72, 18, "On-Chain Tarot", {
       fontFamily: FONT,
-      fontSize: "10px",
+      resolution: TEXT_RESOLUTION,
+      fontSize: "17px",
+      fontStyle: "800",
+      color: "#1f241f",
+    });
+
+    const networkDot = this.add.graphics();
+    networkDot.fillStyle(0x2bb673, 1);
+    networkDot.fillCircle(76, 50, 4);
+    this.networkLabel = this.add.text(86, 50, "Neo N3 online", {
+      fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "9px",
       fontStyle: "700",
-      color: "#9a681c",
-    }).setOrigin(0.5);
+      color: "#4c554e",
+    }).setOrigin(0, 0.5);
+
+    this.taglineLabel = this.add.text(
+      W / 2,
+      L.taglineY,
+      "Step one · Choose an intention",
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: L.micro ? "10px" : "12px",
+        fontStyle: "700",
+        color: "#187565",
+      },
+    ).setOrigin(0.5);
+
+    this.titleLabel = this.add.text(
+      W / 2,
+      L.titleY,
+      "What do you most want to understand right now?",
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: L.micro ? "16px" : L.compact ? "17px" : "20px",
+        fontStyle: "800",
+        color: "#171a17",
+        align: "center",
+        wordWrap: { width: W - (L.micro ? 36 : 48) },
+        lineSpacing: L.micro ? 0 : 2,
+      },
+    ).setOrigin(0.5);
   }
 
   private buildDesk(W: number): void {
-    const L = this.layout;
-    const deskTop = L.deskTop;
-    const deskH = L.deskH;
+    // An invisible physical origin for the staggered deal animation. The real
+    // cards fly from the ritual centre; no fake deck illustration is needed.
+    this.deckStack = this.add.container(W / 2 - 18, this.layout.cardCenterY + 18);
+    const originCard = this.add.image(0, 0, TAROT_ASSETS.back);
+    originCard.setDisplaySize(this.layout.cardW, this.layout.cardH).setAlpha(0);
+    this.deckStack.add(originCard);
+  }
 
-    const frame = this.add.graphics();
-    frame.fillStyle(0xffffff, 0.7);
-    frame.fillRoundedRect(24, deskTop, W - 48, deskH, 20);
+  private buildIntentPath(): void {
+    this.intentPath = this.add.graphics();
+    this.updateIntentPath(this.str("intentId", "decision"), true);
+  }
 
-    this.tableImage = this.add.image(W / 2, deskTop + deskH / 2, TAROT_ASSETS.table);
-    this.tableImage.setDisplaySize(W - 48, deskH);
-    this.tableImage.setAlpha(0.72);
+  /**
+   * A restrained ritual path turns intent selection into spatial game input:
+   * the chosen token visibly branches toward the three physical cards. It is
+   * hidden as soon as dealing starts so it never competes with the spread.
+   */
+  private updateIntentPath(intentId: string, visible: boolean): void {
+    if (!this.intentPath) return;
+    // The 400-520px tier deliberately drops this secondary decoration: there
+    // is not enough vertical runway for a readable curve between the tokens
+    // and cards, while the selected ring still communicates the relationship.
+    const pathVisible = visible && !this.layout.micro;
+    this.intentPath.clear().setVisible(pathVisible);
+    if (!pathVisible) return;
 
-    // Warm vignette + framing so the mystic desk feels deliberate and the green
-    // card backs pop instead of floating over washed, low-contrast photo noise.
-    const vignette = this.add.graphics();
-    vignette.fillGradientStyle(C.vignette, C.vignette, C.vignette, C.vignette, 0.36, 0.36, 0, 0);
-    vignette.fillRoundedRect(24, deskTop, W - 48, deskH * 0.6, { tl: 20, tr: 20, bl: 0, br: 0 });
-    vignette.fillGradientStyle(C.vignette, C.vignette, C.vignette, C.vignette, 0, 0, 0.34, 0.34);
-    vignette.fillRoundedRect(24, deskTop + deskH * 0.4, W - 48, deskH * 0.6, { tl: 0, tr: 0, bl: 20, br: 20 });
-    vignette.fillStyle(C.goldDeep, 0.05);
-    vignette.fillRoundedRect(24, deskTop, W - 48, deskH, 20);
+    const options = intentOptionsFromState(this.val("intentOptions", null));
+    const selectedIndex = options.findIndex(
+      (option) => option.id === intentId,
+    );
+    const resolvedIndex = selectedIndex >= 0 ? selectedIndex : 1;
+    const startX =
+      this.layout.W / 2 + (resolvedIndex - 1) * this.layout.intentGap;
+    const startY =
+      this.layout.chipY + this.layout.chipLabelOffset + 10;
+    const endY = this.layout.cardCenterY - this.layout.cardH / 2 - 12;
 
-    frame.lineStyle(1.5, C.gold, 0.55);
-    frame.strokeRoundedRect(24, deskTop, W - 48, deskH, 20);
-
-    // Tappable deck stack (draws the spread) — upper-left of the desk.
-    this.deckStack = this.add.container(70, deskTop + 42);
-    for (let i = 0; i < 3; i++) {
-      const card = this.add.image(i * 6, i * 4, TAROT_ASSETS.back);
-      card.setDisplaySize(52, 86);
-      card.setRotation(Phaser.Math.DegToRad(-4 + i * 4));
-      this.deckStack.add(card);
+    this.intentPath.lineStyle(1.5, C.jade, 0.48);
+    for (let cardIndex = 0; cardIndex < 3; cardIndex++) {
+      const endX = this.layout.startX + cardIndex * this.layout.gap;
+      const curve = new Phaser.Curves.QuadraticBezier(
+        new Phaser.Math.Vector2(startX, startY),
+        new Phaser.Math.Vector2((startX + endX) / 2, startY + 26),
+        new Phaser.Math.Vector2(endX, endY),
+      );
+      const points = curve.getPoints(28);
+      for (let pointIndex = 0; pointIndex < points.length - 1; pointIndex += 2) {
+        const from = points[pointIndex]!;
+        const to = points[Math.min(pointIndex + 1, points.length - 1)]!;
+        this.intentPath.lineBetween(from.x, from.y, to.x, to.y);
+      }
+      this.intentPath.fillStyle(C.gold, 0.72);
+      this.intentPath.fillCircle(endX, endY, 2.3);
     }
-    const deckHit = this.add.rectangle(6, 4, 76, 104, 0xffffff, 0.001);
-    deckHit.setInteractive();
-    this.bindGameButton(deckHit, {
-      targets: this.deckStack,
-      hoverScale: 1.035,
-      pressScale: 0.96,
-      enabled: () => this.canDrawFromDeck(),
-      onPress: () => {
-        this.sfx.play("start");
-        this.dispatch("draw");
-      },
-    });
-    this.deckStack.add(deckHit);
-
-    // Caption clarifying the deck is interactive.
-    this.deckCaption = this.add.text(70, deskTop + 102, "Tap to draw", {
-      fontFamily: FONT,
-      fontSize: "9px",
-      fontStyle: "700",
-      color: "#0b6257",
-    }).setOrigin(0.5);
-
-    // Focus slip — right of the deck with a clear gap between the two.
-    const slipX = 116;
-    const slipW = W - slipX - 30;
-    const slipTop = deskTop + 24;
-    const slip = this.add.graphics();
-    slip.fillStyle(C.surface, 0.95);
-    slip.fillRoundedRect(slipX, slipTop, slipW, 60, 15);
-    slip.lineStyle(1, C.stroke, 1);
-    slip.strokeRoundedRect(slipX, slipTop, slipW, 60, 15);
-    this.focusLabel = this.add.text(slipX + 16, slipTop + 10, "Focus", {
-      fontFamily: FONT,
-      fontSize: "10px",
-      fontStyle: "700",
-      color: "#9a681c",
-    });
-    this.questionText = this.add.text(slipX + 16, slipTop + 26, "Set the tone for this spread.", {
-      fontFamily: FONT,
-      fontSize: "12px",
-      color: "#2b2418",
-      wordWrap: { width: slipW - 30 },
-      lineSpacing: 1,
-    });
+    this.intentPath.fillStyle(C.surface, 0.96);
+    this.intentPath.fillCircle(startX, startY, 5.5);
+    this.intentPath.lineStyle(1.5, C.gold, 0.84);
+    this.intentPath.strokeCircle(startX, startY, 5.5);
   }
 
   private buildSpread(_W: number): void {
@@ -471,6 +872,11 @@ export class TarotScene extends BaseScene {
     const cardW = this.layout.cardW;
     const cardH = this.layout.cardH;
     const container = this.add.container(x, y);
+    // Keep the physical card body separate from its spread caption. Deal,
+    // ambience and completion motion act on the outer container; the 3D flip
+    // acts only on this inner body so simultaneous tweens cannot strand a card
+    // at scaleX ~= 0 when the reading-complete celebration begins.
+    const body = this.add.container(0, 0);
 
     const shadow = this.add.rectangle(4, 8, cardW, cardH, 0x8c713a, 0.18);
     shadow.setOrigin(0.5);
@@ -503,6 +909,7 @@ export class TarotScene extends BaseScene {
     disc.strokeCircle(0, -6, discR);
     const emptyIndex = this.add.text(0, -6, String(index + 1), {
       fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
       fontSize: `${Math.round(cardW * 0.18)}px`,
       fontStyle: "800",
       color: "#0b6257",
@@ -518,6 +925,7 @@ export class TarotScene extends BaseScene {
 
     const label = this.add.text(0, cardH / 2 + 12, POSITIONS[index]!, {
       fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
       fontSize: "12px",
       fontStyle: "800",
       color: "#2b2418",
@@ -525,16 +933,19 @@ export class TarotScene extends BaseScene {
 
     const meta = this.add.text(0, cardH / 2 + 26, "", {
       fontFamily: FONT,
-      fontSize: "10px",
+      resolution: TEXT_RESOLUTION,
+      fontSize: "9px",
       color: "#7b6a54",
       align: "center",
       wordWrap: { width: cardW + 22 },
+      maxLines: 2,
+      lineSpacing: -1,
     }).setOrigin(0.5);
 
     const hit = this.add.rectangle(0, 0, cardW + 12, cardH + 12, 0xffffff, 0.001);
     hit.setInteractive();
     this.bindGameButton(hit, {
-      targets: container,
+      targets: body,
       hoverScale: 1.035,
       pressScale: 0.96,
       enabled: () => this.canFlip(index),
@@ -544,10 +955,12 @@ export class TarotScene extends BaseScene {
       },
     });
 
-    container.add([shadow, plate, frame, emptyGroup, back, face, label, meta, hit]);
+    body.add([shadow, plate, frame, emptyGroup, back, face, hit]);
+    container.add([body, label, meta]);
 
     return {
       container,
+      body,
       plate,
       emptyGroup,
       back,
@@ -589,52 +1002,159 @@ export class TarotScene extends BaseScene {
   private buildIntentButtons(W: number): void {
     const L = this.layout;
     const options = intentOptionsFromState(this.val("intentOptions", null));
+    const textures = [
+      TAROT_ASSETS.clarity,
+      TAROT_ASSETS.choice,
+      TAROT_ASSETS.momentum,
+    ] as const;
     options.forEach((option, index) => {
-      const x = W / 2 + (index - 1) * 108;
+      const x = W / 2 + (index - 1) * L.intentGap;
       const button = this.add.container(x, L.chipY);
-      const bg = this.add.graphics();
-      this.renderIntentButton(bg, false);
-      bg.setInteractive(new Phaser.Geom.Rectangle(-48, -19, 96, 38), Phaser.Geom.Rectangle.Contains);
-      this.bindGameButton(bg, {
+      const ring = this.add.graphics();
+      this.renderIntentButton(ring, false, false);
+      const token = this.add.image(0, -8, textures[index]!);
+      token.setDisplaySize(L.chipSize, L.chipSize);
+      // Generated source art uses a warm square canvas. A real circular mask
+      // preserves the physical token while letting the ritual table and
+      // selected ring remain visible around it.
+      const maskSource = this.make.graphics({ x: 0, y: 0 }, false);
+      maskSource.fillStyle(C.white, 1);
+      maskSource.fillCircle(x, L.chipY - 8, L.chipSize * 0.44);
+      const tokenMask = maskSource.createGeometryMask();
+      token.setMask(tokenMask);
+      this.intentMaskSources.push(maskSource);
+      this.intentMasks.push(tokenMask);
+      const hit = this.add.rectangle(
+        0,
+        8,
+        L.chipSize,
+        L.chipSize + 18,
+        C.white,
+        0.001,
+      );
+      hit.setInteractive();
+      this.bindGameButton(hit, {
         targets: button,
+        hoverScale: 1.035,
         pressScale: 0.95,
         onPress: () => {
           this.sfx.play("select");
-          this.dispatch("setQuestion", option.question);
+          this.dispatch("setIntent", option.id);
         },
-        onHoverIn: () => this.renderIntentButton(bg, true),
-        onHoverOut: () => this.renderIntentButton(bg, false),
+        onHoverIn: () =>
+          this.renderIntentButton(
+            ring,
+            option.id === this.str("intentId", "decision"),
+            true,
+          ),
+        onHoverOut: () =>
+          this.renderIntentButton(
+            ring,
+            option.id === this.str("intentId", "decision"),
+            false,
+          ),
       });
-      const label = this.add.text(0, 0, option.label, {
+      const label = this.add.text(0, L.chipLabelOffset, option.label, {
         fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
         fontSize: "12px",
         fontStyle: "800",
-        color: "#0b6257",
+        color: "#5f5548",
       }).setOrigin(0.5);
-      button.add([bg, label]);
+      button.add([ring, token, label, hit]);
       this.intentButtons.push(button);
+      this.intentViews.push({
+        container: button,
+        ring,
+        image: token,
+        label,
+        id: option.id,
+      });
     });
   }
 
-  private renderIntentButton(bg: Phaser.GameObjects.Graphics, hover: boolean): void {
-    bg.clear();
-    bg.fillStyle(hover ? 0xf1fff7 : C.surface, 0.96);
-    bg.fillRoundedRect(-48, -19, 96, 38, 12);
-    bg.lineStyle(hover ? 2 : 1, hover ? C.jade : C.stroke, 1);
-    bg.strokeRoundedRect(-48, -19, 96, 38, 12);
+  private renderIntentButton(
+    ring: Phaser.GameObjects.Graphics,
+    selected: boolean,
+    hover: boolean,
+  ): void {
+    ring.clear();
+    const ringRadius = Math.max(38, this.layout.chipSize * 0.45);
+    if (selected || hover) {
+      ring.fillStyle(selected ? 0xfff7d9 : C.surface, selected ? 0.72 : 0.52);
+      ring.fillCircle(0, -8, ringRadius + 2);
+      ring.lineStyle(selected ? 3 : 2, selected ? C.gold : C.jade, 0.92);
+      ring.strokeCircle(0, -8, ringRadius);
+    }
+    if (selected) {
+      ring.lineStyle(1, C.jade, 0.72);
+      ring.strokeCircle(0, -8, ringRadius + 4);
+    }
+  }
+
+  private buildProgress(W: number): void {
+    this.stepTrack = this.add.graphics();
+    const L = this.layout;
+    const y = L.stepsY;
+    const x = W / 2 - L.progressW / 2;
+    const halfH = L.progressH / 2;
+    this.stepTrack.fillStyle(C.surface, 0.94);
+    this.stepTrack.fillRoundedRect(x, y - halfH, L.progressW, L.progressH, halfH);
+    this.stepTrack.lineStyle(1, C.stroke, 0.92);
+    this.stepTrack.strokeRoundedRect(x, y - halfH, L.progressW, L.progressH, halfH);
+
+    const labels = this.val<Record<string, unknown>>("sceneText", undefined)?.steps;
+    const resolved =
+      Array.isArray(labels) && labels.length === 3
+        ? labels.map((label) => String(label))
+        : ["Intention", "Draw", "Reading"];
+    const stepGap = (L.progressW - (L.micro ? 70 : 84)) / 2;
+    resolved.forEach((label, index) => {
+      const labelX = W / 2 + (index - 1) * stepGap;
+      const text = this.add.text(labelX, y, label, {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: L.micro ? "9px" : "11px",
+        fontStyle: "800",
+        color: "#867965",
+      }).setOrigin(0.5);
+      this.stepLabels.push(text);
+      if (index < 2) {
+        this.add.text(labelX + stepGap / 2, y, "→", {
+          fontFamily: FONT,
+          resolution: TEXT_RESOLUTION,
+          fontSize: L.micro ? "10px" : "13px",
+          fontStyle: "700",
+          color: "#9a8c77",
+        }).setOrigin(0.5);
+      }
+    });
+  }
+
+  private updateProgress(activeStep: number): void {
+    this.stepLabels.forEach((label, index) => {
+      label.setColor(index === activeStep ? "#0b6257" : "#665d50");
+      label.setAlpha(index <= activeStep ? 1 : 0.84);
+    });
   }
 
   private buildActionButton(W: number, _H: number): void {
+    const { actionW, actionH } = this.layout;
     this.actionButton = this.add.container(W / 2, this.layout.actionY);
     this.actionButtonBg = this.add.graphics();
     this.actionButtonLabel = this.add.text(0, 0, "Draw Cards", {
       fontFamily: FONT,
-      fontSize: "17px",
+      resolution: TEXT_RESOLUTION,
+      fontSize: actionW < 280 ? "13px" : this.layout.micro ? "14px" : "16px",
       fontStyle: "800",
       color: "#fff7dc",
+      align: "center",
+      wordWrap: { width: actionW - 24 },
+      maxLines: 2,
+      lineSpacing: -2,
     }).setOrigin(0.5);
     this.actionButtonBg.setInteractive(
-      new Phaser.Geom.Rectangle(-ACTION_W / 2, -22, ACTION_W, 44),
+      new Phaser.Geom.Rectangle(-actionW / 2, -actionH / 2, actionW, actionH),
       Phaser.Geom.Rectangle.Contains,
     );
     this.bindGameButton(this.actionButtonBg, {
@@ -649,65 +1169,136 @@ export class TarotScene extends BaseScene {
   private buildStatus(W: number, _H: number): void {
     this.statusText = this.add.text(W / 2, this.layout.statusY, "", {
       fontFamily: FONT,
-      fontSize: "11px",
+      resolution: TEXT_RESOLUTION,
+      fontSize: "10px",
       color: "#7b6a54",
       align: "center",
       wordWrap: { width: W - 56 },
     }).setOrigin(0.5);
   }
 
-  private updateActionButton(hasDrawn: boolean, allFlipped: boolean, isLoading: boolean): void {
+  private updateActionButton(
+    hasDrawn: boolean,
+    allFlipped: boolean,
+    isLoading: boolean,
+    hasPending: boolean,
+    pendingExpired: boolean,
+  ): void {
+    const { actionW, actionH } = this.layout;
+    const halfH = actionH / 2;
+    const radius = Math.min(20, halfH);
     const label = isLoading
-      ? this.sceneStr("actionDrawing", "Drawing...")
-      : allFlipped
+      ? hasPending
+        ? this.sceneStr("actionCheck", "Checking oracle...")
+        : this.sceneStr("actionDrawing", "Drawing...")
+      : pendingExpired
+        ? this.sceneStr("actionRecover", "Recover reading fee")
+        : hasPending
+          ? this.sceneStr("actionCheck", "Check oracle result")
+          : allFlipped
         ? this.sceneStr("actionNew", "New Reading")
         : hasDrawn
           ? this.sceneStr("actionReveal", "Reveal Spread")
-          : this.sceneStr("actionDraw", "Draw Cards");
+          : this.sceneStr("actionConfirm", "Confirm intention · Draw 3 cards");
 
     this.actionButtonLabel.setText(label);
     this.actionButtonBg.clear();
     this.actionButtonBg.fillStyle(isLoading ? C.disabled : C.jade, 1);
-    this.actionButtonBg.fillRoundedRect(-ACTION_W / 2, -22, ACTION_W, 44, 15);
+    this.actionButtonBg.fillRoundedRect(-actionW / 2, -halfH, actionW, actionH, radius);
     this.actionButtonBg.fillStyle(C.white, isLoading ? 0.08 : 0.16);
-    this.actionButtonBg.fillRoundedRect(-ACTION_W / 2, -22, ACTION_W, 16, { tl: 15, tr: 15, bl: 0, br: 0 });
-    this.actionButtonBg.lineStyle(2, isLoading ? C.stroke : C.gold, 0.9);
-    this.actionButtonBg.strokeRoundedRect(-ACTION_W / 2, -22, ACTION_W, 44, 15);
+    this.actionButtonBg.fillRoundedRect(-actionW / 2 + 3, -halfH + 3, actionW - 6, Math.min(18, actionH / 2 - 4), {
+      tl: Math.min(17, radius - 2),
+      tr: Math.min(17, radius - 2),
+      bl: 0,
+      br: 0,
+    });
+    this.actionButtonBg.lineStyle(2.5, isLoading ? C.stroke : C.gold, 0.92);
+    this.actionButtonBg.strokeRoundedRect(-actionW / 2, -halfH, actionW, actionH, radius);
+    this.actionButtonBg.lineStyle(1, isLoading ? C.stroke : C.white, 0.32);
+    this.actionButtonBg.strokeRoundedRect(
+      -actionW / 2 + 4,
+      -halfH + 4,
+      actionW - 8,
+      actionH - 8,
+      Math.max(10, radius - 4),
+    );
     this.actionButtonLabel.setColor(isLoading ? "#7b6a54" : "#fff7dc");
   }
 
-  private updateCards(drawn: CardData[], isLoading: boolean): void {
+  private updateCards(drawn: CardData[], isLoading: boolean, hasPending = false): void {
     const positions = this.scenePositions();
     const cardW = this.layout.cardW;
     const cardH = this.layout.cardH;
 
     if (!drawn.length) {
       this.dealtOnce = false;
-      this.cardViews.forEach((view, index) => this.setEmptyCard(view, index));
+      // A new reading is also the explicit recovery boundary for an exhausted
+      // image retry. The next spread may retry a previously unavailable face.
+      this.failedCardTextures.clear();
+      this.cardViews.forEach((view, index) => {
+        this.setEmptyCard(view, index);
+        if (hasPending) {
+          view.body.setAngle(0);
+          view.meta.setText(this.sceneStr("oracleWaiting", "Oracle shuffling"));
+        }
+      });
       return;
     }
 
-    drawn.slice(0, 3).forEach((rawCard, index) => {
+    const normalizedCards = drawn.slice(0, 3).map((card) => this.normalizeCard(card));
+    if (this.queueMissingCardTextures(normalizedCards)) {
+      normalizedCards.forEach((_card, index) => {
+        const view = this.cardViews[index];
+        if (!view) return;
+        view.emptyGroup.setVisible(false);
+        view.label.setText(positions[index]!);
+        view.meta.setText(this.sceneStr("loadingCard", "Loading card..."));
+        view.flipped = false;
+        view.back.setTexture(TAROT_ASSETS.back).setAlpha(1).setDisplaySize(cardW, cardH);
+        view.face.setTexture(TAROT_ASSETS.back).setAlpha(0).setDisplaySize(cardW, cardH);
+      });
+      return;
+    }
+
+    normalizedCards.forEach((card, index) => {
       const view = this.cardViews[index];
       if (!view) return;
-      const card = this.normalizeCard(rawCard);
-      const key = this.cardTextureKey(card);
+      const requestedKey = this.cardTextureKey(card);
+      const hasRequestedTexture = this.textures.exists(requestedKey);
+      const textureUnavailable =
+        requestedKey !== TAROT_ASSETS.back &&
+        !hasRequestedTexture &&
+        (this.failedCardTextures.get(requestedKey) ?? 0) >= 2;
+      const key = hasRequestedTexture ? requestedKey : TAROT_ASSETS.back;
 
       if (view.cardKey !== key) {
         view.face.setTexture(key);
         view.face.setDisplaySize(cardW, cardH);
         view.cardKey = key;
       }
+      if (textureUnavailable) view.face.setTint(0xd8c9a7);
+      else view.face.clearTint();
       view.emptyGroup.setVisible(false);
       view.label.setText(positions[index]!);
       view.meta.setText(
         card.flipped
-          ? `${card.name ?? "Unknown"}\n${keywordsFor(card)}`
+          // Keep the live table calm: the card name is the only secondary
+          // label here; suit/arcana details remain in the How-to-play drawer.
+          ? textureUnavailable
+            ? this.sceneStr("cardUnavailable", "Card art unavailable · try a new reading")
+            : card.name ?? "Unknown"
           : this.sceneStr("sealed", "Sealed card"),
       );
 
       if (card.flipped) {
-        if (!view.flipped) this.flipCardView(view);
+        if (this.restoringLayout) {
+          view.flipped = true;
+          view.body.setScale(1);
+          view.back.setAlpha(0);
+          view.face.setAlpha(1);
+        } else if (!view.flipped) {
+          this.flipCardView(view);
+        }
       } else {
         view.flipped = false;
         view.back.setAlpha(1);
@@ -719,6 +1310,59 @@ export class TarotScene extends BaseScene {
       this.dealtOnce = true;
       this.playDealMotion();
     }
+  }
+
+  /**
+   * Load only the three cards in the active spread. Preloading all 78 faces made
+   * the first visit download roughly 19 MB before the player could even choose
+   * an intent. The card back and table remain part of the initial preload; face
+   * textures are fetched on demand and cached by Phaser for later readings.
+   */
+  private queueMissingCardTextures(cards: CardData[]): boolean {
+    const queued: Array<{ key: string; url: string }> = [];
+    let waiting = false;
+
+    cards.forEach((card) => {
+      const key = this.cardTextureKey(card);
+      if (
+        key === TAROT_ASSETS.back ||
+        this.textures.exists(key) ||
+        (this.failedCardTextures.get(key) ?? 0) >= 2
+      ) return;
+      if (this.pendingCardTextures.has(key)) {
+        waiting = true;
+        return;
+      }
+
+      const url = card.image || cardById(card.id)?.image;
+      if (!url) {
+        this.failedCardTextures.set(key, 2);
+        return;
+      }
+      this.pendingCardTextures.add(key);
+      queued.push({ key, url });
+      this.load.image(key, url);
+    });
+
+    if (queued.length === 0) return waiting;
+
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      queued.forEach(({ key }) => {
+        this.pendingCardTextures.delete(key);
+        if (this.textures.exists(key)) {
+          this.failedCardTextures.delete(key);
+        } else {
+          this.failedCardTextures.set(
+            key,
+            (this.failedCardTextures.get(key) ?? 0) + 1,
+          );
+        }
+      });
+      const current = this.val<CardData[]>("drawn", []) ?? [];
+      this.updateCards(current, this.bool("isLoading"), this.bool("hasPending"));
+    });
+    this.load.start();
+    return true;
   }
 
   private normalizeCard(card: CardData): CardData {
@@ -743,13 +1387,17 @@ export class TarotScene extends BaseScene {
     const cardW = this.layout.cardW;
     const cardH = this.layout.cardH;
     view.flipped = false;
+    view.body.setScale(1).setAngle((index - 1) * 4);
     view.cardKey = TAROT_ASSETS.back;
-    view.back.setTexture(TAROT_ASSETS.back).setAlpha(0);
+    view.back.setTexture(TAROT_ASSETS.back).setAlpha(1);
     view.back.setDisplaySize(cardW, cardH);
     view.face.setTexture(TAROT_ASSETS.back).setAlpha(0);
     view.face.setDisplaySize(cardW, cardH);
     view.emptyIndex.setText(String(index + 1));
-    view.emptyGroup.setVisible(true);
+    // The selected direction treats the three physical cards as the idle game
+    // objects. They remain face-down until a real spread is dealt, rather than
+    // falling back to dashed form-like placeholders.
+    view.emptyGroup.setVisible(false);
     view.label.setText(positions[index]!);
     view.meta.setText(this.sceneStr("awaiting", "Awaiting draw"));
     view.container.setAlpha(1).setScale(1);
@@ -761,11 +1409,6 @@ export class TarotScene extends BaseScene {
     return Boolean(card && !card.flipped && !this.bool("isLoading"));
   }
 
-  private canDrawFromDeck(): boolean {
-    const drawn = this.val<CardData[]>("drawn", []) ?? [];
-    return drawn.length === 0 && !this.bool("hasDrawn") && !this.bool("isLoading");
-  }
-
   private flipCardView(view: CardView): void {
     view.flipped = true;
     view.emptyGroup.setVisible(false);
@@ -774,13 +1417,14 @@ export class TarotScene extends BaseScene {
       this.sfx.play("reveal");
     }
     if (this.reducedMotion) {
+      view.body.setScale(1);
       view.back.setAlpha(0);
       view.face.setAlpha(1);
       return;
     }
 
     this.animate({
-      targets: view.container,
+      targets: view.body,
       scaleX: 0,
       duration: 120,
       ease: "Sine.easeIn",
@@ -788,7 +1432,7 @@ export class TarotScene extends BaseScene {
         view.back.setAlpha(0);
         view.face.setAlpha(1);
         this.animate({
-          targets: view.container,
+          targets: view.body,
           scaleX: 1,
           duration: 170,
           ease: "Back.easeOut",
@@ -800,6 +1444,11 @@ export class TarotScene extends BaseScene {
   private playDealMotion(): void {
     const deckX = this.deckStack.x + 18;
     const deckY = this.deckStack.y + 12;
+
+    // The ambient float also owns container.y. Pause it during the physical
+    // deal so a single tween controls each card's route, then resume after the
+    // last card reaches the spread.
+    this.stopAmbientMotion();
 
     // One shuffle tick per dealt card, matching the 150ms deal stagger.
     this.sfx.tones([
@@ -827,6 +1476,10 @@ export class TarotScene extends BaseScene {
         delay: index * 150,
         duration: 430,
         ease: "Cubic.easeOut",
+        onComplete:
+          index === this.cardViews.length - 1
+            ? () => this.startAmbientMotion()
+            : undefined,
       });
     });
   }
@@ -853,6 +1506,7 @@ export class TarotScene extends BaseScene {
           C.gold,
           0.9,
         );
+        this.celebrationMotes.add(mote);
         this.animate({
           targets: mote,
           y: mote.y - Phaser.Math.Between(30, 52),
@@ -860,7 +1514,10 @@ export class TarotScene extends BaseScene {
           delay: index * 90 + s * 70,
           duration: 720,
           ease: "Sine.easeOut",
-          onComplete: () => mote.destroy(),
+          onComplete: () => {
+            this.celebrationMotes.delete(mote);
+            mote.destroy();
+          },
         });
       }
     });
@@ -870,6 +1527,17 @@ export class TarotScene extends BaseScene {
     const drawn = this.val<CardData[]>("drawn", []) ?? [];
     const hasDrawn = this.bool("hasDrawn") || drawn.length > 0;
     const allFlipped = this.bool("allFlipped");
+    const hasPending = this.bool("hasPending");
+
+    if (hasPending) {
+      this.sfx.play("tap");
+      this.dispatch(
+        this.bool("pendingExpired")
+          ? "recoverExpiredReading"
+          : "refreshReadingState",
+      );
+      return;
+    }
 
     if (allFlipped) {
       this.sfx.play("tap");
@@ -879,9 +1547,10 @@ export class TarotScene extends BaseScene {
 
     if (hasDrawn) {
       this.sfx.play("tap");
-      drawn.slice(0, 3).forEach((card, index) => {
-        if (!card.flipped) this.dispatch("flipCard", index);
-      });
+      // Reveal the spread through one registered action. Dispatching three
+      // independent bridge actions in the same frame races their state writes
+      // and can leave the final card sealed (especially after one manual flip).
+      this.dispatch("flipTarotReading");
       return;
     }
 
@@ -914,8 +1583,99 @@ export class TarotScene extends BaseScene {
     });
   }
 
+  private stopAmbientMotion(): void {
+    this.ambientTweens.forEach((tween) => tween.stop());
+    this.ambientTweens = [];
+  }
+
+  /**
+   * A live reduced-motion change can arrive halfway through a deal, card flip,
+   * hover press, or completion pulse. Killing those tweens without restoring
+   * their targets would strand cards between the deck and spread, or leave a
+   * flip at scaleX=0. Settle every animated object from authoritative bridge
+   * state so the visual endpoint is deterministic.
+   */
+  private settleMotionToState(): void {
+    const drawn = this.val<CardData[]>("drawn", []) ?? [];
+
+    this.deckStack
+      .setY(this.layout.cardCenterY + 18)
+      .setAlpha(1)
+      .setScale(1)
+      .setAngle(0);
+    this.actionButton.setScale(1);
+    this.intentViews.forEach((view) => view.container.setScale(1));
+
+    this.cardViews.forEach((view, index) => {
+      const card = drawn[index];
+      view.container
+        .setPosition(
+          this.layout.startX + index * this.layout.gap,
+          this.layout.cardCenterY,
+        )
+        .setAlpha(1)
+        .setScale(1)
+        .setAngle(0);
+      view.body.setScale(1);
+
+      if (!card) {
+        this.setEmptyCard(view, index);
+        return;
+      }
+
+      const flipped = Boolean(card.flipped);
+      view.flipped = flipped;
+      view.emptyGroup.setVisible(false);
+      view.back.setAlpha(flipped ? 0 : 1);
+      view.face.setAlpha(flipped ? 1 : 0);
+    });
+
+    if (drawn.length > 0) this.dealtOnce = true;
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (this.assetRecoveryActive) {
+      // The recovery button also uses Phaser feedback tweens. Rebuilding the
+      // small panel after killAll guarantees it cannot remain half-pressed.
+      this.tweens.killAll();
+      this.buildCriticalAssetRecovery();
+      return;
+    }
+    if (!this.layout || !this.deckStack) return;
+    this.stopAmbientMotion();
+
+    if (enabled) {
+      // This includes deal, flip, hover/press, celebration, and ambient tweens.
+      // Phaser's killAll intentionally skips completion callbacks, so settle
+      // the state explicitly immediately afterwards.
+      this.tweens.killAll();
+      this.celebrationMotes.forEach((mote) => mote.destroy());
+      this.celebrationMotes.clear();
+      this.settleMotionToState();
+      return;
+    }
+
+    // Switching the preference back off resumes only the ambient layer. A deal
+    // or reveal that was deliberately settled above must not replay.
+    this.startAmbientMotion();
+  }
+
   protected onResize(_gameSize: Phaser.Structs.Size): void {
-    this.rebuildScene();
+    // BaseScene announces readiness after wiring resize but before this class's
+    // create() resumes. A host can therefore synchronously deliver its first
+    // mobile size here. Detect missing preload textures directly so that early
+    // resize also lands on the recovery panel instead of constructing a scene
+    // with Phaser's missing-texture placeholder.
+    const missingCriticalAssets = this.missingCriticalAssetKeys();
+    if (this.assetRecoveryActive || missingCriticalAssets.length > 0) {
+      missingCriticalAssets.forEach((key) =>
+        this.criticalAssetFailures.add(key),
+      );
+      this.buildCriticalAssetRecovery();
+      return;
+    }
+    this.rebuildScene(true);
     this.onStateUpdate(this.state);
+    this.restoringLayout = false;
   }
 }

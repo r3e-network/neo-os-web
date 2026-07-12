@@ -32,13 +32,24 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 import {
+  GAMEFI_NEW_ENTRIES_ENABLED,
   MAX_UNDOS,
   rewardPctAfterUndos,
   ruleOf,
   formatClock,
   gasDisplay,
 } from "../logic/game-rules";
-import { persistBoard, restoreBoard } from "../logic/board-store";
+import {
+  applyUndo,
+  clearNotes,
+  eraseLocalCell,
+  persistBoard,
+  placeDigit,
+  restoreBoard,
+  setLocalDigit,
+  toggleNote,
+  type BoardState,
+} from "../logic/board-store";
 
 // ── Layout constants ───────────────────────────────────────────────────────────
 const DESIGN_W  = 400;
@@ -50,9 +61,9 @@ const GRID_W    = 9 * CELL;                     // 324
 const GRID_X    = (W - GRID_W) / 2;            // 38  — left edge of grid
 const GRID_Y    = 64;                           // top edge of grid
 const DIGIT_Y   = GRID_Y + GRID_W + 22;        // digit bar center y  (~398)
-const UNDO_Y    = DIGIT_Y + 52;                 // undo button center  (~450)
-const ACTION_Y  = UNDO_Y + 52;                  // submit/start center (~502)
-const STATUS_Y  = ACTION_Y + 46;               // status text         (~548)
+const TOOL_Y    = DIGIT_Y + 52;                 // notes/clear/undo/hint row (~450)
+const ACTION_Y  = TOOL_Y + 54;                  // submit/start center (~504)
+const STATUS_Y  = ACTION_Y + 34;               // status text         (~538)
 const TIMER_Y   = 20;                           // timer bar center y
 
 const FONT_FAMILY = "Inter, Arial, sans-serif";
@@ -71,7 +82,7 @@ const C = {
   selRingInner:  0xffe9a6,
   digitGiven:    0x2d2114,
   digitPlayer:   0x175f91,
-  digitConflict: 0xc83c21,
+  digitConflict: 0x8f1d12,
   gold:          0xd4a843,
   goldLight:     0xf0c866,
   goldDark:      0x8a6820,
@@ -105,7 +116,6 @@ const SUDOKU_ASSETS = {
   cellConflict: "sudoku-cell-conflict",
   noteToken: "sudoku-note-token",
   pencil: "sudoku-pencil",
-  rewardTrophy: "sudoku-reward-trophy",
   sealedEnvelope: "sudoku-sealed-envelope",
   solvedBadge: "sudoku-solved-badge",
   seals: ["sudoku-seal-easy", "sudoku-seal-medium", "sudoku-seal-hard"],
@@ -121,6 +131,26 @@ interface SudokuLabels {
   sealing: string;
   undoTemplate: string;
   undoNone: string;
+  undo: string;
+  notes: string;
+  notesOn: string;
+  erase: string;
+  hint: string;
+  hintTemplate: string;
+  pause: string;
+  resume: string;
+  restart: string;
+  pausedTitle: string;
+  pausedCopy: string;
+  conflict: string;
+  selectCell: string;
+  givenLocked: string;
+  placedLocked: string;
+  eraseFirst: string;
+  keyboardHelp: string;
+  syncFailed: string;
+  gameFiUnavailable: string;
+  boardReady: string;
   poolTemplate: string;
   gateConnect: string;
   gateChecking: string;
@@ -133,6 +163,7 @@ interface SudokuLabels {
     tryAgain: string;
     starting: string;
     connect: string;
+    maintenance: string;
     routeLocked: string;
     poolLow: string;
     submit: string;
@@ -142,6 +173,7 @@ interface SudokuLabels {
     tooLate: string;
     wait: string;
     solve: string;
+    recover: string;
   };
   msg: {
     deadlinePassed: string;
@@ -163,6 +195,26 @@ const DEFAULT_LABELS: SudokuLabels = {
   sealing: "Sealing your puzzle…",
   undoTemplate: "Undo ({left} left)",
   undoNone: "No undos left",
+  undo: "Undo",
+  notes: "Notes",
+  notesOn: "Notes on",
+  erase: "Clear",
+  hint: "Hint",
+  hintTemplate: "Hint {left}",
+  pause: "Pause",
+  resume: "Resume",
+  restart: "New board",
+  pausedTitle: "Puzzle paused",
+  pausedCopy: "Your local clock is frozen.",
+  conflict: "Conflict highlighted — undo the latest final digit.",
+  selectCell: "Select an empty cell first",
+  givenLocked: "This clue is fixed",
+  placedLocked: "Placed digits are final; use undo",
+  eraseFirst: "Erase this digit before adding candidates",
+  keyboardHelp: "Arrows move · 1–9 enter · N notes · Backspace erase · U undo",
+  syncFailed: "Move not sealed — restored safely. Check the session before continuing.",
+  gameFiUnavailable: "Verified GAS entries are temporarily unavailable.",
+  boardReady: "Board complete — submit to verify",
   poolTemplate: "Pool: {pool} GAS  ·  {min} min limit",
   gateConnect: "Connect wallet to open a sealed board",
   gateChecking: "Checking account route history",
@@ -175,6 +227,7 @@ const DEFAULT_LABELS: SudokuLabels = {
     tryAgain: "Try again",
     starting: "Starting…",
     connect: "Connect wallet",
+    maintenance: "GAS mode paused",
     routeLocked: "Route locked",
     poolLow: "Pool low",
     submit: "Submit solution",
@@ -184,6 +237,7 @@ const DEFAULT_LABELS: SudokuLabels = {
     tooLate: "Too late to submit",
     wait: "Wait to submit",
     solve: "Solve to unlock",
+    recover: "Recover session",
   },
   msg: {
     deadlinePassed: "Deadline passed. Release this board to start a new one.",
@@ -197,12 +251,31 @@ const DEFAULT_LABELS: SudokuLabels = {
 // ── Move history entry ─────────────────────────────────────────────────────────
 interface MoveEntry { cell: number; prev: number; }
 
+interface A11yCommand {
+  nonce: number;
+  type: "select-cell" | "digit" | "toggle-notes" | "clear-notes" | "undo" | "submit";
+  cell?: number;
+  digit?: number;
+}
+
+interface SudokuBoardSnapshot {
+  entries: number[];
+  given: boolean[];
+  notes: number[];
+  selectedCell: number;
+  notesMode: boolean;
+  conflicts: number[];
+  complete: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export class SudokuScene extends BaseScene {
 
   // ── Local game state ───────────────────────────────────────────────────────
   private board: number[]       = Array(81).fill(0);
   private given: boolean[]      = Array(81).fill(false);
+  private notes: number[]       = Array(81).fill(0);
+  private notesMode             = false;
   private selectedCell          = -1;
   private conflicts             = new Set<number>();
   private moveHistory: MoveEntry[] = [];
@@ -212,6 +285,7 @@ export class SudokuScene extends BaseScene {
   private deadline              = 0;
   private dealtAt               = 0;
   private boardComplete         = false;
+  private boardReadyAnnounced   = false;
   private expireDispatched      = false;
   private L: SudokuLabels       = DEFAULT_LABELS;
 
@@ -227,6 +301,7 @@ export class SudokuScene extends BaseScene {
   private cellArt!:   Phaser.GameObjects.Image[];
   private cellHit!:   Phaser.GameObjects.Rectangle[];
   private cellText!: Phaser.GameObjects.Text[];
+  private cellNoteText!: Phaser.GameObjects.Text[];
   private gridLines!: Phaser.GameObjects.Graphics;
   private selRing!:   Phaser.GameObjects.Rectangle;
 
@@ -239,8 +314,18 @@ export class SudokuScene extends BaseScene {
   // Digit picker
   private digitBtns!: Phaser.GameObjects.Container[];
 
-  // Undo button
+  // Tool row
+  private notesBtn!:    Phaser.GameObjects.Container;
+  private notesBtnBg!:  Phaser.GameObjects.Rectangle;
+  private notesBtnText!: Phaser.GameObjects.Text;
+  private clearBtn!:    Phaser.GameObjects.Container;
+  private clearBtnBg!:  Phaser.GameObjects.Rectangle;
+  private clearBtnText!: Phaser.GameObjects.Text;
+  private hintBtn!:     Phaser.GameObjects.Container;
+  private hintBtnBg!:   Phaser.GameObjects.Rectangle;
+  private hintBtnText!: Phaser.GameObjects.Text;
   private undoBtn!:     Phaser.GameObjects.Container;
+  private undoBtnBg!:   Phaser.GameObjects.Rectangle;
   private undoBtnText!: Phaser.GameObjects.Text;
   private undoButtonEnabled = false;
 
@@ -249,6 +334,11 @@ export class SudokuScene extends BaseScene {
   private actionBtnText!: Phaser.GameObjects.Text;
   private actionBtnBg!:   Phaser.GameObjects.Rectangle;
   private actionButtonEnabled = false;
+
+  private pausedOverlay!: Phaser.GameObjects.Container;
+  private pausedTitle!: Phaser.GameObjects.Text;
+  private pausedCopy!: Phaser.GameObjects.Text;
+  private pausedResumeText!: Phaser.GameObjects.Text;
 
   // Status
   private statusLabel!: Phaser.GameObjects.Text;
@@ -271,6 +361,13 @@ export class SudokuScene extends BaseScene {
   private dealingContainer!: Phaser.GameObjects.Container;
   private dealingTitle!: Phaser.GameObjects.Text;
   private dealingDots: Phaser.GameObjects.Arc[] = [];
+  private lastHintNonce = 0;
+  private lastRollbackNonce = 0;
+  private lastUndoNonce = 0;
+  private lastBoardRecoveryNonce = 0;
+  private lastA11yCommandNonce = 0;
+  private lastClockSecond = -1;
+  private keyHandler?: (event: KeyboardEvent) => void;
 
   // Game group (all non-lobby objects)
   private gameGroupObjects: Phaser.GameObjects.GameObject[] = [];
@@ -324,6 +421,7 @@ export class SudokuScene extends BaseScene {
     this.cellArt  = [];
     this.cellHit  = [];
     this.cellText = [];
+    this.cellNoteText = [];
 
     this.paperBoard = this.add.image(W / 2, GRID_Y + GRID_W / 2, SUDOKU_ASSETS.paperGrid)
       .setDisplaySize(GRID_W + 28, GRID_W + 28)
@@ -347,6 +445,15 @@ export class SudokuScene extends BaseScene {
         color: "#2d2114",
       }).setOrigin(0.5).setAlpha(0).setDepth(8);
 
+      const noteTxt = this.add.text(cx, cy, "", {
+        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontSize: "7px",
+        fontStyle: "bold",
+        color: "#047857",
+        align: "center",
+        lineSpacing: -2,
+      }).setOrigin(0.5).setAlpha(0).setDepth(8);
+
       const hit = this.add.rectangle(cx, cy, CELL, CELL, C.white, 0.001)
         .setDepth(9);
       hit.setInteractive({ useHandCursor: true });
@@ -364,7 +471,8 @@ export class SudokuScene extends BaseScene {
       this.cellArt.push(art);
       this.cellHit.push(hit);
       this.cellText.push(txt);
-      this.gameGroupObjects.push(art, txt, hit);
+      this.cellNoteText.push(noteTxt);
+      this.gameGroupObjects.push(art, txt, noteTxt, hit);
     }
 
     // Grid line graphics (thin cell lines + thick box lines)
@@ -444,32 +552,91 @@ export class SudokuScene extends BaseScene {
     }
   }
 
-  private buildUndoButton(): void {
-    this.undoBtn = this.add.container(W / 2, UNDO_Y);
-
-    const bg = this.add.rectangle(0, 0, 168, 38, C.btnBg)
+  private makeToolButton(
+    x: number,
+    label: string,
+    onPress: () => void,
+    enabled: () => boolean,
+    asset?: string,
+  ): {
+    container: Phaser.GameObjects.Container;
+    bg: Phaser.GameObjects.Rectangle;
+    text: Phaser.GameObjects.Text;
+  } {
+    const container = this.add.container(x, TOOL_Y);
+    const bg = this.add.rectangle(0, 0, 78, 42, C.btnBg)
       .setStrokeStyle(1.5, C.btnBorder)
       .setOrigin(0.5);
     bg.setInteractive({ useHandCursor: true });
     this.bindGameButton(bg, {
-      targets: this.undoBtn,
-      enabled: () => this.undoButtonEnabled,
+      targets: container,
+      enabled,
       onHoverIn: () => bg.setFillStyle(C.btnActive),
-      onHoverOut: () => bg.setFillStyle(C.btnBg),
-      onPress: () => this.handleUndo(),
+      onHoverOut: () => this.refreshToolButtons(),
+      onPress,
     });
 
-    const pencil = this.add.image(-58, 0, SUDOKU_ASSETS.pencil)
-      .setDisplaySize(24, 24);
-
-    this.undoBtnText = this.add.text(12, 0, DEFAULT_LABELS.undoTemplate.replace("{left}", String(MAX_UNDOS)), {
+    container.add(bg);
+    const textX = asset ? 10 : 0;
+    if (asset) {
+      container.add(this.add.image(-23, 0, asset).setDisplaySize(22, 22));
+    }
+    const text = this.add.text(textX, 0, label, {
       fontFamily: FONT_FAMILY,
-      fontSize: "13px",
+      fontSize: "11px",
+      fontStyle: "bold",
       color: "#4b351c",
+      align: "center",
     }).setOrigin(0.5);
+    container.add(text);
+    return { container, bg, text };
+  }
 
-    this.undoBtn.add([bg, pencil, this.undoBtnText]);
-    this.gameGroupObjects.push(this.undoBtn);
+  private buildToolRow(): void {
+    const xs = [71, 157, 243, 329];
+
+    const notes = this.makeToolButton(
+      xs[0]!,
+      DEFAULT_LABELS.notes,
+      () => this.toggleNotesMode(),
+      () => this.canEditBoard(),
+      SUDOKU_ASSETS.pencil,
+    );
+    this.notesBtn = notes.container;
+    this.notesBtnBg = notes.bg;
+    this.notesBtnText = notes.text;
+
+    const clear = this.makeToolButton(
+      xs[1]!,
+      DEFAULT_LABELS.erase,
+      () => this.handleEraseSelection(),
+      () => this.canEraseSelection(),
+    );
+    this.clearBtn = clear.container;
+    this.clearBtnBg = clear.bg;
+    this.clearBtnText = clear.text;
+
+    const undo = this.makeToolButton(
+      xs[2]!,
+      DEFAULT_LABELS.undo,
+      () => this.handleUndo(),
+      () => this.undoButtonEnabled,
+    );
+    this.undoBtn = undo.container;
+    this.undoBtnBg = undo.bg;
+    this.undoBtnText = undo.text;
+
+    const hint = this.makeToolButton(
+      xs[3]!,
+      DEFAULT_LABELS.hintTemplate.replace("{left}", "3"),
+      () => this.handleHint(),
+      () => this.canRequestHint(),
+    );
+    this.hintBtn = hint.container;
+    this.hintBtnBg = hint.bg;
+    this.hintBtnText = hint.text;
+
+    this.gameGroupObjects.push(this.notesBtn, this.clearBtn, this.undoBtn, this.hintBtn);
   }
 
   private buildActionButton(): void {
@@ -504,6 +671,46 @@ export class SudokuScene extends BaseScene {
       wordWrap: { width: W - 40 },
       align: "center",
     }).setOrigin(0.5, 0);
+  }
+
+  private buildPausedOverlay(): void {
+    this.pausedOverlay = this.add.container(W / 2, GRID_Y + GRID_W / 2)
+      .setDepth(30)
+      .setVisible(false);
+    const scrim = this.add.rectangle(0, 0, GRID_W + 18, GRID_W + 18, 0xfff8e8, 0.965)
+      .setStrokeStyle(2, C.paperEdge, 0.85);
+    const art = this.add.image(0, -62, SUDOKU_ASSETS.sealedEnvelope)
+      .setDisplaySize(72, 58);
+    this.pausedTitle = this.add.text(0, -6, DEFAULT_LABELS.pausedTitle, {
+      fontFamily: FONT_FAMILY,
+      fontSize: "21px",
+      fontStyle: "bold",
+      color: "#2d2114",
+    }).setOrigin(0.5);
+    this.pausedCopy = this.add.text(0, 25, DEFAULT_LABELS.pausedCopy, {
+      fontFamily: FONT_FAMILY,
+      fontSize: "12px",
+      color: "#76551f",
+      align: "center",
+      wordWrap: { width: 250 },
+    }).setOrigin(0.5);
+    const resumeBg = this.add.rectangle(0, 78, 150, 42, C.gold)
+      .setStrokeStyle(2, C.goldLight)
+      .setInteractive({ useHandCursor: true });
+    this.bindGameButton(resumeBg, {
+      targets: resumeBg,
+      onPress: () => this.dispatch("togglePause", {}),
+    });
+    this.pausedResumeText = this.add.text(0, 78, DEFAULT_LABELS.resume, {
+      fontFamily: FONT_FAMILY,
+      fontSize: "14px",
+      fontStyle: "bold",
+      color: "#2d2114",
+    }).setOrigin(0.5);
+    this.pausedOverlay.add([
+      scrim, art, this.pausedTitle, this.pausedCopy, resumeBg, this.pausedResumeText,
+    ]);
+    this.gameGroupObjects.push(this.pausedOverlay);
   }
 
   private buildLobby(): void {
@@ -560,9 +767,9 @@ export class SudokuScene extends BaseScene {
     this.lobbyMiniGrid = this.buildLobbyMiniGrid(W / 2, 410);
     this.lobbyContainer.add(this.lobbyMiniGrid);
 
-    // Result art (trophy + solved badge) — shown only after a solve/expiry, in
+    // Result art (difficulty seal + solved badge) — shown only after a solve/expiry, in
     // the same lower zone the preview grid occupies while idle.
-    this.lobbyRewardArt = this.add.image(W / 2 - 40, 400, SUDOKU_ASSETS.rewardTrophy)
+    this.lobbyRewardArt = this.add.image(W / 2 - 40, 400, SUDOKU_ASSETS.seals[0])
       .setDisplaySize(58, 58)
       .setAlpha(0.95);
     this.lobbyResultBadge = this.add.image(W / 2 + 40, 400, SUDOKU_ASSETS.solvedBadge)
@@ -765,7 +972,6 @@ export class SudokuScene extends BaseScene {
     this.load.image(SUDOKU_ASSETS.cellConflict, "./art/cell-conflict.webp");
     this.load.image(SUDOKU_ASSETS.noteToken, "./art/note-token.webp");
     this.load.image(SUDOKU_ASSETS.pencil, "./art/pencil.webp");
-    this.load.image(SUDOKU_ASSETS.rewardTrophy, "./art/reward-trophy.webp");
     this.load.image(SUDOKU_ASSETS.sealedEnvelope, "./art/sealed-envelope.webp");
     this.load.image(SUDOKU_ASSETS.solvedBadge, "./art/solved-badge.webp");
     this.load.image(SUDOKU_ASSETS.seals[0], "./art/seal-easy.webp");
@@ -781,11 +987,13 @@ export class SudokuScene extends BaseScene {
     this.buildGrid();
     this.buildTimerHUD();
     this.buildDigitBar();
-    this.buildUndoButton();
+    this.buildToolRow();
     this.buildActionButton();
     this.buildStatusLabel();
     this.buildLobby();
     this.buildDealingOverlay();
+    this.buildPausedOverlay();
+    this.bindKeyboardControls();
 
     // Seed from current bridge state
     this.onStateUpdate(this.state);
@@ -794,8 +1002,12 @@ export class SudokuScene extends BaseScene {
   update(): void {
     if (this.prevStatus !== "dealt") return;
     if (this.deadline <= 0 || this.dealtAt <= 0) return;
+    if (this.bool("isPaused")) return;
 
     const now       = Date.now();
+    const second = Math.floor(now / 1_000);
+    if (second === this.lastClockSecond) return;
+    this.lastClockSecond = second;
     const remaining = Math.max(0, this.deadline - now);
     const total     = this.deadline - this.dealtAt;
     const pct       = total > 0 ? remaining / total : 0;
@@ -811,8 +1023,11 @@ export class SudokuScene extends BaseScene {
 
     this.refreshGameActionState();
 
-    // Auto-expire once when time runs out.
+    // Guest is purely local and may settle immediately. Paid historical games
+    // remain recoverable and are only released through the explicit grace-safe
+    // drawer action.
     if (
+      this.str("appMode", "gamefi") === "guest" &&
       remaining <= 0 &&
       !this.expireDispatched &&
       !this.bool("isSubmitting") &&
@@ -868,6 +1083,11 @@ export class SudokuScene extends BaseScene {
     this.lobbyTitleText.setText(this.L.vaultTitle);
     this.lobbySubText.setText(this.L.vaultSub);
     this.dealingTitle.setText(this.L.sealing);
+    this.notesBtnText.setText(this.notesMode ? this.L.notesOn : this.L.notes);
+    this.clearBtnText.setText(this.L.erase);
+    this.pausedTitle.setText(this.L.pausedTitle);
+    this.pausedCopy.setText(this.L.pausedCopy);
+    this.pausedResumeText.setText(this.L.resume);
     for (let d = 0; d < 3; d++) {
       this.diffNameTexts[d]?.setText(this.L.diffNames[d] ?? DIFF_LABELS[d] ?? "");
       this.diffRouteTexts[d]?.setText(this.L.diffCopy[d] ?? DIFF_COPY[d] ?? "");
@@ -925,12 +1145,17 @@ export class SudokuScene extends BaseScene {
     const dealtAt    = this.num("dealtAt", 0);
     const poolFree   = this.num("poolFree", 0);
     const lastStatus = this.str("lastStatus", "");
+    const isGuest    = this.str("appMode", "gamefi") === "guest";
+    const isPaused   = isGuest && this.bool("isPaused");
+    const inputSyncFailed = this.bool("inputSyncFailed");
     let displayStatus = lastStatus;
     const busy       =
       this.bool("isStarting") ||
       this.bool("isDealing") ||
       this.bool("isSubmitting") ||
-      this.bool("isUndoing");
+      this.bool("isUndoing") ||
+      this.bool("isActing") ||
+      this.bool("isRecovering");
 
     this.deadline = deadline;
     this.dealtAt  = dealtAt;
@@ -951,9 +1176,12 @@ export class SudokuScene extends BaseScene {
     } else {
       this.switchView("lobby");
     }
+    this.setObjectActive(this.pausedOverlay, isGame && isPaused);
 
     // ── Lobby view ────────────────────────────────────────────────────────
     if (isLobby) {
+      if (gameStatus !== "dealt") this.prevClues = "";
+      this.pickedDifficulty = Math.max(0, Math.min(2, this.num("gameDifficulty", 0)));
       const rule = ruleOf(this.pickedDifficulty);
       const limitMin = Math.round(rule.limitMs / 60_000);
       const rewardGas = Number(gasDisplay(rule.rewardFixed8));
@@ -961,7 +1189,10 @@ export class SudokuScene extends BaseScene {
       const progressionReady = this.bool("progressionReady");
       const routeLocked = progressionReady && this.pickedDifficulty < this.requiredDifficulty();
       const canStart = this.canStartDifficulty(this.pickedDifficulty);
-      const gateLine = !walletConnected
+      const gameFiUnavailable = !isGuest && !GAMEFI_NEW_ENTRIES_ENABLED;
+      const gateLine = gameFiUnavailable
+        ? this.L.gameFiUnavailable
+        : !walletConnected
         ? this.L.gateConnect
         : !progressionReady
           ? this.L.gateChecking
@@ -987,6 +1218,9 @@ export class SudokuScene extends BaseScene {
       // The trophy + solved badge belong to a finished result; while idle the
       // preview grid holds the lower zone instead of two orphan icons.
       const showResult = gameStatus === "solved" || gameStatus === "expired";
+      this.lobbyRewardArt.setTexture(
+        SUDOKU_ASSETS.seals[this.pickedDifficulty] ?? SUDOKU_ASSETS.seals[0],
+      );
       this.lobbyMiniGrid.setVisible(!showResult);
       this.lobbyRewardArt.setVisible(showResult);
       this.lobbyResultBadge.setVisible(showResult);
@@ -1016,6 +1250,8 @@ export class SudokuScene extends BaseScene {
             ? this.L.act.starting
             : canStart
               ? this.L.act.open
+              : gameFiUnavailable
+                ? this.L.act.maintenance
               : !walletConnected
                 ? this.L.act.connect
                 : routeLocked
@@ -1037,14 +1273,26 @@ export class SudokuScene extends BaseScene {
         this.sfx.play("start");
       }
 
+      this.applyRollbackRequest();
+      this.applyConfirmedUndoRequest();
+      this.applyBoardRecoveryRequest();
+      this.applyHintRequest();
+      this.applyA11yCommand();
+
       const undosLeft = MAX_UNDOS - undosUsed;
       const rewardPct = rewardPctAfterUndos(undosUsed);
+      this.rewardLabel.setVisible(!isGuest);
       this.rewardLabel.setText(`${rewardPct}%`);
       this.undoBtnText.setText(
-        undosLeft > 0 ? this.L.undoTemplate.replace("{left}", String(undosLeft)) : this.L.undoNone,
+        isGuest
+          ? this.L.undo
+          : undosLeft > 0
+            ? this.L.undoTemplate.replace("{left}", String(undosLeft))
+            : this.L.undoNone,
       );
 
-      this.setUndoButtonState(undosLeft > 0 && !busy && this.moveHistory.length > 0);
+      this.setUndoButtonState(!busy && this.hasUndoCapacity());
+      this.refreshToolButtons();
 
       this.refreshGameActionState();
     }
@@ -1056,7 +1304,15 @@ export class SudokuScene extends BaseScene {
     }
 
     this.prevStatus = gameStatus;
-    this.statusLabel.setText(isGame ? this.gameStatusMessage(lastStatus) : displayStatus);
+    this.statusLabel.setText(
+      isGame
+        ? inputSyncFailed
+          ? this.L.syncFailed
+          : isPaused
+            ? this.L.pausedCopy
+            : this.gameStatusMessage(lastStatus)
+        : displayStatus,
+    );
   }
 
   // ── Board initialisation ───────────────────────────────────────────────────
@@ -1066,11 +1322,19 @@ export class SudokuScene extends BaseScene {
     const restored = activeGameId !== "0" ? restoreBoard(activeGameId, clues) : null;
     this.board        = restored ? [...restored.entries] : Array(81).fill(0);
     this.given        = restored ? [...restored.given] : Array(81).fill(false);
+    this.notes        = restored ? [...restored.notes] : Array(81).fill(0);
     this.moveHistory  = [];
     this.selectedCell = -1;
+    this.notesMode = false;
     this.conflicts    = new Set();
     this.boardComplete = false;
+    this.boardReadyAnnounced = false;
     this.expireDispatched = false;
+    this.lastClockSecond = -1;
+    this.lastHintNonce = this.num("hintNonce", 0);
+    this.lastRollbackNonce = this.num("rollbackNonce", 0);
+    this.lastUndoNonce = this.num("undoNonce", 0);
+    this.lastBoardRecoveryNonce = this.num("boardRecoveryNonce", 0);
 
     if (restored) {
       this.moveHistory = restored.placedOrder.map((cell) => ({ cell, prev: 0 }));
@@ -1086,6 +1350,7 @@ export class SudokuScene extends BaseScene {
 
     this.selRing.setPosition(-999, -999);
     this.renderBoard();
+    this.emitBoardState();
   }
 
   // ── Board rendering ────────────────────────────────────────────────────────
@@ -1093,10 +1358,18 @@ export class SudokuScene extends BaseScene {
   private renderBoard(): void {
     this.conflicts = this.computeConflicts(this.board);
     this.boardComplete = this.checkBoardComplete();
+    if (this.boardComplete && !this.boardReadyAnnounced) {
+      this.boardReadyAnnounced = true;
+      this.sfx.play("combo");
+      this.pressFeedback(this.paperBoard, { scale: 1.018, duration: 130 });
+    } else if (!this.boardComplete) {
+      this.boardReadyAnnounced = false;
+    }
 
     for (let i = 0; i < 81; i++) {
       const digit    = this.board[i] ?? 0;
       const isGiven  = this.given[i] ?? false;
+      const noteMask = this.notes[i] ?? 0;
       const isSelected  = i === this.selectedCell;
       const isConflict  = this.conflicts.has(i);
 
@@ -1123,6 +1396,7 @@ export class SudokuScene extends BaseScene {
 
       // Highlight cells in the same row / col / box as selection
       if (this.selectedCell >= 0 && !isSelected && !isConflict) {
+        const selectedDigit = this.board[this.selectedCell] ?? 0;
         const selRow = Math.floor(this.selectedCell / 9);
         const selCol = this.selectedCell % 9;
         const row    = Math.floor(i / 9);
@@ -1134,6 +1408,10 @@ export class SudokuScene extends BaseScene {
           alpha = Math.max(alpha, isGiven ? 0.86 : 0.46);
           art.setTint(0xffe8b5);
         }
+        if (selectedDigit > 0 && digit === selectedDigit) {
+          alpha = Math.max(alpha, 0.94);
+          art.setTint(0xccefd5);
+        }
       }
 
       art.setTexture(texture);
@@ -1142,18 +1420,22 @@ export class SudokuScene extends BaseScene {
 
       // ── Text ─────────────────────────────────────────────────────────
       const txt = this.cellText[i]!;
+      const noteTxt = this.cellNoteText[i]!;
       if (digit > 0) {
         txt.setText(String(digit));
         txt.setColor(
           isConflict
-            ? "#cc2200"
+            ? "#8f1d12"
             : isGiven
               ? "#2a1a08"
               : "#1a4a8f",
         );
         txt.setAlpha(1);
+        noteTxt.setAlpha(0);
       } else {
         txt.setAlpha(0);
+        noteTxt.setText(this.formatNotes(noteMask));
+        noteTxt.setAlpha(noteMask > 0 ? 0.96 : 0);
       }
     }
 
@@ -1171,15 +1453,259 @@ export class SudokuScene extends BaseScene {
     }
   }
 
+  private formatNotes(mask: number): string {
+    if (!mask) return "";
+    const cells = Array.from({ length: 9 }, (_, index) => {
+      const digit = index + 1;
+      return (mask & (1 << digit)) !== 0 ? String(digit) : " ";
+    });
+    return [cells.slice(0, 3), cells.slice(3, 6), cells.slice(6, 9)]
+      .map((row) => row.join(" "))
+      .join("\n");
+  }
+
   private setUndoButtonState(enabled: boolean): void {
     this.undoButtonEnabled = enabled;
-    const undoBg = this.undoBtn.list[0] as Phaser.GameObjects.Rectangle;
-    undoBg.setFillStyle(enabled ? C.btnBg : 0xf1e0be);
-    undoBg.setAlpha(enabled ? 1 : 0.72);
+    this.undoBtnBg.setFillStyle(enabled ? C.btnBg : 0xf1e0be);
+    this.undoBtnBg.setAlpha(enabled ? 1 : 0.72);
+  }
+
+  private hasUndoCapacity(): boolean {
+    return this.moveHistory.length > 0 && (
+      this.str("appMode", "gamefi") === "guest" ||
+      this.num("undosUsed", 0) < MAX_UNDOS
+    );
+  }
+
+  private canEditBoard(): boolean {
+    return this.str("gameStatus", "idle") === "dealt" &&
+      !this.bool("isPaused") &&
+      !this.bool("inputSyncFailed") &&
+      !this.bool("isSubmitting") &&
+      !this.bool("isUndoing") &&
+      !this.bool("isActing") &&
+      !this.bool("isRecovering") &&
+      !this.timeUp();
+  }
+
+  private canEraseSelection(): boolean {
+    if (!this.canEditBoard() || this.selectedCell < 0) return false;
+    if ((this.notes[this.selectedCell] ?? 0) > 0) return true;
+    return this.str("appMode", "gamefi") === "guest" &&
+      !this.given[this.selectedCell] &&
+      (this.board[this.selectedCell] ?? 0) > 0;
+  }
+
+  private canRequestHint(): boolean {
+    return this.str("appMode", "gamefi") === "guest" &&
+      this.canEditBoard() &&
+      this.selectedCell >= 0 &&
+      !this.given[this.selectedCell] &&
+      (this.board[this.selectedCell] ?? 0) === 0 &&
+      this.num("hintsUsed", 0) < 3;
+  }
+
+  private refreshToolButtons(): void {
+    const canEdit = this.canEditBoard();
+    const canClear = this.canEraseSelection();
+    const canHint = this.canRequestHint();
+    const isGuest = this.str("appMode", "gamefi") === "guest";
+    const undosLeft = Math.max(0, MAX_UNDOS - this.num("undosUsed", 0));
+    const hintsLeft = Math.max(0, 3 - this.num("hintsUsed", 0));
+
+    this.notesBtnText.setText(this.notesMode ? this.L.notesOn : this.L.notes);
+    this.notesBtnBg
+      .setFillStyle(this.notesMode && canEdit ? 0xdff7ea : canEdit ? C.btnBg : 0xf1e0be)
+      .setStrokeStyle(1.5, this.notesMode && canEdit ? C.green : C.btnBorder)
+      .setAlpha(canEdit ? 1 : 0.72);
+
+    this.clearBtnBg
+      .setFillStyle(canClear ? C.btnBg : 0xf1e0be)
+      .setAlpha(canClear ? 1 : 0.72);
+
+    this.undoBtnText.setText(isGuest ? this.L.undo : `${this.L.undo} ${undosLeft}`);
+    this.undoBtnBg
+      .setFillStyle(this.undoButtonEnabled ? C.btnBg : 0xf1e0be)
+      .setAlpha(this.undoButtonEnabled ? 1 : 0.72);
+
+    this.hintBtnText.setText(this.L.hintTemplate.replace("{left}", String(hintsLeft)));
+    this.hintBtnBg
+      .setFillStyle(canHint ? C.btnBg : 0xf1e0be)
+      .setAlpha(canHint ? 1 : 0.72);
+  }
+
+  private currentBoardState(): BoardState {
+    return {
+      entries: [...this.board],
+      given: [...this.given],
+      notes: [...this.notes],
+      placedOrder: this.moveHistory.map((move) => move.cell),
+    };
+  }
+
+  private applyBoardState(board: BoardState): void {
+    this.board = [...board.entries];
+    this.given = [...board.given];
+    this.notes = [...board.notes];
+    this.moveHistory = board.placedOrder.map((cell) => ({ cell, prev: 0 }));
+  }
+
+  private emitBoardState(): void {
+    const snapshot: SudokuBoardSnapshot = {
+      entries: [...this.board],
+      given: [...this.given],
+      notes: [...this.notes],
+      selectedCell: this.selectedCell,
+      notesMode: this.notesMode,
+      conflicts: [...this.conflicts],
+      complete: this.boardComplete,
+    };
+    this.dispatch("sudokuBoardState", snapshot);
+  }
+
+  private toggleNotesMode(): void {
+    if (!this.canEditBoard()) return;
+    this.notesMode = !this.notesMode;
+    this.sfx.play("select");
+    this.refreshToolButtons();
+    this.emitBoardState();
+  }
+
+  private handleEraseSelection(): void {
+    if (!this.canEraseSelection()) return;
+    const current = this.currentBoardState();
+    const next =
+      this.str("appMode", "gamefi") === "guest" &&
+      (current.entries[this.selectedCell] ?? 0) > 0
+        ? eraseLocalCell(current, this.selectedCell)
+        : clearNotes(current, this.selectedCell);
+    this.applyBoardState(next);
+    this.persistCurrentBoard();
+    this.renderBoard();
+    this.setGameActionState(false);
+    this.setUndoButtonState(this.hasUndoCapacity());
+    this.refreshToolButtons();
+    this.emitBoardState();
+    this.sfx.play("tick");
+  }
+
+  private handleHint(): void {
+    if (!this.canRequestHint()) {
+      this.statusLabel.setText(this.L.selectCell);
+      return;
+    }
+    this.dispatch("requestHint", { cell: this.selectedCell });
+  }
+
+  private applyHintRequest(): void {
+    const nonce = this.num("hintNonce", 0);
+    if (nonce <= this.lastHintNonce) return;
+    this.lastHintNonce = nonce;
+    const cell = this.num("hintCell", -1);
+    const digit = this.num("hintDigit", 0);
+    if (
+      this.str("appMode", "gamefi") !== "guest" ||
+      cell < 0 || cell >= 81 || digit < 1 || digit > 9 ||
+      this.given[cell] || (this.board[cell] ?? 0) !== 0
+    ) return;
+
+    const placed = placeDigit(this.currentBoardState(), cell, digit);
+    this.applyBoardState(placed.board);
+    this.selectedCell = cell;
+    this.persistCurrentBoard();
+    this.renderBoard();
+    this.setUndoButtonState(this.hasUndoCapacity());
+    this.refreshToolButtons();
+    this.emitBoardState();
+    this.sfx.play(this.completesUnit(cell) ? "combo" : "move");
+    const art = this.cellArt[cell];
+    if (art) this.pressFeedback(art, { scale: 1.12, duration: 70 });
+  }
+
+  private applyRollbackRequest(): void {
+    const nonce = this.num("rollbackNonce", 0);
+    if (nonce <= this.lastRollbackNonce) return;
+    this.lastRollbackNonce = nonce;
+    const rolledBack = applyUndo(this.currentBoardState());
+    if (rolledBack.reverted === null) return;
+    this.applyBoardState(rolledBack.board);
+    this.selectedCell = rolledBack.reverted;
+    this.persistCurrentBoard();
+    this.renderBoard();
+    this.setUndoButtonState(false);
+    this.refreshToolButtons();
+    this.emitBoardState();
+    this.sfx.play("error");
+  }
+
+  private applyConfirmedUndoRequest(): void {
+    const nonce = this.num("undoNonce", 0);
+    if (nonce <= this.lastUndoNonce) return;
+    this.lastUndoNonce = nonce;
+    const undone = applyUndo(this.currentBoardState());
+    if (undone.reverted === null) return;
+    this.applyBoardState(undone.board);
+    this.selectedCell = undone.reverted;
+    this.persistCurrentBoard();
+    this.renderBoard();
+    this.setUndoButtonState(this.hasUndoCapacity());
+    this.setGameActionState(false);
+    this.refreshToolButtons();
+    this.emitBoardState();
+    this.sfx.play("tick");
+  }
+
+  private applyBoardRecoveryRequest(): void {
+    const nonce = this.num("boardRecoveryNonce", 0);
+    if (nonce <= this.lastBoardRecoveryNonce) return;
+    this.lastBoardRecoveryNonce = nonce;
+    const activeGameId = this.str("activeGameId", "0");
+    const clues = this.str("clues", "");
+    if (activeGameId === "0" || !/^[0-9]{81}$/.test(clues)) return;
+    this.applyBoardState(restoreBoard(activeGameId, clues));
+    this.selectedCell = -1;
+    this.notesMode = false;
+    this.renderBoard();
+    this.setUndoButtonState(this.hasUndoCapacity());
+    this.setGameActionState(false);
+    this.refreshToolButtons();
+    this.emitBoardState();
+  }
+
+  private applyA11yCommand(): void {
+    const command = this.val<A11yCommand>("a11yCommand");
+    if (!command || command.nonce <= this.lastA11yCommandNonce) return;
+    this.lastA11yCommandNonce = command.nonce;
+    switch (command.type) {
+      case "select-cell":
+        if (Number.isInteger(command.cell)) this.handleCellTap(command.cell ?? -1);
+        break;
+      case "digit":
+        if (Number.isInteger(command.digit)) this.handleDigitTap(command.digit ?? 0);
+        break;
+      case "toggle-notes":
+        this.toggleNotesMode();
+        break;
+      case "clear-notes":
+        this.handleEraseSelection();
+        break;
+      case "undo":
+        this.handleUndo();
+        break;
+      case "submit":
+        this.handleActionButton();
+        break;
+    }
   }
 
   private setGameActionState(busy: boolean): void {
-    if (busy) {
+    if (this.bool("inputSyncFailed")) {
+      this.actionButtonEnabled = false;
+      this.actionBtnText.setText(this.L.act.recover);
+      this.actionBtnText.setColor("#76551f");
+      this.actionBtnBg.setFillStyle(0xffe3a8);
+      this.actionBtnBg.setStrokeStyle(2, C.goldDark);
+    } else if (busy) {
       this.actionButtonEnabled = false;
       this.actionBtnText.setText(this.bool("isSubmitting") ? this.L.act.submitting : this.L.act.working);
       this.actionBtnText.setColor("#ffffff");
@@ -1223,7 +1749,9 @@ export class SudokuScene extends BaseScene {
       this.bool("isStarting") ||
       this.bool("isDealing") ||
       this.bool("isSubmitting") ||
-      this.bool("isUndoing");
+      this.bool("isUndoing") ||
+      this.bool("isActing") ||
+      this.bool("isRecovering");
     this.setGameActionState(busy);
     if (this.prevStatus === "dealt") {
       this.statusLabel.setText(this.gameStatusMessage(this.str("lastStatus", "")));
@@ -1234,16 +1762,16 @@ export class SudokuScene extends BaseScene {
 
   private handleCellTap(index: number): void {
     const gameStatus = this.str("gameStatus", "idle");
-    if (gameStatus !== "dealt") return;
+    if (gameStatus !== "dealt" || this.bool("isPaused") || this.bool("inputSyncFailed")) return;
+    if (!Number.isInteger(index) || index < 0 || index >= 81) return;
 
     this.sfx.play("tap");
-    if (this.selectedCell === index) {
-      // Tap same cell → deselect
-      this.selectedCell = -1;
-    } else {
-      this.selectedCell = index;
-    }
+    // Keep the cell selected on repeated taps, matching familiar Sudoku apps;
+    // Escape remains the explicit keyboard deselect action.
+    this.selectedCell = index;
     this.renderBoard();
+    this.refreshToolButtons();
+    this.emitBoardState();
   }
 
   private handleDigitTap(digit: number): void {
@@ -1251,29 +1779,64 @@ export class SudokuScene extends BaseScene {
     const busy =
       this.bool("isSubmitting") || this.bool("isUndoing") || this.bool("isDealing");
 
-    if (gameStatus !== "dealt" || busy) return;
-    if (this.selectedCell < 0) return;
+    if (gameStatus !== "dealt" || busy || !this.canEditBoard()) return;
+    if (this.selectedCell < 0) {
+      this.statusLabel.setText(this.L.selectCell);
+      return;
+    }
     if (this.given[this.selectedCell]) {
       this.sfx.play("error");
+      this.statusLabel.setText(this.L.givenLocked);
       return; // cannot overwrite given cells
     }
-    if ((this.board[this.selectedCell] ?? 0) !== 0) {
+    const isGuest = this.str("appMode", "gamefi") === "guest";
+    if ((this.board[this.selectedCell] ?? 0) !== 0 && !isGuest) {
       this.sfx.play("error");
-      return; // placed digits are final
+      this.statusLabel.setText(this.L.placedLocked);
+      return; // paid sealed-op placements remain final
     }
 
-    const prev = this.board[this.selectedCell] ?? 0;
-    this.moveHistory.push({ cell: this.selectedCell, prev });
+    if (this.notesMode) {
+      if ((this.board[this.selectedCell] ?? 0) !== 0) {
+        this.statusLabel.setText(this.L.eraseFirst);
+        return;
+      }
+      this.applyBoardState(toggleNote(this.currentBoardState(), this.selectedCell, digit));
+      this.persistCurrentBoard();
+      this.renderBoard();
+      this.refreshToolButtons();
+      this.emitBoardState();
+      this.sfx.play("tick");
+      return;
+    }
 
-    this.board[this.selectedCell] = digit;
+    const current = this.currentBoardState();
+    const placed = isGuest
+      ? setLocalDigit(current, this.selectedCell, digit)
+      : placeDigit(current, this.selectedCell, digit);
+    if (placed.board === current) return;
+    this.applyBoardState(placed.board);
     this.renderBoard();
     this.persistCurrentBoard();
-    this.setUndoButtonState(MAX_UNDOS - this.num("undosUsed", 0) > 0);
+    this.setUndoButtonState(this.hasUndoCapacity());
     this.setGameActionState(false);
+    this.refreshToolButtons();
 
     // Placement cue: conflicting digit → error, completed row/col/box → combo
+    const selectedArt = this.cellArt[this.selectedCell];
     if (this.conflicts.has(this.selectedCell)) {
       this.sfx.play("error");
+      if (selectedArt && !this.reducedMotion) {
+        const originX = selectedArt.x;
+        this.tween({
+          targets: selectedArt,
+          x: originX + 3,
+          duration: 42,
+          yoyo: true,
+          repeat: 2,
+          onComplete: () => selectedArt.setX(originX),
+        });
+      }
     } else if (this.completesUnit(this.selectedCell)) {
       this.sfx.play("combo");
     } else {
@@ -1281,34 +1844,52 @@ export class SudokuScene extends BaseScene {
     }
 
     // Micro-bounce on the selected cell
-    const art = this.cellArt[this.selectedCell];
-    if (art) {
-      this.pressFeedback(art, { scale: 1.12, duration: 60 });
+    if (selectedArt) {
+      this.pressFeedback(selectedArt, { scale: 1.12, duration: 60 });
     }
 
-    // Fire-and-forget telemetry to the React/chain layer
-    this.dispatch("recordMove", { cell: this.selectedCell, digit });
+    // Only paid play records an append-only sealed operation. Local practice
+    // persists the corrected board directly and never calls chain/oracle code.
+    if (!isGuest) this.dispatch("recordMove", { cell: this.selectedCell, digit });
+    this.emitBoardState();
   }
 
   private handleUndo(): void {
     const gameStatus = this.str("gameStatus", "idle");
-    const busy = this.bool("isSubmitting") || this.bool("isUndoing");
+    const busy =
+      this.bool("isSubmitting") ||
+      this.bool("isUndoing") ||
+      this.bool("isActing") ||
+      this.bool("isRecovering");
     const undosLeft = MAX_UNDOS - this.num("undosUsed", 0);
 
-    if (gameStatus !== "dealt" || busy || undosLeft <= 0) return;
+    if (
+      gameStatus !== "dealt" || busy ||
+      (this.str("appMode", "gamefi") !== "guest" && undosLeft <= 0) ||
+      this.bool("isPaused") || this.bool("inputSyncFailed")
+    ) return;
     if (this.moveHistory.length === 0) return;
 
-    // Optimistic local rollback — the on-chain ledger is updated via dispatch
+    // A paid undo mutates the sealed TEE op log. Keep the visible board frozen
+    // until main.tsx confirms that operation and advances undoNonce; on any
+    // ambiguous failure inputSyncFailed freezes input for authoritative replay.
+    if (this.str("appMode", "gamefi") !== "guest") {
+      this.dispatch("useUndo", {});
+      return;
+    }
+
+    // Guest play has no remote ledger, so its local rollback is immediate.
     this.sfx.play("tick");
-    const last = this.moveHistory.pop()!;
-    this.board[last.cell] = last.prev;
-    this.selectedCell = last.cell;
+    const undone = applyUndo(this.currentBoardState());
+    if (undone.reverted === null) return;
+    this.applyBoardState(undone.board);
+    this.selectedCell = undone.reverted;
     this.renderBoard();
     this.persistCurrentBoard();
-    this.setUndoButtonState(
-      MAX_UNDOS - this.num("undosUsed", 0) > 0 && this.moveHistory.length > 0,
-    );
+    this.setUndoButtonState(this.hasUndoCapacity());
     this.setGameActionState(false);
+    this.refreshToolButtons();
+    this.emitBoardState();
 
     this.dispatch("useUndo", {});
   }
@@ -1336,6 +1917,8 @@ export class SudokuScene extends BaseScene {
 
   private canStartDifficulty(difficulty: number): boolean {
     if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
+    if (this.str("appMode", "gamefi") === "guest") return true;
+    if (!GAMEFI_NEW_ENTRIES_ENABLED) return false;
     if (!this.bool("walletConnected")) return false;
     if (!this.bool("progressionReady")) return false;
     if (difficulty < this.requiredDifficulty()) return false;
@@ -1356,6 +1939,7 @@ export class SudokuScene extends BaseScene {
   }
 
   private minSolveReached(): boolean {
+    if (this.str("appMode", "gamefi") === "guest") return true;
     const rule = ruleOf(this.num("gameDifficulty", 0));
     return this.dealtAt > 0 && this.elapsedMs() >= rule.minSolveMs + MIN_SOLVE_BUFFER_MS;
   }
@@ -1378,18 +1962,22 @@ export class SudokuScene extends BaseScene {
       !this.submitWindowClosed() &&
       !this.timeUp() &&
       !this.bool("isSubmitting") &&
-      !this.bool("isUndoing")
+      !this.bool("isUndoing") &&
+      !this.bool("isPaused") &&
+      !this.bool("inputSyncFailed")
     );
   }
 
   private gameStatusMessage(fallback: string): string {
     if (this.timeUp()) return this.L.msg.deadlinePassed;
+    if (this.conflicts.size > 0) return this.L.conflict;
     if (this.submitWindowClosed()) return this.L.msg.deadlineClose;
     if (this.boardComplete && !this.minSolveReached()) {
       const rule = ruleOf(this.num("gameDifficulty", 0));
       const wait = Math.max(0, rule.minSolveMs + MIN_SOLVE_BUFFER_MS - this.elapsedMs());
       return this.L.msg.submitUnlock.replace("{clock}", formatClock(wait));
     }
+    if (this.boardComplete) return this.L.boardReady;
     return fallback;
   }
 
@@ -1399,7 +1987,7 @@ export class SudokuScene extends BaseScene {
     persistBoard(activeGameId, {
       entries: [...this.board],
       given: [...this.given],
-      notes: new Array(81).fill(0),
+      notes: [...this.notes],
       placedOrder: this.moveHistory.map((move) => move.cell),
     });
   }
@@ -1485,6 +2073,95 @@ export class SudokuScene extends BaseScene {
 
   private getBoardSolutionString(): string {
     return this.board.map((d) => (d > 0 ? String(d) : "0")).join("");
+  }
+
+  private bindKeyboardControls(): void {
+    const keyboard = this.input.keyboard;
+    if (!keyboard) return;
+    this.keyHandler = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        ["BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)
+      ) return;
+      if (this.str("gameStatus", "idle") !== "dealt") return;
+
+      const key = event.key;
+      const digit = Number(key);
+      if (Number.isInteger(digit) && digit >= 1 && digit <= 9) {
+        event.preventDefault();
+        this.handleDigitTap(digit);
+        return;
+      }
+      if (key === "n" || key === "N") {
+        event.preventDefault();
+        this.toggleNotesMode();
+        return;
+      }
+      if (key === "Backspace" || key === "Delete" || key === "0") {
+        event.preventDefault();
+        this.handleEraseSelection();
+        return;
+      }
+      if (key === "u" || key === "U") {
+        event.preventDefault();
+        this.handleUndo();
+        return;
+      }
+      if (key === "h" || key === "H") {
+        event.preventDefault();
+        this.handleHint();
+        return;
+      }
+      if ((key === "p" || key === "P") && this.str("appMode", "gamefi") === "guest") {
+        event.preventDefault();
+        this.dispatch("togglePause", {});
+        return;
+      }
+      if (key === "Enter") {
+        event.preventDefault();
+        this.handleActionButton();
+        return;
+      }
+      if (key === "Escape") {
+        event.preventDefault();
+        this.selectedCell = -1;
+        this.renderBoard();
+        this.refreshToolButtons();
+        this.emitBoardState();
+        return;
+      }
+
+      const row = this.selectedCell >= 0 ? Math.floor(this.selectedCell / 9) : -1;
+      const col = this.selectedCell >= 0 ? this.selectedCell % 9 : -1;
+      let next = this.selectedCell;
+      if (key === "ArrowUp" && row > 0) next -= 9;
+      else if (key === "ArrowDown" && row >= 0 && row < 8) next += 9;
+      else if (key === "ArrowLeft" && col > 0) next -= 1;
+      else if (key === "ArrowRight" && col >= 0 && col < 8) next += 1;
+      else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
+        next = this.board.findIndex((value) => value === 0);
+      } else return;
+
+      event.preventDefault();
+      if (next >= 0 && next < 81 && next !== this.selectedCell) {
+        this.selectedCell = next;
+        this.renderBoard();
+        this.refreshToolButtons();
+        this.emitBoardState();
+        this.sfx.play("tap");
+      }
+    };
+    keyboard.on("keydown", this.keyHandler);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.unbindKeyboardControls, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.unbindKeyboardControls, this);
+  }
+
+  private unbindKeyboardControls(): void {
+    if (this.keyHandler) this.input.keyboard?.off("keydown", this.keyHandler);
+    this.keyHandler = undefined;
+    this.events.off(Phaser.Scenes.Events.SHUTDOWN, this.unbindKeyboardControls, this);
+    this.events.off(Phaser.Scenes.Events.DESTROY, this.unbindKeyboardControls, this);
   }
 
   // ── Responsive resize ──────────────────────────────────────────────────────

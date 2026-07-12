@@ -3,9 +3,9 @@
   "id": "miniapp-recovery-guardian",
   "name": "Recovery Guardian",
   "name_zh": "恢复守护者",
-  "version": "1.0.0",
-  "description": "Read-first recovery console: inspect guardian/verifier/timelock state and prepare guarded recovery links — execution happens in the AA workspace.",
-  "description_zh": "先读后写的恢复控制台：检查 guardian/verifier/timelock 状态并准备受保护的恢复链接——实际执行在 AA 工作区完成。",
+  "version": "2.0.0",
+  "description": "A state-driven AA social recovery app for inspecting and managing existing guardian profiles, approvals, owner review windows, and verified ownership changes.",
+  "description_zh": "用于查看和管理已有守护档案、审批、所有者观察期及经验证所有权变更的状态驱动 AA 社交恢复应用。",
   "category": "utility",
   "category_name": "Utility",
   "category_name_zh": "工具",
@@ -16,7 +16,7 @@
     "recovery",
     "guardian",
     "neodid",
-    "security"
+    "account-recovery"
   ],
   "developer": {
     "name": "Yiwu",
@@ -62,14 +62,13 @@
     "banner": "/miniapps/recovery-guardian/banner.webp"
   },
   "permissions": [
+    "invoke:primary",
     "read:blockchain",
-    "oracle",
-    "compute",
-    "confidential",
+    "write:blockchain",
     "aa"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://recovery-guardian"
   },
@@ -84,8 +83,13 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": false
+    "transactions": true
+  },
+  "operation_panel": {
+    "title": "Recovery Guardian",
+    "subtitle": "Existing-profile approvals, cancellation, finalization, and transaction recovery live inside the designed guardian journey. First-time activation waits for a verifier upgrade.",
+    "operations": []
   },
   "createdAt": "2026-03-27T00:00:00Z",
-  "updatedAt": "2026-05-18T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

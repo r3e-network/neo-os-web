@@ -18,6 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_HASH_RE = /^0x[0-9a-fA-F]{40}$/;
+const ZERO_SCRIPT_HASH = '0x0000000000000000000000000000000000000000';
 
 /** Networks the registry covers, keyed by the manifest contracts entry. */
 const NETWORK_MANIFEST_KEYS = {
@@ -64,6 +65,10 @@ export function buildMiniAppContractRegistry({ repoRoot = defaultRepoRoot() } = 
           `Invalid ${network} contract hash "${hash}" for ${appId} in ${manifestPath}`
         );
       }
+      // A zero hash is a deployment placeholder, not a routable contract.
+      // Keeping it out of the generated registry prevents callers from
+      // treating an unfinished deployment as a live application endpoint.
+      if (hash.toLowerCase() === ZERO_SCRIPT_HASH) continue;
       registry[network][appId] = hash.toLowerCase();
     }
   }

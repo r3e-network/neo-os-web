@@ -44,6 +44,8 @@ const translations: Record<string, string> = {
   partnerTermsOffChain: "Only the stake and duration are on-chain.",
   pending: "Pending",
   preparingWallet: "Preparing wallet",
+  checkPendingAction: "Check pending pact",
+  checkPendingHint: "Read-only transaction check",
   refreshRecords: "Refresh contracts",
   stake: "Stake",
   stakeLabel: "Stake Amount",
@@ -64,6 +66,8 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     pendingCount: 0,
     brokenCount: 0,
     isLoading: false,
+    actionPhase: "idle",
+    hasPendingAction: false,
     hasCredit: false,
     ...o,
   };
@@ -113,18 +117,32 @@ describe("breakup-contract PlayArea (v2)", () => {
 
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     fireEvent.change(container.querySelector(".breakup-input--title input.semi-input") as Element, { target: { value: "Clean pact" } });
-    fireEvent.change(container.querySelector(".breakup-input--partner input.semi-input") as Element, { target: { value: "NpartnerAddress123" } });
+    fireEvent.change(container.querySelector(".breakup-input--partner input.semi-input") as Element, { target: { value: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq" } });
     fireEvent.click(getByText("5 GAS"));
     fireEvent.click(getByText("90 Days"));
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createContract", {
-      partnerAddress: "NpartnerAddress123",
+      partnerAddress: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq",
       stakeAmount: "5",
       duration: "90",
       title: "Clean pact",
       terms: "",
     }));
+  });
+
+  it("makes an unresolved transaction a read-only primary recovery action", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByText } = render(
+      <PlayArea t={t} state={state({ hasPendingAction: true })} dispatch={dispatch} />,
+    );
+    const primary = container.querySelector<HTMLButtonElement>(".mx2-btn--primary")!;
+
+    expect(primary.disabled).toBe(false);
+    expect(getByText("Check pending pact")).toBeTruthy();
+    fireEvent.click(primary);
+    expect(dispatch).toHaveBeenCalledWith("refreshContracts");
+    expect(dispatch).not.toHaveBeenCalledWith("createContract", expect.anything());
   });
 
   it("keeps the stage clean instead of using dirty image-led backgrounds", () => {

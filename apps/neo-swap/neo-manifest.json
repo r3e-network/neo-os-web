@@ -3,9 +3,9 @@
   "id": "miniapp-neo-swap",
   "name": "Neo Swap",
   "name_zh": "Neo 兑换",
-  "version": "1.0.0",
-  "description": "Live NEO/GAS rate & trade preview — see the Morpheus data-feed rate, slippage, and minimum received. No on-chain swap router is deployed yet, so settle in your wallet or a DEX when a route is available.",
-  "description_zh": "实时 NEO/GAS 汇率与交易预览 — 查看 Morpheus 数据源汇率、滑点与最少收到数量。当前尚未部署链上兑换路由，待路由可用后请在您的钱包或 DEX 中结算。",
+  "version": "1.2.0",
+  "description": "Exact NEO/GAS Morpheus quote planning with verified freshness, integer settlement floors, official token assets, wallet balances and honest no-router recovery states.",
+  "description_zh": "精确的 NEO/GAS Morpheus 报价规划，包含新鲜度核验、整数结算下限、官方代币资产、钱包余额与真实的无路由恢复状态。",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
@@ -14,7 +14,7 @@
     "quote",
     "neo",
     "gas",
-    "preview"
+    "planning"
   ],
   "developer": {
     "name": "Yiwu",
@@ -37,23 +37,16 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-swap"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

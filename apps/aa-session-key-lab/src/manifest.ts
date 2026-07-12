@@ -11,35 +11,30 @@ export const manifest: MiniAppManifest = {
   name: "AA Session Key Lab",
   description: "Configure SessionKeyVerifier directly on-chain",
   icon: "key",
-  category: "console",
+  category: "tool",
   shell: "console",
+  theme: {
+    family: "default",
+    accentColor: "#13896b",
+    density: "comfortable",
+  },
 
   // -- Tabs --
-  tabs: [
-    { key: "session", labelKey: "latestState", icon: "key", default: true },
-  ],
+  tabs: [],
 
   // -- Stats --
-  stats: [
-    { labelKey: "labelAA", valueKey: "aaCoreDisplay", format: "text", icon: "cpu" },
-    { labelKey: "sessionLabel", valueKey: "sessionStatusDisplay", format: "text", icon: "key" },
-    { labelKey: "sessionVerifier", valueKey: "sessionVerifierDisplay", format: "text", icon: "shield" },
-  ],
+  stats: [],
 
   // -- Sidebar --
   sidebar: {
-    titleKey: "appName",
-    items: [
-      { labelKey: "accountIdHash", valueKey: "derivedAccountIdHash", format: "text" },
-      { labelKey: "targetContract", valueKey: "normalizedTargetContract", format: "text" },
-      { labelKey: "allowedMethod", valueKey: "normalizedAllowedMethod", format: "text" },
-    ],
+    items: [],
   },
 
   // -- Features --
   features: {
     walletRequired: false,
     chainWarning: true,
+    activityFeed: false,
   },
 
   // -- Docs --

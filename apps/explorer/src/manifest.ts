@@ -5,7 +5,7 @@
  * This is a READ-ONLY tool — no wallet or payments required.
  *
  * The platform renders tabs, sidebar, stats, and docs from this config.
- * The miniapp only provides PlayArea.vue (search + results) and
+ * The miniapp provides a React PlayArea (search + results) and
  * useExplorer.ts (data fetching logic).
  */
 
@@ -14,7 +14,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // ── Identity ─────────────────────────────────────────────────────────
   name: "Neo Explorer",
-  description: "Search transactions, addresses, contracts",
+  description: "Search Neo N3 blocks, transactions, addresses, and contracts",
   icon: "search",
   category: "tool",
   shell: "launcher",
@@ -62,11 +62,6 @@ export const manifest: MiniAppManifest = {
     { titleKey: "docDescription", contentKey: "step2", type: "steps" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
-
-  // ── Contract ──────────────────────────────────────────────────────────
-  contract: {
-    mode: "custom",
-  },
 
   // ── Permissions ───────────────────────────────────────────────────────
   // Explorer is read-only — no special permissions needed.

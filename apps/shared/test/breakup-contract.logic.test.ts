@@ -9,6 +9,7 @@ import { createObservable } from "../react/context";
 // tests so a pact id written in one test never leaks its title into another
 // (the foreign-pact placeholder test depends on a clean store).
 beforeEach(() => {
+  vi.unstubAllGlobals();
   try {
     globalThis.localStorage?.clear();
   } catch {
@@ -33,9 +34,14 @@ const CREATOR_HASH_CHAIN = "0xe2b653227293e99c4f2906d53553abb4a672df86";
 const PARTNER_HASH_CHAIN = "0x7eee1aabeb67ed1d791d44e4f5fcf3ae9171a871";
 
 // The on-chain contract script hash the composable reads from contractAddress.
-const CONTRACT = "0xe298ae87a7e31f25ad0fce23e83f0e93c02e2850";
+const CONTRACT = "0xf6769c080395f15c28013108b7af7631e1665336";
 // GAS native contract hash (used as the transfer scriptHash override).
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+
+function displayHashToChain(value: string) {
+  const hex = value.replace(/^0x/i, "");
+  return `0x${hex.match(/../g)?.reverse().join("") ?? hex}`;
+}
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
@@ -57,6 +63,28 @@ function t(key: string, params?: Record<string, string | number>) {
     contractWalletUnavailable:
       "Connect your wallet to stake and confirm the pact on-chain.",
     loadFailed: "Failed to load contracts",
+    loadFailedKeepState: "Failed to load contracts",
+    creditReadFailed: "Credit unavailable",
+    creditReadRequired: "Credit unavailable",
+    actionPendingConfirmation: "Transaction pending confirmation",
+    depositPendingConfirmation: "Deposit pending confirmation",
+    pendingBlocksWrites: "Pending blocks writes",
+    invalidRecoveryRecord: "Invalid recovery record",
+    recoveryStorageUnavailable: "Recovery storage unavailable",
+    invalidTransactionId: "Invalid transaction id",
+    transactionIdMismatch: "Transaction id mismatch",
+    chainContextMismatch: "Chain context mismatch",
+    lastPactIdUnavailable: "Latest pact id unavailable",
+    transactionFaulted: "Transaction faulted",
+    transactionNotBroadcast: "Transaction not broadcast",
+    pactNotPending: "Pact not pending",
+    pactNotActive: "Pact not active",
+    pactNotExpired: "Pact not expired",
+    pactExpired: "Pact expired",
+    pactExpiredSettle: "Settle instead",
+    pactPendingUseCancel: "Cancel instead",
+    cancelNotCreator: "Only creator can cancel",
+    breakNotParty: "Only a party can break",
     depositPrepaidNoContract:
       "Your stake was deposited but the pact was not created.",
     depositPrepaidNoSign:
@@ -98,6 +126,7 @@ interface ChainMock {
   ensureWallet: ReturnType<typeof vi.fn>;
   address: ReturnType<typeof createObservable<string | null>>;
   contractAddress: ReturnType<typeof createObservable<string | null>>;
+  detectNetwork: ReturnType<typeof vi.fn>;
 }
 
 /**
@@ -110,34 +139,131 @@ function chainMock(opts: {
   pacts?: Record<string, Record<string, unknown>>;
   partyPacts?: string[];
   lastPactId?: string;
+  lastPactIdError?: boolean;
+  lastPactReadValue?: unknown;
+  initialCredit?: string;
+  creditReadValue?: unknown;
   events?: Record<string, unknown>;
+  applicationStates?: Record<string, "halt" | "fault" | "unknown">;
+  verified?: Record<string, boolean>;
   invokeImpl?: (op: string, args: unknown[]) => Promise<unknown> | unknown;
 } = {}): { chain: ChainService; mock: ChainMock } {
   const pacts = opts.pacts ?? {};
   const partyPacts = opts.partyPacts ?? [];
   const events = opts.events ?? {};
+  const applicationLogs = new Map<string, unknown>();
+  let credit = BigInt(opts.initialCredit ?? "0");
+  let transactionSequence = 0;
+  const configuredCreateEvent = events.createPact as { state?: Array<{ value?: unknown }> } | undefined;
+  const configuredCreateId = String(configuredCreateEvent?.state?.[0]?.value ?? "");
+  const largestFixtureId = Object.keys(pacts).sort((a, b) => Number(b) - Number(a))[0] ?? "0";
+  const beforeLastPactId = opts.lastPactId ?? (
+    /^[1-9]\d*$/.test(configuredCreateId)
+      ? (BigInt(configuredCreateId) - 1n).toString()
+      : largestFixtureId
+  );
+
+  vi.stubGlobal("fetch", vi.fn(async (_input: unknown, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body ?? "{}")) as { params?: string[] };
+    const payload = applicationLogs.get(String(body.params?.[0] ?? "")) ?? {
+      error: { code: -100, message: "Unknown transaction" },
+    };
+    return { ok: true, json: async () => payload } as Response;
+  }));
 
   const read = vi.fn(async (op: string, args?: { value: string }[]) => {
     if (op === "getPact") return pacts[String(args?.[0]?.value)] ?? null;
-    if (op === "lastPactId") return opts.lastPactId ?? "0";
+    if (op === "lastPactId") {
+      if (opts.lastPactIdError) throw new Error("lastPactId unavailable");
+      if (Object.prototype.hasOwnProperty.call(opts, "lastPactReadValue")) return opts.lastPactReadValue;
+      return beforeLastPactId;
+    }
+    if (op === "partyPactCount") return String(partyPacts.length);
+    if (op === "creditOf") {
+      if (Object.prototype.hasOwnProperty.call(opts, "creditReadValue")) return opts.creditReadValue;
+      return credit.toString();
+    }
     return null;
   });
   const readArray = vi.fn(async (op: string) => {
     if (op === "getPartyPacts") return partyPacts;
     return [];
   });
-  const invoke = vi.fn(async (op: string, args: unknown[]) => {
+  const invoke = vi.fn(async (op: string, args: unknown[], options?: { onTransactionSent?: (txid: string) => void }) => {
     if (opts.invokeImpl) {
       const r = await opts.invokeImpl(op, args);
       if (r !== undefined) return r;
     }
-    return { txid: "0xtx", event: events[op], success: true };
+    const values = args as { value: string }[];
+    let event: unknown;
+    let eventName = "";
+    if (op === "transfer") {
+      const amount = BigInt(values[2].value);
+      credit += amount;
+      eventName = "Credited";
+      event = eventState([values[0].value, amount.toString(), credit.toString()]);
+    } else if (op === "createPact") {
+      credit -= BigInt(values[2].value);
+      const id = configuredCreateId || (BigInt(beforeLastPactId) + 1n).toString();
+      const endTime = Date.now() + Number(values[3].value) * 1000;
+      if (pacts[id]) Object.assign(pacts[id], { stake: values[2].value, endTime });
+      eventName = "PactCreated";
+      event = eventState([id, values[0].value, values[1].value, values[2].value, endTime]);
+    } else if (op === "signPact") {
+      const id = values[0].value;
+      credit -= BigInt(pacts[id]?.stake as string ?? "0");
+      if (pacts[id]) Object.assign(pacts[id], { status: 1, party2Staked: true });
+      eventName = "PactSigned";
+      event = eventState([id, values[1].value]);
+    } else if (op === "breakPact") {
+      const id = values[0].value;
+      const current = pacts[id];
+      const pending = Number(current?.status ?? 0) === 0;
+      if (current) Object.assign(current, {
+        status: pending ? 4 : 2,
+        breaker: displayHashToChain(values[1].value),
+      });
+      eventName = pending ? "PactCancelled" : "PactBroken";
+      event = pending
+        ? eventState([id, values[1].value, current?.stake ?? STAKE_BASE])
+        : eventState([id, values[1].value, current?.party2 ?? PARTNER_HASH_CHAIN, (BigInt(current?.stake as string ?? STAKE_BASE) * 2n).toString()]);
+    } else if (op === "settlePact") {
+      const id = values[0].value;
+      if (pacts[id]) Object.assign(pacts[id], { status: 3 });
+      eventName = "PactSettled";
+      event = eventState([id, pacts[id]?.stake ?? STAKE_BASE]);
+    } else if (op === "withdraw") {
+      const amount = credit;
+      credit = 0n;
+      eventName = "CreditWithdrawn";
+      event = eventState([values[0].value, amount.toString()]);
+    }
+    transactionSequence += 1;
+    const txid = `0x${transactionSequence.toString(16).padStart(64, "0")}`;
+    const applicationState = opts.applicationStates?.[op] ?? "halt";
+    if (applicationState === "unknown") {
+      applicationLogs.set(txid, { error: { code: -100, message: "Unknown transaction" } });
+    } else if (applicationState === "fault") {
+      applicationLogs.set(txid, { result: { executions: [{ vmstate: "FAULT", notifications: [] }] } });
+    } else {
+      applicationLogs.set(txid, {
+        result: {
+          executions: [{
+            vmstate: "HALT",
+            notifications: [{ contract: CONTRACT, eventname: eventName, ...(event as object) }],
+          }],
+        },
+      });
+    }
+    options?.onTransactionSent?.(txid);
+    return { txid, event, success: true, verified: opts.verified?.[op] ?? true };
   });
   const ensureWallet = vi.fn(async () => CREATOR);
   const address = createObservable<string | null>(CREATOR);
   const contractAddress = createObservable<string | null>(CONTRACT);
+  const detectNetwork = vi.fn(async () => "mainnet");
 
-  const mock: ChainMock = { read, readArray, invoke, ensureWallet, address, contractAddress };
+  const mock: ChainMock = { read, readArray, invoke, ensureWallet, address, contractAddress, detectNetwork };
   return { chain: mock as unknown as ChainService, mock };
 }
 
@@ -168,14 +294,15 @@ function frameworkFor(chain: ChainService) {
 
 function validApp(chainOpts: Parameters<typeof chainMock>[0] = {}) {
   const { chain, mock } = chainMock(chainOpts);
-  const app = useBreakup({ app: frameworkFor(chain), t });
+  const framework = frameworkFor(chain);
+  const app = useBreakup({ app: framework, t, network: "mainnet" });
   app.address.set(CREATOR);
   app.partnerAddress.set(PARTNER);
   app.stakeAmount.set("5");
   app.duration.set("90");
   app.contractTitle.set("Summer covenant");
   app.contractTerms.set("Shared plans and clean exit rules.");
-  return { app, mock };
+  return { app, mock, framework };
 }
 
 describe("useBreakup", () => {
@@ -223,20 +350,16 @@ describe("useBreakup", () => {
     expect(app.lastSubmittedTitle.get()).toBe("Summer covenant");
   });
 
-  it("falls back to lastPactId() when the PactCreated event slot is unavailable", async () => {
+  it("does not use lastPactId state as a substitute for the exact transaction event", async () => {
     const { app } = validApp({
-      events: {}, // no PactCreated event payload
+      applicationStates: { createPact: "unknown" },
       lastPactId: "9",
       partyPacts: ["9"],
       pacts: { "9": pact({ id: 9 }) },
     });
 
-    await app.createContract();
-
-    const listed = app.contracts.get();
-    expect(listed).toHaveLength(1);
-    expect(listed[0].pactId).toBe("9");
-    expect(listed[0].title).toBe("Summer covenant");
+    await expect(app.createContract()).rejects.toThrow("Transaction pending confirmation");
+    expect(app.hasPendingAction.get()).toBe(true);
   });
 
   it("rejects an invalid partner, a sub-1-GAS stake, and a sub-30-day duration before any chain call", async () => {
@@ -268,6 +391,7 @@ describe("useBreakup", () => {
     });
     // The signer is the named partner (party2).
     app.address.set(PARTNER);
+    mock.address.set(PARTNER);
 
     await app.signContract({ pactId: "7", stake: 5, stakeRaw: STAKE_BASE });
 
@@ -408,7 +532,7 @@ describe("useBreakup", () => {
     mock.readArray.mockImplementation(async () => {
       throw new Error("RPC unreachable");
     });
-    const app = useBreakup({ app: frameworkFor(chain), t });
+    const app = useBreakup({ app: frameworkFor(chain), t, network: "mainnet" });
     app.address.set(CREATOR);
 
     await expect(app.loadContracts()).resolves.toBeUndefined();
@@ -418,7 +542,7 @@ describe("useBreakup", () => {
 
   it("shows no pacts (and no error) when no wallet is connected", async () => {
     const { chain } = chainMock();
-    const app = useBreakup({ app: frameworkFor(chain), t });
+    const app = useBreakup({ app: frameworkFor(chain), t, network: "mainnet" });
     app.address.set("");
 
     await app.loadContracts();
@@ -497,13 +621,114 @@ describe("useBreakup", () => {
     expect(depositOpts.waitForEvent).toBe("Credited");
   });
 
-  it("reads reclaimable stake-credit (creditOf) and exposes it for recovery", async () => {
-    const { app, mock } = validApp({ partyPacts: [], pacts: {} });
-    // creditOf returns 3 GAS of stranded credit under the wallet.
-    mock.read.mockImplementation(async (op: string) => {
-      if (op === "creditOf") return "300000000";
-      return null;
+  it("reuses prepaid credit and transfers only the exact deficit", async () => {
+    const { app, mock } = validApp({
+      initialCredit: "200000000",
+      events: { createPact: eventState(["7"]) },
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
     });
+
+    await app.createContract();
+
+    const transfer = mock.invoke.mock.calls.find(([operation]) => operation === "transfer");
+    expect((transfer?.[1] as { value: string }[])[2]).toEqual({
+      type: "Integer",
+      value: "300000000",
+    });
+  });
+
+  it("persists an unconfirmed deposit and blocks a duplicate GAS transfer", async () => {
+    const { app, mock } = validApp({
+      applicationStates: { transfer: "unknown" },
+    });
+
+    await expect(app.createContract()).rejects.toThrow("Deposit pending confirmation");
+    await app.loadContracts();
+    expect(app.hasPendingAction.get()).toBe(true);
+    await expect(app.createContract()).rejects.toThrow();
+
+    expect(mock.invoke.mock.calls.filter(([operation]) => operation === "transfer")).toHaveLength(1);
+    expect(mock.invoke.mock.calls.some(([operation]) => operation === "createPact")).toBe(false);
+  });
+
+  it("releases pending only after getapplicationlog proves VM FAULT", async () => {
+    const { app } = validApp({ applicationStates: { transfer: "fault" } });
+
+    await expect(app.createContract()).rejects.toThrow("Transaction faulted");
+    expect(app.hasPendingAction.get()).toBe(false);
+  });
+
+  it("keeps an unavailable lastPactId distinct from zero and moves no GAS", async () => {
+    const { app, mock } = validApp({ lastPactReadValue: null });
+
+    await expect(app.createContract()).rejects.toThrow("Latest pact id unavailable");
+    expect(mock.invoke).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unavailable credit read distinct from zero", async () => {
+    const { app, mock } = validApp({ creditReadValue: null });
+
+    await app.loadCredit();
+    expect(app.creditKnown.get()).toBe(false);
+    expect(app.creditBalance.get()).toBe("—");
+    expect(app.creditBalanceRaw.get()).toBe("");
+    await expect(app.createContract()).rejects.toThrow("Credit unavailable");
+    expect(mock.invoke).not.toHaveBeenCalled();
+  });
+
+  it("ignores the SDK verified flag when the application log and readback are authoritative", async () => {
+    const { app } = validApp({
+      events: { createPact: eventState(["7"]) },
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+      verified: { createPact: false },
+    });
+
+    await expect(app.createContract()).resolves.toMatchObject({ created: true, pactId: "7" });
+  });
+
+  it("uses PactCancelled and creator witness semantics for a pending cancellation", async () => {
+    const { app, mock } = validApp({
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7, status: 0 }) },
+    });
+
+    await app.breakContract({ pactId: "7" }, "cancel");
+
+    const cancel = mock.invoke.mock.calls.find(([operation]) => operation === "breakPact");
+    expect(cancel?.[2]).toMatchObject({ waitForEvent: "PactCancelled" });
+    expect(app.contracts.get()[0]?.status).toBe("cancelled");
+  });
+
+  it("rejects malformed Fixed8 and fractional duration input before moving GAS", async () => {
+    const { app, mock } = validApp();
+    app.stakeAmount.set("1.000000001");
+    await expect(app.createContract()).rejects.toThrow(
+      "Stake must be at least 1 GAS and duration at least 30 days",
+    );
+    app.stakeAmount.set("1");
+    app.duration.set("30.5");
+    await expect(app.createContract()).rejects.toThrow(
+      "Stake must be at least 1 GAS and duration at least 30 days",
+    );
+    expect(mock.invoke).not.toHaveBeenCalled();
+  });
+
+  it("fails the recovery-storage preflight before any wallet write", async () => {
+    const { app, framework, mock } = validApp({
+      events: { createPact: eventState(["7"]) },
+      partyPacts: ["7"],
+      pacts: { "7": pact({ id: 7 }) },
+    });
+    vi.spyOn(framework.storage.local, "set").mockImplementation(() => undefined);
+
+    await expect(app.createContract()).rejects.toThrow("Recovery storage unavailable");
+    expect(mock.invoke).not.toHaveBeenCalled();
+  });
+
+  it("reads reclaimable stake-credit (creditOf) and exposes it for recovery", async () => {
+    const { app } = validApp({ partyPacts: [], pacts: {}, initialCredit: "300000000" });
 
     await app.loadCredit();
     expect(app.creditBalance.get()).toBe("3");
@@ -512,11 +737,7 @@ describe("useBreakup", () => {
   });
 
   it("withdraws stranded credit via withdraw(account) waiting on CreditWithdrawn", async () => {
-    const { app, mock } = validApp({ partyPacts: [], pacts: {} });
-    mock.read.mockImplementation(async (op: string) => {
-      if (op === "creditOf") return "300000000";
-      return null;
-    });
+    const { app, mock } = validApp({ partyPacts: [], pacts: {}, initialCredit: "300000000" });
     await app.loadCredit();
 
     await app.withdrawCredit();
@@ -542,13 +763,17 @@ describe("useBreakup", () => {
     expect(mock.invoke).not.toHaveBeenCalledWith("withdraw", expect.anything(), expect.anything());
   });
 
-  it("createContract resolves true on success so the form only resets on a real success", async () => {
+  it("createContract returns a confirmed outcome so the form only resets on real success", async () => {
     const { app } = validApp({
       events: { createPact: eventState(["7"]) },
       partyPacts: ["7"],
       pacts: { "7": pact({ id: 7 }) },
     });
-    await expect(app.createContract()).resolves.toBe(true);
+    await expect(app.createContract()).resolves.toMatchObject({
+      created: true,
+      pactId: "7",
+      metadataSaved: true,
+    });
   });
 
   // ── On-device title/terms store: legacy localStorage key compatibility ──
@@ -574,8 +799,12 @@ describe("useBreakup", () => {
     // key, keyed by the captured on-chain pact id.
     const raw = globalThis.localStorage?.getItem(LEGACY_META_KEY);
     expect(raw).not.toBeNull();
-    expect(JSON.parse(raw as string)).toEqual({
+    expect(JSON.parse(raw as string)).toMatchObject({
       "7": {
+        title: "Summer covenant",
+        terms: "Shared plans and clean exit rules.",
+      },
+      [`mainnet:${CONTRACT}:7`]: {
         title: "Summer covenant",
         terms: "Shared plans and clean exit rules.",
       },
@@ -596,7 +825,7 @@ describe("useBreakup", () => {
       partyPacts: ["7"],
       pacts: { "7": pact({ id: 7 }) },
     });
-    const app = useBreakup({ app: frameworkFor(chain), t });
+    const app = useBreakup({ app: frameworkFor(chain), t, network: "mainnet" });
     app.address.set(CREATOR);
 
     await app.loadContracts();

@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="burn-league-phaser-host" />;
     },
@@ -32,6 +30,19 @@ afterEach(() => {
 
 function t(key: string) {
   const messages: Record<string, string> = {
+    arenaAlt: "Golden Burn League arena",
+    burnArenaLoading: "Opening Burn League arena",
+    burnConnectAction: "Connect wallet",
+    burnConnectingAction: "Connecting...",
+    burnIgniteAction: "Review burn",
+    burnConfirmAction: "Confirm burn",
+    burnRecheckAction: "Check transaction",
+    burnCheckingAction: "Checking...",
+    burnCheckingTitle: "Verifying chain result",
+    burnConfirmTitle: "Confirm irreversible burn",
+    burnInsufficientHint: "Insufficient GAS",
+    burnPresets: "Fuel capsules",
+    closeDrawer: "Close league drawer",
     burned: "Burned",
     burning: "Burning...",
     celebrationDismiss: "Done",
@@ -82,7 +93,16 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     burnAmount: "5",
     isBurning: false,
     isSettling: false,
+    isLoading: false,
+    isConnectingWallet: false,
     needsSettle: false,
+    leagueDataAvailable: true,
+    walletConnected: true,
+    walletGasBalance: "100",
+    burnConfirmArmed: false,
+    burnConfirmAmount: "",
+    burnTransactionState: "idle",
+    hasUnknownBurn: false,
     formattedSeason: "#7",
     leaderboardPreview: [
       { address: "Ntop1111111111111111111111111111111", burned: 9.5, rank: 1, isUser: false },
@@ -120,9 +140,15 @@ describe("burn-league Phaser playarea", () => {
 
     expect(mocks.phaserGame).toHaveBeenCalledTimes(1);
     const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      ariaLabel?: string;
+      className?: string;
+      loadingLabel?: string;
       state: Record<string, unknown>;
     };
 
+    expect(props.className).toBe("burn-phaser-canvas");
+    expect(props.ariaLabel).toBe("Golden Burn League arena");
+    expect(props.loadingLabel).toBe("Opening Burn League arena");
     expect(props.state.seasonPhase).toBe("active");
     expect(props.state.prizePoolDisplay).toBe("12.50 GAS");
     expect(props.state.userBurnedDisplay).toBe("5.00 GAS");
@@ -130,11 +156,16 @@ describe("burn-league Phaser playarea", () => {
     expect(props.state.countdown).toBe("00:01:30");
     expect(props.state.burnAmount).toBe("5");
     expect(props.state.needsSettle).toBe(false);
+    expect(props.state.leagueDataAvailable).toBe(true);
     expect(props.state.formattedSeason).toBe("#7");
     expect(props.state.seasonDurationLabel).toBe("2 min");
     expect(props.state.leaderLabel).toBe("Ntop1111111111111111111111111111111");
     expect(props.state.topBurnedDisplay).toBe("9.50 GAS");
     expect(props.state.prepaidCreditDisplay).toBe("0.00 GAS");
+    expect(props.state.walletConnected).toBe(true);
+    expect(props.state.walletGasBalance).toBe("100");
+    expect(props.state.burnConfirmArmed).toBe(false);
+    expect(props.state.hasUnknownBurn).toBe(false);
     expect(props.state.minBurnGas).toBe(1);
     expect(props.state.maxBurnGas).toBe(1000);
     expect(props.state.leaderboardPreview).toEqual([
@@ -143,9 +174,9 @@ describe("burn-league Phaser playarea", () => {
     ]);
   });
 
-  it("exposes settle and withdraw actions outside the Phaser canvas only when relevant", () => {
+  it("mirrors the in-arena settle action for keyboard users while withdraw stays in the drawer", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { getByText } = render(
+    const { container } = render(
       <PhaserPlayArea
         t={t}
         state={state({ needsSettle: true, prepaidCredit: 2.5 })}
@@ -153,13 +184,54 @@ describe("burn-league Phaser playarea", () => {
       />,
     );
 
-    Array.from(document.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Settle season"))
-      ?.click();
-    getByText("Withdraw credit").click();
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
 
+    expect(props.state.needsSettle).toBe(true);
+    expect(props.state.settleAction).toBe("Settle season");
+    const semanticSettle = container.querySelector(".burn-a11y-primary") as HTMLButtonElement;
+    expect(semanticSettle.textContent).toContain("Settle season");
+    expect(semanticSettle.disabled).toBe(false);
+    fireEvent.click(semanticSettle);
     expect(dispatch).toHaveBeenCalledWith("settle");
+
+    fireEvent.click(container.querySelector(".burn-stage-hud__drawer") as Element);
+    const drawerWithdraw = container.querySelector(".burn-drawer__credit button") as HTMLButtonElement;
+    fireEvent.click(drawerWithdraw);
+
     expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
+  });
+
+  it("exposes fuel and burn as semantic canvas twins without a form UI", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByRole } = render(
+      <PhaserPlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+
+    const presets = getByRole("radiogroup", { name: "Fuel capsules" });
+    const selected = presets.querySelector('[role="radio"][aria-checked="true"]') as HTMLButtonElement;
+    expect(selected.getAttribute("aria-label")).toBe("Fuel capsules: 5");
+    fireEvent.keyDown(selected, { key: "ArrowRight" });
+    expect(dispatch).toHaveBeenCalledWith("setBurnAmount", "10");
+
+    const primary = container.querySelector(".burn-a11y-primary") as HTMLButtonElement;
+    expect(primary.disabled).toBe(false);
+    fireEvent.click(primary);
+    expect(dispatch).toHaveBeenCalledWith("burn", "5");
+    expect(container.querySelector("form,input,textarea,select")).toBeNull();
+  });
+
+  it("closes the in-game drawer with Escape and restores trigger focus", () => {
+    const { container } = render(
+      <PhaserPlayArea t={t} state={state()} dispatch={vi.fn().mockResolvedValue(undefined)} />,
+    );
+    const trigger = container.querySelector(".burn-stage-hud__drawer") as HTMLButtonElement;
+    fireEvent.click(trigger);
+    expect(container.querySelector(".burn-ingame-drawer")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(container.querySelector(".burn-ingame-drawer")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 
   it("keeps the production shell game-led with score hierarchy instead of a bare instruction panel", () => {
@@ -173,6 +245,10 @@ describe("burn-league Phaser playarea", () => {
     expect(container.textContent).toContain("You burned");
     expect(container.textContent).toContain("Current leader");
     expect(container.textContent).toContain("You lead");
+    expect(container.querySelector(".burn-stage-shell")).toBeTruthy();
+    expect(container.querySelector(".burn-stage-hud")).toBeTruthy();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".mx2-action-rail__drawer-toggle")).toBeNull();
     expect(container.querySelector(".burn-drawer")).toBeNull();
   });
 
@@ -186,9 +262,10 @@ describe("burn-league Phaser playarea", () => {
       />,
     );
 
-    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(container.querySelector(".burn-stage-hud__drawer") as Element);
 
-    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.querySelector(".burn-ingame-drawer")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
     expect(container.querySelector(".burn-drawer__summary")?.textContent).toContain("Season #7");
     expect(container.querySelector(".burn-drawer__summary")?.textContent).toContain("Prize pool");
     expect(container.querySelector(".burn-drawer__leaderboard")?.textContent).toContain("9.50 GAS");
@@ -199,6 +276,11 @@ describe("burn-league Phaser playarea", () => {
     const drawerWithdraw = container.querySelector(".burn-drawer__credit button") as HTMLButtonElement;
     fireEvent.click(drawerWithdraw);
     expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
+
+    fireEvent.click(
+      container.querySelector('[aria-label="Close league drawer"]') as HTMLButtonElement,
+    );
+    expect(container.querySelector(".burn-ingame-drawer")).toBeNull();
   });
 
   it("surfaces settle completion with a dismissible production feedback state", () => {
@@ -221,10 +303,41 @@ describe("burn-league Phaser playarea", () => {
 
   it("keeps the production Phaser wrapper from regressing to a one-line drawer", () => {
     const source = fs.readFileSync(path.join(appsRoot(), "burn-league/src/PhaserPlayArea.tsx"), "utf8");
+    const styles = fs.readFileSync(path.join(appsRoot(), "burn-league/src/PlayArea.scss"), "utf8");
 
     expect(source).toContain("burn-drawer__leaderboard");
     expect(source).toContain("burn-drawer__steps");
+    expect(source).toContain("burn-stage-shell");
+    expect(source).toContain("burn-stage-hud");
+    expect(source).toContain("burn-ingame-drawer");
     expect(source).toContain("lastSettleResult");
+    expect(source).toContain("actions={{}}");
+    expect(source).toContain("burn-a11y-layer");
+    expect(source).toContain("leagueDataAvailable");
+    expect(source).toContain("MiniAppRoot already displayed the action failure");
+    expect(source).toContain("settleAction: t(\"settleSeason\")");
+    expect(source).not.toContain("score={");
+    expect(source).not.toContain("drawerToggleLabel=");
+    expect(source).not.toContain("drawer={{");
     expect(source).not.toContain("drawer={{ children: <p>{t(\"howItWorks\")}</p> }}");
+    expect(source).not.toContain("secondary: [");
+    expect(source).not.toContain("dispatch(\"settle\")");
+    expect(styles).toContain("width: min(100%, 420px);");
+  });
+
+  it("keeps Burn League settlement wired to the in-canvas primary action", () => {
+    const scene = fs.readFileSync(path.join(appsRoot(), "burn-league/src/scenes/BurnLeagueScene.ts"), "utf8");
+
+    expect(scene).toContain(
+      'private primaryAction: "connect" | "burn" | "settle" | "recheck"',
+    );
+    expect(scene).toContain("enabled: () => this.canPrimaryAction()");
+    expect(scene).toContain('this.dispatch("connectWallet")');
+    expect(scene).toContain('this.dispatch("recheckBurn")');
+    expect(scene).toContain('this.dispatch("settle")');
+    expect(scene).toContain("private canPrimaryAction()");
+    expect(scene).toContain("protected onReducedMotionChange");
+    expect(scene).toContain("this.boardRowWidth");
+    expect(scene).toContain("The first GameFi press only arms");
   });
 });

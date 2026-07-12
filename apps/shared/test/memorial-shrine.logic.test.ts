@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 import { useMemorialShrine } from "../../memorial-shrine/src/composables/useMemorialShrine";
+import {
+  MEMORIAL_OFFERING_COSTS_FIXED8,
+  MEMORIAL_SHRINE_CONTRACTS,
+  type MemorialTransactionOutcome,
+} from "../../memorial-shrine/src/logic/memorial-production";
 
 import { addressToScriptHash } from "../utils/neo";
 
@@ -14,6 +19,9 @@ const OWNER = "NhMYxG5ATmRjSy6ocnPxrA2DiYba6xhFqu";
 // Little-endian 0x script hash for OWNER — matches addressToScriptHash and the
 // on-chain visitor / creator field the contract stores for this wallet.
 const OWNER_SCRIPT_HASH = addressToScriptHash(OWNER);
+const CREATE_TXID = `0x${"a1".repeat(32)}`;
+const TRIBUTE_TXID = `0x${"b2".repeat(32)}`;
+const PAYMENT_TXID = `0x${"c3".repeat(32)}`;
 
 function t(key: string) {
   const messages: Record<string, string> = {
@@ -30,6 +38,8 @@ function t(key: string) {
 function createShrine(options: {
   launchNetwork?: "mainnet" | "testnet" | null;
   connectedAddress?: string | null;
+  paymentHub?: unknown;
+  transactionState?: "halt" | "unknown" | "fault" | "mismatch";
 } = {}) {
   // In-memory contract state.
   const memorialsById = new Map<number, Record<string, unknown>>();
@@ -39,11 +49,37 @@ function createShrine(options: {
   // visitorHash (lowercased) -> Set<memorialId>
   const visitorMemorials = new Map<string, Set<number>>();
   let nextTributeId = 0;
+  let lastWrite: {
+    kind: "create" | "tribute";
+    memorialId: number;
+    offeringType?: number;
+    name?: string;
+    deathYear?: number;
+  } | null = null;
 
   const read = vi.fn(async (operation: string, args?: Array<{ value: unknown }>) => {
     switch (operation) {
       case "getMemorialCount":
         return memorialsById.size;
+      case "isPaused":
+        return false;
+      case "paymentHub":
+        return Object.prototype.hasOwnProperty.call(options, "paymentHub")
+          ? options.paymentHub
+          : `0x${"22".repeat(20)}`;
+      case "getOfferingCost":
+        return MEMORIAL_OFFERING_COSTS_FIXED8[
+          Number(args?.[0]?.value) as keyof typeof MEMORIAL_OFFERING_COSTS_FIXED8
+        ] ?? null;
+      case "getMemorialTributeCount": {
+        const memorialId = Number(args?.[0]?.value);
+        return (tributesByMemorial.get(memorialId) ?? []).length;
+      }
+      case "getMemorialTributeAt": {
+        const memorialId = Number(args?.[0]?.value);
+        const index = Number(args?.[1]?.value);
+        return (tributesByMemorial.get(memorialId) ?? [])[index] ?? 0;
+      }
       case "getMemorialDetails": {
         const id = Number(args?.[0]?.value);
         return memorialsById.get(id) ?? {};
@@ -56,7 +92,9 @@ function createShrine(options: {
       }
       case "getMemorialTributes": {
         const memorialId = Number(args?.[0]?.value);
-        return [...(tributesByMemorial.get(memorialId) ?? [])];
+        const offset = Number(args?.[1]?.value ?? 0);
+        const limit = Number(args?.[2]?.value ?? Number.MAX_SAFE_INTEGER);
+        return [...(tributesByMemorial.get(memorialId) ?? [])].slice(offset, offset + limit);
       }
       case "getTributeDetails": {
         const tributeId = Number(args?.[0]?.value);
@@ -67,7 +105,11 @@ function createShrine(options: {
     }
   });
 
-  const invoke = vi.fn(async (operation: string, callArgs: Array<{ value: unknown }>) => {
+  const invoke = vi.fn(async (
+    operation: string,
+    callArgs: Array<{ value: unknown }>,
+    invokeOptions?: { onTransactionSent?: (txid: string) => void },
+  ) => {
     if (operation === "createMemorial") {
       const id = memorialsById.size + 1;
       memorialsById.set(id, {
@@ -84,18 +126,40 @@ function createShrine(options: {
         incenseCount: 0, candleCount: 0, flowerCount: 0,
         fruitCount: 0, wineCount: 0, feastCount: 0,
       });
-      return { txid: "0xinvoke", success: true, event: { state: [{ value: String(id) }, { value: OWNER }] } };
+      lastWrite = {
+        kind: "create",
+        memorialId: id,
+        name: String(callArgs[1]?.value ?? ""),
+        deathYear: Number(callArgs[5]?.value ?? 0),
+      };
+      invokeOptions?.onTransactionSent?.(CREATE_TXID);
+      return { txid: CREATE_TXID, success: true, verified: true };
     }
     // Mainnet payTribute path.
     if (operation === "payTribute") {
-      return recordTribute(callArgs);
+      const result = recordTribute(callArgs);
+      invokeOptions?.onTransactionSent?.(TRIBUTE_TXID);
+      return result;
     }
-    return { txid: "0xinvoke", success: true, event: { state: [{ value: "42" }, { value: OWNER }] } };
+    return { txid: CREATE_TXID, success: true, verified: true };
   });
 
   const invokeWithPayment = vi.fn(
-    async (_amount: string, _memo: string, _operation: string, callArgs: Array<{ value: unknown }>) =>
-      recordTribute(callArgs),
+    async (
+      _amount: string,
+      _memo: string,
+      _operation: string,
+      callArgs: Array<{ value: unknown }>,
+      invokeOptions?: {
+        onPaymentSent?: (txid: string) => void;
+        onTransactionSent?: (txid: string) => void;
+      },
+    ) => {
+      invokeOptions?.onPaymentSent?.(PAYMENT_TXID);
+      const result = recordTribute(callArgs);
+      invokeOptions?.onTransactionSent?.(TRIBUTE_TXID);
+      return result;
+    },
   );
 
   function seedMemorial(over: Partial<Record<string, unknown>> = {}) {
@@ -138,18 +202,52 @@ function createShrine(options: {
     const set = visitorMemorials.get(visitorHash) ?? new Set<number>();
     set.add(memorialId);
     visitorMemorials.set(visitorHash, set);
+    lastWrite = { kind: "tribute", memorialId, offeringType };
     return {
-      txid: "0xpaid",
+      txid: TRIBUTE_TXID,
       success: true,
-      event: { state: [{ value: String(tributeId) }, { value: OWNER }, { value: String(offeringType) }] },
+      verified: true,
     };
   }
+
+  const transactionReader = vi.fn(async (): Promise<MemorialTransactionOutcome> => {
+    if (options.transactionState === "unknown") return { state: "unknown", notifications: [] };
+    if (options.transactionState === "fault") return { state: "fault", notifications: [] };
+    if (!lastWrite) return { state: "unknown", notifications: [] };
+    const contract = MEMORIAL_SHRINE_CONTRACTS[options.launchNetwork ?? "testnet"];
+    return lastWrite.kind === "create"
+      ? {
+          state: "halt",
+          notifications: [{
+            contract,
+            eventName: "MemorialCreated",
+            values: [
+              lastWrite.memorialId,
+              OWNER_SCRIPT_HASH,
+              options.transactionState === "mismatch" ? "Different memorial" : lastWrite.name,
+              lastWrite.deathYear,
+            ],
+          }],
+        }
+      : {
+          state: "halt",
+          notifications: [{
+            contract,
+            eventName: "TributePaid",
+            values: [lastWrite.memorialId, OWNER_SCRIPT_HASH, lastWrite.offeringType],
+          }],
+        };
+  });
 
   const chain = {
     address: createObservable<string | null>(
       options.connectedAddress === undefined ? OWNER : options.connectedAddress,
     ),
     ensureWallet: vi.fn().mockResolvedValue(OWNER),
+    detectNetwork: vi.fn().mockResolvedValue(`neo-n3-${options.launchNetwork ?? "testnet"}`),
+    contractAddress: createObservable<string | null>(
+      MEMORIAL_SHRINE_CONTRACTS[options.launchNetwork ?? "testnet"],
+    ),
     read,
     invoke,
     invokeWithPayment,
@@ -168,8 +266,9 @@ function createShrine(options: {
     app: framework,
     launchNetwork: options.launchNetwork ?? "testnet",
     t,
+    transactionReader,
   });
-  return { shrine, chain, memorialsById, tributesById, seedMemorial };
+  return { shrine, chain, memorialsById, tributesById, seedMemorial, transactionReader };
 }
 
 describe("Memorial Shrine logic", () => {
@@ -178,7 +277,7 @@ describe("Memorial Shrine logic", () => {
 
     await shrine.createMemorial({
       name: "Loved one",
-      photoHash: "ipfs://portrait",
+      photoHash: "ipfs://bafybeigdyrztfixture234567abcdefghijklmnop",
       relationship: "mentor",
       birthYear: 1950,
       deathYear: 2024,
@@ -191,17 +290,22 @@ describe("Memorial Shrine logic", () => {
       [
         { type: "Hash160", value: OWNER },
         { type: "String", value: "Loved one" },
-        { type: "String", value: "ipfs://portrait" },
+        { type: "String", value: "ipfs://bafybeigdyrztfixture234567abcdefghijklmnop" },
         { type: "String", value: "mentor" },
         { type: "Integer", value: "1950" },
         { type: "Integer", value: "2024" },
         { type: "String", value: "A generous builder" },
         { type: "String", value: "Always remembered" },
       ],
-      { waitForEvent: "MemorialCreated", waitTimeoutMs: 30_000 },
+      expect.objectContaining({
+        scriptHash: MEMORIAL_SHRINE_CONTRACTS.testnet,
+        waitForEvent: "MemorialCreated",
+        waitTimeoutMs: 45_000,
+        onTransactionSent: expect.any(Function),
+      }),
     );
     // The result of the confirmed write is surfaced through lastTx.
-    expect(shrine.lastTx.get()).toMatchObject({ txid: "0xinvoke" });
+    expect(shrine.lastTx.get()).toMatchObject({ txid: CREATE_TXID });
     // The created memorial is reloaded straight from the contract.
     expect(shrine.memorials.get()).toHaveLength(1);
     expect(shrine.memorials.get()[0]).toMatchObject({ id: 1, name: "Loved one" });
@@ -225,6 +329,168 @@ describe("Memorial Shrine logic", () => {
     expect(shrine.recentObituaries.get()[0]).toMatchObject({ id: 1, name: "First", text: "rest one" });
   });
 
+  it("preserves the verified catalog when a refresh RPC fails", async () => {
+    const { shrine, chain, seedMemorial } = createShrine();
+    seedMemorial({ deceasedName: "Verified memorial" });
+    await shrine.loadMemorials();
+    expect(shrine.memorials.get()).toHaveLength(1);
+
+    chain.read.mockRejectedValueOnce(new Error("rpc offline"));
+    await expect(shrine.loadMemorials()).resolves.toBe(false);
+
+    expect(shrine.catalogStatus.get()).toBe("error");
+    expect(shrine.memorials.get()[0]?.name).toBe("Verified memorial");
+  });
+
+  it("treats malformed memorial integers as unavailable instead of synthetic zeroes", async () => {
+    const { shrine, seedMemorial } = createShrine();
+    seedMemorial({ incenseCount: "not-an-integer" });
+
+    await expect(shrine.loadMemorials()).resolves.toBe(false);
+
+    expect(shrine.catalogStatus.get()).toBe("error");
+    expect(shrine.memorials.get()).toEqual([]);
+  });
+
+  it("loads the newest capped memorial window when the chain count grows past the UI cap", async () => {
+    const { shrine, seedMemorial } = createShrine();
+    for (let index = 0; index < 61; index += 1) seedMemorial();
+
+    await expect(shrine.loadMemorials()).resolves.toBe(true);
+
+    expect(shrine.memorials.get()).toHaveLength(60);
+    expect(shrine.memorials.get()[0]?.id).toBe(61);
+    expect(shrine.memorials.get().at(-1)?.id).toBe(2);
+  });
+
+  it("rejects invalid memorial drafts before requesting the wallet", async () => {
+    const { shrine, chain } = createShrine();
+    await expect(shrine.createMemorial({
+      name: "Loved one",
+      photoHash: "not a usable photo reference",
+      relationship: "family",
+      birthYear: 1950,
+      deathYear: 2024,
+      biography: "",
+      obituary: "",
+    })).rejects.toThrow("photoInvalid");
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown offerings before requesting the wallet", async () => {
+    const { shrine, chain } = createShrine();
+    await expect(shrine.payTribute(1, 99, "Unknown offering")).rejects.toThrow(
+      "invalidOffering",
+    );
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+  });
+
+  it("persists the exact intent, network, contract, wallet, and txid at broadcast", async () => {
+    const { shrine } = createShrine({ transactionState: "unknown" });
+    const result = await shrine.createMemorial({
+      name: "Saved intent",
+      photoHash: "",
+      relationship: "Family",
+      birthYear: 1940,
+      deathYear: 2020,
+      biography: "Remembered with warmth.",
+      obituary: "Always remembered.",
+    });
+
+    expect(result).toEqual({ txid: CREATE_TXID, confirmed: false });
+    expect(shrine.pendingWrite.get()).toMatchObject({
+      network: "testnet",
+      contractHash: MEMORIAL_SHRINE_CONTRACTS.testnet,
+      wallet: OWNER,
+      walletHash: OWNER_SCRIPT_HASH,
+      txid: CREATE_TXID,
+      intent: {
+        kind: "create",
+        beforeMemorialCount: "0",
+        name: "Saved intent",
+      },
+    });
+    expect(JSON.parse(
+      window.localStorage.getItem("memorial-shrine-pending-write/v1/testnet") ?? "null",
+    )).toMatchObject({ txid: CREATE_TXID, walletHash: OWNER_SCRIPT_HASH });
+    expect(shrine.writePhase.get()).toBe("broadcast");
+  });
+
+  it("restores and checks a saved transaction on refresh without replaying the write", async () => {
+    const pending = {
+      version: 1,
+      network: "testnet",
+      contractHash: MEMORIAL_SHRINE_CONTRACTS.testnet,
+      wallet: OWNER,
+      walletHash: OWNER_SCRIPT_HASH,
+      txid: CREATE_TXID,
+      intent: {
+        kind: "create",
+        beforeMemorialCount: "0",
+        name: "Saved intent",
+        photoHash: "",
+        relationship: "Family",
+        birthYear: 1940,
+        deathYear: 2020,
+        biography: "Remembered with warmth.",
+        obituary: "Always remembered.",
+      },
+      createdAt: Date.now(),
+    };
+    window.localStorage.setItem(
+      "memorial-shrine-pending-write/v1/testnet",
+      JSON.stringify(pending),
+    );
+    const { shrine, chain, transactionReader } = createShrine({ transactionState: "unknown" });
+
+    await shrine.loadAll();
+
+    expect(transactionReader).toHaveBeenCalledWith("testnet", CREATE_TXID);
+    expect(chain.invoke).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+    expect(shrine.pendingWrite.get()?.txid).toBe(CREATE_TXID);
+  });
+
+  it("separates VM FAULT and exact-event mismatch from a confirmed write", async () => {
+    const faulted = createShrine({ transactionState: "fault" });
+    await expect(faulted.shrine.createMemorial({
+      name: "Faulted",
+      photoHash: "",
+      relationship: "",
+      birthYear: "",
+      deathYear: "",
+      biography: "",
+      obituary: "",
+    })).resolves.toEqual({ txid: CREATE_TXID, confirmed: false });
+    expect(faulted.shrine.pendingWrite.get()).toBeNull();
+    expect(faulted.shrine.writePhase.get()).toBe("fault");
+
+    window.localStorage.clear();
+    const mismatched = createShrine({ transactionState: "mismatch" });
+    await expect(mismatched.shrine.createMemorial({
+      name: "Exact name",
+      photoHash: "",
+      relationship: "",
+      birthYear: "",
+      deathYear: "",
+      biography: "",
+      obituary: "",
+    })).resolves.toEqual({ txid: CREATE_TXID, confirmed: false });
+    expect(mismatched.shrine.pendingWrite.get()).toBeNull();
+    expect(mismatched.shrine.writePhase.get()).toBe("event-mismatch");
+  });
+
+  it("blocks the currently unconfigured mainnet tribute lane before opening the wallet", async () => {
+    const { shrine, chain } = createShrine({ launchNetwork: "mainnet", paymentHub: null });
+    await expect(shrine.payTribute(1, 1, "Mainnet remembrance", "77")).rejects.toThrow(
+      "mainnetTributeUnavailable",
+    );
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invoke).not.toHaveBeenCalled();
+  });
+
   it("pays testnet tributes through direct prepaid GAS", async () => {
     const { shrine, chain } = createShrine({ launchNetwork: "testnet" });
     await shrine.createMemorial({
@@ -244,11 +510,17 @@ describe("Memorial Shrine logic", () => {
         { type: "Integer", value: "3" },
         { type: "String", value: "Always remembered" },
       ],
-      { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
+      expect.objectContaining({
+        scriptHash: MEMORIAL_SHRINE_CONTRACTS.testnet,
+        waitForEvent: "TributePaid",
+        waitTimeoutMs: 45_000,
+        onPaymentSent: expect.any(Function),
+        onTransactionSent: expect.any(Function),
+      }),
     );
     // The paid tribute is reflected immediately (optimistic + reconcile) and
     // the confirmed write is surfaced through lastTx.
-    expect(shrine.lastTx.get()).toMatchObject({ txid: "0xpaid" });
+    expect(shrine.lastTx.get()).toMatchObject({ txid: TRIBUTE_TXID });
     expect(shrine.myTributes.get()[0]).toMatchObject({
       memorialId: 1,
       offeringType: 3,
@@ -293,21 +565,27 @@ describe("Memorial Shrine logic", () => {
   });
 
   it("uses the mainnet receipt ABI for tributes", async () => {
-    const { shrine, chain } = createShrine({ launchNetwork: "mainnet" });
+    const { shrine, chain, seedMemorial } = createShrine({ launchNetwork: "mainnet" });
+    seedMemorial();
 
-    await shrine.payTribute(42, 1, "Mainnet remembrance", "77");
+    await shrine.payTribute(1, 1, "Mainnet remembrance", "77");
 
     expect(chain.invokeWithPayment).not.toHaveBeenCalled();
     expect(chain.invoke).toHaveBeenCalledWith(
       "payTribute",
       [
         { type: "Hash160", value: OWNER },
-        { type: "Integer", value: "42" },
+        { type: "Integer", value: "1" },
         { type: "Integer", value: "1" },
         { type: "String", value: "Mainnet remembrance" },
         { type: "Integer", value: "77" },
       ],
-      { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
+      expect.objectContaining({
+        scriptHash: MEMORIAL_SHRINE_CONTRACTS.mainnet,
+        waitForEvent: "TributePaid",
+        waitTimeoutMs: 45_000,
+        onTransactionSent: expect.any(Function),
+      }),
     );
   });
 

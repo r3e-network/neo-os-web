@@ -9,7 +9,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity --
   name: "AA Relay Console",
-  description: "Inspect AA relay and paymaster behavior",
+  description: "Prepare and recover verifiable AA relay jobs",
   icon: "signal",
   category: "console",
   shell: "console",
@@ -22,17 +22,18 @@ export const manifest: MiniAppManifest = {
   // -- Stats --
   stats: [
     { labelKey: "labelAA", valueKey: "aaCoreDisplay", format: "text", icon: "cpu" },
-    { labelKey: "relayLabel", valueKey: "relayUrlDisplay", format: "text", icon: "signal" },
     { labelKey: "network", valueKey: "networkDisplay", format: "text", icon: "globe" },
-    { labelKey: "paymasterLabel", valueKey: "paymasterDisplay", format: "text", icon: "wallet" },
+    { labelKey: "runtimeLabel", valueKey: "runtimeMode", format: "text", icon: "shield" },
+    { labelKey: "chainStateLabel", valueKey: "chainStatus", format: "text", icon: "signal" },
   ],
 
   // -- Sidebar --
   sidebar: {
     titleKey: "appName",
     items: [
-      { labelKey: "aaAddress", valueKey: "aaAddressDisplay", format: "text" },
-      { labelKey: "latestRelay", valueKey: "relayResponse", format: "text" },
+      { labelKey: "jobId", valueKey: "reviewJobId", format: "text" },
+      { labelKey: "reviewStateLabel", valueKey: "reviewReadiness", format: "text" },
+      { labelKey: "txidLabel", valueKey: "txidDisplay", format: "text" },
     ],
   },
 

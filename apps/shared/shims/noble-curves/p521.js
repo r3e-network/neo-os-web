@@ -50,4 +50,3 @@ const htf = /* @__PURE__ */ (() => createHasher(secp521r1.ProjectivePoint, (scal
 }))();
 export const hashToCurve = /* @__PURE__ */ (() => htf.hashToCurve)();
 export const encodeToCurve = /* @__PURE__ */ (() => htf.encodeToCurve)();
-//# sourceMappingURL=p521.js.map

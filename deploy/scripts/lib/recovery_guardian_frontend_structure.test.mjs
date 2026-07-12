@@ -10,45 +10,61 @@ import {
   read,
 } from "./frontend_structure_helpers.mjs";
 
-test("Recovery Guardian exposes a guarded v2 recovery workspace", () => {
+test("Recovery Guardian exposes a state-driven production recovery journey", () => {
   const playArea = read("apps/recovery-guardian/src/PlayArea.tsx");
   const styles = read("apps/recovery-guardian/src/PlayArea.scss");
   const main = read("apps/recovery-guardian/src/main.tsx");
+  const domain = read("apps/recovery-guardian/src/recovery-guardian.ts");
   const messages = read("apps/recovery-guardian/src/locale/messages.ts");
+  const manifest = read("apps/recovery-guardian/src/manifest.ts");
 
   assertPlayStage(playArea, "tool", "Recovery Guardian");
   assertClasses(playArea, [
     "recovery-guardian-play-area",
-    "guardian-scene",
-    "guardian-command-panel",
-    "guardian-account-pass",
-    "guardian-route",
-    "guardian-state-card",
-    "guardian-pass-panel",
+    "guardian-app",
+    "guardian-console",
+    "guardian-lookup",
+    "guardian-journey",
+    "guardian-status-card",
+    "guardian-quorum-card",
     "guardian-command-art",
-    "guardian-recovery-pass",
-    "guardian-drawer",
-    "guardian-drawer__panel",
+    "guardian-details",
   ], "Recovery Guardian");
   assertDispatches(playArea, [
-    "openRecoveryPreviewLink",
-    "queryGuardianState",
-    "openIdentityWorkspace",
-    "openRecoveryDocs",
-    "copyRecoveryPreviewLink",
-    "copyRecoveryCredentialLink",
+    "loadProfile",
+    "continueRecovery",
+    "openAAWorkspace",
+    "reviewSetupPackage",
+    "submitSetup",
+    "submitFinalize",
+    "submitCancel",
+    "recoverPendingWrite",
+    "refreshRecoveryStorage",
   ], "Recovery Guardian");
-  assert.match(main, /recoveryNewOwner\.get\(\)/);
-  assert.match(main, /recoveryExpiryMinutes\.get\(\)/);
   assertAssets(["apps/recovery-guardian/public/recovery-command-center.webp"]);
   assertMessageKeys(messages, [
     "guardianHeroTitle",
-    "guardianFlowPrepare",
-    "guardianPrepareShort",
-    "queryBlocked",
-    "recoveryLinkBlocked",
+    "journeyProtected",
+    "journeyCollecting",
+    "journeyWaiting",
+    "journeyReady",
+    "journeySetupUpgradeRequired",
+    "setupActivationPaused",
+    "setupContractUpgradeRequired",
+    "publicSetupPackage",
+    "finalizeRecovery",
   ], "Recovery Guardian");
-  assert.match(styles, /\.guardian-scene\s*\{/);
+  assert.match(main, /useRecoveryGuardian/);
+  assert.match(domain, /getPendingRecovery/);
+  assert.match(domain, /RecoveryFinalized/);
+  assert.match(domain, /RecoveryCancelled/);
+  assert.match(domain, /RecoverySetup/);
+  assert.match(domain, /FIRST_TIME_RECOVERY_SETUP_AVAILABLE\s*=\s*false/);
+  assert.match(domain, /getapplicationlog/);
+  assert.match(domain, /recoveryReadbackMismatch/);
+  assert.match(manifest, /shell:\s*"launcher"/);
+  assert.match(manifest, /operations:\s*\[\]/);
+  assert.match(styles, /\.guardian-app__grid\s*\{/);
   assert.match(styles, /@media \(max-width:/);
   assertModernTypography(styles, "Recovery Guardian");
 });

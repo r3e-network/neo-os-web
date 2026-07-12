@@ -1,12 +1,22 @@
 import { afterEach, vi } from "vitest";
 
-import { useGasLuckyPool } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
+import { useGasLuckyPool as useGasLuckyPoolImpl } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { createMiniAppFramework } from "@shared/react";
 import type { ChainService } from "@shared/services/ChainService";
 
-export { addressToScriptHash, useGasLuckyPool };
+export { addressToScriptHash };
+
+export function useGasLuckyPool(
+  options: Parameters<typeof useGasLuckyPoolImpl>[0],
+) {
+  return useGasLuckyPoolImpl({
+    ...options,
+    paidLaneEnabled: options.paidLaneEnabled ?? true,
+    oneGateClaimEnabled: options.oneGateClaimEnabled ?? true,
+  });
+}
 
 export const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
 export const ONEGATE_OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";

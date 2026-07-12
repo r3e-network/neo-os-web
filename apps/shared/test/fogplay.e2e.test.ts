@@ -1,36 +1,38 @@
-/**
- * fogplay E2E: Verifies the commit→reveal coin flip flow
- */
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("fogplay E2E lifecycle", () => {
-  it("verifies the commit→reveal two-step flow", () => {
-    const FLOW = ["commit", "reveal"];
-    expect(FLOW).toEqual(["commit", "reveal"]);
+const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
+  ? path.resolve(process.cwd(), "..")
+  : path.resolve(process.cwd(), "apps");
+const source = readFileSync(
+  path.join(appsRoot, "fogplay/src/composables/useCoinFlip.ts"),
+  "utf8",
+);
+
+describe("FogPlay commit/reveal lifecycle guard", () => {
+  it("uses the contract memo and exact Fixed8 amount once", () => {
+    expect(source).toContain('const BET_MEMO = "miniapp-fogplay:bet"');
+    expect(source).toContain("const amountBase = toBaseUnits(betAmount.get())");
+    expect(source).toContain("app.chain.arg.integer(amountBase)");
+    expect(source).not.toContain("miniapp-fogplay:bet:${choice}");
   });
 
-  it("verifies heads maps to choice 0, tails to choice 1", () => {
-    const CHOICE_MAP = { heads: 0, tails: 1 };
-    expect(CHOICE_MAP.heads).toBe(0);
-    expect(CHOICE_MAP.tails).toBe(1);
+  it("maps heads/tails to the deployed integer ABI", () => {
+    expect(source).toContain('side === "heads" ? 0 : 1');
+    expect(source).toContain('outcome === 0 ? "heads" : "tails"');
   });
 
-  it("verifies the commit event name", () => {
-    expect("Committed").toBe("Committed");
+  it("persists commit identity and confirms settlement from exact state", () => {
+    expect(source).toContain('waitForEvent: "Committed"');
+    expect(source).toContain('waitForEvent: "Settled"');
+    expect(source).toContain('readRaw("getPendingBet"');
+    expect(source).toContain("waitForCanonicalSettlement");
+    expect(source).toContain("payoutBase !== expectedPayout");
   });
 
-  it("verifies the settle/reveal event name", () => {
-    expect("Settled").toBe("Settled");
-  });
-
-  it("verifies the GAS hash for bet payment", () => {
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    expect(GAS_HASH).toMatch(/^0x[0-9a-f]{40}$/);
-  });
-
-  it("verifies the bet memo format includes the choice", () => {
-    const memo = (choice: number) => `miniapp-fogplay:bet:${choice}`;
-    expect(memo(0)).toContain("0"); // heads
-    expect(memo(1)).toContain("1"); // tails
+  it("keeps the public paid lane fail closed until artifact compatibility", () => {
+    expect(source).toContain("export const FOGPLAY_PAID_LANE_ENABLED = false");
+    expect(source).toContain("if (!paidLaneEnabled)");
   });
 });

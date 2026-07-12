@@ -53,6 +53,11 @@ test('generated registry entries are well-formed lowercase script hashes', async
     for (const [appId, hash] of entries) {
       assert.match(appId, /^miniapp-[a-z0-9-]+$/, `unexpected app id key: ${appId}`);
       assert.match(hash, /^0x[0-9a-f]{40}$/, `${network}/${appId} hash must be lowercase 0x + 40 hex`);
+      assert.notEqual(
+        hash,
+        '0x0000000000000000000000000000000000000000',
+        `${network}/${appId} must not publish an undeployed zero-hash placeholder`
+      );
     }
   }
 });

@@ -9,6 +9,8 @@ export type Difficulty = 0 | 1 | 2;
 
 export const ENTRY_MEMO = "miniapp-snake-bounty:entry";
 export const FUND_MEMO = "miniapp-snake-bounty:fund";
+/** Contract-enforced delay before an abandoned active/settling game can expire. */
+export const SETTLEMENT_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: Difficulty;
@@ -63,6 +65,17 @@ export function ruleOf(difficulty: number): DifficultyRule {
   }
 }
 
+/**
+ * Arcade movement cadence is intentionally separate from the on-chain economy.
+ * Higher trails demand faster steering while preserving the contract's existing
+ * target/deadline/settlement rules.
+ */
+export function tickMsOf(difficulty: number): number {
+  if (difficulty === 1) return 180;
+  if (difficulty === 2) return 145;
+  return 230;
+}
+
 export function gasDisplay(fixed8: bigint): string {
   const whole = fixed8 / 100_000_000n;
   const fraction = fixed8 % 100_000_000n;
@@ -77,10 +90,12 @@ export function formatClock(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded";
+export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded" | "unknown";
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
+    case 0:
+      return "committed";
     case 1:
       return "dealt";
     case 2:
@@ -89,7 +104,14 @@ export function statusOf(raw: number): GameStatus {
       return "expired";
     case 4:
       return "refunded";
+    case 5:
+      return "unknown";
     default:
-      return "committed";
+      return "unknown";
   }
+}
+
+/** Expiry is valid only strictly after the on-chain deadline plus grace. */
+export function canExpireAfterGrace(deadline: number, nowMs = Date.now()): boolean {
+  return Number.isFinite(deadline) && deadline > 0 && nowMs > deadline + SETTLEMENT_GRACE_MS;
 }

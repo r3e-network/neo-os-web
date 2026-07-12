@@ -18,7 +18,6 @@
 import type { GameSessionObservables, LeaderEntry, SolveRow } from "@framework/game";
 import { ruleOf } from "./game-rules";
 import {
-  ARROW_BUDGETS,
   FIELD_H,
   LEVEL_TARGETS,
   TICKS_MAX,
@@ -42,12 +41,23 @@ interface GuestLeaderboardApi {
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
+interface GuestStorage {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+}
+
 export interface GuestEngineDeps {
   obs: GameSessionObservables<SolveRow>;
   clues: Obs<string>;
   guestLeaderboard: GuestLeaderboardApi;
+  levelsCleared?: Obs<number>;
+  arrowsUsed?: Obs<number>;
+  runDone?: Obs<boolean>;
+  runWon?: Obs<boolean>;
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
+  storage?: GuestStorage;
+  createLevels?: (difficulty: number) => LevelSpec[];
 }
 
 export interface GuestEngine {
@@ -63,6 +73,7 @@ export interface GuestEngine {
 }
 
 const GUEST_GAME_ID = "guest";
+const GUEST_PROFILE_KEY = "miniapp-curve-arrow:guest-profile:v1";
 
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
@@ -172,10 +183,54 @@ function generateLevels(difficulty: number): LevelSpec[] {
 
 export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   const { obs, clues, guestLeaderboard, t, setStatus } = deps;
+  const storage: GuestStorage | undefined = deps.storage ?? (() => {
+    try {
+      const local = globalThis.localStorage;
+      return {
+        get<T>(key: string, fallback: T | null = null): T | null {
+          const raw = local.getItem(key);
+          return raw === null ? fallback : JSON.parse(raw) as T;
+        },
+        set(key: string, value: unknown): void { local.setItem(key, JSON.stringify(value)); },
+      };
+    } catch {
+      return undefined;
+    }
+  })();
 
   // Shadow run: mirrors the scene's local run so submitSolution knows the score.
   let levels: LevelSpec[] | null = null;
   let run: RunState | null = null;
+
+  const readProfile = (): { bestCleared: number; solves: number } => {
+    try {
+      const parsed = storage?.get<{ bestCleared?: unknown; solves?: unknown }>(
+        GUEST_PROFILE_KEY,
+        null,
+      ) ?? null;
+      return {
+        bestCleared: Math.max(0, Math.floor(Number(parsed?.bestCleared) || 0)),
+        solves: Math.max(0, Math.floor(Number(parsed?.solves) || 0)),
+      };
+    } catch {
+      return { bestCleared: 0, solves: 0 };
+    }
+  };
+
+  const writeProfile = (bestCleared: number, solves: number): void => {
+    try {
+      storage?.set(GUEST_PROFILE_KEY, { bestCleared, solves });
+    } catch {
+      /* Private-mode/local quota failures must never break a free run. */
+    }
+  };
+
+  const publishRun = (): void => {
+    deps.levelsCleared?.set(run?.cleared ?? 0);
+    deps.arrowsUsed?.set(run?.arrowsUsed ?? 0);
+    deps.runDone?.set(run?.done ?? false);
+    deps.runWon?.set(run?.won ?? false);
+  };
 
   const resetToLobby = (): void => {
     levels = null;
@@ -187,7 +242,12 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     obs.commitment.set("");
     obs.lastPayout.set("");
     obs.lastElapsedMs.set(0);
+    obs.isStarting.set(false);
+    obs.isDealing.set(false);
+    obs.isSubmitting.set(false);
     clues.set("");
+    publishRun();
+    obs.lastStatus.set(t("guestStatusReady"));
   };
 
   const submitScore = async (score: number): Promise<void> => {
@@ -226,13 +286,14 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       if (obs.isStarting.get() || obs.isDealing.get()) return;
       const diff = clampDifficulty(difficulty);
       obs.isStarting.set(true);
-      const dealt = generateLevels(diff);
+      const dealt = (deps.createLevels ?? generateLevels)(diff);
       levels = dealt;
       run = createRun(dealt, diff);
       obs.gameDifficulty.set(diff);
       obs.activeGameId.set(GUEST_GAME_ID);
       obs.commitment.set("");
       obs.lastPayout.set("");
+      obs.lastElapsedMs.set(0);
       clues.set(JSON.stringify({ levels: dealt }));
       const now = Date.now();
       obs.dealtAt.set(now);
@@ -240,6 +301,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       obs.gameStatus.set("dealt");
       obs.lastStatus.set(t("guestStatusDealt"));
       obs.isStarting.set(false);
+      publishRun();
       setStatus(t("guestStatusDealt"), "success");
     },
 
@@ -248,28 +310,45 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     },
 
     recordShot(holds: readonly number[]): void {
-      if (!levels || !run || run.done) return;
+      if (
+        obs.gameStatus.get() !== "dealt" ||
+        !levels ||
+        !run ||
+        run.done ||
+        (obs.deadline.get() > 0 && Date.now() >= obs.deadline.get())
+      ) return;
       if (normalizeHolds(holds) === null) return;
       const applied = applyShot(run, levels, holds);
       run = applied.run;
+      publishRun();
     },
 
     async submitSolution(): Promise<void> {
       if (obs.gameStatus.get() !== "dealt") return;
       if (obs.isSubmitting.get()) return;
+      const currentRun = run;
+      const deadlinePassed = obs.deadline.get() > 0 && Date.now() >= obs.deadline.get();
+      if (!currentRun || (!currentRun.done && !deadlinePassed)) {
+        const msg = t("guestRunIncomplete");
+        obs.lastStatus.set(msg);
+        setStatus(msg, "warning");
+        return;
+      }
       obs.isSubmitting.set(true);
       const diff = clampDifficulty(obs.gameDifficulty.get());
-      const cleared = run?.cleared ?? 0;
-      const won = run?.won ?? false;
+      const cleared = currentRun.cleared;
+      const won = currentRun.won && !deadlinePassed;
       const targets = targetsOf(diff);
       obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
       obs.lastPayout.set("");
       obs.gameStatus.set(won ? "solved" : "expired");
       obs.myTotalWon.set(Math.max(obs.myTotalWon.get(), cleared));
       obs.mySolves.set(obs.mySolves.get() + (won ? 1 : 0));
+      writeProfile(obs.myTotalWon.get(), obs.mySolves.get());
       obs.activeGameId.set("0");
       levels = null;
       run = null;
+      publishRun();
       if (won) {
         obs.lastStatus.set(t("guestRunComplete", { cleared, target: targets }));
         setStatus(t("guestRunComplete", { cleared, target: targets }), "success");
@@ -284,7 +363,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
     expireGame(): void {
       resetToLobby();
-      obs.lastStatus.set(t("guestStatusReady"));
     },
 
     retryDeal(): void {
@@ -301,13 +379,18 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
-      obs.myTotalWon.set(0);
-      obs.mySolves.set(0);
+      const profile = readProfile();
+      obs.myTotalWon.set(profile.bestCleared);
+      obs.mySolves.set(profile.solves);
       obs.myHistory.set([]);
       obs.progressionReady.set(true);
       obs.progressionRequiredDifficulty.set(0);
       obs.progressionMaxDifficulty.set(2);
       obs.lastStatus.set(t("guestStatusReady"));
+      deps.arrowsUsed?.set(0);
+      deps.levelsCleared?.set(0);
+      deps.runDone?.set(false);
+      deps.runWon?.set(false);
       await refreshLeaderboard();
     },
   };

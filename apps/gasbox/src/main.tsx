@@ -4,8 +4,9 @@
  * Drives the standalone MiniAppGasBox contract entirely through the MiniApp
  * framework (ctx.framework): app.chain for reads/invokes, app.funds for the
  * deposit-then-commit lane, app.events for the recovery log walks, and
- * app.notify for the per-action toast guards (see useGasBox). Prizes are drawn
- * and paid ON-CHAIN in the pull tx (no client-side simulation, no oracle).
+ * app.notify for the per-action toast guards (see useGasBox). The target flow
+ * commits first and reveals from a fixed later-block beacon; the composable's
+ * deployment gate keeps the currently bound older hash browse/recovery-only.
  */
 
 import { defineMiniApp, createObservable, createDerived } from "@shared/react/defineMiniApp";
@@ -132,6 +133,13 @@ defineMiniApp({
       }
     });
 
+    ctx.framework.actions.register("connectWallet", async () => {
+      await ctx.framework.notify.guard(
+        () => gasbox.connectWallet(),
+        { successKey: "walletConnected" },
+      );
+    });
+
     // Reveal-retry: re-run settle against the persisted pending betId. Safe to
     // retry (settle is permissionless + pays exactly once). Counts the pull only
     // when the reveal newly settles a win here.
@@ -158,6 +166,7 @@ defineMiniApp({
         }),
         { successKey: "machineCreated" },
       );
+      if (published === true) gasbox.closeStudio();
       return published === true;
     });
 
@@ -173,6 +182,23 @@ defineMiniApp({
       await ctx.framework.notify.guard(
         () => gasbox.withdrawRevenue(id),
         { successKey: "revenueClaimed" },
+      );
+    });
+
+    ctx.framework.actions.register("withdrawPlayCredit", async () => {
+      await ctx.framework.notify.guard(
+        () => gasbox.withdrawPlayCredit(),
+        { successKey: "gasboxCreditWithdrawn" },
+      );
+    });
+
+    ctx.framework.actions.register("withdrawPool", async (...args: unknown[]) => {
+      const id = String(args[0] ?? "");
+      const amount = String(args[1] ?? "");
+      if (!id || !amount) return;
+      await ctx.framework.notify.guard(
+        () => gasbox.withdrawPool(id, amount),
+        { successKey: "gasboxPoolWithdrawn" },
       );
     });
 
@@ -205,6 +231,13 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("openStudio", async () => {
+      if (!gasbox.runtimeReady.get()) {
+        ctx.setStatus(
+          gasbox.runtimeError.get() || ctx.t("gasboxDeploymentIncompatible"),
+          "warning",
+        );
+        return;
+      }
       gasbox.openStudio();
       ctx.setStatus(ctx.t("studioGuidance"), "info");
     });
@@ -219,12 +252,14 @@ defineMiniApp({
     // creator withdraws revenue and rounds per-machine, so the view labels it as
     // an estimate ("Est. Plays"), not an exact count.
     const totalPulls = createDerived(
-      () =>
-        gasbox.machines.get().reduce((sum, m) => {
-          const price = Number(m.priceRaw);
-          const revenue = Number(m.revenueRaw);
-          return sum + (price > 0 ? Math.floor(revenue / price) : 0);
-        }, 0),
+      () => {
+        const count = gasbox.machines.get().reduce((sum, machine) => {
+          const price = BigInt(machine.priceBaseUnits || "0");
+          const revenue = BigInt(machine.revenueBaseUnits || "0");
+          return sum + (price > 0n ? revenue / price : 0n);
+        }, 0n);
+        return Number(count > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : count);
+      },
       [gasbox.machines],
     );
 
@@ -245,6 +280,21 @@ defineMiniApp({
         studioOpen: gasbox.studioOpen,
         hasPlayCredit: gasbox.hasPlayCredit,
         formattedPlayCredit: gasbox.formattedPlayCredit,
+        formattedWalletGas: gasbox.formattedWalletGas,
+        formattedWalletNeo: gasbox.formattedWalletNeo,
+        walletStatus: gasbox.walletStatus,
+        walletError: gasbox.walletError,
+        walletConnected: gasbox.walletConnected,
+        runtimeStatus: gasbox.runtimeStatus,
+        runtimeReady: gasbox.runtimeReady,
+        runtimeNetwork: gasbox.runtimeNetwork,
+        runtimeContract: gasbox.runtimeContract,
+        runtimeError: gasbox.runtimeError,
+        pendingBetCount: gasbox.pendingBetCount,
+        catalogStatus: gasbox.catalogStatus,
+        catalogError: gasbox.catalogError,
+        isWithdrawingCredit: gasbox.isWithdrawingCredit,
+        isWithdrawingPool: gasbox.isWithdrawingPool,
         // Commit/reveal (two-step) state — drives the pending "drawing on next
         // block" panel and the Reveal-retry affordance.
         betPhase: gasbox.betPhase,

@@ -43,12 +43,16 @@ defineMiniApp({
     });
 
     const totalPoolDisplay: Observable<string> = {
-      get: () => `${pool.formatNum(pool.totalPool.get(), 0)} ${ctx.t("tokenNeo")}`,
+      get: () => pool.marketAvailable.get()
+        ? `${pool.formatNum(pool.totalPool.get(), 0)} ${ctx.t("tokenNeo")}`
+        : ctx.t("valueUnavailable"),
       set: () => {},
       subscribe: (fn) => pool.totalPool.subscribe(fn),
     };
     const userDepositsDisplay: Observable<string> = {
-      get: () => `${pool.formatNum(pool.userDeposits.get(), 0)} ${ctx.t("tokenNeo")}`,
+      get: () => pool.walletAvailable.get()
+        ? `${pool.formatNum(pool.userDeposits.get(), 0)} ${ctx.t("tokenNeo")}`
+        : ctx.t("valueUnavailable"),
       set: () => {},
       subscribe: (fn) => pool.userDeposits.subscribe(fn),
     };
@@ -61,14 +65,21 @@ defineMiniApp({
     // from EITHER the event leaderboard OR the contract's highestBid read, so a
     // degraded events feed cannot wrongly disable settle while highestBid > 0.
     const canSettle: Observable<boolean> = {
-      get: () => pool.bids.get().length > 0 || pool.hasLiveBid.get(),
+      get: () => pool.marketAvailable.get() && pool.windowAvailable.get() &&
+        pool.highestBidAvailable.get() && pool.hasLiveBid.get(),
       set: () => {},
       subscribe: (fn) => {
         const stopBids = pool.bids.subscribe(fn);
         const stopLive = pool.hasLiveBid.subscribe(fn);
+        const stopMarket = pool.marketAvailable.subscribe(fn);
+        const stopWindow = pool.windowAvailable.subscribe(fn);
+        const stopHighest = pool.highestBidAvailable.subscribe(fn);
         return () => {
           stopBids();
           stopLive();
+          stopMarket();
+          stopWindow();
+          stopHighest();
         };
       },
     };
@@ -146,6 +157,9 @@ defineMiniApp({
         successKey: "creditWithdrawSuccess",
       });
     });
+    ctx.framework.actions.register("recoverPendingOperation", async () => {
+      await ctx.framework.notify.guard(() => pool.recoverPendingOperation());
+    });
 
     return {
       state: {
@@ -160,12 +174,26 @@ defineMiniApp({
         pendingRewards: pool.pendingRewards,
         gasCredit: pool.gasCredit,
         reclaimableBids: pool.reclaimableBids,
+        marketAvailable: pool.marketAvailable,
+        windowAvailable: pool.windowAvailable,
+        highestBidAvailable: pool.highestBidAvailable,
+        walletAvailable: pool.walletAvailable,
+        bidsAvailable: pool.bidsAvailable,
+        settlementAvailable: pool.settlementAvailable,
+        reclaimableAvailable: pool.reclaimableAvailable,
+        readError: pool.readError,
         depositAmount: pool.depositAmount,
         withdrawAmount: pool.withdrawAmount,
         bidAmount: pool.bidAmount,
         isBusy: pool.isBusy,
+        isRecovering: pool.isRecovering,
         dataLoading: pool.dataLoading,
         address: pool.address,
+        activeAction: pool.activeAction,
+        pendingOperation: pool.pendingOperation,
+        pendingTxid: pool.pendingTxid,
+        transactionStatus: pool.transactionStatus,
+        storageHealthy: pool.storageHealthy,
         hasRewards: pool.hasRewards,
         hasCredit: pool.hasCredit,
         hasReclaimable: pool.hasReclaimable,

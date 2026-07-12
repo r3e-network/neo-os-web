@@ -70,6 +70,103 @@
   box-shadow: none;
 }
 
+.aa-pending-strip {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(180, 83, 9, 0.22);
+  border-radius: 16px;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.aa-pending-strip > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.aa-pending-strip strong,
+.aa-pending-strip small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aa-pending-strip small {
+  font-family: var(--mx2-mono, ui-monospace, monospace);
+  color: #92400e;
+}
+
+.aa-pending-strip button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(180, 83, 9, 0.22);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 10px;
+  background: #ffffff;
+  color: #78350f;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aa-scene__visual {
+  position: relative;
+  z-index: 1;
+  min-height: 190px;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid rgba(13, 148, 136, 0.16);
+  border-radius: 20px;
+  background: #f7fffc;
+}
+
+.aa-scene__visual img {
+  width: 100%;
+  height: 100%;
+  min-height: 190px;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.aa-scene__visual figcaption {
+  position: absolute;
+  inset-inline: 12px;
+  bottom: 12px;
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #12352f;
+  box-shadow: 0 10px 26px rgba(15, 118, 110, 0.12);
+}
+
+.aa-scene__visual figcaption span {
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.aa-scene__visual figcaption strong {
+  overflow: hidden;
+  font-family: var(--mx2-mono, ui-monospace, monospace);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .aa-scene__diagram {
   position: relative;
   z-index: 2;
@@ -98,17 +195,13 @@
   background: #ffffff;
 }
 
-.aa-scene__core-ring {
-  width: 76px;
-  height: 76px;
-  border: 2px dashed rgba(13, 148, 136, 0.78);
-  border-radius: 50%;
-  opacity: 0.5;
-}
-
-.aa-scene__core-ring.is-spinning {
-  animation: mx2-spin 1.4s linear infinite;
-  opacity: 0.92;
+.aa-scene__core-mark {
+  width: 68px;
+  height: 68px;
+  display: block;
+  border-radius: 18px;
+  object-fit: cover;
+  box-shadow: 0 10px 20px rgba(15, 118, 110, 0.13);
 }
 
 .aa-scene__core-label {
@@ -250,71 +343,24 @@
   color: var(--mx2-success);
 }
 
+.aa-storage-warning {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  border-radius: 14px;
+  padding: 9px 11px;
+  background: #fff7f7;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
 /* === Main controls: strategy cards instead of raw fields === */
 .aa-controls {
   display: grid;
   gap: 14px;
-}
-
-.aa-visual-card {
-  position: relative;
-  min-width: 0;
-  display: grid;
-  grid-template-rows: minmax(150px, auto) auto;
-  gap: 10px;
-  overflow: hidden;
-  margin: 0;
-  border: 1px solid rgba(13, 148, 136, 0.12);
-  border-radius: 20px;
-  padding: 12px;
-  background: #ffffff;
-  box-shadow: none;
-}
-
-.aa-visual-card img {
-  display: block;
-  width: 100%;
-  min-height: 150px;
-  aspect-ratio: 16 / 8;
-  border: 1px solid rgba(13, 148, 136, 0.1);
-  border-radius: 14px;
-  object-fit: contain;
-  object-position: center;
-  opacity: 1;
-  filter: none;
-}
-
-.aa-visual-card::after {
-  content: none;
-}
-
-.aa-visual-card figcaption {
-  position: relative;
-  z-index: 0;
-  display: grid;
-  gap: 2px;
-  border: 1px solid rgba(13, 148, 136, 0.14);
-  border-radius: 16px;
-  padding: 9px 10px;
-  background: var(--mx2-surface-2);
-}
-
-.aa-visual-card figcaption span {
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-weight: 680;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.aa-visual-card figcaption strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #12352f;
-  font-size: 14px;
-  font-weight: 680;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .aa-plan-panel {
@@ -631,15 +677,30 @@
     border-radius: 16px;
   }
 
-  .aa-scene__core-ring {
+  .aa-scene__core-mark {
     grid-row: 1 / 4;
     width: 36px;
     height: 36px;
+    border-radius: 10px;
   }
 
   .aa-scene__core svg {
     width: 20px;
     height: 20px;
+  }
+
+  .aa-scene__visual,
+  .aa-scene__visual img {
+    min-height: 118px;
+  }
+
+  .aa-pending-strip {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .aa-pending-strip button {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
 
   .aa-scene__core-label {
@@ -699,24 +760,6 @@
 
   .aa-controls {
     gap: 6px;
-  }
-
-  .aa-visual-card {
-    grid-template-rows: 68px;
-    gap: 0;
-    padding: 8px;
-    border-radius: 16px;
-  }
-
-  .aa-visual-card img {
-    height: 68px;
-    min-height: 0;
-    aspect-ratio: auto;
-    object-fit: cover;
-  }
-
-  .aa-visual-card figcaption {
-    display: none;
   }
 
   .aa-plan-panel {
@@ -839,7 +882,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aa-scene__core-ring,
   .aa-scene__seg {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;

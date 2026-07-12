@@ -38,27 +38,6 @@ function AuthSync({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/**
- * Initialize monitoring after hydration via dynamic import
- * to keep it out of the critical JS bundle.
- */
-function MonitoringInit() {
-  useEffect(() => {
-    import("@/lib/monitoring")
-      .then(({ initAllMonitoring }) => {
-        initAllMonitoring();
-      })
-      .catch((e) => {
-        console.warn(
-          "[monitoring] failed to initialize:",
-          e instanceof Error ? e.message : String(e),
-        );
-      });
-  }, []);
-
-  return null;
-}
-
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   useWalletRouteNetworkGuard(router.asPath);
@@ -79,7 +58,6 @@ export default function App({ Component, pageProps }: AppProps) {
               <QueryProvider>
                 <ThemeProvider>
                   <AnalyticsProvider>
-                    <MonitoringInit />
                     {/* CSS-only route enter transition (was framer-motion).
                         `key={router.asPath}` remounts on navigation so the
                         `page-enter` keyframe replays; the global

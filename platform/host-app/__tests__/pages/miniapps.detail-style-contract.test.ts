@@ -27,7 +27,8 @@ describe("MiniApp detail style contract", () => {
 
   it("uses the restrained platform detail shell instead of a soft gradient stage", () => {
     expect(detailSource).not.toContain("bg-[linear-gradient(");
-    expect(detailSource).toContain("bg-[#f7f8fb]");
+    expect(detailSource).toContain("bg-[#faf9f7]");
+    expect(detailSource).not.toContain("bg-[#f7f8fb]");
   });
 
   it("keeps detail panels within the platform radius and elevation scale", () => {

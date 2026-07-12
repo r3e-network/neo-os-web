@@ -18,19 +18,14 @@ export const manifest: MiniAppManifest = {
   // ── Tabs ──────────────────────────────────────────────────────────────
   tabs: [
     { key: "main", labelKey: "main", icon: "dollar-sign", default: true },
-    { key: "stats", labelKey: "stats", icon: "bar-chart" },
   ],
 
   // ── Stats Grid ────────────────────────────────────────────────────────
   stats: [
     { labelKey: "borrowed", valueKey: "borrowedDisplay", format: "gas", variant: "accent", icon: "trending-up" },
     { labelKey: "collateralLocked", valueKey: "collateralDisplay", format: "text", icon: "lock" },
-    { labelKey: "healthFactor", valueKey: "healthFactorDisplay", format: "text", icon: "heart" },
+    { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text", icon: "shield" },
     { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text", icon: "percent" },
-    { labelKey: "custodyTitle", valueKey: "custodyValue", format: "text", icon: "lock" },
-    { labelKey: "totalLoans", valueKey: "totalLoans", format: "number", icon: "list" },
-    { labelKey: "totalBorrowed", valueKey: "totalBorrowedDisplay", format: "gas", icon: "dollar-sign" },
-    { labelKey: "totalRepaid", valueKey: "totalRepaidDisplay", format: "gas", icon: "check-circle" },
   ],
 
   // ── Sidebar ───────────────────────────────────────────────────────────
@@ -39,7 +34,7 @@ export const manifest: MiniAppManifest = {
     items: [
       { labelKey: "sidebarHasLoan", valueKey: "hasLoanDisplay", format: "text" },
       { labelKey: "sidebarNeoBalance", valueKey: "neoBalanceDisplay", format: "number" },
-      { labelKey: "healthFactor", valueKey: "healthFactorDisplay", format: "text" },
+      { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text" },
       { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text" },
       { labelKey: "custodyStatus", valueKey: "custodyValue", format: "text" },
     ],
@@ -68,6 +63,6 @@ export const manifest: MiniAppManifest = {
   // ── Permissions ───────────────────────────────────────────────────────
   permissions: {
     payments: true,
-    governance: true,
+    governance: false,
   },
 };

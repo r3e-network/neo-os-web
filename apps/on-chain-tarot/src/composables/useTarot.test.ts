@@ -6,21 +6,14 @@ import type { ChainService, ContractArg, TxResult } from "@shared/services/Chain
 import { addressToScriptHash } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
-// The question store now goes through app.storage.local (framework-owned,
-// localStorage-backed). This suite runs in a node environment without a DOM,
-// so provide a minimal Storage shim when the global is absent.
 const localStorageBacking = new Map<string, string>();
 if (typeof globalThis.localStorage === "undefined") {
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
     value: {
       getItem: (key: string) => localStorageBacking.get(key) ?? null,
-      setItem: (key: string, value: string) => {
-        localStorageBacking.set(key, String(value));
-      },
-      removeItem: (key: string) => {
-        localStorageBacking.delete(key);
-      },
+      setItem: (key: string, value: string) => localStorageBacking.set(key, String(value)),
+      removeItem: (key: string) => localStorageBacking.delete(key),
       clear: () => localStorageBacking.clear(),
       key: (index: number) => Array.from(localStorageBacking.keys())[index] ?? null,
       get length() {
@@ -34,332 +27,354 @@ beforeEach(() => localStorage.clear());
 
 const PLAYER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const PLAYER_HASH = addressToScriptHash(PLAYER);
-const CONTRACT = "0xb680225a1be276b03ecd7de82ea985dcc7435cec";
-const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
-const DRAW_MEMO = "miniapp-tarot:draw";
-const DRAW_FEE = "10000000"; // 0.1 GAS base units
+const CONTRACT = "0x8cd0342f2129c07b2d3de1dae51ba09e4045d331";
+const READING_FEE = "10000000";
+const ORACLE_FEE = "1000000";
+const CREDIT_MEMO = "miniapp-tarot-vrf:credit";
+const EXPIRES_AT = Date.now() + 7_200_000;
 
-const t = (key: string) => {
-  const messages: Record<string, string> = {
-    defaultQuestion: "tarot",
-    readingUnavailable: "Reading unavailable",
-    walletNotConnected: "Connect your wallet to draw",
-    depositPrepaidNoReading: "Draw fee prepaid but reading did not complete",
-    noCredit: "No prepaid credit to withdraw",
-    yes: "Yes",
-    no: "No",
-    past: "Past",
-    present: "Present",
-    future: "Future",
-    readingText: "Reading text",
-    readingCopied: "Reading copied",
-  };
-  return messages[key] ?? key;
-};
+const t: UseTarotOptions["t"] = (key) => ({
+  defaultQuestion: "tarot",
+  depositPrepaidNoReading: "Reading credit deposited but request failed",
+  localeCode: "en",
+  noCredit: "No prepaid credit to withdraw",
+  noPendingReading: "No pending reading",
+  past: "Past",
+  present: "Present",
+  future: "Future",
+  readingCopied: "Reading copied",
+  readingNotExpired: "Reading not expired",
+  readingRequestUnconfirmed: "Request unconfirmed",
+  readingText: "Reading text",
+  readingUnavailable: "Reading unavailable",
+  walletNotConnected: "Connect wallet",
+  yes: "Yes",
+  no: "No",
+}[key] ?? key);
 
-/** A CreditWithdrawn(account, amount) event — amount at state slot 1. */
-function creditWithdrawnEvent(amountBase: string) {
-  return {
-    state: [
-      { type: "Hash160", value: PLAYER_HASH },
-      { type: "Integer", value: amountBase },
-    ],
-  };
-}
-
-/**
- * Build a `ReadingDrawn` event payload:
- *   ReadingDrawn(readingId, player, card0, card1, card2)
- * The composable reads the readingId from slot 0 and the three card indices from
- * slots 2..4 (same shape the live contract emits).
- */
-function readingDrawnEvent(readingId: number, cards: [number, number, number]) {
+function requestedEvent(
+  readingId: number,
+  requestId: number,
+  expiresAt = EXPIRES_AT,
+) {
   return {
     state: [
       { type: "Integer", value: String(readingId) },
+      { type: "Integer", value: String(requestId) },
       { type: "Hash160", value: PLAYER_HASH },
-      { type: "Integer", value: String(cards[0]) },
-      { type: "Integer", value: String(cards[1]) },
-      { type: "Integer", value: String(cards[2]) },
+      { type: "Integer", value: READING_FEE },
+      { type: "Integer", value: ORACLE_FEE },
+      { type: "Integer", value: String(expiresAt) },
     ],
   };
 }
 
-/**
- * Minimal ChainService stand-in. Records invoke/read calls so tests can assert
- * the deposit-then-draw argument shapes, and resolves drawFee / creditOf /
- * playerReadingCount / getReading against the configured fixtures.
- */
-function makeChain(
-  opts: {
-    credit?: string;
-    cards?: [number, number, number];
-    readingId?: number;
-    playerReadingCount?: string;
-    emitEvent?: boolean;
-    drawThrows?: boolean;
-    getReadingCards?: [number, number, number];
-    withdrawAmount?: string;
-    contract?: string | null;
-  } = {},
-) {
-  const cards = opts.cards ?? [0, 21, 47];
-  const readingId = opts.readingId ?? 1;
-  const emitEvent = opts.emitEvent !== false;
+function refundedEvent(readingId: number, requestId: number) {
+  return {
+    state: [
+      { type: "Integer", value: String(readingId) },
+      { type: "Integer", value: String(requestId) },
+      { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: READING_FEE },
+      { type: "Integer", value: "4" },
+      { type: "String", value: "oracle timeout" },
+    ],
+  };
+}
 
-  const invoke = vi.fn(
-    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
-      if (op === "draw") {
-        if (opts.drawThrows) throw new Error("draw reverted");
-        const event =
-          emitEvent && options?.waitForEvent === "ReadingDrawn"
-            ? readingDrawnEvent(readingId, cards)
-            : undefined;
-        return { txid: "0xdraw", event, success: true };
-      }
-      if (op === "withdraw") {
-        return {
-          txid: "0xwithdraw",
-          event:
-            options?.waitForEvent === "CreditWithdrawn"
-              ? creditWithdrawnEvent(opts.withdrawAmount ?? opts.credit ?? "0")
-              : undefined,
-          success: true,
-        };
-      }
-      // transfer (deposit) and anything else.
-      return { txid: "0xtransfer", success: true };
-    },
-  );
+function withdrawnEvent(amount: string) {
+  return {
+    state: [
+      { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: amount },
+      { type: "Integer", value: "0" },
+    ],
+  };
+}
 
-  const read = vi.fn(async (op: string): Promise<unknown> => {
-    if (op === "drawFee") return DRAW_FEE;
-    if (op === "creditOf") return opts.credit ?? "0";
-    if (op === "playerReadingCount") return opts.playerReadingCount ?? "1";
-    if (op === "readingsCount") return "1";
-    if (op === "getReading") {
-      const fallback = opts.getReadingCards ?? cards;
-      return { id: readingId, player: PLAYER_HASH, cards: fallback, time: 0 };
-    }
-    return {};
-  });
+type Fixture = {
+  status: number;
+  activeId: string;
+  credit: string;
+  cards: [number, number, number];
+  expiresAt: number;
+};
 
-  const readArray = vi.fn(async (): Promise<unknown[]> => []);
-
-  const clipboard = {
-    copy: vi.fn(async () => true),
+function makeChain(opts: {
+  contract?: string | null;
+  readingId?: number;
+  requestId?: number;
+  credit?: string;
+  status?: number;
+  activeId?: string;
+  cards?: [number, number, number];
+  expiresAt?: number;
+  completedCount?: string;
+  emitRequestedEvent?: boolean;
+  requestThrows?: boolean;
+  feeReadThrows?: boolean;
+} = {}) {
+  const readingId = opts.readingId ?? 7;
+  const requestId = opts.requestId ?? 81;
+  const state: Fixture = {
+    status: opts.status ?? 1,
+    activeId: opts.activeId ?? "0",
+    credit: opts.credit ?? "0",
+    cards: opts.cards ?? [5, 33, 70],
+    expiresAt: opts.expiresAt ?? EXPIRES_AT,
   };
 
+  const invoke = vi.fn(async (
+    op: string,
+    _args: ContractArg[],
+    options?: { waitForEvent?: string },
+  ): Promise<TxResult> => {
+    if (op === "requestReading") {
+      if (opts.requestThrows) throw new Error("request reverted");
+      state.status = 1;
+      state.activeId = String(readingId);
+      return {
+        txid: "0xrequest",
+        event: opts.emitRequestedEvent === false
+          ? undefined
+          : requestedEvent(readingId, requestId, state.expiresAt),
+        success: true,
+      };
+    }
+    if (op === "refundExpiredReading") {
+      state.status = 4;
+      state.activeId = "0";
+      state.credit = READING_FEE;
+      return {
+        txid: "0xrefund",
+        event: options?.waitForEvent === "ReadingRefunded"
+          ? refundedEvent(readingId, requestId)
+          : undefined,
+        success: true,
+      };
+    }
+    if (op === "withdrawAllCredit") {
+      const amount = state.credit;
+      state.credit = "0";
+      return {
+        txid: "0xwithdraw",
+        event: options?.waitForEvent === "CreditWithdrawn"
+          ? withdrawnEvent(amount)
+          : undefined,
+        success: true,
+      };
+    }
+    return { txid: "0xtransfer", success: true };
+  });
+
+  const read = vi.fn(async (op: string): Promise<unknown> => {
+    if (opts.feeReadThrows && (op === "readingFee" || op === "currentOracleFee")) {
+      throw new Error("rpc unavailable");
+    }
+    if (op === "readingFee") return READING_FEE;
+    if (op === "currentOracleFee") return ORACLE_FEE;
+    if (op === "creditOf") return state.credit;
+    if (op === "activeReadingOf") return state.activeId;
+    if (op === "playerCompletedReadingCount") return opts.completedCount ?? "0";
+    if (op === "completedReadingsCount") return opts.completedCount ?? "0";
+    if (op === "getReading") {
+      return {
+        id: String(readingId),
+        requestId: String(requestId),
+        status: String(state.status),
+        cards: state.status === 2 ? state.cards : [-1, -1, -1],
+        expiresAt: String(state.expiresAt),
+      };
+    }
+    return "0";
+  });
+
+  const clipboard = { copy: vi.fn(async () => true) };
   const chain = {
     contractAddress: { get: () => ("contract" in opts ? opts.contract : CONTRACT) },
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
     invoke,
     read,
-    readArray,
+    readArray: vi.fn(async (): Promise<unknown[]> => []),
   } as unknown as ChainService;
 
   return {
     chain,
-    clipboard: clipboard as unknown as UseTarotOptions["clipboard"],
+    state,
     invoke,
     read,
+    clipboard: clipboard as unknown as UseTarotOptions["clipboard"],
     clipboardMock: clipboard,
   };
 }
 
-function setup(opts: Parameters<typeof makeChain>[0] = {}) {
+function setup(opts: Parameters<typeof makeChain>[0] = {}, translate = t) {
   const deps = makeChain(opts);
   const app = createMiniAppFramework(
-    { services: { chain: deps.chain }, t } as never,
+    { services: { chain: deps.chain }, t: translate } as never,
     { appId: "miniapp-onchaintarot" },
   );
-  const tarot = useTarot({ app, clipboard: deps.clipboard, t });
+  const tarot = useTarot({ app, clipboard: deps.clipboard, t: translate });
   tarot.setAddress(PLAYER);
   return { tarot, app, ...deps };
 }
 
-/** Find a recorded invoke call for an operation. */
 function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
-  return invoke.mock.calls.find((c) => c[0] === op);
+  return invoke.mock.calls.find((call) => call[0] === op);
 }
 
-describe("useTarot (direct MiniAppTarot contract)", () => {
-  it("deposits the draw fee then draws, reading the three cards from the ReadingDrawn event", async () => {
-    const { tarot, invoke, read } = setup({ cards: [5, 33, 70], readingId: 7 });
-
+describe("useTarot (asynchronous MiniAppTarotVrf contract)", () => {
+  it("deposits exact reusable credit and submits the live oracle-fe cap without rendering cards", async () => {
+    const { tarot, app, invoke, read } = setup();
     tarot.question.set("What should I focus on?");
-    await tarot.draw();
 
-    // Step 1: DEPOSIT — GAS transfer to the contract with the draw memo, base units.
-    // The deposit MUST wait for the contract's Credited event so the draw never
-    // fires before the deposit lands (first-draw race fix).
-    const deposit = callFor(invoke, "transfer");
-    expect(deposit).toBeTruthy();
-    expect(deposit![1]).toEqual([
+    await expect(tarot.draw()).resolves.toEqual({ status: "pending", readingId: "7" });
+
+    expect(callFor(invoke, "transfer")?.[1]).toEqual([
       { type: "Hash160", value: PLAYER_HASH },
       { type: "Hash160", value: CONTRACT },
-      { type: "Integer", value: DRAW_FEE },
-      { type: "String", value: DRAW_MEMO },
+      { type: "Integer", value: READING_FEE },
+      { type: "String", value: CREDIT_MEMO },
     ]);
-    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH, waitForEvent: "Credited" });
-
-    // Step 2: draw(player) waiting for the ReadingDrawn event.
-    const drawCall = callFor(invoke, "draw");
-    expect(drawCall).toBeTruthy();
-    expect(drawCall![1]).toEqual([{ type: "Hash160", value: PLAYER_HASH }]);
-    expect(drawCall![2]).toMatchObject({ waitForEvent: "ReadingDrawn" });
-
-    // The deposit must precede the draw.
-    const order = invoke.mock.calls.map((c) => c[0]);
-    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("draw"));
-
-    // The fee came from drawFee(), the credit gate from creditOf().
-    expect(read.mock.calls.some((c) => c[0] === "drawFee")).toBe(true);
-    expect(read.mock.calls.some((c) => c[0] === "creditOf")).toBe(true);
-
-    // The three cards are exactly the event's indices (NOT a client seed).
-    const ids = tarot.drawn.get().map((card) => card.id);
-    expect(ids).toEqual([5, 33, 70]);
-    expect(new Set(ids).size).toBe(3);
-
-    expect(tarot.hasDrawn.get()).toBe(true);
-    expect(tarot.allFlipped.get()).toBe(false);
-    expect(tarot.readingMode.get()).toBe("oracle");
-
-    tarot.flipCard(0);
-    tarot.flipCard(1);
-    tarot.flipCard(2);
-    expect(tarot.allFlipped.get()).toBe(true);
-    expect(tarot.allRevealedDisplay.get()).toBe("Yes");
-
-    tarot.reset();
-    expect(tarot.drawn.get()).toEqual([]);
-    expect(tarot.readingMode.get()).toBe("idle");
-  });
-
-  it("skips the deposit when existing draw credit already covers the fee", async () => {
-    const { tarot, invoke } = setup({ credit: DRAW_FEE, cards: [1, 2, 3] });
-
-    await tarot.draw();
-
-    // No deposit transfer — credit already covers the 0.1 GAS fee.
-    expect(callFor(invoke, "transfer")).toBeUndefined();
-    // The draw still runs and the event cards are mapped.
-    expect(callFor(invoke, "draw")).toBeTruthy();
-    expect(tarot.drawn.get().map((c) => c.id)).toEqual([1, 2, 3]);
-  });
-
-  it("falls back to getReading when the ReadingDrawn event is unavailable", async () => {
-    const { tarot, read } = setup({
-      emitEvent: false,
-      readingId: 4,
-      getReadingCards: [10, 20, 30],
+    expect(callFor(invoke, "transfer")?.[2]).toMatchObject({
+      scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      waitForEvent: "Credited",
     });
+    expect(callFor(invoke, "requestReading")?.[1]).toEqual([
+      { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: ORACLE_FEE },
+    ]);
+    expect(callFor(invoke, "requestReading")?.[2]).toMatchObject({
+      waitForEvent: "ReadingRequested",
+    });
+    expect(read.mock.calls.some((call) => call[0] === "currentOracleFee")).toBe(true);
+    expect(tarot.drawn.get()).toEqual([]);
+    expect(tarot.readingMode.get()).toBe("pending");
+    expect(tarot.pendingReadingId.get()).toBe("7");
+    expect(app.storage.local.get<string>("tarot:question:7")).toBe("What should I focus on?");
+    expect(app.storage.local.get<string>(`tarot:pending:${PLAYER.toLowerCase()}`)).toBe("7");
+  });
 
+  it("reuses existing credit instead of asking for another deposit", async () => {
+    const { tarot, invoke } = setup({ credit: READING_FEE });
     await tarot.draw();
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+    expect(callFor(invoke, "requestReading")).toBeTruthy();
+  });
 
-    // The cards came from the authoritative getReading read, not the event.
-    expect(read.mock.calls.some((c) => c[0] === "getReading")).toBe(true);
-    expect(tarot.drawn.get().map((c) => c.id)).toEqual([10, 20, 30]);
+  it("does not submit a duplicate request when the player already has an active reading", async () => {
+    const { tarot, invoke } = setup({ activeId: "7", status: 1 });
+    await expect(tarot.draw()).resolves.toEqual({ status: "pending", readingId: "7" });
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+    expect(callFor(invoke, "requestReading")).toBeUndefined();
+    expect(tarot.hasPending.get()).toBe(true);
+  });
+
+  it("renders cards only after a terminal drawn record is read back", async () => {
+    const { tarot, state } = setup();
+    await tarot.draw();
+    expect(tarot.hasDrawn.get()).toBe(false);
+
+    state.status = 2;
+    state.activeId = "0";
+    await expect(tarot.reconcilePendingReading()).resolves.toBe("drawn");
+    expect(tarot.drawn.get().map((card) => card.id)).toEqual([5, 33, 70]);
     expect(tarot.readingMode.get()).toBe("oracle");
+    expect(tarot.hasPending.get()).toBe(false);
   });
 
-  it("persists the typed question on-device keyed by readingId (not on-chain)", async () => {
-    const { tarot, app, invoke } = setup({ readingId: 9, cards: [0, 1, 2] });
-
-    tarot.question.set("Will the project ship?");
+  it("keeps a refunded oracle failure card-free and restores the recovery state", async () => {
+    const { tarot, state } = setup();
     await tarot.draw();
+    state.status = 3;
+    state.activeId = "0";
 
-    // The question is stored via app.storage.local, keyed by readingId — and
-    // never sent to the contract (no invoke argument carries the question).
-    expect(app.storage.local.get<string>("tarot:question:9")).toBe(
-      "Will the project ship?",
-    );
-    expect(tarot.restoreQuestion("9")).toBe("Will the project ship?");
-
-    const drawCall = callFor(invoke, "draw");
-    const drawArgsJson = JSON.stringify(drawCall![1]);
-    expect(drawArgsJson).not.toContain("Will the project ship?");
+    await expect(tarot.reconcilePendingReading()).resolves.toBe("refunded");
+    expect(tarot.drawn.get()).toEqual([]);
+    expect(tarot.readingMode.get()).toBe("refunded");
+    expect(tarot.refundReason.get()).toBe("oracle");
   });
 
-  it("surfaces a clean prepaid-credit message when draw reverts after the deposit", async () => {
-    const { tarot, invoke } = setup({ drawThrows: true });
+  it("recovers an expired reading fee through the permissionless timeout path", async () => {
+    const expired = Date.now() - 1_000;
+    const { tarot, invoke } = setup({ expiresAt: expired });
+    await tarot.draw();
+    expect(tarot.pendingExpired.get()).toBe(true);
 
-    await expect(tarot.draw()).rejects.toThrow("Draw fee prepaid but reading did not complete");
+    await expect(tarot.refundExpiredReading()).resolves.toEqual({ amount: 0.1 });
+    expect(callFor(invoke, "refundExpiredReading")?.[1]).toEqual([
+      { type: "Integer", value: "7" },
+    ]);
+    expect(tarot.readingMode.get()).toBe("refunded");
+    expect(tarot.prepaidCredit.get()).toBeCloseTo(0.1, 8);
+  });
 
-    // The deposit landed (credit persists on the contract); no reading rendered.
+  it("does not prompt a timeout refund before the contract expiry", async () => {
+    const { tarot, invoke } = setup();
+    await tarot.draw();
+    await expect(tarot.refundExpiredReading()).rejects.toThrow("Reading not expired");
+    expect(callFor(invoke, "refundExpiredReading")).toBeUndefined();
+  });
+
+  it("leaves a confirmed deposit reusable when requestReading faults", async () => {
+    const { tarot, invoke } = setup({ requestThrows: true });
+    await expect(tarot.draw()).rejects.toThrow("Reading credit deposited but request failed");
     expect(callFor(invoke, "transfer")).toBeTruthy();
     expect(tarot.drawn.get()).toEqual([]);
-    expect(tarot.hasDrawn.get()).toBe(false);
-    expect(tarot.readingMode.get()).toBe("idle");
   });
 
-  it("copies a complete reading via the clipboard service and reports failure when none is drawn", async () => {
-    const { tarot, clipboardMock } = setup({ cards: [0, 21, 47] });
-
-    // No reading yet: copyReading must not claim success or hit the clipboard.
-    await expect(tarot.copyReading()).resolves.toBe(false);
-    expect(clipboardMock.copy).not.toHaveBeenCalled();
-
-    await tarot.draw();
-    await expect(tarot.copyReading()).resolves.toBe(true);
-    expect(clipboardMock.copy).toHaveBeenCalledTimes(1);
-    expect(clipboardMock.copy).toHaveBeenCalledWith(
-      expect.stringContaining("Past:"),
-      "readingCopied",
-    );
+  it("fails closed when live fee reads are unavailable", async () => {
+    const { tarot, invoke } = setup({ feeReadThrows: true });
+    await expect(tarot.draw()).rejects.toThrow("rpc unavailable");
+    expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("loads the readings counter from the player's authoritative on-chain count", async () => {
-    const { tarot, read } = setup({ playerReadingCount: "5" });
-
+  it("uses successful-reading counters rather than counting pending/refunded requests", async () => {
+    const { tarot, read } = setup({ completedCount: "5" });
     await tarot.loadAll();
-
-    expect(read.mock.calls.some((c) => c[0] === "playerReadingCount")).toBe(true);
+    expect(read.mock.calls.some((call) => call[0] === "playerCompletedReadingCount")).toBe(true);
     expect(tarot.readingsCount.get()).toBe(5);
     expect(tarot.cardsDrawnCount.get()).toBe(15);
   });
 
-  it("keeps host/local preview quiet when no contract address is configured", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const { tarot, read } = setup({ contract: null, credit: "10000000" });
+  it("withdraws all unused credit through withdrawAllCredit", async () => {
+    const { tarot, invoke } = setup({ credit: READING_FEE });
+    await expect(tarot.withdrawCredit()).resolves.toEqual({ amount: 0.1 });
+    expect(callFor(invoke, "withdrawAllCredit")?.[1]).toEqual([
+      { type: "Hash160", value: PLAYER_HASH },
+    ]);
+  });
 
+  it("keeps local preview quiet when no contract is configured", async () => {
+    const { tarot, read } = setup({ contract: null });
     await tarot.loadAll();
-
     expect(read).not.toHaveBeenCalled();
     expect(tarot.readingsCount.get()).toBe(0);
     expect(tarot.prepaidCredit.get()).toBe(0);
-    expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
   });
 
-  it("loads the connected wallet's prepaid draw-credit into prepaidCredit / hasCredit", async () => {
-    const { tarot } = setup({ credit: "10000000" }); // 0.1 GAS
-    await tarot.loadAll();
-
-    expect(tarot.prepaidCredit.get()).toBeCloseTo(0.1, 8);
-    expect(tarot.hasCredit.get()).toBe(true);
+  it("copies only a complete reconciled spread", async () => {
+    const { tarot, state, clipboardMock } = setup();
+    await expect(tarot.copyReading()).resolves.toBe(false);
+    await tarot.draw();
+    state.status = 2;
+    state.activeId = "0";
+    await tarot.reconcilePendingReading();
+    await expect(tarot.copyReading()).resolves.toBe(true);
+    expect(clipboardMock.copy).toHaveBeenCalledWith(
+      "Past: The Hierophant · Present: Knight of Wands · Future: Seven of Pentacles",
+      "readingCopied",
+    );
   });
 
-  it("withdraws the unused prepaid draw-credit, reading the amount from CreditWithdrawn", async () => {
-    const { tarot, invoke } = setup({ credit: "10000000", withdrawAmount: "10000000" });
-    await tarot.loadAll();
-
-    const { amount } = await tarot.withdrawCredit();
-    expect(amount).toBeCloseTo(0.1, 8);
-
-    const withdraw = callFor(invoke, "withdraw");
-    expect(withdraw).toBeTruthy();
-    expect(withdraw![1]).toEqual([{ type: "Hash160", value: PLAYER_HASH }]);
-    expect(withdraw![2]).toMatchObject({ waitForEvent: "CreditWithdrawn" });
-  });
-
-  it("refuses a withdraw when there is no prepaid credit (clean message, no invoke)", async () => {
-    const { tarot, invoke } = setup({ credit: "0" });
-    await tarot.loadAll();
-
-    await expect(tarot.withdrawCredit()).rejects.toThrow("No prepaid credit to withdraw");
-    expect(callFor(invoke, "withdraw")).toBeUndefined();
+  it("rejects duplicate or malformed terminal cards instead of rendering a partial spread", async () => {
+    const { tarot, state } = setup({ cards: [3, 3, 7] });
+    await tarot.draw();
+    state.status = 2;
+    state.activeId = "0";
+    await expect(tarot.reconcilePendingReading()).rejects.toThrow("invalid reading cards");
+    expect(tarot.drawn.get()).toEqual([]);
+    expect(tarot.readingMode.get()).toBe("pending");
   });
 });

@@ -1,50 +1,45 @@
 # TrustAnchor MiniApp
 
-TrustAnchor is the governance-focused anchor app for manual NEO vote routing.
-It uses the shared `PlatformAnchor` contract and AA-generated agent accounts for
-vote identity.
+TrustAnchor is the governance-facing client for `PlatformAnchor` mode `1`.
+It lets a user stake whole NEO, redeem a live position, and claim actually
+accrued GAS without exposing the operator routing console.
 
-| Property | Value |
+## Product surface
+
+- One primary stake command built around the existing governance artwork.
+- Live public pool state; wallet-only balances remain unavailable until a
+  wallet is connected and the reads succeed.
+- Redeem, claim, credit recovery, history, rules, and raw diagnostics stay in
+  the secondary drawer.
+- No APR promise. The UI only shows funded reserve and claimable on-chain GAS.
+
+## Chain binding
+
+| Field | Value |
 | --- | --- |
 | App ID | `miniapp-trustanchor` |
-| Category | Governance |
-| Contract | `PlatformAnchor`, mode `1` |
-| Admin scope | Register agents, update candidates, sync votes |
+| Expected mode | `1` |
+| Mainnet contract | `0x02beeef6f65c6989a121c0a0e6b23190333edb98` |
+| Testnet contract | `0xab079b4f9a0a2471d136392e25eb8e99898dcad0` |
+| Stake memo | `stake:miniapp-trustanchor` |
 
-## Safety Model
+Before every write, the runtime rechecks the exact network, contract, app ID,
+registration mode, pause state, wallet, and authoritative user balance.
 
-- Each registered anchor owns 21 AA agent accounts, one per council candidate.
-- Agent account derivation should include anchor/app/agent/nonce material so the
-  account IDs cannot be maliciously pre-registered.
-- Rebalancing is a simple transfer from candidate A's agent to candidate B's
-  agent.
-- Candidate-list changes are handled by updating an agent's vote target and then
-  syncing that agent vote.
-- AA agent accounts provide vote identities. `voteAgent` also requires the agent
-  account witness, so admin authority alone is not enough to move an AA agent.
+## Transaction recovery
 
-## Product Model
+Every stake, redeem, claim, and NEO-credit recovery probes local storage before
+the wallet opens. At broadcast time it persists the complete network/contract/
+app/wallet/intent/txid binding. Refresh recovery checks that txid and never
+rebroadcasts it. VM `FAULT` is terminal; unavailable logs stay pending. Success
+requires a `HALT` log, the exact bound event, and a matching live readback.
 
-- TrustAnchor routes governance exposure explicitly through registered AA agent
-  accounts.
-- Each agent has an account hash, candidate public key, verification-script hash,
-  and display weight.
-- Admin operations are limited to route configuration and agent vote sync.
-
-## Voting-yield Routing Boundary
-
-TrustAnchor is intentionally manual. It is an operator-controlled route book,
-not an automatic yield optimizer.
-
-## Deployment
-
-The frontend and contract source are ready for the shared `PlatformAnchor`
-deployment. Network hashes stay empty until the shared contract is deployed and
-`registerAnchorApp("miniapp-trustanchor", 1, appAdmin)` has been called.
+See [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md),
+[NETWORK_STATUS.md](./NETWORK_STATUS.md), and
+[ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md).
 
 ## Development
 
 ```bash
-npm install
 npm run build
 ```

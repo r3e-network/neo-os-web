@@ -3,35 +3,30 @@ import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../recovery-guardian/src/PlayArea";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
-function t(k: string) { return k; }
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  const base: Record<string, unknown> = {};
-    base["$extra_state"] = "";
-  return Object.fromEntries(Object.entries({ ...base, ...o }).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
+
+function t(key: string) { return key; }
+function state(values: Record<string, unknown>): ObservableState {
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, createObservable(value)])) as ObservableState;
 }
-describe("recovery-guardian integration: dispatch params", () => {
-  it("dispatchs queryGuardianState on primary action", async () => {
+
+describe("recovery-guardian integration", () => {
+  it("dispatches one profile read from the primary journey action", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          accountAddress: "0x1234567890abcdef1234567890abcdef12345678",
+          profileInput: `0x${"11".repeat(20)}`,
+          journeyState: "idle",
           recoveryExpiryMinutes: "30",
         })}
         dispatch={dispatch}
       />,
     );
-    const btn = container.querySelector(".mx2-btn--primary");
-    if (btn) {
-      fireEvent.click(btn);
-      await waitFor(() => {
-        const calls = dispatch.mock.calls;
-        expect(calls.length).toBeGreaterThan(0);
-        expect(calls[0][0]).toBeTruthy();
-      });
-    }
+    fireEvent.click(container.querySelector(".mx2-btn--primary")!);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("loadProfile"));
   });
 });

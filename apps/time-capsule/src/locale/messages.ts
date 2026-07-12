@@ -18,8 +18,8 @@ const appMessages = {
     zh: "还没有胶囊。创建你的第一个吧！",
   },
   noLocalCapsules: {
-    en: "No local capsules on this device yet. Seal your first capsule to get started.",
-    zh: "本设备还没有本地胶囊。封存你的第一个胶囊开始吧。",
+    en: "No capsules are recorded for this wallet yet. Seal the first one to get started.",
+    zh: "该钱包还没有胶囊记录。封存第一个胶囊开始吧。",
   },
   timeRemaining: { en: "Time Remaining", zh: "剩余时间" },
   unlocks: { en: "Unlocks:", zh: "解锁时间：" },
@@ -28,6 +28,20 @@ const appMessages = {
   revealed: { en: "Revealed", zh: "已揭示" },
   reveal: { en: "Reveal Capsule", zh: "揭示胶囊" },
   open: { en: "Open Capsule", zh: "打开胶囊" },
+  sealed: { en: "Sealed", zh: "封存中" },
+  readyToOpen: { en: "Ready to open", zh: "可以开启" },
+  openAndReclaim: {
+    en: "Open · reclaim {amount} GAS",
+    zh: "开启 · 取回 {amount} GAS",
+  },
+  countdownDaysHours: {
+    en: "{days}d {hours}h remaining",
+    zh: "剩余 {days} 天 {hours} 小时",
+  },
+  countdownHoursMinutes: {
+    en: "{hours}h {minutes}m remaining",
+    zh: "剩余 {hours} 小时 {minutes} 分",
+  },
   createCapsule: { en: "Create New Capsule", zh: "创建新胶囊" },
   sealWorkbenchEyebrow: { en: "Seal workspace", zh: "封存工作台" },
   sealWorkbenchCopy: {
@@ -59,8 +73,8 @@ const appMessages = {
     zh: "为胶囊选择清晰用途。",
   },
   visibilityStageCopy: {
-    en: "Control who can reveal after unlock.",
-    zh: "控制解锁后谁可以揭示。",
+    en: "Choose whether others can discover and tip it.",
+    zh: "选择其他人是否可以发现并打赏它。",
   },
   sealPreview: { en: "Seal preview", zh: "封存预览" },
   sealSettings: { en: "Seal settings", zh: "封存设置" },
@@ -138,12 +152,12 @@ const appMessages = {
   private: { en: "Private", zh: "私密" },
   public: { en: "Public", zh: "公开" },
   privateHint: {
-    en: "Only you can reveal after unlock",
-    zh: "仅您可在解锁后揭示",
+    en: "Hidden from public tipping",
+    zh: "不会出现在公开打赏列表",
   },
   publicHint: {
-    en: "Anyone can reveal after unlock",
-    zh: "解锁后任何人可揭示",
+    en: "Others can tip; only you can reveal",
+    zh: "其他人可以打赏；仍只有你能揭示",
   },
   createCapsuleButton: {
     en: "Create Capsule (0.2 GAS deposit)",
@@ -182,22 +196,8 @@ const appMessages = {
   fishing: { en: "Sending tip...", zh: "打赏中..." },
   fishButton: { en: "Send 0.05 GAS Tip", zh: "打赏 0.05 GAS" },
   fishDescription: {
-    en: 'This is a tip, not a reveal. Send a 0.05 GAS tip to the owner of a public, unrevealed capsule to cheer them on — the fee is credited on-chain to that owner, who collects it with "Collect tips". You do NOT see the message: it stays sealed until its owner reveals it. You get back only a public acknowledgement (the capsule id). Charged only when a tippable capsule exists.',
-    zh: "这是打赏，不是揭示。向某个公开且未揭示胶囊的所有者发送 0.05 GAS 打赏以示鼓励——费用会在链上记入该所有者名下，由其通过“领取打赏”自行领取。你看不到消息内容：消息会一直封存，直到所有者本人揭示。你只会得到一个公开的确认（胶囊编号）。仅在存在可打赏胶囊时收取。",
-  },
-  collectTips: { en: "Collect tips", zh: "领取打赏" },
-  collectingTips: { en: "Collecting...", zh: "领取中..." },
-  tipsCollected: {
-    en: "Collected {amount} GAS in fishing tips",
-    zh: "已领取 {amount} GAS 打赏",
-  },
-  noTipsToCollect: {
-    en: "No fishing tips to collect yet.",
-    zh: "暂无可领取的打赏。",
-  },
-  collectTipsHint: {
-    en: "Owners of public capsules collect any 0.05 GAS tips their capsules received here.",
-    zh: "公开胶囊的所有者可在此领取胶囊收到的 0.05 GAS 打赏。",
+    en: "This is a tip, not a reveal. The deployed contract forwards 0.05 GAS directly to the owner in the same confirmed transaction. The message stays sealed.",
+    zh: "这是打赏，不是揭示。当前已部署合约会在同一笔确认交易中把 0.05 GAS 直接转给所有者，消息仍保持封存。",
   },
   fishResult: {
     en: "Tipped capsule {id} — it stays sealed until its owner reveals it",
@@ -240,6 +240,69 @@ const appMessages = {
     en: "Lock duration must be between 1 and 3650 days.",
     zh: "锁定时长需在 1 到 3650 天之间。",
   },
+  messageRequired: {
+    en: "Add a title and message before sealing.",
+    zh: "封存前请写入标题和消息。",
+  },
+  chainContextMismatch: {
+    en: "Wallet network and the configured Time Capsule contract do not match.",
+    zh: "钱包网络与配置的时间胶囊合约不匹配。",
+  },
+  transactionPending: {
+    en: "Transaction broadcast. Waiting for its exact contract event before showing success.",
+    zh: "交易已广播，正在等待精确合约事件；确认前不会显示成功。",
+  },
+  recoveryTitle: { en: "Chain confirmation", zh: "链上确认" },
+  recoverTransaction: { en: "Check transaction", zh: "检查交易" },
+  recoveringTransaction: { en: "Checking…", zh: "检查中…" },
+  transactionFault: {
+    en: "The transaction faulted on-chain. No success state was applied.",
+    zh: "交易已在链上失败，应用未写入成功状态。",
+  },
+  transactionEventMismatch: {
+    en: "The confirming event does not match this capsule action.",
+    zh: "确认事件与本次胶囊操作不匹配。",
+  },
+  transactionReadbackMismatch: {
+    en: "The chain readback does not match the confirmed event.",
+    zh: "链上回读与确认事件不匹配。",
+  },
+  pendingBlocksWrites: {
+    en: "Check the pending transaction before starting another action.",
+    zh: "请先检查待确认交易，再开始新的操作。",
+  },
+  pendingInvalid: {
+    en: "The saved recovery record was invalid and has been cleared.",
+    zh: "已保存的恢复记录无效，现已清除。",
+  },
+  pendingContextMismatch: {
+    en: "Reconnect the original wallet and network to recover this transaction.",
+    zh: "请连接原钱包和原网络以恢复这笔交易。",
+  },
+  recoveryStorageUnavailableTitle: {
+    en: "Recovery storage unavailable",
+    zh: "恢复存储不可用",
+  },
+  recoveryStorageUnavailable: {
+    en: "Reliable transaction recovery is unavailable, so wallet writes are paused. Read-only capsule browsing still works.",
+    zh: "可靠的交易恢复存储暂不可用，因此钱包写入已暂停；仍可只读浏览胶囊。",
+  },
+  recoveryStorageUnavailableAfterBroadcast: {
+    en: "Transaction {txid} was broadcast, but its recovery record could not be verified. Keep this transaction ID and do not submit again.",
+    zh: "交易 {txid} 已广播，但恢复记录无法验证。请保留该交易 ID，勿重复提交。",
+  },
+  unavailableShort: { en: "Unavailable", zh: "不可用" },
+  capsuleDataUnavailable: { en: "Capsules could not be verified", zh: "无法验证胶囊" },
+  capsuleDataUnavailableHint: {
+    en: "The chain read failed. This is not an empty capsule vault; retry when RPC access recovers.",
+    zh: "链上读取失败。这不代表胶囊库为空，请在 RPC 恢复后重试。",
+  },
+  publicDataUnavailable: { en: "Public capsules could not be verified", zh: "无法验证公开胶囊" },
+  publicDataUnavailableHint: {
+    en: "No tip will be sent until the candidate list is verified again.",
+    zh: "在候选列表重新验证前，不会发送打赏。",
+  },
+  creditDataUnavailable: { en: "Balance unavailable", zh: "余额不可用" },
   walletRequired: {
     en: "Connect your Neo wallet to seal a capsule.",
     zh: "请先连接 Neo 钱包再封存胶囊。",

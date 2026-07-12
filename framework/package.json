@@ -20,7 +20,9 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "lucide-react": "^0.562.0"
+  },
   "peerDependencies": {
     "phaser": "^3.90.0",
     "react": "^18.3.1",

@@ -17,8 +17,6 @@ and OneGate-hosted dApp launches.
 - Platformer, board game, puzzle, and animal source material: Kenney asset
   packs, CC0.
   Source: https://kenney.nl/assets
-- Pet Potion potion icons: OpenGameArt CC0 Potion Icons.
-  Source: https://opengameart.org/content/cc0-potion-icons
 - Snake Bounty snake board sprites: `Snake game assets` by Clear_code, CC0.
   Source: https://opengameart.org/content/snake-game-assets
 - Curve Arrow sprites, logo, and banner: original in-repo vector art (layered
@@ -27,9 +25,13 @@ and OneGate-hosted dApp launches.
 
 ## App Mapping
 
-- `aim-master`: target-range composition using Kenney platformer/request-pack
-  shooter and target motifs.
-- `color-clash`: match-puzzle board composition using Kenney Puzzle Pack II.
+- `aim-master`: project-authored target board, reticle, badges, and range
+  backdrop generated for this app with OpenAI image generation. See
+  `apps/aim-master/public/art/ATTRIBUTION.md`.
+- `color-clash`: project-authored Simon-style memory console, four tactile pad
+  controls, difficulty badges, and warm arcade table generated for this app;
+  no third-party game art is used by the Phaser scene. See
+  `apps/color-clash/public/art/ATTRIBUTION.md`.
 - `curve-arrow`: dawn archery-range scene (curving golden arrow trail, stone
   pillars, recurve bow, and FITA target board) built from original in-repo
   vector art.
@@ -38,15 +40,32 @@ and OneGate-hosted dApp launches.
 - `game-2048`: native 2048 board styling based on the original MIT 2048 tile
   palette and board layout.
 - `jump-rush`: platformer level scene using Kenney Platformer Art assets.
-- `merge-kingdom`: merge-board/castle scene using Kenney platformer and item
-  assets.
-- `pet-potion`: pet-and-potion scene using Kenney animal assets and CC0 potion
-  icons.
-- `sheep-solitaire`: card-table scene using Kenney Boardgame Pack cards and
-  chips.
+- `merge-kingdom`: project-authored 12-stage building set generated for this
+  app with OpenAI image generation. See
+  `apps/merge-kingdom/public/art/ATTRIBUTION.md`.
+- `pet-potion`: project-authored nursery, pet stages, care tools, and route
+  badges generated for this app with OpenAI image generation. See
+  `apps/pet-potion/public/art/ATTRIBUTION.md`.
+- `sheep-solitaire`: project-authored layered tiles, mascot, tray, badges, and
+  meadow table generated for this app with OpenAI image generation. See
+  `apps/sheep-solitaire/public/art/ATTRIBUTION.md`.
 - `snake-bounty`: snake-grid scene using snake sprites and apple pickups.
 - `sudoku`: Sudoku board scene using the MIT Sudoku sample and a rendered
   board panel.
-- `dice-game`: dice-table scene using Kenney Boardgame Pack dice and chips.
-- `fogplay`: intentionally unchanged; it keeps the approved Heads/Tails coin
-  artwork.
+- `dice-game`: dice-table scene using OpenGameArt `Simple Dice 2` and `Poker
+  Chips Only 2D` (CC0), with the attributed `Fantasy Dices Pack` hero die
+  (CC BY 4.0) and an app-specific generated banner. See
+  `apps/dice-game/public/art/ATTRIBUTION.md`.
+- `fogplay`: project-authored Heads/Tails coin faces, landing pedestal, and
+  launcher media; runtime WebP files are optimized derivatives. Official GAS
+  artwork comes from the shared token component. See
+  `apps/fogplay/ASSET_PROVENANCE.md`.
+- `gas-lucky-pool`: project-authored warm mint-and-gold vault stage and OneGate
+  launcher media. GameFi token marks resolve through the shared official GAS
+  token asset; the local points lane uses the existing OneGate mark. No art or
+  implementation was copied from `IcedSoul/minigame-everyday`. See
+  `apps/gas-lucky-pool/ASSET_PROVENANCE.md`.
+- `burn-league`: repository-owned warm gold-and-mint arena, league cauldron,
+  trophy, and launcher media; runtime fuel marks use the shared official GAS
+  token asset. No code or art was copied from `IcedSoul/minigame-everyday`.
+  See `apps/burn-league/ASSET_PROVENANCE.md`.

@@ -28,12 +28,12 @@ const appMessages = {
   accountInspectorTitle: { en: "Account Readiness", zh: "账户就绪检查" },
   accountId: { en: "AccountId Hash", zh: "AccountId Hash" },
   accountIdHint: {
-    en: "Use the registered 20-byte AccountId hash, or a public key that can be normalized to one.",
-    zh: "请输入已注册的 20 字节 AccountId 哈希，或可归一化为该哈希的公钥。",
+    en: "Use the exact registered 20-byte AccountId hash.",
+    zh: "请输入已注册的精确 20 字节 AccountId 哈希。",
   },
   accountIdPlaceholder: {
-    en: "20-byte AccountId hash or public key",
-    zh: "20 字节 AccountId 哈希或公钥",
+    en: "20-byte AccountId hash",
+    zh: "20 字节 AccountId 哈希",
   },
   accountIdSharedHint: {
     en: "Shared with the inspector above — editing either field updates both.",
@@ -47,10 +47,15 @@ const appMessages = {
   verifierPlaceholder: { en: "0x...", zh: "0x..." },
   verifierParams: { en: "Verifier Params Hex", zh: "Verifier 参数 Hex" },
   verifierParamsHint: {
-    en: "Constructor payload (hex, no spaces) that usually binds the account to your specific identity/key. Leaving it empty may produce an account nobody can use — or anyone can — depending on the verifier.",
-    zh: "构造负载（无空格 hex），通常将账户绑定到你的特定身份/密钥。留空可能产生无人可用——或人人可用——的账户，具体取决于 verifier。",
+    en: "Optional verifier setup bytes for a custom verifier, encoded as even-length hex.",
+    zh: "自定义 verifier 的可选初始化字节，使用偶数长度 hex 编码。",
   },
-  verifierParamsPlaceholder: { en: "hex payload", zh: "hex 负载" },
+  verifierParamsPlaceholder: { en: "04… uncompressed key or custom hex", zh: "04… 未压缩公钥或自定义 hex" },
+  web3AuthPublicKeyHint: {
+    en: "The canonical Web3Auth verifier requires the complete 65-byte uncompressed secp256k1 public key (130 hex characters beginning with 04).",
+    zh: "规范 Web3Auth verifier 必须使用完整的 65 字节 secp256k1 未压缩公钥（以 04 开头，共 130 个 hex 字符）。",
+  },
+  identityKeyRequired: { en: "Identity key required", zh: "需要身份公钥" },
   hook: { en: "Hook Hash", zh: "Hook Hash" },
   hookHint: {
     en: "Optional guard hook. Leave empty to register the zero hook.",
@@ -178,12 +183,16 @@ const appMessages = {
     zh: "输入 accountId 后才能读取 AA Core 状态。",
   },
   registerBlocked: {
-    en: "Complete account id, verifier, backup owner, and timelock before submitting.",
-    zh: "提交前需补齐 accountId、verifier、backup owner 与 timelock。",
+    en: "Complete the verifier identity, backup owner, and recovery window before submitting.",
+    zh: "提交前需补齐 verifier 身份、backup owner 与恢复窗口。",
   },
   mainnetCaution: {
     en: "You are on mainnet — Register Account is a real write against mainnet AA Core and spends GAS.",
     zh: "当前为主网 —— 注册账户是对主网 AA Core 的真实写交易，会消耗 GAS。",
+  },
+  networkWriteCaution: {
+    en: "Registration is a real write to the {network} AA Core, spends GAS, and creates a permanent account shell.",
+    zh: "注册会真实写入 {network} AA Core、消耗 GAS，并创建永久账户壳。",
   },
   mainnetCautionLead: {
     en: "You are on mainnet — Register Account is a ",
@@ -229,10 +238,57 @@ const appMessages = {
     en: "Register transaction submitted",
     zh: "注册交易已提交",
   },
+  statusReady: { en: "Account control center ready", zh: "账户控制中心已就绪" },
+  derivedAccountPending: { en: "Complete the shell to derive its AccountId", zh: "补全账户壳后生成 AccountId" },
+  derivedAccountAwait: { en: "Not derived yet", zh: "尚未生成" },
+  registrationPending: { en: "Registration broadcast — confirmation pending", zh: "注册已广播，等待链上确认" },
+  registrationPendingHint: {
+    en: "Check the saved transaction instead of broadcasting another registration.",
+    zh: "请检查已保存的交易，不要重复广播注册。",
+  },
+  registrationRecovering: { en: "Checking registration evidence…", zh: "正在检查注册证据…" },
+  checkConfirmation: { en: "Check confirmation", zh: "检查确认状态" },
+  connectToRecover: { en: "Connect owner to recover", zh: "连接 owner 后恢复" },
+  registrationConfirmed: { en: "AA account registration confirmed on chain", zh: "AA 账户注册已在链上确认" },
+  registrationFaulted: { en: "Registration transaction faulted", zh: "注册交易执行失败" },
+  registrationEvidenceMismatch: {
+    en: "The transaction halted without the exact AccountRegistered evidence. Keep it for review.",
+    zh: "交易虽为 HALT，但缺少精确的 AccountRegistered 证据；请保留记录复核。",
+  },
+  pendingContextMismatch: {
+    en: "Reconnect the original backup-owner wallet on the transaction network to continue.",
+    zh: "请在原交易网络连接原 backup owner 钱包后继续。",
+  },
+  pendingStorageUnavailable: {
+    en: "This device could not verify durable recovery storage. Do not close the app until confirmation finishes.",
+    zh: "本设备无法验证持久恢复存储；确认完成前请勿关闭应用。",
+  },
+  pendingBlocksRegistration: {
+    en: "Resolve the saved registration transaction before creating another account.",
+    zh: "创建另一个账户前，请先处理已保存的注册交易。",
+  },
+  registrationNotTracked: {
+    en: "The wallet did not return a valid transaction ID, so registration cannot be tracked.",
+    zh: "钱包未返回有效交易 ID，无法跟踪注册。",
+  },
+  registrationFailed: { en: "Registration failed before broadcast", zh: "注册在广播前失败" },
+  accountAlreadyRegistered: {
+    en: "This deterministic AccountId is already registered.",
+    zh: "此确定性 AccountId 已经注册。",
+  },
+  accountReadUnavailable: {
+    en: "AA Core {field} read is unavailable.",
+    zh: "AA Core 的 {field} 读取不可用。",
+  },
+  accountReadFailed: { en: "AA Core account state is unavailable", zh: "AA Core 账户状态不可用" },
+  networkMismatch: {
+    en: "Wallet, launch network, and canonical AA Core do not match.",
+    zh: "钱包、启动网络与规范 AA Core 不匹配。",
+  },
   inspectSuccess: { en: "Account state loaded", zh: "账户状态已加载" },
   invalidAccountId: {
-    en: "Invalid accountId hash or seed input",
-    zh: "无效的 accountId 哈希或 seed 输入",
+    en: "Enter an exact 20-byte AccountId hash",
+    zh: "请输入精确的 20 字节 AccountId 哈希",
   },
   invalidHash: {
     en: "Expected a Neo hash or empty value",
@@ -249,6 +305,10 @@ const appMessages = {
   invalidVerifierParams: {
     en: "Verifier params must be valid even-length hex",
     zh: "Verifier 参数必须是有效的偶数长度 hex",
+  },
+  invalidWeb3AuthPublicKey: {
+    en: "The canonical Web3Auth verifier requires a 65-byte uncompressed public key beginning with 04.",
+    zh: "规范 Web3Auth verifier 需要一个以 04 开头的 65 字节未压缩公钥。",
   },
   noVerifierRegistered: {
     en: "Read succeeded, but no verifier is registered for this account.",

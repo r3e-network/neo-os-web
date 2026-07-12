@@ -3,13 +3,13 @@
   "id": "miniapp-aa-session-key-lab",
   "name": "AA Session Key Lab",
   "name_zh": "AA Session Key 实验室",
-  "version": "1.0.0",
-  "description": "Configure SessionKeyVerifier on-chain and inspect AA sponsorship state from a focused miniapp.",
-  "description_zh": "用专用小程序在链上配置 SessionKeyVerifier 并检查 AA 赞助状态。",
+  "version": "2.0.0",
+  "description": "Inspect a live Neo AA account, create one scoped session permission, confirm exact on-chain readback, and revoke with refresh-safe recovery.",
+  "description_zh": "核对实时 Neo AA 账户，创建单一作用域 Session 权限，通过精确链上回读确认，并支持可恢复的撤销流程。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["aa", "session-key", "verifier", "sponsor"],
+  "tags": ["aa", "session-key", "verifier", "permission", "allowance", "recovery"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
@@ -29,9 +29,9 @@
     "icon": "/miniapps/aa-session-key-lab/logo.webp",
     "banner": "/miniapps/aa-session-key-lab/banner.webp"
   },
-  "permissions": ["invoke:primary", "read:blockchain"],
+  "permissions": ["invoke:primary", "read:blockchain", "write:blockchain", "aa"],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://aa-session-key-lab"
   },
@@ -46,6 +46,11 @@
     "ratings": true,
     "transactions": true
   },
+  "operation_panel": {
+    "title": "AA Session Key Lab",
+    "subtitle": "Account inspection, permission design, exact readback, recovery, and revoke live inside the designed workspace. The host does not duplicate them as a parameter form.",
+    "operations": []
+  },
   "createdAt": "2026-03-18T05:20:00Z",
-  "updatedAt": "2026-05-08T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

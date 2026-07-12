@@ -34,6 +34,7 @@ defineMiniApp({
       const next = ctx.framework.chain.address.get();
       if (next === lastAddress) return;
       lastAddress = next;
+      ns.handleAccountChanged();
       if (accountChangeTimer) clearTimeout(accountChangeTimer);
       accountChangeTimer = setTimeout(() => {
         void ns.loadAll();
@@ -46,25 +47,35 @@ defineMiniApp({
         ctx.setStatus(ctx.t("enterDomainNameError"), "error");
         return;
       }
-      ns.searchDomain();
+      await ns.searchDomain();
     });
 
     ctx.framework.actions.register("registerDomain", async () => {
       await ctx.framework.notify.guard(() => ns.registerDomain(), { successKey: "registered" });
     });
 
-    ctx.framework.actions.register("fetchRenewPrice", async (domain: unknown) => {
-      if (!domain) return 0;
-      try {
-        return await ns.getRenewPrice(domain as Domain);
-      } catch {
-        return 0;
-      }
+    ctx.framework.actions.register("prepareRenew", async (domain: unknown) => {
+      if (!domain) return;
+      await ctx.framework.notify.guard(() => ns.prepareRenew(domain as Domain));
     });
 
     ctx.framework.actions.register("handleRenew", async (domain: unknown) => {
       if (!domain) return;
       await ctx.framework.notify.guard(() => ns.renewDomain(domain as Domain), { successKey: "renewed" });
+    });
+
+    ctx.framework.actions.register("cancelRenew", async () => {
+      ns.cancelRenew();
+    });
+
+    ctx.framework.actions.register("recoverPending", async () => {
+      await ctx.framework.notify.guard(() => ns.recoverPending(), { successKey: "recovered" });
+    });
+
+    ctx.framework.actions.register("copyPendingTxid", async () => {
+      const txid = ns.pendingOperation.get()?.txid;
+      if (!txid) return;
+      await ctx.framework.clipboard.copy(txid, { successKey: "txidCopied", errorKey: "copyFailed" });
     });
 
     ctx.framework.actions.register("handleSetTarget", async (targetAddress: unknown) => {
@@ -98,6 +109,7 @@ defineMiniApp({
         walletStatus: ns.walletStatus,
         expiringSoon: ns.expiringSoon,
         myDomains: ns.myDomains,
+        domainsStatus: ns.domainsStatus,
         loading: ns.isLoading,
         error: ns.error,
         managingDomain: ns.managingDomain,
@@ -105,6 +117,13 @@ defineMiniApp({
         searchResult: ns.searchResult,
         isSearching: ns.isSearching,
         registrationCost: ns.registrationCost,
+        renewQuote: ns.renewQuote,
+        pendingOperation: ns.pendingOperation,
+        isRecovering: ns.isRecovering,
+        transactionNotice: ns.transactionNotice,
+        activeNetwork: ns.activeNetwork,
+        activeContract: ns.activeContract,
+        recoveryStorageStatus: ns.recoveryStorageStatus,
       },
       loadData: ns.loadAll,
       cleanup: () => {

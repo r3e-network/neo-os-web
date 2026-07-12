@@ -29,6 +29,20 @@ function t(key: string) {
     walletNotConnected: "Wallet not connected",
     contractMissing: "Contract address not configured",
     depositPrepaidNoEscrow: "funds prepaid, escrow not created",
+    chainSnapshotUnavailable: "chain snapshot unavailable",
+    transactionConfirmationPending: "transaction confirmation pending",
+    escrowStateChanged: "escrow state changed",
+    approvedAwaitingClaim: "approved awaiting claim",
+    refundReviewChanged: "refund review changed",
+    deploymentChecking: "checking deployment",
+    deploymentReady: "deployment ready",
+    deploymentLegacy: "legacy recovery deployment",
+    deploymentPaused: "deployment paused",
+    deploymentMismatch: "deployment mismatch",
+    deploymentUnavailable: "deployment unavailable",
+    creditSnapshotUnavailable: "credit snapshot unavailable",
+    noRecoveryCredit: "no recovery credit",
+    gracePeriodNotElapsed: "grace period not elapsed",
     statusActive: "Active",
     statusCancelled: "Cancelled",
     statusCompleted: "Completed",
@@ -40,15 +54,96 @@ function t(key: string) {
  * Minimal ChainService stand-in. Records read/readArray/invoke calls so tests
  * can assert the direct-contract deposit + createEscrow argument shapes.
  */
-function makeChain() {
+function event(values: unknown[]) {
+  return { state: values.map((value) => ({ value })) };
+}
+
+function verifiedResult(op: string, args: ContractArg[] = []) {
+  const valueAt = (index: number) => args[index]?.value;
+  let values: unknown[] = [];
+  if (op === "createEscrow") {
+    const milestoneArgs = valueAt(4) as unknown as ContractArg[];
+    values = [1, OWNER, BENEFICIARY, valueAt(2), valueAt(3), milestoneArgs.length];
+  } else if (op === "approveMilestone") {
+    values = [valueAt(1), valueAt(2), OWNER];
+  } else if (op === "claimMilestone") {
+    values = [valueAt(1), valueAt(2), BENEFICIARY, 10_000_000];
+  } else if (op === "cancelEscrow") {
+    values = [valueAt(1), OWNER, 10_000_000];
+  } else if (op === "reclaimApprovedMilestone") {
+    values = [valueAt(1), valueAt(2), OWNER, 10_000_000];
+  }
+  return { txid: "0xtx", success: true, verified: true, event: event(values) };
+}
+
+function rawEscrow(overrides: Record<string, unknown> = {}) {
+  return {
+    creator: OWNER,
+    beneficiary: BENEFICIARY,
+    assetSymbol: "GAS",
+    totalAmount: 10_000_000,
+    releasedAmount: 0,
+    milestoneCount: 1,
+    createdTime: Date.now() - 60_000,
+    status: "active",
+    title: "Website delivery",
+    notes: "Ship the UI",
+    milestoneAmounts: [10_000_000],
+    milestoneApproved: [false],
+    milestoneClaimed: [false],
+    ...overrides,
+  };
+}
+
+function defaultReadValue(op: string): unknown {
+  if (op === "getPlatformStats") {
+    return {
+      totalEscrows: 1,
+      totalLocked: 10_000_000,
+      totalReleased: 0,
+      minNeo: 1,
+      minGas: 10_000_000,
+      minMilestones: 1,
+      maxMilestones: 12,
+    };
+  }
+  if (op === "isPaused") return false;
+  if (op === "directAssetCreditOf") return 0;
+  if (op === "getMilestoneDetails") {
+    return {
+      amount: 10_000_000,
+      approved: true,
+      claimed: false,
+      approvedTime: Date.now() - 2_700_000_000,
+    };
+  }
+  if (op === "getEscrowDetails") return rawEscrow();
+  return {};
+}
+
+function mockEscrowDetails(
+  read: ReturnType<typeof vi.fn>,
+  value: Record<string, unknown>,
+) {
+  read.mockImplementation(async (op: string) =>
+    op === "getEscrowDetails" ? value : defaultReadValue(op),
+  );
+}
+
+function makeChain(walletAddress = OWNER) {
   const invoke = vi.fn(
-    async (_op: string, _args: ContractArg[], _opts?: unknown): Promise<unknown> => ({
-      txid: "0xtx",
-      success: true,
-    }),
+    async (
+      op: string,
+      args: ContractArg[],
+      opts?: { onTransactionSent?: (txid: string) => void },
+    ): Promise<unknown> => {
+      opts?.onTransactionSent?.("0xtx");
+      return verifiedResult(op, args);
+    },
   );
   const read = vi.fn(
-    async (_op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown> => ({}),
+    async (op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown> =>
+      defaultReadValue(op),
   );
   const readArray = vi.fn(
     async (_op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown[]> => [],
@@ -56,7 +151,7 @@ function makeChain() {
 
   const chain = {
     contractAddress: { get: () => CONTRACT },
-    address: { get: () => OWNER },
+    address: { get: () => walletAddress },
     invoke,
     read,
     readArray,
@@ -73,8 +168,9 @@ function setup(
     txid: string,
     asset: "NEO" | "GAS",
   ) => Promise<DepositConfirmation>,
+  walletAddress = OWNER,
 ) {
-  const { chain, invoke, read, readArray } = makeChain();
+  const { chain, invoke, read, readArray } = makeChain(walletAddress);
   // Wrap the mock chain in the MiniApp framework (ctx.framework) — the
   // composable's only service surface now (reads, array reads, and the
   // prepayAndCall deposit lane all delegate to this chain, so the recorded
@@ -90,7 +186,7 @@ function setup(
     t,
     confirmDeposit: confirmDeposit ?? (async () => "confirmed" as const),
   });
-  app.setAddress(OWNER);
+  app.setAddress(walletAddress);
   return { app, chain, invoke, read, readArray };
 }
 
@@ -106,6 +202,8 @@ function escrowItem(overrides: Partial<EscrowItem> = {}): EscrowItem {
     milestoneAmounts: [10_000_000n],
     milestoneApproved: [false],
     milestoneClaimed: [false],
+    milestoneApprovedTimes: [0n],
+    createdTime: BigInt(Date.now() - 60_000),
     title: "Website delivery",
     notes: "Ship the UI",
     active: true,
@@ -141,9 +239,9 @@ describe("useMilestoneEscrow deposit settlement", () => {
         }),
     );
     const { app, invoke } = setup(confirmDeposit);
-    invoke.mockImplementation(async (op: string) => {
+    invoke.mockImplementation(async (op: string, args: ContractArg[]) => {
       order.push(op);
-      return { txid: op === "transfer" ? "0xdeposit" : "0xtx", success: true };
+      return { ...verifiedResult(op, args), txid: op === "transfer" ? "0xdeposit" : "0xtx" };
     });
 
     const pending = app.createEscrow(gasParams);
@@ -179,9 +277,9 @@ describe("useMilestoneEscrow deposit settlement", () => {
     vi.useFakeTimers();
     const order: string[] = [];
     const { app, invoke } = setup(async () => "unreachable" as const);
-    invoke.mockImplementation(async (op: string) => {
+    invoke.mockImplementation(async (op: string, args: ContractArg[]) => {
       order.push(op);
-      return { txid: "0xtx", success: true };
+      return verifiedResult(op, args);
     });
 
     const pending = app.createEscrow(gasParams);
@@ -358,9 +456,9 @@ describe("useMilestoneEscrow (direct contract)", () => {
     const { app, invoke } = setup();
 
     // Deposit succeeds, createEscrow throws — credit is held under the creator.
-    invoke.mockImplementation(async (op: string) => {
+    invoke.mockImplementation(async (op: string, args: ContractArg[]) => {
       if (op === "createEscrow") throw new Error("on-chain revert");
-      return { txid: "0xtx", success: true };
+      return verifiedResult(op, args);
     });
 
     await expect(
@@ -375,6 +473,25 @@ describe("useMilestoneEscrow (direct contract)", () => {
 
     // The deposit transfer was still broadcast.
     expect(callFor(invoke, "transfer")).toBeTruthy();
+  });
+
+  it("does not call a broadcast transaction successful without its exact event", async () => {
+    const { app, invoke } = setup();
+    invoke.mockImplementation(async (op: string, args: ContractArg[]) =>
+      op === "createEscrow"
+        ? { txid: "0xbroadcast", success: true, verified: false, event: null }
+        : verifiedResult(op, args),
+    );
+
+    await expect(
+      app.createEscrow({
+        name: "Unverified",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.1" }],
+      }),
+    ).rejects.toThrow("transaction confirmation pending");
   });
 
   it("approves with a 1-based milestone index and actor-first args", async () => {
@@ -392,18 +509,32 @@ describe("useMilestoneEscrow (direct contract)", () => {
     ]);
   });
 
-  it("claims with a 1-based milestone index and the beneficiary first", async () => {
+  it("rejects an approval event for a different escrow", async () => {
     const { app, invoke } = setup();
+    invoke.mockImplementation(async (op: string, args: ContractArg[]) =>
+      op === "approveMilestone"
+        ? { txid: "0xtx", success: true, verified: true, event: event([99, 1, OWNER]) }
+        : verifiedResult(op, args),
+    );
+
+    await expect(app.approveMilestone(escrowItem(), 0)).rejects.toThrow(
+      "transaction confirmation pending",
+    );
+  });
+
+  it("claims with a 1-based milestone index and the beneficiary first", async () => {
+    const { app, invoke, read } = setup(undefined, BENEFICIARY);
     const claimable = escrowItem({
       milestoneApproved: [true],
       milestoneClaimed: [false],
     });
+    mockEscrowDetails(read, rawEscrow({ milestoneApproved: [true] }));
 
     await app.claimMilestone(claimable, 0);
 
     const call = callFor(invoke, "claimMilestone");
     expect(call![1]).toEqual([
-      { type: "Hash160", value: OWNER_HASH },
+      { type: "Hash160", value: BENEFICIARY_HASH },
       { type: "Integer", value: "1" },
       { type: "Integer", value: "1" }, // 0-based UI -> 1-based contract
     ]);
@@ -422,6 +553,115 @@ describe("useMilestoneEscrow (direct contract)", () => {
     ]);
   });
 
+  it("forces a new refund review when the live remaining balance changed", async () => {
+    const { app, invoke, read } = setup();
+    mockEscrowDetails(
+      read,
+      rawEscrow({
+        totalAmount: 10_000_000,
+        releasedAmount: 5_000_000,
+        milestoneCount: 2,
+        milestoneAmounts: [5_000_000, 5_000_000],
+        milestoneApproved: [true, false],
+        milestoneClaimed: [true, false],
+      }),
+    );
+
+    await expect(app.cancelEscrow(escrowItem())).rejects.toThrow(
+      "refund review changed",
+    );
+    expect(callFor(invoke, "cancelEscrow")).toBeUndefined();
+  });
+
+  it("fails closed before any deposit when the live contract is paused", async () => {
+    const { app, invoke, read } = setup();
+    read.mockImplementation(async (op: string) =>
+      op === "isPaused" ? true : defaultReadValue(op),
+    );
+
+    await expect(
+      app.createEscrow({
+        name: "Paused",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.1" }],
+      }),
+    ).rejects.toThrow("deployment paused");
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+  });
+
+  it("blocks new deposits on the legacy deployment while keeping existing escrow actions usable", async () => {
+    const { app, invoke, read } = setup();
+    read.mockImplementation(async (op: string) => {
+      if (op === "directAssetCreditOf") throw new Error("method not found");
+      return defaultReadValue(op);
+    });
+
+    await expect(
+      app.createEscrow({
+        name: "Legacy",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        notes: "",
+        milestones: [{ amount: "0.1" }],
+      }),
+    ).rejects.toThrow("legacy recovery deployment");
+    expect(callFor(invoke, "transfer")).toBeUndefined();
+
+    await app.approveMilestone(escrowItem(), 0);
+    expect(callFor(invoke, "approveMilestone")).toBeTruthy();
+  });
+
+  it("reclaims an approved tranche only after the live grace-period snapshot", async () => {
+    const { app, invoke, read } = setup();
+    mockEscrowDetails(
+      read,
+      rawEscrow({ milestoneApproved: [true], milestoneClaimed: [false] }),
+    );
+
+    await app.reclaimApprovedMilestone(
+      escrowItem({
+        milestoneApproved: [true],
+        milestoneClaimed: [false],
+        milestoneApprovedTimes: [BigInt(Date.now() - 2_700_000_000)],
+      }),
+      0,
+    );
+
+    expect(callFor(invoke, "reclaimApprovedMilestone")?.[1]).toEqual([
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Integer", value: "1" },
+      { type: "Integer", value: "1" },
+    ]);
+  });
+
+  it("recovers the exact unconsumed GAS credit and requires a zero readback", async () => {
+    const { app, invoke, read } = setup();
+    let recoveryBroadcast = false;
+    read.mockImplementation(async (op: string, args?: ContractArg[]) => {
+      if (op !== "directAssetCreditOf") return defaultReadValue(op);
+      const payer = String(args?.[1]?.value ?? "").toLowerCase();
+      if (payer === OWNER_HASH.toLowerCase()) return recoveryBroadcast ? 0 : 10_000_000;
+      return 0;
+    });
+    invoke.mockImplementation(async (op: string, args: ContractArg[], options?: { onTransactionSent?: (txid: string) => void }) => {
+      if (op === "reclaimDirectAssetCredit") recoveryBroadcast = true;
+      options?.onTransactionSent?.("0xrecovery");
+      return verifiedResult(op, args);
+    });
+
+    await app.reclaimDirectAssetCredit("GAS");
+
+    expect(callFor(invoke, "reclaimDirectAssetCredit")?.[1]).toEqual([
+      { type: "Hash160", value: GAS_HASH },
+      { type: "Hash160", value: OWNER_HASH },
+      { type: "Integer", value: "10000000" },
+    ]);
+    expect(app.gasRecoveryCredit.get()).toBe(0n);
+    expect(app.pendingTxid.get()).toBe("");
+  });
+
   it("reads escrows by role and parses on-chain details into items", async () => {
     const { app, read, readArray } = setup();
 
@@ -429,7 +669,16 @@ describe("useMilestoneEscrow (direct contract)", () => {
     readArray.mockImplementation(async (op: string) =>
       op === "getCreatorEscrows" ? [1] : [],
     );
-    read.mockImplementation(async (_op: string, args?: ContractArg[]) => {
+    read.mockImplementation(async (op: string, args?: ContractArg[]) => {
+      if (op === "getMilestoneDetails") {
+        return {
+          amount: 5_000_000,
+          approved: true,
+          claimed: false,
+          approvedTime: Date.now() - 60_000,
+        };
+      }
+      if (op !== "getEscrowDetails") return defaultReadValue(op);
       const id = args?.[0]?.value;
       if (String(id) !== "1") return {};
       return {
@@ -438,6 +687,7 @@ describe("useMilestoneEscrow (direct contract)", () => {
         assetSymbol: "GAS",
         totalAmount: 10_000_000,
         releasedAmount: 0,
+        createdTime: Date.now() - 60_000,
         milestoneCount: 2,
         status: "active",
         title: "Website delivery",
@@ -465,5 +715,19 @@ describe("useMilestoneEscrow (direct contract)", () => {
       { type: "Integer", value: "0" },
       { type: "Integer", value: "200" },
     ]);
+  });
+
+  it("clears action surfaces when a chain row fails invariant checks", async () => {
+    const { app, read, readArray } = setup();
+    app.creatorEscrows.set([escrowItem()]);
+    readArray.mockImplementation(async (op: string) =>
+      op === "getCreatorEscrows" ? [1] : [],
+    );
+    mockEscrowDetails(read, rawEscrow({ milestoneAmounts: [9_000_000] }));
+
+    await expect(app.refreshEscrows()).rejects.toThrow("chain snapshot unavailable");
+    expect(app.creatorEscrows.get()).toEqual([]);
+    expect(app.beneficiaryEscrows.get()).toEqual([]);
+    expect(app.dataError.get()).toBe("chain snapshot unavailable");
   });
 });

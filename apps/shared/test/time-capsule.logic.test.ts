@@ -30,7 +30,7 @@ import { addressToScriptHash } from "../utils/neo";
 
 const ME = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const OTHER = "NfgHwwTi3wHAS8aFAN243C5vGbkYDpqLHP";
-const CONTRACT = "0x5cc0269c37023e09e996b0fdd3edd3f48cb213cf";
+const CONTRACT = "0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a";
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 const ME_HASH = addressToScriptHash(ME);
@@ -56,6 +56,11 @@ function t(key: string, params?: Record<string, string | number>) {
     noCreditToWithdraw: "No reusable deposit credit to withdraw.",
     tipsCollected: "Collected {amount} GAS in fishing tips",
     noTipsToCollect: "No fishing tips to collect yet.",
+    pendingBlocksWrites: "Check the pending transaction before starting another action.",
+    transactionEventMismatch: "The confirming event does not match this capsule action.",
+    transactionReadbackMismatch: "The chain readback does not match the confirmed event.",
+    recoveryStorageUnavailable: "Reliable transaction recovery is unavailable.",
+    recoveryStorageUnavailableAfterBroadcast: "Transaction {txid} was broadcast, but recovery storage failed.",
   };
   const base = messages[key] ?? key;
   if (!params) return base;
@@ -94,7 +99,7 @@ function capsule(partial: Partial<ChainCapsule> & { id: string }): ChainCapsule 
 interface InvokeCall {
   operation: string;
   args: ContractArg[];
-  options?: { scriptHash?: string; waitForEvent?: string };
+  options?: { scriptHash?: string; waitForEvent?: string; onPaymentSent?: (txid: string) => void; onTransactionSent?: (txid: string) => void };
 }
 
 function setup(
@@ -102,10 +107,12 @@ function setup(
   opts?: {
     wallet?: string | null;
     failBury?: boolean;
+    unverifiedBury?: boolean;
+    wrongBuryEvent?: boolean;
+    wrongBuryReadback?: boolean;
     credit?: Record<string, string>;
     readError?: string;
-    /** Fish-revenue ledger balance (base units) for withdrawFishRevenue. */
-    fishRevenue?: string;
+    detectedNetwork?: "mainnet" | "testnet";
     /**
      * Settlement state the host lane observed for the bury deposit
      * ("confirmed" when omitted). The host wraps a failing bury on ANY
@@ -142,6 +149,10 @@ function setup(
   const read = vi.fn(async (operation: string, args?: ContractArg[]) => {
     if (opts?.readError) throw new Error(opts.readError);
     if (operation === "lastCapsuleId") return lastId;
+    if (operation === "ownerCapsuleCount") {
+      const ownerHash = String(args?.[0]?.value ?? "");
+      return ownerCapsuleIds(ownerHash).length;
+    }
     if (operation === "creditOf") {
       const ownerHash = String(args?.[0]?.value ?? "").toLowerCase();
       return (credits.get(ownerHash) ?? 0n).toString();
@@ -156,9 +167,12 @@ function setup(
   });
 
   const readArray = vi.fn(async (operation: string, args?: ContractArg[]) => {
+    if (opts?.readError) throw new Error(opts.readError);
     if (operation === "getOwnerCapsules") {
       const ownerHash = String(args?.[0]?.value ?? "");
-      return ownerCapsuleIds(ownerHash);
+      const offset = Number(args?.[1]?.value ?? 0);
+      const limit = Number(args?.[2]?.value ?? 100);
+      return ownerCapsuleIds(ownerHash).slice(offset, offset + limit);
     }
     throw new Error(`unexpected readArray: ${operation}`);
   });
@@ -167,7 +181,7 @@ function setup(
     async (
       operation: string,
       args: ContractArg[],
-      options?: { scriptHash?: string; waitForEvent?: string },
+      options?: { scriptHash?: string; waitForEvent?: string; onPaymentSent?: (txid: string) => void; onTransactionSent?: (txid: string) => void },
     ): Promise<TxResult> => {
       invokes.push({ operation, args, options });
 
@@ -177,13 +191,29 @@ function setup(
         const fishMatch = memo.match(/^miniapp-timecapsule:fish:(\d+)$/);
         if (fishMatch) {
           const c = store.get(fishMatch[1]);
-          if (c) store.set(c.id, { ...c, fished: true });
+          if (c) {
+            options?.onTransactionSent?.(`0x${"2".repeat(64)}`);
+            store.set(c.id, { ...c, fished: true });
+            return {
+              txid: `0x${"2".repeat(64)}`,
+              success: true,
+              verified: true,
+              event: { state: [
+                { value: c.id },
+                { value: ME_HASH },
+                { value: c.owner },
+                { value: String(args[2]?.value ?? "0") },
+              ] },
+            };
+          }
         }
-        return { txid: "0xtransfer", success: true };
+        options?.onTransactionSent?.(`0x${"3".repeat(64)}`);
+        return { txid: `0x${"3".repeat(64)}`, success: true, verified: true };
       }
 
       if (operation === "bury") {
         if (opts?.failBury) throw new Error("bury reverted");
+        options?.onTransactionSent?.(`0x${"4".repeat(64)}`);
         // Mint a fresh capsule from the bury args (mirrors the contract):
         // the stored contentHash IS the buried ByteArray (base64 → hex),
         // exactly as getCapsule echoes it back as a "0x<hex>" ByteString.
@@ -198,11 +228,14 @@ function setup(
         const isPublic = Boolean(args[3]?.value);
         const category = Number(args[4]?.value ?? 1);
         const amount = String(args[5]?.value ?? "0");
+        const unlockTime = Date.now() + durationSeconds * 1000;
         store.set(id, {
           id,
           owner: ownerHash,
-          contentHash: `0x${contentHashHex || "cd".repeat(32)}`,
-          unlockTime: Date.now() + durationSeconds * 1000,
+          contentHash: opts?.wrongBuryReadback
+            ? `0x${"ff".repeat(32)}`
+            : `0x${contentHashHex || "cd".repeat(32)}`,
+          unlockTime,
           isPublic,
           category,
           revealed: false,
@@ -211,43 +244,47 @@ function setup(
         });
         // Buried(id, owner, amount, unlockTime, isPublic) — id is state[0].
         return {
-          txid: "0xbury",
+          txid: `0x${"4".repeat(64)}`,
           success: true,
-          event: { state: [{ value: id }] },
+          verified: !opts?.unverifiedBury,
+          event: opts?.unverifiedBury ? undefined : { state: [
+            { value: id },
+            { value: opts?.wrongBuryEvent ? OTHER_HASH : ownerHash },
+            { value: amount },
+            { value: unlockTime },
+            { value: isPublic },
+          ] },
         };
       }
 
       if (operation === "reveal") {
+        options?.onTransactionSent?.(`0x${"5".repeat(64)}`);
         const id = String(args[1]?.value ?? "");
         const c = store.get(id);
         if (c) store.set(id, { ...c, revealed: true });
-        return { txid: "0xreveal", success: true };
+        return {
+          txid: `0x${"5".repeat(64)}`,
+          success: true,
+          verified: true,
+          event: { state: [
+            { value: id },
+            { value: c?.owner ?? ME_HASH },
+            { value: c?.amount ?? "0" },
+          ] },
+        };
       }
 
       if (operation === "withdraw") {
+        options?.onTransactionSent?.(`0x${"6".repeat(64)}`);
         const ownerHash = String(args[0]?.value ?? "").toLowerCase();
         const amount = credits.get(ownerHash) ?? 0n;
         credits.set(ownerHash, 0n);
         // CreditWithdrawn(account, amount) — amount is state index 1.
         return {
-          txid: "0xwithdraw",
+          txid: `0x${"6".repeat(64)}`,
           success: true,
+          verified: true,
           event: { state: [{ value: ownerHash }, { value: amount.toString() }] },
-        };
-      }
-
-      if (operation === "withdrawFishRevenue") {
-        // The contract asserts revenue > 0 — an empty ledger REVERTS with the
-        // "no fish revenue" text the composable classifies as an expected
-        // nothing-to-collect outcome (kept app-side, plan §3 Wave 4).
-        const revenue = BigInt(opts?.fishRevenue ?? "0");
-        if (revenue <= 0n) throw new Error("FAULT: no fish revenue");
-        const ownerHash = String(args[0]?.value ?? "").toLowerCase();
-        // FishRevenueWithdrawn(owner, amount) — amount is state index 1.
-        return {
-          txid: "0xfishrevenue",
-          success: true,
-          event: { state: [{ value: ownerHash }, { value: revenue.toString() }] },
         };
       }
 
@@ -268,7 +305,7 @@ function setup(
       memo: string,
       operation: string,
       args: ContractArg[],
-      options?: { scriptHash?: string; waitForEvent?: string },
+      options?: { scriptHash?: string; waitForEvent?: string; onPaymentSent?: (txid: string) => void; onTransactionSent?: (txid: string) => void },
     ): Promise<TxResult> => {
       const transfer = await invoke(
         "transfer",
@@ -280,6 +317,7 @@ function setup(
         ],
         { scriptHash: GAS_HASH },
       );
+      options?.onPaymentSent?.(transfer.txid);
       try {
         return await invoke(operation, args, options);
       } catch (error) {
@@ -301,6 +339,7 @@ function setup(
     readArray,
     invoke,
     prepayAndInvoke,
+    detectNetwork: vi.fn(async () => opts?.detectedNetwork ?? "testnet"),
   } as unknown as ChainService;
 
   const events: Array<{ event: string; payload?: unknown }> = [];
@@ -317,7 +356,7 @@ function setup(
   const notify = new NotificationService(eventBus as unknown as EventBus, t);
 
   const app = createMiniAppFramework(
-    { services: { chain, notify }, t } as never,
+    { services: { chain, notify }, t, launchContext: { network: "neo-n3-testnet" } } as never,
     // storagePrefix mirrors main.tsx: the on-device content/meta stores keep
     // their legacy "time-capsule-*" localStorage keys.
     { appId: "miniapp-time-capsule", storagePrefix: "time-capsule-" },
@@ -331,7 +370,7 @@ function setup(
    */
   const remount = () => useTimeCapsule({ app, t });
 
-  return { composable, chain, invokes, events, store, remount };
+  return { app, composable, chain, invokes, events, store, readArray, remount };
 }
 
 beforeEach(() => {
@@ -364,6 +403,32 @@ describe("useTimeCapsule.loadCapsules (owner-scoped chain reads)", () => {
     expect(composable.totalCapsules.get()).toBe(3);
     expect(composable.lockedCount.get()).toBe(1);
     expect(composable.revealedCount.get()).toBe(1);
+  });
+
+  it("paginates the complete owner index instead of silently truncating after 100 capsules", async () => {
+    const records = Array.from({ length: 105 }, (_, index) => capsule({
+      id: String(index + 1),
+      owner: ME_HASH,
+    }));
+    const { composable, readArray } = setup(records);
+
+    await composable.loadAll();
+
+    expect(composable.capsules.get()).toHaveLength(105);
+    expect(readArray.mock.calls.filter(([operation]) => operation === "getOwnerCapsules")).toHaveLength(2);
+  });
+
+  it("does not attach a local title from a colliding capsule id with a different hash", async () => {
+    window.localStorage.setItem("time-capsule-meta", JSON.stringify({
+      "1": { title: "Wrong network title", category: 1, contentHash: "ff".repeat(32) },
+    }));
+    const { composable } = setup([
+      capsule({ id: "1", owner: ME_HASH, contentHash: `0x${"ab".repeat(32)}` }),
+    ]);
+
+    await composable.loadAll();
+
+    expect(composable.capsules.get()[0]?.title).toBe("Untitled capsule");
   });
 });
 
@@ -448,6 +513,163 @@ describe("useTimeCapsule.createCapsule (deposit + bury vault flow)", () => {
     );
     expect(deposit).toBeTruthy();
     expect(events.some((e) => e.event === "platform:notification")).toBe(false);
+  });
+
+  it("keeps a broadcast bury pending and never reports success without its exact event", async () => {
+    const { composable, events } = setup([], { wallet: ME, unverifiedBury: true });
+    composable.newCapsule.set({
+      title: "Pending letter",
+      content: "wait for proof",
+      days: "30",
+      isPublic: false,
+      category: 1,
+    });
+
+    await expect(composable.createCapsule()).resolves.toEqual({ status: "pending" });
+
+    expect(composable.pendingOperation.get()).toMatchObject({
+      kind: "create",
+      stage: "action",
+      eventName: "Buried",
+    });
+    expect(composable.newCapsule.get().title).toBe("Pending letter");
+    expect(
+      events.some(
+        (entry) =>
+          entry.event === "platform:notification" &&
+          (entry.payload as { type?: string }).type === "success",
+      ),
+    ).toBe(false);
+  });
+
+  it("persists the exact broadcast intent and blocks replay after remount", async () => {
+    const { composable, invokes, remount } = setup([], { wallet: ME, unverifiedBury: true });
+    composable.newCapsule.set({
+      title: "One future",
+      content: "one submission only",
+      days: "365",
+      isPublic: true,
+      category: 2,
+    });
+
+    await expect(composable.createCapsule()).resolves.toEqual({ status: "pending" });
+
+    const stored = JSON.parse(window.localStorage.getItem("time-capsule-state/pendingOperation") ?? "null") as {
+      kind?: string;
+      stage?: string;
+      txid?: string;
+      contentHash?: string;
+      durationSeconds?: number;
+      isPublic?: boolean;
+      category?: number;
+      amountFixed8?: string;
+    };
+    expect(stored).toMatchObject({
+      kind: "create",
+      stage: "action",
+      txid: `0x${"4".repeat(64)}`,
+      durationSeconds: 365 * 86_400,
+      isPublic: true,
+      category: 2,
+      amountFixed8: "20000000",
+    });
+    expect(stored.contentHash).toMatch(/^[0-9a-f]{64}$/);
+
+    const buryCount = invokes.filter((call) => call.operation === "bury").length;
+    const reopened = remount();
+    reopened.newCapsule.set({ title: "Duplicate", content: "do not send", days: "30", isPublic: false, category: 1 });
+    await expect(reopened.createCapsule()).rejects.toThrow("Check the pending transaction");
+    expect(invokes.filter((call) => call.operation === "bury")).toHaveLength(buryCount);
+  });
+
+  it("keeps the recovery record when the event or authoritative readback does not match", async () => {
+    const wrongEvent = setup([], { wallet: ME, wrongBuryEvent: true });
+    wrongEvent.composable.newCapsule.set({ title: "Event check", content: "exact owner", days: "30", isPublic: false, category: 1 });
+    await expect(wrongEvent.composable.createCapsule()).rejects.toThrow("confirming event does not match");
+    expect(wrongEvent.composable.pendingOperation.get()).toMatchObject({ kind: "create", stage: "action" });
+
+    window.localStorage.clear();
+    const wrongReadback = setup([], { wallet: ME, wrongBuryReadback: true });
+    wrongReadback.composable.newCapsule.set({ title: "Readback check", content: "exact hash", days: "30", isPublic: false, category: 1 });
+    await expect(wrongReadback.composable.createCapsule()).rejects.toThrow("chain readback does not match");
+    expect(wrongReadback.composable.pendingOperation.get()).toMatchObject({ kind: "create", stage: "action" });
+  });
+
+  it("blocks wallet writes when durable recovery storage fails its preflight", async () => {
+    const { app, composable, invokes } = setup([], { wallet: ME });
+    const storageSet = vi.spyOn(app.storage.local, "set").mockImplementation(() => undefined);
+    try {
+      composable.newCapsule.set({ title: "No storage", content: "do not sign", days: "30", isPublic: false, category: 1 });
+      await expect(composable.createCapsule()).rejects.toThrow("Reliable transaction recovery is unavailable");
+      expect(composable.storageHealthy.get()).toBe(false);
+      expect(invokes).toHaveLength(0);
+    } finally {
+      storageSet.mockRestore();
+    }
+  });
+
+  it("keeps the broadcast txid in memory and warns against replay if durable readback fails afterward", async () => {
+    const { app, composable, invokes } = setup([], { wallet: ME });
+    const realSet = app.storage.local.set.bind(app.storage.local);
+    const storageSet = vi.spyOn(app.storage.local, "set").mockImplementation((key, value) => {
+      if (key !== "state/pendingOperation") realSet(key, value);
+    });
+    try {
+      composable.newCapsule.set({ title: "Broadcast edge", content: "keep txid", days: "30", isPublic: false, category: 1 });
+      await expect(composable.createCapsule()).rejects.toThrow(`Transaction 0x${"3".repeat(64)} was broadcast`);
+      expect(composable.storageHealthy.get()).toBe(false);
+      expect(composable.pendingOperation.get()).toMatchObject({
+        kind: "create",
+        stage: "payment",
+        paymentTxid: `0x${"3".repeat(64)}`,
+      });
+      expect(composable.transactionNotice.get()).toContain(`0x${"3".repeat(64)}`);
+      expect(invokes.filter((call) => call.operation === "bury")).toHaveLength(0);
+    } finally {
+      storageSet.mockRestore();
+    }
+  });
+
+  it("restores the valid pending record in memory when confirmed-record cleanup cannot persist", async () => {
+    const { app, composable, events } = setup([], { wallet: ME });
+    const realSet = app.storage.local.set.bind(app.storage.local);
+    const storageSet = vi.spyOn(app.storage.local, "set").mockImplementation((key, value) => {
+      if (key === "state/pendingOperation" && value === null) throw new Error("quota");
+      realSet(key, value);
+    });
+    try {
+      composable.newCapsule.set({ title: "Cleanup edge", content: "keep recovery", days: "30", isPublic: false, category: 1 });
+      await expect(composable.createCapsule()).rejects.toThrow("Reliable transaction recovery is unavailable");
+      expect(composable.storageHealthy.get()).toBe(false);
+      expect(composable.pendingOperation.get()).toMatchObject({
+        kind: "create",
+        stage: "action",
+        txid: `0x${"4".repeat(64)}`,
+      });
+      expect(events.some((entry) =>
+        entry.event === "platform:notification" &&
+        (entry.payload as { type?: string }).type === "success"
+      )).toBe(false);
+    } finally {
+      storageSet.mockRestore();
+    }
+  });
+
+  it("rejects a non-canonical configured contract before any wallet write", async () => {
+    const { chain, composable, invokes } = setup([], { wallet: ME });
+    chain.contractAddress?.set(`0x${"9".repeat(40)}`);
+    composable.newCapsule.set({ title: "Wrong contract", content: "do not sign", days: "30", isPublic: false, category: 1 });
+
+    await expect(composable.createCapsule()).rejects.toThrow("chainContextMismatch");
+    expect(invokes).toHaveLength(0);
+  });
+
+  it("rejects a wallet network that conflicts with the launch boundary", async () => {
+    const { composable, invokes } = setup([], { wallet: ME, detectedNetwork: "mainnet" });
+    composable.newCapsule.set({ title: "Wrong network", content: "do not sign", days: "30", isPublic: false, category: 1 });
+
+    await expect(composable.createCapsule()).rejects.toThrow("chainContextMismatch");
+    expect(invokes).toHaveLength(0);
   });
 });
 
@@ -560,8 +782,8 @@ describe("useTimeCapsule.openCapsule (reveal returns the deposit)", () => {
 describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
   it("fishes another user's public, unrevealed capsule via the fish memo transfer", async () => {
     const { composable, invokes, events, store } = setup([
-      capsule({ id: "100", owner: ME_HASH }), // own — skipped as a candidate
-      capsule({ id: "200", owner: OTHER_HASH }), // other user's — the real target
+      capsule({ id: "1", owner: ME_HASH }), // own — skipped as a candidate
+      capsule({ id: "2", owner: OTHER_HASH }), // other user's — the real target
     ]);
 
     await composable.loadAll();
@@ -572,29 +794,29 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
       (c) => c.operation === "transfer" && String(c.args[3]?.value).startsWith("miniapp-timecapsule:fish:"),
     );
     expect(fish).toBeTruthy();
-    expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:200");
+    expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:2");
     expect(fish?.args[1]?.value).toBe(CONTRACT); // to the vault contract
     expect(fish?.args[2]?.value).toBe("5000000"); // 0.05 GAS fee base units
     expect(fish?.options?.scriptHash).toBe(GAS_HASH);
 
     // The contract marks the capsule fished (and tips the owner) in the same tx.
-    expect(store.get("200")?.fished).toBe(true);
+    expect(store.get("2")?.fished).toBe(true);
 
     // Dynamic fish feedback rides the live platform notification channel (the
     // dead capsule:fished eventBus channel had no listener).
     const fished = events.find((e) => e.event === "platform:notification");
     expect(fished?.payload).toMatchObject({
-      message: "Fished capsule 200",
+      message: "Fished capsule 2",
       type: "success",
     });
   });
 
   it("reports fishNone and charges no fee when nothing is fishable", async () => {
     const { composable, invokes, events } = setup([
-      capsule({ id: "300", owner: ME_HASH, isPublic: false }), // private own
-      capsule({ id: "400", owner: OTHER_HASH, revealed: true }), // already revealed
-      capsule({ id: "500", owner: OTHER_HASH, fished: true }), // already fished
-      capsule({ id: "600", owner: ME_HASH, isPublic: true }), // own public — not a fish target
+      capsule({ id: "1", owner: ME_HASH, isPublic: false }), // private own
+      capsule({ id: "2", owner: OTHER_HASH, revealed: true }), // already revealed
+      capsule({ id: "3", owner: OTHER_HASH, fished: true }), // already fished
+      capsule({ id: "4", owner: ME_HASH, isPublic: true }), // own public — not a fish target
     ]);
 
     await composable.loadAll();
@@ -615,7 +837,7 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
 
   it("fishes a foreign capsule that has no local title (it maps cleanly with a placeholder)", async () => {
     const { composable, invokes } = setup([
-      capsule({ id: "700", owner: OTHER_HASH }),
+      capsule({ id: "1", owner: OTHER_HASH }),
     ]);
 
     // No ME capsules → the owner-scoped list is empty, but loadPublicCandidates
@@ -629,7 +851,7 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
     const fish = invokes.find(
       (c) => c.operation === "transfer" && String(c.args[3]?.value).startsWith("miniapp-timecapsule:fish:"),
     );
-    expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:700");
+    expect(fish?.args[3]?.value).toBe("miniapp-timecapsule:fish:1");
   });
 
   it("loadFishCandidates exposes a browsable list of other users' public capsules (newest-first, own excluded)", async () => {
@@ -646,7 +868,7 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
     expect(ids).toEqual(["3", "2"]);
   });
 
-  it("keeps the optional public list quiet when the contract is not configured", async () => {
+  it("marks the public list failed instead of presenting an RPC failure as an empty pool", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     try {
       const { composable } = setup([], { readError: "Contract address not configured" });
@@ -654,7 +876,8 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
       await composable.loadFishCandidates();
 
       expect(composable.fishCandidates.get()).toEqual([]);
-      expect(warn).not.toHaveBeenCalled();
+      expect(composable.candidatesSource.get()).toBe("failed");
+      expect(warn).toHaveBeenCalled();
     } finally {
       warn.mockRestore();
     }
@@ -662,6 +885,7 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
 
   it("fishCapsule(targetId) tips the chosen capsule, not just the newest", async () => {
     const { composable, invokes, store } = setup([
+      capsule({ id: "1", owner: ME_HASH, isPublic: false }),
       capsule({ id: "2", owner: OTHER_HASH }),
       capsule({ id: "3", owner: OTHER_HASH }), // newest — the blind default
     ]);
@@ -681,6 +905,15 @@ describe("useTimeCapsule.fishCapsule (discovery fee tips the owner)", () => {
 });
 
 describe("useTimeCapsule prepaid-deposit credit (money-out path)", () => {
+  it("marks credit failed instead of presenting an unreadable balance as zero", async () => {
+    const { composable } = setup([], { wallet: ME, readError: "RPC unavailable" });
+
+    await composable.loadAll();
+
+    expect(composable.creditSource.get()).toBe("failed");
+    expect(composable.hasCredit.get()).toBe(false);
+  });
+
   it("reads creditOf on load and exposes a withdrawable credit + hasCredit", async () => {
     const { composable } = setup([], {
       wallet: ME,
@@ -738,54 +971,6 @@ describe("useTimeCapsule prepaid-deposit credit (money-out path)", () => {
       message: "No reusable deposit credit to withdraw.",
       type: "info",
     });
-  });
-
-  it("collects fish revenue and toasts the amount from the FishRevenueWithdrawn event", async () => {
-    const { composable, invokes, events } = setup([], {
-      wallet: ME,
-      fishRevenue: "5000000", // 0.05 GAS accrued tip
-    });
-
-    const { amount } = await composable.withdrawFishRevenue();
-
-    const collect = invokes.find((c) => c.operation === "withdrawFishRevenue");
-    expect(collect).toBeTruthy();
-    expect(collect?.args[0]?.value).toBe(ME_HASH);
-    expect(collect?.options?.waitForEvent).toBe("FishRevenueWithdrawn");
-
-    expect(amount).toBe("0.05");
-    const note = events.find(
-      (e) =>
-        e.event === "platform:notification" &&
-        (e.payload as { type?: string }).type === "success",
-    );
-    expect(note?.payload).toMatchObject({
-      message: "Collected 0.05 GAS in fishing tips",
-      type: "success",
-    });
-  });
-
-  it("classifies the expected no-fish-revenue revert as a clean info toast (kept app-side)", async () => {
-    const { composable, events } = setup([], { wallet: ME }); // empty ledger
-
-    // The contract reverts with "no fish revenue"; the composable's regex
-    // classification (plan §3 Wave 4: stays app-side) turns that expected
-    // outcome into localized info copy instead of an error toast.
-    const { amount } = await composable.withdrawFishRevenue();
-
-    expect(amount).toBe("0");
-    const note = events.find((e) => e.event === "platform:notification");
-    expect(note?.payload).toMatchObject({
-      message: "No fishing tips to collect yet.",
-      type: "info",
-    });
-    expect(
-      events.some(
-        (e) =>
-          e.event === "platform:notification" &&
-          (e.payload as { type?: string }).type === "error",
-      ),
-    ).toBe(false);
   });
 
   it("keeps the stranded-credit copy and refreshes the banner when the deposit only timed out (indexer lag)", async () => {

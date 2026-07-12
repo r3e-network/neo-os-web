@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-03T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Timed on-chain arcade memory game with provably fair TEE-generated colour sequences. Pay a small GAS entry, choose a mode, watch the glowing pattern revealed inside a Morpheus TEE session, and repeat it from memory before the deadline. One wrong press ends the run. Win a fixed GAS reward: 0.1 for Pulse Arcade (8 cues), 0.5 for Neon Rush (12), 1 for Master Circuit (16). The full sequence never leaves the enclave — only the next colour is revealed after each round you complete. Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
-  "description_zh": "限时链上街机记忆游戏，颜色序列由 TEE 保证可验证公平。支付少量 GAS 报名费，选择模式，观看 Morpheus TEE 会话中揭示的发光序列，并在截止时间前凭记忆复现。按错一次即结束。达到目标即赢取固定 GAS 奖励：脉冲街机 0.1（8 个灯号）、霓虹连击 0.5（12）、冠军序列 1（16）。完整序列永不离开飞地——每完成一轮才揭示下一种颜色。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "description": "A polished local Simon-style memory arcade. Watch the progressive colour pattern, repeat it with tactile audio-visual feedback, and master all three difficulty lanes without a wallet or GAS payment. The GameFi lane stays disabled until the deployed testnet reward pool is funded and the complete settlement flow is revalidated.",
+  "description_zh": "精心打磨的本地 Simon 风格记忆街机。观察逐步增长的颜色序列，通过清晰的视听反馈按顺序复现，并挑战三档难度；无需钱包或 GAS。测试网奖励池完成注资且完整结算流程重新验证前，GameFi 通道保持关闭。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -25,61 +25,16 @@
   "name": "Color Clash",
   "name_zh": "色彩对决",
   "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Pay the entry fee and seal a provably fair colour sequence. Pulse 0.02 GAS entry wins 0.1 (8 cues); Neon 0.10 wins 0.5 (12); Master 0.20 wins 1 (16).",
-        "method": "startGame",
-        "name": "Play Sequence",
-        "params": [
-          {
-            "default_value": "0",
-            "hidden": true,
-            "label": "Arcade Mode",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Pulse Arcade — win 0.1 GAS (8 cues)",
-                "value": "0"
-              },
-              {
-                "label": "Neon Rush — win 0.5 GAS (12 cues)",
-                "value": "1"
-              },
-              {
-                "label": "Master Circuit — win 1 GAS (16 cues)",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, watch the TEE-revealed arcade lights, and repeat the pattern before the deadline to win GAS.",
-    "title": "Color Clash"
+    "operations": [],
+    "subtitle": "Choose a difficulty, watch each progressive pattern, and repeat it locally. Wallet-funded GameFi remains unavailable while the testnet reward pool is empty.",
+    "title": "Color Clash · Local Arcade"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -89,9 +44,9 @@
     "simon",
     "arcade",
     "leaderboard",
-    "gas",
+    "local",
     "game",
-    "tee"
+    "practice"
   ],
   "technologies": {
     "aa": {
@@ -99,19 +54,19 @@
       "enabled": false
     },
     "oracle": {
-      "description": "The colour sequence is generated inside a Morpheus TEE enclave from a deterministic per-game secret. Only its hash commitment is bound on-chain at the start; the enclave reveals just the next colour after each completed round, so the full future is never handed to the client. At settlement the TEE replays the recorded presses, applies a behavioural timing gate, and signs the achieved sequence length after checking the commitment.",
-      "enabled": true
+      "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and an end-to-end settlement succeeds.",
+      "enabled": false
     },
     "tee": {
-      "enabled": true,
-      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+      "enabled": false,
+      "description": "Local play uses Web-Crypto randomness. TEE settlement remains a gated future lane while production readiness is revalidated."
     }
   },
-  "updatedAt": "2026-07-03T00:00:00Z",
+  "updatedAt": "2026-07-10T10:50:00Z",
   "urls": {
     "banner": "/miniapps/color-clash/banner.webp",
     "entry": "/miniapps/color-clash/index.html",
     "icon": "/miniapps/color-clash/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "2.0.0"
 }

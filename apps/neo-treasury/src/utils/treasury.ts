@@ -30,12 +30,20 @@ export type { PriceData };
 
 // A feed record older than this (but still within the shared 1-hour staleness
 // window, otherwise getPrices() returns null) is presented as "delayed": the USD
-// total still renders but the hero shows the amber "cached/stale" signal rather
-// than the green "live synced" dot. Five minutes matches the shared price cache
-// TTL, so a record that has not advanced within one cache cycle is flagged.
+// total still renders but the dedicated price signal turns amber. This remains
+// separate from native-balance cache freshness. Five minutes matches the shared
+// price cache TTL, so a record that has not advanced within one cache cycle is
+// flagged.
 const PRICE_FRESH_WITHIN_MS = 5 * 60 * 1000;
 
-// Treasury wallet addresses - Da Hongfei & Erik Zhang (from neo-treasury.pages.dev)
+// Fixed community-attributed founder groups mirrored from the public reference
+// below and rechecked on 2026-07-11. The reference also names separate Neo
+// Foundation/exchange/migration addresses; those are intentionally excluded so
+// this app does not silently mix a founder watchlist with a different ownership
+// category. This is a source reference, not an official ownership registry.
+export const WATCHLIST_REFERENCE_URL = "https://neo-treasury.pages.dev/";
+
+// Treasury wallet addresses - Da Hongfei & Erik Zhang
 export const DA_HONGFEI_ADDRESSES = [
   "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw",
   "NZjXReMViE1yV5UxYD9idxcCt7QTNztNCT",
@@ -89,13 +97,17 @@ export const ERIK_ZHANG_ADDRESSES = [
 export interface TokenBalance {
   neo: number;
   gas: number;
+  /** Exact base-unit values returned by Neo RPC. Safe to aggregate as BigInt. */
+  neoRaw: string;
+  gasRaw: string;
+  /** Exact human-readable values. These never pass through IEEE-754 rounding. */
+  neoDisplay: string;
+  gasDisplay: string;
 }
 
-export interface WalletBalance {
+export interface WalletBalance extends TokenBalance {
   address: string;
   label: string;
-  neo: number;
-  gas: number;
   /** True when this wallet's RPC balance read failed (figures are not real 0). */
   failed?: boolean;
 }
@@ -105,6 +117,10 @@ export interface CategoryBalance {
   wallets: WalletBalance[];
   totalNeo: number;
   totalGas: number;
+  totalNeoRaw: string;
+  totalGasRaw: string;
+  totalNeoDisplay: string;
+  totalGasDisplay: string;
   /** Null when the price feed was unavailable (render as "—", not $0). */
   totalUsd: number | null;
   /** Number of wallets in this group whose balance read failed. */
@@ -115,6 +131,10 @@ export interface TreasuryData {
   categories: CategoryBalance[];
   totalNeo: number;
   totalGas: number;
+  totalNeoRaw: string;
+  totalGasRaw: string;
+  totalNeoDisplay: string;
+  totalGasDisplay: string;
   /** Null when the price feed was unavailable (render as "—", not $0). */
   totalUsd: number | null;
   /** Null when the price feed was unavailable. */
@@ -125,11 +145,38 @@ export interface TreasuryData {
   /**
    * True when the price feed returned a usable-but-delayed quote (its on-chain
    * record is older than {@link PRICE_FRESH_WITHIN_MS} yet still within the
-   * shared freshness window). The hero shows the amber "stale" signal in this
+   * shared freshness window). The dedicated quote status turns amber in this
    * case even though the USD total renders. Always false when prices are null
    * (that path already surfaces the "price feed unavailable" warning).
    */
   priceStale: boolean;
+}
+
+/**
+ * Formats an unsigned base-unit balance without converting it to Number.
+ * Native balances can exceed Number.MAX_SAFE_INTEGER even when their rendered
+ * token value looks ordinary, so the public dashboard keeps this path exact.
+ */
+export function formatTreasuryTokenAmount(value: unknown, decimals: number) {
+  const raw = typeof value === "bigint" ? value.toString() : String(value ?? "").trim();
+  if (!/^\d+$/.test(raw) || !Number.isInteger(decimals) || decimals < 0) {
+    throw new Error("Invalid native-token balance");
+  }
+
+  const normalized = raw.replace(/^0+(?=\d)/, "") || "0";
+  const padded = normalized.padStart(decimals + 1, "0");
+  const whole = decimals === 0 ? padded : padded.slice(0, -decimals);
+  const fraction = decimals === 0 ? "" : padded.slice(-decimals).replace(/0+$/, "");
+  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return fraction ? `${groupedWhole}.${fraction}` : groupedWhole;
+}
+
+function parseNativeAmount(value: unknown, asset: "NEO" | "GAS") {
+  const raw = String(value ?? "").trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`${asset} balance returned by RPC is invalid`);
+  }
+  return BigInt(raw);
 }
 
 // framework-exempt: external-wallet RPC balance failover (plan §3.6) — this
@@ -174,22 +221,30 @@ async function getNep17Balances(address: string): Promise<TokenBalance> {
     balance?: Array<{ assethash: string; amount: string }>;
   };
 
-  let neo = 0;
-  let gas = 0;
+  let neoRaw = 0n;
+  let gasRaw = 0n;
 
   for (const b of result.balance ?? []) {
-    // Guard against a malformed RPC amount (null/non-numeric): an unchecked
-    // parseInt would yield NaN and poison the aggregated category totals.
-    const amount = Number(b.amount ?? 0);
-    if (!Number.isFinite(amount)) continue;
-    if (b.assethash === NEO_CONTRACT) {
-      neo = amount; // NEO has 0 decimals
-    } else if (b.assethash === GAS_CONTRACT) {
-      gas = amount / 1e8; // GAS has 8 decimals
+    const assetHash = String(b.assethash ?? "").toLowerCase();
+    if (assetHash === NEO_CONTRACT.toLowerCase()) {
+      neoRaw = parseNativeAmount(b.amount, "NEO");
+    } else if (assetHash === GAS_CONTRACT.toLowerCase()) {
+      gasRaw = parseNativeAmount(b.amount, "GAS");
     }
   }
 
-  return { neo, gas };
+  const neoRawString = neoRaw.toString();
+  const gasRawString = gasRaw.toString();
+  return {
+    // Number values remain available only for estimated USD arithmetic and
+    // backwards-compatible consumers. Exact native-token UI uses *Display.
+    neo: Number(neoRaw),
+    gas: Number(gasRaw) / 1e8,
+    neoRaw: neoRawString,
+    gasRaw: gasRawString,
+    neoDisplay: formatTreasuryTokenAmount(neoRawString, 0),
+    gasDisplay: formatTreasuryTokenAmount(gasRawString, 8),
+  };
 }
 
 // Fetch prices from global price feed. Returns null when the feed is missing OR
@@ -198,15 +253,20 @@ export async function fetchPrices(): Promise<PriceData | null> {
   return getSharedPrices();
 }
 
-// True when a price quote is actually usable for a USD total. A feed that
-// resolves with a non-positive NEO leg (0, negative, or non-finite) is NOT a
-// live quote — a frozen/zeroed feed must be treated like a missing one so the
-// dashboard renders the "—" placeholder + "price feed unavailable" warning
-// rather than a fresh-looking $0 total.
+// True when a price quote is actually usable for a USD total. BOTH native
+// asset legs must be finite and positive: accepting a valid NEO quote alongside
+// a missing/zero GAS quote would silently undervalue every watched GAS balance.
+// An incomplete/frozen feed is treated like a missing one so the dashboard
+// renders "—" + the unavailable warning instead of a plausible but wrong USD
+// number.
 function hasUsablePrice(prices: PriceData | null): boolean {
   if (!prices) return false;
   const neoUsd = prices.usd?.neo ?? prices.neo;
-  return Number.isFinite(neoUsd) && neoUsd > 0;
+  const gasUsd = prices.usd?.gas ?? prices.gas;
+  return (
+    Number.isFinite(neoUsd) && neoUsd > 0 &&
+    Number.isFinite(gasUsd) && Number(gasUsd) > 0
+  );
 }
 
 // True when a (non-null) price quote's on-chain record is older than the "fresh"
@@ -233,14 +293,23 @@ const BALANCE_FETCH_CONCURRENCY = 8;
 async function fetchAddressBalances(
   addresses: string[],
   labelPrefix: string
-): Promise<{ wallets: WalletBalance[]; totalNeo: number; totalGas: number; failedCount: number }> {
+): Promise<{
+  wallets: WalletBalance[];
+  totalNeo: number;
+  totalGas: number;
+  totalNeoRaw: string;
+  totalGasRaw: string;
+  totalNeoDisplay: string;
+  totalGasDisplay: string;
+  failedCount: number;
+}> {
   const indexed = addresses
     .map((address, index) => ({ address, index }))
     .filter((entry): entry is { address: string; index: number } => Boolean(entry.address));
 
   const wallets: WalletBalance[] = [];
-  let totalNeo = 0;
-  let totalGas = 0;
+  let totalNeoRaw = 0n;
+  let totalGasRaw = 0n;
   let failedCount = 0;
 
   for (let start = 0; start < indexed.length; start += BALANCE_FETCH_CONCURRENCY) {
@@ -255,9 +324,10 @@ async function fetchAddressBalances(
       const { address, index } = entry;
       const label = `${labelPrefix} Wallet ${index + 1}`;
       if (outcome.status === "fulfilled") {
-        wallets.push({ address, label, neo: outcome.value.neo, gas: outcome.value.gas });
-        totalNeo += outcome.value.neo;
-        totalGas += outcome.value.gas;
+        const wallet = outcome.value;
+        wallets.push({ address, label, ...wallet });
+        totalNeoRaw += BigInt(wallet.neoRaw);
+        totalGasRaw += BigInt(wallet.gasRaw);
       } else {
         // A single transient RPC failure must not blank out the other
         // known-good balances. Flag the wallet as failed (so the UI can mark
@@ -267,39 +337,57 @@ async function fetchAddressBalances(
         const reason = outcome.reason;
         const msg = reason instanceof Error ? reason.message : "Unknown error";
         console.warn(`[neo-treasury] balance fetch failed for ${address}: ${msg}`);
-        wallets.push({ address, label, neo: 0, gas: 0, failed: true });
+        wallets.push({
+          address,
+          label,
+          neo: 0,
+          gas: 0,
+          neoRaw: "0",
+          gasRaw: "0",
+          neoDisplay: "0",
+          gasDisplay: "0",
+          failed: true,
+        });
       }
     });
   }
 
-  // Only a total wipeout (no address resolved) is treated as a load failure.
-  if (failedCount > 0 && failedCount === wallets.length) {
-    throw new Error(`Failed to fetch balances for all ${labelPrefix} addresses`);
-  }
-
-  return { wallets, totalNeo, totalGas, failedCount };
+  const totalNeoRawString = totalNeoRaw.toString();
+  const totalGasRawString = totalGasRaw.toString();
+  return {
+    wallets,
+    totalNeo: Number(totalNeoRaw),
+    totalGas: Number(totalGasRaw) / 1e8,
+    totalNeoRaw: totalNeoRawString,
+    totalGasRaw: totalGasRawString,
+    totalNeoDisplay: formatTreasuryTokenAmount(totalNeoRawString, 0),
+    totalGasDisplay: formatTreasuryTokenAmount(totalGasRawString, 8),
+    failedCount,
+  };
 }
 
 // Compute a category's USD total, or null when the price feed is unavailable.
 // A feed that resolves with a non-positive NEO leg is treated as unavailable
 // (see hasUsablePrice): a zeroed/frozen quote must yield "—", not a fake $0.
 function categoryUsd(totalNeo: number, totalGas: number, prices: PriceData | null): number | null {
-  if (!hasUsablePrice(prices)) return null;
+  if (!hasUsablePrice(prices) || !Number.isFinite(totalNeo) || !Number.isFinite(totalGas)) return null;
   const neoUsd = prices!.usd?.neo ?? prices!.neo;
-  const gasUsd = prices!.usd?.gas ?? prices!.gas ?? 0;
+  const gasUsd = prices!.usd?.gas ?? prices!.gas!;
   return totalNeo * neoUsd + totalGas * gasUsd;
 }
 
 // Fetch Da Hongfei treasury data. `prices` is null when the feed is unavailable.
 export async function fetchDaHongfeiData(prices: PriceData | null): Promise<CategoryBalance> {
-  const { wallets, totalNeo, totalGas, failedCount } = await fetchAddressBalances(DA_HONGFEI_ADDRESSES, "Da");
-  return { name: "Da Hongfei", wallets, totalNeo, totalGas, totalUsd: categoryUsd(totalNeo, totalGas, prices), failedCount };
+  const balances = await fetchAddressBalances(DA_HONGFEI_ADDRESSES, "Da");
+  const categoryPrices = balances.failedCount === balances.wallets.length ? null : prices;
+  return { name: "Da Hongfei", ...balances, totalUsd: categoryUsd(balances.totalNeo, balances.totalGas, categoryPrices) };
 }
 
 // Fetch Erik Zhang treasury data. `prices` is null when the feed is unavailable.
 export async function fetchErikZhangData(prices: PriceData | null): Promise<CategoryBalance> {
-  const { wallets, totalNeo, totalGas, failedCount } = await fetchAddressBalances(ERIK_ZHANG_ADDRESSES, "Erik");
-  return { name: "Erik Zhang", wallets, totalNeo, totalGas, totalUsd: categoryUsd(totalNeo, totalGas, prices), failedCount };
+  const balances = await fetchAddressBalances(ERIK_ZHANG_ADDRESSES, "Erik");
+  const categoryPrices = balances.failedCount === balances.wallets.length ? null : prices;
+  return { name: "Erik Zhang", ...balances, totalUsd: categoryUsd(balances.totalNeo, balances.totalGas, categoryPrices) };
 }
 
 // Fetch all treasury data
@@ -317,12 +405,31 @@ export async function fetchTreasuryData(): Promise<TreasuryData> {
   const [daData, erikData] = await Promise.all([fetchDaHongfeiData(prices), fetchErikZhangData(prices)]);
 
   const categories = [daData, erikData];
-  const totalNeo = daData.totalNeo + erikData.totalNeo;
-  const totalGas = daData.totalGas + erikData.totalGas;
+  const totalNeoRaw = BigInt(daData.totalNeoRaw) + BigInt(erikData.totalNeoRaw);
+  const totalGasRaw = BigInt(daData.totalGasRaw) + BigInt(erikData.totalGasRaw);
+  const totalNeo = Number(totalNeoRaw);
+  const totalGas = Number(totalGasRaw) / 1e8;
   const totalUsd = categoryUsd(totalNeo, totalGas, prices);
   const failedCount = daData.failedCount + erikData.failedCount;
+  const watchedCount = daData.wallets.length + erikData.wallets.length;
+  if (watchedCount === 0 || failedCount === watchedCount) {
+    throw new Error("Failed to fetch balances for every watched treasury address");
+  }
   const now = Date.now();
   const priceStale = isPriceDelayed(prices, now);
 
-  return { categories, totalNeo, totalGas, totalUsd, prices, lastUpdated: now, failedCount, priceStale };
+  return {
+    categories,
+    totalNeo,
+    totalGas,
+    totalNeoRaw: totalNeoRaw.toString(),
+    totalGasRaw: totalGasRaw.toString(),
+    totalNeoDisplay: formatTreasuryTokenAmount(totalNeoRaw, 0),
+    totalGasDisplay: formatTreasuryTokenAmount(totalGasRaw, 8),
+    totalUsd,
+    prices,
+    lastUpdated: now,
+    failedCount,
+    priceStale,
+  };
 }

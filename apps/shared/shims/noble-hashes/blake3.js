@@ -237,4 +237,3 @@ class BLAKE3 extends BLAKE {
  * @param opts - dkLen, key, context
  */
 export const blake3 = /* @__PURE__ */ wrapXOFConstructorWithOpts((opts) => new BLAKE3(opts));
-//# sourceMappingURL=blake3.js.map

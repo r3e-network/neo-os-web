@@ -11,15 +11,11 @@
  *     reveal; the oracle decrypts and posts the plaintext on-chain (public).
  */
 
-import { EXTERNAL_INTEGRATIONS } from "@shared/constants/rpc";
-
 export const MESSAGE_EVM_ADDRESS = "0xd1906192c2308ae416aCDa96238cA846EBB83f15";
 export const NEO_X_MAINNET = "neo-x-mainnet";
 export const NEO_X_CHAIN_ID = 47763;
-
-// Token-injecting oracle edge (proxies to the Nitro worker). No worker token is
-// exposed to the browser; the edge attaches it. See neo-morpheus-oracle.
-export const ORACLE_EDGE_BASE = EXTERNAL_INTEGRATIONS.mainnet.morpheusPublicApiUrl;
+export const ZERO_EVM_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const MAX_MAILBOX_IDS = 10_000;
 
 // Function selectors / event topics for MiniAppMessageEVM (keccak-derived).
 export const SELECTORS = {
@@ -64,6 +60,16 @@ export function isEvmAddress(value: string | undefined | null): boolean {
   return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value.trim());
 }
 
+/** A real recipient address. The zero address can never open a private note. */
+export function isMessageRecipient(value: string | undefined | null): boolean {
+  return isEvmAddress(value) && String(value).trim().toLowerCase() !== ZERO_EVM_ADDRESS;
+}
+
+/** Neo Message has a verified deployment on Neo X mainnet only. */
+export function isSupportedMessageNetwork(network: string | undefined | null): boolean {
+  return network === NEO_X_MAINNET;
+}
+
 export function addressesEqual(a?: string | null, b?: string | null): boolean {
   return (
     typeof a === "string" &&
@@ -72,6 +78,40 @@ export function addressesEqual(a?: string | null, b?: string | null): boolean {
     b.length === 42 &&
     a.toLowerCase() === b.toLowerCase()
   );
+}
+
+/**
+ * Strict ABI decoder for inboxOf/outboxOf. A missing contract or truncated RPC
+ * response must fail instead of becoming an empty mailbox.
+ */
+export function decodeMessageIds(returnHex: string): bigint[] {
+  const hex = String(returnHex ?? "").replace(/^0x/, "");
+  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length < 128 || hex.length % 64 !== 0) {
+    throw new Error("message id list returned invalid ABI data");
+  }
+
+  const offset = BigInt(`0x${hex.slice(0, 64)}`);
+  if (offset !== 32n) {
+    throw new Error("message id list returned an unexpected ABI offset");
+  }
+  const length = BigInt(`0x${hex.slice(64, 128)}`);
+  // The UI only fetches a bounded newest page, but reject absurd allocations
+  // before converting a hostile or corrupt length word to Number.
+  if (length > BigInt(MAX_MAILBOX_IDS)) {
+    throw new Error("message id list is too large");
+  }
+  const count = Number(length);
+  const requiredLength = 128 + count * 64;
+  if (hex.length !== requiredLength) {
+    throw new Error("message id list returned non-canonical ABI data");
+  }
+
+  const ids: bigint[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const start = 128 + index * 64;
+    ids.push(BigInt(`0x${hex.slice(start, start + 64)}`));
+  }
+  return ids;
 }
 
 /**
@@ -106,16 +146,17 @@ export interface ComposeValidation {
  */
 export function validateCompose(form: ComposeForm, nowMs: number = Date.now()): ComposeValidation {
   const recipient = String(form.recipient ?? "").trim();
-  const body = String(form.body ?? "").trim();
+  const rawBody = String(form.body ?? "");
+  const body = rawBody.trim();
   const mode: LockMode = form.lockMode === "timed" ? "timed" : "recipient";
 
-  if (!isEvmAddress(recipient)) {
+  if (!isMessageRecipient(recipient)) {
     return { ok: false, error: "invalidRecipient" };
   }
   if (body.length === 0) {
     return { ok: false, error: "emptyBody" };
   }
-  if (body.length > MAX_BODY_LENGTH) {
+  if (rawBody.length > MAX_BODY_LENGTH) {
     return { ok: false, error: "bodyTooLong" };
   }
   if (mode === "recipient") {

@@ -3,7 +3,7 @@
   "id": "miniapp-neo-message",
   "name": "Neo Message",
   "name_zh": "Neo 消息",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Encrypted and time-locked messaging on Neo X. Send a message only the recipient can read, or seal one that unlocks on-chain at a future time — secured by the Morpheus confidential oracle.",
   "description_zh": "Neo X 上的加密与定时解锁消息。发送仅收件人可读的消息，或封存一条在未来于链上解锁的消息——由 Morpheus 机密预言机保护。",
   "category": "social",
@@ -35,12 +35,50 @@
       "registered": true
     }
   },
-  "permissions": {
-    "payments": true
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain",
+    "write:blockchain",
+    "wallet:sign-message",
+    "oracle"
+  ],
+  "features": {
+    "stateless": false,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-message"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-x-mainnet",
+    "endpoints": [
+      "https://mainnet-1.rpc.banelabs.org"
+    ]
+  },
+  "operation_panel": {
+    "title": "Neo Message",
+    "subtitle": "Compose, open, reveal, and recover messages inside the sealed-mail workspace.",
+    "operations": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
   },
   "urls": {
     "entry": "/miniapps/neo-message/index.html",
     "icon": "/miniapps/neo-message/logo.webp",
-    "banner": "/miniapps/neo-message/banner.webp"
+    "banner": "/miniapps/neo-message/sealed-message-desk.webp"
+  },
+  "updatedAt": "2026-07-11T00:00:00Z",
+  "technologies": {
+    "oracle": {
+      "enabled": true,
+      "description": "Morpheus supplies the X25519 encryption key, verifies recipient wallet proofs for private opens, and completes public time-locked reveals."
+    },
+    "aa": {
+      "enabled": false,
+      "description": "Neo Message uses direct Neo X wallet transactions; abstract-account relay is not part of this release."
+    }
   }
 }

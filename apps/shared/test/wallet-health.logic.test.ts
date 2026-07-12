@@ -30,8 +30,6 @@ function memoryStore(): ChecklistStore {
   };
 }
 
-const storage = memoryStore();
-
 describe("wallet-health useHealthScore — pre-connect gating", () => {
   // The composable resolves its own `t` (createUseI18n(messages)) which, outside
   // a React render, yields the message KEY — so assertions check the keys, which
@@ -39,7 +37,7 @@ describe("wallet-health useHealthScore — pre-connect gating", () => {
   it("treats the GAS check as pending (not failed) while disconnected", () => {
     const gasOk = createObservable(false);
     const isConnected = createObservable(false);
-    const health = useHealthScore(gasOk, isConnected, storage);
+    const health = useHealthScore(gasOk, isConnected, memoryStore());
 
     const gas = health.checklistItems.get().find((i) => i.id === "gas");
     expect(gas?.pending).toBe(true);
@@ -55,18 +53,20 @@ describe("wallet-health useHealthScore — pre-connect gating", () => {
   it("does not report an alarming High-risk score from the GAS default pre-connect", () => {
     const gasOk = createObservable(false);
     const isConnected = createObservable(false);
-    const health = useHealthScore(gasOk, isConnected, storage);
+    const health = useHealthScore(gasOk, isConnected, memoryStore());
 
     // With 0/5 manual items done the score is 0 — but it is NOT inflated-down by
     // counting the un-evaluable GAS item as a failure (which would make the
     // denominator 6 and still read 0). The key guarantee: GAS isn't counted.
     expect(health.totalChecklistCount.get()).toBe(5);
+    expect(health.riskLabel.get()).toBe("reviewNotStarted");
+    expect(health.riskClass.get()).toBe("review-empty");
   });
 
   it("surfaces the GAS recommendation once connected with low gas", () => {
     const gasOk = createObservable(false);
     const isConnected = createObservable(true);
-    const health = useHealthScore(gasOk, isConnected, storage);
+    const health = useHealthScore(gasOk, isConnected, memoryStore());
 
     const gas = health.checklistItems.get().find((i) => i.id === "gas");
     expect(gas?.pending).toBeFalsy();
@@ -79,7 +79,7 @@ describe("wallet-health useHealthScore — recommendations match the checklist",
   it("recommends every unchecked manual item (no premature 'all set')", () => {
     const gasOk = createObservable(true);
     const isConnected = createObservable(true);
-    const health = useHealthScore(gasOk, isConnected, storage);
+    const health = useHealthScore(gasOk, isConnected, memoryStore());
 
     // Nothing checked, gas OK → device/hardware/2fa/backup/permissions all
     // contribute recommendations (5 manual items), so the panel can't fall back
@@ -96,7 +96,7 @@ describe("wallet-health useHealthScore — recommendations match the checklist",
   it("clears a recommendation once its item is toggled done", () => {
     const gasOk = createObservable(true);
     const isConnected = createObservable(true);
-    const health = useHealthScore(gasOk, isConnected, storage);
+    const health = useHealthScore(gasOk, isConnected, memoryStore());
 
     health.toggleChecklist("backup");
     expect(health.recommendations.get()).not.toContain("recommendationBackup");
@@ -162,5 +162,49 @@ describe("wallet-health checklist persistence — legacy storage key survives th
       .map((item) => item.id);
     expect(done).toContain("backup");
     expect(done).toContain("device");
+  });
+});
+
+describe("wallet-health checklist persistence — untrusted local data", () => {
+  it("accepts only known boolean checklist values", () => {
+    const store: ChecklistStore = {
+      get: () => ({
+        backup: "false",
+        device: true,
+        gas: true,
+        rogue: true,
+      }) as never,
+      set: () => undefined,
+    };
+    const health = useHealthScore(
+      createObservable(false),
+      createObservable(false),
+      store,
+    );
+
+    health.loadChecklist();
+    const done = health.checklistItems.get().filter((item) => item.done).map((item) => item.id);
+    expect(done).toEqual(["device"]);
+    health.toggleChecklist("gas");
+    health.toggleChecklist("rogue");
+    expect(health.checklistItems.get().filter((item) => item.done).map((item) => item.id)).toEqual(["device"]);
+  });
+
+  it("continues in-memory when browser storage is unavailable", () => {
+    const brokenStore: ChecklistStore = {
+      get: () => { throw new Error("blocked"); },
+      set: () => { throw new Error("blocked"); },
+    };
+    const health = useHealthScore(
+      createObservable(true),
+      createObservable(true),
+      brokenStore,
+    );
+
+    expect(() => health.loadChecklist()).not.toThrow();
+    expect(health.storageAvailable.get()).toBe(false);
+    expect(() => health.toggleChecklist("backup")).not.toThrow();
+    expect(health.checklistItems.get().find((item) => item.id === "backup")?.done).toBe(true);
+    expect(health.storageAvailable.get()).toBe(false);
   });
 });

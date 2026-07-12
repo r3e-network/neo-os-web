@@ -4,11 +4,26 @@ import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useGasLuckyPool } from "./composables/useGasLuckyPool";
-import { createGuestEngine, type GuestBoardRow, type GuestRange } from "./logic/guest-engine";
+import {
+  createGuestEngine,
+  normalizeGuestRange,
+  type GuestBoardRow,
+  type GuestRange,
+} from "./logic/guest-engine";
+import { GAS_LUCKY_REWARD_PLANS } from "./logic/game-rules";
 
 // Default range (in local "luck points") for a guest draw when a caller does not
 // carry a tier (the create-tab tier cards supply their own min/max).
 const DEFAULT_GUEST_RANGE: GuestRange = { min: 1, max: 5 };
+// Runtime kill-switch: the published hashes currently resolve to
+// MiniAppRedEnvelope, not the PlatformSocial RangeGasPool ABI. Keep this false
+// even for forged `mode=gamefi` launch parameters until a verified deployment,
+// VRF policy and end-to-end recovery test are bound to the manifest.
+export const GAS_LUCKY_GUEST_LOCAL_ENABLED = true;
+export const GAS_LUCKY_ONEGATE_CLAIM_ENABLED = false;
+export const GAS_LUCKY_RANGE_POOL_ENABLED = false;
+export const GAS_LUCKY_GAMEFI_ENABLED =
+  GAS_LUCKY_ONEGATE_CLAIM_ENABLED || GAS_LUCKY_RANGE_POOL_ENABLED;
 
 function guestRangeFromForm(input: unknown): GuestRange {
   const form = (typeof input === "object" && input !== null ? input : {}) as {
@@ -17,10 +32,10 @@ function guestRangeFromForm(input: unknown): GuestRange {
   };
   const min = Number(form.minClaim);
   const max = Number(form.maxClaim);
-  return {
+  return normalizeGuestRange({
     min: Number.isFinite(min) && min > 0 ? min : DEFAULT_GUEST_RANGE.min,
     max: Number.isFinite(max) && max > 0 ? max : DEFAULT_GUEST_RANGE.max,
-  };
+  });
 }
 
 type OneGateClaimActionParams = {
@@ -87,12 +102,15 @@ defineMiniApp({
       app,
       launchContext: ctx.launchContext,
       t: ctx.t,
+      paidLaneEnabled: GAS_LUCKY_GAMEFI_ENABLED,
+      oneGateClaimEnabled: GAS_LUCKY_ONEGATE_CLAIM_ENABLED,
     });
     const isClaimLaunch =
       Boolean(pool.currentClaimKey.get()) &&
       (!ctx.launchContext.operation ||
         ctx.launchContext.operation === "claimPool" ||
         ctx.launchContext.operation === "claimOneGateVault");
+    const isGuestMode = () => !GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest();
 
     // ── Guest (free / local) mode ─────────────────────────────────────────────
     // GUEST reuses the SAME dispatch actions + scene observables, driven by a
@@ -100,10 +118,13 @@ defineMiniApp({
     // is surfaced to the PlayArea so its copy branches to local framing; the
     // guest stat observables feed the local score panel + off-chain board.
     const appMode = createObservable<string>(app.mode.get());
+    if (isGuestMode()) appMode.set("guest");
     const guestBest = createObservable(0);
     const guestLast = createObservable(0);
     const guestDraws = createObservable(0);
     const guestBoard = createObservable<GuestBoardRow[]>([]);
+    const a11yPlanIndex = createObservable(1);
+    const a11yPlanRevision = createObservable(0);
 
     const guest = createGuestEngine({
       lastClaimAmount: pool.lastClaimAmount,
@@ -130,12 +151,28 @@ defineMiniApp({
     // Switching to guest at the launcher resets to a clean local lobby and loads
     // the off-chain guest board (replacing the on-chain read done on mount).
     app.mode.onChange((mode) => {
-      appMode.set(mode);
-      if (mode === "guest") void guest.enter();
+      const effectiveMode = GAS_LUCKY_RANGE_POOL_ENABLED ? mode : "guest";
+      appMode.set(effectiveMode);
+      if (effectiveMode === "guest") {
+        void guest.enter({ preserveClaimContext: isClaimLaunch });
+      }
+    });
+
+    ctx.framework.actions.register("selectGuestPlan", async (...args: unknown[]) => {
+      if (!isGuestMode()) return;
+      const index = Number((args[0] as { index?: unknown } | undefined)?.index);
+      if (!Number.isInteger(index) || index < 0 || index >= GAS_LUCKY_REWARD_PLANS.length) return;
+      a11yPlanIndex.set(index);
+      a11yPlanRevision.set(a11yPlanRevision.get() + 1);
     });
 
     ctx.framework.actions.register("createPool", async (...args: unknown[]) => {
-      if (app.mode.isGuest()) { guest.draw(guestRangeFromForm(args[0])); return; }
+      if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) {
+        if (GAS_LUCKY_GUEST_LOCAL_ENABLED) {
+          guest.draw(guestRangeFromForm(args[0]));
+        }
+        return;
+      }
       const form = (args[0] ?? {}) as {
         totalAmount?: string;
         minClaim?: string;
@@ -150,7 +187,6 @@ defineMiniApp({
     });
 
     const handleClaim = async (...args: unknown[]) => {
-      if (app.mode.isGuest()) { guest.draw(DEFAULT_GUEST_RANGE); return; }
       const first = args[0];
       const params =
         typeof first === "object" && first !== null
@@ -172,6 +208,14 @@ defineMiniApp({
                 pool.currentPoolId.get(),
             )
           : String(first ?? pool.currentPoolId.get());
+      const wantsOneGateClaim = Boolean(claimKey);
+      if (
+        (wantsOneGateClaim && !GAS_LUCKY_ONEGATE_CLAIM_ENABLED) ||
+        (!wantsOneGateClaim && !GAS_LUCKY_RANGE_POOL_ENABLED)
+      ) {
+        ctx.setStatus(ctx.t("gameFiMaintenanceBody"), "warning");
+        return;
+      }
       if (claimKey) pool.setClaimKey(claimKey);
       if (poolId) pool.setPoolId(poolId);
       await ctx.framework.notify.guard(
@@ -206,7 +250,7 @@ defineMiniApp({
     ctx.framework.actions.register("claimOneGateVault", handleClaim);
 
     ctx.framework.actions.register("checkClaimStatus", async (...args: unknown[]) => {
-      if (app.mode.isGuest()) return;
+      if (!GAS_LUCKY_ONEGATE_CLAIM_ENABLED) return;
       const first = args[0];
       const params =
         typeof first === "object" && first !== null
@@ -235,7 +279,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("loadPool", async (...args: unknown[]) => {
-      if (app.mode.isGuest()) return;
+      if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) return;
       const first = args[0];
       const poolId =
         typeof first === "object" && first !== null
@@ -249,7 +293,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("refundPool", async (...args: unknown[]) => {
-      if (app.mode.isGuest()) return;
+      if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) return;
       const first = args[0];
       const poolId =
         typeof first === "object" && first !== null
@@ -263,7 +307,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("topUpPool", async (...args: unknown[]) => {
-      if (app.mode.isGuest()) return;
+      if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) return;
       const first = args[0];
       const poolId =
         typeof first === "object" && first !== null
@@ -281,7 +325,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("loadGasCredit", async () => {
-      if (app.mode.isGuest()) return;
+      if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) return;
       await ctx.framework.notify.guard(
         () => pool.loadGasCredit(),
         { successKey: "gasCreditLoaded", errorKey: "loadFailed" },
@@ -289,7 +333,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("withdrawGasCredit", async () => {
-      if (app.mode.isGuest()) return;
+      if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) return;
       await ctx.framework.notify.guard(
         () => pool.withdrawGasCredit(),
         { successKey: "gasCreditWithdrawn", errorKey: "withdrawGasCreditFailed" },
@@ -337,13 +381,15 @@ defineMiniApp({
         guestLast,
         guestDraws,
         guestBoard,
+        a11yPlanIndex,
+        a11yPlanRevision,
       },
       // loadData runs on mount (default "gamefi") and again on a guest switch.
       // In guest we skip every on-chain read and (re)initialize the local lobby
       // so a mount-time gamefi read never overwrites the guest surface.
       loadData: async () => {
-        if (app.mode.isGuest()) {
-          await guest.enter();
+        if (!GAS_LUCKY_RANGE_POOL_ENABLED || app.mode.isGuest()) {
+          await guest.enter({ preserveClaimContext: isClaimLaunch });
           return;
         }
         if (isClaimLaunch) return;

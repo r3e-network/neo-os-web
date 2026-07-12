@@ -4,12 +4,14 @@ export interface TarotCardDefinition {
     icon: string;
     suit?: 'major' | 'wands' | 'cups' | 'swords' | 'pentacles';
     number?: number;
-    arcana?: 'Major Arcana' | 'Minor Arcana';
+    arcana?: string;
     suitLabel?: string;
     keywords?: string[];
     image: string;
     backImage: string;
 }
+
+export type TarotLocale = "en" | "zh";
 
 export const TAROT_CARD_BACK = "./cards/back.webp";
 
@@ -34,6 +36,110 @@ const SUIT_KEYWORDS: Record<NonNullable<TarotCardDefinition["suit"]>, string> = 
     cups: "Feeling",
     swords: "Mind",
     pentacles: "Matter",
+};
+
+const ZH_SUIT_LABELS: Record<NonNullable<TarotCardDefinition["suit"]>, string> = {
+    major: "大阿卡纳",
+    wands: "权杖",
+    cups: "圣杯",
+    swords: "宝剑",
+    pentacles: "星币",
+};
+
+const ZH_SUIT_KEYWORDS: Record<NonNullable<TarotCardDefinition["suit"]>, string> = {
+    major: "启示",
+    wands: "意志",
+    cups: "情感",
+    swords: "思维",
+    pentacles: "现实",
+};
+
+/**
+ * Stable Simplified-Chinese names keyed by the immutable on-chain card id.
+ *
+ * The English names below remain the canonical asset slugs. Keeping localized
+ * copy in a separate id-keyed table prevents a locale change from altering a
+ * card image path or the card id emitted by the contract.
+ */
+const ZH_CARD_NAMES: Record<number, string> = {
+    0: "愚者",
+    1: "魔术师",
+    2: "女祭司",
+    3: "皇后",
+    4: "皇帝",
+    5: "教皇",
+    6: "恋人",
+    7: "战车",
+    8: "力量",
+    9: "隐者",
+    10: "命运之轮",
+    11: "正义",
+    12: "倒吊人",
+    13: "死神",
+    14: "节制",
+    15: "恶魔",
+    16: "高塔",
+    17: "星星",
+    18: "月亮",
+    19: "太阳",
+    20: "审判",
+    21: "世界",
+    22: "权杖王牌",
+    23: "权杖二",
+    24: "权杖三",
+    25: "权杖四",
+    26: "权杖五",
+    27: "权杖六",
+    28: "权杖七",
+    29: "权杖八",
+    30: "权杖九",
+    31: "权杖十",
+    32: "权杖侍从",
+    33: "权杖骑士",
+    34: "权杖皇后",
+    35: "权杖国王",
+    36: "圣杯王牌",
+    37: "圣杯二",
+    38: "圣杯三",
+    39: "圣杯四",
+    40: "圣杯五",
+    41: "圣杯六",
+    42: "圣杯七",
+    43: "圣杯八",
+    44: "圣杯九",
+    45: "圣杯十",
+    46: "圣杯侍从",
+    47: "圣杯骑士",
+    48: "圣杯皇后",
+    49: "圣杯国王",
+    50: "宝剑王牌",
+    51: "宝剑二",
+    52: "宝剑三",
+    53: "宝剑四",
+    54: "宝剑五",
+    55: "宝剑六",
+    56: "宝剑七",
+    57: "宝剑八",
+    58: "宝剑九",
+    59: "宝剑十",
+    60: "宝剑侍从",
+    61: "宝剑骑士",
+    62: "宝剑皇后",
+    63: "宝剑国王",
+    64: "星币王牌",
+    65: "星币二",
+    66: "星币三",
+    67: "星币四",
+    68: "星币五",
+    69: "星币六",
+    70: "星币七",
+    71: "星币八",
+    72: "星币九",
+    73: "星币十",
+    74: "星币侍从",
+    75: "星币骑士",
+    76: "星币皇后",
+    77: "星币国王",
 };
 
 const RAW_TAROT_DECK: Array<Omit<TarotCardDefinition, "image" | "backImage" | "arcana" | "suitLabel" | "keywords">> = [
@@ -139,3 +245,45 @@ export const TAROT_DECK: TarotCardDefinition[] = RAW_TAROT_DECK.map((card) => {
         backImage: TAROT_CARD_BACK,
     };
 });
+
+const TAROT_DECK_BY_ID = new Map(TAROT_DECK.map((card) => [card.id, card] as const));
+
+/** Resolve an app locale marker without comparing any translated UI copy. */
+export function normalizeTarotLocale(localeCode: string): TarotLocale {
+    const normalized = localeCode.trim().toLowerCase().replaceAll("_", "-");
+    return normalized === "zh" || normalized.startsWith("zh-") ? "zh" : "en";
+}
+
+/**
+ * Localize a card for presentation while preserving its immutable id and
+ * canonical image paths. Looking the canonical card up by id also makes locale
+ * switching reversible: an already-Chinese card can always be rendered in
+ * English again without comparing translated names.
+ */
+export function localizeTarotCard<T extends TarotCardDefinition>(
+    card: T,
+    localeCode: string,
+): T {
+    const locale = normalizeTarotLocale(localeCode);
+    const canonical = TAROT_DECK_BY_ID.get(card.id);
+    const suit = canonical?.suit ?? card.suit ?? "major";
+    const arcana = suit === "major" ? "Major Arcana" : "Minor Arcana";
+
+    if (locale === "zh") {
+        return {
+            ...card,
+            name: ZH_CARD_NAMES[card.id] ?? canonical?.name ?? card.name,
+            arcana: suit === "major" ? "大阿卡纳" : "小阿卡纳",
+            suitLabel: ZH_SUIT_LABELS[suit],
+            keywords: [ZH_SUIT_KEYWORDS[suit], suit === "major" ? "大阿卡纳" : "小阿卡纳"],
+        } as T;
+    }
+
+    return {
+        ...card,
+        name: canonical?.name ?? card.name,
+        arcana,
+        suitLabel: SUIT_LABELS[suit],
+        keywords: [SUIT_KEYWORDS[suit], arcana],
+    } as T;
+}

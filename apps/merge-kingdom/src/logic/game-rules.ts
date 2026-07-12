@@ -7,8 +7,11 @@ export const FUND_MEMO = "miniapp-merge-kingdom:fund";
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
+export const SETTLE_GRACE_MS = 600_000;
+/** New paid entries stay closed until pool + oracle callback + live flow pass. */
+export const GAMEFI_NEW_ENTRIES_ENABLED = false;
 export const BOARD_SIZE = 4;
-export const TILE_VALUES = [0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048] as const;
+export const TILE_VALUES = [0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096] as const;
 export const TILE_BG: Record<string, string> = {
   0: "rgba(112, 87, 54, 0.13)",
   2: "#fff7d6",
@@ -22,6 +25,7 @@ export const TILE_BG: Record<string, string> = {
   512: "#9b5222",
   1024: "#833f1d",
   2048: "#6f3118",
+  4096: "#5b2413",
 };
 export const TILE_COLOR: Record<string, string> = {
   0: "transparent",
@@ -36,6 +40,7 @@ export const TILE_COLOR: Record<string, string> = {
   512: "#fff8e6",
   1024: "#fff8e6",
   2048: "#fff8e6",
+  4096: "#fff8e6",
 };
 export const TILE_FONT_SIZE: Record<string, string> = {
   0: "0",
@@ -50,6 +55,7 @@ export const TILE_FONT_SIZE: Record<string, string> = {
   512: "0.82rem",
   1024: "0.72rem",
   2048: "0.72rem",
+  4096: "0.72rem",
 };
 
 export interface DifficultyRule {
@@ -67,10 +73,28 @@ export const DIFFICULTY_RULES: DifficultyRule[] = [
   { difficulty: 2, entry: 20_000_000, reward: 100_000_000, limitMs: 600_000, minSolveMs: 120_000, targetTile: 1024 },
 ];
 
+/**
+ * Guest routes are short, mobile-first skill rounds. The deployed GameFi
+ * contract keeps its immutable 64/256/1024 targets above; local play uses a
+ * smaller progression because each merge reveals only one fresh 2/4 resource
+ * and adjacent repositioning also consumes player actions.
+ */
+export const GUEST_DIFFICULTY_RULES: DifficultyRule[] = [
+  { difficulty: 0, entry: 0, reward: 0, limitMs: 45_000, minSolveMs: 0, targetTile: 32 },
+  { difficulty: 1, entry: 0, reward: 0, limitMs: 60_000, minSolveMs: 0, targetTile: 64 },
+  { difficulty: 2, entry: 0, reward: 0, limitMs: 90_000, minSolveMs: 0, targetTile: 128 },
+];
+
 export function ruleOf(difficulty: number): DifficultyRule {
   const r = DIFFICULTY_RULES.find(d => d.difficulty === difficulty);
   if (!r) throw new Error(`unknown difficulty ${difficulty}`);
   return r;
+}
+
+export function guestRuleOf(difficulty: number): DifficultyRule {
+  const rule = GUEST_DIFFICULTY_RULES.find((candidate) => candidate.difficulty === difficulty);
+  if (!rule) throw new Error(`unknown guest difficulty ${difficulty}`);
+  return rule;
 }
 
 export function rewardPctAfterUndos(undos: number): number {
@@ -94,6 +118,14 @@ export function formatClock(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/** The contract accepts expiry only strictly after deadline + settlement grace. */
+export function canExpireAfterGrace(deadline: number, nowMs = Date.now()): boolean {
+  return Number.isFinite(deadline)
+    && deadline > 0
+    && Number.isFinite(nowMs)
+    && nowMs > deadline + SETTLE_GRACE_MS;
+}
+
 export function statusOf(s: number): string {
   switch (s) {
     case 0: return "awaiting-bind";
@@ -101,6 +133,7 @@ export function statusOf(s: number): string {
     case 2: return "solved";
     case 3: return "expired";
     case 4: return "refunded";
+    case 5: return "unknown"; // callback requested; settlement still pending
     default: return "unknown";
   }
 }

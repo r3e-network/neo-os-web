@@ -16,8 +16,8 @@ namespace NeoMiniAppPlatform.Contracts
     /// which never actually held a pot or paid a winner. This contract is the
     /// authoritative implementation: players buy keys on a rising bonding curve, each
     /// key adds its cost to the round pot and pushes the countdown out; when the
-    /// countdown expires the LAST buyer wins the entire pot, paid ATOMICALLY, and a
-    /// fresh round begins. No external settler, no pending state.
+    /// countdown expires the LAST buyer wins the entire pot as pull-payment credit,
+    /// and a fresh round begins. No privileged settler and no payout deadlock.
     ///
     /// KEY PRICE (must match the frontend formula exactly, all base units):
     ///   commonDiff   = BASE_KEY_PRICE * 10 / 10000        (= 0.1% of base per key)
@@ -41,8 +41,8 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppLastSurvivor")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Self-contained on-chain last-survivor pot game: rising key price, timer extension, last buyer wins the pot atomically — no oracle.")]
+    [ManifestExtra("Version", "1.1.0")]
+    [ManifestExtra("Description", "Self-contained on-chain last-survivor pot game: rising key price, timer extension, permissionless settlement, and winner pull-payment credit — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
     public partial class MiniAppLastSurvivor : SmartContract
     {
@@ -162,8 +162,8 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Settle
         /// <summary>
-        /// Permissionless: once the current round's countdown has expired, pay the
-        /// recorded last buyer the entire pot and roll to a fresh round.
+        /// Permissionless: once the current round's countdown has expired, credit the
+        /// recorded last buyer with the entire pot and roll to a fresh round.
         /// </summary>
         public static BigInteger Settle()
         {

@@ -2,7 +2,7 @@
  * Flashloan — React Entry Point
  */
 
-import { defineMiniApp, createDerived } from "@shared/react/defineMiniApp";
+import { defineMiniApp } from "@shared/react/defineMiniApp";
 import { readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
@@ -26,6 +26,7 @@ defineMiniApp({
     flash.setAddress(ctx.framework.chain.address.get() ?? "");
     ctx.framework.chain.address.subscribe(() => {
       flash.setAddress(ctx.framework.chain.address.get() ?? "");
+      void flash.loadData();
     });
 
     ctx.framework.actions.register("requestLoan", async (...args: unknown[]) => {
@@ -34,20 +35,21 @@ defineMiniApp({
         callbackContract?: string;
         callbackMethod?: string;
       };
-      await ctx.framework.notify.guard(
+      const outcome = await ctx.framework.notify.guardResult(
         () =>
           flash.requestLoan({
             amount: String(data.amount ?? ""),
             callbackContract: String(data.callbackContract ?? ""),
-            callbackMethod: "onFlashLoan",
+            callbackMethod: String(data.callbackMethod ?? ""),
           }),
         { successKey: "loanSubmitted" },
       );
+      return outcome.ok;
     });
 
     ctx.framework.actions.register("provideLiquidity", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as { amount?: string; receiptId?: string };
-      await ctx.framework.notify.guard(
+      const outcome = await ctx.framework.notify.guardResult(
         () =>
           flash.provideLiquidity(
             String(data.amount ?? ""),
@@ -55,21 +57,33 @@ defineMiniApp({
           ),
         { successKey: "liquidityDeposited" },
       );
+      return outcome.ok;
     });
 
     ctx.framework.actions.register("withdrawLiquidity", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as { amount?: string };
-      await ctx.framework.notify.guard(
+      const outcome = await ctx.framework.notify.guardResult(
         () => flash.withdrawLiquidity(String(data.amount ?? "")),
         { successKey: "liquidityWithdrawn" },
       );
+      return outcome.ok;
+    });
+
+    ctx.framework.actions.register("resumePendingLiquidity", async () => {
+      const outcome = await ctx.framework.notify.guardResult(
+        () => flash.resumePendingLiquidity(),
+        { successKey: "liquidityDeposited" },
+      );
+      return outcome.ok;
     });
 
     ctx.framework.actions.register("connectWallet", async () => {
-      await ctx.framework.notify.guard(async () => {
+      const outcome = await ctx.framework.notify.guardResult(async () => {
         const addr = await flash.connect();
         flash.setAddress(addr);
+        await flash.loadData();
       }, { successKey: "walletConnected" });
+      return outcome.ok;
     });
 
     ctx.framework.actions.register("lookupLoan", async (...args: unknown[]) => {
@@ -77,51 +91,36 @@ defineMiniApp({
       if (!id) return;
       // Guard the read so a faulting / non-existent loan surfaces the mapped
       // loanNotFound message instead of a raw VM exception in the toast.
-      await ctx.framework.notify.guard(() => flash.lookupLoan(id), { errorKey: "loanNotFound" });
+      const outcome = await ctx.framework.notify.guardResult(
+        () => flash.lookupLoan(id),
+        { errorKey: "loanNotFound" },
+      );
+      return outcome.ok;
     });
-
-    // Surface stats fields individually for the manifest's sidebar bindings.
-    const totalLoans = createDerived(
-      () => flash.stats.get().totalLoans,
-      [flash.stats],
-    );
-    const totalVolume = createDerived(
-      () => flash.stats.get().totalVolume,
-      [flash.stats],
-    );
-    const totalFees = createDerived(
-      () => flash.stats.get().totalFees,
-      [flash.stats],
-    );
-    const avgLoanSize = createDerived(
-      () => {
-        const snapshot = flash.stats.get();
-        return snapshot.totalLoans ? snapshot.totalVolume / snapshot.totalLoans : 0;
-      },
-      [flash.stats],
-    );
-    const recentLoansCount = createDerived(
-      () => flash.recentLoans.get().length,
-      [flash.recentLoans],
-    );
 
     return {
       state: {
         address: flash.address,
         poolBalance: flash.poolBalance,
+        poolBalanceFixed8: flash.poolBalanceFixed8,
         loanDetails: flash.loanDetails,
         stats: flash.stats,
         contractStats: flash.contractStats,
         providerStats: flash.providerStats,
+        depositCapability: flash.depositCapability,
+        writeCapability: flash.writeCapability,
+        contractHealth: flash.contractHealth,
+        borrowerEligibility: flash.borrowerEligibility,
         serviceNotice: flash.serviceNotice,
-        totalLoans,
-        totalVolume,
-        totalFees,
-        avgLoanSize,
-        recentLoansCount,
+        pendingRequestTxid: flash.pendingRequestTxid,
+        pendingLiquidityTxid: flash.pendingLiquidityTxid,
+        pendingLiquidityStage: flash.pendingLiquidityStage,
+        pendingLiquidityAmount: flash.pendingLiquidityAmount,
         recentLoans: flash.recentLoans,
         lastRequest: flash.lastRequest,
         isLoading: flash.isLoading,
+        isLookupLoading: flash.isLookupLoading,
+        writeOperation: flash.writeOperation,
         validationError: flash.validationError,
       },
       loadData: async () => {

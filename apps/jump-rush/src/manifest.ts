@@ -3,39 +3,41 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Jump Rush",
   description:
-    "Timed on-chain jumping game with provably fair platform layouts. Choose a route, hold to charge, and release to jump to the next platform. Perfect center landings score bonus points. Missing the platform ends the run. Pay a small entry, conquer the route before the deadline, and win a fixed GAS reward — 0.1 Meadow, 0.5 Cloud, 1 Summit. Every run is verified inside the TEE enclave.",
+    "A polished Phaser platform-jumping game with illustrated bunny, carrot, cloud, and grass-platform artwork; tactile hold-and-release controls; three route lengths; recovery after a missed landing; and free local play. The wallet-backed reward lane stays gated until its deployed contract and Morpheus session protocol pass end-to-end production validation.",
   icon: "zap",
   category: "game",
   shell: "game",
+  supportsGuest: true,
+  supportsGameFi: false,
 
   gamePage: {
     categoryColor: "#38BDF8",
-    modes: { guest: true },
-    heroBadgeKey: "networkBadge",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestModeValue",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
-    heroDescKey: "appSubtitle",
+    heroDescKey: "guestSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "networkBadge",
-    featuresTitleKey: "fairnessTitle",
+    featuresEyebrowKey: "guestModeValue",
+    featuresTitleKey: "gameplayFeatureTitle",
     features: [
       {
-        titleKey: "fairnessTitle",
-        descKey: "fairnessCopy",
+        titleKey: "gameplayFeatureTitle",
+        descKey: "gameplayFeatureCopy",
         large: true,
         gradient: "linear-gradient(135deg, #F0F9FF 0%, #BAE6FD 46%, #38BDF8 100%)",
       },
-      { titleKey: "difficultyTitle", descKey: "startDescription" },
-      { titleKey: "leaderboardTitle", descKey: "leaderboardIntro" },
+      { titleKey: "difficultyTitle", descKey: "guestStartDescription" },
+      { titleKey: "leaderboardTitle", descKey: "guestLeaderboardIntro" },
     ],
     lbEyebrowKey: "ranksTab",
     lbTitleKey: "leaderboardTitle",
-    lbScoreLabelKey: "myTotalWon",
+    lbScoreLabelKey: "guestBestLabel",
     ctaTitleKey: "lobbyTitle",
-    ctaDescKey: "startDescription",
+    ctaDescKey: "guestStartDescription",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["networkBadge", "fairnessTitle", "rankLabel"],
+    trustBadgeKeys: ["guestModeValue", "gameplayFeatureTitle", "rankLabel"],
   },
 
   tabs: [
@@ -44,54 +46,24 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "lastPayout", valueKey: "lastPayout", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "myTotalWon", valueKey: "myTotalWon", format: "text", icon: "coin" },
+    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
+    { labelKey: "guestRunsLabel", valueKey: "myRuns", format: "text", icon: "zap" },
     { labelKey: "myRank", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
+      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text" },
       { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
+      { labelKey: "guestRunsLabel", valueKey: "myRuns", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Meadow Hop — win 0.1 GAS" },
-            { value: "1", label: "Cloud Dash — win 0.5 GAS" },
-            { value: "2", label: "Summit Leap — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  // Paid operations remain implemented for testnet hardening, but the public
+  // release is deliberately fail-closed until the live TEE/contract schemas
+  // and timing rules are aligned and an end-to-end settlement passes.
+  operations: [],
 
   docs: [
     { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
@@ -99,19 +71,19 @@ export const manifest: MiniAppManifest = {
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
-    activityFeed: true,
+    activityFeed: false,
     reviews: true,
     comments: true,
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {

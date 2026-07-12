@@ -51,4 +51,3 @@ export function findGroupHash(m, personalization) {
     }
     throw new Error('findGroupHash tag overflow');
 }
-//# sourceMappingURL=jubjub.js.map

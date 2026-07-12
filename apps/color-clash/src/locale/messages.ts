@@ -14,6 +14,7 @@ const appMessages = {
   guestLobbyTitle: { en: "Local memory board", zh: "本地记忆街机" },
   guestPlayingTitle: { en: "Local sequence in play", zh: "本地序列进行中" },
   guestSolvedTitle: { en: "Local sequence mastered", zh: "本地序列完成" },
+  guestFailedTitle: { en: "Pattern broken — try again", zh: "节奏中断——再试一次" },
   guestExpiredTitle: { en: "Local run ended", zh: "本地对局结束" },
   guestModeBadge: { en: "Guest mode", zh: "游客模式" },
   playTab: { en: "Play", zh: "对局" },
@@ -54,6 +55,7 @@ const appMessages = {
   creditLine: { en: "your credit {credit} GAS", zh: "你的余额 {credit} GAS" },
 
   startAction: { en: "Play sequence", zh: "开始记忆" },
+  continue: { en: "Continue", zh: "继续" },
   practiceAction: { en: "Free practice", zh: "自由练习" },
   rewardMode: { en: "Reward run", zh: "奖励局" },
   practiceMode: { en: "Practice mode", zh: "练习模式" },
@@ -80,6 +82,18 @@ const appMessages = {
   },
   watchPhase: { en: "Watch the sequence...", zh: "观察序列..." },
   repeatPhase: { en: "Repeat the sequence!", zh: "复现序列！" },
+  repeatKeyboardHint: {
+    en: "Repeat it — tap the pads or use 1–4 / R B G Y",
+    zh: "按顺序复现——轻触按钮，或使用 1–4 / R B G Y",
+  },
+  sceneReady: { en: "READY", zh: "准备" },
+  sceneWatch: { en: "WATCH", zh: "观察" },
+  sceneRepeat: { en: "YOUR TURN", zh: "轮到你" },
+  sceneWrong: { en: "WRONG", zh: "按错" },
+  sceneCorrect: { en: "CLEAR", zh: "通过" },
+  sceneWin: { en: "WIN!", zh: "完成" },
+  sceneEnd: { en: "END", zh: "结束" },
+  roundLabel: { en: "ROUND", zh: "回合" },
   pressButton: { en: "Press {color}", zh: "按下{color}" },
   wrongPress: { en: "Wrong! Game over", zh: "错了！游戏结束" },
   allCorrect: { en: "All correct! +{n}", zh: "全部正确！+{n}" },
@@ -93,6 +107,75 @@ const appMessages = {
   },
   guestStatusSaving: { en: "Saving local score…", zh: "正在保存本地成绩…" },
   timeUpAction: { en: "Time is up", zh: "时间到" },
+  releaseWaitAction: { en: "Recovery countdown", zh: "恢复倒计时" },
+  releaseWaitStatus: {
+    en: "This finished run can be released after the on-chain recovery window.",
+    zh: "该结束对局需等待链上恢复窗口后才能释放。",
+  },
+  releaseReadyStatus: {
+    en: "Recovery window complete — release this run to play again.",
+    zh: "恢复窗口已结束——释放本局后即可再次游玩。",
+  },
+  releaseWaitTitle: { en: "Run sealed — recovery pending", zh: "本局已封存——等待恢复" },
+  scoreReleaseIn: { en: "Release in", zh: "可释放倒计时" },
+  checkSettlementAction: { en: "Check settlement", zh: "检查结算" },
+  settlementCheckingTitle: { en: "Checking settlement…", zh: "正在检查结算…" },
+  settlementStillPending: {
+    en: "Settlement is still pending. Check again shortly; release remains available after recovery.",
+    zh: "结算仍在处理中。请稍后再次检查；恢复窗口结束后仍可释放对局。",
+  },
+  sessionRecoveryReady: {
+    en: "The on-chain run is still active. Reopen the sealed session to continue or settle it.",
+    zh: "链上对局仍处于活动状态。请重新打开密封会话以继续或完成结算。",
+  },
+  invalidSessionPayload: {
+    en: "The sealed session returned an invalid color cue. Nothing was accepted — retry the session.",
+    zh: "密封会话返回了无效颜色灯号，本次未接受该数据。请重试会话。",
+  },
+  secureRandomUnavailable: {
+    en: "Secure local randomness is unavailable on this device. No sequence was created — retry in a supported browser.",
+    zh: "当前设备无法提供安全的本地随机数，本次未生成序列。请在受支持的浏览器中重试。",
+  },
+  gameFiMaintenanceShort: {
+    en: "Reward mode is paused. Local arcade play remains fully available.",
+    zh: "奖励模式暂未开放，本地街机仍可完整游玩。",
+  },
+  connectWalletFirst: {
+    en: "Connect your wallet before using reward mode.",
+    zh: "使用奖励模式前，请先连接钱包。",
+  },
+  statusContractMismatch: {
+    en: "Reward mode is unavailable because the contract, oracle, or game rules do not match this build.",
+    zh: "合约、预言机或游戏规则与当前版本不一致，奖励模式不可用。",
+  },
+  statusStorageUnavailable: {
+    en: "This browser cannot preserve the sealed move log, so a paid run was not started.",
+    zh: "当前浏览器无法可靠保存密封操作记录，因此未开启付费对局。",
+  },
+  statusStartPending: {
+    en: "The wallet request may have reached the chain. The run is frozen for exact recovery instead of charging again.",
+    zh: "钱包请求可能已到达链上，本局已冻结等待精确恢复，不会再次扣费。",
+  },
+  statusSessionMismatch: {
+    en: "The recovered game or sealed session does not match this wallet and difficulty. Input stays locked.",
+    zh: "恢复的对局或密封会话与当前钱包及难度不匹配，操作已锁定。",
+  },
+  statusWalletChanged: {
+    en: "The wallet changed during an active run. Reconnect the original wallet to recover it.",
+    zh: "活动对局期间钱包已切换，请重新连接原钱包以恢复本局。",
+  },
+  settlementMismatch: {
+    en: "The settlement event and on-chain game record do not match. The run remains recoverable and no win is shown.",
+    zh: "结算事件与链上对局记录不一致，本局将保持可恢复状态且不会显示胜利。",
+  },
+  withdrawPending: {
+    en: "The wallet responded, but the exact credit withdrawal is not confirmed yet. Refresh before trying again.",
+    zh: "钱包已响应，但精确余额提取尚未确认，请刷新后再操作。",
+  },
+  statusRecoveryUnavailable: {
+    en: "The active run could not be read reliably. It remains locked until chain recovery succeeds.",
+    zh: "暂时无法可靠读取活动对局，链上恢复成功前本局将保持锁定。",
+  },
   guestRestartAction: { en: "Restart run", zh: "重开本地局" },
   guestRestartHint: {
     en: "Clear this local sequence and return to the lobby.",
@@ -210,6 +293,17 @@ const appMessages = {
   color_blue: { en: "Blue", zh: "蓝" },
   color_green: { en: "Green", zh: "绿" },
   color_yellow: { en: "Yellow", zh: "黄" },
+  colorClashStageAlt: {
+    en: "Color Clash Simon memory console with four playable color pads.",
+    zh: "色彩对决 Simon 记忆控制台，包含四个可操作颜色按钮。",
+  },
+  openingColorBoard: { en: "Opening the memory console", zh: "正在打开记忆控制台" },
+  colorClashActionFailed: {
+    en: "The memory run could not continue",
+    zh: "记忆对局暂时无法继续",
+  },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
 };
 
 export const messages = mergeMessages(appMessages);

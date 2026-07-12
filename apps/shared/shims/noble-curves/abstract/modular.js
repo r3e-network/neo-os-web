@@ -413,4 +413,3 @@ export function mapHashToField(key, fieldOrder, isLE = false) {
     const reduced = mod(num, fieldOrder - _1n) + _1n;
     return isLE ? numberToBytesLE(reduced, fieldLen) : numberToBytesBE(reduced, fieldLen);
 }
-//# sourceMappingURL=modular.js.map

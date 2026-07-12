@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-screw-sort",
+  "name": "Screw Sort",
+  "name_zh": "螺丝工坊",
+  "version": "1.1.0",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "description": "A production local screw-sorting puzzle with layered planks, tactile material art, deterministic solvable levels, five safe overflow sockets, undo, pause, restart, and recovery. No wallet, chain write, oracle, GAS entry, or token reward is presented.",
+  "description_zh": "生产级本地螺丝收纳益智游戏，包含层叠木板、真实材质资源、确定性可解关卡、五格安全备选槽、撤回、暂停、重开与恢复。不会展示钱包、链上写入、预言机、GAS 报名或代币奖励。",
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "createdAt": "2026-07-10T00:00:00Z",
+  "updatedAt": "2026-07-12T00:00:00Z",
+  "featured": false,
+  "default_network": "neo-n3-testnet",
+  "supported_networks": ["neo-n3-testnet"],
+  "permissions": [],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "features": {
+    "deeplink": "neomainapp://screw-sort",
+    "offlineSupport": true,
+    "stateless": false
+  },
+  "operation_panel": {
+    "title": "Screw Sort · Local Workshop",
+    "subtitle": "Play a complete local puzzle. Verified GameFi remains unavailable until a contract and settlement path exist.",
+    "operations": []
+  },
+  "technologies": {
+    "aa": {
+      "enabled": false,
+      "description": "Local play does not request wallet authorization."
+    },
+    "oracle": {
+      "enabled": false,
+      "description": "No oracle result is used or advertised."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "Seeded local levels carry a constructive solution; no TEE reward settlement is claimed."
+    }
+  },
+  "tags": ["puzzle", "sorting", "screws", "phaser", "local", "game"],
+  "urls": {
+    "entry": "/miniapps/screw-sort/index.html",
+    "icon": "/miniapps/screw-sort/logo.webp",
+    "banner": "/miniapps/screw-sort/banner.webp"
+  }
+}

@@ -3,9 +3,9 @@
   "id": "miniapp-oracle-http-console",
   "name": "Oracle HTTP Console",
   "name_zh": "预言机 HTTP 控制台",
-  "version": "1.0.0",
-  "description": "Prepare HTTP oracle reads with URL, method, and extraction path.",
-  "description_zh": "用 URL、方法和提取路径准备 HTTP 预言机读取。",
+  "version": "1.2.0",
+  "description": "Prepare a network-bound Morpheus smart-fetch payload with a runtime-compatible extraction path and local SHA-256 draft digest.",
+  "description_zh": "准备绑定网络的 Morpheus smart-fetch Payload，使用兼容运行时的抽取路径与本地 SHA-256 草稿摘要。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -23,38 +23,16 @@
     "icon": "/miniapps/oracle-http-console/logo.webp",
     "banner": "/miniapps/oracle-http-console/banner.webp"
   },
-  "permissions": ["read:blockchain"],
+  "permissions": [],
   "features": {
     "stateless": true,
-    "offlineSupport": false,
+    "offlineSupport": true,
     "deeplink": "neomainapp://oracle-http-console"
   },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-testnet",
-    "endpoints": ["https://api.n3index.dev"]
-  },
   "operation_panel": {
-    "title": "Oracle Request",
-    "subtitle": "Build an HTTP oracle request and inspect the package.",
-    "operations": [
-      {
-        "name": "Build Request",
-        "method": "buildOraclePackage",
-        "description": "Prepare an inspectable Morpheus HTTP oracle package.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "endpoint",
-            "type": "string",
-            "label": "Endpoint",
-            "placeholder": "https://api.example.com/data",
-            "default_value": "https://oracle.meshmini.app/testnet/health",
-            "required": true
-          }
-        ]
-      }
-    ]
+    "title": "HTTP Oracle Route",
+    "subtitle": "Use the designed pipeline workspace to compose the source, Morpheus dot path and copyable local draft.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -63,5 +41,5 @@
     "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-05-01T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

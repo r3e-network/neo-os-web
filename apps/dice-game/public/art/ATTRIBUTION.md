@@ -1,5 +1,11 @@
 Dice Game table sprites are selected from open game-art packs.
 
+## Dice table hero
+
+The root `banner.webp` and `banner.avif` hero artwork was generated specifically
+for this miniapp with OpenAI image generation on 2026-07-10. It contains no
+third-party source asset or embedded text.
+
 ## Simple Dice 2
 
 Source: https://opengameart.org/content/simple-dice-2

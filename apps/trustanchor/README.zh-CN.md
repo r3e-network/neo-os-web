@@ -1,18 +1,29 @@
-# TrustAnchor MiniApp
+# TrustAnchor 小程序
 
-TrustAnchor 是面向信任策略的手动 AA agent 路由台。它用 21 个 AA agent 表示 21 个 council candidate，运营方明确调仓并同步投票，不做自动轮换。
+TrustAnchor 是 `PlatformAnchor` 模式 `1` 的治理用户端。用户可以质押整数
+NEO、赎回实时仓位并领取真实累计的 GAS；Agent 注册、AA 路由调仓、候选人
+更新与投票同步仍留在独立管理端，不在用户界面暴露。
 
-| 字段 | 值 |
+## 产品界面
+
+- 使用现有治理场景资源作为主画面，只保留一个主质押 CTA。
+- 赎回、领取、余额恢复、活动历史、规则和原始诊断全部收进次级抽屉。
+- 链上读取失败或格式错误时显示不可用，不把失败伪装成 `0`。
+- 不承诺 APR；只有真实投票奖励完成链上注资与记账后才显示为可领取 GAS。
+
+## 精确绑定与恢复
+
+| 项目 | 值 |
 | --- | --- |
 | App ID | `miniapp-trustanchor` |
-| 合约 | `PlatformAnchor` 共享合约，模式 `1` |
-| 资产 | NEO |
-| Agent 集合 | 21 个 AA 账户 |
+| 模式 | `1` |
+| Mainnet | `0x02beeef6f65c6989a121c0a0e6b23190333edb98` |
+| Testnet | `0xab079b4f9a0a2471d136392e25eb8e99898dcad0` |
 
-## 模型
+每次写操作前都会重新核对 network、contract、appId、mode、wallet 与实时
+余额，并先验证本地恢复存储。交易广播后立即持久化完整 intent 与 txid；刷新
+只核对已保存交易，不会重复发送。只有 VM `HALT`、精确 Anchor 事件和权威
+回读同时匹配才显示成功。
 
-- 每个注册的 anchor 都有自己的 21 个 AA agent，对应 21 个 council candidate。
-- AA accountId 派生参数应包含 `anchor + appId + agentId + nonce`，避免被提前恶意注册。
-- 调仓就是从候选人 A 的 agent 向候选人 B 的 agent 转移 NEO。
-- 候选人列表变化时，先更新 agent 的 candidate 公钥，再同步该 agent 投票。
-- `transferAgentNeo` 和 `voteAgent` 需要对应 agent AA witness；只有管理员权限不能移动 agent 资金。
+详情见 `PRODUCTION_STATUS.md`、`NETWORK_STATUS.md` 和
+`ASSET_PROVENANCE.md`。

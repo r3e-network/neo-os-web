@@ -20,6 +20,15 @@ const appMessages = {
   creditShort: { en: "Credit", zh: "余额" },
 
   difficultyTitle: { en: "Jump route", zh: "跳跃路线" },
+  gameplayFeatureTitle: { en: "A real platform-jumping game", zh: "真正的平台跳跃游戏" },
+  gameplayFeatureCopy: {
+    en: "Guide an illustrated bunny across grass islands, learn each gap through hold-and-release power, chase center landings, collect the golden carrot, and recover from a miss without leaving the arena.",
+    zh: "操控插画小兔越过草地浮岛，用按住蓄力、松手起跳掌握每段距离，追求中心着陆，收集金色胡萝卜；落空后也能在场内恢复。",
+  },
+  guestStartDescription: {
+    en: "Choose Meadow, Cloud, or Summit and jump straight into free local play. No wallet prompt, no token entry, and no chain write.",
+    zh: "选择草地、云端或山巅路线，立即开始免费本地游玩。无需连接钱包、无需代币报名，也不会写入链上。",
+  },
   difficulty_easy: { en: "Meadow Hop", zh: "草地小跳" },
   difficulty_medium: { en: "Cloud Dash", zh: "云端冲刺" },
   difficulty_hard: { en: "Summit Leap", zh: "山巅飞跃" },
@@ -163,6 +172,18 @@ const appMessages = {
     zh: "该路线奖池补充中",
   },
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
+  statusInputSyncFailed: {
+    en: "Jump verification paused — retry after the session reconnects",
+    zh: "跳跃验证已暂停——会话恢复后再试",
+  },
+  statusReleasePending: {
+    en: "This run is still inside the contract recovery window",
+    zh: "本局仍处于合约恢复等待期",
+  },
+  paidModeUnavailable: {
+    en: "Wallet rewards are in maintenance; free local play is ready.",
+    zh: "钱包奖励功能维护中；可继续免费本地游玩。",
+  },
   statusMissed: { en: "You missed the platform!", zh: "没踩中平台！" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
@@ -175,7 +196,7 @@ const appMessages = {
 
   // ── In-canvas (Phaser) strings — routed to the scene via bridgeState so the
   //    canvas honors the active locale instead of hardcoding English. ──────────
-  chargeHold: { en: "Hold to charge", zh: "按住蓄力" },
+  chargeHold: { en: "Hold — release in the gold band", zh: "按住蓄力——在金色区间松手" },
   chargeRelease: { en: "Release to jump", zh: "松开跳跃" },
   submitSettleHint: { en: "TEE settlement", zh: "TEE 结算" },
   submitVerifiedHint: { en: "Verified payout", zh: "已验证奖励" },
@@ -183,6 +204,7 @@ const appMessages = {
   releaseThisRun: { en: "Release this run", zh: "结算本局" },
   waitLabel: { en: "Wait {clock}", zh: "等待 {clock}" },
   antiBotFloor: { en: "Anti-bot floor", zh: "防脚本下限" },
+  recoveryWindow: { en: "Contract recovery window", zh: "合约恢复等待期" },
   keepJumping: { en: "Keep jumping", zh: "继续跳跃" },
   targetNotCleared: { en: "Target not cleared", zh: "尚未通关" },
   startJump: { en: "Start jump", zh: "开始跳跃" },
@@ -227,8 +249,8 @@ const appMessages = {
   },
   guestGuideTitle: { en: "Local practice", zh: "本地练习" },
   guestRulesCopy: {
-    en: "Pick a route, hold to charge, and release to jump. Land on each platform to clear the route — missing ends the run, so use an undo to retry. Everything runs locally: no entry, no GAS, nothing on-chain.",
-    zh: "选择路线，按住蓄力，松开跳跃。落在每个平台上以通关——未踩中即出局，可使用撤回重试。全部在本地运行：无报名费、无 GAS、不涉及链上。",
+    en: "Pick a route, hold to charge, and release to jump. Land on each platform to clear the route. A miss pauses the run: use an undo to retry, or end and restart after your undos are used. Everything runs locally — no entry, no GAS, nothing on-chain.",
+    zh: "选择路线，按住蓄力，松开跳跃。落在每个平台上即可推进路线。落空会暂停本局：可使用撤回重试；撤回用尽后结束并重新开局。全部在本地运行——无报名费、无 GAS、不涉及链上。",
   },
   guestModeLine: {
     en: "Guest mode — local play, scores saved off-chain.",
@@ -238,6 +260,11 @@ const appMessages = {
   guestStatusReady: { en: "Pick a route to start a local run", zh: "选择路线开始本地对局" },
   guestStatusStarting: { en: "Building your local route…", zh: "正在生成本地路线…" },
   guestStatusDealt: { en: "Local route ready — jump!", zh: "本地路线就绪——开跳！" },
+  guestRunRecovered: { en: "Local run restored — keep jumping!", zh: "已恢复本地对局——继续跳！" },
+  guestRandomUnavailable: {
+    en: "Local route generation is unavailable — reload and try again.",
+    zh: "暂时无法生成本地路线——请刷新后重试。",
+  },
   guestStatusUndo: { en: "Undo used — {left} left", zh: "已撤回——剩 {left} 次" },
   // In-canvas (scene) guest overrides, routed through sceneText under the SAME
   // keys the scene reads, so the canvas swaps GAS/TEE framing for local framing.
@@ -247,8 +274,28 @@ const appMessages = {
   guestBuildingTitle: { en: "Building route", zh: "正在生成路线" },
   guestBuildingHint: { en: "Laying out your local route", zh: "正在铺设本地路线" },
   guestReadyHint: { en: "Ready to jump", zh: "准备起跳" },
+  guestMissedCopy: { en: "Use an undo to retry, or end this run when none remain.", zh: "使用撤回重试；次数用尽后可结束本局。" },
+  guestEndRun: { en: "End this run", zh: "结束本局" },
   guestCardReward: { en: "Free play", zh: "免费畅玩" },
   guestCardEntry: { en: "Local run", zh: "本地对局" },
+
+  // Runtime and semantic controls. These mirror the illustrated Phaser
+  // surface without adding a visible form layer over the game.
+  gameAriaLabel: { en: "Jump Rush illustrated platform-jumping game", zh: "跳一跳插画平台跳跃游戏" },
+  gameLoadingLabel: { en: "Loading the jump arena", zh: "正在加载跳跃竞技场" },
+  continue: { en: "Continue", zh: "继续" },
+  gameActionFailed: { en: "The game surface could not start", zh: "游戏场景启动失败" },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
+  closeDrawer: { en: "Close leaderboard and rules", zh: "关闭排行榜与规则" },
+  a11yDifficultyGroup: { en: "Choose a jump route", zh: "选择跳跃路线" },
+  a11yDifficultyDetail: { en: "{count} platforms to clear", zh: "需要通过 {count} 个平台" },
+  a11yStartRoute: { en: "Start selected route", zh: "开始所选路线" },
+  a11yChargePower: { en: "Jump power {power} percent", zh: "跳跃力度 {power}%" },
+  a11yJumpAtPower: { en: "Jump at {power} percent power", zh: "以 {power}% 力度起跳" },
+  a11yUndoJump: { en: "Undo missed jump, {count} left", zh: "撤回落空跳跃，剩 {count} 次" },
+  a11yEndRun: { en: "End this run", zh: "结束本局" },
+  a11ySubmitRun: { en: "Save cleared route", zh: "保存通关成绩" },
 };
 
 export const messages = mergeMessages(appMessages);

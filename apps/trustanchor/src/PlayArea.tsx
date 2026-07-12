@@ -1,184 +1,209 @@
-/**
- * PlayArea.tsx — TrustAnchor (v2 scene-driven rebuild)
- *
- * DeFi identity. The staking node IS the scene: concentric node rings (your
- * stake at the core, agent nodes orbiting), rewards flowing in. Stake is the
- * primary write (always dispatches); withdraw/claim/recover + stake-amount input
- * live in a drawer. Real state from useTrustanchor bound throughout.
- */
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import { CoinArt } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { CoinArt, ParticleBurst } from "@shared/art";
-import { OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import type {
+  AnchorBindingStatus,
+  AnchorHistoryItem,
+  AnchorStatsSnapshot,
+  AnchorUserSnapshot,
+  PendingAnchorTransaction,
+} from "./anchor-runtime";
 import "./PlayArea.scss";
 
 const AMOUNT_PRESETS = ["1", "5", "10", "21"] as const;
-type DrawerMode = "amount" | "rewards" | "stats";
+type DrawerMode = "position" | "rewards" | "activity" | "protocol";
 
-interface P {
-  t: (k: string, p?: Record<string, string | number>) => string;
+interface Props {
+  t: (key: string, params?: Record<string, string | number>) => string;
   state: ObservableState;
-  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-function withoutUnit(value: string, unit: string): string {
-  return String(value || "0").replace(new RegExp(`\\s*${unit}\\s*$`, "i"), "").trim() || "0";
-}
-
-function normalizeWholeNeoAmount(value: string): string {
+function wholeNeo(value: string): string {
   const whole = value.split(/[.,]/)[0] ?? "";
   return whole.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
 }
 
-export default function PlayArea({ t, state, dispatch }: P) {
-  const { str, bool, num } = useStateBindings(state);
+function displayInteger(value?: string): string {
+  if (value === undefined) return "—";
+  try {
+    return BigInt(value).toLocaleString();
+  } catch {
+    return "—";
+  }
+}
 
-  const myStakeDisplay = str("myStakeDisplay", "0");
-  const pendingRewardsDisplay = str("pendingRewardsDisplay", "0");
-  const pendingWithdrawDisplay = str("pendingWithdrawDisplay", "0");
-  const totalNeoDisplay = str("totalNeoDisplay", "0");
-  const rewardReserveDisplay = str("rewardReserveDisplay", "0");
-  const rewardPerNeoDisplay = str("rewardPerNeoDisplay", "—");
-  const agentCount = num("agentCount");
-  const submitting = bool("submitting");
+function displayFixed(value: string | undefined, decimals: number, digits = 4): string {
+  if (value === undefined) return "—";
+  try {
+    const amount = BigInt(value);
+    const divisor = 10n ** BigInt(decimals);
+    const whole = amount / divisor;
+    const fraction = (amount % divisor).toString().padStart(decimals, "0").slice(0, digits).replace(/0+$/, "");
+    return fraction ? `${whole.toLocaleString()}.${fraction}` : whole.toLocaleString();
+  } catch {
+    return "—";
+  }
+}
+
+function shortHash(value: string): string {
+  return value.length > 18 ? `${value.slice(0, 10)}…${value.slice(-6)}` : value || "—";
+}
+
+function historyLabel(action: AnchorHistoryItem["action"]): string {
+  return {
+    stake: "historyStake",
+    withdraw: "historyWithdraw",
+    claim: "historyClaim",
+    recover: "historyRecover",
+  }[action];
+}
+
+function bindingCopy(status: AnchorBindingStatus, t: Props["t"]) {
+  const keys: Record<AnchorBindingStatus, string> = {
+    loading: "bindingLoading",
+    ready: "bindingReady",
+    "unknown-network": "bindingUnknownNetwork",
+    "missing-contract": "bindingMissingContract",
+    unregistered: "bindingUnregistered",
+    "mode-mismatch": "bindingModeMismatch",
+    paused: "bindingPaused",
+    "read-unavailable": "bindingReadUnavailable",
+  };
+  return t(keys[status]);
+}
+
+export default function PlayArea({ t, state, dispatch }: Props) {
+  const { str, bool, val } = useStateBindings(state);
+  const stats = val<AnchorStatsSnapshot>("stats");
+  const user = val<AnchorUserSnapshot>("user");
+  const pending = val<PendingAnchorTransaction>("pendingTransaction");
+  const history = val<AnchorHistoryItem[]>("history", []) ?? [];
+  const readStatus = str("readStatus", "read-unavailable") as AnchorBindingStatus;
+  const network = str("network");
+  const contract = str("contract");
+  const actionStatus = str("actionStatus");
+  const actionError = str("actionError");
+  const readError = str("readError");
+  const diagnosticError = str("diagnosticError");
+  const storageHealthy = bool("storageHealthy");
+  const busy = bool("submitting") || bool("confirmationChecking");
+  const walletConnected = Boolean(str("walletAddress"));
 
   const [amount, setAmount] = useState("1");
-  const [drawerMode, setDrawerMode] = useState<DrawerMode>("amount");
-  const [stakePreview, setStakePreview] = useState(false);
-  const stakePreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (stakePreviewTimeout.current) clearTimeout(stakePreviewTimeout.current); }, []);
-  const busy = submitting || stakePreview;
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("position");
+  const amountReady = /^[1-9]\d*$/.test(amount);
+  const writable = readStatus === "ready" && !pending && !busy;
+  const readable = readStatus === "ready" || readStatus === "paused";
+  const stakeDisplay = user ? displayInteger(user.stake) : "—";
+  const rewardsDisplay = user ? displayFixed(user.pendingRewards, 8, 5) : "—";
+  const reserveDisplay = stats ? displayFixed(stats.rewardReserve, 8, 4) : "—";
+  const totalDisplay = stats ? displayInteger(stats.totalStaked) : "—";
+  const routesDisplay = stats ? displayInteger(stats.agentCount) : "—";
+  const selectedRoute = stats && stats.selectedAgentId !== "0"
+    ? t("selectedRouteValue", { id: stats.selectedAgentId })
+    : t("selectedRouteNone");
 
-  const startStakePreview = () => {
-    if (stakePreviewTimeout.current) clearTimeout(stakePreviewTimeout.current);
-    setStakePreview(true);
-    stakePreviewTimeout.current = setTimeout(() => { setStakePreview(false); stakePreviewTimeout.current = null; }, 1200);
+  const run = (name: string, ...args: unknown[]) => {
+    void dispatch(name, ...args).catch(() => undefined);
   };
-
-  const amountReady = /^[1-9]\d*$/.test(amount.trim());
   const adjustAmount = (delta: number) => {
-    const current = Number.parseInt(normalizeWholeNeoAmount(amount), 10);
+    const current = Number.parseInt(amount, 10);
     setAmount(String(Math.max(1, (Number.isFinite(current) ? current : 1) + delta)));
   };
 
-  const handleStake = () => {
-    if (!amountReady || busy) return;
-    startStakePreview();
-    void dispatch("stakeNeo", { amount: normalizeWholeNeoAmount(amount) });
-  };
-  const handleWithdraw = () => {
-    if (!amountReady || busy) return;
-    void dispatch("withdrawNeo", { amount: normalizeWholeNeoAmount(amount) });
-  };
-  const handleClaim = () => { void dispatch("claimRewards"); };
-  const handleRecover = () => { void dispatch("recoverNeoCredit"); };
-  const handleRefresh = () => { void dispatch("refreshAnchor"); };
-
-  const myStakeValue = withoutUnit(myStakeDisplay, "NEO");
-  const pendingRewardsValue = withoutUnit(pendingRewardsDisplay, "GAS");
-  const rewardReserveValue = withoutUnit(rewardReserveDisplay, "GAS");
-  const hasStake = Number(myStakeValue) > 0;
-
   const scene = (
-    <div className="tool-scene trust-scene" data-state={busy ? "busy" : hasStake ? "staking" : "idle"}>
-      {stakePreview && (
-        <div className="trust-scene__burst"><ParticleBurst coins count={8} /></div>
-      )}
-
-      <section className="trust-stage-card" aria-label={t("stageAria")}>
-        <img className="trust-stage-card__image" src="./trustanchor-stage.webp" alt={t("stageAria")} />
-        <div className="trust-stage-card__summary">
-          <div className="trust-scene__network">
-            <div className={["trust-scene__core", busy ? "is-pulsing" : ""].filter(Boolean).join(" ")}>
-              <CoinArt size={26} variant="neo" />
-              <strong>{myStakeValue}</strong>
-              <span>NEO</span>
-            </div>
-            <div className="trust-scene__orbit trust-scene__orbit--1" />
-            <div className="trust-scene__orbit trust-scene__orbit--2" />
-            {agentCount > 0 && Array.from({ length: Math.min(agentCount, 4) }).map((_, i) => (
-              <span key={i} className="trust-scene__node" style={{ "--i": i } as React.CSSProperties} />
-            ))}
-          </div>
-          <div className="trust-stage-card__copy">
-            <span>{t("contractLiquidityLabel")}</span>
-            <strong>{totalNeoDisplay}</strong>
-            <small>{t("rewardReserve")}: {rewardReserveDisplay}</small>
-          </div>
+    <div className="tool-scene trust-product-scene" data-binding={readStatus}>
+      <section className="trust-visual" aria-label={t("stageAria")}>
+        <img
+          className="trust-visual__image"
+          src="./trustanchor-stage.webp"
+          alt={t("stageAria")}
+          loading="eager"
+          decoding="async"
+        />
+        <div className="trust-visual__plate">
+          <span>{t("governanceRoute")}</span>
+          <strong>{selectedRoute}</strong>
+          <small>{t("routeCountValue", { count: routesDisplay })}</small>
         </div>
       </section>
 
-      <section className="trust-console" aria-label={t("stakePath")}>
-        <header className="trust-console__head">
+      <section className="trust-command" aria-label={t("stakeWorkspace") }>
+        <header className="trust-command__header">
           <div>
-            <span>{t("stakePath")}</span>
-            <strong>{hasStake ? t("pendingRewards") : t("routeAwaiting")}</strong>
+            <span>{t("stakePlan")}</span>
+            <strong>{t("chooseStakeAmount")}</strong>
           </div>
-          <em>{agentCount || 0}/21</em>
+          <span className={`trust-binding trust-binding--${readStatus}`}>
+            {bindingCopy(readStatus, t)}
+          </span>
         </header>
 
-        <div className="trust-console__metrics">
-          <span><small>{t("myStake")}</small><strong>{myStakeValue} NEO</strong></span>
-          <span><small>{t("pendingRewards")}</small><strong>{pendingRewardsValue} GAS</strong></span>
-          <span><small>{t("rewardReserve")}</small><strong>{rewardReserveValue} GAS</strong></span>
+        <div className="trust-position-strip">
+          <div><span>{t("myStake")}</span><strong>{stakeDisplay} NEO</strong></div>
+          <div><span>{t("pendingRewards")}</span><strong>{rewardsDisplay} GAS</strong></div>
         </div>
 
-        <section className="trust-ticket" data-ready={amountReady ? "true" : undefined} aria-label={t("preflightAmount")}>
-          <div className="trust-ticket__head">
-            <span>{t("preflightAmount")}</span>
-            <strong>{amount || "0"} NEO</strong>
-          </div>
-          <div className="trust-ticket__presets" aria-label={t("stakePresetLabel")}>
-            {AMOUNT_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                className={amount === preset ? "is-active" : undefined}
-                onClick={() => setAmount(preset)}
-                disabled={busy}
-              >
-                {preset} NEO
-              </button>
-            ))}
-          </div>
-          <div className="trust-ticket__amount">
-            <button type="button" onClick={() => adjustAmount(-1)} disabled={busy || amount === "1"} aria-label="-1 NEO">-</button>
-            <output aria-live="polite">{amount || "0"} NEO</output>
-            <button type="button" onClick={() => adjustAmount(1)} disabled={busy} aria-label="+1 NEO">+</button>
-          </div>
-          <small>{amountReady ? t("amountPlanReady") : t("amountPlanBlocked")}</small>
-        </section>
-
-        <div className="trust-route">
-          <span>{t("preflightRoute")}</span>
-          <strong>{t("heroFactAgents")}</strong>
-          <small>{t("heroFactVariable")}</small>
+        <div className="trust-amount-deck" aria-label={t("stakePresetLabel")}>
+          {AMOUNT_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              className={amount === preset ? "is-active" : undefined}
+              onClick={() => setAmount(preset)}
+              disabled={busy || Boolean(pending)}
+            >
+              <strong>{preset}</strong>
+              <span>NEO</span>
+            </button>
+          ))}
         </div>
 
-        <p className="trust-scene__status">
-          {busy ? `${t("stakeNeo")}...` : hasStake ? `${t("pendingRewards")}: ${pendingRewardsDisplay}` : t("stageCaption")}
-        </p>
+        <div className="trust-stepper">
+          <button type="button" onClick={() => adjustAmount(-1)} disabled={busy || amount === "1"} aria-label="-1 NEO">−</button>
+          <output aria-live="polite"><strong>{amount || "—"}</strong><span>NEO</span></output>
+          <button type="button" onClick={() => adjustAmount(1)} disabled={busy} aria-label="+1 NEO">+</button>
+        </div>
+
+        <div className="trust-route-note">
+          <CoinArt size={34} variant="neo" decorative />
+          <div>
+            <strong>{t("governancePolicyTitle")}</strong>
+            <span>{t("governancePolicyBody")}</span>
+          </div>
+        </div>
+
+        {(pending || actionError || readError) && (
+          <div className={`trust-inline-status ${actionError || readError ? "is-error" : "is-pending"}`} role="status">
+            <strong>{pending ? t("transactionPendingTitle") : t("attentionTitle")}</strong>
+            <span>{pending ? t("transactionPendingBody") : actionError || readError}</span>
+          </div>
+        )}
       </section>
     </div>
   );
 
-  const score = [
-    { label: t("myStake"), value: `${myStakeValue} NEO`, accent: true },
-    { label: t("pendingRewards"), value: pendingRewardsDisplay },
-    { label: t("rewardPerNeo"), value: rewardPerNeoDisplay },
-  ];
-  const drawerModes: Array<{ id: DrawerMode; label: string; value: string }> = [
-    { id: "amount", label: t("stakeNeo"), value: `${amount || "0"} NEO` },
-    { id: "rewards", label: t("pendingRewards"), value: pendingRewardsDisplay },
-    { id: "stats", label: t("totalNeoTracked"), value: totalNeoDisplay },
+  const modes: Array<{ id: DrawerMode; label: string }> = [
+    { id: "position", label: t("managePosition") },
+    { id: "rewards", label: t("manageRewards") },
+    { id: "activity", label: t("activity") },
+    { id: "protocol", label: t("protocolDetails") },
   ];
 
   const drawer = (
     <OpenUiProvider>
       <div className="trust-drawer">
-        <div className="trust-drawer__switcher" role="tablist" aria-label={t("heroTitle")}>
-          {drawerModes.map((mode) => (
+        <div className="trust-drawer__nav" role="tablist" aria-label={t("manageAnchor")}>
+          {modes.map((mode) => (
             <button
               key={mode.id}
               type="button"
@@ -187,79 +212,94 @@ export default function PlayArea({ t, state, dispatch }: P) {
               className={drawerMode === mode.id ? "is-active" : undefined}
               onClick={() => setDrawerMode(mode.id)}
             >
-              <span>{mode.label}</span>
-              <strong>{mode.value}</strong>
+              {mode.label}
             </button>
           ))}
         </div>
 
-        {drawerMode === "amount" && (
-          <OpenUiPanel
-            className="trust-drawer__panel trust-drawer__panel--amount"
-            icon={<CoinArt size={20} variant="neo" decorative />}
-            title={t("preflightAmount")}
-            subtitle={amountReady ? t("amountPlanReady") : t("amountPlanBlocked")}
-          >
-            <div className="trust-drawer__amount-layout">
+        {drawerMode === "position" && (
+          <OpenUiPanel title={t("managePosition")} subtitle={t("redeemTimingNote")}>
+            <div className="trust-drawer__amount-row">
               <OpenUiTextField
-                className="trust-drawer-field trust-drawer-field--amount"
-                inputClassName="trust-drawer-input trust-drawer-input--amount"
-                label={`${t("stakeNeo")} (NEO)`}
+                label={t("wholeNeoAmount")}
                 value={amount}
-                onChange={(e) => setAmount(normalizeWholeNeoAmount(e.target.value))}
-                placeholder="1"
                 inputMode="numeric"
-                disabled={busy}
+                onChange={(event) => setAmount(wholeNeo(event.target.value))}
+                disabled={busy || Boolean(pending)}
+                hint={t("wholeNeoHint")}
               />
-              <div className="trust-drawer__presets" aria-label={t("stakePresetLabel")}>
-                {AMOUNT_PRESETS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={amount === preset ? "is-active" : undefined}
-                    onClick={() => setAmount(preset)}
-                    disabled={busy}
-                  >
-                    {preset} NEO
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="trust-drawer__row trust-drawer__row--primary">
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleStake} disabled={busy || !amountReady}>{t("stakeNeo")}</button>
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleWithdraw} disabled={busy || !amountReady}>{t("withdrawNeo")}</button>
+              <button
+                type="button"
+                className="trust-secondary-action"
+                onClick={() => run("withdrawNeo", { amount })}
+                disabled={!readable || !walletConnected || !user || !amountReady || BigInt(user.stake) < BigInt(amount) || busy || Boolean(pending)}
+              >
+                {t("withdrawNeo")}
+              </button>
             </div>
           </OpenUiPanel>
         )}
 
         {drawerMode === "rewards" && (
-          <OpenUiPanel
-            className="trust-drawer__panel trust-drawer__panel--rewards"
-            icon={<CoinArt size={20} variant="gas" decorative />}
-            title={t("pendingRewards")}
-            subtitle={pendingRewardsDisplay}
-          >
-            <div className="trust-drawer__row">
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleClaim} disabled={busy}>{t("claimRewards")}</button>
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleRecover} disabled={busy}>{t("recoverNeoCredit")}</button>
-              <button type="button" className="mx2-btn mx2-btn--ghost trust-drawer__refresh" onClick={handleRefresh} disabled={busy}>{t("refreshAnchor")}</button>
+          <OpenUiPanel title={t("manageRewards")} subtitle={t("rewardReserveHint")}>
+            <div className="trust-reward-actions">
+              <div><span>{t("pendingRewards")}</span><strong>{rewardsDisplay} GAS</strong></div>
+              <button
+                type="button"
+                className="trust-secondary-action"
+                onClick={() => run("claimRewards")}
+                disabled={!readable || !user || BigInt(user.pendingRewards) <= 0n || busy || Boolean(pending)}
+              >
+                {t("claimRewards")}
+              </button>
+            </div>
+            {user && BigInt(user.neoCredit) > 0n && (
+              <div className="trust-credit-row">
+                <span>{t("creditRecoverHint")}</span>
+                <button type="button" onClick={() => run("recoverNeoCredit")} disabled={busy || Boolean(pending)}>{t("recoverNeoCredit")}</button>
+              </div>
+            )}
+          </OpenUiPanel>
+        )}
+
+        {drawerMode === "activity" && (
+          <OpenUiPanel title={t("activity")} subtitle={actionStatus}>
+            {pending && (
+              <OpenUiNotice title={t("transactionPendingTitle")} type="warning">
+                <span>{shortHash(pending.txid)}</span>
+                <button type="button" onClick={() => run("recoverPendingAnchor")} disabled={busy}>{t("checkTransaction")}</button>
+              </OpenUiNotice>
+            )}
+            <div className="trust-history">
+              {history.length === 0 ? <p>{t("noActivity")}</p> : history.map((item) => (
+                <div key={`${item.txid}-${item.at}`}>
+                  <span>{t(historyLabel(item.action))}</span>
+                  <strong>{item.status === "confirmed" ? t("historyConfirmed") : t("historyNeedsAttention")}</strong>
+                  <small>{shortHash(item.txid)}</small>
+                </div>
+              ))}
             </div>
           </OpenUiPanel>
         )}
 
-        {drawerMode === "stats" && (
-          <OpenUiPanel
-            className="trust-drawer__panel trust-drawer__panel--stats"
-            icon={<CoinArt size={20} variant="neo" decorative />}
-            title={t("totalNeoTracked")}
-            subtitle={totalNeoDisplay}
-          >
-            <div className="trust-drawer__stats">
-              <div><span>{t("totalNeoTracked")}</span><strong>{totalNeoDisplay}</strong></div>
-              <div><span>{t("rewardReserve")}</span><strong>{rewardReserveDisplay}</strong></div>
-              <div><span>{t("pendingWithdraw")}</span><strong>{pendingWithdrawDisplay}</strong></div>
-              <div><span>{t("agentTargetCount")}</span><strong>{agentCount}</strong></div>
-            </div>
+        {drawerMode === "protocol" && (
+          <OpenUiPanel title={t("protocolDetails")} subtitle={t("protocolSubtitle")}>
+            <dl className="trust-protocol-grid">
+              <div><dt>{t("networkLabel")}</dt><dd>{network || "—"}</dd></div>
+              <div><dt>{t("modeLabel")}</dt><dd>{stats?.mode ?? "—"}</dd></div>
+              <div><dt>{t("poolTotal")}</dt><dd>{totalDisplay} NEO</dd></div>
+              <div><dt>{t("rewardReserve")}</dt><dd>{reserveDisplay} GAS</dd></div>
+              <div><dt>{t("contractLabel")}</dt><dd>{shortHash(contract)}</dd></div>
+              <div><dt>{t("storageLabel")}</dt><dd>{storageHealthy ? t("storageReady") : t("storageBlocked")}</dd></div>
+            </dl>
+            <p className="trust-protocol-copy">{t("variableRewardDisclosure")}</p>
+            {(diagnosticError || actionError) && (
+              <details className="trust-diagnostics">
+                <summary>{t("diagnostics")}</summary>
+                <code>{diagnosticError || actionError}</code>
+              </details>
+            )}
+            <button type="button" className="trust-refresh" onClick={() => run("refreshAnchor")} disabled={busy}>{t("refreshAnchor")}</button>
           </OpenUiPanel>
         )}
       </div>
@@ -267,17 +307,36 @@ export default function PlayArea({ t, state, dispatch }: P) {
   );
 
   return (
-    <div className="trustanchor-play-area mx2 mx2-cat-defi">
+    <div className="trustanchor-play-area">
       <PlayStage
-        category="defi"
-        stage={{ eyebrow: t("heroFactsLabel"), title: t("heroTitle"), subtitle: t("stageCaption") }}
-        scene={scene}
-        score={score}
-        actions={{
-          primary: { label: busy ? "..." : t("stakeNeo"), onClick: handleStake, loading: busy, disabled: !amountReady || busy },
+        category="governance"
+        stage={{
+          eyebrow: t("heroFactsLabel"),
+          title: t("heroTitle"),
+          subtitle: t("heroDescription"),
+          badges: (
+            <>
+              <span>{network || t("networkUnknown")}</span>
+              <span>{t("modeBadge", { mode: 1 })}</span>
+            </>
+          ),
         }}
-        drawerToggleLabel={t("heroTitle")}
-        drawer={{ title: t("heroTitle"), children: drawer }}
+        scene={scene}
+        score={[
+          { label: t("myStake"), value: `${stakeDisplay} NEO`, accent: true },
+          { label: t("pendingRewards"), value: `${rewardsDisplay} GAS` },
+          { label: t("agentTargetCount"), value: routesDisplay },
+        ]}
+        actions={{
+          primary: {
+            label: pending ? t("transactionPendingShort") : t("stakeAmount", { amount }),
+            onClick: () => run("stakeNeo", { amount }),
+            disabled: !writable || !amountReady,
+            loading: busy,
+          },
+        }}
+        drawerToggleLabel={t("manageAnchor")}
+        drawer={{ title: t("manageAnchor"), children: drawer }}
       />
     </div>
   );

@@ -12,8 +12,8 @@
   },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
-  "description": "Tip and appreciate developers with crypto",
-  "description_zh": "开发者打赏 — 为优秀的开源贡献者发送链上小费",
+  "description": "Select a registered Neo developer, choose a GAS preset, confirm once in your wallet, and keep an exact recoverable on-chain receipt.",
+  "description_zh": "选择已注册的 Neo 开发者、挑选 GAS 金额、在钱包中确认一次，并保留可恢复的精确链上收据。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -22,7 +22,7 @@
   "features": {
     "deeplink": "neomainapp://dev-tipping",
     "offlineSupport": false,
-    "stateless": true
+    "stateless": false
   },
   "id": "miniapp-dev-tipping",
   "name": "Developer Tipping",
@@ -49,75 +49,20 @@
     "neo-n3-testnet"
   ],
   "operation_panel": {
-    "title": "Send Developer Tip",
-    "subtitle": "Transfer GAS to the Dev Tipping contract and record the developer tip in one wallet-confirmed batch.",
-    "operations": [
-      {
-        "name": "Send Tip",
-        "method": "sendTip",
-        "description": "Select a registered developer ID, enter a GAS amount, and submit the funded tip transaction from the connected wallet.",
-        "button_style": "primary",
-        "priority": "primary",
-        "confirm_message": "Send this GAS tip on-chain?",
-        "params": [
-          {
-            "name": "devId",
-            "type": "integer",
-            "label": "Developer ID",
-            "required": true,
-            "placeholder": "1"
-          },
-          {
-            "name": "amount",
-            "type": "amount",
-            "label": "Tip amount",
-            "required": true,
-            "placeholder": "0.05",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "0.01",
-                "value": "0.01",
-                "helper": "GAS"
-              },
-              {
-                "label": "0.05",
-                "value": "0.05",
-                "helper": "GAS"
-              },
-              {
-                "label": "0.10",
-                "value": "0.10",
-                "helper": "GAS"
-              }
-            ]
-          },
-          {
-            "name": "message",
-            "type": "string",
-            "label": "Message",
-            "placeholder": "Thanks for building on Neo"
-          },
-          {
-            "name": "tipperName",
-            "type": "string",
-            "label": "Tipper name",
-            "placeholder": "Neo supporter"
-          }
-        ]
-      }
-    ]
+    "title": "Developer Tipping workspace",
+    "subtitle": "The designed MiniApp owns recipient selection, Fixed8 GAS presets, wallet confirmation, and exact receipt recovery.",
+    "operations": []
   },
   "tags": [
     "tipping",
     "developers",
     "appreciation"
   ],
-  "updatedAt": "2026-06-01T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "urls": {
-    "banner": "/miniapps/dev-tipping/banner.webp",
+    "banner": "/miniapps/dev-tipping/support-board-stage.webp",
     "entry": "/miniapps/dev-tipping/index.html",
     "icon": "/miniapps/dev-tipping/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

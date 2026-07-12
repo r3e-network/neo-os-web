@@ -126,6 +126,10 @@ const appMessages = {
     en: "Scan or paste a ticket token id to verify seat, owner, and usage before marking it used.",
     zh: "扫描或粘贴门票 Token ID，先核对座位、持有人和使用状态，再标记为已入场。",
   },
+  lookupBeforeCheckin: {
+    en: "Look up the pass and review its live status before check-in.",
+    zh: "请先查询通行证并核对实时状态，再执行入场核验。",
+  },
   ticketFound: { en: "Ticket found", zh: "已找到门票" },
   ticketNotFound: { en: "Ticket not found", zh: "未找到门票" },
   ticketAlreadyUsed: { en: "Ticket is already used", zh: "门票已使用" },
@@ -148,8 +152,33 @@ const appMessages = {
   nameRequired: { en: "Event name is required", zh: "活动名称必填" },
   invalidTime: { en: "Invalid event time range", zh: "时间范围无效" },
   invalidSupply: { en: "Invalid ticket supply", zh: "票量无效" },
-  invalidRecipient: { en: "Recipient address required", zh: "接收地址必填" },
-  invalidTokenId: { en: "Token ID required", zh: "需要填写 Token ID" },
+  invalidRecipient: { en: "Enter a valid Neo N3 recipient address", zh: "请输入有效的 Neo N3 接收地址" },
+  invalidTokenId: { en: "Enter a ticket token ID such as 12-3", zh: "请输入类似 12-3 的门票 Token ID" },
+  invalidTokenIdHint: {
+    en: "Use the event-serial format shown on the pass, for example 12-3.",
+    zh: "请使用通行证上的“活动编号-序号”格式，例如 12-3。",
+  },
+  transactionUnverified: {
+    en: "The transaction was broadcast but its matching on-chain event and state could not be verified. Check the explorer before retrying.",
+    zh: "交易可能已广播，但尚未核验到匹配的链上事件与状态。重试前请先在区块浏览器确认。",
+  },
+  organizerMismatch: {
+    en: "This wallet is not the organizer of the selected event",
+    zh: "当前钱包不是所选活动的主办方",
+  },
+  ticketNotHeld: {
+    en: "This pass is not in the connected wallet's verified inventory",
+    zh: "该通行证不在当前钱包已核验的票夹中",
+  },
+  recipientIsOwner: {
+    en: "Choose a different wallet for the transfer",
+    zh: "请选择其他钱包作为转赠对象",
+  },
+  eventNameTooLong: { en: "Event name must be 60 characters or fewer", zh: "活动名称不能超过 60 个字符" },
+  eventVenueTooLong: { en: "Venue must be 60 characters or fewer", zh: "场地不能超过 60 个字符" },
+  eventNotesTooLong: { en: "Notes must be 240 characters or fewer", zh: "备注不能超过 240 个字符" },
+  seatTooLong: { en: "Seat or zone must be 24 characters or fewer", zh: "座位或区域不能超过 24 个字符" },
+  memoTooLong: { en: "Ticket memo must be 160 characters or fewer", zh: "门票备注不能超过 160 个字符" },
   loadFailed: { en: "Failed to load ticket data", zh: "加载门票数据失败" },
 
   dateUnknown: { en: "Schedule TBD", zh: "时间待定" },
@@ -202,9 +231,29 @@ const appMessages = {
   sidebarTickets: { en: "Tickets", zh: "门票" },
   sidebarActive: { en: "Active", zh: "进行中" },
   eventPass: { en: "EVENT PASS", zh: "活动通行证" },
+  passPreview: { en: "PASS PREVIEW", zh: "通行证预览" },
+  verifiedTicket: { en: "VERIFIED ON-CHAIN PASS", zh: "链上已核验通行证" },
+  previewTokenLabel: { en: "PREVIEW", zh: "预览" },
   ready: { en: "Ready", zh: "就绪" },
   eventsLoaded: { en: "Events loaded", zh: "活动已加载" },
   ticketsLoaded: { en: "Tickets loaded", zh: "门票已加载" },
+  ticketsPartial: {
+    en: "Verified {verified} of {total} wallet passes; the bounded scan could not prove the full inventory.",
+    zh: "已核验钱包中的 {verified}/{total} 张通行证；受限扫描尚无法证明完整票夹。",
+  },
+  walletPassesVerified: { en: "Wallet passes verified on-chain", zh: "钱包通行证已完成链上核验" },
+  walletPassesLoading: { en: "Verifying wallet passes", zh: "正在核验钱包通行证" },
+  walletPassesConnect: { en: "Connect wallet to verify passes", zh: "连接钱包后核验通行证" },
+  walletPassesUnavailable: { en: "Wallet pass verification unavailable", zh: "钱包通行证暂时无法核验" },
+  walletPassesUnavailableHint: {
+    en: "No inventory total is claimed until the contract reads succeed. Retry after checking the active network and RPC.",
+    zh: "在合约读取成功前不会声称票夹总数。请确认当前网络与 RPC 后重试。",
+  },
+  walletPassesPartialTitle: { en: "Inventory verification is partial", zh: "票夹仅完成部分核验" },
+  walletPassesPartial: {
+    en: "{verified} of {total} passes are individually verified and shown.",
+    zh: "已逐张核验并显示 {verified}/{total} 张通行证。",
+  },
   workflow: { en: "Ticket workflow", zh: "门票工作流" },
   flowCreate: { en: "Create event", zh: "创建活动" },
   flowIssue: { en: "Issue attendee ticket", zh: "签发参与者门票" },
@@ -296,6 +345,34 @@ const appMessages = {
   doorScanner: { en: "Door scanner", zh: "入口扫码器" },
   scannerSlotLabel: { en: "Token scanner slot", zh: "Token 扫码槽" },
   gateQueueLabel: { en: "Ready passes", zh: "待核验通行证" },
+  gateQueueLoaded: { en: "Gate queue loaded", zh: "入口队列已加载" },
+  gateQueueVerified: {
+    en: "{count} issued passes verified",
+    zh: "已核验 {count} 张已签发通行证",
+  },
+  gateQueuePartial: {
+    en: "Showing {shown} of {total}; scan a token to verify any pass not listed.",
+    zh: "当前显示 {shown}/{total} 张；未列出的通行证可扫描 Token 单独核验。",
+  },
+  refreshingGateQueue: { en: "Refreshing gate queue", zh: "正在刷新入口队列" },
+  gateQueueLoadingHint: {
+    en: "Reading the selected event's issued token records.",
+    zh: "正在读取所选活动已签发的 Token 记录。",
+  },
+  gateQueueEmpty: { en: "No issued passes in this gate queue", zh: "此入口队列暂无已签发通行证" },
+  gateQueueEmptyHint: {
+    en: "Issue the first guest pass, or paste a token ID from a different event to verify it directly.",
+    zh: "先签发第一张宾客通行证，或粘贴其他活动的 Token ID 直接核验。",
+  },
+  gateQueueUnavailable: { en: "Gate queue is unavailable", zh: "入口队列暂时不可用" },
+  gateQueueUnavailableHint: {
+    en: "No issued-pass total is claimed. Retry the queue or verify one token directly in the scanner.",
+    zh: "当前不会声称已签发通行证总数。请重试队列，或在扫码器中直接核验单个 Token。",
+  },
+  gateQueueSelectOwnedEvent: {
+    en: "Select one of your organizer events to load its issued passes.",
+    zh: "请选择由当前钱包主办的活动，以加载其已签发通行证。",
+  },
   evidence: { en: "Request and result evidence", zh: "请求与结果证据" },
   evidenceShort: { en: "Evidence", zh: "证据" },
   latestRequest: { en: "Latest Request", zh: "最新请求" },
@@ -306,12 +383,132 @@ const appMessages = {
   },
   payloadEmpty: { en: "No action submitted yet", zh: "尚未提交操作" },
   requestEmpty: {
-    en: "Create an event, issue a ticket, or check in a token to inspect the exact OS service request.",
-    zh: "创建活动、签发门票或核验 Token 后，可查看准确的 OS 服务请求。",
+    en: "Create an event, issue a ticket, check in a token, or transfer a pass to inspect the exact contract request.",
+    zh: "创建活动、签发门票、核验 Token 或转赠通行证后，可查看准确的合约请求。",
   },
   resultEmpty: {
-    en: "The latest OS service response or wallet intent will appear here.",
-    zh: "最新 OS 服务响应或钱包意图会显示在这里。",
+    en: "Only a matching on-chain event and authoritative readback are reported as verified here.",
+    zh: "只有匹配的链上事件与权威状态回读都通过后，才会在这里标记为已核验。",
+  },
+  connectWalletHint: {
+    en: "Connect a Neo N3 wallet to verify the network, contract, and your pass inventory.",
+    zh: "连接 Neo N3 钱包后核验网络、合约与您的通行证票夹。",
+  },
+  runtimeConnectWallet: {
+    en: "Connect wallet to verify the ticket contract",
+    zh: "连接钱包以核验票务合约",
+  },
+  runtimeChecking: {
+    en: "Checking ticket contract",
+    zh: "正在核验票务合约",
+  },
+  runtimeReady: {
+    en: "Verified {network} ticket contract",
+    zh: "已核验 {network} 票务合约",
+  },
+  runtimeUnavailable: {
+    en: "Live ticket contract is unavailable; signing is disabled",
+    zh: "实时票务合约不可用；签名操作已关闭",
+  },
+  runtimeNetworkUnknown: {
+    en: "Wallet network could not be identified; signing is disabled",
+    zh: "无法识别钱包网络；签名操作已关闭",
+  },
+  runtimeBindingMismatch: {
+    en: "The configured contract, bytecode, or ticket ABI does not match this release",
+    zh: "当前合约、字节码或票务 ABI 与本版本不匹配",
+  },
+  retryRuntimeCheck: {
+    en: "Retry contract check",
+    zh: "重试合约核验",
+  },
+  transactionRecoveryUnavailable: {
+    en: "Refresh recovery is unavailable in this browser. No transaction was requested.",
+    zh: "当前浏览器无法提供刷新恢复，因此尚未请求交易签名。",
+  },
+  transactionRecoveryUnavailableAfterBroadcast: {
+    en: "The transaction was broadcast, but refresh-safe recovery could not be saved. Keep this page open and retry status recovery.",
+    zh: "交易已广播，但无法保存刷新恢复记录。请保持页面开启并重试状态恢复。",
+  },
+  transactionRecoveryCleanupUnavailable: {
+    en: "The chain result is verified, but the saved recovery record could not be cleared. Keep it pending and retry cleanup.",
+    zh: "链上结果已核验，但无法清除本地恢复记录。请保留待处理状态并重试清理。",
+  },
+  operationInProgress: {
+    en: "Finish the current wallet or ticket action before starting another.",
+    zh: "请先完成当前钱包或票务操作，再开始新的操作。",
+  },
+  transactionIdInvalid: {
+    en: "The wallet did not return a valid transaction ID, so this action cannot be tracked safely.",
+    zh: "钱包未返回有效交易 ID，因此无法可靠追踪本次操作。",
+  },
+  walletChangedDuringAction: {
+    en: "The connected wallet changed during this action. Its saved transaction was not applied to the new wallet view.",
+    zh: "操作期间连接钱包已切换。原钱包的已保存交易不会应用到新钱包视图。",
+  },
+  transactionFaulted: {
+    en: "The saved transaction faulted on-chain. It was not applied, and the pending action has been cleared.",
+    zh: "已保存交易在链上执行失败，未应用任何结果，并已清除待处理操作。",
+  },
+  transactionPending: {
+    en: "Transaction broadcast; confirmation is still pending",
+    zh: "交易已广播；仍在等待确认",
+  },
+  pendingOperationTitle: {
+    en: "One ticket action still needs confirmation",
+    zh: "有一项票务操作仍待确认",
+  },
+  pendingOperationHint: {
+    en: "The exact transaction is saved. Recover its matching event and contract state before starting another action.",
+    zh: "已保存准确交易。请先恢复其匹配事件与合约状态，再开始下一项操作。",
+  },
+  pendingOperationBlocksAction: {
+    en: "Recover the pending ticket action before starting another transaction",
+    zh: "请先恢复待确认的票务操作，再发起新交易",
+  },
+  recoverPending: {
+    en: "Recover status",
+    zh: "恢复状态",
+  },
+  recoveringPending: {
+    en: "Recovering status",
+    zh: "正在恢复状态",
+  },
+  pendingRecovered: {
+    en: "Transaction event and ticket state recovered",
+    zh: "已恢复交易事件与票务状态",
+  },
+  pendingStillConfirming: {
+    en: "The saved transaction is not fully indexed yet. Keep it pending and retry shortly.",
+    zh: "已保存交易尚未完成索引。请保留待确认状态并稍后重试。",
+  },
+  pendingMismatch: {
+    en: "The observed event does not match the saved ticket action",
+    zh: "观察到的事件与已保存票务操作不匹配",
+  },
+  discoverEvents: {
+    en: "Discover events",
+    zh: "发现活动",
+  },
+  discoveredEventsCount: {
+    en: "{count} discoverable events",
+    zh: "{count} 个可发现活动",
+  },
+  refreshingDiscovery: {
+    en: "Refreshing events",
+    zh: "正在刷新活动",
+  },
+  invitationOnlyTitle: {
+    en: "Organizer-issued passes",
+    zh: "由主办方签发通行证",
+  },
+  invitationOnlyHint: {
+    en: "This deployed contract has no purchase or self-claim method. Browse active events, then receive a pass from its organizer.",
+    zh: "当前部署合约没有购票或自主领取方法。您可浏览活动，并由主办方向钱包签发通行证。",
+  },
+  invitationOnlyShort: {
+    en: "Invitation only",
+    zh: "仅限邀请",
   },
 } as const;
 

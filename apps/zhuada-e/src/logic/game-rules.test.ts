@@ -61,13 +61,25 @@ describe("milestonesFor", () => {
       expect(milestonesFor(specOf(level)).comboHintAt).toBe(4);
     }
   });
+
+  it("refunds a usable space rescue (not a dead clock resource) in untimed mode", () => {
+    // R1: the default untimed mode has no clock, so the add-time milestone must
+    // hand back a rescue the player can actually spend (remove). A test that
+    // lets this silently become `undefined`/`"addTime"` would resurrect the
+    // dead-resource bug for every untimed run.
+    for (let level = 1; level <= TOTAL_LEVELS; level += 1) {
+      expect(milestonesFor(specOf(level)).untimedRefund).toBe("remove");
+    }
+  });
 });
 
 describe("LEVEL_CURVE clock fairness", () => {
   it("never budgets below the tune.mjs recommendation (items × 1.5s + 12s)", () => {
     for (const spec of LEVEL_CURVE) {
       const items = spec.kinds * spec.perKind * 3;
-      const recMs = Math.round((items * 1.5 + 12) / 5) * 5 * 1000;
+      const rawFloorMs = (items * 1.5 + 12) * 1000;
+      const recMs = Math.ceil((items * 1.5 + 12) / 5) * 5 * 1000;
+      expect(spec.timeMs).toBeGreaterThanOrEqual(rawFloorMs);
       expect(spec.timeMs).toBeGreaterThanOrEqual(recMs);
     }
   });

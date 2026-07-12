@@ -24,4 +24,5 @@ export interface TicketItem {
   issuedTime: number;
   used: boolean;
   usedTime: number;
+  active: boolean;
 }

@@ -358,6 +358,37 @@ describe("OperationPanel", () => {
     );
   });
 
+  it("shows the required control first instead of leading with a missing-field summary card", () => {
+    render(
+      <OperationPanel
+        operations={[
+          {
+            name: "Prepare Transfer",
+            method: "prepareTransfer",
+            params: [
+              {
+                name: "recipient",
+                label: "Recipient",
+                type: "string" as const,
+                required: true,
+              },
+            ],
+          },
+        ]}
+        onInvoke={jest.fn()}
+        showTitle={false}
+      />,
+    );
+
+    expect(screen.queryByTestId("operation-param-summary")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Recipient"), {
+      target: { value: "NRecipientFixture" },
+    });
+    expect(screen.getByTestId("operation-param-summary")).toHaveTextContent(
+      "NRecipientFixture",
+    );
+  });
+
   it("renders boolean params as switch cards instead of raw checkbox fields", async () => {
     const onInvoke = jest.fn();
     const { container } = render(

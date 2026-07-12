@@ -20,26 +20,34 @@ defineMiniApp({
       app,
       bus: app.bus,
       t: ctx.t,
+      launchNetwork: ctx.launchContext.network,
     });
 
     ticket.address.set(app.chain.address.get() ?? "");
 
     app.actions.register("connectWallet", () => ticket.connectWallet(), {
       successKey: "walletConnected",
-      errorKey: "walletNotConnected",
     });
     app.actions.register("refreshEvents", () => ticket.refreshEvents(), {
       successKey: "eventsLoaded",
-      errorKey: "loadFailed",
     });
     app.actions.register("refreshTickets", () => ticket.refreshTickets(), {
       successKey: "ticketsLoaded",
-      errorKey: "loadFailed",
+    });
+    app.actions.register("refreshDiscovery", () => ticket.refreshDiscovery(), {
+      successKey: "eventsLoaded",
+    });
+    app.actions.register("refreshGateTickets", (eventId: unknown) =>
+      ticket.refreshGateTickets(String(eventId || ticket.selectedEventId.get())), {
+      successKey: "gateQueueLoaded",
+    });
+    app.actions.register("recoverPending", () => ticket.recoverPending(), {
+      successKey: "pendingRecovered",
     });
     app.actions.register(
       "createEvent",
       (input: unknown) => ticket.createEvent(input),
-      { successKey: "eventCreated", errorKey: "contractMissing" },
+      { successKey: "eventCreated" },
     );
     app.actions.register("selectEvent", async (eventId: unknown) => {
       ticket.selectEvent(String(eventId || ""));
@@ -50,7 +58,7 @@ defineMiniApp({
     app.actions.register(
       "issueTicket",
       (input: unknown) => ticket.issueTicket(input),
-      { successKey: "ticketIssued", errorKey: "contractMissing" },
+      { successKey: "ticketIssued" },
     );
     app.actions.register("toggleEvent", async (event: unknown) =>
       app.notify.guard(async () => {
@@ -60,12 +68,12 @@ defineMiniApp({
     app.actions.register(
       "lookupTicket",
       (input: unknown) => ticket.lookupTicket(input),
-      { successKey: "ticketFound", errorKey: "ticketNotFound" },
+      { successKey: "ticketFound" },
     );
     app.actions.register(
       "checkInTicket",
       (input: unknown) => ticket.checkInTicket(input),
-      { successKey: "checkinSuccess", errorKey: "contractMissing" },
+      { successKey: "checkinSuccess" },
     );
     app.actions.register("startTransfer", async (item: unknown) => {
       ticket.startTransfer(item);
@@ -81,13 +89,15 @@ defineMiniApp({
         ticket.transferTicket(
           input as { tokenId?: string; recipient?: string } | undefined,
         ),
-      { successKey: "transferSuccess", errorKey: "contractMissing" },
+      { successKey: "transferSuccess" },
     );
 
     return {
       state: refsToObservables({
         events: ticket.events,
+        discoveredEvents: ticket.discoveredEvents,
         tickets: ticket.tickets,
+        gateTickets: ticket.gateTickets,
         address: ticket.address,
         selectedEventId: ticket.selectedEventId,
         selectedEvent: ticket.selectedEvent,
@@ -96,6 +106,14 @@ defineMiniApp({
         latestResult: ticket.latestResult,
         workflowStatus: ticket.workflowStatus,
         lastError: ticket.lastError,
+        ticketsVerification: ticket.ticketsVerification,
+        ticketsExpectedCount: ticket.ticketsExpectedCount,
+        gateTicketsVerification: ticket.gateTicketsVerification,
+        gateTicketsExpectedCount: ticket.gateTicketsExpectedCount,
+        runtimeStatus: ticket.runtimeStatus,
+        runtimeMessage: ticket.runtimeMessage,
+        activeNetwork: ticket.activeNetwork,
+        pendingOperation: ticket.pendingOperation,
         eventName: ticket.eventName,
         eventVenue: ticket.eventVenue,
         eventStart: ticket.eventStart,
@@ -115,8 +133,12 @@ defineMiniApp({
         canCheckInTicket: ticket.canCheckInTicket,
         canTransferTicket: ticket.canTransferTicket,
         isLoading: ticket.isLoading,
+        isConnecting: ticket.isConnecting,
         isRefreshing: ticket.isRefreshing,
         isRefreshingTickets: ticket.isRefreshingTickets,
+        isRefreshingGateTickets: ticket.isRefreshingGateTickets,
+        isRefreshingDiscovery: ticket.isRefreshingDiscovery,
+        isRecovering: ticket.isRecovering,
         isCreating: ticket.isCreating,
         isIssuing: ticket.isIssuing,
         isCheckingIn: ticket.isCheckingIn,

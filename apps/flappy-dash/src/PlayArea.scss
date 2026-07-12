@@ -93,7 +93,106 @@ $game-accent: #00af92;
   flex: 0 0 auto;
 }
 
+/* Semantic hit targets mirror the Phaser route cards and primary flight
+   action. Pointer/touch remains on the actual sprites; keyboard focus reveals
+   a compact high-contrast label instead of adding a second form interface. */
+.flappy-a11y-layer {
+  position: absolute;
+  inset: 0 0 66px;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.flappy-a11y-routes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flappy-a11y-hit {
+  position: absolute;
+  z-index: 1;
+  min-height: 44px;
+  border: 2px solid transparent;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  pointer-events: none;
+}
+
+.flappy-a11y-hit > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 253, 248, 0.98);
+  color: #173247;
+  font-size: 0.75rem;
+  font-weight: 760;
+  line-height: 1.2;
+  opacity: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 7px 18px rgba(23, 50, 71, 0.18);
+}
+
+.flappy-a11y-hit:focus-visible {
+  z-index: 4;
+  border-color: #075f55;
+  border-radius: 16px;
+  outline: 3px solid rgba(255, 247, 217, 0.98);
+  outline-offset: 2px;
+  background: rgba(255, 253, 248, 0.18);
+}
+
+.flappy-a11y-hit:focus-visible > span {
+  opacity: 1;
+}
+
+.flappy-a11y-hit:disabled {
+  cursor: default;
+}
+
+.flappy-a11y-route {
+  top: 62%;
+  width: 28%;
+  height: 12%;
+}
+
+.flappy-a11y-route[data-index="0"] { left: 6%; }
+.flappy-a11y-route[data-index="1"] { left: 36%; }
+.flappy-a11y-route[data-index="2"] { left: 66%; }
+
+.flappy-a11y-start {
+  left: 22%;
+  top: 76%;
+  width: 56%;
+  height: 9%;
+}
+
+.flappy-a11y-flight {
+  left: 6%;
+  top: 20%;
+  width: 88%;
+  height: 60%;
+}
+
+.flappy-a11y-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .flappy-stage-shell {
+  box-sizing: border-box;
   position: relative;
   width: 100%;
   height: 100%;
@@ -109,6 +208,16 @@ $game-accent: #00af92;
   background:
     linear-gradient(180deg, rgba(240, 251, 255, 0.96), rgba(255, 250, 238, 0.9)),
     #f1fbff;
+}
+
+.flappy-ingame-drawer__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 17;
+  border: 0;
+  padding: 0;
+  background: rgba(23, 50, 71, 0.12);
+  cursor: default;
 }
 
 .flappy-stage-hud {
@@ -204,10 +313,30 @@ $game-accent: #00af92;
 
 .flappy-ingame-drawer__head {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
   align-items: start;
   margin-bottom: 12px;
+}
+
+.flappy-ingame-drawer__close {
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(77, 201, 246, 0.22);
+  border-radius: 999px;
+  padding: 0;
+  background: #ffffff;
+  color: #173247;
+  cursor: pointer;
+}
+
+.flappy-ingame-drawer__close:hover,
+.flappy-ingame-drawer__close:focus-visible {
+  border-color: rgba(0, 175, 146, 0.5);
+  outline: 2px solid rgba(0, 175, 146, 0.22);
+  outline-offset: 2px;
 }
 
 .flappy-ingame-drawer__head svg {
@@ -265,7 +394,7 @@ $game-accent: #00af92;
 }
 
 .flappy-ingame-drawer__actions button {
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1294,6 +1423,10 @@ $game-accent: #00af92;
 
   .flappy-overlay {
   }
+
+  .flappy-stage-hud__drawer svg {
+    transition: none;
+  }
 }
 
 // ─── Desktop / wide-viewport layout ──────────────────────────────────────────
@@ -1383,6 +1516,7 @@ $game-accent: #00af92;
     min-height: calc(100dvh - 14px);
     justify-content: center;
     gap: 8px;
+    padding: 8px 8px 70px;
     border-radius: 18px;
   }
 

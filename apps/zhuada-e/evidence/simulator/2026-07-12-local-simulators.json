@@ -1,0 +1,41 @@
+{
+  "schema": "zhuada-e-simulator-qa-v1",
+  "appVersion": "3.1.0",
+  "devUrl": "http://localhost:5174/?simQa=1",
+  "distDigest": "c9887f23c297637117dc96d8b2ea62926c951cbac0f1b6f016efbce2ef65ed81",
+  "verifiedAt": "2026-07-12T02:10:00+08:00",
+  "themesCovered": [
+    "fresh-market",
+    "farm-kitchen",
+    "night-market"
+  ],
+  "ios": {
+    "simulator": "iPhone 17 Pro",
+    "runtime": "iOS 26.5 Safari",
+    "screenshot": "/tmp/zhuada-ios-game-autostart.png",
+    "gameVisible": true,
+    "topViewVisible": true,
+    "trayVisible": true,
+    "singleTrayLayout": true
+  },
+  "android": {
+    "emulator": "onegate_api36",
+    "runtime": "Android Emulator Chrome 133",
+    "url": "http://10.0.2.2:5174/?simQa=1",
+    "networkBridge": "emulator-host-loopback",
+    "screenshotAfterPick": "/tmp/zhuada-android-after-pick-1.png",
+    "gameVisible": true,
+    "topViewVisible": true,
+    "trayVisible": true,
+    "singleTrayLayout": true,
+    "webglCanvasPresent": true,
+    "androidFallbackActive": true,
+    "fallbackReason": "Android emulator Chrome exposed a live WebGL canvas but rendered it blank on the host GPU stack; the real-asset Android fallback pile was active and clickable.",
+    "fallbackItemsAfterPick": 17,
+    "pickProof": {
+      "trayCountBefore": 0,
+      "trayCountAfter": 1,
+      "bodyTextAfterPick": "6 tray slots left. Score: 0. Tray: 1/7."
+    }
+  }
+}

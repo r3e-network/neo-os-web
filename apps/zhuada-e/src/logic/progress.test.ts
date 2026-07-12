@@ -1,21 +1,22 @@
-/**
- * progress.test.ts — meta-progression regression tests (G4/G5 groundwork).
- *
- * Covers the v1→v2 localStorage migration, per-level best-score accounting,
- * scene-final goose unlocks, all-clear detection, and scene/curve invariants
- * the level-select UI and the 3D theme switcher both rely on.
- */
+/** Meta-progression, migration, and scene-catalog regression tests. */
 
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_PROGRESS,
+  PROGRESS_SCHEMA_VERSION,
   bestOverall,
   clearedLevels,
+  createEmptyProgress,
   parseProgress,
+  parseProgressResult,
+  progressAfterAttempt,
+  progressAfterFailure,
   progressAfterWin,
+  progressWithLastPlayedLevel,
+  progressWithLastTheme,
   serializeProgress,
 } from "./progress";
-import { LEVEL_CURVE, TOTAL_LEVELS, specOf } from "./game-rules";
+import { LEVEL_CURVE, TOTAL_LEVELS, randomizedSpecOf, specOf } from "./game-rules";
 import { SCENES, isSceneFinalLevel, sceneIndexOfLevel, sceneOfLevel } from "./scenes";
 import { ITEM_DEFS, generateItems, makeRng } from "./engine-zhuada";
 
@@ -24,14 +25,53 @@ describe("progress schema + migration", () => {
     expect(parseProgress(null)).toEqual(EMPTY_PROGRESS);
     expect(parseProgress("not json")).toEqual(EMPTY_PROGRESS);
     expect(parseProgress('"a string"')).toEqual(EMPTY_PROGRESS);
+    expect(parseProgressResult("{}").status).toBe("invalid");
   });
 
-  it("migrates the legacy v1 {level} shape, keeping the unlocked level", () => {
-    const p = parseProgress(JSON.stringify({ level: 7 }));
-    expect(p).toEqual({ level: 7, wins: 0, best: {}, geese: [] });
+  it("explicitly migrates legacy v1 while keeping its unlocked/continue level", () => {
+    const result = parseProgressResult(JSON.stringify({ level: 7 }));
+    expect(result.status).toBe("migrated");
+    expect(result.sourceVersion).toBe(1);
+    expect(result.progress).toMatchObject({
+      v: PROGRESS_SCHEMA_VERSION,
+      level: 7,
+      highestUnlockedLevel: 7,
+      lastPlayedLevel: 7,
+      lastTheme: "fresh-market",
+      wins: 0,
+      levels: {},
+      best: {},
+      geese: [],
+    });
   });
 
-  it("clamps out-of-range levels and drops invalid best/geese entries", () => {
+  it("migrates v2 without guessing whether its mixed best was relaxed or timed", () => {
+    const result = parseProgressResult(
+      JSON.stringify({
+        v: 2,
+        level: 5,
+        wins: 9,
+        best: { 1: 40, 4: 210 },
+        geese: [0, 1],
+      }),
+    );
+    const p = result.progress;
+    expect(result.status).toBe("migrated");
+    expect(result.sourceVersion).toBe(2);
+    expect(p.levels[1]).toEqual({
+      attempts: 1,
+      failures: 0,
+      clears: 1,
+      best: {},
+      legacyBest: 40,
+    });
+    expect(p.levels[4]?.legacyBest).toBe(210);
+    expect(p.wins).toBe(9);
+    expect(p.best).toEqual({ 1: 40, 4: 210 });
+    expect(p.geese).toEqual([0, 1]);
+  });
+
+  it("clamps v2 values and drops invalid best/geese entries", () => {
     const p = parseProgress(
       JSON.stringify({
         v: 2,
@@ -42,34 +82,113 @@ describe("progress schema + migration", () => {
       }),
     );
     expect(p.level).toBe(TOTAL_LEVELS);
-    expect(p.wins).toBe(0);
+    // The valid legacy best proves at least one clear, repairing bad v2 wins.
+    expect(p.wins).toBe(1);
     expect(p.best).toEqual({ 2: 120 });
     expect(p.geese).toEqual([0, 5]);
   });
 
-  it("round-trips through serializeProgress", () => {
-    const p = { level: 5, wins: 9, best: { 1: 40, 4: 210 }, geese: [0, 1] };
+  it("round-trips canonical v3 progress and compatibility aliases", () => {
+    let p = progressAfterAttempt(createEmptyProgress(), 1, "farm-kitchen");
+    p = progressAfterWin(p, 1, 120, "relaxed").next;
+    p = progressAfterAttempt(p, 1, "night-market");
+    p = progressAfterWin(p, 1, 180, "timed").next;
     expect(parseProgress(serializeProgress(p))).toEqual(p);
+    expect(JSON.parse(serializeProgress(p))).toMatchObject({
+      v: 3,
+      level: 2,
+      highestUnlockedLevel: 2,
+      lastPlayedLevel: 1,
+      lastTheme: "night-market",
+      wins: 2,
+      best: { 1: 180 },
+    });
+  });
+
+  it("normalizes unknown future data for display but makes it unserializable", () => {
+    const result = parseProgressResult(
+      JSON.stringify({
+        v: 8,
+        highestUnlockedLevel: 6,
+        lastPlayedLevel: 4,
+        lastTheme: "night-market",
+        wins: 12,
+        levels: {
+          4: { attempts: 3, failures: 1, clears: 2, best: { timed: 500 } },
+        },
+        geese: [0],
+      }),
+    );
+    expect(result.status).toBe("future-version");
+    expect(result.readOnly).toBe(true);
+    expect(result.progress).toMatchObject({
+      level: 6,
+      lastPlayedLevel: 4,
+      lastTheme: "night-market",
+      readOnly: true,
+      sourceVersion: 8,
+    });
+    expect(() => serializeProgress(result.progress)).toThrow(/schema v8/i);
+    expect(progressAfterWin(result.progress, 4, 700, "timed").next.readOnly).toBe(
+      true,
+    );
   });
 });
 
-describe("progressAfterWin", () => {
+describe("pure progress transitions", () => {
+  it("records attempts, failures, continue level, and selected theme", () => {
+    const attempted = progressAfterAttempt(
+      createEmptyProgress(),
+      1,
+      "farm-kitchen",
+    );
+    expect(attempted.levels[1]).toMatchObject({ attempts: 1, failures: 0, clears: 0 });
+    expect(attempted.lastPlayedLevel).toBe(1);
+    expect(attempted.lastTheme).toBe("farm-kitchen");
+
+    const failed = progressAfterFailure(attempted, 1, "night-market");
+    expect(failed.levels[1]).toMatchObject({ attempts: 1, failures: 1, clears: 0 });
+    expect(failed.lastTheme).toBe("night-market");
+
+    // A missing start hook is repaired rather than producing failures > attempts.
+    const repaired = progressAfterFailure(createEmptyProgress(), 1);
+    expect(repaired.levels[1]).toMatchObject({ attempts: 1, failures: 1 });
+  });
+
   it("unlocks the next level, counts the win, and records the best score", () => {
     const { next, unlockedGoose, allClear } = progressAfterWin(EMPTY_PROGRESS, 1, 84);
     expect(next.level).toBe(2);
     expect(next.wins).toBe(1);
     expect(next.best[1]).toBe(84);
+    expect(next.levels[1]).toMatchObject({
+      attempts: 1,
+      failures: 0,
+      clears: 1,
+      best: { relaxed: 84 },
+    });
     expect(unlockedGoose).toBe(-1); // L1 is not the garden's final level
     expect(allClear).toBe(false);
   });
 
-  it("keeps the higher best score on replays and never regresses unlocks", () => {
+  it("separates mode bests, keeps higher scores, and never regresses unlocks", () => {
     const first = progressAfterWin(EMPTY_PROGRESS, 1, 120).next;
-    const withUnlocks = { ...first, level: 9 };
-    const replay = progressAfterWin(withUnlocks, 1, 60);
-    expect(replay.next.best[1]).toBe(120);
-    expect(replay.next.level).toBe(9);
-    expect(replay.next.wins).toBe(2);
+    const withUnlocks = { ...first, level: 9, highestUnlockedLevel: 9 };
+    const relaxedReplay = progressAfterWin(withUnlocks, 1, 60, "relaxed").next;
+    const timedReplay = progressAfterWin(relaxedReplay, 1, 95, "timed").next;
+    expect(timedReplay.levels[1]?.best).toEqual({ relaxed: 120, timed: 95 });
+    expect(timedReplay.best[1]).toBe(120);
+    expect(timedReplay.level).toBe(9);
+    expect(timedReplay.wins).toBe(3);
+  });
+
+  it("clamps continue targets to unlocked levels and stores theme independently", () => {
+    let p = progressWithLastPlayedLevel(createEmptyProgress(), TOTAL_LEVELS);
+    expect(p.lastPlayedLevel).toBe(1);
+    p = progressAfterWin(p, 1, 50).next;
+    p = progressWithLastPlayedLevel(p, 2);
+    p = progressWithLastTheme(p, "night-market");
+    expect(p.lastPlayedLevel).toBe(2);
+    expect(p.lastTheme).toBe("night-market");
   });
 
   it("unlocks the scene goose exactly once, on the scene's final level", () => {
@@ -155,5 +274,18 @@ describe("scene catalog invariants (G4/G5)", () => {
       );
       for (const c of counts.values()) expect(c % 3).toBe(0);
     }
+  });
+
+  it("randomizes the runtime kind subset per seed while staying reproducible and valid", () => {
+    const first = randomizedSpecOf(3, makeRng(101));
+    const replay = randomizedSpecOf(3, makeRng(101));
+    const another = randomizedSpecOf(3, makeRng(202));
+    const sceneKinds = new Set(sceneOfLevel(3).kindPool);
+
+    expect(first.kindPool).toEqual(replay.kindPool);
+    expect(first.kindPool).not.toEqual(another.kindPool);
+    expect(first.kindPool).toHaveLength(first.kinds);
+    expect(new Set(first.kindPool).size).toBe(first.kinds);
+    expect(first.kindPool!.every((kind) => sceneKinds.has(kind))).toBe(true);
   });
 });

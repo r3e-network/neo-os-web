@@ -3,26 +3,26 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   appEyebrow: { en: "Sudoku Arena", zh: "数独竞技场" },
   appSubtitle: {
-    en: "Solve the sealed board, protect your reward, and settle the win on Neo.",
-    zh: "解开密封盘面，守住奖励，并在 Neo 上完成结算。",
+    en: "Solve a warm, resource-rich Sudoku locally with candidates, hints, pause, and recovery.",
+    zh: "在温暖明亮的资源化棋盘中本地解题，支持候选数、提示、暂停和恢复。",
   },
   playTab: { en: "Play", zh: "对局" },
   ranksTab: { en: "Ranks", zh: "排行" },
   lobbyTitle: { en: "Open the sealed board", zh: "开启密封棋局" },
-  playingTitle: { en: "{difficulty} board in play", zh: "{difficulty}盘面进行中" },
+  playingTitle: { en: "{difficulty} board in play", zh: "{difficulty}进行中" },
   statusWonTitle: { en: "Puzzle solved!", zh: "解题成功！" },
   networkBadge: { en: "Neo N3", zh: "Neo N3" },
   rankBadge: { en: "Rank #{rank}", zh: "第 {rank} 名" },
-  rankLabel: { en: "Global rank", zh: "全网排名" },
-  sidebarTitle: { en: "My arena record", zh: "我的战绩" },
-  creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
+  rankLabel: { en: "Practice rank", zh: "练习排名" },
+  sidebarTitle: { en: "My practice record", zh: "我的练习战绩" },
+  creditLabel: { en: "Historical credit", zh: "历史可提取余额" },
 
   difficultyTitle: { en: "Board route", zh: "棋局路线" },
   difficulty_easy: { en: "Warm-up Grid", zh: "热身棋盘" },
   difficulty_medium: { en: "Ranked Grid", zh: "排位棋盘" },
   difficulty_hard: { en: "Master Grid", zh: "大师棋盘" },
   routeEyebrow: { en: "sealed puzzle route", zh: "密封数独路线" },
-  routeSummary: { en: "Selected board reward, entry, and clock", zh: "当前棋局的奖励、报名费和时间" },
+  routeSummary: { en: "Current board difficulty, clock, and tools", zh: "当前棋局的难度、时间和工具" },
   routeObjective_easy: {
     en: "A fast board with generous clues. Good for warming up, checking the enclave deal, and banking a clean win.",
     zh: "线索充足的快节奏棋局。适合热身、验证飞地发牌，并拿下一局干净的胜利。",
@@ -44,8 +44,8 @@ const appMessages = {
   startAction: { en: "Open board", zh: "开启棋盘" },
   startHint: { en: "Entry {amount} GAS — deposited with this transaction", zh: "报名费 {amount} GAS——随本交易一并存入" },
   startDescription: {
-    en: "Pay the entry and the Morpheus enclave deals a sealed puzzle — only its hash commitment goes on-chain. Easy pays 0.1 GAS, Medium 0.5, Hard 1.",
-    zh: "支付报名费后，Morpheus 飞地派发密封谜题——链上只记录哈希承诺。简单赢 0.1 GAS，中等 0.5，困难 1。",
+    en: "Choose a local route and open a fresh, uniquely solvable board.",
+    zh: "选择本地路线，开启一张全新的唯一解棋盘。",
   },
   submitAction: { en: "Submit solution", zh: "提交答案" },
   submitHint: { en: "Board complete — submit before the deadline", zh: "盘面已完成——在截止前提交" },
@@ -108,21 +108,23 @@ const appMessages = {
     zh: "报名费留在奖池中。新的一局，新的机会。",
   },
 
-  scoreReward: { en: "Reward at stake", zh: "本局奖励" },
+  scoreReward: { en: "Latest score", zh: "最近得分" },
   rewardMetric: { en: "Reward", zh: "奖励" },
   scoreTime: { en: "Time left", zh: "剩余时间" },
   timeMetric: { en: "Time", zh: "时间" },
   scoreUndos: { en: "Undos left", zh: "剩余撤回" },
   undosMetric: { en: "Undos", zh: "撤回" },
-  scoreWon: { en: "Total won", zh: "累计赢取" },
+  hintsMetric: { en: "Hints", zh: "提示" },
+  scoreWon: { en: "Best score", zh: "最佳分数" },
+  solvesLabel: { en: "Solved boards", zh: "完成棋局" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
   drawerTitleShort: { en: "Rules", zh: "规则" },
   leaderboardIntro: {
-    en: "The global ranking is rebuilt from on-chain Solved events — every payout is independently verifiable.",
-    zh: "全网排行由链上 Solved 事件重建——每笔奖励都可独立验证。",
+    en: "Practice scores are stored off-chain so local players can compare clean, fast solves without putting funds at risk.",
+    zh: "练习成绩离线保存，让本地玩家在无需承担资金风险的前提下比较解题速度与完整度。",
   },
-  leaderboardTitle: { en: "Global leaderboard", zh: "全网积分榜" },
+  leaderboardTitle: { en: "Practice leaderboard", zh: "练习积分榜" },
   leaderboardEmpty: {
     en: "No solves recorded yet — the first name on this board could be yours.",
     zh: "暂无通关记录——榜单第一个名字可能就是你。",
@@ -136,21 +138,21 @@ const appMessages = {
 
   rulesTitle: { en: "How it works", zh: "玩法说明" },
   rulesCopy: {
-    en: "1. Pick a difficulty and pay the entry (Easy 0.02, Medium 0.10, Hard 0.20 GAS). 2. The Morpheus enclave deals a puzzle with a verified unique solution and binds its hash commitment on-chain. 3. Solve it before the deadline (15/25/40 min). Placed digits are FINAL — pencil notes are free; undos are recorded by the enclave and each burns 30% of the base reward, three max. 4. The enclave verifies your board, signs the settlement, and the contract pays 0.1/0.5/1 GAS (minus undo penalties) after checking the signature and the commitment. A short anti-bot floor applies.",
-    zh: "1. 选择难度并支付报名费（简单 0.02、中等 0.10、困难 0.20 GAS）。2. Morpheus 飞地派发经验证唯一解的数独，并将其哈希承诺绑定上链。3. 在截止时间内完成（15/25/40 分钟）。落子即锁定——铅笔笔记免费；撤回由飞地记录，每次扣除基础奖励的 30%，最多三次。4. 飞地验证盘面并签署结算，合约核验签名与承诺后按 0.1/0.5/1 GAS（扣除撤回罚金）入账。提交前有一段防脚本的最短用时。",
+    en: "Choose Easy, Medium, or Hard and solve the uniquely generated local board before its clock ends. Select a cell, place or correct 1–9, erase freely, or switch on pencil candidates. Conflicts are highlighted immediately; hints, pause, undo, and automatic refresh recovery keep the run friendly. Scores are stored off-chain.",
+    zh: "选择简单、中等或困难路线，在计时结束前完成唯一生成的本地棋盘。选择格子后可填入或改正 1–9、自由擦除，也可开启候选笔记；冲突会立即高亮，并提供提示、暂停、撤回和刷新自动恢复。成绩离线保存。",
   },
   rulesShort: {
     en: "Fill the sealed board, use pencil notes freely, and submit before the deadline.",
     zh: "完成密封棋盘，可自由使用笔记，并在截止前提交。",
   },
-  fairnessTitle: { en: "Provably fair deals", zh: "可验证公平发牌" },
+  fairnessTitle: { en: "Fresh unique puzzles", zh: "全新唯一解谜题" },
   fairnessCopy: {
-    en: "The puzzle is generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, so the solution cannot be extracted or scripted outside the app. At settlement the enclave signs the result (problem hash, answer hash, time, undos) and the contract verifies both the signature and that the problem hash equals the original commitment before paying. The clue layout you see is all any client ever receives.",
-    zh: "谜题由 Morpheus TEE 用每局独立的密钥在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此答案无法被提取、也无法在平台之外用脚本求解。结算时飞地对结果（问题哈希、答案哈希、用时、撤回次数）签名，合约先核验签名、再核验问题哈希与开局承诺一致后才发奖。任何客户端能看到的只有题面线索。",
+    en: "Local play uses Web Crypto to derive a fresh puzzle from a verified unique-solution mask family. No wallet, chain write, oracle, or reward call occurs. Paid entry stays unavailable until its complete live settlement path is certified.",
+    zh: "本地玩法使用 Web Crypto，从经过唯一解验证的模板族生成新棋盘，不会连接钱包，也不会发起链上写入、预言机或奖励调用。付费报名将在完整线上结算链路验收后开放。",
   },
   fairnessShort: {
-    en: "The puzzle stays inside the Morpheus TEE until signed settlement.",
-    zh: "谜题保留在 Morpheus TEE 内，直到签名结算。",
+    en: "Fresh local puzzle, unique solution, and no chain write.",
+    zh: "本地生成新谜题、保证唯一解且无链上写入。",
   },
   commitmentLine: {
     en: "Game #{gameId} · sealed commitment {commitment}",
@@ -177,8 +179,33 @@ const appMessages = {
     zh: "奖池需要补充",
   },
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
+  statusSessionMismatch: {
+    en: "The sealed session does not match this on-chain game. Refresh to recover safely.",
+    zh: "密封会话与链上对局不匹配。请刷新并安全恢复。",
+  },
+  statusStartPending: {
+    en: "The start transaction is pending confirmation. Check the game before trying again.",
+    zh: "开局交易仍待确认。请先检查对局，再尝试开局。",
+  },
+  statusRecovered: { en: "Game recovered from chain state", zh: "已从链上状态恢复对局" },
+  statusSettlementPending: {
+    en: "Settlement is pending. Check the chain state before starting another board.",
+    zh: "结算仍在处理中。开始新棋局前请先检查链上状态。",
+  },
+  settlementPendingTitle: { en: "Settlement pending", zh: "结算处理中" },
+  recoverAction: { en: "Check settlement", zh: "检查结算" },
+  releaseNotReady: {
+    en: "This game is still inside the contract recovery window.",
+    zh: "本局仍处于合约恢复窗口内。",
+  },
+  walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
+  connectWalletFirst: { en: "Connect your wallet first.", zh: "请先连接钱包。" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+  withdrawPending: {
+    en: "Withdrawal is still pending. Check your credit before trying again.",
+    zh: "提取仍在确认中。再次操作前请先检查可提余额。",
+  },
 
   // ── Guest (free / local) mode ─────────────────────────────────────────────
   // Guest is a plain local puzzle: no token, no pool, no reward at stake. These
@@ -204,10 +231,20 @@ const appMessages = {
     zh: "本地谜题——无链上操作，无需下注。",
   },
   guestRulesShort: {
-    en: "Fill the grid, use pencil notes freely, and beat the clock. Scores save off-chain.",
-    zh: "填满棋盘，可自由使用笔记，并在计时结束前完成。成绩离线保存。",
+    en: "Correct or erase freely, use pencil notes, and beat the clock. The live board recovers after refresh.",
+    zh: "可自由改正或擦除数字、使用候选笔记，并在计时结束前完成；刷新后会恢复当前棋局。",
   },
   guestUndoUsed: { en: "Move taken back", zh: "已撤回一步" },
+  guestHintUsed: { en: "Correct digit revealed · {left} hints left", zh: "已揭示正确数字 · 剩 {left} 次提示" },
+  guestHintSelectCell: { en: "Select an empty cell for a hint", zh: "请选择空格后使用提示" },
+  guestHintNoneLeft: { en: "No hints left on this board", zh: "本局提示次数已用完" },
+  guestPaused: { en: "Puzzle paused", zh: "棋局已暂停" },
+  guestResumed: { en: "Puzzle resumed", zh: "棋局已继续" },
+  guestRestored: { en: "Your local puzzle was restored", zh: "已恢复你的本地棋局" },
+  guestRandomUnavailable: {
+    en: "Secure puzzle generation is unavailable in this browser. Try again after refreshing.",
+    zh: "当前浏览器无法安全生成谜题。请刷新后重试。",
+  },
   guestNotSolved: { en: "Not the correct solution yet", zh: "尚未得到正确答案" },
   guestExpired: { en: "Time's up — start a fresh grid", zh: "时间到——开启新棋盘" },
   guestRunComplete: {
@@ -239,6 +276,80 @@ const appMessages = {
 
   undoLeftTemplate: { en: "Undo ({left} left)", zh: "撤回（剩 {left} 次）" },
   undoNoneLabel: { en: "No undos left", zh: "没有撤回次数" },
+  undoShort: { en: "Undo", zh: "撤回" },
+  notesShort: { en: "Notes", zh: "笔记" },
+  notesOnShort: { en: "Notes on", zh: "笔记开" },
+  eraseNotesShort: { en: "Clear", zh: "清除" },
+  hintShort: { en: "Hint", zh: "提示" },
+  hintLeftTemplate: { en: "Hint {left}", zh: "提示 {left}" },
+  pauseShort: { en: "Pause", zh: "暂停" },
+  resumeShort: { en: "Resume", zh: "继续" },
+  restartShort: { en: "New board", zh: "新棋局" },
+  pausedTitle: { en: "Puzzle paused", zh: "棋局已暂停" },
+  pausedCopy: {
+    en: "Your local clock is frozen. Resume when you are ready.",
+    zh: "本地计时已冻结。准备好后继续。",
+  },
+  conflictMessage: {
+    en: "Conflict highlighted — correct or erase one of the matching digits.",
+    zh: "冲突已标出——请改正或擦除其中一个重复数字。",
+  },
+  selectCellMessage: { en: "Select an empty cell first", zh: "请先选择一个空格" },
+  givenLockedMessage: { en: "This clue is fixed", zh: "该线索不可修改" },
+  placedLockedMessage: { en: "Placed digits are final; use undo", zh: "落子已锁定；请使用撤回" },
+  eraseFirstMessage: {
+    en: "Erase this digit before adding candidates",
+    zh: "请先擦除该数字，再添加候选数",
+  },
+  keyboardHelp: {
+    en: "Keyboard: arrows move, 1–9 enter, N notes, Backspace erases, U undo, P pause.",
+    zh: "键盘：方向键移动，1–9 填数，N 笔记，退格擦除，U 撤回，P 暂停。",
+  },
+  canvasAriaLabel: { en: "Sudoku Arena interactive puzzle", zh: "数独竞技场互动棋盘" },
+  canvasLoadingLabel: { en: "Opening sealed Sudoku board", zh: "正在开启密封数独棋盘" },
+  boardReadyMessage: {
+    en: "Board complete — submit to verify",
+    zh: "棋盘已完成——提交验证即可通关",
+  },
+  statusInputSyncFailed: {
+    en: "The latest paid move was restored safely. Check the sealed session before continuing.",
+    zh: "最近一次付费落子未同步，已安全还原。继续前请检查密封会话。",
+  },
+  statusInvalidBoard: {
+    en: "The sealed puzzle is invalid. No moves were accepted; recover the session safely.",
+    zh: "密封谜题无效，未接受任何落子；请安全恢复会话。",
+  },
+  gameFiMaintenanceShort: { en: "GAS mode paused", zh: "GAS 模式维护中" },
+  gameFiMaintenanceBody: {
+    en: "Paid mode is not published until the complete live settlement path is certified.",
+    zh: "付费模式将在完整线上结算链路验收后开放。",
+  },
+  closeDrawer: { en: "Close leaderboard and rules", zh: "关闭排行榜与规则" },
+  a11yControlsLabel: { en: "Accessible Sudoku controls", zh: "数独无障碍操作" },
+  a11yBoardLabel: { en: "Nine by nine Sudoku board", zh: "九乘九数独棋盘" },
+  a11yDigitPadLabel: { en: "Sudoku digit pad", zh: "数独数字键盘" },
+  a11yCellGiven: {
+    en: "Row {row}, column {col}, fixed clue {digit}",
+    zh: "第 {row} 行第 {col} 列，固定线索 {digit}",
+  },
+  a11yCellPlaced: {
+    en: "Row {row}, column {col}, placed digit {digit}",
+    zh: "第 {row} 行第 {col} 列，已填数字 {digit}",
+  },
+  a11yCellEmpty: {
+    en: "Row {row}, column {col}, empty",
+    zh: "第 {row} 行第 {col} 列，空格",
+  },
+  a11yCellNotes: { en: "Candidates {notes}", zh: "候选数 {notes}" },
+  a11yCellConflict: { en: "Conflict", zh: "存在冲突" },
+  a11ySelectedCell: {
+    en: "Selected row {row}, column {col}",
+    zh: "已选择第 {row} 行第 {col} 列",
+  },
+  a11yStartGuest: {
+    en: "Start {difficulty} local puzzle",
+    zh: "开始{difficulty}本地谜题",
+  },
 
   poolLimitTemplate: {
     en: "Pool: {pool} GAS  ·  {min} min limit",
@@ -270,6 +381,10 @@ const appMessages = {
   submitUnlockTemplate: {
     en: "Submission unlocks in {clock}",
     zh: "{clock} 后可提交",
+  },
+  graceWaitTemplate: {
+    en: "Recovery window: {clock} before this game can be released.",
+    zh: "恢复窗口：{clock} 后才可释放本局。",
   },
   resultCaptionSolved: { en: "Reward secured", zh: "奖励已入账" },
   resultCaptionExpired: { en: "Board released", zh: "棋局已释放" },

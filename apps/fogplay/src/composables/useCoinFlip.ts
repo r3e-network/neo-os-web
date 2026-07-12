@@ -13,7 +13,7 @@
  *   1. commit(player, choice, amount)  — escrows the wager, reserves the 2x house
  *      exposure, and records the CURRENT block as the commit block. The outcome
  *      is NOT decided here, so it cannot be peeked/aborted on a loss.
- *      Emits Committed(betId, player, choice, commitIndex).
+ *      Emits Committed(betId, player, choice, amount, commitIndex).
  *   2. settle(betId)                   — PERMISSIONLESS; reverts unless
  *      Ledger.CurrentIndex > commitIndex + K (K = 3 beacon blocks), i.e. the full
  *      K-block beacon window has cleared. It reveals the outcome from a FIXED
@@ -28,12 +28,13 @@
  *      settle reverts ("already settled"), so the recorded result is read back.
  *
  * TWO-STEP UX: a play is no longer instant. placeBet() commits, surfaces a clear
- * "Bet placed — revealing on the next block…" pending state, waits one block, then
- * settles and shows the real result. The pending bet {betId, choice, amount} is
+ * "Bet placed — waiting for the three-block beacon…" pending state, waits for the
+ * complete beacon window, then settles and shows the real result. The pending bet
+ * {betId, choice, amount} is
  * persisted via app.state.persisted (localStorage) so a reload mid-reveal resumes
  * with the manual "Reveal result" path, and settle() is exposed via revealResult()
- * as a safe, idempotent retry. A win/loss is NEVER claimed before the Settled
- * event is read.
+ * as a safe, idempotent retry. A win/loss is NEVER claimed before the exact
+ * getPendingBet snapshot is read and validated.
  *
  * Contract interaction model (verified against MiniAppCoinFlipV2 ABI):
  *
@@ -44,17 +45,16 @@
  *     creditOf(player)                   -> Integer (prepaid bet credit, base units)
  *     getStats(player)                   -> Map{wins,losses,totalWon}
  *     getPendingBet(betId)               -> Map (pending/settled bet snapshot) or empty
- *     playerGameCount(player)            -> Integer
- *     getPlayerGames(player,off,limit)   -> Integer[] (game/bet ids, newest last)
- *     getGame(gameId)                    -> Map{id,player,choice,outcome,won,wager,payout,time}
+ *     playerBetCount(player)             -> Integer
+ *     getPlayerBets(player,off,limit)    -> Integer[] (bet ids, newest last)
  *
  *   MUTATIONS (app.chain):
  *     commit(player, choice, amount) -> betId  (DEPOSIT-then-commit in one tx via
  *        invokeWithPayment: the wager rides the "miniapp-fogplay:bet" GAS transfer
  *        so OnNEP17Payment credits the player, then commit escrows it. choice
  *        0=heads, 1=tails. betId is read from the Committed event slot [0].)
- *     settle(betId) -> outcome  (PERMISSIONLESS reveal; outcome read from the
- *        Settled event: outcome slot [3], won slot [4], payout slot [5].)
+ *     settle(betId) -> outcome  (PERMISSIONLESS reveal; the returned event is
+ *        only a hint and the result is confirmed from getPendingBet.)
  *     withdraw(account)  (refund any unused prepaid credit to the player.)
  *
  * AMOUNT CONVENTION: the contract takes BASE UNITS (GAS × 1e8). MIN_BET 0.05,
@@ -66,7 +66,7 @@
  *   - Bet validation logic (min/max, decimals, choice)
  *   - The commit -> wait-K-block-beacon -> settle lifecycle + a safe settle retry
  *   - Pending-bet persistence (betId/choice/amount) so a reload resumes the reveal
- *   - Win/loss UI updates (overlay, amounts, counters) read from the Settled event
+ *   - Win/loss UI updates only after exact getPendingBet state readback
  *   - Loading/flipping UI flags
  *   - The player's stats + game history read straight from chain
  */
@@ -94,7 +94,21 @@ export const MIN_BET = 0.05;
 export const MAX_BET = 100;
 
 /** Preset wager amounts shown in the UI. */
-export const BET_PRESETS = ["1", "5", "10", "50"] as const;
+export const BET_PRESETS = ["0.25", "0.50", "1.00", "2.00"] as const;
+
+/** Published contract binding retained for readback and future redeployment work. */
+export const FOGPLAY_TESTNET_CONTRACT =
+  "0x611c3d97dd98792a3c31a0e695704c657f143cda";
+
+/**
+ * Production compatibility gate.
+ *
+ * The public N3 deployments currently report NEF checksum 2385475183 while
+ * the reviewed local MiniAppCoinFlipV2 artifact reports 4009970425 and exposes
+ * a different ABI. Keep every paid mutation unreachable until a reviewed
+ * artifact is deployed and an explicitly authorised live write flow passes.
+ */
+export const FOGPLAY_PAID_LANE_ENABLED = false;
 
 /** How many of the player's most-recent games to page in per refresh. */
 const HISTORY_PAGE_LIMIT = 20;
@@ -112,18 +126,21 @@ const BEACON_BLOCKS = 3;
  * settle() reverts until the K-block beacon window has cleared (CurrentIndex >
  * commitIndex + BEACON_BLOCKS), i.e. BEACON_BLOCKS + 1 later blocks must exist. A
  * Neo N3 block is ~15s, so we wait ~(BEACON_BLOCKS + 1) blocks plus a small margin
- * before spending gas on a settle that would otherwise revert. The capped settle
- * retry loop below still covers any remaining lag.
+ * before spending gas on a settle that would otherwise revert. If production is
+ * slower, the exact pending bet stays recoverable through one deliberate manual
+ * retry instead of opening repeated wallet prompts.
  */
 const REVEAL_WAIT_MS = (BEACON_BLOCKS + 1) * 15_000 + 3_000;
 
 /**
- * Backoff between settle retries when the reveal block has not arrived yet (the
- * contract reverts "reveal block not reached"). Capped attempts keep the flow
- * from hanging forever; the user can always retry via revealResult().
+ * One automatic settle transaction is allowed. Canonical state may be polled
+ * read-only afterward; another transaction is always a deliberate user retry.
  */
-const SETTLE_RETRY_DELAY_MS = 8_000;
-const SETTLE_MAX_ATTEMPTS = 4;
+const SETTLE_MAX_ATTEMPTS = 1;
+
+/** Read-only polls after a settle attempt; these never open another wallet prompt. */
+const CANONICAL_READBACK_ATTEMPTS = 4;
+const CANONICAL_READBACK_DELAY_MS = 2_000;
 
 // ============================================================================
 // Types
@@ -149,6 +166,12 @@ export interface PendingBet {
   betId: string;
   choice: "heads" | "tails";
   amount: number;
+  /** Exact commit transaction for refresh-safe betId recovery. */
+  txid?: string;
+  player?: string;
+  contract?: string;
+  network?: "neo-n3-testnet";
+  amountFixed8?: string;
 }
 
 export interface UseCoinFlipOptions {
@@ -156,6 +179,8 @@ export interface UseCoinFlipOptions {
   app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Test-only override. Production callers must use the fail-closed default. */
+  paidLaneEnabled?: boolean;
 }
 
 // ============================================================================
@@ -185,17 +210,69 @@ const isAlreadySettled = (raw: string): boolean => /already settled|bet settled|
 const isRevealNotReady = (raw: string): boolean =>
   /reveal block|not reached|too early|same block|current.?index/i.test(raw);
 
+const normalizedId = (value: unknown): string =>
+  String(value ?? "").trim().toLowerCase();
+
+const eventTransactionId = (event: unknown): string => {
+  if (!event || typeof event !== "object") return "";
+  const record = event as Record<string, unknown>;
+  return normalizedId(
+    record.tx_hash ?? record.txid ?? record.transaction_hash ?? record.transactionHash,
+  );
+};
+
+const sameHash = (left: unknown, right: unknown): boolean =>
+  normalizedId(left).replace(/^0x/, "") === normalizedId(right).replace(/^0x/, "");
+
+const eventPlayerMatches = (value: unknown, expected: unknown): boolean => {
+  const target = normalizedId(expected).replace(/^0x/, "");
+  const raw = String(value ?? "").trim();
+  const direct = normalizedId(raw).replace(/^0x/, "");
+  if (!target || !direct) return false;
+  if (direct === target) return true;
+  if (/^[0-9a-f]{40}$/i.test(direct)) {
+    return (direct.match(/../g) ?? []).reverse().join("") === target;
+  }
+  try {
+    const bytes = Uint8Array.from(globalThis.atob(raw), (char) => char.charCodeAt(0));
+    if (bytes.length !== 20) return false;
+    const forward = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    const reverse = Array.from(bytes).reverse().map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    return forward === target || reverse === target;
+  } catch {
+    return false;
+  }
+};
+
+const normalizedNetwork = (value: unknown): string => {
+  const raw = normalizedId(value);
+  if (raw === "testnet" || raw === "neo-n3-testnet") return "neo-n3-testnet";
+  if (raw === "mainnet" || raw === "neo-n3-mainnet") return "neo-n3-mainnet";
+  return raw;
+};
+
+class SettlementVerificationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SettlementVerificationError";
+  }
+}
+
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
+export function useCoinFlip({
+  app,
+  t,
+  paidLaneEnabled = FOGPLAY_PAID_LANE_ENABLED,
+}: UseCoinFlipOptions) {
   // -- Game State -------------------------------------------------------------
   const betAmount = createObservable("1");
   const choice = createObservable<"heads" | "tails">("heads");
   // isFlipping covers the whole commit -> reveal lifecycle (the Flip button's
   // loading state); revealing narrows it to the post-commit wait/settle phase so
-  // the UI can show "revealing on the next block…" distinctly from "committing".
+  // the UI can show the multi-block beacon wait distinctly from "committing".
   const isFlipping = createObservable(false);
   const revealing = createObservable(false);
   const result = createObservable<GameResult | null>(null);
@@ -228,20 +305,31 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
   const bankrollBase = createObservable(0n);
   const freeBankrollBase = createObservable(0n);
   const creditBase = createObservable(0n);
+  const creditLoaded = createObservable(false);
+  const bankrollLoaded = createObservable(false);
+  const paidRuntimeValidated = createObservable(false);
+  const bankrollAvailable = createDerived(
+    () =>
+      app.mode.isGuest() ||
+      (paidRuntimeValidated.get() && bankrollLoaded.get() && freeBankrollBase.get() > 0n),
+    [paidRuntimeValidated, bankrollLoaded, freeBankrollBase],
+  );
 
   /** Maximum playable bet in GAS = min(MAX_BET, freeBankroll / 2x payout). */
   const maxPayableBet = createDerived(() => {
+    if (app.mode.isGuest()) return MAX_BET;
+    if (!paidRuntimeValidated.get() || !bankrollLoaded.get()) return 0;
     const free = freeBankrollBase.get();
-    if (free <= 0n) return MAX_BET;
+    if (free <= 0n) return 0;
     // Payout is 2x; the house must reserve the full payout to back a win.
     const payable = fromFixed8(free) / 2;
     return Math.min(MAX_BET, payable);
-  }, [freeBankrollBase]);
+  }, [paidRuntimeValidated, bankrollLoaded, freeBankrollBase]);
 
   /** Live "house can pay up to X GAS" hint shown next to the wager input. */
   const formattedMaxPayable = createDerived(
     () => `${maxPayableBet.get().toFixed(2)} ${t("tokenGas")}`,
-    [freeBankrollBase],
+    [paidRuntimeValidated, bankrollLoaded, freeBankrollBase],
   );
 
   /** Prepaid bet credit in GAS, surfaced to the player as a recoverable chip. */
@@ -261,6 +349,54 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     address.set(addr ?? null);
   };
 
+  /**
+   * The V2 contract exists on more than one network, but only the testnet
+   * deployment has a current end-to-end commit/reveal/withdraw validation.
+   * Resolve the host network and exact contract before any wallet prompt or
+   * mutation so stale manifests cannot open an unverified paid lane.
+   */
+  const validatePaidRuntime = async (): Promise<boolean> => {
+    if (app.mode.isGuest()) {
+      paidRuntimeValidated.set(false);
+      return false;
+    }
+    if (!paidLaneEnabled) {
+      paidRuntimeValidated.set(false);
+      return false;
+    }
+    try {
+      const [network, contract] = await Promise.all([
+        app.chain.detectNetwork(),
+        Promise.resolve(app.chain.contractAddress.get()),
+      ]);
+      const valid =
+        normalizedNetwork(network) === "neo-n3-testnet" &&
+        sameHash(contract, FOGPLAY_TESTNET_CONTRACT);
+      paidRuntimeValidated.set(valid);
+      return valid;
+    } catch {
+      paidRuntimeValidated.set(false);
+      return false;
+    }
+  };
+
+  const assertPaidRuntime = async (): Promise<"neo-n3-testnet"> => {
+    if (!(await validatePaidRuntime())) {
+      throw new Error(t("paidLaneUnavailable"));
+    }
+    return "neo-n3-testnet";
+  };
+
+  const assertPendingContext = (bet: PendingBet): void => {
+    const currentContract = app.chain.contractAddress.get();
+    if (!bet.contract || !sameHash(bet.contract, currentContract)) {
+      throw new Error(t("pendingBetWrongNetwork"));
+    }
+    if (bet.network !== "neo-n3-testnet") {
+      throw new Error(t("pendingBetWrongNetwork"));
+    }
+  };
+
   // -- Formatted display values -----------------------------------------------
   // These are consumed by the manifest stat/sidebar bindings via the state
   // object returned from defineMiniApp's setup().
@@ -278,11 +414,12 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       // live payable cap so an over-cap bet is disabled rather than enabled then
       // rejected at pre-flight. (maxPayableBet is MAX_BET until bankroll loads.)
       fromFixed8(amountBase) <= maxPayableBet.get() &&
+      bankrollAvailable.get() &&
       !isFlipping.get() &&
       // A bet cannot be committed while a prior bet is still awaiting its reveal.
       pendingBet.get() === null
     );
-  }, [betAmount, maxPayableBet, isFlipping, pendingBet]);
+  }, [betAmount, maxPayableBet, bankrollAvailable, isFlipping, pendingBet]);
 
   // -- Validation -------------------------------------------------------------
 
@@ -335,20 +472,32 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     }
   };
 
-  /** Read one game record (getGame) into a GameHistoryItem, or null on failure. */
-  const readGame = async (gameId: bigint): Promise<GameHistoryItem | null> => {
+  /** Read one exact, internally consistent deployed-V2 bet snapshot. */
+  const readBet = async (
+    betId: bigint,
+    playerHash: string,
+  ): Promise<GameHistoryItem | null> => {
     try {
-      const raw = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
+      const raw = await app.chain.readRaw("getPendingBet", [app.chain.arg.integer(betId)]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
       const record = raw as Record<string, unknown>;
+      if (
+        parseBigInt(record.id) !== betId ||
+        !eventPlayerMatches(record.player, playerHash) ||
+        !asBool(record.settled)
+      ) return null;
       const won = asBool(record.won);
       const choiceInt = Number(parseBigInt(record.choice));
       const outcomeInt = Number(parseBigInt(record.outcome));
       const wager = parseBigInt(record.wager);
       const payout = parseBigInt(record.payout);
-      const time = parseBigInt(record.time);
+      const time = parseBigInt(record.settleTime ?? record.commitTime);
+      if (![0, 1].includes(choiceInt) || ![0, 1].includes(outcomeInt)) return null;
+      const expectedWon = choiceInt === outcomeInt;
+      const expectedPayout = expectedWon ? wager * 2n : 0n;
+      if (won !== expectedWon || payout !== expectedPayout) return null;
       return {
-        betId: gameId.toString(),
+        betId: betId.toString(),
         amount: fromFixed8(wager),
         choice: outcomeToSide(choiceInt),
         outcome: outcomeToSide(outcomeInt),
@@ -358,8 +507,8 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       };
     } catch (e) {
       console.warn(
-        "[useCoinFlip] getGame failed for",
-        gameId.toString(),
+        "[useCoinFlip] getPendingBet failed for",
+        betId.toString(),
         ":",
         e instanceof Error ? e.message : String(e),
       );
@@ -368,8 +517,8 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
   };
 
   /**
-   * Load the player's game history from getPlayerGames(player, offset, limit) →
-   * game ids, then getGame for each. Newest first (the index is appended in
+   * Load the player's game history from getPlayerBets(player, offset, limit) →
+   * bet ids, then getPendingBet for each. Newest first (the index is appended in
    * play order, so the returned id list is reversed for display).
    */
   const loadHistory = async () => {
@@ -385,7 +534,7 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       let total = 0n;
       try {
         total = parseBigInt(
-          await app.chain.readRaw("playerGameCount", [app.chain.arg.hash160(playerHash)]),
+          await app.chain.readRaw("playerBetCount", [app.chain.arg.hash160(playerHash)]),
         );
       } catch {
         total = 0n;
@@ -397,7 +546,7 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       const limit = BigInt(HISTORY_PAGE_LIMIT);
       const offset = total > limit ? total - limit : 0n;
 
-      const idsRaw = await app.chain.readRaw("getPlayerGames", [
+      const idsRaw = await app.chain.readRaw("getPlayerBets", [
         app.chain.arg.hash160(playerHash),
         app.chain.arg.integer(offset),
         app.chain.arg.integer(HISTORY_PAGE_LIMIT),
@@ -410,7 +559,7 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
             .reverse()
         : [];
 
-      const items = (await Promise.all(ids.map((id) => readGame(id)))).filter(
+      const items = (await Promise.all(ids.map((id) => readBet(id, playerHash)))).filter(
         (item): item is GameHistoryItem => item !== null,
       );
       gameHistory.set(items);
@@ -436,10 +585,12 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     }
     try {
       freeBankrollBase.set(parseBigInt(await app.chain.readRaw("freeBankroll", [])));
+      bankrollLoaded.set(true);
     } catch (e) {
-      // freeBankroll is the v2 cap; if it can't be read, fall back to the total
-      // bankroll so the cap stays conservative rather than unbounded.
-      freeBankrollBase.set(bankrollBase.get());
+      // Never substitute total bankroll for free bankroll: reserved exposure may
+      // make that quote unsafe. Keep the wager action gated until this read works.
+      freeBankrollBase.set(0n);
+      bankrollLoaded.set(false);
       console.warn(
         "[useCoinFlip] freeBankroll read failed:",
         e instanceof Error ? e.message : String(e),
@@ -449,13 +600,17 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     const playerHash = playerAddr ? addressToScriptHash(playerAddr) || null : null;
     if (!playerHash) {
       creditBase.set(0n);
+      creditLoaded.set(true);
       return;
     }
     try {
       creditBase.set(
         parseBigInt(await app.chain.readRaw("creditOf", [app.chain.arg.hash160(playerHash)])),
       );
+      creditLoaded.set(true);
     } catch (e) {
+      creditBase.set(0n);
+      creditLoaded.set(false);
       console.warn(
         "[useCoinFlip] creditOf read failed:",
         e instanceof Error ? e.message : String(e),
@@ -473,6 +628,23 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
    */
   const loadAll = async () => {
     setAddress(app.chain.address.get() ?? null);
+    if (!(await validatePaidRuntime())) {
+      bankrollBase.set(0n);
+      freeBankrollBase.set(0n);
+      creditBase.set(0n);
+      creditLoaded.set(false);
+      bankrollLoaded.set(false);
+      if (pendingBet.get() !== null) revealFailed.set(true);
+      validationError.set(t("paidLaneUnavailable"));
+      return;
+    }
+    if (validationError.get() === t("paidLaneUnavailable")) {
+      validationError.set(null);
+    }
+    const storedPending = pendingBet.get();
+    if (storedPending && !storedPending.betId) {
+      await recoverCommittedBet(storedPending);
+    }
     if (pendingBet.get() !== null && !isFlipping.get() && !revealing.get()) {
       revealFailed.set(true);
     }
@@ -491,6 +663,7 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     result.set(null);
     displayOutcome.set(null);
     showWinOverlay.set(false);
+    winAmount.set("0");
   };
 
   /** Clear the in-flight reveal flags + persisted pending bet. */
@@ -498,6 +671,36 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     pendingBet.set(null);
     revealing.set(false);
     revealFailed.set(false);
+  };
+
+  /**
+   * Recover only the Committed event belonging to the exact persisted txid.
+   * Never substitutes the player's newest event, which could be another tab's
+   * wager. This is read-only and safe to run during load or a manual retry.
+   */
+  const recoverCommittedBet = async (bet: PendingBet): Promise<PendingBet | null> => {
+    if (bet.betId) return bet;
+    assertPendingContext(bet);
+    const expectedTxid = normalizedId(bet.txid);
+    if (!expectedTxid) return null;
+    try {
+      const events = await app.chain.events("Committed", { limit: 100 });
+      const event = events.find(
+        (candidate) => sameHash(eventTransactionId(candidate), expectedTxid),
+      );
+      if (!event) return null;
+      if (bet.player && !eventPlayerMatches(eventValue(event, 1), bet.player)) return null;
+      if (Number(parseBigInt(eventValue(event, 2))) !== choiceToInt(bet.choice)) return null;
+      const expectedAmount = parseBigInt(bet.amountFixed8 ?? toBaseUnits(String(bet.amount)));
+      if (parseBigInt(eventValue(event, 3)) !== expectedAmount) return null;
+      const betId = parseBigInt(eventValue(event, 0)).toString();
+      if (!betId || betId === "0") return null;
+      const recovered = { ...bet, betId };
+      pendingBet.set(recovered);
+      return recovered;
+    } catch {
+      return null;
+    }
   };
 
   /**
@@ -510,7 +713,9 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     won: boolean,
     payoutBase: bigint,
   ): GameResult => {
-    void side;
+    if (won !== (outcome === side)) {
+      throw new SettlementVerificationError(t("settlementVerificationFailed"));
+    }
     displayOutcome.set(outcome);
     const gameResult: GameResult = { won, outcome: outcome.toUpperCase() };
     result.set(gameResult);
@@ -518,8 +723,34 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       const payoutGas = fromFixed8(payoutBase);
       winAmount.set(payoutGas.toFixed(2));
       showWinOverlay.set(true);
+    } else {
+      winAmount.set("0");
+      showWinOverlay.set(false);
     }
     return gameResult;
+  };
+
+  const expectedWagerBase = (bet: PendingBet): bigint =>
+    parseBigInt(bet.amountFixed8 ?? toBaseUnits(String(bet.amount)));
+
+  const applyVerifiedSettlement = (
+    bet: PendingBet,
+    outcomeRaw: unknown,
+    wonRaw: unknown,
+    payoutRaw: unknown,
+  ): GameResult => {
+    const outcomeInt = Number(parseBigInt(outcomeRaw));
+    if (outcomeInt !== 0 && outcomeInt !== 1) {
+      throw new SettlementVerificationError(t("settlementVerificationFailed"));
+    }
+    const outcome = outcomeToSide(outcomeInt);
+    const won = asBool(wonRaw);
+    const payoutBase = parseBigInt(payoutRaw);
+    const expectedPayout = won ? expectedWagerBase(bet) * 2n : 0n;
+    if (won !== (outcome === bet.choice) || payoutBase !== expectedPayout) {
+      throw new SettlementVerificationError(t("settlementVerificationFailed"));
+    }
+    return applyOutcome(bet.choice, outcome, won, payoutBase);
   };
 
   /**
@@ -528,20 +759,30 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
    * found or still unsettled. Used after an "already settled" revert so a retry
    * shows the real result instead of an error.
    */
-  const readSettledFromPendingBet = async (betId: string): Promise<GameResult | null> => {
+  const readSettledFromPendingBet = async (bet: PendingBet): Promise<GameResult | null> => {
     try {
-      const raw = await app.chain.readRaw("getPendingBet", [app.chain.arg.integer(betId)]);
+      assertPendingContext(bet);
+      const raw = await app.chain.readRaw("getPendingBet", [app.chain.arg.integer(bet.betId)]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
       const record = raw as Record<string, unknown>;
-      // A bet that hasn't been settled yet has no recorded outcome.
-      if (record.settled !== undefined && !asBool(record.settled)) return null;
-      if (record.outcome === undefined) return null;
-      const outcomeInt = Number(parseBigInt(record.outcome));
-      const won = asBool(record.won);
-      const payoutBase = parseBigInt(record.payout);
-      const side = outcomeToSide(Number(parseBigInt(record.choice ?? "0")));
-      return applyOutcome(side, outcomeToSide(outcomeInt), won, payoutBase);
+      if (
+        parseBigInt(record.id) !== parseBigInt(bet.betId) ||
+        !bet.player ||
+        !eventPlayerMatches(record.player, bet.player) ||
+        Number(parseBigInt(record.choice)) !== choiceToInt(bet.choice) ||
+        parseBigInt(record.wager) !== expectedWagerBase(bet)
+      ) {
+        throw new SettlementVerificationError(t("settlementVerificationFailed"));
+      }
+      // A canonical terminal flag is mandatory. Presence of outcome-like fields
+      // alone is never enough to label the wager settled.
+      if (!asBool(record.settled)) return null;
+      if (record.outcome === undefined || record.won === undefined || record.payout === undefined) {
+        throw new SettlementVerificationError(t("settlementVerificationFailed"));
+      }
+      return applyVerifiedSettlement(bet, record.outcome, record.won, record.payout);
     } catch (e) {
+      if (e instanceof SettlementVerificationError) throw e;
       console.warn(
         "[useCoinFlip] getPendingBet read failed:",
         e instanceof Error ? e.message : String(e),
@@ -551,9 +792,26 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
   };
 
   /**
+   * Wait briefly for the exact persisted state to become readable after a
+   * confirmed settle. This is read-only polling: it cannot choose an outcome,
+   * spend GAS, or create repeated wallet prompts.
+   */
+  const waitForCanonicalSettlement = async (
+    bet: PendingBet,
+  ): Promise<GameResult | null> => {
+    for (let attempt = 0; attempt < CANONICAL_READBACK_ATTEMPTS; attempt += 1) {
+      const recorded = await readSettledFromPendingBet(bet);
+      if (recorded) return recorded;
+      if (attempt + 1 < CANONICAL_READBACK_ATTEMPTS) {
+        await sleep(CANONICAL_READBACK_DELAY_MS);
+      }
+    }
+    return null;
+  };
+
+  /**
    * Settle (reveal) a committed bet. PERMISSIONLESS + idempotent:
-   *   - Reverts until a block strictly later than the commit block exists → we
-   *     back off and retry up to SETTLE_MAX_ATTEMPTS times.
+   *   - Reverts until a block strictly later than the beacon window exists.
    *   - Reverts "already settled" once the outcome is recorded → we read the
    *     recorded result from getPendingBet instead of treating it as a failure.
    * Returns the revealed GameResult, or throws if the reveal could not complete
@@ -561,27 +819,39 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
    * retry via revealResult()).
    */
   const settleBet = async (bet: PendingBet): Promise<GameResult> => {
+    assertPendingContext(bet);
     const settleArgs = [app.chain.arg.integer(bet.betId)];
     let lastError: unknown;
 
+    // Another permissionless caller may already have settled this exact bet.
+    const beforeInvoke = await readSettledFromPendingBet(bet);
+    if (beforeInvoke) return beforeInvoke;
+
     for (let attempt = 0; attempt < SETTLE_MAX_ATTEMPTS; attempt += 1) {
       try {
-        const txResult = await app.chain.invoke("settle", settleArgs, { waitForEvent: "Settled" });
+        const txResult = await app.chain.invoke("settle", settleArgs, {
+          waitForEvent: "Settled",
+          waitTimeoutMs: 30_000,
+        });
 
-        // Settled(betId, player, choice, outcome, won, payout): outcome slot 3,
-        // won slot 4, payout slot 5. The event is authoritative for the outcome.
+        // The event is only an envelope hint. Never read outcome/won/payout from
+        // it into the UI; exact persisted state is the sole confirmation source.
+        let eventIdentityMatches = true;
         if (txResult.event != null) {
-          const outcomeInt = Number(parseBigInt(eventValue(txResult.event, 3)));
-          const won = asBool(eventValue(txResult.event, 4));
-          const payoutBase = parseBigInt(eventValue(txResult.event, 5));
-          return applyOutcome(bet.choice, outcomeToSide(outcomeInt), won, payoutBase);
+          const event = txResult.event;
+          eventIdentityMatches =
+            parseBigInt(eventValue(event, 0)) === parseBigInt(bet.betId) &&
+            (!bet.player || eventPlayerMatches(eventValue(event, 1), bet.player)) &&
+            Number(parseBigInt(eventValue(event, 2))) === choiceToInt(bet.choice);
         }
 
-        // The tx confirmed but the Settled event wasn't indexed in time — the bet
-        // IS settled on-chain, so read the recorded outcome back rather than guess.
-        const recorded = await readSettledFromPendingBet(bet.betId);
+        const recorded = await waitForCanonicalSettlement(bet);
         if (recorded) return recorded;
-        // Fall through to retry: the event/state may simply be lagging the indexer.
+        if (!eventIdentityMatches) {
+          throw new SettlementVerificationError(t("settlementVerificationFailed"));
+        }
+        // A tx broadcast or matching event without canonical readback remains
+        // unresolved. The exact pending bet is retained for deliberate retry.
         lastError = new Error(t("revealPending"));
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
@@ -589,25 +859,17 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
 
         // Already settled by us or anyone (permissionless): read the result back.
         if (isAlreadySettled(raw)) {
-          const recorded = await readSettledFromPendingBet(bet.betId);
+          const recorded = await waitForCanonicalSettlement(bet);
           if (recorded) return recorded;
         }
 
-        // The reveal block hasn't been produced yet — back off and retry.
-        if (isRevealNotReady(raw) && attempt < SETTLE_MAX_ATTEMPTS - 1) {
-          await sleep(SETTLE_RETRY_DELAY_MS);
-          continue;
-        }
+        // A confirmed event/state identity mismatch is not transient. Never
+        // spend more GAS retrying a transaction whose result cannot be proven.
+        if (err instanceof SettlementVerificationError) throw err;
 
-        // Transient/indexer error — retry within budget before giving up.
-        if (attempt < SETTLE_MAX_ATTEMPTS - 1) {
-          await sleep(SETTLE_RETRY_DELAY_MS);
-          continue;
-        }
-      }
-
-      if (attempt < SETTLE_MAX_ATTEMPTS - 1) {
-        await sleep(SETTLE_RETRY_DELAY_MS);
+        // One automatic settle attempt avoids surprising repeated wallet
+        // prompts. A not-ready or transient failure remains manually retryable.
+        if (isRevealNotReady(raw)) lastError = err;
       }
     }
 
@@ -630,9 +892,10 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
    *
    * Step 3 — SETTLE (reveal): settleBet() reveals the outcome from the FIXED
    * K-block beacon (the hashes of blocks commitIndex+1 .. commitIndex+K) and pays
-   * the winner 2x. The win/loss UI is driven from the Settled event. If the reveal
-   * can't complete, the pending bet is left set so revealResult() can retry — a
-   * win/loss is never claimed early.
+   * the winner 2x. The win/loss UI is driven only from exact canonical
+   * getPendingBet readback after settlement. If the reveal can't complete, the
+   * pending bet is left set so revealResult() can retry — a win/loss is never
+   * claimed early from animation, broadcast, or an event envelope.
    */
   const placeBet = async (): Promise<GameResult> => {
     // -- Validate ---
@@ -653,6 +916,10 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       throw new Error(t("invalidBetAmount"));
     }
 
+    // Fail closed before ensureWallet() so an old host, wrong network, or
+    // wrong contract cannot even open a signing prompt for a new wager.
+    const network = await assertPaidRuntime();
+
     const side = choice.get();
     const choiceInt = choiceToInt(side);
     const amountGas = fromFixed8(amountBase);
@@ -663,6 +930,7 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     result.set(null);
     displayOutcome.set(null);
     showWinOverlay.set(false);
+    winAmount.set("0");
 
     try {
       const playerAddr = address.get() || (await app.chain.ensureWallet());
@@ -682,13 +950,16 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       // against a bet the contract would reject.
       await loadBankrollAndCredit();
       const free = freeBankrollBase.get();
-      if (free > 0n && amountBase * 2n > free) {
+      if (!bankrollLoaded.get() || free <= 0n || amountBase * 2n > free) {
         throw new Error(
           t("bankrollTooLowCap", {
             max: maxPayableBet.get().toFixed(2),
             tokenGas: t("tokenGas"),
           }),
         );
+      }
+      if (!creditLoaded.get()) {
+        throw new Error(t("balanceReadUnavailable"));
       }
 
       // -- Step 1: COMMIT (deposit-then-commit in one tx) ---
@@ -698,15 +969,43 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
         app.chain.arg.integer(amountBase),
       ];
 
+      // Existing prepaid credit is real player money. Consume it first and send
+      // only the missing amount; otherwise every retry would charge the wallet
+      // again while leaving the recoverable credit untouched.
+      const reusableCredit = creditBase.get();
+      const paymentShortfall = amountBase > reusableCredit
+        ? amountBase - reusableCredit
+        : 0n;
       let commitResult;
+      const broadcastRecord = (txid: string): void => {
+        if (!txid) return;
+        pendingBet.set({
+          betId: "",
+          txid,
+          player: playerHash,
+          contract: contractHash,
+          network,
+          amountFixed8: amountBase.toString(),
+          choice: side,
+          amount: amountGas,
+        });
+      };
       try {
-        commitResult = await app.chain.invokeWithPayment(
-          amountBase.toString(),
-          BET_MEMO,
-          "commit",
-          commitArgs,
-          { waitForEvent: "Committed" },
-        );
+        commitResult = paymentShortfall > 0n
+          ? await app.chain.invokeWithPayment(
+              paymentShortfall.toString(),
+              BET_MEMO,
+              "commit",
+              commitArgs,
+              {
+                waitForEvent: "Committed",
+                onTransactionSent: broadcastRecord,
+              },
+            )
+          : await app.chain.invoke("commit", commitArgs, {
+              waitForEvent: "Committed",
+              onTransactionSent: broadcastRecord,
+            });
       } catch (commitErr) {
         const raw = commitErr instanceof Error ? commitErr.message : String(commitErr);
         if (/bankroll cannot cover|insufficient (free )?bankroll/i.test(raw)) {
@@ -721,17 +1020,44 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
         throw new Error(raw || t("commitFailed"));
       }
 
-      // Committed(betId, player, choice, commitIndex): betId slot 0.
-      const betId =
-        commitResult.event != null ? parseBigInt(eventValue(commitResult.event, 0)).toString() : "";
+      // Committed(betId, player, choice, amount, commitIndex). Do not accept a
+      // bet id until every identity field matches the requested wager.
+      let betId = "";
+      if (commitResult.event != null) {
+        const event = commitResult.event;
+        const identityMatches =
+          eventPlayerMatches(eventValue(event, 1), playerHash) &&
+          Number(parseBigInt(eventValue(event, 2))) === choiceInt &&
+          parseBigInt(eventValue(event, 3)) === amountBase;
+        if (!identityMatches) {
+          revealFailed.set(true);
+          throw new Error(t("commitIdentityMismatch"));
+        }
+        betId = parseBigInt(eventValue(event, 0)).toString();
+      }
+      // Some host adapters do not expose the early callback; the returned txid
+      // still closes the refresh window before we surface an indexer timeout.
+      if (commitResult.txid && pendingBet.get() === null) {
+        broadcastRecord(commitResult.txid);
+      }
       if (!betId || betId === "0") {
         // The commit landed but the betId couldn't be read — the wager is
         // escrowed; surface a recoverable message and refresh credit/bankroll.
         await loadBankrollAndCredit();
+        revealFailed.set(true);
         throw new Error(t("commitNoBetId"));
       }
 
-      const bet: PendingBet = { betId, choice: side, amount: amountGas };
+      const bet: PendingBet = {
+        betId,
+        txid: commitResult.txid,
+        player: playerHash,
+        contract: contractHash,
+        network,
+        amountFixed8: amountBase.toString(),
+        choice: side,
+        amount: amountGas,
+      };
       pendingBet.set(bet);
 
       // -- Step 2: WAIT the K-block beacon window, then -- Step 3: SETTLE (reveal) ---
@@ -759,6 +1085,7 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       const message = e instanceof Error ? e.message : t("commitFailed");
       isFlipping.set(false);
       revealing.set(false);
+      if (pendingBet.get() !== null) revealFailed.set(true);
       throw new Error(message);
     }
   };
@@ -770,9 +1097,17 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
    * bet or if the reveal still can't complete (the pending bet stays set).
    */
   const revealResult = async (): Promise<GameResult> => {
-    const bet = pendingBet.get();
-    if (!bet) {
+    await assertPaidRuntime();
+    const storedBet = pendingBet.get();
+    if (!storedBet) {
       throw new Error(t("noPendingBet"));
+    }
+    const bet = storedBet.betId
+      ? storedBet
+      : await recoverCommittedBet(storedBet);
+    if (!bet) {
+      revealFailed.set(true);
+      throw new Error(t("commitNoBetId"));
     }
     isFlipping.set(true);
     revealing.set(true);
@@ -783,10 +1118,16 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
       isFlipping.set(false);
       await loadAll();
       return gameResult;
-    } catch {
+    } catch (error) {
       revealing.set(false);
       revealFailed.set(true);
       isFlipping.set(false);
+      if (
+        error instanceof SettlementVerificationError ||
+        (error instanceof Error && error.message === t("pendingBetWrongNetwork"))
+      ) {
+        throw error;
+      }
       throw new Error(t("revealFailedRetry"));
     }
   };
@@ -797,21 +1138,37 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
    * to recover GAS stranded by an aborted commit (money-in with money-out).
    */
   const withdrawCredit = async (): Promise<void> => {
+    await assertPaidRuntime();
     const playerAddr = address.get() || (await app.chain.ensureWallet());
     const playerHash = addressToScriptHash(playerAddr || "");
     if (!playerAddr || !playerHash) {
       throw new Error(t("connectWallet"));
     }
     setAddress(playerAddr);
-    if (creditBase.get() <= 0n) {
+    await loadBankrollAndCredit();
+    if (!creditLoaded.get()) {
+      throw new Error(t("balanceReadUnavailable"));
+    }
+    const creditBefore = creditBase.get();
+    if (creditBefore <= 0n) {
       throw new Error(t("noCreditToWithdraw"));
     }
-    await app.chain.invoke(
+    const txResult = await app.chain.invoke(
       "withdraw",
       [app.chain.arg.hash160(playerHash)],
       { waitForEvent: "CreditWithdrawn" },
     );
+    if (txResult.event != null) {
+      const accountMatches = eventPlayerMatches(eventValue(txResult.event, 0), playerHash);
+      const amountMatches = parseBigInt(eventValue(txResult.event, 1)) === creditBefore;
+      if (!accountMatches || !amountMatches) {
+        throw new Error(t("withdrawVerificationFailed"));
+      }
+    }
     await loadBankrollAndCredit();
+    if (creditBase.get() !== 0n) {
+      throw new Error(t("withdrawVerificationFailed"));
+    }
   };
 
   /**
@@ -822,7 +1179,10 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     try {
       const free = parseBigInt(await app.chain.readRaw("freeBankroll", []));
       if (free > 0n) {
-        return t("bankrollTooLowCap", { max: formatGas(free, 4), tokenGas: t("tokenGas") });
+        return t("bankrollTooLowCap", {
+          max: formatGas(free / 2n, 4),
+          tokenGas: t("tokenGas"),
+        });
       }
     } catch {
       // Fall through to the generic message when the bankroll can't be read.
@@ -857,6 +1217,10 @@ export function useCoinFlip({ app, t }: UseCoinFlipOptions) {
     address,
     bankrollBase,
     freeBankrollBase,
+    creditLoaded,
+    bankrollLoaded,
+    paidRuntimeValidated,
+    bankrollAvailable,
     creditBase,
 
     // -- Computed --------------------------------------------------------------

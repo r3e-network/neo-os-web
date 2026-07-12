@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="flappy-dash-phaser-host" />;
     },
@@ -36,6 +34,7 @@ function t(key: string, params?: Record<string, string | number>) {
     appSubtitle: "Tap, dodge pipes, and prove the run.",
     checkDealAgain: "Retry sealing",
     commitmentLine: "Game #{gameId} sealed #{commitment}",
+    closeDrawer: "Close rules",
     creditLabel: "Withdrawable credit",
     difficulty_easy: "Meadow Hop",
     difficulty_medium: "Sky Sprint",
@@ -46,6 +45,16 @@ function t(key: string, params?: Record<string, string | number>) {
     fairnessCopy: "TEE seals the pipe commitment before settlement.",
     fairnessShort: "TEE seals pipes before takeoff.",
     fairnessTitle: "Provably fair pipes",
+    gameAriaLabel: "Flappy Dash arcade game",
+    gameActionFailed: "Flight control could not continue",
+    gameLoadingLabel: "Opening flight deck",
+    a11yDifficultyGroup: "Choose a flight route",
+    a11yStartRoute: "Start selected route",
+    a11yFlyContinue: "Flap or continue the run",
+    enableGameSound: "Enable game sound",
+    muteGameSound: "Mute game sound",
+    retry: "Retry",
+    continue: "Continue",
     leaderboardEmpty: "No clears recorded yet.",
     leaderboardIntro: "Rebuilt from on-chain events.",
     leaderboardTitle: "Global leaderboard",
@@ -151,13 +160,15 @@ describe("flappy-dash Phaser playarea", () => {
       className?: string;
       loadingLabel?: string;
       preserveLogicalSize?: boolean;
+      loadScene?: () => Promise<unknown>;
       state: Record<string, unknown>;
     };
 
     expect(props.className).toBe("flappy-phaser-canvas");
     expect(props.ariaLabel).toBe("Flappy Dash arcade game");
     expect(props.loadingLabel).toBe("Opening flight deck");
-    expect(props.preserveLogicalSize).toBe(true);
+    expect(props.preserveLogicalSize).toBeUndefined();
+    expect(props.loadScene).toEqual(expect.any(Function));
     expect(props.state.seed).toBe("tee-seed");
     expect(props.state.activeGameId).toBe("9");
     expect(props.state.commitment).toBe("ab".repeat(32));
@@ -197,8 +208,10 @@ describe("flappy-dash Phaser playarea", () => {
         t={t}
         state={state({
           activeGameId: "12",
+          appMode: "gamefi",
           credit: 0.5,
           gameStatus: "committed",
+          deadline: Date.now() - 600_001,
         })}
         dispatch={dispatch}
       />,
@@ -221,6 +234,7 @@ describe("flappy-dash Phaser playarea", () => {
         t={t}
         state={state({
           activeGameId: "42",
+          appMode: "gamefi",
           commitment: "cd".repeat(32),
           credit: 0.25,
           myRank: 2,
@@ -255,6 +269,58 @@ describe("flappy-dash Phaser playarea", () => {
     expect(dispatch).toHaveBeenCalledWith("refreshLeaderboard", {});
   });
 
+  it("mirrors route selection and the primary flight action for keyboard users", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole, rerender } = render(
+      <PhaserPlayArea t={t} state={state({ appMode: "guest" })} dispatch={dispatch} />,
+    );
+
+    const initialProps = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+      onReady?: () => void;
+    };
+    act(() => initialProps.onReady?.());
+
+    const hardRoute = getByRole("radio", { name: /Pipe Gauntlet/ });
+    fireEvent.click(hardRoute);
+    expect(dispatch).toHaveBeenCalledWith("selectDifficulty", { difficulty: 2 });
+
+    fireEvent.click(getByRole("button", { name: /Start selected route/ }));
+    await waitFor(() => {
+      const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+        state: { a11yPrimaryPulse?: number };
+      };
+      expect(props.state.a11yPrimaryPulse).toBe(1);
+    });
+
+    rerender(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest", gameStatus: "dealt", seed: "local-seed" })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(getByRole("button", { name: "Flap or continue the run" }));
+    await waitFor(() => {
+      const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+        state: { a11yPrimaryPulse?: number };
+      };
+      expect(props.state.a11yPrimaryPulse).toBe(2);
+    });
+  });
+
+  it("restores focus to the drawer trigger after Escape", async () => {
+    const { getByText, getByRole } = render(
+      <PhaserPlayArea t={t} state={state({ appMode: "guest" })} dispatch={vi.fn()} />,
+    );
+
+    const trigger = getByText("Rules").closest("button") as HTMLButtonElement;
+    fireEvent.click(trigger);
+    expect(getByRole("dialog")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
   it("keeps the Phaser wrapper from regressing to a flat form shell", () => {
     const source = fs.readFileSync(path.join(appsRoot(), "flappy-dash/src/PhaserPlayArea.tsx"), "utf8");
     const styles = fs.readFileSync(path.join(appsRoot(), "flappy-dash/src/PlayArea.scss"), "utf8");
@@ -262,11 +328,14 @@ describe("flappy-dash Phaser playarea", () => {
 
     expect(source).toContain("flappy-stage-hud");
     expect(source).toContain("flappy-ingame-drawer");
-    expect(source).toContain("preserveLogicalSize");
+    expect(source).not.toContain("preserveLogicalSize");
     expect(source).toContain("flappy-ingame-drawer__summary");
     expect(source).toContain("flappy-history");
     expect(source).toContain("retryDeal");
     expect(source).toContain("refreshLeaderboard");
+    expect(source).toContain("flappy-ingame-drawer__close");
+    expect(source).toContain("flappy-a11y-layer");
+    expect(source).toContain("a11yPrimaryPulse");
     expect(source).not.toContain("primary:");
     expect(source).not.toContain("secondaryActions");
     expect(source).not.toContain("drawerToggleLabel=");
@@ -284,10 +353,16 @@ describe("flappy-dash Phaser playarea", () => {
     expect(scene).toContain("private emitFlapBurst");
     expect(scene).toContain("private playPipePassFeedback");
     expect(scene).toContain("private playResultFeedback");
-    expect(scene).toContain("const mobileZoomCorrection = viewW < W ? 0.82 : 1");
+    expect(scene).not.toContain("mobileZoomCorrection");
+    expect(scene).toContain('this.dispatch("syncScore"');
+    expect(scene).toContain("engineFlap(this.flappyState)");
+    expect(scene).toContain("private restartLocalRun()");
+    expect(scene).toContain("protected onReducedMotionChange(enabled: boolean)");
     expect(scene).toContain("const scrollX = (W - visibleW) / 2");
     expect(scene).toContain(".setScroll(scrollX, scrollY)");
     expect(scene).toContain("private fitCameraToHostIfNeeded()");
     expect(scene).toContain("this.fitCameraToHostIfNeeded();");
+    expect(scene).toContain("MAX_CATCH_UP_STEPS");
+    expect(scene).toContain("hasSeenA11yPrimaryPulse");
   });
 });

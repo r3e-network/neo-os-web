@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  SCENE_AUDIO_MUTE_EVENT,
+  SCENE_AUDIO_MUTE_STORAGE_KEY,
   SCENE_AUDIO_PRESETS,
   SceneAudio,
+  isSceneAudioMuted,
+  setSceneAudioMuted,
+  toggleSceneAudioMuted,
   type SceneAudioPreset,
 } from "@framework/phaser";
 
@@ -117,11 +122,13 @@ const originalAudioContext = window.AudioContext;
 
 beforeEach(() => {
   FakeAudioContext.instances = [];
+  window.localStorage.clear();
   (window as { AudioContext?: unknown }).AudioContext =
     FakeAudioContext as unknown as typeof AudioContext;
 });
 
 afterEach(() => {
+  window.localStorage.clear();
   (window as { AudioContext?: unknown }).AudioContext = originalAudioContext;
 });
 
@@ -200,6 +207,50 @@ describe("SceneAudio", () => {
     expect(osc?.frequency.events.map((event) => event.value)).toEqual([200, 400]);
   });
 
+  it("persists and broadcasts the shared mute preference", () => {
+    const events: boolean[] = [];
+    window.addEventListener(SCENE_AUDIO_MUTE_EVENT, (event) => {
+      events.push((event as CustomEvent<{ muted: boolean }>).detail.muted);
+    });
+
+    setSceneAudioMuted(true);
+    expect(isSceneAudioMuted()).toBe(true);
+    expect(window.localStorage.getItem(SCENE_AUDIO_MUTE_STORAGE_KEY)).toBe("true");
+    expect(events).toEqual([true]);
+
+    expect(toggleSceneAudioMuted()).toBe(false);
+    expect(isSceneAudioMuted()).toBe(false);
+    expect(window.localStorage.getItem(SCENE_AUDIO_MUTE_STORAGE_KEY)).toBe("false");
+    expect(events).toEqual([true, false]);
+  });
+
+  it("stays silent without creating an AudioContext while globally muted", () => {
+    setSceneAudioMuted(true);
+    const audio = new SceneAudio();
+
+    audio.unlock();
+    audio.play("win");
+    audio.tones([{ frequency: 440, duration: 0.05 }]);
+
+    expect(audio.unlocked).toBe(true);
+    expect(audio.muted).toBe(true);
+    expect(FakeAudioContext.instances).toHaveLength(0);
+  });
+
+  it("stops scheduling tones when muted after unlock", () => {
+    const audio = new SceneAudio();
+    audio.unlock();
+    const context = FakeAudioContext.instances[0];
+
+    setSceneAudioMuted(true);
+    audio.play("win");
+    expect(context.oscillators).toHaveLength(0);
+
+    audio.setMuted(false);
+    audio.play("tap");
+    expect(context.oscillators.length).toBeGreaterThan(0);
+  });
+
   it("closes the context when the attached scene shuts down", () => {
     const scene = createSceneLike();
     const audio = new SceneAudio().attach(
@@ -215,6 +266,21 @@ describe("SceneAudio", () => {
     // Idempotent: destroy after shutdown must not double-close.
     scene.events.emit("destroy");
     expect(context.closeCalls).toBe(1);
+  });
+
+  it("swallows an async close() rejection from an already-closed context", async () => {
+    const audio = new SceneAudio();
+    audio.unlock();
+    const context = FakeAudioContext.instances[0];
+    // Page teardown can close the context first — the spec then REJECTS the
+    // close() promise. That rejection must never surface as unhandled.
+    context.close = () =>
+      Promise.reject(new Error("InvalidStateError")) as Promise<void>;
+
+    expect(() => audio.close()).not.toThrow();
+    // Flush microtasks: an unconsumed rejection would fail the run here.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(audio.unlocked).toBe(false);
   });
 
   it("recovers after close by lazily creating a fresh context", () => {

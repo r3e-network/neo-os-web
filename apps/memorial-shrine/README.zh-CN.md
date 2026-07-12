@@ -1,79 +1,38 @@
-# 区块链灵位
+# 纪念堂
 
-> 永恒存在，永恒记忆
+纪念堂是基于 Neo N3 的公开追思花园。花园、纪念肖像和合约固定价格的象征祭品是主界面；创建详情、历史记录及交易恢复收在次级抽屉中。
 
-## 概述
+## 产品流程
 
-区块链灵位是一项去中心化纪念服务，可在 Neo 区块链上为逝去的亲友创建永久数字纪念。
+1. 打开真实链上花园并选择一条纪念记录。
+2. 选择六种固定价格祭品之一，并可填写简短留言。
+3. 在钱包确认前查看“永久、不可退款”的链上操作说明。
+4. 在可视化纪念卡工作台创建记录。仅姓名必填；关系、生卒年份、生平、讣告以及 HTTPS/IPFS 图片引用均为抽屉内的可选详情。
+5. 使用带 `?id=` 的深链接分享纪念记录。
 
-## 功能
+界面不会宣称 GAS 会转给家属。祭拜通过已部署合约的支付路径记录一笔象征性链上祭品。
 
-- **创建灵位**：记录逝者姓名、照片、人生日期、传记与讣告
-- **祭奠缅怀**：使用虚拟供品（香、烛、花等）祭拜，采用直接预付 GAS，链上留痕
-- **永久存储**：所有数据永久保存于区块链
-- **讣告板**：主页展示最新讣告
-- **访问记录**：追踪已祭拜的灵位
+## 交易完整性
 
-## 合约方法
+- 每次写入都绑定 `onTransactionSent` 返回的准确网络、合约、钱包、意图、金额和交易 ID。
+- 钱包调用前必须完成本地恢复存储的写入、读取和删除预检；预检失败时不会打开钱包。
+- 刷新后只恢复并核验待确认记录，不会重新发送调用。
+- 只有 `getapplicationlog` 返回 `HALT`、合约事件与已保存意图准确匹配，并且权威 getter 读回同一结果，界面才显示成功。`FAULT`、未知/不可用、事件不匹配和等待读回互相区分。
+- 整数读取失败会显示“不可用”，不会伪装成 `0`。
 
-### CreateMemorial
+## 运行边界
 
-创建新灵位（免费）。
+- 所有列表和详情直接读取 `MiniAppMemorialShrine` getter。RPC 失败会进入可重试状态，不会被错误显示为“暂无纪念记录”。
+- 测试网祭拜使用已部署合约的 `onNEP17Payment` 支付加调用路径。
+- 主网创建纪念记录的 ABI 可用；但已部署合约的 `paymentHub` 尚未配置，因此主网祭拜会在钱包交互前明确阻止。
+- 本地只保存本设备打开过的纪念记录 ID 和一条准确的待确认交易恢复记录。
+- 图片字段只保存 HTTPS 地址或 IPFS CID。本应用不负责上传文件，不提供私密纪念堂、协作者管理或 NEP-11 铸造。
 
-```
-CreateMemorial(
-  creator: Hash160,
-  deceasedName: string,
-  photoHash: string,
-  relationship: string,
-  birthYear: int,
-  deathYear: int,
-  biography: string,
-  obituary: string
-) → memorialId
-```
+## 合约
 
-### PayTribute
+| 网络 | 合约 |
+| --- | --- |
+| Neo N3 主网 | `0xee7a548b71c69364fcb0e45a63a40f141b938e42` |
+| Neo N3 测试网 | `0x87f0fe2ba69cd973a3274471234d3cc13ef943c5` |
 
-使用虚拟供品进行祭拜。
-
-```
-PayTribute(
-  visitor: Hash160,
-  memorialId: int,
-  offeringType: int,
-  message: string
-) → tributeId
-```
-
-说明：
-
-- 祭拜费用当前直接预付到 MiniApp 合约
-
-### 供品列表
-
-| 类型 | 名称 | 费用 (GAS) |
-|------|------|-----------|
-| 1 | 香 | 0.01 |
-| 2 | 蜡烛 | 0.02 |
-| 3 | 鲜花 | 0.03 |
-| 4 | 水果 | 0.05 |
-| 5 | 酒 | 0.1 |
-| 6 | 祭宴 | 0.5 |
-
-## 开发
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run development server
-pnpm dev
-
-# Build for production
-pnpm build
-```
-
-## 非营利说明
-
-本服务为非营利项目，所有费用仅用于覆盖区块链交易成本。
+只读部署快照见 [NETWORK_STATUS.md](./NETWORK_STATUS.md)，视觉资产来源边界见 [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md)，剩余发布门槛见 [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)。

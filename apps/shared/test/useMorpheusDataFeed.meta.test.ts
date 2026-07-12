@@ -179,6 +179,23 @@ describe("useMorpheusDataFeed — canonical aggregated pair preference (C2)", ()
     expect(pairsTried).toEqual(["AGG:NEO-USD", "TWELVEDATA:NEO-USD"]);
   });
 
+  it("falls back when the deployed canonical pair is only an uninitialized zero record", async () => {
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      const pair = pairFromBody(init);
+      if (pair === "AGG:NEO-USD") {
+        return rpcResponse({ state: "HALT", exception: null, stack: [structForPrice("0", "0")] });
+      }
+      return rpcResponse({ state: "HALT", exception: null, stack: [structForPrice("1963000", "1783753901")] });
+    });
+    const feed = useMorpheusDataFeed({ network: "mainnet", rpcUrl: "https://rpc.test.local" });
+
+    const quote = await feed.getPriceWithMeta("NEO");
+
+    expect(quote).toMatchObject({ price: 1.963, recordTimestamp: 1783753901 });
+    const pairsTried = fetchMock.mock.calls.map((call) => pairFromBody(call[1] as RequestInit));
+    expect(pairsTried).toEqual(["AGG:NEO-USD", "TWELVEDATA:NEO-USD"]);
+  });
+
   it("honours a caller-supplied source-prefixed asset verbatim (no canonical attempt)", async () => {
     fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
       const pair = pairFromBody(init);

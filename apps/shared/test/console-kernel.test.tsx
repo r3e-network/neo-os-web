@@ -2,7 +2,7 @@
  * Shared console preview kernel (extraction plan §S14).
  *
  * Proves that createConsolePreviewKernel reproduces the preview-builder wiring
- * currently copy-pasted across the 4 oracle consoles + oracle-compute-lab +
+ * currently copy-pasted across the preview-only oracle consoles + oracle-compute-lab +
  * neo-x-bridge, using oracle-http-console as the reference: its real
  * consoleConfig.buildResult drives both the kernel and a verbatim replica of
  * the app's pre-migration main.tsx handler, and every observable transition +
@@ -40,9 +40,11 @@ const MESSAGES: Record<string, string> = {
   statusReady: "Ready",
   digestPlaceholder: "No digest",
   notAvailable: "N/A",
-  httpReady: "HTTP request ready",
+  httpReady: "Morpheus payload ready",
   httpInvalidUrl: "Enter a valid http(s) URL",
-  httpInvalidPath: "Enter a valid JSON path",
+  httpInvalidPath: "Use a Morpheus dot path",
+  httpBodyInvalidJson: "POST body must be valid JSON",
+  httpBodyTooLarge: "POST body is too large",
   httpSummary: "{method} request prepared",
   method: "Method",
   url: "URL",
@@ -157,21 +159,21 @@ describe("console preview kernel — oracle-http-console parity", () => {
     expect(kernelResult).toEqual(referenceResult);
     ({ kernel: k, reference: r } = snapshot());
     expect(k).toEqual(r);
-    expect(k.lastStatus).toBe("HTTP request ready");
-    expect(k.lastDigest).toMatch(/^0x[0-9a-f]{8}$/);
+    expect(k.lastStatus).toBe("Morpheus payload ready");
+    expect(k.lastDigest).toMatch(/^0x[0-9a-f]{64}$/);
     expect(k.requestCount).toBe(1);
     expect(kernelToasts).toEqual(referenceToasts);
-    expect(kernelToasts).toEqual([{ msg: "HTTP request ready", type: "success" }]);
+    expect(kernelToasts).toEqual([{ msg: "Morpheus payload ready", type: "success" }]);
 
-    // 2. Validation failure: buildResult flags input_required (and still
-    //    computes a digest in its payload) — the wiring must restore the
-    //    placeholder, keep the tally, and toast a warning, never the digest.
+    // 2. Validation failure: buildResult flags input_required and does not
+    //    mint a draft identifier — the wiring must restore the placeholder,
+    //    keep the tally, and toast a warning.
     const invalid = httpValues({ url: "ftp://example.test/feed" });
     const kernelInvalid = await kernel.buildRequest(invalid);
     const referenceInvalid = await reference.buildRequest(invalid);
     expect(kernelInvalid).toEqual(referenceInvalid);
     expect(isConsoleInputRequired(kernelInvalid)).toBe(true);
-    expect(kernelInvalid.payload.digest).toMatch(/^0x[0-9a-f]{8}$/);
+    expect(kernelInvalid.payload).not.toHaveProperty("digest");
     ({ kernel: k, reference: r } = snapshot());
     expect(k).toEqual(r);
     expect(k.lastStatus).toBe("Enter a valid http(s) URL");
@@ -189,16 +191,12 @@ describe("console preview kernel — oracle-http-console parity", () => {
     expect(kernelToasts).toEqual(referenceToasts);
   });
 
-  it("keeps every console on the kernel instead of hand-rolled preview wiring (Wave 2B)", () => {
+  it("keeps the remaining preview console on the kernel and real workflows off it", () => {
     // The parity spec above proves the kernel matches the historical reference
     // handler; this guard proves the consoles actually route through it — a
     // console quietly re-hand-rolling the trio/branch would drift undetected.
     const consoleApps = [
       "oracle-http-console",
-      "oracle-neodid-console",
-      "oracle-seal-console",
-      "oracle-vrf-console",
-      "oracle-compute-lab",
     ];
     for (const app of consoleApps) {
       const source = readFileSync(path.join(appsRoot(), app, "src", "main.tsx"), "utf8");
@@ -210,12 +208,16 @@ describe("console preview kernel — oracle-http-console parity", () => {
       expect(source, app).not.toContain('"input_required"');
       expect(source, app).not.toContain("requestCount.set(");
     }
-    // oracle-seal-console keeps its toast-free wiring through the kernel option.
+    // Oracle Seal graduated from a preview builder to real local encryption,
+    // contract evidence, confidential storage, and exact recovery. Keep that
+    // product workflow out of this preview-only kernel.
     const seal = readFileSync(
       path.join(appsRoot(), "oracle-seal-console", "src", "main.tsx"),
       "utf8",
     );
-    expect(seal).toContain('notify: "silent"');
+    expect(seal).not.toContain("createConsolePreviewKernel");
+    expect(seal).toContain("prepareOracleSeal");
+    expect(seal).toContain("readOracleSealContractEvidence");
     // neo-x-bridge registers bespoke actions and uses the kernel's tally core.
     const bridge = readFileSync(
       path.join(appsRoot(), "neo-x-bridge", "src", "main.tsx"),
@@ -259,7 +261,7 @@ describe("console preview kernel — console variants", () => {
     expect(kernel.state.requestCount.get()).toBe(1);
   });
 
-  it('never toasts under notify: "silent" but still updates the stats (oracle-seal-console semantics)', () => {
+  it('never toasts under notify: "silent" but still updates preview stats', () => {
     const toasts: ToastLog = [];
     const kernel = createConsolePreviewKernel({
       t,
@@ -344,17 +346,20 @@ describe("console preview kernel — console variants", () => {
     expect(kernel.state.requestCount.get()).toBe(0);
   });
 
-  it("buildRequest tolerates a missing values argument like the hand-rolled handlers", async () => {
+  it("buildRequest tolerates but does not approve a missing values argument", async () => {
     const kernel = createConsolePreviewKernel({
       t,
       networkLabel: "net",
       endpointLabel: "endpoint",
       buildResult: httpConsoleConfig.buildResult,
     });
-    // (args[0] ?? {}) — dispatch with no payload previews the field fallbacks.
+    // (args[0] ?? {}) keeps dispatch robust, while the app-level builder
+    // refuses to invent a source URL or extraction path for a missing payload.
     const result = await kernel.buildRequest();
     expect(result.payload.method).toBe("GET");
-    expect(kernel.state.requestCount.get()).toBe(1);
+    expect(result.payload.status).toBe("input_required");
+    expect(result.payload).not.toHaveProperty("digest");
+    expect(kernel.state.requestCount.get()).toBe(0);
   });
 });
 

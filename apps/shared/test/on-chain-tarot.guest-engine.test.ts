@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
 import { createTarotGuestEngine } from "../../on-chain-tarot/src/logic/guest-engine";
 import type { TarotGuestEngineDeps } from "../../on-chain-tarot/src/logic/guest-engine";
-import type { Card } from "../../on-chain-tarot/src/composables/useTarot";
+import type {
+  Card,
+  TarotReadingMode,
+} from "../../on-chain-tarot/src/composables/useTarot";
 
 function makeObs<T>(initial: T) {
   return createObservable<T>(initial);
@@ -12,10 +15,10 @@ function makeObs<T>(initial: T) {
 function stubRandomInts(values: number[]): void {
   const queue = [...values];
   vi.stubGlobal("crypto", {
-    getRandomValues(array: Uint32Array) {
+    getRandomValues: vi.fn((array: Uint32Array) => {
       array[0] = queue.shift() ?? 0;
       return array;
-    },
+    }),
   });
 }
 
@@ -34,13 +37,11 @@ function makeStorage(initial: Record<string, unknown> = {}) {
 
 function setup(initialStorage: Record<string, unknown> = {}) {
   const drawn = makeObs<Card[]>([]);
-  const readingMode = makeObs<"idle" | "oracle">("idle");
+  const readingMode = makeObs<TarotReadingMode>("idle");
   const readingsCount = makeObs(0);
   const prepaidCredit = makeObs(1.5);
   const isLoading = makeObs(false);
   const question = makeObs("Will I win?");
-  const submit = vi.fn(async (_score: number | string) => {});
-  const get = vi.fn(async (_limit?: number) => []);
   const storage = makeStorage(initialStorage);
   const setStatus = vi.fn();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -53,7 +54,6 @@ function setup(initialStorage: Record<string, unknown> = {}) {
     prepaidCredit,
     isLoading,
     question,
-    guestLeaderboard: { submit, get },
     storage,
     t,
     setStatus,
@@ -67,8 +67,6 @@ function setup(initialStorage: Record<string, unknown> = {}) {
     prepaidCredit,
     isLoading,
     question,
-    submit,
-    get,
     storage,
     setStatus,
   };
@@ -90,10 +88,9 @@ describe("on-chain-tarot guest engine", () => {
     expect(h.drawn.get()).toEqual([]);
     expect(h.readingMode.get()).toBe("idle");
     expect(h.isLoading.get()).toBe(false);
-    expect(h.question.get()).toBe("");
+    expect(h.question.get()).toBe("questionPresetDecision");
     expect(h.prepaidCredit.get()).toBe(0);
     expect(h.readingsCount.get()).toBe(4);
-    expect(h.submit).not.toHaveBeenCalled();
   });
 
   it("draws three distinct local cards and writes only the guest reading count", async () => {
@@ -107,14 +104,53 @@ describe("on-chain-tarot guest engine", () => {
     expect(cards).toHaveLength(3);
     expect(new Set(cards.map((card) => card.id)).size).toBe(3);
     expect(cards.map((card) => card.id)).toEqual([0, 1, 2]);
-    expect(h.readingMode.get()).toBe("oracle");
+    expect(h.readingMode.get()).toBe("local");
     expect(h.readingsCount.get()).toBe(2);
     expect(h.question.get()).toBe("");
     expect(h.isLoading.get()).toBe(false);
     expect(h.storage.set).toHaveBeenCalledWith("guest:readings", 2);
-    expect(h.submit).toHaveBeenCalledTimes(1);
-    expect(h.submit).toHaveBeenCalledWith(2);
-    expect(h.get).not.toHaveBeenCalled();
+  });
+
+  it("rejects modulo-biased values before accepting a secure random sample", async () => {
+    // UINT32_MAX falls in the incomplete range for a 78-card deck and must be
+    // discarded. The following zero values produce ids 0, 1 and 2.
+    stubRandomInts([0xffff_ffff, 0, 0, 0]);
+    const h = setup();
+
+    await h.engine.draw();
+
+    expect(h.drawn.get().map((card) => card.id)).toEqual([0, 1, 2]);
+    expect(globalThis.crypto.getRandomValues).toHaveBeenCalledTimes(4);
+  });
+
+  it("fails closed when the device has no secure random generator", async () => {
+    vi.stubGlobal("crypto", undefined);
+    const h = setup();
+
+    await expect(h.engine.draw()).rejects.toThrow("secureRandomUnavailable");
+
+    expect(h.drawn.get()).toEqual([]);
+    expect(h.readingMode.get()).toBe("idle");
+    expect(h.isLoading.get()).toBe(false);
+    expect(h.storage.set).not.toHaveBeenCalled();
+  });
+
+  it("keeps the reading playable when local tally storage is unavailable", async () => {
+    stubRandomInts([0, 0, 0]);
+    const h = setup();
+    h.storage.get.mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
+    h.storage.set.mockImplementation(() => {
+      throw new Error("quota exceeded");
+    });
+
+    await expect(h.engine.draw()).resolves.toBeUndefined();
+
+    expect(h.drawn.get()).toHaveLength(3);
+    expect(h.readingMode.get()).toBe("local");
+    expect(h.readingsCount.get()).toBe(1);
+    expect(h.isLoading.get()).toBe(false);
   });
 
   it("ignores a draw request while a local reading is already loading", async () => {
@@ -124,7 +160,6 @@ describe("on-chain-tarot guest engine", () => {
     await h.engine.draw();
 
     expect(h.drawn.get()).toEqual([]);
-    expect(h.submit).not.toHaveBeenCalled();
     expect(h.storage.set).not.toHaveBeenCalled();
   });
 

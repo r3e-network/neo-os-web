@@ -3,9 +3,9 @@
   "id": "miniapp-dailycheckin",
   "name": "Daily Check-in",
   "name_zh": "每日签到",
-  "version": "2.0.0",
-  "description": "Check in from the miniapp, track UTC streak progress, and claim milestone GAS rewards through platform OS services.",
-  "description_zh": "在小程序内完成每日签到、查看 UTC 连续进度，并通过平台 OS 服务领取里程碑 GAS 奖励。",
+  "version": "2.1.0",
+  "description": "A sunlit daily ritual for protecting an on-chain UTC streak and unlocking live day-7 and day-14 GAS milestones.",
+  "description_zh": "阳光明亮的每日签到仪式：守护链上 UTC 连续记录，并解锁真实的第 7 天与第 14 天 GAS 里程碑奖励。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -25,6 +25,20 @@
     "neo-n3-mainnet": "0x25db219a701a2b23130788723fcf9a2e76857235",
     "neo-n3-testnet": "0x25db219a701a2b23130788723fcf9a2e76857235"
   },
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deployed",
+      "contract_hash": "0x25db219a701a2b23130788723fcf9a2e76857235",
+      "reason": "Read-only N3Index verification confirmed MiniAppDailyCheckin, NEF checksum 170189676, the complete check-in/claim ABI and events, isPaused=false, 0.001 GAS fee, 0.01/0.02 GAS milestones, and a 1.002 GAS reward pool.",
+      "verified_at": "2026-07-11T00:00:00Z"
+    },
+    "neo-n3-testnet": {
+      "status": "deployed",
+      "contract_hash": "0x25db219a701a2b23130788723fcf9a2e76857235",
+      "reason": "Read-only N3Index verification confirmed the byte-identical business deployment, isPaused=false, live reward configuration, and a 1.001 GAS reward pool. No funded write was submitted in this pass.",
+      "verified_at": "2026-07-11T00:00:00Z"
+    }
+  },
   "contract_domains": {
     "neo-n3-mainnet": "dailycheckin.miniapp.neo"
   },
@@ -41,23 +55,24 @@
   "permissions": [
     "invoke:primary",
     "read:blockchain",
-    "checkin",
-    "invoke:shared-runtime"
+    "write:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://daily-checkin"
   },
   "stateSource": {
-    "type": "platform-storage",
+    "type": "n3index",
     "chain": "neo-n3-mainnet",
     "endpoints": [
-      "https://api.n3index.dev",
-      "/api/edge/os-checkin-streak",
-      "/api/edge/os-checkin-checkin",
-      "/api/edge/os-checkin-claim"
+      "https://api.n3index.dev"
     ]
+  },
+  "operation_panel": {
+    "title": "Daily Check-in",
+    "subtitle": "Check in, claim, inspect history, and recover transactions inside the designed streak ritual. The host does not duplicate these actions as parameter forms.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -66,7 +81,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": true,
   "featured_order": 4,
   "technologies": {

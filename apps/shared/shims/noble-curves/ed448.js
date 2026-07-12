@@ -398,4 +398,3 @@ export const hashToDecaf448 = (msg, options) => {
     return P;
 };
 export const hash_to_decaf448 = hashToDecaf448; // legacy
-//# sourceMappingURL=ed448.js.map

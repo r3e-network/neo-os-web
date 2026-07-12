@@ -1,12 +1,4 @@
-/**
- * useAAAccountLab -- Domain logic for AA Account Lab (OS Services)
- *
- * Uses createObservable instead of Vue ref/computed/reactive.
- * Called once during setup, returns observables that React components subscribe to.
- */
-
-import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createObservable, type Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import {
@@ -23,296 +15,496 @@ import {
 import {
   getExternalIntegrationConfig,
   getNetwork,
+  type NeoNetwork,
 } from "@shared/constants/rpc";
+import {
+  AA_ACCOUNT_CONFIRMATION_ATTEMPTS,
+  AA_ACCOUNT_CONFIRMATION_DELAY_MS,
+  AA_ACCOUNT_PENDING_KEY,
+  isPendingAARegistration,
+  normalizeAAHash,
+  readAARegistrationOutcome,
+  registrationEventMatches,
+  type AARegistrationOutcome,
+  type PendingAARegistration,
+} from "../registration-recovery";
+
+const ZERO_HASH = "0x0000000000000000000000000000000000000000";
+
+export interface AAAccountSnapshot {
+  accountId: string;
+  verifier: string;
+  hook: string;
+  backupOwner: string;
+  escapeTimelock: number;
+  escapeActive: boolean;
+}
+
+export type AARegistrationResult =
+  | { status: "confirmed"; txid: string; accountId: string }
+  | { status: "pending"; txid: string; accountId: string }
+  | { status: "fault"; txid: string; accountId: string };
 
 export interface UseAAAccountLabOptions {
   app: MiniAppFramework;
   storageService: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
+  outcomeReader?: (pending: PendingAARegistration) => Promise<AARegistrationOutcome>;
+  sleep?: (milliseconds: number) => Promise<void>;
 }
 
-export function useAAAccountLab({ app, storageService, t }: UseAAAccountLabOptions) {
-  const network = getNetwork();
-  const integration = getExternalIntegrationConfig(network);
-  const aaCore = integration.contracts.aaCore;
-  const defaultVerifier = integration.contracts.aaWeb3AuthVerifier;
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
+}
 
-  // Form state (plain objects, not reactive -- mutations happen through actions)
+function explicitNetwork(value: unknown): NeoNetwork | "" {
+  const normalized = clean(value).toLowerCase();
+  if (normalized === "mainnet" || normalized === "neo-n3-mainnet") return "mainnet";
+  if (normalized === "testnet" || normalized === "neo-n3-testnet") return "testnet";
+  return "";
+}
+
+export function useAAAccountLab({
+  app,
+  storageService,
+  t,
+  outcomeReader = readAARegistrationOutcome,
+  sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+}: UseAAAccountLabOptions) {
+  const initialNetwork = getNetwork();
+  const initialIntegration = getExternalIntegrationConfig(initialNetwork);
+
   const inspectForm = { accountIdInput: "" };
   const registerForm = {
     accountIdInput: "",
-    verifierHash: defaultVerifier,
+    verifierHash: initialIntegration.contracts.aaWeb3AuthVerifier,
     verifierParamsHex: "",
     hookHash: "",
     backupOwner: "",
     escapeTimelock: "2592000",
   };
 
-  // Inspected state
   const currentVerifier = createObservable(t("notAvailable"));
   const currentHook = createObservable(t("notAvailable"));
   const currentBackupOwner = createObservable(t("notAvailable"));
-  // Escape recovery posture (configured at registration). Read alongside the
-  // bindings so the recovery window this app is about can actually be verified.
   const currentEscapeTimelock = createObservable(t("notAvailable"));
   const currentEscapeActive = createObservable(t("notAvailable"));
-  // Explicit flag: true once a read has completed successfully, regardless of
-  // whether the account has a verifier set. Distinguishes "not inspected yet"
-  // from "inspected, verifier is empty".
+  const inspectedAccountId = createObservable("");
   const hasInspected = createObservable(false);
-
-  // Loading states
   const isInspecting = createObservable(false);
   const isSubmitting = createObservable(false);
+  const isRecovering = createObservable(false);
+  const activeNetwork = createObservable<NeoNetwork>(initialNetwork);
+  const aaCoreHash = createObservable(initialIntegration.contracts.aaCore);
+  const defaultVerifierHash = createObservable(initialIntegration.contracts.aaWeb3AuthVerifier);
+  const pendingRegistration = createObservable<PendingAARegistration | null>(null);
+  const pendingStorageHealthy = createObservable(true);
+  const lastStatus = createObservable(t("statusReady"));
+  const lastError = createObservable("");
+  const lastSuccess = createObservable("");
 
-  // Display values
+  let inspectEpoch = 0;
+  let pendingLoaded = false;
+
   const aaCoreDisplay: Observable<string> = {
-    get: () => aaCore,
+    get: () => aaCoreHash.get(),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (listener) => aaCoreHash.subscribe(listener),
   };
-
   const defaultVerifierDisplay: Observable<string> = {
-    get: () => defaultVerifier,
+    get: () => defaultVerifierHash.get(),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (listener) => defaultVerifierHash.subscribe(listener),
   };
-
   const networkDisplay: Observable<string> = {
-    get: () => network,
+    get: () => activeNetwork.get(),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (listener) => activeNetwork.subscribe(listener),
   };
-
-  // Connected wallet as a 0x script hash so the PlayArea can prefill the backup
-  // owner and flag a mismatch (the backup owner must witness registerAccount).
   const connectedWalletDisplay: Observable<string> = {
-    get: () => {
-      const hash = connectedWalletHash();
-      return hash ? `0x${hash}` : "";
-    },
+    get: () => connectedWalletHash(),
     set: () => {},
-    subscribe: (fn) => app.chain.address.subscribe(fn),
+    subscribe: (listener) => app.chain.address.subscribe(listener),
   };
 
-  // Helpers
-  // Inspect accepts a literal 20-byte accountId (the value the contract stores).
-  // V3 ids are registration-parameter hashes, so a free seed can never map to a
-  // registered account — only a canonical 0x/40-hex hash is meaningful here.
+  function connectedWalletHash(): string {
+    const address = app.chain.address.get();
+    if (!address) return "";
+    return normalizeAAHash(address);
+  }
+
   function normalizeAccountIdHash(input: string): string {
-    const normalized = normalizeScriptHash(String(input || "").trim()).replace(/^0x/, "");
-    if (!/^[0-9a-f]{40}$/i.test(normalized)) {
-      throw new Error(t("invalidAccountId"));
-    }
+    const normalized = normalizeScriptHash(clean(input)).replace(/^0x/, "");
+    if (!/^[0-9a-f]{40}$/i.test(normalized)) throw new Error(t("invalidAccountId"));
     return normalized.toLowerCase();
   }
 
   function normalizeHashOrZero(value: string): string {
-    const trimmed = value.trim();
-    if (!trimmed) return "0x0000000000000000000000000000000000000000";
-    const normalized = trimmed.startsWith("N") ? addressToScriptHash(trimmed) : normalizeScriptHash(trimmed);
+    const trimmed = clean(value);
+    if (!trimmed) return ZERO_HASH;
+    const normalized = trimmed.startsWith("N")
+      ? addressToScriptHash(trimmed)
+      : normalizeScriptHash(trimmed);
     if (!/^0x[0-9a-f]{40}$/i.test(normalized)) throw new Error(t("invalidHash"));
-    return normalized;
+    return normalized.toLowerCase();
   }
 
   function normalizeBackupOwner(value: string): string {
-    const normalized = value.trim().startsWith("N") ? addressToScriptHash(value.trim()) : normalizeScriptHash(value.trim());
-    if (!/^0x[0-9a-f]{40}$/i.test(normalized)) throw new Error(t("invalidBackupOwner"));
+    const normalized = normalizeAAHash(value);
+    if (!normalized) throw new Error(t("invalidBackupOwner"));
     return normalized;
   }
 
-  // The connected wallet as a bare (no 0x) lowercase script hash, or "" when no
-  // wallet/derivation. registerAccount aborts "Backup owner witness required"
-  // unless the backup owner signs, so the backup owner must equal the connected
-  // wallet.
-  function connectedWalletHash(): string {
-    const addr = app.chain.address.get();
-    if (!addr) return "";
-    // framework-exempt: false-not-throw comparison key — an unparsable wallet
-    // address must compare as "" (skip the pre-flight check), not throw the
-    // way app.chain.arg.hash160 / app.wallet.scriptHash() would.
-    try {
-      const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
-      return /^[0-9a-f]{40}$/.test(hash) ? hash : "";
-    } catch {
-      return "";
-    }
-  }
-
-  // Parse + validate the escape timelock before any chain round-trip. Rejects
-  // non-integers, 0, negatives, and out-of-range values (uint32 / 7-90 day
-  // bounds enforced by the contract) with a clear, immediate, localized error
-  // instead of a confusing low-level wallet failure.
   function parseEscapeTimelock(value: string): number {
-    const trimmed = String(value || "").trim();
+    const trimmed = clean(value);
     if (!/^[0-9]+$/.test(trimmed)) throw new Error(t("invalidTimelock"));
     const seconds = Number.parseInt(trimmed, 10);
     if (
       !Number.isInteger(seconds) ||
       seconds < AA_REGISTRATION_MIN_ESCAPE_TIMELOCK_SECONDS ||
       seconds > AA_REGISTRATION_MAX_ESCAPE_TIMELOCK_SECONDS
-    ) {
-      throw new Error(t("invalidTimelock"));
-    }
+    ) throw new Error(t("invalidTimelock"));
     return seconds;
   }
 
-  // Strip an optional 0x prefix and validate that the verifier params are valid
-  // even-length hex before sending as a ByteArray arg, so odd-length or non-hex
-  // input surfaces a localized error instead of an opaque serialization failure.
   function sanitizeVerifierParams(value: string): string {
-    const normalized = String(value || "").trim().replace(/^0x/i, "");
+    const normalized = clean(value).replace(/^0x/i, "");
     if (normalized && (normalized.length % 2 !== 0 || !/^[0-9a-f]*$/i.test(normalized))) {
       throw new Error(t("invalidVerifierParams"));
     }
     return normalized;
   }
 
-  // Hash160 reads come back as little-endian ByteStrings; parseHash160 reverses
-  // them to the canonical 0x display form so they match the hashes the user
-  // typed (parseInvokeResult would otherwise show the byte-reversed value or, if
-  // every byte is printable, garbage text). Empty/zero reads fall back to "—".
-  function formatHash160Read(result: unknown): string {
-    const display = parseHash160(result);
-    if (!display || /^0x0{40}$/i.test(display)) return t("notAvailable");
-    return display;
+  function strictHashRead(value: unknown, label: string): string {
+    const chainHash = parseHash160(value);
+    if (/^0x[0-9a-f]{40}$/i.test(chainHash)) return chainHash.toLowerCase();
+    const parsed = clean(parseInvokeResult(value));
+    if (/^0x[0-9a-f]{40}$/i.test(parsed)) return normalizeScriptHash(parsed).toLowerCase();
+    throw new Error(t("accountReadUnavailable", { field: label }));
+  }
+
+  function strictIntegerRead(value: unknown, label: string): number {
+    const parsed = parseInvokeResult(value);
+    const numeric = typeof parsed === "number" ? parsed : Number(clean(parsed));
+    if (!Number.isSafeInteger(numeric) || numeric < 0) {
+      throw new Error(t("accountReadUnavailable", { field: label }));
+    }
+    return numeric;
+  }
+
+  function strictBooleanRead(value: unknown, label: string): boolean {
+    const parsed = parseInvokeResult(value);
+    if (typeof parsed === "boolean") return parsed;
+    if (parsed === 0 || parsed === "0") return false;
+    if (parsed === 1 || parsed === "1") return true;
+    throw new Error(t("accountReadUnavailable", { field: label }));
+  }
+
+  function displayHash(value: string): string {
+    return value && value !== ZERO_HASH ? value : t("notAvailable");
   }
 
   function humanizeEscapeTimelock(seconds: number): string {
     if (!Number.isFinite(seconds) || seconds <= 0) return t("notAvailable");
-    const days = seconds / 86400;
-    const rounded = Number.isInteger(days) ? String(days) : days.toFixed(1);
-    return t("timelockDays", { days: rounded });
+    const days = seconds / 86_400;
+    return t("timelockDays", { days: Number.isInteger(days) ? String(days) : days.toFixed(1) });
+  }
+
+  async function resolveContext(requireWallet: boolean) {
+    if (requireWallet) await app.chain.ensureWallet();
+    const launch = explicitNetwork(app.platform.launch.network);
+    let detected: NeoNetwork | "" = "";
+    try {
+      detected = explicitNetwork(await app.chain.detectNetwork());
+    } catch {
+      // Launch-bound reads remain possible while wallet network detection is unavailable.
+    }
+    if (launch && detected && launch !== detected) throw new Error(t("networkMismatch"));
+    const network = detected || launch || getNetwork();
+    const integration = getExternalIntegrationConfig(network);
+    const coreHash = normalizeAAHash(integration.contracts.aaCore);
+    const verifier = normalizeAAHash(integration.contracts.aaWeb3AuthVerifier);
+    const configured = normalizeAAHash(app.chain.contractAddress.get());
+    if (!coreHash || !verifier || (configured && configured !== coreHash)) {
+      throw new Error(t("networkMismatch"));
+    }
+    activeNetwork.set(network);
+    aaCoreHash.set(coreHash);
+    defaultVerifierHash.set(verifier);
+    if (!clean(registerForm.verifierHash)) registerForm.verifierHash = verifier;
+    return { network, coreHash, defaultVerifier: verifier };
+  }
+
+  async function readAccountSnapshot(
+    accountId: string,
+    context: { network: NeoNetwork; coreHash: string },
+  ): Promise<AAAccountSnapshot> {
+    const accountIdArg = app.chain.arg.hash160(accountId);
+    const options = { scriptHash: context.coreHash };
+    const [verifier, hook, backupOwner, timelock, escapeActive] = await Promise.all([
+      app.chain.readRaw("getVerifier", [accountIdArg], options),
+      app.chain.readRaw("getHook", [accountIdArg], options),
+      app.chain.readRaw("getBackupOwner", [accountIdArg], options),
+      app.chain.readRaw("getEscapeTimelock", [accountIdArg], options),
+      app.chain.readRaw("isEscapeActive", [accountIdArg], options),
+    ]);
+    return {
+      accountId: normalizeAAHash(accountId),
+      verifier: strictHashRead(verifier, "verifier"),
+      hook: strictHashRead(hook, "hook"),
+      backupOwner: strictHashRead(backupOwner, "backup owner"),
+      escapeTimelock: strictIntegerRead(timelock, "escape timelock"),
+      escapeActive: strictBooleanRead(escapeActive, "escape status"),
+    };
+  }
+
+  function applySnapshot(snapshot: AAAccountSnapshot) {
+    currentVerifier.set(displayHash(snapshot.verifier));
+    currentHook.set(displayHash(snapshot.hook));
+    currentBackupOwner.set(displayHash(snapshot.backupOwner));
+    currentEscapeTimelock.set(humanizeEscapeTimelock(snapshot.escapeTimelock));
+    currentEscapeActive.set(snapshot.escapeActive ? t("escapeActive") : t("escapeInactive"));
+    inspectedAccountId.set(snapshot.accountId);
+    hasInspected.set(true);
   }
 
   const inspectAccount = async () => {
+    const epoch = ++inspectEpoch;
+    isInspecting.set(true);
+    lastError.set("");
     try {
-      isInspecting.set(true);
-      const accountIdHash = normalizeAccountIdHash(inspectForm.accountIdInput);
-      const accountId = `0x${accountIdHash}`;
-      const accountIdArg = app.chain.arg.hash160(accountId);
-
-      const [verifierResult, hookResult, backupResult, timelockResult, escapeActiveResult] =
-        await Promise.all([
-          app.chain.readRaw("getVerifier", [accountIdArg], { scriptHash: aaCore }),
-          app.chain.readRaw("getHook", [accountIdArg], { scriptHash: aaCore }),
-          app.chain.readRaw("getBackupOwner", [accountIdArg], { scriptHash: aaCore }),
-          app.chain.readRaw("getEscapeTimelock", [accountIdArg], { scriptHash: aaCore }),
-          app.chain.readRaw("isEscapeActive", [accountIdArg], { scriptHash: aaCore }),
-        ]);
-
-      currentVerifier.set(formatHash160Read(verifierResult));
-      currentHook.set(formatHash160Read(hookResult));
-      currentBackupOwner.set(formatHash160Read(backupResult));
-
-      const timelockSeconds = Number(parseInvokeResult(timelockResult) ?? 0);
-      currentEscapeTimelock.set(humanizeEscapeTimelock(timelockSeconds));
-      currentEscapeActive.set(
-        parseInvokeResult(escapeActiveResult) ? t("escapeActive") : t("escapeInactive"),
-      );
-      // The read succeeded: surface the detail grid even when verifier/hook are
-      // empty, rather than masking it behind the "not inspected" placeholder.
-      hasInspected.set(true);
-
-      storageService.set(`account:${accountIdHash}`, {
-        verifier: currentVerifier.get(),
-        hook: currentHook.get(),
-        backupOwner: currentBackupOwner.get(),
+      const context = await resolveContext(false);
+      const accountId = `0x${normalizeAccountIdHash(inspectForm.accountIdInput)}`;
+      const snapshot = await readAccountSnapshot(accountId, context);
+      if (epoch !== inspectEpoch) return;
+      applySnapshot(snapshot);
+      lastStatus.set(t("inspectSuccess"));
+      await storageService.set(`account:${accountId.slice(2)}`, {
+        ...snapshot,
+        network: context.network,
         inspectedAt: Date.now(),
-      }).catch(() => {});
-    } catch (error: unknown) {
+      }).catch(() => undefined);
+    } catch (error) {
+      if (epoch === inspectEpoch) {
+        hasInspected.set(false);
+        inspectedAccountId.set("");
+        lastError.set(error instanceof Error ? error.message : t("accountReadFailed"));
+      }
       throw error;
     } finally {
-      isInspecting.set(false);
+      if (epoch === inspectEpoch) isInspecting.set(false);
     }
   };
 
-  const submitRegister = async () => {
+  async function persistPending(value: PendingAARegistration): Promise<boolean> {
+    pendingRegistration.set(value);
     try {
-      isSubmitting.set(true);
-      const verifierHash = normalizeHashOrZero(registerForm.verifierHash);
-      const hookHash = normalizeHashOrZero(registerForm.hookHash);
-      const backupOwner = normalizeBackupOwner(registerForm.backupOwner);
+      await storageService.set(AA_ACCOUNT_PENDING_KEY, value);
+      if (typeof storageService.get === "function") {
+        const stored = await storageService.get(AA_ACCOUNT_PENDING_KEY);
+        const healthy = isPendingAARegistration(stored) && stored.txid.toLowerCase() === value.txid.toLowerCase();
+        pendingStorageHealthy.set(healthy);
+        return healthy;
+      }
+      pendingStorageHealthy.set(true);
+      return true;
+    } catch {
+      pendingStorageHealthy.set(false);
+      return false;
+    }
+  }
+
+  async function clearPending(): Promise<void> {
+    pendingRegistration.set(null);
+    try {
+      if (typeof storageService.delete === "function") await storageService.delete(AA_ACCOUNT_PENDING_KEY);
+      pendingStorageHealthy.set(true);
+    } catch {
+      pendingStorageHealthy.set(false);
+    }
+  }
+
+  function snapshotMatches(pending: PendingAARegistration, snapshot: AAAccountSnapshot): boolean {
+    return snapshot.accountId === normalizeAAHash(pending.accountId) &&
+      snapshot.verifier === normalizeAAHash(pending.verifier) &&
+      snapshot.hook === clean(pending.hook).toLowerCase() &&
+      snapshot.backupOwner === normalizeAAHash(pending.backupOwner) &&
+      snapshot.escapeTimelock === pending.escapeTimelock &&
+      snapshot.escapeActive === false;
+  }
+
+  async function settlePending(
+    pending: PendingAARegistration,
+    suppliedOutcome?: AARegistrationOutcome,
+  ): Promise<AARegistrationResult> {
+    const context = await resolveContext(true);
+    const actor = connectedWalletHash();
+    if (
+      context.network !== pending.network ||
+      context.coreHash !== normalizeAAHash(pending.coreHash) ||
+      actor !== normalizeAAHash(pending.backupOwner)
+    ) {
+      lastError.set(t("pendingContextMismatch"));
+      lastStatus.set(t("registrationPending"));
+      return { status: "pending", txid: pending.txid, accountId: pending.accountId };
+    }
+
+    for (let attempt = 0; attempt < AA_ACCOUNT_CONFIRMATION_ATTEMPTS; attempt += 1) {
+      const outcome = suppliedOutcome ?? await outcomeReader(pending);
+      if (outcome.state === "fault") {
+        await clearPending();
+        lastError.set(t("registrationFaulted"));
+        lastStatus.set(t("registrationFaulted"));
+        return { status: "fault", txid: pending.txid, accountId: pending.accountId };
+      }
+      if (outcome.state === "halt") {
+        if (!registrationEventMatches(pending, outcome)) {
+          lastError.set(t("registrationEvidenceMismatch"));
+          lastStatus.set(t("registrationPending"));
+          return { status: "pending", txid: pending.txid, accountId: pending.accountId };
+        }
+        try {
+          const snapshot = await readAccountSnapshot(pending.accountId, context);
+          if (snapshotMatches(pending, snapshot)) {
+            applySnapshot(snapshot);
+            inspectForm.accountIdInput = pending.accountId;
+            await clearPending();
+            lastError.set("");
+            lastSuccess.set(t("registrationConfirmed"));
+            lastStatus.set(t("registrationConfirmed"));
+            return { status: "confirmed", txid: pending.txid, accountId: pending.accountId };
+          }
+        } catch {
+          // The application log is final but the read node can lag. Retry readback.
+        }
+      }
+      if (suppliedOutcome || attempt === AA_ACCOUNT_CONFIRMATION_ATTEMPTS - 1) break;
+      await sleep(AA_ACCOUNT_CONFIRMATION_DELAY_MS);
+    }
+    lastError.set("");
+    lastSuccess.set("");
+    lastStatus.set(t("registrationPending"));
+    return { status: "pending", txid: pending.txid, accountId: pending.accountId };
+  }
+
+  const submitRegister = async (): Promise<AARegistrationResult> => {
+    if (pendingRegistration.get()) throw new Error(t("pendingBlocksRegistration"));
+    isSubmitting.set(true);
+    lastError.set("");
+    lastSuccess.set("");
+    try {
+      const context = await resolveContext(true);
+      const verifier = normalizeHashOrZero(registerForm.verifierHash);
+      const hook = normalizeHashOrZero(registerForm.hookHash);
+      const backupOwner = normalizeBackupOwner(registerForm.backupOwner || connectedWalletHash());
       const escapeTimelock = parseEscapeTimelock(registerForm.escapeTimelock);
       const verifierParams = sanitizeVerifierParams(registerForm.verifierParamsHex);
-
-      // The backup owner must witness registerAccount (contract aborts "Backup
-      // owner witness required" otherwise). Only the connected wallet can sign,
-      // so block any backup owner that is not the connected wallet before the
-      // user pays a doomed transaction.
+      if (
+        verifier === context.defaultVerifier &&
+        !/^04[0-9a-f]{128}$/i.test(verifierParams)
+      ) throw new Error(t("invalidWeb3AuthPublicKey"));
       const walletHash = connectedWalletHash();
-      if (walletHash && backupOwner.replace(/^0x/, "").toLowerCase() !== walletHash) {
-        throw new Error(t("backupOwnerMustSign"));
-      }
+      if (!walletHash || backupOwner !== walletHash) throw new Error(t("backupOwnerMustSign"));
+      if (verifier === ZERO_HASH) throw new Error(t("invalidHash"));
 
-      // Derive the only accountId the contract will accept (the seed text is
-      // carried into verifierParams, matching computeRegistrationAccountId).
-      const accountIdHash = deriveRegistrationAccountIdHash({
-        verifierContractHash: verifierHash,
+      const accountId = `0x${deriveRegistrationAccountIdHash({
+        verifierContractHash: verifier,
         verifierParamsHex: verifierParams,
-        hookContractHash: hookHash,
+        hookContractHash: hook,
         backupOwnerAddress: backupOwner,
         escapeTimelock,
-      });
+      })}`.toLowerCase();
 
-      await app.chain.invoke(
-        "registerAccount",
-        [
-          app.chain.arg.hash160(`0x${accountIdHash}`),
-          app.chain.arg.hash160(verifierHash),
-          app.chain.arg.byteArray(verifierParams),
-          app.chain.arg.hash160(hookHash),
-          app.chain.arg.hash160(backupOwner),
-          app.chain.arg.integer(escapeTimelock),
-        ],
-        { scriptHash: aaCore },
-      );
+      const preflight = await readAccountSnapshot(accountId, context);
+      if (
+        preflight.verifier !== ZERO_HASH ||
+        preflight.hook !== ZERO_HASH ||
+        preflight.backupOwner !== ZERO_HASH ||
+        preflight.escapeTimelock !== 0
+      ) throw new Error(t("accountAlreadyRegistered"));
 
-      storageService.set(`registered:${accountIdHash}`, {
-        verifier: verifierHash,
-        hook: hookHash,
+      const draft = {
+        version: 1 as const,
+        network: context.network,
+        coreHash: context.coreHash,
+        accountId,
+        verifier,
+        hook,
         backupOwner,
         escapeTimelock,
-        registeredAt: Date.now(),
-      }).catch(() => {});
+        createdAt: Date.now(),
+      };
+      let tracked: PendingAARegistration | null = null;
+      let persistPromise: Promise<boolean> | null = null;
+      const track = (txid: string) => {
+        const candidate = { ...draft, txid: clean(txid) };
+        if (!isPendingAARegistration(candidate)) return;
+        tracked = candidate;
+        persistPromise = persistPending(candidate);
+        lastStatus.set(t("registrationPending"));
+      };
 
-      // Pin the registered id back into the inspect form and confirm on-chain:
-      // poll getVerifier a few times so the inspector flips to the fresh state
-      // (or surfaces "pending confirmation") instead of holding stale/empty data.
-      inspectForm.accountIdInput = `0x${accountIdHash}`;
-      await confirmRegistration(accountIdHash);
-    } catch (error: unknown) {
+      try {
+        const result = await app.chain.invoke(
+          "registerAccount",
+          [
+            app.chain.arg.hash160(accountId),
+            app.chain.arg.hash160(verifier),
+            app.chain.arg.byteArray(verifierParams),
+            app.chain.arg.hash160(hook),
+            app.chain.arg.hash160(backupOwner),
+            app.chain.arg.integer(escapeTimelock),
+          ],
+          { scriptHash: context.coreHash, onTransactionSent: track },
+        );
+        if (!tracked) track(clean((result as { txid?: unknown } | null)?.txid));
+      } catch (error) {
+        if (persistPromise) await persistPromise;
+        const saved = pendingRegistration.get();
+        if (saved) return { status: "pending", txid: saved.txid, accountId };
+        throw error;
+      }
+      const saved = pendingRegistration.get();
+      if (!saved) throw new Error(t("registrationNotTracked"));
+      if (persistPromise) await persistPromise;
+      return await settlePending(saved);
+    } catch (error) {
+      if (!pendingRegistration.get()) {
+        lastError.set(error instanceof Error ? error.message : t("registrationFailed"));
+      }
       throw error;
     } finally {
       isSubmitting.set(false);
     }
   };
 
-  // Poll getVerifier after a register broadcast so the inspector reflects the
-  // freshly registered account. RPC nodes lag behind the tx, so retry a few
-  // times; a non-empty read means the registration executed.
-  async function confirmRegistration(accountIdHash: string): Promise<void> {
-    const accountId = `0x${accountIdHash}`;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 4000 : 5000));
-      try {
-        const verifier = await app.chain.readRaw(
-          "getVerifier",
-          [app.chain.arg.hash160(accountId)],
-          { scriptHash: aaCore },
-        );
-        const display = parseHash160(verifier);
-        if (display && !/^0x0{40}$/i.test(display)) {
-          await inspectAccount();
-          return;
-        }
-      } catch {
-        // RPC hiccup or node lag — keep retrying within the attempt budget.
-      }
+  const recoverPendingRegistration = async (outcome?: AARegistrationOutcome) => {
+    const pending = pendingRegistration.get();
+    if (!pending || isRecovering.get()) return null;
+    isRecovering.set(true);
+    try {
+      return await settlePending(pending, outcome);
+    } finally {
+      isRecovering.set(false);
     }
-  }
+  };
 
-  const loadAll = async () => {};
+  const loadAll = async () => {
+    await resolveContext(false);
+    if (pendingLoaded) return;
+    pendingLoaded = true;
+    try {
+      const value = await storageService.get(AA_ACCOUNT_PENDING_KEY);
+      if (isPendingAARegistration(value)) {
+        pendingRegistration.set(value);
+        lastStatus.set(t("registrationPending"));
+      } else if (value && typeof storageService.delete === "function") {
+        await storageService.delete(AA_ACCOUNT_PENDING_KEY);
+      }
+    } catch {
+      pendingStorageHealthy.set(false);
+    }
+  };
 
   return {
     inspectForm,
@@ -322,16 +514,24 @@ export function useAAAccountLab({ app, storageService, t }: UseAAAccountLabOptio
     currentBackupOwner,
     currentEscapeTimelock,
     currentEscapeActive,
+    inspectedAccountId,
     hasInspected,
     isInspecting,
     isSubmitting,
+    isRecovering,
     aaCoreDisplay,
     defaultVerifierDisplay,
     networkDisplay,
     connectedWalletDisplay,
-    aaCore,
+    pendingRegistration,
+    pendingStorageHealthy,
+    lastStatus,
+    lastError,
+    lastSuccess,
     inspectAccount,
     submitRegister,
+    recoverPendingRegistration,
+    readAccountSnapshot,
     loadAll,
   };
 }

@@ -1,10 +1,11 @@
 {
   "name": "miniapp-aa-market-hub",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "cd ../shared && npx vitest run test/aa-market-hub.integration.test.tsx test/aa-market-hub.playarea.test.tsx test/aa-market-hub.utils.test.ts test/aa-market-hub.production.test.ts"
   },
   "dependencies": {},
   "devDependencies": {

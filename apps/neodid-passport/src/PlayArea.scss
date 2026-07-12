@@ -2,102 +2,194 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* domain-theme (auto) */
 :root,
 .mx2 {
-  --mx2-brand: #7c3aed;
-  --mx2-brand-hover: #6d28d9;
-  --mx2-brand-light: #f1eafe;
-  --mx2-brand-subtle: #d6c4f7;
-  --mx2-ring: rgba(0, 0, 0, 0.06);
-  --mx2-accent: #d97706;
-  --mx2-accent-strong: #92400e;
-  --mx2-accent-soft: #fdf1e0;
-  --mx2-accent-ink: #6b3410;
+  --mx2-brand: #0b8f83;
+  --mx2-brand-hover: #08756c;
+  --mx2-brand-light: #e9f8f5;
+  --mx2-brand-subtle: #bce5dd;
+  --mx2-accent: #d88a2c;
+  --mx2-accent-strong: #8a5317;
+  --mx2-accent-soft: #fff4df;
+  --mx2-accent-ink: #70420f;
 }
-
 
 .neodid-passport-play-area {
   display: block;
 }
 
+.neodid-passport-play-area .mx2-stage,
+.neodid-passport-play-area .mx2-action-rail,
+.neodid-passport-play-area .mx2-drawer {
+  width: min(100%, 980px);
+  margin-inline: auto;
+}
+
+.neodid-passport-play-area .mx2-stage,
+.neodid-passport-play-area .mx2-stage__scene {
+  overflow: visible;
+  contain: layout;
+}
+
 .neodid-passport-play-area .mx2-stage__title {
-  color: #182336;
-  font-weight: 650;
+  color: #123a3b;
+  font-weight: 780;
 }
 
 .neodid-passport-play-area .mx2-stage__subtitle {
-  color: var(--mx2-text-2);
-  font-weight: 520;
+  max-width: 68ch;
+  color: #536c6d;
+  font-weight: 560;
 }
 
-/* === Scene: passport dossier === */
+.neodid-passport-play-area .mx2-action-rail__row {
+  justify-content: center;
+}
+
+.neodid-passport-play-area .mx2-action-rail__row .mx2-btn--primary {
+  flex: 0 1 224px;
+  width: auto;
+  max-width: min(100%, 224px);
+  background: #0b8f83;
+  box-shadow: 0 9px 22px rgba(11, 143, 131, 0.18);
+  white-space: nowrap;
+}
+
+.neodid-passport-play-area .mx2-action-rail__row .mx2-btn--primary:not(:disabled):hover {
+  background: #08756c;
+}
+
 .did-scene {
-  position: relative;
   width: 100%;
-  min-height: 322px;
   display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(360px, 0.95fr);
+  grid-template-columns: minmax(430px, 1.18fr) minmax(320px, 0.82fr);
   grid-template-areas:
-    "passport lane"
-    "passport route"
+    "identity lane"
+    "identity assurance"
     "status status";
   align-items: start;
-  gap: 16px;
-  padding: 4px 0 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  background-image: none;
-  box-shadow: none;
-  overflow: visible;
+  gap: 14px;
 }
 
-.did-passport,
-.did-issuance,
-.did-credential-lane {
+.did-identity-stage {
+  grid-area: identity;
   position: relative;
+  min-height: 570px;
+  display: grid;
+  align-items: end;
+  overflow: hidden;
+  border: 1px solid #d7e5e1;
+  border-radius: 30px;
+  background: #eef8f5;
+  box-shadow: 0 18px 40px rgba(34, 78, 70, 0.11);
+  isolation: isolate;
+}
+
+.did-identity-stage__art,
+.did-identity-stage__veil {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.did-identity-stage__art {
+  z-index: 0;
+  display: block;
+  object-fit: cover;
+  object-position: 50% 48%;
+  filter: saturate(0.9) contrast(0.95) brightness(1.03);
+  transition: transform 700ms ease;
+}
+
+.did-identity-stage__veil {
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(248, 253, 251, 0.2) 35%,
+    rgba(239, 249, 246, 0.92) 69%,
+    rgba(239, 249, 246, 0.99) 100%
+  );
+}
+
+.did-identity-stage__meta {
+  position: absolute;
   z-index: 2;
-  background: #ffffff;
-  border-radius: 20px;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.did-identity-stage__meta span,
+.did-identity-stage__meta strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid rgba(180, 207, 199, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #315b59;
+  font-size: 10px;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.did-identity-stage__meta strong {
+  max-width: 62%;
+  color: #754817;
+  text-align: right;
 }
 
 .did-passport {
-  grid-area: passport;
-  min-height: 286px;
+  position: relative;
+  z-index: 3;
+  min-width: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
   gap: 14px;
-  padding: 20px;
-  border: 1px solid rgba(8, 153, 129, 0.18);
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.055);
-  transition: border-color 0.25s, box-shadow 0.25s;
-  &.is-resolving { border-color: var(--mx2-accent); box-shadow: 0 0 0 4px rgba(15, 159, 122, 0.12), 0 12px 26px rgba(15, 23, 42, 0.055); }
-  &.is-signed { border-color: var(--mx2-success); }
+  margin: 18px;
+  padding: 18px;
+  border: 1px solid rgba(158, 198, 187, 0.9);
+  border-radius: 23px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 36px rgba(27, 72, 65, 0.13);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
-.did-passport::before {
-  content: none;
+.did-scene[data-state="busy"] .did-passport {
+  border-color: #d88a2c;
+  box-shadow: 0 0 0 4px rgba(216, 138, 44, 0.13), 0 16px 36px rgba(27, 72, 65, 0.13);
+}
+
+.did-scene[data-state="busy"] .did-identity-stage__art {
+  transform: scale(1.018);
+}
+
+.did-passport[data-attached="true"] {
+  border-color: #83cdbd;
 }
 
 .did-passport__cover {
-  position: relative;
-  z-index: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
 }
 
-.did-passport__seal {
-  width: 50px;
-  height: 50px;
-  display: grid;
-  place-items: center;
-  border-radius: 18px;
-  background: #f0fdfa;
-  border: 1px solid rgba(8, 153, 129, 0.2);
-  box-shadow: 0 8px 18px rgba(8, 153, 129, 0.12);
+.did-passport__mark {
+  width: 52px;
+  height: 52px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid #cde4df;
+  border-radius: 17px;
+  box-shadow: 0 7px 17px rgba(22, 99, 89, 0.12);
 }
 
 .did-passport__heading {
@@ -108,181 +200,174 @@
 
 .did-passport__heading span,
 .did-passport__fields small,
-.did-issuance__head span {
-  font-size: 10px;
-  font-weight: 640;
-  color: var(--mx2-ink-soft);
-  text-transform: uppercase;
+.did-credential-lane__head span,
+.did-assurance__head span,
+.did-evidence-list dt {
+  color: #627b79;
+  font-size: 9px;
+  font-weight: 780;
   letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .did-passport__heading strong {
   min-width: 0;
   overflow: hidden;
-  font-size: 27px;
-  font-weight: 640;
-  line-height: 1;
-  color: #182336;
+  color: #143f3e;
+  font-size: 25px;
+  font-weight: 820;
+  line-height: 1.08;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .did-passport__stamp {
   justify-self: end;
-  border: 1px solid rgba(8, 153, 129, 0.18);
-  border-radius: var(--mx2-r-pill);
-  padding: 5px 9px;
-  color: var(--mx2-accent-strong);
-  background: var(--mx2-accent-soft);
-  font-size: 11px;
-  font-weight: 640;
+  max-width: 142px;
+  padding: 6px 9px;
+  border: 1px solid #dfc18d;
+  border-radius: 10px;
+  background: #fff7e8;
+  color: #7a4a15;
+  font-size: 9px;
+  font-weight: 820;
+  line-height: 1.2;
+  text-align: center;
   text-transform: uppercase;
 }
 
-.did-passport__stamp[data-signed="true"] {
-  color: var(--mx2-success);
-  border: 2px solid var(--mx2-success);
-  transform: rotate(-8deg);
+.did-passport__stamp[data-attached="true"] {
+  border: 2px solid #1b8b76;
+  background: #ecf9f5;
+  color: #116554;
+  transform: rotate(-4deg);
 }
 
 .did-passport__fields {
-  position: relative;
-  z-index: 1;
   display: grid;
-  gap: 0;
-  border: 1px solid rgba(31, 41, 55, 0.075);
-  border-radius: 16px;
-  overflow: hidden;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid #e1eae7;
 }
 
-.did-passport__fields span {
+.did-passport__fields > span {
   min-width: 0;
   display: grid;
-  gap: 3px;
-  padding: 12px 14px;
-  background: #ffffff;
-  border-radius: 0;
-  border: 0;
+  gap: 5px;
+  padding: 12px;
 }
 
-.did-passport__fields span + span {
-  border-top: 1px solid rgba(31, 41, 55, 0.065);
+.did-passport__fields > span + span {
+  border-left: 1px solid #e1eae7;
 }
 
 .did-passport__fields strong {
   min-width: 0;
   overflow: hidden;
-  color: var(--mx2-ink);
-  font-family: var(--mx2-mono, ui-monospace, monospace);
-  font-size: 13px;
-  font-weight: 600;
+  color: #173d3b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 690;
+  line-height: 1.32;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .did-passport__footer {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  color: var(--mx2-ink-soft);
-  font-size: 12px;
-  font-weight: 620;
+  gap: 7px;
 }
 
 .did-passport__footer span {
-  border-radius: var(--mx2-r-pill);
-  padding: 6px 10px;
-  background: var(--mx2-surface-2);
-  border: 1px solid rgba(31, 41, 55, 0.08);
+  min-height: 27px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 1px solid #dfe9e6;
+  border-radius: 9px;
+  background: #f7faf9;
+  color: #657a78;
+  font-size: 9px;
+  font-weight: 680;
 }
 
-.did-issuance {
-  grid-area: route;
+.did-passport__footer strong {
+  color: #294e4b;
+}
+
+.did-credential-lane,
+.did-assurance {
+  min-width: 0;
   display: grid;
   align-content: start;
-  gap: 14px;
-  padding: 18px 16px;
-  border: 1px solid rgba(31, 41, 55, 0.065);
-  box-shadow: none;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #dce7e3;
+  border-radius: 22px;
+  background: #ffffff;
 }
 
 .did-credential-lane {
   grid-area: lane;
-  display: grid;
-  gap: 10px;
-  padding: 16px;
-  border: 1px solid rgba(71, 85, 105, 0.11);
-  box-shadow: none;
 }
 
 .did-credential-lane[data-ready="true"] {
-  border-color: rgba(8, 153, 129, 0.24);
-  box-shadow: inset 4px 0 0 rgba(8, 153, 129, 0.22);
+  border-color: #b9ddd5;
+  box-shadow: inset 4px 0 0 #bce8dd;
 }
 
-.did-credential-lane__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 8px;
-}
-
-.did-credential-lane__head span,
-.did-lane-summary dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--mx2-text-muted);
-  font-size: 10px;
-  font-weight: 640;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.did-credential-lane__head strong {
+.did-credential-lane__head,
+.did-assurance__head {
   min-width: 0;
-  justify-self: end;
-  color: var(--mx2-ink);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.did-credential-lane__head > div,
+.did-assurance__head > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.did-credential-lane__head > svg,
+.did-assurance__head > svg {
+  flex: 0 0 auto;
+  color: #0b8f83;
+}
+
+.did-credential-lane__head strong,
+.did-assurance__head strong {
+  color: #173f3d;
   font-size: 16px;
-  font-weight: 640;
-  line-height: 1.12;
-  text-align: right;
+  font-weight: 800;
+  line-height: 1.18;
 }
 
 .did-template-deck {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 7px;
 }
 
 .did-template-deck button {
   min-width: 0;
-  min-height: 118px;
+  min-height: 66px;
   display: grid;
-  align-content: start;
-  gap: 8px;
-  border: 1px solid rgba(31, 41, 55, 0.075);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid #e0e8e5;
   border-radius: 14px;
-  padding: 10px;
-  background: var(--mx2-surface-2);
-  color: var(--mx2-ink);
+  background: #f8fbfa;
+  color: #264b48;
   font: inherit;
   cursor: pointer;
   text-align: left;
-  transition:
-    transform var(--mx2-t-fast) var(--mx2-ease-snap),
-    border-color var(--mx2-t-fast) var(--mx2-ease),
-    background var(--mx2-t-fast) var(--mx2-ease),
-    box-shadow var(--mx2-t-fast) var(--mx2-ease);
-}
-
-.did-template-deck button:hover:not(:disabled),
-.did-template-deck button.is-active {
-  border-color: rgba(8, 153, 129, 0.24);
-  background: #f0fdfa;
-  color: #0f766e;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
 }
 
 .did-template-deck button:hover:not(:disabled) {
@@ -290,225 +375,161 @@
 }
 
 .did-template-deck button.is-active {
-  box-shadow:
-    inset 0 0 0 1px rgba(8, 153, 129, 0.08),
-    0 7px 16px rgba(8, 153, 129, 0.08);
+  border-color: #9ed4c8;
+  background: #ecf9f5;
 }
 
 .did-template-deck button:disabled {
   cursor: not-allowed;
-  opacity: 0.58;
+  opacity: 0.55;
 }
 
 .did-template-card__icon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(8, 153, 129, 0.16);
-  border-radius: 13px;
+  border: 1px solid #cfe4df;
+  border-radius: 12px;
   background: #ffffff;
-  color: #0f766e;
+  color: #0b7d71;
 }
 
-.did-template-deck strong,
-.did-template-deck small {
-  display: block;
-  min-width: 0;
-}
-
-.did-template-deck strong {
-  overflow: hidden;
-  color: var(--mx2-ink);
-  font-size: 13px;
-  font-weight: 640;
-  line-height: 1.13;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.did-template-deck small {
-  margin-top: 4px;
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-weight: 560;
-  line-height: 1.3;
-}
-
-.did-lane-summary {
-  display: grid;
-  grid-template-columns: 1.15fr 0.92fr 0.92fr;
-  gap: 7px;
-  margin: 0;
-}
-
-.did-lane-summary div {
+.did-template-deck button > span:last-child {
   min-width: 0;
   display: grid;
   gap: 3px;
-  border: 1px solid rgba(31, 41, 55, 0.075);
-  border-radius: 13px;
-  padding: 9px 10px;
-  background: #ffffff;
 }
 
-.did-lane-summary div[data-ready="true"] {
-  border-color: rgba(8, 153, 129, 0.18);
-  background: #fcfffe;
-}
-
-.did-lane-summary dd {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--mx2-ink);
+.did-template-deck strong {
+  color: #214744;
   font-size: 12px;
-  font-weight: 620;
-  line-height: 1.18;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 780;
 }
 
-.did-template-deck button:focus-visible,
-.did-drawer button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(8, 153, 129, 0.16);
+.did-template-deck small {
+  color: #657b79;
+  font-size: 10px;
+  font-weight: 570;
+  line-height: 1.3;
 }
 
-.did-issuance__head {
+.did-credential-lane__truth {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
-  color: var(--mx2-accent-strong);
+  gap: 7px;
+  margin: 0;
+  padding: 8px 9px;
+  border-radius: 11px;
+  background: #fff7e9;
+  color: #754a19;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
-.did-issuance__head > svg {
+.did-credential-lane__truth svg {
   flex: 0 0 auto;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
-.did-issuance__head div {
-  display: grid;
-  gap: 4px;
+.did-assurance {
+  grid-area: assurance;
 }
 
-.did-issuance__head strong {
-  color: var(--mx2-ink);
-  font-size: 20px;
-  font-weight: 640;
-  line-height: 1.05;
-}
-
-.did-issuance__steps {
+.did-assurance__list {
   display: grid;
   gap: 0;
-  border-top: 1px solid rgba(31, 41, 55, 0.065);
-  border-bottom: 1px solid rgba(31, 41, 55, 0.065);
+  border-block: 1px solid #e2eae7;
 }
 
-.did-issuance__step {
+.did-assurance__list > div {
+  min-width: 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  min-height: 58px;
-  border-radius: 0;
-  padding: 11px 4px;
-  background: #ffffff;
-  border: 0;
+  gap: 9px;
+  padding: 9px 2px;
 }
 
-.did-issuance__step + .did-issuance__step {
-  border-top: 1px solid rgba(31, 41, 55, 0.055);
+.did-assurance__list > div + div {
+  border-top: 1px solid #e7eeeb;
 }
 
-.did-issuance__step[data-active="true"] {
-  background: #fbfffd;
-}
-
-.did-issuance__icon {
-  width: 34px;
-  height: 34px;
+.did-assurance__list > div > span {
+  width: 31px;
+  height: 31px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  color: var(--mx2-accent-strong);
-  background: var(--mx2-accent-soft);
+  border-radius: 10px;
+  background: #f0f5f3;
+  color: #607672;
 }
 
-.did-issuance__step strong,
-.did-issuance__step small {
-  display: block;
+.did-assurance__list > div[data-tone="ready"] > span {
+  background: #e5f6f1;
+  color: #147563;
+}
+
+.did-assurance__list > div[data-tone="warning"] > span {
+  background: #fff1d6;
+  color: #8b571b;
+}
+
+.did-assurance__list > div > div {
   min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
-.did-issuance__step strong {
-  color: var(--mx2-ink);
-  font-size: 13px;
-  font-weight: 620;
+.did-assurance__list strong {
+  color: #264b48;
+  font-size: 11px;
+  font-weight: 760;
 }
 
-.did-issuance__step small {
-  margin-top: 2px;
+.did-assurance__list small {
   overflow: hidden;
-  color: var(--mx2-ink-soft);
-  font-size: 12px;
-  font-weight: 600;
+  color: #687d7a;
+  font-size: 10px;
+  font-weight: 590;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.did-issuance__copy {
-  margin: 0;
-  color: var(--mx2-text-muted);
-  font-size: 13px;
-  font-weight: 560;
-  line-height: 1.42;
 }
 
 .did-scene__status {
   grid-area: status;
-  position: relative;
-  z-index: 2;
-  justify-self: start;
-  max-width: min(760px, 100%);
+  justify-self: center;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
-  font-size: 13px;
-  font-weight: 620;
-  color: var(--mx2-ink);
-  background: transparent;
-  padding: 0;
-  border-radius: var(--mx2-r-pill);
-  box-shadow: none;
-  text-align: left;
-}
-.did-scene[data-state="signed"] .did-scene__status { color: var(--mx2-success); }
-.did-scene__status[data-error="true"] {
-  color: var(--mx2-danger);
-  background: var(--mx2-danger-soft);
+  padding: 7px 12px;
+  border: 1px solid #dce7e3;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #526d69;
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 1.35;
+  text-align: center;
 }
 
-/* === Drawer: advanced fields + proof lane === */
+.did-scene__status[data-error="true"] {
+  border-color: #e7bbb4;
+  background: #fff6f4;
+  color: #943f37;
+}
+
 .did-drawer {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-}
-
-.did-drawer__notice,
-.did-drawer__panel--wide {
-  grid-column: 1 / -1;
-}
-
-.did-drawer__notice.mx2-open-notice.semi-banner {
-  min-height: 70px;
 }
 
 .did-drawer .mx2-open-panel__copy span,
 .did-drawer .mx2-open-notice .semi-banner-title,
 .did-drawer .mx2-open-notice .semi-banner-description {
   overflow: visible;
-  line-height: 1.3;
+  line-height: 1.35;
   text-overflow: clip;
   white-space: normal;
 }
@@ -523,167 +544,131 @@
   grid-column: 1 / -1;
 }
 
-.did-drawer__field .mx2-open-field__label {
-  letter-spacing: 0;
-}
-
 .did-drawer__field .mx2-open-field__control {
-  min-height: 40px;
+  min-height: 42px;
 }
 
-.did-provider-deck {
+.did-evidence-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
+  margin: 0 0 10px;
 }
 
-.did-provider-deck button {
+.did-evidence-list > div {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(31, 41, 55, 0.08);
-  border-radius: var(--mx2-r);
+  gap: 4px;
   padding: 9px 10px;
-  background: var(--mx2-surface-2);
-  color: var(--mx2-ink);
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
+  border: 1px solid #e1e9e6;
+  border-radius: 12px;
+  background: #fafcfb;
 }
 
-.did-provider-deck button.is-active {
-  border-color: rgba(8, 153, 129, 0.24);
-  background: #f0fdfa;
-  color: #0f766e;
-}
-
-.did-provider-deck button:disabled,
-.did-drawer__row button:disabled,
-.did-drawer__reset:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-
-.did-provider-deck strong,
-.did-provider-deck small {
-  display: block;
+.did-evidence-list dd {
   min-width: 0;
+  margin: 0;
   overflow: hidden;
+  color: #294d4a;
+  font-size: 10px;
+  font-weight: 650;
   text-overflow: ellipsis;
-}
-
-.did-provider-deck strong {
-  color: var(--mx2-ink);
-  font-size: 12px;
-  font-weight: 620;
   white-space: nowrap;
 }
 
-.did-provider-deck small {
-  margin-top: 2px;
-  color: var(--mx2-text-muted);
-  font-size: 10px;
-  font-weight: 560;
-  line-height: 1.28;
-  white-space: normal;
+.did-evidence-list code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .did-drawer__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .did-drawer__row button {
-  min-height: 40px;
-  border: 1px solid rgba(8, 153, 129, 0.28);
-  border-radius: var(--mx2-r-pill);
-  padding: 9px 12px;
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid #c9ddd7;
+  border-radius: 11px;
   background: #ffffff;
-  color: #0f766e;
+  color: #246259;
   font: inherit;
-  font-size: 12px;
-  font-weight: 620;
+  font-size: 11px;
+  font-weight: 740;
   cursor: pointer;
-  white-space: nowrap;
-}
-
-.did-drawer__row button:hover:not(:disabled) {
-  background: #f0fdfa;
 }
 
 .did-drawer__row .did-drawer__primary {
-  background: #0f9f7a;
-  color: #ffffff;
-  box-shadow: 0 7px 14px rgba(15, 159, 122, 0.14);
+  background: #e9f7f3;
+  color: #0b6e64;
 }
 
-.did-drawer__row .did-drawer__primary:hover:not(:disabled) {
-  background: #0a7f63;
+.did-drawer__row .did-drawer__recovery {
+  border-color: #e4c795;
+  background: #fff6e5;
+  color: #7b4d16;
 }
 
-.did-drawer__reset {
-  border-color: rgba(148, 163, 184, 0.4) !important;
-  color: var(--mx2-text-muted) !important;
+.did-drawer__row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
-.neodid-passport-play-area .mx2-action-rail__row .mx2-btn--primary {
-  flex: 0 0 184px;
-  max-width: min(100%, 184px);
-  background: #0f9f7a;
-  box-shadow: 0 8px 18px rgba(15, 159, 122, 0.18);
+.did-template-deck button:focus-visible,
+.did-drawer button:focus-visible,
+.did-drawer input:focus-visible {
+  outline: 3px solid rgba(11, 143, 131, 0.2);
+  outline-offset: 2px;
 }
 
-.neodid-passport-play-area .mx2-action-rail__row .mx2-btn--primary:not(:disabled):hover {
-  background: #0a7f63;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .did-passport { animation-duration: 0.001ms !important; transition: none !important; }
-}
-
-@media (max-width: 760px) {
+@media (max-width: 820px) {
   .did-scene {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "passport"
+      "identity"
       "lane"
-      "route"
+      "assurance"
       "status";
-    min-height: 0;
-    padding: 12px;
-    gap: 10px;
   }
 
-  .did-passport,
-  .did-issuance,
-  .did-credential-lane {
-    min-height: 0;
-    padding: 14px;
+  .did-identity-stage {
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 560px) {
+  .neodid-passport-play-area .mx2-stage {
+    padding: 15px;
   }
 
-  .did-credential-lane__head {
-    grid-template-columns: 1fr;
+  .did-identity-stage {
+    min-height: 540px;
+    border-radius: 23px;
   }
 
-  .did-credential-lane__head strong {
-    justify-self: start;
+  .did-identity-stage__meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .did-identity-stage__meta strong {
+    max-width: 88%;
     text-align: left;
   }
 
-  .did-template-deck,
-  .did-lane-summary,
-  .did-drawer,
-  .did-drawer__field-grid,
-  .did-drawer__row {
-    grid-template-columns: 1fr;
+  .did-passport {
+    margin: 12px;
+    padding: 14px;
+    border-radius: 19px;
   }
 
-  .did-template-deck button {
-    min-height: 0;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
+  .did-passport__heading strong {
+    font-size: 20px;
   }
 
   .did-passport__cover {
@@ -693,17 +678,37 @@
   .did-passport__stamp {
     grid-column: 1 / -1;
     justify-self: start;
+    max-width: 100%;
   }
 
-  .did-passport__heading strong {
-    font-size: 22px;
-    white-space: normal;
+  .did-passport__fields,
+  .did-drawer__field-grid,
+  .did-evidence-list {
+    grid-template-columns: 1fr;
   }
 
-  .did-lane-summary dd,
-  .did-provider-deck strong {
+  .did-passport__fields > span + span {
+    border-top: 1px solid #e1eae7;
+    border-left: 0;
+  }
+
+  .did-drawer__field--wide {
+    grid-column: auto;
+  }
+
+  .did-assurance__list small,
+  .did-evidence-list dd {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .did-identity-stage__art,
+  .did-passport,
+  .did-template-deck button {
+    transition: none !important;
   }
 }

@@ -2,68 +2,77 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "OneGate Vault",
-  description: "Random 1-50 GAS rewards: recipients claim via OneGate QR keys; campaign owners create, fund, and recover the reward pools",
+  description: "A free local lucky-draw game with three reward tiers, animated prize reveals, and a local leaderboard. No wallet or GAS is required while verified GameFi settlement remains under validation.",
   icon: "gift",
-  category: "social",
-  // `shell: "game"` renders the two-choice launcher entry (Earn GAS / Play free);
-  // because this manifest has `operations`, the host template still resolves to
-  // "two-column" (see manifestToTemplateConfig), so the gamefi surface is
-  // unchanged — the launcher just adds the guest/gamefi choice in front.
+  category: "game",
   shell: "game",
-  // Two-mode opt-in. No full gamePage block, so opt in via the top-level flag —
-  // GUEST is a purely local lucky draw (see logic/guest-engine.ts); GAMEFI is the
-  // existing on-chain OneGate claim/pool flow, unchanged.
+  theme: { family: "gaming", accentColor: "#D97706", density: "comfortable" },
   supportsGuest: true,
+  // The configured mainnet/testnet addresses currently expose the Red Envelope
+  // ABI rather than RangeGasPool. Keep the local draw playable, but do not
+  // expose wallet/owner operations until a verified pool deployment is bound.
+  supportsGameFi: false,
+
+  // Keep the shared launch screen on the same locale-driven, guest-first
+  // contract as the actual Phaser scene. Falling back to the English manifest
+  // identity made the Chinese launcher look half translated and falsely
+  // emphasized wallet semantics for a local-only release.
+  gamePage: {
+    categoryColor: "#F59E0B",
+    appIcon: "gift",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestEyebrow",
+    heroTitleKey: "guestTitle",
+    heroTitleAccent: "guestTitle",
+    heroDescKey: "guestSubtitle",
+    primaryLabelKey: "guestActionDraw",
+    ghostLabelKey: "guestHowTitle",
+    featuresEyebrowKey: "guestModeBadge",
+    featuresTitleKey: "guestDrawerTitle",
+    features: [
+      {
+        titleKey: "guestHowTitle",
+        descKey: "guestHowBody",
+        large: true,
+        gradient: "linear-gradient(135deg, #FFFBEB 0%, #FDE68A 46%, #FDBA74 100%)",
+      },
+      { titleKey: "guestSeedNote", descKey: "guestSeedNote" },
+      { titleKey: "guestBoardTitle", descKey: "guestBoardEmpty" },
+    ],
+    lbEyebrowKey: "guestTabDraw",
+    lbTitleKey: "guestBoardTitle",
+    lbScoreLabelKey: "guestBestLabel",
+    ctaTitleKey: "guestUnwrapTitle",
+    ctaDescKey: "guestTagline",
+    ctaLabelKey: "guestActionDraw",
+    trustBadgeKeys: ["guestModeBadge", "gameFiMaintenanceShort", "guestBoardTitle"],
+  },
 
   tabs: [
     { key: "play", labelKey: "playTab", icon: "gift", default: true },
     { key: "activity", labelKey: "activityTab", icon: "history" },
   ],
 
-  operations: [
-    {
-      key: "claimPool",
-      titleKey: "claimPoolTitle",
-      descriptionKey: "claimPoolDescription",
-      actionKey: "claimReward",
-      actionMethod: "claimPool",
-      priority: "primary",
-      fields: [
-        {
-          key: "claimKey",
-          type: "text",
-          labelKey: "claimKey",
-          placeholder: "ogv_campaign_user_key",
-          required: true,
-        },
-        {
-          key: "poolId",
-          type: "text",
-          labelKey: "poolId",
-          placeholder: "pool-001",
-          required: false,
-        },
-      ],
-    },
-  ],
+  operations: [],
 
   docs: [
-    { titleKey: "howItWorks", contentKey: "docHowItWorks", type: "steps" },
-    { titleKey: "safetyModel", contentKey: "docSafetyModel", type: "text" },
-    { titleKey: "oneGateFlow", contentKey: "docOneGateFlow", type: "text" },
+    { titleKey: "guestHowTitle", contentKey: "guestHowBody", type: "steps" },
+    { titleKey: "gameFiMaintenanceShort", contentKey: "gameFiMaintenanceBody", type: "text" },
   ],
 
   features: {
     fireworks: true,
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     comments: true,
     reviews: true,
     activityFeed: true,
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 };

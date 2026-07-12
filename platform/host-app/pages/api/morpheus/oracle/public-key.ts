@@ -7,9 +7,23 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  // MiniApps are embedded in an opaque-origin sandbox. This route exposes a
+  // public encryption key only, so make it readable without weakening the
+  // iframe sandbox.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Accept");
+  res.setHeader("Cache-Control", "no-store, private");
+
+  const method = String(req.method || "GET").toUpperCase();
+  if (method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
+
   if (standardLimit(req, res)) return;
 
-  if (String(req.method || "GET").toUpperCase() !== "GET") {
+  if (method !== "GET") {
     res.status(405).json({ error: "GET required" });
     return;
   }

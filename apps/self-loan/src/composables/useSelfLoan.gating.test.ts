@@ -30,6 +30,15 @@ interface ChainReadState {
  * resolve successfully so the success path can be exercised end-to-end.
  */
 function makeChain(s: ChainReadState) {
+  let collateralCredit = BigInt(s.collateralCredit ?? "0");
+  let liveLoan = s.loan
+    ? {
+      collateral: BigInt(s.loan.collateral),
+      borrowed: BigInt(s.loan.borrowed),
+      ltvBps: BigInt(s.loan.ltvBps),
+      active: s.loan.active,
+    }
+    : { collateral: 0n, borrowed: 0n, ltvBps: 0n, active: false };
   // Mirror ChainService.invoke: a waitForEvent whose event lands resolves
   // verified=true (a confirmed tx). Tests that need the relayed-but-unconfirmed
   // path override this to return verified=false.
@@ -37,14 +46,48 @@ function makeChain(s: ChainReadState) {
     async (
       _op: string,
       _args: ContractArg[],
-      _options?: { waitForEvent?: string; scriptHash?: string },
-    ): Promise<TxResult> => ({ txid: "0xtx", success: true, verified: true }),
+      _options?: { waitForEvent?: string; scriptHash?: string; onTransactionSent?: (txid: string) => void },
+    ): Promise<TxResult> => {
+      const txid = `0x${_op}`;
+      _options?.onTransactionSent?.(txid);
+      let state: Array<{ value: string }> = [];
+      if (_op === "transfer") {
+        const amount = BigInt(String(_args[2]?.value ?? "0"));
+        collateralCredit += amount;
+        state = [
+          { value: ALICE_HASH },
+          { value: amount.toString() },
+          { value: collateralCredit.toString() },
+        ];
+      } else if (_op === "borrow") {
+        const tier = Number(_args[1]?.value ?? 1);
+        const ltvBps = BigInt(tier === 1 ? 2000 : tier === 2 ? 3000 : 4000);
+        const gross = collateralCredit * BigInt(s.neoPrice ?? "0") * ltvBps / 10_000n;
+        const disbursed = gross - gross * 50n / 10_000n;
+        liveLoan = { collateral: collateralCredit, borrowed: gross, ltvBps, active: true };
+        collateralCredit = 0n;
+        state = [
+          { value: ALICE_HASH },
+          { value: liveLoan.collateral.toString() },
+          { value: gross.toString() },
+          { value: disbursed.toString() },
+        ];
+      }
+      return {
+        txid,
+        success: true,
+        verified: true,
+        event: { event_name: _options?.waitForEvent, tx_hash: txid, state },
+      };
+    },
   );
 
-  const read = vi.fn(async (op: string): Promise<unknown> => {
+  const read = vi.fn(async (op: string, args?: ContractArg[], options?: { scriptHash?: string }): Promise<unknown> => {
     switch (op) {
-      case "ltvTierBps":
-        return "2000";
+      case "ltvTierBps": {
+        const tier = Number(args?.[0]?.value ?? 1);
+        return tier === 1 ? "2000" : tier === 2 ? "3000" : "4000";
+      }
       case "feeBps":
         return "50";
       case "neoPrice":
@@ -52,13 +95,20 @@ function makeChain(s: ChainReadState) {
       case "pool":
         return s.pool ?? "0";
       case "balanceOf":
-        return s.neoBalance ?? "100";
+        return options?.scriptHash === "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+          ? "100000000000"
+          : s.neoBalance ?? "100";
       case "collateralCreditOf":
-        return s.collateralCredit ?? "0";
+        return collateralCredit.toString();
       case "repayCreditOf":
         return "0";
       case "getLoan":
-        return s.loan ?? { collateral: "0", borrowed: "0", ltvBps: "0", active: false };
+        return {
+          collateral: liveLoan.collateral.toString(),
+          borrowed: liveLoan.borrowed.toString(),
+          ltvBps: liveLoan.ltvBps.toString(),
+          active: liveLoan.active,
+        };
       case "totalLoans":
         return "0";
       case "totalBorrowed":
@@ -88,11 +138,30 @@ function makeApp(chain: ChainService) {
   );
 }
 
+function makeOperationStorage() {
+  const values = new Map<string, unknown>();
+  return {
+    get<T>(key: string, fallback: T | null = null) {
+      return values.has(key) ? values.get(key) as T : fallback;
+    },
+    set(key: string, value: unknown) {
+      values.set(key, value);
+    },
+    delete(key: string) {
+      values.delete(key);
+    },
+  };
+}
+
+function useTestSelfLoan(chain: ChainService) {
+  return useSelfLoan({ app: makeApp(chain), t, operationStorage: makeOperationStorage() });
+}
+
 describe("useSelfLoan — borrow gating + pool preflight", () => {
   it("loads pool() liquidity and the NEO price for the borrow card", async () => {
     // neoPrice 3 GAS/NEO (3e8), pool 50 GAS (50e8).
     const { chain } = makeChain({ neoPrice: "300000000", pool: "5000000000" });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -109,7 +178,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
       neoPrice: "300000000",
       pool: "5000000000",
     });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
     invoke.mockClear();
@@ -125,7 +194,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     // price 3 GAS/NEO, 20% LTV, 0.5% fee. 5 NEO -> gross 3 GAS, net ~2.985 GAS.
     // Pool only 1 GAS (1e8) -> must be blocked.
     const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "100000000", neoBalance: "100" });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
     invoke.mockClear();
@@ -137,7 +206,7 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
 
   it("bumps borrowOkNonce only on a successful borrow", async () => {
     const { chain } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -150,11 +219,12 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
   it("does not bump borrowOkNonce when the borrow fails", async () => {
     const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
     // Make the borrow() leg revert; the deposit transfer succeeds.
-    invoke.mockImplementation(async (op: string): Promise<TxResult> => {
+    const invokeDefault = invoke.getMockImplementation()!;
+    invoke.mockImplementation(async (op: string, args: ContractArg[], options): Promise<TxResult> => {
       if (op === "borrow") throw new Error("on-chain revert");
-      return { txid: "0xtx", success: true, verified: true };
+      return invokeDefault(op, args, options);
     });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -168,11 +238,15 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     // The borrow tx broadcasts (success) but its LoanTaken event was never
     // observed — ChainService reports verified=false. The deposit transfer stays
     // verified=true so only the borrow leg is unconfirmed.
-    invoke.mockImplementation(async (op: string): Promise<TxResult> => {
-      if (op === "borrow") return { txid: "0xborrow", success: true, verified: false };
-      return { txid: "0xtransfer", success: true, verified: true };
+    const invokeDefault = invoke.getMockImplementation()!;
+    invoke.mockImplementation(async (op: string, args: ContractArg[], options): Promise<TxResult> => {
+      if (op === "borrow") {
+        options?.onTransactionSent?.("0xborrow");
+        return { txid: "0xborrow", success: true, verified: false };
+      }
+      return invokeDefault(op, args, options);
     });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -189,14 +263,18 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     expect(app.collateralAmount.get()).toBe("5");
   });
 
-  it("clears a stale pending-confirmation notice when a later borrow confirms", async () => {
+  it("blocks a duplicate borrow while the exact prior transaction is still pending", async () => {
     const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
     let unverified = true;
-    invoke.mockImplementation(async (op: string): Promise<TxResult> => {
-      if (op === "borrow") return { txid: "0xborrow", success: true, verified: !unverified };
-      return { txid: "0xtransfer", success: true, verified: true };
+    const invokeDefault = invoke.getMockImplementation()!;
+    invoke.mockImplementation(async (op: string, args: ContractArg[], options): Promise<TxResult> => {
+      if (op === "borrow" && unverified) {
+        options?.onTransactionSent?.("0xborrow");
+        return { txid: "0xborrow", success: true, verified: false };
+      }
+      return invokeDefault(op, args, options);
     });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
 
@@ -204,17 +282,17 @@ describe("useSelfLoan — borrow gating + pool preflight", () => {
     await app.takeLoan();
     expect(app.hasPendingConfirmation.get()).toBe(true);
 
-    // A subsequent confirmed borrow clears the notice and bumps the success nonce.
+    // A second wallet request must not race the persisted first transaction.
     unverified = false;
     app.collateralAmount.set("5");
-    await app.takeLoan();
-    expect(app.hasPendingConfirmation.get()).toBe(false);
-    expect(app.borrowOkNonce.get()).toBe(1);
+    await expect(app.takeLoan()).rejects.toThrow("pendingTransactionBlocksAction");
+    expect(app.hasPendingConfirmation.get()).toBe(true);
+    expect(app.borrowOkNonce.get()).toBe(0);
   });
 
   it("derives the transfer to the configured contract with the collateral memo", async () => {
     const { chain, invoke } = makeChain({ neoPrice: "300000000", pool: "10000000000", neoBalance: "100" });
-    const app = useSelfLoan({ app: makeApp(chain), t });
+    const app = useTestSelfLoan(chain);
     app.setAddress(ALICE);
     await app.loadAll();
     invoke.mockClear();

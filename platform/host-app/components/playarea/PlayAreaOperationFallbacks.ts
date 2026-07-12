@@ -46,6 +46,16 @@ export function getNativePlayAreaOperationFallback(
   appId: string,
   network?: string | null,
 ): OperationEntry[] {
+  // Automation Copilot owns its complete visual recipe builder and trigger
+  // lifecycle. A second host-side trigger/action form would bypass validation
+  // and duplicate the app's primary workflow.
+  if (appId === "miniapp-automation-copilot") return [];
+
+  // Breakup Contract owns a complete multi-step pact workspace (deposit,
+  // create/sign/cancel/break/settle/withdraw). Rebuilding it as one generic
+  // host parameter form duplicates controls and loses lifecycle safeguards.
+  if (appId === "miniapp-breakupcontract") return [];
+
   if (appId === "miniapp-council-governance") {
     return [
       {
@@ -206,30 +216,6 @@ export function getNativePlayAreaOperationFallback(
             type: "integer",
             label: "Proposal ID",
             required: true,
-          },
-        ],
-      },
-    ];
-  }
-
-  if (appId === "miniapp-forever-album") {
-    return [
-      {
-        name: "Open upload workspace",
-        method: "prepareMiniAppOperation",
-        description:
-          "Open the embedded Forever Album uploader with the selected privacy route. Choose images and submit the wallet storage write inside the live workspace.",
-        button_style: "primary",
-        params: [
-          {
-            name: "privacy",
-            type: "select",
-            label: "Privacy route",
-            default_value: "public",
-            options: [
-              { label: "Public album record", value: "public" },
-              { label: "Encrypted local privacy", value: "encrypted" },
-            ],
           },
         ],
       },

@@ -1,5 +1,4 @@
 import { createDerived, createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import {
   validateWif,
   validatePrivateKey,
@@ -12,7 +11,9 @@ import {
   disassembleScript,
   getPublicKey,
   getPrivateKeyFromWIF,
-} from "@/services/neo";
+  isOversizedHexScript,
+  MAX_SOURCE_CHARS,
+} from "../services/neo";
 import type { MiniAppFramework } from "@shared/react";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -42,9 +43,13 @@ const EMPTY_RESULT: ConversionResult = {
 /** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
 export function useConverter(t: (key: string) => string, clipboard: MiniAppFramework["clipboard"]) {
   const sm = useStatusMessage(3000);
-  const { setStatus: setCopyStatus } = sm;
+  const { setStatus: setCopyStatus, clearStatus: clearCopyStatus } = sm;
   const copyStatus = createDerived(
     () => sm.status.get()?.msg ?? "",
+    [sm.status],
+  );
+  const copyStatusType = createDerived(
+    () => sm.status.get()?.type ?? "",
     [sm.status],
   );
 
@@ -53,12 +58,13 @@ export function useConverter(t: (key: string) => string, clipboard: MiniAppFrame
   const statusType = createObservable("");
   const result = createObservable<ConversionResult>({ ...EMPTY_RESULT });
 
-  async function copy(text: string) {
+  async function copy(text: string): Promise<boolean> {
     // app.clipboard owns the write (navigator → legacy textarea fallback) and
     // the "copied"/"copyFailed" toast; the inline copyStatus chip keeps the
     // pre-migration behavior of always confirming the attempt.
-    await clipboard.copy(text, { successKey: "copied" });
-    setCopyStatus(t("copied"), "success");
+    const copied = await clipboard.copy(text, { successKey: "copied", errorKey: "copyFailed" });
+    setCopyStatus(t(copied ? "copied" : "copyFailed"), copied ? "success" : "error");
+    return copied;
   }
 
   function clearResult() {
@@ -67,14 +73,30 @@ export function useConverter(t: (key: string) => string, clipboard: MiniAppFrame
     statusType.set("");
   }
 
+  // Editing the source invalidates the previous derivation immediately. This
+  // prevents a newly pasted key from sitting next to an older address/result.
+  const unsubscribeInput = inputKey.subscribe(clearResult);
+
   function detectAndConvert() {
-    const val = inputKey.get().trim();
+    const raw = inputKey.get();
+    clearResult();
+    if (raw.length > MAX_SOURCE_CHARS) {
+      statusMsg.set("sourceTooLarge");
+      statusType.set("error");
+      return;
+    }
+    const val = raw.trim();
     if (!val) {
-      clearResult();
       return;
     }
 
     try {
+      if (isOversizedHexScript(val)) {
+        statusMsg.set("scriptTooLarge");
+        statusType.set("error");
+        return;
+      }
+
       // 1. Try WIF
       if (validateWif(val)) {
         statusMsg.set("detectedWif");
@@ -123,9 +145,14 @@ export function useConverter(t: (key: string) => string, clipboard: MiniAppFrame
 
       // 5. Try Hex Script
       if (validateHexScript(val)) {
+        const ops = disassembleScript(val);
+        if (ops.length === 0) {
+          statusMsg.set("invalidScript");
+          statusType.set("error");
+          return;
+        }
         statusMsg.set("detectedScript");
         statusType.set("success");
-        const ops = disassembleScript(val);
         result.set({ ...EMPTY_RESULT, opcodes: ops });
         return;
       }
@@ -139,13 +166,27 @@ export function useConverter(t: (key: string) => string, clipboard: MiniAppFrame
     }
   }
 
+  function reset() {
+    inputKey.set("");
+    clearResult();
+    clearCopyStatus();
+  }
+
+  function dispose() {
+    unsubscribeInput();
+    sm.dispose();
+  }
+
   return {
     inputKey,
     statusMsg,
     statusType,
     result,
     copyStatus,
+    copyStatusType,
     copy,
     detectAndConvert,
+    reset,
+    dispose,
   };
 }

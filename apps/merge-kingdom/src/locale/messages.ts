@@ -19,6 +19,117 @@ const appMessages = {
   sidebarTitle: { en: "My merge record", zh: "我的战绩" },
   creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
 
+  // Phaser scene copy. Keep gameplay text in the locale catalog so the canvas
+  // never leaks translation keys or falls back to mixed-language UI.
+  canvasEyebrow: { en: "Verified merge quest", zh: "可验证合并挑战" },
+  canvasTagline: {
+    en: "Move, merge, and raise the target building.",
+    zh: "移动并合并建筑，升级到本局目标。",
+  },
+  canvasGuestTagline: {
+    en: "Build freely and save your best local kingdom.",
+    zh: "自由建造，保存你的本地最高王国。",
+  },
+  canvasRouteTitle: {
+    en: "{difficulty} realm",
+    zh: "{difficulty}王国",
+  },
+  canvasReachTarget: {
+    en: "Raise {building} before time runs out",
+    zh: "在倒计时结束前升级到 {building}",
+  },
+  canvasCardTarget: { en: "Target: {building}", zh: "目标：{building}" },
+  canvasFreePractice: { en: "Free practice", zh: "免费练习" },
+  canvasBuildRealm: { en: "Build realm", zh: "开始建造" },
+  canvasConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  canvasConnectingWallet: { en: "Connecting…", zh: "正在连接…" },
+  canvasBuilding: { en: "Building…", zh: "正在建造…" },
+  canvasLocalPracticeStatus: {
+    en: "Local practice — no wallet, fees, or GAS at stake",
+    zh: "本地练习——无需钱包、费用或 GAS",
+  },
+  canvasConnectStatus: {
+    en: "Connect once; the next press confirms the entry",
+    zh: "先连接钱包，再确认本局报名",
+  },
+  canvasPoolLow: {
+    en: "Pool low ({pool} GAS available)",
+    zh: "奖池不足（可用 {pool} GAS）",
+  },
+  canvasEntryReward: {
+    en: "Entry {entry} GAS · Reward {reward} GAS",
+    zh: "报名 {entry} GAS · 奖励 {reward} GAS",
+  },
+  canvasTimeLimit: { en: "{minutes} min limit", zh: "限时 {minutes} 分钟" },
+  canvasSecondsLimit: { en: "{seconds} sec limit", zh: "限时 {seconds} 秒" },
+  canvasPreparing: { en: "Preparing your kingdom…", zh: "正在准备你的王国…" },
+  canvasSealing: { en: "Sealing the realm board…", zh: "正在密封王国棋盘…" },
+  canvasOpening: { en: "Opening the kingdom gate…", zh: "正在开启王国大门…" },
+  canvasSettlementTitle: { en: "Settlement pending", zh: "结算处理中" },
+  canvasSettlementHint: {
+    en: "Waiting for the verified oracle callback",
+    zh: "正在等待可验证预言机回调",
+  },
+  canvasTime: { en: "Time", zh: "时间" },
+  canvasTarget: { en: "Target: {current} / {target}", zh: "目标：{current} / {target}" },
+  canvasMoves: { en: "Moves: {count}", zh: "步数：{count}" },
+  canvasBest: { en: "Best: {tile}", zh: "最高：{tile}" },
+  canvasBestUnset: { en: "Best: —", zh: "最高：—" },
+  canvasSelectTile: {
+    en: "Tap or drag a building · arrow keys also work",
+    zh: "点击或拖动建筑；也可使用方向键",
+  },
+  canvasSelectDestination: {
+    en: "Tap, swipe, or press an arrow toward a neighbour",
+    zh: "点击、滑动或按方向键移向相邻格",
+  },
+  canvasMoving: { en: "Revealing this move…", zh: "正在确认这一步…" },
+  statusInputSyncFailed: {
+    en: "Move sync paused — use recovery in the rules drawer",
+    zh: "移动同步暂停——请在规则抽屉中恢复对局",
+  },
+  canvasTargetReached: { en: "Target reached!", zh: "目标达成！" },
+  canvasFinishLocal: { en: "Finish your local run", zh: "完成本地对局" },
+  canvasProofWarming: {
+    en: "Verified claim unlocks in {time}",
+    zh: "可验证领取将在 {time} 后开放",
+  },
+  canvasPlayAgain: { en: "Play again", zh: "再玩一局" },
+  canvasBuildNext: { en: "Build next realm", zh: "建造下一座王国" },
+  canvasGuestVictory: { en: "Kingdom raised!", zh: "王国建成！" },
+  canvasVictory: { en: "Victory!", zh: "胜利！" },
+  canvasRunOver: { en: "Run over", zh: "对局结束" },
+  canvasTimeUp: { en: "Time's up", zh: "时间到" },
+  canvasLocalSaved: { en: "Local run saved", zh: "本地成绩已保存" },
+  canvasReward: { en: "Reward: {amount} GAS", zh: "奖励：{amount} GAS" },
+  canvasBestTile: { en: "Best building: {tile}", zh: "最高建筑：{tile}" },
+  gameAriaLabel: { en: "Merge Kingdom board game", zh: "合并王国棋盘游戏" },
+  gameLoadingLabel: { en: "Opening kingdom board", zh: "正在打开王国棋盘" },
+  a11yControlsLabel: { en: "Accessible kingdom controls", zh: "王国无障碍操作" },
+  a11yBoardLabel: { en: "Four by four kingdom board", zh: "四乘四王国棋盘" },
+  a11yStartRun: { en: "Start {difficulty} local kingdom", zh: "开始{difficulty}本地王国" },
+  a11ySelected: { en: "Selected. Choose an adjacent destination.", zh: "已选中，请选择相邻目标格。" },
+  a11yMoveRejected: { en: "That building cannot move there.", zh: "该建筑无法移动到那里。" },
+  closeDrawer: { en: "Close leaderboard and rules", zh: "关闭排行榜与规则" },
+  recoveryActionsLabel: { en: "Game recovery actions", zh: "对局恢复操作" },
+  checkingSettlement: { en: "Checking settlement…", zh: "正在检查结算…" },
+  checkSettlementAction: { en: "Check settlement", zh: "检查结算" },
+  checkSettlementHint: {
+    en: "Re-check the exact active game without creating another entry.",
+    zh: "仅重新检查当前对局，不会重复报名。",
+  },
+  recoverRunAction: { en: "Recover active run", zh: "恢复当前对局" },
+  recoveryHint: {
+    en: "Recovery reads the authoritative active game before enabling another move.",
+    zh: "恢复会先读取权威对局状态，再允许继续移动。",
+  },
+  statusSettlementPending: { en: "Settlement pending", zh: "结算处理中" },
+  gameFiMaintenanceShort: { en: "GameFi entry paused", zh: "GameFi 报名暂停" },
+  gameFiMaintenanceBody: {
+    en: "Free local play is open. New GAS entries stay paused until the reward pool, oracle callback allowlist, and full testnet settlement flow are verified.",
+    zh: "免费本地玩法已开放。奖励池、预言机回调白名单和完整测试网结算流程验证前，新的 GAS 报名保持暂停。",
+  },
+
   difficultyTitle: { en: "Kingdom route", zh: "王国路线" },
   difficulty_easy: { en: "Easy", zh: "简单" },
   difficulty_medium: { en: "Medium", zh: "中等" },
@@ -112,8 +223,8 @@ const appMessages = {
 
   rulesTitle: { en: "How it works", zh: "玩法说明" },
   rulesCopy: {
-    en: "1. Pick a difficulty and pay the entry (Easy 0.02, Medium 0.10, Hard 0.20 GAS). 2. The Morpheus enclave generates a 4×4 board with initial numbered tiles and binds its hash commitment on-chain. 3. Tap a tile to select it, then tap an adjacent empty space or a tile with the same number to move or merge. Merging two same-number tiles creates a tile with their sum (2+2=4, 4+4=8, …). 4. Reach the target tile (Easy 64, Medium 256, Hard 1024) before the deadline to win (0.1/0.5/1 GAS). 5. Each undo costs 30% of your reward — plan your moves wisely!",
-    zh: "1. 选择难度并支付报名费（简单 0.02、中等 0.10、困难 0.20 GAS）。2. Morpheus 飞地生成 4×4 初始数字棋盘，并将其哈希承诺绑定上链。3. 点击一个方块选中它，再点击相邻空格或相同数字的方块进行移动或合并。合并两个相同数字得到它们的和（2+2=4、4+4=8…）。4. 在截止时间前达到目标方块（简单 64、中等 256、困难 1024）即可获胜（0.1/0.5/1 GAS）。5. 每次撤销扣除 30% 奖励——谨慎规划你的每一步！",
+    en: "The dormant GameFi route uses the same building rules as local play: move a building to an adjacent empty plot or merge matching neighbours to raise the next tier. Its TEE session is designed to reveal each fresh resource one move at a time and verify the final target before settlement. New paid entries remain unavailable until the deployed pool and callback route pass the complete testnet flow.",
+    zh: "暂未开放的 GameFi 路线与本地玩法使用同一套建筑规则：把建筑移到相邻空地，或合并相邻的相同建筑以升级到下一阶。TEE 会话计划逐步揭示每次生成的新资源，并在结算前验证最终目标。部署的奖励池与回调路线完成整套测试网验证前，新的付费报名保持关闭。",
   },
   fairnessTitle: { en: "Provably fair boards", zh: "可验证公平棋盘" },
   fairnessCopy: {
@@ -143,6 +254,22 @@ const appMessages = {
     en: "The reward pool cannot cover this difficulty right now",
     zh: "奖池暂时无法覆盖该难度的奖励",
   },
+  statusMoveRejected: {
+    en: "That building move was rejected. Recover the active run before trying again.",
+    zh: "该建筑移动未通过验证，请先恢复当前对局再重试。",
+  },
+  invalidBoardState: {
+    en: "The verified board response was invalid. This run is paused for safe recovery.",
+    zh: "可验证棋盘响应无效，当前对局已暂停并等待安全恢复。",
+  },
+  walletConnectedReady: {
+    en: "Wallet connected. Your historical GameFi runs are ready to recover.",
+    zh: "钱包已连接，可以恢复历史 GameFi 对局。",
+  },
+  walletUnavailable: {
+    en: "The wallet did not connect. Free local play is still available.",
+    zh: "钱包未连接，仍可继续免费本地游玩。",
+  },
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
@@ -152,15 +279,28 @@ const appMessages = {
   // reward. These strings replace the GAS-at-stake / pool / reward framing so
   // guest carries only local practice framing.
   guestModeLine: {
-    en: "Guest mode — local play, best tiles saved off-chain.",
-    zh: "游客模式——本地游玩，最高方块离线保存。",
+    en: "Guest mode — local play with on-device progress recovery.",
+    zh: "游客模式——本地游玩，并可在本设备恢复进度。",
   },
   guestRunLabel: { en: "Local run", zh: "本地对局" },
   guestRunValue: { en: "Free play", zh: "自由练习" },
-  guestBestLabel: { en: "Best tile", zh: "最大方块" },
+  guestBestLabel: { en: "Best building", zh: "最高建筑" },
+  guestScoreLabel: { en: "Local best", zh: "本地最高" },
+  guestClearsLabel: { en: "Routes cleared", zh: "通关路线" },
+  guestClearsCount: { en: "{count} clears", zh: "通关 {count} 次" },
+  guestHistoryWon: { en: "Cleared", zh: "已通关" },
+  guestHistoryFinished: { en: "Finished", zh: "已结束" },
   guestStartHint: {
     en: "Free local run — no wallet or entry needed",
     zh: "免费本地对局——无需钱包或报名费",
+  },
+  guestRoutesCopy: {
+    en: "Choose a 45, 60, or 90 second route. Raise a Watchtower, Market, or Forge before the clock closes.",
+    zh: "选择 45、60 或 90 秒路线，在倒计时结束前升级到瞭望塔、集市或锻造坊。",
+  },
+  guestLeaderboardCopy: {
+    en: "Your strongest finished building becomes the score. The active kingdom and recent results persist on this device; the practice ranking never represents GAS winnings.",
+    zh: "已完成对局中的最高建筑会成为分数；当前王国与最近结果保存在本设备，练习排行不代表 GAS 奖励。",
   },
   guestSubmitAction: { en: "Finish run", zh: "结束对局" },
   guestSubmitHint: {
@@ -171,14 +311,48 @@ const appMessages = {
     en: "Local run complete — raised tile {tile}!",
     zh: "本地对局完成——达成方块 {tile}！",
   },
+  guestRunStarted: {
+    en: "Kingdom opened — merge matching buildings before the clock closes.",
+    zh: "王国已开启——在倒计时结束前合并相同建筑。",
+  },
+  guestRunRecovered: {
+    en: "Your unfinished local kingdom was restored on this device.",
+    zh: "已在本设备恢复未完成的本地王国。",
+  },
+  secureRandomUnavailable: {
+    en: "This browser cannot provide secure local randomness. The board was not changed.",
+    zh: "当前浏览器无法提供安全的本地随机数，棋盘未发生变化。",
+  },
   guestGameOver: {
     en: "Run over — best tile {tile}.",
     zh: "对局结束——最高方块 {tile}。",
   },
   guestRulesTitle: { en: "How guest mode works", zh: "游客模式说明" },
   guestRulesCopy: {
-    en: "Guest mode is a free local merge puzzle — slide and merge adjacent tiles up to the target with no wallet, no fees, and nothing on-chain. Your best tile is saved to an off-chain practice board (connect a wallet to record it). Switch to Earn GAS for the provably fair on-chain reward game.",
-    zh: "游客模式是一款免费的本地合并益智游戏——移动并合并相邻方块冲向目标，无需钱包、没有费用、也不涉及任何链上操作。你的最高方块会保存到离线练习榜（连接钱包即可记录）。切换到「赢取 GAS」即可体验可验证公平的链上奖励游戏。",
+    en: "Free local play uses real kingdom resources: drag or select a building, move it to an adjacent empty plot, or combine two matching buildings to raise the next tier. Reach the route target before time runs out. No wallet, fee, oracle, or chain write is used; your active board, best building, and recent results stay on this device.",
+    zh: "免费本地玩法使用真实王国资源：拖动或点选建筑，将其移动到相邻空地，或合并两个相同建筑以升级到下一阶。在倒计时结束前达成路线目标。无需钱包、费用、预言机或链上写入；当前棋盘、最高建筑和最近结果保存在本设备。",
+  },
+
+  building_2: { en: "Meadow", zh: "草地" },
+  building_4: { en: "Timber hut", zh: "木屋" },
+  building_8: { en: "Stone cottage", zh: "石屋" },
+  building_16: { en: "Village house", zh: "村舍" },
+  building_32: { en: "Watchtower", zh: "瞭望塔" },
+  building_64: { en: "Market", zh: "集市" },
+  building_128: { en: "Forge", zh: "锻造坊" },
+  building_256: { en: "Castle gate", zh: "城门" },
+  building_512: { en: "Castle keep", zh: "主堡" },
+  building_1024: { en: "Royal castle", zh: "王家城堡" },
+  building_2048: { en: "Crystal citadel", zh: "水晶堡垒" },
+  building_4096: { en: "Crown palace", zh: "王冠宫殿" },
+
+  proofNotReady: {
+    en: "The verified minimum play time has not elapsed yet.",
+    zh: "尚未达到可验证的最短对局时间。",
+  },
+  releaseNotReady: {
+    en: "Recovery unlocks only after the contract deadline and settlement grace.",
+    zh: "只有超过合约截止时间与结算宽限期后才能释放恢复。",
   },
 };
 

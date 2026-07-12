@@ -1,13 +1,14 @@
 /**
  * Client-side board state for a dealt puzzle.
  *
- * Challenge rules (mirrored by the contract's economics): a placed digit is
- * FINAL — the only rescue is the on-chain undo, which reverts the latest
- * placement and burns 30% of the base reward (three max). Pencil notes are
- * free and local. The whole board persists to localStorage per game id so a
- * refresh or wallet round-trip never loses progress.
+ * Paid challenge rules keep a placed digit final until its sealed undo. Local
+ * practice uses the explicit correction/erase helpers below so it behaves like
+ * a familiar Sudoku game. Pencil notes are always local. The whole board
+ * persists through the framework store per game id so refresh never loses the
+ * visible puzzle state.
  */
 import { conflictsAt } from "./sudoku-engine";
+import { MAX_UNDOS } from "./game-rules";
 
 export interface BoardState {
   /** 81 cells, 0 = empty, 1..9 = digit (givens included). */
@@ -19,6 +20,10 @@ export interface BoardState {
   /** Indices of player placements, oldest first (undo pops the tail). */
   placedOrder: number[];
 }
+
+export type BoardOp =
+  | { type: "place"; cell: number; digit: number }
+  | { type: "undo" };
 
 export function createBoard(puzzle: string): BoardState {
   const entries: number[] = [];
@@ -67,6 +72,49 @@ export function placeDigit(board: BoardState, index: number, value: number): {
   };
 }
 
+/**
+ * Local-practice placement. Unlike the paid sealed-op rules, a normal Sudoku
+ * player may correct a non-given cell without spending an undo. The current
+ * cell remains unique in `placedOrder`, so refresh recovery stays compact and
+ * deterministic even after several corrections.
+ */
+export function setLocalDigit(board: BoardState, index: number, value: number): {
+  board: BoardState;
+  conflicts: number[];
+} {
+  if (
+    index < 0 || index >= 81 ||
+    board.given[index] ||
+    value < 1 || value > 9 ||
+    !Number.isInteger(value)
+  ) {
+    return { board, conflicts: [] };
+  }
+  if (board.entries[index] === value) {
+    return { board, conflicts: conflictsAt(board.entries, index, value) };
+  }
+
+  const cleared = eraseLocalCell(board, index);
+  return placeDigit(cleared, index, value);
+}
+
+/** Erase a player digit in local practice; fixed clues remain immutable. */
+export function eraseLocalCell(board: BoardState, index: number): BoardState {
+  if (
+    index < 0 || index >= 81 ||
+    board.given[index] ||
+    (board.entries[index] ?? 0) === 0
+  ) return board;
+
+  const entries = [...board.entries];
+  entries[index] = 0;
+  return {
+    ...board,
+    entries,
+    placedOrder: board.placedOrder.filter((cell) => cell !== index),
+  };
+}
+
 export function toggleNote(board: BoardState, index: number, value: number): BoardState {
   if (!canPlace(board, index) || value < 1 || value > 9) return board;
   const notes = [...board.notes];
@@ -89,6 +137,32 @@ export function applyUndo(board: BoardState): { board: BoardState; reverted: num
   const entries = [...board.entries];
   entries[index] = 0;
   return { board: { ...board, entries, placedOrder }, reverted: index };
+}
+
+/** Rebuild the authoritative visible board from the persisted sealed-op log. */
+export function replayBoardOps(puzzle: string, ops: readonly BoardOp[]): BoardState | null {
+  let board = createBoard(puzzle);
+  let undos = 0;
+  for (const op of ops) {
+    if (!op || typeof op !== "object") return null;
+    if (op.type === "place") {
+      if (
+        !Number.isInteger(op.cell) || op.cell < 0 || op.cell >= 81 ||
+        !Number.isInteger(op.digit) || op.digit < 1 || op.digit > 9
+      ) return null;
+      const placed = placeDigit(board, op.cell, op.digit);
+      if (placed.board === board) return null;
+      board = placed.board;
+      continue;
+    }
+    if (op.type !== "undo") return null;
+    undos += 1;
+    if (undos > MAX_UNDOS) return null;
+    const undone = applyUndo(board);
+    if (undone.reverted === null) return null;
+    board = undone.board;
+  }
+  return board;
 }
 
 export function emptyCells(board: BoardState): number {
@@ -142,6 +216,15 @@ export function restoreBoard(gameId: string, puzzle: string): BoardState {
     ) {
       return createBoard(puzzle);
     }
+    if (
+      !parsed.entries.every((value) => Number.isInteger(value) && value >= 0 && value <= 9) ||
+      !parsed.given.every((value) => typeof value === "boolean") ||
+      !parsed.notes.every((value) => Number.isInteger(value) && value >= 0 && value <= 0x3fe) ||
+      !parsed.placedOrder.every((cell) => Number.isInteger(cell) && cell >= 0 && cell < 81) ||
+      new Set(parsed.placedOrder).size !== parsed.placedOrder.length
+    ) {
+      return createBoard(puzzle);
+    }
     // The stored board must belong to THIS puzzle — givens are the fingerprint.
     for (let i = 0; i < 81; i += 1) {
       const clue = puzzle.charCodeAt(i) - 48;
@@ -149,6 +232,12 @@ export function restoreBoard(gameId: string, puzzle: string): BoardState {
       if (parsed.given[i] !== isGiven || (isGiven && parsed.entries[i] !== clue)) {
         return createBoard(puzzle);
       }
+    }
+    const placed = new Set(parsed.placedOrder);
+    for (let i = 0; i < 81; i += 1) {
+      const playerDigit = !parsed.given[i] && (parsed.entries[i] ?? 0) > 0;
+      if (placed.has(i) !== playerDigit) return createBoard(puzzle);
+      if ((parsed.entries[i] ?? 0) > 0 && parsed.notes[i] !== 0) return createBoard(puzzle);
     }
     return parsed;
   } catch {

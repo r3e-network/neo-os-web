@@ -9,7 +9,7 @@ import React from "react";
  * Remains in normal document flow (not a modal) so the primary scene stays put.
  */
 export interface DetailDrawerProps {
-  category?: "game" | "defi" | "nft" | "tool";
+  category?: "game" | "defi" | "nft" | "tool" | "social" | "governance";
   className?: string;
   id?: string;
   open: boolean;

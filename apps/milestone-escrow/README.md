@@ -1,204 +1,66 @@
 # Milestone Escrow
 
-Milestone-based escrow releases with explicit approval and claim steps.
+A Neo N3 escrow workbench for funding a project once and releasing NEO or GAS milestone by milestone.
 
-## Overview
+## Production flow
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-milestone-escrow` |
-| **Category** | Finance |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea |
+1. The creator chooses NEO or GAS, a checksum-valid beneficiary address, and 1–12 positive tranches.
+2. Creation uses two wallet signatures: the token deposit, then `createEscrow` after that deposit is confirmed.
+3. The creator accepts a specific milestone on-chain with `approveMilestone`.
+4. The beneficiary claims that exact approved tranche with `claimMilestone`.
+5. The creator can cancel only while no approved-but-unclaimed milestone exists. Only the remaining balance is refunded.
+6. Before every write the frontend verifies the exact contract address, business limits, and pause state. Before a new deposit it also requires a withdrawal-capable prepaid-credit API.
 
+Every write is treated as successful only after the matching contract event and its escrow/milestone values are verified. A transaction hash without that exact event remains pending and does not mutate the UI.
 
-## How It Works
+## Important product limits
 
-1. **Create Escrow**: Sender creates an escrow with milestone definitions
-2. **Fund Escrow**: Deposit funds that will be released upon milestone completion
-3. **Milestone Review**: Milestones are reviewed and approved by the recipient
-4. **Release Funds**: Upon approval, funds are released to the recipient
-5. **Dispute Resolution**: Unresolved issues can be escalated
-## Features
+- The deployed contract stores tranche amounts, approvals, claims, parties, title, and notes.
+- It does **not** store delivery files or evidence and has no dispute arbiter. Parties must exchange evidence and resolve disputes off-chain before approval.
+- Milestones cannot be edited after creation.
+- NEO is indivisible; GAS uses 8 decimals. The minimum total is 1 NEO or 0.1 GAS.
+- There is no platform fee, but normal network fees apply.
+- The current 28-method mainnet/testnet deployment does not expose prepaid-credit withdrawal. New escrow creation is therefore fail-closed in the frontend; existing approve, claim, and cancel operations remain available after the core capability check passes.
+- The local recovery-capable contract build adds `directAssetCreditOf`, `reclaimDirectAssetCredit`, and a 30-day `reclaimApprovedMilestone`, but those paths must not be advertised as live until a deployment update is completed and verified.
+- Broadcast writes are persisted on-device and remain visibly pending until an exact event or contract-state readback proves the outcome.
 
-- Lock NEO or GAS in escrow
-- Creator approves each milestone
-- Beneficiary claims on approval
-- Creator can cancel and refund remaining funds
+## Contract interface used by the app
 
-## User Flow
+- `createEscrow(creator, beneficiary, asset, totalAmount, milestoneAmounts, title, notes)`
+- `approveMilestone(creator, escrowId, milestoneIndex)`
+- `claimMilestone(beneficiary, escrowId, milestoneIndex)`
+- `cancelEscrow(creator, escrowId)`
+- `getEscrowDetails(escrowId)`
+- `getCreatorEscrows(creator, offset, limit)`
+- `getBeneficiaryEscrows(beneficiary, offset, limit)`
 
-1. **Create escrow**: define milestones and deposit funds.
-2. **Approve**: creator approves milestones when work is delivered.
-3. **Claim**: beneficiary claims approved milestone amounts.
-4. **Cancel (optional)**: creator cancels and recovers remaining funds.
+The UI converts its zero-based milestone selection to the contract's one-based index.
 
-## Usage
+## Network status
 
-### Getting Started
+| Network | Contract | Status |
+|---|---|---|
+| Neo N3 Mainnet | `0x442162de25008ac78d4cce62ed8d8a64401b7ece` | Deployed |
+| Neo N3 Testnet | `0x442162de25008ac78d4cce62ed8d8a64401b7ece` | Deployed |
 
-1. **Open the App**: Open Milestone Escrow from your Neo MiniApp dashboard
-2. **Connect Wallet**: Connect your Neo N3 wallet
-3. **Create Escrow**: Set up milestones and deposit funds
-4. **Manage**: Approve work and release funds
+Read-only RPC validation on 2026-07-11 confirmed that both networks return `HALT` for `getPlatformStats`, report the expected limits (`1 NEO`, `0.1 GAS`, `1–12` milestones), and expose the 28-method create/approve/claim/cancel ABI. Repeated checks through `testnet1`, `testnet2`, `mainnet1`, and `mainnet2` found no `directAssetCreditOf`, `reclaimDirectAssetCredit`, or `reclaimApprovedMilestone`; a direct recovery probe returns `FAULT`. Both deployments report NEF checksum `447355561`.
 
-### Creating an Escrow
+Because that live build cannot recover an unconsumed two-step deposit, the frontend treats it as a legacy deployment: it permits recovery-critical operations on existing escrows (approve/claim/cancel) but refuses to request a new deposit signature. A recovery-capable contract update and a fresh live lifecycle test are required before creation can reopen.
 
-1. **Define Milestones**:
-   | Milestone | Amount | Description |
-   |-----------|--------|-------------|
-   | 1 | X GAS | First deliverable |
-   | 2 | Y GAS | Second deliverable |
-   | 3 | Z GAS | Final deliverable |
-
-2. **Set Details**:
-   - Select NEO or GAS as the escrow asset
-   - Total amount (sum of all milestones)
-   - Beneficiary address (who receives funds)
-   - Milestone descriptions
-   - Title and notes
-
-3. **Deposit Funds**:
-   - Lock the total selected asset amount in contract
-   - Funds held securely
-   - Creator retains control
-
-4. **Activate**:
-   - Escrow becomes active
-   - Beneficiary can begin work
-   - Creator can approve milestones
-
-### Managing Milestones
-
-**Creator Actions:**
-
-1. **Review Work**:
-   - Evaluate milestone completion
-   - Request revisions if needed
-   - Make informed approval decision
-
-2. **Approve Milestone**:
-   - Click approve on completed milestone
-   - Beneficiary can now claim
-   - Funds released from escrow
-
-3. **Cancel Escrow**:
-   - Recover unapproved funds
-   - Cancels remaining milestones
-   - Beneficiary keeps approved amounts
-
-**Beneficiary Actions:**
-
-1. **Submit Work**:
-   - Complete milestone deliverables
-   - Communicate completion to creator
-   - Wait for approval
-
-2. **Claim Milestone**:
-   - After creator approval
-   - Click claim to receive funds
-   - GAS transferred to wallet
-
-3. **Track Progress**:
-   - View milestone status
-   - See approved vs pending
-   - Monitor total released
-
-### Milestone Lifecycle
-
-```
-Created → In Progress → Approved → Claimed → Complete
-                     ↓
-                  Cancelled (refund to creator)
-```
-
-### Best Practices
-
-**For Creators:**
-- Break work into clear milestones
-- Set realistic amounts per milestone
-- Communicate expectations clearly
-- Review work thoroughly before approving
-
-**For Beneficiaries:**
-- Understand milestone requirements
-- Document work for review
-- Request clarification when needed
-- Submit quality deliverables
-
-### FAQ
-
-**Can I modify milestones after creation?**
-No, milestones are fixed at creation.
-
-**What if there's a dispute?**
-Parties must resolve disputes off-chain.
-
-**Can partial refunds happen?**
-Yes, unapproved milestones can be cancelled.
-
-**Is there a time limit?**
-Check contract for any time constraints.
-
-**How are amounts distributed?**
-Equal amounts per milestone by default.
-
-### Troubleshooting
-
-**Cannot approve:**
-- Verify you are the creator
-- Check milestone state
-- Ensure proper wallet connection
-
-**Claim not working:**
-- Verify milestone is approved
-- Check you are the beneficiary
-- Confirm transaction fees
-
-**Escrow stuck:**
-- Contact the other party
-- Use off-chain communication
-- Consider mediation if needed
-
-### Support
-
-For escrow questions, review the contract interface.
-
-For technical issues, contact the Neo MiniApp team.
-
-## Contract Methods
-
-- `CreateEscrow(creator, beneficiary, asset, totalAmount, milestoneAmounts, title, notes)`
-- `ApproveMilestone(creator, escrowId, milestoneIndex)`
-- `ClaimMilestone(beneficiary, escrowId, milestoneIndex)`
-- `CancelEscrow(creator, escrowId)`
-- `GetEscrowDetails(escrowId)`
+The local recovery-capable build checksum is currently `1925478399`, so it is not byte-identical to either live contract. No contract was deployed or updated during this frontend production pass.
 
 ## Permissions
 
-| Permission | Required |
-|------------|----------|
-| Payments | ❌ No |
-| Automation | ❌ No |
-| RNG | ❌ No |
-| Data Feed | ❌ No |
+- `invoke:primary` for contract writes
+- `read:blockchain` for the escrow ledger
+- NEP-17 payments for the initial NEO or GAS deposit
 
-## Network Configuration
+## Verification
 
-### Testnet
+From the repository root:
 
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x442162de25008ac78d4cce62ed8d8a64401b7ece` |
-| **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x442162de25008ac78d4cce62ed8d8a64401b7ece) |
-
-### Mainnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x442162de25008ac78d4cce62ed8d8a64401b7ece` |
-| **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x442162de25008ac78d4cce62ed8d8a64401b7ece) |
-
-> Testnet and mainnet are live and verified.
+```bash
+npx tsc -p apps/milestone-escrow/tsconfig.json --noEmit
+cd apps/shared && npx vitest run test/milestone-escrow.logic.test.ts test/milestone-escrow.playarea.test.tsx test/milestone-escrow.setup.test.ts
+npm --prefix apps/milestone-escrow run build
+```

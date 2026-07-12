@@ -15,8 +15,16 @@
  * the same board the enclave twins in gamefi mode — so a guest run is
  * mechanically identical to a reward run minus the chain.
  */
-import type { GameSessionObservables, LeaderEntry } from "@framework/game";
-import { BOARD_SIZE, emptyBoard, ruleOf } from "./game-rules";
+import type { GameSessionObservables, LeaderEntry, SolveRow } from "@framework/game";
+import { emptyBoard, guestRuleOf } from "./game-rules";
+import {
+  applyMergeMove,
+  emptyCells,
+  hasMergePotential,
+  highestTile,
+  isValidBoard,
+  type Cell,
+} from "./merge-engine";
 
 /** Structural (method-syntax, so bivariant) observable handle. */
 interface Obs<T> {
@@ -31,15 +39,30 @@ interface GuestLeaderboardApi {
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
+/** Framework-owned, app-namespaced local persistence surface. */
+export interface LocalStore {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
+
+export interface MergeGuestHistoryRow extends SolveRow {
+  tileAchieved: number;
+  won?: boolean;
+}
+
 export interface GuestEngineDeps {
-  obs: GameSessionObservables;
+  obs: GameSessionObservables<MergeGuestHistoryRow>;
   board: Obs<number[][]>;
   tileAchieved: Obs<number>;
   moveCount: Obs<number>;
   lastPayoutFixed8: Obs<bigint>;
   guestLeaderboard: GuestLeaderboardApi;
+  storage: LocalStore;
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
+  /** Test seam; production defaults to Web Crypto. */
+  randomInt?: (maxExclusive: number) => number;
 }
 
 export interface GuestEngine {
@@ -54,51 +77,81 @@ export interface GuestEngine {
 }
 
 const GUEST_GAME_ID = "guest";
+const GUEST_PROFILE_KEY = "guest:merge-kingdom:profile:v1";
+const GUEST_RUN_KEY = "guest:merge-kingdom:active-run:v1";
 /** Number of tiles seeded onto a fresh local board. */
-const START_TILES = 3;
+const START_TILES = 4;
 /** Chance (out of this many) that a spawned tile is a "4" instead of a "2". */
 const FOUR_SPAWN_IN = 8;
+const MAX_GUEST_HISTORY = 12;
+
+interface PersistedGuestProfile {
+  bestTile?: unknown;
+  clears?: unknown;
+  history?: unknown;
+}
+
+interface PersistedGuestRun {
+  board?: unknown;
+  difficulty?: unknown;
+  dealtAt?: unknown;
+  deadline?: unknown;
+  moveCount?: unknown;
+}
+
+type RestoreResult = "active" | "expired" | false;
 
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
-/** Uniform integer in [0, maxExclusive) from Web-Crypto (Math.random fallback). */
-function randomInt(maxExclusive: number): number {
+function nonNegativeInt(value: unknown, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : fallback;
+}
+
+function validGuestHistory(value: unknown): MergeGuestHistoryRow[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const row = candidate as Record<string, unknown>;
+    const gameId = typeof row.gameId === "string" ? row.gameId : "";
+    if (!gameId.startsWith("guest-")) return [];
+    return [{
+      gameId,
+      difficulty: clampDifficulty(Number(row.difficulty)),
+      payout: "0 GAS",
+      solveMs: nonNegativeInt(row.solveMs),
+      undos: 0,
+      tileAchieved: nonNegativeInt(row.tileAchieved),
+      won: row.won === true,
+    } satisfies MergeGuestHistoryRow];
+  }).slice(0, MAX_GUEST_HISTORY);
+}
+
+/**
+ * Uniform integer in [0, maxExclusive) from Web Crypto.
+ *
+ * Rejection sampling removes modulo bias. Local fairness fails closed instead
+ * of silently falling back to Math.random when a browser has no CSPRNG.
+ */
+export function secureRandomInt(maxExclusive: number): number {
   if (maxExclusive <= 1) return 0;
+  if (!Number.isSafeInteger(maxExclusive) || maxExclusive <= 0 || maxExclusive > 0x1_0000_0000) {
+    throw new RangeError("maxExclusive must be a positive uint32 range");
+  }
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    const buffer = new Uint32Array(1);
+  if (!webCrypto?.getRandomValues) throw new Error("secureRandomUnavailable");
+  const buffer = new Uint32Array(1);
+  const ceiling = Math.floor(0x1_0000_0000 / maxExclusive) * maxExclusive;
+  do {
     webCrypto.getRandomValues(buffer);
-    return (buffer[0] ?? 0) % maxExclusive;
-  }
-  return Math.floor(Math.random() * maxExclusive);
-}
-
-function cloneBoard(board: number[][]): number[][] {
-  return board.map((row) => [...row]);
-}
-
-/** Highest tile value anywhere on the board. */
-function highestTile(board: number[][]): number {
-  let best = 0;
-  for (const row of board) for (const cell of row) if (cell > best) best = cell;
-  return best;
-}
-
-/** Coordinates of every empty cell. */
-function emptyCells(board: number[][]): Array<{ row: number; col: number }> {
-  const cells: Array<{ row: number; col: number }> = [];
-  for (let r = 0; r < BOARD_SIZE; r += 1) {
-    for (let c = 0; c < BOARD_SIZE; c += 1) {
-      if ((board[r]?.[c] ?? 0) === 0) cells.push({ row: r, col: c });
-    }
-  }
-  return cells;
+  } while ((buffer[0] ?? 0) >= ceiling);
+  return (buffer[0] ?? 0) % maxExclusive;
 }
 
 /** Spawn one new tile (2, or occasionally 4) into a random empty cell. */
-function spawnTile(board: number[][]): boolean {
+function spawnTile(board: number[][], randomInt: (maxExclusive: number) => number): boolean {
   const empties = emptyCells(board);
   if (empties.length === 0) return false;
   const cell = empties[randomInt(empties.length)] ?? empties[0]!;
@@ -109,29 +162,10 @@ function spawnTile(board: number[][]): boolean {
 }
 
 /** Fresh 4×4 board seeded with a few starting tiles. */
-function initialBoard(): number[][] {
+function initialBoard(randomInt: (maxExclusive: number) => number): number[][] {
   const board = emptyBoard();
-  for (let k = 0; k < START_TILES; k += 1) spawnTile(board);
+  for (let k = 0; k < START_TILES; k += 1) spawnTile(board, randomInt);
   return board;
-}
-
-function isOrthogonalAdjacent(fr: number, fc: number, tr: number, tc: number): boolean {
-  const dr = Math.abs(fr - tr);
-  const dc = Math.abs(fc - tc);
-  return (dr === 1 && dc === 0) || (dr === 0 && dc === 1);
-}
-
-/** True when the player can still act: any empty cell, or any adjacent equal pair. */
-function hasAnyMove(board: number[][]): boolean {
-  for (let r = 0; r < BOARD_SIZE; r += 1) {
-    for (let c = 0; c < BOARD_SIZE; c += 1) {
-      const v = board[r]?.[c] ?? 0;
-      if (v === 0) return true;
-      if (c + 1 < BOARD_SIZE && (board[r]?.[c + 1] ?? 0) === v) return true;
-      if (r + 1 < BOARD_SIZE && (board[r + 1]?.[c] ?? 0) === v) return true;
-    }
-  }
-  return false;
 }
 
 export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
@@ -142,17 +176,76 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     moveCount,
     lastPayoutFixed8,
     guestLeaderboard,
+    storage,
     t,
     setStatus,
   } = deps;
+  const randomInt = deps.randomInt ?? secureRandomInt;
 
-  // Session-scoped guest stats (never touch the chain).
-  let guestBestTile = 0;
-  let runsPlayed = 0;
+  const loadProfile = (): {
+    bestTile: number;
+    clears: number;
+    history: MergeGuestHistoryRow[];
+  } => {
+    try {
+      const raw = storage.get<PersistedGuestProfile>(GUEST_PROFILE_KEY, {}) ?? {};
+      return {
+        bestTile: nonNegativeInt(raw.bestTile),
+        clears: nonNegativeInt(raw.clears),
+        history: validGuestHistory(raw.history),
+      };
+    } catch {
+      return { bestTile: 0, clears: 0, history: [] };
+    }
+  };
+
+  const initialProfile = loadProfile();
+
+  // Device-local guest stats (never touch the chain).
+  let guestBestTile = initialProfile.bestTile;
+  let guestClears = initialProfile.clears;
+  let guestHistory = initialProfile.history;
   let settling = false;
 
+  const saveProfile = (): void => {
+    try {
+      storage.set(GUEST_PROFILE_KEY, {
+        bestTile: guestBestTile,
+        clears: guestClears,
+        history: guestHistory,
+      });
+    } catch {
+      // Storage policy/quota failures never invalidate the in-memory run.
+    }
+  };
+
+  const clearActiveRun = (): void => {
+    try {
+      storage.delete(GUEST_RUN_KEY);
+    } catch {
+      // The terminal in-memory state remains authoritative for this session.
+    }
+  };
+
+  const saveActiveRun = (): void => {
+    if (obs.gameStatus.get() !== "dealt") return;
+    const liveBoard = board.get();
+    if (!isValidBoard(liveBoard)) return;
+    try {
+      storage.set(GUEST_RUN_KEY, {
+        board: liveBoard.map((row) => [...row]),
+        difficulty: obs.gameDifficulty.get(),
+        dealtAt: obs.dealtAt.get(),
+        deadline: obs.deadline.get(),
+        moveCount: moveCount.get(),
+      } satisfies PersistedGuestRun);
+    } catch {
+      // Private browsing or a full quota must not stop local play.
+    }
+  };
+
   const publishBoard = (next: number[][]): void => {
-    board.set(cloneBoard(next));
+    board.set(next.map((row) => [...row]));
     tileAchieved.set(highestTile(next));
   };
 
@@ -164,10 +257,57 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     obs.dealtAt.set(0);
     obs.undosUsed.set(0);
     obs.lastStatus.set("");
+    obs.lastElapsedMs.set(0);
+    obs.isStarting.set(false);
+    obs.isDealing.set(false);
+    obs.isSubmitting.set(false);
+    obs.isUndoing.set(false);
     lastPayoutFixed8.set(0n);
     board.set([]);
     tileAchieved.set(0);
     moveCount.set(0);
+  };
+
+  const restoreActiveRun = (): RestoreResult => {
+    try {
+      const raw = storage.get<PersistedGuestRun>(GUEST_RUN_KEY, null);
+      if (!raw) return false;
+      if (!isValidBoard(raw.board)) {
+        clearActiveRun();
+        return false;
+      }
+
+      const dealtAt = nonNegativeInt(raw.dealtAt);
+      const deadline = nonNegativeInt(raw.deadline);
+      const difficulty = clampDifficulty(Number(raw.difficulty));
+      const restoredMoves = nonNegativeInt(raw.moveCount);
+      if (
+        dealtAt <= 0
+        || deadline <= dealtAt
+        || highestTile(raw.board) <= 0
+        || (!hasMergePotential(raw.board)
+          && highestTile(raw.board) < guestRuleOf(difficulty).targetTile)
+      ) {
+        clearActiveRun();
+        return false;
+      }
+
+      obs.gameDifficulty.set(difficulty);
+      obs.activeGameId.set(GUEST_GAME_ID);
+      obs.commitment.set("");
+      obs.undosUsed.set(0);
+      obs.dealtAt.set(dealtAt);
+      obs.deadline.set(deadline);
+      lastPayoutFixed8.set(0n);
+      publishBoard(raw.board);
+      moveCount.set(restoredMoves);
+      obs.gameStatus.set("dealt");
+      obs.lastStatus.set(t("guestRunRecovered"));
+      return deadline <= Date.now() ? "expired" : "active";
+    } catch {
+      clearActiveRun();
+      return false;
+    }
   };
 
   const submitScore = async (score: number): Promise<void> => {
@@ -202,95 +342,137 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   const finishRun = async (won: boolean): Promise<void> => {
     if (settling) return;
     settling = true;
-    const score = tileAchieved.get();
-    obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
-    lastPayoutFixed8.set(0n);
-    obs.activeGameId.set("0");
+    try {
+      const score = tileAchieved.get();
+      const difficulty = obs.gameDifficulty.get();
+      const elapsedMs = Math.max(0, Date.now() - obs.dealtAt.get());
+      obs.lastElapsedMs.set(elapsedMs);
+      lastPayoutFixed8.set(0n);
+      obs.activeGameId.set("0");
+      clearActiveRun();
 
-    if (score > 0) {
-      guestBestTile = Math.max(guestBestTile, score);
-      runsPlayed += 1;
-      obs.myTotalWon.set(guestBestTile);
-      obs.mySolves.set(runsPlayed);
+      if (score > 0) {
+        guestBestTile = Math.max(guestBestTile, score);
+        if (won) guestClears += 1;
+        guestHistory = [{
+          gameId: `guest-${Date.now()}-${guestHistory.length + 1}`,
+          difficulty,
+          payout: "0 GAS",
+          solveMs: elapsedMs,
+          undos: 0,
+          tileAchieved: score,
+          won,
+        }, ...guestHistory].slice(0, MAX_GUEST_HISTORY);
+        obs.myTotalWon.set(guestBestTile);
+        obs.mySolves.set(guestClears);
+        obs.myHistory.set([...guestHistory]);
+        saveProfile();
+      }
+
+      obs.gameStatus.set(won ? "solved" : "expired");
+      if (won) {
+        const message = t("guestRunComplete", { tile: score });
+        obs.lastStatus.set(message);
+        setStatus(message, "success");
+      } else {
+        const message = t("guestGameOver", { tile: score });
+        obs.lastStatus.set(message);
+        setStatus(message, "info");
+      }
+
+      await submitScore(score);
+      await refreshLeaderboard();
+    } finally {
+      settling = false;
     }
-
-    obs.gameStatus.set(won ? "solved" : "expired");
-    if (won) {
-      obs.lastStatus.set("solved");
-      setStatus(t("guestRunComplete", { tile: score }), "success");
-    } else {
-      obs.lastStatus.set("expired");
-      setStatus(t("guestGameOver", { tile: score }), "info");
-    }
-
-    await submitScore(score);
-    await refreshLeaderboard();
-    settling = false;
   };
 
   return {
     startGame(difficulty: number): void {
-      if (obs.isStarting.get() || obs.gameStatus.get() === "dealt") return;
+      if (settling || obs.isStarting.get() || obs.isSubmitting.get() || obs.gameStatus.get() === "dealt") return;
       const diff = clampDifficulty(difficulty);
-      const rule = ruleOf(diff);
+      const rule = guestRuleOf(diff);
       obs.isStarting.set(true);
-      const start = initialBoard();
-      const now = Date.now();
-      obs.gameDifficulty.set(diff);
-      obs.activeGameId.set(GUEST_GAME_ID);
-      obs.commitment.set("");
-      obs.undosUsed.set(0);
-      obs.dealtAt.set(now);
-      obs.deadline.set(now + rule.limitMs);
-      lastPayoutFixed8.set(0n);
-      publishBoard(start);
-      moveCount.set(0);
-      obs.gameStatus.set("dealt");
-      obs.lastStatus.set("dealt");
-      obs.isStarting.set(false);
+      try {
+        const start = initialBoard(randomInt);
+        const now = Date.now();
+        obs.gameDifficulty.set(diff);
+        obs.activeGameId.set(GUEST_GAME_ID);
+        obs.commitment.set("");
+        obs.undosUsed.set(0);
+        obs.dealtAt.set(now);
+        obs.deadline.set(now + rule.limitMs);
+        lastPayoutFixed8.set(0n);
+        publishBoard(start);
+        moveCount.set(0);
+        obs.gameStatus.set("dealt");
+        obs.lastStatus.set(t("guestRunStarted"));
+        saveActiveRun();
+      } catch (error) {
+        clearActiveRun();
+        resetToLobby();
+        const message = error instanceof Error && error.message === "secureRandomUnavailable"
+          ? t("secureRandomUnavailable")
+          : error instanceof Error
+            ? error.message
+            : t("statusFailed");
+        obs.lastStatus.set(message);
+        setStatus(message, "error");
+      } finally {
+        obs.isStarting.set(false);
+      }
     },
 
     recordMove(fromRow: number, fromCol: number, toRow: number, toCol: number): void {
       if (obs.gameStatus.get() !== "dealt") return;
-      const coords = [fromRow, fromCol, toRow, toCol];
-      const inRange = (v: number) => Number.isInteger(v) && v >= 0 && v < BOARD_SIZE;
-      if (!coords.every(inRange)) return;
-      if (!isOrthogonalAdjacent(fromRow, fromCol, toRow, toCol)) return;
       const deadline = obs.deadline.get();
       if (deadline > 0 && Date.now() >= deadline) return;
 
-      const next = cloneBoard(board.get());
-      const src = next[fromRow]?.[fromCol] ?? 0;
-      const dst = next[toRow]?.[toCol] ?? 0;
-      if (src <= 0) return; // must move an occupied tile
-      if (dst !== 0 && dst !== src) return; // only move into empty or merge equal
-
-      if (dst === 0) {
-        next[toRow]![toCol] = src; // relocate
-      } else {
-        next[toRow]![toCol] = src * 2; // merge equal tiles
+      let result: ReturnType<typeof applyMergeMove>;
+      try {
+        result = applyMergeMove(
+          board.get(),
+          { row: fromRow, col: fromCol },
+          { row: toRow, col: toCol },
+          (free: readonly Cell[]) => ({
+            cell: free[randomInt(free.length)] ?? free[0]!,
+            value: randomInt(FOUR_SPAWN_IN) === 0 ? 4 : 2,
+          }),
+        );
+      } catch (error) {
+        const message = error instanceof Error && error.message === "secureRandomUnavailable"
+          ? t("secureRandomUnavailable")
+          : error instanceof Error
+            ? error.message
+            : t("statusFailed");
+        obs.lastStatus.set(message);
+        setStatus(message, "error");
+        return;
       }
-      next[fromRow]![fromCol] = 0;
+      if (!result) return;
 
-      // Inject fresh material (the local analog of the enclave spawn stream).
-      spawnTile(next);
-      publishBoard(next);
+      publishBoard(result.board);
       moveCount.set(moveCount.get() + 1);
+      saveActiveRun();
 
-      // Local game over: target not reached and no moves remain — settle the run.
-      const rule = ruleOf(obs.gameDifficulty.get());
-      if (highestTile(next) < rule.targetTile && !hasAnyMove(next)) {
+      // Repositioning never consumes a spawn. A dead position is one that can
+      // no longer produce a merge, not merely a board with no immediate pair.
+      const rule = guestRuleOf(obs.gameDifficulty.get());
+      if (result.highestTile < rule.targetTile && !result.canContinue) {
         void finishRun(false);
       }
     },
 
     async submitSolution(): Promise<void> {
       if (obs.gameStatus.get() !== "dealt" || obs.isSubmitting.get()) return;
-      const rule = ruleOf(obs.gameDifficulty.get());
+      const rule = guestRuleOf(obs.gameDifficulty.get());
       if (tileAchieved.get() < rule.targetTile) return; // claim only once the target is raised
       obs.isSubmitting.set(true);
-      await finishRun(true);
-      obs.isSubmitting.set(false);
+      try {
+        await finishRun(true);
+      } finally {
+        obs.isSubmitting.set(false);
+      }
     },
 
     async expireGame(): Promise<void> {
@@ -315,9 +497,15 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
+      const profile = loadProfile();
+      guestBestTile = profile.bestTile;
+      guestClears = profile.clears;
+      guestHistory = profile.history;
       obs.myTotalWon.set(guestBestTile);
-      obs.mySolves.set(runsPlayed);
-      obs.myHistory.set([]);
+      obs.mySolves.set(guestClears);
+      obs.myHistory.set([...guestHistory]);
+      const restored = restoreActiveRun();
+      if (restored === "expired") await finishRun(false);
       await refreshLeaderboard();
     },
   };

@@ -15,7 +15,7 @@ export interface ScoreItem {
 }
 
 export interface ScoreReadoutProps {
-  category?: "game" | "defi" | "nft" | "tool";
+  category?: "game" | "defi" | "nft" | "tool" | "social" | "governance";
   className?: string;
   items: ScoreItem[];
 }

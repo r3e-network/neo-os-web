@@ -9,32 +9,11 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Unbreakable Vault",
-  description: "Create password-protected vaults with GAS bounties",
+  description: "Inspect and manage hash-locked GAS bounty vaults",
   icon: "lock",
-  category: "game",
+  category: "defi",
   shell: "launcher",
-
-  tabs: [
-    { key: "create", labelKey: "create", icon: "lock", default: true },
-    { key: "break", labelKey: "break", icon: "key" },
-  ],
-
-  stats: [
-    { labelKey: "myVaultsStat", valueKey: "myVaultCount", format: "number", icon: "lock" },
-    { labelKey: "openVaultsStat", valueKey: "recentVaultCount", format: "number", icon: "key" },
-    { labelKey: "sidebarDifficulty", valueKey: "vaultDifficulty", format: "number", icon: "bar-chart" },
-    { labelKey: "sidebarAttemptFee", valueKey: "attemptFeeDisplay", format: "text", icon: "zap" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "myVaultsStat", valueKey: "myVaultCount", format: "number" },
-      { labelKey: "openVaultsStat", valueKey: "recentVaultCount", format: "number" },
-      { labelKey: "sidebarDifficulty", valueKey: "vaultDifficulty", format: "number" },
-      { labelKey: "sidebarAttemptFee", valueKey: "attemptFeeDisplay", format: "text" },
-    ],
-  },
+  theme: { family: "finance", accentColor: "#0f766e", density: "comfortable" },
 
   features: { walletRequired: true, chainWarning: true },
 

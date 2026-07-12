@@ -1,102 +1,67 @@
-# GASBOX — Spin the Chain, Win the Prize
+# GasBox
 
-> Drop 0.1 GAS. Spin the box. Win NEO, rare NFTs, or platform points. Every draw is provably fair.
+GasBox is a resource-led Neo N3 capsule game designed around `MiniAppGasBoxV2`. The production frontend is currently in browse-and-recovery mode: new pulls, machine publishing, pool top-ups and activation are disabled until the fixed-beacon contract is deployed.
 
-## What is GASBOX?
+The reason is a verified deployment mismatch. The local replacement source/build uses the fixed `commitIndex + 1` block hash, but both manifest bindings still point to an older live ABI with no `update` method. Its deployed manifest identifies settle-block `Runtime.GetRandom`; the matching repository version re-rolls on a later settle attempt. That is not the game logic this frontend advertises, so it is not allowed to accept new paid writes.
 
-GASBOX is the first fully on-chain gacha (blind box) experience on Neo N3. For as little as 0.1 GAS per spin, players can win prizes ranging from NEO tokens and rare NFTs to platform points — all powered by verifiable random functions (VRF) that make every draw provably fair and tamper-proof.
+## Available now
 
-Think of it as a decentralized gachapon machine. Creators can set up custom machines with their own prize pools, rarity tiers, and pricing. Players spin and instantly see results, complete with fireworks animations for big wins. The gacha economy is transparent — every probability, every stock level, every payout is recorded on-chain for anyone to verify.
+1. Read the live machine catalog without connecting a wallet.
+2. Review pull price, weighted odds, total pool, reserved pool and free pool.
+3. Restore and reveal a pull that was already committed before the gate.
+4. Return unused prepaid GAS credit with `withdraw(account)`.
+5. Return creator revenue or unreserved bankroll. Reserved funds remain untouched.
 
-What makes GASBOX special is the transparency of the machine itself. Prize tables, stock levels, and machine configuration live on-chain. Keeper automation can still broadcast big wins across the platform, creating social proof and excitement.
+## Enabled after a compatible deployment
 
-## How to Play
+1. Connect a Neo N3 wallet and commit the GAS wager. Existing prepaid credit is reused first.
+2. Reveal after the fixed next-block beacon exists. Settlement is permissionless and pays exactly once.
+3. If the page reloads, the network/contract/wallet-scoped pending journal restores Reveal without resubmitting the wager.
 
-1. **Browse Machines** — Explore available gacha machines, each with its own theme, prizes, and spin cost.
-2. **Connect & Spin** — Connect your Neo N3 wallet. Pay the spin cost (starting at 0.1 GAS) to draw.
-3. **See Your Prize** — The VRF generates a random seed on-chain. Your prize is determined instantly with a satisfying reveal animation.
-4. **Collect Rewards** — NEO, GAS, NFTs, or points are credited to your account automatically.
-5. **Go Again** — Start another draw whenever you want and keep chasing the legendary drop.
+## Creator contract flow
 
-## Key Features
+- `createMachine` creates a GAS-priced machine with a NEO or GAS prize asset.
+- `addItem` stores 1-based weighted prize rows.
+- A memo-bound NEP-17 transfer funds the machine pool.
+- `setActive` only succeeds when the free pool covers the largest prize.
+- `withdrawRevenue` returns accumulated GAS revenue.
+- `withdrawPool` returns only unreserved bankroll and may deactivate an underfunded machine.
 
-- **Provably Fair Draws**: Every spin uses on-chain VRF (Verifiable Random Function). The seed is public, the selection algorithm is deterministic — anyone can verify the result.
-- **Tiered Rarity System**: Prizes span multiple rarity tiers. View exact probabilities and remaining stock before you spin.
-- **Ultra-Low Entry**: Spins start at 0.1 GAS — accessible to everyone.
-- **Creator Machines**: Anyone can create and stock a gacha machine with custom prizes, probabilities, and pricing.
-- **Big Win Broadcasts**: Keeper automation detects legendary wins and broadcasts them platform-wide.
-- **Machine Marketplace**: Machines can be listed for sale — buy a profitable machine from another creator.
+All amount comparisons and writes use decimal-string base units. Display numbers are derived from those exact values.
 
-## Technical Architecture
+## Live contract binding
 
-### Smart Contract
+| Network | Contract |
+| --- | --- |
+| Neo N3 MainNet | `0x30e9d4a4758827361c3b51a0e8460b067e58b1db` |
+| Neo N3 TestNet | `0x30e9d4a4758827361c3b51a0e8460b067e58b1db` |
 
-| Component         | Details                                                                                      |
-| ----------------- | -------------------------------------------------------------------------------------------- |
-| **Contract Name** | `MiniAppGASBox`                                                                            |
-| **Language**      | C# (Neo N3 Smart Contract)                                                                   |
-| **Blockchain**    | Neo N3                                                                                       |
-| **Play Flow**     | `initiatePlay` → VRF seed → client selection simulation → `settlePlay` on-chain verification |
-| **Asset Types**   | Fungible tokens (NEO/GAS, type 1) and NFTs (type 2)                                          |
+The frontend verifies network, configured hash, required V2 reads and deployment compatibility. This known older hash remains readable but fails the paid-write compatibility gate. Recovery condition: deploy the fixed-beacon artifact as a new contract, verify it read-only, then update the registry and manifest bindings. Current evidence is recorded in `NETWORK_STATUS.md`.
 
-### Service Layer Technologies
+## Frontend
 
-- **VRF (Verifiable Random Function)**: On-chain randomness ensures every draw is fair. The seed is generated during `initiatePlay` and used deterministically to select a prize.
-- **Keeper (Automation)**: Monitors for big win events (`PlayResolved` with high-value prizes) and triggers platform-wide broadcast notifications and celebration effects.
-- **Current wallet flow**: the live testnet app uses direct wallet transactions rather than AA session keys.
+- React + TypeScript + the shared MiniApp framework
+- Existing GasBox capsule-machine and capsule artwork
+- Official NEO/GAS `CoinArt` from the shared Neo press-kit asset set
+- Real transaction state drives motion; there is no fake pull timer or simulated prize
 
-### Contract Methods
+## Verification
 
-| Method              | Type   | Parameters                          | Description                                          |
-| ------------------- | ------ | ----------------------------------- | ---------------------------------------------------- |
-| `initiatePlay`      | Action | `player`, `machineId`               | Start a gacha draw after the user prepays GAS directly to the contract |
-| `settlePlay`        | Action | `player`, `playId`, `selectedIndex` | Settle the draw — verify selection, distribute prize |
-| `buyMachine`        | Action | `player`, `machineId`               | Purchase a machine listed for sale using direct prepaid GAS |
-| `getMachineDetails` | Query  | `machineId`                         | Get machine info (items, prices, stock)              |
-
-## Getting Started
+From the repository root:
 
 ```bash
-# Navigate to the app directory
-cd miniapps/apps/gasbox
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production (H5)
-npm run build
+npx tsc --noEmit -p apps/gasbox/tsconfig.json
+npx eslint apps/gasbox/src apps/shared/test/gasbox*.test.ts apps/shared/test/gasbox*.test.tsx
+npm --prefix apps/gasbox run build
 ```
 
-## Contract Addresses
+Run focused tests from `apps/shared` so its Vitest configuration and aliases apply:
 
-| Network | Address                                      |
-| ------- | -------------------------------------------- |
-| Testnet | `0x740671b10330ef6669ab8b2724437eb8d5e7a34c` |
-| Mainnet | `0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7` |
+```bash
+cd apps/shared
+npx vitest run test/gasbox.logic.test.ts test/gasbox.playarea.test.tsx test/gasbox.integration.test.tsx test/gasbox.launch.test.ts test/gasbox.e2e.test.ts --maxWorkers=1 --testTimeout=15000
+```
 
-### Explorer Links
+## Scope
 
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x740671b10330ef6669ab8b2724437eb8d5e7a34c)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7)
-
-## Domains
-
-- Mainnet domain: `gasbox.miniapp.neo`
-
-## Tech Stack
-
-| Layer           | Technology                                |
-| --------------- | ----------------------------------------- |
-| Frontend        | Host-native React + TypeScript              |
-| Smart Contract  | C# / Neo N3                               |
-| Randomness      | VRF (On-chain Verifiable Random Function) |
-| Interaction     | Direct wallet invocation                  |
-| Social Features | Keeper (Big Win Broadcast)                |
-| Payment         | Direct prepaid GAS to the miniapp contract |
-
-## License
-
-MIT License — R3E Network
+GasBox V2 pays fungible NEO or GAS prizes. It does not currently support NFTs, machine trading, VRF, keeper settlement or AA session keys.

@@ -1,42 +1,54 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../oracle-http-console/src/PlayArea";
+import { consoleConfig } from "../../oracle-http-console/src/appConfig";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
 function t(key: string) {
   const m: Record<string,string> = {
-    buildRequest: "Build Request",
-    digestPlaceholder: "No digest",
+    buildRequest: "Prepare Payload",
+    copyPayload: "Copy Morpheus payload",
+    payloadCopied: "Morpheus payload copied",
+    digestPlaceholder: "No draft digest",
     httpEmptyTitle: "Preview the oracle intent",
     httpFlowTitle: "Oracle request flow",
     httpPipelineCopy: "Compose the source, extraction path, and optional body as one reviewable oracle route.",
     httpPipelineTitle: "Request pipeline",
-    httpReady: "HTTP request ready",
+    httpReady: "Morpheus payload ready",
+    httpInputsReady: "Ready to prepare",
+    httpDraftChanged: "Draft changed — prepare again",
     httpRequestPlan: "Request plan",
     httpResultPreview: "Preview receipt",
-    httpRouteDigestNode: "Digest beacon",
+    httpRouteDigestNode: "Preview marker",
     httpRouteExtractNode: "Extractor",
     httpRouteSourceNode: "Source node",
     httpRouteWorkbench: "Live oracle route",
     httpSignalsLabel: "Route signals",
     httpSourceLabel: "Source",
-    httpUrlReadyHint: "Ready for oracle preview.",
+    httpUrlReadyHint: "Public HTTP endpoint ready for preview.",
     httpValidationReady: "Inputs ready",
-    httpPathReadyHint: "JSONPath syntax is ready.",
+    httpPathReadyHint: "Morpheus dot path is ready.",
     httpMethodTitle: "Transport mode",
     httpMethodGetHint: "Read a public endpoint without a request body.",
-    httpMethodPostHint: "Include a compact body in the preview digest.",
-    httpBodyGetHint: "Disabled for GET because the digest omits request bodies.",
-    httpBodyPostHint: "Included only for POST and folded into the digest.",
+    httpMethodPostHint: "Include compact JSON in the local draft digest.",
+    httpBodyGetHint: "Disabled for GET because its payload omits request bodies.",
+    httpBodyPostHint: "Included only for POST and folded into the draft digest.",
+    httpBodyInvalidJson: "POST body must be valid JSON",
+    httpBodyTooLarge: "Keep the POST body within 32 KiB",
     httpBodyState: "Body",
     httpBodyIncluded: "Body included",
+    httpBodyEmpty: "No POST body",
     httpBodyIgnored: "No body for GET",
+    copyingPayload: "Copying payload...",
     httpInvalidPath: "Enter a valid JSON path",
     httpInvalidUrl: "Enter a valid http(s) URL",
+    httpUrlCredentialsBlocked: "Remove credentials from the URL before previewing.",
+    httpUrlFragmentBlocked: "Remove the URL fragment; fragments are not sent in HTTP requests.",
+    httpUrlPrivateHostBlocked: "Use a public endpoint; local and private-network hosts cannot be prepared for the oracle lane.",
     httpUrlInvalidHint: "Use a valid http(s) URL before previewing.",
     httpPathInvalidHint: "Start with $ and avoid unfinished brackets or trailing dots.",
     httpStatusLabel: "HTTP request status",
@@ -44,14 +56,14 @@ function t(key: string) {
     body: "Body",
     bodyPlaceholder: "Optional POST body",
     jsonPath: "JSON Path",
-    jsonPathPlaceholder: "$.status",
+    jsonPathPlaceholder: "status",
     lastStatus: "Status",
     method: "Method",
     panelEyebrow: "Oracle",
     panelTitle: "Console",
     pathValid: "Path valid",
     previewingRequest: "Routing request...",
-    statDigest: "Digest",
+    statDigest: "Draft digest",
     statRequests: "Requests",
     statusReady: "Ready",
     url: "URL",
@@ -61,7 +73,7 @@ function t(key: string) {
   return m[key] ?? key;
 }
 function state(o: Partial<Record<string,unknown>> = {}): ObservableState {
-  const b: Record<string,unknown> = { networkLabel:"Mainnet", endpointLabel:"Preview", lastStatus:"Ready", lastDigest:"No digest", requestCount:0, ...o };
+  const b: Record<string,unknown> = { networkLabel:"Mainnet", endpointLabel:"Local builder", lastStatus:"Ready", lastDigest:"No draft digest", requestCount:0, ...o };
   return Object.fromEntries(Object.entries(b).map(([k,v]) => [k, createObservable(v)]));
 }
 function playAreaStyles(app: string): string {
@@ -91,15 +103,15 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(container.textContent).not.toContain("⚡");
   });
 
-  it("keeps Build Request wired to the preview action", () => {
+  it("keeps Prepare Payload wired to the preview action", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Build Request/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Prepare Payload/ }));
 
     expect(dispatch).toHaveBeenCalledWith("buildRequest", expect.objectContaining({
       method: "GET",
-      jsonPath: "$.status",
+      jsonPath: "status",
       body: "",
     }));
   });
@@ -120,7 +132,7 @@ describe("oracle-http-console PlayArea (v2)", () => {
     fireEvent.change(inputs[0], { target: { value: "https://api.example.test/prices" } });
     fireEvent.change(inputs[1], { target: { value: "$.data.price" } });
     fireEvent.change(body as HTMLTextAreaElement, { target: { value: "{\"symbol\":\"GAS\"}" } });
-    fireEvent.click(screen.getByRole("button", { name: /Build Request/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Prepare Payload/ }));
 
     expect(dispatch).toHaveBeenCalledWith("buildRequest", expect.objectContaining({
       method: "POST",
@@ -130,26 +142,30 @@ describe("oracle-http-console PlayArea (v2)", () => {
     }));
   });
 
-  it("blocks invalid URL or JSONPath before dispatching preview", () => {
+  it("blocks invalid URL or extraction path before preparing a payload", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Details/ }));
     const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".oracle-http-composer input.semi-input"));
-    const primary = screen.getByRole("button", { name: /Build Request/ }) as HTMLButtonElement;
+    const primary = screen.getByRole("button", { name: /Prepare Payload/ }) as HTMLButtonElement;
 
     fireEvent.change(inputs[0], { target: { value: "ftp://example.test/feed" } });
     expect(primary.disabled).toBe(true);
     expect(container.textContent).toContain("Enter a valid http(s) URL");
     fireEvent.click(primary);
-    expect(dispatch).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith("buildRequest", expect.anything());
+
+    fireEvent.change(inputs[0], { target: { value: "http://127.0.0.1/private" } });
+    expect(primary.disabled).toBe(true);
+    expect(container.textContent).toContain("Use a public endpoint");
 
     fireEvent.change(inputs[0], { target: { value: "https://api.example.test/feed" } });
     fireEvent.change(inputs[1], { target: { value: "status." } });
     expect(primary.disabled).toBe(true);
     expect(container.textContent).toContain("Enter a valid JSON path");
     fireEvent.click(primary);
-    expect(dispatch).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalledWith("buildRequest", expect.anything());
   });
 
   it("uses a task-mode Open UI details drawer instead of raw paragraphs", () => {
@@ -173,6 +189,89 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(container.querySelector(".oracle-http-drawer__digest")).toBeTruthy();
   });
 
+  it("copies only the exact Morpheus payload that matches the prepared digest", () => {
+    const defaults = Object.fromEntries(
+      consoleConfig.fields.map((field) => [field.key, String(field.defaultValue ?? "")]),
+    );
+    const prepared = consoleConfig.buildResult(defaults, t);
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ lastDigest: prepared.payload.digest })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
+    const tabs = Array.from(container.querySelectorAll<HTMLElement>(".oracle-http-drawer__switcher-group .semi-radio"));
+    fireEvent.click(tabs[2]);
+    fireEvent.click(screen.getByRole("button", { name: /Copy Morpheus payload/ }));
+
+    expect(dispatch).toHaveBeenCalledWith(
+      "copyPayload",
+      expect.stringContaining('"json_path": "status"'),
+    );
+    expect(dispatch.mock.calls.at(-1)?.[1]).not.toContain("digest");
+  });
+
+  it("keeps payload copying single-flight until clipboard completion", async () => {
+    const defaults = Object.fromEntries(
+      consoleConfig.fields.map((field) => [field.key, String(field.defaultValue ?? "")]),
+    );
+    const prepared = consoleConfig.buildResult(defaults, t);
+    let finishCopy: (value: boolean) => void = () => undefined;
+    const dispatch = vi.fn((name: string) => name === "copyPayload"
+      ? new Promise<boolean>((resolve) => { finishCopy = resolve; })
+      : Promise.resolve(undefined));
+    const { container } = render(
+      <PlayArea t={t} state={state({ lastDigest: prepared.payload.digest })} dispatch={dispatch} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
+    const tabs = Array.from(container.querySelectorAll<HTMLElement>(".oracle-http-drawer__switcher-group .semi-radio"));
+    fireEvent.click(tabs[2]);
+    const copy = screen.getByRole("button", { name: /Copy Morpheus payload/ }) as HTMLButtonElement;
+    fireEvent.click(copy);
+    fireEvent.click(copy);
+
+    expect(dispatch.mock.calls.filter(([name]) => name === "copyPayload")).toHaveLength(1);
+    expect(copy.disabled).toBe(true);
+    finishCopy(true);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Morpheus payload copied/ })).toBeTruthy());
+  });
+
+  it("invalidates a stale receipt after the draft changes and resets kernel state", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state({ lastDigest: `0x${"a".repeat(64)}` })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(screen.getAllByText("Draft changed — prepare again").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Reset/ }));
+    expect(dispatch).toHaveBeenCalledWith("resetRequest");
+  });
+
+  it("blocks malformed JSON bodies before a POST draft can be prepared", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
+    fireEvent.click(screen.getByText("POST"));
+    const body = container.querySelector<HTMLTextAreaElement>(".oracle-http-field--body textarea.semi-input-textarea");
+    fireEvent.change(body as HTMLTextAreaElement, { target: { value: "{bad-json}" } });
+
+    const primary = screen.getByRole("button", { name: /Prepare Payload/ }) as HTMLButtonElement;
+    expect(primary.disabled).toBe(true);
+    expect(container.textContent).toContain("POST body must be valid JSON");
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalledWith("buildRequest", expect.anything());
+  });
+
   it("keeps the scene scoped, clean, and motion-accessible", () => {
     const s = playAreaStyles("oracle-http-console");
     const source = playAreaSource("oracle-http-console");
@@ -182,7 +281,10 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(source).toContain("OpenUiTextArea");
     expect(source).toContain("if (!canPreview) return;");
     expect(source).toContain("disabled: !canPreview || actionPreview");
-    expect(source).toContain('dispatch("buildRequest", values)');
+    expect(source).toContain('dispatch("buildRequest", {');
+    expect(source).toContain('dispatch("copyPayload"');
+    expect(source).toContain('dispatch("resetRequest")');
+    expect(source).toContain('dispatch("invalidateRequest")');
     expect(source).not.toContain('role="tablist"');
     expect(source).not.toContain('role="tab"');
     expect(s).toContain("@media (prefers-reduced-motion: reduce)");
@@ -213,6 +315,7 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-console-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/\.oracle-console-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 184px/);
     expect(s).toMatch(/@keyframes oracle-http-pulse/);
+    expect(s).toMatch(/\.oracle-http-copy-action\s*\{[\s\S]*width:\s*fit-content/);
     expect(s).not.toMatch(/gradient/);
     expect(s).not.toMatch(/oracle-console-scene__backdrop/);
     expect(s).not.toMatch(/oracle-console-scene__ticket/);

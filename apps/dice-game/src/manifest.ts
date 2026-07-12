@@ -2,15 +2,49 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Dice Game",
-  description: "Pick one face, stake GAS, and reveal the roll with a verified on-chain settlement flow on Neo N3 or Neo X.",
+  description: "Pick a face, stack a practice chip, and enjoy a polished local dice table with animated throws.",
   icon: "dice",
   category: "game",
   shell: "game",
 
   // Two-mode opt-in (dice-game has no full gamePage block, so use the top-level
-  // flag). GUEST = a purely local dice table (crypto-RNG rolls, no wallet/chain);
-  // GAMEFI = the existing on-chain commit/reveal flow, unchanged.
+  // flag). GUEST = a purely local dice table (crypto-RNG rolls, no wallet/chain).
+  // GameFi is fail-closed until the configured Neo N3 deployments are replaced
+  // with bytecode that matches the audited fixed-beacon contract artifact. Keep
+  // the local table playable without exposing a wallet-funded roll meanwhile.
   supportsGuest: true,
+  supportsGameFi: false,
+
+  gamePage: {
+    categoryColor: "#14B8A6",
+    appIcon: "dice",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestBadge",
+    heroTitleKey: "appTitle",
+    heroTitleAccent: "appTitle",
+    heroDescKey: "guestSubtitle",
+    primaryLabelKey: "startAction",
+    ghostLabelKey: "rulesTitle",
+    featuresEyebrowKey: "guestBadge",
+    featuresTitleKey: "howItWorks",
+    features: [
+      {
+        titleKey: "guestRulesTitle",
+        descKey: "guestHowItWorksBody",
+        large: true,
+        gradient: "linear-gradient(135deg, #FFFBEB 0%, #99F6E4 48%, #5EEAD4 100%)",
+      },
+      { titleKey: "guestFairnessTitle", descKey: "guestSafetyBody" },
+      { titleKey: "guestPayoutTitle", descKey: "guestRiskBody" },
+    ],
+    lbEyebrowKey: "guestBadge",
+    lbTitleKey: "ranksTab",
+    lbScoreLabelKey: "payoutMetric",
+    ctaTitleKey: "appTitle",
+    ctaDescKey: "guestRulesShort",
+    ctaLabelKey: "startAction",
+    trustBadgeKeys: ["guestBadge", "gameFiValidationShort", "guestFairnessShort"],
+  },
 
   tabs: [
     { key: "roll", labelKey: "rollTab", icon: "dice", default: true },
@@ -32,42 +66,9 @@ export const manifest: MiniAppManifest = {
     ],
   },
 
-  operations: [
-    {
-      key: "placeDiceBet",
-      titleKey: "rollDice",
-      descriptionKey: "rollDescription",
-      actionKey: "rollAction",
-      actionMethod: "placeDiceBet",
-      priority: "primary",
-      fields: [
-        {
-          key: "chosenNumber",
-          type: "select",
-          labelKey: "selectedFace",
-          required: true,
-          default: "6",
-          options: [
-            { value: "1", label: "1" },
-            { value: "2", label: "2" },
-            { value: "3", label: "3" },
-            { value: "4", label: "4" },
-            { value: "5", label: "5" },
-            { value: "6", label: "6" },
-          ],
-        },
-        {
-          key: "amount",
-          type: "amount",
-          labelKey: "stakeAmount",
-          placeholder: "0.10",
-          required: true,
-          default: "0.10",
-          validation: { min: 0.05, max: 20 },
-        },
-      ],
-    },
-  ],
+  // The Phaser table owns face selection, chips, throw animation and recovery.
+  // Do not render a second questionnaire-style operation form around the game.
+  operations: [],
 
   docs: [
     { titleKey: "howItWorks", contentKey: "docHowItWorks", type: "steps" },
@@ -75,8 +76,8 @@ export const manifest: MiniAppManifest = {
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -84,8 +85,8 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
+    payments: false,
+    randomness: false,
   },
 
   contract: {

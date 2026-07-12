@@ -4,6 +4,7 @@ import { createObservable } from "../react/context";
 import { createGameSessionObservables } from "@framework/game";
 import { createGuestEngine } from "../../sudoku/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../sudoku/src/logic/guest-engine";
+import type { BoardStorage } from "../../sudoku/src/logic/board-store";
 import { dealPuzzle } from "../../sudoku/src/logic/sudoku-engine";
 import { ruleOf } from "../../sudoku/src/logic/game-rules";
 
@@ -25,10 +26,30 @@ function makeObs<T>(initial: T) {
   return createObservable<T>(initial);
 }
 
-function setup() {
+function memoryStorage(): BoardStorage {
+  const values = new Map<string, unknown>();
+  return {
+    get<T>(key: string, fallback: T | null = null): T | null {
+      return values.has(key) ? values.get(key) as T : fallback;
+    },
+    set(key: string, value: unknown): void {
+      values.set(key, structuredClone(value));
+    },
+    delete(key: string): void {
+      values.delete(key);
+    },
+  };
+}
+
+function setup(storage: BoardStorage = memoryStorage()) {
   const obs = createGameSessionObservables();
   const clues = makeObs<string>("");
   const walletConnected = makeObs<boolean>(false);
+  const isPaused = makeObs(false);
+  const hintsUsed = makeObs(0);
+  const hintCell = makeObs(-1);
+  const hintDigit = makeObs(0);
+  const hintNonce = makeObs(0);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];
@@ -43,12 +64,33 @@ function setup() {
     obs,
     clues,
     walletConnected,
+    isPaused,
+    hintsUsed,
+    hintCell,
+    hintDigit,
+    hintNonce,
+    storage,
     guestLeaderboard,
     t,
     setStatus,
   };
   const engine = createGuestEngine(deps);
-  return { engine, obs, clues, walletConnected, submit, get, board, setStatus };
+  return {
+    engine,
+    obs,
+    clues,
+    walletConnected,
+    isPaused,
+    hintsUsed,
+    hintCell,
+    hintDigit,
+    hintNonce,
+    storage,
+    submit,
+    get,
+    board,
+    setStatus,
+  };
 }
 
 describe("sudoku guest engine", () => {
@@ -88,7 +130,7 @@ describe("sudoku guest engine", () => {
     expect(h.obs.gameStatus.get()).toBe("dealt");
   });
 
-  it("useUndo increments the capped undo counter with a non-reward status", () => {
+  it("keeps local undo available as a normal correction tool", () => {
     const h = setup();
     h.engine.startGame({ difficulty: 0 });
     h.engine.useUndo();
@@ -96,9 +138,26 @@ describe("sudoku guest engine", () => {
     expect(h.setStatus).toHaveBeenLastCalledWith("guestUndoUsed", "info");
     h.engine.useUndo();
     h.engine.useUndo();
-    h.engine.useUndo(); // capped at MAX_UNDOS = 3
-    expect(h.obs.undosUsed.get()).toBe(3);
+    h.engine.useUndo();
+    expect(h.obs.undosUsed.get()).toBe(4);
     expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("does not penalize the local score for correction or undo", async () => {
+    const clock = vi.spyOn(Date, "now").mockReturnValue(5_000_000);
+    const clean = setup();
+    clean.engine.startGame({ difficulty: 0 });
+    clock.mockReturnValue(5_060_000);
+    await clean.engine.submitSolution({ solution: dealPuzzle(FIXED_SEED, 0).solution });
+
+    clock.mockReturnValue(6_000_000);
+    const corrected = setup();
+    corrected.engine.startGame({ difficulty: 0 });
+    corrected.engine.useUndo();
+    clock.mockReturnValue(6_060_000);
+    await corrected.engine.submitSolution({ solution: dealPuzzle(FIXED_SEED, 0).solution });
+
+    expect(corrected.obs.lastPayout.get()).toBe(clean.obs.lastPayout.get());
   });
 
   it("submitSolution settles a correct board off-chain and returns to lobby", async () => {
@@ -148,6 +207,86 @@ describe("sudoku guest engine", () => {
     expect(h.obs.gameStatus.get()).toBe("expired");
     expect(h.obs.activeGameId.get()).toBe("0");
     expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("reveals a bounded local hint without any reward write", () => {
+    const h = setup();
+    h.engine.startGame({ difficulty: 0 });
+    const dealt = dealPuzzle(FIXED_SEED, 0);
+    const cell = dealt.puzzle.indexOf("0");
+
+    h.engine.requestHint({ cell });
+
+    expect(h.hintsUsed.get()).toBe(1);
+    expect(h.hintCell.get()).toBe(cell);
+    expect(h.hintDigit.get()).toBe(Number(dealt.solution[cell]));
+    expect(h.hintNonce.get()).toBe(1);
+    expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("freezes and restores the local clock while paused", () => {
+    const h = setup();
+    const clock = vi.spyOn(Date, "now");
+    clock.mockReturnValue(1_000_000);
+    h.engine.startGame({ difficulty: 0 });
+    const originalDeadline = h.obs.deadline.get();
+
+    clock.mockReturnValue(1_030_000);
+    h.engine.togglePause();
+    expect(h.isPaused.get()).toBe(true);
+    clock.mockReturnValue(1_075_000);
+    h.engine.togglePause();
+
+    expect(h.isPaused.get()).toBe(false);
+    expect(h.obs.deadline.get()).toBe(originalDeadline + 45_000);
+    expect(h.setStatus).toHaveBeenLastCalledWith("guestResumed", "info");
+  });
+
+  it("restores the exact live puzzle, timer, tools, and pause state after refresh", async () => {
+    const storage = memoryStorage();
+    const clock = vi.spyOn(Date, "now");
+    clock.mockReturnValue(2_000_000);
+    const first = setup(storage);
+    first.engine.startGame({ difficulty: 1 });
+    const originalClues = first.clues.get();
+    const originalDeadline = first.obs.deadline.get();
+    const emptyCell = originalClues.indexOf("0");
+    first.engine.requestHint({ cell: emptyCell });
+    first.engine.useUndo();
+    clock.mockReturnValue(2_030_000);
+    first.engine.togglePause();
+
+    clock.mockReturnValue(2_090_000);
+    const restored = setup(storage);
+    await restored.engine.enter();
+
+    expect(restored.obs.gameStatus.get()).toBe("dealt");
+    expect(restored.obs.activeGameId.get()).toBe("guest");
+    expect(restored.obs.gameDifficulty.get()).toBe(1);
+    expect(restored.clues.get()).toBe(originalClues);
+    expect(restored.obs.deadline.get()).toBe(originalDeadline);
+    expect(restored.obs.undosUsed.get()).toBe(1);
+    expect(restored.hintsUsed.get()).toBe(1);
+    expect(restored.isPaused.get()).toBe(true);
+    expect(restored.obs.lastStatus.get()).toBe("guestRestored");
+
+    restored.engine.togglePause();
+    expect(restored.obs.deadline.get()).toBe(originalDeadline + 60_000);
+  });
+
+  it("persists the best local score and solve count without exposing paid state", async () => {
+    const storage = memoryStorage();
+    const first = setup(storage);
+    first.engine.startGame({ difficulty: 0 });
+    await first.engine.submitSolution({ solution: dealPuzzle(FIXED_SEED, 0).solution });
+
+    const restored = setup(storage);
+    await restored.engine.enter();
+
+    expect(restored.obs.myTotalWon.get()).toBe(first.obs.myTotalWon.get());
+    expect(restored.obs.mySolves.get()).toBe(1);
+    expect(restored.obs.credit.get()).toBe(0);
+    expect(restored.obs.gameStatus.get()).toBe("idle");
   });
 
   it("enter() zeroes on-chain counters, opens local gates, and loads the board", async () => {

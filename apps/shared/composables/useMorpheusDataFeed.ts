@@ -242,7 +242,14 @@ export function useMorpheusDataFeed(
       const explicitPrefix = String(asset || "").includes(":");
       if (!explicitPrefix) {
         const canonical = await readPair(canonicalAsset(asset));
-        if (canonical) return canonical;
+        // A deployed canonical pair can exist as an all-zero placeholder before
+        // the aggregator publishes its first record. Treat that as absent for
+        // preference purposes so the current provider record remains usable.
+        // Explicit provider reads still return their raw metadata (including a
+        // zero timestamp) for callers that need to diagnose malformed records.
+        if (canonical && canonical.price > 0 && canonical.recordTimestamp > 0) {
+          return canonical;
+        }
       }
       const quote = await readPair(fallbackPair);
       if (quote) return quote;
