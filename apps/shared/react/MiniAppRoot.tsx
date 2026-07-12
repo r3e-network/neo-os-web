@@ -46,7 +46,7 @@ import { MiniAppPage } from "../components/MiniAppPage";
 import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { GameHomePage } from "../components-react/GameHomePage";
-import { createMiniAppFramework } from "../../../framework";
+import { createMiniAppFramework, errorMessage } from "../../../framework";
 import type {
   FrameworkLaunchContext,
   MiniAppFramework,
@@ -120,6 +120,16 @@ export interface MiniAppSetupContext {
   state: ObservableState;
   setStatus: (msg: string, type: StatusType) => void;
   clearStatus: () => void;
+  /**
+   * One-liner error feedback (RFC P0-4): sugar for
+   * `setStatus(framework.errors.messageOf(error, t(fallbackKey)), "error")`.
+   * Routes through the SAME chain-error family mapping `app.notify.error`
+   * uses, so the status strip and toast lanes show identical copy for
+   * wallet/VM/RPC failures. `fallbackKey` is an i18n KEY (resolved through
+   * the app translator, en+zh), used only when the error carries no usable
+   * message.
+   */
+  setError: (error: unknown, fallbackKey?: string) => void;
   launchContext: MiniAppLaunchContext;
   framework: MiniAppFramework;
   registerAction: (
@@ -185,6 +195,39 @@ const FORMAT_MAP: Record<string, FormatFn> = {
 
 function getFormatter(format?: string): FormatFn {
   return FORMAT_MAP[format ?? "text"] ?? FORMAT_MAP.text!;
+}
+
+// ============================================================================
+// ctx.setError copy resolution (RFC P0-4)
+// ============================================================================
+
+/**
+ * Resolve the display copy for `ctx.setError`.
+ *
+ * Post-init (the normal case): routes through `framework.errors.messageOf`
+ * — the SAME chain-error family mapping `app.notify.error` uses — so the
+ * status strip and toast lanes converge on identical copy for wallet/VM/RPC
+ * failures.
+ *
+ * Pre-init (framework instance not constructed yet — reachable only if the
+ * framework factory itself surfaces an error through the ctx it was handed
+ * during construction): falls back to the framework's translator-free
+ * `errorMessage` extraction (raw `Error.message` / string / fallback) so the
+ * call never crashes.
+ *
+ * Exported for direct unit coverage of the pre-init branch, which cannot be
+ * reached through a mounted MiniAppRoot (the framework is constructed
+ * synchronously on first render, before any ctx is handed to app code).
+ */
+export function resolveSetErrorMessage(
+  framework: Pick<MiniAppFramework, "errors"> | null,
+  t: (key: string, params?: Record<string, string | number>) => string,
+  error: unknown,
+  fallbackKey?: string,
+): string {
+  const fallback = fallbackKey ? t(fallbackKey) : undefined;
+  if (framework) return framework.errors.messageOf(error, fallback);
+  return errorMessage(error, fallback ?? t("error"));
 }
 
 type GameEntryMode = "guest" | "gamefi";
@@ -361,6 +404,22 @@ export function MiniAppRoot({
   );
 
   const frameworkRef = useRef<MiniAppFramework | null>(null);
+
+  // ctx.setError (RFC P0-4) — one-liner error feedback. Mirrors the
+  // setStatusWithFireworks idiom: built once per render, handed to the
+  // framework ctx at creation, and refreshed on ctxRef below. Reads the
+  // framework lazily through the ref so a call that races framework
+  // construction degrades to raw-message extraction instead of crashing.
+  const setError = useCallback(
+    (error: unknown, fallbackKey?: string) => {
+      setStatusWithFireworks(
+        resolveSetErrorMessage(frameworkRef.current, tFn, error, fallbackKey),
+        "error",
+      );
+    },
+    [tFn, setStatusWithFireworks],
+  );
+
   if (frameworkRef.current === null) {
     frameworkRef.current = createMiniAppFramework({
       services,
@@ -369,6 +428,7 @@ export function MiniAppRoot({
       state: appStateRef.current,
       setStatus: setStatusWithFireworks,
       clearStatus,
+      setError,
       launchContext: frameworkLaunchContext,
       registerAction,
     }, { appId, storagePrefix, oracle, credits });
@@ -391,6 +451,7 @@ export function MiniAppRoot({
       state: appStateRef.current,
       setStatus: setStatusWithFireworks,
       clearStatus,
+      setError,
       framework,
       registerAction,
     };
@@ -399,6 +460,7 @@ export function MiniAppRoot({
   // Keep mutable fields up to date
   ctxRef.current.setStatus = setStatusWithFireworks;
   ctxRef.current.clearStatus = clearStatus;
+  ctxRef.current.setError = setError;
   ctxRef.current.framework = framework;
 
   // Reflect app.mode onto <html data-app-mode> so host chrome / e2e probes can
@@ -484,6 +546,7 @@ export function MiniAppRoot({
             state: appStateRef.current,
             setStatus: setStatusWithFireworks,
             clearStatus,
+            setError,
             launchContext,
             framework,
             registerAction,
