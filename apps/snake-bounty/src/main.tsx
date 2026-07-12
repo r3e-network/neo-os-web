@@ -291,7 +291,7 @@ defineMiniApp({
       } catch (error) {
         session = null;
         obs.lastStatus.set(ctx.t("statusDealPending"));
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
         return false;
       } finally {
         obs.isDealing.set(false);
@@ -393,7 +393,7 @@ defineMiniApp({
         await finishFromSnapshot(gameId, snapshot, announce);
         return true;
       } catch (error) {
-        if (announce) ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        if (announce) ctx.setError(error, "statusFailed");
         return false;
       } finally {
         isRecovering.set(false);
@@ -429,7 +429,7 @@ defineMiniApp({
         await recoverCurrentGame(undefined, false);
         ctx.setStatus(ctx.t("walletConnected"), "success");
       } catch (error) {
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         isConnectingWallet.set(false);
       }
@@ -466,7 +466,7 @@ defineMiniApp({
       } catch (error) {
         const recovered = await recoverCurrentGame(startedGameId, false);
         if (recovered) ctx.setStatus(ctx.t("statusRecovered"), "info");
-        else ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        else ctx.setError(error, "statusFailed");
       } finally {
         obs.isStarting.set(false);
       }
@@ -511,7 +511,7 @@ defineMiniApp({
       }).catch((error) => {
         inputSyncFailed.set(true);
         obs.lastStatus.set(ctx.t("statusInputSyncFailed"));
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusInputSyncFailed")), "error");
+        ctx.setError(error, "statusInputSyncFailed");
       });
       inputQueue = task;
       await task;
@@ -548,7 +548,7 @@ defineMiniApp({
         session = null;
         obs.gameStatus.set("unknown");
         obs.lastStatus.set(ctx.t("statusSettlementPending"));
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         obs.isSubmitting.set(false);
       }
@@ -577,7 +577,7 @@ defineMiniApp({
         }
         await finishFromSnapshot(gameId, snapshot);
       } catch (error) {
-        ctx.setStatus(app.errors.messageOf(error, ctx.t("statusFailed")), "error");
+        ctx.setError(error, "statusFailed");
       } finally {
         isRecovering.set(false);
       }

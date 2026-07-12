@@ -41,6 +41,28 @@ export interface FrameworkGuardDeps {
   requirePermission(name: string): void;
 }
 
+// ── Named write-lane policies (RFC P0-2) ────────────────────────────────────
+// Moved verbatim from framework/index.ts (RFC P0-1 body split) so the surface
+// modules (chain-surface / funds / oracle-surface) and the composition root
+// share the same named policy objects. Framework-internal, like guardedWrite.
+
+/** Primary-contract broadcast lanes: guest guard + S11 "invoke:primary". */
+export const WRITE_PRIMARY: FrameworkWritePolicy = { permission: "invoke:primary" };
+/** Oracle request/dispatch lanes: guest guard + S11 "oracle:request". */
+export const ORACLE_REQUEST: FrameworkWritePolicy = { permission: "oracle:request" };
+/**
+ * Documented exemption: guest-guarded write with deliberately NO S11 gate
+ * (oracle.seal.store — the confidential-store write predates a permission).
+ */
+export const GUEST_GUARD_ONLY: FrameworkWritePolicy = { permission: null };
+/**
+ * app.aa write lanes (relay / sponsorship.request / sessionKey.create): the
+ * "aa" S11 permission, registered DEFAULT-ALLOW (see app.permissions wiring)
+ * so no app behavior changes — the gate now exists and manifests can opt out
+ * with `{ aa: false }`.
+ */
+export const AA_WRITE: FrameworkWritePolicy = { permission: "aa" };
+
 /**
  * Compose the guest→permission→write ordering around an async write lane.
  *
