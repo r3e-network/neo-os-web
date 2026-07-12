@@ -6,6 +6,13 @@
  * - the connected wallet address is an album partition, not a signer;
  * - optional AES-GCM encryption happens before the local write;
  * - no contract call, transaction, GAS payment, platform storage, or sync occurs.
+ *
+ * Persistence goes through an async AlbumStore (see utils/album-store):
+ * direct framework localStorage when the runtime allows it, or the
+ * host<->miniapp storage bridge inside the opaque-origin embedded iframe
+ * (audit fix C-4 removed the allow-same-origin grant that used to make
+ * direct Web Storage work there). Every write is confirmed before the UI
+ * reports it saved.
  */
 
 import { createObservable } from "@shared/react/context";
@@ -17,6 +24,8 @@ import {
   estimateEncryptedPayloadLength,
   isEncryptedPayloadEnvelope,
 } from "../utils/crypto";
+import { resolveAlbumStore } from "../utils/album-store";
+import type { AlbumStore } from "../utils/album-store";
 import type { PhotoItem, UploadItem } from "../types";
 
 // Five-at-a-time keeps the import surface calm while the larger local limits
@@ -43,6 +52,12 @@ type StorageIssue = "" | "corrupt" | "quota" | "unavailable";
 export interface UseForeverAlbumOptions {
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
+  /**
+   * Storage lane override (tests / custom hosts). Defaults to
+   * resolveAlbumStore(app.storage.local): the framework's direct localStorage
+   * path when available, the host storage bridge in the embedded sandbox.
+   */
+  store?: AlbumStore;
 }
 
 interface StoredPhoto {
@@ -172,7 +187,8 @@ function sameEnvelope(left: unknown, right: StoredAlbumEnvelope): boolean {
   }
 }
 
-export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
+export function useForeverAlbum({ app, t, store }: UseForeverAlbumOptions) {
+  const storage = store ?? resolveAlbumStore(app.storage.local);
   const loadingPhotos = createObservable(false);
   const photos = createObservable<PhotoItem[]>([]);
   const walletAddress = createObservable("");
@@ -261,19 +277,19 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
     storageMessage.set("");
   }
 
-  function assertStorageAvailable(): void {
+  async function assertStorageAvailable(): Promise<void> {
     const probeKey = `__probe__:${Date.now()}:${Math.random().toString(36).slice(2)}`;
     const token = `ok:${Math.random().toString(36).slice(2)}`;
     try {
-      app.storage.local.set(probeKey, token);
-      if (app.storage.local.get<string>(probeKey) !== token) {
+      await storage.set(probeKey, token);
+      if ((await storage.get<string>(probeKey)) !== token) {
         throw new AlbumStorageError("unavailable", t("storageUnavailable"));
       }
     } catch (error) {
       throw storageError(error);
     } finally {
       try {
-        app.storage.local.delete(probeKey);
+        await storage.delete(probeKey);
       } catch {
         // The write/read verification above is authoritative. A failed probe
         // cleanup must not hide the original storage result.
@@ -281,11 +297,11 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
     }
   }
 
-  function readAlbum(address: string): AlbumReadResult {
+  async function readAlbum(address: string): Promise<AlbumReadResult> {
     const key = albumStoreKey(address);
     let entries: Record<string, unknown>;
     try {
-      entries = app.storage.local.list(key);
+      entries = await storage.list(key);
     } catch (error) {
       throw storageError(error);
     }
@@ -294,7 +310,7 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
       // storage is unavailable. Probe only the empty case so a quota-full album
       // remains readable and its owner can delete photos to free space.
       try {
-        assertStorageAvailable();
+        await assertStorageAvailable();
       } catch (error) {
         const normalized = storageError(error);
         if (normalized.issue !== "quota") throw normalized;
@@ -326,15 +342,15 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
     return { photos: valid, invalidCount };
   }
 
-  function writeAlbum(address: string, records: StoredPhoto[]): void {
+  async function writeAlbum(address: string, records: StoredPhoto[]): Promise<void> {
     const key = albumStoreKey(address);
     const envelope: StoredAlbumEnvelope = {
       version: ALBUM_STORE_VERSION,
       photos: records,
     };
     try {
-      app.storage.local.set(key, envelope);
-      const confirmed = app.storage.local.get<unknown>(key);
+      await storage.set(key, envelope);
+      const confirmed = await storage.get<unknown>(key);
       if (!sameEnvelope(confirmed, envelope)) {
         throw new AlbumStorageError("unavailable", t("storageWriteNotConfirmed"));
       }
@@ -343,21 +359,21 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
     }
   }
 
-  function deleteAlbumStore(address: string): void {
+  async function deleteAlbumStore(address: string): Promise<void> {
     const key = albumStoreKey(address);
     try {
-      const before = app.storage.local.list(key);
+      const before = await storage.list(key);
       if (!Object.prototype.hasOwnProperty.call(before, key)) {
-        assertStorageAvailable();
+        await assertStorageAvailable();
         return;
       }
-      app.storage.local.delete(key);
-      const remaining = app.storage.local.list(key);
+      await storage.delete(key);
+      const remaining = await storage.list(key);
       if (Object.prototype.hasOwnProperty.call(remaining, key)) {
         throw new AlbumStorageError("unavailable", t("storageWriteNotConfirmed"));
       }
       try {
-        assertStorageAvailable();
+        await assertStorageAvailable();
       } catch (error) {
         const normalized = storageError(error);
         // The exact key existed before and is gone now. A quota-only probe
@@ -395,7 +411,7 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
 
     loadingPhotos.set(true);
     try {
-      const result = readAlbum(address);
+      const result = await readAlbum(address);
       if (sequence !== loadSequence || app.wallet.address() !== address) return;
       photos.set(
         result.photos
@@ -723,12 +739,21 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
       }
 
       if (app.wallet.address() !== address) throw new Error(t("walletChangedDuringSave"));
-      const existing = readAlbum(address);
+      const existing = await readAlbum(address);
+      if (app.wallet.address() !== address) throw new Error(t("walletChangedDuringSave"));
       const next = [...existing.photos, ...records];
       const nextSize = next.reduce((sum, photo) => sum + photo.data.length, 0);
       if (nextSize > MAX_ALBUM_BYTES) throw new Error(t("albumFull"));
-      writeAlbum(address, next);
+      await writeAlbum(address, next);
 
+      // The write landed in the captured wallet partition; if the wallet
+      // switched while the (now genuinely async) store round-tripped, the
+      // wallet-change handler owns the UI and this save must not repaint it.
+      if (app.wallet.address() !== address) return records.length;
+      // Invalidate any in-flight loadPhotos started before this write so a
+      // stale pre-write read cannot overwrite the fresh album below.
+      loadSequence += 1;
+      loadingPhotos.set(false);
       photos.set(
         next
           .map((stored) => ({ ...stored }))
@@ -763,13 +788,19 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
     if (!address) throw new Error(t("connectPromptTitle"));
     if (!id) throw new Error(t("photoNotFound"));
     try {
-      const existing = readAlbum(address);
+      const existing = await readAlbum(address);
       if (!existing.photos.some((photo) => photo.id === id)) {
         throw new Error(t("photoNotFound"));
       }
       if (app.wallet.address() !== address) throw new Error(t("walletChangedDuringSave"));
       const remaining = existing.photos.filter((photo) => photo.id !== id);
-      writeAlbum(address, remaining);
+      await writeAlbum(address, remaining);
+      // Same post-write discipline as uploadPhotos: the delete landed in the
+      // captured partition; only repaint if this wallet still owns the view,
+      // and invalidate stale in-flight loads first.
+      if (app.wallet.address() !== address) return true;
+      loadSequence += 1;
+      loadingPhotos.set(false);
       photos.set(
         remaining
           .map((stored) => ({ ...stored }))
@@ -791,7 +822,12 @@ export function useForeverAlbum({ app, t }: UseForeverAlbumOptions) {
     if (!address) throw new Error(t("connectPromptTitle"));
     if (storageIssue.get() !== "corrupt") throw new Error(t("resetNotNeeded"));
     try {
-      deleteAlbumStore(address);
+      await deleteAlbumStore(address);
+      // The damaged partition is gone; only clear the view if the same wallet
+      // still owns it (a mid-await switch already repainted for the new one).
+      if (app.wallet.address() !== address) return true;
+      loadSequence += 1;
+      loadingPhotos.set(false);
       photos.set([]);
       storageNotice.set("");
       clearStorageFeedback();
