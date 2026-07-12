@@ -27,8 +27,13 @@ function resetMockData() {
   };
 }
 
+// The handler accepts an optional supabase client factory for testing.
+// Derive its type from the handler signature so the mocks stay in sync with
+// current supabase-js typings without importing the real client module.
+type SupabaseFactory = NonNullable<Parameters<typeof handler>[1]>;
+
 // Create mock supabase client factory
-function createMockSupabaseFactory() {
+function createMockSupabaseFactory(): SupabaseFactory {
   return () => ({
     from: (table: string) => {
       const queries: any = {
@@ -92,20 +97,50 @@ function createMockSupabaseFactory() {
 
       return mockChain;
     },
-  });
+  }) as unknown as ReturnType<SupabaseFactory>;
 }
 
 // Mock environment variables
 Deno.env.set("SUPABASE_URL", "https://test.supabase.co");
 Deno.env.set("SUPABASE_ANON_KEY", "test-anon-key");
+// The rate limiter fails closed (503) when its backing RPC is unavailable.
+// Tests run without a service-role key, so opt into the documented
+// non-production fail-open escape hatch instead of standing up a real backend.
+Deno.env.set("EDGE_RATELIMIT_FAIL_OPEN", "true");
 
-Deno.test("market-trending - handles CORS preflight", async () => {
-  const req = new Request("http://localhost/market-trending", {
-    method: "OPTIONS",
-  });
+Deno.test("market-trending - handles CORS preflight for configured origins", async () => {
+  const prev = Deno.env.get("EDGE_CORS_ORIGINS");
+  try {
+    Deno.env.set("EDGE_CORS_ORIGINS", "http://localhost:3000");
+    const res = await handler(
+      new Request("http://localhost/market-trending", {
+        method: "OPTIONS",
+        headers: { Origin: "http://localhost:3000" },
+      }),
+    );
+    assertEquals(res.status, 204);
+    assertEquals(
+      res.headers.get("Access-Control-Allow-Origin"),
+      "http://localhost:3000",
+    );
+  } finally {
+    if (prev === undefined) Deno.env.delete("EDGE_CORS_ORIGINS");
+    else Deno.env.set("EDGE_CORS_ORIGINS", prev);
+  }
+});
 
-  const res = await handler(req);
-  assertEquals(res.status, 204);
+Deno.test("market-trending - rejects CORS preflight when EDGE_CORS_ORIGINS is unset", async () => {
+  const prev = Deno.env.get("EDGE_CORS_ORIGINS");
+  try {
+    Deno.env.delete("EDGE_CORS_ORIGINS");
+    const res = await handler(
+      new Request("http://localhost/market-trending", { method: "OPTIONS" }),
+    );
+    assertEquals(res.status, 403);
+  } finally {
+    if (prev === undefined) Deno.env.delete("EDGE_CORS_ORIGINS");
+    else Deno.env.set("EDGE_CORS_ORIGINS", prev);
+  }
 });
 
 Deno.test("market-trending - rejects non-GET methods", async () => {
@@ -403,11 +438,12 @@ Deno.test("market-trending - rounds growth rate to 4 decimals", async () => {
 Deno.test("market-trending - handles unexpected errors", async () => {
   resetMockData();
   // Create a mock that throws during query execution
-  const errorFactory = () => ({
-    from: () => {
-      throw new Error("Unexpected database error");
-    },
-  });
+  const errorFactory: SupabaseFactory = () =>
+    ({
+      from: () => {
+        throw new Error("Unexpected database error");
+      },
+    }) as unknown as ReturnType<SupabaseFactory>;
 
   const req = new Request("http://localhost/market-trending");
   const res = await handler(req, errorFactory);
