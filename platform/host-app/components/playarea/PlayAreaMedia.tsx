@@ -16,6 +16,7 @@ import {
   useEmbeddedWalletBridge,
   useLaunchParamState,
 } from "./PlayAreaShared";
+import { useEmbeddedStorageBridge } from "./bridge";
 import type { PlayAreaRegistryProps } from "./PlayAreaShared";
 
 export function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
@@ -24,6 +25,10 @@ export function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEmbeddedWalletBridge({ appId: app.app_id, iframeRef, network });
+  // Audit fix C-4 follow-up: the album keeps its device-local photo storage
+  // through the appId-gated host storage bridge instead of the removed
+  // allow-same-origin grant — the iframe sandbox below stays opaque.
+  useEmbeddedStorageBridge({ appId: app.app_id, iframeRef });
 
   return (
     <PlayShell

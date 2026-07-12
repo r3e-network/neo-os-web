@@ -3,10 +3,48 @@ import React, { useEffect } from "react";
 const STORAGE_REQUEST = "neo-miniapp-storage:request";
 const STORAGE_RESPONSE = "neo-miniapp-storage:response";
 const STORAGE_PROTOCOL_VERSION = 1;
-const SUPPORTED_APP_ID = "miniapp-zhuada-e";
-const APP_KEY_PREFIX = "zhuada-e:";
-const HOST_KEY_PREFIX = `neo-miniapp-storage:${SUPPORTED_APP_ID}:`;
-const MAX_VALUE_LENGTH = 1_000_000;
+const MAX_KEY_LENGTH = 160;
+
+interface EmbeddedStorageAppConfig {
+  /** Every wire key must start with this app namespace. */
+  appKeyPrefix: string;
+  /** Host localStorage prefix prepended to the wire key. */
+  hostKeyPrefix: string;
+  /** Per-write value ceiling for this app's payloads. */
+  maxValueLength: number;
+}
+
+/**
+ * Per-app allowlist for the local storage bridge. This is intentionally NOT a
+ * generic storage faucet: an app only gets a lane by adding an explicit entry
+ * here, every wire key must carry the app's own namespace, and the hook only
+ * mounts for the exact iframe whose appId matches.
+ *
+ * - miniapp-zhuada-e: fire-and-forget goose game saves; host keys are
+ *   double-namespaced (bridge prefix + game prefix) as defense in depth.
+ * - miniapp-forever-album (audit fix C-4 follow-up): the album lost the
+ *   allow-same-origin grant that let its embedded iframe write host-origin
+ *   localStorage directly, so its device-local photo persistence now flows
+ *   over this bridge. hostKeyPrefix is empty on purpose: the host stores the
+ *   exact "forever-album:…" keys the pop-out window and pre-C-4 embeds
+ *   already use, so one wallet keeps one album across every runtime mode and
+ *   no existing device-local album is orphaned. validKey still confines the
+ *   embed to that first-party namespace — no host session or wallet key
+ *   lives under "forever-album:". Albums are large (multi-photo envelopes),
+ *   hence the higher value ceiling.
+ */
+const SUPPORTED_APPS: Readonly<Record<string, EmbeddedStorageAppConfig>> = {
+  "miniapp-zhuada-e": {
+    appKeyPrefix: "zhuada-e:",
+    hostKeyPrefix: "neo-miniapp-storage:miniapp-zhuada-e:",
+    maxValueLength: 1_000_000,
+  },
+  "miniapp-forever-album": {
+    appKeyPrefix: "forever-album:",
+    hostKeyPrefix: "",
+    maxValueLength: 5_000_000,
+  },
+};
 
 interface StorageRequest {
   type?: unknown;
@@ -22,16 +60,26 @@ function validRequestId(value: unknown): value is string {
   return typeof value === "string" && /^[a-z0-9-]{8,96}$/i.test(value);
 }
 
-function validKey(value: unknown): value is string {
+function validKey(value: unknown, config: EmbeddedStorageAppConfig): value is string {
   return typeof value === "string"
-    && value.startsWith(APP_KEY_PREFIX)
-    && value.length <= 160;
+    && value.startsWith(config.appKeyPrefix)
+    && value.length <= MAX_KEY_LENGTH;
+}
+
+function isQuotaExceeded(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { name?: unknown; message?: unknown };
+  return candidate.name === "QuotaExceededError"
+    || /quota/i.test(String(candidate.message ?? ""));
 }
 
 /**
- * Local-only persistence for the trusted goose game inside the host's
- * opaque-origin sandbox. The source-window check is the security boundary;
- * no wallet/session keys are exposed and every game key is namespaced twice.
+ * Local-only persistence for allowlisted first-party miniapps inside the
+ * host's opaque-origin sandbox. The source-window check is the security
+ * boundary; no wallet/session keys are exposed and every key is confined to
+ * the requesting app's own namespace. Quota failures are reported distinctly
+ * so apps with precious data (the photo album) can surface "storage full"
+ * instead of silently dropping a write.
  */
 export function useEmbeddedStorageBridge({
   appId,
@@ -41,7 +89,8 @@ export function useEmbeddedStorageBridge({
   iframeRef: React.RefObject<HTMLIFrameElement>;
 }) {
   useEffect(() => {
-    if (appId !== SUPPORTED_APP_ID) return undefined;
+    const config = SUPPORTED_APPS[appId];
+    if (!config) return undefined;
 
     const onMessage = (event: MessageEvent): void => {
       const frameWindow = iframeRef.current?.contentWindow;
@@ -55,7 +104,7 @@ export function useEmbeddedStorageBridge({
         !request
         || request.type !== STORAGE_REQUEST
         || request.version !== STORAGE_PROTOCOL_VERSION
-        || request.appId !== SUPPORTED_APP_ID
+        || request.appId !== appId
         || !validRequestId(request.requestId)
       ) return;
 
@@ -74,22 +123,26 @@ export function useEmbeddedStorageBridge({
           const values: Record<string, string> = {};
           for (let index = 0; index < window.localStorage.length; index += 1) {
             const hostKey = window.localStorage.key(index);
-            if (!hostKey?.startsWith(HOST_KEY_PREFIX)) continue;
-            const appKey = hostKey.slice(HOST_KEY_PREFIX.length);
-            if (!validKey(appKey)) continue;
+            if (!hostKey?.startsWith(config.hostKeyPrefix)) continue;
+            const appKey = hostKey.slice(config.hostKeyPrefix.length);
+            if (!validKey(appKey, config)) continue;
             const value = window.localStorage.getItem(hostKey);
             if (value !== null) values[appKey] = value;
           }
           reply(true, { values });
           return;
         }
-        if (!validKey(request.key)) {
+        if (!validKey(request.key, config)) {
           reply(false, { error: "invalid-key" });
           return;
         }
-        const hostKey = `${HOST_KEY_PREFIX}${request.key}`;
+        const hostKey = `${config.hostKeyPrefix}${request.key}`;
+        if (request.op === "get") {
+          reply(true, { value: window.localStorage.getItem(hostKey) });
+          return;
+        }
         if (request.op === "set") {
-          if (typeof request.value !== "string" || request.value.length > MAX_VALUE_LENGTH) {
+          if (typeof request.value !== "string" || request.value.length > config.maxValueLength) {
             reply(false, { error: "invalid-value" });
             return;
           }
@@ -103,8 +156,10 @@ export function useEmbeddedStorageBridge({
           return;
         }
         reply(false, { error: "invalid-operation" });
-      } catch {
-        reply(false, { error: "storage-unavailable" });
+      } catch (error) {
+        reply(false, {
+          error: isQuotaExceeded(error) ? "quota-exceeded" : "storage-unavailable",
+        });
       }
     };
 

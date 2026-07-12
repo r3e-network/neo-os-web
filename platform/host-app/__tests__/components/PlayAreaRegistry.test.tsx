@@ -561,6 +561,102 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("Wallet album preview")).not.toBeInTheDocument();
   });
 
+  // New coverage (audit fix C-4 follow-up): the album iframe lost the
+  // allow-same-origin grant, so its device-local photo storage now rides the
+  // appId-gated host storage bridge. This pins the host lane end to end:
+  // legacy "forever-album:" keys are served byte-identically (pre-C-4 and
+  // pop-out albums are not orphaned), writes land on the same keys, and
+  // requests outside the album's own namespace fail closed.
+  it("serves the Forever Album device storage over the bridge while the sandbox stays opaque", () => {
+    renderPlayarea({
+      app_id: "miniapp-forever-album",
+      name: "Forever Album",
+      category: "social",
+      description: "Wallet-scoped photo vault",
+      dapp_url: "/miniapps/forever-album/index.html",
+      permissions: { storage: true },
+    });
+
+    const frame = screen.getByTitle(
+      "Forever Album local photo workspace",
+    ) as HTMLIFrameElement;
+    expect(frame).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
+    );
+    const frameWindow = frame.contentWindow!;
+    const post = jest.spyOn(frameWindow, "postMessage").mockImplementation(() => {});
+    const legacyKey = "forever-album:photos:NgaiKFjurmNmiRzDRQGs44yzByXuSkdGPF";
+    window.localStorage.setItem(legacyKey, '{"version":2,"photos":[]}');
+    const request = (overrides: Record<string, unknown>) => ({
+      type: "neo-miniapp-storage:request",
+      version: 1,
+      appId: "miniapp-forever-album",
+      ...overrides,
+    });
+
+    // Read: the bridge serves the pre-C-4 first-party key byte-identically.
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: "null",
+        source: frameWindow,
+        data: request({ requestId: "album-get-0001", op: "get", key: legacyKey }),
+      }));
+    });
+    expect(post).toHaveBeenCalledWith(expect.objectContaining({
+      type: "neo-miniapp-storage:response",
+      requestId: "album-get-0001",
+      ok: true,
+      value: '{"version":2,"photos":[]}',
+    }), "*");
+
+    // Write: lands on the same un-namespaced key the pop-out window uses.
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: "null",
+        source: frameWindow,
+        data: request({
+          requestId: "album-set-0001",
+          op: "set",
+          key: legacyKey,
+          value: '{"version":2,"photos":[{"id":"p1"}]}',
+        }),
+      }));
+    });
+    expect(window.localStorage.getItem(legacyKey)).toBe(
+      '{"version":2,"photos":[{"id":"p1"}]}',
+    );
+
+    // Fail closed outside the album's own namespace: host keys are not a
+    // generic faucet even for the allowlisted app.
+    post.mockClear();
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: "null",
+        source: frameWindow,
+        data: request({ requestId: "album-get-0002", op: "get", key: "sb-access-token" }),
+      }));
+    });
+    expect(post).toHaveBeenCalledWith(expect.objectContaining({
+      requestId: "album-get-0002",
+      ok: false,
+      error: "invalid-key",
+    }), "*");
+
+    // A non-opaque origin is rejected outright, even from the same window.
+    post.mockClear();
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: window.location.origin,
+        source: frameWindow,
+        data: request({ requestId: "album-get-0003", op: "get", key: legacyKey }),
+      }));
+    });
+    expect(post).not.toHaveBeenCalled();
+
+    window.localStorage.removeItem(legacyKey);
+  });
+
   // Assertion update (audit fix C-4, commit a8101a750): this test previously
   // pinned the copilot's app-scoped allow-same-origin grant. The grant was
   // deliberately removed — it let a compromised bundle reach host session
