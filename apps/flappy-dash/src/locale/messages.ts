@@ -357,6 +357,51 @@ const appMessages = {
     en: "Flight input could not be synchronized. The paid run is paused to protect settlement.",
     zh: "飞行输入无法同步。为保护结算安全，付费对局已暂停。",
   },
+
+  // ── Platform credits (Credits v2 — GameFi only, never guest) ──────────────
+  creditsChipLabel: { en: "Credits", zh: "积分" },
+  creditsChipRefresh: { en: "Refresh credit balance", zh: "刷新积分余额" },
+  creditsStaleHint: {
+    en: "Showing the last settled on-chain balance — the credits ledger is unreachable.",
+    zh: "积分服务暂不可达，当前显示的是最近一次链上结算余额。",
+  },
+  creditsStaleTag: { en: "last settled", zh: "已结算快照" },
+  creditsOfferTitle: { en: "Instant relaunch", zh: "立即再飞" },
+  creditsOfferBody: {
+    en: "Spend {cost} credits to relaunch the same route right away — instant and feeless.",
+    zh: "花费 {cost} 积分立刻在同一路线重新起飞——即时到账，无手续费。",
+  },
+  creditsOfferAction: { en: "Fly again · {cost} credits", zh: "再飞一次 · {cost} 积分" },
+  creditsBalanceLine: { en: "Balance: {balance} credits", zh: "余额：{balance} 积分" },
+  creditsInsufficientBody: {
+    en: "You need {cost} credits for an instant relaunch. Top up at the fixed rate: 1 GAS = {rate} credits.",
+    zh: "立即再飞需要 {cost} 积分。按固定汇率充值：1 GAS = {rate} 积分。",
+  },
+  creditsBuyAction: {
+    en: "Buy {credits} credits for {gas} GAS",
+    zh: "用 {gas} GAS 购买 {credits} 积分",
+  },
+  creditsBuyNeedsPermission: {
+    en: "Buying credits needs the app's payments permission — not granted yet.",
+    zh: "购买积分需要应用的 payments 权限——当前尚未授予。",
+  },
+  creditsBuyCredited: {
+    en: "{credits} credits added to your balance",
+    zh: "{credits} 积分已入账",
+  },
+  creditsBuyBroadcast: {
+    en: "GAS sent — {credits} credits will appear once the purchase is indexed.",
+    zh: "GAS 已发送——购买确认后 {credits} 积分将自动入账。",
+  },
+  creditsReviveUnlocked: {
+    en: "Relaunch unlocked for {cost} credits — {balance} left",
+    zh: "已花费 {cost} 积分解锁再飞——剩余 {balance} 积分",
+  },
+  creditsInsufficientStatus: {
+    en: "Not enough credits — an instant relaunch costs {cost}.",
+    zh: "积分不足——立即再飞需要 {cost} 积分。",
+  },
+  creditsLaneFailed: { en: "Credit action failed", zh: "积分操作失败" },
 };
 
 export const messages = mergeMessages(appMessages);

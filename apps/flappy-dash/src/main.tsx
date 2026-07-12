@@ -6,6 +6,7 @@
  * logic: pipe-layout seed delivery, flap recording, and solution finalization.
  */
 import { createObservable, defineMiniApp } from "@shared/react";
+import { createGameCreditsLane } from "@shared/react/game-credits";
 import { createDerived } from "@shared/react/context";
 import type { RewardGameSession } from "@framework/gamefi";
 import { mapField } from "@framework/gamefi";
@@ -120,6 +121,24 @@ defineMiniApp({
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
+    // ── Platform credits (Credits v2 reference integration) ──────────────────
+    // HUD balance chip + fail-overlay "instant retry" offer + buy prompt.
+    // Renders only in GameFi mode on hosts that inject a credits config;
+    // everywhere else (guest, dev without the ledger) it degrades away.
+    const creditsLane = createGameCreditsLane({
+      app,
+      t: ctx.t,
+      setStatus: ctx.setStatus,
+      reviveAction: "revive",
+      reviveCostCredits: 5,
+      // Paid flights are fail-closed while supportsGameFi stays false; when
+      // GameFi re-opens the offer follows the manifest with no code change.
+      reviveEnabled: manifest.supportsGameFi !== false,
+      onReviveUnlocked: async () => {
+        await app.actions.run("startGame", { difficulty: obs.gameDifficulty.get() });
+      },
+    });
+
     // Switching to guest at the launcher resets to a clean local lobby and loads
     // the off-chain guest board (replacing the on-chain read done on mount).
     app.mode.onChange((mode) => {
@@ -129,6 +148,7 @@ defineMiniApp({
       }
       appMode.set(mode);
       if (mode === "guest") void guest.enter();
+      else void creditsLane.refresh();
     });
 
     // ── Data refresh ──────────────────────────────────────────────────────────
@@ -515,9 +535,11 @@ defineMiniApp({
         isConnectingWallet,
         inputSyncFailed,
         isRecovering,
+        ...creditsLane.state,
       },
       loadData: async () => {
         if (app.mode.isGuest()) { await guest.enter(); return; }
+        void creditsLane.refresh();
         await refreshBalances();
         const playerHash = app.game.player.scriptHash();
         if (playerHash) {

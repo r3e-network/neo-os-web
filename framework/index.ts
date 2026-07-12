@@ -9,6 +9,8 @@ import { extractTxid } from "./utils/transaction";
 import { createAaSurface } from "./aa";
 import type { FrameworkAaService } from "./aa";
 import { createClipboardSurface, createShareSurface } from "./clipboard";
+import { createCreditsSurface } from "./credits";
+import type { FrameworkCreditsConfig } from "./credits";
 import { createBusSurface, createEventsSurface } from "./events";
 import type { FrameworkBusChannel } from "./events";
 import { createLifecycleSurface } from "./lifecycle";
@@ -312,6 +314,13 @@ export interface MiniAppFrameworkOptions {
     baseUrl?: string;
     tokenArt?: Partial<FrameworkTokenArtUrls>;
   };
+  /**
+   * app.credits config (Credits v2): the credits-ledger endpoint URL plus the
+   * network's deployed MiniAppCredits contract hash (network-specific, so the
+   * app layer injects it — same pattern as `oracle.dataFeed`). Absent ⇒ every
+   * app.credits method throws a typed FrameworkCapabilityError.
+   */
+  credits?: FrameworkCreditsConfig;
 }
 
 export interface FrameworkActionOptions<TResult = unknown> {
@@ -1136,6 +1145,39 @@ export function createMiniAppFramework(
       appId,
       dataFeed: options.oracle?.dataFeed,
       seal: options.oracle?.seal,
+    }),
+  );
+  /**
+   * app.credits (Credits v2) — the one uniform platform-credit surface. Buys
+   * are on-chain GAS transfers to the MiniAppCredits contract (guest-guarded
+   * + S11 "payments" gate); spends are instant feeless DB debits against the
+   * credits-ledger endpoint (guest-guarded, NO payments gate — off-chain);
+   * balance reads prefer the ledger and fall back to the settled on-chain
+   * checkpoint flagged `stale`. Config comes from `options.credits`
+   * (platform config pattern); absent ⇒ typed FrameworkCapabilityError.
+   */
+  const getCredits = lazyModule(() =>
+    createCreditsSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        detectNetwork: async () =>
+          (await chain.detectNetwork?.()) ?? String(ctx.launchContext?.network ?? "testnet"),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+        ...(chain.waitForEvent
+          ? {
+              waitForEvent: (txid: string, eventName: string, timeoutMs?: number) =>
+                chain.waitForEvent!(txid, eventName, timeoutMs),
+            }
+          : {}),
+      },
+      assertNotGuest: () => assertNotGuest(),
+      requireBuyPermission: () => getPermissions().require("payments"),
+      config: options.credits,
     }),
   );
 
@@ -2012,6 +2054,13 @@ export function createMiniAppFramework(
     get aa() {
       return getAa();
     },
+    /**
+     * app.credits (Credits v2) — platform credits: on-chain GAS buys,
+     * instant DB-first spends, stale-flagged chain-checkpoint fallback reads.
+     */
+    get credits() {
+      return getCredits();
+    },
 
     /**
      * app.oracle — envelope builders + dispatch, extended with the S13
@@ -2457,6 +2506,32 @@ export type {
   FrameworkAaSurface,
   FrameworkAaSurfaceDeps,
 } from "./aa";
+
+// Credits v2 app.credits
+export {
+  createCreditsSurface,
+  creditsForGas,
+  gasForCredits,
+  FrameworkCreditsError,
+  FrameworkInsufficientCreditsError,
+  CREDITS_PER_GAS,
+  GAS_BASE_UNITS_PER_CREDIT,
+  CREDITS_BUY_MEMO,
+  GAS_TOKEN_HASH,
+} from "./credits";
+export type {
+  CreditsSurfaceChain,
+  CreditsSurfaceDeps,
+  FrameworkCreditsBalance,
+  FrameworkCreditsBuyResult,
+  FrameworkCreditsConfig,
+  FrameworkCreditsEvent,
+  FrameworkCreditsEventType,
+  FrameworkCreditsNetwork,
+  FrameworkCreditsSpendMeta,
+  FrameworkCreditsSpendResult,
+  FrameworkCreditsSurface,
+} from "./credits";
 
 // S13 app.oracle extensions
 export {
