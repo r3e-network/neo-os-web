@@ -124,20 +124,108 @@ describe("EmbeddedDappSurface load-failure recovery", () => {
     expect(screen.getByTestId("native-dapp-frame-miniapp-demo")).not.toHaveAttribute("allow");
   });
 
-  it("gives only the first-party automation studio access to its host session", () => {
-    const { rerender } = render(
-      <EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-automation-copilot" />,
-    );
-    expect(screen.getByTestId("native-dapp-frame-miniapp-demo")).toHaveAttribute(
-      "sandbox",
-      "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox",
-    );
+  // Assertion update (audit fix C-4, commit a8101a750): this test previously
+  // pinned the app-scoped `allow-same-origin` grant for Automation Copilot.
+  // That grant was deliberately removed — it let a compromised bundle reach
+  // the host's session storage — and the contract security regression
+  // AuditFixC4_MiniAppIframesAreSandboxed now forbids allow-same-origin on
+  // any miniapp sandbox line, so the old assertion pinned a security hole and
+  // was already failing. The replacement pins the successor invariant: the
+  // copilot iframe keeps the opaque sandbox and its host session flows only
+  // through the appId-gated credential bridge.
+  it("keeps the opaque sandbox for the automation studio and serves its session over the credential bridge", () => {
+    window.sessionStorage.setItem("sb-access-token", "host-session-jwt");
+    try {
+      const { rerender } = render(
+        <EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-automation-copilot" />,
+      );
+      const frame = screen.getByTestId("native-dapp-frame-miniapp-demo") as HTMLIFrameElement;
+      expect(frame).toHaveAttribute(
+        "sandbox",
+        "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
+      );
 
-    rerender(<EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-demo" />);
-    expect(screen.getByTestId("native-dapp-frame-miniapp-demo")).toHaveAttribute(
-      "sandbox",
-      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
-    );
+      const frameWindow = frame.contentWindow!;
+      const post = jest.spyOn(frameWindow, "postMessage").mockImplementation(() => {});
+      const credentialRequest = {
+        type: "neo-miniapp-credential:request",
+        version: 1,
+        requestId: "credential-test-01",
+        appId: "miniapp-automation-copilot",
+        scope: "automation-gateway",
+      };
+
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", {
+          origin: "null",
+          source: frameWindow,
+          data: credentialRequest,
+        }));
+      });
+      expect(post).toHaveBeenCalledWith(expect.objectContaining({
+        type: "neo-miniapp-credential:response",
+        requestId: "credential-test-01",
+        ok: true,
+        token: "host-session-jwt",
+        apiKey: "",
+      }), "*");
+
+      // A non-opaque (non-"null") origin must be rejected even from the same
+      // window reference.
+      post.mockClear();
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", {
+          origin: window.location.origin,
+          source: frameWindow,
+          data: { ...credentialRequest, requestId: "credential-test-02" },
+        }));
+      });
+      expect(post).not.toHaveBeenCalled();
+
+      // A request without the automation-gateway scope must fail closed.
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", {
+          origin: "null",
+          source: frameWindow,
+          data: { ...credentialRequest, requestId: "credential-test-03", scope: "wallet" },
+        }));
+      });
+      expect(post).not.toHaveBeenCalled();
+
+      // The bridge is keyed to the canonical copilot app id — a generic
+      // catalog app never gets a credential lane.
+      rerender(<EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-demo" />);
+      const genericFrame = screen.getByTestId("native-dapp-frame-miniapp-demo") as HTMLIFrameElement;
+      expect(genericFrame).toHaveAttribute(
+        "sandbox",
+        "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
+      );
+      const genericWindow = genericFrame.contentWindow!;
+      const genericPost = jest
+        .spyOn(genericWindow, "postMessage")
+        .mockImplementation(() => {});
+      act(() => {
+        window.dispatchEvent(new MessageEvent("message", {
+          origin: "null",
+          source: genericWindow,
+          data: { ...credentialRequest, requestId: "credential-test-04", appId: "miniapp-demo" },
+        }));
+        window.dispatchEvent(new MessageEvent("message", {
+          origin: "null",
+          source: genericWindow,
+          data: { ...credentialRequest, requestId: "credential-test-05" },
+        }));
+      });
+      // The wallet bridge legitimately publishes its state packet to every
+      // frame; the invariant is that no credential response ever reaches a
+      // non-copilot app.
+      expect(genericPost).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: "neo-miniapp-credential:response" }),
+        expect.anything(),
+      );
+    } finally {
+      window.sessionStorage.removeItem("sb-access-token");
+    }
   });
 
   it("bridges only namespaced local game storage to the opaque goose iframe", () => {

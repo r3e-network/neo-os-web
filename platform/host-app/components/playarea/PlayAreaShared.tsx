@@ -18,7 +18,11 @@ import {
   type PlayMetric,
   type PlayTone,
 } from "./shared-helpers";
-import { useEmbeddedStorageBridge, useEmbeddedWalletBridge } from "./bridge";
+import {
+  useEmbeddedCredentialBridge,
+  useEmbeddedStorageBridge,
+  useEmbeddedWalletBridge,
+} from "./bridge";
 
 export {
   buildEmbeddedDappUrl,
@@ -491,6 +495,10 @@ export function EmbeddedDappSurface({
 
   useEmbeddedWalletBridge({ appId, iframeRef, network });
   useEmbeddedStorageBridge({ appId, iframeRef });
+  // Audit fix C-4 follow-up: the first-party Automation Copilot receives the
+  // host gateway credential over this appId-gated bridge instead of the
+  // removed allow-same-origin storage read. No-op for every other miniapp.
+  useEmbeddedCredentialBridge({ appId, iframeRef });
 
   useEffect(() => {
     setFrameLoaded(false);
@@ -558,9 +566,9 @@ export function EmbeddedDappSurface({
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
         <span className="hidden sm:inline">New window</span>
       </a>
-      {/* Miniapps run inside a sandbox. Generic catalog apps receive an opaque
-          origin; the canonical first-party Automation Copilot receives the
-          app-scoped same-origin capability required by its signed host gateway. */}
+      {/* Miniapps run inside a sandbox with an opaque origin (audit fix C-4).
+          First-party credential needs — the Automation Copilot's signed host
+          gateway session — flow through the appId-gated credential bridge. */}
       <iframe
         key={`${url}#${frameAttempt}`}
         ref={iframeRef}
@@ -578,10 +586,11 @@ export function EmbeddedDappSurface({
            opt-in motion gesture; named/src origins cannot match opaque origins.
            Other MiniApps receive no sensor delegation. */
         allow={appId === "miniapp-zhuada-e" ? "accelerometer *; gyroscope *" : undefined}
-        /* Generic MiniApps use an opaque origin. Automation Copilot is the one
-           first-party exception because its host automation gateway needs the
-           existing signed-in session; the exception is keyed to its canonical
-           app id and is not inherited by profiles or catalog apps. */
+        /* Every MiniApp keeps the opaque origin — no app is granted
+           allow-same-origin (audit fix C-4). Automation Copilot's signed-in
+           host session is delivered by useEmbeddedCredentialBridge, keyed to
+           its canonical app id and never inherited by profiles or catalog
+           apps. */
         sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
       />
       {showLoadFailure ? (

@@ -57,3 +57,11 @@ export {
 
 export { useEmbeddedWalletBridge } from "./use-embedded-wallet-bridge";
 export { useEmbeddedStorageBridge } from "./use-embedded-storage-bridge";
+export {
+  CREDENTIAL_BRIDGE_REQUEST,
+  CREDENTIAL_BRIDGE_RESPONSE,
+  CREDENTIAL_BRIDGE_PROTOCOL_VERSION,
+  CREDENTIAL_BRIDGE_SUPPORTED_APP_ID,
+  CREDENTIAL_BRIDGE_SCOPE,
+  useEmbeddedCredentialBridge,
+} from "./use-embedded-credential-bridge";
