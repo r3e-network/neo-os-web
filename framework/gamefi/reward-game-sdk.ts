@@ -686,25 +686,93 @@ export async function openRewardGameSession(
   return { ...started, identity };
 }
 
+interface RewardGameSessionQueueState {
+  acceptsOps: boolean;
+  finalization?: Promise<RewardGameFinalizeResult>;
+  tail: Promise<void>;
+}
+
+const rewardGameSessionQueues = new Map<string, RewardGameSessionQueueState>();
+
+function rewardGameSessionQueueKey(session: RewardGameSession): string {
+  const { identity } = session;
+  return JSON.stringify([
+    identity.appId,
+    identity.network,
+    normalizedHash(identity.contractHash),
+    identity.gameId,
+    normalizedHash(identity.player),
+    identity.difficulty,
+    session.sessionToken,
+  ]);
+}
+
+/**
+ * Serialize every state-changing request for one TEE session. A Phaser scene
+ * can emit inputs faster than the network round-trip; without this queue two
+ * callers can read the same persisted op count, send the same sequence number,
+ * and finally overwrite each other's op-log entry.
+ */
+function enqueueRewardGameSessionTask<T>(
+  session: RewardGameSession,
+  task: () => Promise<T>,
+  options: { allowAfterClose?: boolean; closeForOps?: boolean } = {},
+): Promise<T> {
+  const key = rewardGameSessionQueueKey(session);
+  let state = rewardGameSessionQueues.get(key);
+  if (!state) {
+    state = { acceptsOps: true, tail: Promise.resolve() };
+    rewardGameSessionQueues.set(key, state);
+  }
+  if (!options.allowAfterClose && !state.acceptsOps) {
+    return Promise.reject(
+      new RewardGameError("SESSION_FINALIZING", "This game is already being finalized"),
+    );
+  }
+  if (options.closeForOps) state.acceptsOps = false;
+
+  const result = state.tail.then(task);
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  state.tail = tail;
+  void tail.then(() => {
+    if (
+      rewardGameSessionQueues.get(key) === state
+      && state.tail === tail
+      && state.acceptsOps
+      && !state.finalization
+    ) {
+      rewardGameSessionQueues.delete(key);
+    }
+  });
+  return result;
+}
+
 export async function recordRewardGameOp<Op extends TeeSessionOp>(
   session: RewardGameSession,
   storage: RewardGameStorage<Op>,
   op: Op,
   fetcher?: typeof fetch,
 ): Promise<RewardGameStepResult<Op>> {
-  const gameId = session.identity.gameId;
-  const existing = storage.load(gameId);
-  let recovered = false;
-  let step: TeeStepResult;
-  try {
-    step = await teeSessionStep(session.identity, session.sessionToken, existing.length, op, undefined, fetcher);
-  } catch {
-    recovered = true;
-    step = await teeSessionStep(session.identity, session.sessionToken, existing.length, op, existing, fetcher);
-  }
-  const opLog = [...existing, op];
-  storage.save(gameId, opLog);
-  return { step, opLog, recovered };
+  return enqueueRewardGameSessionTask(session, async () => {
+    const gameId = session.identity.gameId;
+    // Load only after all earlier inputs have settled so `existing.length` is
+    // the session's next monotonic sequence number, not a stale snapshot.
+    const existing = storage.load(gameId);
+    let recovered = false;
+    let step: TeeStepResult;
+    try {
+      step = await teeSessionStep(session.identity, session.sessionToken, existing.length, op, undefined, fetcher);
+    } catch {
+      recovered = true;
+      step = await teeSessionStep(session.identity, session.sessionToken, existing.length, op, existing, fetcher);
+    }
+    const opLog = [...existing, op];
+    storage.save(gameId, opLog);
+    return { step, opLog, recovered };
+  });
 }
 
 export async function replayRewardGameOps<Op extends TeeSessionOp>(
@@ -713,22 +781,27 @@ export async function replayRewardGameOps<Op extends TeeSessionOp>(
   onStep?: (step: TeeStepResult, op: Op, index: number) => void | Promise<void>,
   fetcher?: typeof fetch,
 ): Promise<TeeStepResult[]> {
-  const steps: TeeStepResult[] = [];
-  for (let index = 0; index < opLog.length; index += 1) {
-    const op = opLog[index];
-    if (!op) continue;
-    const step = await teeSessionStep(
-      session.identity,
-      session.sessionToken,
-      index,
-      op,
-      opLog as TeeSessionOp[],
-      fetcher,
-    );
-    steps.push(step);
-    await onStep?.(step, op, index);
-  }
-  return steps;
+  // Serialize the whole replay on the same per-session queue as recordOp /
+  // finalize: a recovery replay interleaving with in-flight inputs would
+  // reuse their monotonic sequence numbers and corrupt the session op-log.
+  return enqueueRewardGameSessionTask(session, async () => {
+    const steps: TeeStepResult[] = [];
+    for (let index = 0; index < opLog.length; index += 1) {
+      const op = opLog[index];
+      if (!op) continue;
+      const step = await teeSessionStep(
+        session.identity,
+        session.sessionToken,
+        index,
+        op,
+        opLog as TeeSessionOp[],
+        fetcher,
+      );
+      steps.push(step);
+      await onStep?.(step, op, index);
+    }
+    return steps;
+  });
 }
 
 export async function finalizeRewardGame<Op extends TeeSessionOp>(
@@ -743,34 +816,54 @@ export async function finalizeRewardGame<Op extends TeeSessionOp>(
     fetcher?: typeof fetch;
   },
 ): Promise<RewardGameFinalizeResult> {
-  const methods = rewardGameMethods(config);
-  const events = rewardGameEvents(config);
-  const gameId = session.identity.gameId;
-  const opLog = storage.load(gameId);
-  const sealed = await teeSessionSealOpLog(session.identity, opLog, options?.fetcher);
-  const tx = await chain.invoke(
-    methods.finalizeGame,
-    [
-      { type: "Integer", value: gameId },
-      { type: "String", value: sealed.sealedOpLogHex },
-    ],
-    {
-      waitForEvent: events.solved,
-      waitTimeoutMs: config.waitTimeoutMs?.finalize ?? 60_000,
-    },
-  );
-  const settlement = await observeRewardGameSettlement(config, chain, gameId, tx.event, {
-    pollAttempts: options?.pollAttempts,
-    pollDelayMs: options?.pollDelayMs,
-    delay: options?.delay,
-  });
-  storage.forget(gameId);
-  return {
-    tx,
-    sealedOpLogHex: sealed.sealedOpLogHex,
-    opCount: opLog.length,
-    settlement,
+  const key = rewardGameSessionQueueKey(session);
+  const current = rewardGameSessionQueues.get(key)?.finalization;
+  if (current) return current;
+
+  const finalization = enqueueRewardGameSessionTask(session, async () => {
+    const methods = rewardGameMethods(config);
+    const events = rewardGameEvents(config);
+    const gameId = session.identity.gameId;
+    // Finalization is queued behind every accepted input, so the sealed log is
+    // complete even when the user finishes while the last TEE step is in flight.
+    const opLog = storage.load(gameId);
+    const sealed = await teeSessionSealOpLog(session.identity, opLog, options?.fetcher);
+    const tx = await chain.invoke(
+      methods.finalizeGame,
+      [
+        { type: "Integer", value: gameId },
+        { type: "String", value: sealed.sealedOpLogHex },
+      ],
+      {
+        waitForEvent: events.solved,
+        waitTimeoutMs: config.waitTimeoutMs?.finalize ?? 60_000,
+      },
+    );
+    const settlement = await observeRewardGameSettlement(config, chain, gameId, tx.event, {
+      pollAttempts: options?.pollAttempts,
+      pollDelayMs: options?.pollDelayMs,
+      delay: options?.delay,
+    });
+    // A broadcast transaction whose event cannot yet be observed is not a
+    // confirmed settlement. Keep the deterministic op-log so refresh/recovery
+    // can inspect chain state and safely resume instead of losing the proof.
+    if (settlement.status !== "unknown") storage.forget(gameId);
+    return {
+      tx,
+      sealedOpLogHex: sealed.sealedOpLogHex,
+      opCount: opLog.length,
+      settlement,
+    };
+  }, { allowAfterClose: true, closeForOps: true });
+
+  const state = rewardGameSessionQueues.get(key);
+  if (state) state.finalization = finalization;
+  const release = () => {
+    const queued = rewardGameSessionQueues.get(key);
+    if (queued?.finalization === finalization) rewardGameSessionQueues.delete(key);
   };
+  void finalization.then(release, release);
+  return finalization;
 }
 
 export async function observeRewardGameSettlement(

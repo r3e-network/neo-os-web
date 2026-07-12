@@ -10,6 +10,7 @@ const appMessages = {
   beneficiary: { en: "Beneficiary address", zh: "受益人地址" },
   beneficiaryAddress: { en: "Beneficiary address", zh: "受益人地址" },
   beneficiaryPlaceholder: { en: "Enter Neo N3 address", zh: "输入 Neo N3 地址" },
+  beneficiaryAddressHint: { en: "A checksum-valid Neo N3 address is required before signing.", zh: "签名前需填写通过校验和验证的 Neo N3 地址。" },
   description: { en: "Description", zh: "描述" },
   descriptionPlaceholder: { en: "Milestone description...", zh: "里程碑描述..." },
   submit: { en: "Submit", zh: "提交" },
@@ -61,6 +62,11 @@ const appMessages = {
   previewTicketCopy: { en: "{count} release gates will fund in {asset}.", zh: "{count} 个释放节点将使用 {asset} 托管。" },
   releaseDesk: { en: "Release desk", zh: "释放工作台" },
   releaseDeskTitle: { en: "Build a staged payout plan", zh: "配置分期释放计划" },
+  manageExistingDeskTitle: { en: "Manage existing milestone escrows", zh: "管理现有里程碑托管" },
+  legacyIntroLede: {
+    en: "Review, approve, claim, or refund existing escrows. New deposits reopen only after the recovery-capable contract update.",
+    zh: "查看、验收、领取或退款现有托管。新的存入会在恢复版合约更新后重新开放。",
+  },
   releaseDeskCopy: {
     en: "Turn a deal into funded gates: pick the asset, define each tranche, then sign the deposit and setup.",
     zh: "把项目款项拆成可验收的资金闸门：选择资产、配置每个批次，然后签名存入并创建托管。",
@@ -80,11 +86,60 @@ const appMessages = {
     en: "Keep the beneficiary and every release gate visible before funds move.",
     zh: "资金转入前，清楚核对受益人和每个释放节点。",
   },
+  onChainSnapshot: { en: "Verified contract snapshot", zh: "已核验的合约快照" },
+  refreshing: { en: "Refreshing...", zh: "刷新中…" },
+  loadingEscrows: { en: "Reading escrow ledger", zh: "正在读取托管账本" },
+  chainDataUnavailableTitle: { en: "Ledger temporarily locked", zh: "账本暂时锁定" },
+  deploymentChecking: { en: "Checking the live escrow contract…", zh: "正在核验实时托管合约…" },
+  deploymentReady: { en: "Live contract capabilities verified", zh: "实时合约能力已核验" },
+  deploymentLegacy: {
+    en: "Existing escrows remain available, but new deposits are locked because this deployment cannot withdraw unconsumed prepaid credit.",
+    zh: "现有托管仍可操作，但该部署无法取回未消费预付额度，因此新的存入已锁定。",
+  },
+  deploymentPaused: { en: "Escrow writes are paused; existing prepaid credit can still be recovered.", zh: "托管写操作已暂停；已有预付额度仍可取回。" },
+  deploymentMismatch: {
+    en: "Browse-only: this network contract does not match the approved escrow workflow. No transaction will be requested.",
+    zh: "仅可浏览：当前网络合约与已核验的托管流程不匹配，不会请求任何交易签名。",
+  },
+  deploymentUnavailable: {
+    en: "The live escrow capabilities could not be verified. Writes stay locked until the check succeeds.",
+    zh: "暂时无法核验实时托管能力。核验成功前，写操作保持锁定。",
+  },
+  deploymentUnavailableTitle: { en: "Escrow writes locked", zh: "托管写操作已锁定" },
+  newEscrowLockedTitle: { en: "New escrow deposits locked", zh: "新建托管存入已锁定" },
+  chainSnapshotUnavailable: {
+    en: "The contract snapshot could not be verified. Actions are locked; refresh before signing.",
+    zh: "暂时无法核验合约快照。操作已锁定，请刷新并确认链上状态后再签名。",
+  },
+  transactionConfirmationPending: {
+    en: "The transaction was broadcast, but its exact contract event is not verified yet. Do not retry or assume success; refresh the on-chain snapshot first.",
+    zh: "交易已广播，但尚未核验到对应的合约事件。请勿重复提交或假定成功，先刷新链上快照。",
+  },
+  escrowStateChanged: {
+    en: "This escrow changed on-chain. Refresh and review the exact milestone before signing.",
+    zh: "该托管的链上状态已变化。请刷新并重新核对具体里程碑后再签名。",
+  },
+  approvedAwaitingClaim: {
+    en: "An approved milestone is awaiting beneficiary claim, so the remaining escrow cannot be cancelled.",
+    zh: "已有里程碑获批并等待受益人领取，因此当前不能取消剩余托管。",
+  },
+  refundReviewChanged: {
+    en: "The refundable balance changed after review. Refresh and confirm the new amount before signing.",
+    zh: "可退款余额在审核后发生变化。请刷新并确认新金额后再签名。",
+  },
+  creditSnapshotUnavailable: {
+    en: "Prepaid credit could not be verified. Do not deposit again until the recovery balance loads.",
+    zh: "暂时无法核验预付额度。在恢复余额加载成功前，请勿再次存入。",
+  },
+  noRecoveryCredit: { en: "No unconsumed prepaid credit is available for this asset.", zh: "该资产当前没有可取回的未消费预付额度。" },
+  gracePeriodNotElapsed: { en: "The 30-day beneficiary claim window has not elapsed yet.", zh: "受益人的 30 天领取窗口尚未结束。" },
   // Action success toasts (notify.guard keys).
   escrowCreated: { en: "Escrow created", zh: "托管已创建" },
   approveSuccess: { en: "Milestone approved", zh: "里程碑已批准" },
   claimSuccess: { en: "Milestone claimed — funds released", zh: "里程碑已领取——资金已释放" },
   cancelSuccess: { en: "Escrow cancelled — remaining funds refunded", zh: "托管已取消——剩余资金已退回" },
+  reclaimApprovedSuccess: { en: "Expired approved tranche reclaimed", zh: "超期未领取的已验收批次已取回" },
+  reclaimCreditSuccess: { en: "Unconsumed prepaid credit recovered", zh: "未消费的预付额度已取回" },
 
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
   deploymentPendingTitle: { en: "Not available on this network", zh: "此网络暂不可用" },
@@ -111,6 +166,7 @@ const appMessages = {
   planPreview: { en: "Release plan", zh: "释放计划" },
   previewNetwork: { en: "Neo N3 - Milestone Escrow", zh: "Neo N3 · 里程碑托管" },
   connectToStart: { en: "Connect a wallet to create your first escrow", zh: "连接钱包以创建你的第一个托管" },
+  connectToManageExisting: { en: "Connect a wallet to manage existing escrows; new deposits are currently locked.", zh: "连接钱包以管理现有托管；新的存入当前已锁定。" },
   // Hero stat sublabels — clarify exactly what each tile counts.
   statHintEscrows: { en: "Total you are party to", zh: "你参与的总数" },
   statHintActive: { en: "Funds still locked", zh: "仍处于锁定" },
@@ -127,6 +183,31 @@ const appMessages = {
     en: "Your funds were prepaid to the escrow contract, but the escrow was not created. Your credit is held under your address and the escrow can be created again (retry).",
     zh: "资金已预付至托管合约，但托管未创建。您的额度仍记在您的地址下，可重新发起创建（请重试）。",
   },
+  prepayRecoveryDisclosure: {
+    en: "If the deposit confirms but setup fails, the credit remains under your address in the contract. Stop and recover or retry only after checking the ledger.",
+    zh: "若存入已确认但创建失败，额度会继续记在合约中的你的地址下。请先核对账本，再决定恢复或重试。",
+  },
+  legacyDepositBlockedDisclosure: {
+    en: "No deposit signature will be requested on this legacy contract. Existing escrow releases and refunds remain available after live state checks.",
+    zh: "当前 legacy 合约不会请求存入签名。核验实时状态后，现有托管的释放与退款仍可操作。",
+  },
+  recoveryPocketTitle: { en: "Recovery pocket", zh: "恢复资金袋" },
+  recoveryPocketCopy: {
+    en: "Broadcasts and unconsumed deposits stay visible here until chain state proves the outcome.",
+    zh: "已广播操作和未消费存入会保留在这里，直到链上状态证明最终结果。",
+  },
+  checkChainState: { en: "Check chain state", zh: "核对链上状态" },
+  pendingWriteTitle: { en: "Transaction outcome pending", zh: "交易结果待确认" },
+  pendingWriteCopy: { en: "{operation} was broadcast. Refresh before retrying.", zh: "{operation} 已广播。重试前请先刷新核对。" },
+  pendingOperation_create: { en: "Escrow creation", zh: "创建托管" },
+  pendingOperation_approve: { en: "Milestone acceptance", zh: "里程碑验收" },
+  pendingOperation_claim: { en: "Milestone claim", zh: "里程碑领取" },
+  "pendingOperation_reclaim-approved": { en: "Expired tranche recovery", zh: "超期批次取回" },
+  "pendingOperation_reclaim-credit": { en: "Prepaid credit recovery", zh: "预付额度取回" },
+  pendingOperation_cancel: { en: "Escrow cancellation", zh: "取消托管" },
+  unconsumedCredit: { en: "Unconsumed prepaid credit", zh: "未消费预付额度" },
+  recoverCredit: { en: "Recover to wallet", zh: "取回钱包" },
+  recoveringCredit: { en: "Verifying recovery…", zh: "正在核验取回结果…" },
   // Two-signature disclosure — the standalone contract takes a deposit first,
   // then the createEscrow call (two wallet prompts), mirroring neo-pay.
   twoStepSignNotice: {
@@ -143,6 +224,14 @@ const appMessages = {
     en: "Funds release only after the creator approves each milestone.",
     zh: "资金仅在创建者批准对应里程碑后才会释放。",
   },
+  proofAndDisputeDisclosure: {
+    en: "The deployed contract does not store delivery proof or arbitrate disputes. Exchange evidence off-chain and approve only after both parties agree.",
+    zh: "当前部署的合约不存储交付证明，也不提供争议仲裁。请在线下交换证据，并仅在双方确认后批准。",
+  },
+  verifiedEventDisclosure: {
+    en: "The app marks writes successful only after the matching contract event is verified; a wallet txid alone is not treated as completion.",
+    zh: "应用仅在核验到匹配的合约事件后才标记成功；仅有钱包交易哈希不代表操作已完成。",
+  },
 
   createdByYou: { en: "Created by you", zh: "我创建的" },
   forYou: { en: "For you", zh: "我受益的" },
@@ -150,6 +239,8 @@ const appMessages = {
   statCreated: { en: "Created", zh: "我创建的" },
   statForYou: { en: "For you", zh: "我受益的" },
   emptyEscrows: { en: "No escrows yet", zh: "暂无托管" },
+  emptyCreatorEscrows: { en: "Create a funded route to start your creator ledger.", zh: "创建并资助一条释放路径后，这里会显示你的托管。" },
+  emptyBeneficiaryEscrows: { en: "Escrows addressed to this wallet will appear here.", zh: "以当前钱包为受益人的托管会显示在这里。" },
   refresh: { en: "Refresh", zh: "刷新" },
 
   // Escrow card detail rows.
@@ -157,6 +248,36 @@ const appMessages = {
   released: { en: "Released", zh: "已释放" },
   releasedOfTotal: { en: "{released} / {total} released", zh: "已释放 {released} / {total}" },
   milestoneProgress: { en: "{done} / {count} milestones", zh: "{done} / {count} 里程碑" },
+  releaseProgress: { en: "{progress}% of milestones settled", zh: "已有 {progress}% 的里程碑完成结算" },
+  settledOnChain: { en: "Settled on-chain", zh: "已在链上结算" },
+  readyToClaim: { en: "Accepted · ready to claim", zh: "已验收 · 可领取" },
+  awaitingAcceptance: { en: "Awaiting acceptance", zh: "等待验收" },
+  acceptAndUnlock: { en: "Accept & unlock", zh: "验收并解锁" },
+  claimFunds: { en: "Claim funds", zh: "领取资金" },
+  evidenceOffchainShort: { en: "Delivery evidence and dispute discussion remain off-chain.", zh: "交付证据与争议沟通在线下完成。" },
+  acceptanceBrief: { en: "Acceptance brief & evidence handoff", zh: "验收标准与证据交接" },
+  noAcceptanceBrief: { en: "No acceptance brief was recorded when this escrow was created.", zh: "创建该托管时未记录验收标准。" },
+  evidenceHandoffBoundary: {
+    en: "Share delivery files and dispute messages outside this contract. This workspace never pretends off-chain evidence was verified.",
+    zh: "交付文件和争议沟通需在合约外完成。本工作台不会伪称已核验链下证据。",
+  },
+  cancelBlockedByApproved: { en: "Refund locked: an accepted milestone must be claimed first.", zh: "退款已锁定：已验收的里程碑需先由受益人领取。" },
+  reclaimMilestone: { en: "Reclaim M{n} after grace period — {amount}", zh: "宽限期后取回里程碑 {n} —— {amount}" },
+  reclaimingMilestone: { en: "Reclaiming…", zh: "正在取回…" },
+  reclaimAfterGrace: { en: "Recover expired tranche", zh: "取回超期批次" },
+  graceRecoveryDate: { en: "Creator recovery opens {date}", zh: "创建者可于 {date} 起取回" },
+  graceRecoveryUnavailable: {
+    en: "This live deployment has no 30-day creator recovery method. The beneficiary must claim before the remaining escrow can be cancelled.",
+    zh: "当前实时部署没有 30 天后由创建者取回的接口。受益人需先领取，创建者才能取消剩余托管。",
+  },
+  reviewRefund: { en: "Review remaining refund", zh: "审核剩余退款" },
+  refundReviewTitle: { en: "Final cancellation refund", zh: "最终取消退款" },
+  refundReviewCopy: {
+    en: "Only the current unclaimed balance returns to the creator. Cancellation is final and the contract has no dispute arbiter.",
+    zh: "仅当前未领取余额退回创建者。取消不可撤销，且合约不提供争议仲裁。",
+  },
+  keepEscrow: { en: "Keep escrow", zh: "保留托管" },
+  confirmRefund: { en: "Cancel & refund", zh: "取消并退款" },
 
   // Button gating helper text (tooltips on disabled actions).
   noMilestoneToApprove: { en: "All milestones approved", zh: "所有里程碑已批准" },

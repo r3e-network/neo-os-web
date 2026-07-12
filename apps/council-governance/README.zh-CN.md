@@ -1,100 +1,43 @@
-# 理事会治理 MiniApp
+# 理事会治理
 
-Neo 理事会成员的去中心化治理。仅前 21 名理事会成员可创建并投票提案。
+Council Governance 是一个真正的 Neo 议会治理应用，而不是通用交易表单。
+主界面突出当前动议、真实法定人数和一个明确操作；提案列表、政策参数、
+原生委员会/候选人、钱包余额、历史记录、生命周期操作与交易恢复都收进次级界面。
 
-## 功能
+## 产品流程
 
-- **理事会成员校验**：验证当前连接的钱包是否为理事会成员
-- **提案创建**：理事会成员可提交文本或政策变更提案
-- **投票表决**：对提案进行赞成或反对投票
-- **提案管理**：查看活跃提案、历史记录与投票状态
+- 同时浏览经合约核验的提案与明确标记的 `neo.community` 镜像提案。
+- 连接理事会钱包并核验资格后，才开放提案和投票写入。
+- 查看 21 席原生 Neo 委员会、经格式核验的候选人压缩公钥、整数 NEO
+  投票权重，以及精确的 NEO/GAS 钱包余额。
+- 在动议案卷中起草文本提案或受约束的 Neo 政策参数变更。
+- 只有 `hasVoted` 状态核验成功后才允许投票，读取失败不会被当作“未投票”。
+- 仅允许定案已到期合约提案、执行已通过的政策提案，以及由当前钱包创建的活跃提案撤回。
 
-## 支持网络
+已部署合约实际按毫秒解释提案时长，虽然只读常量字段仍使用 `*Seconds` 名称；
+链上有效范围为 `86,400`–`2,592,000`。因此界面提供 2、15、30 分钟档。
+旧的 3/7/14 天选项会超过现有合约上限，无法真实执行，现已移除。
 
-- Neo N3 主网
-- Neo N3 测试网
+## 确认与恢复
 
-## 合约部署状态
+每次写入都绑定当前网络、标准合约、钱包、操作和预期提案数据。广播后先记录为
+pending；只有准确合约事件与权威提案或投票回读完全一致时才显示成功。索引超时或
+不可用时，恢复操作会成为主按钮，并阻止重复写入。
 
-| 网络 | 状态 | 地址 |
-| ---- | ---- | ---- |
-| neo-n3-mainnet | ✅ 已部署 | `0xc7e50e67589df63302cbea1a6b00beb649ee74d8` |
-| neo-n3-testnet | ✅ 已部署 | `0x4c61e5575ae9e151027f6724d07fac127d4cc25f` |
+创建提案的恢复记录包含准确的类型、标题、描述、策略值和时长；投票确认同时核对
+`hasVoted` 与 `getVote` 的准确赞成/反对选择，不会把“发生过投票”误当作选择一致。
 
-## 部署要求
+提案列表采用“完整读取或保留旧数据”的策略：任意详情读取失败都不会清空或部分
+替换上次核验内容。资格和 `hasVoted` 读取失败保持未知状态，不会伪装成 `false`。
+网络、账户、委员会、余额和提案读取均带请求作用域；旧钱包或旧网络的慢响应不会
+覆盖用户后续选择。
 
-### 前置条件
+## 网络
 
-1. **已编译合约**：`contracts/build/MiniAppCouncilGovernance.nef`
-2. **部署钱包**：需要足够 GAS 用于部署
-3. **RPC 端点**：可访问 Neo N3 主网或测试网 RPC
+| 网络 | 合约 |
+| --- | --- |
+| Neo N3 主网 | `0xc7e50e67589df63302cbea1a6b00beb649ee74d8` |
+| Neo N3 测试网 | `0x4c61e5575ae9e151027f6724d07fac127d4cc25f` |
 
-### 部署步骤
-
-1. **部署合约**：
-
-```bash
-# Set environment variables
-export NEO_TESTNET_WIF="your-wallet-wif"
-export NEO_RPC_URL="https://testnet1.neo.coz.io:443"
-
-# Run deployment script
-go run scripts/deploy_miniapp_contracts.go
-```
-
-2. **更新合约地址**：
-部署后将合约地址写入 `scripts/sync-contract-addresses.js`：
-
-```javascript
-MiniAppCouncilGovernance: "0x...", // Add deployed address
-```
-
-3. **同步到 neo-manifest.json**：
-
-```bash
-node scripts/sync-contract-addresses.js
-```
-
-4. **验证部署**：
-- 确认 `neo-manifest.json` 中的合约地址正确
-- 在 host-app 中验证 MiniApp
-
-## API 依赖
-
-MiniApp 直接从 Council Governance 合约读取提案状态。没有可用的钱包读取
-provider 时，只读调用会回退到 host 的 `/api/rpc/neo-read` 代理；创建提案
-和投票始终通过钱包签名发起真实合约调用。
-
-## 合约方法
-
-| 方法 | 说明 | 权限 |
-| ---- | ---- | ---- |
-| `getProposalCount()` | 获取提案总数 | 公共 |
-| `getProposalDetails(id)` | 获取提案详情和法定人数 | 公共 |
-| `createProposal(...)` | 创建提案 | 仅理事会 |
-| `vote(voter, id, support)` | 投票 | 仅理事会 |
-| `hasVoted(voter, id)` | 是否已投票 | 公共 |
-| `isCandidate(address)` | 是否为理事会成员 | 公共 |
-| `finalizeProposal(id)` | 终结已到期提案 | 公共 |
-| `revokeProposal(owner, id)` | 撤销自己的提案 | 创建者 |
-
-## 开发
-
-```bash
-# Navigate to the miniapp directory
-cd apps/council-governance
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-## 平台集成
-
-- 独立 dApp：`apps/council-governance/src/PlayArea.tsx` 渲染完整提案工作台。
-- Host/OneGate 详情页：`platform/host-app/components/playarea/PlayAreaRegistry.tsx`
-  将 `miniapp-council-governance` 映射到原生 council play area，不再走泛化占位。
-- 合约注册表：`apps/shared/constants/rpc.ts` 和 `platform/host-app/lib/rpc-helpers.ts`
-  均包含主网/测试网 Council Governance 合约地址。
+当前只读核验记录见 [NETWORK_STATUS.md](./NETWORK_STATUS.md)。本轮没有部署合约、
+请求钱包签名、提交交易或同步 host。

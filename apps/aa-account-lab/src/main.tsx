@@ -5,6 +5,7 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
+import { createObservable } from "@shared/react/context";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -68,12 +69,37 @@ defineMiniApp({
         lab.registerForm.hookHash = String(hookHash);
         lab.registerForm.backupOwner = String(backupOwner);
         lab.registerForm.escapeTimelock = String(escapeTimelock);
-        await ctx.framework.notify.guard(() => lab.submitRegister(), {
-          successKey: "registerSuccess",
-          errorKey: "invalidAccountId",
-        });
+        try {
+          const result = await lab.submitRegister();
+          if (result.status === "confirmed") {
+            ctx.setStatus(ctx.t("registrationConfirmed"), "success");
+          } else if (result.status === "fault") {
+            ctx.setStatus(ctx.t("registrationFaulted"), "error");
+          } else {
+            ctx.setStatus(ctx.t("registrationPending"), "warning");
+          }
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : ctx.t("registrationFailed");
+          ctx.setStatus(message, "error");
+          throw error;
+        }
       },
     );
+
+    ctx.framework.actions.register("recoverRegistration", async () => {
+      const result = await lab.recoverPendingRegistration();
+      if (!result) return result;
+      ctx.setStatus(
+        ctx.t(result.status === "confirmed"
+          ? "registrationConfirmed"
+          : result.status === "fault"
+            ? "registrationFaulted"
+            : "registrationPending"),
+        result.status === "confirmed" ? "success" : result.status === "fault" ? "error" : "warning",
+      );
+      return result;
+    });
 
     ctx.framework.actions.register("connect", () =>
       ctx.framework.notify.guard(() => ctx.framework.wallet.ensure(), {
@@ -89,6 +115,7 @@ defineMiniApp({
         currentBackupOwner: lab.currentBackupOwner,
         currentEscapeTimelock: lab.currentEscapeTimelock,
         currentEscapeActive: lab.currentEscapeActive,
+        inspectedAccountId: lab.inspectedAccountId,
         hasInspected: lab.hasInspected,
         aaCoreDisplay: lab.aaCoreDisplay,
         defaultVerifierDisplay: lab.defaultVerifierDisplay,
@@ -96,6 +123,18 @@ defineMiniApp({
         connectedWalletDisplay: lab.connectedWalletDisplay,
         isInspecting: lab.isInspecting,
         isSubmitting: lab.isSubmitting,
+        isRecovering: lab.isRecovering,
+        pendingRegistration: lab.pendingRegistration,
+        pendingStorageHealthy: lab.pendingStorageHealthy,
+        lastStatus: lab.lastStatus,
+        lastError: lab.lastError,
+        lastSuccess: lab.lastSuccess,
+        launchAccountIdInput: createObservable(launchDefaults.accountIdInput),
+        launchVerifierHash: createObservable(launchDefaults.verifierHash),
+        launchVerifierParamsHex: createObservable(launchDefaults.verifierParamsHex),
+        launchHookHash: createObservable(launchDefaults.hookHash),
+        launchBackupOwner: createObservable(launchDefaults.backupOwner),
+        launchEscapeTimelock: createObservable(launchDefaults.escapeTimelock),
       },
       loadData: lab.loadAll,
     };

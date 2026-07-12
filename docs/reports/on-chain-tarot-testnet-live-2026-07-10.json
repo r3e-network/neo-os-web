@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-07-10T01:00:26.867Z",
+  "rpcUrl": "https://api.n3index.dev/testnet",
+  "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "userAddress": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "results": {
+    "tarot": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb680225a1be276b03ecd7de82ea985dcc7435cec",
+        "depositTx": "0xfa2c3ce22fc09b17330569e54547d4f448155a5c0a4da7afd0f732881c7ab152",
+        "drawTx": "0xd0be0ba3d495cce5d8bc98a3969a73630ca6b82c0be5ac1b603244cc88299789",
+        "readingId": "2",
+        "cards": [
+          49,
+          62,
+          50
+        ],
+        "fee": "10000000",
+        "creditBefore": "0",
+        "creditAfter": "0",
+        "details": {
+          "id": "2",
+          "player": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+          "cards": [
+            "49",
+            "62",
+            "50"
+          ],
+          "time": "1783645224410"
+        }
+      }
+    }
+  }
+}

@@ -18,7 +18,8 @@ test("AA Market Hub exposes wallet-style market overview and guarded listing loa
   const styles = read("apps/aa-market-hub/src/PlayArea.scss");
   const messages = read("apps/aa-market-hub/src/locale/messages.ts");
 
-  assert.match(playArea, /from "@shared\/components-react\/v2"/);
+  assert.match(playArea, /from "@shared\/components-react\/v2\/OpenUiLite"/);
+  assert.match(playArea, /from "@shared\/components-react\/v2\/PlayStage"/);
   assert.match(playArea, /OpenUiProvider/);
   assert.match(playArea, /PlayStage/);
   assert.match(playArea, /OpenUiPanel/);
@@ -31,24 +32,27 @@ test("AA Market Hub exposes wallet-style market overview and guarded listing loa
 
   assert.match(playArea, /className="aa-market-play-area mx2 mx2-cat-defi"/);
   assert.match(playArea, /category="defi"/);
-  assert.match(playArea, /className="market-scene"/);
-  assert.match(playArea, /className="market-scene__desk-card"/);
+  assert.match(playArea, /className="aa-market-scene"/);
+  assert.match(playArea, /className="aa-market-hero"/);
+  assert.match(playArea, /className="aa-market-hero__image"/);
   assert.match(playArea, /src="\.\/market-escrow-desk\.webp"/);
-  assert.match(playArea, /className="market-scene__route"/);
-  assert.match(playArea, /className="market-scene__shelf"/);
-  assert.match(playArea, /className="market-drawer"/);
-  assert.match(playArea, /drawerToggleLabel=\{t\("marketBoardTitle"\)\}/);
-  assert.match(playArea, /drawer=\{\{ title: t\("marketBoardTitle"\), children: drawer \}\}/);
+  assert.match(playArea, /className="aa-market-layout"/);
+  assert.match(playArea, /className="aa-market-drawer"/);
+  assert.match(playArea, /drawerToggleLabel=\{t\("marketControls"\)\}/);
+  assert.match(playArea, /drawer=\{\{ title: t\("marketControls"\), children: drawer \}\}/);
 
-  assert.match(playArea, /await dispatch\("loadListings", marketInput\.trim\(\)\)/);
-  assert.match(playArea, /await dispatch\("buySelected", newBackupOwner\.trim\(\) \|\| walletAddress\)/);
+  assert.match(playArea, /void dispatch\("loadListings"\)/);
+  assert.match(playArea, /void dispatch\("buySelected", backupOwner\.trim\(\) \|\| walletAddress\)/);
   assert.match(playArea, /void dispatch\("connectWallet"\)/);
   assert.match(playArea, /void dispatch\("cancelSelected"\)/);
-  assert.match(playArea, /disabled=\{!walletAddress \? isWalletConnecting : !marketInput\.trim\(\) \|\| isLoading\}/);
-  assert.match(playArea, /disabled=\{!canBuySelectedListing \|\| busy\}/);
+  assert.match(playArea, /void dispatch\("recoverPending"\)/);
+  assert.match(
+    playArea,
+    /:\s*canBuySelectedListing[\s\S]*?onClick: buy,[\s\S]*?disabled: busy/,
+  );
   assert.match(styles, /\.aa-market-play-area \.mx2-stage__scene/);
-  assert.match(styles, /\.market-scene\s*\{[^}]*background:\s*transparent/s);
-  assert.match(styles, /\.market-drawer\s*\{/);
+  assert.match(styles, /\.aa-market-scene\s*\{/);
+  assert.match(styles, /\.aa-market-drawer\s*\{/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(styles, /filter:\s*saturate/);
   assert.doesNotMatch(styles, /opacity:\s*0\.55/);

@@ -105,4 +105,3 @@ export function poseidon(opts) {
     poseidonHash.roundConstants = roundConstants;
     return poseidonHash;
 }
-//# sourceMappingURL=poseidon.js.map

@@ -8,25 +8,38 @@
  * leaderboard live inside the flight deck so the game does not feel like a form
  * with a canvas preview.
  */
-import * as Phaser from "phaser";
-import { useState } from "react";
+import type * as Phaser from "phaser";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@framework/phaser";
-import { ChevronDown, RefreshCw, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
-import { FlappyScene } from "./scenes/FlappyScene";
-import { DIFFICULTY_RULES, formatClock, gasDisplay, ruleOf } from "./logic/game-rules";
+import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
+import { ChevronDown, RefreshCw, RotateCcw, ShieldCheck, Trophy, WalletCards, X } from "lucide-react";
+import {
+  DIFFICULTY_RULES,
+  SETTLE_GRACE_MS,
+  formatClock,
+  gasDisplay,
+  ruleOf,
+} from "./logic/game-rules";
 import type { LeaderEntry, SolveRow } from "./main";
 import "./PlayArea.scss";
 
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
-  scene: [FlappyScene],
   width:  400,
   height: 600,
   backgroundColor: "transparent",
   transparent: true,
 };
+
+const loadFlappyScene = () =>
+  import("./scenes/FlappyScene").then((module) => module.FlappyScene);
 
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
@@ -60,6 +73,11 @@ function historyPipes(row: SolveRow): number {
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [a11yPrimaryPulse, setA11yPrimaryPulse] = useState(0);
+  const [gameReady, setGameReady] = useState(false);
+  const drawerTriggerRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
+  const difficultyRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   // ── Observables ─────────────────────────────────────────────────────────
   const gameStatus     = str("gameStatus", "idle");
@@ -75,6 +93,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isStarting     = bool("isStarting");
   const isDealing      = bool("isDealing");
   const isSubmitting   = bool("isSubmitting");
+  const isRecovering   = bool("isRecovering");
   const lastPayout     = str("lastPayout", "");
   const myRank         = val<number>("myRank", 0) ?? 0;
   const myTotalWon     = Number(val<number>("myTotalWon", 0) ?? 0);
@@ -82,20 +101,95 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const leaderboard    = val<LeaderEntry[]>("leaderboard", []) ?? [];
   const myHistory      = val<SolveRow[]>("myHistory", []) ?? [];
   const lastStatus     = str("lastStatus", "");
+  const walletConnected = bool("walletConnected");
+  const isConnectingWallet = bool("isConnectingWallet");
+  const inputSyncFailed = bool("inputSyncFailed");
   // Play mode — guest hides GAS-at-stake / pool / reward framing and shows a
   // purely local ("practice") framing. GameFi copy is unchanged.
-  const appMode        = str("appMode", "gamefi");
+  const appMode        = str("appMode", "guest");
   const isGuest        = appMode === "guest";
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (gameStatus !== "dealt" && gameStatus !== "committed" && gameStatus !== "unknown") {
+      return undefined;
+    }
+    setClockNow(Date.now());
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [gameStatus, deadline]);
+
+  const closeDrawer = useCallback((restoreFocus = true) => {
+    setDrawerOpen(false);
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => drawerTriggerRef.current?.focus());
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeDrawer();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    window.requestAnimationFrame(() => drawerCloseRef.current?.focus());
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [closeDrawer, drawerOpen]);
+
+  const runAction = useCallback((action: string, args: Record<string, unknown> = {}) => {
+    try {
+      void Promise.resolve(dispatch(action, args)).catch(() => undefined);
+    } catch {
+      // The framework action wrapper already owns the localized error surface.
+    }
+  }, [dispatch]);
 
   const rule    = ruleOf(gameDifficulty);
-  const nowMs   = Date.now();
+  const nowMs   = clockNow;
   const isPlaying = gameStatus === "dealt";
   const isSolved  = gameStatus === "solved";
   const isExpired = gameStatus === "expired" || gameStatus === "refunded";
   const dealPending = gameStatus === "committed";
+  const settlementPending = gameStatus === "unknown" && activeGameId !== "0";
   const remMs   = isPlaying && deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
-  const timeUp  = isPlaying && deadline > 0 && remMs <= 0;
-  const busy    = isStarting || isDealing || isSubmitting;
+  const canReleaseStuck =
+    activeGameId !== "0"
+    && deadline > 0
+    && nowMs > deadline + SETTLE_GRACE_MS
+    && (isPlaying || dealPending || settlementPending);
+  const busy    = isStarting || isDealing || isSubmitting || isRecovering;
+  const lobbyAvailable = ["idle", "solved", "expired", "refunded"].includes(gameStatus)
+    && !busy;
+  const drawerId = "flappy-ingame-drawer";
+
+  const difficultyOptions = DIFFICULTY_RULES.map((difficultyRule) => ({
+    difficulty: difficultyRule.difficulty,
+    label: t(`difficulty_${difficultyRule.key}`),
+    detail: t("canvasRouteMeta", {
+      gates: difficultyRule.targetPipes,
+      pace: t(`routePace_${difficultyRule.key}`),
+    }),
+  }));
+
+  const handleDifficultyKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    const direction = event.key === "ArrowRight" || event.key === "ArrowDown"
+      ? 1
+      : event.key === "ArrowLeft" || event.key === "ArrowUp"
+        ? -1
+        : 0;
+    if (direction === 0 || !lobbyAvailable) return;
+    event.preventDefault();
+    const nextIndex = (index + direction + difficultyOptions.length) % difficultyOptions.length;
+    const next = difficultyOptions[nextIndex];
+    if (!next) return;
+    difficultyRefs.current[nextIndex]?.focus();
+    runAction("selectDifficulty", { difficulty: next.difficulty });
+  };
 
   // ── Localized labels handed to the canvas ────────────────────────────────
   // The Phaser scene only sees the raw bridge snapshot, so every in-canvas
@@ -108,6 +202,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     poolChip:     isGuest ? t("canvasGuestPoolChip") : t("canvasPoolChip"),
     awaitingPool: t("canvasAwaitingPool"),
     launch:       t("canvasLaunch"),
+    guestLaunch:  t("canvasGuestLaunch"),
+    payAndLaunch: t("canvasPayAndLaunch"),
+    connectWallet: t("canvasConnectWallet"),
+    connectingWallet: t("canvasConnectingWallet"),
+    lobbyHint:    isGuest ? t("canvasGuestLobbyHint") : t("canvasGameFiLobbyHint"),
     launching:    t("canvasLaunching"),
     flyAgain:     t("canvasFlyAgain"),
     retryRun:     t("canvasRetryRun"),
@@ -115,6 +214,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     tapHint:      t("canvasTapHint"),
     sealingTitle: t("canvasSealingTitle"),
     sealingHint:  t("canvasSealingHint"),
+    settlementTitle: t("canvasSettlementTitle"),
+    settlementHint:  t("canvasSettlementHint"),
     winTitle:     t("canvasWinTitle"),
     crashTitle:   t("canvasCrashTitle"),
     timeUpTitle:  t("canvasTimeUpTitle"),
@@ -122,13 +223,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     crashBody:    t("canvasCrashBody"),
     timeUpBody:   t("canvasTimeUpBody"),
     submitScore:  t("canvasSubmitScore"),
+    saveScore:    t("canvasSaveScore"),
+    settleRun:    t("canvasSettleRun"),
     submitting:   t("canvasSubmitting"),
     playAgain:    t("canvasPlayAgain"),
     backToLobby:  t("canvasBackToLobby"),
     tryAgain:     t("canvasTryAgain"),
     routes: DIFFICULTY_RULES.map((r) => ({
       title:     t("canvasRouteTitle", { name: t(`difficulty_${r.key}`) }),
-      meta:      t("canvasRouteMeta", { gates: r.targetPipes, minutes: Math.round(r.limitMs / 60000) }),
+      meta:      t("canvasRouteMeta", {
+        gates: r.targetPipes,
+        pace: t(`routePace_${r.key}`),
+      }),
       cardName:  t(`difficulty_${r.key}`),
       cardGates: t("canvasCardGates", { gates: r.targetPipes }),
       entry:     isGuest ? t("canvasGuestEntry") : t("canvasEntry", { amount: gasDisplay(r.entryFixed8) }),
@@ -154,6 +260,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     isStarting,
     isDealing,
     isSubmitting,
+    isRecovering,
+    walletConnected,
+    isConnectingWallet,
+    inputSyncFailed,
+    a11yPrimaryPulse,
     lastPayout,
     myRank,
     myTotalWon,
@@ -164,6 +275,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // ── PlayStage chrome ─────────────────────────────────────────────────────
   const stageTitle = (() => {
     if (isSubmitting) return t("statusSubmitting");
+    if (settlementPending) return t("statusSettlementPending");
     if (isDealing || dealPending) return t("statusShuffling");
     if (isPlaying) return t("playingTitle", { difficulty: t(`difficulty_${rule.key}`) });
     if (isSolved) return t("statusWonTitle");
@@ -188,21 +300,34 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   ];
 
   const drawerActions = [
+    ...(settlementPending
+      ? [
+          {
+            label:   isRecovering ? t("checkingSettlement") : t("checkSettlementAction"),
+            onClick: () => runAction("refreshGame"),
+            disabled: isRecovering,
+            icon:    <RefreshCw size={16} aria-hidden="true" />,
+            hint:    t("checkSettlementHint"),
+          },
+        ]
+      : []),
     ...(dealPending && !isDealing
       ? [
           {
             label:   t("checkDealAgain"),
-            onClick: () => void dispatch("retryDeal", {}),
+            onClick: () => runAction("retryDeal"),
+            disabled: isDealing,
             icon:    <RefreshCw size={16} aria-hidden="true" />,
             hint:    t("statusDealPending"),
           },
         ]
       : []),
-    ...(timeUp || (dealPending && !isDealing)
+    ...(canReleaseStuck
       ? [
           {
-            label:   timeUp ? t("timeUpAction") : t("releaseAction"),
-            onClick: () => void dispatch("expireGame", {}),
+            label:   t("releaseAction"),
+            onClick: () => runAction("expireGame"),
+            disabled: busy,
             icon:    <RotateCcw size={16} aria-hidden="true" />,
             hint:    t("releaseHint"),
           },
@@ -222,12 +347,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           badges: (
             <>
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {t("networkBadge")}
+                <span className="mx2-badge__dot" /> {isGuest ? t("guestModeHudValue") : t("networkBadge")}
               </span>
               {myRank > 0 && (
                 <span className="mx2-badge">{t("rankBadge", { rank: myRank })}</span>
               )}
-              {creditGas > 0 && (
+              {!isGuest && creditGas > 0 && (
                 <span className="mx2-badge" data-tone="success">
                   <WalletCards size={14} aria-hidden="true" /> {t("creditLabel")}
                 </span>
@@ -239,13 +364,79 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="flappy-stage-shell">
             <PhaserGameComponent
               config={GAME_CONFIG}
+              loadScene={loadFlappyScene}
               state={bridgeState}
               dispatch={dispatch}
               className="flappy-phaser-canvas"
-              ariaLabel="Flappy Dash arcade game"
-              loadingLabel="Opening flight deck"
-              preserveLogicalSize
+              ariaLabel={t("gameAriaLabel")}
+              loadingLabel={t("gameLoadingLabel")}
+              errorLabel={t("gameActionFailed")}
+              retryLabel={t("retry")}
+              continueLabel={t("continue")}
+              enableSoundLabel={t("enableGameSound")}
+              muteSoundLabel={t("muteGameSound")}
+              onReady={() => setGameReady(true)}
             />
+            <div className="flappy-a11y-layer">
+              {lobbyAvailable && (
+                <>
+                  <div
+                    className="flappy-a11y-routes"
+                    role="radiogroup"
+                    aria-label={t("a11yDifficultyGroup")}
+                  >
+                    {difficultyOptions.map((option, index) => {
+                      const selected = option.difficulty === gameDifficulty;
+                      return (
+                        <button
+                          key={option.difficulty}
+                          ref={(node) => {
+                            difficultyRefs.current[index] = node;
+                          }}
+                          type="button"
+                          role="radio"
+                          className="flappy-a11y-hit flappy-a11y-route"
+                          data-index={index}
+                          aria-checked={selected}
+                          aria-label={`${option.label}. ${option.detail}`}
+                          tabIndex={selected ? 0 : -1}
+                          disabled={!gameReady}
+                          onClick={() => runAction("selectDifficulty", {
+                            difficulty: option.difficulty,
+                          })}
+                          onKeyDown={(event) => handleDifficultyKeyDown(event, index)}
+                        >
+                          <span>{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    className="flappy-a11y-hit flappy-a11y-start"
+                    aria-label={`${t("a11yStartRoute")}: ${difficultyOptions[gameDifficulty]?.label ?? ""}`}
+                    disabled={!gameReady}
+                    onClick={() => setA11yPrimaryPulse((pulse) => pulse + 1)}
+                  >
+                    <span>{t("a11yStartRoute")}</span>
+                  </button>
+                </>
+              )}
+              {isPlaying && (
+                <button
+                  type="button"
+                  className="flappy-a11y-hit flappy-a11y-flight"
+                  aria-label={t("a11yFlyContinue")}
+                  disabled={!gameReady || busy || (!isGuest && inputSyncFailed)}
+                  onClick={() => setA11yPrimaryPulse((pulse) => pulse + 1)}
+                >
+                  <span>{t("a11yFlyContinue")}</span>
+                </button>
+              )}
+            </div>
+            <p className="flappy-a11y-status" aria-live="polite" aria-atomic="true">
+              {`${stageTitle}. ${t("scorePipes")}: ${pipesPassed}/${rule.targetPipes}. ${t("scoreTime")}: ${isPlaying ? formatClock(remMs) : formatClock(rule.limitMs)}.`}
+            </p>
             <div className="flappy-stage-hud" aria-label={t("routeSummary")}>
               {hudItems.map((item) => (
                 <div
@@ -258,23 +449,51 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </div>
               ))}
               <button
+                ref={drawerTriggerRef}
                 type="button"
                 className="flappy-stage-hud__drawer"
-                onClick={() => setDrawerOpen((open) => !open)}
+                onClick={() => {
+                  if (drawerOpen) closeDrawer();
+                  else setDrawerOpen(true);
+                }}
                 aria-expanded={drawerOpen}
+                aria-controls={drawerId}
               >
                 <span>{t("drawerTitleShort")}</span>
                 <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
               </button>
             </div>
             {drawerOpen && (
-              <section className="flappy-ingame-drawer" aria-label={t("drawerTitle")}>
+              <>
+                <button
+                  type="button"
+                  className="flappy-ingame-drawer__scrim"
+                  aria-label={t("closeDrawer")}
+                  tabIndex={-1}
+                  onClick={() => closeDrawer()}
+                />
+              <section
+                id={drawerId}
+                className="flappy-ingame-drawer"
+                aria-label={t("drawerTitle")}
+                aria-modal="true"
+                role="dialog"
+              >
                 <div className="flappy-ingame-drawer__head">
                   <Trophy size={18} aria-hidden="true" />
                   <div>
                     <h3>{t("drawerTitle")}</h3>
-                    <p>{t("fairnessShort")}</p>
+                    <p>{isGuest ? t("guestLeaderboardIntro") : t("fairnessShort")}</p>
                   </div>
+                  <button
+                    ref={drawerCloseRef}
+                    type="button"
+                    className="flappy-ingame-drawer__close"
+                    aria-label={t("closeDrawer")}
+                    onClick={() => closeDrawer()}
+                  >
+                    <X size={18} aria-hidden="true" />
+                  </button>
                 </div>
 
                 <section className="flappy-ingame-drawer__summary" aria-label={t("sidebarTitle")}>
@@ -293,15 +512,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <strong>{mySolves}</strong>
                   </span>
                   <span>
-                    <small>{t("networkBadge")}</small>
-                    <strong>{activeGameId !== "0" ? `#${activeGameId}` : t("lobbyReady")}</strong>
+                    <small>{isGuest ? t("guestModeHudLabel") : t("networkBadge")}</small>
+                    <strong>{isGuest ? t("guestModeHudValue") : (activeGameId !== "0" ? `#${activeGameId}` : t("lobbyReady"))}</strong>
                   </span>
                 </section>
 
                 {drawerActions.length > 0 && (
                   <div className="flappy-ingame-drawer__actions">
                     {drawerActions.map((action) => (
-                      <button type="button" key={action.label} onClick={action.onClick} title={action.hint}>
+                      <button
+                        type="button"
+                        key={action.label}
+                        onClick={action.onClick}
+                        title={action.hint}
+                        disabled={action.disabled}
+                      >
                         {action.icon}
                         <span>{action.label}</span>
                       </button>
@@ -321,7 +546,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <button
                         type="button"
                         className="mx2-btn mx2-btn--ghost"
-                        onClick={() => void dispatch("refreshLeaderboard", {})}
+                        onClick={() => runAction("refreshLeaderboard")}
+                        disabled={busy}
                       >
                         <RefreshCw size={16} aria-hidden="true" />
                         {t("refreshRanks")}
@@ -380,11 +606,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     <p>{t("rulesCopy")}</p>
                   </section>
 
-                  <section className="flappy-drawer__section flappy-drawer__fairness" aria-label={t("fairnessTitle")}>
-                    <h4><ShieldCheck size={16} aria-hidden="true" /> {t("fairnessTitle")}</h4>
-                    <p>{t("fairnessCopy")}</p>
-                    <p className="flappy-drawer__status">{t("rulesShort")}</p>
-                    {activeGameId !== "0" && commitment && (
+                  <section className="flappy-drawer__section flappy-drawer__fairness" aria-label={isGuest ? t("guestModeHudValue") : t("fairnessTitle")}>
+                    <h4><ShieldCheck size={16} aria-hidden="true" /> {isGuest ? t("guestModeHudValue") : t("fairnessTitle")}</h4>
+                    <p>{isGuest ? t("guestLeaderboardIntro") : t("fairnessCopy")}</p>
+                    <p className="flappy-drawer__status">{isGuest ? t("guestStatusReady") : t("rulesShort")}</p>
+                    {!isGuest && activeGameId !== "0" && commitment && (
                       <p className="flappy-drawer__seed">
                         {t("commitmentLine", { gameId: activeGameId, commitment: shortHash(commitment) })}
                       </p>
@@ -392,7 +618,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     {lastStatus && <p className="flappy-drawer__status">{lastStatus}</p>}
                   </section>
 
-                  {creditGas > 0 && (
+                  {!isGuest && creditGas > 0 && (
                     <section className="flappy-drawer__credit" aria-label={t("withdrawTitle")}>
                       <span>
                         {t("creditLabel")}: <strong>{gasAmountDisplay(creditGas)} GAS</strong>
@@ -401,7 +627,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                       <button
                         type="button"
                         className="mx2-btn mx2-btn--ghost"
-                        onClick={() => void dispatch("withdrawWinnings", {})}
+                        onClick={() => runAction("withdrawWinnings")}
+                        disabled={busy}
                       >
                         <WalletCards size={16} aria-hidden="true" />
                         {t("withdrawAction", { amount: gasAmountDisplay(creditGas) })}
@@ -410,6 +637,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   )}
                 </div>
               </section>
+              </>
             )}
           </div>
         }

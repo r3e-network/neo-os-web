@@ -27,4 +27,3 @@ export const vesta = weierstrass({
     h: BigInt(1),
     ...getHash(sha256),
 });
-//# sourceMappingURL=pasta.js.map

@@ -74,4 +74,3 @@ export class HMAC extends Hash {
  */
 export const hmac = (hash, key, message) => new HMAC(hash, key).update(message).digest();
 hmac.create = (hash, key) => new HMAC(hash, key);
-//# sourceMappingURL=hmac.js.map

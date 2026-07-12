@@ -56,13 +56,16 @@ namespace NeoMiniAppPlatform.Contracts
     [DisplayName("MiniAppRedEnvelope")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Self-contained on-chain lucky red envelope: GAS split into random packets via Runtime.GetRandom and paid atomically — no oracle. Randomness is not VRF-grade; bounded and grinding-resistant for low-stakes social packets only.")]
+    [ManifestExtra("Version", "1.1.0")]
+    [ManifestExtra("Description", "Bounded low-stakes lucky red envelope: up to 20 GAS and 100 packets, 1 minute to 7 days, Runtime.GetRandom split, atomic claims — no oracle or VRF.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
     public partial class MiniAppRedEnvelope : SmartContract
     {
         #region Constants
         private const int MAX_PACKETS = 100;
+        private const long MAX_TOTAL_AMOUNT = 20_00000000; // 20 GAS
+        private const long MIN_DURATION_SECONDS = 60;
+        private const long MAX_DURATION_SECONDS = 7 * 24 * 60 * 60;
         private const string CREATE_MEMO = "miniapp-redenvelope:create";
         #endregion
 
@@ -138,9 +141,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(creator is not null && creator.IsValid && !creator.IsZero, "invalid creator");
             ExecutionEngine.Assert(Runtime.CheckWitness(creator), "creator witness required");
             ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "packet count 1..100");
+            ExecutionEngine.Assert(totalAmount > 0, "total amount must be > 0");
+            ExecutionEngine.Assert(totalAmount <= MAX_TOTAL_AMOUNT, "total amount exceeds 20 GAS");
             // Each packet must be able to receive at least 1 base unit.
             ExecutionEngine.Assert(totalAmount >= packetCount, "total must cover one base unit per packet");
-            ExecutionEngine.Assert(durationSeconds > 0, "duration must be > 0");
+            ExecutionEngine.Assert(
+                durationSeconds >= MIN_DURATION_SECONDS && durationSeconds <= MAX_DURATION_SECONDS,
+                "duration 60..604800 seconds");
 
             StorageContext ctx = Storage.CurrentContext;
 

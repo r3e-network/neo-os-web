@@ -1,108 +1,72 @@
 # Unbreakable Vault
 
-Hacker bounty vaults secured by SHA-256 hashes
+A resource-led DeFi bounty vault. Creators escrow GAS behind a SHA-256 digest;
+challengers inspect the exact asset, fee, expiry, and status before paying the
+contract-defined attempt fee to try a secret.
 
-## Overview
+## Product flow
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-unbreakablevault` |
-| **Category** | utility |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea |
+1. Choose a bounty, difficulty, title, public hint, and matching secret.
+2. The browser hashes the creation secret locally. Only the 32-byte digest is
+   passed to `createVault`; plaintext is neither persisted nor placed in the
+   recovery record.
+3. Share the verified vault ID. Challengers load the authoritative vault state
+   before entering a secret.
+4. A failed attempt grows the bounty. A correct attempt atomically pays 98% of
+   escrow to the winner after the 2% protocol fee. The creator can reclaim 98%
+   of an unbroken expired vault.
+5. Anyone can increase an active bounty from the secondary vault panel.
 
+## Transaction correctness and recovery
 
-## How It Works
+Every write requires an explicitly detected wallet network and is bound to the
+canonical contract, connected wallet, vault ID, exact fixed8 string amount,
+contract pause/payment configuration, exact event slots, and an authoritative
+`getVaultDetails` readback. Large asset amounts are never coerced through a
+JavaScript floating-point number.
 
-1. **Deposit Assets**: Send GAS or NEO to the vault contract
-2. **Security Level**: Choose security configuration
-3. **Time-Lock**: Assets are locked for a configurable period
-4. **Emergency Recovery**: Set up recovery addresses for edge cases
-5. **Claim**: After lock period, withdraw to your address
-## Features
+Testnet funding is a two-transaction flow: a GAS transfer, then the business
+call. The app persists the transfer/action txids and blocks new writes until the
+previous operation is resolved. If only the payment was broadcast, recovery
+invokes the business method directly and never sends the payment again. An
+attempt secret is deliberately not stored, so the user must re-enter it when
+resuming a paid attempt.
 
-- Create bounty vaults locked by a secret hash
-- Difficulty tiers with different attempt fees
-- Every failed attempt adds to the bounty pool
-- Winner receives bounty minus a 2% platform fee
-- Vaults expire after 30 days; creators can reclaim refunds
-- Secrets are hashed locally; only hashes are stored on-chain
+The persisted recovery binding is a deterministic corruption/schema checksum,
+not a signature. Product confirmation comes from the canonical network and
+contract, exact HALT GAS transfer, wallet-selected signer, the contract's
+memo-specific prepaid-credit bucket, and exact event plus authoritative
+readback verification.
 
-## Usage Flow
+All write actions share one operation lock and freeze the reviewed wallet,
+network, vault, amount, and secret input before broadcast. A changed target or
+wallet aborts before a new transaction is requested. If storage fails after a
+broadcast, the exact in-memory journal must be restored durably before recovery
+or another payment can continue.
 
-1. Creator chooses a secret, bounty amount, and difficulty.
-2. Creator prepays the bounty directly to the MiniApp contract and creates the vault.
-3. Vault is created and a vault ID is shared publicly.
-4. Challengers prepay the attempt fee directly to the MiniApp contract and try breaking the vault.
-5. Correct secret wins the bounty; expired vaults can be reclaimed by the creator.
+The mainnet ABI has a trailing PaymentHub receipt ID for create, attempt, and
+increase operations. The deployed mainnet contract currently reports no
+PaymentHub, so mainnet remains honestly read-only. Once configured, funded
+writes require a positive settled receipt ID; the app never uses the
+incompatible testnet call shape.
 
-## Fees
+## Canonical deployments
 
-- Minimum bounty: 1 GAS
-- Attempt fees: 0.1 / 0.5 / 1 GAS (Easy / Medium / Hard)
-- Platform fee: 2% deducted from payouts and refunds
+| Network | Contract | Funded write lane |
+|---|---|---|
+| Neo N3 testnet | `0x78fbd57ccfae14fff4b043a82eb491de542d8eb0` | Direct GAS prepay, then contract action |
+| Neo N3 mainnet | `0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa` | Settled PaymentHub receipt ID |
 
-## Permissions
+Network evidence, honest product boundaries, and remaining funded checks are
+recorded in [`NETWORK_STATUS.md`](./NETWORK_STATUS.md). Artwork custody and
+derivative details are recorded in
+[`ASSET_PROVENANCE.md`](./ASSET_PROVENANCE.md).
 
-| Permission | Required |
-|------------|----------|
-| Payments | ✅ Yes |
-| RNG | ❌ No |
-| Data Feed | ❌ No |
-| Governance | ❌ No |
-
-## Network Configuration
-
-### Testnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x78fbd57ccfae14fff4b043a82eb491de542d8eb0` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x78fbd57ccfae14fff4b043a82eb491de542d8eb0) |
-| **Network Magic** | `894710606` |
-
-### Mainnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa` |
-| **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa) |
-| **Network Magic** | `860833102` |
-
-## Platform Contracts
-
-### Current Integration Surface
-
-- direct prepaid GAS to the MiniApp contract
-- direct contract invocation only
-- Oracle / AA integrations remain external and configurable
-
-## Development
+## Local development
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
+npm run dev -- --port 5361
 npm run build
 ```
 
-## Assets
-
-- **Allowed Assets**: GAS
-
-## Funding Model
-
-- direct prepaid GAS to the MiniApp contract
-- direct contract invocation only
-- wallet signs the transfer first, then the business call
-
-
-## License
-
-MIT License - R3E Network
+Open `http://127.0.0.1:5361/?network=testnet&lang=en`.

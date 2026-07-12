@@ -84,31 +84,22 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     },
   },
   "miniapp-graveyard": {
-    title: "Encrypted memory burial",
+    title: "Memory Garden",
     subtitle:
-      "Seal a memory, set a forgetting price, and keep the privacy envelope explicit.",
-    tone: "slate",
+      "Hash a private note or local file on this device, then anchor only its SHA-256 commitment through the live garden ritual.",
+    tone: "emerald",
     icon: <History className="h-5 w-5" />,
-    fields: [
-      { key: "memory", label: "Memory label", defaultValue: "private note" },
-      {
-        key: "price",
-        label: "Forgetting price",
-        defaultValue: "3",
-        suffix: "GAS",
-        type: "number",
-      },
-    ],
+    fields: [],
     cards: [
-      { label: "Encryption", value: "sealed" },
-      { label: "Reveal", value: "never by default" },
-      { label: "Payment", value: "forgetting" },
+      { label: "Source", value: "device-local" },
+      { label: "On-chain", value: "SHA-256 + type" },
+      { label: "Recovery", value: "event verified" },
     ],
-    steps: ["Encrypt memory", "Commit hash", "Set price", "Bury record"],
-    primaryAction: "Bury record",
+    steps: ["Choose a memory source", "Review the local digest", "Confirm the live burial fee", "Verify the matching event"],
+    primaryAction: "Enter the garden",
     visual: {
-      headline: "Sealed memory",
-      slots: ["Ciphertext", "Hash", "Price", "Buried"],
+      headline: "Memory ritual",
+      slots: ["Private source", "Digest", "Live fee", "Garden record"],
     },
   },
   "miniapp-memorial-shrine": {
@@ -339,9 +330,9 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     },
   },
   "miniapp-neo-treasury": {
-    title: "Treasury operations console",
+    title: "Public treasury watchlist",
     subtitle:
-      "Track public treasury balances, prepare NEO/GAS payouts, and submit connected-wallet transfers with txid proof.",
+      "Review community-attributed Mainnet balances and allocation, then use the embedded transfer desk only for a direct transfer from your connected wallet.",
     tone: "emerald",
     icon: <Landmark className="h-5 w-5" />,
     fields: [
@@ -351,15 +342,15 @@ export const BUSINESS_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "memo", label: "Memo", defaultValue: "treasury-disbursement" },
     ],
     cards: [
-      { label: "Balances", value: "public RPC" },
-      { label: "Payout", value: "wallet invoke" },
-      { label: "Proof", value: "txid" },
+      { label: "Watchlist", value: "read-only Mainnet" },
+      { label: "Transfer source", value: "connected wallet" },
+      { label: "Proof", value: "event + balances" },
     ],
-    steps: ["Read balances", "Prepare payout", "Sign transfer", "Verify txid"],
-    primaryAction: "Sign Disbursement",
+    steps: ["Read native balances", "Review estimated allocation", "Open transfer desk", "Match event and balance state"],
+    primaryAction: "Open transfer desk",
     visual: {
-      headline: "Treasury controls",
-      slots: ["NEO", "GAS", "Recipient", "Tx proof"],
+      headline: "Treasury dashboard",
+      slots: ["NEO / GAS", "Allocation", "Price freshness", "Transfer proof"],
     },
   },
   "miniapp-neodid-passport": {

@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-03T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Timed on-chain Snake with provably fair food placement. Pick a bounty trail, pay a small GAS entry, and reach the route target before the deadline to win a fixed GAS reward: 0.1 for Garden Trail (10), 0.5 for Market Trail (20), 1 for Apex Trail (35). Swipe or use WASD/arrow keys to steer the snake — wall or self collision ends the run. No undos: every move is final. Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
-  "description_zh": "限时链上贪吃蛇，食物位置可验证公平。选择赏金蛇道并支付少量 GAS 报名费，在截止时间内达到路线目标长度即可赢取固定 GAS 奖励：花园蛇道 0.1（10 节）、集市蛇道 0.5（20 节）、巅峰蛇道 1（35 节）。滑动或使用 WASD/方向键控制蛇的移动——撞墙或撞自身即告失败。落子即锁定，无撤回功能。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "description": "A bright, sprite-driven Phaser snake game with three bounty trails, responsive swipe, keyboard, and on-screen steering, animated growth, collision feedback, local best scores, and complete free-play restart and recovery loops. New wallet-funded runs remain gated until the deployed reward pool and full Morpheus settlement path have production evidence; historical recovery stays available in the runtime.",
+  "description_zh": "明亮、资源化的 Phaser 贪吃蛇游戏，拥有三条赏金蛇道、灵敏的滑动、键盘与屏幕方向控制、成长动画、碰撞反馈、本地最佳成绩，以及完整的免费重玩与恢复流程。新的钱包付费对局将在已部署奖励池和完整 Morpheus 结算路径获得生产证据后开放；历史对局恢复能力仍保留在运行时中。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -25,61 +25,16 @@
   "name": "Snake Bounty",
   "name_zh": "贪吃蛇",
   "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Start the selected in-game bounty trail. Garden 0.02 GAS entry wins 0.1 (target 10); Market 0.10 wins 0.5 (target 20); Apex 0.20 wins 1 (target 35).",
-        "method": "startGame",
-        "name": "Start Hunt",
-        "params": [
-          {
-            "default_value": "0",
-            "hidden": true,
-            "label": "Bounty Trail",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Garden Trail — win 0.1 GAS (target 10)",
-                "value": "0"
-              },
-              {
-                "label": "Market Trail — win 0.5 GAS (target 20)",
-                "value": "1"
-              },
-              {
-                "label": "Apex Trail — win 1 GAS (target 35)",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, start a timed game, and steer the snake to the target length before the deadline to win GAS.",
+    "operations": [],
+    "subtitle": "Choose a trail, steer the illustrated snake, collect bounty fruit, grow to the target, and save your local best. Free play never opens a wallet prompt or writes to chain.",
     "title": "Snake Bounty"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -87,29 +42,28 @@
   "tags": [
     "snake",
     "arcade",
-    "leaderboard",
-    "gas",
+    "local-progress",
     "game"
   ],
   "technologies": {
     "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+      "description": "The guest-first release does not request a wallet or account-abstraction signature.",
       "enabled": false
     },
     "oracle": {
-      "description": "Game seeds come from a fixed block-beacon commit/reveal: the seed hashes the first block after the start transaction with the player and game id, so neither side can pick a starting state. Seed grinding cannot mint rewards here — any seed still yields a game that must be played within the same limits. Morpheus VRF + TEE game sealing is the planned upgrade path for server-private deals.",
-      "enabled": true
+      "description": "Free local play makes no oracle request. Historical recovery remains available, while new paid runs stay gated until a funded end-to-end settlement has production evidence.",
+      "enabled": false
     },
     "tee": {
-      "enabled": true,
-      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+      "enabled": false,
+      "description": "Free local play makes no TEE request. Morpheus-backed paid starts are not advertised until live pool and settlement validation is complete."
     }
   },
-  "updatedAt": "2026-07-03T00:00:00Z",
+  "updatedAt": "2026-07-10T00:00:00Z",
   "urls": {
     "banner": "/miniapps/snake-bounty/banner.webp",
     "entry": "/miniapps/snake-bounty/index.html",
     "icon": "/miniapps/snake-bounty/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

@@ -36,8 +36,8 @@ test("GasBox renders a game-like v2 capsule machine with drawer studio controls"
     "refreshMachines",
     "withdrawRevenue",
     "selectMachine",
-    "openStudio",
   ], "GasBox");
+  assert.match(playArea, /dispatch\(isConnected \? "openStudio" : "connectWallet"\)/);
   assert.match(main, /ctx\.framework\.actions\.register\("refreshMachines"/);
   assert.match(main, /gasbox\.loadAll\(\)/);
   assertAssets([

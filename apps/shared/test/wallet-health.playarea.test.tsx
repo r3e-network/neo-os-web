@@ -11,43 +11,86 @@ afterEach(() => cleanup());
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
-    healthSummary: "Health Summary",
-    connectToScore: "Connect to score",
-    diagnosticStageTitle: "Live diagnostic run",
-    diagnosticStageCopy: "Check your wallet health.",
-    diagnosticStatusIdle: "Ready to scan",
-    diagnosticStatusReady: "Diagnostics ready",
-    diagnosticStatusScanning: "Scanning wallet",
-    connectHint: "Connect your wallet to refresh live balances.",
+    title: "Wallet Checkup",
+    healthSummary: "Wallet Checkup",
+    connectToScore: "Connect wallet",
+    diagnosticStageCopy: "Read balances without sending a transaction.",
+    diagnosticStatusIdle: "Wallet data not read",
+    diagnosticStatusReady: "Read-only check complete",
+    diagnosticStatusScanning: "Reading balances",
+    diagnosticStatusPartial: "Check complete with missing data",
+    diagnosticStatusError: "Read failed — retry safely",
+    diagnosticStatusNetworkMismatch: "Balances read — network needs attention",
+    connectHint: "Connect to read NEO and GAS balances.",
     copyReport: "Copy report",
     copyAddress: "Copy address",
     addressCopied: "Address copied",
     reportCopied: "Report copied",
-    balanceStripTitle: "Balance and connection",
-    riskLabel: "Risk",
+    balanceStripTitle: "Balances",
+    riskLabel: "Self-check status",
+    reviewProgress: "Review progress",
+    reviewNotStarted: "Not started",
     checklistProgress: "{completed}/{total} complete",
-    allSet: "All checks look good",
+    scoreSelfAssessCaption: "Checklist progress, not a security rating.",
+    allSet: "Self-check complete",
     diagnosticReportStep: "Report",
-    sectionChecklist: "Safety Checklist",
+    sectionChecklist: "Safety checklist",
     sectionRecommendations: "Recommendations",
     recommendationsTitle: "Next actions",
     networkReadiness: "Network readiness",
-    refresh: "Refresh",
+    refreshBalances: "Refresh balances",
+    retry: "Retry",
     statusConnected: "Connected",
     statusDisconnected: "Disconnected",
     notConnected: "Not connected",
-    noChecklistItems: "No checklist items available",
-    reportTitle: "Wallet Health Report",
+    reportTitle: "Wallet Checkup Report",
+    reportDisclaimer: "This is not a wallet audit or guarantee of safety.",
     reportGeneratedAt: "Generated at",
     walletAddress: "Wallet address",
     statNetwork: "Network",
-    statScore: "Safety Score",
+    statTargetNetwork: "Balance network",
+    statWalletNetwork: "Wallet network",
+    statScore: "Review progress",
     statNeo: "NEO Balance",
     statGas: "GAS Balance",
     reportChecklist: "Checklist",
-    reportDone: "DONE",
-    reportPending: "PENDING",
+    reportDone: "CONFIRMED",
+    reportPending: "NOT CONFIRMED",
     checklistConnectToCheck: "Connect to check",
+    selfReported: "Self-confirmed",
+    reserveAvailable: "Available",
+    reserveLow: "Below 0.1 GAS",
+    reserveZero: "Confirmed zero GAS",
+    checkUnknown: "Unknown",
+    checkReading: "Reading",
+    checkFailed: "Read failed",
+    checkFailedPrevious: "Read failed · previous value shown",
+    checkZero: "Confirmed zero",
+    checkPass: "Read successfully",
+    networkMismatch: "Does not match",
+    networkMismatchDetail: "Wallet reports {actual}; balances are read on {expected}.",
+    networkReadFailedDetail: "Balances read, network detection failed.",
+    networkUnknownDetail: "Wallet network is unknown.",
+    selfCheckTitle: "Private self-check",
+    moreChecks: "More self-checks ({count})",
+    privacyTitle: "Privacy boundary",
+    privacyCopy: "Checklist choices stay in this browser.",
+    storageUnavailable: "Local progress could not be saved.",
+    readOnlyBadge: "Read-only",
+    localOnlyBadge: "Checklist stays local",
+    scannerArtAlt: "Transparent Neo wallet with a shield",
+    evidenceTitle: "What this tool can verify",
+    evidenceConnection: "Wallet connection",
+    evidenceWalletNetwork: "Connected wallet network",
+    evidenceBalances: "NEO and GAS balances",
+    evidenceGasReserve: "0.1 GAS reserve",
+    verified: "Verified",
+    notRead: "Not read",
+    unavailableTitle: "Not automatically checked",
+    unavailableCopy: "Private keys, approvals, devices, and malware require your own review.",
+    lastUpdated: "Last read",
+    previousRead: "Previous successful read",
+    moreActions: "{count} more in report",
   };
   return (messages[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? ""));
 }
@@ -58,79 +101,143 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     isConnected: false,
     isConnecting: false,
     isRefreshing: false,
+    dataStatus: "disconnected",
+    lastUpdatedAt: 0,
+    lastError: "",
+    neoObservedAt: 0,
+    gasObservedAt: 0,
+    neoReadStatus: "unknown",
+    gasReadStatus: "unknown",
+    networkReadStatus: "unknown",
+    walletNetworkLabel: "—",
+    networkMismatch: false,
+    storageAvailable: true,
     connectionStatus: "Disconnected",
     networkLabel: "Neo N3",
-    neoDisplay: "-",
-    gasDisplay: "-",
+    neoDisplay: "—",
+    gasDisplay: "—",
     safetyScore: 0,
-    riskLabel: "High risk",
-    riskClass: "risk-high",
+    riskLabel: "Not started",
     completedChecklistCount: 0,
     totalChecklistCount: 5,
     checklistItems: [
-      { id: "backup", title: "Backup phrase stored", desc: "Store your seed phrase offline.", done: false, auto: false },
-      { id: "gas", title: "Keep GAS for fees", desc: "Connect a wallet to check GAS.", done: false, auto: true, pending: true },
+      { id: "backup", title: "Recovery backup stored offline", desc: "Store it offline.", done: false, auto: false },
+      { id: "gas", title: "Keep GAS for fees", desc: "Connect to check.", done: false, auto: true, pending: true },
+      { id: "permissions", title: "I reviewed connected apps", desc: "Review in your wallet.", done: false, auto: false },
+      { id: "device", title: "Trusted device", desc: "Sign privately.", done: false, auto: false },
+      { id: "hardware", title: "Cold storage", desc: "For significant funds.", done: false, auto: false },
+      { id: "twofa", title: "Strong 2FA", desc: "Secure exchanges.", done: false, auto: false },
     ],
     healthStats: [],
-    recommendations: ["Backup your seed phrase immediately."],
+    recommendations: ["Create an offline recovery backup.", "Review connected apps.", "Use a trusted device."],
     ...overrides,
   };
-
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
   ) as ObservableState;
 }
 
 describe("Wallet Health PlayArea", () => {
-  it("renders a foreground-led diagnostic workspace with real checklist labels", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+  it("renders an evidence-led read-only tool without a fake disconnected risk verdict", () => {
+    const { container, getByText } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(container.querySelector(".health-workspace")).toBeTruthy();
-    expect(container.querySelector(".health-summary-card")).toBeTruthy();
-    expect(container.querySelector(".health-scanner-art")).toBeTruthy();
+    expect(container.querySelector(".health-console")).toBeTruthy();
+    expect(container.querySelector(".health-overview")).toBeTruthy();
+    expect(container.querySelector(".health-evidence")).toBeTruthy();
     expect(container.querySelector(".health-scanner-art img")?.getAttribute("src")).toContain("wallet-health-scanner.webp");
-    expect(container.querySelector(".health-checklist-card")).toBeTruthy();
-    expect(container.querySelector(".health-scene__backdrop")).toBeFalsy();
-    expect(container.textContent).toContain("Backup phrase stored");
-    expect(container.textContent).toContain("0/5 complete");
-    expect(container.textContent).not.toContain("{completed}");
-    expect(container.textContent).not.toContain("{total}");
+    expect(container.querySelector(".health-gauge")).toBeNull();
+    expect(container.querySelector("form")).toBeNull();
+    expect(getByText("Wallet data not read")).toBeTruthy();
+    expect(getByText("Checklist progress, not a security rating.")).toBeTruthy();
+    expect(container.textContent).not.toContain("High risk");
   });
 
-  it("dispatches connect before a wallet is connected and copy after connection", () => {
+  it("keeps read/refresh primary and report export secondary", () => {
     const disconnected = vi.fn().mockResolvedValue(undefined);
     const disconnectedView = render(<PlayArea t={t} state={state()} dispatch={disconnected} />);
-    fireEvent.click(disconnectedView.container.querySelector(".mx2-btn--primary") as Element);
+    fireEvent.click(disconnectedView.getByRole("button", { name: "Connect wallet" }));
+    fireEvent.click(disconnectedView.getByRole("button", { name: "Copy report" }));
     expect(disconnected).toHaveBeenCalledWith("connectWallet");
+    expect(disconnected).toHaveBeenCalledWith(
+      "copy",
+      expect.stringContaining("not a wallet audit"),
+      "reportCopied",
+    );
     disconnectedView.unmount();
 
     const connected = vi.fn().mockResolvedValue(undefined);
     const connectedView = render(<PlayArea t={t} state={state({
       isConnected: true,
+      dataStatus: "fresh",
+      lastUpdatedAt: Date.now(),
+      neoObservedAt: Date.now(),
+      gasObservedAt: Date.now(),
+      neoReadStatus: "pass",
+      gasReadStatus: "pass",
+      networkReadStatus: "pass",
+      walletNetworkLabel: "Neo N3 MainNet",
       address: "Nabc1234567890",
       connectionStatus: "Connected",
-      safetyScore: 80,
-      riskLabel: "Low risk",
-      riskClass: "risk-low",
+      neoDisplay: "12",
+      gasDisplay: "1.25",
     })} dispatch={connected} />);
-    fireEvent.click(connectedView.container.querySelector(".mx2-btn--primary") as Element);
-    expect(connected).toHaveBeenCalledWith("copy", expect.stringContaining("Wallet Health Report"), "reportCopied");
+    fireEvent.click(connectedView.getByRole("button", { name: "Refresh balances" }));
+    expect(connected).toHaveBeenCalledWith("refreshBalances");
   });
 
-  it("lets manual checklist items toggle and keeps auto checks disabled", () => {
+  it("shows all checks, tucks secondary self-checks away, and blocks auto toggles", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    const checks = container.querySelectorAll<HTMLButtonElement>(".health-check");
+    const { container, getByText } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const primaryChecks = container.querySelectorAll<HTMLButtonElement>(
+      ".health-checklist-card > .health-checklist .health-check",
+    );
 
-    expect(checks).toHaveLength(2);
-    expect(checks[0].disabled).toBe(false);
-    expect(checks[1].disabled).toBe(true);
-
-    fireEvent.click(checks[0]);
+    expect(primaryChecks).toHaveLength(3);
+    expect(primaryChecks[0]?.disabled).toBe(false);
+    expect(primaryChecks[1]?.disabled).toBe(true);
+    fireEvent.click(primaryChecks[0]!);
     expect(dispatch).toHaveBeenCalledWith("toggleChecklist", "backup");
+
+    const details = container.querySelector<HTMLDetailsElement>(".health-more-checks")!;
+    expect(details.open).toBe(false);
+    fireEvent.click(getByText("More self-checks (3)"));
+    expect(details.open).toBe(true);
+    expect(container.querySelectorAll(".health-check")).toHaveLength(6);
   });
 
-  it("keeps the diagnostic surface clean instead of using a decorative backdrop", () => {
+  it("surfaces a recoverable read error inline", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(<PlayArea t={t} state={state({
+      dataStatus: "error",
+      lastError: "RPC unavailable",
+    })} dispatch={dispatch} />);
+
+    expect(getByRole("alert").textContent).toContain("RPC unavailable");
+    fireEvent.click(getByRole("button", { name: "Retry" }));
+    expect(dispatch).toHaveBeenCalledWith("connectWallet");
+  });
+
+  it("marks retained balance evidence as a previous read after refresh failure", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      isConnected: true,
+      dataStatus: "error",
+      lastUpdatedAt: Date.now() - 60_000,
+      lastError: "RPC unavailable",
+      neoObservedAt: Date.now() - 60_000,
+      gasObservedAt: Date.now() - 60_000,
+      neoReadStatus: "failed",
+      gasReadStatus: "failed",
+      neoDisplay: "12",
+      gasDisplay: "1.25",
+    })} dispatch={vi.fn()} />);
+
+    const balanceEvidence = [...container.querySelectorAll(".health-evidence-row")]
+      .find((row) => row.textContent?.includes("NEO Balance"));
+    expect(balanceEvidence?.getAttribute("data-outcome")).toBe("failed");
+    expect(balanceEvidence?.textContent).toContain("previous value shown");
+  });
+
+  it("uses the real scanner asset in a compact responsive hierarchy", () => {
     const styles = readFileSync(`${process.cwd()}/../wallet-health/src/PlayArea.scss`, "utf8");
     const source = readFileSync(`${process.cwd()}/../wallet-health/src/PlayArea.tsx`, "utf8");
     const assetPath = `${process.cwd()}/../wallet-health/public/wallet-health-scanner.webp`;
@@ -139,21 +246,14 @@ describe("Wallet Health PlayArea", () => {
     expect(statSync(assetPath).size).toBeGreaterThan(40_000);
     expect(statSync(assetPath).size).toBeLessThan(220_000);
     expect(styles).toContain('@use "@shared/components-react/v2/v2" as *;');
-    expect(styles).toMatch(/\.health-workspace\s*\{[\s\S]*background:\s*#ffffff;/);
-    expect(styles).toMatch(/\.health-workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(500px,\s*1\.06fr\) minmax\(420px,\s*0\.94fr\)/);
-    expect(styles).toMatch(/\.health-workspace\s*\{[\s\S]*box-shadow:\s*none;/);
-    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*height:\s*clamp\(210px,\s*24vw,\s*300px\)/);
-    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*filter:\s*none/);
-    expect(styles).not.toMatch(/AI-generated scene backdrop|health-scene__backdrop|backdrop-filter|radial-gradient/);
-    expect(source).toContain("wallet-health-scanner.webp");
-    expect(source).not.toContain("health-scene__backdrop");
-  });
-
-  it("has reduced-motion guards for foreground motion", () => {
-    const styles = readFileSync(`${process.cwd()}/../wallet-health/src/PlayArea.scss`, "utf8");
-
+    expect(styles).toMatch(/\.health-console\s*\{[\s\S]*grid-template-columns:/);
+    expect(styles).toMatch(/\.health-scanner-art img\s*\{[\s\S]*height:\s*112px/);
+    expect(styles).toContain("@media (max-height: 720px)");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(styles).toMatch(/transition-duration:\s*0\.001ms/);
+    expect(styles).not.toContain("radial-gradient");
+    expect(source).toContain("wallet-health-scanner.webp");
+    expect(source).toContain("officialNeoTokenUrl");
+    expect(source).toContain("officialGasTokenUrl");
+    expect(source).not.toContain("health-gauge");
   });
 });

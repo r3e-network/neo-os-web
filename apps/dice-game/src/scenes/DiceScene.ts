@@ -10,17 +10,17 @@ import type { GameState } from "@framework/phaser";
 import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 
 // ── Casino color palette ─────────────────────────────────────────────────────
-// Richer bottle-green felt (was a bright mint) reads closer to a real casino
-// table while keeping the warm gold rail + cream dice popping for contrast.
-const FELT_GREEN   = 0x2c8a56;
-const FELT_DARK    = 0x18683d;
-const FELT_SHADOW  = 0x123524;
+// Bright mint felt keeps the table game-like without turning the entire mobile
+// viewport into a dark slab. Warm gold rails and ivory dice stay foregrounded.
+const FELT_GREEN   = 0xa7e8ce;
+const FELT_DARK    = 0x78cfae;
+const FELT_SHADOW  = 0x2f8064;
 const GOLD         = 0xd4a843;
 const GOLD_LIGHT   = 0xf0c866;
 const CREAM        = 0xfff8e8;
 const FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
 const TEXT_RESOLUTION = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
-const DIE_SIZE     = 88;
+const DIE_SIZE     = 112;
 
 const DIE_FACE_ASSETS = [
   "dice-die-white-1",
@@ -86,7 +86,80 @@ export class DiceScene extends BaseScene {
    * appears on the canvas. Reads the launcher-selected mode from bridge state.
    */
   private currencyUnit(): string {
-    return this.str("mode", "gamefi") === "guest" ? "chips" : "GAS";
+    return this.str("mode", "gamefi") === "guest"
+      ? this.copy("practiceChips", "chips")
+      : "GAS";
+  }
+
+  private copy(key: string, fallback: string): string {
+    const sceneText = this.val<Record<string, string>>("sceneText", {});
+    return sceneText?.[key] || fallback;
+  }
+
+  /** Lock every wager control while a transaction or unresolved bet owns it. */
+  private canEditBet(): boolean {
+    return !this.bool("isSubmitting") &&
+      !this.bool("isResolving") &&
+      !this.bool("isUnresolved");
+  }
+
+  /**
+   * Keep impossible transactions off the wallet prompt. Guest play is local;
+   * GameFi requires a wallet, live house cover, and enough wallet/credit GAS.
+   */
+  private canRoll(): boolean {
+    if (!this.canEditBet()) return false;
+    if (this.str("mode", "gamefi") === "guest") return true;
+    if (!this.bool("walletConnected")) return false;
+
+    const stake = this.stakeAmount;
+    const maxStake = this.num("maxStake", 0);
+    if (!Number.isFinite(stake) || stake < 0.05 || maxStake <= 0 || stake > maxStake) {
+      return false;
+    }
+    if (this.bool("isEvmChain")) return true;
+
+    const maxPayableStake = this.num("maxPayableStake", 0);
+    const walletGasBalance = this.num("walletGasBalance", 0);
+    const directCredit = this.num("directCredit", 0);
+    return maxPayableStake >= stake && directCredit + walletGasBalance >= stake;
+  }
+
+  private canUsePrimaryButton(): boolean {
+    const busy = this.bool("isSubmitting") || this.bool("isResolving");
+    if (busy) return false;
+    if (this.bool("isUnresolved")) return true;
+    if (this.str("mode", "gamefi") === "gamefi" && !this.bool("walletConnected")) {
+      return true;
+    }
+    return this.canRoll();
+  }
+
+  private rollButtonLabel(): string {
+    if (this.bool("isSubmitting") || this.bool("isResolving")) {
+      return this.copy("rolling", "Rolling…");
+    }
+    if (this.bool("isUnresolved")) {
+      return this.copy("revealPending", "Reveal result");
+    }
+    if (this.str("mode", "gamefi") === "gamefi" && !this.bool("walletConnected")) {
+      return this.copy("connectWallet", "Connect wallet");
+    }
+
+    const stake = this.stakeAmount;
+    const maxStake = this.num("maxStake", 0);
+    if (!Number.isFinite(stake) || stake < 0.05 || maxStake <= 0 || stake > maxStake) {
+      return this.copy("lowerStake", "Lower stake");
+    }
+    if (this.str("mode", "gamefi") === "gamefi" && !this.bool("isEvmChain")) {
+      if (this.num("maxPayableStake", 0) < stake) {
+        return this.copy("houseLimit", "House limit");
+      }
+      if (this.num("directCredit", 0) + this.num("walletGasBalance", 0) < stake) {
+        return this.copy("insufficientGas", "Insufficient GAS");
+      }
+    }
+    return this.copy("throwDice", "Throw dice");
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -138,10 +211,7 @@ export class DiceScene extends BaseScene {
       matHeight: tallTable ? H * 0.325 : H * 0.38,
       trailStartY: tallTable ? H * 0.305 : H * 0.335,
       trailControlY: tallTable ? H * 0.15 : H * 0.17,
-      heroDieY: tallTable ? H * 0.16 : H * 0.18,
       diceY: tallTable ? H * 0.28 : H * 0.305,
-      ghostLeftY: tallTable ? H * 0.305 : H * 0.33,
-      ghostTopY: tallTable ? H * 0.21 : H * 0.22,
       predictionY: tallTable ? H * 0.50 : H * 0.56,
       chipY: tallTable ? H * 0.625 : H * 0.705,
       payoutY: tallTable ? H * 0.74 : H * 0.815,
@@ -177,8 +247,8 @@ export class DiceScene extends BaseScene {
 
     // Labels
     const unit = this.currencyUnit();
-    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} ${unit}`);
-    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${unit}`);
+    this.stakeLabel.setText(`${this.copy("onTable", "On table")}: ${this.stakeAmount.toFixed(2)} ${unit}`);
+    this.payoutLabel.setText(`${this.copy("hitPays", "Hit pays")}: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${unit}`);
     const normalizedStatus = status.trim();
     this.statusBar.setText(normalizedStatus === "Ready" || normalizedStatus === "就绪" ? "" : status);
 
@@ -190,8 +260,11 @@ export class DiceScene extends BaseScene {
       this.stopRoll(faceToShow);
     }
 
-    // Result overlay
-    if (outcome && !rolling) {
+    // Only terminal, chain/readback-backed or local guest outcomes get a result
+    // card. A pending/unresolved wager keeps the die visible with recovery copy.
+    const isTerminalOutcome =
+      outcome === "won" || outcome === "lost" || outcome === "refunded";
+    if (isTerminalOutcome && !rolling) {
       this.showResult(outcome, lastRoll);
     } else {
       this.resultBanner.setVisible(false);
@@ -204,10 +277,9 @@ export class DiceScene extends BaseScene {
     }
 
     // Roll button state
-    const canRoll = !rolling;
-    this.rollBtnBg.clear();
-    this.drawRollBtnBg(canRoll);
-    this.rollBtnLabel.setText(rolling ? "ROLLING..." : "THROW DICE");
+    const canUsePrimaryButton = this.canUsePrimaryButton();
+    this.drawRollBtnBg(canUsePrimaryButton);
+    this.rollBtnLabel.setText(this.rollButtonLabel());
   }
 
   // ── Table construction ─────────────────────────────────────────────────────
@@ -215,10 +287,10 @@ export class DiceScene extends BaseScene {
   private buildTable(W: number, H: number): void {
     const layout = this.tableLayout(W, H);
     const rimDepth = 20;
-    this.add.rectangle(W / 2, H / 2, W, H, 0xb77b39);
+    this.add.rectangle(W / 2, H / 2, W, H, 0xd8a85f);
     this.add.rectangle(W / 2, H / 2, W - rimDepth * 2, H - rimDepth * 2, FELT_GREEN);
-    this.add.rectangle(W / 2, H / 2 + 2, W - 52, H - 72, 0x1c6e42, 0.82)
-      .setStrokeStyle(2, 0x4fbb82, 0.26);
+    this.add.rectangle(W / 2, H / 2 + 2, W - 52, H - 72, 0x8bd9b9, 0.88)
+      .setStrokeStyle(2, 0xeffff8, 0.72);
 
     // Main throw mat: a clean visual stage, not a configuration form.
     const matRx = (W * 0.78) / 2;
@@ -228,7 +300,7 @@ export class DiceScene extends BaseScene {
     // Felt weave: soft horizontal grain confined to the throw-mat oval only, so
     // the panels below sit on plain felt instead of lined-notebook rules.
     const grain = this.add.graphics();
-    grain.lineStyle(1, 0x0c4d2b, 0.08);
+    grain.lineStyle(1, 0x2f8064, 0.08);
     for (let dy = -matRy + 8; dy < matRy; dy += 13) {
       const t = dy / matRy;
       const halfW = matRx * Math.sqrt(Math.max(0, 1 - t * t));
@@ -259,20 +331,20 @@ export class DiceScene extends BaseScene {
       prev = next;
     }
 
-    this.add.text(W / 2, 42, "LUCKY FACE TABLE", {
+    this.add.text(W / 2, 68, this.copy("tableTitle", "Lucky face table"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "11px",
       fontStyle: "bold",
-      color: "#fff8e8",
+      color: "#174c40",
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0.82);
 
-    this.add.text(W / 2, 64, "Pick a face, stack a chip, throw once.", {
+    this.add.text(W / 2, 88, this.copy("tableHint", "Pick a face, stack a chip, throw once."), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
-      color: "#d9f8df",
+      color: "#35685d",
     }).setOrigin(0.5).setAlpha(0.78);
   }
 
@@ -290,12 +362,12 @@ export class DiceScene extends BaseScene {
       DIE_SIZE * 0.30,
       FELT_SHADOW,
       0.32,
-    );
+    ).setDepth(7);
 
     // Die texture object
     this.dieFace1 = this.add.image(0, 0, this.dieAssetKey(this.selectedFace))
       .setDisplaySize(DIE_SIZE, DIE_SIZE);
-    this.diceGroup = this.add.container(cx, cy, [this.dieFace1]);
+    this.diceGroup = this.add.container(cx, cy, [this.dieFace1]).setDepth(10);
     this.setDieFace(this.selectedFace);
   }
 
@@ -312,17 +384,17 @@ export class DiceScene extends BaseScene {
 
   private buildBettingSpots(W: number, H: number): void {
     const y = this.tableLayout(W, H).predictionY;
-    this.add.text(W / 2, y - 33, "Prediction rail", {
+    this.add.text(W / 2, y - 33, this.copy("predictionRail", "Prediction rail"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "11px",
       fontStyle: "bold",
-      color: "#fff8e8",
+      color: "#174c40",
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0.9);
 
-    const rail = this.add.rectangle(W / 2, y + 5, W - 58, 62, 0xffffff, 0.12)
-      .setStrokeStyle(1, 0xffffff, 0.18)
+    const rail = this.add.rectangle(W / 2, y + 5, W - 58, 62, 0xffffff, 0.52)
+      .setStrokeStyle(1, 0xffffff, 0.72)
       .setOrigin(0.5);
     void rail;
 
@@ -346,6 +418,7 @@ export class DiceScene extends BaseScene {
     bg.setInteractive(new Phaser.Geom.Rectangle(-23, -24, 46, 52), Phaser.Geom.Rectangle.Contains);
     this.bindGameButton(bg, {
       targets: c,
+      enabled: () => this.canEditBet(),
       hoverScale: 1.06,
       pressScale: 0.92,
       onPress: () => {
@@ -397,15 +470,15 @@ export class DiceScene extends BaseScene {
 
   private buildChipTray(W: number, H: number): void {
     const y = this.tableLayout(W, H).chipY;
-    this.add.rectangle(W / 2, y, W - 74, 72, 0xffffff, 0.14)
-      .setStrokeStyle(1, 0xffffff, 0.18)
+    this.add.rectangle(W / 2, y, W - 74, 72, 0xffffff, 0.46)
+      .setStrokeStyle(1, 0xffffff, 0.72)
       .setOrigin(0.5);
-    this.add.text(W / 2, y - 42, "Chip rail", {
+    this.add.text(W / 2, y - 42, this.copy("chipRail", "Chip rail"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "11px",
       fontStyle: "bold",
-      color: "#fff8e8",
+      color: "#174c40",
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0.9);
 
@@ -446,6 +519,7 @@ export class DiceScene extends BaseScene {
     hit.setInteractive(new Phaser.Geom.Circle(0, 0, 30), Phaser.Geom.Circle.Contains);
     this.bindGameButton(hit, {
       targets: c,
+      enabled: () => this.canEditBet(),
       hoverScale: null,
       pressScale: 0.9,
       pressDuration: 80,
@@ -486,22 +560,22 @@ export class DiceScene extends BaseScene {
 
   private buildPayoutRow(W: number, H: number): void {
     const y = this.tableLayout(W, H).payoutY;
-    this.add.rectangle(W / 2, y, W - 88, 32, 0x0f4b2b, 0.68)
+    this.add.rectangle(W / 2, y, W - 88, 32, 0xfff8e8, 0.88)
       .setStrokeStyle(1, GOLD, 0.32)
       .setOrigin(0.5);
-    this.stakeLabel = this.add.text(W / 2 - 76, y, "On table: 0.10 GAS", {
+    this.stakeLabel = this.add.text(W / 2 - 76, y, `${this.copy("onTable", "On table")}: 0.10 GAS`, {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#fff8e8",
+      color: "#255c50",
     }).setOrigin(0.5);
 
-    this.payoutLabel = this.add.text(W / 2 + 78, y, "Hit pays: 0.57 GAS", {
+    this.payoutLabel = this.add.text(W / 2 + 78, y, `${this.copy("hitPays", "Hit pays")}: 0.57 GAS`, {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "13px",
-      color: "#f0c866",
+      color: "#9a5b08",
       fontStyle: "bold",
     }).setOrigin(0.5);
   }
@@ -523,17 +597,27 @@ export class DiceScene extends BaseScene {
       letterSpacing: 2,
     }).setOrigin(0.5);
 
-    this.rollBtnBg.setInteractive(
-      new Phaser.Geom.Rectangle(-88, -22, 176, 44),
-      Phaser.Geom.Rectangle.Contains,
-    );
-    this.bindGameButton(this.rollBtnBg, {
+    // A dedicated transparent hit target avoids Graphics-bounds drift after the
+    // enabled/disabled background is cleared and redrawn. The full visible CTA
+    // now responds, including its upper half on scaled mobile canvases.
+    const hit = this.add.rectangle(0, 0, 188, 54, 0xffffff, 0);
+    hit.setInteractive();
+    this.bindGameButton(hit, {
       targets: c,
-      enabled: () => !this.isRolling,
+      enabled: () => this.canUsePrimaryButton(),
       pressScale: 0.95,
       pressDuration: 80,
       onPress: () => {
         this.sfx.unlock();
+        if (this.bool("isUnresolved")) {
+          this.dispatch("recheckSettlement", {});
+          return;
+        }
+        if (this.str("mode", "gamefi") === "gamefi" && !this.bool("walletConnected")) {
+          this.dispatch("connectWallet", {});
+          return;
+        }
+        if (!this.canRoll()) return;
         this.playThrowSfx();
         this.emitThrowCharge();
         this.dispatch("placeDiceBet", {
@@ -543,7 +627,7 @@ export class DiceScene extends BaseScene {
       },
     });
 
-    c.add([this.rollBtnBg, label]);
+    c.add([this.rollBtnBg, label, hit]);
     this.rollBtn = c;
     this.rollBtnLabel = label;
   }
@@ -567,7 +651,7 @@ export class DiceScene extends BaseScene {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
-      color: "#d9f8df",
+      color: "#245c50",
     }).setOrigin(0.5).setDepth(2);
   }
 
@@ -580,14 +664,14 @@ export class DiceScene extends BaseScene {
       this.highlightChipBtn(btn, i, Math.abs(presetAmt - this.stakeAmount) < 0.001);
     });
     const unit = this.currencyUnit();
-    this.stakeLabel.setText(`On table: ${this.stakeAmount.toFixed(2)} ${unit}`);
-    this.payoutLabel.setText(`Hit pays: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${unit}`);
+    this.stakeLabel.setText(`${this.copy("onTable", "On table")}: ${this.stakeAmount.toFixed(2)} ${unit}`);
+    this.payoutLabel.setText(`${this.copy("hitPays", "Hit pays")}: ${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${unit}`);
     if (!this.isRolling) this.setDieFace(this.selectedFace);
   }
 
   /** Quick spring-in on the hero die when the picked face changes (idle only). */
   private pulseHeroDie(): void {
-    if (this.isRolling || !this.diceGroup) return;
+    if (this.isRolling || this.reducedMotion || !this.diceGroup) return;
     this.tween({
       targets: this.diceGroup,
       scale: { from: 0.82, to: 1 },
@@ -603,25 +687,28 @@ export class DiceScene extends BaseScene {
 
     const bg = this.add.graphics();
     bg.fillStyle(0xfff8e8, 0.94);
-    bg.fillRoundedRect(-120, -48, 240, 96, 18);
+    // Frame the live die instead of painting copy directly behind it: the die
+    // remains the result resource, while title and outcome sit above/below with
+    // strong contrast on a spacious ivory card.
+    bg.fillRoundedRect(-152, -86, 304, 172, 22);
     bg.lineStyle(3, GOLD);
-    bg.strokeRoundedRect(-120, -48, 240, 96, 18);
+    bg.strokeRoundedRect(-152, -86, 304, 172, 22);
 
-    const title = this.add.text(0, -18, "", {
+    const title = this.add.text(0, -69, "", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
-      fontSize: "28px",
+      fontSize: "24px",
       fontStyle: "bold",
       color: "#201811",
     }).setOrigin(0.5);
 
-    const sub = this.add.text(0, 18, "", {
+    const sub = this.add.text(0, 69, "", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
-      fontSize: "15px",
-      color: GOLD_LIGHT.toString(16).padStart(6, "0"),
+      fontSize: "13px",
+      color: "#6f4a1e",
     }).setOrigin(0.5);
-    sub.setColor("#f0c866");
+    sub.setColor("#6f4a1e");
 
     c.add([bg, title, sub]);
     c.setVisible(false);
@@ -639,32 +726,41 @@ export class DiceScene extends BaseScene {
 
     this.resultBanner.setVisible(true);
     if (firstShow) {
-      this.resultBanner.setAlpha(0).setScale(0.7);
-      this.tweens.add({
-        targets: this.resultBanner,
-        alpha: 1, scale: 1,
-        duration: 250,
-        ease: "Back.easeOut",
-      });
+      if (this.reducedMotion) {
+        this.resultBanner.setAlpha(1).setScale(1);
+      } else {
+        this.resultBanner.setAlpha(0).setScale(0.7);
+        this.tweens.add({
+          targets: this.resultBanner,
+          alpha: 1, scale: 1,
+          duration: 250,
+          ease: "Back.easeOut",
+        });
+      }
     }
 
     switch (outcome) {
       case "won":
-        title.setText("YOU WIN").setColor("#f0c866");
-        sub.setText(`Rolled: ${roll}  •  +${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${this.currencyUnit()}`);
+        title.setText(this.copy("youWin", "You win")).setColor("#9a5b08");
+        sub.setText(
+          `${this.copy("rolled", "Rolled")}: ${roll}  •  +${this.str(
+            "lastPayout",
+            `${(this.stakeAmount * PAYOUT_MULT).toFixed(2)} ${this.currencyUnit()}`,
+          )}`,
+        );
         if (firstShow) {
           this.playSfx("win");
           this.addGoldCoins();
         }
         break;
       case "lost":
-        title.setText("HOUSE WINS").setColor("#e25d4d");
-        sub.setText(`Rolled: ${roll}  •  Better luck next time`);
+        title.setText(this.copy("houseWins", "Missed")).setColor("#c4483e");
+        sub.setText(`${this.copy("rolled", "Rolled")}: ${roll}  •  ${this.copy("betterLuck", "Try another throw")}`);
         if (firstShow) this.playSfx("lose");
         break;
       case "refunded":
-        title.setText("REFUNDED").setColor("#a89070");
-        sub.setText("Your stake has been returned");
+        title.setText(this.copy("refunded", "Refunded")).setColor("#7b6852");
+        sub.setText(this.copy("stakeReturned", "Your stake has been returned"));
         if (firstShow) this.playSfx("refund");
         break;
     }
@@ -682,7 +778,21 @@ export class DiceScene extends BaseScene {
     this.lastResultKey = "";
     this.resultBanner.setVisible(false);
     this.throwTrail.setAlpha(0.8);
+    this.freezePredictionRailForThrow();
+    this.dieShadow.setDepth(8);
+    this.diceGroup.setDepth(11);
     this.playThrowSfx();
+
+    if (this.reducedMotion) {
+      const restingY = this.tableLayout(this.scale.width, this.scale.height).diceY;
+      this.diceGroup
+        .setPosition(this.scale.width / 2, restingY)
+        .setAngle(0)
+        .setScale(1);
+      this.dieShadow.setScale(1).setAlpha(0.28);
+      this.throwTrail.setAlpha(0.32);
+      return;
+    }
 
     this.shuffleCounter = 0;
     this.shuffleTimer = this.time.addEvent({
@@ -745,6 +855,19 @@ export class DiceScene extends BaseScene {
     this.tweens.killTweensOf(this.dieShadow);
     this.tweens.killTweensOf(this.throwTrail);
     this.throwTrail.setAlpha(1);
+    this.restorePredictionRailAfterThrow();
+
+    const restingY = this.tableLayout(this.scale.width, this.scale.height).diceY;
+    if (this.reducedMotion) {
+      this.dieShadow.setScale(1).setAlpha(0.32);
+      this.diceGroup
+        .setPosition(this.scale.width / 2, restingY)
+        .setAngle(0)
+        .setScale(1);
+      this.setDieFace(face);
+      this.playSfx("land");
+      return;
+    }
 
     // Settle the grounded shadow: snap back wide + soft as the die lands.
     this.dieShadow.setScale(1);
@@ -761,7 +884,7 @@ export class DiceScene extends BaseScene {
     this.tweens.add({
       targets: this.diceGroup,
       x: this.scale.width / 2,
-      y: this.tableLayout(this.scale.width, this.scale.height).diceY,
+      y: restingY,
       angle: 0,
       duration: 200,
       ease: "Bounce.easeOut",
@@ -769,6 +892,22 @@ export class DiceScene extends BaseScene {
     });
     this.setDieFace(face);
     this.playSfx("land");
+  }
+
+  private freezePredictionRailForThrow(): void {
+    this.faceButtons.forEach((btn) => {
+      this.tweens.killTweensOf(btn);
+      btn.setAlpha(0.42).setAngle(0).setScale(1);
+      const die = btn.getData("die") as Phaser.GameObjects.Image | undefined;
+      die?.setAngle(0).setScale(1).setDisplaySize(34, 34);
+    });
+  }
+
+  private restorePredictionRailAfterThrow(): void {
+    this.faceButtons.forEach((btn, index) => {
+      btn.setAlpha(1).setAngle(0).setScale(1);
+      this.highlightFaceBtn(btn, index + 1 === this.selectedFace);
+    });
   }
 
   private playThrowSfx(): void {
@@ -779,6 +918,7 @@ export class DiceScene extends BaseScene {
   }
 
   private emitTapBurst(x: number, y: number, color: number): void {
+    if (this.reducedMotion) return;
     const ring = this.add.graphics();
     ring.setPosition(x, y).setDepth(12);
     ring.lineStyle(3, color, 0.72);
@@ -794,6 +934,7 @@ export class DiceScene extends BaseScene {
   }
 
   private emitThrowCharge(): void {
+    if (this.reducedMotion) return;
     this.throwTrail.setAlpha(1);
     this.tweens.add({
       targets: this.throwTrail,
@@ -806,6 +947,7 @@ export class DiceScene extends BaseScene {
   }
 
   private emitLandingRipple(): void {
+    if (this.reducedMotion) return;
     const ripple = this.add.graphics();
     ripple.setPosition(this.diceGroup.x, this.diceGroup.y + 24).setDepth(8);
     ripple.lineStyle(4, GOLD_LIGHT, 0.6);
@@ -873,12 +1015,18 @@ export class DiceScene extends BaseScene {
   // ── Particle effect (win coins) ────────────────────────────────────────────
 
   private addGoldCoins(): void {
+    if (this.reducedMotion) return;
     const { width: W, height: H } = this.scale;
+    const isGuest = this.str("mode", "guest") === "guest";
     for (let i = 0; i < 14; i++) {
       const x = Phaser.Math.Between(W * 0.1, W * 0.9);
       const coin = this.add.container(x, H * 0.3);
       const halo = this.add.ellipse(0, 0, 24, 24, 0xffdf68, 0.94);
-      const coinIcon = this.add.image(0, 0, ASSET_GAS_ICON).setDisplaySize(18, 18);
+      const tokenAsset = isGuest
+        ? CHIP_PRESETS[i % CHIP_PRESETS.length]!.asset
+        : ASSET_GAS_ICON;
+      const coinIcon = this.add.image(0, 0, tokenAsset)
+        .setDisplaySize(isGuest ? 24 : 18, isGuest ? 24 : 18);
       coin.add([halo, coinIcon]);
       this.tweens.add({
         targets: coin,
@@ -897,5 +1045,22 @@ export class DiceScene extends BaseScene {
   protected onResize(_gameSize: Phaser.Structs.Size): void {
     this.rebuildScene();
     this.onStateUpdate(this.state);
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (!enabled || !this.isRolling || !this.diceGroup) return;
+    this.shuffleTimer?.remove(false);
+    this.shuffleTimer = null;
+    this.tweens.killTweensOf(this.diceGroup);
+    this.tweens.killTweensOf(this.dieShadow);
+    this.tweens.killTweensOf(this.throwTrail);
+    const restingY = this.tableLayout(this.scale.width, this.scale.height).diceY;
+    this.diceGroup
+      .setPosition(this.scale.width / 2, restingY)
+      .setAngle(0)
+      .setScale(1);
+    this.dieShadow.setScale(1).setAlpha(0.28);
+    this.throwTrail.setAlpha(0.32);
+    this.setDieFace(this.selectedFace);
   }
 }

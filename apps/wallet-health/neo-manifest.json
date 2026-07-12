@@ -3,9 +3,9 @@
   "id": "miniapp-wallet-health",
   "name": "Wallet Health",
   "name_zh": "钱包健康",
-  "version": "1.0.0",
-  "description": "Checklist and safety insights for your Neo wallet.",
-  "description_zh": "钱包健康检查 — 分析你的 Neo 钱包安全性和资产分布",
+  "version": "1.1.0",
+  "description": "A read-only Neo wallet balance check and device-local security self-check. It never sends a transaction and does not claim to audit private keys, approvals, devices, or malware.",
+  "description_zh": "Neo 钱包只读余额检查与设备本地安全自检；不会发起交易，也不会声称已审计私钥、授权、设备或恶意软件。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -31,26 +31,19 @@
     "banner": "/miniapps/wallet-health/banner.webp"
   },
   "permissions": [
-    "invoke:primary",
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://wallet-health"
   },
-  "stateSource": {
-    "type": "api",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
-    "analytics": true,
+    "analytics": false,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-28T21:07:41Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

@@ -5,19 +5,21 @@ import {
   isNeoNetwork,
 } from "@/lib/neo-network";
 import { getActiveRpcNetwork } from "@/lib/rpc-helpers";
-import {
+import type {
   WalletAdapter,
   WalletAccount,
   NeoWalletNetwork,
-  Nep21Adapter,
-  NeoLineAdapter,
-  OneGateAdapter,
-  WifAdapter,
   WalletBalance,
+} from "./adapters/base";
+import {
   WalletConnectionError,
   WalletNotInstalledError,
   WalletTransactionError,
-} from "./adapters";
+} from "./adapters/base";
+import { NeoLineAdapter } from "./adapters/neoline";
+import { Nep21Adapter } from "./adapters/nep21";
+import { OneGateAdapter } from "./adapters/onegate";
+import type { WifAdapter } from "./adapters/wif";
 
 export type WalletProvider = "nep21" | "neoline" | "onegate" | "wif";
 export type ConnectableWalletProvider = "onegate" | "neoline";
@@ -201,12 +203,29 @@ function withWalletOperationGuards(adapter: WalletAdapter): WalletAdapter {
   return adapter;
 }
 
-const adapters: Record<WalletProvider, WalletAdapter> = {
+const adapters: Record<Exclude<WalletProvider, "wif">, WalletAdapter> = {
   nep21: withWalletOperationGuards(new Nep21Adapter()),
   neoline: withWalletOperationGuards(new NeoLineAdapter()),
   onegate: withWalletOperationGuards(new OneGateAdapter()),
-  wif: withWalletOperationGuards(new WifAdapter()),
 };
+
+let wifAdapter: WifAdapter | null = null;
+let wifAdapterPromise: Promise<WifAdapter> | null = null;
+
+async function loadWifAdapter(): Promise<WifAdapter> {
+  if (wifAdapter) return wifAdapter;
+  wifAdapterPromise ??= import("./adapters/wif")
+    .then(
+      ({ WifAdapter }) =>
+        withWalletOperationGuards(new WifAdapter()) as WifAdapter,
+    )
+    .catch((error: unknown) => {
+      wifAdapterPromise = null;
+      throw error;
+    });
+  wifAdapter = await wifAdapterPromise;
+  return wifAdapter;
+}
 
 const walletProviderIds = new Set<WalletProvider>([
   "nep21",
@@ -233,7 +252,9 @@ function isPersistableWalletProvider(
 }
 
 function getAdapter(provider: WalletProvider | string | null): WalletAdapter | null {
-  return isWalletProvider(provider) ? adapters[provider] : null;
+  if (!isWalletProvider(provider)) return null;
+  if (provider === "wif") return wifAdapter;
+  return adapters[provider];
 }
 
 async function readWalletNetwork(
@@ -426,13 +447,16 @@ export const useWalletStore = create<WalletStore>()(
         const previous = get();
         set({ loading: true, error: null });
 
+        if (provider === "wif") {
+          const message = "Use connectWif() for developer key wallets";
+          set({ loading: false, error: message });
+          throw new WalletConnectionError(message);
+        }
+
         const adapter = adapters[provider];
         clearWalletEventCleanup();
 
         try {
-          if (provider === "wif") {
-            throw new WalletConnectionError("Use connectWif() for developer key wallets");
-          }
           const account = await withWalletTimeout(
             adapter.connect(),
             WALLET_CONNECT_TIMEOUT_MS,
@@ -549,9 +573,8 @@ export const useWalletStore = create<WalletStore>()(
         set({ loading: true, error: null });
         clearWalletEventCleanup();
 
-        const adapter = adapters.wif as WifAdapter;
-
         try {
+          const adapter = await loadWifAdapter();
           const account = await adapter.connectWithWif(wif);
           const network = await readWalletNetwork(adapter, account);
           const balance = await adapter.getBalance(account.address);

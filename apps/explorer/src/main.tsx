@@ -46,6 +46,10 @@ defineMiniApp({
       }
     });
 
+    ctx.framework.actions.register("refreshExplorer", async () => {
+      await explorer.loadAll();
+    });
+
     return {
       state: {
         mainnetHeight: explorer.mainnetHeight,
@@ -59,6 +63,9 @@ defineMiniApp({
         isSearching: explorer.isSearching,
         searchResult: explorer.searchResult,
         recentTxs: explorer.recentTxs,
+        statsStatus: explorer.statsStatus,
+        recentStatus: explorer.recentStatus,
+        statsUpdatedAt: explorer.statsUpdatedAt,
       },
       loadData: explorer.loadAll,
       cleanup: () => {

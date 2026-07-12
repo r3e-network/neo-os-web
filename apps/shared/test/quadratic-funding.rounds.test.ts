@@ -20,6 +20,18 @@ const invokeRead = vi.fn(
 const chainTypeRef = { value: "neo-n3-mainnet" };
 const addressRef = { value: OWNER };
 
+function matchingEvent(eventName: string, txHash: string) {
+  const operation = txHash.replace(/^0x/, "");
+  const call = invokeContract.mock.calls.find(
+    (entry) => (entry[0] as { operation?: string }).operation === operation,
+  )?.[0] as { args?: Array<{ value?: unknown }> } | undefined;
+  const args = call?.args ?? [];
+  const state = eventName === "RoundCreated"
+    ? [{ value: "1" }, args[0], args[1], args[2]]
+    : [args[1], args[0], args[2], { value: "0" }];
+  return { id: 1, event_name: eventName, tx_hash: txHash, state };
+}
+
 vi.mock("@shared/utils/wallet-sdk", () => ({
   useWallet: () => ({
     address: addressRef,
@@ -29,7 +41,15 @@ vi.mock("@shared/utils/wallet-sdk", () => ({
     invokeRead,
     getContractAddress: vi.fn(async () => CONTRACT),
   }),
-  useEvents: () => ({ list: vi.fn(async () => ({ events: [] })) }),
+  useEvents: () => ({
+    list: vi.fn(async (params: { event_name?: string; tx_hash?: string }) => ({
+      events: params.event_name && params.tx_hash
+        ? [matchingEvent(params.event_name, params.tx_hash)]
+        : [],
+    })),
+    waitForEvent: vi.fn(async (txHash: string, eventName: string) =>
+      matchingEvent(eventName, txHash)),
+  }),
   usePayments: () => ({ payGAS: vi.fn(async () => ({ txid: "0xpay", receipt_id: "" })) }),
 }));
 
@@ -136,9 +156,24 @@ function wireReads(adminDisplayHash: string, creatorDisplayHash: string, roundOv
     switch (params.operation) {
       case "admin":
         return { stack: [{ type: "ByteString", value: displayHashToChainBase64(adminDisplayHash) }] };
+      case "totalRounds":
+        return { stack: [{ type: "Integer", value: "1" }] };
       case "getRounds":
         return { stack: [{ type: "Array", value: [{ type: "Integer", value: "1" }] }] };
       case "getRoundDetails":
+        if (invokeContract.mock.calls.some((call) => call[0].operation === "createRound")) {
+          const call = invokeContract.mock.calls.find((entry) => entry[0].operation === "createRound")![0] as { args: Array<{ value: string }> };
+          return roundDetailsStack(creatorDisplayHash, {
+            asset: { type: "ByteString", value: displayHashToChainBase64(call.args[1]!.value) },
+            assetSymbol: { type: "ByteString", value: btoa(call.args[1]!.value === NEO_HASH ? "NEO" : "GAS") },
+            matchingPool: { type: "Integer", value: call.args[2]!.value },
+            matchingRemaining: { type: "Integer", value: call.args[2]!.value },
+            startTime: { type: "Integer", value: call.args[3]!.value },
+            endTime: { type: "Integer", value: call.args[4]!.value },
+            title: { type: "ByteString", value: btoa(call.args[5]!.value) },
+            description: { type: "ByteString", value: btoa(call.args[6]!.value) },
+          });
+        }
         return roundDetailsStack(creatorDisplayHash, roundOverrides);
       default:
         return { stack: [] };
@@ -159,6 +194,7 @@ describe("useQuadraticRounds deposit-then-act + milliseconds", () => {
   });
 
   it("deposits matching funds with a memo, then createRound with millisecond times", async () => {
+    wireReads("0x1111111111111111111111111111111111111111", OWNER_HASH);
     const rounds = makeRounds();
 
     // End time 1h in the future, start time 30min in the future.

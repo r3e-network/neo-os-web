@@ -15,40 +15,44 @@ const ORACLE_CONSOLE_APPS = [
     root: "oracle-console-play-area",
     scene: "oracle-console-scene",
     drawer: "oracle-http-drawer",
-    request: /dispatch\("buildRequest"\)/,
+    request: /dispatch\("buildRequest", \{/,
     assets: ["http-oracle-pipeline.webp", "oracle-workspace-stage.webp"],
   },
   {
     app: "oracle-vrf-console",
-    root: "oracle-console-play-area",
-    scene: "oracle-console-scene",
+    root: "oracle-vrf-play-area",
+    scene: "vrf-workbench",
     drawer: "vrf-drawer",
-    request: /dispatch\("buildRequest", requestValues\)/,
+    request: /dispatch\("buildDraft", context\)/,
     assets: ["oracle-workspace-stage.webp"],
+    customWorkbench: true,
   },
   {
     app: "oracle-seal-console",
-    root: "oracle-console-play-area",
+    root: "oracle-seal-play-area",
     scene: "seal-workspace",
     drawer: "seal-drawer",
-    request: /dispatch\("buildRequest",\s*\{/,
+    request: /dispatchSafely\("sealPayload", \{ purpose, publicRoute: publicRoute\.trim\(\), payload \}\)/,
     assets: ["seal-reference-stage.webp", "oracle-workspace-stage.webp"],
+    customWorkbench: true,
   },
   {
     app: "oracle-compute-lab",
     root: "oracle-compute-play-area",
-    scene: "oracle-compute-desk",
+    scene: "compute-workbench",
     drawer: "compute-drawer",
-    request: /dispatch\("buildRequest", \{ workflow, privacy, input: inputPayload \}\)/,
+    request: /dispatchSafely\("prepareRequest", \{ profile, disclosure, source \}\)/,
     assets: ["compute-privacy-stage.webp", "oracle-workspace-stage.webp"],
+    customWorkbench: true,
   },
   {
     app: "oracle-neodid-console",
     root: "oracle-neodid-play-area",
-    scene: "neodid-workspace",
+    scene: "neodid-console-scene",
     drawer: "drawerToggleLabel",
-    request: /dispatch\("buildRequest", \{ did, provider, claim, callback \}\)/,
+    request: /dispatchSafely\("resolveEvidence", form\)/,
     assets: ["neodid-identity-stage.webp", "oracle-workspace-stage.webp"],
+    evidenceConsole: true,
   },
 ];
 
@@ -167,7 +171,7 @@ test("shared oracle console panel exposes a wallet-style request workspace", () 
   assert.doesNotMatch(baseMessages, /Run the form/i);
 });
 
-test("oracle console miniapps all expose a v2 request console with service dispatch", () => {
+test("oracle console miniapps all expose a v2 request workflow with an honest action boundary", () => {
   for (const entry of ORACLE_CONSOLE_APPS) {
     const { app } = entry;
     const playArea = read(`apps/${app}/src/PlayArea.tsx`);
@@ -182,11 +186,25 @@ test("oracle console miniapps all expose a v2 request console with service dispa
     assert.match(playArea, /drawerToggleLabel=/);
     assert.match(playArea, /drawer=\{/);
     assert.match(playArea, entry.request);
-    assert.match(config, /export const consoleConfig/);
-    assert.match(config, /panelTitle/);
-    assert.match(config, /panelDescription/);
-    assert.match(config, /statNetwork/);
-    assert.match(config, /statDigest/);
+    if (entry.evidenceConsole) {
+      assert.match(config, /DEFAULT_SUBJECT_DID/);
+      assert.match(config, /stageTitle/);
+      assert.match(config, /statNetwork/);
+      assert.match(config, /statEvidence/);
+      assert.doesNotMatch(config, /export const consoleConfig/);
+      assert.doesNotMatch(playArea, /Preview Verification|callback|buildRequest/);
+    } else if (entry.customWorkbench) {
+      assert.match(config, /export const manifest/);
+      assert.match(config, /panelTitle/);
+      assert.match(config, /category:\s*"oracle"/);
+      assert.doesNotMatch(config, /export const consoleConfig/);
+    } else {
+      assert.match(config, /export const consoleConfig/);
+      assert.match(config, /panelTitle/);
+      assert.match(config, /panelDescription/);
+      assert.match(config, /statNetwork/);
+      assert.match(config, /statDigest/);
+    }
     assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 
     for (const asset of entry.assets) {

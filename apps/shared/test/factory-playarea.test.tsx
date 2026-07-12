@@ -1,7 +1,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type Observable } from "../react/context";
@@ -85,6 +85,7 @@ function renderPlayArea(
   kind: string,
   state: HarnessState,
   dispatch = vi.fn(async () => undefined),
+  extraProps: Record<string, unknown> = {},
 ) {
   const appId = `miniapp-${kind === "nep17" ? "asset" : kind === "nep11" ? "nft" : "miniapp"}-factory`;
   const launchContext = parseMiniAppLaunchContext(
@@ -99,6 +100,7 @@ function renderPlayArea(
       launchContext={launchContext}
       fixedKind={kind}
       appId={appId}
+      {...extraProps}
     />,
   );
   return dispatch;
@@ -195,6 +197,47 @@ describe("FactoryPlayArea", () => {
     expect(
       screen.queryByText("Owner must be a Neo N3 address or Hash160."),
     ).toBeNull();
+  });
+
+  it("restores an app-owned NEP-17 draft, limits network choices, and journals before generate", async () => {
+    const { FactoryPlayArea } = await loadFactoryModules();
+    const dispatch = vi.fn(async () => undefined);
+    renderPlayArea(FactoryPlayArea as never, "nep17", buildState(), dispatch, {
+      initialNep17Draft: {
+        ...NEP17_INPUT,
+        name: "Restored Credits",
+        network: "neo-n3-testnet",
+      },
+      supportedNetworks: ["neo-n3-testnet"],
+      persistDraftAction: "persistAssetDraft",
+    });
+
+    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
+      "Restored Credits",
+    );
+    expect(
+      screen.queryByRole("radio", { name: "Network: Neo N3 Mainnet" }),
+    ).toBeNull();
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith(
+        "persistAssetDraft",
+        expect.objectContaining({
+          name: "Restored Credits",
+          network: "neo-n3-testnet",
+        }),
+      );
+    });
+
+    dispatch.mockClear();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Generate template plan" }),
+    );
+    await waitFor(() => {
+      expect(dispatch.mock.calls.map(([action]) => action)).toEqual([
+        "persistAssetDraft",
+        "generatePlan",
+      ]);
+    });
   });
 
   it("blocks the execute button with the honest artifact reason for metadata-only templates", async () => {
@@ -347,6 +390,43 @@ describe("FactoryPlayArea", () => {
     ).toHaveLength(3);
   });
 
+  it("marks a blocked NFT owner inline and discards the stale plan once the draft is fixed", async () => {
+    const {
+      FactoryPlayArea,
+      buildFactoryPlan,
+      createFactoryDraftFromLaunchContext,
+    } = await loadFactoryModules();
+    const launchContext = parseMiniAppLaunchContext(
+      "https://neomini.app/miniapps/nft-factory/index.html?network=testnet",
+      "miniapp-nft-factory",
+    );
+    const draft = createFactoryDraftFromLaunchContext(
+      launchContext,
+      "nep11",
+    ).nep11;
+    const plan = buildFactoryPlan("nep11", draft, {
+      appId: "miniapp-nft-factory",
+      artifactPresence: "missing",
+    });
+    expect(plan.blockingErrors).toContain("owner_address");
+    const dispatch = renderPlayArea(
+      FactoryPlayArea as never,
+      "nep11",
+      buildState({ currentPlan: plan }),
+    );
+
+    const owner = screen.getByLabelText("Owner") as HTMLInputElement;
+    expect(owner.getAttribute("aria-invalid")).toBe("true");
+    expect(
+      screen.getAllByText("Owner must be a Neo N3 address or Hash160.").length,
+    ).toBeGreaterThan(0);
+
+    fireEvent.change(owner, { target: { value: OWNER } });
+    await waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith("discardPlan");
+    });
+  });
+
   it("keeps the NFT factory stage animated with reduced-motion support", () => {
     const styles = readFileSync(
       resolve(__dirname, "../factory/FactoryPlayArea.scss"),
@@ -406,8 +486,13 @@ describe("FactoryPlayArea", () => {
       document.querySelector(".domain-factory-json")?.textContent ?? "";
     const parsed = JSON.parse(json) as {
       walletSignature?: typeof signatureInfo;
+      execution?: { available?: boolean; outcome?: string };
     };
     expect(parsed.walletSignature).toEqual(signatureInfo);
+    expect(parsed.execution).toMatchObject({
+      available: true,
+      outcome: "contract-deployment",
+    });
     expect(screen.getByRole("button", { name: "Copy signature" })).toBeTruthy();
   });
 });

@@ -1,22 +1,153 @@
+import { getRpcUrl } from "@shared/constants/rpc";
+import { fetchWithTimeout } from "@shared/utils/fetch-timeout";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { NEO_X_CONFIG } from "@shared/utils/evm-chain";
+
 export type BridgeDirection = "n3-to-neox" | "neox-to-n3";
-export type BridgeKind = "asset" | "message";
-export type TimelineState = "done" | "active" | "waiting";
+export type BridgeKind = "asset";
+export type BridgeAsset = "GAS" | "NEO";
+export type TimelineState = "done" | "active" | "waiting" | "error" | "unknown";
 /** Which official bridge deployment the prepared intent targets. */
 export type BridgeEnvironment = "mainnet" | "testnet";
+export type BridgeEvidenceState = "verified" | "unverified" | "not-applicable";
+export type SourceTransactionState =
+  | "idle"
+  | "checking"
+  | "pending"
+  | "confirmed"
+  | "faulted"
+  | "unknown";
+export type RpcBoundaryState = "checking" | "ready" | "blocked";
+
+const HASH256_PATTERN = /^0x[0-9a-fA-F]{64}$/;
+const GAS_AMOUNT_PATTERN = /^(?:0|[1-9]\d{0,15})(?:\.\d{1,8})?$/;
+const NEO_AMOUNT_PATTERN = /^[1-9]\d{0,15}$/;
+const LOCAL_ASSET_REQUEST_PATTERN = /^N3X-ASSET-[A-F0-9]{8}$/;
+const LOCAL_DIGEST_PATTERN = /^0x[0-9a-f]{16}$/;
+const HANDOFF_TTL_MS = 10 * 60 * 1000;
+
+export const BRIDGE_ASSETS: Record<
+  BridgeAsset,
+  { symbol: BridgeAsset; n3Decimals: 0 | 8; neoXDecimals: 0 | 18 }
+> = {
+  GAS: { symbol: "GAS", n3Decimals: 8, neoXDecimals: 18 },
+  // The official bridge constrains NEO input to whole units in both directions.
+  NEO: { symbol: "NEO", n3Decimals: 0, neoXDecimals: 0 },
+};
+
+export interface BoundBridgeNetwork {
+  key: "neo-n3" | "neo-x";
+  label: string;
+  network: string;
+  chainId: string;
+}
+
+/**
+ * Facts that this miniapp can bind before handing the user to the official
+ * bridge. Quote/fee fields stay explicitly unavailable because the official
+ * bridge does not publish a supported public quote API for this console.
+ */
+export interface AssetBridgeHandoff {
+  version: 2;
+  requestId: string;
+  idempotencyKey: string;
+  digest: string;
+  environment: BridgeEnvironment;
+  direction: BridgeDirection;
+  source: BoundBridgeNetwork;
+  destination: BoundBridgeNetwork;
+  token: {
+    symbol: BridgeAsset;
+    sourceDecimals: 0 | 8 | 18;
+    destinationDecimals: 0 | 8 | 18;
+  };
+  sourceAccount: string;
+  amount: string;
+  recipient: string;
+  quote: {
+    status: "official-bridge-required";
+    amountOut: null;
+    bridgeFee: null;
+    networkFee: null;
+    slippageBps: null;
+    expiresAt: null;
+    estimatedMinutes: { min: 1; max: 2 };
+  };
+  createdAt: string;
+  snapshotExpiresAt: string;
+  officialBridgeUrl: string;
+}
+
+export interface BridgeVerificationEvidence {
+  requestId: string;
+  fingerprint: string;
+  environment: BridgeEnvironment;
+  direction: BridgeDirection;
+  source: BoundBridgeNetwork;
+  destination: BoundBridgeNetwork;
+  sourceTx: string;
+  sourceTransaction: SourceTransactionState;
+  sourceBlock: string;
+  sourceEvent: BridgeEvidenceState;
+  destinationEvent: BridgeEvidenceState;
+  destinationReadback: BridgeEvidenceState;
+  checkedAt: string;
+  retryable: boolean;
+  reason:
+    | "confirmed-source-only"
+    | "source-pending"
+    | "source-faulted"
+    | "source-unavailable";
+}
+
+/**
+ * Persisted read-only verification input. Unlike the old bare tx-hash cache,
+ * this record binds the hash to its environment and source-chain direction so
+ * a reload can never query a Neo N3 transaction against Neo X (or vice versa).
+ * When a local handoff exists, requestId + intentDigest are both required.
+ */
+export interface BridgeVerificationRequest {
+  version: 2;
+  environment: BridgeEnvironment;
+  direction: BridgeDirection;
+  sourceTx: string;
+  requestId: string;
+  intentDigest: string;
+  createdAt: string;
+}
+
+export interface BridgeServiceBoundary {
+  environment: BridgeEnvironment;
+  n3Rpc: RpcBoundaryState;
+  neoXRpc: RpcBoundaryState;
+  quoteService: "official-app-only";
+  destinationStatusService: "unavailable";
+  checkedAt: string;
+}
+
+export interface BridgeWalletSnapshot {
+  environment: BridgeEnvironment;
+  chain: BoundBridgeNetwork["key"];
+  network: string;
+  address: string;
+  checkedAt: string;
+  balances: Record<BridgeAsset, {
+    units: string | null;
+    display: string | null;
+    decimals: 0 | 8 | 18;
+  }>;
+}
+
+export interface RpcRequest {
+  (url: string, method: string, params?: unknown[]): Promise<unknown>;
+}
 
 export interface AssetBridgeForm {
   direction?: string;
   asset?: string;
   amount?: string | number;
   recipient?: string;
-}
-
-export interface MessageBridgeForm {
-  direction?: string;
-  targetContract?: string;
-  method?: string;
-  payload?: string;
-  gasLimit?: string | number;
+  sourceAccount?: string;
 }
 
 export interface StatusProbeForm {
@@ -24,6 +155,11 @@ export interface StatusProbeForm {
   direction?: string;
   operationId?: string;
   sourceTx?: string;
+  sourceTransaction?: SourceTransactionState;
+  sourceEvent?: BridgeEvidenceState;
+  destinationEvent?: BridgeEvidenceState;
+  destinationReadback?: BridgeEvidenceState;
+  asset?: BridgeAsset;
 }
 
 export interface BridgeOperation {
@@ -64,16 +200,38 @@ export interface BuiltBridgeIntent {
   operation: BridgeOperation;
   payloadText: string;
   timeline: TimelineStep[];
+  handoff?: AssetBridgeHandoff;
 }
 
 export const BRIDGE_RESOURCES = {
   bridgeAppMainnet: "https://xbridge.neo.org/",
   bridgeAppTestnet: "https://testnet.bridge.banelabs.org/",
+  bridgeIndexer: "https://indexer.xbridge.neo.org/",
   assetBridgeDocs: "https://xdocs.ngd.network/bridge/quick-start-bridging-assets",
   tokenBridgeDocs: "https://xdocs.ngd.network/bridge/token-bridge",
   messageBridgeDocs: "https://xdocs.ngd.network/bridge/messaging-bridge",
-  bridgeSdk: "https://github.com/bane-labs/bridge-sdk-ts",
 } as const;
+
+/** Resolve both Neo N3 and Neo X network spellings to one bridge environment. */
+export function resolveBridgeEnvironment(value?: unknown): BridgeEnvironment {
+  let raw = String(value ?? "").trim().toLowerCase();
+  if (!raw && typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    raw = String(params.get("network") ?? params.get("chain") ?? "").trim().toLowerCase();
+  }
+  if (raw === "mainnet" ||
+    raw === "neo-n3-mainnet" ||
+    raw === "neo-x-mainnet" ||
+    raw === "47763" ||
+    raw === "860833102" ||
+    raw === "0xba93") {
+    return "mainnet";
+  }
+  // Every known testnet spelling, plus an absent or malformed launch value,
+  // follows the manifest's non-production default. Never silently promote an
+  // unknown host value to a mainnet bridge route.
+  return "testnet";
+}
 
 /** The official bridge app URL for the given environment. */
 export function bridgeAppUrl(environment: BridgeEnvironment): string {
@@ -119,7 +277,7 @@ const DIRECTION_META: Record<
     route: string;
     source: string;
     target: string;
-    action: "depositGas" | "withdrawGas";
+    action: "depositAsset" | "withdrawAsset";
     wallet: string;
   }
 > = {
@@ -127,14 +285,14 @@ const DIRECTION_META: Record<
     route: "Neo N3 -> Neo X",
     source: "neo-n3",
     target: "neo-x",
-    action: "depositGas",
+    action: "depositAsset",
     wallet: "NeoLine / NEP-21",
   },
   "neox-to-n3": {
     route: "Neo X -> Neo N3",
     source: "neo-x",
     target: "neo-n3",
-    action: "withdrawGas",
+    action: "withdrawAsset",
     wallet: "MetaMask / EVM wallet",
   },
 };
@@ -144,18 +302,162 @@ const NEO_N3_ADDRESS_PATTERN = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
 
 /** Accepts an EVM address / script hash (0x + 40 hex) or a Neo N3 base58 address. */
 export function isSupportedBridgeAddress(value: unknown): boolean {
-  const text = String(value ?? "").trim();
-  return EVM_ADDRESS_PATTERN.test(text) || NEO_N3_ADDRESS_PATTERN.test(text);
+  return isNeoXAddress(value) || isNeoN3Address(value);
 }
 
 /** True when `value` is an EVM (Neo X) `0x...` address. */
 export function isNeoXAddress(value: unknown): boolean {
-  return EVM_ADDRESS_PATTERN.test(String(value ?? "").trim());
+  const text = String(value ?? "").trim();
+  return EVM_ADDRESS_PATTERN.test(text) && !/^0x0{40}$/i.test(text);
 }
 
 /** True when `value` is a Neo N3 base58 `N...` address. */
 export function isNeoN3Address(value: unknown): boolean {
-  return NEO_N3_ADDRESS_PATTERN.test(String(value ?? "").trim());
+  const text = String(value ?? "").trim();
+  return NEO_N3_ADDRESS_PATTERN.test(text) && Boolean(addressToScriptHash(text));
+}
+
+export function isBridgeTransactionHash(value: unknown): boolean {
+  return HASH256_PATTERN.test(String(value ?? "").trim());
+}
+
+export function buildBridgeVerificationRequest(
+  input: {
+    environment: BridgeEnvironment;
+    direction: BridgeDirection;
+    sourceTx: string;
+    requestId?: string;
+    intentDigest?: string;
+  },
+  createdAt = new Date().toISOString(),
+): BridgeVerificationRequest {
+  const sourceTx = String(input.sourceTx ?? "").trim().toLowerCase();
+  if (!isBridgeTransactionHash(sourceTx)) {
+    throw new Error("Enter a 0x-prefixed 32-byte transaction hash (64 hex characters).");
+  }
+  const requestId = String(input.requestId ?? "").trim().toUpperCase();
+  const intentDigest = String(input.intentDigest ?? "").trim().toLowerCase();
+  if (Boolean(requestId) !== Boolean(intentDigest)) {
+    throw new Error("A handoff request id and intent digest must be provided together.");
+  }
+  if (requestId && !LOCAL_ASSET_REQUEST_PATTERN.test(requestId)) {
+    throw new Error("The local handoff request id is invalid.");
+  }
+  if (intentDigest && !LOCAL_DIGEST_PATTERN.test(intentDigest)) {
+    throw new Error("The local handoff digest is invalid.");
+  }
+  const timestamp = Date.parse(createdAt);
+  if (!Number.isFinite(timestamp)) throw new Error("Invalid verification creation time.");
+  return {
+    version: 2,
+    environment: input.environment,
+    direction: input.direction,
+    sourceTx,
+    requestId,
+    intentDigest,
+    createdAt: new Date(timestamp).toISOString(),
+  };
+}
+
+export function restoreBridgeVerificationRequest(
+  value: unknown,
+  environment: BridgeEnvironment,
+  handoff?: AssetBridgeHandoff | null,
+): BridgeVerificationRequest | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const stored = value as Partial<BridgeVerificationRequest>;
+  if (
+    stored.version !== 2 ||
+    stored.environment !== environment ||
+    (stored.direction !== "n3-to-neox" && stored.direction !== "neox-to-n3") ||
+    typeof stored.sourceTx !== "string" ||
+    typeof stored.requestId !== "string" ||
+    typeof stored.intentDigest !== "string" ||
+    typeof stored.createdAt !== "string"
+  ) {
+    return null;
+  }
+  try {
+    const canonical = buildBridgeVerificationRequest({
+      environment,
+      direction: stored.direction,
+      sourceTx: stored.sourceTx,
+      requestId: stored.requestId,
+      intentDigest: stored.intentDigest,
+    }, stored.createdAt);
+    if (handoff && (
+      canonical.direction !== handoff.direction ||
+      canonical.requestId !== handoff.requestId ||
+      canonical.intentDigest !== handoff.digest
+    )) {
+      return null;
+    }
+    return canonical;
+  } catch {
+    return null;
+  }
+}
+
+export function normalizeBridgeAsset(value: unknown): BridgeAsset {
+  const asset = clean(value, "GAS").toUpperCase();
+  if (asset === "GAS" || asset === "NEO") return asset;
+  throw new Error("The official Neo X bridge currently exposes GAS and NEO.");
+}
+
+export function bridgeAssetDecimals(
+  asset: BridgeAsset,
+  chain: BoundBridgeNetwork["key"],
+): 0 | 8 | 18 {
+  return chain === "neo-x"
+    ? BRIDGE_ASSETS[asset].neoXDecimals
+    : BRIDGE_ASSETS[asset].n3Decimals;
+}
+
+export function normalizeBridgeAmount(assetValue: unknown, value: unknown): string {
+  const asset = normalizeBridgeAsset(assetValue);
+  const text = clean(value, "");
+  if (asset === "NEO") {
+    if (!NEO_AMOUNT_PATTERN.test(text)) {
+      throw new Error("NEO must be a positive whole number.");
+    }
+    return BigInt(text).toString();
+  }
+  if (!GAS_AMOUNT_PATTERN.test(text)) {
+    throw new Error("Amount must be a positive GAS decimal with at most 8 decimal places.");
+  }
+  const parts = text.split(".");
+  const whole = parts[0] ?? "0";
+  const fraction = parts[1] ?? "";
+  const normalizedFraction = fraction.replace(/0+$/, "");
+  const normalized = normalizedFraction ? `${whole}.${normalizedFraction}` : whole;
+  const baseUnits = BigInt(whole) * 100_000_000n + BigInt(fraction.padEnd(8, "0"));
+  if (baseUnits <= 0n) throw new Error("Amount must be greater than zero.");
+  return normalized;
+}
+
+/** Back-compatible fixed8 helper used by existing consumers and migration tests. */
+export function normalizeGasBridgeAmount(value: unknown): string {
+  return normalizeBridgeAmount("GAS", value);
+}
+
+export function bridgeAmountToBaseUnits(amount: string, decimals: number): bigint {
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 18) {
+    throw new Error("Unsupported bridge token precision.");
+  }
+  const text = String(amount ?? "").trim();
+  if (!/^\d+(?:\.\d+)?$/.test(text)) throw new Error("Invalid bridge amount.");
+  const [whole = "0", fraction = ""] = text.split(".");
+  if (fraction.length > decimals) throw new Error("Amount exceeds the source token precision.");
+  return BigInt(whole) * (10n ** BigInt(decimals)) + BigInt(fraction.padEnd(decimals, "0") || "0");
+}
+
+export function formatBridgeBaseUnits(units: bigint, decimals: number): string {
+  if (units < 0n) throw new Error("Bridge balances cannot be negative.");
+  if (decimals === 0) return units.toString();
+  const base = 10n ** BigInt(decimals);
+  const whole = units / base;
+  const fraction = (units % base).toString().padStart(decimals, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 /**
@@ -186,6 +488,27 @@ export function bridgeRoute(direction: BridgeDirection): string {
   return DIRECTION_META[direction].route;
 }
 
+export function bridgeNetworks(
+  direction: BridgeDirection,
+  environment: BridgeEnvironment,
+): { source: BoundBridgeNetwork; destination: BoundBridgeNetwork } {
+  const n3: BoundBridgeNetwork = {
+    key: "neo-n3",
+    label: "Neo N3",
+    network: environment === "testnet" ? "Neo N3 TestNet T5" : "Neo N3 MainNet",
+    chainId: environment === "testnet" ? "magic:894710606" : "magic:860833102",
+  };
+  const neoX: BoundBridgeNetwork = {
+    key: "neo-x",
+    label: "Neo X",
+    network: environment === "testnet" ? "Neo X TestNet T4" : "Neo X MainNet",
+    chainId: environment === "testnet" ? "12227332" : "47763",
+  };
+  return direction === "n3-to-neox"
+    ? { source: n3, destination: neoX }
+    : { source: neoX, destination: n3 };
+}
+
 export function stableDigest(parts: readonly unknown[]): string {
   const input = parts
     .map((part) => (typeof part === "string" ? part : JSON.stringify(part)))
@@ -204,9 +527,138 @@ export function stableDigest(parts: readonly unknown[]): string {
   return `0x${left}${right}`;
 }
 
-export function operationId(kind: BridgeKind, digest: string): string {
-  const prefix = kind === "asset" ? "N3X-ASSET" : "N3X-MSG";
-  return `${prefix}-${digest.slice(2, 10).toUpperCase()}`;
+export function operationId(digest: string): string {
+  return `N3X-ASSET-${digest.slice(2, 10).toUpperCase()}`;
+}
+
+export function buildAssetBridgeHandoff(
+  form: AssetBridgeForm,
+  createdAt = new Date().toISOString(),
+  environment: BridgeEnvironment = "testnet",
+): AssetBridgeHandoff {
+  const direction = normalizeDirection(form.direction);
+  const asset = normalizeBridgeAsset(form.asset);
+  const amount = normalizeBridgeAmount(asset, form.amount);
+  const recipient = clean(form.recipient, "");
+  const sourceAccount = clean(form.sourceAccount, "");
+  if (!recipient) throw new Error("Recipient address is required.");
+  if (!isValidTargetAddress(direction, recipient)) {
+    throw new Error(
+      direction === "n3-to-neox"
+        ? "Recipient must be a Neo X (0x...) address for this direction."
+        : "Recipient must be a checksum-valid Neo N3 (N...) address for this direction.",
+    );
+  }
+  const networks = bridgeNetworks(direction, environment);
+  const sourceAccountReady = networks.source.key === "neo-x"
+    ? isNeoXAddress(sourceAccount)
+    : isNeoN3Address(sourceAccount);
+  if (!sourceAccountReady) {
+    throw new Error(
+      networks.source.key === "neo-x"
+        ? "Connect and verify a Neo X source wallet for this route."
+        : "Connect and verify a Neo N3 source wallet for this route.",
+    );
+  }
+  const boundSourceAccount = networks.source.key === "neo-x"
+    ? sourceAccount.toLowerCase()
+    : sourceAccount;
+  const digest = stableDigest([
+    "asset-handoff-v2",
+    environment,
+    direction,
+    networks.source.chainId,
+    networks.destination.chainId,
+    asset,
+    amount,
+    boundSourceAccount,
+    recipient,
+  ]);
+  const timestamp = Date.parse(createdAt);
+  if (!Number.isFinite(timestamp)) throw new Error("Invalid handoff creation time.");
+  return {
+    version: 2,
+    requestId: operationId(digest),
+    idempotencyKey: digest,
+    digest,
+    environment,
+    direction,
+    source: networks.source,
+    destination: networks.destination,
+    token: {
+      symbol: asset,
+      sourceDecimals: bridgeAssetDecimals(asset, networks.source.key),
+      destinationDecimals: bridgeAssetDecimals(asset, networks.destination.key),
+    },
+    sourceAccount,
+    amount,
+    recipient,
+    quote: {
+      status: "official-bridge-required",
+      amountOut: null,
+      bridgeFee: null,
+      networkFee: null,
+      slippageBps: null,
+      expiresAt: null,
+      estimatedMinutes: { min: 1, max: 2 },
+    },
+    createdAt: new Date(timestamp).toISOString(),
+    snapshotExpiresAt: new Date(timestamp + HANDOFF_TTL_MS).toISOString(),
+    officialBridgeUrl: bridgeAppUrl(environment),
+  };
+}
+
+/**
+ * Rebuild a locally persisted handoff from its user-controlled fields and only
+ * accept it when every derived binding still matches. The returned object is a
+ * fresh canonical value rather than the stored object, so extra or modified
+ * fields can never be trusted after a reload. Expired tickets are intentionally
+ * recoverable: the UI shows them as expired and lets the user renew them.
+ */
+export function restoreAssetBridgeHandoff(
+  value: unknown,
+  environment: BridgeEnvironment,
+): AssetBridgeHandoff | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const stored = value as Partial<AssetBridgeHandoff>;
+  if (
+    stored.version !== 2 ||
+    stored.environment !== environment ||
+    (stored.direction !== "n3-to-neox" && stored.direction !== "neox-to-n3") ||
+    (stored.token?.symbol !== "GAS" && stored.token?.symbol !== "NEO") ||
+    typeof stored.sourceAccount !== "string" ||
+    typeof stored.amount !== "string" ||
+    typeof stored.recipient !== "string" ||
+    typeof stored.createdAt !== "string"
+  ) {
+    return null;
+  }
+
+  try {
+    const canonical = buildAssetBridgeHandoff(
+      {
+        direction: stored.direction,
+        asset: stored.token.symbol,
+        amount: stored.amount,
+        recipient: stored.recipient,
+        sourceAccount: stored.sourceAccount,
+      },
+      stored.createdAt,
+      environment,
+    );
+    if (
+      stored.requestId !== canonical.requestId ||
+      stored.idempotencyKey !== canonical.idempotencyKey ||
+      stored.digest !== canonical.digest ||
+      stored.snapshotExpiresAt !== canonical.snapshotExpiresAt ||
+      stored.officialBridgeUrl !== canonical.officialBridgeUrl
+    ) {
+      return null;
+    }
+    return canonical;
+  } catch {
+    return null;
+  }
 }
 
 export function buildAssetBridgeIntent(
@@ -214,67 +666,47 @@ export function buildAssetBridgeIntent(
   createdAt = new Date().toISOString(),
   environment: BridgeEnvironment = "testnet",
 ): BuiltBridgeIntent {
-  const direction = normalizeDirection(form.direction);
+  const handoff = buildAssetBridgeHandoff(form, createdAt, environment);
+  const direction = handoff.direction;
   const meta = DIRECTION_META[direction];
-  const asset = clean(form.asset, "GAS").toUpperCase();
-  const amount = normalizeAmount(form.amount);
-  const recipient = clean(form.recipient, "");
-
-  if (asset !== "GAS") {
-    throw new Error("Neo X asset bridge currently exposes GAS as the production token path.");
-  }
-  if (!recipient) {
-    throw new Error("Recipient address is required.");
-  }
-  if (!isValidTargetAddress(direction, recipient)) {
-    throw new Error(
-      meta.target === "neo-x"
-        ? "Recipient must be a Neo X (0x...) address for this direction."
-        : "Recipient must be a Neo N3 (N...) address for this direction.",
-    );
-  }
-
-  // Bind the digest to the environment too so a mainnet vs testnet intent for
-  // otherwise-identical inputs is distinguishable.
-  const digest = stableDigest(["asset", environment, direction, asset, amount, recipient]);
+  const { amount, recipient, digest } = handoff;
   const payload = {
-    kind: "axlabs.assetBridge.intent",
-    provider: "BaneLabs Native Bridge",
-    // Derive from the launched network instead of a testnet literal so a mainnet
-    // user gets a mainnet-labeled intent pointing at the mainnet bridge app.
+    kind: "neo.nativeBridge.reviewIntent",
+    provider: "Neo Native Bridge",
     environment,
-    // This console does not sign or submit anything: it is a local intent the
-    // user carries to the official bridge app to actually move funds.
     execution: "intent_only",
     fundsMoved: false,
     nextStep: bridgeAppUrl(environment),
+    requestId: handoff.requestId,
+    idempotencyKey: handoff.idempotencyKey,
     route: meta.route,
-    sourceChain: meta.source,
-    targetChain: meta.target,
+    source: handoff.source,
+    destination: handoff.destination,
     action: meta.action,
-    asset,
+    token: handoff.token,
+    sourceAccount: handoff.sourceAccount,
     amount,
     recipient,
-    expectedSettlement: "1-2 minutes after source transaction confirmation",
+    quote: handoff.quote,
+    localSnapshotExpiresAt: handoff.snapshotExpiresAt,
+    settlementStatus: "not-observed-by-this-miniapp",
     walletRequirement: meta.wallet,
     resources: {
       bridgeApp: bridgeAppUrl(environment),
       docs: BRIDGE_RESOURCES.assetBridgeDocs,
     },
-    // The digest is a local FNV reference for matching/copy, NOT a cryptographic
-    // signature and not chain-verifiable.
     digestKind: "local-reference",
     digest,
   };
   const operation: BridgeOperation = {
-    id: operationId("asset", digest),
+    id: handoff.requestId,
     kind: "asset",
     direction,
     route: meta.route,
-    title: `${amount} ${asset} ${meta.route}`,
+    title: `Review ${amount} ${handoff.token.symbol} ${meta.route}`,
     digest,
-    createdAt,
-    status: "Intent prepared",
+    createdAt: handoff.createdAt,
+    status: "Review ticket prepared",
     statusKey: "statusIntentPrepared",
     payload,
   };
@@ -283,94 +715,61 @@ export function buildAssetBridgeIntent(
     operation,
     payloadText: stringifyPayload(payload),
     timeline: buildStatusTimeline({ bridgeKind: "asset", direction, operationId: operation.id }),
-  };
-}
-
-export function buildMessageBridgeIntent(
-  form: MessageBridgeForm,
-  createdAt = new Date().toISOString(),
-  environment: BridgeEnvironment = "testnet",
-): BuiltBridgeIntent {
-  const direction = normalizeDirection(form.direction);
-  const meta = DIRECTION_META[direction];
-  const targetContract = clean(form.targetContract, "");
-  const method = clean(form.method, "onCrossChainMessage");
-  const payloadBody = clean(form.payload || (form as { message?: unknown }).message, "");
-  const gasLimit = normalizeGasLimit(form.gasLimit);
-
-  if (!targetContract) {
-    throw new Error("Target contract is required.");
-  }
-  if (!isValidTargetAddress(direction, targetContract)) {
-    throw new Error(
-      meta.target === "neo-x"
-        ? "Target contract must be a Neo X (0x...) address for this direction."
-        : "Target contract must be a Neo N3 (N...) address for this direction.",
-    );
-  }
-  if (!payloadBody) {
-    throw new Error("Message payload is required.");
-  }
-
-  const payloadDigest = stableDigest(["message-body", payloadBody]);
-  const digest = stableDigest(["message", environment, direction, targetContract, method, payloadDigest, gasLimit]);
-  const payload = {
-    kind: "axlabs.messageBridge.intent",
-    provider: "BaneLabs MessageBridge",
-    sdkPackage: "@bane-labs/bridge-sdk-ts",
-    // Derive from the launched network instead of a testnet literal.
-    environment,
-    // This console only builds the SDK handoff; it does not sign or send.
-    execution: "intent_only",
-    fundsMoved: false,
-    route: meta.route,
-    sourceChain: meta.source,
-    targetChain: meta.target,
-    targetContract,
-    method,
-    gasLimit,
-    payload: {
-      encoding: "utf8",
-      body: payloadBody,
-      digest: payloadDigest,
-    },
-    orderingModel: "per-direction nonce/root hash chain",
-    verificationModel: "validator-attested message batches",
-    resources: {
-      docs: BRIDGE_RESOURCES.messageBridgeDocs,
-      sdk: BRIDGE_RESOURCES.bridgeSdk,
-    },
-    // Local FNV reference, not a cryptographic signature.
-    digestKind: "local-reference",
-    digest,
-  };
-  const operation: BridgeOperation = {
-    id: operationId("message", digest),
-    kind: "message",
-    direction,
-    route: meta.route,
-    title: `${method} ${meta.route}`,
-    digest,
-    createdAt,
-    status: "Message intent prepared",
-    statusKey: "statusMessageIntentPrepared",
-    payload,
-  };
-
-  return {
-    operation,
-    payloadText: stringifyPayload(payload),
-    timeline: buildStatusTimeline({ bridgeKind: "message", direction, operationId: operation.id }),
+    handoff,
   };
 }
 
 export function buildStatusTimeline(form: StatusProbeForm): TimelineStep[] {
-  const kind = form.bridgeKind === "message" ? "message" : "asset";
   const operation = clean(form.operationId, "");
   const sourceTx = clean(form.sourceTx || (form as { txHash?: unknown }).txHash, "");
   const direction = normalizeDirection(form.direction);
   const route = bridgeRoute(direction);
-  const object = kind === "message" ? "message batch" : "asset transfer";
+  const asset = normalizeBridgeAsset(form.asset);
+  const object = `${asset} transfer`;
+  const sourceTransaction = form.sourceTransaction ?? "idle";
+  const sourceEvent = form.sourceEvent ?? "unverified";
+  const destinationEvent = form.destinationEvent ?? "unverified";
+  const destinationReadback = form.destinationReadback ?? "unverified";
+
+  const sourceState: TimelineState = sourceTransaction === "confirmed"
+    ? "done"
+    : sourceTransaction === "faulted"
+      ? "error"
+      : sourceTransaction === "unknown"
+        ? "unknown"
+        : sourceTx
+          ? "active"
+          : operation
+            ? "active"
+            : "waiting";
+  const sourceDetailKey = sourceTransaction === "confirmed"
+    ? "tlSourceConfirmed"
+    : sourceTransaction === "faulted"
+      ? "tlSourceFaulted"
+      : sourceTransaction === "pending"
+        ? "tlSourcePending"
+        : sourceTransaction === "checking"
+          ? "tlSourceChecking"
+        : sourceTransaction === "unknown"
+          ? "tlSourceUnknown"
+          : sourceTx
+            ? "tlSourceNeedsVerification"
+            : "tlSourceWaiting";
+  const sourceEventState: TimelineState = sourceEvent === "verified"
+    ? "done"
+    : sourceTransaction === "confirmed"
+      ? "unknown"
+      : "waiting";
+  const destinationEventState: TimelineState = destinationEvent === "verified"
+    ? "done"
+    : sourceEvent === "verified"
+      ? "active"
+      : "waiting";
+  const readbackState: TimelineState = destinationReadback === "verified"
+    ? "done"
+    : destinationEvent === "verified"
+      ? "active"
+      : "waiting";
 
   return [
     {
@@ -385,50 +784,288 @@ export function buildStatusTimeline(form: StatusProbeForm): TimelineStep[] {
       state: operation ? "done" : "active",
     },
     {
+      key: "official-wallet",
+      label: "Official wallet review",
+      labelKey: "tlOfficialWalletLabel",
+      detail: sourceTx
+        ? "A wallet-submitted source transaction is available for verification."
+        : `Reconnect both wallets and review any required ${asset} approval on the official bridge.`,
+      detailKey: sourceTx ? "tlOfficialWalletDone" : "tlOfficialWalletWaiting",
+      detailParams: { asset },
+      state: sourceTx ? "done" : operation ? "active" : "waiting",
+    },
+    {
       key: "source-submit",
       label: "Source transaction",
       labelKey: "tlSourceLabel",
       detail: sourceTx
-        ? `Source tx ${compactHash(sourceTx)} captured.`
+        ? `Source tx ${compactHash(sourceTx)} still requires a chain read.`
         : "Waiting for the wallet-signed source-chain transaction.",
-      detailKey: sourceTx ? "tlSourceCaptured" : "tlSourceWaiting",
+      detailKey: sourceDetailKey,
       detailParams: { sourceTx: sourceTx ? compactHash(sourceTx) : "" },
-      state: sourceTx ? "done" : operation ? "active" : "waiting",
+      state: sourceState,
     },
     {
-      key: "bridge-observed",
-      label: "Bridge observation",
-      labelKey: "tlObservationLabel",
-      detail:
-        kind === "message"
-          ? "Relayer reconstructs the directional message hash chain."
-          : "Relayer observes bridge events and reconstructs token hash-chain state.",
-      detailKey: kind === "message" ? "tlObservationMessage" : "tlObservationAsset",
+      key: "source-event",
+      label: "Source bridge event",
+      labelKey: "tlSourceEventLabel",
+      detail: sourceEvent === "verified"
+        ? "An event from the expected source bridge contract was found."
+        : "The source bridge event has not been verified.",
+      detailKey: sourceEvent === "verified"
+        ? "tlSourceEventVerified"
+        : sourceTransaction === "confirmed"
+          ? "tlSourceEventUnverified"
+          : "tlSourceEventWaiting",
       detailParams: {},
-      state: sourceTx ? "active" : "waiting",
+      state: sourceEventState,
     },
     {
-      key: "attestation",
-      label: "Validator attestation",
-      labelKey: "tlAttestationLabel",
-      detail: "Validator threshold signatures authenticate the next root commitment.",
-      detailKey: "tlAttestationDetail",
+      key: "destination-event",
+      label: "Destination bridge event",
+      labelKey: "tlDestinationEventLabel",
+      detail: "Destination delivery requires its own verified bridge event.",
+      detailKey: destinationEvent === "verified"
+        ? "tlDestinationEventVerified"
+        : "tlDestinationEventWaiting",
       detailParams: {},
-      state: "waiting",
+      state: destinationEventState,
     },
     {
-      key: "destination-finalized",
-      label: "Destination finalized",
-      labelKey: "tlDestinationLabel",
-      detail:
-        kind === "message"
-          ? "Destination contract receives the verified payload."
-          : "Destination chain releases or mints the bridged GAS.",
-      detailKey: kind === "message" ? "tlDestinationMessage" : "tlDestinationAsset",
+      key: "destination-readback",
+      label: "Destination balance readback",
+      labelKey: "tlDestinationReadbackLabel",
+      detail: "A destination-chain readback is required before delivery can be shown.",
+      detailKey: destinationReadback === "verified"
+        ? "tlDestinationReadbackVerified"
+        : "tlDestinationReadbackWaiting",
       detailParams: {},
-      state: "waiting",
+      state: readbackState,
     },
   ];
+}
+
+async function defaultRpcRequest(
+  url: string,
+  method: string,
+  params: unknown[] = [],
+): Promise<unknown> {
+  const response = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    timeoutMs: 8_000,
+  });
+  if (!response.ok) throw new Error(`Bridge RPC returned HTTP ${response.status}.`);
+  const payload = await response.json() as { result?: unknown; error?: { message?: unknown } };
+  if (payload.error) throw new Error(String(payload.error.message ?? "Bridge RPC request failed."));
+  return payload.result;
+}
+
+/**
+ * Exact native GAS balance read for a verified Neo X account. The public RPC
+ * identity is checked before and after the balance read so a failover or stale
+ * response can never be displayed under the wrong environment.
+ */
+export async function readNeoXGasBalance(
+  address: string,
+  environment: BridgeEnvironment,
+  rpc: RpcRequest = defaultRpcRequest,
+): Promise<{ units: bigint; display: string; network: string }> {
+  if (!isNeoXAddress(address)) throw new Error("Neo X wallet returned an invalid account.");
+  const network = environment === "testnet" ? "neo-x-testnet" : "neo-x-mainnet";
+  const config = NEO_X_CONFIG[network];
+  const expectedChainId = config.chainId;
+  const readChainId = async () => Number.parseInt(String(
+    await rpc(config.rpc, "eth_chainId", []),
+  ), 16);
+  const before = await readChainId();
+  if (before !== expectedChainId) {
+    throw new Error("Neo X balance RPC network identity does not match the selected environment.");
+  }
+  const raw = String(await rpc(config.rpc, "eth_getBalance", [address, "latest"]));
+  if (!/^0x[0-9a-fA-F]{1,64}$/.test(raw)) {
+    throw new Error("Neo X balance RPC returned an invalid integer amount.");
+  }
+  const units = BigInt(raw);
+  const after = await readChainId();
+  if (after !== before) {
+    throw new Error("Neo X balance RPC changed networks during the read.");
+  }
+  return { units, display: formatBridgeBaseUnits(units, 18), network };
+}
+
+export async function probeBridgeServiceBoundary(
+  environment: BridgeEnvironment,
+  rpc: RpcRequest = defaultRpcRequest,
+  checkedAt = new Date().toISOString(),
+): Promise<BridgeServiceBoundary> {
+  const n3Expected = environment === "testnet" ? 894710606 : 860833102;
+  const neoXNetwork = environment === "testnet" ? "neo-x-testnet" : "neo-x-mainnet";
+  const neoXConfig = NEO_X_CONFIG[neoXNetwork];
+  const [n3Result, neoXResult] = await Promise.allSettled([
+    rpc(getRpcUrl(environment), "getversion", []),
+    rpc(neoXConfig.rpc, "eth_chainId", []),
+  ]);
+  const n3Payload = n3Result.status === "fulfilled"
+    ? n3Result.value as { protocol?: { network?: unknown } } | null
+    : null;
+  const neoXChainId = neoXResult.status === "fulfilled"
+    ? Number.parseInt(String(neoXResult.value ?? ""), 16)
+    : Number.NaN;
+  return {
+    environment,
+    n3Rpc: Number(n3Payload?.protocol?.network) === n3Expected ? "ready" : "blocked",
+    neoXRpc: neoXChainId === neoXConfig.chainId ? "ready" : "blocked",
+    quoteService: "official-app-only",
+    destinationStatusService: "unavailable",
+    checkedAt,
+  };
+}
+
+function evidenceReason(state: SourceTransactionState): BridgeVerificationEvidence["reason"] {
+  if (state === "confirmed") return "confirmed-source-only";
+  if (state === "pending") return "source-pending";
+  if (state === "faulted") return "source-faulted";
+  return "source-unavailable";
+}
+
+export async function verifyBridgeSourceTransaction(
+  input: {
+    environment: BridgeEnvironment;
+    direction: BridgeDirection;
+    sourceTx: string;
+    requestId?: string;
+    intentDigest?: string;
+  },
+  rpc: RpcRequest = defaultRpcRequest,
+  checkedAt = new Date().toISOString(),
+): Promise<BridgeVerificationEvidence> {
+  const sourceTx = String(input.sourceTx ?? "").trim();
+  if (!isBridgeTransactionHash(sourceTx)) {
+    throw new Error("Enter a 0x-prefixed 32-byte transaction hash (64 hex characters).");
+  }
+  const networks = bridgeNetworks(input.direction, input.environment);
+  const fingerprint = stableDigest([
+    "bridge-source-verification-v2",
+    input.environment,
+    input.direction,
+    networks.source.chainId,
+    networks.destination.chainId,
+    input.requestId ?? "",
+    input.intentDigest ?? "",
+    sourceTx.toLowerCase(),
+  ]);
+  const requestId = clean(input.requestId, `N3X-VERIFY-${fingerprint.slice(2, 10).toUpperCase()}`);
+  let sourceTransaction: SourceTransactionState = "unknown";
+  let sourceBlock = "";
+  let sourceEvent: BridgeEvidenceState = "unverified";
+
+  if (networks.source.key === "neo-n3") {
+    const version = await rpc(getRpcUrl(input.environment), "getversion", []) as {
+      protocol?: { network?: unknown };
+    } | null;
+    const expectedMagic = input.environment === "testnet" ? 894710606 : 860833102;
+    if (Number(version?.protocol?.network) !== expectedMagic) {
+      throw new Error("Source RPC network identity does not match the selected Neo N3 environment.");
+    }
+    const [txResult, logResult] = await Promise.allSettled([
+      rpc(getRpcUrl(input.environment), "getrawtransaction", [sourceTx, true]),
+      rpc(getRpcUrl(input.environment), "getapplicationlog", [sourceTx]),
+    ]);
+    const tx = txResult.status === "fulfilled"
+      ? txResult.value as { blockhash?: unknown; blockindex?: unknown; confirmations?: unknown } | null
+      : null;
+    const appLog = logResult.status === "fulfilled"
+      ? logResult.value as { executions?: Array<{ vmstate?: unknown }> } | null
+      : null;
+    const vmStates = (appLog?.executions ?? []).map((execution) =>
+      String(execution.vmstate ?? "").toUpperCase()
+    );
+    if (vmStates.some((state) => state.includes("FAULT"))) {
+      sourceTransaction = "faulted";
+    } else if (vmStates.length > 0 && vmStates.every((state) => state.includes("HALT"))) {
+      sourceTransaction = "confirmed";
+    } else if (tx) {
+      sourceTransaction = Number(tx.confirmations ?? 0) > 0 || Boolean(tx.blockhash)
+        ? "confirmed"
+        : "pending";
+    }
+    sourceBlock = String(tx?.blockindex ?? tx?.blockhash ?? "");
+    // No canonical Neo N3 bridge-contract/event registry is shipped with this
+    // app, so a successful source execution is never upgraded to event proof.
+    sourceEvent = "unverified";
+  } else {
+    const neoXNetwork = input.environment === "testnet" ? "neo-x-testnet" : "neo-x-mainnet";
+    const neoXConfig = NEO_X_CONFIG[neoXNetwork];
+    try {
+      const chainId = Number.parseInt(String(
+        await rpc(neoXConfig.rpc, "eth_chainId", []),
+      ), 16);
+      if (chainId !== neoXConfig.chainId) {
+        throw new Error("Source RPC network identity does not match the selected Neo X environment.");
+      }
+      const [receiptResult, transactionResult] = await Promise.allSettled([
+        rpc(
+          neoXConfig.rpc,
+          "eth_getTransactionReceipt",
+          [sourceTx],
+        ),
+        rpc(
+          neoXConfig.rpc,
+          "eth_getTransactionByHash",
+          [sourceTx],
+        ),
+      ]);
+      const receipt = receiptResult.status === "fulfilled"
+        ? receiptResult.value as {
+            status?: unknown;
+            blockNumber?: unknown;
+          } | null
+        : null;
+      const transaction = transactionResult.status === "fulfilled"
+        ? transactionResult.value as { blockNumber?: unknown } | null
+        : null;
+      if (receiptResult.status === "rejected") {
+        sourceTransaction = "unknown";
+      } else if (!receipt) {
+        sourceTransaction = transaction ? "pending" : "unknown";
+      } else if (String(receipt.status ?? "").toLowerCase() === "0x0") {
+        sourceTransaction = "faulted";
+      } else if (String(receipt.status ?? "").toLowerCase() === "0x1") {
+        sourceTransaction = "confirmed";
+        sourceBlock = String(receipt.blockNumber ?? "");
+        // A successful receipt — even one touching the known bridge proxy — is
+        // not exact event proof. Without the authoritative ABI/topic plus
+        // decoded direction/token/amount/recipient/request binding, unrelated
+        // bridge activity could otherwise be mislabeled as this handoff.
+        sourceEvent = "unverified";
+      }
+    } catch (error) {
+      if (error instanceof Error && /network identity/i.test(error.message)) throw error;
+      sourceTransaction = "unknown";
+    }
+  }
+
+  return {
+    requestId,
+    fingerprint,
+    environment: input.environment,
+    direction: input.direction,
+    source: networks.source,
+    destination: networks.destination,
+    sourceTx,
+    sourceTransaction,
+    sourceBlock,
+    sourceEvent,
+    // The repository has no authenticated cross-chain status/readback service.
+    // These stay unverified even when the source transaction is confirmed.
+    destinationEvent: "unverified",
+    destinationReadback: "unverified",
+    checkedAt,
+    retryable: sourceTransaction === "pending" || sourceTransaction === "unknown",
+    reason: evidenceReason(sourceTransaction),
+  };
 }
 
 export function stringifyPayload(payload: Record<string, unknown>): string {
@@ -444,25 +1081,4 @@ export function compactHash(value: string): string {
 function clean(value: unknown, fallback: string): string {
   const text = String(value ?? "").trim();
   return text.length > 0 ? text : fallback;
-}
-
-function normalizeAmount(value: unknown): string {
-  const text = clean(value, "");
-  const amount = Number(text);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Amount must be greater than zero.");
-  }
-  return amount.toFixed(8).replace(/\.?0+$/, "");
-}
-
-function normalizeGasLimit(value: unknown): string {
-  const text = clean(value, "250000");
-  if (!/^\d+$/.test(text)) {
-    throw new Error("Gas limit must be a whole number of at least 21000.");
-  }
-  const limit = Number(text);
-  if (!Number.isInteger(limit) || limit < 21000) {
-    throw new Error("Gas limit must be a whole number of at least 21000.");
-  }
-  return String(limit);
 }

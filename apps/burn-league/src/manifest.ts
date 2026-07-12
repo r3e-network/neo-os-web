@@ -20,7 +20,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // ── Identity ─────────────────────────────────────────────────────────
   name: "Burn League",
-  description: "Burn tokens, earn rewards",
+  description: "Practice a local fire streak or join the verified TestNet GAS league",
   icon: "flame",
   category: "game",
   // shell "game" gives the focused launch page that renders the two-mode entry
@@ -30,6 +30,26 @@ export const manifest: MiniAppManifest = {
   // Two-mode opt-in (burn-league has no full gamePage block, so use the
   // top-level flag). Enables the guest "Play free" CTA alongside the GameFi one.
   supportsGuest: true,
+  // Paid play is intentionally TestNet-only. Runtime contract identity and
+  // season-duration gates reject the legacy two-minute MainNet deployment.
+  supportsGameFi: true,
+
+  // A paid-vs-local choice is a meaningful safety gate for this irreversible
+  // contest, so keep the designed launcher and make every visible line locale
+  // driven instead of falling back to the English manifest identity.
+  gamePage: {
+    heroBadgeKey: "launchBadge",
+    heroTitleKey: "launchTitle",
+    heroDescKey: "launchDescription",
+    primaryLabelKey: "launchPrimary",
+    ghostLabelKey: "rulesTitle",
+    ctaTitleKey: "launchCtaTitle",
+    ctaDescKey: "launchCtaDesc",
+    trustBadgeKeys: ["launchTrustChain", "launchTrustWallet", "launchTrustResult"],
+    categoryColor: "#0f9f78",
+    appIcon: "flame",
+    modes: { guest: true, gamefi: true },
+  },
 
   // ── Tabs ──────────────────────────────────────────────────────────────
   // The platform appends a "docs" tab automatically via defineMiniApp.

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   EPOCH_DURATION_FALLBACK_MS,
@@ -13,13 +13,17 @@ import { addressToScriptHash } from "../utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const BOB = "NUuPbNwrecVnAQauFTdMPaMQRgwsmFwjwR";
+const BOB = "NUuJw4C4XJFzxAvSZnFTfsNoWZytmQKXQP";
 const CONTRACT = "0x140f5faf5692d21421a79278b0e45b9b9bd4bb46";
 const ALICE_HASH = addressToScriptHash(ALICE);
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const STAKE_MEMO = "govmerc:stake";
 const BID_MEMO = "govmerc:bid";
 const ZERO_HASH = "0x0000000000000000000000000000000000000000";
+const ACTION_TXID = `0x${"a".repeat(64)}`;
+const PAYMENT_TXID = `0x${"b".repeat(64)}`;
+
+beforeEach(() => localStorage.clear());
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
@@ -111,6 +115,8 @@ interface ChainOpts {
   epochDuration?: string;
   /** Force the settleEpoch() invoke to throw. */
   settleThrows?: Error;
+  /** highestBid(currentEpoch), GAS base units. Defaults to the event maximum. */
+  highestBid?: string;
 }
 
 /**
@@ -120,22 +126,94 @@ interface ChainOpts {
  * OS proxies are involved.
  */
 function makeChain(opts: ChainOpts = {}) {
+  let epochState = opts.epoch ?? 0;
+  let stakeState = BigInt(opts.stakeOf ?? "0");
+  let rewardsState = BigInt(opts.pendingRewards ?? "0");
+  let creditState = BigInt(opts.gasCredit ?? "0");
+  const bidState = new Map<number, bigint>(
+    Object.entries(opts.bidOf ?? {}).map(([epoch, amount]) => [Number(epoch), BigInt(amount)]),
+  );
+  const eventHighest = (opts.bidEvents ?? [])
+    .filter((event) => Number((event as { state: Array<{ value: string }> }).state[0]?.value) === epochState)
+    .reduce((max, event) => {
+      const amount = BigInt((event as { state: Array<{ value: string }> }).state[2]?.value ?? "0");
+      return amount > max ? amount : max;
+    }, 0n);
+  let highestState = BigInt(opts.highestBid ?? eventHighest.toString());
+
   const invoke = vi.fn(
-    async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
+    async (op: string, args: ContractArg[], options?: {
+      waitForEvent?: string;
+      onTransactionSent?: (txid: string) => void;
+    }): Promise<TxResult> => {
       let event: unknown;
       if (op === "bid") {
         if (opts.bidThrows) throw opts.bidThrows;
-        if (options?.waitForEvent === "BidPlaced") {
-          event = bidEvent(opts.epoch ?? 0, ALICE, "100000000");
-        }
+        const add = BigInt(String(args[1]?.value ?? "0"));
+        const next = (bidState.get(epochState) ?? 0n) + add;
+        bidState.set(epochState, next);
+        creditState -= add;
+        if (next > highestState) highestState = next;
+        event = bidEvent(epochState, ALICE, next.toString());
       }
       if (op === "settleEpoch") {
         if (opts.settleThrows) throw opts.settleThrows;
-        if (options?.waitForEvent === "EpochSettled") {
-          event = { state: [{ type: "Integer", value: String(opts.epoch ?? 0) }] };
-        }
+        const settledEpoch = epochState;
+        event = { state: [
+          { type: "Integer", value: String(settledEpoch) },
+          { type: "Hash160", value: BOB },
+          { type: "Integer", value: highestState.toString() },
+          { type: "Integer", value: highestState.toString() },
+        ] };
+        epochState += 1;
+        highestState = 0n;
       }
-      return { txid: "0xtx", event, success: true };
+      if (op === "transfer") {
+        const amount = BigInt(String(args[2]?.value ?? "0"));
+        stakeState += amount;
+        event = { state: [
+          { type: "Hash160", value: ALICE },
+          { type: "Integer", value: amount.toString() },
+          { type: "Integer", value: stakeState.toString() },
+        ] };
+      }
+      if (op === "withdrawStake") {
+        const amount = BigInt(String(args[1]?.value ?? "0"));
+        stakeState -= amount;
+        event = { state: [
+          { type: "Hash160", value: ALICE },
+          { type: "Integer", value: amount.toString() },
+          { type: "Integer", value: stakeState.toString() },
+        ] };
+      }
+      if (op === "claimRewards") {
+        const amount = rewardsState;
+        rewardsState = 0n;
+        event = { state: [
+          { type: "Hash160", value: ALICE },
+          { type: "Integer", value: amount.toString() },
+        ] };
+      }
+      if (op === "reclaimBid") {
+        const targetEpoch = Number(args[1]?.value ?? 0);
+        const amount = bidState.get(targetEpoch) ?? 0n;
+        bidState.set(targetEpoch, 0n);
+        event = { state: [
+          { type: "Integer", value: String(targetEpoch) },
+          { type: "Hash160", value: ALICE },
+          { type: "Integer", value: amount.toString() },
+        ] };
+      }
+      if (op === "withdraw") {
+        const amount = creditState;
+        creditState = 0n;
+        event = { state: [
+          { type: "Hash160", value: ALICE },
+          { type: "Integer", value: amount.toString() },
+        ] };
+      }
+      options?.onTransactionSent?.(ACTION_TXID);
+      return { txid: ACTION_TXID, event, success: true, verified: Boolean(event) };
     },
   );
 
@@ -144,16 +222,17 @@ function makeChain(opts: ChainOpts = {}) {
     const epochArg = args && args[0] ? Number(args[0].value) : undefined;
     switch (op) {
       case "totalStaked": return opts.totalStaked ?? "0";
-      case "currentEpoch": return String(opts.epoch ?? 0);
-      case "stakeOf": return opts.stakeOf ?? "0";
-      case "pendingRewards": return opts.pendingRewards ?? "0";
-      case "gasCreditOf": return opts.gasCredit ?? "0";
+      case "currentEpoch": return String(epochState);
+      case "stakeOf": return stakeState.toString();
+      case "pendingRewards": return rewardsState.toString();
+      case "gasCreditOf": return creditState.toString();
+      case "highestBid": return highestState.toString();
       case "settlementWinner":
         return (epochArg !== undefined && opts.settlementWinner?.[epochArg]) || ZERO_HASH;
       case "settlementAmount":
         return (epochArg !== undefined && opts.settlementAmount?.[epochArg]) || "0";
       case "bidOf":
-        return (epochArg !== undefined && opts.bidOf?.[epochArg]) || "0";
+        return (epochArg !== undefined ? bidState.get(epochArg)?.toString() : undefined) ?? "0";
       case "epochDeadline": return opts.epochDeadline ?? "0";
       case "epochDuration": return opts.epochDuration ?? "300000";
       default: return "0";
@@ -176,24 +255,34 @@ function makeChain(opts: ChainOpts = {}) {
       _memo: string,
       op: string,
       _args: ContractArg[],
-      options?: { waitForEvent?: string },
+      options?: {
+        waitForEvent?: string;
+        onPaymentSent?: (txid: string) => void;
+        onTransactionSent?: (txid: string) => void;
+      },
     ): Promise<TxResult> => {
       let event: unknown;
       if (op === "bid") {
         if (opts.depositThrows) throw opts.depositThrows;
+        creditState += BigInt(_amount);
+        options?.onPaymentSent?.(PAYMENT_TXID);
         if (opts.bidThrows) {
           throw new DepositConfirmedActionFailedError(
             "bid",
-            "0xdeposit",
+            PAYMENT_TXID,
             opts.bidThrows,
             opts.bidSettlement ?? "confirmed",
           );
         }
-        if (options?.waitForEvent === "BidPlaced") {
-          event = bidEvent(opts.epoch ?? 0, ALICE, "100000000");
-        }
+        const add = BigInt(String(_args[1]?.value ?? "0"));
+        const next = (bidState.get(epochState) ?? 0n) + add;
+        bidState.set(epochState, next);
+        creditState -= add;
+        if (next > highestState) highestState = next;
+        event = bidEvent(epochState, ALICE, next.toString());
       }
-      return { txid: "0xtx", event, success: true };
+      options?.onTransactionSent?.(ACTION_TXID);
+      return { txid: ACTION_TXID, event, success: true, verified: Boolean(event) };
     },
   );
 
@@ -201,6 +290,7 @@ function makeChain(opts: ChainOpts = {}) {
     contractAddress: { get: () => CONTRACT },
     address: { get: () => ALICE },
     ensureWallet: vi.fn(async () => ALICE),
+    detectNetwork: vi.fn(async () => "neo-n3-mainnet"),
     invoke,
     invokeWithPayment,
     read,
@@ -243,6 +333,8 @@ describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => 
       });
       await missing.app.loadData();
       expect(warn).not.toHaveBeenCalled();
+      expect(missing.app.marketAvailable.get()).toBe(false);
+      expect(missing.app.readError.get()).toBe("loadFailed");
 
       const unexpected = setup({
         readThrows: {
@@ -250,6 +342,7 @@ describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => 
         },
       });
       await unexpected.app.loadData();
+      expect(unexpected.app.marketAvailable.get()).toBe(false);
       expect(warn).toHaveBeenCalledWith(
         "[useGovMerc] loadData failed:",
         "RPC node unavailable",
@@ -257,6 +350,40 @@ describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => 
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it("marks a failed highest-bid read unavailable instead of presenting a real zero", async () => {
+    const { app } = setup({
+      epoch: 3,
+      readThrows: { highestBid: new Error("RPC node unavailable") },
+    });
+    await app.loadData();
+    expect(app.marketAvailable.get()).toBe(true);
+    expect(app.highestBidAvailable.get()).toBe(false);
+  });
+
+  it("invalidates every dependent availability flag when the core market refresh fails", async () => {
+    const { app, read } = setup({ epoch: 3, highestBid: "200000000" });
+    await app.loadData();
+    expect(app.windowAvailable.get()).toBe(true);
+    expect(app.highestBidAvailable.get()).toBe(true);
+    expect(app.walletAvailable.get()).toBe(true);
+    expect(app.bidsAvailable.get()).toBe(true);
+
+    const originalRead = read.getMockImplementation()!;
+    read.mockImplementation(async (operation, args) => {
+      if (operation === "totalStaked") throw new Error("RPC unavailable");
+      return originalRead(operation, args);
+    });
+    await app.loadData();
+
+    expect(app.marketAvailable.get()).toBe(false);
+    expect(app.windowAvailable.get()).toBe(false);
+    expect(app.highestBidAvailable.get()).toBe(false);
+    expect(app.walletAvailable.get()).toBe(false);
+    expect(app.bidsAvailable.get()).toBe(false);
+    expect(app.settlementAvailable.get()).toBe(false);
+    expect(app.reclaimableAvailable.get()).toBe(false);
   });
 
   it("reads totalStaked / stakeOf as WHOLE NEO (never ÷1e8) and rewards/credit as GAS (÷1e8)", async () => {
@@ -431,6 +558,22 @@ describe("useGovMerc — bidding (GAS base units, deposit-then-act via payAndCal
     expect(bid![2]).toMatchObject({ waitForEvent: "BidPlaced" });
   });
 
+  it("funds only the credit shortfall instead of overpaying the full bid again", async () => {
+    const { app, invokeWithPayment } = setup({ epoch: 4, gasCredit: "100000000" });
+    await app.loadData();
+
+    app.bidAmount.set("2.5");
+    await app.placeBid();
+
+    // 1 GAS is already reusable credit, so only the remaining 1.5 GAS moves.
+    expect(invokeWithPayment).toHaveBeenCalledTimes(1);
+    expect(invokeWithPayment.mock.calls[0]?.[0]).toBe("150000000");
+    expect(invokeWithPayment.mock.calls[0]?.[3]).toEqual([
+      { type: "Hash160", value: ALICE_HASH },
+      { type: "Integer", value: "250000000" },
+    ]);
+  });
+
   it("rejects a first bid below 1 GAS before any chain call", async () => {
     const { app, invoke, invokeWithPayment } = setup({ epoch: 4, gasCredit: "0", bidEvents: [] });
     await app.loadData();
@@ -516,6 +659,7 @@ describe("useGovMerc — settlement (permissionless)", () => {
     const { app, invoke } = setup({
       epoch: 5,
       bidEvents: [bidEvent(5, BOB, "800000000")],
+      epochDeadline: String(Date.now() - 1_000),
     });
     await app.loadData();
     expect(app.bids.get()).toHaveLength(1);
@@ -685,6 +829,7 @@ describe("useGovMerc — v2 bidding window (epochDeadline / epochDuration)", () 
     const { app } = setup({ epoch: 2, epochDuration: "0" });
     await app.loadData();
     expect(app.epochDurationMs.get()).toBe(EPOCH_DURATION_FALLBACK_MS);
+    expect(app.windowAvailable.get()).toBe(false);
   });
 
   it("rejects a bid after the deadline BEFORE any chain call", async () => {

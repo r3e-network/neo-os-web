@@ -21,7 +21,8 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
   );
   const messages = read("apps/aa-relay-console/src/locale/messages.ts");
 
-  assert.match(playArea, /from "@shared\/components-react\/v2"/);
+  assert.match(playArea, /from "@shared\/components-react\/v2\/OpenUiLite"/);
+  assert.match(playArea, /from "@shared\/components-react\/v2\/PlayStage"/);
   assert.match(playArea, /OpenUiProvider/);
   assert.match(playArea, /PlayStage/);
   assert.match(playArea, /OpenUiPanel/);
@@ -34,42 +35,34 @@ test("AA Relay Console exposes a guarded wallet-style relay workspace", () => {
     "AA relay scene art must ship with the miniapp",
   );
 
-  assert.match(playArea, /className="relay-play-area mx2 mx2-cat-tool"/);
-  assert.match(playArea, /className="relay-scene"/);
-  assert.match(playArea, /className="relay-scene__board"/);
-  assert.match(playArea, /className="relay-scene__account-panel"/);
-  assert.match(playArea, /className="relay-scene__station-card"/);
-  assert.match(playArea, /className="relay-scene__line-card"/);
-  assert.match(playArea, /className="relay-scene__track"/);
-  assert.match(playArea, /className="relay-drawer"/);
-  assert.match(playArea, /drawerToggleLabel=\{t\("relayFlowLabel"\)\}/);
-  assert.match(playArea, /drawer=\{\{ title: t\("relayFlowLabel"\), children: drawer \}\}/);
+  assert.match(playArea, /className="aa-relay-play-area mx2 mx2-cat-tool"/);
+  assert.match(playArea, /className="aa-relay-scene"/);
+  assert.match(playArea, /className="aa-relay-scene__art"/);
+  assert.match(playArea, /className="aa-relay-scene__workspace"/);
+  assert.match(playArea, /className="aa-relay-scene__route"/);
+  assert.match(playArea, /className="aa-relay-scene__lifecycle"/);
+  assert.match(playArea, /className="aa-relay-drawer"/);
+  assert.match(playArea, /drawerToggleLabel=\{t\("openJobWorkspace"\)\}/);
+  assert.match(playArea, /drawer=\{\{ title: t\("jobWorkspace"\), children: drawer \}\}/);
 
-  assert.match(playArea, /function parseSponsor/);
-  assert.match(playArea, /JSON\.parse\(draftPayload\)/);
-  assert.match(playArea, /const submitReady = hasAa && payloadValid/);
-  assert.match(playArea, /void dispatch\("checkSponsor", draftAa, draftDapp\)/);
-  assert.match(playArea, /void dispatch\("requestSponsor", draftAa, draftDapp, draftAmount\)/);
-  assert.match(playArea, /void dispatch\("submitRelay", draftAa, draftDapp, draftPayload\)/);
-  assert.match(playArea, /disabled: !submitReady/);
-  assert.match(playArea, /secondary: \[\{ label: t\("sponsorCheck"\), onClick: handleCheckSponsor, disabled: !hasAa \|\| busy \}\]/);
-  assert.match(styles, /\.relay-play-area \.mx2-action-rail__row \.mx2-btn--primary:disabled/);
-  assert.match(styles, /\.relay-scene\s*\{[^}]*background:\s*#ffffff/s);
-  assert.match(styles, /\.relay-drawer\s*\{/);
+  assert.match(playArea, /parseRelayDraft\(/);
+  assert.match(playArea, /void dispatch\("prepareReview", draftAa, draftDapp, draftPayload\)/);
+  assert.match(playArea, /void dispatch\("trackReceipt"\)/);
+  assert.match(playArea, /void dispatch\("checkSponsor", draftAa, draftDapp, draftPayload\)/);
+  assert.match(playArea, /void dispatch\("importReceipt", receiptDraft\)/);
+  assert.match(playArea, /const primaryDisabled = busy \|\| \(!primaryTracks && !validation\.valid\)/);
+  assert.match(styles, /\.aa-relay-scene\s*\{/);
+  assert.match(styles, /\.aa-relay-drawer\s*\{/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(styles, /font-size:\s*clamp\(/);
   assert.doesNotMatch(styles, /radial-gradient/);
-  assert.match(composable, /aa\.isCheckingSponsorship\.get\(\)/);
-  assert.match(composable, /aa\.isRelaying\.get\(\)/);
-  assert.doesNotMatch(
-    composable,
-    /get:\s*\(\)\s*=>\s*aa\.isCheckingSponsorship,/,
-  );
-  assert.doesNotMatch(composable, /get:\s*\(\)\s*=>\s*aa\.isRelaying,/);
+  assert.match(composable, /type PersistedRelayJob/);
+  assert.match(composable, /localStorage\.setItem\(storageKey, JSON\.stringify\(snapshot\)\)/);
+  assert.match(composable, /inspectRelayReceipt\(review, receipt, fetcher, now\(\)\)/);
+  assert.match(composable, /async function loadAll\(\)/);
   assert.match(messages, /relayHeroTitle/);
   assert.match(messages, /relayStageTitle/);
-  assert.match(messages, /relaySubmitExplainer/);
-  assert.match(messages, /payloadInvalid/);
-  assert.match(messages, /sponsorBlocked/);
-  assert.match(messages, /relayBlocked/);
+  assert.match(messages, /reviewPackage:/);
+  assert.match(messages, /requestInvalid/);
+  assert.match(messages, /receiptRecovery/);
 });

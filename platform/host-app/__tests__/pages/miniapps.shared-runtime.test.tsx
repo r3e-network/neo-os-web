@@ -125,6 +125,44 @@ describe("MiniAppDetailPage shared runtime", () => {
     });
   });
 
+  it("gives guest-only MiniApps the full workspace instead of reserving an empty action rail", () => {
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-local-game",
+          name: "Local Game",
+          description: "A complete local game",
+          icon: "L",
+          category: "gaming",
+          entry_url: "/miniapps/local-game/index.html",
+          permissions: {},
+          operations: [],
+          detail_template: {
+            layout: "default",
+            tabs: [],
+            operation_panel: { operations: [] },
+          },
+          manifest: {
+            platform: { transactions: false },
+            permissions: [],
+            operation_panel: { operations: [] },
+          },
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    expect(screen.getByTestId("miniapp-detail-layout")).toHaveAttribute(
+      "data-action-rail",
+      "hidden",
+    );
+    expect(screen.queryByTestId("miniapp-actions")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mobile-action-dock")).not.toBeInTheDocument();
+    expect(screen.getByTestId("miniapp-playarea")).toBeInTheDocument();
+  });
+
   it("renders shared runtime bindings for shared-mode apps", () => {
     render(
       <MiniAppDetailPage

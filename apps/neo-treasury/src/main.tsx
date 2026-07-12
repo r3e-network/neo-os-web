@@ -10,14 +10,28 @@ import { messages } from "./locale/messages";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { fetchTreasuryData, type TreasuryData } from "./utils/treasury";
 import {
+  assertTreasurySpendableBalance,
+  assertTreasuryWalletNetwork,
+  buildPendingTreasuryTransfer,
   buildTreasuryTransferIntent,
+  formatTreasuryOperationError,
+  inspectPendingTreasuryTransfer,
+  normalizeTreasuryHash160,
+  normalizeTreasuryNetwork,
+  normalizeTreasuryTxid,
+  parsePendingTreasuryTransfer,
+  parseTreasuryBalance,
+  type PendingTreasuryTransfer,
+  type TreasurySettlementResult,
   type TreasuryTransferIntent,
+  TreasuryOperationError,
 } from "./utils/treasuryOperations";
 
 // Key remainder under the pinned "neo_treasury_" storage prefix — the on-disk
 // localStorage key stays the legacy runtime-cache "neo_treasury_cache"
 // byte-for-byte, so existing users keep their cached dashboard.
 const CACHE_KEY = "cache";
+const PENDING_TRANSFER_KEY_PREFIX = "pending-transfer-v1/";
 
 function formatAmount(value: number, maximumFractionDigits: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits });
@@ -34,6 +48,19 @@ defineMiniApp({
   storagePrefix: "neo_treasury_",
 
   setup(ctx) {
+    let disposed = false;
+    let loadRequestId = 0;
+    let confirmationRequestId = 0;
+    const selectedNetwork = (() => {
+      try {
+        return normalizeTreasuryNetwork(ctx.launchContext?.network ?? "mainnet");
+      } catch {
+        return null;
+      }
+    })();
+    const pendingStorageKey = selectedNetwork
+      ? `${PENDING_TRANSFER_KEY_PREFIX}${selectedNetwork}`
+      : null;
     const loading = createObservable(true);
     const error = createObservable("");
     const data = createObservable<TreasuryData | null>(null);
@@ -47,6 +74,33 @@ defineMiniApp({
     const disbursementError = createObservable("");
     const lastTxid = createObservable("");
     const lastIntent = createObservable<TreasuryTransferIntent | null>(null);
+    const pendingTransfer = createObservable<PendingTreasuryTransfer | null>(null);
+    const confirmationChecking = createObservable(false);
+    const recoveryDurable = createObservable(true);
+    const settlementStatus = createObservable("idle");
+    const settlementMessage = createObservable("");
+
+    if (pendingStorageKey && selectedNetwork) {
+      try {
+        const stored = ctx.framework.storage.local.get<unknown>(pendingStorageKey);
+        const parsed = parsePendingTreasuryTransfer(stored);
+        if (parsed?.network === selectedNetwork) {
+          pendingTransfer.set(parsed);
+          lastIntent.set(parsed);
+          lastTxid.set(parsed.txid);
+          settlementStatus.set("pending");
+          settlementMessage.set(ctx.t("disbursementConfirmationPending"));
+        } else if (stored) {
+          // An invalid recovery record must never be retried or used to
+          // authorize another transfer. Remove only that local record.
+          ctx.framework.storage.local.delete(pendingStorageKey);
+        }
+      } catch {
+        // The public dashboard remains available when local recovery storage is
+        // blocked. A later broadcast will surface the recovery limitation.
+        recoveryDurable.set(false);
+      }
+    }
 
     const totalUsdDisplay: Observable<string> = {
       get: () => {
@@ -61,18 +115,26 @@ defineMiniApp({
       subscribe: (listener) => data.subscribe(listener),
     };
     const totalNeoDisplay: Observable<string> = {
-      get: () =>
-        data.get()?.totalNeo !== undefined
-          ? formatAmount(data.get()!.totalNeo, 4)
-          : ctx.t("notAvailable"),
+      get: () => {
+        const d = data.get();
+        return d?.totalNeoDisplay ?? (
+          d?.totalNeo !== undefined
+            ? formatAmount(d.totalNeo, 4)
+            : ctx.t("notAvailable")
+        );
+      },
       set: () => {},
       subscribe: (listener) => data.subscribe(listener),
     };
     const totalGasDisplay: Observable<string> = {
-      get: () =>
-        data.get()?.totalGas !== undefined
-          ? formatAmount(data.get()!.totalGas, 4)
-          : ctx.t("notAvailable"),
+      get: () => {
+        const d = data.get();
+        return d?.totalGasDisplay ?? (
+          d?.totalGas !== undefined
+            ? formatAmount(d.totalGas, 4)
+            : ctx.t("notAvailable")
+        );
+      },
       set: () => {},
       subscribe: (listener) => data.subscribe(listener),
     };
@@ -83,12 +145,14 @@ defineMiniApp({
     };
 
     const loadData = async () => {
+      const requestId = ++loadRequestId;
+      if (disposed) return;
       loading.set(true);
       error.set("");
 
       try {
         const cached = ctx.framework.storage.local.get<TreasuryData>(CACHE_KEY);
-        if (cached) {
+        if (cached && !disposed && requestId === loadRequestId) {
           data.set(cached);
           // Cached balances/prices are not a live read — show the amber "stale"
           // signal until the fresh fetch resolves and sets real freshness, so old
@@ -101,12 +165,13 @@ defineMiniApp({
 
       try {
         const freshData = await fetchTreasuryData();
+        if (disposed || requestId !== loadRequestId) return;
         data.set(freshData);
-        // The fetch itself succeeded, but the on-chain price feed may have
-        // returned a delayed (still in-window) quote. Honor that: a delayed feed
-        // shows the amber "stale" signal, not the green "live synced" dot, so the
-        // USD total is never presented as fresh when its record is old.
-        stale.set(freshData.priceStale);
+        // A completed wallet-balance sweep is live even when the independent
+        // on-chain USD quote is delayed. Keep balance-cache freshness and price
+        // freshness separate so the UI never labels fresh native balances as
+        // cached merely because the valuation quote is old.
+        stale.set(false);
         try {
           ctx.framework.storage.local.set(CACHE_KEY, freshData);
         } catch (_e) {
@@ -115,6 +180,7 @@ defineMiniApp({
           // FRESH data as stale — the legacy safeWriteJSON lane swallowed it.
         }
       } catch (e) {
+        if (disposed || requestId !== loadRequestId) return;
         if (!data.get()) {
           error.set(formatErrorMessage(e, ctx.t("loadFailed")));
         } else {
@@ -124,7 +190,131 @@ defineMiniApp({
           console.warn("[neo-treasury] using cached data:", e instanceof Error ? e.message : String(e));
         }
       } finally {
-        loading.set(false);
+        if (!disposed && requestId === loadRequestId) {
+          loading.set(false);
+        }
+      }
+    };
+
+    const readNativeBalance = async (scriptHash: string, ownerHash: string) =>
+      parseTreasuryBalance(
+        await ctx.framework.chain.readRaw(
+          "balanceOf",
+          [{ type: "Hash160", value: ownerHash }],
+          { scriptHash },
+        ),
+      );
+
+    const persistPending = (pending: PendingTreasuryTransfer | null) => {
+      pendingTransfer.set(pending);
+      if (!pendingStorageKey) return false;
+      try {
+        if (pending) {
+          ctx.framework.storage.local.set(pendingStorageKey, pending);
+          const stored = parsePendingTreasuryTransfer(
+            ctx.framework.storage.local.get<unknown>(pendingStorageKey),
+          );
+          return stored?.txid === pending.txid && stored.bindingKey === pending.bindingKey;
+        }
+        ctx.framework.storage.local.delete(pendingStorageKey);
+        return true;
+      } catch {
+        // The in-memory recovery state still prevents duplicate submission for
+        // this session. The caller surfaces that refresh recovery is unavailable.
+        return false;
+      }
+    };
+
+    const settlementCopy = (result: TreasurySettlementResult) => {
+      switch (result.status) {
+        case "confirmed":
+          return ctx.t("disbursementConfirmed");
+        case "binding-mismatch":
+          return ctx.t("disbursementBindingMismatch");
+        case "readback-pending":
+          return ctx.t("disbursementReadbackPending");
+        case "unreachable":
+          return ctx.t("disbursementConfirmationUnavailable");
+        default:
+          return ctx.t("disbursementConfirmationPending");
+      }
+    };
+
+    const confirmPendingTransfer = async (pending?: PendingTreasuryTransfer | null) => {
+      const recovery = pending ?? pendingTransfer.get();
+      if (disposed || !recovery || confirmationChecking.get()) return null;
+      const requestId = ++confirmationRequestId;
+      confirmationChecking.set(true);
+      settlementStatus.set("checking");
+      settlementMessage.set(ctx.t("disbursementCheckingConfirmation"));
+      disbursementError.set("");
+      let latest: TreasurySettlementResult = {
+        status: "indexing",
+        eventMatched: false,
+        stateReadback: false,
+      };
+
+      try {
+        const confirmed = await ctx.framework.chain.waitForState(
+          async () => {
+            latest = await inspectPendingTreasuryTransfer(recovery, {
+              readRecipientBalance: readNativeBalance,
+              readSenderBalance: readNativeBalance,
+            });
+            return latest;
+          },
+          (value) => value.status === "confirmed",
+          { attempts: 4, firstDelayMs: 0, delayMs: 5_000 },
+        );
+        const result = confirmed ?? latest;
+        if (disposed || requestId !== confirmationRequestId) return result;
+
+        // Ignore a late poll from an older recovery run after the active record
+        // changed. This keeps confirmation idempotent across rapid retries.
+        if (pendingTransfer.get()?.txid !== recovery.txid) return result;
+        if (result.status === "confirmed") {
+          persistPending(null);
+          lastIntent.set(recovery);
+          lastTxid.set(recovery.txid);
+          settlementStatus.set("confirmed");
+          settlementMessage.set(ctx.t("disbursementConfirmed"));
+          disbursementStatus.set(ctx.t("disbursementConfirmed"));
+          void loadData();
+        } else {
+          settlementStatus.set(result.status);
+          const nextCopy = !recoveryDurable.get() && result.status !== "binding-mismatch"
+            ? ctx.t("disbursementRecoveryStorageUnavailable")
+            : settlementCopy(result);
+          settlementMessage.set(nextCopy);
+          disbursementStatus.set(nextCopy);
+          if (result.status === "binding-mismatch") {
+            disbursementError.set(ctx.t("disbursementBindingMismatch"));
+          }
+        }
+        return result;
+      } catch {
+        const result: TreasurySettlementResult = {
+          status: "unreachable",
+          eventMatched: latest.eventMatched,
+          stateReadback: false,
+        };
+        if (
+          !disposed &&
+          requestId === confirmationRequestId &&
+          pendingTransfer.get()?.txid === recovery.txid
+        ) {
+          settlementStatus.set(result.status);
+          const nextCopy = recoveryDurable.get()
+            ? ctx.t("disbursementConfirmationUnavailable")
+            : ctx.t("disbursementRecoveryStorageUnavailable");
+          settlementMessage.set(nextCopy);
+          disbursementStatus.set(nextCopy);
+        }
+        return result;
+      } finally {
+        if (!disposed && requestId === confirmationRequestId) {
+          confirmationChecking.set(false);
+        }
       }
     };
 
@@ -140,43 +330,128 @@ defineMiniApp({
       return { address: walletAddress };
     });
 
+    ctx.framework.actions.register("recoverDisbursement", async () => {
+      return confirmPendingTransfer();
+    });
+
     ctx.framework.actions.register("submitDisbursement", async (...args: unknown[]) => {
       if (disbursementSubmitting.get()) return null;
+      if (pendingTransfer.get()) {
+        return confirmPendingTransfer();
+      }
       const form = (args[0] ?? {}) as Record<string, unknown>;
       disbursementSubmitting.set(true);
       disbursementError.set("");
       disbursementStatus.set(ctx.t("disbursementSigning"));
 
       try {
+        if (!selectedNetwork) {
+          // Reuse the domain error and localized copy used by the PlayArea.
+          normalizeTreasuryNetwork(ctx.launchContext?.network);
+        }
+        const transferNetwork = selectedNetwork!;
         const walletAddress = await ctx.framework.chain.ensureWallet();
         address.set(walletAddress);
-        const intent = buildTreasuryTransferIntent(walletAddress, form);
+        const walletNetwork = await ctx.framework.chain.detectNetwork();
+        assertTreasuryWalletNetwork(transferNetwork, walletNetwork);
+        const intent = buildTreasuryTransferIntent(
+          walletAddress,
+          form,
+          transferNetwork,
+        );
         lastIntent.set(intent);
 
-        // app.chain.write with notify:'silent' (S2): the framework never
-        // toasts on this lane and errors throw unchanged, so this handler
-        // keeps owning its own error reformatting (formatErrorMessage) and
-        // status copy exactly as the pre-framework raw invoke did.
+        // Read both sides immediately before opening the wallet. Besides the
+        // spendability guard, these values become the authoritative post-event
+        // readback baseline persisted with the exact transaction binding.
+        const [senderBalance, recipientBalance] = await Promise.all([
+          readNativeBalance(intent.scriptHash, intent.senderHash),
+          readNativeBalance(intent.scriptHash, intent.recipientHash),
+        ]);
+        assertTreasurySpendableBalance(intent, senderBalance);
+
+        // The wallet can change accounts or networks while the balance reads
+        // are in flight. Re-resolve both immediately before opening the write
+        // prompt so the reviewed signer remains the signer encoded in `from`.
+        const finalWalletAddress = await ctx.framework.chain.ensureWallet();
+        const finalWalletHash = normalizeTreasuryHash160(finalWalletAddress, "Connected wallet");
+        if (finalWalletHash !== intent.senderHash) {
+          address.set(finalWalletAddress);
+          throw new TreasuryOperationError(
+            "treasuryErrorWalletChanged",
+            "Connected wallet changed while the transfer was being reviewed. Review the transfer again.",
+          );
+        }
+        assertTreasuryWalletNetwork(transferNetwork, await ctx.framework.chain.detectNetwork());
+
+        let recovery: PendingTreasuryTransfer | null = null;
+        const rememberBroadcast = (txid: string) => {
+          const next = buildPendingTreasuryTransfer(
+            intent,
+            txid,
+            senderBalance,
+            recipientBalance,
+          );
+          recovery = next;
+          const durableRecovery = persistPending(next);
+          recoveryDurable.set(durableRecovery);
+          lastTxid.set(next.txid);
+          settlementStatus.set("pending");
+          const pendingCopy = durableRecovery
+            ? ctx.t("disbursementConfirmationPending")
+            : ctx.t("disbursementRecoveryStorageUnavailable");
+          settlementMessage.set(pendingCopy);
+          disbursementStatus.set(pendingCopy);
+        };
+
+        // This native-token event is indexed under the NEO/GAS contract rather
+        // than this app id, so app.chain.waitForEvent cannot prove it. Persist
+        // the exact binding at the broadcast boundary, then verify the indexed
+        // native Transfer row + both balanceOf readbacks below.
         const result = await ctx.framework.chain.write({
           operation: "transfer",
           args: intent.args,
           scriptHash: intent.scriptHash,
           notify: "silent",
+          onTransactionSent: rememberBroadcast,
         });
 
-        lastTxid.set(result.txid || "");
-        disbursementStatus.set(ctx.t("disbursementSubmitted"));
-        // If the recipient is one of the watched wallets, the dashboard would
-        // otherwise stay stale until a manual Refresh. Re-load after a short
-        // delay to absorb RPC node-lag before re-reading balances.
-        if (result.txid) {
-          setTimeout(() => {
-            void loadData();
-          }, 6000);
+        const persistedAtBroadcast = pendingTransfer.get();
+        if (!persistedAtBroadcast || persistedAtBroadcast.bindingKey !== intent.bindingKey) {
+          rememberBroadcast(result.txid);
+        } else if (normalizeTreasuryTxid(result.txid) !== persistedAtBroadcast.txid) {
+          // A wallet/service disagreement over the broadcast txid is never a
+          // confirmed outcome. Keep the first persisted recovery record and
+          // require manual confirmation instead of guessing or rebroadcasting.
+          settlementStatus.set("binding-mismatch");
+          settlementMessage.set(ctx.t("disbursementBindingMismatch"));
+          throw new Error(ctx.t("disbursementBindingMismatch"));
+        } else {
+          recovery = persistedAtBroadcast;
         }
-        return result;
+
+        const settlement = await confirmPendingTransfer(recovery);
+        return {
+          ...result,
+          // A txid alone is only a broadcast acknowledgement. Expose verified
+          // true only after exact Transfer event and balance-state readback.
+          verified: settlement?.status === "confirmed",
+        };
       } catch (e) {
-        const message = formatErrorMessage(e, ctx.t("disbursementFailed"));
+        if (pendingTransfer.get()) {
+          if (settlementStatus.get() !== "binding-mismatch") {
+            settlementStatus.set("pending");
+            const pendingCopy = recoveryDurable.get()
+              ? ctx.t("disbursementConfirmationPending")
+              : ctx.t("disbursementRecoveryStorageUnavailable");
+            settlementMessage.set(pendingCopy);
+            disbursementStatus.set(pendingCopy);
+          }
+          throw e;
+        }
+        const message = e instanceof TreasuryOperationError
+          ? formatTreasuryOperationError(e, ctx.t)
+          : formatErrorMessage(e, ctx.t("disbursementFailed"));
         disbursementError.set(message);
         disbursementStatus.set(message);
         throw e;
@@ -188,6 +463,12 @@ defineMiniApp({
     const stopAddressSync = ctx.framework.chain.address.subscribe(() => {
       address.set(ctx.framework.chain.address.get() ?? "");
     });
+
+    if (pendingTransfer.get()) {
+      // Recovery never rebroadcasts: it only re-checks the persisted txid's
+      // exact native Transfer row and the bound sender/recipient state.
+      void confirmPendingTransfer(pendingTransfer.get());
+    }
 
     return {
       state: {
@@ -201,13 +482,23 @@ defineMiniApp({
         disbursementError,
         lastTxid,
         lastIntent,
+        pendingTransfer,
+        confirmationChecking,
+        recoveryDurable,
+        settlementStatus,
+        settlementMessage,
         totalUsdDisplay,
         totalNeoDisplay,
         totalGasDisplay,
         founderCount,
       },
       loadData,
-      cleanup: stopAddressSync,
+      cleanup: () => {
+        disposed = true;
+        loadRequestId += 1;
+        confirmationRequestId += 1;
+        stopAddressSync();
+      },
     };
   },
 });

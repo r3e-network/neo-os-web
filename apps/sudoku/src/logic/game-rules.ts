@@ -9,9 +9,18 @@ import type { Difficulty } from "./sudoku-engine";
 export const ENTRY_MEMO = "miniapp-sudoku:entry";
 export const FUND_MEMO = "miniapp-sudoku:fund";
 
+/**
+ * New paid entries stay disabled until a complete testnet start -> sealed deal
+ * -> move/undo -> signed settlement -> withdraw run has been witnessed. The
+ * dormant paid client remains available for a future certified release, but
+ * the published guest Sudoku never consults this flag or the chain.
+ */
+export const GAMEFI_NEW_ENTRIES_ENABLED = false;
+
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
+export const SETTLEMENT_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: Difficulty;
@@ -85,7 +94,13 @@ export function formatClock(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded";
+export type GameStatus =
+  | "committed"
+  | "dealt"
+  | "solved"
+  | "expired"
+  | "refunded"
+  | "unknown";
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
@@ -97,7 +112,20 @@ export function statusOf(raw: number): GameStatus {
       return "expired";
     case 4:
       return "refunded";
+    case 5:
+      // The contract has accepted the sealed operation log and is waiting for
+      // the oracle callback. It is neither solved nor safe to restart yet.
+      return "unknown";
     default:
       return "committed";
   }
+}
+
+/** The contract permits expireGame only after deadline + settlement grace. */
+export function canExpireAfterGrace(
+  deadline: number,
+  now = Date.now(),
+  graceMs = SETTLEMENT_GRACE_MS,
+): boolean {
+  return deadline > 0 && now > deadline + Math.max(0, graceMs);
 }

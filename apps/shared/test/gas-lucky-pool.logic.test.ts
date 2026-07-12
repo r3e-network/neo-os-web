@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { useGasLuckyPool } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
+import { useGasLuckyPool as useGasLuckyPoolImpl } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { createMiniAppFramework } from "@shared/react";
@@ -23,6 +23,16 @@ function makeApp(chain: unknown) {
     { services: { chain: chain as ChainService }, t } as never,
     { appId: "miniapp-gas-lucky-pool" },
   );
+}
+
+function useGasLuckyPool(
+  options: Parameters<typeof useGasLuckyPoolImpl>[0],
+) {
+  return useGasLuckyPoolImpl({
+    ...options,
+    paidLaneEnabled: options.paidLaneEnabled ?? true,
+    oneGateClaimEnabled: options.oneGateClaimEnabled ?? true,
+  });
 }
 
 function launch(poolId = "42") {
@@ -50,6 +60,45 @@ describe("OneGate Vault runtime logic", () => {
     delete (window as any).__OneGateBridge;
     delete (window as any).__OneGateDapiCallback;
     delete (window as any).webkit;
+  });
+
+  it("fails closed before wallet, chain, or backend work when the paid lane is disabled", async () => {
+    const chain = {
+      ensureWallet: vi.fn(),
+      invoke: vi.fn(),
+      invokeWithPayment: vi.fn(),
+      readArray: vi.fn(),
+      listEvents: vi.fn(),
+    };
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const pool = useGasLuckyPool({
+      app: makeApp(chain as any),
+      launchContext: keyLaunch(),
+      t,
+      paidLaneEnabled: false,
+      oneGateClaimEnabled: false,
+    });
+
+    await expect(
+      pool.createPool({
+        totalAmount: "10",
+        minClaim: "1",
+        maxClaim: "5",
+        maxClaims: "5",
+        expiryHours: "24",
+      }),
+    ).rejects.toThrow("gameFiMaintenanceBody");
+    await expect(pool.claimPool({ claimKey: CLAIM_KEY })).rejects.toThrow(
+      "gameFiMaintenanceBody",
+    );
+    await expect(pool.loadAll()).rejects.toThrow("gameFiMaintenanceBody");
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invoke).not.toHaveBeenCalled();
+    expect(chain.invokeWithPayment).not.toHaveBeenCalled();
+    expect(chain.readArray).not.toHaveBeenCalled();
+    expect(chain.listEvents).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("loads only recent pool and claim events instead of walking the whole event history", async () => {

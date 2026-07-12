@@ -32,15 +32,19 @@ export interface ReactAppConfigOptions {
   publicDir?: string;
 }
 
-function copyNeoManifestPlugin(appDir: string, outDir: string): Plugin {
+function copyNeoManifestPlugin(appDir: string): Plugin {
+  let resolvedOutDir = "dist";
   return {
     name: "miniapp-copy-neo-manifest",
     apply: "build",
+    configResolved(config) {
+      resolvedOutDir = config.build.outDir;
+    },
     closeBundle() {
       const source = path.join(appDir, "neo-manifest.json");
       if (!fs.existsSync(source)) return;
 
-      const target = path.resolve(appDir, outDir, "neo-manifest.json");
+      const target = path.resolve(appDir, resolvedOutDir, "neo-manifest.json");
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.copyFileSync(source, target);
     },
@@ -80,10 +84,9 @@ export function createReactAppConfig(appDir: string, options: ReactAppConfigOpti
   const optionAliases = options.alias
     ? Object.entries(options.alias).map(([find, replacement]) => ({ find, replacement }))
     : [];
-  const outDir = typeof options.build?.outDir === "string" ? options.build.outDir : "dist";
 
   return defineConfig({
-    plugins: [react(), copyNeoManifestPlugin(appDir, outDir), ...(options.plugins ?? [])],
+    plugins: [react(), copyNeoManifestPlugin(appDir), ...(options.plugins ?? [])],
     base: options.base ?? "./",
     resolve: {
       alias: [
@@ -148,6 +151,15 @@ export function createReactAppConfig(appDir: string, options: ReactAppConfigOpti
           manualChunks(id: string) {
             if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) {
               return "react-vendor";
+            }
+            if (id.includes("node_modules/@douyinfe/") || id.includes("node_modules/lucide-react/")) {
+              return "ui-vendor";
+            }
+            if (id.includes("node_modules/three/")) {
+              return "three-render";
+            }
+            if (id.includes("node_modules/cannon-es/")) {
+              return "physics-engine";
             }
             if (id.includes("node_modules/@noble/")) {
               return "noble-crypto";

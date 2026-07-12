@@ -1,11 +1,11 @@
 /**
  * PlayArea.tsx - Breakup Contract
  *
- * Social/NFT identity. The first screen is a pact desk: review partner, stake,
+ * Social identity. The first screen is a pact desk: review partner, stake,
  * duration, and the on-chain consequence before creating the wallet intent.
  * Contract actions live on concrete pact cards in the drawer.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   BadgeCheck,
   CalendarDays,
@@ -22,14 +22,22 @@ import {
 import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { OpenUiNotice, OpenUiPanel, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { addressToScriptHash } from "@shared/utils/neo";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextArea as OpenUiTextArea,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import type { RelationshipContractView } from "./types";
 import "./PlayArea.scss";
 
 interface P {
   t: (k: string, p?: Record<string, string | number>) => string;
   state: ObservableState;
-  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
+  dispatch: (n: string, ...a: unknown[]) => Promise<unknown>;
 }
 
 const PACT_IMAGE = "pact-table.webp";
@@ -56,10 +64,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const contractCount = num("contractCount");
   const activeCount = num("activeCount");
   const isLoading = bool("isLoading");
+  const actionPhase = str("actionPhase", "idle");
+  const hasPendingAction = bool("hasPendingAction");
   const serviceNotice = str("serviceNotice");
   const actionNotice = str("actionNotice");
+  const pendingNotice = str("pendingNotice");
   const lastSubmittedTitle = str("lastSubmittedTitle");
-  const creditBalance = str("creditBalance", "0");
+  const walletAddress = str("address");
+  const creditBalance = str("creditBalance", "—");
+  const creditKnown = bool("creditKnown");
   const hasCredit = bool("hasCredit");
   const contracts = (val("contracts") ?? []) as RelationshipContractView[];
 
@@ -68,22 +81,18 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const [duration, setDuration] = useState("30");
   const [contractTitle, setContractTitle] = useState("");
   const [contractTerms, setContractTerms] = useState("");
-  const [actionPreview, setActionPreview] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("setup");
-  const actionPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => {
-    if (actionPreviewTimeout.current) clearTimeout(actionPreviewTimeout.current);
-  }, []);
 
   const latestContract = contracts[0] ?? null;
   const previewTerms = contractTerms.trim() || latestContract?.terms || t("pactPreviewTerms");
-  const partnerReady = partnerAddress.trim().length > 0;
+  const partnerReady = /^N[0-9A-Za-z]{33}$/.test(partnerAddress.trim()) &&
+    Boolean(addressToScriptHash(partnerAddress.trim()));
   const titleReady = contractTitle.trim().length > 0;
-  const stakeReady = Number(stakeAmount) >= 1;
-  const durationReady = Number(duration) >= 30;
+  const stakeReady = /^(?:[1-9]\d*)(?:\.\d{1,8})?$/.test(stakeAmount.trim()) && Number(stakeAmount) >= 1;
+  const durationReady = /^[1-9]\d*$/.test(duration.trim()) && Number(duration) >= 30 && Number(duration) <= 3650;
   const formReady = partnerReady && titleReady && stakeReady && durationReady;
-  const busy = isLoading || actionPreview;
+  const actionBusy = actionPhase !== "idle";
+  const controlsLocked = isLoading || actionBusy || hasPendingAction;
   const pactTitle = contractTitle.trim() || latestContract?.title || t("contractTitlePlaceholder");
   const pactPartner = partnerReady
     ? compact(partnerAddress)
@@ -99,25 +108,23 @@ export default function PlayArea({ t, state, dispatch }: P) {
     return t("createHintReady");
   }, [durationReady, partnerReady, stakeReady, t, titleReady]);
 
-  const startPreview = () => {
-    if (actionPreviewTimeout.current) clearTimeout(actionPreviewTimeout.current);
-    setActionPreview(true);
-    actionPreviewTimeout.current = setTimeout(() => {
-      setActionPreview(false);
-      actionPreviewTimeout.current = null;
-    }, 1100);
-  };
-
-  const handleCreate = () => {
-    if (!formReady || busy) return;
-    startPreview();
-    void dispatch("createContract", {
+  const handleCreate = async () => {
+    if (!formReady || controlsLocked) return;
+    const created = await dispatch("createContract", {
       partnerAddress: partnerAddress.trim(),
       stakeAmount: stakeAmount.trim(),
       duration: duration.trim(),
       title: contractTitle.trim(),
       terms: contractTerms.trim(),
     });
+    if (created === true) {
+      setPartnerAddress("");
+      setStakeAmount("1");
+      setDuration("30");
+      setContractTitle("");
+      setContractTerms("");
+      setDrawerMode("contracts");
+    }
   };
 
   const handleRefresh = () => {
@@ -125,7 +132,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
   };
 
   const scene = (
-    <div className="breakup-scene" data-state={busy ? "creating" : formReady ? "ready" : "draft"}>
+    <div className="breakup-scene" data-state={actionBusy ? actionPhase : formReady ? "ready" : "draft"}>
       <section className="breakup-preview" aria-label={t("pactPreview")}>
         <div className="breakup-preview__header">
           <span>{t("pactPreview")}</span>
@@ -155,7 +162,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             </div>
             <div className="breakup-summary-card">
               <span><FileSignature size={16} /> {t("builderStepTerms")}</span>
-              <strong>{contractTerms.trim() ? t("builderStepTerms") : t("partnerTermsOffChain")}</strong>
+              <strong>{contractTerms.trim() ? t("notesAdded") : t("localNotes")}</strong>
             </div>
           </div>
           <div className="breakup-status-card" data-ready={formReady ? "true" : undefined}>
@@ -173,7 +180,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
       <section className="breakup-desk" aria-label={t("pactPreview")}>
         <div className="breakup-desk__media">
-          <img className="breakup-desk__image" src={PACT_IMAGE} alt="" aria-hidden="true" />
+          <img className="breakup-desk__image" src={PACT_IMAGE} alt={t("heroImageAlt")} />
         </div>
         <span className="breakup-desk__chip"><Sparkles size={14} />{t("heroTagStakeBacked")}</span>
         <div className="breakup-desk__pact" data-ready={formReady ? "true" : undefined}>
@@ -207,10 +214,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
   const drawer = (
     <div className="breakup-drawer">
-      {(serviceNotice || actionNotice || lastSubmittedTitle) && (
+      {(serviceNotice || actionNotice || pendingNotice || lastSubmittedTitle) && (
         <OpenUiNotice className="breakup-notices" icon={<Sparkles size={17} />} title={t("walletAction")}>
           {serviceNotice && <p>{serviceNotice}</p>}
           {actionNotice && <p>{actionNotice}</p>}
+          {pendingNotice && <p>{pendingNotice}</p>}
           {lastSubmittedTitle && <p>{t("lastSubmittedContract", { title: lastSubmittedTitle })}</p>}
         </OpenUiNotice>
       )}
@@ -252,34 +260,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 onChange={(event) => setPartnerAddress(event.target.value)}
                 placeholder={latestContract?.partner ? compact(latestContract.partner) : t("partnerPlaceholder")}
               />
-              <OpenUiTextField
-                className="breakup-field breakup-field--stake"
-                inputClassName="breakup-input--stake"
-                label={t("stakeLabel")}
-                value={stakeAmount}
-                onChange={(event) => setStakeAmount(event.target.value)}
-                placeholder={t("stakePlaceholder")}
-                inputMode="decimal"
-              />
-              <OpenUiTextField
-                className="breakup-field breakup-field--duration"
-                inputClassName="breakup-input--duration"
-                label={t("durationLabel")}
-                value={duration}
-                onChange={(event) => setDuration(event.target.value)}
-                placeholder={t("durationPlaceholder")}
-                inputMode="numeric"
-              />
-              <OpenUiTextArea
-                className="breakup-field breakup-field--terms mx2-open-field--compact"
-                textareaClassName="breakup-input--terms"
-                label={t("termsLabel")}
-                value={contractTerms}
-                onChange={(event) => setContractTerms(event.target.value)}
-                placeholder={t("contractTermsPlaceholder")}
-                maxLength={2000}
-                rows={3}
-              />
             </div>
             <div className="breakup-preset-board breakup-preset-board--drawer">
               <div className="breakup-preset-group" role="radiogroup" aria-label={t("stakeLabel")}>
@@ -319,6 +299,40 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 </div>
               </div>
             </div>
+            <details className="breakup-drawer-advanced">
+              <summary>{t("advancedPactDetails")}</summary>
+              <p>{t("advancedPactDetailsCopy")}</p>
+              <div className="breakup-drawer-advanced__grid">
+                <OpenUiTextField
+                  className="breakup-field breakup-field--stake"
+                  inputClassName="breakup-input--stake"
+                  label={t("stakeLabel")}
+                  value={stakeAmount}
+                  onChange={(event) => setStakeAmount(event.target.value)}
+                  placeholder={t("stakePlaceholder")}
+                  inputMode="decimal"
+                />
+                <OpenUiTextField
+                  className="breakup-field breakup-field--duration"
+                  inputClassName="breakup-input--duration"
+                  label={t("durationLabel")}
+                  value={duration}
+                  onChange={(event) => setDuration(event.target.value)}
+                  placeholder={t("durationPlaceholder")}
+                  inputMode="numeric"
+                />
+                <OpenUiTextArea
+                  className="breakup-field breakup-field--terms mx2-open-field--compact"
+                  textareaClassName="breakup-input--terms"
+                  label={t("termsLabel")}
+                  value={contractTerms}
+                  onChange={(event) => setContractTerms(event.target.value)}
+                  placeholder={t("contractTermsPlaceholder")}
+                  maxLength={2000}
+                  rows={3}
+                />
+              </div>
+            </details>
           </OpenUiPanel>
         )}
 
@@ -331,8 +345,14 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 title={t("creditRecoveryTitle")}
                 subtitle={`${creditBalance} GAS`}
               >
-                <button type="button" onClick={() => void dispatch("withdrawCredit")}>{t("recoverCredit")}</button>
+                <p>{t("creditRecoveryCopy")}</p>
+                <button type="button" disabled={controlsLocked} onClick={() => void dispatch("withdrawCredit")}>{t("recoverCredit")}</button>
               </OpenUiPanel>
+            )}
+            {walletAddress && !creditKnown && (
+              <OpenUiNotice className="breakup-notices" icon={<WalletCards size={16} />} title={t("creditUnknownTitle")}>
+                <p>{t("creditUnknownCopy")}</p>
+              </OpenUiNotice>
             )}
 
             <OpenUiPanel
@@ -363,20 +383,22 @@ export default function PlayArea({ t, state, dispatch }: P) {
                       <div className="breakup-contract__meta">
                         <span>{t("stake")}: <strong>{contract.stake} GAS</strong></span>
                         <span>{t("partner")}: <strong>{compact(contract.partner || contract.party2)}</strong></span>
+                        {contract.status === "active" && (
+                          <span>{t("duration")}: <strong>{contract.settleable ? t("readyToSettle") : t("daysRemaining", { count: contract.daysLeft })}</strong></span>
+                        )}
                       </div>
 
                       <div className="breakup-contract__actions">
                         {contract.status === "pending" && (
                           <>
-                            <button type="button" onClick={() => void dispatch("signContract", contract)}>{t("signContract")}</button>
-                            {contract.isCreator && <button type="button" onClick={() => void dispatch("cancelContract", contract)}>{t("cancelContract")}</button>}
+                            {contract.isPartner && <button type="button" disabled={controlsLocked} onClick={() => void dispatch("signContract", contract)}>{t("signContract")}</button>}
+                            {contract.isCreator && <button type="button" disabled={controlsLocked} onClick={() => void dispatch("cancelContract", contract)}>{t("cancelContract")}</button>}
                           </>
                         )}
                         {contract.status === "active" && (
-                          <>
-                            <button type="button" onClick={() => void dispatch("breakContract", contract)}>{t("breakContract")}</button>
-                            {contract.settleable && <button type="button" onClick={() => void dispatch("settleContract", contract)}>{t("settleContract")}</button>}
-                          </>
+                          contract.settleable
+                            ? <button type="button" disabled={controlsLocked} onClick={() => void dispatch("settleContract", contract)}>{t("settleContract")}</button>
+                            : <button type="button" disabled={controlsLocked} onClick={() => void dispatch("breakContract", contract)}>{t("breakContract")}</button>
                         )}
                         {contract.status !== "pending" && contract.status !== "active" && (
                           <span className="breakup-contract__closed"><XCircle size={14} />{t(contract.status || "ended")}</span>
@@ -400,9 +422,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
   );
 
   return (
-    <div className="breakup-contract-play-area mx2 mx2-cat-nft">
+    <div className="breakup-contract-play-area mx2 mx2-cat-social">
       <PlayStage
-        category="nft"
+        category="social"
         stage={{
           eyebrow: t("contractTitle"),
           title: t("title"),
@@ -417,20 +439,13 @@ export default function PlayArea({ t, state, dispatch }: P) {
         scene={scene}
         actions={{
           primary: {
-            label: busy ? t("preparingWallet") : t("createContract"),
-            onClick: handleCreate,
-            loading: busy,
-            disabled: busy || !formReady,
-            icon: <BadgeCheck size={17} />,
+            label: hasPendingAction ? t("checkPendingAction") : actionBusy ? t("preparingWallet") : t("createContract"),
+            onClick: hasPendingAction ? handleRefresh : handleCreate,
+            loading: actionBusy || (hasPendingAction && isLoading),
+            disabled: hasPendingAction ? actionBusy || isLoading : controlsLocked || !formReady,
+            icon: hasPendingAction ? <RefreshCw size={17} /> : <BadgeCheck size={17} />,
+            hint: hasPendingAction ? t("checkPendingHint") : createHint,
           },
-          secondary: [
-            {
-              label: t("refreshRecords"),
-              onClick: handleRefresh,
-              loading: isLoading,
-              icon: <RefreshCw size={16} />,
-            },
-          ],
         }}
         drawerToggleLabel={t("builderTitle")}
         drawer={{ title: t("builderTitle"), children: drawer }}

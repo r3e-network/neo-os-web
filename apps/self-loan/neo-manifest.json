@@ -3,7 +3,7 @@
   "id": "miniapp-self-loan",
   "name": "SelfLoan",
   "name_zh": "自我借贷",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Lock NEO to borrow GAS instantly across 20/30/40% LTV tiers. No liquidation, no interest, repay anytime — collateral is held in SelfLoan custody and returned in full on repayment (no third-party voting).",
   "description_zh": "自我借贷 — 锁定 NEO 即时借出 GAS，支持 20/30/40% 三档 LTV。无清算、无利息、随时可还——抵押品由 SelfLoan 托管，还款后全额退回（不参与任何第三方投票）。",
   "category": "finance",
@@ -29,37 +29,6 @@
   "contract_domains": {
     "neo-n3-mainnet": "selfloan.miniapp.neo"
   },
-  "runtime": {
-    "mode": "platform",
-    "modules": [
-      {
-        "binding": "collateralized-loan",
-        "platform": "PlatformDeFi",
-        "appId": "miniapp-self-loan",
-        "moduleType": 1,
-        "registration": {
-          "method": "registerProduct",
-          "type": 1
-        },
-        "operations": {
-          "create_loan": "borrow",
-          "repay": "repay",
-          "add_collateral": "addCollateral"
-        },
-        "networks": {
-          "neo-n3-mainnet": {
-            "contract_hash": "0x87f94598c78cb954ca8200d3964ded9b584d7250",
-            "registered": true,
-            "domain": "selfloan.miniapp.neo"
-          },
-          "neo-n3-testnet": {
-            "contract_hash": "0x87f94598c78cb954ca8200d3964ded9b584d7250",
-            "registered": true
-          }
-        }
-      }
-    ]
-  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
@@ -75,7 +44,7 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://self-loan"
   },
@@ -93,16 +62,13 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-05-02T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": true,
   "featured_order": 1,
   "technologies": {
     "keeper": {
-      "enabled": true,
-      "description": "Auto-monitors health factor and triggers alerts",
-      "conditions": [
-        "health_factor_threshold"
-      ]
+      "enabled": false,
+      "description": "No keeper or automatic repayment is active in the deployed standalone contract; borrowers repay manually."
     }
   }
 }

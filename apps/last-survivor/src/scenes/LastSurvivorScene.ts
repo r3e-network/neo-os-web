@@ -9,6 +9,11 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameBridgeError, GameState } from "@framework/phaser";
 import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
+import {
+  getLastSurvivorTransactionGate,
+  type LastSurvivorGateReason,
+  type LastSurvivorTransactionGate,
+} from "../logic/transaction-gate";
 
 const SURVIVOR_ASSETS = {
   arena: "last-survivor-arena",
@@ -26,7 +31,7 @@ const C = {
   muted: 0x806f56,
   gold: 0xf4b840,
   goldDeep: 0xb87917,
-  green: 0x16a86b,
+  green: 0x0c8150,
   greenSoft: 0xdff7e8,
   orange: 0xf28a2e,
   red: 0xd84d3f,
@@ -73,6 +78,7 @@ export class LastSurvivorScene extends BaseScene {
   private heroImage!: Phaser.GameObjects.Image;
   private heroFrame!: Phaser.GameObjects.Graphics;
   private orbitTokens: Phaser.GameObjects.Image[] = [];
+  private potIcon!: Phaser.GameObjects.Image;
 
   private potText!: Phaser.GameObjects.Text;
   private prizePoolText!: Phaser.GameObjects.Text;
@@ -104,6 +110,7 @@ export class LastSurvivorScene extends BaseScene {
   private lastNeedsSync = false;
   private lastDangerTier = 0;
   private lastUserKeys = -1;
+  private lastGuestLeader = "";
 
   constructor() {
     super("LastSurvivorScene");
@@ -141,7 +148,6 @@ export class LastSurvivorScene extends BaseScene {
     const leader = this.str("lastBuyerLabel", "--");
     const cost = this.str("estimatedCost", "0.00");
     const validation = this.str("keyValidationError", "");
-    const serviceNotice = this.str("serviceNotice", "");
     // Guest is a purely local drill — nothing is at stake, so the per-key GAS
     // cost is replaced by a neutral local label (all other copy arrives
     // pre-localized + mode-aware through the bridge from PhaserPlayArea).
@@ -154,17 +160,20 @@ export class LastSurvivorScene extends BaseScene {
     const isBuying = this.bool("isBuyingKeys");
     const isSettling = this.bool("isSettling");
     const needsLifecycleSync = this.bool("needsLifecycleSync");
-    const roundReady = this.bool("roundDataAvailable");
+    const guestLeader = this.str("guestLeaderLabel", "");
 
     if (KEY_PRESETS.includes(bridgeKeyCount as (typeof KEY_PRESETS)[number])) {
       this.selectedKeyCount = bridgeKeyCount;
     }
 
     this.prizePoolText.setText(this.str("scenePrizePool", "Prize pool"));
+    this.potIcon.setTexture(guestMode ? SURVIVOR_ASSETS.logo : SURVIVOR_ASSETS.gasIcon);
     this.choosePackText.setText(this.str("sceneChoosePack", "Choose key pack"));
     this.potText.setText(pot);
     this.roundText.setText(
-      roundStatus ||
+      needsLifecycleSync
+        ? this.str("sceneRolloverReady", "Rollover ready")
+        : roundStatus ||
         (isRoundActive
           ? this.str("sceneLiveRound", "Live round")
           : this.str("sceneWaitingRound", "Waiting for round")),
@@ -184,20 +193,19 @@ export class LastSurvivorScene extends BaseScene {
     this.userKeysText.setText(this.str("sceneYoursLine", `${userKeys} yours`));
     this.costText.setText(guestMode ? this.str("sceneGuestCost", "Local · no cost") : `${cost} GAS`);
 
+    const gate = this.transactionGate();
     this.statusText.setText(
       validation
         ? compactError(validation)
-        : serviceNotice
-          ? this.str("sceneStatusServiceDown", "Arena service unavailable. Connect wallet and refresh.")
-          : needsLifecycleSync
-            ? this.str("sceneStatusSettle", "Settle to pay the winner and open a fresh round.")
-            : isRoundActive
-              ? this.str("sceneStatusBuy", "Choose keys, then buy to extend the clock.")
-              : roundReady
-                ? this.str("sceneStatusWaiting", "Waiting for the next live round.")
-                : this.str("sceneStatusConnect", "Connect wallet and sync the arena."),
+        : this.gateStatus(gate.reason),
     );
-    this.statusText.setColor(validation ? "#d84d3f" : "#806f56");
+    this.statusText.setColor(
+      validation || gate.reason === "service-unavailable"
+        ? "#b42318"
+        : gate.reason === "insufficient-gas" || gate.reason === "settle-required"
+          ? "#8a570f"
+          : "#806f56",
+    );
     this.noticeText.setText(
       isBuying
         ? this.str("sceneNoticeBuying", "Wallet confirmation in progress...")
@@ -230,6 +238,13 @@ export class LastSurvivorScene extends BaseScene {
     }
     this.lastUserKeys = userKeys;
 
+    // Local rivals make guest mode a real last-buyer duel. A rival takeover
+    // gives a short arena jolt; reclaiming the seat gives a bright score beat.
+    if (guestMode && guestLeader && this.lastGuestLeader && guestLeader !== this.lastGuestLeader) {
+      this.playLeaderSwap(this.bool("guestLeaderIsPlayer"));
+    }
+    this.lastGuestLeader = guestMode ? guestLeader : "";
+
     // Elimination pressure: low warning tone once per danger-tier increase.
     const dangerTier = dangerPct > 72 ? 2 : dangerPct > 42 ? 1 : 0;
     if (dangerTier > this.lastDangerTier && isRoundActive) {
@@ -240,8 +255,39 @@ export class LastSurvivorScene extends BaseScene {
 
   protected onBridgeError(error: GameBridgeError): void {
     this.sfx.play("error");
-    this.statusText?.setText(compactError(error.message));
-    this.statusText?.setColor("#d84d3f");
+    this.statusText?.setText(
+      compactError(error.message) || this.str("sceneActionError", "Action failed. Try again."),
+    );
+    this.statusText?.setColor("#b42318");
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (!this.heroContainer || !this.heroImage) return;
+
+    if (enabled) {
+      this.dangerPulse?.stop();
+      this.dangerPulse = null;
+      this.tweens.killTweensOf([
+        this.heroContainer,
+        this.heroImage,
+        ...this.orbitTokens,
+        this.dangerHalo,
+      ]);
+      this.heroContainer.setY(176).setScale(1);
+      this.heroImage.setDisplaySize(366, 236).setAlpha(1);
+      this.orbitTokens.forEach((token) => token.setY(57).setScale(1));
+      const active = this.bool("isRoundActive") &&
+        !this.bool("needsLifecycleSync") &&
+        this.bool("shouldPulse");
+      this.dangerHalo?.setAlpha(active ? 0.14 : 0);
+      return;
+    }
+
+    this.startAmbientMotion();
+    const active = this.bool("isRoundActive") &&
+      !this.bool("needsLifecycleSync") &&
+      (this.bool("shouldPulse") || this.num("dangerProgress", 0) > 72);
+    this.setDangerPulse(active);
   }
 
   private buildBackground(W: number, H: number): void {
@@ -283,7 +329,7 @@ export class LastSurvivorScene extends BaseScene {
     card.lineStyle(1, C.stroke, 1);
     card.strokeRoundedRect(30, 28, W - 60, 58, 18);
 
-    const gas = this.add.image(58, 57, SURVIVOR_ASSETS.gasIcon).setDisplaySize(28, 28);
+    this.potIcon = this.add.image(58, 57, SURVIVOR_ASSETS.gasIcon).setDisplaySize(28, 28);
     this.potText = this.add.text(82, 45, "0.00 GAS", {
       fontFamily: FONT,
       fontSize: "20px",
@@ -302,10 +348,10 @@ export class LastSurvivorScene extends BaseScene {
       fontFamily: FONT,
       fontSize: "12px",
       fontStyle: "700",
-      color: "#16a86b",
+      color: "#0c8150",
     }).setOrigin(1, 0.5);
 
-    this.orbitTokens.push(gas);
+    this.orbitTokens.push(this.potIcon);
   }
 
   private buildTimerConsole(W: number): void {
@@ -357,7 +403,7 @@ export class LastSurvivorScene extends BaseScene {
       fontFamily: FONT,
       fontSize: "13px",
       fontStyle: "700",
-      color: "#b87917",
+      color: "#8a570f",
     }).setOrigin(1, 0);
 
     const startX = 76;
@@ -393,10 +439,19 @@ export class LastSurvivorScene extends BaseScene {
     this.bindGameButton(this.buyButtonBg, {
       targets: this.buyButton,
       pressScale: 0.96,
-      enabled: () => this.canBuy(),
+      enabled: () => this.transactionGate().primaryEnabled,
       onPress: () => {
-        this.sfx.play("start");
-        this.dispatch("buyKeys", this.selectedKeyCount);
+        const gate = this.transactionGate();
+        if (!gate.primaryEnabled) return;
+        if (gate.primaryAction === "connect") {
+          this.sfx.play("tap");
+          this.dispatch("connectWallet");
+          return;
+        }
+        if (gate.primaryAction === "buy") {
+          this.sfx.play("start");
+          this.dispatch("buyKeys", this.selectedKeyCount);
+        }
       },
     });
 
@@ -460,6 +515,7 @@ export class LastSurvivorScene extends BaseScene {
     this.bindGameButton(bg, {
       targets: container,
       pressScale: 0.94,
+      enabled: () => this.transactionGate().presetsEnabled,
       onPress: () => {
         this.sfx.play("tap");
         this.selectKeyCount(value);
@@ -471,6 +527,7 @@ export class LastSurvivorScene extends BaseScene {
   }
 
   private selectKeyCount(value: string): void {
+    if (!this.transactionGate().presetsEnabled) return;
     if (this.selectedKeyCount === value) return;
     this.selectedKeyCount = value;
     this.renderPresets();
@@ -485,8 +542,10 @@ export class LastSurvivorScene extends BaseScene {
   }
 
   private renderPresets(): void {
+    const presetsEnabled = this.transactionGate().presetsEnabled;
     for (const view of this.presetViews) {
       const active = view.value === this.selectedKeyCount;
+      view.container.setAlpha(presetsEnabled ? 1 : 0.56);
       view.bg.clear();
       view.bg.fillStyle(active ? C.surfaceWarm : C.surface, 1);
       view.bg.fillRoundedRect(-34, -30, 68, 60, 16);
@@ -494,14 +553,14 @@ export class LastSurvivorScene extends BaseScene {
       view.bg.strokeRoundedRect(-34, -30, 68, 60, 16);
       view.label.setColor(active ? "#2b2418" : "#604d35");
       view.hint.setText(this.presetUnit(view.value));
-      view.hint.setColor(active ? "#b87917" : "#806f56");
+      view.hint.setColor(active ? "#8a570f" : "#806f56");
     }
   }
 
   private renderButtons(): void {
-    const canBuy = this.canBuy();
-    const canSettle = this.canSettle();
-    const isBuying = this.bool("isBuyingKeys");
+    const gate = this.transactionGate();
+    const primaryEnabled = gate.primaryEnabled;
+    const canSettle = gate.settleEnabled;
     const isSettling = this.bool("isSettling");
     const showSettle = this.bool("needsLifecycleSync");
     const buyWidth = showSettle ? 236 : 342;
@@ -514,20 +573,16 @@ export class LastSurvivorScene extends BaseScene {
     );
 
     this.buyButtonBg.clear();
-    this.buyButtonBg.fillStyle(canBuy ? C.gold : C.disabled, 1);
+    this.buyButtonBg.fillStyle(primaryEnabled ? C.gold : C.disabled, 1);
     this.buyButtonBg.fillRoundedRect(-buyHalf, -25, buyWidth, 50, 16);
-    this.buyButtonBg.lineStyle(2, canBuy ? C.goldDeep : C.stroke, 0.8);
+    this.buyButtonBg.lineStyle(2, primaryEnabled ? C.goldDeep : C.stroke, 0.8);
     this.buyButtonBg.strokeRoundedRect(-buyHalf, -25, buyWidth, 50, 16);
-    if (canBuy) {
+    if (primaryEnabled) {
       this.buyButtonBg.fillStyle(0xffffff, 0.18);
       this.buyButtonBg.fillRoundedRect(-buyHalf, -25, buyWidth, 18, { tl: 16, tr: 16, bl: 0, br: 0 });
     }
-    this.buyButtonLabel.setText(
-      isBuying
-        ? this.str("sceneBuying", "Buying...")
-        : `${this.str("sceneBuyVerb", "Buy")} ${this.selectedKeyCount} ${this.presetUnit(this.selectedKeyCount)}`,
-    );
-    this.buyButtonLabel.setColor(canBuy ? "#3a2609" : "#806f56");
+    this.buyButtonLabel.setText(this.primaryButtonLabel(gate));
+    this.buyButtonLabel.setColor(primaryEnabled ? "#3a2609" : "#806f56");
 
     this.settleButton.setVisible(showSettle);
     this.settleButtonBg.clear();
@@ -536,7 +591,11 @@ export class LastSurvivorScene extends BaseScene {
     this.settleButtonBg.lineStyle(2, canSettle ? 0x0c8150 : C.stroke, 0.8);
     this.settleButtonBg.strokeRoundedRect(-61, -25, 122, 50, 16);
     this.settleButtonLabel.setText(
-      isSettling ? this.str("sceneSettling", "Settling...") : this.str("sceneSettleWord", "Settle"),
+      isSettling
+        ? this.str("sceneSettling", "Settling...")
+        : this.str("appMode", "gamefi") !== "guest" && !this.bool("walletConnected")
+          ? this.str("sceneConnectFirst", "Connect first")
+          : this.str("sceneSettleWord", "Settle"),
     );
     this.settleButtonLabel.setColor(canSettle ? "#ffffff" : "#806f56");
   }
@@ -580,6 +639,8 @@ export class LastSurvivorScene extends BaseScene {
   private setDangerPulse(active: boolean): void {
     if (!this.dangerHalo) return;
     if (this.reducedMotion) {
+      this.dangerPulse?.stop();
+      this.dangerPulse = null;
       this.dangerHalo.setAlpha(active ? 0.14 : 0);
       return;
     }
@@ -601,18 +662,120 @@ export class LastSurvivorScene extends BaseScene {
     }
   }
 
-  private canBuy(): boolean {
-    return (
-      this.bool("roundDataAvailable") &&
-      this.bool("isRoundActive") &&
-      !this.bool("needsLifecycleSync") &&
-      !this.bool("isBuyingKeys") &&
-      !this.bool("isSettling")
-    );
+  private transactionGate(): LastSurvivorTransactionGate {
+    return getLastSurvivorTransactionGate({
+      appMode: this.str("appMode", "gamefi"),
+      walletConnected: this.bool("walletConnected"),
+      selectedCount: Math.floor(Number(this.selectedKeyCount) || 0),
+      estimatedCostGas: this.num("estimatedCostGas", Number(this.str("estimatedCost", "0")) || 0),
+      prepaidCredit: this.num("prepaidCredit", 0),
+      walletGasBalance: this.num("walletGasBalance", 0),
+      roundDataAvailable: this.bool("roundDataAvailable"),
+      writeDataAvailable: this.bool("writeDataAvailable"),
+      storageHealthy: this.bool("storageHealthy"),
+      isRoundActive: this.bool("isRoundActive"),
+      needsLifecycleSync: this.bool("needsLifecycleSync"),
+      newPaidRoundsEnabled:
+        this.str("appMode", "gamefi") === "guest" || this.bool("paidActionsAvailable"),
+      hasHistoricalPosition:
+        this.bool("purchasePending") ||
+        this.bool("needsLifecycleSync") ||
+        this.num("prepaidCredit", 0) > 0 ||
+        this.num("userKeys", 0) > 0,
+      isBuyingKeys: this.bool("isBuyingKeys"),
+      purchasePending: this.bool("purchasePending"),
+      isSettling: this.bool("isSettling"),
+      isLoading: this.bool("isLoading"),
+      isConnectingWallet: this.bool("isConnectingWallet"),
+      hasValidationError: Boolean(this.str("keyValidationError", "")),
+      guestMoveReady: this.bool("guestMoveReady"),
+    });
   }
 
   private canSettle(): boolean {
-    return this.bool("needsLifecycleSync") && !this.bool("isSettling") && !this.bool("isBuyingKeys");
+    return this.transactionGate().settleEnabled;
+  }
+
+  private primaryButtonLabel(gate: LastSurvivorTransactionGate): string {
+    switch (gate.reason) {
+      case "buying":
+        return this.str("sceneBuying", "Buying...");
+      case "confirming":
+        return this.str("sceneConfirming", "Confirming...");
+      case "settling":
+        return this.str("sceneSettling", "Settling...");
+      case "loading":
+        return this.str("sceneSyncing", "Syncing...");
+      case "connecting":
+        return this.str("sceneConnecting", "Connecting...");
+      case "connect-wallet":
+        return this.str("sceneConnectWallet", "Connect wallet");
+      case "service-unavailable":
+        return this.str("sceneServiceShort", "Service unavailable");
+      case "financial-state-unavailable":
+        return this.str("sceneFinancialStateShort", "Wallet state unavailable");
+      case "recovery-storage-unavailable":
+        return this.str("sceneRecoveryStorageShort", "Recovery unavailable");
+      case "settle-required":
+        return this.str("sceneSettleFirst", "Settle first");
+      case "round-waiting":
+        return this.str("sceneWaitingShort", "Round syncing");
+      case "paid-disabled":
+        return this.str("scenePaidUnavailable", "GameFi validation in progress");
+      case "await-rival":
+        return this.str("sceneAwaitRival", "Hold the seat");
+      case "invalid-selection":
+        return this.str("sceneInvalidSelection", "Choose a valid pack");
+      case "insufficient-gas":
+        return this.str("sceneInsufficientGas", "Insufficient GAS");
+      case "ready":
+      default:
+        return this.str(
+          "sceneBuyQuote",
+          `${this.str("sceneBuyVerb", "Buy")} ${this.selectedKeyCount} ${this.presetUnit(this.selectedKeyCount)}`,
+        );
+    }
+  }
+
+  private gateStatus(reason: LastSurvivorGateReason): string {
+    switch (reason) {
+      case "buying":
+        return this.str("sceneNoticeBuying", "Wallet confirmation in progress...");
+      case "confirming":
+        return this.str("sceneStatusConfirming", "Confirming the submitted purchase...");
+      case "settling":
+        return this.str("sceneNoticeSettling", "Settling round...");
+      case "loading":
+        return this.str("sceneStatusLoading", "Syncing arena state...");
+      case "connecting":
+        return this.str("sceneStatusConnecting", "Connecting wallet and syncing the arena.");
+      case "connect-wallet":
+        return this.str("sceneStatusConnect", "Connect wallet and sync the arena.");
+      case "service-unavailable":
+        return this.str("sceneStatusServiceDown", "Arena service unavailable. Refresh shortly.");
+      case "financial-state-unavailable":
+        return this.str("sceneStatusFinancialStateDown", "Wallet state is unavailable. Refresh before playing.");
+      case "recovery-storage-unavailable":
+        return this.str("sceneStatusRecoveryStorageDown", "Recovery storage is unavailable. No transaction will be sent.");
+      case "settle-required":
+        return this.str("sceneStatusSettle", "Settle to pay the winner and open a fresh round.");
+      case "round-waiting":
+        return this.str("sceneStatusWaiting", "Waiting for the next live round.");
+      case "paid-disabled":
+        return this.str(
+          "sceneStatusPaidUnavailable",
+          "Free play is open while the paid flow completes validation.",
+        );
+      case "await-rival":
+        return this.str("sceneStatusBuy", "You hold the final seat. Watch for a rival strike.");
+      case "invalid-selection":
+        return this.str("sceneInvalidSelection", "Choose a valid key pack.");
+      case "insufficient-gas":
+        return this.str("sceneStatusInsufficient", "Not enough wallet GAS and prepaid credit.");
+      case "ready":
+      default:
+        return this.str("sceneStatusBuy", "Choose keys, then buy to extend the clock.");
+    }
   }
 
   private startAmbientMotion(): void {
@@ -666,6 +829,24 @@ export class LastSurvivorScene extends BaseScene {
       yoyo: true,
       ease: "Back.easeOut",
     });
+  }
+
+  private playLeaderSwap(playerLeads: boolean): void {
+    if (playerLeads) {
+      this.sfx.play("score");
+      if (this.reducedMotion) return;
+      this.animate({
+        targets: this.countdownText,
+        scale: 1.08,
+        duration: 130,
+        yoyo: true,
+        ease: "Back.easeOut",
+      });
+      return;
+    }
+
+    this.sfx.play("lose");
+    if (!this.reducedMotion) this.cameras.main.shake(100, 0.0022);
   }
 
   private fitCameraToHost(): void {

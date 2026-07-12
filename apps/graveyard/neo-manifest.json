@@ -3,7 +3,7 @@
   "id": "miniapp-graveyard",
   "name": "Graveyard",
   "name_zh": "墓地",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Paid on-chain memory burial with hash commitments and forgetting records.",
   "description_zh": "基于哈希承诺的付费链上记忆埋葬与遗忘记录。",
   "category": "tools",
@@ -35,156 +35,14 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://graveyard"
   },
   "operation_panel": {
-    "title": "Bury or Forget Memory",
-    "subtitle": "Submit the funded wallet operations used by the Graveyard contract.",
-    "operations": [
-      {
-        "name": "Bury Memory",
-        "method": "buryMemory",
-        "description": "Prepay the burial fee and anchor an encrypted content hash on-chain in one wallet batch.",
-        "button_style": "danger",
-        "priority": "primary",
-        "confirm_message": "Prepay the burial fee and permanently bury this hash on-chain?",
-        "params": [
-          {
-            "name": "owner",
-            "type": "hash160",
-            "label": "Owner",
-            "required": true,
-            "default_value": "$wallet",
-            "hidden": true
-          },
-          {
-            "name": "contentHash",
-            "type": "string",
-            "label": "Content hash",
-            "required": true,
-            "placeholder": "64-character SHA-256 hash"
-          },
-          {
-            "name": "memoryType",
-            "type": "select",
-            "label": "Memory type",
-            "required": true,
-            "default_value": "1",
-            "options": [
-              {
-                "label": "Secret",
-                "value": "1"
-              },
-              {
-                "label": "Regret",
-                "value": "2"
-              },
-              {
-                "label": "Wish",
-                "value": "3"
-              },
-              {
-                "label": "Confession",
-                "value": "4"
-              },
-              {
-                "label": "Other",
-                "value": "5"
-              }
-            ]
-          },
-          {
-            "name": "feeGas",
-            "type": "amount",
-            "label": "Burial fee",
-            "required": true,
-            "default_value": "0.10",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "0.10",
-                "value": "0.10",
-                "helper": "GAS"
-              },
-              {
-                "label": "0.25",
-                "value": "0.25",
-                "helper": "GAS"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "Add Epitaph",
-        "method": "addEpitaph",
-        "description": "Attach a short note to an existing buried memory.",
-        "button_style": "secondary",
-        "priority": "secondary",
-        "confirm_message": "Add this epitaph to the selected memory?",
-        "params": [
-          {
-            "name": "memoryId",
-            "type": "integer",
-            "label": "Memory ID",
-            "required": true
-          },
-          {
-            "name": "epitaph",
-            "type": "string",
-            "label": "Epitaph",
-            "required": true,
-            "placeholder": "Short note"
-          }
-        ]
-      },
-      {
-        "name": "Forget Memory",
-        "method": "forgetMemory",
-        "description": "Prepay the forgetting fee and mark a buried memory as forgotten.",
-        "button_style": "danger",
-        "priority": "operator",
-        "confirm_message": "Prepay the forgetting fee and mark this memory forgotten?",
-        "params": [
-          {
-            "name": "owner",
-            "type": "hash160",
-            "label": "Owner",
-            "required": true,
-            "default_value": "$wallet",
-            "hidden": true
-          },
-          {
-            "name": "memoryId",
-            "type": "integer",
-            "label": "Memory ID",
-            "required": true
-          },
-          {
-            "name": "feeGas",
-            "type": "amount",
-            "label": "Forgetting fee",
-            "required": true,
-            "default_value": "1.00",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "1.00",
-                "value": "1.00",
-                "helper": "GAS"
-              },
-              {
-                "label": "2.00",
-                "value": "2.00",
-                "helper": "GAS"
-              }
-            ]
-          }
-        ]
-      }
-    ]
+    "title": "Memory Garden",
+    "subtitle": "Use the designed garden workspace for burial, epitaph, and forgetting flows.",
+    "operations": []
   },
   "stateSource": {
     "type": "n3index",
@@ -200,5 +58,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

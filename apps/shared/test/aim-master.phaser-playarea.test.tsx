@@ -1,7 +1,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="aim-master-phaser-host" />;
     },
@@ -53,6 +51,8 @@ function t(key: string, params?: Record<string, string | number>) {
     difficulty_easy: "Warm-up Lane",
     difficulty_medium: "Arcade Range",
     difficulty_hard: "Pro Circuit",
+    accuracyCount: "{count} hits needed",
+    startAction: "Enter range",
     networkBadge: "Neo N3",
     rankBadge: "Rank #{rank}",
     scoreTime: "Time left",
@@ -86,6 +86,11 @@ function t(key: string, params?: Record<string, string | number>) {
     withdrawAction: "Withdraw {amount} GAS",
     withdrawHint: "Withdraw winnings.",
     commitmentLine: "Game #{gameId} sealed as {commitment}",
+    a11yStageLabel: "Aim Master target range",
+    a11yOpeningRange: "Opening target range",
+    a11yDifficultyGroup: "Choose target lane",
+    a11yShoot: "Fire at the current reticle position",
+    close: "Close",
   };
   let value = messages[key] ?? key;
   if (params) {
@@ -108,6 +113,11 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     ringsHit: 0,
     roundIndex: 0,
     roundResults: [],
+    scorePoints: 0,
+    combo: 0,
+    maxCombo: 0,
+    selectedDifficulty: 0,
+    mode: "gamefi",
     commitment: COMMITMENT,
     leaderboard: [],
     myRank: 0,
@@ -142,7 +152,7 @@ describe("aim-master Phaser playarea", () => {
     expect(container.querySelector(".mx2-score")).toBeNull();
     expect(container.querySelector(".mx2-action-rail")).toBeNull();
     expect(props.className).toBe("aim-phaser-canvas");
-    expect(props.ariaLabel).toBe("Aim Master archery game");
+    expect(props.ariaLabel).toBe("Aim Master target range");
     expect(props.config?.width).toBe(520);
     expect(props.config?.height).toBe(720);
     expect(props.state.pattern).toBe(SAMPLE_PATTERN);
@@ -150,6 +160,11 @@ describe("aim-master Phaser playarea", () => {
     expect(props.state.gameDifficulty).toBe(1);
     expect(props.state.poolFree).toBe(25);
     expect(props.state.ringsHit).toBe(0);
+    expect(props.state.scorePoints).toBe(0);
+    expect(props.state.combo).toBe(0);
+    expect(props.state.maxCombo).toBe(0);
+    expect(props.state.selectedDifficulty).toBe(0);
+    expect(props.state.a11yShotPulse).toBe(0);
     expect(props.state.lastStatus).toBe("Target sealed and bound");
     expect(props.state).not.toHaveProperty("patternData");
   });
@@ -168,6 +183,33 @@ describe("aim-master Phaser playarea", () => {
     expect(screen.getByText("3/5")).toBeTruthy();
     expect(screen.queryByText("0/5")).toBeNull();
     expect(screen.queryByText("1.25 GAS")).toBeNull();
+  });
+
+  it("exposes the physical lobby and shot loop to keyboard and assistive technology", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          activeGameId: "0",
+          gameStatus: "idle",
+          mode: "guest",
+          selectedDifficulty: 1,
+          pattern: "",
+          deadline: 0,
+          dealtAt: 0,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(3);
+    expect(radios[1]?.getAttribute("aria-checked")).toBe("true");
+    fireEvent.keyDown(radios[1]!, { key: "ArrowRight" });
+    expect(dispatch).toHaveBeenCalledWith("selectDifficulty", { difficulty: 2 });
+    fireEvent.click(screen.getByRole("button", { name: /enter range/i }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", { difficulty: 1 });
   });
 
   it("surfaces recovery actions, leaderboard, history, and sealed TEE proof inside the in-stage drawer", () => {
@@ -212,6 +254,8 @@ describe("aim-master Phaser playarea", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /refresh ranking/i }));
     expect(dispatch).toHaveBeenCalledWith("refreshLeaderboard", {});
+    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    expect(container.querySelector(".aim-ingame-drawer")).toBeNull();
   });
 
   it("streams aim taps through the registered aimHit action instead of an orphan action name", () => {
@@ -220,6 +264,61 @@ describe("aim-master Phaser playarea", () => {
     expect(sceneSource).toContain('this.dispatch("aimHit"');
     expect(sceneSource).toContain("roundResults: this.shotResults");
     expect(sceneSource).not.toContain('this.dispatch("recordMove"');
+  });
+
+  it("guards duplicate shots, deadline expiry, restart state, and reduced motion in-scene", () => {
+    const sceneSource = appSource("aim-master", "scenes/AimMasterScene.ts");
+
+    expect(sceneSource).toContain("private inputLocked = false");
+    expect(sceneSource).toContain("this.inputLocked = true");
+    expect(sceneSource).toContain("SHOT_ACK_TIMEOUT_MS");
+    expect(sceneSource).toContain("private awaitingShotAck = false");
+    expect(sceneSource).toContain("private syncCanonicalShotLog(force = false)");
+    expect(sceneSource).toContain("private expirationDispatched = false");
+    expect(sceneSource).toContain("private expireRoundOnce()");
+    expect(sceneSource.match(/this\.dispatch\("expireGame"/g)).toHaveLength(1);
+    expect(sceneSource).toContain("this.updateTimerBar();");
+    expect(sceneSource).toContain("time - this.lastTimerPaintAt >= 100");
+    expect(sceneSource).toContain("private resetRoundRuntime()");
+    expect(sceneSource).toContain("this.clearGameplayTimers()");
+    expect(sceneSource).toContain("difficultyProfile(this.currentDifficulty).reducedMotionStepMs");
+    expect(sceneSource).toContain("generateDifficultyPattern(\"aim-master-fallback\", difficulty)");
+    expect(sceneSource).toContain("this.runSummary = scored.summary");
+  });
+
+  it("re-derives UI score and GameFi telemetry from the canonical shot log", () => {
+    const mainSource = appSource("aim-master", "main.tsx");
+    const guestSource = appSource("aim-master", "logic/guest-engine.ts");
+
+    expect(mainSource).toContain("const evaluated = evaluateHitResults(form.roundResults)");
+    expect(mainSource).toContain("scorePoints.set(evaluated.summary.score)");
+    expect(guestSource).toContain("ringsHit / totalRings / totalPoints are intentionally ignored");
+    expect(guestSource).toContain("if (ringsHit.get() < targetAccuracy.get()) return");
+    expect(guestSource).toContain("generateDifficultyPattern(seedSource(), diff, rule.limitMs)");
+    expect(guestSource).not.toContain("Math.random(");
+    expect(guestSource).toContain("next.results.length !== previous.results.length + 1");
+  });
+
+  it("keeps paid settlement fail-closed and reads the real Aim Master event slots", () => {
+    const mainSource = appSource("aim-master", "main.tsx");
+    const rulesSource = appSource("aim-master", "logic/game-rules.ts");
+    const sceneSource = appSource("aim-master", "scenes/AimMasterScene.ts");
+
+    expect(mainSource).toContain("solvedPayout: 5");
+    expect(mainSource).toContain("totalWon: 6");
+    expect(mainSource).toContain("eventSlots: { solvedPayout: 5 }");
+    expect(mainSource).toContain("export const NEW_PAID_RUNS_ENABLED = false");
+    expect(mainSource).toContain("if (!NEW_PAID_RUNS_ENABLED)");
+    expect(mainSource).toContain("startResultMatchesIntent");
+    expect(mainSource).toContain("gameMatchesIdentity");
+    expect(mainSource).toContain("sessionMatchesRule");
+    expect(mainSource).toContain('settled.status === "unknown"');
+    expect(mainSource).toContain('obs.gameStatus.set("unknown")');
+    expect(mainSource).toContain("canReleaseAfterGrace(obs.deadline.get())");
+    expect(rulesSource).toContain('case 5:\n      // Finalize was broadcast');
+    expect(rulesSource).toContain('return "unknown"');
+    expect(sceneSource).toContain('this.dispatch("submitSolution", {})');
+    expect(sceneSource).toContain('this.str("mode", "gamefi") === "guest"');
   });
 
   it("keeps the Aim Master shell full-height with in-stage HUD and drawer controls", () => {
@@ -231,9 +330,28 @@ describe("aim-master Phaser playarea", () => {
     expect(styles).toContain(".aim-ingame-drawer");
     expect(styles).toContain("min-height: 100dvh");
     expect(styles).toContain("--phaser-mobile-height-ratio: 2.08");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 70");
+    expect(styles).toContain(".aim-a11y-layer");
     expect(wrapper).toContain("actions={{}}");
     expect(wrapper).not.toContain("score={");
     expect(wrapper).not.toContain("drawerToggleLabel=");
     expect(wrapper).not.toContain("secondaryActions");
+  });
+
+  it("traps keyboard focus inside the modal rules drawer", async () => {
+    render(<PhaserPlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: /^rules$/i });
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog");
+    const close = screen.getByRole("button", { name: /close/i });
+    await waitFor(() => expect(document.activeElement).toBe(close));
+    const focusable = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
+    const last = focusable.at(-1)!;
+    last.focus();
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(document.activeElement).toBe(close);
+    close.focus();
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
   });
 });

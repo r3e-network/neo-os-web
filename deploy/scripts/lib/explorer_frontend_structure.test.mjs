@@ -17,10 +17,9 @@ test("Explorer renders a v2 chain lookup console with no signing path", () => {
   assertPlayStage(playArea, "tool", "Explorer");
   assertClasses(playArea, [
     "explorer-play-area",
-    "explorer-scene",
-    "explorer-network-card",
-    "explorer-scanner",
-    "explorer-result-card",
+    "explorer-workspace",
+    "explorer-result-surface",
+    "explorer-live-rail",
     "explorer-controls",
     "explorer-search-shell",
     "explorer-drawer-section",
@@ -38,7 +37,7 @@ test("Explorer renders a v2 chain lookup console with no signing path", () => {
     "explorerSafetyDesc",
     "recentTransactions",
   ], "Explorer");
-  assert.match(styles, /\.explorer-scene\s*\{[\s\S]*grid-template-columns:/);
+  assert.match(styles, /\.explorer-workspace\s*\{[\s\S]*grid-template-columns:/);
   assert.match(styles, /@media \(max-width:/);
   assertModernTypography(styles, "Explorer");
 });

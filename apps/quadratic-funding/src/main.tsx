@@ -34,7 +34,7 @@ defineMiniApp({
 
     ctx.framework.actions.register("addMatching", async (...args: unknown[]) => {
       const amount = String(args[0] ?? "");
-      await qf.handleAddMatching(amount);
+      return qf.handleAddMatching(amount);
     });
 
     ctx.framework.actions.register("finalize", async (...args: unknown[]) => {
@@ -57,6 +57,10 @@ defineMiniApp({
 
     ctx.framework.actions.register("cancelRound", async () => {
       await qf.handleCancelRound();
+    });
+
+    ctx.framework.actions.register("clearPending", async () => {
+      qf.handleClearPending();
     });
 
     ctx.framework.actions.register("refreshRounds", async () => {
@@ -85,6 +89,14 @@ defineMiniApp({
         isFinalizing: qf.isFinalizing,
         isClaimingUnused: qf.isClaimingUnused,
         isCancelling: qf.isCancelling,
+        deploymentStatus: qf.deploymentStatus,
+        deploymentMessage: qf.deploymentMessage,
+        isCheckingDeployment: qf.isCheckingDeployment,
+        fundingWritesEnabled: qf.fundingWritesEnabled,
+        pendingOperation: qf.pendingOperation,
+        hasPendingOperation: qf.hasPendingOperation,
+        pendingTxid: qf.pendingTxid,
+        pendingPhase: qf.pendingPhase,
         isAdmin: qf.isAdmin,
         canManageSelectedRound: qf.canManageSelectedRound,
         canFinalizeSelectedRound: qf.canFinalizeSelectedRound,
@@ -93,6 +105,7 @@ defineMiniApp({
         suggestedMatches: qf.suggestedMatches,
         roundsStatus: qf.roundsStatus,
         projects: qf.projects,
+        projectsComplete: qf.projectsComplete,
         isRefreshingProjects: qf.isRefreshingProjects,
         claimingProjectId: qf.claimingProjectId,
         claimableProjectIds: qf.claimableProjectIds,
@@ -108,6 +121,8 @@ defineMiniApp({
         projectCount: qf.projectCount,
         selectedRoundDisplay: qf.selectedRoundDisplay,
         matchingPoolDisplay: qf.matchingPoolDisplay,
+        matchingRemainingDisplay: qf.matchingRemainingDisplay,
+        matchPreviewMode: qf.matchPreviewMode,
       }),
       loadData: qf.refreshRounds,
     };

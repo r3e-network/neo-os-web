@@ -1224,4 +1224,3 @@ export const bls12_381 = bls({
     hash: sha256,
     randomBytes,
 });
-//# sourceMappingURL=bls12-381.js.map

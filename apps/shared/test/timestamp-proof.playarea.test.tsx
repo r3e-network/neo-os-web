@@ -1,7 +1,7 @@
 import React from "react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../timestamp-proof/src/PlayArea";
@@ -17,6 +17,10 @@ function t(key: string) {
     anchoredProofs: "Anchored",
     anchorOnChain: "Anchor on-chain",
     anchorShort: "Anchor",
+    broadcastPending: "Broadcast pending",
+    checkReceipt: "Check receipt",
+    checkingReceipt: "Checking…",
+    clearRetryLock: "Clear retry lock",
     contentChars: "Characters",
     contentPlaceholder: "Paste your text, document hash, or idea...",
     createPanelKicker: "Create",
@@ -31,6 +35,13 @@ function t(key: string) {
     latestId: "Latest ID",
     localHashPending: "Will hash locally on save",
     localOnly: "Local only",
+    journalUnavailable: "Existing records are hidden, not deleted.",
+    journalUnavailableShort: "Journal unavailable",
+    journalUnavailableTitle: "Proof journal unavailable",
+    notAvailable: "N/A",
+    networkMainnet: "Neo N3 Mainnet",
+    networkNotConnected: "Wallet network not connected",
+    networkTestnet: "Neo N3 Testnet",
     noProofsHint: "Saved proof entries will appear here.",
     pendingDigest: "After save",
     proofDigest: "SHA-256 digest",
@@ -62,6 +73,9 @@ function t(key: string) {
     proofTemplateReleaseBody: "Version or artifact note",
     proofTemplatesLabel: "Proof templates",
     proofWorkspace: "Timestamp proof workspace",
+    retryJournal: "Retry journal",
+    submissionInterrupted: "Submission interrupted",
+    verificationNetwork: "Receipt network",
     recentProofs: "Recent Proofs",
     timestamp: "Timestamp",
     totalProofs: "Total Proofs",
@@ -80,11 +94,14 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     anchoredProofs: 0,
     isAnchoring: false,
     isCreating: false,
+    isRecovering: false,
     isVerifying: false,
     latestId: "N/A",
     proofs: [],
+    storageState: "ready",
     totalProofs: 0,
     verifiedProof: null,
+    verificationSource: "none",
     verifyError: false,
     ...o,
   };
@@ -136,6 +153,24 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(dispatch).toHaveBeenCalledWith("createProof", "release artifact v2");
   });
 
+  it("keeps the draft until storage-backed creation resolves true", async () => {
+    const failedDispatch = vi.fn().mockResolvedValue(false);
+    const first = render(<PlayArea t={t} state={state()} dispatch={failedDispatch} />);
+    const failedEditor = screen.getByLabelText("Paste your text, document hash, or idea...") as HTMLTextAreaElement;
+    fireEvent.change(failedEditor, { target: { value: "keep this draft" } });
+    fireEvent.click(screen.getByRole("button", { name: /Create Proof/ }));
+    await waitFor(() => expect(failedDispatch).toHaveBeenCalled());
+    expect(failedEditor.value).toBe("keep this draft");
+
+    first.unmount();
+    const successfulDispatch = vi.fn().mockResolvedValue(true);
+    render(<PlayArea t={t} state={state()} dispatch={successfulDispatch} />);
+    const savedEditor = screen.getByLabelText("Paste your text, document hash, or idea...") as HTMLTextAreaElement;
+    fireEvent.change(savedEditor, { target: { value: "saved draft" } });
+    fireEvent.click(screen.getByRole("button", { name: /Create Proof/ }));
+    await waitFor(() => expect(savedEditor.value).toBe(""));
+  });
+
   it("treats pasted SHA-256 digests as the proof target and hides stale saved digests while editing", () => {
     const proof = {
       id: 4,
@@ -180,15 +215,67 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(dispatch).toHaveBeenCalledWith("anchorProof", 7);
   });
 
+  it("turns a saved broadcast into receipt recovery instead of another anchor submit", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const proof = {
+      id: 8,
+      content: "pending artifact",
+      contentHash: "c".repeat(64),
+      timestamp: Date.now(),
+      anchorStatus: "pending",
+      anchorTxid: `0x${"d".repeat(64)}`,
+      anchorNetwork: "neo-n3-mainnet",
+      anchored: false,
+    };
+    render(<PlayArea t={t} state={state({ proofs: [proof], latestId: "#8" })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Check receipt" }).at(-1) as HTMLButtonElement);
+
+    expect(dispatch).toHaveBeenCalledWith("recoverPendingAnchors");
+    expect(dispatch).not.toHaveBeenCalledWith("anchorProof", 8);
+  });
+
+  it("keeps an interrupted wallet submission locked until the user explicitly clears it", () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const proof = {
+      id: 9,
+      content: "interrupted artifact",
+      contentHash: "e".repeat(64),
+      timestamp: Date.now(),
+      anchorStatus: "preparing",
+      anchorNetwork: "neo-n3-mainnet",
+      anchored: false,
+    };
+    render(<PlayArea t={t} state={state({ proofs: [proof], latestId: "#9" })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Clear retry lock" }).at(-1) as HTMLButtonElement);
+
+    expect(dispatch).toHaveBeenCalledWith("releasePreparingAnchor", 9);
+    expect(dispatch).not.toHaveBeenCalledWith("anchorProof", 9);
+  });
+
+  it("shows journal failure as unavailable instead of a zero-proof empty state", () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const { container } = render(<PlayArea t={t} state={state({ storageState: "unavailable" })} dispatch={dispatch} />);
+
+    expect(container.querySelector(".tsp-journal-alert")).toBeTruthy();
+    expect(screen.getAllByText("Proof journal unavailable").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("N/A").length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText("Saved proof entries will appear here.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Retry journal" }));
+    expect(dispatch).toHaveBeenCalledWith("reloadProofs");
+  });
+
   it("uses Open UI panels for secondary proof workspace controls", () => {
     const { container } = render(<PlayArea t={t} state={state({ verifyError: true })} dispatch={vi.fn()} />);
 
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
 
-    expect(container.querySelectorAll(".tsp-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
-    expect(container.querySelector(".tsp-drawer__panel--wide")).toBeTruthy();
+    expect(container.querySelectorAll(".tsp-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(2);
+    expect(container.querySelectorAll(".tsp-drawer__panel--wide")).toHaveLength(2);
+    expect(container.querySelector(".tsp-network-switch")).toBeTruthy();
     expect(container.querySelector(".tsp-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toBeTruthy();
-    expect(container.querySelectorAll(".tsp-drawer__actions .mx2-btn.mx2-btn--ghost")).toHaveLength(2);
+    expect(container.querySelectorAll(".tsp-drawer__actions .mx2-btn.mx2-btn--ghost")).toHaveLength(1);
     expect(container.querySelector(".tsp-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
     expect(container.querySelector(".tsp-drawer__section")).toBeNull();
     expect(container.querySelector(".tsp-drawer__list")).toBeNull();
@@ -232,14 +319,17 @@ describe("timestamp-proof PlayArea (v2)", () => {
     expect(styles).toMatch(/\.tsp-press-card__media img\s*\{[\s\S]*max-height:\s*292px/);
     expect(styles).toMatch(/\.tsp-press-card__media img\s*\{[\s\S]*filter:\s*none/);
     expect(styles).toMatch(/\.tsp-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/\.tsp-anchor-truth\s*\{[\s\S]*grid-area:\s*truth/);
+    expect(styles).toMatch(/\.tsp-anchor-truth\s*\{[\s\S]*background:\s*var\(--mx2-bg\)/);
     expect(styles).toMatch(/\.tsp-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/\.tsp-drawer__panel--wide\s*\{[\s\S]*grid-column:\s*1 \/ -1/);
     expect(styles).toMatch(/\.tsp-drawer__notice\.mx2-open-notice\.semi-banner\s*\{[\s\S]*min-height:\s*78px/);
+    expect(styles).toMatch(/\.tsp-network-switch\s*\{[\s\S]*background:\s*var\(--mx2-bg\)/);
     expect(styles).toMatch(/@media \(max-width:\s*860px\)[\s\S]*grid-template-areas:\s*"press"[\s\S]*"document"/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.timestamp-proof-play-area \.mx2-stage\s*\{[\s\S]*padding:\s*14px 14px 16px/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-workbench\s*\{[\s\S]*grid-template-areas:\s*"document"[\s\S]*"press"/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-document-card__facts\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-template-dock\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-template-dock\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-proof-sheet__seal-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(0,\s*1fr\)/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-press-card\s*\{[\s\S]*grid-template-columns:\s*72px minmax\(0,\s*1fr\)/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.tsp-press-card__media img\s*\{[\s\S]*max-height:\s*72px/);

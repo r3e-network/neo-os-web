@@ -1,13 +1,3 @@
-/**
- * Neo Sign Anything — Entry Point (React)
- *
- * This app is a thin wrapper around wallet signing and GAS self-transfer
- * broadcast, fully on the framework SDK: signing via app.chain.signMessage,
- * the broadcast invoke via app.chain (native GAS contract), toasts via
- * app.notify, clipboard via app.clipboard, and session counters via
- * app.storage.remote so they survive page reloads.
- */
-
 import { defineMiniApp } from "@shared/react/defineMiniApp";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
@@ -21,54 +11,67 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const app = ctx.framework;
-
     const signAnything = useSignAnything({
-      app,
+      app: ctx.framework,
       t: ctx.t,
     });
 
-    app.actions.register(
-      "signMessage",
-      (...args: unknown[]) => signAnything.signMessage(String(args[0] ?? "")),
-      { successKey: "signSuccess" },
-    );
-
-    app.actions.register(
-      "broadcastMessage",
-      (...args: unknown[]) => signAnything.broadcastMessage(String(args[0] ?? "")),
-      { successKey: "broadcastSuccess" },
-    );
-
-    app.actions.register("copyToClipboard", async (...args: unknown[]) => {
-      await signAnything.copyToClipboard(String(args[0] ?? ""));
+    ctx.framework.actions.register("connectWallet", () => signAnything.connectWallet());
+    ctx.framework.actions.register("signMessage", () => signAnything.signMessage());
+    ctx.framework.actions.register("setMessage", (...args: unknown[]) => {
+      signAnything.setMessage(String(args[0] ?? ""));
     });
-    app.actions.register("loadFileDigest", async (...args: unknown[]) => {
-      const file = args[0];
-      if (file instanceof File) {
-        await app.notify.guard(() => signAnything.loadFileDigest(file), {
-          successKey: "fileHashed",
-        });
-      }
+    ctx.framework.actions.register("setSigningMode", (...args: unknown[]) => {
+      signAnything.setSigningMode(String(args[0] ?? ""));
     });
-    app.actions.register("setMessage", async (...args: unknown[]) => {
-      signAnything.message.set(String(args[0] ?? ""));
+    ctx.framework.actions.register("setSigningDomain", (...args: unknown[]) => {
+      signAnything.setSigningDomain(String(args[0] ?? ""));
+    });
+    ctx.framework.actions.register(
+      "loadFileDigest",
+      (...args: unknown[]) => {
+        const file = args[0];
+        if (!(file instanceof File)) throw new Error(ctx.t("fileRequired"));
+        return signAnything.loadFileDigest(file);
+      },
+      { successKey: "fileHashed" },
+    );
+    ctx.framework.actions.register("copyToClipboard", (...args: unknown[]) =>
+      signAnything.copyToClipboard(String(args[0] ?? "")),
+    );
+    ctx.framework.actions.register("clearHistory", () => {
+      signAnything.clearHistory();
     });
 
     return {
       state: {
         address: signAnything.address,
+        network: signAnything.network,
         message: signAnything.message,
+        signingMode: signAnything.signingMode,
+        signingDomain: signAnything.signingDomain,
+        fileInfo: signAnything.fileInfo,
+        payloadText: signAnything.payloadText,
+        payloadHash: signAnything.payloadHash,
+        payloadBytes: signAnything.payloadBytes,
+        payloadStatus: signAnything.payloadStatus,
+        payloadError: signAnything.payloadError,
         signature: signAnything.signature,
+        signatureEncoding: signAnything.signatureEncoding,
         publicKey: signAnything.publicKey,
-        txHash: signAnything.txHash,
-        txPending: signAnything.txPending,
+        artifact: signAnything.artifact,
+        proofBundle: signAnything.proofBundle,
+        isConnecting: signAnything.isConnecting,
+        isHashing: signAnything.isHashing,
         isSigning: signAnything.isSigning,
-        isBroadcasting: signAnything.isBroadcasting,
+        operationStatus: signAnything.operationStatus,
+        lastError: signAnything.lastError,
         signCount: signAnything.signCount,
-        broadcastCount: signAnything.broadcastCount,
+        history: signAnything.history,
+        historyStorageHealthy: signAnything.historyStorageHealthy,
       },
       loadData: signAnything.loadData,
+      cleanup: signAnything.cleanup,
     };
   },
 });

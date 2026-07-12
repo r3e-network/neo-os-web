@@ -2,14 +2,19 @@
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
   "id": "miniapp-neo-treasury",
   "name": "Neo Treasury",
-  "name_zh": "Neo 财库",
-  "version": "1.0.0",
-  "description": "Track public Neo treasury balances and submit controlled connected-wallet NEO/GAS disbursements.",
-  "description_zh": "追踪 Neo 国库公开余额，并从已连接钱包提交受控 NEO/GAS 支出。",
+  "name_zh": "Neo 国库",
+  "version": "1.1.0",
+  "description": "Monitor a public Mainnet wallet watchlist and verify direct connected-wallet NEO/GAS transfers.",
+  "description_zh": "监控主网公开钱包观察清单，并核验从已连接钱包发起的 NEO/GAS 直接转账。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": [],
+  "tags": [
+    "treasury-watchlist",
+    "neo",
+    "gas",
+    "verified-transfer"
+  ],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
@@ -31,7 +36,7 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-treasury"
   },
@@ -43,20 +48,21 @@
       "https://mainnet3.neo.coz.io:443",
       "https://mainnet4.neo.coz.io:443",
       "https://mainnet5.neo.coz.io:443",
-      "https://rpc10.n3.nspcc.ru:10331"
+      "https://rpc10.n3.nspcc.ru:10331",
+      "https://api.n3index.dev"
     ]
   },
   "operation_panel": {
     "title": "Treasury Operations",
-    "subtitle": "Review public balances, then submit a connected-wallet NEP-17 disbursement without claiming control over watched foundation wallets.",
+    "subtitle": "Review public Mainnet balances, then verify a native-token transfer made only from the connected wallet.",
     "operations": [
       {
-        "name": "Sign Disbursement",
+        "name": "Review Native Transfer",
         "method": "submitDisbursement",
-        "description": "Transfer NEO or GAS from the connected wallet to a treasury recipient with a memo.",
+        "description": "Transfer NEO or GAS from the connected wallet; confirmation requires an exact indexed Transfer event and authoritative balance readback.",
         "button_style": "success",
         "priority": "primary",
-        "confirm_message": "Submit this treasury disbursement from your connected wallet?",
+        "confirm_message": "Review the exact network, native token contract, recipient, and amount in your wallet?",
         "params": [
           {
             "name": "asset",
@@ -127,5 +133,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

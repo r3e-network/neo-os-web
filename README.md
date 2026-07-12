@@ -197,19 +197,18 @@ Current Neo N3 testnet platform contract values from `.env`:
 
 ## MiniApps
 
-The repository currently contains **60 Neo N3 miniapp manifests** under `apps/*`.
+The repository currently contains **77 Neo N3 miniapp manifests** under `apps/*`.
 Those manifests are the practical source of truth for the current catalog.
 
 Category spread:
 
 - `data`: 1
-- `defi`: 3
-- `finance`: 7
-- `games`: 7
+- `defi`: 12
+- `gaming`: 24
 - `governance`: 4
-- `social`: 9
-- `tools`: 26
-- `utility`: 3
+- `nft`: 1
+- `social`: 8
+- `utility`: 27
 
 Current featured flagship 7:
 

@@ -8,7 +8,7 @@ Governance influence auction — stake NEO to earn the GAS auction yield; bid GA
 |----------|-------|
 | **App ID** | `miniapp-gov-merc` |
 | **Category** | Governance |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Framework** | Host-native React playarea |
 
 ## Features
@@ -46,11 +46,18 @@ Governance influence auction — stake NEO to earn the GAS auction yield; bid GA
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x140f5faf5692d21421a79278b0e45b9b9bd4bb46) |
 | **Network Magic** | `860833102` |
 
-> **Migration note (v2, 2026-06-12):** MiniAppGovMerc v2 adds a fixed 5-minute
+> **Migration note (v2, verified read-only 2026-07-12):** MiniAppGovMerc v2 adds a fixed 5-minute
 > bidding window per epoch (the first bid opens it; later bids must land before
 > the deadline, and settlement unlocks after it). The v1 contract
 > `0x1eb83eb5d4d3f073112064e8a3825f3b0e5f88e9` stays live on both networks for
-> user exits only (withdraw stake / reclaim bids / withdraw credit).
+> user exits only by platform policy (withdraw stake / reclaim bids / withdraw
+> credit). The v1 ABI still exposes its legacy bid/settle methods, so the app
+> deliberately never binds new activity to v1.
+
+Read-only RPC verification on 2026-07-12 confirmed both hashes exist on mainnet
+and testnet as `MiniAppGovMerc` with update counter 0. The bound v2 contract
+returns `HALT`, `minBid = 100000000` (1 GAS), and `epochDuration = 300000` ms on
+both networks. No wallet signature, transaction, or deployment was performed.
 
 ## Platform Contracts
 
@@ -72,6 +79,21 @@ npm run dev
 # Build for H5
 npm run build
 ```
+
+## Production interaction model
+
+- The app verifies the selected Neo N3 network, the connected wallet, and the
+  canonical v2 contract hash immediately before every write.
+- Positive whole NEO and up-to-8-decimal positive GAS inputs are validated
+  before a wallet request. Fractional NEO is rejected; it is never truncated.
+- A durable, binding-scoped pending record is written as soon as a payment or
+  contract transaction ID is broadcast. Refresh recovery is read-only and does
+  not sign, pay, or resubmit.
+- A write is reported as complete only after the exact contract event and a
+  matching contract readback are observed. `FAULT`, `HALT` without the expected
+  event/readback, and unknown RPC state remain distinct.
+- If a bid payment lands but the bid action does not, the recovered GAS credit
+  is reused before any new payment.
 
 ## Usage
 
@@ -108,7 +130,8 @@ Gov Merc is a two-sided auction over governance influence:
 
 - direct prepaid GAS to the MiniApp contract
 - direct contract invocation only
-- wallet signs the transfer first, then calls `placeBid`
+- existing bid credit is consumed first; only the shortfall is paid, then the
+  wallet calls `bid`
 
 
 ## License

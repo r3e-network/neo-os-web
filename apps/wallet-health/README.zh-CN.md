@@ -1,63 +1,37 @@
-# 钱包健康 MiniApp
+# 钱包检查 MiniApp
 
-钱包健康是一个前端工具，帮助 Neo 用户检查钱包准备状态、余额和安全卫生。它在设备上本地存储检查清单状态，不需要智能合约。
+钱包检查是一个 Neo N3 只读余额检查与设备本地安全自检工具。它只陈述能够证明的事实：连接状态、NEO/GAS 余额和 `0.1 GAS` 预留；它不能审计私钥、助记词保存、已连接应用授权、设备安全、恶意软件或交易意图。
 
-## 功能特点
+## 功能
 
-- **Neo N3 连接状态**：验证您已连接到正确的区块链网络
-- **NEO/GAS 余额检查**：实时监控您的代币余额
-- **安全检查清单**：带本地持久化的交互式清单，跟踪钱包安全
-- **风险等级评估**：基于钱包配置的自动风险评分
-- **可操作的建议**：个性化的钱包健康改进建议
-- **响应式设计**：在桌面和移动设备上无缝工作
+- 通过宿主钱包接口连接钱包。
+- 对固定的钱包地址独立读取 NEO 与 GAS 余额，并核验已连接钱包网络。
+- 检查读取到的 GAS 是否达到 `0.1 GAS`。
+- 将人工确认的自检项保存在浏览器本地。
+- 导出包含只读观察与自行确认答案的文本报告。
+- 账户切换或断开后立即清除旧证据并丢弃迟到响应；刷新失败时，仅会在明确标注“上次值”的前提下保留历史值。
+- 钱包连接请求超过 12 秒后恢复为可重试状态。
+- NEO、GAS 或钱包网络读取分别超过 15 秒后超时，避免界面永久卡住。
 
-## 使用方法
+## 明确边界
 
-1. 连接您的钱包并确认您在 Neo N3 上
-2. 查看您的 NEO 和 GAS 余额 - 确保有足够的 GAS 支付交易费用
-3. 完成安全检查清单并跟踪您的安全评分
-4. 按照个性化建议改善钱包健康
-5. 定期回访以保持最佳钱包卫生
+- 不调用合约，不发送交易。
+- 不申请支付、随机数、预言机或 TEE 权限。
+- 不读取或索要私钥、助记词。
+- 不读取或撤销钱包授权。
+- 清单百分比只表示自检进度，不是安全评分或安全保证。
 
-## 架构
+## 隐私
 
-这是一个**纯前端工具**，不需要智能合约。所有数据：
-- 通过 RPC 直接从 Neo N3 区块链获取
-- 存储在您的设备本地（检查清单进度）
-- 不会传输到外部服务器
+清单继续使用兼容旧版本的本地键 `miniapp-wallet-health:checklist`，不会发送到后端。钱包地址和余额仅在连接后读取。复制报告属于明确的用户操作，会把报告内容写入剪贴板。
 
-## 安全检查清单项目
+## 开发验证
 
-应用检查以下项目：
-- 钱包备份状态
-- 双因素认证
-- 硬件钱包使用
-- 安全密钥存储
-- 定期交易审查
-- GAS 余额充足性
+```bash
+npm run dev
+npx tsc --noEmit -p apps/wallet-health/tsconfig.json
+npx vitest run test/wallet-health.playarea.test.tsx test/wallet-health.logic.test.ts test/wallet-health.integration.test.tsx test/wallet-health.analysis.test.ts test/wallet-health.production-safety.test.ts
+npm run build
+```
 
-## 开发
-
-- **入口点**：`src/pages/index/index.vue`
-- **文档**：`src/pages/docs/index.vue`
-- **国际化**：`src/locale/messages.ts`
-- **资源**：`src/static/logo.webp`, `src/static/banner.webp`
-- **主题**：`theme-wallet-health`
-
-## 技术细节
-
-- 使用 Host-native React 和 TypeScript 构建
-- 使用 @shared/utils/wallet-sdk 进行区块链交互
-- 移动优先的响应式布局
-- 支持英文和简体中文
-- 不需要后端或数据库
-
-## 要求
-
-- 兼容 Neo N3 的钱包
-- 连接到 Neo N3 主网或测试网
-- 最低 GAS 余额用于交易费用
-
-## 许可证
-
-R3E Network 的 Neo MiniApps 平台的一部分。
+完整证据状态矩阵与发布门禁见 `PRODUCTION_STATUS.md`。本应用不需要也没有部署小程序合约。

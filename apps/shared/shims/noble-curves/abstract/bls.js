@@ -282,4 +282,3 @@ export function bls(CURVE) {
         utils,
     };
 }
-//# sourceMappingURL=bls.js.map

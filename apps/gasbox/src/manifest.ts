@@ -10,40 +10,22 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "GasBox",
-  description: "Gacha machine marketplace — play, create, and trade capsule machines",
+  description: "Play and operate low-stakes on-chain NEO/GAS capsule machines",
   icon: "slot",
   category: "game",
   shell: "launcher",
 
-  // -- Tabs -------------------------------------------------------------------
-  tabs: [
-    { key: "market", labelKey: "market", icon: "slot", default: true },
-    { key: "discover", labelKey: "discover", icon: "compass" },
-    { key: "create", labelKey: "create", icon: "edit" },
-    { key: "manage", labelKey: "manage", icon: "settings" },
-  ],
-
-  // -- Stats Grid -------------------------------------------------------------
-  stats: [
-    { labelKey: "machines", valueKey: "machineCount", format: "number", variant: "accent", icon: "box" },
-    { labelKey: "playing", valueKey: "isPlayingDisplay", format: "text", icon: "zap" },
-    { labelKey: "selected", valueKey: "selectedMachineName", format: "text", icon: "star" },
-  ],
-
-  // -- Sidebar ----------------------------------------------------------------
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "machines", valueKey: "machineCount", format: "number" },
-      { labelKey: "playing", valueKey: "isPlayingDisplay", format: "text" },
-      { labelKey: "selected", valueKey: "selectedMachineName", format: "text" },
-    ],
-  },
+  // The resource-led capsule counter owns every action. Generic tabs, stats,
+  // operation forms and sidebars would duplicate the same state as a survey.
+  tabs: [],
+  stats: [],
+  sidebar: { titleKey: "title", items: [] },
+  operations: [],
 
   // -- Features ---------------------------------------------------------------
   features: {
     fireworks: true,
-    walletRequired: true,
+    walletRequired: false,
     chainWarning: true,
   },
 

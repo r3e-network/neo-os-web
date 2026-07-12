@@ -25,18 +25,29 @@ defineMiniApp({
     const launchDefaults = getRelayLaunchDefaults(ctx.launchContext);
     if (launchDefaults.aaAddress) relay.aaAddress.set(launchDefaults.aaAddress);
     if (launchDefaults.dappId) relay.dappId.set(launchDefaults.dappId);
-    if (launchDefaults.sponsorAmount) {
-      relay.sponsorAmount.set(launchDefaults.sponsorAmount);
-    }
     if (launchDefaults.payloadJson) {
       relay.payloadJson.set(launchDefaults.payloadJson);
     }
 
     ctx.framework.actions.register(
-      "checkSponsor",
-      async (aaAddress: unknown, dappId: unknown) => {
+      "prepareReview",
+      async (aaAddress: unknown, dappId: unknown, payloadJson: unknown) => {
         relay.aaAddress.set(String(aaAddress));
         relay.dappId.set(String(dappId));
+        relay.payloadJson.set(String(payloadJson));
+        await ctx.framework.notify.guard(() => relay.prepareReview(), {
+          successKey: "reviewPrepared",
+          errorKey: "reviewPrepareError",
+        });
+      },
+    );
+
+    ctx.framework.actions.register(
+      "checkSponsor",
+      async (aaAddress: unknown, dappId: unknown, payloadJson: unknown) => {
+        relay.aaAddress.set(String(aaAddress));
+        relay.dappId.set(String(dappId));
+        relay.payloadJson.set(String(payloadJson));
         await ctx.framework.notify.guard(() => relay.checkSponsor(), {
           successKey: "sponsorCheckComplete",
           errorKey: "sponsorCheckError",
@@ -45,42 +56,59 @@ defineMiniApp({
     );
 
     ctx.framework.actions.register(
-      "requestSponsor",
-      async (aaAddress: unknown, dappId: unknown, amount: unknown) => {
-        relay.aaAddress.set(String(aaAddress));
-        relay.dappId.set(String(dappId));
-        relay.sponsorAmount.set(String(amount || "0.1"));
-        await ctx.framework.notify.guard(() => relay.requestSponsor(), {
-          successKey: "sponsorRequestComplete",
-          errorKey: "sponsorRequestError",
+      "importReceipt",
+      async (receiptJson: unknown) => {
+        await ctx.framework.notify.guard(() => relay.importReceipt(String(receiptJson)), {
+          successKey: "receiptImported",
+          errorKey: "receiptImportError",
         });
       },
     );
 
     ctx.framework.actions.register(
-      "submitRelay",
-      async (aaAddress: unknown, dappId: unknown, payloadJson: unknown) => {
-        relay.aaAddress.set(String(aaAddress));
-        relay.dappId.set(String(dappId));
-        relay.payloadJson.set(String(payloadJson));
-        await ctx.framework.notify.guard(() => relay.submitRelay(), {
-          successKey: "relaySubmitted",
-          errorKey: "relayError",
+      "trackReceipt",
+      async () => {
+        await ctx.framework.notify.guard(() => relay.trackReceipt(), {
+          successKey: "receiptRefreshed",
+          errorKey: "receiptTrackError",
         });
       },
     );
 
+    ctx.framework.actions.register("clearRelayJob", async () => relay.clearJob());
+
     return {
       state: {
-        aaAddressDisplay: relay.aaAddressDisplay,
-        paymasterDisplay: relay.paymasterDisplay,
+        aaAddressInput: relay.aaAddress,
+        dappIdInput: relay.dappId,
+        payloadInput: relay.payloadJson,
+        reviewPackageJson: relay.reviewPackageJson,
+        reviewJobId: relay.reviewJobId,
+        reviewDigest: relay.reviewDigest,
+        reviewReadiness: relay.reviewReadiness,
+        previewState: relay.previewState,
+        targetDisplay: relay.targetDisplay,
+        methodDisplay: relay.methodDisplay,
+        preparedFingerprint: relay.preparedFingerprint,
         sponsorState: relay.sponsorState,
-        relayResponse: relay.relayResponse,
+        sponsorSummary: relay.sponsorSummary,
+        relayReceiptJson: relay.relayReceiptJson,
+        receiptStatus: relay.receiptStatus,
+        txidDisplay: relay.txidDisplay,
+        chainStatus: relay.chainStatus,
+        chainReason: relay.chainReason,
+        confirmationsDisplay: relay.confirmationsDisplay,
+        hasReview: relay.hasReview,
+        hasReceipt: relay.hasReceipt,
+        hasTrackableReceipt: relay.hasTrackableReceipt,
         aaCoreDisplay: relay.aaCoreDisplay,
+        paymasterDisplay: relay.paymasterDisplay,
         relayUrlDisplay: relay.relayUrlDisplay,
         networkDisplay: relay.networkDisplay,
+        runtimeMode: relay.runtimeMode,
+        isPreparing: relay.isPreparing,
         isCheckingSponsorship: relay.isCheckingSponsorship,
-        isRelaying: relay.isRelaying,
+        isTracking: relay.isTracking,
       },
       loadData: relay.loadAll,
     };

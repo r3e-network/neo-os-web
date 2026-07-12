@@ -11,7 +11,7 @@
  *  - Overlays: "Tap to fly", crash, win, committed/dealing
  *
  * State received from React (via GameBridge):
- *  - gameStatus    "idle" | "committed" | "dealt" | "solved" | "expired"
+ *  - gameStatus    "idle" | "committed" | "dealt" | "unknown" | "solved" | "expired"
  *  - seed          string  (RNG seed for pipe layout)
  *  - gameDifficulty number
  *  - deadline      number  (unix ms)
@@ -21,8 +21,10 @@
  *  - poolFree      number
  *
  * Dispatches:
+ *  - "connectWallet"   {}
  *  - "startGame"       { difficulty }
  *  - "recordFlap"      { pipes }
+ *  - "syncScore"       { pipes }
  *  - "submitSolution"  { pipes }
  *  - "expireGame"      {}
  */
@@ -38,7 +40,6 @@ import {
   BIRD_HEIGHT,
   BIRD_X,
   PIPE_WIDTH,
-  PIPE_GAP,
   createGameState,
   updateFrame,
   flap as engineFlap,
@@ -73,8 +74,12 @@ const C = {
   overlayCrash: 0x1a0a0a,
 };
 
-// Frames between recordFlap reports to React
-const REPORT_INTERVAL_FRAMES = 120; // ~2 s at 60 fps
+// Score synchronization is local UI state only. Real flap inputs use the
+// separate recordFlap action so the TEE op-log never receives fake flaps.
+const REPORT_INTERVAL_FRAMES = 60; // ~1 s at 60 fps
+const INPUT_COOLDOWN_MS = 68;
+const FIXED_STEP_MS = 1000 / 60;
+const MAX_CATCH_UP_STEPS = 6;
 
 const FLAPPY_ASSETS = {
   background: "flappy-background-day",
@@ -110,6 +115,11 @@ interface SceneLabels {
   poolChip: string;      // "Pool {pool} GAS"
   awaitingPool: string;
   launch: string;
+  guestLaunch: string;
+  payAndLaunch: string;
+  connectWallet: string;
+  connectingWallet: string;
+  lobbyHint: string;
   launching: string;
   flyAgain: string;
   retryRun: string;
@@ -117,6 +127,8 @@ interface SceneLabels {
   tapHint: string;
   sealingTitle: string;
   sealingHint: string;
+  settlementTitle: string;
+  settlementHint: string;
   winTitle: string;
   crashTitle: string;
   timeUpTitle: string;
@@ -124,6 +136,8 @@ interface SceneLabels {
   crashBody: string;     // "{score} pipes passed\nTarget {target}"
   timeUpBody: string;    // "{score} pipes passed\nDeadline reached"
   submitScore: string;
+  saveScore: string;
+  settleRun: string;
   submitting: string;
   playAgain: string;
   backToLobby: string;
@@ -135,44 +149,53 @@ interface SceneLabels {
 // when running standalone without the React shell). Live locales override this
 // through bridgeState.sceneLabels.
 const FALLBACK_LABELS: SceneLabels = {
-  eyebrow: "Verified flight challenge",
-  heroTagline: "Pass the gates, prove the run, claim GAS.",
+  eyebrow: "Arcade flight deck",
+  heroTagline: "Pass the gates, beat your best — free local practice.",
   title: "Flappy Dash",
-  poolChip: "Pool {pool} GAS",
+  poolChip: "Free practice — no entry",
   awaitingPool: "Awaiting pool",
   launch: "Launch Run",
+  guestLaunch: "Start Practice",
+  payAndLaunch: "Pay {amount} GAS & Fly",
+  connectWallet: "Connect Wallet",
+  connectingWallet: "Connecting…",
+  lobbyHint: "Free local flight · no wallet or transaction",
   launching: "Launching…",
   flyAgain: "Fly Again",
   retryRun: "Retry Run",
   tapTitle: "Tap to Fly!",
   tapHint: "Space / ↑ on desktop",
   sealingTitle: "Sealing Pipes…",
-  sealingHint: "Waiting for on-chain randomness",
+  sealingHint: "Preparing the verified flight session",
+  settlementTitle: "Settlement Pending…",
+  settlementHint: "Waiting for the verified callback. This run remains recoverable.",
   winTitle: "You Win!",
   crashTitle: "Crashed!",
   timeUpTitle: "Time Up!",
-  winBody: "{score} pipes passed\nWin {reward} GAS",
+  winBody: "{score} pipes cleared\nRoute complete!",
   crashBody: "{score} pipes passed\nTarget {target}",
   timeUpBody: "{score} pipes passed\nDeadline reached",
   submitScore: "Submit Score",
+  saveScore: "Save Score",
+  settleRun: "Settle Run",
   submitting: "Submitting…",
   playAgain: "Play Again",
   backToLobby: "Back to Lobby",
   tryAgain: "Try Again",
-  routes: DIFFICULTY_RULES.map((rule) => ({
+  routes: DIFFICULTY_RULES.map((rule, index) => ({
     title: `${rule.key.charAt(0).toUpperCase() + rule.key.slice(1)} route`,
-    meta: `${rule.targetPipes} gate run · ${Math.round(rule.limitMs / 60000)} min timer`,
+    meta: `${rule.targetPipes} gates · ${["roomy gaps", "faster rhythm", "tight gauntlet"][index]}`,
     cardName: rule.key.charAt(0).toUpperCase() + rule.key.slice(1),
     cardGates: `${rule.targetPipes} gates`,
-    entry: `Entry ${gasDisplay(rule.entryFixed8)} GAS`,
-    reward: `${gasDisplay(rule.rewardFixed8)} GAS`,
+    entry: "No entry — free",
+    reward: `${rule.targetPipes} pipes`,
   })),
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type LocalPhase = "idle" | "ready" | "playing" | "crashed" | "won";
-type GameStatus = "idle" | "committed" | "dealt" | "solved" | "expired";
+type GameStatus = "idle" | "committed" | "dealt" | "solved" | "expired" | "refunded" | "unknown";
 type SfxKind = "select" | "start" | "flap" | "score" | "crash" | "win";
 
 // ─── Scene ────────────────────────────────────────────────────────────────────
@@ -210,6 +233,8 @@ export class FlappyScene extends BaseScene {
   private eyebrowLabel!: Phaser.GameObjects.Text;
   private titleLabel!: Phaser.GameObjects.Text;
   private heroTaglineLabel!: Phaser.GameObjects.Text;
+  private heroBird!: Phaser.GameObjects.Image;
+  private heroBirdShadow!: Phaser.GameObjects.Ellipse;
 
   // ── Dealing / ready overlay text refs (locale-refreshed) ───────────────────
   private sealingTitleLabel!: Phaser.GameObjects.Text;
@@ -229,6 +254,7 @@ export class FlappyScene extends BaseScene {
 
   // ── Dealing/committed screen ──────────────────────────────────────────────
   private dealingContainer!: Phaser.GameObjects.Container;
+  private dealingPipes: Phaser.GameObjects.Image[] = [];
 
   // ── Ready overlay ("Tap to fly") ──────────────────────────────────────────
   private readyContainer!: Phaser.GameObjects.Container;
@@ -250,6 +276,9 @@ export class FlappyScene extends BaseScene {
   private lastReportedScore = -1;
   private lastScoreSfx = 0;
   private lastOverlayOutcome: "crashed" | "won" | "expired" | "" = "";
+  private lastInputAt = -Infinity;
+  private hasSeenA11yPrimaryPulse = false;
+  private lastA11yPrimaryPulse = 0;
 
   constructor() {
     super("FlappyScene");
@@ -315,12 +344,14 @@ export class FlappyScene extends BaseScene {
     this.buildDealingScreen();
     this.buildReadyOverlay();
     this.buildResultOverlay();
+    this.startAmbientMotion();
 
     // Pointer/keyboard input
     this.input.on("pointerdown", this.handleTap, this);
     this.input.keyboard?.on("keydown-SPACE",    this.handleTap, this);
     this.input.keyboard?.on("keydown-UP",        this.handleTap, this);
     this.input.keyboard?.on("keydown-W",         this.handleTap, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
 
     // Draw initial static scene so there's no blank frame.
     this.drawSky();
@@ -334,15 +365,34 @@ export class FlappyScene extends BaseScene {
     this.fitCameraToHost();
   }
 
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (enabled) {
+      this.stopAmbientMotion();
+      return;
+    }
+    this.startAmbientMotion();
+  }
+
   update(_time: number, delta: number): void {
     this.fitCameraToHostIfNeeded();
+    // The deadline is session-wide, not flight-attempt-wide. Check it before
+    // the phase guard so a bird resting on the crash overlay cannot keep an
+    // expired practice run alive until the user presses Retry again.
+    if (this.expireAtDeadlineIfNeeded()) return;
     if (this.localPhase !== "playing" || !this.flappyState) return;
+    if (!this.isGuestMode() && this.bool("inputSyncFailed")) return;
 
-    // Accumulate delta and step at fixed ~60 fps increments
-    this.frameAccum += delta;
-    const STEP = 1000 / 60;
-    while (this.frameAccum >= STEP) {
-      this.frameAccum -= STEP;
+    // Accumulate delta and step at fixed ~60 fps increments. Clamp a resumed
+    // tab's first frame so it cannot trigger an unbounded catch-up loop.
+    const safeDelta = Phaser.Math.Clamp(delta, 0, FIXED_STEP_MS * MAX_CATCH_UP_STEPS);
+    this.frameAccum = Math.min(
+      this.frameAccum + safeDelta,
+      FIXED_STEP_MS * MAX_CATCH_UP_STEPS,
+    );
+    let catchUpSteps = 0;
+    while (this.frameAccum >= FIXED_STEP_MS && catchUpSteps < MAX_CATCH_UP_STEPS) {
+      this.frameAccum -= FIXED_STEP_MS;
+      catchUpSteps++;
       const previousScore = this.flappyState.score;
       updateFrame(this.flappyState);
       if (this.flappyState.score > previousScore) {
@@ -376,24 +426,37 @@ export class FlappyScene extends BaseScene {
         this.reportScoreToReact(this.flappyState.score);
       }
 
-      // Deadline check
-      if (this.deadlineMs > 0 && Date.now() >= this.deadlineMs) {
-        this.dispatch("expireGame");
-        this.localPhase = "crashed";
-        this.frameAccum = 0;
-        this.showResultOverlay("expired");
-        break;
-      }
+      if (this.expireAtDeadlineIfNeeded()) break;
     }
 
     // Advance scrolling even while stepping physics
-    this.cloudOffset += delta * 0.03;
-    this.groundOffset += this.localPhase === "playing" ? delta * 0.12 : 0;
+    this.cloudOffset += safeDelta * 0.03;
+    this.groundOffset += this.localPhase === "playing" ? safeDelta * 0.12 : 0;
 
     // Redraw game frame
     if (this.flappyState) {
       this.drawGameFrame();
     }
+  }
+
+  private expireAtDeadlineIfNeeded(): boolean {
+    if (
+      this.deadlineMs <= 0
+      || Date.now() < this.deadlineMs
+      || this.gameStatus !== "dealt"
+      || this.localPhase === "won"
+      || this.lastOverlayOutcome === "expired"
+    ) return false;
+
+    this.reportScoreToReact(this.flappyState?.score ?? 0);
+    // Guest ends locally at the deadline. A paid session must be finalized
+    // through the TEE/kernel; expireGame is only valid after the contract's
+    // settlement grace period and must never be fired here prematurely.
+    if (this.isGuestMode()) this.dispatch("expireGame");
+    this.localPhase = "crashed";
+    this.frameAccum = 0;
+    this.showResultOverlay("expired");
+    return true;
   }
 
 
@@ -408,6 +471,7 @@ export class FlappyScene extends BaseScene {
     const isDealing   = this.bool("isDealing");
     const isStarting  = this.bool("isStarting");
     const poolFree    = this.num("poolFree", 0);
+    const a11yPrimaryPulse = Math.max(0, Math.floor(this.num("a11yPrimaryPulse", 0)));
 
     this.gameStatus  = status;
     this.deadlineMs  = deadline;
@@ -418,7 +482,7 @@ export class FlappyScene extends BaseScene {
       // New seed arrived — start a fresh local run
       this.prevSeed        = seed;
       this.prevActiveGameId = activeGame;
-      this.flappyState     = createGameState(seed);
+      this.flappyState     = createGameState(seed, difficulty);
       this.flappyState.phase = "ready";
       this.localPhase      = "ready";
       this.frameAccum      = 0;
@@ -430,6 +494,14 @@ export class FlappyScene extends BaseScene {
       this.showGameLayer();
       this.showReadyOverlay();
       this.updateScoreHud(0);
+    } else if (
+      status === "dealt"
+      && this.overlayContainer?.visible
+      && this.lastOverlayOutcome
+    ) {
+      // A failed/finished async settlement toggles isSubmitting without a new
+      // seed. Refresh button copy in place instead of replaying result motion.
+      this.applyResultOverlayCopy(this.lastOverlayOutcome);
     } else if (status !== "dealt") {
       // Not in an active game — reset to lobby
       if (this.localPhase !== "idle") {
@@ -440,7 +512,7 @@ export class FlappyScene extends BaseScene {
         this.lastOverlayOutcome = "";
       }
 
-      if (status === "committed" || isDealing) {
+      if (status === "committed" || status === "unknown" || isDealing) {
         this.showDealingLayer();
       } else {
         this.showLobbyLayer();
@@ -449,12 +521,29 @@ export class FlappyScene extends BaseScene {
     }
 
     // ── Difficulty selection in lobby ─────────────────────────────────────
-    if (status === "idle" || status === "solved" || status === "expired") {
+    if (status === "idle" || status === "solved" || status === "expired" || status === "refunded") {
+      this.pickedDifficulty = Math.max(0, Math.min(2, Math.round(difficulty)));
       this.updateCardHighlights();
     }
 
     // Keep every static caption in sync with the active locale.
     this.applyStaticLabels();
+
+    if (!this.hasSeenA11yPrimaryPulse) {
+      this.hasSeenA11yPrimaryPulse = true;
+      this.lastA11yPrimaryPulse = a11yPrimaryPulse;
+    } else if (a11yPrimaryPulse !== this.lastA11yPrimaryPulse) {
+      this.lastA11yPrimaryPulse = a11yPrimaryPulse;
+      if (["idle", "solved", "expired", "refunded"].includes(status)) {
+        this.onStartPressed();
+      } else if (status === "dealt") {
+        if (this.localPhase === "ready" || this.localPhase === "playing") {
+          this.handleTap();
+        } else if (this.localPhase === "crashed" || this.localPhase === "won") {
+          this.onOverlayAction();
+        }
+      }
+    }
   }
 
   // ── Localization ───────────────────────────────────────────────────────────
@@ -475,7 +564,7 @@ export class FlappyScene extends BaseScene {
 
   /** Guest (free / local) mode — supplied by the bridge; hides GAS/pool framing. */
   private isGuestMode(): boolean {
-    return this.str("appMode", "gamefi") === "guest";
+    return this.str("appMode", "guest") === "guest";
   }
 
   /** Substitute {token} placeholders in a localized template. */
@@ -492,8 +581,9 @@ export class FlappyScene extends BaseScene {
     this.eyebrowLabel?.setText(L.eyebrow);
     this.titleLabel?.setText(L.title);
     this.heroTaglineLabel?.setText(L.heroTagline);
-    this.sealingTitleLabel?.setText(L.sealingTitle);
-    this.sealingHintLabel?.setText(L.sealingHint);
+    const settlementPending = this.gameStatus === "unknown";
+    this.sealingTitleLabel?.setText(settlementPending ? L.settlementTitle : L.sealingTitle);
+    this.sealingHintLabel?.setText(settlementPending ? L.settlementHint : L.sealingHint);
     this.readyTitleLabel?.setText(L.tapTitle);
     this.readyHintLabel?.setText(L.tapHint);
     this.applyCardLabels(L);
@@ -508,8 +598,7 @@ export class FlappyScene extends BaseScene {
   private fitCameraToHost(): void {
     const viewW = Math.max(1, Math.round(this.scale.width || W));
     const viewH = Math.max(1, Math.round(this.scale.height || H));
-    const mobileZoomCorrection = viewW < W ? 0.82 : 1;
-    const zoom = Math.min(viewW / W, viewH / H) * mobileZoomCorrection;
+    const zoom = Math.min(viewW / W, viewH / H);
     const visibleW = viewW / Math.max(zoom, 0.001);
     const visibleH = viewH / Math.max(zoom, 0.001);
     const scrollX = (W - visibleW) / 2;
@@ -536,13 +625,23 @@ export class FlappyScene extends BaseScene {
   private handleTap(): void {
     this.sfx.unlock();
     if (this.gameStatus !== "dealt" || !this.flappyState) return;
+    if (this.bool("isSubmitting")) return;
+    if (!this.isGuestMode() && this.bool("inputSyncFailed")) return;
+
+    // Keyboard repeat and touch browsers can emit duplicate down events for a
+    // single intent. A very short guard removes those without dulling rhythm.
+    const now = this.time.now;
+    if (now - this.lastInputAt < INPUT_COOLDOWN_MS) return;
+    this.lastInputAt = now;
 
     if (this.localPhase === "ready") {
       this.playSfx("start");
-      this.emitFlapBurst();
       this.localPhase = "playing";
       this.flappyState.phase = "playing";
+      engineFlap(this.flappyState);
+      this.emitFlapBurst();
       this.hideReadyOverlay();
+      this.dispatch("recordFlap", { pipes: this.flappyState.score });
       return;
     }
 
@@ -737,7 +836,7 @@ export class FlappyScene extends BaseScene {
   private reportScoreToReact(score: number): void {
     if (score !== this.lastReportedScore) {
       this.lastReportedScore = score;
-      this.dispatch("recordFlap", { pipes: score });
+      this.dispatch("syncScore", { pipes: score });
     }
   }
 
@@ -758,7 +857,7 @@ export class FlappyScene extends BaseScene {
     const livePipes = new Set(gs.pipes);
     for (const p of gs.pipes) {
       const topH    = p.gapY;
-      const botY    = p.gapY + PIPE_GAP;
+      const botY    = p.gapY + gs.tuning.pipeGap;
       const botH    = H - GROUND_HEIGHT - botY;
       const x       = p.x;
 
@@ -904,8 +1003,8 @@ export class FlappyScene extends BaseScene {
 
     // Shadow tucked just under the bird's resting position so the two read as a
     // connected pair, well clear of the tagline below.
-    const heroBirdShadow = this.add.ellipse(W / 2, 214, 78, 16, 0x0f3a50, 0.16);
-    const heroBird = this.add.image(W / 2, 176, FLAPPY_ASSETS.birdMid)
+    this.heroBirdShadow = this.add.ellipse(W / 2, 214, 78, 16, 0x0f3a50, 0.16);
+    this.heroBird = this.add.image(W / 2, 176, FLAPPY_ASSETS.birdMid)
       .setDisplaySize(76, 64)
       .setAngle(-6);
     this.heroTaglineLabel = this.add.text(W / 2, 262, FALLBACK_LABELS.heroTagline, {
@@ -915,28 +1014,7 @@ export class FlappyScene extends BaseScene {
       stroke: "#ffffff",
       strokeThickness: 3,
     }).setOrigin(0.5);
-    this.lobbyContainer.add([heroBirdShadow, heroBird, this.heroTaglineLabel]);
-
-    // Ambient float — routed through this.tween so reduced-motion users get a
-    // still hero instead of an unconditional infinite loop.
-    this.tween({
-      targets: heroBird,
-      y: heroBird.y - 10,
-      angle: 5,
-      duration: 760,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-    this.tween({
-      targets: heroBirdShadow,
-      scaleX: 0.82,
-      alpha: 0.09,
-      duration: 760,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
+    this.lobbyContainer.add([this.heroBirdShadow, this.heroBird, this.heroTaglineLabel]);
 
     const routePanel = this.add.rectangle(W / 2, 334, 330, 74, C.panelBg, 0.96)
       .setStrokeStyle(2, C.panelStroke, 0.86)
@@ -1041,6 +1119,7 @@ export class FlappyScene extends BaseScene {
       this.playSfx("select");
       this.pickedDifficulty = rule.difficulty;
       this.updateCardHighlights();
+      this.dispatch("selectDifficulty", { difficulty: rule.difficulty });
       this.pressFeedback(c, { scale: 0.96, duration: 70 });
     });
     bg.on("pointerover",  () => { if (this.pickedDifficulty !== rule.difficulty) bg.setFillStyle(0xffffff, 0.98); });
@@ -1109,24 +1188,36 @@ export class FlappyScene extends BaseScene {
     const L          = this.labels();
     const rule       = ruleOf(this.pickedDifficulty);
     const rewardGas  = Number(gasDisplay(rule.rewardFixed8));
+    const guest      = this.isGuestMode();
+    const walletConnected = this.bool("walletConnected");
+    const isConnectingWallet = this.bool("isConnectingWallet");
     // Guest (local) play has no reward pool, so it is never pool-gated — the
     // launch button stays live regardless of the (zeroed) pool value.
-    const poolReady  = this.isGuestMode() ? true : poolFree >= rewardGas;
+    const poolReady  = guest ? true : poolFree >= rewardGas;
 
     // Pool stays informative (neutral chip), never an alarm — an unfunded pool
     // is a waiting state, not an error. In guest the chip carries local framing.
     this.poolLabel.setText(this.fmt(L.poolChip, { pool: poolFree.toFixed(2) }));
-    this.lobbyStatusLabel.setText("");
+    this.lobbyStatusLabel.setText(L.lobbyHint);
 
-    // Button copy reads as intent: launch when ready, or a calm "Awaiting pool".
-    let label = L.launch;
-    if (isStarting)              label = L.launching;
-    else if (status === "solved")  label = L.flyAgain;
-    else if (status === "expired") label = L.retryRun;
-    else if (!poolReady)           label = L.awaitingPool;
+    // Connecting and spending are deliberately separate gestures. The first
+    // disconnected press only opens the wallet; the next clearly quotes entry.
+    let label = guest
+      ? L.guestLaunch
+      : walletConnected
+        ? this.fmt(L.payAndLaunch, { amount: gasDisplay(rule.entryFixed8) })
+        : L.connectWallet;
+    if (isConnectingWallet)                         label = L.connectingWallet;
+    else if (isStarting)                            label = L.launching;
+    else if (!poolReady)                            label = L.awaitingPool;
+    else if (!guest && !walletConnected)            label = L.connectWallet;
+    else if (status === "solved")                   label = L.flyAgain;
+    else if (status === "expired")                  label = L.retryRun;
     this.startBtnLabel.setText(label);
 
-    this.startBtnBg.setFillStyle(isStarting || !poolReady ? C.btnDisabled : C.btnPrimary);
+    this.startBtnBg.setFillStyle(
+      isStarting || isConnectingWallet || !poolReady ? C.btnDisabled : C.btnPrimary,
+    );
 
     // Update card highlights to match current difficulty from bridge
     this.updateCardHighlights();
@@ -1134,11 +1225,17 @@ export class FlappyScene extends BaseScene {
 
   private onStartPressed(): void {
     const isStarting  = this.bool("isStarting");
+    const isConnectingWallet = this.bool("isConnectingWallet");
     const poolFree    = this.num("poolFree", 0);
     const rule        = ruleOf(this.pickedDifficulty);
     const rewardGas   = Number(gasDisplay(rule.rewardFixed8));
     // Guest (local) play has no reward pool, so it is never pool-gated.
-    if (isStarting || (!this.isGuestMode() && poolFree < rewardGas)) return;
+    if (isStarting || isConnectingWallet || (!this.isGuestMode() && poolFree < rewardGas)) return;
+    if (!this.isGuestMode() && !this.bool("walletConnected")) {
+      this.playSfx("select");
+      this.dispatch("connectWallet");
+      return;
+    }
     this.playSfx("start");
     this.dispatch("startGame", { difficulty: this.pickedDifficulty });
   }
@@ -1165,12 +1262,14 @@ export class FlappyScene extends BaseScene {
     this.sealingHintLabel = this.add.text(W / 2, H / 2 - 20, FALLBACK_LABELS.sealingHint, {
       fontFamily: UI_FONT,
       fontSize: "13px",
-      color: "#7a9ab5",
+      color: "#173247",
+      stroke: "#ffffff",
+      strokeThickness: 3,
     }).setOrigin(0.5);
     this.dealingContainer.add(this.sealingHintLabel);
 
     // Animated pipe sprites cycling while the verified pipe route is prepared.
-    const pipeIcons: Phaser.GameObjects.Image[] = [];
+    this.dealingPipes = [];
     for (let i = 0; i < 5; i++) {
       const pipe = this.add.image(
         W / 2 - 40 + i * 20,
@@ -1178,18 +1277,8 @@ export class FlappyScene extends BaseScene {
         i % 2 === 0 ? FLAPPY_ASSETS.pipeTop : FLAPPY_ASSETS.pipeBottom,
       ).setDisplaySize(14, 56).setAlpha(0.3);
       this.dealingContainer.add(pipe);
-      pipeIcons.push(pipe);
+      this.dealingPipes.push(pipe);
 
-      this.tween({
-        targets: pipe,
-        alpha: 1,
-        scaleY: 1.3,
-        duration: 400,
-        ease: "Sine.easeInOut",
-        yoyo: true,
-        repeat: -1,
-        delay: i * 80,
-      });
     }
   }
 
@@ -1217,15 +1306,6 @@ export class FlappyScene extends BaseScene {
 
     this.readyContainer.add([bg, this.readyTitleLabel, this.readyHintLabel]);
 
-    // Gentle pulse — reduced-motion users get a steady, fully-opaque prompt.
-    this.tween({
-      targets: this.readyContainer,
-      alpha: 0.7,
-      duration: 800,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
   }
 
   // ── Result overlay (crash / win / expired) ─────────────────────────────────
@@ -1247,13 +1327,13 @@ export class FlappyScene extends BaseScene {
     this.overlayBody = this.add.text(0, -24, "", {
       fontFamily: UI_FONT,
       fontSize: "14px",
-      color: "#7a9ab5",
+      color: "#dff9ff",
       align: "center",
     }).setOrigin(0.5);
 
     // Primary action button (Retry / Submit)
     this.overlayActionBtn = this.add.container(0, 24);
-    const actionBg = this.add.rectangle(0, 0, 200, 40, C.btnPrimary)
+    const actionBg = this.add.rectangle(0, 0, 200, 44, C.btnPrimary)
       .setStrokeStyle(2, 0x42a5f5)
       .setOrigin(0.5);
     actionBg.setInteractive({ useHandCursor: true });
@@ -1265,13 +1345,13 @@ export class FlappyScene extends BaseScene {
       fontFamily: UI_FONT,
       fontSize: "15px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#173247",
     }).setOrigin(0.5);
     this.overlayActionBtn.add([actionBg, this.overlayActionLabel]);
 
     // Secondary action button (Submit / Expire)
     this.overlaySecondBtn = this.add.container(0, 72).setVisible(false);
-    const secondBg = this.add.rectangle(0, 0, 200, 36, 0x1a2a3a)
+    const secondBg = this.add.rectangle(0, 0, 200, 44, 0x1a2a3a)
       .setStrokeStyle(1, C.chipBorder)
       .setOrigin(0.5);
     secondBg.setInteractive({ useHandCursor: true });
@@ -1284,7 +1364,7 @@ export class FlappyScene extends BaseScene {
     this.overlaySecondLabel = this.add.text(0, 0, FALLBACK_LABELS.submitScore, {
       fontFamily: UI_FONT,
       fontSize: "13px",
-      color: "#7a9ab5",
+      color: "#dff9ff",
     }).setOrigin(0.5);
     this.overlaySecondBtn.add([secondBg, this.overlaySecondLabel]);
 
@@ -1301,11 +1381,8 @@ export class FlappyScene extends BaseScene {
   // ── Overlay actions ────────────────────────────────────────────────────────
 
   private showResultOverlay(outcome: "crashed" | "won" | "expired"): void {
-    const score = this.flappyState?.score ?? 0;
-    const rule  = ruleOf(this.num("gameDifficulty", 0));
-
     this.overlayContainer.setVisible(true).setAlpha(0).setScale(0.8);
-    this.tweens.add({
+    this.tween({
       targets: this.overlayContainer,
       alpha: 1, scale: 1,
       duration: 220,
@@ -1317,6 +1394,15 @@ export class FlappyScene extends BaseScene {
       this.playResultFeedback(outcome);
     }
 
+    this.applyResultOverlayCopy(outcome);
+  }
+
+  private applyResultOverlayCopy(outcome: "crashed" | "won" | "expired"): void {
+    const score = this.flappyState?.score ?? 0;
+    const rule  = ruleOf(this.num("gameDifficulty", 0));
+    const guest = this.isGuestMode();
+    const busy = this.bool("isSubmitting");
+
     const L = this.labels();
     if (outcome === "won") {
       this.overlayTitle.setText(L.winTitle).setColor("#16c784");
@@ -1324,21 +1410,24 @@ export class FlappyScene extends BaseScene {
         this.fmt(L.winBody, { score, reward: gasDisplay(rule.rewardFixed8) }),
       );
       this.overlayBg.setFillStyle(C.overlayWin, 0.88);
-      this.overlayActionLabel.setText(L.submitScore);
-      this.overlaySecondBtn.setVisible(true);
+      this.overlayActionLabel.setText(busy ? L.submitting : guest ? L.saveScore : L.submitScore);
+      this.overlaySecondBtn.setVisible(guest);
       this.overlaySecondLabel.setText(L.playAgain);
     } else if (outcome === "expired") {
       this.overlayTitle.setText(L.timeUpTitle).setColor("#e8a800");
       this.overlayBody.setText(this.fmt(L.timeUpBody, { score }));
       this.overlayBg.setFillStyle(C.overlayCrash, 0.88);
-      this.overlayActionLabel.setText(L.backToLobby);
+      this.overlayActionLabel.setText(
+        busy ? L.submitting : guest || this.gameStatus !== "dealt" ? L.backToLobby : L.settleRun,
+      );
       this.overlaySecondBtn.setVisible(false);
     } else {
       this.overlayTitle.setText(L.crashTitle).setColor("#e25d4d");
       this.overlayBody.setText(this.fmt(L.crashBody, { score, target: rule.targetPipes }));
       this.overlayBg.setFillStyle(C.overlayCrash, 0.88);
-      this.overlayActionLabel.setText(L.tryAgain);
-      this.overlaySecondBtn.setVisible(false);
+      this.overlayActionLabel.setText(busy ? L.submitting : guest ? L.tryAgain : L.settleRun);
+      this.overlaySecondBtn.setVisible(guest && score > 0);
+      this.overlaySecondLabel.setText(L.saveScore);
     }
   }
 
@@ -1347,6 +1436,19 @@ export class FlappyScene extends BaseScene {
     const status = this.gameStatus;
     const busy   = this.bool("isSubmitting");
     if (busy) return;
+
+    if (this.lastOverlayOutcome === "expired") {
+      if (status === "dealt") {
+        this.playSfx("select");
+        this.dispatch(this.isGuestMode() ? "expireGame" : "submitSolution", {
+          pipes: this.flappyState?.score ?? 0,
+        });
+        this.overlayActionLabel.setText(this.labels().submitting);
+      } else {
+        this.showLobbyLayer();
+      }
+      return;
+    }
 
     if (phase === "won") {
       // Submit the solution to the contract
@@ -1357,23 +1459,20 @@ export class FlappyScene extends BaseScene {
       return;
     }
 
-    // Crashed / expired → retry locally or go back to lobby
-    if (status === "dealt") {
-      // Restart local run with the same seed
-      const seed = this.str("seed", "");
-      if (seed) {
-        this.flappyState = createGameState(seed);
-        this.flappyState.phase = "ready";
-        this.localPhase = "ready";
-        this.frameAccum = 0;
-        this.reportTimer = 0;
-        this.lastReportedScore = -1;
-        this.lastScoreSfx = 0;
-        this.lastOverlayOutcome = "";
-        this.overlayContainer.setVisible(false);
-        this.showReadyOverlay();
-        this.updateScoreHud(0);
-      }
+    if (phase === "crashed" && status === "dealt" && !this.isGuestMode()) {
+      // A paid route is one attested run. Crashing settles that run as-is;
+      // retrying the same paid session would make the local reset diverge from
+      // the enclave op-log.
+      const score = this.flappyState?.score ?? 0;
+      this.playSfx("select");
+      this.dispatch("submitSolution", { pipes: score });
+      this.overlayActionLabel.setText(this.labels().submitting);
+      return;
+    }
+
+    // Free practice can restart instantly with the same deterministic route.
+    if (status === "dealt" && this.isGuestMode()) {
+      this.restartLocalRun();
     } else {
       // Expired / solved — go back to lobby
       this.localPhase = "idle";
@@ -1385,23 +1484,38 @@ export class FlappyScene extends BaseScene {
   }
 
   private onOverlaySecondAction(): void {
-    // "Play Again" after a win — retry locally (no new game started)
-    const seed = this.str("seed", "");
-    if (seed && this.gameStatus === "dealt") {
-      this.playSfx("start");
-      this.flappyState = createGameState(seed);
-      this.flappyState.phase = "ready";
-      this.localPhase = "ready";
-      this.frameAccum = 0;
-      this.reportTimer = 0;
-      this.lastReportedScore = -1;
-      this.lastScoreSfx = 0;
-      this.lastOverlayOutcome = "";
-      this.overlayContainer.setVisible(false);
-      this.overlaySecondBtn.setVisible(false);
-      this.showReadyOverlay();
-      this.updateScoreHud(0);
+    if (!this.isGuestMode() || this.gameStatus !== "dealt" || this.bool("isSubmitting")) return;
+
+    if (this.lastOverlayOutcome === "crashed") {
+      const score = this.flappyState?.score ?? 0;
+      this.playSfx("select");
+      this.dispatch("submitSolution", { pipes: score });
+      this.overlaySecondLabel.setText(this.labels().submitting);
+      return;
     }
+
+    // "Play Again" after a guest win — retry locally with no chain action.
+    this.restartLocalRun();
+  }
+
+  private restartLocalRun(): void {
+    const seed = this.str("seed", "");
+    if (!seed) return;
+    this.playSfx("start");
+    this.flappyState = createGameState(seed, this.num("gameDifficulty", 0));
+    this.flappyState.phase = "ready";
+    this.localPhase = "ready";
+    this.frameAccum = 0;
+    this.reportTimer = 0;
+    this.lastReportedScore = -1;
+    this.lastScoreSfx = 0;
+    this.lastOverlayOutcome = "";
+    this.lastInputAt = -Infinity;
+    this.overlayContainer.setVisible(false);
+    this.overlaySecondBtn.setVisible(false);
+    this.showReadyOverlay();
+    this.updateScoreHud(0);
+    this.dispatch("syncScore", { pipes: 0 });
   }
 
 
@@ -1451,6 +1565,78 @@ export class FlappyScene extends BaseScene {
 
   private hideReadyOverlay(): void {
     this.readyContainer.setVisible(false);
+  }
+
+  private startAmbientMotion(): void {
+    if (!this.heroBird || !this.readyContainer) return;
+    if (this.reducedMotion) {
+      this.stopAmbientMotion();
+      return;
+    }
+    this.stopAmbientMotion();
+
+    this.tween({
+      targets: this.heroBird,
+      y: 166,
+      angle: 5,
+      duration: 760,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tween({
+      targets: this.heroBirdShadow,
+      scaleX: 0.82,
+      alpha: 0.09,
+      duration: 760,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.dealingPipes.forEach((pipe, index) => {
+      this.tween({
+        targets: pipe,
+        alpha: 1,
+        scaleY: pipe.scaleY * 1.22,
+        duration: 400,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
+        delay: index * 80,
+      });
+    });
+    this.tween({
+      targets: this.readyContainer,
+      alpha: 0.7,
+      duration: 800,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  private stopAmbientMotion(): void {
+    const targets = [
+      this.heroBird,
+      this.heroBirdShadow,
+      this.readyContainer,
+      ...this.dealingPipes,
+    ].filter(Boolean);
+    if (targets.length > 0) this.tweens.killTweensOf(targets);
+
+    this.heroBird?.setPosition(W / 2, 176).setAngle(-6);
+    this.heroBirdShadow?.setPosition(W / 2, 214).setScale(1).setAlpha(0.16);
+    this.readyContainer?.setAlpha(1).setScale(1);
+    this.dealingPipes.forEach((pipe) => pipe.setDisplaySize(14, 56).setAlpha(0.62));
+  }
+
+  private cleanupScene(): void {
+    this.input.off("pointerdown", this.handleTap, this);
+    this.input.keyboard?.off("keydown-SPACE", this.handleTap, this);
+    this.input.keyboard?.off("keydown-UP", this.handleTap, this);
+    this.input.keyboard?.off("keydown-W", this.handleTap, this);
+    this.stopAmbientMotion();
+    this.clearPipeSprites();
   }
 
   private clearPipeSprites(): void {

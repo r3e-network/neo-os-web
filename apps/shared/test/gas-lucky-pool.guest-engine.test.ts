@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
-import { createGuestEngine } from "../../gas-lucky-pool/src/logic/guest-engine";
+import {
+  createGuestEngine,
+  normalizeGuestRange,
+  secureRandomIntegerInclusive,
+} from "../../gas-lucky-pool/src/logic/guest-engine";
 import type { GuestEngineDeps, GuestBoardRow } from "../../gas-lucky-pool/src/logic/guest-engine";
 
 function makeObs<T>(initial: T) {
@@ -136,8 +140,23 @@ describe("gas-lucky-pool guest engine", () => {
     expect(h.submit).not.toHaveBeenCalled();
   });
 
+  it("preserves a scanned claim entitlement while clearing unrelated paid state", async () => {
+    const h = setup();
+
+    await h.engine.enter({ preserveClaimContext: true });
+
+    expect(h.currentClaimKey.get()).toBe("claim-key");
+    expect(h.currentPoolId.get()).toBe("pool-1");
+    expect(h.currentPool.get()).toBeNull();
+    expect(h.recentPools.get()).toEqual([]);
+    expect(h.recentClaims.get()).toEqual([]);
+    expect(h.gasCredit.get()).toBe(0n);
+    expect(h.lastClaimAmount.get()).toBe(0n);
+  });
+
   it("draws local points, drives the reward reveal state, and writes only guest score", async () => {
-    stubRandomUnit(0.5);
+    // Raw uint32 value 200 maps to the middle centi-point (3.00) in [1, 5].
+    stubRandomUnit(200 / 0x100000000);
     const h = setup();
     await h.engine.enter();
     h.get.mockClear();
@@ -176,5 +195,41 @@ describe("gas-lucky-pool guest engine", () => {
     expect(h.lastClaimLuckPercent.get()).toBe("50");
     expect(h.submit).toHaveBeenCalledWith(200);
     expect(h.guestBoard.get().some((row) => row.user === "Nold" && row.score === 2.75)).toBe(true);
+  });
+
+  it("normalizes forged draw ranges into the production 1-50 point bounds", () => {
+    expect(normalizeGuestRange({ min: -10, max: 500 })).toEqual({ min: 1, max: 50 });
+    expect(normalizeGuestRange({ min: 20, max: 5 })).toEqual({ min: 20, max: 20 });
+    expect(normalizeGuestRange({ min: Number.NaN, max: Number.NaN })).toEqual({ min: 1, max: 1 });
+  });
+
+  it("uses rejection sampling so centi-point prizes have no modulo bias", () => {
+    const values = [0xffffffff, 200];
+    const getRandomValues = vi.fn((array: Uint32Array) => {
+      array[0] = values.shift() ?? 0;
+      return array;
+    });
+    vi.stubGlobal("crypto", { getRandomValues });
+
+    expect(secureRandomIntegerInclusive(100, 500)).toBe(300);
+    expect(getRandomValues).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed without Web Crypto and never downgrades to Math.random", async () => {
+    const h = setup();
+    await h.engine.enter();
+    const mathRandom = vi.spyOn(Math, "random");
+    vi.stubGlobal("crypto", undefined);
+
+    const drawn = h.engine.draw({ min: 1, max: 50 });
+
+    expect(drawn).toBe(false);
+    expect(mathRandom).not.toHaveBeenCalled();
+    expect(h.lastClaimAmount.get()).toBe(0n);
+    expect(h.lastClaimLuckPercent.get()).toBe("");
+    expect(h.guestDraws.get()).toBe(0);
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.lastError.get()).toBe("guestSecureRandomUnavailable");
+    expect(h.setStatus).toHaveBeenCalledWith("guestSecureRandomUnavailable", "error");
   });
 });

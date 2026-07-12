@@ -1,109 +1,44 @@
 # Time Capsule
 
-Time-locked message hashes with public fishing and local content storage
+A capsule-first Neo N3 miniapp for sealing a local message hash behind a refundable time lock.
 
-## Overview
+## Production flow
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-time-capsule` |
-| **Category** | nft |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea |
+1. Write a title and message. The full message remains in this browser; only its SHA-256 digest is sent on-chain.
+2. Choose a 1–3650 day lock. Category, exact duration and visibility are progressively disclosed in capsule settings.
+3. Prepay a 0.2 GAS refundable deposit and call `bury`. A confirmed `Buried` event plus an exact `getCapsule` readback is required before success is shown.
+4. After the countdown, the owner calls `reveal`. The deployed contract returns the locked GAS atomically; the app requires the exact `Revealed` event and readback.
+5. A different wallet may tip one public, unrevealed capsule once by transferring 0.05 GAS with the `miniapp-timecapsule:fish:<id>` memo. The deployed contract forwards the tip directly to the owner.
 
+Broadcast is not success. Before any wallet write, the app proves that its recovery store can round-trip data. Unverified writes persist the exact network, contract, wallet, intent and transaction id; they block replay and can be checked after refresh. If storage fails after broadcast, the app keeps the transaction id in-session and explicitly tells the user not to submit again. RPC failures are shown as unavailable data, never as a genuine zero balance or empty vault.
 
-## How It Works
+The product surface is capsule-first: the bright chamber asset, local letter and one Seal Capsule action hold the primary stage. Exact duration, category, visibility, capsule history, public tips and deposit recovery stay in the details drawer. The sealing animation follows the real transaction lifecycle; there is no timer-based preview success.
 
-1. **Create Capsule**: Seal messages or digital assets in a time capsule
-2. **Set Release Time**: Define when the capsule can be opened
-3. **On-Chain Storage**: Capsule metadata is stored permanently on Neo
-4. **Restricted Access**: Cannot be opened before the release time
-5. **Claim Capsule**: After release time, the owner can claim contents
-## Features
-
-- Store message hashes on-chain while keeping full content locally
-- Choose public or private visibility
-- Public capsules can be fished after unlock
-- Add recipients to private capsules
-- Extend unlock time or gift capsules (fees apply)
-- On-chain stats for users and categories
-
-## Usage Flow
-
-1. Connect your Neo wallet and open the Create tab.
-2. Enter a message, set a lock duration (1-3650 days), and choose visibility.
-3. Pay the 0.2 GAS fee to seal the capsule hash on-chain.
-4. Reveal your capsule after unlock using your local backup.
-5. Optional: fish for unlocked public capsules with a small fee.
-
-## Content Storage
-
-- The contract only stores the message hash and metadata.
-- The full message stays on your device. Back it up if you want to reveal it later.
-
-## Fees
-
-- Bury capsule: 0.2 GAS
-- Fish capsule: 0.05 GAS
-- Extend unlock time: 0.1 GAS
-- Gift capsule: 0.15 GAS
-- Fishing reward: 0.02 GAS when contract balance allows
-
-## Permissions
-
-| Permission | Required |
-|------------|----------|
-| Payments | ✅ Yes |
-| RNG | ❌ No |
-| Data Feed | ❌ No |
-| Governance | ❌ No |
-
-## Network Configuration
-
-### Testnet
+## Current chain boundary
 
 | Property | Value |
-|----------|-------|
-| **Contract** | `0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489) |
-| **Network Magic** | `894710606` |
+|---|---|
+| App ID | `miniapp-time-capsule` |
+| Category | Social |
+| Version | 1.1.0 |
+| Mainnet contract | `0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a` |
+| Testnet contract | `0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a` |
+| State endpoint | `https://api.n3index.dev/{mainnet,testnet}` |
 
-### Mainnet
+The deployed ABI supports `bury`, `reveal`, `withdraw`, `lastCapsuleId`, `creditOf`, `getCapsule`, `ownerCapsuleCount`, and `getOwnerCapsules`. Fishing is handled by `onNEP17Payment` and emits `Fished`. The deployed contract forwards the tip directly and does **not** expose the newer local-build `fishRevenueOf` / `withdrawFishRevenue` ledger API, so the frontend does not offer a broken collect-tips control.
 
-| Property | Value |
-|----------|-------|
-| **Contract** | `0xd853a4ac293ff96e7f70f774c2155d846f91a989` |
-| **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xd853a4ac293ff96e7f70f774c2155d846f91a989) |
-| **Network Magic** | `860833102` |
+No oracle is required: the contract uses Neo runtime time for the lock and Neo N3 atomic execution for refund/tip settlement.
 
-## Platform Contracts
-
-### Current Integration Surface
-
-- direct prepaid GAS to the MiniApp contract
-- direct contract invocation for bury / fish
-- optional Oracle / AA integrations remain external
-
-## Development
+## Local verification
 
 ```bash
-# Install dependencies
-npm install
+cd apps/shared
+npx vitest run test/time-capsule.logic.test.ts test/time-capsule.playarea.test.tsx
+npx vitest run test/i18n-key-parity.test.ts -t time-capsule
 
-# Development server
-npm run dev
-
-# Build for H5
+cd ../time-capsule
+npx tsc --noEmit -p tsconfig.json
 npm run build
 ```
 
-## Assets
-
-- **Allowed Assets**: GAS
-
-
-## License
-
-MIT License - R3E Network
+See `PRODUCTION_STATUS.md`, `ASSET_PROVENANCE.md`, and `TESTNET_STATUS.md` for the verified frontend, retained art, live read-only evidence, and remaining funded-write boundary.

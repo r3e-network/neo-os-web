@@ -20,7 +20,7 @@ function readPlayAreaStyles() {
   return fs.readFileSync(candidates.find((file: string) => fs.existsSync(file)) ?? candidates[0], "utf8");
 }
 describe("Explorer PlayArea (v2)", () => {
-  it("renders the stats scene", () => { const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />); expect(container.querySelector(".explorer-scene")).toBeTruthy(); expect(container.textContent).toContain("1234567"); });
+  it("renders the data workspace", () => { const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />); expect(container.querySelector(".explorer-workspace")).toBeTruthy(); expect(container.textContent).toContain("1234567"); });
   it("dispatches search", () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state({ searchQuery:"0xabc" })} dispatch={d} />); fireEvent.click(container.querySelector(".mx2-btn--primary") as Element); expect(d).toHaveBeenCalledWith("search"); });
   it("switches network", () => { const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />); fireEvent.click(container.querySelectorAll(".explorer-net-btn")[1]); expect(container.textContent).toContain("7654321"); });
   it("has reduced-motion", () => { const s = readPlayAreaStyles(); expect(s).toContain("@media (prefers-reduced-motion: reduce)"); });

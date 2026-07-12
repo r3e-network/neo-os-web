@@ -32,6 +32,7 @@ const SURFACE_PROPS = {
 describe("EmbeddedDappSurface load-failure recovery", () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -106,6 +107,87 @@ describe("EmbeddedDappSurface load-failure recovery", () => {
     expect(popOut.className).not.toMatch(/(^|\s)opacity-0(\s|$)/);
     expect(popOut.className).toContain("sm:opacity-0");
     expect(popOut.className).toContain("sm:group-hover:opacity-100");
+  });
+
+  it("delegates motion sensors only to Goose Basket Shuffle while preserving the sandbox", () => {
+    const { rerender } = render(
+      <EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-zhuada-e" />,
+    );
+    const gooseFrame = screen.getByTestId("native-dapp-frame-miniapp-demo");
+    expect(gooseFrame).toHaveAttribute("allow", "accelerometer *; gyroscope *");
+    expect(gooseFrame).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
+    );
+
+    rerender(<EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-demo" />);
+    expect(screen.getByTestId("native-dapp-frame-miniapp-demo")).not.toHaveAttribute("allow");
+  });
+
+  it("gives only the first-party automation studio access to its host session", () => {
+    const { rerender } = render(
+      <EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-automation-copilot" />,
+    );
+    expect(screen.getByTestId("native-dapp-frame-miniapp-demo")).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox",
+    );
+
+    rerender(<EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-demo" />);
+    expect(screen.getByTestId("native-dapp-frame-miniapp-demo")).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
+    );
+  });
+
+  it("bridges only namespaced local game storage to the opaque goose iframe", () => {
+    render(<EmbeddedDappSurface {...SURFACE_PROPS} appId="miniapp-zhuada-e" />);
+    const frame = screen.getByTestId("native-dapp-frame-miniapp-demo") as HTMLIFrameElement;
+    const frameWindow = frame.contentWindow!;
+    const post = jest.spyOn(frameWindow, "postMessage").mockImplementation(() => {});
+    window.localStorage.setItem(
+      "neo-miniapp-storage:miniapp-zhuada-e:zhuada-e:progress",
+      "{\"v\":3}",
+    );
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: "null",
+        source: frameWindow,
+        data: {
+          type: "neo-miniapp-storage:request",
+          version: 1,
+          requestId: "hydrate-test-123",
+          appId: "miniapp-zhuada-e",
+          op: "getAll",
+        },
+      }));
+    });
+    expect(post).toHaveBeenCalledWith(expect.objectContaining({
+      type: "neo-miniapp-storage:response",
+      requestId: "hydrate-test-123",
+      ok: true,
+      values: { "zhuada-e:progress": "{\"v\":3}" },
+    }), "*");
+
+    act(() => {
+      window.dispatchEvent(new MessageEvent("message", {
+        origin: "null",
+        source: frameWindow,
+        data: {
+          type: "neo-miniapp-storage:request",
+          version: 1,
+          requestId: "write-test-1234",
+          appId: "miniapp-zhuada-e",
+          op: "set",
+          key: "zhuada-e:theme",
+          value: "night-market",
+        },
+      }));
+    });
+    expect(window.localStorage.getItem(
+      "neo-miniapp-storage:miniapp-zhuada-e:zhuada-e:theme",
+    )).toBe("night-market");
   });
 });
 

@@ -4,8 +4,8 @@
   "name": "FogPlay",
   "name_zh": "迷雾对决",
   "version": "2.0.0",
-  "description": "Provably-fair on-chain coin flip on Neo N3. Pick heads or tails (50% chance) and place a GAS wager — your bet commits first, then the outcome is revealed from a later block's native randomness and pays 2x, so the result can't be peeked or aborted on a loss.",
-  "description_zh": "Neo N3 上可证明公平的链上抛硬币游戏。选择正面或反面（50% 胜率）并下注 GAS——下注先行提交，随后由更晚区块的原生随机数揭晓结果并支付 2 倍赔付，结果无法被窥探或在将输时中止。",
+  "description": "A tactile Phaser coin-flip table with secure local streak play and no wallet or GAS at risk. Wallet-funded GameFi remains paused while the public Neo N3 deployments are replaced with the reviewed contract artifact and revalidated.",
+  "description_zh": "精心设计的 Phaser 本地抛硬币连胜游戏，无需钱包，也不会使用 GAS。公开 Neo N3 部署与当前审计合约产物不一致，钱包 GameFi 将在重新部署并验证前保持关闭。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -24,49 +24,49 @@
     "neo-n3-mainnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
     "neo-n3-testnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda"
   },
-  "contract_domains": {
-    "neo-n3-mainnet": "fogplay.miniapp.neo"
-  },
   "supported_networks": [
-    "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/fogplay/index.html",
     "icon": "/miniapps/fogplay/logo.webp",
     "banner": "/miniapps/fogplay/banner.webp"
   },
   "permissions": [
-    "invoke:primary",
     "read:blockchain"
   ],
+  "operation_panel": {
+    "title": "FogPlay",
+    "subtitle": "Choose a side and flip locally on the designed Phaser table. Wallet-funded flips stay disabled until the deployment compatibility gate passes.",
+    "operations": []
+  },
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://fogplay"
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-mainnet",
+    "chain": "neo-n3-testnet",
     "endpoints": [
-      "https://api.n3index.dev"
+      "https://api.n3index.dev/testnet"
     ]
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-05-08T13:07:29Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": true,
   "featured_order": 3,
   "technologies": {
     "oracle": {
       "enabled": false,
-      "description": "No oracle — the bet commits first, then a permissionless settle reveals the outcome from a later block's native Runtime.GetRandom"
+      "description": "GameFi is disabled. Guest flips use secure local browser randomness; the retained Neo N3 design uses a fixed three-block beacon but is not advertised as proof-carrying VRF."
     },
     "aa": {
       "enabled": false,
@@ -76,36 +76,5 @@
       "enabled": false,
       "description": "The live product is single-player user-versus-system coin flip; PvP TEE duel mode is not enabled"
     }
-  },
-  "runtime": {
-    "mode": "platform",
-    "modules": [
-      {
-        "binding": "coin-flip",
-        "platform": "PlatformGame",
-        "appId": "miniapp-fogplay",
-        "moduleType": 2,
-        "registration": {
-          "method": "registerGame",
-          "type": 2
-        },
-        "operations": {
-          "place_bet": "placeCoinFlipBet",
-          "limits": "getCoinFlipBetLimits",
-          "bet": "getCoinFlipBet"
-        },
-        "networks": {
-          "neo-n3-mainnet": {
-            "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
-            "registered": true,
-            "domain": "fogplay.miniapp.neo"
-          },
-          "neo-n3-testnet": {
-            "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
-            "registered": true
-          }
-        }
-      }
-    ]
   }
 }

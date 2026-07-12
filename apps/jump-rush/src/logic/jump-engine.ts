@@ -112,6 +112,42 @@ export function isPerfectLanding(offset: number, platformWidth: number): boolean
   return offset >= centerStart && offset <= centerEnd;
 }
 
+export interface JumpEvaluation {
+  /** Horizontal landing offset from the target platform's left edge. */
+  landingOffset: number;
+  /** True when the landing is anywhere on the target platform. */
+  landed: boolean;
+  /** True when the landing is inside the platform's centre 30%. */
+  perfect: boolean;
+  /** Charge value surfaced by the enclave engine as its timing hint. */
+  idealCharge: number;
+}
+
+/**
+ * Evaluate the same normalized 0..100 charge level used by the reviewed
+ * Morpheus Jump engine. Keeping this formula in the playable scene prevents a
+ * jump that looks successful locally from being rejected during replay.
+ */
+export function evaluateJumpLevel(
+  chargeLevel: number,
+  gap: number,
+  platformWidth: number,
+): JumpEvaluation {
+  const safeGap = Math.max(0, Number(gap) || 0);
+  const safeWidth = Math.max(1, Number(platformWidth) || 1);
+  const validCharge = Number.isFinite(chargeLevel) && chargeLevel >= 0 && chargeLevel <= 100;
+  const landingOffset = validCharge
+    ? (chargeLevel / 100) * (safeGap + safeWidth) - safeGap
+    : Number.NaN;
+  const landed = validCharge && landingOffset >= 0 && landingOffset <= safeWidth;
+  return {
+    landingOffset,
+    landed,
+    perfect: landed && isPerfectLanding(landingOffset, safeWidth),
+    idealCharge: Math.min(100, Math.max(0, 50 + safeGap / 4)),
+  };
+}
+
 /**
  * Calculate score for a jump.
  */

@@ -7,11 +7,12 @@ const appMessages = {
     zh: "Neo 多重签名",
   },
   appSubtitle: {
-    en: "Shared on-chain custody, released by every signer.",
-    zh: "链上共管金库，多方签名放行。",
+    en: "Shared on-chain custody, released at the configured approval threshold.",
+    zh: "链上共管金库，达到设定批准阈值后放行。",
   },
   tabHome: { en: "Home", zh: "首页" },
   tabDocs: { en: "Docs", zh: "文档" },
+  walletRequired: { en: "Connect a wallet to continue.", zh: "请先连接钱包。" },
 
   homeTitle: {
     en: "On-chain custody without the chaos.",
@@ -31,8 +32,17 @@ const appMessages = {
   multisigBoardTitle: { en: "Signer board", zh: "签名人看板" },
   multisigSignerApproved: { en: "Approved", zh: "已批准" },
   multisigSignerWaiting: { en: "Waiting", zh: "待签署" },
+  multisigSignerMember: { en: "Member", zh: "成员" },
   multisigSignerDraft: { en: "Ready", zh: "已填写" },
   multisigProposalPreview: { en: "Proposal docket", zh: "提案单" },
+  multisigVaultStageAlt: {
+    en: "Bright shared-custody vault with three signer keys",
+    zh: "带有三把签名人钥匙的明亮共管金库",
+  },
+  multisigProposalStageAlt: {
+    en: "Spend proposal card with a payment route and approval seals",
+    zh: "带支付路径和批准印章的支出提案卡",
+  },
   multisigApprovalBoard: { en: "Approval board", zh: "批准看板" },
   multisigAmountPreview: { en: "Amount to release", zh: "待放行金额" },
   multisigRecipientPreview: { en: "Recipient pending", zh: "待填写接收方" },
@@ -208,11 +218,38 @@ const appMessages = {
     en: "You have already approved this request.",
     zh: "你已批准此请求。",
   },
+  multisigApprovalUnavailable: {
+    en: "Approval state could not be verified. Approving stays disabled until the chain read recovers.",
+    zh: "暂时无法验证批准状态，链上读取恢复前不会启用批准操作。",
+  },
   // ── Connected wallet + dynamic signer slots ──────────────────────────────
   multisigConnectedAs: { en: "Connected as", zh: "已连接" },
   multisigNotConnected: { en: "Connect a wallet to create or sign", zh: "连接钱包以创建或签名" },
   multisigAddSigner: { en: "+ Add signer", zh: "+ 添加签名人" },
   multisigRemoveSigner: { en: "Remove signer", zh: "移除签名人" },
+  multisigApprovalPolicy: { en: "approval policy", zh: "批准策略" },
+  multisigContractCustody: { en: "Contract custody", zh: "合约托管" },
+  multisigOpenSpendTools: { en: "Open spend tools", zh: "打开支出工具" },
+  multisigVaultTools: { en: "Vault tools", zh: "金库工具" },
+  multisigLowThresholdWarning: {
+    en: "A 1-of-N policy gives any one signer full release authority. Use it only when that is intentional.",
+    zh: "1-of-N 允许任一签名人独立放行资金，仅在明确需要时使用。",
+  },
+  multisigCustodyBoundary: {
+    en: "This is a contract-custody vault, not a native Neo multisig address. All vaults use the canonical contract address and are separated by vault ID.",
+    zh: "这是合约托管金库，不是 Neo 原生多签地址。所有金库共用规范合约地址，并由金库 ID 隔离。",
+  },
+  multisigDataUnavailable: {
+    en: "Some chain state could not be verified. Writes stay disabled until the relevant reads recover.",
+    zh: "部分链上状态暂时无法验证，相关读取恢复前不会开放写操作。",
+  },
+  multisigRecoveryTitle: { en: "Transaction confirmation", zh: "交易确认" },
+  multisigTransactionPending: {
+    en: "Broadcast received. Waiting for the exact contract event and readback before reporting success.",
+    zh: "交易已广播，确认精确合约事件并回读链上状态后才会报告成功。",
+  },
+  multisigRecover: { en: "Check transaction", zh: "检查交易" },
+  multisigRecovering: { en: "Checking…", zh: "检查中…" },
 
   toastInvalidSigners: { en: "Invalid signer set.", zh: "签名人列表无效。" },
   toastInvalidAddress: { en: "Invalid address.", zh: "地址无效。" },
@@ -257,11 +294,52 @@ const appMessages = {
   },
   toastLoadFailed: { en: "Failed to load.", zh: "加载失败。" },
 
+  multisigChainContextMismatch: {
+    en: "Wallet network or contract address does not match this miniapp's canonical deployment.",
+    zh: "钱包网络或合约地址与此小程序的规范部署不匹配。",
+  },
+  multisigPendingBlocksWrites: {
+    en: "Resolve the pending transaction before starting another write.",
+    zh: "请先确认当前待处理交易，再发起新的写操作。",
+  },
+  multisigEventMismatch: {
+    en: "The confirmed contract event does not match the requested operation.",
+    zh: "已确认的合约事件与本次操作不匹配。",
+  },
+  multisigReadbackMismatch: {
+    en: "The chain readback does not match the confirmed event.",
+    zh: "链上回读状态与已确认事件不匹配。",
+  },
+  multisigCreatorMustBeSigner: {
+    en: "The connected wallet must be included in the signer set.",
+    zh: "已连接钱包必须包含在签名人列表中。",
+  },
+  multisigRequestNotPending: {
+    en: "This request is no longer pending and cannot be changed.",
+    zh: "该请求已不再处于待处理状态，无法继续修改。",
+  },
+  multisigPendingInvalid: {
+    en: "The saved pending transaction was invalid and has been cleared.",
+    zh: "保存的待处理交易无效，已清除。",
+  },
+  multisigPendingContextMismatch: {
+    en: "Reconnect the same wallet and network used to submit this transaction.",
+    zh: "请连接提交该交易时使用的同一钱包和网络。",
+  },
+  multisigTransactionFault: {
+    en: "The transaction faulted on-chain. No success state was recorded.",
+    zh: "交易在链上执行失败，未记录成功状态。",
+  },
+  multisigTransactionRecovered: {
+    en: "Transaction confirmed from the exact contract event and chain readback.",
+    zh: "已通过精确合约事件和链上回读确认交易。",
+  },
+
   docTitle: { en: "Neo Multisig", zh: "Neo 多重签名" },
   docSubtitle: { en: "On-chain custody vault", zh: "链上共管金库" },
   docDescription: {
-    en: "Neo Multisig is an on-chain custody vault: create a vault from signer addresses, deposit GAS or NEO, propose a spend, and the contract releases the funds once enough signers approve.",
-    zh: "Neo 多重签名是链上共管金库：用签名人地址创建金库、存入 GAS 或 NEO、发起支出请求，达到批准阈值后由合约放行资金。",
+    en: "Neo Multisig is a contract-custody vault, not a native Neo multisig address. Create a vault from signer addresses, deposit GAS or NEO, and release a spend when its approval threshold is reached.",
+    zh: "Neo 多重签名是合约托管金库，并非 Neo 原生多签地址。用签名人地址创建金库、存入 GAS 或 NEO，并在支出请求达到批准阈值时由合约放行。",
   },
   docStep1: { en: "Create a vault from 2–16 signer addresses and a threshold.", zh: "用 2–16 个签名人地址和阈值创建金库。" },
   docStep2: { en: "Deposit GAS or NEO into the vault.", zh: "向金库存入 GAS 或 NEO。" },

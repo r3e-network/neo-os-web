@@ -8,64 +8,16 @@ export const manifest: MiniAppManifest = {
   shell: "console",
   theme: {
     family: "finance",
-    accentColor: "#16c784",
-    density: "compact",
+    accentColor: "#0f8f70",
+    density: "comfortable",
   },
-  tabs: [
-    { key: "play", labelKey: "playTab", icon: "anchor", default: true },
-    { key: "activity", labelKey: "activityTab", icon: "history" },
-  ],
-  stats: [
-    { labelKey: "userStake", valueKey: "userStake", format: "text", variant: "success", icon: "lock" },
-    { labelKey: "pendingRewards", valueKey: "pendingRewards", format: "text", variant: "accent", icon: "gift" },
-    { labelKey: "totalStaked", valueKey: "totalStaked", format: "text", icon: "bar-chart" },
-    { labelKey: "agentCount", valueKey: "agentCount", format: "number", icon: "users" },
-  ],
-  sidebar: {
-    titleKey: "anchorStatus",
-    items: [
-      { labelKey: "userStake", valueKey: "userStake", format: "text" },
-      { labelKey: "pendingRewards", valueKey: "pendingRewards", format: "text" },
-      { labelKey: "rewardReserve", valueKey: "rewardReserve", format: "text" },
-    ],
-  },
-  operations: [
-    {
-      key: "stake",
-      titleKey: "stakeTitle",
-      descriptionKey: "stakeDescription",
-      actionKey: "stakeAction",
-      actionMethod: "stake",
-      priority: "primary",
-      fields: [
-        { key: "anchorAppId", type: "text", labelKey: "anchorAppId", placeholder: "custom-anchor:team:nonce", required: true },
-        { key: "amount", type: "amount", asset: "NEO", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 1, integer: true } },
-      ],
-    },
-    {
-      key: "claimRewards",
-      titleKey: "claimTitle",
-      descriptionKey: "claimDescription",
-      actionKey: "claimAction",
-      actionMethod: "claimRewards",
-      priority: "primary",
-      fields: [
-        { key: "anchorAppId", type: "text", labelKey: "anchorAppId", placeholder: "custom-anchor:team:nonce", required: true },
-      ],
-    },
-    {
-      key: "withdraw",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawDescription",
-      actionKey: "withdrawAction",
-      actionMethod: "withdraw",
-      priority: "primary",
-      fields: [
-        { key: "anchorAppId", type: "text", labelKey: "anchorAppId", placeholder: "custom-anchor:team:nonce", required: true },
-        { key: "amount", type: "amount", asset: "NEO", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 1, integer: true } },
-      ],
-    },
-  ],
+  // The app-owned staking stage already carries the hierarchy, status and
+  // recovery controls. Empty shell chrome prevents duplicate form/dashboard
+  // surfaces from competing with the single primary stake action.
+  tabs: [],
+  stats: [],
+  sidebar: { items: [] },
+  operations: [],
   docs: [
     { titleKey: "docPurpose", contentKey: "docPurposeBody", type: "text" },
     { titleKey: "docSafety", contentKey: "docSafetyBody", type: "text" },
@@ -75,7 +27,7 @@ export const manifest: MiniAppManifest = {
     chainWarning: true,
     comments: true,
     reviews: true,
-    activityFeed: true,
+    activityFeed: false,
   },
   contract: {
     mode: "shared",

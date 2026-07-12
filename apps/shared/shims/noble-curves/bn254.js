@@ -20,4 +20,3 @@ export const bn254 = weierstrass({
     h: BigInt(1),
     ...getHash(sha256),
 });
-//# sourceMappingURL=bn254.js.map

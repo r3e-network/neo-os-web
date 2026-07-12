@@ -22,18 +22,26 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("initiateDestroy", async () => {
-      graveyard.initiateDestroy();
+      await ctx.framework.notify.guard(async () => {
+        graveyard.initiateDestroy();
+      });
     });
     ctx.framework.actions.register("cancelDestroy", async () => {
       graveyard.cancelDestroy();
     });
     ctx.framework.actions.register("setComposeMode", async (mode: unknown) => {
-      graveyard.setComposeMode(mode === "hash" ? "hash" : "write");
+      graveyard.setComposeMode(
+        mode === "hash" || mode === "file" ? mode : "write",
+      );
     });
     ctx.framework.actions.register("setMemoryText", async (text: unknown) => {
       if (text && typeof text === "object" && !Array.isArray(text)) {
         const draft = text as BurialDraftInput;
-        if (draft.composeMode === "hash" || draft.composeMode === "write") {
+        if (
+          draft.composeMode === "hash"
+          || draft.composeMode === "write"
+          || draft.composeMode === "file"
+        ) {
           graveyard.setComposeMode(draft.composeMode);
         }
         await graveyard.setMemoryText(
@@ -44,9 +52,14 @@ defineMiniApp({
       }
       await graveyard.setMemoryText(String(text ?? ""));
     });
-    ctx.framework.actions.register("executeDestroy", async (draft: unknown) => {
+    ctx.framework.actions.register("hashMemoryFile", async (file: unknown) => {
       await ctx.framework.notify.guard(
-        () => graveyard.executeDestroy(draft as BurialDraftInput),
+        () => graveyard.hashMemoryFile(file as File),
+      );
+    });
+    ctx.framework.actions.register("executeDestroy", async () => {
+      await ctx.framework.notify.guard(
+        () => graveyard.executeDestroy(),
         { successKey: "memoryBuried" },
       );
     });
@@ -77,6 +90,12 @@ defineMiniApp({
         { successKey: "epitaphSaved" },
       );
     });
+    ctx.framework.actions.register("recoverEpitaph", async () => {
+      await ctx.framework.notify.guard(
+        () => graveyard.recoverEpitaph(),
+        { successKey: "epitaphRecovered" },
+      );
+    });
     ctx.framework.actions.register("setShowAllHistory", async (value: unknown) => {
       await graveyard.setShowAllHistory(Boolean(value));
     });
@@ -102,6 +121,23 @@ defineMiniApp({
         epitaphSavingId: graveyard.epitaphSavingId,
         showAllHistory: graveyard.showAllHistory,
         isLoading: graveyard.isLoading,
+        isHashing: graveyard.isHashing,
+        sourceError: graveyard.sourceError,
+        fileName: graveyard.fileName,
+        fileSize: graveyard.fileSize,
+        feesReady: graveyard.feesReady,
+        contractPaused: graveyard.contractPaused,
+        contractStateReady: graveyard.contractStateReady,
+        storageHealthy: graveyard.storageHealthy,
+        burialRecoveryPhase: graveyard.burialRecoveryPhase,
+        burialRecoveryTxid: graveyard.burialRecoveryTxid,
+        forgetRecoveryPhase: graveyard.forgetRecoveryPhase,
+        forgetRecoveryMemoryId: graveyard.forgetRecoveryMemoryId,
+        epitaphRecoveryPhase: graveyard.epitaphRecoveryPhase,
+        epitaphRecoveryMemoryId: graveyard.epitaphRecoveryMemoryId,
+        epitaphRecoveryTxid: graveyard.epitaphRecoveryTxid,
+        walletAddress: graveyard.walletAddress,
+        walletConnected: graveyard.walletConnected,
         showConfirm: graveyard.showConfirm,
         showWarningShake: graveyard.showWarningShake,
         assetHash: graveyard.assetHash,

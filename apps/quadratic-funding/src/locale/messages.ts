@@ -11,8 +11,8 @@ const appMessages = {
     zh: "用匹配资金放大公共物品资助",
   },
   qfHeroSubtitle: {
-    en: "Discover public-good projects, contribute GAS, and let the matching pool amplify broad community support.",
-    zh: "发现公共物品项目、捐助 GAS，并让匹配资金池放大更广泛的社区支持。",
+    en: "Discover public-good projects, contribute NEO or GAS, and review how the shared pool may amplify broad support.",
+    zh: "发现公共物品项目、捐助 NEO 或 GAS，并了解共享资金池如何可能放大广泛支持。",
   },
   qfFundingDeskAlt: {
     en: "Quadratic funding allocation desk",
@@ -40,8 +40,8 @@ const appMessages = {
     zh: "轮次创建后，每张卡片会展示名称、匹配资金池、时间安排与匹配总额。",
   },
   qfMechanicExplainer: {
-    en: "Matching favors projects with more unique donors: 100 people giving 1 GAS each out-matches 1 person giving 100.",
-    zh: "匹配更青睐捐助者更广的项目：100 人各捐 1 GAS 获得的匹配，高于 1 人单独捐出 100。",
+    en: "The preview estimates the CLR subsidy signal from wallet count and total contributed. It is not an exact per-donor or identity-verified calculation.",
+    zh: "预览使用钱包数与捐助总额估算 CLR 补贴信号，并非按每位捐助者精确计算，也未验证真人身份。",
   },
   qfCreateDeskIntro: {
     en: "Shape the round like a funding desk: pick the capital asset, lock the pool, set the window, and preview the donor-facing card before signing.",
@@ -54,6 +54,7 @@ const appMessages = {
   },
   qfRoundPreviewWindowEmpty: { en: "Window not set", zh: "尚未设置窗口" },
   qfGasPoolLabel: { en: "Grant pool", zh: "资助池" },
+  qfMatchingAvailable: { en: "Available match", zh: "可用匹配额" },
   qfNeoPoolLabel: { en: "Governance stake", zh: "治理权益" },
   qfNoProjectsTitle: {
     en: "No projects in this round",
@@ -76,12 +77,22 @@ const appMessages = {
     zh: "支持项目并放大匹配额",
   },
   qfDonorDeskSubtitle: {
-    en: "Pick a project, choose a GAS amount, and see why broad donor support matters before signing.",
-    zh: "选择项目、设定 GAS 金额，并在签名前理解为什么更广泛的捐助者支持更重要。",
+    en: "Pick a project, choose the round's NEO or GAS amount, and review the donor signal before signing.",
+    zh: "选择项目、按轮次资产设定 NEO 或 GAS 金额，并在签名前复核捐助信号。",
   },
   qfPickProject: { en: "Pick a project", zh: "选择项目" },
+  qfNoProjectDescription: {
+    en: "Mission details have not been added yet.",
+    zh: "项目方尚未补充使命说明。",
+  },
+  qfVisitProject: {
+    en: "Visit {name}",
+    zh: "访问 {name}",
+  },
   qfDonationTicket: { en: "Donation ticket", zh: "捐助票据" },
   qfAmountPresets: { en: "Donation amount presets", zh: "捐助金额快捷选项" },
+  qfDecreaseAmount: { en: "Decrease donation amount", zh: "减少捐助金额" },
+  qfIncreaseAmount: { en: "Increase donation amount", zh: "增加捐助金额" },
   qfDonationPreview: { en: "Donation preview", zh: "捐助预览" },
   qfCustomAmount: { en: "Custom amount", zh: "自定义金额" },
   qfNoMemo: { en: "No memo", zh: "无备注" },
@@ -121,6 +132,9 @@ const appMessages = {
   },
   qfDonationDeskReady: { en: "Desk ready", zh: "捐助台已就绪" },
   qfDonationDeskWaiting: { en: "Waiting for setup", zh: "等待准备完成" },
+  qfExploreAndManage: { en: "Explore & manage", zh: "探索与管理" },
+  qfRefreshFundingData: { en: "Refresh funding data", zh: "刷新资助数据" },
+  qfRefreshingFundingData: { en: "Refreshing funding data…", zh: "正在刷新资助数据……" },
   qfOpenRoundsAction: { en: "Open rounds", zh: "打开轮次" },
   qfRefreshProjectsAction: { en: "Refresh projects", zh: "刷新项目" },
   qfAmplifyTitle: {
@@ -128,8 +142,8 @@ const appMessages = {
     zh: "为什么你的捐助会被放大",
   },
   qfAmplifyCopy: {
-    en: "This round's matching pool tops up each project based on the breadth of its donors. Each unique donor increases a project's match — many small donations are amplified more than one large one.",
-    zh: "本轮的匹配资金池会根据每个项目的捐助者广度进行追加。每位独立捐助者都会提升项目的匹配额——众多小额捐助比单笔大额捐助被放大得更多。",
+    en: "The preview allocates the pool by the aggregate equal-split estimate (wallet count − 1) × total. The final amounts are reviewed and submitted by the platform admin after the round ends.",
+    zh: "预览按汇总等额估算值（钱包数 − 1）× 总额分配匹配池。轮次结束后，最终金额由平台管理员复核并上链。",
   },
   qfProjectMatchEstimate: {
     en: "Estimated match for project #{id}: {match} (approx.)",
@@ -156,6 +170,158 @@ const appMessages = {
     en: "Contract address not configured",
     zh: "合约地址未配置",
   },
+  fundingSafetyChecking: {
+    en: "Checking contract recovery and pause state…",
+    zh: "正在检查合约资金恢复能力与暂停状态……",
+  },
+  fundingSafetyReady: {
+    en: "Recovery-capable contract verified. Funding actions require the exact event and chain readback.",
+    zh: "已验证合约具备资金恢复能力；资助操作还必须通过精确事件与链上读回确认。",
+  },
+  fundingSafetyLegacy: {
+    en: "Browse-only: this deployment cannot withdraw unconsumed prepaid NEO/GAS. Funding writes are blocked until the recovery-capable contract is deployed.",
+    zh: "当前为只读模式：此部署无法取回未消耗的预付 NEO/GAS。恢复版合约部署前，资金写入已禁用。",
+  },
+  fundingSafetyUnverified: {
+    en: "Browse-only: recovery methods respond, but this exact network deployment has not completed production lifecycle validation.",
+    zh: "当前为只读模式：恢复方法可以响应，但此网络上的具体部署尚未完成生产生命周期验证。",
+  },
+  fundingSafetyPaused: {
+    en: "Funding writes are paused on-chain. Browsing remains available.",
+    zh: "链上资金写入已暂停，仍可浏览轮次与项目。",
+  },
+  fundingSafetyUnavailable: {
+    en: "The contract snapshot could not be verified. Funding writes remain blocked; refresh to check again.",
+    zh: "暂时无法验证合约快照，资金写入保持禁用；请刷新后重试检查。",
+  },
+  fundingWriteScopeChanged: {
+    en: "The wallet network or contract verification changed before signing. No new write was submitted.",
+    zh: "签名前钱包网络或合约验证状态发生变化，未提交新的写入。",
+  },
+  fundingBrowseOnlyAction: {
+    en: "Browse-only until contract upgrade",
+    zh: "合约升级前仅可浏览",
+  },
+  fundingReadyShort: { en: "Funding transactions are ready", zh: "资助交易已就绪" },
+  fundingCheckingShort: { en: "Checking funding access…", zh: "正在检查资助能力……" },
+  fundingBrowseShort: {
+    en: "Explore mode · contributions are temporarily unavailable",
+    zh: "探索模式 · 捐助暂不可用",
+  },
+  fundingPausedShort: { en: "Explore mode · funding is paused", zh: "探索模式 · 资助已暂停" },
+  fundingUnavailableShort: {
+    en: "Explore mode · live funding status is unavailable",
+    zh: "探索模式 · 暂无法读取实时资助状态",
+  },
+  qfBrowseModeTitle: { en: "Explore projects without signing", zh: "无需签名即可探索项目" },
+  qfBrowseModeBody: {
+    en: "Rounds, projects, contribution totals, and matching results remain live. Transaction tools return only after the upgraded funding contract completes production validation.",
+    zh: "轮次、项目、捐助总额与匹配结果仍会实时更新。升级后的资助合约完成生产验证后，交易工具才会恢复。",
+  },
+  pendingRecovered: {
+    en: "The previously broadcast transaction now has an exact event and matching chain state.",
+    zh: "先前广播的交易现已找到精确事件，且链上状态一致。",
+  },
+  pendingStillWaiting: {
+    en: "Transaction {txid} is still awaiting its exact event and chain readback. Do not submit another write.",
+    zh: "交易 {txid} 仍在等待精确事件与链上读回，请勿再次提交写入。",
+  },
+  pendingDepositRecovery: {
+    en: "Deposit {txid} was broadcast, but the funding action was not. Do not retry; the prepaid credit must be reviewed and reclaimed before this lock is cleared.",
+    zh: "预付交易 {txid} 已广播，但资金操作尚未广播。请勿重试；必须先检查并取回预付余额，再清除此锁。",
+  },
+  pendingIntentUncertain: {
+    en: "A wallet request was interrupted before its transaction ID was recorded. Check wallet activity before clearing this local retry lock.",
+    zh: "钱包请求在记录交易 ID 前被中断。清除本地防重试锁前，请先检查钱包活动记录。",
+  },
+  pendingWrongScope: {
+    en: "This pending transaction belongs to another network or contract. Switch back to review it, or clear the local lock only after checking the transaction.",
+    zh: "这笔待确认交易属于其他网络或合约。请切回原环境检查，或在核实交易后再清除本地锁。",
+  },
+  pendingRecoveryUnavailable: {
+    en: "The pending transaction could not be checked right now. No new write is allowed until recovery succeeds or you review and clear the local lock.",
+    zh: "暂时无法检查待确认交易。在恢复成功，或你核实并清除本地锁之前，不允许发起新的写入。",
+  },
+  pendingBlocksWrites: {
+    en: "A broadcast transaction is still unresolved. Refresh to recover it before submitting another write.",
+    zh: "已有一笔广播交易尚未确认。请先刷新恢复，再提交新的写入。",
+  },
+  pendingReviewTitle: {
+    en: "Review pending transaction",
+    zh: "检查待确认交易",
+  },
+  pendingRefreshAction: {
+    en: "Check chain state",
+    zh: "检查链上状态",
+  },
+  pendingClearAction: {
+    en: "Forget local lock",
+    zh: "清除本地锁",
+  },
+  pendingClearHint: {
+    en: "Refresh first. Forgetting only removes this browser's retry lock; it does not cancel or reverse the on-chain transaction.",
+    zh: "请先刷新。清除操作只会移除此浏览器的防重复提交锁，不会取消或撤销链上交易。",
+  },
+  pendingRecoveryRequiredAction: {
+    en: "Recover prepaid credit first",
+    zh: "请先取回预付余额",
+  },
+  pendingDepositMustRecover: {
+    en: "This lock protects a prepaid deposit. Reclaim the on-chain credit before removing it.",
+    zh: "此锁保护一笔已预付的链上余额；请先取回余额，再移除本地锁。",
+  },
+  pendingCleared: {
+    en: "The local retry lock was cleared. The on-chain transaction was not cancelled.",
+    zh: "本地防重复提交锁已清除；链上交易并未取消。",
+  },
+  writeAwaitingConfirmation: {
+    en: "Transaction {txid} was broadcast, but its exact contract event is not verified yet. Do not submit again; refresh to recover the latest chain state.",
+    zh: "交易 {txid} 已广播，但尚未验证到精确合约事件。请勿重复提交；刷新以恢复最新链上状态。",
+  },
+  chainSnapshotUnavailable: {
+    en: "The required chain snapshot is unavailable. No funds were sent.",
+    zh: "所需链上快照暂不可用，未发送任何资金。",
+  },
+  collectionTooLarge: {
+    en: "This on-chain collection exceeds the supported client limit. Writes remain blocked instead of using a partial snapshot.",
+    zh: "此链上集合超过客户端支持上限。为避免使用不完整快照，写入保持禁用。",
+  },
+  incompleteProjectSnapshot: {
+    en: "Every project in the round must load and appear in the reviewed allocation before finalization.",
+    zh: "结算前必须完整读取本轮每个项目，并全部纳入已复核的分配列表。",
+  },
+  chainReadbackMismatch: {
+    en: "The transaction event was found, but the resulting chain state does not match the reviewed action. Do not repeat it; refresh and inspect the round.",
+    zh: "已找到交易事件，但链上结果与已确认操作不一致。请勿重复提交；刷新并检查轮次。",
+  },
+  matchingPoolMinimumGas: {
+    en: "A GAS matching pool must contain at least 0.1 GAS.",
+    zh: "GAS 匹配资金池至少需要 0.1 GAS。",
+  },
+  matchExceedsPool: {
+    en: "Suggested allocations exceed the matching pool.",
+    zh: "建议分配总额超过匹配资金池。",
+  },
+  roundStateChanged: {
+    en: "The round state changed. Refresh before taking this action.",
+    zh: "轮次状态已变化，请刷新后再操作。",
+  },
+  projectStateChanged: {
+    en: "The project state changed. Refresh before claiming.",
+    zh: "项目状态已变化，请刷新后再领取。",
+  },
+  roundNotActive: {
+    en: "This round is not currently accepting contributions.",
+    zh: "当前轮次暂不接受捐助。",
+  },
+  selfContributionBlocked: {
+    en: "Project owners and round creators cannot contribute to projects in their own round.",
+    zh: "项目负责人和轮次创建者不能向自己轮次中的项目捐助。",
+  },
+  qfSybilDisclosure: {
+    en: "Match previews use the aggregate estimate (wallet count − 1) × contributed total. Wallets are not verified people or Sybil-resistant identities; the platform admin reviews the final allocation.",
+    zh: "匹配预览采用汇总估算：（钱包数 − 1）× 捐助总额。钱包并不等于已验证的真人身份，也不具备女巫攻击防护；最终分配由平台管理员复核。",
+  },
 
   refresh: { en: "Refresh", zh: "刷新" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
@@ -167,7 +333,7 @@ const appMessages = {
     en: "Focus on open-source infra and education.",
     zh: "关注开源基础设施与教育。",
   },
-  assetType: { en: "Asset (GAS only)", zh: "资产（仅 GAS）" },
+  assetType: { en: "Round asset", zh: "轮次资产" },
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
   matchingPool: { en: "Matching pool", zh: "匹配资金池" },
@@ -265,8 +431,22 @@ const appMessages = {
     zh: "按建议匹配结算",
   },
   matchApproxCaveat: {
-    en: "Suggested matches are an approximation of quadratic matching computed from on-chain aggregates (donor count × total), not exact per-donor CLR. Review and override the amounts before finalizing real funds.",
-    zh: "建议匹配额是基于链上汇总数据（捐助人数 × 总额）对二次方匹配的近似估算，并非按每位捐助者精确计算的 CLR。结算真实资金前请复核并按需修改金额。",
+    en: "Estimated matches use (wallet count − 1) × total under an equal-split assumption, not exact per-donor CLR. A wallet count does not prove unique people, so the platform operator reviews every allocation before finalization.",
+    zh: "预估匹配额在等额假设下使用（钱包数 − 1）× 总额，并非精确的逐捐助者 CLR。钱包数量不代表经过验证的独立真人，因此平台运营方会在结算前逐项复核。",
+  },
+  matchFinalizedCaveat: {
+    en: "These are the finalized on-chain allocations for this round, not a new estimate.",
+    zh: "以下为本轮已在链上结算的实际匹配额，并非新的预估值。",
+  },
+  qfMatchPreviewTitle: { en: "Matching preview", zh: "匹配预览" },
+  qfMatchPreviewHint: {
+    en: "Review the current donor-breadth estimate before the round closes.",
+    zh: "在轮次结算前查看当前的捐助广度估算。",
+  },
+  qfFinalAllocationsTitle: { en: "Final allocations", zh: "最终分配" },
+  qfFinalAllocationsHint: {
+    en: "Project allocations confirmed by the finalized round.",
+    zh: "由已结算轮次确认的项目匹配分配。",
   },
   finalizeNoProjects: {
     en: "Register projects and gather contributions before finalizing.",
@@ -349,6 +529,10 @@ const appMessages = {
     zh: "NEO 不可分割，请输入整数。",
   },
   invalidProject: { en: "Invalid project details", zh: "项目信息无效" },
+  invalidProjectLink: {
+    en: "Use a valid HTTP or HTTPS project link, or leave it blank.",
+    zh: "请输入有效的 HTTP 或 HTTPS 项目链接，或留空。",
+  },
   selectProjectHint: {
     en: "Choose a project from the list above.",
     zh: "从上方列表选择项目。",
@@ -400,8 +584,8 @@ const appMessages = {
   },
   feature3Name: { en: "Donor Signals", zh: "捐助信号" },
   feature3Desc: {
-    en: "Unique donor totals enable quadratic matching.",
-    zh: "记录唯一捐助者金额以支持二次方匹配。",
+    en: "Wallet-address counts provide a public breadth signal; they do not prove unique people.",
+    zh: "钱包地址数提供公开的支持广度信号，但不能证明真人唯一性。",
   },
   sidebarSelectedRound: { en: "Selected Round", zh: "已选轮次" },
   sidebarMatchingPool: { en: "Matching Pool", zh: "匹配资金池" },

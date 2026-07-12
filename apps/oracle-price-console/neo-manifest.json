@@ -3,9 +3,9 @@
   "id": "miniapp-oracle-price-console",
   "name": "Oracle Price Console",
   "name_zh": "预言机价格台",
-  "version": "1.0.0",
-  "description": "Query the Morpheus price feed from a dedicated miniapp console.",
-  "description_zh": "用独立小程序控制台查询 Morpheus 价格源。",
+  "version": "1.1.0",
+  "description": "Inspect exact six-decimal Morpheus price signals with official NEO/GAS assets, canonical aggregate/provider routing, explicit freshness and race-safe pair switching.",
+  "description_zh": "使用官方 NEO/GAS 资产检查固定六位精度的 Morpheus 价格信号，明确展示聚合与备用路由、新鲜度，并安全切换价格对。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -20,7 +20,10 @@
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {},
+  "contracts": {
+    "neo-n3-mainnet": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
+    "neo-n3-testnet": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
@@ -29,7 +32,7 @@
   "urls": {
     "entry": "/miniapps/oracle-price-console/index.html",
     "icon": "/miniapps/oracle-price-console/logo.webp",
-    "banner": "/miniapps/oracle-price-console/banner.webp"
+    "banner": "/miniapps/oracle-price-console/oracle-market-stage.webp"
   },
   "permissions": [
     "read:blockchain"
@@ -39,34 +42,10 @@
     "offlineSupport": false,
     "deeplink": "neomainapp://oracle-price-console"
   },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "operation_panel": {
-    "title": "Price Feed",
-    "subtitle": "Select a feed symbol and verify the request package.",
-    "operations": [
-      {
-        "name": "Build Feed Request",
-        "method": "buildOraclePackage",
-        "description": "Prepare a Morpheus price-feed request package.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "symbol",
-            "type": "string",
-            "label": "Feed symbol",
-            "placeholder": "TWELVEDATA:NEO-USD",
-            "default_value": "TWELVEDATA:NEO-USD",
-            "required": true
-          }
-        ]
-      }
-    ]
+    "title": "Oracle Price Station",
+    "subtitle": "Select a pair on the market board, then inspect its exact feed key, six-decimal value and two-layer freshness evidence.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -75,5 +54,5 @@
     "transactions": false
   },
   "createdAt": "2026-03-18T05:00:00Z",
-  "updatedAt": "2026-03-18T05:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

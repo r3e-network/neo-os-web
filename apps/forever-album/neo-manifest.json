@@ -3,16 +3,18 @@
   "id": "miniapp-forever-album",
   "name": "Forever Album",
   "name_zh": "永恒相册",
-  "version": "1.1.0",
-  "description": "A private, wallet-scoped photo album kept on your device, with optional AES-GCM local encryption. Photos are not written on-chain.",
-  "description_zh": "永恒相册 — 按钱包隔离、保存在本设备的私密相册，支持 AES-GCM 本地加密。照片不写入链上。",
+  "version": "1.2.0",
+  "description": "A wallet-scoped photo album kept only in this browser on this device, with optional AES-GCM encryption. No transaction, gas, contract, or cloud sync.",
+  "description_zh": "按钱包隔离、仅保存在本设备此浏览器中的相册，支持可选 AES-GCM 加密。无交易、无 Gas、无合约、无云同步。",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
   "tags": [
     "memories",
     "photos",
-    "social"
+    "private",
+    "device-local",
+    "encryption"
   ],
   "developer": {
     "name": "Yiwu",
@@ -29,30 +31,25 @@
   "urls": {
     "entry": "/miniapps/forever-album/index.html",
     "icon": "/miniapps/forever-album/logo.webp",
-    "banner": "/miniapps/forever-album/banner.webp"
+    "banner": "/miniapps/forever-album/forever-album-memory-stage.webp"
   },
-  "permissions": [
-    "invoke:shared-runtime",
-    "read:blockchain"
-  ],
+  "permissions": [],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://forever-album"
   },
-  "stateSource": {
-    "type": "platform-storage",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
+  "operation_panel": {
+    "title": "Device album",
+    "subtitle": "Choose and manage photos inside the designed album workspace. No transaction form or chain operation is required.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

@@ -4,6 +4,25 @@ const appMessages = {
   // App translations
   title: { en: "Burn League", zh: "燃烧联盟" },
   subtitle: { en: "Feed the arena, climb the pool", zh: "点燃竞技场，冲上奖池榜首" },
+  launchBadge: { en: "Season match", zh: "赛季对局" },
+  launchTitle: { en: "Burn League", zh: "燃烧联盟" },
+  launchDescription: {
+    en: "Choose local fire-streak practice or enter the verified winner-takes-all GAS season.",
+    zh: "选择本地炉火连击练习，或进入经验证的 GAS 胜者全得赛季。",
+  },
+  launchPrimary: { en: "Enter arena", zh: "进入竞技场" },
+  launchCtaTitle: { en: "Ready to fuel the arena?", zh: "准备点燃竞技场？" },
+  launchCtaDesc: {
+    en: "Practice locally, or review every wallet-signed burn before joining the live season.",
+    zh: "可先在本地练习；加入实时赛季前，每次燃烧都会要求你在钱包中单独确认。",
+  },
+  launchTrustChain: { en: "Neo N3", zh: "Neo N3" },
+  launchTrustWallet: { en: "Wallet signed", zh: "钱包签名" },
+  launchTrustResult: { en: "Verified result", zh: "结果可验证" },
+  startAction: { en: "Enter arena", zh: "进入竞技场" },
+  playTab: { en: "Play", zh: "对局" },
+  rulesTitle: { en: "Rules", zh: "规则" },
+  ranksTab: { en: "Ranks", zh: "排行" },
   arenaAlt: {
     en: "Golden Burn League arena with GAS tokens flowing into a prize brazier",
     zh: "金色燃烧联盟竞技场，GAS 代币流向奖池燃烧台",
@@ -82,12 +101,111 @@ const appMessages = {
   },
   settleSeason: { en: "Settle season", zh: "结算赛季" },
   settleSuccess: {
-    en: "Season settled — the pool was paid to the top burner.",
-    zh: "赛季已结算 — 奖池已发放给燃烧榜首。",
+    en: "Season settled — the pool is claimable by the top burner.",
+    zh: "赛季已结算 — 奖池已记入燃烧榜首的可提取额度。",
   },
   burnSuccess: {
     en: "Burn confirmed — your season total is updated.",
     zh: "燃烧已确认 — 你的赛季总量已更新。",
+  },
+  burnConnectAction: { en: "Connect wallet", zh: "连接钱包" },
+  burnConnectingAction: { en: "Connecting...", zh: "正在连接..." },
+  burnConnectFirst: {
+    en: "Connect your wallet first. Burning always requires a separate confirmation.",
+    zh: "请先连接钱包。燃烧必须在连接后单独确认。",
+  },
+  burnWalletConnected: {
+    en: "Wallet connected. Choose fuel, then review the burn.",
+    zh: "钱包已连接。请选择燃料并确认燃烧。",
+  },
+  burnIgniteAction: { en: "Review {amount} GAS burn", zh: "检查燃烧 {amount} GAS" },
+  burnConfirmAction: { en: "Confirm burn {amount} GAS", zh: "确认燃烧 {amount} GAS" },
+  burnConfirmTitle: { en: "Confirm irreversible burn", zh: "确认不可撤销燃烧" },
+  burnConfirmPrompt: {
+    en: "Press again to burn {amount} GAS. This is irreversible; only the season leader wins the pool.",
+    zh: "请再次点击燃烧 {amount} GAS。操作不可撤销，只有赛季榜首赢得奖池。",
+  },
+  burnConfirmExpired: {
+    en: "Burn confirmation expired. Review the amount again.",
+    zh: "燃烧确认已过期，请重新检查数量。",
+  },
+  burnBusy: { en: "A league action is already in progress.", zh: "联赛操作正在处理中。" },
+  burnInsufficientBalance: {
+    en: "Not enough GAS: {required} {tokenGas} is needed from your wallet; {available} is available.",
+    zh: "GAS 余额不足：钱包需支付 {required} {tokenGas}，当前可用 {available}。",
+  },
+  burnInsufficientHint: {
+    en: "Wallet GAS plus prepaid credit cannot cover this burn.",
+    zh: "钱包 GAS 与预付额度不足以完成本次燃烧。",
+  },
+  burnBalanceUnavailable: {
+    en: "Wallet GAS balance could not be verified. Refresh before burning.",
+    zh: "无法验证钱包 GAS 余额，请刷新后再燃烧。",
+  },
+  burnDepositUnknown: {
+    en: "The GAS deposit was broadcast but is not verified yet. Check it before trying again.",
+    zh: "GAS 充值已广播但尚未验证，请确认结果后再试。",
+  },
+  burnTransactionUnknown: {
+    en: "The burn was broadcast but is not verified yet. Do not submit another burn; check this transaction.",
+    zh: "燃烧已广播但尚未验证。请勿重复提交，先检查本次交易。",
+  },
+  burnPendingBlocksNew: {
+    en: "Resolve the pending burn transaction before starting another one.",
+    zh: "请先确认待处理燃烧交易，再发起新交易。",
+  },
+  burnRecheckAction: { en: "Check transaction", zh: "检查交易" },
+  burnCheckingAction: { en: "Checking...", zh: "正在检查..." },
+  burnCheckingTitle: { en: "Verifying chain result", zh: "正在验证链上结果" },
+  burnRecoveryUnavailable: {
+    en: "The transaction result could not be checked. Keep the txid and try again shortly.",
+    zh: "暂时无法检查交易结果。请保留交易 ID，稍后重试。",
+  },
+  burnDepositReady: {
+    en: "Deposit confirmed as reusable credit. Review and confirm the burn again; it was not auto-submitted.",
+    zh: "充值已确认为可复用额度。请重新检查并确认燃烧，系统不会自动提交。",
+  },
+  settleTransactionUnknown: {
+    en: "Settlement was broadcast but is not verified yet. Refresh before trying again.",
+    zh: "结算已广播但尚未验证，请刷新确认后再试。",
+  },
+  settleActionUnavailable: {
+    en: "The settlement was not broadcast. Please try again.",
+    zh: "结算交易未广播，请重试。",
+  },
+  withdrawTransactionUnknown: {
+    en: "Withdrawal was broadcast but is not verified yet. Check your balance before retrying.",
+    zh: "提取已广播但尚未验证，请先检查余额再重试。",
+  },
+  withdrawActionUnavailable: {
+    en: "The withdrawal was not broadcast. Your credit is unchanged.",
+    zh: "提取交易未广播，你的额度未发生变化。",
+  },
+  burnArenaLoading: { en: "Opening Burn League arena", zh: "正在进入燃烧联盟竞技场" },
+  // Concise canvas copy. These strings are bridged into Phaser so the playable
+  // surface follows the active locale instead of falling back to English.
+  sceneNoBurns: { en: "No burns yet - ignite first", zh: "暂无燃烧 - 点燃开始" },
+  sceneReady: { en: "Ready", zh: "就绪" },
+  sceneWalletBurning: { en: "Wallet burn in progress", zh: "钱包燃烧处理中" },
+  sceneEndedStatus: {
+    en: "Season ended. Settle before the next burn",
+    zh: "赛季已结束，结算后再发起燃烧",
+  },
+  sceneDormantStatus: {
+    en: "First burn opens a fresh season",
+    zh: "首次燃烧将开启新赛季",
+  },
+  sceneEmptyStatus: {
+    en: "Top burner wins the whole pool",
+    zh: "燃烧榜首赢得全部奖池",
+  },
+  sceneActiveStatus: {
+    en: "Burn more GAS to climb the live board",
+    zh: "继续燃烧 GAS，攀升实时榜单",
+  },
+  sceneGuestContinue: {
+    en: "Bank the run now, or keep stoking and risk a flare-out",
+    zh: "现在收火锁定成绩，或继续添柴并承担爆燃熄灭风险",
   },
   // ── Season length disclosure (read from seasonDuration()) ─────────────
   seasonLengthLabel: { en: "Season length", zh: "赛季时长" },
@@ -95,16 +213,20 @@ const appMessages = {
   durationMinutes: { en: "{count} min", zh: "{count} 分钟" },
   durationHours: { en: "{count}h", zh: "{count} 小时" },
   durationDays: { en: "{count}d", zh: "{count} 天" },
-  // ── Exit path (withdraw unused prepaid burn-credit) ───────────────────
-  prepaidCreditLabel: { en: "Prepaid credit", zh: "预付额度" },
+  seasonDurationUnsafe: {
+    en: "This network still uses a {duration} demo season. Burns are paused until the daily-season contract is deployed; existing credit can still be withdrawn.",
+    zh: "当前网络仍使用 {duration} 的演示赛季，部署日赛合约前已暂停燃烧；已有额度仍可提取。",
+  },
+  // ── Exit path (withdraw unused deposits or settled winnings) ──────────
+  prepaidCreditLabel: { en: "Claimable credit", zh: "可提取额度" },
   prepaidCreditHint: {
-    en: "Unused GAS from a burn that didn't complete. Reused on your next burn, or withdraw it now.",
-    zh: "未完成的燃烧所剩的 GAS。下次燃烧会复用，也可立即提取。",
+    en: "Unused burn deposits and settled winnings live here. Reuse this credit on a burn, or withdraw it now.",
+    zh: "未使用的燃烧充值和已结算奖金都会记在这里。可用于下次燃烧，也可立即提取。",
   },
   withdrawCredit: { en: "Withdraw credit", zh: "提取额度" },
   withdrawingCredit: { en: "Withdrawing...", zh: "提取中..." },
-  creditWithdrawn: { en: "Withdrew {amount} {tokenGas} prepaid credit", zh: "已提取预付额度 {amount} {tokenGas}" },
-  noCredit: { en: "No prepaid credit to withdraw", zh: "没有可提取的预付额度" },
+  creditWithdrawn: { en: "Withdrew {amount} {tokenGas} claimable credit", zh: "已提取可提取额度 {amount} {tokenGas}" },
+  noCredit: { en: "No claimable credit to withdraw", zh: "没有可提取额度" },
   settleBeforeBurn: {
     en: "The season has ended. Settle it before burning into a new season.",
     zh: "赛季已结束。请先结算，再燃烧进入新赛季。",
@@ -140,8 +262,12 @@ const appMessages = {
   },
   burnServiceUnavailableTitle: { en: "Burn league data unavailable", zh: "燃烧联赛数据暂不可用" },
   burnServiceUnavailable: {
-    en: "Stats unavailable; you can still prepare a burn. Pool and rank refresh later.",
-    zh: "统计暂不可用；仍可准备燃烧。奖池和排名稍后刷新。",
+    en: "League state cannot be verified, so paid burns are paused. Refresh the arena or play locally.",
+    zh: "联赛状态暂时无法验证，付费燃烧已暂停。请刷新竞技场或先进行本地对局。",
+  },
+  burnDeploymentUnverified: {
+    en: "Paid burns are paused because this network is not bound to the reviewed Burn League v1.1 deployment. Local play remains available.",
+    zh: "当前网络未绑定经审计的 Burn League v1.1 合约，付费燃烧已暂停；本地对局仍可使用。",
   },
   burnActionUnavailable: {
     en: "The burn could not be submitted to the contract. Please try again.",
@@ -160,6 +286,7 @@ const appMessages = {
     zh: "上次提交燃烧：{amount}",
   },
   leaderboard: { en: "Leaderboard", zh: "排行榜" },
+  closeDrawer: { en: "Close league drawer", zh: "关闭联赛抽屉" },
   noEntriesTitle: { en: "No leaderboard entries yet", zh: "暂无排行榜记录" },
   noEntries: { en: "Burns appear here with rank and burned GAS as soon as they confirm on chain for this season.", zh: "本赛季的燃烧在链上确认后，会以排名和 GAS 数量显示在这里。" },
   burned: { en: "Burned", zh: "已燃烧" },
@@ -210,13 +337,13 @@ const appMessages = {
   // ── Win / settle celebration ──────────────────────────────────────────
   settleWinTitle: { en: "You won the pool!", zh: "你赢得了奖池！" },
   settleWinBody: {
-    en: "The season settled and {amount} was paid to your wallet as the top burner.",
-    zh: "赛季已结算，作为燃烧榜首的 {amount} 已发放到你的钱包。",
+    en: "The season settled and {amount} was added to your claimable credit. Withdraw it from the league drawer.",
+    zh: "赛季已结算，{amount} 已记入你的可提取额度。可在联赛抽屉中提取。",
   },
   settleDoneTitle: { en: "Season settled", zh: "赛季已结算" },
   settleDoneBody: {
-    en: "The {amount} pool was awarded to the top burner. A fresh season is open — burn to climb.",
-    zh: "{amount} 奖池已发放给燃烧榜首。新赛季已开启 — 燃烧即可攀升。",
+    en: "The {amount} pool was credited to the top burner. A fresh season is ready — burn to climb.",
+    zh: "{amount} 奖池已记入燃烧榜首的可提取额度。新赛季已就绪 — 燃烧即可攀升。",
   },
   celebrationDismiss: { en: "Continue", zh: "继续" },
   // ── Leader badge (live, active season) ────────────────────────────────
@@ -240,6 +367,10 @@ const appMessages = {
   howStepBurn: { en: "Burn into the pool", zh: "燃烧进奖池" },
   howStepClimb: { en: "Climb the leaderboard", zh: "攀登排行榜" },
   howStepWin: { en: "Top burner takes it all", zh: "燃烧榜首赢得全部" },
+  tieRule: {
+    en: "Ties keep the current leader — first to the total stays ahead",
+    zh: "总量相同时当前榜首保持领先 — 先达到者优先",
+  },
   // App-specific sidebar keys
   ariaLeaderboard: { en: "Leaderboard", zh: "排行榜" },
   sidebarRank: { en: "Rank", zh: "排名" },
@@ -258,7 +389,7 @@ const appMessages = {
     en: "A local burn-streak challenge — push your heat, bank it before the fire flares out.",
     zh: "本地热度连击挑战——尽情累积热度，在炉火熄灭前记入成绩。",
   },
-  guestBest: { en: "Best heat", zh: "最佳热度" },
+  guestBest: { en: "Best banked", zh: "最佳锁定热度" },
   guestRun: { en: "This run", zh: "本轮热度" },
   guestTopRun: { en: "Top run", zh: "最高热度" },
   guestStreakLabel: { en: "Streak", zh: "连击" },
@@ -270,14 +401,19 @@ const appMessages = {
   guestYouTag: { en: "you", zh: "你" },
   guestSummaryTitle: { en: "Local burn streak", zh: "本地热度连击" },
   guestSummaryLine: {
-    en: "Every stoke rolls a local heat bonus. Push the streak, but a cooling fire can flare out and bank your run.",
-    zh: "每次添柴都会掷出本地热度加成。尽力累积连击，但炉火渐冷可能爆燃熄灭并记入本轮。",
+    en: "Every stoke rolls a local heat bonus. Bank safely, or push the streak and risk losing the unbanked heat.",
+    zh: "每次添柴都会掷出本地热度加成。可主动收火记分，也可继续连击并承担损失未记热度的风险。",
   },
   guestHowTitle: { en: "How the streak works", zh: "连击玩法" },
   guestStepPick: { en: "Pick a fuel load", zh: "选择燃料量" },
   guestStepStoke: { en: "Stoke the fire for RNG heat", zh: "添柴获得随机热度" },
   guestStepStreak: { en: "Chain stokes to grow the streak", zh: "连续添柴提升连击" },
-  guestStepBank: { en: "A flare-out banks your run to the local board", zh: "爆燃会将本轮记入本地榜单" },
+  guestStepBank: { en: "Bank before a flare-out to lock the run on the local board", zh: "在爆燃熄灭前主动收火，将本轮锁定到本地榜单" },
+  guestBankAction: { en: "Bank run", zh: "收火记分" },
+  guestBanked: {
+    en: "Banked {score} heat after a x{streak} streak - fresh fire ready.",
+    zh: "已在 x{streak} 连击后锁定 {score} 热度——新一轮炉火已就绪。",
+  },
   guestNextStoke: { en: "Next stoke", zh: "下次添柴" },
   guestIntro: {
     en: "Stoke the fire to build a heat streak — the local board is yours to top.",
@@ -287,10 +423,21 @@ const appMessages = {
   guestStoked: { en: "+{gained} heat - streak x{streak}", zh: "+{gained} 热度 - 连击 x{streak}" },
   guestSurge: { en: "Surge! +{gained} heat - streak x{streak}", zh: "爆燃！+{gained} 热度 - 连击 x{streak}" },
   guestFlareOut: {
-    en: "Flare-out at {score} heat after {streak} stokes - run banked, fresh fire ready.",
-    zh: "连击 {streak} 次、{score} 热度时爆燃熄灭 - 本轮已记入，炉火重燃。",
+    en: "Flare-out after {streak} stokes - {score} unbanked heat lost. Fresh fire ready.",
+    zh: "连击 {streak} 次后爆燃熄灭——损失 {score} 未锁定热度，新一轮炉火已就绪。",
   },
   guestFuelInvalid: { en: "Choose a fuel load between {min} and {max}.", zh: "请选择 {min} 到 {max} 之间的燃料量。" },
+  guestSecureRandomUnavailable: {
+    en: "Secure randomness is unavailable. Your run is unchanged; retry in a supported browser.",
+    zh: "安全随机数暂不可用。本轮进度未改变，请在受支持的浏览器中重试。",
+  },
+  continue: { en: "Continue", zh: "继续" },
+  gameActionFailed: {
+    en: "The burn arena could not continue",
+    zh: "燃烧竞技场暂时无法继续",
+  },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

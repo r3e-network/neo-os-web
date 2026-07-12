@@ -92,9 +92,25 @@ const appMessages = {
     en: "The payment stream index could not be loaded right now. You can still prepare a new stream; created and incoming stream lists refresh once the stream contract is reachable.",
     zh: "暂时无法加载资金流索引。你仍可以准备新的资金流；当资金流合约可访问时，已创建和待领取列表会自动刷新。",
   },
+  streamListPartial: {
+    en: "Some stream details could not be verified. Available rows are shown, but counts and empty-list conclusions are hidden until the next complete read.",
+    zh: "部分资金流详情暂未验证。当前会展示已读取的项目，但完整读取成功前不会显示数量或空列表结论。",
+  },
   streamActionUnavailable: {
     en: "The stream action could not be completed right now. Review the stream details here, then try again.",
     zh: "暂时无法完成该资金流操作。你可以先在此检查资金流参数，然后重试。",
+  },
+  streamConfirmationPending: {
+    en: "Transaction submitted. Waiting for on-chain confirmation — do not submit it again yet.",
+    zh: "交易已提交，正在等待链上确认——请暂勿重复提交。",
+  },
+  streamConfirmationExpired: {
+    en: "No stream was created. The atomic funding transaction retained no assets, so it is safe to retry.",
+    zh: "未检测到资金流。原子注资交易没有保留资产，现在可以安全重试。",
+  },
+  streamRecovered: {
+    en: "The previously submitted stream is now confirmed on-chain.",
+    zh: "此前提交的资金流现已在链上确认。",
   },
   to: { en: "To", zh: "收款方" },
   from: { en: "From", zh: "付款方" },
@@ -143,10 +159,6 @@ const appMessages = {
   invalidAmount: { en: "Enter a valid amount", zh: "请输入有效金额" },
   rateTooHigh: { en: "Release amount exceeds total", zh: "释放金额超过总金额" },
   intervalInvalid: { en: "Interval out of range", zh: "周期超出范围" },
-  depositStrandedRecoverable: {
-    en: "Your deposit landed but the stream was not created. The prepaid credit is held on the contract under your address — submit again to reuse it without depositing twice.",
-    zh: "存入已到账，但资金流未能创建。预付额度已在合约中保留在你的地址名下——再次提交即可复用，无需重复存入。",
-  },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
 
   myCreated: { en: "Created by you", zh: "我创建的" },
@@ -235,6 +247,7 @@ const appMessages = {
   streamDraftIdle: { en: "Stream ticket draft", zh: "资金流票据草稿" },
   streamDraftReady: { en: "Ready for wallet review", zh: "准备钱包确认" },
   streamDraftSigning: { en: "Wallet signing in progress", zh: "钱包签名中" },
+  streamDraftPending: { en: "Confirming on-chain…", zh: "链上确认中……" },
   streamTicketDrafting: { en: "Shape amount, recipient, and release in one ticket", zh: "在一张票据里配置金额、收款方与释放计划" },
   streamTicketReady: { en: "Ticket complete — review in wallet", zh: "票据已完成——请在钱包中确认" },
   releasePlan: { en: "Release plan", zh: "释放计划" },
@@ -292,10 +305,10 @@ const appMessages = {
     en: "Amount is too small for this duration — increase the amount or shorten the duration.",
     zh: "相对该周期金额过小——请增加金额或缩短周期。",
   },
-  // ── Create-form disclosures (2-signature flow + NEO cliff) ───────────────
+  // ── Create-form disclosures (atomic funding + NEO cliff) ────────────────
   twoStepSignNotice: {
-    en: "Creating a stream needs two wallet signatures: first the {token} deposit, then the stream setup.",
-    zh: "创建资金流需要两次钱包签名：先存入 {token}，再设置资金流。",
+    en: "One wallet confirmation atomically funds and creates the stream; a failed setup cannot retain the {token} transfer.",
+    zh: "一次钱包确认会原子完成注资与创建；若设置失败，{token} 转账也会一并回滚。",
   },
   schedulePreview: {
     en: "Releases {amount} {token}/day for {days} days.",

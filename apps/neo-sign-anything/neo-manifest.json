@@ -1,18 +1,18 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
   "id": "miniapp-neo-sign-anything",
-  "name": "Neo Sign Anything",
-  "name_zh": "Neo 签名工具",
-  "version": "1.0.0",
-  "description": "Sign any message with your Neo address securely.",
-  "description_zh": "Neo 签名 — 对任意消息或文件进行链上数字签名",
+  "name": "Neo Signature Desk",
+  "name_zh": "Neo 签名工作台",
+  "version": "1.1.0",
+  "description": "Review exact UTF-8 payloads and capture Neo N3 wallet signature records.",
+  "description_zh": "核对精确 UTF-8 载荷并记录 Neo N3 钱包签名响应",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
   "tags": [
-    "utility",
+    "tools",
     "signature",
-    "security"
+    "signature-record"
   ],
   "developer": {
     "name": "Yiwu",
@@ -21,35 +21,29 @@
   },
   "contracts": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/neo-sign-anything/index.html",
     "icon": "/miniapps/neo-sign-anything/logo.webp",
-    "banner": "/miniapps/neo-sign-anything/banner.webp"
+    "banner": "/miniapps/neo-sign-anything/signature-desk.webp"
   },
   "permissions": [
-    "invoke:primary",
-    "read:blockchain"
+    "wallet:sign-message"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-sign-anything"
-  },
-  "stateSource": {
-    "type": "api",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-28T21:07:41Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

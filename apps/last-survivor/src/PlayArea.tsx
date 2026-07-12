@@ -7,12 +7,12 @@
  * flow are tucked into a drawer. Warm game identity, high contrast. Chain logic
  * (useLastSurvivor) is untouched.
  */
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Flame, KeyRound, Timer, Trophy } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { ParticleBurst, CoinArt } from "@shared/art";
-import { PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -63,16 +63,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const history = val<unknown[]>("history") ?? [];
 
   const [localKeyCount, setLocalKeyCount] = useState("1");
-  const [motionKeyCount, setMotionKeyCount] = useState<string | null>(null);
   const [keyBurst, setKeyBurst] = useState(0);
-  const [buyPreview, setBuyPreview] = useState(false);
-  const [settlePreview, setSettlePreview] = useState(false);
-  const buyPreviewTimeout = useRef<number | null>(null);
-  const settlePreviewTimeout = useRef<number | null>(null);
-  const resetKeyCountAfterPreview = useRef(false);
 
-  const buyAnimating = isBuyingKeys || buyPreview;
-  const settleAnimating = isSettling || settlePreview;
+  const buyAnimating = isBuyingKeys;
+  const settleAnimating = isSettling;
   const liveDanger = isRoundActive && roundDataAvailable && totalKeys > 0;
   const awaitingFirstKey = isRoundActive && roundDataAvailable && totalKeys <= 0;
   const canBuyKeys = roundDataAvailable && isRoundActive && !needsLifecycleSync;
@@ -80,45 +74,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // ended; otherwise the relic invites instead of showing dead zeros.
   const relicIdle = !liveDanger && !needsLifecycleSync;
   const safeDangerProgress = Math.max(0, Math.min(100, dangerProgress || 0));
-  const visualKeyCount = buyAnimating && motionKeyCount ? motionKeyCount : localKeyCount;
+  const visualKeyCount = localKeyCount;
   const selectedKeyCountNumber = Number(localKeyCount || "1") || 1;
   const keyLoadPct = Math.min(100, Math.max(8, (selectedKeyCountNumber / 10) * 100));
   const selectedKeyVisualCount = Math.max(1, Math.min(6, Number.parseInt(visualKeyCount || "1", 10) || 1));
   const sceneStyle: SurvivorSceneStyle = {
     "--survivor-danger-progress": `${safeDangerProgress}%`,
-  };
-
-  useEffect(
-    () => () => {
-      if (buyPreviewTimeout.current !== null) window.clearTimeout(buyPreviewTimeout.current);
-      if (settlePreviewTimeout.current !== null) window.clearTimeout(settlePreviewTimeout.current);
-      resetKeyCountAfterPreview.current = false;
-    },
-    [],
-  );
-
-  const startBuyPreview = (count: string) => {
-    if (buyPreviewTimeout.current !== null) window.clearTimeout(buyPreviewTimeout.current);
-    setMotionKeyCount(count);
-    setBuyPreview(true);
-    buyPreviewTimeout.current = window.setTimeout(() => {
-      setBuyPreview(false);
-      setMotionKeyCount(null);
-      buyPreviewTimeout.current = null;
-      if (resetKeyCountAfterPreview.current) {
-        resetKeyCountAfterPreview.current = false;
-        setLocalKeyCount("1");
-        void dispatch("setKeyCount", "1");
-      }
-    }, 1400);
-  };
-  const startSettlePreview = () => {
-    if (settlePreviewTimeout.current !== null) window.clearTimeout(settlePreviewTimeout.current);
-    setSettlePreview(true);
-    settlePreviewTimeout.current = window.setTimeout(() => {
-      setSettlePreview(false);
-      settlePreviewTimeout.current = null;
-    }, 1500);
   };
 
   const handleKeyCountChange = (value: string) => {
@@ -129,18 +90,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBuyKeys = async () => {
     if (!canBuyKeys || buyAnimating) return;
     setKeyBurst((tick) => tick + 1);
-    startBuyPreview(localKeyCount || "1");
     await dispatch("buyKeys", localKeyCount);
-    if (buyPreviewTimeout.current === null) {
-      setLocalKeyCount("1");
-      void dispatch("setKeyCount", "1");
-    } else {
-      resetKeyCountAfterPreview.current = true;
-    }
   };
   const handleSettle = async () => {
     if (settleAnimating) return;
-    startSettlePreview();
     await dispatch("settleRound");
   };
 

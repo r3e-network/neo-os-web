@@ -3,9 +3,9 @@
   "id": "miniapp-breakupcontract",
   "name": "Breakup Contract",
   "name_zh": "分手合约",
-  "version": "1.0.0",
-  "description": "Create and manage breakup agreements on-chain with fair asset distribution",
-  "description_zh": "链上分手协议 — 用智能合约记录和执行分手条款，让承诺不可篡改",
+  "version": "1.1.0",
+  "description": "A two-party stake-backed pact: both partners lock matching GAS, honor the term to reclaim each stake, or break early and credit both stakes to the other partner.",
+  "description_zh": "双人质押约定：双方锁定等额 GAS，履约到期可各自取回质押；提前违约则两份质押记入另一方的可提取额度。",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
@@ -26,6 +26,19 @@
   "contract_domains": {
     "neo-n3-mainnet": "breakupcontract.miniapp.neo"
   },
+  "deployment": {
+    "neo-n3-mainnet": {
+      "domain": "breakupcontract.miniapp.neo",
+      "reason": "Read-only getcontractstate verified MiniAppBreakupPact, the complete pact/credit ABI and events, deployed NEF checksum 2044887039, and a HALT lastPactId read. No write was submitted during this frontend pass.",
+      "status": "deployed",
+      "verified_at": "2026-07-12T00:00:00Z"
+    },
+    "neo-n3-testnet": {
+      "reason": "Read-only getcontractstate independently verified the same MiniAppBreakupPact business ABI, events, and deployed NEF checksum 2044887039 on testnet; lastPactId returned HALT. Funded write QA remains pending.",
+      "status": "deployed",
+      "verified_at": "2026-07-12T00:00:00Z"
+    }
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
@@ -38,12 +51,18 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://breakup-contract"
+  },
+  "operation_panel": {
+    "title": "Pact workspace",
+    "subtitle": "Create, match, resolve, and withdraw inside the designed pact desk. The host does not duplicate these actions as a parameter form.",
+    "operations": []
   },
   "stateSource": {
     "type": "n3index",
@@ -59,5 +78,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

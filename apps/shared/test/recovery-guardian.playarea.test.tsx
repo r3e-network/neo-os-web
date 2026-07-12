@@ -1,165 +1,265 @@
 import React from "react";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../recovery-guardian/src/PlayArea";
+import type { RecoveryProfile } from "../../recovery-guardian/src/recovery-guardian";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
-
-function t(k: string) { return k; }
-
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
+function t(key: string) { return key; }
+function state(values: Record<string, unknown>): ObservableState {
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, createObservable(value)])) as ObservableState;
 }
 
-const VALID_HASH = "0x1234567890abcdef1234567890abcdef12345678";
-const NEXT_OWNER = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+const PROFILE_ID = `0x${"11".repeat(20)}`;
+const OWNER = `0x${"22".repeat(20)}`;
+const ACCOUNT = `0x${"33".repeat(20)}`;
+const profile: RecoveryProfile = {
+  sourceNetwork: "testnet",
+  configured: true,
+  aaBindingVerified: true,
+  aaVerifierHash: `0x${"aa".repeat(20)}`,
+  aaBackupOwner: OWNER,
+  profileId: { input: PROFILE_ID, hex: PROFILE_ID, base64: "", byteLength: 20, isAAAccountId: true },
+  owner: OWNER,
+  aaContract: `0x${"44".repeat(20)}`,
+  accountAddress: ACCOUNT,
+  morpheusOracle: `0x${"55".repeat(20)}`,
+  networkLabel: "neo_n3",
+  accountIdText: "family-wallet",
+  threshold: 2,
+  timelockMs: 86_400_000,
+  recoveryNonce: "4",
+  morpheusVerifier: `02${"66".repeat(32)}`,
+  masterNullifiers: [`0x${"77".repeat(32)}`, `0x${"88".repeat(32)}`, `0x${"99".repeat(32)}`],
+  pending: { active: false, newOwner: "", recoveryNonce: "-1", approvedCount: 0, initiatedAt: 0, executableAt: 0 },
+  checkedAt: "2026-07-11T00:00:00.000Z",
+};
 
-describe("recovery-guardian PlayArea (v2)", () => {
-  it("renders a recovery route with account, state, and handoff steps", () => {
-    const { container } = render(
-      <PlayArea
-        t={t}
-        state={state({
-          accountAddress: VALID_HASH,
-          recoveryNewOwner: NEXT_OWNER,
-          recoveryExpiryMinutes: "30",
-        })}
-        dispatch={vi.fn()}
-      />,
-    );
+function baseState(overrides: Record<string, unknown> = {}) {
+  return state({
+    profileInput: PROFILE_ID,
+    recoveryExpiryMinutes: "30",
+    journeyState: "idle",
+    setupWriteAvailable: false,
+    storageHealthy: true,
+    ...overrides,
+  });
+}
 
-    expect(container.querySelector(".guardian-scene")).toBeTruthy();
-    expect(container.querySelector(".guardian-command-panel")).toBeTruthy();
-    expect(container.querySelector(".guardian-account-pass")).toBeTruthy();
-    expect(container.querySelector(".guardian-route")).toBeTruthy();
-    expect(container.querySelector(".guardian-state-card")).toBeTruthy();
-    expect(container.querySelector(".guardian-pass-panel")).toBeTruthy();
+describe("recovery-guardian designed journey", () => {
+  it("renders one profile locator, real command-center art, and a four-step journey", () => {
+    const { container } = render(<PlayArea t={t} state={baseState()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".guardian-app")).toBeTruthy();
+    expect(container.querySelector(".guardian-console")).toBeTruthy();
+    expect(container.querySelectorAll(".guardian-app input")).toHaveLength(1);
+    expect(container.querySelectorAll(".guardian-journey > span")).toHaveLength(4);
     expect(container.querySelector(".guardian-command-art img")?.getAttribute("src")).toContain("recovery-command-center.webp");
-    expect(container.querySelector(".guardian-recovery-pass")).toBeTruthy();
-    expect(container.querySelector(".guardian-scene__backdrop")).toBeNull();
-    expect(container.querySelector(".guardian-console")).toBeNull();
-    expect(container.querySelectorAll(".guardian-scene input")).toHaveLength(1);
-    expect(container.querySelectorAll(".mx2-action-rail__row .mx2-btn--ghost").length).toBe(1);
+    expect(container.querySelector(".guardian-command-art img")?.getAttribute("alt")).toBe("guardianHeroVisualAlt");
   });
 
-  it("queries guardian state only after a valid account locator is present", () => {
+  it("uses the real protected state as the primary recovery handoff", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          accountAddress: VALID_HASH,
-          recoveryNewOwner: NEXT_OWNER,
-          recoveryExpiryMinutes: "30",
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /queryState/ }));
-    expect(dispatch).toHaveBeenCalledWith("queryGuardianState");
+    render(<PlayArea t={t} state={baseState({ profile, journeyState: "protected", threshold: 2, guardianCount: 3 })} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: /startRecovery/ }));
+    expect(dispatch).toHaveBeenCalledWith("continueRecovery");
+    expect(screen.getAllByText("guardianPolicy", { exact: false }).length).toBeGreaterThan(0);
   });
 
-  it("opens the prepared recovery preview when the pass is ready", () => {
+  it("keeps the prepared setup importer contextual when a future verifier enables it", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          accountAddress: VALID_HASH,
-          recoveryNewOwner: NEXT_OWNER,
-          recoveryExpiryMinutes: "30",
-          hasPayload: true,
-          accountId: VALID_HASH,
-          verifierHash: VALID_HASH,
-          previewUrl: "https://example.test/recovery-preview",
-          credentialUrl: "https://example.test/recovery-credential",
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /openRecoveryPreview/ }));
-    expect(dispatch).toHaveBeenCalledWith("openRecoveryPreviewLink");
-  });
-
-  it("keeps handoff owner and expiry controls tucked inside the drawer", () => {
+    const unconfigured = { ...profile, configured: false, owner: "", threshold: 0, timelockMs: 0, masterNullifiers: [] };
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({
-          accountAddress: VALID_HASH,
-          recoveryNewOwner: NEXT_OWNER,
-          recoveryExpiryMinutes: "30",
+        state={baseState({
+          profile: unconfigured,
+          journeyState: "unconfigured",
+          setupPackageText: "{}",
+          setupWriteAvailable: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    expect(container.querySelector(".guardian-setup-card textarea")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /setupGuardians/ }));
+    expect(container.querySelector(".guardian-setup-card textarea")).toBeTruthy();
+    expect(screen.getByText("publicDataOnly")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /reviewSetupPackage/ }));
+    expect(dispatch).toHaveBeenCalledWith("reviewSetupPackage");
+  });
+
+  it("keeps first-time activation read-only until the verifier upgrade", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const unconfigured = { ...profile, configured: false, owner: "", threshold: 0, timelockMs: 0, masterNullifiers: [] };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ profile: unconfigured, journeyState: "unconfigured", setupPackageText: "{}" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(screen.getByText("journeySetupUpgradeRequired")).toBeTruthy();
+    expect(screen.getByText("setupActivationPaused")).toBeTruthy();
+    expect(screen.getByText("setupUpgradePending")).toBeTruthy();
+    expect(container.querySelector(".guardian-setup-card")).toBeNull();
+    expect(screen.queryByRole("button", { name: /setupGuardians/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /refreshStatus/ }));
+    expect(dispatch).toHaveBeenCalledWith("loadProfile");
+  });
+
+  it("shows progress and routes a threshold-ready profile to finalization", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const pending = {
+      ...profile,
+      pending: {
+        active: true,
+        newOwner: ACCOUNT,
+        recoveryNonce: "4",
+        approvedCount: 2,
+        initiatedAt: Date.now() - 90_000,
+        executableAt: Date.now() - 1_000,
+      },
+    };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ profile: pending, journeyState: "ready", approvedCount: 2, threshold: 2, guardianCount: 3 })}
+        dispatch={dispatch}
+      />,
+    );
+    expect(container.querySelector(".guardian-progress > span")?.getAttribute("style")).toContain("100%");
+    fireEvent.click(screen.getByRole("button", { name: /finalizeRecovery/ }));
+    expect(dispatch).toHaveBeenCalledWith("submitFinalize");
+  });
+
+  it("tucks ticket expiry and raw contract routing into the details drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ profile, journeyState: "protected", threshold: 2, guardianCount: 3, verifierHash: OWNER, aaCoreHash: ACCOUNT })}
+        dispatch={dispatch}
+      />,
+    );
+    expect(container.querySelector(".guardian-expiry-presets")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /guardianDetails/ }));
+    expect(container.querySelector(".guardian-expiry-presets")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "1h" }));
+    expect(dispatch).toHaveBeenCalledWith("setField", "recoveryExpiryMinutes", "60");
+  });
+
+  it("prioritizes an active confirmation notice over an older success message", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          profile,
+          journeyState: "protected",
+          lastSuccess: "old success",
+          transactionNotice: "review before signing",
         })}
         dispatch={vi.fn()}
       />,
     );
-
-    expect(container.querySelectorAll(".guardian-scene input")).toHaveLength(1);
-    expect(container.querySelector(".guardian-expiry-presets")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /guardianPrepareShort/ }));
-
-    expect(container.querySelector(".guardian-drawer__actions")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /openRecoveryDocs/ })).toBeTruthy();
-    expect(container.querySelector(".guardian-expiry-presets")).toBeTruthy();
-    expect(container.querySelectorAll(".guardian-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(5);
-    expect(container.querySelectorAll(".guardian-drawer__notice.mx2-open-notice.semi-banner").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".guardian-drawer__field.mx2-open-field")).toHaveLength(4);
-    expect(container.querySelector(".guardian-drawer h4")).toBeNull();
-    expect(container.querySelectorAll(".guardian-drawer__panel input").length).toBeGreaterThanOrEqual(4);
-
-    fireEvent.click(screen.getByRole("button", { name: /60m/ }));
-    expect((container.querySelector(".guardian-drawer__panel input[inputmode='numeric']") as HTMLInputElement).value).toBe("60");
+    expect(container.querySelector(".guardian-feedback strong")?.textContent).toBe("review before signing");
+    expect(container.querySelector(".guardian-feedback")?.className).toContain("is-pending");
   });
 
-  it("has reduced-motion", () => {
-    const fs = require("node:fs");
-    const styles = fs.readFileSync(`${process.cwd()}/../recovery-guardian/src/PlayArea.scss`, "utf8");
+  it("locks profile and advanced fields while an exact write is pending", () => {
+    const pendingWrite = {
+      version: 1 as const,
+      kind: "finalize" as const,
+      txid: `0x${"aa".repeat(32)}`,
+      createdAt: Date.now(),
+      network: "testnet" as const,
+      verifierHash: `0x${"bb".repeat(20)}`,
+      profileHex: PROFILE_ID,
+      actorHash: ACCOUNT,
+      beforeOwner: OWNER,
+      beforeNonce: "4",
+      expectedNewOwner: ACCOUNT,
+    };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ profile, journeyState: "pending-transaction", pendingWrite, storageHealthy: false })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(container.querySelector<HTMLInputElement>("#guardian-profile-id")?.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /checkConfirmation/ })).toBeNull();
+    expect((screen.getByRole("button", { name: /retryRecoveryStorage/ }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: /guardianDetails/ }));
+    expect((screen.getByRole("button", { name: "1h" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("pauses new signatures when durable recovery storage is unavailable", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const pending = {
+      ...profile,
+      pending: {
+        active: true,
+        newOwner: ACCOUNT,
+        recoveryNonce: "4",
+        approvedCount: 2,
+        initiatedAt: Date.now() - 90_000,
+        executableAt: Date.now() - 1_000,
+      },
+    };
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          profile: pending,
+          journeyState: "ready",
+          approvedCount: 2,
+          threshold: 2,
+          guardianCount: 3,
+          storageHealthy: false,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    expect(screen.getByText("recoveryStorageUnavailable")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /finalizeRecovery/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /cancelRecovery/ })).toBeNull();
+    const retry = screen.getByRole("button", { name: /retryRecoveryStorage/ });
+    expect((retry as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(retry);
+    expect(dispatch).toHaveBeenCalledWith("refreshRecoveryStorage");
+  });
+
+  it("shows a truthful warning for a legacy no-delay policy", () => {
+    const legacyPolicy = { ...profile, timelockMs: 0 };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={baseState({ profile: legacyPolicy, journeyState: "legacy-policy", threshold: 2, guardianCount: 3 })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("journeyLegacyPolicy")).toBeTruthy();
+    expect(screen.getByText("policyReviewNeeded")).toBeTruthy();
+    expect(container.querySelector('[data-journey="legacy-policy"]')).toBeTruthy();
+  });
+
+  it("ships warm, high-contrast, reduced-motion styling without an oversized primary control", () => {
+    const candidates = [
+      resolve(process.cwd(), "apps/recovery-guardian/src/PlayArea.scss"),
+      resolve(process.cwd(), "../recovery-guardian/src/PlayArea.scss"),
+    ];
+    const stylePath = candidates.find(existsSync);
+    expect(stylePath).toBeTruthy();
+    const styles = readFileSync(stylePath!, "utf8");
     expect(styles).toMatch(/prefers-reduced-motion/);
-  });
-
-  it("keeps recovery guardian stage background clean and foreground-led", () => {
-    const fs = require("node:fs");
-    const styles = fs.readFileSync(`${process.cwd()}/../recovery-guardian/src/PlayArea.scss`, "utf8");
-
-    expect(styles).toMatch(/\.recovery-guardian-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
-    expect(styles).toMatch(/\.guardian-scene\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.guardian-scene\s*\{[\s\S]*align-items:\s*start/);
-    expect(styles).toMatch(/\.guardian-command-art\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.guardian-scene\s*\{[\s\S]*grid-template-columns:\s*minmax\(270px,\s*0\.82fr\) minmax\(340px,\s*1\.18fr\)/);
-    expect(styles).toMatch(/\.guardian-pass-panel\s*\{[\s\S]*order:\s*1/);
-    expect(styles).toMatch(/\.guardian-command-panel\s*\{[\s\S]*order:\s*2/);
-    expect(styles).toMatch(/\.guardian-command-art\s*\{[\s\S]*grid-template-rows:\s*minmax\(184px,\s*auto\) auto/);
-    expect(styles).toMatch(/\.guardian-command-art img\s*\{[\s\S]*object-fit:\s*contain/);
-    expect(styles).toMatch(/\.guardian-command-art img\s*\{[\s\S]*opacity:\s*1/);
-    expect(styles).toMatch(/\.guardian-command-art img\s*\{[\s\S]*filter:\s*none/);
-    expect(styles).toMatch(/\.guardian-command-art figcaption\s*\{[\s\S]*position:\s*relative/);
-    expect(styles).not.toMatch(/\.guardian-command-art img\s*\{[\s\S]*opacity:\s*0\.76/);
-    expect(styles).not.toMatch(/\.guardian-command-art img\s*\{[\s\S]*filter:\s*saturate/);
-    expect(styles).toMatch(/\.guardian-account-pass\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
-    expect(styles).toMatch(/\.guardian-account-pass\s*\{[\s\S]*border-radius:\s*var\(--mx2-r-pill\)/);
-    expect(styles).toMatch(/\.guardian-account-pass\s*\{[\s\S]*padding:\s*9px 11px/);
-    expect(styles).toMatch(/@media \(max-width:\s*900px\)[\s\S]*\.guardian-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.recovery-guardian-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 224px/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.guardian-command-panel\s*\{[\s\S]*order:\s*1/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.guardian-command-art\s*\{[\s\S]*grid-template-rows:\s*minmax\(102px,\s*auto\) auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.recovery-guardian-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.recovery-guardian-play-area \.mx2-action-rail__row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 118px/);
-    expect(styles).toMatch(/\.guardian-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.guardian-drawer__panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*20px/);
-    expect(styles).toMatch(/\.guardian-drawer__field-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.1fr\) minmax\(160px,\s*0\.9fr\)/);
-    expect(styles).toMatch(/\.guardian-link-actions\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.guardian-link-actions\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
-    expect(styles).not.toMatch(/\.guardian-drawer__panel h4/);
-    expect(styles).not.toContain("guardian-scene__backdrop");
-    expect(styles).not.toContain("backdrop-filter");
+    expect(styles).toContain("#f4fcf9");
+    expect(styles).toMatch(/\.guardian-command-art img\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.mx2-btn--primary\s*\{[\s\S]*max-width:\s*280px/);
     expect(styles).not.toContain("repeating-linear-gradient");
-    expect(styles).not.toMatch(/\.recovery-guardian-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*300px/);
-    expect(styles).not.toContain("var(--mx2-scene-wash");
   });
 });

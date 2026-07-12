@@ -571,7 +571,7 @@ function OperationForm({
           )
         )}
 
-        {summaryRows.length > 0 && (
+        {workflowStage !== "configure" && summaryRows.length > 0 && (
           <div
             className="rounded-xl border border-emerald-100 bg-emerald-50/55 p-3 shadow-sm shadow-emerald-900/5"
             data-testid="operation-param-summary"

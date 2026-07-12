@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-02T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Pick cards from a 3-layer pile into your 7-slot bar. Three matching cards auto-eliminate. Clear the board before the deadline to win GAS! Tools: Undo (3 max, -30% each), Shuffle (1/game), Remove 3 (1/game). Every card layout is sealed inside a Morpheus TEE — only its hash commitment goes on-chain, so the full layout cannot be searched or scripted.",
-  "description_zh": "从三层牌堆中选取卡片放入 7 格卡槽。三张相同卡片自动消除。在截止时间前清空所有卡片即可赢得 GAS！工具：撤回（最多 3 次，每次 -30%）、洗牌（每局 1 次）、移出三张（每局 1 次）。每局牌面都在 Morpheus TEE 内密封——链上仅记录哈希承诺，完整牌面无法被搜索或脚本化。",
+  "description": "A bright, resource-driven Phaser match-3 tile game with a layered meadow board, seven-slot tray, animated dealing and elimination, undo, shuffle, remove-three, timeout, restart, and exact refresh recovery. The released free-play mode is local, walletless, and transaction-free. The paid implementation remains unpublished while its Morpheus deal and settlement schemas are aligned and revalidated end to end.",
+  "description_zh": "明亮、资源驱动的 Phaser 三消牌槽游戏，拥有多层草地牌面、七格卡槽、发牌与消除动画、撤回、洗牌、移出三张、超时、重开和精确刷新恢复。当前发布的自由练习模式完全本地运行，无需钱包，也不会发起交易。付费实现暂不发布，待 Morpheus 发牌与结算协议完成对齐并重新通过端到端验证后再开放。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -25,60 +25,16 @@
   "name": "Sheep Solitaire",
   "name_zh": "羊了个羊",
   "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Pay the entry fee and start a beacon-seeded game. Easy: 0.02 GAS entry wins 0.1; Medium: 0.10 wins 0.5; Hard: 0.20 wins 1.",
-        "method": "startGame",
-        "name": "Start Game",
-        "params": [
-          {
-            "default_value": "0",
-            "label": "Difficulty",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Easy (8 types, 5 min) — win 0.1 GAS",
-                "value": "0"
-              },
-              {
-                "label": "Medium (12 types, 8 min) — win 0.5 GAS",
-                "value": "1"
-              },
-              {
-                "label": "Hard (15 types, 12 min) — win 1 GAS",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, clear the 3-layer card pile before the deadline, and win GAS.",
+    "operations": [],
+    "subtitle": "Choose a meadow route, pick exposed tiles into the seven-slot tray, and match triples before time runs out. Free play never opens a wallet prompt or writes to chain.",
     "title": "Sheep Solitaire"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -89,7 +45,8 @@
     "puzzle",
     "matching",
     "leaderboard",
-    "gas",
+    "phaser",
+    "casual",
     "game"
   ],
   "technologies": {
@@ -98,19 +55,19 @@
       "enabled": false
     },
     "oracle": {
-      "description": "The game opens a Morpheus runtime session to seal the hidden card layout and verify the recorded picks before settlement. No callback is required; the contract verifies the TEE signer directly on-chain.",
-      "enabled": true
+      "description": "Free play makes no oracle request. The historical recovery implementation remains available, while new paid boards stay gated until end-to-end settlement validation is complete.",
+      "enabled": false
     },
     "tee": {
-      "description": "Morpheus TEE signs the hidden puzzle commitment and final settlement digest; the contract verifies the enclave signer directly without a Morpheus oracle callback.",
-      "enabled": true
+      "description": "Free play makes no TEE request. Morpheus-backed paid starts are not advertised until the live signer, session protocol, and contract settlement have production evidence.",
+      "enabled": false
     }
   },
-  "updatedAt": "2026-07-02T00:00:00Z",
+  "updatedAt": "2026-07-10T00:00:00Z",
   "urls": {
     "banner": "/miniapps/sheep-solitaire/banner.webp",
     "entry": "/miniapps/sheep-solitaire/index.html",
     "icon": "/miniapps/sheep-solitaire/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

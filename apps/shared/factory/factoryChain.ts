@@ -49,6 +49,11 @@ export interface FactoryDeploymentItem {
   createdAt: number;
 }
 
+export type FactoryRecordReadResult =
+  | { status: "found"; record: FactoryDeploymentItem }
+  | { status: "not-found" }
+  | { status: "unavailable"; error: string };
+
 interface RpcInvokeResult {
   state?: string;
   gasconsumed?: string;
@@ -230,25 +235,57 @@ async function readHaltValue(
 }
 
 /**
- * Read back a single deployment / miniapp record after an execute, or for a
- * locally remembered package id. Returns null when the record is absent.
+ * Read back one deployment / miniapp record while preserving the difference
+ * between an absent package and an RPC/ABI failure. Product recovery surfaces
+ * need that distinction so a transient read outage is never presented as
+ * authoritative proof that no record exists.
  */
+export async function inspectFactoryRecord(
+  network: FactoryNetwork,
+  scriptHash: string,
+  kind: FactoryKind,
+  packageId: string,
+): Promise<FactoryRecordReadResult> {
+  if (!scriptHash || !packageId) return { status: "not-found" };
+  const operation = kind === "miniapp" ? "getMiniApp" : "getDeployment";
+  try {
+    const raw = await readHaltValue(network, scriptHash, operation, [
+      { type: "String", value: packageId },
+    ]);
+    const record = parseRecord(kind, packageId, raw);
+    return record
+      ? { status: "found", record }
+      : {
+          status: "unavailable",
+          error: `${operation} returned an invalid record`,
+        };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : String(error ?? "");
+    if (/deployment not found|miniapp not found/i.test(message)) {
+      return { status: "not-found" };
+    }
+    return {
+      status: "unavailable",
+      error: message || `${operation} could not be read`,
+    };
+  }
+}
+
+/** Backwards-compatible nullable record read for existing factory consumers. */
 export async function readFactoryRecord(
   network: FactoryNetwork,
   scriptHash: string,
   kind: FactoryKind,
   packageId: string,
 ): Promise<FactoryDeploymentItem | null> {
-  if (!scriptHash || !packageId) return null;
-  const operation = kind === "miniapp" ? "getMiniApp" : "getDeployment";
-  try {
-    const raw = await readHaltValue(network, scriptHash, operation, [
-      { type: "String", value: packageId },
-    ]);
-    return parseRecord(kind, packageId, raw);
-  } catch {
-    return null;
-  }
+  const result = await inspectFactoryRecord(
+    network,
+    scriptHash,
+    kind,
+    packageId,
+  );
+  return result.status === "found" ? result.record : null;
 }
 
 /**

@@ -3,26 +3,28 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Aim Master",
   description:
-    "Stop the moving reticle on the bullseye to win GAS. Pick a target lane, tap to lock in each shot, and land enough accuracy hits before the deadline to win a fixed GAS reward — 0.1 Warm-up (3 hits), 0.5 Arcade (5 hits), 1 Pro (7 hits). Every verified run climbs a global leaderboard rebuilt from chain events.",
+    "Free local target practice: choose a lane, fire anywhere on the range as the moving reticle crosses the bullseye, and chain clean hits before time runs out. No wallet or GAS is required; verified GameFi stays closed until the testnet pool is funded and settlement is proven end to end.",
   icon: "crosshair",
   category: "game",
   shell: "game",
+  supportsGuest: true,
+  supportsGameFi: false,
 
   gamePage: {
     categoryColor: "#F97316",
-    modes: { guest: true },
-    heroBadgeKey: "networkBadge",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestModeValue",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
-    heroDescKey: "appSubtitle",
+    heroDescKey: "guestSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "networkBadge",
-    featuresTitleKey: "fairnessTitle",
+    featuresEyebrowKey: "guestModeValue",
+    featuresTitleKey: "guestRulesTitle",
     features: [
       {
-        titleKey: "fairnessTitle",
-        descKey: "fairnessCopy",
+        titleKey: "guestRulesTitle",
+        descKey: "guestRulesCopy",
         large: true,
         gradient: "linear-gradient(135deg, #FFF7ED 0%, #FDBA74 46%, #FB923C 100%)",
       },
@@ -31,11 +33,11 @@ export const manifest: MiniAppManifest = {
     ],
     lbEyebrowKey: "ranksTab",
     lbTitleKey: "leaderboardTitle",
-    lbScoreLabelKey: "scoreWon",
+    lbScoreLabelKey: "guestBestLabel",
     ctaTitleKey: "lobbyTitle",
-    ctaDescKey: "startDescription",
+    ctaDescKey: "guestRulesCopy",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["networkBadge", "fairnessTitle", "rankLabel"],
+    trustBadgeKeys: ["guestModeValue", "gameFiMaintenanceShort", "rankLabel"],
   },
 
   tabs: [
@@ -44,63 +46,28 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "scoreReward", valueKey: "lastPayout", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", icon: "coin" },
+    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
     { labelKey: "rankLabel", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
+      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text" },
       { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Warm-up Lane — 3 hits, win 0.1 GAS" },
-            { value: "1", label: "Arcade Range — 5 hits, win 0.5 GAS" },
-            { value: "2", label: "Pro Circuit — 7 hits, win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  operations: [],
 
   docs: [
-    { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
-    { titleKey: "fairnessTitle", contentKey: "fairnessCopy", type: "text" },
+    { titleKey: "guestRulesTitle", contentKey: "guestRulesCopy", type: "steps" },
+    { titleKey: "gameFiMaintenanceShort", contentKey: "gameFiMaintenanceShort", type: "text" },
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -108,10 +75,10 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {

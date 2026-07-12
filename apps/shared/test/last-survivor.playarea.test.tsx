@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -128,9 +128,9 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
     expect(container.querySelector("input, textarea, select, form")).toBeNull();
   });
 
-  it("dispatches buyKeys from the tappable relic with the selected count and shows buying motion", async () => {
+  it("dispatches buyKeys from the tappable relic and shows motion only from authoritative busy state", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container, rerender } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     // Select 3 keys.
     const preset3 = container.querySelectorAll(".survivor-preset")[1];
@@ -139,12 +139,13 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
     // Fire the in-scene relic action, not only the rail button.
     fireEvent.click(container.querySelector(".survivor-scene__relic") as Element);
 
-    await waitFor(() => {
-      expect(container.querySelector('.survivor-scene[data-state="buying"]')).toBeTruthy();
-      expect(container.querySelector(".survivor-scene__key-burst")).toBeTruthy();
-      expect(container.querySelectorAll(".survivor-scene__key-token").length).toBe(3);
-    });
     expect(dispatch).toHaveBeenCalledWith("buyKeys", "3");
+    expect(container.querySelector('.survivor-scene[data-state="buying"]')).toBeNull();
+
+    rerender(<PlayArea t={t} state={state({ isBuyingKeys: true })} dispatch={dispatch} />);
+    expect(container.querySelector('.survivor-scene[data-state="buying"]')).toBeTruthy();
+    expect(container.querySelector(".survivor-scene__key-burst")).toBeTruthy();
+    expect(container.querySelectorAll(".survivor-scene__key-token").length).toBe(3);
   });
 
   it("shows a settle affordance when the round needs settling", () => {
@@ -270,7 +271,7 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/\.survivor-stepper__track-fill[\s\S]*background:\s*#f59e0b/);
     expect(styles).toMatch(/\.survivor-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/\.survivor-scene__notice\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-play-area \.mx2-stage\s*\{[\s\S]*padding:\s*13px 14px 14px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-play-area \.mx2-stage\s*\{[\s\S]*padding:\s*8px 6px 10px/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-play-area \.mx2-stage__subtitle\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-scene\s*\{[\s\S]*min-height:\s*456px/);
     expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.survivor-scene__relic\s*\{[\s\S]*width:\s*min\(252px,\s*calc\(100vw - 92px\)\)/);
@@ -284,6 +285,7 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
 
     // Key buying stays game-like: tappable relic + presets + stepper, not a form.
     expect(source).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
+    expect(source).not.toContain("setTimeout(");
     expect(source).toMatch(/ARENA_IMAGE = "last-survivor-arena\.webp"/);
     expect(source).toContain("survivor-scene__arena-art");
     expect(source).toContain("survivor-scene__shade");

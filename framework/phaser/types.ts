@@ -56,6 +56,10 @@ export interface PhaserGameProps {
   retryLabel?: string;
   /** Text shown on the dismiss control after a failed action. */
   continueLabel?: string;
+  /** Accessible label for turning game sound back on. */
+  enableSoundLabel?: string;
+  /** Accessible label for muting game sound. */
+  muteSoundLabel?: string;
   /**
    * Keep the Phaser game at its configured logical size on mobile and let CSS
    * scale the canvas visually. Use for scenes with fixed-coordinate engines.

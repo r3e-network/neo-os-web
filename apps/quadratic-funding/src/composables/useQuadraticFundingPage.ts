@@ -21,6 +21,8 @@ import { useQuadraticRounds } from "./useQuadraticRounds";
 import { useQuadraticProjects } from "./useQuadraticProjects";
 import { useQuadraticContributions } from "./useQuadraticContributions";
 import { computeQuadraticMatches } from "./quadraticMatch";
+import { useQuadraticSafety } from "./quadraticSafety";
+import { useQuadraticPending } from "./quadraticPending";
 import type { DepositConfirmation } from "@shared/composables/useContractInteraction";
 
 export interface UseQuadraticFundingPageOptions {
@@ -33,12 +35,15 @@ export interface UseQuadraticFundingPageOptions {
     txid: string,
     assetHash: string,
   ) => Promise<DepositConfirmation>;
+  /** Production-validated `network:contract:fingerprint` entries; defaults to none. */
+  approvedRecoveryDeployments?: ReadonlySet<string>;
 }
 
 export function useQuadraticFundingPage({
   app,
   t,
   confirmDeposit,
+  approvedRecoveryDeployments,
 }: UseQuadraticFundingPageOptions) {
   const activeTab = createObservable("contribute");
 
@@ -53,6 +58,21 @@ export function useQuadraticFundingPage({
     setStatus: sm.setStatus,
     confirmDeposit,
   });
+  const safety = useQuadraticSafety({ app, t, kit, approvedRecoveryDeployments });
+  const pending = useQuadraticPending(app);
+  const hasPendingOperation = createDerived(
+    () => Boolean(pending.pendingOperation.get()),
+    [pending.pendingOperation],
+  );
+  const pendingTxid = createDerived(
+    () => pending.pendingOperation.get()?.txid ?? "",
+    [pending.pendingOperation],
+  );
+  const pendingPhase = createDerived(
+    () => pending.pendingOperation.get()?.phase ?? "",
+    [pending.pendingOperation],
+  );
+  let validateFinalizationSnapshot: (projectIds: string[]) => boolean = () => false;
 
   const {
     address,
@@ -70,7 +90,7 @@ export function useQuadraticFundingPage({
     canFinalizeSelectedRound,
     canClaimUnused,
     canCancelSelectedRound,
-    refreshRounds,
+    refreshRounds: refreshRoundData,
     selectRound,
     createRound,
     addMatching,
@@ -81,10 +101,18 @@ export function useQuadraticFundingPage({
     roundStatusLabel,
     formatSchedule,
     formatAmount,
-  } = useQuadraticRounds({ app, t, kit });
+  } = useQuadraticRounds({
+    app,
+    t,
+    kit,
+    ensureFundingWritesEnabled: safety.ensureFundingWritesEnabled,
+    validateFinalizationSnapshot: (projectIds) => validateFinalizationSnapshot(projectIds),
+    pending,
+  });
 
   const {
     projects,
+    projectsComplete,
     isRefreshingProjects,
     isRegisteringProject,
     claimingProjectId,
@@ -95,7 +123,56 @@ export function useQuadraticFundingPage({
     claimProject,
     projectStatusLabel,
     projectStatusClass,
-  } = useQuadraticProjects({ app, t, kit, selectedRound });
+  } = useQuadraticProjects({
+    app,
+    t,
+    kit,
+    selectedRound,
+    ensureFundingWritesEnabled: safety.ensureFundingWritesEnabled,
+    pending,
+  });
+
+  validateFinalizationSnapshot = (projectIds: string[]) => {
+    const round = selectedRound.get();
+    const loadedIds = projects.get().map((project) => project.id);
+    if (!round || !projectsComplete.get()) return false;
+    if (BigInt(loadedIds.length) !== round.projectCount || projectIds.length !== loadedIds.length) {
+      return false;
+    }
+    const submitted = new Set(projectIds);
+    return submitted.size === projectIds.length
+      && loadedIds.every((projectId) => submitted.has(projectId));
+  };
+
+  // Refresh the playable project board with the round snapshot. The previous
+  // mount path loaded rounds only, leaving a valid selected round looking empty
+  // until the user manually re-selected it.
+  const refreshRounds = async () => {
+    await Promise.all([
+      safety.refreshDeploymentSafety(),
+      refreshRoundData(),
+    ]);
+    try {
+      const recovery = await pending.recover();
+      if (recovery === "recovered") {
+        sm.setStatus(t("pendingRecovered"), "success");
+        await refreshRoundData();
+      } else if (recovery === "pending") {
+        sm.setStatus(t("pendingStillWaiting", { txid: pending.pendingOperation.get()?.txid ?? "" }), "error");
+      } else if (recovery === "scope-mismatch") {
+        sm.setStatus(t("pendingWrongScope"), "error");
+      } else if (recovery === "readback-mismatch") {
+        sm.setStatus(t("chainReadbackMismatch"), "error");
+      } else if (recovery === "deposit-only") {
+        sm.setStatus(t("pendingDepositRecovery", { txid: pending.pendingOperation.get()?.txid ?? "" }), "error");
+      } else if (recovery === "uncertain") {
+        sm.setStatus(t("pendingIntentUncertain"), "error");
+      }
+    } catch {
+      if (pending.pendingOperation.get()) sm.setStatus(t("pendingRecoveryUnavailable"), "error");
+    }
+    await refreshProjects();
+  };
 
   const { isContributing, contributeForm, selectProject, contribute } =
     useQuadraticContributions({
@@ -105,6 +182,8 @@ export function useQuadraticFundingPage({
       selectedRound,
       refreshProjects,
       refreshRounds,
+      ensureFundingWritesEnabled: safety.ensureFundingWritesEnabled,
+      pending,
     });
 
   // Computed display data
@@ -123,6 +202,15 @@ export function useQuadraticFundingPage({
     if (!round) return t("notAvailable");
     return `${formatAmount(round.assetSymbol || "GAS", round.matchingPool)} ${round.assetSymbol || "GAS"}`;
   }, [rounds, selectedRoundId]);
+  const matchingRemainingDisplay = createDerived(() => {
+    const round = selectedRound.get();
+    if (!round) return t("notAvailable");
+    return `${formatAmount(round.assetSymbol || "GAS", round.matchingRemaining)} ${round.assetSymbol || "GAS"}`;
+  }, [rounds, selectedRoundId]);
+  const matchPreviewMode = createDerived(
+    () => selectedRound.get()?.finalized ? "finalized" : "estimate",
+    [rounds, selectedRoundId],
+  );
 
   // Suggested quadratic matches for the selected round, computed from each
   // project's on-chain aggregates. Drives the finalize preview table and the
@@ -130,7 +218,7 @@ export function useQuadraticFundingPage({
   const suggestedMatches = createDerived(() => {
     const round = selectedRound.get();
     const list = projects.get();
-    if (!round || list.length === 0) {
+    if (!round || !projectsComplete.get() || list.length === 0) {
       return [] as Array<{
         id: string;
         name: string;
@@ -141,14 +229,17 @@ export function useQuadraticFundingPage({
       }>;
     }
     const symbol = round.assetSymbol || "GAS";
-    const matches = computeQuadraticMatches(
-      list.map((project) => ({
-        id: project.id,
-        totalContributed: project.totalContributed,
-        contributorCount: project.contributorCount,
-      })),
-      round.matchingPool,
-    );
+    const matches = round.finalized
+      ? list.map((project) => ({ id: project.id, weight: 0n, match: project.matchedAmount }))
+      : computeQuadraticMatches(
+          list.map((project) => ({
+            id: project.id,
+            totalContributed: project.totalContributed,
+            contributorCount: project.contributorCount,
+            eligible: project.active && !project.claimed,
+          })),
+          round.matchingPool,
+        );
     const matchById = new Map(matches.map((entry) => [entry.id, entry.match]));
     return list.map((project) => {
       const match = matchById.get(project.id) ?? 0n;
@@ -161,7 +252,7 @@ export function useQuadraticFundingPage({
         matchBaseUnits: match.toString(),
       };
     });
-  }, [rounds, selectedRoundId, projects]);
+  }, [rounds, selectedRoundId, projects, projectsComplete]);
 
   const appState = createDerived(() => ({
     roundCount: roundCount.get(),
@@ -174,9 +265,11 @@ export function useQuadraticFundingPage({
     { label: t("sidebarSelectedRound"), value: selectedRoundId.get() ?? t("notAvailable") },
     {
       label: t("sidebarMatchingPool"),
-      value: selectedRound.get() ? formatAmount(selectedRound.get()!.matchingPool) : t("notAvailable"),
+      value: selectedRound.get()
+        ? `${formatAmount(selectedRound.get()!.assetSymbol, selectedRound.get()!.matchingPool)} ${selectedRound.get()!.assetSymbol}`
+        : t("notAvailable"),
     },
-  ], []);
+  ], [rounds, projects, selectedRoundId]);
 
   // Reuse the shared contract/status channel across tabs so sub-pages don't silently miss feedback.
   const projectsStatus = roundsStatus;
@@ -192,23 +285,44 @@ export function useQuadraticFundingPage({
   const handleContribute = contribute;
 
   const handleAddMatching = async (amount: string) => {
-    await addMatching(amount);
+    return addMatching(amount);
   };
   const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => {
     await finalizeRound(projectIdsRaw, matchedRaw);
   };
   const handleFinalizeSuggested = async () => {
     const entries = suggestedMatches.get().map((entry) => ({ id: entry.id, matchBaseUnits: entry.matchBaseUnits }));
-    await finalizeSuggested(entries);
+    return finalizeSuggested(entries);
   };
   const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => {
-    await claimProject(project);
+    return claimProject(project);
   };
   const handleClaimUnused = async () => {
-    await claimUnused();
+    return claimUnused();
   };
   const handleCancelRound = async () => {
-    await cancelRound();
+    return cancelRound();
+  };
+  const handleClearPending = () => {
+    if (
+      isCreatingRound.get()
+      || isRegisteringProject.get()
+      || isContributing.get()
+      || isAddingMatching.get()
+      || isFinalizing.get()
+      || isClaimingUnused.get()
+      || isCancelling.get()
+      || Boolean(claimingProjectId.get())
+    ) {
+      sm.setStatus(t("pendingBlocksWrites"), "error");
+      return;
+    }
+    if (pending.pendingOperation.get()?.phase === "deposit") {
+      sm.setStatus(t("pendingDepositMustRecover"), "error");
+      return;
+    }
+    pending.clear();
+    sm.setStatus(t("pendingCleared"), "success");
   };
   const handleSelectRound = async (round: Parameters<typeof selectRound>[0]) => {
     selectRound(round);
@@ -238,6 +352,14 @@ export function useQuadraticFundingPage({
     isFinalizing,
     isClaimingUnused,
     isCancelling,
+    deploymentStatus: safety.deploymentStatus,
+    deploymentMessage: safety.deploymentMessage,
+    isCheckingDeployment: safety.isCheckingDeployment,
+    fundingWritesEnabled: safety.fundingWritesEnabled,
+    pendingOperation: pending.pendingOperation,
+    hasPendingOperation,
+    pendingTxid,
+    pendingPhase,
     isAdmin,
     canManageSelectedRound,
     canFinalizeSelectedRound,
@@ -253,6 +375,7 @@ export function useQuadraticFundingPage({
     formatAddress,
     // Projects
     projects,
+    projectsComplete,
     isRefreshingProjects,
     claimingProjectId,
     canClaimProject,
@@ -271,6 +394,8 @@ export function useQuadraticFundingPage({
     projectCount,
     selectedRoundDisplay,
     matchingPoolDisplay,
+    matchingRemainingDisplay,
+    matchPreviewMode,
     projectsStatus,
     contributionStatus,
     // Handlers
@@ -284,6 +409,7 @@ export function useQuadraticFundingPage({
     handleClaimProject,
     handleClaimUnused,
     handleCancelRound,
+    handleClearPending,
     onTabChange,
   };
 }

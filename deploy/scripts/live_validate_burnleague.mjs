@@ -7,8 +7,9 @@
  *   1. A deposits 5 GAS burn credit, burns 2 GAS (lazily starts the season).
  *   2. A funds a fresh wallet B; B deposits 4 GAS credit, burns 3 GAS -> B is top burner.
  *   3. pool = 5 GAS, topBurner = B (3 > 2). Asserted via Burned events + reads.
- *   4. Wait out the season deadline, then settle() -> whole 5 GAS pool paid to B.
- *   5. A reclaims unused 3 GAS credit; contract left solvent; season advanced + dormant.
+ *   4. Wait out the deadline, then settle() -> 5 GAS pool credited to B; B withdraws
+ *      its full 6 GAS claimable balance (5 prize + 1 unused deposit).
+ *   5. A reclaims unused 3 GAS credit; contract reaches zero; season advances + dormant.
  *
  * Asserts on lag-free events (Burned / SeasonSettled / CreditWithdrawn). Testnet-pinned
  * (endpoints/magic via lib/neo_network.js env overrides + failover); no WIFs printed.
@@ -84,8 +85,9 @@ async function main() {
   console.log(`    season ends at ${new Date(endMs).toISOString()}; sleeping ${(waitMs / 1000).toFixed(0)}s…`);
   await sleep(waitMs);
 
-  console.log("\n[5] settle() pays the whole pool to B (top burner)…");
+  console.log("\n[5] settle() credits the whole pool to B (top burner)…");
   const bBefore = await gasBal(B.scriptHash);
+  check(decInt(await read("creditOf", [P_H(B.scriptHash)])) === 1n * G, "B starts with 1 GAS unused credit");
   let slog = null;
   for (let i = 0; i < 5; i++) {
     try { ({ log: slog } = await invoke("settle", A, CONTRACT, "settle", [])); break; }
@@ -97,20 +99,26 @@ async function main() {
     check(addrFromState(sev[1].value).toLowerCase() === ("0x" + B.scriptHash).toLowerCase(), "winner = B");
     check(BigInt(sev[2].value) === 5n * G, "prize = 5 GAS pool");
   }
-  await sleep(6000);
-  const bAfter = await gasBal(B.scriptHash);
-  check(bAfter - bBefore === 5n * G, `B received 5 GAS prize (Δ ${(Number(bAfter - bBefore) / 1e8).toFixed(2)})`);
+  check(decInt(await read("creditOf", [P_H(B.scriptHash)])) === 6n * G, "B claimable credit = 6 GAS (5 prize + 1 unused)");
   check(decInt(await read("rewardPool")) === 0n, "pool reset to 0");
   check(decInt(await read("currentSeason")) === 2n, "season advanced to 2 (dormant)");
 
-  console.log("\n[6] A reclaims unused 3 GAS credit…");
+  console.log("\n[6] B withdraws prize + unused credit; A reclaims its unused credit…");
+  const { log: bw } = await invoke("B withdraw", B, CONTRACT, "withdraw", [H(B.scriptHash)]);
+  const bwev = eventState(bw, "CreditWithdrawn");
+  check(bwev !== null && BigInt(bwev[1].value) === 6n * G, "B withdrew full 6 GAS claimable credit");
+  check(decInt(await read("creditOf", [P_H(B.scriptHash)])) === 0n, "B claimable credit cleared");
+  await sleep(6000);
+  const bAfter = await gasBal(B.scriptHash);
+  console.log(`    B wallet delta after withdrawal: ${(Number(bAfter - bBefore) / 1e8).toFixed(4)} GAS (net of B's tx fee)`);
+
   const { log: cw } = await invoke("A withdraw", A, CONTRACT, "withdraw", [H(A.scriptHash)]);
   const cwev = eventState(cw, "CreditWithdrawn");
   check(cwev !== null && BigInt(cwev[1].value) === 3n * G, "A reclaimed 3 GAS unused credit");
 
   const cbal = await gasBal(CONTRACT);
-  console.log("\n  contract GAS balance:", (Number(cbal) / 1e8).toFixed(4), "GAS (B still has 1 GAS reclaimable credit)");
-  check(cbal === 1n * G, "contract holds exactly B's 1 GAS unused credit (no strand)");
+  console.log("\n  contract GAS balance:", (Number(cbal) / 1e8).toFixed(4), "GAS");
+  check(cbal === 0n, "contract is empty after every claimable credit is withdrawn");
 
   console.log(fail === 0 ? "\n✅ BURN LEAGUE VALIDATED (full season lifecycle + payout)" : `\n❌ ${fail} check(s) failed`);
   process.exit(fail === 0 ? 0 : 1);

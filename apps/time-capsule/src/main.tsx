@@ -3,7 +3,6 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -54,17 +53,11 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    registerActions(ctx, {
-      createCapsule: {
-        handler: (payload?: unknown) => {
-          if (payload !== undefined) {
-            capsule.newCapsule.set(normalizeCapsulePayload(payload));
-          }
-          return capsule.createCapsule();
-        },
-        successKey: "capsuleCreated",
-        errorKey: "error",
-      },
+    ctx.framework.actions.register("createCapsule", async (payload?: unknown) => {
+      if (payload !== undefined) capsule.newCapsule.set(normalizeCapsulePayload(payload));
+      await capsule.createCapsule().catch((error) => {
+        ctx.framework.notify.error(error, "error");
+      });
     });
 
     // fishCapsule surfaces its own DYNAMIC toast (tipped #id / nothing-found /
@@ -107,12 +100,9 @@ defineMiniApp({
       });
     });
 
-    // withdrawFishRevenue (collect tips) emits its own dynamic success /
-    // "no tips" toast — the money-out path for fishing tips accrued on the
-    // owner's public capsules.
-    ctx.framework.actions.register("withdrawFishRevenue", async () => {
-      await capsule.withdrawFishRevenue().catch(() => {
-        /* toast already surfaced inside the composable */
+    ctx.framework.actions.register("recoverPending", async () => {
+      await capsule.recoverPending().catch((error) => {
+        ctx.framework.notify.error(error, "error");
       });
     });
 
@@ -133,6 +123,13 @@ defineMiniApp({
         hasCredit: capsule.hasCredit,
         fishCandidates: capsule.fishCandidates,
         isLoadingCandidates: capsule.isLoadingCandidates,
+        capsulesSource: capsule.capsulesSource,
+        candidatesSource: capsule.candidatesSource,
+        creditSource: capsule.creditSource,
+        transactionNotice: capsule.transactionNotice,
+        pendingOperation: capsule.pendingOperation,
+        isRecovering: capsule.isRecovering,
+        storageHealthy: capsule.storageHealthy,
       },
       loadData: async () => {
         await capsule.loadAll();

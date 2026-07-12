@@ -27,7 +27,7 @@ export type BetSettlement = {
   outcome: RollOutcome;
   /** The settled face (1..6), or 0 when unknown (e.g. a refund). */
   rolled: number;
-  /** Pre-translated row result label (e.g. "Won · 🎲 4"). */
+  /** Pre-translated row result label (e.g. "Won · Rolled 4"). */
   result: string;
   /** Pre-formatted payout (e.g. "2.85 GAS" or "0 GAS"). */
   payout: string;
@@ -39,6 +39,7 @@ export function createBetTracker() {
   const rollHistory = createObservable<RollHistoryItem[]>([]);
   const lastRoll = createObservable(""); // the active bet's settled face (1..6), revealed
   const lastOutcome = createObservable<RollOutcome>("");
+  const lastPayout = createObservable("");
   const isResolving = createObservable(false); // active bet placed, awaiting settlement
   // The active bet's settlement poll gave up without a result (the VRF oracle
   // has not called back yet). Distinct from isResolving so the UI can show a
@@ -65,6 +66,7 @@ export function createBetTracker() {
     activeBetId = id;
     lastRoll.set("");
     lastOutcome.set("pending");
+    lastPayout.set("");
     isResolving.set(true);
     isUnresolved.set(false);
     return id;
@@ -109,6 +111,7 @@ export function createBetTracker() {
     if (isActive) {
       lastRoll.set(rolled ? String(rolled) : "");
       lastOutcome.set(outcome);
+      lastPayout.set(payout);
       isResolving.set(false);
       isUnresolved.set(false);
     }
@@ -131,6 +134,7 @@ export function createBetTracker() {
     rollHistory,
     lastRoll,
     lastOutcome,
+    lastPayout,
     isResolving,
     isUnresolved,
     beginBet,

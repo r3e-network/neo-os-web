@@ -11,28 +11,8 @@ export const manifest: MiniAppManifest = {
   name: "Time Capsule",
   description: "Lock messages in time-locked capsules on the blockchain",
   icon: "lock",
-  category: "game",
+  category: "social",
   shell: "launcher",
-
-  tabs: [
-    { key: "capsules", labelKey: "tabCapsules", icon: "lock", default: true },
-    { key: "create", labelKey: "tabCreate", icon: "plus" },
-  ],
-
-  stats: [
-    { labelKey: "sidebarTotalCapsules", valueKey: "totalCapsules", format: "number", icon: "box" },
-    { labelKey: "sidebarLocked", valueKey: "lockedCount", format: "number", icon: "lock" },
-    { labelKey: "sidebarRevealed", valueKey: "revealedCount", format: "number", icon: "unlock" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "sidebarTotalCapsules", valueKey: "totalCapsules", format: "number" },
-      { labelKey: "sidebarLocked", valueKey: "lockedCount", format: "number" },
-      { labelKey: "sidebarRevealed", valueKey: "revealedCount", format: "number" },
-    ],
-  },
 
   features: { walletRequired: true, chainWarning: true },
 

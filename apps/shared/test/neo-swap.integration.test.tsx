@@ -20,6 +20,8 @@ const tokenState = {
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     balance: "Balance",
+    balanceUnavailable: "Balance unavailable",
+    connectForBalance: "Connect to view",
     connectToPreview: "Connect wallet",
     dismiss: "Dismiss",
     docSubtitle: "Swap",
@@ -65,11 +67,13 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     fromAmount: "",
     toAmount: "",
     exchangeRate: "",
+    rateError: "",
     rateLoading: false,
     loading: false,
     isSwapping: false,
     canSwap: false,
     swapButtonText: "Swap",
+    amountError: "",
     slippage: "0.5%",
     slippageValue: 50,
     minReceived: "",
@@ -79,6 +83,16 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     routerAvailable: true,
     rateStale: false,
     walletConnected: true,
+    balancesVerified: true,
+    balanceLoading: false,
+    quoteNetwork: "mainnet",
+    walletNetwork: "mainnet",
+    networkVerified: true,
+    networkError: "",
+    transactionStatus: "idle",
+    pendingTxid: "",
+    transactionError: "",
+    recovering: false,
   };
   return Object.fromEntries(
     Object.entries({ ...defaults, ...overrides }).map(([key, value]) => [key, createObservable(value)]),
@@ -95,13 +109,13 @@ describe("neo-swap integration: dispatch params + state", () => {
     expect(dispatch).toHaveBeenCalledWith("setFromAmount", "10");
   });
 
-  it("does not dispatch fractional NEO from the amount input", () => {
+  it("preserves fractional NEO input so validation can reject it without changing intent", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
     fireEvent.change(container.querySelector("#swap-from-amount") as HTMLInputElement, { target: { value: "10.75" } });
 
-    expect(dispatch).toHaveBeenCalledWith("setFromAmount", "10");
+    expect(dispatch).toHaveBeenCalledWith("setFromAmount", "10.75");
   });
 
   it("dispatches swapTokens on the route switch control", () => {
@@ -124,11 +138,15 @@ describe("neo-swap integration: dispatch params + state", () => {
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("executeSwap"));
   });
 
-  it("disables swap when route guards are not satisfied", () => {
-    const { container } = render(<PlayArea t={t} state={state({ canSwap: true, rateStale: true })} dispatch={vi.fn()} />);
+  it("replaces a stale swap action with a recoverable quote refresh", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ canSwap: true, rateStale: true })} dispatch={dispatch} />);
     const button = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
 
-    expect(button.disabled).toBe(true);
+    expect(button.disabled).toBe(false);
+    fireEvent.click(button);
+    expect(dispatch).toHaveBeenCalledWith("refreshRate");
+    expect(dispatch).not.toHaveBeenCalledWith("executeSwap");
   });
 
   it("dispatches openFromSelector and openToSelector from token controls", () => {

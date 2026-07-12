@@ -42,6 +42,12 @@ export type ScaledAmountResult =
   | { ok: true; value: string }
   | { ok: false; reason: "fractionalNeo" | "invalid" };
 
+export interface QuadraticTxResult {
+  txid?: string;
+  verified?: boolean;
+  event?: unknown;
+}
+
 export interface QuadraticFlowKitOptions {
   /** MiniApp framework SDK from ctx.framework — the only service surface. */
   app: MiniAppFramework;
@@ -106,12 +112,20 @@ export interface QuadraticFlowKit {
   settleDeposit(txid: string, assetHash: string): Promise<DepositConfirmation>;
   /**
    * Human input → base-unit integer string via app.amount.parseAssetToUnits
-   * (never throws). Keeps the legacy acceptance quirks the strict framework
-   * parser rejects — dot-leading (".5") and dot-trailing ("5.") GAS amounts —
-   * and the distinct "fractionalNeo" reason for NEO inputs containing
-   * "."/"," so the indivisible-NEO copy survives.
+   * (never throws). Dot-leading/trailing GAS amounts remain friendly, while
+   * malformed extra separators and precision beyond 8 decimals reject instead
+   * of being silently truncated. NEO keeps its distinct indivisible error.
    */
-  scaleAssetAmount(assetSymbol: string, raw: string): ScaledAmountResult;
+  scaleAssetAmount(
+    assetSymbol: string,
+    raw: string,
+    options?: { allowZero?: boolean },
+  ): ScaledAmountResult;
+  /** Require the exact requested event, not merely a broadcast txid. */
+  requireVerifiedTransaction(
+    result: QuadraticTxResult,
+    matches?: (event: unknown) => boolean,
+  ): void;
 }
 
 export function createQuadraticFlowKit({
@@ -171,8 +185,12 @@ export function createQuadraticFlowKit({
       });
     },
 
-    scaleAssetAmount(assetSymbol, raw) {
-      const asset = assetSymbol.toUpperCase() === "NEO" ? "NEO" : "GAS";
+    scaleAssetAmount(assetSymbol, raw, options) {
+      const normalizedAsset = assetSymbol.trim().toUpperCase();
+      if (normalizedAsset !== "NEO" && normalizedAsset !== "GAS") {
+        return { ok: false, reason: "invalid" };
+      }
+      const asset = normalizedAsset;
       const value = raw.trim();
       // NEO is indivisible — any "."/"," is the distinct fractional reject
       // (parse* would collapse it into a generic null).
@@ -181,12 +199,32 @@ export function createQuadraticFlowKit({
       }
       // Legacy-permissive GAS spellings the strict parser rejects:
       // ".5" → "0.5" and "5." → "5".
-      const normalized =
-        asset === "GAS" ? value.replace(/^\./, "0.").replace(/\.$/, "") : value;
-      const scaled = app.amount.parseAssetToUnits(asset, normalized);
+      const normalized = asset === "GAS"
+        ? value.replace(/^\./, "0.").replace(/\.$/, "")
+        : value;
+      const validShape = asset === "NEO"
+        ? /^(?:0|[1-9]\d*)$/.test(normalized)
+        : /^(?:0|[1-9]\d*)(?:\.\d{1,8})?$/.test(normalized);
+      if (!validShape) return { ok: false, reason: "invalid" };
+      const scaled = app.amount.parseAssetToUnits(asset, normalized, {
+        allowZero: options?.allowZero === true,
+      });
       return scaled === null
         ? { ok: false, reason: "invalid" }
         : { ok: true, value: scaled };
+    },
+
+    requireVerifiedTransaction(result, matches = () => true) {
+      if (
+        !result?.txid
+        || result.verified !== true
+        || !result.event
+        || !matches(result.event)
+      ) {
+        throw new Error(t("writeAwaitingConfirmation", {
+          txid: result?.txid || t("notAvailable"),
+        }));
+      }
     },
   };
 

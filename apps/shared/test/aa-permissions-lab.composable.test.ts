@@ -1,142 +1,385 @@
-import { describe, expect, it, vi } from "vitest";
-
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
-import type { ChainService } from "../services";
-import type { StorageProxy } from "../services/os/StorageProxy";
-import { createMiniAppFramework } from "../react";
+import type { MiniAppFramework } from "../react";
 import { useAAPermissionsLab } from "../../aa-permissions-lab/src/composables/useAAPermissionsLab";
+import {
+  ZERO_HASH,
+  buildPendingPermissionTransaction,
+  readPermissionTransactionState,
+} from "../../aa-permissions-lab/src/permissions";
 
-function makeApp(chain: ChainService) {
-  return createMiniAppFramework(
-    { services: { chain }, t } as never,
-    { appId: "miniapp-aa-permissions-lab" },
-  );
+const ACCOUNT = "0x1111111111111111111111111111111111111111";
+const VERIFIER = "0x2222222222222222222222222222222222222222";
+const HOOK = "0x3333333333333333333333333333333333333333";
+const TARGET = "0x5555555555555555555555555555555555555555";
+const OWNER_ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const OWNER_HASH = "0x6d0656f6dd91469db1c90cc1e574380613f43738";
+const WRONG_ADDRESS = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const CORE = "0x0268a387913b250166ddec032b03332690a1ef78";
+const TXID = `0x${"ab".repeat(32)}`;
+
+afterEach(() => vi.unstubAllGlobals());
+
+interface FakeSnapshot {
+  verifier: string;
+  hook: string;
+  owner: string;
+  pendingVerifier: boolean;
+  pendingHook: boolean;
+  verifierUnlockAt: number;
+  hookUnlockAt: number;
+  pendingVerifierTarget?: string;
+  pendingHookTarget?: string;
 }
 
-const ACCOUNT_ID_HASH = "0x1111111111111111111111111111111111111111";
+function chainHash(displayHash: string) {
+  const hex = displayHash.slice(2).match(/.{2}/g) ?? [];
+  return `0x${hex.reverse().join("")}`;
+}
 
 function t(key: string) {
-  const messages: Record<string, string> = {
-    notAvailable: "Not available",
-    notBackupOwner:
-      "Connect the backup-owner wallet to rotate this account's bindings.",
+  return key;
+}
+
+function makeHarness(options: {
+  connectedAddress?: string | null;
+  network?: string;
+  snapshot?: Partial<FakeSnapshot>;
+  eventVerified?: boolean;
+  recoveryEvent?: unknown;
+  storage?: Map<string, unknown>;
+  storageWritable?: boolean;
+} = {}) {
+  const snapshot: FakeSnapshot = {
+    verifier: VERIFIER,
+    hook: HOOK,
+    owner: OWNER_HASH,
+    pendingVerifier: false,
+    pendingHook: false,
+    verifierUnlockAt: 0,
+    hookUnlockAt: 0,
+    ...options.snapshot,
   };
-  return messages[key] ?? key;
-}
-
-function makeChain(connected = false) {
-  // refreshState now reads 7 values: verifier/hook/backupOwner (Hash160) plus
-  // the two-phase pending flags and times. parseHash160 reverses Hash160 bytes;
-  // repeated-byte hashes (0x22.., 0x33.., 0x44..) reverse to themselves.
-  // Connection state is derived from the address (app.wallet.isConnected()),
-  // matching the real ChainService where isConnected = Boolean(address).
-  return {
-    address: createObservable<string | null>(
-      connected ? "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32" : null,
-    ),
-    read: vi
-      .fn()
-      .mockResolvedValueOnce("0x2222222222222222222222222222222222222222")
-      .mockResolvedValueOnce("0x3333333333333333333333333333333333333333")
-      .mockResolvedValueOnce("0x4444444444444444444444444444444444444444")
-      .mockResolvedValueOnce(false) // hasPendingVerifierUpdate
-      .mockResolvedValueOnce(false) // hasPendingHookUpdate
-      .mockResolvedValueOnce(0) // getPendingVerifierUpdateTime
-      .mockResolvedValueOnce(0), // getPendingHookUpdateTime
-    invoke: vi.fn(),
-  } as unknown as ChainService & { read: ReturnType<typeof vi.fn> };
-}
-
-function makeStorage() {
-  return {
-    set: vi.fn().mockResolvedValue(undefined),
-  } as unknown as StorageProxy & { set: ReturnType<typeof vi.fn> };
-}
-
-describe("AA Permissions Lab composable", () => {
-  it("reads permission state without writing OS storage before a wallet is connected", async () => {
-    const chain = makeChain(false);
-    const storage = makeStorage();
-    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: storage, t });
-
-    lab.form.accountIdHash = ACCOUNT_ID_HASH;
-    await lab.refreshState();
-
-    expect(chain.read).toHaveBeenCalledTimes(7);
-    expect(lab.currentVerifier.get()).toBe(
-      "0x2222222222222222222222222222222222222222",
-    );
-    expect(lab.hasInspected.get()).toBe(true);
-    expect(lab.hasPendingVerifier.get()).toBe(false);
-    expect(storage.set).not.toHaveBeenCalled();
+  const address = createObservable<string | null>(options.connectedAddress ?? OWNER_ADDRESS);
+  const storage = options.storage ?? new Map<string, unknown>();
+  const storageWritable = options.storageWritable ?? true;
+  const faultedReads = new Set<string>();
+  const readRaw = vi.fn(async (operation: string) => {
+    if (faultedReads.has(operation)) return { state: "FAULT", stack: [] };
+    if (operation === "getVerifier") return chainHash(snapshot.verifier || ZERO_HASH);
+    if (operation === "getHook") return chainHash(snapshot.hook || ZERO_HASH);
+    if (operation === "getBackupOwner") return chainHash(snapshot.owner);
+    if (operation === "hasPendingVerifierUpdate") return snapshot.pendingVerifier;
+    if (operation === "hasPendingHookUpdate") return snapshot.pendingHook;
+    if (operation === "getPendingVerifierUpdateTime") return snapshot.verifierUnlockAt;
+    if (operation === "getPendingHookUpdateTime") return snapshot.hookUnlockAt;
+    throw new Error(`unexpected read ${operation}`);
   });
 
-  it("persists inspected state only when a wallet is connected", async () => {
-    const chain = makeChain(true);
-    const storage = makeStorage();
-    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: storage, t });
-
-    lab.form.accountIdHash = ACCOUNT_ID_HASH;
-    await lab.refreshState();
-
-    expect(storage.set).toHaveBeenCalledWith(
-      "permissions:1111111111111111111111111111111111111111",
-      expect.objectContaining({
-        verifier: "0x2222222222222222222222222222222222222222",
-        hook: "0x3333333333333333333333333333333333333333",
-        backupOwner: "0x4444444444444444444444444444444444444444",
-      }),
-    );
-  });
-
-  it("blocks a verifier rotation when the wallet is not the backup owner", async () => {
-    // Connected wallet (NR3E4...) differs from the inspected backup owner (0x4444...).
-    const chain = makeChain(true);
-    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: makeStorage(), t });
-    lab.form.accountIdHash = ACCOUNT_ID_HASH;
-    await lab.refreshState();
-
-    lab.form.verifierHash = "0x5555555555555555555555555555555555555555";
-    lab.form.verifierParamsHex = "";
-    await expect(lab.submitVerifier()).rejects.toThrow(
-      "Connect the backup-owner wallet to rotate this account's bindings.",
-    );
-    expect((chain as unknown as { invoke: ReturnType<typeof vi.fn> }).invoke).not.toHaveBeenCalled();
-  });
-
-  it("surfaces a pending verifier rotation and confirms it in a second phase", async () => {
-    const chain = {
-      address: createObservable<string | null>(null),
-      read: vi
-        .fn()
-        .mockResolvedValueOnce("0x2222222222222222222222222222222222222222")
-        .mockResolvedValueOnce("0x3333333333333333333333333333333333333333")
-        .mockResolvedValueOnce("0x4444444444444444444444444444444444444444")
-        .mockResolvedValueOnce(true) // hasPendingVerifierUpdate
-        .mockResolvedValueOnce(false) // hasPendingHookUpdate
-        .mockResolvedValueOnce(1_900_000_000) // getPendingVerifierUpdateTime
-        .mockResolvedValueOnce(0)
-        // second refreshState after confirm
-        .mockResolvedValue("0x2222222222222222222222222222222222222222"),
-      invoke: vi.fn().mockResolvedValue({ txid: "0xtx" }),
-    } as unknown as ChainService & {
-      read: ReturnType<typeof vi.fn>;
-      invoke: ReturnType<typeof vi.fn>;
+  const invoke = vi.fn(async (
+    operation: string,
+    args: Array<{ type: string; value: string | number | boolean }>,
+    invokeOptions: { onTransactionSent?: (txid: string) => void; waitForEvent?: string },
+  ) => {
+    invokeOptions.onTransactionSent?.(TXID);
+    const target = String(args[1]?.value ?? "");
+    if (operation === "updateVerifier") {
+      if (!snapshot.verifier) snapshot.verifier = target;
+      else {
+        snapshot.pendingVerifier = true;
+        snapshot.verifierUnlockAt = Date.now() + 86_400_000;
+        snapshot.pendingVerifierTarget = target;
+      }
+    } else if (operation === "updateHook") {
+      if (!snapshot.hook) snapshot.hook = target;
+      else {
+        snapshot.pendingHook = true;
+        snapshot.hookUnlockAt = Date.now() + 86_400_000;
+        snapshot.pendingHookTarget = target;
+      }
+    } else if (operation === "confirmVerifierUpdate") {
+      snapshot.verifier = snapshot.pendingVerifierTarget ?? snapshot.verifier;
+      snapshot.pendingVerifier = false;
+      snapshot.verifierUnlockAt = 0;
+    } else if (operation === "confirmHookUpdate") {
+      snapshot.hook = snapshot.pendingHookTarget ?? snapshot.hook;
+      snapshot.pendingHook = false;
+      snapshot.hookUnlockAt = 0;
+    } else if (operation === "cancelVerifierUpdate") {
+      snapshot.pendingVerifier = false;
+      snapshot.verifierUnlockAt = 0;
+    } else if (operation === "cancelHookUpdate") {
+      snapshot.pendingHook = false;
+      snapshot.hookUnlockAt = 0;
+    }
+    const verified = options.eventVerified ?? true;
+    return {
+      txid: TXID,
+      success: true,
+      verified,
+      event: verified ? { name: invokeOptions.waitForEvent } : undefined,
     };
-    const lab = useAAPermissionsLab({ app: makeApp(chain), storageService: makeStorage(), t });
-    lab.form.accountIdHash = ACCOUNT_ID_HASH;
+  });
+
+  const app = {
+    chain: {
+      address,
+      arg: {
+        hash160: (value: string) => ({ type: "Hash160", value }),
+        byteArray: (value: string) => ({ type: "ByteArray", value }),
+      },
+      readRaw,
+      invoke,
+      ensureWallet: vi.fn(async () => {
+        if (!address.get()) address.set(OWNER_ADDRESS);
+        return address.get() ?? "";
+      }),
+      detectNetwork: vi.fn(async () => options.network ?? "mainnet"),
+      waitForState: vi.fn(async (
+        read: () => Promise<unknown>,
+        predicate: (value: unknown) => boolean,
+      ) => {
+        const value = await read();
+        return predicate(value) ? value : null;
+      }),
+    },
+    events: {
+      waitFor: vi.fn(async () => options.recoveryEvent ?? null),
+    },
+    storage: {
+      local: {
+        get: <T,>(key: string, fallback: T | null = null) =>
+          (storage.has(key) ? storage.get(key) : fallback) as T | null,
+        set: (key: string, value: unknown) => {
+          if (!storageWritable) return;
+          storage.set(key, value);
+        },
+        delete: (key: string) => {
+          if (!storageWritable) return;
+          storage.delete(key);
+        },
+      },
+    },
+  } as unknown as MiniAppFramework;
+
+  return { app, address, faultedReads, invoke, readRaw, snapshot, storage };
+}
+
+describe("AA Permissions composable", () => {
+  it("accepts a complete snapshot and clears it on any later read failure", async () => {
+    const harness = makeHarness();
+    const lab = useAAPermissionsLab({ app: harness.app, network: "mainnet", t });
+    lab.form.accountIdHash = ACCOUNT;
+
+    await lab.refreshState();
+    expect(lab.permissionSnapshot.get()).toMatchObject({
+      accountId: ACCOUNT,
+      aaCore: CORE,
+      verifier: VERIFIER,
+      hook: HOOK,
+      backupOwner: OWNER_HASH,
+    });
+    expect(harness.readRaw).toHaveBeenCalledTimes(7);
+
+    harness.faultedReads.add("getHook");
+    await expect(lab.refreshState()).rejects.toThrow("permissionReadInvalid:hook");
+    expect(lab.permissionSnapshot.get()).toBeNull();
+    expect(lab.currentVerifier.get()).toBe("");
+    expect(lab.hasInspected.get()).toBe(false);
+  });
+
+  it("blocks writes for the wrong wallet or exact-network mismatch", async () => {
+    const wrongOwner = makeHarness({ connectedAddress: WRONG_ADDRESS });
+    const ownerLab = useAAPermissionsLab({ app: wrongOwner.app, network: "mainnet", t });
+    ownerLab.form.accountIdHash = ACCOUNT;
+    ownerLab.form.verifierHash = TARGET;
+    await ownerLab.refreshState();
+    await expect(ownerLab.submitVerifier()).rejects.toThrow("notBackupOwner");
+    expect(wrongOwner.invoke).not.toHaveBeenCalled();
+
+    const wrongNetwork = makeHarness({ network: "testnet" });
+    const networkLab = useAAPermissionsLab({ app: wrongNetwork.app, network: "mainnet", t });
+    networkLab.form.accountIdHash = ACCOUNT;
+    networkLab.form.verifierHash = TARGET;
+    await networkLab.refreshState();
+    await expect(networkLab.submitVerifier()).rejects.toThrow("walletNetworkMismatch");
+    expect(wrongNetwork.invoke).not.toHaveBeenCalled();
+  });
+
+  it("treats an empty verifier lane as an immediate install and confirms by exact state", async () => {
+    const harness = makeHarness({ snapshot: { verifier: "" } });
+    const lab = useAAPermissionsLab({ app: harness.app, network: "mainnet", t });
+    lab.form.accountIdHash = ACCOUNT;
+    lab.form.verifierHash = TARGET;
+    lab.form.verifierParamsHex = "aabb";
     await lab.refreshState();
 
-    expect(lab.hasPendingVerifier.get()).toBe(true);
-    expect(lab.pendingVerifierUnlockAt.get()).toBe(1_900_000_000);
+    const outcome = await lab.submitVerifier();
 
-    await lab.confirmVerifier();
-    expect(
-      (chain as unknown as { invoke: ReturnType<typeof vi.fn> }).invoke,
-    ).toHaveBeenCalledWith(
-      "confirmVerifierUpdate",
-      [{ type: "Hash160", value: ACCOUNT_ID_HASH }],
-      expect.objectContaining({ scriptHash: expect.any(String) }),
+    expect(outcome).toMatchObject({
+      operation: "install-verifier",
+      immediateInstall: true,
+      confirmed: true,
+    });
+    expect(harness.invoke).toHaveBeenCalledWith(
+      "updateVerifier",
+      [
+        { type: "Hash160", value: ACCOUNT },
+        { type: "Hash160", value: TARGET },
+        { type: "ByteArray", value: "aabb" },
+      ],
+      expect.objectContaining({ waitForEvent: "VerifierUpdateConfirmed" }),
     );
+    expect(lab.currentVerifier.get()).toBe(TARGET);
+    expect(lab.pendingTransaction.get()).toBeNull();
+  });
+
+  it("creates a timelocked proposal for a non-empty lane", async () => {
+    const harness = makeHarness();
+    const lab = useAAPermissionsLab({ app: harness.app, network: "mainnet", t });
+    lab.form.accountIdHash = ACCOUNT;
+    lab.form.verifierHash = TARGET;
+    await lab.refreshState();
+
+    const outcome = await lab.submitVerifier();
+
+    expect(outcome).toMatchObject({ operation: "propose-verifier", confirmed: true });
+    expect(lab.hasPendingVerifier.get()).toBe(true);
+    expect(lab.proposalVerifier.get()).toMatchObject({ targetHash: TARGET, previousHash: VERIFIER });
+    expect(harness.invoke).toHaveBeenCalledWith(
+      "updateVerifier",
+      expect.any(Array),
+      expect.objectContaining({ waitForEvent: "VerifierUpdateInitiated" }),
+    );
+  });
+
+  it("keeps a txid-only proposal recoverable instead of claiming success", async () => {
+    const harness = makeHarness({ eventVerified: false });
+    const lab = useAAPermissionsLab({ app: harness.app, network: "mainnet", t });
+    lab.form.accountIdHash = ACCOUNT;
+    lab.form.verifierHash = TARGET;
+    await lab.refreshState();
+
+    const outcome = await lab.submitVerifier();
+
+    expect(outcome.confirmed).toBe(false);
+    expect(lab.pendingTransaction.get()).toMatchObject({
+      txid: TXID,
+      operation: "propose-verifier",
+      accountId: ACCOUNT,
+    });
+    expect(lab.hasInspected.get()).toBe(false);
+    expect(lab.lastWriteStatus.get()).toBe("transactionAwaitingConfirmation");
+  });
+
+  it("recovers a saved proposal without invoking it again", async () => {
+    const storage = new Map<string, unknown>();
+    storage.set("permissions/pending-transaction-v1", buildPendingPermissionTransaction({
+      network: "mainnet",
+      aaCore: CORE,
+      accountId: ACCOUNT,
+      walletHash: OWNER_HASH,
+      operation: "propose-verifier",
+      targetHash: TARGET,
+      previousHash: VERIFIER,
+      txid: TXID,
+    }));
+    const harness = makeHarness({
+      storage,
+      recoveryEvent: { name: "VerifierUpdateInitiated" },
+      snapshot: {
+        pendingVerifier: true,
+        verifierUnlockAt: Date.now() + 86_400_000,
+      },
+    });
+    const lab = useAAPermissionsLab({ app: harness.app, network: "mainnet", t });
+
+    await lab.loadAll();
+
+    expect(harness.invoke).not.toHaveBeenCalled();
+    expect(lab.pendingTransaction.get()).toBeNull();
+    expect(lab.proposalVerifier.get()).toMatchObject({ targetHash: TARGET });
+    expect(lab.hasPendingVerifier.get()).toBe(true);
+  });
+
+  it("clears a saved permission transaction only after VM FAULT is proven", async () => {
+    const storage = new Map<string, unknown>();
+    storage.set("permissions/pending-transaction-v1", buildPendingPermissionTransaction({
+      network: "mainnet",
+      aaCore: CORE,
+      accountId: ACCOUNT,
+      walletHash: OWNER_HASH,
+      operation: "propose-verifier",
+      targetHash: TARGET,
+      previousHash: VERIFIER,
+      txid: TXID,
+    }));
+    const harness = makeHarness({ storage });
+    const lab = useAAPermissionsLab({
+      app: harness.app,
+      network: "mainnet",
+      t,
+      transactionStateReader: async () => "fault",
+    });
+
+    await lab.loadAll();
+
+    expect(harness.invoke).not.toHaveBeenCalled();
+    expect(lab.pendingTransaction.get()).toBeNull();
+    expect(lab.lastWriteStatus.get()).toBe("transactionFaulted");
+  });
+
+  it("parses HALT, FAULT, and unavailable application logs without guessing", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: { executions: [{ vmstate: "HALT" }] } }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: { executions: [{ vmstate: "FAULT, BREAK" }] } }), { status: 200 }))
+      .mockRejectedValueOnce(new TypeError("offline"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(readPermissionTransactionState("mainnet", TXID)).resolves.toBe("halt");
+    await expect(readPermissionTransactionState("mainnet", TXID)).resolves.toBe("fault");
+    await expect(readPermissionTransactionState("mainnet", TXID)).resolves.toBe("unknown");
+  });
+
+  it("confirms an elapsed verifier proposal and cancels a hook proposal", async () => {
+    const verifierHarness = makeHarness({ snapshot: {
+      pendingVerifier: true,
+      verifierUnlockAt: Date.now() - 1,
+      pendingVerifierTarget: TARGET,
+    } });
+    const verifierLab = useAAPermissionsLab({ app: verifierHarness.app, network: "mainnet", t });
+    verifierLab.form.accountIdHash = ACCOUNT;
+    await verifierLab.refreshState();
+    const confirmed = await verifierLab.confirmVerifier();
+    expect(confirmed.operation).toBe("confirm-verifier");
+    expect(verifierHarness.invoke).toHaveBeenCalledWith(
+      "confirmVerifierUpdate",
+      [{ type: "Hash160", value: ACCOUNT }],
+      expect.objectContaining({ waitForEvent: "VerifierUpdateConfirmed" }),
+    );
+
+    const hookHarness = makeHarness({ snapshot: {
+      pendingHook: true,
+      hookUnlockAt: Date.now() + 86_400_000,
+    } });
+    const hookLab = useAAPermissionsLab({ app: hookHarness.app, network: "mainnet", t });
+    hookLab.form.accountIdHash = ACCOUNT;
+    await hookLab.refreshState();
+    const cancelled = await hookLab.cancelHook();
+    expect(cancelled.operation).toBe("cancel-hook");
+    expect(hookHarness.snapshot.hook).toBe(HOOK);
+    expect(hookHarness.snapshot.pendingHook).toBe(false);
+  });
+
+  it("fails closed before signing when recovery storage is not writable", async () => {
+    const harness = makeHarness({ storageWritable: false });
+    const lab = useAAPermissionsLab({ app: harness.app, network: "mainnet", t });
+    lab.form.accountIdHash = ACCOUNT;
+    lab.form.verifierHash = TARGET;
+    await lab.refreshState();
+
+    await expect(lab.submitVerifier()).rejects.toThrow("recoveryStorageUnavailable");
+    expect(lab.storageHealthy.get()).toBe(false);
+    expect(harness.invoke).not.toHaveBeenCalled();
   });
 });

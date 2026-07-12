@@ -1,126 +1,183 @@
 import React from "react";
-import { cleanup, fireEvent, render, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../oracle-seal-console/src/PlayArea";
+import { messages } from "../../oracle-seal-console/src/appConfig";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-
 afterEach(() => cleanup());
 
-function t(key: string, params?: Record<string, string | number>) {
-  const messages: Record<string, string> = {
-    statusReady: "Ready",
-    digestPlaceholder: "-",
-    panelTitle: "Request Envelope Reference Builder",
-    panelEyebrow: "Oracle request envelope reference",
-    sealHeroCopy: "Prepare a plain reference envelope.",
-    sealComposerTitle: "Reference package",
-    sealPlan: "Reference plan",
-    sealValidationReady: "Reference ready",
-    sealPayloadStateInvalid: "Needs repair",
-    sealPurposeTitle: "Envelope purpose",
-    purposeInput: "Oracle input",
-    purposeInputHint: "Reference data intended for an oracle request.",
-    purposeCallback: "Callback secret",
-    purposeCallbackHint: "Route-bound value, still not encrypted here.",
-    purposeAttestation: "Attestation",
-    purposeAttestationHint: "Package claim metadata for later review.",
-    sealRecipientTitle: "Recipient or route",
-    recipientPlaceholder: "Enter recipient or oracle route",
-    sealPayloadTitle: "Payload reference",
-    payloadPlaceholder: "Paste JSON",
-    sealPayloadStateReady: "Valid JSON",
-    payloadReadyHint: "JSON is valid.",
-    payloadInvalidHint: "Fix JSON.",
-    sealPayloadChars: "{count} chars",
-    sealStageTitle: "Envelope workbench",
-    sealReferenceOnly: "Reference only",
-    purpose: "Purpose",
-    recipient: "Recipient",
-    statDigest: "Checksum",
-    sealEmptyTitle: "Build a reference receipt",
-    protectionValue: "Not encrypted - reference checksum only",
-    sealProtectionCopy: "Checksum reference only.",
-    sealReceipt: "Envelope receipt",
-    sealEmptyCopy: "The receipt will show protection truth.",
-    sealFlowTitle: "Envelope reference flow",
-    sealFlowPlain: "Plain reference",
-    sealFlowPlainDesc: "Checksum only, no encryption.",
-    sealFlowRoute: "Route context",
-    sealFlowRouteDesc: "Purpose and recipient bind the preview.",
-    sealFlowChecksum: "Checksum receipt",
-    sealFlowChecksumDesc: "Copy metadata for downstream review.",
-    statRequests: "Envelopes",
-    lastStatus: "Last Status",
-    statEndpoint: "Mode",
-    runAction: "Build Reference",
-    reset: "Reset",
-    sealBuildActionActive: "Building Reference",
-    payloadValid: "Payload is valid JSON",
-    protectionLabel: "Protection",
-    yes: "Yes",
-    no: "No",
-  };
-  return (messages[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? ""));
+type LocalizedMessage = { en: string; zh: string };
+const localized = messages as Record<string, LocalizedMessage>;
+function t(key: string, params: Record<string, string | number> = {}) {
+  let value = localized[key]?.en ?? key;
+  for (const [name, replacement] of Object.entries(params)) {
+    value = value.replace(`{${name}}`, String(replacement));
+  }
+  return value;
 }
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
-    networkLabel: "Morpheus Mainnet",
-    endpointLabel: "Envelope reference",
+    networkLabel: "Neo N3 TestNet",
+    runtimeState: "ready",
+    runtimeStateLabel: "Contract key verified",
+    phase: "draft",
     lastStatus: "Ready",
-    lastDigest: "-",
-    requestCount: 0,
+    lastFingerprint: "—",
+    lastSecretRef: "",
+    lastContract: "",
+    lastAlgorithm: "",
+    lastStoredAt: 0,
+    sealCount: 0,
+    isBusy: false,
+    storageReady: true,
+    hasPending: false,
+    pendingStored: false,
+    pendingMalformed: false,
+    pendingFingerprint: "",
+    pendingSecretRef: "",
+    pendingAttempts: 0,
+    pendingCreatedAt: 0,
+    pendingPurpose: "",
+    pendingPublicRoute: "",
+    keyContract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
     ...overrides,
   };
-
   return Object.fromEntries(
     Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
   ) as ObservableState;
 }
 
-function openSourceDrawer(container: HTMLElement, getByRole: ReturnType<typeof render>["getByRole"]) {
+function openDrawer(container: HTMLElement) {
   fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
-  fireEvent.click(within(container.querySelector(".seal-drawer__switcher") as HTMLElement).getByRole("radio", { name: /Reference package/ }));
-  getByRole("region", { name: /Reference package/ });
 }
 
-describe("oracle-seal-console integration", () => {
-  it("dispatches a buildRequest with the composed envelope fields", async () => {
+describe("oracle-seal-console interaction", () => {
+  it("dispatches the reviewed object through one seal action", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container, getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container, getByRole } = render(
+      <PlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+    openDrawer(container);
 
-    openSourceDrawer(container, getByRole);
-    fireEvent.change(getByRole("textbox", { name: "Recipient or route" }), {
-      target: { value: "oracle://prices/gas-usd" },
+    fireEvent.change(getByRole("textbox", { name: "Public route" }), {
+      target: { value: "oracle://policy/check" },
     });
-    fireEvent.change(getByRole("textbox", { name: "Payload reference" }), {
-      target: { value: "{ \"asset\": \"GAS\", \"ttl\": 30 }" },
+    fireEvent.change(getByRole("textbox", { name: "Confidential JSON" }), {
+      target: { value: "{ \"account\": \"private\", \"limit\": 7 }" },
     });
-    fireEvent.click(container.querySelector(".mx2-btn--primary") as HTMLButtonElement);
+    fireEvent.click(getByRole("button", { name: "Seal & store ciphertext" }));
 
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("buildRequest", {
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("sealPayload", {
       purpose: "oracle-input",
-      recipient: "oracle://prices/gas-usd",
-      payload: "{ \"asset\": \"GAS\", \"ttl\": 30 }",
+      publicRoute: "oracle://policy/check",
+      payload: "{ \"account\": \"private\", \"limit\": 7 }",
     }));
   });
 
-  it("keeps invalid JSON visible in the same foreground validation surface", async () => {
+  it("does not dispatch malformed JSON as a seal request", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container, getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-
-    openSourceDrawer(container, getByRole);
-    fireEvent.change(getByRole("textbox", { name: "Payload reference" }), {
+    const { container, getByRole } = render(
+      <PlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+    openDrawer(container);
+    fireEvent.change(getByRole("textbox", { name: "Confidential JSON" }), {
       target: { value: "{ invalid" },
     });
+    const primary = getByRole("button", { name: "Seal & store ciphertext" }) as HTMLButtonElement;
+    expect(primary.disabled).toBe(true);
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalledWith("sealPayload", expect.anything());
+  });
 
-    expect(container.querySelector(".seal-validation")?.textContent).toContain("Needs repair");
-    fireEvent.click(container.querySelector(".mx2-btn--primary") as HTMLButtonElement);
+  it("keeps rejected action promises handled after the status layer reports the failure", async () => {
+    const dispatch = vi.fn().mockRejectedValue(new Error("store unavailable"));
+    const { container, getByRole } = render(
+      <PlayArea t={t} state={state()} dispatch={dispatch} />,
+    );
+    openDrawer(container);
+    fireEvent.change(getByRole("textbox", { name: "Confidential JSON" }), {
+      target: { value: "{\"threshold\":7}" },
+    });
+    fireEvent.click(getByRole("button", { name: "Seal & store ciphertext" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledTimes(1));
+  });
 
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("buildRequest", expect.objectContaining({
-      payload: "{ invalid",
-    })));
+  it("routes recovery to exact retry and requires a second click to discard", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByRole } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          runtimeState: "unavailable",
+          runtimeStateLabel: "Ciphertext recoverable",
+          phase: "recovery",
+          hasPending: true,
+          pendingFingerprint: `0x${"ab".repeat(32)}`,
+          pendingAttempts: 1,
+          pendingCreatedAt: Date.now(),
+          pendingPurpose: "private-compute",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Retry exact ciphertext" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("retryPending"));
+
+    openDrawer(container);
+    const discard = await waitFor(() => getByRole("button", { name: "Discard ciphertext" }));
+    fireEvent.click(discard);
+    expect(dispatch).not.toHaveBeenCalledWith("discardPending");
+    fireEvent.click(getByRole("button", { name: "Confirm discard" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("discardPending"));
+  });
+
+  it("finalizes a returned receipt locally instead of labeling it as another store retry", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          phase: "recovery",
+          hasPending: true,
+          pendingStored: true,
+          pendingFingerprint: `0x${"cd".repeat(32)}`,
+          pendingSecretRef: "stored-reference",
+          pendingAttempts: 1,
+          pendingCreatedAt: Date.now(),
+          pendingPurpose: "oracle-input",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Finish receipt cleanup" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("retryPending"));
+    expect(getByRole("button", { name: "Finish receipt cleanup" }).textContent)
+      .not.toContain("Retry exact ciphertext");
+  });
+
+  it("requires confirmation before clearing an unreadable local recovery record", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          runtimeState: "unavailable",
+          phase: "recovery",
+          hasPending: true,
+          pendingMalformed: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Clear unreadable recovery" }));
+    expect(dispatch).not.toHaveBeenCalledWith("discardPending");
+    fireEvent.click(getByRole("button", { name: "Confirm recovery cleanup" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("discardPending"));
   });
 });

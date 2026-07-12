@@ -1,35 +1,76 @@
 import React from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../aa-relay-console/src/PlayArea";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
-function t(k: string) { return k; }
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
+
+function t(key: string) { return key; }
+function state(values: Record<string, unknown>): ObservableState {
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, createObservable(value)])) as ObservableState;
 }
-describe("aa-relay-console integration: dispatch + state", () => {
-  it("renders the scene", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-    expect(container.children.length).toBeGreaterThan(0);
+
+describe("AA Relay Console lifecycle state integration", () => {
+  it("keeps relay acceptance distinct from chain confirmation", () => {
+    const { container } = render(<PlayArea
+      t={t}
+      dispatch={vi.fn()}
+      state={state({
+        aaAddressInput: "",
+        dappIdInput: "",
+        payloadInput: "",
+        reviewReadiness: "review-ready",
+        reviewJobId: "aa-123456789abc",
+        preparedFingerprint: "different-draft",
+        sponsorState: "not-checked",
+        sponsorSummary: "sponsorNotChecked",
+        receiptStatus: "accepted",
+        chainStatus: "accepted",
+        chainReason: "accepted-without-broadcast-proof",
+        confirmationsDisplay: "0",
+        aaCoreDisplay: `0x${"11".repeat(20)}`,
+        paymasterDisplay: "notPublished",
+        networkDisplay: "mainnet",
+        runtimeMode: "review-only",
+        hasReview: true,
+        hasReceipt: true,
+        hasTrackableReceipt: false,
+        isPreparing: false,
+        isCheckingSponsorship: false,
+        isTracking: false,
+      })}
+    />);
+
+    expect(container.textContent).toContain("receiptAccepted");
+    expect(container.textContent).not.toContain("chainConfirmed");
+    expect(container.querySelector(".aa-relay-scene__status")?.getAttribute("data-state")).toBe("accepted");
   });
-  it("fires a dispatch on primary action", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container, getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
-    const input = getByRole("textbox", { name: "aaAddress" });
-    const btn = container.querySelector(".mx2-btn--primary");
-    fireEvent.change(input, { target: { value: "NZTbZjNcFVb5AkVVTT8knybCuhPhSmBCEH" } });
-    if (btn && !(btn as HTMLButtonElement).disabled) {
-      fireEvent.click(btn);
-      await waitFor(() => expect(dispatch.mock.calls.length).toBeGreaterThan(0), { timeout: 2000 });
-      expect(dispatch.mock.calls[0]).toEqual(["submitRelay", "NZTbZjNcFVb5AkVVTT8knybCuhPhSmBCEH", "", "{}"]);
-    }
-  });
-  it("has reduced-motion CSS guard", () => {
-    const fs = require("node:fs");
-    const s = fs.readFileSync(`${process.cwd()}/../aa-relay-console/src/PlayArea.scss`, "utf8");
-    expect(s).toMatch(/prefers-reduced-motion/);
+
+  it("renders a fault as a terminal error state rather than success", () => {
+    const { container } = render(<PlayArea
+      t={t}
+      dispatch={vi.fn()}
+      state={state({
+        reviewReadiness: "review-ready",
+        chainStatus: "fault",
+        chainReason: "Verifier rejected signature",
+        confirmationsDisplay: "1",
+        networkDisplay: "testnet",
+        runtimeMode: "review-only",
+        hasReview: true,
+        hasReceipt: true,
+        hasTrackableReceipt: true,
+        isPreparing: false,
+        isCheckingSponsorship: false,
+        isTracking: false,
+      })}
+    />);
+
+    expect(container.textContent).toContain("chainFault");
+    expect(container.textContent).toContain("Verifier rejected signature");
+    expect(container.textContent).not.toContain("chainConfirmed");
+    expect(container.querySelector(".aa-relay-scene__status")?.getAttribute("data-state")).toBe("fault");
   });
 });

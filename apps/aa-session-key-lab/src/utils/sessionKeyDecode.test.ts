@@ -2,61 +2,77 @@ import { describe, expect, it } from "vitest";
 
 import { decodeSessionKey, formatGasBaseUnits } from "./sessionKeyDecode";
 
-describe("formatGasBaseUnits", () => {
-  it("formats base-unit (1e8) integers into decimal GAS, trimming trailing zeros", () => {
-    expect(formatGasBaseUnits(100000000)).toBe("1");
-    expect(formatGasBaseUnits(150000000)).toBe("1.5");
-    expect(formatGasBaseUnits("250000000")).toBe("2.5");
-    expect(formatGasBaseUnits(0)).toBe("0");
-    expect(formatGasBaseUnits(1)).toBe("0.00000001");
-  });
+const PUBLIC_KEY = `02${"11".repeat(32)}`;
+const TARGET = `0x${"22".repeat(20)}`;
 
-  it("returns 0 for non-numeric / malformed input", () => {
+function bytes(hex: string) {
+  const raw = hex.replace(/^0x/, "");
+  const binary = (raw.match(/../g) ?? []).map((pair) => String.fromCharCode(Number.parseInt(pair, 16))).join("");
+  return { type: "ByteString", value: btoa(binary) };
+}
+
+function hash(display: string) {
+  const pairs = display.replace(/^0x/, "").match(/../g) ?? [];
+  return {
+    type: "ByteString",
+    value: btoa([...pairs].reverse().map((pair) => String.fromCharCode(Number.parseInt(pair, 16))).join("")),
+  };
+}
+
+function text(value: string) {
+  return { type: "ByteString", value: btoa(value) };
+}
+
+describe("session-key chain decoder", () => {
+  it("formats GAS base units without losing digits", () => {
+    expect(formatGasBaseUnits("150000000")).toBe("1.5");
+    expect(formatGasBaseUnits("1")).toBe("0.00000001");
     expect(formatGasBaseUnits(undefined)).toBe("0");
-    expect(formatGasBaseUnits("abc")).toBe("0");
-    expect(formatGasBaseUnits(null)).toBe("0");
-  });
-});
-
-describe("decodeSessionKey", () => {
-  it("decodes a getSessionKey struct into labeled fields (ms expiry -> seconds)", () => {
-    // [PubKey, TargetContract, Method, ValidUntil(ms), SpendingLimit(base units)]
-    const validUntilMs = 1_900_000_000_000; // far-future ms epoch
-    const decoded = decodeSessionKey([
-      "0xabcdef",
-      "0x1111111111111111111111111111111111111111",
-      "transfer",
-      validUntilMs,
-      500000000, // 5 GAS
-    ]);
-    expect(decoded).not.toBeNull();
-    expect(decoded!.pubKey).toBe("abcdef");
-    expect(decoded!.targetContract).toBe(
-      "0x1111111111111111111111111111111111111111",
-    );
-    expect(decoded!.method).toBe("transfer");
-    expect(decoded!.expirySeconds).toBe(Math.floor(validUntilMs / 1000));
-    expect(decoded!.spendingLimitGas).toBe("5");
-    expect(decoded!.spendingLimitUnlimited).toBe(false);
   });
 
-  it("treats a 0 spending limit as unlimited", () => {
-    const decoded = decodeSessionKey([
-      "0xpub",
-      "0x2222222222222222222222222222222222222222",
-      "",
-      1_900_000_000_000,
-      0,
-    ]);
-    expect(decoded!.spendingLimitUnlimited).toBe(true);
-    // A blank method decodes to an empty string; the UI maps that to "Any method".
-    expect(decoded!.method).toBe("");
+  it("decodes the mainnet five-field object and normalizes Hash160 byte order", () => {
+    const decoded = decodeSessionKey({
+      type: "Struct",
+      value: [
+        bytes(PUBLIC_KEY),
+        hash(TARGET),
+        text("transfer"),
+        { type: "Integer", value: "1900000000000" },
+        { type: "Integer", value: "500000000" },
+      ],
+    }, { spendingLimitSupported: true });
+
+    expect(decoded).toMatchObject({
+      pubKey: PUBLIC_KEY,
+      targetContract: TARGET,
+      method: "transfer",
+      expirySeconds: 1_900_000_000,
+      spendingLimitGas: "5",
+      spendingLimitUnlimited: false,
+      spendingLimitSupported: true,
+    });
   });
 
-  it("returns null for a non-struct / empty / short read", () => {
+  it("decodes the frozen testnet four-field object without inventing an allowance", () => {
+    const decoded = decodeSessionKey({
+      type: "Struct",
+      value: [
+        bytes(PUBLIC_KEY),
+        hash(TARGET),
+        text("mint"),
+        { type: "Integer", value: "1900000000000" },
+      ],
+    }, { spendingLimitSupported: false });
+
+    expect(decoded?.spendingLimitSupported).toBe(false);
+    expect(decoded?.spendingLimitGas).toBe("");
+    expect(decoded?.spendingLimitUnlimited).toBe(false);
+  });
+
+  it("rejects empty, malformed, and partial chain records", () => {
     expect(decodeSessionKey(null)).toBeNull();
     expect(decodeSessionKey([])).toBeNull();
     expect(decodeSessionKey(["only", "two"])).toBeNull();
-    expect(decodeSessionKey("not-an-array")).toBeNull();
+    expect(decodeSessionKey({ type: "Struct", value: [bytes("01"), hash(TARGET), text("mint"), { type: "Integer", value: "0" }] })).toBeNull();
   });
 });

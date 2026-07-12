@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="jump-rush-phaser-host" />;
     },
@@ -42,6 +40,7 @@ function t(key: string, params?: Record<string, string | number>) {
     difficulty_hard: "Summit Leap",
     drawerSummaryLabel: "Jump Rush account summary",
     drawerTitle: "Leaderboard & rules",
+    closeDrawer: "Close leaderboard and rules",
     fairnessCopy: "TEE seals the route.",
     fairnessTitle: "Fair route",
     historyEmpty: "Your verified runs will appear here.",
@@ -80,6 +79,30 @@ function t(key: string, params?: Record<string, string | number>) {
     youTag: "you",
     withdrawAction: "Withdraw {amount} GAS",
     withdrawHint: "Withdraw winnings.",
+    gameAriaLabel: "Jump Rush illustrated platform-jumping game",
+    gameLoadingLabel: "Loading the jump arena",
+    gameActionFailed: "The game surface could not start",
+    enableGameSound: "Enable game sound",
+    muteGameSound: "Mute game sound",
+    a11yDifficultyGroup: "Choose a jump route",
+    a11yDifficultyDetail: "{count} platforms to clear",
+    a11yStartRoute: "Start selected route",
+    a11yChargePower: "Jump power {power} percent",
+    a11yJumpAtPower: "Jump at {power} percent power",
+    a11yUndoJump: "Undo missed jump, {count} left",
+    a11yEndRun: "End this run",
+    a11ySubmitRun: "Save cleared route",
+    perfectLabel: "Perfect",
+    comboLabel: "{x}x combo",
+    guestJumpsLabel: "Jumps",
+    guestSubtitle: "Free local jumping.",
+    guestModeValue: "Local",
+    guestBestLabel: "Best run",
+    guestRouteLabel: "Route",
+    guestModeLabel: "Mode",
+    guestRunsLabel: "Runs",
+    guestJumpsValue: "{count} jumps",
+    guestLeaderboardIntro: "Free local scores.",
   };
   let value = messages[key] ?? key;
   if (params) {
@@ -110,6 +133,13 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     myHistory: [],
     myRank: 0,
     myTotalWon: 0,
+    myRuns: 0,
+    currentPlatform: 0,
+    jumpCount: 0,
+    perfectCount: 0,
+    comboCount: 0,
+    missedPlatform: false,
+    inputSyncFailed: false,
     platformsView: [],
     poolFree: 25,
     undosUsed: 0,
@@ -126,6 +156,9 @@ describe("jump-rush Phaser playarea", () => {
     );
 
     expect(container.querySelector(".jr-playstage")).toBeTruthy();
+    expect(container.querySelector(".jr-stage-shell")).toBeTruthy();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".mx2-action-rail__drawer-toggle")).toBeNull();
     expect(mocks.phaserGame).toHaveBeenCalledTimes(1);
 
     const props = mocks.phaserGame.mock.calls[0]?.[0] as {
@@ -137,19 +170,20 @@ describe("jump-rush Phaser playarea", () => {
     };
 
     expect(props.className).toBe("jr-phaser-canvas");
-    expect(props.ariaLabel).toBe("Jump Rush platform game");
-    expect(props.loadingLabel).toBe("Loading jump route");
+    expect(props.ariaLabel).toBe("Jump Rush illustrated platform-jumping game");
+    expect(props.loadingLabel).toBe("Loading the jump arena");
     expect(props.config?.width).toBe(400);
     expect(props.config?.height).toBe(580);
     expect(props.state.gameDifficulty).toBe(2);
     expect(props.state.poolFree).toBe(12);
     expect(props.state.isUndoing).toBe(false);
+    expect(props.state.isGuest).toBe(true);
     expect(queryByText("Start run")).toBeNull();
   });
 
   it("passes active run timing and payout state into the canvas", () => {
     const deadline = Date.now() + 100_000;
-    render(
+    const { container } = render(
       <PhaserPlayArea
         t={t}
         state={state({
@@ -158,7 +192,15 @@ describe("jump-rush Phaser playarea", () => {
           dealtAt: Date.now() - 20_000,
           gameDifficulty: 1,
           gameStatus: "dealt",
-          platformsView: [10, 90, 180, 240],
+          currentPlatform: 1,
+          jumpCount: 1,
+          perfectCount: 1,
+          comboCount: 1,
+          platformsView: [
+            { x: 60, width: 120, gap: 0 },
+            { x: 280, width: 100, gap: 100 },
+            { x: 510, width: 90, gap: 130 },
+          ],
           undosUsed: 1,
         })}
         dispatch={vi.fn()}
@@ -171,16 +213,25 @@ describe("jump-rush Phaser playarea", () => {
 
     expect(props.state.activeGameId).toBe("7");
     expect(props.state.gameStatus).toBe("dealt");
-    expect(props.state.platformsView).toEqual([10, 90, 180, 240]);
+    expect(props.state.platformsView).toEqual([
+      { x: 60, width: 120, gap: 0 },
+      { x: 280, width: 100, gap: 100 },
+      { x: 510, width: 90, gap: 130 },
+    ]);
     expect(props.state.undosUsed).toBe(1);
     expect(props.state.undosLeft).toBe(2);
+    expect(props.state.currentPlatform).toBe(1);
+    expect(props.state.jumpCount).toBe(1);
+    expect(props.state.perfectCount).toBe(1);
+    expect(props.state.comboCount).toBe(1);
     expect(props.state.remainingMs).toBeGreaterThan(0);
     expect(props.state.lastStatus).toBeUndefined();
+    expect(container.querySelector(".jr-playarea")?.getAttribute("data-playing")).toBe("true");
   });
 
-  it("keeps rankings, history, and recovery actions tucked into the support layer", () => {
+  it("keeps rankings and history in the drawer while game recovery stays in Phaser", () => {
     const dispatch = vi.fn();
-    const { container, getAllByText, getByText } = render(
+    const { container, getAllByText, getByText, queryByText } = render(
       <PhaserPlayArea
         t={t}
         state={state({
@@ -198,7 +249,11 @@ describe("jump-rush Phaser playarea", () => {
           ],
           myRank: 2,
           myTotalWon: 2.75,
-          platformsView: [10, 90, 180, 240],
+          appMode: "gamefi",
+          platformsView: [
+            { x: 60, width: 120, gap: 0 },
+            { x: 280, width: 100, gap: 100 },
+          ],
         })}
         dispatch={dispatch}
       />,
@@ -207,19 +262,126 @@ describe("jump-rush Phaser playarea", () => {
     expect(container.querySelector(".jr-ranks--phaser")).toBeNull();
 
     fireEvent.click(getAllByText("Leaderboard & rules")[0]);
+    expect(container.querySelector(".jr-ingame-drawer")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
     expect(container.querySelector(".jr-drawer__summary")).toBeTruthy();
     expect(container.querySelector(".jr-run-card")).toBeTruthy();
     expect(container.querySelector(".jr-ranks--phaser")).toBeTruthy();
     expect(getByText("6.50 GAS")).toBeTruthy();
     expect(getByText("0.35 GAS")).toBeTruthy();
-    expect(getByText("Time is up")).toBeTruthy();
-
-    fireEvent.click(getByText("More"));
-    expect(getByText("Undo jump")).toBeTruthy();
-    expect(getByText("Release game")).toBeTruthy();
+    expect(queryByText("Time is up")).toBeNull();
+    expect(queryByText("More")).toBeNull();
+    expect(queryByText("Undo jump")).toBeNull();
+    expect(queryByText("Release game")).toBeNull();
+    const pausedProps = mocks.phaserGame.mock.calls.at(-1)?.[0] as { state: Record<string, unknown> };
+    expect(pausedProps.state.interactionPaused).toBe(true);
 
     fireEvent.click(getAllByText("Refresh ranking")[0].closest("button")!);
     expect(dispatch).toHaveBeenCalledWith("refreshLeaderboard", {});
+  });
+
+  it("keeps GameFi asset withdrawal in the support drawer and hides it for guest play", () => {
+    const dispatch = vi.fn();
+    const { container, getAllByText, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "gamefi",
+          credit: 1.25,
+          gameStatus: "solved",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getAllByText("Leaderboard & rules")[0]);
+    expect(container.querySelector(".jr-drawer__actions")).toBeTruthy();
+    fireEvent.click(getByText("Withdraw 1.25 GAS").closest("button")!);
+    expect(dispatch).toHaveBeenCalledWith("withdrawWinnings", {});
+
+    cleanup();
+    const guest = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          credit: 1.25,
+          gameStatus: "solved",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(guest.getAllByText("Leaderboard & rules")[0]);
+    expect(guest.queryByText("Withdraw 1.25 GAS")).toBeNull();
+    expect(guest.container.querySelector(".jr-drawer__actions")).toBeNull();
+  });
+
+  it("exposes keyboard route selection and a charge-preserving jump control", () => {
+    const dispatch = vi.fn();
+    const view = render(<PhaserPlayArea t={t} state={state()} dispatch={dispatch} />);
+    const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as { onReady?: () => void };
+    act(() => props.onReady?.());
+
+    const routes = view.getAllByRole("radio");
+    expect(routes).toHaveLength(3);
+    fireEvent.keyDown(routes[0]!, { key: "ArrowRight" });
+    expect(dispatch).toHaveBeenCalledWith("selectDifficulty", { difficulty: 1 });
+
+    fireEvent.click(view.getByRole("button", { name: /Start selected route/ }));
+    const latest = mocks.phaserGame.mock.calls.at(-1)?.[0] as { state: Record<string, unknown> };
+    expect(latest.state.a11yStartPulse).toBe(1);
+
+    cleanup();
+    const playing = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          gameStatus: "dealt",
+          deadline: Date.now() + 60_000,
+          dealtAt: Date.now(),
+          platformsView: [
+            { x: 60, width: 120, gap: 0 },
+            { x: 280, width: 100, gap: 100 },
+          ],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    const playingProps = mocks.phaserGame.mock.calls.at(-1)?.[0] as { onReady?: () => void };
+    act(() => playingProps.onReady?.());
+    const power = playing.getByRole("slider", { name: /Jump power/ });
+    fireEvent.change(power, { target: { value: "67" } });
+    fireEvent.click(playing.getByRole("button", { name: "Jump at 67 percent power" }));
+    const latestPlaying = mocks.phaserGame.mock.calls.at(-1)?.[0] as { state: Record<string, unknown> };
+    expect(latestPlaying.state.a11yChargeLevel).toBe(67);
+    expect(latestPlaying.state.a11yJumpPulse).toBe(1);
+  });
+
+  it("keeps an accessible end-run action available when a guest route times out", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const view = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          gameStatus: "dealt",
+          deadline: Date.now() - 1_000,
+          dealtAt: Date.now() - 61_000,
+          platformsView: [
+            { x: 60, width: 120, gap: 0 },
+            { x: 280, width: 100, gap: 100 },
+          ],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as { onReady?: () => void };
+    act(() => props.onReady?.());
+
+    expect(view.queryByRole("slider")).toBeNull();
+    fireEvent.click(view.getByRole("button", { name: "End this run" }));
+    expect(dispatch).toHaveBeenCalledWith("expireGame", {});
   });
 
   it("guards the Phaser source against demo-only platform gameplay", () => {
@@ -230,19 +392,49 @@ describe("jump-rush Phaser playarea", () => {
     const main = readFileSync(resolve(root, "jump-rush/src/main.tsx"), "utf8");
 
     expect(wrapper).toContain("jr-drawer__summary");
+    expect(wrapper).toContain("jr-stage-shell");
+    expect(wrapper).toContain("jr-stage-hud");
+    expect(wrapper).toContain("jr-ingame-drawer");
     expect(wrapper).toContain("leaderboard");
     expect(wrapper).toContain("myHistory");
-    expect(wrapper).toContain(`dispatch("useUndo"`);
-    expect(wrapper).not.toContain("lastStatus,");
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain(`runAction("withdrawWinnings"`);
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
+    expect(wrapper).not.toContain("primaryAction");
+    expect(wrapper).not.toContain("secondaryActions");
+    expect(wrapper).toContain("jr-a11y-layer");
+    expect(wrapper).toContain("setInterval");
+    expect(wrapper).toContain("a11yChargeLevel");
+    expect(wrapper).toContain("handleDrawerKeyDown");
+    expect(wrapper).toContain("interactionPaused");
     expect(scene).toContain("private canSubmitRun()");
+    expect(scene).toContain("private canReleaseRun()");
+    expect(scene).toContain("private canRetryDeal()");
     expect(scene).toContain("private poolCanCoverSelectedRoute()");
     expect(scene).toContain("private onMissedLanding()");
     expect(scene).toContain("this.dispatch(\"useUndo\", {})");
-    expect(scene).toContain("centreOffset <= platform.width / 2");
+    expect(scene).toContain("this.dispatch(\"retryDeal\", {})");
+    expect(scene).toContain("this.dispatch(\"expireGame\", {})");
+    expect(scene).toContain("evaluateJumpLevel(chargeLevel, to.gap, to.width)");
+    expect(scene).toContain('this.input.on("pointerupoutside"');
+    expect(scene).toContain('window.addEventListener("blur", this.onChargeCancel)');
+    expect(scene).not.toContain("MAX_PLATFORMS");
+    expect(scene).toContain("const logicalIndex = windowStart + i");
+    expect(scene.indexOf("if (!landed)")).toBeLessThan(scene.indexOf("this.currentPlatformIndex += 1"));
+    expect(main).toContain("guest.recordJump(");
+    expect(main).toContain("form.perfect === true");
     expect(scene).toContain("this.minSolveRemainingMs()");
     expect(main).toContain("undosUsed.get() >= MAX_UNDOS");
     expect(styles).toContain(".jr-drawer__summary");
+    expect(styles).toContain(".jr-drawer__actions");
     expect(styles).toContain(".jr-run-card");
     expect(styles).toContain(".jr-history");
+    expect(styles).toContain(".jr-stage-shell");
+    expect(styles).toContain(".jr-stage-hud");
+    expect(styles).toContain(".jr-ingame-drawer");
+    expect(styles).toContain("--phaser-mobile-height-ratio: 1.45");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 112");
   });
 });

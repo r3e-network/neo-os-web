@@ -3,7 +3,7 @@
  *
  * Renders a 20×20 grid arena with:
  *  - Warm green felt background with subtle grid lines
- *  - Snake: teal rounded-rect head, body squares, tail
+ *  - Snake: authored head/body/tail art with directional turns and interpolation
  *  - Food: pulsing gold star at food position
  *  - Target badge (difficulty badge + target-length info) at top of grid
  *  - Timer bar + length progress bar in the HUD
@@ -39,10 +39,17 @@ import {
   hasReachedTarget,
 } from "../logic/snake-engine";
 import type { SnakeState, Direction } from "../logic/snake-engine";
+import type { Point } from "../logic/snake-engine";
+import {
+  DIRECTION_DEGREES,
+  interpolationSource,
+  snakeSegmentPose,
+} from "../logic/snake-visuals";
 import {
   formatClock,
   gasDisplay,
   ruleOf,
+  tickMsOf,
 } from "../logic/game-rules";
 import type { Difficulty } from "../logic/game-rules";
 
@@ -50,7 +57,7 @@ import type { Difficulty } from "../logic/game-rules";
 
 const DESIGN_W = 440;       // logical canvas width
 const DESIGN_H = 580;       // logical canvas height
-const GAME_TICK_MS = 200;
+const SNAKE_MOVE_MS = 130;
 const SUBMIT_BUFFER_MS = 15_000;
 const MIN_SOLVE_BUFFER_MS = 10_000;
 
@@ -81,11 +88,12 @@ type SnakeLayout = {
 // ── Colours ───────────────────────────────────────────────────────────────────
 
 const C = {
-  // Felt / background
-	  felt:        0x3a7d5e,   // warm green felt
-	  feltAlt:     0x367454,   // alternating cell tint
-	  feltBorder:  0x1c5138,
-	  feltInner:   0x47926f,
+  // Sunlit garden board: quiet enough for the illustrated snake and fruit to
+  // remain the unmistakable foreground.
+  felt:        0xe9f7dc,
+  feltAlt:     0xdff1ce,
+  feltBorder:  0x76ad7c,
+  feltInner:   0xf7f4cf,
 
   // Snake
   head:        0x00b4d8,   // teal
@@ -100,27 +108,27 @@ const C = {
   star:        0xffc107,
 
   // HUD
-	  hudBg:       0x1f513b,
-	  barBg:       0x17422f,
+  hudBg:       0xfffdf4,
+  barBg:       0xd8ead6,
   timerFill:   0x00af92,
   timerLow:    0xf97066,
   lengthFill:  0x5af5d0,
 
   // Lobby cards
-	  cardBg:      0x174d38,
-	  cardBorder:  0x56a979,
+  cardBg:      0xfffdf4,
+  cardBorder:  0x91bea0,
   cardActive:  0x047857,
-  cardActiveBg:0x0d5740,
-  cardActiveBorder: 0x6ff2d2,   // bright teal — selected route border
-  cardActiveGlow:   0x5af5d0,   // soft halo behind the selected route
-  cardActiveFill:   0x0f6446,   // brighter felt for the selected route
+  cardActiveBg:0xe4f8ed,
+  cardActiveBorder: 0x00af92,
+  cardActiveGlow:   0x62d8ba,
+  cardActiveFill:   0xe4f8ed,
   white:       0xffffff,
   cream:       0xfff8e8,
-	  muted:       0xc7f9d4,
-	  gold2:       0xffcf68,
+  muted:       0x47705e,
+  gold2:       0x9a6411,
 
   // Overlay
-  overlay:     0x000000,
+  overlay:     0xfffdf4,
   win:         0x16a34a,
   lose:        0xe25d4d,
 };
@@ -135,9 +143,15 @@ const SNAKE_ASSETS = {
   food: "food-bounty",
   reward: "reward-trophy",
   target: "target-badge",
+  boundary: "boundary-wall",
   badges: ["badge-easy", "badge-medium", "badge-hard"],
 } as const;
 
+type SnakeSegmentView = {
+  container: Phaser.GameObjects.Container;
+  primary: Phaser.GameObjects.Image;
+  secondary: Phaser.GameObjects.Image;
+};
 
 // ── Scene class ───────────────────────────────────────────────────────────────
 
@@ -151,7 +165,7 @@ export class SnakeScene extends BaseScene {
   // ── Graphics layers ──────────────────────────────────────────────────────
   private backgroundGfx!: Phaser.GameObjects.Graphics;
   private gridGraphics!: Phaser.GameObjects.Graphics;
-  private snakeGfx!:     Phaser.GameObjects.Graphics;
+  private snakeSprites:  SnakeSegmentView[] = [];
   private foodGfx!:      Phaser.GameObjects.Graphics;
   private foodSprite!:   Phaser.GameObjects.Image;
   private hudGfx!:       Phaser.GameObjects.Graphics;
@@ -163,6 +177,7 @@ export class SnakeScene extends BaseScene {
   private controlsHint!: Phaser.GameObjects.Text;
   private hintLabel!:    Phaser.GameObjects.Text;
   private targetBadge!:  Phaser.GameObjects.Text;
+  private targetBadgeArt!: Phaser.GameObjects.Image;
 
   // ── Overlay (crash / won / submitting) ───────────────────────────────────
   private overlayContainer!: Phaser.GameObjects.Container;
@@ -196,6 +211,9 @@ export class SnakeScene extends BaseScene {
   private queuedDir:       Direction | null = null;
   private crashed          = false;
   private targetReached    = false;
+  private timeExpired      = false;
+  private boardInvalid     = false;
+  private hasStartedMoving = false;
 
   // ── Timers ───────────────────────────────────────────────────────────────
   private tickTimer:       Phaser.Time.TimerEvent | null = null;
@@ -208,6 +226,7 @@ export class SnakeScene extends BaseScene {
   // ── State cache (to detect changes) ─────────────────────────────────────
   private prevGameStatus   = "";
   private prevClues        = "";
+  private prevSteerNonce   = 0;
 
   constructor() {
     super("SnakeScene");
@@ -310,6 +329,11 @@ export class SnakeScene extends BaseScene {
     return labels[difficulty] ?? DIFF_LABELS[difficulty] ?? "";
   }
 
+  private paceLabel(difficulty: number): string {
+    const labels = this.txtList("paceLabels", ["Relaxed pace", "Quick pace", "Blitz pace"]);
+    return labels[difficulty] ?? labels[0] ?? "";
+  }
+
   // Guest (free / local) mode: a plain local snake with no token, pool, wallet,
   // progression, or anti-bot gating. Reads the play-mode mirror pushed by the
   // PlayArea (bridgeState.appMode). GameFi is the default, so the frozen scene
@@ -327,6 +351,7 @@ export class SnakeScene extends BaseScene {
     this.load.image(SNAKE_ASSETS.food, "./art/food-bounty.webp");
     this.load.image(SNAKE_ASSETS.reward, "./art/reward-trophy.webp");
     this.load.image(SNAKE_ASSETS.target, "./art/target-badge.webp");
+    this.load.image(SNAKE_ASSETS.boundary, "./art/boundary-wall.jpg");
     this.load.image(SNAKE_ASSETS.badges[0], "./art/badge-easy.webp");
     this.load.image(SNAKE_ASSETS.badges[1], "./art/badge-medium.webp");
     this.load.image(SNAKE_ASSETS.badges[2], "./art/badge-hard.webp");
@@ -352,6 +377,8 @@ export class SnakeScene extends BaseScene {
 
     // Wire input (keyboard + pointer/swipe)
     this.setupInput();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupInput, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupInput, this);
 
     // Seed from current state
     this.onStateUpdate(this.state);
@@ -368,9 +395,16 @@ export class SnakeScene extends BaseScene {
     const isDealing  = this.bool("isDealing");
     const isSubmitting = this.bool("isSubmitting");
     const lastStatus = this.str("lastStatus", "");
+    const steerNonce = this.num("steerNonce", 0);
 
     // Status label always reflects latest
     this.statusLabel?.setText(lastStatus);
+
+    if (steerNonce !== this.prevSteerNonce) {
+      this.prevSteerNonce = steerNonce;
+      const dir = this.num("steerDirection", -1);
+      if (Number.isInteger(dir) && dir >= 0 && dir <= 3) this.tryQueueDirection(dir as Direction);
+    }
 
     const statusChanged = gameStatus !== this.prevGameStatus;
     const cluesChanged  = clues !== this.prevClues;
@@ -395,7 +429,7 @@ export class SnakeScene extends BaseScene {
     const inPlay = gameStatus === "dealt" && this.snake !== null;
     this.lobbyContainer.setVisible(!inPlay && gameStatus !== "committed");
     this.gridGraphics.setVisible(inPlay);
-    this.snakeGfx.setVisible(inPlay);
+    this.setSnakeSpritesVisible(inPlay);
     this.foodGfx.setVisible(inPlay);
     this.foodSprite.setVisible(inPlay);
     this.hudGfx.setVisible(inPlay);
@@ -403,20 +437,55 @@ export class SnakeScene extends BaseScene {
     this.lengthLabel.setVisible(inPlay);
     this.controlsHint.setVisible(inPlay);
     this.targetBadge.setVisible(inPlay);
+    this.targetBadgeArt.setVisible(inPlay);
     this.hintLabel.setVisible(inPlay);
     this.statusLabel.setVisible(inPlay);
 
     if (inPlay) {
+      if (this.bool("uiPaused")) {
+        this.stopTickTimer();
+      } else if (
+        !this.tickTimer &&
+        !this.crashed &&
+        !this.targetReached &&
+        !this.timeExpired &&
+        !this.bool("inputSyncFailed")
+      ) {
+        this.startTickTimer();
+      }
       this.updateHUD();
       this.drawSnake();
       this.drawFood();
     }
 
     // ── Overlay ───────────────────────────────────────────────────────────
-    if (isDealing || (gameStatus === "committed" && !inPlay)) {
+    if (this.bool("isRecovering")) {
+      this.showOverlay(this.txt("ovRecoveringTitle", "Recovering run"), this.txt("ovRecoveringSub", "Checking the authoritative game state."));
+    } else if (this.bool("inputSyncFailed") && gameStatus === "dealt") {
+      this.stopTickTimer();
+      this.showOverlay(this.txt("ovSyncTitle", "Run paused"), this.txt("ovSyncSub", "A move could not be verified. Recover before continuing."), {
+        label: this.txt("ovRecoverBtn", "Recover run"),
+        onPress: () => this.dispatch("recoverGame"),
+      });
+    } else if (this.boardInvalid && gameStatus === "dealt") {
+      this.stopTickTimer();
+      this.showOverlay(
+        this.txt("ovBoardInvalidTitle", "Board unavailable"),
+        this.txt("ovBoardInvalidSub", "The saved board could not be restored."),
+        {
+          label: this.isGuest() ? this.txt("ovPlayAgain", "Play again") : this.txt("ovRecoverBtn", "Recover run"),
+          onPress: () => this.dispatch(this.isGuest() ? "expireGame" : "recoverGame"),
+        },
+      );
+    } else if (isDealing || (gameStatus === "committed" && !inPlay)) {
       this.showOverlay(this.txt("ovDealingTitle", "Dealing"), this.txt("ovDealingSub", "Preparing your game"));
     } else if (isSubmitting) {
       this.showOverlay(this.txt("ovSubmittingTitle", "Submitting"), this.txt("ovSubmittingSub", "Verifying your solution"));
+    } else if (this.timeExpired && gameStatus === "dealt") {
+      this.showOverlay(this.txt("ovExpiredTitle", "Time up"), this.txt("ovExpiredSub", "This trail has ended."), {
+        label: this.isGuest() ? this.txt("ovPlayAgain", "Play again") : this.txt("ovRecoverBtn", "Check run"),
+        onPress: () => this.dispatch(this.isGuest() ? "expireGame" : "recoverGame"),
+      });
     } else if (this.crashed && gameStatus === "dealt") {
       // Guest crashes have nothing to settle on-chain, so the button resets to a
       // local lobby (expireGame) instead of submitting a run.
@@ -426,6 +495,13 @@ export class SnakeScene extends BaseScene {
         onPress: () => this.dispatch(guest ? "expireGame" : "submitSolution"),
       });
     } else if (this.targetReached && gameStatus === "dealt") {
+      if (this.isGuest()) {
+        this.showOverlay(
+          this.txt("ovTargetTitle", "Target Reached"),
+          this.txt("guestTargetResolving", "Saving your local best."),
+        );
+        return;
+      }
       const canSubmit = this.canSubmitTarget();
       this.showOverlay(this.txt("ovTargetTitle", "Target Reached"), this.submitGateMessage(canSubmit), {
         label: canSubmit ? this.txt("ovSubmitBtn", "Submit Win") : this.txt("ovWaitingBtn", "Waiting"),
@@ -433,9 +509,20 @@ export class SnakeScene extends BaseScene {
         onPress: () => this.dispatch("submitSolution"),
       });
     } else if (gameStatus === "solved") {
-      this.showOverlay(this.txt("ovSolvedTitle", "Solved"), this.txt("ovSolvedSub", "Congratulations, you won."));
-    } else if (gameStatus === "expired") {
-      this.showOverlay(this.txt("ovExpiredTitle", "Expired"), this.txt("ovExpiredSub", "Time ran out."));
+      this.showOverlay(this.txt("ovSolvedTitle", "Solved"), this.txt("ovSolvedSub", "Congratulations, you won."), {
+        label: this.txt("ovPlayAgain", "Play again"),
+        onPress: () => this.dispatch("returnToLobby"),
+      });
+    } else if (gameStatus === "expired" || gameStatus === "refunded") {
+      this.showOverlay(this.txt("ovExpiredTitle", "Expired"), this.txt("ovExpiredSub", "Time ran out."), {
+        label: this.txt("ovPlayAgain", "Play again"),
+        onPress: () => this.dispatch("returnToLobby"),
+      });
+    } else if (gameStatus === "unknown") {
+      this.showOverlay(this.txt("ovPendingTitle", "Result pending"), this.txt("ovPendingSub", "The chain has not confirmed the final result yet."), {
+        label: this.txt("ovRecoverBtn", "Check again"),
+        onPress: () => this.dispatch("recoverGame"),
+      });
     } else {
       this.overlayContainer.setVisible(false);
     }
@@ -450,17 +537,35 @@ export class SnakeScene extends BaseScene {
   // ── Phase helpers ─────────────────────────────────────────────────────────
 
   private enterPlayPhase(clues: string): void {
+    this.clearSnakeVisuals();
     try {
       this.snake = parseInitialState(clues);
       this.localDir = this.snake.direction;
       this.queuedDir = null;
-      this.crashed = false;
-      this.targetReached = false;
+      this.crashed = this.snake.dead;
+      this.targetReached = hasReachedTarget(
+        this.snake,
+        ruleOf(this.num("gameDifficulty", 0)).targetLength,
+      );
+      const deadline = this.num("deadline", 0);
+      this.timeExpired = deadline > 0 && Date.now() >= deadline;
+      this.hasStartedMoving = false;
+      this.boardInvalid = false;
     } catch {
       this.snake = null;
+      this.boardInvalid = true;
       return;
     }
-    this.startTickTimer();
+    if (!this.crashed && !this.targetReached && !this.timeExpired) this.startTickTimer();
+    if (this.targetReached && this.isGuest()) {
+      // A reload can land after the final move was persisted but before local
+      // settlement cleared it. Finish that already-earned result automatically.
+      this.time.delayedCall(0, () => {
+        if (this.str("gameStatus", "") === "dealt" && this.targetReached) {
+          this.dispatch("submitSolution");
+        }
+      });
+    }
     this.startClockTimer();
     this.startFoodPulse();
     this.sfx.play("start");
@@ -470,9 +575,13 @@ export class SnakeScene extends BaseScene {
     this.stopTickTimer();
     this.stopClockTimer();
     this.stopFoodPulse();
+    this.clearSnakeVisuals();
     this.snake = null;
     this.crashed = false;
     this.targetReached = false;
+    this.timeExpired = false;
+    this.hasStartedMoving = false;
+    this.boardInvalid = false;
   }
 
   // ── Tick timer ────────────────────────────────────────────────────────────
@@ -480,7 +589,7 @@ export class SnakeScene extends BaseScene {
   private startTickTimer(): void {
     this.stopTickTimer();
     this.tickTimer = this.time.addEvent({
-      delay: GAME_TICK_MS,
+      delay: tickMsOf(this.num("gameDifficulty", 0)),
       loop: true,
       callback: this.onGameTick,
       callbackScope: this,
@@ -501,22 +610,41 @@ export class SnakeScene extends BaseScene {
       !this.snake ||
       this.snake.dead ||
       this.targetReached ||
-      this.bool("isSubmitting")
+      this.bool("isSubmitting") ||
+      this.bool("inputSyncFailed")
     ) {
       return;
     }
+    // Do not let a fresh run drive itself into the wall while the player is
+    // still orienting. The first keyboard, swipe, or semantic direction press
+    // starts the classic continuous snake loop.
+    if (!this.hasStartedMoving) return;
 
+    if (this.num("deadline", 0) > 0 && Date.now() >= this.num("deadline", 0)) {
+      this.timeExpired = true;
+      this.stopTickTimer();
+      this.onStateUpdate(this.state);
+      return;
+    }
+
+    const previousBody = this.snake.body.map((segment) => ({ ...segment }));
     const prevEaten = this.snake.eaten;
     const dir = this.queuedDir ?? this.localDir;
     this.snake = step(this.snake, dir);
     this.localDir = dir;
     this.queuedDir = null;
+    this.dispatch("recordMove", {
+      dir,
+      length: snakeLength(this.snake),
+      dead: this.snake.dead,
+    });
 
     if (this.snake.dead) {
       this.crashed = true;
       this.sfx.play("lose");
       this.stopTickTimer();
       this.onStateUpdate(this.state);
+      this.drawSnake(previousBody);
       return;
     }
 
@@ -525,12 +653,15 @@ export class SnakeScene extends BaseScene {
       this.targetReached = true;
       this.sfx.play("combo");
       this.stopTickTimer();
+      // A free arcade run resolves immediately at the target. Only paid
+      // settlement needs an explicit wallet-facing confirmation step.
+      if (this.isGuest()) this.dispatch("submitSolution");
       this.onStateUpdate(this.state);
     } else if (this.snake.eaten > prevEaten) {
       this.sfx.play("score");
     }
 
-    this.drawSnake();
+    this.drawSnake(previousBody);
     this.drawFood();
     this.updateHUD();
   }
@@ -547,7 +678,11 @@ export class SnakeScene extends BaseScene {
         this.nowMs = Date.now();
         if (this.str("gameStatus", "") === "dealt") {
           this.updateHUD();
-          if (this.targetReached || this.crashed) {
+          if (this.num("deadline", 0) > 0 && this.nowMs >= this.num("deadline", 0)) {
+            this.timeExpired = true;
+            this.stopTickTimer();
+          }
+          if (this.targetReached || this.crashed || this.timeExpired) {
             this.onStateUpdate(this.state);
           }
         }
@@ -610,7 +745,7 @@ export class SnakeScene extends BaseScene {
     const stageHeight = stageBottom - stageTop;
     const gfx = this.backgroundGfx;
     gfx.clear();
-    // Full canvas fill — warm deep green felt
+    // Full canvas fill — warm, sunny garden felt.
     gfx.fillStyle(C.felt);
     gfx.fillRect(0, stageTop, this.scW, stageHeight);
     // On tall (mobile) viewports the world extends past the design height. Read
@@ -681,22 +816,25 @@ export class SnakeScene extends BaseScene {
     // Timer clock label
     this.timerLabel = this.add.text(gridLeft + 10, hudTop + 46, "00:00", {
       fontSize: "12px",
-      color: "#5af5d0",
+      color: "#075f50",
       fontStyle: "bold",
     }).setOrigin(0, 0.5).setVisible(false);
 
     // Length label
     this.lengthLabel = this.add.text(gridLeft + gridPx / 2, hudTop + 46, "0 / 10 cells", {
       fontSize: "12px",
-      color: "#ffcf68",
+      color: "#86520a",
     }).setOrigin(0.5, 0.5).setVisible(false);
   }
 
   // ── Build: snake layer ───────────────────────────────────────────────────
 
   private buildSnakeLayer(): void {
-    this.snakeGfx = this.add.graphics();
-    this.snakeGfx.setVisible(false);
+    // Segment sprites are pooled lazily to match the live snake length. Clean
+    // them explicitly because their movement tweens can outlive the final tick
+    // when the host destroys or restarts the scene.
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroySnakeSprites, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.destroySnakeSprites, this);
   }
 
   // ── Build: food layer ────────────────────────────────────────────────────
@@ -712,13 +850,18 @@ export class SnakeScene extends BaseScene {
   // ── Build: target badge ──────────────────────────────────────────────────
 
   private buildTargetBadge(): void {
+    this.targetBadgeArt = this.add.image(
+      this.layout.gridLeft + this.layout.gridPx - 102,
+      this.layout.hudTop + 46,
+      SNAKE_ASSETS.target,
+    ).setDisplaySize(24, 24).setVisible(false);
     this.targetBadge = this.add.text(
       this.layout.gridLeft + this.layout.gridPx - 8,
       this.layout.hudTop + 46,
       "",
       {
         fontSize: "11px",
-        color: "#ffe066",
+        color: "#86520a",
         fontStyle: "bold",
       },
     ).setOrigin(1, 0.5).setVisible(false);
@@ -733,7 +876,7 @@ export class SnakeScene extends BaseScene {
       this.txt("controlsHint", "Arrow keys / WASD / Swipe"),
       {
         fontSize: "11px",
-	        color: "#c7f9d4",
+	        color: "#315c4b",
       },
     ).setOrigin(0.5).setVisible(false);
 
@@ -743,7 +886,7 @@ export class SnakeScene extends BaseScene {
       "",
       {
         fontSize: "11px",
-	        color: "#ffd166",
+	        color: "#9b5b0c",
         fontStyle: "bold",
         wordWrap: { width: this.layout.gridPx },
       },
@@ -755,7 +898,7 @@ export class SnakeScene extends BaseScene {
       "",
       {
         fontSize: "10px",
-	        color: "#c7f9d4",
+	        color: "#315c4b",
       },
     ).setOrigin(0.5);
   }
@@ -763,21 +906,21 @@ export class SnakeScene extends BaseScene {
   // ── Build: overlay ────────────────────────────────────────────────────────
 
   private buildOverlay(): void {
-    this.overlayContainer = this.add.container(this.scW / 2, this.scH / 2);
+    this.overlayContainer = this.add.container(this.scW / 2, this.scH / 2).setDepth(200);
 
-    this.overlayBg = this.add.rectangle(0, 0, 260, 110, C.overlay, 200)
+    this.overlayBg = this.add.rectangle(0, 0, 276, 122, C.overlay, 0.98)
       .setStrokeStyle(2, C.gold)
       .setOrigin(0.5);
 
     this.overlayTitle = this.add.text(0, -22, "", {
       fontSize: "24px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#123b2d",
     }).setOrigin(0.5);
 
 	    this.overlaySub = this.add.text(0, 12, "", {
 	      fontSize: "13px",
-	      color: "#d4f9df",
+	      color: "#47705e",
     }).setOrigin(0.5);
 
     this.overlayBtnBg = this.add.rectangle(0, 44, 140, 32, C.gold)
@@ -845,13 +988,13 @@ export class SnakeScene extends BaseScene {
     const title = this.add.text(this.scW / 2 + 12, layout.lobbyTitleY, this.txt("title", "Snake Bounty"), {
       fontSize: "20px",
       fontStyle: "bold",
-	      color: "#ffcf68",
+	      color: "#86520a",
     }).setOrigin(0.5);
     this.lobbyTitleText = title;
 
     const sub = this.add.text(this.scW / 2, layout.lobbySubY, this.txt("tagline", "Grow the snake to win GAS"), {
       fontSize: "12px",
-	      color: "#c7f9d4",
+	      color: "#315c4b",
     }).setOrigin(0.5);
     this.lobbySubText = sub;
 
@@ -878,7 +1021,7 @@ export class SnakeScene extends BaseScene {
     const arenaTitle = this.add.text(layout.lobbyPanelX + 18, layout.lobbyPanelY + 20, this.txt("howToTitle", "How to Play"), {
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#ffe066",
+      color: "#86520a",
     });
     this.howToTitleText = arenaTitle;
 
@@ -893,12 +1036,24 @@ export class SnakeScene extends BaseScene {
       ]).map((line) => `• ${line}`).join("\n"),
       {
         fontSize: "11px",
-        color: "#d4f9df",
+        color: "#315c4b",
         lineSpacing: 6,
         wordWrap: { width: Math.round(layout.lobbyPanelW * 0.54) },
       },
     );
     this.howToCopyText = arenaCopy;
+
+    const boundaryMark = this.add.image(
+      layout.lobbyPanelX + layout.lobbyPanelW - 82,
+      layout.lobbyPanelY + 112,
+      SNAKE_ASSETS.boundary,
+    ).setDisplaySize(126, 126);
+
+    const rewardMark = this.add.image(
+      layout.lobbyPanelX + layout.lobbyPanelW - 42,
+      layout.lobbyPanelY + 38,
+      SNAKE_ASSETS.reward,
+    ).setDisplaySize(58, 58);
 
     // Decorative connected mini snake chasing a bounty fruit (lower-right)
     const preview = this.buildMiniSnakePreview();
@@ -927,7 +1082,7 @@ export class SnakeScene extends BaseScene {
     this.lobbyStatusPill = statusPill;
     const poolText = this.add.text(this.scW / 2, layout.lobbyStatusY, "", {
       fontSize: "11px",
-	      color: "#ffd166",
+	      color: "#9b5b0c",
     }).setOrigin(0.5);
     this.lobbyStatusText = poolText;
 
@@ -939,6 +1094,8 @@ export class SnakeScene extends BaseScene {
       preview,
       arenaTitle,
       arenaCopy,
+      boundaryMark,
+      rewardMark,
       trail,
       ...this.lobbyCards,
       statusPill,
@@ -1007,7 +1164,7 @@ export class SnakeScene extends BaseScene {
       this.scW / 2,
       lobbyHeadingY,
       this.txt("chooseRoute", "Choose your bounty route"),
-      { fontSize: "13px", fontStyle: "bold", color: "#ffcf68" },
+      { fontSize: "13px", fontStyle: "bold", color: "#86520a" },
     ).setOrigin(0.5);
     this.lobbyHeadingText = heading;
 
@@ -1027,15 +1184,13 @@ export class SnakeScene extends BaseScene {
       const dx = laneX + 18 + (laneW - 36) * (i / (dashN - 1));
       gfx.fillCircle(dx, y, 1.6);
     }
-    // Snake-head node (left) and gold bounty node (right)
-    gfx.fillStyle(C.head, 0.95);
-    gfx.fillCircle(laneX + 8, y, 4);
-    gfx.fillStyle(C.goldLight, 0.4);
-    gfx.fillCircle(laneX + laneW - 8, y, 7);
-    gfx.fillStyle(C.gold, 0.95);
-    gfx.fillCircle(laneX + laneW - 8, y, 4.5);
+    // Real authored endpoints make the route read as game resources, not dots.
+    const snakeNode = this.add.image(laneX + 10, y, SNAKE_ASSETS.head)
+      .setDisplaySize(27, 27);
+    const targetNode = this.add.image(laneX + laneW - 10, y, SNAKE_ASSETS.target)
+      .setDisplaySize(25, 25);
 
-    container.add([gfx, heading]);
+    container.add([gfx, heading, snakeNode, targetNode]);
     return container;
   }
 
@@ -1065,30 +1220,37 @@ export class SnakeScene extends BaseScene {
     const label = this.add.text(0, -15, this.diffLabel(difficulty), {
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#ffcf68",
+      color: "#86520a",
     }).setOrigin(0.5);
 
     const targetTxt = this.add.text(0, 3, this.txt("targetCells", "{target} cells", { target: rule.targetLength }), {
       fontSize: "10px",
-      color: "#c7f9d4",
+      color: "#315c4b",
     }).setOrigin(0.5);
 
     // Win reward is the payoff anchor — bright gold, prominent.
-    const winTxt = this.add.text(0, 21, this.txt("winLine", "Win {amount} GAS", { amount: gasDisplay(rule.rewardFixed8) }), {
+    const winTxt = this.add.text(
+      0,
+      21,
+      this.isGuest()
+        ? this.paceLabel(difficulty)
+        : this.txt("winLine", "Win {amount} GAS", { amount: gasDisplay(rule.rewardFixed8) }),
+      {
       fontSize: "12px",
       fontStyle: "bold",
-      color: "#ffcf68",
-    }).setOrigin(0.5);
+      color: "#86520a",
+      },
+    ).setOrigin(0.5);
 
     // Entry cost is secondary — muted so it never reads as the prize.
     const entryTxt = this.add.text(0, 39, this.txt("entryLine", "Entry {amount} GAS", { amount: gasDisplay(rule.entryFixed8) }), {
       fontSize: "10px",
-      color: "#9ec7ac",
+      color: "#47705e",
     }).setOrigin(0.5);
 
     const lockTxt = this.add.text(0, 39, this.txt("cleared", "Cleared"), {
       fontSize: "10px",
-      color: "#f9d27a",
+      color: "#8a570d",
       fontStyle: "bold",
     }).setOrigin(0.5).setVisible(false);
 
@@ -1144,30 +1306,34 @@ export class SnakeScene extends BaseScene {
       const isActive = i === this.pickedDifficulty && !locked;
 
       glow.setVisible(isActive);
-      bg.setFillStyle(locked ? 0x183226 : isActive ? C.cardActiveFill : C.cardBg);
+      bg.setFillStyle(locked ? 0xedf2e8 : isActive ? C.cardActiveFill : C.cardBg);
       bg.setStrokeStyle(
         isActive ? 3 : 2,
-        locked ? 0x425846 : isActive ? C.cardActiveBorder : C.cardBorder,
+        locked ? 0xaebbac : isActive ? C.cardActiveBorder : C.cardBorder,
       );
       // setDisplaySize (not setScale) — the badge textures are 384px; setScale
       // would discard the makeCard display sizing and render them full-size.
       badge.setDisplaySize(isActive ? 44 : 40, isActive ? 44 : 40);
 
       label.setText(this.diffLabel(i));
-      label.setColor(locked ? "#9fb7a6" : "#ffcf68");
+      label.setColor(locked ? "#718075" : "#86520a");
       target.setText(this.txt("targetCells", "{target} cells", { target: rule.targetLength }));
-      target.setColor(locked ? "#8aa493" : "#c7f9d4");
+      target.setColor(locked ? "#718075" : "#315c4b");
       // Win reward stays the visual anchor; entry is demoted / hidden when locked.
-      win.setText(this.txt("winLine", "Win {amount} GAS", { amount: gasDisplay(rule.rewardFixed8) }));
-      win.setColor(locked ? "#9fb7a6" : "#ffcf68");
+      win.setText(
+        this.isGuest()
+          ? this.paceLabel(i)
+          : this.txt("winLine", "Win {amount} GAS", { amount: gasDisplay(rule.rewardFixed8) }),
+      );
+      win.setColor(locked ? "#718075" : "#86520a");
       win.setVisible(!locked);
       entry.setText(this.txt("entryLine", "Entry {amount} GAS", { amount: gasDisplay(rule.entryFixed8) }));
-      entry.setColor("#9ec7ac");
+      entry.setColor("#47705e");
       entry.setVisible(!locked);
       lock.setText(this.txt("completed", "Completed"));
       lock.setVisible(locked);
       card.setAlpha(locked ? 0.6 : 1);
-      if (bg.input) bg.input.enabled = !locked;
+      if (bg.input) bg.input.enabled = !locked && this.str("gameStatus", "idle") === "idle";
     }
     this.updateLobbyStatus();
   }
@@ -1177,7 +1343,7 @@ export class SnakeScene extends BaseScene {
     if (this.isGuest()) {
       if (!this.lobbyStatusText) return;
       this.lobbyStatusText.setText(this.txt("guestLobbyStatus", "Tap a trail to start a local run"));
-      this.lobbyStatusText.setColor("#d4f9df");
+      this.lobbyStatusText.setColor("#075f50");
       this.drawStatusPill();
       return;
     }
@@ -1195,6 +1361,8 @@ export class SnakeScene extends BaseScene {
     const time    = Math.round(rule.limitMs / 60000);
     const statusText = busy
       ? this.txt("lobbyPreparing", "Preparing your bounty route")
+      : !this.bool("newPaidRunsEnabled")
+        ? this.txt("paidModeLocked", "Free play is open while paid runs finish validation.")
       : !walletConnected
         ? this.txt("lobbyConnectWallet", "Connect wallet to start a bounty route")
         : !progressionReady
@@ -1213,7 +1381,7 @@ export class SnakeScene extends BaseScene {
                   needed,
                 });
     this.lobbyStatusText.setText(statusText);
-    this.lobbyStatusText.setColor(ready ? "#d4f9df" : "#ffd166");
+    this.lobbyStatusText.setColor(ready ? "#075f50" : "#9b5b0c");
     this.drawStatusPill();
   }
 
@@ -1254,8 +1422,10 @@ export class SnakeScene extends BaseScene {
 
   private canStartDifficulty(difficulty: Difficulty): boolean {
     if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
+    if (this.str("gameStatus", "idle") !== "idle") return false;
     // Guest is a free local snake: no wallet, no reward pool, no progression gate.
     if (this.isGuest()) return true;
+    if (!this.bool("newPaidRunsEnabled")) return false;
     if (!this.bool("walletConnected")) return false;
     if (!this.bool("progressionReady")) return false;
     if (this.isDifficultyLocked(difficulty)) return false;
@@ -1294,70 +1464,142 @@ export class SnakeScene extends BaseScene {
 
   // ── Draw: snake ───────────────────────────────────────────────────────────
 
-  private drawSnake(): void {
-    if (!this.snake) return;
-    const gfx = this.snakeGfx;
-    const { cell, gridLeft, gridTop } = this.layout;
-    gfx.clear();
+  private drawSnake(previousBody: readonly Point[] = []): void {
+    if (!this.snake) {
+      this.setSnakeSpritesVisible(false);
+      return;
+    }
 
     const body = this.snake.body;
-    const len  = body.length;
+    const { cell, gridLeft, gridTop } = this.layout;
+    this.ensureSnakeSpriteCount(body.length);
 
-    for (let i = len - 1; i >= 0; i--) {
-      const seg = body[i]!;
-      const px  = gridLeft + seg.x * cell;
-      const py  = gridTop  + seg.y * cell;
+    body.forEach((segment, index) => {
+      const view = this.snakeSprites[index]!;
+      const pose = snakeSegmentPose(body, index, this.localDir);
+      const targetX = gridLeft + segment.x * cell + cell / 2;
+      const targetY = gridTop + segment.y * cell + cell / 2;
+      const fromPoint = interpolationSource(previousBody, index);
 
-      if (i === 0) {
-        // Head — teal rounded rectangle, slightly larger
-        const crashed = this.crashed || this.snake.dead;
-        gfx.fillStyle(crashed ? C.lose : C.head, 1);
-        gfx.fillRoundedRect(px + 1, py + 1, cell - 2, cell - 2, 5);
-        gfx.lineStyle(1.5, crashed ? 0xf97066 : C.headStroke, 0.8);
-        gfx.strokeRoundedRect(px + 1, py + 1, cell - 2, cell - 2, 5);
-        // Eyes
-        this.drawSnakeEyes(gfx, px, py);
-      } else if (i === len - 1 && len > 1) {
-        // Tail — smaller, lighter
-        const alpha = this.crashed ? 0.4 : 0.8;
-        gfx.fillStyle(C.tail, alpha);
-        gfx.fillRoundedRect(px + 4, py + 4, cell - 8, cell - 8, 3);
-      } else {
-        // Body — jade squares with stroke
-        const alpha = this.crashed ? 0.5 : 1;
-        gfx.fillStyle(C.body, alpha);
-        gfx.fillRect(px + 2, py + 2, cell - 4, cell - 4);
-        gfx.lineStyle(1, C.bodyDark, 0.4);
-        gfx.strokeRect(px + 2, py + 2, cell - 4, cell - 4);
+      this.configureSnakeSegment(view, pose, cell, index, body.length);
+      view.container.setVisible(true);
+
+      if (this.reducedMotion) {
+        this.tweens.killTweensOf(view.container);
+        view.container.setPosition(targetX, targetY);
+      } else if (fromPoint) {
+        this.tweens.killTweensOf(view.container);
+        view.container.setPosition(
+          gridLeft + fromPoint.x * cell + cell / 2,
+          gridTop + fromPoint.y * cell + cell / 2,
+        );
+        this.animate({
+          targets: view.container,
+          x: targetX,
+          y: targetY,
+          duration: SNAKE_MOVE_MS,
+          ease: "Sine.easeOut",
+        });
+      } else if (!this.tweens.isTweening(view.container)) {
+        // React state pushes can arrive between authoritative ticks. Keep an
+        // in-flight render tween intact; otherwise place a fresh/static sprite
+        // directly on the current logical cell.
+        view.container.setPosition(targetX, targetY);
       }
+    });
+
+    for (let index = body.length; index < this.snakeSprites.length; index += 1) {
+      const view = this.snakeSprites[index]!;
+      this.tweens.killTweensOf(view.container);
+      view.container.setVisible(false);
     }
   }
 
-  private drawSnakeEyes(
-    gfx: Phaser.GameObjects.Graphics,
-    px: number,
-    py: number,
+  private ensureSnakeSpriteCount(count: number): void {
+    while (this.snakeSprites.length < count) {
+      const primary = this.add.image(0, 0, SNAKE_ASSETS.body).setOrigin(0.5);
+      const secondary = this.add.image(0, 0, SNAKE_ASSETS.body).setOrigin(0.5).setVisible(false);
+      const container = this.add.container(0, 0, [primary, secondary]).setVisible(false);
+      this.snakeSprites.push({ container, primary, secondary });
+    }
+  }
+
+  private configureSnakeSegment(
+    view: SnakeSegmentView,
+    pose: ReturnType<typeof snakeSegmentPose>,
+    cell: number,
+    index: number,
+    bodyLength: number,
   ): void {
-    // Draw two small white dots on the head, rotated toward direction
-    const dir    = this.localDir;
-    // Eye offsets relative to cell center — rotated by direction
-    type Offset = { ex1: number; ey1: number; ex2: number; ey2: number };
-    const eye = Math.max(1, Math.round(this.layout.cell / 10));
-    const offsets: Record<Direction, Offset> = {
-      0: { ex1: -4, ey1: -2, ex2:  4, ey2: -2 }, // up
-      1: { ex1:  2, ey1: -4, ex2:  2, ey2:  4 }, // right
-      2: { ex1: -4, ey1:  2, ex2:  4, ey2:  2 }, // down
-      3: { ex1: -2, ey1: -4, ex2: -2, ey2:  4 }, // left
-    };
-    const off = offsets[dir];
-    const cx  = px + this.layout.cell / 2;
-    const cy  = py + this.layout.cell / 2;
-    gfx.fillStyle(0xffffff, 0.9);
-    gfx.fillCircle(cx + off.ex1, cy + off.ey1, eye);
-    gfx.fillCircle(cx + off.ex2, cy + off.ey2, eye);
-    gfx.fillStyle(0x1a3a2b, 1);
-    gfx.fillCircle(cx + off.ex1, cy + off.ey1, Math.max(1, eye - 1));
-    gfx.fillCircle(cx + off.ex2, cy + off.ey2, Math.max(1, eye - 1));
+    const crashed = this.crashed || Boolean(this.snake?.dead);
+    view.container.setDepth(30 + bodyLength - index).setAlpha(crashed ? 0.72 : 1);
+    view.primary.clearTint().setPosition(0, 0).setVisible(true);
+    view.secondary.clearTint().setPosition(0, 0).setVisible(false);
+
+    if (pose.role === "head") {
+      view.primary
+        .setTexture(SNAKE_ASSETS.head)
+        .setDisplaySize(cell * 2.05, cell * 2.05)
+        .setAngle(DIRECTION_DEGREES[this.localDir]);
+    } else if (pose.role === "tail") {
+      view.primary
+        .setTexture(SNAKE_ASSETS.tail)
+        .setDisplaySize(cell * 1.9, cell * 1.9)
+        .setAngle(pose.angle);
+    } else if (pose.turnAngles) {
+      // Two short body-art branches make a visible elbow and keep both joins
+      // aligned to their neighbouring grid cells. The overlap is intentional:
+      // transparent padding and scale artwork blend at the turn centre.
+      const branchOffset = cell * 0.16;
+      const branchSize = cell * 1.45;
+      const [firstAngle, secondAngle] = pose.turnAngles;
+      this.configureTurnBranch(view.primary, firstAngle, branchOffset, branchSize);
+      this.configureTurnBranch(view.secondary, secondAngle, branchOffset, branchSize);
+      view.secondary.setVisible(true);
+    } else {
+      view.primary
+        .setTexture(SNAKE_ASSETS.body)
+        .setDisplaySize(cell * 1.75, cell * 1.75)
+        .setAngle(pose.angle);
+    }
+
+    if (crashed) {
+      view.primary.setTint(0xff8b7a);
+      view.secondary.setTint(0xff8b7a);
+    }
+  }
+
+  private configureTurnBranch(
+    image: Phaser.GameObjects.Image,
+    angle: number,
+    offset: number,
+    size: number,
+  ): void {
+    const radians = Phaser.Math.DegToRad(angle);
+    image
+      .setTexture(SNAKE_ASSETS.body)
+      .setDisplaySize(size, size)
+      .setAngle(angle)
+      .setPosition(Math.cos(radians) * offset, Math.sin(radians) * offset);
+  }
+
+  private setSnakeSpritesVisible(visible: boolean): void {
+    this.snakeSprites.forEach((view) => view.container.setVisible(visible));
+  }
+
+  private clearSnakeVisuals(): void {
+    this.snakeSprites.forEach((view) => {
+      this.tweens.killTweensOf(view.container);
+      view.container.setVisible(false).setAlpha(1);
+    });
+  }
+
+  private destroySnakeSprites(): void {
+    this.snakeSprites.forEach((view) => {
+      this.tweens?.killTweensOf(view.container);
+      if (view.container.active) view.container.destroy(true);
+    });
+    this.snakeSprites = [];
   }
 
   // ── Draw: food ────────────────────────────────────────────────────────────
@@ -1425,14 +1667,14 @@ export class SnakeScene extends BaseScene {
 
     // Timer label
     this.timerLabel.setText(formatClock(Math.max(0, remainingMs)));
-    this.timerLabel.setColor(isLow ? "#ffd166" : "#66ffe0");
+    this.timerLabel.setColor(isLow ? "#b53b32" : "#075f50");
 
     // Length label
     this.lengthLabel.setText(this.txt("lengthReadout", "{len} / {target} cells", {
       len: currentLen,
       target: rule.targetLength,
     }));
-    this.lengthLabel.setColor(this.targetReached ? "#66ffe0" : "#ffcf68");
+    this.lengthLabel.setColor(this.targetReached ? "#075f50" : "#86520a");
 
     // Target badge
     const reward = gasDisplay(rule.rewardFixed8);
@@ -1445,7 +1687,9 @@ export class SnakeScene extends BaseScene {
     const timeUp    = gameStatus === "dealt" && deadline > 0 && remainingMs <= 0;
     const submitWindowClosed = gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
 
-    if (this.crashed || (this.snake && this.snake.dead)) {
+    if (!this.hasStartedMoving) {
+      this.hintLabel.setText(this.txt("hintStartMoving", "Choose a direction to begin.")).setVisible(true);
+    } else if (this.crashed || (this.snake && this.snake.dead)) {
       this.hintLabel.setText(this.txt("hintCrashed", "Snake crashed.")).setVisible(true);
     } else if (timeUp) {
       this.hintLabel.setText(this.txt("hintTimeUp", "Time's up.")).setVisible(true);
@@ -1463,49 +1707,97 @@ export class SnakeScene extends BaseScene {
 
   // ── Input: keyboard ───────────────────────────────────────────────────────
 
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    this.sfx.unlock();
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest("button, input, select, textarea, a[href], [role='dialog']")
+    ) return;
+    const gameStatus = this.str("gameStatus", "");
+    if (gameStatus === "idle") {
+      if (["ArrowLeft", "a", "A"].includes(event.key)) {
+        event.preventDefault();
+        const next = Math.max(0, this.pickedDifficulty - 1) as Difficulty;
+        if (!this.isDifficultyLocked(next) && next !== this.pickedDifficulty) {
+          this.pickedDifficulty = next;
+          this.dispatch("selectDifficulty", { difficulty: this.pickedDifficulty });
+          this.updateLobbyCards();
+          this.sfx.play("move");
+        }
+      } else if (["ArrowRight", "d", "D"].includes(event.key)) {
+        event.preventDefault();
+        const next = Math.min(2, this.pickedDifficulty + 1) as Difficulty;
+        if (!this.isDifficultyLocked(next) && next !== this.pickedDifficulty) {
+          this.pickedDifficulty = next;
+          this.dispatch("selectDifficulty", { difficulty: this.pickedDifficulty });
+          this.updateLobbyCards();
+          this.sfx.play("move");
+        }
+      } else if (["Enter", " "].includes(event.key) && this.canStartDifficulty(this.pickedDifficulty)) {
+        event.preventDefault();
+        this.sfx.play("tap");
+        this.dispatch("startGame", { difficulty: this.pickedDifficulty });
+      }
+      return;
+    }
+    if (gameStatus !== "dealt") return;
+    const map: Record<string, Direction> = {
+      ArrowUp: 0, w: 0, W: 0,
+      ArrowRight: 1, d: 1, D: 1,
+      ArrowDown: 2, s: 2, S: 2,
+      ArrowLeft: 3, a: 3, A: 3,
+    };
+    const dir = map[event.key];
+    if (dir !== undefined) {
+      event.preventDefault?.();
+      this.tryQueueDirection(dir);
+    }
+  };
+
+  private readonly onPointerDown = (ptr: Phaser.Input.Pointer): void => {
+    this.sfx.unlock();
+    this.ptrDown = { x: ptr.x, y: ptr.y };
+  };
+
+  private readonly onPointerUp = (ptr: Phaser.Input.Pointer): void => {
+    if (!this.ptrDown || this.str("gameStatus", "") !== "dealt") {
+      this.ptrDown = null;
+      return;
+    }
+    const dx = ptr.x - this.ptrDown.x;
+    const dy = ptr.y - this.ptrDown.y;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    if (Math.max(absDx, absDy) >= 24) {
+      this.tryQueueDirection(absDx > absDy ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+    }
+    this.ptrDown = null;
+  };
+
   private setupInput(): void {
     if (this.input.keyboard) {
-      this.input.keyboard.on("keydown", (event: KeyboardEvent) => {
-        this.sfx.unlock();
-        if (this.str("gameStatus", "") !== "dealt") return;
-        const map: Record<string, Direction> = {
-          ArrowUp: 0, w: 0, W: 0,
-          ArrowRight: 1, d: 1, D: 1,
-          ArrowDown: 2, s: 2, S: 2,
-          ArrowLeft: 3, a: 3, A: 3,
-        };
-        const dir = map[event.key];
-        if (dir !== undefined) {
-          event.preventDefault?.();
-          this.tryQueueDirection(dir);
-        }
-      });
+      this.input.keyboard.on("keydown", this.onKeyDown);
     }
+    this.input.on("pointerdown", this.onPointerDown);
+    this.input.on("pointerup", this.onPointerUp);
+  }
 
-    this.input.on("pointerdown", (ptr: Phaser.Input.Pointer) => {
-      this.sfx.unlock();
-      this.ptrDown = { x: ptr.x, y: ptr.y };
-    });
+  private cleanupInput(): void {
+    this.input.keyboard?.off("keydown", this.onKeyDown);
+    this.input.off("pointerdown", this.onPointerDown);
+    this.input.off("pointerup", this.onPointerUp);
+    this.ptrDown = null;
+  }
 
-    this.input.on("pointerup", (ptr: Phaser.Input.Pointer) => {
-      if (!this.ptrDown || this.str("gameStatus", "") !== "dealt") {
-        this.ptrDown = null;
-        return;
-      }
-      const dx     = ptr.x - this.ptrDown.x;
-      const dy     = ptr.y - this.ptrDown.y;
-      const absDx  = Math.abs(dx);
-      const absDy  = Math.abs(dy);
-      const THRESH = 24;
-      if (Math.max(absDx, absDy) >= THRESH) {
-        if (absDx > absDy) {
-          this.tryQueueDirection(dx > 0 ? 1 : 3);
-        } else {
-          this.tryQueueDirection(dy > 0 ? 2 : 0);
-        }
-      }
-      this.ptrDown = null;
-    });
+  protected onReducedMotionChange(enabled: boolean): void {
+    this.snakeSprites.forEach((view) => this.tweens.killTweensOf(view.container));
+    this.stopFoodPulse();
+    if (enabled) {
+      this.drawFood();
+    } else if (this.str("gameStatus", "") === "dealt" && this.snake && !this.snake.dead) {
+      this.startFoodPulse();
+    }
   }
 
   private tryQueueDirection(dir: Direction): void {
@@ -1520,8 +1812,8 @@ export class SnakeScene extends BaseScene {
     if (dir !== (this.queuedDir ?? this.localDir)) {
       this.sfx.play("move");
     }
+    this.hasStartedMoving = true;
     this.queuedDir = dir;
-    this.dispatch("recordMove", { dir });
   }
 
   // ── Responsive resize ─────────────────────────────────────────────────────
@@ -1567,6 +1859,7 @@ export class SnakeScene extends BaseScene {
     this.stopTickTimer();
     this.stopClockTimer();
     this.stopFoodPulse();
+    this.cleanupInput();
     super.destroy(fromScene);
   }
 }

@@ -106,6 +106,109 @@
     linear-gradient(180deg, #f2fffb 0%, #fffdf8 68%, #fff7e6 100%);
 }
 
+/* Semantic twins mirror the visible Phaser controls. Pointer input stays on
+ * the game assets; keyboard and assistive technology receive real controls. */
+.rush-a11y-layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 8;
+  width: min(100%, 420px);
+  height: min(calc(100% - 76px), 730px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.rush-a11y-difficulties,
+.rush-a11y-moves {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rush-a11y-hit {
+  position: absolute;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: transparent;
+  padding: 0;
+  pointer-events: none;
+}
+
+.rush-a11y-hit > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: calc(100% - 8px);
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.98);
+  color: #35322e;
+  font-size: 0.72rem;
+  font-weight: 720;
+  line-height: 1.2;
+  opacity: 0;
+  padding: 6px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 7px 18px rgba(62, 48, 25, 0.18);
+}
+
+.rush-a11y-hit:focus-visible {
+  z-index: 3;
+  border-color: #075f50;
+  background: rgba(255, 253, 248, 0.2);
+  outline: 3px solid rgba(255, 239, 188, 0.98);
+  outline-offset: 2px;
+}
+
+.rush-a11y-hit:focus-visible > span {
+  opacity: 1;
+}
+
+.rush-a11y-difficulty {
+  top: 55%;
+  width: 27%;
+  height: 18%;
+}
+
+.rush-a11y-difficulty[data-index="0"] { left: 7%; }
+.rush-a11y-difficulty[data-index="1"] { left: 36.5%; }
+.rush-a11y-difficulty[data-index="2"] { left: 66%; }
+
+.rush-a11y-move {
+  width: 13%;
+  height: 12%;
+  border-radius: 999px;
+}
+
+.rush-a11y-move[data-dir="0"] { left: 43.5%; top: 21%; }
+.rush-a11y-move[data-dir="1"] { left: 82%; top: 43%; }
+.rush-a11y-move[data-dir="2"] { left: 43.5%; top: 68%; }
+.rush-a11y-move[data-dir="3"] { left: 5%; top: 43%; }
+
+.rush-a11y-primary {
+  left: 23%;
+  top: 81%;
+  width: 54%;
+  height: 11%;
+  border-radius: 22px;
+}
+
+.rush-a11y-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .rush-stage-hud {
   position: absolute;
   left: 50%;
@@ -236,6 +339,27 @@
 .rush-ingame-drawer__actions button:disabled {
   opacity: 0.52;
   cursor: default;
+}
+
+.rush-drawer__close {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(0, 175, 146, 0.24);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #075f50;
+  cursor: pointer;
+}
+
+.rush-drawer__close:focus-visible,
+.rush-stage-hud__submit:focus-visible,
+.rush-stage-hud__drawer:focus-visible,
+.rush-ingame-drawer button:focus-visible {
+  outline: 3px solid rgba(0, 175, 146, 0.28);
+  outline-offset: 2px;
 }
 
 .rush-scene {
@@ -661,6 +785,7 @@
   padding: 26px 0 10px;
 
   p {
+    flex: 1 1 auto;
     margin: 0;
     font-size: 0.82rem;
     color: var(--mx2-text-muted);
@@ -1180,7 +1305,12 @@
 @media (prefers-reduced-motion: reduce) {
   .rush-scene *,
   .rush-scene *::before,
-  .rush-scene *::after {
+  .rush-scene *::after,
+  .rush-stage-shell *,
+  .rush-stage-shell *::before,
+  .rush-stage-shell *::after,
+  .rush-ingame-drawer,
+  .rush-a11y-hit {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -1372,5 +1502,50 @@
   .rush-drawer__credit {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 560px) and (max-height: 700px) {
+  .rush-playarea .mx2-stage__head {
+    display: none;
+  }
+
+  .rush-playarea .mx2-cat-game.mx2-stage,
+  .rush-playarea .mx2-playstage.mx2-cat-game,
+  .rush-stage-shell {
+    min-height: 100dvh;
+  }
+
+  .rush-playarea .mx2-cat-game.mx2-stage {
+    padding: 0 !important;
+  }
+
+  .rush-stage-shell {
+    align-items: flex-start;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .rush-phaser-canvas {
+    --phaser-mobile-height-ratio: 1.48;
+  }
+
+  .rush-stage-hud {
+    bottom: 4px;
+    width: calc(100% - 8px);
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  }
+
+  .rush-stage-hud__metric:first-child {
+    display: none;
+  }
+
+  .rush-a11y-layer {
+    height: calc(100% - 58px);
+  }
+
+  .rush-ingame-drawer {
+    bottom: 4px;
+    max-height: calc(100dvh - 8px);
   }
 }

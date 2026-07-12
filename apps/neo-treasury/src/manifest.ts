@@ -6,7 +6,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Neo Treasury",
-  description: "Neo treasury balance oversight with connected-wallet disbursements",
+  description: "Public Mainnet treasury watchlist with verified connected-wallet NEO/GAS transfers",
   icon: "landmark",
   category: "tool",
   shell: "launcher",

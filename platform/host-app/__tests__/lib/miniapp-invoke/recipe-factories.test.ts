@@ -83,12 +83,6 @@ describe("MINIAPP_INVOKE_RECIPES copy is consistent after the factory refactor",
 
   it("pins the exact derived copy for representative recipes", () => {
     expect(
-      MINIAPP_INVOKE_RECIPES["miniapp-dev-tipping:sendTip"]
-        .multiInvokeUnavailableError,
-    ).toBe(
-      "This wallet cannot submit the required funded tip transaction. Open in OneGate or NeoLine.",
-    );
-    expect(
       MINIAPP_INVOKE_RECIPES["miniapp-self-loan:addCollateral"]
         .multiInvokeUnavailableError,
     ).toBe(

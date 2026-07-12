@@ -29,35 +29,25 @@ describe("OneGate Vault copy", () => {
     }
   });
 
-  it("exposes the server-backed claim as the first-class OneGate operation", () => {
-    const operations = gasPoolNeoManifest.operation_panel.operations.map((operation) => operation.method);
-    const hostClaimOperation = gasPoolNeoManifest.operation_panel.operations[0];
-    const hostClaimKey = hostClaimOperation.params.find((param) => param.name === "claimKey");
-    const hostPoolId = hostClaimOperation.params.find((param) => param.name === "poolId");
-    const localClaimOperation = manifest.operations[0];
-    const localClaimKey = localClaimOperation.fields?.find((field) => field.key === "claimKey");
-    const localPoolId = localClaimOperation.fields?.find((field) => field.key === "poolId");
-
-    expect(operations).toEqual(["claimOneGateVault"]);
-    expect(hostClaimKey?.hidden).not.toBe(true);
-    expect(hostClaimKey).toEqual(
-      expect.objectContaining({
-        required: true,
-        sensitive: true,
-      }),
+  it("fails closed while the published hashes do not expose RangeGasPool", () => {
+    expect(gasPoolNeoManifest.operation_panel.operations).toEqual([]);
+    expect(manifest.operations).toEqual([]);
+    expect(manifest.supportsGuest).toBe(true);
+    expect(manifest.supportsGameFi).toBe(false);
+    expect(manifest.features?.walletRequired).toBe(false);
+    expect(manifest.permissions).toEqual(
+      expect.objectContaining({ payments: false, randomness: false, oracle: false }),
     );
-    expect(hostPoolId).toEqual(expect.objectContaining({ label: "Pool ID" }));
-    expect(localClaimKey?.hidden).not.toBe(true);
-    expect(localClaimKey?.required).toBe(true);
-    expect(localPoolId).toEqual(expect.objectContaining({ labelKey: "poolId" }));
-    expect(gasPoolMessages.claimKey.en).toBe("Claim key");
-    expect(gasPoolMessages.claimCongratsTitle.zh).toBe("恭喜，奖励已到账");
+    expect(gasPoolNeoManifest.permissions).toEqual([]);
+    expect(gasPoolNeoManifest.platform.transactions).toBe(false);
+    expect(gasPoolNeoManifest.technologies.vrf.enabled).toBe(false);
   });
 
-  it("states the 1-50 GAS reward range and luck percentile", () => {
-    expect(manifest.description).toMatch(/1-50 GAS/);
-    expect(gasPoolNeoManifest.description).toMatch(/1-50 GAS/);
-    expect(gasPoolMessages.subtitle.en).toMatch(/1-50 GAS/);
+  it("presents the shipping surface as local play, not a GAS promise", () => {
+    expect(manifest.description).toMatch(/free local lucky-draw/i);
+    expect(gasPoolNeoManifest.description).toMatch(/free local lucky-draw/i);
+    expect(gasPoolNeoManifest.description).toMatch(/No wallet, GAS, contract call, or oracle/i);
+    expect(gasPoolMessages.guestSubtitle.en).toMatch(/No GAS, no wallet/i);
     expect(gasPoolMessages.luckPercentLabel.zh).toContain("运气超过");
   });
 

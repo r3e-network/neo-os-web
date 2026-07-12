@@ -6,6 +6,8 @@ export const FUND_MEMO = "miniapp-color-clash:fund";
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
+/** Must match MiniAppColorClash.SETTLE_GRACE_MS; refreshed from getConfig in GameFi mode. */
+export const SETTLEMENT_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: number;
@@ -16,16 +18,54 @@ export interface DifficultyRule {
   targetSeq: number;    // how many colors the player must repeat
 }
 
+export interface CueTiming {
+  leadInMs: number;
+  litMs: number;
+  gapMs: number;
+  pressLockMs: number;
+}
+
 export const DIFFICULTY_RULES: DifficultyRule[] = [
   { difficulty: 0, entry: 2_000_000, reward: 10_000_000, limitMs: 120_000, minSolveMs: 15_000, targetSeq: 8 },
   { difficulty: 1, entry: 10_000_000, reward: 50_000_000, limitMs: 180_000, minSolveMs: 30_000, targetSeq: 12 },
   { difficulty: 2, entry: 20_000_000, reward: 100_000_000, limitMs: 300_000, minSolveMs: 45_000, targetSeq: 16 },
 ];
 
+export const CUE_TIMINGS: readonly [CueTiming, CueTiming, CueTiming] = [
+  { leadInMs: 360, litMs: 520, gapMs: 220, pressLockMs: 220 },
+  { leadInMs: 320, litMs: 390, gapMs: 180, pressLockMs: 180 },
+  { leadInMs: 280, litMs: 290, gapMs: 140, pressLockMs: 150 },
+];
+
 export function ruleOf(difficulty: number): DifficultyRule {
   const r = DIFFICULTY_RULES.find(d => d.difficulty === difficulty);
   if (!r) throw new Error(`unknown difficulty ${difficulty}`);
   return r;
+}
+
+export function cueTimingOf(difficulty: number): CueTiming {
+  const index = Math.max(0, Math.min(2, Number.isFinite(difficulty) ? Math.round(difficulty) : 0));
+  return CUE_TIMINGS[index] ?? CUE_TIMINGS[0];
+}
+
+export function releaseAtOf(deadline: unknown, graceMs = SETTLEMENT_GRACE_MS): number {
+  const safeDeadline = Number(deadline);
+  const safeGrace = Number(graceMs);
+  if (!Number.isFinite(safeDeadline) || safeDeadline <= 0) return 0;
+  return safeDeadline + (
+    Number.isFinite(safeGrace) && safeGrace >= 0
+      ? safeGrace
+      : SETTLEMENT_GRACE_MS
+  );
+}
+
+export function canReleaseExpiredGame(
+  deadline: unknown,
+  graceMs = SETTLEMENT_GRACE_MS,
+  now = Date.now(),
+): boolean {
+  const releaseAt = releaseAtOf(deadline, graceMs);
+  return releaseAt > 0 && now > releaseAt;
 }
 
 export function rewardPctAfterUndos(undos: number): number {

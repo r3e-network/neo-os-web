@@ -1,16 +1,22 @@
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
+const simulatorQaDirectPlay =
+  import.meta.env.DEV &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("simQa") === "1";
+
 export const manifest: MiniAppManifest = {
-  name: "Catch the Goose",
+  name: "Goose Basket Shuffle",
   description:
-    "A free, physics-driven find-and-clear game. Items tumble into the pen; tap to pull them into your 7-slot tray, match three of a kind to clear, empty the pen, and snatch the runaway goose before time runs out. Fifteen levels across six themed scenes — clear a scene to collect its limited-edition goose. All played locally with no entry fee.",
+    "An original physics-driven find-and-clear game with three complete player-selectable themes. Pull objects into a 7-slot tray, match three of a kind, shake the real phone to turn the basket, and clear fifteen levels. Relaxed play is untimed by default, timed challenge is optional, and personal progress stays on this device.",
   icon: "bird",
   category: "game",
   shell: "game",
+  directPlay: simulatorQaDirectPlay,
 
   gamePage: {
     categoryColor: "#F59E0B",
-    modes: { guest: true },
+    modes: { guest: true, gamefi: false },
     heroBadgeKey: "guestRunValue",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",

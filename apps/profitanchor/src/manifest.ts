@@ -1,130 +1,30 @@
-/**
- * ProfitAnchor Manifest
- */
-
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
+/**
+ * PlayStage owns the complete user journey. Generic tabs, stat cards, sidebar,
+ * and operation forms are intentionally omitted so the same staking controls
+ * never appear twice.
+ */
 export const manifest: MiniAppManifest = {
   name: "ProfitAnchor",
-  description: "User-facing ProfitAnchor staking app for staking NEO, redeeming NEO, and claiming GAS rewards.",
+  description: "Yield-policy NEO staking through the live PlatformAnchor mode 2 pool, with variable GAS rewards and explicit confirmation recovery.",
   icon: "trending-up",
   category: "defi",
   shell: "launcher",
-
-  tabs: [
-    { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
-  ],
-
-  stats: [
-    {
-      labelKey: "myStake",
-      valueKey: "myStakeDisplay",
-      format: "text",
-      variant: "accent",
-      icon: "lock",
-    },
-    {
-      labelKey: "pendingRewards",
-      valueKey: "pendingRewardsDisplay",
-      format: "text",
-      variant: "success",
-      icon: "gift",
-    },
-    {
-      labelKey: "totalNeoTracked",
-      valueKey: "totalNeoDisplay",
-      format: "text",
-      icon: "archive",
-    },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      {
-        labelKey: "myStake",
-        valueKey: "myStakeDisplay",
-        format: "text",
-      },
-      {
-        labelKey: "pendingRewards",
-        valueKey: "pendingRewardsDisplay",
-        format: "text",
-      },
-      {
-        labelKey: "totalNeoTracked",
-        valueKey: "totalNeoDisplay",
-        format: "text",
-      },
-    ],
+  directPlay: true,
+  theme: {
+    family: "finance",
+    accentColor: "#0a7a66",
+    density: "comfortable",
   },
-
-  operations: [
-    {
-      key: "stakeNeo",
-      titleKey: "stakeNeo",
-      descriptionKey: "stakeNeoDesc",
-      actionKey: "submitStake",
-      actionMethod: "stakeNeo",
-      priority: "primary",
-      fields: [
-        {
-          key: "amount",
-          type: "number",
-          labelKey: "neoAmount",
-          placeholder: "1",
-          required: true,
-          validation: { min: 1 },
-        },
-      ],
-    },
-    {
-      key: "withdrawNeo",
-      titleKey: "withdrawNeo",
-      descriptionKey: "withdrawNeoDesc",
-      actionKey: "submitWithdraw",
-      actionMethod: "withdrawNeo",
-      priority: "primary",
-      fields: [
-        {
-          key: "amount",
-          type: "number",
-          labelKey: "neoAmount",
-          placeholder: "1",
-          required: true,
-          validation: { min: 1 },
-        },
-      ],
-    },
-    {
-      key: "claimRewards",
-      titleKey: "claimRewards",
-      descriptionKey: "claimRewardsDesc",
-      actionKey: "submitClaim",
-      actionMethod: "claimRewards",
-      priority: "primary",
-      fields: [],
-    },
-  ],
-
   features: {
-    walletRequired: true,
     chainWarning: true,
   },
-
-  docs: [
-    { titleKey: "title", contentKey: "docsSubtitle", type: "text" },
-    { titleKey: "docDescription", contentKey: "step2", type: "steps" },
-    { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
-  ],
-
   contract: {
-    mode: "custom",
+    mode: "shared",
+    moduleId: "PlatformAnchor",
   },
-
   permissions: {
     payments: true,
-    governance: true,
-    aa: true,
   },
 };

@@ -79,8 +79,9 @@
   grid-template-columns: minmax(360px, 1fr) minmax(300px, 0.82fr);
   grid-template-areas:
     "ticket route"
-    "ticket readiness"
-    "pool readiness";
+    "pool route"
+    "simulation readiness";
+  align-items: start;
   gap: 14px;
   padding: 18px;
 }
@@ -88,6 +89,7 @@
 .flash-pool,
 .flash-ticket,
 .flash-route,
+.flash-simulation,
 .flash-readiness__item {
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.1);
@@ -240,6 +242,13 @@
   box-shadow: 0 0 0 3px rgba(8, 153, 129, 0.11), var(--mx2-shadow);
 }
 
+.flash-ticket__preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+  box-shadow: none;
+}
+
 .flash-ticket__preset span {
   font-size: 12px;
   font-weight: 620;
@@ -346,6 +355,20 @@
 
 .flash-callback-socket[data-ready="true"] .flash-callback-socket__rail-dot {
   background: var(--mx2-accent-strong);
+}
+
+.flash-callback-socket[data-invalid="true"] {
+  border-color: rgba(185, 28, 28, 0.28);
+  background: #fef2f2;
+}
+
+.flash-callback-socket[data-invalid="true"] .flash-callback-socket__rail-dot {
+  background: #b91c1c;
+}
+
+.flash-callback-socket[data-invalid="true"] .flash-callback-socket__copy strong,
+.flash-callback-socket[data-invalid="true"] .flash-callback-socket__target {
+  color: #b91c1c;
 }
 
 .flash-input {
@@ -501,6 +524,155 @@
   gap: 8px;
 }
 
+.flash-simulation {
+  grid-area: simulation;
+  align-self: stretch;
+  display: grid;
+  gap: 10px;
+  border-radius: 18px;
+  padding: 14px;
+  background: #fffdf8;
+  border-color: rgba(217, 119, 6, 0.2);
+}
+
+.flash-simulation[data-ready="true"] {
+  background: #fbfffd;
+  border-color: rgba(8, 153, 129, 0.26);
+}
+
+.flash-simulation__head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.flash-simulation__tokens,
+.flash-network-assets {
+  display: inline-flex;
+  align-items: center;
+}
+
+.flash-simulation__tokens > :last-child,
+.flash-network-assets > :last-child {
+  margin-left: -7px;
+}
+
+.flash-simulation__head > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.flash-simulation__head small {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 620;
+  text-transform: uppercase;
+}
+
+.flash-simulation__head strong {
+  color: var(--mx2-ink);
+  font-size: 15px;
+}
+
+.flash-simulation__head b {
+  max-width: 180px;
+  overflow: hidden;
+  border-radius: 10px;
+  padding: 6px 8px;
+  color: #92400e;
+  background: #fff7e6;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flash-simulation[data-ready="true"] .flash-simulation__head b {
+  color: #065f46;
+  background: #dff9ef;
+}
+
+.flash-simulation__ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.flash-simulation__ledger div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+
+.flash-simulation__ledger dt {
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 620;
+}
+
+.flash-simulation__ledger dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flash-simulation__risk {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 10px;
+  align-items: start;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-top: 9px;
+  color: #92400e;
+}
+
+.flash-simulation__risk > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.flash-simulation__risk strong,
+.flash-simulation__risk small {
+  display: block;
+}
+
+.flash-simulation__risk strong {
+  color: var(--mx2-ink);
+  font-size: 11px;
+}
+
+.flash-simulation__risk small {
+  color: #854d0e;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.flash-simulation__risk em {
+  grid-column: 2;
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.flash-network-assets {
+  margin-right: 4px;
+}
+
 .flash-readiness__item {
   min-height: 58px;
   border-radius: 16px;
@@ -565,6 +737,32 @@
   background: #ffffff;
   border: 1px solid rgba(31, 41, 55, 0.1);
   box-shadow: var(--mx2-shadow-sm);
+}
+
+.flash-scene__status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  text-align: center;
+}
+
+.flash-txid {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 9px;
+  padding: 3px 7px;
+  color: #075985;
+  background: #f0f9ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.flash-drawer__notice .flash-txid {
+  margin-top: 8px;
 }
 
 .flash-scene__error {
@@ -775,6 +973,71 @@
   gap: 8px;
 }
 
+.flash-harness-card {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(8, 153, 129, 0.22);
+  border-radius: 16px;
+  padding: 10px 12px;
+  color: var(--mx2-ink);
+  background: #f2fff9;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.flash-harness-card:hover {
+  border-color: rgba(8, 153, 129, 0.46);
+  box-shadow: 0 8px 18px rgba(8, 153, 129, 0.1);
+}
+
+.flash-harness-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+}
+
+.flash-harness-card__icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: var(--mx2-accent-strong);
+  background: #ffffff;
+}
+
+.flash-harness-card__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.flash-harness-card__copy strong,
+.flash-harness-card__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flash-harness-card__copy strong {
+  font-size: 13px;
+}
+
+.flash-harness-card__copy small {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+}
+
+.flash-harness-card__action {
+  color: var(--mx2-accent-strong);
+  font-size: 12px;
+  font-weight: 720;
+}
+
 .flash-drawer__field .mx2-open-field__control {
   min-height: 40px;
   background: var(--mx2-surface-2);
@@ -794,17 +1057,30 @@
 }
 
 .flash-drawer__lp-actions .mx2-btn,
-.flash-drawer__lookup .mx2-btn {
+.flash-drawer__lookup .mx2-btn,
+.flash-drawer__resume {
   flex: 0 0 auto;
   min-height: 38px;
   padding-inline: 14px;
   white-space: nowrap;
 }
 
+.flash-drawer__resume {
+  justify-self: start;
+  color: #075985;
+  border-color: rgba(3, 105, 161, 0.24);
+  background: #f0f9ff;
+}
+
 .flash-drawer__notice.mx2-open-notice.semi-banner {
   min-height: 76px;
   border-color: rgba(8, 153, 129, 0.14);
   background: #fbfdf9;
+}
+
+.flash-drawer__notice--blocked.mx2-open-notice.semi-banner {
+  border-color: rgba(217, 119, 6, 0.22);
+  background: #fffaf0;
 }
 
 .flash-drawer__hint {
@@ -833,6 +1109,7 @@
     grid-template-areas:
       "ticket"
       "route"
+      "simulation"
       "readiness"
       "pool";
     padding: 16px;
@@ -849,6 +1126,10 @@
 }
 
 @media (max-width: 640px) {
+  .flashloan-play-area {
+    padding-bottom: 82px;
+  }
+
   .flashloan-play-area .mx2-stage {
     padding: 16px 14px 18px;
   }
@@ -868,7 +1149,9 @@
   .flash-scene__workspace {
     grid-template-areas:
       "ticket"
+      "pool"
       "route"
+      "simulation"
       "readiness";
     padding: 10px;
     gap: 8px;
@@ -907,7 +1190,7 @@
 
   .flash-ticket__amount span {
     margin-bottom: 3px;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .flash-ticket__amount strong {
@@ -920,8 +1203,8 @@
   }
 
   .flash-ticket__preset-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .flash-drawer,
@@ -953,7 +1236,7 @@
 
   .flash-ticket__preset span,
   .flash-ticket__repayment span {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .flash-ticket__preset strong {
@@ -1025,24 +1308,24 @@
   }
 
   .flash-route__visual {
-    height: 64px;
+    height: 96px;
     border-radius: 14px;
   }
 
   .flash-route__steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 5px;
   }
 
   .flash-route__step {
     align-items: center;
-    justify-content: center;
-    min-height: 42px;
-    gap: 4px;
-    padding: 6px 4px;
+    justify-content: flex-start;
+    min-height: 50px;
+    gap: 7px;
+    padding: 7px 8px;
     border-radius: 13px;
-    flex-direction: column;
-    text-align: center;
+    flex-direction: row;
+    text-align: left;
   }
 
   .flash-route__icon {
@@ -1052,47 +1335,91 @@
   }
 
   .flash-route__step strong {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .flash-route__step small {
-    display: none;
+    display: block;
+    font-size: 10px;
   }
 
   .flash-readiness {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 6px;
   }
 
+  .flash-simulation {
+    gap: 7px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .flash-simulation__head {
+    gap: 7px;
+  }
+
+  .flash-simulation__head b {
+    max-width: 118px;
+  }
+
+  .flash-simulation__ledger {
+    gap: 5px;
+  }
+
+  .flash-simulation__ledger div {
+    padding: 7px;
+  }
+
+  .flash-simulation__ledger dt,
+  .flash-simulation__risk small,
+  .flash-simulation__risk em {
+    font-size: 10px;
+  }
+
+  .flash-simulation__ledger dd {
+    font-size: 12px;
+  }
+
   .flash-readiness__item {
-    min-height: 46px;
-    padding: 7px 6px;
+    min-height: 52px;
+    padding: 8px 10px;
     border-radius: 14px;
-    grid-template-columns: 1fr;
-    row-gap: 2px;
+    grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 3px;
   }
 
   .flash-readiness__item svg {
-    display: none;
+    display: block;
+    grid-row: 1 / span 2;
   }
 
   .flash-readiness__item span {
-    font-size: 8px;
+    font-size: 10px;
     letter-spacing: 0;
   }
 
   .flash-readiness__item strong {
     display: -webkit-box;
     overflow: hidden;
-    font-size: 10px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.3;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
   .flash-pool {
-    display: none;
+    display: grid;
+    min-height: 84px;
+    padding: 10px 12px;
+  }
+
+  .flash-pool strong {
+    font-size: 22px;
+  }
+
+  .flash-pool span:last-child {
+    font-size: 11px;
   }
 
   .flash-route,
@@ -1118,6 +1445,35 @@
 
   .flashloan-play-area .mx2-score {
     display: none;
+  }
+
+  .flashloan-play-area .mx2-action-rail {
+    position: fixed;
+    left: 50%;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 40;
+    width: min(calc(100% - 20px), 480px);
+    margin: 0;
+    padding: 7px;
+    border: 1px solid rgba(15, 23, 42, 0.09);
+    border-radius: 18px;
+    background: rgba(255, 253, 248, 0.96);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+    transform: translateX(-50%);
+  }
+
+  .flashloan-play-area .mx2-action-rail__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 124px;
+    gap: 8px;
+  }
+
+  .flashloan-play-area .mx2-action-rail__row .mx2-btn--primary,
+  .flashloan-play-area .mx2-action-rail__drawer-toggle {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    margin: 0;
   }
 }
 

@@ -30,6 +30,23 @@ function gitFiles() {
     .filter(Boolean);
 }
 
+function readRepo(relativePath: string) {
+  return fs.readFileSync(path.join(repoRoot(), relativePath), "utf8");
+}
+
+function compact(source: string) {
+  return source.replace(/\s+/g, " ");
+}
+
+const PHASER_GAS_TOKEN_SCENES = [
+  "apps/burn-league/src/scenes/BurnLeagueScene.ts",
+  "apps/dice-game/src/scenes/DiceScene.ts",
+  "apps/fogplay/src/scenes/FogplayScene.ts",
+  "apps/gas-lucky-pool/src/scenes/GasLuckyPoolScene.ts",
+  "apps/last-survivor/src/scenes/LastSurvivorScene.ts",
+  "apps/red-envelope/src/scenes/RedEnvelopeScene.ts",
+] as const;
+
 describe("official token assets", () => {
   it("keeps official Neo Press Kit NEO and GAS icons in shared assets", () => {
     const neoIcon = readShared("assets/tokens/neo-icon.svg");
@@ -101,12 +118,40 @@ describe("official token assets", () => {
 
       if (
         runtimeSource.test(file) &&
-        !allowedDirectImports.has(file)
+        !allowedDirectImports.has(file) &&
+        fs.existsSync(path.join(repoRoot(), file))
       ) {
         const source = fs.readFileSync(path.join(repoRoot(), file), "utf8");
         if (directTokenArtwork.test(source)) {
           violations.push("references token artwork outside shared CoinArt");
         }
+      }
+
+      return violations.map((reason) => `${file}: ${reason}`);
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps Phaser GAS token imagery routed through the shared official texture", () => {
+    const offenders = PHASER_GAS_TOKEN_SCENES.flatMap((file) => {
+      const source = readRepo(file);
+      const flat = compact(source);
+      const violations: string[] = [];
+
+      if (!source.includes('from "@shared/art/token-assets"')) {
+        violations.push("does not import shared token-assets");
+      }
+      if (!source.includes("officialGasTokenPhaserUrl")) {
+        violations.push("does not reference officialGasTokenPhaserUrl");
+      }
+      if (!/this\.load\.image\([^)]*officialGasTokenPhaserUrl/.test(flat)) {
+        violations.push("does not preload the official GAS token texture");
+      }
+      if (
+        /this\.load\.image\([^,]+,\s*["'][^"']*(?:gas|neo)[^"']*(?:token|coin|icon)[^"']*\.(?:png|webp|jpe?g|svg)["']/i.test(source)
+      ) {
+        violations.push("loads a local token-looking GAS/NEO image instead of shared token-assets");
       }
 
       return violations.map((reason) => `${file}: ${reason}`);

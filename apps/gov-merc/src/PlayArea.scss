@@ -1,270 +1,519 @@
-/**
- * Gov Merc -- resource-led PlayArea styles.
- *
- * Governance/DeFi identity: a bright civic market room, NEO stake and GAS bid
- * rails, compact order tickets, and secondary settlement/rewards in the drawer.
- */
-@use "@shared/styles/v2/tokens" as *;
-@use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* domain-theme (auto) */
 :root,
 .mx2 {
-  --mx2-brand: #4f46e5;
-  --mx2-brand-hover: #4338ca;
-  --mx2-brand-light: #ecebfd;
-  --mx2-brand-subtle: #c9c5f8;
-  --mx2-ring: rgba(0, 0, 0, 0.06);
-  --mx2-accent: #7c3aed;
-  --mx2-accent-strong: #5b21b6;
-  --mx2-accent-soft: #f2ebfe;
-  --mx2-accent-ink: #3b1d75;
+  --merc-ink: #17372e;
+  --merc-muted: #61766e;
+  --merc-green: #0b7d5d;
+  --merc-green-soft: #e8f7f0;
+  --merc-gold: #a86508;
+  --merc-gold-soft: #fff4d8;
+  --merc-line: #d9e7df;
+  --merc-cream: #fffbf1;
+  --merc-danger: #9f352f;
+  --mx2-brand: #0b7d5d;
+  --mx2-brand-hover: #08664c;
+  --mx2-brand-light: #e8f7f0;
+  --mx2-brand-subtle: #bfe2d2;
+  --mx2-accent: #b67512;
+  --mx2-accent-strong: #8a5509;
+  --mx2-accent-soft: #fff4d8;
+  --mx2-accent-ink: #5f3a07;
+  --mx2-ring: rgba(11, 125, 93, 0.2);
 }
 
-
-.gov-merc-play-area {
-  display: block;
-}
-
-.gov-merc-play-area .mx2-stage__scene {
-  display: block;
-  min-height: 0;
-  padding: 0;
-}
-
-.gov-merc-play-area .mx2-stage__head {
-  align-items: center;
-}
-
-.gov-merc-play-area .mx2-stage__title,
-.gov-merc-play-area .mx2-eyebrow {
+.gov-merc-play-area,
+.gov-merc-play-area * {
   letter-spacing: 0;
 }
 
-.merc-stage-badge {
-  max-width: min(260px, 34vw);
+.gov-merc-play-area .mx2-stage__scene {
+  min-height: 0;
+  padding: 0;
+  background: var(--mx2-stage-floor);
+}
+
+.gov-merc-play-area .mx2-stage__scene::before,
+.gov-merc-play-area .mx2-stage__scene::after {
+  display: none;
+}
+
+.merc-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+  gap: 14px;
+  padding: 14px;
+}
+
+.merc-market-visual {
+  position: relative;
+  min-width: 0;
+  min-height: 520px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(23, 55, 46, 0.12);
+  border-radius: 18px;
+  background: #f3f5e9;
+  box-shadow: 0 18px 44px rgba(31, 82, 63, 0.12);
+}
+
+.merc-market-visual > img {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+
+.merc-workspace[data-active]:not([data-active="idle"]) .merc-market-visual > img {
+  animation: merc-real-state-focus 1.8s ease-in-out infinite alternate;
+}
+
+.merc-market-overlay {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.merc-round-card {
+  width: fit-content;
+  max-width: 82%;
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  padding: 10px 13px;
+  color: var(--merc-ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 28px rgba(23, 55, 46, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.merc-round-card span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--merc-green);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.merc-round-card strong {
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.merc-market-tape {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.merc-market-tape > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  gap: 2px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: var(--merc-ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 26px rgba(23, 55, 46, 0.13);
+  backdrop-filter: blur(10px);
+}
+
+.merc-market-tape > div > svg,
+.merc-market-tape > div > img,
+.merc-market-tape > div > span:first-child {
+  grid-area: icon;
+  color: var(--merc-green);
+}
+
+.merc-market-tape span {
+  grid-area: label;
+  overflow: hidden;
+  color: var(--merc-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-market-tape strong {
+  grid-area: value;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-command {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid var(--merc-line);
+  border-radius: 18px;
+  padding: 16px;
+  color: var(--merc-ink);
+  background: #ffffff;
+  box-shadow: 0 16px 38px rgba(31, 82, 63, 0.1);
+}
+
+.merc-command__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.merc-command__heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.merc-command__heading > div > span {
+  color: var(--merc-green);
+  font-size: 10px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.merc-command__heading strong {
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.merc-wallet-pill {
+  max-width: 130px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  border: 1px solid var(--merc-line);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--merc-muted);
+  background: #f7faf8;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-role-switch .mx2-open-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.merc-role-switch .mx2-open-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  border: 1px solid var(--merc-line);
+  border-radius: 13px;
+  padding: 4px;
+  background: #f3f8f5;
+}
+
+.merc-role-switch .semi-radio {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  color: var(--merc-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.merc-role-switch .semi-radio-checked {
+  color: var(--merc-green);
+  background: #ffffff;
+  box-shadow: 0 5px 14px rgba(31, 82, 63, 0.1);
+}
+
+.merc-role-switch .semi-radio-addon-buttonRadio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.merc-ticket {
+  display: grid;
+  gap: 10px;
+}
+
+.merc-ticket .mx2-open-field {
+  gap: 6px;
+}
+
+.merc-ticket .mx2-open-field__label,
+.merc-secondary-action .mx2-open-field__label {
+  color: var(--merc-ink);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.merc-ticket .mx2-open-field__control,
+.merc-secondary-action .mx2-open-field__control {
+  min-height: 44px;
+  border: 1px solid var(--merc-line);
+  border-radius: 11px;
+  background: #ffffff;
+}
+
+.merc-ticket .semi-input,
+.merc-secondary-action .semi-input {
+  font-size: 16px;
+  font-weight: 720;
+}
+
+.merc-ticket .mx2-open-field__hint {
+  color: var(--merc-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.merc-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.merc-presets button {
+  min-height: 32px;
+  flex: 1 1 72px;
+  border: 1px solid var(--merc-line);
+  border-radius: 9px;
+  padding: 6px 8px;
+  color: var(--merc-muted);
+  background: #f8fbf9;
+  font-size: 10px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.merc-presets button[aria-pressed="true"] {
+  border-color: #7bc3a6;
+  color: var(--merc-green);
+  background: var(--merc-green-soft);
+}
+
+.merc-presets button:disabled,
+.merc-compact-actions button:disabled,
+.merc-secondary-action button:disabled,
+.merc-reclaims button:disabled,
+.merc-pending-record button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.merc-onboarding {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #c9dfd4;
+  border-radius: 13px;
+  padding: 13px;
+  color: var(--merc-green);
+  background: var(--merc-green-soft);
+}
+
+.merc-onboarding--pending {
+  border-color: #efd39a;
+  color: var(--merc-gold);
+  background: var(--merc-gold-soft);
+}
+
+.merc-onboarding > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.merc-onboarding strong {
+  color: var(--merc-ink);
+  font-size: 13px;
+}
+
+.merc-onboarding span {
+  color: var(--merc-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.merc-command__status {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: auto 0 0;
+  border-top: 1px solid var(--merc-line);
+  padding-top: 12px;
+  color: var(--merc-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.merc-command__status svg {
+  flex: 0 0 auto;
+  color: var(--merc-green);
+}
+
+.merc-command__status[role="alert"] svg {
+  color: var(--merc-danger);
+}
+
+.merc-drawer {
+  display: grid;
+  gap: 10px;
+}
+
+.merc-drawer-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.merc-drawer-tabs button {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "icon label"
+    "icon value";
+  align-items: center;
+  gap: 1px 6px;
+  border: 1px solid var(--merc-line);
+  border-radius: 11px;
+  padding: 8px 9px;
+  color: var(--merc-muted);
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.merc-drawer-tabs button.is-active {
+  border-color: #7bc3a6;
+  color: var(--merc-green);
+  background: var(--merc-green-soft);
+}
+
+.merc-drawer-tabs svg {
+  grid-area: icon;
+}
+
+.merc-drawer-tabs span,
+.merc-drawer-tabs strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.merc-scene {
-  position: relative;
-  min-height: 620px;
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(230px, 0.72fr) minmax(160px, 1fr);
-  grid-template-rows: auto auto auto auto;
-  align-items: center;
-  justify-items: center;
-  gap: 16px 18px;
-  overflow: hidden;
-  isolation: isolate;
-  border: 1px solid var(--mx2-brand-subtle);
-  border-radius: var(--mx2-r-lg);
-  padding: 18px;
-  background: #ffffff;
-  box-shadow: none;
+.merc-drawer-tabs span {
+  grid-area: label;
+  font-size: 10px;
+  font-weight: 700;
 }
 
-.merc-stage-art {
-  position: relative;
-  z-index: 1;
-  grid-column: 1 / -1;
-  grid-row: 1;
-  width: min(100%, 760px);
-  aspect-ratio: 16 / 9;
+.merc-drawer-tabs strong {
+  grid-area: value;
+  font-size: 11px;
+}
+
+.merc-drawer-panel {
+  border-radius: 14px;
+}
+
+.merc-bid-list {
+  display: grid;
+  gap: 7px;
   margin: 0;
-  overflow: hidden;
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  border-radius: calc(var(--mx2-r-lg) - 6px);
-  background: #ffffff;
-  box-shadow: 0 18px 42px rgba(15, 118, 110, 0.1);
+  padding: 0;
+  list-style: none;
 }
 
-.merc-stage-art img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  object-position: center;
-  opacity: 1;
-  filter: none;
-}
-
-.merc-stage-art::after {
-  content: none;
-}
-
-.merc-lane {
-  position: relative;
-  z-index: 3;
-  grid-row: 2;
-  width: min(260px, 100%);
+.merc-bid-list li {
+  min-width: 0;
   display: grid;
-  justify-items: center;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--merc-line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #fbfdfc;
+}
+
+.merc-bid-list li > span {
+  color: var(--merc-gold);
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.merc-bid-list strong {
+  overflow: hidden;
+  color: var(--merc-ink);
+  font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merc-bid-list em {
+  color: var(--merc-green);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 760;
+}
+
+.merc-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 78px;
+  border: 1px dashed var(--merc-line);
+  border-radius: 11px;
+  padding: 14px;
+  color: var(--merc-muted);
+  background: #fbfdfc;
+  font-size: 11px;
+}
+
+.merc-wallet-panel,
+.merc-recovery-panel {
+  display: grid;
   gap: 12px;
 }
 
-.merc-lane--stake {
-  grid-column: 1;
-  color: var(--mx2-brand-hover);
-}
-
-.merc-lane--bid {
-  grid-column: 3;
-  color: #b45309;
-}
-
-.merc-lane__rail {
-  position: absolute;
-  inset: 58px auto auto 50%;
-  width: min(280px, 52vw);
-  height: 8px;
-  border-radius: var(--mx2-r-pill);
-  background: currentColor;
-  opacity: 0.22;
-  filter: blur(0.2px);
-  transform-origin: center;
-}
-
-.merc-lane--stake .merc-lane__rail {
-  transform: translateX(-28%) rotate(-9deg);
-}
-
-.merc-lane--bid .merc-lane__rail {
-  transform: translateX(-72%) rotate(9deg);
-}
-
-.merc-lane__coin-stack {
-  position: relative;
-  width: 132px;
-  height: 84px;
-}
-
-.merc-lane__coin-stack span {
-  position: absolute;
+.merc-balance-grid {
   display: grid;
-  place-items: center;
-  border: 1px solid rgba(15, 118, 110, 0.1);
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 12px 26px rgba(6, 95, 70, 0.12);
-}
-
-.merc-lane__coin-stack span:nth-child(1) {
-  left: 44px;
-  top: 10px;
-  width: 54px;
-  height: 54px;
-}
-
-.merc-lane__coin-stack span:nth-child(2) {
-  left: 10px;
-  top: 34px;
-  width: 42px;
-  height: 42px;
-}
-
-.merc-lane__coin-stack span:nth-child(3) {
-  right: 8px;
-  top: 42px;
-  width: 36px;
-  height: 36px;
-}
-
-.merc-lane[data-active="true"] .merc-lane__coin-stack span {
-  animation: merc-token-route 0.86s var(--mx2-ease) infinite;
-}
-
-.merc-lane__copy {
-  display: grid;
-  min-width: 0;
-  gap: 3px;
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  border-radius: 18px;
-  padding: 11px 16px;
-  background: #ffffff;
-  box-shadow: var(--mx2-shadow-sm);
-  text-align: center;
-}
-
-.merc-lane__copy span {
-  color: var(--mx2-text-muted);
-  font-size: 10px;
-  font-weight: 680;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.merc-lane__copy strong {
-  color: var(--mx2-ink);
-  font-size: 17px;
-  font-weight: 680;
-}
-
-.merc-core {
-  position: relative;
-  z-index: 4;
-  grid-column: 2;
-  grid-row: 2;
-  width: min(250px, 100%);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  align-content: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.92),
-    0 28px 74px rgba(6, 95, 70, 0.18);
-  color: #0f766e;
-  text-align: center;
 }
 
-.merc-core__halo {
-  position: absolute;
-  inset: 18px;
-  border: 2px solid rgba(15, 118, 110, 0.14);
-  border-radius: 50%;
-}
-
-.merc-core strong,
-.merc-core em {
-  position: relative;
-  z-index: 2;
-  max-width: 82%;
-  overflow: hidden;
-  text-overflow: clip;
-}
-
-.merc-core strong {
-  color: var(--mx2-ink);
-  font-size: 20px;
-  font-style: normal;
-  font-weight: 680;
-}
-
-.merc-core em {
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 620;
-  line-height: 1.24;
-  white-space: normal;
-}
-
-.merc-scene[data-state="settle"] .merc-core,
-.merc-scene[data-state="bid"] .merc-core {
-  animation: merc-core-pulse 0.72s var(--mx2-ease) infinite;
-}
-
-.merc-readout {
-  position: absolute;
-  z-index: 5;
-  min-width: 146px;
+.merc-balance-grid > div {
+  min-width: 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
@@ -272,745 +521,253 @@
     "icon value";
   align-items: center;
   gap: 2px 8px;
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  border-radius: 18px;
-  padding: 11px 13px;
-  background: #ffffff;
-  box-shadow: 0 18px 40px rgba(6, 95, 70, 0.12);
+  border: 1px solid var(--merc-line);
+  border-radius: 11px;
+  padding: 10px;
+  background: #fbfdfc;
 }
 
-.merc-readout svg {
+.merc-balance-grid > div > svg,
+.merc-balance-grid > div > span:first-child {
   grid-area: icon;
-  color: #0f766e;
+  color: var(--merc-green);
 }
 
-.merc-readout span {
+.merc-balance-grid span {
   grid-area: label;
-  color: var(--mx2-text-muted);
-  font-size: 10px;
-  font-weight: 680;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  overflow: hidden;
+  color: var(--merc-muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.merc-readout strong {
+.merc-balance-grid strong {
   grid-area: value;
-  min-width: 0;
   overflow: hidden;
-  color: var(--mx2-ink);
-  font-size: 15px;
-  font-weight: 680;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.merc-readout--pool {
-  left: clamp(18px, 4vw, 70px);
-  top: clamp(28px, 5vw, 58px);
-}
-
-.merc-readout--bid {
-  right: clamp(18px, 4vw, 70px);
-  top: clamp(38px, 6vw, 68px);
-}
-
-.merc-route {
-  position: relative;
-  z-index: 5;
-  grid-column: 1 / -1;
-  grid-row: 3;
-  width: min(700px, calc(100% - 42px));
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 44px minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
-  padding: 8px;
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  border-radius: var(--mx2-r-pill);
-  background: #ffffff;
-  box-shadow: var(--mx2-shadow-sm);
-}
-
-.merc-route__node {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: var(--mx2-r-pill);
-  padding: 7px 9px;
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-weight: 680;
-  text-align: center;
-}
-
-.merc-route__node--core {
-  background: var(--mx2-brand-light);
-  color: var(--mx2-brand-hover);
-}
-
-.merc-route__beam {
-  height: 2px;
-  border-radius: var(--mx2-r-pill);
-  background: rgba(15, 118, 110, 0.16);
-}
-
-.merc-route__beam--stake {
-  background: var(--mx2-brand);
-}
-
-.merc-route__beam--bid {
-  background: #f59e0b;
-}
-
-.merc-scene[data-state="bid"] .merc-route__beam--bid,
-.merc-scene[data-state="deposit"] .merc-route__beam--stake {
-  animation: merc-route-pulse 0.9s var(--mx2-ease) infinite;
-}
-
-.merc-scene__status {
-  position: relative;
-  z-index: 5;
-  grid-column: 1 / -1;
-  grid-row: 4;
-  width: min(560px, calc(100% - 32px));
-  margin: 0 0 18px;
-  padding: 9px 14px;
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: var(--mx2-shadow-sm);
-  color: var(--mx2-ink);
-  font-size: 13px;
-  font-weight: 620;
-  text-align: center;
-}
-
-.merc-scene .mx2-burst {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-}
-
-.merc-controls {
-  width: min(940px, 100%);
-  margin: 14px auto 0;
-  display: grid;
-  gap: 12px;
-}
-
-.merc-wallet-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  border: 1px solid var(--mx2-border);
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: #ffffff;
-  box-shadow: var(--mx2-shadow-sm);
-}
-
-.merc-wallet-card__icon,
-.merc-deal-card__head > span {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 15px;
-  background: var(--mx2-brand-light);
-  color: #0f766e;
-}
-
-.merc-wallet-card strong,
-.merc-deal-card__head strong {
-  color: var(--mx2-ink);
-  font-size: 15px;
-  font-weight: 680;
-}
-
-.merc-wallet-card p,
-.merc-deal-card__hint {
-  margin: 2px 0 0;
-  color: var(--mx2-text-muted);
+  color: var(--merc-ink);
   font-size: 12px;
-  font-weight: 680;
-  line-height: 1.35;
-}
-
-.merc-deal-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
-  gap: 12px;
-}
-
-.merc-deal-card {
-  min-width: 0;
-  display: grid;
-  gap: 10px;
-  border: 1px solid var(--mx2-border);
-  border-radius: 20px;
-  padding: 14px;
-  background: #ffffff;
-  box-shadow: var(--mx2-shadow-sm);
-}
-
-.merc-deal-card--bid {
-  border-color: rgba(180, 83, 9, 0.28);
-  background: #ffffff;
-}
-
-.merc-deal-card__head {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-}
-
-.merc-deal-card__head em {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 620;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.merc-amount-field {
-  min-width: 0;
+.merc-secondary-action {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  border: 1.5px solid var(--mx2-border);
-  border-radius: 16px;
-  padding: 9px 12px;
-  background: var(--mx2-surface);
+  align-items: end;
+  gap: 8px;
 }
 
-.merc-amount-field input {
-  min-width: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--mx2-ink);
-  font: inherit;
-  font-size: 18px;
-  font-weight: 680;
-}
-
-.merc-amount-field input:focus {
-  outline: none;
-}
-
-.merc-amount-field span {
-  border-radius: var(--mx2-r-pill);
-  padding: 5px 8px;
-  background: var(--mx2-brand-light);
-  color: var(--mx2-brand-hover);
-  font-size: 11px;
-  font-weight: 680;
-}
-
-.merc-deal-card--bid .merc-amount-field span {
-  background: #fff7ed;
-  color: #b45309;
-}
-
-.merc-preset-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
-}
-
-.merc-preset {
+.merc-secondary-action button,
+.merc-compact-actions button,
+.merc-reclaims button,
+.merc-pending-record button {
   min-height: 36px;
-  border: 1.5px solid var(--mx2-border);
-  border-radius: 14px;
-  background: var(--mx2-surface);
-  color: var(--mx2-text);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 680;
-}
-
-.merc-preset--active,
-.merc-preset:hover:not(:disabled) {
-  border-color: rgba(180, 83, 9, 0.54);
-  background: #fff7ed;
-  color: #b45309;
-}
-
-.merc-preset:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.merc-card-action {
-  min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  border: 1px solid rgba(15, 118, 110, 0.25);
-  border-radius: 15px;
-  background: #0f766e;
-  color: #ffffff;
+  gap: 6px;
+  border: 1px solid var(--merc-line);
+  border-radius: 9px;
+  padding: 8px 11px;
+  color: var(--merc-green);
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 740;
   cursor: pointer;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 680;
-  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.16);
 }
 
-.merc-card-action:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  box-shadow: none;
-}
-
-.merc-drawer-action,
-.merc-drawer-row {
+.merc-compact-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.merc-amount-field--drawer input {
-  font-size: 14px;
-}
-
-.merc-drawer-row {
-  margin-bottom: 8px;
-}
-
-.merc-drawer-row span {
-  color: var(--mx2-text-muted);
-  font-size: 13px;
-  font-weight: 680;
-}
-
-.merc-drawer {
+.merc-reclaims {
   display: grid;
-  gap: 12px;
+  gap: 7px;
 }
 
-.merc-drawer-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.merc-reclaims button {
+  justify-content: space-between;
 }
 
-.merc-drawer-tabs button {
+.merc-recovery-state {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 3px 8px;
-  min-height: 54px;
-  border: 1px solid rgba(15, 118, 110, 0.16);
-  border-radius: 16px;
-  padding: 9px 10px;
-  background: #ffffff;
-  color: #134e4a;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 680;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform var(--mx2-t-fast) var(--mx2-ease-snap),
-    border-color var(--mx2-t-fast) var(--mx2-ease-snap),
-    background var(--mx2-t-fast) var(--mx2-ease-snap),
-    box-shadow var(--mx2-t-fast) var(--mx2-ease-snap);
+  gap: 9px;
+  border: 1px solid #c9dfd4;
+  border-radius: 11px;
+  padding: 11px;
+  color: var(--merc-green);
+  background: var(--merc-green-soft);
 }
 
-.merc-drawer-tabs button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(15, 118, 110, 0.42);
+.merc-recovery-state.is-warning {
+  border-color: #efc3bd;
+  color: var(--merc-danger);
+  background: #fff2ef;
 }
 
-.merc-drawer-tabs button.is-active {
-  border-color: rgba(15, 118, 110, 0.54);
-  background: var(--mx2-brand-light);
-  box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12), 0 8px 18px rgba(15, 118, 110, 0.08);
+.merc-recovery-state > div,
+.merc-pending-record > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
-.merc-drawer-tabs__icon {
-  grid-row: span 2;
-  display: inline-grid;
+.merc-recovery-state strong,
+.merc-pending-record strong {
+  color: var(--merc-ink);
+  font-size: 11px;
+}
+
+.merc-recovery-state span,
+.merc-pending-record span {
+  color: var(--merc-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.merc-pending-record {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid #efd39a;
+  border-radius: 11px;
+  padding: 11px;
+  background: var(--merc-gold-soft);
+}
+
+.merc-pending-record code {
+  grid-column: 1 / -1;
+  overflow: auto;
+  border-radius: 7px;
+  padding: 7px;
+  color: #5b430f;
+  background: rgba(255, 255, 255, 0.76);
+  font-size: 9px;
+}
+
+.merc-pending-record button {
+  grid-column: 1 / -1;
+  border-color: #d3a64e;
+  color: #71480a;
+}
+
+.merc-guide {
+  display: grid;
+  gap: 8px;
+}
+
+.merc-guide > div {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  border: 1px solid var(--merc-line);
+  border-radius: 11px;
+  padding: 10px;
+  background: #fbfdfc;
+}
+
+.merc-guide > div > span {
   width: 28px;
   height: 28px;
+  display: grid;
   place-items: center;
-  border-radius: 11px;
-  color: #0f766e;
-  background: #f0fdfa;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--merc-green);
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.merc-drawer-tabs strong {
-  display: block;
-  color: var(--mx2-text-muted);
-  font-size: 0.7rem;
-  font-weight: 680;
-  line-height: 1.1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.merc-guide strong {
+  color: var(--merc-ink);
+  font-size: 11px;
 }
 
-.merc-drawer__panel.mx2-open-panel.semi-card {
-  overflow: hidden;
-  border-color: rgba(15, 118, 110, 0.15);
-  border-radius: 18px;
-  box-shadow: 0 5px 16px rgba(6, 95, 70, 0.045);
+.merc-guide p {
+  margin: 3px 0 0;
+  color: var(--merc-muted);
+  font-size: 9px;
+  line-height: 1.45;
 }
 
-.merc-drawer__panel .semi-card-body {
-  padding: 14px;
+@keyframes merc-real-state-focus {
+  from { transform: scale(1); }
+  to { transform: scale(1.012); }
 }
 
-.merc-drawer__panel-body {
-  display: grid;
-  gap: 12px;
-}
-
-.merc-drawer__summary,
-.merc-drawer__empty,
-.merc-risk-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 46px;
-  border: 1px solid rgba(15, 118, 110, 0.13);
-  border-radius: 15px;
-  padding: 10px 12px;
-  background: #fbfffd;
-}
-
-.merc-drawer__summary span,
-.merc-drawer__empty,
-.merc-risk-card span,
-.merc-guide-steps span {
-  color: var(--mx2-text-muted);
-  font-size: 0.82rem;
-  line-height: 1.35;
-}
-
-.merc-drawer__summary strong {
-  flex: 0 0 auto;
-  border-radius: var(--mx2-r-pill);
-  padding: 5px 9px;
-  color: var(--mx2-brand-hover);
-  background: var(--mx2-brand-light);
-  font-size: 0.78rem;
-  font-weight: 680;
-}
-
-.merc-drawer-list {
-  gap: 9px;
-}
-
-.merc-drawer-list__item {
-  min-height: 48px;
-  border-color: rgba(15, 118, 110, 0.12);
-  background: #ffffff;
-}
-
-.merc-drawer-stack {
-  display: grid;
-  gap: 8px;
-}
-
-.merc-drawer__wide-action {
-  justify-self: start;
-}
-
-.merc-risk-card {
-  justify-content: flex-start;
-}
-
-.merc-risk-card svg {
-  flex: 0 0 auto;
-  color: #0f766e;
-}
-
-.merc-guide-steps {
-  display: grid;
-  gap: 9px;
-}
-
-.merc-guide-steps div {
-  display: grid;
-  gap: 4px;
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  border-radius: 15px;
-  padding: 11px 12px;
-  background: #ffffff;
-}
-
-.merc-guide-steps strong {
-  color: var(--mx2-ink);
-  font-size: 0.92rem;
-  font-weight: 680;
-}
-
-@keyframes merc-token-route {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-8px) scale(1.04);
+@media (prefers-reduced-motion: reduce) {
+  .merc-workspace[data-active]:not([data-active="idle"]) .merc-market-visual > img {
+    animation: none;
   }
 }
 
-@keyframes merc-core-pulse {
-  0%, 100% {
-    box-shadow:
-      inset 0 2px 0 rgba(255, 255, 255, 0.92),
-      0 28px 74px rgba(6, 95, 70, 0.18);
-  }
-  50% {
-    box-shadow:
-      var(--mx2-shadow-glow),
-      0 28px 74px rgba(6, 95, 70, 0.2);
-  }
-}
-
-@keyframes merc-route-pulse {
-  0%, 100% {
-    opacity: 0.5;
-    transform: scaleX(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@media (max-width: 980px) {
-  .merc-scene {
-    grid-template-columns: 1fr 1fr;
-    min-height: 700px;
-  }
-
-  .merc-stage-art {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    width: min(100%, 680px);
-    aspect-ratio: 16 / 9;
-  }
-
-  .merc-core {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    margin-top: 0;
-  }
-
-  .merc-lane--stake {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .merc-lane--bid {
-    grid-column: 2;
-    grid-row: 3;
-  }
-
-  .merc-route {
-    grid-row: 4;
-  }
-
-  .merc-scene__status {
-    grid-row: 5;
-  }
-
-  .merc-deal-grid {
+@media (max-width: 920px) {
+  .merc-workspace {
     grid-template-columns: 1fr;
   }
+
+  .merc-market-visual,
+  .merc-market-visual > img {
+    min-height: 460px;
+  }
 }
 
-@media (max-width: 680px) {
-  .gov-merc-play-area .mx2-stage {
-    padding: 18px 14px 22px;
-    border-radius: 22px;
-  }
-
-  .gov-merc-play-area .mx2-stage__head {
-    display: grid;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .gov-merc-play-area .mx2-stage__badges {
-    display: none;
-  }
-
-  .gov-merc-play-area .mx2-stage__title {
-    font-size: 24px;
-    line-height: 1.08;
-  }
-
-  .gov-merc-play-area .mx2-stage__subtitle {
-    max-width: 100%;
-    font-size: 13px;
-    line-height: 1.35;
-  }
-
-  .merc-scene {
-    min-height: 790px;
-    grid-template-columns: 1fr;
+@media (max-width: 640px) {
+  .merc-workspace {
     gap: 10px;
+    padding: 9px;
   }
 
-  .merc-stage-art {
-    grid-row: 1;
-    width: min(100% - 18px, 440px);
-    aspect-ratio: 16 / 9;
-    border-radius: 20px;
+  .merc-market-visual,
+  .merc-market-visual > img {
+    min-height: 390px;
   }
 
-  .merc-core,
-  .merc-lane--stake,
-  .merc-lane--bid,
-  .merc-route,
-  .merc-scene__status {
-    grid-column: 1;
+  .merc-market-overlay {
+    inset: 10px;
   }
 
-  .merc-core {
-    grid-row: 2;
-    width: min(250px, calc(100% - 56px));
-    margin-top: 0;
-  }
-
-  .merc-lane--stake {
-    grid-row: 3;
-  }
-
-  .merc-lane--bid {
-    grid-row: 4;
-  }
-
-  .merc-lane {
-    width: min(100% - 34px, 340px);
-  }
-
-  .merc-lane__rail,
-  .merc-lane__coin-stack {
-    display: none;
-  }
-
-  .merc-readout {
-    position: relative;
-    inset: auto;
-    width: min(100% - 34px, 360px);
-  }
-
-  .merc-readout--pool {
-    grid-row: 5;
-  }
-
-  .merc-readout--bid {
-    grid-row: 6;
-  }
-
-  .merc-route {
-    grid-row: 7;
-  }
-
-  .merc-scene__status {
-    grid-row: 8;
-  }
-
-  .merc-route {
-    width: min(100% - 30px, 420px);
+  .merc-market-tape {
     grid-template-columns: 1fr;
-    border-radius: 22px;
   }
 
-  .merc-route__beam {
-    width: 2px;
-    height: 15px;
-    justify-self: center;
+  .merc-market-tape > div {
+    padding: 7px 9px;
   }
 
-  .merc-scene__status {
-    width: min(100% - 30px, 420px);
+  .merc-command {
+    padding: 13px;
   }
 
-  .merc-preset-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .merc-command__heading {
+    display: grid;
   }
 
-  .merc-drawer-action,
-  .merc-drawer-row {
-    grid-template-columns: 1fr;
+  .merc-wallet-pill {
+    max-width: 100%;
   }
 
   .merc-drawer-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
   }
 
-  .merc-drawer-tabs button {
-    min-height: 44px;
-    padding: 7px 8px;
+  .merc-balance-grid,
+  .merc-compact-actions,
+  .merc-pending-record {
+    grid-template-columns: 1fr;
   }
 
-  .merc-drawer-tabs__icon {
-    grid-row: auto;
-    width: 26px;
-    height: 26px;
-    border-radius: 10px;
+  .merc-secondary-action {
+    grid-template-columns: 1fr;
   }
 
-  .merc-drawer-tabs button > span:not(.merc-drawer-tabs__icon) {
-    max-width: 100%;
-    font-size: 0.72rem;
-    line-height: 1.05;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .merc-drawer-tabs strong {
-    display: none;
-  }
-
-  .merc-drawer__summary,
-  .merc-drawer__empty,
-  .merc-risk-card {
-    align-items: flex-start;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .merc-drawer__wide-action,
-  .merc-drawer-action .mx2-btn,
-  .merc-drawer-row .mx2-btn {
-    width: 100%;
-  }
-}
-
-.gov-merc-play-area .mx2-action-rail__row .mx2-btn--primary {
-  flex: 0 0 180px;
-  max-width: min(100%, 180px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .merc-lane[data-active="true"] .merc-lane__coin-stack span,
-  .merc-scene[data-state="settle"] .merc-core,
-  .merc-scene[data-state="bid"] .merc-core,
-  .merc-scene[data-state="bid"] .merc-route__beam--bid,
-  .merc-scene[data-state="deposit"] .merc-route__beam--stake,
-  .merc-scene .mx2-burst {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
+  .merc-pending-record code,
+  .merc-pending-record button {
+    grid-column: 1;
   }
 }

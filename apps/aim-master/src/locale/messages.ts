@@ -65,12 +65,41 @@ const appMessages = {
   roundProgressStatus: { en: "Aim progress", zh: "瞄准进度" },
   hitCount: { en: "{accuracies}/{total} accuracy hits", zh: "{accuracies}/{total} 次精准命中" },
   totalScore: { en: "Total score: {points}", zh: "总分：{points}" },
+  scenePointsUnit: { en: "pts", zh: "分" },
+  sceneShotUnit: { en: "shot", zh: "次出手" },
+  sceneShotsUnit: { en: "shots", zh: "次出手" },
+  sceneComboUnit: { en: "combo", zh: "连击" },
+  sceneHitFeedback: { en: "HIT!", zh: "命中！" },
+  sceneMissFeedback: { en: "MISS", zh: "偏出" },
+  sceneStartingAction: { en: "Starting…", zh: "正在开局…" },
+  sceneSubmittingAction: { en: "Submitting…", zh: "正在提交…" },
+  scenePoolLabel: { en: "Pool", zh: "奖池" },
+  sceneEntryLabel: { en: "Entry", zh: "报名" },
+  scenePreparingRound: { en: "Preparing round", zh: "正在准备本轮" },
+  sceneSealingPattern: { en: "TEE is sealing the aim pattern", zh: "TEE 正在密封瞄准轨迹" },
+  sceneLocalPreparing: { en: "Setting up your local run", zh: "正在准备本地练习" },
+  sceneTapCenter: { en: "Tap when the reticle crosses center", zh: "准星扫过中心时点击" },
+  sceneSubmitVerified: { en: "Submit your verified shot sequence", zh: "提交已确认的出手记录" },
+  sceneChooseLane: { en: "Choose a target lane to enter", zh: "选择靶道即可开始" },
+  scenePoolNeedsGas: { en: "Reward pool needs GAS before entry", zh: "奖池需要补充 GAS 后才能报名" },
+  sceneStartingSealed: { en: "Starting sealed round", zh: "正在开启密封对局" },
+  sceneShotFailed: { en: "Shot was not recorded — try again", zh: "本次出手未记录——请重试" },
+  scenePatternInvalid: { en: "Target pattern unavailable — retry sealing", zh: "瞄准轨迹不可用——请重试密封" },
+  a11yStageLabel: { en: "Aim Master target range", zh: "瞄准大师靶场" },
+  a11yOpeningRange: { en: "Opening target range", zh: "正在打开靶场" },
+  a11yDifficultyGroup: { en: "Choose target lane", zh: "选择瞄准靶道" },
+  a11yShoot: { en: "Fire at the current reticle position", zh: "向当前准星位置射击" },
 
   releaseAction: { en: "Release game", zh: "结算过期对局" },
   releaseHint: {
     en: "Frees the reward reservation of an expired game.",
     zh: "释放过期对局占用的奖励额度。",
   },
+  releaseNotReady: {
+    en: "The on-chain recovery window is not open yet.",
+    zh: "链上恢复窗口尚未开启。",
+  },
+  refreshGame: { en: "Check settlement", zh: "检查结算" },
   withdrawAction: { en: "Withdraw {amount} GAS", zh: "提取 {amount} GAS" },
   withdrawTitle: { en: "Withdraw winnings", zh: "提取奖金" },
   withdrawHint: {
@@ -80,8 +109,8 @@ const appMessages = {
   timeUpAction: { en: "Time is up", zh: "时间已到" },
 
   shufflingCopy: {
-    en: "Your target pattern is seeded inside the Morpheus enclave — only its hash commitment goes on-chain, and the reticle path never leaves the TEE.",
-    zh: "靶心模式由 Morpheus 飞地生成——链上只记录哈希承诺，靶心轨迹永不离开 TEE。",
+    en: "Your target pattern is seeded inside the Morpheus enclave. The browser receives the moving view and its commitment, while the hidden seed stays inside the TEE.",
+    zh: "靶心模式由 Morpheus 飞地生成。浏览器只接收移动轨迹视图及其承诺，隐藏种子始终保留在 TEE 内。",
   },
   checkDealAgain: { en: "Retry sealing", zh: "重试密封" },
 
@@ -122,8 +151,8 @@ const appMessages = {
 
   rulesTitle: { en: "How it works", zh: "玩法说明" },
   rulesCopy: {
-    en: "1. Choose a target lane and pay the entry (Warm-up 0.02, Arcade 0.10, Pro 0.20 GAS). 2. The Morpheus enclave seeds a target pattern and binds its hash commitment on-chain. 3. Tap to stop the moving reticle. Land enough accuracy hits (3/5/7) before the deadline (60/90/120 s) to win 0.1/0.5/1 GAS. 4. The enclave replays your taps, gates on human-plausible timing, and signs the result — the contract verifies the signature and commitment before paying.",
-    zh: "1. 选择瞄准靶道并支付报名费（热身 0.02、街机 0.10、职业 0.20 GAS）。2. Morpheus 飞地生成靶心模式并将其哈希承诺绑定上链。3. 点击停住移动的靶心。在截止时间内（60/90/120 秒）达到足够的精准命中数（3/5/7）即可赢取 0.1/0.5/1 GAS。4. 飞地回放你的点击，校验人类可信的操作节奏并对结果签名——合约核验签名与承诺一致后才发奖。",
+    en: "1. Choose a target lane and pay the entry (Warm-up 0.02, Arcade 0.10, Pro 0.20 GAS). 2. The Morpheus enclave seeds a hidden target pattern and returns its session commitment before play. 3. Tap the range when the moving reticle crosses center. Land 3/5/7 clean hits within 60/90/120 seconds to win 0.1/0.5/1 GAS. 4. The enclave replays the confirmed shot log; the registered oracle delivers the verified result, and the contract stores the commitment and settles the pull-payment credit.",
+    zh: "1. 选择瞄准靶道并支付报名费（热身 0.02、街机 0.10、职业 0.20 GAS）。2. Morpheus 飞地生成隐藏靶心模式，并在开局前返回会话承诺。3. 准星扫过中心时点击靶场，在 60/90/120 秒内完成 3/5/7 次精准命中，即可赢取 0.1/0.5/1 GAS。4. 飞地回放已确认的出手记录；注册预言机传回验证结果，合约保存承诺并将奖金计入可提取余额。",
   },
   rulesShort: {
     en: "Tap the range when the moving reticle crosses the bullseye.",
@@ -131,8 +160,8 @@ const appMessages = {
   },
   fairnessTitle: { en: "Provably fair target", zh: "可验证公平靶心" },
   fairnessCopy: {
-    en: "The target pattern is generated inside the Morpheus TEE from a per-game secret: only its SHA-256 commitment is bound on-chain at the start, so the reticle path cannot be seen ahead of time or scripted. This cannot perfectly tell humans from bots, but replaying your input makes the score unforgeable, and timing gates plus entry fees and a bounded pool make farming unprofitable.",
-    zh: "靶心模式由 Morpheus TEE 用每局独立的秘密在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此靶心轨迹无法提前获知或脚本化。这无法完美区分人类与机器人，但回放你的输入让分数不可伪造，加上操作节奏校验、报名费与有上限的奖池，使刷分无利可图。",
+    en: "The Morpheus TEE derives each target pattern from a per-game secret and returns a SHA-256 session commitment before play. The browser never receives the seed. At settlement, the enclave replays the durable shot log; only the registered oracle can deliver the verified payload, after which the contract stores the commitment and answer hash. This cannot perfectly distinguish people from bots, but it prevents client-forged scores and combines timing gates, entry fees, daily caps, and a reserved pool to limit farming.",
+    zh: "Morpheus TEE 使用每局独立秘密生成靶心模式，并在开局前返回 SHA-256 会话承诺；浏览器不会获得种子。结算时，飞地会回放持久化出手记录，只有注册预言机能够提交验证结果，随后合约保存承诺与答案哈希。这无法完美区分真人与机器人，但可阻止客户端伪造成绩，并结合时间门槛、报名费、每日上限和预留奖池限制刷取。",
   },
   fairnessShort: {
     en: "The target path stays sealed in the Morpheus TEE until settlement.",
@@ -148,10 +177,62 @@ const appMessages = {
   statusStarted: { en: "Game started — sealing the target", zh: "对局已开始——正在密封靶心" },
   statusShuffling: { en: "Sealing your target pattern…", zh: "正在密封靶心模式…" },
   statusSealing: { en: "Seeding your target in the enclave…", zh: "正在飞地中生成靶心…" },
-  statusDealt: { en: "Target sealed and bound — the clock is running", zh: "靶心已密封上链——计时开始" },
+  statusDealt: { en: "Target sealed inside the TEE — the clock is running", zh: "靶心已在 TEE 内密封——计时开始" },
   statusDealPending: {
     en: "Sealing is taking longer than usual — retry shortly.",
     zh: "密封比平时慢——请稍后重试。",
+  },
+  statusPatternInvalid: {
+    en: "The sealed target pattern was invalid — retry sealing.",
+    zh: "密封瞄准轨迹无效——请重试密封。",
+  },
+  statusShotSyncFailed: {
+    en: "The TEE did not acknowledge that shot.",
+    zh: "TEE 未确认本次出手。",
+  },
+  statusRunRecovered: {
+    en: "Recovered the confirmed shot log — take the shot again.",
+    zh: "已恢复确认过的出手记录——请重新出手。",
+  },
+  statusSessionMismatch: {
+    en: "The sealed session does not match this game. Recovery was stopped safely.",
+    zh: "密封会话与当前对局不一致，已安全停止恢复。",
+  },
+  statusContractMismatch: {
+    en: "The connected contract does not match the reviewed Aim Master deployment.",
+    zh: "当前连接的合约与已审核的瞄准大师部署不一致。",
+  },
+  statusContractAttestationFailed: {
+    en: "The reviewed contract checksum or ABI could not be verified. GAS actions remain locked.",
+    zh: "无法验证已审核合约的校验和或 ABI，GAS 操作将保持锁定。",
+  },
+  statusContractPaused: {
+    en: "The verified range is temporarily paused. Guest practice is still available.",
+    zh: "验证靶场暂时停用，仍可继续游客练习。",
+  },
+  statusStorageUnavailable: {
+    en: "This browser cannot preserve the verified shot log. Enable local storage before entering a GAS range.",
+    zh: "当前浏览器无法保存验证出手记录。进入 GAS 靶场前请启用本地存储。",
+  },
+  statusWalletChanged: {
+    en: "The wallet changed during an active game. Input is locked until the original account is restored and recovery succeeds.",
+    zh: "对局进行中钱包已变更。恢复原账户并完成恢复前，输入将保持锁定。",
+  },
+  statusStartPending: {
+    en: "The entry was submitted, but the exact game could not be confirmed yet. Check recovery shortly.",
+    zh: "报名已提交，但暂时无法确认对应对局。请稍后检查恢复状态。",
+  },
+  connectWalletFirst: {
+    en: "Connect your wallet before entering a verified GAS range.",
+    zh: "进入 GAS 验证靶场前请先连接钱包。",
+  },
+  statusSettlementPending: {
+    en: "Settlement submitted — waiting for the verified chain result.",
+    zh: "结算已提交——正在等待链上验证结果。",
+  },
+  statusRecoveryUnavailable: {
+    en: "The active-game read is temporarily unavailable. Recovery stays locked until the chain can be checked.",
+    zh: "暂时无法读取活跃对局。完成链上检查前，恢复流程将保持锁定。",
   },
   statusSubmitting: { en: "Enclave verifying — settling on-chain…", zh: "飞地验证中——正在链上结算…" },
   statusSolved: { en: "Correct! {payout} GAS credited", zh: "命中！已入账 {payout} GAS" },
@@ -169,6 +250,10 @@ const appMessages = {
   deadlineBufferHint: { en: "Too close to the deadline — a transaction can no longer land in time.", zh: "距离截止太近——交易已无法及时上链。" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
+  withdrawPending: {
+    en: "Withdrawal submitted — waiting for the exact chain confirmation.",
+    zh: "提取已提交——正在等待精确的链上确认。",
+  },
 
   // ── Guest (free / local) mode copy ──────────────────────────────────────────
   guestSubtitle: {
@@ -187,10 +272,30 @@ const appMessages = {
   guestRunComplete: { en: "Local run complete — {points} pts!", zh: "本地练习完成——{points} 分！" },
   guestScoreValue: { en: "{points} pts", zh: "{points} 分" },
   guestExpired: { en: "Time up — run the range again", zh: "时间到——再来一局" },
+  guestEntropyUnavailable: {
+    en: "Secure randomness is unavailable on this device. Reload the range and try again.",
+    zh: "当前设备无法提供安全随机数。请重新加载靶场后再试。",
+  },
   guestLeaderboardIntro: {
     en: "Local scores are saved off-chain — no wallet or GAS required.",
     zh: "本地成绩离线保存——无需钱包或 GAS。",
   },
+  guestRulesTitle: { en: "Local range rules", zh: "本地靶场规则" },
+  guestRulesCopy: {
+    en: "Choose a lane, fire when the moving reticle crosses the center, and land 3, 5, or 7 clean hits before time runs out. Local runs use no wallet, GAS, contract, or oracle.",
+    zh: "选择靶道，在移动准星扫过中心时出手，并在倒计时结束前完成 3、5 或 7 次精准命中。本地练习不使用钱包、GAS、合约或预言机。",
+  },
+  gameFiMaintenanceShort: {
+    en: "Verified GAS mode stays closed until the testnet reward pool is funded and settlement is proven end to end.",
+    zh: "测试网奖池完成注资并通过端到端结算验收前，GAS 验证模式保持关闭。",
+  },
+  continue: { en: "Continue", zh: "继续" },
+  gameActionFailed: {
+    en: "The target range could not continue",
+    zh: "瞄准靶场暂时无法继续",
+  },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
 };
 
 export const messages = mergeMessages(appMessages);

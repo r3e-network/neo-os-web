@@ -2,16 +2,16 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-dice-game",
   "name": "Dice Game",
-  "description": "Commit/reveal on-chain dice roll with app-scoped GAS credit: the wager commits in one transaction and the roll reveals on a strictly later block.",
+  "description": "Animated local dice practice with no wallet or GAS at risk. GameFi is temporarily unavailable while the Neo N3 settlement deployment is replaced and verified.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
     "dice",
-    "vrf",
-    "oracle",
-    "gas"
+    "game",
+    "guest",
+    "practice"
   ],
-  "version": "1.0.0",
+  "version": "2.0.0",
   "status": "active",
   "developer": {
     "name": "Yiwu",
@@ -27,152 +27,27 @@
     "banner": "/miniapp-assets/dice-game/banner.webp"
   },
   "permissions": {
-    "payments": true,
-    "randomness": true
+    "payments": false,
+    "randomness": false
   },
   "frontend_spec": {
     "layout": "default",
     "operation_panel": {
-      "title": "Roll Dice",
-      "subtitle": "Fund GAS credit, choose one face, then commit your bet — the roll reveals on the next block.",
+      "title": "Free Dice Practice",
+      "subtitle": "Choose a face and throw locally. Wallet-funded rolls remain disabled until the Neo N3 settlement deployment passes the compatibility gate.",
       "operations": []
     }
   },
-  "operations": [
-    {
-      "name": "Fund Stake",
-      "method": "fundGameCredit",
-      "button_style": "primary",
-      "priority": "primary",
-      "params": [
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "Stake credit",
-          "required": true,
-          "placeholder": "0.10",
-          "scale": 8,
-          "presets": [
-            {
-              "label": "0.10",
-              "value": "0.10",
-              "helper": "GAS"
-            },
-            {
-              "label": "0.50",
-              "value": "0.50",
-              "helper": "GAS"
-            },
-            {
-              "label": "1.00",
-              "value": "1.00",
-              "helper": "GAS"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Roll",
-      "method": "placeDiceBet",
-      "button_style": "success",
-      "priority": "primary",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-dice-game",
-          "hidden": true
-        },
-        {
-          "name": "player",
-          "type": "hash160",
-          "label": "Player",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
-        },
-        {
-          "name": "chosenNumber",
-          "type": "integer",
-          "label": "Face",
-          "required": true,
-          "default_value": "6",
-          "options": [
-            {
-              "label": "1",
-              "value": "1"
-            },
-            {
-              "label": "2",
-              "value": "2"
-            },
-            {
-              "label": "3",
-              "value": "3"
-            },
-            {
-              "label": "4",
-              "value": "4"
-            },
-            {
-              "label": "5",
-              "value": "5"
-            },
-            {
-              "label": "6",
-              "value": "6"
-            }
-          ]
-        },
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "Stake",
-          "required": true,
-          "placeholder": "0.10",
-          "scale": 8
-        }
-      ]
-    }
-  ],
+  "operations": [],
   "integration": {
     "news_integration": true,
     "reviews_enabled": true,
     "forum_enabled": false,
-    "activity_feed": true,
-    "stats_display": [
-      "total_transactions",
-      "daily_active_users",
-      "total_gas_used"
-    ]
+    "activity_feed": false,
+    "stats_display": []
   },
   "docs_url": "https://docs.r3e.network/dice-game",
   "manifest": {
-    "runtime": {
-      "mode": "platform",
-      "modules": [
-        {
-          "binding": "platform-game",
-          "platform": "PlatformGame",
-          "appId": "miniapp-dice-game",
-          "moduleType": 4,
-          "networks": {
-            "neo-n3-mainnet": {
-              "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
-              "registered": true,
-              "domain": "dicegame.miniapp.neo"
-            },
-            "neo-n3-testnet": {
-              "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
-              "registered": true
-            }
-          }
-        }
-      ]
-    },
     "contracts": {
       "neo-n3-mainnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
       "neo-n3-testnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39"
@@ -180,15 +55,17 @@
     "contract_domains": {
       "neo-n3-mainnet": "dicegame.miniapp.neo"
     },
-    "deployment": {
-      "neo-n3-mainnet": {
-        "status": "deployed",
-        "contract_hash": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
-        "registered": true,
-        "domain": "dicegame.miniapp.neo",
-        "deployed_at": "2026-06-14T00:00:00Z",
-        "report": "contracts/build/mainnet_game_deployment.json"
-      }
+    "platform": {
+      "analytics": true,
+      "comments": true,
+      "ratings": true,
+      "transactions": false
+    },
+    "permissions": [
+      "read:blockchain"
+    ],
+    "operation_panel": {
+      "operations": []
     }
   }
 }

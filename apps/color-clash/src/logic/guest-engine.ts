@@ -1,27 +1,27 @@
 /**
  * Guest (free / local) engine for Color Clash.
  *
- * Guest mode is a purely LOCAL Simon game: the sequence is generated with the
- * Web-Crypto RNG, played and scored entirely client-side, and (optionally)
- * submitted to the OFF-CHAIN guest leaderboard. The engine drives the SAME
- * observables + dispatch actions the Phaser scene reads
- * (gameStatus / sequence / playerSequence / seqAchieved / lastStatus / ...),
- * so the frozen scene contract is reused verbatim. It NEVER makes a chain,
- * oracle, or reward call — the framework guest guard therefore never fires.
- *
- * Adapted from the legacy DOM practice engine in ../PlayArea.tsx.
+ * Guest mode runs a classic progressive Simon loop locally. It never receives
+ * chain/oracle/reward services: only session observables and the off-chain
+ * guest leaderboard are available to this module.
  */
-import type { GameSessionObservables, LeaderEntry } from "@framework/game";
+import type { GameSessionObservables, LeaderEntry, SolveRow } from "@framework/game";
+import {
+  applyColorPress,
+  createColorRun,
+  hasColorDeadlinePassed,
+  markColorSequenceShown,
+  type ColorRunState,
+  type ColorUiPhase,
+} from "./color-engine";
 import { ruleOf } from "./game-rules";
 
-/** Structural (method-syntax, so bivariant) observable handle. */
 interface Obs<T> {
   get(): T;
   set(value: T): void;
   subscribe(listener: () => void): () => void;
 }
 
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
 interface GuestLeaderboardApi {
   submit(score: number | string): Promise<void>;
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
@@ -32,6 +32,8 @@ export interface GuestEngineDeps {
   sequence: Obs<string>;
   playerSequence: Obs<string>;
   seqAchieved: Obs<number>;
+  roundNumber: Obs<number>;
+  roundPhase: Obs<ColorUiPhase>;
   lastPayoutFixed8: Obs<bigint>;
   guestLeaderboard: GuestLeaderboardApi;
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -40,12 +42,12 @@ export interface GuestEngineDeps {
 
 export interface GuestEngine {
   startGame(difficulty: number): void;
+  sequencePlaybackComplete(): void;
   recordPress(color: number): void;
   submitSolution(): Promise<void>;
   expireGame(): void;
   retryDeal(): void;
   refreshLeaderboard(): Promise<void>;
-  /** Reset to a clean local lobby + load the guest board (on entering guest). */
   enter(): Promise<void>;
 }
 
@@ -55,15 +57,12 @@ function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
-/** Web-Crypto (Math.random fallback) sequence of color indices 0..3 as a string. */
+/** Web-Crypto sequence of color indices 0..3. Guest copy promises this source. */
 function randomColorSequence(length: number): string {
   const bytes = new Uint8Array(length);
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
-  }
+  if (!webCrypto?.getRandomValues) throw new Error("secure-random-unavailable");
+  webCrypto.getRandomValues(bytes);
   return Array.from(bytes, (byte) => String(byte % 4)).join("");
 }
 
@@ -73,24 +72,36 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     sequence,
     playerSequence,
     seqAchieved,
+    roundNumber,
+    roundPhase,
     lastPayoutFixed8,
     guestLeaderboard,
     t,
     setStatus,
   } = deps;
+  let run: ColorRunState | null = null;
+  let guestHistory: SolveRow[] = [];
 
-  const resetToLobby = (): void => {
-    obs.gameStatus.set("idle");
+  const publishRun = (): void => {
+    sequence.set(run?.visibleSequence ?? "");
+    playerSequence.set(run?.playerSequence ?? "");
+    seqAchieved.set(run?.achieved ?? 0);
+    roundNumber.set(run?.round ?? 0);
+    roundPhase.set(run?.phase ?? "lobby");
+  };
+
+  const resetSession = (status: "idle" | "expired" = "idle"): void => {
+    run = null;
+    obs.gameStatus.set(status);
     obs.activeGameId.set("0");
-    obs.lastStatus.set("");
+    obs.lastStatus.set(status === "expired" ? "expired" : "");
     obs.deadline.set(0);
     obs.dealtAt.set(0);
     obs.undosUsed.set(0);
     obs.commitment.set("");
-    sequence.set("");
-    playerSequence.set("");
-    seqAchieved.set(0);
     lastPayoutFixed8.set(0n);
+    publishRun();
+    if (status === "expired") roundPhase.set("expired");
   };
 
   const submitScore = async (score: number): Promise<void> => {
@@ -98,7 +109,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     try {
       await guestLeaderboard.submit(score);
     } catch {
-      /* off-chain board unreachable / no wallet — guest scores are best-effort */
+      /* The local game remains playable when the optional board is unavailable. */
     }
   };
 
@@ -123,89 +134,137 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   return {
     startGame(difficulty: number): void {
-      if (obs.isStarting.get()) return;
+      if (
+        obs.isStarting.get()
+        || obs.isSubmitting.get()
+        || (obs.gameStatus.get() === "dealt" && run?.phase !== "wrong")
+        || obs.gameStatus.get() === "committed"
+      ) return;
       const diff = clampDifficulty(difficulty);
       const rule = ruleOf(diff);
       obs.isStarting.set(true);
-      obs.lastStatus.set("starting");
-      const seq = randomColorSequence(rule.targetSeq);
-      obs.gameDifficulty.set(diff);
-      obs.activeGameId.set(GUEST_GAME_ID);
-      obs.commitment.set("");
-      obs.undosUsed.set(0);
-      sequence.set(seq);
-      playerSequence.set("");
-      seqAchieved.set(0);
-      const now = Date.now();
-      obs.dealtAt.set(now);
-      obs.deadline.set(now + rule.limitMs);
-      obs.gameStatus.set("dealt");
-      obs.lastStatus.set("dealt");
-      obs.isStarting.set(false);
+      try {
+        try {
+          run = createColorRun(randomColorSequence(rule.targetSeq), rule.targetSeq);
+        } catch (error) {
+          if (error instanceof Error && error.message === "secure-random-unavailable") {
+            throw new Error(t("secureRandomUnavailable"));
+          }
+          throw error;
+        }
+        obs.gameDifficulty.set(diff);
+        obs.activeGameId.set(GUEST_GAME_ID);
+        obs.commitment.set("");
+        obs.undosUsed.set(0);
+        lastPayoutFixed8.set(0n);
+        const now = Date.now();
+        obs.dealtAt.set(now);
+        obs.deadline.set(now + rule.limitMs);
+        publishRun();
+        obs.gameStatus.set("dealt");
+        obs.lastStatus.set("watching");
+      } finally {
+        obs.isStarting.set(false);
+      }
+    },
+
+    sequencePlaybackComplete(): void {
+      if (!run || obs.gameStatus.get() !== "dealt" || run.phase !== "watching") return;
+      if (hasColorDeadlinePassed(obs.deadline.get())) {
+        this.expireGame();
+        return;
+      }
+      run = markColorSequenceShown(run);
+      publishRun();
+      obs.lastStatus.set("repeat");
     },
 
     recordPress(color: number): void {
-      if (!Number.isInteger(color) || color < 0 || color > 3) return;
-      if (obs.gameStatus.get() !== "dealt") return;
-      if (obs.lastStatus.get() === "wrong") return;
-      const seq = sequence.get();
-      const played = playerSequence.get();
-      if (played.length >= seq.length) return;
-      const expected = Number(seq[played.length]);
-      if (color !== expected) {
-        // Wrong press ends the run; record the partial reach off-chain.
-        seqAchieved.set(played.length);
-        obs.lastStatus.set("wrong");
-        setStatus(t("wrongPress"), "error");
-        void submitScore(played.length);
+      if (!run || obs.gameStatus.get() !== "dealt") return;
+      if (hasColorDeadlinePassed(obs.deadline.get())) {
+        this.expireGame();
         return;
       }
-      const next = played + String(color);
-      playerSequence.set(next);
-      if (next.length >= seq.length) {
-        seqAchieved.set(seq.length);
+      const result = applyColorPress(run, color);
+      if (result.outcome === "ignored") return;
+      run = result.state;
+      publishRun();
+
+      if (result.outcome === "wrong") {
+        obs.lastStatus.set("wrong");
+        obs.myTotalWon.set(Math.max(obs.myTotalWon.get(), run.achieved));
+        setStatus(t("wrongPress"), "error");
+        void submitScore(run.achieved);
+      } else if (result.outcome === "round-complete") {
+        obs.lastStatus.set("watching");
+      } else if (result.outcome === "complete") {
         obs.lastStatus.set("all-correct");
+      } else {
+        obs.lastStatus.set("repeat");
       }
     },
 
     async submitSolution(): Promise<void> {
-      if (obs.gameStatus.get() !== "dealt") return;
-      if (obs.lastStatus.get() !== "all-correct") return;
+      if (!run || obs.gameStatus.get() !== "dealt" || run.phase !== "complete") return;
       if (obs.isSubmitting.get()) return;
+      if (hasColorDeadlinePassed(obs.deadline.get())) {
+        this.expireGame();
+        return;
+      }
       obs.isSubmitting.set(true);
-      const achieved = seqAchieved.get() || playerSequence.get().length;
-      obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
-      lastPayoutFixed8.set(0n);
-      obs.gameStatus.set("solved");
-      obs.lastStatus.set("solved");
-      obs.activeGameId.set("0");
-      await submitScore(achieved);
-      await refreshLeaderboard();
-      setStatus(t("guestRunComplete", { count: achieved }), "success");
-      obs.isSubmitting.set(false);
+      try {
+        const achieved = run.achieved;
+        const elapsedMs = Math.max(0, Date.now() - obs.dealtAt.get());
+        obs.lastElapsedMs.set(elapsedMs);
+        lastPayoutFixed8.set(0n);
+        obs.myTotalWon.set(Math.max(obs.myTotalWon.get(), achieved));
+        obs.mySolves.set(obs.mySolves.get() + 1);
+        guestHistory = [
+          {
+            gameId: `guest-${Date.now()}`,
+            difficulty: obs.gameDifficulty.get(),
+            payout: "0 GAS",
+            solveMs: elapsedMs,
+            undos: 0,
+            seqAchieved: achieved,
+          },
+          ...guestHistory,
+        ].slice(0, 8);
+        obs.myHistory.set(guestHistory);
+        obs.gameStatus.set("solved");
+        obs.lastStatus.set("solved");
+        obs.activeGameId.set("0");
+        await submitScore(achieved);
+        await refreshLeaderboard();
+        setStatus(t("guestRunComplete", { count: achieved }), "success");
+      } finally {
+        obs.isSubmitting.set(false);
+      }
     },
 
     expireGame(): void {
-      resetToLobby();
+      if (obs.gameStatus.get() !== "dealt" && obs.gameStatus.get() !== "committed") return;
+      const achieved = run?.achieved ?? 0;
+      obs.myTotalWon.set(Math.max(obs.myTotalWon.get(), achieved));
+      void submitScore(achieved);
+      resetSession("expired");
+      setStatus(t("guestExpiredTitle"), "info");
     },
 
     retryDeal(): void {
-      /* guest deals instantly — nothing to re-request. */
+      /* Guest deals immediately; there is no remote session to retry. */
     },
 
     refreshLeaderboard,
 
     async enter(): Promise<void> {
-      resetToLobby();
-      // Guest never reads chain — zero the on-chain-only counters so a prior
-      // gamefi read (from the mount-time loadData) never bleeds into the guest
-      // surface, then load the off-chain guest board.
+      resetSession("idle");
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
       obs.myTotalWon.set(0);
       obs.mySolves.set(0);
-      obs.myHistory.set([]);
+      obs.myHistory.set(guestHistory);
       await refreshLeaderboard();
     },
   };

@@ -1,11 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@framework/phaser";
-import { ArchiveRestore, ChevronDown, Gift, History, ShieldCheck, Ticket, WalletCards } from "lucide-react";
-import { RedEnvelopeScene } from "./scenes/RedEnvelopeScene";
+import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
+import { ArchiveRestore, ChevronDown, History, ShieldCheck, Ticket, WalletCards, X } from "lucide-react";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -44,9 +43,24 @@ interface Claim {
   amount?: number;
 }
 
+interface Claimability {
+  envelopeId: string;
+  canClaim: boolean;
+}
+
 type DrawerMode = "active" | "claims" | "reclaim" | "safety";
 
-const GAME_CONFIG = { scene: [RedEnvelopeScene], width: 420, height: 540 } as const;
+// Match the scene's authored 420×580 logical grid. The surrounding stage may
+// grow to 480px on desktop, while Phaser's responsive canvas scaling preserves
+// composition and hit targets without changing scene coordinates.
+const GAME_CONFIG = { width: 420, height: 580 } as const;
+const ACCESSIBLE_PLANS = [
+  { key: "lucky", amount: "1", count: "8", expiryHours: "24", labelKey: "scenePlanLucky" },
+  { key: "party", amount: "5", count: "20", expiryHours: "72", labelKey: "scenePlanParty" },
+  { key: "festival", amount: "10", count: "50", expiryHours: "168", labelKey: "scenePlanFestival" },
+] as const;
+const loadRedEnvelopeScene = () =>
+  import("./scenes/RedEnvelopeScene").then((module) => module.RedEnvelopeScene);
 
 function formatGas(value: unknown, maximumFractionDigits = 4): string {
   const n = Number(value ?? 0);
@@ -73,7 +87,11 @@ function getLaunchEnvelopeId(context: MiniAppLaunchContext): string {
 function isEnvelopeOpen(item: Envelope): boolean {
   if (item.active === false || item.ready === false) return false;
   if (item.expired || item.depleted) return false;
-  if (item.canOpen === true) return true;
+  // `canOpen` includes the connected wallet's hasClaimed state. Once the
+  // domain layer supplies it, both true and false are authoritative; falling
+  // through from false to `active === true` would re-enable an already-claimed
+  // or otherwise ineligible envelope.
+  if (item.canOpen !== undefined) return item.canOpen;
   return item.status === "active" || item.active === true;
 }
 
@@ -103,6 +121,9 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const { bool, str, val } = useStateBindings(state);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("active");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
 
   const envelopes = (val<Envelope[]>("envelopes", []) ?? []) as Envelope[];
   const claims = (val<Claim[]>("claims", []) ?? []) as Claim[];
@@ -118,10 +139,23 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const totalClaimed = val<number>("totalClaimed", 0) ?? 0;
   const lastError = str("lastError", "");
   const serviceNotice = str("serviceNotice", "");
+  const transactionNotice = str("transactionNotice", "");
+  const activeNetwork = str("activeNetwork", "");
   const launchedEnvelopeId = getLaunchEnvelopeId(launchContext);
   const isLoading = bool("isLoading");
   const isCreating = bool("isCreating");
-  const isOpening = Boolean(openingId) || isLoading;
+  const isRecovering = bool("isRecovering");
+  const isConnectingWallet = bool("isConnectingWallet");
+  const walletConnected = bool("walletConnected");
+  const paidActionsAvailable = val<boolean>("paidActionsAvailable", true) !== false;
+  const createAvailable = bool("createAvailable") && paidActionsAvailable;
+  const pendingOperation = val<Record<string, unknown> | null>("pendingOperation", null);
+  const isOpening =
+    Boolean(openingId) ||
+    isLoading ||
+    isRecovering ||
+    isConnectingWallet ||
+    Boolean(pendingOperation);
 
   // Guest (free / local) play — surfaced from app.mode via main.tsx so the copy
   // drops all GAS-at-stake / pool / credit / on-chain framing in favour of local,
@@ -131,15 +165,80 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const guestTotal = val<number>("guestTotal", 0) ?? 0;
   const guestOpened = val<number>("guestOpened", 0) ?? 0;
   const guestBoard = val<Array<{ user: string; score: number }>>("guestBoard", []) ?? [];
+  // `loadData` may have populated a GameFi maintenance/read notice before the
+  // launcher switches to guest. Never carry that chain-only warning into the
+  // local packet game or its screen-reader status.
+  const modeServiceNotice = isGuest ? "" : serviceNotice;
+  const modeTransactionNotice = isGuest ? "" : transactionNotice;
+  const formatGuestPoints = (value: number): string => t("guestPointsValue", {
+    amount: Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 4 }),
+  });
   // Mode-aware string: guest uses the local variant, gamefi keeps the original.
   const sx = (guestKey: string, gamefiKey: string): string =>
     isGuest ? t(guestKey) : t(gamefiKey);
+  const activeNetworkLabel = activeNetwork === "testnet"
+    ? t("networkTestnet")
+    : activeNetwork === "mainnet"
+      ? t("networkMainnet")
+      : "";
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const trigger = drawerTriggerRef.current;
+    drawerCloseRef.current?.focus();
+
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDrawerOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(
+        drawerRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
+  }, [drawerOpen]);
 
   const openEnvelopes = uniqueById([...pools, ...envelopes].filter(isEnvelopeOpen));
   const reclaimableEnvelopes = envelopes.filter((env) => env.reclaimable);
   const claimableGas = openEnvelopes.reduce((sum, env) => sum + envelopeGas(env), 0);
-  const lastCreatedLabel = lastCreatedEnvelopeId ? `#${shortId(lastCreatedEnvelopeId, 10, 4)}` : "--";
-  const activeHintId = asId(openingId) || launchedEnvelopeId || asId(openEnvelopes[0]?.id);
+  const pendingEnvelopeId = asId(openingId);
+  const requestedEnvelopeId = pendingEnvelopeId || asId(launchedEnvelopeId);
+  // A deep link is an explicit recipient choice. If that envelope is no longer
+  // claimable, do not silently substitute another packet. Without a deep link,
+  // selecting the first item is safe because `openEnvelopes` is already the
+  // authoritative claimable subset.
+  const claimableEnvelope = requestedEnvelopeId
+    ? openEnvelopes.find((item) => asId(item.id) === requestedEnvelopeId)
+    : openEnvelopes[0];
+  const claimableEnvelopeId = asId(claimableEnvelope?.id);
+  const claimability: Claimability = {
+    envelopeId: pendingEnvelopeId || claimableEnvelopeId,
+    canClaim:
+      Boolean(claimableEnvelopeId) &&
+      !isOpening &&
+      (isGuest || paidActionsAvailable),
+  };
+  const activeHintId = claimability.envelopeId || asId(launchedEnvelopeId);
 
   // Localized copy for every string the Phaser scene renders. Passed as a new
   // bridge key (does not touch the frozen contract keys) so zh users read
@@ -154,7 +253,10 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     planFestival: t("scenePlanFestival"),
     packetsTpl: t("scenePacketsTpl"),
     create: t("sceneCreate"),
+    createUnavailable: t("sceneCreateUnavailable"),
     working: t("sceneWorking"),
+    connectWallet: t("sceneConnectWallet"),
+    confirming: t("sceneConfirming"),
     share: t("sceneShare"),
     open: t("sceneOpen"),
     opening: t("sceneOpening"),
@@ -162,7 +264,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     summaryTpl: t("sceneSummaryTpl"),
     resultReceivedTpl: sx("sceneResultReceivedTplGuest", "sceneResultReceivedTpl"),
     resultShareReadyTpl: t("sceneResultShareReadyTpl"),
-    resultClaimReady: t("sceneResultClaimReady"),
+    resultClaimReady: sx("sceneResultClaimReadyGuest", "sceneResultClaimReady"),
     resultClaimIdle: sx("sceneResultClaimIdleGuest", "sceneResultClaimIdle"),
     resultSendIdle: sx("sceneResultSendIdleGuest", "sceneResultSendIdle"),
     ticketEnvelopeTpl: t("sceneTicketEnvelopeTpl"),
@@ -171,22 +273,31 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     claimEmptyMeta: sx("sceneClaimEmptyMetaGuest", "sceneClaimEmptyMeta"),
     packetsLeftTpl: t("scenePacketsLeftTpl"),
     packetStatusReady: t("scenePacketStatusReady"),
-    gasLeftTpl: t("sceneGasLeftTpl"),
+    gasLeftTpl: sx("sceneLuckLeftTplGuest", "sceneGasLeftTpl"),
+    unitLabel: isGuest ? t("guestPointsUnit") : "GAS",
     randomAmount: t("sceneRandomAmount"),
     statusClaimIdle: sx("sceneStatusClaimIdleGuest", "sceneStatusClaimIdle"),
     statusSendIdle: sx("sceneStatusSendIdleGuest", "sceneStatusSendIdle"),
     prepaidTpl: t("scenePrepaidTpl"),
+    gameFiUnavailable: t("sceneGameFiUnavailable"),
     errorFallback: t("sceneErrorFallback"),
   };
 
   const bridgeState = {
     openingId: openingId ?? null,
+    appMode: str("appMode", "gamefi"),
+    walletConnected,
+    paidActionsAvailable,
+    isConnectingWallet,
+    isRecovering,
+    pendingOperation,
     luckyMessage,
     envelopes,
     claims,
     pools,
     isLoading,
     isCreating,
+    createAvailable,
     prepaidCredit,
     lastCreatedEnvelopeId,
     envelopeCount,
@@ -195,12 +306,15 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     totalCreated,
     totalClaimed,
     lastError: lastError,
-    serviceNotice: serviceNotice,
+    serviceNotice: modeTransactionNotice || modeServiceNotice,
+    claimability,
     sceneCopy,
   };
 
   const stageTitle = isOpening
-    ? t("opening")
+    ? pendingOperation || isRecovering
+      ? t("sceneConfirming")
+      : t("opening")
     : isCreating
       ? t("sendingRedEnvelope")
       : luckyMessage
@@ -211,8 +325,8 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
 
   const score = isGuest
     ? [
-        { label: t("guestBestLabel"), value: guestBest > 0 ? formatGas(guestBest) : "--", accent: guestBest > 0 },
-        { label: t("guestTotalLabel"), value: formatGas(guestTotal) },
+        { label: t("guestBestLabel"), value: guestBest > 0 ? formatGuestPoints(guestBest) : "--", accent: guestBest > 0 },
+        { label: t("guestTotalLabel"), value: formatGuestPoints(guestTotal) },
         { label: t("guestOpenedLabel"), value: String(guestOpened) },
       ]
     : [
@@ -226,13 +340,18 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
     label: string;
     value: string;
     icon: ReactNode;
-  }> = [
-    { mode: "active", label: t("availableEnvelopes"), value: String(openEnvelopes.length), icon: <Ticket size={15} /> },
-    { mode: "claims", label: t("recentClaimsTitle"), value: String(claims.length), icon: <History size={15} /> },
-    { mode: "reclaim", label: t("reclaimEnvelope"), value: String(reclaimableEnvelopes.length), icon: <ArchiveRestore size={15} /> },
-    { mode: "safety", label: t("safetyPanelTitle"), value: t("tokenGas"), icon: <ShieldCheck size={15} /> },
-  ];
-  const activeDrawer = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
+  }> = isGuest
+    ? [
+        { mode: "safety", label: t("guestHowTitle"), value: t("guestBadge"), icon: <ShieldCheck size={15} /> },
+      ]
+    : [
+        { mode: "active", label: t("availableEnvelopes"), value: String(openEnvelopes.length), icon: <Ticket size={15} /> },
+        { mode: "claims", label: t("recentClaimsTitle"), value: String(claims.length), icon: <History size={15} /> },
+        { mode: "reclaim", label: t("reclaimEnvelope"), value: String(reclaimableEnvelopes.length), icon: <ArchiveRestore size={15} /> },
+        { mode: "safety", label: t("safetyPanelTitle"), value: t("tokenGas"), icon: <ShieldCheck size={15} /> },
+      ];
+  const activeDrawerMode = drawerModes.some((item) => item.mode === drawerMode) ? drawerMode : drawerModes[0]!.mode;
+  const activeDrawer = drawerModes.find((item) => item.mode === activeDrawerMode) ?? drawerModes[0]!;
 
   const drawerPanels: Record<DrawerMode, ReactNode> = {
     active: (
@@ -292,6 +411,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
                 <button
                   type="button"
                   className="mx2-btn mx2-btn--ghost"
+                  disabled={isOpening}
                   onClick={() => void dispatch("reclaimEnvelope", { envelopeId: asId(env.id) })}
                 >
                   {t("reclaimEnvelope")}
@@ -308,7 +428,10 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
       <div className="redenv-drawer__panel-body" data-mode="safety">
         <div className="redenv-safety-card">
           <ShieldCheck size={18} aria-hidden="true" />
-          <span>{isGuest ? t("guestHowBody") : t("safetyPanelCopy")}</span>
+          <div>
+            <span>{isGuest ? t("guestHowBody") : t("safetyPanelCopy")}</span>
+            {!isGuest ? <small>{t("publicPoolDisclosure")}</small> : null}
+          </div>
         </div>
         {isGuest ? (
           <div className="redenv-route" data-mode="guest">
@@ -337,15 +460,29 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
                 ? t("shareReadyTitle")
                 : t("claimPanelTitle")}
           </strong>
-          <span>{lastError || serviceNotice || (isGuest ? t("guestHowBody") : t("docDescription"))}</span>
+          <span>{lastError || modeServiceNotice || (isGuest ? t("guestHowBody") : t("docDescription"))}</span>
         </div>
       </div>
+
+      {modeServiceNotice ? (
+        <div className="redenv-recovery-notice" role="alert">
+          <span>{modeServiceNotice}</span>
+          <button
+            type="button"
+            className="mx2-btn mx2-btn--ghost"
+            disabled={isOpening}
+            onClick={() => void dispatch("retryEnvelopeData")}
+          >
+            {t("retryData")}
+          </button>
+        </div>
+      ) : null}
 
       <div className="redenv-drawer__summary-grid" aria-label={t("drawerSummaryLabel")}>
         {(isGuest
           ? [
-              { label: t("guestBestLabel"), value: guestBest > 0 ? formatGas(guestBest) : "--" },
-              { label: t("guestTotalLabel"), value: formatGas(guestTotal) },
+              { label: t("guestBestLabel"), value: guestBest > 0 ? formatGuestPoints(guestBest) : "--" },
+              { label: t("guestTotalLabel"), value: formatGuestPoints(guestTotal) },
               { label: t("guestOpenedLabel"), value: String(guestOpened) },
               { label: t("availableEnvelopes"), value: String(openEnvelopes.length) },
             ]
@@ -376,7 +513,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
                 <li key={`${row.user}-${index}`} className="mx2-history__item redenv-drawer-list__item">
                   <span className="mx2-history__face">#{index + 1}</span>
                   <span className="mx2-history__stake">{shortId(row.user, 6, 4)}</span>
-                  <span className="mx2-history__result">{formatGas(row.score)}</span>
+                  <span className="mx2-history__result">{formatGuestPoints(row.score)}</span>
                 </li>
               ))}
             </ul>
@@ -390,7 +527,14 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         <div className="redenv-share-card">
           <div>
             <span>{t("shareTitle")}</span>
-            <strong>{t("shareHint", { id: lastCreatedEnvelopeId })}</strong>
+            <strong>
+              {activeNetworkLabel
+                ? t("shareHintNetwork", {
+                    id: lastCreatedEnvelopeId,
+                    network: activeNetworkLabel,
+                  })
+                : t("shareHint", { id: lastCreatedEnvelopeId })}
+            </strong>
           </div>
           <button
             type="button"
@@ -402,7 +546,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         </div>
       )}
 
-      {prepaidCredit > 0 && (
+      {!isGuest && prepaidCredit > 0 && (
         <div className="redenv-credit-card">
           <WalletCards size={18} aria-hidden="true" />
           <div>
@@ -412,6 +556,7 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
           <button
             type="button"
             className="mx2-btn mx2-btn--ghost"
+            disabled={isOpening}
             onClick={() => void dispatch("withdrawCredit")}
           >
             {t("withdrawCredit")}
@@ -419,14 +564,57 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
         </div>
       )}
 
+      <div className="redenv-access-actions" aria-label={t("accessibleActionsTitle")}>
+        <strong>{t("accessibleActionsTitle")}</strong>
+        <span>{t("accessibleActionsHint")}</span>
+        <div>
+          {!isGuest && !walletConnected ? (
+            <button
+              type="button"
+              className="mx2-btn mx2-btn--primary"
+              disabled={isConnectingWallet}
+              onClick={() => void dispatch("connectWallet")}
+            >
+              {isConnectingWallet ? t("sceneWorking") : t("sceneConnectWallet")}
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="mx2-btn mx2-btn--primary"
+                disabled={!claimability.canClaim}
+                onClick={() => void dispatch("claimEnvelope", { envelopeId: claimability.envelopeId })}
+              >
+                {isOpening ? t("sceneOpening") : t("sceneOpen")}
+              </button>
+              {ACCESSIBLE_PLANS.map((plan) => (
+                <button
+                  key={plan.key}
+                  type="button"
+                  className="mx2-btn mx2-btn--ghost"
+                  disabled={isOpening || (!isGuest && !createAvailable)}
+                  onClick={() => void dispatch("createEnvelope", {
+                    amount: plan.amount,
+                    count: plan.count,
+                    expiryHours: plan.expiryHours,
+                  })}
+                >
+                  {t(plan.labelKey)}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+
       <div className="redenv-drawer-tabs" role="tablist" aria-label={t("myEnvelopes")}>
         {drawerModes.map((item) => (
           <button
             key={item.mode}
             type="button"
             role="tab"
-            aria-selected={drawerMode === item.mode}
-            className={drawerMode === item.mode ? "is-active" : undefined}
+            aria-selected={activeDrawerMode === item.mode}
+            className={activeDrawerMode === item.mode ? "is-active" : undefined}
             onClick={() => setDrawerMode(item.mode)}
           >
             <span className="redenv-drawer-tabs__icon" aria-hidden="true">{item.icon}</span>
@@ -444,43 +632,56 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
             <span>{activeDrawer.value}</span>
           </div>
         </div>
-        {drawerPanels[drawerMode]}
+        {drawerPanels[activeDrawerMode]}
       </section>
     </div>
   );
 
+  const handleCanvasKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (!claimability.canClaim) return;
+    event.preventDefault();
+    void dispatch("claimEnvelope", { envelopeId: claimability.envelopeId });
+  };
+
   return (
     <div className="redenv-play-area mx2 mx2-cat-game">
+      <p className="redenv-sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {stageTitle}. {lastError || modeTransactionNotice || modeServiceNotice || (luckyMessage?.amount
+          ? t(isGuest ? "guestGrabbed" : "claimReceivedMessage", {
+              amount: Number(luckyMessage.amount).toFixed(4),
+            })
+          : "")}
+      </p>
       <PlayStage
         category="game"
         className="redenv-playstage"
-        stage={{
-          eyebrow: t("appEyebrow"),
-          title: stageTitle,
-          subtitle: isGuest ? t("guestSubtitle") : t("appSubtitle"),
-          badges: (
-            <>
-              <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {isGuest ? t("guestBadge") : t("tokenGas")}
-              </span>
-              {lastCreatedEnvelopeId && (
-                <span className="mx2-badge">
-                  <Gift size={14} aria-hidden="true" /> {lastCreatedLabel}
-                </span>
-              )}
-            </>
-          ),
-        }}
+        stage={{}}
         scene={(
           <div className="redenv-stage-shell">
-            <PhaserGameComponent
-              config={GAME_CONFIG}
-              state={bridgeState}
-              dispatch={dispatch}
-              className="redenv-phaser-canvas"
-              ariaLabel="Red Envelope packet game"
-              loadingLabel="Opening red envelope game"
-            />
+            <div
+              className="redenv-canvas-access"
+              tabIndex={0}
+              role="group"
+              aria-label={t("sceneKeyboardHint")}
+              aria-disabled={!claimability.canClaim}
+              onKeyDown={handleCanvasKeyDown}
+            >
+              <PhaserGameComponent
+                config={GAME_CONFIG}
+                loadScene={loadRedEnvelopeScene}
+                state={bridgeState}
+                dispatch={dispatch}
+                className="redenv-phaser-canvas"
+                ariaLabel={t("sceneAriaLabel")}
+                loadingLabel={t("sceneLoadingLabel")}
+                errorLabel={t("sceneLoadError")}
+                retryLabel={t("sceneRetry")}
+                continueLabel={t("sceneContinue")}
+                enableSoundLabel={t("sceneEnableSound")}
+                muteSoundLabel={t("sceneMuteSound")}
+              />
+            </div>
             <div className="redenv-stage-hud" aria-label={t("drawerSummaryLabel")}>
               {score.map((item) => (
                 <div className="redenv-stage-hud__metric" data-accent={item.accent ? "true" : undefined} key={String(item.label)}>
@@ -488,21 +689,56 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
                   <strong>{item.value}</strong>
                 </div>
               ))}
-              <button
-                type="button"
-                className="redenv-stage-hud__drawer"
-                onClick={() => setDrawerOpen((open) => !open)}
-                aria-expanded={drawerOpen}
-              >
-                <span>{t("myEnvelopes")}</span>
-                <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
-              </button>
+              {luckyMessage?.amount && luckyMessage.amount > 0 ? (
+                <button
+                  type="button"
+                  className="redenv-collect-luck"
+                  onClick={() => void dispatch("dismissOverlay")}
+                >
+                  {t("luckyReceivedClose")}
+                </button>
+              ) : (
+                <button
+                  ref={drawerTriggerRef}
+                  type="button"
+                  className="redenv-stage-hud__drawer"
+                  onClick={() => setDrawerOpen((open) => !open)}
+                  aria-expanded={drawerOpen}
+                >
+                  <span>{t("myEnvelopes")}</span>
+                  <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
+                </button>
+              )}
             </div>
             {drawerOpen && (
-              <section className="redenv-ingame-drawer" aria-label={t("myEnvelopes")}>
-                <h3>{t("myEnvelopes")}</h3>
-                {drawerContent}
-              </section>
+              <>
+                <div
+                  className="redenv-drawer-backdrop"
+                  aria-hidden="true"
+                  onPointerDown={() => setDrawerOpen(false)}
+                />
+                <section
+                  ref={drawerRef}
+                  className="redenv-ingame-drawer"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="redenv-drawer-title"
+                >
+                  <div className="redenv-ingame-drawer__titlebar">
+                    <h3 id="redenv-drawer-title">{t("myEnvelopes")}</h3>
+                    <button
+                      ref={drawerCloseRef}
+                      type="button"
+                      className="redenv-drawer-close"
+                      aria-label={t("closeDrawer")}
+                      onClick={() => setDrawerOpen(false)}
+                    >
+                      <X size={18} aria-hidden="true" />
+                    </button>
+                  </div>
+                  {drawerContent}
+                </section>
+              </>
             )}
           </div>
         )}

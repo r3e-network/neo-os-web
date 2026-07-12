@@ -11,8 +11,10 @@
 
 export type EvmNetwork = "neo-x-mainnet" | "neo-x-testnet";
 
-interface Eip1193Provider {
+export interface Eip1193Provider {
   request(args: { method: string; params?: unknown[] | object }): Promise<unknown>;
+  on?(event: "accountsChanged" | "chainChanged", listener: (value: unknown) => void): void;
+  removeListener?(event: "accountsChanged" | "chainChanged", listener: (value: unknown) => void): void;
 }
 
 // Neo X chain ids: mainnet 47763 (0xba93), T4 testnet 12227332 (0xba9304).
@@ -241,6 +243,10 @@ export interface EvmCall {
   valueWei?: bigint | string; // native GAS to send (payable)
   /** Optional event topic[0] to locate in the receipt; returns its indexed topic[1] as `eventId`. */
   eventTopic?: string;
+  /** Abort before broadcast if the active account changed after form validation. */
+  expectedFrom?: string;
+  /** Fires immediately after eth_sendTransaction, before receipt polling. */
+  onTransactionSent?: (txid: string) => void;
 }
 
 export interface EvmCallResult {
@@ -248,9 +254,11 @@ export interface EvmCallResult {
   eventId?: string;
 }
 
+export const EVM_ACCOUNT_CHANGED_ERROR = "Active EVM account changed before transaction submission.";
+
 interface EvmReceipt {
   status?: string;
-  logs?: { topics?: string[] }[];
+  logs?: { address?: string; topics?: string[] }[];
 }
 
 async function waitForReceipt(eth: Eip1193Provider, txid: string, timeoutMs = 60_000): Promise<EvmReceipt> {
@@ -281,12 +289,18 @@ export async function evmCallEncoded(address: string, selector: string, argsHex 
 }
 
 /** EIP-191 personal_sign with the active wallet account; returns the 0x signature. */
-export async function evmPersonalSign(message: string): Promise<string> {
+export async function evmPersonalSign(message: string, expectedFrom?: string): Promise<string> {
   const eth = getInjectedEthereum();
   if (!eth) throw new Error("No EVM wallet detected.");
   let accounts = (await eth.request({ method: "eth_accounts" })) as string[];
   if (!accounts?.length) accounts = [await connectEvm()];
   const from = accounts[0];
+  if (
+    expectedFrom &&
+    String(from).toLowerCase() !== String(expectedFrom).toLowerCase()
+  ) {
+    throw new Error(EVM_ACCOUNT_CHANGED_ERROR);
+  }
   const hexMessage = "0x" + bytesToHex(utf8ToBytes(message));
   return (await eth.request({ method: "personal_sign", params: [hexMessage, from] })) as string;
 }
@@ -305,6 +319,12 @@ export async function evmInvoke(call: EvmCall): Promise<EvmCallResult> {
   let accounts = (await eth.request({ method: "eth_accounts" })) as string[];
   if (!accounts?.length) accounts = [(await connectEvm())];
   const from = accounts[0];
+  if (
+    call.expectedFrom &&
+    String(from).toLowerCase() !== String(call.expectedFrom).toLowerCase()
+  ) {
+    throw new Error(EVM_ACCOUNT_CHANGED_ERROR);
+  }
   const data =
     call.argsHex !== undefined
       ? call.selector + stripHex(call.argsHex)
@@ -314,6 +334,12 @@ export async function evmInvoke(call: EvmCall): Promise<EvmCallResult> {
     method: "eth_sendTransaction",
     params: [{ from, to: call.address, data, ...(value ? { value } : {}) }],
   })) as string;
+  try {
+    call.onTransactionSent?.(txid);
+  } catch {
+    // The transaction is already in-flight. Local persistence failure must not
+    // alter receipt/fault handling for the on-chain call.
+  }
   const receipt = await waitForReceipt(eth, txid);
   if (receipt.status !== undefined && receipt.status !== "0x1") {
     throw new Error("Transaction reverted on Neo X.");
@@ -321,8 +347,16 @@ export async function evmInvoke(call: EvmCall): Promise<EvmCallResult> {
   let eventId: string | undefined;
   if (call.eventTopic) {
     const topic = call.eventTopic.toLowerCase();
-    const log = (receipt.logs ?? []).find((l) => (l.topics?.[0] ?? "").toLowerCase() === topic);
-    if (log?.topics?.[1]) eventId = BigInt(log.topics[1]).toString();
+    const contract = call.address.toLowerCase();
+    const logs = (receipt.logs ?? []).filter(
+      (entry) =>
+        String(entry.address ?? "").toLowerCase() === contract &&
+        String(entry.topics?.[0] ?? "").toLowerCase() === topic,
+    );
+    const indexedId = logs.length === 1 ? logs[0]?.topics?.[1] : undefined;
+    if (indexedId && /^0x[0-9a-fA-F]{64}$/.test(indexedId)) {
+      eventId = BigInt(indexedId).toString();
+    }
   }
   return { txid, eventId };
 }

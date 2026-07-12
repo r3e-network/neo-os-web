@@ -20,19 +20,18 @@ test("Neo Swap quotes use the Morpheus DataFeed instead of a missing wallet SDK 
 
   assert.match(hook, /import \{ useMorpheusDataFeed \} from "@shared\/composables\/useMorpheusDataFeed";/);
   assert.match(hook, /const datafeed = useMorpheusDataFeed\(\);/);
-  // Both price legs are fetched in parallel from the Morpheus datafeed. The hook
-  // now binds quote objects (getPriceWithMeta returns price + freshness metadata)
-  // rather than bare numbers; getPrice is the metadata-less shorthand. Accept
-  // either binding/accessor so a future revert to a wallet-SDK helper still fails.
+  // Both price legs are fetched in parallel from the Morpheus datafeed and then
+  // restored to the contract's fixed-six integers before quote math.
   assert.match(hook, /const \[from\w+, to\w+\] = await Promise\.all\(\[/);
-  assert.match(hook, /datafeed\.getPrice(?:WithMeta)?\(fromToken\.get\(\)\.symbol\),/);
-  assert.match(hook, /datafeed\.getPrice(?:WithMeta)?\(toToken\.get\(\)\.symbol\),/);
-  assert.match(hook, /const rate = from\w+(?:\.price)? \/ to\w+(?:\.price)?;/);
+  assert.match(hook, /loadVerifiedPriceLeg\(requestedFrom\),/);
+  assert.match(hook, /loadVerifiedPriceLeg\(requestedTo\),/);
+  assert.match(hook, /morpheusPriceUnits\(fromQuote\.price\)/);
+  assert.match(hook, /quoteOutputUnits\(/);
+  assert.doesNotMatch(hook, /amount \* rate|fromQuote\.price \/ toQuote\.price/);
   assert.match(hook, /function setFromAmount\(value: string\)/);
   assert.match(hook, /fromAmount\.set\(value\);[\s\S]*onFromAmountChange\(\);/);
-  assert.match(playArea, /function normalizeAmountForToken\(value: string, token: Token\): string/);
-  assert.match(playArea, /token\.decimals === 0[\s\S]*text\.split\(\s*\/\[\.,\]\/\s*\)\[0\]/);
-  assert.match(playArea, /dispatch\("setFromAmount", normalizeAmountForToken\(value, fromToken\)\)/);
+  assert.match(playArea, /dispatchSafely\("setFromAmount", value\)/);
+  assert.doesNotMatch(playArea, /normalizeAmountForToken|Math\.floor\(Number\(value\)\)/);
   assert.match(main, /ctx\.framework\.actions\.register\("setFromAmount"/);
   assert.doesNotMatch(hook, /waitForSDK/);
 });

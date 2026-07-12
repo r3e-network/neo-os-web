@@ -16,13 +16,21 @@ test("AA Market Hub buy flow batches GAS transfer before settleListing", () => {
   )?.[0];
 
   assert.ok(buyFlow, "buyAddressListing source should be present");
-  assert.match(buyFlow, /wallet\.invokeMultiple\(/);
+  assert.match(buyFlow, /app\.chain\.invokeMultiple\(/);
   assert.match(
     buyFlow,
     /operation:\s*"transfer"[\s\S]*operation:\s*"settleListing"/,
   );
   assert.match(buyFlow, /scriptHash:\s*GAS_HASH/);
-  assert.match(buyFlow, /value:\s*String\(listing\.priceRaw\)/);
+  assert.match(buyFlow, /const priceRaw = positive\(listing\.priceRaw/);
+  assert.match(buyFlow, /integerArg\(priceRaw\)/);
+  assert.match(
+    buyFlow,
+    /operation:\s*"transfer"[\s\S]*integerArg\(listingId\)[\s\S]*operation:\s*"settleListing"/,
+    "GAS transfer data must carry the Integer listing id before settlement",
+  );
+  assert.doesNotMatch(buyFlow, /type:\s*"Any"|ANY_NULL_ARG/);
+  assert.match(buyFlow, /onTransactionSent:\s*options\.onTransactionSent/);
 });
 
 test("AA Market Hub refund passes listing id and payer Hash160", () => {
@@ -38,10 +46,8 @@ test("AA Market Hub refund passes listing id and payer Hash160", () => {
     refundFlow,
     /const payerHash = normalizeHash160Input\(address, "Payer"\)/,
   );
-  assert.match(refundFlow, /operation:\s*"refundPendingPayment"/);
-  assert.match(refundFlow, /type:\s*"Integer", value:\s*String\(listingId\)/);
-  assert.match(
-    refundFlow,
-    /type:\s*"Hash160", value:\s*normalizeScriptHash\(payerHash\)/,
-  );
+  assert.match(refundFlow, /app\.chain\.invoke\("refundPendingPayment"/);
+  assert.match(refundFlow, /integerArg\(positive\(listingId, "Listing ID"\)\)/);
+  assert.match(refundFlow, /hashArg\(payerHash\)/);
+  assert.match(refundFlow, /onTransactionSent:\s*options\.onTransactionSent/);
 });

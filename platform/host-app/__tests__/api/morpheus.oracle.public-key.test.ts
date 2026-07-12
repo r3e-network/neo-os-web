@@ -42,6 +42,8 @@ describe("/api/morpheus/oracle/public-key", () => {
 
     await handler(req, res);
 
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Cache-Control")).toBe("no-store, private");
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
       "https://api.n3index.dev/testnet",
@@ -87,5 +89,20 @@ describe("/api/morpheus/oracle/public-key", () => {
     expect(JSON.parse(res._getData())).toEqual(
       expect.objectContaining({ error: "Failed to load oracle public key" }),
     );
+  });
+
+  it("answers opaque-frame preflight without contacting the chain", async () => {
+    const handler = require("@/pages/api/morpheus/oracle/public-key").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: "OPTIONS" });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(204);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe("GET, OPTIONS");
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

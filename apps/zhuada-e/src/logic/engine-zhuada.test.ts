@@ -3,7 +3,7 @@
  * tray+shelf matching (parity G2 移出/撤回 foundations).
  *
  * Key invariants under test:
- *  - applyExtractShelf fills the first empty TRAY slot and clears exactly 3
+ *  - applyExtractShelf compacts left, groups like kinds, and clears exactly 3
  *    copies across tray+shelf, SHELF copies first.
  *  - applyRemoveToShelf only fires with an empty shelf and ≥3 tray items, and
  *    can never create a triple (cross-zone counts are ≤2 by construction).
@@ -16,6 +16,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyExtractShelf,
   applyRemoveToShelf,
+  compactTray,
   generateItems,
   isTrayStuck,
   makeRng,
@@ -28,7 +29,7 @@ const emptyTray = (): (number | null)[] => Array<number | null>(TRAY_SLOTS).fill
 const emptyShelf = (): (number | null)[] => Array<number | null>(SHELF_SLOTS).fill(null);
 
 describe("applyExtractShelf", () => {
-  it("places into the first empty tray slot without matching", () => {
+  it("places the first item at the left edge without matching", () => {
     const res = applyExtractShelf(emptyTray(), emptyShelf(), 4);
     expect(res.placed).toBe(true);
     expect(res.placedIndex).toBe(0);
@@ -37,13 +38,31 @@ describe("applyExtractShelf", () => {
     expect(res.shelf.every((s) => s === null)).toBe(true);
   });
 
+  it("inserts beside an existing kind and shifts right-side groups", () => {
+    const tray = [1, 4, 7, null, null, null, null];
+    const res = applyExtractShelf(tray, emptyShelf(), 4);
+    expect(res.matched).toBe(false);
+    expect(res.placedIndex).toBe(2);
+    expect(res.landingTray).toEqual([1, 4, 4, 7, null, null, null]);
+    expect(res.tray).toEqual(res.landingTray);
+  });
+
+  it("normalizes legacy gaps and separated duplicates before landing", () => {
+    const tray = [3, null, 8, 3, null, 5, null];
+    const res = applyExtractShelf(tray, emptyShelf(), 8);
+    expect(res.matched).toBe(false);
+    expect(res.placedIndex).toBe(3);
+    expect(res.tray).toEqual([3, 3, 8, 8, 5, null, null]);
+  });
+
   it("clears an in-tray triple exactly like the classic rule", () => {
     const tray = emptyTray();
     tray[0] = 2;
     tray[3] = 2;
     const res = applyExtractShelf(tray, emptyShelf(), 2);
     expect(res.matched).toBe(true);
-    expect(res.clearedTray.sort()).toEqual([0, 1, 3]);
+    expect(res.landingTray.slice(0, 3)).toEqual([2, 2, 2]);
+    expect(res.clearedTray).toEqual([0, 1, 2]);
     expect(res.clearedShelf).toEqual([]);
     expect(res.tray.every((s) => s === null)).toBe(true);
   });
@@ -70,9 +89,18 @@ describe("applyExtractShelf", () => {
     const res = applyExtractShelf(tray, shelf, 5);
     expect(res.matched).toBe(true);
     expect(res.clearedShelf).toEqual([1]);
-    expect(res.clearedTray.sort()).toEqual([0, 2]); // landing slot 0 + slot 2
+    expect(res.landingTray.slice(0, 2)).toEqual([5, 5]);
+    expect(res.clearedTray).toEqual([0, 1]);
     expect(res.shelf[1]).toBe(null);
     expect(res.tray.every((s) => s === null)).toBe(true);
+  });
+
+  it("holds the grouped triple snapshot, then left-compacts survivors", () => {
+    const tray = [9, 2, null, 2, 4, null, null];
+    const res = applyExtractShelf(tray, emptyShelf(), 2);
+    expect(res.landingTray).toEqual([9, 2, 2, 2, 4, null, null]);
+    expect(res.clearedTray).toEqual([1, 2, 3]);
+    expect(res.tray).toEqual([9, 4, null, null, null, null, null]);
   });
 
   it("refuses to place when the tray is full (placed=false, no mutation)", () => {
@@ -96,10 +124,7 @@ describe("applyRemoveToShelf", () => {
     expect(res).not.toBeNull();
     expect(res!.movedFrom).toEqual([1, 3, 4]);
     expect(res!.shelf).toEqual([9, 4, 9]);
-    expect(res!.tray[1]).toBe(null);
-    expect(res!.tray[3]).toBe(null);
-    expect(res!.tray[4]).toBe(null);
-    expect(res!.tray[6]).toBe(2); // 4th item stays
+    expect(res!.tray).toEqual([2, null, null, null, null, null, null]);
   });
 
   it("is unavailable while the shelf is occupied", () => {
@@ -126,6 +151,13 @@ describe("applyRemoveToShelf", () => {
       if (v !== null) counts.set(v, (counts.get(v) ?? 0) + 1);
     }
     for (const c of counts.values()) expect(c).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("compactTray", () => {
+  it("removes every internal gap and preserves item order", () => {
+    expect(compactTray([1, null, 4, null, 2, null, null]))
+      .toEqual([1, 4, 2, null, null, null, null]);
   });
 });
 
@@ -162,6 +194,31 @@ describe("full-run invariant: empty box ⇒ empty tray AND shelf", () => {
         expect(tray.every((s) => s === null)).toBe(true);
         expect(shelf.every((s) => s === null)).toBe(true);
       }
+    }
+  });
+});
+
+describe("fresh-run randomization", () => {
+  it("produces a new layout for a new seed while the same seed stays reproducible", () => {
+    const spec = specOf(8);
+    const first = generateItems(spec, makeRng(0x12345678));
+    const replay = generateItems(spec, makeRng(0x12345678));
+    const nextRun = generateItems(spec, makeRng(0x87654321));
+
+    expect(replay).toEqual(first);
+    expect(nextRun).not.toEqual(first);
+    expect(nextRun.map((item) => item.kind)).not.toEqual(first.map((item) => item.kind));
+    expect(nextRun.map(({ px, py, pz }) => [px, py, pz])).not.toEqual(
+      first.map(({ px, py, pz }) => [px, py, pz]),
+    );
+  });
+
+  it("keeps every randomized kind count divisible by three", () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const items = generateItems(specOf(15), makeRng(seed * 2654435761));
+      const counts = new Map<number, number>();
+      for (const item of items) counts.set(item.kind, (counts.get(item.kind) ?? 0) + 1);
+      for (const count of counts.values()) expect(count % 3).toBe(0);
     }
   });
 });

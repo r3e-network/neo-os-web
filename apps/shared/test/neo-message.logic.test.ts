@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   isEvmAddress,
+  isMessageRecipient,
+  isSupportedMessageNetwork,
   addressesEqual,
   buildRevealStatement,
   validateCompose,
@@ -20,6 +22,13 @@ describe("neo-message logic", () => {
     expect(isEvmAddress("0x123")).toBe(false);
     expect(isEvmAddress("NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq")).toBe(false);
     expect(isEvmAddress(undefined)).toBe(false);
+  });
+
+  it("requires a non-zero recipient and the exact deployed mainnet", () => {
+    expect(isMessageRecipient(RECIPIENT)).toBe(true);
+    expect(isMessageRecipient("0x0000000000000000000000000000000000000000")).toBe(false);
+    expect(isSupportedMessageNetwork("neo-x-mainnet")).toBe(true);
+    expect(isSupportedMessageNetwork("neo-x-testnet")).toBe(false);
   });
 
   it("addressesEqual is checksum-insensitive", () => {

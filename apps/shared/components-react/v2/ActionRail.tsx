@@ -24,7 +24,7 @@ export interface ActionRailAction {
 }
 
 export interface ActionRailProps {
-  category?: "game" | "defi" | "nft" | "tool";
+  category?: "game" | "defi" | "nft" | "tool" | "social" | "governance";
   className?: string;
   /** The dominant action; optional so informational views do not fake a primary button. */
   primary?: ActionRailAction;

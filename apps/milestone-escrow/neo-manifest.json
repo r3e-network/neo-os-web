@@ -15,13 +15,18 @@
   "deployment": {
     "neo-n3-mainnet": {
       "domain": "milestoneescrow.miniapp.neo",
-      "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with fund/create/approve/claim.",
+      "reason": "Legacy 28-method contract is deployed and its existing escrow lifecycle remains usable. New escrow creation is frontend-blocked until the recovery-capable contract update is deployed and verified.",
       "status": "deployed",
       "verified_at": "2026-05-08T12:10:43Z"
+    },
+    "neo-n3-testnet": {
+      "reason": "Legacy 28-method contract and create/approve/claim/cancel ABI verified by read-only RPC. New escrow creation is frontend-blocked because prepaid-credit recovery methods are not deployed.",
+      "status": "deployed",
+      "verified_at": "2026-07-11T00:00:00Z"
     }
   },
-  "description": "Lock funds and release per approved milestones.",
-  "description_zh": "里程碑托管 — 按项目里程碑自动释放资金的智能托管服务",
+  "description": "Manage staged NEO/GAS escrow releases. New deposits are temporarily locked pending the recovery-capable contract update.",
+  "description_zh": "管理 NEO/GAS 里程碑托管释放；恢复版合约更新前，新的存入暂时锁定。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -61,7 +66,7 @@
     "milestone",
     "payments"
   ],
-  "updatedAt": "2026-05-08T12:10:43Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "urls": {
     "banner": "/miniapps/milestone-escrow/banner.webp",
     "entry": "/miniapps/milestone-escrow/index.html",

@@ -10,6 +10,8 @@ export const FUND_MEMO = "miniapp-sheep-solitaire:fund";
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
+export const DEAL_TTL_MS = 3_600_000;
+export const SETTLE_GRACE_MS = 600_000;
 
 export const MAX_SLOTS = 7;
 export const MATCH_COUNT = 3;

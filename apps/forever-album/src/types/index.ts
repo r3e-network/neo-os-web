@@ -10,6 +10,6 @@ export interface UploadItem {
   dataUrl: string;
   /** Raw file byte size (file.size). */
   size: number;
-  /** Length of the data-URL payload that is actually written on-chain. */
+  /** Length of the device-local data-URL payload before optional encryption. */
   payloadBytes: number;
 }

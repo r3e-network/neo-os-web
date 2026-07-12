@@ -9,11 +9,11 @@
  *   1. deposit GAS (NEP-17 transfer to contract, memo "miniapp-redenvelope:create")
  *   2. createEnvelope (consume credit -> a 2-packet envelope)
  *   3. claim from creator           (random packet, atomic payout)
- *   4. claim from a fresh 2nd account (final packet = exact remainder)
+ *   4. claim from the configured 2nd account (final packet = exact remainder)
  *   5. assert share1 + share2 == total, opened == packetCount, active == false
  *
- * Uses only one funded testnet account (the deployer); the second claimer is a
- * fresh ephemeral account funded at runtime. Never prints WIFs. Testnet-pinned
+ * Uses two configured funded testnet accounts so validation never strands GAS
+ * in an ephemeral wallet. Never prints WIFs. Testnet-pinned
  * (RPC endpoint/magic via lib/neo_network.js — NEO_RPC_TESTNET / NEO_RPC_URL /
  * NEO_RPC_ENDPOINTS env overrides apply).
  */
@@ -28,7 +28,7 @@ const CONTRACT = getManifestContractHash("red-envelope", { network: "testnet" })
 const GAS = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 const creator = new wallet.Account(requireCredential("NEO_TESTNET_WIF", process.env.NEO_TESTNET_WIF));
-const claimer = new wallet.Account(); // fresh ephemeral 2nd participant
+const claimer = new wallet.Account(requireCredential("SIM_WIF_1", process.env.SIM_WIF_1));
 
 const live = createLiveRpc({ network: "testnet", neon: pkg, label: "live_validate_redenvelope" });
 
@@ -56,13 +56,7 @@ function mapField(stack, key) {
 async function main() {
   console.log("contract :", CONTRACT);
   console.log("creator  :", creator.address);
-  console.log("claimer  :", claimer.address, "(fresh)");
-
-  // Fund the fresh claimer with 1 GAS so it can pay its own claim tx fee.
-  console.log("\n[0] fund fresh claimer with 1 GAS…");
-  await invoke("fund-claimer", creator, GAS, "transfer", [
-    H(creator.scriptHash), H(claimer.scriptHash), I(100000000), sc.ContractParam.any(null),
-  ]);
+  console.log("claimer  :", claimer.address);
 
   const TOTAL = 100000000n; // 1 GAS
   const PACKETS = 2;
@@ -89,8 +83,8 @@ async function main() {
   const share1 = decInt(await read("claimedAmount", [P_I(envId), P_H(creator.scriptHash)]));
   console.log("    share1 =", share1.toString(), `(${(Number(share1) / 1e8).toFixed(8)} GAS)`);
 
-  // 4. claim #2 (fresh claimer) — final packet = remainder
-  console.log("\n[4] claim #2 by fresh account (final packet)…");
+  // 4. claim #2 (configured second participant) — final packet = remainder
+  console.log("\n[4] claim #2 by second account (final packet)…");
   const clBefore = await gasBalance(claimer.scriptHash);
   await invoke("claim2", claimer, CONTRACT, "claim", [I(envId), H(claimer.scriptHash)]);
   const clAfter = await gasBalance(claimer.scriptHash);

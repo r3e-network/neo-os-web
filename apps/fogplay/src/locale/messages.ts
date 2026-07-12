@@ -3,11 +3,15 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   appEyebrow: { en: "FogPlay", zh: "迷雾对决" },
+  startAction: { en: "Start game", zh: "开始游戏" },
+  playTab: { en: "Game", zh: "游戏" },
+  rulesTitle: { en: "How to play", zh: "玩法说明" },
+  ranksTab: { en: "Leaderboard", zh: "排行榜" },
   appSubtitle: {
-    en: "Pick heads or tails, lock the wager, and reveal the fair flip on the next block.",
-    zh: "选择正反面，锁定筹码，并在下一区块揭晓公平抛掷结果。",
+    en: "Pick heads or tails and build a local win streak. Wallet-funded flips are temporarily paused.",
+    zh: "选择正反面并挑战本地连胜。钱包付费抛掷暂时关闭。",
   },
-  eyebrow: { en: "On-chain coin toss", zh: "链上抛硬币" },
+  eyebrow: { en: "Coin toss table", zh: "抛硬币牌桌" },
   title: { en: "FogPlay", zh: "迷雾对决" },
   wins: { en: "Wins", zh: "胜利" },
   losses: { en: "Losses", zh: "失败" },
@@ -23,9 +27,28 @@ const appMessages = {
   // In-canvas (Phaser scene) strings — surfaced to the scene through
   // bridgeState so the coin table honors the active locale.
   tableTitle: { en: "FOGPLAY FLIP TABLE", zh: "迷雾对决翻转台" },
+  gameAriaLabel: { en: "FogPlay coin flip game", zh: "迷雾对决抛硬币游戏" },
+  gameLoadingLabel: { en: "Opening flip table", zh: "正在打开翻转台" },
+  gameLoadError: { en: "Flip table failed to load", zh: "翻转台加载失败" },
+  retryLoad: { en: "Retry", zh: "重试" },
+  continue: { en: "Continue", zh: "继续" },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
+  gameControls: { en: "Coin flip controls", zh: "抛硬币控制" },
+  keyboardHelp: {
+    en: "Choose a side, choose a wager when playing GameFi, then flip.",
+    zh: "选择正反面；GameFi 模式再选择筹码，然后抛掷。",
+  },
+  closeHistory: { en: "Close recent games", zh: "关闭最近对局" },
   headsHint: { en: "bright side", zh: "亮面" },
   tailsHint: { en: "quiet side", zh: "静面" },
   oddsShort: { en: "50/50 · pays 2x", zh: "五五开 · 2 倍赔付" },
+  houseUnavailableShort: {
+    en: "Table liquidity unavailable",
+    zh: "牌桌流动性暂不可用",
+  },
+  houseUnavailableCta: { en: "TABLE PAUSED", zh: "牌桌维护中" },
+  gameFiPausedTitle: { en: "GameFi maintenance", zh: "GameFi 维护中" },
   awaitingReveal: { en: "Waiting for block reveal", zh: "等待区块揭晓" },
   flipCta: { en: "FLIP", zh: "抛掷" },
   flippingCta: { en: "FLIPPING", zh: "抛掷中" },
@@ -40,12 +63,12 @@ const appMessages = {
   flipping: { en: "Flipping...", zh: "抛掷中..." },
   committing: { en: "Placing bet...", zh: "下注中..." },
   revealingNextBlock: {
-    en: "Revealing next block...",
-    zh: "下一区块揭晓中...",
+    en: "Waiting for the three-block beacon...",
+    zh: "等待三块信标窗口...",
   },
   betPlacedRevealing: {
-    en: "Bet placed — revealing on the next block…",
-    zh: "下注已提交 — 将在下一区块揭晓…",
+    en: "Bet placed — waiting for the three-block beacon…",
+    zh: "下注已提交 — 正在等待三块信标窗口…",
   },
   commitRevealTimeline: { en: "Commit reveal timeline", zh: "提交揭晓进度" },
   timelineCommit: { en: "Commit", zh: "提交" },
@@ -99,6 +122,10 @@ const appMessages = {
     en: "No games played yet. Place your first bet.",
     zh: "暂无对局，先下注一局。",
   },
+  guestNoHistory: {
+    en: "No flips yet. Pick a side and toss the coin.",
+    zh: "还没有抛掷记录。选择一面，抛出第一枚硬币。",
+  },
   firstRoundPrompt: {
     en: "Flip to play your first round",
     zh: "抛硬币，开启你的第一局",
@@ -108,51 +135,51 @@ const appMessages = {
     zh: "选择一面、设置下注金额并抛掷 — 五五胜率，2 倍赔付。",
   },
   fairnessNote: {
-    en: "FogPlay uses a commit/reveal flip: your bet locks before a later block decides the outcome.",
-    zh: "迷雾对决采用提交/揭晓：下注先锁定，再由更晚区块决定结果。",
+    en: "The retained GameFi design commits before a fixed three-block beacon and confirms the result from exact contract state. The paid lane remains disabled until the reviewed artifact is deployed.",
+    zh: "保留的 GameFi 设计会先提交下注，再使用固定三块信标，并从精确合约状态确认结果。当前付费通道会在审计产物完成部署前保持关闭。",
   },
   betLockedReassure: {
-    en: "Your bet is locked on-chain — the result reveals on the next block.",
-    zh: "你的下注已锁定上链 — 结果将在下一区块揭晓。",
+    en: "Your bet is locked on-chain — anyone can settle it after the beacon window.",
+    zh: "你的下注已安全锁定上链 — 信标窗口完成后任何人都可代为结算。",
   },
   docSubtitle: {
-    en: "Provably-fair on-chain coin toss with a 2x payout",
-    zh: "可证明公平的链上抛硬币，赢取 2 倍赔付",
+    en: "A tactile local coin toss with secure browser randomness",
+    zh: "使用浏览器安全随机数的沉浸式本地抛硬币",
   },
   docDescription: {
-    en: "FogPlay uses a commit/reveal flip. You first place your bet (the wager is escrowed and the house exposure reserved), then the outcome is revealed from a LATER block's native randomness and the winner is paid 2x from the house bankroll. Because the result is unknowable when you place the bet, it cannot be peeked at or aborted on a loss. Every outcome is recorded on-chain for auditability.",
-    zh: "迷雾对决采用「提交—揭晓」机制。您先下注（金额被托管、庄家敞口被预留），随后由更晚区块的原生随机数揭晓结果，胜者由庄家奖池支付 2 倍赔付。由于下注时结果无法预知，因此无法被窥探或在将输时中止交易。每个结果都会上链记录以供审计。",
+    en: "Guest FogPlay runs entirely in the browser with secure randomness, no wallet, and no GAS at risk. The retained Neo N3 commit/reveal implementation stays fail-closed because the public deployment does not match the reviewed artifact.",
+    zh: "游客版迷雾对决完全在浏览器中使用安全随机数运行，无需钱包，也不会使用 GAS。由于公开 Neo N3 部署与当前审计产物不一致，保留的提交/揭晓实现会保持安全关闭。",
   },
   step1: {
     en: "Choose your side: Heads or Tails.",
     zh: "选择你的面：正面或反面。",
   },
   step2: {
-    en: "Enter the amount of GAS you want to wager.",
-    zh: "输入你想下注的 GAS 金额。",
+    en: "Flip the physical coin and watch it land on the confirmed local outcome.",
+    zh: "抛出实体感硬币，观看它落到已确认的本地结果。",
   },
   step3: {
-    en: "Click 'Flip Coin' to place the bet, then the result is revealed on the next block and paid out automatically.",
-    zh: "点击「抛硬币」下注，结果将在下一区块揭晓并自动结算。",
+    en: "Build your best streak; a secure-random failure cancels the round instead of fabricating a result.",
+    zh: "冲击最佳连胜；安全随机数不可用时，本局会取消，不会伪造结果。",
   },
   step4: {
     en: "View your win/loss stats in the Stats tab.",
     zh: "在统计标签页查看您的胜负统计。",
   },
-  feature1Name: { en: "Provably Fair", zh: "可证明公平" },
+  feature1Name: { en: "Secure Local Flip", zh: "安全本地抛掷" },
   feature1Desc: {
-    en: "A commit/reveal flip: the outcome is drawn from a later block's randomness, so it can't be peeked or aborted on a loss.",
-    zh: "采用「提交—揭晓」抛掷：结果取自更晚区块的随机数，无法被窥探或在将输时中止。",
+    en: "Guest rounds use browser cryptographic randomness and fail closed when it is unavailable.",
+    zh: "游客对局使用浏览器密码学随机数；不可用时会安全取消。",
   },
-  feature2Name: { en: "Instant Payout", zh: "即时支付" },
+  feature2Name: { en: "Physical Coin Motion", zh: "实体感硬币动画" },
   feature2Desc: {
-    en: "Winnings are automatically sent via smart contract.",
-    zh: "奖金通过智能合约自动发送。",
+    en: "Authored heads, tails, and pedestal art drive launch, flip, land, and result states.",
+    zh: "精心制作的正反面与底座资源驱动起飞、翻转、落地和结果状态。",
   },
-  feature3Name: { en: "On-chain Outcome", zh: "链上结果" },
+  feature3Name: { en: "Fail-closed GameFi", zh: "安全关闭的 GameFi" },
   feature3Desc: {
-    en: "Each flip stores the verified result on-chain.",
-    zh: "每次抛掷的验证结果都会上链记录。",
+    en: "No wallet prompt or paid result is exposed until deployment bytecode and ABI match the reviewed artifact.",
+    zh: "在部署字节码和 ABI 与审计产物一致前，不会开放钱包请求或付费结果。",
   },
   connectWalletToPlay: { en: "Connect wallet to play", zh: "连接钱包开始游戏" },
   flipFailed: { en: "Flip failed", zh: "翻转失败" },
@@ -160,6 +187,30 @@ const appMessages = {
   commitNoBetId: {
     en: "Bet placed but its id couldn't be read — refresh to reveal it",
     zh: "下注已提交但无法读取编号 — 请刷新后揭晓",
+  },
+  commitIdentityMismatch: {
+    en: "The committed event did not match this wager — the transaction was saved for safe recovery",
+    zh: "链上提交事件与本次下注不一致 — 交易已保留，等待安全恢复",
+  },
+  settlementVerificationFailed: {
+    en: "The settlement could not be verified against this bet — no result was claimed",
+    zh: "结算结果无法与本次下注完成一致性验证 — 本局不会宣称胜负",
+  },
+  withdrawVerificationFailed: {
+    en: "The credit withdrawal could not be verified — refresh before trying again",
+    zh: "预付余额提取尚无法验证 — 请刷新后再操作",
+  },
+  balanceReadUnavailable: {
+    en: "The latest prepaid balance could not be verified — no transaction was sent",
+    zh: "无法验证最新预付余额 — 本次不会发送交易",
+  },
+  paidLaneUnavailable: {
+    en: "Wallet-funded flips are paused while the Neo N3 deployment is replaced and verified — play locally for now",
+    zh: "Neo N3 部署正在替换和验证，钱包付费抛掷暂时关闭 — 当前请使用本地玩法",
+  },
+  pendingBetWrongNetwork: {
+    en: "This saved bet belongs to another contract or network — switch back before revealing it",
+    zh: "这笔已保存下注属于其他合约或网络 — 请切回原网络后再揭晓",
   },
   betAlreadyPending: {
     en: "A bet is already awaiting its reveal — reveal it first",
@@ -224,6 +275,7 @@ const appMessages = {
     zh: "选择正面或反面，本地抛掷 — 冲击你的最佳连胜。",
   },
   guestModeBadge: { en: "Local play", zh: "本地游玩" },
+  secureLocalBadge: { en: "Secure browser RNG", zh: "浏览器安全随机数" },
   guestStreak: { en: "Streak", zh: "连胜" },
   guestBestStreak: { en: "Best streak", zh: "最佳连胜" },
   guestStreakBadge: { en: "Streak {n}", zh: "连胜 {n}" },
@@ -233,8 +285,12 @@ const appMessages = {
   },
   guestStatusFlipping: { en: "Flipping the coin…", zh: "抛掷硬币中…" },
   guestFairnessNote: {
-    en: "Guest mode runs every flip locally with in-browser randomness — no wallet, no GAS, no chain. Scores are kept off-chain.",
-    zh: "游客模式使用浏览器内随机数在本地完成每次抛掷 — 无需钱包、不涉及 GAS、不上链。成绩离线保存。",
+    en: "Guest mode runs every flip locally with browser cryptographic randomness — no wallet, no GAS, no chain. Scores are kept off-chain.",
+    zh: "游客模式使用浏览器密码学随机数在本地完成每次抛掷 — 无需钱包、不涉及 GAS、不上链。成绩仅在链下记录。",
+  },
+  secureRandomUnavailable: {
+    en: "Secure browser randomness is unavailable — this flip was not played",
+    zh: "浏览器安全随机数暂不可用 — 本局未进行，请重试",
   },
 } as const;
 

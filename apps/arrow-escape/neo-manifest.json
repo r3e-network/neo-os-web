@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "contracts": {},
+  "createdAt": "2026-07-10T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "A deterministic Phaser 3 escape-ray puzzle with a warm mechanical-garden board, replayable local seeds, verified solution witnesses, pause, zoom, recovery, and complete wallet-free guest play. GameFi, rewards, VRF, and TEE remain disabled until a real deployed service path is verified.",
+  "description_zh": "确定性的 Phaser 3 逃逸射线解谜游戏，拥有温暖明亮的机械花园棋盘、可重放本地种子、已验证解答见证、暂停、缩放、恢复以及完整免钱包游客模式。GameFi、奖励、VRF 与 TEE 会保持关闭，直到真实部署服务路径完成验证。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": false,
+  "features": {
+    "deeplink": "neomainapp://arrow-escape",
+    "offlineSupport": true,
+    "stateless": false
+  },
+  "id": "miniapp-arrow-escape",
+  "name": "Garden Arrowworks",
+  "name_zh": "花园箭坊",
+  "operation_panel": {
+    "operations": [],
+    "subtitle": "Tap only arrows with a clear escape ray. Guest play is complete and local; no wallet, token, reward, oracle, VRF, or TEE operation is exposed.",
+    "title": "Garden Arrowworks"
+  },
+  "permissions": [],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "supported_networks": ["neo-n3-testnet"],
+  "tags": ["puzzle", "arrow", "escape", "dependency", "phaser", "local", "guest"],
+  "technologies": {
+    "aa": {
+      "enabled": false,
+      "description": "No account-abstraction or wallet operation is used by the guest release."
+    },
+    "oracle": {
+      "enabled": false,
+      "description": "No oracle or VRF request is exposed until a deployed contract and full testnet settlement path are verified."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "The deterministic local generator and witness verifier do not call a TEE."
+    }
+  },
+  "updatedAt": "2026-07-10T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/arrow-escape/banner.webp",
+    "entry": "/miniapps/arrow-escape/index.html",
+    "icon": "/miniapps/arrow-escape/logo.webp"
+  },
+  "version": "1.0.0"
+}

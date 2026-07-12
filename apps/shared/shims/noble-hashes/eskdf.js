@@ -152,4 +152,3 @@ export async function eskdf(username, password) {
         .join(':');
     return Object.freeze({ deriveChildKey: deriveCK, expire, fingerprint });
 }
-//# sourceMappingURL=eskdf.js.map

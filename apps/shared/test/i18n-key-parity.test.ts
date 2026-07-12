@@ -190,7 +190,7 @@ const REQUIRED_KEYS: Record<string, string[]> = {
   "neo-sign-anything": ["bytesUnit", "networkFeeNote", "signFileBtn", "hashedFileNotice"],
   // A5 cluster (privacy-identity).
   "private-transfer": ["sealButton", "historyTitle", "historyEmpty", "sealErrorStore", "errorDetailLabel", "digestPlaceholder"],
-  "recovery-guardian": ["escapeStatusLabel", "escapeActive", "verifierNotConfigured", "timelockSeconds", "digestPlaceholder", "docDescription", "step2"],
+  "recovery-guardian": ["docSubtitle", "docDescription", "step2", "feature1Name", "feature1Desc"],
   "neodid-passport": ["statistics", "degradedRuntimeWarning", "degradedRuntimeBadge", "externalVerifierTitle", "externalVerifierLink", "digestPlaceholder"],
   "neo-message": ["switchToNeoX", "loadOlder", "bodyCounter", "errorNoEvmWallet"],
   // A9 cluster (games-social): notify.guard success keys + exit-path.

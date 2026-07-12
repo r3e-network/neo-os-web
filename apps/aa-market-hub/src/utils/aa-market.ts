@@ -1,50 +1,44 @@
-import {
-  GAS_HASH,
-  getExternalIntegrationConfig,
-  getNetwork,
-  type NeoNetwork,
-} from "@shared/constants/rpc";
-import {
-  addressToScriptHash,
-  normalizeScriptHash,
-  ownerMatchesAddress,
-  parseHash160,
-} from "@shared/utils/neo";
 import type { MiniAppFramework } from "@shared/react";
 import type { FrameworkContractArg } from "@framework/index";
+import { GAS_HASH, type NeoNetwork } from "@shared/constants/rpc";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import {
+  aaMarketAccountMatches,
+  normalizeAAMarketAccount,
+  parseChainHash160,
+  readAAMarketRpc,
+  readAAMarketRpcBatch,
+  requireCanonicalAAMarketContext,
+  type AAMarketContext,
+} from "../aa-market-safety";
 
-const LISTING_STATUS: Record<number, string> = {
+const LISTING_STATUS: Record<number, MarketListing["status"]> = {
   1: "active",
   2: "sold",
   3: "cancelled",
 };
 
-// Cap the number of listings fetched/rendered per load to avoid flooding the
-// RPC with hundreds of concurrent reads and mounting an unbounded DOM list.
 export const MAX_LISTINGS = 200;
-// Number of concurrent reads per batch when fanning out per-listing fetches.
-const READ_CHUNK_SIZE = 20;
+const RPC_CHUNK_SIZE = 20;
+const MIN_PRICE_RAW = 1_000_000n; // 0.01 GAS
+const MAX_PRICE_RAW = 100_000_000_000n; // 1,000 GAS
 
-async function runChunked<T, R>(
-  items: T[],
-  size: number,
-  worker: (item: T, index: number) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = [];
-  for (let start = 0; start < items.length; start += size) {
-    const slice = items.slice(start, start + size);
-    const settled = await Promise.all(
-      slice.map((item, offset) => worker(item, start + offset)),
-    );
-    results.push(...settled);
-  }
-  return results;
-}
+const MARKET_HASH_BY_NETWORK: Record<NeoNetwork, string> = {
+  mainnet: "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
+  testnet: "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf",
+};
+
+const AA_CORE_HASH_BY_NETWORK: Record<NeoNetwork, string> = {
+  mainnet: "0x0268a387913b250166ddec032b03332690a1ef78",
+  testnet: "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
+};
 
 export interface ListAddressListingsResult {
   listings: MarketListing[];
   total: number;
   truncated: boolean;
+  failedReads: number;
+  source: "chain" | "partial";
 }
 
 export interface MarketListing {
@@ -60,11 +54,13 @@ export interface MarketListing {
   title: string;
   metadataUri: string;
   statusCode: number;
-  status: string;
+  status: "active" | "sold" | "cancelled" | "unknown";
   createdAt: string;
   updatedAt: string;
   myPendingPayment: string;
+  pendingPaymentKnown: boolean;
   isMine: boolean;
+  isCanonicalAA: boolean;
 }
 
 export interface CreateListingInput {
@@ -75,206 +71,150 @@ export interface CreateListingInput {
   metadataUri?: string;
 }
 
-export function getDefaultAAContractHash(): string {
-  return normalizeScriptHash(getExternalIntegrationConfig().contracts.aaCore);
+export interface MarketInvokeOptions {
+  onTransactionSent?: (txid: string) => void;
 }
 
-// The canonical AAAddressMarket contract for the active network. The runtime
-// integration config carries it on mainnet but not testnet, so fall back to the
-// app's deployment manifest hashes (which declare both) — a first-time user must
-// not face an empty board for a market the app already knows.
-const MARKET_HASH_BY_NETWORK: Record<string, string> = {
-  mainnet: "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
-  testnet: "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf",
-};
-
-export function getDefaultMarketHash(network?: NeoNetwork): string {
-  const fromIntegration = getExternalIntegrationConfig(network).contracts.aaAddressMarket;
-  const resolved = fromIntegration || MARKET_HASH_BY_NETWORK[network ?? getNetwork()] || "";
-  return resolved ? normalizeScriptHash(resolved) : "";
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
 }
 
-function sanitizeHex(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/^0x/i, "");
+function unsigned(value: unknown, label: string): string {
+  const raw = clean(value);
+  if (!/^\d+$/.test(raw)) throw new Error(`${label} is malformed.`);
+  return BigInt(raw).toString();
+}
+
+function positive(value: unknown, label: string): string {
+  const parsed = unsigned(value, label);
+  if (BigInt(parsed) <= 0n) throw new Error(`${label} must be positive.`);
+  return parsed;
+}
+
+function text(value: unknown, label: string): string {
+  if (typeof value !== "string") throw new Error(`${label} is malformed.`);
+  return value;
+}
+
+function hash160(value: unknown, label: string, allowEmpty = false): string {
+  if (allowEmpty && (value === "" || value === null || value === undefined)) return "";
+  const parsed = parseChainHash160(value);
+  if (!parsed) throw new Error(`${label} is malformed.`);
+  return parsed;
 }
 
 function normalizeHash160Input(value: unknown, label: string): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) {
-    throw new Error(`${label} is required.`);
-  }
-
-  if (raw.startsWith("N")) {
-    const hash = sanitizeHex(addressToScriptHash(raw));
-    if (/^[0-9a-f]{40}$/.test(hash)) return hash;
-    throw new Error(`${label} must be a Neo address or 20-byte hash.`);
-  }
-
-  const normalized = sanitizeHex(raw);
-  if (!/^[0-9a-f]{40}$/.test(normalized)) {
-    throw new Error(`${label} must be a 20-byte hash.`);
-  }
+  const normalized = normalizeAAMarketAccount(value);
+  if (!normalized) throw new Error(`${label} must be a Neo address or 20-byte hash.`);
   return normalized;
 }
 
-function parseGasToFractions(value: unknown): string {
-  const raw = String(value ?? "").trim();
-  if (!/^\d+(\.\d{1,8})?$/.test(raw)) {
-    throw new Error(
-      "Price must be a positive GAS amount with up to 8 decimals.",
-    );
-  }
+export function getDefaultMarketHash(network: NeoNetwork = "mainnet"): string {
+  return MARKET_HASH_BY_NETWORK[network];
+}
 
+export function getDefaultAAContractHash(network: NeoNetwork = "mainnet"): string {
+  return AA_CORE_HASH_BY_NETWORK[network];
+}
+
+export function parseGasToFractions(value: unknown): string {
+  const raw = clean(value);
+  if (!/^\d+(\.\d{1,8})?$/.test(raw)) {
+    throw new Error("Price must use up to 8 decimal places.");
+  }
   const [wholePart, fractionPart = ""] = raw.split(".");
-  const whole = BigInt(wholePart || "0");
-  const fraction = BigInt((fractionPart + "00000000").slice(0, 8));
-  const total = whole * 100000000n + fraction;
-  if (total <= 0n) {
-    throw new Error("Price must be positive.");
+  const total = BigInt(wholePart || "0") * 100_000_000n
+    + BigInt((fractionPart + "00000000").slice(0, 8));
+  if (total < MIN_PRICE_RAW || total > MAX_PRICE_RAW) {
+    throw new Error("Price must be between 0.01 and 1000 GAS.");
   }
   return total.toString();
 }
 
 export function formatGasFractions(value: unknown): string {
-  const raw = BigInt(String(value ?? "0") || "0");
-  const whole = raw / 100000000n;
-  const fraction = raw % 100000000n;
+  const raw = BigInt(unsigned(value, "GAS amount"));
+  const whole = raw / 100_000_000n;
+  const fraction = raw % 100_000_000n;
   if (fraction === 0n) return whole.toString();
   return `${whole}.${fraction.toString().padStart(8, "0").replace(/0+$/, "")}`;
 }
 
-// ---------------------------------------------------------------------------
-// Parsed stack-value decoding
-//
-// Reads now go through app.chain (readRaw / enumerate), whose host lane parses
-// stack items before they reach the app (Integer → number|string, ByteString →
-// printable text or chain-order 0x-hex). The decoders below reproduce the
-// legacy raw-stack decode byte-for-byte on those parsed shapes: hashes come
-// back in the same bare display-order hex, integers as the same decimal
-// strings, titles as the same UTF-8 text.
-// ---------------------------------------------------------------------------
-
-/** Legacy decodeInteger on a parsed stack value — always a decimal string. */
-function parsedIntegerString(value: unknown): string {
-  if (typeof value === "boolean") return value ? "1" : "0";
-  if (typeof value === "bigint") return value.toString();
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(Math.trunc(value));
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (/^-?\d+$/.test(trimmed)) return trimmed;
-    // ByteString-integer lane: the parser renders non-text bytes as 0x-hex;
-    // the legacy decoder read those bytes as a big-endian BigInt.
-    if (/^0x[0-9a-fA-F]+$/.test(trimmed)) {
-      try {
-        return BigInt(trimmed).toString();
-      } catch {
-        return "0";
-      }
-    }
-  }
-  return "0";
+function integerArg(value: string): FrameworkContractArg {
+  return { type: "Integer", value };
 }
 
-/**
- * Legacy decodeHash160 on a parsed stack value: UInt160 ByteStrings arrive
- * from the parser as chain-order 0x-hex (or, when all 20 bytes are printable,
- * as text). parseHash160 accepts both shapes and returns the display-order
- * 0x-hex; strip the prefix to keep the bare-hex shape the raw decoder exposed
- * (normalizeScriptHash re-adds the prefix downstream). Empty/absent buyer
- * fields decode to "" exactly as before.
- */
-function parsedHash160Hex(value: unknown): string {
-  return parseHash160(value).replace(/^0x/i, "");
+function hashArg(value: string): FrameworkContractArg {
+  return { type: "Hash160", value: normalizeScriptHash(value) };
 }
 
-/** Legacy decodeByteString on a parsed stack value — text or "". */
-function parsedText(value: unknown): string {
-  return typeof value === "string" ? value : "";
+function rpcIntegerArg(value: string) {
+  return { type: "Integer", value };
+}
+
+function rpcHashArg(value: string) {
+  return { type: "Hash160", value: normalizeScriptHash(value) };
 }
 
 function decodeListing(
   row: unknown,
-): Omit<MarketListing, "myPendingPayment" | "isMine"> | null {
-  if (!Array.isArray(row) || row.length === 0) return null;
-
-  const [
-    idItem,
-    aaContractItem,
-    accountIdItem,
-    sellerItem,
-    priceItem,
-    titleItem,
-    metadataUriItem,
-    statusItem,
-    buyerItem,
-    createdAtItem,
-    updatedAtItem,
-  ] = row;
-
-  const statusCode = Number(parsedIntegerString(statusItem));
-  const sellerScriptHash = parsedHash160Hex(sellerItem);
-  const buyerScriptHash = parsedHash160Hex(buyerItem);
-
+  context: AAMarketContext,
+): Omit<MarketListing, "myPendingPayment" | "pendingPaymentKnown" | "isMine"> {
+  if (!Array.isArray(row) || row.length < 11) throw new Error("Listing row is malformed.");
+  const id = positive(row[0], "Listing ID");
+  const aaContractHash = hash160(row[1], "AA contract");
+  const accountIdHash = hash160(row[2], "Account ID");
+  const seller = hash160(row[3], "Seller");
+  const priceRaw = positive(row[4], "Listing price");
+  const title = text(row[5], "Listing title");
+  const metadataUri = text(row[6], "Listing metadata");
+  const statusRaw = BigInt(unsigned(row[7], "Listing status"));
+  if (statusRaw > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Listing status is too large.");
+  const statusCode = Number(statusRaw);
+  const buyer = hash160(row[8], "Buyer", true);
+  const createdAt = unsigned(row[9], "Created time");
+  const updatedAt = unsigned(row[10], "Updated time");
+  if (title.length > 80 || metadataUri.length > 240) throw new Error("Listing text exceeds contract limits.");
   return {
-    id: parsedIntegerString(idItem),
-    aaContractHash: normalizeScriptHash(parsedHash160Hex(aaContractItem)),
-    accountIdHash: normalizeScriptHash(parsedHash160Hex(accountIdItem)),
-    sellerScriptHash,
-    buyerScriptHash,
-    seller: sellerScriptHash ? normalizeScriptHash(sellerScriptHash) : "",
-    buyer: buyerScriptHash ? normalizeScriptHash(buyerScriptHash) : "",
-    priceRaw: parsedIntegerString(priceItem),
-    priceGas: formatGasFractions(parsedIntegerString(priceItem)),
-    title: parsedText(titleItem),
-    metadataUri: parsedText(metadataUriItem),
+    id,
+    aaContractHash,
+    accountIdHash,
+    sellerScriptHash: seller.replace(/^0x/i, ""),
+    buyerScriptHash: buyer.replace(/^0x/i, ""),
+    seller,
+    buyer,
+    priceRaw,
+    priceGas: formatGasFractions(priceRaw),
+    title,
+    metadataUri,
     statusCode,
-    status: LISTING_STATUS[statusCode] || "unknown",
-    createdAt: parsedIntegerString(createdAtItem),
-    updatedAt: parsedIntegerString(updatedAtItem),
+    status: LISTING_STATUS[statusCode] ?? "unknown",
+    createdAt,
+    updatedAt,
+    isCanonicalAA: aaMarketAccountMatches(aaContractHash, context.aaCoreHash),
   };
 }
 
-function requireAddress(address: string | null | undefined): string {
-  const trimmed = String(address ?? "").trim();
-  if (!trimmed) {
-    throw new Error("Wallet not connected.");
-  }
-  return trimmed;
-}
-
-/**
- * Market read through the framework passthrough. The host lane returns null
- * for a FAULTed read (a reverted read carries no data), so the legacy
- * throw-on-FAULT branch surfaces via {@link requireReadResult} where the
- * caller needs it.
- */
-async function readMarket(
+async function canonicalContext(
   app: MiniAppFramework,
-  marketHash: string,
-  operation: string,
-  args: FrameworkContractArg[] = [],
-): Promise<unknown> {
-  return app.chain.readRaw(operation, args, {
-    scriptHash: normalizeScriptHash(marketHash),
-  });
+  marketHash?: string,
+): Promise<AAMarketContext> {
+  const context = await requireCanonicalAAMarketContext(app);
+  if (marketHash && !aaMarketAccountMatches(marketHash, context.marketHash)) {
+    throw new Error("aaMarketChainContextMismatch");
+  }
+  return context;
 }
 
-/**
- * A null read result on an always-returning contract method means the read
- * FAULTed (wrong market hash / missing method). Rethrow the same sanitized
- * generic the legacy FAULT branch produced for unusable exception payloads so
- * the load flow keeps its error toast instead of presenting an empty board.
- */
-function requireReadResult(value: unknown): unknown {
-  if (value === null || value === undefined) {
-    throw new Error("Contract operation failed");
+async function mapChunks<T, R>(
+  items: T[],
+  size: number,
+  worker: (slice: T[]) => Promise<R[]>,
+): Promise<R[]> {
+  const output: R[] = [];
+  for (let index = 0; index < items.length; index += size) {
+    output.push(...await worker(items.slice(index, index + size)));
   }
-  return value;
+  return output;
 }
 
 export async function getPendingPaymentOf(
@@ -284,16 +224,13 @@ export async function getPendingPaymentOf(
   payerAddress?: string | null,
 ): Promise<string> {
   if (!payerAddress) return "0";
+  const context = await canonicalContext(app, marketHash);
   const payerHash = normalizeHash160Input(payerAddress, "Payer");
-  const result = await readMarket(app, marketHash, "getPendingPaymentOf", [
-    { type: "Integer", value: String(listingId) },
-    { type: "Hash160", value: normalizeScriptHash(payerHash) },
+  const value = await readAAMarketRpc(context, context.marketHash, "getPendingPaymentOf", [
+    rpcIntegerArg(positive(listingId, "Listing ID")),
+    rpcHashArg(payerHash),
   ]);
-  // A FAULTed pending-payment read resolved to "0" in every legacy caller
-  // (each one caught and defaulted); the parsed lane folds that in directly.
-  return result === null || result === undefined
-    ? "0"
-    : parsedIntegerString(result);
+  return unsigned(value, "Pending payment");
 }
 
 export async function readAddressListing(
@@ -302,33 +239,26 @@ export async function readAddressListing(
   listingId: string,
   currentAddress?: string | null,
 ): Promise<MarketListing> {
-  const result = await readMarket(app, marketHash, "getListing", [
-    { type: "Integer", value: String(listingId) },
+  const context = await canonicalContext(app, marketHash);
+  const value = await readAAMarketRpc(context, context.marketHash, "getListing", [
+    rpcIntegerArg(positive(listingId, "Listing ID")),
   ]);
-  const decoded = decodeListing(result);
-  if (!decoded) {
-    throw new Error("Listing not found.");
+  const listing = decodeListing(value, context);
+  let myPendingPayment = "0";
+  let pendingPaymentKnown = !currentAddress;
+  if (currentAddress) {
+    try {
+      myPendingPayment = await getPendingPaymentOf(app, marketHash, listing.id, currentAddress);
+      pendingPaymentKnown = true;
+    } catch {
+      pendingPaymentKnown = false;
+    }
   }
-
-  const myPendingPayment = currentAddress
-    ? await getPendingPaymentOf(
-        app,
-        marketHash,
-        decoded.id,
-        currentAddress,
-      ).catch((e: unknown) => {
-        console.warn(
-          "[aa-market] getPendingPaymentOf failed, using '0':",
-          e instanceof Error ? e.message : String(e),
-        );
-        return "0";
-      })
-    : "0";
-
   return {
-    ...decoded,
+    ...listing,
     myPendingPayment,
-    isMine: ownerMatchesAddress(decoded.seller, currentAddress),
+    pendingPaymentKnown,
+    isMine: aaMarketAccountMatches(listing.seller, currentAddress),
   };
 }
 
@@ -337,95 +267,103 @@ export async function listAddressListings(
   marketHash: string,
   currentAddress?: string | null,
 ): Promise<ListAddressListingsResult> {
-  const countResult = requireReadResult(
-    await readMarket(app, marketHash, "getListingCount"),
-  );
-  const count = Number(parsedIntegerString(countResult));
-  if (!Number.isFinite(count) || count <= 0) {
-    return { listings: [], total: 0, truncated: false };
+  const context = await canonicalContext(app, marketHash);
+  const countRaw = await readAAMarketRpc(context, context.marketHash, "getListingCount");
+  const countString = unsigned(countRaw, "Listing count");
+  const count = Number(countString);
+  if (!Number.isSafeInteger(count)) throw new Error("Listing count is too large.");
+  if (count === 0) {
+    return { listings: [], total: 0, truncated: false, failedReads: 0, source: "chain" };
   }
 
-  // Cap the work and fetch the most recent listings (highest ids) so the cap
-  // does not silently hide newer entries behind older ones.
   const fetchCount = Math.min(count, MAX_LISTINGS);
-  const truncated = count > fetchCount;
-  const startId = count - fetchCount + 1;
-  const ids = Array.from({ length: fetchCount }, (_, index) => startId + index);
-
-  // Framework count-then-page fan-out: per-id read/decode failures are
-  // swallowed (one bad row never sinks the page) and rows come back sorted
-  // newest-first by numeric id — the same shape the hand-rolled chunked
-  // fetch + filter + sort produced.
-  const decoded = await app.chain.enumerate<
-    Omit<MarketListing, "myPendingPayment" | "isMine">
-  >({
-    ids,
-    cap: MAX_LISTINGS,
-    detailOp: "getListing",
-    detailArgs: (listingId) => [
-      { type: "Integer", value: String(listingId) },
-    ],
-    decode: (raw) => decodeListing(raw),
-    order: "newest",
-    scriptHash: normalizeScriptHash(marketHash),
+  const ids = Array.from({ length: fetchCount }, (_, index) => count - index);
+  let failedReads = 0;
+  const decoded = await mapChunks(ids, RPC_CHUNK_SIZE, async (slice) => {
+    const results = await readAAMarketRpcBatch(context, slice.map((id) => ({
+      id: `listing:${id}`,
+      scriptHash: context.marketHash,
+      operation: "getListing",
+      args: [rpcIntegerArg(String(id))],
+    })));
+    return slice.flatMap((id) => {
+      const result = results.get(`listing:${id}`);
+      if (!result?.ok) {
+        failedReads += 1;
+        return [];
+      }
+      try {
+        return [decodeListing(result.value, context)];
+      } catch {
+        failedReads += 1;
+        return [];
+      }
+    });
   });
 
-  if (!currentAddress) {
-    return {
-      listings: decoded.map((listing) => ({
-        ...listing,
-        myPendingPayment: "0",
-        isMine: false,
-      })),
-      total: count,
-      truncated,
-    };
+  let pendingById = new Map<string, string>();
+  let unknownPending = new Set<string>();
+  if (currentAddress) {
+    const payerHash = normalizeHash160Input(currentAddress, "Payer");
+    pendingById = new Map();
+    unknownPending = new Set();
+    await mapChunks(decoded, RPC_CHUNK_SIZE, async (slice) => {
+      const results = await readAAMarketRpcBatch(context, slice.map((listing) => ({
+        id: `pending:${listing.id}`,
+        scriptHash: context.marketHash,
+        operation: "getPendingPaymentOf",
+        args: [rpcIntegerArg(listing.id), rpcHashArg(payerHash)],
+      })));
+      for (const listing of slice) {
+        const result = results.get(`pending:${listing.id}`);
+        if (!result?.ok) {
+          unknownPending.add(listing.id);
+          continue;
+        }
+        try {
+          pendingById.set(listing.id, unsigned(result.value, "Pending payment"));
+        } catch {
+          unknownPending.add(listing.id);
+        }
+      }
+      return slice;
+    });
   }
 
-  const pendingPayments = await runChunked(
-    decoded,
-    READ_CHUNK_SIZE,
-    (listing) =>
-      getPendingPaymentOf(
-        app,
-        marketHash,
-        listing.id,
-        currentAddress,
-      ).catch((e: unknown) => {
-        console.warn(
-          "[aa-market] getPendingPaymentOf failed for listing",
-          listing.id,
-          ":",
-          e instanceof Error ? e.message : String(e),
-        );
-        return "0";
-      }),
-  );
-
+  const listings = decoded.map((listing) => ({
+    ...listing,
+    myPendingPayment: pendingById.get(listing.id) ?? "0",
+    pendingPaymentKnown: !currentAddress || !unknownPending.has(listing.id),
+    isMine: aaMarketAccountMatches(listing.seller, currentAddress),
+  }));
+  failedReads += unknownPending.size;
   return {
-    listings: decoded.map((listing, index) => ({
-      ...listing,
-      myPendingPayment: pendingPayments[index] || "0",
-      isMine: ownerMatchesAddress(listing.seller, currentAddress),
-    })),
+    listings,
     total: count,
-    truncated,
+    truncated: count > fetchCount,
+    failedReads,
+    source: failedReads > 0 ? "partial" : "chain",
   };
 }
 
-function buildEscrowCreationSigner(
-  accountAddress: string,
-  marketHash: string,
-  aaContractHash: string,
-) {
-  return {
-    account: accountAddress,
-    scopes: 16,
-    allowedContracts: [
-      normalizeScriptHash(marketHash),
-      normalizeScriptHash(aaContractHash),
-    ],
-  };
+function requireAddress(address: string | null | undefined): string {
+  const trimmed = clean(address);
+  if (!trimmed || !normalizeAAMarketAccount(trimmed)) throw new Error("Wallet not connected.");
+  return trimmed;
+}
+
+function txid(result: unknown): string {
+  const value = clean((result as { txid?: unknown } | null)?.txid);
+  if (!/^0x[0-9a-fA-F]{64}$/.test(value)) throw new Error("Wallet did not return a transaction ID.");
+  return value;
+}
+
+function titleAndMetadata(input: CreateListingInput) {
+  const title = clean(input.title);
+  const metadataUri = clean(input.metadataUri);
+  if (title.length > 80) throw new Error("Listing title must be 80 characters or fewer.");
+  if (metadataUri.length > 240) throw new Error("Metadata URI must be 240 characters or fewer.");
+  return { title, metadataUri };
 }
 
 export async function createAddressListing(
@@ -433,35 +371,31 @@ export async function createAddressListing(
   marketHash: string,
   callerAddress: string,
   input: CreateListingInput,
+  options: MarketInvokeOptions = {},
 ): Promise<{ txid: string }> {
+  const context = await canonicalContext(app, marketHash);
   const address = requireAddress(callerAddress);
-  const aaContractHash = normalizeHash160Input(
-    input.aaContractHash || getDefaultAAContractHash(),
-    "AA contract",
-  );
-  const accountIdHash = normalizeHash160Input(
-    input.accountIdHash,
-    "Account ID hash",
-  );
-
-  const result = await app.chain.invoke(
-    "createListing",
-    [
-      { type: "Hash160", value: normalizeScriptHash(aaContractHash) },
-      { type: "Hash160", value: normalizeScriptHash(accountIdHash) },
-      { type: "Integer", value: parseGasToFractions(input.priceGas) },
-      { type: "String", value: String(input.title ?? "").trim() },
-      { type: "String", value: String(input.metadataUri ?? "").trim() },
-    ],
-    {
-      scriptHash: normalizeScriptHash(marketHash),
-      // scopes-16 (CustomContracts) with an allowedContracts pair: the escrow
-      // creation witnesses both the market and the AA core contract.
-      signers: [buildEscrowCreationSigner(address, marketHash, aaContractHash)],
-    },
-  );
-
-  return { txid: String(result?.txid ?? "") };
+  const aaContractHash = normalizeHash160Input(input.aaContractHash || context.aaCoreHash, "AA contract");
+  if (!aaMarketAccountMatches(aaContractHash, context.aaCoreHash)) throw new Error("aaMarketChainContextMismatch");
+  const accountIdHash = normalizeHash160Input(input.accountIdHash, "Account ID");
+  const { title, metadataUri } = titleAndMetadata(input);
+  const result = await app.chain.invoke("createListing", [
+    hashArg(aaContractHash),
+    hashArg(accountIdHash),
+    integerArg(parseGasToFractions(input.priceGas)),
+    { type: "String", value: title },
+    { type: "String", value: metadataUri },
+  ], {
+    scriptHash: context.marketHash,
+    signers: [{
+      account: address,
+      scopes: 16,
+      allowedContracts: [context.marketHash, context.aaCoreHash],
+    }],
+    notify: "silent",
+    onTransactionSent: options.onTransactionSent,
+  });
+  return { txid: txid(result) };
 }
 
 export async function updateAddressListingPrice(
@@ -470,21 +404,20 @@ export async function updateAddressListingPrice(
   callerAddress: string,
   listingId: string,
   priceGas: string,
+  options: MarketInvokeOptions = {},
 ): Promise<{ txid: string }> {
+  const context = await canonicalContext(app, marketHash);
   const address = requireAddress(callerAddress);
-  const result = await app.chain.invoke(
-    "updateListingPrice",
-    [
-      { type: "Integer", value: String(listingId) },
-      { type: "Integer", value: parseGasToFractions(priceGas) },
-    ],
-    {
-      scriptHash: normalizeScriptHash(marketHash),
-      signers: [{ account: address, scopes: 1 }],
-    },
-  );
-
-  return { txid: String(result?.txid ?? "") };
+  const result = await app.chain.invoke("updateListingPrice", [
+    integerArg(positive(listingId, "Listing ID")),
+    integerArg(parseGasToFractions(priceGas)),
+  ], {
+    scriptHash: context.marketHash,
+    signers: [{ account: address, scopes: 1 }],
+    notify: "silent",
+    onTransactionSent: options.onTransactionSent,
+  });
+  return { txid: txid(result) };
 }
 
 export async function cancelAddressListing(
@@ -492,69 +425,58 @@ export async function cancelAddressListing(
   marketHash: string,
   callerAddress: string,
   listingId: string,
+  options: MarketInvokeOptions = {},
 ): Promise<{ txid: string }> {
+  const context = await canonicalContext(app, marketHash);
   const address = requireAddress(callerAddress);
-  const result = await app.chain.invoke(
-    "cancelListing",
-    [{ type: "Integer", value: String(listingId) }],
-    {
-      scriptHash: normalizeScriptHash(marketHash),
-      signers: [{ account: address, scopes: 1 }],
-    },
-  );
-
-  return { txid: String(result?.txid ?? "") };
+  const result = await app.chain.invoke("cancelListing", [
+    integerArg(positive(listingId, "Listing ID")),
+  ], {
+    scriptHash: context.marketHash,
+    signers: [{ account: address, scopes: 1 }],
+    notify: "silent",
+    onTransactionSent: options.onTransactionSent,
+  });
+  return { txid: txid(result) };
 }
-
-// The GAS transfer's `data` parameter must travel as an Any/null argument.
-// FrameworkContractArg has no Any member (no framework surface builds one),
-// but the wallet lane forwards the literal untouched — cast once here.
-const ANY_NULL_ARG = { type: "Any", value: null } as unknown as FrameworkContractArg;
 
 export async function buyAddressListing(
   app: MiniAppFramework,
   marketHash: string,
   callerAddress: string,
   listing: Pick<MarketListing, "id" | "priceRaw">,
-  options: { newBackupOwner?: string },
+  options: MarketInvokeOptions & { newBackupOwner?: string },
 ): Promise<{ txid: string }> {
+  const context = await canonicalContext(app, marketHash);
   const address = requireAddress(callerAddress);
   const buyerHash = normalizeHash160Input(address, "Buyer");
-  const backupOwner = normalizeHash160Input(
-    options.newBackupOwner || address,
-    "Backup owner",
-  );
-  const marketScriptHash = normalizeScriptHash(marketHash);
-  // Transfer-then-settle in ONE transaction (S7 chain.invokeMultiple): the
-  // GAS payment and the settle call ride the same signer. notify:'silent'
-  // because the buy operation owns its own toast keys — a FAULTed batch still
-  // throws (sanitized) for the operation's error lane.
-  const result = await app.chain.invokeMultiple(
-    [
-      {
-        scriptHash: GAS_HASH,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: normalizeScriptHash(buyerHash) },
-          { type: "Hash160", value: marketScriptHash },
-          { type: "Integer", value: String(listing.priceRaw) },
-          ANY_NULL_ARG,
-        ],
-      },
-      {
-        scriptHash: marketScriptHash,
-        operation: "settleListing",
-        args: [
-          { type: "Integer", value: String(listing.id) },
-          { type: "Hash160", value: normalizeScriptHash(buyerHash) },
-          { type: "Hash160", value: normalizeScriptHash(backupOwner) },
-        ],
-      },
-    ],
-    { signers: [{ account: address, scopes: 1 }], notify: "silent" },
-  );
-
-  return { txid: String(result?.txid ?? "") };
+  const backupOwner = normalizeHash160Input(options.newBackupOwner || address, "Backup owner");
+  const listingId = positive(listing.id, "Listing ID");
+  const priceRaw = positive(listing.priceRaw, "Listing price");
+  const result = await app.chain.invokeMultiple([
+    {
+      scriptHash: GAS_HASH,
+      operation: "transfer",
+      args: [
+        hashArg(buyerHash),
+        hashArg(context.marketHash),
+        integerArg(priceRaw),
+        // AAAddressMarket.OnNEP17Payment parses this exact listing id. Any/null
+        // leaves funds unassociated and makes settleListing fail.
+        integerArg(listingId),
+      ],
+    },
+    {
+      scriptHash: context.marketHash,
+      operation: "settleListing",
+      args: [integerArg(listingId), hashArg(buyerHash), hashArg(backupOwner)],
+    },
+  ], {
+    signers: [{ account: address, scopes: 1 }],
+    notify: "silent",
+    onTransactionSent: options.onTransactionSent,
+  });
+  return { txid: txid(result) };
 }
 
 export async function refundPendingAddressPurchase(
@@ -562,20 +484,23 @@ export async function refundPendingAddressPurchase(
   marketHash: string,
   callerAddress: string,
   listingId: string,
+  options: MarketInvokeOptions = {},
 ): Promise<{ txid: string }> {
+  const context = await canonicalContext(app, marketHash);
   const address = requireAddress(callerAddress);
   const payerHash = normalizeHash160Input(address, "Payer");
-  const result = await app.chain.invoke(
-    "refundPendingPayment",
-    [
-      { type: "Integer", value: String(listingId) },
-      { type: "Hash160", value: normalizeScriptHash(payerHash) },
-    ],
-    {
-      scriptHash: normalizeScriptHash(marketHash),
-      signers: [{ account: address, scopes: 1 }],
-    },
-  );
+  const result = await app.chain.invoke("refundPendingPayment", [
+    integerArg(positive(listingId, "Listing ID")),
+    hashArg(payerHash),
+  ], {
+    scriptHash: context.marketHash,
+    signers: [{ account: address, scopes: 1 }],
+    notify: "silent",
+    onTransactionSent: options.onTransactionSent,
+  });
+  return { txid: txid(result) };
+}
 
-  return { txid: String(result?.txid ?? "") };
+export function addressHash(address: string): string {
+  return normalizeAAMarketAccount(addressToScriptHash(address) || address);
 }

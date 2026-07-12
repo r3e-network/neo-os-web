@@ -120,4 +120,3 @@ class SHA224 extends SHA256 {
  */
 export const sha256 = /* @__PURE__ */ wrapConstructor(() => new SHA256());
 export const sha224 = /* @__PURE__ */ wrapConstructor(() => new SHA224());
-//# sourceMappingURL=sha256.js.map

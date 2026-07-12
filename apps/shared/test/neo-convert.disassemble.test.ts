@@ -79,4 +79,12 @@ describe("disassembleScript (Neo N3 semantics)", () => {
       "RET",
     ]);
   });
+
+  it("rejects truncated variable and fixed-width operands instead of inventing output", () => {
+    expect(disassembleScript("0c040102")).toEqual([]); // PUSHDATA1 claims 4 bytes, carries 2
+    expect(disassembleScript("0d01")).toEqual([]); // incomplete PUSHDATA2 length prefix
+    expect(disassembleScript("0100")).toEqual([]); // PUSHINT16 missing one operand byte
+    expect(disassembleScript("41aabb")).toEqual([]); // SYSCALL missing two bytes
+    expect(disassembleScript("23aabb")).toEqual([]); // JMP_L missing two bytes
+  });
 });

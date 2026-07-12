@@ -6,11 +6,17 @@ import {
   EVOLUTION_STAGES,
   MAX_MOVES,
   MAX_UNDOS,
+  POTION_RECIPE,
   UNDO_PENALTY_PCT,
+  SETTLEMENT_GRACE_MS,
+  canExpireAfterGrace,
   evolutionStage,
+  emptyIngredientCounts,
   formatClock,
   gasDisplay,
+  ingredientCountsOf,
   payoutFixed8,
+  recipeReady,
   rewardPctAfterUndos,
   ruleOf,
   statusOf,
@@ -91,6 +97,14 @@ describe("pet-potion undo penalty and payout", () => {
   it("MAX_MOVES is 40", () => {
     expect(MAX_MOVES).toBe(40);
   });
+
+  it("matches the contract's strict settlement recovery grace", () => {
+    const deadline = 1_000_000;
+    expect(SETTLEMENT_GRACE_MS).toBe(600_000);
+    expect(canExpireAfterGrace(deadline, deadline + SETTLEMENT_GRACE_MS)).toBe(false);
+    expect(canExpireAfterGrace(deadline, deadline + SETTLEMENT_GRACE_MS + 1)).toBe(true);
+    expect(canExpireAfterGrace(0, Number.MAX_SAFE_INTEGER)).toBe(false);
+  });
 });
 
 describe("pet-potion display helpers", () => {
@@ -153,5 +167,17 @@ describe("pet-potion constants", () => {
 
   it("EVOLUTION_STAGES contains the three stages", () => {
     expect(EVOLUTION_STAGES).toEqual(["baby", "child", "adult"]);
+  });
+
+  it("requires one essence from every illustrated care tool", () => {
+    expect(POTION_RECIPE).toEqual({ feed: 1, play: 1, pet: 1, rest: 1 });
+    expect(recipeReady(emptyIngredientCounts())).toBe(false);
+    expect(recipeReady(ingredientCountsOf(["feed", "play", "pet", "rest"]))).toBe(true);
+    expect(ingredientCountsOf(["feed", "feed", "unknown"])).toEqual({
+      feed: 2,
+      play: 0,
+      pet: 0,
+      rest: 0,
+    });
   });
 });

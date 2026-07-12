@@ -108,10 +108,13 @@ function oneGateAuthChallenge(
   network?: MiniAppLaunchContext["network"],
 ): OneGateAuthChallenge {
   const nonceBytes = new Uint32Array(1);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+  if (typeof crypto === "undefined" || !crypto.getRandomValues) {
+    throw new Error("Secure random is unavailable in this WebView");
+  }
+  try {
     crypto.getRandomValues(nonceBytes);
-  } else {
-    nonceBytes[0] = Math.floor(Math.random() * 0xffffffff);
+  } catch {
+    throw new Error("Secure random is unavailable in this WebView");
   }
   return {
     Action: "Authentication",

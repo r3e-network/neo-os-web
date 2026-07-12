@@ -17,7 +17,7 @@
  * and bridge plumbing. The scene drives its own requestAnimationFrame loop.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { GameBridge } from "@framework/phaser/GameBridge";
 import type { DispatchFn, GameState } from "@framework/phaser/types";
 
@@ -36,6 +36,8 @@ export interface ThreeGameProps {
   loadingLabel?: string;
   /** Text shown when boot or a bridge action fails. */
   errorLabel?: string;
+  /** Recovery copy shown when the browser loses the WebGL context. */
+  contextLostLabel?: string;
   retryLabel?: string;
   continueLabel?: string;
   /** Called when the scene reports that it is ready. */
@@ -50,6 +52,10 @@ export interface ThreeSceneController {
   setState?(state: GameState): void;
   /** Host size changed — update renderer size + camera aspect. */
   resize?(width: number, height: number): void;
+  /** Keyboard equivalent of tapping the highest currently available item. */
+  activatePrimary?(): void;
+  /** Stop physics/render work after an unrecoverable GPU interruption. */
+  pause?(): void;
   /** Tear down renderer + listeners. */
   unmount(): void;
 }
@@ -57,7 +63,120 @@ export interface ThreeSceneController {
 const MOBILE_VIEWPORT_WIDTH = 760;
 const COARSE_POINTER_VIEWPORT_WIDTH = 1024;
 const MIN_MOBILE_GAME_WIDTH = 280;
-const MIN_MOBILE_GAME_HEIGHT = 360;
+const MIN_MOBILE_GAME_HEIGHT = 280;
+const MOBILE_FOOTER_SAFETY_PX = 8;
+const ANDROID_CANVAS_SAMPLE_DELAY_MS = 1600;
+
+interface FallbackItem {
+  id: number;
+  kind: number;
+}
+
+function isAndroidChromeRuntime(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /\bAndroid\b/i.test(ua) && /\b(?:Chrome|Chromium)\//i.test(ua);
+}
+
+function canvasLooksBlank(canvas: HTMLCanvasElement): boolean {
+  const sample = document.createElement("canvas");
+  sample.width = 20;
+  sample.height = 20;
+  const ctx = sample.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return false;
+  try {
+    ctx.drawImage(canvas, 0, 0, sample.width, sample.height);
+    const pixels = ctx.getImageData(0, 0, sample.width, sample.height).data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] !== 0 || pixels[i + 1] !== 0 || pixels[i + 2] !== 0 || pixels[i + 3] !== 0) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function fallbackItemStyle(item: FallbackItem, index: number, total: number): CSSProperties {
+  const ring = index / Math.max(1, total);
+  const angle = (item.id * 137.508 + item.kind * 23 + index * 11) * (Math.PI / 180);
+  const radius = 8 + (item.id * 17 + item.kind * 9 + index * 5) % 33;
+  const x = 50 + Math.cos(angle) * radius;
+  const y = 51 + Math.sin(angle) * radius * 0.82 + (ring - 0.5) * 8;
+  const rotate = ((item.id * 29 + item.kind * 17) % 70) - 35;
+  const scale = 0.84 + ((item.id + item.kind + index) % 7) * 0.035;
+  return {
+    left: `${Math.max(12, Math.min(88, x))}%`,
+    top: `${Math.max(15, Math.min(84, y))}%`,
+    transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})`,
+    zIndex: 20 + index,
+  };
+}
+
+function AndroidCanvasFallback({
+  state,
+  dispatch,
+}: {
+  state?: GameState;
+  dispatch: DispatchFn;
+}) {
+  const themeId = String(state?.themeId ?? "fresh-market");
+  const rawItems = Array.isArray(state?.items) ? state.items : [];
+  const items = rawItems
+    .map((item) => item && typeof item === "object" ? item as Record<string, unknown> : null)
+    .filter((item): item is Record<string, unknown> => !!item)
+    .map((item) => ({ id: Number(item.id), kind: Number(item.kind) }))
+    .filter((item) => Number.isInteger(item.id) && Number.isInteger(item.kind))
+    .slice(0, 54);
+
+  return (
+    <div className="goose-android-fallback" data-testid="android-canvas-fallback">
+      <img
+        className="goose-android-fallback__basket"
+        src={`./art/container-${themeId}.webp`}
+        alt=""
+        draggable={false}
+      />
+      <div className="goose-android-fallback__pile" aria-label="Android fallback item pile">
+        {items.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            className="goose-android-fallback__item"
+            style={fallbackItemStyle(item, index, items.length)}
+            aria-label={`Pick item ${item.kind + 1}`}
+            onClick={() => { void dispatch("extract", { itemId: item.id }); }}
+          >
+            <img
+              src={`./art/items/${themeId}/item-${String(Math.max(0, Math.min(11, item.kind))).padStart(2, "0")}.webp`}
+              alt=""
+              draggable={false}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function measuredStageFooterHeight(host: HTMLElement): number | null {
+  const stage = host.closest(".goose-stage-shell");
+  if (!stage) return null;
+  const selectors = [
+    ".goose-level-progress",
+    ".goose-tray-row",
+    ".goose-powerbar",
+  ];
+  let measured = 0;
+  for (const selector of selectors) {
+    const node = stage.querySelector(selector);
+    if (!(node instanceof HTMLElement)) continue;
+    const rect = node.getBoundingClientRect();
+    measured += rect.height;
+  }
+  return measured > 0 ? measured + MOBILE_FOOTER_SAFETY_PX : null;
+}
 
 export function ThreeGameComponent({
   scene,
@@ -67,6 +186,7 @@ export function ThreeGameComponent({
   ariaLabel = "Interactive game",
   loadingLabel = "Loading game",
   errorLabel = "Game action failed",
+  contextLostLabel = "Graphics were interrupted. Retry to restore the game.",
   retryLabel = "Retry",
   continueLabel = "Continue",
   onReady,
@@ -78,7 +198,8 @@ export function ThreeGameComponent({
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<{ message: string; mode: "dismiss" | "retry" } | null>(null);
   const [autoSize, setAutoSize] = useState<{ width: number; height: number } | null>(null);
-  const fallbackSizeRef = useRef({ width: 400, height: 580 });
+  const [androidCanvasFallback, setAndroidCanvasFallback] = useState(false);
+  const fallbackSizeRef = useRef({ width: 400, height: 520 });
   // True only after scene.mount() succeeded — state pushes into a
   // half-initialized scene (e.g. WebGL unavailable) would crash it.
   const mountedOkRef = useRef(false);
@@ -140,8 +261,30 @@ export function ThreeGameComponent({
       sceneResizeObserver.observe(mount);
     }
 
+    // Mobile browsers may reclaim the GPU context after memory pressure or a
+    // long background pause. Prevent a permanent blank canvas and surface an
+    // explicit recovery action instead of leaving the player trapped.
+    const rendererCanvas = mountedOkRef.current ? mount.querySelector("canvas") : null;
+    const onContextLost = (event: Event): void => {
+      event.preventDefault();
+      mountedOkRef.current = false;
+      scene.pause?.();
+      setReady(false);
+      setError({ message: contextLostLabel, mode: "retry" });
+      if (
+        import.meta.env.VITE_DEVICE_QA === "1"
+        && new URLSearchParams(window.location.search).get("deviceQa") === "1"
+      ) {
+        window.dispatchEvent(new CustomEvent("zhuada-e:device-qa-context-loss", {
+          detail: { at: Date.now() },
+        }));
+      }
+    };
+    rendererCanvas?.addEventListener("webglcontextlost", onContextLost);
+
     return () => {
       sceneResizeObserver?.disconnect();
+      rendererCanvas?.removeEventListener("webglcontextlost", onContextLost);
       unsubReady();
       unsubError();
       scene.unmount();
@@ -164,9 +307,39 @@ export function ThreeGameComponent({
   // replacing the graceful error UI with the global boundary.
   useEffect(() => {
     if (!state || !mountedOkRef.current) return;
+    // The scene subscribes to the bridge's state event. Calling setState too
+    // would reconcile every snapshot twice and duplicate flights/disposals.
     bridgeRef.current.sendState(state);
-    scene.setState?.(state);
   }, [state, scene]);
+
+  // When a modal start / retry / next-level action hands control back to the
+  // board, put keyboard focus on the board as soon as it is ready. This also
+  // covers the first lazy mount after starting from the lobby.
+  useEffect(() => {
+    if (!ready || error || state?.gameStatus !== "dealt") return;
+    const frame = window.requestAnimationFrame(() => {
+      containerRef.current?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [error, ready, state?.gameStatus]);
+
+  useEffect(() => {
+    if (!ready || error || state?.gameStatus !== "dealt" || !isAndroidChromeRuntime()) {
+      setAndroidCanvasFallback(false);
+      return;
+    }
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      const canvas = mountRef.current?.querySelector("canvas");
+      if (!cancelled && canvas && canvasLooksBlank(canvas)) {
+        setAndroidCanvasFallback(true);
+      }
+    }, ANDROID_CANVAS_SAMPLE_DELAY_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [error, ready, state?.gameStatus, state?.items]);
 
   // Mobile responsive sizing — match the Phaser component's behavior.
   useEffect(() => {
@@ -191,12 +364,16 @@ export function ThreeGameComponent({
       const viewportHeight = viewport?.height ?? window.innerHeight;
       const viewportTop = viewport?.offsetTop ?? 0;
       const hostTop = Math.max(0, hostRect.top - viewportTop);
-      const bottomReserve = viewportHeight < 620 ? 0 : 6;
+      // The HUD overlays the scene and the tray/tool deck is one compact
+      // footer. Size the physical surface from the remaining viewport instead
+      // of capping it to the desktop fallback aspect ratio; otherwise tall
+      // phones end with a large, visually disconnected blank strip.
+      // Keep a few pixels of safety for sub-pixel footer rounding so the
+      // browser never introduces a vertical scrollbar that steals canvas
+      // width on narrow phones.
+      const bottomReserve = measuredStageFooterHeight(host) ?? (viewportHeight < 620 ? 134 : 136);
       const availableViewportHeight = Math.max(MIN_MOBILE_GAME_HEIGHT, viewportHeight - hostTop - bottomReserve);
-      const ratio = fallbackSizeRef.current.height / fallbackSizeRef.current.width;
-      const aspectHeight = Math.max(MIN_MOBILE_GAME_HEIGHT, availableWidth * ratio);
-      const availableHeight = Math.min(availableViewportHeight, aspectHeight);
-      setAutoSize({ width: availableWidth, height: Math.round(availableHeight) });
+      setAutoSize({ width: availableWidth, height: Math.round(availableViewportHeight) });
     };
 
     updateSize();
@@ -210,7 +387,7 @@ export function ThreeGameComponent({
       window.removeEventListener("resize", updateSize);
       window.visualViewport?.removeEventListener("resize", updateSize);
     };
-  }, []);
+  }, [state?.gameStatus]);
 
   const resolvedW = autoSize?.width ?? fallbackSizeRef.current.width;
   const resolvedH = autoSize?.height ?? fallbackSizeRef.current.height;
@@ -220,19 +397,32 @@ export function ThreeGameComponent({
       ref={containerRef}
       className={["three-game-host", className].filter(Boolean).join(" ")}
       role="application"
+      tabIndex={error ? -1 : 0}
+      aria-keyshortcuts="Enter Space"
       aria-label={ariaLabel}
       aria-busy={!ready && !error}
+      aria-disabled={!ready || !!error || undefined}
+      data-ready={ready ? "true" : "false"}
       style={{
         display: "block",
         position: "relative",
         width: autoSize ? `${resolvedW}px` : "100%",
         height: `${resolvedH}px`,
-        minHeight: `${fallbackSizeRef.current.height}px`,
+        minHeight: autoSize ? `${MIN_MOBILE_GAME_HEIGHT}px` : `${fallbackSizeRef.current.height}px`,
         outline: "none",
         overflow: "hidden",
         touchAction: "none",
         userSelect: "none",
         WebkitUserSelect: "none",
+      }}
+      onKeyDown={(event) => {
+        // The error action lives inside this container. Let native child
+        // controls handle their own keyboard events instead of bubbling a
+        // Space press into an unintended in-game pick.
+        if (event.target !== event.currentTarget || !ready || error) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        scene.activatePrimary?.();
       }}
     >
       <div
@@ -240,9 +430,14 @@ export function ThreeGameComponent({
         aria-hidden="true"
         style={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "auto" }}
       />
+      {androidCanvasFallback && !error && (
+        <AndroidCanvasFallback state={state} dispatch={dispatch} />
+      )}
       {!ready && !error && (
         <div
-          aria-hidden="true"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
           style={{
             position: "absolute", inset: 0, zIndex: 1, display: "grid", placeItems: "center",
             color: "rgba(12, 33, 46, 0.72)",
@@ -256,8 +451,9 @@ export function ThreeGameComponent({
       )}
       {error && (
         <div
-          role="status"
-          aria-live="polite"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
           style={{
             position: "absolute", inset: 0, zIndex: 1, display: "grid", alignContent: "center",
             justifyItems: "center", gap: 12, padding: 24, textAlign: "center", color: "#19313a",
@@ -275,7 +471,7 @@ export function ThreeGameComponent({
             onClick={() => (error.mode === "retry" ? window.location.reload() : setError(null))}
             style={{
               border: "1px solid rgba(22, 199, 132, 0.36)", borderRadius: 999, background: "#16c784",
-              color: "#fff", cursor: "pointer", font: "700 13px/1 system-ui", minHeight: 36,
+              color: "#fff", cursor: "pointer", font: "700 13px/1 system-ui", minHeight: 44,
               padding: "0 18px", boxShadow: "0 10px 24px rgba(22, 199, 132, 0.18)",
             }}
           >

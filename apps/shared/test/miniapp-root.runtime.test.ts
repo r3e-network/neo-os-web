@@ -9,6 +9,9 @@ import { EventBus } from "@shared/services/EventBus";
 const DummyPlayArea = () =>
   React.createElement("div", { "data-testid": "play-area" }, "play area");
 
+const ModePlayArea = ({ state }: { state: Record<string, { get?: () => unknown }> }) =>
+  React.createElement("div", { "data-testid": "play-area-mode" }, String(state.mode?.get?.() ?? "missing"));
+
 const manifest = {
   name: "Runtime Test App",
   description: "Exercise runtime-owned platform services",
@@ -292,6 +295,474 @@ describe("MiniAppRoot runtime-owned services", () => {
       expect(container.innerHTML).toContain("Verified settlement");
       expect(container.innerHTML).toContain("Start, play, and submit the verified result.");
       expect(container.querySelectorAll(".n3gh-note-action")).toHaveLength(0);
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("enters guest mode from the two-choice game launcher before mounting the play area", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const loadData = vi.fn(async () => undefined);
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+          loadData,
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".n3h-shell")).not.toBeNull();
+      expect(container.innerHTML).toContain("Earn GAS");
+      expect(container.innerHTML).toContain("Play free");
+      expect(container.querySelector('[data-testid="play-area-mode"]')).toBeNull();
+    });
+
+    const guestButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Play free"),
+    );
+    expect(guestButton).toBeTruthy();
+    guestButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("guest");
+      expect(document.documentElement.dataset.appMode).toBe("guest");
+      expect(loadData).toHaveBeenCalled();
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("offers free play only and defaults to guest when GameFi is temporarily disabled", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?mode=gamefi",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    let modeDuringSetup = "";
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: {
+          ...configuredGameManifest,
+          supportsGuest: true,
+          supportsGameFi: false,
+        },
+        messages,
+        setupFn: async (ctx: any) => {
+          modeDuringSetup = ctx.framework.mode.get();
+          return {
+            state: {
+              mode: ctx.framework.mode.current,
+            },
+          };
+        },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(modeDuringSetup).toBe("guest");
+      expect(container.innerHTML).toContain("Play free");
+      expect(container.innerHTML).not.toContain("Earn GAS</button>");
+      expect(container.innerHTML).toContain("Earn GAS temporarily unavailable");
+      expect(container.querySelector('[data-testid="play-area-mode"]')).toBeNull();
+    });
+
+    const playButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Play free"),
+    );
+    expect(playButton).toBeTruthy();
+    playButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("guest");
+      expect(document.documentElement.dataset.appMode).toBe("guest");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps the two-choice launcher visible in OneGate when a game supports guest play", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).not.toBeNull();
+      expect(container.innerHTML).toContain("Earn GAS");
+      expect(container.innerHTML).toContain("Play free");
+      expect(container.querySelector('[data-testid="play-area-mode"]')).toBeNull();
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps passive OneGate verification links on the two-choice launcher", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&verify=mobile",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).not.toBeNull();
+      expect(container.innerHTML).toContain("Earn GAS");
+      expect(container.innerHTML).toContain("Play free");
+      expect(container.querySelector('[data-testid="play-area-mode"]')).toBeNull();
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("opens OneGate operation deep links directly into GameFi play", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&operation=claimPool&poolId=42",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("gamefi");
+      expect(document.documentElement.dataset.appMode).toBe("gamefi");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("opens OneGate resource deep links directly into GameFi play", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&envelopeId=red-42",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("gamefi");
+      expect(document.documentElement.dataset.appMode).toBe("gamefi");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps OneGate operation deep links in GameFi even when guest mode is requested", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&mode=guest&operation=claimPool&poolId=42",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("gamefi");
+      expect(document.documentElement.dataset.appMode).toBe("gamefi");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps OneGate resource deep links in GameFi even when guest mode is requested", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&mode=guest&envelopeId=red-42",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("gamefi");
+      expect(document.documentElement.dataset.appMode).toBe("gamefi");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("opens explicit OneGate guest-mode links directly into guest play", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&mode=guest",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("guest");
+      expect(document.documentElement.dataset.appMode).toBe("guest");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("opens normalized OneGate app_mode guest links directly into guest play", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&app_mode=guest",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("guest");
+      expect(document.documentElement.dataset.appMode).toBe("guest");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("keeps normalized OneGate play-mode resource links in GameFi", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&play-mode=guest&pool_id=42",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("gamefi");
+      expect(document.documentElement.dataset.appMode).toBe("gamefi");
+    });
+
+    root.unmount();
+    container.remove();
+  });
+
+  it("opens explicit OneGate gamefi-mode links directly into GameFi play", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-game/index.html?source=onegate&mode=gamefi",
+    );
+
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-game",
+        playArea: ModePlayArea as any,
+        manifest: { ...configuredGameManifest, supportsGuest: true },
+        messages,
+        setupFn: async (ctx: any) => ({
+          state: {
+            mode: ctx.framework.mode.current,
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".standalone-dapp-root")).not.toBeNull();
+      expect(container.querySelector(".n3h-shell")).toBeNull();
+      expect(container.querySelector('[data-testid="play-area-mode"]')?.textContent).toBe("gamefi");
+      expect(document.documentElement.dataset.appMode).toBe("gamefi");
     });
 
     root.unmount();

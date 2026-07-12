@@ -18,43 +18,44 @@
  *  - isDealing     : boolean
  *  - isSubmitting  : boolean
  *  - poolFree      : number
- *  - platformsView : number[]  (TEE-encoded platform layout, each byte 0-255)
+ *  - platformsView : Platform[] (authoritative x/width/gap route objects)
  *
  * Actions dispatched to React:
  *  - "startGame"      { difficulty: number }
- *  - "recordJump"     { chargeMs: number, chargeLevel: number, platformIndex: number }
+ *  - "recordJump"     { chargeLevel: number, platformIndex: number, landed: boolean, perfect: boolean }
  *  - "submitRun"      {}
  *  - "expireGame"     {}
+ *  - "retryDeal"      {}
+ *  - "useUndo"        {}
  */
 
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 import { DIFFICULTY_RULES, formatClock, gasDisplay } from "../logic/game-rules";
+import { evaluateJumpLevel } from "../logic/jump-engine";
+import type { Platform } from "../logic/jump-engine";
 
 // ── Visual constants ────────────────────────────────────────────────────────
 
 const W = 400;
 const H = 580;
 
-/** How many platforms to show / generate per run. */
-const MAX_PLATFORMS = 16;
-
 /** Vertical gap between consecutive platforms (world-space pixels). */
 const VERT_GAP_MIN = 88;
 const VERT_GAP_MAX = 140;
 
-/** Platform tile dimensions. */
-const PLATFORM_H = 18;
+/** Platform width bounds; height follows each source asset's aspect ratio. */
 const PLATFORM_MIN_W = 60;
-const PLATFORM_RANGE_W = 80; // width = MIN + (byte/256)*RANGE
+const PLATFORM_RANGE_W = 80;
 
-/** Bunny dimensions. */
-const BUNNY_W = 46;
+/** Bunny height; each pose keeps its source aspect ratio. */
 const BUNNY_H = 62;
 
 /** Charge fill duration (ms) for 0→100 %. */
 const CHARGE_FULL_MS = 2000;
+/** Ignore accidental taps shorter than roughly 120ms instead of forcing a miss. */
+const MIN_CHARGE_LEVEL = 6;
 const SUBMIT_BUFFER_MS = 15_000;
 const MIN_SOLVE_BUFFER_MS = 10_000;
 
@@ -63,9 +64,6 @@ const JUMP_ARC_H = 90;
 
 /** Duration of the jump tween (ms). */
 const JUMP_DURATION_MS = 520;
-
-/** Perfect landing zone: fraction of platform width on each side that counts. */
-const PERFECT_ZONE_HALF = 0.15; // centre ±15 % of platform width
 
 /** Screen Y that the current platform is kept at during play (approx). */
 const BUNNY_SCREEN_Y = H * 0.72;
@@ -87,7 +85,7 @@ const C = {
   timerGreen:    0x22c55e,
   timerYellow:   0xfacc15,
   timerRed:      0xef4444,
-  comboText:     0xfacc15,
+  comboText:     0x7a3e00,
   perfectGold:   0xfacc15,
   uiPanel:       0xffffff,
   uiBorder:      0xe8e6e1,
@@ -97,8 +95,8 @@ const C = {
   cardBg:        0xffffff,
   cardBorder:    0xe8e6e1,
   cardSelected:  0xfffbeb,
-  submitBtn:     0x16c784,
-  submitBtnHov:  0x0ea371,
+  submitBtn:     0x08745b,
+  submitBtnHov:  0x065e4b,
   overlay:       0x000000,
 };
 
@@ -124,6 +122,8 @@ interface PlatformData {
   y: number;
   /** Width in pixels. */
   width: number;
+  /** Horizontal distance from the previous platform. */
+  gap: number;
   /** Index in the sequence (0 = starting platform). */
   index: number;
 }
@@ -152,6 +152,7 @@ export class JumpRushScene extends BaseScene {
 
   private chargeBarContainer!: Phaser.GameObjects.Container;
   private chargeFill!: Phaser.GameObjects.Rectangle;
+  private chargeTargetBand!: Phaser.GameObjects.Rectangle;
   private chargeHint!: Phaser.GameObjects.Text;
 
   private lobbyContainer!: Phaser.GameObjects.Container;
@@ -160,6 +161,11 @@ export class JumpRushScene extends BaseScene {
   private lobbyStartLabel!: Phaser.GameObjects.Text;
   private lobbyStartHint!: Phaser.GameObjects.Text;
   private loadingOverlay!: Phaser.GameObjects.Container;
+  private loadingTitle!: Phaser.GameObjects.Text;
+  private loadingHint!: Phaser.GameObjects.Text;
+  private loadingRetryBg!: Phaser.GameObjects.Graphics;
+  private loadingRetryLabel!: Phaser.GameObjects.Text;
+  private loadingRetryHint!: Phaser.GameObjects.Text;
   private missOverlay!: Phaser.GameObjects.Container;
   private missUndoBg!: Phaser.GameObjects.Graphics;
   private missUndoLabel!: Phaser.GameObjects.Text;
@@ -179,15 +185,31 @@ export class JumpRushScene extends BaseScene {
 
   // ── Cached state for change-detection ─────────────────────────────────────
   private prevGameStatus = "";
+  private prevGameDifficulty = -1;
   private prevDeadline = 0;
   private prevUndosUsed = 0;
-  private prevPlatformsView: number[] = [];
+  private prevPlatformsView: Platform[] = [];
+  private prevA11yStartPulse = 0;
+  private prevA11yJumpPulse = 0;
+  private a11yPulsesReady = false;
+  private spaceKey: Phaser.Input.Keyboard.Key | null = null;
+  private ambientTargets: Phaser.GameObjects.GameObject[] = [];
 
   // ── World dimensions ───────────────────────────────────────────────────────
   private worldHeight = 0;
 
   constructor() {
     super("JumpRushScene");
+  }
+
+  private trackAmbient(...targets: Phaser.GameObjects.GameObject[]): void {
+    this.ambientTargets = this.ambientTargets.filter((target) => target.active);
+    this.ambientTargets.push(...targets);
+  }
+
+  private fitImageHeight(image: Phaser.GameObjects.Image, height: number): Phaser.GameObjects.Image {
+    const sourceHeight = Math.max(1, image.height);
+    return image.setScale(height / sourceHeight);
   }
 
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
@@ -218,10 +240,13 @@ export class JumpRushScene extends BaseScene {
     // Pointer / space charge mechanics
     this.input.on("pointerdown", this.onChargeStart, this);
     this.input.on("pointerup",   this.onChargeRelease, this);
-    this.input.keyboard
-      ?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
-      .on("down", this.onChargeStart, this)
+    this.input.on("pointerupoutside", this.onChargeRelease, this);
+    this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE) ?? null;
+    this.spaceKey
+      ?.on("down", this.onChargeStart, this)
       .on("up",   this.onChargeRelease, this);
+    window.addEventListener("blur", this.onChargeCancel);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
 
     this.onStateUpdate(this.state);
   }
@@ -237,7 +262,7 @@ export class JumpRushScene extends BaseScene {
 
   // ── BaseScene abstract implementation ─────────────────────────────────────
 
-  protected onStateUpdate(state: GameState): void {
+  protected onStateUpdate(_state: GameState): void {
     const status     = this.str("gameStatus", "idle");
     const difficulty = this.num("gameDifficulty", 0);
     const deadline   = this.num("deadline", 0);
@@ -245,18 +270,50 @@ export class JumpRushScene extends BaseScene {
     const isDealing  = this.bool("isDealing");
     const isSubmitting = this.bool("isSubmitting");
     const undosUsed  = this.num("undosUsed", 0);
-    const pView      = (this.val<number[]>("platformsView") ?? []) as number[];
+    const pView      = (this.val<Platform[]>("platformsView") ?? []) as Platform[];
+    const startPulse = this.num("a11yStartPulse", 0);
+    const jumpPulse = this.num("a11yJumpPulse", 0);
+
+    if (this.bool("interactionPaused") && this.isCharging) {
+      this.onChargeCancel();
+    }
 
     const prevStatus     = this.prevGameStatus;
     const statusChanged  = status !== this.prevGameStatus;
+    const difficultyChanged = difficulty !== this.prevGameDifficulty;
     const platformsChanged =
       pView.length !== this.prevPlatformsView.length ||
-      pView.some((item, index) => item !== this.prevPlatformsView[index]);
+      pView.some((item, index) => {
+        const prior = this.prevPlatformsView[index];
+        return !prior || item.x !== prior.x || item.width !== prior.width || item.gap !== prior.gap;
+      });
     const undoChanged = undosUsed !== this.prevUndosUsed;
 
     this.prevGameStatus    = status;
+    this.prevGameDifficulty = difficulty;
     this.prevDeadline      = deadline;
     this.prevUndosUsed     = undosUsed;
+
+    if (!this.a11yPulsesReady) {
+      this.prevA11yStartPulse = startPulse;
+      this.prevA11yJumpPulse = jumpPulse;
+      this.a11yPulsesReady = true;
+    } else {
+      if (startPulse !== this.prevA11yStartPulse) {
+        this.prevA11yStartPulse = startPulse;
+        if (this.canStartRun()) {
+          this.sfx.unlock();
+          this.dispatch("startGame", { difficulty: this.selectedDifficulty });
+        }
+      }
+      if (jumpPulse !== this.prevA11yJumpPulse) {
+        this.prevA11yJumpPulse = jumpPulse;
+        if (this.canAcceptJumpInput()) {
+          this.sfx.unlock();
+          this.executeJump(Phaser.Math.Clamp(this.num("a11yChargeLevel", 50), 0, 100));
+        }
+      }
+    }
 
     // Crash-out cue: run expired mid-game (once per transition)
     if (statusChanged && status === "expired" && prevStatus === "dealt") {
@@ -266,6 +323,7 @@ export class JumpRushScene extends BaseScene {
     // Loading overlay (committed / isDealing)
     const showLoading = status === "committed" || isDealing || isStarting;
     this.loadingOverlay.setVisible(showLoading);
+    this.refreshLoadingOverlay();
     this.refreshLobbyStartButton();
 
     if (status !== "dealt") {
@@ -274,40 +332,68 @@ export class JumpRushScene extends BaseScene {
       this.clearMissState(true);
     }
 
-    if (status === "idle" || status === "solved" || status === "expired") {
+    if (status === "idle" || status === "solved" || status === "expired" || status === "refunded") {
+      if (pView.length === 0) this.prevPlatformsView = [];
       this.lobbyContainer.setVisible(true);
       this.worldContainer.setVisible(false);
       this.hudContainer.setVisible(false);
       this.chargeBarContainer.setVisible(false);
       this.submitContainer.setVisible(false);
       this.missOverlay.setVisible(false);
-      if (statusChanged) this.refreshLobbyCards(difficulty);
+      if (statusChanged || difficultyChanged) this.refreshLobbyCards(difficulty);
       return;
     }
 
     this.lobbyContainer.setVisible(false);
     this.worldContainer.setVisible(true);
     this.hudContainer.setVisible(true);
-    this.chargeBarContainer.setVisible(status === "dealt" && !this.allCleared && !this.hasMissed && !this.bool("timeUp"));
 
     if (status === "dealt" && platformsChanged && pView.length > 0) {
-      this.prevPlatformsView = pView.slice();
+      this.prevPlatformsView = pView.map((platform) => ({ ...platform }));
       this.buildGameWorld(pView, difficulty);
-      this.allCleared = false;
-      this.hasMissed = false;
-      this.currentPlatformIndex = 0;
-      this.comboCount = 0;
+      this.currentPlatformIndex = Phaser.Math.Clamp(
+        Math.round(this.num("currentPlatform", 0)),
+        0,
+        Math.max(0, this.platforms.length - 1),
+      );
+      this.comboCount = Phaser.Math.Clamp(
+        Math.round(this.num("comboCount", 0)),
+        0,
+        this.currentPlatformIndex,
+      );
+      this.allCleared = this.currentPlatformIndex >= this.platforms.length - 1;
+      this.hasMissed = this.bool("missedPlatform") && !this.allCleared;
       this.chargeLevel = 0;
       this.isJumping = false;
       this.isCharging = false;
       this.refreshProgressDots();
       this.refreshCombo();
-      this.scrollToPlatform(0, false);
+      this.placeBunnyOnPlatform(this.currentPlatformIndex, false);
+      this.refreshChargeTargetBand();
+      if (this.hasMissed) {
+        this.setBunnyPose("hurt");
+        this.stopBunnyIdle();
+      } else if (this.allCleared) {
+        this.setBunnyPose("idle");
+        this.stopBunnyIdle();
+      } else {
+        this.setBunnyPose("idle");
+        this.startBunnyIdle();
+      }
       this.refreshMissOverlay();
     }
 
     if (status === "dealt") {
-      this.submitContainer.setVisible(this.allCleared && !this.hasMissed && !isSubmitting);
+      this.chargeBarContainer.setVisible(
+        !this.allCleared &&
+        !this.hasMissed &&
+        !this.bool("timeUp") &&
+        !this.bool("submitWindowClosed"),
+      );
+      this.submitContainer.setVisible(
+        !this.hasMissed && !isSubmitting &&
+        (this.allCleared || this.canReleaseRun() || this.bool("timeUp")),
+      );
       this.refreshSubmitButton();
       this.refreshMissOverlay();
     }
@@ -367,6 +453,7 @@ export class JumpRushScene extends BaseScene {
       const sprite = this.add.image(cloud.x, cloud.y, JR_ASSETS.cloud)
         .setScale(cloud.scale)
         .setAlpha(cloud.alpha);
+      this.trackAmbient(sprite);
       // Ambient drift is pure decoration — skip entirely under reduced-motion.
       if (!this.reducedMotion) {
         this.tweens.add({
@@ -387,14 +474,22 @@ export class JumpRushScene extends BaseScene {
    * Decode a platformsView byte array into visual PlatformData, then
    * instantiate all platform containers inside worldContainer.
    */
-  private buildGameWorld(view: number[], difficulty: number): void {
+  private buildGameWorld(view: Platform[], difficulty: number): void {
     // Remove previous platform objects
-    for (const obj of this.platformObjects) obj.destroy();
+    this.stopBunnyIdle();
+    for (const obj of this.platformObjects) {
+      this.tweens.killTweensOf(obj.getAll());
+      obj.destroy();
+    }
     this.platformObjects = [];
+    if (this.bunny?.active) {
+      this.tweens.killTweensOf(this.bunny.getAll());
+      this.tweens.killTweensOf(this.bunny);
+    }
     this.bunny?.destroy();
     this.goalCarrot = null;
 
-    const platformCount = Math.min(MAX_PLATFORMS, Math.max(5, view.length + 1));
+    const platformCount = Math.max(2, view.length);
     this.platforms = this.decodePlatforms(view, platformCount, difficulty);
     this.worldHeight = (this.platforms[0]?.y ?? 0) + 80;
 
@@ -413,37 +508,43 @@ export class JumpRushScene extends BaseScene {
     this.worldContainer.add(this.bunny);
     this.placeBunnyOnPlatform(0, false);
 
-    // Start idle bob
-    this.startBunnyIdle();
   }
 
   /** Decode raw view bytes into platform layout with world-space positions. */
-  private decodePlatforms(view: number[], count: number, difficulty: number): PlatformData[] {
+  private decodePlatforms(view: Platform[], count: number, difficulty: number): PlatformData[] {
     const out: PlatformData[] = [];
 
     // Starting platform: centred horizontally, near "bottom" of world
     const startX = W / 2;
     const startY = 100 + (count - 1) * ((VERT_GAP_MIN + VERT_GAP_MAX) / 2);
-    out.push({ x: startX, y: startY, width: 120, index: 0 });
+    out.push({
+      x: startX,
+      y: startY,
+      width: Phaser.Math.Clamp(view[0]?.width ?? 120, PLATFORM_MIN_W, PLATFORM_MIN_W + PLATFORM_RANGE_W),
+      gap: 0,
+      index: 0,
+    });
 
     // Horizontal jitter seeds based on view bytes
     for (let i = 1; i < count; i++) {
-      const byte = view[i - 1] ?? (i * 73 & 0xff); // fallback deterministic
-      const width = PLATFORM_MIN_W + Math.floor((byte / 256) * PLATFORM_RANGE_W);
+      const raw = view[i];
+      if (!raw) continue;
+      const gap = Phaser.Math.Clamp(Number(raw.gap) || 1, 1, 260);
+      const width = Phaser.Math.Clamp(Number(raw.width) || PLATFORM_MIN_W, PLATFORM_MIN_W, PLATFORM_MIN_W + PLATFORM_RANGE_W);
 
       // Vertical: higher difficulty → larger gaps
       const gapRange  = VERT_GAP_MAX - VERT_GAP_MIN;
       const diffScale = difficulty === 0 ? 0.3 : difficulty === 1 ? 0.6 : 1.0;
-      const vertGap   = VERT_GAP_MIN + Math.floor(diffScale * (byte / 256) * gapRange);
+      const vertGap   = VERT_GAP_MIN + Math.floor(diffScale * (gap / 260) * gapRange);
 
       // Horizontal: alternating left/mid/right based on byte modulo
       const xPositions = [W * 0.2, W * 0.4, W * 0.5, W * 0.6, W * 0.8];
-      const xIdx       = byte % xPositions.length;
+      const xIdx       = gap % xPositions.length;
       const x          = xPositions[xIdx] ?? W / 2;
 
       const prev = out[out.length - 1];
       if (!prev) continue;
-      out.push({ x, y: prev.y - vertGap, width, index: i });
+      out.push({ x, y: prev.y - vertGap, width, gap, index: i });
     }
     return out;
   }
@@ -452,14 +553,16 @@ export class JumpRushScene extends BaseScene {
   private buildPlatformTile(pd: PlatformData): Phaser.GameObjects.Container {
     const cont = this.add.container(pd.x, pd.y);
     const platformKey = pd.width < 92 ? JR_ASSETS.platformSmall : JR_ASSETS.platform;
+    const platformAspect = platformKey === JR_ASSETS.platformSmall ? 100 / 201 : 94 / 380;
     const sprite = this.add.image(0, 0, platformKey)
       .setOrigin(0.5, 0)
-      .setDisplaySize(pd.width, PLATFORM_H + 26);
+      .setDisplaySize(pd.width, pd.width * platformAspect);
     cont.add(sprite);
 
     if (pd.index === this.platforms.length - 1) {
-      const carrot = this.add.image(0, -24, JR_ASSETS.carrotGold)
-        .setDisplaySize(30, 28);
+      const carrot = this.add.image(0, -24, JR_ASSETS.carrotGold);
+      this.fitImageHeight(carrot, 28);
+      this.trackAmbient(carrot);
       cont.add(carrot);
       this.goalCarrot = carrot;
       // Gentle hover on the goal reward — ambient loop, gated for reduced-motion.
@@ -485,8 +588,8 @@ export class JumpRushScene extends BaseScene {
 
     const shadow = this.add.ellipse(0, 3, 38, 10, 0x1a1a19, 0.16);
     this.bunnySprite = this.add.image(0, 0, JR_ASSETS.bunnyStand)
-      .setOrigin(0.5, 1)
-      .setDisplaySize(BUNNY_W, BUNNY_H);
+      .setOrigin(0.5, 1);
+    this.fitImageHeight(this.bunnySprite, BUNNY_H);
     cont.add([shadow, this.bunnySprite]);
     return cont;
   }
@@ -500,7 +603,8 @@ export class JumpRushScene extends BaseScene {
         : pose === "hurt"
           ? JR_ASSETS.bunnyHurt
           : JR_ASSETS.bunnyStand;
-    this.bunnySprite.setTexture(texture).setDisplaySize(BUNNY_W, BUNNY_H);
+    this.bunnySprite.setTexture(texture);
+    this.fitImageHeight(this.bunnySprite, BUNNY_H);
   }
 
   private startBunnyIdle(): void {
@@ -526,6 +630,9 @@ export class JumpRushScene extends BaseScene {
   protected onReducedMotionChange(enabled: boolean): void {
     if (enabled) {
       this.stopBunnyIdle();
+      for (const target of this.ambientTargets) {
+        if (target.active) this.tweens.killTweensOf(target);
+      }
     } else if (
       this.bunny &&
       this.str("gameStatus") === "dealt" &&
@@ -560,6 +667,13 @@ export class JumpRushScene extends BaseScene {
       C.chargeFill0,
     ).setOrigin(0, 0.5);
 
+    // The gold band marks the perfect-landing window for the next platform.
+    // It teaches distance through play without exposing numeric parameters.
+    this.chargeTargetBand = this.add.rectangle(0, 0, 0, barH - 2, C.perfectGold, 0.34)
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(1, 0xffffff, 0.92)
+      .setVisible(false);
+
     // Label — placed ABOVE the bar so it clears the progress-dot row that sits
     // just below the charge bar (avoids a text/dots collision during play).
     this.chargeHint = this.add.text(0, -(barH / 2 + 11), this.tr("chargeHold", "Hold to charge"), {
@@ -569,7 +683,25 @@ export class JumpRushScene extends BaseScene {
       fontStyle: "bold",
     }).setOrigin(0.5);
 
-    this.chargeBarContainer.add([track, this.chargeFill, this.chargeHint]);
+    this.chargeBarContainer.add([track, this.chargeFill, this.chargeTargetBand, this.chargeHint]);
+  }
+
+  private refreshChargeTargetBand(): void {
+    if (!this.chargeTargetBand) return;
+    const target = this.platforms[this.currentPlatformIndex + 1];
+    if (!target) {
+      this.chargeTargetBand.setVisible(false);
+      return;
+    }
+    const barW = W - 48;
+    const usableW = barW - 4;
+    const distance = Math.max(1, target.gap + target.width);
+    const startPct = Phaser.Math.Clamp((target.gap + target.width * 0.35) / distance, 0, 1);
+    const endPct = Phaser.Math.Clamp((target.gap + target.width * 0.65) / distance, startPct, 1);
+    this.chargeTargetBand
+      .setPosition(-(barW / 2) + 2 + startPct * usableW, 0)
+      .setSize(Math.max(4, (endPct - startPct) * usableW), 20)
+      .setVisible(true);
   }
 
   private refreshChargeFill(): void {
@@ -614,8 +746,8 @@ export class JumpRushScene extends BaseScene {
       fontSize:  "20px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
-      color:     "#facc15",
-      stroke:    "#ffffff",
+      color:     "#7a3e00",
+      stroke:    "#fff7d6",
       strokeThickness: 2,
     });
 
@@ -624,8 +756,8 @@ export class JumpRushScene extends BaseScene {
       fontSize:  "26px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
-      color:     "#facc15",
-      stroke:    "#ffffff",
+      color:     "#7a3e00",
+      stroke:    "#fff7d6",
       strokeThickness: 3,
     }).setOrigin(0.5).setVisible(false);
 
@@ -675,6 +807,11 @@ export class JumpRushScene extends BaseScene {
     hit.on("pointerout",   () => this.refreshSubmitButton(false));
     hit.on("pointerdown",  () => {
       this.sfx.unlock();
+      if (this.canReleaseRun()) {
+        this.tween({ targets: cont, scale: 0.94, duration: 60, yoyo: true });
+        this.dispatch("expireGame", {});
+        return;
+      }
       if (!this.canSubmitRun()) {
         this.tween({ targets: cont, x: W / 2 + 4, duration: 40, yoyo: true, repeat: 2 });
         return;
@@ -694,7 +831,7 @@ export class JumpRushScene extends BaseScene {
       fontSize:  "10px",
       fontFamily: FONT_FAMILY,
       color:     "#ffffff",
-    }).setOrigin(0.5).setAlpha(0.82);
+    }).setOrigin(0.5).setAlpha(0.94);
 
     cont.add([this.submitButtonBg, hit, this.submitLabel, this.submitHint]);
     this.refreshSubmitButton();
@@ -713,21 +850,42 @@ export class JumpRushScene extends BaseScene {
     );
   }
 
+  private canReleaseRun(): boolean {
+    return (
+      this.str("gameStatus") === "dealt" &&
+      this.bool("canReleaseRun") &&
+      !this.bool("isSubmitting")
+    );
+  }
+
   private refreshSubmitButton(hover = false): void {
     if (!this.submitButtonBg || !this.submitLabel || !this.submitHint) return;
     const canSubmit = this.canSubmitRun();
+    const canRelease = this.canReleaseRun();
+    const isActive = canSubmit || canRelease;
     const antiBotWaitMs = this.bool("minSolveReached")
       ? 0
       : this.minSolveRemainingMs();
 
     this.submitButtonBg.clear();
-    this.submitButtonBg.fillStyle(canSubmit ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    this.submitButtonBg.fillStyle(
+      canSubmit
+        ? (hover ? C.submitBtnHov : C.submitBtn)
+        : canRelease
+          ? (hover ? 0xdc2626 : C.timerRed)
+          : 0xd4d0c9,
+      1,
+    );
     this.submitButtonBg.fillRoundedRect(-104, -30, 208, 60, 12);
-    this.submitButtonBg.lineStyle(2, canSubmit ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.submitButtonBg.lineStyle(
+      2,
+      canSubmit ? C.submitBtnHov : canRelease ? 0xdc2626 : 0xb8b1a6,
+      1,
+    );
     this.submitButtonBg.strokeRoundedRect(-104, -30, 208, 60, 12);
-    this.submitLabel.setColor(canSubmit ? "#ffffff" : "#4b443c");
-    this.submitHint.setColor(canSubmit ? "#ffffff" : "#6d645b");
-    this.submitHint.setAlpha(canSubmit ? 0.82 : 1);
+    this.submitLabel.setColor(isActive ? "#ffffff" : "#4b443c");
+    this.submitHint.setColor(isActive ? "#ffffff" : "#6d645b");
+    this.submitHint.setAlpha(isActive ? 0.82 : 1);
 
     if (canSubmit) {
       this.submitLabel.setText(this.tr("submitRun", "Submit run"));
@@ -735,9 +893,17 @@ export class JumpRushScene extends BaseScene {
       return;
     }
 
-    if (this.bool("timeUp") || this.bool("submitWindowClosed")) {
+    if (canRelease) {
       this.submitLabel.setText(this.tr("timeExpired", "Time expired"));
       this.submitHint.setText(this.tr("releaseThisRun", "Release this run"));
+    } else if (this.bool("timeUp")) {
+      this.submitLabel.setText(
+        this.tr("waitLabel", "Wait {clock}").replace(
+          "{clock}",
+          formatClock(this.num("recoveryWaitMs", 0)),
+        ),
+      );
+      this.submitHint.setText(this.tr("recoveryWindow", "Contract recovery window"));
     } else if (!this.bool("minSolveReached")) {
       const lockedMs = Math.max(0, antiBotWaitMs || SUBMIT_BUFFER_MS);
       this.submitLabel.setText(
@@ -774,12 +940,18 @@ export class JumpRushScene extends BaseScene {
 
   private refreshProgressDots(): void {
     const total = this.platforms.length;
-    for (let i = 0; i < this.progressDots.length && i < total; i++) {
+    const visible = this.progressDots.length;
+    const windowStart = Math.max(
+      0,
+      Math.min(total - visible, this.currentPlatformIndex - Math.floor(visible / 2)),
+    );
+    for (let i = 0; i < visible && i < total; i++) {
       const dot = this.progressDots[i];
       if (!dot) continue;
-      if (i < this.currentPlatformIndex) {
+      const logicalIndex = windowStart + i;
+      if (logicalIndex < this.currentPlatformIndex) {
         dot.setFillStyle(C.dotDone);
-      } else if (i === this.currentPlatformIndex) {
+      } else if (logicalIndex === this.currentPlatformIndex) {
         dot.setFillStyle(C.dotActive);
       } else {
         dot.setFillStyle(C.dotFuture);
@@ -802,13 +974,14 @@ export class JumpRushScene extends BaseScene {
       .setScale(0.24)
       .setAlpha(0.72);
     const heroPlatform = this.add.image(W / 2, 214, JR_ASSETS.platform)
-      .setDisplaySize(250, 62)
+      .setDisplaySize(250, 250 * (94 / 380))
       .setAlpha(0.98);
     const heroBunny = this.add.image(W / 2, 204, JR_ASSETS.bunnyJump)
-      .setOrigin(0.5, 1)
-      .setDisplaySize(70, 92);
-    const carrot = this.add.image(W / 2 + 104, 186, JR_ASSETS.carrotGold)
-      .setDisplaySize(34, 30);
+      .setOrigin(0.5, 1);
+    this.fitImageHeight(heroBunny, 92);
+    const carrot = this.add.image(W / 2 + 104, 186, JR_ASSETS.carrotGold);
+    this.fitImageHeight(carrot, 30);
+    this.trackAmbient(heroBunny, carrot);
 
     // Hero idle + carrot bob are ambient loops — only run them with motion on.
     if (!this.reducedMotion) {
@@ -889,7 +1062,7 @@ export class JumpRushScene extends BaseScene {
 
   private buildDifficultyCard(
     x: number, y: number, w: number, h: number,
-    rule: (typeof DIFFICULTY_RULES)[number], diffIdx: number,
+    _rule: (typeof DIFFICULTY_RULES)[number], diffIdx: number,
   ): Phaser.GameObjects.Container {
     const cont = this.add.container(x, y);
     const isSelected = diffIdx === this.selectedDifficulty;
@@ -913,10 +1086,10 @@ export class JumpRushScene extends BaseScene {
       drawCard(isSelected ? C.cardSelected : C.cardBg, isSelected ? 0.98 : 0.92, isSelected ? 0xf59e0b : C.cardBorder));
     bg.on("pointerdown",  () => {
       this.selectedDifficulty = diffIdx;
+      this.dispatch("selectDifficulty", { difficulty: diffIdx });
       this.tween({ targets: cont, scale: 0.95, duration: 60, yoyo: true });
       // Re-render all cards to reflect new selection
-      this.lobbyContainer.destroy();
-      this.buildLobby();
+      this.rebuildLobby();
       this.lobbyContainer.setVisible(true);
     });
 
@@ -948,8 +1121,8 @@ export class JumpRushScene extends BaseScene {
     const bunnyX = 0;
     const bunnyY = stairBaseY - (steps - 1) * stepDY - 3;
     const icon = this.add.image(bunnyX, bunnyY, iconKeys[diffIdx] ?? JR_ASSETS.bunnyStand)
-      .setOrigin(0.5, 1)
-      .setDisplaySize(30, 40);
+      .setOrigin(0.5, 1);
+    this.fitImageHeight(icon, 40);
 
     // Difficulty name
     const name = this.add.text(0, -h / 2 + 52, copy.label, {
@@ -969,13 +1142,13 @@ export class JumpRushScene extends BaseScene {
       fontSize:  "11px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
-      color:     "#0ea371",
+      color:     "#08745b",
     }).setOrigin(0.5);
 
     const entryLabel = this.add.text(0, h / 2 - 14, copy.entry, {
       fontSize: "10px",
       fontFamily: FONT_FAMILY,
-      color:    "#8b8984",
+      color:    "#5c5a56",
     }).setOrigin(0.5);
 
     const selectedDot = this.add.circle(-w / 2 + 13, -h / 2 + 13, 5, 0xf59e0b, isSelected ? 1 : 0);
@@ -1002,7 +1175,7 @@ export class JumpRushScene extends BaseScene {
       fontSize: "10px",
       fontFamily: FONT_FAMILY,
       color: "#ffffff",
-    }).setOrigin(0.5).setAlpha(0.82);
+    }).setOrigin(0.5).setAlpha(0.94);
 
     this.lobbyStartBg.on("pointerover", () => this.refreshLobbyStartButton(true));
     this.lobbyStartBg.on("pointerout", () => this.refreshLobbyStartButton(false));
@@ -1025,7 +1198,7 @@ export class JumpRushScene extends BaseScene {
   private canStartRun(): boolean {
     const status = this.str("gameStatus", "idle");
     return (
-      (status === "idle" || status === "solved" || status === "expired") &&
+      (status === "idle" || status === "solved" || status === "expired" || status === "refunded") &&
       !this.bool("isStarting") &&
       !this.bool("isDealing") &&
       !this.bool("isSubmitting") &&
@@ -1054,7 +1227,7 @@ export class JumpRushScene extends BaseScene {
       this.lobbyStartBg.strokeRoundedRect(-106, -24, 212, 48, 12);
       this.lobbyStartLabel.setColor("#ffffff");
       this.lobbyStartHint.setColor("#ffffff");
-      this.lobbyStartHint.setAlpha(0.82);
+      this.lobbyStartHint.setAlpha(0.94);
       this.lobbyStartLabel.setText(this.tr("startJump", "Start jump"));
       this.lobbyStartHint.setText(this.tr("startSealHint", "Pay entry and seal route"));
       return;
@@ -1067,17 +1240,32 @@ export class JumpRushScene extends BaseScene {
     this.lobbyStartBg.fillRoundedRect(-106, -24, 212, 48, 12);
     this.lobbyStartBg.lineStyle(2, C.submitBtn, isBusy ? 0.7 : 0.4);
     this.lobbyStartBg.strokeRoundedRect(-106, -24, 212, 48, 12);
-    this.lobbyStartLabel.setColor(isBusy ? "#0ea371" : "#6d645b");
-    this.lobbyStartHint.setColor(isBusy ? "#0ea371" : "#8b8984");
+    this.lobbyStartLabel.setColor(isBusy ? "#08745b" : "#5c5148");
+    this.lobbyStartHint.setColor(isBusy ? "#08745b" : "#5c5a56");
     this.lobbyStartHint.setAlpha(isBusy ? 0.9 : 0.95);
     this.lobbyStartLabel.setText(isBusy ? this.tr("preparing", "Preparing…") : this.tr("startJump", "Start jump"));
     this.lobbyStartHint.setText(
-      isBusy ? this.tr("loadingRouteHint", "Loading route…") : this.tr("poolRefilling", "Pool refilling"),
+      isBusy
+        ? this.tr("loadingRouteHint", "Loading route…")
+        : this.tr("poolRefilling", "Pool low — this paid route is unavailable"),
     );
   }
 
   private refreshLobbyCards(currentDifficulty: number): void {
+    const changed = this.selectedDifficulty !== currentDifficulty;
     this.selectedDifficulty = currentDifficulty;
+    if (changed && this.lobbyContainer?.active) {
+      this.rebuildLobby();
+      this.lobbyContainer.setVisible(true);
+    }
+  }
+
+  private rebuildLobby(): void {
+    if (this.lobbyContainer?.active) {
+      this.tweens.killTweensOf(this.lobbyContainer.getAll());
+      this.lobbyContainer.destroy();
+    }
+    this.buildLobby();
   }
 
   // ── Loading overlay ────────────────────────────────────────────────────────
@@ -1086,30 +1274,58 @@ export class JumpRushScene extends BaseScene {
     this.loadingOverlay = this.add.container(W / 2, H / 2);
 
     const bg = this.add.rectangle(0, 0, W, H, 0xffffff, 0.68).setOrigin(0.5);
-    const panel = this.add.rectangle(0, 0, 250, 150, C.surface, 0.96)
+    const panel = this.add.rectangle(0, 0, 264, 208, C.surface, 0.96)
       .setStrokeStyle(1, C.border)
       .setOrigin(0.5);
-    const platform = this.add.image(0, 46, JR_ASSETS.platformSmall)
-      .setDisplaySize(150, 52);
-    const bunny = this.add.image(0, 30, JR_ASSETS.bunnyJump)
-      .setOrigin(0.5, 1)
-      .setDisplaySize(48, 64);
+    const platform = this.add.image(0, 42, JR_ASSETS.platformSmall)
+      .setDisplaySize(150, 150 * (100 / 201));
+    const bunny = this.add.image(0, 26, JR_ASSETS.bunnyJump)
+      .setOrigin(0.5, 1);
+    this.fitImageHeight(bunny, 64);
 
-    const txt = this.add.text(0, -46, this.tr("preparingPlatforms", "Preparing platforms"), {
+    this.loadingTitle = this.add.text(0, -74, this.tr("preparingPlatforms", "Preparing platforms"), {
       fontSize: "16px",
       fontFamily: FONT_FAMILY,
       fontStyle: "bold",
       color:    "#1a1a19",
     }).setOrigin(0.5);
 
-    const hint = this.add.text(0, -22, this.tr("sealingFairRoute", "TEE is sealing a fair route"), {
+    this.loadingHint = this.add.text(0, -50, this.tr("sealingFairRoute", "TEE is sealing a fair route"), {
       fontSize:  "11px",
       fontFamily: FONT_FAMILY,
       color:     "#5c5a56",
     }).setOrigin(0.5);
 
+    this.loadingRetryBg = this.add.graphics();
+    this.loadingRetryBg.setInteractive(
+      new Phaser.Geom.Rectangle(-92, 63, 184, 44),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    this.loadingRetryBg.on("pointerover", () => this.refreshLoadingOverlay(true));
+    this.loadingRetryBg.on("pointerout", () => this.refreshLoadingOverlay(false));
+    this.loadingRetryBg.on("pointerdown", () => {
+      if (!this.canRetryDeal()) return;
+      this.sfx.unlock();
+      this.tween({ targets: this.loadingOverlay, scale: 0.98, duration: 60, yoyo: true });
+      this.dispatch("retryDeal", {});
+    });
+    this.loadingRetryLabel = this.add.text(0, 85, this.tr("retryDeal", "Retry sealing"), {
+      fontSize:  "12px",
+      fontFamily: FONT_FAMILY,
+      fontStyle: "bold",
+      color:     "#ffffff",
+    }).setOrigin(0.5);
+    this.loadingRetryHint = this.add.text(0, 113, this.tr("retryDealHint", "Sealing is taking longer than usual"), {
+      fontSize:  "10px",
+      fontFamily: FONT_FAMILY,
+      color:     "#5c5a56",
+      align:     "center",
+      wordWrap:  { width: 210 },
+    }).setOrigin(0.5);
+
     // Hopping loader — ambient loop, gated for reduced-motion.
     if (!this.reducedMotion) {
+      this.trackAmbient(bunny);
       this.tweens.add({
         targets:  bunny,
         y:        12,
@@ -1120,8 +1336,52 @@ export class JumpRushScene extends BaseScene {
       });
     }
 
-    this.loadingOverlay.add([bg, panel, txt, hint, platform, bunny]);
+    this.loadingOverlay.add([
+      bg,
+      panel,
+      this.loadingTitle,
+      this.loadingHint,
+      platform,
+      bunny,
+      this.loadingRetryBg,
+      this.loadingRetryLabel,
+      this.loadingRetryHint,
+    ]);
+    this.refreshLoadingOverlay();
     this.loadingOverlay.setVisible(false);
+  }
+
+  private canRetryDeal(): boolean {
+    return (
+      this.str("gameStatus") === "committed" &&
+      !this.bool("isStarting") &&
+      !this.bool("isDealing")
+    );
+  }
+
+  private refreshLoadingOverlay(hover = false): void {
+    if (!this.loadingRetryBg || !this.loadingRetryLabel || !this.loadingRetryHint) return;
+    const status = this.str("gameStatus", "idle");
+    const showRetry = status === "committed";
+    const canRetry = this.canRetryDeal();
+
+    this.loadingTitle?.setText(this.tr("preparingPlatforms", "Preparing platforms"));
+    this.loadingHint?.setText(
+      canRetry
+        ? this.tr("retryDealHint", "Sealing is taking longer than usual")
+        : this.tr("sealingFairRoute", "TEE is sealing a fair route"),
+    );
+    this.loadingRetryBg.clear();
+    this.loadingRetryBg.setVisible(showRetry);
+    this.loadingRetryLabel.setVisible(showRetry);
+    this.loadingRetryHint.setVisible(showRetry);
+    this.loadingRetryBg.fillStyle(canRetry ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    this.loadingRetryBg.fillRoundedRect(-92, 63, 184, 44, 10);
+    this.loadingRetryBg.lineStyle(2, canRetry ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.loadingRetryBg.strokeRoundedRect(-92, 63, 184, 44, 10);
+    this.loadingRetryLabel.setColor(canRetry ? "#ffffff" : "#4b443c");
+    this.loadingRetryLabel.setText(this.tr("retryDeal", "Retry sealing"));
+    this.loadingRetryHint.setText(this.tr("retryDealHint", "Sealing is taking longer than usual"));
   }
 
   private buildMissOverlay(): void {
@@ -1132,8 +1392,8 @@ export class JumpRushScene extends BaseScene {
       .setStrokeStyle(1, C.border)
       .setOrigin(0.5);
     const bunny = this.add.image(0, -42, JR_ASSETS.bunnyHurt)
-      .setOrigin(0.5, 1)
-      .setDisplaySize(48, 64);
+      .setOrigin(0.5, 1);
+    this.fitImageHeight(bunny, 64);
     const title = this.add.text(0, -26, this.tr("missedTitle", "Missed the platform"), {
       fontSize:  "17px",
       fontFamily: FONT_FAMILY,
@@ -1150,13 +1410,17 @@ export class JumpRushScene extends BaseScene {
 
     this.missUndoBg = this.add.graphics();
     this.missUndoBg.setInteractive(
-      new Phaser.Geom.Rectangle(-88, 32, 176, 38),
+      new Phaser.Geom.Rectangle(-88, 29, 176, 44),
       Phaser.Geom.Rectangle.Contains,
     );
     this.missUndoBg.on("pointerover", () => this.refreshMissOverlay(true));
     this.missUndoBg.on("pointerout", () => this.refreshMissOverlay(false));
     this.missUndoBg.on("pointerdown", () => {
-      if (this.num("undosLeft", 0) <= 0 || this.bool("isUndoing")) return;
+      if (this.canReleaseRun()) {
+        this.dispatch("expireGame", {});
+        return;
+      }
+      if (this.num("undosLeft", 0) <= 0 || this.bool("isUndoing") || this.bool("timeUp")) return;
       this.dispatch("useUndo", {});
     });
     this.missUndoLabel = this.add.text(0, 51, this.tr("undoJump", "Undo jump"), {
@@ -1173,15 +1437,23 @@ export class JumpRushScene extends BaseScene {
   private refreshMissOverlay(hover = false): void {
     if (!this.missOverlay || !this.missUndoBg || !this.missUndoLabel) return;
     this.missOverlay.setVisible(this.hasMissed && this.str("gameStatus") === "dealt");
-    const canUndo = this.num("undosLeft", 0) > 0 && !this.bool("isUndoing");
+    const canRelease = this.canReleaseRun();
+    const canUndo = !canRelease && this.num("undosLeft", 0) > 0 && !this.bool("isUndoing") && !this.bool("timeUp");
     this.missUndoBg.clear();
-    this.missUndoBg.fillStyle(canUndo ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
-    this.missUndoBg.fillRoundedRect(-88, 32, 176, 38, 10);
-    this.missUndoBg.lineStyle(2, canUndo ? C.submitBtnHov : 0xb8b1a6, 1);
-    this.missUndoBg.strokeRoundedRect(-88, 32, 176, 38, 10);
+    this.missUndoBg.fillStyle(canUndo || canRelease ? (hover ? C.submitBtnHov : C.submitBtn) : 0xd4d0c9, 1);
+    this.missUndoBg.fillRoundedRect(-88, 29, 176, 44, 10);
+    this.missUndoBg.lineStyle(2, canUndo || canRelease ? C.submitBtnHov : 0xb8b1a6, 1);
+    this.missUndoBg.strokeRoundedRect(-88, 29, 176, 44, 10);
     this.missUndoLabel.setText(
-      canUndo
+      canRelease
+        ? this.tr("releaseThisRun", "Release this run")
+        : canUndo
         ? this.tr("undoLeft", "Undo ({n} left)").replace("{n}", String(this.num("undosLeft", 0)))
+        : this.bool("timeUp") && this.num("recoveryWaitMs", 0) > 0
+          ? this.tr("waitLabel", "Wait {clock}").replace(
+              "{clock}",
+              formatClock(this.num("recoveryWaitMs", 0)),
+            )
         : this.tr("noUndos", "No undos left"),
     );
   }
@@ -1192,7 +1464,12 @@ export class JumpRushScene extends BaseScene {
     this.setBunnyPose("idle");
     this.bunny?.setAngle(0);
     this.missOverlay?.setVisible(false);
-    this.chargeBarContainer?.setVisible(this.str("gameStatus") === "dealt" && !this.allCleared);
+    this.chargeBarContainer?.setVisible(
+      this.str("gameStatus") === "dealt" &&
+      !this.allCleared &&
+      !this.bool("timeUp") &&
+      !this.bool("submitWindowClosed"),
+    );
     this.placeBunnyOnPlatform(this.currentPlatformIndex, animated);
     this.startBunnyIdle();
   }
@@ -1201,16 +1478,7 @@ export class JumpRushScene extends BaseScene {
 
   private onChargeStart(): void {
     this.sfx.unlock();
-    if (
-      this.isJumping ||
-      this.isCharging ||
-      this.allCleared ||
-      this.hasMissed ||
-      this.bool("timeUp") ||
-      this.bool("isSubmitting") ||
-      this.bool("isUndoing") ||
-      this.str("gameStatus") !== "dealt"
-    ) return;
+    if (!this.canAcceptJumpInput() || this.isCharging) return;
 
     this.isCharging     = true;
     this.chargeStartTime = this.time.now;
@@ -1236,7 +1504,44 @@ export class JumpRushScene extends BaseScene {
     this.chargeLevel = 0;
     this.refreshChargeFill();
     this.chargeHint.setText(this.tr("chargeHold", "Hold to charge"));
+    if (charge < MIN_CHARGE_LEVEL) {
+      this.bunny?.setScale(1);
+      this.setBunnyPose("idle");
+      this.startBunnyIdle();
+      return;
+    }
     this.executeJump(charge);
+  }
+
+  /** Cancel an in-progress hold when focus leaves the game or a modal opens. */
+  private readonly onChargeCancel = (): void => {
+    if (!this.isCharging || this.isJumping) return;
+    this.isCharging = false;
+    this.chargeLevel = 0;
+    this.refreshChargeFill();
+    this.chargeHint?.setText(this.tr("chargeHold", "Hold to charge"));
+    this.bunny?.setScale(1);
+    if (
+      this.str("gameStatus") === "dealt" &&
+      !this.allCleared &&
+      !this.hasMissed
+    ) {
+      this.setBunnyPose("idle");
+      if (this.canAcceptJumpInput()) this.startBunnyIdle();
+    }
+  };
+
+  private canAcceptJumpInput(): boolean {
+    return !this.isJumping &&
+      !this.allCleared &&
+      !this.hasMissed &&
+      !this.bool("timeUp") &&
+      !this.bool("submitWindowClosed") &&
+      !this.bool("isSubmitting") &&
+      !this.bool("isUndoing") &&
+      !this.bool("inputSyncFailed") &&
+      !this.bool("interactionPaused") &&
+      this.str("gameStatus") === "dealt";
   }
 
   // ── Jump mechanics ─────────────────────────────────────────────────────────
@@ -1257,14 +1562,10 @@ export class JumpRushScene extends BaseScene {
       duration: 80,
     });
 
-    // Landing X: centre of target ± horizontal offset based on charge accuracy.
-    // Harder routes widen the possible miss band, so extreme charge values can
-    // visibly overshoot instead of always landing somewhere on the platform.
-    const idealCharge = 50; // 50% is "ideal" for a centred landing
-    const chargeError = (chargeLevel - idealCharge) / 100; // -0.5 → +0.5
-    const difficulty = this.num("gameDifficulty", 0);
-    const missBand = to.width * (difficulty === 2 ? 1.24 : difficulty === 1 ? 1.12 : 1.0) + 18;
-    const landingOffsetX = chargeError * missBand * 2;
+    // Use the same gap/width/charge evaluation as deterministic replay. The
+    // visual X is mapped from the authoritative offset on the target platform.
+    const evaluation = evaluateJumpLevel(chargeLevel, to.gap, to.width);
+    const landingOffsetX = evaluation.landingOffset - to.width / 2;
     const landingX = to.x + landingOffsetX;
     const landingY = to.y - 2;
 
@@ -1289,7 +1590,7 @@ export class JumpRushScene extends BaseScene {
           y:        landingY,
           duration: downDuration,
           ease:     "Sine.easeIn",
-          onComplete: () => this.onLanded(chargeLevel, landingOffsetX, to),
+          onComplete: () => this.onLanded(evaluation.landed, evaluation.perfect),
         });
       },
     });
@@ -1299,26 +1600,22 @@ export class JumpRushScene extends BaseScene {
       chargeMs:      Math.round((chargeLevel / 100) * CHARGE_FULL_MS),
       chargeLevel:   Math.round(chargeLevel),
       platformIndex: this.currentPlatformIndex + 1,
+      landed:        evaluation.landed,
+      perfect:       evaluation.perfect,
     });
   }
 
   private onLanded(
-    chargeLevel: number,
-    landingOffsetX: number,
-    platform: PlatformData,
+    landed: boolean,
+    isPerfect: boolean,
   ): void {
     this.isJumping = false;
-    this.currentPlatformIndex += 1;
 
-    // Perfect-landing detection: offset from platform centre
-    const centreOffset = Math.abs(landingOffsetX);
-    const landed = centreOffset <= platform.width / 2;
     if (!landed) {
       this.onMissedLanding();
       return;
     }
-
-    const isPerfect    = centreOffset <= platform.width * PERFECT_ZONE_HALF;
+    this.currentPlatformIndex += 1;
 
     if (isPerfect) {
       this.comboCount += 1;
@@ -1332,6 +1629,7 @@ export class JumpRushScene extends BaseScene {
 
     this.refreshProgressDots();
     this.refreshCombo();
+    this.refreshChargeTargetBand();
     this.setBunnyPose("idle");
 
     // Check if all platforms cleared
@@ -1486,9 +1784,8 @@ export class JumpRushScene extends BaseScene {
       // Carrot world position → target the bunny's chest.
       const startX = carrot.getWorldTransformMatrix().tx;
       const startY = carrot.getWorldTransformMatrix().ty;
-      const flyer = this.add.image(startX, startY, JR_ASSETS.carrotGold)
-        .setDisplaySize(30, 28)
-        .setDepth(60);
+      const flyer = this.add.image(startX, startY, JR_ASSETS.carrotGold).setDepth(60);
+      this.fitImageHeight(flyer, 28);
       carrot.setVisible(false);
       const targetX = this.bunny.getWorldTransformMatrix().tx;
       const targetY = this.bunny.getWorldTransformMatrix().ty - 34;
@@ -1600,9 +1897,20 @@ export class JumpRushScene extends BaseScene {
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
-  destroy(fromScene = false): void {
+  private cleanupScene(): void {
     this.input.off("pointerdown", this.onChargeStart, this);
     this.input.off("pointerup",   this.onChargeRelease, this);
+    this.input.off("pointerupoutside", this.onChargeRelease, this);
+    this.spaceKey?.off("down", this.onChargeStart, this);
+    this.spaceKey?.off("up", this.onChargeRelease, this);
+    this.spaceKey = null;
+    window.removeEventListener("blur", this.onChargeCancel);
+    this.stopBunnyIdle();
+    this.ambientTargets = [];
+  }
+
+  destroy(fromScene = false): void {
+    this.cleanupScene();
     super.destroy(fromScene);
   }
 }

@@ -1,792 +1,1000 @@
 /**
- * useBreakup — Domain logic for the Breakup Contract miniapp.
+ * Production lifecycle for the two-party Breakup Pact contract.
  *
- * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppBreakupPact)
- * via the MiniApp framework (ctx.framework). The earlier path routed create/sign/break through the
- * OS escrow/storage/badge kernel proxies, which never actually held the stakes
- * or paid anyone — the kernel escrow id never even materialized (the earlier
- * audit's "revise"). This composable now drives the dedicated contract, a
- * TWO-PARTY MATCHED-STAKE COMMITMENT PACT (no oracle, no pending settle kernel):
- *
- *   - createContract() LOCKS party1's GAS stake against a named partner and a
- *     duration; the pact starts PENDING (only party1 staked).
- *   - signContract() lets the named partner (party2) match the stake; the pact
- *     becomes ACTIVE (both staked).
- *   - breakContract() forfeits the breaker's stake: while ACTIVE the OTHER party
- *     receives BOTH stakes (BROKEN); while still PENDING party1 may break to
- *     cancel and reclaim their own stake (CANCELLED).
- *   - settleContract() is PERMISSIONLESS: after expiry an honored ACTIVE pact
- *     refunds both parties their stake (SETTLED).
- *
- * Contract interaction model (verified against MiniAppBreakupPact.cs / ABI):
- *
- *   READS (app.chain.readRaw / app.chain.readArray, default app contract script hash):
- *     lastPactId()                          -> Integer (pacts are ids 1..last)
- *     creditOf(who)                         -> Integer (prepaid stake credit)
- *     getPact(id)                           -> Map{id,party1,party2,stake,
- *                                              endTime(ms),party1Staked,
- *                                              party2Staked,status,breaker}
- *     partyPactCount(who)                   -> Integer
- *     getPartyPacts(who, off, limit)        -> Integer[] (pacts where who is
- *                                              party1 OR party2)
- *
- *   MUTATIONS (app.chain.invoke):
- *     1. DEPOSIT (fund a stake) — a GAS transfer to the contract with the memo
- *        "miniapp-breakup:stake" so OnNEP17Payment credits the sender:
- *          transfer(party, CONTRACT, stakeBaseUnits, "miniapp-breakup:stake")
- *          { scriptHash: GAS_HASH }
- *     2. createPact(party1, party2, stake, durationSeconds) -> pactId. Consumes
- *        the prepaid credit as party1's stake, so the deposit MUST land first.
- *        The new id is read from the "PactCreated" event (state[0]), falling
- *        back to lastPactId().
- *     signPact(pactId, party2). Consumes a matching stake from party2's credit
- *        (so the matching deposit MUST land first) -> ACTIVE.
- *     breakPact(pactId, breaker). ACTIVE -> the other party gets both stakes;
- *        PENDING & breaker==party1 -> cancel & refund party1.
- *     settlePact(pactId). PERMISSIONLESS; after expiry refunds both -> SETTLED.
- *
- * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8;
- * stake >= 1 GAS. getPact.endTime is in MILLISECONDS (Runtime.Time units),
- * compared directly against Date.now(). durationSeconds = days × 86400.
- *
- * ON-DEVICE vs ON-CHAIN: the contract stores only the stake + the lock — NOT the
- * title or terms. The human-readable title + terms stay on THIS device in a
- * local store keyed by the on-chain pactId. createContract() persists them
- * locally; mapPact() rebuilds the display title/terms from that store while the
- * authoritative lifecycle (stake, endTime, staked flags, status, breaker) comes
- * from getPact(). A foreign pact you are party2 on has no local entry → it falls
- * back to a placeholder title.
- *
- * PREPAID CREDIT: a create/sign that fails AFTER its deposit landed leaves the
- * stake on the contract as reusable prepaid credit under the depositor
- * (readable via creditOf, consumed by the next createPact/signPact, and — for a
- * pending pact — reclaimable by party1 via breakPact). There is no separate
- * refund call and none is needed; funds are not lost.
+ * The deployed contract uses a pull-payment ledger: deposits, cancellation
+ * refunds, honored-pact refunds, and break payouts all become `creditOf`
+ * balance first. `withdraw` is the only operation that moves that GAS back to
+ * a wallet. Every write below therefore requires either a validated event plus
+ * matching state, or matching authoritative state after broadcast. A txid by
+ * itself is never reported as success, and state alone never replaces exact
+ * transaction evidence.
  */
 
-import { createObservable, createDerived } from "@shared/react/context";
+import { createDerived, createObservable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import { GAS_DECIMALS_MULTIPLIER } from "@shared/utils/amounts";
-import { eventValue } from "@shared/utils/chain-events";
-import { addressToScriptHash, ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
-import { parseBigInt } from "@shared/utils/parsers";
-import { scriptHashToAddress } from "../utils/address";
-import { parseGas } from "@shared/utils/format";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { parseGas } from "@shared/utils/format";
+import { addressToScriptHash, ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import type { ContractStatus, RelationshipContractView } from "../types";
+import { scriptHashToAddress } from "../utils/address";
+import {
+  BREAKUP_PENDING_STORE_KEY,
+  classifyBreakupConfirmation,
+  eventNameForBreakupKind,
+  findMatchingBreakupEvent,
+  isPendingBreakupAction,
+  normalizeBreakupHash,
+  normalizeBreakupTxid,
+  parseBreakupInteger,
+  readBreakupTransactionOutcome,
+  requireCanonicalBreakupContext,
+  type BreakupChainContext,
+  type BreakupNotification,
+  type BreakupPendingKind,
+  type PendingBreakupAction,
+} from "./breakupSafety";
 
-// ============================================================================
-// Constants
-// ============================================================================
-
-/** Minimum partner stake in whole GAS (contract floor is 1 GAS). */
-const MIN_STAKE_GAS = 1;
-/** Minimum pact duration in days (UI floor; contract floor is 1 second). */
+const MIN_STAKE_BASE = 100_000_000n;
 const MIN_DURATION_DAYS = 30;
+const MAX_DURATION_DAYS = 3650;
 const TITLE_MAX = 100;
 const TERMS_MAX = 2000;
-
-/** Memo the contract requires on the stake-deposit transfer. */
 const STAKE_MEMO = "miniapp-breakup:stake";
-
-/**
- * Local store for per-pact title/terms (kept on-device, keyed by pactId).
- * app.storage.local key — the app's storage namespace is pinned to the legacy
- * "breakup-contract-" prefix (defineMiniApp storagePrefix), so this resolves to
- * the exact pre-framework runtime-cache key ("breakup-contract-meta") and any
- * title/terms persisted before the migration still hit.
- */
 const META_STORE_KEY = "meta";
-
-/** How many pact ids to page in per refresh. */
 const PARTY_PAGE_LIMIT = 100;
+const PARTY_HISTORY_CAP = 500;
+const GAS_AMOUNT_PATTERN = /^(?:[1-9]\d*)(?:\.\d{1,8})?$/;
 
-const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
-
-// ── getPact status codes (see MiniAppBreakupPact.cs) ──────────────────────
 const STATUS_PENDING = 0;
 const STATUS_ACTIVE = 1;
 const STATUS_BROKEN = 2;
 const STATUS_SETTLED = 3;
 const STATUS_CANCELLED = 4;
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface UseBreakupOptions {
-  /**
-   * MiniApp framework (ctx.framework). Its chain layer drives every on-chain
-   * read/write (stake deposit + createPact/signPact/breakPact/settlePact) and
-   * exposes the connected wallet so the list and hero counts scope to the
-   * current user; its amount layer scales human GAS to base units.
-   */
   app: MiniAppFramework;
-  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  network?: string;
 }
 
-/** On-device metadata for a pact (title + terms never leave this device). */
 interface PactMeta {
   title: string;
   terms: string;
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
+interface DecodedPact {
+  id: string;
+  party1: string;
+  party2: string;
+  stake: bigint;
+  endTime: number;
+  party1Staked: boolean;
+  party2Staked: boolean;
+  status: number;
+  breaker: string;
+}
 
-/** Coerce an unknown to a finite number, defaulting to 0. */
-const toFinite = (value: unknown): number => {
-  const n = Number(value ?? 0);
-  return Number.isFinite(n) ? n : 0;
-};
+export interface CreatePactOutcome {
+  created: true;
+  pactId: string;
+  metadataSaved: boolean;
+}
 
-/** Coerce a raw pact-id list value (number/string/bigint) to a string id. */
+class PendingConfirmationError extends Error {}
+type BreakupActionPhase =
+  | "idle"
+  | "preparing"
+  | "depositing"
+  | "creating"
+  | "signing"
+  | "cancelling"
+  | "breaking"
+  | "settling"
+  | "withdrawing";
+
+const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
+
 const toIdString = (value: unknown): string => {
-  try {
-    const n = parseBigInt(value);
-    return n > 0n ? n.toString() : "";
-  } catch {
-    return "";
-  }
+  const parsed = parseBreakupInteger(value);
+  return parsed !== null && parsed > 0n ? parsed.toString() : "";
 };
 
-// ============================================================================
-// Composable
-// ============================================================================
+const toBoolean = (value: unknown): boolean | null => {
+  if (typeof value === "boolean") return value;
+  if (value === 0 || value === 0n) return false;
+  if (value === 1 || value === 1n) return true;
+  const text = String(value ?? "").toLowerCase();
+  if (text === "0" || text === "false") return false;
+  if (text === "1" || text === "true") return true;
+  return null;
+};
+
+const sameHash = (left: string, right: string): boolean => {
+  if (!left || !right) return false;
+  return ownerMatchesAddress(left, right) || left.toLowerCase() === right.toLowerCase();
+};
+
+const decodePact = (raw: unknown, fallbackId = ""): DecodedPact => {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("pact not found");
+  }
+  const value = raw as Record<string, unknown>;
+  const party1 = parseHash160(value.party1);
+  const party2 = parseHash160(value.party2);
+  const stake = parseBreakupInteger(value.stake);
+  const endTimeRaw = parseBreakupInteger(value.endTime);
+  const statusRaw = parseBreakupInteger(value.status);
+  const party1Staked = toBoolean(value.party1Staked);
+  const party2Staked = toBoolean(value.party2Staked);
+  const id = toIdString(value.id);
+  const endTime = endTimeRaw === null ? Number.NaN : Number(endTimeRaw);
+  const status = statusRaw === null ? Number.NaN : Number(statusRaw);
+  if (
+    !id || (fallbackId && id !== fallbackId) || !party1 || !party2 || stake === null || stake <= 0n ||
+    !Number.isSafeInteger(endTime) || endTime <= 0 ||
+    !Number.isInteger(status) || status < STATUS_PENDING || status > STATUS_CANCELLED ||
+    party1Staked === null || party2Staked === null
+  ) {
+    throw new Error("invalid pact state");
+  }
+  return {
+    id,
+    party1,
+    party2,
+    stake,
+    endTime,
+    party1Staked,
+    party2Staked,
+    status,
+    breaker: parseHash160(value.breaker) || "",
+  };
+};
+
+const notificationInteger = (event: BreakupNotification, index: number): bigint | null => {
+  return parseBreakupInteger(event.values[index]);
+};
 
 export function useBreakup({ app, t }: UseBreakupOptions) {
-  // -- Form state -----------------------------------------------------------
   const partnerAddress = createObservable("");
   const stakeAmount = createObservable("");
   const duration = createObservable("");
   const contractTitle = createObservable("");
   const contractTerms = createObservable("");
 
-  // -- Data state -----------------------------------------------------------
   const contracts = createObservable<RelationshipContractView[]>([]);
   const isLoading = createObservable(false);
   const serviceNotice = createObservable("");
   const actionNotice = createObservable("");
   const validationNotice = createObservable("");
+  const pendingNotice = createObservable("");
+  const actionPhase = createObservable<BreakupActionPhase>("idle");
+  const hasPendingAction = createObservable(false);
   const lastSubmittedTitle = createObservable("");
-  /** Reclaimable prepaid stake-credit (whole GAS, display) under the wallet. */
-  const creditBalance = createObservable("0");
-  /** Raw reclaimable credit in base units (string) — the exact on-chain credit. */
-  const creditBalanceRaw = createObservable("0");
-
-  // -- Wallet (synced from main.tsx) ---------------------------------------
+  const creditBalance = createObservable("—");
+  const creditBalanceRaw = createObservable("");
+  const creditKnown = createObservable(false);
   const address = createObservable("");
 
-  // -- Derived state --------------------------------------------------------
   const contractCount = createDerived(() => contracts.get().length, [contracts]);
-  const activeCount = createDerived(() => contracts.get().filter((c) => c.status === "active").length, [contracts]);
-  const pendingCount = createDerived(() => contracts.get().filter((c) => c.status === "pending").length, [contracts]);
-  const brokenCount = createDerived(() => contracts.get().filter((c) => c.status === "broken").length, [contracts]);
+  const activeCount = createDerived(() => contracts.get().filter((item) => item.status === "active").length, [contracts]);
+  const pendingCount = createDerived(() => contracts.get().filter((item) => item.status === "pending").length, [contracts]);
+  const brokenCount = createDerived(() => contracts.get().filter((item) => item.status === "broken").length, [contracts]);
   const hasCredit = createDerived(() => {
+    if (!creditKnown.get()) return false;
+    const value = parseBreakupInteger(creditBalanceRaw.get());
+    return value !== null && value > 0n;
+  }, [creditKnown, creditBalanceRaw]);
+
+  let loadGeneration = 0;
+  const volatileMeta: Record<string, PactMeta> = {};
+
+  const storageScope = (context: BreakupChainContext) => `${context.network}:${context.contractHash}`;
+
+  const loadMetaStore = (): Record<string, PactMeta> => {
+    const raw = app.storage.local.get<Record<string, PactMeta>>(META_STORE_KEY, {});
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  };
+
+  const metaFor = (store: Record<string, PactMeta>, scope: string, id: string): PactMeta | undefined => {
+    const scoped = store[`${scope}:${id}`] ?? volatileMeta[`${scope}:${id}`];
+    if (scoped) return scoped;
+    // The pre-network-aware app stored plain ids. Its default was mainnet, so
+    // only mainnet may inherit those entries; testnet must never alias them.
+    return scope.startsWith("mainnet:") ? store[id] : undefined;
+  };
+
+  const saveLocalMeta = (scope: string, pactId: string, meta: PactMeta): boolean => {
+    const scopedKey = `${scope}:${pactId}`;
+    volatileMeta[scopedKey] = meta;
     try {
-      return parseBigInt(creditBalanceRaw.get()) > 0n;
+      const current = loadMetaStore();
+      const next = { ...current, [scopedKey]: meta };
+      if (scope.startsWith("mainnet:")) next[pactId] = meta;
+      app.storage.local.set(META_STORE_KEY, next);
+      const roundTrip = app.storage.local.get<Record<string, PactMeta>>(META_STORE_KEY, {});
+      return roundTrip?.[scopedKey]?.title === meta.title && roundTrip?.[scopedKey]?.terms === meta.terms;
     } catch {
       return false;
     }
-  }, [creditBalanceRaw]);
+  };
 
-  // -- On-device title/terms store -----------------------------------------
-
-  const loadLocalMeta = (): Record<string, PactMeta> => {
+  const pendingMap = (): Record<string, unknown> => {
     try {
-      const parsed = app.storage.local.get<Record<string, PactMeta>>(META_STORE_KEY);
-      return parsed && typeof parsed === "object" ? parsed : {};
+      const raw = app.storage.local.get<Record<string, unknown>>(BREAKUP_PENDING_STORE_KEY, {});
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new Error("invalid pending store");
+      }
+      return raw;
     } catch {
-      return {};
+      throw new Error(t("recoveryStorageUnavailable"));
     }
   };
 
-  /**
-   * Persist a pact's title/terms under its on-chain id. Neither leaves the
-   * device — only the stake + lock are on-chain — so this is the source of
-   * truth mapPact() reads the title/terms from.
-   */
-  const saveLocalMeta = (pactId: string, meta: PactMeta) => {
-    if (!pactId) return;
+  const pendingKey = (context: BreakupChainContext, walletHash: string) =>
+    `${storageScope(context)}:${walletHash.toLowerCase()}`;
+
+  const writePending = (action: PendingBreakupAction) => {
+    if (!isPendingBreakupAction(action)) throw new Error(t("invalidRecoveryRecord"));
+    const context = { network: action.network, contractHash: action.contractHash } satisfies BreakupChainContext;
+    const key = pendingKey(context, action.walletHash);
     try {
-      const store = app.storage.local.get<Record<string, PactMeta>>(META_STORE_KEY) ?? {};
-      store[pactId] = meta;
-      app.storage.local.set(META_STORE_KEY, store);
-    } catch (e) {
-      console.warn("[useBreakup] local meta write failed:", e instanceof Error ? e.message : String(e));
+      app.storage.local.set(BREAKUP_PENDING_STORE_KEY, { ...pendingMap(), [key]: action });
+      const stored = pendingMap()[key];
+      if (!isPendingBreakupAction(stored) || JSON.stringify(stored) !== JSON.stringify(action)) {
+        throw new Error("pending readback mismatch");
+      }
+      hasPendingAction.set(true);
+    } catch {
+      throw new Error(t("recoveryStorageUnavailable"));
     }
   };
 
-  // -- Pact mapping (from getPact Map) -------------------------------------
+  const clearPending = (context: BreakupChainContext, walletHash: string): boolean => {
+    const key = pendingKey(context, walletHash);
+    try {
+      const map = { ...pendingMap() };
+      delete map[key];
+      app.storage.local.set(BREAKUP_PENDING_STORE_KEY, map);
+      if (pendingMap()[key] !== undefined) throw new Error("pending delete mismatch");
+      hasPendingAction.set(false);
+      return true;
+    } catch {
+      hasPendingAction.set(true);
+      pendingNotice.set(t("recoveryStorageUnavailable"));
+      return false;
+    }
+  };
 
-  /**
-   * Map a getPact Map (returned by app.chain.readRaw as a plain object) into the
-   * RelationshipContractView the UI consumes. Returns null for an unknown /
-   * empty pact (no party1 key).
-   *
-   * The authoritative lifecycle (stake base units, endTime ms, staked flags,
-   * status, breaker) comes from the chain; the display title + terms are
-   * rebuilt from the on-device store keyed by id. A foreign pact (you are
-   * party2) has no local entry → it falls back to a placeholder title.
-   *
-   * Status mapping (getPact.status -> display):
-   *   0 pending  -> "pending"  (awaiting partner)
-   *   1 active   -> "active"   (both staked)
-   *   2 broken   -> "broken"   (breaker forfeited to the other party)
-   *   3 settled  -> "ended"    (honored to expiry; both refunded)
-   *   4 cancelled-> "ended"    (party1 reclaimed a pending pact)
-   */
-  const mapPact = (raw: unknown, id: string, meta?: PactMeta): RelationshipContractView | null => {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-    const v = raw as Record<string, unknown>;
-    // getPact returns party1/party2 as UInt160 Hash160s, which parseStackItem
-    // renders as raw chain-order ByteStrings (0x-hex or printable garbage) — NOT
-    // comparable to an N-address. Normalize to display-order 0x hex so
-    // ownerMatchesAddress can match them against the connected wallet and the UI
-    // can encode them back to N-addresses.
-    const party1 = parseHash160(v.party1);
-    const party2 = parseHash160(v.party2);
-    if (!party1 || !party2) return null;
+  const assertRecoveryStorageAvailable = () => {
+    const key = `${BREAKUP_PENDING_STORE_KEY}:probe`;
+    const marker = { version: 1, createdAt: Date.now(), marker: `${Date.now()}:${Math.random()}` };
+    try {
+      app.storage.local.set(key, marker);
+      const stored = app.storage.local.get<typeof marker | null>(key, null);
+      if (JSON.stringify(stored) !== JSON.stringify(marker)) throw new Error("probe readback mismatch");
+      app.storage.local.delete(key);
+      if (app.storage.local.get<unknown>(key, null) !== null) throw new Error("probe delete mismatch");
+    } catch {
+      try { app.storage.local.delete(key); } catch { /* best-effort probe cleanup */ }
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+  };
 
-    const stakeBase = parseBigInt(v.stake);
-    const endTimeMs = toFinite(v.endTime); // milliseconds
-    const status = toFinite(v.status);
+  const assertNoPending = (context: BreakupChainContext, walletHash: string) => {
+    const stored = pendingMap()[pendingKey(context, walletHash)];
+    if (stored !== undefined) {
+      hasPendingAction.set(true);
+      throw new Error(t(isPendingBreakupAction(stored) ? "pendingBlocksWrites" : "invalidRecoveryRecord"));
+    }
+  };
 
-    const party1Staked = Boolean(v.party1Staked);
-    const party2Staked = Boolean(v.party2Staked);
-    const active = status === STATUS_ACTIVE;
-    const completed = status >= STATUS_BROKEN;
-
-    let contractStatus: ContractStatus = "pending";
-    if (status === STATUS_ACTIVE) contractStatus = "active";
-    else if (status === STATUS_BROKEN) contractStatus = "broken";
-    else if (status === STATUS_SETTLED) contractStatus = "ended";
-    else if (status === STATUS_CANCELLED) contractStatus = "cancelled";
+  const mapPact = (pact: DecodedPact, meta?: PactMeta): RelationshipContractView => {
+    let status: ContractStatus = "pending";
+    if (pact.status === STATUS_ACTIVE) status = "active";
+    else if (pact.status === STATUS_BROKEN) status = "broken";
+    else if (pact.status === STATUS_SETTLED) status = "ended";
+    else if (pact.status === STATUS_CANCELLED) status = "cancelled";
 
     const now = Date.now();
-    const daysLeft = endTimeMs > 0 ? Math.max(0, Math.ceil((endTimeMs - now) / 86_400_000)) : 0;
-    // The contract does not store a pact start time, so true elapsed-share
-    // progress is not derivable. Report a faithful coarse value instead of an
-    // invented one: terminal (broken/settled/cancelled) reads full; an ACTIVE
-    // pact past its endTime (awaiting settle) reads full; otherwise 0. The UI's
-    // contract cards surface daysLeft, not this bar, so no information is lost.
-    const progress = completed || (active && endTimeMs > 0 && now >= endTimeMs) ? 100 : 0;
-
-    const title = meta?.title ? meta.title : t("untitledContract");
-    const terms = meta?.terms ?? "";
-
-    // Match the connected wallet against the (display-order) party hashes via
-    // ownerMatchesAddress, which understands N-address vs 0x-hash equality.
-    const addr = address.get();
-    const isCreator = ownerMatchesAddress(party1, addr);
-    const isPartner = ownerMatchesAddress(party2, addr);
-    // The counterparty is the OTHER party relative to the wallet; when no wallet
-    // is connected, default to showing party2 (the named partner). Encode the
-    // chosen hash to an N-address for display, falling back to the raw hash.
-    const counterpartyHash = isCreator ? party2 : party1;
-    const partner = scriptHashToAddress(counterpartyHash) || counterpartyHash;
-
-    // settleContract is only meaningful for an honored ACTIVE pact past expiry.
-    const settleable = active && endTimeMs > 0 && now >= endTimeMs;
+    const isCreator = ownerMatchesAddress(pact.party1, address.get());
+    const isPartner = ownerMatchesAddress(pact.party2, address.get());
+    const counterparty = isCreator ? pact.party2 : pact.party1;
+    const terminal = pact.status >= STATUS_BROKEN;
+    const expiredActive = pact.status === STATUS_ACTIVE && now >= pact.endTime;
 
     return {
-      id: Number(id),
-      pactId: id,
-      party1,
-      party2,
-      partner,
+      id: Number(pact.id),
+      pactId: pact.id,
+      party1: pact.party1,
+      party2: pact.party2,
+      partner: scriptHashToAddress(counterparty) || counterparty,
       isCreator,
       isPartner,
-      title,
-      terms,
-      stake: parseGas(stakeBase),
-      stakeRaw: stakeBase.toString(),
-      progress,
-      daysLeft,
-      status: contractStatus,
-      party1Signed: party1Staked,
-      party2Signed: party2Staked,
-      settleable,
+      title: meta?.title || t("untitledContract"),
+      terms: meta?.terms ?? "",
+      stake: parseGas(pact.stake),
+      stakeRaw: pact.stake.toString(),
+      progress: terminal || expiredActive ? 100 : 0,
+      daysLeft: Math.max(0, Math.ceil((pact.endTime - now) / 86_400_000)),
+      status,
+      party1Signed: pact.party1Staked,
+      party2Signed: pact.party2Staked,
+      settleable: expiredActive,
     };
   };
 
-  /** Read a single pact by id into a view, using the on-device meta store. */
-  const readPact = async (
-    id: string,
-    metaStore: Record<string, PactMeta>,
-  ): Promise<RelationshipContractView | null> => {
+  const readDecodedPact = async (id: string) =>
+    decodePact(await app.chain.readRaw("getPact", [app.chain.arg.integer(id)]), id);
+
+  const readCredit = async (walletHash: string): Promise<bigint> => {
+    const raw = await app.chain.readRaw("creditOf", [app.chain.arg.hash160(walletHash)]);
+    const value = parseBreakupInteger(raw);
+    if (value === null || value < 0n) throw new Error("invalid credit state");
+    return value;
+  };
+
+  const applyCredit = (value: bigint | null) => {
+    if (value === null) {
+      creditKnown.set(false);
+      creditBalance.set("—");
+      creditBalanceRaw.set("");
+      return;
+    }
+    creditKnown.set(true);
+    creditBalanceRaw.set(value.toString());
+    creditBalance.set(value > 0n ? String(parseGas(value)) : "0");
+  };
+
+  type Reconciliation = {
+    status: "none" | "pending" | "fault" | "confirmed";
+    event?: BreakupNotification;
+    metadataSaved?: boolean;
+  };
+
+  const pendingReadbackMatches = async (
+    pending: PendingBreakupAction,
+    event: BreakupNotification,
+  ): Promise<boolean> => {
+    if (pending.kind === "deposit-create" || pending.kind === "deposit-sign") {
+      const credit = await readCredit(pending.walletHash);
+      return credit >= BigInt(pending.requiredCreditRaw ?? "0");
+    }
+    if (pending.kind === "withdraw") return await readCredit(pending.walletHash) === 0n;
+
+    const eventPactId = pending.kind === "create"
+      ? notificationInteger(event, 0)?.toString() ?? ""
+      : pending.pactId ?? "";
+    if (!eventPactId) return false;
+    const pact = await readDecodedPact(eventPactId);
+    const baseMatches = pact.stake.toString() === pending.stakeRaw &&
+      sameHash(pact.party1, pending.kind === "create" ? pending.walletHash : pending.party1Hash ?? "") &&
+      sameHash(pact.party2, pending.kind === "create" ? pending.party2Hash ?? "" : pending.party2Hash ?? "");
+    if (!baseMatches) return false;
+
+    if (pending.kind === "create") {
+      const eventEndTime = notificationInteger(event, 4);
+      if (eventEndTime === null || BigInt(pact.endTime) !== eventEndTime || !pact.party1Staked) return false;
+      const expectedEndTime = pending.createdAt + Number(pending.durationSeconds ?? 0) * 1000;
+      return Math.abs(Number(eventEndTime) - expectedEndTime) <= 30 * 60 * 1000;
+    }
+    if (pending.kind === "sign") {
+      return pact.party1Staked && pact.party2Staked &&
+        [STATUS_ACTIVE, STATUS_BROKEN, STATUS_SETTLED].includes(pact.status);
+    }
+    if (pending.kind === "cancel") return pact.status === STATUS_CANCELLED;
+    if (pending.kind === "break") {
+      return pact.status === STATUS_BROKEN && sameHash(pact.breaker, pending.walletHash);
+    }
+    return pact.status === STATUS_SETTLED;
+  };
+
+  const reconcilePendingRecord = async (
+    context: BreakupChainContext,
+    pending: PendingBreakupAction,
+  ): Promise<Reconciliation> => {
+    hasPendingAction.set(true);
+    const outcome = await readBreakupTransactionOutcome(pending);
+    const event = findMatchingBreakupEvent(pending, outcome);
+    let readbackMatches = false;
+    if (event) {
+      try {
+        readbackMatches = await pendingReadbackMatches(pending, event);
+      } catch {
+        readbackMatches = false;
+      }
+    }
+    const classification = classifyBreakupConfirmation(outcome.state, Boolean(event), readbackMatches);
+    if (classification === "fault") {
+      const cleared = clearPending(context, pending.walletHash);
+      if (cleared) pendingNotice.set("");
+      actionNotice.set(t("transactionFaulted"));
+      return { status: "fault" };
+    }
+    if (classification !== "confirmed" || !event) {
+      pendingNotice.set(t("actionPendingRecovery", { txid: pending.txid }));
+      return { status: "pending" };
+    }
+
+    let metadataSaved: boolean | undefined;
+    if (pending.kind === "create") {
+      const pactId = notificationInteger(event, 0)?.toString() ?? "";
+      const meta = { title: pending.title ?? "", terms: pending.terms ?? "" };
+      metadataSaved = saveLocalMeta(storageScope(context), pactId, meta);
+      contracts.set(contracts.get().map((item) => item.pactId === pactId ? { ...item, ...meta } : item));
+      actionNotice.set(t("pendingCreateRecovered", { id: pactId }));
+    }
+    const cleared = clearPending(context, pending.walletHash);
+    if (!cleared) {
+      return { status: "confirmed", event, metadataSaved };
+    }
+    if (pending.kind === "deposit-create" || pending.kind === "deposit-sign") {
+      pendingNotice.set(t("depositConfirmedRetry"));
+    } else {
+      pendingNotice.set("");
+    }
+    return { status: "confirmed", event, metadataSaved };
+  };
+
+  const reconcilePending = async (
+    context: BreakupChainContext,
+    walletHash: string,
+  ): Promise<Reconciliation> => {
+    let raw: unknown;
     try {
-      const raw = await app.chain.readRaw("getPact", [app.chain.arg.integer(id)]);
-      return mapPact(raw, id, metaStore[id]);
-    } catch (e) {
-      console.warn("[useBreakup] getPact failed for", id, ":", e instanceof Error ? e.message : String(e));
+      raw = pendingMap()[pendingKey(context, walletHash)];
+    } catch {
+      hasPendingAction.set(true);
+      pendingNotice.set(t("recoveryStorageUnavailable"));
+      return { status: "pending" };
+    }
+    if (raw === undefined) {
+      hasPendingAction.set(false);
+      pendingNotice.set("");
+      return { status: "none" };
+    }
+    if (
+      !isPendingBreakupAction(raw) ||
+      raw.network !== context.network ||
+      raw.contractHash !== context.contractHash ||
+      raw.walletHash !== walletHash.toLowerCase()
+    ) {
+      hasPendingAction.set(true);
+      pendingNotice.set(t("invalidRecoveryRecord"));
+      return { status: "pending" };
+    }
+    return reconcilePendingRecord(context, raw);
+  };
+
+  const loadContracts = async () => {
+    const generation = ++loadGeneration;
+    const wallet = address.get();
+    const walletHash = wallet ? addressToScriptHash(wallet) : "";
+    isLoading.set(true);
+    if (!walletHash) {
+      contracts.set([]);
+      applyCredit(null);
+      serviceNotice.set("");
+      pendingNotice.set("");
+      hasPendingAction.set(false);
+      if (generation === loadGeneration) isLoading.set(false);
+      return;
+    }
+
+    try {
+      let context: BreakupChainContext;
+      try {
+        context = await requireCanonicalBreakupContext(app, t("chainContextMismatch"));
+      } catch {
+        applyCredit(null);
+        serviceNotice.set(t("chainContextMismatch"));
+        return;
+      }
+
+      const scope = storageScope(context);
+      let nextViews: RelationshipContractView[] | null = null;
+      let nextCredit: bigint | null = null;
+      let partialReads = 0;
+      let historyLimited = false;
+      let listFailed = false;
+      try {
+        const countRaw = parseBreakupInteger(await app.chain.readRaw("partyPactCount", [app.chain.arg.hash160(walletHash)]));
+        const count = countRaw === null ? Number.NaN : Number(countRaw);
+        if (!Number.isSafeInteger(count) || count < 0) throw new Error("invalid pact count");
+        const start = Math.max(0, count - PARTY_HISTORY_CAP);
+        historyLimited = start > 0;
+        const ids: string[] = [];
+        for (let offset = start; offset < count; offset += PARTY_PAGE_LIMIT) {
+          const page = await app.chain.readArray("getPartyPacts", [
+            app.chain.arg.hash160(walletHash),
+            app.chain.arg.integer(offset),
+            app.chain.arg.integer(Math.min(PARTY_PAGE_LIMIT, count - offset)),
+          ]);
+          ids.push(...(Array.isArray(page) ? page : []).map(toIdString).filter(Boolean));
+        }
+        const uniqueIds = [...new Set(ids)];
+        const scopeMeta = loadMetaStore();
+        const rows = await Promise.all(uniqueIds.map(async (id) => {
+          try {
+            return mapPact(await readDecodedPact(id), metaFor(scopeMeta, scope, id));
+          } catch {
+            partialReads += 1;
+            return null;
+          }
+        }));
+        nextViews = rows
+          .filter((row): row is RelationshipContractView => row !== null)
+          .sort((left, right) => right.id - left.id);
+      } catch {
+        listFailed = true;
+      }
+
+      try {
+        nextCredit = await readCredit(walletHash);
+      } catch {
+        nextCredit = null;
+      }
+
+      if (generation !== loadGeneration || address.get() !== wallet) return;
+      if (nextViews) contracts.set(nextViews);
+      applyCredit(nextCredit);
+      if (listFailed) serviceNotice.set(t("loadFailedKeepState"));
+      else if (partialReads > 0) serviceNotice.set(t("partialLoad", { count: partialReads }));
+      else if (historyLimited) serviceNotice.set(t("historyLimited", { count: PARTY_HISTORY_CAP }));
+      else if (nextCredit === null) serviceNotice.set(t("creditReadFailed"));
+      else serviceNotice.set("");
+      await reconcilePending(context, walletHash);
+    } finally {
+      if (generation === loadGeneration) isLoading.set(false);
+    }
+  };
+
+  const loadCredit = async () => {
+    const walletHash = addressToScriptHash(address.get());
+    if (!walletHash) {
+      applyCredit(null);
+      return;
+    }
+    try {
+      applyCredit(await readCredit(walletHash));
+    } catch {
+      applyCredit(null);
+      serviceNotice.set(t("creditReadFailed"));
+    }
+  };
+
+  const setWalletAddress = (next: string) => {
+    const normalized = String(next ?? "").trim();
+    if (normalized === address.get()) return;
+    loadGeneration += 1;
+    address.set(normalized);
+    contracts.set([]);
+    applyCredit(null);
+    actionNotice.set("");
+    serviceNotice.set("");
+    pendingNotice.set("");
+    hasPendingAction.set(false);
+    actionPhase.set("idle");
+    lastSubmittedTitle.set("");
+  };
+
+  const assertIdle = () => {
+    if (isLoading.get() || actionPhase.get() !== "idle") throw new Error(t("actionBusy"));
+  };
+
+  const requireWallet = async () => {
+    const wallet = String(app.chain.address.get() || await app.chain.ensureWallet()).trim();
+    const walletHash = normalizeBreakupHash(addressToScriptHash(wallet || ""));
+    if (!wallet || !walletHash) throw new Error(t("contractWalletUnavailable"));
+    if (wallet !== address.get()) setWalletAddress(wallet);
+    const context = await requireCanonicalBreakupContext(app, t("chainContextMismatch"), true);
+    assertRecoveryStorageAvailable();
+    assertNoPending(context, walletHash);
+    return { walletHash, context };
+  };
+
+  const resolvePactId = (contract: { id?: number; pactId?: string }) => {
+    const pactId = String(contract.pactId ?? contract.id ?? "");
+    if (!/^[1-9]\d*$/.test(pactId)) throw new Error(t("pactIdRequired"));
+    return pactId;
+  };
+
+  const pendingError = (kind: BreakupPendingKind) => {
+    const message = t(kind === "deposit-create" || kind === "deposit-sign"
+      ? "depositPendingConfirmation"
+      : "actionPendingConfirmation");
+    pendingNotice.set(message);
+    return new PendingConfirmationError(message);
+  };
+
+  const invokeTracked = async (
+    context: BreakupChainContext,
+    base: Omit<PendingBreakupAction,
+      "version" | "eventName" | "network" | "contractHash" | "txid" | "createdAt">,
+    operation: string,
+    args: Parameters<typeof app.chain.invoke>[1],
+    scriptHash?: string,
+  ): Promise<Reconciliation> => {
+    let pending: PendingBreakupAction | null = null;
+    let persistedTxid = "";
+    let invocationError: unknown = null;
+    const createdAt = Date.now();
+    const persist = (nextTxid: string) => {
+      const txid = normalizeBreakupTxid(nextTxid);
+      if (!txid) throw new Error(t("invalidTransactionId"));
+      if (persistedTxid) {
+        if (persistedTxid !== txid) throw new Error(t("transactionIdMismatch"));
+        return;
+      }
+      const record: PendingBreakupAction = {
+        ...base,
+        version: 2,
+        eventName: eventNameForBreakupKind(base.kind),
+        network: context.network,
+        contractHash: context.contractHash,
+        txid,
+        createdAt,
+      };
+      writePending(record);
+      pending = record;
+      persistedTxid = txid;
+    };
+    try {
+      const result = await app.chain.invoke(operation, args, {
+        waitForEvent: eventNameForBreakupKind(base.kind),
+        onTransactionSent: persist,
+        ...(scriptHash ? { scriptHash } : {}),
+      });
+      if (result.txid) persist(result.txid);
+      if (!result.txid && !pending) throw new Error(t("transactionNotBroadcast"));
+    } catch (error) {
+      invocationError = error;
+    }
+    if (!pending) throw invocationError ?? new Error(t("transactionNotBroadcast"));
+    const reconciliation = await reconcilePendingRecord(context, pending);
+    if (reconciliation.status === "confirmed") return reconciliation;
+    if (reconciliation.status === "fault") throw new Error(t("transactionFaulted"));
+    throw pendingError(base.kind);
+  };
+
+  const strictStake = (): bigint => {
+    const text = stakeAmount.get().trim();
+    if (!GAS_AMOUNT_PATTERN.test(text)) throw new Error(t("stakeOrDurationInvalid"));
+    let stake: bigint;
+    try {
+      stake = app.amount.gasToFixed8(text);
+    } catch {
+      throw new Error(t("stakeOrDurationInvalid"));
+    }
+    if (stake < MIN_STAKE_BASE) throw new Error(t("stakeOrDurationInvalid"));
+    return stake;
+  };
+
+  const ensureCredit = async (
+    kind: "create" | "sign",
+    required: bigint,
+    walletHash: string,
+    context: BreakupChainContext,
+    pactId?: string,
+  ) => {
+    let credit: bigint;
+    try {
+      credit = await readCredit(walletHash);
+    } catch {
+      throw new Error(t("creditReadRequired"));
+    }
+    applyCredit(credit);
+    if (credit >= required) return;
+
+    const deficit = required - credit;
+    actionPhase.set("depositing");
+    await invokeTracked(
+      context,
+      {
+        kind: kind === "create" ? "deposit-create" : "deposit-sign",
+        walletHash,
+        stakeRaw: required.toString(),
+        amountRaw: deficit.toString(),
+        beforeCreditRaw: credit.toString(),
+        requiredCreditRaw: required.toString(),
+        assetHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+        memo: STAKE_MEMO,
+        ...(pactId ? { pactId } : {}),
+      },
+      "transfer",
+      [
+        app.chain.arg.hash160(walletHash),
+        app.chain.arg.hash160(context.contractHash),
+        app.chain.arg.integer(deficit),
+        app.chain.arg.string(STAKE_MEMO),
+      ],
+      BLOCKCHAIN_CONSTANTS.GAS_HASH,
+    );
+    applyCredit(await readCredit(walletHash));
+    pendingNotice.set("");
+  };
+
+  const readLastPactId = async (): Promise<string | null> => {
+    try {
+      const value = parseBreakupInteger(await app.chain.readRaw("lastPactId", []));
+      return value !== null && value >= 0n ? value.toString() : null;
+    } catch {
       return null;
     }
   };
 
-  // -- Data loading (direct chain reads) -----------------------------------
-
-  /**
-   * Load the connected wallet's pacts from getPartyPacts (covers pacts where
-   * the address is party1 OR party2), each read via getPact and mapped. When no
-   * wallet is connected there is nothing party-scoped to show.
-   */
-  const loadContracts = async () => {
-    isLoading.set(true);
-    try {
-      const wallet = address.get();
-      const partyHash = wallet ? addressToScriptHash(wallet) || null : null;
-      if (!partyHash) {
-        contracts.set([]);
-        serviceNotice.set("");
-        return;
-      }
-
-      const idsRaw = await app.chain.readArray("getPartyPacts", [
-        app.chain.arg.hash160(partyHash),
-        app.chain.arg.integer(0),
-        app.chain.arg.integer(PARTY_PAGE_LIMIT),
-      ]);
-      const ids = (Array.isArray(idsRaw) ? idsRaw : [])
-        .map(toIdString)
-        .filter((id) => id !== "");
-
-      const metaStore = loadLocalMeta();
-      const results = await Promise.all(ids.map((id) => readPact(id, metaStore)));
-      const views = results
-        .filter((c): c is RelationshipContractView => c !== null)
-        .sort((a, b) => b.id - a.id);
-
-      contracts.set(views);
-      serviceNotice.set("");
-    } catch {
-      contracts.set([]);
-      serviceNotice.set(t("loadFailed"));
-    } finally {
-      isLoading.set(false);
-    }
-    // Credit is independent of the pact list; load it best-effort afterward so a
-    // pact-index hiccup never hides a recoverable stranded stake.
-    await loadCredit();
-  };
-
-  /**
-   * Read the connected wallet's reclaimable prepaid stake-credit (creditOf).
-   * Non-zero credit means a deposit landed but its create/sign step did not
-   * complete (e.g. the user rejected the second prompt), leaving GAS recoverable
-   * via withdrawCredit. Failures here are silent — credit recovery is an exit
-   * affordance, never a blocker for the rest of the UI.
-   */
-  const loadCredit = async () => {
-    const wallet = address.get();
-    const partyHash = wallet ? addressToScriptHash(wallet) || null : null;
-    if (!partyHash) {
-      creditBalance.set("0");
-      creditBalanceRaw.set("0");
-      return;
-    }
-    try {
-      const raw = await app.chain.readRaw("creditOf", [app.chain.arg.hash160(partyHash)]);
-      const base = parseBigInt(raw);
-      creditBalanceRaw.set(base.toString());
-      creditBalance.set(base > 0n ? String(parseGas(base)) : "0");
-    } catch (e) {
-      console.warn("[useBreakup] creditOf read failed:", e instanceof Error ? e.message : String(e));
-      creditBalance.set("0");
-      creditBalanceRaw.set("0");
-    }
-  };
-
-  // -- Actions (direct chain invocations) ----------------------------------
-
-  /**
-   * Resolve + validate the creator's wallet and script hash, or throw a clean
-   * wallet-required error. Centralizes the connect-on-demand path.
-   */
-  const requireWallet = async (): Promise<{ addr: string; hash: string }> => {
-    const addr = address.get() || (await app.chain.ensureWallet());
-    // addressToScriptHash here is a validity-check + the comparison key used for
-    // the self-partner guard below — kept as-is (not a contract-arg builder).
-    // framework-exempt: false-not-throw semantics are load-bearing for the
-    // localized wallet validity check; app.chain.arg.hash160 throws (plan §3.6).
-    const hash = addressToScriptHash(addr || "");
-    if (!addr || !hash) throw new Error(t("contractWalletUnavailable"));
-    address.set(addr);
-    return { addr, hash };
-  };
-
-  /** Resolve the on-chain pact id for an action, or throw a clean error. */
-  const resolvePactId = (contract: { id?: number; pactId?: string }): string => {
-    const fromPact = contract.pactId != null ? String(contract.pactId) : "";
-    if (/^\d+$/.test(fromPact) && fromPact !== "0") return fromPact;
-    const fromId = contract.id != null ? String(contract.id) : "";
-    if (/^\d+$/.test(fromId) && fromId !== "0") return fromId;
-    throw new Error(t("pactIdRequired"));
-  };
-
-  /**
-   * Create a relationship pact against the standalone contract.
-   *
-   * Two steps, both signed by the creator (party1):
-   *   1. DEPOSIT — transfer the stake in GAS to the contract with the
-   *      "miniapp-breakup:stake" memo, crediting party1's prepaid balance.
-   *   2. createPact(party1, party2, stakeBase, durationDays*86400) — consumes
-   *      that credit as party1's stake and opens the pact PENDING. The new id is
-   *      read from the "PactCreated" event (state[0]), falling back to
-   *      lastPactId().
-   *
-   * The title + terms NEVER leave the device: only the stake + lock are
-   * on-chain. We persist them locally keyed by the on-chain pactId so the list
-   * can rebuild the title/terms later.
-   *
-   * If step 2 fails after a successful deposit, the prepaid credit simply
-   * remains on the contract under party1 and is reused on the next createPact —
-   * there is no refund call (and none is needed; funds are not lost).
-   */
-  const createContract = async (): Promise<boolean> => {
-    if (isLoading.get()) return false;
-
-    const partnerValue = partnerAddress.get().trim();
-    if (!partnerValue) throw new Error(t("partnerRequired"));
-    if (!isValidNeoAddress(partnerValue)) throw new Error(t("partnerInvalid"));
-    if (!stakeAmount.get()) throw new Error(t("stakeRequired"));
-
-    const stake = parseFloat(stakeAmount.get());
-    const durationDays = parseInt(duration.get(), 10);
-    const titleValue = contractTitle.get().trim();
-    const termsValue = contractTerms.get().trim();
-
-    if (
-      !Number.isFinite(stake) ||
-      stake < MIN_STAKE_GAS ||
-      !Number.isFinite(durationDays) ||
-      durationDays < MIN_DURATION_DAYS
-    ) {
+  const createContract = async (): Promise<CreatePactOutcome> => {
+    assertIdle();
+    const partner = partnerAddress.get().trim();
+    const title = contractTitle.get().trim();
+    const terms = contractTerms.get().trim();
+    const durationText = duration.get().trim();
+    if (!partner) throw new Error(t("partnerRequired"));
+    if (!isValidNeoAddress(partner)) throw new Error(t("partnerInvalid"));
+    if (!stakeAmount.get().trim()) throw new Error(t("stakeRequired"));
+    if (!title) throw new Error(t("titleRequired"));
+    if (title.length > TITLE_MAX) throw new Error(t("titleTooLong"));
+    if (terms.length > TERMS_MAX) throw new Error(t("termsTooLong"));
+    if (!/^[1-9]\d*$/.test(durationText)) throw new Error(t("stakeOrDurationInvalid"));
+    const durationDays = Number(durationText);
+    if (durationDays < MIN_DURATION_DAYS || durationDays > MAX_DURATION_DAYS) {
       throw new Error(t("stakeOrDurationInvalid"));
     }
-    if (!titleValue) throw new Error(t("titleRequired"));
-    if (titleValue.length > TITLE_MAX) throw new Error(t("titleTooLong"));
-    if (termsValue.length > TERMS_MAX) throw new Error(t("termsTooLong"));
-
-    // GAS → base units via the framework amount layer (Fixed8, ×1e8 — the same
-    // scaling the prior gasToBaseUnits helper applied). The stake was already
-    // validated as a finite amount >= MIN_STAKE_GAS above.
-    const stakeBase = app.amount.gasToFixed8(stakeAmount.get());
-    if (stakeBase < MIN_STAKE_GAS * Number(GAS_DECIMALS_MULTIPLIER)) {
-      throw new Error(t("stakeOrDurationInvalid"));
-    }
+    const stake = strictStake();
+    const durationSeconds = durationDays * 86_400;
 
     validationNotice.set("");
-    actionNotice.set(t("contractPreparing", { title: titleValue, amount: `${stakeAmount.get()} GAS` }));
+    actionNotice.set(t("contractPreparing", { title, amount: `${stakeAmount.get().trim()} GAS` }));
     isLoading.set(true);
+    actionPhase.set("preparing");
     try {
-      const { addr: creatorAddr, hash: creatorHash } = await requireWallet();
-      // The creator must not name themselves as the partner (the contract
-      // rejects party1 == party2; surface a clean message pre-submit).
-      // addressToScriptHash here is a validity-check + the comparison key, not
-      // a contract-arg builder — the arg is built via app.chain.arg.hash160.
-      // framework-exempt: false-not-throw semantics are load-bearing for the
-      // localized partnerInvalid validity check; arg.hash160 throws (plan §3.6).
-      const partnerHash = addressToScriptHash(partnerValue);
+      const { walletHash, context } = await requireWallet();
+      const partnerHash = normalizeBreakupHash(addressToScriptHash(partner));
       if (!partnerHash) throw new Error(t("partnerInvalid"));
-      if (partnerHash.toLowerCase() === creatorHash.toLowerCase()) {
-        throw new Error(t("partnerSelf"));
-      }
+      if (sameHash(partnerHash, walletHash)) throw new Error(t("partnerSelf"));
+      const beforePactId = await readLastPactId();
+      if (beforePactId === null) throw new Error(t("lastPactIdUnavailable"));
+      await ensureCredit("create", stake, walletHash, context);
 
-      const contractHash = app.chain.contractAddress.get();
-      if (!contractHash) throw new Error(t("contractUnavailable"));
-
-      const durationSeconds = durationDays * 86_400;
-
-      // Step 1: DEPOSIT — GAS transfer to the contract with the stake memo so
-      // OnNEP17Payment credits party1's prepaid balance. Wait for the contract's
-      // Credited event before step 2: ChainService.invoke returns at broadcast,
-      // and intra-block ordering is fee/hash-based, so without this wait
-      // createPact can execute before the credit lands and fault "insufficient
-      // stake credit" — surfacing the scary depositPrepaidNoContract error
-      // spuriously. waitForEvent resolves null on timeout (best-effort, never
-      // throws), so a slow indexer degrades to the prior behavior, not a hang.
-      await app.chain.invoke(
-        "transfer",
-        [
-          app.chain.arg.hash160(creatorHash),
-          app.chain.arg.hash160(contractHash),
-          app.chain.arg.integer(stakeBase),
-          app.chain.arg.string(STAKE_MEMO),
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
-      );
-
-      // Step 2: createPact — consumes the prepaid credit as party1's stake and
-      // opens the pact. Read the new id from the PactCreated event (state[0]).
-      let pactId = "";
+      let tracked: Reconciliation;
       try {
-        const result = await app.chain.invoke(
+        actionPhase.set("creating");
+        tracked = await invokeTracked(
+          context,
+          {
+            kind: "create",
+            walletHash,
+            beforePactId,
+            party2Hash: partnerHash,
+            stakeRaw: stake.toString(),
+            durationSeconds,
+            title,
+            terms,
+          },
           "createPact",
           [
-            app.chain.arg.hash160(creatorHash),
+            app.chain.arg.hash160(walletHash),
             app.chain.arg.hash160(partnerHash),
-            app.chain.arg.integer(stakeBase),
+            app.chain.arg.integer(stake),
             app.chain.arg.integer(durationSeconds),
           ],
-          { waitForEvent: "PactCreated" },
         );
-        pactId = toIdString(eventValue(result.event, 0));
-        if (!pactId) {
-          // Event slot unavailable / unparsed — fall back to lastPactId().
-          pactId = toIdString(await app.chain.readRaw("lastPactId", []));
-        }
-      } catch (createErr) {
-        console.error(
-          "[useBreakup] createPact failed after deposit succeeded:",
-          createErr instanceof Error ? createErr.message : String(createErr),
-        );
-        // Deposit landed, pact not created — the credit is held under party1 as
-        // reusable prepaid credit for the next createPact (no refund needed).
-        throw new Error(t("depositPrepaidNoContract"));
+      } catch (error) {
+        if (error instanceof PendingConfirmationError) throw error;
+        let credit: bigint | null = null;
+        try { credit = await readCredit(walletHash); } catch { /* keep unknown */ }
+        if (credit !== null && credit >= stake) throw new Error(t("depositPrepaidNoContract"));
+        throw error;
       }
 
-      // Persist the title + terms ON-DEVICE under the on-chain pact id (only the
-      // stake + lock are on-chain).
-      if (pactId) {
-        saveLocalMeta(pactId, { title: titleValue, terms: termsValue });
-      }
-
-      // Reset form.
+      const pactId = tracked.event ? notificationInteger(tracked.event, 0)?.toString() ?? "" : "";
+      if (!pactId) throw pendingError("create");
+      const metadataSaved = tracked.metadataSaved ?? saveLocalMeta(storageScope(context), pactId, { title, terms });
       partnerAddress.set("");
       stakeAmount.set("");
       duration.set("");
       contractTitle.set("");
       contractTerms.set("");
-      lastSubmittedTitle.set(titleValue);
-      actionNotice.set(t("contractSubmitted", { title: titleValue }));
-
+      lastSubmittedTitle.set(title);
+      actionNotice.set(metadataSaved
+        ? t("contractSubmitted", { title })
+        : t("contractCreatedMetadataWarning", { id: pactId }));
       await loadContracts();
-      return true;
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      actionNotice.set(message);
-      throw e;
+      return { created: true, pactId, metadataSaved };
+    } catch (error) {
+      actionNotice.set(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       isLoading.set(false);
+      actionPhase.set("idle");
     }
   };
 
-  /**
-   * Sign (match) a pending pact as the named partner (party2).
-   *
-   * Two steps, both signed by party2:
-   *   1. DEPOSIT — transfer the MATCHING stake to the contract with the stake
-   *      memo, crediting party2's prepaid balance.
-   *   2. signPact(pactId, party2) — consumes that credit as party2's stake and
-   *      flips the pact to ACTIVE.
-   *
-   * If step 2 fails after a successful deposit, the prepaid credit remains under
-   * party2 and is reused on the next signPact (no refund needed). The matching
-   * stake is taken from the pact's on-chain stake field (base units), not from
-   * the human-rounded view value, so it always exactly matches party1's lock.
-   */
-  const signContract = async (contract: { id?: number; pactId?: string; stake?: number; stakeRaw?: string }) => {
-    if (isLoading.get()) return;
-
+  const signContract = async (contract: { id?: number; pactId?: string }) => {
+    assertIdle();
     const pactId = resolvePactId(contract);
     actionNotice.set(t("contractSigning", { id: pactId }));
     isLoading.set(true);
+    actionPhase.set("preparing");
     try {
-      const { hash: party2Hash } = await requireWallet();
-      const contractHash = app.chain.contractAddress.get();
-      if (!contractHash) throw new Error(t("contractUnavailable"));
-
-      // Read the pact's exact stake (base units) so party2's deposit matches
-      // party1's lock precisely, independent of any human-rounded view value.
-      const raw = await app.chain.readRaw("getPact", [app.chain.arg.integer(pactId)]);
-      const pactParty2 = parseHash160((raw as Record<string, unknown> | null)?.party2);
-      // Only the NAMED partner can sign: signPact asserts p.Party2 == party2, so
-      // a non-partner (e.g. the creator) tapping Sign would deposit a full
-      // matching stake and then revert — stranding it as credit. Reject before
-      // moving any GAS so the stake never leaves the wrong wallet.
-      if (pactParty2 && !ownerMatchesAddress(pactParty2, address.get())) {
-        throw new Error(t("signNotPartner"));
+      const { walletHash, context } = await requireWallet();
+      const pact = await readDecodedPact(pactId);
+      if (!sameHash(pact.party2, walletHash)) throw new Error(t("signNotPartner"));
+      if (pact.status !== STATUS_PENDING || !pact.party1Staked || pact.party2Staked) {
+        throw new Error(t("pactNotPending"));
       }
-      const stakeBase = parseBigInt((raw as Record<string, unknown> | null)?.stake);
-      if (stakeBase <= 0n) {
-        // Fall back to the carried raw stake (also base units) if present.
-        const carried = parseBigInt(contract.stakeRaw);
-        if (carried <= 0n) throw new Error(t("contractUnavailable"));
-      }
-      const matchBase = stakeBase > 0n ? stakeBase : parseBigInt(contract.stakeRaw);
-
-      // Step 1: DEPOSIT — matching stake with the stake memo (credits party2).
-      // Wait for the Credited event so signPact (step 2) never races ahead of the
-      // credit landing (best-effort; resolves null on timeout, never throws).
-      await app.chain.invoke(
-        "transfer",
-        [
-          app.chain.arg.hash160(party2Hash),
-          app.chain.arg.hash160(contractHash),
-          app.chain.arg.integer(matchBase),
-          app.chain.arg.string(STAKE_MEMO),
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
+      if (Date.now() >= pact.endTime) throw new Error(t("pactExpired"));
+      await ensureCredit("sign", pact.stake, walletHash, context, pactId);
+      actionPhase.set("signing");
+      await invokeTracked(
+        context,
+        {
+          kind: "sign",
+          walletHash,
+          pactId,
+          party1Hash: pact.party1,
+          party2Hash: pact.party2,
+          stakeRaw: pact.stake.toString(),
+        },
+        "signPact",
+        [app.chain.arg.integer(pactId), app.chain.arg.hash160(walletHash)],
       );
-
-      // Step 2: signPact — consumes the matching credit and activates the pact.
-      try {
-        await app.chain.invoke(
-          "signPact",
-          [
-            app.chain.arg.integer(pactId),
-            app.chain.arg.hash160(party2Hash),
-          ],
-          { waitForEvent: "PactSigned" },
-        );
-      } catch (signErr) {
-        console.error(
-          "[useBreakup] signPact failed after deposit succeeded:",
-          signErr instanceof Error ? signErr.message : String(signErr),
-        );
-        throw new Error(t("depositPrepaidNoSign"));
-      }
       actionNotice.set(t("contractSigned"));
       await loadContracts();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      actionNotice.set(message);
-      throw e;
+    } catch (error) {
+      actionNotice.set(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       isLoading.set(false);
+      actionPhase.set("idle");
     }
   };
 
-  /**
-   * Break a pact via breakPact(pactId, breaker), where breaker = connected
-   * wallet. If the pact is ACTIVE the OTHER party receives BOTH stakes (the
-   * breaker forfeits); if it is still PENDING and the breaker is party1, the
-   * pact is cancelled and party1's stake refunded.
-   */
-  const breakContract = async (contract: { id?: number; pactId?: string }) => {
-    if (isLoading.get()) return;
-
+  const breakContract = async (
+    contract: { id?: number; pactId?: string },
+    expected: "break" | "cancel" = "break",
+  ) => {
+    assertIdle();
     const pactId = resolvePactId(contract);
-    actionNotice.set(t("contractBreaking", { id: pactId }));
     isLoading.set(true);
+    actionPhase.set("preparing");
     try {
-      const { hash: breakerHash } = await requireWallet();
+      const { walletHash, context } = await requireWallet();
+      const pact = await readDecodedPact(pactId);
+      const isParty = sameHash(pact.party1, walletHash) || sameHash(pact.party2, walletHash);
+      let kind: "break" | "cancel";
+      if (pact.status === STATUS_PENDING) {
+        if (expected !== "cancel") throw new Error(t("pactPendingUseCancel"));
+        if (!sameHash(pact.party1, walletHash)) throw new Error(t("cancelNotCreator"));
+        kind = "cancel";
+        actionPhase.set("cancelling");
+        actionNotice.set(t("contractCancelling", { id: pactId }));
+      } else {
+        if (expected !== "break") throw new Error(t("pactNotPending"));
+        if (pact.status !== STATUS_ACTIVE) throw new Error(t("pactNotActive"));
+        if (!isParty) throw new Error(t("breakNotParty"));
+        if (Date.now() >= pact.endTime) throw new Error(t("pactExpiredSettle"));
+        kind = "break";
+        actionPhase.set("breaking");
+        actionNotice.set(t("contractBreaking", { id: pactId }));
+      }
 
-      await app.chain.invoke(
+      const beneficiaryHash = sameHash(pact.party1, walletHash) ? pact.party2 : pact.party1;
+      await invokeTracked(
+        context,
+        {
+          kind,
+          walletHash,
+          pactId,
+          party1Hash: pact.party1,
+          party2Hash: pact.party2,
+          stakeRaw: pact.stake.toString(),
+          ...(kind === "break" ? { beneficiaryHash } : {}),
+        },
         "breakPact",
-        [
-          app.chain.arg.integer(pactId),
-          app.chain.arg.hash160(breakerHash),
-        ],
-        { waitForEvent: "PactBroken" },
+        [app.chain.arg.integer(pactId), app.chain.arg.hash160(walletHash)],
       );
-      actionNotice.set(t("contractBroken"));
+      actionNotice.set(t(kind === "cancel" ? "contractCancelled" : "contractBroken"));
       await loadContracts();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      actionNotice.set(message);
-      throw e;
+    } catch (error) {
+      actionNotice.set(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       isLoading.set(false);
+      actionPhase.set("idle");
     }
   };
 
-  /**
-   * Settle an honored, expired pact via settlePact(pactId). PERMISSIONLESS — any
-   * caller can trigger it once an ACTIVE pact passes its endTime — so both
-   * parties get their stake refunded. Surfaced on a card whose `settleable`
-   * flag is set (active && now >= endTime).
-   */
   const settleContract = async (contract: { id?: number; pactId?: string }) => {
-    if (isLoading.get()) return;
-
+    assertIdle();
     const pactId = resolvePactId(contract);
     actionNotice.set(t("contractSettling", { id: pactId }));
     isLoading.set(true);
+    actionPhase.set("preparing");
     try {
-      // settlePact takes no witness (permissionless), but ensure a wallet is
-      // available to submit the transaction.
-      await requireWallet();
-
-      await app.chain.invoke(
+      const { walletHash, context } = await requireWallet();
+      const pact = await readDecodedPact(pactId);
+      if (pact.status !== STATUS_ACTIVE) throw new Error(t("pactNotActive"));
+      if (Date.now() < pact.endTime) throw new Error(t("pactNotExpired"));
+      actionPhase.set("settling");
+      await invokeTracked(
+        context,
+        {
+          kind: "settle",
+          walletHash,
+          pactId,
+          party1Hash: pact.party1,
+          party2Hash: pact.party2,
+          stakeRaw: pact.stake.toString(),
+        },
         "settlePact",
         [app.chain.arg.integer(pactId)],
-        { waitForEvent: "PactSettled" },
       );
       actionNotice.set(t("contractSettled"));
       await loadContracts();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      actionNotice.set(message);
-      throw e;
+    } catch (error) {
+      actionNotice.set(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       isLoading.set(false);
+      actionPhase.set("idle");
     }
   };
 
-  /**
-   * Reclaim stranded prepaid stake-credit via withdraw(account). A user whose
-   * create/sign failed after the deposit landed — or who rejected the second
-   * prompt — has GAS held as reusable credit on the contract; this is the exit
-   * path that returns it to their wallet (the contract emits CreditWithdrawn).
-   */
   const withdrawCredit = async () => {
-    if (isLoading.get()) return;
-    if (parseBigInt(creditBalanceRaw.get()) <= 0n) {
-      throw new Error(t("noCreditToRecover"));
-    }
+    assertIdle();
     actionNotice.set(t("creditRecovering"));
     isLoading.set(true);
+    actionPhase.set("preparing");
     try {
-      const { hash: accountHash } = await requireWallet();
-      await app.chain.invoke(
+      const { walletHash, context } = await requireWallet();
+      let before: bigint;
+      try { before = await readCredit(walletHash); }
+      catch { throw new Error(t("creditReadRequired")); }
+      if (before <= 0n) throw new Error(t("noCreditToRecover"));
+      actionPhase.set("withdrawing");
+      await invokeTracked(
+        context,
+        { kind: "withdraw", walletHash, beforeCreditRaw: before.toString() },
         "withdraw",
-        [app.chain.arg.hash160(accountHash)],
-        { waitForEvent: "CreditWithdrawn" },
+        [app.chain.arg.hash160(walletHash)],
       );
-      actionNotice.set(t("creditRecovered"));
+      applyCredit(0n);
+      actionNotice.set(t("creditRecovered", { amount: String(parseGas(before)) }));
       await loadContracts();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      actionNotice.set(message);
-      throw e;
+    } catch (error) {
+      actionNotice.set(error instanceof Error ? error.message : String(error));
+      throw error;
     } finally {
       isLoading.set(false);
+      actionPhase.set("idle");
     }
   };
 
   return {
-    // Wallet state
     address,
-
-    // Form state
+    setWalletAddress,
     partnerAddress,
     stakeAmount,
     duration,
     contractTitle,
     contractTerms,
-
-    // Data state
     contracts,
     isLoading,
+    actionPhase,
+    hasPendingAction,
     serviceNotice,
     actionNotice,
     validationNotice,
+    pendingNotice,
     lastSubmittedTitle,
     creditBalance,
     creditBalanceRaw,
-
-    // Derived state
+    creditKnown,
     contractCount,
     activeCount,
     pendingCount,
     brokenCount,
     hasCredit,
-
-    // Methods
     loadContracts,
     loadCredit,
     withdrawCredit,

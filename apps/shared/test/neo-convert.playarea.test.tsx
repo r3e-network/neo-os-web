@@ -38,8 +38,9 @@ describe("neo-convert PlayArea (v2)", () => {
     expect(container.querySelector(".convert-workbench")).toBeTruthy();
     expect(container.querySelector(".convert-format-rail")).toBeTruthy();
     expect(container.querySelector(".convert-material")).toBeTruthy();
-    expect(container.querySelectorAll(".mx2-stage__scene input, .mx2-stage__scene textarea")).toHaveLength(0);
-    expect(container.querySelector(".convert-material--summary")).toBeTruthy();
+    expect(container.querySelectorAll(".mx2-stage__scene input")).toHaveLength(1);
+    expect(container.querySelector(".convert-material--scene")).toBeTruthy();
+    expect((screen.getByPlaceholderText("sourceCredentialPlaceholder") as HTMLInputElement).type).toBe("password");
     expect(container.querySelector(".convert-resource-card img")?.getAttribute("src")).toContain("key-workbench-stage.webp");
     expect(container.querySelector(".convert-output-preview")).toBeTruthy();
     expect(container.textContent).toContain("Nabc123");
@@ -52,9 +53,8 @@ describe("neo-convert PlayArea (v2)", () => {
     const { container } = render(<PlayArea t={t} state={state({ inputKey: "" })} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByText("generateNewAccount"));
-    expect(container.querySelectorAll(".mx2-stage__scene input, .mx2-stage__scene textarea")).toHaveLength(0);
+    expect(container.querySelectorAll(".mx2-stage__scene input")).toHaveLength(1);
 
-    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
     fireEvent.change(screen.getByPlaceholderText("sourceCredentialPlaceholder"), {
       target: { value: "NtypedAddress" },
     });
@@ -64,6 +64,123 @@ describe("neo-convert PlayArea (v2)", () => {
     expect(dispatch).toHaveBeenCalledWith("convert", "NtypedAddress");
   });
 
+  it("keeps the source masked, converts on Enter, and exposes an explicit session clear", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({ inputKey: "" })} dispatch={dispatch} />);
+    const input = screen.getByPlaceholderText("sourceCredentialPlaceholder") as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: "NtypedAddress" } });
+    expect(input.type).toBe("password");
+    fireEvent.click(screen.getByRole("button", { name: "showSource" }));
+    expect(input.type).toBe("text");
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(dispatch).toHaveBeenCalledWith("convert", "NtypedAddress");
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as HTMLButtonElement);
+    fireEvent.click(screen.getByRole("button", { name: "clearWorkbench" }));
+    expect(dispatch).toHaveBeenCalledWith("reset");
+  });
+
+  it("keeps generated secrets out of the DOM until the user explicitly reveals them", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const generatedAccount = {
+      address: "NgeneratedAddress",
+      publicKey: `02${"ab".repeat(32)}`,
+      privateKey: "11".repeat(32),
+      wif: "Lgenerated-secret-wif",
+    };
+    const { rerender } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          activeTab: "tabGenerate",
+          generatedAccount,
+          accountsGenerated: "1",
+          showGeneratedSecrets: false,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(screen.getByText("NgeneratedAddress")).toBeTruthy();
+    fireEvent.click(screen.getByText("inspectDetails"));
+    expect(screen.queryByText(generatedAccount.wif)).toBeNull();
+    expect(screen.queryByText(generatedAccount.privateKey)).toBeNull();
+    expect(screen.getAllByText("secretHidden")).toHaveLength(2);
+    expect((screen.getByRole("button", { name: "downloadPdf" }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /showSecrets/ }));
+    expect(dispatch).toHaveBeenCalledWith("toggleGeneratedSecrets");
+
+    rerender(
+      <PlayArea
+        t={t}
+        state={state({
+          activeTab: "tabGenerate",
+          generatedAccount,
+          accountsGenerated: "1",
+          showGeneratedSecrets: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    expect(screen.getByText(generatedAccount.wif)).toBeTruthy();
+    expect(screen.getByText(generatedAccount.privateKey)).toBeTruthy();
+    expect((screen.getByRole("button", { name: "downloadPdf" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("keeps WIF and private-key conversion output masked by default", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const result = {
+      address: "Nconverted",
+      publicKey: `03${"cd".repeat(32)}`,
+      wif: "Lconverted-secret-wif",
+      privateKey: "22".repeat(32),
+      opcodes: [],
+      scriptHash: "",
+      scriptHashLE: "",
+    };
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          activeTab: "tabConvert",
+          conversionResult: result,
+          conversionStatus: "detectedWif",
+          conversionStatusType: "success",
+          showConversionSecrets: false,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("inspectDetails"));
+    expect(screen.queryByText(result.wif)).toBeNull();
+    expect(screen.queryByText(result.privateKey)).toBeNull();
+    expect(screen.getAllByText("secretHidden")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: /showSecrets/ }));
+    expect(dispatch).toHaveBeenCalledWith("toggleConversionSecrets");
+  });
+
+  it("does not present a generated address as the result of newly edited source material", () => {
+    const generatedAccount = {
+      address: "NgeneratedAddress",
+      publicKey: `02${"ab".repeat(32)}`,
+      privateKey: "11".repeat(32),
+      wif: "Lgenerated-secret-wif",
+    };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ inputKey: "new-source", generatedAccount })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".convert-output-preview")?.textContent).toContain("emptyOutputTitle");
+    expect(container.querySelector(".convert-card--output small")?.textContent).toBe("localConversionNote");
+  });
+
   it("imports v2 styles and keeps the scene foreground-led", () => {
     const fs = require("node:fs");
     const s = fs.readFileSync(`${process.cwd()}/../neo-convert/src/PlayArea.scss`, "utf8");
@@ -71,13 +188,15 @@ describe("neo-convert PlayArea (v2)", () => {
 
     expect(source).toContain("OpenUiProvider");
     expect(source).toContain("OpenUiTextField");
+    expect(source).toContain("dispatchSafely");
+    expect(source).toContain(".catch(() => undefined)");
     expect(source).not.toMatch(/<(input|textarea|select)\b/);
+    expect(source).toContain('import { CoinArt } from "@shared/art";');
     expect(s).toContain('@use "@shared/components-react/v2/v2" as *;');
     expect(s).toMatch(/prefers-reduced-motion/);
     expect(s).toMatch(/\.convert-card\s*\{[\s\S]*box-shadow:\s*none/);
     expect(s).toMatch(/\.convert-source-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(164px,\s*0\.42fr\)/);
-    expect(s).toMatch(/\.convert-material--summary\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
-    expect(s).toMatch(/\.convert-field--drawer\s*\{[\s\S]*background:\s*var\(--mx2-surface-2\)/);
+    expect(s).toMatch(/\.convert-material--scene\[data-ready="true"\]\s*\{[\s\S]*background:\s*#f8fffd/);
     expect(s).toMatch(/\.convert-entry-input\.mx2-open-field__control\s*\{[\s\S]*border:\s*0/);
     expect(s).toMatch(/\.convert-entry-input \.semi-input\s*\{[\s\S]*font-family:\s*ui-monospace/);
     expect(s).toMatch(/\.convert-format-rail__items\s*\{[\s\S]*overflow-x:\s*auto/);
@@ -93,5 +212,6 @@ describe("neo-convert PlayArea (v2)", () => {
     expect(s).not.toMatch(/convert-detector/);
     expect(s).not.toMatch(/font-size:\s*clamp/);
     expect(s).not.toMatch(/convert-card--output[\s\S]*linear-gradient/);
+    expect(s).not.toMatch(/\.convert-material--summary|\.convert-field--drawer/);
   });
 });

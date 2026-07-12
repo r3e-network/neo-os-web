@@ -119,4 +119,3 @@ export class HashMD extends Hash {
         return to;
     }
 }
-//# sourceMappingURL=_md.js.map

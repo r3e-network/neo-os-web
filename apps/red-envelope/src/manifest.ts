@@ -11,7 +11,7 @@ export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "Red Envelope",
   description:
-    "Scan, claim, and optionally send lucky GAS red envelopes on Neo N3",
+    "Open low-stakes GAS lucky packets from public network-bound links on Neo N3",
   icon: "gift",
   category: "social",
   // `shell: "game"` renders the two-choice launcher entry (Earn GAS / Play free);
@@ -23,6 +23,43 @@ export const manifest: MiniAppManifest = {
   // GUEST is a purely local packet game (see logic/guest-engine.ts); GAMEFI is the
   // existing on-chain create/claim flow, unchanged.
   supportsGuest: true,
+  // The v1.1 TestNet deployment has a completed two-wallet deposit -> create ->
+  // claim -> claim proof. Keep the flag explicit so a release can fail closed by
+  // flipping one value; main.tsx independently guards every new paid action.
+  supportsGameFi: true,
+
+  // The shared game launcher must use the same locale-driven red-envelope
+  // language as the Phaser table. Without this block it falls back to the raw
+  // English manifest identity even when the rest of the miniapp is Chinese.
+  gamePage: {
+    categoryColor: "#E5484D",
+    appIcon: "gift",
+    modes: { guest: true, gamefi: true },
+    heroBadgeKey: "appEyebrow",
+    heroTitleKey: "appTitle",
+    heroTitleAccent: "appTitle",
+    heroDescKey: "appSubtitle",
+    primaryLabelKey: "claimRedEnvelope",
+    featuresEyebrowKey: "shareReadyTitle",
+    featuresTitleKey: "claimFlowTitle",
+    features: [
+      {
+        titleKey: "claimPanelTitle",
+        descKey: "claimRouteOneCopy",
+        large: true,
+        gradient: "linear-gradient(135deg, #FFF7ED 0%, #FECACA 46%, #FB7185 100%)",
+      },
+      { titleKey: "createPanelTitle", descKey: "perPacketRandomNote" },
+      { titleKey: "safetyPanelTitle", descKey: "safetyPanelCopy" },
+    ],
+    lbEyebrowKey: "guestBadge",
+    lbTitleKey: "guestBoardTitle",
+    lbScoreLabelKey: "guestBestLabel",
+    ctaTitleKey: "redEnvelopeHeroTitle",
+    ctaDescKey: "redEnvelopeHeroSubtitle",
+    ctaLabelKey: "claimRedEnvelope",
+    trustBadgeKeys: ["osGuarded", "guestBadge", "shareReadyTitle"],
+  },
 
   // -- Tabs -------------------------------------------------------------------
   tabs: [
@@ -69,60 +106,9 @@ export const manifest: MiniAppManifest = {
     ],
   },
 
-  operations: [
-    {
-      key: "claimEnvelope",
-      titleKey: "claimRedEnvelope",
-      descriptionKey: "claimOperationDesc",
-      actionKey: "claimNow",
-      actionMethod: "claimEnvelope",
-      priority: "primary",
-      fields: [
-        {
-          key: "envelopeId",
-          type: "text",
-          labelKey: "envelopeId",
-          placeholder: "Envelope ID from QR",
-          required: true,
-        },
-      ],
-    },
-    {
-      key: "createEnvelope",
-      titleKey: "sendRedEnvelope",
-      descriptionKey: "sendOperationDesc",
-      actionKey: "sendRedEnvelope",
-      actionMethod: "createEnvelope",
-      priority: "secondary",
-      fields: [
-        {
-          key: "amount",
-          type: "amount",
-          labelKey: "totalGas",
-          placeholder: "0.00",
-          required: true,
-          validation: { min: 0.1 },
-        },
-        {
-          key: "count",
-          type: "number",
-          labelKey: "packetCount",
-          placeholder: "10",
-          required: true,
-          validation: { min: 1, max: 100 },
-        },
-        {
-          key: "expiryHours",
-          type: "number",
-          labelKey: "expiryHours",
-          placeholder: "24",
-          default: 24,
-          required: true,
-          validation: { min: 1, max: 720 },
-        },
-      ],
-    },
-  ],
+  // The Phaser scene owns the complete recipient and creator interaction. Do
+  // not render a second questionnaire-style operation panel around the game.
+  operations: [],
 
   // -- Features ---------------------------------------------------------------
   features: {

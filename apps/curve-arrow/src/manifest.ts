@@ -3,44 +3,44 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Curve Arrow",
   description:
-    "Timed on-chain curving-arrow archery with provably fair wall layouts. Pick a range, tap to shoot, and press-and-hold while the arrow flies to curve it up and over the stone walls — it can even loop. Clear every target within the arrow budget before the deadline and win a fixed GAS reward — 0.1 Meadow, 0.5 Forest, 1 Summit. Every shot is verified by the enclave; run out of arrows and the run ends. Each solve climbs a global leaderboard rebuilt from chain events.",
+    "A warm, resource-driven Phaser archery game with three handcrafted-feeling ranges, press-and-hold curved flight, animated launches and impacts, local best scores, and complete free-play replay and recovery loops. New wallet-funded runs stay gated until a deployed Curve Arrow contract and full Morpheus settlement path have production evidence; historical recovery remains available in the runtime.",
   icon: "target",
   category: "game",
   shell: "game",
+  supportsGuest: true,
+  supportsGameFi: false,
 
   gamePage: {
     // Matches the app's --mx2-brand override (src/PlayArea.scss); the splash
     // shell injects this as its --n3h-accent inline, so it must be the same
-    // pine green the in-game shell renders.
-    categoryColor: "#2f7d4e",
-    modes: { guest: true },
-    heroBadgeKey: "networkBadge",
+    // warm range orange the in-game shell renders.
+    categoryColor: "#d7742f",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
     heroDescKey: "appSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "networkBadge",
-    featuresTitleKey: "fairnessTitle",
+    featuresEyebrowKey: "guestBadge",
+    featuresTitleKey: "gameplayFeatureTitle",
     features: [
       {
-        titleKey: "fairnessTitle",
-        descKey: "fairnessCopy",
+        titleKey: "gameplayFeatureTitle",
+        descKey: "gameplayFeatureCopy",
         large: true,
-        // Pine ramp built from the app's brand-light/subtle/brand values so
-        // the splash feature card reads in the same green family as the CTA.
-        gradient: "linear-gradient(135deg, #e9f5ee 0%, #c9e7d4 46%, #2f7d4e 100%)",
+        gradient: "linear-gradient(135deg, #fff8e8 0%, #ffdba8 48%, #d7742f 100%)",
       },
-      { titleKey: "difficultyTitle", descKey: "startDescription" },
-      { titleKey: "leaderboardTitle", descKey: "leaderboardIntro" },
+      { titleKey: "difficultyTitle", descKey: "guestModeLine" },
+      { titleKey: "guestBestMetric", descKey: "guestBestFeatureCopy" },
     ],
     lbEyebrowKey: "ranksTab",
     lbTitleKey: "leaderboardTitle",
-    lbScoreLabelKey: "scoreWon",
+    lbScoreLabelKey: "guestBestMetric",
     ctaTitleKey: "lobbyTitle",
-    ctaDescKey: "startDescription",
+    ctaDescKey: "guestModeLine",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["networkBadge", "fairnessTitle", "rankLabel"],
+    trustBadgeKeys: ["guestBadge", "gameplayFeatureTitle", "guestBestMetric"],
   },
 
   tabs: [
@@ -49,63 +49,30 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "scoreReward", valueKey: "lastPayout", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", icon: "coin" },
+    { labelKey: "guestBestMetric", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
+    { labelKey: "historyTitle", valueKey: "mySolves", format: "text", icon: "activity" },
     { labelKey: "rankLabel", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
+      { labelKey: "guestBestMetric", valueKey: "myTotalWon", format: "text" },
       { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
+      { labelKey: "historyTitle", valueKey: "mySolves", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Meadow Range — win 0.1 GAS" },
-            { value: "1", label: "Forest Range — win 0.5 GAS" },
-            { value: "2", label: "Summit Range — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  operations: [],
 
   docs: [
-    { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
-    { titleKey: "fairnessTitle", contentKey: "fairnessCopy", type: "text" },
+    { titleKey: "rulesTitle", contentKey: "guestRulesCopy", type: "steps" },
+    { titleKey: "localFairnessTitle", contentKey: "localFairnessCopy", type: "text" },
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -113,10 +80,10 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {

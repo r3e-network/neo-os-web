@@ -125,6 +125,222 @@ describe("neo-message PlayArea (v2)", () => {
     fireEvent.click(send);
     expect(dispatch).toHaveBeenCalledWith("sendMessage");
   });
+  it("labels device-local recipient decryption as private, never on-chain revealed", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "0x9999999999999999999999999999999999999999",
+          inbox: [{
+            id: "7",
+            sender: "0x1111111111111111111111111111111111111111",
+            recipient: "0x9999999999999999999999999999999999999999",
+            unlockTime: 0,
+            sentAt: 1,
+            revealed: false,
+            plaintext: "Opened only on this device",
+            timeLocked: false,
+          }],
+          outbox: [],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(optionByText(container, ".neomsg-drawer-tabs .semi-radio", "inboxTitle"));
+
+    expect(screen.getByText("statusBadgePrivateOpen")).toBeTruthy();
+    expect(screen.queryByText("statusBadgeRevealed")).toBeNull();
+    expect(screen.queryByRole("button", { name: "revealForMe" })).toBeNull();
+  });
+  it("makes an ambiguous broadcast recovery the primary action before another send", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "0x9999999999999999999999999999999999999999",
+          pendingDelivery: {
+            version: 1,
+            txid: `0x${"ab".repeat(32)}`,
+            sender: "0x9999999999999999999999999999999999999999",
+            recipient: "0x1111111111111111111111111111111111111111",
+            unlockTime: 0,
+            createdAt: Date.now(),
+          },
+          pendingStorageHealthy: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "recoverDelivery" }));
+
+    expect(dispatch).toHaveBeenCalledWith("recoverPendingDelivery");
+    expect(dispatch).not.toHaveBeenCalledWith("sendMessage");
+  });
+  it("offers an explicit network switch instead of enabling a mainnet write on Neo X testnet", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "0x9999999999999999999999999999999999999999",
+          hasWallet: true,
+          networkSupported: false,
+          composeForm: {
+            recipient: "0x1111111111111111111111111111111111111111",
+            body: "Keep this on the verified network.",
+            lockMode: "recipient",
+          },
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "switchToNeoX" }));
+    expect(dispatch).toHaveBeenCalledWith("switchToNeoX");
+    expect(screen.queryByRole("button", { name: "sendButton" })).toBeNull();
+  });
+  it("keeps a timed delivery disabled until a real future reveal time is present", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "0x9999999999999999999999999999999999999999",
+          hasWallet: true,
+          networkSupported: true,
+          composeForm: {
+            recipient: "0x1111111111111111111111111111111111111111",
+            body: "Open this later.",
+            lockMode: "timed",
+            revealDate: "",
+            publicRevealAcknowledged: true,
+          },
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect((screen.getByRole("button", { name: "sendButtonTimed" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("readinessDeskNeedsDate")).toBeTruthy();
+  });
+  it("renders every loaded mailbox row and pages each mailbox independently", () => {
+    const rows = Array.from({ length: 10 }, (_, index) => ({
+      id: String(index + 1),
+      sender: "0x1111111111111111111111111111111111111111",
+      recipient: "0x9999999999999999999999999999999999999999",
+      unlockTime: 0,
+      sentAt: index + 1,
+      revealed: false,
+      plaintext: "",
+      timeLocked: false,
+    }));
+    const dispatch = vi.fn(async () => undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "0x9999999999999999999999999999999999999999",
+          hasWallet: true,
+          networkSupported: true,
+          inbox: rows,
+          outbox: [],
+          hasMoreInbox: true,
+          hasMoreOutbox: false,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(optionByText(container, ".neomsg-drawer-tabs .semi-radio", "inboxTitle"));
+    expect(screen.getByText("#10")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "loadOlder" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "loadOlder" }));
+    expect(dispatch).toHaveBeenCalledWith("loadOlder", "inbox");
+
+    fireEvent.click(optionByText(container, ".neomsg-drawer-tabs .semi-radio", "outboxTitle"));
+    expect(screen.queryByRole("button", { name: "loadOlder" })).toBeNull();
+    expect(screen.getByText("outboxEmpty")).toBeTruthy();
+  });
+
+  it("dispatches outbox paging without expanding the inbox page", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const row = {
+      id: "21",
+      sender: "0x9999999999999999999999999999999999999999",
+      recipient: "0x1111111111111111111111111111111111111111",
+      unlockTime: 0,
+      sentAt: 1,
+      revealed: false,
+      plaintext: "",
+      timeLocked: false,
+    };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: row.sender,
+          hasWallet: true,
+          networkSupported: true,
+          inbox: [],
+          outbox: [row],
+          hasMoreInbox: false,
+          hasMoreOutbox: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(optionByText(container, ".neomsg-drawer-tabs .semi-radio", "outboxTitle"));
+    fireEvent.click(screen.getByRole("button", { name: "loadOlder" }));
+    expect(dispatch).toHaveBeenCalledWith("loadOlder", "outbox");
+  });
+  it("does not render a dead action for locked notes and explains unlockable public notes", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          address: "0x9999999999999999999999999999999999999999",
+          hasWallet: true,
+          networkSupported: true,
+          inbox: [
+            {
+              id: "1",
+              sender: "0x1111111111111111111111111111111111111111",
+              recipient: "0x9999999999999999999999999999999999999999",
+              unlockTime: now + 3600,
+              sentAt: now,
+              revealed: false,
+              plaintext: "",
+              timeLocked: true,
+            },
+            {
+              id: "2",
+              sender: "0x1111111111111111111111111111111111111111",
+              recipient: "0x9999999999999999999999999999999999999999",
+              unlockTime: now - 10,
+              sentAt: now - 20,
+              revealed: false,
+              plaintext: "",
+              timeLocked: true,
+            },
+          ],
+        })}
+        dispatch={vi.fn(async () => undefined)}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(optionByText(container, ".neomsg-drawer-tabs .semi-radio", "inboxTitle"));
+    expect(screen.queryByRole("button", { name: "notUnlockedYet" })).toBeNull();
+    expect(screen.getByText("readyToRevealBody")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "revealOnChain" })).toBeTruthy();
+  });
   it("keeps the message desk letter-led instead of textarea-led", () => {
     const s = playAreaStyles();
     const envelopeBlock = cssBlock(s, ".neomsg-envelope-card");

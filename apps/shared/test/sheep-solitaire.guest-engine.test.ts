@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import { createGuestEngine } from "../../sheep-solitaire/src/logic/guest-engine";
-import type { GuestEngineDeps } from "../../sheep-solitaire/src/logic/guest-engine";
+import {
+  GUEST_RUN_STORAGE_KEY,
+  type GuestEngineDeps,
+  type GuestStorage,
+} from "../../sheep-solitaire/src/logic/guest-engine";
 import { ruleOf } from "../../sheep-solitaire/src/logic/game-rules";
 
 /**
@@ -22,6 +26,7 @@ type Layout = {
   cardTypes: number;
 };
 const layoutMock = vi.hoisted(() => ({ result: null as Layout | null }));
+const activeEngines: Array<{ dispose(): void }> = [];
 
 vi.mock("../../sheep-solitaire/src/logic/sheep-engine", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../sheep-solitaire/src/logic/sheep-engine")>();
@@ -40,7 +45,18 @@ interface CardView {
   picked: boolean;
 }
 
-function setup() {
+function memoryStorage(): GuestStorage & { has(key: string): boolean; write(key: string, value: unknown): void } {
+  const values = new Map<string, unknown>();
+  return {
+    get: <T,>(key: string, fallback: T): T => (values.has(key) ? values.get(key) as T : fallback),
+    set: (key, value) => values.set(key, structuredClone(value)),
+    delete: (key) => { values.delete(key); },
+    has: (key) => values.has(key),
+    write: (key, value) => values.set(key, structuredClone(value)),
+  };
+}
+
+function setup(storage?: GuestStorage) {
   const obs = {
     gameStatus: createObservable("idle"),
     activeGameId: createObservable("0"),
@@ -53,6 +69,7 @@ function setup() {
     slotCards: createObservable<CardView[]>([]),
     isMatching: createObservable(false),
     isGameOver: createObservable(false),
+    failureReason: createObservable<"none" | "tray" | "timeout">("none"),
     shuffleLeft: createObservable(1),
     remove3Left: createObservable(1),
     isStarting: createObservable(false),
@@ -81,8 +98,9 @@ function setup() {
   const t = (key: string, params?: Record<string, string | number>) =>
     params ? `${key}:${JSON.stringify(params)}` : key;
 
-  const deps: GuestEngineDeps = { ...obs, guestLeaderboard, t, setStatus };
+  const deps: GuestEngineDeps = { ...obs, guestLeaderboard, storage, t, setStatus };
   const engine = createGuestEngine(deps);
+  activeEngines.push(engine);
 
   const notPicked = () => obs.pileCards.get().filter((c) => !c.picked);
   const pickTopLayer = () => {
@@ -95,11 +113,39 @@ function setup() {
     if (card) engine.pickCard(card.id);
     return card?.id;
   };
+  const pickDistinctExposed = (count: number) => {
+    const symbols = new Set<number>();
+    const pickedIds: number[] = [];
+    while (pickedIds.length < count) {
+      const card = obs.pileCards
+        .get()
+        .find((candidate) => candidate.exposed && !symbols.has(candidate.symbol));
+      if (!card) break;
+      symbols.add(card.symbol);
+      pickedIds.push(card.id);
+      engine.pickCard(card.id);
+    }
+    return pickedIds;
+  };
 
-  return { engine, ...obs, submit, get, boardRows, setStatus, notPicked, pickTopLayer, pickAnyExposed };
+  return {
+    engine,
+    ...obs,
+    submit,
+    get,
+    boardRows,
+    setStatus,
+    notPicked,
+    pickTopLayer,
+    pickAnyExposed,
+    pickDistinctExposed,
+  };
 }
 
 afterEach(() => {
+  activeEngines.splice(0).forEach((engine) => engine.dispose());
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
   layoutMock.result = null;
 });
 
@@ -117,8 +163,15 @@ describe("sheep-solitaire guest engine", () => {
     expect(h.remove3Left.get()).toBe(1);
     expect(h.undosUsed.get()).toBe(0);
     expect(h.deadline.get() - h.dealtAt.get()).toBe(ruleOf(0).limitMs);
-    // The whole top layer (8 distinct symbols) is exposed at deal.
-    expect(h.pileCards.get().filter((c) => c.layer === 0 && c.exposed)).toHaveLength(8);
+    // The whole top layer is exposed and contains four immediately playable
+    // triples, rather than seven-plus distinct tiles that force a tray lock.
+    const exposedTop = h.pileCards.get().filter((c) => c.layer === 0 && c.exposed);
+    expect(exposedTop).toHaveLength(12);
+    const topCounts = new Map<number, number>();
+    for (const card of exposedTop) {
+      topCounts.set(card.symbol, (topCounts.get(card.symbol) ?? 0) + 1);
+    }
+    expect([...topCounts.values()]).toEqual([3, 3, 3, 3]);
     // Dealing a board never touches the off-chain board.
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.get).not.toHaveBeenCalled();
@@ -170,11 +223,61 @@ describe("sheep-solitaire guest engine", () => {
     expect(h.notPicked()).toHaveLength(0);
     expect(h.gameStatus.get()).toBe("solved");
     expect(h.lastPayout.get()).toBe(""); // no GAS payout in guest
+    expect(h.myTotalWon.get()).toBe(3); // free-play best clear, not a GAS amount
+    expect(h.mySolves.get()).toBe(1);
     expect(h.submit).toHaveBeenCalledWith(3); // full clear = all tiles
     expect(h.get).toHaveBeenCalled(); // guest board refreshed after the win
   });
 
+  it.each([
+    [0, "easy"],
+    [1, "medium"],
+    [2, "hard"],
+  ])("clears the real generated %s/%s board using exposed triples only", async (difficulty) => {
+    const h = setup();
+    h.engine.startGame(difficulty);
+    const expectedCards = ruleOf(difficulty).cardTypes * 3;
+    let guard = expectedCards + 1;
+
+    while (h.gameStatus.get() === "dealt" && !h.isGameOver.get() && guard > 0) {
+      guard -= 1;
+      const exposedBySymbol = new Map<number, CardView[]>();
+      for (const card of h.pileCards.get()) {
+        if (!card.exposed || card.picked) continue;
+        const group = exposedBySymbol.get(card.symbol) ?? [];
+        group.push(card);
+        exposedBySymbol.set(card.symbol, group);
+      }
+      const triple = [...exposedBySymbol.values()].find((group) => group.length >= 3);
+      expect(triple, `stalled with ${h.pileCards.get().length} cards`).toBeDefined();
+      if (!triple) break;
+
+      for (const card of triple.slice(0, 3)) h.engine.pickCard(card.id);
+      expect(h.slotCards.get()).toHaveLength(0);
+      expect(h.isGameOver.get()).toBe(false);
+    }
+
+    await vi.waitFor(() => expect(h.submit).toHaveBeenCalledWith(expectedCards));
+    expect(guard).toBeGreaterThan(0);
+    expect(h.gameStatus.get()).toBe("solved");
+    expect(h.pileCards.get()).toHaveLength(0);
+    expect(h.slotCards.get()).toHaveLength(0);
+  });
+
   it("ends the run as game over when the tray fills without a match", () => {
+    // Keep a deliberately invalid/dead fixture to test the loss transition in
+    // isolation. Production layouts no longer start in this state.
+    layoutMock.result = {
+      cards: Array.from({ length: 8 }, (_, id) => ({
+        id,
+        symbol: id,
+        layer: 0,
+        col: id % 4,
+        row: Math.floor(id / 4),
+      })),
+      totalCards: 8,
+      cardTypes: 8,
+    };
     const h = setup();
     h.engine.startGame(0);
 
@@ -185,30 +288,47 @@ describe("sheep-solitaire guest engine", () => {
     expect(h.isGameOver.get()).toBe(true);
     // gameStatus stays "dealt" + isGameOver (the frozen scene's result trigger).
     expect(h.gameStatus.get()).toBe("dealt");
+    expect(h.failureReason.get()).toBe("tray");
     // Zero tiles cleared → best-effort submit is skipped for a 0 score.
     expect(h.submit).not.toHaveBeenCalled();
   });
 
-  it("undo returns the whole tray to the pile and burns an undo", () => {
+  it("locks a local board at its real deadline and cancels the timer on reset", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-10T12:00:00Z"));
     const h = setup();
     h.engine.startGame(0);
-    h.pickTopLayer();
-    h.pickTopLayer();
-    h.pickTopLayer();
+
+    await vi.advanceTimersByTimeAsync(ruleOf(0).limitMs);
+
+    expect(h.gameStatus.get()).toBe("dealt");
+    expect(h.isGameOver.get()).toBe(true);
+    expect(h.failureReason.get()).toBe("timeout");
+    expect(h.lastStatus.get()).toBe("guestTimeUpHint");
+
+    h.engine.expireGame();
+    expect(h.gameStatus.get()).toBe("idle");
+    expect(h.failureReason.get()).toBe("none");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("undo returns the most recent tray tile to the pile and burns an undo", () => {
+    const h = setup();
+    h.engine.startGame(0);
+    expect(h.pickDistinctExposed(3)).toHaveLength(3);
     expect(h.slotCards.get()).toHaveLength(3);
 
     h.engine.useUndo();
 
-    expect(h.slotCards.get()).toHaveLength(0);
-    expect(h.notPicked()).toHaveLength(24);
+    expect(h.slotCards.get()).toHaveLength(2);
+    expect(h.notPicked()).toHaveLength(22);
     expect(h.undosUsed.get()).toBe(1);
   });
 
   it("shuffle empties the tray, reshuffles, and consumes its one use", () => {
     const h = setup();
     h.engine.startGame(0);
-    h.pickTopLayer();
-    h.pickTopLayer();
+    expect(h.pickDistinctExposed(2)).toHaveLength(2);
 
     h.engine.useShuffle();
 
@@ -219,12 +339,31 @@ describe("sheep-solitaire guest engine", () => {
     const counts = new Map<number, number>();
     for (const c of h.pileCards.get()) counts.set(c.symbol, (counts.get(c.symbol) ?? 0) + 1);
     for (const n of counts.values()) expect(n).toBe(3);
+
+    // The shuffle keeps complete triples within a layer, so it remains
+    // constructively solvable instead of becoming a random dead board.
+    let guard = 30;
+    while (h.gameStatus.get() === "dealt" && guard > 0) {
+      guard -= 1;
+      const exposedBySymbol = new Map<number, CardView[]>();
+      for (const card of h.pileCards.get()) {
+        if (!card.exposed) continue;
+        const group = exposedBySymbol.get(card.symbol) ?? [];
+        group.push(card);
+        exposedBySymbol.set(card.symbol, group);
+      }
+      const triple = [...exposedBySymbol.values()].find((group) => group.length >= 3);
+      expect(triple).toBeDefined();
+      if (!triple) break;
+      triple.slice(0, 3).forEach((card) => h.engine.pickCard(card.id));
+    }
+    expect(h.gameStatus.get()).toBe("solved");
   });
 
   it("remove-3 frees three tray slots back to the pile and consumes its one use", () => {
     const h = setup();
     h.engine.startGame(0);
-    for (let i = 0; i < 4; i++) h.pickTopLayer();
+    expect(h.pickDistinctExposed(4)).toHaveLength(4);
     expect(h.slotCards.get()).toHaveLength(4);
 
     h.engine.useRemove3();
@@ -293,6 +432,86 @@ describe("sheep-solitaire guest engine", () => {
     expect(h.gameStatus.get()).toBe("idle");
     expect(h.get).toHaveBeenCalled(); // guest board loaded
     expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("restores an exact in-progress local board after refresh", async () => {
+    const storage = memoryStorage();
+    const first = setup(storage);
+    first.engine.startGame(1);
+    expect(first.pickDistinctExposed(2)).toHaveLength(2);
+    const savedPile = first.pileCards.get();
+    const savedSlots = first.slotCards.get();
+    const savedDeadline = first.deadline.get();
+    first.engine.dispose();
+
+    const restored = setup(storage);
+    await restored.engine.enter();
+
+    expect(restored.gameStatus.get()).toBe("dealt");
+    expect(restored.gameDifficulty.get()).toBe(1);
+    expect(restored.pileCards.get()).toEqual(savedPile);
+    expect(restored.slotCards.get()).toEqual(savedSlots);
+    expect(restored.deadline.get()).toBe(savedDeadline);
+    expect(restored.lastStatus.get()).toBe("guestProgressRestored");
+    expect(restored.setStatus).toHaveBeenCalledWith("guestProgressRestored", "info");
+  });
+
+  it("rejects a corrupt saved board and returns to a clean lobby", async () => {
+    const storage = memoryStorage();
+    storage.write(GUEST_RUN_STORAGE_KEY, {
+      version: 1,
+      status: "dealt",
+      difficulty: 0,
+      pile: [{ id: 1, symbol: 99, layer: 0, col: 0, row: 0 }],
+      slots: [],
+      totalCards: 24,
+      dealtAt: Date.now(),
+      deadline: Date.now() + ruleOf(0).limitMs,
+      undosUsed: 0,
+      shuffleLeft: 1,
+      remove3Left: 1,
+      isGameOver: false,
+      failureReason: "none",
+      lastElapsedMs: 0,
+    });
+    const h = setup(storage);
+
+    await h.engine.enter();
+
+    expect(h.gameStatus.get()).toBe("idle");
+    expect(h.pileCards.get()).toEqual([]);
+    expect(storage.has(GUEST_RUN_STORAGE_KEY)).toBe(false);
+  });
+
+  it("restores an elapsed local board directly into its timeout result", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-11T02:00:00Z"));
+    const storage = memoryStorage();
+    const first = setup(storage);
+    first.engine.startGame(0);
+    first.pickTopLayer();
+    first.engine.dispose();
+
+    vi.setSystemTime(new Date("2026-07-11T02:06:00Z"));
+    const restored = setup(storage);
+    await restored.engine.enter();
+
+    expect(restored.gameStatus.get()).toBe("dealt");
+    expect(restored.isGameOver.get()).toBe(true);
+    expect(restored.failureReason.get()).toBe("timeout");
+    expect(restored.lastStatus.get()).toBe("guestTimeUpHint");
+  });
+
+  it("fails closed instead of using Math.random when Web Crypto is unavailable", () => {
+    vi.stubGlobal("crypto", undefined);
+    const h = setup();
+
+    h.engine.startGame(0);
+
+    expect(h.gameStatus.get()).toBe("idle");
+    expect(h.isStarting.get()).toBe(false);
+    expect(h.lastStatus.get()).toBe("secureRandomUnavailable");
+    expect(h.setStatus).toHaveBeenCalledWith("secureRandomUnavailable", "error");
   });
 
   it("maps the off-chain guest board into ranked leaderboard entries", async () => {

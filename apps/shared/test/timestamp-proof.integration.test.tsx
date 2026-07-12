@@ -34,7 +34,7 @@ describe("timestamp-proof integration: dispatch + state", () => {
     });
     fireEvent.click(container.querySelector(".tsp-drawer__actions .mx2-btn") as HTMLButtonElement);
 
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("verifyProof", "proof-42"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("verifyProof", "proof-42", "neo-n3-mainnet"));
   });
   it("has reduced-motion CSS guard", () => {
     const fs = require("node:fs");

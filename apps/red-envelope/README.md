@@ -1,119 +1,69 @@
-# Red Envelope — Crypto Gifts That Spread Like Wildfire
+# Red Envelope
 
-> Create a red packet, share a link or code, and let friends claim through the miniapp flow. Social gifting on Neo N3.
+Red Envelope is a Neo N3 lucky-packet social app with a bright Phaser opening experience. A creator locks GAS into 1–100 packets, shares the envelope ID/link, and each wallet may claim once. Unclaimed GAS is reclaimable by the creator after expiry.
 
-## What is Red Envelope?
+The link is a **public bearer link**, not private access control: any wallet that
+learns or guesses the network-bound envelope ID may claim once while packets
+remain. The app never publishes a global "latest envelopes" list. A private or
+recipient allow-listed product requires a new contract.
 
-Red Envelope brings the beloved tradition of hongbao (红包) to the blockchain. Create a GAS red packet, generate a shareable link or code, and let friends claim their portion through the miniapp flow.
+## Current product flow
 
-This is social gifting, Web3-style. A sender deposits GAS into a smart contract, chooses between equal splits or lucky-draw amounts, and shares a link or code via any messaging app. Recipients open the miniapp and claim their share through the standard wallet flow.
+1. Choose one of the designed low-stakes packet bundles on the Phaser table.
+2. Connect a wallet as a separate gesture.
+3. Create the envelope. The app deposits only the missing GAS credit, confirms it, then creates the exact envelope.
+4. Share the generated network-bound envelope link.
+5. Each connected wallet opens one random packet. The celebration and amount card appear only after the exact claim transaction is confirmed.
+6. After expiry, the creator may reclaim the exact unclaimed remainder. Unused create credit can be withdrawn at any time.
 
-What elevates Red Envelope beyond a simple transfer tool is that creation, claiming, and remaining balances are tracked directly on-chain. Lucky-draw mode still adds tension, but the current release keeps the implementation grounded in the contract flow that is actually deployed.
+There is one lucky-split mode. The deployed contract does not implement blessing text, equal splits, NEO-holding gates, automatic refunds, or a 5% best-luck bonus; the UI and documentation must not promise those features.
 
-## How to Use
+## Randomness and limits
 
-1. **Create** — Connect your wallet, enter the total GAS amount and number of packets. Add a custom blessing message.
-2. **Choose Distribution** — Select equal split (everyone gets the same) or lucky draw (random amounts, with a best-luck bonus of 5%).
-3. **Set Conditions** — Optionally require recipients to hold a minimum amount of NEO or have held it for a minimum number of days.
-4. **Share** — Get a unique link or QR code. Share it via WeChat, Telegram, Twitter, or any platform.
-5. **Friends Claim** — Recipients open the link, connect a wallet in the miniapp, and claim their share.
-6. **Expiry** — Unclaimed packets are automatically refunded to the sender after the expiry window (default: 24 hours).
+The contract uses Neo `Runtime.GetRandom()` at claim time with a double-average cap and a one-base-unit reservation for every remaining packet. This is not oracle/VRF-grade randomness: a sophisticated claimer may abort and retry across blocks to bias their own result toward the cap.
 
-## Key Features
+The v1.1 contract therefore enforces a low-stakes boundary:
 
-- **Shareable Claims**: Create a link or code and let recipients claim through the miniapp.
-- **Lucky Draw Mode**: Switch between equal split and randomized claim amounts.
-- **On-Chain Tracking**: Envelope status, claims, and remaining balance stay queryable on-chain.
-- **Eligibility Gates**: Optionally require recipients to hold NEO (minimum amount and/or holding duration) to claim.
-- **Expiry & Refund**: Unclaimed packets return to the sender automatically.
-- **Cultural Flair**: Custom blessing messages, themed UI, and celebration animations.
+- maximum 20 GAS per envelope;
+- maximum 100 packets;
+- duration from 60 seconds to 7 days;
+- each non-final share is bounded near twice the running average;
+- all shares plus creator reclaim equal the funded total.
 
-## Randomness & Fairness
+Use a VRF/commit-reveal product for high-value fair lotteries. Red Envelope deliberately optimizes a one-tap social gift flow within the limits above.
 
-Lucky-draw packet amounts are drawn on-chain at claim time using the Neo consensus
-beacon (`Runtime.GetRandom()`) mixed with the claimer's address. This makes each
-share unpredictable and hard to front-run, but it is **not VRF-grade randomness**.
-Because the draw resolves inside the claim transaction, a claimer could in principle
-abort and retry across blocks to nudge toward a larger packet ("grinding").
+## Public ABI
 
-This is bounded by design: every packet is capped near twice the running average and
-at least the minimum per-packet amount is always reserved for each remaining packet,
-so grinding can never drain the envelope or starve later claimers — it only shifts a
-single share toward its capped maximum at the cost of extra fees and blocks. Red
-Envelope is intended for low-stakes social gifting, where this residual bias is
-acceptable. A commit/reveal scheme would remove it but would require a second
-transaction per claim, degrading the one-tap claim experience, so it is intentionally
-not used here.
+| Method | Purpose |
+| --- | --- |
+| `createEnvelope(creator,total,packets,duration)` | Consume prepaid credit and create a funded lucky envelope |
+| `claim(envelopeId,claimer)` | Claim once and receive one random share atomically |
+| `reclaim(envelopeId,creator)` | Return the unclaimed remainder after expiry |
+| `withdraw(account)` | Withdraw unused create credit |
+| `getEnvelope(id)` | Read exact envelope status and best-luck state |
+| `creatorEnvelopeCount` / `getCreatorEnvelopes` | Paginated creator index |
+| `claimerEnvelopeCount` / `getClaimerEnvelopes` | Paginated claimer index |
+| `claimedAmount` / `hasClaimed` | Exact wallet claim state |
 
-## Technical Architecture
+## Deployments
 
-### Smart Contract
+| Network | Contract | Status |
+| --- | --- | --- |
+| Neo N3 TestNet | `0x5a5ecc80cd5225acd7431a5dd6f0e32bb9260a87` | v1.1 bounded contract; two-wallet live flow verified 2026-07-10 |
+| Neo N3 MainNet | `0x363c5de9760d1aaaed5096fdf3bdc877cd0368e9` | Legacy unbounded contract; new creation is gated, existing claim/reclaim/withdraw remains available |
 
-| Component          | Details                    |
-| ------------------ | -------------------------- |
-| **Contract Name**  | `MiniAppRedEnvelope`       |
-| **Language**       | C# (Neo N3 Smart Contract) |
-| **Blockchain**     | Neo N3                     |
-| **Min Amount**     | 0.1 GAS total              |
-| **Max Packets**    | 100 per envelope           |
-| **Min Per Packet** | 0.01 GAS                   |
+The canonical mapping is [`neo-manifest.json`](./neo-manifest.json).
+At runtime the app also verifies the network, script hash, deployed NEF
+checksum, contract version, and required ABI before enabling a paid action. A
+failed or unreachable attestation keeps the action disabled.
 
-### Service Layer Technologies
-
-- **Contract-based distribution**: The current release relies on contract logic and on-chain state rather than external AA / TEE / NeoDID services.
-
-### Contract Methods
-
-| Method               | Type   | Parameters                                                   | Description                           |
-| -------------------- | ------ | ------------------------------------------------------------ | ------------------------------------- |
-| `CreateEnvelope`     | Action | `creator`, `amount`, `count`, `expiry`, `minNeo`, `holdDays` | Create a new red envelope             |
-| `ClaimEnvelope`      | Action | `claimer`, `envelopeId`                                      | Claim a share from an envelope        |
-| `RefundEnvelope`     | Action | `creator`, `envelopeId`                                      | Refund unclaimed packets after expiry |
-| `GetEnvelopeDetails` | Query  | `envelopeId`                                                 | Get envelope info and claim status    |
-
-## Getting Started
+## Development
 
 ```bash
-# Navigate to the app directory
-cd miniapps/apps/red-envelope
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production (H5)
+cd apps/red-envelope
+npm test
 npm run build
+npm run dev
 ```
 
-## Contract Addresses
-
-| Network | Address                                      |
-| ------- | -------------------------------------------- |
-| Testnet | `0xfa1b7240fead2a63999c02defa3aec5eb274a919` |
-| Mainnet | `0x5f371cc50116bb13d79554d96ccdd6e246cd5d59` |
-
-### Explorer Links
-
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xfa1b7240fead2a63999c02defa3aec5eb274a919)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x5f371cc50116bb13d79554d96ccdd6e246cd5d59)
-
-## Domains
-
-- Mainnet domain: `redenvelope.miniapp.neo`
-
-## Tech Stack
-
-| Layer           | Technology                                          |
-| --------------- | --------------------------------------------------- |
-| Frontend        | Host-native React + TypeScript                        |
-| Smart Contract  | C# / Neo N3                                         |
-| Claim Flow      | Direct miniapp + wallet interaction                 |
-| Distribution    | Smart contract state                                |
-| Sharing         | Link / code based social distribution               |
-| Payment         | Direct prepaid GAS + Morpheus Oracle callback fee credit |
-
-## License
-
-MIT License — R3E Network
+Guest mode is a local packet-opening game and never invokes wallet, contract, oracle, or reward writes.

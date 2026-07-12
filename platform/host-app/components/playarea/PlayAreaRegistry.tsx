@@ -22,9 +22,10 @@ import { CouncilGovernancePlayArea } from "./PlayAreaGovernance";
 import {
   ForeverAlbumPlayArea,
   NeoPayPlayArea,
-  TarotPlayArea,
 } from "./PlayAreaMedia";
+import { TarotEmbeddedPlayArea } from "./TarotEmbeddedPlayArea";
 import { OracleConsolePlayArea } from "./PlayAreaOracle";
+import { OracleVrfPlayArea } from "./OracleVrfPlayArea";
 import { PrivateTransferPlayArea } from "./PlayAreaPrivateTransfer";
 import { ORACLE_APP_LABELS, PROFILED_PLAYAREAS } from "./PlayAreaProfiles";
 import type {
@@ -56,11 +57,12 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-council-governance": CouncilGovernancePlayArea,
   "miniapp-forever-album": ForeverAlbumPlayArea,
   "miniapp-neo-pay": NeoPayPlayArea,
-  "miniapp-onchaintarot": TarotPlayArea,
-  "miniapp-on-chain-tarot": TarotPlayArea,
+  "miniapp-onchaintarot": TarotEmbeddedPlayArea,
+  "miniapp-on-chain-tarot": TarotEmbeddedPlayArea,
   "miniapp-explorer": ExplorerPlayArea,
   "miniapp-neo-x-bridge": NeoXBridgePlayArea,
   "miniapp-private-transfer": PrivateTransferPlayArea,
+  "miniapp-oracle-vrf-console": OracleVrfPlayArea,
 };
 
 export function hasNativePlayArea(appId: string) {

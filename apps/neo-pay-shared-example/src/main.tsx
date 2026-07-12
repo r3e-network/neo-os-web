@@ -1,93 +1,133 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import PlayArea from "./PlayArea";
-import { manifest } from "./manifest";
-// Canonical shared Neo Pay domain module (composable + schedule derivation +
-// locale messages), shared with the neo-pay miniapp through the shared package
-// instead of a cross-app source import. deriveSchedule is also what PlayArea
-// uses, so the on-screen preview and the dispatched transaction agree on the
-// exact per-interval rate / interval (unit-tested in neo-pay.logic.test.ts).
+import { createDerived, createObservable } from "@shared/react/context";
 import {
+  canClaim,
   deriveSchedule,
-  messages as neoPayMessages,
+  isFinalizedStatus,
   useNeoPayApp,
 } from "@shared/composables/neo-pay";
+import PlayArea from "./PlayArea";
+import { manifest } from "./manifest";
+import { messages } from "./messages";
+import {
+  hasCanonicalNeoPayBinding,
+  validateStreamDraft,
+  type StudioAsset,
+  type StudioServiceState,
+} from "./stream-studio";
 
 defineMiniApp({
   appId: "miniapp-neo-pay-shared-example",
   playArea: PlayArea,
   manifest,
-  messages: neoPayMessages,
+  messages,
 
   setup(ctx) {
     const app = ctx.framework;
-    const pay = useNeoPayApp({
-      app,
-      t: ctx.t,
-    });
+    const pay = useNeoPayApp({ app, t: ctx.t });
+    const network = createObservable(String(app.platform.launch.network ?? ""));
+    const contractHash = app.chain.contractAddress;
+    const chainBindingState = createDerived(
+      () => hasCanonicalNeoPayBinding(network.get(), contractHash.get()) ? "verified" : "mismatch",
+      [network, contractHash],
+    );
+    const serviceState = createDerived<StudioServiceState>(
+      () => {
+        if (chainBindingState.get() !== "verified") return "unavailable";
+        if (pay.pendingCreateTxid.get()) return "pending";
+        if (pay.isLoading.get() || pay.isRefreshing.get()) return "loading";
+        if (!app.chain.address.get()) return "disconnected";
+        if (pay.dataState.get() === "unavailable") return "unavailable";
+        if (pay.dataState.get() === "partial") return "partial";
+        return pay.dataState.get() === "live" ? "live" : "loading";
+      },
+      [
+        chainBindingState,
+        pay.pendingCreateTxid,
+        pay.isLoading,
+        pay.isRefreshing,
+        pay.dataState,
+        app.chain.address,
+      ],
+    );
 
-    const findStreamById = (id: string) =>
-      pay.allStreams.get().find((s) => String(s.id) === id) ?? null;
+    const requireCanonicalBinding = () => {
+      if (chainBindingState.get() !== "verified") {
+        throw new Error(ctx.t("bindingMismatch"));
+      }
+    };
 
-    ctx.framework.actions.register("createStream", async (...args: unknown[]) => {
+    const rejectBusyOrPending = (): boolean => {
+      if (pay.isCreating.get() || pay.claimingId.get() || pay.cancellingId.get()) {
+        ctx.setStatus(ctx.t("studioBusy"), "warning");
+        return true;
+      }
+      if (pay.pendingCreateTxid.get()) {
+        ctx.setStatus(ctx.t("streamConfirmationPending"), "warning");
+        return true;
+      }
+      return false;
+    };
+
+    app.actions.register("createStream", async (...args: unknown[]) => {
+      if (rejectBusyOrPending()) return;
       const form = (args[0] ?? {}) as {
         recipient?: string;
         amount?: string;
         duration?: string;
         token?: string;
-        title?: string;
         notes?: string;
       };
       const recipient = String(form.recipient ?? "").trim();
       const amount = String(form.amount ?? "").trim();
-      const durationDays = String(form.duration ?? "").trim();
-      const title = String(form.title ?? "").trim();
-      const token =
-        String(form.token ?? "GAS").trim().toUpperCase() === "NEO"
-          ? "NEO"
-          : "GAS";
-      const { rate, intervalDays } = deriveSchedule(amount, durationDays, token);
+      const duration = String(form.duration ?? "").trim();
+      const asset: StudioAsset = String(form.token ?? "GAS").toUpperCase() === "NEO" ? "NEO" : "GAS";
+      const validation = validateStreamDraft({ recipient, amount, duration, asset });
+      if (!validation.valid) {
+        const issue = !validation.recipientValid
+          ? validation.recipientIssue
+          : !validation.amountValid
+            ? validation.amountIssue
+            : validation.durationIssue;
+        ctx.setStatus(ctx.t(issue), "error");
+        return;
+      }
 
+      try {
+        requireCanonicalBinding();
+      } catch (error) {
+        app.notify.error(error, "bindingMismatch");
+        return;
+      }
+
+      const { rate, intervalDays } = deriveSchedule(amount, duration, asset);
       await app.notify.guard(
-        () =>
-          pay.handleCreateVault({
-            name: title || `Shared stream to ${recipient.slice(0, 8)}...`,
-            beneficiary: recipient,
-            asset: token,
-            total: amount,
-            rate,
-            intervalDays,
-            notes: String(form.notes ?? ""),
-          }),
+        () => pay.handleCreateVault({
+          name: ctx.t("defaultStreamTitle", { address: recipient.slice(0, 8) }),
+          beneficiary: recipient,
+          asset,
+          total: amount,
+          rate,
+          intervalDays,
+          notes: String(form.notes ?? ""),
+        }),
         { successKey: "streamCreated" },
       );
     });
 
-    ctx.framework.actions.register("cancelStream", async (...args: unknown[]) => {
+    app.actions.register("claimStream", async (...args: unknown[]) => {
+      if (rejectBusyOrPending()) return;
       const input = (args[0] ?? {}) as { streamId?: string } | string;
-      const id =
-        typeof input === "string"
-          ? input
-          : String(input.streamId ?? "");
-      const stream = findStreamById(id);
-      if (!stream) {
-        ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
+      const id = typeof input === "string" ? input : String(input.streamId ?? "");
+      const stream = pay.beneficiaryStreams.get().find((item) => item.id === id) ?? null;
+      if (!stream || !canClaim(stream.status, stream.claimable > 0n)) {
+        ctx.setStatus(ctx.t("streamNotFound"), "error");
         return;
       }
-      await app.notify.guard(
-        () => pay.cancelStream(stream),
-        { successKey: "streamCancelled" },
-      );
-    });
-
-    ctx.framework.actions.register("claimStream", async (...args: unknown[]) => {
-      const input = (args[0] ?? {}) as { streamId?: string } | string;
-      const id =
-        typeof input === "string"
-          ? input
-          : String(input.streamId ?? "");
-      const stream = findStreamById(id);
-      if (!stream) {
-        ctx.setStatus(ctx.t("streamNotFound") || "Stream not found", "error");
+      try {
+        requireCanonicalBinding();
+      } catch (error) {
+        app.notify.error(error, "bindingMismatch");
         return;
       }
       await app.notify.guard(
@@ -96,19 +136,56 @@ defineMiniApp({
       );
     });
 
+    app.actions.register("cancelStream", async (...args: unknown[]) => {
+      if (rejectBusyOrPending()) return;
+      const input = (args[0] ?? {}) as { streamId?: string } | string;
+      const id = typeof input === "string" ? input : String(input.streamId ?? "");
+      const stream = pay.createdStreams.get().find((item) => item.id === id) ?? null;
+      if (!stream || isFinalizedStatus(stream.status)) {
+        ctx.setStatus(ctx.t("streamNotFound"), "error");
+        return;
+      }
+      try {
+        requireCanonicalBinding();
+      } catch (error) {
+        app.notify.error(error, "bindingMismatch");
+        return;
+      }
+      await app.notify.guard(
+        () => pay.cancelStream(stream),
+        { successKey: "streamCancelled" },
+      );
+    });
+
+    // Both controls are read-only recovery paths. They re-read authoritative
+    // stream state and never resubmit the atomic funding transaction.
+    app.actions.register("refreshStreams", pay.loadAll);
+    app.actions.register("recoverPendingCreate", async () => {
+      try {
+        requireCanonicalBinding();
+        await pay.loadAll();
+      } catch (error) {
+        app.notify.error(error, "bindingMismatch");
+      }
+    });
+
     return {
       state: {
+        network,
+        contractHash,
+        chainBindingState,
+        serviceState,
         createdStreams: pay.createdStreams,
         beneficiaryStreams: pay.beneficiaryStreams,
         isLoading: pay.isLoading,
-        // isCreating is its own observable (set only during the create flow); binding
-        // it to isLoading made the Create button miss its spinner/disabled state during
-        // a create and spuriously spin during the initial list load.
         isCreating: pay.isCreating,
         isRefreshing: pay.isRefreshing,
         claimingId: pay.claimingId,
         cancellingId: pay.cancellingId,
         serviceNotice: pay.serviceNotice,
+        dataState: pay.dataState,
+        failedDetailReads: pay.failedDetailReads,
+        pendingCreateTxid: pay.pendingCreateTxid,
         allStreams: pay.allStreams,
         activeCount: pay.activeCount,
         createdStreamCount: pay.createdStreamCount,

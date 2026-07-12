@@ -1,5 +1,5 @@
 /**
- * scenes.ts — themed scene metadata for Catch the Goose (G4 meta progression).
+ * scenes.ts — themed scene metadata for Goose Basket Shuffle.
  *
  * The 15 levels are grouped into 6 themed scenes (garden → night market).
  * A scene owns:

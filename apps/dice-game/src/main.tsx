@@ -7,7 +7,14 @@ import {
 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { gasToWei, evmCall, decodeReturnWord } from "@shared/utils/evm-chain";
+import {
+  gasToWei,
+  evmCall,
+  decodeReturnWord,
+  detectEvmNetwork,
+  getEvmAccount,
+  getInjectedEthereum,
+} from "@shared/utils/evm-chain";
 import type { EvmNetwork } from "@shared/utils/evm-chain";
 import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
@@ -21,10 +28,20 @@ import {
 import type { RollOutcome } from "./dice-logic";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
-import { eventHashMatches as addrEq } from "@framework/gamefi";
+import { eventHashMatches as addrEq, mapField } from "@framework/gamefi";
 import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { createBetTracker } from "./bet-tracker";
 import { createDiceGuestEngine } from "./logic/guest-engine";
+import {
+  createDicePendingBet,
+  createDicePendingBetStore,
+  findEventByExactTransaction,
+  normalizeDicePendingScope,
+} from "./pending-bet-store";
+import type {
+  DicePendingBet,
+  DicePendingScope,
+} from "./pending-bet-store";
 
 const appId = "miniapp-dice-game";
 const PAYOUT_MULTIPLIER = 5.7;
@@ -39,14 +56,14 @@ const LIQUIDITY_COVER_MULTIPLE = 47 / 10; // = 4.7
 // Memos the contract requires on the GAS-transfer deposits (OnNEP17Payment).
 // UNCHANGED from v1 — the v2 commit() escrows the wager via this same memo.
 const STAKE_MEMO = `${appId}:stake`; // player bet credit / commit wager
-// Neo N3 commit/reveal pacing. After commit, the outcome is drawn from the
-// GetRandom of a block STRICTLY LATER than the commit block, so the result is
-// unknowable at commit and cannot be aborted on a loss. We wait roughly one
-// block before the first settle attempt, then retry — settle() reverts (and is
-// safe to retry) until Ledger.CurrentIndex has advanced past the commit block.
-const SETTLE_INITIAL_WAIT_MS = 18_000; // ~1 Neo N3 block (15s) + margin
-const SETTLE_RETRY_DELAY_MS = 6_000; // between settle re-attempts
-const SETTLE_MAX_ATTEMPTS = 8; // ~18s + 8×6s ≈ 66s total before giving up
+// Neo N3 V2 commit/reveal pacing. The immutable result mixes the three fixed
+// beacon blocks commit+1..commit+3, and settlement requires a strictly later
+// height. Wait roughly four Neo blocks before the one automatic settlement
+// attempt. If block production is slower, keep the exact bet unresolved and let
+// the player retry explicitly instead of opening a burst of wallet prompts.
+const SETTLE_INITIAL_WAIT_MS = 62_000;
+const SETTLE_RETRY_DELAY_MS = 6_000;
+const SETTLE_MAX_ATTEMPTS = 1;
 // Neo X (EVM) dice deployment. The Neo N3 path calls the self-contained
 // MiniAppDiceGame (resolved by the host from the manifest) directly; the EVM
 // path calls the EVM contract directly. The two branches are independent.
@@ -136,6 +153,48 @@ function parseBetId(value: unknown): string {
   return "";
 }
 
+type EvmPlacementReceiptState = "confirmed" | "faulted" | "unknown";
+
+/**
+ * Re-read the exact Neo X placement receipt by txid. This is only needed when
+ * the original receipt confirmed but the event topic could not be decoded.
+ * It never searches another transaction or another player's latest event.
+ */
+async function recoverEvmRequestFromReceipt(
+  txid: string,
+  contract: string,
+): Promise<{ state: EvmPlacementReceiptState; requestId: string }> {
+  const provider = getInjectedEthereum();
+  if (!provider || !txid) return { state: "unknown", requestId: "" };
+  try {
+    const receipt = (await provider.request({
+      method: "eth_getTransactionReceipt",
+      params: [txid],
+    })) as {
+      status?: string;
+      logs?: Array<{ address?: string; topics?: string[] }>;
+    } | null;
+    if (!receipt) return { state: "unknown", requestId: "" };
+    if (receipt.status !== undefined && receipt.status !== "0x1") {
+      return { state: "faulted", requestId: "" };
+    }
+    const topic = DICE_BET_PLACED_TOPIC.toLowerCase();
+    const expectedContract = contract.toLowerCase();
+    const log = (receipt.logs ?? []).find(
+      (entry) =>
+        (entry.address ?? "").toLowerCase() === expectedContract &&
+        (entry.topics?.[0] ?? "").toLowerCase() === topic,
+    );
+    const encoded = log?.topics?.[1];
+    return {
+      state: "confirmed",
+      requestId: encoded ? BigInt(encoded).toString() : "",
+    };
+  } catch {
+    return { state: "unknown", requestId: "" };
+  }
+}
+
 defineMiniApp({
   appId,
   playArea: PhaserPlayArea,
@@ -159,8 +218,14 @@ defineMiniApp({
     );
 
     const selectedFace = createObservable(launchFace);
-    const stakeAmount = createObservable(`${launchAmount} GAS`);
-    const payoutPreview = createObservable(payoutFor(launchAmount));
+    const initialGuestMode = app.mode.isGuest();
+    const initialUnit = initialGuestMode ? ctx.t("guestUnit") : "GAS";
+    const stakeAmount = createObservable(`${launchAmount} ${initialUnit}`);
+    const payoutPreview = createObservable(
+      initialGuestMode
+        ? `${(Number(launchAmount) * PAYOUT_MULTIPLIER).toFixed(2)} ${initialUnit}`
+        : payoutFor(launchAmount),
+    );
     const lastTxid = createObservable("");
     const lastStatus = createObservable(ctx.t("statusReady"));
     const isSubmitting = createObservable(false);
@@ -168,13 +233,21 @@ defineMiniApp({
     // pinned to the ACTIVE (most recent) bet so interleaved bets never stomp
     // each other's row or banner.
     const tracker = createBetTracker();
-    const { rollHistory, lastRoll, lastOutcome, isResolving, isUnresolved } =
-      tracker;
-    // Re-run handle for the ACTIVE EVM bet's settlement poll. When the poll times
-    // out (the VRF oracle has not called back yet) the player can press "Check
-    // again" to poll once more rather than face a frozen spinner. EVM-only — N3
-    // rolls settle atomically in the bet tx, so they never set this.
-    let recheckActiveBet: (() => void) | null = null;
+    const {
+      rollHistory,
+      lastRoll,
+      lastOutcome,
+      lastPayout,
+      isResolving,
+      isUnresolved,
+    } = tracker;
+    const pendingStore = createDicePendingBetStore(app.storage.local);
+    // Each durable wager keeps its own retry closure. A manual recheck runs all
+    // unresolved exact ids, so an older concurrent bet cannot be abandoned just
+    // because a newer row owns the result banner.
+    const recheckPendingBets = new Map<string, () => void>();
+    const pendingRows = new Map<string, string>();
+    let activePendingLocalId: string | null = null;
     // Multi-chain state.
     const chainLabel = createObservable("");
     const maxStake = createObservable(20);
@@ -186,6 +259,11 @@ defineMiniApp({
     const houseLiquidity = createObservable(0);
     const directCredit = createObservable(0);
     const maxPayableStake = createObservable(0);
+    const gasBalance = app.wallet.observeBalance("GAS");
+    // Keep the authoritative base-unit credit alongside its display number so
+    // the next commit can pay only the exact shortfall without float rounding.
+    let directCreditFixed8 = 0n;
+    let directCreditOwner = "";
 
     // ── Play mode (guest | gamefi) ────────────────────────────────────────────
     // Surfaced to the PlayArea + scene so GAS-at-stake copy can be reframed for
@@ -234,6 +312,8 @@ defineMiniApp({
         houseLiquidity.set(0);
         directCredit.set(0);
         maxPayableStake.set(0);
+        directCreditFixed8 = 0n;
+        directCreditOwner = "";
         return;
       }
       let liquidity = 0;
@@ -252,10 +332,23 @@ defineMiniApp({
           const creditRaw = await app.chain.readRaw("creditOf", [
             app.chain.arg.hash160(playerHash),
           ]);
-          credit = fromFixed8(parseBigInt(creditRaw));
+          directCreditFixed8 = parseBigInt(creditRaw);
+          directCreditOwner = playerHash.toLowerCase();
+          credit = fromFixed8(directCreditFixed8);
+        } else {
+          directCreditFixed8 = 0n;
+          directCreditOwner = "";
         }
       } catch {
-        credit = directCredit.get();
+        const player = app.chain.address.get();
+        const playerHash = player ? addressToScriptHash(player) : "";
+        if (playerHash && playerHash.toLowerCase() === directCreditOwner) {
+          credit = directCredit.get();
+        } else {
+          directCreditFixed8 = 0n;
+          directCreditOwner = "";
+          credit = 0;
+        }
       }
       houseLiquidity.set(liquidity);
       directCredit.set(credit);
@@ -280,6 +373,46 @@ defineMiniApp({
       }
     };
 
+    const pendingScopeForNetwork = async (
+      network: string,
+    ): Promise<DicePendingScope | null> => {
+      if (ctx.services.chain.isEvmNetwork(network)) {
+        const contract = DICE_EVM_ADDRESS[network as EvmNetwork] ?? "";
+        const player = await getEvmAccount();
+        if (!contract || !player) return null;
+        return normalizeDicePendingScope({ player, network, contract });
+      }
+      const walletAddress = app.chain.address.get();
+      const player = walletAddress ? addressToScriptHash(walletAddress) : "";
+      const contract = app.chain.contractAddress.get() ?? "";
+      if (!player || !contract) return null;
+      return normalizeDicePendingScope({ player, network, contract });
+    };
+
+    const isCurrentPendingScope = async (
+      record: DicePendingBet,
+    ): Promise<boolean> => {
+      if (record.lane === "evm") {
+        const network = await detectEvmNetwork();
+        if (network !== record.network) return false;
+        const player = (await getEvmAccount()).toLowerCase();
+        return (
+          player === record.player &&
+          (DICE_EVM_ADDRESS[network] ?? "").toLowerCase() === record.contract
+        );
+      }
+      const network = (await app.chain.detectNetwork()).toLowerCase();
+      if (ctx.services.chain.isEvmNetwork(network) || network !== record.network) {
+        return false;
+      }
+      const walletAddress = app.chain.address.get();
+      const player = walletAddress
+        ? addressToScriptHash(walletAddress).toLowerCase()
+        : "";
+      const contract = (app.chain.contractAddress.get() ?? "").toLowerCase();
+      return player === record.player && contract === record.contract;
+    };
+
     ctx.framework.actions.register("setSelectedFace", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { face?: unknown };
       selectedFace.set(sanitizeFace(form.face));
@@ -288,8 +421,19 @@ defineMiniApp({
     ctx.framework.actions.register("setStakeAmount", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { amount?: unknown };
       const nextAmount = sanitizeAmount(form.amount, maxStake.get());
-      stakeAmount.set(`${nextAmount} GAS`);
-      payoutPreview.set(payoutFor(nextAmount));
+      const unit = app.mode.isGuest() ? ctx.t("guestUnit") : "GAS";
+      stakeAmount.set(`${nextAmount} ${unit}`);
+      payoutPreview.set(
+        app.mode.isGuest()
+          ? `${(Number(nextAmount) * PAYOUT_MULTIPLIER).toFixed(2)} ${unit}`
+          : payoutFor(nextAmount),
+      );
+    });
+
+    ctx.framework.actions.register("connectWallet", async () => {
+      if (app.mode.isGuest()) return;
+      await app.wallet.ensure();
+      await gasBalance.refresh();
     });
 
     /**
@@ -323,7 +467,7 @@ defineMiniApp({
             return {
               face,
               stake: "",
-              result: rolled ? `${label} · 🎲 ${rolled}` : label,
+              result: rolled ? `${label} · ${ctx.t("rolledLabel")} ${rolled}` : label,
               payout: won ? `${payoutGas.toFixed(2)} GAS` : "0 GAS",
               outcome: (won ? "won" : "lost") as RollOutcome,
               rolled: rolled ? String(rolled) : "",
@@ -336,15 +480,43 @@ defineMiniApp({
       }
     };
 
-    // Reveal a settled bet: update ITS history row (matched by id — a later
-    // bet may occupy row 0 by now) and, only when it is still the active bet,
-    // the dice + result banner. A win on the active bet fires the host
-    // fireworks via the success status.
+    const beginPendingRow = (
+      record: DicePendingBet,
+      result: string,
+    ): string => {
+      const rowId = tracker.beginBet({
+        face: record.selection,
+        stake: `${record.amount} GAS`,
+        result,
+        payout: payoutFor(record.amount),
+        outcome: "pending" as RollOutcome,
+        txid: record.txid,
+        at: new Date(record.createdAt).toISOString(),
+      });
+      pendingRows.set(record.localId, rowId);
+      activePendingLocalId = record.localId;
+      return rowId;
+    };
+
+    const markPendingUnknown = (
+      rowId: string,
+      record: DicePendingBet,
+    ) => {
+      pendingStore.markUnknown(record);
+      tracker.markUnresolved(rowId);
+      if (record.localId === activePendingLocalId) {
+        lastStatus.set(ctx.t("statusSettlementPending"));
+        ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+      }
+    };
+
+    // Reveal a settled bet from an exact bet/request id. The durable record is
+    // cleared only after this chain-backed terminal outcome is known.
     const finishResolve = (
       rowId: string,
+      record: DicePendingBet,
       outcome: RollOutcome,
       rolled: number,
-      amount: string,
     ) => {
       const won = outcome === "won";
       const label = won
@@ -355,9 +527,12 @@ defineMiniApp({
       const isActive = tracker.settleBet(rowId, {
         outcome,
         rolled,
-        result: rolled ? `${label} · 🎲 ${rolled}` : label,
-        payout: won ? payoutFor(amount) : "0 GAS",
+        result: rolled ? `${label} · ${ctx.t("rolledLabel")} ${rolled}` : label,
+        payout: won ? payoutFor(record.amount) : "0 GAS",
       });
+      pendingStore.clear(record, "confirmed");
+      recheckPendingBets.delete(record.localId);
+      pendingRows.delete(record.localId);
       if (!isActive) return;
       if (won) {
         lastStatus.set(ctx.t("statusWon"));
@@ -371,165 +546,290 @@ defineMiniApp({
       }
     };
 
-    // Neo X: poll getBet(requestId) until the VRF settles the bet on-chain.
-    const resolveEvmBet = async (
+    const finishFaultedPlacement = (
       rowId: string,
-      address: string,
-      requestId: string,
-      amount: string,
+      record: DicePendingBet,
     ) => {
-      for (let i = 0; i < 45; i += 1) {
-        await sleep(4000);
-        let raw: string;
-        try {
-          raw = await evmCall(address, DICE_GET_BET_SELECTOR, [requestId]);
-        } catch {
-          continue;
-        }
-        const status = Number(decodeReturnWord(raw, 4)); // Bet.status word
-        if (status <= 1) continue; // None / Pending
-        finishResolve(
-          rowId,
-          evmStatusToOutcome(status),
-          Number(decodeReturnWord(raw, 3)),
-          amount,
-        );
-        return;
+      const label = ctx.t("outcomeRefunded");
+      tracker.settleBet(rowId, {
+        outcome: "refunded",
+        rolled: 0,
+        result: label,
+        payout: "0 GAS",
+      });
+      pendingStore.clear(record, "faulted");
+      recheckPendingBets.delete(record.localId);
+      pendingRows.delete(record.localId);
+      if (record.localId === activePendingLocalId) {
+        lastStatus.set(ctx.t("statusRefunded"));
+        ctx.setStatus(ctx.t("statusRefunded"), "info");
       }
-      tracker.markUnresolved(rowId); // timed out — stays "rolling" in history
     };
 
-    // Neo N3 v2 — find a betId's already-recorded Settled outcome by scanning the
-    // Settled event log (the settle() tx halted, so the result IS on-chain even if
-    // the event-wait timed out, or another caller settled it first). Returns the
-    // matching event or null. betId (slot 0) is compared as a canonical decimal.
-    const findSettledEvent = async (betId: string): Promise<unknown | null> => {
-      if (!betId) return null;
+    const ensureEvmRequestId = async (
+      rowId: string,
+      record: DicePendingBet,
+    ): Promise<DicePendingBet | null> => {
+      if (record.requestId) return record;
+      const receipt = await recoverEvmRequestFromReceipt(
+        record.txid,
+        record.contract,
+      );
+      if (receipt.state === "faulted") {
+        finishFaultedPlacement(rowId, record);
+        return null;
+      }
+      if (!receipt.requestId) {
+        markPendingUnknown(rowId, record);
+        return null;
+      }
+      return pendingStore.updateIdentity(
+        record,
+        { requestId: receipt.requestId },
+        "pending",
+      );
+    };
+
+    const readEvmOutcome = async (
+      record: DicePendingBet,
+    ): Promise<{ outcome: RollOutcome; rolled: number } | null> => {
+      if (!record.requestId || !(await isCurrentPendingScope(record))) {
+        return null;
+      }
       try {
-        const events = await app.chain.events("Settled", {
-          limit: 60,
-        });
-        const hit = [...events]
-          .reverse()
-          .find((ev) => parseBetId(eventStateValue(ev, 0)) === betId);
-        return hit ?? null;
+        const raw = await evmCall(record.contract, DICE_GET_BET_SELECTOR, [
+          record.requestId,
+        ]);
+        const status = Number(decodeReturnWord(raw, 4));
+        if (status <= 1) return null;
+        return {
+          outcome: evmStatusToOutcome(status),
+          rolled: Number(decodeReturnWord(raw, 3)),
+        };
       } catch {
         return null;
       }
     };
 
-    // Reveal a settled betId from its Settled event (slots: betId(0), player(1),
-    // face(2), rolled(3), won(4), payout(5)). Returns true if revealed.
-    const revealFromSettledEvent = (
+    // Neo X: poll getBet(requestId) until the VRF settles the exact request.
+    const resolveEvmBet = async (
       rowId: string,
-      event: unknown,
-      amount: string,
-    ): boolean => {
-      if (event == null) return false;
-      const rolled = Number(eventStateValue(event, 3)) || 0;
-      const won = asBool(eventStateValue(event, 4));
-      finishResolve(rowId, won ? "won" : "lost", rolled, amount);
-      return true;
+      storedRecord: DicePendingBet,
+    ) => {
+      const record = await ensureEvmRequestId(rowId, storedRecord);
+      if (!record) return;
+      recheckPendingBets.set(record.localId, () => {
+        void resolveEvmBet(rowId, record);
+      });
+      for (let i = 0; i < 45; i += 1) {
+        await sleep(4000);
+        const settled = await readEvmOutcome(record);
+        if (!settled) continue;
+        finishResolve(rowId, record, settled.outcome, settled.rolled);
+        return;
+      }
+      markPendingUnknown(rowId, record);
     };
 
     /**
-     * Neo N3 v2 — settle a committed bet. The outcome is unknowable until a block
-     * strictly LATER than the commit block, so we wait ~1 block then call the
-     * PERMISSIONLESS settle(betId), waiting for the Settled event. settle()
-     * reverts until Ledger.CurrentIndex passes the commit block and is safe to
-     * retry, so a revert/timeout simply re-attempts (after first checking the
-     * Settled log in case it already landed). On success the outcome is read from
-     * the Settled event; if all attempts are exhausted the bet is left unresolved
-     * so the player can press "Reveal result" to retry.
+     * Read the exact persisted bet directly from the ABI. A txid or indexer event
+     * is never enough to reveal a result: the canonical record must bind id,
+     * player, face, exact wager, terminal status, roll range, win predicate and
+     * payout arithmetic before the UI labels it confirmed.
+     */
+    const revealFromPendingBetRead = async (
+      rowId: string,
+      record: DicePendingBet,
+    ): Promise<boolean> => {
+      if (!record.betId || !(await isCurrentPendingScope(record))) return false;
+      try {
+        const raw = await app.chain.readRaw("getPendingBet", [
+          app.chain.arg.integer(record.betId),
+        ]);
+        if (
+          parseBetId(mapField(raw, "id")) !== record.betId ||
+          !addrEq(mapField(raw, "player"), record.player) ||
+          String(parseBigInt(mapField(raw, "face"))) !== record.selection ||
+          String(parseBigInt(mapField(raw, "wager"))) !== record.amountFixed8 ||
+          !asBool(mapField(raw, "settled"))
+        ) {
+          return false;
+        }
+        const rolled = Number(parseBigInt(mapField(raw, "rolled"))) || 0;
+        const won = asBool(mapField(raw, "won"));
+        const payout = parseBigInt(mapField(raw, "payout"));
+        const wager = BigInt(record.amountFixed8);
+        const expectedWon = rolled === Number(record.selection);
+        const expectedPayout = expectedWon ? (wager * 57n) / 10n : 0n;
+        if (
+          rolled < 1 ||
+          rolled > 6 ||
+          won !== expectedWon ||
+          payout !== expectedPayout
+        ) {
+          return false;
+        }
+        finishResolve(rowId, record, won ? "won" : "lost", rolled);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const reconcileSettledN3 = async (
+      rowId: string,
+      record: DicePendingBet,
+    ): Promise<boolean> => revealFromPendingBetRead(rowId, record);
+
+    /**
+     * Neo N3 v2 — settle a committed bet. The outcome stays unknowable until its
+     * fixed three-block beacon exists, so we wait through the required later
+     * height before one automatic permissionless settle(betId) attempt. Canonical
+     * getPendingBet state, not a tx broadcast or event envelope, confirms the
+     * result. A fault or timeout leaves the exact bet unresolved so the player can
+     * press "Reveal result" to retry deliberately.
      */
     const settleN3Bet = async (
       rowId: string,
-      betId: string,
-      amount: string,
+      record: DicePendingBet,
       initialWaitMs = SETTLE_INITIAL_WAIT_MS,
     ) => {
-      if (!betId) {
-        tracker.markUnresolved(rowId);
-        lastStatus.set(ctx.t("statusSettlementPending"));
-        ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+      if (!record.betId || !(await isCurrentPendingScope(record))) {
+        markPendingUnknown(rowId, record);
         return;
       }
-      // Wait roughly one block so the reveal block exists before the first settle.
+      recheckPendingBets.set(record.localId, () => {
+        void settleN3Bet(rowId, record, 0);
+      });
+      // Wait through the fixed three-block beacon and its strictly-later gate.
       if (initialWaitMs > 0) await sleep(initialWaitMs);
       for (let attempt = 0; attempt < SETTLE_MAX_ATTEMPTS; attempt += 1) {
-        // Another caller (settle is permissionless) may have settled it already —
-        // or a prior attempt's event read timed out though the tx halted.
-        const prior = await findSettledEvent(betId);
-        if (revealFromSettledEvent(rowId, prior, amount)) return;
+        // Another caller (settle is permissionless) may have settled it already.
+        if (await reconcileSettledN3(rowId, record)) return;
         try {
-          const result = await app.chain.invoke(
+          await app.chain.invoke(
             "settle",
-            [app.chain.arg.integer(betId)],
+            [app.chain.arg.integer(record.betId)],
             { waitForEvent: "Settled", waitTimeoutMs: 30_000 },
           );
-          if (revealFromSettledEvent(rowId, result.event, amount)) return;
-          // The settle tx halted but the event read timed out — re-read the log.
-          const settled = await findSettledEvent(betId);
-          if (revealFromSettledEvent(rowId, settled, amount)) return;
+          // The settle tx may have halted, but only the exact persisted record can
+          // confirm the result. A broadcast or event envelope alone stays pending.
+          if (await reconcileSettledN3(rowId, record)) return;
         } catch {
-          // settle() reverted (reveal block not reached yet, or already settled) —
-          // re-check the log then back off and retry.
-          const settled = await findSettledEvent(betId);
-          if (revealFromSettledEvent(rowId, settled, amount)) return;
+          // settle() reverted (beacon not complete yet, or already settled) —
+          // re-check canonical state then back off and retry.
+          if (await reconcileSettledN3(rowId, record)) return;
         }
-        await sleep(SETTLE_RETRY_DELAY_MS);
+        if (attempt + 1 < SETTLE_MAX_ATTEMPTS) {
+          await sleep(SETTLE_RETRY_DELAY_MS);
+        }
       }
       // Out of attempts — leave it unresolved with a retry handle.
-      tracker.markUnresolved(rowId);
-      recheckActiveBet = () => void settleN3Bet(rowId, betId, amount, 0);
-      lastStatus.set(ctx.t("statusSettlementPending"));
-      ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+      markPendingUnknown(rowId, record);
+    };
+
+    const exactCommittedBetId = async (
+      record: DicePendingBet,
+    ): Promise<string> => {
+      if (!record.txid || !(await isCurrentPendingScope(record))) return "";
+      try {
+        const events = await app.chain.events("Committed", { limit: 100 });
+        const event = findEventByExactTransaction(events, record.txid);
+        if (
+          !event ||
+          !addrEq(eventStateValue(event, 1), record.player) ||
+          String(parseBigInt(eventStateValue(event, 2))) !== record.selection ||
+          String(parseBigInt(eventStateValue(event, 3))) !== record.amountFixed8
+        ) {
+          return "";
+        }
+        return parseBetId(eventStateValue(event, 0));
+      } catch {
+        return "";
+      }
     };
 
     /**
      * Neo N3 v2 — recover a betId from the Committed event log when the commit
      * tx's own event read timed out (the tx halted, so the bet IS committed). We
-     * locate the Committed event by txid (falling back to the player's newest
-     * Committed event), read its betId (slot 0), then drive the normal
-     * wait→settle flow. If the betId can't be recovered the bet stays unresolved
-     * for a manual retry.
+     * locate only the event carrying the persisted txid, verify player/face/
+     * amount, then drive the normal wait→settle flow. There is deliberately no
+     * "player's newest event" fallback because concurrent wagers make it unsafe.
      */
     const recoverAndSettleN3 = async (
       rowId: string,
-      txid: string,
-      playerHash: string,
-      amount: string,
+      storedRecord: DicePendingBet,
     ) => {
+      let record = storedRecord;
+      recheckPendingBets.set(record.localId, () => {
+        void recoverAndSettleN3(rowId, record);
+      });
       for (let i = 0; i < 6; i += 1) {
         await sleep(SETTLE_RETRY_DELAY_MS);
-        try {
-          const events = await app.chain.events("Committed", {
-            limit: 40,
+        const betId = await exactCommittedBetId(record);
+        if (betId) {
+          record = pendingStore.updateIdentity(record, { betId }, "pending");
+          recheckPendingBets.set(record.localId, () => {
+            void settleN3Bet(rowId, record, 0);
           });
-          const hit = txid
-            ? events.find(
-                (ev) => String((ev as { txid?: unknown })?.txid ?? "") === txid,
-              )
-            : undefined;
-          const mine =
-            hit ??
-            (playerHash
-              ? [...events]
-                  .reverse()
-                  .find((ev) => addrEq(eventStateValue(ev, 1), playerHash))
-              : undefined);
-          const betId = mine ? parseBetId(eventStateValue(mine, 0)) : "";
-          if (betId) {
-            await settleN3Bet(rowId, betId, amount, 0);
-            return;
-          }
-        } catch {
-          /* transient indexer error — retry */
+          await settleN3Bet(rowId, record, 0);
+          return;
         }
       }
-      tracker.markUnresolved(rowId);
-      lastStatus.set(ctx.t("statusSettlementPending"));
-      ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+      markPendingUnknown(rowId, record);
+    };
+
+    const restorePendingBets = async (network: string): Promise<number> => {
+      const scope = await pendingScopeForNetwork(network);
+      if (!scope) return 0;
+      const records = pendingStore.list(scope);
+      if (records.length === 0) return 0;
+
+      const restored = records.map((record) => ({
+        record,
+        rowId: beginPendingRow(
+          record,
+          record.lane === "n3"
+            ? ctx.t("statusRevealing")
+            : ctx.t("statusRolling"),
+        ),
+      }));
+
+      // Reconcile once, read-only, on refresh. Never pop a wallet signature just
+      // because the app mounted; unresolved writes stay behind "Reveal result".
+      for (const item of restored) {
+        let { record } = item;
+        const { rowId } = item;
+        if (record.lane === "evm") {
+          const recovered = await ensureEvmRequestId(rowId, record);
+          if (!recovered) continue;
+          record = recovered;
+          const settled = await readEvmOutcome(record);
+          if (settled) {
+            finishResolve(rowId, record, settled.outcome, settled.rolled);
+            continue;
+          }
+          recheckPendingBets.set(record.localId, () => {
+            void resolveEvmBet(rowId, record);
+          });
+          markPendingUnknown(rowId, record);
+          continue;
+        }
+
+        if (!record.betId) {
+          const betId = await exactCommittedBetId(record);
+          if (betId) {
+            record = pendingStore.updateIdentity(record, { betId }, "pending");
+          }
+        }
+        if (record.betId && (await reconcileSettledN3(rowId, record))) continue;
+        recheckPendingBets.set(record.localId, () => {
+          if (record.betId) void settleN3Bet(rowId, record, 0);
+          else void recoverAndSettleN3(rowId, record);
+        });
+        markPendingUnknown(rowId, record);
+      }
+      return records.length;
     };
 
     // Framework operation wrappers keep the old notify.guard semantics: success
@@ -627,6 +927,7 @@ defineMiniApp({
       isSubmitting.set(true);
       lastStatus.set(ctx.t("statusSubmitting"));
       let stakeSent = false;
+      let broadcastPending: DicePendingBet | null = null;
       // Hoisted so the catch can re-read credit on the same network.
       let network = "neo-n3";
       try {
@@ -668,7 +969,9 @@ defineMiniApp({
           if (!address) {
             throw new Error(ctx.t("statusNeoXMainnetOnly"));
           }
-          await ctx.services.chain.ensureEvmWallet(network as EvmNetwork);
+          const evmPlayer = await ctx.services.chain.ensureEvmWallet(
+            network as EvmNetwork,
+          );
           // EVM placeBet is atomic on the stake (value sent with the call, so a
           // revert returns the funds) but the OUTCOME is settled asynchronously
           // by the VRF callback — hence the begin-then-poll machinery below.
@@ -678,40 +981,69 @@ defineMiniApp({
             uintArgs: [Number(nextFace)],
             valueWei: gasToWei(nextAmount).toString(),
             eventTopic: DICE_BET_PLACED_TOPIC,
+            onTransactionSent: (txid) => {
+              if (!txid) return;
+              broadcastPending = createDicePendingBet({
+                lane: "evm",
+                player: evmPlayer,
+                network,
+                contract: address,
+                txid,
+                amount: nextAmount,
+                amountFixed8,
+                selection: nextFace,
+                phase: "broadcast",
+              });
+              pendingStore.upsert(broadcastPending);
+            },
           });
           const requestId =
             (result.event as { id?: string } | undefined)?.id ?? "";
+          if (!result.txid) throw new Error(ctx.t("statusFailed"));
+          const broadcast =
+            broadcastPending ??
+            createDicePendingBet({
+              lane: "evm",
+              player: evmPlayer,
+              network,
+              contract: address,
+              txid: result.txid,
+              amount: nextAmount,
+              amountFixed8,
+              selection: nextFace,
+              phase: "broadcast",
+            });
+          const pending = requestId
+            ? pendingStore.updateIdentity(
+                broadcast,
+                { requestId },
+                "pending",
+              )
+            : pendingStore.markUnknown(broadcast);
 
           lastTxid.set(result.txid ?? "");
           lastStatus.set(ctx.t("statusRolling"));
-          const rowId = tracker.beginBet({
-            face: nextFace,
-            stake: `${nextAmount} GAS`,
-            result: ctx.t("statusRolling"),
-            payout: payoutFor(nextAmount),
-            outcome: "pending" as RollOutcome,
-            txid: result.txid ?? "",
-            at: new Date().toISOString(),
-          });
+          const rowId = beginPendingRow(pending, ctx.t("statusRolling"));
           ctx.setStatus(
             `${ctx.t("statusRolling")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
             "info",
           );
-          // Retain a re-run handle so a timed-out (unresolved) VRF settlement can
-          // be re-polled from the UI's "Check again" action.
-          recheckActiveBet = () =>
-            void resolveEvmBet(rowId, address, requestId, nextAmount);
+          recheckPendingBets.set(pending.localId, () => {
+            void resolveEvmBet(rowId, pending);
+          });
           // Reveal the outcome asynchronously so the user can keep playing.
-          void resolveEvmBet(rowId, address, requestId, nextAmount);
+          void resolveEvmBet(rowId, pending);
           return result;
         }
 
-        // -- Neo N3 v2 — COMMIT → wait one block → SETTLE (anti-abort) ---------
+        // -- Neo N3 v2 — COMMIT → fixed three-block beacon → SETTLE ------------
         const player = await app.chain.ensureWallet();
         const playerHash = addressToScriptHash(player);
         if (!playerHash) {
           throw new Error(ctx.t("statusFailed"));
         }
+        const contract = app.chain.contractAddress.get() ?? "";
+        if (!contract) throw new Error(ctx.t("statusFailed"));
         // PRE-FLIGHT: commit() reserves the house exposure (bankroll >= stake *
         // 4.7) when the wager is escrowed. With the live free bankroll (re-read
         // here for freshness), refuse a stake the house cannot cover a win on
@@ -726,50 +1058,93 @@ defineMiniApp({
             }),
           );
         }
-        // STEP 1 — COMMIT. DEPOSIT (miniapp-dice-game:stake) then
-        // commit(player, face, amount) in the SAME tx: the wager is escrowed and
-        // the house exposure reserved. The outcome is drawn from the GetRandom of
-        // a block STRICTLY LATER than this commit block, so it is unknowable now
-        // and the bet cannot be aborted on a loss (the v1 same-tx drain is gone).
+        // STEP 1 — COMMIT. Top up only the shortfall beyond reusable contract
+        // credit, then commit(player, face, amount): the wager is escrowed and
+        // the house exposure reserved. The outcome is drawn from three fixed
+        // consecutive later block hashes, so it is unknowable now and the bet
+        // cannot be aborted on a loss (the v1 same-tx drain is gone).
         // The contract emits Committed(betId, player, face, commitIndex) — we read
         // the betId from it. stakeSent flips the moment the wager transfer
         // broadcasts so a post-deposit commit fault is surfaced as recoverable
         // (and WITHDRAWABLE) credit.
-        const result = await app.chain.invokeWithPayment(
-          amountFixed8,
-          STAKE_MEMO,
-          "commit",
-          [
-            app.chain.arg.hash160(playerHash),
-            app.chain.arg.integer(nextFace),
-            app.chain.arg.integer(amountFixed8),
-          ],
-          {
-            waitForEvent: "Committed",
-            waitTimeoutMs: 30_000,
-            onPaymentSent: () => {
-              stakeSent = true;
-            },
-          },
-        );
+        const wagerFixed8 = BigInt(amountFixed8);
+        const reusableCredit = directCreditOwner === playerHash.toLowerCase()
+          ? directCreditFixed8
+          : 0n;
+        const paymentShortfall = wagerFixed8 > reusableCredit
+          ? wagerFixed8 - reusableCredit
+          : 0n;
+        const commitArgs = [
+          app.chain.arg.hash160(playerHash),
+          app.chain.arg.integer(nextFace),
+          app.chain.arg.integer(amountFixed8),
+        ];
+        const onTransactionSent = (txid: string) => {
+          if (!txid) return;
+          broadcastPending = createDicePendingBet({
+            lane: "n3",
+            player: playerHash,
+            network,
+            contract,
+            txid,
+            amount: nextAmount,
+            amountFixed8,
+            selection: nextFace,
+            phase: "broadcast",
+          });
+          pendingStore.upsert(broadcastPending);
+        };
+        const result = paymentShortfall > 0n
+          ? await app.chain.invokeWithPayment(
+              paymentShortfall.toString(),
+              STAKE_MEMO,
+              "commit",
+              commitArgs,
+              {
+                waitForEvent: "Committed",
+                waitTimeoutMs: 30_000,
+                onPaymentSent: () => {
+                  stakeSent = true;
+                },
+                onTransactionSent,
+              },
+            )
+          : await app.chain.invoke("commit", commitArgs, {
+              waitForEvent: "Committed",
+              waitTimeoutMs: 30_000,
+              onTransactionSent,
+            });
 
         lastTxid.set(result.txid ?? "");
         // Committed(betId, player, face, amount, commitIndex): betId is slot 0
         // (a BigInteger counter). The wager is now escrowed; reflect a clear
-        // pending "revealing on the next block" state. The bet is irrevocable.
-        const betId =
-          result.event != null
-            ? parseBetId(eventStateValue(result.event, 0))
-            : "";
-        const rowId = tracker.beginBet({
-          face: nextFace,
-          stake: `${nextAmount} GAS`,
-          result: ctx.t("statusRevealing"),
-          payout: payoutFor(nextAmount),
-          outcome: "pending" as RollOutcome,
-          txid: result.txid ?? "",
-          at: new Date().toISOString(),
-        });
+        // pending "waiting for beacon" state. The bet is irrevocable.
+        if (!result.txid) throw new Error(ctx.t("statusFailed"));
+        const eventMatchesIntent =
+          result.event != null &&
+          addrEq(eventStateValue(result.event, 1), playerHash) &&
+          String(parseBigInt(eventStateValue(result.event, 2))) === nextFace &&
+          String(parseBigInt(eventStateValue(result.event, 3))) === amountFixed8;
+        const betId = eventMatchesIntent
+          ? parseBetId(eventStateValue(result.event, 0))
+          : "";
+        const broadcast =
+          broadcastPending ??
+          createDicePendingBet({
+            lane: "n3",
+            player: playerHash,
+            network,
+            contract,
+            txid: result.txid,
+            amount: nextAmount,
+            amountFixed8,
+            selection: nextFace,
+            phase: "broadcast",
+          });
+        const pending = betId
+          ? pendingStore.updateIdentity(broadcast, { betId }, "pending")
+          : pendingStore.updateIdentity(broadcast, {}, "broadcast");
+        const rowId = beginPendingRow(pending, ctx.t("statusRevealing"));
         lastStatus.set(ctx.t("statusBetPlaced"));
         ctx.setStatus(
           `${ctx.t("statusBetPlaced")}${result.txid ? `: ${formatHash(result.txid, 10, 8)}` : ""}`,
@@ -785,33 +1160,60 @@ defineMiniApp({
           // The commit tx halted but the Committed event read timed out — without
           // the betId we cannot settle. Recover the betId from the Committed log
           // by txid, then settle; offer a manual retry meanwhile.
-          recheckActiveBet = () =>
-            void recoverAndSettleN3(
-              rowId,
-              result.txid ?? "",
-              playerHash,
-              nextAmount,
-            );
-          void recoverAndSettleN3(
-            rowId,
-            result.txid ?? "",
-            playerHash,
-            nextAmount,
-          );
+          recheckPendingBets.set(pending.localId, () => {
+            void recoverAndSettleN3(rowId, pending);
+          });
+          void recoverAndSettleN3(rowId, pending);
           return result;
         }
-        // STEP 2 + 3 — wait one block then settle(betId), revealing the outcome
-        // from the Settled event. Runs asynchronously so the user can keep
-        // playing; "Reveal result" re-runs settle if it times out.
-        recheckActiveBet = () => void settleN3Bet(rowId, betId, nextAmount, 0);
-        void settleN3Bet(rowId, betId, nextAmount);
+        // STEP 2 + 3 — wait for the fixed three-block beacon, then settle(betId).
+        // Canonical record readback reveals the outcome. Runs asynchronously;
+        // "Reveal result" re-runs settlement deliberately if the attempt times out.
+        recheckPendingBets.set(pending.localId, () => {
+          void settleN3Bet(rowId, pending, 0);
+        });
+        void settleN3Bet(rowId, pending);
         return result;
       } catch (error) {
         const rawMessage =
           error instanceof Error ? error.message : ctx.t("statusFailed");
-        // This bet never started resolving, so the tracker's reveal state is
-        // left alone — a still-pending earlier (EVM) bet keeps its rolling banner.
-        if (stakeSent || error instanceof DepositConfirmedActionFailedError) {
+        // Assignments happen inside broadcast callbacks, which TypeScript's
+        // synchronous control-flow analysis cannot observe here.
+        const failedPending = broadcastPending as DicePendingBet | null;
+        // A target tx broadcast is durable pending state even when the caller
+        // later fails; pre-target failures remain recoverable credit/rejection.
+        if (failedPending) {
+          if (
+            failedPending.lane === "evm" &&
+            /transaction reverted/i.test(rawMessage)
+          ) {
+            // Neo X value transfer and bet call are atomic; a reverted receipt is
+            // a definitive fault and no pending wager remains.
+            pendingStore.clear(failedPending, "faulted");
+            lastStatus.set(rawMessage);
+            ctx.setStatus(rawMessage, "error");
+          } else {
+            // The exact target txid exists but confirmation/recovery failed.
+            // Retain it across refresh and expose a safe id-specific recheck.
+            const pending = pendingStore.markUnknown(failedPending);
+            const rowId =
+              pendingRows.get(pending.localId) ??
+              beginPendingRow(
+                pending,
+                pending.lane === "n3"
+                  ? ctx.t("statusRevealing")
+                  : ctx.t("statusRolling"),
+              );
+            recheckPendingBets.set(pending.localId, () => {
+              if (pending.lane === "n3") {
+                void recoverAndSettleN3(rowId, pending);
+              } else {
+                void resolveEvmBet(rowId, pending);
+              }
+            });
+            markPendingUnknown(rowId, pending);
+          }
+        } else if (stakeSent || error instanceof DepositConfirmedActionFailedError) {
           // The deposit landed but roll() reverted (e.g. bankroll fell between the
           // pre-flight read and the on-chain check). The GAS is held as bet credit
           // on the contract: it auto-funds the next roll AND is fully withdrawable
@@ -842,19 +1244,15 @@ defineMiniApp({
       }
     });
 
-    // "Reveal result": re-run the active bet's reveal after the settle poll timed
-    // out unresolved. On EVM this awaits the VRF callback; on N3 v2 it re-calls
-    // the PERMISSIONLESS settle(betId) (safe to retry — a revert simply means the
-    // reveal block isn't reached yet, and an "already settled" revert is
-    // reconciled by re-reading the Settled event). The wager is escrowed and the
-    // outcome is fixed once a later block exists, so this never loses funds.
+    // "Reveal result": re-run every durable unresolved exact id. This covers
+    // concurrent wagers without ever substituting another player's/latest event.
     ctx.framework.actions.register("recheckSettlement", async () => {
       if (app.mode.isGuest()) { guest.recheckSettlement(); return; }
-      if (!recheckActiveBet || isResolving.get()) return;
+      if (recheckPendingBets.size === 0 || isResolving.get()) return;
       isUnresolved.set(false);
       isResolving.set(true);
       lastStatus.set(ctx.t("statusRevealing"));
-      recheckActiveBet();
+      for (const retry of [...recheckPendingBets.values()]) retry();
     });
 
     return {
@@ -871,8 +1269,11 @@ defineMiniApp({
         houseLiquidity,
         directCredit,
         maxPayableStake,
+        walletConnected: app.chain.address,
+        walletGasBalance: gasBalance.balance,
         lastRoll,
         lastOutcome,
+        lastPayout,
         isResolving,
         isUnresolved,
         mode,
@@ -882,7 +1283,9 @@ defineMiniApp({
         // never let a mount-time gamefi read clobber the guest surface.
         if (app.mode.isGuest()) return;
         const net = await refreshNetwork();
-        await hydrateHistory(net);
+        await gasBalance.refresh();
+        const restored = await restorePendingBets(net);
+        if (restored === 0) await hydrateHistory(net);
       },
     };
   },

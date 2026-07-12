@@ -1,22 +1,27 @@
 /**
- * PlayArea.tsx -- AA Account Lab (v2 scene-driven rebuild)
+ * PlayArea.tsx -- AA Account Lab (product-owned account control center)
  *
- * Tool identity (graphite + emerald, clean/technical). The account shell IS the
- * scene: an assembly diagram (verifier + hook + backup owner + escape window)
- * that lights up segment by segment as the draft is completed, plus a live AA
- * Core readout once inspected. Inspect is the primary read; Register is the
- * primary write (guarded). The register form + timelock explainer + mainnet
- * caution are tucked into a drawer so the stage stays clean and primary.
+ * The warm account-control artwork is the primary scene. Recovery strategies,
+ * verifier identity, owner and escape window assemble into a deterministic
+ * AccountId; exact hashes and inspection stay in the secondary drawer.
  *
  * Real domain state from useAAAccountLab is bound throughout; the generic
  * "Execute/Ready" template is gone.
  */
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Clock3, KeyRound, Search, ShieldCheck, Wallet } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { AlertTriangle, Clock3, KeyRound, RefreshCw, Search, ShieldCheck, Wallet } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { CoinArt } from "@shared/art";
-import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { deriveRegistrationAccountIdHash } from "@shared/utils/aa-account";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
+import type { PendingAARegistration } from "./registration-recovery";
 import "./PlayArea.scss";
 
 interface P {
@@ -44,6 +49,7 @@ const TIMELOCK_PRESETS = [
   { key: "90d", seconds: "7776000" },
 ] as const;
 const ACCOUNT_ART = "account-control-center.webp";
+const ACCOUNT_MARK = "logo.webp";
 
 function formatTimelockDays(value: string): string {
   const seconds = Number.parseInt(value, 10);
@@ -52,8 +58,61 @@ function formatTimelockDays(value: string): string {
   return Number.isInteger(days) ? `${days}d` : `${days.toFixed(1)}d`;
 }
 
+function normalizedHash(value: string, allowZero = false): string {
+  const trimmed = value.trim();
+  if (!trimmed) return allowZero ? "0x0000000000000000000000000000000000000000" : "";
+  try {
+    const normalized = trimmed.startsWith("N")
+      ? addressToScriptHash(trimmed)
+      : normalizeScriptHash(trimmed);
+    if (!/^0x[0-9a-fA-F]{40}$/.test(normalized)) return "";
+    if (!allowZero && /^0x0{40}$/i.test(normalized)) return "";
+    return normalized.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function sanitizedHex(value: string): string {
+  const normalized = value.trim().replace(/^0x/i, "");
+  return normalized.length % 2 === 0 && /^[0-9a-f]*$/i.test(normalized) ? normalized : "";
+}
+
+function derivedAccountId(
+  verifier: string,
+  verifierParams: string,
+  hook: string,
+  backupOwner: string,
+  timelock: string,
+): string {
+  const verifierHash = normalizedHash(verifier);
+  const verifierParamsHex = sanitizedHex(verifierParams);
+  const hookHash = normalizedHash(hook, true);
+  const ownerHash = normalizedHash(backupOwner);
+  const seconds = Number(timelock);
+  if (
+    !verifierHash ||
+    !hookHash ||
+    !ownerHash ||
+    (verifierParams.trim() && !verifierParamsHex) ||
+    !Number.isInteger(seconds) ||
+    seconds <= 0
+  ) return "";
+  try {
+    return `0x${deriveRegistrationAccountIdHash({
+      verifierContractHash: verifierHash,
+      verifierParamsHex,
+      hookContractHash: hookHash,
+      backupOwnerAddress: ownerHash,
+      escapeTimelock: seconds,
+    })}`.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 export default function PlayArea({ t, state, dispatch }: P) {
-  const { str, bool } = useStateBindings(state);
+  const { str, bool, val } = useStateBindings(state);
 
   // Live AA Core read state
   const currentVerifier = str("currentVerifier");
@@ -63,19 +122,35 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const hasInspected = bool("hasInspected");
   const isInspecting = bool("isInspecting");
   const isSubmitting = bool("isSubmitting");
+  const isRecovering = bool("isRecovering");
   const connectedWallet = str("connectedWalletDisplay");
   const networkDisplay = str("networkDisplay");
   const aaCoreDisplay = str("aaCoreDisplay");
   const defaultVerifier = str("defaultVerifierDisplay");
+  const launchAccountId = str("launchAccountIdInput");
+  const launchVerifier = str("launchVerifierHash");
+  const launchVerifierParams = str("launchVerifierParamsHex");
+  const launchHook = str("launchHookHash");
+  const launchBackupOwner = str("launchBackupOwner");
+  const launchTimelock = str("launchEscapeTimelock");
+  const inspectedAccountId = str("inspectedAccountId");
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const lastError = str("lastError");
+  const lastSuccess = str("lastSuccess");
+  const pendingStorageHealthy = val<boolean>("pendingStorageHealthy", true) ?? true;
+  const pendingRegistration = val<PendingAARegistration | null>("pendingRegistration", null);
 
-  // Draft shell fields (local UI state — the real form lives in the composable,
-  // populated by dispatch args; this mirrors it for the assembly preview).
-  const [draftAccountId, setDraftAccountId] = useState("");
-  const [draftVerifier, setDraftVerifier] = useState(defaultVerifier);
-  const [draftHook, setDraftHook] = useState("");
-  const [draftBackupOwner, setDraftBackupOwner] = useState("");
-  const [draftTimelock, setDraftTimelock] = useState("2592000");
-  const [activePlan, setActivePlan] = useState<(typeof ACCOUNT_PLANS)[number]["key"]>("daily");
+  // Draft shell fields mirror the composable form; dispatch carries the exact
+  // values used by the visual derivation to the registration action.
+  const [draftAccountId, setDraftAccountId] = useState(launchAccountId);
+  const [draftVerifier, setDraftVerifier] = useState(launchVerifier || defaultVerifier);
+  const [draftVerifierParams, setDraftVerifierParams] = useState(launchVerifierParams);
+  const [draftHook, setDraftHook] = useState(launchHook);
+  const [draftBackupOwner, setDraftBackupOwner] = useState(launchBackupOwner);
+  const [draftTimelock, setDraftTimelock] = useState(launchTimelock || "2592000");
+  const [activePlan, setActivePlan] = useState<(typeof ACCOUNT_PLANS)[number]["key"]>(() =>
+    ACCOUNT_PLANS.find((plan) => plan.timelock === (launchTimelock || "2592000"))?.key ?? "daily",
+  );
 
   useEffect(() => {
     if (defaultVerifier && !draftVerifier.trim()) setDraftVerifier(defaultVerifier);
@@ -85,40 +160,49 @@ export default function PlayArea({ t, state, dispatch }: P) {
     if (connectedWallet && !draftBackupOwner.trim()) setDraftBackupOwner(connectedWallet);
   }, [connectedWallet, draftBackupOwner]);
 
-  // Assembly pulse: lights up each shell segment in sequence on register.
-  const [assemblyStep, setAssemblyStep] = useState(0);
-  const assemblyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (assemblyTimeout.current) clearTimeout(assemblyTimeout.current); }, []);
-
   // Readiness of each shell segment — drives the lit/unlit assembly diagram.
   const seg = useMemo(() => {
-    const hasVerifier = /^0x[0-9a-f]{40}$/i.test(draftVerifier.trim()) || draftVerifier.trim().length >= 10;
+    const verifierHash = normalizedHash(draftVerifier);
+    const canonicalWeb3Auth = normalizedHash(defaultVerifier);
+    const needsIdentityKey = Boolean(verifierHash && canonicalWeb3Auth && verifierHash === canonicalWeb3Auth);
+    const hasIdentityKey = /^04[0-9a-f]{128}$/i.test(sanitizedHex(draftVerifierParams));
+    const hasVerifier = Boolean(verifierHash) && (!needsIdentityKey || hasIdentityKey);
     const hasHook = draftHook.trim().length === 0 || /^0x[0-9a-f]{40}$/i.test(draftHook.trim()) || draftHook.trim().length >= 10;
     const hasBackup = draftBackupOwner.trim().length >= 6;
     const tl = Number(draftTimelock);
     const hasTimelock = Number.isInteger(tl) && tl > 0;
-    return { hasVerifier, hasHook, hasBackup, hasTimelock };
-  }, [draftVerifier, draftHook, draftBackupOwner, draftTimelock]);
+    return { hasVerifier, hasHook, hasBackup, hasTimelock, needsIdentityKey, hasIdentityKey };
+  }, [draftVerifier, draftVerifierParams, draftHook, draftBackupOwner, draftTimelock, defaultVerifier]);
 
   const filledCount = [seg.hasVerifier, seg.hasBackup, seg.hasTimelock].filter(Boolean).length;
   const shellReady = filledCount >= 3;
   const shellCharge = Math.max(10, Math.round((filledCount / 3) * 100));
   const escapeActive = /active|进行中/i.test(currentEscapeActive) && !/inactive|未触发|not available/i.test(currentEscapeActive);
   const activePlanDef = ACCOUNT_PLANS.find((plan) => plan.key === activePlan) ?? ACCOUNT_PLANS[0];
+  const draftDerivedAccountId = seg.hasVerifier
+    ? derivedAccountId(
+        draftVerifier,
+        draftVerifierParams,
+        draftHook,
+        draftBackupOwner,
+        draftTimelock,
+      )
+    : "";
 
   const handleInspect = () => {
     void dispatch("inspect", draftAccountId);
   };
   const handleConnect = () => { void dispatch("connect"); };
+  const handleRecover = () => { void dispatch("recoverRegistration"); };
   const applyPlan = (plan: typeof ACCOUNT_PLANS[number]) => {
-    if (busy) return;
+    if (draftLocked) return;
     setActivePlan(plan.key);
     setDraftTimelock(plan.timelock);
     if (defaultVerifier && !draftVerifier.trim()) setDraftVerifier(defaultVerifier);
     if (connectedWallet && !draftBackupOwner.trim()) setDraftBackupOwner(connectedWallet);
   };
   const applyTimelockPreset = (seconds: string) => {
-    if (busy) return;
+    if (draftLocked) return;
     setDraftTimelock(seconds);
     const matchingPlan = ACCOUNT_PLANS.find((plan) => plan.timelock === seconds);
     if (matchingPlan) setActivePlan(matchingPlan.key);
@@ -127,35 +211,24 @@ export default function PlayArea({ t, state, dispatch }: P) {
     if (connectedWallet) setDraftBackupOwner(connectedWallet);
   };
   const handleRegister = () => {
-    if (!shellReady) return;
-    // Sequential assembly pulse, then fire the real register dispatch.
-    if (assemblyTimeout.current) clearTimeout(assemblyTimeout.current);
-    setAssemblyStep(1);
-    const step = (n: number) => {
-      setAssemblyStep(n);
-      if (n < 4) {
-        assemblyTimeout.current = setTimeout(() => step(n + 1), 320);
-      } else {
-        assemblyTimeout.current = setTimeout(() => {
-          setAssemblyStep(0);
-          void dispatch(
-            "register",
-            draftAccountId,
-            draftVerifier,
-            "",
-            draftHook,
-            draftBackupOwner,
-            draftTimelock,
-          );
-        }, 360);
-      }
-    };
-    step(1);
+    if (!shellReady || pendingRegistration) return;
+    void dispatch(
+      "register",
+      draftAccountId,
+      draftVerifier,
+      draftVerifierParams,
+      draftHook,
+      draftBackupOwner,
+      draftTimelock,
+    );
   };
 
-  const busy = isInspecting || isSubmitting;
-  const shellStatusText = busy
-    ? isInspecting ? t("accountStageInspecting") : t("accountStageRegistering")
+  const busy = isInspecting || isSubmitting || isRecovering;
+  const draftLocked = busy || Boolean(pendingRegistration);
+  const shellStatusText = pendingRegistration
+    ? t("registrationPending")
+    : busy
+    ? isInspecting ? t("accountStageInspecting") : isRecovering ? t("registrationRecovering") : t("accountStageRegistering")
     : shellReady
       ? t("accountStageReady")
       : !seg.hasVerifier
@@ -173,31 +246,64 @@ export default function PlayArea({ t, state, dispatch }: P) {
     value: string,
     lit: boolean,
     accent: "id" | "verifier" | "backup" | "escape",
-    pulseActive: boolean,
+    empty = "—",
   ) => (
     <div
-      className={["aa-scene__seg", `aa-scene__seg--${accent}`, lit ? "is-lit" : "", pulseActive ? "is-pulsing" : ""].filter(Boolean).join(" ")}
+      className={["aa-scene__seg", `aa-scene__seg--${accent}`, lit ? "is-lit" : ""].filter(Boolean).join(" ")}
       data-ready={lit ? "true" : undefined}
     >
       <span className="aa-scene__seg-label">{label}</span>
-      <span className="aa-scene__seg-value">{value || "—"}</span>
+      <span className="aa-scene__seg-value">{value || empty}</span>
     </div>
   );
 
   const scene = (
-    <div className="aa-scene" data-state={busy ? "busy" : hasInspected ? "inspected" : shellReady ? "ready" : "idle"}>
+    <div className="aa-scene" data-state={pendingRegistration ? "pending" : busy ? "busy" : hasInspected ? "inspected" : shellReady ? "ready" : "idle"}>
+      {pendingRegistration && (
+        <div className="aa-pending-strip" role="status">
+          <Clock3 size={17} aria-hidden="true" />
+          <span><strong>{t("registrationPending")}</strong><small>{compactHash(pendingRegistration.txid)}</small></span>
+          <button type="button" onClick={connectedWallet ? handleRecover : handleConnect} disabled={isRecovering}>
+            {connectedWallet ? <RefreshCw size={15} aria-hidden="true" /> : <Wallet size={15} aria-hidden="true" />}
+            {connectedWallet ? t("checkConfirmation") : t("connectToRecover")}
+          </button>
+        </div>
+      )}
+      <figure className="aa-scene__visual">
+        <img src={ACCOUNT_ART} alt={t("accountHeroTitle")} loading="eager" decoding="async" />
+        <figcaption>
+          <span>{t("accountHeroEyebrow")}</span>
+          <strong>{draftDerivedAccountId ? compactHash(draftDerivedAccountId) : t("derivedAccountPending")}</strong>
+        </figcaption>
+      </figure>
       <div className="aa-scene__diagram" aria-label={t("accountStageEyebrow")}>
         <div className="aa-scene__core">
-          <div className={["aa-scene__core-ring", busy ? "is-spinning" : ""].filter(Boolean).join(" ")} />
-          <CoinArt size={30} variant="gas" />
+          <img className="aa-scene__core-mark" src={ACCOUNT_MARK} alt="" aria-hidden="true" />
           <span className="aa-scene__core-label">{t("accountShellLabel")}</span>
           <strong>{shellStatusText}</strong>
         </div>
         <div className="aa-scene__segments">
-          {renderSegment(t("verifier"), compactHash(draftVerifier), seg.hasVerifier, "verifier", assemblyStep === 1)}
-          {renderSegment(t("hook"), draftHook ? compactHash(draftHook) : t("noHook"), seg.hasHook, "id", assemblyStep === 2)}
-          {renderSegment(t("backupOwner"), compactHash(draftBackupOwner), seg.hasBackup, "backup", assemblyStep === 3)}
-          {renderSegment(t("timelock"), formatTimelockDays(draftTimelock), seg.hasTimelock, "escape", assemblyStep === 4)}
+          {renderSegment(
+            t("derivedAccountIdLabel"),
+            draftDerivedAccountId ? compactHash(draftDerivedAccountId) : "",
+            Boolean(draftDerivedAccountId),
+            "id",
+            t("derivedAccountAwait"),
+          )}
+          {renderSegment(
+            t("verifier"),
+            seg.needsIdentityKey && !seg.hasIdentityKey ? t("identityKeyRequired") : compactHash(draftVerifier),
+            seg.hasVerifier,
+            "verifier",
+          )}
+          {renderSegment(
+            t("backupOwner"),
+            draftBackupOwner ? compactHash(draftBackupOwner) : "",
+            seg.hasBackup,
+            "backup",
+            t("ownerNotSet"),
+          )}
+          {renderSegment(t("timelock"), formatTimelockDays(draftTimelock), seg.hasTimelock, "escape")}
         </div>
       </div>
       <div className="aa-scene__status">
@@ -209,18 +315,22 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <span style={{ width: `${shellCharge}%` }} />
         </div>
         <p>
-          {shellStatusText}
+          {lastError || lastSuccess || lastStatus || shellStatusText}
         </p>
       </div>
+      {!pendingStorageHealthy && (
+        <p className="aa-storage-warning" role="alert"><AlertTriangle size={15} /> {t("pendingStorageUnavailable")}</p>
+      )}
     </div>
   );
 
   // Live AA Core readout — the inspected verifier/hook/owner/escape state.
   const readout = hasInspected ? [
+    { label: t("accountId"), value: compactHash(inspectedAccountId) },
     { label: t("currentVerifier"), value: compactHash(currentVerifier), accent: true },
     { label: t("currentHook"), value: compactHash(currentHook) },
     { label: t("currentBackupOwner"), value: compactHash(currentBackupOwner) },
-    { label: t("currentEscapeStatus"), value: escapeActive ? `⚠ ${currentEscapeActive}` : currentEscapeActive, accent: escapeActive },
+    { label: t("currentEscapeStatus"), value: currentEscapeActive, accent: escapeActive },
   ] : [
     { label: t("network"), value: networkDisplay || "—" },
     { label: t("aaCore"), value: compactHash(aaCoreDisplay) },
@@ -230,13 +340,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
   const controls = (
     <div className="aa-controls">
-      <figure className="aa-visual-card">
-        <img src={ACCOUNT_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
-        <figcaption>
-          <span>{t("accountHeroEyebrow")}</span>
-          <strong>{t("accountHeroTitle")}</strong>
-        </figcaption>
-      </figure>
       <section className="aa-plan-panel" aria-label={t("accountPlanTitle")}>
         <header className="aa-plan-panel__head">
           <div>
@@ -253,7 +356,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
               type="button"
               className={["aa-plan-card", activePlan === plan.key ? "aa-plan-card--active" : null].filter(Boolean).join(" ")}
               onClick={() => applyPlan(plan)}
-              disabled={busy}
+              disabled={draftLocked}
             >
               <span className="aa-plan-card__label">{t(plan.label)}</span>
               <strong>{formatTimelockDays(plan.timelock)}</strong>
@@ -266,7 +369,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
         <div className="aa-owner-card">
           <span>{t("backupOwner")}</span>
           <strong>{draftBackupOwner ? compactHash(draftBackupOwner) : t("ownerNotSet")}</strong>
-          <button type="button" onClick={useConnectedWalletAsOwner} disabled={!connectedWallet || busy}>
+          <button type="button" onClick={useConnectedWalletAsOwner} disabled={!connectedWallet || draftLocked}>
             {t("useConnectedWallet")}
           </button>
         </div>
@@ -279,7 +382,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 type="button"
                 className={draftTimelock === preset.seconds ? "aa-timelock-chip aa-timelock-chip--active" : "aa-timelock-chip"}
                 onClick={() => applyTimelockPreset(preset.seconds)}
-                disabled={busy}
+                disabled={draftLocked}
               >
                 {preset.key}
               </button>
@@ -299,7 +402,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
         icon={<Search size={16} />}
         title={t("advancedAccountFields")}
         subtitle={t("advancedAccountFieldsHint")}
-        titleId="aa-drawer-identity"
       >
         <OpenUiTextField
           className="aa-drawer__field"
@@ -309,6 +411,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           placeholder={t("accountIdPlaceholder")}
           hint={t("accountIdHint")}
           mono
+          disabled={draftLocked}
         />
         {!connectedWallet && (
           <button type="button" className="aa-drawer__connect mx2-btn mx2-btn--ghost" onClick={handleConnect}>
@@ -322,7 +425,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
         icon={<ShieldCheck size={16} />}
         title={t("accountShellLabel")}
         subtitle={t("accountShellProgress", { count: filledCount })}
-        titleId="aa-drawer-shell"
       >
         <OpenUiTextField
           className="aa-drawer__field"
@@ -331,6 +433,17 @@ export default function PlayArea({ t, state, dispatch }: P) {
           onChange={(e) => setDraftVerifier(e.target.value)}
           placeholder={t("verifierPlaceholder")}
           mono
+          disabled={draftLocked}
+        />
+        <OpenUiTextField
+          className="aa-drawer__field"
+          label={t("verifierParams")}
+          value={draftVerifierParams}
+          onChange={(e) => setDraftVerifierParams(e.target.value)}
+          placeholder={t("verifierParamsPlaceholder")}
+          hint={seg.needsIdentityKey ? t("web3AuthPublicKeyHint") : t("verifierParamsHint")}
+          mono
+          disabled={draftLocked}
         />
         <OpenUiTextField
           className="aa-drawer__field"
@@ -339,6 +452,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           onChange={(e) => setDraftHook(e.target.value)}
           placeholder={t("hookPlaceholder")}
           mono
+          disabled={draftLocked}
         />
       </OpenUiPanel>
 
@@ -347,7 +461,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
         icon={<KeyRound size={16} />}
         title={t("backupOwner")}
         subtitle={formatTimelockDays(draftTimelock)}
-        titleId="aa-drawer-recovery"
       >
         <OpenUiTextField
           className="aa-drawer__field"
@@ -356,6 +469,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           onChange={(e) => setDraftBackupOwner(e.target.value)}
           placeholder={t("backupOwnerPlaceholder")}
           mono
+          disabled={draftLocked}
         />
         <OpenUiTextField
           className="aa-drawer__field"
@@ -366,13 +480,14 @@ export default function PlayArea({ t, state, dispatch }: P) {
           hint={t("timelockExplainer")}
           inputMode="numeric"
           mono
+          disabled={draftLocked}
         />
       </OpenUiPanel>
 
       <OpenUiNotice
         className="aa-drawer__caution"
         icon={<Clock3 size={16} />}
-        title={t("mainnetCaution")}
+        title={t("networkWriteCaution", { network: networkDisplay || t("network") })}
         type="warning"
       />
     </div>
@@ -392,15 +507,23 @@ export default function PlayArea({ t, state, dispatch }: P) {
           score={readout}
           actions={{
             primary: {
-              label: busy
-                ? (isInspecting ? "…" : t("accountStageRegistering"))
+              label: isRecovering
+                ? t("registrationRecovering")
+                : pendingRegistration
+                  ? connectedWallet ? t("checkConfirmation") : t("connectToRecover")
+                : busy
+                ? (isInspecting ? t("accountStageInspecting") : t("accountStageRegistering"))
                 : !connectedWallet ? t("connectWallet") : t("register"),
-              onClick: !connectedWallet ? handleConnect : handleRegister,
-              disabled: Boolean(connectedWallet) && !shellReady,
+              onClick: pendingRegistration
+                ? connectedWallet ? handleRecover : handleConnect
+                : !connectedWallet ? handleConnect : handleRegister,
+              disabled: busy || (!pendingRegistration && Boolean(connectedWallet) && !shellReady),
               loading: busy,
-              hint: shellReady || !connectedWallet ? undefined : t("registerBlocked"),
+              hint: pendingRegistration
+                ? t("registrationPendingHint")
+                : shellReady || !connectedWallet ? undefined : t("registerBlocked"),
             },
-            secondary: [{ label: t("inspect"), onClick: handleInspect, disabled: !draftAccountId.trim() || busy }],
+            secondary: [{ label: t("inspect"), onClick: handleInspect, disabled: !draftAccountId.trim() || draftLocked }],
           }}
           drawerToggleLabel={t("registerTitle")}
           drawer={{ title: t("registerTitle"), children: drawer }}

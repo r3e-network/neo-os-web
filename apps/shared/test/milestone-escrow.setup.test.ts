@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NotificationService } from "../services/NotificationService";
 import type { EventBus } from "../services/EventBus";
 import { createMiniAppFramework } from "../../../framework";
+import "../../milestone-escrow/src/main";
 
 /**
  * Milestone Escrow setup wiring — every registered action must run through
@@ -40,6 +41,8 @@ const harness = vi.hoisted(() => {
       approveMilestone: vi.fn(async () => {}),
       claimMilestone: vi.fn(async () => {}),
       cancelEscrow: vi.fn(async () => {}),
+      reclaimApprovedMilestone: vi.fn(async () => {}),
+      reclaimDirectAssetCredit: vi.fn(async () => {}),
       contractReady: observable(true),
       creatorEscrowCount: observable(0),
       beneficiaryEscrowCount: observable(0),
@@ -47,8 +50,22 @@ const harness = vi.hoisted(() => {
       completedCount: observable(0),
       creatorEscrows: observable([]),
       beneficiaryEscrows: observable([]),
+      isLoading: observable(false),
       isRefreshing: observable(false),
       isCreating: observable(false),
+      dataError: observable(""),
+      deploymentStatus: observable("ready"),
+      deploymentMessage: observable("ready"),
+      deploymentReady: observable(true),
+      fundingWritesEnabled: observable(true),
+      recoveryCapable: observable(true),
+      recoveryCreditError: observable(""),
+      gasRecoveryCredit: observable(0n),
+      neoRecoveryCredit: observable(0n),
+      isRecoveringCredit: observable(""),
+      reclaimingId: observable<string | null>(null),
+      pendingTxid: observable(""),
+      pendingOperation: observable(""),
       approvingId: observable<string | null>(null),
       claimingId: observable<string | null>(null),
       cancellingId: observable<string | null>(null),
@@ -119,19 +136,21 @@ const ACTION_ARGS: Record<string, unknown[]> = {
   refreshEscrows: [],
   connectWallet: [],
   createEscrow: [{ name: "x", beneficiary: "N", asset: "GAS", notes: "", milestones: [] }],
-  approveMilestone: [{ id: "1" }],
-  claimMilestone: [{ id: "1" }],
+  approveMilestone: [{ id: "1" }, 0],
+  claimMilestone: [{ id: "1" }, 0],
   cancelEscrow: [{ id: "1" }],
+  reclaimApprovedMilestone: [{ id: "1" }, 0],
+  reclaimDirectAssetCredit: ["GAS"],
 };
 
 describe("Milestone Escrow setup (app.notify.guard wiring)", () => {
-  beforeEach(async () => {
-    vi.resetModules();
+  beforeEach(() => {
+    const definition = harness.state.definition;
     harness.reset();
-    await import("../../milestone-escrow/src/main");
+    harness.state.definition = definition;
   });
 
-  it("registers all six actions", async () => {
+  it("registers all eight actions", async () => {
     const actions = new Map<string, ActionHandler>();
     const { ctx } = buildCtx(actions);
     await harness.state.definition?.setup?.(ctx);
@@ -181,7 +200,7 @@ describe("Milestone Escrow setup (app.notify.guard wiring)", () => {
     expect(emitted).toContainEqual({ message: "escrowCreated", type: "success" });
   });
 
-  it("approve, claim, and cancel emit their success toasts", async () => {
+  it("approve, claim, cancel, and recovery actions emit their success toasts", async () => {
     const actions = new Map<string, ActionHandler>();
     const { ctx, emitted } = buildCtx(actions);
     await harness.state.definition?.setup?.(ctx);
@@ -189,8 +208,16 @@ describe("Milestone Escrow setup (app.notify.guard wiring)", () => {
     await actions.get("approveMilestone")!(...ACTION_ARGS.approveMilestone);
     await actions.get("claimMilestone")!(...ACTION_ARGS.claimMilestone);
     await actions.get("cancelEscrow")!(...ACTION_ARGS.cancelEscrow);
+    await actions.get("reclaimApprovedMilestone")!(...ACTION_ARGS.reclaimApprovedMilestone);
+    await actions.get("reclaimDirectAssetCredit")!(...ACTION_ARGS.reclaimDirectAssetCredit);
 
     const successes = emitted.filter((n) => n.type === "success").map((n) => n.message);
-    expect(successes).toEqual(["approveSuccess", "claimSuccess", "cancelSuccess"]);
+    expect(successes).toEqual([
+      "approveSuccess",
+      "claimSuccess",
+      "cancelSuccess",
+      "reclaimApprovedSuccess",
+      "reclaimCreditSuccess",
+    ]);
   });
 });

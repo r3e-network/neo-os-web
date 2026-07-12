@@ -8,8 +8,8 @@
  * that was never distributed and "rollover" was a no-op. This composable now
  * drives the dedicated contract, a FOMO-style pot game where each key extends a
  * countdown, the pot grows on a rising bonding curve, and the LAST buyer wins
- * the entire pot — paid ATOMICALLY when settle() runs (permissionless, no
- * oracle, no off-chain keeper required).
+ * the entire pot as pull-payment credit when settle() runs (permissionless,
+ * no oracle, no off-chain keeper required).
  *
  * Contract interaction model (verified against MiniAppLastSurvivor.cs / ABI):
  *
@@ -38,9 +38,8 @@
  *        existing creditOf(player), and a stranded balance is reclaimable via
  *        withdraw (no funds are lost).
  *     settle() -> pot. PERMISSIONLESS. Once the round's countdown has expired it
- *        pays the recorded last buyer the entire pot atomically and advances to
- *        a fresh round. Anyone may call it; the on-chain last buyer is always the
- *        winner, regardless of who triggers the settle.
+ *        credits the recorded last buyer and advances to a fresh round. Anyone
+ *        may call it; the on-chain last buyer remains the winner.
  *     withdraw(account) -> credit. Pays the whole unused prepaid buy-credit back
  *        to the wallet ("CreditWithdrawn" event, state[1] = amount) — the
  *        recovery path when a deposit landed but buyKeys never completed.
@@ -64,8 +63,21 @@ import type { MiniAppFramework } from "@shared/react";
 import { formatNumber, formatAddress, fromFixed8 } from "@shared/utils/format";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
-import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { getMiniAppContractHash } from "@shared/constants/rpc";
+import {
+  createPendingPurchaseStore,
+  type PendingDeposit,
+  type PendingLastSurvivorOperation,
+  type PendingPurchase,
+  type PendingPurchaseScope,
+  type PendingSettlement,
+  type PendingWithdrawal,
+} from "../logic/pending-purchase-store";
+import {
+  readLastSurvivorTransactionOutcome,
+  type LastSurvivorTransactionOutcome,
+} from "../logic/last-survivor-rpc";
 
 // HistoryEvent type (extracted from HistoryList component)
 export interface HistoryEvent {
@@ -91,21 +103,85 @@ const KEY_PRICE_INCREMENT_BPS = 10n;
 
 /** Memo the contract requires on the buy-funding transfer. */
 const BUY_MEMO = "miniapp-lastsurvivor:buy";
+const PURCHASE_CONFIRM_TIMEOUT_MS = 45_000;
+const RECOVERY_RECHECK_TIMEOUT_MS = 12_000;
 
-/**
- * 24h cap on the displayed danger meter, in seconds. Mirrors the contract's
- * MAX_DURATION_MS (86_400_000 ms).
- */
-const MAX_DURATION_SECONDS = 86400;
+/** Final ten-minute pressure window used by the doomsday meter. */
+const DANGER_WINDOW_SECONDS = 600;
 
 /** The zero script hash a fresh round carries for lastBuyer (UInt160.Zero). */
 const ZERO_HASH = "0x0000000000000000000000000000000000000000";
 
 /** How many past rounds to rebuild into the history list (newest first). */
 const MAX_HISTORY_ROUNDS = 30;
+const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
+const HASH160_PATTERN = /^0x[0-9a-f]{40}$/;
+
+type NeoNetwork = "mainnet" | "testnet";
+
+interface BoundChainContext {
+  network: NeoNetwork;
+  contractHash: string;
+  playerAddress?: string;
+  playerHash?: string;
+}
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error ?? "");
+}
+
+interface EventConfirmationResult {
+  txid?: string;
+  event?: unknown;
+  verified?: boolean;
+}
+
+const normalizeTxid = (value: unknown): string => {
+  const raw = String(value ?? "").trim().toLowerCase();
+  return /^[0-9a-f]+$/i.test(raw) ? `0x${raw}` : raw;
+};
+
+function unwrapValue(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  if ("value" in value) return unwrapValue((value as { value?: unknown }).value);
+  return value;
+}
+
+/** Strict integer parser: unavailable or malformed chain data never becomes 0. */
+function strictBigInt(value: unknown): bigint | null {
+  const raw = unwrapValue(value);
+  if (typeof raw === "bigint") return raw;
+  if (typeof raw === "number") return Number.isSafeInteger(raw) ? BigInt(raw) : null;
+  if (typeof raw !== "string" || !/^-?(?:0|[1-9]\d*)$/.test(raw.trim())) return null;
+  try {
+    return BigInt(raw.trim());
+  } catch {
+    return null;
+  }
+}
+
+function strictBoolean(value: unknown): boolean | null {
+  const raw = unwrapValue(value);
+  if (raw === true || raw === false) return raw;
+  if (raw === 1 || raw === "1" || raw === "true") return true;
+  if (raw === 0 || raw === "0" || raw === "false") return false;
+  return null;
+}
+
+function explicitNeoNetwork(value: unknown): NeoNetwork | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "mainnet" || normalized === "neo-n3-mainnet") return "mainnet";
+  if (normalized === "testnet" || normalized === "neo-n3-testnet") return "testnet";
+  return null;
+}
+
+function normalizeHash160(value: unknown): string {
+  const raw = String(unwrapValue(value) ?? "").trim();
+  const direct = raw.toLowerCase();
+  if (HASH160_PATTERN.test(direct)) return direct;
+  const converted = addressToScriptHash(raw);
+  const normalized = String(converted || "").trim().toLowerCase();
+  return HASH160_PATTERN.test(normalized) ? normalized : "";
 }
 
 /**
@@ -136,6 +212,13 @@ export interface UseLastSurvivorOptions {
   app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Injectable application-log reader for deterministic product tests. */
+  transactionOutcomeReader?: (
+    network: unknown,
+    txid: unknown,
+    eventName: unknown,
+    contractHash: unknown,
+  ) => Promise<LastSurvivorTransactionOutcome>;
 }
 
 /**
@@ -164,16 +247,37 @@ interface RoundSnapshot {
 function parseRound(raw: unknown): RoundSnapshot | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const v = raw as Record<string, unknown>;
-  const lastBuyerRaw = String(v.lastBuyer ?? "");
+  const parsedRoundId = strictBigInt(v.roundId);
+  const potBase = strictBigInt(v.pot);
+  const totalKeys = strictBigInt(v.totalKeys);
+  const endTimeMs = strictBigInt(v.endTime);
+  const remainingSeconds = strictBigInt(v.remainingTime);
+  const settled = strictBoolean(v.settled);
+  const active = strictBoolean(v.active);
+  const lastBuyerRaw = String(unwrapValue(v.lastBuyer) ?? "").trim();
+  const roundIdNumber = parsedRoundId === null ? NaN : Number(parsedRoundId);
+  const endTimeNumber = endTimeMs === null ? NaN : Number(endTimeMs);
+  const remainingNumber = remainingSeconds === null ? NaN : Number(remainingSeconds);
+  if (
+    !Number.isSafeInteger(roundIdNumber) ||
+    roundIdNumber <= 0 ||
+    potBase === null || potBase < 0n ||
+    totalKeys === null || totalKeys < 0n ||
+    !Number.isSafeInteger(endTimeNumber) || endTimeNumber < 0 ||
+    !Number.isSafeInteger(remainingNumber) || remainingNumber < 0 ||
+    settled === null ||
+    active === null ||
+    (lastBuyerRaw && !isZeroAddress(lastBuyerRaw) && !normalizeHash160(lastBuyerRaw))
+  ) return null;
   return {
-    roundId: Number(parseBigInt(v.roundId)),
-    potBase: parseBigInt(v.pot),
-    totalKeys: parseBigInt(v.totalKeys),
-    lastBuyer: isZeroAddress(lastBuyerRaw) ? "" : lastBuyerRaw,
-    endTimeMs: Number(parseBigInt(v.endTime)),
-    settled: Boolean(v.settled),
-    active: Boolean(v.active),
-    remainingSeconds: Number(parseBigInt(v.remainingTime)),
+    roundId: roundIdNumber,
+    potBase,
+    totalKeys,
+    lastBuyer: isZeroAddress(lastBuyerRaw) ? "" : normalizeHash160(lastBuyerRaw),
+    endTimeMs: endTimeNumber,
+    settled,
+    active,
+    remainingSeconds: remainingNumber,
   };
 }
 
@@ -181,7 +285,11 @@ function parseRound(raw: unknown): RoundSnapshot | null {
 // Composable
 // ============================================================================
 
-export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
+export function useLastSurvivor({
+  app,
+  t,
+  transactionOutcomeReader = readLastSurvivorTransactionOutcome,
+}: UseLastSurvivorOptions) {
   // ── Game State ──────────────────────────────────────────────────────
   const roundId = createObservable(0);
   const totalPot = createObservable(0);
@@ -196,15 +304,413 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
   const isLoading = createObservable(false);
   const totalKeysInRound = createObservable(0n);
   const roundDataAvailable = createObservable(false);
+  const userKeysAvailable = createObservable(false);
+  const creditAvailable = createObservable(false);
+  const historyAvailable = createObservable(false);
+  const quoteAvailable = createObservable(false);
   const serviceNotice = createObservable("");
   /** Connected wallet's unused prepaid buy-credit (human GAS). */
   const prepaidCredit = createObservable(0);
+  /** Any exact transaction recovery is unresolved; financial actions stay locked. */
+  const purchasePending = createObservable(false);
+  const pendingOperationKind = createObservable("");
+  const pendingTransactionId = createObservable("");
+  const recoveryNotice = createObservable("");
+  const storageHealthy = createObservable(true);
+  const pendingPurchaseStore = createPendingPurchaseStore(app.storage.local);
+  let recoveryInFlight: Promise<boolean> | null = null;
 
   // Connected wallet address (synced from main.tsx / chain).
   const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
+  };
+
+  const requireBoundContext = async (requireWallet: boolean): Promise<BoundChainContext> => {
+    const detected = explicitNeoNetwork(await app.chain.detectNetwork());
+    const launched = explicitNeoNetwork(app.platform.launch.network);
+    if (!detected || (launched && launched !== detected)) {
+      throw new Error(t("chainBindingMismatch"));
+    }
+    const contractHash = normalizeHash160(app.chain.contractAddress.get());
+    const expectedContract = normalizeHash160(
+      getMiniAppContractHash(LAST_SURVIVOR_APP_ID, detected),
+    );
+    if (!contractHash || !expectedContract || contractHash !== expectedContract) {
+      throw new Error(t("chainBindingMismatch"));
+    }
+    if (!requireWallet) return { network: detected, contractHash };
+
+    const ensuredAddress = String(await app.chain.ensureWallet() ?? "").trim();
+    const boundAddress = String(app.chain.address.get() ?? ensuredAddress).trim();
+    const ensuredHash = normalizeHash160(ensuredAddress);
+    const boundHash = normalizeHash160(boundAddress);
+    if (!ensuredHash || !boundHash || ensuredHash !== boundHash) {
+      throw new Error(t("walletBindingMismatch"));
+    }
+    setAddress(boundAddress);
+    return {
+      network: detected,
+      contractHash,
+      playerAddress: boundAddress,
+      playerHash: boundHash,
+    };
+  };
+
+  const pendingScope = (context: BoundChainContext): PendingPurchaseScope => ({
+    network: context.network,
+    contract: context.contractHash,
+    player: context.playerHash ?? "",
+  });
+
+  const eventMatchesTransaction = (
+    event: unknown,
+    record: PendingLastSurvivorOperation,
+  ): boolean => {
+    if (!event || typeof event !== "object") return false;
+    const metadata = event as Record<string, unknown>;
+    const eventTxid = normalizeTxid(
+      metadata.tx_hash ?? metadata.txid ?? metadata.transaction_hash ?? metadata.transactionHash,
+    );
+    const eventName = String(metadata.event_name ?? metadata.eventName ?? "").trim();
+    const expectedEventName = record.kind === "purchase"
+      ? "KeysBought"
+      : record.kind === "deposit"
+        ? "Credited"
+        : record.kind === "settle"
+          ? "RoundSettled"
+          : "CreditWithdrawn";
+    return (
+      (!eventTxid || eventTxid === normalizeTxid(record.txid)) &&
+      (!eventName || eventName === expectedEventName)
+    );
+  };
+
+  const matchesPendingPurchase = (
+    event: unknown,
+    record: PendingPurchase,
+  ): boolean => {
+    if (!eventMatchesTransaction(event, record)) return false;
+    const eventRound = strictBigInt(eventValue(event, 0));
+    const quotedRound = strictBigInt(record.roundId);
+    const eventCount = strictBigInt(eventValue(event, 2));
+    const eventCost = strictBigInt(eventValue(event, 3));
+    return (
+      eventRound !== null &&
+      quotedRound !== null &&
+      eventCount !== null &&
+      eventCost !== null &&
+      // A permissionless settle can roll the round forward between quote and
+      // inclusion. The exact tx's KeysBought event is authoritative; accepting
+      // a newer round prevents a successful purchase from wedging recovery.
+      eventRound >= quotedRound &&
+      normalizeHash160(eventValue(event, 1)) === record.player &&
+      eventCount.toString() === record.count &&
+      eventCost > 0n
+    );
+  };
+
+  const matchesPendingDeposit = (event: unknown, record: PendingDeposit): boolean => {
+    if (!eventMatchesTransaction(event, record)) return false;
+    const amount = strictBigInt(eventValue(event, 1));
+    const balance = strictBigInt(eventValue(event, 2));
+    return (
+      normalizeHash160(eventValue(event, 0)) === record.player &&
+      amount?.toString() === record.amount &&
+      balance !== null &&
+      balance >= BigInt(record.expectedCredit)
+    );
+  };
+
+  const matchesPendingSettlement = (event: unknown, record: PendingSettlement): boolean => {
+    if (!eventMatchesTransaction(event, record)) return false;
+    return (
+      strictBigInt(eventValue(event, 0))?.toString() === record.roundId &&
+      normalizeHash160(eventValue(event, 1)) === record.winner &&
+      strictBigInt(eventValue(event, 2))?.toString() === record.pot &&
+      strictBigInt(eventValue(event, 3))?.toString() === record.nextRoundId
+    );
+  };
+
+  const matchesPendingWithdrawal = (event: unknown, record: PendingWithdrawal): boolean => {
+    if (!eventMatchesTransaction(event, record)) return false;
+    return (
+      normalizeHash160(eventValue(event, 0)) === record.player &&
+      strictBigInt(eventValue(event, 1))?.toString() === record.beforeCredit
+    );
+  };
+
+  const readUnsigned = async (operation: string, args: ReturnType<typeof app.chain.arg.integer>[] | unknown[] = []) => {
+    const value = strictBigInt(await app.chain.readRaw(operation, args as never));
+    if (value === null || value < 0n) throw new Error(t("contractReadUnavailable"));
+    return value;
+  };
+
+  const confirmOperationReadback = async (
+    record: PendingLastSurvivorOperation,
+    exactEvent: unknown,
+  ): Promise<boolean> => {
+    if (record.kind === "purchase") {
+      if (!matchesPendingPurchase(exactEvent, record)) return false;
+      const eventRound = strictBigInt(eventValue(exactEvent, 0));
+      if (eventRound === null || eventRound <= 0n) return false;
+      const round = parseRound(await app.chain.readRaw("getRound", [
+        app.chain.arg.integer(eventRound),
+      ]));
+      const playerKeys = await readUnsigned("playerKeys", [
+        app.chain.arg.integer(eventRound),
+        app.chain.arg.hash160(record.player),
+      ]);
+      const eventPot = strictBigInt(eventValue(exactEvent, 4));
+      return Boolean(
+        round &&
+        BigInt(round.roundId) === eventRound &&
+        round.totalKeys >= BigInt(record.count) &&
+        playerKeys >= BigInt(record.count) &&
+        (eventPot === null || round.potBase >= eventPot),
+      );
+    }
+    if (record.kind === "deposit") {
+      if (!matchesPendingDeposit(exactEvent, record)) return false;
+      const credit = await readUnsigned("creditOf", [app.chain.arg.hash160(record.player)]);
+      return credit >= BigInt(record.expectedCredit);
+    }
+    if (record.kind === "settle") {
+      if (!matchesPendingSettlement(exactEvent, record)) return false;
+      const [settledRound, currentRound] = await Promise.all([
+        app.chain.readRaw("getRound", [app.chain.arg.integer(record.roundId)]),
+        app.chain.readRaw("getCurrentRound", []),
+      ]);
+      const historical = parseRound(settledRound);
+      const current = parseRound(currentRound);
+      return Boolean(
+        historical?.settled === true &&
+        historical.roundId === Number(record.roundId) &&
+        historical.lastBuyer === record.winner &&
+        historical.potBase.toString() === record.pot &&
+        current &&
+        current.roundId >= Number(record.nextRoundId),
+      );
+    }
+    if (!matchesPendingWithdrawal(exactEvent, record)) return false;
+    const credit = await readUnsigned("creditOf", [app.chain.arg.hash160(record.player)]);
+    return credit === 0n;
+  };
+
+  const eventNameFor = (record: PendingLastSurvivorOperation): string => {
+    if (record.kind === "purchase") return "KeysBought";
+    if (record.kind === "deposit") return "Credited";
+    if (record.kind === "settle") return "RoundSettled";
+    return "CreditWithdrawn";
+  };
+
+  const showPending = (record: PendingLastSurvivorOperation) => {
+    purchasePending.set(true);
+    pendingOperationKind.set(record.kind);
+    pendingTransactionId.set(record.txid);
+    recoveryNotice.set(t("transactionRecoveryPending"));
+  };
+
+  const clearPendingState = () => {
+    purchasePending.set(false);
+    pendingOperationKind.set("");
+    pendingTransactionId.set("");
+    recoveryNotice.set("");
+  };
+
+  const persistPending = (
+    scope: PendingPurchaseScope,
+    input: Parameters<typeof pendingPurchaseStore.save>[1],
+  ): PendingLastSurvivorOperation => {
+    try {
+      const record = pendingPurchaseStore.save(scope, input);
+      storageHealthy.set(true);
+      showPending(record);
+      return record;
+    } catch {
+      const recovered = (() => {
+        try { return pendingPurchaseStore.load(scope); } catch { return null; }
+      })();
+      if (recovered) {
+        showPending(recovered);
+      } else {
+        purchasePending.set(true);
+        pendingOperationKind.set("kind" in input ? input.kind : "purchase");
+        pendingTransactionId.set(normalizeTxid(input.txid));
+      }
+      storageHealthy.set(false);
+      const txid = recovered?.txid || normalizeTxid(input.txid);
+      const message = t("recoveryStorageUnavailableAfterBroadcast", { txid });
+      recoveryNotice.set(message);
+      throw new Error(message);
+    }
+  };
+
+  const loadPendingRecord = (scope: PendingPurchaseScope) => {
+    try {
+      const record = pendingPurchaseStore.load(scope);
+      if (record) {
+        // load() can intentionally return the exact in-memory post-broadcast
+        // record when durable storage became unavailable after preflight.
+        storageHealthy.set(pendingPurchaseStore.isDurable(scope, record));
+      } else {
+        try {
+          pendingPurchaseStore.assertAvailable();
+          storageHealthy.set(true);
+        } catch {
+          storageHealthy.set(false);
+        }
+      }
+      return record;
+    } catch {
+      storageHealthy.set(false);
+      purchasePending.set(true);
+      recoveryNotice.set(t("recoveryRecordInvalid"));
+      throw new Error(t("recoveryRecordInvalid"));
+    }
+  };
+
+  const clearPersistedPending = (scope: PendingPurchaseScope): boolean => {
+    try {
+      pendingPurchaseStore.clear(scope);
+      storageHealthy.set(true);
+      clearPendingState();
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      purchasePending.set(true);
+      recoveryNotice.set(t("recoveryStorageUnavailable"));
+      return false;
+    }
+  };
+
+  const confirmSubmittedOperation = async (
+    scope: PendingPurchaseScope,
+    record: PendingLastSurvivorOperation,
+    result: EventConfirmationResult,
+    timeoutMs = PURCHASE_CONFIRM_TIMEOUT_MS,
+  ): Promise<boolean> => {
+    let exactEvent = result.verified === true && result.event
+      ? result.event
+      : null;
+    if (exactEvent && !(await confirmOperationReadback(record, exactEvent))) {
+      exactEvent = null;
+    }
+    if (!exactEvent) {
+      const recovered = await app.events.waitFor(
+        record.txid,
+        eventNameFor(record),
+        timeoutMs,
+      );
+      if (recovered && await confirmOperationReadback(record, recovered)) {
+        exactEvent = recovered;
+      }
+    }
+    if (!exactEvent) {
+      const outcome = await transactionOutcomeReader(
+        record.network,
+        record.txid,
+        eventNameFor(record),
+        record.contract,
+      );
+      if (outcome.state === "fault") {
+        clearPersistedPending(scope);
+        recoveryNotice.set(t("transactionFault"));
+        throw new Error(t("transactionFault"));
+      }
+      if (outcome.state === "halt" && outcome.event) {
+        if (await confirmOperationReadback(record, outcome.event)) exactEvent = outcome.event;
+      } else if (outcome.state === "halt") {
+        recoveryNotice.set(t("transactionEventMismatch"));
+      }
+    }
+    if (!exactEvent) {
+      showPending(record);
+      recoveryNotice.set(t("transactionRecoveryStillPending"));
+      return false;
+    }
+    return clearPersistedPending(scope);
+  };
+
+  const recoverPendingPurchaseForScope = async (
+    scope: PendingPurchaseScope,
+    timeoutMs = RECOVERY_RECHECK_TIMEOUT_MS,
+  ): Promise<boolean> => {
+    let record: PendingLastSurvivorOperation | null = null;
+    try {
+      record = loadPendingRecord(scope);
+    } catch {
+      storageHealthy.set(false);
+      purchasePending.set(true);
+      recoveryNotice.set(t("recoveryRecordInvalid"));
+      return false;
+    }
+    if (!record) {
+      clearPendingState();
+      return false;
+    }
+    showPending(record);
+    if (recoveryInFlight) return recoveryInFlight;
+    recoveryInFlight = (async () => {
+      try {
+        const exactEvent = await app.events.waitFor(
+          record.txid,
+          eventNameFor(record),
+          timeoutMs,
+        );
+        let recoveredEvent = exactEvent;
+        if (!recoveredEvent) {
+          const outcome = await transactionOutcomeReader(
+            record.network,
+            record.txid,
+            eventNameFor(record),
+            record.contract,
+          );
+          if (outcome.state === "fault") {
+            clearPersistedPending(scope);
+            recoveryNotice.set(t("transactionFault"));
+            return false;
+          }
+          if (outcome.state === "halt") recoveredEvent = outcome.event;
+          if (outcome.state === "halt" && !outcome.event) {
+            recoveryNotice.set(t("transactionEventMismatch"));
+          }
+        }
+        if (!recoveredEvent || !(await confirmOperationReadback(record, recoveredEvent))) {
+          recoveryNotice.set(t("transactionRecoveryStillPending"));
+          return false;
+        }
+        if (!clearPersistedPending(scope)) return false;
+        recoveryNotice.set(t("transactionRecoveryConfirmed"));
+        return true;
+      } catch {
+        recoveryNotice.set(t("transactionRecoveryStillPending"));
+        return false;
+      } finally {
+        recoveryInFlight = null;
+      }
+    })();
+    return recoveryInFlight;
+  };
+
+  const recoverPendingPurchase = async (): Promise<boolean> => {
+    if (app.mode.isGuest()) return false;
+    const playerAddress = address.get() || app.chain.address.get() || "";
+    const playerHash = normalizeHash160(playerAddress);
+    if (!playerHash) {
+      clearPendingState();
+      return false;
+    }
+    try {
+      const context = await requireBoundContext(false);
+      return recoverPendingPurchaseForScope(
+        pendingScope({ ...context, playerAddress, playerHash }),
+      );
+    } catch {
+      serviceNotice.set(t("chainBindingMismatch"));
+      return false;
+    }
   };
 
   // ── Timer State ─────────────────────────────────────────────────────
@@ -226,9 +732,10 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
 
   const dangerLevel = createDerived(() => {
     const seconds = timeRemainingSeconds.get();
-    if (seconds > 7200) return "low";
-    if (seconds > 3600) return "medium";
-    if (seconds > 600) return "high";
+    if (seconds <= 0) return "low";
+    if (seconds > DANGER_WINDOW_SECONDS) return "low";
+    if (seconds > 300) return "medium";
+    if (seconds > 60) return "high";
     return "critical";
   }, [timeRemainingSeconds]);
 
@@ -243,27 +750,43 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
   }, [dangerLevel]);
 
   const dangerProgress = createDerived(() => {
-    if (!timeRemainingSeconds.get()) return 0;
-    return Math.min(100, (timeRemainingSeconds.get() / MAX_DURATION_SECONDS) * 100);
+    const seconds = timeRemainingSeconds.get();
+    if (seconds <= 0) return 0;
+    const remainingShare = Math.min(seconds, DANGER_WINDOW_SECONDS) / DANGER_WINDOW_SECONDS;
+    return Math.max(0, Math.min(100, (1 - remainingShare) * 100));
   }, [timeRemainingSeconds]);
 
-  const shouldPulse = createDerived(() => timeRemainingSeconds.get() <= 600, [timeRemainingSeconds]);
+  const shouldPulse = createDerived(() => {
+    const seconds = timeRemainingSeconds.get();
+    return seconds > 0 && seconds <= 60;
+  }, [timeRemainingSeconds]);
 
   const updateNow = () => { now.set(Date.now()); };
 
   // ── Formatted display values ──────────────────────────────────────
   const lastBuyerLabel = createDerived(
-    () => lastBuyer.get() ? formatAddress(lastBuyer.get() ?? "") : t("notAvailable"),
-    [lastBuyer],
+    () => !roundDataAvailable.get()
+      ? t("notAvailable")
+      : lastBuyer.get()
+        ? formatAddress(lastBuyer.get() ?? "")
+        : t("awaitingFirstKey"),
+    [lastBuyer, roundDataAvailable],
   );
-  const formattedRound = createDerived(() => `#${roundId.get()}`, [roundId]);
+  const formattedRound = createDerived(
+    () => roundDataAvailable.get() ? `#${roundId.get()}` : t("notAvailable"),
+    [roundId, roundDataAvailable],
+  );
   const totalPotDisplay = createDerived(
-    () => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`,
-    [totalPot],
+    () => roundDataAvailable.get()
+      ? `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`
+      : t("notAvailable"),
+    [totalPot, roundDataAvailable],
   );
   const roundStatusDisplay = createDerived(
-    () => isRoundActive.get() ? t("activeRound") : t("inactiveRound"),
-    [isRoundActive],
+    () => !roundDataAvailable.get()
+      ? t("roundStateUnavailable")
+      : isRoundActive.get() ? t("activeRound") : t("inactiveRound"),
+    [isRoundActive, roundDataAvailable],
   );
 
   // Round-total keys as a plain number for binding (the raw value is a bigint
@@ -278,24 +801,29 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
   // The user's share of the round, as a percentage of the round's real total
   // keys. Guards divide-by-zero (returns 0 when no keys have been sold yet).
   const userSharePercent = createDerived(() => {
+    if (!userKeysAvailable.get() || !roundDataAvailable.get()) return 0;
     const total = Number(totalKeysInRound.get());
     if (total <= 0) return 0;
     return (userKeys.get() / total) * 100;
-  }, [totalKeysInRound, userKeys]);
+  }, [totalKeysInRound, userKeys, userKeysAvailable, roundDataAvailable]);
 
   // The round has ended on chain (timer expired with a recorded last buyer and a
   // non-empty pot) and still needs settle() to pay the winner and roll forward.
   // The PlayArea surfaces this as the settle affordance.
   const needsLifecycleSync = createDerived(() => {
+    const countdownExpired = endTime.get() > 0 && timeRemainingSeconds.get() <= 0;
     return (
-      !isRoundActive.get() &&
+      (!isRoundActive.get() || countdownExpired) &&
       !!lastBuyer.get() &&
       totalPot.get() > 0
     );
-  }, []);
+  }, [isRoundActive, endTime, timeRemainingSeconds, lastBuyer, totalPot]);
 
   /** True when the connected wallet has unused prepaid buy-credit to withdraw. */
-  const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
+  const hasCredit = createDerived(
+    () => creditAvailable.get() && prepaidCredit.get() > 0,
+    [prepaidCredit, creditAvailable],
+  );
 
   // ── Key cost formula (pure frontend math, mirrors the contract) ────
   const calculateKeyCostFormula = (count: bigint, currentTotalKeys: bigint): bigint => {
@@ -312,6 +840,12 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     return calculateKeyCostFormula(count, totalKeysInRound.get());
   }, [keyCount, totalKeysInRound]);
 
+  /** Exact human-GAS estimate used by the transaction pre-flight gate. */
+  const estimatedCostGas = createDerived(
+    () => fromBaseUnits(estimatedCostRaw.get()),
+    [estimatedCostRaw],
+  );
+
   const estimatedCost = createDerived(() => fromBaseUnits(estimatedCostRaw.get()).toFixed(2), [estimatedCostRaw]);
 
   // ── Data Loading (direct chain reads) ──────────────────────────────
@@ -321,7 +855,7 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
    * Map into the observables the UI binds; returns the remaining time in
    * seconds (already the contract's unit) so loadAll can derive endTime.
    */
-  const loadRoundData = async (): Promise<number> => {
+  const loadRoundData = async (): Promise<number | null> => {
     try {
       const raw = await app.chain.readRaw("getCurrentRound", []);
       const round = parseRound(raw);
@@ -340,59 +874,86 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
       }
       roundDataAvailable.set(false);
       serviceNotice.set(t("roundStateUnavailable"));
-      return 0;
+      return null;
     } catch (e) {
       roundDataAvailable.set(false);
       serviceNotice.set(t("roundStateUnavailable"));
       console.warn("[useLastSurvivor] loadRoundData failed:", errorMessage(e));
-      return 0;
+      return null;
     }
   };
 
   /**
    * Load the connected wallet's key count for the current round via
-   * playerKeys(roundId, player). A missing wallet / round yields 0.
+   * playerKeys(roundId, player). Missing identity or a failed read is marked
+   * unavailable; it is never presented as a verified zero-key position.
    */
   const loadUserKeys = async () => {
     const currentRound = roundId.get();
     const walletAddr = address.get();
-    const walletHash = walletAddr ? addressToScriptHash(walletAddr) || null : null;
+    const walletHash = normalizeHash160(walletAddr);
     if (!currentRound || !walletHash) {
-      userKeys.set(0);
+      userKeysAvailable.set(false);
       return;
     }
     try {
-      const keys = await app.chain.readRaw("playerKeys", [
+      const keys = strictBigInt(await app.chain.readRaw("playerKeys", [
         app.chain.arg.integer(currentRound),
         app.chain.arg.hash160(walletHash),
-      ]);
-      userKeys.set(Number(parseBigInt(keys)));
+      ]));
+      const numeric = keys === null ? NaN : Number(keys);
+      if (keys === null || keys < 0n || !Number.isSafeInteger(numeric)) {
+        throw new Error(t("contractReadUnavailable"));
+      }
+      userKeys.set(numeric);
+      userKeysAvailable.set(true);
     } catch (e) {
       console.warn("[useLastSurvivor] loadUserKeys failed:", errorMessage(e));
-      userKeys.set(0);
+      userKeysAvailable.set(false);
     }
   };
 
   /**
    * Refresh the connected wallet's unused prepaid buy-credit from
-   * creditOf(account). Base units → human GAS. A missing wallet yields 0; a read
-   * failure leaves the last known value (the withdraw path re-reads before
-   * acting anyway).
+   * creditOf(account). Base units → human GAS. Missing identity or a failed
+   * read is explicitly unavailable and leaves the last known amount untouched.
    */
   const loadCredit = async () => {
     const walletAddr = address.get();
-    const walletHash = walletAddr ? addressToScriptHash(walletAddr) || null : null;
+    const walletHash = normalizeHash160(walletAddr);
     if (!walletHash) {
-      prepaidCredit.set(0);
+      creditAvailable.set(false);
       return;
     }
     try {
-      const raw = await app.chain.readRaw("creditOf", [
+      const raw = strictBigInt(await app.chain.readRaw("creditOf", [
         app.chain.arg.hash160(walletHash),
-      ]);
-      prepaidCredit.set(fromFixed8(parseBigInt(raw)));
+      ]));
+      if (raw === null || raw < 0n) throw new Error(t("contractReadUnavailable"));
+      prepaidCredit.set(fromFixed8(raw));
+      creditAvailable.set(true);
     } catch (e) {
       console.warn("[useLastSurvivor] creditOf read failed:", errorMessage(e));
+      creditAvailable.set(false);
+    }
+  };
+
+  const loadAuthoritativeQuote = async (countInput = keyCount.get()): Promise<bigint | null> => {
+    const count = Number(countInput);
+    if (!Number.isInteger(count) || count <= 0 || count > 1000) {
+      quoteAvailable.set(false);
+      return null;
+    }
+    try {
+      const quote = strictBigInt(await app.chain.readRaw("currentKeyCost", [
+        app.chain.arg.integer(count),
+      ]));
+      if (quote === null || quote <= 0n) throw new Error(t("contractReadUnavailable"));
+      quoteAvailable.set(true);
+      return quote;
+    } catch {
+      quoteAvailable.set(false);
+      return null;
     }
   };
 
@@ -407,6 +968,7 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
       const current = roundId.get();
       if (current <= 1) {
         history.set([]);
+        historyAvailable.set(true);
         return;
       }
 
@@ -436,8 +998,12 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
       );
 
       const items: HistoryEvent[] = [];
+      if (results.some((round) => round === null)) {
+        historyAvailable.set(false);
+        return;
+      }
       for (const round of results) {
-        if (!round) continue;
+        if (!round) return;
         // A finished round with a winner + pot is a settled win. A round with no
         // keys / no buyer never produced a winner and is skipped.
         if (round.totalKeys <= 0n || !round.lastBuyer || round.potBase <= 0n) continue;
@@ -453,9 +1019,10 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
 
       // Newest round first.
       history.set(items.sort((a, b) => b.sortKey - a.sortKey));
+      historyAvailable.set(true);
     } catch (e) {
       console.warn("[useLastSurvivor] loadHistory failed:", errorMessage(e));
-      history.set([]);
+      historyAvailable.set(false);
     }
   };
 
@@ -464,6 +1031,27 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     if (isNaN(num) || num <= 0) return t("invalidKeyCount");
     if (num > 1000) return t("maxKeyCountExceeded");
     return null;
+  };
+
+  /**
+   * Probe the player-facing read/recovery ABI rather than an admin method.
+   * This proves that the UI can quote keys and inspect recoverable credit; it
+   * deliberately does NOT claim that an older deployment has the same payout
+   * implementation as the checksum-matched TestNet v1.1 generation.
+   */
+  const hasRecoveryReadAbi = async (): Promise<boolean> => {
+    try {
+      const accountHash = normalizeHash160(address.get()) || ZERO_HASH;
+      const [credit, cost] = await Promise.all([
+        app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
+        app.chain.readRaw("currentKeyCost", [app.chain.arg.integer(1)]),
+      ]);
+      const parsedCredit = strictBigInt(credit);
+      const parsedCost = strictBigInt(cost);
+      return parsedCredit !== null && parsedCredit >= 0n && parsedCost !== null && parsedCost > 0n;
+    } catch {
+      return false;
+    }
   };
 
   /**
@@ -477,12 +1065,35 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     isLoading.set(true);
     try {
       setAddress(app.chain.address.get() ?? address.get() ?? null);
+      try {
+        await requireBoundContext(false);
+      } catch {
+        roundDataAvailable.set(false);
+        userKeysAvailable.set(false);
+        creditAvailable.set(false);
+        quoteAvailable.set(false);
+        historyAvailable.set(false);
+        serviceNotice.set(t("chainBindingMismatch"));
+        return;
+      }
+      if (!(await hasRecoveryReadAbi())) {
+        roundDataAvailable.set(false);
+        quoteAvailable.set(false);
+        serviceNotice.set(t("contractUpgradeRequired"));
+        await loadCredit();
+        return;
+      }
+      await recoverPendingPurchase();
       const remainingSeconds = await loadRoundData();
-      const endTimeMs = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
-      endTime.set(endTimeMs);
-      await loadUserKeys();
-      await loadCredit();
-      await loadHistory();
+      if (remainingSeconds !== null) {
+        const endTimeMs = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
+        endTime.set(endTimeMs);
+        await Promise.all([loadUserKeys(), loadHistory()]);
+      } else {
+        userKeysAvailable.set(false);
+        historyAvailable.set(false);
+      }
+      await Promise.all([loadCredit(), loadAuthoritativeQuote()]);
     } finally {
       isLoading.set(false);
     }
@@ -493,13 +1104,10 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
   /**
    * Buy `count` keys against the standalone contract.
    *
-   * Two signed steps, both by the player:
-   *   1. DEPOSIT — transfer the cost in GAS to the contract with the
-   *      "miniapp-lastsurvivor:buy" memo, crediting the player's prepaid
-   *      balance. The cost is the rising bonding-curve price for `count` keys at
-   *      the round's current total (frontend formula == contract math).
-   *   2. buyKeys(player, count) — consumes that credit, adds the cost to the
-   *      pot, makes the player the last buyer, and extends the countdown.
+   * The preferred host path batches the GAS shortfall transfer and buyKeys in
+   * ONE signed transaction. This removes the one-block race where a 30-second
+   * round could expire after a deposit but before a separate buy. Minimal hosts
+   * without batch support retain the confirmed-deposit fallback.
    *
    * If step 1 succeeds but step 2 fails, the prepaid credit simply remains on
    * the contract under the player and is reused on the next buy — there is no
@@ -510,6 +1118,9 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
    */
   const buyKeys = async (count: string) => {
     if (isBuyingKeys.get()) return;
+    if (!roundDataAvailable.get()) {
+      throw new Error(serviceNotice.get() || t("keyPurchaseUnavailable"));
+    }
     const validation = validateKeyCount(count);
     if (validation) {
       keyValidationError.set(validation);
@@ -519,85 +1130,178 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     const numKeys = Math.max(0, Math.floor(Number(count) || 0));
     if (numKeys <= 0) throw new Error(t("invalidKeyCount"));
 
-    // A round that has keys but a zero clock has ended and must be settled
-    // first; surface that cleanly before prompting the wallet.
-    if (
-      totalKeysInRound.get() > 0n &&
-      !isRoundActive.get() &&
-      timeRemainingSeconds.get() <= 0
-    ) {
-      throw new Error(t("settleBeforeBuy"));
+    const context = await requireBoundContext(true);
+    const playerHash = context.playerHash;
+    if (!playerHash) throw new Error(t("walletNotConnected"));
+    const scope = pendingScope(context);
+
+    let existing: PendingLastSurvivorOperation | null;
+    try {
+      existing = loadPendingRecord(scope);
+    } catch (error) {
+      throw error;
+    }
+    if (existing) {
+      await recoverPendingPurchaseForScope(scope);
+      try {
+        existing = loadPendingRecord(scope);
+      } catch {
+        throw new Error(t("recoveryRecordInvalid"));
+      }
+      if (existing) throw new Error(t("keyPurchasePending"));
     }
 
-    const playerAddr = address.get() || (await app.chain.ensureWallet());
-    const playerHash = addressToScriptHash(playerAddr || "");
-    if (!playerAddr || !playerHash) throw new Error(t("walletNotConnected"));
-    setAddress(playerAddr);
-
-    const contractHash = app.chain.contractAddress.get();
-    if (!contractHash) throw new Error(t("missingContract"));
+    // A durable journal must be writable before any wallet broadcast. This is
+    // intentionally after wallet/network binding but before the authoritative
+    // quote or invoke so storage denial cannot create an untracked transaction.
+    try {
+      pendingPurchaseStore.assertAvailable();
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
 
     isBuyingKeys.set(true);
     try {
-      // Cost for `count` keys at the round's current total. Prefer the on-chain
-      // currentKeyCost read (authoritative); fall back to the local formula
-      // (identical math) if the read is unavailable.
-      let costBase = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.get());
-      try {
-        const onChain = parseBigInt(
-          await app.chain.readRaw("currentKeyCost", [
-            app.chain.arg.integer(numKeys),
-          ]),
-        );
-        if (onChain > 0n) costBase = onChain;
-      } catch (e) {
-        console.warn("[useLastSurvivor] currentKeyCost read failed, using local formula:", errorMessage(e));
+      // Re-read the round at the write boundary. The local countdown and local
+      // pricing formula are presentation aids, never authorization for a buy.
+      const liveRound = parseRound(await app.chain.readRaw("getCurrentRound", []));
+      if (!liveRound) throw new Error(t("roundStateUnavailable"));
+      if (!liveRound.active || (liveRound.totalKeys > 0n && liveRound.remainingSeconds <= 0)) {
+        throw new Error(t("settleBeforeBuy"));
       }
-      if (costBase <= 0n) throw new Error(t("invalidKeyCount"));
+      roundId.set(liveRound.roundId);
+      totalKeysInRound.set(liveRound.totalKeys);
+      const costBase = await loadAuthoritativeQuote(String(numKeys));
+      if (costBase === null || costBase <= 0n) {
+        throw new Error(t("keyQuoteUnavailable"));
+      }
 
       // Step 1: DEPOSIT — top up only the SHORTFALL beyond any prepaid credit
       // left from a previous aborted buy, so stale credit is consumed instead of
       // accumulating. When the existing credit already covers the cost the
       // deposit is skipped entirely.
-      let credit = 0n;
-      try {
-        credit = parseBigInt(
-          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(playerHash)]),
-        );
-      } catch {
-        credit = 0n;
-      }
+      const credit = await readUnsigned("creditOf", [app.chain.arg.hash160(playerHash)]);
+      creditAvailable.set(true);
+      prepaidCredit.set(fromFixed8(credit));
+
+      const buyArgs = [
+        app.chain.arg.hash160(playerHash),
+        app.chain.arg.integer(numKeys),
+      ];
+      let inFlightRecord: PendingPurchase | null = null;
+      const rememberPurchase = (txid: string) => {
+        if (!txid) return;
+        const saved = persistPending(scope, {
+          kind: "purchase",
+          txid,
+          roundId: String(liveRound.roundId),
+          count: String(numKeys),
+          cost: costBase.toString(),
+        });
+        if (saved.kind !== "purchase") throw new Error(t("keyPurchasePending"));
+        inFlightRecord = saved;
+      };
+      const confirmPurchase = async (
+        result: { txid?: string; event?: unknown; verified?: boolean },
+      ) => {
+        const txid = String(result.txid ?? "").trim();
+        if (!txid) throw new Error(t("keyPurchaseUnavailable"));
+        if (!inFlightRecord) rememberPurchase(txid);
+        const record = inFlightRecord;
+        if (!record) throw new Error(t("keyPurchasePending"));
+        if (!(await confirmSubmittedOperation(scope, record, result))) {
+          throw new Error(t("keyPurchasePending"));
+        }
+      };
 
       if (credit < costBase) {
-        // Wait for the contract's "Credited" event so the deposit is confirmed
-        // in a block before buyKeys consumes it — an unconfirmed deposit lets the
-        // buy execute first and fault on "insufficient deposit credit" with the
-        // funds already in flight (the shared invokeWithPayment path exists
-        // precisely because intra-block ordering is fee/hash-based).
-        await app.chain.invoke(
+        const shortfall = costBase - credit;
+        try {
+          const batch = await app.chain.invokeMultiple(
+            [
+              {
+                scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+                operation: "transfer",
+                args: [
+                  app.chain.arg.hash160(playerHash),
+                  app.chain.arg.hash160(context.contractHash),
+                  app.chain.arg.integer(shortfall),
+                  app.chain.arg.string(BUY_MEMO),
+                ],
+              },
+              { operation: "buyKeys", args: buyArgs },
+            ],
+            { onTransactionSent: rememberPurchase },
+          );
+          await confirmPurchase(batch);
+          await loadAll();
+          return numKeys;
+        } catch (batchError) {
+          // Once a txid exists, the only safe action is exact-tx recovery. Never
+          // fall back to a second purchase and risk a duplicate buy.
+          if (inFlightRecord || loadPendingRecord(scope)) {
+            throw new Error(t("keyPurchasePending"));
+          }
+          // Minimal standalone hosts may not expose wallet.invokeMultiple. No
+          // transaction was broadcast, so the proven two-step path is safe.
+          if (!/does not support invokeMultiple/i.test(errorMessage(batchError))) {
+            throw batchError;
+          }
+        }
+
+        const expectedBalance = credit + shortfall;
+        let depositRecord: PendingDeposit | null = null;
+        const rememberDeposit = (txid: string) => {
+          if (!txid) return;
+          const saved = persistPending(scope, {
+            kind: "deposit",
+            txid,
+            amount: shortfall.toString(),
+            expectedCredit: expectedBalance.toString(),
+          });
+          if (saved.kind !== "deposit") throw new Error(t("keyDepositConfirmationPending"));
+          depositRecord = saved;
+        };
+        const depositResult = await app.chain.invoke(
           "transfer",
           [
             app.chain.arg.hash160(playerHash),
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(costBase - credit),
+            app.chain.arg.hash160(context.contractHash),
+            app.chain.arg.integer(shortfall),
             app.chain.arg.string(BUY_MEMO),
           ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
+          {
+            scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+            waitForEvent: "Credited",
+            onTransactionSent: rememberDeposit,
+          },
         );
+        if (!depositRecord && depositResult.txid) rememberDeposit(depositResult.txid);
+        if (
+          !depositRecord ||
+          !(await confirmSubmittedOperation(scope, depositRecord, depositResult))
+        ) {
+          // The GAS transfer may already be in flight. Never submit the consuming
+          // buy until this exact tx proves that the intended account was credited.
+          throw new Error(t("keyDepositConfirmationPending"));
+        }
       }
 
       // Step 2: buyKeys — consumes the prepaid credit. If this fails the credit
       // persists on the contract under the player and is reusable on the next
       // buy (or withdrawable via withdrawCredit; funds are not lost).
       try {
-        await app.chain.invoke(
+        const result = await app.chain.invoke(
           "buyKeys",
-          [
-            app.chain.arg.hash160(playerHash),
-            app.chain.arg.integer(numKeys),
-          ],
-          { waitForEvent: "KeysBought" },
+          buyArgs,
+          {
+            waitForEvent: "KeysBought",
+            onTransactionSent: rememberPurchase,
+          },
         );
+        await confirmPurchase(result);
       } catch (buyErr) {
         const raw = errorMessage(buyErr);
         console.error(
@@ -609,6 +1313,10 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
         // other failure leaves the deposit as reusable prepaid credit.
         if (/settle first|round ended/i.test(raw)) {
           throw new Error(t("settleBeforeBuy"));
+        }
+        if (raw === t("transactionFault")) throw buyErr;
+        if (inFlightRecord || loadPendingRecord(scope)) {
+          throw new Error(t("keyPurchasePending"));
         }
         throw new Error(t("keyPurchaseDepositHeld"));
       }
@@ -623,26 +1331,81 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
   /**
    * Settle the current round against the standalone contract.
    *
-   * settle() is PERMISSIONLESS: once the round's countdown has expired it pays
-   * the recorded last buyer (NOT the caller) the entire pot atomically and
-   * advances to a fresh round. Anyone may trigger it; the winner is paid by the
-   * contract regardless of who signs. The UI surfaces this through the
+   * settle() is PERMISSIONLESS: once the round's countdown has expired it
+   * credits the recorded last buyer (NOT the caller) with the entire pot and
+   * advances to a fresh round. Anyone may trigger it; the winner withdraws the
+   * pull-payment credit separately. The UI surfaces this through the
    * needsLifecycleSync affordance once a round has ended with a pot.
    */
   const settleRound = async () => {
     if (isSettling.get()) return;
-
-    const contractHash = app.chain.contractAddress.get();
-    if (!contractHash) throw new Error(t("missingContract"));
-
-    // The signer just triggers the settle; ensure a wallet is available to sign.
-    const callerAddr = address.get() || (await app.chain.ensureWallet());
-    if (!callerAddr) throw new Error(t("walletNotConnected"));
-    setAddress(callerAddr);
+    const context = await requireBoundContext(true);
+    if (!context.playerHash) throw new Error(t("walletNotConnected"));
+    const scope = pendingScope(context);
+    const existing = loadPendingRecord(scope);
+    if (existing) {
+      await recoverPendingPurchaseForScope(scope);
+      if (loadPendingRecord(scope)) throw new Error(t("pendingWriteMustResolve"));
+    }
+    try {
+      pendingPurchaseStore.assertAvailable();
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
 
     isSettling.set(true);
     try {
-      await app.chain.invoke("settle", [], { waitForEvent: "RoundSettled" });
+      let expectedRound: RoundSnapshot | null = null;
+      try {
+        expectedRound = parseRound(await app.chain.readRaw("getCurrentRound", []));
+      } catch {
+        // A stale local HUD is not sufficient evidence for a financial settle.
+      }
+      const settlementRound = expectedRound;
+      if (
+        !settlementRound ||
+        !settlementRound.lastBuyer ||
+        settlementRound.potBase <= 0n
+      ) {
+        throw new Error(t("roundStateUnavailable"));
+      }
+      if (settlementRound.remainingSeconds > 0) {
+        throw new Error(t("settlementNotReady"));
+      }
+
+      let pendingSettlement: PendingSettlement | null = null;
+      const rememberSettlement = (txid: string) => {
+        if (!txid) return;
+        const saved = persistPending(scope, {
+          kind: "settle",
+          txid,
+          roundId: String(settlementRound.roundId),
+          winner: settlementRound.lastBuyer,
+          pot: settlementRound.potBase.toString(),
+          nextRoundId: String(settlementRound.roundId + 1),
+        });
+        if (saved.kind !== "settle") throw new Error(t("settlementConfirmationPending"));
+        pendingSettlement = saved;
+      };
+      const result = await app.chain.invoke(
+        "settle",
+        [],
+        {
+          waitForEvent: "RoundSettled",
+          onTransactionSent: rememberSettlement,
+        },
+      );
+      if (!pendingSettlement && result.txid) rememberSettlement(result.txid);
+      if (
+        !pendingSettlement ||
+        !(await confirmSubmittedOperation(scope, pendingSettlement, result))
+      ) {
+        // A broadcast is not a settlement. Throwing keeps the action wrapper
+        // from emitting its roundSettled success toast.
+        throw new Error(t("settlementConfirmationPending"));
+      }
       await loadAll();
     } finally {
       isSettling.set(false);
@@ -657,36 +1420,64 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
    * state[1] = amount).
    */
   const withdrawCredit = async (): Promise<{ amount: number }> => {
-    if (isLoading.get()) return { amount: 0 };
-
-    const accountAddr = address.get() || (await app.chain.ensureWallet());
-    const accountHash = addressToScriptHash(accountAddr || "");
-    if (!accountAddr || !accountHash) throw new Error(t("walletNotConnected"));
-    setAddress(accountAddr);
+    if (isLoading.get()) throw new Error(t("operationBusy"));
+    const context = await requireBoundContext(true);
+    const accountHash = context.playerHash;
+    if (!accountHash) throw new Error(t("walletNotConnected"));
+    const scope = pendingScope(context);
+    const existing = loadPendingRecord(scope);
+    if (existing) {
+      await recoverPendingPurchaseForScope(scope);
+      if (loadPendingRecord(scope)) throw new Error(t("pendingWriteMustResolve"));
+    }
+    try {
+      pendingPurchaseStore.assertAvailable();
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
 
     isLoading.set(true);
     try {
       // Read the live credit first — the contract reverts "no credit" on an empty
       // balance, so surface a clean message before prompting the wallet.
-      let credit = 0n;
+      let credit: bigint;
       try {
-        credit = parseBigInt(
-          await app.chain.readRaw("creditOf", [app.chain.arg.hash160(accountHash)]),
-        );
+        credit = await readUnsigned("creditOf", [app.chain.arg.hash160(accountHash)]);
       } catch {
-        credit = 0n;
+        throw new Error(t("creditReadUnavailable"));
       }
       if (credit <= 0n) throw new Error(t("noCredit"));
 
+      let pendingWithdrawal: PendingWithdrawal | null = null;
+      const rememberWithdrawal = (txid: string) => {
+        if (!txid) return;
+        const saved = persistPending(scope, {
+          kind: "withdraw",
+          txid,
+          beforeCredit: credit.toString(),
+        });
+        if (saved.kind !== "withdraw") throw new Error(t("withdrawConfirmationPending"));
+        pendingWithdrawal = saved;
+      };
       const result = await app.chain.invoke(
         "withdraw",
         [app.chain.arg.hash160(accountHash)],
-        { waitForEvent: "CreditWithdrawn" },
+        {
+          waitForEvent: "CreditWithdrawn",
+          onTransactionSent: rememberWithdrawal,
+        },
       );
-
-      // OnCreditWithdrawn(account, amount) — amount is state index 1.
-      const amountBase = parseBigInt(eventValue(result.event, 1));
-      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+      if (!pendingWithdrawal && result.txid) rememberWithdrawal(result.txid);
+      if (
+        !pendingWithdrawal ||
+        !(await confirmSubmittedOperation(scope, pendingWithdrawal, result))
+      ) {
+        // Never turn the pre-invoke credit read into a claimed payout amount.
+        throw new Error(t("withdrawConfirmationPending"));
+      }
+      const amount = fromFixed8(credit);
 
       await loadAll();
       return { amount };
@@ -709,10 +1500,19 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     isSettling,
     isLoading,
     roundDataAvailable,
+    userKeysAvailable,
+    creditAvailable,
+    historyAvailable,
+    quoteAvailable,
     serviceNotice,
     totalKeysInRound,
     prepaidCredit,
     hasCredit,
+    purchasePending,
+    pendingOperationKind,
+    pendingTransactionId,
+    recoveryNotice,
+    storageHealthy,
     address,
 
     // ── Timer State ─────────────────────────────────────────────────
@@ -736,6 +1536,7 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     userSharePercent,
     needsLifecycleSync,
     estimatedCost,
+    estimatedCostGas,
     estimatedCostRaw,
 
     // ── Actions ─────────────────────────────────────────────────────
@@ -746,6 +1547,8 @@ export function useLastSurvivor({ app, t }: UseLastSurvivorOptions) {
     loadAll,
     loadUserKeys,
     loadCredit,
+    loadAuthoritativeQuote,
+    recoverPendingPurchase,
   };
 }
 

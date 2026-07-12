@@ -624,6 +624,34 @@
   gap: 10px;
 }
 
+.breakup-drawer-advanced {
+  border: 1px solid rgba(180, 83, 9, 0.12);
+  border-radius: 18px;
+  padding: 10px 12px;
+  background: #fffaf3;
+}
+
+.breakup-drawer-advanced summary {
+  color: #7c3f15;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.breakup-drawer-advanced > p {
+  margin: 8px 0 0;
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.breakup-drawer-advanced__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .breakup-field--terms {
   grid-column: 1 / -1;
 }
@@ -670,6 +698,20 @@
 .breakup-contract__actions button:hover:not(:disabled) {
   border-color: var(--mx2-accent);
   color: var(--mx2-accent-strong);
+}
+
+.breakup-drawer button:disabled,
+.breakup-contract__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.breakup-credit p {
+  margin: 0;
+  color: var(--mx2-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .breakup-contracts {
@@ -787,7 +829,8 @@
   .breakup-preset-board,
   .breakup-status-card,
   .breakup-desk__pact dl,
-  .breakup-drawer-editor__grid {
+  .breakup-drawer-editor__grid,
+  .breakup-drawer-advanced__grid {
     grid-template-columns: minmax(0, 1fr);
   }
 

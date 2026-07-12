@@ -9,18 +9,30 @@ import {
   type NeoNetwork,
 } from "@shared/constants/rpc";
 
-export const DEFAULT_SPONSOR_AMOUNT = "0.1";
-
 export function getDefaultRelayPayload(network: NeoNetwork = getNetwork()) {
-  // A complete, submittable example: a getNonce read against AA core for the AA
-  // address. The previous default only carried scriptHash (no operation/args)
-  // and so was rejected upstream even with a live relay — a poor first run.
+  // This is deliberately a review template, not a fake submittable request.
+  // The route account is substituted for $AA_ACCOUNT during preparation; the
+  // downstream target and method remain blank until the operator supplies the
+  // real call. The deadline uses Neo Runtime.Time milliseconds.
   return JSON.stringify(
     {
       metaInvocation: {
         scriptHash: getExternalIntegrationConfig(network).contracts.aaCore,
-        operation: "getNonce",
-        args: [],
+        operation: "executeUserOp",
+        args: [
+          { type: "Hash160", value: "$AA_ACCOUNT" },
+          {
+            type: "Struct",
+            value: [
+              { type: "Hash160", value: "" },
+              { type: "String", value: "" },
+              { type: "Array", value: [] },
+              { type: "Integer", value: "0" },
+              { type: "Integer", value: String(Date.now() + 15 * 60 * 1000) },
+              { type: "ByteArray", value: "" },
+            ],
+          },
+        ],
       },
     },
     null,
@@ -68,11 +80,6 @@ export function getRelayLaunchDefaults(
       "paymasterDappId",
       "paymaster_dapp_id",
     ]),
-    sponsorAmount: getLaunchParam(
-      launchContext,
-      ["sponsorAmount", "sponsorGas", "gas", "amount", "budget"],
-      DEFAULT_SPONSOR_AMOUNT,
-    ),
     payloadJson: getLaunchParam(
       launchContext,
       ["payloadJson", "payload", "calldata", "metaInvocation"],

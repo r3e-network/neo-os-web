@@ -4,6 +4,7 @@ import { createObservable } from "../react/context";
 import { createMiniAppFramework } from "../react";
 import {
   PLAINTEXT_STORE_KEY,
+  MAX_PLAINTEXT_CACHE_ENTRIES,
   cachePlaintext,
   overlayCachedPlaintext,
   plaintextCacheKey,
@@ -90,7 +91,7 @@ describe("neo-message plaintext cache (app.storage.local)", () => {
     const overlaid = overlayCachedPlaintext(local, [row({ id: "3" })], RECIPIENT.toLowerCase());
 
     expect(overlaid[0].plaintext).toBe("case note");
-    expect(overlaid[0].revealed).toBe(true);
+    expect(overlaid[0].revealed).toBe(false);
   });
 
   it("overlays cached plaintext only onto unrevealed rows addressed to the connected wallet", () => {
@@ -106,7 +107,7 @@ describe("neo-message plaintext cache (app.storage.local)", () => {
 
     const overlaid = overlayCachedPlaintext(local, rows, RECIPIENT);
 
-    expect(overlaid[0]).toEqual({ ...rows[0], plaintext: "for me", revealed: true });
+    expect(overlaid[0]).toEqual({ ...rows[0], plaintext: "for me", revealed: false });
     // Already revealed rows, rows without a cache entry, and rows addressed to
     // someone else pass through untouched (same object, no synthetic reveal).
     expect(overlaid[1]).toBe(rows[1]);
@@ -119,6 +120,38 @@ describe("neo-message plaintext cache (app.storage.local)", () => {
 
     localStorage.setItem(LEGACY_KEY, "{not json");
     expect(readPlaintextCache(makeLocal())).toEqual({});
+  });
+
+  it("keeps mailbox rendering available when device storage reads throw", () => {
+    const store = {
+      get: () => { throw new Error("storage denied"); },
+      set: () => {},
+    };
+    const rows = [row({ id: "5" })];
+
+    expect(readPlaintextCache(store)).toEqual({});
+    expect(() => overlayCachedPlaintext(store, rows, RECIPIENT)).not.toThrow();
+    expect(overlayCachedPlaintext(store, rows, RECIPIENT)).toEqual(rows);
+  });
+
+  it("filters malformed values and bounds the durable private-open cache", () => {
+    const local = makeLocal();
+    const values = Object.fromEntries(
+      Array.from({ length: MAX_PLAINTEXT_CACHE_ENTRIES + 5 }, (_, index) => [
+        plaintextCacheKey(String(index + 1), RECIPIENT),
+        `note ${index + 1}`,
+      ]),
+    );
+    local.set(PLAINTEXT_STORE_KEY, {
+      invalid: "ignore me",
+      [plaintextCacheKey("999", RECIPIENT)]: 42,
+      ...values,
+    });
+
+    const cache = readPlaintextCache(local);
+    expect(Object.keys(cache)).toHaveLength(MAX_PLAINTEXT_CACHE_ENTRIES);
+    expect(cache[plaintextCacheKey("1", RECIPIENT)]).toBeUndefined();
+    expect(cache[plaintextCacheKey("6", RECIPIENT)]).toBe("note 6");
   });
 
   it("swallows storage write failures so a reveal never fails on a full device cache", () => {

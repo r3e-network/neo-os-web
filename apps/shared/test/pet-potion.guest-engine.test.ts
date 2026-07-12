@@ -7,7 +7,13 @@ import {
   createGuestEngine,
 } from "../../pet-potion/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../pet-potion/src/logic/guest-engine";
-import { MAX_MOVES, ruleOf } from "../../pet-potion/src/logic/game-rules";
+import {
+  MAX_MOVES,
+  emptyIngredientCounts,
+  recipeReady,
+  ruleOf,
+  type IngredientCounts,
+} from "../../pet-potion/src/logic/game-rules";
 
 /**
  * Guest engine tests for Pet Potion.
@@ -23,7 +29,7 @@ function makeObs<T>(initial: T) {
   return createObservable<T>(initial);
 }
 
-function setup() {
+function setup(overrides: Partial<GuestEngineDeps> = {}) {
   const obs = createGameSessionObservables();
   const actionsUsed = makeObs<number>(0);
   const happinessAchieved = makeObs<number>(0);
@@ -32,12 +38,22 @@ function setup() {
   const petEnergy = makeObs<number>(50);
   const petStage = makeObs<number>(0);
   const actionHistory = makeObs<string[]>([]);
+  const ingredientCounts = makeObs<IngredientCounts>(emptyIngredientCounts());
+  const potionBrewed = makeObs(false);
   const lastPayoutFixed8 = makeObs<bigint>(0n);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];
   const get = vi.fn(async (_limit?: number) => board.slice());
   const guestLeaderboard = { submit, get };
+  const storageData = new Map<string, unknown>();
+  const storage = overrides.storage ?? {
+    get<T>(key: string, fallback?: T | null): T | null {
+      return (storageData.has(key) ? storageData.get(key) : (fallback ?? null)) as T | null;
+    },
+    set: vi.fn((key: string, value: unknown) => { storageData.set(key, structuredClone(value)); }),
+    delete: vi.fn((key: string) => { storageData.delete(key); }),
+  };
 
   const setStatus = vi.fn();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -52,49 +68,48 @@ function setup() {
     petEnergy,
     petStage,
     actionHistory,
+    ingredientCounts,
+    potionBrewed,
     lastPayoutFixed8,
     guestLeaderboard,
+    storage,
     t,
     setStatus,
+    ...overrides,
   };
   const engine = createGuestEngine(deps);
   return {
     engine, obs, actionsUsed, happinessAchieved,
     petHappiness, petHunger, petEnergy, petStage,
-    actionHistory, lastPayoutFixed8, submit, get, board, setStatus,
+    actionHistory, ingredientCounts, potionBrewed,
+    lastPayoutFixed8, submit, get, board, setStatus, storage, storageData,
   };
 }
 
 /** Drive a live guest run to (or past) the difficulty target with balanced care. */
 function playToTarget(h: ReturnType<typeof setup>, target: number): void {
-  for (let i = 0; i < MAX_MOVES && h.petHappiness.get() < target; i += 1) {
-    if (h.petEnergy.get() <= 25) h.engine.recordAction({ type: "rest" });
-    else if (h.petHunger.get() >= 60) h.engine.recordAction({ type: "feed" });
-    else h.engine.recordAction({ type: "pet" });
+  const cadence = ["feed", "play", "pet", "rest"] as const;
+  for (let i = 0; i < MAX_MOVES && (h.petHappiness.get() < target || !recipeReady(h.ingredientCounts.get())); i += 1) {
+    h.engine.recordAction({ type: cadence[i % cadence.length] });
   }
 }
 
 describe("pet-potion applyCare (local care rules)", () => {
-  it("feed fills the pet (lowers hunger) and nudges happiness", () => {
+  it("feed raises satiety and applies the Morpheus hunger-gap gain", () => {
     const next = applyCare({ happiness: 40, hunger: 60, energy: 50 }, "feed");
-    expect(next.hunger).toBeLessThan(60);
-    expect(next.happiness).toBeGreaterThan(40);
+    expect(next).toEqual({ happiness: 45, hunger: 90, energy: 50 });
   });
 
   it("play raises happiness but drains energy and builds hunger", () => {
     const next = applyCare({ happiness: 40, hunger: 40, energy: 60 }, "play");
     expect(next.happiness).toBeGreaterThan(40);
     expect(next.energy).toBeLessThan(60);
-    expect(next.hunger).toBeGreaterThan(40);
+    expect(next.hunger).toBeLessThan(40);
   });
 
-  it("dampens happiness gains when the pet is starving or exhausted", () => {
-    const healthy = applyCare({ happiness: 40, hunger: 40, energy: 60 }, "pet");
-    const starving = applyCare({ happiness: 40, hunger: 90, energy: 60 }, "pet");
-    const exhausted = applyCare({ happiness: 40, hunger: 40, energy: 10 }, "pet");
-    const healthyGain = healthy.happiness - 40;
-    expect(starving.happiness - 40).toBeLessThan(healthyGain);
-    expect(exhausted.happiness - 40).toBeLessThan(healthyGain);
+  it("matches Morpheus play gating when satiety or energy is low", () => {
+    expect(applyCare({ happiness: 40, hunger: 40, energy: 60 }, "play").happiness).toBe(52);
+    expect(applyCare({ happiness: 40, hunger: 8, energy: 60 }, "play").happiness).toBe(42);
   });
 
   it("keeps every stat clamped to 0..100", () => {
@@ -120,6 +135,9 @@ describe("pet-potion guest engine", () => {
     expect(h.obs.commitment.get()).toBe(""); // no on-chain commitment in guest
     expect(h.actionsUsed.get()).toBe(0);
     expect(h.petHappiness.get()).toBeGreaterThan(0);
+    expect(h.petHappiness.get()).toBe(20);
+    expect(h.petHunger.get()).toBe(40);
+    expect(h.petEnergy.get()).toBe(60);
     expect(h.petHappiness.get()).toBeLessThan(ruleOf(0).targetHappiness); // a real climb
     expect(h.obs.deadline.get() - h.obs.dealtAt.get()).toBe(ruleOf(0).limitMs);
     // Dealing a pet never touches the off-chain board.
@@ -136,7 +154,8 @@ describe("pet-potion guest engine", () => {
 
     expect(h.actionsUsed.get()).toBe(1);
     expect(h.actionHistory.get()).toEqual(["feed"]);
-    expect(h.petHunger.get()).toBeLessThan(beforeHunger); // feeding fills the pet
+    expect(h.petHunger.get()).toBeGreaterThan(beforeHunger); // satiety rises
+    expect(h.ingredientCounts.get().feed).toBe(1);
     // A normal care action never hits the off-chain board (guard-never-fires analog).
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.get).not.toHaveBeenCalled();
@@ -159,7 +178,8 @@ describe("pet-potion guest engine", () => {
     playToTarget(h, ruleOf(0).targetHappiness);
 
     expect(h.petHappiness.get()).toBeGreaterThanOrEqual(ruleOf(0).targetHappiness);
-    expect(h.obs.lastStatus.get()).toBe("all-correct");
+    expect(recipeReady(h.ingredientCounts.get())).toBe(true);
+    expect(h.obs.lastStatus.get()).toBe("recipe-ready");
     // Reaching the target locally still writes nothing to the off-chain board.
     expect(h.submit).not.toHaveBeenCalled();
   });
@@ -168,6 +188,7 @@ describe("pet-potion guest engine", () => {
     const h = setup();
     h.engine.startGame(0);
     playToTarget(h, ruleOf(0).targetHappiness);
+    h.engine.brewPotion();
     const achieved = h.happinessAchieved.get();
 
     await h.engine.submitSolution();
@@ -180,6 +201,63 @@ describe("pet-potion guest engine", () => {
     expect(h.obs.myTotalWon.get()).toBe(achieved); // best happiness, not GAS
     expect(h.obs.mySolves.get()).toBe(1);
     expect(h.lastPayoutFixed8.get()).toBe(0n); // no GAS ever moves in guest
+    expect(h.potionBrewed.get()).toBe(true);
+    expect(h.storage.set).toHaveBeenCalledWith("guest:profile", {
+      bestHappiness: achieved,
+      solves: 1,
+      history: [expect.objectContaining({
+        bestHappiness: achieved,
+        difficulty: 0,
+        won: true,
+      })],
+    });
+    expect(h.obs.myHistory.get()[0]).toMatchObject({ bestHappiness: achieved, won: true });
+  });
+
+  it("requires the complete recipe and an explicit brew before saving", async () => {
+    const h = setup();
+    h.engine.startGame(0);
+    playToTarget(h, ruleOf(0).targetHappiness);
+    await h.engine.submitSolution();
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.obs.gameStatus.get()).toBe("dealt");
+    h.engine.brewPotion();
+    expect(h.potionBrewed.get()).toBe(true);
+  });
+
+  it("closes an expired run locally without publishing an incomplete potion", async () => {
+    const h = setup();
+    h.engine.startGame(0);
+    h.engine.recordAction({ type: "pet" });
+    h.obs.deadline.set(Date.now() - 1);
+
+    await h.engine.submitSolution();
+
+    expect(h.obs.gameStatus.get()).toBe("expired");
+    expect(h.obs.mySolves.get()).toBe(0);
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.get).toHaveBeenCalled();
+  });
+
+  it("closes a 40-action run immediately instead of trapping the player", async () => {
+    const h = setup();
+    h.engine.startGame(2);
+    for (let i = 0; i < MAX_MOVES; i += 1) h.engine.recordAction({ type: "pet" });
+
+    await h.engine.submitSolution();
+
+    expect(h.obs.gameStatus.get()).toBe("expired");
+    expect(h.obs.activeGameId.get()).toBe("0");
+    expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("can reach Royal Bloom with a balanced recipe inside the move cap", () => {
+    const h = setup();
+    h.engine.startGame(2);
+    playToTarget(h, ruleOf(2).targetHappiness);
+    expect(h.petHappiness.get()).toBe(100);
+    expect(h.actionsUsed.get()).toBeLessThanOrEqual(MAX_MOVES);
+    expect(recipeReady(h.ingredientCounts.get())).toBe(true);
   });
 
   it("expireGame resets to a clean local lobby", () => {
@@ -193,6 +271,60 @@ describe("pet-potion guest engine", () => {
     expect(h.obs.activeGameId.get()).toBe("0");
     expect(h.actionsUsed.get()).toBe(0);
     expect(h.actionHistory.get()).toEqual([]);
+    expect(h.ingredientCounts.get()).toEqual(emptyIngredientCounts());
+    expect(h.potionBrewed.get()).toBe(false);
+  });
+
+  it("restores the local best and solve count from framework storage", async () => {
+    const h = setup();
+    h.storageData.set("guest:profile", { bestHappiness: 88, solves: 3 });
+    await h.engine.enter();
+    expect(h.obs.myTotalWon.get()).toBe(88);
+    expect(h.obs.mySolves.get()).toBe(3);
+  });
+
+  it("restores an unfinished nursery from its validated action history", async () => {
+    const first = setup();
+    first.engine.startGame(1);
+    first.engine.recordAction({ type: "feed" });
+    first.engine.recordAction({ type: "play" });
+    const expectedStats = {
+      happiness: first.petHappiness.get(),
+      hunger: first.petHunger.get(),
+      energy: first.petEnergy.get(),
+    };
+
+    const second = setup({ storage: first.storage });
+    await second.engine.enter();
+
+    expect(second.obs.gameStatus.get()).toBe("dealt");
+    expect(second.obs.activeGameId.get()).toBe("guest");
+    expect(second.obs.gameDifficulty.get()).toBe(1);
+    expect(second.actionHistory.get()).toEqual(["feed", "play"]);
+    expect(second.actionsUsed.get()).toBe(2);
+    expect({
+      happiness: second.petHappiness.get(),
+      hunger: second.petHunger.get(),
+      energy: second.petEnergy.get(),
+    }).toEqual(expectedStats);
+    expect(second.obs.lastStatus.get()).toBe("guestRunRecovered");
+  });
+
+  it("restores local result history after a completed potion", async () => {
+    const first = setup();
+    first.engine.startGame(0);
+    playToTarget(first, ruleOf(0).targetHappiness);
+    first.engine.brewPotion();
+    await first.engine.submitSolution();
+
+    const second = setup({ storage: first.storage });
+    await second.engine.enter();
+
+    expect(second.obs.mySolves.get()).toBe(1);
+    expect(second.obs.myHistory.get()[0]).toMatchObject({
+      difficulty: 0,
+      won: true,
+    });
   });
 
   it("enter() zeroes on-chain counters and loads the off-chain board", async () => {

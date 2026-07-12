@@ -14,4 +14,3 @@ export function createCurve(curveDef, defHash) {
     const create = (hash) => weierstrass({ ...curveDef, ...getHash(hash) });
     return Object.freeze({ ...create(defHash), create });
 }
-//# sourceMappingURL=_shortw_utils.js.map

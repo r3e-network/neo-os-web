@@ -2,7 +2,7 @@
 
 Canonical, cross-repo design language for the Neo MiniApps ecosystem:
 
-- `neo-miniapps-platform` — platform host (Next.js + Tailwind) + 60 miniapps (Vite/React + SCSS via `apps/shared/styles`)
+- `neo-miniapps-platform` — platform host (Next.js + Tailwind) + 77 miniapps (Vite/React + SCSS via `apps/shared/styles`)
 - `neo-abstract-account` — AA frontend (Vue 3 + Tailwind)
 - `neo-morpheus-oracle` — Oracle web (Next.js + custom CSS variables)
 
@@ -129,7 +129,7 @@ Circular badges behind coin/app icons. Cycle these for variety.
 
 | Repo / surface | File(s) | Mechanism |
 |---|---|---|
-| Platform shared (60 miniapps) | `apps/shared/styles/theme-base.scss` (CSS vars = source of truth) + `tokens.scss`, `_pm-light.scss`, `_console-common.scss`, `_playarea-base.scss`, `_hero.scss`, `mixins.scss`, `_responsive-card.scss`, `desktop-theme.scss` | SCSS partials + CSS custom properties |
+| Platform shared (77 miniapps) | `apps/shared/styles/theme-base.scss` (CSS vars = source of truth) + `tokens.scss`, `_pm-light.scss`, `_console-common.scss`, `_playarea-base.scss`, `_hero.scss`, `mixins.scss`, `_responsive-card.scss`, `desktop-theme.scss` | SCSS partials + CSS custom properties |
 | Platform host | `platform/host-app/tailwind.config.js` + `styles/globals.css` | Tailwind theme + CSS vars |
 | AA frontend | `neo-abstract-account/frontend/tailwind.config.js` + `src/style.css` | Tailwind theme + CSS vars |
 | Oracle web | `neo-morpheus-oracle/apps/web/app/globals.css` | CSS vars |

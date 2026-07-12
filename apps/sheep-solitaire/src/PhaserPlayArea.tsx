@@ -4,48 +4,95 @@
  * Bridges the observable state from main.tsx into the Phaser SheepScene
  * and forwards dispatch calls back to the blockchain layer.
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@framework/phaser";
-import { SheepScene } from "./scenes/SheepScene";
+import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
+import { DEAL_TTL_MS, SETTLE_GRACE_MS } from "./logic/game-rules";
 import "./PlayArea.scss";
 
 const GAME_CONFIG = {
-  scene: [SheepScene],
   width: 400,
   height: 640,
   backgroundColor: "transparent",
   transparent: true,
 } as const;
 
+const loadSheepScene = () =>
+  import("./scenes/SheepScene").then((module) => module.SheepScene);
+
+interface SheepCardView {
+  id: number;
+  symbol?: number;
+  exposed?: boolean;
+  picked?: boolean;
+}
+
+function formatCountdown(ms: number): string {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const drawerToggleRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
 
   // Guest (free / local) mode surfaces from app.mode via main.tsx. When guest,
   // the panel drops all GAS-at-stake / pool / reward framing for local framing.
-  const isGuest     = str("appMode", "gamefi") === "guest";
+  const isGuest     = str("appMode", "guest") === "guest";
   const gameStatus  = str("gameStatus", "idle");
   const isDealing   = bool("isDealing");
   const isStarting  = bool("isStarting");
   const isSubmitting = bool("isSubmitting");
   const isGameOver  = bool("isGameOver");
+  const failureReason = str("failureReason", "none");
+  const isTeeBusy   = bool("isTeeBusy");
+  const isRecovering = bool("isRecovering");
+  const isFinancialAction = bool("isFinancialAction");
+  const newPaidRunsEnabled = bool("newPaidRunsEnabled");
   const credit      = num("credit", 0);
   const poolFree    = num("poolFree", 0);
-  const pileCards   = val<Array<{ picked?: boolean }>>("pileCards") ?? [];
+  const pileCards   = val<SheepCardView[]>("pileCards") ?? [];
   const slotCards   = val<unknown[]>("slotCards") ?? [];
   const activeGameId = str("activeGameId", "0");
+  const startedAt   = num("startedAt", 0);
   const deadline    = num("deadline", 0);
   const undosUsed   = num("undosUsed", 0);
   const shuffleLeft = num("shuffleLeft", 1);
   const remove3Left = num("remove3Left", 1);
+  const deadlineExpired = gameStatus === "dealt" && deadline > 0 && nowMs >= deadline;
+  const releaseAt = gameStatus === "committed"
+    ? (startedAt > 0 ? startedAt + DEAL_TTL_MS : 0)
+    : (deadline > 0 ? deadline + SETTLE_GRACE_MS : 0);
+  const releaseRemainingMs = Math.max(0, releaseAt - nowMs);
   const cardsLeft   = pileCards.filter((card) => !card?.picked).length + slotCards.length;
   const trayUsed    = slotCards.length;
-  const canRelease  = gameStatus === "dealt" || isGameOver;
-  const canWithdraw = credit > 0 && gameStatus !== "dealt";
+  const canRelease  = isGuest
+    ? (gameStatus === "dealt" || isGameOver)
+    : (gameStatus === "dealt" || gameStatus === "committed") && releaseAt > 0 && nowMs > releaseAt;
+  const canWithdraw = !isGuest && credit > 0 && gameStatus !== "dealt" && !isFinancialAction;
+  const exposedCards = pileCards.filter((card) => card.exposed && !card.picked).slice(0, 9);
+  const boardBusy = isTeeBusy || isRecovering || isFinancialAction;
+
+  useEffect(() => {
+    const hasClock = (gameStatus === "dealt" && deadline > 0 && (!isGuest || !isGameOver)) ||
+      (gameStatus === "committed" && startedAt > 0);
+    if (!hasClock) return undefined;
+    setNowMs(Date.now());
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [deadline, gameStatus, isGameOver, isGuest, startedAt]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    drawerRef.current?.focus();
+  }, [drawerOpen]);
 
   // Localized copy for the presentation-only Phaser scene. The scene never
   // calls t(); it reads these resolved strings via this.str/this.val so zh users
@@ -65,16 +112,24 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     // instead of "Entry 0.02 GAS" / "Win 0.10 GAS".
     diffEntries: isGuest
       ? diffTileCounts.map(() => t("freePlayLabel"))
+      : !newPaidRunsEnabled
+      ? diffTileCounts.map(() => t("paidRunsUnavailableShort"))
       : ["0.02", "0.10", "0.20"].map((amount) => t("entryAmount", { amount })),
     diffRewards: isGuest
       ? diffTileCounts.map((count) => t("clearGoalLabel", { count: count * 3 }))
+      : !newPaidRunsEnabled
+      ? diffTileCounts.map(() => t("recoverAction"))
       : ["0.10", "0.50", "1.00"].map((amount) => t("winAmount", { amount })),
     undo:     t("undoLabel"),
     shuffle:  t("shuffleLabel"),
     remove3:  t("remove3Label"),
     tray:     t("trayLabel"),
-    loadTitle: isGuest ? t("guestDealing") : t("loadingBoard"),
-    loadSub:   isGuest ? t("guestModeLine") : t("securingPuzzle"),
+    loadTitle: gameStatus === "unknown"
+      ? t("recoveryTitle")
+      : isGuest ? t("guestDealing") : t("loadingBoard"),
+    loadSub: gameStatus === "unknown"
+      ? t("recoveryHint")
+      : isGuest ? t("guestModeLine") : t("securingPuzzle"),
     progress:  t("progressStat"),
     matched:   t("matchedStat"),
     wonTitle:      isGuest ? t("guestClearedTitle") : t("wonTitle"),
@@ -85,6 +140,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     payoutSub:     t("payoutSub"),
     creditReadySub: t("creditReadySub"),
     trayFullSub:   t("trayFullSub"),
+    timeUpTitle:   t("timeUpTitle"),
+    timeUpSub:     isGuest ? t("guestTimeUpSub") : t("timeUpSub"),
+    releaseReady:  t("releaseAction"),
+    releaseWait:   t("releaseIn", { clock: formatCountdown(releaseRemainingMs) }),
     playAgain:    isGuest ? t("guestPlayAgainAction") : t("playAgainAction"),
     claim:        isGuest ? t("guestPlayAgainAction") : t("claimRewardAction"),
     withdraw:     t("withdrawShortAction"),
@@ -96,6 +155,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const bridgeState = {
     appMode: isGuest ? "guest" : "gamefi",
     activeGameId,
+    startedAt,
     gameStatus,
     gameDifficulty: num("gameDifficulty", 0),
     pileCards,
@@ -112,6 +172,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     isUndoing:      bool("isUndoing"),
     isMatching:     bool("isMatching"),
     isGameOver,
+    failureReason,
+    deadlineExpired,
+    canExpire: canRelease,
+    newPaidRunsEnabled,
+    isTeeBusy,
+    isRecovering,
+    isFinancialAction,
     lastStatus:     str("lastStatus", ""),
     lastPayout:     str("lastPayout", ""),
     credit,
@@ -121,17 +188,25 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // Derive stage header text — guest drops the on-chain / GAS framing.
   const isLoading = isStarting || isDealing || gameStatus === "committed";
-  const stageTitle = isLoading
+  const stageTitle = gameStatus === "unknown"
+    ? t("recoveryTitle")
+    : isLoading
     ? (isGuest ? t("guestDealing") : t("statusSealing"))
     : gameStatus === "solved"
     ? (isGuest ? t("guestClearedTitle") : t("statusSolved", { payout: str("lastPayout", "") }))
+    : deadlineExpired || failureReason === "timeout"
+    ? t("timeUpTitle")
     : isGameOver
     ? t("gameOverBanner")
     : gameStatus === "dealt"
     ? (isGuest ? t("guestDealtStage") : t("statusDealt"))
     : t("statusReady");
 
-  const stageSubtitle = gameStatus === "dealt"
+  const stageSubtitle = gameStatus === "unknown"
+    ? t("recoveryHint")
+    : deadlineExpired
+    ? t("timeUpSub")
+    : gameStatus === "dealt"
     ? (isGuest ? t("guestDealtStage") : t("statusDealt"))
     : t("rollDescription");
 
@@ -146,9 +221,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       accent: gameStatus === "dealt",
     },
     {
-      label: t("trayMetric"),
-      value: `${trayUsed}/7`,
-      accent: trayUsed >= 5,
+      label: gameStatus === "dealt" ? t("scoreTime") : t("trayMetric"),
+      value: gameStatus === "dealt" && deadline > 0
+        ? formatCountdown(deadline - nowMs)
+        : `${trayUsed}/7`,
+      accent: deadlineExpired || trayUsed >= 5,
     },
     {
       label: t("toolsMetric"),
@@ -157,12 +234,26 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     },
   ];
 
+  const showRelease = isGuest
+    ? canRelease
+    : activeGameId !== "0" && (gameStatus === "committed" || deadlineExpired || isGameOver || canRelease);
   const drawerActions = [
-    ...(canRelease
+    ...(showRelease
       ? [{
-          label: isGuest ? t("guestResetAction") : t("expireGame"),
+          label: isGuest
+            ? t("guestResetAction")
+            : canRelease ? t("expireGame") : t("releaseIn", { clock: formatCountdown(releaseRemainingMs) }),
           icon: <RotateCcw size={16} aria-hidden="true" />,
           onClick: () => void dispatch("expireGame"),
+          disabled: !canRelease || boardBusy,
+        }]
+      : []),
+    ...(gameStatus === "unknown"
+      ? [{
+          label: isRecovering ? t("recoveryTitle") : t("recoverAction"),
+          icon: <RotateCcw size={16} aria-hidden="true" />,
+          onClick: () => void dispatch("recoverGame"),
+          disabled: isRecovering || isFinancialAction,
         }]
       : []),
     ...(canWithdraw
@@ -170,6 +261,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           label: t("withdrawAction", { amount: credit.toFixed(2) }),
           icon: <WalletCards size={16} aria-hidden="true" />,
           onClick: () => void dispatch("withdrawWinnings", {}),
+          disabled: boardBusy,
         }]
       : []),
   ];
@@ -194,12 +286,93 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="sheep-stage-shell">
             <PhaserGameComponent
               config={GAME_CONFIG}
+              loadScene={loadSheepScene}
               state={bridgeState}
               dispatch={dispatch}
               className="sheep-phaser-canvas"
-              ariaLabel="Sheep Solitaire tile game"
-              loadingLabel="Opening sheep board"
+              ariaLabel={t("gameAriaLabel")}
+              loadingLabel={t("gameLoadingLabel")}
+              errorLabel={t("gameLoadError")}
+              retryLabel={t("retryLoadAction")}
             />
+            <p className="sheep-stage-live" aria-live="polite" aria-atomic="true">
+              {stageTitle}. {stageSubtitle}
+            </p>
+            <section className="sheep-a11y-controls" aria-label={t("keyboardControls")}>
+              {(gameStatus === "idle" || gameStatus === "expired" || gameStatus === "refunded") && (
+                <div>
+                  {[t("easyLabel"), t("mediumLabel"), t("hardLabel")].map((route, difficulty) => (
+                    <button
+                      type="button"
+                      key={route}
+                      disabled={boardBusy || (!isGuest && !newPaidRunsEnabled)}
+                      onClick={() => void dispatch("startGame", { difficulty })}
+                    >
+                      {t("openRouteAction", { route })}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {gameStatus === "dealt" && !isGameOver && !deadlineExpired && (
+                <div>
+                  {exposedCards.map((card, index) => (
+                    <button
+                      type="button"
+                      key={card.id}
+                      disabled={boardBusy || trayUsed >= 7}
+                      onClick={() => void dispatch("pickCard", { cardId: card.id })}
+                    >
+                      {t("pickTileAction", {
+                        index: index + 1,
+                        symbol: Math.max(1, (card.symbol ?? 0) + 1),
+                      })}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={boardBusy || trayUsed === 0 || undosUsed >= 3}
+                    onClick={() => void dispatch("useUndo")}
+                  >
+                    {t("undoAction", { left: Math.max(0, 3 - undosUsed) })}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={boardBusy || trayUsed === 0 || shuffleLeft <= 0}
+                    onClick={() => void dispatch("useShuffle")}
+                  >
+                    {t("shuffleAction", { left: shuffleLeft })}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={boardBusy || trayUsed < 3 || remove3Left <= 0}
+                    onClick={() => void dispatch("useRemove3")}
+                  >
+                    {t("remove3Action", { left: remove3Left })}
+                  </button>
+                </div>
+              )}
+            </section>
+            {gameStatus === "unknown" && (
+              <div className="sheep-recovery-banner" role="status">
+                <ShieldCheck size={18} aria-hidden="true" />
+                <div>
+                  <strong>{t("recoveryTitle")}</strong>
+                  <span>{t("recoveryHint")}</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={isRecovering || isFinancialAction}
+                  onClick={() => void dispatch("recoverGame")}
+                >
+                  {isRecovering ? t("recoveryTitle") : t("recoverAction")}
+                </button>
+              </div>
+            )}
+            {!isGuest && !newPaidRunsEnabled && activeGameId === "0" && gameStatus === "idle" && (
+              <div className="sheep-paid-pause" role="note">
+                {t("paidRunsUnavailable")}
+              </div>
+            )}
             <div className="sheep-stage-hud" aria-label={t("routeSummary")}>
               {hudItems.map((item) => (
                 <div
@@ -214,15 +387,28 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
               <button
                 type="button"
                 className="sheep-stage-hud__drawer"
+                ref={drawerToggleRef}
                 onClick={() => setDrawerOpen((open) => !open)}
                 aria-expanded={drawerOpen}
+                aria-controls="sheep-ingame-drawer"
               >
                 <span>{t("historyTitle")}</span>
                 <ChevronDown size={16} aria-hidden="true" data-open={drawerOpen ? "true" : undefined} />
               </button>
             </div>
             {drawerOpen && (
-              <section className="sheep-ingame-drawer" aria-label={t("drawerTitle")}>
+              <section
+                className="sheep-ingame-drawer"
+                id="sheep-ingame-drawer"
+                ref={drawerRef}
+                tabIndex={-1}
+                aria-label={t("drawerTitle")}
+                onKeyDown={(event) => {
+                  if (event.key !== "Escape") return;
+                  setDrawerOpen(false);
+                  drawerToggleRef.current?.focus();
+                }}
+              >
                 <div className="sheep-ingame-drawer__head">
                   <Trophy size={18} aria-hidden="true" />
                   <div>
@@ -251,7 +437,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {drawerActions.length > 0 && (
                   <div className="sheep-ingame-drawer__actions">
                     {drawerActions.map((action) => (
-                      <button type="button" key={action.label} onClick={action.onClick}>
+                      <button
+                        type="button"
+                        key={action.label}
+                        onClick={action.onClick}
+                        disabled={action.disabled}
+                      >
                         {action.icon}
                         <span>{action.label}</span>
                       </button>

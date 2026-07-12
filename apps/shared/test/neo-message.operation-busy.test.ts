@@ -109,4 +109,18 @@ describe("neo-message createRevealOperations", () => {
 
     expect(reveals.opFor("5")).toBe(reveals.opFor("5"));
   });
+
+  it("unsubscribes and clears derived busy ids during app cleanup", async () => {
+    const app = makeApp();
+    const reveals = createRevealOperations((key) => app.operations.create(key));
+    const work = deferred();
+    const run = reveals.opFor("12").run(() => work.promise);
+    expect(reveals.busyIds.get()).toEqual(["12"]);
+
+    reveals.cleanup();
+    expect(reveals.busyIds.get()).toEqual([]);
+    work.resolve();
+    await run;
+    expect(reveals.busyIds.get()).toEqual([]);
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createGuestEngine, type GuestEngineDeps } from "../../last-survivor/src/logic/guest-engine";
 import { createObservable } from "../react/context";
@@ -16,7 +16,19 @@ function t(key: string, params?: Record<string, string | number>) {
     invalidKeyCount: "Invalid key count",
     noCredit: "No prepaid credit to withdraw",
     guestBoardEntry: "Survivor",
-    guestStreakValue: "{count} keys",
+    guestScoreValue: "{count} pts",
+    guestNoBuyerYet: "Open seat",
+    guestOpeningCue: "Take the seat",
+    guestYouLeader: "You",
+    guestRivalEmber: "Ember Fox",
+    guestRivalJade: "Jade Mantis",
+    guestRivalSun: "Sun Hawk",
+    guestRivalCloud: "Cloud Lynx",
+    guestRivalStrike: "{rival} stole the seat",
+    guestLeadHeld: "+{score} hold",
+    guestLeadReclaimed: "+{score} reclaimed",
+    guestWonCue: "You survived",
+    guestLostCue: "{rival} survived",
   };
   let value = table[key] ?? key;
   if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
@@ -54,18 +66,26 @@ function setup(boardRows: Array<{ user: string; score: string }> = []) {
     isSettling: createObservable(false),
     prepaidCredit: createObservable(3),
     address: createObservable<string | null>(null),
+    guestScore: createObservable(0),
+    guestLeaderLabel: createObservable(""),
+    guestOutcome: createObservable<"ready" | "running" | "won" | "lost">("ready"),
+    guestRivalCue: createObservable(""),
+    guestMoveReady: createObservable(true),
   };
   const deps: GuestEngineDeps = {
     ...obs,
     guestLeaderboard: board,
     t,
     setStatus,
+    runtime: { randomInt: () => 0 },
   };
   const engine = createGuestEngine(deps);
   return { engine, obs, board, setStatus };
 }
 
 describe("last-survivor guest engine (local doomsday drill)", () => {
+  afterEach(() => vi.useRealTimers());
+
   it("enter() resets to a clean local arena and loads the off-chain board", async () => {
     const { engine, obs, board } = setup([
       { user: "NAaa", score: "9" },
@@ -86,29 +106,81 @@ describe("last-survivor guest engine (local doomsday drill)", () => {
     const rows = obs.history.get();
     expect(rows).toHaveLength(2);
     expect(rows[0].sortKey).toBe(9);
-    expect(rows[0].details).toContain("9 keys");
+    expect(rows[0].details).toContain("9 pts");
     expect(board.submit).not.toHaveBeenCalled();
   });
 
   it("buyKeys grows the streak + pot and extends the clock without touching the board", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-11T00:00:00Z"));
     const { engine, obs, board } = setup();
     await engine.enter();
     board.get.mockClear();
 
-    engine.buyKeys("3");
+    expect(engine.buyKeys("3")).toBe(true);
 
     expect(obs.totalKeysInRound.get()).toBe(3n);
     expect(obs.userKeys.get()).toBe(3);
-    expect(obs.totalPot.get()).toBe(3); // pot tracks the streak, not GAS
+    expect(obs.totalPot.get()).toBeGreaterThan(0); // local pressure score, never GAS
+    expect(obs.guestScore.get()).toBe(obs.totalPot.get());
+    expect(obs.guestLeaderLabel.get()).toBe("You");
+    expect(obs.guestOutcome.get()).toBe("running");
+    expect(obs.guestMoveReady.get()).toBe(false);
     expect(obs.lastBuyer.get()).toBeTruthy();
     expect(obs.endTime.get()).toBeGreaterThan(Date.now());
     // Loading keys is a pure local move — no leaderboard read/write.
     expect(board.submit).not.toHaveBeenCalled();
     expect(board.get).not.toHaveBeenCalled();
 
-    engine.buyKeys("5");
-    expect(obs.totalKeysInRound.get()).toBe(8n);
-    expect(obs.userKeys.get()).toBe(8);
+    await vi.advanceTimersByTimeAsync(181);
+    // Holding the seat is a waiting turn, not a score-spam opportunity.
+    expect(engine.buyKeys("5")).toBe(false);
+    expect(obs.totalKeysInRound.get()).toBe(3n);
+    expect(obs.userKeys.get()).toBe(3);
+    engine.cleanup();
+  });
+
+  it("lets an unpredictable local rival steal the seat and the player reclaim it", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-11T00:00:00Z"));
+    const { engine, obs } = setup();
+    await engine.enter();
+
+    engine.buyKeys("1");
+    const scoreBeforeRival = obs.guestScore.get();
+    await vi.advanceTimersByTimeAsync(4_200);
+
+    expect(obs.lastBuyer.get()).toBe("guest-rival:ember");
+    expect(obs.guestLeaderLabel.get()).toBe("Ember Fox");
+    expect(obs.guestRivalCue.get()).toContain("stole the seat");
+    expect(obs.guestMoveReady.get()).toBe(true);
+
+    expect(engine.buyKeys("1")).toBe(true);
+    expect(obs.lastBuyer.get()).toBe("guest-local");
+    expect(obs.guestLeaderLabel.get()).toBe("You");
+    expect(obs.guestScore.get()).toBeGreaterThan(scoreBeforeRival);
+    expect(obs.guestMoveReady.get()).toBe(false);
+    engine.cleanup();
+  });
+
+  it("cancels local rivals when the launcher switches away from guest mode", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-11T00:00:00Z"));
+    const { engine, obs } = setup();
+    await engine.enter();
+    engine.buyKeys("1");
+
+    engine.leave();
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    expect(obs.lastBuyer.get()).toBe("guest-local");
+    expect(obs.guestLeaderLabel.get()).toBe("You");
+    expect(obs.guestMoveReady.get()).toBe(false);
+
+    await engine.enter();
+    expect(obs.guestMoveReady.get()).toBe(true);
+    expect(obs.guestOutcome.get()).toBe("ready");
+    engine.cleanup();
   });
 
   it("ends the round (claim state) when the local clock hits zero", async () => {
@@ -125,6 +197,8 @@ describe("last-survivor guest engine (local doomsday drill)", () => {
     // needsLifecycleSync prerequisites: last buyer recorded + a non-zero pot.
     expect(obs.lastBuyer.get()).toBeTruthy();
     expect(obs.totalPot.get()).toBeGreaterThan(0);
+    expect(obs.guestOutcome.get()).toBe("won");
+    engine.cleanup();
   });
 
   it("settleRound banks the streak off-chain and opens a fresh local round", async () => {
@@ -134,9 +208,10 @@ describe("last-survivor guest engine (local doomsday drill)", () => {
     obs.timeRemainingSeconds.set(20);
     obs.timeRemainingSeconds.set(0); // clock expired → claimable
 
-    await engine.settleRound();
+    const settled = await engine.settleRound();
 
-    expect(board.submit).toHaveBeenCalledWith(4);
+    expect(settled).toMatchObject({ outcome: "won" });
+    expect(board.submit).toHaveBeenCalledWith(settled?.score);
     // Fresh round after claiming.
     expect(obs.roundId.get()).toBe(2);
     expect(obs.isRoundActive.get()).toBe(true);
@@ -145,16 +220,34 @@ describe("last-survivor guest engine (local doomsday drill)", () => {
     expect(obs.isSettling.get()).toBe(false);
   });
 
+  it("records an elimination without publishing a leaderboard score", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-11T00:00:00Z"));
+    const { engine, obs, board } = setup();
+    await engine.enter();
+    engine.buyKeys("1");
+    await vi.advanceTimersByTimeAsync(4_200); // Ember Fox takes the seat
+    obs.timeRemainingSeconds.set(1);
+    obs.timeRemainingSeconds.set(0);
+
+    expect(obs.guestOutcome.get()).toBe("lost");
+    const settled = await engine.settleRound();
+    expect(settled).toMatchObject({ outcome: "lost" });
+    expect(board.submit).not.toHaveBeenCalled();
+    expect(obs.roundId.get()).toBe(2);
+  });
+
   it("does not claim while the clock is still running", async () => {
     const { engine, obs, board } = setup();
     await engine.enter();
     engine.buyKeys("3");
 
-    await engine.settleRound();
+    await expect(engine.settleRound()).resolves.toBeNull();
 
     expect(board.submit).not.toHaveBeenCalled();
     expect(obs.totalKeysInRound.get()).toBe(3n); // run untouched
     expect(obs.roundId.get()).toBe(1);
+    engine.cleanup();
   });
 
   it("withdraw surfaces a no-credit notice (guest has no on-chain credit)", () => {

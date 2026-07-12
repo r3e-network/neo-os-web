@@ -8,6 +8,8 @@ export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
 export const MAX_MOVES = 40; // max actions per game
+/** Contract-enforced grace period before an abandoned playing/settling run can be expired. */
+export const SETTLEMENT_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: number;
@@ -51,6 +53,11 @@ export function formatClock(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/** The expire transaction is valid only strictly after deadline + contract grace. */
+export function canExpireAfterGrace(deadline: number, nowMs = Date.now()): boolean {
+  return Number.isFinite(deadline) && deadline > 0 && nowMs > deadline + SETTLEMENT_GRACE_MS;
+}
+
 export function statusOf(s: number): string {
   switch (s) {
     case 0: return "awaiting-bind";
@@ -64,6 +71,35 @@ export function statusOf(s: number): string {
 
 /** Pet actions: 0=Feed, 1=Play, 2=Pet, 3=Rest */
 export const ACTION_NAMES = ["feed", "play", "pet", "rest"] as const;
+export type CareAction = (typeof ACTION_NAMES)[number];
+
+/** One essence from every care tool completes the local potion recipe. */
+export const POTION_RECIPE: Readonly<Record<CareAction, number>> = {
+  feed: 1,
+  play: 1,
+  pet: 1,
+  rest: 1,
+};
+
+export type IngredientCounts = Record<CareAction, number>;
+
+export function emptyIngredientCounts(): IngredientCounts {
+  return { feed: 0, play: 0, pet: 0, rest: 0 };
+}
+
+export function ingredientCountsOf(actions: readonly string[]): IngredientCounts {
+  const counts = emptyIngredientCounts();
+  for (const action of actions) {
+    if ((ACTION_NAMES as readonly string[]).includes(action)) {
+      counts[action as CareAction] += 1;
+    }
+  }
+  return counts;
+}
+
+export function recipeReady(counts: IngredientCounts): boolean {
+  return ACTION_NAMES.every((action) => counts[action] >= POTION_RECIPE[action]);
+}
 
 /** Human-readable labels for each action */
 export const ACTION_LABELS: Record<string, { en: string; zh: string }> = {

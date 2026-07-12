@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { Flame, Trophy, WalletCards } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { ChevronDown, Flame, Trophy, WalletCards, X } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2";
-import { PhaserGameComponent } from "@framework/phaser";
-import { BurnLeagueScene } from "./scenes/BurnLeagueScene";
+import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
 import "./PlayArea.scss";
 
 interface P {
@@ -13,8 +18,11 @@ interface P {
   dispatch: (n: string, ...a: unknown[]) => Promise<void>;
 }
 
-const GAME_CONFIG = { scene: [BurnLeagueScene], width: 420, height: 600 } as const;
+const GAME_CONFIG = { width: 420, height: 600 } as const;
+const loadBurnLeagueScene = () =>
+  import("./scenes/BurnLeagueScene").then((module) => module.BurnLeagueScene);
 const EMPTY_LEADERBOARD: LeaderboardEntry[] = [];
+const BURN_PRESETS = ["1", "5", "10", "25"] as const;
 
 interface LeaderboardEntry {
   address: string;
@@ -59,7 +67,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const burnAmount = str("burnAmount", "1");
   const isBurning = bool("isBurning");
   const isSettling = bool("isSettling");
+  const isLoading = bool("isLoading");
+  const isConnectingWallet = bool("isConnectingWallet");
   const needsSettle = bool("needsSettle");
+  const leagueDataAvailable = bool("leagueDataAvailable");
+  const walletConnected = bool("walletConnected");
+  const walletGasBalance = str("walletGasBalance", "0");
+  const burnConfirmArmed = bool("burnConfirmArmed");
+  const burnConfirmAmount = str("burnConfirmAmount", "");
+  const burnTransactionState = str("burnTransactionState", "idle");
+  const hasUnknownBurn = bool("hasUnknownBurn");
   const leaderboardPreview =
     val<LeaderboardEntry[]>("leaderboardPreview", EMPTY_LEADERBOARD) ?? EMPTY_LEADERBOARD;
   const serviceNotice = str("serviceNotice", "");
@@ -80,13 +97,48 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   // Guest "top run" = the best banked heat on the local board ("--" when none).
   const guestTopValue = Number(stripGas(topBurnedDisplay)) > 0 ? stripGas(topBurnedDisplay) : "--";
   const [celebration, setCelebration] = useState<SettleResult | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const lastCelebratedToken = useRef<number | null>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement | null>(null);
+  const celebrationDismissRef = useRef<HTMLButtonElement | null>(null);
+  const presetRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const runAction = useCallback((name: string, ...args: unknown[]) => {
+    // The framework already turns rejected actions into a concise recovery
+    // overlay/toast. Consume the rethrow here so keyboard and drawer controls
+    // never add an unhandled promise rejection on top of that feedback.
+    void dispatch(name, ...args).catch(() => {
+      /* MiniAppRoot already displayed the action failure. */
+    });
+  }, [dispatch]);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    drawerTriggerRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!settleResult || settleResult.token === lastCelebratedToken.current) return;
     lastCelebratedToken.current = settleResult.token;
     setCelebration(settleResult);
   }, [settleResult]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    drawerCloseRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeDrawer();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [closeDrawer, drawerOpen]);
+
+  useEffect(() => {
+    if (celebration) celebrationDismissRef.current?.focus();
+  }, [celebration]);
 
   const bridgeState = {
     seasonPhase,
@@ -97,7 +149,16 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     burnAmount,
     isBurning,
     isSettling,
+    isLoading,
+    isConnectingWallet,
     needsSettle,
+    leagueDataAvailable,
+    walletConnected,
+    walletGasBalance,
+    burnConfirmArmed,
+    burnConfirmAmount,
+    burnTransactionState,
+    hasUnknownBurn,
     leaderboardPreview,
     serviceNotice,
     actionNotice,
@@ -122,7 +183,38 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     guestBoardLabel: t("guestBoardTitle"),
     guestEmptyLabel: t("guestNoRuns"),
     guestBurnVerb: t("guestStokeVerb"),
+    guestBankAction: t("guestBankAction"),
     guestUnit: t("guestHeatUnit"),
+    guestStokingAction: t("guestStoking"),
+    guestIntroAction: t("guestIntro"),
+    settleAction: t("settleSeason"),
+    connectAction: t("burnConnectAction"),
+    connectingAction: t("burnConnectingAction"),
+    igniteAction: t("burnIgniteAction", { amount: burnAmount }),
+    confirmBurnAction: t("burnConfirmAction", { amount: burnAmount }),
+    recheckBurnAction: t("burnRecheckAction"),
+    checkingBurnAction: t("burnCheckingAction"),
+    burningAction: t("burning"),
+    burnInsufficientHint: t("burnInsufficientHint"),
+    tokenGasLabel: t("tokenGas"),
+    sceneText: {
+      poolLabel: t("prizePool"),
+      seasonLabel: t("seasonLabel"),
+      burnedLabel: t("youBurned"),
+      rankLabel: t("rank"),
+      boardTitle: t("leaderboard"),
+      emptyBoard: t("sceneNoBurns"),
+      fuelLabel: t("burnPresets"),
+      phaseEnded: t("seasonEnded"),
+      phaseDormant: t("startPool"),
+      ready: t("sceneReady"),
+      walletBurning: t("sceneWalletBurning"),
+      endedStatus: t("sceneEndedStatus"),
+      dormantStatus: t("sceneDormantStatus"),
+      emptyStatus: t("sceneEmptyStatus"),
+      activeStatus: t("sceneActiveStatus"),
+      guestContinue: t("sceneGuestContinue"),
+    },
   };
 
   const seasonLine =
@@ -138,6 +230,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     ? isBurning
       ? t("burning")
       : t("guestStageTitle")
+    : isConnectingWallet
+      ? t("burnConnectingAction")
+      : hasUnknownBurn
+        ? t("burnCheckingTitle")
+        : burnConfirmArmed
+          ? t("burnConfirmTitle")
     : isBurning
       ? t("burning")
       : needsSettle
@@ -151,11 +249,115 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     : leaderLabel !== "--"
       ? shortAddr(leaderLabel)
       : t("noLeaderYet");
+  const scoreItems = guest ? [
+    { label: t("guestBest"), value: stripGas(prizePoolDisplay), accent: true },
+    { label: t("guestRun"), value: stripGas(userBurnedDisplay) },
+    { label: t("yourRank"), value: formattedRank },
+    { label: t("guestTopRun"), value: guestTopValue },
+  ] : [
+    { label: t("prizePool"), value: prizePoolDisplay, accent: true },
+    { label: t("youBurned"), value: userBurnedDisplay },
+    { label: t("yourRank"), value: formattedRank },
+    { label: t("currentLeader"), value: leaderDisplay },
+  ];
+  const drawerTitle = guest ? t("guestBoardTitle") : t("leaderboard");
+  const drawerId = "burn-league-ingame-drawer";
+  const minBurnGas = num("minBurnGas", 1);
+  const maxBurnGas = num("maxBurnGas", 1_000);
+  const burnValue = Number(burnAmount);
+  const walletGas = Number(walletGasBalance);
+  const hasEnoughFunding = guest || (
+    Number.isFinite(burnValue) &&
+    Number.isFinite(walletGas) &&
+    walletGas + prepaidCredit >= burnValue
+  );
+  const canSelectFuel =
+    !isBurning &&
+    !isSettling &&
+    !isLoading &&
+    !isConnectingWallet &&
+    !hasUnknownBurn;
+  const primaryAction: "connect" | "burn" | "settle" | "recheck" = guest
+    ? "burn"
+    : !walletConnected
+      ? "connect"
+      : hasUnknownBurn
+        ? "recheck"
+        : needsSettle
+          ? "settle"
+          : "burn";
+  const confirmingThisAmount = burnConfirmArmed && burnConfirmAmount === burnAmount;
+  const primaryActionLabel = primaryAction === "connect"
+    ? isConnectingWallet ? t("burnConnectingAction") : t("burnConnectAction")
+    : primaryAction === "recheck"
+      ? burnTransactionState === "broadcast" ? t("burnCheckingAction") : t("burnRecheckAction")
+      : primaryAction === "settle"
+        ? t("settleSeason")
+        : isBurning
+          ? t("burning")
+          : guest
+            ? `${t("guestStokeVerb")} ${burnAmount}`
+            : confirmingThisAmount
+              ? t("burnConfirmAction", { amount: burnAmount })
+              : t("burnIgniteAction", { amount: burnAmount });
+  const canBurn =
+    seasonPhase !== "ended" &&
+    !isBurning &&
+    !isSettling &&
+    !isLoading &&
+    !isConnectingWallet &&
+    (guest || walletConnected) &&
+    (guest || leagueDataAvailable) &&
+    (guest || !serviceNotice) &&
+    (guest || !hasUnknownBurn) &&
+    !burnValidationError &&
+    Number.isFinite(burnValue) &&
+    burnValue >= minBurnGas &&
+    burnValue <= maxBurnGas &&
+    hasEnoughFunding;
+  const primaryDisabled = primaryAction === "connect"
+    ? guest || walletConnected || isConnectingWallet || isBurning || isSettling
+    : primaryAction === "recheck"
+      ? guest || !walletConnected || !hasUnknownBurn || isLoading || isBurning || isSettling
+      : primaryAction === "settle"
+        ? guest || !walletConnected || !needsSettle || hasUnknownBurn || isLoading || isBurning || isSettling
+        : !canBurn;
+  const liveStatus =
+    burnValidationError ||
+    actionNotice ||
+    serviceNotice ||
+    (!guest && walletConnected && !hasEnoughFunding ? t("burnInsufficientHint") : "") ||
+    primaryActionLabel;
+
+  const invokePrimary = () => {
+    if (primaryAction === "connect") runAction("connectWallet");
+    else if (primaryAction === "recheck") runAction("recheckBurn");
+    else if (primaryAction === "settle") runAction("settle");
+    else runAction("burn", burnAmount);
+  };
+
+  const handlePresetKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    const direction =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? 1
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (direction === 0 || !canSelectFuel) return;
+    event.preventDefault();
+    const nextIndex = (index + direction + BURN_PRESETS.length) % BURN_PRESETS.length;
+    presetRefs.current[nextIndex]?.focus();
+    runAction("setBurnAmount", BURN_PRESETS[nextIndex]);
+  };
 
   return (
     <div className="burn-league-play-area mx2 mx2-cat-game">
       <PlayStage
         category="game"
+        className="burn-phaser-stage"
         stage={{
           eyebrow: guest
             ? t("guestEyebrow")
@@ -192,188 +394,287 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
             </>
           ),
         }}
-        scene={<PhaserGameComponent config={GAME_CONFIG} state={bridgeState} dispatch={dispatch} />}
-        score={guest ? [
-          { label: t("guestBest"), value: stripGas(prizePoolDisplay), accent: true },
-          { label: t("guestRun"), value: stripGas(userBurnedDisplay) },
-          { label: t("yourRank"), value: formattedRank },
-          { label: t("guestTopRun"), value: guestTopValue },
-        ] : [
-          { label: t("prizePool"), value: prizePoolDisplay, accent: true },
-          { label: t("youBurned"), value: userBurnedDisplay },
-          { label: t("yourRank"), value: formattedRank },
-          { label: t("currentLeader"), value: leaderDisplay },
-        ]}
-        actions={{
-          secondary: [
-            ...(needsSettle
-              ? [{
-                  label: t("settleSeason"),
-                  onClick: () => void dispatch("settle"),
-                  loading: isSettling,
-                  icon: <Trophy size={16} aria-hidden="true" />,
-                  hint: t("settleSuccess"),
-                }]
-              : []),
-            ...(prepaidCredit > 0
-              ? [{
-                  label: t("withdrawCredit"),
-                  onClick: () => void dispatch("withdrawCredit"),
-                  icon: <WalletCards size={16} aria-hidden="true" />,
-                  hint: t("prepaidCreditHint"),
-                }]
-              : []),
-          ],
-        }}
-        drawerToggleLabel={guest ? t("guestBoardTitle") : t("leaderboard")}
-        drawer={{
-          title: guest ? t("guestBoardTitle") : t("leaderboard"),
-          children: (
-            <div className="burn-drawer">
-              {guest ? (
-                <section className="burn-drawer__summary" aria-label={t("guestBoardTitle")}>
-                  <h4>{t("guestSummaryTitle")}</h4>
-                  <p>{t("guestSummaryLine")}</p>
-                  <dl className="burn-drawer__metrics">
-                    <div>
-                      <dt>{t("guestBest")}</dt>
-                      <dd>{stripGas(prizePoolDisplay)}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("guestStreakLabel")}</dt>
-                      <dd>{guestStreak > 0 ? `x${guestStreak}` : "--"}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("guestTopRun")}</dt>
-                      <dd>{guestTopValue}</dd>
-                    </div>
-                  </dl>
-                </section>
-              ) : (
-                <section className="burn-drawer__summary" aria-label={t("seasonStatus")}>
-                  <h4>{t("seasonLabel")} {formattedSeason}</h4>
-                  <p>{seasonLine}</p>
-                  <dl className="burn-drawer__metrics">
-                    <div>
-                      <dt>{t("prizePool")}</dt>
-                      <dd>{prizePoolDisplay}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("currentLeader")}</dt>
-                      <dd>{leaderDisplay}</dd>
-                    </div>
-                    <div>
-                      <dt>{t("burned")}</dt>
-                      <dd>{topBurnedDisplay}</dd>
-                    </div>
-                  </dl>
-                </section>
-              )}
+        scene={
+          <div className="burn-stage-shell">
+            <div className="burn-game-surface">
+              <PhaserGameComponent
+                config={GAME_CONFIG}
+                loadScene={loadBurnLeagueScene}
+                state={bridgeState}
+                dispatch={dispatch}
+                className="burn-phaser-canvas"
+                ariaLabel={t("arenaAlt")}
+                loadingLabel={t("burnArenaLoading")}
+                errorLabel={t("gameActionFailed")}
+                retryLabel={t("retry")}
+                continueLabel={t("continue")}
+                enableSoundLabel={t("enableGameSound")}
+                muteSoundLabel={t("muteGameSound")}
+              />
 
-              <section
-                className="burn-drawer__board"
-                aria-label={guest ? t("guestBoardTitle") : t("leaderboard")}
-              >
-                <h4>{guest ? t("guestBoardTitle") : t("leaderboard")}</h4>
-                {hasLeaderboard ? (
-                  <ul className="mx2-history burn-drawer__leaderboard">
-                    {leaderboardPreview.slice(0, 10).map((entry) => (
-                      <li
-                        key={entry.address}
-                        className={[
-                          "mx2-history__item",
-                          entry.rank <= 3 ? "mx2-history__item--podium" : null,
-                          entry.isUser ? "mx2-history__item--you" : null,
-                        ].filter(Boolean).join(" ")}
-                        data-rank={entry.rank}
+              <div className="burn-a11y-layer">
+                <div
+                  className="burn-a11y-presets"
+                  role="radiogroup"
+                  aria-label={t("burnPresets")}
+                >
+                  {BURN_PRESETS.map((amount, index) => {
+                    const selected = burnAmount === amount;
+                    return (
+                      <button
+                        key={amount}
+                        ref={(node) => {
+                          presetRefs.current[index] = node;
+                        }}
+                        type="button"
+                        role="radio"
+                        className="burn-a11y-hit burn-a11y-preset"
+                        data-index={index}
+                        aria-checked={selected}
+                        aria-label={`${t("burnPresets")}: ${amount}`}
+                        tabIndex={selected ? 0 : -1}
+                        disabled={!canSelectFuel}
+                        onClick={() => runAction("setBurnAmount", amount)}
+                        onKeyDown={(event) => handlePresetKeyDown(event, index)}
                       >
-                        <span className="mx2-history__face" aria-hidden="true">#{entry.rank}</span>
-                        <span className="mx2-history__stake">
-                          {shortAddr(entry.address)}
-                          {entry.isUser && (
-                            <em className="burn-drawer__you-tag"> {guest ? t("guestYouTag") : t("youBurned")}</em>
-                          )}
-                        </span>
-                        <span className="mx2-history__result">
-                          {guest ? `${entry.burned.toFixed(0)} ${t("guestHeatUnit")}` : burnedAmount(entry)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="burn-drawer__empty">{guest ? t("guestNoRuns") : t("noEntries")}</p>
-                )}
-              </section>
+                        <span>{amount}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="burn-a11y-hit burn-a11y-primary"
+                  aria-label={primaryActionLabel}
+                  disabled={primaryDisabled}
+                  onClick={invokePrimary}
+                >
+                  <span>{primaryActionLabel}</span>
+                </button>
+              </div>
+              <p className="burn-a11y-status" aria-live="polite" aria-atomic="true">
+                {liveStatus}
+              </p>
+            </div>
 
-              {guest ? (
-                <section className="burn-drawer__rules" aria-label={t("guestHowTitle")}>
-                  <h4>{t("guestHowTitle")}</h4>
-                  <ol className="burn-drawer__steps">
-                    <li>{t("guestStepPick")}</li>
-                    <li>{t("guestStepStoke")}</li>
-                    <li>{t("guestStepStreak")}</li>
-                    <li>{t("guestStepBank")}</li>
-                  </ol>
-                </section>
-              ) : (
-                <section className="burn-drawer__rules" aria-label={t("howItWorks")}>
-                  <h4>{t("howItWorks")}</h4>
-                  <ol className="burn-drawer__steps">
-                    <li>{t("howStepPick")}</li>
-                    <li>{t("howStepBurn")}</li>
-                    <li>{t("howStepClimb")}</li>
-                    <li>{t("howStepWin")}</li>
-                  </ol>
-                </section>
-              )}
-
-              {guest ? (
-                <p className="burn-drawer__note">{t("guestNextStoke")}: {stripGas(projectedTotalDisplay)}</p>
-              ) : (
-                projectedTotalDisplay !== "--" && (
-                  <p className="burn-drawer__note">{t("projectedTotal")}: {projectedTotalDisplay}</p>
-                )
-              )}
-
-              {prepaidCredit > 0 && (
-                <section className="burn-drawer__credit" aria-label={t("prepaidCreditLabel")}>
-                  <span>
-                    {t("prepaidCreditLabel")}: <strong>{prepaidCreditDisplay}</strong>
-                    <em>{t("prepaidCreditHint")}</em>
-                  </span>
+            <div className="burn-stage-hud" aria-label={drawerTitle}>
+              {scoreItems.map((item, index) =>
+                guest && guestStreak > 0 && index === scoreItems.length - 1 ? (
                   <button
                     type="button"
-                    className="mx2-btn mx2-btn--ghost"
-                    onClick={() => void dispatch("withdrawCredit")}
+                    className="burn-stage-hud__bank"
+                    key="bank-guest-run"
+                    disabled={isBurning || isSettling || isLoading}
+                    onClick={() => runAction("bankGuestRun")}
                   >
-                    <WalletCards size={16} aria-hidden="true" />
-                    {t("withdrawCredit")}
+                    <Trophy size={15} aria-hidden="true" />
+                    <span>{t("guestBankAction")}</span>
                   </button>
-                </section>
+                ) : (
+                  <div
+                    className="burn-stage-hud__metric"
+                    data-accent={item.accent ? "true" : undefined}
+                    key={`${item.label}-${item.value}`}
+                  >
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ),
               )}
+              <button
+                ref={drawerTriggerRef}
+                type="button"
+                className="burn-stage-hud__drawer"
+                onClick={() => {
+                  if (drawerOpen) closeDrawer();
+                  else setDrawerOpen(true);
+                }}
+                aria-expanded={drawerOpen}
+                aria-controls={drawerId}
+              >
+                <span>{drawerTitle}</span>
+                <ChevronDown size={15} data-open={drawerOpen ? "true" : undefined} aria-hidden="true" />
+              </button>
             </div>
-          ),
-        }}
+
+            {drawerOpen && (
+              <section id={drawerId} className="burn-ingame-drawer" aria-label={drawerTitle}>
+                <button
+                  ref={drawerCloseRef}
+                  type="button"
+                  className="burn-drawer__close"
+                  onClick={closeDrawer}
+                  aria-label={t("closeDrawer")}
+                >
+                  <X size={17} aria-hidden="true" />
+                </button>
+                <div className="burn-drawer">
+                  {guest ? (
+                    <section className="burn-drawer__summary" aria-label={t("guestBoardTitle")}>
+                      <h4>{t("guestSummaryTitle")}</h4>
+                      <p>{t("guestSummaryLine")}</p>
+                      <dl className="burn-drawer__metrics">
+                        <div>
+                          <dt>{t("guestBest")}</dt>
+                          <dd>{stripGas(prizePoolDisplay)}</dd>
+                        </div>
+                        <div>
+                          <dt>{t("guestStreakLabel")}</dt>
+                          <dd>{guestStreak > 0 ? `x${guestStreak}` : "--"}</dd>
+                        </div>
+                        <div>
+                          <dt>{t("guestTopRun")}</dt>
+                          <dd>{guestTopValue}</dd>
+                        </div>
+                      </dl>
+                    </section>
+                  ) : (
+                    <section className="burn-drawer__summary" aria-label={t("seasonStatus")}>
+                      <h4>{t("seasonLabel")} {formattedSeason}</h4>
+                      <p>{seasonLine}</p>
+                      <dl className="burn-drawer__metrics">
+                        <div>
+                          <dt>{t("prizePool")}</dt>
+                          <dd>{prizePoolDisplay}</dd>
+                        </div>
+                        <div>
+                          <dt>{t("currentLeader")}</dt>
+                          <dd>{leaderDisplay}</dd>
+                        </div>
+                        <div>
+                          <dt>{t("burned")}</dt>
+                          <dd>{topBurnedDisplay}</dd>
+                        </div>
+                      </dl>
+                    </section>
+                  )}
+
+                  <section
+                    className="burn-drawer__board"
+                    aria-label={guest ? t("guestBoardTitle") : t("leaderboard")}
+                  >
+                    <h4>{guest ? t("guestBoardTitle") : t("leaderboard")}</h4>
+                    {hasLeaderboard ? (
+                      <ul className="mx2-history burn-drawer__leaderboard">
+                        {leaderboardPreview.slice(0, 10).map((entry) => (
+                          <li
+                            key={entry.address}
+                            className={[
+                              "mx2-history__item",
+                              entry.rank <= 3 ? "mx2-history__item--podium" : null,
+                              entry.isUser ? "mx2-history__item--you" : null,
+                            ].filter(Boolean).join(" ")}
+                            data-rank={entry.rank}
+                          >
+                            <span className="mx2-history__face" aria-hidden="true">#{entry.rank}</span>
+                            <span className="mx2-history__stake">
+                              {shortAddr(entry.address)}
+                              {entry.isUser && (
+                                <em className="burn-drawer__you-tag"> {guest ? t("guestYouTag") : t("youBurned")}</em>
+                              )}
+                            </span>
+                            <span className="mx2-history__result">
+                              {guest ? `${entry.burned.toFixed(0)} ${t("guestHeatUnit")}` : burnedAmount(entry)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="burn-drawer__empty">{guest ? t("guestNoRuns") : t("noEntries")}</p>
+                    )}
+                  </section>
+
+                  {guest ? (
+                    <section className="burn-drawer__rules" aria-label={t("guestHowTitle")}>
+                      <h4>{t("guestHowTitle")}</h4>
+                      <ol className="burn-drawer__steps">
+                        <li>{t("guestStepPick")}</li>
+                        <li>{t("guestStepStoke")}</li>
+                        <li>{t("guestStepStreak")}</li>
+                        <li>{t("guestStepBank")}</li>
+                      </ol>
+                    </section>
+                  ) : (
+                    <section className="burn-drawer__rules" aria-label={t("howItWorks")}>
+                      <h4>{t("howItWorks")}</h4>
+                      <ol className="burn-drawer__steps">
+                        <li>{t("howStepPick")}</li>
+                      <li>{t("howStepBurn")}</li>
+                      <li>{t("howStepClimb")}</li>
+                      <li>{t("howStepWin")}</li>
+                      <li>{t("tieRule")}</li>
+                    </ol>
+                    </section>
+                  )}
+
+                  {guest ? (
+                    <p className="burn-drawer__note">{t("guestNextStoke")}: {stripGas(projectedTotalDisplay)}</p>
+                  ) : (
+                    projectedTotalDisplay !== "--" && (
+                      <p className="burn-drawer__note">{t("projectedTotal")}: {projectedTotalDisplay}</p>
+                    )
+                  )}
+
+                  {!guest && prepaidCredit > 0 && walletConnected && (
+                    <section className="burn-drawer__credit" aria-label={t("prepaidCreditLabel")}>
+                      <span>
+                        {t("prepaidCreditLabel")}: <strong>{prepaidCreditDisplay}</strong>
+                        <em>{t("prepaidCreditHint")}</em>
+                      </span>
+                      <button
+                        type="button"
+                        className="mx2-btn mx2-btn--ghost"
+                        disabled={isLoading || isBurning || isSettling || hasUnknownBurn}
+                        onClick={() => runAction("withdrawCredit")}
+                      >
+                        <WalletCards size={16} aria-hidden="true" />
+                        {t("withdrawCredit")}
+                      </button>
+                    </section>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+        }
+        actions={{}}
       />
       {celebration && (
         <div
           className="burn-celebrate"
           role="dialog"
           aria-modal="true"
-          aria-label={celebration.won ? t("settleWinTitle") : t("settleDoneTitle")}
+          aria-labelledby="burn-celebration-title"
+          aria-describedby="burn-celebration-body"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setCelebration(null);
+            } else if (event.key === "Tab") {
+              event.preventDefault();
+              celebrationDismissRef.current?.focus();
+            }
+          }}
         >
           <div className="burn-celebrate__card mx2-rise-in">
             <div className="burn-celebrate__medal mx2-float">
               <Trophy size={34} aria-hidden="true" />
             </div>
-            <h3>{celebration.won ? t("settleWinTitle") : t("settleDoneTitle")}</h3>
+            <h3 id="burn-celebration-title">
+              {celebration.won ? t("settleWinTitle") : t("settleDoneTitle")}
+            </h3>
             <p className="burn-celebrate__amount">{celebration.amount}</p>
-            <p className="burn-celebrate__body">
+            <p id="burn-celebration-body" className="burn-celebrate__body">
               {celebration.won
                 ? t("settleWinBody", { amount: celebration.amount })
                 : t("settleDoneBody", { amount: celebration.amount })}
             </p>
-            <button type="button" className="mx2-btn mx2-btn--primary" onClick={() => setCelebration(null)}>
+            <button
+              ref={celebrationDismissRef}
+              type="button"
+              className="mx2-btn mx2-btn--primary"
+              onClick={() => setCelebration(null)}
+            >
               {t("celebrationDismiss")}
             </button>
           </div>

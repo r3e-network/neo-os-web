@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -19,7 +19,9 @@ function trackedFiles(...patterns: string[]): string[] {
     encoding: "utf8",
   })
     .split("\n")
-    .filter(Boolean);
+    .filter(Boolean)
+    // `git ls-files` also reports tracked paths removed in the working tree.
+    .filter((file) => existsSync(path.join(repoRoot(), file)));
 }
 
 describe("Neo MiniApps design language v4 foundation", () => {

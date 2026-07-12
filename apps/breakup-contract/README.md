@@ -1,132 +1,51 @@
 # Breakup Contract
 
-Relationship commitment with GAS stakes
+A two-party, stake-backed commitment pact on Neo N3.
 
-## Overview
+## Product model
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-breakupcontract` |
-| **Category** | Social |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea
+1. The creator prepays at least 1 GAS and creates a pact naming one partner and a duration.
+2. The pact is pending. Only the named partner can match the exact stake and activate it.
+3. Before expiry, either active participant may break the pact. Both stakes are credited to the other participant.
+4. After expiry, anyone may settle the active pact. Each participant receives their own stake as contract credit.
+5. Pending pacts may only be cancelled by the creator; that stake becomes creator credit.
+6. Credits are pull payments. A separate witness-gated `withdraw` moves GAS from contract credit to the wallet.
 
+There are no milestone rewards, amendments, mutual-break split, yield, oracle, or automatic wallet refund in the deployed contract.
 
-## How It Works
+## On-chain and device-local data
 
-1. **Create Agreement**: The proposer initiates a breakup agreement by specifying terms and the other party's address
-2. **Counterparty Sign**: The other party reviews and signs the agreement on-chain
-3. **Time-Lock Period**: A configurable cooldown period allows both parties to reconsider
-4. **Execute**: After the time-lock expires, either party can execute the final settlement
-5. **On-Chain Record**: The agreement and its final state are permanently recorded on the Neo blockchain
-## Features
+The chain is authoritative for pact ID, participants, stake, expiry, signatures, status, breaker, and withdrawable credit. The display title and notes are device-local metadata. They are scoped by network and contract; legacy mainnet metadata remains readable. The UI reports a partial outcome if the pact is confirmed but local metadata cannot be saved.
 
-- **Commitment Contracts**: Create binding agreements between parties
-- **Stake-Based**: Both parties stake GAS as commitment
-- **Milestone Rewards**: Earn rewards at relationship milestones
-- **Fair Resolution**: Multiple ways to end contracts
-- **Penalty System**: Penalties for unilateral breakup
+## Transaction recovery
 
-## Usage
+- Existing `creditOf` balance is consumed before asking for another deposit; only a deficit is transferred.
+- A broadcast txid is treated as pending, not success.
+- Before wallet confirmation, recovery storage and the exact wallet-network/contract binding are verified.
+- `onTransactionSent` persists the exact intent, network, contract, wallet, and txid immediately.
+- Pending ends only for authoritative VM `FAULT`, or `HALT` plus the exact event and a fresh authoritative readback. Unknown results have no age-based deletion.
+- Refresh only restores and reconciles; it never replays the original action.
+- Unknown credit or `lastPactId` is unavailable, never zero.
 
-### Creating a Contract
+## Deployment binding
 
-1. **Connect Wallet**: Link your Neo N3 wallet
-2. **Set Terms**: Define stake amount and duration
-3. **Invite Partner**: Share contract with other party
-4. **Both Sign**: Both parties must sign to activate
-5. **Activate**: Contract becomes active after both signatures
+| Network | Contract | Read-only verification (2026-07-12) |
+|---|---|---|
+| Neo N3 MainNet | `0xf6769c080395f15c28013108b7af7631e1665336` | `MiniAppBreakupPact`, NEF checksum `2044887039`, full pact/credit ABI and events, `lastPactId` HALT |
+| Neo N3 TestNet | `0xf6769c080395f15c28013108b7af7631e1665336` | independently returned the same name, checksum, ABI/events, and HALT read |
 
-### During the Contract
+The checked-in current build artifact also contains admin/update methods that are not present in the live deployments. The frontend intentionally uses only the lifecycle and credit ABI confirmed on both networks. No deployment or funded write was performed during the 2026-07-12 read-only verification.
 
-- **Track Milestones**: Earn rewards at 25%, 50%, 75%, 100% duration
-- **View Stats**: Monitor stake, time remaining, rewards earned
-- **Amend Terms**: Mutually agree to modify contract terms
-
-### Ending a Contract
-
-**Mutual Breakup (Recommended)**
-1. Either party requests mutual breakup
-2. Other party confirms within timeout period
-3. Funds distributed evenly
-
-**Unilateral Breakup**
-1. Either party can trigger at any time
-2. Initiator pays penalty to loyal party
-3. Remaining stake split according to rules
-
-## Milestone Rewards
-
-| Milestone | Reward |
-|-----------|--------|
-| 25% duration | 10% of stake back |
-| 50% duration | 20% of stake back |
-| 75% duration | 30% of stake back |
-| 100% duration | Full stake + yield returned |
-
-## Contract Terms
-
-| Parameter | Value |
-|-----------|-------|
-| Min Stake | 1 GAS per party |
-| Max Duration | 365 days |
-| Early Withdrawal Penalty | 20% of initiator's stake |
-| Mutual Breakup Timeout | 7 days |
-
-## Permissions
-
-| Permission | Required |
-|------------|----------|
-| Payments | ✅ Yes |
-| RNG | ❌ No |
-| Data Feed | ❌ No |
-| Governance | ❌ No |
-
-## Network Configuration
-
-### Testnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8) |
-| **Network Magic** | `894710606` |
-
-### Mainnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9` |
-| **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9) |
-| **Network Magic** | `860833102` |
-
-## Platform Contracts
-
-### Current Integration Surface
-
-- direct prepaid GAS to the MiniApp contract for create/sign
-- direct contract invocation on the main user flow
-- optional Oracle / AA integrations remain external
+See [NETWORK_STATUS.md](./NETWORK_STATUS.md), [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md), and [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md) for the evidence and release boundary.
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
-npm run build
+npm --prefix apps/breakup-contract run dev
+npm --prefix apps/breakup-contract run build
 ```
 
-## Assets
-
-- **Allowed Assets**: GAS
-
+The host operation panel is intentionally empty: the embedded pact desk owns the complete multi-step flow and its recovery safeguards.
 
 ## License
 

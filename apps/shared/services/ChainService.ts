@@ -98,6 +98,12 @@ export interface InvokeOptions {
    * post-broadcast failure (funds in flight). Additive — safe to omit.
    */
   onPaymentSent?: (txid: string) => void;
+  /**
+   * Optional callback fired as soon as the target contract transaction is
+   * broadcast, before any event wait. Financial apps use this boundary to
+   * persist an exact recovery txid across refreshes during indexer lag.
+   */
+  onTransactionSent?: (txid: string) => void;
 }
 
 export interface TxResult {
@@ -126,7 +132,13 @@ export interface TxResult {
   verified?: boolean;
 }
 
-export type SignedMessageResult = string | { publicKey?: string; data?: string } | null;
+export type SignedMessageResult = string | {
+  publicKey?: string;
+  data?: string;
+  signature?: string;
+  account?: string;
+  pubkey?: string;
+} | null;
 
 /** One call of a multi-invoke batch (single transaction, multiple scripts). */
 export interface MultiInvokeCall {
@@ -144,6 +156,12 @@ export interface MultiInvokeCall {
 export interface MultiInvokeResult extends TxResult {
   state?: string;
   exception?: string;
+}
+
+export interface MultiInvokeOptions {
+  signers?: WalletSigner[];
+  /** Persist the exact batch txid immediately after broadcast. */
+  onTransactionSent?: (txid: string) => void;
 }
 
 export interface EventListOptions {
@@ -419,6 +437,13 @@ export class ChainService {
         options?.signers,
       );
 
+      try {
+        options?.onTransactionSent?.(txid);
+      } catch {
+        // A caller's persistence hook must never turn a broadcast transaction
+        // into a rejected invoke result.
+      }
+
       this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
 
       let event: unknown;
@@ -457,7 +482,7 @@ export class ChainService {
    */
   async invokeMultiple(
     calls: MultiInvokeCall[],
-    options?: { signers?: WalletSigner[] },
+    options?: MultiInvokeOptions,
   ): Promise<MultiInvokeResult> {
     return this.withProcessing(async () => {
       const invokeArgs: InvokeParams[] = [];
@@ -476,6 +501,12 @@ export class ChainService {
       });
 
       const txid = String(result?.txid ?? "");
+      try {
+        options?.onTransactionSent?.(txid);
+      } catch {
+        // The batch is already broadcast. Local recovery persistence must not
+        // mutate its transaction semantics.
+      }
       this.events.emit(EventBus.TRANSACTION_SENT, {
         txid,
         operation: invokeArgs[invokeArgs.length - 1]?.operation ?? "",
@@ -522,6 +553,13 @@ export class ChainService {
         options?.signers,
         options?.onPaymentSent,
       );
+
+      try {
+        options?.onTransactionSent?.(txid);
+      } catch {
+        // The target transaction is already broadcast; persistence failure is
+        // recoverable and must not change its transaction semantics.
+      }
 
       this.events.emit(EventBus.TRANSACTION_SENT, { txid, operation });
 

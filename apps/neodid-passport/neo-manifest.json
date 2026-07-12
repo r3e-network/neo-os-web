@@ -3,9 +3,9 @@
   "id": "miniapp-neodid-passport",
   "name": "NeoDID Passport",
   "name_zh": "NeoDID 身份护照",
-  "version": "1.0.0",
-  "description": "Resolve NeoDID documents and prepare wallet-signable identity passports.",
-  "description_zh": "解析 NeoDID 文档并生成可钱包签名的身份护照。",
+  "version": "1.2.0",
+  "description": "Inspect a Morpheus NeoDID document, create a short-lived local review envelope, and optionally attach an unverified wallet signature.",
+  "description_zh": "检查 Morpheus NeoDID 文档、创建短期本地核对包，并可选择附加未经本应用验证的钱包签名。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -22,30 +22,23 @@
   },
   "contracts": {},
   "supported_networks": [
+    "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/neodid-passport/index.html",
     "icon": "/miniapps/neodid-passport/logo.webp",
-    "banner": "/miniapps/neodid-passport/banner.webp"
+    "banner": "/miniapps/neodid-passport/passport-desk.webp"
   },
   "permissions": [
     "read:blockchain",
     "wallet:sign-message"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neodid-passport"
-  },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "/api/morpheus/neodid/resolve",
-      "https://oracle.meshmini.app/testnet"
-    ]
   },
   "platform": {
     "analytics": true,
@@ -54,5 +47,5 @@
     "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

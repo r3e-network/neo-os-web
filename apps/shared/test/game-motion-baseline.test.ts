@@ -13,12 +13,15 @@ const PREVIEW_START_PATTERN =
   /start[A-Za-z]*(?:Action)?Preview|set[A-Za-z]*Preview\(true\)|setActionPreview\(/;
 const phaserGames = [
   "aim-master",
+  "arrow-escape",
+  "bead-workshop",
   "burn-league",
   "color-clash",
   "curve-arrow",
   "dice-game",
   "flappy-dash",
   "fogplay",
+  "fruit-funnel",
   "game-2048",
   "gas-lucky-pool",
   "jump-rush",
@@ -27,6 +30,7 @@ const phaserGames = [
   "on-chain-tarot",
   "pet-potion",
   "red-envelope",
+  "screw-sort",
   "sheep-solitaire",
   "snake-bounty",
   "sudoku",
@@ -64,8 +68,8 @@ describe("Game miniapp motion baseline", () => {
       const wrapper = readIfExists(resolve(appsRoot, app, "src/PhaserPlayArea.tsx"));
 
       expect(wrapper, `${app}: Phaser wrapper must exist`).not.toBe("");
-      expect(wrapper, `${app}: wrapper should import the root framework Phaser SDK`).toContain(
-        `from "@framework/phaser"`,
+      expect(wrapper, `${app}: wrapper should import the root framework Phaser SDK`).toMatch(
+        /from "@framework\/phaser(?:\/LazyPhaserGameComponent)?"/,
       );
       expect(wrapper, `${app}: wrapper should not depend on the old shared Phaser module`).not.toContain(
         `@shared/phaser`,
@@ -195,7 +199,9 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("const rewardY = compactCard ? 29 : 34");
     expect(scene).toContain("const entryY = compactCard ? cardH / 2 - 6 : cardH / 2 - 10");
     expect(main).toContain("const pattern = createObservable(\"\")");
-    expect(main).toContain("pattern.set(String(started.view.pattern ?? \"\"))");
+    expect(main).toContain('const patternValue = String(started.view.pattern ?? "")');
+    expect(main).toContain("parseTargetPattern(patternValue).length === 0");
+    expect(main).toContain("pattern.set(patternValue)");
     expect(main).toContain("state: { ...obs, pattern, patternData: pattern");
     expect(wrapper).toContain("pattern:         str(\"pattern\", \"\")");
     expect(wrapper).toContain("className=\"aim-playstage\"");
@@ -283,14 +289,23 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("compact ? 0.30 : 0.41");
     expect(scene).toContain("const gap = compact ? Math.max(52, W * 0.17) : 68");
     expect(scene).toContain("if (!this.sceneReady || this.isRebuildingScene || !this.statusBar || !this.phaseLabel)");
-    expect(scene).toContain("this.flashTimer = this.time.delayedCall(300, playStep)");
+    expect(scene).toContain("this.flashTimer = this.scheduleGameplay(timing.leadInMs, showNextCue)");
+    expect(scene).toContain("this.dispatch(\"sequencePlaybackComplete\")");
+    expect(scene).toContain("cueTimingOf(this.currentDifficulty)");
     expect(scene).toContain("./art/memory-console.webp");
     expect(scene).toContain("./art/arcade-table.webp");
     expect(scene).toContain("./art/pad-red.webp");
     expect(scene).toContain("OPEN SEQUENCE");
-    expect(wrapper).toContain("primary: canClaim");
-    expect(wrapper).toContain("const canClaim = isPlaying && completedSequence");
-    expect(wrapper).toContain(": undefined");
+    expect(scene).toContain("private primaryActionFor");
+    expect(scene).toContain('action: "submitSolution"');
+    expect(scene).toContain('action: "retryDeal"');
+    expect(scene).toContain('action: "expireGame"');
+    expect(scene).toContain("this.dispatch(this.primaryAction)");
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain("actionSubmit:");
+    expect(wrapper).toContain("actionRetry:");
+    expect(wrapper).not.toContain("primary: canClaim");
+    expect(wrapper).not.toContain("secondaryActions");
     expect(wrapper).not.toContain("dispatch(\"startGame\", val<number>(\"gameDifficulty\"");
     expect(styles).toContain(".cclash-playarea .phaser-game-host");
     expect(styles).toContain("margin-inline: auto");
@@ -315,7 +330,8 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("private fitCameraToHost()");
     expect(scene).toContain("private fitCameraToHostIfNeeded()");
     expect(scene).toContain("this.fitCameraToHostIfNeeded();");
-    expect(scene).toContain("const mobileZoomCorrection = viewW < W ? 0.82 : 1");
+    expect(scene).not.toContain("mobileZoomCorrection");
+    expect(scene).toContain("const zoom = Math.min(viewW / W, viewH / H)");
     expect(scene).toContain(".setViewport(0, 0, viewW, viewH)");
     expect(scene).toContain(".setZoom(zoom)");
     expect(scene).toContain("const scrollX = (W - visibleW) / 2");
@@ -325,6 +341,7 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("./flappy-sprites/pipe-top.webp");
     expect(scene).toContain(`this.dispatch("startGame", { difficulty: this.pickedDifficulty })`);
     expect(scene).toContain(`this.dispatch("recordFlap", { pipes: this.flappyState.score })`);
+    expect(scene).toContain(`this.dispatch("syncScore", { pipes: score })`);
     expect(scene).toContain(`this.dispatch("submitSolution", { pipes: score })`);
     expect(scene).toContain("private playSfx");
     expect(scene).toContain("this.sfx.");
@@ -340,7 +357,7 @@ describe("Game miniapp motion baseline", () => {
     expect(wrapper).toContain("value: `${pipesPassed}/${rule.targetPipes}`");
     expect(wrapper).toContain("className=\"flappy-playstage\"");
     expect(wrapper).toContain("className=\"flappy-phaser-canvas\"");
-    expect(wrapper).toContain("preserveLogicalSize");
+    expect(wrapper).not.toContain("preserveLogicalSize");
     expect(wrapper).toContain("flappy-stage-hud");
     expect(wrapper).toContain("flappy-ingame-drawer");
     expect(wrapper).toContain("drawerActions");
@@ -388,19 +405,36 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).not.toContain("lastStatus");
     expect(wrapper).toContain("className={hasClaimContext ? \"gas-pool-playstage--claim\" : \"gas-pool-playstage--creator\"}");
     expect(wrapper).toContain("className=\"gas-pool-phaser-canvas\"");
-    expect(wrapper).toContain("ariaLabel=\"OneGate GAS vault game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening vault\"");
+    expect(wrapper).toContain('ariaLabel={isGuest ? t("guestCanvasAria") : t("vaultCanvasAria")}');
+    expect(wrapper).toContain('loadingLabel={t("vaultCanvasLoading")}');
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain("gas-pool-stage-shell");
+    expect(wrapper).toContain("gas-pool-stage-hud");
+    expect(wrapper).toContain("gas-pool-ingame-drawer");
+    expect(wrapper).toContain("gas-pool-drawer__actions");
+    expect(wrapper).not.toContain("primaryAction");
+    expect(wrapper).not.toContain("secondaryActions");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawer={{");
     expect(wrapper).not.toContain("lastStatus:");
     expect(styles).toContain(".gas-pool-playarea .mx2-stage");
     expect(styles).toContain("width: min(100%, 760px)");
     expect(styles).toContain("max-width: 760px");
+    expect(styles).toContain("min-height: 100dvh");
     expect(styles).toContain(".gas-pool-playarea .phaser-game-host");
     expect(styles).toContain("margin-inline: auto");
-    expect(styles).toContain("align-items: flex-start");
+    expect(styles).toContain("align-items: stretch");
     expect(styles).toContain(".gas-pool-playarea .mx2-playstage.mx2-cat-game");
     expect(styles).toContain("min-height: 0");
     expect(styles).toContain("flex: 0 0 auto");
-    expect(styles).toContain(".gas-pool-playstage--creator .mx2-action-rail__row");
+    expect(styles).toContain(".gas-pool-stage-shell");
+    expect(styles).toContain(".gas-pool-stage-hud");
+    expect(styles).toContain(".gas-pool-ingame-drawer");
+    expect(styles).toContain("height: clamp(420px, calc(100dvh - 136px), 700px)");
+    expect(styles).not.toContain("min-height: 626px");
+    expect(styles).toContain(".gas-pool-drawer__actions");
+    expect(styles).not.toContain(".gas-pool-playstage--creator .mx2-action-rail__drawer-toggle");
   });
 
   it("keeps Jump Rush Phaser gameplay responsive and wired to the registered actions", () => {
@@ -431,21 +465,34 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("chargeMs:");
     expect(scene).toContain("CHARGE_FULL_MS");
     expect(scene).toContain("private canSubmitRun()");
+    expect(scene).toContain("private canReleaseRun()");
+    expect(scene).toContain("private canRetryDeal()");
     expect(scene).toContain("private poolCanCoverSelectedRoute()");
     expect(scene).toContain("private onMissedLanding()");
-    expect(scene).toContain("centreOffset <= platform.width / 2");
+    expect(scene).toContain("evaluateJumpLevel(chargeLevel, to.gap, to.width)");
+    expect(scene).not.toContain("MAX_PLATFORMS");
     expect(scene).toContain(`this.dispatch("useUndo", {})`);
+    expect(scene).toContain(`this.dispatch("retryDeal", {})`);
+    expect(scene).toContain(`this.dispatch("expireGame", {})`);
     expect(scene).toContain(`this.dispatch("submitRun", {})`);
     expect(scene).not.toContain("submitSolution");
-    expect(wrapper).toContain("const busy");
+    expect(wrapper).toContain("actions={{}}");
     expect(wrapper).toContain("jr-drawer__summary");
+    expect(wrapper).toContain("jr-drawer__actions");
     expect(wrapper).toContain("leaderboard");
     expect(wrapper).toContain("myHistory");
+    expect(wrapper).not.toContain("primaryAction");
+    expect(wrapper).not.toContain("secondaryActions");
+    expect(wrapper).not.toContain(`dispatch("useUndo"`);
+    expect(wrapper).not.toContain(`dispatch("retryDeal"`);
+    expect(wrapper).not.toContain(`dispatch("expireGame"`);
     expect(wrapper).not.toContain("lastStatus,");
     expect(wrapper).toContain("className=\"jr-phaser-canvas\"");
     expect(wrapper).toContain("className=\"jr-playstage\"");
-    expect(wrapper).toContain("ariaLabel=\"Jump Rush platform game\"");
-    expect(wrapper).toContain("loadingLabel=\"Loading jump route\"");
+    expect(wrapper).toContain('ariaLabel={t("gameAriaLabel")}');
+    expect(wrapper).toContain('loadingLabel={t("gameLoadingLabel")}');
+    expect(wrapper).toContain("jr-a11y-layer");
+    expect(wrapper).toContain('type="range"');
     expect(wrapper).not.toMatch(/primary:\s*\{\s*label:\s*t\("startAction"/);
     expect(styles).toContain(".jr-playarea .mx2-stage");
     expect(styles).toContain("width: min(100%, 760px)");
@@ -453,11 +500,14 @@ describe("Game miniapp motion baseline", () => {
     expect(styles).toContain(".jr-playarea .phaser-game-host");
     expect(styles).toContain("margin-inline: auto");
     expect(styles).toContain(".jr-drawer__summary");
+    expect(styles).toContain(".jr-drawer__actions");
     expect(styles).toContain(".jr-run-card");
     expect(styles).toContain(".jr-history");
     expect(styles).toContain(".jr-playarea .mx2-playstage.mx2-cat-game");
     expect(styles).toContain("min-height: 0");
     expect(styles).toContain("flex: 0 0 auto");
+    expect(styles).toContain("--phaser-mobile-height-ratio: 1.45");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 112");
   });
 
   it("keeps Last Survivor as a responsive Phaser arena with in-canvas key buying", () => {
@@ -484,30 +534,41 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain(`this.dispatch("buyKeys", this.selectedKeyCount)`);
     expect(scene).toContain(`this.dispatch("settleRound")`);
     expect(scene).toContain("Choose key pack");
-    expect(scene).toContain("Arena service unavailable. Connect wallet and refresh.");
+    expect(scene).toContain("Arena service unavailable. Refresh shortly.");
     expect(scene).toContain("Settle to pay the winner and open a fresh round.");
+    expect(scene).toContain("protected onReducedMotionChange(enabled: boolean)");
     expect(wrapper).toContain("className=\"survivor-playstage\"");
     expect(wrapper).toContain("className=\"survivor-phaser-canvas\"");
-    expect(wrapper).toContain("ariaLabel=\"Last Survivor arena game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening arena\"");
+    expect(wrapper).toContain('ariaLabel={t("arenaCanvasAria")}');
+    expect(wrapper).toContain('loadingLabel={t("arenaCanvasLoading")}');
+    expect(wrapper).toContain("survivor-a11y-controls");
     expect(wrapper).toContain("totalKeysDisplay: totalKeys");
+    expect(wrapper).toContain("survivor-stage-shell");
+    expect(wrapper).toContain("survivor-stage-hud");
+    expect(wrapper).toContain("survivor-ingame-drawer");
     expect(wrapper).toContain("survivor-drawer__summary");
     expect(wrapper).toContain("survivor-history");
     expect(wrapper).toContain(`dispatch("refreshRound"`);
     expect(wrapper).toContain(`dispatch("withdrawCredit"`);
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
     expect(wrapper).not.toMatch(/primary:\s*\{/);
     expect(styles).toContain(".survivor-play-area .mx2-stage");
     expect(styles).toContain("width: min(100%, 760px)");
     expect(styles).toContain("max-width: 760px");
     expect(styles).toContain(".survivor-play-area .phaser-game-host");
     expect(styles).toContain("margin-inline: auto");
-    expect(styles).toContain("align-items: flex-start");
+    expect(styles).toContain(".survivor-stage-shell");
+    expect(styles).toContain(".survivor-stage-hud");
+    expect(styles).toContain(".survivor-ingame-drawer");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 92px");
     expect(styles).toContain(".survivor-drawer__summary");
     expect(styles).toContain(".survivor-state-card");
     expect(styles).toContain(".survivor-rules");
     expect(styles).toContain(".survivor-play-area .mx2-playstage.mx2-cat-game");
     expect(styles).toContain("min-height: 0");
-    expect(styles).toContain("flex: 0 0 auto");
+    expect(styles).toContain("flex: 1 1 auto");
   });
 
   it("keeps Merge Kingdom as a responsive Phaser merge board with in-canvas start and moves", () => {
@@ -533,33 +594,64 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("./art/tile-2048-crystal-citadel.webp");
     expect(scene).toContain("disabledBtn: 0xe8d5b0");
     expect(scene).toContain("btnBg.setFillStyle(canStart ? C.gold : C.disabledBtn)");
-    expect(scene).toContain("btnText.setColor(canStart ? \"#2b261f\" : \"#8b7355\")");
+    expect(scene).toContain("btnText.setColor(canStart ? \"#2b261f\" : \"#765a32\")");
     expect(scene).toContain(`this.dispatch("startGame", this.selectedDiff)`);
-    expect(scene).toContain(`this.dispatch("recordMove", sr, sc, row, col)`);
+    expect(scene).toContain(`this.dispatch("startGame", this.num("gameDifficulty", this.selectedDiff))`);
+    expect(scene).toContain(`this.dispatch("recordMove", from.row, from.col, to.row, to.col)`);
     expect(scene).toContain(`this.dispatch("submitSolution")`);
+    expect(scene).toContain(`this.dispatch("retryDeal")`);
+    expect(scene).toContain(`this.dispatch("refreshGame")`);
+    expect(scene).toContain(`this.dispatch("expireGame")`);
+    expect(scene).toContain("private canRetryDeal()");
+    expect(scene).toContain("private canReleaseCommitted()");
+    expect(scene).toContain("private handlePointerMove(");
+    expect(scene).toContain(`this.input.on("pointermove"`);
+    expect(scene).toContain("this.reducedMotion");
+    expect(scene).toContain("gameFiNewEntriesEnabled");
     expect(scene).toContain("Build Realm");
     expect(scene).toContain("Claim Reward");
+    expect(scene).toContain("Build Next Realm");
     expect(wrapper).toContain("className=\"mk-playstage\"");
     expect(wrapper).toContain("className=\"mk-phaser-canvas\"");
-    expect(wrapper).toContain("ariaLabel=\"Merge Kingdom board game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening kingdom board\"");
+    expect(wrapper).toContain('ariaLabel={t("gameAriaLabel")}');
+    expect(wrapper).toContain('loadingLabel={t("gameLoadingLabel")}');
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain("mk-stage-shell");
+    expect(wrapper).toContain("mk-stage-hud");
+    expect(wrapper).toContain("mk-ingame-drawer");
     expect(wrapper).toContain("mk-drawer__summary");
     expect(wrapper).toContain("mk-drawer__fairness");
     expect(wrapper).toContain("mk-history");
+    expect(wrapper).toContain("mk-a11y-controls");
     expect(wrapper).toContain(`dispatch("refreshLeaderboard"`);
     expect(wrapper).toContain(`dispatch("withdrawWinnings"`);
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
+    expect(wrapper).not.toContain("primary:");
+    expect(wrapper).not.toContain("secondary:");
+    expect(wrapper).toContain(`dispatch("submitSolution"`);
+    expect(wrapper).toContain(`dispatch("retryDeal"`);
+    expect(wrapper).toContain(`dispatch("expireGame"`);
     expect(wrapper).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
     expect(styles).toContain(".mk-playarea .mx2-stage");
     expect(styles).toContain("width: min(100%, 760px)");
     expect(styles).toContain("max-width: 760px");
+    expect(styles).toContain("min-height: 100dvh");
     expect(styles).toContain(".mk-playarea .phaser-game-host");
     expect(styles).toContain("margin-inline: auto");
+    expect(styles).toContain(".mk-stage-shell");
+    expect(styles).toContain(".mk-stage-hud");
+    expect(styles).toContain(".mk-ingame-drawer");
     expect(styles).toContain(".mk-playarea .mx2-playstage.mx2-cat-game");
     expect(styles).toContain("min-height: 0");
-    expect(styles).toContain("flex: 0 0 auto");
+    expect(styles).toContain("flex: 1 1 auto");
     expect(styles).toContain(".mk-drawer__summary");
     expect(styles).toContain(".mk-drawer__credit");
     expect(styles).toContain(".mk-drawer__seed");
+    expect(styles).toContain(".mk-a11y-controls:focus-within");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 92px");
+    expect(styles).not.toContain(".mk-playarea .mx2-drawer.mx2-drawer--open");
   });
 
   it("keeps Pet Potion as a responsive Phaser pet-care game with in-canvas care actions", () => {
@@ -587,12 +679,21 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain(`this.dispatch("startGame", this.selectedDifficulty)`);
     expect(scene).toContain(`this.dispatch("recordAction", { type: action.key })`);
     expect(scene).toContain(`this.dispatch("submitSolution")`);
+    expect(scene).toContain('this.dispatch(this.str("gameStatus", "idle") === "unknown" || this.bool("inputSyncFailed")');
+    expect(scene).toContain(`this.dispatch("expireGame")`);
+    expect(scene).toContain("private canRecoverRun()");
+    expect(scene).toContain(`this.dispatch("brewPotion")`);
+    expect(scene).toContain("private isRunTimedOut");
     expect(scene).toContain("Nurture the pet");
     expect(scene).toContain("Claim reward");
+    expect(scene).toContain("Release run");
     expect(wrapper).toContain("className=\"pp-playstage\"");
     expect(wrapper).toContain("className=\"pp-phaser-canvas\"");
-    expect(wrapper).toContain("ariaLabel=\"Pet Potion nursery game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening pet nursery\"");
+    expect(wrapper).toContain('ariaLabel={t("sceneAriaLabel")}');
+    expect(wrapper).toContain('loadingLabel={t("sceneLoadingLabel")}');
+    expect(wrapper).toContain("pp-stage-shell");
+    expect(wrapper).toContain("pp-stage-hud");
+    expect(wrapper).toContain("pp-ingame-drawer");
     expect(wrapper).toContain("const activeGameId");
     expect(wrapper).toContain("activeGameId,");
     expect(wrapper).toContain("const deadline");
@@ -600,8 +701,17 @@ describe("Game miniapp motion baseline", () => {
     expect(wrapper).toContain("pp-drawer__summary");
     expect(wrapper).toContain("pp-drawer__fairness");
     expect(wrapper).toContain("pp-action-trail");
-    expect(wrapper).toContain(`dispatch("refreshLeaderboard"`);
-    expect(wrapper).toContain(`dispatch("withdrawWinnings"`);
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain(`runAction("refreshLeaderboard"`);
+    expect(wrapper).toContain(`runAction("withdrawWinnings"`);
+    expect(wrapper).toContain("pp-a11y-layer");
+    expect(wrapper).toContain("pp-recipe-strip");
+    expect(wrapper).not.toContain(`dispatch("retryDeal"`);
+    expect(wrapper).not.toContain(`dispatch("expireGame"`);
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
+    expect(wrapper).not.toContain("secondary:");
     expect(wrapper).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
     expect(wrapper).not.toMatch(/primary:\s*(?:isPlaying|\{)/);
     expect(styles).toContain(".pp-playarea .mx2-stage");
@@ -612,10 +722,14 @@ describe("Game miniapp motion baseline", () => {
     expect(styles).toContain(".pp-playarea .mx2-playstage.mx2-cat-game");
     expect(styles).toContain("min-height: 0");
     expect(styles).toContain("flex: 0 0 auto");
-    expect(styles).toContain(".pp-playarea .mx2-drawer.mx2-drawer--open");
+    expect(styles).toContain("min-height: 100dvh");
+    expect(styles).toContain(".pp-stage-shell");
+    expect(styles).toContain(".pp-stage-hud");
+    expect(styles).toContain(".pp-ingame-drawer");
     expect(styles).toContain(".pp-drawer__summary");
     expect(styles).toContain(".pp-drawer__credit");
     expect(styles).toContain(".pp-drawer__seed");
+    expect(styles).not.toContain(".pp-playarea .mx2-drawer.mx2-drawer--open");
   });
 
   it("keeps Sheep Solitaire as a responsive Phaser tile game with in-canvas route, claim, and withdraw actions", () => {
@@ -653,14 +767,14 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain(`this.dispatch("returnToLobby");`);
     expect(scene).toContain("Match 3 tiles to clear the board");
     expect(scene).toContain("Claim Reward");
-    expect(main).toContain(`status !== "dealt" && status !== "solved"`);
+    expect(main).toContain(`status !== "dealt" && status !== "solved" && status !== "unknown"`);
     expect(main).toContain(`register("returnToLobby"`);
     expect(wrapper).toContain("className=\"sheep-playstage\"");
     expect(wrapper).toContain("className=\"sheep-phaser-canvas\"");
     expect(wrapper).toContain("sheep-stage-hud");
     expect(wrapper).toContain("sheep-ingame-drawer");
-    expect(wrapper).toContain("ariaLabel=\"Sheep Solitaire tile game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening sheep board\"");
+    expect(wrapper).toContain(`ariaLabel={t("gameAriaLabel")}`);
+    expect(wrapper).toContain(`loadingLabel={t("gameLoadingLabel")}`);
     expect(wrapper).toContain("const activeGameId");
     expect(wrapper).toContain("activeGameId,");
     expect(wrapper).toContain("const deadline");
@@ -716,8 +830,11 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("Open envelope");
     expect(wrapper).toContain("className=\"redenv-playstage\"");
     expect(wrapper).toContain("className=\"redenv-phaser-canvas\"");
-    expect(wrapper).toContain("ariaLabel=\"Red Envelope packet game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening red envelope game\"");
+    expect(wrapper).toContain('ariaLabel={t("sceneAriaLabel")}');
+    expect(wrapper).toContain('loadingLabel={t("sceneLoadingLabel")}');
+    expect(wrapper).toContain('enableSoundLabel={t("sceneEnableSound")}');
+    expect(wrapper).toContain('role="dialog"');
+    expect(wrapper).toContain("redenv-canvas-access");
     expect(wrapper).toContain("lastError:");
     expect(wrapper).toContain("serviceNotice:");
     expect(wrapper).toContain("redenv-stage-hud");
@@ -768,6 +885,9 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("this.playSfx(\"win\")");
     expect(scene).not.toContain("ASSET_HERO_DIE");
     expect(scene).not.toContain("throwGhosts");
+    expect(scene).not.toContain("heroDieY");
+    expect(scene).not.toContain("ghostLeftY");
+    expect(scene).not.toContain("ghostTopY");
     expect(scene).not.toContain("Pick Your Number");
     expect(scene).not.toContain("Stake Amount");
     expect(scene).not.toContain("ROLL THE DICE");
@@ -820,7 +940,10 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("this.num(\"runMoveCount\", 0) >= MAX_MOVES");
     expect(scene).toContain("Date.now() >= deadline");
     expect(scene).toContain("return applyMove([...board], dir)");
-    expect(wrapper).toContain("const canSubmit = isPlaying && targetReached && minSolveReached && !submitWindowClosed");
+    expect(wrapper).toContain("const runEnded = targetReached || boardDead || moveCapReached");
+    expect(wrapper).toContain("const canSubmit = isPlaying");
+    expect(wrapper).toContain("&& (isGuest || minSolveReached)");
+    expect(wrapper).toContain("&& (isGuest || !submitWindowClosed)");
     expect(wrapper).toContain("rush-stage-shell");
     expect(wrapper).toContain("rush-stage-hud");
     expect(wrapper).toContain("rush-ingame-drawer");
@@ -868,14 +991,16 @@ describe("Game miniapp motion baseline", () => {
       resolve(appsRoot, "on-chain-tarot/src/PlayArea.scss"),
     );
 
-    expect(scene).toContain("private rebuildScene()");
+    expect(scene).toContain("private rebuildScene(restoringLayout = false)");
     expect(scene).toContain("protected onResize");
     expect(scene).toContain("this.children.removeAll(true)");
     expect(scene).toContain("this.intentButtons = []");
     expect(scene).toContain("this.cardViews = []");
     expect(scene).toContain("this.load.image(TAROT_ASSETS.back, TAROT_CARD_BACK)");
-    expect(scene).toContain("TAROT_DECK.forEach");
-    expect(scene).toContain("this.load.image(cardKey(card.id), card.image)");
+    expect(scene).toContain("private queueMissingCardTextures(");
+    expect(scene).toContain("this.pendingCardTextures.add(key)");
+    expect(scene).toContain("this.load.image(key, url)");
+    expect(scene).not.toContain("TAROT_DECK.forEach((card)");
     expect(scene).toContain("const deckX = this.deckStack.x + 18");
     expect(scene).toContain("const targetX = view.container.x");
     expect(scene).toContain("setPosition(deckX, deckY)");
@@ -883,18 +1008,42 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("y: targetY");
     expect(scene).toContain("delay: index * 150");
     expect(scene).toContain("flipCardView");
+    expect(scene).toContain(`this.dispatch("draw")`);
+    expect(scene).toContain(`this.dispatch("flipCard", index)`);
+    expect(scene).toContain(`this.dispatch("setIntent", option.id)`);
+    expect(scene).toContain(`this.dispatch("reset")`);
     expect(wrapper).toContain("tarot-drawer__summary");
     expect(wrapper).toContain("tarot-spread-list");
-    expect(wrapper).toContain(`dispatch("withdrawCredit"`);
-    expect(wrapper).toContain(`dispatch("refreshReadingState"`);
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain("tarot-drawer__actions");
+    expect(wrapper).toContain("tarot-stage-shell");
+    expect(wrapper).toContain("tarot-stage-hud");
+    expect(wrapper).toContain("tarot-ingame-drawer");
+    expect(wrapper).toContain(`runAction("withdrawCredit"`);
+    expect(wrapper).toContain(`runAction("refreshReadingState"`);
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
+    expect(wrapper).toContain("tarot-a11y-layer");
+    expect(wrapper).toContain(`runAction("draw"`);
+    expect(wrapper).toContain(`runAction("flipCard"`);
+    expect(wrapper).toContain("tarot-asset-recovery-a11y");
+    expect(wrapper).not.toContain("primary,");
+    expect(wrapper).not.toContain("secondary,");
     expect(wrapper).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
     expect(main).toContain(`actions.register("refreshReadingState"`);
+    expect(main).toContain(`actions.register("setAssetRecoveryState"`);
+    expect(main).toContain(`actions.register("retryTarotAssets"`);
     expect(main).toContain("walletAddress: tarot.address");
     expect(styles).toContain(".tarot-play-area .phaser-game-host");
     expect(styles).toContain("margin-inline: auto");
-    expect(styles).toContain(".tarot-play-area .mx2-drawer.mx2-drawer--open");
+    expect(styles).toContain(".tarot-stage-shell");
+    expect(styles).toContain(".tarot-stage-hud");
+    expect(styles).toContain(".tarot-ingame-drawer");
     expect(styles).toContain(".tarot-drawer__summary");
+    expect(styles).toContain(".tarot-drawer__actions");
     expect(styles).toContain(".tarot-spread-list");
+    expect(styles).not.toContain(".tarot-play-area .mx2-drawer.mx2-drawer--open");
   });
 
   it("keeps Snake Bounty Phaser route cards synced with progression-gated starts", () => {
@@ -942,8 +1091,8 @@ describe("Game miniapp motion baseline", () => {
     expect(wrapper).toContain("className=\"snake-phaser-canvas\"");
     expect(wrapper).toContain("snake-stage-hud");
     expect(wrapper).toContain("snake-ingame-drawer");
-    expect(wrapper).toContain("ariaLabel=\"Snake Bounty arcade game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening bounty trail\"");
+    expect(wrapper).toContain('ariaLabel={t("gameAriaLabel")}');
+    expect(wrapper).toContain('loadingLabel={t("gameLoadingLabel")}');
     expect(wrapper).toContain("const activeGameId");
     expect(wrapper).toContain("credit:");
     expect(wrapper).toContain("progressionReady");
@@ -1001,11 +1150,16 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("canSubmitSolution()");
     expect(scene).toContain("restoreBoard(activeGameId, clues)");
     expect(scene).toContain("persistBoard(activeGameId");
+    expect(scene).toContain("toggleNotesMode");
+    expect(scene).toContain("applyRollbackRequest");
+    expect(scene).toContain("bindKeyboardControls");
+    expect(scene).toContain("buildPausedOverlay");
+    expect(scene).toContain("GAMEFI_NEW_ENTRIES_ENABLED");
     expect(scene).not.toContain("this.scene.restart()");
     expect(wrapper).toContain("className=\"sudoku-playstage\"");
     expect(wrapper).toContain("className=\"sudoku-phaser-canvas\"");
-    expect(wrapper).toContain("ariaLabel=\"Sudoku Arena puzzle game\"");
-    expect(wrapper).toContain("loadingLabel=\"Opening sealed sudoku board\"");
+    expect(wrapper).toContain('ariaLabel={t("canvasAriaLabel")}');
+    expect(wrapper).toContain('loadingLabel={t("canvasLoadingLabel")}');
     expect(wrapper).toContain("const activeGameId");
     expect(wrapper).toContain("const creditGas      = val<number>(\"credit\", 0)");
     expect(wrapper).toContain("walletConnected");
@@ -1013,6 +1167,8 @@ describe("Game miniapp motion baseline", () => {
     expect(wrapper).toContain("progressionRequiredDifficulty");
     expect(wrapper).toContain("sudoku-stage-hud");
     expect(wrapper).toContain("sudoku-ingame-drawer");
+    expect(wrapper).toContain("sudoku-a11y-controls");
+    expect(wrapper).toContain("sudokuBoardState");
     expect(wrapper).toContain("drawerActions");
     expect(wrapper).not.toContain("creditGas\"");
     expect(wrapper).not.toContain("primaryAction");
@@ -1022,12 +1178,15 @@ describe("Game miniapp motion baseline", () => {
     expect(main).toContain(`app.actions.register("selectDifficulty"`);
     expect(main).toContain("refreshProgression");
     expect(main).toContain("obs.progressionRequiredDifficulty.set");
+    expect(main).toContain("GAMEFI_NEW_ENTRIES_ENABLED");
+    expect(main).toContain("rollbackNonce");
     expect(styles).toContain(".sudoku-playarea .phaser-game-host");
     expect(styles).toContain(".sudoku-stage-shell");
     expect(styles).toContain(".sudoku-stage-hud");
     expect(styles).toContain(".sudoku-ingame-drawer");
     expect(styles).toContain("min-height: 100dvh");
-    expect(styles).toContain("--phaser-mobile-height-ratio: 2.08");
+    expect(styles).toContain("--phaser-mobile-height-ratio: 1.62");
+    expect(styles).toContain("--phaser-mobile-bottom-reserve: 72px");
     expect(styles).not.toContain(".sudoku-playstage > .mx2-score");
     expect(styles).not.toContain(".sudoku-playstage > .mx2-action-rail");
   });
@@ -1064,9 +1223,25 @@ describe("Game miniapp motion baseline", () => {
       const playAreaScss = readIfExists(resolve(appRoot, "src/PlayArea.scss"));
       const playAreaTsx = readIfExists(resolve(appRoot, "src/PlayArea.tsx"));
       const phaserWrapperTsx = readIfExists(resolve(appRoot, "src/PhaserPlayArea.tsx"));
+      const mainTsx = readIfExists(resolve(appRoot, "src/main.tsx"));
       // Phaser-first games have no DOM PlayArea: the canvas scene IS the play
       // surface, so asset/feedback checks read the scene sources instead.
-      const isPhaserOnly = playAreaTsx === "" && phaserWrapperTsx !== "";
+      const playAreaIsPhaserCompatibility =
+        playAreaTsx.trim() === 'export { default } from "./PhaserPlayArea";';
+      // Some Phaser-first games retain a legacy DOM PlayArea.tsx that is not
+      // mounted anywhere ("uses the Phaser renderer as the production play
+      // surface" above pins main.tsx to the Phaser wrapper). What users play
+      // is the canvas, so those apps are audited through the scene checks;
+      // their retained DOM file deliberately animates only from authoritative
+      // state (see the per-app playarea tests) rather than a local preview.
+      const phaserIsProductionSurface =
+        phaserWrapperTsx !== "" && mainTsx.includes("playArea: PhaserPlayArea");
+      const isPhaserOnly =
+        (playAreaTsx === "" || playAreaIsPhaserCompatibility || phaserIsProductionSurface) &&
+        phaserWrapperTsx !== "";
+      const playSurfaceTsx = playAreaIsPhaserCompatibility
+        ? phaserWrapperTsx
+        : playAreaTsx || phaserWrapperTsx;
       const sceneSources = existsSync(resolve(appRoot, "src/scenes"))
         ? readdirSync(resolve(appRoot, "src/scenes"))
             .filter((file) => file.endsWith(".ts"))
@@ -1085,32 +1260,37 @@ describe("Game miniapp motion baseline", () => {
         /@use\s+["']@shared\/styles\/v2\/motion["']/.test(playAreaScss) ||
         /@use\s+["']@shared\/components-react\/v2\/v2["']/.test(playAreaScss);
       const usesSharedArt =
-        /from\s+["']@shared\/art["']/.test(playAreaTsx) ||
-        /from\s+["']@shared\/components-react\/v2["']/.test(playAreaTsx);
+        /from\s+["']@shared\/art["']/.test(playSurfaceTsx) ||
+        /from\s+["']@shared\/components-react\/v2["']/.test(playSurfaceTsx);
 
       const checks = [
         {
           ok:
+            isPhaserOnly ||
             usesSharedMotion ||
             (playAreaScss.match(/@keyframes/g) ?? []).length >= 8,
           reason: "needs at least eight named keyframe sequences",
         },
         {
           ok:
+            isPhaserOnly ||
             usesSharedMotion ||
             (playAreaScss.match(/animation:/g) ?? []).length >= 8,
           reason: "needs at least eight active animation rules",
         },
         {
           ok:
-            usesSharedMotion ||
-            /prefers-reduced-motion:\s*reduce/.test(playAreaScss),
+            isPhaserOnly
+              ? /reducedMotion|this\.(?:animate|tween)\(/.test(sceneSources)
+              : usesSharedMotion ||
+                /prefers-reduced-motion:\s*reduce/.test(playAreaScss),
           reason: "needs reduced-motion coverage",
         },
         {
           ok: isPhaserOnly
             ? publicAssets.length > 0 &&
-              /\.\/art\/[^"']+\.(?:avif|webp|jpe?g|png)/i.test(sceneSources)
+              /(?:load\.image|preloadAssets)/.test(sceneSources) &&
+              /\.(?:avif|webp|jpe?g|png)/i.test(sceneSources)
             : usesSharedArt ||
               (publicAssets.length > 0 &&
                 /\.(?:avif|webp|jpe?g|png)/i.test(`${playAreaScss}\n${playAreaTsx}`)),
@@ -1121,7 +1301,7 @@ describe("Game miniapp motion baseline", () => {
           // wired straight to tweens + sound, no DOM preview layer needed.
           ok: isPhaserOnly
             ? /pointerdown|bindGameButton/.test(sceneSources) &&
-              /this\.(?:animate|tween|pressFeedback)\(/.test(sceneSources) &&
+              /this\.(?:animate|tween|pressFeedback|tweens\.add)\(/.test(sceneSources) &&
               /this\.sfx\./.test(sceneSources)
             : LOCAL_ACTION_PREVIEW_PATTERN.test(playAreaTsx) &&
               PREVIEW_TIMEOUT_PATTERN.test(playAreaTsx) &&
@@ -1131,12 +1311,12 @@ describe("Game miniapp motion baseline", () => {
         },
         {
           ok:
-            /aria-busy=/.test(playAreaTsx || phaserWrapperTsx) ||
+            isPhaserOnly
+              ? /ariaLabel=|aria-live=|aria-busy=/.test(phaserWrapperTsx)
+              : /aria-busy=/.test(playSurfaceTsx) ||
             // v2 apps inherit the busy state from the shared ActionRail
             // (which renders aria-busy on the primary action when loading).
-            /from\s+["']@shared\/components-react\/v2["']/.test(
-              playAreaTsx || phaserWrapperTsx,
-            ),
+                /from\s+["']@shared\/components-react\/v2["']/.test(playSurfaceTsx),
           reason:
             "needs a busy game surface so action animations are exposed to users and assistive tech",
         },

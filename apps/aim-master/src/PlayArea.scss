@@ -73,6 +73,114 @@
 
 .aim-phaser-canvas {
   flex: 0 0 auto;
+  --phaser-mobile-bottom-reserve: 72;
+}
+
+/* Semantic hit targets mirror the physical Phaser controls. Pointer/touch
+   input stays with the game assets underneath; keyboard focus exposes a small
+   readable label and a high-contrast ring without adding a second form UI. */
+.aim-a11y-layer {
+  position: absolute;
+  inset: 0 0 66px;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.aim-a11y-difficulties {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.aim-a11y-hit {
+  position: absolute;
+  z-index: 1;
+  border: 2px solid transparent;
+  background: transparent;
+  color: transparent;
+  padding: 0;
+  pointer-events: none;
+}
+
+.aim-a11y-hit > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.98);
+  color: #173f35;
+  font-size: 0.75rem;
+  font-weight: 760;
+  line-height: 1.2;
+  opacity: 0;
+  padding: 6px 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 7px 18px rgba(87, 58, 18, 0.16);
+}
+
+.aim-a11y-hit:focus-visible {
+  z-index: 4;
+  border-color: #0b6257;
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.18);
+  outline: 3px solid rgba(255, 247, 217, 0.98);
+  outline-offset: 2px;
+}
+
+.aim-a11y-hit:focus-visible > span {
+  opacity: 1;
+}
+
+.aim-a11y-hit:disabled {
+  cursor: default;
+}
+
+.aim-a11y-difficulty {
+  top: 45%;
+  width: 29%;
+  height: 20%;
+}
+
+.aim-a11y-difficulty[data-index="0"] { left: 4%; }
+.aim-a11y-difficulty[data-index="1"] { left: 35.5%; }
+.aim-a11y-difficulty[data-index="2"] { left: 67%; }
+
+.aim-a11y-start {
+  left: 27%;
+  top: 72%;
+  width: 46%;
+  height: 9%;
+  min-height: 44px;
+}
+
+.aim-a11y-shoot {
+  left: 6%;
+  top: 10%;
+  width: 88%;
+  height: 68%;
+  min-height: 52px;
+}
+
+.aim-a11y-submit {
+  left: 27%;
+  top: 78%;
+  width: 46%;
+  height: 9%;
+  min-height: 44px;
+}
+
+.aim-a11y-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .aim-stage-shell {
@@ -192,7 +300,26 @@
 }
 
 .aim-ingame-drawer__head {
+  grid-template-columns: auto minmax(0, 1fr) auto;
   margin-bottom: 12px;
+}
+
+.aim-ingame-drawer__close {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(216, 167, 66, 0.24);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--aim-ink);
+  cursor: pointer;
+}
+
+.aim-ingame-drawer__close:focus-visible,
+.aim-stage-hud__drawer:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--aim-teal) 42%, transparent);
+  outline-offset: 2px;
 }
 
 .aim-ingame-drawer__head svg,
@@ -1188,6 +1315,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .aim-a11y-hit,
+  .aim-ingame-drawer,
+  .aim-stage-hud__drawer svg,
   .aim-scene *,
   .aim-scene *::before,
   .aim-scene *::after {
@@ -1199,17 +1329,20 @@
 
 @media (max-width: 560px) {
   .aim-playarea .mx2-playstage.mx2-cat-game {
-    min-height: 100dvh;
+    height: 100dvh;
+    min-height: 0;
   }
 
   .aim-playarea .mx2-cat-game.mx2-stage,
   .aim-playarea .mx2-cat-game .mx2-stage__scene {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
   }
 
   .aim-playarea .mx2-stage {
     width: 100%;
-    min-height: 100dvh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
     padding: 8px 8px 10px;
   }
 
@@ -1218,7 +1351,8 @@
   }
 
   .aim-stage-shell {
-    min-height: calc(100dvh - 52px);
+    height: 100%;
+    min-height: 0;
     justify-content: space-between;
     gap: 8px;
     border-radius: 18px;
@@ -1226,6 +1360,7 @@
 
   .aim-phaser-canvas {
     --phaser-mobile-height-ratio: 2.08;
+    --phaser-mobile-bottom-reserve: 70;
   }
 
   .aim-stage-hud {

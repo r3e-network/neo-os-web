@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import { createGameSessionObservables } from "@framework/game";
 import { createGuestEngine } from "../../snake-bounty/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../snake-bounty/src/logic/guest-engine";
-import { parseInitialState, GRID_SIZE } from "../../snake-bounty/src/logic/snake-engine";
+import { parseInitialState, GRID_SIZE, snakeLength, step } from "../../snake-bounty/src/logic/snake-engine";
+import type { Direction, Point, SnakeState } from "../../snake-bounty/src/logic/snake-engine";
 import { ruleOf } from "../../snake-bounty/src/logic/game-rules";
 
 /**
@@ -17,9 +18,27 @@ import { ruleOf } from "../../snake-bounty/src/logic/game-rules";
  * never while dealing or moving).
  */
 
-function setup() {
+function safeClues(targetLength: number): string {
+  const route: Point[] = [];
+  for (let x = 11; x <= 19; x += 1) route.push({ x, y: 10 });
+  route.push({ x: 19, y: 11 });
+  for (let x = 18; x >= 0; x -= 1) route.push({ x, y: 11 });
+  route.push({ x: 0, y: 12 });
+  for (let x = 1; x <= 19; x += 1) route.push({ x, y: 12 });
+  const foods = route.slice(0, targetLength + 4);
+  return JSON.stringify({
+    body: [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }],
+    direction: 1,
+    food: foods[0],
+    foodQueue: foods.slice(1),
+  });
+}
+
+function setup(options: { deterministic?: boolean; storageData?: Map<string, unknown> } = {}) {
   const obs = createGameSessionObservables();
   const clues = createObservable("");
+  const currentLength = createObservable(3);
+  const snakeDead = createObservable(false);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];
@@ -30,9 +49,51 @@ function setup() {
   const t = (key: string, params?: Record<string, string | number>) =>
     params ? `${key}:${JSON.stringify(params)}` : key;
 
-  const deps: GuestEngineDeps = { obs, clues, guestLeaderboard, t, setStatus };
+  const storageData = options.storageData ?? new Map<string, unknown>();
+  const storage = {
+    get<T>(key: string, fallback: T | null = null): T | null {
+      return storageData.has(key) ? storageData.get(key) as T : fallback;
+    },
+    set(key: string, value: unknown): void { storageData.set(key, value); },
+    delete(key: string): void { storageData.delete(key); },
+  };
+  const deps: GuestEngineDeps = {
+    obs,
+    clues,
+    currentLength,
+    snakeDead,
+    guestLeaderboard,
+    storage,
+    createClues: options.deterministic ? safeClues : undefined,
+    t,
+    setStatus,
+  };
   const engine = createGuestEngine(deps);
-  return { engine, obs, clues, submit, get, board, setStatus };
+  return { engine, obs, clues, currentLength, snakeDead, submit, get, board, setStatus, storageData };
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function directionToFood(state: SnakeState): Direction {
+  const head = state.body[0]!;
+  const dx = state.food.x - head.x;
+  const dy = state.food.y - head.y;
+  if (dx === 1 && dy === 0) return 1;
+  if (dx === -1 && dy === 0) return 3;
+  if (dx === 0 && dy === 1) return 2;
+  if (dx === 0 && dy === -1) return 0;
+  throw new Error("deterministic food must be adjacent");
+}
+
+function playToTarget(h: ReturnType<typeof setup>, target: number): void {
+  let local = parseInitialState(h.clues.get());
+  while (snakeLength(local) < target) {
+    const dir = directionToFood(local);
+    h.engine.recordMove(dir);
+    local = step(local, dir);
+  }
 }
 
 describe("snake-bounty guest engine", () => {
@@ -82,20 +143,97 @@ describe("snake-bounty guest engine", () => {
     expect(h.submit).not.toHaveBeenCalled();
   });
 
-  it("recordMove is a local no-op (scene owns the simulation)", () => {
-    const h = setup();
+  it("recordMove advances the authoritative local state without external writes", () => {
+    const h = setup({ deterministic: true });
     h.engine.startGame(0);
     const before = h.clues.get();
-    h.engine.recordMove(2);
+    h.engine.recordMove(1);
     expect(h.clues.get()).toBe(before);
+    expect(h.currentLength.get()).toBe(4);
     expect(h.submit).not.toHaveBeenCalled();
   });
 
-  it("submitSolution records the trail length off-chain and returns to lobby", async () => {
+  it("restores an unfinished local snake, food queue, difficulty, and original clock after reload", async () => {
+    const storageData = new Map<string, unknown>();
+    const first = setup({ deterministic: true, storageData });
+    first.engine.startGame(1);
+    const deadline = first.obs.deadline.get();
+    first.engine.recordMove(1);
+    expect(first.currentLength.get()).toBe(4);
+
+    const restored = setup({ deterministic: true, storageData });
+    await restored.engine.enter();
+
+    expect(restored.obs.gameStatus.get()).toBe("dealt");
+    expect(restored.obs.activeGameId.get()).toBe("guest");
+    expect(restored.obs.gameDifficulty.get()).toBe(1);
+    expect(restored.obs.deadline.get()).toBe(deadline);
+    expect(restored.currentLength.get()).toBe(4);
+    expect(parseInitialState(restored.clues.get()).body).toHaveLength(4);
+    expect(restored.obs.lastStatus.get()).toBe("guestRunRecovered");
+
+    const state = parseInitialState(restored.clues.get());
+    restored.engine.recordMove(directionToFood(state));
+    expect(restored.currentLength.get()).toBe(5);
+  });
+
+  it("can finish a target-reaching move persisted just before reload", async () => {
+    const storageData = new Map<string, unknown>();
+    const first = setup({ deterministic: true, storageData });
+    first.engine.startGame(0);
+    playToTarget(first, ruleOf(0).targetLength);
+    expect(first.obs.gameStatus.get()).toBe("dealt");
+
+    const restored = setup({ deterministic: true, storageData });
+    await restored.engine.enter();
+    expect(restored.currentLength.get()).toBe(ruleOf(0).targetLength);
+
+    await restored.engine.submitSolution();
+    expect(restored.obs.gameStatus.get()).toBe("solved");
+    expect(restored.obs.activeGameId.get()).toBe("0");
+  });
+
+  it("discards an expired persisted run instead of silently extending its timer", async () => {
+    const storageData = new Map<string, unknown>();
+    const first = setup({ deterministic: true, storageData });
+    first.engine.startGame(0);
+    const key = [...storageData.keys()].find((candidate) => candidate.includes("guest-active-run"));
+    expect(key).toBeTruthy();
+    const saved = storageData.get(key!) as { deadline: number };
+    saved.deadline = Date.now() - 1;
+
+    const restored = setup({ deterministic: true, storageData });
+    await restored.engine.enter();
+
+    expect(restored.obs.gameStatus.get()).toBe("idle");
+    expect(restored.obs.activeGameId.get()).toBe("0");
+    expect(restored.clues.get()).toBe("");
+    expect(storageData.has(key!)).toBe(false);
+  });
+
+  it("fails closed when secure local randomness is unavailable", () => {
+    vi.stubGlobal("crypto", undefined);
     const h = setup();
+
+    expect(() => h.engine.startGame(0)).toThrow("secureRandomUnavailable");
+    expect(h.obs.gameStatus.get()).toBe("idle");
+    expect(h.setStatus).toHaveBeenCalledWith("secureRandomUnavailable", "error");
+  });
+
+  it("rejects a direct submit before the snake reaches the target", async () => {
+    const h = setup({ deterministic: true });
+    h.engine.startGame(0);
+    await h.engine.submitSolution();
+    expect(h.obs.gameStatus.get()).toBe("dealt");
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.setStatus).toHaveBeenCalledWith("guestRunIncomplete", "warning");
+  });
+
+  it("submitSolution records the trail length off-chain and returns to lobby", async () => {
+    const h = setup({ deterministic: true });
     h.engine.startGame(1); // medium → target 20
     const target = ruleOf(1).targetLength;
-
+    playToTarget(h, target);
     await h.engine.submitSolution();
 
     expect(h.obs.gameStatus.get()).toBe("solved");
@@ -110,12 +248,14 @@ describe("snake-bounty guest engine", () => {
   });
 
   it("keeps the best length across runs on repeated submits", async () => {
-    const h = setup();
+    const h = setup({ deterministic: true });
     h.engine.startGame(2); // hard → 35
+    playToTarget(h, ruleOf(2).targetLength);
     await h.engine.submitSolution();
     expect(h.obs.myTotalWon.get()).toBe(ruleOf(2).targetLength);
 
     h.engine.startGame(0); // easy → 10 (lower)
+    playToTarget(h, ruleOf(0).targetLength);
     await h.engine.submitSolution();
     expect(h.obs.myTotalWon.get()).toBe(ruleOf(2).targetLength); // unchanged (best kept)
     expect(h.obs.mySolves.get()).toBe(2);
@@ -150,6 +290,19 @@ describe("snake-bounty guest engine", () => {
     expect(h.obs.gameStatus.get()).toBe("idle");
     expect(h.get).toHaveBeenCalled(); // guest board loaded
     expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("restores the local best and solve count on a later engine instance", async () => {
+    const storageData = new Map<string, unknown>();
+    const first = setup({ deterministic: true, storageData });
+    first.engine.startGame(0);
+    playToTarget(first, ruleOf(0).targetLength);
+    await first.engine.submitSolution();
+
+    const restored = setup({ deterministic: true, storageData });
+    await restored.engine.enter();
+    expect(restored.obs.myTotalWon.get()).toBe(ruleOf(0).targetLength);
+    expect(restored.obs.mySolves.get()).toBe(1);
   });
 
   it("maps the off-chain guest board into ranked leaderboard entries", async () => {

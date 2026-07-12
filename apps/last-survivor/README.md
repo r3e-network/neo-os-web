@@ -1,101 +1,55 @@
-# LastSurvivor — The Last One Standing Wins Everything
+# Last Survivor
 
-> Every second counts. Every contribution resets the clock. When the countdown hits zero, the last survivor takes it all.
+Last Survivor is a bright Phaser 3 last-seat duel. In the current production entry, local rivals steal the lead on an unpredictable rhythm. Players choose between safer large key packs and higher-scoring small packs, reclaim the final seat, and must still hold it when the countdown reaches zero.
 
-## What is LastSurvivor?
+## Player flow
 
-LastSurvivor is a high-stakes social game built on Neo N3 where psychology meets game theory. Inspired by Reddit's legendary "The Button" experiment, LastSurvivor creates a simple yet electrifying premise: a 24-hour countdown ticks toward zero while a prize pool grows with every contribution. Each time someone buys keys, the timer resets — but the pot gets bigger. The last person to buy a key before the timer finally expires wins the entire jackpot.
+1. Enter the free Phaser arena; no wallet or GAS is requested.
+2. Load a key pack to claim the open final seat. Large packs add more time; small packs preserve more scoring upside.
+3. Watch the live leader cue. A local rival can steal the seat, then briefly extends the clock.
+4. Reclaim late for a clutch bonus. Controls lock while the player already leads, preventing score spam.
+5. At zero, a leading player banks the pressure score to the best-effort off-chain board; an eliminated player restarts immediately.
 
-The beauty lies in its simplicity. There are no complex rules, no hidden mechanics — just a timer, a growing prize pool, and the eternal question: _will someone else press the button, or is this my moment?_ The game creates a natural crescendo of tension as the pot swells and the timer winds down, turning every participant into both ally (growing the pot) and rival (competing for the final position).
+The GameFi contract lane is implemented but not advertised in this frontend release. The TestNet contract completed its two-wallet buy → expiry → settle → withdraw harness. The frontend now journals every wallet write, blocks replay, and requires exact event plus contract readback; this refreshed build still needs a new browser/wallet matrix. Runtime action guards independently reject new paid rounds, while historical credit/settlement recovery remains available to stale deep links.
 
-Built as a Neo N3 MiniApp, LastSurvivor uses direct prepaid GAS transfers plus Keeper automation to guarantee fair, trustless prize distribution the instant the clock hits zero.
+## Verified TestNet contract rules
 
-## How to Play
+- Base key price: `10_000_000` base units (0.1 GAS).
+- Per-key price increment: `10_000` base units.
+- Each key extends the active clock by 30 seconds.
+- Remaining time is capped at 86,400 seconds.
+- Maximum purchase: 1,000 keys per transaction.
+- Settlement is permissionless and uses pull-payment credit; it never pushes GAS to the winner during `settle`.
+- There is no oracle or off-chain randomness in this game.
 
-1. **Open the App** — Open LastSurvivor from the Neo MiniApps platform and connect your Neo N3 wallet.
-2. **Check the Clock** — View the current countdown timer, prize pool size, and the last key buyer.
-3. **Buy Keys** — Spend GAS to purchase keys. Each purchase resets the 24-hour countdown and adds to the prize pool. Key prices increase as the pot grows.
-4. **Watch & Wait** — Monitor the timer. As it ticks closer to zero, tension builds. Will someone else reset it?
-5. **Win the Pot** — If the timer reaches zero and you were the last key buyer, the entire prize pool is yours. A new round begins automatically.
+### Public ABI
 
-## Key Features
+| Method | Type | Purpose |
+| --- | --- | --- |
+| `getCurrentRound()` / `getRound(id)` | Read | Round, pot, key total, last buyer, end time, active state |
+| `currentKeyCost(count)` / `keyCost(total,count)` | Read | Authoritative arithmetic-curve quote |
+| `playerKeys(roundId,player)` | Read | Player key total for a round |
+| `creditOf(player)` | Read | Reusable deposit or winner credit |
+| `buyKeys(player,count)` | Write | Consume credit, grow the pot, become last buyer, extend clock |
+| `settle()` | Write | Credit the winner and open the next round |
+| `withdraw(account)` | Write | Withdraw all reusable/winner credit |
 
-- **Prize Pool Mechanics**: Every key purchase grows the pot. Key prices escalate with an arithmetic progression — early keys are cheap, late keys cost more.
-- **24-Hour Reset**: Each key purchase resets the countdown to 24 hours, creating waves of tension and relief.
-- **Winner Takes All**: The last key buyer when the timer expires claims the entire jackpot.
-- **Round System**: After each round concludes, a new round starts automatically with a fresh timer and empty pot.
-- **Live History Feed**: Real-time event stream showing key purchases, round starts, and winner declarations.
-- **Strategy Depth**: Buying multiple keys increases your odds. Timing your purchases during the final moments is key.
+## Deployments
 
-## Technical Architecture
+| Network | Contract | Status |
+| --- | --- | --- |
+| Neo N3 TestNet | `0xff122a6cf7f22a88d059d61a9d9c07e84a2b56b9` | v1.1 pull-payment build; exact local NEF checksum and live ABI match, and the two-wallet contract harness passed 2026-07-10. New paid UI entry remains hidden pending refreshed wallet/browser validation. |
+| Neo N3 MainNet | `0x8e1e432e966357de8d7642564b744d3274a81bd0` | v1.0 exposes the read ABI, but its deployed NEF differs from the verified TestNet generation. No new frontend writes are enabled or claimed as validated. |
 
-### Smart Contract
+The canonical network mapping is [`neo-manifest.json`](./neo-manifest.json). Never copy an address from this document into transaction code.
 
-| Component           | Details                                                                       |
-| ------------------- | ----------------------------------------------------------------------------- |
-| **Contract Name**   | `MiniAppLastSurvivor`                                                        |
-| **Language**        | C# (Neo N3 Smart Contract)                                                    |
-| **Blockchain**      | Neo N3                                                                        |
-| **Key Price Model** | Arithmetic escalation — base price + (total keys × increment per basis point) |
-| **Base Key Price**  | 0.1 GAS                                                                       |
-| **Price Increment** | 0.1% (10 bps) per key sold                                                    |
-
-### Service Layer Technologies
-
-- **Keeper (Automation)**: Automatically triggers prize distribution when the 24-hour countdown expires. No manual intervention needed — the contract settles trustlessly.
-- **Direct Prepaid GAS**: The wallet prepays the exact key cost directly to the MiniApp contract, then calls `buyKeysWithCost`.
-
-### Contract Methods
-
-| Method            | Type   | Parameters                        | Description                                                                       |
-| ----------------- | ------ | --------------------------------- | --------------------------------------------------------------------------------- |
-| `getGameStatus`   | Query  | —                                 | Returns round ID, pot size, active status, last buyer, remaining time, total keys |
-| `getPlayerKeys`   | Query  | `player`, `roundId`               | Returns key count for a specific player in a specific round                       |
-| `getRoundDetails` | Query  | `roundId`                         | Returns detailed information about a specific round                               |
-| `buyKeysWithCost` | Action | `player`, `keyCount`, `submittedCost` | Purchase keys for the current round using direct prepaid GAS credit plus formula-verified price |
-
-## Getting Started
+## Development
 
 ```bash
-# Navigate to the app directory
-cd miniapps/apps/last-survivor
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production (H5)
+cd apps/last-survivor
+npm test
 npm run build
+npm run dev
 ```
 
-## Contract Addresses
-
-| Network | Address                                      |
-| ------- | -------------------------------------------- |
-| Testnet | `0x740671b10330ef6669ab8b2724437eb8d5e7a34c` |
-| Mainnet | `0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7` |
-
-### Explorer Links
-
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x740671b10330ef6669ab8b2724437eb8d5e7a34c)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7)
-
-## Domains
-
-- Mainnet domain: `lastsurvivor.miniapp.neo`
-
-## Tech Stack
-
-| Layer          | Technology                         |
-| -------------- | ---------------------------------- |
-| Frontend       | Host-native React + TypeScript       |
-| Smart Contract | C# / Neo N3                        |
-| Interaction    | Direct wallet invocation           |
-| Automation     | Keeper (Timer Expiry Trigger)      |
-| Payment        | Direct prepaid GAS to the miniapp contract |
-
-## License
-
-MIT License — R3E Network
+The production surface uses React + Phaser 3. Free mode is local-only and never calls wallet, chain, oracle, or reward writes. See [`PRODUCTION_STATUS.md`](./PRODUCTION_STATUS.md) for the verified frontend result, [`TESTNET-STATUS.md`](./TESTNET-STATUS.md) for the paid activation gate, and [`ASSET_PROVENANCE.md`](./ASSET_PROVENANCE.md) for the current artwork record.

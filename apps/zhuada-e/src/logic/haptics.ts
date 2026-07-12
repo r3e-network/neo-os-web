@@ -1,5 +1,5 @@
 /**
- * haptics.ts — tiny vibration-feedback engine for Catch the Goose.
+ * haptics.ts — vibration-feedback engine for Goose Basket Shuffle.
  *
  * Mirrors the SoundEngine's shape: a shared singleton with a persisted
  * enable/disable toggle (localStorage), feature-detected `navigator.vibrate`
@@ -11,9 +11,16 @@
  *   match → 30          (three-of-a-kind cleared)
  *   win   → 30,50,80    (rising celebratory triplet)
  *   fail  → 100         (single firm buzz)
+ *   shake → 18,35,28    (two-stage basket jolt)
  */
 
-export type HapticCue = "pick" | "match" | "win" | "fail";
+import { gameStorage } from "./game-storage";
+
+export type HapticCue = "pick" | "match" | "win" | "fail" | "shake";
+export interface HapticsQaSnapshot {
+  supported: boolean;
+  enabled: boolean;
+}
 
 const HAPTICS_KEY = "zhuada-e:haptics-off";
 
@@ -22,6 +29,7 @@ const PATTERNS: Record<HapticCue, number | number[]> = {
   match: 30,
   win: [30, 50, 80],
   fail: 100,
+  shake: [18, 35, 28],
 };
 
 class HapticsEngine {
@@ -29,7 +37,7 @@ class HapticsEngine {
 
   constructor() {
     try {
-      this._enabled = globalThis.localStorage?.getItem(HAPTICS_KEY) !== "1";
+      this._enabled = gameStorage.getItem(HAPTICS_KEY) !== "1";
     } catch {
       /* best-effort */
     }
@@ -44,10 +52,26 @@ class HapticsEngine {
     return this._enabled;
   }
 
+  qaSnapshot(): HapticsQaSnapshot {
+    return {
+      supported: this.supported,
+      enabled: this._enabled,
+    };
+  }
+
+  /** Re-read after the opaque-iframe host bridge hydrates its sync mirror. */
+  reloadStoredPreference(): void {
+    try {
+      this._enabled = gameStorage.getItem(HAPTICS_KEY) !== "1";
+    } catch {
+      /* best-effort */
+    }
+  }
+
   setEnabled(on: boolean): void {
     this._enabled = on;
     try {
-      globalThis.localStorage?.setItem(HAPTICS_KEY, on ? "0" : "1");
+      gameStorage.setItem(HAPTICS_KEY, on ? "0" : "1");
     } catch {
       /* best-effort */
     }

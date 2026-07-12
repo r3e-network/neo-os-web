@@ -6,20 +6,38 @@
  * logic: tile-run management, move/undo recording, and solution finalization.
  */
 import { createObservable, defineMiniApp } from "@shared/react";
-import type { RewardGameSession } from "@framework/gamefi";
-import { mapField } from "@framework/gamefi";
+import { fromFixed8 } from "@shared/utils/format";
+import { eventStateValue } from "@shared/utils/chain-events";
+import type { RewardGameSession, RewardGameSnapshot } from "@framework/gamefi";
+import { eventHashMatches as addrEq, mapField, normalizedHash as normHash } from "@framework/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
 import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { DIFFICULTY_RULES, ENTRY_MEMO, MAX_MOVES, statusOf, gasDisplay } from "./logic/game-rules";
-import { applyMove } from "./logic/engine-2048";
 import {
-  applyStep,
-  buildRun,
+  canReleaseExpiredGame,
+  DIFFICULTY_RULES,
+  ENTRY_MEMO,
+  MAX_MOVES,
+  MAX_UNDOS,
+  SETTLEMENT_GRACE_MS,
+  statusOf,
+  gasDisplay,
+  ruleOf,
+} from "./logic/game-rules";
+import {
+  MOVE_ANIMATION_MS,
+  applyMove,
+  hasAnyMove,
+  isValidSpawn,
+  requireBoard,
+} from "./logic/engine-2048";
+import type { MoveTransition } from "./logic/engine-2048";
+import {
+  applyStepWithTransition,
   forgetRun,
   persistRun,
-  restoreRun,
+  startRun,
   trimLastMove,
 } from "./logic/run-store";
 import type { LiveRun, TeeSpawn } from "./logic/run-store";
@@ -32,6 +50,8 @@ const ENGINE_HASH = "2fd50277231865f3da3535d27ebd74ef14662ee7fb2a5e037badd43c968
 
 const LEADERBOARD_EVENT_LIMIT = 200;
 const OPS_STORAGE_PREFIX      = "miniapp-game-2048:ops:";
+const SUBMIT_BUFFER_MS        = 15_000;
+const MIN_SOLVE_BUFFER_MS     = 10_000;
 
 type TeeOp = { type: "move"; dir: number } | { type: "undo" };
 
@@ -58,9 +78,11 @@ const SOLVED_SLOTS = {
 };
 
 function parseSpawn(view: Record<string, unknown>): TeeSpawn | null {
-  const raw = view.spawn as { pos?: unknown; exp?: unknown } | undefined;
-  if (!raw || !Number.isInteger(Number(raw.pos)) || !Number.isInteger(Number(raw.exp))) return null;
-  return { pos: Number(raw.pos), exp: Number(raw.exp) };
+  return isValidSpawn(view.spawn) ? { ...view.spawn } : null;
+}
+
+function sameBoard(left: readonly number[], right: readonly number[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 export type { LeaderEntry, SolveRow };
@@ -87,14 +109,36 @@ defineMiniApp({
     const runBoard     = createObservable<number[]>([]);
     const runMoveCount = createObservable(0);
     const runMaxExp    = createObservable(0);
+    const moveTransition = createObservable<MoveTransition | null>(null);
     const isMoving     = createObservable(false);
     // True once the reward-pool balance has been confirmed at least once, so the
     // in-canvas start button can show a neutral "checking pool" state instead of
     // a discouraging "pool low" while balances are still unknown.
     const balancesReady = createObservable(false);
+    const selectedDifficulty = createObservable(0);
+    const settlementGraceMs = createObservable(SETTLEMENT_GRACE_MS);
+    const isRecovering = createObservable(false);
 
     let session: RewardGameSession | null = null;
     let run: LiveRun | null = null;
+    let moveSequence = 0;
+    let moveUnlockTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearMovePresentation = (resetSequence = false): void => {
+      if (moveUnlockTimer !== null) clearTimeout(moveUnlockTimer);
+      moveUnlockTimer = null;
+      moveTransition.set(null);
+      isMoving.set(false);
+      if (resetSequence) moveSequence = 0;
+    };
+
+    const scheduleMoveUnlock = (): void => {
+      if (moveUnlockTimer !== null) clearTimeout(moveUnlockTimer);
+      moveUnlockTimer = setTimeout(() => {
+        moveUnlockTimer = null;
+        isMoving.set(false);
+      }, MOVE_ANIMATION_MS);
+    };
 
     // Run log persists via framework's namespaced local KV.
     const runStorage = app.storage.local;
@@ -119,9 +163,11 @@ defineMiniApp({
       runBoard,
       runMoveCount,
       runMaxExp,
+      moveTransition,
       isMoving,
       balancesReady,
       guestLeaderboard: app.mode.guestLeaderboard,
+      storage: app.storage.local,
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
@@ -130,7 +176,10 @@ defineMiniApp({
     // on-chain read done on mount).
     app.mode.onChange((mode) => {
       appMode.set(mode);
-      if (mode === "guest") void guest.enter();
+      if (mode === "guest") {
+        clearMovePresentation(true);
+        void guest.enter();
+      }
     });
 
     // ── Data refresh ──────────────────────────────────────────────────────────
@@ -151,35 +200,146 @@ defineMiniApp({
       obs.myTotalWon.set(totalWon);
     };
 
+    const refreshGameConfig = async () => {
+      if (app.mode.isGuest()) return;
+      try {
+        const config = await app.chain.readRaw("getConfig", []);
+        const configuredGrace = asNumber(mapField(config, "settleGraceMs"));
+        settlementGraceMs.set(configuredGrace > 0 ? configuredGrace : SETTLEMENT_GRACE_MS);
+      } catch {
+        settlementGraceMs.set(SETTLEMENT_GRACE_MS);
+      }
+    };
+
     const loadLeaderboard = async () => {
       if (app.mode.isGuest()) return;
-      const { ranked, mine } = await app.game.leaderboard.load<SolveRow>(
-        "Solved", SOLVED_SLOTS, LEADERBOARD_EVENT_LIMIT,
-      );
-      obs.leaderboard.set(ranked as LeaderEntry[]);
-      obs.myRank.set(ranked.find((e) => e.isUser)?.rank ?? 0);
-      obs.myHistory.set(mine);
+      const playerHash = app.game.player.scriptHash();
+      try {
+        const events = await app.chain.events("Solved", { limit: LEADERBOARD_EVENT_LIMIT });
+        const bestByPlayer = new Map<string, LeaderEntry>();
+        const mine: SolveRow[] = [];
+        for (const event of events) {
+          const who = normHash(eventStateValue(event, SOLVED_SLOTS.player));
+          const payoutFixed8 = parseBigInt(eventStateValue(event, SOLVED_SLOTS.solvedPayout));
+          // The contract emits Solved for every verified terminal run, including
+          // losses. Only positive-payout wins belong in ranks and win history.
+          if (!who || payoutFixed8 <= 0n) continue;
+          const totalWon = fromFixed8(parseBigInt(eventStateValue(event, SOLVED_SLOTS.totalWon)));
+          const prior = bestByPlayer.get(who);
+          bestByPlayer.set(who, {
+            rank: 0,
+            address: String(eventStateValue(event, SOLVED_SLOTS.player) ?? who),
+            totalWon: Math.max(prior?.totalWon ?? 0, totalWon),
+            solves: (prior?.solves ?? 0) + 1,
+            isUser: playerHash ? addrEq(eventStateValue(event, SOLVED_SLOTS.player), playerHash) : false,
+          });
+          if (playerHash && addrEq(eventStateValue(event, SOLVED_SLOTS.player), playerHash)) {
+            mine.push({
+              gameId: String(parseBigInt(eventStateValue(event, SOLVED_SLOTS.gameId))),
+              difficulty: Math.max(0, Math.min(2, Math.round(asNumber(
+                eventStateValue(event, SOLVED_SLOTS.difficulty),
+              )))),
+              solveMs: asNumber(eventStateValue(event, SOLVED_SLOTS.elapsedMs)),
+              undos: asNumber(eventStateValue(event, SOLVED_SLOTS.undos)),
+              payout: `${fromFixed8(payoutFixed8).toFixed(2)} GAS`,
+            });
+          }
+        }
+        const ranked = [...bestByPlayer.values()]
+          .sort((left, right) => right.totalWon - left.totalWon)
+          .map((entry, index) => ({ ...entry, rank: index + 1 }));
+        obs.leaderboard.set(ranked);
+        obs.myRank.set(ranked.find((entry) => entry.isUser)?.rank ?? 0);
+        obs.myHistory.set(mine);
+      } catch {
+        obs.leaderboard.set([]);
+        obs.myRank.set(0);
+        obs.myHistory.set([]);
+      }
     };
 
     // ── Session helpers ───────────────────────────────────────────────────────
+    const applySnapshotTiming = (snapshot: RewardGameSnapshot): void => {
+      obs.gameDifficulty.set(Math.max(0, Math.min(2, Math.round(snapshot.difficulty))));
+      selectedDifficulty.set(obs.gameDifficulty.get());
+      if (snapshot.commitment) obs.commitment.set(snapshot.commitment);
+      obs.dealtAt.set(snapshot.dealtAt);
+      obs.deadline.set(snapshot.deadline);
+    };
+
+    const rebuildSessionRun = async (
+      opened: RewardGameSession,
+      gameId: string,
+    ): Promise<LiveRun> => {
+      const initialBoard = requireBoard(opened.view.board);
+      let rebuilt = startRun(initialBoard);
+      if (!rebuilt) throw new Error(ctx.t("invalidBoardPayload"));
+      const ops = rewardGame.storage.load(gameId);
+      if (ops.length > 0) {
+        await rewardGame.replayOps(opened, ops, (step, op, index) => {
+          if (op.type === "move") {
+            const spawn = parseSpawn(step.view);
+            const applied = spawn
+              ? applyStepWithTransition(rebuilt!, op.dir, spawn, index + 1)
+              : null;
+            if (!applied) throw new Error(ctx.t("invalidSessionPayload"));
+            rebuilt = applied.run;
+          } else {
+            rebuilt = trimLastMove(rebuilt!);
+          }
+          const verifiedBoard = requireBoard(step.view.board);
+          if (!sameBoard(verifiedBoard, rebuilt!.board)) {
+            throw new Error(ctx.t("invalidSessionPayload"));
+          }
+        });
+      }
+      moveSequence = ops.length;
+      obs.undosUsed.set(Math.min(MAX_UNDOS, ops.filter((op) => op.type === "undo").length));
+      persistRun(runStorage, gameId, rebuilt);
+      return rebuilt;
+    };
+
+    const applyObservedSettlement = async (snapshot: RewardGameSnapshot): Promise<void> => {
+      const won = snapshot.status === "solved" && snapshot.payoutFixed8 > 0n;
+      obs.lastPayout.set(`${snapshot.payoutGas.toFixed(2)} GAS`);
+      obs.lastElapsedMs.set(snapshot.solveMs);
+      obs.gameStatus.set(won ? "solved" : "expired");
+      obs.activeGameId.set("0");
+      forgetRun(runStorage, snapshot.gameId);
+      rewardGame.storage.forget(snapshot.gameId);
+      session = null;
+      run = null;
+      clearMovePresentation(true);
+      publishRun();
+      obs.lastStatus.set(won
+        ? ctx.t("statusSolved", { payout: snapshot.payoutGas.toFixed(2) })
+        : ctx.t("statusExpired"));
+      ctx.setStatus(obs.lastStatus.get(), won ? "success" : "info");
+      await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
+    };
+
     const openSession = async (gameId: string, difficulty: number): Promise<boolean> => {
       obs.isDealing.set(true);
       obs.lastStatus.set(ctx.t("statusSealing"));
       try {
-        session = await rewardGame.openSession(gameId, difficulty);
-        const board = (session.view.board ?? []) as number[];
-        run = restoreRun(runStorage, gameId, Array.isArray(board) && board.length === 16 ? board : []);
+        const snapshot = await rewardGame.snapshot(gameId);
+        applySnapshotTiming(snapshot);
+        if (["solved", "expired", "refunded"].includes(snapshot.status)) {
+          await applyObservedSettlement(snapshot);
+          return false;
+        }
+        const opened = await rewardGame.openSession(gameId, difficulty);
+        session = opened;
+        clearMovePresentation(true);
+        run = await rebuildSessionRun(opened, gameId);
         publishRun();
-        obs.commitment.set(session.commitment);
-        const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-        obs.dealtAt.set(asNumber(mapField(game, "dealtAt")));
-        obs.deadline.set(asNumber(mapField(game, "deadline")));
+        obs.commitment.set(opened.commitment);
         obs.gameStatus.set("dealt");
-        obs.undosUsed.set(0);
         obs.lastStatus.set(ctx.t("statusDealt"));
         ctx.setStatus(ctx.t("statusDealt"), "success");
         return true;
       } catch (error) {
+        session = null;
         obs.lastStatus.set(ctx.t("statusDealPending"));
         ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
         return false;
@@ -188,35 +348,60 @@ defineMiniApp({
       }
     };
 
-    const resumeSession = async (gameId: string, difficulty: number): Promise<void> => {
+    const resumeSession = async (gameId: string, difficulty: number): Promise<boolean> => {
+      obs.isDealing.set(true);
       try {
         const restored = await rewardGame.openSession(gameId, difficulty);
         if (obs.commitment.get() && restored.commitment !== obs.commitment.get()) {
           throw new Error(ctx.t("statusFailed"));
         }
         session = restored;
-        const board = (restored.view.board ?? []) as number[];
-        run = restoreRun(runStorage, gameId, Array.isArray(board) && board.length === 16 ? board : []);
+        clearMovePresentation(true);
+        run = await rebuildSessionRun(restored, gameId);
         publishRun();
         obs.commitment.set(restored.commitment);
-      } catch {
+        obs.gameStatus.set("dealt");
+        obs.lastStatus.set(ctx.t("statusDealt"));
+        return true;
+      } catch (error) {
+        session = null;
         obs.lastStatus.set(ctx.t("statusDealPending"));
+        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        return false;
+      } finally {
+        obs.isDealing.set(false);
       }
     };
 
     const sendOp = async (op: TeeOp): Promise<{ ok: boolean; spawn: TeeSpawn | null; board: number[] }> => {
       if (!session) throw new Error(ctx.t("statusFailed"));
       const { step } = await rewardGame.recordOp(session, op);
-      const board    = (step.view.board ?? []) as number[];
-      return { ok: step.view.ok !== false, spawn: parseSpawn(step.view), board: Array.isArray(board) ? board : [] };
+      const board = requireBoard(step.view.board);
+      return { ok: step.view.ok !== false, spawn: parseSpawn(step.view), board };
     };
 
     // ── Actions ───────────────────────────────────────────────────────────────
+    app.actions.register("setDifficulty", async (...args: unknown[]) => {
+      if (
+        obs.isStarting.get()
+        || obs.isDealing.get()
+        || obs.isSubmitting.get()
+        || ["dealt", "committed", "unknown"].includes(obs.gameStatus.get())
+      ) return;
+      selectedDifficulty.set(Math.max(0, Math.min(2, Math.round(Number(args[0]) || 0))));
+    });
+
     app.actions.register("startGame", async (...args: unknown[]) => {
-      if (app.mode.isGuest()) { guest.startGame(args[0]); return; }
-      if (obs.isStarting.get() || obs.isDealing.get()) return;
       const form       = (args[0] ?? {}) as { difficulty?: unknown };
-      const difficulty = Math.max(0, Math.min(2, Number(form.difficulty ?? 0) || 0));
+      const difficulty = Math.max(0, Math.min(2, Math.round(
+        Number(form.difficulty ?? selectedDifficulty.get()) || 0,
+      )));
+      selectedDifficulty.set(difficulty);
+      if (app.mode.isGuest()) { guest.startGame({ difficulty }); return; }
+      if (manifest.supportsGameFi === false) {
+        throw new Error(ctx.t("entryGameFiUnavailable"));
+      }
+      if (obs.isStarting.get() || obs.isDealing.get()) return;
       obs.isStarting.set(true);
       obs.lastStatus.set(ctx.t("statusStarting"));
       try {
@@ -229,11 +414,12 @@ defineMiniApp({
         obs.dealtAt.set(0);
         obs.deadline.set(0);
         run = null;
+        clearMovePresentation(true);
         publishRun();
         obs.gameStatus.set("committed");
         obs.lastStatus.set(ctx.t("statusStarted"));
         await refreshBalances();
-        void openSession(gameId, difficulty);
+        await openSession(gameId, difficulty);
         return started.tx;
       } catch (error) {
         const msg = error instanceof Error && "code" in error && error.code === "POOL_LOW"
@@ -252,8 +438,48 @@ defineMiniApp({
     app.actions.register("retryDeal", async () => {
       if (app.mode.isGuest()) { guest.retryDeal(); return; }
       const gameId = obs.activeGameId.get();
-      if (gameId === "0" || obs.isDealing.get() || obs.gameStatus.get() !== "committed") return;
-      await openSession(gameId, obs.gameDifficulty.get());
+      const status = obs.gameStatus.get();
+      if (
+        gameId === "0"
+        || obs.isDealing.get()
+        || !["committed", "dealt"].includes(status)
+        || (status === "dealt" && run !== null)
+      ) return;
+      if (status === "committed") await openSession(gameId, obs.gameDifficulty.get());
+      else await resumeSession(gameId, obs.gameDifficulty.get());
+    });
+
+    app.actions.register("checkSettlement", async () => {
+      if (app.mode.isGuest() || isRecovering.get()) return;
+      const gameId = obs.activeGameId.get();
+      if (!gameId || gameId === "0" || obs.gameStatus.get() !== "unknown") return;
+      isRecovering.set(true);
+      try {
+        const snapshot = await rewardGame.snapshot(gameId);
+        applySnapshotTiming(snapshot);
+        if (snapshot.status === "unknown") {
+          obs.lastStatus.set(ctx.t("settlementStillPending"));
+          ctx.setStatus(ctx.t("settlementStillPending"), "info");
+          return;
+        }
+        if (snapshot.status === "dealt") {
+          obs.gameStatus.set("dealt");
+          session = null;
+          run = null;
+          clearMovePresentation(true);
+          publishRun();
+          obs.lastStatus.set(ctx.t("sessionRecoveryReady"));
+          ctx.setStatus(ctx.t("sessionRecoveryReady"), "info");
+          return;
+        }
+        if (["solved", "expired", "refunded"].includes(snapshot.status)) {
+          await applyObservedSettlement(snapshot);
+        }
+      } catch (error) {
+        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+      } finally {
+        isRecovering.set(false);
+      }
     });
 
     app.actions.register("playMove", async (...args: unknown[]) => {
@@ -262,27 +488,31 @@ defineMiniApp({
       const dir  = Number(form.dir);
       if (!Number.isInteger(dir) || dir < 0 || dir > 3) return;
       if (!run || !session || obs.gameStatus.get() !== "dealt" || isMoving.get()) return;
+      if (obs.deadline.get() > 0 && Date.now() >= obs.deadline.get()) return;
       if (run.moves.length >= MAX_MOVES) return;
       if (!applyMove([...run.board], dir)) return; // no-op move
       isMoving.set(true);
+      let animationQueued = false;
       try {
         const result = await sendOp({ type: "move", dir });
-        if (!result.ok || !result.spawn) return;
-        const next = applyStep(run, dir, result.spawn);
-        if (!next) {
-          if (result.board.length === 16 && run) {
-            run = buildRun(result.board, [], []) ?? run;
-            publishRun();
-          }
-          return;
+        if (!result.ok || !result.spawn) throw new Error(ctx.t("invalidSessionPayload"));
+        const applied = applyStepWithTransition(run, dir, result.spawn, moveSequence + 1);
+        if (!applied || !sameBoard(applied.run.board, result.board)) {
+          throw new Error(ctx.t("invalidSessionPayload"));
         }
-        run = next;
+        moveSequence += 1;
+        // The transition is published first so an unbatched bridge update still
+        // animates from the currently rendered board instead of snapping ahead.
+        moveTransition.set(applied.transition);
+        run = applied.run;
         persistRun(runStorage, obs.activeGameId.get(), run);
         publishRun();
+        scheduleMoveUnlock();
+        animationQueued = true;
       } catch (error) {
         ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
       } finally {
-        isMoving.set(false);
+        if (!animationQueued) isMoving.set(false);
       }
     });
 
@@ -290,11 +520,23 @@ defineMiniApp({
       if (app.mode.isGuest()) { guest.useUndo(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0" || obs.isUndoing.get() || obs.gameStatus.get() !== "dealt") return;
-      if (!run || run.moves.length === 0) return;
+      if (
+        !run
+        || !session
+        || run.moves.length === 0
+        || isMoving.get()
+        || obs.undosUsed.get() >= MAX_UNDOS
+        || (obs.deadline.get() > 0 && Date.now() >= obs.deadline.get() - 15_000)
+      ) return;
       obs.isUndoing.set(true);
       try {
-        await sendOp({ type: "undo" });
-        run = trimLastMove(run);
+        const result = await sendOp({ type: "undo" });
+        const trimmed = trimLastMove(run);
+        if (!result.ok || !sameBoard(trimmed.board, result.board)) {
+          throw new Error(ctx.t("invalidSessionPayload"));
+        }
+        run = trimmed;
+        moveTransition.set(null);
         persistRun(runStorage, gameId, run);
         publishRun();
         const undos = obs.undosUsed.get() + 1;
@@ -312,7 +554,25 @@ defineMiniApp({
     app.actions.register("submitRun", async () => {
       if (app.mode.isGuest()) { await guest.submitRun(); return; }
       const gameId = obs.activeGameId.get();
-      if (gameId === "0" || obs.isSubmitting.get() || obs.gameStatus.get() !== "dealt") return;
+      const rule = ruleOf(obs.gameDifficulty.get());
+      const now = Date.now();
+      const runEnded = Boolean(run) && (
+        run!.maxExp >= rule.targetExp
+        || !hasAnyMove(run!.board)
+        || run!.moves.length >= MAX_MOVES
+      );
+      if (
+        gameId === "0"
+        || obs.isSubmitting.get()
+        || obs.gameStatus.get() !== "dealt"
+        || !run
+        || !runEnded
+        || now < obs.dealtAt.get() + rule.minSolveMs + MIN_SOLVE_BUFFER_MS
+        || (obs.deadline.get() > 0 && now >= obs.deadline.get() - SUBMIT_BUFFER_MS)
+      ) {
+        obs.lastStatus.set(ctx.t("submitNotReady"));
+        return;
+      }
       obs.isSubmitting.set(true);
       obs.lastStatus.set(ctx.t("statusSubmitting"));
       try {
@@ -320,13 +580,21 @@ defineMiniApp({
         if (!session) throw new Error(ctx.t("statusFailed"));
         const finalized = await finalizeRewardGame(session);
         const settled   = finalized.settlement;
+        if (settled.status === "unknown") {
+          obs.gameStatus.set("unknown");
+          session = null;
+          obs.lastStatus.set(ctx.t("settlementStillPending"));
+          ctx.setStatus(ctx.t("settlementStillPending"), "info");
+          return finalized.tx;
+        }
         obs.lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
         obs.lastElapsedMs.set(settled.elapsedMs);
-        obs.gameStatus.set(settled.status === "unknown" ? "solved" : settled.status as "solved" | "expired");
+        obs.gameStatus.set(settled.payoutFixed8 > 0n ? "solved" : "expired");
         obs.activeGameId.set("0");
         forgetRun(runStorage, gameId);
         session = null;
         run = null;
+        clearMovePresentation(true);
         publishRun();
         if (settled.payoutGas > 0) {
           obs.lastStatus.set(ctx.t("statusSolved", { payout: settled.payoutGas.toFixed(2) }));
@@ -338,10 +606,28 @@ defineMiniApp({
         await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
         return finalized.tx;
       } catch (error) {
-        const msg = error instanceof Error ? error.message : ctx.t("statusFailed");
-        obs.lastStatus.set(msg);
-        ctx.setStatus(msg, "error");
-        throw error;
+        session = null;
+        try {
+          const snapshot = await rewardGame.snapshot(gameId);
+          applySnapshotTiming(snapshot);
+          if (snapshot.status === "unknown") {
+            obs.gameStatus.set("unknown");
+            obs.lastStatus.set(ctx.t("settlementStillPending"));
+            ctx.setStatus(ctx.t("settlementStillPending"), "info");
+            return;
+          }
+          if (["solved", "expired", "refunded"].includes(snapshot.status)) {
+            await applyObservedSettlement(snapshot);
+            return;
+          }
+        } catch {
+          // Retry sealing reconstructs the TEE state from the persisted op log.
+        }
+        obs.lastStatus.set(ctx.t("sessionRecoveryReady"));
+        ctx.setStatus(
+          error instanceof Error ? error.message : ctx.t("sessionRecoveryReady"),
+          "error",
+        );
       } finally {
         obs.isSubmitting.set(false);
       }
@@ -351,30 +637,63 @@ defineMiniApp({
       if (app.mode.isGuest()) { await guest.expireGame(); return; }
       const gameId = obs.activeGameId.get();
       if (gameId === "0") return;
+      if (!canReleaseExpiredGame(obs.deadline.get(), settlementGraceMs.get())) {
+        ctx.setStatus(ctx.t("releaseWaitStatus"), "info");
+        return;
+      }
       try {
         await rewardGame.expire(gameId);
-        obs.gameStatus.set("expired");
-        obs.activeGameId.set("0");
-        forgetRun(runStorage, gameId);
+        // A wallet result only proves broadcast. Keep the exact run recoverable
+        // until the contract readback exposes a terminal state.
+        const snapshot = await rewardGame.snapshot(gameId);
+        applySnapshotTiming(snapshot);
+        if (["solved", "expired", "refunded"].includes(snapshot.status)) {
+          await applyObservedSettlement(snapshot);
+          return;
+        }
         session = null;
-        run = null;
-        publishRun();
-        obs.lastStatus.set(ctx.t("statusExpired"));
-        ctx.setStatus(ctx.t("statusExpired"), "info");
-        await refreshBalances();
+        obs.gameStatus.set("unknown");
+        obs.lastStatus.set(ctx.t("settlementStillPending"));
+        ctx.setStatus(ctx.t("settlementStillPending"), "info");
       } catch (error) {
-        ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
-        throw error;
+        // The request may have reached a wallet or RPC even when the response
+        // was lost. Preserve the id and let Check settlement resolve it.
+        session = null;
+        obs.gameStatus.set("unknown");
+        obs.lastStatus.set(ctx.t("settlementStillPending"));
+        ctx.setStatus(
+          error instanceof Error ? error.message : ctx.t("settlementStillPending"),
+          "error",
+        );
       }
     });
 
     const withdrawOp = app.operations.create("withdrawWinnings");
     app.actions.register("withdrawWinnings", async () => {
       if (app.mode.isGuest()) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
-      if (obs.credit.get() <= 0) { ctx.setStatus(ctx.t("noCreditToWithdraw"), "info"); return; }
+      if (!app.wallet.isConnected()) {
+        ctx.setStatus(ctx.t("connectWalletFirst"), "info");
+        return;
+      }
+      const playerHash = app.game.player.scriptHash();
+      if (!playerHash) {
+        ctx.setStatus(ctx.t("statusFailed"), "error");
+        return;
+      }
       await withdrawOp.run(async () => {
-        await rewardGame.withdrawCredit(app.amount.gasToFixed8(obs.credit.get()));
-        await refreshBalances();
+        const before = await rewardGame.balances(playerHash);
+        if (before.creditFixed8 <= 0n) throw new Error(ctx.t("noCreditToWithdraw"));
+        const result = await rewardGame.withdrawCredit(before.creditFixed8);
+        if (result.skipped) throw new Error(ctx.t("noCreditToWithdraw"));
+        const exactEvent = result.tx.event != null
+          && addrEq(eventStateValue(result.tx.event, 0), playerHash)
+          && parseBigInt(eventStateValue(result.tx.event, 1)) === before.creditFixed8;
+        const after = await rewardGame.balances(playerHash);
+        obs.poolFree.set(after.poolFreeGas);
+        obs.credit.set(after.creditGas);
+        if (!exactEvent && after.creditFixed8 !== 0n) {
+          throw new Error(ctx.t("withdrawPending"));
+        }
       }, { successKey: "creditWithdrawn" });
     });
 
@@ -385,12 +704,24 @@ defineMiniApp({
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, runBoard, runMoveCount, runMaxExp, isMoving, balancesReady, appMode },
+      state: {
+        ...obs,
+        runBoard,
+        runMoveCount,
+        runMaxExp,
+        moveTransition,
+        isMoving,
+        balancesReady,
+        selectedDifficulty,
+        settlementGraceMs,
+        isRecovering,
+        appMode,
+      },
       loadData: async () => {
         // Guest is a purely local game: skip every mount-time chain read (the
         // guest engine's enter() already staged a clean local lobby + board).
         if (app.mode.isGuest()) { await guest.enter(); return; }
-        await refreshBalances();
+        await Promise.all([refreshBalances(), refreshGameConfig()]);
         const playerHash = app.game.player.scriptHash();
         if (playerHash) {
           try {
@@ -403,10 +734,13 @@ defineMiniApp({
               obs.activeGameId.set(active);
               const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(active)]);
               app.game.session.applySnapshot(obs, game, statusOf);
+              selectedDifficulty.set(Math.max(0, Math.min(2, obs.gameDifficulty.get())));
               if (obs.gameStatus.get() === "dealt") {
                 await resumeSession(active, obs.gameDifficulty.get());
               } else if (obs.gameStatus.get() === "committed") {
-                void openSession(active, obs.gameDifficulty.get());
+                await openSession(active, obs.gameDifficulty.get());
+              } else if (obs.gameStatus.get() === "unknown") {
+                obs.lastStatus.set(ctx.t("settlementStillPending"));
               }
             }
           } catch { /* no active game */ }

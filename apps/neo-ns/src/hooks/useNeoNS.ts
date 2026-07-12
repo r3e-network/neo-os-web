@@ -7,44 +7,36 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import { fetchOwnedDomains, ownerValueToAddress } from "./nnsRpc";
+import { getMiniAppContractHash, resolveNeoNetwork, type NeoNetwork } from "@shared/constants";
+import { addressToScriptHash } from "@shared/utils/neo";
+import {
+  fetchOwnedDomains,
+  formatGasBaseUnits,
+  normalizeNnsExpiryMs,
+  readNnsNameSnapshot,
+  readNnsSearchSnapshot,
+  readNnsTransactionOutcome,
+  type NnsNameSnapshot,
+  type NnsTransactionOutcome,
+} from "./nnsRpc";
 
+const APP_ID = "miniapp-neo-ns";
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
-/** A registered .neo domain's lifetime: the NNS contract issues a 1-year term. */
-const REGISTRATION_TERM_MS = 365 * 24 * 60 * 60 * 1000;
 const NNS_RECORD_TYPE_ADDRESS = 16;
 const EXPIRY_WARNING_MS = 30 * 24 * 60 * 60 * 1000;
 const SEARCH_DEBOUNCE_MS = 500;
+const TRANSACTION_POLL_ATTEMPTS = 20;
+const TRANSACTION_POLL_DELAY_MS = 1_500;
+const TRANSACTION_CONFIRMATION_WINDOW_MS = 45_000;
+const PENDING_STORAGE_KEY = "pending-nns-operation-v1";
+const RECOVERY_STORAGE_PROBE_KEY = "pending-nns-operation-probe-v1";
 /** Neo N3 address: base58check, leading 'N', 34 chars total. */
 const NEO_ADDRESS_PATTERN = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
-/** Any expiry beyond this far-future bound is treated as a unit error (over-scaled). */
-const MAX_PLAUSIBLE_EXPIRY_MS = Date.UTC(2200, 0, 1);
-
-/**
- * Normalise a raw `properties.expiration` value into epoch milliseconds.
- *
- * The on-chain NNS contract returns a Unix timestamp; depending on the
- * deployment this can be in milliseconds (NeoVM `Runtime.Time`) or seconds.
- * Rather than hard-coding one unit, detect the magnitude: values that already
- * look like milliseconds (>= ~ year 2001 in ms) are used as-is, smaller values
- * are treated as seconds and scaled. Absurd over-scaled results (a previous
- * `* 1000` on an already-ms value) are clamped back down so the UI never shows
- * a ~50,000-year future date and `expiringSoon` keeps working.
- */
-function normalizeExpiryMs(raw: unknown): number {
-  let ms = Number(raw ?? 0);
-  if (!Number.isFinite(ms) || ms <= 0) return 0;
-  // Seconds-scale timestamps (< ~ year 33658 in seconds) get promoted to ms.
-  // 1e12 ms ≈ 2001-09; anything below that magnitude is almost certainly seconds.
-  if (ms < 1e12) ms *= 1000;
-  // Guard against a double-scaled (already-ms then *1000) value.
-  if (ms > MAX_PLAUSIBLE_EXPIRY_MS) ms = Math.floor(ms / 1000);
-  return ms > MAX_PLAUSIBLE_EXPIRY_MS ? 0 : ms;
-}
 
 /** Strict Neo N3 address check (trims whitespace, rejects empty/malformed). */
 function isValidNeoAddress(value: unknown): boolean {
-  return NEO_ADDRESS_PATTERN.test(String(value ?? "").trim());
+  const address = String(value ?? "").trim();
+  return NEO_ADDRESS_PATTERN.test(address) && Boolean(addressToScriptHash(address));
 }
 
 export interface Domain {
@@ -58,14 +50,137 @@ export interface SearchResult {
   /** The exact full ".neo" name that was searched (snapshotted so registration cannot drift from the live query). */
   name: string;
   available: boolean;
-  price?: number;
+  restricted?: boolean;
+  price?: string;
+  priceBase?: string;
   owner?: string;
+  expiry?: number;
+}
+
+export interface RenewQuote {
+  name: string;
+  price: string;
+  priceBase: string;
+  expiry: number;
+}
+
+export type NnsDomainsStatus = "idle" | "loading" | "chain" | "failed";
+export type NnsRecoveryStorageStatus = "unverified" | "ready" | "unavailable";
+export type NnsPendingKind = "register" | "renew" | "set-record" | "transfer";
+
+export interface PendingNnsOperation {
+  version: 1;
+  kind: NnsPendingKind;
+  network: NeoNetwork;
+  contractHash: string;
+  actor: string;
+  txid: string;
+  createdAt: number;
+  name: string;
+  beforeExpiry?: number;
+  target?: string;
+  receiver?: string;
+  priceBase?: string;
+}
+
+interface NnsChainContext {
+  network: NeoNetwork;
+  contractHash: string;
 }
 
 export interface UseNeoNSOptions {
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
   nnsContractHash?: string;
+}
+
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function normalizeHash(value: unknown): string {
+  const raw = clean(value).toLowerCase();
+  return /^0x[0-9a-f]{40}$/.test(raw) && !/^0x0{40}$/.test(raw) ? raw : "";
+}
+
+function explicitNetwork(value: unknown): NeoNetwork | "" {
+  const normalized = clean(value).toLowerCase();
+  if (normalized === "mainnet" || normalized === "neo-n3-mainnet") return "mainnet";
+  if (normalized === "testnet" || normalized === "neo-n3-testnet") return "testnet";
+  return "";
+}
+
+/** Contract-exact first-label validation (lowercase alnum, interior hyphens, max 63). */
+export function normalizeNnsName(value: unknown): string | null {
+  let raw = clean(value).toLowerCase();
+  if (raw.endsWith(".neo")) raw = raw.slice(0, -4);
+  if (!raw || raw.length > 63 || raw.includes(".")) return null;
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(raw)) return null;
+  return `${raw}.neo`;
+}
+
+function isValidTxid(value: unknown): boolean {
+  return /^0x[0-9a-fA-F]{64}$/.test(clean(value));
+}
+
+export function isPendingNnsOperation(value: unknown): value is PendingNnsOperation {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const pending = value as Partial<PendingNnsOperation>;
+  if (
+    pending.version !== 1 ||
+    !(["register", "renew", "set-record", "transfer"] as NnsPendingKind[]).includes(pending.kind as NnsPendingKind) ||
+    (pending.network !== "mainnet" && pending.network !== "testnet") ||
+    !normalizeHash(pending.contractHash) ||
+    !isValidNeoAddress(pending.actor) ||
+    !isValidTxid(pending.txid) ||
+    !Number.isSafeInteger(pending.createdAt) || Number(pending.createdAt) <= 0 ||
+    normalizeNnsName(pending.name) !== pending.name
+  ) return false;
+  if (pending.kind === "renew") {
+    return Number.isSafeInteger(pending.beforeExpiry) && Number(pending.beforeExpiry) > 0 && /^\d+$/.test(clean(pending.priceBase));
+  }
+  if (pending.kind === "set-record") return isValidNeoAddress(pending.target);
+  if (pending.kind === "transfer") return isValidNeoAddress(pending.receiver);
+  return /^\d+$/.test(clean(pending.priceBase));
+}
+
+function sameAddress(a: unknown, b: unknown): boolean {
+  return clean(a) === clean(b) && isValidNeoAddress(a);
+}
+
+export function pendingMatchesOutcome(
+  pending: PendingNnsOperation,
+  outcome: NnsTransactionOutcome,
+  snapshot: NnsNameSnapshot,
+): boolean {
+  if (outcome.state !== "halt" || snapshot.name !== pending.name) return false;
+  if (pending.kind === "register") {
+    return Boolean(
+      // Fresh registration emits from=null; re-registering an expired token
+      // emits the previous owner. The exact register txid + name/to/amount +
+      // owner readback bind both legitimate paths without inventing success.
+      outcome.transfer && !outcome.renew && outcome.transfer.amount === "1" &&
+      outcome.transfer.name === pending.name && sameAddress(outcome.transfer.to, pending.actor) &&
+      sameAddress(snapshot.owner, pending.actor),
+    );
+  }
+  if (pending.kind === "transfer") {
+    return Boolean(
+      outcome.transfer && !outcome.renew && outcome.transfer.amount === "1" && outcome.transfer.name === pending.name &&
+      sameAddress(outcome.transfer.from, pending.actor) && sameAddress(outcome.transfer.to, pending.receiver) &&
+      sameAddress(snapshot.owner, pending.receiver),
+    );
+  }
+  if (pending.kind === "renew") {
+    return Boolean(
+      outcome.renew && !outcome.transfer && outcome.renew.name === pending.name &&
+      outcome.renew.oldExpiration === pending.beforeExpiry &&
+      outcome.renew.newExpiration > outcome.renew.oldExpiration &&
+      outcome.renew.newExpiration === snapshot.expiration &&
+      sameAddress(snapshot.owner, pending.actor),
+    );
+  }
+  return !outcome.transfer && !outcome.renew && sameAddress(snapshot.owner, pending.actor) && snapshot.target === pending.target;
 }
 
 function domainToTokenId(name: string): string {
@@ -76,19 +191,43 @@ function domainToTokenId(name: string): string {
 }
 
 export function useNeoNS({ app, t, nnsContractHash }: UseNeoNSOptions) {
-  const contractHash = nnsContractHash ?? NNS_CONTRACT_HASH;
-  const readOpts = { scriptHash: contractHash };
-
+  const overrideContract = normalizeHash(nnsContractHash);
   const myDomains = createObservable<Domain[]>([]);
+  const domainsStatus = createObservable<NnsDomainsStatus>("idle");
   const isLoading = createObservable(false);
   const error = createObservable("");
   const searchQuery = createObservable("");
   const searchResult = createObservable<SearchResult | null>(null);
   const isSearching = createObservable(false);
-  const registrationCost = createObservable(0);
+  const registrationCost = createObservable("");
   const managingDomain = createObservable<Domain | null>(null);
+  const renewQuote = createObservable<RenewQuote | null>(null);
+  const pendingOperation = createObservable<PendingNnsOperation | null>(null);
+  const isRecovering = createObservable(false);
+  const transactionNotice = createObservable("");
+  const activeNetwork = createObservable("");
+  const activeContract = createObservable("");
+  const recoveryStorageStatus = createObservable<NnsRecoveryStorageStatus>("unverified");
 
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let searchDebounceResolve: (() => void) | null = null;
+  let searchGeneration = 0;
+  let domainLoadGeneration = 0;
+  let renewQuoteGeneration = 0;
+  let busyCount = 0;
+  let writeInFlight = false;
+  let disposed = false;
+
+  let restored: unknown = null;
+  try {
+    restored = app.storage.local.get<unknown>(PENDING_STORAGE_KEY, null);
+  } catch {
+    recoveryStorageStatus.set("unavailable");
+  }
+  if (isPendingNnsOperation(restored)) pendingOperation.set(restored);
+  else if (restored != null) {
+    try { app.storage.local.delete(PENDING_STORAGE_KEY); } catch { /* repaired on the next writable launch */ }
+  }
 
   const domainCount: Observable<number> = {
     get: () => myDomains.get().length,
@@ -99,215 +238,584 @@ export function useNeoNS({ app, t, nnsContractHash }: UseNeoNSOptions) {
   const walletStatus: Observable<string> = {
     get: () => app.chain.address.get() ? t("connected") : t("disconnected"),
     set: () => {},
-    subscribe: () => () => {},
+    subscribe: (fn) => app.chain.address.subscribe(fn),
   };
 
   const expiringSoon: Observable<number> = {
-    get: () =>
-      myDomains.get().filter((d) => {
-        if (d.expiry <= 0) return false;
-        const remaining = d.expiry - Date.now();
-        // Only future-but-near expiries count; already-expired domains (remaining <= 0)
-        // are not "expiring soon".
-        return remaining > 0 && remaining < EXPIRY_WARNING_MS;
-      }).length,
+    get: () => myDomains.get().filter((domain) => {
+      const remaining = domain.expiry - Date.now();
+      return remaining > 0 && remaining < EXPIRY_WARNING_MS;
+    }).length,
     set: () => {},
     subscribe: (fn) => myDomains.subscribe(fn),
   };
 
-  const loadMyDomains = async () => {
-    const addr = app.chain.address.get();
-    if (!addr) { myDomains.set([]); return; }
+  const requireContext = async (requireDetectedNetwork = false): Promise<NnsChainContext> => {
+    const launchNetwork = explicitNetwork(app.platform.launch.network);
+    let detectedNetwork: NeoNetwork | "" = "";
     try {
-      // `tokensOf` returns a session IIterator the wallet/host bridge cannot
-      // traverse, so the owned token ids come from the allowlisted
-      // `getnep11balances` RPC method instead (see nnsRpc.fetchOwnedDomains).
-      const network = await app.chain.detectNetwork();
-      const owned = await fetchOwnedDomains(addr, network, contractHash);
-      const domains: Domain[] = owned.map((d) => ({
-        name: d.name,
-        owner: addr,
-        expiry: normalizeExpiryMs(d.expiration),
-        target: d.target,
+      detectedNetwork = explicitNetwork(await app.chain.detectNetwork());
+    } catch {
+      if (requireDetectedNetwork) throw new Error(t("networkUnverified"));
+      // Read-only lookups may use the verified launch network while a wallet
+      // provider is absent or its network read is transiently unavailable.
+    }
+    if (launchNetwork && detectedNetwork && launchNetwork !== detectedNetwork) {
+      throw new Error(t("networkMismatch"));
+    }
+    const network = requireDetectedNetwork ? detectedNetwork : detectedNetwork || launchNetwork;
+    if (!network) throw new Error(t("networkUnverified"));
+    const registryContract = normalizeHash(getMiniAppContractHash(APP_ID, resolveNeoNetwork(network)));
+    const expected = overrideContract || registryContract;
+    if (!expected || (!overrideContract && expected !== NNS_CONTRACT_HASH)) {
+      throw new Error(t("contractUnavailable"));
+    }
+    const configured = normalizeHash(app.chain.contractAddress.get());
+    if (configured && configured !== expected) throw new Error(t("contractMismatch"));
+    activeNetwork.set(network);
+    activeContract.set(expected);
+    return { network, contractHash: expected };
+  };
+
+  const requireActorContext = async (): Promise<NnsChainContext & { actor: string }> => {
+    await app.chain.ensureWallet();
+    const actor = clean(app.chain.address.get());
+    if (!isValidNeoAddress(actor)) throw new Error(t("walletAddressInvalid"));
+    // Every write and pending-receipt recovery requires a positive wallet
+    // network detection. A launch-URL fallback is intentionally read-only.
+    const context = await requireContext(true);
+    return { ...context, actor };
+  };
+
+  const beginBusy = () => {
+    busyCount += 1;
+    isLoading.set(true);
+  };
+
+  const endBusy = () => {
+    busyCount = Math.max(0, busyCount - 1);
+    isLoading.set(busyCount > 0);
+  };
+
+  const beginWrite = () => {
+    if (writeInFlight) throw new Error(t("operationInProgress"));
+    writeInFlight = true;
+    transactionNotice.set("");
+    beginBusy();
+  };
+
+  const endWrite = () => {
+    writeInFlight = false;
+    endBusy();
+  };
+
+  const updateDomainFromSnapshot = (snapshot: NnsNameSnapshot) => {
+    const previous = myDomains.get().find((item) => item.name === snapshot.name);
+    const target = snapshot.target ?? previous?.target;
+    const domain: Domain = {
+      name: snapshot.name,
+      owner: snapshot.owner,
+      expiry: snapshot.expiration,
+      ...(target ? { target } : {}),
+    };
+    const next = myDomains.get().filter((item) => item.name !== snapshot.name);
+    myDomains.set([domain, ...next].sort((a, b) => b.expiry - a.expiry));
+    if (managingDomain.get()?.name === snapshot.name) managingDomain.set(domain);
+  };
+
+  const clearPending = (): boolean => {
+    pendingOperation.set(null);
+    try {
+      app.storage.local.delete(PENDING_STORAGE_KEY);
+      const stored = app.storage.local.get<unknown>(PENDING_STORAGE_KEY, null);
+      if (stored != null) throw new Error("pending receipt remained after delete");
+      recoveryStorageStatus.set("ready");
+      return true;
+    } catch {
+      recoveryStorageStatus.set("unavailable");
+      return false;
+    }
+  };
+
+  const ensureRecoveryStorage = () => {
+    const marker = `${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    try {
+      app.storage.local.set(RECOVERY_STORAGE_PROBE_KEY, marker);
+      const stored = app.storage.local.get<string>(RECOVERY_STORAGE_PROBE_KEY, null);
+      app.storage.local.delete(RECOVERY_STORAGE_PROBE_KEY);
+      const removed = app.storage.local.get<unknown>(RECOVERY_STORAGE_PROBE_KEY, null);
+      if (stored !== marker || removed != null) throw new Error("recovery storage probe failed");
+      recoveryStorageStatus.set("ready");
+    } catch {
+      recoveryStorageStatus.set("unavailable");
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+  };
+
+  type PendingDraft = Omit<PendingNnsOperation, "version" | "txid" | "createdAt">;
+  const persistPending = (draft: PendingDraft, txid: string): PendingNnsOperation | null => {
+    if (!isValidTxid(txid)) return null;
+    const pending: PendingNnsOperation = { ...draft, version: 1, txid, createdAt: Date.now() };
+    pendingOperation.set(pending);
+    try {
+      app.storage.local.set(PENDING_STORAGE_KEY, pending);
+      const stored = app.storage.local.get<unknown>(PENDING_STORAGE_KEY, null);
+      if (!isPendingNnsOperation(stored) || stored.txid !== pending.txid) {
+        throw new Error("pending receipt readback failed");
+      }
+      recoveryStorageStatus.set("ready");
+    } catch {
+      recoveryStorageStatus.set("unavailable");
+      transactionNotice.set(t("recoveryStorageFailed", { txid }));
+    }
+    return pending;
+  };
+
+  const waitForOutcome = async (pending: PendingNnsOperation): Promise<NnsNameSnapshot> => {
+    let sawHalt = false;
+    const deadline = Date.now() + TRANSACTION_CONFIRMATION_WINDOW_MS;
+    for (let attempt = 0; attempt < TRANSACTION_POLL_ATTEMPTS; attempt += 1) {
+      if (Date.now() >= deadline) break;
+      const outcome = await readNnsTransactionOutcome(pending.network, pending.txid, pending.contractHash);
+      if (outcome.state === "fault") {
+        clearPending();
+        transactionNotice.set(t("transactionFault", { txid: pending.txid }));
+        throw new Error(t("transactionFault", { txid: pending.txid }));
+      }
+      if (outcome.state === "halt") {
+        sawHalt = true;
+        try {
+          const snapshot = await readNnsNameSnapshot(
+            pending.network,
+            pending.contractHash,
+            pending.name,
+            { includeTarget: pending.kind === "set-record" },
+          );
+          if (pendingMatchesOutcome(pending, outcome, snapshot)) return snapshot;
+        } catch {
+          // A different public RPC may lag the receipt node. Retry; never turn
+          // an absent readback into success or an invented empty value.
+        }
+      }
+      if (attempt + 1 < TRANSACTION_POLL_ATTEMPTS && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, TRANSACTION_POLL_DELAY_MS));
+      }
+    }
+    const key = sawHalt ? "transactionReadbackPending" : "transactionPending";
+    transactionNotice.set(t(key, { txid: pending.txid }));
+    throw new Error(t(key, { txid: pending.txid }));
+  };
+
+  const confirmPending = async (pending: PendingNnsOperation): Promise<NnsNameSnapshot> => {
+    const snapshot = await waitForOutcome(pending);
+    const originalWalletStillActive = sameAddress(app.chain.address.get(), pending.actor);
+    if (originalWalletStillActive) {
+      if (pending.kind === "transfer") {
+        myDomains.set(myDomains.get().filter((domain) => domain.name !== pending.name));
+        if (managingDomain.get()?.name === pending.name) managingDomain.set(null);
+      } else {
+        updateDomainFromSnapshot(snapshot);
+      }
+    }
+    const receiptCleared = clearPending();
+    const noticeKey = !receiptCleared
+      ? "transactionConfirmedStorageStale"
+      : originalWalletStillActive
+        ? "transactionConfirmed"
+        : "transactionConfirmedWalletChanged";
+    transactionNotice.set(t(noticeKey, { txid: pending.txid }));
+    return snapshot;
+  };
+
+  const invokeTracked = async (
+    draft: PendingDraft,
+    operation: string,
+    args: Parameters<typeof app.chain.invoke>[1],
+    waitForEvent?: "Transfer" | "Renew",
+  ): Promise<NnsNameSnapshot> => {
+    if (pendingOperation.get()) throw new Error(t("resolvePendingFirst"));
+    ensureRecoveryStorage();
+    let tracked: PendingNnsOperation | null = null;
+    const result = await app.chain.invoke(operation, args, {
+      scriptHash: draft.contractHash,
+      ...(waitForEvent ? { waitForEvent } : {}),
+      onTransactionSent: (txid) => { tracked = persistPending(draft, txid); },
+    });
+    tracked ??= persistPending(draft, result.txid);
+    if (!result.success) {
+      if (tracked) throw new Error(t("transactionResponseUncertain", { txid: tracked.txid }));
+      clearPending();
+      throw new Error(t("transactionNotBroadcast"));
+    }
+    if (!tracked) throw new Error(t("transactionReceiptMissing"));
+    return confirmPending(tracked);
+  };
+
+  const loadMyDomains = async (knownContext?: NnsChainContext) => {
+    const address = clean(app.chain.address.get());
+    const generation = ++domainLoadGeneration;
+    if (!address) {
+      myDomains.set([]);
+      domainsStatus.set("idle");
+      return;
+    }
+    if (!isValidNeoAddress(address)) {
+      domainsStatus.set("failed");
+      error.set(t("walletAddressInvalid"));
+      return;
+    }
+    domainsStatus.set("loading");
+    try {
+      const context = knownContext ?? await requireContext();
+      const owned = await fetchOwnedDomains(address, context.network, context.contractHash);
+      if (disposed || generation !== domainLoadGeneration || clean(app.chain.address.get()) !== address) return;
+      const domains: Domain[] = owned.map((domain) => ({
+        name: domain.name,
+        owner: address,
+        expiry: normalizeNnsExpiryMs(domain.expiration),
+        ...(domain.target ? { target: domain.target } : {}),
       }));
       myDomains.set(domains.sort((a, b) => b.expiry - a.expiry));
-    } catch (e) {
-      error.set(e instanceof Error ? e.message : t("error"));
-      myDomains.set([]);
+      domainsStatus.set("chain");
+    } catch {
+      if (disposed || generation !== domainLoadGeneration || clean(app.chain.address.get()) !== address) return;
+      domainsStatus.set("failed");
+      error.set(t("domainsLoadFailed"));
+      // Preserve the last verified list. An RPC failure is not proof of zero.
     }
+  };
+
+  const cancelScheduledSearch = () => {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+    searchDebounceResolve?.();
+    searchDebounceResolve = null;
   };
 
   const runSearch = async (query: string) => {
+    const generation = ++searchGeneration;
     isSearching.set(true);
+    error.set("");
     searchResult.set(null);
+    registrationCost.set("");
     try {
-      const fullName = query.endsWith(".neo") ? query : query + ".neo";
-      const availableRaw = await app.chain.readRaw("isAvailable", [app.chain.arg.string(fullName)], readOpts);
-      const isAvailable = Boolean(availableRaw);
-      const baseName = fullName.replace(/\.neo$/, "");
-      const priceRaw = await app.chain.readRaw("getPrice", [app.chain.arg.integer(baseName.length)], readOpts);
-      const price = Number(priceRaw || 0) / 1e8;
+      const fullName = normalizeNnsName(query);
+      if (!fullName) throw new Error(t("invalidDomainName"));
+      const context = await requireContext();
+      const snapshot = await readNnsSearchSnapshot(context.network, context.contractHash, fullName);
+      if (disposed || generation !== searchGeneration || normalizeNnsName(searchQuery.get()) !== fullName) return;
+      const price = formatGasBaseUnits(snapshot.priceBase);
       registrationCost.set(price);
-
-      if (isAvailable) {
-        searchResult.set({ name: fullName, available: true, price });
-      } else {
-        let owner = t("unknownOwner");
-        try {
-          const tokenId = domainToTokenId(baseName);
-          const ownerRaw = await app.chain.readRaw("ownerOf", [app.chain.arg.byteArray(tokenId)], readOpts);
-          // ownerOf arrives as a little-endian Hash160 (e.g. "0xfda64993…");
-          // render the wallet-format N-address rather than the raw byte hex.
-          if (ownerRaw) owner = ownerValueToAddress(ownerRaw) || String(ownerRaw);
-        } catch { /* owner lookup can fail */ }
-        searchResult.set({ name: fullName, available: false, owner });
+      searchResult.set({
+        name: fullName,
+        available: snapshot.availability === "available",
+        restricted: snapshot.availability === "restricted",
+        price,
+        priceBase: snapshot.priceBase,
+        ...(snapshot.owner ? { owner: snapshot.owner } : {}),
+        ...(snapshot.expiration ? { expiry: snapshot.expiration } : {}),
+      });
+    } catch (cause) {
+      if (!disposed && generation === searchGeneration) {
+        const message = cause instanceof Error ? cause.message : "";
+        const productErrors = new Set([
+          t("invalidDomainName"),
+          t("networkMismatch"),
+          t("networkUnverified"),
+          t("contractUnavailable"),
+          t("contractMismatch"),
+        ]);
+        error.set(productErrors.has(message) ? message : t("availabilityFailed"));
       }
-    } catch (e) {
-      error.set(e instanceof Error ? e.message : t("availabilityFailed"));
     } finally {
-      isSearching.set(false);
+      if (!disposed && generation === searchGeneration) isSearching.set(false);
     }
   };
 
-  /**
-   * Run an availability lookup for the current query.
-   *
-   * `immediate` (default) fires the read straight away — correct for a deliberate
-   * Search button press, which should not pay a debounce penalty. The debounced
-   * path remains available for any future type-ahead wiring.
-   */
-  const searchDomain = (immediate = true) => {
-    const query = searchQuery.get().trim().toLowerCase();
-    if (searchDebounceTimer) { clearTimeout(searchDebounceTimer); searchDebounceTimer = null; }
-    if (!query || query.length < 1) { searchResult.set(null); return; }
-    if (immediate) {
-      void runSearch(query);
+  const searchDomain = async (immediate = true): Promise<void> => {
+    const query = searchQuery.get();
+    cancelScheduledSearch();
+    if (!clean(query)) {
+      searchGeneration += 1;
+      isSearching.set(false);
+      searchResult.set(null);
+      registrationCost.set("");
       return;
     }
-    searchDebounceTimer = setTimeout(() => { void runSearch(query); }, SEARCH_DEBOUNCE_MS);
+    if (immediate) return runSearch(query);
+    await new Promise<void>((resolve) => {
+      searchDebounceResolve = resolve;
+      searchDebounceTimer = setTimeout(() => {
+        searchDebounceTimer = null;
+        searchDebounceResolve = null;
+        void runSearch(query).finally(resolve);
+      }, SEARCH_DEBOUNCE_MS);
+    });
+  };
+
+  const readPriceBase = async (domain: Domain, context: NnsChainContext): Promise<string> => {
+    const baseName = domain.name.replace(/\.neo$/, "");
+    const raw = await app.chain.readRaw(
+      "getPrice",
+      [app.chain.arg.integer(baseName.length)],
+      { scriptHash: context.contractHash },
+    );
+    const value = clean(raw);
+    if (!/^-?\d+$/.test(value)) throw new Error(t("priceReadFailed"));
+    if (BigInt(value) < 0n) throw new Error(t("nameRestricted"));
+    return BigInt(value).toString();
+  };
+
+  /** Backwards-compatible numeric reader; UI/payment paths retain the exact base-unit string. */
+  const getRenewPrice = async (domain: Domain): Promise<number> => {
+    const context = await requireContext();
+    return Number(formatGasBaseUnits(await readPriceBase(domain, context)));
+  };
+
+  const prepareRenew = async (domain: Domain): Promise<RenewQuote> => {
+    if (writeInFlight) throw new Error(t("operationInProgress"));
+    const generation = ++renewQuoteGeneration;
+    beginBusy();
+    try {
+      const context = await requireContext();
+      const snapshot = await readNnsNameSnapshot(context.network, context.contractHash, domain.name);
+      const priceBase = await readPriceBase(domain, context);
+      const quote = { name: domain.name, price: formatGasBaseUnits(priceBase), priceBase, expiry: snapshot.expiration };
+      if (
+        disposed || generation !== renewQuoteGeneration ||
+        managingDomain.get()?.name !== domain.name || !sameAddress(app.chain.address.get(), domain.owner)
+      ) throw new Error(t("renewQuoteStale"));
+      renewQuote.set(quote);
+      return quote;
+    } finally {
+      endBusy();
+    }
+  };
+
+  const cancelRenew = () => {
+    renewQuoteGeneration += 1;
+    renewQuote.set(null);
   };
 
   const registerDomain = async () => {
-    const result0 = searchResult.get();
-    if (!result0?.available || isLoading.get()) return;
-    isLoading.set(true);
+    const searched = searchResult.get();
+    const currentName = normalizeNnsName(searchQuery.get());
+    if (!searched?.available || !searched.priceBase || currentName !== searched.name) {
+      throw new Error(t("searchAgainBeforeRegister"));
+    }
+    error.set("");
+    beginWrite();
     try {
-      await app.chain.ensureWallet();
-      const owner = app.chain.address.get() as string;
-      // Register the exact name whose availability and price were verified by the
-      // last search -- NOT the live searchQuery, which the user may have edited since.
-      const fullName = result0.name;
-      const result = await app.chain.invoke("register", [
-        app.chain.arg.string(fullName),
-        app.chain.arg.hash160(owner),
-      ], { scriptHash: contractHash, waitForEvent: "Transfer" });
-
-      if (result.success) {
-        searchQuery.set("");
+      const context = await requireActorContext();
+      const fresh = await readNnsSearchSnapshot(context.network, context.contractHash, searched.name);
+      if (fresh.availability !== "available" || fresh.priceBase !== searched.priceBase) {
         searchResult.set(null);
-        registrationCost.set(0);
-        // Optimistically surface the just-registered domain so the success
-        // toast is never contradicted by an empty "My Domains" list while the
-        // indexer catches up; the subsequent loadMyDomains reconciles it.
-        const optimistic: Domain = {
-          name: fullName,
-          owner,
-          expiry: Date.now() + REGISTRATION_TERM_MS,
-        };
-        const existing = myDomains.get();
-        if (!existing.some((d) => d.name === fullName)) {
-          myDomains.set([optimistic, ...existing]);
-        }
-        await loadMyDomains();
+        registrationCost.set("");
+        throw new Error(t("availabilityChanged"));
       }
-    } finally { isLoading.set(false); }
+      const draft: PendingDraft = {
+        kind: "register",
+        network: context.network,
+        contractHash: context.contractHash,
+        actor: context.actor,
+        name: searched.name,
+        priceBase: fresh.priceBase,
+      };
+      await invokeTracked(draft, "register", [
+        app.chain.arg.string(searched.name),
+        app.chain.arg.hash160(context.actor),
+      ], "Transfer");
+      searchQuery.set("");
+      searchResult.set(null);
+      registrationCost.set("");
+      if (sameAddress(app.chain.address.get(), context.actor)) domainsStatus.set("chain");
+    } finally {
+      endWrite();
+    }
+  };
+
+  const assertOwned = async (domain: Domain, context: NnsChainContext & { actor: string }) => {
+    const snapshot = await readNnsNameSnapshot(context.network, context.contractHash, domain.name);
+    if (!sameAddress(snapshot.owner, context.actor)) throw new Error(t("domainOwnerMismatch"));
+    return snapshot;
   };
 
   const setRecord = async (domain: Domain, targetAddress: string) => {
-    if (!domain || !targetAddress) return;
-    const target = String(targetAddress).trim();
-    // Reject empty/whitespace/malformed addresses before reaching the chain so the
-    // user gets a clear "invalid address" hint instead of a raw contract error.
+    const target = clean(targetAddress);
     if (!isValidNeoAddress(target)) throw new Error(t("invalidAddress"));
-    isLoading.set(true);
+    error.set("");
+    beginWrite();
     try {
-      await app.chain.ensureWallet();
-      const result = await app.chain.invoke("setRecord", [
+      const context = await requireActorContext();
+      const snapshot = await readNnsNameSnapshot(
+        context.network,
+        context.contractHash,
+        domain.name,
+        { includeTarget: true },
+      );
+      if (!sameAddress(snapshot.owner, context.actor)) throw new Error(t("domainOwnerMismatch"));
+      if (snapshot.target === target) throw new Error(t("targetAlreadySet"));
+      const draft: PendingDraft = {
+        kind: "set-record",
+        network: context.network,
+        contractHash: context.contractHash,
+        actor: context.actor,
+        name: domain.name,
+        target,
+      };
+      await invokeTracked(draft, "setRecord", [
         app.chain.arg.string(domain.name),
         app.chain.arg.integer(NNS_RECORD_TYPE_ADDRESS),
         app.chain.arg.string(target),
-      ], { scriptHash: contractHash });
-      if (result.success) {
-        await loadMyDomains();
-      }
-    } finally { isLoading.set(false); }
+      ]);
+    } finally {
+      endWrite();
+    }
   };
 
   const transferDomain = async (domain: Domain, toAddress: string) => {
-    if (!domain || !toAddress) return;
-    const to = String(toAddress).trim();
-    // Reject empty/whitespace/malformed receiver addresses before invoking transfer.
-    if (!isValidNeoAddress(to)) throw new Error(t("invalidAddress"));
-    isLoading.set(true);
+    const receiver = clean(toAddress);
+    if (!isValidNeoAddress(receiver) || sameAddress(receiver, app.chain.address.get())) {
+      throw new Error(t("invalidTransferAddress"));
+    }
+    error.set("");
+    beginWrite();
     try {
-      await app.chain.ensureWallet();
-      const tokenId = domainToTokenId(domain.name.replace(/\.neo$/, ""));
-      // `to` is a third-party recipient (not the connected wallet): the raw
-      // N-address must reach the wallet provider verbatim (it resolves it, and
-      // mapDapiArgs only remaps the connected account). arg.hash160Raw passes it
-      // through UNCONVERTED — arg.hash160 would rewrite it to a script hash and
-      // change what the provider receives.
-      const result = await app.chain.invoke("transfer", [
-        app.chain.arg.hash160Raw(to),
-        app.chain.arg.byteArray(tokenId),
+      const context = await requireActorContext();
+      if (sameAddress(receiver, context.actor)) throw new Error(t("invalidTransferAddress"));
+      await assertOwned(domain, context);
+      const draft: PendingDraft = {
+        kind: "transfer",
+        network: context.network,
+        contractHash: context.contractHash,
+        actor: context.actor,
+        name: domain.name,
+        receiver,
+      };
+      await invokeTracked(draft, "transfer", [
+        app.chain.arg.hash160Raw(receiver),
+        app.chain.arg.byteArray(domainToTokenId(domain.name)),
         app.chain.arg.string(""),
-      ], { scriptHash: contractHash, waitForEvent: "Transfer" });
-      if (result.success) {
-        await loadMyDomains();
-      }
-    } finally { isLoading.set(false); }
-  };
-
-  /**
-   * Read the renewal price (in GAS) for a domain. Renewal costs the same
-   * length-based `getPrice` as registration, so the UI can disclose the cost
-   * and let the user confirm before the paid wallet tx fires.
-   */
-  const getRenewPrice = async (domain: Domain): Promise<number> => {
-    const baseName = domain.name.replace(/\.neo$/, "");
-    const priceRaw = await app.chain.readRaw("getPrice", [app.chain.arg.integer(baseName.length)], readOpts);
-    return Number(priceRaw || 0) / 1e8;
+      ], "Transfer");
+    } finally {
+      endWrite();
+    }
   };
 
   const renewDomain = async (domain: Domain) => {
-    if (!domain) return;
-    isLoading.set(true);
+    const quote = renewQuote.get();
+    if (!quote || quote.name !== domain.name) throw new Error(t("renewQuoteRequired"));
+    error.set("");
+    beginWrite();
     try {
-      await app.chain.ensureWallet();
-      const result = await app.chain.invoke("renew", [app.chain.arg.string(domain.name)], { scriptHash: contractHash });
-      if (result.success) {
-        await loadMyDomains();
+      const context = await requireActorContext();
+      const snapshot = await assertOwned(domain, context);
+      const priceBase = await readPriceBase(domain, context);
+      if (snapshot.expiration !== quote.expiry || priceBase !== quote.priceBase) {
+        renewQuote.set(null);
+        throw new Error(t("renewQuoteChanged"));
       }
-    } finally { isLoading.set(false); }
+      const draft: PendingDraft = {
+        kind: "renew",
+        network: context.network,
+        contractHash: context.contractHash,
+        actor: context.actor,
+        name: domain.name,
+        beforeExpiry: snapshot.expiration,
+        priceBase,
+      };
+      await invokeTracked(draft, "renew", [app.chain.arg.string(domain.name)], "Renew");
+      renewQuote.set(null);
+    } finally {
+      endWrite();
+    }
   };
 
-  const showManage = (domain: Domain) => { managingDomain.set(domain); };
-  const cancelManage = () => { managingDomain.set(null); };
+  const recoverPending = async () => {
+    const pending = pendingOperation.get();
+    if (!pending || isRecovering.get()) return;
+    if (writeInFlight) throw new Error(t("operationInProgress"));
+    error.set("");
+    transactionNotice.set("");
+    isRecovering.set(true);
+    try {
+      const context = await requireActorContext();
+      if (
+        context.network !== pending.network || context.contractHash !== pending.contractHash ||
+        !sameAddress(context.actor, pending.actor)
+      ) throw new Error(t("pendingContextMismatch"));
+      await confirmPending(pending);
+    } finally {
+      isRecovering.set(false);
+    }
+  };
+
+  const showManage = (domain: Domain) => {
+    renewQuoteGeneration += 1;
+    managingDomain.set(domain);
+    renewQuote.set(null);
+  };
+  const cancelManage = () => {
+    renewQuoteGeneration += 1;
+    managingDomain.set(null);
+    renewQuote.set(null);
+  };
+
+  const handleAccountChanged = () => {
+    domainLoadGeneration += 1;
+    myDomains.set([]);
+    domainsStatus.set(app.chain.address.get() ? "loading" : "idle");
+    managingDomain.set(null);
+    renewQuoteGeneration += 1;
+    renewQuote.set(null);
+    activeNetwork.set("");
+    activeContract.set("");
+    error.set("");
+    transactionNotice.set("");
+  };
 
   const loadAll = async () => {
-    isLoading.set(true);
+    beginBusy();
     error.set("");
-    try { await loadMyDomains(); } finally { isLoading.set(false); }
+    try {
+      const context = await requireContext();
+      await loadMyDomains(context);
+    } catch {
+      domainsStatus.set("failed");
+      error.set(t("chainContextFailed"));
+    } finally {
+      endBusy();
+    }
   };
 
+  const unsubscribeSearch = searchQuery.subscribe(() => {
+    searchGeneration += 1;
+    isSearching.set(false);
+    cancelScheduledSearch();
+    const result = searchResult.get();
+    if (result && normalizeNnsName(searchQuery.get()) !== result.name) {
+      searchResult.set(null);
+      registrationCost.set("");
+    }
+  });
+
   const cleanup = () => {
-    if (searchDebounceTimer) { clearTimeout(searchDebounceTimer); searchDebounceTimer = null; }
+    disposed = true;
+    searchGeneration += 1;
+    renewQuoteGeneration += 1;
+    cancelScheduledSearch();
+    unsubscribeSearch();
   };
 
   return {
-    myDomains, isLoading, error, searchQuery, searchResult, isSearching,
-    registrationCost, managingDomain, domainCount, walletStatus, expiringSoon,
+    myDomains, domainsStatus, isLoading, error, searchQuery, searchResult, isSearching,
+    registrationCost, managingDomain, renewQuote, pendingOperation, isRecovering,
+    transactionNotice, activeNetwork, activeContract, recoveryStorageStatus,
+    domainCount, walletStatus, expiringSoon,
     loadMyDomains, loadAll, searchDomain, registerDomain, setRecord,
-    transferDomain, renewDomain, getRenewPrice, showManage, cancelManage, cleanup,
+    transferDomain, renewDomain, prepareRenew, cancelRenew, recoverPending,
+    getRenewPrice, showManage, cancelManage, handleAccountChanged, cleanup,
   };
 }

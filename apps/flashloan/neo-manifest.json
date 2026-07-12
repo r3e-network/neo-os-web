@@ -3,16 +3,18 @@
   "id": "miniapp-flashloan",
   "name": "Flash Loan",
   "name_zh": "闪电贷",
-  "version": "1.0.0",
-  "description": "Execute instant uncollateralized loans in a single transaction",
-  "description_zh": "闪电贷 — 无抵押即时借贷，单笔交易内完成借还",
-  "category": "finance",
-  "category_name": "Finance",
-  "category_name_zh": "金融",
+  "version": "1.1.0",
+  "description": "A verified Neo N3 flash-loan desk with exact GAS accounting, atomic callback routing and durable transaction recovery.",
+  "description_zh": "Neo N3 闪电贷工作台：精确 GAS 计量、原子回调资金路线与可恢复的链上确认。",
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "去中心化金融",
   "tags": [
     "defi",
     "loans",
-    "flash"
+    "flash",
+    "atomic-callback",
+    "gas"
   ],
   "developer": {
     "name": "Yiwu",
@@ -41,7 +43,7 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://flashloan"
   },
@@ -53,47 +55,9 @@
     ]
   },
   "operation_panel": {
-    "title": "Flash Loan Console",
-    "subtitle": "Prepare requestFlashLoan inputs, submit through the embedded wallet flow, and query on-chain loan status.",
-    "operations": [
-      {
-        "name": "Request Flash Loan",
-        "method": "requestLoan",
-        "description": "Invoke requestFlashLoan with a GAS amount and callback contract implementing onFlashLoan.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "amount",
-            "type": "amount",
-            "label": "Loan amount",
-            "placeholder": "1",
-            "required": true
-          },
-          {
-            "name": "callbackContract",
-            "type": "hash160",
-            "label": "Callback contract",
-            "placeholder": "0x...",
-            "required": true
-          }
-        ]
-      },
-      {
-        "name": "Lookup Loan",
-        "method": "lookupLoan",
-        "description": "Read getFlashLoan(appId, loanId) for a previously executed loan.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "loanId",
-            "type": "integer",
-            "label": "Loan ID",
-            "placeholder": "1",
-            "required": true
-          }
-        ]
-      }
-    ]
+    "title": "Atomic execution desk",
+    "subtitle": "Use the in-app execution desk to select capital, bind the exact four-argument callback, verify recovery state, and inspect loans.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -102,5 +66,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

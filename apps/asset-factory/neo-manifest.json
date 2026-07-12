@@ -3,29 +3,31 @@
   "id": "miniapp-asset-factory",
   "name": "Asset Factory",
   "name_zh": "资产工厂",
-  "version": "1.0.0",
-  "description": "Configure a NEP-17 token from an audited on-chain template and deploy it via the platform Factory — you pay only the Neo network fee, no app fee. Deploy is available on networks where a factory admin has preloaded the artifact; on other networks you sign and export a portable plan.",
-  "description_zh": "基于已审计链上模板配置 NEP-17 资产，并通过平台 Factory 部署——只需支付 Neo 网络费用，没有应用费用。仅在 Factory 管理员已预置工件的网络上可部署；其他网络上可签名并导出可携带计划。",
+  "version": "1.2.0",
+  "description": "A visual NEP-17 token studio for deterministic issuance blueprints, exact wallet commitments, refresh recovery, and read-only Factory record verification. Contract creation remains locked until the unique-artifact pipeline is certified.",
+  "description_zh": "可视化 NEP-17 代币发行工作室，支持确定性发行蓝图、精确钱包承诺、刷新恢复和只读 Factory 记录核对。独立工件流水线完成认证前，合约创建保持锁定。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["factory", "nep17", "asset", "token", "onegate", "developer"],
+  "tags": ["factory", "nep17", "asset", "token-blueprint", "issuer", "studio"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {},
-  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "contracts": {
+    "neo-n3-testnet": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49"
+  },
+  "supported_networks": ["neo-n3-testnet"],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/asset-factory/index.html",
     "icon": "/miniapp-assets/asset-factory/logo.webp",
     "banner": "/miniapp-assets/asset-factory/banner.webp"
   },
-  "permissions": ["invoke:primary", "wallet:sign-message", "read:blockchain"],
+  "permissions": ["wallet:sign-message", "read:blockchain"],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": true,
     "deeplink": "neomainapp://asset-factory"
   },
@@ -33,7 +35,7 @@
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "technologies": {
     "aa": {
@@ -50,6 +52,6 @@
     }
   },
   "createdAt": "2026-05-07T00:00:00Z",
-  "updatedAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": false
 }

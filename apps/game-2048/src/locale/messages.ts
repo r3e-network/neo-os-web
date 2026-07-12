@@ -35,15 +35,43 @@ const appMessages = {
   startOpening: { en: "Opening…", zh: "开局中…" },
   startCheckingPool: { en: "Checking pool…", zh: "正在检查奖池…" },
   startPoolLow: { en: "Pool low", zh: "奖池不足" },
+  scoreBestCaption: { en: "BEST", zh: "最大" },
+  lobbyHeading: { en: "Build the next power tile", zh: "合成更高阶能量方块" },
+  lobbySubtitle: {
+    en: "Slide, merge, and settle a verified run",
+    zh: "滑动合并，完成可验证对局",
+  },
+  guestLobbySubtitle: {
+    en: "Slide and merge locally — no wallet required",
+    zh: "本地滑动合并，无需连接钱包",
+  },
+  difficulty_sprint: { en: "Sprint", zh: "冲刺" },
+  difficulty_climb: { en: "Climb", zh: "进阶" },
+  difficulty_summit: { en: "Summit", zh: "巅峰" },
+  difficulty_sprint_copy: { en: "Reach 512", zh: "合成 512" },
+  difficulty_climb_copy: { en: "Reach 1024", zh: "合成 1024" },
+  difficulty_summit_copy: { en: "Reach 2048", zh: "合成 2048" },
+  dealingLabel: { en: "Preparing run…", zh: "正在准备对局…" },
+  celebrationTitle: { en: "Target unlocked!", zh: "目标达成！" },
+  celebrationCopy: {
+    en: "Keep merging or settle this run",
+    zh: "继续合成，或结算本局",
+  },
+  celebrationDismiss: { en: "Tap to continue", zh: "轻触继续" },
   startHint: { en: "Entry {amount} GAS — deposited with this transaction", zh: "报名费 {amount} GAS——随本交易一并存入" },
   startDescription: {
     en: "Pay the entry and the Morpheus enclave seals your spawn stream — only its hash commitment goes on-chain. 512 pays 0.1 GAS, 1024 pays 0.5, 2048 pays 1.",
     zh: "支付报名费后，Morpheus 飞地密封你的方块随机流——链上只记录哈希承诺。合成 512 赢 0.1 GAS，1024 赢 0.5，2048 赢 1。",
   },
   submitAction: { en: "Submit run", zh: "提交对局" },
+  endRunAction: { en: "Settle run", zh: "结算本局" },
   submitHint: { en: "Target reached — submit before the deadline", zh: "已达成目标——在截止前提交" },
   chaseHint: { en: "Reach the {tile} tile to unlock submission", zh: "合成 {tile} 方块后即可提交" },
   timeUpAction: { en: "Time is up", zh: "时间到" },
+  submitNotReady: {
+    en: "Keep merging until the target or the run ends.",
+    zh: "请继续合并，直到达成目标或本局结束。",
+  },
 
   undoAction: { en: "Undo ({left} left, -30%)", zh: "撤回（剩 {left} 次，-30%）" },
   useUndo: { en: "Use undo", zh: "使用撤回" },
@@ -53,6 +81,12 @@ const appMessages = {
     zh: "由飞地会话记录——无需交易。每次撤回扣除基础奖励的 30%，最多三次，次数会签入最终结算。",
   },
   releaseAction: { en: "Release game", zh: "结算过期对局" },
+  releaseWaitAction: { en: "Recovery countdown", zh: "恢复倒计时" },
+  releaseWaitTitle: { en: "Run sealed — recovery pending", zh: "对局已密封——等待恢复" },
+  releaseWaitStatus: {
+    en: "The contract recovery window has not finished yet.",
+    zh: "合约恢复窗口尚未结束。",
+  },
   releaseHint: {
     en: "Frees the reward reservation of an expired game (refunds an undealt entry).",
     zh: "释放过期对局占用的奖励额度（未发牌的对局将退回报名费）。",
@@ -111,6 +145,7 @@ const appMessages = {
   scoreReward: { en: "Reward at stake", zh: "本局奖励" },
   scoreBest: { en: "Best tile", zh: "最大方块" },
   scoreTime: { en: "Time left", zh: "剩余时间" },
+  scoreReleaseIn: { en: "Release in", zh: "可释放倒计时" },
   scoreUndos: { en: "Undos left", zh: "剩余撤回" },
   scoreWon: { en: "Total won", zh: "累计赢取" },
 
@@ -156,6 +191,33 @@ const appMessages = {
     en: "Sealing is taking longer than usual — retry shortly.",
     zh: "密封比平时慢——请稍后重试。",
   },
+  checkSettlementAction: { en: "Check settlement", zh: "检查结算" },
+  settlementCheckingTitle: { en: "Checking settlement…", zh: "正在检查结算…" },
+  settlementPendingTitle: { en: "Settlement pending", zh: "结算确认中" },
+  settlementStillPending: {
+    en: "Settlement is still pending. Your run remains recoverable.",
+    zh: "结算仍在确认中，你的对局仍可恢复。",
+  },
+  sessionRecoveryReady: {
+    en: "Run restored. Retry to rebuild the secure session.",
+    zh: "对局已恢复，请重试以重建安全会话。",
+  },
+  invalidBoardPayload: {
+    en: "The secure session returned an invalid board.",
+    zh: "安全会话返回了无效棋盘。",
+  },
+  invalidSessionPayload: {
+    en: "The secure session returned an inconsistent move.",
+    zh: "安全会话返回了不一致的操作结果。",
+  },
+  secureRandomUnavailable: {
+    en: "Secure randomness is unavailable on this device.",
+    zh: "此设备暂时无法提供安全随机数。",
+  },
+  entryGameFiUnavailable: {
+    en: "Earn GAS is temporarily unavailable while the reward pool is refilled.",
+    zh: "奖励池补充期间，赢取 GAS 模式暂不可用。",
+  },
   statusSubmitting: { en: "Enclave verifying — settling on-chain…", zh: "飞地验证中——正在链上结算…" },
   statusSolved: { en: "Verified! {payout} GAS credited", zh: "验证通过！已入账 {payout} GAS" },
   statusUndoUsed: { en: "Undo recorded — reward now {pct}%", zh: "撤回已记录——奖励降至 {pct}%" },
@@ -166,18 +228,27 @@ const appMessages = {
   },
   statusFailed: { en: "Something went wrong", zh: "操作失败" },
   noCreditToWithdraw: { en: "No credit to withdraw", zh: "暂无可提取余额" },
+  connectWalletFirst: { en: "Connect the wallet that owns this credit first", zh: "请先连接拥有这笔余额的钱包" },
+  withdrawPending: {
+    en: "Withdrawal submitted — check again after the chain confirms it.",
+    zh: "提款已提交——请等待链上确认后再次查看。",
+  },
   creditWithdrawn: { en: "Credit withdrawn to your wallet", zh: "余额已提回钱包" },
 
   // ── Guest (free / local) mode ─────────────────────────────────────────────
   // GUEST is a purely local 2048: no wallet, no fees, no chain/oracle/reward.
   // These strings replace the GAS-at-stake / pool / reward framing in guest.
   guestModeLine: {
-    en: "Guest mode — local play, best tiles saved off-chain.",
-    zh: "游客模式——本地游玩，最大方块离线保存。",
+    en: "Free local play — your board and best tile are saved on this device.",
+    zh: "免费本地游玩——棋盘与最大方块会保存在这台设备上。",
   },
   guestDealt: {
     en: "Local run started — merge up to the target tile.",
     zh: "本地对局开始——合成到目标方块。",
+  },
+  guestRunRecovered: {
+    en: "Board restored — continue from your last move.",
+    zh: "棋盘已恢复——从上一步继续。",
   },
   guestRunComplete: {
     en: "Local run complete — reached tile {tile}!",
@@ -187,14 +258,28 @@ const appMessages = {
     en: "No moves left — best tile {tile}. Start a fresh board!",
     zh: "已无可行操作——最大方块 {tile}。开始新的一局！",
   },
-  guestUndo: { en: "Move undone", zh: "已撤销一步" },
+  guestGameOverTitle: { en: "Board complete", zh: "本局结束" },
+  guestUndo: { en: "Move undone — one rescue used", zh: "已撤销一步——消耗一次挽回机会" },
+  guestTargetPending: {
+    en: "Keep merging to reach tile {tile}.",
+    zh: "继续合并，目标方块为 {tile}。",
+  },
   guestRunLabel: { en: "Local run", zh: "本地对局" },
   guestRunValue: { en: "Free play", zh: "自由练习" },
   guestBestLabel: { en: "Best tile", zh: "最大方块" },
   guestRulesCopy: {
-    en: "Guest mode is a free local 2048 — merge tiles up to the target with no wallet, no fees, and nothing on-chain. Your best tile is saved to an off-chain practice board (connect a wallet to record it). Switch to Earn GAS for the provably fair on-chain reward game.",
-    zh: "游客模式是免费的本地 2048——无需钱包、无手续费、完全不上链，合成方块冲击目标即可。你的最大方块会保存到离线练习榜（连接钱包即可记录）。切换到「赢取 GAS」体验可验证公平的链上奖励对局。",
+    en: "Slide matching tiles together and reach the lane target before time runs out. Each board includes three undos, and the active run auto-saves on this device. No wallet, fee, or chain write is used. The paid lane stays closed until its testnet reward pool and full settlement flow are revalidated.",
+    zh: "滑动并合并相同方块，在倒计时结束前达成本路线目标。每局可撤回三次，当前棋盘会自动保存在这台设备上。无需钱包、无手续费、不会写链；付费模式会在测试网奖池与完整结算流程重新验证后再开放。",
   },
+  game2048StageAlt: { en: "2048 Rush tile merge game", zh: "2048 冲刺合并棋盘" },
+  openingTileBoard: { en: "Opening tile board", zh: "正在打开合并棋盘" },
+  game2048ActionFailed: {
+    en: "The 2048 run could not continue",
+    zh: "2048 对局暂时无法继续",
+  },
+  continue: { en: "Continue", zh: "继续" },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "静音游戏" },
 };
 
 export const messages = mergeMessages(appMessages);

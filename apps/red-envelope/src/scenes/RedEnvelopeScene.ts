@@ -49,6 +49,11 @@ type EnvelopePreview = {
   depleted?: boolean;
 };
 
+type Claimability = {
+  envelopeId?: string;
+  canClaim?: boolean;
+};
+
 const ENVELOPE_PLANS = [
   { key: "lucky", title: "Lucky 8", amount: "1", count: "8", expiryHours: "24" },
   { key: "party", title: "Party 20", amount: "5", count: "20", expiryHours: "72" },
@@ -101,7 +106,10 @@ type SceneCopy = {
   planFestival: string;
   packetsTpl: string;
   create: string;
+  createUnavailable: string;
   working: string;
+  connectWallet: string;
+  confirming: string;
   share: string;
   open: string;
   opening: string;
@@ -119,10 +127,12 @@ type SceneCopy = {
   packetsLeftTpl: string;
   packetStatusReady: string;
   gasLeftTpl: string;
+  unitLabel: string;
   randomAmount: string;
   statusClaimIdle: string;
   statusSendIdle: string;
   prepaidTpl: string;
+  gameFiUnavailable: string;
   errorFallback: string;
 };
 
@@ -136,7 +146,10 @@ const DEFAULT_SCENE_COPY: SceneCopy = {
   planFestival: "Festival 50",
   packetsTpl: "{count} packets",
   create: "Create",
+  createUnavailable: "Upgrade required",
   working: "Working...",
+  connectWallet: "Connect wallet",
+  confirming: "Confirming...",
   share: "Share",
   open: "Open envelope",
   opening: "Opening...",
@@ -154,10 +167,12 @@ const DEFAULT_SCENE_COPY: SceneCopy = {
   packetsLeftTpl: "{count} packets left",
   packetStatusReady: "Packet status ready",
   gasLeftTpl: "{amount} GAS left",
+  unitLabel: "GAS",
   randomAmount: "Random amount",
   statusClaimIdle: "Use a shared envelope link before opening.",
   statusSendIdle: "Random packet split is settled by the on-chain contract.",
   prepaidTpl: "Prepaid credit {amount} GAS available",
+  gameFiUnavailable: "GameFi is temporarily unavailable",
   errorFallback: "The envelope action could not be completed.",
 };
 
@@ -166,6 +181,7 @@ const PLAN_TITLE_KEYS: Array<keyof SceneCopy> = ["planLucky", "planParty", "plan
 export class RedEnvelopeScene extends BaseScene {
   private heroContainer!: Phaser.GameObjects.Container;
   private heroImage!: Phaser.GameObjects.Image;
+  private heroRevealImage!: Phaser.GameObjects.Image;
   private heroGlow!: Phaser.GameObjects.Ellipse;
   private sceneBackdrop!: Phaser.GameObjects.Rectangle;
   private sceneFrame!: Phaser.GameObjects.Graphics;
@@ -203,8 +219,14 @@ export class RedEnvelopeScene extends BaseScene {
   private activeEnvelopeId = "";
   private lastCreatedEnvelopeId = "";
   private busy = false;
+  private isGuest = false;
+  private paidActionsEnabled = true;
+  private walletConnected = false;
+  private claimEnabled = false;
   private autoSelectedMode = false;
-  private lastWinAmount = "";
+  private lastWinKey = "";
+  private lastCreatedAnimationKey = "";
+  private openingTween: Phaser.Tweens.Tween | null = null;
 
   constructor() {
     super("RedEnvelopeScene");
@@ -249,9 +271,11 @@ export class RedEnvelopeScene extends BaseScene {
     this.planCards.forEach((card, index) => {
       const title = card.getData("title") as Phaser.GameObjects.Text | undefined;
       const count = card.getData("count") as Phaser.GameObjects.Text | undefined;
+      const unit = card.getData("unit") as Phaser.GameObjects.Text | undefined;
       const plan = ENVELOPE_PLANS[index]!;
       title?.setText(this.copy[PLAN_TITLE_KEYS[index]!]);
       count?.setText(fillTemplate(this.copy.packetsTpl, { count: plan.count }));
+      unit?.setText(this.copy.unitLabel);
     });
   }
 
@@ -266,18 +290,34 @@ export class RedEnvelopeScene extends BaseScene {
     const lastError = this.str("lastError", "");
     const serviceNotice = this.str("serviceNotice", "");
     const credit = this.num("prepaidCredit", 0);
+    const claimability = this.val<Claimability>("claimability", undefined);
+    this.isGuest = this.str("appMode", "gamefi") === "guest";
+    this.paidActionsEnabled = this.val<boolean>("paidActionsAvailable", true) !== false;
+    this.walletConnected = this.isGuest || this.bool("walletConnected");
+    const pendingOperation = this.val<Record<string, unknown> | null>("pendingOperation", null);
 
-    this.busy = this.bool("isLoading") || this.bool("isCreating") || Boolean(openingId);
+    this.busy =
+      this.bool("isLoading") ||
+      this.bool("isCreating") ||
+      this.bool("isConnectingWallet") ||
+      this.bool("isRecovering") ||
+      Boolean(pendingOperation) ||
+      Boolean(openingId);
     this.lastCreatedEnvelopeId = lastCreated;
-    this.activeEnvelopeId = openingId || this.pickClaimEnvelopeId(pools, envelopes);
+    const fallbackClaimableId = this.pickClaimableEnvelopeId(pools, envelopes);
+    const explicitClaimableId = asEnvelopeId(claimability?.envelopeId);
+    this.activeEnvelopeId = openingId || explicitClaimableId || (claimability ? "" : fallbackClaimableId);
+    this.claimEnabled = claimability
+      ? Boolean(claimability.canClaim && explicitClaimableId && !openingId)
+      : Boolean(fallbackClaimableId && !openingId);
+    this.claimEnabled = this.claimEnabled && (this.isGuest || this.paidActionsEnabled);
 
     if (!this.autoSelectedMode) {
       this.autoSelectedMode = true;
       this.switchMode("claim");
     }
 
-    if (this.activeMode === "claim") this.heroImage.setTexture(REDENV_ASSETS.claimCard);
-    else this.heroImage.setTexture(REDENV_ASSETS.stage);
+    this.showHeroState(Boolean(lucky?.amount && lucky.amount > 0));
 
     const wonAmount = lucky?.amount && lucky.amount > 0 ? fmtGas(lucky.amount) : "";
     this.updateResultPillCopy(lucky, lastCreated, lastError);
@@ -295,10 +335,26 @@ export class RedEnvelopeScene extends BaseScene {
     this.updateButtons();
     this.updateHeroMotion(Boolean(openingId));
 
-    if (wonAmount && wonAmount !== this.lastWinAmount) {
-      this.lastWinAmount = wonAmount;
+    const winKey = wonAmount ? `${wonAmount}:${String(lucky?.from ?? "")}` : "";
+    if (!winKey) {
+      // Allow a later packet with the same amount/sender to celebrate again
+      // after the previous result overlay has been dismissed.
+      this.lastWinKey = "";
+    } else if (winKey !== this.lastWinKey) {
+      this.lastWinKey = winKey;
+      // `luckyMessage` is published only after claim() resolves its Claimed
+      // event (or the guest engine completes its local draw), so the envelope
+      // never tears open merely because a wallet request was submitted.
+      this.playOpenAnimation();
       this.sfx.play((lucky?.amount ?? 0) >= 1 ? "win" : "score");
       this.spawnRewardBurst();
+    }
+
+    if (!lastCreated) {
+      this.lastCreatedAnimationKey = "";
+    } else if (!wonAmount && lastCreated !== this.lastCreatedAnimationKey) {
+      this.lastCreatedAnimationKey = lastCreated;
+      this.playCreateAnimation();
     }
   }
 
@@ -308,15 +364,15 @@ export class RedEnvelopeScene extends BaseScene {
     this.setResultState(false, true);
   }
 
-  private pickClaimEnvelopeId(...lists: EnvelopePreview[][]): string {
+  private pickClaimableEnvelopeId(...lists: EnvelopePreview[][]): string {
     const merged = lists.flat().filter(Boolean);
     const claimable = merged.find((item) => {
       const id = asEnvelopeId(item.id);
       if (!id) return false;
-      if (item.canOpen === true) return true;
+      if (item.canOpen !== undefined) return item.canOpen;
       return item.active !== false && item.expired !== true && item.depleted !== true;
     });
-    return asEnvelopeId(claimable?.id ?? merged[0]?.id);
+    return asEnvelopeId(claimable?.id);
   }
 
   private claimMeta(...lists: EnvelopePreview[][]): string {
@@ -412,7 +468,11 @@ export class RedEnvelopeScene extends BaseScene {
     this.heroImage = this.add.image(0, 0, REDENV_ASSETS.stage)
       .setDisplaySize(390, 220)
       .setOrigin(0.5);
-    this.heroContainer.add(this.heroImage);
+    this.heroRevealImage = this.add.image(0, 0, REDENV_ASSETS.claimCard)
+      .setDisplaySize(390, 220)
+      .setOrigin(0.5)
+      .setAlpha(0);
+    this.heroContainer.add([this.heroImage, this.heroRevealImage]);
     // Soft rounded frame drawn over the hero edge so the photo's corners read as
     // rounded (echoing the stage frame) without a camera-fighting geometry mask.
     const heroFrame = this.add.graphics();
@@ -536,7 +596,8 @@ export class RedEnvelopeScene extends BaseScene {
     this.activeMode = mode;
     this.sendPanel?.setVisible(mode === "send");
     this.claimPanel?.setVisible(mode === "claim");
-    this.heroImage?.setTexture(mode === "claim" ? REDENV_ASSETS.claimCard : REDENV_ASSETS.stage);
+    const lucky = this.val<{ amount?: number } | null>("luckyMessage", null);
+    this.showHeroState(mode === "claim" && Boolean(lucky?.amount && lucky.amount > 0));
 
     for (const [key, button] of this.modeButtons) {
       const active = key === mode;
@@ -583,6 +644,7 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private defaultStatusCopy(): string {
+    if (!this.isGuest && !this.paidActionsEnabled) return this.copy.gameFiUnavailable;
     return this.activeMode === "claim" ? this.copy.statusClaimIdle : this.copy.statusSendIdle;
   }
 
@@ -673,7 +735,7 @@ export class RedEnvelopeScene extends BaseScene {
       color: "#2e2116",
       fontStyle: "600",
     }).setOrigin(0.5);
-    const gas = this.add.text(0, 16, "GAS", {
+    const gas = this.add.text(0, 16, this.copy.unitLabel, {
       fontFamily: FONT,
       fontSize: "10px",
       color: "#a87943",
@@ -689,6 +751,7 @@ export class RedEnvelopeScene extends BaseScene {
     card.setData("bg", bg);
     card.setData("title", title);
     card.setData("amount", amount);
+    card.setData("unit", gas);
     card.setData("count", count);
     return card;
   }
@@ -779,7 +842,7 @@ export class RedEnvelopeScene extends BaseScene {
     this.claimButtonLabel = this.claimButton.getData("label") as Phaser.GameObjects.Text;
     this.bindGameButton(this.claimButtonBg, {
       targets: this.claimButton,
-      enabled: () => Boolean(this.activeEnvelopeId) && !this.busy,
+      enabled: () => this.claimEnabled && Boolean(this.activeEnvelopeId) && !this.busy,
       pressScale: 0.97,
       onPress: () => this.dispatchClaim(),
     });
@@ -848,13 +911,37 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private updateButtons(): void {
-    const canCreate = !this.busy;
+    const guest = this.str("appMode", "gamefi") === "guest";
+    const paidAvailable = guest || this.paidActionsEnabled;
+    const canCreate = !this.busy && paidAvailable && (guest || this.bool("createAvailable"));
     const canShare = Boolean(this.lastCreatedEnvelopeId) && !this.busy;
-    const canClaim = Boolean(this.activeEnvelopeId) && !this.busy;
-    this.createButtonLabel.setText(this.busy ? this.copy.working : this.copy.create);
+    const canClaim = paidAvailable && this.claimEnabled && Boolean(this.activeEnvelopeId) && !this.busy;
+    this.createButtonLabel.setText(
+      this.busy
+        ? this.val("pendingOperation", null) || this.bool("isRecovering")
+          ? this.copy.confirming
+          : this.copy.working
+        : !paidAvailable
+          ? this.copy.gameFiUnavailable
+        : !guest && !this.bool("createAvailable")
+          ? this.copy.createUnavailable
+        : !this.walletConnected
+          ? this.copy.connectWallet
+          : this.copy.create,
+    );
     this.shareButtonLabel.setText(this.copy.share);
     this.claimButtonLabel.setText(
-      this.busy ? this.copy.opening : this.activeEnvelopeId ? this.copy.open : this.copy.noEnvelope,
+      this.busy
+        ? this.val("pendingOperation", null) || this.bool("isRecovering")
+          ? this.copy.confirming
+          : this.copy.opening
+        : !paidAvailable
+          ? this.copy.gameFiUnavailable
+        : this.activeEnvelopeId
+          ? !this.walletConnected
+            ? this.copy.connectWallet
+            : this.copy.open
+          : this.copy.noEnvelope,
     );
     this.renderActionButton(this.createButton, canCreate);
     this.renderActionButton(this.shareButton, canShare);
@@ -862,6 +949,17 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private dispatchCreate(): void {
+    if (this.busy) return;
+    if (!this.isGuest && !this.paidActionsEnabled) return;
+    if (
+      this.str("appMode", "gamefi") !== "guest" &&
+      !this.bool("createAvailable")
+    ) return;
+    if (!this.walletConnected) {
+      this.sfx.play("tap");
+      this.dispatch("connectWallet");
+      return;
+    }
     const plan = ENVELOPE_PLANS[this.selectedPlanIndex]!;
     this.sfx.play("start");
     this.dispatch("createEnvelope", {
@@ -872,15 +970,50 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private dispatchClaim(): void {
-    if (!this.activeEnvelopeId) return;
-    this.sfx.play("reveal");
+    if (!this.claimEnabled || !this.activeEnvelopeId || this.busy) return;
+    if (!this.isGuest && !this.paidActionsEnabled) return;
+    if (!this.walletConnected) {
+      this.sfx.play("tap");
+      this.dispatch("connectWallet");
+      return;
+    }
+    // Submission feedback only. The reveal animation and reward burst wait for
+    // the confirmed luckyMessage state in onStateUpdate().
+    this.sfx.play("tap");
     this.dispatch("claimEnvelope", { envelopeId: this.activeEnvelopeId });
-    this.playOpenAnimation();
+  }
+
+  /** Swap authored closed/open artwork; no code-drawn envelope substitutes. */
+  private showHeroState(open: boolean): void {
+    if (!this.heroImage || !this.heroRevealImage) return;
+    this.heroImage.setAlpha(open ? 0.12 : 1);
+    this.heroRevealImage
+      .setAlpha(open ? 1 : 0)
+      .setScale(1)
+      .setAngle(0);
   }
 
   private playOpenAnimation(): void {
-    // Seal/flap pop — a quick scale punch sells the envelope tearing open before
-    // the coin burst. Reduced-motion safe: this.tween skips the yoyo entirely.
+    this.stopOpeningMotion();
+    // The reveal is an authored state transition: the warm closed packet photo
+    // crossfades into the open envelope / falling-coins artwork only after the
+    // exact claim is confirmed.
+    this.heroRevealImage.setAlpha(0).setScale(0.94).setAngle(-2);
+    this.heroImage.setAlpha(1);
+    this.animate({
+      targets: this.heroImage,
+      alpha: 0.12,
+      duration: 320,
+      ease: "Sine.easeOut",
+    });
+    this.animate({
+      targets: this.heroRevealImage,
+      alpha: 1,
+      scale: 1,
+      angle: 0,
+      duration: 430,
+      ease: "Back.easeOut",
+    });
     this.tween({
       targets: this.heroContainer,
       scale: { from: 1, to: 1.12 },
@@ -898,19 +1031,91 @@ export class RedEnvelopeScene extends BaseScene {
     });
   }
 
+  private playCreateAnimation(): void {
+    this.showHeroState(false);
+    this.sfx.play("score");
+    this.animate({
+      targets: this.heroContainer,
+      scale: { from: 0.97, to: 1.04 },
+      duration: 190,
+      yoyo: true,
+      ease: "Back.easeOut",
+    });
+
+    // Small authored packet images rise from the finished bundle, making the
+    // send result feel packed and shareable rather than like a submitted form.
+    for (let i = 0; i < 6; i += 1) {
+      const packet = this.add.image(DESIGN_W / 2, 236, REDENV_ASSETS.stage)
+        .setDisplaySize(58, 33)
+        .setAlpha(0.88)
+        .setAngle(Phaser.Math.Between(-14, 14));
+      this.animate({
+        targets: packet,
+        x: DESIGN_W / 2 + Phaser.Math.Between(-136, 136),
+        y: 110 + Phaser.Math.Between(-8, 96),
+        angle: packet.angle + Phaser.Math.Between(-42, 42),
+        alpha: 0,
+        scale: { from: 0.72, to: 1.04 },
+        duration: 700 + i * 38,
+        delay: i * 44,
+        ease: "Cubic.easeOut",
+        onComplete: () => packet.destroy(),
+      });
+    }
+  }
+
   private updateHeroMotion(opening: boolean): void {
     this.heroContainer.setAlpha(opening ? 0.9 : 1);
-    this.floatingCoins.forEach((coin, index) => {
+    this.floatingCoins.forEach((coin) => {
       const baseAlpha = (coin.getData("baseAlpha") as number | undefined) ?? 0.55;
       coin.setAlpha(opening ? Math.min(1, baseAlpha + 0.25) : baseAlpha);
-      if (opening) {
-        coin.setRotation(Phaser.Math.DegToRad((this.time.now / 20 + index * 38) % 360));
-      }
+      if (!opening) coin.setRotation(0);
     });
+
+    if (opening && !this.openingTween && !this.reducedMotion) {
+      this.openingTween = this.tweens.add({
+        targets: this.heroContainer,
+        angle: { from: -1.4, to: 1.4 },
+        duration: 120,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    } else if (!opening) {
+      this.stopOpeningMotion();
+    }
+  }
+
+  private stopOpeningMotion(): void {
+    this.openingTween?.stop();
+    this.openingTween = null;
+    this.heroContainer?.setAngle(0);
   }
 
   private spawnRewardBurst(): void {
     const W = DESIGN_W;
+
+    // Authored open-envelope cards scatter first, followed by official GAS-logo
+    // coins. The UI text remains code-native while all visible packet art comes
+    // from the production image set.
+    for (let i = 0; i < 7; i += 1) {
+      const packet = this.add.image(W / 2, 232, REDENV_ASSETS.claimCard)
+        .setDisplaySize(54, 41)
+        .setAlpha(0.9)
+        .setAngle(Phaser.Math.Between(-16, 16));
+      this.animate({
+        targets: packet,
+        x: W / 2 + Phaser.Math.Between(-156, 156),
+        y: 92 + Phaser.Math.Between(-8, 136),
+        angle: packet.angle + Phaser.Math.Between(-90, 90),
+        alpha: 0,
+        scale: { from: 0.62, to: 1.08 },
+        duration: 760 + i * 42,
+        delay: 50 + i * 34,
+        ease: "Cubic.easeOut",
+        onComplete: () => packet.destroy(),
+      });
+    }
     for (let i = 0; i < 18; i += 1) {
       const coin = this.makeGasBadge(W / 2, 246, 24).setAlpha(0.95);
       this.animate({
@@ -932,6 +1137,15 @@ export class RedEnvelopeScene extends BaseScene {
       duration: 260,
       ease: "Back.easeOut",
     });
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (!enabled) return;
+    this.stopOpeningMotion();
+    this.tweens.killTweensOf([this.heroContainer, this.heroGlow, ...this.floatingCoins]);
+    this.heroContainer?.setPosition(DESIGN_W / 2, 138).setScale(1).setAlpha(1);
+    this.heroGlow?.setAlpha(0.2);
+    this.floatingCoins.forEach((coin) => coin.setRotation(0));
   }
 
   private buildStatus(W: number, H: number): void {

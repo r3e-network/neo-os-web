@@ -290,6 +290,28 @@ describe("factory runtime setup", () => {
     expect(readState(result, "walletSignature")).toBe("signature-bytes");
   });
 
+  it("discards an edited plan and clears every stale signing/execution surface", async () => {
+    const { createFactorySetup } = await loadRuntime();
+    const { ctx, actions } = buildCtx("miniapp-asset-factory");
+    const result = createFactorySetup("nep17", "miniapp-asset-factory")(
+      ctx as never,
+    ) as { state?: Record<string, TestObservable> };
+
+    await actions.get("generatePlan")!(NEP17_FORM);
+    await actions.get("signCurrentPlan")!();
+    expect(readState(result, "currentPlan")).not.toBeNull();
+    expect(readState(result, "walletSignature")).toBe("signature-bytes");
+
+    await actions.get("discardPlan")!();
+
+    expect(readState(result, "currentPlan")).toBeNull();
+    expect(readState(result, "walletSignature")).toBe("");
+    expect(readState(result, "walletSignatureInfo")).toBeNull();
+    expect(readState(result, "feeEstimateGas")).toBe("");
+    expect(readState(result, "lastTxid")).toBe("");
+    expect(readState(result, "deployedContractHash")).toBe("");
+  });
+
   it("exposes the connected wallet address for owner prefill", async () => {
     const { createFactorySetup } = await loadRuntime();
     const { ctx, chain } = buildCtx("miniapp-asset-factory");

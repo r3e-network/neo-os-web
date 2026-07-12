@@ -28,6 +28,10 @@ function resolveEnvSequence(network: NeoNetwork, key: string) {
   ];
 }
 
+export function resolveMorpheusNetwork(networkInput?: string | null): NeoNetwork {
+  return resolveNeoNetwork(networkInput);
+}
+
 export function resolveMorpheusRuntimeCandidates(networkInput?: string | null) {
   const network = resolveNeoNetwork(networkInput);
   const config = getExternalIntegrationConfig(network);
@@ -45,6 +49,23 @@ export function resolveMorpheusRuntimeToken(networkInput?: string | null) {
       || resolveEnvSequence(network, "NITRO_API_TOKEN").find(Boolean)
       || process.env.NITRO_API_TOKEN
       || process.env.NITRO_SHARED_SECRET
+      || "",
+  );
+}
+
+export function resolveMorpheusConfidentialStoreToken(networkInput?: string | null) {
+  const network = resolveNeoNetwork(networkInput);
+  return trimString(
+    resolveEnvSequence(network, "CONFIDENTIAL_STORE_TOKEN").find(Boolean)
+      || resolveEnvSequence(network, "PROVIDER_CONFIG_API_KEY").find(Boolean)
+      || "",
+  );
+}
+
+export function resolveMorpheusConfidentialStoreProjectSlug(networkInput?: string | null) {
+  const network = resolveNeoNetwork(networkInput);
+  return trimString(
+    resolveEnvSequence(network, "CONFIDENTIAL_STORE_PROJECT_SLUG").find(Boolean)
       || "",
   );
 }

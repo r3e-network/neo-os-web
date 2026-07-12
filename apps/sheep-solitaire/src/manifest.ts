@@ -3,26 +3,31 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 const manifest: MiniAppManifest = {
   name: "Sheep Solitaire",
   description:
-    "Pick cards from a layered pile into a 7-slot bar, match triples to clear them, and finish the board before the deadline to win GAS. The card layout is sealed by the Morpheus TEE so the full board cannot be searched or scripted ahead of play.",
+    "A bright Phaser match-3 game with a layered meadow board, a seven-slot tray, tactile tile movement, animated dealing and elimination, three useful recovery tools, three timed routes, and exact refresh recovery. Free play is local and never opens a wallet prompt.",
   icon: "layers",
   category: "game",
   shell: "game",
+  // Keep new paid sessions hidden at the launcher until the deployed TEE,
+  // contract and end-to-end settlement flow have current production evidence.
+  // Historical GameFi sessions remain recoverable in main.tsx.
+  supportsGuest: true,
+  supportsGameFi: false,
 
   gamePage: {
     categoryColor: "#84CC16",
-    modes: { guest: true },
-    heroBadgeKey: "networkBadge",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
     heroDescKey: "appSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "networkBadge",
-    featuresTitleKey: "fairnessTitle",
+    featuresEyebrowKey: "guestBadge",
+    featuresTitleKey: "boardTagline",
     features: [
       {
-        titleKey: "fairnessTitle",
-        descKey: "fairnessCopy",
+        titleKey: "boardTagline",
+        descKey: "appSubtitle",
         large: true,
         gradient: "linear-gradient(135deg, #F7FEE7 0%, #BEF264 46%, #84CC16 100%)",
       },
@@ -35,7 +40,7 @@ const manifest: MiniAppManifest = {
     ctaTitleKey: "lobbyTitle",
     ctaDescKey: "startDescription",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["networkBadge", "fairnessTitle", "rankLabel"],
+    trustBadgeKeys: ["guestBadge", "boardTagline", "difficultyTitle"],
   },
 
   tabs: [
@@ -44,53 +49,21 @@ const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "scoreReward", valueKey: "lastPayout", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", icon: "coin" },
-    { labelKey: "rankLabel", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
+    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
+    { labelKey: "scoreRuns", valueKey: "mySolves", format: "text", icon: "layers" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
       { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
-      { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
+      { labelKey: "scoreRuns", valueKey: "mySolves", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Easy — win 0.1 GAS" },
-            { value: "1", label: "Medium — win 0.5 GAS" },
-            { value: "2", label: "Hard — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  // Paid operations remain implemented for recovery/hardening, but are not
+  // published until the live TEE deal and settlement schemas are aligned.
+  operations: [],
 
   docs: [
     { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
@@ -98,8 +71,8 @@ const manifest: MiniAppManifest = {
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -107,10 +80,10 @@ const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {

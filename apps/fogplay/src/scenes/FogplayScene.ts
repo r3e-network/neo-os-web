@@ -10,6 +10,14 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
+import coinHeadsUrl from "../static/coin_heads.webp";
+import coinTailsUrl from "../static/coin_tails.webp";
+import holoPedestalUrl from "../static/holo_pedestal-512.webp";
+import {
+  CoinMotionGeneration,
+  landedSide,
+} from "../logic/coin-motion";
+import type { CoinMotionPhase, CoinSide } from "../logic/coin-motion";
 
 const BET_PRESETS = ["0.25", "0.50", "1.00", "2.00"] as const;
 
@@ -44,8 +52,9 @@ const CHIP_TIERS = [
 const FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
 const TEXT_RESOLUTION = typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 const ASSET_GAS = "fogplay-official-gas-token";
-
-type CoinSide = "heads" | "tails";
+const ASSET_COIN_HEADS = "fogplay-coin-heads";
+const ASSET_COIN_TAILS = "fogplay-coin-tails";
+const ASSET_HOLO_PEDESTAL = "fogplay-holo-pedestal";
 
 type ChoiceButton = {
   side: CoinSide;
@@ -65,11 +74,14 @@ type BetButton = {
   label: Phaser.GameObjects.Text;
 };
 
+type TableAction = "placeBet" | "revealResult" | "resetGame";
+
 export class FogplayScene extends BaseScene {
   private coinContainer!: Phaser.GameObjects.Container;
-  private coinBase!: Phaser.GameObjects.Graphics;
-  private coinIcon!: Phaser.GameObjects.Image;
-  private coinFace!: Phaser.GameObjects.Text;
+  private coinFaceImage!: Phaser.GameObjects.Image;
+  private coinPedestal!: Phaser.GameObjects.Image;
+  private currencyMarker!: Phaser.GameObjects.Container;
+  private coinShadow!: Phaser.GameObjects.Ellipse;
   private coinGlow!: Phaser.GameObjects.Ellipse;
   private orbitOuter!: Phaser.GameObjects.Ellipse;
   private orbitInner!: Phaser.GameObjects.Ellipse;
@@ -80,6 +92,7 @@ export class FogplayScene extends BaseScene {
   private placeBetBtn!: Phaser.GameObjects.Container;
   private placeBetBg!: Phaser.GameObjects.Graphics;
   private placeBetLabel!: Phaser.GameObjects.Text;
+  private payoutRow!: Phaser.GameObjects.Container;
   private payoutLabel!: Phaser.GameObjects.Text;
   private statusLabel!: Phaser.GameObjects.Text;
 
@@ -90,10 +103,15 @@ export class FogplayScene extends BaseScene {
 
   private selectedChoice: CoinSide = "heads";
   private selectedBet = "0.50";
-  private canBet = false;
+  private tableAction: TableAction = "placeBet";
+  private tableActionEnabled = false;
   private spinTween: Phaser.Tweens.Tween | null = null;
   private shuffleTimer: Phaser.Time.TimerEvent | null = null;
   private isAnimating = false;
+  private coinRestY = 0;
+  private displayedSide: CoinSide = "heads";
+  private coinPhase: CoinMotionPhase = "idle";
+  private readonly motionGeneration = new CoinMotionGeneration();
   private resizeTimer: Phaser.Time.TimerEvent | null = null;
   // Last result a cue was played for, so win/lose fires once per reveal
   // instead of on every React state push.
@@ -105,10 +123,15 @@ export class FogplayScene extends BaseScene {
 
   preload(): void {
     this.load.image(ASSET_GAS, officialGasTokenPhaserUrl);
+    this.load.image(ASSET_COIN_HEADS, coinHeadsUrl);
+    this.load.image(ASSET_COIN_TAILS, coinTailsUrl);
+    this.load.image(ASSET_HOLO_PEDESTAL, holoPedestalUrl);
   }
 
   create(): void {
     super.create();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.stopSceneMotion, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.stopSceneMotion, this);
     this.rebuildScene();
   }
 
@@ -127,24 +150,46 @@ export class FogplayScene extends BaseScene {
     const betAmount = this.str("betAmount", "0.50");
     const flipping = this.bool("isFlipping") || this.bool("revealing");
     const result = this.str("result", "");
+    const outcomeValue = this.str("displayOutcome", "");
+    const confirmedOutcome: CoinSide | null =
+      outcomeValue === "heads" || outcomeValue === "tails" ? outcomeValue : null;
     const canBet = this.bool("canBet");
+    const isGuest = this.bool("isGuest");
+    const needsReveal = this.bool("hasPendingBet") || this.bool("revealFailed");
     const validationError = this.str("validationError", "");
 
     this.selectedChoice = choice;
     this.selectedBet = betAmount;
-    this.canBet = canBet;
 
     this.choiceButtons.forEach((button) => {
       this.renderChoiceButton(button, button.side === choice);
     });
     this.betButtons.forEach((button) => {
+      button.container.setVisible(!isGuest);
       this.renderBetButton(button, amountsEqual(button.amount, betAmount));
     });
+    this.currencyMarker.setVisible(!isGuest);
+    this.payoutRow.setY(this.scale.height * (isGuest ? 0.695 : 0.755));
+    this.placeBetBtn.setY(this.scale.height * (isGuest ? 0.805 : 0.845));
+    this.statusLabel.setY(this.scale.height * (isGuest ? 0.87 : 0.895));
 
     // GameFi renders the "N.NN GAS" 2x payout; guest supplies a local streak
     // value via bridgeState so the row never shows GAS at stake.
     this.payoutLabel.setText(this.str("payoutValue", `${formatPayout(betAmount)} GAS`));
-    this.renderPlaceBetButton(canBet && !flipping, flipping);
+    const settled = Boolean(result) && !flipping;
+    if (needsReveal) {
+      this.tableAction = "revealResult";
+      this.tableActionEnabled = !flipping;
+      this.renderPlaceBetButton(!flipping, flipping, this.str("revealCta", "REVEAL"));
+    } else if (settled) {
+      this.tableAction = "resetGame";
+      this.tableActionEnabled = true;
+      this.renderPlaceBetButton(true, false, this.str("playAgainCta", "AGAIN"));
+    } else {
+      this.tableAction = "placeBet";
+      this.tableActionEnabled = canBet && !flipping;
+      this.renderPlaceBetButton(canBet && !flipping, flipping, this.str("flipCta", "FLIP"));
+    }
 
     const quietStatus = validationError.trim();
     this.statusLabel.setText(
@@ -153,25 +198,9 @@ export class FogplayScene extends BaseScene {
           ? this.str("statusFlipping", "Waiting for block reveal")
           : this.str("statusIdle", "50/50 · pays 2x")),
     );
-    this.statusLabel.setColor(quietStatus ? "#9f321f" : "#5c634f");
+    this.statusLabel.setColor(quietStatus ? "#8f2818" : "#173d2a");
 
-    if (flipping && !this.isAnimating) {
-      this.startFlipAnimation();
-    } else if (!flipping && this.isAnimating) {
-      this.stopFlipAnimation(result ? landedSide(choice, result) : choice);
-    }
-
-    if (result && !flipping) {
-      if (this.lastResultCue !== result) {
-        this.lastResultCue = result;
-        this.sfx.play(result === "won" ? "win" : "lose");
-      }
-      this.showResult(result, landedSide(choice, result));
-    } else {
-      this.lastResultCue = "";
-      this.resultOverlay.setVisible(false);
-      if (!flipping) this.drawCoinFace(choice);
-    }
+    this.syncCoinMotion(choice, flipping, result, confirmedOutcome);
   }
 
   private rebuildScene(): void {
@@ -197,6 +226,7 @@ export class FogplayScene extends BaseScene {
   }
 
   private stopSceneMotion(): void {
+    this.motionGeneration.cancel();
     this.spinTween?.stop();
     this.spinTween = null;
     this.shuffleTimer?.remove(false);
@@ -205,6 +235,7 @@ export class FogplayScene extends BaseScene {
     this.resizeTimer = null;
     this.tweens.killAll();
     this.isAnimating = false;
+    this.coinPhase = "idle";
   }
 
   private buildBackground(W: number, H: number): void {
@@ -261,56 +292,52 @@ export class FogplayScene extends BaseScene {
 
   private buildCoin(W: number, H: number): void {
     const cx = W / 2;
-    const cy = H * 0.31;
+    const cy = H * 0.29;
+    this.coinRestY = cy;
 
-    // Orbit rings sit lower and quieter so they read as behind the coin and
-    // clear of the lower face where the H/T letter lives.
-    this.orbitOuter = this.add.ellipse(cx, cy + 16, 202, 46, C.cream, 0.07)
+    // The authored pedestal is a scene prop, not a coin face. It stays planted
+    // while the physical heads/tails artwork launches and lands above it.
+    this.coinPedestal = this.add.image(cx, cy + 72, ASSET_HOLO_PEDESTAL)
+      .setDisplaySize(258, 258)
+      .setAlpha(0.94);
+
+    this.orbitOuter = this.add.ellipse(cx, cy + 28, 202, 46, C.cream, 0.07)
       .setStrokeStyle(2, C.cream, 0.32);
-    this.orbitInner = this.add.ellipse(cx, cy + 20, 146, 29, C.gold, 0.09)
+    this.orbitInner = this.add.ellipse(cx, cy + 32, 146, 29, C.gold, 0.09)
       .setStrokeStyle(2, C.gold, 0.4);
 
-    this.coinGlow = this.add.ellipse(cx, cy + 18, 156, 54, C.gold, 0.24);
+    this.coinGlow = this.add.ellipse(cx, cy + 30, 156, 54, C.gold, 0.24);
+    this.coinShadow = this.add.ellipse(cx + 5, cy + 62, 112, 25, C.shadow, 0.22);
 
     this.coinContainer = this.add.container(cx, cy);
-    const shadow = this.add.ellipse(6, 58, 118, 31, C.shadow, 0.2);
-    this.coinBase = this.add.graphics();
-    this.coinIcon = this.add.image(0, -15, ASSET_GAS).setDisplaySize(46, 46);
-    // Primary heads/tails signifier: centered under the token, enlarged, with a
-    // deep stroke + shadow so the letter stays legible against the light gold.
-    this.coinFace = this.add.text(0, 21, "H", {
+    this.coinFaceImage = this.add.image(0, 0, ASSET_COIN_HEADS).setDisplaySize(142, 142);
+    this.coinContainer.add(this.coinFaceImage);
+
+    // Official GAS artwork is deliberately separate from the physical coin: it
+    // identifies the wager currency and never substitutes for heads or tails.
+    const marker = this.add.container(cx + 104, cy + 65);
+    this.currencyMarker = marker;
+    const markerBg = this.add.graphics();
+    markerBg.fillStyle(0xfffff3, 0.95);
+    markerBg.fillRoundedRect(-27, -12, 54, 24, 12);
+    markerBg.lineStyle(1, C.goldDeep, 0.5);
+    markerBg.strokeRoundedRect(-27, -12, 54, 24, 12);
+    const markerIcon = this.add.image(-14, 0, ASSET_GAS).setDisplaySize(17, 17);
+    const markerLabel = this.add.text(8, 0, "GAS", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
-      fontSize: "26px",
-      fontStyle: "900",
-      color: "#fffdf1",
-      letterSpacing: 0,
+      fontSize: "9px",
+      fontStyle: "800",
+      color: "#375444",
     }).setOrigin(0.5);
-    this.coinFace.setStroke("#7a4f14", 5);
-    this.coinFace.setShadow(0, 2, "rgba(80, 47, 8, 0.55)", 4, true, true);
+    marker.add([markerBg, markerIcon, markerLabel]);
 
-    this.coinContainer.add([shadow, this.coinBase, this.coinIcon, this.coinFace]);
-    this.drawCoinFace(this.selectedChoice);
+    this.setCoinSide(this.selectedChoice);
   }
 
-  private drawCoinFace(side: CoinSide): void {
-    const isHeads = side === "heads";
-    this.coinBase.clear();
-    this.coinBase.fillStyle(isHeads ? 0xf9d977 : 0xf3c65f, 1);
-    this.coinBase.fillCircle(0, 0, 58);
-    this.coinBase.lineStyle(7, C.goldDeep, 0.64);
-    this.coinBase.strokeCircle(0, 0, 58);
-    this.coinBase.lineStyle(2, C.cream, 0.72);
-    this.coinBase.strokeCircle(0, 0, 46);
-    this.coinBase.fillStyle(0xffffff, 0.2);
-    this.coinBase.fillEllipse(-17, -20, 52, 22);
-    this.coinIcon
-      .setTint(isHeads ? C.teal : C.tealDeep)
-      .setAlpha(isHeads ? 0.96 : 0.86)
-      .setAngle(isHeads ? 0 : 180);
-    this.coinFace
-      .setText(isHeads ? "H" : "T")
-      .setColor(isHeads ? "#fffdf1" : "#eefdf4");
+  private setCoinSide(side: CoinSide): void {
+    this.displayedSide = side;
+    this.coinFaceImage.setTexture(side === "heads" ? ASSET_COIN_HEADS : ASSET_COIN_TAILS);
   }
 
   private buildChoiceButtons(W: number, H: number): void {
@@ -331,7 +358,11 @@ export class FogplayScene extends BaseScene {
     const container = this.add.container(x, y);
     const bg = this.add.graphics();
     const hit = this.add.zone(0, 0, 132, 62).setInteractive({ useHandCursor: true });
-    const icon = this.add.image(-40, 0, ASSET_GAS).setDisplaySize(30, 30);
+    const icon = this.add.image(
+      -40,
+      0,
+      side === "heads" ? ASSET_COIN_HEADS : ASSET_COIN_TAILS,
+    ).setDisplaySize(42, 42);
     const text = this.add.text(-16, -9, label, {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
@@ -350,10 +381,6 @@ export class FogplayScene extends BaseScene {
         color: "#6f765f",
       },
     ).setOrigin(0, 0.5);
-    // Echo the coin's own heads/tails language: the tails token reads upside-down
-    // so the two choices differ at a glance, mirroring drawCoinFace's rotation.
-    icon.setAngle(side === "tails" ? 180 : 0);
-
     this.bindGameButton(hit, {
       targets: container,
       hoverScale: 1.03,
@@ -385,7 +412,7 @@ export class FogplayScene extends BaseScene {
   }
 
   private buildBetButtons(W: number, H: number): void {
-    const y = H * 0.69;
+    const y = H * 0.66;
     const gap = Math.min(76, Math.max(62, W * 0.18));
     const startX = W / 2 - ((BET_PRESETS.length - 1) * gap) / 2;
     this.betButtons = BET_PRESETS.map((amount, index) =>
@@ -437,30 +464,32 @@ export class FogplayScene extends BaseScene {
   }
 
   private buildPayoutRow(W: number, H: number): void {
-    const y = H * 0.79;
+    const y = H * 0.755;
+    this.payoutRow = this.add.container(W / 2, y);
     const panel = this.add.graphics();
     panel.fillStyle(0xfff9e7, 0.96);
-    panel.fillRoundedRect(W / 2 - 106, y - 20, 212, 40, 20);
+    panel.fillRoundedRect(-106, -20, 212, 40, 20);
     panel.lineStyle(1, 0xe8bf68, 0.58);
-    panel.strokeRoundedRect(W / 2 - 106, y - 20, 212, 40, 20);
-    this.add.text(W / 2 - 68, y, this.str("payoutCaption", "2x payout"), {
+    panel.strokeRoundedRect(-106, -20, 212, 40, 20);
+    const caption = this.add.text(-68, 0, this.str("payoutCaption", "2x payout"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
       fontStyle: "700",
       color: "#6f765f",
     }).setOrigin(0.5);
-    this.payoutLabel = this.add.text(W / 2 + 50, y, "", {
+    this.payoutLabel = this.add.text(50, 0, "", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "15px",
       fontStyle: "800",
       color: "#17442f",
     }).setOrigin(0.5);
+    this.payoutRow.add([panel, caption, this.payoutLabel]);
   }
 
   private buildPlaceBetButton(W: number, H: number): void {
-    this.placeBetBtn = this.add.container(W / 2, H * 0.88);
+    this.placeBetBtn = this.add.container(W / 2, H * 0.845);
     this.placeBetBg = this.add.graphics();
     const hit = this.add.zone(0, 0, 208, 52).setInteractive({ useHandCursor: true });
     this.placeBetLabel = this.add.text(0, 0, this.str("flipCta", "FLIP"), {
@@ -476,10 +505,10 @@ export class FogplayScene extends BaseScene {
       targets: this.placeBetBtn,
       hoverScale: 1.03,
       pressScale: 0.94,
-      enabled: () => this.canBet && !this.isAnimating,
+      enabled: () => this.tableActionEnabled && !this.isAnimating,
       onPress: () => {
-        this.sfx.play("throw");
-        this.dispatch("placeBet");
+        this.sfx.play(this.tableAction === "placeBet" ? "throw" : "select");
+        this.dispatch(this.tableAction);
       },
     });
 
@@ -487,7 +516,7 @@ export class FogplayScene extends BaseScene {
     this.renderPlaceBetButton(false, false);
   }
 
-  private renderPlaceBetButton(enabled: boolean, flipping: boolean): void {
+  private renderPlaceBetButton(enabled: boolean, flipping: boolean, label?: string): void {
     this.placeBetBg.clear();
     this.placeBetBg.fillStyle(enabled ? C.teal : 0xd8d5bd, 1);
     this.placeBetBg.fillRoundedRect(-104, -26, 208, 52, 18);
@@ -496,31 +525,34 @@ export class FogplayScene extends BaseScene {
     this.placeBetBg.fillStyle(0xffffff, enabled ? 0.16 : 0.08);
     this.placeBetBg.fillRoundedRect(-98, -20, 196, 18, 12);
     this.placeBetLabel
-      .setText(flipping ? this.str("flippingCta", "FLIPPING") : this.str("flipCta", "FLIP"))
+      .setText(flipping ? this.str("flippingCta", "FLIPPING") : label ?? this.str("flipCta", "FLIP"))
       .setColor(enabled || flipping ? "#ffffff" : "#726f5e");
     this.placeBetBtn.setAlpha(enabled || flipping ? 1 : 0.78);
   }
 
   private buildStatusLabel(W: number, H: number): void {
-    this.statusLabel = this.add.text(W / 2, H * 0.955, "", {
+    this.statusLabel = this.add.text(W / 2, H * 0.895, "", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
-      color: "#5c634f",
+      fontStyle: "700",
+      color: "#173d2a",
     }).setOrigin(0.5);
   }
 
   private buildResultOverlay(W: number, H: number): void {
-    this.resultOverlay = this.add.container(W / 2, H * 0.31).setVisible(false);
+    // Result copy sits below the pedestal so the landed physical face remains
+    // fully visible and is never covered by a generic win/loss panel.
+    this.resultOverlay = this.add.container(W / 2, H * 0.44).setVisible(false);
     this.resultBg = this.add.graphics();
-    this.resultText = this.add.text(0, -18, "", {
+    this.resultText = this.add.text(0, -12, "", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "30px",
       fontStyle: "900",
       color: "#ffffff",
     }).setOrigin(0.5);
-    this.resultAmount = this.add.text(0, 18, "", {
+    this.resultAmount = this.add.text(0, 15, "", {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "14px",
@@ -531,19 +563,12 @@ export class FogplayScene extends BaseScene {
   }
 
   private startIdleAnimation(): void {
+    this.startCoinIdleMotion();
+    if (this.reducedMotion) return;
     this.animate({
-      targets: this.coinContainer,
-      y: this.coinContainer.y - 9,
-      duration: 1400,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-    });
-    this.animate({
-      targets: this.coinGlow,
-      scaleX: 1.12,
-      alpha: 0.34,
-      duration: 1600,
+      targets: this.coinPedestal,
+      alpha: 0.82,
+      duration: 1900,
       ease: "Sine.easeInOut",
       yoyo: true,
       repeat: -1,
@@ -573,34 +598,144 @@ export class FogplayScene extends BaseScene {
     });
   }
 
-  private startFlipAnimation(): void {
-    this.isAnimating = true;
+  private startCoinIdleMotion(): void {
     this.tweens.killTweensOf(this.coinContainer);
     this.tweens.killTweensOf(this.coinGlow);
-
-    const faces: CoinSide[] = ["heads", "tails"];
-    let faceIndex = 0;
-    this.shuffleTimer = this.time.addEvent({
-      delay: this.reducedMotion ? 240 : 90,
-      loop: true,
-      callback: () => {
-        this.drawCoinFace(faces[faceIndex % faces.length]!);
-        if (faceIndex % 3 === 0) this.sfx.play("tick");
-        faceIndex += 1;
-      },
-    });
-
-    this.spinTween = this.animate({
+    this.tweens.killTweensOf(this.coinShadow);
+    this.coinContainer.setPosition(this.scale.width / 2, this.coinRestY).setScale(1).setAngle(0);
+    this.coinShadow.setAlpha(0.22).setScale(1);
+    if (this.reducedMotion) return;
+    this.animate({
       targets: this.coinContainer,
-      scaleX: 0.16,
-      y: this.coinContainer.y - 34,
-      angle: 360,
-      duration: 420,
+      y: this.coinRestY - 8,
+      duration: 1400,
       ease: "Sine.easeInOut",
       yoyo: true,
       repeat: -1,
     });
     this.animate({
+      targets: this.coinGlow,
+      scaleX: 1.12,
+      alpha: 0.34,
+      duration: 1600,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.animate({
+      targets: this.coinShadow,
+      scaleX: 0.84,
+      alpha: 0.15,
+      duration: 1400,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+
+  private syncCoinMotion(
+    choice: CoinSide,
+    flipping: boolean,
+    result: string,
+    confirmedOutcome: CoinSide | null,
+  ): void {
+    if (flipping) {
+      this.resultOverlay.setVisible(false);
+      this.lastResultCue = "";
+      if (this.coinPhase !== "launch" && this.coinPhase !== "flip") {
+        this.startFlipAnimation();
+      }
+      return;
+    }
+
+    // The visual face never invents a GameFi outcome. It consumes the exact
+    // canonical outcome bridged from getPendingBet; landedSide is only a
+    // defensive mapping for older guest state that lacks displayOutcome.
+    const side = result ? confirmedOutcome ?? landedSide(choice, result) : choice;
+    if (this.coinPhase === "launch" || this.coinPhase === "flip") {
+      this.landCoin(side, result);
+      return;
+    }
+    if (this.coinPhase === "land") return;
+
+    if (result) {
+      if (this.coinPhase !== "result") {
+        this.showSettledResultImmediately(side, result);
+      } else {
+        this.setCoinSide(side);
+        this.showResult(result, side, false);
+      }
+      return;
+    }
+
+    this.lastResultCue = "";
+    this.resultOverlay.setVisible(false);
+    if (this.coinPhase !== "idle") this.resetCoinToIdle(choice);
+    else this.setCoinSide(choice);
+  }
+
+  private startFlipAnimation(): void {
+    const generation = this.motionGeneration.begin();
+    this.cancelCoinTweens();
+    this.isAnimating = true;
+    this.coinPhase = "launch";
+    this.resultOverlay.setVisible(false);
+    this.setCoinSide(this.selectedChoice);
+    this.coinContainer.setPosition(this.scale.width / 2, this.coinRestY).setScale(1).setAngle(0);
+    this.coinShadow.setAlpha(0.22).setScale(1);
+
+    if (this.reducedMotion) {
+      // The outcome is not known yet. Keep the selected face static until the
+      // confirmed result arrives, then landCoin() jumps directly to that face.
+      this.coinPhase = "flip";
+      return;
+    }
+
+    this.spinTween = this.tweens.add({
+      targets: this.coinContainer,
+      y: this.coinRestY - 68,
+      scaleX: 1.08,
+      scaleY: 1.08,
+      angle: -6,
+      duration: 280,
+      ease: "Cubic.easeOut",
+      onComplete: () => {
+        if (!this.motionGeneration.isCurrent(generation)) return;
+        this.startFlipLoop(generation);
+      },
+    });
+    this.tweens.add({
+      targets: this.coinShadow,
+      scaleX: 0.48,
+      alpha: 0.08,
+      duration: 280,
+      ease: "Cubic.easeOut",
+    });
+  }
+
+  private startFlipLoop(generation: number): void {
+    if (!this.motionGeneration.isCurrent(generation)) return;
+    this.coinPhase = "flip";
+    this.shuffleTimer = this.time.addEvent({
+      delay: 92,
+      loop: true,
+      callback: () => {
+        if (!this.motionGeneration.isCurrent(generation)) return;
+        this.setCoinSide(this.displayedSide === "heads" ? "tails" : "heads");
+        this.sfx.play("tick");
+      },
+    });
+    this.spinTween = this.tweens.add({
+      targets: this.coinContainer,
+      scaleX: 0.08,
+      scaleY: 1.04,
+      angle: 7,
+      duration: 112,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tweens.add({
       targets: this.coinGlow,
       scaleX: 1.38,
       alpha: 0.46,
@@ -610,58 +745,234 @@ export class FogplayScene extends BaseScene {
     });
   }
 
-  private stopFlipAnimation(side: CoinSide): void {
+  private landCoin(side: CoinSide, result: string): void {
+    const generation = this.motionGeneration.begin();
+    this.cancelCoinTweens();
+    this.coinPhase = "land";
+    this.isAnimating = true;
+    this.setCoinSide(side);
+
+    if (this.reducedMotion) {
+      this.finishLanding(generation, side, result);
+      return;
+    }
+
+    this.coinContainer.setScale(Math.max(0.22, Math.abs(this.coinContainer.scaleX)), 1.02);
+    this.spinTween = this.tweens.add({
+      targets: this.coinContainer,
+      x: this.scale.width / 2,
+      y: this.coinRestY,
+      scaleX: 1,
+      scaleY: 1,
+      angle: 0,
+      duration: 360,
+      ease: "Bounce.easeOut",
+      onComplete: () => this.finishLanding(generation, side, result),
+    });
+    this.tweens.add({
+      targets: this.coinShadow,
+      scaleX: 1,
+      alpha: 0.22,
+      duration: 320,
+      ease: "Sine.easeOut",
+    });
+  }
+
+  private finishLanding(generation: number, side: CoinSide, result: string): void {
+    if (!this.motionGeneration.isCurrent(generation)) return;
+    this.coinContainer
+      .setPosition(this.scale.width / 2, this.coinRestY)
+      .setScale(1)
+      .setAngle(0);
+    this.coinShadow.setAlpha(0.22).setScale(1);
+    this.setCoinSide(side);
     this.isAnimating = false;
     this.sfx.play("land");
+
+    if (result) {
+      this.coinPhase = "result";
+      this.showResult(result, side, true);
+    } else {
+      this.coinPhase = "idle";
+      this.lastResultCue = "";
+      this.resultOverlay.setVisible(false);
+    }
+    this.startCoinIdleMotion();
+  }
+
+  private showSettledResultImmediately(side: CoinSide, result: string): void {
+    this.motionGeneration.begin();
+    this.cancelCoinTweens();
+    this.coinContainer
+      .setPosition(this.scale.width / 2, this.coinRestY)
+      .setScale(1)
+      .setAngle(0);
+    this.coinShadow.setAlpha(0.22).setScale(1);
+    this.setCoinSide(side);
+    this.isAnimating = false;
+    this.coinPhase = "result";
+    this.showResult(result, side, !this.reducedMotion);
+    this.startCoinIdleMotion();
+  }
+
+  private resetCoinToIdle(side: CoinSide): void {
+    this.motionGeneration.begin();
+    this.cancelCoinTweens();
+    this.coinPhase = "idle";
+    this.isAnimating = false;
+    this.lastResultCue = "";
+    this.resultOverlay.setVisible(false);
+    this.setCoinSide(side);
+    this.startCoinIdleMotion();
+  }
+
+  private cancelCoinTweens(): void {
     this.spinTween?.stop();
     this.spinTween = null;
     this.shuffleTimer?.remove(false);
     this.shuffleTimer = null;
-    this.tweens.killTweensOf(this.coinContainer);
-    this.tweens.killTweensOf(this.coinGlow);
-    this.coinContainer.setScale(1).setAngle(0);
-    this.coinContainer.setY(this.scale.height * 0.31);
-    this.drawCoinFace(side);
-    this.startIdleAnimation();
+    if (this.coinContainer) this.tweens.killTweensOf(this.coinContainer);
+    if (this.coinGlow) this.tweens.killTweensOf(this.coinGlow);
+    if (this.coinShadow) this.tweens.killTweensOf(this.coinShadow);
   }
 
-  private showResult(result: string, side: CoinSide): void {
+  private showResult(result: string, side: CoinSide, animateEntrance: boolean): void {
     const won = result === "won";
-    this.drawCoinFace(side);
+    const firstCue = this.lastResultCue !== result;
+    this.setCoinSide(side);
+    if (firstCue) {
+      this.lastResultCue = result;
+      this.sfx.play(won ? "win" : "lose");
+      if (won) this.emitWinBurst(side);
+    }
     this.resultBg.clear();
     this.resultBg.fillStyle(won ? C.tealDeep : 0x874133, 0.92);
-    this.resultBg.fillRoundedRect(-84, -44, 168, 88, 18);
+    this.resultBg.fillRoundedRect(-82, -35, 164, 70, 18);
     this.resultBg.lineStyle(2, won ? 0xa8f7c8 : 0xffc2a8, 0.72);
-    this.resultBg.strokeRoundedRect(-84, -44, 168, 88, 18);
+    this.resultBg.strokeRoundedRect(-82, -35, 164, 70, 18);
     this.resultText
       .setText(won ? this.str("resultWin", "WIN") : this.str("resultMiss", "MISS"))
       .setColor(won ? "#eafff4" : "#fff2e8");
     this.resultAmount
       .setText(
         won
-          ? this.str("winAmount", "") || this.str("displayOutcome", "")
-          : this.str("displayOutcome", "") || this.str("tryAgainShort", "Try again"),
+          ? this.str("winAmount", "") || this.str("landedLabel", "")
+          : this.str("landedLabel", "") || this.str("tryAgainShort", "Try again"),
       )
       .setColor(won ? "#dcffd9" : "#ffe2c9");
 
-    this.resultOverlay.setVisible(true).setAlpha(0).setScale(0.76);
-    this.animate({
-      targets: this.resultOverlay,
-      alpha: 1,
-      scale: 1,
-      duration: 220,
-      ease: "Back.easeOut",
+    this.resultOverlay.setVisible(true);
+    if (animateEntrance) {
+      this.resultOverlay.setAlpha(0).setScale(0.76);
+      this.animate({
+        targets: this.resultOverlay,
+        alpha: 1,
+        scale: 1,
+        duration: 220,
+        ease: "Back.easeOut",
+      });
+    } else {
+      this.resultOverlay.setAlpha(1).setScale(1);
+    }
+  }
+
+  /** Celebrate with actual coin/GAS textures, never placeholder circles. */
+  private emitWinBurst(side: CoinSide): void {
+    if (this.reducedMotion) return;
+    const isGuest = this.bool("isGuest");
+    const texture = isGuest
+      ? side === "heads" ? ASSET_COIN_HEADS : ASSET_COIN_TAILS
+      : ASSET_GAS;
+    const { width: W, height: H } = this.scale;
+    for (let index = 0; index < 10; index += 1) {
+      const token = this.add.image(
+        W / 2 + Phaser.Math.Between(-88, 88),
+        H * 0.42,
+        texture,
+      )
+        .setDisplaySize(isGuest ? 28 : 22, isGuest ? 28 : 22)
+        .setDepth(24)
+        .setAlpha(0.96);
+      this.tweens.add({
+        targets: token,
+        x: token.x + Phaser.Math.Between(-64, 64),
+        y: Phaser.Math.Between(Math.round(H * 0.12), Math.round(H * 0.35)),
+        angle: Phaser.Math.Between(-150, 150),
+        alpha: 0,
+        scale: 0.72,
+        delay: index * 45,
+        duration: 760,
+        ease: "Cubic.easeOut",
+        onComplete: () => token.destroy(),
+      });
+    }
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (!this.coinContainer) return;
+
+    const flipping = this.bool("isFlipping") || this.bool("revealing");
+    const result = this.str("result", "");
+    const outcomeValue = this.str("displayOutcome", "");
+    const confirmedOutcome: CoinSide | null =
+      outcomeValue === "heads" || outcomeValue === "tails" ? outcomeValue : null;
+
+    if (!enabled) {
+      if (flipping) this.startFlipAnimation();
+      else if (result) {
+        this.showSettledResultImmediately(
+          confirmedOutcome ?? landedSide(this.selectedChoice, result),
+          result,
+        );
+      } else {
+        this.startIdleAnimation();
+      }
+      return;
+    }
+
+    this.motionGeneration.cancel();
+    this.cancelCoinTweens();
+    this.tweens.killTweensOf(this.coinPedestal);
+    this.tweens.killTweensOf(this.orbitOuter);
+    this.tweens.killTweensOf(this.orbitInner);
+    this.tableSparkles.forEach((sparkle) => this.tweens.killTweensOf(sparkle));
+    this.coinPedestal.setAlpha(0.94);
+    this.orbitOuter.setAngle(0);
+    this.orbitInner.setAngle(0);
+    this.tableSparkles.forEach((sparkle, index) => {
+      sparkle.setScale(1).setAlpha(index % 3 === 0 ? 0.54 : 0.32);
     });
+    this.coinContainer
+      .setPosition(this.scale.width / 2, this.coinRestY)
+      .setScale(1)
+      .setAngle(0);
+    this.coinShadow.setAlpha(0.22).setScale(1);
+
+    if (flipping) {
+      this.coinPhase = "flip";
+      this.isAnimating = true;
+      this.setCoinSide(this.selectedChoice);
+      this.resultOverlay.setVisible(false);
+      return;
+    }
+
+    this.isAnimating = false;
+    const side = result
+      ? confirmedOutcome ?? landedSide(this.selectedChoice, result)
+      : this.selectedChoice;
+    this.setCoinSide(side);
+    if (result) {
+      this.coinPhase = "result";
+      this.showResult(result, side, false);
+    } else {
+      this.coinPhase = "idle";
+      this.resultOverlay.setVisible(false);
+    }
   }
 }
 
 function normalizeSide(value: string): CoinSide {
   return value === "tails" ? "tails" : "heads";
-}
-
-function landedSide(choice: CoinSide, result: string): CoinSide {
-  if (result === "lost") return choice === "heads" ? "tails" : "heads";
-  return choice;
 }
 
 function amountsEqual(a: string, b: string): boolean {

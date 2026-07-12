@@ -1,99 +1,178 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import fs from "node:fs";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../aa-permissions-lab/src/PlayArea";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
+
+const ACCOUNT = "0x1111111111111111111111111111111111111111";
+const OTHER_ACCOUNT = "0x2222222222222222222222222222222222222222";
+const OWNER = "0x3333333333333333333333333333333333333333";
+const VERIFIER = "0x4444444444444444444444444444444444444444";
+const TARGET = "0x5555555555555555555555555555555555555555";
+
 afterEach(() => cleanup());
-function t(k: string) { return k; }
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
-describe("aa-permissions-lab PlayArea (v2)", () => {
-  it("renders a foreground permission boundary instead of a form-like inspector panel", () => {
-    const { container } = render(<PlayArea t={t} state={state({
-      hasInspected: true,
-      currentVerifier: "0x1111111111111111111111111111111111111111",
-      currentHook: "0x2222222222222222222222222222222222222222",
-    })} dispatch={vi.fn()} />);
 
-    expect(container.querySelector(".perms-boundary")).toBeTruthy();
-    expect(container.querySelector(".perms-boundary__target-bar")).toBeTruthy();
-    expect(container.querySelector(".perms-boundary__target-input.mx2-open-field")).toBeTruthy();
-    expect(container.querySelector(".perms-boundary__target-input .mx2-open-field__control input.semi-input")).toBeTruthy();
-    expect((container.querySelector(".perms-boundary__visual img") as HTMLImageElement)?.src).toContain("permission-console.webp");
-    expect(container.querySelector(".perms-boundary__core")).toBeTruthy();
-    expect(container.querySelector(".perms-boundary__route")).toBeTruthy();
-    expect(container.querySelector(".perms-boundary__guard")).toBeTruthy();
-    expect(container.querySelector(".perms-scene__account-panel")).toBeFalsy();
-    expect(container.querySelector(".perms-scene__route-step")).toBeFalsy();
-    expect(container.querySelector(".perms-scene__backdrop")).toBeFalsy();
+function t(key: string) {
+  return key;
+}
+
+function appState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const values = {
+    network: "mainnet",
+    aaCore: "0x0268a387913b250166ddec032b03332690a1ef78",
+    launchForm: {
+      accountIdHash: "",
+      verifierHash: "",
+      verifierParamsHex: "",
+      hookHash: "",
+    },
+    storageHealthy: true,
+    lastWriteStatus: "transactionIdle",
+    ...overrides,
+  };
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+  ) as ObservableState;
+}
+
+function boundState(overrides: Partial<Record<string, unknown>> = {}) {
+  return appState({
+    launchForm: {
+      accountIdHash: ACCOUNT,
+      verifierHash: TARGET,
+      verifierParamsHex: "",
+      hookHash: "",
+    },
+    hasInspected: true,
+    inspectedAccountId: ACCOUNT,
+    currentVerifier: VERIFIER,
+    currentHook: "",
+    currentBackupOwner: OWNER,
+    connectedWalletDisplay: OWNER,
+    hasPendingVerifier: false,
+    hasPendingHook: false,
+    pendingVerifierUnlockAt: 0,
+    pendingHookUnlockAt: 0,
+    ...overrides,
+  });
+}
+
+describe("AA Permissions product surface", () => {
+  it("leads with a real permission resource and keeps form controls out of the stage", () => {
+    const { container } = render(
+      <PlayArea t={t} state={appState()} dispatch={vi.fn()} />,
+    );
+
+    expect(container.querySelector(".perms-console")).toBeTruthy();
+    expect(container.querySelector(".perms-passport")).toBeTruthy();
+    expect(container.querySelector(".perms-lifecycle__track")).toBeTruthy();
+    expect((container.querySelector(".perms-console__art") as HTMLImageElement).src)
+      .toContain("permission-console.webp");
+    expect(container.querySelector(".mx2-stage__scene input")).toBeNull();
+    expect(container.querySelector(".perms-drawer")).toBeNull();
     expect(container.textContent).not.toMatch(/🔒|⏳|✓|✕/u);
+    expect(container.querySelectorAll(".mx2-btn--primary")).toHaveLength(1);
   });
 
-  it("keeps inspect disabled until the account hash is supplied", () => {
-    const dispatch = vi.fn();
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+  it("keeps account, lane, target, params, and raw hashes in secondary settings", () => {
+    const { container } = render(
+      <PlayArea t={t} state={boundState()} dispatch={vi.fn()} />,
+    );
 
-    expect(primary.disabled).toBe(true);
-
-    fireEvent.change(screen.getByLabelText("accountId"), {
-      target: { value: "0x1111111111111111111111111111111111111111" },
-    });
-    expect(primary.disabled).toBe(false);
-
-    fireEvent.click(primary);
-    expect(dispatch).toHaveBeenCalledWith("refresh", "0x1111111111111111111111111111111111111111");
-  });
-
-  it("keeps verifier and hook write controls tucked into the drawer", () => {
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-
-    expect(container.querySelector(".mx2-stage__scene .perms-drawer")).toBeFalsy();
-    expect(container.querySelector(".perms-drawer")).toBeFalsy();
-
-    fireEvent.click(screen.getByRole("button", { name: /permissionsCommandTitle/i }));
+    fireEvent.click(screen.getByRole("button", { name: "permissionSettings" }));
 
     expect(container.querySelector(".perms-drawer")).toBeTruthy();
-    expect(container.querySelector(".mx2-stage__scene .perms-drawer")).toBeFalsy();
-    expect(container.querySelectorAll(".perms-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
-    expect(container.querySelectorAll(".perms-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toHaveLength(3);
-    expect(container.querySelector(".perms-drawer__notice.mx2-open-notice.semi-banner")).toBeTruthy();
-    expect(container.querySelector(".perms-drawer h4")).toBeNull();
+    expect(screen.getByLabelText("accountId")).toBeTruthy();
+    expect(screen.getByRole("radiogroup", { name: "permissionLane" })).toBeTruthy();
+    expect(screen.getByLabelText("targetContractHash")).toBeTruthy();
+    expect(screen.getByLabelText("verifierParams")).toBeTruthy();
+    expect(container.querySelector(".perms-raw-record")).toBeTruthy();
+    expect(container.querySelectorAll(".perms-drawer__panel.mx2-open-panel")).toHaveLength(3);
   });
 
-  it("keeps styling clean, responsive, and motion guarded", () => {
-    const fs = require("node:fs");
-    const s = fs.readFileSync(`${process.cwd()}/../aa-permissions-lab/src/PlayArea.scss`, "utf8");
-    const source = fs.readFileSync(`${process.cwd()}/../aa-permissions-lab/src/PlayArea.tsx`, "utf8");
+  it("invalidates the live binding as soon as the account draft changes", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea t={t} state={boundState()} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: "permissionSettings" }));
+    fireEvent.change(screen.getByLabelText("accountId"), {
+      target: { value: OTHER_ACCOUNT },
+    });
 
-    expect(s).toMatch(/prefers-reduced-motion/);
-    expect(s).toMatch(/\.perms-scene\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.perms-boundary__visual\s*\{[\s\S]*background:\s*#f8fcfb/);
-    expect(s).toMatch(/\.perms-boundary__visual img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(s).toMatch(/\.perms-boundary__map\s*\{[\s\S]*grid-template-columns/);
-    expect(s).toMatch(/\.perms-boundary__map\s*\{[\s\S]*grid-template-columns:\s*minmax\(220px,\s*0\.66fr\) minmax\(190px,\s*0\.48fr\) minmax\(360px,\s*1fr\)/);
-    expect(s).toMatch(/\.perms-boundary__target-input\.mx2-open-field\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
-    expect(s).toMatch(/\.perms-boundary__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.perms-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 174px/);
-    expect(s).toMatch(/\.perms-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*var\(--mx2-brand-hover\)/);
-    expect(s).toMatch(/\.perms-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.perms-drawer__panel--wide > \.semi-card-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(260px,\s*520px\)\s+minmax\(160px,\s*220px\)/);
-    expect(s).not.toMatch(/\.perms-drawer__field[\s\S]*& input/);
-    expect(source).toContain("OpenUiTextField");
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("invalidateBinding"));
+  });
+
+  it("shows wait and cancel during the safety window, then confirm after expiry", () => {
+    const futureDispatch = vi.fn().mockResolvedValue(undefined);
+    const future = render(<PlayArea
+      t={t}
+      state={boundState({
+        hasPendingVerifier: true,
+        pendingVerifierUnlockAt: Date.now() + 86_400_000,
+      })}
+      dispatch={futureDispatch}
+    />);
+
+    expect((screen.getByRole("button", { name: "safetyWindowActive" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "cancelProposal" }));
+    expect(futureDispatch).toHaveBeenCalledWith("cancelVerifier", ACCOUNT);
+    future.unmount();
+
+    const readyDispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea
+      t={t}
+      state={boundState({
+        hasPendingVerifier: true,
+        pendingVerifierUnlockAt: Date.now() - 1,
+      })}
+      dispatch={readyDispatch}
+    />);
+    fireEvent.click(screen.getByRole("button", { name: "confirmRotation" }));
+    expect(readyDispatch).toHaveBeenCalledWith("confirmVerifier", ACCOUNT);
+  });
+
+  it("keeps writes locked for a different connected wallet or unavailable recovery", () => {
+    const wrong = render(<PlayArea
+      t={t}
+      state={boundState({ connectedWalletDisplay: OTHER_ACCOUNT })}
+      dispatch={vi.fn()}
+    />);
+    expect((screen.getByRole("button", { name: "useBackupOwnerWallet" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+    wrong.unmount();
+
+    render(<PlayArea
+      t={t}
+      state={boundState({ storageHealthy: false })}
+      dispatch={vi.fn()}
+    />);
+    expect((screen.getByRole("button", { name: "writesLockedNoRecovery" }) as HTMLButtonElement).disabled)
+      .toBe(true);
+  });
+
+  it("uses bright, high-contrast, responsive styles with reduced-motion handling", () => {
+    const styles = fs.readFileSync(
+      `${process.cwd()}/../aa-permissions-lab/src/PlayArea.scss`,
+      "utf8",
+    );
+    const source = fs.readFileSync(
+      `${process.cwd()}/../aa-permissions-lab/src/PlayArea.tsx`,
+      "utf8",
+    );
+
+    expect(styles).toMatch(/\.perms-console\s*\{[\s\S]*background:\s*#ead6b9/);
+    expect(styles).toMatch(/\.perms-passport\s*\{[\s\S]*background:\s*rgba\(255, 254, 250, 0\.97\)/);
+    expect(styles).toMatch(/\.perms-console__art\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.perms-lifecycle__track\s*\{[\s\S]*grid-template-columns:\s*repeat\(3/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)/);
+    expect(styles).not.toMatch(/font-size:\s*clamp\(/);
+    expect(source).toContain("OpenUiLiteProvider as OpenUiProvider");
+    expect(source).toContain("new URL(");
     expect(source).not.toContain("<input");
-    expect(s).not.toMatch(/\.perms-drawer__section/);
-    expect(s).toMatch(/\.perms-boundary__visual span\s*\{[\s\S]*letter-spacing:\s*0/);
-    expect(s).toMatch(/@media \(max-width:\s*900px\)[\s\S]*\.perms-boundary__map\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__visual\s*\{[\s\S]*height:\s*104px/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__core\s*\{[\s\S]*grid-template-columns:\s*auto minmax\(0,\s*1fr\)/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__gate\s*\{[\s\S]*min-height:\s*72px/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-boundary__guard small\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.perms-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*170px/);
-    expect(s).toMatch(/@keyframes perms-route-flow/);
-    expect(s).toMatch(/@keyframes perms-core-spin/);
-    expect(s).toMatch(/@keyframes perms-pending-breathe/);
-    expect(s).not.toMatch(/perms-scene__account-panel|perms-scene__route-step|perms-scene__backdrop|background-image:\s*url|var\(--mx2-scene-wash/);
+    expect(source).not.toContain("eyebrow:");
   });
 });

@@ -7,13 +7,25 @@
     "neo-n3-mainnet": "0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a",
     "neo-n3-testnet": "0x3e88058ef32c4d8d17eb1a2188d6d5e329c94f8a"
   },
+  "deployment": {
+    "neo-n3-mainnet": {
+      "reason": "Read-only getcontractstate and lastCapsuleId verification confirmed the deployed MiniAppTimeCapsule ABI and a HALT response. Fresh funded write validation remains pending.",
+      "status": "deployed",
+      "verified_at": "2026-07-11T09:08:00Z"
+    },
+    "neo-n3-testnet": {
+      "reason": "Read-only getcontractstate and lastCapsuleId verification confirmed the deployed MiniAppTimeCapsule ABI and a HALT response. Fresh funded write validation remains pending.",
+      "status": "deployed",
+      "verified_at": "2026-07-11T09:08:00Z"
+    }
+  },
   "contract_domains": {
     "neo-n3-mainnet": "timecapsule.miniapp.neo"
   },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
-  "description": "Seal message hashes until a future date with public fishing.",
-  "description_zh": "时间胶囊 — 在链上封存消息和资产，设定未来某一天才能打开",
+  "description": "Seal a private local message behind an on-chain time lock, reclaim the deposit after reveal, and tip public capsules.",
+  "description_zh": "把本地私密消息封存在链上时间锁之后，到期揭示并取回押金，也可打赏公开胶囊。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -22,14 +34,15 @@
   "features": {
     "deeplink": "neomainapp://time-capsule",
     "offlineSupport": false,
-    "stateless": true
+    "stateless": false
   },
   "id": "miniapp-time-capsule",
   "name": "Time Capsule",
   "name_zh": "时间胶囊",
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain"
   ],
   "platform": {
     "analytics": true,
@@ -49,112 +62,21 @@
     "neo-n3-testnet"
   ],
   "operation_panel": {
-    "title": "Seal Time Capsule",
-    "subtitle": "Prepay the capsule fee and commit a message hash with a future unlock time in one wallet-confirmed batch.",
-    "operations": [
-      {
-        "name": "Seal Capsule",
-        "method": "sealCapsule",
-        "description": "Submit the funded Time Capsule bury transaction from the connected wallet. Only the SHA-256 content hash is stored on-chain.",
-        "button_style": "primary",
-        "priority": "primary",
-        "confirm_message": "Seal this capsule hash on-chain?",
-        "params": [
-          {
-            "name": "owner",
-            "type": "hash160",
-            "label": "Owner",
-            "required": true,
-            "default_value": "$wallet",
-            "hidden": true
-          },
-          {
-            "name": "contentHash",
-            "type": "string",
-            "label": "Content hash",
-            "required": true,
-            "placeholder": "64-character SHA-256 hash"
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "label": "Capsule title",
-            "required": true,
-            "placeholder": "A note to my future self"
-          },
-          {
-            "name": "unlockDays",
-            "type": "integer",
-            "label": "Lock duration in days",
-            "required": true,
-            "default_value": "30",
-            "placeholder": "30"
-          },
-          {
-            "name": "isPublic",
-            "type": "boolean",
-            "label": "Publicly fishable",
-            "default_value": "false"
-          },
-          {
-            "name": "category",
-            "type": "select",
-            "label": "Category",
-            "required": true,
-            "default_value": "1",
-            "options": [
-              {
-                "label": "Personal",
-                "value": "1"
-              },
-              {
-                "label": "Gift",
-                "value": "2"
-              },
-              {
-                "label": "Memorial",
-                "value": "3"
-              },
-              {
-                "label": "Announcement",
-                "value": "4"
-              },
-              {
-                "label": "Secret",
-                "value": "5"
-              }
-            ]
-          },
-          {
-            "name": "sealFeeGas",
-            "type": "amount",
-            "label": "Seal fee",
-            "required": true,
-            "default_value": "0.20",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "0.20",
-                "value": "0.20",
-                "helper": "GAS"
-              },
-              {
-                "label": "0.45",
-                "value": "0.45",
-                "helper": "Lifecycle"
-              }
-            ]
-          }
-        ]
-      }
-    ]
+    "title": "Time Capsule chamber",
+    "subtitle": "Use the designed in-app sealing, countdown, opening, tipping and recovery controls.",
+    "operations": []
   },
-  "tags": [],
-  "updatedAt": "2026-06-01T00:00:00Z",
+  "tags": [
+    "social",
+    "time-lock",
+    "capsule",
+    "GAS"
+  ],
+  "updatedAt": "2026-07-11T09:08:00Z",
   "urls": {
-    "banner": "/miniapps/time-capsule/banner.webp",
+    "banner": "/miniapps/time-capsule/time-capsule-stage.webp",
     "entry": "/miniapps/time-capsule/index.html",
     "icon": "/miniapps/time-capsule/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

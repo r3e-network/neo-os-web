@@ -3,9 +3,9 @@
   "id": "miniapp-oracle-compute-lab",
   "name": "Oracle Compute Lab",
   "name_zh": "预言机计算实验室",
-  "version": "1.0.0",
-  "description": "Build Morpheus compute previews that keep sealed inputs redacted.",
-  "description_zh": "构建不会暴露加密封装输入的 Morpheus 计算预览。",
+  "version": "2.0.0",
+  "description": "Prepare a SHA-256-bound Morpheus compute request package without pretending the compute job has run.",
+  "description_zh": "准备以 SHA-256 绑定的 Morpheus 计算请求包，不把本地准备伪装成已执行的计算任务。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -13,7 +13,7 @@
     "oracle",
     "morpheus",
     "compute",
-    "workflow"
+    "request-builder"
   ],
   "developer": {
     "name": "Yiwu",
@@ -31,52 +31,11 @@
     "icon": "/miniapps/oracle-compute-lab/logo.webp",
     "banner": "/miniapps/oracle-compute-lab/banner.webp"
   },
-  "permissions": [
-    "read:blockchain",
-    "oracle",
-    "compute",
-    "confidential",
-    "datafeed"
-  ],
+  "permissions": [],
   "features": {
     "stateless": true,
-    "offlineSupport": false,
+    "offlineSupport": true,
     "deeplink": "neomainapp://oracle-compute-lab"
-  },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
-  "operation_panel": {
-    "title": "Compute Preview",
-    "subtitle": "Build sealed-safe compute previews and leave execution to the later Morpheus dispatch step.",
-    "operations": [
-      {
-        "name": "Seal Compute Input",
-        "method": "sealOracleRequest",
-        "description": "Prepare sealed compute input metadata for Morpheus confidential handling.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "endpoint",
-            "type": "string",
-            "label": "Workflow input",
-            "placeholder": "private-transfer-or-policy-check",
-            "sensitive": true,
-            "required": true
-          }
-        ]
-      },
-      {
-        "name": "Build Preview",
-        "method": "buildOraclePackage",
-        "description": "Build a deterministic preview package without exposing sealed input.",
-        "button_style": "secondary"
-      }
-    ]
   },
   "platform": {
     "analytics": true,
@@ -85,5 +44,5 @@
     "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-05-01T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

@@ -1,6 +1,6 @@
 {
   "name": "miniapp-aa-session-key-lab",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "vite --host 0.0.0.0",

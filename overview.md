@@ -25,7 +25,12 @@
    - **音频系统**：`logic/sound.ts` 单例 **纯合成 WebAudio 音效引擎**（振荡器 + 滤波白噪声，**零音频文件、零版权风险**）。9 种音效：land/pick/match/combo/win/fail/powerup/shuffle/click。单例共享静音态 + 首次用户手势 `unlock()` + `localStorage` 持久化静音，HUD `📢/🔇` 切换。
    - **移动端触屏适配**：`ZhuaDaScene` 改监听 `pointerdown`（覆盖鼠标/触屏/笔）；`.goose-canvas-wrap` / `.goose-three-canvas` 加 `touch-action:none` + 禁选 + 禁高亮 + `overscroll-behavior:contain`，避免触屏落点被页面滚动/下拉刷新吞掉。射线归一化用 `getBoundingClientRect()`（与 DPR 无关）。
 
-5. **验证（全部通过）**：
+6. **手感调参与真机 Playtest（v2.3）**：
+   - **手感旋钮实时 A/B**：连击窗口 `COMBO_WINDOW_MS` 1500→**2200ms**、连击加成 `COMBO_BONUS_PER_STEP` 5→**8**（v2.3 手感假设，待真人验证）；全部旋钮支持 URL 覆盖 `?combo/bonus/gravity/score/timebonus`，无需改代码即可现场调参。
+   - **`?debug=1` Playtest 面板**：固定显示实时 FPS / 关卡 / 盒剩余 / 托盘占用 / 分数 / 连击 / 时间 / 当前调参值，并提供「跳过→下关 / 强制胜利 / 强制失败 / 重开本关」按钮（引擎加 `debugWin`/`debugLose` 钩子），让真机快速校准手感。
+   - 蒙特卡洛回归（`scripts/tune.mjs`）确认 15 关贪心 100% 可解；已 `git commit`（`608f79437`，仅含 zhuada-e + 文档，未碰仓库其他无关改动）。
+
+7. **验证（全部通过）**：
    - `npm run build` 通过（入口 **218KB / gzip 69KB**，含音效引擎仅 +5KB）；`npx eslint` **0 error / 0 warning**。
    - v2.1 agent-browser 端到端验证（本环境无 Chromium/Playwright，沿用前次结论）：
      - 胜利链路 `solved`，`score: 237`，`itemsLeft: 0`；
@@ -43,9 +48,9 @@
 
 ## 后续事项
 
-1. **接链上奖励（可选）**：后续复用 `rewardGame` SDK 转排行榜/奖励，需配套合约。
-2. **真实浏览器/真机复检**：headless 会暂停 rAF，3D 掉落/射线需在真机肉眼复检；本环境无浏览器自动化，音频「可听感」与触屏命中手感需真机 playtest 复检（逻辑/道具/音效引擎逻辑均已通过自动化验证）。
-3. **首测微调**：`scripts/tune.mjs` 复算 + 手感测试微调重力/连击窗口/托盘槽数；关卡「好不好玩」需真人 playtest（蒙特卡洛只保证可解）。
+1. **接链上奖励（可选）**：后续复用 `rewardGame` SDK 转排行榜/奖励，需配套合约（独立较大方向，本次未做）。
+2. **真实浏览器/真机复检 + 手感校准**：headless 会暂停 rAF，3D 掉落/射线需在真机肉眼复检；音频「可听感」、触屏命中手感、关卡「好不好玩」均需真人 playtest。已提供 `?debug=1` 面板（实时 FPS/状态/调参值 + 跳过/强制胜负/重开）与 `?combo/bonus/gravity/score/timebonus` 实时调参，把试玩成本降到最低——真人只需在真机改 URL 即可 A/B，无需重新构建。
+3. **首测微调**：用上述面板/URL 参数微调重力/连击窗口/托盘槽数，确认 v2.3 手感假设（comboWin 2200 / bonus 8）是否合适；关卡「好不好玩」以真人主观为准（蒙特卡洛只保证可解）。
 
 ## 文件清单
 

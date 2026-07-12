@@ -15,36 +15,20 @@ export const manifest: MiniAppManifest = {
   category: "governance",
   shell: "launcher",
 
-  // ── Tabs ──────────────────────────────────────────────────────────────
-  tabs: [
-    { key: "active", labelKey: "active", icon: "landmark", default: true },
-    { key: "create", labelKey: "create", icon: "edit" },
-    { key: "history", labelKey: "history", icon: "scroll" },
-  ],
-
-  // ── Stats Grid ────────────────────────────────────────────────────────
-  stats: [
-    { labelKey: "active", valueKey: "activeCount", format: "number", variant: "accent", icon: "zap" },
-    { labelKey: "totalProposals", valueKey: "totalProposals", format: "number", icon: "hash" },
-    { labelKey: "votingPower", valueKey: "votingPower", format: "number", icon: "award" },
-    { labelKey: "history", valueKey: "historyCount", format: "number", icon: "scroll" },
-  ],
+  // The designed chamber owns navigation and live counts. Keep the shell from
+  // re-introducing a generic tab/stat dashboard around it.
+  tabs: [],
+  stats: [],
 
   // ── Sidebar ───────────────────────────────────────────────────────────
   sidebar: {
     titleKey: "title",
-    items: [
-      { labelKey: "active", valueKey: "activeCount", format: "number" },
-      { labelKey: "history", valueKey: "historyCount", format: "number" },
-      { labelKey: "totalProposals", valueKey: "totalProposals", format: "number" },
-      { labelKey: "votingPower", valueKey: "votingPower", format: "number" },
-    ],
+    items: [],
   },
 
   // ── Features ──────────────────────────────────────────────────────────
   features: {
-    fireworks: true,
-    walletRequired: true,
+    walletRequired: false,
     chainWarning: true,
   },
 

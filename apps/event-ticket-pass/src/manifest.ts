@@ -2,39 +2,28 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Event Ticket Pass",
-  description: "Create events, issue attendee tickets, and run door check-in.",
+  description: "Discover events, collect organizer-issued NFT passes, and run recoverable door check-in.",
   icon: "ticket",
   category: "social",
-  shell: "launcher",
+  shell: "market",
 
-  tabs: [
-    { key: "create", labelKey: "createTab", icon: "plus", default: true },
-    { key: "tickets", labelKey: "ticketsTab", icon: "ticket" },
-    { key: "checkin", labelKey: "checkinTab", icon: "check-circle" },
-  ],
+  // PlayArea owns the complete event discovery, pass, organizer and gate-desk
+  // hierarchy. Generic launcher tabs/stats would duplicate that navigation.
+  tabs: [],
 
-  stats: [
-    { labelKey: "sidebarEvents", valueKey: "eventsCount", format: "number", icon: "calendar" },
-    { labelKey: "sidebarTickets", valueKey: "ticketsCount", format: "number", icon: "ticket" },
-    { labelKey: "sidebarActive", valueKey: "activeEventsCount", format: "number", variant: "success", icon: "check-circle" },
-  ],
+  stats: [],
 
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "sidebarEvents", valueKey: "eventsCount", format: "number" },
-      { labelKey: "sidebarTickets", valueKey: "ticketsCount", format: "number" },
-      { labelKey: "sidebarActive", valueKey: "activeEventsCount", format: "number" },
-    ],
-  },
+  sidebar: { titleKey: "title", items: [] },
 
-  features: { walletRequired: true, chainWarning: true },
+  // Public event discovery is intentionally wallet-free. Wallet connection is
+  // requested only at organizer, transfer, inventory and check-in boundaries.
+  features: { walletRequired: false, chainWarning: true },
 
   docs: [
     { titleKey: "title", contentKey: "subtitle", type: "text" },
   ],
 
-  permissions: { payments: true, storage: true },
+  permissions: { payments: false, storage: false },
 
   contract: { mode: "custom" },
 };

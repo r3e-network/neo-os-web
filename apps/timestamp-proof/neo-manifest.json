@@ -3,9 +3,9 @@
   "id": "miniapp-timestamp-proof",
   "name": "Timestamp Proof",
   "name_zh": "时间戳证明",
-  "version": "1.0.0",
-  "description": "Local SHA-256 timestamp journal and proof lookup workspace.",
-  "description_zh": "时间戳证明 — 本地 SHA-256 时间戳记录与证明查询工具",
+  "version": "1.1.0",
+  "description": "Local SHA-256 proof journal with recoverable Neo N3 anchor receipts.",
+  "description_zh": "本地 SHA-256 证明记录与可恢复的 Neo N3 锚定回执工具",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -21,35 +21,30 @@
   },
   "contracts": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/timestamp-proof/index.html",
     "icon": "/miniapps/timestamp-proof/logo.webp",
-    "banner": "/miniapps/timestamp-proof/banner.webp"
+    "banner": "/miniapps/timestamp-proof/proof-desk.webp"
   },
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://timestamp-proof"
-  },
-  "stateSource": {
-    "type": "api",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": false
+    "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T01:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

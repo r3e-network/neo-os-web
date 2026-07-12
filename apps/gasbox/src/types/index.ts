@@ -1,4 +1,6 @@
 export interface MachineItem {
+  /** Contract item index. MiniAppGasBoxV2 stores items at 1..itemCount. */
+  index: number;
   name: string;
   probability: number;
   displayProbability: number;
@@ -6,6 +8,8 @@ export interface MachineItem {
   assetType: number;
   assetHash: string;
   amountRaw: number;
+  /** Exact prize amount in base units. Use this for comparisons and writes. */
+  amountBaseUnits: string;
   amountDisplay: string;
   tokenId: string;
   stockRaw: number;
@@ -29,12 +33,16 @@ export interface Machine {
   ownerHash: string;
   price: string;
   priceRaw: number;
+  /** Exact GAS pull price in base units. */
+  priceBaseUnits: string;
   itemCount: number;
   totalWeight: number;
   availableWeight: number;
   plays: number;
   revenue: string;
   revenueRaw: number;
+  /** Exact accrued GAS revenue in base units. */
+  revenueBaseUnits: string;
   sales: number;
   salesVolume: string;
   salesVolumeRaw: number;
@@ -57,10 +65,22 @@ export interface Machine {
   poolBalance: string;
   /** On-chain prize pool balance (base units). */
   poolBalanceRaw: number;
+  /** Exact total pool balance in prize-asset base units. */
+  poolBalanceBaseUnits: string;
+  /** Pool balance reserved for unsettled pulls (display). */
+  reservedPool: string;
+  /** Exact reserved pool amount in prize-asset base units. */
+  reservedPoolBaseUnits: string;
+  /** Pool balance available to new pulls or creator withdrawal (display). */
+  freePool: string;
+  /** Exact free pool amount in prize-asset base units. */
+  freePoolBaseUnits: string;
   /** Largest single item prize the pool must cover before activation (display). */
   maxPrize: string;
   /** Largest single item prize (base units). */
   maxPrizeRaw: number;
+  /** Exact largest-prize amount in prize-asset base units. */
+  maxPrizeBaseUnits: string;
   /** Whether the pool covers the max prize (the contract's activation gate). */
   poolReady: boolean;
 }

@@ -18,6 +18,7 @@ import {
   getNativePlayAreaOperationFallback,
   resolvePlayAreaOperationNetworkDefaults,
 } from "../../components/playarea/PlayAreaOperationFallbacks";
+import { isChainRelevant } from "../../components/playarea/PlayAreaFallbacks";
 import {
   HOST_PLAYFIELD_REFRESH,
   HOST_WALLET_BRIDGE_ERROR,
@@ -841,6 +842,12 @@ export default function MiniAppDetailPage({
     (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
   const mobileDockLabel = `Play ${app.name}`;
+  const showActionRail =
+    operations.length > 0 ||
+    Boolean(sharedRuntime) ||
+    Boolean(invokeFeedback) ||
+    Boolean(bridgeErrorNotice) ||
+    (isChainRelevant(app) && Boolean(networkAvailabilityReason));
   const hasClaimOnlyServerPayout = operations.some(
     isOneGateVaultPayoutOperation,
   );
@@ -947,7 +954,7 @@ export default function MiniAppDetailPage({
 
   return (
     <Layout hideFooter>
-      <div className="min-h-screen bg-[#f7f8fb] pb-28 pt-16 text-gray-900 xl:pb-6">
+      <div className="min-h-screen bg-[#faf9f7] pb-28 pt-16 text-gray-900 xl:pb-6">
         <Head>
           <title>{`${app.name} - ${BRAND.productName}`}</title>
         </Head>
@@ -955,8 +962,11 @@ export default function MiniAppDetailPage({
 
         <main className="mx-auto max-w-[1580px] px-3 py-2 sm:px-4 sm:py-3">
           <div
-            className="miniapp-stable-scroll focus-mode-layout grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]"
+            className={`miniapp-stable-scroll focus-mode-layout grid grid-cols-1 items-start gap-4 ${
+              showActionRail ? "xl:grid-cols-[minmax(0,1fr)_360px]" : "xl:grid-cols-1"
+            }`}
             data-testid="miniapp-detail-layout"
+            data-action-rail={showActionRail ? "visible" : "hidden"}
           >
             <section
               className="order-1 min-w-0 space-y-4 xl:order-none"
@@ -1024,11 +1034,12 @@ export default function MiniAppDetailPage({
               </details>
             </section>
 
-            <aside
-              className="order-2 hidden self-start space-y-3 xl:order-none xl:sticky xl:top-24 xl:block"
-              aria-label="MiniApp actions"
-              data-testid="miniapp-actions"
-            >
+            {showActionRail && (
+              <aside
+                className="order-2 hidden self-start space-y-3 xl:order-none xl:sticky xl:top-24 xl:block"
+                aria-label="MiniApp actions"
+                data-testid="miniapp-actions"
+              >
               <section className="focus-mode-action-panel overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-md shadow-gray-950/8 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -1140,7 +1151,8 @@ export default function MiniAppDetailPage({
                 runtimeDisplayValue={runtimeDisplayValue}
                 contractDomainBinding={contractDomainBinding}
               />
-            </aside>
+              </aside>
+            )}
           </div>
 
           {operations.length > 0 && (

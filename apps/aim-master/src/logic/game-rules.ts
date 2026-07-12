@@ -7,6 +7,8 @@
 
 export const ENTRY_MEMO = "miniapp-aim-master:entry";
 export const FUND_MEMO = "miniapp-aim-master:fund";
+/** Must match MiniAppAimMaster.SETTLE_GRACE_MS / getConfig(). */
+export const SETTLE_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: 0 | 1 | 2;
@@ -69,7 +71,20 @@ export function payoutFixed8ForAccuracy(
   ringsHit: number,
 ): bigint {
   const rule = ruleOf(difficulty);
-  return (rule.rewardFixed8 * BigInt(Math.min(ringsHit, rule.targetAccuracy))) / BigInt(rule.targetAccuracy);
+  const safeHits = Number.isFinite(ringsHit)
+    ? Math.max(0, Math.min(Math.floor(ringsHit), rule.targetAccuracy))
+    : 0;
+  return (rule.rewardFixed8 * BigInt(safeHits)) / BigInt(rule.targetAccuracy);
+}
+
+export function canReleaseAfterGrace(
+  deadline: number,
+  nowMs = Date.now(),
+  graceMs = SETTLE_GRACE_MS,
+): boolean {
+  if (!Number.isFinite(deadline) || deadline <= 0 || !Number.isFinite(nowMs)) return false;
+  const safeGrace = Number.isFinite(graceMs) ? Math.max(0, graceMs) : SETTLE_GRACE_MS;
+  return nowMs > deadline + safeGrace;
 }
 
 export function gasDisplay(fixed8: bigint): string {
@@ -86,7 +101,13 @@ export function formatClock(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded";
+export type GameStatus =
+  | "committed"
+  | "dealt"
+  | "solved"
+  | "expired"
+  | "refunded"
+  | "unknown";
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
@@ -98,7 +119,11 @@ export function statusOf(raw: number): GameStatus {
       return "expired";
     case 4:
       return "refunded";
+    case 5:
+      // Finalize was broadcast and the Morpheus callback is still pending.
+      // Never reinterpret this as a fresh committed game or reopen the TEE.
+      return "unknown";
     default:
-      return "committed";
+      return raw === 0 ? "committed" : "unknown";
   }
 }

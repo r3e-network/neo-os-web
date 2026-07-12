@@ -62,9 +62,10 @@ defineMiniApp({
     });
 
     // Switching to guest at the launcher resets to a clean local lobby.
-    app.mode.onChange((next) => {
+    const stopModeSync = app.mode.onChange((next) => {
       mode.set(next);
       if (next === "guest") void guest.enter();
+      else guest.dispose();
     });
 
     // app.actions.register already guards every handler with the platform
@@ -77,6 +78,7 @@ defineMiniApp({
     app.actions.register("placeBet", async () => {
       if (app.mode.isGuest()) {
         const result = await guest.placeBet();
+        if (!result.outcome) return;
         if (result.won) app.notify.success("youWon");
         else app.notify.info("youLost");
         return;
@@ -146,6 +148,7 @@ defineMiniApp({
         revealFailed: coinFlip.revealFailed,
         gameHistory: coinFlip.gameHistory,
         bankrollBase: coinFlip.bankrollBase,
+        bankrollAvailable: coinFlip.bankrollAvailable,
         creditBase: coinFlip.creditBase,
         maxPayableBet: coinFlip.maxPayableBet,
         formattedMaxPayable: coinFlip.formattedMaxPayable,
@@ -161,6 +164,10 @@ defineMiniApp({
           return;
         }
         await coinFlip.loadAll();
+      },
+      cleanup: () => {
+        stopModeSync();
+        guest.dispose();
       },
     };
   },

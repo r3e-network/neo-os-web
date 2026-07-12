@@ -59,6 +59,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             new object[] { "MiniAppSnakeBounty", "MiniAppSnakeBounty/MiniAppSnakeBounty.cs" },
             new object[] { "MiniAppSudoku", "MiniAppSudoku/MiniAppSudoku.cs" },
             new object[] { "MiniAppTarot", "MiniAppTarot/MiniAppTarot.cs" },
+            new object[] { "MiniAppTarotVrf", "MiniAppTarotVrf/MiniAppTarotVrf.Funds.cs" },
             new object[] { "MiniAppTimeCapsule", "MiniAppTimeCapsule/MiniAppTimeCapsule.cs" },
             new object[] { "MiniAppTipJar", "MiniAppTipJar/MiniAppTipJar.cs" },
         };

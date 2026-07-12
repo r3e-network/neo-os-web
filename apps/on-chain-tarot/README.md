@@ -1,103 +1,54 @@
 # On-Chain Tarot
 
-Blockchain fortune telling with verifiable randomness
+A production-polished, Phaser 3 three-card tarot ritual. The currently published experience is local and guest-only while the wallet-funded GameFi contract is rebuilt around a verified oracle/VRF settlement path.
 
-## Overview
+## Current release
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-onchaintarot` |
-| **Category** | Gaming |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea |
+- **App ID:** `miniapp-onchaintarot`
+- **UI:** Phaser 3 ritual table with animated dealing, card reveal, three intention tokens, keyboard controls, reduced-motion support, and an accessible reading drawer
+- **Mode:** local guest reading only
+- **Randomness:** Web Crypto with rejection sampling; no predictable `Math.random()` fallback
+- **Wallet / GAS:** not requested or used
+- **Persistence:** only the local reading tally is stored; questions and card results are not published
 
-## Features
+The catalog manifest intentionally has no contract operations, payment permission, or randomness permission. The GameFi entry stays disabled instead of presenting an unverified on-chain path as production-ready.
 
-- Tarot
-- Fortune
-- Divination
+## Why GameFi is gated
 
-## Permissions
+Two testnet deployments exist, but neither is the contract/API that the production GameFi promise requires. A new local replacement and its asynchronous frontend path are complete but intentionally not published yet:
 
-| Permission | Required |
-|------------|----------|
-| Payments | ✅ Yes |
-| RNG | ✅ Yes |
-| Data Feed | ❌ No |
-| Governance | ❌ No |
+| Contract | Testnet hash | Live ABI status | Release decision |
+|---|---|---|---|
+| Legacy `MiniAppOnChainTarot` | `0x5cdf29c30727ce06696736ae0fb49abd9fd79730` | Oracle-style `requestReading` / `onOracleResult`; this is the hash historically bound to the catalog/domain | Not compatible with the current `ReadingDrawn` client flow |
+| Standalone `MiniAppTarot` | `0xb680225a1be276b03ecd7de82ea985dcc7435cec` | Deposit, `draw`, `ReadingDrawn`, refund and readback operations | Uses same-transaction `Runtime.GetRandom`, not oracle VRF |
 
-## Network Configuration
+`MiniAppTarotVrf` now implements reusable credit, Morpheus request/callback settlement,
+three distinct cards, pending persistence, terminal readback, full failure/timeout credit
+restoration, and successful-reading-only HUD counters. The Phaser table keeps real card
+backs on the desk while the Oracle is pending; it never treats request submission as a
+drawn spread. Deployment, Oracle allowlisting, reserve funding, live wallet tests, and
+manifest/domain binding remain required before `supportsGameFi` can change.
 
-### Testnet
+Both ABIs were read from Neo N3 testnet on 2026-07-11. See [TESTNET-STATUS.md](./TESTNET-STATUS.md) for the activation gate.
 
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x5cdf29c30727ce06696736ae0fb49abd9fd79730` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x5cdf29c30727ce06696736ae0fb49abd9fd79730) |
-| **Network Magic** | `894710606` |
+GameFi can be re-enabled only after a replacement deployment has all of the following:
 
-### Mainnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0xfb5d6b25c974a301e34c570dd038de8c25f3ae56` |
-| **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xfb5d6b25c974a301e34c570dd038de8c25f3ae56) |
-| **Network Magic** | `860833102` |
-
-## Integration Notes
-
-- **Funding model**: direct prepaid GAS to the MiniApp contract
-- **Randomness / reading resolution**: Morpheus Oracle
-- **Current wallet flow**: direct wallet invocation; AA/session-key optimization can be layered on later
+1. Oracle/VRF request and asynchronous settlement with a request-to-reading binding.
+2. Three distinct card indices in the 0–77 range, stored and retrievable on-chain.
+3. Correct deposit, draw, cancellation/refund, replay protection, and verified event/readback behavior.
+4. The same verified script hash in the contract registry, miniapp manifest, and `.miniapp.neo` domain.
+5. A complete testnet wallet run covering refusal, timeout, retry, settlement, recovery, and unused-credit withdrawal.
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
+npm test
 npm run build
+npm run dev
 ```
 
-## Usage
-
-### Getting a Tarot Reading
-
-1. **Connect Wallet**: Link your Neo N3 wallet to the application
-2. **Focus Your Question**: Think about what guidance you seek
-3. **Prepay the Reading Fee**: Submit GAS directly to the MiniApp contract
-4. **Draw Cards**: The smart contract draws cards using verifiable randomness
-5. **Receive Reading**: View your cards and their interpretations on-chain
-
-### Understanding Your Reading
-
-1. View drawn cards with their positions (Past, Present, Future, etc.)
-2. Read the meaning of each card as revealed by the contract
-3. Consider the combined interpretation of all cards
-4. Save or share your reading as a permanent blockchain record
-
-## How It Works
-
-On-Chain Tarot combines ancient divination with blockchain technology:
-
-1. **Verifiable Randomness**: Card draws use cryptographically secure randomness from the blockchain
-2. **Immutable Record**: Each reading is permanently recorded on Neo N3
-3. **Fair Drawing**: No one can predict or manipulate the card selection
-4. **Smart Contract Interpretation**: Card meanings are stored and interpreted on-chain
-5. **Transparent Process**: The entire drawing process is auditable and verifiable
-6. **Payment Integration**: direct prepaid GAS funds the reading request; oracle callback credit is managed separately at the contract/integration layer
-
-## Assets
-
-- **Allowed Assets**: GAS
-
+Card-source and generated-deck provenance is documented in [public/cards/ATTRIBUTION.md](./public/cards/ATTRIBUTION.md).
 
 ## License
 
-MIT License - R3E Network
+MIT License — R3E Network. Third-party card-source attribution remains subject to its recorded source terms.

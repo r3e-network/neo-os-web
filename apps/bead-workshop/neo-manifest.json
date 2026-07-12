@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-bead-workshop",
+  "name": "Bead Workshop",
+  "name_zh": "拼拼豆工坊",
+  "version": "1.0.0",
+  "description": "A bright tactile Phaser bead puzzle with 140-piece certified boards, connected-patch movement, a 14-slot tray, expressive animation, full recovery, and no wallet or chain dependency.",
+  "description_zh": "明亮温暖的 Phaser 拼豆游戏，拥有 140 颗拼豆的可解盘面、连片移动、14 格托盘、细腻动画与完整恢复能力，无需钱包或链上依赖。",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": ["puzzle", "beads", "craft", "casual", "phaser", "local"],
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "contracts": {},
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/bead-workshop/index.html",
+    "icon": "/miniapps/bead-workshop/logo.webp",
+    "banner": "/miniapps/bead-workshop/banner.webp"
+  },
+  "permissions": [],
+  "features": {
+    "stateless": false,
+    "offlineSupport": true,
+    "deeplink": "neomainapp://bead-workshop"
+  },
+  "stateSource": {
+    "type": "platform-storage"
+  },
+  "operation_panel": {
+    "title": "Bead Workshop",
+    "subtitle": "Play directly on the tactile board. No wallet, parameters, or transaction panel is needed.",
+    "operations": []
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-07-10T00:00:00Z",
+  "updatedAt": "2026-07-10T00:00:00Z"
+}

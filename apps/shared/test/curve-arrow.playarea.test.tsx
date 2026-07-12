@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import React from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="curve-arrow-phaser-host" />;
     },
@@ -61,11 +59,16 @@ function t(key: string, params?: Record<string, string | number>) {
     difficulty_easy: "Meadow Range",
     difficulty_medium: "Forest Range",
     difficulty_hard: "Summit Range",
+    diffEasyShort: "Meadow",
+    diffMediumShort: "Forest",
+    diffHardShort: "Summit",
+    difficultyTitle: "Choose a range",
     drawerTitle: "Leaderboard & rules",
     drawerTitleShort: "Rules",
     expiredBanner: "That game expired",
     fairnessShort: "TEE wall layouts stay private.",
     lobbyTitle: "Open the archery range",
+    lobbyPreviewLabel: "{difficulty} range preview, {target} targets to clear",
     networkBadge: "Neo N3",
     playingTitle: "{difficulty} game in play",
     progressionNextRoute: "Next: {difficulty}",
@@ -86,6 +89,19 @@ function t(key: string, params?: Record<string, string | number>) {
     timeUpAction: "Time is up",
     withdrawAction: "Withdraw {amount} GAS",
     wonMetric: "Won",
+    gameAriaLabel: "Curve Arrow archery game",
+    gameLoadingLabel: "Opening the sunlit archery range",
+    guestBadge: "Local play",
+    guestBestMetric: "Best",
+    guestLocalRun: "Local run",
+    guestModeLabel: "Mode",
+    guestModeLine: "A complete local archery run with no wallet or entry fee.",
+    scoreLevels: "Targets",
+    arrowsLabel: "Arrows",
+    closeDrawer: "Close rules",
+    ovEndRunBtn: "End run",
+    ovPlayAgainBtn: "Play again",
+    ovRecoverBtn: "Check run",
   };
   let value = messages[key] ?? key;
   if (params) {
@@ -164,9 +180,11 @@ describe("curve-arrow playarea (TEE mode)", () => {
     expect(getByTestId("curve-arrow-phaser-host")).toBeTruthy();
     expect(container.querySelector("form")).toBeNull();
     expect(getByText("Open the archery range")).toBeTruthy();
-    expect(getByText("Reward")).toBeTruthy();
+    expect(getByText("Targets")).toBeTruthy();
     expect(getByText("Time")).toBeTruthy();
-    expect(getByText("Won")).toBeTruthy();
+    expect(getByText("Best")).toBeTruthy();
+    expect(container.textContent).not.toContain("Reward");
+    expect(container.textContent).not.toContain("Won");
     expect(mocks.phaserGame).toHaveBeenCalledTimes(1);
   });
 
@@ -205,32 +223,58 @@ describe("curve-arrow playarea (TEE mode)", () => {
     expect(getByText("Range cleared!")).toBeTruthy();
   });
 
-  it("triggers withdraw from the in-stage drawer", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { getByRole, getByText } = render(
+  it("keeps replay and uncertain-settlement recovery keyboard accessible", () => {
+    const replayDispatch = vi.fn();
+    const replay = render(
       <PhaserPlayArea
         t={t}
-        state={state({ credit: 1.5, gameStatus: "solved" })}
+        state={state({ gameStatus: "expired" })}
+        dispatch={replayDispatch}
+      />,
+    );
+    fireEvent.click(replay.getByRole("button", { name: "Play again" }));
+    expect(replayDispatch).toHaveBeenCalledWith("returnToLobby", {});
+    replay.unmount();
+
+    const recoverDispatch = vi.fn();
+    const recovery = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ activeGameId: GAME_ID, gameStatus: "unknown" })}
+        dispatch={recoverDispatch}
+      />,
+    );
+    fireEvent.click(recovery.getByRole("button", { name: "Check run" }));
+    expect(recoverDispatch).toHaveBeenCalledWith("recoverGame", {});
+  });
+
+  it("keeps the guest drawer free of payout controls even with stale credit state", () => {
+    const dispatch = vi.fn();
+    const { getByRole, queryByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest", credit: 1.5, gameStatus: "solved" })}
         dispatch={dispatch}
       />,
     );
     fireEvent.click(getByRole("button", { name: /Rules/i }));
-    fireEvent.click(getByText("Withdraw 1.50 GAS"));
-    await waitFor(() => {
-      expect(dispatch).toHaveBeenCalledWith("withdrawWinnings", {});
-    });
+    expect(queryByText("Withdraw 1.50 GAS")).toBeNull();
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("keeps the time-up release action inside the drawer when the deadline passes", () => {
-    const { getByRole, getByText } = render(
+  it("ends a timed-out guest run without exposing premature on-chain expiry", () => {
+    const dispatch = vi.fn();
+    const { getByRole, queryByText } = render(
       <PhaserPlayArea
         t={t}
-        state={dealtState({ deadline: Date.now() - 1000 })}
-        dispatch={vi.fn()}
+        state={dealtState({ appMode: "guest", deadline: Date.now() - 1000 })}
+        dispatch={dispatch}
       />,
     );
+    fireEvent.click(getByRole("button", { name: "End run" }));
+    expect(dispatch).toHaveBeenCalledWith("submitSolution", {});
     fireEvent.click(getByRole("button", { name: /Rules/i }));
-    expect(getByText("Time is up")).toBeTruthy();
+    expect(queryByText("Release game")).toBeNull();
   });
 });
 

@@ -43,7 +43,7 @@ defineMiniApp({
 
     ctx.framework.actions.register("createProof", async (...args: unknown[]) => {
       const content = String(args[0] ?? "");
-      await proofContract.createProof(
+      return proofContract.createProof(
         content,
         (msg, type) => ctx.setStatus(msg, type === "success" ? "success" : "error"),
         () => {},
@@ -52,8 +52,16 @@ defineMiniApp({
 
     ctx.framework.actions.register("verifyProof", async (...args: unknown[]) => {
       const query = String(args[0] ?? "");
-      await proofContract.verifyProof(query);
-      reportLastMessage(proofContract.verifyError.get() ? "error" : "success");
+      const network = String(args[1] ?? "");
+      await proofContract.verifyProof(query, network);
+      const source = proofContract.verificationSource.get();
+      reportLastMessage(
+        proofContract.verifyError.get() || source === "fault"
+          ? "error"
+          : source === "local" || source === "chain"
+            ? "success"
+            : "info",
+      );
     });
 
     ctx.framework.actions.register("copyProofDigest", async (...args: unknown[]) => {
@@ -66,14 +74,22 @@ defineMiniApp({
       reportLastMessage(ok ? "success" : "error");
     });
 
+    ctx.framework.actions.register("copyAnchorTxid", async (...args: unknown[]) => {
+      const ok = await proofContract.copyAnchorTxid(Number(args[0] ?? 0));
+      reportLastMessage(ok ? "success" : "error");
+      return ok;
+    });
+
     ctx.framework.actions.register("deleteProof", async (...args: unknown[]) => {
-      await proofContract.deleteProof(Number(args[0] ?? 0));
-      reportLastMessage("success");
+      const ok = await proofContract.deleteProof(Number(args[0] ?? 0));
+      reportLastMessage(ok ? "success" : "error");
+      return ok;
     });
 
     ctx.framework.actions.register("clearProofs", async () => {
-      await proofContract.clearProofs();
-      reportLastMessage("success");
+      const ok = await proofContract.clearProofs();
+      reportLastMessage(ok ? "success" : "error");
+      return ok;
     });
 
     ctx.framework.actions.register("clearVerifyError", async () => {
@@ -81,9 +97,27 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("anchorProof", async (...args: unknown[]) => {
-      await proofContract.anchorProof(Number(args[0] ?? 0), (msg, type) =>
+      return proofContract.anchorProof(Number(args[0] ?? 0), (msg, type) =>
         ctx.setStatus(msg, type === "success" ? "success" : type === "error" ? "error" : "info"),
       );
+    });
+
+    ctx.framework.actions.register("recoverPendingAnchors", async () => {
+      const ok = await proofContract.recoverPendingAnchors();
+      reportLastMessage(ok ? "success" : "info");
+      return ok;
+    });
+
+    ctx.framework.actions.register("releasePreparingAnchor", async (...args: unknown[]) => {
+      const ok = await proofContract.releasePreparingAnchor(Number(args[0] ?? 0));
+      reportLastMessage(ok ? "success" : "error");
+      return ok;
+    });
+
+    ctx.framework.actions.register("reloadProofs", async () => {
+      const ok = await proofContract.loadProofs();
+      reportLastMessage(ok ? "info" : "error");
+      return ok;
     });
 
     return {
@@ -93,16 +127,24 @@ defineMiniApp({
         isCreating: proofContract.isCreating,
         isVerifying: proofContract.isVerifying,
         isAnchoring: proofContract.isAnchoring,
+        isRecovering: proofContract.isRecovering,
         anchoringId: proofContract.anchoringId,
+        storageState: proofContract.storageState,
         proofs: proofContract.proofs,
         verifiedProof: proofContract.verifiedProof,
+        verificationSource: proofContract.verificationSource,
         verifyError: proofContract.verifyError,
         lastMessage: proofContract.lastMessage,
         latestId,
+        network: proofContract.network,
+        pendingAnchors: proofContract.pendingCount,
+        preparingAnchors: proofContract.preparingCount,
         // Bound so wallet connect/switch re-reads address-derived state.
         address: proofContract.address,
       },
-      loadData: proofContract.loadProofs,
+      loadData: async () => {
+        await proofContract.loadProofs();
+      },
       cleanup: proofContract.stopAddressPolling,
     };
   },

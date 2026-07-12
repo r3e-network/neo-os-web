@@ -4,8 +4,8 @@
  * Exercises the two-step play that replaced the v1 single-tx flip:
  *   1. commit (deposit-then-commit via invokeWithPayment) → read betId from the
  *      Committed event + persist the pending bet.
- *   2. wait one block, then settle (permissionless) → read outcome/won/payout
- *      from the Settled event.
+ *   2. wait for the beacon, settle once (permissionless), then confirm the
+ *      exact outcome/won/payout from canonical getPendingBet state.
  * Plus the robustness paths: a failed reveal leaves the pending bet set for a
  * revealResult() retry, "already settled" reads the recorded result back, and a
  * never-claim-before-Settled guarantee.
@@ -52,6 +52,12 @@ function t(key: string, params?: Record<string, string | number>) {
     betCommitted: "Bet placed",
     commitNoBetId: "Bet placed but its id couldn't be read",
     revealPending: "Reveal not confirmed yet",
+    paidLaneUnavailable: "Paid flips are unavailable on this network",
+    pendingBetWrongNetwork: "Saved bet belongs to another network",
+    settlementVerificationFailed: "Settlement verification failed",
+    commitIdentityMismatch: "Commit identity mismatch",
+    withdrawVerificationFailed: "Withdrawal verification failed",
+    balanceReadUnavailable: "Prepaid balance unavailable",
   };
   let out = messages[key] ?? key;
   if (params) {
@@ -62,14 +68,29 @@ function t(key: string, params?: Record<string, string | number>) {
   return out;
 }
 
-/** Build a Committed(betId, player, choice, commitIndex) event payload. */
-function committedEvent(betId: number, choice: number, commitIndex = 100) {
+/** Build a Committed(betId, player, choice, amount, commitIndex) event payload. */
+function committedEvent(
+  betId: number,
+  choice: number,
+  amount = ONE_GAS,
+  commitIndex = 100,
+) {
   return {
     state: [
       { type: "Integer", value: String(betId) },
       { type: "Hash160", value: PLAYER_HASH },
       { type: "Integer", value: String(choice) },
+      { type: "Integer", value: amount },
       { type: "Integer", value: String(commitIndex) },
+    ],
+  };
+}
+
+function creditWithdrawnEvent(amount: string) {
+  return {
+    state: [
+      { type: "Hash160", value: PLAYER_HASH },
+      { type: "Integer", value: amount },
     ],
   };
 }
@@ -96,6 +117,7 @@ function settledEvent(opts: {
 
 interface MakeDepsOpts {
   credit?: string;
+  creditReadFault?: boolean;
   bankroll?: string;
   freeBankroll?: string;
   // commit controls
@@ -103,6 +125,7 @@ interface MakeDepsOpts {
   commitDepositConfirmed?: boolean; // throw DepositConfirmedActionFailedError
   betId?: number;
   emitCommittedEvent?: boolean;
+  committedEvents?: unknown[];
   // settle controls
   outcome?: number;
   won?: boolean;
@@ -110,12 +133,19 @@ interface MakeDepsOpts {
   settleFault?: string; // when set, settle() throws this message every attempt
   emitSettledEvent?: boolean;
   pendingBetRecord?: Record<string, unknown> | null; // getPendingBet fixture
+  network?: string;
+  contract?: string;
 }
 
 function makeDeps(opts: MakeDepsOpts = {}) {
   const emitCommitted = opts.emitCommittedEvent !== false;
   const emitSettled = opts.emitSettledEvent !== false;
   const betId = opts.betId ?? 42;
+  let creditValue = opts.credit ?? "0";
+  let committedChoice = 0;
+  let committedAmount = ONE_GAS;
+  let settledOnChain = false;
+  let settledBetId = String(betId);
 
   const invokeWithPayment = vi.fn(
     async (
@@ -123,7 +153,7 @@ function makeDeps(opts: MakeDepsOpts = {}) {
       memo: string,
       operation: string,
       args: ContractArg[],
-      options?: { waitForEvent?: string },
+      options?: { waitForEvent?: string; onTransactionSent?: (txid: string) => void },
     ): Promise<TxResult> => {
       void amount;
       void memo;
@@ -132,62 +162,109 @@ function makeDeps(opts: MakeDepsOpts = {}) {
         throw new DepositConfirmedActionFailedError(operation, "0xdeposit", new Error("commit reverted"));
       }
       if (opts.commitFault) throw new Error(opts.commitFault);
+      committedChoice = Number(args[1]?.value ?? 0);
+      committedAmount = String(args[2]?.value ?? ONE_GAS);
+      options?.onTransactionSent?.("0xcommit");
       const event =
         emitCommitted && options?.waitForEvent === "Committed"
-          ? committedEvent(betId, Number(args[1]?.value ?? 0))
+          ? committedEvent(betId, committedChoice, committedAmount)
           : undefined;
       return { txid: "0xcommit", event, success: true };
     },
   );
 
   const invoke = vi.fn(
-    async (op: string, args: ContractArg[], options?: { waitForEvent?: string }): Promise<TxResult> => {
+    async (
+      op: string,
+      args: ContractArg[],
+      options?: { waitForEvent?: string; onTransactionSent?: (txid: string) => void },
+    ): Promise<TxResult> => {
+      if (op === "commit") {
+        if (opts.commitFault) throw new Error(opts.commitFault);
+        committedChoice = Number(args[1]?.value ?? 0);
+        committedAmount = String(args[2]?.value ?? ONE_GAS);
+        options?.onTransactionSent?.("0xcredit-commit");
+        const event =
+          emitCommitted && options?.waitForEvent === "Committed"
+            ? committedEvent(betId, committedChoice, committedAmount)
+            : undefined;
+        return { txid: "0xcredit-commit", event, success: true };
+      }
       if (op === "settle") {
         if (opts.settleFault) throw new Error(opts.settleFault);
-        const choiceInt = 0; // settle doesn't carry choice; outcome drives it
-        void choiceInt;
+        settledBetId = String(args[0]?.value ?? betId);
         const outcome = opts.outcome ?? 0;
-        const won = opts.won ?? false;
+        const won = opts.won ?? outcome === committedChoice;
         const event =
           emitSettled && options?.waitForEvent === "Settled"
             ? settledEvent({
                 betId: Number(args[0]?.value ?? betId),
-                choice: outcome, // not used by the reader
+                choice: committedChoice,
                 outcome,
                 won,
                 payout: opts.payout ?? (won ? "200000000" : "0"),
               })
             : undefined;
+        settledOnChain = true;
         return { txid: "0xsettle", event, success: true };
       }
-      if (op === "withdraw") return { txid: "0xwithdraw", success: true };
+      if (op === "withdraw") {
+        const amount = creditValue;
+        creditValue = "0";
+        return {
+          txid: "0xwithdraw",
+          event: options?.waitForEvent === "CreditWithdrawn"
+            ? creditWithdrawnEvent(amount)
+            : undefined,
+          success: true,
+        };
+      }
       return { txid: "0xtx", success: true };
     },
   );
 
   const read = vi.fn(async (op: string, args?: ContractArg[]): Promise<unknown> => {
-    if (op === "creditOf") return opts.credit ?? "0";
+    if (op === "creditOf") {
+      if (opts.creditReadFault) throw new Error("credit index unavailable");
+      return creditValue;
+    }
     if (op === "bankroll") return opts.bankroll ?? "100000000000";
     if (op === "freeBankroll") return opts.freeBankroll ?? opts.bankroll ?? "100000000000";
     if (op === "getStats") return { wins: "0", losses: "0", totalWon: "0" };
-    if (op === "playerGameCount") return "0";
-    if (op === "getPlayerGames") return [];
-    if (op === "getGame") return null;
+    if (op === "playerBetCount") return "0";
+    if (op === "getPlayerBets") return [];
     if (op === "getPendingBet") {
       void args;
-      return opts.pendingBetRecord ?? null;
+      if (opts.pendingBetRecord !== undefined) return opts.pendingBetRecord;
+      if (!settledOnChain) return null;
+      const outcome = opts.outcome ?? 0;
+      const won = opts.won ?? outcome === committedChoice;
+      return {
+        id: settledBetId,
+        player: PLAYER_HASH,
+        choice: String(committedChoice),
+        wager: committedAmount,
+        settled: true,
+        outcome: String(outcome),
+        won,
+        payout: opts.payout ?? (won ? (BigInt(committedAmount) * 2n).toString() : "0"),
+      };
     }
     return {};
   });
 
   const chain = {
-    contractAddress: { get: () => CONTRACT },
+    contractAddress: { get: () => opts.contract ?? CONTRACT },
     address: { get: () => PLAYER },
     ensureWallet: vi.fn(async () => PLAYER),
     invoke,
     invokeWithPayment,
     read,
     readArray: vi.fn(async (): Promise<unknown[]> => []),
+    listEvents: vi.fn(async (eventName: string): Promise<unknown[]> =>
+      eventName === "Committed" ? opts.committedEvents ?? [] : [],
+    ),
+    detectNetwork: vi.fn(async () => opts.network ?? "testnet"),
   } as unknown as ChainService;
 
   const app = createMiniAppFramework(
@@ -201,12 +278,15 @@ function makeDeps(opts: MakeDepsOpts = {}) {
     invoke,
     invokeWithPayment,
     read,
+    markSettled: () => {
+      settledOnChain = true;
+    },
   };
 }
 
 function setup(opts: MakeDepsOpts = {}) {
   const deps = makeDeps(opts);
-  const flip = useCoinFlip({ app: deps.app, t });
+  const flip = useCoinFlip({ app: deps.app, t, paidLaneEnabled: true });
   flip.setAddress(PLAYER);
   return { flip, ...deps };
 }
@@ -261,7 +341,7 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     vi.clearAllMocks();
   });
 
-  it("commits (deposit-then-commit) reading betId from Committed, then settles reading the win from Settled", async () => {
+  it("commits with an exact Committed identity, settles once, then confirms the win from canonical state", async () => {
     const { flip, invokeWithPayment, invoke, read } = setup({
       betId: 7,
       outcome: 0, // heads
@@ -296,7 +376,8 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     expect(settleCall![1]).toEqual([{ type: "Integer", value: "7" }]);
     expect(settleCall![2]).toMatchObject({ waitForEvent: "Settled" });
 
-    // -- Result is read from Settled, not commit --
+    // -- Result is read from the exact persisted bet, never the event alone. --
+    expect(read.mock.calls.some((c) => c[0] === "getPendingBet")).toBe(true);
     expect(result).toEqual({ won: true, outcome: "HEADS" });
     expect(flip.result.get()).toEqual({ won: true, outcome: "HEADS" });
     expect(flip.displayOutcome.get()).toBe("heads");
@@ -308,6 +389,39 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     expect(flip.hasPendingBet.get()).toBe(false);
     expect(flip.isFlipping.get()).toBe(false);
     expect(flip.revealing.get()).toBe(false);
+  });
+
+  it("tops up only the shortfall beyond reusable prepaid credit", async () => {
+    const { flip, invokeWithPayment } = setup({
+      credit: "40000000",
+      betId: 17,
+    });
+    flip.setBetAmount("1");
+
+    await runWithTimers(flip.placeBet());
+
+    expect(invokeWithPayment).toHaveBeenCalledWith(
+      "60000000",
+      BET_MEMO,
+      "commit",
+      expect.any(Array),
+      expect.objectContaining({ waitForEvent: "Committed" }),
+    );
+  });
+
+  it("commits without another transfer when prepaid credit covers the wager", async () => {
+    const { flip, invokeWithPayment, invoke } = setup({
+      credit: ONE_GAS,
+      betId: 18,
+    });
+    flip.setBetAmount("1");
+
+    await runWithTimers(flip.placeBet());
+
+    expect(invokeWithPayment).not.toHaveBeenCalled();
+    expect(callFor(invoke, "commit")?.[2]).toMatchObject({
+      waitForEvent: "Committed",
+    });
   });
 
   it("maps tails to choice 1 and reveals a loss with no payout", async () => {
@@ -348,17 +462,76 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     );
 
     // The committed bet is retained for a manual retry — never claimed lost.
-    expect(flip.pendingBet.get()).toEqual({ betId: "99", choice: "heads", amount: 1 });
+    expect(flip.pendingBet.get()).toMatchObject({
+      betId: "99",
+      txid: "0xcommit",
+      choice: "heads",
+      amount: 1,
+      amountFixed8: ONE_GAS,
+    });
     expect(flip.hasPendingBet.get()).toBe(true);
     expect(flip.revealFailed.get()).toBe(true);
     expect(flip.result.get()).toBeNull();
     expect(flip.showWinOverlay.get()).toBe(false);
   });
 
+  it("persists the exact commit tx before event indexing and recovers its bet id", async () => {
+    const exactCommitted = {
+      ...committedEvent(73, 0),
+      tx_hash: "0xcommit",
+    };
+    const { flip, chain } = setup({
+      emitCommittedEvent: false,
+      committedEvents: [
+        { ...committedEvent(999, 0), tx_hash: "0xother" },
+        exactCommitted,
+      ],
+      outcome: 1,
+      won: false,
+    });
+    flip.setBetAmount("1");
+
+    await expect(flip.placeBet()).rejects.toThrow(
+      "Bet placed but its id couldn't be read",
+    );
+    expect(flip.pendingBet.get()).toMatchObject({
+      betId: "",
+      txid: "0xcommit",
+      player: PLAYER_HASH,
+      contract: CONTRACT,
+      amountFixed8: ONE_GAS,
+    });
+
+    const result = await runWithTimers(flip.revealResult());
+    expect(result).toEqual({ won: false, outcome: "TAILS" });
+    expect(flip.pendingBet.get()).toBeNull();
+    expect(chain.listEvents).toHaveBeenCalledWith("Committed", { limit: 100 });
+  });
+
+  it("never substitutes another transaction while recovering a missing bet id", async () => {
+    const { flip } = setup({
+      emitCommittedEvent: false,
+      committedEvents: [
+        { ...committedEvent(999, 0), tx_hash: "0xother" },
+      ],
+    });
+    flip.setBetAmount("1");
+
+    await expect(flip.placeBet()).rejects.toThrow();
+    await expect(flip.revealResult()).rejects.toThrow(
+      "Bet placed but its id couldn't be read",
+    );
+    expect(flip.pendingBet.get()).toMatchObject({
+      betId: "",
+      txid: "0xcommit",
+    });
+    expect(flip.result.get()).toBeNull();
+  });
+
   it("revealResult() retries settle for the persisted pending bet and resolves the outcome", async () => {
     // First placeBet leaves a failed reveal; then a fresh, succeeding settle path.
     const deps = makeDeps({ betId: 55, settleFault: "reveal block not reached" });
-    const flip = useCoinFlip({ app: deps.app, t });
+    const flip = useCoinFlip({ app: deps.app, t, paidLaneEnabled: true });
     flip.setAddress(PLAYER);
     flip.setBetAmount("1");
     await expect(runWithTimers(flip.placeBet())).rejects.toThrow();
@@ -367,6 +540,7 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     // Now make settle succeed (win) and retry via revealResult().
     deps.invoke.mockImplementation(async (op: string, args: ContractArg[], options?: { waitForEvent?: string }) => {
       if (op === "settle") {
+        deps.markSettled();
         const event =
           options?.waitForEvent === "Settled"
             ? settledEvent({ betId: Number(args[0]?.value ?? 55), choice: 0, outcome: 0, won: true, payout: "200000000" })
@@ -387,8 +561,11 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
       betId: 12,
       settleFault: "bet already settled",
       pendingBetRecord: {
+        id: "12",
+        player: PLAYER_HASH,
         settled: true,
         choice: "1",
+        wager: "500000000",
         outcome: "1", // tails
         won: true,
         payout: "1000000000", // 10 GAS
@@ -417,6 +594,34 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     expect(read.mock.calls.some((c) => c[0] === "freeBankroll")).toBe(true);
     expect(flip.isFlipping.get()).toBe(false);
     expect(flip.pendingBet.get()).toBeNull();
+  });
+
+  it("keeps an empty or unreadable house table paused before any wallet payment", async () => {
+    const { flip, invokeWithPayment, invoke } = setup({
+      bankroll: "0",
+      freeBankroll: "0",
+    });
+
+    await flip.loadAll();
+    expect(flip.bankrollLoaded.get()).toBe(true);
+    expect(flip.bankrollAvailable.get()).toBe(false);
+    expect(flip.maxPayableBet.get()).toBe(0);
+    expect(flip.canBet.get()).toBe(false);
+
+    flip.setBetAmount("0.05");
+    await expect(flip.placeBet()).rejects.toThrow("House bankroll too low");
+    expect(invokeWithPayment).not.toHaveBeenCalled();
+    expect(callFor(invoke, "commit")).toBeUndefined();
+  });
+
+  it("does not send a wager when the reusable-credit read is unavailable", async () => {
+    const { flip, invokeWithPayment, invoke } = setup({ creditReadFault: true });
+
+    await expect(flip.placeBet()).rejects.toThrow("Prepaid balance unavailable");
+
+    expect(invokeWithPayment).not.toHaveBeenCalled();
+    expect(callFor(invoke, "commit")).toBeUndefined();
+    expect(flip.creditLoaded.get()).toBe(false);
   });
 
   it("notes the prepaid credit as reusable when commit reverts after the deposit", async () => {
@@ -498,6 +703,102 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     expect(withdrawCall![1]).toEqual([{ type: "Hash160", value: PLAYER_HASH }]);
     expect(withdrawCall![2]).toMatchObject({ waitForEvent: "CreditWithdrawn" });
     expect(read.mock.calls.filter((c) => c[0] === "creditOf").length).toBeGreaterThanOrEqual(2);
+    expect(flip.creditBase.get()).toBe(0n);
+  });
+
+  it("fails closed on an unvalidated network before any wallet mutation", async () => {
+    const { flip, invoke, invokeWithPayment, chain } = setup({ network: "mainnet" });
+
+    await expect(flip.placeBet()).rejects.toThrow(
+      "Paid flips are unavailable on this network",
+    );
+
+    expect(invoke).not.toHaveBeenCalled();
+    expect(invokeWithPayment).not.toHaveBeenCalled();
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(flip.paidRuntimeValidated.get()).toBe(false);
+  });
+
+  it("uses the deployed V2 history ABI and settled bet snapshots", async () => {
+    const { flip, read } = setup();
+    read.mockImplementation(async (op: string): Promise<unknown> => {
+      if (op === "bankroll" || op === "freeBankroll") return "100000000000";
+      if (op === "creditOf") return "0";
+      if (op === "getStats") return { wins: "1", losses: "0", totalWon: ONE_GAS };
+      if (op === "playerBetCount") return "1";
+      if (op === "getPlayerBets") return ["9"];
+      if (op === "getPendingBet") {
+        return {
+          id: "9",
+          player: PLAYER_HASH,
+          choice: "0",
+          wager: ONE_GAS,
+          settled: true,
+          outcome: "0",
+          won: true,
+          payout: "200000000",
+          settleTime: "1778385591875",
+        };
+      }
+      return null;
+    });
+
+    await flip.loadAll();
+
+    expect(read.mock.calls.some((call) => call[0] === "playerBetCount")).toBe(true);
+    expect(read.mock.calls.some((call) => call[0] === "getPlayerBets")).toBe(true);
+    expect(read.mock.calls.some((call) => call[0] === "playerGameCount")).toBe(false);
+    expect(flip.gameHistory.get()).toEqual([
+      expect.objectContaining({
+        betId: "9",
+        choice: "heads",
+        outcome: "heads",
+        won: true,
+        amount: 1,
+        payout: 2,
+      }),
+    ]);
+  });
+
+  it("never applies a settlement event that belongs to another bet without canonical state", async () => {
+    const { flip, invoke } = setup({ betId: 31 });
+    invoke.mockImplementation(async (op: string, _args: ContractArg[], options?: { waitForEvent?: string }) => {
+      if (op === "settle") {
+        return {
+          txid: "0xwrong-settle",
+          event: options?.waitForEvent === "Settled"
+            ? settledEvent({ betId: 999, choice: 0, outcome: 0, won: true, payout: "200000000" })
+            : undefined,
+          success: true,
+        };
+      }
+      return { txid: "0xtx", success: true };
+    });
+
+    await expect(runWithTimers(flip.placeBet())).rejects.toThrow(
+      "The reveal didn't land",
+    );
+    expect(flip.result.get()).toBeNull();
+    expect(flip.pendingBet.get()).toMatchObject({ betId: "31" });
+    expect(flip.revealFailed.get()).toBe(true);
+  });
+
+  it("keeps a persisted bet isolated from a different contract", async () => {
+    const { flip, invoke } = setup();
+    flip.pendingBet.set({
+      betId: "81",
+      choice: "heads",
+      amount: 1,
+      contract: "0x0000000000000000000000000000000000000081",
+      network: "neo-n3-testnet",
+      amountFixed8: ONE_GAS,
+    });
+
+    await expect(flip.revealResult()).rejects.toThrow(
+      "Saved bet belongs to another network",
+    );
+    expect(callFor(invoke, "settle")).toBeUndefined();
+    expect(flip.pendingBet.get()).not.toBeNull();
   });
 
   it("never claims a win/loss before the Settled event (no event => keeps retrying then fails to a retryable state)", async () => {
@@ -511,6 +812,30 @@ describe("useCoinFlip V2 (commit/reveal)", () => {
     expect(flip.result.get()).toBeNull();
     expect(flip.showWinOverlay.get()).toBe(false);
     expect(flip.hasPendingBet.get()).toBe(true); // retained for retry
+    expect(flip.revealFailed.get()).toBe(true);
+  });
+
+  it("rejects a plausible Settled event when canonical payout arithmetic is invalid", async () => {
+    const { flip } = setup({
+      betId: 88,
+      outcome: 0,
+      won: true,
+      payout: "200000000",
+      pendingBetRecord: {
+        id: "88",
+        player: PLAYER_HASH,
+        choice: "0",
+        wager: ONE_GAS,
+        settled: true,
+        outcome: "0",
+        won: true,
+        payout: "199999999",
+      },
+    });
+
+    await expect(runWithTimers(flip.placeBet())).rejects.toThrow();
+    expect(flip.result.get()).toBeNull();
+    expect(flip.pendingBet.get()).toMatchObject({ betId: "88" });
     expect(flip.revealFailed.get()).toBe(true);
   });
 });

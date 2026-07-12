@@ -11,6 +11,8 @@ export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
 export const MAX_MOVES = 2000;
+/** Must match MiniAppGame2048.SETTLE_GRACE_MS; refreshed from getConfig in GameFi mode. */
+export const SETTLEMENT_GRACE_MS = 600_000;
 
 export type Difficulty = 0 | 1 | 2;
 
@@ -94,7 +96,27 @@ export function formatClock(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded";
+export function releaseAtOf(deadline: unknown, graceMs = SETTLEMENT_GRACE_MS): number {
+  const safeDeadline = Number(deadline);
+  const safeGrace = Number(graceMs);
+  if (!Number.isFinite(safeDeadline) || safeDeadline <= 0) return 0;
+  return safeDeadline + (
+    Number.isFinite(safeGrace) && safeGrace >= 0
+      ? safeGrace
+      : SETTLEMENT_GRACE_MS
+  );
+}
+
+export function canReleaseExpiredGame(
+  deadline: unknown,
+  graceMs = SETTLEMENT_GRACE_MS,
+  now = Date.now(),
+): boolean {
+  const releaseAt = releaseAtOf(deadline, graceMs);
+  return releaseAt > 0 && now > releaseAt;
+}
+
+export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded" | "unknown";
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
@@ -106,6 +128,8 @@ export function statusOf(raw: number): GameStatus {
       return "expired";
     case 4:
       return "refunded";
+    case 5:
+      return "unknown";
     default:
       return "committed";
   }

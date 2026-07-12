@@ -1,6 +1,5 @@
 /**
- * ZhuaDaScene — Three.js + cannon-es physics scene for Catch the Goose (B-class
- * physics-extraction edition).
+ * ZhuaDaScene — Three.js + cannon-es physics scene for Goose Basket Shuffle.
  *
  * The mechanic (per the community Three.js + cannon-es reimplementation):
  *   - Low-poly items drop into an open-top box and pile up under physics.
@@ -24,8 +23,11 @@ import * as THREE from "three";
 import {
   Body,
   Box,
+  ContactMaterial,
   Cylinder,
+  Material as CannonMaterial,
   Plane,
+  Quaternion as CannonQuaternion,
   SAPBroadphase,
   Sphere,
   Vec3,
@@ -36,30 +38,60 @@ import {
 import { GameBridge } from "@framework/phaser";
 import type { GameState } from "@framework/phaser/types";
 import {
-  ITEM_DEFS,
   TRAY_SLOTS,
-  type GeometryKind,
-  type ItemDef,
+  type ExtractReceipt,
   type ItemInstance,
 } from "../logic/engine-zhuada";
-import { buildGoose, buildModelMesh } from "./models";
+import { buildGoose, buildThemeModelMesh } from "./models";
 import { pickItemAt } from "./pick";
 import { sound } from "../logic/sound";
 import { haptics } from "../logic/haptics";
-import { tuneGravity } from "../logic/game-rules";
+import { specOf, tuneGravity } from "../logic/game-rules";
+import { computeHintPlan } from "../logic/hint-plan";
 import { sceneOfLevel } from "../logic/scenes";
+import { DEFAULT_THEME_ID, themeItem, themeOf, type GameThemeId } from "../logic/themes";
+import { shakeDynamics } from "../logic/shake-dynamics";
+import {
+  TRAY_ENTRY_MOTION_MS,
+  TRAY_MOTION_TIMINGS,
+} from "../logic/tray-motion";
+import {
+  SURFACE_PHYSICS,
+  physicsProfileOf,
+  type CollisionShapeSpec,
+  type ItemPhysicsProfile,
+  type PhysicsSurface,
+} from "./physics-profiles";
+import { disposeObject } from "./scene-resources";
+import { SCENE_MOTION } from "./scene-motion";
+import { duplicatePickGuardUntil } from "./pick-lock";
 
 // Logical scene size (CSS pixels of the canvas host on desktop).
 const SCENE_W = 400;
 const SCENE_H = 580;
 
-// Camera framing — we look slightly down into the box.
+// Camera framing — the reference game is an almost orthogonal top view. A
+// shallow perspective remains so cylindrical and long objects still read 3D.
 const BOX_HALF = 3.0; // half-extent of the box interior (x and z)
-const BOX_HEIGHT = 4.2; // wall height
-const DROP_TOP = BOX_HEIGHT + 5.5;
+const BOX_HEIGHT = 0.82; // shallow visible wall; collision walls remain infinite
+
+const CONTAINER_TEXTURE_CACHE = new Map<GameThemeId, THREE.Texture>();
+
+function containerTexture(themeId: GameThemeId): THREE.Texture {
+  const cached = CONTAINER_TEXTURE_CACHE.get(themeId);
+  if (cached) return cached;
+  const texture = new THREE.TextureLoader().load(`./art/container-${themeId}.webp`);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(3.2, 2.4);
+  texture.anisotropy = 4;
+  texture.userData.sharedAsset = true;
+  CONTAINER_TEXTURE_CACHE.set(themeId, texture);
+  return texture;
+}
 
 const C = {
-  bg: 0xf7f3ec,
   boxFloor: 0xece4d6,
   boxWall: 0xf3ede2,
   boxEdge: 0x16c784,
@@ -81,6 +113,10 @@ interface ItemVisual {
    * against double-taps) until the visual is removed after the tray fly.
    */
   extracting: boolean;
+  /** True once the accepted visual has started its one and only tray flight. */
+  flying: boolean;
+  /** Production model scale restored after a rejected full-tray pick. */
+  baseScale: number;
   /** when true the body is asleep / not yet spawned. */
   spawned: boolean;
 }
@@ -99,13 +135,18 @@ export class ZhuaDaScene {
 
   private itemVisuals = new Map<number, ItemVisual>();
   private boxMeshes: THREE.Object3D[] = [];
+  /** Container + physical models tilt together during the pan-toss gesture. */
+  private playfieldGroup!: THREE.Group;
+  private containerGroup!: THREE.Group;
   // Themed pen materials + lights (retinted per scene, see applyTheme).
   private floorMat: THREE.MeshStandardMaterial | null = null;
   private wallMat: THREE.MeshStandardMaterial | null = null;
   private rimMat: THREE.MeshStandardMaterial | null = null;
   private hemiLight: THREE.HemisphereLight | null = null;
+  private keyLight: THREE.DirectionalLight | null = null;
   /** Scene id currently painted (-1 = default palette, forces first apply). */
   private themedScene = -1;
+  private themedGameTheme: GameThemeId | "" = "";
   private trayGroup!: THREE.Group;
   private traySlots: (THREE.Group | null)[] = new Array(TRAY_SLOTS).fill(null);
   private overlayGroup!: THREE.Group;
@@ -114,33 +155,85 @@ export class ZhuaDaScene {
   private trayKinds: (number | null)[] = Array(TRAY_SLOTS).fill(null);
   private gameStatus = "idle";
   private level = 1;
+  private themeId: GameThemeId = DEFAULT_THEME_ID;
+  private lastDealNonce = -1;
   private lastShuffleNonce = 0;
   private lastHintNonce = 0;
   private lastShakeNonce = 0;
+  private lastExtractReceiptNonce = 0;
+  /** Tiny same-item duplicate-tap guard; different items remain rapid-pickable. */
+  private duplicatePickGuardUntil = 0;
+  private acceptedTraySlots = new Map<number, number>();
+  private pendingHintKind: number | null = null;
+  /** Ids currently mid hint-pulse, so a group + a pending pulse never fight. */
+  private hintPulsing = new Set<number>();
+  private pendingShakeStrength: number | null = null;
   /** Camera rest position — the shake offset oscillates around this. */
   private cameraBase = new THREE.Vector3();
   /** Wall-clock start of the current camera micro-shake (0 = idle). */
   private cameraShakeT0 = 0;
+  private cameraShakeStrength = 1;
+  private panShakeT0 = 0;
+  private panShakeStrength = 1;
   /** Last clearedFx pulse consumed (dedupes repeated state pushes). */
   private lastClearedFx: number[] = [];
-  /** Why the current loss happened ("timeout" | "trayFull") — drives the stamp. */
-  private failReason = "";
   private spawnQueue: ItemInstance[] = [];
   private spawnTimer = 0;
   private boxHalf = BOX_HALF;
   private boxHeight = BOX_HEIGHT;
+  private containerPhysicsMaterial!: CannonMaterial;
+  private physicsMaterials = new Map<PhysicsSurface, CannonMaterial>();
+  private mobileQuality = false;
 
   private rafId = 0;
+  private paused = false;
+  private lastRafAt = 0;
+  private frameAccumulatorMs = 0;
   private reducedMotion = false;
   private unsubState: (() => void) | null = null;
   private unsubReady: (() => void) | null = null;
   private unsubError: (() => void) | null = null;
   private unsubDestroy: (() => void) | null = null;
   private disposed = false;
+  /** Last one-second production QA renderer sample (QA build only). */
+  private lastDeviceQaTelemetryAt = 0;
+  /** Invalidates every short-lived rAF effect across retry/theme/unmount. */
+  private animationEpoch = 0;
+  /** Invalidates only overlay particles/goose beats when overlays are replaced. */
+  private overlayEpoch = 0;
 
   // ── ThreeSceneController contract ──────────────────────────────────────────
 
   mount(host: HTMLElement, bridge: GameBridge): void {
+    // React StrictMode intentionally mounts, unmounts and remounts once in dev.
+    // Re-arm the reusable controller so the second mount owns a live rAF loop.
+    this.disposed = false;
+    this.paused = false;
+    this.lastRafAt = 0;
+    this.frameAccumulatorMs = 0;
+    this.clock = new THREE.Clock();
+    this.itemVisuals.clear();
+    this.acceptedTraySlots.clear();
+    this.pendingHintKind = null;
+    this.pendingShakeStrength = null;
+    this.lastDeviceQaTelemetryAt = 0;
+    // The controller instance is intentionally reused across StrictMode's
+    // mount/unmount probe. Reset every reconciliation cache so the bridge's
+    // current snapshot is treated as authoritative on the second mount.
+    this.logicalItems = [];
+    this.trayKinds = Array(TRAY_SLOTS).fill(null);
+    this.gameStatus = "__mount__";
+    this.level = 1;
+    this.themeId = DEFAULT_THEME_ID;
+    this.lastDealNonce = -1;
+    this.lastShuffleNonce = 0;
+    this.lastHintNonce = 0;
+    this.lastShakeNonce = 0;
+    this.lastExtractReceiptNonce = 0;
+    this.duplicatePickGuardUntil = 0;
+    this.lastClearedFx = [];
+    this.themedScene = -1;
+    this.themedGameTheme = "";
     this.host = host;
     this.bridge = bridge;
 
@@ -151,31 +244,53 @@ export class ZhuaDaScene {
     // Renderer sized to the host element (CSS pixels).
     const w = host.clientWidth || SCENE_W;
     const h = host.clientHeight || SCENE_H;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.mobileQuality = w <= 760 || (window.matchMedia?.("(pointer: coarse)").matches ?? false);
+    const rendererOptions: THREE.WebGLRendererParameters = {
+      antialias: true,
+      alpha: true,
+      premultipliedAlpha: false,
+      powerPreference: "high-performance",
+      stencil: false,
+    };
+    this.renderer = new THREE.WebGLRenderer({
+      ...rendererOptions,
+      // The scene never uses stencil operations; avoiding that attachment
+      // lowers tile-memory pressure on mobile GPUs without changing visuals.
+    });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.mobileQuality ? 1.5 : 2));
     // updateStyle=true: the canvas MUST get explicit CSS width/height, or on
     // dpr>=2 devices it lays out at its attribute size (2x the host, clipped
     // to a magnified top-left quadrant).
     this.renderer.setSize(w, h, true);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.setClearColor(0x000000, 0);
     host.appendChild(this.renderer.domElement);
     this.renderer.domElement.style.touchAction = "none";
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(C.bg);
+    this.scene.background = null;
+    this.playfieldGroup = new THREE.Group();
+    this.scene.add(this.playfieldGroup);
+    this.containerGroup = new THREE.Group();
+    this.playfieldGroup.add(this.containerGroup);
 
-    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    this.camera.position.set(0, BOX_HEIGHT + 4.6, BOX_HEIGHT + 5.2);
-    this.camera.lookAt(0, BOX_HEIGHT * 0.35, 0);
+    this.camera = new THREE.PerspectiveCamera(34, w / h, 0.1, 100);
+    this.camera.position.set(0, 15, 1.15);
+    this.camera.lookAt(0, 0.58, 0);
     this.cameraBase.copy(this.camera.position);
 
     this.setupLights();
     this.setupWorld();
-    this.buildBox(boxHalfFromBoxHeight(BOX_HEIGHT), BOX_HEIGHT);
+    const initial = penDimensions(1);
+    this.buildBox(initial.half, initial.height, this.themeId);
+    this.frameCamera(initial.half, initial.height);
     this.buildTray();
     this.buildOverlay();
-    this.applyTheme(this.level);
+    this.applyTheme(this.level, this.themeId);
 
     // Bridge wiring.
     this.unsubState = bridge.on("state", (s) => this.applyState(s as GameState));
@@ -204,9 +319,15 @@ export class ZhuaDaScene {
     this.applyState(state);
   }
 
+  pause(): void {
+    this.paused = true;
+  }
+
   unmount(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.animationEpoch += 1;
+    this.overlayEpoch += 1;
     cancelAnimationFrame(this.rafId);
     this.renderer?.domElement.removeEventListener("pointerdown", this.onPointerDown);
     document.removeEventListener("visibilitychange", this.onVisibilityChange);
@@ -222,18 +343,22 @@ export class ZhuaDaScene {
       this.host?.removeChild(this.renderer.domElement);
     }
     this.itemVisuals.clear();
+    this.acceptedTraySlots.clear();
+    this.pendingHintKind = null;
   }
 
   // ── Setup ──────────────────────────────────────────────────────────────────
 
   private setupLights(): void {
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xe7d9c4, 0.9);
+    const hemi = new THREE.HemisphereLight(0xfffbef, 0xd4b995, 1.22);
     this.hemiLight = hemi;
     this.scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xffffff, 1.1);
-    key.position.set(4, 12, 6);
+    const key = new THREE.DirectionalLight(0xfff7e8, 2.15);
+    this.keyLight = key;
+    key.position.set(-4.5, 13, 5.5);
     key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    const shadowSize = this.mobileQuality ? 1024 : 1536;
+    key.shadow.mapSize.set(shadowSize, shadowSize);
     key.shadow.camera.near = 1;
     key.shadow.camera.far = 40;
     const d = 10;
@@ -242,9 +367,12 @@ export class ZhuaDaScene {
     key.shadow.camera.top = d;
     key.shadow.camera.bottom = -d;
     this.scene.add(key);
-    const fill = new THREE.DirectionalLight(0xfff2d8, 0.35);
-    fill.position.set(-6, 4, -4);
+    const fill = new THREE.DirectionalLight(0xd8ecff, 0.68);
+    fill.position.set(6, 7, -5);
     this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xffd9b0, 0.5);
+    rim.position.set(0, 4, -9);
+    this.scene.add(rim);
   }
 
   private setupWorld(): void {
@@ -253,107 +381,231 @@ export class ZhuaDaScene {
     this.world.allowSleep = true;
     // A few solver iterations is plenty for a small pile (the default World
     // solver is a GSSolver; the base Solver type just doesn't expose it).
-    (this.world.solver as GSSolver).iterations = 8;
+    (this.world.solver as GSSolver).iterations = this.mobileQuality ? 10 : 12;
+    this.world.defaultContactMaterial.friction = 0.36;
+    this.world.defaultContactMaterial.restitution = 0.08;
+    this.world.defaultContactMaterial.contactEquationStiffness = 8e6;
+    this.world.defaultContactMaterial.contactEquationRelaxation = 4;
+    this.containerPhysicsMaterial = new CannonMaterial("container");
+    this.physicsMaterials.clear();
+    const surfaces = Object.keys(SURFACE_PHYSICS) as PhysicsSurface[];
+    for (const surfaceName of surfaces) {
+      const material = new CannonMaterial(`item-${surfaceName}`);
+      this.physicsMaterials.set(surfaceName, material);
+      const values = SURFACE_PHYSICS[surfaceName];
+      this.world.addContactMaterial(new ContactMaterial(material, this.containerPhysicsMaterial, {
+        friction: values.friction,
+        restitution: values.restitution,
+        contactEquationStiffness: 8e6,
+        contactEquationRelaxation: 4,
+      }));
+    }
+    for (let i = 0; i < surfaces.length; i += 1) {
+      for (let j = i; j < surfaces.length; j += 1) {
+        const a = surfaces[i]!;
+        const b = surfaces[j]!;
+        const av = SURFACE_PHYSICS[a];
+        const bv = SURFACE_PHYSICS[b];
+        this.world.addContactMaterial(new ContactMaterial(
+          this.physicsMaterials.get(a)!,
+          this.physicsMaterials.get(b)!,
+          {
+            friction: Math.sqrt(av.friction * bv.friction),
+            restitution: Math.max(av.restitution, bv.restitution),
+            contactEquationStiffness: 8e6,
+            contactEquationRelaxation: 4,
+          },
+        ));
+      }
+    }
   }
 
-  private buildBox(half: number, height: number): void {
+  private buildBox(half: number, height: number, themeId: GameThemeId): void {
     this.boxHalf = half;
     this.boxHeight = height;
-    // Visual box: floor + four thin walls (open top).
-    const floorGeo = new THREE.BoxGeometry(half * 2 + 0.4, 0.4, half * 2 + 0.4);
-    const floorMat = new THREE.MeshStandardMaterial({ color: C.boxFloor, roughness: 0.95 });
+    const theme = themeOf(themeId);
+    const container = theme.container;
+    const texture = containerTexture(themeId);
+    const round = container !== "wood-crate";
+    // Visual container: woven basket, wood crate, or round bamboo tray. Physics
+    // uses matching inward planes, while these meshes provide the final art.
+    const floorGeo = round
+      ? new THREE.CylinderGeometry(half + 0.18, half + 0.18, 0.4, 48)
+      : new THREE.BoxGeometry(half * 2 + 0.4, 0.4, half * 2 + 0.4);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      map: texture,
+      bumpMap: texture,
+      bumpScale: 0.055,
+      roughness: 0.84,
+    });
     this.floorMat = floorMat;
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.position.set(0, -0.2, 0);
     floor.receiveShadow = true;
-    this.scene.add(floor);
+    this.containerGroup.add(floor);
     this.boxMeshes.push(floor);
 
     const wallMat = new THREE.MeshStandardMaterial({
-      color: C.boxWall, roughness: 0.9, transparent: true, opacity: 0.5,
+      color: 0xffffff,
+      map: texture,
+      bumpMap: texture,
+      bumpScale: container === "wood-crate" ? 0.075 : 0.055,
+      roughness: container === "wood-crate" ? 0.7 : 0.78,
+      transparent: true,
+      opacity: container === "wood-crate" ? 0.9 : 0.86,
+      side: THREE.DoubleSide,
     });
     this.wallMat = wallMat;
     const wallThick = 0.3;
-    const wallDefs: [number, number, number, number, number, number][] = [
-      // x, y, z, sx, sy, sz
-      [0, height / 2, -half - wallThick / 2, half * 2 + wallThick * 2, height, wallThick],
-      [0, height / 2, half + wallThick / 2, half * 2 + wallThick * 2, height, wallThick],
-      [-half - wallThick / 2, height / 2, 0, wallThick, height, half * 2 + wallThick * 2],
-      [half + wallThick / 2, height / 2, 0, wallThick, height, half * 2 + wallThick * 2],
-    ];
-    for (const [x, y, z, sx, sy, sz] of wallDefs) {
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), wallMat);
-      wall.position.set(x, y, z);
+    if (round) {
+      const visualHeight = Math.max(0.54, height * 0.72);
+      const wall = new THREE.Mesh(
+        new THREE.CylinderGeometry(half + 0.2, half + 0.2, visualHeight, 48, 1, true),
+        wallMat,
+      );
+      wall.position.y = visualHeight / 2;
       wall.receiveShadow = true;
-      this.scene.add(wall);
+      this.containerGroup.add(wall);
       this.boxMeshes.push(wall);
+    } else {
+      const visualHeight = Math.max(0.58, height * 0.78);
+      const wallDefs: [number, number, number, number, number, number][] = [
+        [0, visualHeight / 2, -half - wallThick / 2, half * 2 + wallThick * 2, visualHeight, wallThick],
+        [0, visualHeight / 2, half + wallThick / 2, half * 2 + wallThick * 2, visualHeight, wallThick],
+        [-half - wallThick / 2, visualHeight / 2, 0, wallThick, visualHeight, half * 2 + wallThick * 2],
+        [half + wallThick / 2, visualHeight / 2, 0, wallThick, visualHeight, half * 2 + wallThick * 2],
+      ];
+      for (const [x, y, z, sx, sy, sz] of wallDefs) {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), wallMat);
+        wall.position.set(x, y, z);
+        wall.receiveShadow = true;
+        this.containerGroup.add(wall);
+        this.boxMeshes.push(wall);
+      }
     }
 
-    // Bright rim at the top to read as the "pen".
-    const rimGeo = new THREE.TorusGeometry(half + 0.32, 0.08, 8, 4);
-    const rimMat = new THREE.MeshStandardMaterial({ color: C.boxEdge, roughness: 0.5, emissive: C.boxEdge, emissiveIntensity: 0.2 });
+    // Container rim. The rectangular front edge stays low and the side rails
+    // slope toward the back, opening the pile toward the player instead of
+    // presenting a tall wall from a top-down view.
+    const rimMat = new THREE.MeshStandardMaterial({ color: C.boxEdge, map: texture, roughness: 0.52, emissive: C.boxEdge, emissiveIntensity: 0.1 });
     this.rimMat = rimMat;
-    const rim = new THREE.Mesh(rimGeo, rimMat);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = height;
-    this.scene.add(rim);
-    this.boxMeshes.push(rim);
+    if (round) {
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(half + 0.32, 0.13, 10, 48), rimMat);
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = Math.max(0.54, height * 0.72);
+      this.containerGroup.add(rim);
+      this.boxMeshes.push(rim);
+    } else {
+      const visualHeight = Math.max(0.58, height * 0.78);
+      const points: Array<[THREE.Vector3, THREE.Vector3]> = [
+        [new THREE.Vector3(-half, visualHeight, -half), new THREE.Vector3(half, visualHeight, -half)],
+        [new THREE.Vector3(-half, visualHeight, half), new THREE.Vector3(half, visualHeight, half)],
+        [new THREE.Vector3(-half, visualHeight, half), new THREE.Vector3(-half, visualHeight, -half)],
+        [new THREE.Vector3(half, visualHeight, half), new THREE.Vector3(half, visualHeight, -half)],
+      ];
+      for (const [from, to] of points) {
+        const direction = to.clone().sub(from);
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, direction.length(), 12), rimMat);
+        bar.position.copy(from).add(to).multiplyScalar(0.5);
+        bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+        this.containerGroup.add(bar);
+        this.boxMeshes.push(bar);
+      }
+    }
 
     // Physics floor.
-    const floorBody = new Body({ mass: 0, shape: new Plane() });
+    const floorBody = new Body({ mass: 0, shape: new Plane(), material: this.containerPhysicsMaterial });
     floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
     floorBody.position.set(0, 0, 0);
     this.world.addBody(floorBody);
-    // Physics walls (4 static planes facing inward).
+    // Physics walls facing inward.
     const makeWall = (nx: number, nz: number, px: number, pz: number) => {
-      const b = new Body({ mass: 0, shape: new Plane() });
+      const b = new Body({ mass: 0, shape: new Plane(), material: this.containerPhysicsMaterial });
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(nx, 0, nz));
       b.quaternion.set(q.x, q.y, q.z, q.w);
       b.position.set(px, 0, pz);
       this.world.addBody(b);
     };
-    makeWall(0, 1, 0, -half); // -z wall normal +z
-    makeWall(0, -1, 0, half); // +z wall normal -z
-    makeWall(1, 0, -half, 0); // -x wall normal +x
-    makeWall(-1, 0, half, 0); // +x wall normal -x
+    if (round) {
+      for (let i = 0; i < 16; i += 1) {
+        const a = (i / 16) * Math.PI * 2;
+        makeWall(-Math.cos(a), -Math.sin(a), Math.cos(a) * half, Math.sin(a) * half);
+      }
+    } else {
+      makeWall(0, 1, 0, -half);
+      makeWall(0, -1, 0, half);
+      makeWall(1, 0, -half, 0);
+      makeWall(-1, 0, half, 0);
+    }
+
+    this.addContainerDetails(themeId, container, half, height);
+  }
+
+  private addContainerDetails(
+    themeId: GameThemeId,
+    container: ReturnType<typeof themeOf>["container"],
+    half: number,
+    height: number,
+  ): void {
+    const detailMat = new THREE.MeshStandardMaterial({
+      color: container === "wood-crate" ? 0x6f4227 : 0xc39053,
+      map: containerTexture(themeId),
+      roughness: 0.78,
+    });
+    if (container !== "wood-crate") {
+      for (const y of [0.4, height * 0.31, height * 0.56]) {
+        const band = new THREE.Mesh(new THREE.TorusGeometry(half + 0.23, 0.055, 7, 48), detailMat);
+        band.rotation.x = Math.PI / 2;
+        band.position.y = y;
+        this.containerGroup.add(band);
+        this.boxMeshes.push(band);
+      }
+      return;
+    }
+    const barGeoH = new THREE.BoxGeometry(half * 2 + 0.58, 0.12, 0.12);
+    const barGeoV = new THREE.BoxGeometry(0.12, 0.12, half * 2 + 0.58);
+    for (const y of container === "wood-crate" ? [0.55, height * 0.52, height - 0.38] : [0.55, 1.2, 1.85, height - 0.38]) {
+      for (const z of [-half - 0.2, half + 0.2]) {
+        if (z > 0 && y > height * 0.42) continue;
+        const bar = new THREE.Mesh(barGeoH, detailMat);
+        bar.position.set(0, y, z);
+        this.containerGroup.add(bar);
+        this.boxMeshes.push(bar);
+      }
+      for (const x of [-half - 0.2, half + 0.2]) {
+        const bar = new THREE.Mesh(barGeoV, detailMat);
+        bar.position.set(x, y, 0);
+        this.containerGroup.add(bar);
+        this.boxMeshes.push(bar);
+      }
+    }
   }
 
   private buildTray(): void {
+    // The visible tray is React-owned below the canvas. Keep only invisible
+    // world-space targets here so extracted objects can fly toward that single
+    // tray; rendering a second row inside WebGL created a duplicate interface.
     this.trayGroup = new THREE.Group();
+    this.trayGroup.visible = false;
     this.scene.add(this.trayGroup);
     this.layoutTray();
   }
 
   private layoutTray(): void {
-    // Clear old slot meshes (dispose first — every level start rebuilds the
-    // 7 slots; without disposal each rebuild leaks 7x geometry+material).
     for (const child of [...this.trayGroup.children]) disposeObject(child);
     this.trayGroup.clear();
     this.traySlots = new Array(TRAY_SLOTS).fill(null);
-    const gap = 0.92;
+    const gap = 0.88;
     const totalW = (TRAY_SLOTS - 1) * gap;
-    const y = this.boxHeight + 1.1;
-    const z = 0;
-    const slotR = 0.42;
+    const y = -0.75;
+    const z = this.boxHalf + 1.8;
     for (let i = 0; i < TRAY_SLOTS; i += 1) {
       const x = -totalW / 2 + i * gap;
       const g = new THREE.Group();
       g.position.set(x, y, z);
-      const base = new THREE.Mesh(
-        new THREE.CylinderGeometry(slotR, slotR, 0.18, 24),
-        new THREE.MeshStandardMaterial({ color: C.trayBg, roughness: 0.85, transparent: true, opacity: 0.85 }),
-      );
-      g.add(base);
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(slotR, 0.05, 8, 24),
-        new THREE.MeshStandardMaterial({ color: 0xddd4c4, roughness: 0.7 }),
-      );
-      ring.rotation.x = Math.PI / 2;
-      ring.position.y = 0.09;
-      g.add(ring);
       this.trayGroup.add(g);
       this.traySlots[i] = g;
-      this.refreshTraySlot(i);
     }
   }
 
@@ -367,19 +619,61 @@ export class ZhuaDaScene {
    * are retinted in place on the shared materials — no geometry rebuilds, so
    * switching scenes is free even mid-session.
    */
-  private applyTheme(level: number): void {
-    const theme = sceneOfLevel(level);
-    if (theme.id === this.themedScene) return;
-    this.themedScene = theme.id;
-    const p = theme.palette;
-    this.scene.background = new THREE.Color(p.bg);
-    this.floorMat?.color.set(p.floor);
-    this.wallMat?.color.set(p.wall);
+  private applyTheme(level: number, themeId: GameThemeId): void {
+    const sceneTheme = sceneOfLevel(level);
+    if (sceneTheme.id === this.themedScene && themeId === this.themedGameTheme) return;
+    this.themedScene = sceneTheme.id;
+    this.themedGameTheme = themeId;
+    const playerTheme = themeOf(themeId);
+    // The generated photo backdrop lives behind an alpha WebGL canvas. The
+    // level band subtly modulates light, while the chosen player theme owns the
+    // physical container materials and dominant identity.
+    this.scene.background = null;
+    this.renderer?.setClearColor(0x000000, playerTheme.scene.clearAlpha);
+    // Authored material textures own the container color; multiplying them by
+    // a flat theme tint was the source of the previous muddy, cheap surface.
+    this.floorMat?.color.set(0xffffff);
+    this.wallMat?.color.set(0xffffff);
     if (this.rimMat) {
-      this.rimMat.color.set(p.rim);
-      this.rimMat.emissive.set(p.rim);
+      this.rimMat.color.set(playerTheme.scene.rim);
+      this.rimMat.emissive.set(playerTheme.scene.rim);
     }
-    this.hemiLight?.groundColor.set(p.hemiGround);
+    this.hemiLight?.groundColor.set(playerTheme.scene.hemiGround);
+    this.hemiLight?.color.set(sceneTheme.palette.bg);
+    this.keyLight?.color.set(playerTheme.scene.keyLight);
+  }
+
+  private rebuildPen(level: number, themeId: GameThemeId): void {
+    if (this.containerGroup) {
+      this.playfieldGroup.remove(this.containerGroup);
+      disposeObject(this.containerGroup);
+    }
+    this.containerGroup = new THREE.Group();
+    this.playfieldGroup.add(this.containerGroup);
+    this.boxMeshes = [];
+    this.floorMat = null;
+    this.wallMat = null;
+    this.rimMat = null;
+    this.setupWorld();
+    const dimensions = penDimensions(level);
+    this.buildBox(dimensions.half, dimensions.height, themeId);
+    this.frameCamera(dimensions.half, dimensions.height);
+    this.layoutTray();
+    this.themedScene = -1;
+    this.themedGameTheme = "";
+    this.applyTheme(level, themeId);
+  }
+
+  private frameCamera(half: number, height: number): void {
+    // Near-vertical camera modeled after the supplied gameplay video. Compute
+    // distance from the horizontal FOV so the pan stays equally legible on a
+    // narrow phone and a wider desktop preview.
+    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * this.camera.aspect);
+    const distance = (half + 0.56) / Math.max(0.12, Math.tan(horizontalFov / 2));
+    this.camera.position.set(0, Math.max(10.5, distance), 1.05);
+    this.camera.lookAt(0, Math.max(0.42, height * 0.46), 0);
+    this.cameraBase.copy(this.camera.position);
   }
 
   // ── State reconciliation ─────────────────────────────────────────────────────
@@ -391,32 +685,70 @@ export class ZhuaDaScene {
     if (!state || Object.keys(state).length === 0) return;
     const nextStatus = (state.gameStatus as string) ?? this.gameStatus;
     const nextLevel = Number(state.level ?? this.level) || this.level;
+    const nextThemeId = themeOf(state.themeId ?? this.themeId).id;
     const items = (state.items as ItemInstance[] | undefined) ?? this.logicalItems;
     const tray = (state.tray as (number | null)[] | undefined) ?? this.trayKinds;
+    const shelf = (state.shelf as (number | null)[] | undefined) ?? [];
 
     const statusChanged = nextStatus !== this.gameStatus;
     const levelChanged = nextLevel !== this.level;
+    const gameThemeChanged = nextThemeId !== this.themeId;
+    const dealNonce = Number(state.dealNonce ?? 0) || 0;
+    const dealChanged = dealNonce !== this.lastDealNonce;
     const shuffleNonce = Number(state.shuffleNonce ?? 0) || 0;
     const hintNonce = Number(state.hintNonce ?? 0) || 0;
     const shakeNonce = Number(state.shakeNonce ?? 0) || 0;
-    this.failReason = typeof state.failReason === "string" ? state.failReason : this.failReason;
+    const shakeStrength = Math.max(0.65, Math.min(1.35, Number(state.shakeStrength ?? 1) || 1));
+    const hintChanged = hintNonce !== this.lastHintNonce;
+    if (hintChanged) this.lastHintNonce = hintNonce;
+    const triggerHint = (): void => {
+      if (hintNonce <= 0 || nextStatus !== "dealt") return;
+      const plan = computeHintPlan(tray, shelf, items);
+      if (plan.kind < 0) return;
+      // Pulse the whole near-triple group that's still reachable in the box;
+      // if none are visible yet (all buried), defer to the pending anchor.
+      const pulsed = this.pulseHintGroup(plan.kind, plan.needFromBox);
+      if (pulsed === 0) this.pendingHintKind = plan.kind;
+    };
 
-    // ── 3-match clear celebration ──
-    // clearedFx is a transient pulse of the 3 tray indices that just cleared
-    // (reset to [] by the shell ~200ms later). It arrives in the SAME snapshot
-    // that already nulled those tray slots, so the cleared KIND must be read
-    // from the PREVIOUS trayKinds before we overwrite them below.
+    // Authoritative pick acknowledgement: an accepted pick remembers the exact
+    // engine-selected slot even if the third copy already cleared React state;
+    // a rejected full-tray pick immediately returns to physics and raycasting.
+    const receipt = state.extractReceipt as ExtractReceipt | null | undefined;
+    if (!dealChanged && receipt && receipt.nonce > 0 && receipt.nonce !== this.lastExtractReceiptNonce) {
+      this.lastExtractReceiptNonce = receipt.nonce;
+      const visual = this.itemVisuals.get(receipt.itemId);
+      if (receipt.accepted) {
+        this.acceptedTraySlots.set(receipt.itemId, receipt.placedIndex);
+        if (receipt.matched && receipt.clearedTray.length > 0) {
+          const animationEpoch = this.animationEpoch;
+          window.setTimeout(() => {
+            if (this.disposed || animationEpoch !== this.animationEpoch) return;
+            this.playClearPop(receipt.clearedTray, receipt.kind);
+          }, TRAY_ENTRY_MOTION_MS + TRAY_MOTION_TIMINGS.highlightMs);
+        }
+      } else if (visual && !visual.flying) {
+        visual.extracting = false;
+        visual.mesh.scale.setScalar(visual.baseScale);
+        visual.body.wakeUp();
+      }
+    }
+
+    // The receipt schedules the clear celebration after the incoming item has
+    // visibly grouped and held its highlight. Track clearedFx only for bridge
+    // pulse deduplication; playing it immediately used to make the triple pop
+    // before the third object had even reached the bar.
     const clearedNow = Array.isArray(state.clearedFx) ? (state.clearedFx as number[]) : [];
     if (clearedNow.length > 0 && !sameIndexList(clearedNow, this.lastClearedFx)) {
       this.lastClearedFx = clearedNow.slice();
-      const clearedKind = clearedNow
-        .map((i) => this.trayKinds[i])
-        .find((k): k is number => k !== null && k !== undefined) ?? null;
-      this.playClearPop(clearedNow, clearedKind);
     } else if (clearedNow.length === 0 && this.lastClearedFx.length > 0) {
       this.lastClearedFx = [];
     }
 
+    const changedTrayIndices: number[] = [];
+    for (let i = 0; i < TRAY_SLOTS; i += 1) {
+      if (this.trayKinds[i] !== tray[i]) changedTrayIndices.push(i);
+    }
     this.trayKinds = tray.slice();
 
     // ── Power-up: SHUFFLE (re-drop remaining box items with permuted kinds) ──
@@ -429,31 +761,37 @@ export class ZhuaDaScene {
       }
     }
 
-    // ── Power-up: HINT (pulse a helpful item) ──
-    if (hintNonce !== this.lastHintNonce) {
-      this.lastHintNonce = hintNonce;
-      if (hintNonce > 0 && nextStatus === "dealt") {
-        const kind = this.computeHintKind(tray, items);
-        if (kind >= 0) this.pulseHint(kind);
-      }
-    }
-
     // ── Shake (G3 晃一晃): jolt every pile body + camera micro-shake ──
     if (shakeNonce !== this.lastShakeNonce) {
       this.lastShakeNonce = shakeNonce;
-      if (shakeNonce > 0 && nextStatus === "dealt") this.applyShake();
+      if (shakeNonce > 0 && nextStatus === "dealt") this.applyShake(shakeStrength);
     }
 
-    if (statusChanged || levelChanged) {
+    if (statusChanged || levelChanged || gameThemeChanged || dealChanged) {
       this.gameStatus = nextStatus;
       this.level = nextLevel;
-      this.applyTheme(nextLevel);
+      this.themeId = nextThemeId;
+      this.lastDealNonce = dealNonce;
+      if (levelChanged || gameThemeChanged) {
+        this.resetScene();
+        this.rebuildPen(nextLevel, nextThemeId);
+      } else {
+        this.applyTheme(nextLevel, nextThemeId);
+      }
       if (nextStatus === "dealt") {
         // New level / retry → reset visuals.
-        this.resetScene();
+        if (!levelChanged && !gameThemeChanged) this.resetScene();
         this.logicalItems = items.slice();
         this.queueSpawns(this.logicalItems);
+        if (hintChanged) triggerHint();
       } else if (nextStatus === "solved") {
+        // The final extract and the solved status may be batched into one state
+        // push. Reconcile the removed body before returning to the win overlay
+        // path so no last item remains orphaned behind the celebration.
+        const liveIds = new Set(items.map((item) => item.id));
+        for (const [id, visual] of this.itemVisuals) {
+          if (!liveIds.has(id)) this.sendToTray(visual, this.acceptedTraySlots.get(id));
+        }
         this.playWin();
       } else if (nextStatus === "expired") {
         this.playFail();
@@ -464,12 +802,14 @@ export class ZhuaDaScene {
       return;
     }
 
+    if (hintChanged) triggerHint();
+
     // During play, reconcile removed items (the engine removes them on extract).
     const liveIds = new Set(items.map((it) => it.id));
     for (const [id, vis] of this.itemVisuals) {
       if (!liveIds.has(id)) {
         // Item was extracted — fly it to its tray slot, then remove.
-        this.sendToTray(vis);
+        this.sendToTray(vis, this.acceptedTraySlots.get(id));
       }
     }
     // …and ADDED items (G2 撤回: an undone grab returns to the top of the
@@ -485,26 +825,41 @@ export class ZhuaDaScene {
       if (!vis) {
         if (!this.spawnQueue.some((q) => q.id === it.id)) this.spawnQueue.push(it);
       } else if (vis.extracting) {
-        this.scene.remove(vis.mesh);
+        this.world.removeBody(vis.body);
+        this.playfieldGroup.remove(vis.mesh);
         disposeObject(vis.mesh);
         this.itemVisuals.delete(it.id);
+        this.acceptedTraySlots.delete(it.id);
         this.spawnQueue.push(it);
       }
     }
     this.logicalItems = items.slice();
 
-    // Reflect tray contents in the HUD slots.
-    for (let i = 0; i < TRAY_SLOTS; i += 1) this.refreshTraySlot(i);
+    // Reflect only slots whose kind actually changed. The timed mode pushes a
+    // clock snapshot every 100ms; rebuilding all compound meshes on each tick
+    // caused unnecessary mobile GPU allocations and garbage collection.
+    for (const i of changedTrayIndices) this.refreshTraySlot(i);
   }
 
   private resetScene(): void {
+    this.animationEpoch += 1;
+    this.panShakeT0 = 0;
+    this.cameraShakeT0 = 0;
+    this.playfieldGroup?.rotation.set(0, 0, 0);
+    this.playfieldGroup?.position.set(0, 0, 0);
+    this.camera.position.copy(this.cameraBase);
     for (const vis of this.itemVisuals.values()) {
-      this.scene.remove(vis.mesh);
+      this.playfieldGroup.remove(vis.mesh);
       this.world.removeBody(vis.body);
       disposeObject(vis.mesh);
     }
     this.itemVisuals.clear();
+    this.acceptedTraySlots.clear();
+    this.duplicatePickGuardUntil = 0;
     this.spawnQueue = [];
+    this.pendingHintKind = null;
+    this.hintPulsing.clear();
+    this.pendingShakeStrength = null;
     this.clearOverlay();
     this.layoutTray();
   }
@@ -512,6 +867,7 @@ export class ZhuaDaScene {
   /** Clear the win/fail overlay, disposing its GPU resources (goose meshes,
    * emoji sprite CanvasTexture) instead of orphaning them. */
   private clearOverlay(): void {
+    this.overlayEpoch += 1;
     for (const child of [...this.overlayGroup.children]) disposeObject(child);
     this.overlayGroup.clear();
   }
@@ -526,19 +882,44 @@ export class ZhuaDaScene {
   private spawnNext(): void {
     const it = this.spawnQueue.shift();
     if (!it) return;
-    const def = ITEM_DEFS[it.kind] ?? ITEM_DEFS[0]!;
-    const mesh = buildModelMesh(def.model, def.color);
+    const item = themeItem(this.themeId, it.kind);
+    const physics = physicsProfileOf(this.themeId, it.kind);
+    const mesh = buildThemeModelMesh(this.themeId, it.kind, item.color);
     mesh.castShadow = true;
-    const sx = (Math.random() * 2 - 1) * (this.boxHalf - 0.6);
-    const sz = (Math.random() * 2 - 1) * (this.boxHalf - 0.6);
-    mesh.position.set(sx, DROP_TOP + Math.random() * 1.5, sz);
-    this.scene.add(mesh);
+    const spec = specOf(this.level);
+    const logicalHalf = Math.max(1, spec.boxSize / 2 - 0.6);
+    const usableHalf = this.boxHalf - 0.72;
+    const sx = THREE.MathUtils.clamp((it.px / logicalHalf) * usableHalf, -usableHalf, usableHalf);
+    const sz = THREE.MathUtils.clamp((it.pz / logicalHalf) * usableHalf, -usableHalf, usableHalf);
+    const fromReservoir = it.spawnMode === "reservoir";
+    const dropT = THREE.MathUtils.clamp(
+      (it.py - spec.boxSize / 2) / Math.max(1, spec.boxSize),
+      0,
+      1,
+    );
+    // Initial bodies cascade from above. Refill packets are born just above
+    // the floor under the live pile so contact resolution visibly pushes them
+    // upward, reading as a deeper layer surfacing instead of repeated rain.
+    const sy = fromReservoir
+      ? 0.72 + deterministicUnit(it.id + 73, it.py) * 0.18
+      : this.boxHeight + 1.7 + dropT * 3.4;
+    mesh.position.set(sx, sy, sz);
+    this.playfieldGroup.add(mesh);
 
-    const body = makeItemBody(def.geometry, this.boxHalf * 0.5);
-    body.position.set(sx, DROP_TOP + Math.random() * 1.5, sz);
-    body.quaternion.setFromEuler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-    body.velocity.set(0, -2, 0);
-    body.angularVelocity.set((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+    const body = makeItemBody(physics, this.physicsMaterials.get(physics.surface));
+    body.position.set(sx, sy, sz);
+    const rx = deterministicUnit(it.id, it.px) * Math.PI;
+    const ry = deterministicUnit(it.id + 17, it.py) * Math.PI;
+    const rz = deterministicUnit(it.id + 31, it.pz) * Math.PI;
+    body.quaternion.setFromEuler(rx, ry, rz);
+    body.velocity.set(0, fromReservoir ? 0.62 : -2, 0);
+    const spin = 3.8 / Math.sqrt(Math.max(0.28, physics.mass));
+    const streamSpin = fromReservoir ? 0.58 : 1;
+    body.angularVelocity.set(
+      (rx / Math.PI - 0.5) * spin * streamSpin,
+      (ry / Math.PI - 0.5) * spin * streamSpin,
+      (rz / Math.PI - 0.5) * spin * streamSpin,
+    );
     this.world.addBody(body);
 
     // Landing thud — volume scales with impact speed; resting jitter is filtered
@@ -549,56 +930,79 @@ export class ZhuaDaScene {
     });
 
     this.itemVisuals.set(it.id, {
-      id: it.id, kind: it.kind, mesh, body, extracting: false, spawned: true,
+      id: it.id,
+      kind: it.kind,
+      mesh,
+      body,
+      extracting: false,
+      flying: false,
+      baseScale: mesh.scale.x,
+      spawned: true,
     });
+    if (this.pendingHintKind === it.kind) {
+      this.pendingHintKind = null;
+      requestAnimationFrame(() => this.pulseHint(it.kind));
+    }
+    // A shake made during the short cascade-in window is never wasted. Wait
+    // until the final body exists, then apply the cached capped impulse to the
+    // complete pile (the visual pan feedback already played on the gesture).
+    if (this.spawnQueue.length === 0 && this.pendingShakeStrength !== null) {
+      const pending = this.pendingShakeStrength;
+      this.pendingShakeStrength = null;
+      requestAnimationFrame(() => this.applyShake(pending, false));
+    }
   }
 
   // ── Tray HUD ────────────────────────────────────────────────────────────────
 
-  private refreshTraySlot(i: number): void {
-    const g = this.traySlots[i];
-    if (!g) return;
-    const kind = this.trayKinds[i];
-    // Remove any previously placed mini-item (keep base + ring which are index 0,1).
-    while (g.children.length > 2) {
-      const c = g.children[g.children.length - 1]!;
-      g.remove(c);
-      disposeObject(c);
-    }
-    if (kind === null || kind === undefined) return;
-    const def = ITEM_DEFS[kind] ?? ITEM_DEFS[0]!;
-    const mini = buildModelMesh(def.model, def.color, 0.3);
-    mini.position.y = 0.28;
-    g.add(mini);
+  private refreshTraySlot(_i: number): void {
+    // React's atlas-backed tray is the only visible tray. This method remains
+    // as the state reconciliation seam but deliberately allocates no 3D mesh.
   }
 
-  private sendToTray(vis: ItemVisual): void {
-    // Find the tray slot this kind occupies (first matching slot) for the fly target.
-    const slotIdx = this.trayKinds.findIndex((k) => k === vis.kind);
+  private sendToTray(vis: ItemVisual, acceptedSlot?: number): void {
+    if (vis.flying) return;
+    vis.flying = true;
+    // The receipt carries the exact pre-clear landing slot. This remains valid
+    // for the third copy even though React's tray is already empty again.
+    const slotIdx = Number.isInteger(acceptedSlot) && acceptedSlot! >= 0
+      ? acceptedSlot!
+      : this.trayKinds.findIndex((k) => k === vis.kind);
     const target = slotIdx >= 0 ? this.traySlots[slotIdx]?.position.clone() : new THREE.Vector3(0, this.boxHeight + 1.1, 0);
     vis.extracting = true;
     this.world.removeBody(vis.body);
     // Animate the mesh up to the tray then remove (the HUD slot is re-rendered by React state).
     const start = vis.mesh.position.clone();
     // Shrink relative to the model's current scale (base 0.62 from
-    // buildModelMesh, possibly popped by press feedback) instead of stomping
+    // buildThemeModelMesh, possibly popped by press feedback) instead of stomping
     // it with an absolute value.
     const startScale = vis.mesh.scale.x;
     const t0 = performance.now();
-    const dur = this.reducedMotion ? 1 : 220;
+    const dur = this.reducedMotion ? 1 : TRAY_ENTRY_MOTION_MS;
+    const animationEpoch = this.animationEpoch;
     const step = () => {
+      if (this.disposed || animationEpoch !== this.animationEpoch) return;
       const t = Math.min(1, (performance.now() - t0) / dur);
-      const e = easeOutCubic(t);
-      vis.mesh.position.lerpVectors(start, target ?? new THREE.Vector3(), e);
-      vis.mesh.scale.setScalar(startScale * (1 - 0.7 * e));
-      if (t < 1 && !this.disposed) {
+      const e = easeInOutCubic(t);
+      const end = target ?? new THREE.Vector3();
+      vis.mesh.position.lerpVectors(start, end, e);
+      // A readable scoop arc keeps the selected object's identity visible all
+      // the way to the bar. Use the same eased progress for position, scale and
+      // spin so the 3D object visually hands off to the React tray in one beat.
+      vis.mesh.position.y += Math.sin(e * Math.PI) * SCENE_MOTION.trayFlightArcY;
+      vis.mesh.rotation.y += SCENE_MOTION.trayFlightSpinStep * (1 - e);
+      vis.mesh.scale.setScalar(startScale * (1 - (1 - SCENE_MOTION.trayFlightEndScale) * e));
+      if (t < 1) {
         requestAnimationFrame(step);
       } else {
-        this.scene.remove(vis.mesh);
+        vis.mesh.position.copy(end);
+        vis.mesh.scale.setScalar(startScale * SCENE_MOTION.trayFlightEndScale);
+        this.playfieldGroup.remove(vis.mesh);
         disposeObject(vis.mesh);
         // Identity check: an undo during the fly may have already replaced
         // this id with a fresh re-dropped visual — never delete that one.
         if (this.itemVisuals.get(vis.id) === vis) this.itemVisuals.delete(vis.id);
+        this.acceptedTraySlots.delete(vis.id);
       }
     };
     if (!this.reducedMotion) requestAnimationFrame(step);
@@ -615,30 +1019,36 @@ export class ZhuaDaScene {
    */
   private playClearPop(indices: number[], kind: number | null): void {
     if (this.reducedMotion || kind === null) return;
-    const def = ITEM_DEFS[kind] ?? ITEM_DEFS[0]!;
+    const item = themeItem(this.themeId, kind);
     for (const idx of indices) {
       const slot = this.traySlots[idx];
       if (!slot) continue;
       const origin = slot.position.clone().add(new THREE.Vector3(0, 0.28, 0));
-      this.spawnPopMini(def, origin);
-      this.spawnPopBurst(def.color, origin);
+      this.spawnPopMini(kind, item.color, origin);
+      this.spawnPopBurst(item.color, origin);
     }
   }
 
   /** Ghost mini at a cleared slot: quick scale-up + rise + fade, then dispose. */
-  private spawnPopMini(def: ItemDef, origin: THREE.Vector3): void {
-    const mini = buildModelMesh(def.model, def.color, 0.3);
+  private spawnPopMini(kind: number, color: number, origin: THREE.Vector3): void {
+    const mini = buildThemeModelMesh(this.themeId, kind, color, 0.3);
     mini.position.copy(origin);
     this.overlayGroup.add(mini);
     const meshes = collectMeshes(mini);
+    const sprites = collectSprites(mini);
     for (const m of meshes) {
       const mm = m.material as THREE.MeshStandardMaterial;
-      if (mm) mm.transparent = true;
+      if (mm) {
+        mm.transparent = true;
+        mm.depthWrite = false;
+      }
     }
+    sprites.forEach((sprite) => { sprite.material.transparent = true; });
     const t0 = performance.now();
-    const dur = 420;
+    const dur = SCENE_MOTION.popMiniMs;
+    const overlayEpoch = this.overlayEpoch;
     const step = (): void => {
-      if (this.disposed) return;
+      if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
       const t = Math.min(1, (performance.now() - t0) / dur);
       const e = easeOutCubic(t);
       mini.scale.setScalar(0.3 * (1 + 0.9 * e));
@@ -648,6 +1058,7 @@ export class ZhuaDaScene {
         const mm = m.material as THREE.MeshStandardMaterial;
         if (mm) mm.opacity = fade;
       }
+      sprites.forEach((sprite) => { sprite.material.opacity = fade; });
       if (t < 1) requestAnimationFrame(step);
       else {
         this.overlayGroup.remove(mini);
@@ -681,10 +1092,11 @@ export class ZhuaDaScene {
     }
     this.overlayGroup.add(group);
     const t0 = performance.now();
-    const dur = 550;
+    const dur = SCENE_MOTION.popBurstMs;
+    const overlayEpoch = this.overlayEpoch;
     let last = t0;
     const step = (): void => {
-      if (this.disposed) return;
+      if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
       const now = performance.now();
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -720,12 +1132,14 @@ export class ZhuaDaScene {
     goose.rotation.y = Math.PI * 0.1;
     this.overlayGroup.add(goose);
     if (!this.reducedMotion) {
+      const overlayEpoch = this.overlayEpoch;
       let t = 0;
       const bob = () => {
+        if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
         t += 0.016;
         goose.position.y = this.boxHeight + 1.8 + Math.sin(t * 3) * 0.3;
         goose.rotation.y = Math.PI * 0.1 + Math.sin(t * 1.5) * 0.3;
-        if (t < 2.4 && !this.disposed) requestAnimationFrame(bob);
+        if (t < SCENE_MOTION.winBobMs / 1_000) requestAnimationFrame(bob);
       };
       bob();
     }
@@ -734,68 +1148,101 @@ export class ZhuaDaScene {
   private playFail(): void {
     sound.play("fail");
     this.clearOverlay();
-    // Failure is readable: the stamp names the loss. Timeout → drawn alarm
-    // clock; jammed tray → drawn padlock. Both are canvas-DRAWN original
-    // glyphs (no emoji / no fonts) so the art stays ours everywhere.
-    const stamp = makeGlyphSprite(this.failReason === "trayFull" ? drawLockGlyph : drawClockGlyph, 2.2);
-    stamp.position.set(0, this.boxHeight + 2.0, 0);
-    this.overlayGroup.add(stamp);
+    // The React dialog carries the readable loss reason. The 3D layer supplies
+    // a short, original runaway-goose beat instead of a generated canvas glyph.
+    const goose = buildGoose(sceneOfLevel(this.level).goose);
+    goose.scale.setScalar(0.95);
+    goose.position.set(-this.boxHalf * 0.7, this.boxHeight + 0.85, 0);
+    goose.rotation.y = -0.45;
+    this.overlayGroup.add(goose);
+    if (!this.reducedMotion) {
+      const overlayEpoch = this.overlayEpoch;
+      const start = performance.now();
+      const run = (): void => {
+        if (this.disposed || overlayEpoch !== this.overlayEpoch) return;
+        const t = Math.min(1, (performance.now() - start) / SCENE_MOTION.failRunMs);
+        const e = easeInOutCubic(t);
+        goose.position.x = THREE.MathUtils.lerp(-this.boxHalf * 0.7, this.boxHalf * 1.45, e);
+        goose.position.y = this.boxHeight + 0.85 + Math.abs(Math.sin(e * Math.PI * 5)) * 0.22;
+        goose.rotation.z = Math.sin(e * Math.PI * 5) * 0.08;
+        if (t < 1) requestAnimationFrame(run);
+      };
+      requestAnimationFrame(run);
+    }
   }
 
   // ── Hint logic ──────────────────────────────────────────────────────────────
 
-  /** Pick the most useful kind to surface for a hint given tray + box state. */
-  private computeHintKind(tray: (number | null)[], items: ItemInstance[]): number {
-    const boxCounts = new Map<number, number>();
-    for (const it of items) boxCounts.set(it.kind, (boxCounts.get(it.kind) ?? 0) + 1);
-    const trayCounts = new Map<number, number>();
-    for (const k of tray) if (k !== null) trayCounts.set(k, (trayCounts.get(k) ?? 0) + 1);
-    // 1) a kind with 2 in tray and ≥1 still in box completes a triple now
-    for (const [k, c] of trayCounts) if (c === 2 && (boxCounts.get(k) ?? 0) >= 1) return k;
-    // 2) a kind with 1 in tray and ≥2 in box builds toward a triple
-    for (const [k, c] of trayCounts) if (c === 1 && (boxCounts.get(k) ?? 0) >= 2) return k;
-    // 3) otherwise surface the most common kind still in the box
-    let best = -1;
-    let bestC = 0;
-    for (const [k, c] of boxCounts) if (c > bestC) { bestC = c; best = k; }
-    return best;
-  }
-
-  /** Pulse a box item of `kind` with a brief highlight so the player can spot
-   * it. Reduced motion: a STEADY emissive highlight for the same duration —
-   * the information survives, the flashing and scale-throb do not. */
-  private pulseHint(kind: number): void {
-    let target: ItemVisual | undefined;
-    for (const v of this.itemVisuals.values()) {
-      if (!v.extracting && v.kind === kind) { target = v; break; }
-    }
-    if (!target) return;
+  /**
+   * Pick the most useful kind to surface for a hint, and how many copies of it
+   * are still needed from the box to complete (or advance) a triple. Delegates
+   * to the pure `computeHintPlan` in ../logic/hint-plan so the selection rule
+   * stays unit-tested away from the renderer.
+   */
+  private pulseVisual(target: ItemVisual): void {
+    if (this.hintPulsing.has(target.id)) return;
+    this.hintPulsing.add(target.id);
     const reduced = this.reducedMotion;
     const meshes = collectMeshes(target.mesh);
+    const sprites = collectSprites(target.mesh);
     const tint = new THREE.Color(C.brand);
     const baseScale = target.mesh.scale.x;
     const t0 = performance.now();
-    const dur = 1600;
+    const dur = SCENE_MOTION.hintPulseMs;
+    const animationEpoch = this.animationEpoch;
+    const clear = (): void => {
+      meshes.forEach((m) => { const mm = m.material as THREE.MeshStandardMaterial; if (mm) mm.emissiveIntensity = 0; });
+      sprites.forEach((sprite) => sprite.material.color.setHex(0xffffff));
+      target.mesh.scale.setScalar(baseScale);
+    };
     const step = (): void => {
-      if (this.disposed || !this.itemVisuals.has(target!.id)) {
-        meshes.forEach((m) => { const mm = m.material as THREE.MeshStandardMaterial; if (mm) mm.emissiveIntensity = 0; });
-        return;
-      }
+      if (this.disposed || animationEpoch !== this.animationEpoch) { this.hintPulsing.delete(target.id); return; }
+      if (!this.itemVisuals.has(target.id)) { clear(); this.hintPulsing.delete(target.id); return; }
       const t = (performance.now() - t0) / dur;
-      if (t >= 1) {
-        meshes.forEach((m) => { const mm = m.material as THREE.MeshStandardMaterial; if (mm) mm.emissiveIntensity = 0; });
-        target!.mesh.scale.setScalar(baseScale);
-        return;
-      }
-      const p = reduced ? 0.8 : 0.5 + 0.5 * Math.sin(t * Math.PI * 6);
+      if (t >= 1) { clear(); this.hintPulsing.delete(target.id); return; }
+      const e = easeInOutCubic(Math.min(1, t));
+      const p = reduced ? 0.8 : 0.5 + 0.5 * Math.sin(e * Math.PI * 6);
       meshes.forEach((m) => {
         const mm = m.material as THREE.MeshStandardMaterial;
         if (mm) { mm.emissive = tint; mm.emissiveIntensity = p * 0.9; }
       });
-      if (!reduced) target!.mesh.scale.setScalar(baseScale + p * 0.14);
+      const spriteTint = new THREE.Color(0xffffff).lerp(tint, 0.34 * p);
+      sprites.forEach((sprite) => sprite.material.color.copy(spriteTint));
+      if (!reduced) target.mesh.scale.setScalar(baseScale + p * 0.14);
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+  }
+
+  /** Pulse the whole near-triple group still reachable in the box: up to
+   * `needFromBox` visible, non-flying copies of `kind`, most accessible first
+   * (highest in the pile = easiest to click). Returns how many were pulsed. */
+  private pulseHintGroup(kind: number, needFromBox: number): number {
+    const targets: ItemVisual[] = [];
+    for (const v of this.itemVisuals.values()) {
+      if (v.extracting || v.kind !== kind) continue;
+      targets.push(v);
+    }
+    targets.sort((a, b) => b.body.position.y - a.body.position.y);
+    const n = Math.min(needFromBox, targets.length);
+    for (let i = 0; i < n; i += 1) {
+      const v = targets[i];
+      if (v) this.pulseVisual(v);
+    }
+    return n;
+  }
+
+  /** Thin wrapper used by the pending-hint path: pulse the single highest box
+   * item of `kind` once a buried copy surfaces. Returns false if none visible. */
+  private pulseHint(kind: number): boolean {
+    let target: ItemVisual | undefined;
+    for (const v of this.itemVisuals.values()) {
+      if (v.extracting || v.kind !== kind) continue;
+      if (!target || v.body.position.y > target.body.position.y) target = v;
+    }
+    if (!target) return false;
+    this.pulseVisual(target);
+    return true;
   }
 
   // ── Shake (G3 晃一晃) ───────────────────────────────────────────────────────
@@ -808,29 +1255,58 @@ export class ZhuaDaScene {
    * micro-shake sells the jolt — skipped under prefers-reduced-motion (the
    * physics re-settle is the information, the camera wobble is decoration).
    */
-  private applyShake(): void {
-    for (const vis of this.itemVisuals.values()) {
+  private applyShake(strength = 1, visualFeedback = true): void {
+    const dynamics = shakeDynamics(strength);
+    const scale = dynamics.intensity;
+    if (this.spawnQueue.length > 0) {
+      this.pendingShakeStrength = Math.max(this.pendingShakeStrength ?? 0, strength);
+      if (visualFeedback) this.startShakeFeedback(scale);
+      return;
+    }
+    // A small toss disturbs the exposed half; a hard toss progressively reaches
+    // the whole pile. Selection is stable per item/shake but every run differs.
+    const affectedRatio = dynamics.affectedRatio;
+    const visuals = [...this.itemVisuals.values()];
+    for (const vis of visuals) {
       if (vis.extracting) continue;
+      if (deterministicUnit(vis.id + this.lastShakeNonce * 97, vis.body.position.y) > affectedRatio) continue;
       vis.body.wakeUp();
+      const lateralCap = dynamics.lateralImpulse;
+      const vertical = dynamics.verticalImpulseMin
+        + Math.random() * (dynamics.verticalImpulseMax - dynamics.verticalImpulseMin);
       const impulse = new Vec3(
-        (Math.random() * 2 - 1) * 2.4,
-        2.2 + Math.random() * 2.2,
-        (Math.random() * 2 - 1) * 2.4,
+        (Math.random() * 2 - 1) * lateralCap,
+        vertical,
+        (Math.random() * 2 - 1) * lateralCap,
       );
       vis.body.applyImpulse(impulse);
+      // Hard caps keep the toss playful without launching bodies over the rim.
+      vis.body.velocity.x = THREE.MathUtils.clamp(vis.body.velocity.x, -dynamics.maxHorizontalVelocity, dynamics.maxHorizontalVelocity);
+      vis.body.velocity.y = THREE.MathUtils.clamp(vis.body.velocity.y, -3.5, dynamics.maxVerticalVelocity);
+      vis.body.velocity.z = THREE.MathUtils.clamp(vis.body.velocity.z, -dynamics.maxHorizontalVelocity, dynamics.maxHorizontalVelocity);
+      const angularCap = dynamics.angularVelocity;
       vis.body.angularVelocity.set(
-        (Math.random() - 0.5) * 6,
-        (Math.random() - 0.5) * 6,
-        (Math.random() - 0.5) * 6,
+        (Math.random() * 2 - 1) * angularCap,
+        (Math.random() * 2 - 1) * angularCap,
+        (Math.random() * 2 - 1) * angularCap,
       );
     }
-    if (!this.reducedMotion) this.cameraShakeT0 = performance.now();
+    if (visualFeedback) this.startShakeFeedback(scale);
+  }
+
+  private startShakeFeedback(scale: number): void {
+    if (this.reducedMotion) return;
+    const now = performance.now();
+    this.cameraShakeT0 = now;
+    this.cameraShakeStrength = scale;
+    this.panShakeT0 = now;
+    this.panShakeStrength = scale;
   }
 
   /** Per-frame camera micro-shake: damped noise around the rest position. */
   private updateCameraShake(): void {
     if (this.cameraShakeT0 === 0) return;
-    const SHAKE_MS = 360;
+    const SHAKE_MS = SCENE_MOTION.cameraShakeMs;
     const t = (performance.now() - this.cameraShakeT0) / SHAKE_MS;
     if (t >= 1) {
       this.cameraShakeT0 = 0;
@@ -838,7 +1314,7 @@ export class ZhuaDaScene {
       return;
     }
     const damp = (1 - t) * (1 - t);
-    const amp = 0.12 * damp;
+    const amp = SCENE_MOTION.cameraShakeAmplitude * this.cameraShakeStrength * damp;
     this.camera.position.set(
       this.cameraBase.x + Math.sin(t * 40) * amp,
       this.cameraBase.y + Math.sin(t * 53 + 1.7) * amp * 0.6,
@@ -846,7 +1322,58 @@ export class ZhuaDaScene {
     );
   }
 
+  /** Visual basket tilt/rebound that sells the coordinated pan-toss gesture. */
+  private updatePanShake(): void {
+    if (this.panShakeT0 === 0 || !this.playfieldGroup) return;
+    const duration = SCENE_MOTION.panTossMs;
+    const t = (performance.now() - this.panShakeT0) / duration;
+    if (t >= 1) {
+      this.panShakeT0 = 0;
+      this.playfieldGroup.rotation.set(0, 0, 0);
+      this.playfieldGroup.position.set(0, 0, 0);
+      return;
+    }
+    const e = easeInOutCubic(t);
+    const damp = Math.pow(1 - e, SCENE_MOTION.panDampingPower);
+    const toss = Math.sin(e * Math.PI * 3.2);
+    const rebound = Math.sin(e * Math.PI * 6.4 + 0.7);
+    // This is a coordinated visual pan motion (container + item meshes), while
+    // the capped Cannon impulses above remain the authoritative physics. A
+    // stronger visible arc therefore reads as “颠锅” without increasing the
+    // risk of launching bodies over the rim.
+    this.playfieldGroup.rotation.z = toss * SCENE_MOTION.panRollAmplitude * this.panShakeStrength * damp;
+    this.playfieldGroup.rotation.x = rebound * SCENE_MOTION.panPitchAmplitude * this.panShakeStrength * damp;
+    this.playfieldGroup.position.x = toss * SCENE_MOTION.panOffsetX * this.panShakeStrength * damp;
+    this.playfieldGroup.position.z = rebound * SCENE_MOTION.panOffsetZ * this.panShakeStrength * damp;
+    this.playfieldGroup.position.y = Math.max(0, Math.sin(e * Math.PI * 2)) * SCENE_MOTION.panLiftY * this.panShakeStrength * damp;
+  }
+
   // ── Pointer pick ────────────────────────────────────────────────────────────
+
+  /** Keyboard equivalent: pull the highest currently exposed body. */
+  activatePrimary(): void {
+    if (this.gameStatus !== "dealt") return;
+    const picked = [...this.itemVisuals.values()]
+      .filter((visual) => !visual.extracting)
+      .sort((a, b) => b.body.position.y - a.body.position.y)[0];
+    if (picked) this.beginPick(picked);
+  }
+
+  private beginPick(picked: ItemVisual): void {
+    if (
+      picked.extracting
+      || this.gameStatus !== "dealt"
+    ) return;
+    // Cover only the same visual's synchronous dispatch/receipt gap. Do not
+    // globally lock the pile: rapid different-item picks are a core interaction,
+    // and the React tray already queues receipts for readable choreography.
+    this.duplicatePickGuardUntil = duplicatePickGuardUntil(performance.now());
+    picked.extracting = true;
+    sound.play("pick");
+    haptics.play("pick");
+    if (!this.reducedMotion) picked.mesh.scale.multiplyScalar(SCENE_MOTION.pickPressScale);
+    this.bridge?.dispatch("extract", { itemId: picked.id, kind: picked.kind });
+  }
 
   private onPointerDown = (ev: PointerEvent): void => {
     if (!this.renderer || this.gameStatus !== "dealt") return;
@@ -874,16 +1401,7 @@ export class ZhuaDaScene {
     // Synchronous in-flight guard: flag the visual BEFORE the async React
     // round-trip so a same-frame double-tap can't dispatch a duplicate
     // extract (the roots filter above skips extracting visuals).
-    picked.extracting = true;
-    // Pick SFX + light haptic tap — immediate tactile feedback on a pull.
-    sound.play("pick");
-    haptics.play("pick");
-    // Light press pop, relative to the model's base scale; the tray fly
-    // animation (sendToTray) takes over from whatever scale this reaches.
-    if (!this.reducedMotion) {
-      picked.mesh.scale.multiplyScalar(1.15);
-    }
-    this.bridge?.dispatch("extract", { itemId: picked.id, kind: picked.kind });
+    this.beginPick(picked);
   };
 
   // ── Render loop ─────────────────────────────────────────────────────────────
@@ -891,15 +1409,28 @@ export class ZhuaDaScene {
   /** Tab became visible again: throw away the delta accumulated while hidden
    * so physics + spawn pacing resume from a standstill instead of a jump. */
   private onVisibilityChange = (): void => {
-    if (!document.hidden) this.clock.getDelta();
+    if (!document.hidden) {
+      this.clock.getDelta();
+      this.lastRafAt = 0;
+      this.frameAccumulatorMs = 0;
+    }
   };
 
-  private loop = (): void => {
+  private loop = (rafNow = performance.now()): void => {
     if (this.disposed) return;
     this.rafId = requestAnimationFrame(this.loop);
     // Hidden tab → hard pause. Most browsers stop rAF while hidden anyway;
     // this guard covers the ones that keep throttled frames alive.
-    if (document.hidden) return;
+    if (document.hidden || this.paused) return;
+    // Rendering above 60Hz repeats the same fixed-step physics state and can
+    // nearly double GPU work on 90/120Hz phones. A small accumulator keeps an
+    // average 60Hz cadence without the 90Hz→45Hz aliasing of a simple timeout.
+    if (this.lastRafAt === 0) this.lastRafAt = rafNow;
+    this.frameAccumulatorMs += Math.max(0, Math.min(100, rafNow - this.lastRafAt));
+    this.lastRafAt = rafNow;
+    const targetFrameMs = 1000 / 60;
+    if (this.frameAccumulatorMs + 0.25 < targetFrameMs) return;
+    this.frameAccumulatorMs %= targetFrameMs;
     const rawDt = this.clock.getDelta();
 
     // Spawn queued items gradually so they cascade in. Pace with the UNCLAMPED
@@ -908,10 +1439,23 @@ export class ZhuaDaScene {
     if (this.spawnQueue.length > 0) {
       this.spawnTimer += rawDt;
       const interval = 0.035;
-      while (this.spawnTimer >= interval && this.spawnQueue.length > 0) {
+      let spawnedThisFrame = 0;
+      let streamedThisFrame = 0;
+      while (
+        this.spawnTimer >= interval
+        && this.spawnQueue.length > 0
+        && spawnedThisFrame < 2
+      ) {
+        const fromReservoir = this.spawnQueue[0]?.spawnMode === "reservoir";
+        if (fromReservoir && streamedThisFrame >= 1) break;
         this.spawnTimer -= interval;
         this.spawnNext();
+        spawnedThisFrame += 1;
+        if (fromReservoir) streamedThisFrame += 1;
       }
+      // Do not repay an arbitrarily large background-tab/render-stall debt in
+      // one burst; concentrated overlap correction is what launches bodies.
+      this.spawnTimer = Math.min(this.spawnTimer, interval * 2);
     }
 
     // Variable-step physics: fixed 1/60 internal step fed with the REAL
@@ -933,9 +1477,63 @@ export class ZhuaDaScene {
 
     // Camera micro-shake (G3) — a no-op unless a shake just fired.
     this.updateCameraShake();
+    this.updatePanShake();
 
     // Keep the box centered as the camera frame is fixed.
     this.renderer.render(this.scene, this.camera);
+    if (
+      import.meta.env.VITE_DEVICE_QA === "1"
+      && new URLSearchParams(window.location.search).get("deviceQa") === "1"
+    ) {
+      window.dispatchEvent(new CustomEvent("zhuada-e:device-qa-frame", {
+        detail: { frameTimeMs: rawDt * 1_000 },
+      }));
+      const now = performance.now();
+      if (now - this.lastDeviceQaTelemetryAt >= SCENE_MOTION.qaTelemetryMs) {
+        this.lastDeviceQaTelemetryAt = now;
+        let sleepingBodies = 0;
+        let escapedBodies = 0;
+        let maxHorizontalVelocity = 0;
+        let maxVerticalVelocity = 0;
+        let activeVisuals = 0;
+        for (const visual of this.itemVisuals.values()) {
+          if (visual.extracting) continue;
+          activeVisuals += 1;
+          if (visual.body.sleepState === Body.SLEEPING) sleepingBodies += 1;
+          const { position, velocity } = visual.body;
+          if (
+            Math.abs(position.x) > this.boxHalf + 1.4
+            || Math.abs(position.z) > this.boxHalf + 1.4
+            || position.y < -1.5
+          ) escapedBodies += 1;
+          maxHorizontalVelocity = Math.max(
+            maxHorizontalVelocity,
+            Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z),
+          );
+          maxVerticalVelocity = Math.max(maxVerticalVelocity, Math.abs(velocity.y));
+        }
+        const info = this.renderer.info;
+        window.dispatchEvent(new CustomEvent("zhuada-e:device-qa-render", {
+          detail: {
+            at: Date.now(),
+            frameTimeMs: rawDt * 1_000,
+            drawCalls: info.render.calls,
+            triangles: info.render.triangles,
+            geometries: info.memory.geometries,
+            textures: info.memory.textures,
+            activeVisuals,
+            physicsBodies: activeVisuals,
+            sleepingBodies,
+            escapedBodies,
+            maxHorizontalVelocity,
+            maxVerticalVelocity,
+            pixelRatio: this.renderer.getPixelRatio(),
+            canvasWidth: this.renderer.domElement.width,
+            canvasHeight: this.renderer.domElement.height,
+          },
+        }));
+      }
+    }
   };
 
   // ── Resize ──────────────────────────────────────────────────────────────────
@@ -946,29 +1544,65 @@ export class ZhuaDaScene {
     this.renderer.setSize(width, height, true);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.frameCamera(this.boxHalf, this.boxHeight);
   }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function boxHalfFromBoxHeight(h: number): number {
-  return Math.max(2.4, Math.min(3.4, h * 0.72));
+function penDimensions(level: number): { half: number; height: number } {
+  const spec = specOf(level);
+  return {
+    // boxSize 9→12 now materially expands the physical surface without moving
+    // the rim outside the mobile camera framing.
+    half: THREE.MathUtils.clamp(spec.boxSize * 0.31, 2.75, 3.75),
+    // A shallow pan is essential in the top view: the rim frames the pile but
+    // never hides the lower half of the playable objects.
+    height: 0.78 + (spec.boxSize - 9) * 0.035,
+  };
 }
 
-function makeItemBody(geometry: GeometryKind, half: number): CannonBody {
-  let shape;
-  switch (geometry) {
-    case "sphere": shape = new Sphere(0.62); break;
-    case "box": shape = new Box(new Vec3(0.85, 0.85, 0.85)); break;
-    case "cylinder": shape = new Cylinder(0.8, 0.8, 1.6, 12); break;
-    case "cone": shape = new Cylinder(0.05, 0.9, 1.7, 12); break;
-    case "torus": shape = new Sphere(0.7); break; // approximate with sphere for stability
-    case "icosa": shape = new Sphere(0.95); break;
-    default: shape = new Sphere(0.62);
+/** Stable pseudo-random unit used to derive rotations from the run's positions. */
+function deterministicUnit(id: number, salt: number): number {
+  const x = Math.sin((id + 1) * 12.9898 + salt * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function makeItemBody(profile: ItemPhysicsProfile, material?: CannonMaterial): CannonBody {
+  const body = new Body({
+    mass: profile.mass,
+    material,
+    linearDamping: profile.linearDamping,
+    angularDamping: profile.angularDamping,
+  });
+  for (const spec of profile.shapes) {
+    const shape = cannonShapeOf(spec);
+    const [ox, oy, oz] = spec.offset ?? [0, 0, 0];
+    const offset = new Vec3(ox, oy, oz);
+    let orientation: CannonQuaternion | undefined;
+    if (spec.kind !== "sphere" && spec.rotation) {
+      orientation = new CannonQuaternion();
+      orientation.setFromEuler(spec.rotation[0], spec.rotation[1], spec.rotation[2], "XYZ");
+    }
+    body.addShape(shape, offset, orientation);
   }
-  const body = new Body({ mass: 1, shape, linearDamping: 0.1, angularDamping: 0.2 });
-  void half;
+  body.allowSleep = true;
+  body.sleepSpeedLimit = profile.sleepSpeedLimit;
+  body.sleepTimeLimit = profile.sleepTimeLimit;
+  body.updateMassProperties();
+  body.updateBoundingRadius();
   return body;
+}
+
+function cannonShapeOf(spec: CollisionShapeSpec): Sphere | Box | Cylinder {
+  switch (spec.kind) {
+    case "sphere":
+      return new Sphere(spec.radius);
+    case "box":
+      return new Box(new Vec3(spec.half[0], spec.half[1], spec.half[2]));
+    case "cylinder":
+      return new Cylinder(spec.radiusTop, spec.radiusBottom, spec.height, 12);
+  }
 }
 
 /** Two clearedFx pulses are the same event iff they list the same indices. */
@@ -976,115 +1610,6 @@ function sameIndexList(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
   return true;
-}
-
-/** Render an original canvas-DRAWN glyph (no fonts, no emoji) onto a sprite. */
-function makeGlyphSprite(draw: (ctx: CanvasRenderingContext2D) => void, size: number): THREE.Sprite {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256; canvas.height = 256;
-  const ctx = canvas.getContext("2d")!;
-  draw(ctx);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(size, size, size);
-  return sprite;
-}
-
-/** Timeout stamp: a hand-drawn alarm clock (ring + bells + hands + feet). */
-function drawClockGlyph(ctx: CanvasRenderingContext2D): void {
-  const red = "#ef4444";
-  ctx.lineCap = "round";
-  // Face.
-  ctx.strokeStyle = red;
-  ctx.lineWidth = 18;
-  ctx.beginPath();
-  ctx.arc(128, 140, 82, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-  ctx.beginPath();
-  ctx.arc(128, 140, 73, 0, Math.PI * 2);
-  ctx.fill();
-  // Bells (two arcs on top) + feet.
-  ctx.lineWidth = 16;
-  ctx.beginPath();
-  ctx.arc(62, 58, 26, Math.PI * 0.75, Math.PI * 1.85);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(194, 58, 26, Math.PI * 1.15, Math.PI * 2.25);
-  ctx.stroke();
-  ctx.lineWidth = 14;
-  ctx.beginPath();
-  ctx.moveTo(66, 210); ctx.lineTo(48, 232);
-  ctx.moveTo(190, 210); ctx.lineTo(208, 232);
-  ctx.stroke();
-  // Hands, pointing at "time's up".
-  ctx.lineWidth = 14;
-  ctx.beginPath();
-  ctx.moveTo(128, 140); ctx.lineTo(128, 88);
-  ctx.moveTo(128, 140); ctx.lineTo(170, 158);
-  ctx.stroke();
-  ctx.fillStyle = red;
-  ctx.beginPath();
-  ctx.arc(128, 140, 9, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-/** Tray-jam stamp: a hand-drawn padlock (shackle + body + keyhole cutout). */
-function drawLockGlyph(ctx: CanvasRenderingContext2D): void {
-  const red = "#ef4444";
-  ctx.lineCap = "round";
-  // Shackle.
-  ctx.strokeStyle = red;
-  ctx.lineWidth = 22;
-  ctx.beginPath();
-  ctx.arc(128, 98, 46, Math.PI, Math.PI * 2);
-  ctx.moveTo(82, 98); ctx.lineTo(82, 124);
-  ctx.moveTo(174, 98); ctx.lineTo(174, 124);
-  ctx.stroke();
-  // Body.
-  ctx.fillStyle = red;
-  ctx.beginPath();
-  ctx.roundRect(52, 118, 152, 108, 22);
-  ctx.fill();
-  // Keyhole cutout (punched out of the body, not painted over it).
-  ctx.globalCompositeOperation = "destination-out";
-  ctx.beginPath();
-  ctx.arc(128, 158, 16, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.roundRect(120, 164, 16, 40, 8);
-  ctx.fill();
-  ctx.globalCompositeOperation = "source-over";
-}
-
-function disposeMaterial(mat: THREE.Material | THREE.Material[] | undefined): void {
-  if (!mat) return;
-  if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-  else mat.dispose();
-}
-
-/**
- * Dispose every GPU resource under `root`. Item visuals and tray minis are
- * composed Groups, so disposal MUST traverse (a root-only isMesh check
- * disposes nothing for them); Sprites need their material + CanvasTexture
- * freed explicitly (material.dispose() does not free .map).
- */
-function disposeObject(root: THREE.Object3D): void {
-  root.traverse((obj) => {
-    const mesh = obj as THREE.Mesh;
-    if (mesh.isMesh) {
-      mesh.geometry?.dispose();
-      disposeMaterial(mesh.material);
-      return;
-    }
-    const sprite = obj as THREE.Sprite;
-    if (sprite.isSprite) {
-      sprite.material.map?.dispose();
-      sprite.material.dispose();
-    }
-  });
 }
 
 /** Collect every Mesh (with a material) under a group, for hint pulsing. */
@@ -1097,8 +1622,23 @@ function collectMeshes(obj: THREE.Object3D): THREE.Mesh[] {
   return out;
 }
 
+function collectSprites(obj: THREE.Object3D): THREE.Sprite[] {
+  const out: THREE.Sprite[] = [];
+  obj.traverse((o) => {
+    const sprite = o as THREE.Sprite;
+    if (sprite.isSprite) out.push(sprite);
+  });
+  return out;
+}
+
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
+}
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 export default ZhuaDaScene;

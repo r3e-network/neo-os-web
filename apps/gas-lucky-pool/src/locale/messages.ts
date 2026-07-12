@@ -8,6 +8,7 @@ const appMessagesBase = {
     zh: "分享一份能在 OneGate 内顺畅领取的幸运 GAS 奖励。",
   },
   drawerTitle: { en: "Vault guide", zh: "金库指南" },
+  closeDrawer: { en: "Close guide", zh: "关闭指南" },
   moreActions: { en: "More actions", zh: "更多操作" },
   title: { en: "OneGate Vault", zh: "OneGate 金库" },
   subtitle: {
@@ -431,6 +432,15 @@ const appMessagesBase = {
   vaultPoolNumber: { en: "Pool #{id}", zh: "奖池 #{id}" },
   vaultLuckSuffix: { en: "{percent}% luck", zh: "手气 {percent}%" },
   vaultLatestTx: { en: "Latest tx {tx}", zh: "最新交易 {tx}" },
+  vaultCanvasAria: {
+    en: "Interactive OneGate GAS reward vault",
+    zh: "OneGate GAS 奖励金库互动区",
+  },
+  vaultCanvasLoading: { en: "Opening vault", zh: "正在打开金库" },
+  vaultActionError: {
+    en: "The vault action could not be completed.",
+    zh: "金库操作未能完成。",
+  },
   claimProgressSubmitted: { en: "Submitted", zh: "已提交" },
 
   // ── Guest (free / local) lucky-draw strings ───────────────────────────────
@@ -443,6 +453,17 @@ const appMessagesBase = {
   guestChooseTier: { en: "Choose a luck tier", zh: "选择幸运档位" },
   guestUnwrapTitle: { en: "Reveal your prize", zh: "揭晓你的奖品" },
   guestActionDraw: { en: "Draw", zh: "抽奖" },
+  enableGameSound: { en: "Enable game sound", zh: "开启游戏声音" },
+  muteGameSound: { en: "Mute game sound", zh: "关闭游戏声音" },
+  continue: { en: "Continue", zh: "继续" },
+  guestCanvasAria: {
+    en: "Interactive local lucky draw",
+    zh: "本地幸运抽奖互动区",
+  },
+  guestA11yControls: {
+    en: "Keyboard and screen-reader draw controls",
+    zh: "键盘与屏幕阅读器抽奖控件",
+  },
   guestTagline: {
     en: "Local luck draw — no GAS, just points.",
     zh: "本地幸运抽奖——无 GAS，只赢积分。",
@@ -482,6 +503,26 @@ const appMessagesBase = {
     en: "Prizes are rolled locally with your device's secure RNG. Nothing is staked and nothing touches the chain.",
     zh: "奖品由你设备的安全随机数在本地生成。不下注、不上链。",
   },
+  guestSecureRandomUnavailable: {
+    en: "Secure randomness is unavailable here. No draw was made — reopen the game in a supported browser and try again.",
+    zh: "当前环境无法提供安全随机数，本次没有开奖。请用受支持的浏览器重新打开后再试。",
+  },
+  gameFiMaintenanceShort: {
+    en: "GameFi validation in progress",
+    zh: "GameFi 正在验证中",
+  },
+  gameFiMaintenanceBody: {
+    en: "Wallet, GAS, pool and claim actions stay hidden until the RangeGasPool deployment, randomness policy, payout recovery and end-to-end testnet flow are verified.",
+    zh: "RangeGasPool 部署、随机性策略、资金恢复与测试网端到端流程完成验证前，钱包、GAS、奖池与领取操作保持隐藏。",
+  },
+  claimLinkPreserved: {
+    en: "This OneGate claim link is preserved for the session, but it will not be submitted or replaced by a local draw while GameFi settlement is paused.",
+    zh: "该 OneGate 领取链接会在当前会话中保留；GameFi 结算暂停期间，不会提交，也不会被本地抽奖替代。",
+  },
+  claimLinkHeldShort: {
+    en: "Claim link held · GameFi paused",
+    zh: "领取链接已保留 · GameFi 暂停",
+  },
   guestDrawResult: {
     en: "You drew {amount} pts — {luck}% luck!",
     zh: "你抽到 {amount} 分——手气 {luck}%！",
@@ -493,6 +534,7 @@ const jaMessages = {
   appTitle: "OneGate Vault",
   appSubtitle: "OneGate内できれいに開ける幸運のGAS報酬を共有します。",
   drawerTitle: "金庫ガイド",
+  closeDrawer: "ガイドを閉じる",
   moreActions: "その他の操作",
   title: "OneGate Vault（金庫）",
   subtitle: "OneGate QRで1〜50 GASのランダム報酬",
@@ -724,6 +766,9 @@ const jaMessages = {
   vaultPoolNumber: "プール #{id}",
   vaultLuckSuffix: "運 {percent}%",
   vaultLatestTx: "最新Tx {tx}",
+  vaultCanvasAria: "OneGate GAS報酬金庫の操作エリア",
+  vaultCanvasLoading: "金庫を開いています",
+  vaultActionError: "金庫の操作を完了できませんでした。",
   claimProgressSubmitted: "送信済み",
   guestUnit: "pt",
   guestTabDraw: "ラッキードロー",
@@ -731,6 +776,11 @@ const jaMessages = {
   guestChooseTier: "運の段を選ぶ",
   guestUnwrapTitle: "景品を公開",
   guestActionDraw: "ドロー",
+  enableGameSound: "ゲーム音をオン",
+  muteGameSound: "ゲーム音をオフ",
+  continue: "続ける",
+  guestCanvasAria: "ローカル抽選の操作エリア",
+  guestA11yControls: "キーボードとスクリーンリーダー用の抽選操作",
   guestTagline: "ローカル抽選 — GASなし、ポイントだけ。",
   guestStatusIdle: "ドローを押して運試し",
   guestPackSummary: "1回 {min}-{max} pt",
@@ -752,6 +802,14 @@ const jaMessages = {
     "運の段を選んでドローをタップ。デバイスの安全な乱数で景品が公開されます — すべてローカルで、チェーンには触れません。ベスト記録はオフチェーンのボードに保存されます。",
   guestSeedNote:
     "景品はデバイスの安全な乱数でローカルに抽選されます。賭けもチェーンへの送信もありません。",
+  guestSecureRandomUnavailable:
+    "この環境では安全な乱数を利用できないため、抽選は行われませんでした。対応ブラウザーで開き直して再試行してください。",
+  gameFiMaintenanceShort: "GameFiを検証中",
+  gameFiMaintenanceBody:
+    "RangeGasPoolのデプロイ、乱数ポリシー、支払い復旧、テストネットのエンドツーエンド動作が検証されるまで、ウォレット、GAS、プール、受取操作は非表示です。",
+  claimLinkPreserved:
+    "このOneGate受取リンクはセッション中保持されます。GameFi決済の停止中は送信されず、ローカル抽選にも置き換えられません。",
+  claimLinkHeldShort: "受取リンクを保持中 · GameFi停止中",
   guestDrawResult: "{amount} pt 獲得 — 運 {luck}%！",
 } satisfies Record<keyof typeof appMessagesBase, string>;
 

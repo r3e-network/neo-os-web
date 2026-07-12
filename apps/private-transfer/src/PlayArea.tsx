@@ -1,19 +1,21 @@
-/**
- * PlayArea.tsx — Confidential Transfer (v2 scene-driven rebuild)
- *
- * DeFi identity. The sealed envelope IS the scene: a privacy lock/seal that
- * shows the sealing status, with the commitment + nullifier readout once sealed.
- * This app seals an encrypted intent (no funds move, no on-chain write) — so the
- * primary action dispatches a preview/seal intent. Recipient + amount are the
- * foreground packet slots; optional memo and technical details stay tucked in
- * the drawer so this reads like an app, not a long form.
- */
-import { useState } from "react";
-import { FileLock2, LockKeyhole, Send, ShieldCheck, UnlockKeyhole } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Check,
+  CircleAlert,
+  Database,
+  FileLock2,
+  KeyRound,
+  LockKeyhole,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  Trash2,
+  WalletCards,
+} from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { CoinArt } from "@shared/art";
-import { OpenUiNotice, OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import { isPositiveAssetAmount, isValidNeoAddress, type PrivateTransferAsset } from "./seal";
 import "./PlayArea.scss";
 
@@ -30,279 +32,396 @@ const ASSET_OPTIONS: Array<{ symbol: PrivateTransferAsset; metaKey: string; pres
 ];
 
 function shortHash(value: string): string {
-  const v = String(value || "").trim();
-  if (!v || v === "—") return "—";
-  if (v.length <= 18) return v;
-  return `${v.slice(0, 10)}…${v.slice(-6)}`;
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized === "—") return "—";
+  if (normalized.length <= 20) return normalized;
+  return `${normalized.slice(0, 11)}…${normalized.slice(-7)}`;
 }
 
 function coinVariant(asset: PrivateTransferAsset): "gas" | "neo" {
   return asset === "NEO" ? "neo" : "gas";
 }
 
-function normalizeAmountInput(value: string, asset: PrivateTransferAsset): string {
-  const text = String(value ?? "");
-  if (asset === "NEO") {
-    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
-  }
-  return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+function normalizeAmountInput(value: string): string {
+  // Preserve what the user entered so an invalid paste can never be silently
+  // reinterpreted as a different financial amount (for example `1e3` -> `13`
+  // or `10.5 NEO` -> `10 NEO`). The strict validator owns acceptance.
+  return String(value ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .slice(0, 32);
 }
+
+type RouteState = "idle" | "active" | "done" | "warning" | "outside";
 
 export default function PlayArea({ t, state, dispatch }: P) {
   const { str, num, bool } = useStateBindings(state);
-
-  const privacyMode = str("privacyMode");
-  const networkLabel = str("networkLabel");
-  const lastStatus = str("lastStatus");
-  const lastDigest = str("lastDigest");
-  const lastSecretRef = str("lastSecretRef");
-  const lastNullifier = str("lastNullifier");
-  const isSealing = bool("isSealing");
-  const requestCount = num("requestCount");
-
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [asset, setAsset] = useState<PrivateTransferAsset>("GAS");
   const [memo, setMemo] = useState("");
+  const [discardArmed, setDiscardArmed] = useState(false);
+
+  const phase = str("phase", "checking");
+  const networkState = str("networkState", "checking");
+  const oracleState = str("oracleState", "checking");
+  const storageState = str("storageState", "unknown");
+  const networkLabel = str("networkLabel", t("networkChecking"));
+  const oracleContract = str("oracleContract");
+  const oracleChecksum = num("oracleChecksum");
+  const lastStatus = str("lastStatus", t("statusCheckingRuntime"));
+  const lastDigest = str("lastDigest", "—");
+  const lastSecretRef = str("lastSecretRef");
+  const lastNullifier = str("lastNullifier");
+  const isSealing = bool("isSealing");
+  const hasPending = bool("hasPending");
+  const pendingCommitment = str("pendingCommitment");
+  const pendingAsset = str("pendingAsset");
+  const pendingAttempts = num("pendingAttempts");
+  const requestCount = num("requestCount");
+  const lastStoredAt = num("lastStoredAt");
 
   const recipientReady = isValidNeoAddress(recipient);
   const amountReady = isPositiveAssetAmount(amount, asset);
-  const canSeal = recipientReady && amountReady && !isSealing;
-  const hasSealed = requestCount > 0;
-  const stageState = isSealing ? "sealing" : hasSealed ? "sealed" : canSeal ? "ready" : "draft";
-  // ASSET_OPTIONS is a non-empty literal; the [0] fallback always exists.
+  const runtimeReady = networkState === "ready" && oracleState === "ready";
+  const canSeal = recipientReady && amountReady && runtimeReady && !hasPending && !isSealing;
   const activeAsset = ASSET_OPTIONS.find((option) => option.symbol === asset) ?? ASSET_OPTIONS[0]!;
-  const packetTitle = hasSealed ? t("packetSealed") : canSeal ? t("packetReady") : t(asset === "NEO" ? "packetDraftNeo" : "packetDraftGas");
-  const amountHint = asset === "NEO" ? t("amountHintNeo") : t("amountHintGas");
+
+  useEffect(() => {
+    if (!hasPending) {
+      setDiscardArmed(false);
+      return;
+    }
+    if (!discardArmed) return;
+    const timer = window.setTimeout(() => setDiscardArmed(false), 6_000);
+    return () => window.clearTimeout(timer);
+  }, [discardArmed, hasPending]);
+
+  useEffect(() => {
+    if (lastStoredAt <= 0) return;
+    // A secret reference is the success boundary. Clear all private draft
+    // fields only after that boundary is confirmed; failed storage keeps the
+    // draft available alongside its retryable ciphertext packet.
+    setRecipient("");
+    setAmount("");
+    setMemo("");
+  }, [lastStoredAt]);
 
   const selectAsset = (next: PrivateTransferAsset) => {
     setAsset(next);
-    setAmount((current) => normalizeAmountInput(current, next));
-  };
-  const selectAssetSafe = (value: string) => {
-    if (value === "GAS" || value === "NEO") {
-      selectAsset(value);
-    }
+    setAmount((current) => normalizeAmountInput(current));
   };
 
-  const handleSeal = async () => {
+  const runAction = (name: string, ...args: unknown[]) => {
+    void dispatch(name, ...args).catch(() => undefined);
+  };
+
+  const handleSeal = () => {
     if (!canSeal) return;
-    await dispatch("prepareTransfer", { recipient, amount, asset, memo });
+    runAction("prepareTransfer", { recipient, amount, asset, memo });
+  };
+
+  const routeState = (step: "key" | "package" | "store"): RouteState => {
+    if (step === "key") {
+      if (phase === "checking" || phase === "key") return "active";
+      if (oracleState === "ready") return "done";
+      return phase === "blocked" ? "warning" : "idle";
+    }
+    if (step === "package") {
+      if (phase === "package") return "active";
+      if (["store", "stored", "recovery"].includes(phase)) return "done";
+      return "idle";
+    }
+    if (phase === "store") return "active";
+    if (phase === "stored") return "done";
+    if (phase === "recovery" || hasPending) return "warning";
+    return "idle";
+  };
+
+  const routeSteps: Array<{
+    key: string;
+    icon: typeof KeyRound;
+    title: string;
+    body: string;
+    state: RouteState;
+  }> = [
+    { key: "key", icon: KeyRound, title: t("routeKeyTitle"), body: t("routeKeyBody"), state: routeState("key") },
+    { key: "package", icon: LockKeyhole, title: t("routeEncryptTitle"), body: t("routeEncryptBody"), state: routeState("package") },
+    { key: "store", icon: Database, title: t("routeStoreTitle"), body: t("routeStoreBody"), state: routeState("store") },
+    { key: "tee", icon: ShieldCheck, title: t("routeTeeTitle"), body: t("routeTeeBody"), state: "outside" },
+  ];
+
+  const serviceTone = (value: string): "ready" | "checking" | "blocked" => {
+    if (value === "ready" || value === "stored") return "ready";
+    if (value === "checking" || value === "storing") return "checking";
+    return "blocked";
   };
 
   const scene = (
-    <div className="pt-scene" data-state={stageState}>
-      <aside className="pt-vault-card" aria-label={t("heroStageAria")}>
-        <figure className="pt-vault-card__art">
-          <img src={STAGE_IMAGE} alt={t("heroStageAria")} loading="eager" decoding="async" />
+    <div className="pt-airlock" data-phase={phase}>
+      <section className="pt-visual" aria-label={t("heroStageAria")}>
+        <figure className="pt-visual__art">
+          <img src={STAGE_IMAGE} alt="" aria-hidden="true" loading="eager" decoding="async" />
+          <figcaption>
+            <LockKeyhole size={16} aria-hidden="true" />
+            <span>{t("visualCaption")}</span>
+          </figcaption>
         </figure>
-        <div className={["pt-seal-device", hasSealed ? "is-sealed" : ""].filter(Boolean).join(" ")}>
-          <div className="pt-seal-device__coin" aria-hidden="true">
-            <CoinArt size={32} variant={coinVariant(asset)} decorative />
-          </div>
-          <div className="pt-seal-device__lock" aria-hidden="true">
-            {hasSealed ? <LockKeyhole size={26} /> : <UnlockKeyhole size={26} />}
-          </div>
-          <div className="pt-seal-device__body">
-            <span className="pt-seal-device__label">{t("statDigest")}</span>
-            <strong className="pt-seal-device__digest">{hasSealed ? shortHash(lastDigest) : t("digestPlaceholder")}</strong>
-            <small>{lastSecretRef ? shortHash(lastSecretRef) : t("sealPreviewPending")}</small>
-          </div>
-        </div>
-      </aside>
 
-      <section className="pt-packet-console" aria-label={t("composerTitle")}>
-        <header className="pt-packet-console__head">
-          <span><FileLock2 size={16} /> {t("composerTitle")}</span>
-          <strong>{packetTitle}</strong>
-          <small>{t("introBody")}</small>
-        </header>
+        <ol className="pt-route" aria-label={t("routeAria")}>
+          {routeSteps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <li key={step.key} className="pt-route__step" data-state={step.state}>
+                <span className="pt-route__marker">
+                  {step.state === "done" ? <Check size={17} aria-hidden="true" /> : <Icon size={17} aria-hidden="true" />}
+                </span>
+                <span className="pt-route__copy">
+                  <strong>{step.title}</strong>
+                  <small>{step.body}</small>
+                </span>
+                {index < routeSteps.length - 1 ? <span className="pt-route__line" aria-hidden="true" /> : null}
+              </li>
+            );
+          })}
+        </ol>
 
-        <div className="pt-transfer-packet" data-ready={canSeal ? "true" : undefined}>
-          <div className="pt-transfer-packet__seal" aria-hidden="true">
-            <img src={STAGE_IMAGE} alt="" />
-            <span>{hasSealed ? <LockKeyhole size={23} /> : <UnlockKeyhole size={23} />}</span>
+        <div className="pt-service-strip" aria-label={t("serviceStatusTitle")} aria-live="polite">
+          <div data-tone={serviceTone(networkState)}>
+            <span className="pt-status-dot" aria-hidden="true" />
+            <span><strong>{networkLabel}</strong><small>{t("serviceNetworkDetail")}</small></span>
           </div>
-          <div className="pt-transfer-packet__body">
-            <span>{t(asset === "NEO" ? "packetRailNeo" : "packetRailGas")}</span>
-            <strong>{amountReady ? `${amount} ${asset}` : t(asset === "NEO" ? "routeAmountPendingNeo" : "routeAmountPendingGas")}</strong>
-            <small>{recipientReady ? shortHash(recipient) : t("routeRecipientPending")}</small>
+          <div data-tone={serviceTone(oracleState)}>
+            <span className="pt-status-dot" aria-hidden="true" />
+            <span><strong>{t(oracleState === "ready" ? "serviceOracleReady" : oracleState === "checking" ? "serviceOracleChecking" : "serviceOracleBlocked")}</strong><small>{oracleContract ? shortHash(oracleContract) : t("serviceFreshKeyRequired")}</small></span>
           </div>
-          <div className="pt-scene__route" aria-label={t("routeAria")}>
-            <span className={recipientReady ? "is-on" : ""}>{t("routeStepCompose")}</span>
-            <span className="pt-scene__route-arrow">→</span>
-            <span className={amountReady ? "is-on" : ""}>{t("routeStepEncrypt")}</span>
-            <span className="pt-scene__route-arrow">→</span>
-            <span className={hasSealed ? "is-on" : ""}>{t("routeStepMorpheus")}</span>
+          <div data-tone={serviceTone(storageState)}>
+            <span className="pt-status-dot" aria-hidden="true" />
+            <span><strong>{t(storageState === "stored" ? "serviceStorageStored" : storageState === "storing" ? "serviceStorageWorking" : hasPending ? "serviceStorageRecoverable" : "serviceStorageSubmit")}</strong><small>{t("serviceStorageDetail")}</small></span>
           </div>
         </div>
 
-        <div className="pt-compose-strip" aria-label={t("composerLead")}>
-          <div className="pt-amount-desk" data-ready={amountReady ? "true" : "false"} data-asset={asset.toLowerCase()}>
-            <OpenUiSegmented
-              className="pt-asset-switch"
-              segmentedClassName="pt-asset-switch__group"
-              label={t("formAssetLabel")}
-              value={asset}
-              onChange={selectAssetSafe}
-              options={ASSET_OPTIONS.map((option) => ({
-                value: option.symbol,
-                label: (
-                  <span className="pt-asset-option" data-asset={option.symbol.toLowerCase()}>
-                    <CoinArt size={22} variant={coinVariant(option.symbol)} decorative />
-                    <span>
-                      <strong>{option.symbol}</strong>
-                      <small>{t(option.metaKey)}</small>
-                    </span>
-                  </span>
-                ),
-              }))}
-            />
-            <div
-              className="pt-compose-slot pt-compose-slot--amount"
-              data-ready={amountReady ? "true" : "false"}
-              data-empty={!amount ? "true" : undefined}
-            >
-              <span><CoinArt size={16} variant={coinVariant(asset)} decorative /> {t("formAmountLabel")}</span>
-              <div className="pt-amount-control">
-                <OpenUiTextField
-                  className="pt-amount-field"
-                  inputClassName="pt-compose-input pt-compose-input--amount"
-                  label={t("formAmountLabel")}
-                  value={amount}
-                  onChange={(e) => setAmount(normalizeAmountInput(e.target.value, asset))}
-                  placeholder={asset === "NEO" ? "1" : "0.00"}
-                  inputMode={asset === "NEO" ? "numeric" : "decimal"}
-                />
-                <strong>{asset}</strong>
-              </div>
-              <small className="pt-amount-hint">{amountHint}</small>
+        {hasPending ? (
+          <section className="pt-recovery" aria-labelledby="pt-recovery-title">
+            <div className="pt-recovery__icon"><FileLock2 size={26} aria-hidden="true" /></div>
+            <div className="pt-recovery__copy">
+              <strong id="pt-recovery-title">{t("pendingTitle")}</strong>
+              <span>{t("pendingBody", { asset: pendingAsset || asset, attempts: pendingAttempts })}</span>
+              <small>{shortHash(pendingCommitment)}</small>
             </div>
-            <OpenUiSegmented
-              className="pt-amount-presets"
-              segmentedClassName="pt-amount-presets__group"
-              label={t("presetsLabel")}
-              value={activeAsset.presets.includes(amount) ? amount : ""}
-              onChange={setAmount}
-              options={activeAsset.presets.map((preset) => ({
-                value: preset,
-                label: <span className="pt-preset-option">{preset} {asset}</span>,
-              }))}
-            />
-            {amount && !amountReady && <small className="pt-amount-error">{t(asset === "NEO" ? "errorInvalidNeoAmount" : "errorInvalidAmount")}</small>}
-          </div>
-
-          <div
-            className="pt-compose-slot pt-compose-slot--recipient"
-            data-ready={recipientReady ? "true" : "false"}
-            data-empty={!recipient ? "true" : undefined}
-          >
-            <span><Send size={15} /> {t("formRecipientLabel")}</span>
-            <OpenUiTextField
-              className="pt-recipient-field"
-              inputClassName="pt-compose-input pt-compose-input--recipient"
-              label={t("formRecipientLabel")}
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              placeholder={t("formRecipientPlaceholder")}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {recipient && !recipientReady && <small>{t("errorInvalidAddress")}</small>}
-          </div>
-        </div>
+            <div className="pt-recovery__actions">
+              <button type="button" className="pt-recovery__retry" onClick={() => runAction("retryPending")} disabled={isSealing || !runtimeReady}>
+                <RotateCcw size={15} aria-hidden="true" /> {t("pendingRetry")}
+              </button>
+              <button
+                type="button"
+                className="pt-recovery__discard"
+                data-armed={discardArmed ? "true" : undefined}
+                onClick={() => discardArmed ? runAction("discardPending") : setDiscardArmed(true)}
+                disabled={isSealing}
+                aria-pressed={discardArmed}
+              >
+                <Trash2 size={15} aria-hidden="true" /> {t(discardArmed ? "pendingDiscardConfirm" : "pendingDiscard")}
+              </button>
+            </div>
+          </section>
+        ) : null}
       </section>
 
-      <div className="pt-scene__intent" aria-label={t("summaryTitle")}>
-        <span data-ready={recipientReady ? "true" : "false"}><Send size={14} /> {recipientReady ? shortHash(recipient) : t("summaryRecipient")}</span>
-        <span data-ready={amountReady ? "true" : "false"}><CoinArt size={16} variant={coinVariant(asset)} decorative /> {amountReady ? `${amount} ${asset}` : t("summaryAmount")}</span>
-        <span data-ready={hasSealed ? "true" : "false"}><ShieldCheck size={14} /> {hasSealed ? shortHash(lastNullifier || lastDigest) : t("introPointNoFunds")}</span>
-      </div>
-      <p className="pt-scene__status">
-        {isSealing ? t("statusSealingProgress") : hasSealed ? `${lastStatus || t("statusSealed")} · ${privacyMode}` : canSeal ? t("summaryTitle") : t("statusInitial")}
-      </p>
+      <section className="pt-composer" aria-label={t("composerTitle")}>
+        <header className="pt-composer__head">
+          <span>{t("composerTitle")}</span>
+          <strong>{t("composerLead")}</strong>
+          <small>{t("composerSubtitle")}</small>
+        </header>
+
+        <fieldset className="pt-asset-switch">
+          <legend>{t("formAssetLabel")}</legend>
+          <div className="pt-asset-switch__group">
+            {ASSET_OPTIONS.map((option) => (
+              <label key={option.symbol} className="pt-asset-control" data-checked={asset === option.symbol ? "true" : undefined}>
+                <input
+                  type="radio"
+                  name="private-transfer-asset"
+                  value={option.symbol}
+                  checked={asset === option.symbol}
+                  onChange={() => selectAsset(option.symbol)}
+                />
+                <span className="pt-asset-option" data-asset={option.symbol.toLowerCase()}>
+                  <CoinArt size={30} variant={coinVariant(option.symbol)} decorative />
+                  <span><strong>{option.symbol}</strong><small>{t(option.metaKey)}</small></span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="pt-amount-slot" data-ready={amountReady ? "true" : "false"}>
+          <CoinArt size={48} variant={coinVariant(asset)} decorative />
+          <label className="pt-amount-field">
+            <span className="pt-visually-hidden">{t("formAmountLabel")}</span>
+            <input
+              className="pt-amount-input"
+              aria-label={t("formAmountLabel")}
+              value={amount}
+              onChange={(event) => setAmount(normalizeAmountInput(event.target.value))}
+              placeholder={asset === "NEO" ? "1" : "0.00"}
+              inputMode={asset === "NEO" ? "numeric" : "decimal"}
+              autoComplete="off"
+              maxLength={32}
+              aria-invalid={amount && !amountReady ? true : undefined}
+              aria-describedby="pt-amount-help"
+            />
+          </label>
+          <strong>{asset}</strong>
+        </div>
+        <div className="pt-amount-meta" id="pt-amount-help">
+          <span>{asset === "NEO" ? t("amountHintNeo") : t("amountHintGas")}</span>
+          {amount && !amountReady ? <strong role="alert">{t(asset === "NEO" ? "errorInvalidNeoAmount" : "errorInvalidAmount")}</strong> : null}
+        </div>
+
+        <fieldset className="pt-amount-presets">
+          <legend>{t("presetsLabel")}</legend>
+          <div className="pt-amount-presets__group">
+            {activeAsset.presets.map((preset) => (
+              <label key={`${asset}-${preset}`} data-checked={amount === preset ? "true" : undefined}>
+                <input
+                  type="radio"
+                  name="private-transfer-preset"
+                  value={preset}
+                  checked={amount === preset}
+                  onChange={() => setAmount(preset)}
+                />
+                <span>{preset}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label className="pt-recipient-field">
+          <span>{t("formRecipientLabel")}</span>
+          <input
+            className="pt-recipient-input"
+            aria-label={t("formRecipientLabel")}
+            value={recipient}
+            onChange={(event) => setRecipient(event.target.value.trim())}
+            placeholder={t("formRecipientPlaceholder")}
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={64}
+            aria-invalid={recipient && !recipientReady ? true : undefined}
+            aria-describedby="pt-recipient-help"
+          />
+          <small id="pt-recipient-help" aria-live="polite">{recipient ? t(recipientReady ? "recipientValid" : "errorInvalidAddress") : t("recipientHint")}</small>
+        </label>
+
+        <div className="pt-boundary" role="note">
+          <ShieldCheck size={18} aria-hidden="true" />
+          <span><strong>{t("boundaryTitle")}</strong><small>{t("boundaryBody")}</small></span>
+        </div>
+
+        {!runtimeReady ? (
+          <div className="pt-runtime-block" role="status">
+            <CircleAlert size={17} aria-hidden="true" />
+            <span><strong>{t("statusRuntimeUnavailable")}</strong><small>{lastStatus}</small></span>
+          </div>
+        ) : (
+          <p className="pt-runtime-ready" role="status"><ShieldCheck size={15} aria-hidden="true" /> {lastStatus}</p>
+        )}
+
+        <button
+          type="button"
+          className="pt-primary-action"
+          onClick={handleSeal}
+          disabled={!canSeal}
+          aria-busy={isSealing || undefined}
+          title={hasPending ? t("pendingMustResolve") : !runtimeReady ? t("statusRuntimeUnavailable") : undefined}
+        >
+          {isSealing ? <span className="mx2-spinner" aria-hidden="true" /> : <LockKeyhole size={18} aria-hidden="true" />}
+          <span>{isSealing ? t("sealing") : t("sealCtaShort")}</span>
+        </button>
+      </section>
     </div>
   );
 
-  const score = [
-    { label: t("statRequests"), value: String(requestCount), accent: true },
-    { label: t("statPrivacy"), value: privacyMode },
-    { label: t("statNetwork"), value: networkLabel },
-  ];
+  const drawerPanel = (icon: React.ReactNode, title: string, subtitle: string, body: React.ReactNode, extraClass = "") => (
+    <section className={`pt-drawer__panel ${extraClass}`.trim()}>
+      <header><span>{icon}</span><div><strong>{title}</strong><small>{subtitle}</small></div></header>
+      <div className="pt-drawer__panel-body">{body}</div>
+    </section>
+  );
 
   const drawer = (
-    <OpenUiProvider>
-      <div className="pt-drawer">
-        <OpenUiNotice
-          className="pt-drawer__notice"
-          icon={<ShieldCheck size={17} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("introPointNoFunds")}
-        >
-          {t("noFundsBanner")}
-        </OpenUiNotice>
-
-        <OpenUiPanel
-          className="pt-drawer__panel pt-drawer__panel--memo"
-          icon={<FileLock2 size={18} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("formMemoLabel")}
-          subtitle={t("formMemoOptional")}
-        >
-          <OpenUiTextField
-            className="pt-drawer__memo"
-            label={t("formMemoLabel")}
+    <div className="pt-drawer">
+      {drawerPanel(
+        <FileLock2 size={18} aria-hidden="true" />,
+        t("formMemoLabel"),
+        t("formMemoOptional"),
+        <label className="pt-drawer__memo">
+          <span className="pt-visually-hidden">{t("formMemoLabel")}</span>
+          <input
+            aria-label={t("formMemoLabel")}
             value={memo}
-            onChange={(event) => setMemo(event.target.value)}
-            placeholder={t("formMemoLabel")}
-            hint={t("introPointLocalDesc")}
+            onChange={(event) => setMemo(event.target.value.slice(0, 160))}
+            placeholder={t("memoPlaceholder")}
+            maxLength={160}
           />
-        </OpenUiPanel>
-
-        <OpenUiPanel
-          className="pt-drawer__panel pt-drawer__panel--receipt"
-          icon={<Send size={18} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("summaryTitle")}
-          subtitle={canSeal ? t("packetReady") : t("summaryPendingAsset", { asset })}
-        >
-          <dl className="pt-drawer__facts">
-            <div><dt>{t("summaryRecipient")}</dt><dd>{recipientReady ? shortHash(recipient) : t("routeRecipientPending")}</dd></div>
-            <div><dt>{t("summaryAmount")}</dt><dd>{amountReady ? `${amount} ${asset}` : t(asset === "NEO" ? "routeAmountPendingNeo" : "routeAmountPendingGas")}</dd></div>
-            <div><dt>{t("summaryNetwork")}</dt><dd>{networkLabel || t("digestPlaceholder")}</dd></div>
-          </dl>
-        </OpenUiPanel>
-
-        <OpenUiPanel
-          className="pt-drawer__panel pt-drawer__panel--crypto"
-          icon={<LockKeyhole size={18} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("summaryEncryption")}
-          subtitle="X25519 · AES-256-GCM"
-        >
-          <dl className="pt-drawer__facts">
-            <div><dt>{t("introPointLocal")}</dt><dd>{t("introPointLocalDesc")}</dd></div>
-            <div><dt>{t("introPointTee")}</dt><dd>{t("introPointTeeDesc")}</dd></div>
-            <div><dt>{t("statDigest")}</dt><dd>{hasSealed ? shortHash(lastDigest) : t("sealPreviewPending")}</dd></div>
-          </dl>
-        </OpenUiPanel>
-      </div>
-    </OpenUiProvider>
+          <small>{t("memoHint")}</small>
+        </label>,
+        "pt-drawer__panel--memo",
+      )}
+      {drawerPanel(
+        <ShieldCheck size={18} aria-hidden="true" />,
+        t("privacyBoundaryTitle"),
+        t("privacyBoundarySubtitle"),
+        <dl className="pt-drawer__facts">
+          <div><dt>{t("privacyPrivateFields")}</dt><dd>{t("privacyPrivateFieldsValue")}</dd></div>
+          <div><dt>{t("privacyPublicFields")}</dt><dd>{t("privacyPublicFieldsValue")}</dd></div>
+          <div><dt>{t("privacyNotVerified")}</dt><dd>{t("privacyNotVerifiedValue")}</dd></div>
+        </dl>,
+      )}
+      {drawerPanel(
+        <KeyRound size={18} aria-hidden="true" />,
+        t("cryptoDetailsTitle"),
+        "X25519 · HKDF-SHA256 · AES-256-GCM",
+        <dl className="pt-drawer__facts">
+          <div><dt>{t("statNetwork")}</dt><dd>{networkLabel}</dd></div>
+          <div><dt>{t("oracleSourceContract")}</dt><dd>{oracleContract ? shortHash(oracleContract) : t("digestPlaceholder")}</dd></div>
+          <div><dt>{t("oracleNefChecksum")}</dt><dd>{oracleChecksum > 0 ? oracleChecksum : t("digestPlaceholder")}</dd></div>
+          <div><dt>{t("walletStatus")}</dt><dd><WalletCards size={14} aria-hidden="true" /> {t("walletNotRequested")}</dd></div>
+        </dl>,
+      )}
+      {drawerPanel(
+        <Database size={18} aria-hidden="true" />,
+        t("latestReceiptTitle"),
+        requestCount > 0 ? t("historyCount", { count: requestCount }) : t("historyEmpty"),
+        <dl className="pt-drawer__facts">
+          <div><dt>{t("resultSecretRef")}</dt><dd>{lastSecretRef ? shortHash(lastSecretRef) : t("digestPlaceholder")}</dd></div>
+          <div><dt>{t("resultCommitment")}</dt><dd>{lastDigest ? shortHash(lastDigest) : t("digestPlaceholder")}</dd></div>
+          <div><dt>{t("resultNullifier")}</dt><dd>{lastNullifier ? shortHash(lastNullifier) : t("digestPlaceholder")}</dd></div>
+        </dl>,
+      )}
+    </div>
   );
 
   return (
     <div className="private-transfer-play-area mx2 mx2-cat-defi">
       <PlayStage
         category="defi"
-        stage={{ eyebrow: t("heroEyebrow"), title: t("heroTitle"), subtitle: t("heroBadge") }}
-        scene={scene}
-        score={score}
-        actions={{
-          primary: {
-            label: isSealing ? t("sealing") : t("sealCtaShort"),
-            onClick: () => void handleSeal(),
-            disabled: !canSeal,
-            loading: isSealing,
-          },
+        stage={{
+          title: t("heroTitle"),
+          subtitle: t("heroBody"),
         }}
-        drawerToggleLabel={t("composerTitle")}
-        drawer={{ title: t("composerTitle"), children: drawer }}
+        scene={scene}
+        actions={{
+          secondary: oracleState !== "ready" || networkState !== "ready" ? [{
+            label: t("retryRuntime"),
+            icon: <RefreshCw size={16} aria-hidden="true" />,
+            onClick: () => runAction("refreshRuntime"),
+            disabled: isSealing,
+          }] : undefined,
+        }}
+        drawerToggleLabel={t("detailsRecovery")}
+        drawer={{ title: t("detailsRecovery"), children: drawer }}
       />
     </div>
   );

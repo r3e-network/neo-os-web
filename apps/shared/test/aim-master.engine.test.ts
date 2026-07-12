@@ -2,19 +2,27 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEFAULT_CONFIG,
+  EMPTY_AIM_RUN,
   RING_POINTS,
   calculateHitResult,
+  comboMultiplier,
+  difficultyProfile,
+  evaluateHitResults,
+  generateDifficultyPattern,
   generateTargetPattern,
   isAccuracyHit,
   isWin,
+  parseTargetPattern,
   totalPoints,
 } from "../../aim-master/src/logic/aim-engine";
 import {
+  canReleaseAfterGrace,
   DIFFICULTY_RULES,
   formatClock,
   gasDisplay,
   payoutFixed8ForAccuracy,
   ruleOf,
+  statusOf,
 } from "../../aim-master/src/logic/game-rules";
 
 /**
@@ -65,6 +73,42 @@ describe("aim-master target pattern generation", () => {
     const expectedTicks = Math.ceil(5000 / tickMs);
     expect(pattern.length).toBe(expectedTicks);
   });
+
+  it("does not consult ambient Math.random for seeded motion", () => {
+    const originalRandom = Math.random;
+    Math.random = () => { throw new Error("ambient randomness must not be used"); };
+    try {
+      expect(generateTargetPattern("fully-seeded")).toEqual(
+        generateTargetPattern("fully-seeded"),
+      );
+    } finally {
+      Math.random = originalRandom;
+    }
+  });
+
+  it("defines a monotonic difficulty curve and a longer guest timeline", () => {
+    const easy = difficultyProfile(0);
+    const medium = difficultyProfile(1);
+    const hard = difficultyProfile(2);
+    expect(easy.maxSpeed).toBeLessThan(medium.maxSpeed);
+    expect(medium.maxSpeed).toBeLessThan(hard.maxSpeed);
+    expect(easy.reducedMotionStepMs).toBeGreaterThan(medium.reducedMotionStepMs);
+    expect(medium.reducedMotionStepMs).toBeGreaterThan(hard.reducedMotionStepMs);
+    expect(generateDifficultyPattern("guest-seed", 1)).toHaveLength(
+      Math.ceil(12_000 / DEFAULT_CONFIG.tickMs),
+    );
+    expect(generateDifficultyPattern("guest-seed", 0, 1_000)).not.toEqual(
+      generateDifficultyPattern("guest-seed", 2, 1_000),
+    );
+  });
+
+  it("rejects corrupt or oversized pattern views without shifting their timeline", () => {
+    expect(parseTargetPattern("0,150,300")).toEqual([0, 150, 300]);
+    expect(parseTargetPattern("0,NaN,300")).toEqual([]);
+    expect(parseTargetPattern("0,301,150")).toEqual([]);
+    expect(parseTargetPattern("150")).toEqual([]);
+    expect(parseTargetPattern(Array.from({ length: 5 }, () => "150").join(","), 300, 4)).toEqual([]);
+  });
 });
 
 describe("aim-master hit calculation", () => {
@@ -108,6 +152,63 @@ describe("aim-master hit calculation", () => {
   it("reports negative offset for positions left of centre", () => {
     const result = calculateHitResult(DEFAULT_CONFIG.centre - 50);
     expect(result.offset).toBeLessThan(0);
+  });
+
+  it("keeps exact visual ring boundaries in the inner ring", () => {
+    const bullseyeEdge = DEFAULT_CONFIG.centre + DEFAULT_CONFIG.bullseyeRadius;
+    const ringOneEdge = bullseyeEdge + DEFAULT_CONFIG.ringWidth;
+    expect(calculateHitResult(bullseyeEdge).ring).toBe(0);
+    expect(calculateHitResult(bullseyeEdge + 0.001).ring).toBe(1);
+    expect(calculateHitResult(ringOneEdge).ring).toBe(1);
+    expect(calculateHitResult(ringOneEdge + 0.001).ring).toBe(2);
+  });
+
+  it("normalises non-finite positions and invalid geometry safely", () => {
+    expect(calculateHitResult(Number.NaN).ring).toBe(5);
+    expect(calculateHitResult(DEFAULT_CONFIG.centre + 30, { ringWidth: 0 }).ring).toBe(1);
+  });
+});
+
+describe("aim-master authoritative run scoring", () => {
+  it("builds score, hit count, combo, and max combo from signed offsets", () => {
+    const evaluated = evaluateHitResults([
+      { ring: 5, points: 0, offset: 0 },
+      { ring: 5, points: 0, offset: 0 },
+      { ring: 0, points: 999_999, offset: 150 },
+      { ring: 5, points: 0, offset: 0 },
+    ]);
+    expect(evaluated.summary).toEqual({
+      accuracyHits: 3,
+      totalShots: 4,
+      combo: 1,
+      maxCombo: 2,
+      score: 31,
+    });
+    expect(evaluated.results.map((result) => result.ring)).toEqual([0, 0, 5, 0]);
+    expect(evaluated.results.map((result) => result.awardedPoints)).toEqual([10, 11, 0, 10]);
+  });
+
+  it("resets combo on a miss and caps the multiplier at 2x", () => {
+    expect(comboMultiplier(1)).toBe(1);
+    expect(comboMultiplier(6)).toBe(1.5);
+    expect(comboMultiplier(99)).toBe(2);
+    const evaluated = evaluateHitResults(
+      Array.from({ length: 12 }, () => ({ offset: 0 })),
+    );
+    expect(evaluated.summary.combo).toBe(12);
+    expect(evaluated.summary.maxCombo).toBe(12);
+    expect(evaluated.results.at(-1)?.multiplier).toBe(2);
+  });
+
+  it("ignores malformed shots rather than turning them into bullseyes", () => {
+    const evaluated = evaluateHitResults([
+      null,
+      { offset: Number.NaN },
+      { offset: "not-a-number" },
+      { offset: 0 },
+    ]);
+    expect(evaluated.summary).toEqual({ ...EMPTY_AIM_RUN, accuracyHits: 1, totalShots: 1, combo: 1, maxCombo: 1, score: 10 });
+    expect(evaluated.results).toHaveLength(1);
   });
 });
 
@@ -201,6 +302,18 @@ describe("aim-master difficulty rules and payout", () => {
   it("payoutFixed8ForAccuracy caps ringsHit at targetAccuracy", () => {
     // Easy: hitting 5 but target is 3 → treated as 3 → full reward
     expect(payoutFixed8ForAccuracy(0, 5)).toBe(10_000_000n);
+  });
+
+  it("never turns malformed or negative hit counters into a negative payout", () => {
+    expect(payoutFixed8ForAccuracy(0, -1)).toBe(0n);
+    expect(payoutFixed8ForAccuracy(0, Number.NaN)).toBe(0n);
+  });
+
+  it("preserves pending settlement status and gates recovery until grace passes", () => {
+    expect(statusOf(5)).toBe("unknown");
+    expect(statusOf(99)).toBe("unknown");
+    expect(canReleaseAfterGrace(1_000, 601_000, 600_000)).toBe(false);
+    expect(canReleaseAfterGrace(1_000, 601_001, 600_000)).toBe(true);
   });
 });
 

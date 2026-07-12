@@ -3,9 +3,9 @@
   "id": "miniapp-aa-account-lab",
   "name": "AA Account Lab",
   "name_zh": "AA 注册实验室",
-  "version": "1.0.0",
-  "description": "Register and inspect Neo Abstract Accounts against the shared AA core.",
-  "description_zh": "基于共享 AA Core 注册和查询 Neo 抽象账户。",
+  "version": "2.0.0",
+  "description": "Inspect and register recoverable Neo AA account shells with exact event, readback, and restart recovery.",
+  "description_zh": "查询并注册可恢复的 Neo AA 账户壳，使用精确事件、链上回读与重启恢复确认结果。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -39,10 +39,12 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain",
+    "aa"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://aa-account-lab"
   },
@@ -59,6 +61,11 @@
     "ratings": true,
     "transactions": true
   },
+  "operation_panel": {
+    "title": "AA Account Lab",
+    "subtitle": "Inspect, assemble, register, and recover inside the account control center.",
+    "operations": []
+  },
   "createdAt": "2026-03-18T05:00:00Z",
-  "updatedAt": "2026-05-08T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

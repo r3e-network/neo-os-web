@@ -6,7 +6,7 @@
  * secondary token/settings surfaces live in drawers or inline selectors.
  */
 import { useMemo, useState } from "react";
-import { ArrowDownUp, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowDownUp, ArrowRight, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import {
@@ -15,7 +15,8 @@ import {
   OpenUiTextField,
   PlayStage,
 } from "@shared/components-react/v2";
-import type { Token } from "@/types";
+import type { NativeTokenSymbol, Token } from "@/types";
+import { parseSlippageBps } from "./quoteMath";
 import TokenIcon from "./components/TokenIcon";
 import "./PlayArea.scss";
 
@@ -27,12 +28,13 @@ interface PlayAreaProps {
 
 type TokenLike = Token | string | null | undefined;
 type DrawerMode = "route" | "settings" | "tokens";
+type TransactionStatus = "idle" | "signing" | "pending" | "unverified" | "confirmed" | "failed";
 
 // Known symbols index as a guaranteed Token (noUncheckedIndexedAccess-safe);
 // arbitrary strings stay `Token | undefined` for the dynamic lookups below.
 const TOKEN_DEFAULTS: Record<"NEO" | "GAS", Token> & Record<string, Token | undefined> = {
-  NEO: { symbol: "NEO", hash: "", balance: 0, decimals: 0 },
-  GAS: { symbol: "GAS", hash: "", balance: 0, decimals: 8 },
+  NEO: { symbol: "NEO", hash: "", balance: "0", balanceUnits: "0", decimals: 0 },
+  GAS: { symbol: "GAS", hash: "", balance: "0", balanceUnits: "0", decimals: 8 },
 };
 
 const SLIPPAGE_PRESETS = [
@@ -40,45 +42,46 @@ const SLIPPAGE_PRESETS = [
   { label: "0.5%", value: 0.5, bps: 50 },
   { label: "1%", value: 1, bps: 100 },
 ];
-const SWAP_STAGE_ART = "swap-liquidity-stage.webp";
+const SWAP_STAGE_ART = "liquidity-route-v2.webp";
 
 function normalizeToken(value: TokenLike, fallbackSymbol: "NEO" | "GAS"): Token {
   if (value && typeof value === "object" && "symbol" in value) {
-    const symbol = String(value.symbol || fallbackSymbol).toUpperCase();
+    const candidate = String(value.symbol || fallbackSymbol).toUpperCase();
+    const symbol: NativeTokenSymbol = candidate === "GAS" ? "GAS" : candidate === "NEO" ? "NEO" : fallbackSymbol;
+    const balance = String(value.balance ?? "0").trim();
+    const balanceUnits = String(value.balanceUnits ?? "0").trim();
     return {
       ...TOKEN_DEFAULTS[symbol],
       ...value,
       symbol,
-      balance: Number.isFinite(Number(value.balance)) ? Number(value.balance) : 0,
-      decimals: Number.isFinite(Number(value.decimals))
-        ? Number(value.decimals)
-        : TOKEN_DEFAULTS[symbol]?.decimals ?? 8,
+      balance: /^\d+(?:\.\d+)?$/.test(balance) ? balance : "0",
+      balanceUnits: /^\d+$/.test(balanceUnits) ? balanceUnits : "0",
+      decimals: TOKEN_DEFAULTS[symbol].decimals,
     };
   }
-  const symbol = String(value || fallbackSymbol).toUpperCase();
-  return { ...(TOKEN_DEFAULTS[symbol] ?? TOKEN_DEFAULTS[fallbackSymbol]), symbol };
+  const candidate = String(value || fallbackSymbol).toUpperCase();
+  const symbol: NativeTokenSymbol = candidate === "GAS" ? "GAS" : candidate === "NEO" ? "NEO" : fallbackSymbol;
+  return { ...TOKEN_DEFAULTS[symbol] };
 }
 
 function normalizeTokenList(values: unknown, fromToken: Token, toToken: Token): Token[] {
-  const list = Array.isArray(values) ? values : [];
+  const list = Array.isArray(values) ? values.slice(0, 8) : [];
   const tokens = list
     .map((item, index) => normalizeToken(item as TokenLike, index === 0 ? "NEO" : "GAS"))
     .filter((token) => token.symbol);
-  if (tokens.length > 0) return tokens;
-  return [fromToken, toToken];
+  const bySymbol = new Map<NativeTokenSymbol, Token>();
+  for (const token of tokens) bySymbol.set(token.symbol, token);
+  bySymbol.set(fromToken.symbol, fromToken);
+  bySymbol.set(toToken.symbol, toToken);
+  return (["NEO", "GAS"] as const).map((symbol) => bySymbol.get(symbol) ?? TOKEN_DEFAULTS[symbol]);
 }
 
 function formatBalance(token: Token): string {
   const maximumFractionDigits = token.decimals === 0 ? 0 : 4;
-  return `${Number(token.balance || 0).toLocaleString(undefined, { maximumFractionDigits })} ${token.symbol}`;
-}
-
-function normalizeAmountForToken(value: string, token: Token): string {
-  const text = String(value ?? "");
-  if (token.decimals === 0) {
-    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
-  }
-  return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+  const [whole = "0", fraction = ""] = token.balance.split(".");
+  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const visibleFraction = fraction.slice(0, maximumFractionDigits).replace(/0+$/, "");
+  return `${groupedWhole}${visibleFraction ? `.${visibleFraction}` : ""} ${token.symbol}`;
 }
 
 function formatSlippage(raw: string): string {
@@ -88,10 +91,12 @@ function formatSlippage(raw: string): string {
 }
 
 function slippageToBps(raw: string, rawBps: unknown): number {
-  const bps = Number(rawBps);
-  if (Number.isFinite(bps) && bps > 0) return Math.round(bps);
-  const pct = Number.parseFloat(raw.replace("%", ""));
-  return Number.isFinite(pct) ? Math.round(pct * 100) : 50;
+  if (typeof rawBps === "number" && Number.isSafeInteger(rawBps) && rawBps > 0) return rawBps;
+  return parseSlippageBps(raw, 1, 5000) ?? 50;
+}
+
+function shortTxid(txid: string): string {
+  return txid.length > 18 ? `${txid.slice(0, 10)}…${txid.slice(-6)}` : txid;
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
@@ -101,11 +106,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const fromAmount = str("fromAmount");
   const toAmount = str("toAmount");
   const exchangeRate = str("exchangeRate");
+  const rateError = str("rateError");
   const rateLoading = bool("rateLoading");
+  const balanceLoading = bool("balanceLoading");
   const loading = bool("loading");
   const isSwapping = bool("isSwapping");
   const canSwap = bool("canSwap");
   const swapButtonText = str("swapButtonText", t("tabSwap"));
+  const amountError = str("amountError");
   const slippage = formatSlippage(str("slippage", "0.5%"));
   const slippageBps = slippageToBps(slippage, val<number | null>("slippageValue", null));
   const minReceived = str("minReceived");
@@ -113,31 +121,65 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const showSelector = bool("showSelector");
   const selectorTarget = str("selectorTarget", "from");
   const rateAsOf = str("rateAsOf");
-  const routerAvailable = val<boolean | null>("routerAvailable", true) ?? true;
+  const routerAvailable = val<boolean | null>("routerAvailable", false) ?? false;
   const rateStale = bool("rateStale");
-  const walletConnected = val<boolean | null>("walletConnected", true) ?? true;
+  const walletConnected = val<boolean | null>("walletConnected", false) ?? false;
+  const balancesVerified = val<boolean | null>("balancesVerified", false) ?? false;
+  const quoteNetwork = str("quoteNetwork", "mainnet");
+  const walletNetwork = str("walletNetwork");
+  const networkVerified = bool("networkVerified");
+  const networkError = str("networkError");
+  const transactionStatus = str("transactionStatus", "idle") as TransactionStatus;
+  const pendingTxid = str("pendingTxid");
+  const transactionError = str("transactionError");
+  const recovering = bool("recovering");
   const availableTokens = normalizeTokenList(val<unknown>("availableTokens", []), fromToken, toToken);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("route");
+  const dispatchSafely = (name: string, ...args: unknown[]) => {
+    void dispatch(name, ...args).catch(() => {});
+  };
 
   const routeHealth = rateLoading
     ? t("swapRouteSyncing")
-    : rateStale
-      ? t("rateStale")
-      : routerAvailable
-        ? t("swapRouteReady")
-        : t("swapRouteUnavailable");
-  const quoteSource = rateAsOf
-    ? rateStale
-      ? t("rateStaleAsOf", { time: rateAsOf })
-      : t("rateAsOf", { time: rateAsOf })
+    : rateError
+      ? t("swapRouteNeedsAttention")
+      : rateStale
+        ? t("rateStale")
+        : routerAvailable
+          ? t("swapRouteReady")
+          : t("swapRouteUnavailable");
+  const quoteSource = rateError
+    ? t("rateRetryHint")
+    : rateAsOf
+      ? rateStale
+        ? t("rateStaleAsOf", { time: rateAsOf })
+        : t("rateAsOf", { time: rateAsOf })
+      : exchangeRate
+        ? t("routeSourceMorpheus")
+        : t("routeSourceAwaiting");
+  // Quote-only networks should never ask for a wallet just to refresh public
+  // market data. Wallet connection becomes primary only when a settlement
+  // router is actually available.
+  const quoteNeedsRefresh = Boolean(rateError) || rateStale;
+  const primaryDisabled = quoteNeedsRefresh || !routerAvailable
+    ? rateLoading || loading
+    : pendingTxid
+      ? recovering || loading
+    : walletConnected
+      ? !canSwap || loading || isSwapping || rateLoading
+      : false;
+  const primaryLabel = quoteNeedsRefresh || !routerAvailable
+    ? t("refreshRate")
+    : pendingTxid
+      ? t("checkPendingSwap")
+    : walletConnected
+      ? swapButtonText || t("tabSwap")
+      : t("connectToPreview");
+  const rateDisplay = rateError
+    ? t("rateUnavailable")
     : exchangeRate
-      ? t("routeSourceMorpheus")
-      : t("routeSourceAwaiting");
-  const primaryDisabled = walletConnected
-    ? !canSwap || loading || isSwapping || rateLoading || !routerAvailable || rateStale
-    : false;
-  const primaryLabel = walletConnected ? swapButtonText || t("tabSwap") : t("connectToPreview");
-  const rateDisplay = exchangeRate ? `1 ${fromToken.symbol} ~= ${exchangeRate} ${toToken.symbol}` : t("pricePreviewAwaiting");
+      ? `1 ${fromToken.symbol} ${t("approxEqual")} ${exchangeRate} ${toToken.symbol}`
+      : t("pricePreviewAwaiting");
 
   const selectorTitle = selectorTarget === "to" ? t("to") : t("from");
   const activeSlippagePreset = useMemo(
@@ -148,7 +190,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     const value = t(key);
     return value === key ? fallback : value;
   };
-  const minReceivedLabel = shortLabel("minReceivedShort", t("minReceived"));
+  const minReceivedLabel = routerAvailable
+    ? shortLabel("minReceivedShort", t("minReceived"))
+    : t("planningFloor");
   const slippageLabel = shortLabel("slippageShort", t("slippage"));
   const exchangeRateLabel = shortLabel("exchangeRateShort", t("exchangeRate"));
   const drawerModes: Array<{ mode: DrawerMode; label: string }> = [
@@ -158,16 +202,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   ];
   const drawerModeValue = drawerMode;
   const slippagePresetValue = activeSlippagePreset ? String(activeSlippagePreset.bps) : "";
+  const balanceText = (token: Token) => balancesVerified
+    ? formatBalance(token)
+    : networkError
+      ? networkError
+    : walletConnected
+      ? t("balanceUnavailable")
+      : t("connectForBalance");
+
+  const transactionLabel = t(`transaction${transactionStatus.charAt(0).toUpperCase()}${transactionStatus.slice(1)}`);
 
   const handlePrimary = () => {
-    if (!walletConnected) {
-      void dispatch("connectWallet");
+    if (quoteNeedsRefresh || !routerAvailable) {
+      if (!primaryDisabled) dispatchSafely("refreshRate");
       return;
     }
-    if (!primaryDisabled) void dispatch("executeSwap");
+    if (pendingTxid) {
+      if (!primaryDisabled) dispatchSafely("recoverPendingSwap");
+      return;
+    }
+    if (!walletConnected) {
+      dispatchSafely("connectWallet");
+      return;
+    }
+    if (!primaryDisabled) dispatchSafely("executeSwap");
   };
   const handleFromAmountChange = (value: string) => {
-    void dispatch("setFromAmount", normalizeAmountForToken(value, fromToken));
+    // Preserve exactly what the user typed. Silently truncating `1.5 NEO` to
+    // `1 NEO` changes transaction intent; the engine validates precision and
+    // explains the correction instead.
+    dispatchSafely("setFromAmount", value);
   };
   const handleDrawerModeChange = (value: string) => {
     if (value === "route" || value === "settings" || value === "tokens") {
@@ -176,13 +240,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
   const handleSlippagePresetChange = (value: string) => {
     const preset = SLIPPAGE_PRESETS.find((item) => String(item.bps) === value);
-    if (preset) void dispatch("setSlippage", preset.value);
+    if (preset) dispatchSafely("setSlippage", preset.value);
   };
 
   const scene = (
     <div
       className="swap-scene"
-      data-state={loading || isSwapping ? "swapping" : rateLoading ? "quoting" : rateStale ? "stale" : "ready"}
+      data-state={loading || isSwapping ? "swapping" : rateLoading ? "quoting" : rateError ? "error" : rateStale ? "stale" : "ready"}
       data-router={routerAvailable ? "live" : "preview"}
     >
       <section className="swap-terminal" aria-label={t("tabSwap")}>
@@ -191,18 +255,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span>{selectedPairDisplay}</span>
             <strong>{routeHealth}</strong>
           </div>
-          <em>{slippageLabel}: {slippage}</em>
+          <em>{quoteNetwork.toUpperCase()} · {slippageLabel}: {slippage}</em>
         </header>
 
         <div className="swap-terminal__body">
           <section className="swap-station" data-selector-open={showSelector ? "true" : "false"} aria-label={t("tabSwap")}>
-            <div className="swap-leg swap-leg--from">
+            <div className="swap-leg swap-leg--from" data-invalid={amountError ? "true" : "false"}>
               <div className="swap-leg__head">
                 <span>{t("payWith")}</span>
                 <button
                   type="button"
                   className="swap-token-btn"
-                  onClick={() => void dispatch("openFromSelector")}
+                  onClick={() => dispatchSafely("openFromSelector")}
                   disabled={loading || isSwapping}
                 >
                   <TokenIcon symbol={fromToken.symbol} size={24} />
@@ -219,28 +283,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   onChange={(event) => handleFromAmountChange(event.target.value)}
                   placeholder="0"
                   inputMode={fromToken.decimals === 0 ? "numeric" : "decimal"}
+                  aria-invalid={amountError ? true : undefined}
+                  hint={amountError || undefined}
                   disabled={loading || isSwapping}
                 />
                 <button
                   type="button"
                   className="swap-max-btn"
-                  onClick={() => void dispatch("setMaxAmount")}
-                  disabled={loading || isSwapping}
+                  onClick={() => dispatchSafely("setMaxAmount")}
+                  disabled={loading || isSwapping || !balancesVerified}
                 >
                   {t("max")}
                 </button>
               </div>
-              <span className="swap-leg__balance">{t("balance")}: {formatBalance(fromToken)}</span>
+              <span className="swap-leg__balance" aria-live="polite">{t("balance")}: {balanceText(fromToken)}</span>
             </div>
 
             <div className="swap-station__bridge">
-              <span className="swap-route-core__line" aria-hidden="true" />
-              <span className="swap-route-core__bead swap-route-core__bead--one" aria-hidden="true" />
-              <span className="swap-route-core__bead swap-route-core__bead--two" aria-hidden="true" />
               <button
                 type="button"
                 className="swap-switch-btn"
-                onClick={() => void dispatch("swapTokens")}
+                onClick={() => dispatchSafely("swapTokens")}
                 disabled={loading || isSwapping}
                 aria-label={t("switchTokens")}
               >
@@ -254,7 +317,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <button
                   type="button"
                   className="swap-token-btn"
-                  onClick={() => void dispatch("openToSelector")}
+                  onClick={() => dispatchSafely("openToSelector")}
                   disabled={loading || isSwapping}
                 >
                   <TokenIcon symbol={toToken.symbol} size={24} />
@@ -264,20 +327,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <button
                 type="button"
                 className="swap-receive-value"
-                onClick={() => void dispatch("openToSelector")}
+                onClick={() => dispatchSafely("openToSelector")}
                 disabled={loading || isSwapping}
               >
                 <strong>{toAmount || "0"}</strong>
                 <em>{toToken.symbol}</em>
               </button>
-              <span className="swap-leg__balance">{t("balance")}: {formatBalance(toToken)}</span>
+              <span className="swap-leg__balance" aria-live="polite">{t("balance")}: {balanceText(toToken)}</span>
             </div>
 
             {showSelector && (
-              <div className="swap-selector" role="dialog" aria-label={`${t("selectToken")} ${selectorTitle}`}>
+              <div className="swap-selector" role="group" aria-label={`${t("selectToken")} ${selectorTitle}`}>
                 <div className="swap-selector__head">
                   <strong>{t("selectToken")}</strong>
-                  <button type="button" onClick={() => void dispatch("closeSelector")}>{t("dismiss")}</button>
+                  <button type="button" onClick={() => dispatchSafely("closeSelector")}>{t("dismiss")}</button>
                 </div>
                 <div className="swap-selector__grid">
                   {availableTokens.map((token) => (
@@ -285,12 +348,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       key={token.symbol}
                       type="button"
                       className="swap-selector__token"
-                      onClick={() => void dispatch("selectToken", token)}
+                      onClick={() => dispatchSafely("selectToken", token)}
+                      aria-label={t("selectTokenAria", { token: token.symbol })}
                     >
                       <TokenIcon symbol={token.symbol} size={30} />
                       <span>
                         <strong>{token.symbol}</strong>
-                        <em>{formatBalance(token)}</em>
+                        <em>{balanceText(token)}</em>
                       </span>
                     </button>
                   ))}
@@ -300,9 +364,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </section>
 
           <aside className="swap-quote-card" aria-label={t("routeReview")}>
-            <img className="swap-quote-card__art" src={SWAP_STAGE_ART} alt="" loading="eager" decoding="async" />
-            <div className="swap-quote-card__summary">
-              <span>{exchangeRate ? routeHealth : t("routeStepQuote")}</span>
+            <div className="swap-quote-card__visual" aria-hidden="true">
+              <img className="swap-quote-card__art" src={SWAP_STAGE_ART} alt="" loading="eager" decoding="async" />
+              <div className="swap-quote-card__tokens">
+                <TokenIcon symbol={fromToken.symbol} size={30} />
+                <ArrowRight size={16} />
+                <TokenIcon symbol={toToken.symbol} size={30} />
+              </div>
+            </div>
+            <div className="swap-quote-card__summary" data-tone={rateError ? "error" : rateStale ? "warning" : "ready"} aria-live="polite">
+              <span>{routeHealth}</span>
               <strong>{rateDisplay}</strong>
               <small>{quoteSource}</small>
             </div>
@@ -321,8 +392,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </span>
             </div>
             <div className="swap-station__review">
-              <span><ShieldCheck size={15} /> {t("minReceived")}: <strong>{minReceived || "0"} {toToken.symbol}</strong></span>
+              <span><ShieldCheck size={15} /> {minReceivedLabel}: <strong>{minReceived || "0"} {toToken.symbol}</strong></span>
               <span><Wallet size={15} /> {routerAvailable ? t("routeModeLive") : t("routeModePreview")}</span>
+              <span data-tone={networkError ? "warning" : "neutral"}>
+                {t("quoteNetwork")}: <strong>{quoteNetwork.toUpperCase()}</strong>
+              </span>
             </div>
           </aside>
         </div>
@@ -348,7 +422,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <section className="swap-drawer-panel swap-drawer-panel--route">
           <div className="swap-drawer__head">
             <h4>{t("routeReview")}</h4>
-            <button type="button" className="swap-refresh-btn" onClick={() => void dispatch("refreshRate")} disabled={rateLoading}>
+            <button type="button" className="swap-refresh-btn" onClick={() => dispatchSafely("refreshRate")} disabled={rateLoading}>
               <RefreshCw size={15} />
               {t("refreshRate")}
             </button>
@@ -356,9 +430,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <p>{routerAvailable ? t("routeModeLiveBody") : t("routeModePreviewBody")}</p>
           <div className="swap-route-steps">
             <span>{t("routeStepQuote")}</span>
-            <span>{t("routeStepPair")}</span>
+            <span>{t("routeDirectValue", { pair: `${fromToken.symbol} → ${toToken.symbol}` })}</span>
             <span>{t("routeStepWallet")}</span>
           </div>
+          <dl className="swap-settlement-checks">
+            <div>
+              <dt>{t("quoteNetwork")}</dt>
+              <dd>{quoteNetwork.toUpperCase()}</dd>
+            </div>
+            <div data-tone={networkError ? "warning" : "neutral"}>
+              <dt>{t("walletNetwork")}</dt>
+              <dd>{networkError || (networkVerified ? walletNetwork.toUpperCase() : t("walletNotChecked"))}</dd>
+            </div>
+            <div>
+              <dt>{t("priceImpact")}</dt>
+              <dd>{t("priceImpactUnavailable")}</dd>
+            </div>
+            <div>
+              <dt>{t("approvalLabel")}</dt>
+              <dd>{routerAvailable ? t("approvalWalletTransaction") : t("approvalNotRequested")}</dd>
+            </div>
+            <div data-tone={transactionStatus === "unverified" || transactionStatus === "failed" ? "warning" : "neutral"}>
+              <dt>{t("transactionLabel")}</dt>
+              <dd>{transactionLabel}</dd>
+            </div>
+            {pendingTxid && (
+              <div data-tone="warning">
+                <dt>{t("pendingTxLabel")}</dt>
+                <dd title={pendingTxid}>{shortTxid(pendingTxid)}</dd>
+              </div>
+            )}
+          </dl>
+          {transactionError && <p className="swap-transaction-note" role="status">{transactionError}</p>}
         </section>
       )}
 
@@ -383,16 +486,28 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {drawerMode === "tokens" && (
         <section className="swap-drawer-panel swap-drawer-panel--tokens">
           <h4>{t("selectToken")}</h4>
+          {!balancesVerified && (
+            <button
+              type="button"
+              className="swap-balance-action"
+              onClick={() => dispatchSafely(walletConnected ? "refreshBalances" : "connectWallet")}
+              disabled={balanceLoading}
+            >
+              <Wallet size={17} />
+              <span>{balanceLoading ? t("balanceLoading") : walletConnected ? t("retryBalance") : t("connectForBalances")}</span>
+            </button>
+          )}
           <div className="swap-token-list">
             {availableTokens.map((token) => (
               <button
                 key={token.symbol}
                 type="button"
-                onClick={() => void dispatch("selectToken", token)}
+                onClick={() => dispatchSafely("selectToken", token)}
+                aria-label={t("selectTokenAria", { token: token.symbol })}
               >
                 <TokenIcon symbol={token.symbol} size={30} />
                 <span>{token.symbol}</span>
-                <em>{formatBalance(token)}</em>
+                <em>{balanceText(token)}</em>
               </button>
             ))}
           </div>
@@ -410,7 +525,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             eyebrow: t("marketPairs"),
             title: selectedPairDisplay,
             subtitle: t("docSubtitle"),
-            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {routeHealth}</span>,
+            badges: <span className="mx2-badge" data-tone={rateError || rateStale ? "warning" : "accent"}><span className="mx2-badge__dot" /> {routeHealth}</span>,
           }}
           scene={scene}
           actions={{

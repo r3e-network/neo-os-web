@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-03T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Stop the moving reticle on the bullseye to win GAS, with a provably fair TEE-generated target pattern. Pick a target lane, pay a small GAS entry, tap to lock each shot as the target sweeps a gauge, and land enough accuracy hits before the deadline to win a fixed GAS reward: 0.1 for Warm-up Lane (3 hits), 0.5 for Arcade Range (5 hits), 1 for Pro Circuit (7 hits). Every tap is recorded in a Morpheus TEE session and replayed to make the score unforgeable. Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
-  "description_zh": "在瞄准刻度上停住移动的靶心即可赢取 GAS，靶心模式由 TEE 保证可验证公平。选择瞄准靶道并支付少量 GAS 报名费，靶心在刻度尺上移动时点击锁定每一发，在截止时间前达到足够的精准命中数即可赢取固定 GAS 奖励：热身靶道 0.1（命中 3 次）、街机靶场 0.5（5 次）、职业赛场 1（7 次）。每次点击都记录在 Morpheus TEE 会话中并回放，使分数不可伪造。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "description": "Free local target practice. Choose a lane, fire anywhere on the range as the moving reticle crosses the bullseye, and chain 3, 5, or 7 clean hits before time runs out. No wallet, GAS, contract call, or oracle is used; verified GameFi stays closed until the testnet pool is funded and settlement is proven end to end.",
+  "description_zh": "免费的本地打靶练习。选择靶道，在移动准星扫过靶心时点击靶场任意区域出手，并在倒计时结束前连续完成 3、5 或 7 次精准命中。游客模式不使用钱包、GAS、合约调用或预言机；测试网奖池注资并通过端到端结算验收前，GAS 验证模式保持关闭。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -25,61 +25,16 @@
   "name": "Aim Master",
   "name_zh": "瞄准大师",
   "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Start the selected in-game target lane. Warm-up 0.02 GAS entry wins 0.1 (3 hits); Arcade 0.10 wins 0.5 (5 hits); Pro 0.20 wins 1 (7 hits).",
-        "method": "startGame",
-        "name": "Enter Range",
-        "params": [
-          {
-            "default_value": "0",
-            "hidden": true,
-            "label": "Target Lane",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Warm-up Lane — win 0.1 GAS (3 hits)",
-                "value": "0"
-              },
-              {
-                "label": "Arcade Range — win 0.5 GAS (5 hits)",
-                "value": "1"
-              },
-              {
-                "label": "Pro Circuit — win 1 GAS (7 hits)",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, stop the TEE-generated target on the bullseye, and land enough accuracy hits before the deadline to win GAS.",
+    "operations": [],
+    "subtitle": "Play directly on the target range. Verified GAS actions stay hidden while the testnet pool is empty and the full settlement path remains unproven.",
     "title": "Aim Master"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -89,9 +44,9 @@
     "reflex",
     "arcade",
     "leaderboard",
-    "gas",
     "game",
-    "tee"
+    "local",
+    "guest"
   ],
   "technologies": {
     "aa": {
@@ -99,19 +54,19 @@
       "enabled": false
     },
     "oracle": {
-      "description": "The target pattern is generated inside a Morpheus TEE enclave from a deterministic per-game secret, with only its hash commitment bound on-chain at the start. The enclave replays the recorded taps, applies a behavioural timing gate (no super-human bursts), and signs the accuracy hits reached after checking the commitment.",
-      "enabled": true
+      "description": "The deployed contract and oracle binding are read-only verified, but the reward pool is empty and no funded start-to-withdraw settlement has been proven; verified GameFi remains disabled.",
+      "enabled": false
     },
     "tee": {
-      "enabled": true,
-      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+      "enabled": false,
+      "description": "Local guest play does not make TEE requests."
     }
   },
-  "updatedAt": "2026-07-03T00:00:00Z",
+  "updatedAt": "2026-07-10T00:00:00Z",
   "urls": {
     "banner": "/miniapps/aim-master/banner.webp",
     "entry": "/miniapps/aim-master/index.html",
     "icon": "/miniapps/aim-master/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

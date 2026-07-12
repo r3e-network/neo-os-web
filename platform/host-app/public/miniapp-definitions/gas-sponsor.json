@@ -2,7 +2,7 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "gas-sponsor",
   "name": "Gas Sponsor",
-  "description": "Sponsor GAS fees for specific contracts or users, enabling gasless transactions.",
+  "description": "Create, discover and operate transparent on-chain GAS sponsorship pools.",
   "template_type": "utility",
   "category": "Utility",
   "tags": [
@@ -11,7 +11,7 @@
     "fee",
     "utility"
   ],
-  "version": "1.0.0",
+  "version": "2.0.0",
   "status": "active",
   "developer": {
     "name": "Yiwu",
@@ -20,8 +20,9 @@
   "contract": {
     "template_id": "utility-sponsor",
     "init_params": {
-      "max_sponsorship_per_tx": 10,
-      "daily_limit": 10000
+      "pool_type": 1,
+      "min_sponsorship_gas": 1,
+      "max_claim_per_tx_gas": 0.1
     }
   },
   "permissions": {
@@ -31,7 +32,7 @@
     "layout": "default",
     "hero": {
       "eyebrow": "Gas Sponsorship",
-      "disclaimer": "Sponsored transactions are limited by your sponsorship pool balance."
+      "disclaimer": "Every pool balance, allowance, expiry and claim is read from the deployed contract."
     },
     "tabs": [
       {
@@ -42,7 +43,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "Sponsor GAS fees for users of your dApp or specific contracts, enabling gasless transactions."
+            "content": "Browse public pools before connecting a wallet, then claim a small GAS allowance or open a transparent community pool."
           },
           {
             "type": "key_value",
@@ -66,9 +67,9 @@
             "type": "bullet_list",
             "title": "How It Works",
             "items": [
-              "Deposit GAS into your sponsorship pool.",
-              "Configure which contracts or users to sponsor.",
-              "Sponsored users can transact without paying GAS."
+              "Choose a live public pool and inspect its real remaining balance.",
+              "Claim within the pool's per-wallet and per-transaction limits.",
+              "Sponsors can create, top up, extend or withdraw their own pools."
             ]
           }
         ]
@@ -91,109 +92,10 @@
       }
     ],
     "operation_panel": {
-      "title": "Manage Sponsorship",
-      "subtitle": "Deposit or configure your sponsorship settings.",
-      "cta_label": "View Dashboard",
-      "operations": [
-        {
-          "name": "Create Pool",
-          "method": "createPool",
-          "description": "Create an on-chain GAS sponsorship pool after funding the contract.",
-          "button_style": "primary",
-          "gas_cost": "~0.1 GAS",
-          "params": [
-            {
-              "name": "sponsor",
-              "type": "hash160",
-              "label": "Sponsor",
-              "required": true,
-              "default_value": "$wallet",
-              "hidden": true
-            },
-            {
-              "name": "totalBudget",
-              "type": "amount",
-              "label": "Total Budget (GAS fractions)",
-              "required": true,
-              "placeholder": "100000000"
-            },
-            {
-              "name": "perUserLimit",
-              "type": "amount",
-              "label": "Per-user Limit (GAS fractions)",
-              "required": true,
-              "placeholder": "10000000"
-            },
-            {
-              "name": "expiresAt",
-              "type": "integer",
-              "label": "Expiry Timestamp",
-              "required": true,
-              "placeholder": "1893456000"
-            },
-            {
-              "name": "metadata",
-              "type": "string",
-              "label": "Metadata",
-              "required": false,
-              "placeholder": "MiniApp sponsorship pool"
-            }
-          ]
-        },
-        {
-          "name": "Claim Sponsorship",
-          "method": "claimSponsorship",
-          "description": "Claim a sponsored GAS allowance from an active pool.",
-          "button_style": "secondary",
-          "params": [
-            {
-              "name": "beneficiary",
-              "type": "hash160",
-              "label": "Beneficiary",
-              "required": true,
-              "default_value": "$wallet",
-              "hidden": true
-            },
-            {
-              "name": "poolId",
-              "type": "integer",
-              "label": "Pool ID",
-              "required": true,
-              "placeholder": "1"
-            },
-            {
-              "name": "amount",
-              "type": "amount",
-              "label": "Claim Amount (GAS fractions)",
-              "required": true,
-              "placeholder": "1000000"
-            }
-          ]
-        },
-        {
-          "name": "Withdraw Pool",
-          "method": "withdrawPool",
-          "description": "Withdraw remaining GAS from a pool you sponsor.",
-          "button_style": "danger",
-          "params": [
-            {
-              "name": "sponsor",
-              "type": "hash160",
-              "label": "Sponsor",
-              "required": true,
-              "default_value": "$wallet",
-              "hidden": true
-            },
-            {
-              "name": "poolId",
-              "type": "integer",
-              "label": "Pool ID",
-              "required": true,
-              "placeholder": "1"
-            }
-          ]
-        }
-      ]
+      "title": "Community Refill Station",
+      "subtitle": "Use the designed MiniApp station to browse, claim, sponsor and manage pools without a generic parameter form.",
+      "cta_label": "Open Station",
+      "operations": []
     }
   },
   "integration": {

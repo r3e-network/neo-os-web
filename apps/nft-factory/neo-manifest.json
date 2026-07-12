@@ -3,37 +3,44 @@
   "id": "miniapp-nft-factory",
   "name": "NFT Factory",
   "name_zh": "NFT 工厂",
-  "version": "1.0.0",
-  "description": "Configure a NEP-11 collection from an audited on-chain template — set a marketplace-honored royalty and a transferable/soulbound policy, then deploy via the platform Factory. You pay only the Neo network fee, no app fee. Deploy is available on networks where a factory admin has preloaded the artifact; on other networks you sign and export a portable plan.",
-  "description_zh": "基于已审计链上模板配置 NEP-11 集合——设置市场遵循的版税与可转让/灵魂绑定策略，并通过平台 Factory 部署。只需支付 Neo 网络费用，没有应用费用。仅在 Factory 管理员已预置工件的网络上可部署；其他网络上可签名并导出可携带计划。",
-  "category": "tools",
-  "category_name": "Tools",
-  "category_name_zh": "工具",
+  "version": "1.2.0",
+  "description": "Design a NEP-11 collection around real artwork, verify token #1 metadata and the testnet Factory template, then export or owner-sign the deterministic package. Local artwork is preview-only and deployment remains truthfully locked.",
+  "description_zh": "围绕真实作品设计 NEP-11 藏品，核验 Token #1 元数据与测试网 Factory 模板，再导出或由 Owner 签署确定性发行包。本地作品仅供预览，部署保持真实锁定。",
+  "category": "nft",
+  "category_name": "NFT",
+  "category_name_zh": "NFT",
   "tags": ["factory", "nep11", "nft", "collection", "onegate", "developer"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {},
-  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "contracts": {
+    "neo-n3-testnet": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49"
+  },
+  "supported_networks": ["neo-n3-testnet"],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/nft-factory/index.html",
     "icon": "/miniapps/nft-factory/logo.webp",
     "banner": "/miniapps/nft-factory/banner.webp"
   },
-  "permissions": ["invoke:primary", "wallet:sign-message", "read:blockchain"],
+  "permissions": ["wallet:sign-message", "read:blockchain"],
   "features": {
     "stateless": true,
-    "offlineSupport": true,
+    "offlineSupport": false,
     "deeplink": "neomainapp://nft-factory"
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
+  },
+  "stateSource": {
+    "chain": "neo-n3-testnet",
+    "endpoints": ["https://api.n3index.dev/testnet"],
+    "type": "n3index"
   },
   "technologies": {
     "aa": {
@@ -50,6 +57,6 @@
     }
   },
   "createdAt": "2026-05-07T00:00:00Z",
-  "updatedAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": false
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  evaluateJumpLevel,
   generatePlatforms,
   hexToBytes,
   isPerfectLanding,
@@ -8,7 +9,6 @@ import {
   landingOffset,
   powerForGap,
 } from "../../jump-rush/src/logic/jump-engine";
-import type { Platform } from "../../jump-rush/src/logic/jump-engine";
 
 /**
  * Jump Rush engine tests.
@@ -22,7 +22,6 @@ function hexSeed(hex: string): Uint8Array {
 }
 
 const SEED_A = "ab".repeat(32); // 32 zero-bytes? no, "ab" repeated 32 times = 32 bytes
-const SEED_B = "cd".repeat(32);
 
 describe("jump-rush platform generation", () => {
   it("produces deterministic platforms for the same seed and difficulty", () => {
@@ -86,6 +85,24 @@ describe("jump-rush platform generation", () => {
 });
 
 describe("jump-rush charge and landing mechanics", () => {
+  it("evaluates normalized charge with the Morpheus replay landing window", () => {
+    const gap = 100;
+    const width = 120;
+    const centreCharge = ((gap + width / 2) / (gap + width)) * 100;
+
+    expect(evaluateJumpLevel(20, gap, width).landed).toBe(false);
+    expect(evaluateJumpLevel(centreCharge, gap, width)).toMatchObject({
+      landed: true,
+      perfect: true,
+    });
+    expect(evaluateJumpLevel(100, gap, width)).toMatchObject({
+      landed: true,
+      perfect: false,
+      landingOffset: width,
+    });
+    expect(evaluateJumpLevel(101, gap, width).landed).toBe(false);
+  });
+
   it("powerForGap returns 0–1000ms scaled by sqrt(gap/50)", () => {
     expect(powerForGap(0)).toBe(0);
     expect(powerForGap(50)).toBe(100);

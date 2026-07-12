@@ -18,7 +18,8 @@ import { fetchTreasuryData } from "../../neo-treasury/src/utils/treasury";
  *    a fresh USD total: getPrices() returns null and fetchTreasuryData() reports
  *    totalUsd=null (rendered as "—") plus the priceFeedDown warning.
  *  - A record that is delayed but still in-window renders the USD total while
- *    flagging priceStale=true so the hero shows the amber dot, not the green one.
+ *    flagging priceStale=true so the dedicated quote status is amber; the
+ *    independent native-balance freshness signal remains live.
  */
 
 const PRICE_SCALE = 1_000_000;
@@ -157,7 +158,7 @@ describe("neo-treasury honors price-feed freshness", () => {
     const now = 1_781_231_101_000;
     vi.setSystemTime(now);
     // 15 minutes old: within the 1-hour window (so usable) but past the 5-minute
-    // "fresh" threshold, so the hero shows the amber dot rather than green.
+    // "fresh" threshold, so the quote status is delayed while balances remain live.
     const delayedSec = Math.floor(now / 1000) - 15 * 60;
     installRpcMock(delayedSec);
 

@@ -28,11 +28,18 @@ interface GuestLeaderboardApi {
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
+/** app.storage.local surface (framework-owned, localStorage-backed). */
+interface LocalStore {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+}
+
 export interface GuestEngineDeps {
   obs: GameSessionObservables;
   seed: Obs<string>;
   pipesPassed: Obs<number>;
   guestLeaderboard: GuestLeaderboardApi;
+  storage: LocalStore;
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
 }
@@ -40,6 +47,7 @@ export interface GuestEngineDeps {
 export interface GuestEngine {
   startGame(difficulty: number): void;
   recordFlap(pipes: number): void;
+  syncScore(pipes: number): void;
   submitSolution(pipes: number): Promise<void>;
   expireGame(): void;
   retryDeal(): void;
@@ -49,6 +57,12 @@ export interface GuestEngine {
 }
 
 const GUEST_GAME_ID = "guest";
+const GUEST_PROFILE_KEY = "guest:profile";
+
+interface GuestProfile {
+  bestScore: number;
+  clears: number;
+}
 
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
@@ -67,7 +81,26 @@ function randomSeed(): string {
 }
 
 export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
-  const { obs, seed, pipesPassed, guestLeaderboard, t, setStatus } = deps;
+  const { obs, seed, pipesPassed, guestLeaderboard, storage, t, setStatus } = deps;
+
+  const loadProfile = (): GuestProfile => {
+    try {
+      const raw = storage.get<Partial<GuestProfile>>(GUEST_PROFILE_KEY, {});
+      const bestScore = Math.max(0, Math.floor(Number(raw?.bestScore) || 0));
+      const clears = Math.max(0, Math.floor(Number(raw?.clears) || 0));
+      return { bestScore, clears };
+    } catch {
+      return { bestScore: 0, clears: 0 };
+    }
+  };
+
+  const saveProfile = (profile: GuestProfile): void => {
+    try {
+      storage.set(GUEST_PROFILE_KEY, profile);
+    } catch {
+      // A storage policy or quota failure must never block local play.
+    }
+  };
 
   const resetToLobby = (): void => {
     obs.gameStatus.set("idle");
@@ -141,21 +174,37 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       pipesPassed.set(Math.max(pipesPassed.get(), next));
     },
 
+    syncScore(pipes: number): void {
+      if (obs.gameStatus.get() !== "dealt") return;
+      const next = Number.isFinite(pipes) ? Math.max(0, pipes) : 0;
+      pipesPassed.set(next);
+    },
+
     async submitSolution(pipes: number): Promise<void> {
       if (obs.gameStatus.get() !== "dealt") return;
       if (obs.isSubmitting.get()) return;
       obs.isSubmitting.set(true);
       const reported = Number.isFinite(pipes) ? pipes : 0;
       const score = Math.max(pipesPassed.get(), reported);
+      const cleared = score >= ruleOf(obs.gameDifficulty.get()).targetPipes;
+      const profile = loadProfile();
+      const nextProfile = {
+        bestScore: Math.max(profile.bestScore, score),
+        clears: profile.clears + (cleared ? 1 : 0),
+      };
+      saveProfile(nextProfile);
       pipesPassed.set(score);
+      obs.myTotalWon.set(nextProfile.bestScore);
+      obs.mySolves.set(nextProfile.clears);
       obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
       obs.lastPayout.set(t("guestLastPayout", { pipes: score }));
-      obs.gameStatus.set("solved");
-      obs.lastStatus.set(t("guestRunComplete", { count: score }));
+      const statusKey = cleared ? "guestRunComplete" : "guestScoreSaved";
+      obs.gameStatus.set(cleared ? "solved" : "expired");
+      obs.lastStatus.set(t(statusKey, { count: score }));
       obs.activeGameId.set("0");
       await submitScore(score);
       await refreshLeaderboard();
-      setStatus(t("guestRunComplete", { count: score }), "success");
+      setStatus(t(statusKey, { count: score }), cleared ? "success" : "info");
       obs.isSubmitting.set(false);
     },
 
@@ -182,8 +231,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
-      obs.myTotalWon.set(0);
-      obs.mySolves.set(0);
+      const profile = loadProfile();
+      obs.myTotalWon.set(profile.bestScore);
+      obs.mySolves.set(profile.clears);
       obs.myHistory.set([]);
       obs.lastStatus.set(t("guestStatusReady"));
       await refreshLeaderboard();

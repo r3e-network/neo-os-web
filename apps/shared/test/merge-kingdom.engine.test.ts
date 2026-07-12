@@ -3,21 +3,31 @@ import { describe, expect, it } from "vitest";
 import {
   BOARD_SIZE,
   DIFFICULTY_RULES,
+  GAMEFI_NEW_ENTRIES_ENABLED,
+  GUEST_DIFFICULTY_RULES,
   MAX_UNDOS,
   TILE_BG,
   TILE_COLOR,
   TILE_FONT_SIZE,
   TILE_VALUES,
   UNDO_PENALTY_PCT,
+  canExpireAfterGrace,
   emptyBoard,
   formatClock,
   gasDisplay,
+  guestRuleOf,
   isPowerOf2,
   payoutFixed8,
   rewardPctAfterUndos,
   ruleOf,
   statusOf,
 } from "../../merge-kingdom/src/logic/game-rules";
+import {
+  applyMergeMove,
+  boardFromSessionView,
+  hasMergePotential,
+  isValidBoard,
+} from "../../merge-kingdom/src/logic/merge-engine";
 
 /**
  * Merge Kingdom engine tests.
@@ -27,6 +37,9 @@ import {
  */
 
 describe("merge-kingdom difficulty rules", () => {
+  it("keeps new paid entries fail-closed until the live route is verified", () => {
+    expect(GAMEFI_NEW_ENTRIES_ENABLED).toBe(false);
+  });
   it("defines three difficulty tiers with correct targetTile and entry/reward", () => {
     expect(DIFFICULTY_RULES).toHaveLength(3);
 
@@ -52,6 +65,14 @@ describe("merge-kingdom difficulty rules", () => {
     expect(hard.reward).toBe(100_000_000);
     expect(hard.limitMs).toBe(600_000);
     expect(hard.minSolveMs).toBe(120_000);
+  });
+
+  it("keeps guest routes short and achievable without changing deployed contract rules", () => {
+    expect(GUEST_DIFFICULTY_RULES.map((rule) => rule.targetTile)).toEqual([32, 64, 128]);
+    expect(GUEST_DIFFICULTY_RULES.map((rule) => rule.limitMs)).toEqual([45_000, 60_000, 90_000]);
+    expect(GUEST_DIFFICULTY_RULES.every((rule) => rule.entry === 0 && rule.reward === 0)).toBe(true);
+    expect(guestRuleOf(2).targetTile).toBe(128);
+    expect(DIFFICULTY_RULES.map((rule) => rule.targetTile)).toEqual([64, 256, 1024]);
   });
 
   it("ruleOf returns the correct rule for each difficulty", () => {
@@ -101,6 +122,12 @@ describe("merge-kingdom undo penalty and payout", () => {
 });
 
 describe("merge-kingdom display helpers", () => {
+  it("unlocks contract expiry only after deadline plus grace", () => {
+    const deadline = 1_000_000;
+    expect(canExpireAfterGrace(deadline, deadline + 600_000)).toBe(false);
+    expect(canExpireAfterGrace(deadline, deadline + 600_001)).toBe(true);
+    expect(canExpireAfterGrace(0, Number.MAX_SAFE_INTEGER)).toBe(false);
+  });
   it("gasDisplay formats Fixed8 values with two decimal places", () => {
     expect(gasDisplay(0)).toBe("0.00");
     expect(gasDisplay(1)).toBe("0.00");
@@ -138,8 +165,8 @@ describe("merge-kingdom display helpers", () => {
 });
 
 describe("merge-kingdom tile constants", () => {
-  it("TILE_VALUES contains all powers of 2 from 0 to 2048", () => {
-    expect(TILE_VALUES).toEqual([0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]);
+  it("TILE_VALUES contains the complete building ladder through the crown palace", () => {
+    expect(TILE_VALUES).toEqual([0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]);
   });
 
   it("TILE_BG has entries for all tile values", () => {
@@ -199,5 +226,61 @@ describe("merge-kingdom board utilities", () => {
     expect(isPowerOf2(6)).toBe(false);
     expect(isPowerOf2(10)).toBe(false);
     expect(isPowerOf2(-4)).toBe(false);
+  });
+});
+
+describe("merge-kingdom move engine", () => {
+  it("moves a building without spawning and merges matching resources with one spawn", () => {
+    const board = [
+      [2, 0, 2, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+    const moved = applyMergeMove(board, { row: 0, col: 0 }, { row: 0, col: 1 });
+    expect(moved?.kind).toBe("reposition");
+    expect(moved?.spawn).toBeNull();
+
+    const merged = applyMergeMove(
+      moved!.board,
+      { row: 0, col: 1 },
+      { row: 0, col: 2 },
+      (empty) => ({ cell: empty[0]!, value: 2 }),
+    );
+    expect(merged?.kind).toBe("merge");
+    expect(merged?.mergedValue).toBe(4);
+    expect(merged?.spawn?.value).toBe(2);
+    expect(merged?.highestTile).toBe(4);
+  });
+
+  it("accepts nested, flat, and JSON session boards but rejects malformed TEE state", () => {
+    const nested = [
+      [2, 4, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+    expect(boardFromSessionView({ board: nested })).toEqual(nested);
+    expect(boardFromSessionView({ board: nested.flat() })).toEqual(nested);
+    expect(boardFromSessionView({ board: JSON.stringify(nested) })).toEqual(nested);
+    expect(isValidBoard(nested)).toBe(true);
+    expect(boardFromSessionView({ board: [[3, 0, 0, 0], ...nested.slice(1)] })).toBeNull();
+    expect(boardFromSessionView({ board: [[-2, 0, 0, 0], ...nested.slice(1)] })).toBeNull();
+    expect(boardFromSessionView({ board: [["2", 0, 0, 0], ...nested.slice(1)] })).toBeNull();
+  });
+
+  it("marks a unique-building position as over while preserving duplicate merge potential", () => {
+    expect(hasMergePotential([
+      [2, 4, 8, 16],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ])).toBe(false);
+    expect(hasMergePotential([
+      [2, 4, 8, 2],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ])).toBe(true);
   });
 });

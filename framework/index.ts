@@ -100,6 +100,7 @@ export interface FrameworkInvokeOptions {
   waitForEvent?: string;
   waitTimeoutMs?: number;
   onPaymentSent?: (txid: string) => void;
+  onTransactionSent?: (txid: string) => void;
   /**
    * Toast policy consumed by the framework wrappers (write / payAndCall /
    * prepayAndCall / receiptPay / invokeMultiple); never forwarded to the
@@ -121,11 +122,19 @@ export interface FrameworkMultiInvokeResult extends FrameworkTxResult {
   exception?: string;
 }
 
+export interface FrameworkMultiInvokeOptions {
+  signers?: unknown[];
+  onTransactionSent?: (txid: string) => void;
+  notify?: FrameworkNotifyPolicy;
+}
+
 /** Normalized wallet message-signature envelope (see chain.signMessage). */
 export interface FrameworkSignedMessage {
   signature: string;
   publicKey?: string;
   data?: string;
+  /** Wallet-reported signing account/address when the provider exposes it. */
+  account?: string;
 }
 
 export interface FrameworkWaitForStateOptions {
@@ -196,7 +205,7 @@ export interface MiniAppFrameworkChain {
   /** Multi-script single-transaction invoke (custom signer scopes allowed). */
   invokeMultiple?(
     calls: FrameworkInvokeCall[],
-    options?: { signers?: unknown[] },
+    options?: FrameworkMultiInvokeOptions,
   ): Promise<FrameworkMultiInvokeResult>;
 }
 
@@ -414,6 +423,7 @@ export type FrameworkAppMode = "guest" | "gamefi";
  */
 export interface FrameworkGuestLeaderboard {
   submit(score: number | string): Promise<void>;
+  /** Decoded guest rows, ranked by numeric score descending. */
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
@@ -698,6 +708,9 @@ function compactInvokeOptions(spec: FrameworkWriteSpec | FrameworkPaySpec): Fram
   if (source.waitForEvent) options.waitForEvent = source.waitForEvent;
   if (source.waitTimeoutMs) options.waitTimeoutMs = source.waitTimeoutMs;
   if (source.onPaymentSent) options.onPaymentSent = source.onPaymentSent;
+  if (source.onTransactionSent) {
+    options.onTransactionSent = source.onTransactionSent;
+  }
   return options;
 }
 
@@ -1075,7 +1088,37 @@ export function createMiniAppFramework(
       clipboard: getClipboard(),
     }),
   );
-  const getAa = lazyModule(() => createAaSurface({ aa: ctx.services.aa }));
+  const getAa = lazyModule(() => {
+    const aa = createAaSurface({ aa: ctx.services.aa });
+    // Guest guard (defense in depth, same contract as chain.invoke/write):
+    // relay submission broadcasts a transaction, sponsorship.request moves
+    // sponsor GAS, and sessionKey.create provisions an on-chain-scoped key —
+    // all three are write lanes and must throw in guest mode. Reads
+    // (`available`, sponsorship.check) stay allowed.
+    const guarded: typeof aa = {
+      get available() {
+        return aa.available;
+      },
+      sponsorship: {
+        check: (scope) => aa.sponsorship.check(scope),
+        request: async (amount, scope) => {
+          assertNotGuest();
+          return aa.sponsorship.request(amount, scope);
+        },
+      },
+      relay: async (payload) => {
+        assertNotGuest();
+        return aa.relay(payload);
+      },
+      sessionKey: {
+        create: async (permissions, expiresAt) => {
+          assertNotGuest();
+          return aa.sessionKey.create(permissions, expiresAt);
+        },
+      },
+    };
+    return guarded;
+  });
   const getResources = lazyModule(() =>
     createResourcesSurface({
       host: () => framework.platform.host,
@@ -1329,18 +1372,37 @@ export function createMiniAppFramework(
   // Guest scores go to the off-chain OS leaderboard under an app+":guest"
   // namespace prefix so they never mix with any on-chain / gamefi result.
   const GUEST_BOARD_PREFIX = `${appId}:guest:`;
+  /**
+   * Rows scanned from the OS board per guest read. The board can mix guest
+   * and non-guest rows (stats.leaderboard shares it), so a `limit`-sized
+   * window could miss every guest row; scan a defensive window instead
+   * (same 500 cap chain.enumerate / events.listAll use) before filtering.
+   */
+  const GUEST_BOARD_SCAN_LIMIT = 500;
+  const isGuestBoardRow = (row: { score?: unknown }): boolean =>
+    String(row?.score ?? "").startsWith(GUEST_BOARD_PREFIX);
+  /** Numeric rank for a decoded guest score; non-numeric rows sink last. */
+  const guestScoreRank = (score: string): number => {
+    const value = Number(score);
+    return Number.isFinite(value) ? value : Number.NEGATIVE_INFINITY;
+  };
   const guestLeaderboard: FrameworkGuestLeaderboard = {
     async submit(score: number | string): Promise<void> {
       await os.leaderboard?.submitScore(`${GUEST_BOARD_PREFIX}${score}`);
     },
     async get(limit = 100): Promise<Array<{ user: string; score: string }>> {
-      const rows = (await os.leaderboard?.get(limit)) ?? [];
+      const rows =
+        (await os.leaderboard?.get(Math.max(limit, GUEST_BOARD_SCAN_LIMIT))) ?? [];
+      // Re-rank numerically after decoding: the host board orders the RAW
+      // prefixed strings ("app:guest:9" sorts above "app:guest:100"), so its
+      // ordering is meaningless for guest rows.
       return rows
-        .filter((row) => String(row.score ?? "").startsWith(GUEST_BOARD_PREFIX))
+        .filter(isGuestBoardRow)
         .map((row) => ({
           user: row.user,
           score: String(row.score).slice(GUEST_BOARD_PREFIX.length),
         }))
+        .sort((left, right) => guestScoreRank(right.score) - guestScoreRank(left.score))
         .slice(0, limit);
     },
   };
@@ -1584,10 +1646,12 @@ export function createMiniAppFramework(
               : String(signatureSource);
           const publicKey = result.publicKey ?? result.publicKeyHash ?? result.pubkey;
           const data = typeof result.data === "string" && result.data ? result.data : undefined;
+          const account = result.account ?? result.address;
           return {
             signature,
             ...(publicKey ? { publicKey: String(publicKey) } : {}),
             ...(data ? { data } : {}),
+            ...(account ? { account: String(account) } : {}),
           };
         }
         throw new MiniAppError("Wallet returned no signature", "SIGN_EMPTY_RESULT");
@@ -1601,7 +1665,7 @@ export function createMiniAppFramework(
        */
       async invokeMultiple(
         calls: FrameworkInvokeCall[],
-        multiOptions: { signers?: unknown[]; notify?: FrameworkNotifyPolicy } = {},
+        multiOptions: FrameworkMultiInvokeOptions = {},
       ): Promise<FrameworkMultiInvokeResult> {
         assertNotGuest();
         return runWithNotify(async () => {
@@ -1613,7 +1677,12 @@ export function createMiniAppFramework(
           }
           const result = await chain.invokeMultiple(
             calls,
-            multiOptions.signers ? { signers: multiOptions.signers } : {},
+            {
+              ...(multiOptions.signers ? { signers: multiOptions.signers } : {}),
+              ...(multiOptions.onTransactionSent
+                ? { onTransactionSent: multiOptions.onTransactionSent }
+                : {}),
+            },
           );
           if (String(result?.state ?? "").toUpperCase().includes("FAULT")) {
             const exception = result?.exception;
@@ -1987,8 +2056,16 @@ export function createMiniAppFramework(
             getOracleExt().seal.publicKey(sealOptions),
           /** Encrypt a payload under the pinned envelope algorithm. */
           encrypt: (payload: unknown) => getOracleExt().seal.encrypt(payload),
-          /** Submit a sealed envelope to the confidential store. */
-          store: (input: FrameworkSealStoreInput) => getOracleExt().seal.store(input),
+          /**
+           * Submit a sealed envelope to the confidential store. Unlike the
+           * wallet-free publicKey/encrypt read/compute lanes, `store` WRITES
+           * to the oracle's confidential store, so it is guest-guarded like
+           * every other oracle write entry point.
+           */
+          store: async (input: FrameworkSealStoreInput) => {
+            assertNotGuest();
+            return getOracleExt().seal.store(input);
+          },
         },
       ),
       /** DataFeed reader (S13): wallet-free price reads + freshness math. */
@@ -2025,7 +2102,11 @@ export function createMiniAppFramework(
           await os.leaderboard?.submitScore(String(score));
         },
         async top(limit = 100): Promise<Array<{ user: string; score: string }>> {
-          return os.leaderboard?.get(limit) ?? [];
+          const rows = (await os.leaderboard?.get(limit)) ?? [];
+          // Guest rows are namespaced (`<appId>:guest:<score>`) on the same
+          // OS board — never leak them into the non-guest board view
+          // (cross-mode isolation of app.mode.guestLeaderboard).
+          return rows.filter((row) => !isGuestBoardRow(row));
         },
       },
     },
@@ -2090,6 +2171,9 @@ export function createMiniAppFramework(
             ops: readonly Op[],
             onStep?: (step: TeeStepResult, op: Op, index: number) => void | Promise<void>,
           ) {
+            // Replays drive the same TEE step lane as recordOp — a guest has
+            // no session to replay and must never reach the oracle host.
+            assertNotGuest();
             return replayRewardGameOps(session, ops, onStep, rewardOptions.fetcher);
           },
           finalize(

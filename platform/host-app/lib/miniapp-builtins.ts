@@ -52,10 +52,24 @@ export function applyBuiltInMiniAppDefaults(app: MiniAppInfo): MiniAppInfo {
   };
 
   const template = MINIAPP_TEMPLATES[next.app_id];
-  if (template) {
+  const manifest = next.manifest as
+    | {
+        platform?: { transactions?: boolean };
+        operation_panel?: { operations?: unknown[] };
+      }
+    | undefined;
+  const isGuestOnlyRelease = manifest?.platform?.transactions === false;
+  const hasExplicitOperationPanel = Array.isArray(
+    manifest?.operation_panel?.operations,
+  );
+  if (template && !isGuestOnlyRelease) {
     const shouldOverride = TEMPLATE_OVERRIDE_IDS.has(next.app_id);
-    if (shouldOverride || !next.detail_template) next.detail_template = template.detail_template;
-    if (shouldOverride || !next.operations) next.operations = template.operations;
+    if (shouldOverride || (!hasExplicitOperationPanel && !next.detail_template)) {
+      next.detail_template = template.detail_template;
+    }
+    if (shouldOverride || (!hasExplicitOperationPanel && !next.operations)) {
+      next.operations = template.operations;
+    }
   }
 
   const description = DESCRIPTION_OVERRIDES[next.app_id];

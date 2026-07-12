@@ -1,15 +1,16 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { createFactoryPlayArea, createFactorySetup } from "@shared/factory/runtime";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-
-const appId = "miniapp-nft-factory";
-const kind = "nep11";
+import { NftFactoryPlayArea } from "./NftFactoryPlayArea";
+import {
+  createNftFactorySetup,
+  NFT_FACTORY_APP_ID,
+} from "./NftFactorySetup";
 
 defineMiniApp({
-  appId,
-  playArea: createFactoryPlayArea(kind, appId),
+  appId: NFT_FACTORY_APP_ID,
+  playArea: NftFactoryPlayArea,
   manifest,
   messages,
-  setup: createFactorySetup(kind, appId),
+  setup: createNftFactorySetup,
 });

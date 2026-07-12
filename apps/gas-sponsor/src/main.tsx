@@ -1,7 +1,4 @@
-/**
- * Gas Sponsor — Entry Point (React)
- */
-
+/** Gas Sponsor — production React entry point. */
 import { defineMiniApp, refsToObservables } from "@shared/react";
 import { readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import PlayArea from "./PlayArea";
@@ -16,82 +13,128 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const app = ctx.framework;
     const sponsor = useGasSponsorApp({
-      app,
+      app: ctx.framework,
       t: ctx.t,
       network: readMiniAppLaunchContext("miniapp-gas-sponsor").network,
     });
 
-    ctx.framework.actions.register("requestSponsorship", async (...args: unknown[]) => {
-      sponsor.requestAmount.set(String(args[0] ?? ""));
-      app.notify.info("requestingSponsorship");
-      const result = await app.notify.guard(() => sponsor.requestSponsorship(), {
-        errorKey: "requestFailed",
-      });
-      // The success toast stays conditional on a resolved request (the
-      // composable resolves undefined on the ineligible early-return, which
-      // must NOT toast) — so it goes through app.notify.success with params
-      // rather than an unconditional guard successKey.
-      if (result) {
-        const requestId = result.request_id || result.requestId || result.txid || "";
-        app.notify.success("requestSubmitted", {
-          id: requestId ? `${requestId.slice(0, 8)}...` : "pending",
-        });
+    const publishOutcome = () => {
+      const current = sponsor.outcome.get();
+      if (current.status === "confirmed") {
+        ctx.setStatus(ctx.t("transactionConfirmed"), "success");
+      } else if (current.status === "failed") {
+        ctx.setStatus(current.message || ctx.t("transactionFaulted"), "error");
+      } else if (current.status === "pending" || current.status === "unknown") {
+        ctx.setStatus(current.message || ctx.t("transactionPending"), "warning");
       }
+      return current;
+    };
+
+    const run = async <T,>(action: () => Promise<T>): Promise<T | null> => {
+      try {
+        const result = await action();
+        publishOutcome();
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : ctx.t("actionFailed");
+        ctx.setStatus(message || ctx.t("actionFailed"), "error");
+        return null;
+      }
+    };
+
+    ctx.framework.actions.register("setMode", async (value: unknown) => {
+      const next = value === "create" || value === "manage" ? value : "browse";
+      sponsor.mode.set(next);
     });
 
-    ctx.framework.actions.register("donate", async (...args: unknown[]) => {
-      sponsor.donateAmount.set(String(args[0] ?? ""));
-      await app.notify.guard(() => sponsor.handleDonate(), {
-        successKey: "donateSuccess",
-        errorKey: "donateFailed",
-      });
-    });
+    ctx.framework.actions.register("selectPool", async (value: unknown) =>
+      run(() => sponsor.selectPool(String(value ?? ""))));
 
-    ctx.framework.actions.register("send", async (...args: unknown[]) => {
-      sponsor.recipientAddress.set(String(args[0] ?? ""));
-      sponsor.sendAmount.set(String(args[1] ?? ""));
-      await app.notify.guard(() => sponsor.handleSend(), {
-        successKey: "sendSuccess",
-        errorKey: "sendFailed",
-      });
+    ctx.framework.actions.register("loadMorePools", async () =>
+      run(() => sponsor.loadMorePools()));
+
+    ctx.framework.actions.register("refreshSelectedPool", async () =>
+      run(async () => {
+        await sponsor.refreshSelectedPool();
+        ctx.setStatus(ctx.t("poolListRefreshed"), "success");
+      }));
+
+    ctx.framework.actions.register("connectWallet", async () =>
+      run(async () => {
+        const address = await sponsor.connectWallet();
+        if (address) ctx.setStatus(ctx.t("walletConnected"), "success");
+        return address;
+      }));
+
+    ctx.framework.actions.register("claimPool", async () =>
+      run(() => sponsor.claimFromSelectedPool()));
+
+    ctx.framework.actions.register("createPool", async () =>
+      run(() => sponsor.createPublicPool()));
+
+    ctx.framework.actions.register("topUpPool", async () =>
+      run(() => sponsor.topUpSelectedPool()));
+
+    ctx.framework.actions.register("extendPool", async () =>
+      run(() => sponsor.extendSelectedPool()));
+
+    ctx.framework.actions.register("withdrawPool", async () =>
+      run(() => sponsor.withdrawSelectedPool()));
+
+    ctx.framework.actions.register("recoverPending", async () =>
+      run(() => sponsor.recoverPendingOperation()));
+
+    ctx.framework.actions.register("resumePending", async () =>
+      run(() => sponsor.resumePendingAction()));
+
+    ctx.framework.actions.register("dismissOutcome", async () => {
+      sponsor.dismissOutcome();
+      ctx.clearStatus();
     });
 
     return {
       state: refsToObservables({
-        gasBalance: sponsor.gasBalance,
-        isEligible: sponsor.isEligible,
-        fuelLevelPercent: sponsor.fuelLevelPercent,
-        remainingQuota: sponsor.remainingQuota,
-        isRequesting: sponsor.isRequesting,
-        requestAmount: sponsor.requestAmount,
-        maxRequestAmount: sponsor.maxRequestAmount,
-        quickAmounts: sponsor.quickAmounts,
-        loading: sponsor.loading,
-        userAddress: sponsor.userAddress,
-        poolAddress: sponsor.poolAddress,
-        usedQuota: sponsor.usedQuota,
-        dailyLimit: sponsor.dailyLimit,
-        quotaPercent: sponsor.quotaPercent,
-        resetTime: sponsor.resetTime,
-        donateAmount: sponsor.donateAmount,
-        sendAmount: sponsor.sendAmount,
-        recipientAddress: sponsor.recipientAddress,
-        isDonating: sponsor.isDonating,
-        isSending: sponsor.isSending,
-        isFunded: sponsor.isFunded,
-        donateAmountValid: sponsor.donateAmountValid,
-        recipientValid: sponsor.recipientValid,
-        sendAmountValid: sponsor.sendAmountValid,
-        canSend: sponsor.canSend,
-        tankLevelDisplay: sponsor.tankLevelDisplay,
-        gasBalanceDisplay: sponsor.gasBalanceDisplay,
-        remainingQuotaDisplay: sponsor.remainingQuotaDisplay,
-        eligibleDisplay: sponsor.eligibleDisplay,
-        chainGasBalanceDisplay: sponsor.chainGasBalanceDisplay,
-        serviceAvailable: sponsor.serviceAvailable,
-        serviceNotice: sponsor.serviceNotice,
+        mode: sponsor.mode,
+        network: sponsor.network,
+        contractHash: sponsor.contractHash,
+        platformStats: sponsor.platformStats,
+        pools: sponsor.pools,
+        poolsLoading: sponsor.poolsLoading,
+        poolsError: sponsor.poolsError,
+        hasMorePools: sponsor.hasMorePools,
+        nextPoolCursor: sponsor.nextPoolCursor,
+        selectedPoolId: sponsor.selectedPoolId,
+        selectedPool: sponsor.selectedPool,
+        selectedPoolLoading: sponsor.selectedPoolLoading,
+        selectedPoolError: sponsor.selectedPoolError,
+        walletAddress: sponsor.walletAddress,
+        walletHash: sponsor.walletHash,
+        walletContextReady: sponsor.walletContextReady,
+        walletGasBalanceFixed8: sponsor.walletGasBalanceFixed8,
+        walletGasBalanceKnown: sponsor.walletGasBalanceKnown,
+        userClaimedFixed8: sponsor.userClaimedFixed8,
+        userClaimedKnown: sponsor.userClaimedKnown,
+        pendingOperation: sponsor.pendingOperation,
+        outcome: sponsor.outcome,
+        actionBusy: sponsor.actionBusy,
+        claimAmount: sponsor.claimAmount,
+        createAmount: sponsor.createAmount,
+        createMaxClaim: sponsor.createMaxClaim,
+        createDescription: sponsor.createDescription,
+        topUpAmount: sponsor.topUpAmount,
+        extendDurationMs: sponsor.extendDurationMs,
+        withdrawAmount: sponsor.withdrawAmount,
+        canClaim: sponsor.canClaim,
+        canCreate: sponsor.canCreate,
+        canTopUp: sponsor.canTopUp,
+        canWithdraw: sponsor.canWithdraw,
+        canExtend: sponsor.canExtend,
+        canResumePending: sponsor.canResumePending,
+        selectedPoolIsMine: sponsor.selectedPoolIsMine,
+        selectedPoolExpired: sponsor.selectedPoolExpired,
+        selectedPoolRemainingFixed8: sponsor.selectedPoolRemainingFixed8,
+        selectedPoolClaimAvailableRaw: sponsor.selectedPoolClaimAvailableRaw,
       }),
       loadData: sponsor.loadAll,
     };

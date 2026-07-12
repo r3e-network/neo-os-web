@@ -1,18 +1,20 @@
-/**
- * useAAMarketHub -- Domain logic for AA Market Hub
- *
- * Uses createObservable instead of Vue ref/computed/watch.
- * Called once during setup, returns observables that React components subscribe to.
- *
- * All chain traffic rides the framework (app.chain reads/writes, the
- * transfer-then-settle buy via app.chain.invokeMultiple) and every write runs
- * inside an app.operations operation that owns its busy flag and toast keys —
- * the runWriteAction hand-roll and its dead eventBus emits are retired.
- */
-
-import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createObservable, type Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
+import {
+  aaMarketAccountMatches,
+  findAAMarketNotification,
+  isPendingAAMarketOperation,
+  normalizeAAMarketAccount,
+  notificationValue,
+  parseChainHash160,
+  readAAMarketRpc,
+  requireCanonicalAAMarketContext,
+  waitForAAMarketTransactionOutcome,
+  type AAMarketContext,
+  type AAMarketNotification,
+  type AAMarketTransactionOutcome,
+  type PendingAAMarketOperation,
+} from "../aa-market-safety";
 import {
   buyAddressListing,
   cancelAddressListing,
@@ -21,49 +23,81 @@ import {
   getDefaultAAContractHash,
   getDefaultMarketHash,
   listAddressListings,
+  parseGasToFractions,
+  readAddressListing,
   refundPendingAddressPurchase,
-  type MarketListing,
   updateAddressListingPrice,
+  type MarketListing,
 } from "../utils/aa-market";
-import {
-  addressToScriptHash,
-  normalizeScriptHash,
-  parseHash160,
-} from "@shared/utils/neo";
 
-// Config persistence rides app.storage.local. main.tsx pins
-// `storagePrefix: "aa-market-hub:"`, so these keys resolve to the exact
-// pre-framework localStorage entries ("aa-market-hub:market-hash" /
-// "aa-market-hub:aa-contract-hash") — existing user overrides keep working.
-const MARKET_HASH_STORAGE_KEY = "market-hash";
-const AA_HASH_STORAGE_KEY = "aa-contract-hash";
+export type MarketMode = "explore" | "sell";
+export type MarketDataSource = "idle" | "chain" | "partial" | "failed";
+export type AAMarketActionResult =
+  | { status: "confirmed"; txid: string }
+  | { status: "pending"; txid: string }
+  | { status: "fault"; txid: string }
+  | { status: "confirmation-required"; txid: "" };
 
 export interface UseAAMarketHubOptions {
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-type MarketWriteOperation = ReturnType<MiniAppFramework["operations"]["create"]>;
-
-/**
- * Read-only boolean observable that is true while the operation runs — the
- * drop-in replacement for the hand-rolled per-action busy flags (`set` is a
- * no-op; the operation state is the single source of truth).
- */
-function operationRunning(op: MarketWriteOperation): Observable<boolean> {
+function derived<T>(get: () => T, dependencies: Observable<unknown>[]): Observable<T> {
   return {
-    get: () => op.state.get().status === "running",
+    get,
     set: () => {},
-    subscribe: (fn) => op.state.subscribe(fn),
+    subscribe: (listener) => {
+      const unsubs = dependencies.map((dependency) => dependency.subscribe(listener));
+      return () => unsubs.forEach((unsubscribe) => unsubscribe());
+    },
   };
 }
 
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function integer(value: unknown): string {
+  const raw = clean(value);
+  if (!/^\d+$/.test(raw)) return "";
+  return BigInt(raw).toString();
+}
+
+function eventInteger(event: AAMarketNotification, index: number): string {
+  return integer(notificationValue(event, index));
+}
+
+function zeroHash(value: unknown): boolean {
+  const parsed = parseChainHash160(value, true);
+  return /^0x0{40}$/i.test(parsed);
+}
+
+function txidFrom(result: unknown): string {
+  return clean((result as { txid?: unknown } | null)?.txid);
+}
+
+function rpcInteger(value: string) {
+  return { type: "Integer", value };
+}
+
+function rpcHash(value: string) {
+  return { type: "Hash160", value };
+}
+
+function errorText(error: unknown, t: UseAAMarketHubOptions["t"], fallbackKey: string): string {
+  const message = error instanceof Error ? clean(error.message) : clean(error);
+  if (message === "aaMarketChainContextMismatch") return t("aaMarketChainContextMismatch");
+  return message || t(fallbackKey);
+}
+
 export function useAAMarketHub({ app, t }: UseAAMarketHubOptions) {
-  // Form state
+  const mode = createObservable<MarketMode>("explore");
+  const network = createObservable("");
   const marketHash = createObservable("");
-  const aaContractHash = createObservable(getDefaultAAContractHash());
+  const aaContractHash = createObservable("");
   const accountIdHash = createObservable("");
-  const priceGas = createObservable("");
+  const priceGas = createObservable("1");
   const listingTitle = createObservable("");
   const metadataUri = createObservable("");
   const nextPriceGas = createObservable("");
@@ -72,475 +106,763 @@ export function useAAMarketHub({ app, t }: UseAAMarketHubOptions) {
   const listings = createObservable<MarketListing[]>([]);
   const totalOnChainListings = createObservable(0);
   const listingsTruncated = createObservable(false);
+  const failedListingReads = createObservable(0);
+  const dataSource = createObservable<MarketDataSource>("idle");
   const isLoading = createObservable(false);
   const isWalletConnecting = createObservable(false);
+  const isSubmitting = createObservable(false);
+  const isRecovering = createObservable(false);
+  const activeAction = createObservable("");
+  const lastError = createObservable("");
+  const lastSuccess = createObservable("");
+  const transactionNotice = createObservable("");
+  const cancelConfirmationId = createObservable("");
+  const recoveryStorageHealthy = createObservable(true);
+  let writeInFlight: {
+    kind: PendingAAMarketOperation["kind"];
+    promise: Promise<AAMarketActionResult>;
+  } | null = null;
+  let listingsLoadGeneration = 0;
+  let listingsReloadQueued = false;
+  let disposed = false;
 
-  // One framework operation per write so the four manage buttons spin
-  // independently instead of all at once; the shared isSubmitting flag
-  // derives from all of them (the legacy flag was set for every write).
-  const createListingOp = app.operations.create("createListing");
-  const updatePriceOp = app.operations.create("updatePrice");
-  const cancelListingOp = app.operations.create("cancelListing");
-  const buyListingOp = app.operations.create("buyListing");
-  const refundPendingOp = app.operations.create("refundPending");
-  const writeOps = [
-    createListingOp,
-    updatePriceOp,
-    cancelListingOp,
-    buyListingOp,
-    refundPendingOp,
-  ];
+  const pendingOperation = app.state.persisted<PendingAAMarketOperation | null>(
+    "pendingOperation",
+    null,
+  );
+  const pendingStorageKey = "state/pendingOperation";
+  const pendingStorageProbeKey = "state/pendingOperationProbe";
+  let storageProbeSequence = 0;
 
-  const isSubmitting: Observable<boolean> = {
-    get: () => writeOps.some((op) => op.state.get().status === "running"),
-    set: () => {},
-    subscribe: (fn) => {
-      const unsubs = writeOps.map((op) => op.state.subscribe(fn));
-      return () => {
-        unsubs.forEach((unsub) => unsub());
-      };
-    },
+  const storageWritable = (): boolean => {
+    const token = `${Date.now()}:${++storageProbeSequence}`;
+    try {
+      app.storage.local.set(pendingStorageProbeKey, token);
+      const written = app.storage.local.get<string>(pendingStorageProbeKey, "") === token;
+      app.storage.local.delete(pendingStorageProbeKey);
+      const cleared = app.storage.local.get<unknown>(pendingStorageProbeKey, null) === null;
+      return written && cleared;
+    } catch {
+      return false;
+    }
   };
-  const isUpdatingPrice = operationRunning(updatePriceOp);
-  const isCancelling = operationRunning(cancelListingOp);
-  const isBuying = operationRunning(buyListingOp);
-  const isRefunding = operationRunning(refundPendingOp);
+
+  const pendingRecordsMatch = (
+    stored: unknown,
+    expected: PendingAAMarketOperation | null,
+  ): boolean => {
+    if (expected === null) return stored === null;
+    return isPendingAAMarketOperation(stored) && JSON.stringify(stored) === JSON.stringify(expected);
+  };
+
+  const writePending = (value: PendingAAMarketOperation | null): boolean => {
+    try {
+      pendingOperation.set(value);
+    } catch {
+      // The observable remains useful for this session even when its storage
+      // subscriber throws. Exact storage readback below determines durability.
+    }
+    let durable = false;
+    try {
+      durable = storageWritable() && pendingRecordsMatch(
+        app.storage.local.get<unknown>(pendingStorageKey, null),
+        value,
+      );
+    } catch {
+      durable = false;
+    }
+    recoveryStorageHealthy.set(durable);
+    return durable;
+  };
+
+  if (pendingOperation.get() && !isPendingAAMarketOperation(pendingOperation.get())) {
+    writePending(null);
+  }
 
   const walletAddress: Observable<string> = {
     get: () => app.chain.address.get() || "",
     set: () => {},
-    subscribe: (fn) => app.chain.address.subscribe(fn),
+    subscribe: (listener) => app.chain.address.subscribe(listener),
   };
 
-  const selectedListing: Observable<MarketListing | null> = {
-    get: () =>
-      listings.get().find((l) => l.id === selectedListingId.get()) ?? null,
-    set: () => {},
-    subscribe: (fn) => {
-      const u1 = listings.subscribe(fn);
-      const u2 = selectedListingId.subscribe(fn);
-      return () => {
-        u1();
-        u2();
-      };
+  const selectedListing = derived<MarketListing | null>(
+    () => listings.get().find((listing) => listing.id === selectedListingId.get()) ?? null,
+    [listings, selectedListingId],
+  );
+
+  const activeListingsDisplay = derived(
+    () => listings.get().filter((listing) => listing.status === "active").length,
+    [listings],
+  );
+  const totalListingsDisplay = derived(
+    () => totalOnChainListings.get() || listings.get().length,
+    [totalOnChainListings, listings],
+  );
+  const canCreateListing = derived(
+    () => {
+      try {
+        return Boolean(
+          normalizeAAMarketAccount(accountIdHash.get()) &&
+          parseGasToFractions(priceGas.get()) &&
+          listingTitle.get().trim().length <= 80 &&
+          metadataUri.get().trim().length <= 240 &&
+          !pendingOperation.get(),
+        );
+      } catch {
+        return false;
+      }
     },
+    [accountIdHash, priceGas, listingTitle, metadataUri, pendingOperation],
+  );
+  const canManageSelectedListing = derived(
+    () => Boolean(
+      selectedListing.get()?.status === "active" &&
+      selectedListing.get()?.isMine &&
+      selectedListing.get()?.isCanonicalAA &&
+      !pendingOperation.get(),
+    ),
+    [selectedListing, pendingOperation],
+  );
+  const selectedListingHasPendingRefund = derived(
+    () => {
+      const listing = selectedListing.get();
+      return Boolean(
+        listing?.pendingPaymentKnown &&
+        BigInt(listing.myPendingPayment || "0") > 0n,
+      );
+    },
+    [selectedListing],
+  );
+  const canBuySelectedListing = derived(
+    () => {
+      const listing = selectedListing.get();
+      return Boolean(
+        listing && listing.status === "active" && !listing.isMine &&
+        listing.isCanonicalAA && listing.pendingPaymentKnown &&
+        BigInt(listing.myPendingPayment || "0") === 0n &&
+        !pendingOperation.get(),
+      );
+    },
+    [selectedListing, pendingOperation],
+  );
+  const marketHashDisplay = derived(
+    () => marketHash.get() ? `${marketHash.get().slice(0, 10)}…${marketHash.get().slice(-8)}` : "—",
+    [marketHash],
+  );
+  const walletDisplay = derived(
+    () => walletAddress.get() ? `${walletAddress.get().slice(0, 9)}…${walletAddress.get().slice(-6)}` : t("notConnected"),
+    [walletAddress],
+  );
+  const selectedListingDisplay = derived(
+    () => selectedListing.get() ? `#${selectedListing.get()!.id}` : "—",
+    [selectedListing],
+  );
+  const listingsTruncatedNotice = derived(
+    () => listingsTruncated.get()
+      ? t("listingsTruncatedNotice", { shown: listings.get().length, total: totalOnChainListings.get() })
+      : failedListingReads.get() > 0
+        ? t("partialListingsNotice", { failed: failedListingReads.get() })
+        : "",
+    [listingsTruncated, listings, totalOnChainListings, failedListingReads],
+  );
+
+  const setFailure = (error: unknown, fallbackKey = "actionFailed") => {
+    lastSuccess.set("");
+    if (!pendingOperation.get()) transactionNotice.set("");
+    lastError.set(errorText(error, t, fallbackKey));
+  };
+  const setPendingNotice = (key = "transactionPending") => {
+    lastError.set("");
+    lastSuccess.set("");
+    transactionNotice.set(t(key));
+  };
+  const setSuccess = (kind: PendingAAMarketOperation["kind"]) => {
+    lastError.set("");
+    transactionNotice.set("");
+    lastSuccess.set(t(`confirmed_${kind}`));
   };
 
-  const selectedListingHasPendingRefund: Observable<boolean> = {
-    get: () => {
-      const sl = selectedListing.get();
-      const pending = sl?.myPendingPayment || "0";
-      return BigInt(pending) > 0n;
-    },
-    set: () => {},
-    subscribe: (fn) => selectedListing.subscribe(fn),
+  const setContext = (context: AAMarketContext) => {
+    network.set(context.network);
+    marketHash.set(context.marketHash);
+    aaContractHash.set(context.aaCoreHash);
   };
 
-  const canCreateListing: Observable<boolean> = {
-    get: () =>
-      Boolean(
-        marketHash.get().trim() &&
-        aaContractHash.get().trim() &&
-        accountIdHash.get().trim() &&
-        priceGas.get().trim(),
-      ),
-    set: () => {},
-    subscribe: (fn) => {
-      const u1 = marketHash.subscribe(fn);
-      const u2 = aaContractHash.subscribe(fn);
-      const u3 = accountIdHash.subscribe(fn);
-      const u4 = priceGas.subscribe(fn);
-      return () => {
-        u1();
-        u2();
-        u3();
-        u4();
-      };
-    },
+  const context = async () => {
+    const next = await requireCanonicalAAMarketContext(app);
+    setContext(next);
+    return next;
   };
 
-  const canManageSelectedListing: Observable<boolean> = {
-    get: () => {
-      const sl = selectedListing.get();
-      return Boolean(sl && sl.status === "active" && sl.isMine);
-    },
-    set: () => {},
-    subscribe: (fn) => selectedListing.subscribe(fn),
+  const writableContext = async () => {
+    const next = await requireCanonicalAAMarketContext(
+      app,
+      t("aaMarketNetworkUnverified"),
+      { requireDetectedNetwork: true },
+    );
+    setContext(next);
+    return next;
   };
 
-  const canBuySelectedListing: Observable<boolean> = {
-    get: () => {
-      const sl = selectedListing.get();
-      return Boolean(sl && sl.status === "active" && !sl.isMine);
-    },
-    set: () => {},
-    subscribe: (fn) => selectedListing.subscribe(fn),
+  const walletSnapshot = async () => {
+    const wallet = await app.chain.ensureWallet();
+    const actorHash = normalizeAAMarketAccount(wallet);
+    const current = await writableContext();
+    if (!actorHash) throw new Error(t("walletInvalid"));
+    return { wallet, actorHash, context: current };
   };
 
-  // Display values
-  const totalListingsDisplay: Observable<number> = {
-    get: () => {
-      const total = totalOnChainListings.get();
-      return total > 0 ? total : listings.get().length;
-    },
-    set: () => {},
-    subscribe: (fn) => {
-      const u1 = listings.subscribe(fn);
-      const u2 = totalOnChainListings.subscribe(fn);
-      return () => {
-        u1();
-        u2();
-      };
-    },
+  const assertNoPending = () => {
+    if (pendingOperation.get()) throw new Error(t("pendingBlocksWrites"));
   };
 
-  const listingsTruncatedNotice: Observable<string> = {
-    get: () => {
-      if (!listingsTruncated.get()) return "";
-      return t("listingsTruncatedNotice", {
-        shown: listings.get().length,
-        total: totalOnChainListings.get(),
+  const exclusiveWrite = (
+    kind: PendingAAMarketOperation["kind"],
+    task: () => Promise<AAMarketActionResult>,
+  ): Promise<AAMarketActionResult> => {
+    if (writeInFlight) {
+      if (writeInFlight.kind === kind) return writeInFlight.promise;
+      return Promise.reject(new Error(t("operationInProgress")));
+    }
+    if (isRecovering.get() || isWalletConnecting.get()) {
+      return Promise.reject(new Error(t("operationInProgress")));
+    }
+    try {
+      assertNoPending();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    isSubmitting.set(true);
+    activeAction.set(kind);
+    lastError.set("");
+    lastSuccess.set("");
+    const promise = Promise.resolve()
+      .then(task)
+      .finally(() => {
+        if (writeInFlight?.promise === promise) writeInFlight = null;
+        isSubmitting.set(false);
+        activeAction.set("");
       });
-    },
-    set: () => {},
-    subscribe: (fn) => {
-      const u1 = listings.subscribe(fn);
-      const u2 = listingsTruncated.subscribe(fn);
-      const u3 = totalOnChainListings.subscribe(fn);
-      return () => {
-        u1();
-        u2();
-        u3();
-      };
-    },
+    writeInFlight = { kind, promise };
+    return promise;
   };
 
-  const activeListingsDisplay: Observable<number> = {
-    get: () => listings.get().filter((l) => l.status === "active").length,
-    set: () => {},
-    subscribe: (fn) => listings.subscribe(fn),
+  const walletMatchesSnapshot = (snapshot: string): boolean => {
+    const current = walletAddress.get();
+    if (!snapshot && !current) return true;
+    return aaMarketAccountMatches(snapshot, current);
   };
 
-  const marketHashDisplay: Observable<string> = {
-    get: () => {
-      const hash = marketHash.get() || "";
-      if (!hash || hash.length <= 21) return hash || t("notAvailable");
-      return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+  const assertWriteSnapshot = async (
+    actorHash: string,
+    expected: AAMarketContext,
+  ): Promise<void> => {
+    if (!aaMarketAccountMatches(walletAddress.get(), actorHash)) {
+      throw new Error(t("walletChangedBeforeSubmission"));
+    }
+    const current = await writableContext();
+    if (
+      current.network !== expected.network ||
+      !aaMarketAccountMatches(current.marketHash, expected.marketHash) ||
+      !aaMarketAccountMatches(current.aaCoreHash, expected.aaCoreHash) ||
+      !aaMarketAccountMatches(current.gasHash, expected.gasHash)
+    ) {
+      throw new Error(t("aaMarketChainContextMismatch"));
+    }
+  };
+
+  const persist = (
+    draft: Omit<PendingAAMarketOperation, "txid">,
+    transactionId: string,
+  ): PendingAAMarketOperation | null => {
+    const candidate = { ...draft, txid: clean(transactionId) };
+    if (!isPendingAAMarketOperation(candidate)) return null;
+    const durable = writePending(candidate);
+    setPendingNotice(durable ? "transactionPending" : "pendingStorageUnavailable");
+    return candidate;
+  };
+
+  const pendingContextMatches = async (pending: PendingAAMarketOperation) => {
+    const current = await context();
+    const actor = normalizeAAMarketAccount(walletAddress.get());
+    return Boolean(
+      actor &&
+      pending.network === current.network &&
+      aaMarketAccountMatches(pending.marketHash, current.marketHash) &&
+      aaMarketAccountMatches(pending.aaCoreHash, current.aaCoreHash) &&
+      aaMarketAccountMatches(pending.gasHash, current.gasHash) &&
+      aaMarketAccountMatches(pending.actorHash, actor),
+    );
+  };
+
+  const readCore = (
+    pending: PendingAAMarketOperation,
+    operation: string,
+    accountIdHash: string,
+  ) => readAAMarketRpc(
+    {
+      network: pending.network,
+      marketHash: pending.marketHash,
+      aaCoreHash: pending.aaCoreHash,
+      gasHash: "",
     },
-    set: () => {},
-    subscribe: (fn) => marketHash.subscribe(fn),
+    pending.aaCoreHash,
+    operation,
+    [rpcHash(accountIdHash)],
+  );
+
+  const coreEscrowState = async (pending: PendingAAMarketOperation, accountIdHash: string) => {
+    const [backupOwner, escrowContract, escrowListingId, active, verifier, hook] = await Promise.all([
+      readCore(pending, "getBackupOwner", accountIdHash),
+      readCore(pending, "getMarketEscrowContract", accountIdHash),
+      readCore(pending, "getMarketEscrowListingId", accountIdHash),
+      readCore(pending, "isMarketEscrowActive", accountIdHash),
+      readCore(pending, "getVerifier", accountIdHash),
+      readCore(pending, "getHook", accountIdHash),
+    ]);
+    if (typeof active !== "boolean") throw new Error("Malformed AA market escrow state.");
+    return {
+      backupOwner: parseChainHash160(backupOwner, true),
+      escrowContract: parseChainHash160(escrowContract, true),
+      escrowListingId: integer(escrowListingId),
+      active,
+      verifier,
+      hook,
+    };
   };
 
-  const walletDisplay: Observable<string> = {
-    get: () => {
-      const addr = walletAddress.get();
-      if (!addr || addr.length <= 21) return addr || t("notAvailable");
-      return `${addr.slice(0, 10)}...${addr.slice(-8)}`;
-    },
-    set: () => {},
-    subscribe: () => () => {},
+  const transferMatches = (
+    outcome: AAMarketTransactionOutcome,
+    pending: PendingAAMarketOperation,
+    from: string,
+    to: string,
+    amount: string,
+  ) => Boolean(findAAMarketNotification(outcome, pending.gasHash || "", "Transfer", (event) =>
+    aaMarketAccountMatches(notificationValue(event, 0), from) &&
+    aaMarketAccountMatches(notificationValue(event, 1), to) &&
+    eventInteger(event, 2) === amount,
+  ));
+
+  const confirmPendingReadback = async (
+    pending: PendingAAMarketOperation,
+    outcome: AAMarketTransactionOutcome,
+  ): Promise<boolean> => {
+    if (outcome.state !== "halt") return false;
+    if (pending.kind === "create") {
+      const event = findAAMarketNotification(outcome, pending.aaCoreHash, "MarketEscrowEntered", (candidate) =>
+        aaMarketAccountMatches(notificationValue(candidate, 0), pending.accountIdHash) &&
+        aaMarketAccountMatches(notificationValue(candidate, 1), pending.marketHash) &&
+        Boolean(eventInteger(candidate, 2)),
+      );
+      if (!event) return false;
+      const listingId = eventInteger(event, 2);
+      if (BigInt(listingId) <= BigInt(pending.beforeListingCount!)) return false;
+      const listing = await readAddressListing(app, pending.marketHash, listingId);
+      const escrow = await coreEscrowState(pending, pending.accountIdHash!);
+      if (
+        listing.id !== listingId || listing.status !== "active" ||
+        !listing.isCanonicalAA ||
+        !aaMarketAccountMatches(listing.accountIdHash, pending.accountIdHash) ||
+        !aaMarketAccountMatches(listing.seller, pending.actorHash) ||
+        listing.priceRaw !== pending.priceRaw ||
+        listing.title !== clean(pending.title) || listing.metadataUri !== clean(pending.metadataUri) ||
+        !escrow.active || !aaMarketAccountMatches(escrow.escrowContract, pending.marketHash) ||
+        escrow.escrowListingId !== listingId
+      ) return false;
+      writePending({ ...pending, listingId });
+      return true;
+    }
+
+    const listing = await readAddressListing(app, pending.marketHash, pending.listingId!);
+    if (!aaMarketAccountMatches(listing.accountIdHash, pending.accountIdHash)) return false;
+
+    if (pending.kind === "update") {
+      return listing.status === "active" && listing.priceRaw === pending.priceRaw &&
+        BigInt(listing.updatedAt) > BigInt(pending.beforeUpdatedAt!);
+    }
+
+    const escrow = await coreEscrowState(pending, pending.accountIdHash!);
+    if (pending.kind === "cancel") {
+      const event = findAAMarketNotification(outcome, pending.aaCoreHash, "MarketEscrowCancelled", (candidate) =>
+        aaMarketAccountMatches(notificationValue(candidate, 0), pending.accountIdHash),
+      );
+      return Boolean(event && listing.status === "cancelled" && !escrow.active);
+    }
+
+    if (pending.kind === "buy") {
+      const event = findAAMarketNotification(outcome, pending.aaCoreHash, "MarketEscrowSettled", (candidate) =>
+        aaMarketAccountMatches(notificationValue(candidate, 0), pending.accountIdHash) &&
+        aaMarketAccountMatches(notificationValue(candidate, 1), pending.newBackupOwnerHash),
+      );
+      const pendingPayment = await readAAMarketRpc(
+        { network: pending.network, marketHash: pending.marketHash, aaCoreHash: pending.aaCoreHash, gasHash: pending.gasHash },
+        pending.marketHash,
+        "getPendingPaymentOf",
+        [rpcInteger(pending.listingId!), rpcHash(pending.actorHash)],
+      );
+      return Boolean(
+        event && listing.status === "sold" &&
+        aaMarketAccountMatches(listing.buyer, pending.actorHash) &&
+        integer(pendingPayment) === "0" && !escrow.active &&
+        aaMarketAccountMatches(escrow.backupOwner, pending.newBackupOwnerHash) &&
+        zeroHash(escrow.verifier) && zeroHash(escrow.hook) &&
+        transferMatches(outcome, pending, pending.actorHash, pending.marketHash, pending.priceRaw!) &&
+        transferMatches(outcome, pending, pending.marketHash, pending.sellerHash!, pending.priceRaw!),
+      );
+    }
+
+    const payment = await readAAMarketRpc(
+      { network: pending.network, marketHash: pending.marketHash, aaCoreHash: pending.aaCoreHash, gasHash: pending.gasHash },
+      pending.marketHash,
+      "getPendingPaymentOf",
+      [rpcInteger(pending.listingId!), rpcHash(pending.actorHash)],
+    );
+    return integer(payment) === "0" && transferMatches(
+      outcome,
+      pending,
+      pending.marketHash,
+      pending.actorHash,
+      pending.pendingPaymentRaw!,
+    );
   };
 
-  const selectedListingDisplay: Observable<string> = {
-    get: () => {
-      const sl = selectedListing.get();
-      return sl ? `#${sl.id}` : t("notAvailable");
-    },
-    set: () => {},
-    subscribe: (fn) => selectedListing.subscribe(fn),
+  const settlePending = async (
+    pending: PendingAAMarketOperation,
+    outcome?: AAMarketTransactionOutcome,
+  ): Promise<AAMarketActionResult> => {
+    writePending(pending);
+    if (!(await pendingContextMatches(pending))) {
+      setPendingNotice("pendingContextMismatch");
+      return { status: "pending", txid: pending.txid };
+    }
+    const resolved = outcome ?? await waitForAAMarketTransactionOutcome(pending);
+    if (resolved.state === "fault") {
+      writePending(null);
+      transactionNotice.set("");
+      lastSuccess.set("");
+      lastError.set(t("transactionFaulted"));
+      return { status: "fault", txid: pending.txid };
+    }
+    if (resolved.state !== "halt") {
+      setPendingNotice();
+      return { status: "pending", txid: pending.txid };
+    }
+    try {
+      if (!(await confirmPendingReadback(pending, resolved))) {
+        setPendingNotice("pendingReadback");
+        return { status: "pending", txid: pending.txid };
+      }
+    } catch {
+      setPendingNotice("pendingReadback");
+      return { status: "pending", txid: pending.txid };
+    }
+    const resolvedPending = pendingOperation.get() ?? pending;
+    writePending(null);
+    setSuccess(resolvedPending.kind);
+    await loadListings().catch(() => undefined);
+    return { status: "confirmed", txid: resolvedPending.txid };
   };
 
-  // Persistence
-  function persistConfig() {
-    app.storage.local.set(MARKET_HASH_STORAGE_KEY, marketHash.get().trim());
-    app.storage.local.set(AA_HASH_STORAGE_KEY, aaContractHash.get().trim());
-  }
-
-  function readStoredString(key: string): string {
-    const cached = app.storage.local.get<string>(key);
-    return typeof cached === "string" ? cached : "";
-  }
-
-  // Subscribe to config changes for persistence
-  const unsubMarket = marketHash.subscribe(persistConfig);
-  const unsubAA = aaContractHash.subscribe(persistConfig);
+  const runWrite = async (
+    draft: Omit<PendingAAMarketOperation, "txid">,
+    invoke: (onTransactionSent: (txid: string) => void) => Promise<{ txid: string }>,
+  ): Promise<AAMarketActionResult> => {
+    assertNoPending();
+    let tracked: PendingAAMarketOperation | null = null;
+    try {
+      const result = await invoke((id) => { tracked = persist(draft, id); });
+      tracked ??= persist(draft, txidFrom(result));
+      if (!tracked) throw new Error(t("transactionIdMissing"));
+      return await settlePending(tracked);
+    } catch (error) {
+      const pending = tracked ?? pendingOperation.get();
+      if (pending) return settlePending(pending);
+      setFailure(error);
+      throw error;
+    }
+  };
 
   function selectListing(listing: MarketListing) {
     selectedListingId.set(listing.id);
     nextPriceGas.set(listing.priceGas);
     newBackupOwner.set(walletAddress.get());
+    cancelConfirmationId.set("");
   }
 
-  // Actions
   async function connectWallet() {
+    if (writeInFlight || isRecovering.get()) throw new Error(t("operationInProgress"));
+    if (isWalletConnecting.get()) throw new Error(t("operationInProgress"));
+    isWalletConnecting.set(true);
     try {
-      isWalletConnecting.set(true);
-      await app.chain.ensureWallet();
-      newBackupOwner.set(walletAddress.get());
-      if (marketHash.get().trim()) {
-        await loadListings();
-      }
-      return walletAddress.get();
+      const address = await app.chain.ensureWallet();
+      await writableContext();
+      newBackupOwner.set(address);
+      await loadListings();
+      if (pendingOperation.get()) await recoverPendingOperation();
+      return address;
+    } catch (error) {
+      setFailure(error, "connectFailed");
+      throw error;
     } finally {
       isWalletConnecting.set(false);
     }
   }
 
   async function loadListings() {
+    if (isLoading.get()) {
+      listingsReloadQueued = true;
+      return;
+    }
+    listingsReloadQueued = false;
+    const generation = ++listingsLoadGeneration;
+    const loadingWallet = walletAddress.get();
+    isLoading.set(true);
+    lastError.set("");
     try {
-      if (!marketHash.get().trim()) {
-        throw new Error(t("marketHashRequired"));
+      const current = await context();
+      const result = await listAddressListings(app, current.marketHash, loadingWallet);
+      const latest = await requireCanonicalAAMarketContext(app);
+      if (
+        disposed || generation !== listingsLoadGeneration ||
+        !walletMatchesSnapshot(loadingWallet) || latest.network !== current.network ||
+        !aaMarketAccountMatches(latest.marketHash, current.marketHash) ||
+        !aaMarketAccountMatches(latest.aaCoreHash, current.aaCoreHash)
+      ) {
+        listingsReloadQueued = !disposed;
+        return;
       }
-      isLoading.set(true);
-      const result = await listAddressListings(
-        app,
-        marketHash.get(),
-        walletAddress.get(),
-      );
+      setContext(latest);
       listings.set(result.listings);
       totalOnChainListings.set(result.total);
       listingsTruncated.set(result.truncated);
-      const currentListings = listings.get();
-      const firstListing = currentListings[0];
-
-      if (selectedListingId.get()) {
-        const nextSelected = currentListings.find(
-          (l) => l.id === selectedListingId.get(),
-        );
-        if (nextSelected) {
-          selectListing(nextSelected);
-        } else if (firstListing) {
-          selectListing(firstListing);
-        } else {
-          selectedListingId.set("");
-        }
-      } else if (firstListing) {
-        selectListing(firstListing);
+      failedListingReads.set(result.failedReads);
+      dataSource.set(result.source);
+      const selected = result.listings.find((listing) => listing.id === selectedListingId.get());
+      const preferred = selected ?? result.listings.find((listing) => listing.status === "active") ?? result.listings[0];
+      if (preferred) selectListing(preferred);
+      else selectedListingId.set("");
+    } catch (error) {
+      if (disposed || generation !== listingsLoadGeneration || !walletMatchesSnapshot(loadingWallet)) {
+        listingsReloadQueued = !disposed;
+        return;
       }
-
-      persistConfig();
+      dataSource.set("failed");
+      setFailure(error, "loadListingsFailed");
+      throw error;
     } finally {
       isLoading.set(false);
+      if (listingsReloadQueued && !disposed) {
+        listingsReloadQueued = false;
+        void loadListings().catch(() => undefined);
+      }
     }
   }
 
-  /**
-   * Run a market write inside its framework operation: the operation owns
-   * the busy flag AND the toast keys (the same keys the retired notify.guard
-   * wrappers used — success toast on the given key, error toast mapped with
-   * the errorKey fallback, failures swallowed). The chain lane itself is
-   * toast-silent (raw invoke / invokeMultiple notify:'silent') so nothing
-   * double-toasts.
-   */
-  async function runWrite(
-    op: MarketWriteOperation,
-    keys: { successKey?: string; errorKey: string },
-    action: (address: string) => Promise<{ txid: string }>,
-  ) {
-    return op.run(async () => {
-      const address = await app.chain.ensureWallet();
-      const result = await action(address);
-      await loadListings();
-      return result;
-    }, keys);
-  }
+  const freshListing = async (id: string, actorHash: string) => {
+    const current = await context();
+    const listing = await readAddressListing(app, current.marketHash, id, actorHash);
+    if (!listing.isCanonicalAA) throw new Error(t("nonCanonicalListing"));
+    if (listing.status !== "active") throw new Error(t("listingNoLongerActive"));
+    return { listing, context: current };
+  };
 
-  // Pre-check that the account is registered in AA core and owned by the seller
-  // before the create write. createListing aborts "Account not found" on the
-  // contract otherwise; surface a localized reason instead of a raw revert.
-  async function assertCreatable(sellerAddress: string) {
-    const id = accountIdHash.get().trim();
-    const accountId = normalizeScriptHash(id);
-    // Route the read through the framework passthrough. The Hash160 arg is kept
-    // as a literal (not app.chain.arg.hash160) because `accountId` comes from
-    // normalizeScriptHash — a validity-agnostic normalizer — and arg.hash160
-    // throws on malformed input, which would change this pre-check's error path.
-    const owner = await app.chain.readRaw(
-      "getBackupOwner",
-      [{ type: "Hash160", value: accountId }],
-      { scriptHash: aaContractHash.get() || getDefaultAAContractHash() },
+  async function submitCreateListingCore() {
+    const { wallet, actorHash, context: current } = await walletSnapshot();
+    const accountId = normalizeAAMarketAccount(accountIdHash.get());
+    if (!accountId) throw new Error(t("invalidHashInput"));
+    const [backupOwner, active, beforeCount] = await Promise.all([
+      readAAMarketRpc(current, current.aaCoreHash, "getBackupOwner", [rpcHash(accountId)]),
+      readAAMarketRpc(current, current.aaCoreHash, "isMarketEscrowActive", [rpcHash(accountId)]),
+      readAAMarketRpc(current, current.marketHash, "getListingCount"),
+    ]);
+    if (!aaMarketAccountMatches(backupOwner, actorHash)) throw new Error(t("notAccountOwner"));
+    if (typeof active !== "boolean") throw new Error(t("accountStateInvalid"));
+    if (active) throw new Error(t("accountAlreadyListed"));
+    const beforeListingCount = integer(beforeCount);
+    if (!beforeListingCount) throw new Error(t("listingCountInvalid"));
+    const priceRaw = parseGasToFractions(priceGas.get());
+    const draft: Omit<PendingAAMarketOperation, "txid"> = {
+      version: 1,
+      kind: "create",
+      network: current.network,
+      marketHash: current.marketHash,
+      aaCoreHash: current.aaCoreHash,
+      gasHash: current.gasHash,
+      actorHash,
+      createdAt: Date.now(),
+      accountIdHash: accountId,
+      priceRaw,
+      title: listingTitle.get().trim(),
+      metadataUri: metadataUri.get().trim(),
+      beforeListingCount,
+    };
+    await assertWriteSnapshot(actorHash, current);
+    const result = await runWrite(draft, (onTransactionSent) =>
+      createAddressListing(app, current.marketHash, wallet, {
+        aaContractHash: current.aaCoreHash,
+        accountIdHash: accountId,
+        priceGas: priceGas.get(),
+        title: draft.title,
+        metadataUri: draft.metadataUri,
+      }, { onTransactionSent }),
     );
-    const ownerHash = parseHash160(owner);
-    if (!ownerHash || /^0x0{40}$/i.test(ownerHash)) {
-      throw new Error(t("accountNotRegistered"));
-    }
-    const sellerHash = sellerAddress.startsWith("N")
-      ? addressToScriptHash(sellerAddress)
-      : normalizeScriptHash(sellerAddress);
-    if (
-      ownerHash.replace(/^0x/i, "").toLowerCase() !==
-      sellerHash.replace(/^0x/i, "").toLowerCase()
-    ) {
-      throw new Error(t("notAccountOwner"));
-    }
-  }
-
-  async function submitCreateListing() {
-    // No successKey: main.tsx composes the txid-suffixed success status line
-    // itself, exactly as before.
-    const result = await runWrite(
-      createListingOp,
-      { errorKey: "actionFailed" },
-      async (address) => {
-        await assertCreatable(address);
-        return createAddressListing(app, marketHash.get(), address, {
-          aaContractHash: aaContractHash.get(),
-          accountIdHash: accountIdHash.get(),
-          priceGas: priceGas.get(),
-          title: listingTitle.get(),
-          metadataUri: metadataUri.get(),
-        });
-      },
-    );
-    // Clear the form only when the write landed (a failed write kept the
-    // fields before, and still does — the operation swallows the error after
-    // toasting it).
-    if (result) {
+    if (result.status === "confirmed") {
       accountIdHash.set("");
-      priceGas.set("");
       listingTitle.set("");
       metadataUri.set("");
+      mode.set("explore");
     }
     return result;
   }
 
-  async function submitUpdatePrice() {
-    if (!selectedListing.get()) return;
-    return runWrite(
-      updatePriceOp,
-      { successKey: "updatePriceSuccess", errorKey: "actionFailed" },
-      (address) =>
-        updateAddressListingPrice(
-          app,
-          marketHash.get(),
-          address,
-          selectedListing.get()!.id,
-          nextPriceGas.get(),
-        ),
+  async function submitUpdatePriceCore() {
+    const selected = selectedListing.get();
+    if (!selected) throw new Error(t("selectListingHint"));
+    const { wallet, actorHash } = await walletSnapshot();
+    const { listing, context: current } = await freshListing(selected.id, actorHash);
+    if (!listing.isMine) throw new Error(t("notListingSeller"));
+    const priceRaw = parseGasToFractions(nextPriceGas.get());
+    const draft: Omit<PendingAAMarketOperation, "txid"> = {
+      version: 1, kind: "update", network: current.network,
+      marketHash: current.marketHash, aaCoreHash: current.aaCoreHash, gasHash: current.gasHash,
+      actorHash, createdAt: Date.now(), listingId: listing.id,
+      accountIdHash: listing.accountIdHash, priceRaw, beforeUpdatedAt: listing.updatedAt,
+    };
+    await assertWriteSnapshot(actorHash, current);
+    return runWrite(draft, (onTransactionSent) =>
+      updateAddressListingPrice(app, current.marketHash, wallet, listing.id, nextPriceGas.get(), { onTransactionSent }),
     );
   }
 
-  async function submitCancelSelected() {
-    if (!selectedListing.get()) return;
-    return runWrite(
-      cancelListingOp,
-      { successKey: "cancelListingSuccess", errorKey: "actionFailed" },
-      (address) =>
-        cancelAddressListing(
-          app,
-          marketHash.get(),
-          address,
-          selectedListing.get()!.id,
-        ),
-    );
-  }
-
-  async function submitBuySelected() {
-    if (!selectedListing.get()) return;
-    return runWrite(
-      buyListingOp,
-      { successKey: "buyListingSuccess", errorKey: "actionFailed" },
-      (address) =>
-        buyAddressListing(
-          app,
-          marketHash.get(),
-          address,
-          selectedListing.get()!,
-          { newBackupOwner: newBackupOwner.get() },
-        ),
-    );
-  }
-
-  async function submitRefundSelected() {
-    if (!selectedListing.get()) return;
-    return runWrite(
-      refundPendingOp,
-      { successKey: "refundPendingSuccess", errorKey: "actionFailed" },
-      (address) =>
-        refundPendingAddressPurchase(
-          app,
-          marketHash.get(),
-          address,
-          selectedListing.get()!.id,
-        ),
-    );
-  }
-
-  const loadAll = async () => {
-    // Default the market hash to the canonical AAAddressMarket for the active
-    // network (the app's own manifest/registry) so the board is ready to load
-    // immediately. The input stays editable as an advanced override, and a
-    // cached override still wins.
-    marketHash.set(
-      readStoredString(MARKET_HASH_STORAGE_KEY) || getDefaultMarketHash(),
-    );
-    aaContractHash.set(
-      readStoredString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash(),
-    );
-    newBackupOwner.set(walletAddress.get());
-    // Only auto-load the board when a wallet is already connected. Reading the
-    // market needs a wallet provider; firing it with no session leaves the board
-    // spinning forever (the read blocks on a provider that never arrives in a
-    // wallet-less preview). With no session the board rests on a "connect to
-    // load" state, and connectWallet() loads it the moment a wallet attaches.
-    if (marketHash.get().trim() && walletAddress.get().trim()) {
-      await loadListings().catch((e: unknown) => {
-        console.warn(
-          "[aa-market-hub] loadListings failed:",
-          e instanceof Error ? e.message : String(e),
-        );
-      });
+  async function submitCancelSelectedCore() {
+    const selected = selectedListing.get();
+    if (!selected) throw new Error(t("selectListingHint"));
+    if (cancelConfirmationId.get() !== selected.id) {
+      cancelConfirmationId.set(selected.id);
+      return { status: "confirmation-required", txid: "" } as const;
     }
-  };
+    const { wallet, actorHash } = await walletSnapshot();
+    const { listing, context: current } = await freshListing(selected.id, actorHash);
+    if (!listing.isMine) throw new Error(t("notListingSeller"));
+    const draft: Omit<PendingAAMarketOperation, "txid"> = {
+      version: 1, kind: "cancel", network: current.network,
+      marketHash: current.marketHash, aaCoreHash: current.aaCoreHash, gasHash: current.gasHash,
+      actorHash, createdAt: Date.now(), listingId: listing.id, accountIdHash: listing.accountIdHash,
+    };
+    cancelConfirmationId.set("");
+    await assertWriteSnapshot(actorHash, current);
+    return runWrite(draft, (onTransactionSent) =>
+      cancelAddressListing(app, current.marketHash, wallet, listing.id, { onTransactionSent }),
+    );
+  }
 
-  const cleanup = () => {
-    unsubMarket();
-    unsubAA();
-  };
+  async function submitBuySelectedCore() {
+    const selected = selectedListing.get();
+    if (!selected) throw new Error(t("selectListingHint"));
+    const { wallet, actorHash } = await walletSnapshot();
+    const { listing, context: current } = await freshListing(selected.id, actorHash);
+    if (listing.isMine) throw new Error(t("cannotBuyOwnListing"));
+    if (!listing.pendingPaymentKnown) throw new Error(t("pendingPaymentUnknown"));
+    if (BigInt(listing.myPendingPayment) > 0n) throw new Error(t("refundBeforeBuy"));
+    const backupOwner = normalizeAAMarketAccount(newBackupOwner.get() || wallet);
+    if (!backupOwner) throw new Error(t("invalidHashInput"));
+    const draft: Omit<PendingAAMarketOperation, "txid"> = {
+      version: 1, kind: "buy", network: current.network,
+      marketHash: current.marketHash, aaCoreHash: current.aaCoreHash, gasHash: current.gasHash,
+      actorHash, createdAt: Date.now(), listingId: listing.id,
+      accountIdHash: listing.accountIdHash, sellerHash: listing.seller,
+      priceRaw: listing.priceRaw, newBackupOwnerHash: backupOwner,
+    };
+    await assertWriteSnapshot(actorHash, current);
+    return runWrite(draft, (onTransactionSent) =>
+      buyAddressListing(app, current.marketHash, wallet, listing, {
+        newBackupOwner: backupOwner,
+        onTransactionSent,
+      }),
+    );
+  }
+
+  async function submitRefundSelectedCore() {
+    const selected = selectedListing.get();
+    if (!selected) throw new Error(t("selectListingHint"));
+    const { wallet, actorHash } = await walletSnapshot();
+    const current = await context();
+    const listing = await readAddressListing(app, current.marketHash, selected.id, actorHash);
+    if (!listing.pendingPaymentKnown || BigInt(listing.myPendingPayment) <= 0n) {
+      throw new Error(t("noPendingPayment"));
+    }
+    const draft: Omit<PendingAAMarketOperation, "txid"> = {
+      version: 1, kind: "refund", network: current.network,
+      marketHash: current.marketHash, aaCoreHash: current.aaCoreHash, gasHash: current.gasHash,
+      actorHash, createdAt: Date.now(), listingId: listing.id,
+      accountIdHash: listing.accountIdHash, pendingPaymentRaw: listing.myPendingPayment,
+    };
+    await assertWriteSnapshot(actorHash, current);
+    return runWrite(draft, (onTransactionSent) =>
+      refundPendingAddressPurchase(app, current.marketHash, wallet, listing.id, { onTransactionSent }),
+    );
+  }
+
+  const submitCreateListing = () => exclusiveWrite("create", submitCreateListingCore);
+  const submitUpdatePrice = () => exclusiveWrite("update", submitUpdatePriceCore);
+  const submitCancelSelected = () => exclusiveWrite("cancel", submitCancelSelectedCore);
+  const submitBuySelected = () => exclusiveWrite("buy", submitBuySelectedCore);
+  const submitRefundSelected = () => exclusiveWrite("refund", submitRefundSelectedCore);
+
+  async function recoverPendingOperation() {
+    const pending = pendingOperation.get();
+    if (!pending || isRecovering.get() || isSubmitting.get()) return null;
+    isRecovering.set(true);
+    try {
+      const result = await settlePending(pending);
+      if (result.status === "confirmed") await loadListings().catch(() => undefined);
+      return result;
+    } finally {
+      isRecovering.set(false);
+    }
+  }
+
+  async function loadAll() {
+    try {
+      const current = await context();
+      marketHash.set(current.marketHash || getDefaultMarketHash(current.network));
+      aaContractHash.set(current.aaCoreHash || getDefaultAAContractHash(current.network));
+      newBackupOwner.set(walletAddress.get());
+      await loadListings();
+      if (pendingOperation.get() && walletAddress.get()) await recoverPendingOperation();
+    } catch (error) {
+      setFailure(error, "loadListingsFailed");
+    }
+  }
+
+  const walletUnsubscribe = app.chain.address.subscribe(() => {
+    listingsLoadGeneration += 1;
+    listingsReloadQueued = true;
+    newBackupOwner.set(walletAddress.get());
+    cancelConfirmationId.set("");
+    if (pendingOperation.get()) setPendingNotice("pendingWalletCheck");
+    if (!disposed) void loadListings().catch(() => undefined);
+  });
 
   return {
-    marketHash,
-    aaContractHash,
-    accountIdHash,
-    priceGas,
-    listingTitle,
-    metadataUri,
-    nextPriceGas,
-    newBackupOwner,
-    selectedListingId,
-    listings,
-    totalOnChainListings,
-    listingsTruncated,
-    isLoading,
-    isSubmitting,
-    isUpdatingPrice,
-    isCancelling,
-    isBuying,
-    isRefunding,
-    isWalletConnecting,
-    walletAddress,
-    selectedListing,
-    selectedListingHasPendingRefund,
-    canCreateListing,
-    canManageSelectedListing,
-    canBuySelectedListing,
-    totalListingsDisplay,
-    listingsTruncatedNotice,
-    activeListingsDisplay,
-    marketHashDisplay,
-    walletDisplay,
-    selectedListingDisplay,
-    formatGasFractions,
-    selectListing,
-    connectWallet,
-    loadListings,
-    submitCreateListing,
-    submitUpdatePrice,
-    submitCancelSelected,
-    submitBuySelected,
-    submitRefundSelected,
-    loadAll,
-    cleanup,
+    mode, network, marketHash, aaContractHash, accountIdHash, priceGas,
+    listingTitle, metadataUri, nextPriceGas, newBackupOwner,
+    selectedListingId, listings, totalOnChainListings, listingsTruncated,
+    failedListingReads, dataSource, isLoading, isWalletConnecting, isSubmitting,
+    isRecovering, activeAction, lastError, lastSuccess, transactionNotice,
+    cancelConfirmationId, pendingOperation, recoveryStorageHealthy, walletAddress, selectedListing,
+    activeListingsDisplay, totalListingsDisplay, canCreateListing,
+    canManageSelectedListing, selectedListingHasPendingRefund,
+    canBuySelectedListing, marketHashDisplay, walletDisplay,
+    selectedListingDisplay, listingsTruncatedNotice, formatGasFractions,
+    selectListing, connectWallet, loadListings, submitCreateListing,
+    submitUpdatePrice, submitCancelSelected, submitBuySelected,
+    submitRefundSelected, recoverPendingOperation, loadAll,
+    cleanup: () => {
+      disposed = true;
+      walletUnsubscribe();
+    },
+    reportFailure: setFailure,
   };
 }
 

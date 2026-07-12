@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../oracle-price-console/src/PlayArea";
+import { manifest as runtimeManifest } from "../../oracle-price-console/src/manifest";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
 function t(key: string, params?: Record<string, string | number>) {
@@ -10,9 +11,12 @@ function t(key: string, params?: Record<string, string | number>) {
     notAvailable:"—",
     priceStatusReady:"Fresh",
     feedTicketContract:"Contract",
+    feedDetails:"Oracle details",
     asset:"Asset",
     sourceLabel:"Source",
     freshnessLabel:"Freshness",
+    recordTimestampLabel:"On-chain write time",
+    priceMetricNetwork:"Network",
     ageJustNow:"Updated",
     oracleStationEyebrow:"Oracle station",
     oracleStationTitle:"{pair} on-chain feed",
@@ -29,6 +33,9 @@ function t(key: string, params?: Record<string, string | number>) {
     priceRouteReading:"Reading live feed",
     priceRouteFeed:"On-chain feed",
     priceRouteFeedPending:"Feed contract pending",
+    feedRoutePending:"Aggregate, then provider fallback",
+    resolvedFeedKey:"Resolved feed key",
+    rpcEndpointLabel:"RPC endpoint",
     priceSignalTitle:"Signal",
     watchlistTitle:"Market watchlist",
     pairPickerSubtitle:"Reading {pair}",
@@ -44,17 +51,32 @@ function t(key: string, params?: Record<string, string | number>) {
     priceReferenceMethod:"Method",
     priceReferenceMethodValue:"getLatest(pair)",
     priceReferenceQuote:"Quote",
-    priceReferenceQuoteValue:"USD · 4 decimals",
+    priceReferenceQuoteValue:"USD · exact 6-decimal feed scale",
   };
   let value = m[key] ?? key;
   if (params) for (const [name, paramValue] of Object.entries(params)) value = value.replaceAll(`{${name}}`, String(paramValue));
   return value;
 }
 function state(o: Partial<Record<string,unknown>> = {}): ObservableState {
-  const b: Record<string,unknown> = { asset:"NEO", priceDisplay:"—", networkDisplay:"", datafeedShort:"", datafeedHash:"", sourceLabel:"", errorMsg:"", isRequesting:false, freshnessLabel:"Fresh", freshnessTimestamp:"", availablePairs:["NEO","GAS","BTC"], ...o };
+  const b: Record<string,unknown> = { asset:"NEO", priceDisplay:"—", networkDisplay:"", datafeedShort:"", datafeedHash:"", sourceLabel:"", feedKey:"", rpcEndpoint:"", errorMsg:"", isRequesting:false, freshness:"idle", freshnessLabel:"Fresh", freshnessTimestamp:"", sourceFreshness:"idle", sourceFreshnessLabel:"Market source time pending", sourceTimestampDisplay:"", availablePairs:["NEO","GAS","BTC"], ...o };
   return Object.fromEntries(Object.entries(b).map(([k,v]) => [k, createObservable(v)]));
 }
 describe("Oracle Price Console PlayArea (v2)", () => {
+  it("declares the exact read-only RPC surfaces without a host-generated operation form", () => {
+    const fs = require("node:fs");
+    const manifest = JSON.parse(fs.readFileSync(`${process.cwd()}/../oracle-price-console/neo-manifest.json`, "utf8"));
+    expect(manifest.permissions).toEqual(["read:blockchain"]);
+    expect(manifest.platform.transactions).toBe(false);
+    expect(manifest.operation_panel.operations).toEqual([]);
+    expect(manifest).not.toHaveProperty("stateSource");
+    expect(manifest.contracts).toEqual({
+      "neo-n3-mainnet": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
+      "neo-n3-testnet": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064",
+    });
+    expect(manifest.urls.banner).toBe("/miniapps/oracle-price-console/oracle-market-stage.webp");
+    expect(runtimeManifest.permissions).toEqual({ datafeed: true });
+    expect(runtimeManifest).not.toHaveProperty("contract");
+  });
   it("renders a resource-led market feed station", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
     expect(container.querySelector(".price-station")).toBeTruthy();
@@ -74,8 +96,23 @@ describe("Oracle Price Console PlayArea (v2)", () => {
   });
   it("dispatches fetchPrice", async () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />); fireEvent.click(container.querySelector(".mx2-btn--primary") as Element); await waitFor(() => expect(d).toHaveBeenCalledWith("fetchPrice")); });
   it("dispatches updateAsset on pair card click", () => { const d = vi.fn().mockResolvedValue(undefined); const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />); fireEvent.click(container.querySelectorAll(".price-pair-card")[1]); expect(d).toHaveBeenCalledWith("updateAsset", "GAS"); });
+  it("keeps pair switching available while a read is in flight so stale results can be superseded", () => {
+    const { container } = render(<PlayArea t={t} state={state({ isRequesting: true })} dispatch={vi.fn()} />);
+    expect(Array.from(container.querySelectorAll(".price-pair-card")).every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+    expect(container.querySelector(".price-station")?.getAttribute("aria-busy")).toBe("true");
+  });
+  it("keeps a deep-linked catalog pair visible even when it is outside the first six entries", () => {
+    const { container } = render(<PlayArea t={t} state={state({ asset: "SOL", availablePairs: ["NEO", "GAS", "BTC", "ETH", "LINK", "DOGE", "SOL"] })} dispatch={vi.fn()} />);
+    expect(container.querySelector(".price-pair-card")?.textContent).toContain("SOL/USD");
+    expect(container.querySelector(".price-pair-card")?.getAttribute("aria-pressed")).toBe("true");
+  });
+  it("renders an unverified or stale quote as stale instead of live", () => {
+    const { container } = render(<PlayArea t={t} state={state({ freshness: "stale", freshnessLabel: "Timestamp unavailable — freshness unverified", freshnessTimestamp: "", sourceFreshness: "stale", sourceFreshnessLabel: "Market source is stale — 2h ago" })} dispatch={vi.fn()} />);
+    expect(container.querySelector(".price-station")?.getAttribute("data-state")).toBe("stale");
+    expect(container.querySelector('.price-ticket__meta > span[data-tone="warning"]')?.textContent).toContain("Market source is stale");
+  });
   it("keeps secondary oracle details behind drawer tabs", () => {
-    const { container } = render(<PlayArea t={t} state={state({ datafeedShort:"0xabcd…7890", datafeedHash:"0xabcdef7890", sourceLabel:"testnet oracle", freshnessTimestamp:"2026-07-02T12:00:00Z", priceDisplay:"$7.42" })} dispatch={vi.fn()} />);
+    const { container } = render(<PlayArea t={t} state={state({ datafeedShort:"0xabcd…7890", datafeedHash:"0xabcdef7890", sourceLabel:"testnet oracle", feedKey:"AGG:NEO-USD", rpcEndpoint:"https://api.n3index.dev/testnet", freshnessTimestamp:"2026-07-02T12:00:00Z", priceDisplay:"$7.420000" })} dispatch={vi.fn()} />);
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     const drawer = container.querySelector(".price-drawer") as HTMLElement;
     expect(drawer).toBeTruthy();
@@ -84,26 +121,30 @@ describe("Oracle Price Console PlayArea (v2)", () => {
     expect(drawer.querySelectorAll(".price-drawer-tabs__group .semi-radio")).toHaveLength(3);
     expect(drawer.querySelectorAll('.price-drawer-tabs [role="tab"]')).toHaveLength(0);
     expect(drawer.querySelectorAll(".price-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
-    expect(drawer.querySelector(".price-drawer-tab strong")?.textContent).toContain("$7.42");
+    expect(drawer.querySelector(".price-drawer-tab strong")?.textContent).toContain("$7.420000");
     expect(container.querySelector(".price-drawer__panel-body")?.getAttribute("data-mode")).toBe("signal");
-    expect(drawer.textContent).toContain("$7.42");
+    expect(drawer.textContent).toContain("$7.420000");
+    expect(drawer.textContent).toContain("AGG:NEO-USD");
     expect(drawer.textContent).toContain("testnet oracle");
     fireEvent.click(drawer.querySelectorAll(".price-drawer-tabs__group .semi-radio")[1]);
     expect(drawer.querySelectorAll(".price-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
     expect(container.querySelector(".price-drawer__panel-body")?.getAttribute("data-mode")).toBe("contract");
     expect(drawer.textContent).toContain("0xabcd…7890");
     expect(drawer.textContent).toContain("0xabcdef7890");
+    expect(drawer.textContent).toContain("https://api.n3index.dev/testnet");
     fireEvent.click(drawer.querySelectorAll(".price-drawer-tabs__group .semi-radio")[2]);
     expect(drawer.querySelectorAll(".price-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(1);
     expect(container.querySelector(".price-drawer__panel-body")?.getAttribute("data-mode")).toBe("reference");
     expect(drawer.textContent).toContain("getLatest(pair)");
-    expect(drawer.textContent).toContain("USD · 4 decimals");
+    expect(drawer.textContent).toContain("USD · exact 6-decimal feed scale");
   });
   it("has clean foreground hierarchy and reduced-motion safeguards", () => {
     const fs = require("node:fs");
     const s = fs.readFileSync(`${process.cwd()}/../oracle-price-console/src/PlayArea.scss`, "utf8");
     const tsx = fs.readFileSync(`${process.cwd()}/../oracle-price-console/src/PlayArea.tsx`, "utf8");
     expect(tsx).toContain("OpenUiSegmented");
+    expect(tsx).toContain('dispatchSafely("fetchPrice")');
+    expect(tsx).toContain(".catch(() => undefined)");
     expect(tsx).not.toContain('role="tablist"');
     expect(tsx).not.toContain('role="tab"');
     expect(s).toContain("@media (prefers-reduced-motion: reduce)");
@@ -114,7 +155,9 @@ describe("Oracle Price Console PlayArea (v2)", () => {
     expect(s).toMatch(/\.price-feed-panel\s*\{[^}]*display:\s*block/);
     expect(s).toMatch(/price-station__market[\s\S]*min-height:\s*300px/);
     expect(s).toMatch(/price-station__market[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/price-station__market img[\s\S]*object-fit:\s*contain/);
+    expect(s).toMatch(/price-station__market img[\s\S]*object-fit:\s*cover/);
+    expect(s).toMatch(/price-station__market img[\s\S]*object-position:\s*center/);
+    expect(s).toMatch(/price-station__market img[\s\S]*transform:\s*scale\(1\.04\)/);
     expect(s).toMatch(/price-station__market img[\s\S]*opacity:\s*1/);
     expect(s).toMatch(/price-station__market img[\s\S]*filter:\s*none/);
     expect(s).toMatch(/price-station__market::after[\s\S]*content:\s*none/);

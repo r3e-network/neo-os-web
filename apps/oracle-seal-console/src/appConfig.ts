@@ -1,387 +1,251 @@
 import { mergeMessages } from "@shared/locale/base-messages";
-import type { ConsoleToolConfig } from "@shared/components-react";
-import { previewId } from "@shared/components-react";
-import { getNetwork } from "@shared/constants/rpc";
+import { getNetwork, type NeoNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
+import { ORACLE_SEAL_APP_ID } from "./seal";
 
-export const appId = "miniapp-oracle-seal-console";
+export const appId = ORACLE_SEAL_APP_ID;
 
-/**
- * Resolve the network label from the launched network instead of a hardcoded
- * "Morpheus Testnet". The privacy_oracle / oracle/public-key lanes are live on
- * the mainnet nitro worker; testnet stays degraded (getNetwork() defaults to mainnet).
- */
-export function resolveNetworkLabel(): string {
-  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+/** The seal client is configured before setup, so bind it to the launch URL. */
+export function configuredNetwork(): NeoNetwork {
+  return getNetwork();
 }
-
-export const appMeta = {
-  networkLabel: resolveNetworkLabel(),
-  endpointLabel: "Envelope reference (not encrypted)",
-};
 
 export const manifest: MiniAppManifest = {
   name: "Oracle Seal Console",
   description:
-    "Organize oracle request details into a reference envelope (a non-cryptographic checksum — this tool does not encrypt).",
+    "Encrypt a non-empty JSON object locally with the current Neo N3 Morpheus Oracle key, then store only its ciphertext. Storage returns a reference, not an attestation or transaction.",
   icon: "locked",
   category: "oracle",
   shell: "console",
-  // A sealed/private indigo, not the platform amber warning hue: a brand-new,
-  // error-free seal console should read as "private input", not "something is
-  // wrong". Amber stays reserved for genuine warning states. Indigo-600 keeps the
-  // badge/pill/notice text >=4.5:1 on the panel's 12%-alpha soft fill.
-  theme: { family: "default", accentColor: "#4f46e5", density: "comfortable" },
+  theme: { family: "default", accentColor: "#0f766e", density: "comfortable" },
   tabs: [{ key: "seal", labelKey: "tabSeal", icon: "locked", default: true }],
   stats: [
-    {
-      labelKey: "statNetwork",
-      valueKey: "networkLabel",
-      format: "text",
-      icon: "globe",
-    },
-    {
-      labelKey: "statEndpoint",
-      valueKey: "endpointLabel",
-      format: "text",
-      icon: "locked",
-    },
-    {
-      labelKey: "statRequests",
-      valueKey: "requestCount",
-      format: "number",
-      icon: "activity",
-    },
-    {
-      labelKey: "statDigest",
-      valueKey: "lastDigest",
-      format: "text",
-      icon: "key",
-    },
+    { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
+    { labelKey: "statService", valueKey: "runtimeStateLabel", format: "text", icon: "activity" },
+    { labelKey: "statStored", valueKey: "sealCount", format: "number", icon: "archive" },
+    { labelKey: "statFingerprint", valueKey: "lastFingerprint", format: "text", icon: "key" },
   ],
   sidebar: {
-    titleKey: "appName",
+    titleKey: "sidebarTitle",
     items: [
       { labelKey: "statNetwork", valueKey: "networkLabel", format: "text" },
+      { labelKey: "statService", valueKey: "runtimeStateLabel", format: "text" },
       { labelKey: "lastStatus", valueKey: "lastStatus", format: "text" },
-      { labelKey: "statDigest", valueKey: "lastDigest", format: "text" },
+      { labelKey: "statFingerprint", valueKey: "lastFingerprint", format: "text" },
     ],
   },
   features: { walletRequired: false, chainWarning: true },
+  permissions: {
+    payments: false,
+    oracle: true,
+    compute: false,
+    confidential: true,
+    storage: true,
+  },
   docs: [
-    { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
+    { titleKey: "docsTitle", contentKey: "docsBody", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { compute: true },
-};
-
-const clean = (value: string | undefined, fallback: string) => {
-  const text = String(value ?? "").trim();
-  return text.length > 0 ? text : fallback;
-};
-
-const PURPOSE_LABEL_KEYS: Record<string, string> = {
-  "oracle-input": "purposeInput",
-  "callback-secret": "purposeCallback",
-  attestation: "purposeAttestation",
-};
-
-export const consoleConfig: ConsoleToolConfig = {
-  titleKey: "panelTitle",
-  eyebrowKey: "panelEyebrow",
-  descriptionKey: "panelDescription",
-  primaryActionKey: "runAction",
-  resetActionKey: "reset",
-  copyActionKey: "copy",
-  copiedKey: "copied",
-  fields: [
-    {
-      key: "purpose",
-      labelKey: "purpose",
-      type: "select",
-      defaultValue: "oracle-input",
-      options: [
-        { value: "oracle-input", labelKey: "purposeInput" },
-        { value: "callback-secret", labelKey: "purposeCallback" },
-        { value: "attestation", labelKey: "purposeAttestation" },
-      ],
-    },
-    {
-      key: "recipient",
-      labelKey: "recipient",
-      placeholderKey: "recipientPlaceholder",
-      type: "text",
-      defaultValue: "",
-    },
-    {
-      key: "payload",
-      labelKey: "payload",
-      placeholderKey: "payloadPlaceholder",
-      type: "textarea",
-      defaultValue: "",
-    },
-  ],
-  buildResult(values, t) {
-    const purpose = clean(values.purpose, "oracle-input");
-    const recipient = clean(values.recipient, "");
-    const payload = clean(values.payload, "{}");
-    // The field's contract is "private JSON payload": validate it so malformed
-    // input is surfaced instead of being silently packaged.
-    let payloadValid = true;
-    try {
-      JSON.parse(payload);
-    } catch {
-      payloadValid = false;
-    }
-    const payloadDigest = previewId(payload);
-    const digest = previewId(`${purpose}|${recipient}|${payloadDigest}`);
-    const purposeLabel = t(PURPOSE_LABEL_KEYS[purpose] ?? "purposeInput");
-
-    return {
-      status: payloadValid ? t("sealReady") : t("sealInvalidJson"),
-      summary: t("sealSummary", { purpose: purposeLabel }),
-      rows: [
-        // Surface the "not encrypted / reference only" truth on the result
-        // itself (not just buried in docs), so the lock branding does not
-        // over-promise at the moment a preview is produced.
-        { label: t("protectionLabel"), value: t("protectionValue") },
-        { label: t("purpose"), value: purposeLabel },
-        // Show an em-dash for an empty recipient so the row never renders blank.
-        { label: t("recipient"), value: recipient || t("digestPlaceholder") },
-        { label: t("payloadValid"), value: payloadValid ? t("yes") : t("no") },
-        { label: t("payloadDigest"), value: payloadDigest },
-        { label: t("statDigest"), value: digest },
-      ],
-      payload: {
-        kind: "oracle.seal.envelope",
-        // Invalid JSON is a validation failure: flag it input_required so the
-        // shared panel classifies the preview as a warning (no green toast, no
-        // Requests increment, digest placeholder preserved) — matching the
-        // visible "Payload is valid JSON: No" row instead of contradicting it
-        // with a success signal (the http console's pattern).
-        ...(payloadValid ? {} : { status: "input_required" as const }),
-        purpose,
-        // Distinguish a blank recipient (null) from a present one so two
-        // envelopes that differ only by blank-vs-set recipient are comparable.
-        recipient: recipient || null,
-        payloadValid,
-        payloadDigest,
-        envelopeVersion: "morpheus-seal-v1",
-        digest,
-      },
-    };
-  },
 };
 
 const appMessages = {
-  appName: { en: "Oracle Seal Console", zh: "预言机加密封装控制台" },
-  title: { en: "Oracle Seal", zh: "预言机封装" },
-  tabSeal: { en: "Seal", zh: "封装" },
-  panelEyebrow: {
-    en: "Oracle request envelope reference",
-    zh: "预言机请求信封引用",
-  },
-  panelTitle: {
-    en: "Request Envelope Reference Builder",
-    zh: "请求信封引用构建器",
-  },
-  buildRequest: { en: "Build Request", zh: "构建请求" },
+  appName: { en: "Oracle Seal Console", zh: "预言机密封控制台" },
+  title: { en: "Oracle Seal", zh: "预言机密封" },
+  tabSeal: { en: "Seal", zh: "密封" },
+  sidebarTitle: { en: "Seal status", zh: "密封状态" },
+
+  panelEyebrow: { en: "Morpheus confidential storage", zh: "Morpheus 机密存储" },
+  panelTitle: { en: "Confidential Seal Studio", zh: "机密密封工作室" },
   panelDescription: {
-    en: "Organize request details into an envelope reference with a stable non-cryptographic checksum. The checksum is not encryption — the payload is not sealed, hidden, or tamper-proof.",
-    zh: "把请求细节整理为信封引用，并附带稳定的非加密校验值。该校验值不是加密——载荷不会被封装、隐藏或防篡改。",
+    en: "Prepare a JSON object, encrypt it in this browser with the current Oracle contract key, then store only the exact ciphertext packet.",
+    zh: "准备 JSON 对象，使用当前预言机合约密钥在浏览器本地加密，再只存储完全相同的密文封装包。",
   },
-  sealHeroAlt: {
-    en: "Transparent oracle envelope reference with checksum prism.",
-    zh: "带校验棱镜的透明预言机引用信封。",
+  heroCopy: {
+    en: "The source stays in component memory. A storage receipt identifies ciphertext only; it is not a transaction, TEE attestation, or execution result.",
+    zh: "源数据只停留在组件内存中。存储回执只标识密文；它不是交易、TEE 证明或执行结果。",
   },
-  sealHeroCopy: {
-    en: "Prepare a plain reference envelope for downstream oracle routing. This builder creates checksums and versioned metadata only; it does not encrypt or hide the payload.",
-    zh: "为后续预言机路由准备明文引用信封。本构建器只生成校验值和版本元数据；不会加密或隐藏载荷。",
-  },
-  sealStatusLabel: { en: "Envelope reference status", zh: "信封引用状态" },
-  runAction: { en: "Build Reference", zh: "生成引用" },
-  purpose: { en: "Purpose", zh: "用途" },
-  purposeInput: { en: "Oracle input", zh: "预言机输入" },
-  purposeCallback: { en: "Callback secret", zh: "回调密钥" },
-  purposeAttestation: { en: "Attestation", zh: "证明材料" },
-  purposeInputHint: {
-    en: "Reference data intended for an oracle request.",
-    zh: "为预言机请求准备的引用数据。",
-  },
-  purposeCallbackHint: {
-    en: "Route-bound value, still not encrypted here.",
-    zh: "与路由绑定的值，此处仍不会加密。",
-  },
-  purposeAttestationHint: {
-    en: "Package claim metadata for later review.",
-    zh: "打包声明元数据供后续审阅。",
-  },
-  recipient: { en: "Recipient", zh: "接收方" },
-  recipientPlaceholder: {
-    en: "Enter recipient or oracle route",
-    zh: "输入接收方或预言机路由",
-  },
-  recipientHint: {
-    en: "Optional, but included in the envelope checksum when set.",
-    zh: "可选；填写后会参与信封校验值。",
-  },
-  payload: { en: "Request Payload (not encrypted)", zh: "请求载荷（未加密）" },
-  payloadPlaceholder: {
-    en: "Paste the JSON payload — NOT encrypted by this tool, kept as a plain reference",
-    zh: "粘贴 JSON 载荷——本工具不会加密，仅作为明文引用保留",
-  },
-  payloadDigest: { en: "Payload Checksum", zh: "载荷校验值" },
-  protectionLabel: { en: "Protection", zh: "保护" },
-  protectionValue: {
-    en: "Not encrypted — reference checksum only",
-    zh: "未加密——仅为引用校验值",
-  },
-  sealReady: { en: "Envelope preview ready", zh: "封装预览已生成" },
-  sealInvalidJson: {
-    en: "Enter a valid JSON payload",
-    zh: "请输入有效的 JSON 载荷",
-  },
-  sealSummary: {
-    en: "{purpose} envelope reference prepared",
-    zh: "{purpose} 信封引用已准备",
-  },
-  payloadValid: { en: "Payload is valid JSON", zh: "载荷为有效 JSON" },
-  sealFlowTitle: { en: "Envelope reference flow", zh: "信封引用流程" },
-  sealFlowPlain: { en: "Plain reference", zh: "明文引用" },
-  sealFlowPlainDesc: {
-    en: "Checksum only, no encryption.",
-    zh: "仅校验值，不加密。",
-  },
-  sealFlowRoute: { en: "Route context", zh: "路由上下文" },
-  sealFlowRouteDesc: {
-    en: "Purpose and recipient bind the preview.",
-    zh: "用途和接收方绑定预览。",
-  },
-  sealFlowChecksum: { en: "Checksum receipt", zh: "校验回执" },
-  sealFlowChecksumDesc: {
-    en: "Copy metadata for downstream review.",
-    zh: "复制元数据供后续审阅。",
-  },
-  sealPlan: { en: "Reference plan", zh: "引用方案" },
-  sealPlanCopy: {
-    en: "Organize a versioned envelope reference without over-promising secrecy.",
-    zh: "整理带版本的信封引用，同时不夸大保密能力。",
-  },
-  sealStageTitle: { en: "Envelope workbench", zh: "信封工作台" },
-  sealStageIdle: { en: "Ready to build reference", zh: "可生成引用" },
-  sealStageBuilding: {
-    en: "Building envelope reference...",
-    zh: "正在生成信封引用...",
-  },
-  sealStageCopying: {
-    en: "Copying reference metadata...",
-    zh: "正在复制引用元数据...",
-  },
-  sealStageReady: { en: "Receipt ready to copy", zh: "回执可复制" },
-  sealStageCopy: {
-    en: "Source JSON is reduced to route context and checksum metadata.",
-    zh: "JSON 来源会被整理为路由上下文和校验元数据。",
-  },
-  sealBuildActionActive: {
-    en: "Building Reference",
-    zh: "正在生成引用",
-  },
-  sealCopyActionActive: {
-    en: "Copying Metadata",
-    zh: "正在复制元数据",
-  },
-  sealProtectionTitle: { en: "Reference only", zh: "仅作引用" },
-  sealProtectionCopy: {
-    en: "The payload is summarized by checksum and never copied into the result payload, but this tool does not encrypt it.",
-    zh: "载荷会被摘要为校验值，不会复制进结果 payload，但本工具不会加密它。",
-  },
-  sealPurposeTitle: { en: "Envelope purpose", zh: "信封用途" },
-  sealPurposeCopy: {
-    en: "Pick the envelope lane.",
-    zh: "选择信封通道。",
-  },
-  sealComposerTitle: { en: "Reference package", zh: "引用包" },
-  sealComposerCopy: {
-    en: "Route plus JSON source.",
-    zh: "路由 + JSON 来源。",
-  },
-  sealRecipientTitle: { en: "Recipient or route", zh: "接收方或路由" },
-  sealRecipientCopy: {
-    en: "Optional route binding.",
-    zh: "可选路由绑定。",
-  },
-  sealPayloadTitle: { en: "Payload reference", zh: "载荷引用" },
-  sealPayloadCopy: {
-    en: "JSON source, checksum only.",
-    zh: "JSON 来源，仅生成校验值。",
-  },
-  sealPayloadChamberLabel: {
-    en: "Payload chamber",
-    zh: "载荷舱",
-  },
-  sealPayloadChamberTitle: {
-    en: "JSON payload chamber",
-    zh: "JSON 载荷舱",
-  },
-  sealPayloadStateReady: {
-    en: "Valid JSON",
-    zh: "JSON 有效",
-  },
-  sealPayloadStateInvalid: {
-    en: "Needs repair",
-    zh: "需要修复",
-  },
-  payloadReadyHint: {
-    en: "JSON is valid; only its checksum enters the result payload.",
-    zh: "JSON 有效；结果 payload 只包含它的校验值。",
-  },
-  payloadInvalidHint: {
-    en: "Fix JSON before building a successful reference.",
-    zh: "请修复 JSON 后再生成成功引用。",
-  },
-  sealPayloadSize: { en: "Payload size", zh: "载荷大小" },
-  sealPayloadChars: { en: "{count} chars", zh: "{count} 字符" },
-  sealReferenceOnly: { en: "Reference only", zh: "仅作引用" },
-  sealReceipt: { en: "Envelope receipt", zh: "信封回执" },
-  sealValidationReady: { en: "Reference ready", zh: "引用已就绪" },
-  sealEmptyTitle: { en: "Build a reference receipt", zh: "生成引用回执" },
-  sealEmptyCopy: {
-    en: "The receipt will show protection truth, purpose, recipient, payload checksum, and copyable metadata without echoing the payload body.",
-    zh: "回执会显示保护事实、用途、接收方、载荷校验值和可复制元数据，不回显载荷正文。",
-  },
-  yes: { en: "Yes", zh: "是" },
-  no: { en: "No", zh: "否" },
+
   statNetwork: { en: "Network", zh: "网络" },
-  statEndpoint: { en: "Mode", zh: "模式" },
-  statRequests: { en: "Envelopes", zh: "封装数" },
-  statDigest: { en: "Checksum", zh: "校验值" },
-  digestPlaceholder: { en: "—", zh: "—" },
-  lastStatus: { en: "Last Status", zh: "最近状态" },
-  docsSubtitle: {
-    en: "A focused surface for organizing oracle request references before dispatch (no encryption is performed here).",
-    zh: "面向预言机请求引用整理的清晰工作台（此处不进行加密）。",
+  statService: { en: "Seal lane", zh: "密封通道" },
+  statStored: { en: "Stored", zh: "已存储" },
+  statFingerprint: { en: "Ciphertext", zh: "密文标识" },
+  lastStatus: { en: "Last status", zh: "最近状态" },
+  fingerprintEmpty: { en: "None yet", zh: "暂无" },
+  networkMainnet: { en: "Neo N3 MainNet", zh: "Neo N3 主网" },
+  networkTestnet: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },
+  networkUnknown: { en: "Unsupported network", zh: "不支持的网络" },
+  runtimeChecking: { en: "Checking key", zh: "正在核对密钥" },
+  runtimeReady: { en: "Contract key verified", zh: "合约密钥已核验" },
+  runtimeUnavailable: { en: "Unavailable", zh: "不可用" },
+  runtimeRecovery: { en: "Ciphertext recoverable", zh: "密文可恢复" },
+  runtimeCompletion: { en: "Receipt cleanup", zh: "回执整理" },
+  runtimeRecoveryInvalid: { en: "Recovery needs cleanup", zh: "恢复记录需清理" },
+
+  statusCheckingRuntime: {
+    en: "Reading the Oracle encryption key and comparing it with the selected Neo N3 contract.",
+    zh: "正在读取预言机加密密钥，并与所选 Neo N3 合约进行比对。",
   },
-  docSubtitle: {
-    en: "A focused surface for organizing oracle request references before dispatch (no encryption is performed here).",
-    zh: "面向预言机请求引用整理的清晰工作台（此处不进行加密）。",
+  statusRuntimeReady: {
+    en: "Current Oracle contract key verified. New seals are enabled.",
+    zh: "当前预言机合约密钥已核验，可以创建新密封包。",
   },
-  feature1Name: { en: "Reference Only", zh: "仅作引用" },
-  feature1Desc: {
-    en: "The payload is summarized by a short non-cryptographic checksum for reference — it is not encrypted, hidden, or tamper-proof.",
-    zh: "载荷由一个简短的非加密校验值进行引用——并未加密、隐藏或防篡改。",
+  statusRuntimeUnavailable: {
+    en: "The current Oracle key could not be verified. No new ciphertext was created.",
+    zh: "当前预言机密钥无法核验，未创建任何新密文。",
   },
-  feature2Name: { en: "Purpose Bound", zh: "用途绑定" },
-  feature2Desc: {
-    en: "Purpose and recipient feed into the local reference checksum so previews stay distinguishable.",
-    zh: "用途和接收方都会参与本地引用校验值，便于区分预览。",
+  statusKey: { en: "Verifying the current Oracle contract key…", zh: "正在核验当前预言机合约密钥…" },
+  statusEncrypt: { en: "Encrypting the JSON object in this browser…", zh: "正在此浏览器中加密 JSON 对象…" },
+  statusStore: { en: "Ciphertext saved locally; requesting confidential storage…", zh: "密文已在本地保存，正在请求机密存储…" },
+  statusStored: {
+    en: "Ciphertext stored. The receipt proves only that a storage reference was returned.",
+    zh: "密文已存储。该回执只证明存储服务返回了引用。",
   },
-  feature3Name: { en: "Oracle Friendly", zh: "预言机友好" },
-  feature3Desc: {
-    en: "The preview carries an explicit envelope version for downstream routing.",
-    zh: "预览包含明确封装版本，便于后续路由。",
+  statusRecoveryReady: {
+    en: "An exact ciphertext packet is saved on this device and ready to retry.",
+    zh: "本设备已保存一份完全相同的密文封装包，可直接重试。",
   },
+  statusCompletionReady: {
+    en: "Storage already returned a receipt. Finish device cleanup without sending the ciphertext again.",
+    zh: "存储服务已返回回执。请完成设备端整理，不会再次发送密文。",
+  },
+  statusRecoveryInvalid: {
+    en: "A device recovery record is unreadable. It cannot be sent or presented as a valid ciphertext packet.",
+    zh: "设备上的恢复记录无法读取，不能发送，也不会被展示为有效密文封装包。",
+  },
+  statusReceiptLocalWarning: {
+    en: "Ciphertext storage returned a valid reference, but this device could not retain the receipt history.",
+    zh: "密文存储已返回有效引用，但本设备未能保留回执历史。",
+  },
+  statusStorageCritical: {
+    en: "Storage returned a receipt, but device recovery cleanup is unavailable. Keep this tab open and finish cleanup before another seal.",
+    zh: "存储服务已返回回执，但设备恢复记录暂时无法整理。请保持此页面打开，并在创建下一份密封前完成整理。",
+  },
+  statusRetrying: { en: "Retrying storage with the exact saved ciphertext…", zh: "正在使用完全相同的已保存密文重试存储…" },
+  statusDiscarded: { en: "The pending ciphertext packet was removed from this device.", zh: "待处理密文封装包已从本设备移除。" },
+
+  stageTitle: { en: "Seal chamber", zh: "密封舱" },
+  stageIdle: { en: "Awaiting a private JSON object", zh: "等待私密 JSON 对象" },
+  stageReady: { en: "Ready to seal", zh: "可以密封" },
+  stageWorking: { en: "Seal in progress", zh: "正在密封" },
+  stageStored: { en: "Storage receipt ready", zh: "存储回执已就绪" },
+  stageRecovery: { en: "Recovery packet protected", zh: "恢复封装包已保护" },
+  artworkLabel: { en: "Local encryption chamber", zh: "本地加密舱" },
+
+  flowTitle: { en: "Prepare → seal → receipt", zh: "准备 → 密封 → 回执" },
+  flowPrepare: { en: "Prepare", zh: "准备" },
+  flowPrepareDesc: { en: "Validate a non-empty JSON object locally.", zh: "在本地校验非空 JSON 对象。" },
+  flowSeal: { en: "Seal", zh: "密封" },
+  flowSealDesc: { en: "X25519/HKDF/AES-GCM encryption in your browser.", zh: "在浏览器中进行 X25519/HKDF/AES-GCM 加密。" },
+  flowReceipt: { en: "Receipt", zh: "回执" },
+  flowReceiptDesc: { en: "Accept only a non-empty confidential-store reference.", zh: "只接受非空的机密存储引用。" },
+  flowRecovery: { en: "Recovery", zh: "恢复" },
+  flowRecoveryDesc: { en: "A failed store keeps the exact ciphertext for retry.", zh: "存储失败时保留完全相同的密文供重试。" },
+
+  purposeTitle: { en: "Seal purpose", zh: "密封用途" },
+  purposeInput: { en: "Oracle input", zh: "预言机输入" },
+  purposeInputHint: { en: "Confidential input for a downstream Oracle workflow.", zh: "供后续预言机工作流使用的机密输入。" },
+  purposeCallback: { en: "Callback secret", zh: "回调密钥" },
+  purposeCallbackHint: { en: "A callback-bound secret stored as ciphertext for a separate authorized integration.", zh: "以密文形式存储、供独立授权集成使用的回调密钥。" },
+  purposeCompute: { en: "Private compute", zh: "隐私计算" },
+  purposeComputeHint: { en: "Inputs prepared for a separate confidential-compute request.", zh: "为独立的机密计算请求准备输入。" },
+
+  draftTitle: { en: "Seal object", zh: "密封对象" },
+  draftCopy: { en: "The main stage shows the object and its journey; source fields stay in the detail drawer.", zh: "主舞台展示对象及其流程；源字段收在详情抽屉中。" },
+  publicRoute: { en: "Public route", zh: "公开路由" },
+  publicRoutePlaceholder: { en: "Optional public label, e.g. oracle://policy/check", zh: "可选公开标签，例如 oracle://policy/check" },
+  publicRouteHint: { en: "Optional. This label is stored as public metadata; never put a secret here.", zh: "可选。此标签会作为公开元数据存储，请勿在此填写秘密。" },
+  confidentialPayload: { en: "Confidential JSON", zh: "机密 JSON" },
+  payloadPlaceholder: { en: "Enter a non-empty JSON object", zh: "输入非空 JSON 对象" },
+  payloadEmpty: { en: "Add a JSON object in Details", zh: "请在详情中添加 JSON 对象" },
+  payloadValid: { en: "Valid private object", zh: "有效私密对象" },
+  payloadInvalid: { en: "Needs a non-empty JSON object", zh: "需要非空 JSON 对象" },
+  payloadTooLarge: { en: "Exceeds the 64 KiB limit", zh: "超过 64 KiB 限制" },
+  payloadSize: { en: "{count} bytes", zh: "{count} 字节" },
+  plaintextBoundary: { en: "Plaintext boundary", zh: "明文边界" },
+  plaintextBoundaryCopy: {
+    en: "JSON remains in React component memory and is never written to app storage, a receipt, or public metadata.",
+    zh: "JSON 只保留在 React 组件内存中，绝不会写入应用存储、回执或公开元数据。",
+  },
+
+  sealAction: { en: "Seal & store ciphertext", zh: "密封并存储密文" },
+  sealActionWorking: { en: "Sealing ciphertext", zh: "正在密封密文" },
+  retryAction: { en: "Retry exact ciphertext", zh: "重试同一密文" },
+  retryActionWorking: { en: "Retrying storage", zh: "正在重试存储" },
+  finalizeAction: { en: "Finish receipt cleanup", zh: "完成回执整理" },
+  finalizeActionWorking: { en: "Finishing receipt", zh: "正在整理回执" },
+  clearInvalidAction: { en: "Clear unreadable recovery", zh: "清理不可读恢复记录" },
+  confirmClearInvalid: { en: "Confirm recovery cleanup", zh: "确认清理恢复记录" },
+  refreshRuntime: { en: "Check service", zh: "检查服务" },
+  editPayload: { en: "Details & source", zh: "详情与源数据" },
+  resetDraft: { en: "Clear draft", zh: "清空草稿" },
+
+  drawerReceipt: { en: "Receipt", zh: "回执" },
+  drawerFlow: { en: "Workflow", zh: "流程" },
+  drawerSource: { en: "Private source", zh: "私密源数据" },
+  receiptTitle: { en: "Confidential-store receipt", zh: "机密存储回执" },
+  receiptEmpty: { en: "No storage receipt yet", zh: "尚无存储回执" },
+  receiptEmptyCopy: { en: "A receipt appears only after the store returns a valid non-zero reference.", zh: "只有存储服务返回有效且非零的引用后，才会显示回执。" },
+  receiptSecretRef: { en: "Storage reference", zh: "存储引用" },
+  receiptFingerprint: { en: "Ciphertext SHA-256", zh: "密文 SHA-256" },
+  receiptContract: { en: "Oracle key contract", zh: "预言机密钥合约" },
+  receiptAlgorithm: { en: "Local encryption", zh: "本地加密" },
+  receiptBoundary: { en: "No transaction or attestation", zh: "无交易或证明" },
+  receiptBoundaryCopy: {
+    en: "This MiniApp does not submit a Neo transaction, run confidential compute, or verify a TEE attestation. A storage reference is not proof of account ownership.",
+    zh: "本小程序不会提交 Neo 交易、运行机密计算或验证 TEE 证明。存储引用也不是账户所有权证明。",
+  },
+
+  recoveryTitle: { en: "Recover pending ciphertext", zh: "恢复待处理密文" },
+  recoveryCopy: { en: "The exact encrypted packet is saved locally. Retry does not parse the source or encrypt again.", zh: "完全相同的加密封装包已保存在本地。重试不会解析源数据，也不会再次加密。" },
+  recoveryStoredTitle: { en: "Receipt returned", zh: "回执已返回" },
+  recoveryStoredCopy: {
+    en: "The external store already returned a valid reference. This step only saves the receipt and clears the local journal; it never sends ciphertext again.",
+    zh: "外部存储已返回有效引用。此步骤只保存回执并清理本地记录，绝不会再次发送密文。",
+  },
+  pendingMalformedTitle: { en: "Unreadable recovery record", zh: "恢复记录不可读" },
+  pendingMalformedCopy: {
+    en: "The saved record failed structural checks, so it is blocked from recovery. Clear it before creating a new seal.",
+    zh: "已保存记录未通过结构校验，因此无法恢复。请先清理，再创建新的密封包。",
+  },
+  recoveryAttempts: { en: "Storage attempts", zh: "存储尝试次数" },
+  recoveryCreated: { en: "Saved locally", zh: "本地保存时间" },
+  discardPending: { en: "Discard ciphertext", zh: "丢弃密文" },
+  confirmDiscard: { en: "Confirm discard", zh: "确认丢弃" },
+  pendingMustResolve: { en: "Retry or discard the pending ciphertext before creating another seal.", zh: "创建新密封包前，请先重试或丢弃待处理密文。" },
+  pendingMissing: { en: "No recoverable ciphertext packet was found.", zh: "未找到可恢复的密文封装包。" },
+  pendingWrongNetwork: { en: "The saved ciphertext belongs to another Neo N3 network.", zh: "已保存密文属于另一个 Neo N3 网络。" },
+  operationInProgress: { en: "A seal operation is already in progress.", zh: "密封操作正在进行中。" },
+
+  sealErrorInput: { en: "Enter a non-empty valid JSON object before sealing.", zh: "密封前请输入有效且非空的 JSON 对象。" },
+  sealErrorTooLarge: { en: "The confidential JSON exceeds the 64 KiB limit.", zh: "机密 JSON 超过 64 KiB 限制。" },
+  sealErrorKey: { en: "The Oracle encryption key could not be verified against the selected contract.", zh: "无法根据所选合约核验预言机加密密钥。" },
+  sealErrorAlgorithm: { en: "The required X25519/HKDF/AES-GCM encryption lane is unavailable.", zh: "所需的 X25519/HKDF/AES-GCM 加密通道不可用。" },
+  sealErrorEncrypt: { en: "Local encryption failed. No storage receipt was created.", zh: "本地加密失败，未创建存储回执。" },
+  sealErrorService: {
+    en: "Confidential storage is not configured for this network. No ciphertext was created or sent.",
+    zh: "当前网络尚未配置机密存储通道，未创建或发送任何密文。",
+  },
+  sealErrorStore: { en: "Storage did not return a valid reference. The exact ciphertext remains available for retry.", zh: "存储服务未返回有效引用，完全相同的密文仍可重试。" },
+  sealErrorStorage: {
+    en: "This device could not durably save or clear recovery state. No missing step is treated as complete.",
+    zh: "本设备无法可靠保存或清理恢复状态，任何缺失步骤都不会被视为完成。",
+  },
+  sealErrorTimeout: { en: "The service timed out. Any prepared ciphertext remains available for retry.", zh: "服务超时，任何已准备密文仍可重试。" },
+  sealErrorGeneric: { en: "The seal could not be completed. No result was assumed.", zh: "密封未能完成，系统不会假定任何结果。" },
+
+  docsTitle: { en: "Production boundary", zh: "生产边界" },
+  docsBody: {
+    en: "The app verifies the current Oracle X25519 key with a direct read from the selected Neo N3 RPC, encrypts locally, persists ciphertext before storage, and records a receipt only for a valid store reference.",
+    zh: "应用会直接读取所选 Neo N3 RPC 来核验当前预言机 X25519 密钥，在本地加密，在存储前持久化密文，并且只在获得有效存储引用后记录回执。",
+  },
+  feature1Name: { en: "Local plaintext", zh: "本地明文" },
+  feature1Desc: { en: "Source JSON stays in component memory and is excluded from recovery and receipt records.", zh: "源 JSON 只停留在组件内存中，不会进入恢复记录或回执。" },
+  feature2Name: { en: "Exact recovery", zh: "精确恢复" },
+  feature2Desc: { en: "A failed store retries the same validated ciphertext packet instead of encrypting a second object.", zh: "存储失败时重试同一份已校验密文，而不是再次加密生成另一个对象。" },
+  feature3Name: { en: "Honest receipt", zh: "诚实回执" },
+  feature3Desc: { en: "A store reference is never presented as a transaction, execution result, or TEE attestation.", zh: "存储引用绝不会被描述为交易、执行结果或 TEE 证明。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

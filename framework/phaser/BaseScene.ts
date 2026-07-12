@@ -99,6 +99,7 @@ export abstract class BaseScene extends Phaser.Scene {
   private destroyUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
   private stateUpdateTimer: Phaser.Time.TimerEvent | null = null;
+  private readyTimer: Phaser.Time.TimerEvent | null = null;
   private motionQuery: MediaQueryList | null = null;
   private motionChangeHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private cleanedUp = false;
@@ -144,10 +145,17 @@ export abstract class BaseScene extends Phaser.Scene {
     // Responsive resize
     this.scale.on("resize", this.onResize, this);
 
-    // Tell React the scene is ready after resize hooks are live, so the host's
-    // first mobile size application can rebuild the scene instead of only
-    // resizing the canvas.
-    this.bridge.notifyReady();
+    // `super.create()` is normally the first line in a child scene's create
+    // method. Defer readiness by one scene tick so the child has finished
+    // constructing its stage before React removes the loading surface or
+    // applies the first responsive resize. This also prevents a StrictMode
+    // teardown from publishing a stale, visually blank "ready" instance.
+    this.readyTimer = this.time.delayedCall(0, () => {
+      this.readyTimer = null;
+      if (!this.cleanedUp && this.sys.isActive()) {
+        this.bridge.notifyReady();
+      }
+    });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupBaseScene, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupBaseScene, this);
@@ -353,6 +361,11 @@ export abstract class BaseScene extends Phaser.Scene {
     if (this.stateUpdateTimer) {
       this.stateUpdateTimer.remove(false);
       this.stateUpdateTimer = null;
+    }
+
+    if (this.readyTimer) {
+      this.readyTimer.remove(false);
+      this.readyTimer = null;
     }
 
     this.stateUnsubscribe?.();

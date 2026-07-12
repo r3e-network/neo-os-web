@@ -3,39 +3,41 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Merge Kingdom",
   description:
-    "Timed on-chain tile-merging puzzle with provably fair TEE-generated boards. Tap tiles to move them — merge equal numbers to grow towards the target tile (64/256/1024). Win a fixed GAS reward: 0.1 Easy, 0.5 Medium, 1 Hard. Every solve climbs a global leaderboard rebuilt from chain events.",
+    "A free, resource-driven kingdom merge game. Drag matching buildings together, raise a stronger realm before time runs out, and resume unfinished local runs on this device. Paid GameFi entry remains unavailable until its pool, oracle callback, and full testnet flow are verified.",
   icon: "swords",
   category: "game",
   shell: "game",
+  supportsGuest: true,
+  supportsGameFi: false,
 
   gamePage: {
-    categoryColor: "#A855F7",
-    modes: { guest: true },
-    heroBadgeKey: "networkBadge",
+    categoryColor: "#B7791F",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestRunValue",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
-    heroDescKey: "appSubtitle",
+    heroDescKey: "guestRulesCopy",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "networkBadge",
-    featuresTitleKey: "fairnessTitle",
+    featuresEyebrowKey: "guestRunValue",
+    featuresTitleKey: "guestRulesTitle",
     features: [
       {
-        titleKey: "fairnessTitle",
-        descKey: "fairnessCopy",
+        titleKey: "guestRulesTitle",
+        descKey: "guestRulesCopy",
         large: true,
-        gradient: "linear-gradient(135deg, #FAF5FF 0%, #DDD6FE 44%, #A855F7 100%)",
+        gradient: "linear-gradient(135deg, #FFF8E6 0%, #EDCF72 50%, #B7791F 100%)",
       },
-      { titleKey: "difficultyTitle", descKey: "startDescription" },
-      { titleKey: "leaderboardTitle", descKey: "leaderboardIntro" },
+      { titleKey: "difficultyTitle", descKey: "guestRoutesCopy" },
+      { titleKey: "leaderboardTitle", descKey: "guestLeaderboardCopy" },
     ],
     lbEyebrowKey: "ranksTab",
     lbTitleKey: "leaderboardTitle",
-    lbScoreLabelKey: "scoreWon",
+    lbScoreLabelKey: "guestBestLabel",
     ctaTitleKey: "lobbyTitle",
-    ctaDescKey: "startDescription",
+    ctaDescKey: "guestRulesCopy",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["networkBadge", "fairnessTitle", "rankLabel"],
+    trustBadgeKeys: ["guestRunValue", "gameFiMaintenanceShort", "rankLabel"],
   },
 
   tabs: [
@@ -44,62 +46,28 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "scoreReward", valueKey: "lastPayout", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text", icon: "coin" },
+    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
     { labelKey: "rankLabel", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
+      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text" },
       { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Easy — win 0.1 GAS" },
-            { value: "1", label: "Medium — win 0.5 GAS" },
-            { value: "2", label: "Hard — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  operations: [],
 
   docs: [
-    { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
-    { titleKey: "fairnessTitle", contentKey: "fairnessCopy", type: "text" },
+    { titleKey: "guestRulesTitle", contentKey: "guestRulesCopy", type: "steps" },
+    { titleKey: "gameFiMaintenanceShort", contentKey: "gameFiMaintenanceBody", type: "text" },
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -107,10 +75,10 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {
