@@ -54,6 +54,9 @@ const ERROR_KEYS: Record<string, string> = {
   admin_address: "errAdminAddress",
   factory_contract_not_configured: "errFactoryNotConfigured",
   factory_contract_invalid: "errFactoryInvalid",
+  metadata_sample_unverified: "metadataSampleUnverified",
+  factory_template_unverified: "factoryTemplateUnverified",
+  canonical_nft_factory_plan: "canonicalPlanMismatch",
 };
 
 const WARNING_KEYS: Record<string, string> = {
@@ -74,8 +77,20 @@ const ARTIFACT_STATUS_KEYS: Record<FactoryTemplateStatus, string> = {
   unverified: "artifactStatusUnverified",
 };
 
+const DEFAULT_SUPPORTED_NETWORKS: readonly FactoryNetwork[] = [
+  "neo-n3-testnet",
+  "neo-n3-mainnet",
+];
+
 function cloneDraft<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function compactIdentity(value: string, fallback: string): string {
+  const identity = value.trim();
+  if (!identity) return fallback;
+  if (identity.length <= 18) return identity;
+  return `${identity.slice(0, 9)}…${identity.slice(-7)}`;
 }
 
 function statusClass(status: string) {
@@ -294,12 +309,14 @@ function FactoryPreviewCard({
   nep11,
   nep17,
   miniapp,
+  nep11ArtworkUrl,
   t,
 }: {
   kind: FactoryKind;
   nep11: Nep11Draft;
   nep17: Nep17Draft;
   miniapp: MiniAppDraft;
+  nep11ArtworkUrl: string;
   t: PlayAreaProps["t"];
 }) {
   let body: ReactNode;
@@ -327,7 +344,7 @@ function FactoryPreviewCard({
       <div className="domain-factory-preview__nft">
         <div className="domain-factory-preview__art" aria-hidden="true">
           <img
-            src="./nft-drop-preview.webp"
+            src={nep11ArtworkUrl}
             alt=""
             loading="lazy"
             decoding="async"
@@ -336,7 +353,7 @@ function FactoryPreviewCard({
             {[0, 1, 2].map((edition) => (
               <img
                 key={edition}
-                src="./nft-drop-preview.webp"
+                src={nep11ArtworkUrl}
                 alt=""
                 loading="lazy"
                 decoding="async"
@@ -489,6 +506,7 @@ function FactoryStudioFlow({
   networkLabel,
   stats,
   steps,
+  nep11ArtworkUrl,
 }: {
   kind: FactoryKind;
   t: PlayAreaProps["t"];
@@ -498,10 +516,11 @@ function FactoryStudioFlow({
   networkLabel: string;
   stats: StudioFlowStat[];
   steps: StudioFlowStep[];
+  nep11ArtworkUrl: string;
 }) {
   const imageSrc =
     kind === "nep11"
-      ? "./nft-drop-preview.webp"
+      ? nep11ArtworkUrl
       : kind === "miniapp"
         ? "./miniapp-launch-studio.webp"
         : "./token-mint-studio.webp";
@@ -529,7 +548,7 @@ function FactoryStudioFlow({
             {[0, 1, 2].map((edition) => (
               <img
                 key={edition}
-                src="./nft-drop-preview.webp"
+                src={nep11ArtworkUrl}
                 alt=""
                 loading="eager"
                 decoding="async"
@@ -590,6 +609,20 @@ function FactoryStudioFlow({
 export interface FactoryPlayAreaProps extends PlayAreaProps {
   fixedKind: FactoryKind;
   appId: string;
+  /** Optional app-owned draft restored from its local recovery journal. */
+  initialNep17Draft?: Nep17Draft | null;
+  /** Narrow network choices when an app release supports fewer factory targets. */
+  supportedNetworks?: readonly FactoryNetwork[];
+  /** Optional app action that persists the live draft before plan generation. */
+  persistDraftAction?: string;
+  /** App-owned local preview artwork. It is never uploaded by this component. */
+  nep11ArtworkUrl?: string;
+  /** Hide an unavailable write button while retaining the workflow boundary. */
+  showExecuteAction?: boolean;
+  /** App-scoped one-shot commitment: disable signing after this exact plan is signed. */
+  preventRepeatSigning?: boolean;
+  /** App-scoped live-read prerequisite for signing an otherwise valid plan. */
+  requireVerifiedMetadataForSigning?: boolean;
 }
 
 export function FactoryPlayArea({
@@ -599,11 +632,35 @@ export function FactoryPlayArea({
   launchContext,
   fixedKind,
   appId,
+  initialNep17Draft,
+  supportedNetworks = DEFAULT_SUPPORTED_NETWORKS,
+  persistDraftAction,
+  nep11ArtworkUrl = "./nft-drop-preview.webp",
+  showExecuteAction = true,
+  preventRepeatSigning = false,
+  requireVerifiedMetadataForSigning = false,
 }: FactoryPlayAreaProps) {
-  const initialDraft = useMemo(
-    () => createFactoryDraftFromLaunchContext(launchContext, fixedKind),
-    [fixedKind, launchContext],
-  );
+  const initialDraft = useMemo(() => {
+    const draft = createFactoryDraftFromLaunchContext(launchContext, fixedKind);
+    const firstSupportedNetwork = supportedNetworks[0] ?? "neo-n3-testnet";
+
+    if (!supportedNetworks.includes(draft.nep17.network)) {
+      draft.nep17.network = firstSupportedNetwork;
+    }
+    if (!supportedNetworks.includes(draft.nep11.network)) {
+      draft.nep11.network = firstSupportedNetwork;
+    }
+    if (!supportedNetworks.includes(draft.miniapp.network)) {
+      draft.miniapp.network = firstSupportedNetwork;
+    }
+    if (fixedKind === "nep17" && initialNep17Draft) {
+      draft.nep17 = cloneDraft(initialNep17Draft);
+      if (!supportedNetworks.includes(draft.nep17.network)) {
+        draft.nep17.network = firstSupportedNetwork;
+      }
+    }
+    return draft;
+  }, [fixedKind, initialNep17Draft, launchContext, supportedNetworks]);
   const kind = fixedKind;
   const [nep17, setNep17] = useState<Nep17Draft>(() =>
     cloneDraft(initialDraft.nep17),
@@ -649,11 +706,11 @@ export function FactoryPlayArea({
     [kind, nep17, nep11, miniapp, appId, draftPresence],
   );
   const currentPlan = storedPlan ?? fallbackPlan;
+  const storedBlockingErrors = storedPlan?.blockingErrors ?? [];
   // Signing/executing must operate on the STORED plan (populated by
   // "Generate plan"), not the live form preview. The preview can be
   // publishable while no plan has been generated, which previously enabled
   // Sign and then threw `noPlanToSign`.
-  const canSign = Boolean(storedPlan?.publishable);
   const previewReadyButUnsaved = !storedPlan && currentPlan.publishable;
   const isSigning = bool("isSigning");
   const isGenerating = bool("isGenerating");
@@ -661,6 +718,17 @@ export function FactoryPlayArea({
   const walletSignature = str("walletSignature");
   const signatureInfo =
     val<FactorySignatureInfo>("walletSignatureInfo") ?? null;
+  const metadataStatus = str("metadataStatus");
+  const signatureReady = Boolean(walletSignature || signatureInfo);
+  const signingPrerequisiteReady =
+    !requireVerifiedMetadataForSigning || metadataStatus === "verified";
+  const metadataVerificationPending =
+    requireVerifiedMetadataForSigning && metadataStatus === "checking";
+  const storedPlanReady =
+    Boolean(storedPlan?.publishable) && signingPrerequisiteReady;
+  const canSign =
+    storedPlanReady &&
+    !(preventRepeatSigning && signatureReady);
   const lastError = str("lastError");
   const lastTxid = str("lastTxid");
   const deployedContractHash = str("deployedContractHash");
@@ -669,6 +737,10 @@ export function FactoryPlayArea({
   const deployments = val<FactoryDeploymentItem[]>("deployments") ?? [];
   const deploymentsTotal = num("deploymentsTotal");
   const deploymentsState = str("deploymentsState");
+  const metadataSampleUrl = str("metadataSampleUrl");
+  const metadataSampleName = str("metadataSampleName");
+  const metadataSampleImage = str("metadataSampleImage");
+  const metadataCheckedAt = num("metadataCheckedAt");
 
   const alreadyExecuted = Boolean(
     storedPlan && executedDigest && storedPlan.digest === executedDigest,
@@ -721,6 +793,19 @@ export function FactoryPlayArea({
     );
   }, [dispatch, activeNetwork]);
 
+  useEffect(() => {
+    if (!storedPlan || storedPlan.digest === fallbackPlan.digest) return;
+    // The visible fields no longer describe the locked package. Invalidate it
+    // immediately instead of leaving an obsolete blocked/signed plan on
+    // screen with no recovery path.
+    void dispatch("discardPlan").catch(() => undefined);
+  }, [dispatch, fallbackPlan.digest, storedPlan]);
+
+  useEffect(() => {
+    if (!persistDraftAction || kind !== "nep17") return;
+    void dispatch(persistDraftAction, nep17).catch(() => undefined);
+  }, [dispatch, kind, nep17, persistDraftAction]);
+
   const packageJson = useMemo(
     () =>
       JSON.stringify(
@@ -732,8 +817,27 @@ export function FactoryPlayArea({
           templateArtifact: currentPlan.templateArtifact,
           operation: currentPlan.operation,
           deploymentCall: currentPlan.deploymentCall,
+          // Keep the planned call inspectable while making its runtime gate
+          // part of the copied package. Consumers must never infer write
+          // availability merely because deploymentCall metadata exists.
+          execution: currentPlan.execution,
           network: currentPlan.network,
           payload: currentPlan.payload,
+          ...(metadataStatus
+            ? {
+                metadataObservation: {
+                  status: metadataStatus,
+                  sampleUrl: metadataSampleUrl,
+                  name: metadataSampleName,
+                  image: metadataSampleImage,
+                  observedAt: metadataCheckedAt
+                    ? new Date(metadataCheckedAt).toISOString()
+                    : "",
+                  committedToDigest: false,
+                  scope: "read-only availability and basic JSON shape",
+                },
+              }
+            : {}),
           ...(signatureInfo &&
           storedPlan &&
           currentPlan.digest === storedPlan.digest
@@ -743,7 +847,16 @@ export function FactoryPlayArea({
         null,
         2,
       ),
-    [currentPlan, signatureInfo, storedPlan],
+    [
+      currentPlan,
+      metadataCheckedAt,
+      metadataSampleImage,
+      metadataSampleName,
+      metadataSampleUrl,
+      metadataStatus,
+      signatureInfo,
+      storedPlan,
+    ],
   );
 
   async function copyText(text: string, target: string) {
@@ -771,6 +884,9 @@ export function FactoryPlayArea({
   async function generatePlan() {
     if (isGenerating) return;
     const input = kind === "nep17" ? nep17 : kind === "nep11" ? nep11 : miniapp;
+    if (persistDraftAction) {
+      await dispatch(persistDraftAction, input);
+    }
     await dispatch("generatePlan", input);
   }
 
@@ -790,7 +906,7 @@ export function FactoryPlayArea({
         ? "miniappTemplate"
         : "nep17",
   );
-  const networkOptions: ChoiceOption<FactoryNetwork>[] = [
+  const allNetworkOptions: ChoiceOption<FactoryNetwork>[] = [
     {
       value: "neo-n3-testnet",
       label: t("networkOptionTestnet"),
@@ -804,6 +920,9 @@ export function FactoryPlayArea({
       icon: ShieldCheck,
     },
   ];
+  const networkOptions = allNetworkOptions.filter((option) =>
+    supportedNetworks.includes(option.value),
+  );
   const templateOptions: ChoiceOption<MiniAppDraft["templateKind"]>[] = [
     {
       value: "reward-vault",
@@ -832,14 +951,18 @@ export function FactoryPlayArea({
   ];
 
   const heroPill = storedPlan
-    ? storedPlan.publishable
-      ? { className: "is-ready", label: t("ready") }
-      : { className: "is-blocked", label: t("blocked") }
+    ? metadataVerificationPending
+      ? { className: "is-draft", label: t("metadataChecking") }
+      : storedPlanReady
+        ? { className: "is-ready", label: t("ready") }
+        : { className: "is-blocked", label: t("blocked") }
     : { className: "is-draft", label: t("draft") };
   const workflowState = storedPlan
-    ? storedPlan.publishable
-      ? "ready"
-      : "blocked"
+    ? metadataVerificationPending
+      ? "draft-ready"
+      : storedPlanReady
+        ? "ready"
+        : "blocked"
     : currentPlan.blockingErrors.length
       ? "draft-needs-work"
       : "draft-ready";
@@ -916,26 +1039,40 @@ export function FactoryPlayArea({
       ? t(ERROR_KEYS[firstBlockingError])
       : firstBlockingError.replace(/_/g, " ")
     : "";
+  const signingPrerequisiteDetail =
+    requireVerifiedMetadataForSigning && !signingPrerequisiteReady
+      ? t(
+          metadataStatus === "checking"
+            ? "metadataChecking"
+            : "metadataSampleUnverified",
+        )
+      : "";
   const readinessTitle = storedPlan
-    ? storedPlan.publishable
-      ? t("packageReady")
-      : t("packageBlocked")
+    ? metadataVerificationPending
+      ? t("metadataChecking")
+      : storedPlanReady
+        ? t("packageReady")
+        : t("packageBlocked")
     : currentPlan.blockingErrors.length
       ? t("planDraftNeedsWork")
       : t("planDraftReady");
   const readinessDetail = storedPlan
-    ? storedPlan.publishable
+    ? storedPlanReady
       ? t("planLockedDetail")
-      : firstBlockingLabel || t("planBlockedDetail")
+      : signingPrerequisiteDetail || firstBlockingLabel || t("planBlockedDetail")
     : currentPlan.blockingErrors.length
       ? firstBlockingLabel
       : t("planDraftReadyDetail");
   const nextStepLabel = storedPlan
     ? canExecute
       ? t(kind === "miniapp" ? "executeRecordAction" : "executeDeployAction")
-      : canSign
-        ? t("signPlanAction")
-        : t("fixBlockingIssues")
+      : requireVerifiedMetadataForSigning && metadataStatus === "checking"
+        ? t("metadataChecking")
+      : preventRepeatSigning && signatureReady
+        ? t("signed")
+        : canSign
+          ? t("signPlanAction")
+          : t("fixBlockingIssues")
     : t("generatePlan");
   const studioTitle =
     kind === "nep11"
@@ -970,17 +1107,21 @@ export function FactoryPlayArea({
             { label: t("previewServices"), value: miniappServiceLabel },
           ]
         : [
-            { label: t("symbol"), value: nep17SymbolLabel },
             { label: t("previewSupply"), value: nep17SupplyLabel },
+            { label: t("decimals"), value: nep17.decimals.trim() || "—" },
             { label: t("previewMintPolicy"), value: nep17PolicyLabel },
           ];
   const draftHasBlockingIssues = currentPlan.blockingErrors.length > 0;
-  const signatureReady = Boolean(walletSignature || signatureInfo);
   const studioSteps: StudioFlowStep[] = [
     {
       key: "draft",
       label: t("draft"),
-      detail: storedPlan && draftHasBlockingIssues ? readinessDetail : kindLabel,
+      detail:
+        storedPlan && draftHasBlockingIssues
+          ? readinessDetail
+          : kind === "nep17"
+            ? `${t("owner")}: ${compactIdentity(nep17.owner, "—")}`
+            : kindLabel,
       state: storedPlan ? "done" : "active",
       icon: PackagePlus,
     },
@@ -1117,6 +1258,7 @@ export function FactoryPlayArea({
         networkLabel={networkLabel}
         stats={studioStats}
         steps={studioSteps}
+        nep11ArtworkUrl={nep11ArtworkUrl}
       />
 
       <div className="domain-factory-grid">
@@ -1257,6 +1399,11 @@ export function FactoryPlayArea({
                         label={t("owner")}
                         value={nep17.owner}
                         placeholder="N..."
+                        error={
+                          storedBlockingErrors.includes("owner_address")
+                            ? t("errOwnerAddress")
+                            : ""
+                        }
                         onChange={(owner) =>
                           setNep17((draft) => ({
                             ...draft,
@@ -1277,6 +1424,11 @@ export function FactoryPlayArea({
                       label={t("treasury")}
                       value={nep17.treasury}
                       placeholder="N..."
+                      error={
+                        storedBlockingErrors.includes("treasury_address")
+                          ? t("errTreasuryAddress")
+                          : ""
+                      }
                       onChange={(treasury) =>
                         setNep17((draft) => ({ ...draft, treasury }))
                       }
@@ -1294,7 +1446,7 @@ export function FactoryPlayArea({
                 >
                   <img
                     className="domain-factory-drop-rail__image"
-                    src="./nft-drop-preview.webp"
+                    src={nep11ArtworkUrl}
                     alt=""
                     loading="eager"
                     decoding="async"
@@ -1306,7 +1458,7 @@ export function FactoryPlayArea({
                     {[0, 1, 2].map((edition) => (
                       <img
                         key={edition}
-                        src="./nft-drop-preview.webp"
+                        src={nep11ArtworkUrl}
                         alt=""
                         loading="eager"
                         decoding="async"
@@ -1468,7 +1620,7 @@ export function FactoryPlayArea({
                                 aria-hidden="true"
                               >
                                 <img
-                                  src="./nft-drop-preview.webp"
+                                  src={nep11ArtworkUrl}
                                   alt=""
                                   loading="lazy"
                                   decoding="async"
@@ -1593,6 +1745,11 @@ export function FactoryPlayArea({
                         label={t("owner")}
                         value={nep11.owner}
                         placeholder="N..."
+                        error={
+                          storedBlockingErrors.includes("owner_address")
+                            ? t("errOwnerAddress")
+                            : ""
+                        }
                         onChange={(owner) =>
                           setNep11((draft) => ({ ...draft, owner }))
                         }
@@ -1665,6 +1822,11 @@ export function FactoryPlayArea({
                         label={t("admin")}
                         value={miniapp.admin}
                         placeholder="N..."
+                        error={
+                          storedBlockingErrors.includes("admin_address")
+                            ? t("errAdminAddress")
+                            : ""
+                        }
                         onChange={(admin) =>
                           setMiniapp((draft) => ({ ...draft, admin }))
                         }
@@ -1689,15 +1851,18 @@ export function FactoryPlayArea({
             nep11={nep11}
             nep17={nep17}
             miniapp={miniapp}
+            nep11ArtworkUrl={nep11ArtworkUrl}
             t={t}
           />
 
           <NeoCard
             variant={
               storedPlan
-                ? storedPlan.publishable
-                  ? "success"
-                  : "warning"
+                ? metadataVerificationPending
+                  ? "erobo"
+                  : storedPlanReady
+                    ? "success"
+                    : "warning"
                 : "erobo"
             }
             title={t("publishPackage")}
@@ -1775,21 +1940,25 @@ export function FactoryPlayArea({
                     loading={isSigning}
                     onClick={() => dispatch("signCurrentPlan")}
                   >
-                    {t("signPlanAction")}
+                    {preventRepeatSigning && signatureReady
+                      ? t("signed")
+                      : t("signPlanAction")}
                   </NeoButton>
-                  <NeoButton
-                    variant={canExecute ? "primary" : "secondary"}
-                    className="domain-factory-actions__execute"
-                    disabled={!canExecute || isExecuting}
-                    loading={isExecuting}
-                    onClick={() => dispatch("executePlan")}
-                  >
-                    {t(
-                      kind === "miniapp"
-                        ? "executeRecordAction"
-                        : "executeDeployAction",
-                    )}
-                  </NeoButton>
+                  {showExecuteAction ? (
+                    <NeoButton
+                      variant={canExecute ? "primary" : "secondary"}
+                      className="domain-factory-actions__execute"
+                      disabled={!canExecute || isExecuting}
+                      loading={isExecuting}
+                      onClick={() => dispatch("executePlan")}
+                    >
+                      {t(
+                        kind === "miniapp"
+                          ? "executeRecordAction"
+                          : "executeDeployAction",
+                      )}
+                    </NeoButton>
+                  ) : null}
                 </div>
               ) : null}
 

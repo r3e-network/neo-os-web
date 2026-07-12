@@ -1,104 +1,83 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-burn-league",
-  "name": "Burn League",
-  "name_zh": "燃烧联赛",
-  "version": "1.0.0",
-  "description": "Compete in token burning challenges and climb the leaderboard",
-  "description_zh": "燃烧竞技联赛 — 参与代币燃烧挑战赛，登上排行榜争夺荣耀",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
-  "tags": [
-    "burn",
-    "competition",
-    "leaderboard"
-  ],
+  "contract_domains": {},
+  "contracts": {
+    "neo-n3-testnet": "0x21a527b50b839efeb73721a886c9b5994a206316"
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "default_network": "neo-n3-testnet",
+  "description": "Practice a local push-your-luck fire streak or join the verified 24-hour TestNet GAS league",
+  "description_zh": "进行本地炉火连击挑战，或加入经验证的 24 小时测试网 GAS 联赛",
   "developer": {
-    "name": "Yiwu",
     "email": "dev@r3e.network",
+    "name": "Yiwu",
     "website": "https://neomini.app"
   },
-  "contracts": {
-    "neo-n3-mainnet": "0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f",
-    "neo-n3-testnet": "0xdd3bf2ff39bc4e39107ace953e2271a43a58e28f"
+  "features": {
+    "deeplink": "neomainapp://burn-league",
+    "offlineSupport": false,
+    "stateless": false
   },
-  "contract_domains": {
-    "neo-n3-mainnet": "burnleague.miniapp.neo"
-  },
-  "supported_networks": [
-    "neo-n3-mainnet",
-    "neo-n3-testnet"
-  ],
-  "default_network": "neo-n3-mainnet",
-  "urls": {
-    "entry": "/miniapps/burn-league/index.html",
-    "icon": "/miniapps/burn-league/logo.webp",
-    "banner": "/miniapps/burn-league/banner.webp"
+  "id": "miniapp-burn-league",
+  "name": "Burn League",
+  "name_zh": "燃烧联赛",
+  "operation_panel": {
+    "operations": [
+      {
+        "button_style": "danger",
+        "description": "Open the embedded Burn League arena. The in-game fuel controls, wallet connection, and separate irreversible confirmation stay inside the Phaser surface.",
+        "method": "prepareMiniAppOperation",
+        "name": "Enter Burn Arena",
+        "params": [],
+        "priority": "primary"
+      }
+    ],
+    "subtitle": "Enter the live arena, choose a fuel capsule, then explicitly confirm the irreversible GAS burn in-game.",
+    "title": "Burn League"
   },
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
-  "features": {
-    "stateless": true,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://burn-league"
-  },
-  "operation_panel": {
-    "title": "Burn League",
-    "subtitle": "Set a GAS burn amount, open the live desk, then confirm the OS wallet intent inside the MiniApp.",
-    "operations": [
-      {
-        "name": "Prepare Burn Entry",
-        "method": "prepareMiniAppOperation",
-        "description": "Pre-fill the burn amount and open the embedded Burn League desk. Submit Burn Now inside the live dApp after reviewing the rank and reward preview.",
-        "button_style": "danger",
-        "priority": "primary",
-        "params": [
-          {
-            "name": "amount",
-            "type": "amount",
-            "label": "Burn amount",
-            "required": true,
-            "default_value": "1",
-            "placeholder": "1",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "1",
-                "value": "1",
-                "helper": "GAS"
-              },
-              {
-                "label": "5",
-                "value": "5",
-                "helper": "GAS"
-              },
-              {
-                "label": "10",
-                "value": "10",
-                "helper": "GAS"
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z"
+  "stateSource": {
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev/testnet"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "burn",
+    "competition",
+    "leaderboard"
+  ],
+  "updatedAt": "2026-07-11T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/burn-league/banner.webp",
+    "entry": "/miniapps/burn-league/index.html",
+    "icon": "/miniapps/burn-league/logo.webp"
+  },
+  "version": "1.1.0",
+  "technologies": {
+    "vrf": {
+      "enabled": false,
+      "description": "Burn League is a deterministic all-pay competition. It has no random winner selection and therefore does not request Oracle VRF."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "Paid outcomes are derived from contract state and verified events; no TEE result is required."
+    }
+  }
 }

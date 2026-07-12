@@ -3,9 +3,9 @@
   "id": "miniapp-custom-anchor",
   "name": "Custom Anchor",
   "name_zh": "自定义锚",
-  "version": "1.0.0",
-  "description": "Self-serve NEO voting anchor. Register one anchor (Trust=voting or Profit=yield) and let users stake NEO, redeem NEO, and claim GAS rewards. The anchor's 21 AA agents must be provisioned separately by its operator in the admin console — staking earns nothing until they are.",
-  "description_zh": "自助创建 NEO 投票锚：注册一个 Anchor（Trust=投票 或 Profit=收益），让用户质押 NEO、赎回 NEO、领取 GAS 收益。Anchor 的 21 个 AA agent 需由运营方在管理员控制台单独配置——配置前质押不产生任何收益。",
+  "version": "2.0.0",
+  "description": "Production NEO governance and yield anchor. Stake or redeem NEO, claim GAS, and provision a new anchor through a durable fee-to-21-agent workflow with exact event and readback recovery.",
+  "description_zh": "生产级 NEO 治理与收益 Anchor：质押或赎回 NEO、领取 GAS，并通过可持久恢复、精确事件与链上回读确认的费用到 21-agent 流程创建 Anchor。",
   "category": "governance",
   "category_name": "Governance",
   "category_name_zh": "治理",
@@ -82,5 +82,5 @@
     "transactions": true
   },
   "createdAt": "2026-05-09T00:00:00Z",
-  "updatedAt": "2026-05-09T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

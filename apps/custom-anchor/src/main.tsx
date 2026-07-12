@@ -1,54 +1,59 @@
 import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
 import type { MiniAppSetupContext, MiniAppSetupResult } from "@shared/react/defineMiniApp";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { EXTERNAL_INTEGRATIONS, getMiniAppContractHash, resolveNeoNetwork } from "@shared/constants/rpc";
-// eventValue/parseBigInt/parseHash160 are the framework canonicals (S0 utils
-// consolidation), consumed via the shared re-exports.
-import { eventValue } from "@shared/utils/chain-events";
-import { parseBigInt } from "@shared/utils/parsers";
-import { parseHash160 } from "@shared/utils/neo";
+import {
+  EXTERNAL_INTEGRATIONS,
+  getMiniAppContractHash,
+  type NeoNetwork,
+} from "@shared/constants/rpc";
+import { parseHash160, parseStackItem } from "@shared/utils/neo";
 import {
   buildAnchorRegistrationInvocations,
   parseAnchorCandidateKeys,
   type AnchorContractArg,
 } from "@shared/utils/anchor-agents";
-import type { ContractArg } from "@shared/services";
+import type { FrameworkContractArg } from "@framework/index";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
+import {
+  CUSTOM_ANCHOR_APP_ID,
+  CUSTOM_ANCHOR_BINDINGS,
+  CUSTOM_ANCHOR_REGISTRATION_FEE,
+  anchorHashesMatch,
+  assertAnchorStorage,
+  explicitAnchorNetwork,
+  formatAnchorFixed,
+  formatAnchorWhole,
+  isPendingAnchorOperation,
+  nextRegistrationStage,
+  normalizeAnchorHash,
+  parseAnchorInteger,
+  parseAnchorNonNegative,
+  pendingAnchorEventsMatch,
+  persistPendingAnchorOperation,
+  readAnchorTransactionOutcome,
+  readPendingAnchorOperation,
+  type AnchorOperationKind,
+  type AnchorRegistrationStage,
+  type PendingAnchorOperation,
+} from "./anchor-production";
 
-/**
- * The standalone chain service's static ContractArg type narrows `value` to
- * scalars; the runtime SDK tolerates nested Array values. Widen at the invoke
- * boundary (mirrors neo-multisig's toChainArgs).
- */
-function toChainArgs(args: AnchorContractArg[]): ContractArg[] {
-  return args as unknown as ContractArg[];
+function toChainArgs(args: AnchorContractArg[]): FrameworkContractArg[] {
+  return args as unknown as FrameworkContractArg[];
 }
 
-const appId = "miniapp-custom-anchor";
-
-/** Self-service anchor registration fee: 1 GAS prepaid credit (PlatformAnchor.cs). */
-const REGISTRATION_FEE_BASE = "100000000";
-/** Anchor modes: 1 = trust (voting), 2 = profit (yield). */
 const MODE_TRUST = 1;
-/** How many AnchorAppRegistered events to scan for the discovery list. */
 const REGISTERED_EVENTS_LIMIT = 100;
+const UNKNOWN_VALUE = "—";
 
-/**
- * The strict shape used to MINT a new anchor id (slug:nonce, lowercase). The
- * contract itself accepts any 1-64 char appId (ValidateAppId), so reads/redeems
- * use the looser {@link isContractAnchorId} gate — a script-registered anchor
- * with a different shape must stay reachable for redeeming already-staked NEO.
- */
 function isStrictAnchorId(value: string): boolean {
   return /^custom-anchor:[a-z0-9-]{1,24}:[a-z0-9-]{1,24}$/.test(value.trim());
 }
 
-/** The contract's own appId rule (ValidateAppId): any 1-64 char id. */
 function isContractAnchorId(value: string): boolean {
-  const v = value.trim();
-  return v.length >= 1 && v.length <= 64;
+  const normalized = value.trim();
+  return normalized.length >= 1 && normalized.length <= 64;
 }
 
 function firstParam(ctx: MiniAppSetupContext, keys: string[]): string {
@@ -59,336 +64,760 @@ function firstParam(ctx: MiniAppSetupContext, keys: string[]): string {
   return "";
 }
 
-function wholeNeo(value: unknown): string {
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
-    throw new Error("NEO amount must be a positive whole number.");
-  }
-  return String(amount);
-}
-
-/**
- * Resolve an anchor id for a READ / redeem / claim action. Uses the contract's
- * own 1-64 char rule so a script-registered anchor (uppercase, longer segments,
- * different prefix) stays reachable for redeeming already-staked NEO — the
- * strict slug:nonce shape is only required to MINT a new stake/anchor.
- */
 function targetAnchorId(value: unknown): string {
   const anchorAppId = String(value ?? "").trim();
-  if (!isContractAnchorId(anchorAppId)) {
-    throw new Error("Anchor appId is required (1-64 characters).");
-  }
+  if (!isContractAnchorId(anchorAppId)) throw new Error("anchorInvalidId");
   return anchorAppId;
 }
 
-/** Resolve an anchor id for a NEW stake / registration (strict slug:nonce shape). */
 function strictAnchorId(value: unknown): string {
   const anchorAppId = String(value ?? "").trim();
-  if (!isStrictAnchorId(anchorAppId)) {
-    throw new Error("Anchor appId must look like custom-anchor:slug:nonce.");
-  }
+  if (!isStrictAnchorId(anchorAppId)) throw new Error("invalidAnchorId");
   return anchorAppId;
 }
 
-function stackNumber(value: unknown): number {
-  if (typeof value === "number") return value;
-  if (typeof value === "bigint") return Number(value);
-  if (typeof value === "string") return Number(value);
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return stackNumber(record.value ?? record.integer ?? record.result);
+function wholeNeo(value: unknown): bigint {
+  const normalized = String(value ?? "").trim();
+  if (!/^[1-9]\d*$/.test(normalized)) throw new Error("invalidAmount");
+  return BigInt(normalized);
+}
+
+function chainHash(value: unknown, allowZero = false): string {
+  const parsed = parseHash160(value).toLowerCase();
+  if (/^0x[0-9a-f]{40}$/.test(parsed) && (allowZero || !/^0x0{40}$/.test(parsed))) return parsed;
+  return normalizeAnchorHash(value, allowZero);
+}
+
+function publicKey(value: unknown): string {
+  const parsed = String(parseStackItem(value) ?? "").trim().replace(/^0x/i, "").toLowerCase();
+  return /^0[23][0-9a-f]{64}$/.test(parsed) ? parsed : "";
+}
+
+function eventSlots(event: unknown): unknown[] {
+  if (!event || typeof event !== "object") return [];
+  const state = (event as { state?: unknown }).state;
+  if (Array.isArray(state)) return state;
+  if (state && typeof state === "object" && "value" in state) {
+    const value = (state as { value?: unknown }).value;
+    return Array.isArray(value) ? value : [];
   }
-  return 0;
+  return [];
 }
 
-function fromFixed8(value: unknown): string {
-  const amount = stackNumber(value) / 100_000_000;
-  if (!Number.isFinite(amount)) return "0";
-  return amount.toLocaleString(undefined, { maximumFractionDigits: 8 });
+function eventText(value: unknown): string {
+  if (value && typeof value === "object" && !("type" in value) && "value" in value) {
+    return eventText((value as { value?: unknown }).value);
+  }
+  const parsed = parseStackItem(value);
+  return typeof parsed === "string" ? parsed.trim() : "";
 }
 
-function fromWholeNeo(value: unknown): string {
-  const amount = stackNumber(value);
-  if (!Number.isFinite(amount)) return "0";
-  return Math.trunc(amount).toLocaleString(undefined, { maximumFractionDigits: 0 });
+function validTxid(value: unknown): string {
+  const txid = String(value ?? "").trim().toLowerCase();
+  return /^0x[0-9a-f]{64}$/.test(txid) ? txid : "";
 }
 
-/**
- * The getRewardPerNeo accumulator is GAS-datoshi * REWARD_SCALE(1e8) per NEO,
- * i.e. cumulative GAS-per-NEO * 1e16, so one distributed GAS per NEO would read
- * as 1e16. Divide by 1e16 so it renders as a legible GAS/NEO figure.
- */
-const REWARD_PER_NEO_SCALE = 100_000_000 * 100_000_000;
-function fromRewardPerNeo(value: unknown): string {
-  const amount = stackNumber(value) / REWARD_PER_NEO_SCALE;
-  if (!Number.isFinite(amount)) return "0";
-  return amount.toLocaleString(undefined, { maximumFractionDigits: 8 });
+function isExplicitWalletRejection(error: unknown): boolean {
+  const record = error && typeof error === "object" ? error as { code?: unknown; message?: unknown } : {};
+  if (record.code === 4001 || record.code === "4001" || record.code === "ACTION_REJECTED") return true;
+  return /user (?:denied|rejected)|request rejected|action rejected/i.test(String(record.message ?? error ?? ""));
 }
 
 defineMiniApp({
-  appId,
+  appId: CUSTOM_ANCHOR_APP_ID,
   playArea: PlayArea,
   manifest,
   messages,
   setup(ctx): MiniAppSetupResult {
-    const anchorAppId = createObservable(
-      firstParam(ctx, ["anchorAppId", "anchor", "targetAnchor", "app"]),
-    );
-    const totalStaked = createObservable("0");
-    const rewardReserve = createObservable("0");
-    const userStake = createObservable("0");
-    const pendingRewards = createObservable("0");
-    const agentCount = createObservable(0);
-    // Cumulative GAS distributed per NEO since launch (getRewardPerNeo). The
-    // on-chain accumulator is GAS-datoshi * REWARD_SCALE(1e8) per NEO, i.e.
-    // GAS/NEO * 1e16; divide before display. "0" when the anchor is unfunded.
-    const rewardPerNeo = createObservable("0");
-    const lastTxid = createObservable("");
-    const workflowStatus = createObservable(ctx.t("workflowReady"));
-    const lastError = createObservable("");
-    const isLoading = createObservable(false);
-    // Write-action lock: every stake/withdraw/claim/register/recover action
-    // checks this before invoking so a double-click can't fire two NEO
-    // transfers or two registration sequences (mirrors profitanchor's
-    // runAnchorAction). Reset in the finally so a wallet rejection never leaves
-    // the surface stuck spinning.
-    const submitting = createObservable(false);
-    // Registration state of the resolved anchor (getAppMode): 0 = not registered,
-    // 1 = trust, 2 = profit. -1 = unknown (not yet read / no anchor).
-    const anchorMode = createObservable(-1);
-    // Reclaimable contract credit under the wallet (over/failed deposits + the
-    // registration-fee credit), in whole NEO and GAS (display).
-    const neoCredit = createObservable("0");
-    const gasCredit = createObservable("0");
-    const neoCreditRaw = createObservable("0");
-    const gasCreditRaw = createObservable("0");
-    // Recently registered anchors (from AnchorAppRegistered events) for discovery.
-    const discoveredAnchors = createObservable<Array<{ appId: string; mode: number }>>([]);
-    const anchorOptions = <T extends Record<string, unknown>>(options?: T) => {
-      const scriptHash = getMiniAppContractHash(appId);
-      return { ...(options ?? {}), ...(scriptHash ? { scriptHash } : {}) };
-    };
+    const storage = ctx.framework.storage.local;
+    const restored = readPendingAnchorOperation(storage);
+    // neo-manifest.json declares MainNet as the product default. An explicit
+    // launch network always wins; a missing URL parameter resolves to that
+    // declared default instead of leaving the standalone app unusable.
+    const launchNetwork: NeoNetwork = explicitAnchorNetwork(ctx.launchContext.network) || "mainnet";
+    const launchBinding = CUSTOM_ANCHOR_BINDINGS[launchNetwork];
 
-    async function loadCredits() {
+    const anchorAppId = createObservable(firstParam(ctx, ["anchorAppId", "anchor", "targetAnchor", "app"]));
+    const anchorMode = createObservable(-1);
+    const totalStaked = createObservable(UNKNOWN_VALUE);
+    const rewardReserve = createObservable(UNKNOWN_VALUE);
+    const userStake = createObservable(UNKNOWN_VALUE);
+    const pendingRewards = createObservable(UNKNOWN_VALUE);
+    const agentCount = createObservable(-1);
+    const rewardPerNeo = createObservable(UNKNOWN_VALUE);
+    const neoCredit = createObservable(UNKNOWN_VALUE);
+    const gasCredit = createObservable(UNKNOWN_VALUE);
+    const neoCreditRaw = createObservable("");
+    const gasCreditRaw = createObservable("");
+    const dataStatus = createObservable<"idle" | "loading" | "ready" | "missing" | "unavailable">("idle");
+    const creditStatus = createObservable<"idle" | "loading" | "ready" | "disconnected" | "unavailable">("idle");
+    const networkStatus = createObservable<"bound" | "verified" | "mismatch" | "unavailable">(
+      "bound",
+    );
+    const pendingOperation = createObservable<PendingAnchorOperation | null>(restored.pending);
+    const pendingState = createObservable<
+      "none" | "prepared" | "attempted" | "pending" | "readback" | "mismatch" | "fault" | "corrupted" | "confirmed"
+    >(restored.corrupted ? "corrupted" : restored.pending ? (restored.pending.phase === "broadcast" ? "pending" : restored.pending.phase) : "none");
+    const storageStatus = createObservable<"ready" | "unavailable">(restored.corrupted ? "unavailable" : "ready");
+    const lastTxid = createObservable(restored.pending?.txid ?? "");
+    const workflowStatus = createObservable(restored.pending ? ctx.t("pendingRestored") : ctx.t("workflowReady"));
+    const lastError = createObservable(restored.corrupted ? ctx.t("actionNeedsAttention") : "");
+    const errorDetail = createObservable(restored.corrupted ? ctx.t("pendingCorruptedDetail") : "");
+    const isLoading = createObservable(false);
+    const submitting = createObservable(false);
+    const discoveredAnchors = createObservable<Array<{ appId: string; mode: number }>>([]);
+
+    function setFriendlyFailure(detailKey = "actionRetryDetail") {
+      lastError.set(ctx.t("actionNeedsAttention"));
+      errorDetail.set(ctx.t(detailKey));
+      workflowStatus.set(ctx.t("workflowFailed"));
+    }
+
+    function clearFailure() {
+      lastError.set("");
+      errorDetail.set("");
+    }
+
+    function requirePublicContext(): { network: NeoNetwork; contractHash: string } {
+      const registryHash = normalizeAnchorHash(getMiniAppContractHash(CUSTOM_ANCHOR_APP_ID, launchNetwork));
+      const configuredHash = normalizeAnchorHash(ctx.framework.chain.contractAddress?.get?.(), true);
+      if (
+        !registryHash || !anchorHashesMatch(registryHash, launchBinding.contractHash) ||
+        (configuredHash && !anchorHashesMatch(configuredHash, launchBinding.contractHash))
+      ) {
+        networkStatus.set("mismatch");
+        throw new Error("anchorContractMismatch");
+      }
+      if (networkStatus.get() !== "verified") networkStatus.set("bound");
+      return { network: launchNetwork, contractHash: launchBinding.contractHash };
+    }
+
+    async function requireWriteContext(): Promise<{ network: NeoNetwork; contractHash: string; walletHash: string; wallet: string }> {
+      const context = requirePublicContext();
+      const wallet = await ctx.framework.chain.ensureWallet();
+      const detected = explicitAnchorNetwork(await ctx.framework.chain.detectNetwork());
+      if (!detected || detected !== context.network) {
+        networkStatus.set("mismatch");
+        throw new Error("anchorWalletNetworkMismatch");
+      }
+      const walletHash = normalizeAnchorHash(wallet);
+      const connectedHash = normalizeAnchorHash(ctx.framework.chain.address.get());
+      if (!walletHash || !connectedHash || walletHash !== connectedHash) {
+        networkStatus.set("mismatch");
+        throw new Error("anchorWalletMismatch");
+      }
+      networkStatus.set("verified");
+      return { ...context, walletHash, wallet };
+    }
+
+    function anchorOptions<T extends Record<string, unknown>>(options?: T) {
+      const { contractHash } = requirePublicContext();
+      return { ...(options ?? {}), scriptHash: contractHash };
+    }
+
+    async function readNonNegative(
+      operation: string,
+      args: FrameworkContractArg[],
+      options?: Record<string, unknown>,
+    ): Promise<bigint> {
+      const raw = await ctx.framework.chain.readRaw(operation, args, options ?? anchorOptions());
+      const parsed = parseAnchorNonNegative(raw);
+      if (parsed === null) throw new Error("anchorReadUnavailable");
+      return parsed;
+    }
+
+    async function readCreditRaw(walletHash: string, asset: "NEO" | "GAS"): Promise<bigint> {
+      return readNonNegative("getCredit", [
+        ctx.framework.chain.arg.hash160(walletHash),
+        ctx.framework.chain.arg.string(asset),
+      ], anchorOptions());
+    }
+
+    async function loadCredits(): Promise<void> {
       const address = ctx.framework.chain.address.get();
       if (!address) {
-        neoCredit.set("0"); gasCredit.set("0");
-        neoCreditRaw.set("0"); gasCreditRaw.set("0");
+        neoCredit.set(UNKNOWN_VALUE);
+        gasCredit.set(UNKNOWN_VALUE);
+        neoCreditRaw.set("");
+        gasCreditRaw.set("");
+        creditStatus.set("disconnected");
         return;
       }
+      const walletHash = normalizeAnchorHash(address);
+      if (!walletHash) {
+        neoCredit.set(UNKNOWN_VALUE);
+        gasCredit.set(UNKNOWN_VALUE);
+        neoCreditRaw.set("");
+        gasCreditRaw.set("");
+        creditStatus.set("unavailable");
+        return;
+      }
+      creditStatus.set("loading");
       try {
-        // address is non-empty here (guarded above); arg.hash160 THROWS on an
-        // empty/invalid address, so it is only built inside this try after the
-        // guard (a build failure would be caught and zero the credit like any
-        // read failure — the existing behavior).
-        const accountArg = ctx.framework.chain.arg.hash160(address);
         const [neo, gas] = await Promise.all([
-          ctx.framework.chain.readRaw("getCredit", [
-            accountArg,
-            ctx.framework.chain.arg.string("NEO"),
-          ], anchorOptions()),
-          ctx.framework.chain.readRaw("getCredit", [
-            accountArg,
-            ctx.framework.chain.arg.string("GAS"),
-          ], anchorOptions()),
+          readCreditRaw(walletHash, "NEO"),
+          readCreditRaw(walletHash, "GAS"),
         ]);
-        const neoBase = parseBigInt(neo);
-        const gasBase = parseBigInt(gas);
-        neoCreditRaw.set(neoBase.toString());
-        gasCreditRaw.set(gasBase.toString());
-        // NEO credit is whole NEO; GAS credit is fixed8.
-        neoCredit.set(neoBase > 0n ? fromWholeNeo(neoBase.toString()) : "0");
-        gasCredit.set(gasBase > 0n ? fromFixed8(gasBase.toString()) : "0");
+        neoCreditRaw.set(neo.toString());
+        gasCreditRaw.set(gas.toString());
+        neoCredit.set(formatAnchorWhole(neo));
+        gasCredit.set(formatAnchorFixed(gas));
+        creditStatus.set("ready");
       } catch {
-        // Credit recovery is an exit affordance — never block the main UI on it.
-        neoCredit.set("0"); gasCredit.set("0");
-        neoCreditRaw.set("0"); gasCreditRaw.set("0");
+        neoCredit.set(UNKNOWN_VALUE);
+        gasCredit.set(UNKNOWN_VALUE);
+        neoCreditRaw.set("");
+        gasCreditRaw.set("");
+        creditStatus.set("unavailable");
       }
     }
 
-    async function loadData() {
-      const target = anchorAppId.get();
-      // Credits are wallet-scoped, independent of any anchor — load them even
-      // before an anchor is linked so stranded funds are always recoverable.
+    async function loadData(): Promise<void> {
       await loadCredits();
+      const target = anchorAppId.get().trim();
       if (!target) {
         anchorMode.set(-1);
+        dataStatus.set("idle");
         return;
       }
-      lastError.set("");
+      dataStatus.set("loading");
       isLoading.set(true);
+      clearFailure();
       try {
-        // Existence check FIRST: getAppMode == 0 means the anchor is not
-        // registered, so the all-zero reads below would otherwise show a
-        // plausible-but-fake anchor. Surface an explicit "not registered" state
-        // and skip the money reads.
-        const mode = stackNumber(
-          await ctx.framework.chain.readRaw("getAppMode", [ctx.framework.chain.arg.string(target)], anchorOptions()),
-        );
-        anchorMode.set(mode);
-        if (mode <= 0) {
-          totalStaked.set("0"); rewardReserve.set("0"); agentCount.set(0);
-          userStake.set("0"); pendingRewards.set("0"); rewardPerNeo.set("0");
+        const targetArg = ctx.framework.chain.arg.string(targetAnchorId(target));
+        const modeRaw = await ctx.framework.chain.readRaw("getAppMode", [targetArg], anchorOptions());
+        const modeValue = parseAnchorNonNegative(modeRaw);
+        if (modeValue === null || modeValue > 2n) throw new Error("anchorReadUnavailable");
+        if (modeValue === 0n) {
+          anchorMode.set(0);
+          totalStaked.set("0");
+          rewardReserve.set("0");
+          agentCount.set(0);
+          rewardPerNeo.set("0");
+          userStake.set("0");
+          pendingRewards.set("0");
+          dataStatus.set("missing");
           workflowStatus.set(ctx.t("anchorNotRegistered"));
           return;
         }
-
-        const targetArg = ctx.framework.chain.arg.string(target);
-        const [total, reserve, agents, rps] = await Promise.all([
+        const [totalRaw, reserveRaw, agentsRaw, rewardRaw] = await Promise.all([
           ctx.framework.chain.readRaw("getTotalStaked", [targetArg], anchorOptions()),
           ctx.framework.chain.readRaw("getRewardReserve", [targetArg], anchorOptions()),
           ctx.framework.chain.readRaw("getAgentCount", [targetArg], anchorOptions()),
           ctx.framework.chain.readRaw("getRewardPerNeo", [targetArg], anchorOptions()),
         ]);
-        totalStaked.set(fromWholeNeo(total));
-        rewardReserve.set(fromFixed8(reserve));
-        agentCount.set(stackNumber(agents));
-        rewardPerNeo.set(fromRewardPerNeo(rps));
+        const total = parseAnchorNonNegative(totalRaw);
+        const reserve = parseAnchorNonNegative(reserveRaw);
+        const agents = parseAnchorNonNegative(agentsRaw);
+        const reward = parseAnchorNonNegative(rewardRaw);
+        if (total === null || reserve === null || agents === null || reward === null || agents > 21n) {
+          throw new Error("anchorReadUnavailable");
+        }
 
+        let walletStake: bigint | null = null;
+        let walletRewards: bigint | null = null;
         const address = ctx.framework.chain.address.get();
         if (address) {
-          const userArg = ctx.framework.chain.arg.hash160(address);
-          const [stake, rewards] = await Promise.all([
-            ctx.framework.chain.readRaw("getUserStake", [
-              targetArg,
-              userArg,
-            ], anchorOptions()),
-            ctx.framework.chain.readRaw("getPendingRewards", [
-              targetArg,
-              userArg,
-            ], anchorOptions()),
+          const walletHash = normalizeAnchorHash(address);
+          if (!walletHash) throw new Error("anchorWalletMismatch");
+          const walletArg = ctx.framework.chain.arg.hash160(walletHash);
+          const [stakeRaw, pendingRaw] = await Promise.all([
+            ctx.framework.chain.readRaw("getUserStake", [targetArg, walletArg], anchorOptions()),
+            ctx.framework.chain.readRaw("getPendingRewards", [targetArg, walletArg], anchorOptions()),
           ]);
-          userStake.set(fromWholeNeo(stake));
-          pendingRewards.set(fromFixed8(rewards));
+          walletStake = parseAnchorNonNegative(stakeRaw);
+          walletRewards = parseAnchorNonNegative(pendingRaw);
+          if (walletStake === null || walletRewards === null) throw new Error("anchorReadUnavailable");
         }
+
+        anchorMode.set(Number(modeValue));
+        totalStaked.set(formatAnchorWhole(total));
+        rewardReserve.set(formatAnchorFixed(reserve));
+        agentCount.set(Number(agents));
+        rewardPerNeo.set(formatAnchorFixed(reward, 16));
+        userStake.set(walletStake === null ? UNKNOWN_VALUE : formatAnchorWhole(walletStake));
+        pendingRewards.set(walletRewards === null ? UNKNOWN_VALUE : formatAnchorFixed(walletRewards));
+        dataStatus.set("ready");
         workflowStatus.set(ctx.t("statusLoaded"));
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        lastError.set(message);
-        workflowStatus.set(ctx.t("workflowFailed"));
-        throw e;
+      } catch {
+        dataStatus.set("unavailable");
+        setFriendlyFailure("anchorReadUnavailableDetail");
       } finally {
         isLoading.set(false);
       }
     }
 
-    /** Build the discovery list from AnchorAppRegistered events (newest first). */
-    async function loadDiscovered() {
+    async function loadDiscovered(): Promise<void> {
       try {
-        const events = await ctx.framework.chain.events("AnchorAppRegistered", {
-          limit: REGISTERED_EVENTS_LIMIT,
-        });
+        requirePublicContext();
+        const events = await ctx.framework.chain.events("AnchorAppRegistered", { limit: REGISTERED_EVENTS_LIMIT });
         const seen = new Set<string>();
-        const out: Array<{ appId: string; mode: number }> = [];
-        // AnchorAppRegistered(appId, mode, appAdmin) — appId in slot 0, mode in 1.
-        // NOTE: kept on the strict eventValue decode (framework canonical via
-        // the shared re-export) rather than app.chain.eventValue, whose
-        // defensive eventStateValue fallback returns the raw slot item when
-        // `value` is null — a subtle shape difference this decode must not
-        // inherit (byte-identical discovery behavior).
+        const discovered: Array<{ appId: string; mode: number }> = [];
         for (const event of events) {
-          const id = String(eventValue(event, 0) ?? "").trim();
-          if (!id || seen.has(id)) continue;
+          const slots = eventSlots(event);
+          const id = eventText(slots[0]);
+          const mode = parseAnchorInteger(slots[1]);
+          if (!isContractAnchorId(id) || (mode !== 1n && mode !== 2n) || seen.has(id)) continue;
           seen.add(id);
-          out.push({ appId: id, mode: stackNumber(eventValue(event, 1)) });
+          discovered.push({ appId: id, mode: Number(mode) });
         }
-        out.reverse();
-        discoveredAnchors.set(out.slice(0, 12));
+        discovered.reverse();
+        discoveredAnchors.set(discovered.slice(0, 12));
       } catch {
-        discoveredAnchors.set([]);
+        // Discovery is secondary. Preserve verified rows rather than replacing
+        // them with a misleading empty result during an indexer outage.
       }
     }
 
-    /**
-     * Guard + error-recovery wrapper for every write action. Blocks
-     * double-submits (the #1 regression this app had vs profitanchor), ensures
-     * the busy flag is released in finally so a wallet rejection / RPC error
-     * never leaves the surface stuck on "Submitting…", and surfaces a localized
-     * error + failed status instead of an opaque throw.
-     */
-    async function runWrite<T>(
-      fn: () => Promise<T>,
-    ): Promise<T | undefined> {
-      if (submitting.get()) return undefined; // double-submit guard
+    function storePending(value: PendingAnchorOperation | null): void {
+      try {
+        persistPendingAnchorOperation(storage, value);
+        pendingOperation.set(value);
+        storageStatus.set("ready");
+        if (!value) lastTxid.set("");
+      } catch {
+        storageStatus.set("unavailable");
+        throw new Error("anchorRecoveryStorageUnavailable");
+      }
+    }
+
+    function assertCanStart(): void {
+      if (pendingOperation.get()) throw new Error("anchorPendingExists");
+      if (pendingState.get() === "corrupted") throw new Error("anchorPendingCorrupted");
+      try {
+        assertAnchorStorage(storage);
+        storageStatus.set("ready");
+      } catch {
+        storageStatus.set("unavailable");
+        throw new Error("anchorRecoveryStorageUnavailable");
+      }
+    }
+
+    function buildPending(
+      kind: AnchorOperationKind,
+      stage: PendingAnchorOperation["stage"],
+      context: { network: NeoNetwork; contractHash: string; walletHash: string },
+      intent: PendingAnchorOperation["intent"],
+      aaCoreHash = "",
+    ): PendingAnchorOperation {
+      const now = Date.now();
+      const pending: PendingAnchorOperation = {
+        version: 2,
+        kind,
+        stage,
+        phase: "prepared",
+        network: context.network,
+        contractHash: context.contractHash,
+        aaCoreHash,
+        walletHash: context.walletHash,
+        txid: "",
+        intent,
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (!isPendingAnchorOperation(pending)) throw new Error("anchorPendingInvalid");
+      return pending;
+    }
+
+    async function readbackMatches(pending: PendingAnchorOperation): Promise<boolean> {
+      if (!isPendingAnchorOperation(pending)) return false;
+      const anchorArg = ctx.framework.chain.arg.string(pending.intent.anchorAppId);
+      const walletArg = ctx.framework.chain.arg.hash160(pending.walletHash);
+      if (pending.stage === "register-fee") {
+        return (await readCreditRaw(pending.walletHash, "GAS")) >= BigInt(CUSTOM_ANCHOR_REGISTRATION_FEE);
+      }
+      if (pending.stage === "register-anchor") {
+        const [modeRaw, adminRaw] = await Promise.all([
+          ctx.framework.chain.readRaw("getAppMode", [anchorArg], anchorOptions()),
+          ctx.framework.chain.readRaw("getAppAdmin", [anchorArg], anchorOptions()),
+        ]);
+        return parseAnchorInteger(modeRaw) === BigInt(pending.intent.mode ?? 0) && chainHash(adminRaw) === pending.walletHash;
+      }
+      if (pending.stage === "register-accounts") {
+        const owners = await Promise.all((pending.intent.agentAccounts ?? []).map((account) =>
+          ctx.framework.chain.readRaw("getBackupOwner", [ctx.framework.chain.arg.hash160(account)], { scriptHash: pending.aaCoreHash }),
+        ));
+        return owners.length === 21 && owners.every((owner) => chainHash(owner) === pending.walletHash);
+      }
+      if (pending.stage === "register-agents") {
+        const count = await readNonNegative("getAgentCount", [anchorArg], anchorOptions());
+        if (count !== 21n) return false;
+        const accounts = pending.intent.agentAccounts ?? [];
+        const candidates = pending.intent.candidateKeys ?? [];
+        const bindings = await Promise.all(accounts.map((_, index) => Promise.all([
+          ctx.framework.chain.readRaw("getAgentAccount", [anchorArg, ctx.framework.chain.arg.integer(index + 1)], anchorOptions()),
+          ctx.framework.chain.readRaw("getAgentCandidate", [anchorArg, ctx.framework.chain.arg.integer(index + 1)], anchorOptions()),
+        ])));
+        return bindings.length === 21 && bindings.every(([account, candidate], index) =>
+          chainHash(account) === normalizeAnchorHash(accounts[index]) && publicKey(candidate) === candidates[index]?.toLowerCase(),
+        );
+      }
+      if (pending.stage === "stake" || pending.stage === "withdraw") {
+        const stake = await readNonNegative("getUserStake", [anchorArg, walletArg], anchorOptions());
+        return stake.toString() === pending.intent.expectedValue;
+      }
+      if (pending.stage === "claim") {
+        const rewards = await readNonNegative("getPendingRewards", [anchorArg, walletArg], anchorOptions());
+        return rewards < BigInt(pending.intent.beforeValue ?? "0");
+      }
+      if (pending.stage === "recover-credit") {
+        const credit = await readCreditRaw(pending.walletHash, pending.intent.asset ?? "GAS");
+        return credit.toString() === pending.intent.expectedValue;
+      }
+      return false;
+    }
+
+    async function advanceRegistration(
+      pending: PendingAnchorOperation,
+      continueNow: boolean,
+    ): Promise<boolean> {
+      const next = nextRegistrationStage(pending.stage as AnchorRegistrationStage);
+      if (next === "complete") {
+        storePending(null);
+        pendingState.set("confirmed");
+        workflowStatus.set(ctx.t("registerSubmitted"));
+        await loadData();
+        await loadDiscovered();
+        return true;
+      }
+      const prepared: PendingAnchorOperation = {
+        ...pending,
+        stage: next,
+        phase: "prepared",
+        txid: "",
+        updatedAt: Date.now(),
+      };
+      storePending(prepared);
+      pendingState.set("prepared");
+      workflowStatus.set(ctx.t("registerReadyToContinue"));
+      if (continueNow) return executePrepared(prepared, true);
+      return true;
+    }
+
+    async function confirmBroadcast(pending: PendingAnchorOperation, continueNow: boolean): Promise<boolean> {
+      if (pending.phase !== "broadcast" || !pending.txid) return false;
+      workflowStatus.set(ctx.t("pendingChecking"));
+      const outcome = await readAnchorTransactionOutcome(pending.network, pending.txid);
+      if (outcome.state === "unknown") {
+        pendingState.set("pending");
+        workflowStatus.set(ctx.t("pendingStillWaiting"));
+        return false;
+      }
+      if (outcome.state === "fault") {
+        storePending(null);
+        pendingState.set("fault");
+        setFriendlyFailure("pendingFaultDetail");
+        return false;
+      }
+      if (!pendingAnchorEventsMatch(pending, outcome)) {
+        pendingState.set("mismatch");
+        setFriendlyFailure("pendingEventMismatchDetail");
+        return false;
+      }
+      let readback = false;
+      try {
+        readback = await readbackMatches(pending);
+      } catch {
+        readback = false;
+      }
+      if (!readback) {
+        pendingState.set("readback");
+        workflowStatus.set(ctx.t("pendingReadbackWaiting"));
+        return false;
+      }
+      if (pending.kind === "register") return advanceRegistration(pending, continueNow);
+
+      storePending(null);
+      pendingState.set("confirmed");
+      workflowStatus.set(ctx.t(`${pending.kind.replace("-credit", "")}Confirmed`));
+      await loadData();
+      return true;
+    }
+
+    function captureBroadcast(pending: PendingAnchorOperation, transactionId: string): PendingAnchorOperation {
+      const txid = validTxid(transactionId);
+      if (!txid) throw new Error("anchorTransactionIdUnavailable");
+      const broadcast: PendingAnchorOperation = {
+        ...pending,
+        phase: "broadcast",
+        txid,
+        updatedAt: Date.now(),
+      };
+      storePending(broadcast);
+      pendingState.set("pending");
+      lastTxid.set(txid);
+      workflowStatus.set(ctx.t("pendingBroadcast"));
+      return broadcast;
+    }
+
+    async function executePrepared(pending: PendingAnchorOperation, continueRegistration = false): Promise<boolean> {
+      const current = pendingOperation.get();
+      if (!current || current.phase !== "prepared" || JSON.stringify(current) !== JSON.stringify(pending)) return false;
+      const context = await requireWriteContext();
+      if (
+        context.network !== pending.network || !anchorHashesMatch(context.contractHash, pending.contractHash) ||
+        context.walletHash !== pending.walletHash
+      ) throw new Error("anchorPendingContextMismatch");
+
+      if (pending.stage === "register-fee") {
+        const credit = await readCreditRaw(pending.walletHash, "GAS");
+        if (credit >= BigInt(CUSTOM_ANCHOR_REGISTRATION_FEE)) {
+          return advanceRegistration(pending, continueRegistration);
+        }
+      }
+
+      const attempted: PendingAnchorOperation = { ...pending, phase: "attempted", updatedAt: Date.now() };
+      storePending(attempted);
+      pendingState.set("attempted");
+      workflowStatus.set(ctx.t("pendingWallet"));
+      let broadcast = attempted;
+      const onTransactionSent = (txid: string) => { broadcast = captureBroadcast(attempted, txid); };
+
+      try {
+        let result: { txid?: string };
+        if (pending.stage === "register-fee") {
+          result = await ctx.framework.chain.invoke("transfer", [
+            ctx.framework.chain.arg.hash160(context.walletHash),
+            ctx.framework.chain.arg.hash160(context.contractHash),
+            ctx.framework.chain.arg.integer(CUSTOM_ANCHOR_REGISTRATION_FEE),
+            ctx.framework.chain.arg.string(""),
+          ], { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, onTransactionSent });
+        } else if (pending.kind === "register") {
+          const candidates = pending.intent.candidateKeys ?? [];
+          const plan = buildAnchorRegistrationInvocations({
+            appId: pending.intent.anchorAppId,
+            mode: pending.intent.mode,
+            ownerAddress: pending.walletHash,
+            candidateKeys: candidates,
+          });
+          if (pending.stage === "register-anchor") {
+            result = await ctx.framework.chain.invoke("registerCustomAnchorApp", [
+              ctx.framework.chain.arg.string(pending.intent.anchorAppId),
+              ctx.framework.chain.arg.integer(pending.intent.mode ?? MODE_TRUST),
+              ctx.framework.chain.arg.hash160(pending.walletHash),
+            ], anchorOptions({ waitForEvent: "AnchorAppRegistered", onTransactionSent }));
+          } else if (pending.stage === "register-accounts") {
+            const call = plan.invocations.find((invocation) => invocation.operation === "registerAccounts");
+            if (!call) throw new Error("anchorProvisioningPlanUnavailable");
+            result = await ctx.framework.chain.invoke(call.operation, toChainArgs(call.args), {
+              scriptHash: pending.aaCoreHash,
+              waitForEvent: "AccountRegistered",
+              onTransactionSent,
+            });
+          } else {
+            const call = plan.invocations.find((invocation) => invocation.operation === "registerAgents");
+            if (!call) throw new Error("anchorProvisioningPlanUnavailable");
+            result = await ctx.framework.chain.invoke(call.operation, toChainArgs(call.args),
+              anchorOptions({ waitForEvent: "AnchorAgentRegistered", onTransactionSent }));
+          }
+        } else if (pending.stage === "stake") {
+          result = await ctx.framework.chain.invoke("transfer", [
+            ctx.framework.chain.arg.hash160(pending.walletHash),
+            ctx.framework.chain.arg.hash160(pending.contractHash),
+            ctx.framework.chain.arg.integer(pending.intent.amountBase ?? "0"),
+            ctx.framework.chain.arg.string(`stake:${pending.intent.anchorAppId}`),
+          ], { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH, waitForEvent: "AnchorStakeChanged", onTransactionSent });
+        } else if (pending.stage === "withdraw") {
+          result = await ctx.framework.chain.invoke("withdraw", [
+            ctx.framework.chain.arg.string(pending.intent.anchorAppId),
+            ctx.framework.chain.arg.hash160(pending.walletHash),
+            ctx.framework.chain.arg.integer(pending.intent.amountBase ?? "0"),
+          ], anchorOptions({ waitForEvent: "AnchorStakeChanged", onTransactionSent }));
+        } else if (pending.stage === "claim") {
+          result = await ctx.framework.chain.invoke("claimRewards", [
+            ctx.framework.chain.arg.string(pending.intent.anchorAppId),
+            ctx.framework.chain.arg.hash160(pending.walletHash),
+          ], anchorOptions({ waitForEvent: "AnchorRewardsClaimed", onTransactionSent }));
+        } else {
+          result = await ctx.framework.chain.invoke("withdrawCredit", [
+            ctx.framework.chain.arg.hash160(pending.walletHash),
+            ctx.framework.chain.arg.string(pending.intent.asset ?? "GAS"),
+            ctx.framework.chain.arg.integer(pending.intent.amountBase ?? "0"),
+          ], anchorOptions({ onTransactionSent }));
+        }
+
+        if (broadcast.phase !== "broadcast") broadcast = captureBroadcast(attempted, String(result.txid ?? ""));
+        return confirmBroadcast(broadcast, continueRegistration);
+      } catch (error) {
+        if (broadcast.phase !== "broadcast" && isExplicitWalletRejection(error)) {
+          storePending(null);
+          pendingState.set("none");
+          workflowStatus.set(ctx.t("pendingWalletCancelled"));
+        }
+        throw error;
+      }
+    }
+
+    async function runWrite<T>(fn: () => Promise<T>): Promise<T | undefined> {
+      if (submitting.get()) return undefined;
       submitting.set(true);
-      lastError.set("");
+      clearFailure();
       try {
         return await fn();
-      } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
-        lastError.set(message);
-        workflowStatus.set(ctx.t("workflowFailed"));
-        throw e;
+      } catch {
+        setFriendlyFailure();
+        return undefined;
       } finally {
         submitting.set(false);
       }
     }
 
-    ctx.framework.actions.register("stake", async (...args: unknown[]) => {
-      return runWrite(async () => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
+    async function startBalanceOperation(
+      kind: "stake" | "withdraw" | "claim",
+      form: Record<string, unknown>,
+    ): Promise<void> {
+      assertCanStart();
+      const context = await requireWriteContext();
       const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
-      const contract = getMiniAppContractHash(appId);
-      if (!contract) throw new Error("PlatformAnchor contract is not configured.");
-      const user = await ctx.framework.chain.ensureWallet();
-      const amount = wholeNeo(form.amount);
-      workflowStatus.set(ctx.t("stakeSubmitting"));
-      const result = await ctx.framework.chain.invoke("transfer", [
-        ctx.framework.chain.arg.hash160(user),
-        ctx.framework.chain.arg.hash160(contract),
-        ctx.framework.chain.arg.integer(amount),
-        ctx.framework.chain.arg.string(`stake:${target}`),
-      ], {
-        scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
-        // Wait on the contract's stake event so the post-write refresh reads the
-        // settled stake. The prior 1.5s override expired before the event landed
-        // (the "stale refresh" friction) — use the service default (45s).
-        waitForEvent: "AnchorStakeChanged",
-      });
-      anchorAppId.set(target);
-      lastTxid.set(result.txid);
-      workflowStatus.set(ctx.t("stakeSubmitted"));
-      await loadData();
-      return result;
-      });
-    });
+      const targetArg = ctx.framework.chain.arg.string(target);
+      const walletArg = ctx.framework.chain.arg.hash160(context.walletHash);
+      const mode = await readNonNegative("getAppMode", [targetArg], anchorOptions());
+      if (mode !== 1n && mode !== 2n) throw new Error("anchorNotRegistered");
 
-    ctx.framework.actions.register("withdraw", async (...args: unknown[]) => {
-      return runWrite(async () => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
-      const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
-      const user = await ctx.framework.chain.ensureWallet();
-      workflowStatus.set(ctx.t("withdrawSubmitting"));
-      const result = await ctx.framework.chain.invoke("withdraw", [
-        ctx.framework.chain.arg.string(target),
-        ctx.framework.chain.arg.hash160(user),
-        ctx.framework.chain.arg.integer(wholeNeo(form.amount)),
-      ], anchorOptions({ waitForEvent: "AnchorStakeChanged" }));
+      let pending: PendingAnchorOperation;
+      if (kind === "claim") {
+        const before = await readNonNegative("getPendingRewards", [targetArg, walletArg], anchorOptions());
+        if (before <= 0n) throw new Error("anchorNoRewards");
+        pending = buildPending("claim", "claim", context, {
+          anchorAppId: target,
+          beforeValue: before.toString(),
+          expectedValue: "0",
+        });
+      } else {
+        const amount = wholeNeo(form.amount);
+        const before = await readNonNegative("getUserStake", [targetArg, walletArg], anchorOptions());
+        if (kind === "withdraw" && before < amount) throw new Error("anchorInsufficientStake");
+        const expected = kind === "stake" ? before + amount : before - amount;
+        pending = buildPending(kind, kind, context, {
+          anchorAppId: target,
+          amountBase: amount.toString(),
+          beforeValue: before.toString(),
+          expectedValue: expected.toString(),
+        });
+      }
       anchorAppId.set(target);
-      lastTxid.set(result.txid);
-      workflowStatus.set(ctx.t("withdrawSubmitted"));
-      await loadData();
-      return result;
-      });
-    });
+      storePending(pending);
+      pendingState.set("prepared");
+      await executePrepared(pending);
+    }
 
-    ctx.framework.actions.register("claimRewards", async (...args: unknown[]) => {
-      return runWrite(async () => {
+    ctx.framework.actions.register("stake", async (...args: unknown[]) => runWrite(async () => {
+      await startBalanceOperation("stake", (args[0] ?? {}) as Record<string, unknown>);
+    }));
+
+    ctx.framework.actions.register("withdraw", async (...args: unknown[]) => runWrite(async () => {
+      await startBalanceOperation("withdraw", (args[0] ?? {}) as Record<string, unknown>);
+    }));
+
+    ctx.framework.actions.register("claimRewards", async (...args: unknown[]) => runWrite(async () => {
+      await startBalanceOperation("claim", (args[0] ?? {}) as Record<string, unknown>);
+    }));
+
+    ctx.framework.actions.register("register", async (...args: unknown[]) => runWrite(async () => {
+      assertCanStart();
       const form = (args[0] ?? {}) as Record<string, unknown>;
-      const target = targetAnchorId(form.anchorAppId || anchorAppId.get());
-      const user = await ctx.framework.chain.ensureWallet();
-      workflowStatus.set(ctx.t("claimSubmitting"));
-      const result = await ctx.framework.chain.invoke("claimRewards", [
-        ctx.framework.chain.arg.string(target),
-        ctx.framework.chain.arg.hash160(user),
-      ], anchorOptions({ waitForEvent: "AnchorRewardsClaimed" }));
-      anchorAppId.set(target);
-      lastTxid.set(result.txid);
-      workflowStatus.set(ctx.t("claimSubmitted"));
-      await loadData();
-      return result;
+      const target = strictAnchorId(form.anchorAppId);
+      const context = await requireWriteContext();
+      const mode = parseAnchorInteger(form.mode) === 2n ? 2 : MODE_TRUST;
+      const candidateKeys = parseAnchorCandidateKeys(
+        Array.isArray(form.candidates)
+          ? (form.candidates as unknown[]).map(String).join("\n")
+          : String(form.candidates ?? ""),
+      );
+      const aaCoreHash = normalizeAnchorHash(EXTERNAL_INTEGRATIONS[context.network].contracts.aaCore);
+      if (!aaCoreHash) throw new Error("anchorAaCoreUnavailable");
+      const plan = buildAnchorRegistrationInvocations({
+        appId: target,
+        mode,
+        ownerAddress: context.walletHash,
+        candidateKeys,
       });
-    });
+      const existing = await readNonNegative("getAppMode", [ctx.framework.chain.arg.string(target)], anchorOptions());
+      if (existing !== 0n) throw new Error("anchorAlreadyRegistered");
+      const gasCredit = await readCreditRaw(context.walletHash, "GAS");
+      const stage: AnchorRegistrationStage = gasCredit >= BigInt(CUSTOM_ANCHOR_REGISTRATION_FEE)
+        ? "register-anchor"
+        : "register-fee";
+      const pending = buildPending("register", stage, context, {
+        anchorAppId: target,
+        mode,
+        candidateKeys,
+        agentAccounts: plan.agents.map((agent) => agent.accountId),
+      }, aaCoreHash);
+      anchorAppId.set(target);
+      storePending(pending);
+      pendingState.set("prepared");
+      workflowStatus.set(ctx.t("registerSubmitting"));
+      await executePrepared(pending, true);
+    }));
+
+    ctx.framework.actions.register("recoverCredit", async (...args: unknown[]) => runWrite(async () => {
+      assertCanStart();
+      const asset = String(args[0] ?? "") === "NEO" ? "NEO" : "GAS";
+      const context = await requireWriteContext();
+      const before = await readCreditRaw(context.walletHash, asset);
+      if (before <= 0n) throw new Error("noCreditToRecover");
+      const pending = buildPending("recover-credit", "recover-credit", context, {
+        anchorAppId: anchorAppId.get().trim() || CUSTOM_ANCHOR_APP_ID,
+        asset,
+        amountBase: before.toString(),
+        beforeValue: before.toString(),
+        expectedValue: "0",
+      });
+      storePending(pending);
+      pendingState.set("prepared");
+      await executePrepared(pending);
+    }));
+
+    ctx.framework.actions.register("recoverPending", async () => runWrite(async () => {
+      const pending = pendingOperation.get();
+      if (!pending) return;
+      const context = await requireWriteContext();
+      if (
+        context.network !== pending.network || context.walletHash !== pending.walletHash ||
+        !anchorHashesMatch(context.contractHash, pending.contractHash)
+      ) throw new Error("anchorPendingContextMismatch");
+      if (pending.phase === "broadcast") {
+        await confirmBroadcast(pending, false);
+      } else if (pending.phase === "prepared") {
+        pendingState.set("prepared");
+        workflowStatus.set(ctx.t("pendingReadyToContinue"));
+      } else {
+        pendingState.set("attempted");
+        workflowStatus.set(ctx.t("pendingMissingTxid"));
+      }
+    }));
+
+    ctx.framework.actions.register("resumePending", async () => runWrite(async () => {
+      const pending = pendingOperation.get();
+      if (!pending) return;
+      if (pending.phase === "broadcast") {
+        await confirmBroadcast(pending, false);
+        return;
+      }
+      if (pending.phase !== "prepared") {
+        pendingState.set("attempted");
+        workflowStatus.set(ctx.t("pendingMissingTxid"));
+        return;
+      }
+      await executePrepared(pending, pending.kind === "register");
+    }));
+
+    ctx.framework.actions.register("clearUnbroadcastPending", async () => runWrite(async () => {
+      const pending = pendingOperation.get();
+      if (!pending || pending.phase !== "attempted" || pending.txid) return;
+      const context = await requireWriteContext();
+      if (
+        context.network !== pending.network || context.walletHash !== pending.walletHash ||
+        !anchorHashesMatch(context.contractHash, pending.contractHash)
+      ) throw new Error("anchorPendingContextMismatch");
+      // This is intentionally user-driven. Unknown attempts stay pending by
+      // default; the user may clear only after confirming the wallet rejected
+      // before producing a transaction id.
+      storePending(null);
+      pendingState.set("none");
+      workflowStatus.set(ctx.t("pendingClearedByUser"));
+    }));
 
     ctx.framework.actions.register("refreshAnchor", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
@@ -398,173 +827,10 @@ defineMiniApp({
       await loadData();
     });
 
-    // Register a NEW custom anchor AND provision its 21 AA agents so it earns
-    // immediately. The host detail page does this atomically via the wallet's
-    // invokeMultiple; the standalone chain service has no batch invoke, so we
-    // submit the calls as SEQUENTIAL transactions. This 4-step BUSINESS
-    // sequencing stays app-side by design (framework-extraction plan Wave 4);
-    // each step runs on the framework invoke surface (which never toasts —
-    // this flow owns its own workflowStatus copy), and the un-evented steps
-    // are gated by app.chain.waitForState confirmation polls:
-    //   1. deposit the 1-GAS registration-fee credit (OnNEP17Payment, no event)
-    //   2. registerCustomAnchorApp(appId, mode, appAdmin)   — mint the anchor
-    //   3. aaCore.registerAccounts(...)                     — register AA agents
-    //   4. anchor.registerAgents(appId, accounts, candidates, scriptHashes)
-    // Without steps 3-4 the anchor is born at agentCount = 0 (inert): staked
-    // NEO neither votes nor earns. The appAdmin witness is the connected wallet.
-    ctx.framework.actions.register("register", async (...args: unknown[]) => {
-      return runWrite(async () => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
-      const target = strictAnchorId(form.anchorAppId);
-      const contract = getMiniAppContractHash(appId);
-      if (!contract) throw new Error("PlatformAnchor contract is not configured.");
-      const user = await ctx.framework.chain.ensureWallet();
-      const mode = stackNumber(form.mode) === 2 ? 2 : MODE_TRUST;
-      // Exactly 21 valid compressed council candidate public keys (duplicates
-      // allowed — RegisterAgents accepts repeats; mirrors the deploy default).
-      const candidateKeys = parseAnchorCandidateKeys(
-        Array.isArray(form.candidates)
-          ? (form.candidates as unknown[]).map((key) => String(key)).join("\n")
-          : String(form.candidates ?? ""),
-      );
-
-      // Source the AA core contract for the wallet's active network so the
-      // agent accounts register against the right deployment. (An earlier
-      // comment here claimed detectNetwork had no framework surface — stale:
-      // app.chain.detectNetwork exists and falls back to the launch-context
-      // network on hosts without the capability.)
-      const network = resolveNeoNetwork(await ctx.framework.chain.detectNetwork());
-      const aaCoreHash = EXTERNAL_INTEGRATIONS[network].contracts.aaCore;
-      if (!/^0x[0-9a-fA-F]{40}$/.test(aaCoreHash)) {
-        throw new Error("AA core contract is not configured for this network.");
-      }
-
-      // Build the provisioning plan up front so a bad input fails before any
-      // money/credit is spent. The derived agent accounts + invocation args are
-      // byte-identical to the host detail page.
-      const plan = buildAnchorRegistrationInvocations({
-        appId: target,
-        mode,
-        ownerAddress: user,
-        candidateKeys,
-      });
-      const registerAccountsCall = plan.invocations.find((i) => i.operation === "registerAccounts");
-      const registerAgentsCall = plan.invocations.find((i) => i.operation === "registerAgents");
-      if (!registerAccountsCall || !registerAgentsCall) {
-        throw new Error("Failed to build anchor agent provisioning plan.");
-      }
-
-      // Reject re-registering an already-registered anchor before spending the fee.
-      const existing = stackNumber(
-        await ctx.framework.chain.readRaw("getAppMode", [ctx.framework.chain.arg.string(target)], anchorOptions()),
-      );
-      if (existing > 0) throw new Error(ctx.t("anchorAlreadyRegistered"));
-
-      workflowStatus.set(ctx.t("registerSubmitting"));
-      // Step 1: top up the 1-GAS prepaid credit (only if the wallet lacks it).
-      // The contract credits the deposit in OnNEP17Payment but emits no event,
-      // so poll the wallet's on-contract GAS credit — the exact precondition
-      // the register call consumes — until it covers the fee. On timeout the
-      // flow proceeds exactly like the retired N3Index wait did: a premature
-      // register call faults, and the credited deposit stays reclaimable via
-      // the stranded-credit recovery lane (recoverCredit).
-      const haveGas = parseBigInt(gasCreditRaw.get());
-      if (haveGas < BigInt(REGISTRATION_FEE_BASE)) {
-        await ctx.framework.chain.invoke("transfer", [
-          ctx.framework.chain.arg.hash160(user),
-          ctx.framework.chain.arg.hash160(contract),
-          ctx.framework.chain.arg.integer(REGISTRATION_FEE_BASE),
-          ctx.framework.chain.arg.string(""),
-        ], {
-          scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-        });
-        await ctx.framework.chain.waitForState(
-          async () => parseBigInt(await ctx.framework.chain.readRaw("getCredit", [
-            ctx.framework.chain.arg.hash160(user),
-            ctx.framework.chain.arg.string("GAS"),
-          ], anchorOptions())),
-          (credit) => credit >= BigInt(REGISTRATION_FEE_BASE),
-        );
-      }
-      // Step 2: register the anchor app, consuming the prepaid credit.
-      const result = await ctx.framework.chain.invoke("registerCustomAnchorApp", [
-        ctx.framework.chain.arg.string(target),
-        ctx.framework.chain.arg.integer(mode),
-        ctx.framework.chain.arg.hash160(user),
-      ], anchorOptions({ waitForEvent: "AnchorAppRegistered" }));
-      anchorAppId.set(target);
-      lastTxid.set(result.txid);
-
-      // Step 3: register the 21 AA agent accounts with the AA core. No anchor
-      // event fires here, so poll the AA core until the first derived agent
-      // account exists (its backup owner reads non-zero) — the precondition
-      // step 4 needs before binding agents. On timeout the flow proceeds like
-      // the retired N3Index tx wait did and step 4 surfaces any fault.
-      workflowStatus.set(ctx.t("registerProvisioningAccounts"));
-      const accountsTx = await ctx.framework.chain.invoke(
-        registerAccountsCall.operation,
-        toChainArgs(registerAccountsCall.args),
-        { scriptHash: aaCoreHash },
-      );
-      lastTxid.set(accountsTx.txid);
-      const firstAgentId = plan.agents[0]?.accountId ?? "";
-      await ctx.framework.chain.waitForState(
-        () => ctx.framework.chain.readRaw("getBackupOwner", [
-          ctx.framework.chain.arg.hash160(firstAgentId),
-        ], { scriptHash: aaCoreHash }),
-        (owner) => {
-          const hash = parseHash160(owner);
-          return Boolean(hash) && !/^0x0{40}$/i.test(hash);
-        },
-      );
-
-      // Step 4: bind the 21 agents (account, candidate, script hash) to the
-      // anchor. AnchorAgentRegistered fires per agent — wait on it so the
-      // post-write refresh reads the settled agentCount.
-      workflowStatus.set(ctx.t("registerProvisioningAgents"));
-      const agentsTx = await ctx.framework.chain.invoke(
-        registerAgentsCall.operation,
-        toChainArgs(registerAgentsCall.args),
-        anchorOptions({ waitForEvent: "AnchorAgentRegistered" }),
-      );
-      lastTxid.set(agentsTx.txid);
-
-      workflowStatus.set(ctx.t("registerSubmitted"));
-      await loadData();
-      await loadDiscovered();
-      return agentsTx;
-      });
-    });
-
-    // Reclaim stranded contract credit (NEO or GAS) via withdrawCredit.
-    ctx.framework.actions.register("recoverCredit", async (...args: unknown[]) => {
-      return runWrite(async () => {
-      const asset = String((args[0] ?? "") as string) === "NEO" ? "NEO" : "GAS";
-      const user = await ctx.framework.chain.ensureWallet();
-      const raw = asset === "NEO" ? parseBigInt(neoCreditRaw.get()) : parseBigInt(gasCreditRaw.get());
-      if (raw <= 0n) throw new Error(ctx.t("noCreditToRecover"));
-      workflowStatus.set(ctx.t("recoverSubmitting"));
-      // withdrawCredit transfers the asset back but emits no contract event, so
-      // there is nothing app-scoped to wait on; the post-call loadCredits read
-      // reflects the new (zeroed) balance.
-      const result = await ctx.framework.chain.invoke("withdrawCredit", [
-        ctx.framework.chain.arg.hash160(user),
-        ctx.framework.chain.arg.string(asset),
-        ctx.framework.chain.arg.integer(raw),
-      ], anchorOptions());
-      lastTxid.set(result.txid);
-      workflowStatus.set(ctx.t("recoverSubmitted"));
-      await loadCredits();
-      return result;
-      });
-    });
-
-    ctx.framework.actions.register("discoverAnchors", async () => {
-      await loadDiscovered();
-    });
+    ctx.framework.actions.register("discoverAnchors", loadDiscovered);
 
     ctx.framework.actions.register("selectAnchor", async (...args: unknown[]) => {
-      const target = String((args[0] ?? "") as string).trim();
+      const target = String(args[0] ?? "").trim();
       if (!target) return;
       anchorAppId.set(targetAnchorId(target));
       await loadData();
@@ -583,10 +849,17 @@ defineMiniApp({
         lastTxid,
         workflowStatus,
         lastError,
+        errorDetail,
         isLoading,
         submitting,
         neoCredit,
         gasCredit,
+        dataStatus,
+        creditStatus,
+        networkStatus,
+        storageStatus,
+        pendingOperation,
+        pendingState,
         discoveredAnchors,
       },
       loadData: async () => {

@@ -9,6 +9,10 @@ export const FUND_MEMO = "miniapp-jump-rush:fund";
 
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
+/** Mirrors MiniAppJumpRush.SETTLE_GRACE_MS; expiry is not callable at deadline. */
+export const SETTLE_GRACE_MS = 600_000;
+/** Mirrors MiniAppJumpRush.DEAL_TTL_MS for a game that never reached deal. */
+export const DEAL_TTL_MS = 3_600_000;
 
 export interface DifficultyRule {
   difficulty: number;

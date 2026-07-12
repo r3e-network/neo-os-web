@@ -24,13 +24,19 @@ function makeApp() {
 function t(key: string) {
   const messages: Record<string, string> = {
     createSuccess: "Proof saved",
+    contentTooLong: "Content too long",
     digestCopied: "Digest copied",
     enterContent: "Enter content",
     error: "Error",
     invalidProof: "Invalid proof",
+    localProofFound: "Device proof found",
+    localSaveFailed: "Local save failed",
+    journalCorrupt: "Journal corrupt",
+    journalUnavailable: "Journal unavailable",
     proofDeleted: "Proof deleted",
     proofsCleared: "Proofs cleared",
     referenceCopied: "Reference copied",
+    referenceInspected: "Reference inspected",
     validProof: "Proof found",
     verifyFailed: "Verification failed",
   };
@@ -79,7 +85,8 @@ describe("useTimestampProofContract", () => {
 
     await proofApp.verifyProof("release-notes.pdf v1.2.0");
     expect(proofApp.verifyError.get()).toBe(false);
-    expect(proofApp.lastMessage.get()).toBe("Proof found");
+    expect(proofApp.lastMessage.get()).toBe("Device proof found");
+    expect(proofApp.verificationSource.get()).toBe("local");
   });
 
   it("uses an existing SHA-256 digest directly instead of hashing the digest string again", async () => {
@@ -91,6 +98,19 @@ describe("useTimestampProofContract", () => {
     const proof = proofApp.proofs.get()[0];
     expect(proof?.content).toBe(digest);
     expect(proof?.contentHash).toBe(digest);
+  });
+
+  it("rejects oversized source material before hashing or writing the journal", async () => {
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
+    const statuses: Array<{ message: string; type: string }> = [];
+
+    expect(await proofApp.createProof(
+      "x".repeat(50_001),
+      (message, type) => statuses.push({ message, type }),
+      () => undefined,
+    )).toBe(false);
+    expect(proofApp.proofs.get()).toEqual([]);
+    expect(statuses).toContainEqual({ message: "Content too long", type: "error" });
   });
 
   it("counts every device proof as 'yours' regardless of creator/wallet state", async () => {
@@ -125,8 +145,20 @@ describe("useTimestampProofContract", () => {
     // The exported reference must be self-describing and never carry a synthetic
     // tx-hash-shaped field that a recipient could mistake for an on-chain tx.
     expect(reference).toContain("\"anchored\": false");
+    expect(reference).toContain("\"anchorStatus\": \"local\"");
+    expect(reference).toContain("\"proofSource\": \"device-local\"");
     expect(reference).not.toContain("txHash");
     expect(reference).not.toContain("local:");
+
+    await proofApp.verifyProof(reference);
+    expect(proofApp.verifyError.get()).toBe(false);
+    expect(proofApp.verificationSource.get()).toBe("reference");
+    expect(proofApp.verifiedProof.get()).toMatchObject({
+      id: proof?.id,
+      contentHash: proof?.contentHash,
+      anchored: false,
+    });
+    expect(proofApp.lastMessage.get()).toBe("Reference inspected");
 
     await proofApp.deleteProof(proof?.id ?? 0);
     expect(proofApp.proofs.get()).toHaveLength(0);
@@ -136,5 +168,53 @@ describe("useTimestampProofContract", () => {
     await proofApp.clearProofs();
     expect(proofApp.proofs.get()).toHaveLength(0);
     expect(proofApp.verifiedProof.get()).toBeNull();
+  });
+
+  it("does not report deletion success for a proof that does not exist", async () => {
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
+    await proofApp.loadProofs();
+
+    expect(await proofApp.deleteProof(999)).toBe(false);
+    expect(proofApp.lastMessage.get()).toBe("Invalid proof");
+  });
+
+  it("does not publish a proof or run success cleanup when durable storage readback fails", async () => {
+    const app = makeApp();
+    vi.spyOn(app.storage.local, "set").mockImplementation(() => undefined);
+    const proofApp = useTimestampProofContract({ app, t });
+    const onSuccess = vi.fn();
+    const statuses: Array<{ message: string; type: string }> = [];
+
+    const created = await proofApp.createProof(
+      "draft that must survive in the editor",
+      (message, type) => statuses.push({ message, type }),
+      onSuccess,
+    );
+
+    expect(created).toBe(false);
+    expect(proofApp.proofs.get()).toEqual([]);
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(statuses).toContainEqual({ message: "Local save failed", type: "error" });
+  });
+
+  it("reports an unavailable journal instead of presenting a failed read as zero proofs", async () => {
+    const app = makeApp();
+    vi.spyOn(app.storage.local, "set").mockImplementation(() => undefined);
+    const proofApp = useTimestampProofContract({ app, t });
+
+    expect(await proofApp.loadProofs()).toBe(false);
+    expect(proofApp.storageState.get()).toBe("unavailable");
+    expect(proofApp.proofs.get()).toEqual([]);
+    expect(proofApp.lastMessage.get()).toBe("Journal unavailable");
+  });
+
+  it("preserves a malformed journal for recovery instead of overwriting it as empty", async () => {
+    localStorage.setItem("miniapp-timestamp-proof:proofs:v2", JSON.stringify([{ id: 1, contentHash: "broken" }]));
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
+
+    expect(await proofApp.loadProofs()).toBe(false);
+    expect(proofApp.storageState.get()).toBe("corrupt");
+    expect(await proofApp.createProof("must not overwrite", () => undefined, () => undefined)).toBe(false);
+    expect(localStorage.getItem("miniapp-timestamp-proof:proofs:v2")).toContain("broken");
   });
 });

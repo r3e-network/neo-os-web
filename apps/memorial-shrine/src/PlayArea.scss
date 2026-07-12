@@ -546,7 +546,9 @@
   font-weight: 620;
 }
 
-.shrine-tribute-card[data-state="paying"] .shrine-tribute-card__portrait {
+.shrine-tribute-card[data-phase="broadcast"] .shrine-tribute-card__portrait,
+.shrine-tribute-card[data-phase="checking"] .shrine-tribute-card__portrait,
+.shrine-tribute-card[data-phase="readback-pending"] .shrine-tribute-card__portrait {
   animation: shrine-offering-focus 1.1s var(--mx2-ease-settle) infinite alternate;
 }
 
@@ -584,6 +586,42 @@
 .shrine-drawer-panel--studio.mx2-open-panel.semi-card,
 .shrine-drawer-panel--tribute.mx2-open-panel.semi-card {
   background: linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
+}
+
+.shrine-drawer-panel--transaction {
+  grid-column: 1 / -1;
+}
+
+.shrine-drawer-panel--transaction.mx2-open-panel.semi-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
+}
+
+.shrine-transaction-record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px 12px;
+  color: var(--mx2-text-2);
+  font-size: 12px;
+}
+
+.shrine-transaction-record strong {
+  color: var(--mx2-accent-strong);
+  font-weight: 680;
+}
+
+.shrine-transaction-record code,
+.shrine-transaction-record small {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+
+.shrine-transaction-record code {
+  border-radius: 12px;
+  padding: 9px 11px;
+  background: #fff7e8;
+  color: var(--mx2-ink);
+  font-size: 11px;
 }
 
 .shrine-drawer-panel .mx2-open-panel__icon {
@@ -725,6 +763,104 @@
   box-shadow: none;
 }
 
+.shrine-draft-hint {
+  margin: 2px 0 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: #9f3a2f;
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.4;
+}
+
+.shrine-draft-hint svg {
+  margin-top: 1px;
+  flex: none;
+}
+
+.shrine-chain-notice {
+  width: 100%;
+  margin: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 7px;
+  border: 1px solid rgba(154, 106, 34, 0.18);
+  border-radius: 14px;
+  padding: 9px 11px;
+  background: #fffaf3;
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.45;
+}
+
+.shrine-chain-notice svg {
+  margin-top: 1px;
+  flex: none;
+}
+
+.shrine-chain-notice[data-tone="error"] {
+  border-color: rgba(159, 58, 47, 0.22);
+  background: #fff5f2;
+  color: #8f3128;
+}
+
+.shrine-recovery {
+  width: min(100%, 880px);
+  min-height: 340px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.15fr) minmax(240px, 0.85fr);
+  align-items: center;
+  gap: 24px;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: var(--mx2-r-lg);
+  padding: 18px;
+  background: #fffaf3;
+}
+
+.shrine-recovery > img {
+  width: 100%;
+  height: 300px;
+  display: block;
+  border-radius: var(--mx2-r);
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.shrine-recovery__copy {
+  display: grid;
+  gap: 9px;
+  align-content: center;
+  color: var(--mx2-accent-strong);
+}
+
+.shrine-recovery__copy strong {
+  color: var(--mx2-ink);
+  font-size: 22px;
+  font-weight: 680;
+  line-height: 1.15;
+}
+
+.shrine-recovery__copy p,
+.shrine-recovery__copy small {
+  margin: 0;
+  color: var(--mx2-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.shrine-recovery__spinner {
+  animation: shrine-loading-spin 1s linear infinite;
+}
+
+@keyframes shrine-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes shrine-offering-focus {
   from {
     transform: translateY(0);
@@ -816,6 +952,17 @@
 
   .shrine-workbench[data-mode="create"] {
     min-height: 0;
+  }
+
+  .shrine-recovery {
+    min-height: 0;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .shrine-recovery > img {
+    height: 154px;
   }
 
   .shrine-garden-panel {
@@ -1006,7 +1153,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shrine-tribute-card[data-state="paying"] .shrine-tribute-card__portrait {
+  .shrine-tribute-card[data-phase="broadcast"] .shrine-tribute-card__portrait,
+  .shrine-tribute-card[data-phase="checking"] .shrine-tribute-card__portrait,
+  .shrine-tribute-card[data-phase="readback-pending"] .shrine-tribute-card__portrait {
     animation-duration: 0.001ms !important;
+  }
+
+  .shrine-recovery__spinner {
+    animation: none;
   }
 }

@@ -1,172 +1,366 @@
-/**
- * useAARelayConsole -- Domain logic for AA Relay Console
- *
- * Uses createObservable instead of Vue ref/computed.
- * Called once during setup, returns observables that React components subscribe to.
- *
- * All account-abstraction traffic goes through the framework surface
- * (app.aa.sponsorship.check/request + app.aa.relay); the busy flags are
- * tracked locally around each call so the PlayArea spinners behave exactly
- * as they did against the raw AAService observables.
- */
-
 import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type {
-  FrameworkAaSponsorshipStatus,
-  FrameworkAaSponsorshipResult,
-  FrameworkAaRelayResult,
-} from "@framework/aa";
 import {
   getExternalIntegrationConfig,
   getNetwork,
+  resolveNeoNetwork,
 } from "@shared/constants/rpc";
 import { getDefaultRelayPayload } from "../launch";
+import {
+  draftFingerprint,
+  hasValidRelayReviewDigest,
+  inspectRelayReceipt,
+  isRelayReceipt,
+  isRelayReviewPackage,
+  parseRelayDraft,
+  parseRelayReceipt,
+  prepareRelayReviewPackage,
+  previewRelayDraft,
+  type RelayChainOutcome,
+  type RelayReceipt,
+  type RelayReviewPackage,
+} from "../relay-job";
 
 export interface UseAARelayConsoleOptions {
   app: MiniAppFramework;
   t: (key: string, params?: Record<string, string | number>) => string;
+  fetcher?: typeof fetch;
+  now?: () => number;
 }
 
-type SponsorResult =
-  | FrameworkAaSponsorshipStatus
-  | FrameworkAaSponsorshipResult
-  | FrameworkAaRelayResult
-  | null;
+type SponsorEvidence = {
+  status: "not-checked" | "eligible" | "not-eligible" | "unavailable";
+  remaining: number | null;
+  dailyLimit: string;
+  usedToday: string;
+  checkedAt: number;
+};
 
-export function useAARelayConsole({ app, t }: UseAARelayConsoleOptions) {
-  const network = getNetwork();
+type PersistedRelayJob = {
+  version: 1;
+  network: "mainnet" | "testnet";
+  fingerprint: string;
+  draft: { aaAddress: string; dappId: string; payloadJson: string };
+  review: RelayReviewPackage;
+  receipt: RelayReceipt | null;
+  outcome: RelayChainOutcome | null;
+};
+
+function clean(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+function validOutcome(value: unknown, review: RelayReviewPackage, receipt: RelayReceipt | null): value is RelayChainOutcome {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const outcome = value as Partial<RelayChainOutcome>;
+  return ["accepted", "pending", "confirmed", "fault", "mismatch", "unreachable"].includes(clean(outcome.status))
+    && clean(outcome.txid) === clean(receipt?.txid)
+    && Number.isFinite(outcome.checkedAt)
+    && review.packageDigest === receipt?.packageDigest;
+}
+
+export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: UseAARelayConsoleOptions) {
+  const network = resolveNeoNetwork(app.platform.launch.network || getNetwork());
   const integration = getExternalIntegrationConfig(network);
+  const storageKey = `miniapp-aa-relay-console:v2:${network}`;
 
   const aaAddress = createObservable("");
   const dappId = createObservable("");
-  const sponsorAmount = createObservable("0.1");
   const payloadJson = createObservable(getDefaultRelayPayload(network));
-  const sponsorResult = createObservable<SponsorResult>(null);
-  const lastRelayResult = createObservable<FrameworkAaRelayResult | null>(null);
+  const reviewPackage = createObservable<RelayReviewPackage | null>(null);
+  const relayReceipt = createObservable<RelayReceipt | null>(null);
+  const chainOutcome = createObservable<RelayChainOutcome | null>(null);
+  const sponsorEvidence = createObservable<SponsorEvidence>({
+    status: "not-checked",
+    remaining: null,
+    dailyLimit: "",
+    usedToday: "",
+    checkedAt: 0,
+  });
 
-  // Busy flags for the PlayArea spinners. The sponsorship lane shares one flag
-  // for check AND request (the retired AAService used a single observable for
-  // both), the relay lane has its own.
+  const isPreparing = createObservable(false);
   const isCheckingSponsorship = createObservable(false);
-  const isRelaying = createObservable(false);
+  const isTracking = createObservable(false);
 
-  // Display values
-  const aaAddressDisplay: Observable<string> = {
-    get: () => aaAddress.get() || t("notAvailable"),
-    set: () => {},
-    subscribe: (fn) => aaAddress.subscribe(fn),
-  };
+  const reviewPackageJson = createObservable("");
+  const reviewJobId = createObservable("");
+  const reviewDigest = createObservable("");
+  const reviewReadiness = createObservable("draft");
+  const previewState = createObservable("not-run");
+  const targetDisplay = createObservable("");
+  const methodDisplay = createObservable("");
+  const preparedFingerprint = createObservable("");
+  const sponsorState = createObservable("not-checked");
+  const sponsorSummary = createObservable(t("sponsorNotChecked"));
+  const relayReceiptJson = createObservable("");
+  const receiptStatus = createObservable("none");
+  const txidDisplay = createObservable("");
+  const chainStatus = createObservable("not-tracked");
+  const chainReason = createObservable(t("receiptNotTracked"));
+  const confirmationsDisplay = createObservable("0");
+  const hasReview = createObservable(false);
+  const hasReceipt = createObservable(false);
+  const hasTrackableReceipt = createObservable(false);
 
-  const paymasterDisplay: Observable<string> = {
-    get: () => dappId.get() || t("unset"),
-    set: () => {},
-    subscribe: (fn) => dappId.subscribe(fn),
-  };
+  function refreshView() {
+    const review = reviewPackage.get();
+    const receipt = relayReceipt.get();
+    const outcome = chainOutcome.get();
+    const sponsor = sponsorEvidence.get();
+    reviewPackageJson.set(review ? JSON.stringify(review, null, 2) : "");
+    reviewJobId.set(review?.jobId ?? "");
+    reviewDigest.set(review?.packageDigest ?? "");
+    reviewReadiness.set(review?.readiness ?? "draft");
+    previewState.set(review?.validationPreview.state ?? "not-run");
+    targetDisplay.set(review?.target.contract ?? "");
+    methodDisplay.set(review?.target.method ?? "");
+    relayReceiptJson.set(receipt ? JSON.stringify(receipt, null, 2) : "");
+    receiptStatus.set(receipt?.status ?? "none");
+    txidDisplay.set(receipt?.txid ?? "");
+    chainStatus.set(outcome?.status ?? (receipt?.txid ? "pending" : receipt ? "accepted" : "not-tracked"));
+    chainReason.set(outcome?.reason ?? (receipt?.txid ? t("receiptPending") : receipt ? t("receiptAcceptedOnly") : t("receiptNotTracked")));
+    confirmationsDisplay.set(String(outcome?.confirmations ?? 0));
+    hasReview.set(Boolean(review));
+    hasReceipt.set(Boolean(receipt));
+    hasTrackableReceipt.set(Boolean(receipt?.txid));
+    sponsorState.set(sponsor.status);
+    sponsorSummary.set(
+      sponsor.status === "eligible"
+        ? t("sponsorEligibleSummary", { remaining: sponsor.remaining ?? 0, dailyLimit: sponsor.dailyLimit || "—" })
+        : sponsor.status === "not-eligible"
+          ? t("sponsorNotEligible")
+          : sponsor.status === "unavailable"
+            ? t("sponsorUnavailable")
+            : t("sponsorNotChecked"),
+    );
+  }
 
-  const sponsorState: Observable<string> = {
-    get: () => JSON.stringify(sponsorResult.get() ?? {}, null, 2),
-    set: () => {},
-    subscribe: (fn) => sponsorResult.subscribe(fn),
-  };
-
-  const relayResponse: Observable<string> = {
-    get: () => JSON.stringify(lastRelayResult.get() ?? {}, null, 2),
-    set: () => {},
-    subscribe: (fn) => lastRelayResult.subscribe(fn),
-  };
-
-  const aaCoreDisplay: Observable<string> = {
-    get: () => integration.contracts.aaCore,
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  const relayUrlDisplay: Observable<string> = {
-    get: () => "/api/aa/relay",
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  const networkDisplay: Observable<string> = {
-    get: () => network,
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  // Actions
-  function sponsorScope() {
-    return {
-      aaAddress: aaAddress.get(),
-      dappId: dappId.get(),
+  function persist() {
+    if (typeof localStorage === "undefined") return;
+    const review = reviewPackage.get();
+    if (!review) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+    const snapshot: PersistedRelayJob = {
+      version: 1,
+      network,
+      fingerprint: preparedFingerprint.get(),
+      draft: {
+        aaAddress: aaAddress.get(),
+        dappId: dappId.get(),
+        payloadJson: payloadJson.get(),
+      },
+      review,
+      receipt: relayReceipt.get(),
+      outcome: chainOutcome.get(),
     };
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(snapshot));
+    } catch {
+      // Recovery is best-effort; a full/disabled storage area must not block review.
+    }
+  }
+
+  async function prepareReview() {
+    const preparedAt = now();
+    isPreparing.set(true);
+    try {
+      const fingerprint = draftFingerprint(aaAddress.get(), dappId.get(), payloadJson.get());
+      const previous = preparedFingerprint.get();
+      if (previous && previous !== fingerprint) {
+        relayReceipt.set(null);
+        chainOutcome.set(null);
+      }
+      const draft = parseRelayDraft({
+        network,
+        aaCore: integration.contracts.aaCore,
+        paymaster: integration.contracts.aaPaymaster,
+        aaAddress: aaAddress.get(),
+        dappId: dappId.get(),
+        payloadJson: payloadJson.get(),
+        now: preparedAt,
+      });
+      const preview = await previewRelayDraft(draft, fetcher, preparedAt);
+      const review = await prepareRelayReviewPackage({
+        network,
+        aaCore: integration.contracts.aaCore,
+        paymaster: integration.contracts.aaPaymaster,
+        aaAddress: aaAddress.get(),
+        dappId: dappId.get(),
+        payloadJson: payloadJson.get(),
+        preview,
+        now: preparedAt,
+      });
+      reviewPackage.set(review);
+      preparedFingerprint.set(fingerprint);
+      refreshView();
+      persist();
+      return review;
+    } finally {
+      isPreparing.set(false);
+    }
   }
 
   async function checkSponsor() {
+    const draft = parseRelayDraft({
+      network,
+      aaCore: integration.contracts.aaCore,
+      paymaster: integration.contracts.aaPaymaster,
+      aaAddress: aaAddress.get(),
+      dappId: dappId.get(),
+      payloadJson: payloadJson.get(),
+      now: now(),
+    });
     isCheckingSponsorship.set(true);
     try {
-      // Clear any prior relay result so the inline card reflects this fresh
-      // sponsor action instead of a stale relay payload (relay takes precedence).
-      lastRelayResult.set(null);
-      sponsorResult.set(await app.aa.sponsorship.check(sponsorScope()));
+      const result = await app.aa.sponsorship.check({ aaAddress: draft.accountId, dappId: draft.dappId });
+      const remaining = Number(result.remaining);
+      const hasQuotaEvidence = Number.isFinite(remaining)
+        && remaining >= 0
+        && Boolean(clean(result.dailyLimit));
+      sponsorEvidence.set({
+        status: !hasQuotaEvidence
+          ? "unavailable"
+          : result.eligible === true && remaining > 0
+            ? "eligible"
+            : "not-eligible",
+        remaining: hasQuotaEvidence ? remaining : null,
+        dailyLimit: clean(result.dailyLimit),
+        usedToday: clean(result.usedToday),
+        checkedAt: now(),
+      });
+      refreshView();
+    } catch (error) {
+      sponsorEvidence.set({ status: "unavailable", remaining: null, dailyLimit: "", usedToday: "", checkedAt: now() });
+      refreshView();
+      throw error;
     } finally {
       isCheckingSponsorship.set(false);
     }
   }
 
-  async function requestSponsor() {
-    isCheckingSponsorship.set(true);
+  async function importReceipt(receiptJson: string) {
+    const review = reviewPackage.get();
+    if (!review) throw new Error(t("reviewRequiredFirst"));
+    const receipt = parseRelayReceipt(receiptJson, {
+      network,
+      packageDigest: review.packageDigest,
+      now: now(),
+    });
+    relayReceipt.set(receipt);
+    chainOutcome.set(null);
+    refreshView();
+    persist();
+    return receipt;
+  }
+
+  async function trackReceipt() {
+    const review = reviewPackage.get();
+    const receipt = relayReceipt.get();
+    if (!review || !receipt) throw new Error(t("receiptRequiredFirst"));
+    isTracking.set(true);
     try {
-      // Clear any prior relay result so the inline card reflects this fresh
-      // sponsor action instead of a stale relay payload (relay takes precedence).
-      lastRelayResult.set(null);
-      sponsorResult.set(
-        await app.aa.sponsorship.request(sponsorAmount.get() || "0.1", sponsorScope()),
-      );
+      const outcome = await inspectRelayReceipt(review, receipt, fetcher, now());
+      chainOutcome.set(outcome);
+      refreshView();
+      persist();
+      return outcome;
     } finally {
-      isCheckingSponsorship.set(false);
+      isTracking.set(false);
     }
   }
 
-  async function submitRelay() {
-    const payload = JSON.parse(payloadJson.get());
-    isRelaying.set(true);
+  function clearJob() {
+    reviewPackage.set(null);
+    relayReceipt.set(null);
+    chainOutcome.set(null);
+    preparedFingerprint.set("");
+    sponsorEvidence.set({ status: "not-checked", remaining: null, dailyLimit: "", usedToday: "", checkedAt: 0 });
+    refreshView();
+    persist();
+  }
+
+  async function loadAll() {
+    if (typeof localStorage === "undefined" || clean(aaAddress.get())) {
+      refreshView();
+      return;
+    }
     try {
-      const scopedPayload = {
-        aaAddress: aaAddress.get(),
-        ...payload,
-        ...(dappId.get() && !payload.paymaster
-          ? { paymaster: { dapp_id: dappId.get(), network } }
-          : {}),
+      const parsed = JSON.parse(localStorage.getItem(storageKey) || "null") as Partial<PersistedRelayJob> | null;
+      if (!parsed || parsed.version !== 1 || parsed.network !== network) return;
+      if (!isRelayReviewPackage(parsed.review, network, integration.contracts.aaCore)) return;
+      if (!(await hasValidRelayReviewDigest(parsed.review))) return;
+      const recoveredReview: RelayReviewPackage = {
+        ...parsed.review,
+        validationPreview: {
+          ...parsed.review.validationPreview,
+          state: "not-run",
+          deadlineValid: null,
+          nonceValid: null,
+          verifierConfigured: null,
+          reason: "recovered-preview-stale",
+          checkedAt: 0,
+        },
+        readiness: "needs-chain-preview",
       };
-      const result = await app.aa.relay(scopedPayload);
-      lastRelayResult.set(result);
-      sponsorResult.set(result);
+      const receipt = isRelayReceipt(parsed.receipt, recoveredReview) ? parsed.receipt : null;
+      const outcome = validOutcome(parsed.outcome, recoveredReview, receipt) ? parsed.outcome : null;
+      aaAddress.set(clean(parsed.draft?.aaAddress));
+      dappId.set(clean(parsed.draft?.dappId));
+      payloadJson.set(clean(parsed.draft?.payloadJson) || JSON.stringify({ metaInvocation: recoveredReview.request.metaInvocation }, null, 2));
+      reviewPackage.set(recoveredReview);
+      relayReceipt.set(receipt);
+      chainOutcome.set(outcome);
+      preparedFingerprint.set(clean(parsed.fingerprint) || draftFingerprint(aaAddress.get(), dappId.get(), payloadJson.get()));
+    } catch {
+      localStorage.removeItem(storageKey);
     } finally {
-      isRelaying.set(false);
+      refreshView();
     }
   }
 
-  const loadAll = async () => {};
+  refreshView();
 
   return {
     aaAddress,
     dappId,
-    sponsorAmount,
     payloadJson,
-    aaAddressDisplay,
-    paymasterDisplay,
+    reviewPackage,
+    relayReceipt,
+    chainOutcome,
+    reviewPackageJson,
+    reviewJobId,
+    reviewDigest,
+    reviewReadiness,
+    previewState,
+    targetDisplay,
+    methodDisplay,
+    preparedFingerprint,
     sponsorState,
-    relayResponse,
-    aaCoreDisplay,
-    relayUrlDisplay,
-    networkDisplay,
+    sponsorSummary,
+    relayReceiptJson,
+    receiptStatus,
+    txidDisplay,
+    chainStatus,
+    chainReason,
+    confirmationsDisplay,
+    hasReview,
+    hasReceipt,
+    hasTrackableReceipt,
+    isPreparing,
     isCheckingSponsorship,
-    isRelaying,
+    isTracking,
+    aaCoreDisplay: createObservable(integration.contracts.aaCore),
+    paymasterDisplay: createObservable(integration.contracts.aaPaymaster || t("notPublished")),
+    relayUrlDisplay: createObservable("authorized external relay"),
+    networkDisplay: createObservable(network),
+    runtimeMode: createObservable("review-only"),
+    prepareReview,
     checkSponsor,
-    requestSponsor,
-    submitRelay,
+    importReceipt,
+    trackReceipt,
+    clearJob,
     loadAll,
   };
 }

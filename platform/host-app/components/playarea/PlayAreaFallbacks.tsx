@@ -18,6 +18,109 @@ import {
 import { PROFILED_PLAYAREAS, type PlayAreaProfile } from "./PlayAreaProfiles";
 import type { PlayAreaRegistryProps } from "./PlayAreaShared";
 
+type MetadataRecord = Record<string, unknown>;
+
+function asMetadataRecord(value: unknown): MetadataRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as MetadataRecord;
+}
+
+function hasMeaningfulMetadata(value: unknown): boolean {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.some(hasMeaningfulMetadata);
+  return Object.values(asMetadataRecord(value)).some(hasMeaningfulMetadata);
+}
+
+function hasRuntimeContractBinding(value: unknown): boolean {
+  if (Array.isArray(value)) return value.some(hasRuntimeContractBinding);
+  const record = asMetadataRecord(value);
+  return Object.entries(record).some(([key, entry]) => {
+    const normalizedKey = key.toLowerCase().replace(/[-_]/g, "");
+    if (
+      (normalizedKey === "contracthash" || normalizedKey === "scripthash")
+      && typeof entry === "string"
+      && entry.trim()
+    ) {
+      return true;
+    }
+    return hasRuntimeContractBinding(entry);
+  });
+}
+
+function hasDeclaredOperations(
+  app: MiniAppInfo,
+  manifest: MetadataRecord,
+): boolean {
+  const operationPanel = asMetadataRecord(manifest.operation_panel);
+  const detailOperationPanel = asMetadataRecord(
+    app.detail_template?.operation_panel,
+  );
+  return [
+    app.operations,
+    app.detail_template?.operation_panel?.operations,
+    manifest.operations,
+    operationPanel.operations,
+    detailOperationPanel.operations,
+  ].some(hasMeaningfulMetadata);
+}
+
+function hasDeclaredPermissions(
+  app: MiniAppInfo,
+  manifest: MetadataRecord,
+): boolean {
+  const hasInteractivePermission = (
+    value: unknown,
+    permissionKey = "",
+  ): boolean => {
+    const normalizedKey = permissionKey.trim().toLowerCase();
+    const isReadOnlyKey = normalizedKey.startsWith("read")
+      || normalizedKey.startsWith("view");
+    if (typeof value === "boolean") return value && !isReadOnlyKey;
+    if (typeof value === "number") {
+      return Number.isFinite(value) && value !== 0 && !isReadOnlyKey;
+    }
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (!normalized) return false;
+      return !normalized.startsWith("read:")
+        && !normalized.startsWith("view:")
+        && normalized !== "read"
+        && normalized !== "view";
+    }
+    if (Array.isArray(value)) {
+      return value.some((entry) => hasInteractivePermission(entry));
+    }
+    return Object.entries(asMetadataRecord(value)).some(([key, entry]) =>
+      hasInteractivePermission(entry, key),
+    );
+  };
+
+  return hasInteractivePermission(app.permissions)
+    || hasInteractivePermission(manifest.permissions);
+}
+
+/**
+ * Defaults to chain-relevant unless metadata explicitly proves a local-only
+ * runtime. This keeps incomplete and transactional manifests on the existing
+ * diagnostics/operation path while allowing complete guest games to stay
+ * focused on their real embedded surface. A historical deployment hash alone
+ * does not make a transactions=false release chain-interactive.
+ */
+export function isChainRelevant(app: MiniAppInfo): boolean {
+  const manifest = asMetadataRecord(app.manifest);
+  const platform = asMetadataRecord(manifest.platform);
+  const hasRuntimeBinding = hasRuntimeContractBinding(manifest.runtime)
+    || hasRuntimeContractBinding(manifest.deployment);
+  const explicitlyLocal = platform.transactions === false
+    && !hasRuntimeBinding
+    && !hasDeclaredOperations(app, manifest)
+    && !hasDeclaredPermissions(app, manifest);
+
+  return !explicitlyLocal;
+}
+
 export function ProfiledPlayArea(props: PlayAreaRegistryProps) {
   const {
     app,
@@ -32,6 +135,8 @@ export function ProfiledPlayArea(props: PlayAreaRegistryProps) {
   } = props;
   const profile = PROFILED_PLAYAREAS[app.app_id];
   const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
+  const chainRelevant = isChainRelevant(app);
+  const embeddedOwnsWorkflow = app.app_id === "miniapp-automation-copilot";
   const initialValues = useCallback(
     () =>
       Object.fromEntries(
@@ -54,7 +159,8 @@ export function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       title={profile.title}
       subtitle={profile.subtitle}
       tone={profile.tone}
-      footer={
+      immersive
+      footer={chainRelevant ? (
         <ChainStateStrip
           loading={loading}
           error={error}
@@ -62,36 +168,43 @@ export function ProfiledPlayArea(props: PlayAreaRegistryProps) {
           network={network}
           onRefresh={onRefresh}
         />
-      }
+      ) : undefined}
     >
       <div className="space-y-3">
         <EmbeddedDappSurface
-          title="Live MiniApp workspace"
-          subtitle="The center playarea loads the actual standalone MiniApp so users can complete the app-specific business flow instead of only reading a status summary."
+          title={chainRelevant ? "Live MiniApp workspace" : "Play locally"}
+          subtitle={
+            chainRelevant
+              ? "The center playarea loads the actual standalone MiniApp so users can complete the app-specific business flow instead of only reading a status summary."
+              : "The complete guest experience runs inside the MiniApp below without wallet, contract, or transaction setup."
+          }
           url={dappUrl}
           tone={profile.tone}
           frameTitle={`${app.name} dApp`}
           testId={`profiled-dapp-frame-${app.app_id}`}
+          appId={app.app_id}
+          network={network}
           heightClass={profile.embeddedHeightClass}
         />
-        <SecondaryInfo
-          title="Activity and details"
-          description="Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface."
-          meta="secondary"
-        >
-          <div className="space-y-3">
-            <ProfileMarketPanel
-              profile={profile}
-              values={values}
-              network={network}
-            />
-            <ProfileWorkflowPanel profile={profile} />
-            <ProfileModelPanel profile={profile} />
-            <ProfileLaunchParamsPanel profile={profile} values={values} />
-            <ActivityPanel activity={activity} />
-            <MetricGrid stats={stats} />
-          </div>
-        </SecondaryInfo>
+        {chainRelevant && !embeddedOwnsWorkflow && (
+          <SecondaryInfo
+            title="Activity and details"
+            description="Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface."
+            meta="secondary"
+          >
+            <div className="space-y-3">
+              <ProfileMarketPanel
+                profile={profile}
+                values={values}
+              />
+              <ProfileWorkflowPanel profile={profile} />
+              <ProfileModelPanel profile={profile} />
+              <ProfileLaunchParamsPanel profile={profile} values={values} />
+              <ActivityPanel activity={activity} />
+              <MetricGrid stats={stats} />
+            </div>
+          </SecondaryInfo>
+        )}
       </div>
     </PlayShell>
   );
@@ -100,11 +213,9 @@ export function ProfiledPlayArea(props: PlayAreaRegistryProps) {
 function ProfileMarketPanel({
   profile,
   values,
-  network,
 }: {
   profile: PlayAreaProfile;
   values: Record<string, string>;
-  network: "mainnet" | "testnet";
 }) {
   const launchValues = profile.fields
     .map((field) => values[field.key]?.trim())
@@ -235,6 +346,7 @@ export function GenericPlayArea(props: PlayAreaRegistryProps) {
     onRefresh,
   } = props;
   const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
+  const chainRelevant = isChainRelevant(app);
 
   return (
     <PlayShell
@@ -242,7 +354,8 @@ export function GenericPlayArea(props: PlayAreaRegistryProps) {
       title={app.name}
       subtitle={app.description}
       tone="emerald"
-      footer={
+      immersive
+      footer={chainRelevant ? (
         <ChainStateStrip
           loading={loading}
           error={error}
@@ -250,33 +363,43 @@ export function GenericPlayArea(props: PlayAreaRegistryProps) {
           network={network}
           onRefresh={onRefresh}
         />
-      }
+      ) : undefined}
     >
       <div className="space-y-3">
         <EmbeddedDappSurface
-          title="Live MiniApp workspace"
-          subtitle="This fallback still opens the real standalone MiniApp as the primary surface, with diagnostics kept below."
+          title={
+            chainRelevant ? "Live MiniApp workspace" : "Open local MiniApp"
+          }
+          subtitle={
+            chainRelevant
+              ? "This fallback still opens the real standalone MiniApp as the primary surface, with diagnostics kept below."
+              : "This guest-only MiniApp runs locally without wallet, contract, or transaction setup."
+          }
           url={dappUrl}
           tone="emerald"
           frameTitle={`${app.name} dApp`}
           testId={`generic-dapp-frame-${app.app_id}`}
+          appId={app.app_id}
+          network={network}
         />
-        <SecondaryInfo
-          title="Activity and details"
-          description="Optional activity, raw metrics, and diagnostic context."
-          meta="secondary"
-        >
-          <div className="space-y-3">
-            <ActionBoard
-              title="Primary task"
-              subtitle="Use the live MiniApp above for the complete business flow; this row only summarizes the platform operation wiring."
-              rows={buildGenericActionRows(app)}
-              tone="emerald"
-            />
-            <ActivityPanel activity={activity} />
-            <MetricGrid stats={stats} />
-          </div>
-        </SecondaryInfo>
+        {chainRelevant && (
+          <SecondaryInfo
+            title="Activity and details"
+            description="Optional activity, raw metrics, and diagnostic context."
+            meta="secondary"
+          >
+            <div className="space-y-3">
+              <ActionBoard
+                title="Primary task"
+                subtitle="Use the live MiniApp above for the complete business flow; this row only summarizes the platform operation wiring."
+                rows={buildGenericActionRows(app)}
+                tone="emerald"
+              />
+              <ActivityPanel activity={activity} />
+              <MetricGrid stats={stats} />
+            </div>
+          </SecondaryInfo>
+        )}
       </div>
     </PlayShell>
   );

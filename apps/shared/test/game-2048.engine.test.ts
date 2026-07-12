@@ -3,15 +3,21 @@ import { describe, expect, it } from "vitest";
 import {
   MOVE_DOWN,
   MOVE_LEFT,
+  MOVE_RIGHT,
   MOVE_UP,
   applyMove,
   boardHex,
+  createMoveTransition,
   hasAnyMove,
+  isValidBoard,
+  isValidSpawn,
   movesToString,
+  requireBoard,
   tileValue,
 } from "../../game-2048/src/logic/engine-2048";
 import {
   applyStep,
+  applyStepWithTransition,
   buildRun,
   forgetRun,
   persistRun,
@@ -63,12 +69,119 @@ describe("2048 slide/merge mechanics", () => {
     expect(up[0]).toBe(3);
   });
 
+  it("emits stable source-to-destination identities for slides, merges, and spawn", () => {
+    const board = EMPTY();
+    board.splice(0, 4, 1, 0, 1, 1);
+    const transition = createMoveTransition(
+      board,
+      MOVE_LEFT,
+      { pos: 15, exp: 2 },
+      7,
+    );
+
+    expect(transition).toEqual({
+      sequence: 7,
+      direction: MOVE_LEFT,
+      before: [1, 0, 1, 1, ...new Array(12).fill(0)],
+      afterSlide: [2, 1, 0, 0, ...new Array(12).fill(0)],
+      after: [2, 1, 0, 0, ...new Array(11).fill(0), 2],
+      motions: [
+        { source: 0, destination: 0, exponent: 1, merge: 0 },
+        { source: 2, destination: 0, exponent: 1, merge: 0 },
+        { source: 3, destination: 1, exponent: 1, merge: null },
+      ],
+      merges: [
+        {
+          sources: [0, 2],
+          destination: 0,
+          sourceExponent: 1,
+          resultExponent: 2,
+        },
+      ],
+      spawn: { destination: 15, exponent: 2 },
+    });
+  });
+
+  it("keeps merge ordering deterministic in the requested movement direction", () => {
+    const board = EMPTY();
+    board.splice(0, 4, 1, 1, 1, 1);
+    const transition = createMoveTransition(board, MOVE_RIGHT, { pos: 4, exp: 1 }, 1);
+
+    expect(transition?.motions).toEqual([
+      { source: 3, destination: 3, exponent: 1, merge: 0 },
+      { source: 2, destination: 3, exponent: 1, merge: 0 },
+      { source: 1, destination: 2, exponent: 1, merge: 1 },
+      { source: 0, destination: 2, exponent: 1, merge: 1 },
+    ]);
+    expect(transition?.merges.map((merge) => merge.sources)).toEqual([[3, 2], [1, 0]]);
+    expect(transition?.after.slice(0, 8)).toEqual([0, 0, 2, 2, 1, 0, 0, 0]);
+  });
+
+  it("conserves every source identity across horizontal and vertical traces", () => {
+    const boards = [
+      [1, 0, 1, 2, 0, 2, 2, 0, 3, 0, 3, 3, 1, 1, 0, 1],
+      [1, 2, 1, 2, 0, 2, 0, 2, 3, 3, 3, 0, 1, 0, 1, 1],
+    ];
+
+    for (const board of boards) {
+      for (const dir of [MOVE_UP, MOVE_RIGHT, MOVE_DOWN, MOVE_LEFT]) {
+        const afterSlide = [...board];
+        if (!applyMove(afterSlide, dir)) continue;
+        const spawnPos = afterSlide.findIndex((exp) => exp === 0);
+        expect(spawnPos).toBeGreaterThanOrEqual(0);
+        const transition = createMoveTransition(board, dir, { pos: spawnPos, exp: 1 }, dir + 1);
+        expect(transition?.afterSlide).toEqual(afterSlide);
+
+        const sources = transition?.motions.map((motion) => motion.source).sort((a, b) => a - b);
+        const occupied = board.flatMap((exp, index) => (exp > 0 ? [index] : []));
+        expect(sources).toEqual(occupied);
+        expect(new Set(sources).size).toBe(occupied.length);
+
+        for (const merge of transition?.merges ?? []) {
+          const participants = transition?.motions.filter((motion) => motion.merge !== null &&
+            transition.merges[motion.merge]?.destination === merge.destination);
+          expect(participants?.map((motion) => motion.source)).toEqual(merge.sources);
+          expect(participants?.every((motion) => motion.destination === merge.destination)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("rejects no-op traces and authoritative spawns on occupied cells", () => {
+    const stuck = EMPTY();
+    stuck[0] = 1;
+    expect(createMoveTransition(stuck, MOVE_LEFT, { pos: 1, exp: 1 }, 1)).toBeNull();
+
+    const movable = EMPTY();
+    movable[3] = 1;
+    expect(createMoveTransition(movable, MOVE_LEFT, { pos: 0, exp: 1 }, 1)).toBeNull();
+    expect(createMoveTransition(movable, MOVE_LEFT, { pos: 3, exp: 1 }, 1)?.spawn).toEqual({
+      destination: 3,
+      exponent: 1,
+    });
+  });
+
   it("rejects no-change moves and out-of-range directions", () => {
     const board = EMPTY();
     board[0] = 1;
     expect(applyMove([...board], MOVE_LEFT)).toBe(false); // already at the wall
     expect(applyMove([...board], MOVE_UP)).toBe(false);
     expect(applyMove([...board], 7)).toBe(false);
+  });
+
+  it("rejects malformed TEE boards and non-canonical spawns without coercion", () => {
+    expect(isValidBoard(new Array(16).fill(0))).toBe(true);
+    expect(isValidBoard(new Array(15).fill(0))).toBe(false);
+    expect(isValidBoard(["1", ...new Array(15).fill(0)])).toBe(false);
+    expect(isValidBoard([-1, ...new Array(15).fill(0)])).toBe(false);
+    expect(() => requireBoard(new Array(17).fill(0))).toThrow("invalid 2048 board payload");
+    expect(isValidSpawn({ pos: 15, exp: 2 })).toBe(true);
+    expect(isValidSpawn({ pos: 16, exp: 1 })).toBe(false);
+    expect(isValidSpawn({ pos: 4, exp: 3 })).toBe(false);
+
+    const movable = EMPTY();
+    movable[3] = 1;
+    expect(createMoveTransition(movable, MOVE_LEFT, { pos: 3, exp: 3 }, 1)).toBeNull();
   });
 
   it("detects dead boards", () => {
@@ -112,6 +225,25 @@ describe("2048 run store (TEE-confirmed fold)", () => {
     expect(run.board[3]).toBe(2);
     expect(run.maxExp).toBe(2);
     expect(run.moves).toEqual([MOVE_LEFT, MOVE_DOWN]);
+  });
+
+  it("returns the same confirmed board and animation trace from one fold", () => {
+    const run = startRun([1, 1, ...new Array(14).fill(0)]) as LiveRun;
+    const applied = applyStepWithTransition(run, MOVE_LEFT, { pos: 15, exp: 1 }, 42);
+
+    expect(applied).not.toBeNull();
+    expect(applied?.transition.sequence).toBe(42);
+    expect(applied?.transition.merges).toEqual([
+      {
+        sources: [0, 1],
+        destination: 0,
+        sourceExponent: 1,
+        resultExponent: 2,
+      },
+    ]);
+    expect(applied?.transition.after).toEqual(applied?.run.board);
+    expect(applied?.run.board[0]).toBe(2);
+    expect(applied?.run.board[15]).toBe(1);
   });
 
   it("rejects a spawn that lands on an occupied cell", () => {

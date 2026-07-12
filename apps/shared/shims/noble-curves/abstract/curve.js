@@ -153,4 +153,3 @@ export function validateBasic(curve) {
         ...{ p: curve.Fp.ORDER },
     });
 }
-//# sourceMappingURL=curve.js.map

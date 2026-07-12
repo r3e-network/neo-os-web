@@ -1,107 +1,85 @@
-# Daily Check-in — Show Up, Stack Up
+# Daily Check-in — A Verified Neo Streak Ritual
 
-> Check in every day. Build your streak. Earn real GAS rewards. Consistency pays — literally.
+Daily Check-in is a warm, ritual-first Neo MiniApp for protecting one on-chain streak day at a time. The main experience is a sunlit streak plaza, a visible seven-day chapter, a live UTC window, and one context-sensitive action—not a contract-parameter form.
 
-## What is Daily Check-in?
+> **Current status:** `MiniAppDailyCheckin` is deployed on Neo N3 mainnet and testnet. The live ABI, configuration, pause state, reward pools, and counters were checked through read-only N3Index RPC on 2026-07-11. No deployment, contract update, funded transaction, account, or secret was used in this production pass. See [NETWORK_STATUS.md](./NETWORK_STATUS.md).
 
-Daily Check-in is the simplest way to earn GAS on Neo N3. Just show up once a day, tap a button, and start building a streak. Hit 7 consecutive days and earn 1 GAS. Keep going to 14 days and earn 2 GAS. Miss a day? Your streak resets and the challenge begins again.
+## Daily Ritual
 
-It's a deceptively simple mechanic that drives powerful engagement. The psychology of loss aversion — not wanting to break a streak you've invested days into — keeps users coming back. Each check-in is recorded on-chain, making your streak verifiable and tamper-proof. As you build longer streaks, you earn escalating NFT badges as proof of your loyalty to the Neo ecosystem.
+1. **Open the plaza** — Live reward terms and the contract pool load without asking for a wallet.
+2. **Connect your Neo wallet** — User eligibility and streak data are bound to that wallet, network, and canonical contract.
+3. **Check the UTC window** — Eligibility comes from `getCheckinStatus`; the frontend never guesses from a local calendar date.
+4. **Check in once** — A direct-wallet GAS transfer sends the current fee with the exact memo `miniapp-dailycheckin:checkin`. That transfer is the check-in.
+5. **Protect the streak** — Consecutive UTC days advance the streak. Missing a UTC day makes the next check-in restart at day 1 while preserving the historical best.
+6. **Reach live milestones** — Day 7 accrues 0.01 GAS and day 14 accrues 0.02 GAS under the current deployed configuration. No later reward milestone is currently configured, although the streak can keep growing.
+7. **Claim when ready** — `claimRewards` pays the accrued amount from the contract reward pool to the connected wallet.
 
-The live testnet flow keeps the mechanic straightforward: connect your Neo N3 wallet, check in once per UTC day, and claim rewards when you choose. Every action is recorded on-chain, so the streak remains verifiable and tamper-resistant.
+## Transaction Truth
 
-## How to Use
+A wallet prompt, broadcast response, or transaction ID is pending—not success.
 
-1. **Open the App** — Open Daily Check-in from the Neo MiniApps platform.
-2. **Connect Wallet** — Link your Neo N3 wallet before checking in or claiming rewards.
-3. **Tap Check-in** — Press the check-in button once per UTC day. The app shows a countdown to the next available check-in.
-4. **Build Your Streak** — Check in every day without missing. Your current streak and highest streak are tracked.
-5. **Earn Rewards** — At day 7 you earn 1 GAS, at day 14 you earn 2 GAS. Rewards accumulate and can be claimed anytime.
-6. **Claim GAS** — Hit the claim button to withdraw your accumulated GAS rewards to your wallet.
+Every confirmed success requires both event and chain readback evidence; neither source is sufficient on its own.
 
-## Key Features
+- Check-in confirmation requires the exact `CheckedIn(user, streak, reward)` event, the exact GAS `Transfer(user, contract, fee)` event, and authoritative user/platform readback.
+- Claim confirmation requires the exact `RewardsClaimed(user, amount)` event, the exact GAS `Transfer(contract, user, amount)` event, and claimed/global reward readback.
+- Every pending record is bound to operation, transaction ID, actor, network, canonical contract, GAS contract, and pre-action values.
+- `FAULT` is terminal failure. Missing events, indexer lag, readback lag, wallet switching, or network mismatch remains visibly pending and recoverable.
+- Failed or malformed reads never become fake zero streaks, empty rewards, “not checked in,” or success.
 
-- **Streak Rewards**: Escalating GAS rewards based on consecutive check-in days.
-- **On-Chain Verification**: Every check-in is recorded on the blockchain — your streak is provable.
-- **Simple Daily Flow**: One on-chain check-in per UTC day keeps the mechanic easy to understand.
-- **Global Stats**: See how many users are checking in, total check-ins across the platform, and total GAS rewarded.
-- **Check-in History**: Full history of your past check-ins with streak length and reward amounts.
-- **UTC Day Reset**: Global countdown to UTC 00:00, same for all users worldwide.
+## Live Contract Terms
 
-## Reward Schedule
+| Term | Current value |
+| --- | ---: |
+| Check-in transfer | 0.001 GAS |
+| Day-7 reward | 0.01 GAS |
+| Day-14 reward | 0.02 GAS |
+| Reset rule | The next check-in restarts at day 1 after a missed UTC day |
+| Platform fee beyond check-in transfer | None |
 
-| Milestone             | Reward                 |
-| --------------------- | ---------------------- |
-| 7-day streak          | 1 GAS                  |
-| 14-day streak         | 2 GAS                  |
-| Streak resets on miss | Build again from day 1 |
+The owner can update the configured fee and milestone amounts. The UI therefore reads and displays current contract terms instead of hard-coding the live values as permanent promises.
 
-## Technical Architecture
+## Canonical Deployment
 
-### Smart Contract
+| Network | Contract | Name | NEF checksum |
+| --- | --- | --- | ---: |
+| Neo N3 Mainnet | `0x25db219a701a2b23130788723fcf9a2e76857235` | `MiniAppDailyCheckin` | `170189676` |
+| Neo N3 Testnet | `0x25db219a701a2b23130788723fcf9a2e76857235` | `MiniAppDailyCheckin` | `170189676` |
 
-| Component           | Details                                |
-| ------------------- | -------------------------------------- |
-| **Contract Name**   | `MiniAppDailyCheckIn`                  |
-| **Language**        | C# (Neo N3 Smart Contract)             |
-| **Blockchain**      | Neo N3                                 |
-| **Check-in Window** | Once per UTC day (resets at 00:00 UTC) |
-| **Check-in Fee**    | 0.001 GAS                              |
+The app rejects a launch-network, wallet-network, configured-contract, GAS-contract, or pending-actor mismatch before confirming a write.
 
-### Current Integration Boundary
+## Live Interface Used by the MiniApp
 
-- **Live today**: direct wallet invocation for check-in and reward claiming.
-- **Not live yet**: AA session-key optimization.
+Reads:
 
-### Contract Methods
+- `getCheckInStateForFrontend(user)`
+- `getCheckinStatus(user)`
+- `getUserStatsDetails(user)`
+- `getPlatformStats()`
+- `isPaused()`
+- `rewardPool()`
+- `totalUnclaimed()`
 
-| Method             | Type   | Parameters | Description                                                                                          |
-| ------------------ | ------ | ---------- | ---------------------------------------------------------------------------------------------------- |
-| `checkIn`          | Action | `player`   | Perform daily check-in                                                                               |
-| `claimRewards`     | Action | `player`   | Claim accumulated GAS rewards                                                                        |
-| `GetUserStats`     | Query  | `player`   | Returns streak, highest streak, last check-in day, unclaimed rewards, total claimed, total check-ins |
-| `GetPlatformStats` | Query  | —          | Returns total users, total check-ins, total GAS rewarded                                             |
+Writes:
 
-## Getting Started
+- GAS `transfer(user, contract, fee, "miniapp-dailycheckin:checkin")`
+- `claimRewards(user)`
+
+Confirmation events:
+
+- `CheckedIn(user, streak, reward)`
+- `RewardsClaimed(user, amount)`
+- GAS `Transfer(from, to, amount)`
+
+## Development Verification
+
+From the repository root:
 
 ```bash
-# Navigate to the app directory
-cd miniapps/apps/daily-checkin
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production (H5)
-npm run build
+npx tsc -p apps/daily-checkin/tsconfig.json --noEmit
+npm --prefix apps/daily-checkin test
+cd apps/shared && npx vitest run test/daily-checkin.integration.test.tsx test/daily-checkin.logic.test.ts test/daily-checkin.playarea.test.tsx test/daily-checkin.production.test.ts
+npm --prefix apps/daily-checkin run build
 ```
-
-## Contract Addresses
-
-| Network | Address                                      |
-| ------- | -------------------------------------------- |
-| Testnet | `0x25db219a701a2b23130788723fcf9a2e76857235` |
-| Mainnet | `0x25db219a701a2b23130788723fcf9a2e76857235` |
-
-### Explorer Links
-
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x25db219a701a2b23130788723fcf9a2e76857235)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x25db219a701a2b23130788723fcf9a2e76857235)
-
-## Domains
-
-- Mainnet domain: `dailycheckin.miniapp.neo`
-
-## Tech Stack
-
-| Layer           | Technology                         |
-| --------------- | ---------------------------------- |
-| Frontend        | Host-native React + TypeScript       |
-| Smart Contract  | C# / Neo N3                        |
-| Interaction     | Direct wallet invocation           |
-| Payment         | GAS                                |
 
 ## License
 

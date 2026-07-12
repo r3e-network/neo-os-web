@@ -1,61 +1,11 @@
 /**
- * useTarot — Domain logic for On-Chain Tarot.
+ * Domain logic for the asynchronous MiniAppTarotVrf contract.
  *
- * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppTarot) via
- * the MiniApp framework SDK (ctx.framework). The earlier path paid a "draw fee" to the OS payment
- * kernel (which moved nothing), polled OS storage for a reading the kernel
- * never wrote, and derived the three cards CLIENT-SIDE from the deposit tx id.
- * That made the reading client-trusted rather than authoritative.
- *
- * MiniAppTarot is self-contained: draw() consumes a prepaid 0.1 GAS fee and
- * picks three DISTINCT cards from the 78-card deck ON-CHAIN with Neo N3's
- * Runtime.GetRandom in the same transaction — no oracle, no client seed. This
- * composable drives it directly, so the three card indices come from the
- * contract's ReadingDrawn event and are authoritative.
- *
- * Contract interaction model (verified against MiniAppTarot.cs / ABI):
- *
- *   READS (app.chain.readRaw, default app contract script hash):
- *     drawFee()                          -> Integer (0.1 GAS in base units)
- *     readingsCount()                    -> Integer (global reading id counter)
- *     creditOf(player)                   -> Integer (prepaid GAS credit, base units)
- *     playerReadingCount(player)         -> Integer
- *     getPlayerReadings(player,off,limit) -> Integer[] (reading ids)
- *     getReading(readingId)              -> Map{id,player,cards(int[3]),time}
- *
- *   MUTATIONS (app.chain.invoke):
- *     1. DEPOSIT (fund a draw) — a GAS transfer to the contract with the memo
- *        "miniapp-tarot:draw" so OnNEP17Payment credits the player's draw
- *        balance:
- *          transfer(player, CONTRACT, drawFee, "miniapp-tarot:draw")
- *          { scriptHash: GAS_HASH }
- *     2. draw(player) -> readingId. Consumes one draw fee from credit and
- *        reveals three distinct card indices in the SAME tx. The three cards are
- *        read from the "ReadingDrawn" event:
- *          ReadingDrawn(readingId, player, card0, card1, card2)
- *        i.e. state slots [2], [3], [4]. They are also retrievable via
- *        getReading(readingId).
- *
- * Post-deposit draw failure: if the deposit lands but draw() reverts, the credit
- * simply remains on the contract under the player as REUSABLE PREPAID credit for
- * the next draw — there is no refund call (and none is needed; funds are not
- * lost). The next draw skips the deposit when creditOf(player) already covers
- * the fee.
- *
- * AMOUNT CONVENTION: the contract takes/returns BASE UNITS (GAS × 1e8). The draw
- * fee is read from drawFee() with a 0.1 GAS fallback.
- *
- * The question the user typed is NOT stored on-chain. It is kept in composable
- * state for the active reading and, so the history can surface it, persisted
- * on-device keyed by readingId via app.storage.local (framework-owned,
- * localStorage-backed, `neo:<appId>:`-prefixed — same keys the earlier
- * CacheService wrote, so previously saved questions remain readable).
- *
- * The composable owns:
- *   - Reactive state (observables + derived) for manifest/PlayArea bindings
- *   - Card deck mapping and flip logic
- *   - Loading UI flags + question input state
- *   - The three card indices read from the ReadingDrawn event of the draw tx
+ * A wallet first deposits reusable reading credit, then requests Morpheus
+ * randomness with a live oracle-fe cap. `ReadingRequested` means only that the
+ * ritual is pending; cards are rendered exclusively after `getReading` reports
+ * STATUS_DRAWN. Oracle failures and timeouts restore the full reading fee to
+ * withdrawable credit. The selected question remains local to this device.
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
@@ -65,12 +15,14 @@ import { eventValue } from "@shared/utils/chain-events";
 import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { TAROT_CARD_BACK, TAROT_DECK } from "../data/tarot-data";
+import { localizeTarotCard, TAROT_CARD_BACK, TAROT_DECK } from "../data/tarot-data";
 import type { TarotCardDefinition } from "../data/tarot-data";
 
 export interface Card extends TarotCardDefinition {
   flipped: boolean;
 }
+
+export type TarotReadingMode = "idle" | "pending" | "oracle" | "refunded" | "local";
 
 export interface UseTarotOptions {
   /** MiniApp framework SDK (ctx.framework) — chain/arg + storage surface. */
@@ -85,27 +37,30 @@ export interface UseTarotOptions {
 // Constants
 // ============================================================================
 
-/** Memo the contract requires on the draw-funding transfer. */
-const DRAW_MEMO = "miniapp-tarot:draw";
-
-/** Draw fee fallback (0.1 GAS in base units) when drawFee() can't be read. */
-const DRAW_FEE_FALLBACK = 10_000_000n;
+/** Exact memo accepted by MiniAppTarotVrf.OnNEP17Payment for user credit. */
+const CREDIT_MEMO = "miniapp-tarot-vrf:credit";
 
 /** Cards per reading (the contract reveals exactly three). */
 const CARDS_PER_READING = 3;
-
-/** How many reading ids to page in per refresh of the player's history. */
-const HISTORY_PAGE_LIMIT = 100;
 
 /**
  * app.storage.local key prefix for the on-device question store, keyed by
  * readingId (the framework adds its own `neo:<appId>:` namespace).
  */
 const QUESTION_KEY_PREFIX = "tarot:question:";
+const PENDING_KEY_PREFIX = "tarot:pending:";
 
-// ============================================================================
-// Event parsing
-// ============================================================================
+const STATUS_PENDING = 1;
+const STATUS_DRAWN = 2;
+const STATUS_EXPIRED_REFUNDED = 4;
+
+type ContractReading = {
+  id: string;
+  requestId: string;
+  status: number;
+  cards: unknown;
+  expiresAt: number;
+};
 
 // ============================================================================
 // Card mapping
@@ -130,6 +85,31 @@ function normalizeReadingCards(cards: unknown): number[] {
   }
 
   return ids;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value instanceof Map) {
+    return Object.fromEntries(Array.from(value.entries(), ([key, entry]) => [String(key), entry]));
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("reading not found");
+  }
+  return value as Record<string, unknown>;
+}
+
+function parseReading(value: unknown): ContractReading {
+  const record = asRecord(value);
+  const id = parseBigInt(record.id).toString();
+  const requestId = parseBigInt(record.requestId).toString();
+  const status = Number(parseBigInt(record.status));
+  const expiresAt = Number(parseBigInt(record.expiresAt));
+  if (!/^[1-9]\d*$/.test(id) || !Number.isInteger(status) || status < 1 || status > 4) {
+    throw new Error("invalid reading record");
+  }
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= 0) {
+    throw new Error("invalid reading expiry");
+  }
+  return { id, requestId, status, cards: record.cards, expiresAt };
 }
 
 /** Map a validated card index to a deck entry (or a neutral fallback card). */
@@ -158,34 +138,41 @@ export function cardFromIndex(cardId: number): Card {
 // ============================================================================
 
 export function useTarot({ app, clipboard, t }: UseTarotOptions) {
-  const tarotDeck = TAROT_DECK;
   const drawn = createObservable<Card[]>([]);
   const readingsCount = createObservable(0);
-  /** Connected wallet's unused prepaid draw-credit (human GAS). */
   const prepaidCredit = createObservable(0);
+  const readingFee = createObservable(0);
+  const oracleFee = createObservable(0);
+  const pendingReadingId = createObservable("");
+  const pendingRequestId = createObservable("");
+  const pendingExpiresAt = createObservable(0);
+  const pendingExpired = createObservable(false);
+  const refundReason = createObservable<"" | "oracle" | "expired">("");
+  const question = createObservable("");
+  const isLoading = createObservable(false);
+  const readingMode = createObservable<TarotReadingMode>("idle");
   const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
   const hasDrawn = createDerived(() => drawn.get().length === CARDS_PER_READING, [drawn]);
+  const hasPending = createDerived(
+    () => readingMode.get() === "pending" && Boolean(pendingReadingId.get()),
+    [readingMode, pendingReadingId],
+  );
   const allFlipped = createDerived(() => {
     const cards = drawn.get();
     return cards.length > 0 && cards.every((c) => c.flipped);
   }, [drawn]);
   const cardsDrawnCount = createDerived(() => readingsCount.get() * CARDS_PER_READING, [readingsCount]);
   const allRevealedDisplay = createDerived(() => (allFlipped.get() ? t("yes") : t("no")), [drawn]);
-  const question = createObservable("");
-  const isLoading = createObservable(false);
-  const readingMode = createObservable<"idle" | "oracle">("idle");
 
-  // Connected wallet address (synced from main.tsx / chain).
   const address = createObservable<string | null>(app.chain.address.get() ?? null);
 
   const setAddress = (addr: string | null) => {
     address.set(addr ?? null);
   };
   const hasContractAddress = () => Boolean(app.chain.contractAddress.get());
+  const pendingStorageKey = (account: string) =>
+    `${PENDING_KEY_PREFIX}${account.trim().toLowerCase()}`;
 
-  // ── On-device question store (not on-chain) ──────────────────────────
-
-  /** Persist the question for a reading id on-device (best-effort). */
   const persistQuestion = (readingId: string, text: string) => {
     const trimmed = text.trim();
     if (!readingId || !trimmed) return;
@@ -196,154 +183,188 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
   const restoreQuestion = (readingId: string): string =>
     app.storage.local.get<string>(`${QUESTION_KEY_PREFIX}${readingId}`) ?? "";
 
-  // ── Fee resolution ───────────────────────────────────────────────────
-
-  /** Read the on-chain draw fee in base units, falling back to 0.1 GAS. */
-  const loadDrawFee = async (): Promise<bigint> => {
-    try {
-      const raw = await app.chain.readRaw("drawFee", []);
-      const fee = parseBigInt(raw);
-      return fee > 0n ? fee : DRAW_FEE_FALLBACK;
-    } catch {
-      return DRAW_FEE_FALLBACK;
-    }
+  const persistPendingId = (readingId: string | null) => {
+    const account = address.get();
+    if (!account) return;
+    const key = pendingStorageKey(account);
+    if (readingId) app.storage.local.set(key, readingId);
+    else app.storage.local.delete(key);
   };
 
-  // ── Draw (deposit-then-draw, cards from the ReadingDrawn event) ──────
+  const clearPendingState = (clearStorage: boolean) => {
+    if (clearStorage) persistPendingId(null);
+    pendingReadingId.set("");
+    pendingRequestId.set("");
+    pendingExpiresAt.set(0);
+    pendingExpired.set(false);
+  };
+
+  const readReading = async (readingId: string): Promise<ContractReading> => {
+    const raw = await app.chain.readRaw("getReading", [app.chain.arg.integer(readingId)]);
+    const reading = parseReading(raw);
+    if (reading.id !== readingId) throw new Error("reading id mismatch");
+    return reading;
+  };
+
+  const applyReading = (reading: ContractReading) => {
+    if (reading.status === STATUS_PENDING) {
+      drawn.set([]);
+      refundReason.set("");
+      readingMode.set("pending");
+      pendingReadingId.set(reading.id);
+      pendingRequestId.set(reading.requestId);
+      pendingExpiresAt.set(reading.expiresAt);
+      pendingExpired.set(Date.now() >= reading.expiresAt);
+      persistPendingId(reading.id);
+      return "pending" as const;
+    }
+
+    if (reading.status === STATUS_DRAWN) {
+      drawn.set(normalizeReadingCards(reading.cards).map(cardFromIndex));
+      refundReason.set("");
+      readingMode.set("oracle");
+      clearPendingState(true);
+      const restored = restoreQuestion(reading.id);
+      if (restored) question.set(restored);
+      return "drawn" as const;
+    }
+
+    drawn.set([]);
+    refundReason.set(
+      reading.status === STATUS_EXPIRED_REFUNDED ? "expired" : "oracle",
+    );
+    readingMode.set("refunded");
+    clearPendingState(true);
+    return "refunded" as const;
+  };
+
+  const reconcileReading = async (readingId: string) =>
+    applyReading(await readReading(readingId));
+
+  const loadFees = async (): Promise<{ reading: bigint; oracle: bigint }> => {
+    const reading = parseBigInt(await app.chain.readRaw("readingFee", []));
+    const oracle = parseBigInt(await app.chain.readRaw("currentOracleFee", []));
+    if (reading <= 0n || oracle < 0n || oracle > reading) {
+      throw new Error(t("readingUnavailable"));
+    }
+    readingFee.set(fromFixed8(reading));
+    oracleFee.set(fromFixed8(oracle));
+    return { reading, oracle };
+  };
+
+  const activeReadingId = async (playerArg: ReturnType<typeof app.chain.arg.hash160>) => {
+    const active = parseBigInt(await app.chain.readRaw("activeReadingOf", [playerArg]));
+    if (active < 0n) throw new Error("invalid active reading");
+    return active.toString();
+  };
+
+  const reconcilePendingReading = async () => {
+    if (!hasContractAddress()) return "none" as const;
+    const playerAddr = address.get();
+    if (!playerAddr) return "none" as const;
+    const playerArg = app.chain.arg.hash160(playerAddr);
+    const activeId = await activeReadingId(playerArg);
+    const storedId = app.storage.local.get<string>(pendingStorageKey(playerAddr)) ?? "";
+    const readingId = activeId !== "0" ? activeId : storedId;
+    if (!readingId) {
+      if (readingMode.get() === "pending") {
+        clearPendingState(true);
+        readingMode.set("idle");
+      }
+      return "none" as const;
+    }
+    return reconcileReading(readingId);
+  };
 
   /**
-   * Draw three cards against the standalone contract.
-   *
-   * Two steps, both signed by the player:
-   *   1. DEPOSIT — if creditOf(player) < drawFee, transfer the fee in GAS to the
-   *      contract with the "miniapp-tarot:draw" memo so OnNEP17Payment credits
-   *      the player's draw balance.
-   *   2. draw(player) — consumes one fee from credit and reveals three DISTINCT
-   *      cards ON-CHAIN in the same tx. The three card indices are read from the
-   *      "ReadingDrawn" event (state slots [2],[3],[4]), falling back to
-   *      getReading(readingId). They are mapped to the deck and rendered.
-   *
-   * The typed question is kept in state for the active reading and persisted
-   * on-device keyed by readingId so the history can surface it.
-   *
-   * If step 1 lands but step 2 reverts, the prepaid credit persists on the
-   * contract under the player and is reused on the next draw — no refund call.
+   * Deposit reusable credit when needed, then enqueue the asynchronous VRF
+   * request. A successful request deliberately renders no cards: only a later
+   * terminal `getReading` record may unlock the spread.
    */
   const draw = async () => {
-    if (isLoading.get()) return;
+    if (isLoading.get()) return { status: "busy" as const };
     isLoading.set(true);
+    let deposited = false;
+    let submitted = false;
 
     try {
       const prompt = question.get().trim() || t("defaultQuestion");
-
       const playerAddr = address.get() || (await app.chain.ensureWallet());
       if (!playerAddr) throw new Error(t("walletNotConnected"));
-      const playerArg = app.chain.arg.hash160(playerAddr);
       setAddress(playerAddr);
+      const playerArg = app.chain.arg.hash160(playerAddr);
 
       const contractHash = app.chain.contractAddress.get();
       if (!contractHash) throw new Error(t("readingUnavailable"));
 
-      const fee = await loadDrawFee();
-
-      // Step 1: DEPOSIT — only top up when the existing credit can't cover the
-      // fee (credit may persist from a prior aborted draw).
-      let credit = 0n;
-      try {
-        credit = parseBigInt(
-          await app.chain.readRaw("creditOf", [playerArg]),
-        );
-      } catch {
-        credit = 0n;
+      const existingId = await activeReadingId(playerArg);
+      if (existingId !== "0") {
+        await reconcileReading(existingId);
+        return { status: "pending" as const, readingId: existingId };
       }
 
-      if (credit < fee) {
-        // Wait for the contract's "Credited" event so the deposit is confirmed
-        // in a block before draw() consumes it — an unconfirmed deposit lets the
-        // draw execute first and fault on what should have been a clean first
-        // draw (intra-block ordering is fee/hash-based).
+      const fees = await loadFees();
+      const credit = parseBigInt(await app.chain.readRaw("creditOf", [playerArg]));
+      if (credit < 0n) throw new Error(t("readingUnavailable"));
+
+      if (credit < fees.reading) {
+        // The contract accepts exact reading-fee multiples. Deposit one complete
+        // fee rather than a partial top-up; any prior partial credit remains
+        // withdrawable and never gets stranded by the memo validation rule.
         await app.chain.invoke(
           "transfer",
           [
             playerArg,
             app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(fee - credit),
-            app.chain.arg.string(DRAW_MEMO),
+            app.chain.arg.integer(fees.reading),
+            app.chain.arg.string(CREDIT_MEMO),
           ],
           { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
         );
+        deposited = true;
       }
 
-      // Step 2: draw — consumes one fee and reveals three cards ON-CHAIN. Read
-      // the card indices from the ReadingDrawn event of this tx. If the deposit
-      // landed but this reverts, the credit persists as reusable prepaid credit.
-      let result;
-      try {
-        result = await app.chain.invoke(
-          "draw",
-          [playerArg],
-          { waitForEvent: "ReadingDrawn" },
-        );
-      } catch (drawErr) {
-        console.error(
-          "[on-chain-tarot] draw failed after deposit settled:",
-          drawErr instanceof Error ? drawErr.message : String(drawErr),
-        );
-        // Deposit landed, draw did not — credit is held under the player and is
-        // reused on the next draw (no refund needed).
-        throw new Error(t("depositPrepaidNoReading"));
-      }
+      const result = await app.chain.invoke(
+        "requestReading",
+        [playerArg, app.chain.arg.integer(fees.oracle)],
+        { waitForEvent: "ReadingRequested" },
+      );
+      submitted = true;
 
-      // ReadingDrawn(readingId, player, card0, card1, card2): id slot 0, cards
-      // slots 2..4.
-      const readingId = parseBigInt(eventValue(result.event, 0)).toString();
-      let cardIds: number[];
+      let readingId = "0";
+      let requestId = "0";
+      let expiresAt = 0;
       try {
-        cardIds = normalizeReadingCards([
-          eventValue(result.event, 2),
-          eventValue(result.event, 3),
-          eventValue(result.event, 4),
-        ]);
+        readingId = parseBigInt(eventValue(result.event, 0)).toString();
+        requestId = parseBigInt(eventValue(result.event, 1)).toString();
+        expiresAt = Number(parseBigInt(eventValue(result.event, 5)));
       } catch {
-        // Event unavailable / unparsed — read the authoritative reading back.
-        cardIds = await readReadingCards(readingId);
+        readingId = await activeReadingId(playerArg);
+      }
+      if (!/^[1-9]\d*$/.test(readingId)) {
+        throw new Error(t("readingRequestUnconfirmed"));
       }
 
-      // The question is NOT on-chain: persist it on-device keyed by readingId so
-      // the history can surface it later.
-      if (readingId && readingId !== "0") {
-        persistQuestion(readingId, prompt);
-      }
-
-      drawn.set(cardIds.map(cardFromIndex));
-      readingMode.set("oracle");
-
-      // Reconcile the readings counter from the contract's authoritative total.
-      await loadReadingCount();
+      persistQuestion(readingId, prompt);
+      persistPendingId(readingId);
+      drawn.set([]);
+      refundReason.set("");
+      readingMode.set("pending");
+      pendingReadingId.set(readingId);
+      pendingRequestId.set(requestId === "0" ? "" : requestId);
+      pendingExpiresAt.set(Number.isSafeInteger(expiresAt) ? expiresAt : 0);
+      pendingExpired.set(expiresAt > 0 && Date.now() >= expiresAt);
       question.set("");
 
+      await Promise.all([loadReadingCount(), loadCredit()]);
+      return { status: "pending" as const, readingId };
+    } catch (error) {
+      if (submitted) throw new Error(t("readingRequestUnconfirmed"));
+      if (deposited) throw new Error(t("depositPrepaidNoReading"));
+      throw error;
+    } finally {
       isLoading.set(false);
-      return { success: true };
-    } catch (e) {
-      isLoading.set(false);
-      throw e;
     }
-  };
-
-  // ── Reading reads (authoritative cards from the contract) ───────────
-
-  /**
-   * Read a reading's three card indices from getReading(readingId). Used as the
-   * fallback when the ReadingDrawn event could not be parsed, and to rebuild the
-   * player's history.
-   */
-  const readReadingCards = async (readingId: string): Promise<number[]> => {
-    const raw = await app.chain.readRaw("getReading", [app.chain.arg.integer(readingId)]);
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-      throw new Error("reading not found");
-    }
-    const record = raw as Record<string, unknown>;
-    return normalizeReadingCards(record.cards);
   };
 
   // ── Flip / reset / formatting ───────────────────────────────────────
@@ -355,14 +376,17 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
   };
 
   const reset = () => {
+    if (readingMode.get() === "pending") return;
     drawn.set([]);
+    refundReason.set("");
     readingMode.set("idle");
   };
 
   const getReading = () => {
     const cards = drawn.get();
     if (cards.length !== CARDS_PER_READING) return t("readingText");
-    return `${t("past")}: ${cards[0]!.name} · ${t("present")}: ${cards[1]!.name} · ${t("future")}: ${cards[2]!.name}`;
+    const localized = cards.map((card) => localizeTarotCard(card, t("localeCode")));
+    return `${t("past")}: ${localized[0]!.name} · ${t("present")}: ${localized[1]!.name} · ${t("future")}: ${localized[2]!.name}`;
   };
 
   /**
@@ -378,11 +402,6 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
 
   // ── Data loading (direct chain reads) ───────────────────────────────
 
-  /**
-   * Load the player's reading count from playerReadingCount(player). Falls back
-   * to the global readingsCount() when no wallet is connected so the stat is
-   * never blank. The count reflects authoritative on-chain state.
-   */
   const loadReadingCount = async () => {
     if (!hasContractAddress()) {
       readingsCount.set(Math.max(readingsCount.get(), 0));
@@ -393,14 +412,14 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
       const playerAddr = address.get();
 
       if (playerAddr) {
-        const raw = await app.chain.readRaw("playerReadingCount", [
+        const raw = await app.chain.readRaw("playerCompletedReadingCount", [
           app.chain.arg.hash160(playerAddr),
         ]);
         readingsCount.set(Number(parseBigInt(raw)));
         return;
       }
 
-      const globalRaw = await app.chain.readRaw("readingsCount", []);
+      const globalRaw = await app.chain.readRaw("completedReadingsCount", []);
       readingsCount.set(Number(parseBigInt(globalRaw)));
     } catch (e) {
       console.warn(
@@ -411,11 +430,6 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     }
   };
 
-  /**
-   * Refresh the connected wallet's unused prepaid draw-credit from
-   * creditOf(player). Base units → human GAS. A missing wallet yields 0; a read
-   * failure leaves the last known value (the withdraw path re-reads first).
-   */
   const loadCredit = async () => {
     if (!hasContractAddress()) {
       prepaidCredit.set(0);
@@ -440,13 +454,6 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     }
   };
 
-  /**
-   * Withdraw the connected wallet's unused prepaid draw-credit via
-   * withdraw(account). The contract pays the WHOLE credit back to the wallet —
-   * the recovery path when a deposit landed but draw() never completed. Returns
-   * the withdrawn amount in human GAS (from the "CreditWithdrawn" event,
-   * state[1] = amount).
-   */
   const withdrawCredit = async (): Promise<{ amount: number }> => {
     if (isLoading.get()) return { amount: 0 };
 
@@ -458,19 +465,15 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     isLoading.set(true);
     try {
       // Read the live credit first — the contract reverts "no credit" on an empty
-      // balance, so surface a clean message before prompting the wallet.
-      let credit = 0n;
-      try {
-        credit = parseBigInt(
-          await app.chain.readRaw("creditOf", [accountArg]),
-        );
-      } catch {
-        credit = 0n;
-      }
+      // balance, so surface a clean message before prompting the wallet. RPC
+      // failures propagate instead of being misreported as a zero balance.
+      const credit = parseBigInt(
+        await app.chain.readRaw("creditOf", [accountArg]),
+      );
       if (credit <= 0n) throw new Error(t("noCredit"));
 
       const result = await app.chain.invoke(
-        "withdraw",
+        "withdrawAllCredit",
         [accountArg],
         { waitForEvent: "CreditWithdrawn" },
       );
@@ -479,8 +482,48 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
       const amountBase = parseBigInt(eventValue(result.event, 1));
       const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
 
-      await loadAll();
+      await loadCredit();
       return { amount };
+    } finally {
+      isLoading.set(false);
+    }
+  };
+
+  const refundExpiredReading = async (): Promise<{ amount: number }> => {
+    if (isLoading.get()) return { amount: 0 };
+    const readingId = pendingReadingId.get();
+    if (!readingId) throw new Error(t("noPendingReading"));
+
+    isLoading.set(true);
+    try {
+      const current = await readReading(readingId);
+      if (current.status !== STATUS_PENDING) {
+        applyReading(current);
+        await loadCredit();
+        return { amount: 0 };
+      }
+      if (Date.now() < current.expiresAt) {
+        pendingExpiresAt.set(current.expiresAt);
+        pendingExpired.set(false);
+        throw new Error(t("readingNotExpired"));
+      }
+
+      const result = await app.chain.invoke(
+        "refundExpiredReading",
+        [app.chain.arg.integer(readingId)],
+        { waitForEvent: "ReadingRefunded" },
+      );
+      const amountBase = parseBigInt(eventValue(result.event, 3));
+      try {
+        await reconcileReading(readingId);
+      } catch {
+        drawn.set([]);
+        refundReason.set("expired");
+        readingMode.set("refunded");
+        clearPendingState(true);
+      }
+      await Promise.all([loadCredit(), loadReadingCount()]);
+      return { amount: fromFixed8(amountBase) };
     } finally {
       isLoading.set(false);
     }
@@ -488,8 +531,15 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
 
   const loadAll = async () => {
     setAddress(app.chain.address.get() ?? null);
-    await loadReadingCount();
-    await loadCredit();
+    if (!hasContractAddress()) {
+      readingsCount.set(0);
+      prepaidCredit.set(0);
+      readingFee.set(0);
+      oracleFee.set(0);
+      return;
+    }
+    await Promise.all([loadReadingCount(), loadCredit(), loadFees()]);
+    await reconcilePendingReading();
   };
 
   return {
@@ -504,7 +554,15 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     isLoading,
     readingMode,
     prepaidCredit,
+    readingFee,
+    oracleFee,
     hasCredit,
+    hasPending,
+    pendingReadingId,
+    pendingRequestId,
+    pendingExpiresAt,
+    pendingExpired,
+    refundReason,
     address,
 
     // Actions
@@ -516,6 +574,8 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     copyReading,
     restoreQuestion,
     withdrawCredit,
+    refundExpiredReading,
+    reconcilePendingReading,
     loadReadingCount,
     loadCredit,
     loadAll,

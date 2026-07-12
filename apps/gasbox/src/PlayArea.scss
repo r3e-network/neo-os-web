@@ -34,12 +34,75 @@
   gap: 20px;
   border-radius: var(--mx2-r-lg);
   overflow: hidden;
-  padding: clamp(18px, 3vw, 32px);
+  padding: clamp(78px, 8vw, 90px) clamp(18px, 3vw, 32px) clamp(58px, 6vw, 66px);
   isolation: isolate;
   // Flat warm cream keeps the gacha cabinet on a working surface, not a
   // decorative gradient backdrop (background-clarity governance).
   background: #fdf8f1;
   border: 1px solid var(--mx2-scene-rim);
+}
+
+.gasbox-scene[data-state="error"] {
+  border-color: rgba(185, 28, 28, 0.32);
+}
+
+.gasbox-scene[data-state="paused"] {
+  border-color: var(--gasbox-amber-34);
+}
+
+.gasbox-finance-strip {
+  position: absolute;
+  z-index: 4;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gasbox-finance-strip article {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--gasbox-line-12);
+  border-radius: var(--mx2-r);
+  background: #ffffff;
+  box-shadow: var(--mx2-shadow-sm);
+}
+
+.gasbox-finance-strip article > img {
+  width: 26px;
+  height: 26px;
+  grid-row: 1 / 3;
+  object-fit: contain;
+}
+
+.gasbox-finance-strip article > .mx2-coin {
+  grid-row: 1 / 3;
+}
+
+.gasbox-finance-strip span:not(.mx2-coin) {
+  min-width: 0;
+  color: var(--mx2-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.gasbox-finance-strip strong {
+  min-width: 0;
+  color: var(--mx2-ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gasbox-scene__cabinet {
@@ -67,6 +130,12 @@
 
 .gasbox-scene[data-state="pulling"] .gasbox-scene__cabinet {
   animation: gasbox-cabinet-pull 1.15s var(--mx2-ease-settle) both;
+}
+
+// Immediate tap acknowledgment: a short cabinet nudge the moment the player
+// commits a pull, distinct from the authoritative pulling reel above.
+.gasbox-scene[data-preview="true"]:not([data-state="pulling"]) .gasbox-scene__cabinet {
+  animation: gasbox-cabinet-nudge 0.6s var(--mx2-ease-settle) both;
 }
 
 .gasbox-scene[data-state="pulling"] .gasbox-scene__machine-art {
@@ -456,6 +525,411 @@
   font-size: 16px;
 }
 
+.gasbox-wallet-assets,
+.gasbox-creator-ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gasbox-wallet-assets article,
+.gasbox-creator-ledger article {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-height: 80px;
+  padding: 10px;
+  border: 1px solid var(--gasbox-line-10);
+  border-radius: var(--mx2-r);
+  background: #fdf8f1;
+}
+
+.gasbox-wallet-assets article {
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+}
+
+.gasbox-wallet-assets article > .mx2-coin,
+.gasbox-wallet-assets article > img {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.gasbox-wallet-assets article > img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.gasbox-wallet-assets span,
+.gasbox-creator-ledger span,
+.gasbox-creator-money-row label > span,
+.gasbox-runtime-card span {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.gasbox-wallet-assets strong,
+.gasbox-creator-ledger strong {
+  min-width: 0;
+  color: var(--mx2-ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.gasbox-recovery-card {
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  border-color: var(--gasbox-amber-34);
+  background: #fffaf0;
+}
+
+.gasbox-recovery-card > img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.gasbox-creator-money-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.gasbox-creator-money-row label {
+  display: grid;
+  gap: 5px;
+}
+
+.gasbox-creator-money-row input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--gasbox-line-16);
+  border-radius: var(--mx2-r);
+  padding: 9px 11px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.gasbox-creator-money-row input:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
+}
+
+.gasbox-runtime-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--gasbox-line-10);
+  border-radius: var(--mx2-r);
+  background: #fdf8f1;
+}
+
+.gasbox-runtime-card div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.gasbox-runtime-card strong {
+  min-width: 0;
+  color: var(--mx2-ink);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasbox-runtime-card[data-state="error"] {
+  border-color: rgba(185, 28, 28, 0.32);
+  background: #fff7f7;
+}
+
+.gasbox-runtime-card[data-state="incompatible"] {
+  border-color: var(--gasbox-amber-34);
+  background: #fffaf0;
+}
+
+.gasbox-compatibility-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--gasbox-amber-34);
+  border-radius: var(--mx2-r);
+  background: #fffaf0;
+  box-shadow: var(--mx2-shadow-sm);
+}
+
+.gasbox-compatibility-card > img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.gasbox-compatibility-card h4,
+.gasbox-compatibility-card p {
+  margin: 0;
+}
+
+.gasbox-compatibility-card h4 {
+  color: var(--mx2-ink);
+  font-size: 15px;
+}
+
+.gasbox-compatibility-card p,
+.gasbox-compatibility-card small {
+  display: block;
+  margin-top: 4px;
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gasbox-compatibility-card small {
+  color: var(--mx2-accent-strong);
+  font-weight: 650;
+}
+
+.gasbox-studio-card[data-open="true"] {
+  padding: clamp(14px, 2.5vw, 22px);
+  border-color: var(--gasbox-amber-26);
+  background: #fffdf8;
+}
+
+.gasbox-studio-builder {
+  display: grid;
+  gap: 16px;
+}
+
+.gasbox-studio-builder > header,
+.gasbox-studio-builder > footer,
+.gasbox-studio-capsules__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.gasbox-studio-builder > header span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--mx2-accent-strong);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.gasbox-studio-builder h4,
+.gasbox-studio-builder h5,
+.gasbox-studio-builder p {
+  margin: 0;
+}
+
+.gasbox-studio-builder h4 {
+  color: var(--mx2-ink);
+  font-size: 20px;
+}
+
+.gasbox-studio-builder h5 {
+  color: var(--mx2-ink);
+  font-size: 15px;
+}
+
+.gasbox-studio-builder p {
+  max-width: 64ch;
+  margin-top: 4px;
+  color: var(--mx2-text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.gasbox-studio-blueprint {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(14px, 3vw, 28px);
+  min-height: 190px;
+  padding: 16px;
+  border: 1px solid var(--gasbox-amber-20);
+  border-radius: var(--mx2-r-lg);
+  background: #fdf8f1;
+}
+
+.gasbox-studio-blueprint > img {
+  width: min(180px, 100%);
+  max-height: 190px;
+  justify-self: center;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 22px rgba(127, 84, 26, 0.18));
+}
+
+.gasbox-studio-blueprint strong,
+.gasbox-studio-blueprint span {
+  display: block;
+}
+
+.gasbox-studio-blueprint strong {
+  color: var(--mx2-ink);
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.gasbox-studio-blueprint span {
+  margin-top: 4px;
+  color: var(--mx2-text-2);
+  font-size: 13px;
+}
+
+.gasbox-studio-blueprint__capsules {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
+  padding-left: 8px;
+}
+
+.gasbox-studio-blueprint__capsules img {
+  width: 42px;
+  height: 42px;
+  margin-left: -8px;
+  object-fit: contain;
+}
+
+.gasbox-studio-core {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(130px, 0.7fr) minmax(168px, 0.8fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.gasbox-studio-core label,
+.gasbox-studio-core fieldset,
+.gasbox-studio-capsules label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gasbox-studio-core label > span,
+.gasbox-studio-core legend,
+.gasbox-studio-capsules label > span {
+  color: var(--mx2-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.gasbox-studio-core input,
+.gasbox-studio-capsules input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--gasbox-line-16);
+  border-radius: var(--mx2-r);
+  padding: 9px 11px;
+  background: #ffffff;
+  color: var(--mx2-ink);
+  font: inherit;
+}
+
+.gasbox-studio-core input:focus-visible,
+.gasbox-studio-capsules input:focus-visible {
+  outline: 2px solid var(--mx2-accent);
+  outline-offset: 2px;
+}
+
+.gasbox-studio-asset-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.gasbox-studio-asset-switch button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--gasbox-line-16);
+  border-radius: var(--mx2-r);
+  background: #ffffff;
+  color: var(--mx2-text-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gasbox-studio-asset-switch button[data-active="true"] {
+  border-color: var(--gasbox-amber-34);
+  background: #fffaf0;
+  color: var(--mx2-ink);
+}
+
+.gasbox-studio-capsules {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.gasbox-studio-capsules__list {
+  display: grid;
+  gap: 8px;
+}
+
+.gasbox-studio-capsules__list article {
+  display: grid;
+  grid-template-columns: 44px minmax(150px, 1.3fr) minmax(88px, 0.45fr) minmax(100px, 0.55fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding: 9px;
+  border: 1px solid var(--gasbox-line-10);
+  border-radius: var(--mx2-r);
+  background: #ffffff;
+}
+
+.gasbox-studio-capsules__list article > img {
+  width: 42px;
+  height: 42px;
+  align-self: center;
+  object-fit: contain;
+}
+
+.gasbox-studio-capsules__remove {
+  min-height: 42px;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  border-radius: var(--mx2-r);
+  padding: 8px 10px;
+  background: #fff7f7;
+  color: #991b1b;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gasbox-studio-builder > footer {
+  align-items: center;
+  padding-top: 4px;
+}
+
+.gasbox-studio-builder > footer .mx2-btn--primary {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 168px;
+}
+
 .gasbox-drawer {
   display: grid;
   gap: 14px;
@@ -592,6 +1066,12 @@
   max-width: min(100%, 224px);
 }
 
+@keyframes gasbox-cabinet-nudge {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-3px) scale(1.008); }
+  100% { transform: translateY(0) scale(1); }
+}
+
 @keyframes gasbox-cabinet-pull {
   0% { transform: rotate(0deg) translateY(0); }
   28% { transform: rotate(-2deg) translateY(-4px); }
@@ -672,7 +1152,25 @@
     align-items: center;
     gap: 6px;
     border-radius: 24px;
-    padding: 10px 10px 54px;
+    padding: 76px 10px 54px;
+  }
+
+  .gasbox-finance-strip {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    grid-template-columns: repeat(3, minmax(106px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .gasbox-finance-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .gasbox-finance-strip article {
+    min-height: 52px;
   }
 
   .gasbox-scene__cabinet {
@@ -817,6 +1315,59 @@
   }
 
   .gasbox-machine-list__item .mx2-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .gasbox-wallet-assets,
+  .gasbox-creator-ledger,
+  .gasbox-runtime-card {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-recovery-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .gasbox-recovery-card .mx2-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .gasbox-creator-money-row {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-studio-builder > header,
+  .gasbox-studio-builder > footer,
+  .gasbox-studio-capsules__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gasbox-studio-blueprint {
+    grid-template-columns: 104px minmax(0, 1fr);
+    min-height: 150px;
+    padding: 12px;
+  }
+
+  .gasbox-studio-blueprint > img {
+    max-height: 140px;
+  }
+
+  .gasbox-studio-core {
+    grid-template-columns: 1fr;
+  }
+
+  .gasbox-studio-capsules__list article {
+    grid-template-columns: 40px minmax(0, 1fr) minmax(72px, 0.45fr);
+  }
+
+  .gasbox-studio-capsules__list article label:nth-of-type(3) {
+    grid-column: 2 / 4;
+  }
+
+  .gasbox-studio-capsules__remove {
     grid-column: 1 / -1;
     justify-self: start;
   }

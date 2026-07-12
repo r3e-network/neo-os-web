@@ -1,22 +1,32 @@
 /** PlayArea.tsx — Neo Message sealing desk */
-import { useState } from "react";
+import {
+  useId,
+  useEffect,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from "react";
 import { Clock3, LockKeyhole, MailCheck, RadioTower, RefreshCw, SendHorizontal, ShieldCheck, Stamp } from "lucide-react";
-import Checkbox from "@douyinfe/semi-ui/lib/es/checkbox";
-import type { CheckboxEvent } from "@douyinfe/semi-ui/lib/es/checkbox";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { OpenUiNotice, OpenUiProvider, OpenUiSegmented, OpenUiTextArea, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import {
   MAX_BODY_LENGTH,
   formatUnlock,
-  isEvmAddress,
+  isMessageRecipient,
   messageStatus,
   needsPublicRevealAck,
   shortAddress,
+  validateCompose,
   type ComposeForm,
   type LockMode,
   type MessageView,
 } from "./message-logic";
+import {
+  pendingDeliveryIsStale,
+  type PendingDelivery,
+} from "./pending-delivery";
 import "./PlayArea.scss";
 
 const sealedDeskUrl = new URL("../public/sealed-message-desk.webp", import.meta.url).href;
@@ -37,6 +47,193 @@ const EMPTY_FORM: ComposeForm = {
 
 type DrawerMode = "delivery" | "inbox" | "sent" | "network";
 
+// These semantic adapters preserve the shared mx2/Open UI class contract while
+// avoiding the full Semi UI runtime in a focused embedded MiniApp.
+function OpenUiProvider({ children }: { children: ReactNode }) {
+  return <>{children}</>;
+}
+
+function OpenUiNotice({
+  className,
+  icon,
+  title,
+  children,
+  type = "info",
+}: {
+  className?: string;
+  icon?: ReactNode;
+  title: ReactNode;
+  children?: ReactNode;
+  type?: "info" | "warning" | "error";
+}) {
+  return (
+    <div
+      className={["mx2-open-notice", "semi-banner", `semi-banner-${type}`, className].filter(Boolean).join(" ")}
+      role={type === "error" ? "alert" : "status"}
+    >
+      <div className="semi-banner-content-wrapper">
+        <div className="semi-banner-content">
+          {icon ? <span className="semi-banner-icon mx2-open-notice__icon">{icon}</span> : null}
+          <div className="semi-banner-content-body">
+            <div className="semi-banner-title">{title}</div>
+            {children ? <div className="semi-banner-description">{children}</div> : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OpenUiTextField({
+  className,
+  hint,
+  inputClassName,
+  label,
+  ...inputProps
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & {
+  className?: string;
+  hint?: ReactNode;
+  inputClassName?: string;
+  label: ReactNode;
+}) {
+  const reactId = useId();
+  const id = inputProps.id ?? `neomsg-field-${reactId.replace(/[^A-Za-z0-9_-]/g, "")}`;
+  const labelId = `${id}-label`;
+  const hintId = hint ? `${id}-hint` : undefined;
+  return (
+    <label className={["mx2-open-field", className].filter(Boolean).join(" ")} htmlFor={id}>
+      <span id={labelId} className="mx2-open-field__label">{label}</span>
+      <span className={["mx2-open-field__control", "semi-input-wrapper", inputClassName].filter(Boolean).join(" ")}>
+        <input
+          {...inputProps}
+          id={id}
+          className="semi-input"
+          aria-labelledby={inputProps["aria-labelledby"] ?? labelId}
+          aria-describedby={inputProps["aria-describedby"] ?? hintId}
+        />
+      </span>
+      {hint ? <span id={hintId} className="mx2-open-field__hint">{hint}</span> : null}
+    </label>
+  );
+}
+
+function OpenUiTextArea({
+  className,
+  hint,
+  label,
+  textareaClassName,
+  ...textareaProps
+}: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> & {
+  className?: string;
+  hint?: ReactNode;
+  label: ReactNode;
+  textareaClassName?: string;
+}) {
+  const reactId = useId();
+  const id = textareaProps.id ?? `neomsg-textarea-${reactId.replace(/[^A-Za-z0-9_-]/g, "")}`;
+  const labelId = `${id}-label`;
+  const hintId = hint ? `${id}-hint` : undefined;
+  return (
+    <label className={["mx2-open-field", "mx2-open-field--textarea", className].filter(Boolean).join(" ")} htmlFor={id}>
+      <span id={labelId} className="mx2-open-field__label">{label}</span>
+      <span className={[
+        "mx2-open-field__control",
+        "mx2-open-field__control--textarea",
+        "semi-input-textarea-wrapper",
+        textareaClassName,
+      ].filter(Boolean).join(" ")}>
+        <textarea
+          {...textareaProps}
+          id={id}
+          className="semi-input-textarea"
+          aria-labelledby={textareaProps["aria-labelledby"] ?? labelId}
+          aria-describedby={textareaProps["aria-describedby"] ?? hintId}
+        />
+      </span>
+      {hint ? <span id={hintId} className="mx2-open-field__hint">{hint}</span> : null}
+    </label>
+  );
+}
+
+function OpenUiSegmented({
+  className,
+  label,
+  onChange,
+  options,
+  segmentedClassName,
+  value,
+}: {
+  className?: string;
+  label: ReactNode;
+  onChange?: (value: string) => void;
+  options: Array<{ disabled?: boolean; label: ReactNode; value: string }>;
+  segmentedClassName?: string;
+  value?: string;
+}) {
+  const labelId = `neomsg-segmented-${useId().replace(/[^A-Za-z0-9_-]/g, "")}`;
+  return (
+    <div className={["mx2-open-field", "mx2-open-field--segmented", className].filter(Boolean).join(" ")}>
+      <span id={labelId} className="mx2-open-field__label">{label}</span>
+      <div
+        className={["mx2-open-segmented", "semi-radioGroup", segmentedClassName].filter(Boolean).join(" ")}
+        role="radiogroup"
+        aria-labelledby={labelId}
+      >
+        {options.map((option) => {
+          const checked = option.value === value;
+          return (
+            <label
+              key={option.value}
+              className={["semi-radio", checked ? "semi-radio-checked" : "", option.disabled ? "semi-radio-disabled" : ""].filter(Boolean).join(" ")}
+            >
+              <input
+                type="radio"
+                value={option.value}
+                checked={checked}
+                disabled={option.disabled}
+                onChange={() => onChange?.(option.value)}
+              />
+              <span className="semi-radio-addon-buttonRadio">{option.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CardCheckbox({
+  checked,
+  className,
+  children,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  className?: string;
+  children: ReactNode;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className={[
+      "semi-checkbox",
+      "semi-checkbox-cardType",
+      checked ? "semi-checkbox-checked" : "",
+      className,
+    ].filter(Boolean).join(" ")}>
+      <input
+        type="checkbox"
+        checked={checked}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="semi-checkbox-inner" aria-hidden="true" />
+      <span className="semi-checkbox-content semi-checkbox-addon">{children}</span>
+    </label>
+  );
+}
+
 function bodyPreview(body: string, fallback: string): string {
   const trimmed = body.trim();
   if (!trimmed) return fallback;
@@ -51,19 +248,22 @@ function MessageRow({
   row,
   type,
   busy,
+  pending,
   t,
   dispatch,
 }: {
   row: MessageView;
   type: "inbox" | "outbox";
   busy: boolean;
+  pending: boolean;
   t: P["t"];
   dispatch: P["dispatch"];
 }) {
   const status = messageStatus(row);
   const isRecipientOnly = status === "recipient";
+  const privatelyOpened = isRecipientOnly && Boolean(row.plaintext);
   const unlockLabel = formatUnlock(row.unlockTime);
-  const canRevealRecipient = type === "inbox" && isRecipientOnly && !row.revealed;
+  const canRevealRecipient = type === "inbox" && isRecipientOnly && !row.revealed && !row.plaintext;
   const canRequestReveal = status === "unlockable";
   const locked = status === "locked";
 
@@ -71,8 +271,12 @@ function MessageRow({
     <li className="neomsg-message">
       <div className="neomsg-message__top">
         <span className="neomsg-message__id">#{row.id}</span>
-        <span className="neomsg-message__status" data-status={status}>
-          {t(`statusBadge${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
+        <span className="neomsg-message__status" data-status={pending ? "pending" : privatelyOpened ? "private-open" : status}>
+          {pending
+            ? t("statusBadgeRevealPending")
+            : privatelyOpened
+            ? t("statusBadgePrivateOpen")
+            : t(`statusBadge${status.charAt(0).toUpperCase()}${status.slice(1)}`)}
         </span>
       </div>
       <dl className="neomsg-message__meta">
@@ -86,16 +290,22 @@ function MessageRow({
         </div>
       </dl>
       <p className="neomsg-message__body">
-        {row.plaintext || (locked ? t("notUnlockedYet") : t("onlyRecipientCanRead"))}
+        {row.plaintext || (
+          locked
+            ? t("notUnlockedYet")
+            : status === "unlockable"
+              ? t("readyToRevealBody")
+              : t("onlyRecipientCanRead")
+        )}
       </p>
-      {(canRevealRecipient || canRequestReveal || locked) && (
+      {(canRevealRecipient || canRequestReveal) && (
         <button
           type="button"
           className="mx2-btn mx2-btn--ghost"
-          disabled={busy || locked}
-          onClick={() => void dispatch(canRevealRecipient ? "revealRecipient" : "requestTimedReveal", row)}
+          disabled={busy || pending}
+          onClick={() => dispatch(canRevealRecipient ? "revealRecipient" : "requestTimedReveal", row)}
         >
-          {locked ? t("notUnlockedYet") : canRevealRecipient ? t("revealForMe") : t("revealOnChain")}
+          {pending ? t("statusRevealPending") : canRevealRecipient ? t("revealForMe") : t("revealOnChain")}
         </button>
       )}
     </li>
@@ -110,27 +320,42 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const hasWallet = bool("hasWallet");
   const isLoading = bool("isLoading");
   const isSending = bool("isSending");
-  const hasMore = bool("hasMore");
+  const isRecovering = bool("isRecovering");
+  const pendingStorageHealthy = bool("pendingStorageHealthy");
   const lastStatus = str("lastStatus", t("statusReady"));
   const form = val<ComposeForm>("composeForm", EMPTY_FORM) ?? EMPTY_FORM;
   const inbox = val<MessageView[]>("inbox", []) ?? [];
   const outbox = val<MessageView[]>("outbox", []) ?? [];
   const busyIds = val<string[]>("busyIds", []) ?? [];
+  const pendingRevealIds = val<string[]>("pendingRevealIds", []) ?? [];
+  const pendingDelivery = val<PendingDelivery>("pendingDelivery");
+  const hasMoreInbox = bool("hasMoreInbox");
+  const hasMoreOutbox = bool("hasMoreOutbox");
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("delivery");
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = globalThis.setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => globalThis.clearInterval(timer);
+  }, []);
 
   const lockMode = displayMode(form);
   const recipient = String(form.recipient ?? "");
   const body = String(form.body ?? "");
-  const validRecipient = isEvmAddress(recipient);
-  const bodyLength = body.trim().length;
+  const validRecipient = isMessageRecipient(recipient);
+  const bodyLength = body.length;
   const bodyTooLong = bodyLength > MAX_BODY_LENGTH;
   const ackNeeded = needsPublicRevealAck(lockMode, Boolean(form.publicRevealAcknowledged));
-  const readyToSend = connected && validRecipient && bodyLength > 0 && !bodyTooLong && !ackNeeded;
+  const composeCheck = validateCompose(form, nowMs);
+  const readyToSend = connected && networkSupported && !pendingDelivery && composeCheck.ok && !ackNeeded;
   const readinessValue = (() => {
-    if (!hasWallet || (!networkSupported && !connected)) return t("notConnected");
+    if (pendingDelivery) return t("statusSendPending");
+    if (!hasWallet || !connected) return t("notConnected");
+    if (!networkSupported) return t("switchToNeoX");
     if (!validRecipient) return t("readinessNeedRecipient");
     if (bodyLength === 0) return t("readinessNeedMessage");
     if (bodyTooLong) return t("readinessDeskNeedsDetails");
+    if (lockMode === "timed" && !composeCheck.ok) return t("readinessDeskNeedsDate");
     if (ackNeeded) return t("readinessDeskNeedsAck");
     return t("readinessDeskReady");
   })();
@@ -160,6 +385,14 @@ export default function PlayArea({ t, state, dispatch }: P) {
   };
   const setDeliveryMode = (value: string) => {
     setLockMode(value === "timed" ? "timed" : "recipient");
+  };
+  const dispatchSafely: P["dispatch"] = async (name, ...args) => {
+    try {
+      await dispatch(name, ...args);
+    } catch {
+      // Actions already publish localized status. Keep rejected dispatches from
+      // becoming unhandled promise rejections in the embedded host.
+    }
   };
 
   const scene = (
@@ -198,6 +431,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 label={t("recipientPreviewLabel")}
                 value={recipient}
                 onChange={(event) => updateForm({ recipient: event.target.value })}
+                maxLength={64}
                 placeholder="0x..."
                 autoComplete="off"
                 inputMode="text"
@@ -214,6 +448,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 label={t("messageLabel")}
                 value={body}
                 onChange={(event) => updateForm({ body: event.target.value, publicRevealAcknowledged: false })}
+                maxLength={MAX_BODY_LENGTH}
                 placeholder={t("messagePlaceholder")}
                 rows={4}
               />
@@ -257,14 +492,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
       </header>
       {rows.length > 0 ? (
         <ul>
-          {rows.slice(0, 8).map((row) => (
+          {rows.map((row) => (
             <MessageRow
               key={`${type}-${row.id}`}
               row={row}
               type={type}
               busy={busyIds.includes(row.id)}
+              pending={pendingRevealIds.includes(row.id)}
               t={t}
-              dispatch={dispatch}
+              dispatch={dispatchSafely}
             />
           ))}
         </ul>
@@ -272,11 +508,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
         <OpenUiNotice
           className="neomsg-empty"
           icon={type === "inbox" ? <MailCheck size={17} strokeWidth={2.35} aria-hidden="true" /> : <SendHorizontal size={17} strokeWidth={2.35} aria-hidden="true" />}
-          title={connected ? (type === "inbox" ? t("inboxEmpty") : t("connectToView")) : t("connectToView")}
+          title={connected ? (type === "inbox" ? t("inboxEmpty") : t("outboxEmpty")) : t("connectToView")}
         />
       )}
-      {type === "outbox" && hasMore && (
-        <button type="button" className="mx2-btn mx2-btn--ghost neomsg-list__more" onClick={() => void dispatch("loadOlder")}>
+      {(type === "inbox" ? hasMoreInbox : hasMoreOutbox) && (
+        <button type="button" className="mx2-btn mx2-btn--ghost neomsg-list__more" onClick={() => dispatchSafely("loadOlder", type)}>
           {t("loadOlder")}
         </button>
       )}
@@ -285,9 +521,31 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
   const drawer = (
     <div className="neomsg-drawer">
+      {pendingDelivery && (
+        <OpenUiNotice
+          className="neomsg-pending-delivery"
+          icon={<RefreshCw size={17} strokeWidth={2.35} aria-hidden="true" />}
+          title={t("pendingDeliveryTitle")}
+          type="warning"
+        >
+          <span>{t("pendingDeliveryBody", { txid: shortAddress(pendingDelivery.txid) })}</span>
+          {!pendingStorageHealthy && <strong>{t("pendingStorageWarning")}</strong>}
+          <span className="neomsg-pending-delivery__actions">
+            <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => dispatchSafely("recoverPendingDelivery")} disabled={isRecovering}>
+              <RefreshCw size={14} strokeWidth={2.3} aria-hidden="true" />
+              {isRecovering ? t("recoveringDelivery") : t("recoverDelivery")}
+            </button>
+            {pendingDeliveryIsStale(pendingDelivery) && (
+              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => dispatchSafely("clearStalePendingDelivery")} disabled={isRecovering}>
+                {t("clearStaleDelivery")}
+              </button>
+            )}
+          </span>
+        </OpenUiNotice>
+      )}
       <OpenUiSegmented
         className="neomsg-drawer-tabs"
-        label={t("inboxTitle")}
+        label={t("workspaceTitle")}
         onChange={setDrawerTab}
         options={drawerModes.map((item) => ({
           value: item.mode,
@@ -349,20 +607,20 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 label={t("revealDateLabel")}
                 type="datetime-local"
                 value={String(form.revealDate ?? "")}
+                min={new Date(nowMs - new Date(nowMs).getTimezoneOffset() * 60_000).toISOString().slice(0, 16)}
                 onChange={(event) => updateForm({ revealDate: event.target.value, publicRevealAcknowledged: false })}
               />
-              <Checkbox
-                aria-label={t("timedAcknowledge")}
+              <CardCheckbox
                 checked={Boolean(form.publicRevealAcknowledged)}
                 className="neomsg-timed__ack"
-                onChange={(event: CheckboxEvent) => updateForm({ publicRevealAcknowledged: Boolean(event.target.checked) })}
-                type="pureCard"
+                label={t("timedAcknowledge")}
+                onChange={(checked) => updateForm({ publicRevealAcknowledged: checked })}
               >
                 <span className="neomsg-timed__ack-content">
                   <ShieldCheck size={15} strokeWidth={2.35} aria-hidden="true" />
                   <span>{t("timedAcknowledge")}</span>
                 </span>
-              </Checkbox>
+              </CardCheckbox>
               <OpenUiNotice
                 className="neomsg-drawer__notice"
                 icon={<Clock3 size={17} strokeWidth={2.35} aria-hidden="true" />}
@@ -400,7 +658,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <button
               type="button"
               className="mx2-btn mx2-btn--ghost"
-              onClick={() => void dispatch("connectAndLoad")}
+              onClick={() => dispatchSafely("connectAndLoad")}
               disabled={isLoading}
             >
               <RefreshCw size={15} strokeWidth={2.35} aria-hidden="true" />
@@ -409,7 +667,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <button
               type="button"
               className="mx2-btn mx2-btn--ghost"
-              onClick={() => void dispatch("switchToNeoX")}
+              onClick={() => dispatchSafely("switchToNeoX")}
               disabled={isLoading}
             >
               <RadioTower size={15} strokeWidth={2.35} aria-hidden="true" />
@@ -429,9 +687,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
   return (
     <OpenUiProvider>
-      <div className="neo-message-play-area mx2 mx2-cat-tool">
+      <div className="neo-message-play-area mx2 mx2-cat-social">
         <PlayStage
-          category="tool"
+          category="social"
           className="neo-message-playstage"
           stage={{
             eyebrow: t("heroEyebrow"),
@@ -445,21 +703,33 @@ export default function PlayArea({ t, state, dispatch }: P) {
           }}
           scene={scene}
           actions={{
-            primary: connected
+            primary: pendingDelivery
+              ? {
+                  label: isRecovering ? t("recoveringDelivery") : t("recoverDelivery"),
+                  onClick: () => dispatchSafely("recoverPendingDelivery"),
+                  loading: isRecovering,
+                }
+              : connected && networkSupported
               ? {
                   label: isSending ? t("sending") : lockMode === "timed" ? t("sendButtonTimed") : t("sendButton"),
-                  onClick: () => void dispatch("sendMessage"),
+                  onClick: () => dispatchSafely("sendMessage"),
                   loading: isSending,
                   disabled: !readyToSend || isSending,
                 }
-              : {
-                  label: isLoading ? t("statusInboxLoaded") : t("connectWallet"),
-                  onClick: () => void dispatch("connectAndLoad"),
+              : connected
+                ? {
+                    label: t("switchToNeoX"),
+                    onClick: () => dispatchSafely("switchToNeoX"),
+                    loading: isLoading,
+                  }
+                : {
+                  label: isLoading ? t("connectingWallet") : t("connectWallet"),
+                  onClick: () => dispatchSafely("connectAndLoad"),
                   loading: isLoading,
                 },
           }}
-          drawerToggleLabel={t("inboxTab")}
-          drawer={{ title: t("inboxTitle"), children: drawer }}
+          drawerToggleLabel={t("workspaceTitle")}
+          drawer={{ title: t("workspaceTitle"), children: drawer }}
         />
       </div>
     </OpenUiProvider>

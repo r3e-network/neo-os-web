@@ -16,7 +16,6 @@ import {
   createGameState,
   updateFrame,
   flap,
-  computeStateHash,
 } from "./logic/flappy-engine";
 import type { GameState } from "./logic/flappy-engine";
 import {
@@ -148,7 +147,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // (Re)hydrate game state when seed arrives
   useEffect(() => {
     if (gameStatus === "dealt" && seed && activeGameId !== "0") {
-      const gs = createGameState(seed);
+      const gs = createGameState(seed, gameDifficulty);
       gs.phase = "ready";
       setGameState(gs);
       gameStateRef.current = gs;
@@ -158,7 +157,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       gameStateRef.current = null;
       setLocalPhase("idle");
     }
-  }, [gameStatus, seed, activeGameId, retryKey]);
+  }, [gameStatus, seed, activeGameId, gameDifficulty, retryKey]);
 
   const remainingMs = deadline > 0 ? deadline - nowMs : 0;
   const timeUp = gameStatus === "dealt" && deadline > 0 && remainingMs <= 0;
@@ -505,11 +504,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     if (!gs) return;
 
     const pipesPassed = gs.score;
-    const stateHash = computeStateHash(gs);
-    await dispatch("submitRun", {
-      stateHash,
-      pipesPassed,
-    });
+    await dispatch("submitSolution", { pipes: pipesPassed });
   }, [busy, gameStatus, dispatch]);
 
   // ─── Lobby / idle state ──────────────────────────────────────────────────

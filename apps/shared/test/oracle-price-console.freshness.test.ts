@@ -4,9 +4,15 @@ import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 import { EXTERNAL_INTEGRATIONS, getNetwork } from "../constants/rpc";
 import {
+  PRICE_SCALE_DECIMALS,
+  MAX_CATALOG_PAIRS,
   STALE_THRESHOLD_SECONDS,
+  catalogSymbol,
   classifyFeedError,
+  exactPriceQuote,
+  feedKeys,
   formatRelativeAge,
+  launchAssetSymbol,
   usePriceConsole,
 } from "../../oracle-price-console/src/hooks/usePriceConsole";
 import { messages } from "../../oracle-price-console/src/locale/messages";
@@ -51,14 +57,14 @@ function t(key: string, params: Record<string, string | number> = {}) {
  * Real-node fixture shape (captured from api.n3index.dev/mainnet getLatest):
  * Struct [pair, dataTimestamp, price, recordTimestamp, signature, flag].
  */
-function struct(dataTs: number, priceInt: string) {
+function struct(dataTs: number, priceInt: string, recordTs = dataTs) {
   return {
     type: "Struct",
     value: [
       { type: "ByteString", value: "VFdFTFZFREFUQTpORU8tVVNE" },
       { type: "Integer", value: String(dataTs) },
       { type: "Integer", value: priceInt },
-      { type: "Integer", value: String(dataTs) },
+      { type: "Integer", value: String(recordTs) },
       { type: "ByteString", value: "00" },
       { type: "Integer", value: "0" },
     ],
@@ -93,6 +99,60 @@ describe("oracle-price-console freshness + error helpers", () => {
       expect(appMessages[key]?.en, key).toBeTruthy();
       expect(appMessages[key]?.zh, key).toBeTruthy();
     }
+  });
+
+  it("parses only bounded USD catalog pairs and strips provider prefixes", () => {
+    expect(catalogSymbol("AGG:NEO-USD")).toBe("NEO");
+    expect(catalogSymbol("TWELVEDATA:GAS-USD")).toBe("GAS");
+    expect(catalogSymbol("BTC-USD")).toBe("BTC");
+    expect(catalogSymbol("TWELVEDATA:NEO-EUR")).toBeNull();
+    expect(catalogSymbol("AGG:NEO-USD-extra")).toBeNull();
+    expect(catalogSymbol("AGG:-USD")).toBeNull();
+    expect(catalogSymbol({ pair: "NEO-USD" })).toBeNull();
+  });
+
+  it("builds exact aggregate and provider keys for a validated symbol", () => {
+    expect(feedKeys(" neo ")).toEqual({
+      aggregate: "AGG:NEO-USD",
+      provider: "TWELVEDATA:NEO-USD",
+    });
+    expect(() => feedKeys("NEO/USD")).toThrow("asset is required");
+  });
+
+  it("normalizes exact USD launch keys without relabeling another quote currency", () => {
+    expect(launchAssetSymbol("neo")).toBe("NEO");
+    expect(launchAssetSymbol("NEO/USD")).toBe("NEO");
+    expect(launchAssetSymbol("AGG:NEO-USD")).toBe("NEO");
+    expect(launchAssetSymbol("TWELVEDATA:GAS-USD")).toBe("GAS");
+    expect(launchAssetSymbol("NEO-EUR")).toBe("");
+    expect(launchAssetSymbol("AGG:NEO-USD-extra")).toBe("");
+  });
+
+  it("accepts only exact six-decimal positive quotes with safe integer timestamps", () => {
+    expect(PRICE_SCALE_DECIMALS).toBe(6);
+    expect(exactPriceQuote({
+      price: 1.984001,
+      dataTimestamp: 1_781_231_000,
+      recordTimestamp: 1_781_231_001,
+    })).toEqual({
+      price: 1.984001,
+      dataTimestamp: 1_781_231_000,
+      recordTimestamp: 1_781_231_001,
+    });
+    expect(exactPriceQuote({ price: "1.984001", dataTimestamp: 1, recordTimestamp: 1 })).toBeNull();
+    expect(exactPriceQuote({ price: 1.9840001, dataTimestamp: 1, recordTimestamp: 1 })).toBeNull();
+    expect(exactPriceQuote({ price: Number.POSITIVE_INFINITY, dataTimestamp: 1, recordTimestamp: 1 })).toBeNull();
+    expect(exactPriceQuote({ price: Number.MAX_SAFE_INTEGER, dataTimestamp: 1, recordTimestamp: 1 })).toBeNull();
+    expect(exactPriceQuote({ price: 1, dataTimestamp: "1", recordTimestamp: 1.5 })).toEqual({
+      price: 1,
+      dataTimestamp: 0,
+      recordTimestamp: 0,
+    });
+    expect(exactPriceQuote({ price: 1, dataTimestamp: Number.MAX_SAFE_INTEGER, recordTimestamp: 1 })).toEqual({
+      price: 1,
+      dataTimestamp: 0,
+      recordTimestamp: 1,
+    });
   });
 });
 
@@ -139,7 +199,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(label).not.toContain("Fresh");
   });
 
-  it("treats a resolved price of 0 as no data (idle), never a fresh $0.0000", async () => {
+  it("rejects a resolved price of 0 as no data, never a successful fresh $0.0000", async () => {
     const now = 1_781_231_101_000;
     vi.setSystemTime(now);
     const nowSec = Math.floor(now / 1000);
@@ -150,11 +210,12 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     );
     const price = buildPriceConsole();
     const result = await price.fetchPrice();
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
     expect(price.freshness.get()).toBe("idle");
     expect(price.freshnessLabel.get()).not.toContain("Fresh");
     expect(price.priceDisplay.get()).toBe(t("notAvailable"));
     expect(price.freshnessTimestamp.get()).toBe("");
+    expect(price.errorMsg.get()).toBe(t("errorFeedFault"));
   });
 
   it("surfaces a localized error (not the raw fault) on a feed FAULT", async () => {
@@ -166,5 +227,249 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(result.success).toBe(false);
     expect(price.errorMsg.get()).toBe(t("errorFeedFault"));
     expect(price.errorMsg.get()).not.toMatch(/FAULT/);
+  });
+
+  it("keeps a positive price visibly unverified when both timestamps are missing", async () => {
+    const app = {
+      oracle: {
+        dataFeed: {
+          price: vi.fn(async () => ({ price: 2.185, dataTimestamp: 0, recordTimestamp: 0 })),
+          listPairs: vi.fn(async () => []),
+        },
+      },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.fetchPrice();
+
+    expect(price.priceDisplay.get()).toBe("$2.185000");
+    expect(price.freshness.get()).toBe("stale");
+    expect(price.freshnessLabel.get()).toContain("unverified");
+    expect(price.freshnessLabel.get()).not.toContain("Fresh");
+    expect(price.sourceFreshness.get()).toBe("stale");
+    expect(price.sourceFreshnessLabel.get()).toContain("unavailable");
+  });
+
+  it("discloses an old market-source timestamp even when the on-chain write is fresh", async () => {
+    const now = 1_781_231_101_000;
+    vi.setSystemTime(now);
+    const nowSec = Math.floor(now / 1000);
+    const app = {
+      oracle: {
+        dataFeed: {
+          price: vi.fn(async () => ({
+            price: 2.185,
+            dataTimestamp: nowSec - (STALE_THRESHOLD_SECONDS + 86_400),
+            recordTimestamp: nowSec - 20,
+          })),
+          listPairs: vi.fn(async () => []),
+        },
+      },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.fetchPrice();
+
+    expect(price.freshness.get()).toBe("fresh");
+    expect(price.sourceFreshness.get()).toBe("stale");
+    expect(price.sourceFreshnessLabel.get()).toContain("Market source is stale");
+    expect(price.sourceTimestampDisplay.get()).not.toBe("");
+  });
+
+  it("treats an implausibly future timestamp as invalid rather than fresh", async () => {
+    const now = 1_781_231_101_000;
+    vi.setSystemTime(now);
+    const app = {
+      oracle: {
+        dataFeed: {
+          price: vi.fn(async () => ({
+            price: 2.185,
+            dataTimestamp: Math.floor(now / 1000),
+            recordTimestamp: Math.floor(now / 1000) + 3600,
+          })),
+          listPairs: vi.fn(async () => []),
+        },
+      },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.fetchPrice();
+
+    expect(price.freshness.get()).toBe("stale");
+    expect(price.freshnessLabel.get()).toContain("ahead of local time");
+  });
+
+  it("invalidates the old quote immediately and ignores a late response after pair switch", async () => {
+    let resolveNeo!: (value: { price: number; dataTimestamp: number; recordTimestamp: number }) => void;
+    const neoRead = new Promise<{ price: number; dataTimestamp: number; recordTimestamp: number }>((resolve) => {
+      resolveNeo = resolve;
+    });
+    const nowSec = Math.floor(Date.now() / 1000);
+    const readPrice = vi.fn(async (symbol: string) => symbol.includes("NEO")
+      ? neoRead
+      : { price: 1.04, dataTimestamp: nowSec, recordTimestamp: nowSec });
+    const app = {
+      oracle: { dataFeed: { price: readPrice, listPairs: vi.fn(async () => []) } },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    const oldRead = price.fetchPrice();
+    expect(price.selectAsset("GAS")).toBe(true);
+    expect(price.priceDisplay.get()).toBe(t("notAvailable"));
+    const currentRead = await price.fetchPrice();
+    resolveNeo({ price: 9.99, dataTimestamp: nowSec, recordTimestamp: nowSec });
+    const ignoredRead = await oldRead;
+
+    expect(currentRead.success).toBe(true);
+    expect(ignoredRead).toMatchObject({ success: false, ignored: true });
+    expect(price.asset.get()).toBe("GAS");
+    expect(price.priceDisplay.get()).toBe("$1.040000");
+    expect(readPrice.mock.calls.filter((call) => String(call[0]).includes("NEO"))).toHaveLength(1);
+  });
+
+  it("clears a previously verified quote when the next read fails", async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const readPrice = vi.fn()
+      .mockResolvedValueOnce({ price: 2.185, dataTimestamp: nowSec, recordTimestamp: nowSec })
+      .mockRejectedValueOnce(new Error("network request failed"));
+    const app = {
+      oracle: { dataFeed: { price: readPrice, listPairs: vi.fn(async () => []) } },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.fetchPrice();
+    expect(price.priceDisplay.get()).toBe("$2.185000");
+    await price.fetchPrice();
+
+    expect(price.priceDisplay.get()).toBe(t("notAvailable"));
+    expect(price.freshness.get()).toBe("idle");
+    expect(price.errorMsg.get()).toBe(t("errorFeedNetwork"));
+  });
+
+  it("reactively expires a once-fresh quote at the one-hour boundary", async () => {
+    vi.useFakeTimers();
+    const now = 1_781_231_101_000;
+    vi.setSystemTime(now);
+    const nowSec = Math.floor(now / 1000);
+    const app = {
+      oracle: {
+        dataFeed: {
+          price: vi.fn(async () => ({ price: 2.185, dataTimestamp: nowSec, recordTimestamp: nowSec })),
+          listPairs: vi.fn(async () => []),
+        },
+      },
+    } as never;
+    const price = usePriceConsole({ app, t });
+    await price.fetchPrice();
+    expect(price.freshness.get()).toBe("fresh");
+
+    await vi.advanceTimersByTimeAsync(STALE_THRESHOLD_SECONDS * 1000 + 50);
+
+    expect(price.freshness.get()).toBe("stale");
+    price.cleanup();
+  });
+
+  it("binds the successful result to the exact aggregate key and canonical contract", async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    fetchMock.mockResolvedValue(
+      rpcResponse({ state: "HALT", exception: null, stack: [struct(nowSec, "1984001")] }),
+    );
+    const price = buildPriceConsole();
+
+    await price.fetchPrice();
+
+    const request = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const network = getNetwork();
+    expect(request.params[0]).toBe(EXTERNAL_INTEGRATIONS[network].contracts.morpheusDatafeed);
+    expect(request.params[1]).toBe("getLatest");
+    expect(request.params[2]).toEqual([{ type: "String", value: "AGG:NEO-USD" }]);
+    expect(price.feedKey.get()).toBe("AGG:NEO-USD");
+    expect(price.feedRoute.get()).toBe("aggregate");
+    expect(price.priceDisplay.get()).toBe("$1.984001");
+  });
+
+  it("falls back to the exact provider key when the aggregate record is absent", async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    fetchMock
+      .mockResolvedValueOnce(rpcResponse({ state: "FAULT", exception: "missing", stack: [] }))
+      .mockResolvedValueOnce(
+        rpcResponse({ state: "HALT", exception: null, stack: [struct(nowSec - 12, "1064600", nowSec - 7)] }),
+      );
+    const price = buildPriceConsole();
+
+    const result = await price.fetchPrice();
+
+    expect(result.success).toBe(true);
+    const requests = fetchMock.mock.calls.map((call) => JSON.parse(String(call[1]?.body)));
+    expect(requests.map((request) => request.params[2][0].value)).toEqual([
+      "AGG:NEO-USD",
+      "TWELVEDATA:NEO-USD",
+    ]);
+    expect(price.feedKey.get()).toBe("TWELVEDATA:NEO-USD");
+    expect(price.feedRoute.get()).toBe("provider");
+    expect(price.sourceLabel.get()).toContain("TwelveData fallback");
+  });
+
+  it("prefers a timestamp-bound provider record over an unverified aggregate candidate", async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const readPrice = vi.fn(async (key: string) => key.startsWith("AGG:")
+      ? { price: 2.2, dataTimestamp: 0, recordTimestamp: 0 }
+      : { price: 2.1, dataTimestamp: nowSec - 20, recordTimestamp: nowSec - 10 });
+    const app = {
+      oracle: { dataFeed: { price: readPrice, listPairs: vi.fn(async () => []) } },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.fetchPrice();
+
+    expect(readPrice.mock.calls.map((call) => call[0])).toEqual([
+      "AGG:NEO-USD",
+      "TWELVEDATA:NEO-USD",
+    ]);
+    expect(price.priceDisplay.get()).toBe("$2.100000");
+    expect(price.feedRoute.get()).toBe("provider");
+    expect(price.freshness.get()).toBe("fresh");
+  });
+
+  it("normalizes the pair catalog, ignores non-USD entries, and keeps stable defaults first", async () => {
+    const app = {
+      oracle: {
+        dataFeed: {
+          price: vi.fn(),
+          listPairs: vi.fn(async () => [
+            "AGG:NEO-USD",
+            "TWELVEDATA:ETH-USD",
+            "CHAINLINK:ETH-USD",
+            "TWELVEDATA:NEO-EUR",
+            "malformed",
+          ]),
+        },
+      },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.loadPairs();
+
+    expect(price.availablePairs.get()).toEqual(["NEO", "GAS", "BTC", "ETH"]);
+  });
+
+  it("bounds an oversized on-chain pair catalog before it reaches product state", async () => {
+    const app = {
+      oracle: {
+        dataFeed: {
+          price: vi.fn(),
+          listPairs: vi.fn(async () => Array.from(
+            { length: MAX_CATALOG_PAIRS + 80 },
+            (_item, index) => `SOURCE:A${index}-USD`,
+          )),
+        },
+      },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    await price.loadPairs();
+
+    expect(price.availablePairs.get().length).toBeLessThanOrEqual(MAX_CATALOG_PAIRS);
+    expect(price.availablePairs.get().slice(0, 3)).toEqual(["NEO", "GAS", "BTC"]);
   });
 });

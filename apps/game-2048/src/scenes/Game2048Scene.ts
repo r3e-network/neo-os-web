@@ -27,6 +27,7 @@ import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState } from "@framework/phaser";
 import { applyMove, hasAnyMove, tileValue } from "../logic/engine-2048";
+import type { MoveTransition } from "../logic/engine-2048";
 import { DIFFICULTY_RULES, MAX_MOVES, gasDisplay } from "../logic/game-rules";
 
 // ── Canvas dimensions ──────────────────────────────────────────────────────────
@@ -56,6 +57,8 @@ interface TileVisual {
   art: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
   label: Phaser.GameObjects.Text;
   objects: Phaser.GameObjects.GameObject[];
+  baseScales: Array<{ x: number; y: number }>;
+  scaleFactor: number;
   x: number;
   y: number;
 }
@@ -124,31 +127,33 @@ function tileFontSize(exp: number, cellSize: number): string {
 
 // ── Swipe threshold ────────────────────────────────────────────────────────────
 const SWIPE_THRESHOLD = 30;
+const SLIDE_DURATION_MS = 140;
+const MERGE_EFFECT_MS = 170;
+const SPAWN_EFFECT_MS = 150;
 
 // ── Difficulty card layout ─────────────────────────────────────────────────────
-const CARD_W = 108;
 const CARD_H = 132;
 
 const FONT_FAMILY = "Inter, Arial, sans-serif";
 
 const RUSH_ASSETS = {
   felt: "rush-tile-felt",
-  tile: (exp: number) => `rush-tile-e${Math.min(Math.max(exp, 1), 12)}`,
+  tile: (exp: number) => `rush-building-e${Math.min(Math.max(exp, 1), 12)}`,
 } as const;
 
 const TILE_ART_FILES = [
-  "./art/tile-e1.webp",
-  "./art/tile-e2.webp",
-  "./art/tile-e3.webp",
-  "./art/tile-e4.webp",
-  "./art/tile-e5.webp",
-  "./art/tile-e6.webp",
-  "./art/tile-e7.webp",
-  "./art/tile-e8.webp",
-  "./art/tile-e9.webp",
-  "./art/tile-e10.webp",
-  "./art/tile-e11.webp",
-  "./art/tile-e12.webp",
+  "./art/building-e1.webp",
+  "./art/building-e2.webp",
+  "./art/building-e3.webp",
+  "./art/building-e4.webp",
+  "./art/building-e5.webp",
+  "./art/building-e6.webp",
+  "./art/building-e7.webp",
+  "./art/building-e8.webp",
+  "./art/building-e9.webp",
+  "./art/building-e10.webp",
+  "./art/building-e11.webp",
+  "./art/building-e12.webp",
 ] as const;
 
 const DIFF_LABELS = ["Sprint", "Climb", "Summit"] as const;
@@ -167,6 +172,16 @@ export class Game2048Scene extends BaseScene {
   private scoreLabel!: Phaser.GameObjects.Text;
   private bestLabel!:  Phaser.GameObjects.Text;
   private statusLabel!:Phaser.GameObjects.Text;
+  private scoreCaption!: Phaser.GameObjects.Text;
+  private bestCaption!: Phaser.GameObjects.Text;
+  private boardHint!: Phaser.GameObjects.Text;
+  private lobbyHeading!: Phaser.GameObjects.Text;
+  private lobbySubtitle!: Phaser.GameObjects.Text;
+  private dealingLabel!: Phaser.GameObjects.Text;
+  private celebrationTile!: Phaser.GameObjects.Image;
+  private celebrationTitle!: Phaser.GameObjects.Text;
+  private celebrationCopy!: Phaser.GameObjects.Text;
+  private celebrationDismiss!: Phaser.GameObjects.Text;
 
   private gridContainer!:  Phaser.GameObjects.Container;
   private lobbyContainer!: Phaser.GameObjects.Container;
@@ -175,11 +190,17 @@ export class Game2048Scene extends BaseScene {
 
   private diffCards: Phaser.GameObjects.Container[] = [];
   private diffRewardLabels: Phaser.GameObjects.Text[] = [];
+  private diffNameLabels: Phaser.GameObjects.Text[] = [];
+  private diffCopyLabels: Phaser.GameObjects.Text[] = [];
+  private diffTimeLabels: Phaser.GameObjects.Text[] = [];
   private startBtn!: Phaser.GameObjects.Container;
 
   // ── Input state ───────────────────────────────────────────────────────────────
   private swipeStart: { x: number; y: number } | null = null;
-  private lastDir = -1;
+  private inputLocked = false;
+  private awaitingTransition = false;
+  private animationInProgress = false;
+  private moveAnimationTimer: Phaser.Time.TimerEvent | null = null;
 
   // ── Game state mirror ─────────────────────────────────────────────────────────
   private prevBoard:     number[] = Array(16).fill(0);
@@ -188,6 +209,7 @@ export class Game2048Scene extends BaseScene {
   private prevStatus     = "";
   private prevAppMode    = "";
   private prevIsMoving   = false;
+  private lastTransitionSequence = -1;
   private shown2048      = false;
 
   constructor() {
@@ -287,16 +309,25 @@ export class Game2048Scene extends BaseScene {
 
   private rebuildScene(): void {
     this.tweens.killAll();
+    this.moveAnimationTimer?.remove(false);
+    this.moveAnimationTimer = null;
     this.children.removeAll(true);
     this.cellBgs = [];
     this.tileConts = Array(16).fill(null);
     this.diffCards = [];
     this.diffRewardLabels = [];
+    this.diffNameLabels = [];
+    this.diffCopyLabels = [];
+    this.diffTimeLabels = [];
     this.prevBoard = Array(16).fill(0);
     this.curBoard = Array(16).fill(0);
     this.prevStatus = "";
     this.prevAppMode = "";
     this.prevIsMoving = false;
+    this.inputLocked = false;
+    this.awaitingTransition = false;
+    this.animationInProgress = false;
+    this.lastTransitionSequence = -1;
     this.layout = this.computeLayout(this.scale.width || CW, this.scale.height || CH);
 
     this.buildBackground();
@@ -326,10 +357,22 @@ export class Game2048Scene extends BaseScene {
     const board       = (this.val<number[]>("runBoard") ?? []).slice();
     const moveCount   = this.num("runMoveCount", 0);
     const maxExp      = this.num("runMaxExp", 0);
+    const moveTransition = this.val<MoveTransition | null>("moveTransition") ?? null;
     const isMoving    = this.bool("isMoving");
     const isDealing   = this.bool("isDealing");
     const isStarting  = this.bool("isStarting");
     const lastStatus  = this.str("lastStatus", "");
+    const isLobby = status === "idle" || status === "solved" || status === "expired";
+    const selectedDifficulty = Phaser.Math.Clamp(
+      Math.round(this.num("selectedDifficulty", this.pickedDiff)),
+      0,
+      2,
+    );
+    if (isLobby && selectedDifficulty !== this.pickedDiff) {
+      this.pickedDiff = selectedDifficulty;
+      this.highlightDiffCard(this.pickedDiff);
+    }
+    this.applyLocalizedCopy();
 
     // ── Play-mode copy (guest drops the GAS reward tier on the lobby cards) ─────
     const appMode = this.str("appMode", "gamefi");
@@ -351,7 +394,6 @@ export class Game2048Scene extends BaseScene {
 
     if (statusChanged) {
       this.prevStatus = status;
-      const isLobby    = status === "idle" || status === "solved" || status === "expired";
       const isPlaying  = status === "dealt";
 
       this.setObjectActive(this.gridContainer, isPlaying && board.length === 16);
@@ -364,6 +406,12 @@ export class Game2048Scene extends BaseScene {
 
       if (isLobby) {
         this.shown2048 = false;
+        this.moveAnimationTimer?.remove(false);
+        this.moveAnimationTimer = null;
+        this.inputLocked = false;
+        this.awaitingTransition = false;
+        this.animationInProgress = false;
+        this.lastTransitionSequence = -1;
         this.clearTiles();
         this.setObjectActive(this.celebContainer, false);
         this.highlightDiffCard(this.pickedDiff);
@@ -388,36 +436,51 @@ export class Game2048Scene extends BaseScene {
       this.setObjectActive(this.lobbyContainer, false);
       this.setObjectActive(this.dealingContainer, false);
 
-      const boardChanged = board.some((v, i) => v !== this.curBoard[i]);
-      const expectedTileCount = board.filter((exp) => exp > 0).length;
-      const renderedTileCount = this.tileConts.filter(Boolean).length;
+      let transitionConsumed = false;
+      if (
+        moveTransition &&
+        moveTransition.sequence !== this.lastTransitionSequence
+      ) {
+        this.lastTransitionSequence = moveTransition.sequence;
+        transitionConsumed = true;
+        this.awaitingTransition = false;
+        if (this.canAnimateTransition(moveTransition)) {
+          this.animateMoveTransition(moveTransition);
+        } else {
+          // Reload/resize or malformed visual state: the logical final board is
+          // still authoritative, but we deliberately do not invent trajectories.
+          this.renderBoardImmediate(moveTransition.after);
+          this.inputLocked = isMoving;
+        }
+      }
 
-      if (renderedTileCount !== expectedTileCount) {
-        this.renderBoardImmediate(board);
-        this.curBoard = board.slice();
-      } else if (boardChanged) {
-        // isMoving just settled: animate new state
-        if (!isMoving && this.prevIsMoving) {
-          this.animateBoardTransition(this.curBoard, board);
-        } else if (!isMoving) {
-          // Initial board or undo snap — render immediately
+      if (!transitionConsumed && !this.animationInProgress) {
+        const boardChanged = board.some((value, index) => value !== this.curBoard[index]);
+        const expectedTileCount = board.filter((exp) => exp > 0).length;
+        const renderedTileCount = this.tileConts.filter(Boolean).length;
+        if (boardChanged || renderedTileCount !== expectedTileCount) {
+          // Initial deal, undo, restore, and authoritative recovery snap here.
           this.renderBoardImmediate(board);
         }
-        this.curBoard = board.slice();
       }
     }
 
-    // ── Slide preview while moving ─────────────────────────────────────────────
-    if (isMoving && !this.prevIsMoving && this.lastDir >= 0) {
-      this.playSlideHint(this.lastDir);
+    // A failed backend request produces true→false without a transition. Release
+    // the optimistic local lock so the player can retry.
+    if (!isMoving && this.prevIsMoving && this.awaitingTransition && !this.animationInProgress) {
+      this.awaitingTransition = false;
+      this.inputLocked = false;
+    } else if (!isMoving && !this.animationInProgress && !this.awaitingTransition) {
+      this.inputLocked = false;
     }
 
     this.prevIsMoving = isMoving;
 
     // ── 2048 celebration ───────────────────────────────────────────────────────
-    if (!this.shown2048 && maxExp >= 11 && status === "dealt") {
+    const targetExp = DIFFICULTY_RULES[this.num("gameDifficulty", 0)]?.targetExp ?? 9;
+    if (!this.shown2048 && maxExp >= targetExp && status === "dealt") {
       this.shown2048 = true;
-      this.playCelebration();
+      this.playCelebration(targetExp);
     }
   }
 
@@ -475,7 +538,7 @@ export class Game2048Scene extends BaseScene {
     // Moves box (the run's move counter — the only "score" 2048 tracks)
     const scoreBox = this.add.container(l.scoreX, l.headerBoxY);
     const scoreBg = this.add.rectangle(0, 0, l.scoreBoxW, 52, 0xbbada0).setOrigin(0.5);
-    const scoreCaption = this.add.text(0, -10, this.str("scoreMovesCaption", "MOVES"), {
+    this.scoreCaption = this.add.text(0, -10, this.str("scoreMovesCaption", "MOVES"), {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#f9f6f2",
@@ -487,12 +550,12 @@ export class Game2048Scene extends BaseScene {
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
-    scoreBox.add([scoreBg, scoreCaption, this.scoreLabel]);
+    scoreBox.add([scoreBg, this.scoreCaption, this.scoreLabel]);
 
     // Best tile box
     const bestBox = this.add.container(l.bestX, l.headerBoxY);
     const bestBg = this.add.rectangle(0, 0, l.bestBoxW, 52, 0xbbada0).setOrigin(0.5);
-    const bestCaption = this.add.text(0, -10, "BEST", {
+    this.bestCaption = this.add.text(0, -10, this.str("scoreBestCaption", "BEST"), {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#f9f6f2",
@@ -504,7 +567,7 @@ export class Game2048Scene extends BaseScene {
       fontStyle: "bold",
       color: "#ffffff",
     }).setOrigin(0.5);
-    bestBox.add([bestBg, bestCaption, this.bestLabel]);
+    bestBox.add([bestBg, this.bestCaption, this.bestLabel]);
   }
 
   // ── Grid container ────────────────────────────────────────────────────────────
@@ -539,12 +602,17 @@ export class Game2048Scene extends BaseScene {
     }
 
     // Controls hint
-    const hint = this.add.text(l.centerX, l.hintY, "Swipe or use arrow keys", {
+    this.boardHint = this.add.text(
+      l.centerX,
+      l.hintY,
+      this.str("boardControlsHint", "Swipe or use arrow keys"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#9a8f82",
-    }).setOrigin(0.5);
-    this.gridContainer.add(hint);
+      },
+    ).setOrigin(0.5);
+    this.gridContainer.add(this.boardHint);
 
     this.gridContainer.setVisible(false);
   }
@@ -556,22 +624,32 @@ export class Game2048Scene extends BaseScene {
     this.diffRewardLabels = [];
     this.lobbyContainer = this.add.container(0, 0);
 
-    const heading = this.add.text(l.centerX, l.lobbyHeadingY, "Build the next power tile", {
+    this.lobbyHeading = this.add.text(
+      l.centerX,
+      l.lobbyHeadingY,
+      this.str("lobbyHeading", "Build the next power tile"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "18px",
       fontStyle: "bold",
       color: C.headerText,
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
-    const sub = this.add.text(l.centerX, l.lobbySubY, "Slide, merge, and settle a verified run", {
+    this.lobbySubtitle = this.add.text(
+      l.centerX,
+      l.lobbySubY,
+      this.str("lobbySubtitle", "Slide, merge, and settle a verified run"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       color: "#776e65",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
     const heroBoard = this.buildLobbyHeroBoard(l.centerX, l.lobbyHeroY);
 
-    this.lobbyContainer.add([heading, sub, heroBoard]);
+    this.lobbyContainer.add([this.lobbyHeading, this.lobbySubtitle, heroBoard]);
 
     // Difficulty cards
     const totalCardsW = l.lobbyCardW * 3 + l.lobbyCardGap * 2;
@@ -662,9 +740,11 @@ export class Game2048Scene extends BaseScene {
       fontFamily: FONT_FAMILY,
       fontSize: `${Math.max(12, Math.round(size * ratio))}px`,
       fontStyle: "bold",
-      color: tileColors(exp).text,
+      color: "#2d261f",
+      backgroundColor: "rgba(255, 253, 244, 0.9)",
     }).setOrigin(0.5)
-      .setShadow(0, exp >= 3 ? 2 : 1, exp >= 3 ? "#5c3517" : "#ffffff", 3);
+      .setPadding(4, 2, 4, 2)
+      .setShadow(0, 1, "rgba(255, 255, 255, 0.75)", 2);
   }
 
   private buildDiffCard(
@@ -690,6 +770,7 @@ export class Game2048Scene extends BaseScene {
       this.playSfx("select");
       this.pickedDiff = idx;
       this.highlightDiffCard(idx);
+      this.dispatch("setDifficulty", idx);
     });
 
     const targetExp = Math.max(1, Math.min(12, Math.round(Math.log2(rule.targetTile))));
@@ -704,28 +785,51 @@ export class Game2048Scene extends BaseScene {
       fontFamily: FONT_FAMILY,
       fontSize: rule.targetTile >= 1000 ? "16px" : "18px",
       fontStyle: "bold",
-      color: tileColors(targetExp).text,
+      color: "#2d261f",
+      backgroundColor: "rgba(255, 253, 244, 0.9)",
     }).setOrigin(0.5)
-      .setShadow(0, targetExp >= 3 ? 2 : 1, targetExp >= 3 ? "#5c3517" : "#ffffff", 3);
+      .setPadding(4, 2, 4, 2)
+      .setShadow(0, 1, "rgba(255, 255, 255, 0.75)", 2);
 
-    const label = this.add.text(0, l.lobbyCardH < CARD_H ? 4 : 7, DIFF_LABELS[idx] ?? "Sprint", {
+    const difficultyLabels = this.val<string[]>("difficultyLabels") ?? [];
+    const difficultyCopy = this.val<string[]>("difficultyCopy") ?? [];
+    const difficultyTimes = this.val<string[]>("difficultyTimes") ?? [];
+    const label = this.add.text(
+      0,
+      l.lobbyCardH < CARD_H ? 4 : 7,
+      difficultyLabels[idx] ?? DIFF_LABELS[idx] ?? "Sprint",
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
       fontStyle: "bold",
       color: "#35322e",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
+    this.diffNameLabels.push(label);
 
-    const tileTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 22 : 26, DIFF_COPY[idx] ?? `Reach ${rule.targetTile}`, {
+    const tileTxt = this.add.text(
+      0,
+      l.lobbyCardH < CARD_H ? 22 : 26,
+      difficultyCopy[idx] ?? DIFF_COPY[idx] ?? `Reach ${rule.targetTile}`,
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#776e65",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
+    this.diffCopyLabels.push(tileTxt);
 
-    const timeTxt = this.add.text(0, l.lobbyCardH < CARD_H ? 39 : 43, `${Math.round(rule.limitMs / 60000)} min`, {
+    const timeTxt = this.add.text(
+      0,
+      l.lobbyCardH < CARD_H ? 39 : 43,
+      difficultyTimes[idx] ?? `${Math.round(rule.limitMs / 60000)} min`,
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
       color: "#776e65",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
+    this.diffTimeLabels.push(timeTxt);
 
     // Guest is a free local game — show a "Free play" tag instead of the GAS
     // reward tier so the lobby carries no reward framing in guest mode.
@@ -752,7 +856,7 @@ export class Game2048Scene extends BaseScene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
 
-    const txt = this.add.text(0, 0, "Open run", {
+    const txt = this.add.text(0, 0, this.str("startOpenRun", "Open run"), {
       fontFamily: FONT_FAMILY,
       fontSize: "18px",
       fontStyle: "bold",
@@ -821,6 +925,37 @@ export class Game2048Scene extends BaseScene {
     bg.setFillStyle(active ? 0xf65e3b : 0xbbada0);
   }
 
+  private applyLocalizedCopy(): void {
+    this.scoreCaption?.setText(this.str("scoreMovesCaption", "MOVES"));
+    this.bestCaption?.setText(this.str("scoreBestCaption", "BEST"));
+    this.boardHint?.setText(this.str("boardControlsHint", "Swipe or use arrow keys"));
+    this.lobbyHeading?.setText(this.str("lobbyHeading", "Build the next power tile"));
+    this.lobbySubtitle?.setText(
+      this.str("lobbySubtitle", "Slide, merge, and settle a verified run"),
+    );
+    this.dealingLabel?.setText(this.str("dealingLabel", "Preparing run..."));
+    this.celebrationTitle?.setText(this.str("celebrationTitle", "Target unlocked"));
+    this.celebrationCopy?.setText(
+      this.str("celebrationCopy", "Keep merging or submit the run"),
+    );
+    this.celebrationDismiss?.setText(this.str("celebrationDismiss", "Tap to continue"));
+
+    const names = this.val<string[]>("difficultyLabels") ?? [];
+    const copy = this.val<string[]>("difficultyCopy") ?? [];
+    const times = this.val<string[]>("difficultyTimes") ?? [];
+    this.diffNameLabels.forEach((label, index) => {
+      label.setText(names[index] ?? DIFF_LABELS[index] ?? "Sprint");
+    });
+    this.diffCopyLabels.forEach((label, index) => {
+      const rule = DIFFICULTY_RULES[index];
+      label.setText(copy[index] ?? DIFF_COPY[index] ?? `Reach ${rule?.targetTile ?? 512}`);
+    });
+    this.diffTimeLabels.forEach((label, index) => {
+      const rule = DIFFICULTY_RULES[index];
+      label.setText(times[index] ?? `${Math.round((rule?.limitMs ?? 240_000) / 60_000)} min`);
+    });
+  }
+
   private isGuestMode(): boolean {
     return this.str("appMode", "gamefi") === "guest";
   }
@@ -854,7 +989,7 @@ export class Game2048Scene extends BaseScene {
       .setDisplaySize(48, 48)
       .setAngle(9);
 
-    const label = this.add.text(0, 18, "Preparing run...", {
+    this.dealingLabel = this.add.text(0, 18, this.str("dealingLabel", "Preparing run..."), {
       fontFamily: FONT_FAMILY,
       fontSize: "16px",
       fontStyle: "bold",
@@ -865,7 +1000,16 @@ export class Game2048Scene extends BaseScene {
     const dot2 = this.add.circle(0, 50, 5, 0xf2b179);
     const dot3 = this.add.circle(22, 50, 5, 0xf2b179);
 
-    this.dealingContainer.add([bg, tileA, tileB, tileC, label, dot1, dot2, dot3]);
+    this.dealingContainer.add([
+      bg,
+      tileA,
+      tileB,
+      tileC,
+      this.dealingLabel,
+      dot1,
+      dot2,
+      dot3,
+    ]);
 
     [tileA, tileB, tileC].forEach((tile, index) => {
       this.animate({
@@ -906,34 +1050,60 @@ export class Game2048Scene extends BaseScene {
       .setStrokeStyle(3, 0xedc22e)
       .setOrigin(0.5);
 
-    const trophyTile = this.add.image(0, -52, RUSH_ASSETS.tile(11))
+    this.celebrationTile = this.add.image(0, -52, RUSH_ASSETS.tile(11))
       .setDisplaySize(86, 86);
 
-    const titleTxt = this.add.text(0, 12, "2048 unlocked", {
+    this.celebrationTitle = this.add.text(
+      0,
+      12,
+      this.str("celebrationTitle", "Target unlocked"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "24px",
       fontStyle: "bold",
       color: "#35322e",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
-    const subTxt = this.add.text(0, 42, "Keep merging or submit the run", {
+    this.celebrationCopy = this.add.text(
+      0,
+      42,
+      this.str("celebrationCopy", "Keep merging or submit the run"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
       color: "#5a4f45",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
-    const dismissBtn = this.add.text(0, 76, "Tap to continue", {
+    this.celebrationDismiss = this.add.text(
+      0,
+      76,
+      this.str("celebrationDismiss", "Tap to continue"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
       fontStyle: "bold",
       color: "#e05000",
-    }).setOrigin(0.5);
+      },
+    ).setOrigin(0.5);
 
-    this.celebContainer.add([overlay, banner, trophyTile, titleTxt, subTxt, dismissBtn]);
+    this.celebContainer.add([
+      overlay,
+      banner,
+      this.celebrationTile,
+      this.celebrationTitle,
+      this.celebrationCopy,
+      this.celebrationDismiss,
+    ]);
     this.celebContainer.setVisible(false);
 
     overlay.on("pointerdown", () => {
       this.playSfx("select");
+      if (this.reducedMotion) {
+        this.setObjectActive(this.celebContainer, false);
+        return;
+      }
       this.tweens.add({
         targets: this.celebContainer,
         alpha: 0,
@@ -946,9 +1116,14 @@ export class Game2048Scene extends BaseScene {
     });
   }
 
-  private playCelebration(): void {
+  private playCelebration(targetExp: number): void {
     this.playSfx("win");
+    this.celebrationTile.setTexture(RUSH_ASSETS.tile(targetExp)).setDisplaySize(86, 86);
     this.setObjectActive(this.celebContainer, true);
+    if (this.reducedMotion) {
+      this.celebContainer.setAlpha(1);
+      return;
+    }
     this.celebContainer.setAlpha(0);
     this.tweens.add({
       targets: this.celebContainer,
@@ -1001,8 +1176,35 @@ export class Game2048Scene extends BaseScene {
   }
 
   private setTileScale(tile: TileVisual, scale: number): void {
-    tile.objects.forEach((object) => {
-      (object as { setScale?: (scale: number) => void }).setScale?.(scale);
+    tile.scaleFactor = scale;
+    tile.objects.forEach((object, index) => {
+      const base = tile.baseScales[index] ?? { x: 1, y: 1 };
+      (object as { setScale?: (x: number, y?: number) => void }).setScale?.(
+        base.x * scale,
+        base.y * scale,
+      );
+    });
+  }
+
+  /** Tween a visual multiplier without destroying each asset's display-size scale. */
+  private tweenTileScale(
+    tile: TileVisual,
+    target: number,
+    duration: number,
+    ease: string,
+    onComplete?: () => void,
+  ): void {
+    const factor = { value: tile.scaleFactor };
+    this.tweens.add({
+      targets: factor,
+      value: target,
+      duration,
+      ease,
+      onUpdate: () => this.setTileScale(tile, factor.value),
+      onComplete: () => {
+        this.setTileScale(tile, target);
+        onComplete?.();
+      },
     });
   }
 
@@ -1026,6 +1228,9 @@ export class Game2048Scene extends BaseScene {
    * and undo snaps where no animation is needed.
    */
   private renderBoardImmediate(board: number[]): void {
+    this.moveAnimationTimer?.remove(false);
+    this.moveAnimationTimer = null;
+    this.animationInProgress = false;
     // Destroy old tiles
     this.clearTiles();
     // Spawn each non-empty tile without animation
@@ -1037,145 +1242,160 @@ export class Game2048Scene extends BaseScene {
       }
     }
     this.setTilesActive(true);
+    this.curBoard = board.slice();
     this.prevBoard = board.slice();
   }
 
   /**
-   * Animate the transition from oldBoard to newBoard:
-   *  - slides existing tiles to their new positions
-   *  - pops merged tiles
-   *  - spawns new tiles with scale-up
+   * Require a complete source identity map and the exact board currently on
+   * screen. Restores/resizes intentionally snap instead of guessing.
    */
-  private animateBoardTransition(oldBoard: number[], newBoard: number[]): void {
-    const SLIDE_DUR = 120;
-    const POP_DUR   = 100;
-    const SPAWN_DUR = 130;
-
-    // Identify positions where values appeared (possible spawned tiles)
-    // After slides settle, spawn the new tile
-    const newTileIndices: number[] = [];
-    for (let i = 0; i < 16; i++) {
-      const wasEmpty = (oldBoard[i] ?? 0) === 0;
-      const nowFilled = (newBoard[i] ?? 0) > 0;
-      // Positions that are new non-zero AND old was empty are spawned tiles
-      if (wasEmpty && nowFilled) {
-        newTileIndices.push(i);
-      }
+  private canAnimateTransition(transition: MoveTransition): boolean {
+    if (
+      transition.before.length !== 16 ||
+      transition.afterSlide.length !== 16 ||
+      transition.after.length !== 16 ||
+      transition.before.some((value, index) => value !== this.curBoard[index])
+    ) {
+      return false;
     }
 
-    // Identify merged positions (value increased by 1 exponent in a non-empty→non-empty case)
-    const mergedIndices: number[] = [];
-    for (let i = 0; i < 16; i++) {
-      const old = oldBoard[i] ?? 0;
-      const nxt = newBoard[i] ?? 0;
-      if (old > 0 && nxt === old + 1) {
-        mergedIndices.push(i);
+    const expectedSources = transition.before
+      .map((exponent, source) => ({ exponent, source }))
+      .filter(({ exponent }) => exponent > 0);
+    if (transition.motions.length !== expectedSources.length) return false;
+    const seenSources = new Set<number>();
+
+    for (const motion of transition.motions) {
+      if (
+        motion.source < 0 || motion.source > 15 ||
+        motion.destination < 0 || motion.destination > 15 ||
+        seenSources.has(motion.source) ||
+        transition.before[motion.source] !== motion.exponent ||
+        !this.tileConts[motion.source]
+      ) {
+        return false;
       }
+      if (
+        motion.merge !== null &&
+        (motion.merge < 0 || motion.merge >= transition.merges.length)
+      ) {
+        return false;
+      }
+      seenSources.add(motion.source);
     }
 
-    if (mergedIndices.length > 0) {
-      this.playSfx("merge");
-    } else if (newBoard.some((exp, index) => exp !== (oldBoard[index] ?? 0))) {
-      this.playSfx("move");
-    }
+    return (
+      seenSources.size === expectedSources.length &&
+      transition.afterSlide[transition.spawn.destination] === 0 &&
+      transition.after[transition.spawn.destination] === transition.spawn.exponent
+    );
+  }
 
-    // Slide existing tiles to new positions
-    // Strategy: move all tile visuals to match new board layout
-    // First, snap all tiles to reflect the new non-spawn values
-    const slideTargets: { tile: TileVisual; tx: number; ty: number }[] = [];
+  /**
+   * Play a confirmed move using the pure engine's identity map. Two merge
+   * sources visibly converge before they are replaced by the elastic result;
+   * the RNG spawn is born only after that slide settles.
+   */
+  private animateMoveTransition(transition: MoveTransition): void {
+    this.moveAnimationTimer?.remove(false);
+    this.moveAnimationTimer = null;
+    this.animationInProgress = true;
+    this.inputLocked = true;
+    this.curBoard = transition.after.slice();
+    this.prevBoard = transition.after.slice();
+    this.playSfx("move");
 
-    // Destroy tiles no longer present, and queue slides for moved tiles
-    for (let i = 0; i < 16; i++) {
-      const nxt = newBoard[i] ?? 0;
-      if (nxt === 0) {
-        this.destroyTile(this.tileConts[i]);
-        this.tileConts[i] = null;
+    const sourceTiles = [...this.tileConts];
+    const slide = (): void => {
+      for (const motion of transition.motions) {
+        const tile = sourceTiles[motion.source];
+        if (!tile) continue;
+        const { x, y } = this.cellXY(motion.destination);
+        if (this.reducedMotion) this.setTilePosition(tile, x, y);
+        else this.tweenTileTo(tile, x, y, SLIDE_DURATION_MS);
       }
-    }
+    };
 
-    // For positions with tiles in newBoard (excluding spawn positions),
-    // ensure we have a tile visual and slide it into place
-    for (let i = 0; i < 16; i++) {
-      const exp = newBoard[i] ?? 0;
-      if (exp === 0) continue;
-      const isSpawned = newTileIndices.includes(i);
-      if (isSpawned) continue;
+    const settle = (): void => {
+      this.moveAnimationTimer = null;
+      const nextTiles: (TileVisual | null)[] = Array(16).fill(null);
 
-      const { x, y } = this.cellXY(i);
-      if (!this.tileConts[i]) {
-        // Create tile immediately at its position
-        const tile = this.createTileSprite(exp, x, y);
-        this.tileConts[i] = tile;
-      } else {
-        // Update existing tile's value and slide to new position
-        this.updateTileSprite(this.tileConts[i]!, exp);
-        slideTargets.push({ tile: this.tileConts[i]!, tx: x, ty: y });
+      for (const motion of transition.motions) {
+        if (motion.merge !== null) continue;
+        const tile = sourceTiles[motion.source];
+        if (!tile) continue;
+        const { x, y } = this.cellXY(motion.destination);
+        this.setTilePosition(tile, x, y);
+        this.updateTileSprite(tile, motion.exponent);
+        nextTiles[motion.destination] = tile;
       }
-    }
 
-    // Run slide tweens
-    if (slideTargets.length > 0 && !this.reducedMotion) {
-      for (const { tile, tx, ty } of slideTargets) {
-        this.tweenTileTo(tile, tx, ty, SLIDE_DUR);
+      const mergeTiles: TileVisual[] = [];
+      for (const merge of transition.merges) {
+        for (const source of merge.sources) this.destroyTile(sourceTiles[source]);
+        const { x, y } = this.cellXY(merge.destination);
+        const result = this.createTileSprite(merge.resultExponent, x, y);
+        this.setTileScale(result, this.reducedMotion ? 1 : 0.86);
+        nextTiles[merge.destination] = result;
+        mergeTiles.push(result);
       }
-    } else {
-      for (const { tile, tx, ty } of slideTargets) {
-        this.setTilePosition(tile, tx, ty);
-      }
-    }
 
-    // Scale pop for merged tiles (delayed until slide completes)
-    const popDelay = this.reducedMotion ? 0 : SLIDE_DUR;
-    for (const idx of mergedIndices) {
-      const tile = this.tileConts[idx];
+      const spawn = transition.spawn;
+      const spawnXY = this.cellXY(spawn.destination);
+      const spawnTile = this.createTileSprite(spawn.exponent, spawnXY.x, spawnXY.y);
+      this.setTileScale(spawnTile, this.reducedMotion ? 1 : 0);
+      nextTiles[spawn.destination] = spawnTile;
+      this.tileConts = nextTiles;
+      this.setTilesActive(true);
+
+      if (mergeTiles.length > 0) this.playSfx("merge");
+      this.playSfx("spawn");
+
+      if (this.reducedMotion) {
+        this.finishMoveAnimation(transition.after);
+        return;
+      }
+
+      for (const tile of mergeTiles) {
+        this.tweenTileScale(tile, 1.16, 80, "Back.easeOut", () => {
+          this.tweenTileScale(tile, 1, 90, "Sine.easeInOut");
+        });
+      }
+      this.tweenTileScale(spawnTile, 1, SPAWN_EFFECT_MS, "Back.easeOut");
+
+      this.moveAnimationTimer = this.time.delayedCall(
+        Math.max(MERGE_EFFECT_MS, SPAWN_EFFECT_MS) + 10,
+        () => this.finishMoveAnimation(transition.after),
+      );
+    };
+
+    slide();
+    if (this.reducedMotion) settle();
+    else this.moveAnimationTimer = this.time.delayedCall(SLIDE_DURATION_MS, settle);
+  }
+
+  private finishMoveAnimation(finalBoard: readonly number[]): void {
+    this.moveAnimationTimer = null;
+    for (let index = 0; index < 16; index += 1) {
+      const tile = this.tileConts[index];
       if (!tile) continue;
-      if (this.reducedMotion) {
-        // no-op
-      } else {
-        this.tweens.add({
-          targets: tile.objects,
-          scale: 1.15,
-          duration: POP_DUR / 2,
-          delay: popDelay,
-          yoyo: true,
-          ease: "Sine.easeOut",
-        });
-      }
+      const { x, y } = this.cellXY(index);
+      this.setTilePosition(tile, x, y);
+      this.setTileScale(tile, 1);
+      this.updateTileSprite(tile, finalBoard[index] ?? 0);
     }
-
-    // Spawn new tiles after slide animation
-    const spawnDelay = this.reducedMotion ? 0 : SLIDE_DUR + 10;
-    if (newTileIndices.length > 0) {
-      this.time.delayedCall(spawnDelay, () => this.playSfx("spawn"));
-    }
-    for (const idx of newTileIndices) {
-      const exp = newBoard[idx] ?? 0;
-      if (exp === 0) continue;
-      const { x, y } = this.cellXY(idx);
-      const tile = this.createTileSprite(exp, x, y);
-      this.setTileScale(tile, 0);
-      this.tileConts[idx] = tile;
-      if (this.reducedMotion) {
-        this.setTileScale(tile, 1);
-      } else {
-        this.tweens.add({
-          targets: tile.objects,
-          scale: 1,
-          duration: SPAWN_DUR,
-          delay: spawnDelay,
-          ease: "Back.easeOut",
-        });
-      }
-    }
-
-    this.prevBoard = newBoard.slice();
+    this.curBoard = [...finalBoard];
+    this.prevBoard = [...finalBoard];
+    this.animationInProgress = false;
+    this.awaitingTransition = false;
+    this.inputLocked = this.bool("isMoving");
   }
 
   /**
    * Build a single scene-level tile visual at (x, y) for the given exponent.
    */
   private createTileSprite(exp: number, x: number, y: number): TileVisual {
-    const { text } = tileColors(exp);
     const { cellSize } = this.layout;
 
     const shadow = this.add.rectangle(x + 4, y + 6, cellSize - 4, cellSize - 4, 0x8f7555, 0.18)
@@ -1197,9 +1417,11 @@ export class Game2048Scene extends BaseScene {
       fontFamily: FONT_FAMILY,
       fontSize: tileFontSize(exp, cellSize),
       fontStyle: "bold",
-      color: text,
+      color: "#2d261f",
+      backgroundColor: "rgba(255, 253, 244, 0.9)",
     }).setOrigin(0.5)
-      .setShadow(0, exp >= 3 ? 2 : 1, exp >= 3 ? "#5c3517" : "#ffffff", 3);
+      .setPadding(5, 2, 5, 2)
+      .setShadow(0, 1, "rgba(255, 255, 255, 0.75)", 2);
 
     [shadow, art, label].forEach((object) => {
       if (!this.children.exists(object)) {
@@ -1207,14 +1429,22 @@ export class Game2048Scene extends BaseScene {
       }
     });
 
-    return { shadow, art, label, objects: [shadow, art, label], x, y };
+    const objects: Phaser.GameObjects.GameObject[] = [shadow, art, label];
+    const baseScales = objects.map((object) => {
+      const scaled = object as Phaser.GameObjects.GameObject & {
+        scaleX?: number;
+        scaleY?: number;
+      };
+      return { x: scaled.scaleX ?? 1, y: scaled.scaleY ?? 1 };
+    });
+
+    return { shadow, art, label, objects, baseScales, scaleFactor: 1, x, y };
   }
 
   /**
    * Update an existing tile sprite's value in place (for non-animated updates).
    */
   private updateTileSprite(tile: TileVisual, exp: number): void {
-    const { text } = tileColors(exp);
     const { cellSize } = this.layout;
 
     if (tile.art instanceof Phaser.GameObjects.Image) {
@@ -1226,34 +1456,13 @@ export class Game2048Scene extends BaseScene {
       tile.art.setFillStyle(tileColors(exp).bg);
     }
 
-    tile.label
+      tile.label
       .setText(`${tileValue(exp)}`)
-      .setColor(text)
+      .setColor("#2d261f")
       .setFontSize(tileFontSize(exp, cellSize))
-      .setShadow(0, exp >= 3 ? 2 : 1, exp >= 3 ? "#5c3517" : "#ffffff", 3);
-  }
-
-  /** Visual "nudge" in the move direction while the server confirms the move. */
-  private playSlideHint(dir: number): void {
-    if (this.reducedMotion) return;
-
-    const NUDGE = 6;
-    const dx = dir === 1 ? NUDGE : dir === 3 ? -NUDGE : 0;
-    const dy = dir === 2 ? NUDGE : dir === 0 ? -NUDGE : 0;
-
-    for (let i = 0; i < 16; i++) {
-      const tile = this.tileConts[i];
-      if (!tile) continue;
-      this.tweens.add({
-        targets: tile.objects,
-        x: `+=${dx}`,
-        y: `+=${dy}`,
-        duration: 60,
-        ease: "Sine.easeOut",
-        yoyo: true,
-        onComplete: () => this.setTilePosition(tile, tile.x, tile.y),
-      });
-    }
+      .setBackgroundColor("rgba(255, 253, 244, 0.9)")
+      .setPadding(5, 2, 5, 2)
+      .setShadow(0, 1, "rgba(255, 255, 255, 0.75)", 2);
   }
 
   private playSfx(kind: SfxKind): void {
@@ -1329,11 +1538,13 @@ export class Game2048Scene extends BaseScene {
   private handleMove(dir: number): void {
     this.sfx.unlock();
     if (this.str("gameStatus", "idle") !== "dealt") return;
-    if (this.bool("isMoving") || this.bool("isSubmitting")) return;
+    if (this.inputLocked || this.bool("isMoving") || this.bool("isSubmitting")) return;
     if (!this.canMove(dir)) return;
 
-    this.lastDir = dir;
-    this.playSfx("move");
+    // Lock synchronously so two keyboard/swipe events in the same React frame
+    // cannot dispatch duplicate moves before isMoving reaches the bridge.
+    this.inputLocked = true;
+    this.awaitingTransition = true;
     this.dispatch("playMove", { dir });
   }
 

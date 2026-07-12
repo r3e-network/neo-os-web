@@ -4,8 +4,8 @@
  * Guest mode is a purely LOCAL single-player "burn streak" challenge: the player
  * stokes a fire with fuel capsules, each stoke rolls a Web-Crypto RNG heat
  * multiplier and adds to the current run's heat while a streak builds. Push your
- * luck — past a safe window each stoke risks a flare-out that banks the run's
- * final score to the OFF-CHAIN guest leaderboard and starts a fresh run.
+ * luck — bank deliberately, because past a safe window each stoke risks a
+ * flare-out that loses the unbanked heat and starts a fresh run.
  *
  * The engine drives the SAME observables + dispatch actions the Phaser scene
  * reads (seasonPhase / prizePoolDisplay / userBurnedDisplay / formattedRank /
@@ -13,7 +13,7 @@
  * contract verbatim. It makes ZERO chain / oracle / reward calls — the framework
  * guest guard therefore never fires. All randomness comes from
  * crypto.getRandomValues (the local analog of the enclave seed), and the only
- * off-chain touch is the best-effort guest leaderboard on a flare-out.
+ * off-chain touch is the best-effort guest leaderboard after a deliberate bank.
  */
 import type { LeaderEntry } from "../composables/useBurnLeague";
 
@@ -71,6 +71,8 @@ export interface GuestEngineDeps {
 export interface GuestEngine {
   /** Stoke the fire once (backs the `burn` dispatch action in guest mode). */
   stoke(amount?: unknown): void;
+  /** Safely bank the current run before the next flare-out check. */
+  bank(): boolean;
   /** Reset to a clean local lobby + load the off-chain guest board. */
   enter(): Promise<void>;
   /** Clear any pending stoke timer (component cleanup). */
@@ -98,15 +100,19 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-/** Web-Crypto float in [0, 1) (Math.random fallback). */
+/** Web-Crypto float in [0, 1); chance play never downgrades to Math.random. */
 function rand01(): number {
   const buf = new Uint32Array(1);
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
+  if (!webCrypto?.getRandomValues) {
+    throw new Error("secure-random-unavailable");
+  }
+  try {
     webCrypto.getRandomValues(buf);
     return buf[0]! / 4294967296;
+  } catch {
+    throw new Error("secure-random-unavailable");
   }
-  return Math.random();
 }
 
 export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
@@ -143,6 +149,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   let bestHeat = 0;
   let boardRanked: LeaderEntry[] = [];
   let burnTimer: ReturnType<typeof setTimeout> | null = null;
+  let leaderboardSync = Promise.resolve();
 
   const clearTimer = (): void => {
     if (burnTimer !== null) {
@@ -189,20 +196,29 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     const top = boardRanked[0];
     topBurnerAddress.set(top?.address ?? "");
     topBurnedGas.set(top?.burned ?? 0);
+    const myBest = boardRanked
+      .filter((entry) => entry.isUser)
+      .reduce((value, entry) => Math.max(value, entry.burned), 0);
+    bestHeat = Math.max(bestHeat, myBest);
+    rewardPool.set(bestHeat);
+    totalBurned.set(bestHeat);
   };
 
-  const bankScore = async (score: number): Promise<void> => {
-    if (score > 0) {
-      try {
-        // Off-chain, best-effort — wallet optional; a wallet-less guest simply
-        // doesn't get a board row. Never touches chain/oracle/reward.
-        await guestLeaderboard.submit(score);
-      } catch {
-        /* guest board unreachable / no wallet — scores are best-effort */
+  const submitBankedScore = (score: number): void => {
+    leaderboardSync = leaderboardSync.then(async () => {
+      if (score > 0) {
+        try {
+          // Off-chain, best-effort — wallet optional; a wallet-less guest simply
+          // doesn't get a board row. Never touches chain/oracle/reward.
+          await guestLeaderboard.submit(score);
+        } catch {
+          /* guest board unreachable / no wallet — scores are best-effort */
+        }
       }
-    }
-    await refreshBoard();
-    projectRank(runHeat);
+      await refreshBoard();
+      projectRank(runHeat);
+    });
+    void leaderboardSync;
   };
 
   const succeed = (fuel: number): void => {
@@ -213,11 +229,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     const nextStreak = guestStreak.get() + 1;
 
     runHeat += gained;
-    bestHeat = Math.max(bestHeat, runHeat);
     guestStreak.set(nextStreak);
     userBurned.set(runHeat);
-    rewardPool.set(bestHeat);
-    totalBurned.set(bestHeat);
     burnCount.set(burnCount.get() + 1);
     projectRank(runHeat);
 
@@ -229,29 +242,37 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   };
 
   const flareOut = (): void => {
-    const finalScore = Math.round(runHeat);
+    const lostScore = Math.round(runHeat);
     const reached = guestStreak.get();
     runHeat = 0;
     guestStreak.set(0);
     userBurned.set(0);
     projectRank(0);
 
-    const msg = t("guestFlareOut", { score: finalScore, streak: reached });
+    const msg = t("guestFlareOut", { score: lostScore, streak: reached });
     actionNotice.set(msg);
     setStatus(msg, "warning");
-    void bankScore(finalScore);
   };
 
   const resolveStoke = (fuel: number): void => {
     // The stoke has "landed" — drop the burning flag so the scene fires its
     // one-shot reveal cue on the true→false transition.
     isBurning.set(false);
-    const streak = guestStreak.get();
-    const flareProb = clamp((streak - SAFE_STOKES) * RISK_STEP, 0, MAX_RISK);
-    if (streak >= SAFE_STOKES && rand01() < flareProb) {
-      flareOut();
-    } else {
-      succeed(fuel);
+    try {
+      const streak = guestStreak.get();
+      // `streak` is the number already completed, so the first risky attempt is
+      // the one immediately after SAFE_STOKES (3 completed -> stoke #4).
+      const flareProb = clamp((streak - SAFE_STOKES + 1) * RISK_STEP, 0, MAX_RISK);
+      if (streak >= SAFE_STOKES && rand01() < flareProb) {
+        flareOut();
+      } else {
+        succeed(fuel);
+      }
+    } catch {
+      const msg = t("guestSecureRandomUnavailable");
+      burnValidationError.set(msg);
+      actionNotice.set(msg);
+      setStatus(msg, "error");
     }
   };
 
@@ -281,6 +302,24 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       }, BURN_MS);
     },
 
+    bank(): boolean {
+      if (isBurning.get() || !(runHeat > 0)) return false;
+      const score = Math.round(runHeat);
+      const reached = guestStreak.get();
+      runHeat = 0;
+      bestHeat = Math.max(bestHeat, score);
+      rewardPool.set(bestHeat);
+      totalBurned.set(bestHeat);
+      userBurned.set(0);
+      guestStreak.set(0);
+      projectRank(0);
+      const msg = t("guestBanked", { score, streak: reached });
+      actionNotice.set(msg);
+      setStatus(msg, "success");
+      submitBankedScore(score);
+      return true;
+    },
+
     async enter(): Promise<void> {
       clearTimer();
       runHeat = 0;
@@ -305,12 +344,16 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       lastSettleResult.set(null);
       guestStreak.set(0);
       actionNotice.set(t("guestIntro"));
+      await leaderboardSync;
       await refreshBoard();
       projectRank(0);
     },
 
     dispose(): void {
       clearTimer();
+      // A mode switch can happen during the 280ms stoke reveal. Cancel the
+      // local result and release the shared busy flag before GameFi state loads.
+      isBurning.set(false);
     },
   };
 }

@@ -22,12 +22,16 @@ describe("neo-pay integration: dispatch params", () => {
       recipient: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq",
     })));
   });
-  it("dispatches whole NEO only after sanitizing fractional input", async () => {
+  it("requires the user to correct fractional NEO instead of silently changing the transfer", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
     fireEvent.click(container.querySelector(".neopay-token-option[data-token='NEO']") as Element);
     fireEvent.change(container.querySelector("#neopay-amount") as HTMLInputElement, { target: { value: "5.75" } });
     fireEvent.change(container.querySelector("#neopay-recipient") as HTMLInputElement, { target: { value: "NXV7ZhHiyM1aHXwpVsRZC6BwNFP2jghXAq" } });
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+    expect(dispatch).not.toHaveBeenCalled();
+
+    fireEvent.change(container.querySelector("#neopay-amount") as HTMLInputElement, { target: { value: "5" } });
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createStream", expect.objectContaining({
       amount: "5",

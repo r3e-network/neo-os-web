@@ -56,6 +56,70 @@
   background: #fffaf2;
 }
 
+.ns-pending-strip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  border-radius: 16px;
+  padding: 11px 13px;
+  background: #fff7dc;
+  color: #713f12;
+}
+
+.ns-pending-strip span,
+.ns-pending-strip strong {
+  min-width: 0;
+  font-size: 12px;
+}
+
+.ns-pending-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 680;
+}
+
+.ns-pending-strip strong {
+  overflow: hidden;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ns-pending-strip__receipt {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ns-pending-strip__receipt code {
+  color: #92400e;
+  font-family: var(--mx2-font-mono);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.ns-pending-strip__receipt button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid rgba(146, 64, 14, 0.2);
+  border-radius: var(--mx2-r-pill);
+  padding: 6px 9px;
+  background: #ffffff;
+  color: #92400e;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
 .ns-claim,
 .ns-registry-card,
 .ns-domain-card,
@@ -105,6 +169,9 @@
 
 .ns-claim__head strong,
 .ns-drawer-panel__head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--ns-ink);
   font-size: 13px;
   font-weight: 620;
@@ -142,6 +209,11 @@
   color: #b45309;
 }
 
+.ns-domain-card__status.is-restricted {
+  background: #f4f0ff;
+  color: #5b21b6;
+}
+
 .ns-domain-card strong {
   min-width: 0;
   overflow: hidden;
@@ -158,6 +230,16 @@
   color: var(--ns-muted);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.ns-domain-card__readiness {
+  width: fit-content;
+  border-left: 3px solid var(--mx2-brand-subtle);
+  padding-left: 9px;
+  color: #355b53;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 650;
 }
 
 .ns-search-line {
@@ -389,6 +471,49 @@
   text-overflow: ellipsis;
 }
 
+.ns-result-item--owner strong {
+  overflow: visible;
+  font-family: var(--mx2-font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+.ns-result-item--compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.ns-result-item--compact strong {
+  font-size: 13px;
+}
+
+.ns-chain-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #f3faf7;
+  color: #28554c;
+  font-size: 11px;
+}
+
+.ns-chain-route span {
+  font-weight: 680;
+}
+
+.ns-chain-route small {
+  min-width: 0;
+  overflow: hidden;
+  color: #5c716c;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ns-result-note {
   margin: 0;
   border-radius: 14px;
@@ -407,6 +532,18 @@
   padding: 10px 12px;
   background: #fff7f7;
   color: #991b1b;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.ns-scene__notice {
+  grid-column: 1 / -1;
+  margin: 0;
+  border: 1px solid rgba(14, 116, 144, 0.18);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #f0fbff;
+  color: #155e75;
   font-size: 13px;
   font-weight: 620;
 }
@@ -517,8 +654,11 @@
   list-style: none;
   display: grid;
   gap: 8px;
+  max-height: 360px;
   margin: 0;
-  padding: 0;
+  overflow-y: auto;
+  padding: 0 4px 0 0;
+  scrollbar-gutter: stable;
 }
 
 .ns-domain-row {
@@ -557,10 +697,50 @@
   line-height: 1.45;
 }
 
+.ns-domain-row em {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ns-domain-row em b {
+  border-radius: var(--mx2-r-pill);
+  padding: 2px 6px;
+  background: #fff0e7;
+  color: #b45309;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .ns-drawer-empty {
   border-radius: 14px;
   padding: 12px;
   background: #fbfffd;
+}
+
+.ns-drawer-warning,
+.ns-transfer-review {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #fff7dc;
+  color: #7c4a03;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ns-drawer-warning svg,
+.ns-transfer-review svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.ns-transfer-review {
+  overflow-wrap: anywhere;
 }
 
 .ns-manage-summary {
@@ -615,6 +795,17 @@
   font-weight: 620;
 }
 
+.ns-field-hint {
+  margin: 0;
+  color: var(--ns-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ns-field-hint[data-tone="error"] {
+  color: #a61b1b;
+}
+
 .ns-manage-input.mx2-open-field__control {
   width: 100%;
   min-width: 0;
@@ -642,11 +833,58 @@
   opacity: 0.54;
 }
 
+.ns-manage-field button[data-tone="danger"] {
+  border-color: rgba(190, 24, 93, 0.24);
+  background: #fff1f5;
+  color: #9f1239;
+}
+
 .ns-renew-btn {
   justify-self: start;
   background: var(--ns-warm-soft);
   color: #7c4a03;
   border-color: rgba(255, 196, 77, 0.5);
+}
+
+.ns-renew-review {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(255, 196, 77, 0.5);
+  border-radius: 15px;
+  padding: 12px;
+  background: var(--ns-warm-soft);
+}
+
+.ns-renew-review > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #713f12;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.ns-renew-review > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ns-renew-review button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  border-radius: var(--mx2-r-pill);
+  padding: 8px 12px;
+  background: #ffffff;
+  color: #7c2d12;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
 }
 
 .ns-guide-grid {
@@ -729,6 +967,18 @@
 
   .ns-domain-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ns-pending-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ns-pending-strip strong {
+    white-space: normal;
+  }
+
+  .ns-pending-strip__receipt {
+    justify-content: space-between;
   }
 
   .neo-ns-play-area .mx2-action-rail__row .mx2-btn--primary {

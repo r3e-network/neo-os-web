@@ -192,6 +192,27 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
       }
     });
 
+    ctx.framework.actions.register("discardPlan", async () => {
+      // Any edit after a plan has been generated changes the committed input
+      // set. Drop the stale package and its signature immediately so the UI
+      // can never sign or execute values that no longer match the visible
+      // draft. Keep executedDigest as the replay guard for packages that were
+      // already submitted.
+      feeEstimateToken += 1;
+      currentPlan.set(null);
+      planStatus.set(ctx.t("planDraftReady"));
+      shortDigest.set("-");
+      blockingIssueCount.set(0);
+      signatureState.set(ctx.t("unsigned"));
+      walletSignature.set("");
+      walletSignatureInfo.set(null);
+      feeEstimateGas.set("");
+      lastError.set("");
+      lastTxid.set("");
+      deployedContractHash.set("");
+      ctx.clearStatus();
+    });
+
     ctx.framework.actions.register("signCurrentPlan", async () => {
       const plan = currentPlan.get();
       if (!plan) throw new Error(ctx.t("noPlanToSign"));

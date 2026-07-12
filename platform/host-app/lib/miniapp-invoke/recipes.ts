@@ -11,9 +11,6 @@ import {
   DAILY_CHECKIN_APP_ID,
   DAILY_CHECKIN_FEE_FIXED8,
   DAILY_CHECKIN_MEMO,
-  DEV_TIPPING_APP_ID,
-  DEV_TIPPING_MIN_TIP_FIXED8,
-  DEV_TIPPING_TIP_MEMO,
   FUND_GAME_CREDIT_MEMO_BY_APP,
   GRAVEYARD_APP_ID,
   GRAVEYARD_BURY_MEMO,
@@ -137,53 +134,6 @@ function recoveryAccountRecipe(label: string): InvokeRecipe {
  * executed through the single executor in ./executor.ts.
  */
 export const MINIAPP_INVOKE_RECIPES: Record<string, InvokeRecipe> = {
-  [`${DEV_TIPPING_APP_ID}:sendTip`]: fundedRecipe(
-    "Dev Tipping contract",
-    "funded tip transaction",
-    ({ values, walletAddress, targetHash }) => {
-      const devId = positiveWholeValue(
-        values,
-        ["devId", "developerId", "id"],
-        "Developer ID",
-      );
-      const amount = optionalPositiveFixed8Value(
-        values,
-        ["amount", "tipAmount"],
-        "Tip amount",
-      );
-      if (!amount || BigInt(amount) < DEV_TIPPING_MIN_TIP_FIXED8) {
-        throw new Error("Minimum tip is 0.001 GAS.");
-      }
-      const message = cleanValue(values, ["message", "note"]).trim();
-      if (message.length > 280) {
-        throw new Error("Message must be 280 characters or fewer.");
-      }
-      const tipperName =
-        cleanValue(values, ["tipperName", "from", "name"]).trim() ||
-        "Neo supporter";
-      if (tipperName.length > 64) {
-        throw new Error("Tipper name must be 64 characters or fewer.");
-      }
-      return {
-        deposits: [
-          gasTransfer(walletAddress, targetHash, amount, DEV_TIPPING_TIP_MEMO),
-        ],
-        invocation: {
-          scriptHash: targetHash,
-          operation: "tip",
-          args: [
-            { type: "Hash160", value: walletAddress },
-            { type: "Integer", value: devId },
-            { type: "Integer", value: amount },
-            { type: "String", value: message },
-            { type: "String", value: tipperName },
-          ],
-        },
-        successMessage: (txid) => `Tip sent: ${txid}`,
-      };
-    },
-  ),
-
   [`${MEMORIAL_SHRINE_APP_ID}:createMemorial`]: simpleRecipe(
     "Memorial Shrine contract",
     ({ values, walletAddress, targetHash }) => {

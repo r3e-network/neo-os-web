@@ -43,7 +43,7 @@ function t(k: string, params?: Record<string, string | number>) {
   return value;
 }
 function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  const b: Record<string, unknown> = { vaultCount:0, pendingCount:0, completedCount:0, connectedAddress:"", connectedIsSigner:false, connectedHasApproved:false, activeVault:null, activeRequest:null, unfundedNotice:"", isCreatingVault:false, isDepositing:false, isProposing:false, isApproving:false, isCancelling:false, isLoading:false, history:[], ...o };
+  const b: Record<string, unknown> = { connectedAddress:"", connectedIsSigner:false, connectedHasApproved:false, activeVault:null, activeRequest:null, signerApprovals:[], unfundedNotice:"", vaultSource:"none", requestSource:"none", approvalSource:"none", historySource:"none", pendingOperation:null, transactionNotice:"", contractHash:"", isRecovering:false, isCreatingVault:false, isDepositing:false, isProposing:false, isApproving:false, isCancelling:false, isLoading:false, history:[], ...o };
   return Object.fromEntries(Object.entries(b).map(([k, v]) => [k, createObservable(v)]));
 }
 describe("neo-multisig integration: dispatch params", () => {
@@ -59,8 +59,8 @@ describe("neo-multisig integration: dispatch params", () => {
   });
   it("dispatches approveRequest with request id when signer + pending request", () => {
     const d = vi.fn().mockResolvedValue(undefined);
-    const req = { id:1 };
-    const { container } = render(<PlayArea t={t} state={state({ activeRequest: req, connectedIsSigner:true, connectedHasApproved:false })} dispatch={d} />);
+    const req = { id:1, status:"pending" };
+    const { container } = render(<PlayArea t={t} state={state({ activeRequest: req, connectedIsSigner:true, connectedHasApproved:false, approvalSource:"chain" })} dispatch={d} />);
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
     expect(d).toHaveBeenCalledWith("approveRequest", 1);
   });

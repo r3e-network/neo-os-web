@@ -9,20 +9,27 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #fffaf0;
+}
+
 /* domain-theme: snap the shell brand (primary button, badge dot, Semi primary)
-   to the range's pine-green accent family so the app reads as one green. */
+   to the range's warm-orange accent family so the app reads as one system. */
 :root,
 .mx2 {
-  --mx2-brand: #2f7d4e;
-  --mx2-brand-hover: #266542;
-  --mx2-brand-light: #e9f5ee;
-  --mx2-brand-subtle: #c9e7d4;
-  --mx2-brand-glow: rgba(47, 125, 78, 0.22);
+  --mx2-brand: #d7742f;
+  --mx2-brand-hover: #b9581f;
+  --mx2-brand-light: #fff2dc;
+  --mx2-brand-subtle: #ffd7a3;
+  --mx2-brand-glow: rgba(215, 116, 47, 0.2);
 }
 
 /* Legacy-token bridge: the splash/launcher (shared MiniAppHomeShell /
    GameHomePage and the pre-v2 Neo* components) still consumes the pre-v2
-   green tokens — `--sd-brand*` declared on `.standalone-dapp-root` by the
+   legacy tokens — `--sd-brand*` declared on `.standalone-dapp-root` by the
    shared runtime <style> (apps/shared/react/MiniAppRoot.tsx) and
    `--ns-brand*` / `--ns-violet*` declared on :root
    (apps/shared/styles/theme-base.scss). Re-point that whole family at the
@@ -49,19 +56,21 @@
 }
 
 /* The shared splash hardcodes #16c784-tinted glows/focus rings next to the
-   var()-driven fills; restate them in the app pine so shadow and ring match
+   var()-driven fills; restate them in range orange so shadow and ring match
    the remapped CTA color. */
 .standalone-dapp-root .n3h-button--primary,
 .standalone-dapp-root .n3h-shell--game .n3h-button--primary {
-  box-shadow: 0 14px 30px rgba(47, 125, 78, 0.24);
+  box-shadow: 0 14px 30px rgba(215, 116, 47, 0.24);
 }
 
 .standalone-dapp-root .n3gh-details-toggle:focus-visible {
-  outline-color: rgba(47, 125, 78, 0.22);
+  outline-color: rgba(215, 116, 47, 0.24);
 }
 
 .curve-arrow-playarea {
   display: block;
+  min-height: 100dvh;
+  background: #fffaf0;
   --mx2-stage-floor: #faf9f7;
   --curve-arrow-gold: #d9a441;
 }
@@ -93,10 +102,70 @@
   flex: 0 0 auto;
 }
 
+.curve-arrow-canvas-wrap {
+  position: relative;
+  width: min(100%, 440px);
+  margin-inline: auto;
+}
+
+.curve-arrow-canvas-wrap .curve-arrow-phaser-canvas {
+  width: 100%;
+}
+
+/* Semantic hit areas sit directly over the three illustrated Phaser range
+   cards. They add touch and keyboard access without drawing a second card. */
+.curve-arrow-route-controls {
+  position: absolute;
+  top: 62.9%;
+  left: 3.65%;
+  z-index: 16;
+  width: 92.7%;
+  height: 17.25%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6.15%;
+  pointer-events: none;
+}
+
+.curve-arrow-route-controls button {
+  min-width: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  padding: 0;
+  color: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.curve-arrow-route-controls button:hover:not(:disabled) {
+  border-color: rgba(185, 88, 31, 0.34);
+  background: rgba(255, 250, 240, 0.08);
+}
+
+.curve-arrow-route-controls button:focus-visible {
+  outline: 3px solid rgba(52, 103, 188, 0.58);
+  outline-offset: 2px;
+}
+
+.curve-arrow-route-controls button:disabled {
+  cursor: not-allowed;
+}
+
+.curve-arrow-route-controls span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .curve-arrow-stage-shell {
   position: relative;
   width: 100%;
-  min-height: calc(100dvh - 72px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -105,8 +174,8 @@
   overflow: hidden;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 48% 20%, rgba(47, 125, 78, 0.14), transparent 38%),
-    linear-gradient(180deg, rgba(255, 253, 248, 0), rgba(242, 250, 240, 0.88));
+    radial-gradient(circle at 48% 18%, rgba(255, 205, 122, 0.3), transparent 38%),
+    linear-gradient(180deg, #fffaf0 0%, #fff1da 100%);
 }
 
 .curve-arrow-stage-hud {
@@ -114,18 +183,18 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  border: 1px solid rgba(47, 125, 78, 0.16);
+  border: 1px solid rgba(174, 88, 27, 0.18);
   border-radius: 16px;
   padding: 7px;
   background: rgba(255, 253, 248, 0.93);
-  box-shadow: 0 10px 24px rgba(38, 101, 66, 0.08);
+  box-shadow: 0 10px 24px rgba(135, 72, 28, 0.09);
 }
 
 .curve-arrow-stage-hud__metric,
 .curve-arrow-stage-hud__drawer {
   min-width: 0;
   min-height: 48px;
-  border: 1px solid rgba(47, 125, 78, 0.13);
+  border: 1px solid rgba(174, 88, 27, 0.15);
   border-radius: 12px;
   background: #ffffff;
   padding: 7px 8px;
@@ -138,13 +207,13 @@
 }
 
 .curve-arrow-stage-hud__metric[data-accent="true"] {
-  border-color: rgba(47, 125, 78, 0.36);
+  border-color: rgba(215, 116, 47, 0.4);
   box-shadow: inset 2px 0 0 var(--mx2-brand);
   animation: curve-arrow-metric-pop 240ms ease-out;
 }
 
 .curve-arrow-stage-hud__metric span {
-  color: #266542;
+  color: #8b431d;
   font-size: 0.58rem;
   font-weight: 680;
   letter-spacing: 0;
@@ -153,7 +222,7 @@
 }
 
 .curve-arrow-stage-hud__metric strong {
-  color: #14331f;
+  color: #40210f;
   font-size: 0.82rem;
   font-weight: 680;
   line-height: 1.1;
@@ -164,7 +233,7 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
-  color: #266542;
+  color: #8b431d;
   font: inherit;
   font-size: 0.74rem;
   font-weight: 680;
@@ -189,11 +258,11 @@
   max-height: min(72vh, 580px);
   overflow-y: auto;
   transform: translateX(-50%);
-  border: 1px solid rgba(47, 125, 78, 0.18);
+  border: 1px solid rgba(174, 88, 27, 0.2);
   border-radius: 14px;
   background: rgba(255, 253, 248, 0.97);
   padding: 16px;
-  box-shadow: 0 18px 48px rgba(30, 74, 49, 0.18);
+  box-shadow: 0 18px 48px rgba(96, 48, 19, 0.2);
   animation: curve-arrow-drawer-rise 200ms ease-out;
 }
 
@@ -206,13 +275,13 @@
 }
 
 .curve-arrow-ingame-drawer__head {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   margin-bottom: 12px;
 }
 
 .curve-arrow-ingame-drawer__head svg,
 .curve-arrow-ingame-drawer__fairness svg {
-  color: #266542;
+  color: #b9581f;
 }
 
 .curve-arrow-ingame-drawer__medal {
@@ -224,7 +293,7 @@
 
 .curve-arrow-ingame-drawer__head h3 {
   margin: 0 0 3px;
-  color: #14331f;
+  color: #40210f;
   font-size: 1rem;
   line-height: 1.18;
 }
@@ -247,7 +316,7 @@
   min-width: 0;
   display: grid;
   gap: 4px;
-  border: 1px solid rgba(47, 125, 78, 0.12);
+  border: 1px solid rgba(174, 88, 27, 0.14);
   border-radius: 12px;
   padding: 9px 10px;
   background: #ffffff;
@@ -259,7 +328,7 @@
 }
 
 .curve-arrow-ingame-drawer__grid strong {
-  color: #14331f;
+  color: #40210f;
   font-size: 0.85rem;
 }
 
@@ -275,10 +344,10 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid rgba(47, 125, 78, 0.2);
+  border: 1px solid rgba(174, 88, 27, 0.22);
   border-radius: 999px;
   background: var(--mx2-brand-light);
-  color: #266542;
+  color: #8b431d;
   padding: 8px 12px;
   font: inherit;
   font-size: 0.78rem;
@@ -288,10 +357,104 @@
 
 .curve-arrow-ingame-drawer__fairness {
   margin-top: 12px;
-  border: 1px solid rgba(47, 125, 78, 0.12);
+  border: 1px solid rgba(174, 88, 27, 0.14);
   border-radius: 12px;
   padding: 10px;
-  background: rgba(47, 125, 78, 0.06);
+  background: rgba(255, 201, 126, 0.16);
+}
+
+.curve-arrow-ingame-drawer__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(174, 88, 27, 0.18);
+  border-radius: 50%;
+  background: #fffaf0;
+  color: #7b3718;
+  cursor: pointer;
+}
+
+.curve-arrow-hold-control,
+.curve-arrow-run-action {
+  position: absolute;
+  left: 50%;
+  z-index: 15;
+  transform: translate(-50%, -50%);
+  min-height: 48px;
+  border: 1px solid #b9581f;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffb960 0%, #ef8c3b 100%);
+  box-shadow: 0 8px 20px rgba(174, 88, 27, 0.2);
+  color: #32180b;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.curve-arrow-hold-control {
+  top: 72.4%;
+  width: min(168px, 42%);
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 7px 20px;
+}
+
+.curve-arrow-hold-control small {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.curve-arrow-hold-control:active {
+  transform: translate(-50%, calc(-50% + 1px)) scale(0.985);
+  background: linear-gradient(180deg, #f7a84e 0%, #df762a 100%);
+}
+
+.curve-arrow-run-action {
+  top: 59%;
+  min-width: 132px;
+  padding: 10px 18px;
+}
+
+.curve-arrow-sync-pill {
+  position: absolute;
+  top: 79%;
+  left: 50%;
+  z-index: 15;
+  margin: 0;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #fff1d6;
+  color: #7b3718;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.curve-arrow-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.curve-arrow-hold-control:focus-visible,
+.curve-arrow-run-action:focus-visible,
+.curve-arrow-stage-hud__drawer:focus-visible,
+.curve-arrow-ingame-drawer button:focus-visible {
+  outline: 3px solid rgba(52, 103, 188, 0.48);
+  outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------ keyframes -- */
@@ -344,14 +507,14 @@
   }
 
   .curve-arrow-stage-shell {
-    min-height: calc(100dvh - 52px);
-    justify-content: space-between;
+    min-height: 0;
+    justify-content: flex-start;
     gap: 8px;
     border-radius: 18px;
   }
 
   .curve-arrow-phaser-canvas {
-    --phaser-mobile-height-ratio: 1.91;
+    --phaser-mobile-height-ratio: 1.318;
   }
 
   .curve-arrow-stage-hud {

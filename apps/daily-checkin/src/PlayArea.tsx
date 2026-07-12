@@ -1,367 +1,486 @@
-/**
- * PlayArea.tsx - Daily Check-in.
- *
- * Game identity: a clean seven-day streak board with a GAS reward chest. The
- * player advances a visible path; visual energy stays in the foreground
- * controls and reward feedback instead of a busy scenic backdrop.
- */
-import { useEffect, useRef, useState } from "react";
-import { CalendarCheck, Gift, RefreshCw, Sparkles } from "lucide-react";
-import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import type { ObservableState } from "@shared/react/context";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  CalendarCheck,
+  CheckCircle2,
+  Clock3,
+  Gift,
+  History,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  Wallet,
+} from "lucide-react";
 import { CoinArt, ParticleBurst } from "@shared/art";
-import { formatGas } from "@shared/utils/format";
 import { PlayStage } from "@shared/components-react/v2";
+import {
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+} from "@shared/components-react/v2/OpenUiLite";
+import type { ObservableState } from "@shared/react/context";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { formatGas, formatHash } from "@shared/utils/format";
 import "./PlayArea.scss";
 
-interface P {
-  t: (k: string, p?: Record<string, string | number>) => string;
+interface Props {
+  t: (key: string, params?: Record<string, string | number>) => string;
   state: ObservableState;
-  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-interface CheckinItem {
+interface CheckinHistoryItem {
   streak?: number;
   time?: string;
+  rewardRaw?: string;
   reward?: number | string;
-  action?: string;
+  action?: "checkin" | "claim";
   txid?: string;
-  [k: string]: unknown;
 }
 
-const STREAK_IMAGE = "streak-plaza.webp";
-const PATH_DAYS = [1, 2, 3, 4, 5, 6, 7];
-
-function hasPositiveAmount(value: string): boolean {
-  const text = String(value || "").replace(/,/g, "").trim();
-  const amount = text.match(/[0-9]+(?:\.[0-9]+)?/);
-  if (amount) return Number(amount[0]) > 0;
-  return Boolean(text && text !== "—" && text.toLowerCase() !== "none");
+interface PendingOperation {
+  kind?: "checkin" | "claim";
+  txid?: string;
+  createdAt?: number;
 }
 
-function pathProgress(streak: number): number {
-  if (streak <= 0) return 0;
-  return ((streak - 1) % 7) + 1;
+const STREAK_IMAGE = "./streak-plaza.webp";
+
+function countdown(milliseconds: number): string {
+  const total = Math.max(0, Math.floor(milliseconds / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return [hours, minutes, seconds]
+    .map((entry) => String(entry).padStart(2, "0"))
+    .join(":");
 }
 
-/** Format a remaining-ms window as a HH:MM:SS clock string. */
-function formatCountdown(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return [h, m, s].map((part) => String(part).padStart(2, "0")).join(":");
+function historyDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toISOString().slice(0, 10);
 }
 
-export default function PlayArea({ t, state, dispatch }: P) {
+function historyReward(item: CheckinHistoryItem): string {
+  const raw = item.rewardRaw ?? item.reward;
+  return raw === undefined || raw === null ? "—" : `${formatGas(raw)} GAS`;
+}
+
+export default function PlayArea({ t, state, dispatch }: Props) {
   const { str, bool, num, val } = useStateBindings(state);
-
-  const currentStreak = str("currentStreak");
-  const highestStreak = str("highestStreak");
-  const unclaimedRewards = str("unclaimedRewards");
-  const totalClaimed = str("totalClaimed");
-  const rewardPoolBalance = str("rewardPoolBalance");
-  const streakRaw = num("currentStreakRaw");
-  const isPaused = bool("isPaused");
+  const network = str("network") || "—";
+  const contractHash = str("contractHash");
+  const dataSource = str("dataSource") || "idle";
+  const walletAddress = str("walletAddress");
+  const currentStreak = str("currentStreak") || "—";
+  const highestStreak = str("highestStreak") || "—";
+  const streakRaw = num("currentStreakRaw", 0);
+  const totalUserCheckins = num("totalUserCheckins", 0);
+  const unclaimedRewards = str("unclaimedRewards") || "—";
+  const totalClaimed = str("totalClaimed") || "—";
+  const checkInFee = str("checkInFee") || "—";
+  const rewardPoolBalance = str("rewardPoolBalance") || "—";
+  const weekRewardLabel = str("weekRewardLabel") || "—";
+  const twoWeekRewardLabel = str("twoWeekRewardLabel") || "—";
+  const utcTime = str("utcTimeDisplay") || "—";
+  const nextMidnight = num("nextUtcMidnight", 0);
   const canCheckIn = bool("canCheckIn");
-  const hasLoadedStatus = bool("hasLoadedStatus");
-  const isClaiming = bool("isClaiming");
-  const isCheckingIn = bool("isCheckingIn");
+  const hasClaimableRewards = bool("hasClaimableRewards");
+  const claimableButUnfunded = bool("claimableButUnfunded");
   const rewardsUnderfunded = bool("rewardsUnderfunded");
-  const nextEligibleTs = num("nextUtcMidnight");
-  const weekRewardLabel = str("weekRewardLabel");
-  const twoWeekRewardLabel = str("twoWeekRewardLabel");
-  const history = (val<CheckinItem[]>("checkinHistory", []) ?? []);
-  const hasClaimableRewards = hasPositiveAmount(unclaimedRewards);
+  const streakWillReset = bool("streakWillReset");
+  const isPaused = bool("isPaused");
+  const hasLoadedStatus = bool("hasLoadedStatus");
+  const hasLoadedPlatform = bool("hasLoadedPlatform");
+  const isLoading = bool("isLoading");
+  const isSubmitting = bool("isSubmitting");
+  const isRecovering = bool("isRecovering");
+  const isWalletConnecting = bool("isWalletConnecting");
+  const activeAction = str("activeAction");
+  const lastError = str("lastError");
+  const lastSuccess = str("lastSuccess");
+  const transactionNotice = str("transactionNotice");
+  const lastConfirmedKind = str("lastConfirmedKind");
+  const workflowStatus = str("workflowStatus");
+  const pendingOperation = val<PendingOperation | null>("pendingOperation", null);
+  const history = val<CheckinHistoryItem[]>("checkinHistory", []) ?? [];
+  const latestRequest = val<{ summary?: string; txid?: string } | null>("latestRequest", null);
+  const latestResult = val<{ summary?: string; txid?: string } | null>("latestResult", null);
 
-  const [claimPreview, setClaimPreview] = useState(false);
-  const [checkInPreview, setCheckInPreview] = useState(false);
-  const claimPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkInPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [actionPreview, setActionPreview] = useState(false);
+  const actionPreviewTimeout = useRef<number | null>(null);
+  const celebrated = useRef("");
+  // Immediate local action preview: the ritual surface starts animating the
+  // moment the player taps check-in/claim, before any chain confirmation.
+  const startActionPreview = () => {
+    if (actionPreviewTimeout.current !== null) window.clearTimeout(actionPreviewTimeout.current);
+    setActionPreview(true);
+    actionPreviewTimeout.current = window.setTimeout(() => {
+      setActionPreview(false);
+      actionPreviewTimeout.current = null;
+    }, 1_100);
+  };
   useEffect(
     () => () => {
-      if (claimPreviewTimeout.current) clearTimeout(claimPreviewTimeout.current);
-      if (checkInPreviewTimeout.current) clearTimeout(checkInPreviewTimeout.current);
+      if (actionPreviewTimeout.current !== null) window.clearTimeout(actionPreviewTimeout.current);
     },
     [],
   );
+  useEffect(() => {
+    if (!lastSuccess || !lastConfirmedKind || celebrated.current === lastConfirmedKind + lastSuccess) return;
+    celebrated.current = lastConfirmedKind + lastSuccess;
+    setShowCelebration(true);
+    const timer = setTimeout(() => setShowCelebration(false), 1_600);
+    return () => clearTimeout(timer);
+  }, [lastConfirmedKind, lastSuccess]);
 
-  const startClaimPreview = () => {
-    if (claimPreviewTimeout.current) clearTimeout(claimPreviewTimeout.current);
-    setClaimPreview(true);
-    claimPreviewTimeout.current = setTimeout(() => {
-      setClaimPreview(false);
-      claimPreviewTimeout.current = null;
-    }, 1200);
-  };
+  const effectiveStreak = streakWillReset && canCheckIn ? 0 : streakRaw;
+  const journeyComplete = effectiveStreak >= 14;
+  const chapterStart = effectiveStreak > 7 ? 8 : 1;
+  const chapterEnd = chapterStart + 6;
+  const chapterDays = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => chapterStart + index),
+    [chapterStart],
+  );
+  const completedInChapter = journeyComplete
+    ? 7
+    : Math.max(0, Math.min(7, effectiveStreak - chapterStart + 1));
+  const nextMilestoneDay = effectiveStreak < 7 ? 7 : effectiveStreak < 14 ? 14 : 14;
+  const nextReward = effectiveStreak < 7 ? weekRewardLabel : twoWeekRewardLabel;
+  const daysToReward = journeyComplete ? 0 : Math.max(0, nextMilestoneDay - effectiveStreak);
+  const progressPercent = Math.round((completedInChapter / 7) * 100);
+  const waitingForReset = hasLoadedStatus && !canCheckIn && !isPaused && nextMidnight > Date.now();
+  const countdownText = waitingForReset ? countdown(nextMidnight - Date.now()) : "";
+  const walletDisplay = walletAddress ? formatHash(walletAddress, 7) : t("notConnected");
+  const contractDisplay = contractHash ? formatHash(contractHash, 7) : "—";
+  const busy = isLoading || isSubmitting || isRecovering || isWalletConnecting;
 
-  const startCheckInPreview = () => {
-    if (checkInPreviewTimeout.current) clearTimeout(checkInPreviewTimeout.current);
-    setCheckInPreview(true);
-    checkInPreviewTimeout.current = setTimeout(() => {
-      setCheckInPreview(false);
-      checkInPreviewTimeout.current = null;
-    }, 1200);
-  };
+  const sourceLabel = dataSource === "chain"
+    ? t("chainVerified")
+    : dataSource === "partial"
+      ? t("chainPartial")
+      : dataSource === "failed"
+        ? t("chainUnavailable")
+        : dataSource === "loading"
+          ? t("chainLoading")
+          : t("chainWaiting");
 
-  const handleClaim = () => {
-    startClaimPreview();
-    void dispatch("claimRewards");
-  };
+  const ritualStatus = pendingOperation
+    ? t("transactionPending")
+    : isPaused
+      ? t("contractPaused")
+      : !walletAddress
+        ? t("connectToStart")
+        : !hasLoadedStatus
+          ? t("statusNeedsRefresh")
+          : canCheckIn
+            ? streakWillReset
+              ? t("streakRestartReady")
+              : t("todayPlanReady")
+            : t("todayPlanDone");
 
-  const handleCheckIn = () => {
-    if (isPaused || !canCheckIn) return;
-    startCheckInPreview();
+  const connect = () => void dispatch("connectWallet");
+  const checkIn = () => {
+    startActionPreview();
     void dispatch("doCheckIn");
   };
-
-  const handleRefresh = () => {
-    void dispatch("refreshStatus");
+  const claim = () => {
+    startActionPreview();
+    void dispatch("claimRewards");
   };
+  const refresh = () => void dispatch("refreshStatus");
+  const recover = () => void dispatch("recoverPending");
 
-  const busy = isClaiming || isCheckingIn || claimPreview || checkInPreview;
-  const completedPathDay = pathProgress(streakRaw);
-  const nextPathDay = canCheckIn ? Math.min(7, completedPathDay + 1) : completedPathDay;
-  const daysToChest = Math.max(0, 7 - completedPathDay);
-  // Contract-reported milestone amounts (formatted upstream); the next payout
-  // after a completed 7-day cycle is the two-week milestone.
-  const rewardLabel = completedPathDay >= 7 ? twoWeekRewardLabel : weekRewardLabel;
-  const progressPercent = Math.min(100, Math.max(0, (completedPathDay / 7) * 100));
-  // Countdown to the next check-in window: only meaningful once the chain
-  // status has loaded and today's check-in is locked. The composable's ticker
-  // re-renders this component every second, so Date.now() stays live.
-  const showCountdown = hasLoadedStatus && !canCheckIn && !isPaused && nextEligibleTs > 0;
-  const countdownText = formatCountdown(nextEligibleTs - Date.now());
-  const sceneState = isPaused
-    ? "paused"
-    : isCheckingIn || checkInPreview
-      ? "checking-in"
-      : isClaiming || claimPreview
-        ? "claiming"
+  const primary = pendingOperation && !walletAddress
+    ? {
+        label: t("reconnectToRecover"),
+        onClick: connect,
+        loading: isWalletConnecting,
+        disabled: isWalletConnecting,
+        icon: <Wallet size={17} />,
+      }
+    : pendingOperation
+      ? {
+        label: isRecovering ? t("checkingConfirmation") : t("checkConfirmation"),
+        onClick: recover,
+        loading: isRecovering,
+        disabled: isRecovering,
+        icon: <RefreshCw size={17} />,
+      }
+    : !walletAddress
+      ? {
+          label: t("connectWallet"),
+          onClick: connect,
+          loading: isWalletConnecting,
+          disabled: busy,
+          icon: <Wallet size={17} />,
+        }
+      : !hasLoadedStatus || isPaused
+        ? {
+            label: isLoading ? t("workflowRefreshing") : t("refreshStatus"),
+            onClick: refresh,
+            loading: isLoading,
+            disabled: busy,
+            icon: <RefreshCw size={17} />,
+          }
         : canCheckIn
-          ? "ready"
-          : hasClaimableRewards
-            ? "claimable"
-            : "waiting";
+          ? {
+              label: activeAction === "checkin" ? t("workflowCheckingIn") : t("checkInNow"),
+              onClick: checkIn,
+              loading: activeAction === "checkin",
+              disabled: busy,
+              icon: <CalendarCheck size={17} />,
+            }
+          : hasClaimableRewards && !claimableButUnfunded
+            ? {
+                label: activeAction === "claim" ? t("workflowClaiming") : t("claimRewards"),
+                onClick: claim,
+                loading: activeAction === "claim",
+                disabled: busy,
+                icon: <Gift size={17} />,
+              }
+            : {
+                label: isLoading ? t("workflowRefreshing") : t("refreshStatus"),
+                onClick: refresh,
+                loading: isLoading,
+                disabled: busy,
+                icon: <RefreshCw size={17} />,
+              };
 
-  const statusText = isPaused
-    ? t("contractPaused")
-    : isCheckingIn || checkInPreview
-      ? t("workflowCheckingIn")
-      : isClaiming || claimPreview
-        ? t("workflowClaiming")
-        : canCheckIn
-          ? t("todayPlanReady")
-          : hasClaimableRewards
-            ? t("rewardPlanReady")
-            : hasLoadedStatus
-              ? t("notCheckedIn")
-              : t("connectPrompt");
-
-  const primary = (() => {
-    if (isPaused) {
-      return {
-        label: t("refreshStatus"),
-        onClick: handleRefresh,
-        loading: false,
-        disabled: busy,
-      };
-    }
-    if (canCheckIn) {
-      return {
-        label: t("checkInNow"),
-        onClick: handleCheckIn,
-        loading: isCheckingIn || checkInPreview,
-        disabled: busy,
-      };
-    }
-    if (hasClaimableRewards) {
-      return {
-        label: t("claimRewards"),
-        onClick: handleClaim,
-        loading: isClaiming || claimPreview,
-        disabled: busy,
-      };
-    }
-    // First run (no wallet / no status yet): invite the connection — the
-    // refresh action prompts the wallet, so it doubles as the connect flow.
-    return {
-      label: hasLoadedStatus ? t("refreshStatus") : t("connectWallet"),
-      onClick: handleRefresh,
-      loading: false,
-      disabled: busy,
-    };
-  })();
-
+  const feedback = lastError || lastSuccess || transactionNotice;
   const scene = (
-    <div className="dci-reward-board" data-state={sceneState}>
-      {(isClaiming || claimPreview || isCheckingIn || checkInPreview) && (
-        <div className="dci-reward-board__burst">
-          <ParticleBurst coins count={10} />
+    <div
+      className="dci-ritual"
+      data-state={pendingOperation ? "pending" : canCheckIn ? "ready" : "waiting"}
+      data-preview={actionPreview ? "true" : undefined}
+      aria-busy={busy || actionPreview}
+    >
+      {showCelebration && (
+        <div className="dci-ritual__celebration" aria-hidden="true">
+          <ParticleBurst coins count={12} />
         </div>
       )}
 
-      <section className="dci-streak-card" aria-label={t("streakStageProgress")}>
-        <header className="dci-streak-card__head">
-          <span className="dci-streak-card__icon" aria-hidden="true">
-            <CalendarCheck size={22} strokeWidth={2.35} />
+      {feedback && (
+        <div
+          className={`dci-feedback ${lastError ? "is-error" : lastSuccess ? "is-success" : "is-pending"}`}
+          role={lastError ? "alert" : "status"}
+        >
+          <span>
+            {lastError ? <AlertTriangle size={17} /> : lastSuccess ? <BadgeCheck size={17} /> : <Clock3 size={17} />}
+            <strong>{feedback}</strong>
+            {pendingOperation?.txid && <small>{formatHash(pendingOperation.txid, 8)}</small>}
           </span>
-          <div>
-            <span>{t("streakStageProgress")}</span>
-            <strong>{currentStreak}</strong>
-          </div>
-          <div className="dci-streak-card__status">
-            <span className="dci-streak-card__badge">
-              <span className="dci-status-dot" />
-              {statusText}
-            </span>
-            {showCountdown && (
-              <span className="dci-streak-card__countdown">
-                {t("nextCheckin")}
-                <strong>{countdownText}</strong>
-              </span>
-            )}
-          </div>
-          <div className="dci-streak-card__summary" aria-label={t("yourRewards")}>
-            <span>
-              {t("unclaimed")}
-              <strong>{unclaimedRewards}</strong>
-            </span>
-            <span>
-              {t("rewardPool")}
-              <strong>{rewardPoolBalance}</strong>
-            </span>
-            <span>
-              {t("bestStreak")}
-              <strong>{highestStreak}</strong>
-            </span>
-          </div>
-        </header>
-
-        <figure className="dci-plaza-art" aria-label={t("streakStageTitle")}>
-          <img src={STREAK_IMAGE} alt="" loading="eager" decoding="async" />
-          <figcaption>
-            <span className="dci-plaza-art__coin" aria-hidden="true">
-              <CoinArt size={34} variant="gas" decorative />
-            </span>
-            <div>
-              <span>{t("nextReward")}</span>
-              <strong>{rewardLabel}</strong>
-              <small>{daysToChest === 0 ? t("milestoneReached") : t("daysToReward", { days: daysToChest })}</small>
-            </div>
-          </figcaption>
-          {progressPercent > 0 && (
-            <div className="dci-plaza-art__meter" aria-hidden="true">
-              <span style={{ width: `${Math.max(4, progressPercent)}%` }} />
-            </div>
+          {pendingOperation && (
+            <button type="button" onClick={walletAddress ? recover : connect} disabled={isRecovering || isWalletConnecting}>
+              {walletAddress
+                ? <RefreshCw size={14} className={isRecovering ? "is-spinning" : undefined} />
+                : <Wallet size={14} />}
+              {walletAddress
+                ? isRecovering ? t("checkingConfirmation") : t("checkConfirmation")
+                : t("reconnectToRecover")}
+            </button>
           )}
+        </div>
+      )}
+
+      <div className="dci-ritual__layout">
+        <figure className="dci-plaza" aria-label={t("streakStageTitle")}>
+          <img src={STREAK_IMAGE} alt={t("streakPlazaAlt")} loading="eager" decoding="async" />
+          <div className="dci-plaza__shade" />
+          <figcaption className="dci-plaza__caption">
+            <span><Sparkles size={15} /> {t("dailyRitual")}</span>
+            <strong>{journeyComplete ? t("journeyCompleteTitle") : t("journeyTitle", { day: nextMilestoneDay })}</strong>
+            <p>{journeyComplete ? t("journeyCompleteCopy") : t("journeyCopy", { days: daysToReward })}</p>
+          </figcaption>
+          <div className="dci-plaza__reward">
+            <CoinArt size={38} variant="gas" />
+            <span>
+              <small>{journeyComplete ? t("earnedJourney") : t("nextReward")}</small>
+              <strong>{journeyComplete ? t("milestonesComplete") : nextReward}</strong>
+            </span>
+          </div>
         </figure>
 
-        <div className="dci-path" aria-label={t("milestones")}>
-          {PATH_DAYS.map((day) => {
-            const complete = day <= completedPathDay;
-            const active = day === nextPathDay && canCheckIn;
-            const reward = day === 7;
-            // Captions carry signal only: completed / ready states, and the
-            // milestone payout on the reward node. Plain pending days stay
-            // caption-free so the row reads calm.
-            const caption = complete
-              ? t("dayCompleted")
-              : active
-                ? t("checkInReady")
-                : reward
-                  ? rewardLabel
-                  : null;
-            return (
-              <span
-                key={day}
-                className={[
-                  "dci-day-node",
-                  complete ? "dci-day-node--complete" : null,
-                  active ? "dci-day-node--active" : null,
-                  reward ? "dci-day-node--reward" : null,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <span className="dci-day-node__mark">
-                  {reward ? <Gift size={17} strokeWidth={2.4} /> : <Sparkles size={15} strokeWidth={2.4} />}
-                </span>
-                <strong>{t("dayPrefix")}{day}</strong>
-                {caption ? <small>{caption}</small> : null}
-              </span>
-            );
-          })}
-        </div>
+        <section className="dci-console" aria-label={t("todayRitual")}>
+          <header className="dci-console__head">
+            <div>
+              <span className={`dci-source dci-source--${dataSource}`}><i /> {sourceLabel}</span>
+              <strong>{t("todayRitual")}</strong>
+              <small>{ritualStatus}</small>
+            </div>
+            <span className="dci-network">Neo N3 {network}</span>
+          </header>
 
-      </section>
+          <div className="dci-streak-focus">
+            <span className="dci-streak-focus__icon"><CalendarCheck size={25} /></span>
+            <div>
+              <small>{t("currentStreak")}</small>
+              <strong>{currentStreak}</strong>
+              <span>{t("bestStreak")}: {highestStreak}</span>
+            </div>
+            <div className="dci-streak-focus__clock">
+              <small>{canCheckIn ? t("dailyWindow") : t("nextCheckin")}</small>
+              <strong>{canCheckIn ? t("windowOpen") : countdownText || utcTime}</strong>
+              <span>{t("utcLabel")}</span>
+            </div>
+          </div>
+
+          {streakWillReset && canCheckIn && (
+            <OpenUiNotice
+              className="dci-reset-note"
+              icon={<AlertTriangle size={17} />}
+              title={t("streakRestartTitle")}
+            >
+              {t("streakRestartCopy")}
+            </OpenUiNotice>
+          )}
+
+          <div className="dci-chapter">
+            <header>
+              <span>{t("chapterLabel", { start: chapterStart, end: chapterEnd })}</span>
+              <strong>{journeyComplete ? t("complete") : `${progressPercent}%`}</strong>
+            </header>
+            <div className="dci-path" aria-label={t("milestones")}>
+              {chapterDays.map((day) => {
+                const complete = journeyComplete || day <= effectiveStreak;
+                const ready = canCheckIn && day === (streakWillReset ? 1 : effectiveStreak + 1);
+                const reward = day === 7 || day === 14;
+                return (
+                  <span
+                    key={day}
+                    className={[
+                      "dci-day",
+                      complete ? "is-complete" : "",
+                      ready ? "is-ready" : "",
+                      reward ? "is-reward" : "",
+                    ].filter(Boolean).join(" ")}
+                  >
+                    <i>{complete ? <CheckCircle2 size={18} /> : reward ? <Gift size={18} /> : <Sparkles size={16} />}</i>
+                    <strong>{t("dayPrefix")}{day}</strong>
+                    <small>{complete ? t("dayCompleted") : ready ? t("checkInReady") : reward ? t("rewardDay") : ""}</small>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="dci-console__facts">
+            <span><CoinArt size={25} variant="gas" /><small>{t("checkInFee")}</small><strong>{checkInFee}</strong></span>
+            <span><Gift size={21} /><small>{t("unclaimed")}</small><strong>{unclaimedRewards}</strong></span>
+            <span><ShieldCheck size={21} /><small>{t("confirmationModel")}</small><strong>{t("eventAndReadback")}</strong></span>
+          </div>
+        </section>
+      </div>
     </div>
   );
 
   const drawer = (
     <div className="dci-drawer">
-      <button
-        type="button"
-        className="dci-drawer__checkin"
-        onClick={handleCheckIn}
-        disabled={isPaused || !canCheckIn || isCheckingIn || checkInPreview}
+      <OpenUiPanel
+        className="dci-drawer__panel"
+        icon={<History size={16} />}
+        title={t("activityTitle")}
+        subtitle={hasLoadedStatus ? t("activityCount", { count: totalUserCheckins }) : t("connectPrompt")}
       >
-        {isCheckingIn || checkInPreview ? t("workflowCheckingIn") : canCheckIn ? t("checkInNow") : t("waitForNext")}
-      </button>
-      <button
-        type="button"
-        className="dci-drawer__claim"
-        onClick={handleClaim}
-        disabled={isPaused || !hasClaimableRewards || isClaiming || claimPreview}
-      >
-        {isClaiming || claimPreview ? t("workflowClaiming") : t("claimRewards")}
-      </button>
-      <button type="button" className="dci-drawer__refresh" onClick={handleRefresh}>
-        <RefreshCw size={14} strokeWidth={2.3} aria-hidden="true" />
-        {t("refreshStatus")}
-      </button>
-      {rewardsUnderfunded && <p className="dci-drawer__caution">{t("rewardsUnfundedBanner")}</p>}
-      <div className="dci-drawer__stats">
-        <div><span>{t("bestStreak")}</span><strong>{highestStreak}</strong></div>
-        <div><span>{t("totalClaimed")}</span><strong>{totalClaimed}</strong></div>
-        <div><span>{t("unclaimed")}</span><strong>{unclaimedRewards}</strong></div>
-        <div><span>{t("rewardPool")}</span><strong>{rewardPoolBalance}</strong></div>
-      </div>
-      {history.length > 0 && (
-        <div className="dci-drawer__history">
-          <span className="dci-drawer__history-title">{t("recentCheckins")}</span>
-          <ul className="mx2-history">
-            {history.slice(0, 10).map((h, i) => (
-              <li key={i} className="mx2-history__item">
-                <span className="mx2-history__face">{h.streak ?? "—"} {t("days")}</span>
-                <span className="mx2-history__result">
-                  {h.reward != null ? `${formatGas(h.reward)} ${t("tokenGas")}` : "—"}
-                </span>
+        <div className="dci-drawer__stats">
+          <span><small>{t("currentStreak")}</small><strong>{currentStreak}</strong></span>
+          <span><small>{t("bestStreak")}</small><strong>{highestStreak}</strong></span>
+        </div>
+        {history.length ? (
+          <ol className="dci-history">
+            {history.slice(0, 8).map((item, index) => (
+              <li key={item.txid || `${item.time}:${index}`}>
+                <span>{item.action === "claim" ? <Gift size={15} /> : <CalendarCheck size={15} />}</span>
+                <div><strong>{t(item.action === "claim" ? "historyClaim" : "historyCheckin")}</strong><small>{historyDate(item.time || "")}</small></div>
+                <em>{item.action === "claim" ? historyReward(item) : `${item.streak ?? "—"} ${t("days")}`}</em>
               </li>
             ))}
-          </ul>
+          </ol>
+        ) : (
+          <OpenUiNotice icon={<CalendarCheck size={17} />} title={t("noCheckins")}>
+            {walletAddress ? t("historyEmptyCopy") : t("connectHint")}
+          </OpenUiNotice>
+        )}
+      </OpenUiPanel>
+
+      <OpenUiPanel
+        className="dci-drawer__panel"
+        icon={<Trophy size={16} />}
+        title={t("rewardLedger")}
+        subtitle={hasLoadedPlatform ? t("liveContractTerms") : t("chainWaiting")}
+      >
+        <div className="dci-reward-ledger">
+          <span><small>{t("day7Reward")}</small><strong>{weekRewardLabel}</strong></span>
+          <span><small>{t("day14Reward")}</small><strong>{twoWeekRewardLabel}</strong></span>
+          <span><small>{t("unclaimed")}</small><strong>{unclaimedRewards}</strong></span>
+          <span><small>{t("totalClaimed")}</small><strong>{totalClaimed}</strong></span>
+          <span className="is-wide"><small>{t("rewardPool")}</small><strong>{rewardPoolBalance}</strong></span>
         </div>
-      )}
+        {(rewardsUnderfunded || claimableButUnfunded) && (
+          <p className="dci-pool-note"><AlertTriangle size={14} /> {t("rewardsUnfundedBanner")}</p>
+        )}
+        <button
+          type="button"
+          className="dci-claim"
+          onClick={claim}
+          disabled={!hasClaimableRewards || claimableButUnfunded || isPaused || busy || Boolean(pendingOperation)}
+        >
+          <Gift size={15} /> {activeAction === "claim" ? t("workflowClaiming") : t("claimRewards")}
+        </button>
+      </OpenUiPanel>
+
+      <OpenUiPanel
+        className="dci-drawer__panel dci-drawer__panel--trust"
+        icon={<ShieldCheck size={16} />}
+        title={t("contractTrust")}
+        subtitle={t("directWalletOnly")}
+      >
+        <div className="dci-trust-list">
+          <span><BadgeCheck size={15} /><strong>{t("canonicalContract")}</strong><small>{contractDisplay}</small></span>
+          <span><Wallet size={15} /><strong>{t("walletLabel")}</strong><small>{walletDisplay}</small></span>
+          <span><ShieldCheck size={15} /><strong>{t("confirmationModel")}</strong><small>{t("eventAndReadback")}</small></span>
+        </div>
+        <div className="dci-trust-actions">
+          <button type="button" onClick={refresh} disabled={busy}><RefreshCw size={14} /> {t("refreshStatus")}</button>
+          {pendingOperation && <button type="button" onClick={recover} disabled={isRecovering}><Clock3 size={14} /> {t("checkConfirmation")}</button>}
+        </div>
+        {(latestRequest?.summary || latestResult?.summary || workflowStatus) && (
+          <details className="dci-evidence">
+            <summary>{t("evidence")}</summary>
+            <p>{latestRequest?.summary || t("requestEmpty")}</p>
+            <p>{latestResult?.summary || workflowStatus || t("resultEmpty")}</p>
+          </details>
+        )}
+      </OpenUiPanel>
     </div>
   );
 
   return (
     <div className="daily-checkin-play-area mx2 mx2-cat-game">
-      <PlayStage
-        category="game"
-        stage={{
-          eyebrow: t("streakStageEyebrow"),
-          title: t("streakStageTitle"),
-          subtitle: t("streakStageCopy"),
-        }}
-        scene={scene}
-        actions={{
-          primary,
-        }}
-        drawerToggleLabel={t("yourStats")}
-        drawer={{ title: t("yourStats"), children: drawer }}
-      />
+      <OpenUiProvider>
+        <PlayStage
+          category="game"
+          stage={{
+            eyebrow: t("streakStageEyebrow"),
+            title: t("streakStageTitle"),
+            subtitle: t("streakStageCopy"),
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {sourceLabel}</span>,
+          }}
+          scene={scene}
+          score={[
+            { label: t("currentStreak"), value: currentStreak, accent: true },
+            { label: t("utcClock"), value: utcTime },
+            { label: t("walletLabel"), value: walletDisplay },
+          ]}
+          actions={{ primary }}
+          drawerToggleLabel={t("ritualDetails")}
+          drawer={{ title: t("ritualDetails"), children: drawer }}
+        />
+      </OpenUiProvider>
     </div>
   );
 }

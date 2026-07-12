@@ -39,8 +39,9 @@ export function operationBusyFlag(op: OperationLike): Observable<boolean> {
  */
 export function createRevealOperations<Op extends OperationLike>(
   create: (key: string) => Op,
-): { busyIds: Observable<string[]>; opFor(id: string): Op } {
+): { busyIds: Observable<string[]>; opFor(id: string): Op; cleanup(): void } {
   const ops = new Map<string, Op>();
+  const subscriptions: Array<() => void> = [];
   const busyIds = createObservable<string[]>([]);
   const sync = () => {
     const running: string[] = [];
@@ -56,8 +57,13 @@ export function createRevealOperations<Op extends OperationLike>(
       if (existing) return existing;
       const op = create(`reveal:${id}`);
       ops.set(id, op);
-      op.state.subscribe(sync);
+      subscriptions.push(op.state.subscribe(sync));
       return op;
+    },
+    cleanup(): void {
+      subscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
+      ops.clear();
+      busyIds.set([]);
     },
   };
 }

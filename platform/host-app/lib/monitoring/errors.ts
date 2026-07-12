@@ -4,7 +4,24 @@
  */
 
 import { logger } from "../logger";
-import { captureError } from "./sentry";
+
+function reportToSentry(
+  error: Error,
+  extra: Record<string, unknown>,
+): void {
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
+  void import("./sentry")
+    .then(({ captureError, initSentry }) => {
+      initSentry();
+      captureError(error, { extra });
+    })
+    .catch((loadError: unknown) => {
+      console.warn(
+        "[monitoring] Sentry failed to load:",
+        loadError instanceof Error ? loadError.message : String(loadError),
+      );
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -136,8 +153,11 @@ export function trackError(
   });
 
   // Forward to Sentry
-  captureError(error instanceof Error ? error : new Error(errorMessage), {
-    extra: { ...options.extra, category, severity, errorId },
+  reportToSentry(error instanceof Error ? error : new Error(errorMessage), {
+    ...options.extra,
+    category,
+    severity,
+    errorId,
   });
 
   return errorId;

@@ -14,7 +14,11 @@
  * (the same physics the enclave replays in gamefi).
  */
 import type { GameSessionObservables, LeaderEntry } from "@framework/game";
-import { generateTargetPattern, totalPoints, type HitResult } from "./aim-engine";
+import {
+  evaluateHitResults,
+  generateDifficultyPattern,
+  type HitResult,
+} from "./aim-engine";
 import { ruleOf } from "./game-rules";
 
 /** Structural (method-syntax, so bivariant) observable handle. */
@@ -28,6 +32,11 @@ interface Obs<T> {
 interface GuestLeaderboardApi {
   submit(score: number | string): Promise<void>;
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
+}
+
+interface GuestStorage {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
 }
 
 /** The `aimHit` dispatch payload the scene emits on every tap. */
@@ -45,7 +54,12 @@ export interface GuestEngineDeps {
   ringsHit: Obs<number>;
   roundIndex: Obs<number>;
   roundResults: Obs<HitResult[]>;
+  scorePoints: Obs<number>;
+  combo: Obs<number>;
+  maxCombo: Obs<number>;
   guestLeaderboard: GuestLeaderboardApi;
+  storage?: GuestStorage;
+  seedSource?: () => string;
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
 }
@@ -62,23 +76,24 @@ export interface GuestEngine {
 }
 
 const GUEST_GAME_ID = "guest";
+const GUEST_PROFILE_KEY = "miniapp-aim-master:guest-profile:v1";
 
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
 /**
- * Web-Crypto (Math.random fallback) 32-byte hex seed — the local stand-in for
- * the per-game enclave secret that seeds the deterministic target pattern.
+ * Web-Crypto 32-byte hex seed — the local stand-in for the per-game enclave
+ * secret that seeds the deterministic target pattern. Guest play fails closed
+ * when a secure RNG is unavailable; Math.random must never silently shape a
+ * score-bearing run.
  */
-function randomSeed(): string {
+export function secureRandomSeed(
+  cryptoApi: Pick<Crypto, "getRandomValues"> | null = globalThis.crypto,
+): string {
   const bytes = new Uint8Array(32);
-  const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
-  }
+  if (!cryptoApi?.getRandomValues) throw new Error("secure-random-unavailable");
+  cryptoApi.getRandomValues(bytes);
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -90,14 +105,38 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     ringsHit,
     roundIndex,
     roundResults,
+    scorePoints,
+    combo,
+    maxCombo,
     guestLeaderboard,
     t,
     setStatus,
   } = deps;
+  const storage = deps.storage;
+  const seedSource = deps.seedSource ?? secureRandomSeed;
 
-  // Latest totalPoints reported by the scene's per-tap aimHit dispatch. Used as
-  // the local run score (rewards precise shots, not just hit count).
-  let lastPoints = 0;
+  const readProfile = (): { bestScore: number; solves: number } => {
+    try {
+      const saved = storage?.get<{ bestScore?: unknown; solves?: unknown }>(
+        GUEST_PROFILE_KEY,
+        null,
+      ) ?? null;
+      return {
+        bestScore: Math.max(0, Math.floor(Number(saved?.bestScore) || 0)),
+        solves: Math.max(0, Math.floor(Number(saved?.solves) || 0)),
+      };
+    } catch {
+      return { bestScore: 0, solves: 0 };
+    }
+  };
+
+  const writeProfile = (bestScore: number, solves: number): void => {
+    try {
+      storage?.set(GUEST_PROFILE_KEY, { bestScore, solves });
+    } catch {
+      /* Private-mode/quota failures must never invalidate a completed run. */
+    }
+  };
 
   const resetRound = (): void => {
     obs.activeGameId.set("0");
@@ -109,7 +148,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     ringsHit.set(0);
     roundIndex.set(0);
     roundResults.set([]);
-    lastPoints = 0;
+    scorePoints.set(0);
+    combo.set(0);
+    maxCombo.set(0);
   };
 
   const submitScore = async (score: number): Promise<void> => {
@@ -142,13 +183,28 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   return {
     startGame(difficulty: number): void {
-      if (obs.isStarting.get()) return;
+      if (
+        obs.isStarting.get()
+        || obs.isSubmitting.get()
+        || obs.gameStatus.get() === "dealt"
+        || obs.gameStatus.get() === "committed"
+      ) return;
       const diff = clampDifficulty(difficulty);
       const rule = ruleOf(diff);
       obs.isStarting.set(true);
       obs.lastStatus.set(t("guestLobbyStatus"));
-      // Local target pattern from a Web-Crypto seed (no enclave, no chain).
-      const positions = generateTargetPattern(randomSeed());
+      let positions: number[];
+      try {
+        // Local target pattern from a Web-Crypto seed (no enclave, no chain).
+        // Cover the whole run instead of looping a short, learnable 12-second
+        // sample for a 60/90/120-second lane.
+        positions = generateDifficultyPattern(seedSource(), diff, rule.limitMs);
+      } catch {
+        obs.isStarting.set(false);
+        obs.lastStatus.set(t("guestEntropyUnavailable"));
+        setStatus(t("guestEntropyUnavailable"), "error");
+        return;
+      }
       resetRound();
       obs.gameDifficulty.set(diff);
       targetAccuracy.set(rule.targetAccuracy);
@@ -167,38 +223,72 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
     aimHit(form: AimHitForm): void {
       if (obs.gameStatus.get() !== "dealt") return;
-      const hitRings = Number(form.ringsHit ?? 0);
-      const total = Number(form.totalRings ?? 0);
-      const results = (form.roundResults ?? []) as HitResult[];
-      ringsHit.set(Number.isFinite(hitRings) ? hitRings : 0);
-      roundIndex.set(Number.isFinite(total) ? total : 0);
-      roundResults.set(Array.isArray(results) ? results : []);
-      const reported = Number(form.totalPoints);
-      lastPoints = Number.isFinite(reported)
-        ? reported
-        : totalPoints((Array.isArray(results) ? results : []).map((r) => r.ring));
-      // No enclave op-log stream in guest — scoring is fully local.
+      if (obs.deadline.get() > 0 && Date.now() >= obs.deadline.get()) {
+        this.expireGame();
+        return;
+      }
+
+      // ringsHit / totalRings / totalPoints are intentionally ignored. Rebuild
+      // the state from signed offsets and only accept an append-only shot log.
+      const next = evaluateHitResults(form.roundResults);
+      const previous = evaluateHitResults(roundResults.get());
+      // One user gesture may append exactly one shot. Rejecting bulk injection
+      // keeps the local leaderboard honest about the interaction path (while it
+      // remains explicitly non-economic and off-chain).
+      if (next.results.length !== previous.results.length + 1) return;
+      const prefixMatches = previous.results.every(
+        (result, index) => result.offset === next.results[index]?.offset,
+      );
+      if (!prefixMatches) return;
+
+      roundResults.set(next.results);
+      ringsHit.set(next.summary.accuracyHits);
+      roundIndex.set(next.summary.totalShots);
+      scorePoints.set(next.summary.score);
+      combo.set(next.summary.combo);
+      maxCombo.set(next.summary.maxCombo);
+      // No enclave op-log stream in guest — scoring is fully local but derived
+      // from the canonical shot log, never from client counters.
     },
 
     async submitSolution(): Promise<void> {
       if (obs.gameStatus.get() !== "dealt") return;
       if (obs.isSubmitting.get()) return;
+      if (obs.deadline.get() > 0 && Date.now() >= obs.deadline.get()) {
+        this.expireGame();
+        return;
+      }
+      if (ringsHit.get() < targetAccuracy.get()) return;
       obs.isSubmitting.set(true);
-      const points = Math.max(0, Math.round(lastPoints));
-      obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
-      obs.lastPayout.set(t("guestScoreValue", { points }));
-      obs.myTotalWon.set(Math.max(obs.myTotalWon.get(), points));
-      obs.mySolves.set(obs.mySolves.get() + 1);
-      obs.activeGameId.set("0");
-      obs.gameStatus.set("solved");
-      obs.lastStatus.set(t("guestRunComplete", { points }));
-      setStatus(t("guestRunComplete", { points }), "success");
-      await submitScore(points);
-      await refreshLeaderboard();
-      obs.isSubmitting.set(false);
+      try {
+        // Re-evaluate once more at the settlement boundary so even a mutated
+        // observable cannot turn UI counters into authority.
+        const evaluated = evaluateHitResults(roundResults.get());
+        if (evaluated.summary.accuracyHits < targetAccuracy.get()) return;
+        const points = evaluated.summary.score;
+        const profile = readProfile();
+        const nextProfile = {
+          bestScore: Math.max(profile.bestScore, points),
+          solves: profile.solves + 1,
+        };
+        writeProfile(nextProfile.bestScore, nextProfile.solves);
+        obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
+        obs.lastPayout.set(t("guestScoreValue", { points }));
+        obs.myTotalWon.set(nextProfile.bestScore);
+        obs.mySolves.set(nextProfile.solves);
+        obs.activeGameId.set("0");
+        obs.gameStatus.set("solved");
+        obs.lastStatus.set(t("guestRunComplete", { points }));
+        setStatus(t("guestRunComplete", { points }), "success");
+        await submitScore(points);
+        await refreshLeaderboard();
+      } finally {
+        obs.isSubmitting.set(false);
+      }
     },
 
     expireGame(): void {
+      if (obs.gameStatus.get() !== "dealt" && obs.gameStatus.get() !== "committed") return;
       resetRound();
       obs.gameStatus.set("expired");
       obs.lastStatus.set(t("guestExpired"));
@@ -222,8 +312,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
-      obs.myTotalWon.set(0);
-      obs.mySolves.set(0);
+      const profile = readProfile();
+      obs.myTotalWon.set(profile.bestScore);
+      obs.mySolves.set(profile.solves);
       obs.myHistory.set([]);
       await refreshLeaderboard();
     },

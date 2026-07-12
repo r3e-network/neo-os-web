@@ -1,20 +1,20 @@
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
-  name: "AA Permissions Lab",
-  description: "Update AA verifier and hook bindings",
-  icon: "puzzle",
+  name: "AA Permissions",
+  description: "Inspect, install, and safely rotate AA verifier or hook bindings",
+  icon: "shield",
   category: "console",
   shell: "console",
 
   tabs: [
-    { key: "permissions", labelKey: "updateVerifier", icon: "puzzle", default: true },
+    { key: "permissions", labelKey: "appName", icon: "shield", default: true },
   ],
 
   stats: [
     { labelKey: "currentVerifier", valueKey: "currentVerifier", format: "text", icon: "shield" },
     { labelKey: "currentHook", valueKey: "currentHook", format: "text", icon: "link" },
-    { labelKey: "currentBackupOwner", valueKey: "currentBackupOwner", format: "text", icon: "user" },
+    { labelKey: "backupOwner", valueKey: "currentBackupOwner", format: "text", icon: "user" },
   ],
 
   sidebar: {
@@ -22,7 +22,7 @@ export const manifest: MiniAppManifest = {
     items: [
       { labelKey: "currentVerifier", valueKey: "currentVerifier", format: "text" },
       { labelKey: "currentHook", valueKey: "currentHook", format: "text" },
-      { labelKey: "currentBackupOwner", valueKey: "currentBackupOwner", format: "text" },
+      { labelKey: "backupOwner", valueKey: "currentBackupOwner", format: "text" },
     ],
   },
 

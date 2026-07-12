@@ -1,48 +1,23 @@
-/**
- * Recovery Guardian Manifest
- *
- * Declarative configuration that tells the platform how to render
- * every section of the miniapp *except* the play area.
- */
-
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Recovery Guardian",
-  description: "Query and manage AA account recovery state",
+  description: "Inspect and manage existing AA guardian recovery profiles",
   icon: "shield",
-  category: "console",
-  shell: "console",
-
-  tabs: [
-    { key: "guardian", labelKey: "latestState", icon: "shield", default: true },
-  ],
-
-  stats: [
-    { labelKey: "accountId", valueKey: "accountId", format: "text", icon: "user" },
-    { labelKey: "currentVerifier", valueKey: "verifierHash", format: "text", icon: "shield" },
-    { labelKey: "timelockLabel", valueKey: "timelock", format: "text", icon: "clock" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "accountId", valueKey: "accountId", format: "text" },
-      { labelKey: "currentVerifier", valueKey: "verifierHash", format: "text" },
-      { labelKey: "escapeStatusLabel", valueKey: "escapeStatus", format: "text" },
-      { labelKey: "timelockLabel", valueKey: "timelock", format: "text" },
-    ],
+  category: "tool",
+  shell: "launcher",
+  tabs: [],
+  stats: [],
+  operations: [],
+  features: {
+    walletRequired: false,
+    chainWarning: true,
   },
-
-  features: { chainWarning: false },
-
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },
     { titleKey: "docDescription", contentKey: "step2", type: "steps" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
-
   permissions: { aa: true },
-
   contract: { mode: "custom" },
 };

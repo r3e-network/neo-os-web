@@ -14,6 +14,10 @@ const sections = [
     body: "Operational metrics may be collected to measure reliability, catalog usage, and MiniApp health. Sensitive transaction signing material is not collected by analytics flows.",
   },
   {
+    title: "Local MiniApp Storage",
+    body: "Some MiniApps store preferences, progress, and interrupted-session recovery data in this browser. Sandboxed MiniApps may use a host-managed, app-namespaced local storage bridge; this data remains on the device, is not shared with other MiniApps, and can be removed by clearing site data.",
+  },
+  {
     title: "Developer Submissions",
     body: "Submitted MiniApp metadata, media, manifests, and audit records are stored for review, publication, rollback, and platform integrity checks.",
   },

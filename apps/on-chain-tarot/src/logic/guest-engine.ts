@@ -2,31 +2,29 @@
  * Guest (free / local) engine for On-Chain Tarot.
  *
  * Guest mode is a purely LOCAL tarot reading: the three-card spread is shuffled
- * with the Web-Crypto RNG (the local analog of the contract's on-chain
- * Runtime.GetRandom), dealt and revealed entirely client-side, and the running
- * reading tally is (optionally) recorded to the OFF-CHAIN guest leaderboard. The
- * engine drives the SAME observables the Phaser scene + PlayArea already read
+ * with the Web-Crypto RNG (the local analog of the contract's Morpheus-backed
+ * shuffle), dealt and revealed entirely client-side, and the running
+ * reading tally is stored only on this device. The engine drives the SAME
+ * observables the Phaser scene + PlayArea already read
  * (drawn / readingMode / readingsCount / isLoading / question / prepaidCredit),
  * so the frozen scene contract is reused verbatim. It NEVER makes a chain,
  * oracle, or reward call — the framework guest guard therefore never fires.
  *
  * This is the (b) "chance game, no engine" recipe from the adoption contract: a
- * faithful local single-player draw of the tarot mechanic. The gamefi flow
- * (useTarot: deposit fee → on-chain draw() → ReadingDrawn event) is untouched.
+ * faithful local single-player draw of the tarot mechanic. The GameFi flow is
+ * asynchronous: credit deposit → requestReading → Morpheus callback → readback.
  */
 import { TAROT_DECK } from "../data/tarot-data";
-import { cardFromIndex, type Card } from "../composables/useTarot";
+import {
+  cardFromIndex,
+  type Card,
+  type TarotReadingMode,
+} from "../composables/useTarot";
 
 /** Structural (method-syntax → bivariant) observable handle. */
 interface Obs<T> {
   get(): T;
   set(value: T): void;
-}
-
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
 /** app.storage.local surface (framework-owned, localStorage-backed). */
@@ -37,12 +35,11 @@ interface LocalStore {
 
 export interface TarotGuestEngineDeps {
   drawn: Obs<Card[]>;
-  readingMode: Obs<"idle" | "oracle">;
+  readingMode: Obs<TarotReadingMode>;
   readingsCount: Obs<number>;
   prepaidCredit: Obs<number>;
   isLoading: Obs<boolean>;
   question: Obs<string>;
-  guestLeaderboard: GuestLeaderboardApi;
   storage: LocalStore;
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
@@ -65,20 +62,27 @@ const CARDS_PER_READING = 3;
 /**
  * Local readings tally persisted on-device via app.storage.local (the framework
  * adds its own `neo:<appId>:` namespace). Guest-scoped, so it never mixes with
- * the on-chain playerReadingCount the gamefi flow reads.
+ * the successful-reading counter the GameFi flow reads.
  */
 const GUEST_READINGS_KEY = "guest:readings";
 
-/** Uniform random integer in [0, max) from the Web-Crypto RNG (Math.random fallback). */
+/** Uniform random integer in [0, max) from the Web-Crypto RNG. */
 function randomInt(max: number): number {
   if (max <= 0) return 0;
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    const buf = new Uint32Array(1);
-    webCrypto.getRandomValues(buf);
-    return buf[0]! % max;
+  if (!webCrypto?.getRandomValues) {
+    throw new Error("secure-random-unavailable");
   }
-  return Math.floor(Math.random() * max);
+
+  // Reject the incomplete range at the top of uint32 instead of using a
+  // biased modulo directly. The deck is tiny, so a retry is vanishingly rare.
+  const range = 0x1_0000_0000;
+  const limit = Math.floor(range / max) * max;
+  const buf = new Uint32Array(1);
+  do {
+    webCrypto.getRandomValues(buf);
+  } while (buf[0]! >= limit);
+  return buf[0]! % max;
 }
 
 /**
@@ -107,24 +111,28 @@ export function createTarotGuestEngine(deps: TarotGuestEngineDeps): TarotGuestEn
     prepaidCredit,
     isLoading,
     question,
-    guestLeaderboard,
     storage,
     t,
     setStatus,
   } = deps;
 
   const loadCount = (): number => {
-    const raw = storage.get<number>(GUEST_READINGS_KEY, 0);
-    const value = Number(raw ?? 0);
-    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+    try {
+      const raw = storage.get<number>(GUEST_READINGS_KEY, 0);
+      const value = Number(raw ?? 0);
+      return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+    } catch {
+      // Private mode and storage-policy failures must never block a reading.
+      return 0;
+    }
   };
 
-  const submitScore = async (score: number): Promise<void> => {
-    if (score <= 0) return;
+  const saveCount = (value: number): void => {
     try {
-      await guestLeaderboard.submit(score);
+      storage.set(GUEST_READINGS_KEY, value);
     } catch {
-      /* off-chain board unreachable / no wallet — guest scores are best-effort */
+      // The tally is secondary. Keep the drawn spread usable even when local
+      // persistence is unavailable or quota constrained.
     }
   };
 
@@ -134,16 +142,24 @@ export function createTarotGuestEngine(deps: TarotGuestEngineDeps): TarotGuestEn
       isLoading.set(true);
       try {
         // Shuffle + deal three distinct cards locally — no chain, no oracle.
-        const ids = drawDistinctCardIds(CARDS_PER_READING);
+        let ids: number[];
+        try {
+          ids = drawDistinctCardIds(CARDS_PER_READING);
+        } catch (error) {
+          if (error instanceof Error && error.message === "secure-random-unavailable") {
+            throw new Error(t("secureRandomUnavailable"));
+          }
+          throw error;
+        }
         drawn.set(ids.map(cardFromIndex));
-        readingMode.set("oracle");
+        readingMode.set("local");
 
-        // Advance the on-device readings tally and record it off-chain.
+        // Advance the on-device readings tally. A private tarot draw should
+        // not trigger an unrelated remote leaderboard request.
         const nextCount = loadCount() + 1;
-        storage.set(GUEST_READINGS_KEY, nextCount);
+        saveCount(nextCount);
         readingsCount.set(nextCount);
         question.set("");
-        await submitScore(nextCount);
       } finally {
         isLoading.set(false);
       }
@@ -164,7 +180,10 @@ export function createTarotGuestEngine(deps: TarotGuestEngineDeps): TarotGuestEn
       drawn.set([]);
       readingMode.set("idle");
       isLoading.set(false);
-      question.set("");
+      // Enter with a real, stable default selection. Setting this inside the
+      // guest transition avoids the mode-change reset racing the React effect
+      // that initializes the selected ritual token.
+      question.set(t("questionPresetDecision"));
       // Zero the on-chain-only credit so a prior gamefi read (from the mount-time
       // loadData) never bleeds into the guest surface, then restore the local
       // readings tally from the device store.

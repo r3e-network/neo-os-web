@@ -287,4 +287,3 @@ export function validateObject(object, validators, optValidators = {}) {
 // const z2 = validateObject(o, { a: 'isSafeInteger' }, { c: 'zz' });
 // const z3 = validateObject(o, { test: 'boolean', z: 'bug' });
 // const z4 = validateObject(o, { a: 'boolean', z: 'bug' });
-//# sourceMappingURL=utils.js.map

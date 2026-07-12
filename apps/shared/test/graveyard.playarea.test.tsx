@@ -1,10 +1,15 @@
 import React from "react";
-import { cleanup, render } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../graveyard/src/PlayArea";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 afterEach(() => cleanup());
+const REPO_ROOT = process.cwd().endsWith("/apps/shared")
+  ? resolve(process.cwd(), "../..")
+  : process.cwd();
 function t(k: string) {
   const m: Record<string, string> = {
     addEpitaph: "Add epitaph",
@@ -25,17 +30,37 @@ function t(k: string) {
     destructionStats: "Burial Stats",
     docSubtitle: "On-chain burial and right-to-forget flow",
     editEpitaph: "Edit epitaph",
+    epitaphPending: "Awaiting epitaph",
+    epitaphPendingResolution: "An epitaph is awaiting readback.",
+    epitaphRecoveryReady: "Epitaph awaiting confirmation",
+    epitaphRecoveryHint: "Memory was submitted.",
+    recoverEpitaphAction: "Check status",
     epitaphPlaceholder: "A short note for this memory",
     epitaphSave: "Save epitaph",
     forgetAction: "Forget",
     forgetConfirmAction: "Confirm forget",
     forgetConfirmFee: "Forgetting costs {fee}.",
+    feePending: "Checking…",
+    checkingLiveFees: "Checking live contract fees",
+    contractPaused: "Memory Garden is temporarily paused",
+    contractPausedHint: "No paid action is available while paused.",
+    liveFeeUnavailable: "Live contract fees are unavailable",
+    liveFeeUnavailableHint: "Retry before a paid action.",
+    retryFeeCheck: "Retry",
+    burialRecoveryReady: "A previous prepaid action needs recovery",
+    burialRecoveryDepositHint: "Reuse the existing deposit.",
+    burialRecoveryTargetHint: "Refresh the unresolved target transaction.",
+    recoverBurial: "Review recovery",
+    recoverBurialHint: "No new GAS deposit",
+    burialPending: "Awaiting burial readback",
+    burialPendingHint: "Duplicate payment is blocked",
     gasReclaimedEstimate: "GAS spent on burials",
     hashMissing: "Hash required",
     hashPending: "Waiting for hash",
     hashPreview: "Target",
     hashReady: "Ready for review",
     hashReadyCopy: "The target is long enough for review.",
+    hashTooShortCopy: "Enter the full 64-character digest.",
     historyGuidance: "Buried records remain inspectable here.",
     memoryConsole: "Memory console",
     memoryTextHint: "The text stays on this device.",
@@ -54,6 +79,8 @@ function t(k: string) {
     sunkFeeNote: "This fee is spent, not refunded.",
     title: "Graveyard",
     totalDestroyed: "Total Buried",
+    sha256Hint: "A leading 0x is accepted.",
+    sha256InvalidHint: "Enter exactly 64 hexadecimal characters.",
   };
   return m[k] ?? k;
 }
@@ -66,7 +93,26 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     forgetFeeDisplay: "1 GAS",
     historyCount: 0,
     isDestroying: false,
+    isHashing: false,
     isLoading: false,
+    showConfirm: false,
+    showWarningShake: false,
+    walletConnected: false,
+    walletAddress: "",
+    sourceError: "",
+    fileName: "",
+    fileSize: 0,
+    feesReady: true,
+    contractPaused: false,
+    contractStateReady: true,
+    burialRecoveryPhase: "",
+    burialRecoveryTxid: "",
+    forgetRecoveryPhase: "",
+    forgetRecoveryMemoryId: "",
+    epitaphRecoveryPhase: "",
+    epitaphRecoveryMemoryId: "",
+    epitaphRecoveryTxid: "",
+    storageHealthy: true,
     historyTruncated: false,
     showAllHistory: false,
     forgetConfirmId: "",
@@ -88,46 +134,217 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
   return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
 }
 describe("graveyard PlayArea (v2)", () => {
-  it("renders a memory-vault application surface instead of a naked form", () => {
+  it("renders a designed memory-garden ritual with all three private sources", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(container.querySelector(".graveyard-scene")).toBeTruthy();
-    expect((container.querySelector(".graveyard-vault__image") as HTMLImageElement)?.src).toContain("memory-vault-stage.webp");
-    expect(container.querySelector(".graveyard-artifact")).toBeTruthy();
-    expect(container.querySelector(".graveyard-input")).toBeNull();
-    expect(container.textContent).toContain("Burial review");
+    expect(container.querySelector(".graveyard-app")).toBeTruthy();
+    expect((container.querySelector(".graveyard-garden__image") as HTMLImageElement)?.src).toContain("memory-garden.webp");
+    expect((container.querySelector(".graveyard-letter__paper") as HTMLImageElement)?.src).toContain("memory-letter.webp");
+    expect(container.querySelectorAll(".graveyard-source-tabs button")).toHaveLength(3);
+    expect(container.querySelector(".graveyard-types")).toBeTruthy();
+    expect(container.querySelector(".graveyard-review-button")).toBeTruthy();
+    expect(container.textContent).toContain("0.1 GAS");
   });
 
-  it("has reduced-motion and foreground clarity protections", () => {
-    const fs = require("node:fs");
-    const s = fs.readFileSync(`${process.cwd()}/../graveyard/src/PlayArea.scss`, "utf8");
-    const tsx = fs.readFileSync(`${process.cwd()}/../graveyard/src/PlayArea.tsx`, "utf8");
+  it("keeps fees and the primary review action visible on mobile", () => {
+    const s = readFileSync(resolve(REPO_ROOT, "apps/graveyard/src/PlayArea.scss"), "utf8");
+    const tsx = readFileSync(resolve(REPO_ROOT, "apps/graveyard/src/PlayArea.tsx"), "utf8");
 
     expect(s).toMatch(/prefers-reduced-motion/);
     expect(s).not.toContain("backdrop-filter");
-    expect(s).toContain("@use \"@shared/components-react/v2/v2\"");
-    expect(s).toMatch(/\.graveyard-scene\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(s).toMatch(/\.graveyard-scene\s*\{[\s\S]*box-shadow:\s*none/);
-    expect(s).toMatch(/\.graveyard-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/\.graveyard-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
-    expect(s).toMatch(/\.graveyard-vault\s*\{[\s\S]*grid-template-rows:\s*minmax\(220px,\s*auto\) auto auto/);
-    expect(s).toMatch(/\.graveyard-vault__image\s*\{[\s\S]*object-fit:\s*contain/);
-    expect(s).toMatch(/\.graveyard-vault__image\s*\{[\s\S]*opacity:\s*1/);
-    expect(s).toMatch(/\.graveyard-vault__image\s*\{[\s\S]*filter:\s*none/);
-    expect(s).toMatch(/\.graveyard-vault__media::after\s*\{[\s\S]*content:\s*none/);
-    expect(s).toMatch(/\.graveyard-vault__media-chip\s*\{[\s\S]*position:\s*relative/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-play-area \.mx2-stage__subtitle\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-vault\s*\{[\s\S]*grid-template-rows:\s*auto auto auto/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-vault__media,[\s\S]*\.graveyard-vault__image\s*\{[\s\S]*height:\s*146px/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-review\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-artifact__editor--textarea\s*\{[\s\S]*min-height:\s*66px/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-artifact__foot span\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-type-dock\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-type-dock\s*\{[\s\S]*overflow:\s*visible/);
-    expect(s).not.toMatch(/\.graveyard-scene\s*\{[\s\S]*radial-gradient/);
-    expect(s).not.toMatch(/\.graveyard-vault__image\s*\{[^}]*object-fit:\s*cover/);
-    expect(s).not.toMatch(/\.graveyard-vault__image\s*\{[^}]*filter:\s*saturate/);
-    expect(s).not.toMatch(/\.graveyard-vault__media-chip\s*\{[^}]*position:\s*absolute/);
+    // This standalone surface does not emit the entire shared v2/Semi theme;
+    // every class it uses is locally scoped below `.graveyard-app`.
+    expect(s).not.toContain("@shared/components-react/v2/v2");
+    expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-ritual__review\s*\{[\s\S]*padding:/);
+    expect(s).not.toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-ritual__review\s*\{[^}]*display:\s*none/);
+    expect(s).toMatch(/\.graveyard-review-button\s*\{[\s\S]*background:\s*\$moss-deep/);
+    expect(s).toMatch(/\.graveyard-garden__header > div\s*\{[\s\S]*background:\s*rgb\(255 253 246 \/ 94%\)/);
+    expect(tsx).toContain('variant="gas"');
+    expect(tsx).toContain("memory-garden.webp");
+    expect(tsx).toContain("memory-letter.webp");
     expect(tsx).not.toContain("⚰");
+  });
+
+  it("renders an explicit fee and wallet confirmation before the chain action", () => {
+    const hash = "ab".repeat(32);
+    const { container, getByRole } = render(
+      <PlayArea
+        t={t}
+        state={state({ showConfirm: true, assetHash: hash, walletConnected: true, walletAddress: "NgaiKFjurmNmiRzDRQGs44yzByXuSkdGPF" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByRole("dialog")).toBeTruthy();
+    expect(container.textContent).toContain("0.1 GAS");
+    expect(container.querySelector(".graveyard-confirm__route")).toBeTruthy();
+  });
+
+  it("keeps keyboard focus inside the paid confirmation and supports Escape", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PlayArea
+        t={t}
+        state={state({ showConfirm: true, assetHash: "ab".repeat(32) })}
+        dispatch={dispatch}
+      />,
+    );
+    const dialog = getByRole("dialog");
+    const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
+    const first = buttons[0]!;
+    const last = buttons[buttons.length - 1]!;
+
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(dispatch).toHaveBeenCalledWith("cancelDestroy");
+  });
+
+  it("blocks GAS actions and offers recovery while live fees are unverified", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({ feesReady: false, assetHash: "ab".repeat(32) })}
+        dispatch={dispatch}
+      />,
+    );
+    const review = container.querySelector(".graveyard-review-button") as HTMLButtonElement;
+    expect(review.disabled).toBe(true);
+    expect(getByText("Live contract fees are unavailable")).toBeTruthy();
+    fireEvent.click(getByText("Retry"));
+    expect(dispatch).toHaveBeenCalledWith("refreshRecords");
+  });
+
+  it("distinguishes a paused contract from an RPC failure before payment", () => {
+    const { container, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({ feesReady: false, contractPaused: true, assetHash: "ab".repeat(32) })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByText("Memory Garden is temporarily paused")).toBeTruthy();
+    expect((container.querySelector(".graveyard-review-button") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("surfaces a prepaid recovery as the next primary task without asking for new GAS", () => {
+    const { container, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          assetHash: "ab".repeat(32),
+          burialRecoveryPhase: "deposit-broadcast",
+          burialRecoveryTxid: "0xdeposit",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByText("A previous prepaid action needs recovery")).toBeTruthy();
+    expect(getByText("Review recovery")).toBeTruthy();
+    expect(container.textContent).toContain("No new GAS deposit");
+  });
+
+  it("blocks a second burial while the exact target transaction awaits readback", () => {
+    const { container, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          assetHash: "ab".repeat(32),
+          burialRecoveryPhase: "target-broadcast",
+          burialRecoveryTxid: "0xtarget",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByText("Awaiting burial readback")).toBeTruthy();
+    expect(getByText("Duplicate payment is blocked")).toBeTruthy();
+    expect((container.querySelector(".graveyard-review-button") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("turns an unresolved epitaph into a read-only recovery task", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getAllByText, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          history: [{ id: "7", hash: "ab".repeat(32), time: "", forgotten: false }],
+          historyCount: 1,
+          epitaphRecoveryPhase: "target-broadcast",
+          epitaphRecoveryMemoryId: "7",
+          epitaphRecoveryTxid: "0xepitaph",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getAllByText("Burial Records")[0]!);
+    expect(getByText("Epitaph awaiting confirmation")).toBeTruthy();
+    const editButton = container.querySelector(".graveyard-record__actions button") as HTMLButtonElement;
+    expect(editButton.disabled).toBe(true);
+    fireEvent.click(getByText("Check status"));
+    expect(dispatch).toHaveBeenCalledWith("recoverEpitaph");
+  });
+
+  it("explains an invalid existing hash instead of leaving a disabled dead end", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByRole, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({ composeMode: "hash", memoryText: "abcd", assetHash: "abcd" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const input = getByRole("textbox", { name: /Content hash/i });
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby")).toBe("graveyard-hash-hint");
+    expect(getByText("Enter the full 64-character digest.")).toBeTruthy();
+    expect((container.querySelector(".graveyard-review-button") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("uses the designed workspace as the only operation surface", () => {
+    const manifest = JSON.parse(
+      readFileSync(resolve(REPO_ROOT, "apps/graveyard/neo-manifest.json"), "utf8"),
+    ) as { operation_panel?: { operations?: unknown[] } };
+
+    expect(manifest.operation_panel?.operations).toEqual([]);
+  });
+
+  it("keeps key small-copy color pairs above WCAG AA contrast", () => {
+    const luminance = (hex: string) => {
+      const channels = [0, 2, 4].map((offset) =>
+        Number.parseInt(hex.slice(1 + offset, 3 + offset), 16) / 255,
+      );
+      const linear = channels.map((channel) =>
+        channel <= 0.03928
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4,
+      );
+      return 0.2126 * linear[0]! + 0.7152 * linear[1]! + 0.0722 * linear[2]!;
+    };
+    const contrast = (foreground: string, background: string) => {
+      const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+      return (values[0]! + 0.05) / (values[1]! + 0.05);
+    };
+    const pairs = [
+      ["#183629", "#f8f7f1"],
+      ["#4f6258", "#fffefa"],
+      ["#5d6d63", "#f6f0e5"],
+      ["#56665c", "#f6f0e5"],
+      ["#5f6d64", "#fffefa"],
+      ["#294f37", "#eef5eb"],
+      ["#fffdf7", "#23432f"],
+    ] as const;
+
+    for (const [foreground, background] of pairs) {
+      expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

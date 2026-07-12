@@ -3,9 +3,9 @@
   "id": "miniapp-council-governance",
   "name": "Council Governance",
   "name_zh": "理事会治理",
-  "version": "1.0.0",
-  "description": "Participate in DAO governance and council voting",
-  "description_zh": "议会治理 — Neo 社区去中心化治理投票平台",
+  "version": "1.1.0",
+  "description": "Review live council motions, inspect contract quorum, cast verified votes, and recover ambiguous broadcasts from a focused governance chamber.",
+  "description_zh": "在专注的议会厅中审阅实时动议、查看合约法定人数、提交经核验的投票，并恢复状态不明的广播交易。",
   "category": "governance",
   "category_name": "Governance",
   "category_name_zh": "治理",
@@ -38,19 +38,32 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://council-governance"
   },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deployed",
+      "contract_hash": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
+      "reason": "MiniAppCouncilGovernance ABI, isPaused=false, getProposalCount=0, and platform constants were verified through read-only N3Index RPC.",
+      "verified_at": "2026-07-12T00:00:00Z"
+    },
+    "neo-n3-testnet": {
+      "status": "deployed",
+      "contract_hash": "0x4c61e5575ae9e151027f6724d07fac127d4cc25f",
+      "reason": "MiniAppCouncilGovernance ABI, isPaused=false, getProposalCount=13, and proposal/status reads were verified through read-only N3Index RPC.",
+      "verified_at": "2026-07-12T00:00:00Z"
+    }
+  },
+  "operation_panel": {
+    "title": "Council Governance",
+    "subtitle": "Review, draft, vote, finalize, execute, and recover inside the designed council chamber.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -59,5 +72,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

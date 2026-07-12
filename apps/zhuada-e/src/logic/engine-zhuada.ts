@@ -1,6 +1,5 @@
 /**
- * engine-zhuada.ts — pure rules for Catch the Goose (抓大鹅), B-class physics
- * extraction edition.
+ * engine-zhuada.ts — pure extraction-and-match rules for Goose Basket Shuffle.
  *
  * Mechanic (per the community Three.js + cannon-es reimplementation):
  *   - N low-poly items drop into an open-top box and pile up under physics.
@@ -34,9 +33,8 @@ export interface ItemDef {
   color: number;
 }
 
-/** 12 item kinds — visually distinct original low-poly produce, CC-art swappable.
- * All 2D representations (tray chips) are original SVG silhouettes drawn from
- * these colors (see KindChip.tsx) — no emoji anywhere in rendered UI. */
+/** 12 logical kind ids shared by every selectable theme. Runtime 2D art comes
+ * from optimized ImageGen atlases and 3D art from the matching model catalog. */
 export const ITEM_DEFS: ItemDef[] = [
   { id: 0, name: "Tomato", nameZh: "番茄", geometry: "sphere", model: "tomato", color: 0xef4444 },
   { id: 1, name: "Carrot", nameZh: "胡萝卜", geometry: "cone", model: "carrot", color: 0xf59e0b },
@@ -62,11 +60,46 @@ export const SHELF_SLOTS = 3;
 export interface ItemInstance {
   id: number;
   kind: number;
-  /** spawn position (box-local, above the rim) */
+  /** spawn position in box-local coordinates */
   px: number;
   py: number;
   pz: number;
+  /** Initial cascade drops from above; streamed refills emerge under the pile. */
+  spawnMode?: "drop" | "reservoir";
 }
+
+/**
+ * Authoritative acknowledgement for a scene pick. The scene marks a body as
+ * in-flight synchronously, then uses this receipt to either animate it into the
+ * exact slot chosen by the rules engine or roll it back when the tray was full.
+ */
+export interface ExtractReceipt {
+  nonce: number;
+  itemId: number;
+  kind: number;
+  accepted: boolean;
+  /** Slot occupied by the incoming item after like-kind grouping. */
+  placedIndex: number;
+  matched: boolean;
+  /** Presentation snapshot before a possible triple is removed. */
+  landingTray: (number | null)[];
+  /** Authoritative compact tray after a possible triple is removed. */
+  settledTray: (number | null)[];
+  /** Indices highlighted/cleared from `landingTray`. */
+  clearedTray: number[];
+}
+
+export const EMPTY_EXTRACT_RECEIPT: ExtractReceipt = {
+  nonce: 0,
+  itemId: -1,
+  kind: -1,
+  accepted: false,
+  placedIndex: -1,
+  matched: false,
+  landingTray: Array<number | null>(TRAY_SLOTS).fill(null),
+  settledTray: Array<number | null>(TRAY_SLOTS).fill(null),
+  clearedTray: [],
+};
 
 export interface LevelSpec {
   level: number;
@@ -128,6 +161,8 @@ export function generateItems(spec: LevelSpec, rng: () => number): ItemInstance[
 
 export interface ShelfExtractResult {
   tray: (number | null)[];
+  /** Compact/grouped tray including the incoming item, before clear. */
+  landingTray: (number | null)[];
   shelf: (number | null)[];
   /** tray indices cleared this extract (subset of the cleared triple) */
   clearedTray: number[];
@@ -140,11 +175,38 @@ export interface ShelfExtractResult {
   placedIndex: number;
 }
 
+/** Remove internal holes while preserving the visible left-to-right order. */
+export function compactTray(slots: (number | null)[]): (number | null)[] {
+  const occupied = slots.filter((slot): slot is number => slot !== null);
+  return [
+    ...occupied.slice(0, TRAY_SLOTS),
+    ...Array<number | null>(Math.max(0, TRAY_SLOTS - occupied.length)).fill(null),
+  ];
+}
+
+/**
+ * Canonicalize a restored/legacy tray into stable like-kind groups. The first
+ * occurrence of each kind owns the group's position, so unrelated groups do
+ * not jump around between picks.
+ */
+export function organizeTray(slots: (number | null)[]): (number | null)[] {
+  const occupied = slots.filter((slot): slot is number => slot !== null);
+  const orderedKinds: number[] = [];
+  const counts = new Map<number, number>();
+  for (const kind of occupied) {
+    if (!counts.has(kind)) orderedKinds.push(kind);
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  const grouped = orderedKinds.flatMap((kind) => Array<number>(counts.get(kind) ?? 0).fill(kind));
+  return compactTray(grouped);
+}
+
 /**
  * Pull an item of `kind` into the tray with the side shelf participating in
  * matching:
- *  - the item lands in the first empty TRAY slot (the shelf is a parking zone,
- *    never a landing zone);
+ *  - occupied slots are compacted left and like kinds stay together;
+ *  - the item inserts immediately after its existing kind group, smoothly
+ *    making room on the right (the shelf is never a landing zone);
  *  - if `kind` now appears 3+ times across tray+shelf, exactly 3 copies clear —
  *    SHELF copies first (the rescue zone should drain itself), then tray ones.
  *
@@ -157,24 +219,39 @@ export function applyExtractShelf(
   shelf: (number | null)[],
   kind: number,
 ): ShelfExtractResult {
-  const nextTray = tray.slice();
+  const occupiedCount = tray.filter((slot) => slot !== null).length;
   const nextShelf = shelf.slice();
-  const emptyIdx = nextTray.indexOf(null);
-  if (emptyIdx === -1) {
-    return { tray: nextTray, shelf: nextShelf, clearedTray: [], clearedShelf: [], matched: false, placed: false, placedIndex: -1 };
+  if (occupiedCount >= TRAY_SLOTS) {
+    const unchanged = tray.slice();
+    return { tray: unchanged, landingTray: unchanged, shelf: nextShelf, clearedTray: [], clearedShelf: [], matched: false, placed: false, placedIndex: -1 };
   }
-  nextTray[emptyIdx] = kind;
+
+  const grouped = organizeTray(tray).filter((slot): slot is number => slot !== null);
+  const previousKindIndex = grouped.lastIndexOf(kind);
+  const placedIndex = previousKindIndex >= 0 ? previousKindIndex + 1 : grouped.length;
+  grouped.splice(placedIndex, 0, kind);
+  const landingTray = compactTray(grouped);
 
   const shelfIdx = nextShelf.map((v, i) => (v === kind ? i : -1)).filter((i) => i !== -1);
-  const trayIdx = nextTray.map((v, i) => (v === kind ? i : -1)).filter((i) => i !== -1);
+  const trayIdx = landingTray.map((v, i) => (v === kind ? i : -1)).filter((i) => i !== -1);
   if (shelfIdx.length + trayIdx.length >= 3) {
     const clearedShelf = shelfIdx.slice(0, 3);
     const clearedTray = trayIdx.slice(0, 3 - clearedShelf.length);
     for (const i of clearedShelf) nextShelf[i] = null;
-    for (const i of clearedTray) nextTray[i] = null;
-    return { tray: nextTray, shelf: nextShelf, clearedTray, clearedShelf, matched: true, placed: true, placedIndex: emptyIdx };
+    const settledTray = landingTray.slice();
+    for (const i of clearedTray) settledTray[i] = null;
+    return {
+      tray: compactTray(settledTray),
+      landingTray,
+      shelf: nextShelf,
+      clearedTray,
+      clearedShelf,
+      matched: true,
+      placed: true,
+      placedIndex,
+    };
   }
-  return { tray: nextTray, shelf: nextShelf, clearedTray: [], clearedShelf: [], matched: false, placed: true, placedIndex: emptyIdx };
+  return { tray: landingTray, landingTray, shelf: nextShelf, clearedTray: [], clearedShelf: [], matched: false, placed: true, placedIndex };
 }
 
 /**
@@ -196,7 +273,7 @@ export function applyRemoveToShelf(
     nextShelf[shelfIdx] = nextTray[trayIdx]!;
     nextTray[trayIdx] = null;
   });
-  return { tray: nextTray, shelf: nextShelf, movedFrom };
+  return { tray: compactTray(nextTray), shelf: nextShelf, movedFrom };
 }
 
 export function isTrayFull(slots: (number | null)[]): boolean {

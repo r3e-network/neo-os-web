@@ -6,6 +6,7 @@
  * logic: pipe-layout seed delivery, flap recording, and solution finalization.
  */
 import { createObservable, defineMiniApp } from "@shared/react";
+import { createDerived } from "@shared/react/context";
 import type { RewardGameSession } from "@framework/gamefi";
 import { mapField } from "@framework/gamefi";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -65,6 +66,13 @@ defineMiniApp({
   setup(ctx) {
     const app = ctx.framework;
 
+    // Fail closed in direct-play and stale-host launches. The published
+    // manifest exposes only free local practice until the Morpheus replay
+    // cadence and deployed settlement timing have passed live validation.
+    if (manifest.supportsGameFi === false && !app.mode.isGuest()) {
+      app.mode.set("guest");
+    }
+
     // ── Reward-game runner ────────────────────────────────────────────────────
     const reward = app.game.reward<TeeOp>(rewardGameConfig, {
       storagePrefix: OPS_STORAGE_PREFIX,
@@ -77,6 +85,13 @@ defineMiniApp({
     // ── Flappy-specific observables ───────────────────────────────────────────
     const seed        = createObservable("");   // deterministic pipe layout seed
     const pipesPassed = createObservable(0);
+    const walletConnected = createDerived(
+      () => app.wallet.isConnected(),
+      [app.chain.address],
+    );
+    const isConnectingWallet = createObservable(false);
+    const inputSyncFailed = createObservable(false);
+    const isRecovering = createObservable(false);
 
     // ── Play mode (guest | gamefi) mirrored into an observable for the PlayArea ─
     // The PlayArea/scene read this to switch to local (guest) framing and hide
@@ -88,17 +103,30 @@ defineMiniApp({
     // ── Guest (free / local) engine ───────────────────────────────────────────
     // Guest mode reuses the SAME observables + dispatch actions the scene reads,
     // driven by a purely local runner — no chain/oracle/reward calls.
+    // Standalone Vite has no OS guest-leaderboard proxy. Keep practice fully
+    // local in development instead of emitting a noisy failed request.
+    const guestLeaderboard = import.meta.env.DEV
+      ? {
+          async submit(): Promise<void> { return; },
+          async get(): Promise<Array<{ user: string; score: string }>> { return []; },
+        }
+      : app.mode.guestLeaderboard;
     const guest = createGuestEngine({
       obs,
       seed,
       pipesPassed,
-      guestLeaderboard: app.mode.guestLeaderboard,
+      guestLeaderboard,
+      storage: app.storage.local,
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
     // Switching to guest at the launcher resets to a clean local lobby and loads
     // the off-chain guest board (replacing the on-chain read done on mount).
     app.mode.onChange((mode) => {
+      if (manifest.supportsGameFi === false && mode !== "guest") {
+        app.mode.set("guest");
+        return;
+      }
       appMode.set(mode);
       if (mode === "guest") void guest.enter();
     });
@@ -140,13 +168,16 @@ defineMiniApp({
       obs.isDealing.set(true);
       obs.lastStatus.set(ctx.t("statusSealing"));
       try {
+        // Read the contract clock before contacting the session host. If the
+        // enclave is unavailable, the UI can still expose expiry recovery once
+        // the on-chain settlement grace window has actually elapsed.
+        const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
+        obs.dealtAt.set(asNumber(mapField(game, "dealtAt")));
+        obs.deadline.set(asNumber(mapField(game, "deadline")));
         const started = await reward.openSession(gameId, difficulty);
         session = started;
         seed.set(String(started.view.seed ?? ""));
         obs.commitment.set(started.commitment);
-        const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(gameId)]);
-        obs.dealtAt.set(asNumber(mapField(game, "dealtAt")));
-        obs.deadline.set(asNumber(mapField(game, "deadline")));
         obs.gameStatus.set("dealt");
         pipesPassed.set(0);
         obs.lastStatus.set(ctx.t("statusDealt"));
@@ -175,7 +206,125 @@ defineMiniApp({
       }
     };
 
+    const finishFromSnapshot = async (
+      gameId: string,
+      snapshot: Awaited<ReturnType<typeof reward.snapshot>>,
+      announce = true,
+    ): Promise<void> => {
+      const rewarded = snapshot.status === "solved" && snapshot.payoutFixed8 > 0n;
+
+      obs.gameDifficulty.set(snapshot.difficulty);
+      obs.commitment.set(snapshot.commitment);
+      obs.dealtAt.set(snapshot.dealtAt);
+      obs.deadline.set(snapshot.deadline);
+      obs.lastElapsedMs.set(snapshot.solveMs);
+      obs.lastPayout.set(`${snapshot.payoutGas.toFixed(2)} GAS`);
+      pipesPassed.set(asNumber(mapField(snapshot.raw, "pipesPassed") ?? 0));
+      // The contract records a completed losing run with status 2 as well. A
+      // zero-payout completion is therefore presented as an expired/lost run,
+      // never as a false win.
+      obs.gameStatus.set(rewarded ? "solved" : "expired");
+      obs.activeGameId.set("0");
+      session = null;
+      reward.storage.forget(gameId);
+
+      if (rewarded) {
+        obs.lastStatus.set(ctx.t("statusSolved", { payout: snapshot.payoutGas.toFixed(2) }));
+        if (announce) ctx.setStatus(obs.lastStatus.get(), "success");
+      } else {
+        obs.lastStatus.set(ctx.t("statusExpired"));
+        if (announce) ctx.setStatus(ctx.t("statusExpired"), "info");
+      }
+      // Settlement is already authoritative; auxiliary HUD/indexer refreshes
+      // must never roll a terminal chain result back into an unknown state.
+      await Promise.allSettled([refreshBalances(), refreshStats(), loadLeaderboard()]);
+    };
+
+    const recoverCurrentGame = async (
+      preferredGameId?: string,
+      announce = true,
+    ): Promise<boolean> => {
+      if (app.mode.isGuest() || isRecovering.get()) return false;
+      const gameId = preferredGameId && preferredGameId !== "0"
+        ? preferredGameId
+        : obs.activeGameId.get();
+      if (!gameId || gameId === "0") return false;
+
+      isRecovering.set(true);
+      try {
+        const snapshot = await reward.snapshot(gameId);
+        obs.activeGameId.set(gameId);
+        app.game.session.applySnapshot(obs, snapshot.raw, statusOf);
+        pipesPassed.set(asNumber(mapField(snapshot.raw, "pipesPassed") ?? 0));
+
+        if (
+          snapshot.status === "solved"
+          || snapshot.status === "expired"
+          || snapshot.status === "refunded"
+        ) {
+          await finishFromSnapshot(gameId, snapshot, announce);
+          return true;
+        }
+
+        if (snapshot.status === "unknown") {
+          session = null;
+          obs.gameStatus.set("unknown");
+          obs.lastStatus.set(ctx.t("statusSettlementPending"));
+          if (announce) ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+          return true;
+        }
+
+        if (snapshot.status === "dealt") {
+          obs.lastStatus.set(ctx.t("statusDealt"));
+          await resumeSession(gameId, snapshot.difficulty);
+          return true;
+        }
+
+        obs.lastStatus.set(ctx.t("statusDealPending"));
+        await openSession(gameId, snapshot.difficulty);
+        return true;
+      } catch (error) {
+        if (announce) {
+          ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
+        }
+        return false;
+      } finally {
+        isRecovering.set(false);
+      }
+    };
+
     // ── Actions ───────────────────────────────────────────────────────────────
+    app.actions.register("selectDifficulty", async (...args: unknown[]) => {
+      if (
+        obs.isStarting.get()
+        || obs.isDealing.get()
+        || obs.isSubmitting.get()
+        || ["dealt", "committed", "unknown"].includes(obs.gameStatus.get())
+      ) return;
+      const form = (args[0] ?? {}) as { difficulty?: unknown };
+      const difficulty = Math.max(0, Math.min(2, Math.round(Number(form.difficulty) || 0)));
+      obs.gameDifficulty.set(difficulty);
+    });
+
+    app.actions.register("connectWallet", async () => {
+      if (app.mode.isGuest() || isConnectingWallet.get() || app.wallet.isConnected()) return;
+      isConnectingWallet.set(true);
+      try {
+        const address = await app.wallet.ensure();
+        if (!address) throw new Error(ctx.t("walletUnavailable"));
+        await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
+        obs.lastStatus.set(ctx.t("walletConnectedReady"));
+        ctx.setStatus(ctx.t("walletConnectedReady"), "success");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : ctx.t("walletUnavailable");
+        obs.lastStatus.set(message);
+        ctx.setStatus(message, "error");
+        throw error;
+      } finally {
+        isConnectingWallet.set(false);
+      }
+    });
+
     app.actions.register("startGame", async (...args: unknown[]) => {
       if (app.mode.isGuest()) {
         const form = (args[0] ?? {}) as { difficulty?: unknown };
@@ -197,6 +346,7 @@ defineMiniApp({
         obs.dealtAt.set(0);
         obs.deadline.set(0);
         pipesPassed.set(0);
+        inputSyncFailed.set(false);
         obs.gameStatus.set("committed");
         obs.lastStatus.set(ctx.t("statusStarted"));
         await refreshBalances();
@@ -233,10 +383,31 @@ defineMiniApp({
       const pipes   = Number(form.pipes ?? pipesPassed.get());
       const gameId  = obs.activeGameId.get();
       if (gameId === "0" || !session || obs.gameStatus.get() !== "dealt") return;
-      pipesPassed.set(Math.max(pipesPassed.get(), pipes));
       try {
         await reward.recordOp(session, { type: "flap" });
-      } catch { /* telemetry only */ }
+        inputSyncFailed.set(false);
+      } catch (error) {
+        inputSyncFailed.set(true);
+        const message = error instanceof Error ? error.message : ctx.t("statusInputSyncFailed");
+        obs.lastStatus.set(ctx.t("statusInputSyncFailed"));
+        ctx.setStatus(message, "error");
+        throw error;
+      }
+      // Keep the immediate local score monotonic for older scene callers; the
+      // regular one-second syncScore action owns HUD reporting.
+      if (Number.isFinite(pipes)) pipesPassed.set(Math.max(pipesPassed.get(), pipes));
+    });
+
+    app.actions.register("syncScore", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as { pipes?: unknown };
+      const pipes = Number(form.pipes ?? pipesPassed.get());
+      if (obs.gameStatus.get() !== "dealt" || !Number.isFinite(pipes)) return;
+      if (app.mode.isGuest()) {
+        guest.syncScore(pipes);
+        return;
+      }
+      // UI-only progress: do not append an enclave operation here.
+      pipesPassed.set(Math.max(0, pipes));
     });
 
     app.actions.register("submitSolution", async (...args: unknown[]) => {
@@ -257,28 +428,44 @@ defineMiniApp({
         pipesPassed.set(Math.max(pipesPassed.get(), pipes));
         const finalized = await finalizeRewardGame(session);
         const settled   = finalized.settlement;
-        obs.lastPayout.set(`${settled.payoutGas.toFixed(2)} GAS`);
-        obs.lastElapsedMs.set(settled.elapsedMs);
-        obs.gameStatus.set(settled.status as "solved" | "expired");
-        obs.activeGameId.set("0");
         session = null;
-        if (settled.payoutGas > 0) {
-          obs.lastStatus.set(ctx.t("statusSolved", { payout: settled.payoutGas.toFixed(2) }));
-          ctx.setStatus(obs.lastStatus.get(), "success");
-        } else {
-          obs.lastStatus.set(ctx.t("statusExpired"));
-          ctx.setStatus(ctx.t("statusExpired"), "info");
+
+        if (settled.status === "unknown") {
+          // Broadcast is not confirmation. Preserve the exact game id and the
+          // SDK's sealed op-log so refresh/recovery can inspect the callback
+          // result without reopening or duplicating the paid run.
+          obs.gameStatus.set("unknown");
+          obs.lastStatus.set(ctx.t("statusSettlementPending"));
+          ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+          return finalized.tx;
         }
-        await Promise.all([refreshBalances(), refreshStats(), loadLeaderboard()]);
+
+        const snapshot = await reward.snapshot(gameId);
+        if (snapshot.status === "unknown" || snapshot.status === "dealt" || snapshot.status === "committed") {
+          obs.gameStatus.set("unknown");
+          obs.lastStatus.set(ctx.t("statusSettlementPending"));
+          ctx.setStatus(ctx.t("statusSettlementPending"), "info");
+          return finalized.tx;
+        }
+        await finishFromSnapshot(gameId, snapshot);
         return finalized.tx;
       } catch (error) {
+        // A wallet/RPC timeout may arrive after broadcast. Keep the run
+        // recoverable until an explicit chain snapshot proves a terminal state.
+        session = null;
+        obs.gameStatus.set("unknown");
+        obs.lastStatus.set(ctx.t("statusSettlementPending"));
         const msg = error instanceof Error ? error.message : ctx.t("statusFailed");
-        obs.lastStatus.set(msg);
         ctx.setStatus(msg, "error");
         throw error;
       } finally {
         obs.isSubmitting.set(false);
       }
+    });
+
+    app.actions.register("refreshGame", async () => {
+      if (app.mode.isGuest()) return;
+      await recoverCurrentGame(undefined, true);
     });
 
     app.actions.register("expireGame", async () => {
@@ -287,12 +474,14 @@ defineMiniApp({
       if (gameId === "0") return;
       try {
         await reward.expire(gameId);
-        obs.gameStatus.set("expired");
-        obs.activeGameId.set("0");
         session = null;
-        obs.lastStatus.set(ctx.t("statusExpired"));
-        ctx.setStatus(ctx.t("statusExpired"), "info");
-        await refreshBalances();
+        // Invocation may be broadcast before its state transition is visible.
+        // Re-read the exact game instead of claiming it was released.
+        const recovered = await recoverCurrentGame(gameId, true);
+        if (!recovered) {
+          obs.gameStatus.set("unknown");
+          obs.lastStatus.set(ctx.t("statusSettlementPending"));
+        }
       } catch (error) {
         ctx.setStatus(error instanceof Error ? error.message : ctx.t("statusFailed"), "error");
         throw error;
@@ -317,7 +506,16 @@ defineMiniApp({
 
     // ── State returned to PlayArea ────────────────────────────────────────────
     return {
-      state: { ...obs, seed, pipesPassed, appMode },
+      state: {
+        ...obs,
+        seed,
+        pipesPassed,
+        appMode,
+        walletConnected,
+        isConnectingWallet,
+        inputSyncFailed,
+        isRecovering,
+      },
       loadData: async () => {
         if (app.mode.isGuest()) { await guest.enter(); return; }
         await refreshBalances();
@@ -329,17 +527,7 @@ defineMiniApp({
                 await app.chain.readRaw("activeGameOf", [app.chain.arg.hash160(playerHash)]),
               ) ?? "0",
             );
-            if (active !== "0") {
-              obs.activeGameId.set(active);
-              const game = await app.chain.readRaw("getGame", [app.chain.arg.integer(active)]);
-              app.game.session.applySnapshot(obs, game, statusOf);
-              pipesPassed.set(asNumber(mapField(game, "pipesPassed") ?? 0));
-              if (obs.gameStatus.get() === "dealt") {
-                await resumeSession(active, obs.gameDifficulty.get());
-              } else if (obs.gameStatus.get() === "committed") {
-                void openSession(active, obs.gameDifficulty.get());
-              }
-            }
+            if (active !== "0") await recoverCurrentGame(active, false);
           } catch { /* no active game */ }
         }
         await Promise.all([refreshStats(), loadLeaderboard()]);

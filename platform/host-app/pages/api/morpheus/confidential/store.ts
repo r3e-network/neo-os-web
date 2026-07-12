@@ -1,7 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
-import { resolveMorpheusPublicApiCandidates } from "@/lib/morpheus-endpoints";
+import {
+  resolveMorpheusConfidentialStoreProjectSlug,
+  resolveMorpheusConfidentialStoreToken,
+  resolveMorpheusNetwork,
+  resolveMorpheusPublicApiCandidates,
+} from "@/lib/morpheus-endpoints";
 
 const MORPHEUS_CONFIDENTIAL_TIMEOUT_MS = 10_000;
 
@@ -30,15 +35,39 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  // Standalone MiniApps run in an opaque-origin iframe. JSON POST requests
+  // preflight, so the storage lane must expose the same explicit transport
+  // contract as the public-key route.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Accept, Content-Type");
+  res.setHeader("Cache-Control", "no-store, private");
+
+  const method = String(req.method || "").toUpperCase();
+  if (method === "OPTIONS") {
+    res.status(204).end();
+    return;
+  }
   if (standardLimit(req, res)) return;
-  if (String(req.method || "").toUpperCase() !== "POST") {
+
+  const network = resolveMorpheusNetwork(
+    String(req.query.network || req.body?.network || req.body?.morpheus_network || "testnet"),
+  );
+  const baseUrl = resolveMorpheusPublicApiUrl(network);
+  const storeToken = resolveMorpheusConfidentialStoreToken(network);
+  const projectSlug = resolveMorpheusConfidentialStoreProjectSlug(network);
+
+  if (method === "GET") {
+    res.status(200).json({
+      available: Boolean(baseUrl && storeToken && projectSlug),
+      network,
+      target_chain: "neo_n3",
+    });
+    return;
+  }
+  if (method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
-
-  const network =
-    String(req.body?.network || req.body?.morpheus_network || "").trim() ||
-    "testnet";
-  const baseUrl = resolveMorpheusPublicApiUrl(network);
   if (!baseUrl) {
     return apiError.configError(
       res,
@@ -51,6 +80,33 @@ export default async function handler(
   if (!ciphertext) {
     return apiError.badRequest(res, "ciphertext is required");
   }
+  if (!storeToken || !projectSlug) {
+    return apiError.configError(
+      res,
+      "Morpheus confidential store credentials are not configured",
+    );
+  }
+
+  const publicEnvelope = body.public_envelope;
+  const metadata = body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+    ? body.metadata as Record<string, unknown>
+    : {};
+  const forwardedBody = {
+    ...body,
+    network,
+    target_chain: "neo_n3",
+    project_slug: projectSlug,
+    ...(publicEnvelope && typeof publicEnvelope === "object" && !Array.isArray(publicEnvelope)
+      ? {
+          metadata: { ...metadata, public_envelope: publicEnvelope },
+          encryption_algorithm: String(
+            (publicEnvelope as Record<string, unknown>).encryption_algorithm
+              || body.encryption_algorithm
+              || "client-supplied-ciphertext",
+          ),
+        }
+      : { metadata }),
+  };
 
   const controller = new AbortController();
   const timeoutId = setTimeout(
@@ -64,11 +120,11 @@ export default async function handler(
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
+        "X-Admin-Api-Key": storeToken,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(forwardedBody),
     });
 
-    res.setHeader("Cache-Control", "no-store, private");
     const text = await upstream.text();
     const upstreamOk =
       upstream.ok ?? (upstream.status >= 200 && upstream.status < 300);

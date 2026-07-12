@@ -10,13 +10,17 @@
  */
 
 import { getNetwork } from "@shared/constants/rpc";
+import { normalizeTimestampProofNetwork } from "../timestamp-proof-rpc";
 
 const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
 
 /** Build the explorer tx URL for `txid` on the active Neo N3 network. */
-export function explorerTxUrl(txid: string): string {
+export function explorerTxUrl(txid: string, network?: string): string {
   const id = String(txid || "").trim();
   if (!id) return "";
-  const segment = getNetwork() === "testnet" ? "testnet" : "mainnet";
+  const resolved = normalizeTimestampProofNetwork(network);
+  const segment = resolved
+    ? resolved === "neo-n3-testnet" ? "testnet" : "mainnet"
+    : getNetwork() === "testnet" ? "testnet" : "mainnet";
   return `${DORA_TX_BASE}/${segment}/${encodeURIComponent(id)}`;
 }

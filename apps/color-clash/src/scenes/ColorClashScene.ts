@@ -8,7 +8,19 @@
 import * as Phaser from "phaser";
 import { BaseScene } from "@framework/phaser";
 import type { GameState, SceneAudioPreset } from "@framework/phaser";
-import { DIFFICULTY_RULES } from "../logic/game-rules";
+import {
+  canReleaseExpiredGame,
+  cueTimingOf,
+  DIFFICULTY_RULES,
+  formatClock,
+  releaseAtOf,
+  SETTLEMENT_GRACE_MS,
+} from "../logic/game-rules";
+import {
+  hasColorDeadlinePassed,
+  normalizeColorSequence,
+  type ColorUiPhase,
+} from "../logic/color-engine";
 
 // ── Palette ────────────────────────────────────────────────────────────────────
 const PAD_LIT   = [0xf87171, 0x60a5fa, 0x4ade80, 0xfcd34d] as const; // lit states
@@ -53,6 +65,9 @@ const BADGE_FILES = [
 
 const MODE_LABELS = ["Pulse", "Neon", "Master"] as const;
 const MODE_COPY = ["8 cues", "12 cues", "16 cues"] as const;
+const MODE_LABEL_KEYS = ["modeEasy", "modeMedium", "modeHard"] as const;
+const MODE_TARGET_KEYS = ["modeEasyTarget", "modeMediumTarget", "modeHardTarget"] as const;
+const COLOR_LABEL_KEYS = ["colorRed", "colorBlue", "colorGreen", "colorYellow"] as const;
 
 // Classic Simon pad voices (Hz): red E4, blue C#4, green A3, yellow E3.
 // Matches PAD_LIT order: 0=red, 1=blue, 2=green, 3=yellow.
@@ -66,8 +81,31 @@ type ModeCard = {
   height: number;
 };
 
-// Pad layout: 4 quadrants of the circle
-// Top=0, Right=1, Bottom=2, Left=3  (matches classic Simon CCW order for colors)
+type PrimaryAction = "startGame" | "retryDeal" | "submitSolution" | "checkSettlement" | "expireGame";
+type PrimaryActionState = {
+  action: PrimaryAction;
+  busy?: boolean;
+  enabled: boolean;
+  label: string;
+} | null;
+type PrimaryActionContext = {
+  completedSequence: boolean;
+  dealPending: boolean;
+  isDealing: boolean;
+  isGuest: boolean;
+  isLobby: boolean;
+  isStarting: boolean;
+  isSubmitting: boolean;
+  isRecovering: boolean;
+  releaseReady: boolean;
+  settlementPending: boolean;
+  timeUp: boolean;
+  wrong: boolean;
+};
+
+// Authored cabinet layout: red=top-left, blue=top-right,
+// green=bottom-left, yellow=bottom-right.
+const PAD_CENTER_DEGREES = [225, 315, 135, 45] as const;
 export class ColorClashScene extends BaseScene {
   private sceneReady = false;
   private isRebuildingScene = false;
@@ -77,9 +115,11 @@ export class ColorClashScene extends BaseScene {
   private padGraphics: Phaser.GameObjects.Graphics[] = [];
   private padGlows: Phaser.GameObjects.Ellipse[] = [];
   private padButtons: Phaser.GameObjects.Container[] = [];
-  private padButtonImages: Phaser.GameObjects.Graphics[] = [];
+  private padButtonImages: Phaser.GameObjects.Image[] = [];
+  private padButtonGlows: Phaser.GameObjects.Ellipse[] = [];
 
   private roundLabel!: Phaser.GameObjects.Text;
+  private timerLabel!: Phaser.GameObjects.Text;
   private phaseLabel!: Phaser.GameObjects.Text;
   private statusBar!: Phaser.GameObjects.Text;
   private startBtn!: Phaser.GameObjects.Container;
@@ -91,12 +131,28 @@ export class ColorClashScene extends BaseScene {
 
   private flashIndex = -1;
   private flashTimer: Phaser.Time.TimerEvent | null = null;
+  private gameplayTimers = new Set<Phaser.Time.TimerEvent>();
   private lastSequenceLen = 0;
+  private lastPlaybackKey = "";
+  private playbackActive = false;
+  private pressLocked = false;
+  private pressUnlockAt = 0;
+  private actionLocked = false;
+  private expirationDispatched = false;
+  private lastTimerPaintAt = Number.NEGATIVE_INFINITY;
   private selectedDifficulty = 0;
+  private currentDifficulty = 0;
   private currentStatus = "idle";
   private currentSequence = "";
   private currentPlayer = "";
   private currentLastStatus = "";
+  private currentRoundPhase: ColorUiPhase = "lobby";
+  private currentIsGuest = false;
+  private deadline = 0;
+  private dealtAt = 0;
+  private settlementGraceMs = SETTLEMENT_GRACE_MS;
+  private primaryAction: PrimaryAction = "startGame";
+  private primaryActionEnabled = true;
   // Last phase-cue key so one-shot sounds fire once per transition,
   // not on every React state push.
   private lastPhaseCue = "";
@@ -114,10 +170,19 @@ export class ColorClashScene extends BaseScene {
 
   create(): void {
     super.create();
+    this.input.keyboard?.on("keydown", this.handleKeyboardInput, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupGameplay, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupGameplay, this);
     this.syncSceneSize();
     this.rebuildScene();
     this.sceneReady = true;
     this.onStateUpdate(this.state);
+  }
+
+  update(time: number): void {
+    if (this.currentStatus !== "dealt" || time - this.lastTimerPaintAt < 100) return;
+    this.lastTimerPaintAt = time;
+    this.updateTimer();
   }
 
   protected onResize(gameSize: Phaser.Structs.Size): void {
@@ -142,8 +207,14 @@ export class ColorClashScene extends BaseScene {
 
   private rebuildScene(): void {
     this.isRebuildingScene = true;
-    this.flashTimer?.destroy();
-    this.flashTimer = null;
+    this.clearGameplayTimers();
+    this.playbackActive = false;
+    this.pressLocked = this.bool("isPressing");
+    this.pressUnlockAt = 0;
+    this.actionLocked = this.bool("isStarting")
+      || this.bool("isDealing")
+      || this.bool("isSubmitting")
+      || this.bool("isRecovering");
     this.tweens.killAll();
     this.children.removeAll(true);
 
@@ -151,10 +222,12 @@ export class ColorClashScene extends BaseScene {
     this.padGlows = [];
     this.padButtons = [];
     this.padButtonImages = [];
+    this.padButtonGlows = [];
     this.modeCards = [];
     this.progressDots = [];
     this.flashIndex = -1;
     this.lastSequenceLen = 0;
+    this.lastPlaybackKey = "";
 
     const W = this.scW;
     const H = this.scH;
@@ -179,56 +252,160 @@ export class ColorClashScene extends BaseScene {
     const lastSt     = this.str("lastStatus", "");
     const sequence   = this.str("sequence", "");
     const player     = this.str("playerSequence", "");
-    const roundNum   = this.num("roundNumber", 0);
+    const roundNum   = Math.max(0, this.num("roundNumber", sequence.length));
     const difficulty = this.num("gameDifficulty", this.selectedDifficulty);
+    const selectedDifficulty = this.num("selectedDifficulty", difficulty);
+    const deadline   = this.num("deadline", 0);
+    const dealtAt    = this.num("dealtAt", 0);
+    const isDealing  = this.bool("isDealing");
+    const isStarting = this.bool("isStarting");
+    const isSubmitting = this.bool("isSubmitting");
+    const isRecovering = this.bool("isRecovering");
+    const isPressing = this.bool("isPressing");
+    const isGuest    = this.str("appMode", "gamefi") === "guest";
+    const settlementGraceMs = Math.max(
+      0,
+      this.num("settlementGraceMs", SETTLEMENT_GRACE_MS),
+    );
+    const rawPhase = this.str("roundPhase", "lobby");
+    const roundPhase: ColorUiPhase = [
+      "lobby", "watching", "input", "wrong", "complete", "expired",
+    ].includes(rawPhase)
+      ? rawPhase as ColorUiPhase
+      : lastSt === "all-correct"
+        ? "complete"
+        : lastSt === "wrong"
+          ? "wrong"
+          : player.length === 0 && sequence.length > 0
+            ? "watching"
+            : "input";
+
+    const statusChanged = status !== this.currentStatus;
+    const sequenceChanged = sequence !== this.currentSequence;
+    const playerChanged = player !== this.currentPlayer;
+    const phaseChanged = roundPhase !== this.currentRoundPhase;
+    const lastStatusChanged = lastSt !== this.currentLastStatus;
 
     this.currentStatus = status;
     this.currentSequence = sequence;
     this.currentPlayer = player;
     this.currentLastStatus = lastSt;
+    this.currentRoundPhase = roundPhase;
+    this.currentDifficulty = difficulty;
+    this.currentIsGuest = isGuest;
+    this.deadline = deadline;
+    this.dealtAt = dealtAt;
+    this.settlementGraceMs = settlementGraceMs;
+
+    if (sequenceChanged && roundPhase === "watching" && sequence.length > 1) {
+      this.playRoundAdvanceFeedback();
+    }
+    if (phaseChanged && roundPhase === "wrong") this.playTerminalFeedback("wrong");
+    if (phaseChanged && roundPhase === "complete") this.playTerminalFeedback("clear");
+    if (statusChanged && status === "solved") this.playTerminalFeedback("win");
+
+    if (statusChanged && status === "dealt") {
+      this.expirationDispatched = false;
+      this.lastTimerPaintAt = Number.NEGATIVE_INFINITY;
+    }
+    if (isPressing) {
+      this.pressLocked = true;
+    } else if (playerChanged || phaseChanged || sequenceChanged) {
+      this.pressLocked = Date.now() < this.pressUnlockAt;
+    }
+    if (statusChanged || lastStatusChanged) this.actionLocked = false;
 
     // Update round label
-    this.roundLabel.setText(roundNum > 0 ? `Round ${roundNum}` : "");
+    this.roundLabel.setText(
+      status === "dealt" && roundNum > 0
+        ? `${this.str("roundLabel", "ROUND")} ${roundNum}`
+        : "",
+    );
+    this.updateTimer();
 
-    // Show/hide start button
-    const showStart = status === "idle" || status === "solved" || status === "expired";
-    this.startBtn.setVisible(showStart);
-    this.progressRow.setVisible(!showStart);
-    this.modeCards.forEach(({ container }) => container.setVisible(showStart));
-    if (showStart && difficulty !== this.selectedDifficulty) {
-      this.selectedDifficulty = Math.max(0, Math.min(DIFFICULTY_RULES.length - 1, difficulty));
+    const isLobby = status === "idle" || status === "solved" || status === "expired" || status === "refunded";
+    const completedSequence = roundPhase === "complete" || lastSt === "all-correct";
+    const dealPending = status === "committed" || lastSt === "deal-pending";
+    const timeUp = status === "dealt" && hasColorDeadlinePassed(deadline);
+    const wrong = status === "dealt" && roundPhase === "wrong";
+    const settlementPending = status === "unknown" || lastSt === "settlement-pending";
+    const releaseReady = isGuest || canReleaseExpiredGame(deadline, settlementGraceMs);
+    const action = this.primaryActionFor({
+      completedSequence,
+      dealPending,
+      isDealing,
+      isGuest,
+      isLobby,
+      isStarting,
+      isSubmitting,
+      isRecovering,
+      releaseReady,
+      settlementPending,
+      timeUp,
+      wrong,
+    });
+
+    this.startBtn.setVisible(Boolean(action));
+    this.progressRow.setVisible(!isLobby && !action);
+    this.modeCards.forEach(({ container }) => container.setVisible(isLobby));
+    if (isLobby && selectedDifficulty !== this.selectedDifficulty) {
+      this.selectedDifficulty = Math.max(
+        0,
+        Math.min(DIFFICULTY_RULES.length - 1, selectedDifficulty),
+      );
     }
     this.updateModeCards();
-    this.updateStartButton(status);
+    this.updateStartButton(action);
 
-    // Status bar
-    this.statusBar.setText(lastSt);
+    this.statusBar.setText(this.statusMessage(status, roundPhase));
 
-    // Phase label in center
     if (status === "dealt") {
-      if (lastSt.includes("wrong") || lastSt === "wrong") {
-        this.phaseLabel.setText("WRONG").setColor("#f87171");
+      if (timeUp) {
+        this.cancelPlayback();
+        this.pressLocked = true;
+        this.phaseLabel.setText(this.str("phaseEnd", "END")).setColor("#f87171");
+        this.statusBar.setText(
+          releaseReady
+            ? this.str("statusReleaseReady", "Recovery complete — release this run")
+            : this.str("statusReleaseWait", "Recovery window in progress"),
+        );
+        this.phaseCue("time-up", "lose");
+      } else if (roundPhase === "wrong") {
+        this.cancelPlayback();
+        this.phaseLabel.setText(this.str("phaseWrong", "WRONG")).setColor("#f87171");
         this.phaseCue("wrong", "error");
-      } else if (lastSt.includes("correct") || sequence.length > 0 && player.length === sequence.length) {
-        this.phaseLabel.setText("CORRECT").setColor("#4ade80");
+      } else if (roundPhase === "complete") {
+        this.cancelPlayback();
+        this.phaseLabel.setText(this.str("phaseCorrect", "CLEAR")).setColor("#4ade80");
         this.phaseCue("correct", "combo");
-      } else if (player.length === 0 && sequence.length > 0) {
-        this.phaseLabel.setText("WATCH").setColor("#fcd34d");
-        this.phaseCue("watch");
-        this.startFlashSequence(sequence);
+      } else if (roundPhase === "watching" && sequence.length > 0) {
+        this.phaseLabel.setText(this.str("phaseWatch", "WATCH")).setColor("#fcd34d");
+        this.phaseCue(`watch-${sequence.length}`);
+        const playbackKey = `${this.str("activeGameId", "0")}:${sequence}`;
+        if (!this.playbackActive && playbackKey !== this.lastPlaybackKey) {
+          this.startFlashSequence(sequence, playbackKey);
+        }
       } else {
-        this.phaseLabel.setText("REPEAT").setColor("#60a5fa");
-        this.phaseCue("repeat");
+        this.cancelPlayback(false);
+        this.phaseLabel.setText(this.str("phaseRepeat", "YOUR TURN")).setColor("#60a5fa");
+        this.phaseCue(`repeat-${sequence.length}`);
       }
-    } else if (status === "idle") {
-      this.phaseLabel.setText("READY").setColor(TEXT_MAIN);
+    } else if (status === "idle" || status === "refunded") {
+      this.cancelPlayback();
+      this.phaseLabel.setText(this.str("phaseReady", "READY")).setColor(TEXT_MAIN);
       this.phaseCue("idle");
     } else if (status === "solved") {
-      this.phaseLabel.setText("WIN!").setColor("#4ade80");
+      this.cancelPlayback();
+      this.phaseLabel.setText(this.str("phaseWin", "WIN!")).setColor("#4ade80");
       this.phaseCue("solved", "win");
     } else if (status === "expired") {
-      this.phaseLabel.setText("END").setColor("#f87171");
+      this.cancelPlayback();
+      this.phaseLabel.setText(this.str("phaseEnd", "END")).setColor("#f87171");
       this.phaseCue("expired", "lose");
+    } else if (status === "unknown") {
+      this.cancelPlayback();
+      this.phaseLabel.setText(this.str("phaseEnd", "END")).setColor("#f59e0b");
+      this.phaseCue("settlement-pending");
     }
 
     // Progress dots
@@ -237,20 +414,26 @@ export class ColorClashScene extends BaseScene {
       this.lastSequenceLen = sequence.length;
     }
     this.progressDots.forEach((dot, i) => {
-      dot.setFillStyle(i < player.length ? PAD_LIT[i % 4]! : DOT_UNLIT);
+      const colorIndex = Number(sequence[i]);
+      dot.setFillStyle(
+        i < player.length && colorIndex >= 0 && colorIndex < PAD_LIT.length
+          ? PAD_LIT[colorIndex]!
+          : DOT_UNLIT,
+      );
     });
 
     // Pad interactivity
     const canPress = this.canPressPads();
     this.padGraphics.forEach((_, i) => {
-      const interactive = canPress;
-      if (this.padGlows[i]) {
-        this.padGlows[i]!.setVisible(!interactive ? false : this.flashIndex === i);
-      }
+      this.padGlows[i]?.setVisible(this.flashIndex === i);
     });
     this.padButtons.forEach((button, index) => {
       button.setAlpha(canPress ? 1 : 0.74);
-      this.padButtonImages[index]?.setScale(this.flashIndex === index ? 0.96 : 0.9);
+      const active = this.flashIndex === index;
+      this.padButtonImages[index]?.setAlpha(
+        active ? 1 : this.flashIndex >= 0 ? 0.46 : canPress ? 1 : 0.82,
+      );
+      this.padButtonGlows[index]?.setAlpha(active ? 0.58 : 0.16);
     });
   }
 
@@ -291,26 +474,41 @@ export class ColorClashScene extends BaseScene {
       const hit = this.add.zone(0, 0, cardW, cardH).setInteractive({ useHandCursor: true });
       const badge = this.add.image(badgeX, 0, CLASH_ASSETS.badges[index]!)
         .setDisplaySize(badgeSize, badgeSize);
-      const label = this.add.text(textX, compact ? -7 : -8, MODE_LABELS[index] ?? "Pulse", {
+      const labelKey = MODE_LABEL_KEYS[index] ?? MODE_LABEL_KEYS[0];
+      const targetKey = MODE_TARGET_KEYS[index] ?? MODE_TARGET_KEYS[0];
+      const label = this.add.text(
+        textX,
+        compact ? -7 : -8,
+        this.str(labelKey, MODE_LABELS[index] ?? "Pulse"),
+        {
         fontFamily: FONT_FAMILY,
         fontSize: compact ? "11px" : "12px",
         fontStyle: "bold",
         color: "#4f4235",
-      }).setOrigin(0, 0.5);
-      const meta = this.add.text(textX, compact ? 8 : 9, MODE_COPY[index] ?? `${rule.targetSeq} cues`, {
+        },
+      ).setOrigin(0, 0.5);
+      const meta = this.add.text(
+        textX,
+        compact ? 8 : 9,
+        this.str(targetKey, MODE_COPY[index] ?? `${rule.targetSeq} cues`),
+        {
         fontFamily: FONT_FAMILY,
         fontSize: compact ? "9px" : "10px",
         color: TEXT_MUTED,
-      }).setOrigin(0, 0.5);
+        },
+      ).setOrigin(0, 0.5);
 
       this.bindGameButton(hit, {
         targets: container,
         pressScale: 0.97,
         hoverScale: 1.02,
-        enabled: () => this.currentStatus === "idle" || this.currentStatus === "solved" || this.currentStatus === "expired",
+        enabled: () => ["idle", "solved", "expired", "refunded"].includes(this.currentStatus),
         onPress: () => {
+          this.sfx.unlock();
+          this.sfx.play("select");
           this.selectedDifficulty = index;
           this.updateModeCards();
+          this.dispatch("setDifficulty", index);
         },
       });
 
@@ -373,7 +571,7 @@ export class ColorClashScene extends BaseScene {
     outline.lineStyle(5, BOARD_RIM, 0.55);
     outline.strokeCircle(cx, cy, R + 5);
 
-    // 4 pads: top, right, bottom, left
+    // Four authored cabinet quadrants plus one shared annular hit area.
     for (let i = 0; i < 4; i++) {
       // Glow halo (behind pad)
       const glow = this.add.ellipse(cx, cy, R * 1.9, R * 1.9, PAD_LIT[i]!, 0.0);
@@ -384,53 +582,42 @@ export class ColorClashScene extends BaseScene {
       g.setDepth(4);
       this.padGraphics.push(g);
       this.drawPad(g, cx, cy, R, innerR, gap, i, false);
-
-      // Hit area: pie-slice zone via interactive region
-      const hitZone = this.add.zone(cx, cy, R * 2, R * 2);
-      hitZone.setInteractive({ useHandCursor: true });
-      hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-        const dx = pointer.x - cx;
-        const dy = pointer.y - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < innerR + 4 || dist > R + 10) return;
-        // Determine which pad was clicked by angle
-        const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-        const padIdx = ColorClashScene.angleToPad(angle);
-        this.handlePress(padIdx);
-      });
-      hitZone.on("pointerover", (pointer: Phaser.Input.Pointer) => {
-        const dx = pointer.x - cx;
-        const dy = pointer.y - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < innerR + 4 || dist > R + 10) return;
-        const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-        const padIdx = ColorClashScene.angleToPad(angle);
-        if (this.canPressPads() && this.flashIndex !== padIdx) this.lightPad(padIdx, true, 0.35);
-      });
-      hitZone.on("pointerout", () => {
-        if (this.flashIndex === -1) {
-          this.padGraphics.forEach((pg, idx) => this.drawPad(pg, cx, cy, R, innerR, gap, idx, false));
-        }
-      });
-
     }
+
+    const hitZone = this.add.zone(cx, cy, R * 2, R * 2);
+    hitZone.setInteractive({ useHandCursor: true });
+    const pointerPad = (pointer: Phaser.Input.Pointer): number | null => {
+      const dx = pointer.x - cx;
+      const dy = pointer.y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < innerR + 4 || dist > R + 10) return null;
+      const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+      return ColorClashScene.angleToPad(angle);
+    };
+    hitZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const padIdx = pointerPad(pointer);
+      if (padIdx !== null) this.handlePress(padIdx);
+    });
+    hitZone.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      const padIdx = pointerPad(pointer);
+      if (padIdx !== null && this.canPressPads() && this.flashIndex !== padIdx) {
+        this.applyFlash();
+        this.lightPad(padIdx, true, 0.35);
+      } else if (padIdx === null && this.flashIndex === -1) {
+        this.applyFlash();
+      }
+    });
+    hitZone.on("pointerout", () => {
+      if (this.flashIndex === -1) this.applyFlash();
+    });
   }
 
-  /** Scale an RGB hex by `factor` (<1 darken, >1 lighten), clamped per channel. */
-  private static shade(color: number, factor: number): number {
-    const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
-    const r = clamp(((color >> 16) & 0xff) * factor);
-    const g = clamp(((color >> 8) & 0xff) * factor);
-    const b = clamp((color & 0xff) * factor);
-    return (r << 16) | (g << 8) | b;
-  }
-
-  /** Map 360° angle to pad index: top=0, right=1, bottom=2, left=3. */
+  /** Map 360° pointer angle to the matching authored cabinet quadrant. */
   private static angleToPad(angleDeg: number): number {
-    if (angleDeg >= 315 || angleDeg < 45)  return 1; // right
-    if (angleDeg >= 45  && angleDeg < 135) return 2; // bottom
-    if (angleDeg >= 135 && angleDeg < 225) return 3; // left
-    return 0;                                          // top
+    if (angleDeg >= 0 && angleDeg < 90) return 3;   // bottom-right, yellow
+    if (angleDeg >= 90 && angleDeg < 180) return 2; // bottom-left, green
+    if (angleDeg >= 180 && angleDeg < 270) return 0; // top-left, red
+    return 1;                                         // top-right, blue
   }
 
   /**
@@ -449,13 +636,14 @@ export class ColorClashScene extends BaseScene {
     if (!lit) {
       return;
     }
-    const startDeg = index * 90 - 45 + (gap / outerR) * (180 / Math.PI);
+    const centerDeg = PAD_CENTER_DEGREES[index] ?? PAD_CENTER_DEGREES[0];
+    const startDeg = centerDeg - 45 + (gap / outerR) * (180 / Math.PI);
     const endDeg   = startDeg + 90 - (gap / outerR) * 2 * (180 / Math.PI);
     const startRad = Phaser.Math.DegToRad(startDeg);
     const endRad   = Phaser.Math.DegToRad(endDeg);
 
     const color = PAD_LIT[index]!;
-    g.fillStyle(color, 0.28);
+    g.fillStyle(color, 0.58);
 
     // Build the pie ring shape
     g.beginPath();
@@ -464,7 +652,7 @@ export class ColorClashScene extends BaseScene {
     g.closePath();
     g.fillPath();
 
-    g.lineStyle(4, PAD_GLOW[index]!, 0.82);
+    g.lineStyle(6, PAD_GLOW[index]!, 0.98);
     g.beginPath();
     g.arc(cx, cy, outerR - 2, startRad, endRad, false);
     g.strokePath();
@@ -477,7 +665,7 @@ export class ColorClashScene extends BaseScene {
     const R = this.boardRadius(W, H);
     const innerR = R * 0.18;
     this.drawPad(this.padGraphics[index]!, cx, cy, R, innerR, 5, index, on);
-    this.padGlows[index]?.setAlpha(on ? alpha * 0.12 : 0);
+    this.padGlows[index]?.setVisible(on).setAlpha(on ? alpha * 0.12 : 0);
   }
 
   // ── Center hub ─────────────────────────────────────────────────────────────
@@ -521,10 +709,10 @@ export class ColorClashScene extends BaseScene {
     for (let index = 0; index < 4; index++) {
       const container = this.add.container(startX + index * gap, y);
       const glow = this.add.ellipse(0, 0, glowSize, glowSize, PAD_LIT[index]!, 0.16);
-      // Crisp drawn glossy chip — no baked-in colour name, no translucent stack.
-      const chip = this.add.graphics();
-      this.drawPadChip(chip, padSize / 2, PAD_LIT[index]!);
-      chip.setScale(0.9);
+      // Use the authored pad resource so the tactile controls match the cabinet
+      // artwork instead of approximating the material with vector circles.
+      const chip = this.add.image(0, 0, CLASH_ASSETS.pads[index]!)
+        .setDisplaySize(padSize, padSize);
       const hit = this.add.circle(0, 0, hitRadius, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       this.bindGameButton(hit, {
         targets: container,
@@ -536,37 +724,27 @@ export class ColorClashScene extends BaseScene {
       container.add([glow, chip, hit]);
       this.padButtons.push(container);
       this.padButtonImages.push(chip);
+      this.padButtonGlows.push(glow);
     }
-  }
-
-  /** Draw one crisp glossy colour chip (replaces the text-baked pad-*.webp art). */
-  private drawPadChip(g: Phaser.GameObjects.Graphics, radius: number, base: number): void {
-    g.clear();
-    // Outer rim ring
-    g.fillStyle(ColorClashScene.shade(base, 0.5), 1);
-    g.fillCircle(0, 0, radius);
-    // Main face
-    g.fillStyle(base, 1);
-    g.fillCircle(0, 0, radius - Math.max(2, radius * 0.1));
-    // Glossy upper dome
-    g.fillStyle(ColorClashScene.shade(base, 1.45), 0.7);
-    g.fillCircle(0, -radius * 0.28, radius * 0.55);
-    // Specular highlight
-    g.fillStyle(0xffffff, 0.5);
-    g.fillCircle(-radius * 0.22, -radius * 0.4, radius * 0.16);
-    // Crisp rim stroke
-    g.lineStyle(Math.max(1.5, radius * 0.07), ColorClashScene.shade(base, 0.72), 0.95);
-    g.strokeCircle(0, 0, radius - 1);
   }
 
   // ── HUD ────────────────────────────────────────────────────────────────────
 
   private buildHUD(W: number, H: number): void {
-    this.roundLabel = this.add.text(W / 2, H * 0.11, "", {
+    this.roundLabel = this.add.text(W * 0.24, H * 0.11, "", {
       fontFamily: FONT_FAMILY,
-      fontSize: "14px",
+      fontSize: "12px",
+      fontStyle: "bold",
       color: TEXT_MUTED,
-      letterSpacing: 2,
+      letterSpacing: 1,
+    }).setOrigin(0.5);
+
+    this.timerLabel = this.add.text(W * 0.76, H * 0.11, "", {
+      fontFamily: FONT_FAMILY,
+      fontSize: "12px",
+      fontStyle: "bold",
+      color: "#4f4235",
+      letterSpacing: 1,
     }).setOrigin(0.5);
 
     this.statusBar = this.add.text(W / 2, H * 0.97, "", {
@@ -606,21 +784,101 @@ export class ColorClashScene extends BaseScene {
     this.startBtn.add([bg, lbl]);
   }
 
-  private updateStartButton(status: string): void {
-    const isStarting = this.bool("isStarting") || this.bool("isDealing");
-    const label = isStarting
-      ? "SEALING..."
-      : status === "solved"
-        ? "PLAY AGAIN"
-        : status === "expired"
-          ? "TRY AGAIN"
-          : "OPEN SEQUENCE";
+  private primaryActionFor(ctx: PrimaryActionContext): PrimaryActionState {
+    if (ctx.dealPending && ctx.timeUp) {
+      return {
+        action: "expireGame",
+        enabled: ctx.isGuest || ctx.releaseReady,
+        label: ctx.isGuest
+          ? this.str("actionRestart", "RESTART")
+          : ctx.releaseReady
+            ? this.str("actionRelease", "RELEASE GAME")
+            : this.str("actionReleaseWait", "RECOVERY COUNTDOWN"),
+      };
+    }
+    if (ctx.dealPending) {
+      return {
+        action: "retryDeal",
+        busy: ctx.isDealing,
+        enabled: !ctx.isDealing,
+        label: ctx.isDealing
+          ? this.str("actionStarting", "SEALING...")
+          : this.str("actionRetry", "RETRY"),
+      };
+    }
+    // Solved/expired/refunded sessions are lobbies even when their last round
+    // phase remains "complete" for the result presentation.
+    if (ctx.isLobby) {
+      const busy = ctx.isStarting || ctx.isDealing;
+      return {
+        action: "startGame",
+        busy,
+        enabled: !busy,
+        label: busy ? this.str("actionStarting", "SEALING...") : this.str("actionStart", "OPEN SEQUENCE"),
+      };
+    }
+    if (ctx.settlementPending) {
+      if (ctx.releaseReady) {
+        return {
+          action: "expireGame",
+          enabled: !ctx.isRecovering,
+          label: this.str("actionRelease", "RELEASE GAME"),
+        };
+      }
+      return {
+        action: "checkSettlement",
+        busy: ctx.isRecovering,
+        enabled: !ctx.isRecovering,
+        label: ctx.isRecovering
+          ? this.str("actionStarting", "CHECKING...")
+          : this.str("actionCheckSettlement", "CHECK SETTLEMENT"),
+      };
+    }
+    if (ctx.completedSequence) {
+      return {
+        action: "submitSolution",
+        busy: ctx.isSubmitting,
+        enabled: !ctx.isSubmitting,
+        label: ctx.isSubmitting
+          ? this.str("actionSubmitting", "VERIFYING...")
+          : this.str("actionSubmit", ctx.isGuest ? "SAVE SCORE" : "CLAIM REWARD"),
+      };
+    }
+    if (ctx.wrong && ctx.isGuest) {
+      return {
+        action: "startGame",
+        enabled: true,
+        label: this.str("actionRestart", "RESTART"),
+      };
+    }
+    if (ctx.wrong || ctx.timeUp) {
+      return {
+        action: "expireGame",
+        enabled: ctx.isGuest || ctx.releaseReady,
+        label: ctx.isGuest
+          ? this.str("actionRestart", "RESTART")
+          : ctx.releaseReady
+            ? this.str("actionRelease", "RELEASE GAME")
+            : this.str("actionReleaseWait", "RECOVERY COUNTDOWN"),
+      };
+    }
+    return null;
+  }
+
+  private updateStartButton(status: PrimaryActionState): void {
+    if (!status) return;
+    const { action, enabled, label, busy } = status;
+    this.primaryAction = action;
+    this.primaryActionEnabled = enabled && !busy && !this.actionLocked;
     this.startBtnLabel.setText(label);
     this.startBtnBg.clear();
-    this.startBtnBg.fillStyle(isStarting ? 0xbba989 : 0x12a998);
+    const fill = busy ? 0xbba989 : action === "expireGame" ? 0xd95e4f : action === "submitSolution" ? 0x16a34a : 0x12a998;
+    const stroke = busy ? 0xd8b46d : action === "expireGame" ? 0xfca5a5 : action === "submitSolution" ? 0x86efac : 0x4adecf;
+    this.startBtnBg.fillStyle(fill);
     this.startBtnBg.fillRoundedRect(-96, -24, 192, 48, 14);
-    this.startBtnBg.lineStyle(2, isStarting ? 0xd8b46d : 0x4adecf, 0.9);
+    this.startBtnBg.lineStyle(2, stroke, 0.9);
     this.startBtnBg.strokeRoundedRect(-96, -24, 192, 48, 14);
+    this.startBtn.setAlpha(this.primaryActionEnabled || busy ? 1 : 0.68);
   }
 
   // ── Progress row ───────────────────────────────────────────────────────────
@@ -661,87 +919,338 @@ export class ColorClashScene extends BaseScene {
     if (preset) this.sfx.play(preset);
   }
 
+  /** Reward each completed Simon round without interrupting the next cue. */
+  private playRoundAdvanceFeedback(): void {
+    this.sfx.play("combo");
+    if (this.reducedMotion) return;
+    this.cameras.main.flash(110, 255, 244, 190, false, undefined, 0.12);
+    this.tween({
+      targets: this.padButtons,
+      scale: 1.055,
+      duration: 85,
+      yoyo: true,
+      stagger: 26,
+      ease: "Sine.easeOut",
+    });
+  }
+
+  /** Distinct physical feedback for a miss, a cleared pattern, and a saved win. */
+  private playTerminalFeedback(kind: "wrong" | "clear" | "win"): void {
+    if (this.reducedMotion) return;
+    if (kind === "wrong") {
+      this.cameras.main.shake(170, 0.006);
+      this.cameras.main.flash(130, 255, 96, 82, false, undefined, 0.18);
+      return;
+    }
+    this.cameras.main.flash(
+      kind === "win" ? 260 : 150,
+      kind === "win" ? 255 : 150,
+      244,
+      kind === "win" ? 181 : 206,
+      false,
+      undefined,
+      kind === "win" ? 0.22 : 0.14,
+    );
+    this.tween({
+      targets: [this.phaseLabel, ...this.padButtons],
+      scale: kind === "win" ? 1.1 : 1.06,
+      duration: kind === "win" ? 150 : 100,
+      yoyo: true,
+      stagger: 30,
+      ease: "Back.easeOut",
+    });
+  }
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   private handleStart(): void {
-    this.sfx.play("start");
-    this.dispatch("startGame", this.selectedDifficulty);
-    this.flashTimer?.destroy();
-    this.flashIndex = -1;
-    this.applyFlash();
+    if (!this.primaryActionEnabled) return;
+    this.sfx.unlock();
+    this.actionLocked = true;
+    this.primaryActionEnabled = false;
+    this.scheduleGameplay(1_000, () => {
+      this.actionLocked = false;
+      this.onStateUpdate(this.state);
+    });
+    if (this.primaryAction === "startGame") {
+      this.sfx.play("start");
+      this.dispatch("startGame", this.selectedDifficulty);
+      this.flashTimer?.destroy();
+      this.flashIndex = -1;
+      this.applyFlash();
+      return;
+    }
+
+    const cue: SceneAudioPreset =
+      this.primaryAction === "submitSolution"
+        ? "win"
+        : this.primaryAction === "expireGame"
+          ? "lose"
+          : "select";
+    this.sfx.play(cue);
+    this.dispatch(this.primaryAction);
   }
 
   private handlePress(colorIdx: number): void {
-    this.sfx.unlock();
     if (!this.canPressPads()) return;
+    const unlockMs = cueTimingOf(this.currentDifficulty).pressLockMs;
+    this.pressLocked = true;
+    this.pressUnlockAt = Date.now() + unlockMs;
+    this.sfx.unlock();
     this.playPadTone(colorIdx);
     this.flashPad(colorIdx, 180);
     this.dispatch("recordPress", colorIdx);
+    this.scheduleGameplay(unlockMs, () => {
+      if (
+        this.currentStatus === "dealt"
+        && this.currentRoundPhase === "input"
+        && !this.bool("isPressing")
+      ) {
+        this.pressUnlockAt = 0;
+        this.pressLocked = false;
+        this.onStateUpdate(this.state);
+      }
+    });
   }
 
   private canPressPads(): boolean {
     return (
       this.currentStatus === "dealt" &&
+      this.currentRoundPhase === "input" &&
+      !this.playbackActive &&
+      !this.pressLocked &&
+      !this.bool("isPressing") &&
+      Date.now() >= this.pressUnlockAt &&
+      !this.expirationDispatched &&
+      !hasColorDeadlinePassed(this.deadline) &&
       this.currentPlayer.length < this.currentSequence.length &&
       this.currentLastStatus !== "wrong"
     );
   }
 
+  private handleKeyboardInput(event: KeyboardEvent): void {
+    const target = event.target;
+    if (
+      target instanceof HTMLElement
+      && ["BUTTON", "INPUT", "SELECT", "TEXTAREA", "A"].includes(target.tagName)
+    ) return;
+    const key = String(event.key || "").toLowerCase();
+    const code = String(event.code || "");
+    const index = ({
+      Digit1: 0,
+      Digit2: 1,
+      Digit3: 2,
+      Digit4: 3,
+      Numpad1: 0,
+      Numpad2: 1,
+      Numpad3: 2,
+      Numpad4: 3,
+    } as Record<string, number>)[code] ?? ({ r: 0, b: 1, g: 2, y: 3 } as Record<string, number>)[key];
+    if (index === undefined || !this.canPressPads()) return;
+    event.preventDefault();
+    this.handlePress(index);
+  }
+
   // ── Flash sequence playback ────────────────────────────────────────────────
 
-  private startFlashSequence(sequence: string): void {
-    this.flashTimer?.destroy();
-    let step = 0;
-    const totalSteps = sequence.length * 2;
-    const playStep = () => {
-      if (step >= totalSteps) {
-        this.flashIndex = -1;
-        this.applyFlash();
+  private startFlashSequence(sequence: string, playbackKey: string): void {
+    const safeSequence = normalizeColorSequence(sequence);
+    this.cancelPlayback(false);
+    if (!safeSequence) return;
+
+    const timing = cueTimingOf(this.currentDifficulty);
+    this.playbackActive = true;
+    this.pressLocked = true;
+    let cueIndex = 0;
+
+    const finish = () => {
+      this.flashTimer = null;
+      this.flashIndex = -1;
+      this.applyFlash();
+      this.playbackActive = false;
+      this.lastPlaybackKey = playbackKey;
+      this.phaseLabel.setText(this.str("phaseRepeat", "YOUR TURN")).setColor("#60a5fa");
+      this.statusBar.setText(this.str("statusRepeat", "Repeat the sequence!"));
+      this.dispatch("sequencePlaybackComplete");
+    };
+
+    const showNextCue = () => {
+      if (cueIndex >= safeSequence.length) {
+        finish();
         return;
       }
-      if (step % 2 === 0) {
-        this.flashIndex = parseInt(sequence[Math.floor(step / 2)]!, 10);
-        this.playPadTone(this.flashIndex);
-      } else {
-        this.flashIndex = -1;
-      }
+      this.flashIndex = Number(safeSequence[cueIndex]);
+      this.playPadTone(this.flashIndex);
+      const colorKey = COLOR_LABEL_KEYS[this.flashIndex] ?? COLOR_LABEL_KEYS[0];
+      this.phaseLabel
+        .setText(this.str(colorKey, "WATCH"))
+        .setColor("#fff8e8");
       this.applyFlash();
-      step++;
-      const delay = step % 2 === 0 ? 180 : 320;
-      this.flashTimer = this.time.delayedCall(delay, playStep);
+      this.flashTimer = this.scheduleGameplay(timing.litMs, () => {
+        this.flashIndex = -1;
+        this.phaseLabel.setText(this.str("phaseWatch", "WATCH")).setColor("#fcd34d");
+        this.applyFlash();
+        cueIndex += 1;
+        this.flashTimer = this.scheduleGameplay(timing.gapMs, showNextCue);
+      });
     };
-    this.flashTimer = this.time.delayedCall(300, playStep);
+
+    this.flashTimer = this.scheduleGameplay(timing.leadInMs, showNextCue);
   }
 
   private flashPad(index: number, duration: number): void {
     this.lightPad(index, true);
-    const padG = this.padGraphics[index];
     const padButton = this.padButtonImages[index];
-    if (padG) {
-      this.tweens.add({
-        targets: padG,
-        scaleX: 1.04,
-        scaleY: 1.04,
-        duration: duration / 2,
-        yoyo: true,
-      });
-    }
-    if (padButton) {
-      this.tweens.add({
+    if (padButton && !this.reducedMotion) {
+      const baseScaleX = padButton.scaleX;
+      const baseScaleY = padButton.scaleY;
+      this.tween({
         targets: padButton,
-        scale: 1.03,
+        scaleX: baseScaleX * 1.08,
+        scaleY: baseScaleY * 1.08,
         duration: duration / 2,
         yoyo: true,
       });
     }
-    this.time.delayedCall(duration, () => {
+    this.scheduleGameplay(duration, () => {
       if (this.flashIndex !== index) this.lightPad(index, false);
     });
   }
 
   private applyFlash(): void {
     for (let i = 0; i < 4; i++) {
-      this.lightPad(i, this.flashIndex === i);
+      const active = this.flashIndex === i;
+      this.lightPad(i, active);
+      this.padButtonImages[i]?.setAlpha(active ? 1 : this.flashIndex >= 0 ? 0.46 : 0.82);
+      this.padButtonGlows[i]?.setAlpha(active ? 0.58 : 0.16);
     }
+  }
+
+  private statusMessage(status: string, phase: ColorUiPhase): string {
+    if (status === "dealt") {
+      if (phase === "watching") return this.str("statusWatch", "Watch the sequence...");
+      if (phase === "input") return this.str("statusRepeat", "Repeat the sequence!");
+      if (phase === "wrong") {
+        if (this.currentIsGuest) return this.str("statusWrong", "Wrong — try again");
+        return canReleaseExpiredGame(this.deadline, this.settlementGraceMs)
+          ? this.str("statusReleaseReady", "Recovery complete — release this run")
+          : this.str("statusReleaseWait", "Recovery window in progress");
+      }
+      if (phase === "complete") return this.str("statusComplete", "Sequence complete");
+    }
+    if (status === "expired") return this.str("actionRestart", "Restart run");
+    if (status === "unknown") {
+      return canReleaseExpiredGame(this.deadline, this.settlementGraceMs)
+        ? this.str("statusReleaseReady", "Recovery complete — release this run")
+        : this.str("statusReleaseWait", "Settlement pending — check again shortly");
+    }
+    return "";
+  }
+
+  private updateTimer(): void {
+    if (!this.timerLabel) return;
+    if (this.currentStatus === "unknown" && this.deadline > 0) {
+      const recoveryRemaining = Math.max(
+        0,
+        releaseAtOf(this.deadline, this.settlementGraceMs) - Date.now(),
+      );
+      this.timerLabel
+        .setText(formatClock(recoveryRemaining))
+        .setColor(recoveryRemaining <= 0 ? "#147d69" : "#c24132");
+      return;
+    }
+    if (this.currentStatus !== "dealt" || this.deadline <= 0 || this.dealtAt <= 0) {
+      this.timerLabel.setText("");
+      return;
+    }
+    const now = Date.now();
+    const remaining = Math.max(0, this.deadline - now);
+    const terminal = this.currentRoundPhase === "wrong" || remaining <= 0;
+    if (terminal && !this.currentIsGuest) {
+      const releaseRemaining = Math.max(
+        0,
+        releaseAtOf(this.deadline, this.settlementGraceMs) - now,
+      );
+      const releaseReady = canReleaseExpiredGame(
+        this.deadline,
+        this.settlementGraceMs,
+        now,
+      );
+      this.timerLabel
+        .setText(formatClock(releaseRemaining))
+        .setColor(releaseReady ? "#147d69" : "#c24132");
+      this.pressLocked = true;
+      this.cancelPlayback();
+      this.phaseLabel.setText(this.str("phaseEnd", "END")).setColor("#f87171");
+      this.statusBar.setText(
+        releaseReady
+          ? this.str("statusReleaseReady", "Recovery complete — release this run")
+          : this.str("statusReleaseWait", "Recovery window in progress"),
+      );
+      this.startBtn.setVisible(true);
+      this.progressRow.setVisible(false);
+      this.updateStartButton({
+        action: "expireGame",
+        enabled: releaseReady,
+        label: releaseReady
+          ? this.str("actionRelease", "RELEASE GAME")
+          : this.str("actionReleaseWait", "RECOVERY COUNTDOWN"),
+      });
+      return;
+    }
+    const total = Math.max(1, this.deadline - this.dealtAt);
+    const pct = remaining / total;
+    this.timerLabel
+      .setText(formatClock(remaining))
+      .setColor(pct <= 0.2 ? "#c24132" : "#4f4235");
+    if (remaining <= 0 && this.currentIsGuest) this.expireRoundOnce();
+  }
+
+  private expireRoundOnce(): void {
+    if (this.expirationDispatched || this.currentStatus !== "dealt") return;
+    this.expirationDispatched = true;
+    this.pressLocked = true;
+    this.cancelPlayback();
+    this.dispatch("expireGame");
+  }
+
+  private scheduleGameplay(delayMs: number, callback: () => void): Phaser.Time.TimerEvent {
+    let event!: Phaser.Time.TimerEvent;
+    event = this.time.delayedCall(delayMs, () => {
+      this.gameplayTimers.delete(event);
+      callback();
+    });
+    this.gameplayTimers.add(event);
+    return event;
+  }
+
+  private clearGameplayTimers(): void {
+    for (const timer of this.gameplayTimers) timer.remove(false);
+    this.gameplayTimers.clear();
+    this.flashTimer = null;
+  }
+
+  private cancelPlayback(clearKey = true): void {
+    if (this.flashTimer) {
+      this.flashTimer.remove(false);
+      this.gameplayTimers.delete(this.flashTimer);
+      this.flashTimer = null;
+    }
+    this.playbackActive = false;
+    this.flashIndex = -1;
+    if (clearKey) this.lastPlaybackKey = "";
+    if (this.padGraphics.length > 0) this.applyFlash();
+  }
+
+  private cleanupGameplay(): void {
+    this.input.keyboard?.off("keydown", this.handleKeyboardInput, this);
+    this.clearGameplayTimers();
+    this.cancelPlayback();
+    this.tweens.killAll();
+  }
+
+  destroy(fromScene = false): void {
+    this.cleanupGameplay();
+    super.destroy(fromScene);
   }
 }

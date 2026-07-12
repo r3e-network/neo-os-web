@@ -4,23 +4,23 @@
   "name": "OneGate Vault",
   "name_zh": "OneGate 金库",
   "name_ja": "OneGate Vault",
-  "version": "1.0.0",
-  "description": "Random-GAS rewards with two roles. Recipients claim a 1-50 GAS random reward by scanning a OneGate QR with an embedded single-use key (paid by the campaign's reward server). Campaign owners create, fund, top up, and recover random-GAS reward pools and share the QR claim links.",
-  "description_zh": "随机 GAS 奖励，含两种角色。领取人通过 OneGate 扫码（带一次性 key）领取 1-50 GAS 随机奖励（由活动的奖励服务器发放）。活动发起者创建、注资、补充并取回随机 GAS 奖励池，并分享扫码领取链接。",
-  "description_ja": "2つの役割を持つランダムGAS報酬。受取人は一回限りのkeyが埋め込まれたOneGate QRをスキャンして1〜50 GASのランダム報酬を受け取ります（キャンペーンの報酬サーバーが支払い）。キャンペーン管理者はランダムGAS報酬プールを作成・資金提供・追加・回収し、QR受取リンクを共有します。",
+  "version": "1.2.0",
+  "description": "A free local lucky-draw game with three tiers, animated prize reveals, and a local leaderboard. No wallet, GAS, contract call, or oracle is used while the RangeGasPool deployment and GameFi settlement path remain under validation.",
+  "description_zh": "免费的本地幸运抽奖游戏，包含三个档位、动画揭奖和本地排行榜。RangeGasPool 部署与 GameFi 结算路径完成验证前，不使用钱包、GAS、合约调用或预言机。",
+  "description_ja": "3つの段、アニメーション付きの景品公開、ローカルランキングを備えた無料の抽選ゲームです。RangeGasPoolのデプロイとGameFi決済経路の検証が完了するまで、ウォレット、GAS、コントラクト、オラクルは使用しません。",
   "languages": [
     "en",
     "zh",
     "ja"
   ],
-  "category": "social",
-  "category_name": "Social",
-  "category_name_zh": "社交",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
   "tags": [
-    "gas",
-    "reward",
-    "qr",
-    "onegate",
+    "lucky-draw",
+    "arcade",
+    "guest",
+    "local",
     "lucky-pool",
     "onegate-vault"
   ],
@@ -29,10 +29,7 @@
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {
-    "neo-n3-mainnet": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
-    "neo-n3-testnet": "0xfa1b7240fead2a63999c02defa3aec5eb274a919"
-  },
+  "contracts": {},
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
@@ -41,7 +38,7 @@
   "urls": {
     "entry": "/miniapps/gas-lucky-pool/index.html",
     "icon": "/miniapps/gas-lucky-pool/logo.webp",
-    "banner": "/miniapps/gas-lucky-pool/banner.svg"
+    "banner": "/miniapps/gas-lucky-pool/banner.webp"
   },
   "onegate": {
     "id": 23,
@@ -62,64 +59,42 @@
       }
     ]
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": [],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://gas-lucky-pool"
   },
   "operation_panel": {
     "title": "OneGate Vault",
-    "subtitle": "Claim the reward loaded from a OneGate QR scan.",
-    "operations": [
-      {
-        "name": "Claim Reward",
-        "method": "claimOneGateVault",
-        "description": "The OneGate QR supplies the one-time reward key automatically. Claim sends GAS to the connected OneGate wallet.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "claimKey",
-            "type": "string",
-            "label": "Claim key",
-            "placeholder": "ogv_campaign_user_key",
-            "required": true,
-            "sensitive": true
-          },
-          {
-            "name": "poolId",
-            "type": "string",
-            "label": "Pool ID",
-            "placeholder": "pool-001",
-            "required": false
-          }
-        ]
-      }
-    ]
+    "subtitle": "Play the local lucky draw directly. Verified GAS operations are hidden until the GameFi settlement path passes testnet validation.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "technologies": {
     "aa": {
       "enabled": false,
-      "description": "Claims use a OneGate wallet address and a server-backed GAS payout rather than AA execution."
+      "description": "Local guest play does not connect a wallet or request account-abstraction execution."
     },
     "tee": {
       "enabled": false,
-      "description": "The 1-50 GAS reward bounds and one-use keys are enforced by the backend claim engine."
+      "description": "Local guest play does not make TEE requests."
+    },
+    "vrf": {
+      "enabled": false,
+      "description": "The current RangeGasPool implementation uses Neo Runtime.GetRandom rather than a verified VRF callback, and the published hashes do not expose the RangeGasPool ABI. GameFi remains disabled until both are resolved and tested."
     },
     "neodid": {
       "enabled": false,
-      "description": "NeoDID gating is not required for the initial reward-pool release."
+      "description": "Local guest play does not use identity gating."
     }
   },
   "createdAt": "2026-05-06T00:00:00Z",
-  "updatedAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": false
 }

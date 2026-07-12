@@ -2,25 +2,21 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-last-survivor",
   "name": "LastSurvivor",
-  "description": "Prize pool grows with every contribution; each key purchase extends the live countdown. Last contributor wins when the timer reaches zero.",
+  "description": "A bright Phaser last-seat duel: local rivals steal the lead on an unpredictable rhythm, smaller packs score higher, and only the leader at zero survives. The paid contract lane stays hidden until its wallet and settlement flow is revalidated.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
     "last-survivor",
-    "countdown",
-    "tontine",
-    "jackpot",
-    "social-experiment"
+    "arcade",
+    "local-rivals",
+    "score-chase",
+    "phaser"
   ],
-  "version": "2.0.0",
+  "version": "2.2.0",
   "status": "active",
   "developer": {
     "name": "Yiwu",
     "url": "https://neomini.app"
-  },
-  "contract": {
-    "template_id": "gaming-last-survivor",
-    "contract_hash": "0x8e1e432e966357de8d7642564b744d3274a81bd0"
   },
   "entry_url": "mf://manifest?app=miniapp-last-survivor",
   "media": {
@@ -28,11 +24,11 @@
     "banner": "/miniapp-assets/last-survivor/banner.webp"
   },
   "permissions": {
-    "payments": true,
-    "randomness": true
+    "payments": false,
+    "randomness": false
   },
   "frontend_spec": {
-    "layout": "default",
+    "layout": "immersive",
     "hero": {
       "eyebrow": "LastSurvivor"
     },
@@ -45,50 +41,29 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "Last Survivor is a countdown jackpot. Every GAS transfer buys a key, extends the timer, and crowns the sender as the current leader. When the timer hits zero, the contract settles the round by its on-chain fee split."
+            "content": "Play the complete guest duel immediately. Choose a pack, time each move against local rivals, protect the lead, and survive the final countdown. Progress and match history recover after refresh."
           },
           {
             "type": "key_value",
-            "title": "Quick Facts",
+            "title": "Current release",
             "items": [
-              {
-                "key": "Asset",
-                "value": "GAS"
-              },
               {
                 "key": "Mode",
-                "value": "Countdown jackpot"
+                "value": "Guest arcade duel"
               },
               {
-                "key": "Timer",
-                "value": "Contract-defined extension per key"
+                "key": "Controls",
+                "value": "Pack selection + timed moves"
               },
               {
-                "key": "Platform Fee",
-                "value": "Contract-defined fee split"
+                "key": "Progress",
+                "value": "Local save and refresh recovery"
+              },
+              {
+                "key": "GameFi",
+                "value": "Hidden until the paid flow is revalidated"
               }
             ]
-          },
-          {
-            "type": "bullet_list",
-            "title": "How to play",
-            "items": [
-              "Connect your Neo N3 wallet and fund it with GAS.",
-              "Transfer GAS to the contract — the amount covers one key at the current price.",
-              "Each bid extends the timer. If you're the last bidder when it hits zero, the contract settles the pot by its on-chain fee split."
-            ]
-          }
-        ]
-      },
-      {
-        "id": "history",
-        "label": "History",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "notice",
-            "tone": "info",
-            "content": "Past rounds and their winners appear in the Live Round + Recent Winners panel on the play area above. Verify any round on NeoTube by opening the contract hash."
           }
         ]
       },
@@ -99,137 +74,38 @@
       }
     ],
     "operation_panel": {
-      "title": "LastSurvivor",
-      "subtitle": "Buy keys while live; expired rounds are rolled forward automatically by the lifecycle keeper.",
-      "cta_label": "Open LastSurvivor",
+      "title": "LastSurvivor Arena",
+      "subtitle": "Start the real guest game in the play area. No wallet or funding form is required.",
+      "cta_label": "Enter Arena",
       "operations": []
     }
   },
-  "operations": [
-    {
-      "name": "Fund Keys",
-      "method": "fundGameCredit",
-      "description": "Send GAS credit before buying keys. Use a small buffer above the displayed key price so price drift does not block the purchase.",
-      "button_style": "primary",
-      "priority": "primary",
-      "params": [
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "GAS credit",
-          "required": true,
-          "placeholder": "0.11",
-          "scale": 8,
-          "presets": [
-            {
-              "label": "0.11",
-              "value": "0.11",
-              "helper": "GAS"
-            },
-            {
-              "label": "0.25",
-              "value": "0.25",
-              "helper": "GAS"
-            },
-            {
-              "label": "1.00",
-              "value": "1.00",
-              "helper": "GAS"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Buy Keys",
-      "method": "buyCountdownKeys",
-      "description": "Prepay GAS, buy keys for the active round, and extend the countdown.",
-      "button_style": "primary",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-last-survivor",
-          "hidden": true
-        },
-        {
-          "name": "player",
-          "type": "hash160",
-          "label": "Player",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
-        },
-        {
-          "name": "keyCount",
-          "type": "integer",
-          "label": "Keys",
-          "required": true,
-          "default_value": "1",
-          "placeholder": "1"
-        }
-      ]
-    }
-  ],
+  "operations": [],
   "integration": {
     "news_integration": true,
     "reviews_enabled": true,
     "forum_enabled": false,
-    "activity_feed": true,
-    "stats_display": [
-      "total_transactions",
-      "daily_active_users",
-      "total_gas_used"
-    ]
+    "activity_feed": false,
+    "stats_display": []
   },
   "docs_url": "https://docs.r3e.network/lastsurvivor",
-  "detail_template": {
-    "operation_panel": {
-      "title": "LastSurvivor",
-      "subtitle": "Buy keys while live; expired rounds are rolled forward automatically by the lifecycle keeper."
-    }
-  },
   "manifest": {
-    "runtime": {
-      "mode": "platform",
-      "modules": [
-        {
-          "binding": "countdown-auction",
-          "platform": "PlatformGame",
-          "appId": "miniapp-last-survivor",
-          "moduleType": 1,
-          "registration": {
-            "method": "registerGame",
-            "type": 1
-          },
-          "operations": {
-            "start_round": "startCountdownRound",
-            "buy_keys": "buyCountdownKeys",
-            "rollover": "checkAndEndCountdownRound",
-            "status": "getCountdownStatus"
-          },
-          "networks": {
-            "neo-n3-mainnet": {
-              "contract_hash": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
-              "registered": true,
-              "domain": "lastsurvivor.miniapp.neo"
-            },
-            "neo-n3-testnet": {
-              "contract_hash": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
-              "registered": true
-            }
-          }
-        }
-      ]
-    },
     "contracts": {
       "neo-n3-mainnet": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
-      "neo-n3-testnet": "0x8e1e432e966357de8d7642564b744d3274a81bd0"
+      "neo-n3-testnet": "0xff122a6cf7f22a88d059d61a9d9c07e84a2b56b9"
     },
     "contract_domains": {
       "neo-n3-mainnet": "lastsurvivor.miniapp.neo"
+    },
+    "platform": {
+      "analytics": true,
+      "comments": true,
+      "ratings": true,
+      "transactions": false
+    },
+    "permissions": [],
+    "operation_panel": {
+      "operations": []
     }
   }
 }

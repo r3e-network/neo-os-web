@@ -77,4 +77,3 @@ class SHA1 extends HashMD {
     }
 }
 export const sha1 = /* @__PURE__ */ wrapConstructor(() => new SHA1());
-//# sourceMappingURL=sha1.js.map

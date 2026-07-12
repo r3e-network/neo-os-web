@@ -1,52 +1,27 @@
-/**
- * AA Market Hub Manifest
- *
- * Declarative configuration for the platform-rendered sections.
- * The miniapp provides only PlayArea.vue (listings + management UI)
- * and useAAMarketHub.ts (domain logic). Everything else is driven here.
- */
-
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
-  // -- Identity --
   name: "AA Market Hub",
-  description: "Create, manage, and settle AA address listings",
+  description: "Discover, list, buy, and manage canonical AA address shells",
   icon: "store",
-  category: "console",
-  shell: "console",
-
-  // -- Tabs --
-  tabs: [
-    { key: "market", labelKey: "totalListings", icon: "store", default: true },
-  ],
-
-  // -- Stats --
-  stats: [
-    { labelKey: "totalListings", valueKey: "totalListingsDisplay", format: "number", icon: "box" },
-    { labelKey: "activeListings", valueKey: "activeListingsDisplay", format: "number", icon: "fuel" },
-    { labelKey: "marketHash", valueKey: "marketHashDisplay", format: "text", icon: "hash" },
-    { labelKey: "walletLabel", valueKey: "walletDisplay", format: "text", icon: "wallet" },
-  ],
-
-  // -- Sidebar --
-  sidebar: {
-    titleKey: "appName",
-    items: [
-      { labelKey: "totalListings", valueKey: "totalListingsDisplay", format: "number" },
-      { labelKey: "marketHash", valueKey: "marketHashDisplay", format: "text" },
-      { labelKey: "walletLabel", valueKey: "walletDisplay", format: "text" },
-      { labelKey: "selectedListingLabel", valueKey: "selectedListingDisplay", format: "text" },
-    ],
+  category: "defi",
+  shell: "launcher",
+  theme: {
+    family: "finance",
+    accentColor: "#0f8f68",
+    density: "comfortable",
   },
 
-  // -- Features --
+  // The designed marketplace owns discovery, creation, purchase, seller
+  // controls, and transaction recovery. Generic host operation forms would
+  // duplicate these flows and turn the product back into a parameter sheet.
+  operations: [],
+
   features: {
     walletRequired: false,
     chainWarning: true,
   },
 
-  // -- Docs --
   docs: [
     { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
@@ -54,9 +29,6 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
 
-  // -- Permissions --
-  permissions: {
-    aa: true,
-    payments: true,
-  },
+  contract: { mode: "custom" },
+  permissions: { aa: true, payments: true, storage: true },
 };

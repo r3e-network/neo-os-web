@@ -1,130 +1,42 @@
-/**
- * useTimeCapsule — Domain logic for the Time Capsule miniapp.
- *
- * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppTimeCapsule)
- * via the MiniApp framework SDK (ctx.framework). The earlier path routed
- * bury/reveal/fish through the
- * OS escrow/payment/storage/badge kernel proxies, which never actually held the
- * capsule's GAS or moved the fishing fee. This composable now drives the
- * dedicated contract, a REFUNDABLE TIME-LOCK VAULT (no oracle, no pending
- * settle state):
- *
- *   - bury() LOCKS the owner's GAS together with a content hash until an unlock
- *     time. The 0.2 GAS is a REFUNDABLE DEPOSIT, held in escrow by the contract.
- *   - reveal() after the unlock time RETURNS that GAS to the owner atomically
- *     and marks the capsule opened.
- *   - fish() lets another user pay a discovery fee on a PUBLIC, unrevealed
- *     capsule; the fee is CREDITED to the capsule owner's fish-revenue ledger
- *     (NOT forwarded in the tip tx) and the owner collects it via
- *     withdrawFishRevenue().
- *
- * Contract interaction model (verified against MiniAppTimeCapsule.cs / ABI):
- *
- *   READS (app.chain.readRaw / app.chain.readArray, default app contract script hash):
- *     lastCapsuleId()                          -> Integer (capsules are ids 1..last)
- *     creditOf(owner)                          -> Integer (prepaid deposit credit)
- *     getCapsule(id)                           -> Map{id,owner,contentHash(ByteString),
- *                                                  unlockTime(ms),isPublic,category,
- *                                                  revealed,amount,fished}
- *     ownerCapsuleCount(owner)                 -> Integer
- *     getOwnerCapsules(owner, off, limit)      -> Integer[] (capsule ids)
- *
- *   MUTATIONS (app.funds.prepayAndCall / app.chain.invoke):
- *     1+2. DEPOSIT-THEN-BURY — app.funds.prepayAndCall transfers the GAS
- *        deposit to the contract with the memo "miniapp-timecapsule:bury" (so
- *        OnNEP17Payment credits the sender's prepaid balance), waits for the
- *        credit to confirm in a block, then fires
- *        bury(owner, contentHash, durationSeconds, isPublic, category, amount)
- *        -> capsuleId, which consumes that credit as the locked amount. If
- *        bury fails AFTER the confirmed deposit the framework surfaces the
- *        identity-stable FrameworkPrepaidActionError; the credit simply
- *        remains on the contract as reusable prepaid credit for the next
- *        bury — it is also reclaimable to the wallet via withdraw(account)
- *        ("CreditWithdrawn" event), so no funds are lost. The new capsule id
- *        is read from the "Buried" event (state[0]).
- *     withdraw(owner) -> amount. Pays the owner's whole unused prepaid deposit
- *        credit (creditOf(owner)) back to the wallet — the money-out path for a
- *        deposit that landed but whose bury never completed.
- *     reveal(owner, capsuleId) -> amount. After the unlock time, returns the
- *        locked GAS to the owner atomically and marks it revealed. Guarded so it
- *        cannot double-withdraw.
- *     fish — a one-shot GAS transfer to the contract with the memo
- *        "miniapp-timecapsule:fish:<id>"; the sent amount is the fee, credited
- *        to the owner's fish-revenue ledger (collected later via
- *        withdrawFishRevenue), NOT forwarded in this tx:
- *          transfer(fisher, CONTRACT, feeBaseUnits, "miniapp-timecapsule:fish:<id>")
- *          { scriptHash: GAS_HASH }
- *
- * AMOUNT CONVENTION: the contract takes/returns BASE UNITS. GAS = human × 1e8.
- * getCapsule.unlockTime is in MILLISECONDS (Runtime.Time units), compared
- * directly against Date.now(). durationSeconds = days × 86400. contentHash is
- * the sha256Hex(content) — sent as a ByteArray (base64 of the 32 raw bytes); on
- * read it comes back as a ByteString → "0x<hex>" → decoded to the bare hex.
- *
- * ON-DEVICE vs ON-CHAIN: the contract stores only the content HASH + the lock.
- * The full message AND the human-readable title stay on this device in a local
- * store (app.storage.local under the legacy "time-capsule-*" keys — see
- * main.tsx's storagePrefix). createCapsule() persists the title/content/category
- * locally (keyed by capsuleId, and content also by contentHash);
- * buildCapsuleFromStored() rebuilds the display title/content from that store
- * while the authoritative lock/flags come from getCapsule(). A capsule
- * discovered from another user via fishing has no local title → it falls back
- * to a placeholder.
- */
-
-import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createObservable, type Observable } from "@shared/react/context";
 import { FrameworkPrepaidActionError, type MiniAppFramework } from "@shared/react";
 import { GAS_DECIMALS_MULTIPLIER } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
 import { sha256Hex } from "@shared/utils/hash";
 import { hexToBytes } from "@shared/utils/format";
-import { ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { GAS_HASH } from "@shared/constants";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-
-// ============================================================================
-// Constants
-// ============================================================================
+import {
+  TIME_CAPSULE_EVENT_WAIT_MS,
+  isPendingTimeCapsuleOperation,
+  normalizeTimeCapsuleHash,
+  readTimeCapsulePaymentOutcome,
+  readTimeCapsuleTransactionOutcome,
+  requireCanonicalTimeCapsuleContext,
+  timeCapsuleAccountMatches,
+  type PendingTimeCapsuleOperation,
+  type TimeCapsuleChainContext,
+  type TimeCapsulePendingKind,
+} from "../time-capsule-safety";
 
 const MIN_LOCK_DAYS = 1;
 const MAX_LOCK_DAYS = 3650;
-
-/**
- * Local store for full message content, keyed by contentHash. Persisted via
- * app.storage.local; main.tsx sets `storagePrefix: "time-capsule-"` so this
- * resolves to the legacy pre-framework localStorage key "time-capsule-content"
- * byte-for-byte — existing users keep their sealed messages.
- */
 const CONTENT_STORE_KEY = "content";
-/**
- * Local store for per-capsule display metadata (title/category), keyed by id
- * ("time-capsule-meta" on-device — same legacy-key rule as the content store).
- */
 const META_STORE_KEY = "meta";
-
-/** Memo the contract requires on the bury deposit transfer. */
+const PENDING_STORE_KEY = "pendingOperation";
+const PENDING_DURABLE_STORE_KEY = `state/${PENDING_STORE_KEY}`;
+const RECOVERY_STORAGE_PROBE_KEY = "recovery-storage-probe-v1";
 const BURY_MEMO = "miniapp-timecapsule:bury";
-/** Memo prefix for the one-shot fish discovery-fee transfer. */
 const FISH_MEMO_PREFIX = "miniapp-timecapsule:fish:";
-
-/**
- * GAS amounts (decimal strings) for the vault lifecycle.
- * CAPSULE_CREATE_AMOUNT is a REFUNDABLE DEPOSIT returned on reveal — NOT a fee.
- * FISH_FEE_AMOUNT is the discovery fee forwarded to the capsule's owner as a tip.
- */
 const CAPSULE_CREATE_AMOUNT = "0.2";
 const FISH_FEE_AMOUNT = "0.05";
-
-/** Hard cap on how many capsules to scan per public-candidate refresh. */
 const MAX_SCAN = 200;
-/** How many capsule ids to page in per owner refresh. */
 const OWNER_PAGE_LIMIT = 100;
+const MAX_OWNER_CAPSULES = 5_000;
+const CAPSULE_READ_BATCH = 20;
 
-// ============================================================================
-// Types
-// ============================================================================
+export type CapsuleDataSource = "none" | "loading" | "chain" | "failed";
 
 export interface Capsule {
   id: string;
@@ -136,20 +48,9 @@ export interface Capsule {
   revealed: boolean;
   isPublic: boolean;
   content: string;
-  /**
-   * Refundable deposit (decimal GAS string) locked in the vault, returned to
-   * the owner on reveal. Kept as `amount` for the consuming UI shape.
-   */
   amount: string;
-  /**
-   * True once this public capsule has been fished (discovery fee paid + tipped
-   * to the owner). Fished capsules are excluded from fishCapsule()'s candidate
-   * selection so the same target cannot be re-fished.
-   */
   fished: boolean;
-  /** Capsule category (1-5, see CATEGORY_OPTIONS), surfaced as a badge. */
   category: number;
-  /** Owner script hash ("0x…") from the contract, used to scope the list. */
   owner: string;
 }
 
@@ -162,21 +63,9 @@ export interface CapsuleFormData {
 }
 
 export interface UseTimeCapsuleOptions {
-  /**
-   * MiniApp framework SDK from ctx.framework. Used for every on-chain
-   * read/write (deposit-then-bury via app.funds.prepayAndCall, reveal, fish),
-   * the on-device content store (app.storage.local), the user-facing toasts
-   * (app.notify), and to read the connected wallet so the list and hero
-   * counts are scoped to the current user.
-   */
   app: MiniAppFramework;
-  /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
-
-// ============================================================================
-// Local metadata stored per capsule (title/category/content live on-device).
-// ============================================================================
 
 interface CapsuleMeta {
   title: string;
@@ -184,68 +73,55 @@ interface CapsuleMeta {
   contentHash: string;
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
+type PendingDraft = Omit<PendingTimeCapsuleOperation, "stage" | "txid" | "paymentTxid">;
 
-/** Convert base units (bigint) to a human GAS decimal string (trimmed). */
 const fromBaseUnits = (base: bigint): string => {
   if (base <= 0n) return "0";
   const whole = base / GAS_DECIMALS_MULTIPLIER;
   const fraction = base % GAS_DECIMALS_MULTIPLIER;
   if (fraction === 0n) return whole.toString();
-  const frac = fraction.toString().padStart(8, "0").replace(/0+$/, "");
-  return `${whole.toString()}.${frac}`;
+  return `${whole}.${fraction.toString().padStart(8, "0").replace(/0+$/, "")}`;
 };
 
-/** Encode a hex content hash to the base64 a ByteArray contract arg expects. */
 const hexToBase64 = (hex: string): string => {
   const bytes = hexToBytes(hex);
   let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
+  for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 };
 
-/**
- * Decode a getCapsule contentHash (a ByteString surfaced as "0x<hex>" or a
- * printable string) back to a bare lowercase hex string so it matches the
- * sha256Hex used as the local-store key.
- */
-const decodeContentHash = (raw: unknown): string => {
-  const value = String(raw ?? "").trim();
-  if (!value) return "";
-  return value.replace(/^0x/i, "").toLowerCase();
-};
-
-/** Coerce a raw map value to a finite number, defaulting to 0. */
-const toFinite = (value: unknown): number => {
-  const n = Number(value ?? 0);
-  return Number.isFinite(n) ? n : 0;
-};
-
-/** Coerce a raw capsule-id list value (number/string/bigint) to a string id. */
 const toIdString = (value: unknown): string => {
   try {
-    const n = parseBigInt(value);
-    return n > 0n ? n.toString() : "";
+    const id = parseBigInt(value);
+    return id > 0n ? id.toString() : "";
   } catch {
     return "";
   }
 };
 
-// ============================================================================
-// Composable
-// ============================================================================
+const strictBoolean = (value: unknown): boolean => {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  if (String(value).toLowerCase() === "true") return true;
+  if (String(value).toLowerCase() === "false") return false;
+  throw new Error("invalid boolean stack value");
+};
 
-export function useTimeCapsule({
-  app,
-  t,
-}: UseTimeCapsuleOptions) {
-  // ── State ────────────────────────────────────────────────────────────
+export function useTimeCapsule({ app, t }: UseTimeCapsuleOptions) {
   const capsules = createObservable<Capsule[]>([]);
+  const fishCandidates = createObservable<Capsule[]>([]);
+  const reusableCredit = createObservable("0");
+  const capsulesSource = createObservable<CapsuleDataSource>("none");
+  const candidatesSource = createObservable<CapsuleDataSource>("none");
+  const creditSource = createObservable<CapsuleDataSource>("none");
+  const transactionNotice = createObservable("");
   const isLoading = createObservable(false);
+  const isLoadingCandidates = createObservable(false);
   const isCreating = createObservable(false);
   const isProcessing = createObservable(false);
+  const isRecovering = createObservable(false);
+  const storageHealthy = createObservable(true);
+  const pendingOperation = app.state.persisted<PendingTimeCapsuleOperation | null>(PENDING_STORE_KEY, null);
 
   const newCapsule = createObservable<CapsuleFormData>({
     title: "",
@@ -255,82 +131,68 @@ export function useTimeCapsule({
     category: 1,
   });
 
-  // Local content store for revealing capsules (full message stays on-device).
-  const localContent = createObservable<Record<string, string>>({});
-
-  /**
-   * Public, unrevealed, not-yet-fished capsules owned by OTHER users — the pool
-   * the current wallet can tip ("fish"). Surfaced as a browsable list so the
-   * user picks a target (id, category, unlock date) before paying the tip,
-   * instead of blindly tipping the newest. Refreshed on demand via
-   * loadFishCandidates(); each entry is read on-chain (loadPublicCandidates).
-   */
-  const fishCandidates = createObservable<Capsule[]>([]);
-  /** True while loadPublicCandidates() is scanning the contract. */
-  const isLoadingCandidates = createObservable(false);
-
-  /**
-   * Unused prepaid deposit credit (human GAS decimal string) held on the
-   * contract under the connected wallet — a deposit that landed but whose bury
-   * never completed. Read from creditOf(owner) on every load; surfaced as a
-   * withdraw banner so money-in always has a money-out path.
-   */
-  const reusableCredit = createObservable<string>("0");
-
-  // User-facing toasts ride app.notify (S1). The composable runs money-moving
-  // actions (reveal returns the deposit, fish tips an owner) whose feedback is
-  // DYNAMIC (capsule id / withdrawn amount), so success/info copy interpolates
-  // through t(key, params) — the rendered strings are byte-identical to the
-  // pre-framework hand-composed toasts.
-
-  // ── Computed ──────────────────────────────────────────────────────────
-  const totalCapsules: Observable = {
-    get: () => capsules.get().length,
-    set: () => {},
-    subscribe: (listener) => capsules.subscribe(listener),
-  };
-  const lockedCount: Observable = {
-    get: () => capsules.get().filter((c) => c.locked).length,
-    set: () => {},
-    subscribe: (listener) => capsules.subscribe(listener),
-  };
-  const revealedCount: Observable = {
-    get: () => capsules.get().filter((c) => c.revealed).length,
-    set: () => {},
-    subscribe: (listener) => capsules.subscribe(listener),
-  };
-  const isBusy: Observable = {
-    get: () => isCreating.get() || isProcessing.get(),
-    set: () => {},
-    subscribe: (listener) => isCreating.subscribe(listener),
+  const assertRecoveryStorage = () => {
+    const probe = { version: 1, token: `${Date.now()}-${Math.random().toString(36).slice(2)}` };
+    try {
+      app.storage.local.set(RECOVERY_STORAGE_PROBE_KEY, probe);
+      const restored = app.storage.local.get<typeof probe | null>(RECOVERY_STORAGE_PROBE_KEY, null);
+      if (restored?.token !== probe.token || restored.version !== probe.version) {
+        throw new Error("recovery storage readback mismatch");
+      }
+      app.storage.local.delete(RECOVERY_STORAGE_PROBE_KEY);
+      if (app.storage.local.get<unknown>(RECOVERY_STORAGE_PROBE_KEY, null) !== null) {
+        throw new Error("recovery storage delete mismatch");
+      }
+      storageHealthy.set(true);
+    } catch {
+      try { app.storage.local.delete(RECOVERY_STORAGE_PROBE_KEY); } catch { /* best-effort cleanup */ }
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
   };
 
-  /** True when the connected wallet has unused prepaid deposit credit to withdraw. */
-  const hasCredit: Observable = {
-    get: () => {
-      const value = Number(reusableCredit.get());
-      return Number.isFinite(value) && value > 0;
-    },
-    set: () => {},
-    subscribe: (listener) => reusableCredit.subscribe(listener),
+  const persistPendingOperation = (record: PendingTimeCapsuleOperation) => {
+    try {
+      pendingOperation.set(record);
+      const restored = app.storage.local.get<unknown>(PENDING_DURABLE_STORE_KEY, null);
+      if (!isPendingTimeCapsuleOperation(restored) || JSON.stringify(restored) !== JSON.stringify(record)) {
+        throw new Error("pending operation readback mismatch");
+      }
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      const txid = record.txid || record.paymentTxid || "";
+      const message = t("recoveryStorageUnavailableAfterBroadcast", { txid });
+      transactionNotice.set(message);
+      throw new Error(message);
+    }
   };
 
-  const canCreate: Observable = {
-    get: () => {
-      const daysValue = Number.parseInt(newCapsule.get().days, 10);
-      return (
-        newCapsule.get().title.trim() !== "" &&
-        newCapsule.get().content.trim() !== "" &&
-        Number.isFinite(daysValue) &&
-        daysValue >= MIN_LOCK_DAYS &&
-        daysValue <= MAX_LOCK_DAYS
-      );
-    },
-    set: () => {},
-    subscribe: (listener) => newCapsule.subscribe(listener),
+  const clearPendingOperation = () => {
+    const previous = pendingOperation.get();
+    try {
+      pendingOperation.set(null);
+      const restored = app.storage.local.get<unknown>(PENDING_DURABLE_STORE_KEY, null);
+      if (restored !== null) throw new Error("pending operation clear mismatch");
+      storageHealthy.set(true);
+    } catch {
+      if (previous && isPendingTimeCapsuleOperation(previous)) {
+        try { pendingOperation.set(previous); } catch { /* keep the valid record in memory even if storage is still unavailable */ }
+      }
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
   };
 
-  // ── Local Content + Metadata Helpers ─────────────────────────────────
+  try {
+    if (pendingOperation.get() && !isPendingTimeCapsuleOperation(pendingOperation.get())) {
+      clearPendingOperation();
+    }
+    assertRecoveryStorage();
+  } catch {
+    // The observable keeps writes disabled while read-only capsule browsing
+    // remains available. Every write repeats the probe immediately beforehand.
+  }
 
   const loadLocalContent = (): Record<string, string> => {
     try {
@@ -338,628 +200,670 @@ export function useTimeCapsule({
       if (!parsed || typeof parsed !== "object") return {};
       const normalized: Record<string, string> = {};
       for (const [key, value] of Object.entries(parsed)) {
-        if (typeof value === "string") {
-          normalized[key] = value;
-        } else if (value && typeof value === "object") {
-          const legacy = value as { hash?: string; content?: string };
-          const hashKey = String(legacy.hash || key);
-          if (legacy.content) normalized[hashKey] = String(legacy.content);
-        }
+        if (typeof value === "string") normalized[key] = value;
+        else if (value?.content) normalized[String(value.hash || key)] = String(value.content);
       }
       return normalized;
     } catch {
+      storageHealthy.set(false);
       return {};
     }
   };
+  const localContent = createObservable<Record<string, string>>(loadLocalContent());
 
   const saveLocalContent = (hash: string, content: string) => {
-    if (!hash) return;
     try {
       const store = app.storage.local.get<Record<string, string>>(CONTENT_STORE_KEY) ?? {};
-      store[hash] = content;
-      app.storage.local.set(CONTENT_STORE_KEY, store);
-    } catch (e) {
-      console.warn("[useTimeCapsule] local content write failed:", e instanceof Error ? e.message : String(e));
+      const next = { ...store, [hash]: content };
+      app.storage.local.set(CONTENT_STORE_KEY, next);
+      const restored = app.storage.local.get<Record<string, string> | null>(CONTENT_STORE_KEY, null);
+      if (restored?.[hash] !== content) throw new Error("content readback mismatch");
+      localContent.set(next);
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
     }
   };
-
-  /** Read the local per-capsule metadata store (title/category/contentHash). */
   const loadLocalMeta = (): Record<string, CapsuleMeta> => {
     try {
-      const parsed = app.storage.local.get<Record<string, CapsuleMeta>>(META_STORE_KEY);
-      return parsed && typeof parsed === "object" ? parsed : {};
+      const parsed = app.storage.local.get<Record<string, unknown>>(META_STORE_KEY);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+      const normalized: Record<string, CapsuleMeta> = {};
+      for (const [id, value] of Object.entries(parsed)) {
+        if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+        const candidate = value as Partial<CapsuleMeta>;
+        const title = String(candidate.title ?? "").trim().slice(0, 100);
+        const contentHash = String(candidate.contentHash ?? "").replace(/^0x/i, "").toLowerCase();
+        const category = Number(candidate.category);
+        if (!title || !/^[0-9a-f]{64}$/.test(contentHash) || !Number.isInteger(category) || category < 1 || category > 5) continue;
+        normalized[id] = { title, contentHash, category };
+      }
+      return normalized;
     } catch {
+      storageHealthy.set(false);
       return {};
     }
   };
-
-  /**
-   * Persist a capsule's display metadata under its on-chain id. The title (and
-   * category) never leave the device — only the hash + lock are on-chain — so
-   * this is the source of truth buildCapsuleFromStored() reads the title from.
-   */
+  const localMeta = createObservable<Record<string, CapsuleMeta>>(loadLocalMeta());
   const saveLocalMeta = (id: string, meta: CapsuleMeta) => {
-    if (!id) return;
     try {
-      const store = app.storage.local.get<Record<string, CapsuleMeta>>(META_STORE_KEY) ?? {};
-      store[id] = meta;
-      app.storage.local.set(META_STORE_KEY, store);
-    } catch (e) {
-      console.warn("[useTimeCapsule] local meta write failed:", e instanceof Error ? e.message : String(e));
+      const store = localMeta.get();
+      const next = { ...store, [id]: meta };
+      app.storage.local.set(META_STORE_KEY, next);
+      const restored = app.storage.local.get<Record<string, CapsuleMeta> | null>(META_STORE_KEY, null);
+      if (JSON.stringify(restored?.[id]) !== JSON.stringify(meta)) throw new Error("metadata readback mismatch");
+      localMeta.set(next);
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
     }
   };
 
-  // Initialize local content from the device store.
-  localContent.set(loadLocalContent());
+  const totalCapsules: Observable = {
+    get: () => capsules.get().length,
+    set: () => {},
+    subscribe: (listener) => capsules.subscribe(listener),
+  };
+  const lockedCount: Observable = {
+    get: () => capsules.get().filter((item) => item.locked).length,
+    set: () => {},
+    subscribe: (listener) => capsules.subscribe(listener),
+  };
+  const revealedCount: Observable = {
+    get: () => capsules.get().filter((item) => item.revealed).length,
+    set: () => {},
+    subscribe: (listener) => capsules.subscribe(listener),
+  };
+  const isBusy: Observable = {
+    get: () => isCreating.get() || isProcessing.get() || isRecovering.get(),
+    set: () => {},
+    subscribe: (listener) => {
+      const stopCreating = isCreating.subscribe(listener);
+      const stopProcessing = isProcessing.subscribe(listener);
+      const stopRecovering = isRecovering.subscribe(listener);
+      return () => {
+        stopCreating();
+        stopProcessing();
+        stopRecovering();
+      };
+    },
+  };
+  const hasCredit: Observable = {
+    get: () => creditSource.get() === "chain" && Number(reusableCredit.get()) > 0,
+    set: () => {},
+    subscribe: (listener) => {
+      const stopCredit = reusableCredit.subscribe(listener);
+      const stopSource = creditSource.subscribe(listener);
+      return () => {
+        stopCredit();
+        stopSource();
+      };
+    },
+  };
+  const canCreate: Observable = {
+    get: () => {
+      const form = newCapsule.get();
+      const days = Number.parseInt(form.days, 10);
+      return storageHealthy.get() && !pendingOperation.get() && form.title.trim().length > 0 && form.content.trim().length > 0 &&
+        Number.isInteger(days) && days >= MIN_LOCK_DAYS && days <= MAX_LOCK_DAYS;
+    },
+    set: () => {},
+    subscribe: (listener) => {
+      const stopForm = newCapsule.subscribe(listener);
+      const stopPending = pendingOperation.subscribe(listener);
+      const stopStorage = storageHealthy.subscribe(listener);
+      return () => {
+        stopForm();
+        stopPending();
+        stopStorage();
+      };
+    },
+  };
 
-  // ── Capsule Mapping (from getCapsule Map) ────────────────────────────
-
-  /**
-   * Map a getCapsule Map (returned by chain.read as a plain object) into the
-   * Capsule shape the UI consumes. Returns null for an unknown / empty capsule
-   * (no owner key).
-   *
-   * The authoritative lock/flags (unlockTime ms, revealed, isPublic, fished,
-   * amount, category, owner, contentHash) come from the chain. The display
-   * title + full content are rebuilt from the on-device stores keyed by id /
-   * contentHash; a capsule discovered from another user has no local entry and
-   * falls back to a placeholder title.
-   */
-  const mapCapsule = (raw: unknown, id: string): Capsule | null => {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-    const v = raw as Record<string, unknown>;
-    const owner = String(v.owner ?? "");
-    if (!owner) return null;
-
-    const contentHash = decodeContentHash(v.contentHash);
-    const unlockTime = toFinite(v.unlockTime); // milliseconds
-    const isPublic = Boolean(v.isPublic);
-    const revealed = Boolean(v.revealed);
-    const fished = Boolean(v.fished);
-    const amountBase = parseBigInt(v.amount);
-    const chainCategory = toFinite(v.category);
-
-    const meta = loadLocalMeta()[id];
-    const title = meta?.title ? meta.title : t("untitledCapsule");
-    const category =
-      meta && Number.isFinite(Number(meta.category)) && meta.category !== undefined
-        ? Number(meta.category)
-        : chainCategory > 0
-          ? chainCategory
-          : 1;
-    const content = contentHash ? localContent.get()[contentHash] ?? "" : "";
-    const unlockDate = unlockTime
-      ? new Date(unlockTime).toISOString().slice(0, 10)
-      : t("notAvailable");
-
+  const mapCapsule = (raw: unknown, expectedId: string): Capsule => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("malformed capsule record");
+    const value = raw as Record<string, unknown>;
+    const id = toIdString(value.id ?? expectedId);
+    const owner = normalizeTimeCapsuleHash(value.owner);
+    const contentHash = String(value.contentHash ?? "").replace(/^0x/i, "").toLowerCase();
+    const unlockTime = Number(value.unlockTime);
+    const category = Number(value.category);
+    const amountBase = parseBigInt(value.amount);
+    if (
+      id !== expectedId || !owner || !/^[0-9a-f]{64}$/.test(contentHash) ||
+      !Number.isSafeInteger(unlockTime) || unlockTime <= 0 ||
+      !Number.isInteger(category) || category < 1 || category > 5 || amountBase < 0n
+    ) throw new Error("malformed capsule record");
+    const revealed = strictBoolean(value.revealed);
+    const candidateMeta = localMeta.get()[id];
+    const meta = candidateMeta?.contentHash === contentHash ? candidateMeta : undefined;
     return {
       id,
-      title,
+      title: meta?.title?.trim() || t("untitledCapsule"),
       contentHash,
-      unlockDate,
+      unlockDate: new Date(unlockTime).toISOString().slice(0, 10),
       unlockTime,
       locked: !revealed && Date.now() < unlockTime,
       revealed,
-      isPublic,
-      content,
+      isPublic: strictBoolean(value.isPublic),
+      content: localContent.get()[contentHash] ?? "",
       amount: fromBaseUnits(amountBase),
-      fished,
+      fished: strictBoolean(value.fished),
       category,
       owner,
     };
   };
 
-  /** Read a single capsule by id into a Capsule. */
-  const readCapsule = async (id: string): Promise<Capsule | null> => {
-    try {
-      const raw = await app.chain.readRaw("getCapsule", [app.chain.arg.integer(id)]);
-      return mapCapsule(raw, id);
-    } catch (e) {
-      console.warn(
-        "[useTimeCapsule] getCapsule failed for",
-        id,
-        ":",
-        e instanceof Error ? e.message : String(e),
-      );
-      return null;
-    }
+  const readCapsule = async (id: string, context: TimeCapsuleChainContext): Promise<Capsule> => {
+    const raw = await app.chain.readRaw("getCapsule", [app.chain.arg.integer(id)], { scriptHash: context.contractHash });
+    return mapCapsule(raw, id);
   };
 
-  // ── Data Loading (direct chain reads) ──────────────────────────────
-
-  /**
-   * Load this user's capsules from the contract: getOwnerCapsules(wallet) yields
-   * the owner's capsule ids, each read via getCapsule. When no wallet is
-   * connected there is nothing owner-scoped to show.
-   */
   const loadCapsules = async (): Promise<Capsule[]> => {
-    try {
-      const wallet = app.chain.address.get();
-      if (!wallet) return [];
-
-      const idsRaw = await app.chain.readArray("getOwnerCapsules", [
-        app.chain.arg.hash160(wallet),
-        app.chain.arg.integer("0"),
-        app.chain.arg.integer(OWNER_PAGE_LIMIT),
-      ]);
-      const ids = (Array.isArray(idsRaw) ? idsRaw : [])
-        .map(toIdString)
-        .filter((id) => id !== "");
-
-      const results = await Promise.all(ids.map((id) => readCapsule(id)));
-      return results
-        .filter((c): c is Capsule => c !== null)
-        .sort((a, b) => Number(b.id) - Number(a.id));
-    } catch (e) {
-      console.warn("[useTimeCapsule] loadCapsules failed:", e instanceof Error ? e.message : String(e));
+    const wallet = app.chain.address.get();
+    if (!wallet) {
+      capsules.set([]);
+      capsulesSource.set("none");
       return [];
     }
-  };
-
-  /**
-   * Scan the whole contract (ids 1..lastCapsuleId) for fishable capsules:
-   * public, unrevealed, not-yet-fished, and owned by ANOTHER user. This is the
-   * cross-user discovery fishing advertises — the current wallet's own capsules
-   * are excluded (it can already open those). Newest-first, capped at MAX_SCAN.
-   */
-  const loadPublicCandidates = async (): Promise<Capsule[]> => {
+    capsulesSource.set("loading");
     try {
-      const wallet = app.chain.address.get();
-      const lastRaw = await app.chain.readRaw("lastCapsuleId", []);
-      const last = toFinite(lastRaw);
-      if (last <= 0) return [];
-
-      const start = Math.max(1, last - MAX_SCAN + 1);
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      const ownerArg = app.chain.arg.hash160(wallet);
+      const countBig = parseBigInt(await app.chain.readRaw("ownerCapsuleCount", [ownerArg], { scriptHash: context.contractHash }));
+      if (countBig < 0n || countBig > BigInt(MAX_OWNER_CAPSULES)) throw new Error("malformed capsule count");
+      const count = Number(countBig);
       const ids: string[] = [];
-      for (let id = last; id >= start; id -= 1) ids.push(String(id));
-
-      const results = await Promise.all(ids.map((id) => readCapsule(id)));
-      return results
-        .filter((c): c is Capsule => c !== null)
-        .filter((c) => {
-          if (!c.isPublic || c.revealed || c.fished) return false;
-          // Exclude the current wallet's own capsules (it can open those itself).
-          return wallet ? !ownerMatchesAddress(c.owner, wallet) : true;
-        })
-        .sort((a, b) => Number(b.id) - Number(a.id));
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (!/contract address not configured/i.test(message)) {
-        console.warn("[useTimeCapsule] loadPublicCandidates failed:", message);
+      for (let offset = 0; offset < count; offset += OWNER_PAGE_LIMIT) {
+        const expected = Math.min(OWNER_PAGE_LIMIT, count - offset);
+        const idsRaw = await app.chain.readArray("getOwnerCapsules", [
+          ownerArg,
+          app.chain.arg.integer(offset),
+          app.chain.arg.integer(OWNER_PAGE_LIMIT),
+        ], { scriptHash: context.contractHash });
+        if (!Array.isArray(idsRaw) || idsRaw.length !== expected) throw new Error("malformed capsule index");
+        const page = idsRaw.map(toIdString);
+        if (page.some((id) => !id)) throw new Error("malformed capsule id");
+        ids.push(...page);
       }
-      return [];
+      if (new Set(ids).size !== ids.length) throw new Error("duplicate capsule id");
+      const list: Capsule[] = [];
+      for (let offset = 0; offset < ids.length; offset += CAPSULE_READ_BATCH) {
+        list.push(...await Promise.all(ids.slice(offset, offset + CAPSULE_READ_BATCH).map((id) => readCapsule(id, context))));
+      }
+      list.sort((a, b) => Number(b.id) - Number(a.id));
+      capsules.set(list);
+      capsulesSource.set("chain");
+      return list;
+    } catch (error) {
+      capsulesSource.set("failed");
+      console.warn("[time-capsule] owner read failed:", formatErrorMessage(error, t("error")));
+      return capsules.get();
     }
   };
 
-  /**
-   * Refresh the connected wallet's unused prepaid deposit credit from
-   * creditOf(owner). Base units → human GAS. A missing wallet yields "0"; a read
-   * failure leaves the last known value (withdrawCredit re-reads before acting).
-   */
-  const loadCredit = async () => {
-    try {
-      const wallet = app.chain.address.get();
-      if (!wallet) {
-        reusableCredit.set("0");
-        return;
-      }
-      const raw = await app.chain.readRaw("creditOf", [app.chain.arg.hash160(wallet)]);
-      reusableCredit.set(fromBaseUnits(parseBigInt(raw)));
-    } catch (e) {
-      console.warn(
-        "[useTimeCapsule] creditOf read failed:",
-        e instanceof Error ? e.message : String(e),
-      );
+  const loadPublicCandidates = async (): Promise<Capsule[]> => {
+    const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+    const last = Number(await app.chain.readRaw("lastCapsuleId", [], { scriptHash: context.contractHash }));
+    if (!Number.isSafeInteger(last) || last < 0) throw new Error("malformed capsule counter");
+    if (last === 0) return [];
+    const wallet = app.chain.address.get();
+    const start = Math.max(1, last - MAX_SCAN + 1);
+    const ids = Array.from({ length: last - start + 1 }, (_, index) => String(last - index));
+    const list: Capsule[] = [];
+    // Avoid a 200-request burst against the public indexer while keeping the
+    // newest-first catalog responsive.
+    for (let offset = 0; offset < ids.length; offset += CAPSULE_READ_BATCH) {
+      list.push(...await Promise.all(ids.slice(offset, offset + CAPSULE_READ_BATCH).map((id) => readCapsule(id, context))));
     }
+    return list.filter((item) => item.isPublic && !item.revealed && !item.fished &&
+      (!wallet || !timeCapsuleAccountMatches(item.owner, wallet)));
   };
 
-  // ── Actions (direct chain invocations) ─────────────────────────────
-
-  /**
-   * Create a capsule against the standalone vault contract.
-   *
-   * One deposit-then-act lane (app.funds.prepayAndCall), both steps signed by
-   * the owner:
-   *   1. DEPOSIT — transfer the 0.2 GAS refundable deposit to the contract with
-   *      the "miniapp-timecapsule:bury" memo, crediting the owner's prepaid
-   *      balance, and wait for it to confirm in a block.
-   *   2. bury(owner, contentHash, days*86400, isPublic, category, amount) —
-   *      consumes that credit as the locked amount and seals the capsule. The
-   *      new id is read from the "Buried" event.
-   *
-   * The title + full content NEVER leave the device: only the sha256 contentHash
-   * and the lock are on-chain. We persist the content (keyed by contentHash) and
-   * the display metadata (keyed by the on-chain capsule id) locally so the list
-   * can rebuild the title later.
-   *
-   * If step 2 fails after the confirmed deposit, the lane throws the
-   * identity-stable FrameworkPrepaidActionError: the prepaid credit simply
-   * remains on the contract under the owner and is reused on the next bury —
-   * there is no refund call (and none is needed; funds are not lost). That
-   * branch surfaces the app's stranded-credit recovery copy
-   * (depositPrepaidNoCapsule) and refreshes the withdraw banner.
-   */
-  const createCapsule = async () => {
-    if (isBusy.get() || !canCreate.get()) return;
-
-    isCreating.set(true);
-    try {
-      const daysValue = Number.parseInt(newCapsule.get().days, 10);
-      if (!Number.isFinite(daysValue) || daysValue < MIN_LOCK_DAYS || daysValue > MAX_LOCK_DAYS) {
-        throw new Error(t("invalidLockDuration"));
-      }
-
-      const content = newCapsule.get().content.trim();
-      const title = newCapsule.get().title.trim().slice(0, 100);
-      if (!content || !title) throw new Error(t("invalidLockDuration"));
-      const isPublic = newCapsule.get().isPublic;
-      const category = newCapsule.get().category;
-      const contentHash = await sha256Hex(content);
-
-      const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
-      if (!ownerAddr) throw new Error(t("walletRequired"));
-      const ownerArg = app.chain.arg.hash160(ownerAddr);
-
-      if (!app.chain.contractAddress.get()) throw new Error(t("contractNotReady"));
-
-      const amountBase = app.amount.gasToFixed8(CAPSULE_CREATE_AMOUNT);
-      const durationSeconds = daysValue * 86_400;
-
-      // Deposit-then-act (S3): prepayAndCall transfers the deposit to the
-      // contract with the bury memo (OnNEP17Payment credits the owner's
-      // prepaid balance), waits for the credit to confirm in a block, then
-      // fires bury(), which consumes that credit as the locked amount.
-      // notify:'silent' — this composable owns the mid-flow messaging;
-      // main.tsx's registered action surfaces the capsuleCreated/error toasts.
-      let result;
-      try {
-        result = await app.funds.prepayAndCall({
-          operation: "bury",
-          args: [
-            ownerArg,
-            app.chain.arg.byteArray(hexToBase64(contentHash)),
-            app.chain.arg.integer(durationSeconds),
-            app.chain.arg.boolean(isPublic),
-            app.chain.arg.integer(category),
-            app.chain.arg.integer(amountBase),
-          ],
-          amountGas: CAPSULE_CREATE_AMOUNT,
-          memo: BURY_MEMO,
-          waitForEvent: "Buried",
-          notify: "silent",
-        });
-      } catch (buryErr) {
-        if (buryErr instanceof FrameworkPrepaidActionError) {
-          console.error(
-            "[useTimeCapsule] bury failed after deposit succeeded:",
-            buryErr.actionError instanceof Error
-              ? buryErr.actionError.message
-              : String(buryErr.actionError),
-          );
-          // Deposit landed, capsule not buried — credit is held under the
-          // owner as reusable prepaid credit, reusable on the next bury or
-          // withdrawable to the wallet. Refresh it so the recovery banner
-          // surfaces the money-out, then show the exact stranded-credit copy.
-          await loadCredit();
-          throw new Error(t("depositPrepaidNoCapsule"));
-        }
-        // The deposit itself failed (e.g. the wallet rejected the transfer) —
-        // nothing is stranded on the contract; propagate the raw failure.
-        throw buryErr;
-      }
-
-      // Read the new id from the Buried event (state[0]).
-      let capsuleId = toIdString(eventValue(result.event, 0));
-      if (!capsuleId) {
-        // Event slot unavailable / unparsed — fall back to lastCapsuleId().
-        capsuleId = toIdString(await app.chain.readRaw("lastCapsuleId", []));
-      }
-
-      // Persist the full content + display metadata ON-DEVICE under the on-chain
-      // id (only the hash + lock are on-chain).
-      saveLocalContent(contentHash, content);
-      if (capsuleId) {
-        saveLocalMeta(capsuleId, { title, category, contentHash });
-      }
-
-      newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
-
-      capsules.set(await loadCapsules());
-      await loadCredit();
-    } catch (e) {
-      throw e;
-    } finally {
-      isCreating.set(false);
-    }
-  };
-
-  /**
-   * Open/reveal a capsule via reveal(owner, capsuleId).
-   *
-   * Recomputes lock status live against Date.now() vs unlockTime(ms) before
-   * dispatching (loadAll only runs on mount / wallet reconnect, so cap.locked
-   * can be stale). After reveal the locked deposit is RETURNED to the owner
-   * atomically; we reload to reflect the revealed state.
-   */
-  const openCapsule = async (cap: Capsule) => {
-    if (!cap.revealed && Date.now() < cap.unlockTime) {
-      // Already-localized copy: the string lane of app.notify.error emits it
-      // verbatim (it matches no chain-error family).
-      app.notify.error(t("notUnlocked"));
-      return;
-    }
-    if (isBusy.get()) return;
-
-    isProcessing.set(true);
-    try {
-      const wasSealed = !cap.revealed;
-      if (wasSealed) {
-        const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
-        if (!ownerAddr) throw new Error(t("walletRequired"));
-
-        await app.chain.invoke(
-          "reveal",
-          [
-            app.chain.arg.hash160(ownerAddr),
-            app.chain.arg.integer(cap.id),
-          ],
-          { waitForEvent: "Revealed" },
-        );
-      }
-
-      // Reveal returns the locked deposit atomically — confirm the money-out, then
-      // surface the message (or an on-device-fallback hash) on the live channel.
-      if (wasSealed) {
-        app.notify.success("capsuleRevealed");
-      }
-      const content = cap.contentHash ? localContent.get()[cap.contentHash] : "";
-      if (content) {
-        app.notify.info("message", { content });
-      } else if (cap.contentHash) {
-        app.notify.info("contentUnavailable", { hash: cap.contentHash });
-      }
-
-      capsules.set(await loadCapsules());
-    } catch (e) {
-      // Keep the app's formatErrorMessage sanitization (raw dumps → t("error"))
-      // before the toast; app.notify.error still maps known chain/RPC failure
-      // families to localized copy.
-      app.notify.error(formatErrorMessage(e, t("error")));
-      throw e;
-    } finally {
-      isProcessing.set(false);
-    }
-  };
-
-  /**
-   * Refresh the browsable list of public, tippable ("fishable") capsules from
-   * other users, so the UI can show the pool and let the user pick a target
-   * before paying the tip. Read-only over loadPublicCandidates().
-   */
   const loadFishCandidates = async (): Promise<Capsule[]> => {
     if (isLoadingCandidates.get()) return fishCandidates.get();
     isLoadingCandidates.set(true);
+    candidatesSource.set("loading");
     try {
       const list = await loadPublicCandidates();
       fishCandidates.set(list);
+      candidatesSource.set("chain");
       return list;
+    } catch (error) {
+      candidatesSource.set("failed");
+      console.warn("[time-capsule] public read failed:", formatErrorMessage(error, t("error")));
+      return fishCandidates.get();
     } finally {
       isLoadingCandidates.set(false);
     }
   };
 
-  /**
-   * Tip ("fish") a public capsule by paying the 0.05 GAS tip.
-   *
-   * This is a TIP, not a reveal: the fee is forwarded on-chain to the capsule's
-   * owner as encouragement and the capsule is marked fished, but the message
-   * stays sealed (the fisher never sees the content). Targets a public,
-   * unrevealed, not-fished capsule owned by ANOTHER user. When `targetId` is
-   * given (the user picked one from the browsable list) it tips that capsule;
-   * otherwise it falls back to the newest tippable capsule (loadPublicCandidates
-   * is newest-first). If no other-owner candidate exists we report fishNone
-   * without charging the fee (a user cannot tip their own capsule — the contract
-   * rejects it).
-   */
-  const fishCapsule = async (targetId?: string) => {
-    if (isBusy.get()) return;
+  const loadCredit = async () => {
+    const wallet = app.chain.address.get();
+    if (!wallet) {
+      reusableCredit.set("0");
+      creditSource.set("none");
+      return;
+    }
+    creditSource.set("loading");
+    try {
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      const raw = await app.chain.readRaw("creditOf", [app.chain.arg.hash160(wallet)], { scriptHash: context.contractHash });
+      reusableCredit.set(fromBaseUnits(parseBigInt(raw)));
+      creditSource.set("chain");
+    } catch (error) {
+      creditSource.set("failed");
+      console.warn("[time-capsule] credit read failed:", formatErrorMessage(error, t("error")));
+    }
+  };
 
+  const prepare = (
+    kind: TimeCapsulePendingKind,
+    context: TimeCapsuleChainContext,
+    actor: string,
+    details: Omit<Partial<PendingTimeCapsuleOperation>, "version" | "kind" | "stage" | "eventName" | "network" | "contractHash" | "actorHash" | "createdAt" | "txid" | "paymentTxid">,
+  ): PendingDraft => {
+    const actorHash = normalizeTimeCapsuleHash(actor);
+    if (!actorHash) throw new Error(t("walletRequired"));
+    const eventName = kind === "create" ? "Buried" : kind === "reveal" ? "Revealed" : kind === "fish" ? "Fished" : "CreditWithdrawn";
+    return { version: 1, kind, eventName, network: context.network, contractHash: context.contractHash, actorHash, createdAt: Date.now(), amountFixed8: String(details.amountFixed8 ?? "0"), ...details } as PendingDraft;
+  };
+  const persistPayment = (draft: PendingDraft, txid: string) => {
+    persistPendingOperation({ ...draft, stage: "payment", paymentTxid: txid });
+  };
+  const persistAction = (draft: PendingDraft, txid: string) => {
+    const paymentTxid = pendingOperation.get()?.paymentTxid;
+    persistPendingOperation({
+      ...draft,
+      stage: "action",
+      txid,
+      ...(paymentTxid ? { paymentTxid } : {}),
+    });
+  };
+  const assertNoPending = () => {
+    if (pendingOperation.get()) throw new Error(t("pendingBlocksWrites"));
+  };
+
+  const pendingArgs = (pending: PendingTimeCapsuleOperation) => {
+    if (pending.kind !== "create") return [];
+    return [
+      app.chain.arg.hash160Raw(pending.actorHash),
+      app.chain.arg.byteArray(hexToBase64(pending.contentHash ?? "")),
+      app.chain.arg.integer(pending.durationSeconds ?? 0),
+      app.chain.arg.boolean(Boolean(pending.isPublic)),
+      app.chain.arg.integer(pending.category ?? 0),
+      app.chain.arg.integer(pending.amountFixed8),
+    ];
+  };
+
+  const finalizePending = async (pending: PendingTimeCapsuleOperation, event: unknown) => {
+    const value = (index: number) => eventValue(event, index);
+    const context = { network: pending.network, contractHash: pending.contractHash } satisfies TimeCapsuleChainContext;
+    if (pending.kind === "create") {
+      const id = toIdString(value(0));
+      const eventUnlock = Number(value(3));
+      if (!id || !timeCapsuleAccountMatches(value(1), pending.actorHash) ||
+        parseBigInt(value(2)) !== BigInt(pending.amountFixed8) ||
+        !Number.isSafeInteger(eventUnlock) || strictBoolean(value(4)) !== pending.isPublic) {
+        throw new Error(t("transactionEventMismatch"));
+      }
+      const cap = await readCapsule(id, context);
+      if (!timeCapsuleAccountMatches(cap.owner, pending.actorHash) || cap.contentHash !== pending.contentHash ||
+        cap.category !== pending.category || cap.isPublic !== pending.isPublic ||
+        app.amount.gasToFixed8(cap.amount) !== BigInt(pending.amountFixed8) || cap.unlockTime !== eventUnlock) {
+        throw new Error(t("transactionReadbackMismatch"));
+      }
+      saveLocalMeta(id, { title: pending.title ?? t("untitledCapsule"), category: pending.category ?? 1, contentHash: pending.contentHash ?? "" });
+    } else if (pending.kind === "reveal") {
+      if (toIdString(value(0)) !== pending.capsuleId || !timeCapsuleAccountMatches(value(1), pending.actorHash) || parseBigInt(value(2)) !== BigInt(pending.amountFixed8)) {
+        throw new Error(t("transactionEventMismatch"));
+      }
+      const cap = await readCapsule(pending.capsuleId!, context);
+      if (!cap.revealed || !timeCapsuleAccountMatches(cap.owner, pending.actorHash)) throw new Error(t("transactionReadbackMismatch"));
+    } else if (pending.kind === "fish") {
+      if (toIdString(value(0)) !== pending.capsuleId || !timeCapsuleAccountMatches(value(1), pending.actorHash) ||
+        !timeCapsuleAccountMatches(value(2), pending.targetOwnerHash ?? "") || parseBigInt(value(3)) !== BigInt(pending.amountFixed8)) {
+        throw new Error(t("transactionEventMismatch"));
+      }
+      const cap = await readCapsule(pending.capsuleId!, context);
+      if (!cap.fished || !timeCapsuleAccountMatches(cap.owner, pending.targetOwnerHash ?? "")) throw new Error(t("transactionReadbackMismatch"));
+    } else {
+      if (!timeCapsuleAccountMatches(value(0), pending.actorHash) || parseBigInt(value(1)) !== BigInt(pending.beforeCredit ?? "0")) {
+        throw new Error(t("transactionEventMismatch"));
+      }
+      const left = parseBigInt(await app.chain.readRaw("creditOf", [app.chain.arg.hash160Raw(pending.actorHash)], { scriptHash: pending.contractHash }));
+      if (left !== 0n) throw new Error(t("transactionReadbackMismatch"));
+    }
+    clearPendingOperation();
+    transactionNotice.set("");
+    await Promise.all([loadCapsules(), loadCredit()]);
+  };
+
+  const markPending = () => {
+    transactionNotice.set(t("transactionPending"));
+    app.notify.info("transactionPending");
+  };
+
+  const createCapsule = async (): Promise<{ status: "confirmed" | "pending" } | undefined> => {
+    if (isBusy.get()) return undefined;
+    assertNoPending();
+    const form = newCapsule.get();
+    const days = Number.parseInt(form.days, 10);
+    if (!Number.isInteger(days) || days < MIN_LOCK_DAYS || days > MAX_LOCK_DAYS) throw new Error(t("invalidLockDuration"));
+    const title = form.title.trim().slice(0, 100);
+    const content = form.content.trim();
+    if (!title || !content) throw new Error(t("messageRequired"));
+    assertRecoveryStorage();
+    isCreating.set(true);
+    try {
+      const owner = app.chain.address.get() || await app.chain.ensureWallet();
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      const contentHash = await sha256Hex(content);
+      saveLocalContent(contentHash, content);
+      const amountFixed8 = app.amount.gasToFixed8(CAPSULE_CREATE_AMOUNT).toString();
+      const draft = prepare("create", context, owner, {
+        amountFixed8,
+        contentHash,
+        durationSeconds: days * 86_400,
+        isPublic: form.isPublic,
+        category: form.category,
+        title,
+      });
+      let result;
+      try {
+        result = await app.funds.prepayAndCall({
+          operation: "bury",
+          args: pendingArgs({ ...draft, stage: "action", txid: "0x0000000000000000" }),
+          amountGas: CAPSULE_CREATE_AMOUNT,
+          memo: BURY_MEMO,
+          scriptHash: context.contractHash,
+          waitForEvent: "Buried",
+          waitTimeoutMs: TIME_CAPSULE_EVENT_WAIT_MS,
+          onPaymentSent: (txid) => persistPayment(draft, txid),
+          onTransactionSent: (txid) => persistAction(draft, txid),
+          notify: "silent",
+        });
+      } catch (error) {
+        if (error instanceof FrameworkPrepaidActionError) {
+          await loadCredit();
+          if (pendingOperation.get()?.stage === "action") {
+            markPending();
+            return { status: "pending" };
+          }
+          transactionNotice.set(t("depositPrepaidNoCapsule"));
+          throw new Error(t("depositPrepaidNoCapsule"));
+        }
+        throw error;
+      }
+      // A conforming host calls onTransactionSent, but the returned action txid
+      // is also authoritative. Upgrade a payment-stage journal here so a missed
+      // callback can never make recovery submit bury a second time.
+      if (result.txid && pendingOperation.get()?.stage !== "action") persistAction(draft, result.txid);
+      const pending = pendingOperation.get();
+      if (result.verified === true && result.event && pending) {
+        await finalizePending(pending, result.event);
+        newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
+        app.notify.success("capsuleCreated");
+        return { status: "confirmed" };
+      }
+      markPending();
+      return { status: "pending" };
+    } finally {
+      isCreating.set(false);
+    }
+  };
+
+  const revealMessage = (cap: Capsule) => {
+    const content = localContent.get()[cap.contentHash] ?? "";
+    if (content) app.notify.info("message", { content });
+    else app.notify.info("contentUnavailable", { hash: cap.contentHash });
+  };
+
+  const openCapsule = async (cap: Capsule) => {
+    if (cap.revealed) {
+      revealMessage(cap);
+      return;
+    }
+    if (Date.now() < cap.unlockTime) {
+      app.notify.error(t("notUnlocked"));
+      return;
+    }
+    if (isBusy.get()) return;
+    assertNoPending();
     isProcessing.set(true);
     try {
-      const candidates = await loadPublicCandidates();
-      fishCandidates.set(candidates);
-      const wanted = targetId ? String(targetId) : "";
-      const candidate = wanted
-        ? candidates.find((c) => c.id === wanted)
-        : candidates[0];
+      const owner = app.chain.address.get() || await app.chain.ensureWallet();
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      const fresh = await readCapsule(cap.id, context);
+      if (!timeCapsuleAccountMatches(fresh.owner, owner) || fresh.revealed || Date.now() < fresh.unlockTime) throw new Error(t("notUnlocked"));
+      assertRecoveryStorage();
+      const draft = prepare("reveal", context, owner, { capsuleId: cap.id, amountFixed8: app.amount.gasToFixed8(fresh.amount).toString() });
+      const result = await app.chain.invoke("reveal", [app.chain.arg.hash160(owner), app.chain.arg.integer(cap.id)], {
+        scriptHash: context.contractHash,
+        waitForEvent: "Revealed",
+        waitTimeoutMs: TIME_CAPSULE_EVENT_WAIT_MS,
+        onTransactionSent: (txid) => persistAction(draft, txid),
+      });
+      if (!pendingOperation.get() && result.txid) persistAction(draft, result.txid);
+      const pending = pendingOperation.get();
+      if (result.verified === true && result.event && pending) {
+        await finalizePending(pending, result.event);
+        app.notify.success("capsuleRevealed");
+        revealMessage(fresh);
+      } else markPending();
+    } catch (error) {
+      app.notify.error(formatErrorMessage(error, t("error")));
+      throw error;
+    } finally {
+      isProcessing.set(false);
+    }
+  };
 
+  const fishCapsule = async (targetId?: string) => {
+    if (isBusy.get()) return;
+    assertNoPending();
+    isProcessing.set(true);
+    try {
+      let candidates: Capsule[];
+      try {
+        candidates = await loadPublicCandidates();
+      } catch (error) {
+        candidatesSource.set("failed");
+        throw error;
+      }
+      fishCandidates.set(candidates);
+      candidatesSource.set("chain");
+      const candidate = targetId ? candidates.find((item) => item.id === String(targetId)) : candidates[0];
       if (!candidate) {
         app.notify.info("fishNone");
         return;
       }
-
-      const fisherAddr = app.chain.address.get() || (await app.chain.ensureWallet());
-      if (!fisherAddr) throw new Error(t("walletRequired"));
-      const fisherArg = app.chain.arg.hash160(fisherAddr);
-
-      const contractHash = app.chain.contractAddress.get();
-      if (!contractHash) throw new Error(t("contractNotReady"));
-
-      const feeBase = app.amount.gasToFixed8(FISH_FEE_AMOUNT);
-
-      // Pay the discovery fee — a one-shot GAS transfer with the fish memo. The
-      // contract forwards the fee to the capsule owner as a tip and flags the
-      // capsule fished, atomically.
-      await app.chain.invoke(
-        "transfer",
-        [
-          fisherArg,
-          app.chain.arg.hash160(contractHash),
-          app.chain.arg.integer(feeBase),
-          app.chain.arg.string(`${FISH_MEMO_PREFIX}${candidate.id}`),
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Fished" },
-      );
-
-      app.notify.success("fishResult", { id: candidate.id });
-
-      capsules.set(await loadCapsules());
-      // The tipped capsule is now flagged fished — drop it from the browsable list.
-      fishCandidates.set(await loadPublicCandidates());
-    } catch (e) {
-      app.notify.error(formatErrorMessage(e, t("error")));
-      throw e;
+      assertRecoveryStorage();
+      const fisher = app.chain.address.get() || await app.chain.ensureWallet();
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      const amountFixed8 = app.amount.gasToFixed8(FISH_FEE_AMOUNT).toString();
+      const draft = prepare("fish", context, fisher, { capsuleId: candidate.id, targetOwnerHash: candidate.owner, amountFixed8 });
+      const result = await app.chain.invoke("transfer", [
+        app.chain.arg.hash160(fisher),
+        app.chain.arg.hash160(context.contractHash),
+        app.chain.arg.integer(amountFixed8),
+        app.chain.arg.string(`${FISH_MEMO_PREFIX}${candidate.id}`),
+      ], {
+        scriptHash: GAS_HASH,
+        waitForEvent: "Fished",
+        waitTimeoutMs: TIME_CAPSULE_EVENT_WAIT_MS,
+        onTransactionSent: (txid) => persistAction(draft, txid),
+      });
+      if (!pendingOperation.get() && result.txid) persistAction(draft, result.txid);
+      const pending = pendingOperation.get();
+      if (result.verified === true && result.event && pending) {
+        await finalizePending(pending, result.event);
+        fishCandidates.set(await loadPublicCandidates());
+        app.notify.success("fishResult", { id: candidate.id });
+      } else markPending();
+    } catch (error) {
+      app.notify.error(formatErrorMessage(error, t("error")));
+      throw error;
     } finally {
       isProcessing.set(false);
     }
   };
 
-  /**
-   * Withdraw the connected wallet's unused prepaid deposit credit via
-   * withdraw(owner). The contract pays the WHOLE creditOf(owner) back to the
-   * wallet — the money-out path for a deposit that landed but whose bury never
-   * completed. Returns the withdrawn amount (human GAS) from the "CreditWithdrawn"
-   * event (state[1] = amount). Reads the live credit first so an empty balance
-   * surfaces a clean message instead of a VM revert.
-   */
   const withdrawCredit = async (): Promise<{ amount: string }> => {
     if (isBusy.get()) return { amount: "0" };
-
+    assertNoPending();
     isProcessing.set(true);
     try {
-      const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
-      if (!ownerAddr) throw new Error(t("walletRequired"));
-      const ownerArg = app.chain.arg.hash160(ownerAddr);
-
-      let creditBase = 0n;
-      try {
-        creditBase = parseBigInt(
-          await app.chain.readRaw("creditOf", [ownerArg]),
-        );
-      } catch {
-        creditBase = 0n;
-      }
+      const owner = app.chain.address.get() || await app.chain.ensureWallet();
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      const ownerArg = app.chain.arg.hash160(owner);
+      const creditBase = parseBigInt(await app.chain.readRaw("creditOf", [ownerArg], { scriptHash: context.contractHash }));
+      creditSource.set("chain");
+      reusableCredit.set(fromBaseUnits(creditBase));
       if (creditBase <= 0n) {
         app.notify.info("noCreditToWithdraw");
-        reusableCredit.set("0");
         return { amount: "0" };
       }
-
-      const result = await app.chain.invoke(
-        "withdraw",
-        [ownerArg],
-        { waitForEvent: "CreditWithdrawn" },
-      );
-
-      // CreditWithdrawn(account, amount) — amount is state index 1.
-      const withdrawnBase = parseBigInt(eventValue(result.event, 1));
-      const amount = fromBaseUnits(withdrawnBase > 0n ? withdrawnBase : creditBase);
-
-      app.notify.success("creditWithdrawn", { amount });
-      await loadCredit();
-      return { amount };
-    } catch (e) {
-      app.notify.error(formatErrorMessage(e, t("error")));
-      throw e;
-    } finally {
-      isProcessing.set(false);
-    }
-  };
-
-  /**
-   * Collect fishing-tip revenue accrued on the connected wallet's public
-   * capsules via withdrawFishRevenue(owner). The contract holds each 0.05 GAS
-   * tip in a separate fish-revenue ledger (it is NOT forwarded on the tip tx)
-   * and pays the whole balance back here — the money-out path for tips. The
-   * contract exposes no balance getter, so an empty balance reverts with
-   * "no fish revenue"; that case is surfaced as a clean info message rather
-   * than an error. Returns the collected amount (human GAS) from the
-   * "FishRevenueWithdrawn" event (state[1] = amount).
-   */
-  const withdrawFishRevenue = async (): Promise<{ amount: string }> => {
-    if (isBusy.get()) return { amount: "0" };
-
-    isProcessing.set(true);
-    try {
-      const ownerAddr = app.chain.address.get() || (await app.chain.ensureWallet());
-      if (!ownerAddr) throw new Error(t("walletRequired"));
-
-      let result;
-      try {
-        result = await app.chain.invoke(
-          "withdrawFishRevenue",
-          [app.chain.arg.hash160(ownerAddr)],
-          { waitForEvent: "FishRevenueWithdrawn" },
-        );
-      } catch (e) {
-        // The contract asserts revenue > 0; an empty balance is an expected
-        // "nothing to collect" outcome, not a failure to surface as an error.
-        // This expected-revert regex → info-toast classification stays
-        // app-side (plan §3 Wave 4) — it is contract-specific business copy.
-        const msg = e instanceof Error ? e.message : "";
-        if (/no fish revenue/i.test(msg)) {
-          app.notify.info("noTipsToCollect");
-          return { amount: "0" };
-        }
-        throw e;
+      assertRecoveryStorage();
+      const draft = prepare("withdraw-credit", context, owner, { amountFixed8: creditBase.toString(), beforeCredit: creditBase.toString() });
+      const result = await app.chain.invoke("withdraw", [ownerArg], {
+        scriptHash: context.contractHash,
+        waitForEvent: "CreditWithdrawn",
+        waitTimeoutMs: TIME_CAPSULE_EVENT_WAIT_MS,
+        onTransactionSent: (txid) => persistAction(draft, txid),
+      });
+      if (!pendingOperation.get() && result.txid) persistAction(draft, result.txid);
+      const pending = pendingOperation.get();
+      if (result.verified === true && result.event && pending) {
+        await finalizePending(pending, result.event);
+        const amount = fromBaseUnits(creditBase);
+        app.notify.success("creditWithdrawn", { amount });
+        return { amount };
       }
-
-      // FishRevenueWithdrawn(owner, amount) — amount is state index 1.
-      const collectedBase = parseBigInt(eventValue(result.event, 1));
-      const amount = fromBaseUnits(collectedBase);
-      app.notify.success("tipsCollected", { amount });
-      return { amount };
-    } catch (e) {
-      app.notify.error(formatErrorMessage(e, t("error")));
-      throw e;
+      markPending();
+      return { amount: "0" };
+    } catch (error) {
+      creditSource.set("failed");
+      app.notify.error(formatErrorMessage(error, t("error")));
+      throw error;
     } finally {
       isProcessing.set(false);
     }
   };
 
-  /**
-   * Load all data. Called by defineMiniApp on mount and wallet reconnect.
-   */
+  const recoverPending = async (): Promise<"none" | "pending" | "confirmed" | "fault"> => {
+    const stored = pendingOperation.get();
+    if (!stored) return "none";
+    if (!isPendingTimeCapsuleOperation(stored)) {
+      clearPendingOperation();
+      throw new Error(t("pendingInvalid"));
+    }
+    if (isRecovering.get()) return "pending";
+    isRecovering.set(true);
+    try {
+      const wallet = app.chain.address.get() || await app.chain.ensureWallet();
+      const context = await requireCanonicalTimeCapsuleContext(app, t("chainContextMismatch"));
+      if (context.network !== stored.network || context.contractHash !== stored.contractHash || !timeCapsuleAccountMatches(wallet, stored.actorHash)) {
+        throw new Error(t("pendingContextMismatch"));
+      }
+      if (stored.stage === "payment") {
+        const payment = await readTimeCapsulePaymentOutcome(stored);
+        if (payment.state === "fault") {
+          clearPendingOperation();
+          transactionNotice.set(t("transactionFault"));
+          return "fault";
+        }
+        if (payment.state !== "halt") return "pending";
+        if (!payment.event) {
+          transactionNotice.set(t("transactionEventMismatch"));
+          return "pending";
+        }
+        assertRecoveryStorage();
+        const { stage: _stage, paymentTxid: _paymentTxid, txid: _txid, ...draft } = stored;
+        const result = await app.chain.invoke("bury", pendingArgs(stored), {
+          scriptHash: stored.contractHash,
+          waitForEvent: "Buried",
+          waitTimeoutMs: TIME_CAPSULE_EVENT_WAIT_MS,
+          onTransactionSent: (txid) => persistAction(draft, txid),
+        });
+        if (result.txid && pendingOperation.get()?.stage !== "action") persistAction(draft, result.txid);
+        const current = pendingOperation.get();
+        if (result.verified === true && result.event && current) {
+          await finalizePending(current, result.event);
+          newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
+          app.notify.success("capsuleCreated");
+          return "confirmed";
+        }
+        return "pending";
+      }
+      let event = await app.events.waitFor(stored.txid!, stored.eventName, TIME_CAPSULE_EVENT_WAIT_MS);
+      if (!event) {
+        const outcome = await readTimeCapsuleTransactionOutcome(stored.network, stored.txid!, stored.eventName, stored.contractHash);
+        if (outcome.state === "fault") {
+          clearPendingOperation();
+          if (stored.kind === "create") await loadCredit();
+          transactionNotice.set(stored.kind === "create" ? t("depositPrepaidNoCapsule") : t("transactionFault"));
+          return "fault";
+        }
+        if (outcome.state === "halt" && !outcome.event) transactionNotice.set(t("transactionEventMismatch"));
+        event = outcome.event;
+      }
+      if (!event) return "pending";
+      await finalizePending(stored, event);
+      if (stored.kind === "create") app.notify.success("capsuleCreated");
+      else if (stored.kind === "reveal") app.notify.success("capsuleRevealed");
+      else if (stored.kind === "fish") app.notify.success("fishResult", { id: stored.capsuleId ?? "" });
+      else app.notify.success("creditWithdrawn", { amount: fromBaseUnits(BigInt(stored.beforeCredit ?? "0")) });
+      return "confirmed";
+    } finally {
+      isRecovering.set(false);
+    }
+  };
+
   const loadAll = async () => {
     isLoading.set(true);
     try {
-      capsules.set(await loadCapsules());
-      await loadCredit();
+      await Promise.all([loadCapsules(), loadCredit()]);
     } finally {
       isLoading.set(false);
     }
   };
 
   return {
-    // ── State ────────────────────────────────────────────────────────
     capsules,
+    fishCandidates,
+    reusableCredit,
+    capsulesSource,
+    candidatesSource,
+    creditSource,
+    transactionNotice,
+    pendingOperation,
+    isRecovering,
+    storageHealthy,
     isLoading,
+    isLoadingCandidates,
     isCreating,
     isProcessing,
     isBusy,
     newCapsule,
     localContent,
-    reusableCredit,
-    fishCandidates,
-    isLoadingCandidates,
-
-    // ── Computed ─────────────────────────────────────────────────────
     totalCapsules,
     lockedCount,
     revealedCount,
     canCreate,
     hasCredit,
-
-    // ── Actions ─────────────────────────────────────────────────────
     createCapsule,
     openCapsule,
     fishCapsule,
     loadFishCandidates,
     withdrawCredit,
-    withdrawFishRevenue,
+    recoverPending,
     loadCredit,
     loadAll,
   };
 }
 
 export type UseTimeCapsuleReturn = ReturnType<typeof useTimeCapsule>;
+export type { PendingTimeCapsuleOperation } from "../time-capsule-safety";

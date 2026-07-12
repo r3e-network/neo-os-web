@@ -42,9 +42,9 @@
  *        and adds to the player's season total. If step 1 lands but step 2
  *        reverts, the credit persists on the contract as reusable prepaid credit
  *        (reclaimable via withdraw) — no funds are lost.
- *     settle() — PERMISSIONLESS. After the deadline pays the WHOLE pool to the top
- *        burner and advances the season. Anyone may trigger it; the on-chain top
- *        burner is the winner regardless of who signs.
+ *     settle() — PERMISSIONLESS. After the deadline credits the WHOLE pool to the
+ *        top burner's withdrawable balance and advances the season. Anyone may
+ *        trigger it; the on-chain top burner is the winner regardless of who signs.
  *
  * AMOUNT CONVENTION: the contract takes/returns BASE UNITS (GAS × 1e8). Human GAS
  * for the UI = base / 1e8 (fromBaseUnits). The human input is scaled to base units
@@ -68,6 +68,18 @@ import { formatNumber, fromFixed8 } from "@shared/utils/format";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { eventHashMatches as addrEq } from "@framework/gamefi";
+import {
+  createBurnOperationStore,
+  createPendingBurnOperation,
+  findBurnEventByExactTransaction,
+  normalizeBurnOperationScope,
+} from "../burn-operation-store";
+import type {
+  BurnOperationPhase,
+  BurnOperationScope,
+  PendingBurnOperation,
+} from "../burn-operation-store";
 
 // ============================================================================
 // Constants
@@ -82,11 +94,23 @@ const MAX_BURN = 1_000;
 const MIN_BURN_BASE = 1_00000000n;
 const MAX_BURN_BASE = 1000_00000000n;
 
+/** Demo deployments shorter than one hour are not safe production seasons. */
+const MIN_PRODUCTION_SEASON_MS = 3_600_000;
+
+/** Only this reviewed v1.1 TestNet deployment may accept new paid burns. */
+export const BURN_LEAGUE_TESTNET_CONTRACT =
+  "0x21a527b50b839efeb73721a886c9b5994a206316";
+export const BURN_LEAGUE_TESTNET_NEF_CHECKSUM = 1958350116;
+
+export function isVerifiedBurnLeagueContract(value: unknown): boolean {
+  return String(value ?? "").trim().toLowerCase() === BURN_LEAGUE_TESTNET_CONTRACT;
+}
+
 /** Memo the contract requires on the burn-funding transfer (appId + ":burn"). */
 const BURN_MEMO = "miniapp-burnleague:burn";
 
-/** How many recent Burned events to page in when rebuilding the leaderboard. */
-const BURNED_EVENTS_LIMIT = 200;
+/** Defensive full-season event bound for the non-authoritative board preview. */
+const BURNED_EVENTS_CAP = 2_000;
 
 /** The zero script hash a contract returns for topBurner when none is set. */
 const ZERO_HASH = "0x0000000000000000000000000000000000000000";
@@ -140,10 +164,60 @@ export interface UseBurnLeagueOptions {
   getAddress?: () => string | null | undefined;
 }
 
+export type BurnTransactionState =
+  | "idle"
+  | "broadcast"
+  | "unknown"
+  | "confirmed"
+  | "failed";
+
+export interface BurnSubmitResult {
+  amount: number;
+  status: "confirmed" | "unknown";
+  txid: string;
+  phase: BurnOperationPhase;
+}
+
+export type BurnRecoveryStatus =
+  | "none"
+  | "pending"
+  | "deposit-confirmed"
+  | "burn-confirmed";
+
+export interface BurnRecoveryResult {
+  status: BurnRecoveryStatus;
+  operation: PendingBurnOperation | null;
+}
+
+export interface BurnAuxiliarySubmitResult {
+  status: "confirmed" | "unknown";
+  txid: string;
+}
+
 /** Case-insensitive address equality (handles base58 and hex script-hash forms). */
 function addressMatches(a: string | null | undefined, b: string | null | undefined): boolean {
   if (!a || !b) return false;
   return a === b || a.toLowerCase() === b.toLowerCase();
+}
+
+/** Match a decoded base58 address or either-endian Hash160 event slot. */
+function eventPlayerMatches(value: unknown, playerHash: string): boolean {
+  if (addrEq(value, playerHash)) return true;
+  const decodedHash = addressToScriptHash(String(value ?? ""));
+  return Boolean(decodedHash && addrEq(decodedHash, playerHash));
+}
+
+/** Match an event/read identity that may be base58 or either-endian Hash160. */
+function playerIdentityMatches(
+  value: unknown,
+  addressValue: string | null | undefined,
+): boolean {
+  if (!value || !addressValue) return false;
+  const playerHash = addressToScriptHash(addressValue);
+  return Boolean(
+    (playerHash && eventPlayerMatches(value, playerHash)) ||
+    addressMatches(String(value), addressValue),
+  );
 }
 
 /**
@@ -179,11 +253,15 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
   const actionNotice = createObservable("");
   const burnValidationError = createObservable<string | null>(null);
   const lastSubmittedAmount = createObservable("");
+  const burnTransactionState = createObservable<BurnTransactionState>("idle");
+  const pendingBurnTxid = createObservable("");
+  const pendingBurnPhase = createObservable<BurnOperationPhase | "">("");
+  const operationStore = createBurnOperationStore(app.storage.local);
   /**
    * Outcome of the most recent successful settle, captured at settle time from
    * the leader/pool that existed BEFORE the season rolled forward. Drives the
    * win/payout celebration. `won` is true only when the connected wallet was the
-   * recorded top burner who is paid the pool; `amount` is the pool that was
+   * recorded top burner who receives claimable pool credit; `amount` is the pool that was
    * awarded (display string). A non-empty `token` marks a fresh result so the
    * UI can fire the celebration exactly once per settle.
    */
@@ -226,6 +304,17 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
   const address = createObservable<string | null>(resolveAddress());
 
   const setAddress = (addr: string | null) => {
+    if (!addressMatches(address.get(), addr)) {
+      pendingBurnTxid.set("");
+      pendingBurnPhase.set("");
+      burnTransactionState.set("idle");
+      userBurned.set(0);
+      prepaidCredit.set(0);
+      rank.set(0);
+      leaderboard.set(
+        leaderboard.get().map((entry) => ({ ...entry, isUser: false })),
+      );
+    }
     address.set(addr ?? null);
   };
 
@@ -282,6 +371,12 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
 
   /** True when the connected wallet has unused prepaid burn-credit to withdraw. */
   const hasCredit = createDerived(() => prepaidCredit.get() > 0, [prepaidCredit]);
+  const hasUnknownBurn = createDerived(
+    () =>
+      burnTransactionState.get() === "broadcast" ||
+      burnTransactionState.get() === "unknown",
+    [burnTransactionState],
+  );
 
   /**
    * Humanized season length read from seasonDuration() — disclosed so a first
@@ -328,8 +423,8 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
   const leaderboardSize = createDerived(() => leaderboard.get().length, [leaderboard]);
 
   /**
-   * The prize for the current season — the WHOLE reward pool, paid to the top
-   * burner at settle. This replaces the bogus 0.1x estimate: the prize is the
+   * The prize for the current season — the WHOLE reward pool, credited to the
+   * top burner at settle for withdrawal. This replaces the bogus 0.1x estimate: the prize is the
    * pool, not a fraction of the player's own burn.
    */
   const prizePoolDisplay = createDerived(
@@ -357,9 +452,7 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
    * the connected address; false when there is no leader or no wallet.
    */
   const userIsLeader = createDerived(() => {
-    const top = (topBurnerAddress.get() ?? "").trim().toLowerCase();
-    const me = (address.get() ?? "").trim().toLowerCase();
-    return top !== "" && me !== "" && top === me;
+    return playerIdentityMatches(topBurnerAddress.get(), address.get());
   }, [topBurnerAddress, address]);
 
   const projectedTotalBurnedDisplay = createDerived(() => {
@@ -379,6 +472,12 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
    * amounts are scaled from base units to whole GAS for display.
    */
   const loadStats = async (): Promise<boolean> => {
+    const configuredContract = app.chain.contractAddress.get();
+    if (!isVerifiedBurnLeagueContract(configuredContract)) {
+      leagueDataAvailable.set(false);
+      serviceNotice.set(t("burnDeploymentUnverified"));
+      return false;
+    }
     try {
       const [
         seasonRaw,
@@ -406,7 +505,8 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       seasonEndMs.set(Number(parseBigInt(endRaw)));
       // Disclose the season length so a first burner knows how long the round
       // they open will run (live mainnet value is currently 120s).
-      seasonDurationMs.set(Number(parseBigInt(durationRaw)));
+      const durationMs = Number(parseBigInt(durationRaw));
+      seasonDurationMs.set(durationMs);
 
       // Bind the burn bounds to the live contract values (base units → whole
       // GAS), keeping the literals when a read returns a non-positive value.
@@ -453,6 +553,14 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
         prepaidCredit.set(0);
       }
 
+      if (!Number.isFinite(durationMs) || durationMs < MIN_PRODUCTION_SEASON_MS) {
+        leagueDataAvailable.set(false);
+        serviceNotice.set(t("seasonDurationUnsafe", {
+          duration: seasonDurationLabel.get(),
+        }));
+        return false;
+      }
+
       leagueDataAvailable.set(true);
       serviceNotice.set("");
       return true;
@@ -482,7 +590,7 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
         return;
       }
 
-      const events = await app.chain.events("Burned", { limit: BURNED_EVENTS_LIMIT });
+      const events = await app.events.listAll("Burned", { cap: BURNED_EVENTS_CAP });
 
       // Newest-first: keep the FIRST (= latest) userSeasonTotal seen per player
       // within the current season.
@@ -505,7 +613,7 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
           rank: idx + 1,
           address: entry.player,
           burned: entry.burned,
-          isUser: addressMatches(entry.player, myAddress),
+          isUser: playerIdentityMatches(entry.player, myAddress),
         }));
 
       leaderboard.set(ranked);
@@ -551,6 +659,196 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
     return null;
   };
 
+  // ── Durable irreversible-operation recovery ───────────────────────
+
+  const resolveOperationScope = async (
+    playerHash?: string,
+    contractHash?: string,
+  ): Promise<BurnOperationScope | null> => {
+    const currentAddress = resolveAddress();
+    const resolvedPlayer = playerHash || addressToScriptHash(currentAddress || "");
+    const resolvedContract = contractHash || app.chain.contractAddress.get() || "";
+    if (!resolvedPlayer || !resolvedContract) return null;
+    const network = await app.chain.detectNetwork();
+    return normalizeBurnOperationScope({
+      player: resolvedPlayer,
+      network,
+      contract: resolvedContract,
+    });
+  };
+
+  const showPendingOperation = (
+    operation: PendingBurnOperation,
+    state: BurnTransactionState,
+  ) => {
+    pendingBurnTxid.set(operation.txid);
+    pendingBurnPhase.set(operation.phase);
+    burnTransactionState.set(state);
+  };
+
+  const clearPendingOperation = (
+    scope: BurnOperationScope,
+    state: BurnTransactionState = "idle",
+  ) => {
+    operationStore.clear(scope);
+    pendingBurnTxid.set("");
+    pendingBurnPhase.set("");
+    burnTransactionState.set(state);
+  };
+
+  const persistOperation = (
+    scope: BurnOperationScope,
+    phase: BurnOperationPhase,
+    txid: string,
+    amount: string,
+    amountBase: bigint,
+    transactionAmountBase: bigint,
+  ): PendingBurnOperation | null => {
+    if (!String(txid ?? "").trim()) return null;
+    const operation = operationStore.set(
+      createPendingBurnOperation({
+        ...scope,
+        phase,
+        txid,
+        amount,
+        amountBase: amountBase.toString(),
+        transactionAmountBase: transactionAmountBase.toString(),
+      }),
+    );
+    showPendingOperation(operation, "broadcast");
+    return operation;
+  };
+
+  const eventMatchesOperation = (
+    event: unknown,
+    operation: Pick<
+      PendingBurnOperation,
+      "phase" | "player" | "transactionAmountBase"
+    >,
+  ): boolean => {
+    if (!event) return false;
+    const playerSlot = operation.phase === "deposit" ? 0 : 1;
+    const amountSlot = operation.phase === "deposit" ? 1 : 2;
+    return (
+      eventPlayerMatches(eventValue(event, playerSlot), operation.player) &&
+      parseBigInt(eventValue(event, amountSlot)).toString() ===
+        operation.transactionAmountBase
+    );
+  };
+
+  /** A tx event is only a clue; confirm its resulting canonical contract state. */
+  const operationReadbackMatches = async (
+    operation: Pick<
+      PendingBurnOperation,
+      "phase" | "player" | "transactionAmountBase"
+    >,
+    event: unknown,
+  ): Promise<boolean> => {
+    try {
+      if (operation.phase === "deposit") {
+        const credit = parseBigInt(
+          await app.chain.readRaw("creditOf", [
+            app.chain.arg.hash160(operation.player),
+          ]),
+        );
+        return credit >= BigInt(operation.transactionAmountBase);
+      }
+
+      const eventSeason = parseBigInt(eventValue(event, 0));
+      const eventUserTotal = parseBigInt(eventValue(event, 3));
+      if (eventSeason <= 0n || eventUserTotal <= 0n) return false;
+      const [liveSeasonRaw, liveUserTotalRaw] = await Promise.all([
+        app.chain.readRaw("currentSeason", []),
+        app.chain.readRaw("userBurned", [
+          app.chain.arg.hash160(operation.player),
+        ]),
+      ]);
+      const liveSeason = parseBigInt(liveSeasonRaw);
+      const liveUserTotal = parseBigInt(liveUserTotalRaw);
+      return liveSeason === eventSeason && liveUserTotal >= eventUserTotal;
+    } catch {
+      return false;
+    }
+  };
+
+  const markUnknown = (operation: PendingBurnOperation): BurnSubmitResult => {
+    showPendingOperation(operation, "unknown");
+    actionNotice.set(
+      t(operation.phase === "deposit" ? "burnDepositUnknown" : "burnTransactionUnknown"),
+    );
+    return {
+      amount: Number(operation.amount),
+      status: "unknown",
+      txid: operation.txid,
+      phase: operation.phase,
+    };
+  };
+
+  /**
+   * Reconcile a persisted deposit/burn using the EXACT broadcast transaction.
+   * A matching event must also carry the expected player and transaction amount;
+   * a same-player event from a different retry can never clear this operation.
+   */
+  const recheckPendingBurn = async (): Promise<BurnRecoveryResult> => {
+    const scope = await resolveOperationScope();
+    if (!scope) {
+      return { status: "none", operation: null };
+    }
+    const operation = operationStore.get(scope);
+    if (!operation) {
+      if (hasUnknownBurn.get()) {
+        pendingBurnTxid.set("");
+        pendingBurnPhase.set("");
+        burnTransactionState.set("idle");
+      }
+      return { status: "none", operation: null };
+    }
+
+    showPendingOperation(operation, "broadcast");
+    const eventName = operation.phase === "deposit" ? "Credited" : "Burned";
+    try {
+      const events = await app.events.listAll(eventName, { cap: 300 });
+      const exact = findBurnEventByExactTransaction(events, operation.txid);
+      if (
+        !exact ||
+        !eventMatchesOperation(exact, operation) ||
+        !(await operationReadbackMatches(operation, exact))
+      ) {
+        showPendingOperation(operation, "unknown");
+        actionNotice.set(
+          t(operation.phase === "deposit" ? "burnDepositUnknown" : "burnTransactionUnknown"),
+        );
+        return { status: "pending", operation };
+      }
+
+      clearPendingOperation(
+        scope,
+        operation.phase === "burn" ? "confirmed" : "idle",
+      );
+      if (operation.phase === "deposit") {
+        actionNotice.set(t("burnDepositReady"));
+        await loadAll();
+        return { status: "deposit-confirmed", operation };
+      }
+
+      burnAmount.set("1");
+      lastSubmittedAmount.set(
+        `${formatNumber(Number(operation.amount), 2)} ${t("tokenGas")}`,
+      );
+      actionNotice.set(t("burnSubmitted"));
+      await loadAll();
+      return { status: "burn-confirmed", operation };
+    } catch (error) {
+      showPendingOperation(operation, "unknown");
+      actionNotice.set(t("burnRecoveryUnavailable"));
+      console.warn("[useBurnLeague] pending burn recovery failed:", errorMessage(error));
+      return { status: "pending", operation };
+    }
+  };
+
+  /** Restore a refresh-surviving operation without ever replaying a burn. */
+  const restorePendingBurn = recheckPendingBurn;
+
   // ── Actions (direct chain invocations) ──────────────────────────────
 
   /**
@@ -572,9 +870,10 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
    *
    * @returns the validated human burn amount on success.
    */
-  const burnTokens = async (burnAmountInput?: string) => {
+  const burnTokens = async (burnAmountInput?: string): Promise<BurnSubmitResult> => {
     // Double-submit guard before any await.
-    if (isBurning.get()) return;
+    if (isBurning.get()) throw new Error(t("burnBusy"));
+    if (hasUnknownBurn.get()) throw new Error(t("burnPendingBlocksNew"));
 
     const amountStr = burnAmountInput ?? burnAmount.get();
     const validation = validateBurnAmount(amountStr);
@@ -604,7 +903,9 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       throw new Error(msg);
     }
 
-    const playerAddr = resolveAddress() || (await app.chain.ensureWallet());
+    // A financial action NEVER opens the wallet and then spends in the same
+    // gesture. main.tsx exposes connectWallet as a separate primary action.
+    const playerAddr = resolveAddress();
     const playerHash = addressToScriptHash(playerAddr || "");
     if (!playerAddr || !playerHash) {
       const msg = t("burnWalletUnavailable");
@@ -619,12 +920,32 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       actionNotice.set(msg);
       throw new Error(msg);
     }
+    if (!leagueDataAvailable.get()) {
+      const msg = serviceNotice.get() || t("burnServiceUnavailable");
+      actionNotice.set(msg);
+      throw new Error(msg);
+    }
+
+    const scope = await resolveOperationScope(playerHash, contractHash);
+    if (!scope) {
+      const msg = t("burnRecoveryUnavailable");
+      actionNotice.set(msg);
+      throw new Error(msg);
+    }
+    const restoredOperation = operationStore.get(scope);
+    if (restoredOperation) {
+      showPendingOperation(restoredOperation, "unknown");
+      const msg = t("burnPendingBlocksNew");
+      actionNotice.set(msg);
+      throw new Error(msg);
+    }
 
     actionNotice.set(t("burnPreparing", {
       amount: `${formatNumber(amount, 2)} ${t("tokenGas")}`,
     }));
     isBurning.set(true);
     let burnLanded = false;
+    let confirmedBurnTxid = "";
     let depositSettled = false;
     try {
       // Step 1: DEPOSIT — only top up when existing burn credit can't cover the
@@ -640,22 +961,87 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       }
 
       if (credit < amountBase) {
+        const shortfall = amountBase - credit;
+        let walletBalance: bigint;
+        try {
+          walletBalance = await app.wallet.raw("GAS", playerAddr);
+        } catch {
+          throw new Error(t("burnBalanceUnavailable"));
+        }
+        if (walletBalance < shortfall) {
+          throw new Error(
+            t("burnInsufficientBalance", {
+              required: formatNumber(fromBaseUnits(shortfall), 8),
+              available: formatNumber(fromBaseUnits(walletBalance), 8),
+              tokenGas: t("tokenGas"),
+            }),
+          );
+        }
+
         // Deposit only the SHORTFALL beyond any prepaid credit left from a prior
         // aborted burn, and wait for the contract's "Credited" event so the
         // deposit is confirmed in a block before burn() consumes it — an
         // unconfirmed deposit lets burn() execute first and fault (the shared
         // invokeWithDirectPrepaidGas path confirms the deposit for the same
         // reason: intra-block ordering is fee/hash-based).
-        await app.chain.invoke(
-          "transfer",
-          [
-            app.chain.arg.hash160(playerHash),
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(amountBase - credit),
-            app.chain.arg.string(BURN_MEMO),
-          ],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH, waitForEvent: "Credited" },
-        );
+        const operationInput = {
+          ...scope,
+          phase: "deposit" as const,
+          player: scope.player,
+          transactionAmountBase: shortfall.toString(),
+        };
+        let depositResult;
+        try {
+          depositResult = await app.chain.invoke(
+            "transfer",
+            [
+              app.chain.arg.hash160(playerHash),
+              app.chain.arg.hash160(contractHash),
+              app.chain.arg.integer(shortfall),
+              app.chain.arg.string(BURN_MEMO),
+            ],
+            {
+              scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+              waitForEvent: "Credited",
+              onTransactionSent: (txid) => {
+                persistOperation(scope, "deposit", txid, amountStr, amountBase, shortfall);
+              },
+            },
+          );
+        } catch (depositError) {
+          const pending = operationStore.get(scope);
+          if (pending?.phase === "deposit") return markUnknown(pending);
+          throw depositError;
+        }
+        const deposited =
+          operationStore.get(scope) ??
+          persistOperation(
+            scope,
+            "deposit",
+            depositResult.txid,
+            amountStr,
+            amountBase,
+            shortfall,
+          );
+        if (!deposited && (depositResult.success === false || !depositResult.txid)) {
+          throw new Error(t("burnActionUnavailable"));
+        }
+        if (
+          depositResult.verified !== true ||
+          !eventMatchesOperation(depositResult.event, operationInput) ||
+          !(await operationReadbackMatches(operationInput, depositResult.event))
+        ) {
+          if (deposited) return markUnknown(deposited);
+          burnTransactionState.set("unknown");
+          actionNotice.set(t("burnDepositUnknown"));
+          return {
+            amount,
+            status: "unknown",
+            txid: depositResult.txid,
+            phase: "deposit",
+          };
+        }
+        clearPendingOperation(scope, "idle");
         depositSettled = true;
       }
 
@@ -663,16 +1049,59 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       // deposit landed but this reverts, the credit persists as reusable prepaid
       // credit (reclaimable via withdraw); surface that distinctly.
       try {
-        await app.chain.invoke(
+        const burnResult = await app.chain.invoke(
           "burn",
           [
             app.chain.arg.hash160(playerHash),
             app.chain.arg.integer(amountBase),
           ],
-          { waitForEvent: "Burned" },
+          {
+            waitForEvent: "Burned",
+            onTransactionSent: (txid) => {
+              persistOperation(scope, "burn", txid, amountStr, amountBase, amountBase);
+            },
+          },
         );
+        const pending =
+          operationStore.get(scope) ??
+          persistOperation(
+            scope,
+            "burn",
+            burnResult.txid,
+            amountStr,
+            amountBase,
+            amountBase,
+          );
+        if (!pending && (burnResult.success === false || !burnResult.txid)) {
+          throw new Error(t("burnActionUnavailable"));
+        }
+        const expectedBurn = {
+          ...scope,
+          phase: "burn" as const,
+          player: scope.player,
+          transactionAmountBase: amountBase.toString(),
+        };
+        if (
+          burnResult.verified !== true ||
+          !eventMatchesOperation(burnResult.event, expectedBurn) ||
+          !(await operationReadbackMatches(expectedBurn, burnResult.event))
+        ) {
+          if (pending) return markUnknown(pending);
+          burnTransactionState.set("unknown");
+          actionNotice.set(t("burnTransactionUnknown"));
+          return {
+            amount,
+            status: "unknown",
+            txid: burnResult.txid,
+            phase: "burn",
+          };
+        }
+        clearPendingOperation(scope, "confirmed");
+        confirmedBurnTxid = burnResult.txid;
         burnLanded = true;
       } catch (burnErr) {
+        const pending = operationStore.get(scope);
+        if (pending?.phase === "burn") return markUnknown(pending);
         const raw = errorMessage(burnErr);
         if (/settle first|season ended/i.test(raw)) {
           throw new Error(t("settleBeforeBurn"));
@@ -687,7 +1116,28 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       lastSubmittedAmount.set(`${formatNumber(amount, 2)} ${t("tokenGas")}`);
       actionNotice.set(t("burnSubmitted"));
 
-      return amount;
+      return {
+        amount,
+        status: "confirmed",
+        txid: confirmedBurnTxid,
+        phase: "burn",
+      };
+    } catch (error) {
+      const pending = operationStore.get(scope);
+      if (pending) return markUnknown(pending);
+      burnTransactionState.set("failed");
+      const raw = errorMessage(error);
+      if (depositSettled) {
+        actionNotice.set(t("burnDepositHeld"));
+        // Preserve the actionable settle instruction in the toast while the
+        // persistent in-arena notice explains that the deposit is safe credit.
+        if (raw === t("settleBeforeBurn") || /settle first|season ended/i.test(raw)) {
+          throw new Error(t("settleBeforeBurn"));
+        }
+        throw new Error(t("burnDepositHeld"));
+      }
+      actionNotice.set(raw || t("burnActionUnavailable"));
+      throw error;
     } finally {
       isBurning.set(false);
       // Refresh once the burn has actually landed so the UI reflects the new
@@ -704,56 +1154,100 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
    * Settle the current season against the standalone contract.
    *
    * settle() is PERMISSIONLESS: once the season deadline has passed it pays the
-   * WHOLE pool to the recorded top burner (NOT the caller) and advances the
-   * season. Anyone may trigger it; the winner is paid by the contract regardless
+   * WHOLE pool to the recorded top burner's claimable credit (NOT the caller) and advances the
+   * season. Anyone may trigger it; the winner is credited regardless
    * of who signs. The UI surfaces this through the needsSettle affordance once the
    * season has ended.
    */
-  const settleSeason = async () => {
-    if (isSettling.get()) return;
+  const settleSeason = async (): Promise<BurnAuxiliarySubmitResult> => {
+    if (isSettling.get()) throw new Error(t("burnBusy"));
 
     const contractHash = app.chain.contractAddress.get();
     if (!contractHash) throw new Error(t("missingContract"));
 
-    // The signer just triggers the settle; ensure a wallet is available to sign.
-    const callerAddr = resolveAddress() || (await app.chain.ensureWallet());
-    if (!callerAddr) throw new Error(t("burnWalletUnavailable"));
+    // Connection is an explicit separate action; settle cannot connect-and-sign.
+    const callerAddr = resolveAddress();
+    const callerHash = addressToScriptHash(callerAddr || "");
+    if (!callerAddr || !callerHash) throw new Error(t("burnWalletUnavailable"));
     setAddress(callerAddr);
 
     isSettling.set(true);
     // Snapshot the leader + pool that are about to be settled — loadAll() rolls
     // the season forward and zeroes both, so the celebration must read them now.
-    const awardedPool = prizePoolDisplay.get();
-    const winnerWasMe = userIsLeader.get();
+    const settlingSeasonId = seasonId.get();
+    let broadcastTxid = "";
     try {
-      await app.chain.invoke("settle", [], { waitForEvent: "SeasonSettled" });
+      const result = await app.chain.invoke("settle", [], {
+        waitForEvent: "SeasonSettled",
+        onTransactionSent: (txid) => {
+          broadcastTxid = txid;
+        },
+      });
+      broadcastTxid ||= result.txid;
+      if (result.success === false || !broadcastTxid) {
+        throw new Error(t("settleActionUnavailable"));
+      }
+      const settledId = Number(parseBigInt(eventValue(result.event, 0)));
+      const settledWinner = eventValue(result.event, 1);
+      const settledPoolBase = parseBigInt(eventValue(result.event, 2));
+      if (
+        result.verified !== true ||
+        !result.event ||
+        (settlingSeasonId > 0 && settledId !== settlingSeasonId) ||
+        settledPoolBase <= 0n ||
+        isZeroAddress(String(settledWinner ?? ""))
+      ) {
+        actionNotice.set(t("settleTransactionUnknown"));
+        await loadAll().catch((refreshError) => {
+          console.warn("[useBurnLeague] post-settle reconciliation failed:", errorMessage(refreshError));
+        });
+        return { status: "unknown", txid: broadcastTxid };
+      }
       lastSettleResult.set({
-        won: winnerWasMe,
-        amount: awardedPool,
+        // Derive both winner and amount from the verified event, not from a
+        // potentially stale pre-submit UI snapshot.
+        won: eventPlayerMatches(settledWinner, callerHash),
+        amount: `${formatNumber(fromBaseUnits(settledPoolBase), 2)} ${t("tokenGas")}`,
         token: Date.now(),
       });
       await loadAll();
+      return { status: "confirmed", txid: broadcastTxid };
+    } catch (error) {
+      if (broadcastTxid) {
+        actionNotice.set(t("settleTransactionUnknown"));
+        await loadAll().catch((refreshError) => {
+          console.warn("[useBurnLeague] failed-settle reconciliation failed:", errorMessage(refreshError));
+        });
+        return { status: "unknown", txid: broadcastTxid };
+      }
+      throw error;
     } finally {
       isSettling.set(false);
     }
   };
 
   /**
-   * Withdraw the connected wallet's unused prepaid burn-credit via
-   * withdraw(account). The contract pays the WHOLE credit back to the wallet —
-   * the recovery path when a deposit landed but burn() never completed (the
-   * burnDepositHeld case). Returns the withdrawn amount in human GAS (from the
+   * Withdraw the connected wallet's claimable credit via withdraw(account).
+   * Credit includes unused deposits and settled winnings; the contract pays the
+   * WHOLE balance back to the wallet. Returns the withdrawn amount in human GAS (from the
    * "CreditWithdrawn" event, state[1] = amount).
    */
-  const withdrawCredit = async (): Promise<{ amount: number }> => {
-    if (isLoading.get()) return { amount: 0 };
+  const withdrawCredit = async (): Promise<{
+    amount: number;
+    status: "confirmed" | "unknown";
+    txid: string;
+  }> => {
+    if (isLoading.get() || isBurning.get() || isSettling.get() || hasUnknownBurn.get()) {
+      throw new Error(t("burnBusy"));
+    }
 
-    const accountAddr = resolveAddress() || (await app.chain.ensureWallet());
+    const accountAddr = resolveAddress();
     const accountHash = addressToScriptHash(accountAddr || "");
     if (!accountAddr || !accountHash) throw new Error(t("burnWalletUnavailable"));
     setAddress(accountAddr);
 
     isLoading.set(true);
+    let broadcastTxid = "";
     try {
       // Read the live credit first — the contract reverts "no credit" on an empty
       // balance, so surface a clean message before prompting the wallet.
@@ -770,15 +1264,48 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
       const result = await app.chain.invoke(
         "withdraw",
         [app.chain.arg.hash160(accountHash)],
-        { waitForEvent: "CreditWithdrawn" },
+        {
+          waitForEvent: "CreditWithdrawn",
+          onTransactionSent: (txid) => {
+            broadcastTxid = txid;
+          },
+        },
       );
+      broadcastTxid ||= result.txid;
+      if (result.success === false || !broadcastTxid) {
+        throw new Error(t("withdrawActionUnavailable"));
+      }
+
+      const amountBase = parseBigInt(eventValue(result.event, 1));
+
+      if (
+        result.verified !== true ||
+        !result.event ||
+        !eventPlayerMatches(eventValue(result.event, 0), accountHash) ||
+        amountBase <= 0n ||
+        amountBase !== credit
+      ) {
+        actionNotice.set(t("withdrawTransactionUnknown"));
+        await loadAll().catch((refreshError) => {
+          console.warn("[useBurnLeague] post-withdraw reconciliation failed:", errorMessage(refreshError));
+        });
+        return { amount: 0, status: "unknown", txid: broadcastTxid };
+      }
 
       // OnCreditWithdrawn(account, amount) — amount is state index 1.
-      const amountBase = parseBigInt(eventValue(result.event, 1));
-      const amount = amountBase > 0n ? fromFixed8(amountBase) : fromFixed8(credit);
+      const amount = fromFixed8(amountBase);
 
       await loadAll();
-      return { amount };
+      return { amount, status: "confirmed", txid: broadcastTxid };
+    } catch (error) {
+      if (broadcastTxid) {
+        actionNotice.set(t("withdrawTransactionUnknown"));
+        await loadAll().catch((refreshError) => {
+          console.warn("[useBurnLeague] failed-withdraw reconciliation failed:", errorMessage(refreshError));
+        });
+        return { amount: 0, status: "unknown", txid: broadcastTxid };
+      }
+      throw error;
     } finally {
       isLoading.set(false);
     }
@@ -802,6 +1329,10 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
     lastSubmittedAmount,
     prepaidCredit,
     hasCredit,
+    burnTransactionState,
+    pendingBurnTxid,
+    pendingBurnPhase,
+    hasUnknownBurn,
     address,
 
     // ── Season lifecycle ────────────────────────────────────────────
@@ -849,6 +1380,8 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
     withdrawCredit,
     loadAll,
     validateBurnAmount,
+    recheckPendingBurn,
+    restorePendingBurn,
   };
 }
 

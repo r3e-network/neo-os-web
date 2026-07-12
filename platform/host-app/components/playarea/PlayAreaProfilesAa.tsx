@@ -420,11 +420,11 @@ export const AA_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-dev-tipping": {
     title: "Developer tip jar",
     subtitle:
-      "Send an appreciation tip with a message and clear wallet preview before payment.",
+      "Choose a registered builder, select a Fixed8 GAS amount, confirm once, and keep an exact recoverable receipt.",
     tone: "rose",
     icon: <HeartHandshake className="h-5 w-5" />,
     fields: [
-      { key: "recipient", label: "Developer", defaultValue: "" },
+      { key: "devId", label: "Developer ID", defaultValue: "" },
       {
         key: "amount",
         label: "Tip amount",
@@ -434,15 +434,15 @@ export const AA_PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       },
     ],
     cards: [
-      { label: "Message", value: "public thanks" },
+      { label: "Visibility", value: "public or anonymous" },
       { label: "Asset", value: "GAS" },
-      { label: "Receipt", value: "on-chain" },
+      { label: "Receipt", value: "event + readback" },
     ],
-    steps: ["Pick developer", "Write note", "Preview tip", "Send receipt"],
+    steps: ["Pick developer", "Choose GAS", "Confirm wallet", "Verify receipt"],
     primaryAction: "Send tip",
     visual: {
       headline: "Tip flow",
-      slots: ["Sender", "Message", "Developer", "Receipt"],
+      slots: ["Sender", "Developer", "Wallet", "Receipt"],
     },
   },
   "miniapp-event-ticket-pass": {

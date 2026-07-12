@@ -13,11 +13,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="red-envelope-phaser-host" />;
     },
@@ -44,6 +42,7 @@ function t(key: string, params?: Record<string, string | number>) {
     claimRedEnvelope: "Claim red envelope",
     claimTicketEmptyDesc: "Open a OneGate QR claim link or pick an open envelope below.",
     claimTicketPreparedDesc: "The ID is filled. Claiming will ask the contract to verify whether it can be opened.",
+    chainReadUnavailable: "Network data is unavailable.",
     claimedGasLabel: "Claimed GAS",
     congratulations: "Lucky you!",
     contractRoute: "Contract route",
@@ -67,9 +66,28 @@ function t(key: string, params?: Record<string, string | number>) {
     recentClaimsTitle: "Recent claims",
     reclaimEnvelope: "Reclaim",
     reclaimableTitle: "Reclaim expired envelopes",
+    retryData: "Retry data",
     remaining: "{remaining}/{total} left",
     safetyPanelCopy: "Claiming calls the Red Envelope contract directly and pays GAS atomically.",
     safetyPanelTitle: "Transaction safety",
+    sceneAriaLabel: "Interactive red-envelope game",
+    sceneKeyboardHint: "Red-envelope game keyboard controls",
+    sceneLoadingLabel: "Preparing the red-envelope table",
+    sceneLoadError: "The red-envelope table could not load",
+    sceneRetry: "Try again",
+    sceneContinue: "Continue",
+    sceneEnableSound: "Turn on red-envelope sounds",
+    sceneMuteSound: "Mute red-envelope sounds",
+    sceneOpen: "Open envelope",
+    sceneOpening: "Opening...",
+    sceneConnectWallet: "Connect wallet",
+    sceneWorking: "Working...",
+    scenePlanLucky: "Lucky 8",
+    scenePlanParty: "Party 20",
+    scenePlanFestival: "Festival 50",
+    accessibleActionsTitle: "Keyboard actions",
+    accessibleActionsHint: "Standard action buttons",
+    closeDrawer: "Close envelope details",
     sendingRedEnvelope: "Sending packets...",
     shareHint: "Created envelope #{id}. Copy the claim link and send it to recipients.",
     shareReadyTitle: "OneGate share-ready",
@@ -101,7 +119,15 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
       { id: "31", remainingAmount: 1.1, remainingPackets: 2, packetCount: 6, active: false, expired: true, reclaimable: true },
     ],
     isCreating: false,
+    isConnectingWallet: false,
     isLoading: false,
+    isRecovering: false,
+    appMode: "gamefi",
+    walletConnected: true,
+    paidActionsAvailable: true,
+    createAvailable: true,
+    pendingOperation: null,
+    transactionNotice: "",
     lastCreatedEnvelopeId: "",
     lastError: "",
     luckyMessage: null,
@@ -142,10 +168,10 @@ describe("red-envelope Phaser playarea", () => {
     };
 
     expect(props.className).toBe("redenv-phaser-canvas");
-    expect(props.ariaLabel).toBe("Red Envelope packet game");
-    expect(props.loadingLabel).toBe("Opening red envelope game");
+    expect(props.ariaLabel).toBe("Interactive red-envelope game");
+    expect(props.loadingLabel).toBe("Preparing the red-envelope table");
     expect(props.config?.width).toBe(420);
-    expect(props.config?.height).toBe(540);
+    expect(props.config?.height).toBe(580);
     expect(props.state.envelopes).toEqual([
       { id: "42", totalAmount: 8, remainingAmount: 3.2, remainingPackets: 3, packetCount: 8, active: true, canOpen: true },
       { id: "31", remainingAmount: 1.1, remainingPackets: 2, packetCount: 6, active: false, expired: true, reclaimable: true },
@@ -153,9 +179,112 @@ describe("red-envelope Phaser playarea", () => {
     expect(props.state.claims).toEqual([
       { id: "42:claimer", poolId: "42", holder: "0xabc1239999", amount: 0.42 },
     ]);
+    expect(props.state.claimability).toEqual({ envelopeId: "42", canClaim: true });
+    expect(props.state.walletConnected).toBe(true);
+    expect(props.state.paidActionsAvailable).toBe(true);
+    expect(props.state.appMode).toBe("gamefi");
     expect(queryByText("Create")).toBeNull();
     expect(queryByText("Open envelope")).toBeNull();
-    expect(queryAllByText("Red Envelope").length).toBeGreaterThan(0);
+    expect(queryAllByText("Red Envelope")).toHaveLength(0);
+    expect(container.querySelector(".redenv-sr-only")?.textContent).toContain("Red Envelope");
+  });
+
+  it("passes explicit disabled claimability instead of falling back to an ineligible envelope", () => {
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          envelopes: [
+            { id: "expired-first", active: false, expired: true, remainingPackets: 2 },
+            { id: "claimed-active", active: true, ready: true, canOpen: false, remainingPackets: 2 },
+          ],
+          pools: [],
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch()}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
+    expect(props.state.claimability).toEqual({ envelopeId: "", canClaim: false });
+  });
+
+  it("does not leak a stale GameFi service notice into local packet play", () => {
+    const { container } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          serviceNotice: "This network still uses the legacy contract.",
+          transactionNotice: "Pending on-chain operation.",
+          luckyMessage: { amount: 0.5, from: "Local" },
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch()}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+      state: Record<string, unknown>;
+    };
+    expect(props.state.serviceNotice).toBe("");
+    expect(container.querySelector(".redenv-sr-only")?.textContent).not.toContain("legacy contract");
+    expect(container.querySelector(".redenv-sr-only")?.textContent).not.toContain("Pending on-chain");
+    expect(container.querySelector(".redenv-sr-only")?.textContent).not.toContain("GAS");
+  });
+
+  it("does not substitute another pool when an explicit claim link is ineligible", () => {
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state()}
+        dispatch={vi.fn()}
+        launchContext={launch("https://neomini.app/miniapps/red-envelope/index.html?network=testnet&envelopeId=expired")}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
+    expect(props.state.claimability).toEqual({ envelopeId: "", canClaim: false });
+  });
+
+  it("keeps stale-host paid controls disabled even when an envelope is otherwise claimable", () => {
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ paidActionsAvailable: false, createAvailable: true })}
+        dispatch={vi.fn()}
+        launchContext={launch()}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
+    expect(props.state.paidActionsAvailable).toBe(false);
+    expect(props.state.createAvailable).toBe(false);
+    expect(props.state.claimability).toEqual({ envelopeId: "42", canClaim: false });
+  });
+
+  it("offers a keyboard primary action and a closable modal drawer", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const view = render(
+      <PhaserPlayArea t={t} state={state()} dispatch={dispatch} launchContext={launch()} />,
+    );
+
+    fireEvent.keyDown(view.container.querySelector(".redenv-canvas-access") as HTMLElement, {
+      key: "Enter",
+    });
+    expect(dispatch).toHaveBeenCalledWith("claimEnvelope", { envelopeId: "42" });
+
+    fireEvent.click(view.getByText("My Envelopes"));
+    expect(view.getByRole("dialog", { name: "My Envelopes" })).toBeTruthy();
+    expect(view.getByRole("button", { name: "Close envelope details" })).toBeTruthy();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(view.queryByRole("dialog", { name: "My Envelopes" })).toBeNull();
   });
 
   it("keeps share and credit recovery in the in-stage drawer", () => {
@@ -179,6 +308,22 @@ describe("red-envelope Phaser playarea", () => {
 
     fireEvent.click(getByText("Withdraw credit"));
     expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
+  });
+
+  it("surfaces a secondary read-retry action without replacing the game", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ serviceNotice: "Network data is unavailable." })}
+        dispatch={dispatch}
+        launchContext={launch()}
+      />,
+    );
+
+    fireEvent.click(getByText("My Envelopes"));
+    fireEvent.click(getByText("Retry data"));
+    expect(dispatch).toHaveBeenCalledWith("retryEnvelopeData");
   });
 
   it("tucks pools, claims, reclaim, sharing, and contract safety into the drawer", () => {
@@ -226,6 +371,7 @@ describe("red-envelope Phaser playarea", () => {
     const repoRoot = resolve(__dirname, "../../..");
     const wrapper = readFileSync(resolve(repoRoot, "apps/red-envelope/src/PhaserPlayArea.tsx"), "utf8");
     const scene = readFileSync(resolve(repoRoot, "apps/red-envelope/src/scenes/RedEnvelopeScene.ts"), "utf8");
+    const main = readFileSync(resolve(repoRoot, "apps/red-envelope/src/main.tsx"), "utf8");
     const styles = readFileSync(resolve(repoRoot, "apps/red-envelope/src/PlayArea.scss"), "utf8");
 
     expect(wrapper).toContain("redenv-drawer__summary-grid");
@@ -239,6 +385,34 @@ describe("red-envelope Phaser playarea", () => {
     expect(wrapper).not.toMatch(/<(form|input|textarea|select)\b/);
     expect(scene).toContain("private activeMode: Mode = \"claim\"");
     expect(scene).toContain("Open a shared link or active pool.");
+    expect(scene).toContain('this.val<Claimability>("claimability", undefined)');
+    expect(scene).toContain("paidAvailable && this.claimEnabled && Boolean(this.activeEnvelopeId) && !this.busy");
+    expect(scene).not.toContain("merged[0]?.id");
+    const dispatchClaim = scene.slice(
+      scene.indexOf("private dispatchClaim(): void"),
+      scene.indexOf("private playOpenAnimation(): void"),
+    );
+    expect(dispatchClaim).not.toContain("playOpenAnimation");
+    expect(scene).toContain("this.playOpenAnimation();");
+    expect(scene).toContain("REDENV_ASSETS.claimCard");
+    expect(scene).toContain("private playCreateAnimation(): void");
+    expect(scene).toContain("private spawnRewardBurst(): void");
+    const dispatchCreate = scene.slice(
+      scene.indexOf("private dispatchCreate(): void"),
+      scene.indexOf("private dispatchClaim(): void"),
+    );
+    expect(dispatchCreate).toContain('this.dispatch("connectWallet")');
+    expect(dispatchCreate.indexOf('this.dispatch("connectWallet")')).toBeLessThan(
+      dispatchCreate.indexOf('this.dispatch("createEnvelope"'),
+    );
+    expect(dispatchClaim).toContain('this.dispatch("connectWallet")');
+    expect(dispatchClaim.indexOf('this.dispatch("connectWallet")')).toBeLessThan(
+      dispatchClaim.indexOf('this.dispatch("claimEnvelope"'),
+    );
+    expect(main).toContain('actions.register("connectWallet"');
+    expect(main).toContain("This action is deliberately terminal");
+    expect(main).toContain('app.notify.info("connectWalletFirst")');
+    expect(main).toContain("assertNewPaidActionEnabled");
     expect(styles).toContain(".redenv-stage-hud");
     expect(styles).toContain(".redenv-ingame-drawer");
     expect(styles).toContain(".redenv-drawer__summary-grid");

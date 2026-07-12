@@ -1,11 +1,11 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
   "id": "miniapp-aa-permissions-lab",
-  "name": "AA Permissions Lab",
-  "name_zh": "AA 权限实验室",
-  "version": "1.0.0",
-  "description": "Inspect and update verifier / hook bindings for Neo Abstract Accounts.",
-  "description_zh": "查询并更新 Neo 抽象账户的 verifier / hook 绑定。",
+  "name": "AA Permissions",
+  "name_zh": "AA 权限",
+  "version": "2.0.0",
+  "description": "Inspect, install, and safely rotate verifier or hook bindings for Neo Abstract Accounts.",
+  "description_zh": "检查、安装并安全轮换 Neo 抽象账户的 Verifier 或 Hook 绑定。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -42,16 +42,9 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://aa-permissions-lab"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
   },
   "platform": {
     "analytics": true,
@@ -60,5 +53,5 @@
     "transactions": true
   },
   "createdAt": "2026-03-18T05:00:00Z",
-  "updatedAt": "2026-05-08T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

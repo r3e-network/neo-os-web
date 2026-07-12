@@ -48,6 +48,7 @@ describe("GenericPlayArea focus mode", () => {
     expect(
       screen.getByTestId("generic-dapp-frame-miniapp-demo"),
     ).toBeInTheDocument();
+    expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
 
     // The meta-commentary rows still exist for diagnostics, but inside the
     // collapsed "Activity and details" drawer rather than as page filler.

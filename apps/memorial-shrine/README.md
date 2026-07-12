@@ -1,62 +1,62 @@
 # Memorial Shrine
 
-Create eternal digital memorials for loved ones on the blockchain.
+Memorial Shrine is a public Neo N3 remembrance garden. The garden, memorial
+portrait, and fixed-price symbolic offerings are the primary surface; creation
+details, history, and transaction recovery stay in a secondary drawer.
 
-## Overview
+## Product flow
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-memorial-shrine` |
-| **Category** | Social |
-| **Version** | 1.0.0 |
-| **Network** | Neo N3 Mainnet / Testnet |
+1. Open the live garden and select an existing memorial.
+2. Choose one of six contract-defined symbolic offerings and leave an optional
+   message.
+3. Review the permanent, non-refundable on-chain action before wallet
+   confirmation.
+4. Create a memorial from the visual memorial-card studio. Only the name is
+   required; relationship, dates, life story, obituary, and an HTTPS/IPFS image
+   reference are optional drawer details.
+5. Share a memorial with its `?id=` deep link.
 
-## Features
+The UI does not claim that GAS is sent to a family. A tribute records an
+on-chain symbolic offering through the deployed contract's payment path.
 
-- **Eternal Memorials**: Permanent on-chain tributes
-- **Photo & Message Storage**: IPFS-backed media
-- **Virtual Offerings**: Digital incense and flowers funded by direct prepaid GAS
-- **Family Sharing**: Multi-user memorial access
-- **Anniversary Reminders**: Automated notifications
+## Transaction integrity
 
-## Usage
+- Every write is bound to the exact network, contract, wallet, intent, amount,
+  and transaction ID observed by `onTransactionSent`.
+- The broadcast record is durably round-tripped in local storage before the UI
+  can treat recovery as available. A failed storage preflight blocks the wallet
+  request.
+- Refreshing the MiniApp restores the pending record and checks it; it never
+  replays the invocation.
+- A write is complete only after `getapplicationlog` reports `HALT`, the exact
+  contract event matches the saved intent, and authoritative contract getters
+  match the same intent. `FAULT`, unavailable/unknown, event mismatch, and
+  readback-pending are separate states.
+- Failed integer reads are unavailable, not synthetic zero values.
 
-### Creating a Memorial
+## Runtime boundaries
 
-1. **Connect Wallet**: Link your Neo N3 wallet
-2. **Create Shrine**: Fill in the loved one's name and details
-3. **Add Photos**: Upload photos and memories (stored on IPFS)
-4. **Write Tribute**: Add life story and messages
-5. **Set Permissions**: Choose who can view and contribute
-6. **Publish**: Create the permanent on-chain memorial
+- Reads come directly from `MiniAppMemorialShrine` getters. RPC failure is shown
+  as a recoverable unavailable state and is never presented as an empty garden.
+- TestNet tributes use the deployed `onNEP17Payment` payment-plus-invocation
+  lane.
+- MainNet memorial creation is ABI-compatible, but tribute is deliberately
+  blocked before wallet interaction while the deployed `paymentHub` is
+  unconfigured.
+- The app stores only opened memorial IDs and an exact pending-write recovery
+  record on this device.
+- The photo field stores an HTTPS URL or IPFS CID reference. This MiniApp does
+  not upload files, provide private memorials, manage collaborators, or issue a
+  NEP-11 token.
 
-### Managing a Shrine
+## Contracts
 
-1. **Add Content**: Continuously add photos, stories, and memories
-2. **Invite Family**: Share access with family members
-3. **Make Offerings**: Burn virtual incense and flowers as tribute
-4. **Set Reminders**: Configure anniversary notifications
-5. **Update Info**: Keep the memorial up to date
+| Network | Contract |
+| --- | --- |
+| Neo N3 MainNet | `0xee7a548b71c69364fcb0e45a63a40f141b938e42` |
+| Neo N3 TestNet | `0x87f0fe2ba69cd973a3274471234d3cc13ef943c5` |
 
-### Visiting a Shrine
-
-1. **Browse Memorials**: Search for public shrines
-2. **View Tributes**: Read stories and view photos
-3. **Pay Respects**: Leave virtual offerings
-4. **Sign Guestbook**: Add your condolences
-
-## How It Works
-
-1. **On-Chain Record**: A unique NFT represents each memorial
-2. **IPFS Storage**: Photos and long-form content stored on IPFS
-3. **Permanent Tribute**: Memorials exist forever on the Neo blockchain
-4. **Collaborative**: Multiple people can contribute to one shrine
-5. **Privacy Controls**: Set who can view and edit each memorial
-6. **Direct Funding**: offerings are prepaid directly to the MiniApp contract
-
-## Technical Details
-
-- **Mainnet Contract**: `0xee7a548b71c69364fcb0e45a63a40f141b938e42`
-- **Testnet Contract**: `0x87f0fe2ba69cd973a3274471234d3cc13ef943c5`
-- **Storage**: IPFS for media, Neo blockchain for metadata
-- **Standards**: NEP-11 for memorial NFTs
+See [NETWORK_STATUS.md](./NETWORK_STATUS.md) for the read-only deployment
+snapshot, [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md) for visual-asset
+clearance, and [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md) for remaining
+release gates.

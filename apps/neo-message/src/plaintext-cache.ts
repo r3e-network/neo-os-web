@@ -15,7 +15,11 @@
  * decrypted before the framework migration still overlay.
  */
 
-import { addressesEqual, type MessageView } from "./message-logic";
+import {
+  MAX_BODY_LENGTH,
+  addressesEqual,
+  type MessageView,
+} from "./message-logic";
 
 /**
  * Synchronous device-local store — structurally satisfied by
@@ -29,6 +33,7 @@ export interface PlaintextStore {
 // Composed with the app's storagePrefix ("<contract-address>:") this resolves
 // to the legacy "<contract-address>:plaintext:v1" localStorage key.
 export const PLAINTEXT_STORE_KEY = "plaintext:v1";
+export const MAX_PLAINTEXT_CACHE_ENTRIES = 100;
 
 export function plaintextCacheKey(id: string, recipient: string): string {
   return `${id}:${recipient.toLowerCase()}`;
@@ -36,8 +41,20 @@ export function plaintextCacheKey(id: string, recipient: string): string {
 
 /** Read the persisted plaintext cache. Returns {} on any failure. */
 export function readPlaintextCache(store: PlaintextStore): Record<string, string> {
-  const raw = store.get<Record<string, string>>(PLAINTEXT_STORE_KEY, null);
-  return raw && typeof raw === "object" ? raw : {};
+  try {
+    const raw = store.get<Record<string, string>>(PLAINTEXT_STORE_KEY, null);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    const valid = Object.entries(raw).filter(
+      ([key, value]) =>
+        /^[1-9]\d*:0x[0-9a-f]{40}$/i.test(key) &&
+        typeof value === "string" &&
+        value.length > 0 &&
+        value.length <= MAX_BODY_LENGTH,
+    );
+    return Object.fromEntries(valid.slice(-MAX_PLAINTEXT_CACHE_ENTRIES));
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -52,9 +69,21 @@ export function cachePlaintext(
   plaintext: string,
 ): void {
   try {
+    if (
+      !/^[1-9]\d*$/.test(id) ||
+      !/^0x[0-9a-fA-F]{40}$/.test(recipient) ||
+      typeof plaintext !== "string" ||
+      plaintext.length === 0 ||
+      plaintext.length > MAX_BODY_LENGTH
+    ) {
+      return;
+    }
     const cache = readPlaintextCache(store);
-    cache[plaintextCacheKey(id, recipient)] = plaintext;
-    store.set(PLAINTEXT_STORE_KEY, cache);
+    const key = plaintextCacheKey(id, recipient);
+    delete cache[key];
+    cache[key] = plaintext;
+    const entries = Object.entries(cache).slice(-MAX_PLAINTEXT_CACHE_ENTRIES);
+    store.set(PLAINTEXT_STORE_KEY, Object.fromEntries(entries));
   } catch {
     /* device-cache write failure must not fail the reveal that produced it */
   }
@@ -76,6 +105,9 @@ export function overlayCachedPlaintext(
       return row;
     }
     const cached = cache[plaintextCacheKey(row.id, row.recipient)];
-    return cached ? { ...row, plaintext: cached, revealed: true } : row;
+    // Keep `revealed` as the on-chain public-reveal flag. Recipient-only
+    // plaintext opened on this device is private local state, not an on-chain
+    // reveal, and the UI must never label it public.
+    return cached ? { ...row, plaintext: cached } : row;
   });
 }

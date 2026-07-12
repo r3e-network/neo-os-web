@@ -163,4 +163,37 @@ describe("OneGate Vault range pool expiry uses milliseconds", () => {
     const parsed = parsePool("42", raw);
     expect(parsed?.status).toBe("active");
   });
+
+  it("normalizes real RPC Hash160 ByteStrings and rejects malformed snapshots", () => {
+    const ownerBase64 = "ODf0EwY4dOXBDMmxnUaR3fZWBm0=";
+    const ownerHash = "0x6d0656f6dd91469db1c90cc1e574380613f43738";
+    const futureMs = Date.now() + 24 * 3600 * 1000;
+    const valid = [
+      { type: "ByteString", value: ownerBase64 },
+      "1000000000",
+      "100000000",
+      "500000000",
+      "5",
+      "1",
+      "750000000",
+      { type: "ByteString", value: ownerBase64 },
+      "250000000",
+      String(futureMs),
+      true,
+    ];
+
+    expect(parsePool("42", valid)).toEqual(
+      expect.objectContaining({
+        creator: ownerHash,
+        bestLuckAddress: ownerHash,
+        active: true,
+      }),
+    );
+    expect(parsePool("42", [...valid.slice(0, 10), "not-a-boolean"])).toBeNull();
+    expect(parsePool("42", [
+      ...valid.slice(0, 6),
+      "1000000001",
+      ...valid.slice(7),
+    ])).toBeNull();
+  });
 });

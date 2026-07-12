@@ -1,33 +1,78 @@
-/**
- * useAAPermissionsLab -- Domain logic for AA Permissions Lab (OS Services)
- *
- * Uses createObservable instead of Vue ref/computed/reactive.
- * Called once during setup, returns observables that React components subscribe to.
- */
-
 import { createObservable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { FrameworkContractArg } from "@framework/index";
+import { addressToScriptHash } from "@shared/utils/neo";
+import { getExternalIntegrationConfig } from "@shared/constants/rpc";
 import {
-  addressToScriptHash,
-  normalizeScriptHash,
-  parseHash160,
-  parseInvokeResult,
-} from "@shared/utils/neo";
-import {
-  getExternalIntegrationConfig,
-  getNetwork,
-} from "@shared/constants/rpc";
+  buildPendingPermissionTransaction,
+  buildProposalContext,
+  explicitPermissionNetwork,
+  isPermissionBindingCurrent,
+  isPermissionUnlockReady,
+  normalizePermissionHash,
+  normalizeVerifierParams,
+  parsePermissionBoolean,
+  parsePermissionHash,
+  parsePermissionTimestamp,
+  readPermissionTransactionState,
+  permissionContractOperation,
+  permissionOperationEvent,
+  permissionTransactionSatisfied,
+  requirePermissionHash,
+  restorePendingPermissionTransaction,
+  restoreProposalContext,
+  validatePendingTimes,
+  ZERO_HASH,
+  type PendingPermissionTransaction,
+  type PermissionLane,
+  type PermissionNetwork,
+  type PermissionOperation,
+  type PermissionProposalContext,
+  type PermissionSnapshot,
+  type PermissionTransactionState,
+} from "../permissions";
 
 export interface UseAAPermissionsLabOptions {
   app: MiniAppFramework;
-  storageService: StorageProxy;
+  network: PermissionNetwork;
   t: (key: string, params?: Record<string, string | number>) => string;
+  transactionStateReader?: (
+    network: PermissionNetwork,
+    txid: string,
+  ) => Promise<PermissionTransactionState>;
 }
 
-export function useAAPermissionsLab({ app, storageService, t }: UseAAPermissionsLabOptions) {
-  const network = getNetwork();
-  const aaCore = getExternalIntegrationConfig(network).contracts.aaCore;
+export interface PermissionWriteOutcome {
+  txid: string;
+  operation: PermissionOperation;
+  confirmed: boolean;
+  immediateInstall: boolean;
+}
+
+const PENDING_TRANSACTION_KEY = "permissions/pending-transaction-v1";
+const STORAGE_PROBE_KEY = "permissions/storage-probe-v1";
+const PROPOSAL_CONTEXT_KEYS: Record<PermissionLane, string> = {
+  verifier: "permissions/proposal-verifier-v1",
+  hook: "permissions/proposal-hook-v1",
+};
+
+function errorKey(error: unknown) {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  if (raw.startsWith("permissionReadInvalid:")) return "permissionReadInvalid";
+  if (/^[a-z][a-zA-Z]+$/.test(raw)) return raw;
+  return "permissionOperationFailed";
+}
+
+export function useAAPermissionsLab({
+  app,
+  network,
+  t,
+  transactionStateReader = readPermissionTransactionState,
+}: UseAAPermissionsLabOptions) {
+  const aaCore = requirePermissionHash(
+    getExternalIntegrationConfig(network).contracts.aaCore,
+    false,
+  );
 
   const form = {
     accountIdHash: "",
@@ -36,233 +81,631 @@ export function useAAPermissionsLab({ app, storageService, t }: UseAAPermissions
     hookHash: "",
   };
 
-  const currentVerifier = createObservable(t("notAvailable"));
-  const currentHook = createObservable(t("notAvailable"));
-  const currentBackupOwner = createObservable(t("notAvailable"));
-
-  // True once a read completes — gates the "configured" chip and the detail
-  // grid so typing junk hex never asserts unfetched state.
+  const currentVerifier = createObservable("");
+  const currentHook = createObservable("");
+  const currentBackupOwner = createObservable("");
+  const inspectedAccountId = createObservable("");
+  const permissionSnapshot = createObservable<PermissionSnapshot | null>(null);
   const hasInspected = createObservable(false);
-
-  // Two-phase rotation state (UnifiedSmartWalletV3 uses propose -> timelock ->
-  // confirm). When a pending update exists the UI shows a confirm/cancel banner.
   const hasPendingVerifier = createObservable(false);
   const hasPendingHook = createObservable(false);
   const pendingVerifierUnlockAt = createObservable(0);
   const pendingHookUnlockAt = createObservable(0);
+  const proposalVerifier = createObservable<PermissionProposalContext | null>(null);
+  const proposalHook = createObservable<PermissionProposalContext | null>(null);
 
   const isRefreshing = createObservable(false);
   const isVerifierBusy = createObservable(false);
   const isHookBusy = createObservable(false);
+  const isRecovering = createObservable(false);
+  const isCheckingWallet = createObservable(false);
+  const readError = createObservable("");
+  const lastWriteStatus = createObservable(t("transactionIdle"));
+  const pendingTransaction = createObservable<PendingPermissionTransaction | null>(null);
+  const pendingTxid = createObservable("");
+  const storageHealthy = createObservable(true);
+  const walletNetwork = createObservable("");
+  const walletNetworkMatches = createObservable(false);
 
-  // Hash160 reads come back little-endian; parseHash160 reverses them to the
-  // canonical 0x display form so they match the hashes the user types directly
-  // below. Empty/zero reads collapse to the localized placeholder.
-  const formatPermissionValue = (value: unknown) => {
-    const display = parseHash160(value);
-    if (!display || /^0x0{40}$/i.test(display)) {
-      return t("notAvailable");
+  let readEpoch = 0;
+  let disposed = false;
+
+  const safeStorageGet = <T,>(key: string, fallback: T): T => {
+    try {
+      const value = app.storage.local.get<T>(key, fallback);
+      return value ?? fallback;
+    } catch {
+      storageHealthy.set(false);
+      return fallback;
     }
-    return display;
   };
 
-  // The connected wallet as a bare lowercase script hash, "" when disconnected.
-  const connectedWalletHash = (): string => {
-    const addr = app.chain.address.get();
-    if (!addr) return "";
-    // framework-exempt: false-not-throw comparison key — an unparsable wallet
-    // address must compare as "" (assertAuthorized defers to the contract),
-    // not throw the way app.chain.arg.hash160 / app.wallet.scriptHash() would.
+  const safeStorageSet = (key: string, value: unknown) => {
     try {
-      const hash = addressToScriptHash(addr).replace(/^0x/, "").toLowerCase();
-      return /^[0-9a-f]{40}$/.test(hash) ? hash : "";
+      app.storage.local.set(key, value);
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      return false;
+    }
+  };
+
+  const safeStorageDelete = (key: string) => {
+    try {
+      app.storage.local.delete(key);
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      return false;
+    }
+  };
+
+  const assertRecoveryStorage = () => {
+    const probe = { checkedAt: Date.now(), token: `${Date.now()}-${Math.random()}` };
+    if (!safeStorageSet(STORAGE_PROBE_KEY, probe)) {
+      throw new Error("recoveryStorageUnavailable");
+    }
+    const restored = safeStorageGet<{ checkedAt: number; token: string } | null>(
+      STORAGE_PROBE_KEY,
+      null,
+    );
+    if (restored?.token !== probe.token) {
+      storageHealthy.set(false);
+      throw new Error("recoveryStorageUnavailable");
+    }
+    if (!safeStorageDelete(STORAGE_PROBE_KEY)) {
+      throw new Error("recoveryStorageUnavailable");
+    }
+    storageHealthy.set(true);
+  };
+
+  const connectedWalletHash = (fallbackAddress = "") => {
+    const address = String(app.chain.address.get() ?? fallbackAddress).trim();
+    if (!address) return "";
+    const directHash = normalizePermissionHash(address, false);
+    if (directHash) return directHash;
+    try {
+      return requirePermissionHash(addressToScriptHash(address), false);
     } catch {
       return "";
     }
   };
 
-  // Reactive 0x display of the connected wallet, for the authorization check.
   const connectedWalletDisplay = {
-    get: () => {
-      const hash = connectedWalletHash();
-      return hash ? `0x${hash}` : "";
-    },
+    get: () => connectedWalletHash(),
     set: () => {},
     subscribe: (fn: () => void) => app.chain.address.subscribe(fn),
   };
 
-  // 20-byte script hash, optional 0x prefix (e.g. 0x + 40 hex chars).
-  // The prefix group must be (0x)? — `0x?` would mean "literal 0, optional x"
-  // and reject a bare un-prefixed 40-hex hash (which normalizeScriptHash accepts).
-  const SCRIPT_HASH_RE = /^(0x)?[0-9a-fA-F]{40}$/;
-  // Even-length hex byte string, optional 0x prefix (empty payload allowed).
-  const HEX_BYTES_RE = /^(0x)?([0-9a-fA-F]{2})*$/;
-
-  const requireScriptHash = (raw: string) => {
-    const value = String(raw ?? "").trim();
-    if (!SCRIPT_HASH_RE.test(value)) {
-      throw new Error(t("invalidHash"));
-    }
-    return value;
+  const clearProposalObservables = () => {
+    proposalVerifier.set(null);
+    proposalHook.set(null);
   };
 
-  const requireHexBytes = (raw: string) => {
-    const value = String(raw ?? "").trim();
-    if (!HEX_BYTES_RE.test(value)) {
-      throw new Error(t("invalidParams"));
-    }
-    return value;
+  const clearSnapshot = () => {
+    permissionSnapshot.set(null);
+    currentVerifier.set("");
+    currentHook.set("");
+    currentBackupOwner.set("");
+    inspectedAccountId.set("");
+    hasPendingVerifier.set(false);
+    hasPendingHook.set(false);
+    pendingVerifierUnlockAt.set(0);
+    pendingHookUnlockAt.set(0);
+    hasInspected.set(false);
+    clearProposalObservables();
   };
 
-  const refreshState = async () => {
+  const proposalObservable = (lane: PermissionLane) =>
+    lane === "verifier" ? proposalVerifier : proposalHook;
+
+  const loadProposalContexts = (snapshot: PermissionSnapshot) => {
+    for (const lane of ["verifier", "hook"] as const) {
+      const key = PROPOSAL_CONTEXT_KEYS[lane];
+      const raw = safeStorageGet<unknown>(key, null);
+      const restored = restoreProposalContext(raw, snapshot);
+      if (raw && !restored) safeStorageDelete(key);
+      proposalObservable(lane).set(restored);
+    }
+  };
+
+  const applySnapshot = (snapshot: PermissionSnapshot) => {
+    permissionSnapshot.set(snapshot);
+    currentVerifier.set(snapshot.verifier);
+    currentHook.set(snapshot.hook);
+    currentBackupOwner.set(snapshot.backupOwner);
+    inspectedAccountId.set(snapshot.accountId);
+    hasPendingVerifier.set(snapshot.hasPendingVerifier);
+    hasPendingHook.set(snapshot.hasPendingHook);
+    pendingVerifierUnlockAt.set(snapshot.pendingVerifierUnlockAt);
+    pendingHookUnlockAt.set(snapshot.pendingHookUnlockAt);
+    hasInspected.set(true);
+    readError.set("");
+    loadProposalContexts(snapshot);
+  };
+
+  const readPermissionSnapshot = async (accountInput: string): Promise<PermissionSnapshot> => {
+    const accountId = requirePermissionHash(accountInput, false);
+    const idArg = [app.chain.arg.hash160(accountId)];
+    const [
+      verifierRaw,
+      hookRaw,
+      backupOwnerRaw,
+      pendingVerifierRaw,
+      pendingHookRaw,
+      pendingVerifierTimeRaw,
+      pendingHookTimeRaw,
+    ] = await Promise.all([
+      app.chain.readRaw("getVerifier", idArg, { scriptHash: aaCore }),
+      app.chain.readRaw("getHook", idArg, { scriptHash: aaCore }),
+      app.chain.readRaw("getBackupOwner", idArg, { scriptHash: aaCore }),
+      app.chain.readRaw("hasPendingVerifierUpdate", idArg, { scriptHash: aaCore }),
+      app.chain.readRaw("hasPendingHookUpdate", idArg, { scriptHash: aaCore }),
+      app.chain.readRaw("getPendingVerifierUpdateTime", idArg, { scriptHash: aaCore }),
+      app.chain.readRaw("getPendingHookUpdateTime", idArg, { scriptHash: aaCore }),
+    ]);
+
+    return validatePendingTimes({
+      network,
+      aaCore,
+      accountId,
+      verifier: parsePermissionHash(verifierRaw, "verifier"),
+      hook: parsePermissionHash(hookRaw, "hook"),
+      backupOwner: parsePermissionHash(backupOwnerRaw, "backupOwner", false),
+      hasPendingVerifier: parsePermissionBoolean(pendingVerifierRaw, "pendingVerifier"),
+      hasPendingHook: parsePermissionBoolean(pendingHookRaw, "pendingHook"),
+      pendingVerifierUnlockAt: parsePermissionTimestamp(
+        pendingVerifierTimeRaw,
+        "pendingVerifierTime",
+      ),
+      pendingHookUnlockAt: parsePermissionTimestamp(pendingHookTimeRaw, "pendingHookTime"),
+      inspectedAt: Date.now(),
+    });
+  };
+
+  const refreshState = async (accountInput = form.accountIdHash) => {
+    const accountId = requirePermissionHash(accountInput, false);
+    form.accountIdHash = accountId;
+    const epoch = ++readEpoch;
+    clearSnapshot();
+    isRefreshing.set(true);
+    readError.set("");
     try {
-      isRefreshing.set(true);
-      requireScriptHash(form.accountIdHash);
-      const accountId = normalizeScriptHash(form.accountIdHash).replace(/^0x/, "");
-      const idArg = [app.chain.arg.hash160(`0x${accountId}`)];
-      const [
-        verifier,
-        hook,
-        backup,
-        pendingVerifier,
-        pendingHook,
-        pendingVerifierTime,
-        pendingHookTime,
-      ] = await Promise.all([
-        app.chain.readRaw("getVerifier", idArg, { scriptHash: aaCore }),
-        app.chain.readRaw("getHook", idArg, { scriptHash: aaCore }),
-        app.chain.readRaw("getBackupOwner", idArg, { scriptHash: aaCore }),
-        app.chain.readRaw("hasPendingVerifierUpdate", idArg, { scriptHash: aaCore }),
-        app.chain.readRaw("hasPendingHookUpdate", idArg, { scriptHash: aaCore }),
-        app.chain.readRaw("getPendingVerifierUpdateTime", idArg, { scriptHash: aaCore }),
-        app.chain.readRaw("getPendingHookUpdateTime", idArg, { scriptHash: aaCore }),
-      ]);
-      currentVerifier.set(formatPermissionValue(verifier));
-      currentHook.set(formatPermissionValue(hook));
-      currentBackupOwner.set(formatPermissionValue(backup));
-      hasPendingVerifier.set(Boolean(parseInvokeResult(pendingVerifier)));
-      hasPendingHook.set(Boolean(parseInvokeResult(pendingHook)));
-      pendingVerifierUnlockAt.set(Number(parseInvokeResult(pendingVerifierTime) ?? 0));
-      pendingHookUnlockAt.set(Number(parseInvokeResult(pendingHookTime) ?? 0));
-      hasInspected.set(true);
-
-      if (app.wallet.isConnected()) {
-        storageService.set(`permissions:${accountId}`, {
-          verifier: currentVerifier.get(),
-          hook: currentHook.get(),
-          backupOwner: currentBackupOwner.get(),
-          inspectedAt: Date.now(),
-        }).catch(() => {});
-      }
-    } catch (error: unknown) {
+      const snapshot = await readPermissionSnapshot(accountId);
+      if (disposed || epoch !== readEpoch) return null;
+      applySnapshot(snapshot);
+      return snapshot;
+    } catch (error) {
+      if (disposed || epoch !== readEpoch) return null;
+      clearSnapshot();
+      readError.set(t(errorKey(error)));
       throw error;
     } finally {
-      isRefreshing.set(false);
+      if (!disposed && epoch === readEpoch) isRefreshing.set(false);
     }
   };
 
-  // Block a write when the connected wallet is not the account's backup owner.
-  // The contract enforces owner authorization, so an unauthorized signer would
-  // otherwise hit a raw on-chain ABORT after signing. Only enforced once a read
-  // resolved the backup owner and a wallet is connected; an unknown owner (read
-  // not yet done) lets the contract be the final authority.
-  const assertAuthorized = () => {
-    const wallet = connectedWalletHash();
-    const owner = currentBackupOwner.get().replace(/^0x/i, "").toLowerCase();
-    if (!wallet || !/^[0-9a-f]{40}$/.test(owner)) return;
-    if (owner !== wallet) {
-      throw new Error(t("notBackupOwner"));
+  const invalidateBinding = () => {
+    readEpoch += 1;
+    clearSnapshot();
+    readError.set("");
+    isRefreshing.set(false);
+  };
+
+  const detectExactWalletNetwork = async () => {
+    const detected = explicitPermissionNetwork(await app.chain.detectNetwork());
+    walletNetwork.set(detected ?? "");
+    walletNetworkMatches.set(detected === network);
+    if (!detected) throw new Error("walletNetworkUnknown");
+    if (detected !== network) throw new Error("walletNetworkMismatch");
+    return detected;
+  };
+
+  const authorizeFreshBinding = async (accountId: string) => {
+    const snapshot = permissionSnapshot.get();
+    if (!isPermissionBindingCurrent(snapshot, network, aaCore, accountId)) {
+      throw new Error("inspectRequired");
     }
+    const ensuredAddress = await app.chain.ensureWallet();
+    const walletHash = connectedWalletHash(ensuredAddress);
+    if (!walletHash) throw new Error("walletAddressInvalid");
+    await detectExactWalletNetwork();
+
+    const freshOwner = parsePermissionHash(
+      await app.chain.readRaw(
+        "getBackupOwner",
+        [app.chain.arg.hash160(accountId)],
+        { scriptHash: aaCore },
+      ),
+      "backupOwner",
+      false,
+    );
+    if (freshOwner !== snapshot?.backupOwner) {
+      invalidateBinding();
+      throw new Error("bindingChanged");
+    }
+    if (freshOwner !== walletHash) throw new Error("notBackupOwner");
+    return walletHash;
+  };
+
+  const checkWalletAuthority = async () => {
+    if (isCheckingWallet.get()) return false;
+    isCheckingWallet.set(true);
+    try {
+      const accountId = requirePermissionHash(form.accountIdHash, false);
+      await authorizeFreshBinding(accountId);
+      return true;
+    } finally {
+      isCheckingWallet.set(false);
+    }
+  };
+
+  const clearPendingTransaction = () => {
+    pendingTransaction.set(null);
+    pendingTxid.set("");
+    safeStorageDelete(PENDING_TRANSACTION_KEY);
+  };
+
+  const persistPendingTransaction = (record: PendingPermissionTransaction) => {
+    pendingTransaction.set(record);
+    pendingTxid.set(record.txid);
+    safeStorageSet(PENDING_TRANSACTION_KEY, record);
+  };
+
+  const persistProposalContext = (record: PendingPermissionTransaction) => {
+    const context = buildProposalContext(record);
+    safeStorageSet(PROPOSAL_CONTEXT_KEYS[record.lane], context);
+    proposalObservable(record.lane).set(context);
+  };
+
+  const clearProposalContext = (lane: PermissionLane) => {
+    safeStorageDelete(PROPOSAL_CONTEXT_KEYS[lane]);
+    proposalObservable(lane).set(null);
+  };
+
+  const finalizeObservedTransaction = (
+    record: PendingPermissionTransaction,
+    snapshot: PermissionSnapshot,
+  ) => {
+    if (record.operation.startsWith("propose-")) {
+      persistProposalContext(record);
+    } else {
+      clearProposalContext(record.lane);
+    }
+    clearPendingTransaction();
+    applySnapshot(snapshot);
+    lastWriteStatus.set(t("transactionConfirmed"));
+  };
+
+  const waitForTransactionState = async (
+    record: PendingPermissionTransaction,
+    eventConfirmed: boolean,
+  ) => {
+    try {
+      const first = await readPermissionSnapshot(record.accountId);
+      if (permissionTransactionSatisfied(record, first, eventConfirmed)) return first;
+    } catch {
+      // RPC/indexer lag is expected immediately after broadcast; poll below.
+    }
+    return app.chain.waitForState(
+      () => readPermissionSnapshot(record.accountId),
+      (snapshot) => permissionTransactionSatisfied(record, snapshot, eventConfirmed),
+      { attempts: 3, firstDelayMs: 2_500, delayMs: 4_000 },
+    );
+  };
+
+  const runWrite = async (input: {
+    operation: PermissionOperation;
+    args: FrameworkContractArg[];
+    targetHash?: string;
+    previousHash?: string;
+    immediateInstall?: boolean;
+  }): Promise<PermissionWriteOutcome> => {
+    if (pendingTransaction.get()) throw new Error("transactionAlreadyPending");
+    const accountId = requirePermissionHash(form.accountIdHash, false);
+    assertRecoveryStorage();
+    const walletHash = await authorizeFreshBinding(accountId);
+    let record: PendingPermissionTransaction | null = null;
+    const draft = {
+      network,
+      aaCore,
+      accountId,
+      walletHash,
+      operation: input.operation,
+      targetHash: input.targetHash,
+      previousHash: input.previousHash,
+    };
+
+    const result = await app.chain.invoke(permissionContractOperation(input.operation), input.args, {
+      scriptHash: aaCore,
+      waitForEvent: permissionOperationEvent(input.operation),
+      waitTimeoutMs: 45_000,
+      onTransactionSent: (txid: string) => {
+        try {
+          record = buildPendingPermissionTransaction({ ...draft, txid });
+          persistPendingTransaction(record);
+        } catch {
+          // A malformed/empty host txid is handled by the invoke result below.
+        }
+      },
+    });
+    if (!record) {
+      if (!result.txid) throw new Error("transactionNotBroadcast");
+      record = buildPendingPermissionTransaction({ ...draft, txid: result.txid });
+      persistPendingTransaction(record);
+    }
+    if (result.txid && result.txid.toLowerCase() !== record.txid) {
+      invalidateBinding();
+      lastWriteStatus.set(t("transactionIdentityChanged"));
+      return {
+        txid: record.txid,
+        operation: record.operation,
+        confirmed: false,
+        immediateInstall: Boolean(input.immediateInstall),
+      };
+    }
+
+    const walletAfter = connectedWalletHash();
+    let networkAfter: PermissionNetwork | null = null;
+    try {
+      networkAfter = explicitPermissionNetwork(await app.chain.detectNetwork());
+    } catch {
+      networkAfter = null;
+    }
+    walletNetwork.set(networkAfter ?? "");
+    walletNetworkMatches.set(networkAfter === network);
+    if (walletAfter !== walletHash || networkAfter !== network) {
+      invalidateBinding();
+      lastWriteStatus.set(t("transactionBindingChanged"));
+      return {
+        txid: record.txid,
+        operation: record.operation,
+        confirmed: false,
+        immediateInstall: Boolean(input.immediateInstall),
+      };
+    }
+
+    let confirmedSnapshot: PermissionSnapshot | null = null;
+    try {
+      confirmedSnapshot = await waitForTransactionState(
+        record,
+        result.verified === true && Boolean(result.event),
+      );
+    } catch {
+      // The transaction is already broadcast and persisted. A read/indexer
+      // outage is a recovery state, not evidence that the write failed.
+      confirmedSnapshot = null;
+    }
+    if (confirmedSnapshot) {
+      finalizeObservedTransaction(record, confirmedSnapshot);
+    } else {
+      lastWriteStatus.set(t("transactionAwaitingConfirmation"));
+      invalidateBinding();
+      pendingTransaction.set(record);
+      pendingTxid.set(record.txid);
+    }
+    return {
+      txid: record.txid,
+      operation: record.operation,
+      confirmed: Boolean(confirmedSnapshot),
+      immediateInstall: Boolean(input.immediateInstall),
+    };
   };
 
   const submitVerifier = async () => {
+    isVerifierBusy.set(true);
     try {
-      isVerifierBusy.set(true);
-      requireScriptHash(form.accountIdHash);
-      requireScriptHash(form.verifierHash);
-      requireHexBytes(form.verifierParamsHex);
-      assertAuthorized();
-      await app.chain.invoke("updateVerifier", [
-        app.chain.arg.hash160(form.accountIdHash),
-        app.chain.arg.hash160(form.verifierHash),
-        app.chain.arg.byteArray(form.verifierParamsHex.trim().replace(/^0x/, "")),
-      ], { scriptHash: aaCore });
-      await refreshState();
-    } catch (error: unknown) {
-      throw error;
+      const snapshot = permissionSnapshot.get();
+      const accountId = requirePermissionHash(form.accountIdHash, false);
+      if (!isPermissionBindingCurrent(snapshot, network, aaCore, accountId)) {
+        throw new Error("inspectRequired");
+      }
+      if (snapshot?.hasPendingVerifier) throw new Error("pendingVerifierExists");
+      const target = requirePermissionHash(form.verifierHash);
+      const previous = snapshot?.verifier || "";
+      if (target === (previous || ZERO_HASH)) throw new Error("targetUnchanged");
+      const params = normalizeVerifierParams(form.verifierParamsHex);
+      const immediateInstall = !previous;
+      return await runWrite({
+        operation: immediateInstall ? "install-verifier" : "propose-verifier",
+        args: [
+          app.chain.arg.hash160(accountId),
+          app.chain.arg.hash160(target),
+          app.chain.arg.byteArray(params),
+        ],
+        targetHash: target,
+        previousHash: previous || ZERO_HASH,
+        immediateInstall,
+      });
     } finally {
       isVerifierBusy.set(false);
     }
   };
 
   const submitHook = async () => {
+    isHookBusy.set(true);
     try {
-      isHookBusy.set(true);
-      requireScriptHash(form.accountIdHash);
-      requireScriptHash(form.hookHash);
-      assertAuthorized();
-      await app.chain.invoke("updateHook", [
-        app.chain.arg.hash160(form.accountIdHash),
-        app.chain.arg.hash160(form.hookHash),
-      ], { scriptHash: aaCore });
-      await refreshState();
-    } catch (error: unknown) {
-      throw error;
+      const snapshot = permissionSnapshot.get();
+      const accountId = requirePermissionHash(form.accountIdHash, false);
+      if (!isPermissionBindingCurrent(snapshot, network, aaCore, accountId)) {
+        throw new Error("inspectRequired");
+      }
+      if (snapshot?.hasPendingHook) throw new Error("pendingHookExists");
+      const target = requirePermissionHash(form.hookHash);
+      const previous = snapshot?.hook || "";
+      if (target === (previous || ZERO_HASH)) throw new Error("targetUnchanged");
+      const immediateInstall = !previous;
+      return await runWrite({
+        operation: immediateInstall ? "install-hook" : "propose-hook",
+        args: [app.chain.arg.hash160(accountId), app.chain.arg.hash160(target)],
+        targetHash: target,
+        previousHash: previous || ZERO_HASH,
+        immediateInstall,
+      });
     } finally {
       isHookBusy.set(false);
     }
   };
 
-  // Second phase of the two-step rotation: confirm/cancel a pending proposal.
-  // The same account-id Hash160 arg drives all four contract calls.
-  const runPendingAction = async (
-    operation: string,
-    busy: ReturnType<typeof createObservable<boolean>>,
-  ) => {
+  const runPendingAction = async (lane: PermissionLane, action: "confirm" | "cancel") => {
+    const busy = lane === "verifier" ? isVerifierBusy : isHookBusy;
+    busy.set(true);
     try {
-      busy.set(true);
-      requireScriptHash(form.accountIdHash);
-      await app.chain.invoke(operation, [
-        app.chain.arg.hash160(form.accountIdHash),
-      ], { scriptHash: aaCore });
-      await refreshState();
-    } catch (error: unknown) {
-      throw error;
+      const snapshot = permissionSnapshot.get();
+      const accountId = requirePermissionHash(form.accountIdHash, false);
+      if (!isPermissionBindingCurrent(snapshot, network, aaCore, accountId)) {
+        throw new Error("inspectRequired");
+      }
+      const pending = lane === "verifier"
+        ? snapshot?.hasPendingVerifier
+        : snapshot?.hasPendingHook;
+      const unlockAt = lane === "verifier"
+        ? snapshot?.pendingVerifierUnlockAt ?? 0
+        : snapshot?.pendingHookUnlockAt ?? 0;
+      if (!pending) throw new Error(lane === "verifier" ? "noPendingVerifier" : "noPendingHook");
+      if (action === "confirm" && !isPermissionUnlockReady(unlockAt)) {
+        throw new Error("timelockNotElapsed");
+      }
+      const context = proposalObservable(lane).get();
+      const previous = lane === "verifier" ? snapshot?.verifier ?? "" : snapshot?.hook ?? "";
+      return await runWrite({
+        operation: `${action}-${lane}` as PermissionOperation,
+        args: [app.chain.arg.hash160(accountId)],
+        targetHash: context?.targetHash,
+        previousHash: previous || ZERO_HASH,
+      });
     } finally {
       busy.set(false);
     }
   };
 
-  const confirmVerifier = () => runPendingAction("confirmVerifierUpdate", isVerifierBusy);
-  const cancelVerifier = () => runPendingAction("cancelVerifierUpdate", isVerifierBusy);
-  const confirmHook = () => runPendingAction("confirmHookUpdate", isHookBusy);
-  const cancelHook = () => runPendingAction("cancelHookUpdate", isHookBusy);
+  const confirmVerifier = () => runPendingAction("verifier", "confirm");
+  const cancelVerifier = () => runPendingAction("verifier", "cancel");
+  const confirmHook = () => runPendingAction("hook", "confirm");
+  const cancelHook = () => runPendingAction("hook", "cancel");
 
-  const loadAll = async () => {};
+  const reconcilePendingTransaction = async () => {
+    const record = pendingTransaction.get();
+    if (!record) return null;
+    if (isRecovering.get()) return null;
+    isRecovering.set(true);
+    try {
+      lastWriteStatus.set(t("transactionReconciling"));
+      let event: unknown = null;
+      try {
+        event = await app.events.waitFor(record.txid, record.eventName, 5_000);
+      } catch {
+        event = null;
+      }
+      try {
+        const snapshot = await readPermissionSnapshot(record.accountId);
+        if (permissionTransactionSatisfied(record, snapshot, Boolean(event))) {
+          finalizeObservedTransaction(record, snapshot);
+          return snapshot;
+        }
+        applySnapshot(snapshot);
+      } catch (error) {
+        clearSnapshot();
+        readError.set(t(errorKey(error)));
+      }
+      const transactionState = await transactionStateReader(record.network, record.txid);
+      if (transactionState === "fault") {
+        clearPendingTransaction();
+        lastWriteStatus.set(t("transactionFaulted"));
+        return null;
+      }
+      lastWriteStatus.set(t("transactionAwaitingConfirmation"));
+      return null;
+    } finally {
+      isRecovering.set(false);
+    }
+  };
+
+  const restoreTransaction = () => {
+    const raw = safeStorageGet<unknown>(PENDING_TRANSACTION_KEY, null);
+    const restored = restorePendingPermissionTransaction(raw, network, aaCore);
+    if (raw && !restored) safeStorageDelete(PENDING_TRANSACTION_KEY);
+    if (!restored) {
+      clearPendingTransaction();
+      return null;
+    }
+    pendingTransaction.set(restored);
+    pendingTxid.set(restored.txid);
+    form.accountIdHash = restored.accountId;
+    lastWriteStatus.set(t("transactionRecoveryFound"));
+    return restored;
+  };
+
+  const loadAll = async () => {
+    try {
+      assertRecoveryStorage();
+    } catch {
+      lastWriteStatus.set(t("recoveryStorageUnavailable"));
+    }
+    const restored = restoreTransaction();
+    if (restored) {
+      await reconcilePendingTransaction();
+      return;
+    }
+    const accountId = normalizePermissionHash(form.accountIdHash, false);
+    if (accountId) await refreshState(accountId);
+  };
+
+  const walletUnsubscribe = app.chain.address.subscribe(() => {
+    const wallet = connectedWalletHash();
+    if (!wallet) {
+      walletNetwork.set("");
+      walletNetworkMatches.set(false);
+    }
+  });
+
+  const dispose = () => {
+    disposed = true;
+    readEpoch += 1;
+    walletUnsubscribe();
+  };
 
   return {
     form,
+    network,
+    aaCore,
     currentVerifier,
     currentHook,
     currentBackupOwner,
+    inspectedAccountId,
+    permissionSnapshot,
     hasInspected,
     hasPendingVerifier,
     hasPendingHook,
     pendingVerifierUnlockAt,
     pendingHookUnlockAt,
+    proposalVerifier,
+    proposalHook,
     connectedWalletDisplay,
+    walletNetwork,
+    walletNetworkMatches,
     isRefreshing,
     isVerifierBusy,
     isHookBusy,
-    aaCore,
+    isRecovering,
+    isCheckingWallet,
+    readError,
+    lastWriteStatus,
+    pendingTransaction,
+    pendingTxid,
+    storageHealthy,
     refreshState,
+    invalidateBinding,
     submitVerifier,
     confirmVerifier,
     cancelVerifier,
     confirmHook,
     cancelHook,
     submitHook,
+    reconcilePendingTransaction,
+    checkWalletAuthority,
     loadAll,
+    dispose,
   };
 }
 

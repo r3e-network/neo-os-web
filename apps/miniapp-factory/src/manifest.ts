@@ -2,44 +2,21 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "MiniApp Factory",
-  description: "Create platform miniapps from governed on-chain templates",
+  description: "Design deterministic MiniApp starter packages and register verified testnet records",
   icon: "blocks",
   category: "tool",
-  shell: "console",
+  shell: "launcher",
   theme: {
-    family: "default",
-    accentColor: "#16c784",
+    family: "social",
+    accentColor: "#15966a",
     density: "comfortable",
   },
-  tabs: [
-    { key: "play", labelKey: "playTab", icon: "blocks", default: true },
-    { key: "activity", labelKey: "activityTab", icon: "history" },
-  ],
-  stats: [
-    { labelKey: "planStatus", valueKey: "planStatus", format: "text", variant: "success", icon: "check-circle" },
-    { labelKey: "packageDigest", valueKey: "shortDigest", format: "text", variant: "accent", icon: "hash" },
-    { labelKey: "blockingIssues", valueKey: "blockingIssueCount", format: "number", variant: "warning", icon: "alert" },
-    { labelKey: "generatedPackages", valueKey: "generatedCount", format: "number", icon: "archive" },
-  ],
-  sidebar: {
-    titleKey: "factoryOverview",
-    items: [
-      { labelKey: "activeTemplate", valueKey: "activeTemplateLabel", format: "text" },
-      { labelKey: "targetNetwork", valueKey: "targetNetwork", format: "text" },
-      { labelKey: "planStatus", valueKey: "planStatus", format: "text" },
-      { labelKey: "signatureState", valueKey: "signatureState", format: "text" },
-    ],
-  },
-  operations: [
-    {
-      key: "signCurrentPlan",
-      titleKey: "signPlanTitle",
-      descriptionKey: "signPlanDescription",
-      actionKey: "signPlanAction",
-      actionMethod: "signCurrentPlan",
-      fields: [],
-    },
-  ],
+  // The studio owns the creation flow, preview, progress and disclosures.
+  // Keeping shell chrome empty prevents a duplicate dashboard around the app.
+  tabs: [],
+  stats: [],
+  sidebar: { items: [] },
+  operations: [],
   docs: [
     { titleKey: "docWhatItIs", contentKey: "docWhatItIsBody", type: "text" },
     { titleKey: "docSupportedTemplates", contentKey: "docSupportedTemplatesBody", type: "features" },
@@ -48,9 +25,9 @@ export const manifest: MiniAppManifest = {
   features: {
     walletRequired: false,
     chainWarning: true,
-    comments: true,
-    reviews: true,
-    activityFeed: true,
+    comments: false,
+    reviews: false,
+    activityFeed: false,
   },
   contract: {
     mode: "template",

@@ -1,9 +1,8 @@
 /**
  * useMemorialShrine — Domain logic for the Memorial Shrine miniapp.
  *
- * Talks DIRECTLY to the app's standalone on-chain contract
- * (MiniAppMemorialShrine, testnet 0x87f0fe2ba69cd973a3274471234d3cc13ef943c5)
- * via the MiniApp framework (ctx.framework). The earlier path read the memorial / obituary catalog
+ * Talks directly to the network-specific deployed MiniAppMemorialShrine
+ * contract via the MiniApp framework (ctx.framework). The earlier path read the memorial / obituary catalog
  * and the visitor's tribute history through the Morpheus OS kernel
  * (ctx.os.storage list/get) and hinted achievements through ctx.os.badge. That
  * kernel/edge is DOWN/degraded, so those reads returned nothing and the app fell
@@ -11,10 +10,9 @@
  * dependency entirely: every read is a contract getter and every write is a
  * wallet-signed contract call.
  *
- * Contract interaction model (verified against the deployed ABI + the live
- * validation harness deploy/scripts/live_validate_remaining_contracts_part2.js):
+ * Contract interaction model (verified read-only against both deployed ABIs):
  *
- *   READS (app.chain.readRaw, default app contract script hash):
+ *   READS (app.chain.readRaw, explicit network contract script hash):
  *     getMemorialCount()                         -> Integer
  *     getMemorialDetails(memorialId)             -> Map{id,creator,deceasedName,
  *                                                    photoHash,relationship,
@@ -53,9 +51,39 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash } from "@shared/utils/neo";
 import { readQueryParam } from "@shared/utils/url";
+import {
+  validateMemorialDraft,
+  type MemorialDraftInput,
+} from "../logic/memorial-draft";
+import {
+  MEMORIAL_OFFERING_COSTS_FIXED8,
+  MEMORIAL_SHRINE_APP_ID,
+  MEMORIAL_SHRINE_CONTRACTS,
+  assertMemorialRecoveryStorage,
+  createdMemorialIdFromOutcome,
+  isMemorialPaymentHubAvailable,
+  memorialReadbackMatches,
+  normalizeMemorialHash,
+  normalizeMemorialNetwork,
+  normalizeMemorialTxid,
+  normalizeMemorialWallet,
+  normalizeTributeMessage,
+  parseMemorialBoolean,
+  parseMemorialInteger,
+  persistPendingMemorialWrite,
+  readMemorialTransactionOutcome,
+  readPendingMemorialWrite,
+  tributeEventMatches,
+  tributeReadbackMatches,
+  type MemorialOfferingType,
+  type MemorialTransactionReader,
+  type MemorialWritePhase,
+  type PendingMemorialIntent,
+  type PendingTributeIntent,
+  type PendingMemorialWrite,
+} from "../logic/memorial-production";
 import type { Memorial } from "../types";
 
 /** The framework contract-arg shape (from app.chain.arg.*); accepts the raw-address Hash160 literal too. */
@@ -63,7 +91,7 @@ type FrameworkArg = ReturnType<MiniAppFramework["chain"]["arg"]["string"]>;
 /** The framework tx-result shape (from app.chain.invoke / invokeWithPayment). */
 type FrameworkTx = Awaited<ReturnType<MiniAppFramework["chain"]["invoke"]>>;
 
-const APP_ID = "miniapp-memorial-shrine";
+const APP_ID = MEMORIAL_SHRINE_APP_ID;
 
 /**
  * Local store of memorial ids the visitor has actually opened ("Visited").
@@ -76,29 +104,25 @@ const VISITED_STORE_KEY = "visited";
 /** How many visited ids to retain locally. */
 const MAX_VISITED = 60;
 
-/** Fixed offering cost (GAS base units) keyed by on-chain offering type. */
-const OFFERING_COSTS_FIXED8: Record<number, bigint> = {
-  1: 1000000n,
-  2: 2000000n,
-  3: 3000000n,
-  4: 5000000n,
-  5: 10000000n,
-  6: 50000000n,
-};
-
 /** Defensive caps on how many records to enumerate per refresh. */
 const MAX_MEMORIALS = 60;
 const MAX_OBITUARIES = 20;
 const MAX_TRIBUTES_PER_MEMORIAL = 50;
+const MAX_RECOVERY_TRIBUTES = 20;
 
-function normalizeText(value: unknown, maxLength: number): string {
-  return String(value ?? "").trim().slice(0, maxLength);
+/** Convert a verified NeoVM integer without turning malformed reads into zero. */
+function safeMemorialNumber(value: unknown, positive = false): number | null {
+  const parsed = parseMemorialInteger(value);
+  if (
+    parsed === null || parsed < 0n ||
+    (positive && parsed === 0n) ||
+    parsed > BigInt(Number.MAX_SAFE_INTEGER)
+  ) return null;
+  return Number(parsed);
 }
 
-/** Coerce a parsed NeoVM Integer (number | numeric string) to a JS number. */
-function asNumber(value: unknown): number {
-  const n = Number(value ?? 0);
-  return Number.isFinite(n) ? n : 0;
+function memorialField(raw: Record<string, unknown> | Map<unknown, unknown>, key: string): unknown {
+  return raw instanceof Map ? raw.get(key) : raw[key];
 }
 
 /**
@@ -139,6 +163,21 @@ export interface TributeRecord {
   paidAt: number;
 }
 
+export type MemorialCatalogStatus =
+  | "loading"
+  | "ready"
+  | "empty"
+  | "partial"
+  | "error";
+
+export type MemorialNetworkStatus =
+  | "loading"
+  | "ready"
+  | "unknown-network"
+  | "read-unavailable"
+  | "paused"
+  | "tribute-unavailable";
+
 export interface UseMemorialShrineOptions {
   /** MiniApp framework (ctx.framework); its chain layer submits wallet-confirmed writes + reads. */
   app: MiniAppFramework;
@@ -146,6 +185,8 @@ export interface UseMemorialShrineOptions {
   launchNetwork?: "mainnet" | "testnet" | null;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Injectable getapplicationlog reader for focused deterministic tests. */
+  transactionReader?: MemorialTransactionReader;
 }
 
 // ============================================================================
@@ -155,28 +196,46 @@ export interface UseMemorialShrineOptions {
 /** Build a Memorial from a getMemorialDetails Map. Returns null if empty. */
 function memorialFromMap(raw: unknown): Memorial | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const record = raw as Record<string, unknown>;
-  const id = asNumber(record.id);
+  const record = raw as Record<string, unknown> | Map<unknown, unknown>;
+  const id = safeMemorialNumber(memorialField(record, "id"), true);
+  const creator = memorialField(record, "creator");
+  const name = memorialField(record, "deceasedName");
+  const photoHash = memorialField(record, "photoHash");
+  const relationship = memorialField(record, "relationship");
+  const biography = memorialField(record, "biography");
+  const obituary = memorialField(record, "obituary");
   // A missing / zeroed memorial yields an empty map (no id, no creator).
-  if (id <= 0 || !record.creator) return null;
+  if (
+    id === null || !normalizeMemorialHash(creator) ||
+    typeof name !== "string" || !name.trim() ||
+    typeof photoHash !== "string" || typeof relationship !== "string" ||
+    typeof biography !== "string" || typeof obituary !== "string"
+  ) return null;
 
-  const incense = asNumber(record.incenseCount);
-  const candle = asNumber(record.candleCount);
-  const flower = asNumber(record.flowerCount);
-  const fruit = asNumber(record.fruitCount);
-  const wine = asNumber(record.wineCount);
-  const feast = asNumber(record.feastCount);
-  const lastTributeTime = asNumber(record.lastTributeTime);
+  const birthYear = safeMemorialNumber(memorialField(record, "birthYear"));
+  const deathYear = safeMemorialNumber(memorialField(record, "deathYear"));
+  const incense = safeMemorialNumber(memorialField(record, "incenseCount"));
+  const candle = safeMemorialNumber(memorialField(record, "candleCount"));
+  const flower = safeMemorialNumber(memorialField(record, "flowerCount"));
+  const fruit = safeMemorialNumber(memorialField(record, "fruitCount"));
+  const wine = safeMemorialNumber(memorialField(record, "wineCount"));
+  const feast = safeMemorialNumber(memorialField(record, "feastCount"));
+  const lastTributeTime = safeMemorialNumber(memorialField(record, "lastTributeTime"));
+  if (
+    birthYear === null || deathYear === null || lastTributeTime === null ||
+    incense === null || candle === null || flower === null ||
+    fruit === null || wine === null || feast === null
+  ) return null;
 
   return {
     id,
-    name: String(record.deceasedName ?? ""),
-    photoHash: String(record.photoHash ?? ""),
-    birthYear: asNumber(record.birthYear),
-    deathYear: asNumber(record.deathYear),
-    relationship: String(record.relationship ?? ""),
-    biography: String(record.biography ?? ""),
-    obituary: String(record.obituary ?? ""),
+    name,
+    photoHash,
+    birthYear,
+    deathYear,
+    relationship,
+    biography,
+    obituary,
     // "Recent tribute" = a tribute landed within the last 7 days.
     hasRecentTribute:
       lastTributeTime > 0 && Date.now() - lastTributeTime < 7 * 24 * 60 * 60 * 1000,
@@ -192,23 +251,45 @@ export function useMemorialShrine({
   app,
   launchNetwork,
   t,
+  transactionReader = readMemorialTransactionOutcome,
 }: UseMemorialShrineOptions) {
+  const network = normalizeMemorialNetwork(launchNetwork);
+  const contractHash = network ? MEMORIAL_SHRINE_CONTRACTS[network] : "";
   const memorials = createObservable<Memorial[]>([]);
   const visitedMemorials = createObservable<Memorial[]>([]);
   const myTributes = createObservable<TributeRecord[]>([]);
   const recentObituaries = createObservable<{ id: number; name: string; text: string }[]>([]);
   const selectedMemorial = createObservable<Memorial | null>(null);
   const shareStatus = createObservable<string | null>(null);
+  const catalogStatus = createObservable<MemorialCatalogStatus>("loading");
+  const catalogError = createObservable("");
+  const networkStatus = createObservable<MemorialNetworkStatus>(
+    network ? "loading" : "unknown-network",
+  );
+  const networkMessage = createObservable("");
   const isSubmitting = createObservable(false);
   const isPaying = createObservable(false);
+  const confirmationChecking = createObservable(false);
+  const pendingWrite = createObservable<PendingMemorialWrite | null>(null);
+  const writePhase = createObservable<MemorialWritePhase>("idle");
+  const writeNotice = createObservable("");
+  const writeError = createObservable("");
+  const storageHealthy = createObservable(true);
   const lastTx = createObservable<FrameworkTx | null>(null);
-  let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const memorialCount = createDerived(() => memorials.get().length, [memorials]);
   // "My Tributes" reflects tributes the connected wallet has actually paid,
   // read straight from the contract — independent of "Visited".
   const tributeCount = createDerived(() => myTributes.get().length, [myTributes]);
   const obituaryCount = createDerived(() => recentObituaries.get().length, [recentObituaries]);
+
+  const readContract = (
+    operation: string,
+    args: FrameworkArg[] = [],
+  ): Promise<unknown> => {
+    if (!contractHash) return Promise.reject(new Error("walletNetworkUnknown"));
+    return app.chain.readRaw(operation, args, { scriptHash: contractHash });
+  };
 
   /** Resolve the connected wallet address without prompting a connection. */
   const connectedAddress = (): string | null => {
@@ -219,13 +300,162 @@ export function useMemorialShrine({
     }
   };
 
+  const requireNonNegativeInteger = (value: unknown, errorKey: string): bigint => {
+    const parsed = parseMemorialInteger(value);
+    if (parsed === null || parsed < 0n) throw new Error(t(errorKey));
+    return parsed;
+  };
+
+  const requirePositiveId = (value: unknown, errorKey: string): number => {
+    const parsed = parseMemorialInteger(value);
+    if (parsed === null || parsed <= 0n || parsed > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error(t(errorKey));
+    }
+    return Number(parsed);
+  };
+
+  const setPending = (record: PendingMemorialWrite) => {
+    pendingWrite.set(record);
+    writePhase.set("broadcast");
+    writeNotice.set(t("transactionPending", { txid: record.txid }));
+    writeError.set("");
+    try {
+      persistPendingMemorialWrite(app.storage.local, record.network, record);
+      storageHealthy.set(true);
+    } catch {
+      storageHealthy.set(false);
+      writePhase.set("storage-error");
+      writeError.set(t("recoveryStorageUnavailableAfterBroadcast", { txid: record.txid }));
+      throw new Error("recoveryStorageUnavailableAfterBroadcast");
+    }
+  };
+
+  const clearPending = () => {
+    const record = pendingWrite.get();
+    if (!record) return true;
+    try {
+      persistPendingMemorialWrite(app.storage.local, record.network, null);
+      pendingWrite.set(null);
+      storageHealthy.set(true);
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      writePhase.set("storage-error");
+      writeError.set(t("recoveryStorageUnavailable"));
+      return false;
+    }
+  };
+
+  const restorePending = (): boolean => {
+    if (!network) return false;
+    const restored = readPendingMemorialWrite(app.storage.local, network);
+    if (restored.pending) {
+      pendingWrite.set(restored.pending);
+      storageHealthy.set(true);
+      writePhase.set("broadcast");
+      writeNotice.set(t("transactionPending", { txid: restored.pending.txid }));
+      return true;
+    }
+    if (restored.corrupted) {
+      storageHealthy.set(false);
+      writePhase.set("storage-error");
+      writeError.set(t("pendingRecordCorrupted"));
+      return false;
+    }
+    try {
+      assertMemorialRecoveryStorage(app.storage.local);
+      storageHealthy.set(true);
+      if (writePhase.get() === "storage-error" && !pendingWrite.get()) {
+        writePhase.set("idle");
+        writeError.set("");
+      }
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      writePhase.set("storage-error");
+      writeError.set(t("recoveryStorageUnavailable"));
+      return false;
+    }
+  };
+
+  const loadNetworkStatus = async (): Promise<boolean> => {
+    networkMessage.set("");
+    if (!network || !contractHash) {
+      networkStatus.set("unknown-network");
+      networkMessage.set(t("walletNetworkUnknown"));
+      return false;
+    }
+    networkStatus.set("loading");
+    try {
+      const paused = parseMemorialBoolean(await readContract("isPaused"));
+      if (paused === null) throw new Error("contractReadUnavailable");
+      if (paused) {
+        networkStatus.set("paused");
+        networkMessage.set(t("contractPaused"));
+        return false;
+      }
+      if (network === "mainnet") {
+        const hub = await readContract("paymentHub");
+        if (!isMemorialPaymentHubAvailable(hub)) {
+          networkStatus.set("tribute-unavailable");
+          networkMessage.set(t("mainnetTributeUnavailable"));
+          return true;
+        }
+      }
+      networkStatus.set("ready");
+      return true;
+    } catch {
+      networkStatus.set("read-unavailable");
+      networkMessage.set(t("contractReadUnavailable"));
+      return false;
+    }
+  };
+
+  const assertRecoveryPreflight = () => {
+    if (!network || !contractHash) throw new Error(t("walletNetworkUnknown"));
+    if (pendingWrite.get()) throw new Error(t("pendingWriteMustResolve"));
+    try {
+      assertMemorialRecoveryStorage(app.storage.local);
+    } catch {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+    storageHealthy.set(true);
+  };
+
+  const assertContractAvailable = async (forTribute: boolean) => {
+    const paused = parseMemorialBoolean(await readContract("isPaused"));
+    if (paused === null) throw new Error(t("contractReadUnavailable"));
+    if (paused) throw new Error(t("contractPaused"));
+    if (forTribute && network === "mainnet") {
+      const hub = await readContract("paymentHub");
+      if (!isMemorialPaymentHubAvailable(hub)) {
+        throw new Error(t("mainnetTributeUnavailable"));
+      }
+    }
+  };
+
+  const requireBoundWallet = async () => {
+    if (!network || !contractHash) throw new Error(t("walletNetworkUnknown"));
+    const configuredContract = normalizeMemorialHash(app.chain.contractAddress.get());
+    if (configuredContract && configuredContract !== contractHash) {
+      throw new Error(t("contractBindingMismatch"));
+    }
+    const wallet = normalizeMemorialWallet(await app.chain.ensureWallet());
+    if (!wallet) throw new Error(t("walletAddressInvalid"));
+    const detectedNetwork = normalizeMemorialNetwork(await app.chain.detectNetwork());
+    if (!detectedNetwork) throw new Error(t("walletNetworkUnknown"));
+    if (detectedNetwork !== network) throw new Error(t("walletNetworkMismatch"));
+    return wallet;
+  };
+
   // ------------------------------------------
   // Read: a single memorial by id (contract getter)
   // ------------------------------------------
 
   const readMemorial = async (id: number): Promise<Memorial | null> => {
     try {
-      const raw = await app.chain.readRaw("getMemorialDetails", [
+      const raw = await readContract("getMemorialDetails", [
         app.chain.arg.integer(id),
       ]);
       return memorialFromMap(raw);
@@ -242,25 +472,56 @@ export function useMemorialShrine({
    * Load the memorial catalog straight from the contract. Memorials are ids
    * 1..getMemorialCount(); each is read via getMemorialDetails. Newest first.
    */
-  const loadMemorials = async () => {
+  const loadMemorials = async (): Promise<boolean> => {
+    catalogStatus.set("loading");
+    catalogError.set("");
     let total = 0;
     try {
-      total = Math.min(asNumber(await app.chain.readRaw("getMemorialCount", [])), MAX_MEMORIALS);
+      const count = requireNonNegativeInteger(
+        await readContract("getMemorialCount"),
+        "contractReadUnavailable",
+      );
+      if (count > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("contractReadUnavailable");
+      total = Number(count);
     } catch (_e) {
-      total = 0;
+      catalogStatus.set("error");
+      catalogError.set(t("catalogLoadFailed"));
+      return false;
     }
 
     if (total <= 0) {
       memorials.set([]);
+      recentObituaries.set([]);
+      catalogStatus.set("empty");
+      return true;
     } else {
       const ids: number[] = [];
       // Highest id first so the freshest memorials lead the grid.
       for (let id = total; id >= 1 && ids.length < MAX_MEMORIALS; id -= 1) ids.push(id);
       const results = await Promise.all(ids.map((id) => readMemorial(id)));
-      memorials.set(results.filter((m): m is Memorial => m !== null));
+      const previous = new Map(memorials.get().map((memorial) => [memorial.id, memorial]));
+      const resolved = ids
+        .map((id, index) => results[index] ?? previous.get(id) ?? null)
+        .filter((memorial): memorial is Memorial => memorial !== null);
+      const failedCount = results.filter((memorial) => memorial === null).length;
+
+      if (resolved.length === 0) {
+        catalogStatus.set("error");
+        catalogError.set(t("catalogLoadFailed"));
+        return false;
+      }
+
+      memorials.set(resolved);
+      if (failedCount > 0) {
+        catalogStatus.set("partial");
+        catalogError.set(t("catalogLoadPartial", { count: failedCount }));
+      } else {
+        catalogStatus.set("ready");
+      }
     }
 
     await loadObituaries();
+    return catalogStatus.get() === "ready";
   };
 
   /**
@@ -271,15 +532,13 @@ export function useMemorialShrine({
   const loadObituaries = async () => {
     let ids: number[] = [];
     try {
-      const raw = await app.chain.readRaw("getRecentObituaries", []);
-      if (Array.isArray(raw)) {
-        ids = raw
-          .map((value) => asNumber(value))
-          .filter((id) => id > 0)
-          .slice(0, MAX_OBITUARIES);
-      }
+      const raw = await readContract("getRecentObituaries");
+      if (!Array.isArray(raw)) return;
+      const parsed = raw.map((value) => safeMemorialNumber(value, true));
+      if (parsed.some((id) => id === null)) return;
+      ids = parsed.filter((id): id is number => id !== null).slice(0, MAX_OBITUARIES);
     } catch (_e) {
-      ids = [];
+      return;
     }
 
     if (ids.length === 0) {
@@ -371,14 +630,14 @@ export function useMemorialShrine({
     try {
       // visitorHash is already a 0x script hash (addressToScriptHash above);
       // app.chain.arg.hash160 preserves it verbatim.
-      const raw = await app.chain.readRaw("getVisitorMemorials", [
+      const raw = await readContract("getVisitorMemorials", [
         app.chain.arg.hash160(visitorHash),
       ]);
-      if (Array.isArray(raw)) {
-        memorialIds = raw.map((value) => asNumber(value)).filter((id) => id > 0);
-      }
+      if (!Array.isArray(raw)) return;
+      const parsed = raw.map((value) => safeMemorialNumber(value, true));
+      if (parsed.some((id) => id === null)) return;
+      memorialIds = parsed.filter((id): id is number => id !== null);
     } catch (_e) {
-      myTributes.set([]);
       return;
     }
 
@@ -390,7 +649,10 @@ export function useMemorialShrine({
     const perMemorial = await Promise.all(
       memorialIds.map((memorialId) => readVisitorTributesForMemorial(visitorHash, memorialId)),
     );
-    const records = perMemorial.flat().sort((a, b) => b.paidAt - a.paidAt);
+    if (perMemorial.some((records) => records === null)) return;
+    const records = perMemorial
+      .flatMap((items) => items ?? [])
+      .sort((a, b) => b.paidAt - a.paidAt);
     myTributes.set(records);
   };
 
@@ -398,25 +660,26 @@ export function useMemorialShrine({
   const readVisitorTributesForMemorial = async (
     visitorHash: string,
     memorialId: number,
-  ): Promise<TributeRecord[]> => {
+  ): Promise<TributeRecord[] | null> => {
     let tributeIds: number[] = [];
     try {
-      const raw = await app.chain.readRaw("getMemorialTributes", [
+      const raw = await readContract("getMemorialTributes", [
         app.chain.arg.integer(memorialId),
         app.chain.arg.integer(0),
         app.chain.arg.integer(MAX_TRIBUTES_PER_MEMORIAL),
       ]);
-      if (Array.isArray(raw)) {
-        tributeIds = raw.map((value) => asNumber(value)).filter((id) => id > 0);
-      }
+      if (!Array.isArray(raw)) return null;
+      const parsed = raw.map((value) => safeMemorialNumber(value, true));
+      if (parsed.some((id) => id === null)) return null;
+      tributeIds = parsed.filter((id): id is number => id !== null);
     } catch (_e) {
-      return [];
+      return null;
     }
 
     const details = await Promise.all(
       tributeIds.map(async (tributeId) => {
         try {
-          const raw = await app.chain.readRaw("getTributeDetails", [
+          const raw = await readContract("getTributeDetails", [
             app.chain.arg.integer(tributeId),
           ]);
           return raw && typeof raw === "object" && !Array.isArray(raw)
@@ -429,19 +692,28 @@ export function useMemorialShrine({
     );
 
     const records: TributeRecord[] = [];
+    if (details.some((record) => record === null)) return null;
     for (const record of details) {
       if (!record) continue;
       if (!sameHash(record.visitor, visitorHash)) continue;
-      const offeringType = asNumber(record.offeringType) || 1;
-      const cost = OFFERING_COSTS_FIXED8[offeringType] ?? OFFERING_COSTS_FIXED8[1] ?? 1000000n;
+      const tributeId = safeMemorialNumber(record.id, true);
+      const recordMemorialId = safeMemorialNumber(record.memorialId, true);
+      const offeringType = safeMemorialNumber(record.offeringType, true);
+      const paidAt = safeMemorialNumber(record.timestamp);
+      if (
+        tributeId === null || recordMemorialId !== memorialId ||
+        offeringType === null || paidAt === null
+      ) return null;
+      const fixed8 = MEMORIAL_OFFERING_COSTS_FIXED8[offeringType as MemorialOfferingType];
+      if (!fixed8) return null;
       records.push({
-        tributeId: asNumber(record.id),
-        memorialId: asNumber(record.memorialId) || memorialId,
+        tributeId,
+        memorialId: recordMemorialId,
         offeringType,
         offeringName: String(record.offeringName ?? ""),
         message: String(record.message ?? ""),
-        amountGas: app.amount.fixed8ToGas(cost),
-        paidAt: asNumber(record.timestamp),
+        amountGas: app.amount.fixed8ToGas(BigInt(fixed8)),
+        paidAt,
       });
     }
     return records;
@@ -477,14 +749,9 @@ export function useMemorialShrine({
     }
   };
 
-  /** Briefly surface a share status message (auto-clears after 2.5s). */
+  /** Surface the latest explicit share result without a synthetic timer phase. */
   const flashShareStatus = (message: string) => {
     shareStatus.set(message);
-    if (shareStatusTimer) clearTimeout(shareStatusTimer);
-    shareStatusTimer = setTimeout(() => {
-      shareStatus.set(null);
-      shareStatusTimer = null;
-    }, 2500);
   };
 
   const shareMemorial = async (memorial?: Memorial) => {
@@ -530,143 +797,374 @@ export function useMemorialShrine({
     }
   };
 
+  const markReadbackPending = (record: PendingMemorialWrite) => {
+    writePhase.set("readback-pending");
+    writeNotice.set(t("transactionReadbackPending", { txid: record.txid }));
+    writeError.set("");
+    return { status: "pending" as const, record };
+  };
+
+  const confirmPendingWrite = async (candidate?: PendingMemorialWrite | null) => {
+    const record = candidate ?? pendingWrite.get();
+    if (!record || confirmationChecking.get()) return null;
+    confirmationChecking.set(true);
+    writePhase.set("checking");
+    writeNotice.set(t("transactionChecking", { txid: record.txid }));
+    writeError.set("");
+    try {
+      let outcome;
+      try {
+        outcome = await transactionReader(record.network, record.txid);
+      } catch {
+        outcome = { state: "unknown" as const, notifications: [] };
+      }
+      if (pendingWrite.get()?.txid !== record.txid) return null;
+      if (outcome.state === "unknown") {
+        writePhase.set("broadcast");
+        writeNotice.set(t("transactionPending", { txid: record.txid }));
+        return { status: "pending" as const, record };
+      }
+      if (outcome.state === "fault") {
+        if (clearPending()) {
+          writePhase.set("fault");
+          writeNotice.set("");
+          writeError.set(t("transactionFaulted", { txid: record.txid }));
+        }
+        return { status: "fault" as const, record };
+      }
+
+      if (record.intent.kind === "create") {
+        const memorialId = createdMemorialIdFromOutcome(record, outcome);
+        if (!memorialId) {
+          if (clearPending()) {
+            writePhase.set("event-mismatch");
+            writeNotice.set("");
+            writeError.set(t("transactionEventMismatch", { txid: record.txid }));
+          }
+          return { status: "mismatch" as const, record };
+        }
+        try {
+          const [details, countRaw] = await Promise.all([
+            readContract("getMemorialDetails", [app.chain.arg.integer(memorialId)]),
+            readContract("getMemorialCount"),
+          ]);
+          const count = requireNonNegativeInteger(countRaw, "contractReadUnavailable");
+          if (count < BigInt(memorialId) || !memorialReadbackMatches(details, record, memorialId)) {
+            return markReadbackPending(record);
+          }
+        } catch {
+          return markReadbackPending(record);
+        }
+      } else {
+        const intent = record.intent;
+        if (!tributeEventMatches(record, outcome)) {
+          if (clearPending()) {
+            writePhase.set("event-mismatch");
+            writeNotice.set("");
+            writeError.set(t("transactionEventMismatch", { txid: record.txid }));
+          }
+          return { status: "mismatch" as const, record };
+        }
+        try {
+          const before = requireNonNegativeInteger(
+            intent.beforeTributeCount,
+            "contractReadUnavailable",
+          );
+          const after = requireNonNegativeInteger(
+            await readContract("getMemorialTributeCount", [
+              app.chain.arg.integer(intent.memorialId),
+            ]),
+            "contractReadUnavailable",
+          );
+          if (after <= before) return markReadbackPending(record);
+          const delta = after - before;
+          if (delta > BigInt(MAX_RECOVERY_TRIBUTES)) return markReadbackPending(record);
+          const idsRaw = await Promise.all(
+            Array.from({ length: Number(delta) }, (_, index) =>
+              readContract("getMemorialTributeAt", [
+                app.chain.arg.integer(intent.memorialId),
+                app.chain.arg.integer((before + BigInt(index)).toString()),
+              ]),
+            ),
+          );
+          const ids = idsRaw
+            .map((value) => parseMemorialInteger(value))
+            .filter((value): value is bigint => value !== null && value > 0n && value <= BigInt(Number.MAX_SAFE_INTEGER))
+            .map(Number);
+          const details = await Promise.all(ids.map((id) =>
+            readContract("getTributeDetails", [app.chain.arg.integer(id)]),
+          ));
+          if (!details.some((value) => tributeReadbackMatches(value, record))) {
+            return markReadbackPending(record);
+          }
+        } catch {
+          return markReadbackPending(record);
+        }
+      }
+
+      if (!clearPending()) return { status: "pending" as const, record };
+      writePhase.set("confirmed");
+      writeNotice.set(t("transactionConfirmed", { txid: record.txid }));
+      writeError.set("");
+      await loadMemorials();
+      await loadMyTributes();
+      if (record.intent.kind === "tribute") {
+        const memorialId = record.intent.memorialId;
+        if (selectedMemorial.get()?.id === memorialId) {
+          selectedMemorial.set(
+            memorials.get().find((memorial) => memorial.id === memorialId) ?? null,
+          );
+        }
+      }
+      return { status: "confirmed" as const, record };
+    } finally {
+      confirmationChecking.set(false);
+    }
+  };
+
+  const buildPending = (
+    intent: PendingMemorialIntent,
+    wallet: { address: string; hash: string },
+    txidInput: string,
+  ): PendingMemorialWrite | null => {
+    if (!network) return null;
+    const txid = normalizeMemorialTxid(txidInput);
+    if (!txid) return null;
+    return {
+      version: 1,
+      network,
+      contractHash,
+      wallet: wallet.address,
+      walletHash: wallet.hash,
+      txid,
+      intent,
+      createdAt: Date.now(),
+    };
+  };
+
   // ------------------------------------------
   // Write: create memorial (direct MiniApp contract)
   // ------------------------------------------
 
-  /**
-   * Create a memorial directly on the MiniApp contract. The wallet signs the
-   * `createMemorial` invocation and the UI listens for `MemorialCreated`. The
-   * call is free — no GAS is prepaid for creation.
-   */
-  const createMemorial = async (form: {
-    name: string;
-    photoHash: string;
-    relationship: string;
-    birthYear: number;
-    deathYear: number;
-    biography: string;
-    obituary: string;
-  }) => {
-    if (isSubmitting.get()) return;
+  const createMemorial = async (form: MemorialDraftInput) => {
+    if (isSubmitting.get()) return null;
+    const validation = validateMemorialDraft(form);
+    if (!validation.ok) throw new Error(t(validation.errorKey));
+    const draft = validation.value;
     isSubmitting.set(true);
+    writePhase.set("preparing");
+    writeNotice.set(t("transactionPreparing"));
+    writeError.set("");
     try {
-      const creator = await app.chain.ensureWallet();
-      // NOTE: the contract's createMemorial takes the creator as a Hash160 whose
-      // value is the RAW wallet address (the deployed ABI + live-validate harness
-      // expect the base58 form here, not a script hash). arg.hash160Raw passes it
-      // through UNCONVERTED — arg.hash160 would convert it to a script hash and
-      // change on-chain behavior, so it must never be used for this parameter.
+      assertRecoveryPreflight();
+      await assertContractAvailable(false);
+      const beforeMemorialCount = requireNonNegativeInteger(
+        await readContract("getMemorialCount"),
+        "contractReadUnavailable",
+      ).toString();
+      const creator = await requireBoundWallet();
+      const intent: PendingMemorialIntent = {
+        kind: "create",
+        ...draft,
+        beforeMemorialCount,
+      };
       const args: FrameworkArg[] = [
-        app.chain.arg.hash160Raw(creator),
-        app.chain.arg.string(normalizeText(form.name, 96)),
-        app.chain.arg.string(normalizeText(form.photoHash, 160)),
-        app.chain.arg.string(normalizeText(form.relationship, 64)),
-        app.chain.arg.integer(form.birthYear || 0),
-        app.chain.arg.integer(form.deathYear || 0),
-        app.chain.arg.string(normalizeText(form.biography, 600)),
-        app.chain.arg.string(normalizeText(form.obituary, 600)),
+        app.chain.arg.hash160Raw(creator.address),
+        app.chain.arg.string(draft.name),
+        app.chain.arg.string(draft.photoHash),
+        app.chain.arg.string(draft.relationship),
+        app.chain.arg.integer(draft.birthYear),
+        app.chain.arg.integer(draft.deathYear),
+        app.chain.arg.string(draft.biography),
+        app.chain.arg.string(draft.obituary),
       ];
-
-      const result = await app.chain.invoke("createMemorial", args, {
-        waitForEvent: "MemorialCreated",
-        waitTimeoutMs: 30_000,
-      });
+      let captured: PendingMemorialWrite | null = null;
+      let persistenceFailed = false;
+      const rememberBroadcast = (txid: string) => {
+        const record = buildPending(intent, creator, txid);
+        if (!record) return;
+        captured = record;
+        try { setPending(record); } catch { persistenceFailed = true; }
+      };
+      let result: FrameworkTx;
+      try {
+        result = await app.chain.invoke("createMemorial", args, {
+          scriptHash: contractHash,
+          waitForEvent: "MemorialCreated",
+          waitTimeoutMs: 45_000,
+          onTransactionSent: rememberBroadcast,
+        });
+      } catch (error) {
+        const active = pendingWrite.get();
+        if (active) {
+          writePhase.set(persistenceFailed ? "storage-error" : "broadcast");
+          writeNotice.set(t("transactionPending", { txid: active.txid }));
+          return { txid: active.txid, confirmed: false };
+        }
+        throw error;
+      }
       lastTx.set(result);
-
-      await loadMemorials();
+      if (!captured) rememberBroadcast(result.txid);
+      const active = pendingWrite.get();
+      if (!active) throw new Error(t("transactionNotBroadcast"));
+      const resultTxid = normalizeMemorialTxid(result.txid);
+      if (resultTxid && resultTxid !== active.txid) {
+        writeError.set(t("transactionIdentityChanged"));
+        return { txid: active.txid, confirmed: false };
+      }
+      if (persistenceFailed) return { txid: active.txid, confirmed: false };
+      const settlement = await confirmPendingWrite(active);
+      return { txid: active.txid, confirmed: settlement?.status === "confirmed" };
+    } catch (error) {
+      writeError.set(error instanceof Error ? error.message : t("unknownError"));
+      if (!pendingWrite.get()) writePhase.set("idle");
+      throw error;
     } finally {
       isSubmitting.set(false);
     }
   };
 
   // ------------------------------------------
-  // Write: pay tribute (direct-prepaid GAS + contract call)
+  // Write: pay tribute (testnet prepay / mainnet receipt ABI)
   // ------------------------------------------
 
-  /**
-   * Pay tribute by prepaying the selected offering cost and invoking
-   * `payTribute(visitor, memorialId, offeringType, message)`.
-   *
-   * On testnet the offering cost is prepaid through invokeWithPayment (a GAS
-   * transfer with the appId memo prefix, then the call). On mainnet the receipt
-   * ID maps to an already-settled payment so the call is direct.
-   */
   const payTribute = async (
     memorialId: number,
     offeringType: number,
     message: string,
     receiptId?: string,
   ) => {
-    if (isPaying.get()) return;
+    if (isPaying.get()) return null;
+    if (!Number.isSafeInteger(memorialId) || memorialId <= 0) {
+      throw new Error(t("invalidMemorial"));
+    }
+    if (!Object.prototype.hasOwnProperty.call(MEMORIAL_OFFERING_COSTS_FIXED8, offeringType)) {
+      throw new Error(t("invalidOffering"));
+    }
+    const selectedOffering = offeringType as MemorialOfferingType;
+    const offeringCost = MEMORIAL_OFFERING_COSTS_FIXED8[selectedOffering];
+    const normalizedMessage = normalizeTributeMessage(message);
+    if (normalizedMessage === null) throw new Error(t("tributeMessageTooLong"));
+    const normalizedReceiptId = String(receiptId ?? "").trim();
+    if (network === "mainnet" && !/^[1-9]\d*$/.test(normalizedReceiptId)) {
+      throw new Error(t("receiptIdRequired"));
+    }
+    if (network === "testnet" && normalizedReceiptId) {
+      throw new Error(t("receiptIdUnexpected"));
+    }
     isPaying.set(true);
+    writePhase.set("preparing");
+    writeNotice.set(t("transactionPreparing"));
+    writeError.set("");
     try {
-      const visitor = await app.chain.ensureWallet();
-      const selectedOffering = Number.isInteger(offeringType) ? offeringType : 1;
-      const offeringCost =
-        OFFERING_COSTS_FIXED8[selectedOffering] ?? OFFERING_COSTS_FIXED8[1] ?? 1000000n;
-      // The visitor Hash160 carries the RAW wallet address (deployed ABI +
-      // live-validate harness expect base58, not a script hash) — arg.hash160Raw
-      // passes it through UNCONVERTED; arg.hash160 would change on-chain behavior.
-      const args: FrameworkArg[] = [
-        app.chain.arg.hash160Raw(visitor),
+      assertRecoveryPreflight();
+      await assertContractAvailable(true);
+      const memorialRaw = await readContract("getMemorialDetails", [
         app.chain.arg.integer(memorialId),
-        app.chain.arg.integer(selectedOffering),
-        app.chain.arg.string(normalizeText(message, 280)),
-      ];
-      let result: FrameworkTx;
-      if (launchNetwork === "mainnet") {
-        // Validate BEFORE the framework lane so an absent/malformed receipt id
-        // still surfaces the app-localized copy, not the framework's typed error.
-        const normalizedReceiptId = String(receiptId ?? "").trim();
-        if (!/^[1-9]\d*$/.test(normalizedReceiptId)) {
-          throw new Error(t("receiptIdRequired"));
-        }
-        // Mainnet receipt-id deposit lane (S3): the GAS was pre-transferred in a
-        // separate settled tx; receiptPay appends the receipt id as the trailing
-        // Integer argument. notify:'silent' — the registered action's guard owns
-        // the toasts, exactly as before.
-        result = await app.funds.receiptPay({
-          operation: "payTribute",
-          args,
-          receiptId: normalizedReceiptId,
-          waitForEvent: "TributePaid",
-          waitTimeoutMs: 30_000,
-          notify: "silent",
-        });
-      } else {
-        result = await app.chain.invokeWithPayment(
-          offeringCost.toString(),
-          `${APP_ID}:tribute:${memorialId}:${selectedOffering}`,
-          "payTribute",
-          args,
-          { waitForEvent: "TributePaid", waitTimeoutMs: 30_000 },
-        );
-      }
-      lastTx.set(result);
-
-      const amountGas = app.amount.fixed8ToGas(offeringCost);
-
-      // Reflect the paid tribute immediately, then reconcile from chain. The
-      // optimistic record uses the TributePaid tributeId (event slot is the
-      // returned id) so the counter advances without waiting on the read.
-      const optimistic: TributeRecord = {
-        tributeId: asNumber(eventValue(result.event, 0)),
+      ]);
+      if (requirePositiveId(
+        memorialRaw && typeof memorialRaw === "object"
+          ? (memorialRaw instanceof Map
+              ? memorialRaw.get("id")
+              : (memorialRaw as Record<string, unknown>).id)
+          : null,
+        "invalidMemorial",
+      ) !== memorialId) throw new Error(t("invalidMemorial"));
+      const chainCost = requireNonNegativeInteger(
+        await readContract("getOfferingCost", [app.chain.arg.integer(selectedOffering)]),
+        "contractReadUnavailable",
+      );
+      if (chainCost.toString() !== offeringCost) throw new Error(t("offeringCostMismatch"));
+      const beforeTributeCount = requireNonNegativeInteger(
+        await readContract("getMemorialTributeCount", [app.chain.arg.integer(memorialId)]),
+        "contractReadUnavailable",
+      ).toString();
+      const visitor = await requireBoundWallet();
+      const baseIntent: PendingTributeIntent = {
+        kind: "tribute",
         memorialId,
         offeringType: selectedOffering,
-        offeringName: "",
-        message: normalizeText(message, 280),
-        amountGas,
-        paidAt: Date.now(),
+        message: normalizedMessage,
+        amountFixed8: offeringCost,
+        receiptId: network === "mainnet" ? normalizedReceiptId : "",
+        beforeTributeCount,
       };
-      myTributes.set([optimistic, ...myTributes.get()]);
-
-      // Reconcile memorials (offering counts) + the canonical tribute list.
-      await loadMemorials();
-      await loadMyTributes();
-      if (selectedMemorial.get()?.id === memorialId) {
-        selectedMemorial.set(memorials.get().find((m) => m.id === memorialId) || null);
+      const args: FrameworkArg[] = [
+        app.chain.arg.hash160Raw(visitor.address),
+        app.chain.arg.integer(memorialId),
+        app.chain.arg.integer(selectedOffering),
+        app.chain.arg.string(normalizedMessage),
+      ];
+      let paymentTxid = "";
+      let captured: PendingMemorialWrite | null = null;
+      let persistenceFailed = false;
+      const rememberPayment = (txid: string) => {
+        paymentTxid = normalizeMemorialTxid(txid);
+      };
+      const rememberBroadcast = (txid: string) => {
+        const intent: PendingMemorialIntent = paymentTxid
+          ? { ...baseIntent, paymentTxid }
+          : baseIntent;
+        const record = buildPending(intent, visitor, txid);
+        if (!record) return;
+        captured = record;
+        try { setPending(record); } catch { persistenceFailed = true; }
+      };
+      let result: FrameworkTx;
+      try {
+        if (network === "mainnet") {
+          result = await app.funds.receiptPay({
+            operation: "payTribute",
+            args,
+            receiptId: normalizedReceiptId,
+            scriptHash: contractHash,
+            waitForEvent: "TributePaid",
+            waitTimeoutMs: 45_000,
+            onTransactionSent: rememberBroadcast,
+            notify: "silent",
+          });
+        } else if (network === "testnet") {
+          result = await app.chain.invokeWithPayment(
+            offeringCost,
+            `${APP_ID}:tribute:${memorialId}:${selectedOffering}`,
+            "payTribute",
+            args,
+            {
+              scriptHash: contractHash,
+              waitForEvent: "TributePaid",
+              waitTimeoutMs: 45_000,
+              onPaymentSent: rememberPayment,
+              onTransactionSent: rememberBroadcast,
+            },
+          );
+        } else {
+          throw new Error(t("walletNetworkUnknown"));
+        }
+      } catch (error) {
+        const active = pendingWrite.get();
+        if (active) {
+          writePhase.set(persistenceFailed ? "storage-error" : "broadcast");
+          writeNotice.set(t("transactionPending", { txid: active.txid }));
+          return { txid: active.txid, confirmed: false };
+        }
+        throw error;
       }
+      lastTx.set(result);
+      if (!captured) rememberBroadcast(result.txid);
+      const active = pendingWrite.get();
+      if (!active) throw new Error(t("transactionNotBroadcast"));
+      const resultTxid = normalizeMemorialTxid(result.txid);
+      if (resultTxid && resultTxid !== active.txid) {
+        writeError.set(t("transactionIdentityChanged"));
+        return { txid: active.txid, confirmed: false };
+      }
+      if (persistenceFailed) return { txid: active.txid, confirmed: false };
+      const settlement = await confirmPendingWrite(active);
+      return { txid: active.txid, confirmed: settlement?.status === "confirmed" };
+    } catch (error) {
+      writeError.set(error instanceof Error ? error.message : t("unknownError"));
+      if (!pendingWrite.get()) writePhase.set("idle");
+      throw error;
     } finally {
       isPaying.set(false);
     }
@@ -677,19 +1175,22 @@ export function useMemorialShrine({
   // ------------------------------------------
 
   const loadAll = async () => {
-    await loadMemorials();
+    restorePending();
+    await Promise.all([loadNetworkStatus(), loadMemorials()]);
     await checkUrlForMemorial();
-    await loadVisitedMemorials();
-    await loadMyTributes();
+    await Promise.all([loadVisitedMemorials(), loadMyTributes()]);
+    if (pendingWrite.get()) await confirmPendingWrite(pendingWrite.get());
   };
 
-  const cleanupTimers = () => {
-    if (shareStatusTimer) { clearTimeout(shareStatusTimer); shareStatusTimer = null; }
-  };
+  restorePending();
+
+  const cleanupTimers = () => { /* no synthetic transaction timers */ };
   return {
     // State
     memorials, visitedMemorials, myTributes, recentObituaries, selectedMemorial, shareStatus,
-    isSubmitting, isPaying,
+    catalogStatus, catalogError, networkStatus, networkMessage,
+    isSubmitting, isPaying, confirmationChecking,
+    pendingWrite, writePhase, writeNotice, writeError, storageHealthy,
     lastTx,
     memorialCount, tributeCount, obituaryCount,
 
@@ -698,10 +1199,10 @@ export function useMemorialShrine({
     shareMemorial, checkUrlForMemorial,
 
     // Write actions
-    createMemorial, payTribute,
+    createMemorial, payTribute, confirmPendingWrite,
 
     // Lifecycle
-    loadAll, cleanupTimers,
+    loadAll, loadNetworkStatus, cleanupTimers,
   };
 }
 

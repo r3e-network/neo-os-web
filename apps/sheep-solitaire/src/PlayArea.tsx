@@ -206,7 +206,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const handleRemove3 = async () => {
-    if (remove3Left <= 0 || slotCards.length === 0 || busy) return;
+    if (remove3Left <= 0 || slotCards.length < 3 || busy) return;
     await dispatch("useRemove3", {});
   };
 
@@ -527,7 +527,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           type="button"
           className="sheep-tool"
           onClick={() => void handleRemove3()}
-          disabled={busy || remove3Left <= 0 || slotCards.length === 0}
+          disabled={busy || remove3Left <= 0 || slotCards.length < 3}
           title={t("remove3Hint")}
         >
           <Trash2 size={16} aria-hidden="true" />

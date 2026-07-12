@@ -13,11 +13,18 @@ import {
   applyUndo,
   configureBoardStorage,
   createBoard,
+  eraseLocalCell,
   placeDigit,
+  replayBoardOps,
   restoreBoard,
+  setLocalDigit,
   toggleNote,
 } from "../../sudoku/src/logic/board-store";
-import type { BoardStorage } from "../../sudoku/src/logic/board-store";
+import type { BoardOp, BoardState, BoardStorage } from "../../sudoku/src/logic/board-store";
+import {
+  GAMEFI_NEW_ENTRIES_ENABLED,
+  canExpireAfterGrace,
+} from "../../sudoku/src/logic/game-rules";
 
 // board-store persists through the framework's app.storage.local surface. The
 // app pins storagePrefix to "miniapp-sudoku:", so a "board:<gameId>" key
@@ -169,6 +176,12 @@ function countSolutions(puzzle: string, limit = 2): number {
 }
 
 describe("sudoku deterministic engine", () => {
+  it("keeps new paid starts fail-closed while historical expiry stays grace-safe", () => {
+    expect(GAMEFI_NEW_ENTRIES_ENABLED).toBe(false);
+    expect(canExpireAfterGrace(1_000, 601_000, 600_000)).toBe(false);
+    expect(canExpireAfterGrace(1_000, 601_001, 600_000)).toBe(true);
+  });
+
   it("reproduces every golden vector (contract parity)", () => {
     for (const vector of GOLDEN_VECTORS) {
       expect(deriveSolution(hexToBytes(vector.seedHex))).toBe(vector.solution);
@@ -189,6 +202,25 @@ describe("sudoku deterministic engine", () => {
       expect(MASKS[key].length).toBeGreaterThanOrEqual(10);
       for (const mask of MASKS[key]) {
         expect(mask).toMatch(/^[01]{81}$/);
+      }
+    }
+  });
+
+  it("proves every shipped clue mask has exactly one solution", () => {
+    const expectedClues = {
+      easy: { min: 40, max: 40 },
+      medium: { min: 32, max: 32 },
+      hard: { min: 26, max: 28 },
+    } as const;
+    for (const key of ["easy", "medium", "hard"] as const) {
+      for (const mask of MASKS[key]) {
+        const puzzle = Array.from(mask, (visible, cell) =>
+          visible === "1" ? BASE_GRID[cell] : "0",
+        ).join("");
+        const clues = Array.from(mask).filter((visible) => visible === "1").length;
+        expect(clues).toBeGreaterThanOrEqual(expectedClues[key].min);
+        expect(clues).toBeLessThanOrEqual(expectedClues[key].max);
+        expect(countSolutions(puzzle), `${key} mask must stay unique`).toBe(1);
       }
     }
   });
@@ -248,6 +280,21 @@ describe("sudoku board store (challenge rules)", () => {
     expect(again.board.entries[cell]).toBe(5); // unchanged — placements are final
   });
 
+  it("lets local practice correct and erase player digits without editing clues", () => {
+    const board = createBoard(puzzle.puzzle);
+    const cell = firstEmpty(puzzle.puzzle);
+    const corrected = setLocalDigit(setLocalDigit(board, cell, 5).board, cell, 7).board;
+    expect(corrected.entries[cell]).toBe(7);
+    expect(corrected.placedOrder).toEqual([cell]);
+
+    const erased = eraseLocalCell(corrected, cell);
+    expect(erased.entries[cell]).toBe(0);
+    expect(erased.placedOrder).toEqual([]);
+
+    const givenIdx = puzzle.puzzle.split("").findIndex((ch) => ch !== "0");
+    expect(eraseLocalCell(board, givenIdx)).toBe(board);
+  });
+
   it("never edits given clues", () => {
     const board = createBoard(puzzle.puzzle);
     const givenIdx = puzzle.puzzle.split("").findIndex((ch) => ch !== "0");
@@ -293,6 +340,39 @@ describe("sudoku board store (challenge rules)", () => {
     expect(undone.board.entries[empties[0]]).toBe(1);
   });
 
+  it("rebuilds the visible board from the sealed operation log", () => {
+    const empties = puzzle.puzzle
+      .split("")
+      .map((digit, index) => (digit === "0" ? index : -1))
+      .filter((index) => index >= 0)
+      .slice(0, 2);
+    const ops: BoardOp[] = [
+      { type: "place", cell: empties[0], digit: 4 },
+      { type: "place", cell: empties[1], digit: 7 },
+      { type: "undo" },
+    ];
+    const rebuilt = replayBoardOps(puzzle.puzzle, ops);
+    expect(rebuilt?.entries[empties[0]]).toBe(4);
+    expect(rebuilt?.entries[empties[1]]).toBe(0);
+    expect(rebuilt?.placedOrder).toEqual([empties[0]]);
+  });
+
+  it("rejects malformed or impossible sealed operation logs", () => {
+    const cell = firstEmpty(puzzle.puzzle);
+    expect(replayBoardOps(puzzle.puzzle, [{ type: "undo" }])).toBeNull();
+    expect(replayBoardOps(puzzle.puzzle, [
+      { type: "place", cell, digit: 5 },
+      { type: "place", cell, digit: 6 },
+    ])).toBeNull();
+    expect(replayBoardOps(puzzle.puzzle, [
+      { type: "place", cell: 81, digit: 5 },
+    ])).toBeNull();
+    expect(replayBoardOps(puzzle.puzzle, Array.from(
+      { length: 4 },
+      () => [{ type: "place", cell, digit: 5 }, { type: "undo" }] as BoardOp[],
+    ).flat())).toBeNull();
+  });
+
   it("restores a persisted board only when the puzzle fingerprint matches", () => {
     const other = dealPuzzle(hexToBytes(GOLDEN_VECTORS[1].seedHex), 0);
     window.localStorage.setItem(
@@ -304,6 +384,28 @@ describe("sudoku board store (challenge rules)", () => {
     const mismatched = restoreBoard("7", other.puzzle);
     expect(mismatched.placedOrder).toEqual([]);
     window.localStorage.removeItem("miniapp-sudoku:board:7");
+  });
+
+  it("discards malformed persisted boards instead of restoring unsafe moves", () => {
+    const cell = firstEmpty(puzzle.puzzle);
+    const valid = placeDigit(createBoard(puzzle.puzzle), cell, 5).board;
+    const cases: BoardState[] = [
+      { ...valid, entries: valid.entries.map((value, index) => (index === cell ? 12 : value)) },
+      { ...valid, notes: valid.notes.map((value, index) => (index === cell ? 1 << 11 : value)) },
+      { ...valid, placedOrder: [] },
+      { ...valid, placedOrder: [cell, cell] },
+      { ...valid, notes: valid.notes.map((value, index) => (index === cell ? 1 << 5 : value)) },
+    ];
+
+    cases.forEach((candidate, index) => {
+      const gameId = `malformed-${index}`;
+      window.localStorage.setItem(
+        `miniapp-sudoku:board:${gameId}`,
+        JSON.stringify(candidate),
+      );
+      expect(restoreBoard(gameId, puzzle.puzzle)).toEqual(createBoard(puzzle.puzzle));
+      window.localStorage.removeItem(`miniapp-sudoku:board:${gameId}`);
+    });
   });
 
   it("serializes a complete board to the contract submission format", () => {

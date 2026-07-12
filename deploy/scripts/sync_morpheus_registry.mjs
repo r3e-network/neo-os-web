@@ -37,9 +37,9 @@ async function loadOracleModule(moduleName, exportName) {
   return loader({ oracleRoot });
 }
 
-function writeGeneratedTs(targetPath, exportName, typeName, value, commentLine) {
+function writeGeneratedTs(targetPath, exportName, typeName, value, commentLine, options = {}) {
   const body = [
-    '/* eslint-disable */',
+    ...(options.eslintDisable === false ? [] : ['/* eslint-disable */']),
     commentLine,
     '// Do not edit manually; re-export from the Morpheus canonical oracle workspace.',
     '',
@@ -50,6 +50,35 @@ function writeGeneratedTs(targetPath, exportName, typeName, value, commentLine) 
   ].join('\n');
 
   fs.writeFileSync(targetPath, body, 'utf8');
+}
+
+function loadPublicSignerRegistry() {
+  const signerPath = path.join(oracleRoot, 'config', 'signer-identities.json');
+  if (!fs.existsSync(signerPath)) {
+    throw new Error(`Missing canonical signer registry: ${signerPath}`);
+  }
+  const source = JSON.parse(fs.readFileSync(signerPath, 'utf8'));
+  const result = {};
+  for (const network of ['mainnet', 'testnet']) {
+    const roles = source?.neo_n3?.[network]?.roles ?? {};
+    const role = (name) => {
+      const value = roles[name] ?? {};
+      const publicKey = String(value.public_key ?? '').trim().toLowerCase();
+      if (!/^(02|03)[0-9a-f]{64}$/.test(publicKey)) {
+        throw new Error(`Invalid ${network} ${name} public key in ${signerPath}`);
+      }
+      return {
+        address: String(value.address ?? '').trim(),
+        scriptHash: String(value.script_hash ?? '').trim().toLowerCase(),
+        publicKey,
+      };
+    };
+    result[network] = {
+      worker: role('worker'),
+      oracleVerifier: role('oracle_verifier'),
+    };
+  }
+  return result;
 }
 
 async function assertConfidentialEnvelopeParity() {
@@ -110,6 +139,7 @@ async function main() {
 
   const registry = await loadOracleModule('lib-public-network-registry.mjs', 'loadPublicNetworkRegistry');
   const catalog = await loadOracleModule('lib-public-runtime-catalog.mjs', 'loadPublicRuntimeCatalog');
+  const signers = loadPublicSignerRegistry();
 
   writeGeneratedTs(
     path.join(repoRoot, 'apps/shared/constants/generated-morpheus-registry.ts'),
@@ -125,6 +155,15 @@ async function main() {
     'MorpheusPublicRuntimeCatalog',
     catalog,
     '// Generated from neo-morpheus-oracle/scripts/export-public-runtime-catalog.mjs.'
+  );
+
+  writeGeneratedTs(
+    path.join(repoRoot, 'apps/shared/constants/generated-morpheus-signer-registry.ts'),
+    'MORPHEUS_PUBLIC_SIGNER_REGISTRY',
+    'MorpheusPublicSignerRegistry',
+    signers,
+    '// Generated from neo-morpheus-oracle/config/signer-identities.json.',
+    { eslintDisable: false }
   );
 
   console.log(`Synced Morpheus generated config from ${oracleRoot}`);

@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-03T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Timed on-chain tile-merging puzzle with provably fair TEE-generated spawns. Pay a small GAS entry, tap a tile and an equal neighbour to merge (values double), and reach the target tile before the deadline to win a fixed GAS reward: 0.1 for Easy (reach 64), 0.5 for Medium (reach 256), 1 for Hard (reach 1024). Each spawn is revealed one move at a time inside a Morpheus TEE session — the future board is never handed to the client. Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
-  "description_zh": "限时链上合并方块益智游戏，方块生成由 TEE 保证可验证公平。支付少量 GAS 报名费，点击一个方块和相邻的相同方块进行合并（数值翻倍），在截止时间前达到目标方块即可赢取固定 GAS 奖励：简单 0.1（达到 64）、中等 0.5（达到 256）、困难 1（达到 1024）。每次生成的新方块在 Morpheus TEE 会话中逐步揭示——未来的棋盘永不交给客户端。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "description": "A free local kingdom merge game: drag matching building resources together, upgrade the realm, beat the route target before time runs out, and resume unfinished runs on this device. New paid GameFi entries remain disabled until the reward pool, Morpheus callback allowlist, and complete testnet settlement flow are verified; historical recovery and withdrawal code is retained.",
+  "description_zh": "免费的本地王国合并游戏：拖动并合并相同建筑资源，逐级升级王国，在倒计时结束前达成路线目标，并在本设备恢复未完成对局。奖励池、Morpheus 回调白名单和完整测试网结算流程验证前，新的付费 GameFi 报名保持关闭；历史对局恢复与余额提取代码继续保留。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -24,61 +24,12 @@
   "id": "miniapp-merge-kingdom",
   "name": "Merge Kingdom",
   "name_zh": "合并王国",
-  "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Pay the entry fee and seal a provably fair board. Easy 0.02 GAS entry wins 0.1 (reach 64); Medium 0.10 wins 0.5 (reach 256); Hard 0.20 wins 1 (reach 1024).",
-        "method": "startGame",
-        "name": "Start Game",
-        "params": [
-          {
-            "default_value": "0",
-            "label": "Difficulty",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Easy — win 0.1 GAS (reach 64)",
-                "value": "0"
-              },
-              {
-                "label": "Medium — win 0.5 GAS (reach 256)",
-                "value": "1"
-              },
-              {
-                "label": "Hard — win 1 GAS (reach 1024)",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, merge tiles on a TEE-seeded board, and reach the target tile before the deadline to win GAS.",
-    "title": "Merge Kingdom"
-  },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -88,9 +39,11 @@
     "2048",
     "puzzle",
     "leaderboard",
-    "gas",
     "game",
-    "tee"
+    "local",
+    "guest",
+    "phaser3",
+    "kingdom"
   ],
   "technologies": {
     "aa": {
@@ -98,19 +51,19 @@
       "enabled": false
     },
     "oracle": {
-      "description": "The board and its spawn stream are generated inside a Morpheus TEE enclave from a deterministic per-game secret. Only the hash commitment is bound on-chain at the start; the enclave reveals the next spawn tile and cell one move at a time (2048-style), so the future board never leaves the TEE. At settlement the enclave replays the recorded merges over its own spawn stream and signs the highest tile reached after checking the commitment.",
-      "enabled": true
+      "description": "The paid board path is implemented for Morpheus TEE verification, but new entries are not advertised until the deployed oracle allowlists this callback and the full settlement flow passes testnet validation.",
+      "enabled": false
     },
     "tee": {
-      "enabled": true,
-      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+      "enabled": false,
+      "description": "Local guest play makes no TEE request. Historical paid-session recovery remains in code but the new paid path is disabled."
     }
   },
-  "updatedAt": "2026-07-03T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "urls": {
     "banner": "/miniapps/merge-kingdom/banner.webp",
     "entry": "/miniapps/merge-kingdom/index.html",
     "icon": "/miniapps/merge-kingdom/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }

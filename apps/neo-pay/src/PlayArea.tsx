@@ -16,17 +16,28 @@ import {
   UserRound,
 } from "lucide-react";
 import { CoinArt } from "@shared/art";
-import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, OpenUiTextField, PlayStage } from "@shared/components-react/v2";
+import {
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import type { StreamItem } from "@shared/composables/neo-pay";
 import {
   canClaim,
-  deriveSchedulePreview,
-  releasePerDayDisplay,
   statusLabelKey,
 } from "@shared/composables/neo-pay";
 import "./PlayArea.scss";
+import { normalizeNeoPayAccount } from "./neo-pay-safety";
+import {
+  deriveExactNeoPaySchedule,
+  formatAssetBaseUnits,
+  nudgeNeoPayAmount,
+  parseAssetToBaseUnits,
+} from "./useNeoPayProduction";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -42,24 +53,20 @@ const DURATION_PRESETS = [7, 30, 90];
 const GAS_FACTOR = 100000000n;
 const STREAM_DESK_ART = "payment-stream-desk.webp";
 
-function positiveNumber(value: string): boolean {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed > 0;
+function TokenIcon({ asset, size = 24 }: { asset: AssetSymbol; size?: number }) {
+  return (
+    <CoinArt
+      className="neopay-token-icon"
+      variant={asset === "NEO" ? "neo" : "gas"}
+      size={size}
+      decorative
+    />
+  );
 }
 
-function normalizeAmountForAsset(value: string, asset: AssetSymbol): string {
-  const text = String(value ?? "");
-  if (asset === "NEO") {
-    // split() always yields at least one element; `?? ""` only satisfies
-    // noUncheckedIndexedAccess (runtime no-op).
-    return (text.split(/[.,]/)[0] ?? "").replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
-  }
+function normalizeAmountInput(value: string): string {
+  const text = String(value ?? "").replace(",", ".");
   return text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-}
-
-function positiveAmountForAsset(value: string, asset: AssetSymbol): boolean {
-  if (asset === "NEO") return /^[1-9]\d*$/.test(value.trim());
-  return positiveNumber(value);
 }
 
 function compactAddress(value: string | undefined, empty = "-"): string {
@@ -84,6 +91,13 @@ function formatStreamAmount(value: bigint | undefined, asset: AssetSymbol): stri
   return `${formatBaseUnits(value, asset)} ${asset}`;
 }
 
+function exactReleasePerDay(stream: StreamItem): string | null {
+  if (stream.rateAmount <= 0n || stream.intervalDays < 1) return null;
+  const dailyBase = stream.rateAmount / BigInt(stream.intervalDays);
+  if (dailyBase <= 0n) return null;
+  return formatAssetBaseUnits(stream.assetSymbol, dailyBase);
+}
+
 function streamTitle(stream: StreamItem): string {
   return stream.title?.trim() || `Stream #${stream.id}`;
 }
@@ -97,9 +111,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { bool, num, str, val } = useStateBindings(state);
   const activeCount = num("activeCount");
   const isCreating = bool("isCreating");
+  const isRecovering = bool("isRecovering");
   const isLoading = bool("isLoading");
   const isRefreshing = bool("isRefreshing");
   const serviceNotice = str("serviceNotice");
+  const pendingCreateTxid = str("pendingCreateTxid");
+  const claimingId = str("claimingId");
+  const cancellingId = str("cancellingId");
+  const listSource = str("listSource");
+  const activeAction = str("activeAction");
+  const operationBusy = bool("operationBusy");
+  const recoveryStorageHealthy = val<boolean>("recoveryStorageHealthy", true) ?? true;
   const createdStreams = val<StreamItem[]>("createdStreams", []) ?? [];
   const beneficiaryStreams = val<StreamItem[]>("beneficiaryStreams", []) ?? [];
   const allStreams = val<StreamItem[]>("allStreams", []) ?? [];
@@ -109,26 +131,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [duration, setDuration] = useState("30");
   const [asset, setAsset] = useState<AssetSymbol>("GAS");
   const [notes, setNotes] = useState("");
+  const [cancelConfirmId, setCancelConfirmId] = useState("");
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("setup");
   const setAssetAndNormalizeAmount = (nextAsset: AssetSymbol) => {
     setAsset(nextAsset);
-    setAmount((current) => normalizeAmountForAsset(current, nextAsset));
   };
-  const setDurationClamped = (value: string) => {
+  const setDurationText = (value: string) => {
     const normalized = value.replace(/[^\d]/g, "");
-    if (!normalized) {
-      setDuration("");
-      return;
-    }
-    setDuration(String(clampWhole(Number.parseInt(normalized, 10), 1, 365)));
+    setDuration(normalized.slice(0, 3));
   };
   const nudgeAmount = (direction: 1 | -1) => {
-    const current = asset === "NEO"
-      ? Number.parseInt(amount || "0", 10)
-      : Number.parseFloat(amount || "0");
-    const step = asset === "NEO" ? 1 : 5;
-    const next = Math.max(0, (Number.isFinite(current) ? current : 0) + direction * step);
-    setAmount(asset === "NEO" ? String(Math.trunc(next)) : next.toFixed(2).replace(/\.00$/, ""));
+    setAmount(nudgeNeoPayAmount(amount, asset, direction));
   };
   const nudgeDuration = (direction: 1 | -1) => {
     const current = Number.parseInt(duration || "30", 10);
@@ -141,42 +154,51 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const schedulePreview = useMemo(
-    () => deriveSchedulePreview(amount, duration, asset),
+    () => deriveExactNeoPaySchedule(amount, duration, asset),
     [amount, duration, asset],
   );
+  const amountIsInvalid = Boolean(amount.trim()) && parseAssetToBaseUnits(asset, amount) === null;
+  const claimableStream = beneficiaryStreams.find((stream) => canClaim(stream.status, stream.claimable > 0n)) ?? null;
   const featuredStream =
-    beneficiaryStreams.find((stream) => canClaim(stream.status, stream.claimable > 0n))
+    claimableStream
     ?? createdStreams.find((stream) => stream.status === "active")
     ?? allStreams[0]
     ?? null;
 
-  const readyToCreate = recipient.trim().length > 0 && positiveAmountForAsset(amount, asset) && positiveNumber(duration);
-  const sceneState = isCreating ? "signing" : readyToCreate ? "ready" : activeCount > 0 ? "live" : "idle";
+  const recipientIsValid = Boolean(normalizeNeoPayAccount(recipient.trim()));
+  const readyToCreate = recipientIsValid && schedulePreview !== null;
+  const draftLocked = isCreating || Boolean(pendingCreateTxid);
+  const writesBlocked = operationBusy || Boolean(pendingCreateTxid) || !recoveryStorageHealthy;
+  const sceneState = draftLocked ? "signing" : readyToCreate ? "ready" : activeCount > 0 ? "live" : "idle";
   const destinationLabel = recipient.trim()
     ? compactAddress(recipient, t("recipient"))
     : featuredStream
       ? compactAddress(featuredStream.beneficiary, t("recipient"))
       : t("recipientVessel");
-  const draftStatus = isCreating
-    ? t("streamDraftSigning")
+  const draftStatus = pendingCreateTxid
+    ? t("streamDraftPending")
+    : isCreating
+      ? t("streamDraftSigning")
     : readyToCreate
       ? t("streamDraftReady")
       : t("streamDraftIdle");
   const releaseLabel = schedulePreview
     ? schedulePreview.kind === "cliff"
-      ? t("releaseCliff", { amount: schedulePreview.amount, token: asset, days: schedulePreview.days })
-      : t("releaseLinear", { amount: schedulePreview.amount, token: asset })
+      ? t("releaseCliff", { amount: schedulePreview.rateDisplay, token: asset, days: schedulePreview.durationDays })
+      : t("releaseLinear", { amount: schedulePreview.rateDisplay, token: asset })
     : t("reviewStream");
+  const hasChainView = listSource === "chain" || listSource === "partial";
   const drawerModes: Array<{ mode: DrawerMode; label: string; count?: number }> = [
     { mode: "setup", label: t("streamDetailsTab") },
     { mode: "guide", label: t("streamGuideTab") },
-    { mode: "created", label: t("streamCreatedTab"), count: createdStreams.length },
-    { mode: "receiving", label: t("streamReceivingTab"), count: beneficiaryStreams.length },
+    { mode: "created", label: t("streamCreatedTab"), count: hasChainView ? createdStreams.length : undefined },
+    { mode: "receiving", label: t("streamReceivingTab"), count: hasChainView ? beneficiaryStreams.length : undefined },
   ];
   const ticketStatusLabel = readyToCreate ? t("streamTicketReady") : t("streamTicketDrafting");
+  const visibleNotice = serviceNotice || (!recoveryStorageHealthy ? t("neoPayRecoveryStorageUnavailable") : "");
 
   const handleCreate = () => {
-    if (!readyToCreate || isCreating) return;
+    if (!readyToCreate || writesBlocked) return;
     void dispatch("createStream", {
       recipient,
       amount,
@@ -185,10 +207,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       notes,
     });
   };
+  const primaryMode = pendingCreateTxid ? "recover" : !recoveryStorageHealthy ? "storage" : "create";
+  const handlePrimary = () => {
+    if (primaryMode === "recover") {
+      if (!isRecovering) void dispatch("recoverTransaction");
+      return;
+    }
+    if (primaryMode === "storage") {
+      void dispatch("refreshRecoveryStorage");
+      return;
+    }
+    handleCreate();
+  };
+  const primaryLabel = primaryMode === "recover"
+    ? isRecovering ? t("checkingTransaction") : t("checkTransaction")
+    : primaryMode === "storage"
+      ? activeAction === "storage" ? t("checkingRecoveryStorage") : t("restoreRecoveryStorage")
+      : isCreating ? t("creatingStream") : t("createStream");
+  const primaryDisabled = primaryMode === "recover"
+    ? isRecovering || (operationBusy && activeAction !== "recover")
+    : primaryMode === "storage"
+      ? operationBusy && activeAction !== "storage"
+      : writesBlocked || !readyToCreate;
 
   const scene = (
     <div className="neopay-scene" data-state={sceneState} aria-label={t("paymentStageAria")}>
-      {serviceNotice && <p className="neopay-ticket__notice" role="status">{serviceNotice}</p>}
+      {visibleNotice && <p className="neopay-ticket__notice" role="status">{visibleNotice}</p>}
       <section className="neopay-terminal" data-ready={readyToCreate ? "true" : undefined}>
         <header className="neopay-terminal__header">
           <div>
@@ -196,7 +240,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <strong>{ticketStatusLabel}</strong>
           </div>
           <span className="neopay-terminal__status">
-            <CoinArt size={30} variant={asset === "GAS" ? "gas" : "neo"} />
+            <TokenIcon asset={asset} size={30} />
             {draftStatus}
           </span>
         </header>
@@ -220,26 +264,39 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <section className="neopay-ticket-board" aria-label={t("streamFlowPreview")}>
           <div className="neopay-ticket-board__hero">
             <div className="neopay-ticket-board__media">
-              <img className="neopay-terminal__art" src={STREAM_DESK_ART} alt="" loading="eager" decoding="async" />
+              <img
+                className="neopay-terminal__art"
+                src={STREAM_DESK_ART}
+                alt={t("paymentArtAlt")}
+                loading="eager"
+                decoding="async"
+              />
             </div>
             <div className="neopay-amount-console">
               <span className="neopay-amount-console__label">{t("amountModeHint")}</span>
               <div className="neopay-amount-console__main">
-                <button type="button" onClick={() => nudgeAmount(-1)} disabled={isCreating || !amount}>-</button>
+                <button type="button" onClick={() => nudgeAmount(-1)} disabled={draftLocked || !amount}>-</button>
                 <OpenUiTextField
                   id="neopay-amount"
                   className="neopay-amount-field"
                   inputClassName="neopay-input neopay-input--amount"
                   label={t("totalAmount")}
                   value={amount}
-                  onChange={(event) => setAmount(normalizeAmountForAsset(event.target.value, asset))}
+                  onChange={(event) => setAmount(normalizeAmountInput(event.target.value))}
                   placeholder="0"
                   inputMode={asset === "NEO" ? "numeric" : "decimal"}
-                  disabled={isCreating}
+                  pattern={asset === "NEO" ? "[0-9]*" : undefined}
+                  aria-invalid={amountIsInvalid || undefined}
+                  disabled={draftLocked}
                 />
-                <button type="button" onClick={() => nudgeAmount(1)} disabled={isCreating}>+</button>
+                <button type="button" onClick={() => nudgeAmount(1)} disabled={draftLocked}>+</button>
                 <strong>{asset}</strong>
               </div>
+              {amountIsInvalid && (
+                <p className="neopay-amount-console__hint" role="status">
+                  {asset === "NEO" ? t("neoWholeUnitHint") : t("neoPayAmountPrecisionHint")}
+                </p>
+              )}
               <div className="neopay-token-row" role="group" aria-label={t("assetType")}>
                 {(["GAS", "NEO"] as const).map((symbol) => (
                   <button
@@ -248,10 +305,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     className={`neopay-token-option${asset === symbol ? " is-active" : ""}`}
                     data-token={symbol}
                     onClick={() => setAssetAndNormalizeAmount(symbol)}
-                    disabled={isCreating}
+                    disabled={draftLocked}
                   >
-                    <CoinArt size={24} variant={symbol === "GAS" ? "gas" : "neo"} />
+                    <TokenIcon asset={symbol} size={24} />
                     <span>{symbol}</span>
+                    <small>{t("officialToken")}</small>
                   </button>
                 ))}
               </div>
@@ -262,7 +320,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className={`neopay-preset-option${amount === preset ? " is-active" : ""}`}
                     onClick={() => setAmount(preset)}
-                    disabled={isCreating}
+                    disabled={draftLocked}
                   >
                     {preset} {asset}
                   </button>
@@ -272,7 +330,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
 
           <div className="neopay-ticket-board__details">
-            <section className="neopay-recipient-card" aria-label={t("recipient")}>
+            <section
+              className="neopay-recipient-card"
+              aria-label={t("recipient")}
+              data-state={!recipient.trim() ? "empty" : recipientIsValid ? "valid" : "invalid"}
+            >
               <span><UserRound size={18} /> {t("recipient")}</span>
               <div className="neopay-recipient-card__entry">
                 <OpenUiTextField
@@ -283,12 +345,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   value={recipient}
                   onChange={(event) => setRecipient(event.target.value)}
                   placeholder={t("beneficiaryPlaceholder")}
-                  disabled={isCreating}
+                  disabled={draftLocked}
                   spellCheck={false}
                   mono
                 />
               </div>
-              <p>{recipient.trim() ? compactAddress(recipient) : t("routeModeEmpty")}</p>
+              <p>{!recipient.trim() ? t("routeModeEmpty") : recipientIsValid ? compactAddress(recipient) : t("invalidAddress")}</p>
             </section>
 
             <section className="neopay-schedule-card" aria-label={t("releasePlan")}>
@@ -298,9 +360,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <p>{releaseLabel}</p>
               </div>
               <div className="neopay-duration-stepper" aria-label={t("releasePlan")}>
-                <button type="button" onClick={() => nudgeDuration(-1)} disabled={isCreating}>-7d</button>
+                <button type="button" onClick={() => nudgeDuration(-1)} disabled={draftLocked}>-7d</button>
                 <output>{duration || "0"}d</output>
-                <button type="button" onClick={() => nudgeDuration(1)} disabled={isCreating}>+7d</button>
+                <button type="button" onClick={() => nudgeDuration(1)} disabled={draftLocked}>+7d</button>
               </div>
               <div className="neopay-duration-grid">
                 {DURATION_PRESETS.map((days) => (
@@ -309,7 +371,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className={duration === String(days) ? "is-active" : undefined}
                     onClick={() => setDuration(String(days))}
-                    disabled={isCreating}
+                    disabled={draftLocked}
                   >
                     <CalendarDays size={15} />
                     {days}d
@@ -324,7 +386,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <strong>{draftStatus}</strong>
           <span><ShieldCheck size={15} /> {t("transactionPreviewHint")}</span>
           <span><HandCoins size={15} /> {releaseLabel}</span>
-          <span><Clock3 size={15} /> {activeCount} {activeCount === 1 ? t("streamSingular") : t("streamPlural")}</span>
+          <span><Clock3 size={15} /> {hasChainView
+            ? `${activeCount} ${activeCount === 1 ? t("streamSingular") : t("streamPlural")}`
+            : t("chainViewUnavailable")}</span>
         </footer>
       </section>
     </div>
@@ -335,14 +399,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <h4>{title}</h4>
       {streams.length > 0 ? (
         <ul className="neopay-stream-list">
-          {streams.slice(0, 8).map((stream) => {
+          {streams.map((stream) => {
             const finalized = stream.status === "completed" || stream.status === "cancelled";
             const claimEnabled = role === "beneficiary" && canClaim(stream.status, stream.claimable > 0n);
-            const releasePerDay = releasePerDayDisplay(stream.rateAmount, stream.intervalDays, stream.assetSymbol);
+            const releasePerDay = exactReleasePerDay(stream);
             return (
               <li key={`${role}-${stream.id}`} className="neopay-stream-card" data-status={stream.status}>
                 <div>
-                  <strong>{streamTitle(stream)}</strong>
+                  <strong><TokenIcon asset={stream.assetSymbol} size={20} /> {streamTitle(stream)}</strong>
                   <span>{compactAddress(role === "created" ? stream.beneficiary : stream.creator)}</span>
                 </div>
                 <dl>
@@ -357,18 +421,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                       type="button"
                       className="mx2-btn mx2-btn--ghost"
                       onClick={() => void dispatch("claimStream", stream.id)}
-                      disabled={!claimEnabled}
+                      disabled={!claimEnabled || writesBlocked}
                     >
-                      {t("claim")}
+                      {claimingId === stream.id ? t("claiming") : t("claim")}
                     </button>
                   ) : (
                     <button
                       type="button"
                       className="mx2-btn mx2-btn--ghost"
-                      onClick={() => void dispatch("cancelStream", stream.id)}
-                      disabled={finalized}
+                      onClick={() => {
+                        if (cancelConfirmId === stream.id) {
+                          setCancelConfirmId("");
+                          void dispatch("cancelStream", stream.id);
+                        } else {
+                          setCancelConfirmId(stream.id);
+                        }
+                      }}
+                      disabled={finalized || writesBlocked}
                     >
-                      {t("cancel")}
+                      {cancellingId === stream.id
+                        ? t("cancelling")
+                        : cancelConfirmId === stream.id
+                          ? t("confirmCancelStream")
+                          : t("cancel")}
                     </button>
                   )}
                 </div>
@@ -409,7 +484,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               type="button"
               className="mx2-btn mx2-btn--ghost neopay-drawer__refresh"
               onClick={() => void dispatch("refreshStreams")}
-              disabled={isRefreshing || isCreating}
+              disabled={isRefreshing || operationBusy}
             >
               <RefreshCw size={15} />
               <span>{t("refresh")}</span>
@@ -422,63 +497,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             subtitle={t("drawerDetailsSubtitle")}
           >
             <div className="neopay-drawer-fields">
-              <OpenUiSegmented
-                className="neopay-drawer-field neopay-drawer-field--asset"
-                label={t("assetType")}
-                value={asset}
-                onChange={(value) => setAssetAndNormalizeAmount(value as AssetSymbol)}
-                options={[
-                  { value: "GAS", label: "GAS" },
-                  { value: "NEO", label: "NEO" },
-                ]}
-                disabled={isCreating}
-                hint={asset === "NEO" ? t("neoAssetHint") : t("gasAssetHint")}
-              />
-              <OpenUiTextField
-                id="neopay-drawer-amount"
-                className="neopay-drawer-field"
-                inputClassName="neopay-drawer-input--amount"
-                label={t("totalAmount")}
-                value={amount}
-                onChange={(event) => setAmount(normalizeAmountForAsset(event.target.value, asset))}
-                placeholder={t("totalAmountPlaceholder")}
-                inputMode={asset === "NEO" ? "numeric" : "decimal"}
-                pattern={asset === "NEO" ? "[0-9]*" : undefined}
-                disabled={isCreating}
-                hint={asset === "NEO" ? t("neoWholeUnitHint") : t("totalAmountHint")}
-              />
-              <OpenUiTextField
-                id="neopay-drawer-recipient"
-                className="neopay-drawer-field neopay-drawer-field--wide"
-                inputClassName="neopay-drawer-input--recipient"
-                label={t("recipient")}
-                value={recipient}
-                onChange={(event) => setRecipient(event.target.value)}
-                placeholder={t("beneficiaryPlaceholder")}
-                disabled={isCreating}
-                spellCheck={false}
-                mono
-              />
               <OpenUiTextField
                 id="neopay-drawer-duration"
                 className="neopay-drawer-field"
                 label={t("customDays")}
                 value={duration}
-                onChange={(event) => setDurationClamped(event.target.value)}
+                onChange={(event) => setDurationText(event.target.value)}
                 placeholder={t("durationPlaceholder")}
                 inputMode="numeric"
                 pattern="[0-9]*"
-                disabled={isCreating}
+                maxLength={3}
+                disabled={draftLocked}
                 hint={t("intervalHint")}
               />
               <OpenUiTextField
                 id="neopay-drawer-notes"
-                className="neopay-drawer-field neopay-drawer-field--wide"
+                className="neopay-drawer-field"
                 label={t("notes")}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder={t("notesPlaceholder")}
-                disabled={isCreating}
+                maxLength={240}
+                disabled={draftLocked}
+                hint={t("neoPayNotesHint")}
               />
             </div>
           </OpenUiPanel>
@@ -506,6 +547,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     </div>
   );
 
+  const secondaryActions = claimableStream && !pendingCreateTxid ? [{
+    label: t("claimAvailable", {
+      amount: formatBaseUnits(claimableStream.claimable, claimableStream.assetSymbol),
+      asset: claimableStream.assetSymbol,
+    }),
+    onClick: () => void dispatch("claimStream", claimableStream.id),
+    disabled: writesBlocked,
+    loading: claimingId === claimableStream.id,
+    icon: <HandCoins size={16} />,
+    hint: t("claimAvailableHint"),
+  }] : [];
+
   return (
     <OpenUiProvider>
       <div className="neo-pay-play-area mx2 mx2-cat-defi">
@@ -521,11 +574,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           scene={scene}
           actions={{
             primary: {
-              label: isCreating ? t("creatingStream") : t("createStream"),
-              onClick: handleCreate,
-              disabled: isCreating || !readyToCreate,
-              loading: isCreating || isLoading,
+              label: primaryLabel,
+              onClick: handlePrimary,
+              disabled: primaryDisabled,
+              loading: isCreating || isRecovering || activeAction === "storage" || isLoading,
             },
+            secondary: secondaryActions,
           }}
           drawerToggleLabel={t("vaultsTab")}
           drawer={{ title: t("vaultsTab"), children: drawer }}

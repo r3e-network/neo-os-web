@@ -11,14 +11,26 @@ function t(k: string, p?: Record<string, string | number>) {
     asset: "Asset",
     automationActions: "Automation Actions",
     automationRoute: "Automation route",
+    automationStudio: "Automation studio",
     buildRecipe: "Build Recipe",
+    confirmDeleteTrigger: "Confirm delete",
     currentPrice: "Current Price",
+    deleteTrigger: "Delete",
     docSubtitle: "Inspect live data, assemble a recipe, and keep pricefeed separated from slower jobs.",
     fetchPrice: "Fetch Price",
     flowStateDraft: "Draft route",
     flowStateRegistering: "Registering trigger",
     latestPrice: "Latest Price",
+    presetProtectHint: "NEO · every 6 hours",
+    presetProtectTitle: "Protect a loan",
+    presetRebalanceHint: "NEO · hourly",
+    presetRebalanceTitle: "Rebalance a vault",
+    presetRewardsHint: "GAS · daily",
+    presetRewardsTitle: "Harvest rewards",
     priceRule: "Price rule",
+    priceFresh: "Fresh feed",
+    priceNotLoaded: "Not loaded",
+    refreshPrice: "Refresh price",
     recipePreview: "Recipe preview",
     recipePreviewLine: `Watch ${p?.asset ?? "NEO"} around ${p?.price ?? "20"}, then run the selected action.`,
     registerTrigger: "Register Trigger",
@@ -35,7 +47,7 @@ function t(k: string, p?: Record<string, string | number>) {
 function state(o: Partial<Record<string, unknown>> = {}): ObservableState { return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState; }
 describe("automation-copilot PlayArea (v2)", () => {
   it("renders a foreground automation rule board instead of a backdrop scene", () => {
-    const { container } = render(<PlayArea t={t} state={state({ currentPrice: "18.42", targetPrice: "20", latestTriggerState: "Draft" })} dispatch={vi.fn()} />);
+    const { container } = render(<PlayArea t={t} state={state({ currentPrice: "$18.4200", priceFreshnessState: "fresh", targetPrice: "20", latestTriggerState: "Draft" })} dispatch={vi.fn()} />);
 
     expect(container.querySelector(".mx2-stage")).toBeTruthy();
     expect(container.querySelector(".copilot-scene__rule-board")).toBeTruthy();
@@ -50,15 +62,72 @@ describe("automation-copilot PlayArea (v2)", () => {
 
   it("dispatches primary and secondary automation actions", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    render(<PlayArea t={t} state={state({ currentPrice: "$18.4200", priceFreshnessState: "fresh" })} dispatch={dispatch} />);
 
     fireEvent.click(screen.getByText("Register Trigger"));
-    fireEvent.click(screen.getByText("Fetch Price"));
+    fireEvent.click(screen.getByText("Refresh price"));
+    fireEvent.click(screen.getByText("Automation studio"));
     fireEvent.click(screen.getByText("Build Recipe"));
 
     expect(dispatch).toHaveBeenCalledWith("registerTrigger");
     expect(dispatch).toHaveBeenCalledWith("fetchCurrentPrice");
     expect(dispatch).toHaveBeenCalledWith("buildRecipePayload");
+  });
+
+  it("makes feed freshness the first primary step before registration", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    render(<PlayArea t={t} state={state({ priceFreshnessState: "unloaded" })} dispatch={dispatch} />);
+
+    expect(screen.queryByText("Register Trigger")).toBeNull();
+    fireEvent.click(screen.getByText("Fetch Price"));
+
+    expect(dispatch).toHaveBeenCalledWith("fetchCurrentPrice");
+    expect(dispatch).not.toHaveBeenCalledWith("registerTrigger");
+  });
+
+  it("configures a complete automation from visual presets instead of a first-screen form", () => {
+    const appState = state({
+      asset: "NEO",
+      targetPrice: "20",
+      schedule: "0 */6 * * *",
+      actionName: "auto_repay_self_loan",
+    });
+    const { container } = render(<PlayArea t={t} state={appState} dispatch={vi.fn()} />);
+
+    expect(container.querySelector(".copilot-scene__preset-deck")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene__art-card img")).toBeTruthy();
+    expect(container.querySelector(".copilot-scene input")).toBeNull();
+
+    fireEvent.click(screen.getByText("Harvest rewards"));
+
+    expect(appState.asset.get()).toBe("GAS");
+    expect(appState.targetPrice.get()).toBe("8");
+    expect(appState.schedule.get()).toBe("0 9 * * *");
+    expect(appState.actionName.get()).toBe("claim_rewards");
+  });
+
+  it("requires a deliberate second click before deleting a verified trigger", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const verified = {
+      id: "trigger-1",
+      name: "Protect NEO loan",
+      trigger_type: "threshold",
+      enabled: true,
+      created_at: "2026-07-11T00:00:00.000Z",
+    };
+    render(<PlayArea t={t} state={state({
+      triggers: [verified],
+      triggersLoaded: true,
+      latestTrigger: verified,
+      triggerCount: 1,
+    })} dispatch={dispatch} />);
+
+    fireEvent.click(screen.getByText("Automation studio"));
+    fireEvent.click(screen.getByText("Delete"));
+    expect(dispatch).not.toHaveBeenCalledWith("deleteTrigger", "trigger-1");
+
+    fireEvent.click(screen.getByText("Confirm delete"));
+    expect(dispatch).toHaveBeenCalledWith("deleteTrigger", "trigger-1");
   });
 
   it("keeps automation styling foreground-led, animated, and motion guarded", () => {

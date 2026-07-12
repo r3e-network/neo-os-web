@@ -1,15 +1,15 @@
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { createFactoryPlayArea, createFactorySetup } from "@shared/factory/runtime";
+import MiniAppFactoryPlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
+import { createMiniAppFactorySetup } from "./setup";
 
 const appId = "miniapp-miniapp-factory";
-const kind = "miniapp";
 
 defineMiniApp({
   appId,
-  playArea: createFactoryPlayArea(kind, appId),
+  playArea: MiniAppFactoryPlayArea,
   manifest,
   messages,
-  setup: createFactorySetup(kind, appId),
+  setup: createMiniAppFactorySetup(appId),
 });

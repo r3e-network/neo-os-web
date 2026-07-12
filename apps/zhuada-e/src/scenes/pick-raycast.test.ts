@@ -15,18 +15,20 @@
 
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { buildModelMesh } from "./models";
+import { buildModelMesh, buildThemeModelMesh } from "./models";
+import { interactionProxy } from "./model-kit";
 import { pickItemAt, resolveItemRoot } from "./pick";
 import { ITEM_DEFS } from "../logic/engine-zhuada";
+import { GAME_THEMES } from "../logic/themes";
 
-// Mirror ZhuaDaScene.mount's camera framing (SCENE_W/H 400x580, BOX_HEIGHT 4.2).
-const BOX_HEIGHT = 4.2;
+// Mirror ZhuaDaScene's near-vertical production camera.
+const BOX_HEIGHT = 0.82;
 
 function makeSceneCamera(): { scene: THREE.Scene; camera: THREE.PerspectiveCamera } {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, 400 / 580, 0.1, 100);
-  camera.position.set(0, BOX_HEIGHT + 4.6, BOX_HEIGHT + 5.2);
-  camera.lookAt(0, BOX_HEIGHT * 0.35, 0);
+  const camera = new THREE.PerspectiveCamera(34, 400 / 520, 0.1, 100);
+  camera.position.set(0, 15, 1.05);
+  camera.lookAt(0, BOX_HEIGHT * 0.46, 0);
   camera.updateMatrixWorld(true);
   return { scene, camera };
 }
@@ -56,6 +58,21 @@ function raycastThrough(
 }
 
 describe("tap-to-pick raycast (composed Group models)", () => {
+  it("raycasts an interaction proxy whose material is excluded from rendering", () => {
+    const proxy = interactionProxy(new THREE.SphereGeometry(0.5, 8, 6));
+    proxy.updateMatrixWorld(true);
+
+    const material = proxy.material as THREE.MeshBasicMaterial;
+    expect(proxy.visible).toBe(true);
+    expect(material.visible).toBe(false);
+
+    const raycaster = new THREE.Raycaster(
+      new THREE.Vector3(0, 0, 2),
+      new THREE.Vector3(0, 0, -1),
+    );
+    expect(raycaster.intersectObject(proxy, false)).not.toHaveLength(0);
+  });
+
   it("documents the original bug: a non-recursive raycast against Group roots never hits", () => {
     const { scene, camera } = makeSceneCamera();
     const itemPos = new THREE.Vector3(0.4, 1.0, 0.2);
@@ -91,6 +108,33 @@ describe("tap-to-pick raycast (composed Group models)", () => {
       expect(picked, `model kind ${kind} (${ITEM_DEFS[kind]!.model})`).toBe(visual);
     }
   });
+
+  it("resolves all 36 production theme models", () => {
+    for (const theme of GAME_THEMES) {
+      for (let kind = 0; kind < theme.items.length; kind += 1) {
+        const { scene, camera } = makeSceneCamera();
+        const itemPos = new THREE.Vector3(0, 1, 0);
+        const group = buildThemeModelMesh(theme.id, kind, theme.items[kind]!.color);
+        let meshes = 0;
+        let sprites = 0;
+        group.traverse((object) => {
+          if ((object as THREE.Mesh).isMesh) meshes += 1;
+          if ((object as THREE.Sprite).isSprite) sprites += 1;
+        });
+        expect(meshes, `${theme.id} item ${kind} should have modeled detail`).toBeGreaterThanOrEqual(2);
+        expect(sprites, `${theme.id} item ${kind} must not billboard`).toBe(0);
+        expect(group.userData.productionModel).toBe(true);
+        group.position.copy(itemPos);
+        scene.add(group);
+        const visual = { id: kind, kind };
+        const roots = new Map<THREE.Object3D, typeof visual>([[group, visual]]);
+        expect(
+          pickItemAt(raycastThrough(scene, camera, itemPos), roots),
+          `${theme.id} item ${kind}`,
+        ).toBe(visual);
+      }
+    }
+  }, 20_000);
 
   it("nearest item wins when two items overlap along the same ray (occlusion)", () => {
     const { scene, camera } = makeSceneCamera();

@@ -422,4 +422,3 @@ export function twistedEdwards(curveDef) {
         utils,
     };
 }
-//# sourceMappingURL=edwards.js.map

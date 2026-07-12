@@ -11,12 +11,23 @@ import {
 import PhaserPlayArea from "./PhaserPlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { ENTRY_MEMO, MAX_UNDOS, ruleOf, statusOf, gasDisplay } from "./logic/game-rules";
+import {
+  DEAL_TTL_MS,
+  ENTRY_MEMO,
+  MAX_UNDOS,
+  SETTLE_GRACE_MS,
+  ruleOf,
+  statusOf,
+  gasDisplay,
+} from "./logic/game-rules";
 import { morpheusNetworkOf, teeFinalize, teeMove, teeStart } from "./logic/tee-session";
 import type { TeeIdentity, TeeOp, TeeStartResult } from "./logic/tee-session";
 import { createGuestEngine } from "./logic/guest-engine";
+import type { Platform } from "./logic/jump-engine";
 
 const appId = "miniapp-jump-rush";
+/** Paid starts remain unavailable until the contract and Morpheus rules match. */
+const GAMEFI_NEW_ENTRIES_ENABLED = false;
 
 const LEADERBOARD_EVENT_LIMIT = 200;
 
@@ -39,7 +50,8 @@ export interface RunRow {
   elapsedMs: number;
   undos: number;
   jumps: number;
-  perfects: number;
+  /** Null when the deployed Solved event does not publish the perfect count. */
+  perfects: number | null;
   payout: string;
 }
 
@@ -55,15 +67,23 @@ defineMiniApp({
     // stack items, and readRaw/invoke/events/detectNetwork are raw passthroughs
     // to the host chain service the framework wraps.
     const app = ctx.framework;
+
+    // Fail closed for direct Vite launches and stale platform hosts. The public
+    // manifest intentionally exposes only local practice until the live
+    // Morpheus and contract schemas/timing rules have passed full settlement.
+    if (manifest.supportsGameFi === false && !app.mode.isGuest()) {
+      app.mode.set("guest");
+    }
     const credit = createObservable(0);
     const poolFree = createObservable(0);
     const activeGameId = createObservable("0");
     const gameStatus = createObservable("idle");
     const gameDifficulty = createObservable(0);
-    const platformsView = createObservable<number[]>([]);
+    const platformsView = createObservable<Platform[]>([]);
     const commitment = createObservable("");
     const dealtAt = createObservable(0);
     const deadline = createObservable(0);
+    const startedAt = createObservable(0);
     const undosUsed = createObservable(0);
     const lastPayout = createObservable("");
     const lastElapsedMs = createObservable(0);
@@ -87,6 +107,7 @@ defineMiniApp({
     const isCharging = createObservable(false);
     const isJumping = createObservable(false);
     const missedPlatform = createObservable(false);
+    const inputSyncFailed = createObservable(false);
 
     // Current play mode, mirrored into an observable the PlayArea reads so the
     // GAS-centric copy can switch to local/practice framing in guest mode. Kept
@@ -131,12 +152,10 @@ defineMiniApp({
       const playerHash = playerScriptHash();
       const contractHash = app.chain.contractAddress.get();
       if (!playerHash || !contractHash) throw new Error(ctx.t("statusFailed"));
-      let detected = "";
-      try {
-        detected = await app.chain.detectNetwork();
-      } catch {
-        detected = "testnet";
-      }
+      // A proof envelope is network-bound. Never guess testnet when wallet
+      // network detection fails, or a valid signature can be built for the
+      // wrong domain and leave the paid run unrecoverable.
+      const detected = await app.chain.detectNetwork();
       return {
         appId,
         network: morpheusNetworkOf(detected),
@@ -206,13 +225,17 @@ defineMiniApp({
             raw: eventStateValue(ev, 1),
           });
           if (playerHash && addrEq(eventStateValue(ev, 1), playerHash)) {
+            const solvedDifficulty = asNumber(eventStateValue(ev, 2));
             mine.push({
               gameId: String(parseBigInt(eventStateValue(ev, 0)) ?? ""),
-              difficulty: asNumber(eventStateValue(ev, 2)),
+              difficulty: solvedDifficulty,
               elapsedMs: asNumber(eventStateValue(ev, 3)),
               undos: asNumber(eventStateValue(ev, 4)),
-              jumps: asNumber(eventStateValue(ev, 7)),
-              perfects: asNumber(eventStateValue(ev, 8)),
+              // MiniAppJumpRush.Solved currently has seven fields. A solved run
+              // necessarily cleared the configured target, while perfects are
+              // not present and must stay unknown instead of being fabricated.
+              jumps: ruleOf(solvedDifficulty).targetJumps,
+              perfects: null,
               payout: `${fromFixed8(parseBigInt(eventStateValue(ev, 5))).toFixed(2)} GAS`,
             });
           }
@@ -242,6 +265,7 @@ defineMiniApp({
       commitment.set(String(mapField(game, "commitment") ?? ""));
       dealtAt.set(asNumber(mapField(game, "dealtAt")));
       deadline.set(asNumber(mapField(game, "deadline")));
+      startedAt.set(asNumber(mapField(game, "startTime")));
       undosUsed.set(asNumber(mapField(game, "undos") ?? 0));
     };
 
@@ -288,6 +312,7 @@ defineMiniApp({
         isCharging.set(false);
         isJumping.set(false);
         missedPlatform.set(false);
+        inputSyncFailed.set(false);
         lastStatus.set(ctx.t("statusDealt"));
         ctx.setStatus(ctx.t("statusDealt"), "success");
         return true;
@@ -330,6 +355,12 @@ defineMiniApp({
     // ── Guest (free / local) engine ───────────────────────────────────────────
     // Guest mode reuses the SAME observables + dispatch actions the scene reads,
     // driven by a purely local platform runner — no chain/oracle/reward calls.
+    const guestLeaderboard = import.meta.env.DEV
+      ? {
+          async submit(): Promise<void> { return; },
+          async get(): Promise<Array<{ user: string; score: string }>> { return []; },
+        }
+      : app.mode.guestLeaderboard;
     const guest = createGuestEngine({
       gameStatus,
       activeGameId,
@@ -359,21 +390,43 @@ defineMiniApp({
       isCharging,
       isJumping,
       missedPlatform,
-      guestLeaderboard: app.mode.guestLeaderboard,
+      guestLeaderboard,
+      storage: app.storage.local,
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
     // Keep the PlayArea's mode mirror in sync, and — when switching to guest at
     // the launcher — reset to a clean local lobby + load the off-chain board.
     app.mode.onChange((mode) => {
+      if (manifest.supportsGameFi === false && mode !== "guest") {
+        app.mode.set("guest");
+        return;
+      }
       appMode.set(mode);
-      if (mode === "guest") void guest.enter();
+      if (mode === "guest") {
+        inputSyncFailed.set(false);
+        void guest.enter();
+      }
+    });
+
+    ctx.framework.actions.register("selectDifficulty", async (...args: unknown[]) => {
+      const status = gameStatus.get();
+      if (status !== "idle" && status !== "solved" && status !== "expired" && status !== "refunded") return;
+      const form = (args[0] ?? {}) as { difficulty?: unknown };
+      const difficulty = Math.max(0, Math.min(2, Math.round(Number(form.difficulty) || 0)));
+      gameDifficulty.set(difficulty);
     });
 
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
       if (app.mode.isGuest()) {
         const form = (args[0] ?? {}) as { difficulty?: unknown };
         guest.startGame(Number(form.difficulty ?? 0));
+        return;
+      }
+      if (!GAMEFI_NEW_ENTRIES_ENABLED) {
+        app.mode.set("guest");
+        lastStatus.set(ctx.t("paidModeUnavailable"));
+        ctx.setStatus(lastStatus.get(), "info");
         return;
       }
       if (isStarting.get() || isDealing.get()) return;
@@ -425,7 +478,11 @@ defineMiniApp({
         commitment.set("");
         dealtAt.set(0);
         deadline.set(0);
+        startedAt.set(
+          result.event != null ? asNumber(eventStateValue(result.event, 4)) : Date.now(),
+        );
         gameStatus.set("committed");
+        inputSyncFailed.set(false);
         lastStatus.set(ctx.t("statusStarted"));
         await refreshBalances();
         void sealAndBind(gameId, difficulty);
@@ -450,18 +507,51 @@ defineMiniApp({
 
     // Record a jump in the TEE session for telemetry + undo accounting.
     ctx.framework.actions.register("recordJump", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as {
+        chargeLevel?: unknown;
+        landed?: unknown;
+        perfect?: unknown;
+        platformIndex?: unknown;
+      };
       if (app.mode.isGuest()) {
-        const form = (args[0] ?? {}) as { platformIndex?: unknown };
-        guest.recordJump(Number(form.platformIndex ?? 0));
+        guest.recordJump(
+          Number(form.platformIndex ?? 0),
+          form.landed !== false,
+          form.perfect === true,
+        );
         return;
       }
-      const form = (args[0] ?? {}) as { chargeMs?: unknown };
-      const chargeMs = Number(form.chargeMs);
-      if (!Number.isInteger(chargeMs) || chargeMs < 0) return;
+      const chargeLevel = Math.round(Number(form.chargeLevel));
+      const platformIndex = Math.round(Number(form.platformIndex));
+      if (!Number.isInteger(chargeLevel) || chargeLevel < 0 || chargeLevel > 100) return;
       try {
-        await sendOp({ type: "jump", chargeMs });
-      } catch {
-        /* telemetry only */
+        await sendOp({ type: "jump", chargeLevel });
+        inputSyncFailed.set(false);
+        if (form.landed === false) {
+          missedPlatform.set(true);
+          comboCount.set(0);
+          return;
+        }
+        if (
+          Number.isInteger(platformIndex) &&
+          platformIndex === currentPlatform.get() + 1
+        ) {
+          currentPlatform.set(platformIndex);
+          jumpCount.set(platformIndex);
+          if (form.perfect === true) {
+            perfectCount.set(perfectCount.get() + 1);
+            comboCount.set(comboCount.get() + 1);
+          } else {
+            comboCount.set(0);
+          }
+          missedPlatform.set(false);
+        }
+      } catch (error) {
+        inputSyncFailed.set(true);
+        const message = error instanceof Error ? error.message : ctx.t("statusInputSyncFailed");
+        lastStatus.set(ctx.t("statusInputSyncFailed"));
+        ctx.setStatus(message, "error");
+        throw error;
       }
     });
 
@@ -479,6 +569,8 @@ defineMiniApp({
         await sendOp({ type: "undo" });
         const undos = undosUsed.get() + 1;
         undosUsed.set(undos);
+        missedPlatform.set(false);
+        inputSyncFailed.set(false);
         lastStatus.set(ctx.t("statusUndoUsed", { pct: String(100 - 30 * undos) }));
         ctx.setStatus(lastStatus.get(), "info");
       } catch (error) {
@@ -544,6 +636,17 @@ defineMiniApp({
       if (app.mode.isGuest()) { guest.expireGame(); return; }
       const gameId = activeGameId.get();
       if (gameId === "0") return;
+      const status = gameStatus.get();
+      const now = Date.now();
+      const canExpire = status === "dealt"
+        ? deadline.get() > 0 && now > deadline.get() + SETTLE_GRACE_MS
+        : status === "committed"
+          ? startedAt.get() > 0 && now > startedAt.get() + DEAL_TTL_MS
+          : false;
+      if (!canExpire) {
+        ctx.setStatus(ctx.t("statusReleasePending"), "info");
+        return;
+      }
       try {
         await app.chain.invoke("expireGame", [app.chain.arg.integer(gameId)], {});
         gameStatus.set("expired");
@@ -603,6 +706,7 @@ defineMiniApp({
         commitment,
         dealtAt,
         deadline,
+        startedAt,
         undosUsed,
         lastPayout,
         lastElapsedMs,
@@ -625,6 +729,7 @@ defineMiniApp({
         isCharging,
         isJumping,
         missedPlatform,
+        inputSyncFailed,
         // Play mode mirror consumed by the PlayArea to pick local vs GAS copy.
         appMode,
       },

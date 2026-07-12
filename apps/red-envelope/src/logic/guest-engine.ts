@@ -81,6 +81,10 @@ export interface GuestEngine {
   refreshLeaderboard(): Promise<void>;
   /** Reset to a clean local lobby, seed a starter envelope + load the board. */
   enter(): Promise<void>;
+  /** Cancel pending local work when leaving guest mode. */
+  leave(): void;
+  /** Release timers and prevent post-unmount observable writes. */
+  destroy(): void;
 }
 
 /** 0.01 GAS in base units — the contract's per-packet minimum, mirrored here. */
@@ -167,6 +171,26 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   // truth an open draws from, kept off the observable to avoid float drift.
   const packetsById = new Map<string, bigint[]>();
   let sequence = 0;
+  let generation = 0;
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+
+  const cancelScheduled = (): void => {
+    generation += 1;
+    timers.forEach((timer) => clearTimeout(timer));
+    timers.clear();
+    isLoading.set(false);
+    openingId.set(null);
+  };
+
+  const schedule = (callback: () => void): void => {
+    const scheduledGeneration = generation;
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      if (scheduledGeneration !== generation) return;
+      callback();
+    }, LOCAL_LATENCY_MS);
+    timers.add(timer);
+  };
 
   const toBase = (gas: number): bigint => gasToBaseUnits(String(gas));
   const round4 = (value: number): number => Math.round(value * 10000) / 10000;
@@ -219,8 +243,10 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   };
 
   const refreshLeaderboard = async (): Promise<void> => {
+    const requestedGeneration = generation;
     try {
       const rows = await guestLeaderboard.get(50);
+      if (requestedGeneration !== generation) return;
       const board: GuestBoardRow[] = rows
         .map((row) => ({ user: row.user, score: (Number(row.score) || 0) / SCORE_SCALE }))
         .filter((row) => row.score > 0)
@@ -228,6 +254,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         .slice(0, 20);
       guestBoard.set(board);
     } catch {
+      if (requestedGeneration !== generation) return;
       guestBoard.set([]);
     }
   };
@@ -241,7 +268,10 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   return {
     createEnvelope(form: GuestCreateForm): void {
-      if (isLoading.get()) return;
+      if (isLoading.get() || openingId.get()) {
+        setStatus(t("operationBusy"), "info");
+        return;
+      }
       const amount = Number(form.amount ?? "");
       const count = Math.max(1, Math.min(MAX_PACKETS, Math.floor(Number(form.count ?? "1")) || 1));
       if (!Number.isFinite(amount) || amount <= 0) {
@@ -256,7 +286,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       isLoading.set(true);
       lastCreatedEnvelopeId.set("");
       luckyMessage.set(null);
-      setTimeout(() => {
+      schedule(() => {
         const id = nextId();
         const packets = splitPackets(totalBase, count);
         packetsById.set(id, packets);
@@ -267,11 +297,14 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         lastCreatedEnvelopeId.set(id);
         isLoading.set(false);
         setStatus(t("guestEnvelopeReady", { count }), "success");
-      }, LOCAL_LATENCY_MS);
+      });
     },
 
     claimEnvelope(envelopeId: string): void {
-      if (openingId.get()) return;
+      if (openingId.get() || isLoading.get()) {
+        setStatus(t("operationBusy"), "info");
+        return;
+      }
       const id = String(envelopeId ?? "").trim();
       const list = envelopes.get();
       const envelope = list.find((item) => item.id === id && item.canOpen);
@@ -282,7 +315,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       }
       openingId.set(id);
       luckyMessage.set(null);
-      setTimeout(() => {
+      schedule(() => {
         const drawIndex = Number(randomBigInt(BigInt(packets.length)));
         const [drawnBase] = packets.splice(drawIndex, 1);
         const amount = round4(fromFixed8(drawnBase ?? 0n));
@@ -328,10 +361,14 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
           await submitScore(total);
           await refreshLeaderboard();
         })();
-      }, LOCAL_LATENCY_MS);
+      });
     },
 
     reclaimEnvelope(envelopeId: string): void {
+      if (openingId.get() || isLoading.get()) {
+        setStatus(t("operationBusy"), "info");
+        return;
+      }
       const id = String(envelopeId ?? "").trim();
       if (!id) return;
       packetsById.delete(id);
@@ -353,6 +390,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     refreshLeaderboard,
 
     async enter(): Promise<void> {
+      cancelScheduled();
       packetsById.clear();
       sequence = 0;
       isLoading.set(false);
@@ -372,6 +410,16 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       envelopes.set([starter]);
       syncPools([starter]);
       await refreshLeaderboard();
+    },
+
+    leave(): void {
+      cancelScheduled();
+      luckyMessage.set(null);
+    },
+
+    destroy(): void {
+      cancelScheduled();
+      packetsById.clear();
     },
   };
 }

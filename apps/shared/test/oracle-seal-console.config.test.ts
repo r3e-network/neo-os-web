@@ -1,84 +1,88 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { manifest, messages } from "../../oracle-seal-console/src/appConfig";
 
-import { consoleConfig, manifest, messages } from "../../oracle-seal-console/src/appConfig";
-
-type LocalizedMessage = {
-  en: string;
-  zh: string;
-};
-
+type LocalizedMessage = { en: string; zh: string };
 const appMessages = messages as Record<string, LocalizedMessage>;
+const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../oracle-seal-console");
 
-function t(key: string, params: Record<string, string | number> = {}) {
-  let text = appMessages[key]?.en ?? key;
-  for (const [param, value] of Object.entries(params)) {
-    text = text.replace(`{${param}}`, String(value));
-  }
-  return text;
-}
-
-function defaults() {
-  return Object.fromEntries(
-    consoleConfig.fields.map((field) => [field.key, field.defaultValue ?? ""]),
-  );
-}
-
-describe("Oracle Seal Console config", () => {
-  it("never echoes the sensitive payload into the result payload", () => {
-    const result = consoleConfig.buildResult(
-      { ...defaults(), payload: "{\"secret\":\"do-not-leak\"}" },
-      t,
-    );
-    const payloadText = JSON.stringify(result.payload);
-    expect(payloadText).not.toContain("do-not-leak");
-    expect(result.payload).toHaveProperty("payloadDigest");
+describe("Oracle Seal Console product contract", () => {
+  it("declares a real local-encryption and ciphertext-storage boundary", () => {
+    expect(manifest.description).toMatch(/Encrypt.+locally/i);
+    expect(manifest.description).toMatch(/store only its ciphertext/i);
+    expect(manifest.permissions).toMatchObject({
+      payments: false,
+      oracle: true,
+      compute: false,
+      confidential: true,
+      storage: true,
+    });
+    expect(appMessages.receiptBoundaryCopy.en).toMatch(/does not submit a Neo transaction/i);
+    expect(appMessages.receiptBoundaryCopy.en).toMatch(/TEE attestation/i);
+    expect(appMessages.receiptBoundaryCopy.en).toMatch(/not proof of account ownership/i);
+    expect(appMessages.plaintextBoundaryCopy.en).toMatch(/component memory/i);
+    expect(appMessages.plaintextBoundaryCopy.en).toMatch(/never written to app storage/i);
   });
 
-  it("flags invalid JSON as input_required so the success signal stays honest", () => {
-    const valid = consoleConfig.buildResult(
-      { ...defaults(), payload: "{\"k\":1}" },
-      t,
-    );
-    expect(valid.payload.payloadValid).toBe(true);
-    expect(valid.payload.status).toBeUndefined();
-    expect(valid.status).toBe("Envelope preview ready");
+  it("keeps the platform manifest honest and removes the generic operation form", () => {
+    const manifestJson = JSON.parse(readFileSync(
+      path.join(appDir, "neo-manifest.json"),
+      "utf8",
+    ));
+    const packageJson = JSON.parse(readFileSync(
+      path.join(appDir, "package.json"),
+      "utf8",
+    ));
 
-    const invalid = consoleConfig.buildResult(
-      { ...defaults(), payload: "{not json" },
-      t,
-    );
-    expect(invalid.payload.payloadValid).toBe(false);
-    // The row says "No" AND the payload requests input again — no contradiction.
-    expect(invalid.payload.status).toBe("input_required");
-    const validRow = invalid.rows.find((row) => row.label === t("payloadValid"));
-    expect(validRow?.value).toBe(t("no"));
+    expect(manifestJson.version).toBe("2.0.0");
+    expect(packageJson.version).toBe(manifestJson.version);
+    expect(manifestJson.features.stateless).toBe(false);
+    expect(manifestJson.operation_panel.operations).toEqual([]);
+    expect(manifestJson.platform.transactions).toBe(false);
+    expect(manifestJson.permissions).toEqual(expect.arrayContaining([
+      "read:blockchain",
+      "oracle",
+      "confidential",
+    ]));
+    expect(manifestJson.permissions).not.toContain("compute");
+    expect(manifestJson.technologies.tee.enabled).toBe(false);
+    expect(manifestJson.description).not.toMatch(/preview|checksum only/i);
   });
 
-  it("renders an em-dash for an empty recipient and nulls it in the payload", () => {
-    const result = consoleConfig.buildResult(
-      { ...defaults(), recipient: "" },
-      t,
-    );
-    const recipientRow = result.rows.find((row) => row.label === t("recipient"));
-    expect(recipientRow?.value).toBe(t("digestPlaceholder"));
-    expect(result.payload.recipient).toBeNull();
+  it("defines bilingual recovery and failure copy without success-by-default wording", () => {
+    for (const key of [
+      "statusRecoveryReady",
+      "recoveryCopy",
+      "retryAction",
+      "sealErrorKey",
+      "sealErrorEncrypt",
+      "sealErrorStore",
+      "sealErrorStorage",
+      "statusCompletionReady",
+      "statusRecoveryInvalid",
+      "receiptEmptyCopy",
+    ]) {
+      expect(appMessages[key]?.en, `${key}.en`).toBeTruthy();
+      expect(appMessages[key]?.zh, `${key}.zh`).toBeTruthy();
+    }
+    expect(appMessages.receiptEmptyCopy.en).toMatch(/only after.+valid non-zero reference/i);
+    expect(appMessages.sealErrorStore.en).toMatch(/exact ciphertext remains/i);
   });
 
-  it("keeps a set recipient distinct from a blank one in the envelope checksum", () => {
-    const withRecipient = consoleConfig.buildResult(
-      { ...defaults(), recipient: "oracle-route-1", payload: "{}" },
-      t,
-    );
-    const blank = consoleConfig.buildResult(
-      { ...defaults(), recipient: "", payload: "{}" },
-      t,
-    );
-    expect(withRecipient.payload.recipient).toBe("oracle-route-1");
-    expect(withRecipient.payload.digest).not.toBe(blank.payload.digest);
-  });
+  it("uses wallet-free contract evidence and one cross-action operation lane", () => {
+    const main = readFileSync(path.join(appDir, "src/main.tsx"), "utf8");
+    const chain = readFileSync(path.join(appDir, "src/oracle-seal-chain.ts"), "utf8");
+    const coordinator = readFileSync(path.join(appDir, "src/operation-coordinator.ts"), "utf8");
 
-  it("keeps the in-app copy honest that the checksum is not encryption", () => {
-    expect(appMessages.panelDescription.en).toMatch(/not encryption/i);
-    expect(manifest.theme?.accentColor).toBeTruthy();
+    expect(main).toContain("readOracleSealContractEvidence(network)");
+    expect(main).toContain("createOracleSealOperationCoordinator");
+    expect(main).toContain("assertOracleSealStorageAvailable");
+    expect(main).not.toContain("app.chain.detectNetwork");
+    expect(main).not.toContain("app.chain.read<");
+    expect(chain).toContain('method: "getcontractstate"');
+    expect(chain).toContain('method: "invokefunction"');
+    expect(coordinator).toContain("OracleSealOperationConflictError");
   });
 });

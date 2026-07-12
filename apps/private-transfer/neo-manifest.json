@@ -3,9 +3,9 @@
   "id": "miniapp-private-transfer",
   "name": "Confidential Transfer",
   "name_zh": "隐私转账",
-  "version": "1.0.0",
-  "description": "Private Neo N3 transfer intents sealed locally and verified by Morpheus confidential compute instead of on-chain zk curve verification.",
-  "description_zh": "在浏览器本地封装隐私转账意图，并通过 Morpheus 隐私计算验证，避免在 Neo 链上直接做 zk 曲线验证。",
+  "version": "1.2.0",
+  "description": "Encrypt Neo N3 transfer-intent fields locally and store only ciphertext for downstream Morpheus processing. This MiniApp does not move funds, verify a TEE attestation, or execute settlement.",
+  "description_zh": "在浏览器本地加密 Neo N3 转账意图字段，仅为后续 Morpheus 处理保存密文。本小程序不会转移资金、验证 TEE 证明或执行结算。",
   "category": "defi",
   "category_name": "DeFi",
   "category_name_zh": "DeFi",
@@ -13,8 +13,8 @@
     "privacy",
     "morpheus",
     "confidential-compute",
-    "transfer",
-    "payments"
+    "transfer-intent",
+    "ciphertext"
   ],
   "developer": {
     "name": "Yiwu",
@@ -23,7 +23,6 @@
   },
   "contracts": {},
   "supported_networks": [
-    "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
   "default_network": "neo-n3-testnet",
@@ -33,14 +32,12 @@
     "banner": "/miniapps/private-transfer/banner.webp"
   },
   "permissions": [
-    "invoke:primary",
     "oracle",
-    "compute",
     "confidential",
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://private-transfer"
   },
@@ -52,48 +49,9 @@
     ]
   },
   "operation_panel": {
-    "title": "Private Transfer",
-    "subtitle": "Enter transfer details and seal them locally for Morpheus confidential compute.",
-    "operations": [
-      {
-        "name": "Seal Transfer",
-        "method": "sealPrivateTransfer",
-        "description": "Build an encrypted transfer intent. Recipient, amount, and memo are sealed locally before being stored for Morpheus confidential compute.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "recipient",
-            "type": "address",
-            "label": "Recipient",
-            "placeholder": "N...",
-            "required": true
-          },
-          {
-            "name": "asset",
-            "type": "select",
-            "label": "Asset",
-            "default_value": "GAS",
-            "options": [
-              { "label": "GAS", "value": "GAS" },
-              { "label": "NEO", "value": "NEO" }
-            ]
-          },
-          {
-            "name": "amount",
-            "type": "amount",
-            "label": "Amount",
-            "placeholder": "0.00",
-            "required": true
-          },
-          {
-            "name": "memo",
-            "type": "string",
-            "label": "Private memo",
-            "placeholder": "Optional note"
-          }
-        ]
-      }
-    ]
+    "title": "Confidential Intent Workspace",
+    "subtitle": "Use the native privacy airlock to validate, encrypt, store, and recover ciphertext packets.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -103,14 +61,14 @@
   },
   "technologies": {
     "tee": {
-      "enabled": true,
-      "description": "Recipient, amount, memo, and note secret are sealed with X25519-HKDF-SHA256-AES-256-GCM and only decrypted inside Morpheus confidential compute."
+      "enabled": false,
+      "description": "Morpheus TEE processing is a downstream target, not an enabled or verified capability of this MiniApp. The client only seals ciphertext and requires a secret reference from storage."
     },
     "zk": {
       "enabled": false,
-      "description": "This MiniApp intentionally avoids Neo-side zk curve verification and uses TEE attestable privacy compute for the private transfer workflow."
+      "description": "This MiniApp intentionally avoids claiming Neo-side zk verification. It only creates ciphertext for a downstream confidential-compute workflow that is not attested or verified here."
     }
   },
   "createdAt": "2026-05-05T00:00:00Z",
-  "updatedAt": "2026-05-05T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

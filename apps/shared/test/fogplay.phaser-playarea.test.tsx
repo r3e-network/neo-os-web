@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="fogplay-phaser-host" />;
     },
@@ -78,6 +76,7 @@ function t(key: string, params?: Record<string, string | number>) {
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
+    mode: "gamefi",
     betAmount: "1",
     canBet: true,
     choice: "heads",
@@ -137,15 +136,19 @@ describe("fogplay Phaser playarea", () => {
     expect(props.className).toBe("fogplay-phaser-canvas");
     expect(props.ariaLabel).toBe("FogPlay coin flip game");
     expect(props.loadingLabel).toBe("Opening flip table");
+    expect(container.querySelector(".fogplay-stage-shell")).toBeTruthy();
+    expect(container.querySelector(".fogplay-stage-hud")).toBeTruthy();
+    expect(container.querySelector(".mx2-score")).toBeNull();
+    expect(container.querySelector(".mx2-action-rail__drawer-toggle")).toBeNull();
     expect(props.state.result).toBe("won");
     expect(props.state.displayOutcome).toBe("heads");
     expect(container.textContent).toContain("You won!");
     expect(queryByText("[object Object]")).toBeNull();
   });
 
-  it("surfaces pending reveal as the only primary recovery action", () => {
+  it("keeps pending reveal recovery inside the Phaser table instead of an outer PlayStage button", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { getByText, queryByText } = render(
+    const { queryByText } = render(
       <PhaserPlayArea
         t={t}
         state={state({
@@ -156,10 +159,16 @@ describe("fogplay Phaser playarea", () => {
         dispatch={dispatch}
       />,
     );
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
 
     expect(queryByText("Flip Coin")).toBeNull();
-    fireEvent.click(getByText("Reveal result"));
-    expect(dispatch).toHaveBeenCalledWith("revealResult");
+    expect(queryByText("Reveal result")?.className).toContain("fogplay-a11y-controls__primary");
+    expect(props.state.hasPendingBet).toBe(true);
+    expect(props.state.revealFailed).toBe(true);
+    expect(props.state.revealCta).toBe("Reveal result");
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("renders credit, history, and commit-reveal fairness in the drawer", () => {
@@ -186,7 +195,8 @@ describe("fogplay Phaser playarea", () => {
 
     fireEvent.click(getByText("Recent Games"));
 
-    expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
+    expect(container.querySelector(".fogplay-ingame-drawer")).toBeTruthy();
+    expect(container.querySelector(".mx2-drawer--open")).toBeNull();
     expect(container.querySelector(".fogplay-phaser-drawer__summary")?.textContent).toContain("3.25 GAS");
     expect(container.querySelector(".fogplay-phaser-drawer__credit")?.textContent).toContain("0.75 GAS");
     expect(container.querySelector(".fogplay-phaser-history")?.textContent).toContain("Heads");
@@ -203,11 +213,25 @@ describe("fogplay Phaser playarea", () => {
     const scene = fs.readFileSync(path.join(appsRoot(), "fogplay/src/scenes/FogplayScene.ts"), "utf8");
 
     expect(wrapper).toContain("normalizeResult");
+    expect(wrapper).toContain("fogplay-stage-shell");
+    expect(wrapper).toContain("fogplay-stage-hud");
+    expect(wrapper).toContain("fogplay-ingame-drawer");
     expect(wrapper).toContain("fogplay-phaser-drawer__summary");
     expect(wrapper).toContain("fogplay-phaser-history");
     expect(wrapper).toContain("formattedMaxPayable");
+    expect(wrapper).toContain("actions={{}}");
+    expect(wrapper).toContain("revealCta:");
+    expect(wrapper).toContain("playAgainCta:");
+    expect(wrapper).not.toContain("score={");
+    expect(wrapper).not.toContain("drawerToggleLabel=");
+    expect(wrapper).not.toContain("drawer={{");
+    expect(wrapper).not.toContain("primary: hasPendingBet");
+    expect(wrapper).not.toContain("secondaryActions");
     expect(wrapper).not.toContain("drawer={{ children: <p>{t(\"fairnessNote\")}</p> }}");
     expect(wrapper).not.toMatch(/<form\b|<input\b|<textarea\b|<select\b/);
+    expect(scene).toContain('this.tableAction = "revealResult"');
+    expect(scene).toContain('this.tableAction = "resetGame"');
+    expect(scene).toContain("this.dispatch(this.tableAction)");
     expect(scene).toContain('this.dispatch("setBetAmount", amount)');
     expect(scene).not.toContain('this.dispatch("setBetAmount", { amount })');
   });

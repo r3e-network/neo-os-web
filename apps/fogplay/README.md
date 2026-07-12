@@ -1,102 +1,85 @@
-# FogPlay — Oracle-Backed On-Chain Coin Flip
+# FogPlay — Phaser Coin Flip on Neo N3
 
-> Pick heads or tails. Place your bet. Wait for the oracle callback. Lightweight, direct, and fully on-chain.
+FogPlay is a tactile coin-flip game with a production local mode and a retained,
+currently disabled GameFi implementation:
 
-## What is FogPlay?
+- **Local play** needs no wallet, GAS, oracle, or chain call. Pick a side, toss the authored coin, and build a win streak.
+- **GameFi** uses the standalone `MiniAppCoinFlipV2` commit/reveal contract, but remains fail-closed because the public deployments do not match the currently reviewed artifact.
 
-FogPlay is a fast on-chain coin flip game built on Neo N3. Pick heads or tails, place your GAS bet (0.05–100 GAS), and let the contract request randomness through the Morpheus Oracle flow. Once the callback lands, the result is finalized on-chain and emitted for payout/indexing.
+The playable surface is a Phaser 3 table, not a transaction form. Authored heads/tails artwork, an animated pedestal, launch/flip/land motion, sound cues, concise results, and an in-game recovery drawer carry the primary flow.
 
-What makes FogPlay stand out isn't just the speed, but the clarity of the flow. Sound effects play on flip, win, and lose events. A dramatic coin animation builds suspense during the resolution window. It's designed to be lightweight and repeatable: simple mechanics, real stakes, fast feedback.
+## Retained Paid-Flip Design
 
-Every flip is provably fair at the contract boundary. The bet is stored on-chain, a randomness request is issued through the configured oracle contract, and the callback resolves the wager on-chain.
+1. Choose heads or tails and one of the table chips.
+2. `commit(player, choice, amount)` escrows prepaid GAS and reserves the house exposure.
+3. Wait for the complete three-block beacon window. The outcome is not known at commit time.
+4. Anyone may call `settle(betId)` after the window clears. The contract derives the fixed result from the three later block hashes and pays a winner 2x.
+5. If indexing or settlement is interrupted, the exact transaction, player, contract, network, choice, and amount remain persisted for a safe retry.
+6. Unused prepaid credit can be returned with `withdraw(account)`.
 
-## How to Play
+The multi-block beacon closes the old same-transaction abort-on-loss exploit and increases grinding cost over a single-block source. It is intentionally a low-stakes mechanism, not VRF-grade randomness.
 
-1. **Connect** — Open FogPlay and connect your Neo N3 wallet.
-2. **Choose Your Side** — Tap Heads or Tails.
-3. **Set Your Bet** — Enter an amount between 0.05 and 100 GAS.
-4. **Flip!** — Hit the Flip button. The coin spins with a satisfying animation.
-5. **Fast Result** — Once the oracle callback lands, see if you won. Winners get 2x their bet (minus platform fee). Losers see the coin land on the wrong side.
-6. **Go Again** — Start another round after settlement completes.
+This architecture is retained for the next compatible deployment. It is not an
+active wallet-funded product claim.
 
-## Key Features
+## Production Safety Boundary
 
-- **Direct Oracle Resolution**: The contract requests randomness directly and resolves the result on-chain after callback.
-- **Provably Fair**: Each flip is tied to a concrete oracle request and recorded on-chain.
-- **Immersive UX**: Coin flip animation, sound effects for flip/win/lose, and a dramatic win overlay.
-- **Win Tracking**: Total wins, losses, games played, and GAS won are tracked per session.
-- **Flexible Bets**: Bet anywhere from 0.05 to 100 GAS per flip.
-- **Retry on Failure**: If a transaction fails, you get a retry button — no lost bets.
+- `supportsGameFi`, payment/randomness permissions, host operations, and the runtime paid-lane flag are disabled.
+- A wrong network, stale host, or old contract cannot open a wallet prompt for a new wager.
+- `Committed` may recover the exact bet id, but a `Settled` event or transaction broadcast never confirms a result.
+- Win/loss is applied only after exact `getPendingBet` readback validates id, player, choice, wager, terminal state, outcome, win predicate, and payout.
+- A settlement must match the pending bet id, player, choice, outcome, win flag, and exact 0x/2x payout.
+- Existing pending bets and prepaid credit keep their reveal/withdraw recovery paths.
+- The published manifest exposes no generic operation form.
 
-## Technical Architecture
+## Contract
 
-### Smart Contract
+| Item | Value |
+| --- | --- |
+| Contract | `MiniAppCoinFlipV2` |
+| Published binding | Neo N3 testnet (read-only compatibility reference) |
+| Script hash | `0x611c3d97dd98792a3c31a0e695704c657f143cda` |
+| Bet range | 0.05–100 GAS, additionally capped by `freeBankroll / 2` |
+| Randomness | Fixed three-block native beacon after commit |
+| Mutations | `commit`, `settle`, `withdraw` |
+| Reads | `bankroll`, `reservedBankroll`, `freeBankroll`, `creditOf`, `getStats`, `getPendingBet`, `playerBetCount`, `getPlayerBets` |
 
-| Component           | Details                                                                 |
-| ------------------- | ----------------------------------------------------------------------- |
-| **Contract Name**   | `MiniAppFogPlay`                                                       |
-| **Language**        | C# (Neo N3 Smart Contract)                                              |
-| **Blockchain**      | Neo N3                                                                  |
-| **Bet Range**       | 0.05 – 100 GAS                                                          |
-| **Resolution Flow** | `placeBet` → oracle request → `onOracleResult` callback                 |
+The July 10 harness validated the artifact deployed at that time. Current
+read-only verification shows that both public deployments report checksum
+`2385475183`, while the currently reviewed local artifact reports `4009970425`
+and exposes a different ABI. The historical write report therefore does not
+prove the current build is deployed. See `TESTNET_STATUS.md` and
+`docs/reports/fogplay-v2-testnet-live-2026-07-10.md`.
 
-### Integration Path
+No transaction, key use, deployment, or update is part of this frontend pass.
 
-- **Morpheus Oracle**: Direct oracle randomness callback for each bet resolution.
-- **On-Chain Settlement**: The contract stores the bet and resolves the result on callback, emitting a payout event.
-- **Prepaid GAS + Oracle Fee Credit**: the player prepays GAS to the miniapp contract, and the callback contract must also hold prepaid Oracle request credit.
-
-### Contract Methods
-
-| Method                  | Type   | Parameters                             | Description                                         |
-| ----------------------- | ------ | -------------------------------------- | --------------------------------------------------- |
-| `placeBet`              | Action | `player`, `amount`, `choice`                          | Place a bet after prepaying GAS to the miniapp contract and trigger an oracle randomness request |
-| `onOracleResult`        | Action | `requestId`, `requestType`, `success`, `result`, `error` | Oracle callback that resolves the bet |
-| `getBet`                | Query  | `betId`                                             | Get details of a specific bet |
-| `getPlayerDailyBet`     | Query  | `player`                                            | Get the player's daily wager total |
-| `getPlayerBetCount`     | Query  | `player`                                            | Get the player's current consecutive bet count |
-
-## Getting Started
+## Development
 
 ```bash
-# Navigate to the app directory
-cd miniapps/apps/fogplay
-
-# Install dependencies
+cd apps/fogplay
 npm install
-
-# Start development server
 npm run dev
-
-# Build for production (H5)
+npm test -- --run
+npx tsc --noEmit
+npx eslint src
 npm run build
 ```
 
-## Contract Addresses
+Contract tests:
 
-| Network | Address                                      |
-| ------- | -------------------------------------------- |
-| Testnet | `0x740671b10330ef6669ab8b2724437eb8d5e7a34c` |
-| Mainnet | `0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7` |
+```bash
+cd contracts/__tests__
+dotnet test NeoContracts.Tests.csproj \
+  --filter FullyQualifiedName~MiniAppCoinFlipV2Tests
+```
 
-### Explorer Links
+## Stack
 
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x740671b10330ef6669ab8b2724437eb8d5e7a34c)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7)
-
-## Domains
-
-- Mainnet domain: `fogplay.miniapp.neo`
-
-## Tech Stack
-
-| Layer              | Technology                                |
-| ------------------ | ----------------------------------------- |
-| Frontend           | Host-native React + TypeScript              |
-| Smart Contract     | C# / Neo N3                               |
-| Result Path        | Direct Oracle callback                    |
-| Randomness         | Morpheus Oracle                           |
-| Payment            | Direct prepaid GAS + Morpheus Oracle callback fee credit |
+- React + TypeScript miniapp shell
+- Phaser 3 playable scene
+- Neo N3 C# smart contract
+- N3Index/RPC reads
+- Browser Web Crypto for local-play randomness
 
 ## License
 

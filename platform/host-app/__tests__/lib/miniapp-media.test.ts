@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import {
   buildMiniAppBannerSources,
   buildMiniAppLogoSources,
@@ -83,6 +86,69 @@ describe("miniapp-media helpers", () => {
         bannerURL: "/miniapp-assets/neo-swap/banner.webp",
       });
     });
+
+    it.each(["arrow-escape", "bead-workshop", "fruit-funnel", "screw-sort"])(
+      "resolves the %s migration to canonical host WebP and AVIF media",
+      (slug) => {
+        expect(
+          getMiniAppPrimaryAssets(
+            `miniapp-${slug}`,
+            `mf://manifest?app=miniapp-${slug}`,
+          ),
+        ).toEqual({
+          logoURL: `/miniapp-assets/${slug}/logo.webp`,
+          bannerURL: `/miniapp-assets/${slug}/banner.webp`,
+        });
+        expect(
+          buildModernImageSources(`/miniapp-assets/${slug}/logo.webp`),
+        ).toEqual({
+          avif: `/miniapp-assets/${slug}/logo.avif`,
+          webp: `/miniapp-assets/${slug}/logo.webp`,
+        });
+        expect(
+          buildModernImageSources(`/miniapp-assets/${slug}/banner.webp`),
+        ).toEqual({
+          avif: `/miniapp-assets/${slug}/banner.avif`,
+          webp: `/miniapp-assets/${slug}/banner.webp`,
+        });
+      },
+    );
+
+    it.each(["arrow-escape", "bead-workshop", "fruit-funnel", "screw-sort"])(
+      "ships canonical %s media bytes with real AVIF derivatives",
+      (slug) => {
+        const repoRoot = path.resolve(process.cwd(), "../..");
+        for (const asset of ["logo", "banner"] as const) {
+          const sourceWebP = readFileSync(
+            path.join(repoRoot, "apps", slug, "public", `${asset}.webp`),
+          );
+          const hostWebP = readFileSync(
+            path.join(
+              process.cwd(),
+              "public",
+              "miniapp-assets",
+              slug,
+              `${asset}.webp`,
+            ),
+          );
+          const hostAVIF = readFileSync(
+            path.join(
+              process.cwd(),
+              "public",
+              "miniapp-assets",
+              slug,
+              `${asset}.avif`,
+            ),
+          );
+
+          expect(hostWebP.equals(sourceWebP)).toBe(true);
+          expect(hostWebP.subarray(0, 4).toString("ascii")).toBe("RIFF");
+          expect(hostWebP.subarray(8, 12).toString("ascii")).toBe("WEBP");
+          expect(hostAVIF.subarray(4, 12).toString("ascii")).toBe("ftypavif");
+          expect(hostAVIF.length).toBeGreaterThan(1024);
+        }
+      },
+    );
 
     it("can serve primary assets from an external media base", () => {
       process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";

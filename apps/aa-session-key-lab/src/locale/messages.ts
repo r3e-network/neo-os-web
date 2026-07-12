@@ -5,10 +5,10 @@ const appMessages = {
   appName: { en: "AA Session Key Lab", zh: "AA Session Key 实验室" },
   latestState: { en: "Latest Configuration", zh: "最近配置" },
   configureSession: { en: "Configure Session Key", zh: "配置 Session Key" },
-  accountSeed: { en: "Account ID / Hash", zh: "账户 ID / Hash" },
+  accountSeed: { en: "Registered AccountId", zh: "已注册 AccountId" },
   accountSeedPlaceholder: {
-    en: "seed string or 0x hash",
-    zh: "种子字符串或 0x 哈希",
+    en: "exact 20-byte AccountId or N-address",
+    zh: "精确 20 字节 AccountId 或 N 地址",
   },
   accountIdHash: { en: "Account ID Hash", zh: "账户 ID 哈希" },
   sessionPublicKey: { en: "Session Public Key", zh: "Session 公钥" },
@@ -86,6 +86,10 @@ const appMessages = {
     en: "Session public key must be a 33-byte compressed hex key.",
     zh: "Session 公钥必须是 33 字节压缩十六进制公钥。",
   },
+  invalidSessionAccountId: {
+    en: "Enter an existing registered AccountId as an exact 20-byte hash or N-address.",
+    zh: "请输入已注册账户的精确 20 字节 AccountId 或 N 地址。",
+  },
   invalidExpiry: {
     en: "Expiry must be a future Unix timestamp.",
     zh: "过期时间必须是未来的 Unix 时间戳。",
@@ -109,6 +113,10 @@ const appMessages = {
   sessionNotConfirmed: {
     en: "Configuration broadcast but not yet confirmed on-chain — the session key was not stored.",
     zh: "配置已广播但链上尚未确认 —— session key 未被存储。",
+  },
+  sessionTransactionFaulted: {
+    en: "The saved session-key transaction faulted on chain. Review the account and scope before trying again.",
+    zh: "已保存的 session-key 交易在链上执行失败；请检查账户与权限范围后再试。",
   },
   sessionVerifierMissing: {
     en: "No session-key verifier is configured for this network.",
@@ -353,8 +361,150 @@ const appMessages = {
   },
   privateKeyCardTitle: { en: "Generated private key", zh: "已生成的私钥" },
   configureSessionBlocked: {
-    en: "Add an account ID/hash, session public key, target contract, and expiry before submitting.",
-    zh: "请先填写账户 ID/Hash、Session 公钥、目标合约和过期时间，再提交配置。",
+    en: "Verify the AA account owner and verifier, then complete the key, target, method, and expiry.",
+    zh: "请先核对 AA 账户所有者与 Verifier，再补全密钥、目标、方法和过期时间。",
+  },
+  network: { en: "Network", zh: "网络" },
+  mainnet: { en: "Mainnet", zh: "主网" },
+  testnet: { en: "Testnet", zh: "测试网" },
+  accountOwner: { en: "Backup owner", zh: "备份所有者" },
+  sessionActive: { en: "Active on chain", zh: "链上生效中" },
+  sessionExpired: { en: "Expired on chain", zh: "链上已过期" },
+  sessionAbsent: { en: "No session on chain", zh: "链上无 Session" },
+  sessionUnavailable: { en: "Live state unavailable", zh: "实时状态不可用" },
+  sessionNotInspected: { en: "Not inspected", zh: "尚未核对" },
+  sessionAccountIdle: { en: "Account not inspected", zh: "账户尚未核对" },
+  sessionAccountLoading: { en: "Inspecting account", zh: "正在核对账户" },
+  sessionAccountReady: { en: "AA account verified", zh: "AA 账户已核对" },
+  sessionAccountMissing: { en: "AA account not found", zh: "未找到 AA 账户" },
+  sessionAccountUnavailable: { en: "Account state unavailable", zh: "账户状态不可用" },
+  inspectAAAccount: { en: "Inspect AA account", zh: "核对 AA 账户" },
+  inspectingAAAccount: { en: "Inspecting account…", zh: "正在核对账户…" },
+  retryAAAccount: { en: "Retry account check", zh: "重新核对账户" },
+  accountMissingHint: {
+    en: "This ID is not registered in the selected AA Core. Open details to enter another account ID or hash.",
+    zh: "此 ID 尚未在所选 AA Core 注册。请在详情中输入其他账户 ID 或哈希。",
+  },
+  connectOwnerWallet: { en: "Connect owner wallet", zh: "连接所有者钱包" },
+  ownerWalletMismatch: { en: "Wrong owner wallet", zh: "所有者钱包不匹配" },
+  ownerWalletMismatchHint: {
+    en: "Switch to the account's on-chain backup-owner wallet before signing.",
+    zh: "请先切换到该账户链上记录的备份所有者钱包，再进行签名。",
+  },
+  ownerVerified: { en: "Owner verified", zh: "所有者已核对" },
+  ownerMismatch: { en: "Wallet mismatch", zh: "钱包不匹配" },
+  ownerNotVerified: { en: "Not verified", zh: "尚未核对" },
+  bindingVerified: { en: "Session verifier bound", zh: "Session Verifier 已绑定" },
+  bindingMismatch: { en: "Different verifier is bound", zh: "账户绑定了其他 Verifier" },
+  walletNetworkVerified: { en: "Wallet network verified", zh: "钱包网络已核对" },
+  walletNetworkReadOnly: { en: "Read-only network", zh: "只读网络上下文" },
+  sessionPermissionObject: { en: "Live permission object", zh: "实时权限对象" },
+  sessionDraft: { en: "Permission draft", zh: "权限草稿" },
+  sessionObjectAccount: { en: "AA account", zh: "AA 账户" },
+  sessionObjectOwner: { en: "Owner authority", zh: "所有者权限" },
+  sessionObjectKey: { en: "Session key", zh: "Session Key" },
+  sessionObjectScope: { en: "Contract · method", zh: "合约 · 方法" },
+  sessionObjectExpiry: { en: "Expiry", zh: "过期时间" },
+  sessionObjectAllowance: { en: "Allowance", zh: "额度" },
+  sessionReadbackRequired: {
+    en: "A wallet broadcast is never shown as complete until this exact object is read back from chain.",
+    zh: "钱包广播后，只有从链上读回完全一致的权限对象，才会显示为完成。",
+  },
+  sessionDraftHonest: {
+    en: "This is a local draft. It is not an active permission until on-chain readback succeeds.",
+    zh: "这是本地草稿；链上回读成功前，它不是已生效权限。",
+  },
+  allowanceUnavailableTestnet: {
+    en: "The frozen testnet verifier has no spending-limit field. No allowance is claimed or enforced here.",
+    zh: "测试网冻结版 Verifier 不含支出上限字段；这里不会声称或执行任何额度。",
+  },
+  allowanceUnavailableShort: { en: "No allowance", zh: "无额度功能" },
+  explicitMethodHint: {
+    en: "Use one exact contract method. Blank or wildcard scope is not submitted.",
+    zh: "请填写一个明确的合约方法；空值或通配作用域不会被提交。",
+  },
+  replaceLocalKey: { en: "Generate another local key", zh: "重新生成本地密钥" },
+  revokeLifecycleHint: {
+    en: "Revocation requires a second confirmation and an on-chain absence readback.",
+    zh: "撤销需要二次确认，并以链上回读确认 Session 已不存在。",
+  },
+  recoverSessionWrite: { en: "Recover pending update", zh: "恢复待确认更新" },
+  recoveringSessionWrite: { en: "Checking pending update…", zh: "正在核对待确认更新…" },
+  recoverSessionWriteHint: {
+    en: "Recovery only reads the exact account and contracts recorded with the transaction; it never resubmits.",
+    zh: "恢复只读取交易记录中的精确账户和合约，绝不会自动重新提交。",
+  },
+  sessionWritePending: {
+    en: "{kind} was broadcast and is waiting for exact on-chain readback.",
+    zh: "{kind} 已广播，正在等待精确链上回读。",
+  },
+  sessionWriteConfirmed: {
+    en: "The latest update was confirmed by exact on-chain readback.",
+    zh: "最近一次更新已通过精确链上回读确认。",
+  },
+  invalidAllowedMethod: {
+    en: "Allowed method must be one explicit contract method name.",
+    zh: "允许方法必须是一个明确的合约方法名。",
+  },
+  sessionCanonicalContextMismatch: {
+    en: "The configured AA Core or session verifier does not match the canonical network registry.",
+    zh: "当前 AA Core 或 Session Verifier 与规范网络注册表不一致。",
+  },
+  sessionWalletNetworkMismatch: {
+    en: "The connected wallet network does not match this session-key workspace.",
+    zh: "已连接钱包的网络与当前 Session Key 工作区不一致。",
+  },
+  sessionWalletNetworkUnverified: {
+    en: "The wallet network could not be verified. No write was submitted.",
+    zh: "无法核对钱包网络，因此未提交任何写入。",
+  },
+  sessionAccountReadUnavailable: {
+    en: "The live AA account or session record could not be read. Previous state is not reused.",
+    zh: "无法读取实时 AA 账户或 Session 记录；不会复用旧状态。",
+  },
+  sessionVerifierBindingMismatch: {
+    en: "This AA account is bound to a different verifier. Bind the canonical session verifier before using this app.",
+    zh: "该 AA 账户绑定了其他 Verifier；请先绑定规范 Session Verifier。",
+  },
+  sessionOwnerWalletRequired: {
+    en: "Connect the account's on-chain backup-owner wallet.",
+    zh: "请连接该账户链上记录的备份所有者钱包。",
+  },
+  sessionOwnerConnectFailed: {
+    en: "The owner wallet could not be connected or verified.",
+    zh: "无法连接或核对所有者钱包。",
+  },
+  sessionExistingMustRevoke: {
+    en: "A session record already exists. Revoke and confirm it before creating another.",
+    zh: "已有 Session 记录；请先撤销并确认，再创建新的权限。",
+  },
+  sessionRevokeRequiresLiveRecord: {
+    en: "No live or expired session record is available to revoke.",
+    zh: "当前没有可撤销的生效或已过期 Session 记录。",
+  },
+  sessionPendingBlocksWrites: {
+    en: "Recover the pending transaction before submitting another update.",
+    zh: "请先恢复待确认交易，再提交新的更新。",
+  },
+  sessionTransactionIdMissing: {
+    en: "The wallet returned no transaction ID, so the update was not treated as submitted.",
+    zh: "钱包未返回交易 ID，因此不会把本次更新视为已提交。",
+  },
+  sessionConfirmationPending: {
+    en: "The transaction was broadcast, but exact on-chain readback is still pending. Use recovery; do not resubmit.",
+    zh: "交易已广播，但精确链上回读仍在等待。请使用恢复功能，不要重复提交。",
+  },
+  sessionPendingContextMismatch: {
+    en: "This pending transaction belongs to another account, network, or canonical contract context.",
+    zh: "该待确认交易属于其他账户、网络或规范合约上下文。",
+  },
+  sessionUnsignedDraftCleared: {
+    en: "An unsigned local write draft was cleared; no transaction ID had been recorded.",
+    zh: "未记录交易 ID 的本地写入草稿已清除。",
+  },
+  sessionRecoveryFailed: {
+    en: "The pending update could not be recovered from chain.",
+    zh: "无法从链上恢复待确认更新。",
   },
 } as const;
 

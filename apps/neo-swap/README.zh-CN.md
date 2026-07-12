@@ -1,109 +1,59 @@
 # Neo 兑换
 
-基于实时价格源预览 NEO 与 GAS 兑换、滑点和钱包结算说明
+Neo Swap 是面向生产环境设计的 NEO/GAS 报价工作台。它从 Morpheus 数据源读取两条价格记录，计算交叉汇率和最少收到数量，并以清晰的兑换终端呈现。
 
-## 概览
+目前 `neo-manifest.json` **没有部署兑换路由**。因此小程序保持在规划模式：可以刷新公开报价，也可以选择连接钱包读取余额，但不能提交兑换，更不会声称交易已经成功。
 
-| 属性 | 值 |
-|------|-----|
-| **应用 ID** | `miniapp-neo-swap` |
-| **分类** | defi |
-| **版本** | 1.0.0 |
-| **框架** | Host-native React playarea |
+## 当前产品行为
 
-## 摘要
+- 刷新公开 NEO/GAS 报价不要求连接钱包。
+- NEO 与 GAS 统一使用仓库内 Neo Press Kit 官方资产。
+- 只有两条价格记录均为有限正数时才接受报价，并会立即把 Morpheus 固定六位价格还原为整数。
+- 聚合记录若尚未初始化（`HALT` 但价格/时间均为零），会回退到同一合约的显式 `TWELVEDATA:*` 记录；来源记录仍为零时继续关闭报价。
+- 新鲜度以较旧的链上 `recordTimestamp` 为准；缺失或超过 10 分钟即视为过期。
+- RPC/数据源失败时清除旧报价并提供重试，不显示虚构的兜底价格。
+- 报价响应绑定具体交易对，切换代币后，较早的异步响应不能覆盖新方向。
+- NEO 小数和超出代币精度的输入会明确报错，不再静默截断。
+- 输出与最少收到值直接使用代币最小单位和 `BigInt` 计算；界面展示的六位汇率不会反向参与交易计算。
+- 滑点设置只影响整数最少收到下限，不会改变报价结果。
+- GAS“最大”会预留 0.1 GAS 网络费；NEO“最大”始终为整数。
+- 钱包余额通过 `app.wallet.raw()` 读取；只有钱包网络与报价网络完全一致时才接受结果，网络不明确、不匹配或账户已切换时保持不可用。
 
-Neo Swap 提供 NEO/GAS 报价预览、滑点检查、路由上下文和钱包结算检查清单。
-价格来自平台数据源；该小程序不再绑定任何旧第三方 swap 路由合约。
+## 结算边界
 
-## 功能亮点
+`contracts` 目前为空。平台出现非空合约地址并不足以启用结算；它还必须与 `src/settlement.ts` 中已复核的网络、Hash160、操作、确认事件和 ABI 版本完全一致。当前激活绑定为 `null`，因此主操作只负责刷新报价，`canSwap` 始终为 false。
 
-- **NEO/GAS 兑换预览**（路由、滑点和最少收到）
-- **实时价格**（数据源报价）
-- **钱包结算检查**（统一操作面板展示报价状态与结算注意事项）
+代码中保留了兼容既有 API 的结算适配器，但只有满足以下条件才能启用：
 
-## 使用步骤
+1. 已完成生产复核并实现 `swapTokenInForTokenOut` 的路由部署到目标网络；
+2. 地址写入平台 manifest/合约注册表；
+3. `SwapExecuted` 事件格式与确认语义通过集成测试；
+4. 路由输出、费用、截止时间和最少输出保护在测试网完成实测；
+5. 重新完成业务逻辑、钱包路径与错误恢复验收后，才启用 `payments` 权限。
 
-1. 连接 Neo 钱包并选择兑换方向
-2. 输入数量并查看汇率与最少收到
-3. 查看最少收到、滑点和结算注意事项
-4. 只通过受支持的钱包/路由完成最终兑换
+未来满足这些门槛后，交易适配器会在广播时立即持久化精确 txid、阻止重复提交、等待该交易对应的 `SwapExecuted` 事件，并要求路由绑定的验证器把事件与钱包、资产对和整数金额意图逐项对应；刷新页面后仍会保留尚未核验的交易供用户恢复检查。仅广播或仅出现同名事件都绝不会被显示为兑换成功。
 
-## 权限
+在这些门槛完成前，界面和文档都只能把它描述为报价/规划工具，不能声称存在流动性池或可执行 DEX。
 
-| 权限 | 是否需要 |
-|------|----------|
-| 支付 | ❌ 否 |
-| 数据源 | ✅ 是 |
-| 随机数 | ❌ 否 |
-| 治理 | ❌ 否 |
-| 自动化 | ❌ 否 |
+## 数据与钱包
 
-注意：需要钱包授权以签名兑换交易。
+- 报价来源：Morpheus 针对 NEO/GAS 的 `getPriceWithMeta()`。
+- 展示时间：两条数据中较旧的上游 `dataTimestamp`。
+- 新鲜度判定时间：两条数据中较旧的链上 `recordTimestamp`。
+- 钱包数据：只有当前地址的原始 NEO/GAS 最小单位读取成功核验后才显示数值；未连接、读取失败或切换账户时显示“不可用”，不会伪装成 0 余额。
+- 托管：无。
+- 独立小程序合约：无。
 
-## 链上行为
-
-- 兑换先在 MiniApp 中预览，再通过统一钱包流程提交。
-- 价格来自平台数据源和流动性上下文。
-- 本平台不部署托管用户资金的兑换合约。
-
-## 网络配置
-
-### 测试网 (Testnet)
-
-| 属性 | 值 |
-|------|-----|
-| **合约地址** | 无独立合约；该小程序是平台价格源报价台 |
-| **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | N/A |
-| **网络魔数** | `894710606` |
-
-### 主网 (Mainnet)
-
-| 属性 | 值 |
-|------|-----|
-| **合约地址** | 无独立合约；该小程序是平台价格源报价台 |
-| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
-| **区块浏览器** | N/A |
-| **网络魔数** | `860833102` |
-
-## 平台合约
-
-### 测试网 (Testnet)
-
-| 合约 | 地址 |
-| --- | --- |
-| Governance | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` |
-| PriceFeed | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` |
-| RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
-| AppRegistry | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` |
-| AutomationAnchor | `0x1c888d699ce76b0824028af310d90c3c18adeab5` |
-| Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
-
-### 主网 (Mainnet)
-
-| 合约 | 地址 |
-| --- | --- |
-| Governance | `0x705615e903d92abf8f6f459086b83f51096aa413` |
-| PriceFeed | `0x9e889922d2f64fa0c06a28d179c60fe1af915d27` |
-| RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
-| AppRegistry | `0x583cabba8beff13e036230de844c2fb4118ee38c` |
-| AutomationAnchor | `0x0fd51557facee54178a5d48181dcfa1b61956144` |
-| Morpheus Oracle | `0x5b492098fc094c760402e01f7e0b631b939d2bea` |
-
-## 资产
-
-- **允许资产**：NEO, GAS
-
-## 开发
+## 开发与验证
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
-npm run build
+npm --prefix apps/neo-swap run dev
+npm --prefix apps/neo-swap run build
+npx tsc -p apps/neo-swap/tsconfig.json --noEmit
+cd apps/shared
+npx vitest run test/neo-swap.logic.test.ts test/neo-swap.playarea.test.tsx test/neo-swap.integration.test.tsx test/neo-swap.production.test.ts test/official-token-assets.test.tsx
 ```
+
+Vite 会输出本地开发地址；视觉与钱包验收需在后续使用用户选择的浏览器完成。
+
+资产来源见 [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md)，当前网络启用状态见 [TESTNET-STATUS.md](./TESTNET-STATUS.md)。

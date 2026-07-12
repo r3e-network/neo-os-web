@@ -8,7 +8,10 @@ import {
 } from "../../automation-copilot/src/automationGateway";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
 describe("Automation Copilot gateway helpers", () => {
@@ -78,6 +81,26 @@ describe("Automation Copilot gateway helpers", () => {
     );
     expect(result.meta.state).toBe("local_automation_intent");
     expect(result.data).toMatchObject({ id: "local-auto-123" });
+  });
+
+  it("forwards the signed-in host session to the automation gateway", async () => {
+    window.sessionStorage.setItem("sb-access-token", "automation-session-token");
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      text: async () => JSON.stringify({ ok: true, data: [] }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await callAutomationEndpoint("automation-triggers", { method: "GET" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/edge/automation-triggers",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer automation-session-token",
+        }),
+      }),
+    );
   });
 
   it("normalizes trigger arrays and wrapped trigger lists", () => {

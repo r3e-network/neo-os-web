@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-02T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Timed on-chain platform jumping game with provably fair platform layouts. Choose a route, hold to charge, release to jump to the next platform, and chase perfect center landings. Missing the platform ends the run. Pay a small GAS entry, conquer the route before the deadline, and win a fixed GAS reward: 0.1 for Meadow Hop, 0.5 for Cloud Dash, 1 for Summit Leap. Each jump sequence is verified inside the TEE enclave and every payout ranks on a global leaderboard rebuilt from chain events.",
-  "description_zh": "限时链上平台跳跃游戏，平台布局可验证公平。选择路线，按住蓄力，松开跳向下一个平台，并争取精准落在平台中央。未踩中平台则游戏结束。支付少量 GAS 报名费后，在截止时间前征服路线即可赢取固定 GAS 奖励：草地小跳 0.1、云端冲刺 0.5、山巅飞跃 1。每次跳跃序列都在 TEE 飞地内验证，每笔奖励都会进入由链上事件重建的全网积分榜。",
+  "description": "A polished Phaser platform-jumping game with illustrated bunny, carrot, cloud, and grass-platform artwork, tactile hold-and-release controls, three route lengths, missed-landing recovery, and instant free local play. The wallet-backed reward lane remains gated until the deployed contract and Morpheus session protocol pass end-to-end production validation.",
+  "description_zh": "精心打磨的 Phaser 平台跳跃游戏，拥有插画小兔、胡萝卜、云朵与草地平台资源、按住蓄力松手起跳的手感、三种路线长度、落空恢复和即时免费本地游玩。钱包奖励路线将在已部署合约与 Morpheus 会话协议通过端到端生产验证后开放。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -25,61 +25,16 @@
   "name": "Jump Rush",
   "name_zh": "跳一跳",
   "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Pay the entry fee and the Morpheus enclave generates a deterministic platform layout. Meadow 0.02 GAS entry wins 0.1; Cloud 0.10 wins 0.5; Summit 0.20 wins 1.",
-        "method": "startGame",
-        "name": "Start Run",
-        "params": [
-          {
-            "default_value": "0",
-            "hidden": true,
-            "label": "Jump Route",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Meadow Hop — win 0.1 GAS",
-                "value": "0"
-              },
-              {
-                "label": "Cloud Dash — win 0.5 GAS",
-                "value": "1"
-              },
-              {
-                "label": "Summit Leap — win 1 GAS",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Hold to charge, release to jump. Conquer the selected route before the deadline to win GAS.",
+    "operations": [],
+    "subtitle": "Launch the game, choose a route, hold to charge, and release to jump. Free practice never opens a wallet prompt or writes to chain.",
     "title": "Jump Rush"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -88,9 +43,10 @@
     "jump",
     "platform",
     "leaderboard",
-    "gas",
+    "local",
     "game",
-    "arcade"
+    "arcade",
+    "phaser"
   ],
   "technologies": {
     "aa": {
@@ -98,19 +54,19 @@
       "enabled": false
     },
     "oracle": {
-      "description": "The game opens a Morpheus runtime session to generate hidden platform layouts and verify the recorded jump sequence before settlement. No callback is required; the contract verifies the TEE signer directly on-chain.",
-      "enabled": true
+      "description": "Free practice is local and makes no oracle request. The reward route stays gated until its deployed engine and contract rules are aligned and validated end to end.",
+      "enabled": false
     },
     "tee": {
-      "description": "Morpheus TEE signs the hidden puzzle commitment and final settlement digest; the contract verifies the enclave signer directly without a Morpheus oracle callback.",
-      "enabled": true
+      "description": "Free practice is local and makes no TEE request. Morpheus settlement remains a gated future lane until production validation is complete.",
+      "enabled": false
     }
   },
-  "updatedAt": "2026-07-02T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "urls": {
     "banner": "/miniapps/jump-rush/banner.webp",
     "entry": "/miniapps/jump-rush/index.html",
     "icon": "/miniapps/jump-rush/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "2.0.0"
 }

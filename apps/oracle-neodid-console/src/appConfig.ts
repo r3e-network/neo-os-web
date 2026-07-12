@@ -1,72 +1,34 @@
 import { mergeMessages } from "@shared/locale/base-messages";
-import type { ConsoleToolConfig } from "@shared/components-react";
-import { previewId } from "@shared/components-react";
-import { getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-neodid-console";
-
-/**
- * Resolve the network label from the launched network instead of a hardcoded
- * "Morpheus Testnet". The NeoDID lanes are live on the mainnet nitro worker
- * while the testnet runtime is still degraded (getNetwork() defaults to mainnet).
- */
-export function resolveNetworkLabel(): string {
-  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
-}
+export const DEFAULT_SUBJECT_DID = "did:morpheus:neo_n3:service:neodid";
 
 export const appMeta = {
-  networkLabel: resolveNetworkLabel(),
-  // buildResult only computes a local digest; it never calls the verifier. Mark
-  // the endpoint stat as a preview builder so "NeoDID verifier" on the live
-  // network label does not read as "identity verified".
-  endpointLabel: "Verification preview builder",
+  networkLabel: "Morpheus Mainnet",
+  endpointLabel: "Host resolver + provider catalog",
 };
-
-const DEFAULT_DID = "did:neo:testnet:sample-user";
-const DEFAULT_CLAIM = "profile.kyc";
 
 export const manifest: MiniAppManifest = {
   name: "Oracle NeoDID Console",
   description:
-    "Preview NeoDID verification requests for Morpheus oracle flows.",
+    "Inspect a returned Morpheus NeoDID document, provider catalog metadata, and Neo registry evidence without claiming identity verification.",
   icon: "did",
   category: "oracle",
   shell: "console",
-  theme: { family: "social", accentColor: "#a78bfa", density: "comfortable" },
+  theme: { family: "social", accentColor: "#c96d32", density: "comfortable" },
   tabs: [{ key: "neodid", labelKey: "tabNeoDid", icon: "did", default: true }],
   stats: [
-    {
-      labelKey: "statNetwork",
-      valueKey: "networkLabel",
-      format: "text",
-      icon: "globe",
-    },
-    {
-      labelKey: "statEndpoint",
-      valueKey: "endpointLabel",
-      format: "text",
-      icon: "verified",
-    },
-    {
-      labelKey: "statRequests",
-      valueKey: "requestCount",
-      format: "number",
-      icon: "activity",
-    },
-    {
-      labelKey: "statDigest",
-      valueKey: "lastDigest",
-      format: "text",
-      icon: "key",
-    },
+    { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
+    { labelKey: "statEvidence", valueKey: "evidenceStatus", format: "text", icon: "verified" },
+    { labelKey: "statProviders", valueKey: "providerCount", format: "number", icon: "users" },
   ],
   sidebar: {
     titleKey: "appName",
     items: [
       { labelKey: "statNetwork", valueKey: "networkLabel", format: "text" },
-      { labelKey: "lastStatus", valueKey: "lastStatus", format: "text" },
-      { labelKey: "statDigest", valueKey: "lastDigest", format: "text" },
+      { labelKey: "statEvidence", valueKey: "evidenceStatus", format: "text" },
+      { labelKey: "statRegistry", valueKey: "registryStatus", format: "text" },
     ],
   },
   features: { walletRequired: false, chainWarning: true },
@@ -76,329 +38,154 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { oracle: true, confidential: true, datafeed: true },
-};
-
-const clean = (value: string | undefined, fallback: string) => {
-  const text = String(value ?? "").trim();
-  return text.length > 0 ? text : fallback;
-};
-
-// A DID must follow the did:neo:<method-specific-id> shape; a callback (when
-// provided) must be a 20-byte hash160 — the same type the host operation panel
-// declares for this param (neo-manifest.json callback: hash160).
-const DID_PATTERN = /^did:neo:[a-z0-9:_-]+$/i;
-const HASH160_PATTERN = /^0x[0-9a-f]{40}$/i;
-const PROVIDER_LABEL_KEYS: Record<string, string> = {
-  "neodid-registry": "providerRegistry",
-  "wallet-signature": "providerWallet",
-  "social-attestation": "providerSocial",
-};
-
-export function isValidDid(did: string): boolean {
-  return DID_PATTERN.test(did);
-}
-
-export function isValidCallback(callback: string): boolean {
-  return callback === "" || HASH160_PATTERN.test(callback);
-}
-
-export const consoleConfig: ConsoleToolConfig = {
-  titleKey: "panelTitle",
-  eyebrowKey: "panelEyebrow",
-  descriptionKey: "panelDescription",
-  primaryActionKey: "runAction",
-  resetActionKey: "reset",
-  copyActionKey: "copy",
-  copiedKey: "copied",
-  fields: [
-    {
-      key: "did",
-      labelKey: "did",
-      placeholderKey: "didPlaceholder",
-      type: "text",
-      defaultValue: DEFAULT_DID,
-    },
-    {
-      key: "provider",
-      labelKey: "provider",
-      type: "select",
-      defaultValue: "neodid-registry",
-      options: [
-        { value: "neodid-registry", labelKey: "providerRegistry" },
-        { value: "wallet-signature", labelKey: "providerWallet" },
-        { value: "social-attestation", labelKey: "providerSocial" },
-      ],
-    },
-    {
-      key: "claim",
-      labelKey: "claim",
-      placeholderKey: "claimPlaceholder",
-      type: "text",
-      defaultValue: DEFAULT_CLAIM,
-    },
-    {
-      key: "callback",
-      labelKey: "callback",
-      placeholderKey: "callbackPlaceholder",
-      type: "text",
-      defaultValue: "",
-    },
-  ],
-  buildResult(values, t) {
-    const did = clean(values.did, "");
-    const provider = clean(values.provider, "neodid-registry");
-    const claim = clean(values.claim, "");
-    const callback = clean(values.callback, "");
-    if (!did || !claim) {
-      return {
-        status: t("inputRequired"),
-        summary: t("inputRequiredSummary"),
-        rows: [],
-        payload: {
-          kind: "oracle.neodid.verify",
-          status: "input_required",
-          required: ["did", "claim"],
-          execution: "preview_only",
-          dispatchReady: false,
-        },
-      };
-    }
-    // Non-empty but malformed DID / callback are validation failures: surface
-    // them in explicit validity rows and flag the payload input_required so the
-    // shared panel warns instead of previewing junk as a verifiable request.
-    const didValid = isValidDid(did);
-    const callbackValid = isValidCallback(callback);
-    const formatOk = didValid && callbackValid;
-    const status = !didValid
-      ? t("didInvalid")
-      : !callbackValid
-        ? t("callbackInvalid")
-        : t("verifyReady");
-    const digest = previewId(`${did}|${provider}|${claim}|${callback}`);
-    const providerLabelKey = PROVIDER_LABEL_KEYS[provider];
-
-    return {
-      status,
-      summary: formatOk ? t("verifySummary", { claim }) : status,
-      rows: [
-        { label: t("did"), value: did },
-        { label: t("didValid"), value: didValid ? t("yes") : t("no") },
-        {
-          label: t("providerShort"),
-          value: providerLabelKey ? t(providerLabelKey) : provider,
-        },
-        { label: t("claim"), value: claim },
-        ...(callback
-          ? [
-              {
-                label: t("callbackValid"),
-                value: callbackValid ? t("yes") : t("no"),
-              },
-            ]
-          : []),
-        { label: t("statDigest"), value: digest },
-      ],
-      payload: {
-        kind: "oracle.neodid.verify",
-        ...(formatOk ? {} : { status: "input_required" as const }),
-        did,
-        didValid,
-        provider,
-        claim,
-        callback,
-        callbackValid,
-        digest,
-        execution: "preview_only",
-        dispatchReady: false,
-      },
-    };
-  },
+  permissions: { oracle: true },
 };
 
 const appMessages = {
   appName: { en: "Oracle NeoDID Console", zh: "预言机 NeoDID 控制台" },
   title: { en: "Oracle NeoDID", zh: "预言机 NeoDID" },
-  tabNeoDid: { en: "NeoDID", zh: "NeoDID" },
-  panelEyebrow: { en: "Identity oracle", zh: "身份预言机" },
-  panelTitle: { en: "NeoDID Verification Preview", zh: "NeoDID 校验预览" },
-  buildRequest: { en: "Build Request", zh: "构建请求" },
-  panelDescription: {
-    en: "Prepare a reviewable NeoDID verification package before Morpheus dispatch. This preview builder computes a local digest and does not verify identity. Confirm the exact provider id and claim type against the live Morpheus NeoDID catalog (GET /neodid/providers) before dispatch.",
-    zh: "在 Morpheus 分发前准备可复核的 NeoDID 校验包。此预览构建器只计算本地摘要，不会验证身份。分发前请对照 Morpheus NeoDID 实时目录（GET /neodid/providers）确认确切的提供方 id 与声明类型。",
+  tabNeoDid: { en: "NeoDID Evidence", zh: "NeoDID 证据" },
+  stageTitle: { en: "NeoDID Evidence Console", zh: "NeoDID 证据控制台" },
+  stageSubtitle: {
+    en: "Resolve the DID first. Treat each returned signal according to its actual scope.",
+    zh: "先解析 DID，再按每项返回信号的真实范围进行判断。",
   },
-  runAction: { en: "Preview Verification", zh: "预览校验" },
-  did: { en: "DID", zh: "DID" },
-  didPlaceholder: { en: DEFAULT_DID, zh: DEFAULT_DID },
-  provider: {
-    en: "Provider (example - verify against live catalog)",
-    zh: "提供方（示例 - 请对照实时目录核实）",
+  endpointLabel: { en: "Host resolver + provider catalog", zh: "宿主解析器 + 提供方目录" },
+  heroVisualAlt: {
+    en: "A warm NeoDID oracle workspace with identity cards and network evidence",
+    zh: "包含身份卡片与网络证据的明亮 NeoDID 预言机工作台",
   },
-  providerShort: { en: "Provider", zh: "提供方" },
-  providerRegistry: { en: "NeoDID registry", zh: "NeoDID 注册表" },
-  providerWallet: { en: "Wallet signature", zh: "钱包签名" },
-  providerSocial: { en: "Social attestation", zh: "社交证明" },
-  providerRegistryHint: {
-    en: "Registry-backed credential lookup",
-    zh: "基于注册表的凭证查询",
+  evidenceRecord: { en: "NeoDID evidence record", zh: "NeoDID 证据记录" },
+  recordAwaiting: { en: "Awaiting a resolver read", zh: "等待解析器读取" },
+  recordReady: { en: "Evidence snapshot ready", zh: "证据快照已就绪" },
+  inspectionOnly: { en: "Inspection only", zh: "仅供检查" },
+  noVerificationBadge: { en: "Identity not verified", zh: "身份未验证" },
+  subjectDid: { en: "Subject DID", zh: "主体 DID" },
+  documentVersion: { en: "Document version", zh: "文档版本" },
+  services: { en: "Services", zh: "服务" },
+  verificationMethods: { en: "Verifier methods", zh: "验证方法" },
+  evidenceMapTitle: { en: "Returned evidence", zh: "返回证据" },
+  evidenceMapSubtitle: { en: "One result, four explicit boundaries", zh: "一份结果，四项明确边界" },
+  resolverEvidence: { en: "DID document", zh: "DID 文档" },
+  registryEvidence: { en: "Registry deployment", zh: "注册表部署" },
+  providerEvidence: { en: "Provider catalog", zh: "提供方目录" },
+  oracleEvidence: { en: "Oracle service", zh: "Oracle 服务" },
+  notChecked: { en: "Not checked", zh: "尚未检查" },
+  resolverReturned: { en: "Document returned — identity not verified", zh: "已返回文档——身份未验证" },
+  registryVerified: { en: "Canonical deployment found", zh: "已找到规范部署" },
+  registryNotDeployed: { en: "No deployment on this network", zh: "该网络未部署" },
+  registryUnavailable: { en: "Deployment check unavailable", zh: "部署检查不可用" },
+  registryMismatch: { en: "Registry evidence mismatch", zh: "注册表证据不匹配" },
+  catalogListed: { en: "Provider and claim listed", zh: "提供方与声明已列入目录" },
+  catalogClaimUnlisted: { en: "Provider listed; claim not listed", zh: "提供方已列入；声明未列入" },
+  catalogProviderUnlisted: { en: "Provider not listed", zh: "提供方未列入目录" },
+  catalogUnavailable: { en: "Catalog unavailable", zh: "目录不可用" },
+  catalogEmpty: { en: "Runtime catalog returned no providers", zh: "运行时目录未返回提供方" },
+  catalogLoading: { en: "Loading provider catalog…", zh: "正在加载提供方目录…" },
+  oracleDeclared: { en: "Gateway declared in DID services", zh: "DID 服务中声明了网关" },
+  oracleNotDeclared: { en: "Gateway not declared", zh: "未声明网关" },
+  boundaryNote: {
+    en: "A resolver response, catalog listing, or declared Oracle endpoint is metadata—not an attestation, signature proof, or completed Oracle job.",
+    zh: "解析器响应、目录条目或声明的 Oracle 端点都只是元数据，不等于声明证明、签名证明或已完成的 Oracle 任务。",
   },
-  providerWalletHint: {
-    en: "Wallet-controlled proof check",
-    zh: "钱包控制的证明检查",
+  contextTitle: { en: "Catalog context", zh: "目录上下文" },
+  contextSubtitle: { en: "Secondary lookup context", zh: "次级查询上下文" },
+  provider: { en: "Provider", zh: "提供方" },
+  claim: { en: "Claim type", zh: "声明类型" },
+  providerCountLabel: { en: "Providers", zh: "提供方" },
+  digestLabel: { en: "Evidence digest", zh: "证据摘要" },
+  expiresLabel: { en: "Snapshot expires", zh: "快照过期时间" },
+  localRecovery: { en: "Local recovery", zh: "本地恢复" },
+  recoveryAvailable: { en: "Available on this device", zh: "此设备可恢复" },
+  recoveryUnavailable: { en: "Unavailable; copy the JSON", zh: "不可用；请复制 JSON" },
+  detailsLabel: { en: "Inspect details", zh: "检查详情" },
+  detailBoundaryTitle: { en: "Evidence, not verification", zh: "这是证据，不是验证" },
+  detailBoundaryCopy: {
+    en: "This console performs read-only resolver, catalog, and registry checks. It does not connect a wallet, verify a signature, attest a claim, or dispatch an Oracle request.",
+    zh: "此控制台只执行解析器、目录与注册表的只读检查；不会连接钱包、验证签名、证明声明或分发 Oracle 请求。",
   },
-  providerSocialHint: { en: "External attestation signal", zh: "外部证明信号" },
-  claim: { en: "Claim", zh: "声明" },
-  claimPlaceholder: {
-    en: "e.g. profile.kyc - match a live provider claim type",
-    zh: "例如 profile.kyc - 需与实时提供方声明类型匹配",
+  resolverFieldsTitle: { en: "Resolver target", zh: "解析目标" },
+  resolverFieldsCopy: {
+    en: "The primary action only needs a supported Morpheus NeoDID. Provider context stays secondary.",
+    zh: "主操作只需要受支持的 Morpheus NeoDID；提供方上下文保持在次级位置。",
   },
-  callback: { en: "Callback Contract", zh: "回调合约" },
-  callbackShort: { en: "Callback", zh: "回调" },
-  callbackPlaceholder: {
-    en: "Optional callback contract hash",
-    zh: "可选回调合约哈希",
+  did: { en: "Morpheus NeoDID", zh: "Morpheus NeoDID" },
+  didPlaceholder: { en: DEFAULT_SUBJECT_DID, zh: DEFAULT_SUBJECT_DID },
+  providerHint: { en: "Loaded from the current network catalog", zh: "从当前网络目录加载" },
+  claimHint: { en: "A catalog label only; no claim is attested", zh: "仅为目录标签；不会证明声明" },
+  fieldByteLimit: { en: "{count}/{max} UTF-8 bytes", zh: "{count}/{max} UTF-8 字节" },
+  snapshotDetailsTitle: { en: "Snapshot details", zh: "快照详情" },
+  snapshotDetailsCopy: { en: "Exact read-only observations captured in this result", zh: "此结果中记录的精确只读观察" },
+  resolverEndpoint: { en: "Resolver endpoint", zh: "解析器端点" },
+  catalogEndpoint: { en: "Catalog endpoint", zh: "目录端点" },
+  anchorContract: { en: "Resolver-declared anchor", zh: "解析器声明的锚点" },
+  runtimeMetadata: { en: "Runtime verifier metadata", zh: "运行时验证器元数据" },
+  runtimeAvailable: { en: "Available", zh: "可用" },
+  runtimeUnavailable: { en: "Unavailable", zh: "不可用" },
+  identityVerification: { en: "Identity verification", zh: "身份验证" },
+  claimAttestation: { en: "Claim attestation", zh: "声明证明" },
+  signatureVerification: { en: "Signature verification", zh: "签名验证" },
+  oracleDispatch: { en: "Oracle dispatch", zh: "Oracle 分发" },
+  notPerformed: { en: "Not performed", zh: "未执行" },
+  resolveAction: { en: "Resolve DID", zh: "解析 DID" },
+  resolvingAction: { en: "Reading network evidence…", zh: "正在读取网络证据…" },
+  copyAction: { en: "Copy evidence JSON", zh: "复制证据 JSON" },
+  resetAction: { en: "Reset", zh: "重置" },
+  retryCatalogAction: { en: "Retry catalog", zh: "重试目录" },
+  copied: { en: "Evidence JSON copied", zh: "证据 JSON 已复制" },
+  copyFailed: { en: "Evidence JSON could not be copied", zh: "无法复制证据 JSON" },
+  statusReady: { en: "Ready to resolve", zh: "可以开始解析" },
+  resolvingStatus: { en: "Reading DID, catalog, and registry evidence…", zh: "正在读取 DID、目录与注册表证据…" },
+  evidenceReady: { en: "Evidence returned; identity and claim remain unverified", zh: "已返回证据；身份与声明仍未验证" },
+  evidenceReadyDegraded: { en: "Partial evidence returned; review unavailable signals", zh: "已返回部分证据；请检查不可用信号" },
+  evidenceReadyNoStorage: { en: "Evidence returned, but local recovery is unavailable", zh: "已返回证据，但本地恢复不可用" },
+  evidenceRecovered: { en: "Recovered the latest network-matched evidence", zh: "已恢复与当前网络匹配的最新证据" },
+  evidenceExpired: {
+    en: "This evidence snapshot expired. Resolve the DID again for current signals.",
+    zh: "此证据快照已过期；请重新解析 DID 以获取当前信号。",
   },
-  didValid: { en: "DID format valid", zh: "DID 格式有效" },
-  didInvalid: {
-    en: "Enter a valid did:neo identifier",
-    zh: "请输入有效的 did:neo 标识符",
+  recoveryFound: { en: "Interrupted resolver read found", zh: "发现中断的解析器读取" },
+  recoveryResuming: { en: "Resuming the interrupted read…", zh: "正在恢复中断的读取…" },
+  draftChanged: { en: "Lookup changed; previous evidence cleared", zh: "查询已变更；旧证据已清除" },
+  catalogLoaded: { en: "Provider catalog loaded", zh: "提供方目录已加载" },
+  catalogLoadFailed: { en: "Provider catalog unavailable; DID resolution still works", zh: "提供方目录不可用；DID 解析仍可使用" },
+  consoleInvalidDid: {
+    en: "Use a supported did:morpheus:neo_n3 service, vault, or AA identifier.",
+    zh: "请使用受支持的 did:morpheus:neo_n3 服务、Vault 或 AA 标识。",
   },
-  didInvalidHint: {
-    en: "Use did:neo:<method-specific-id>.",
-    zh: "请使用 did:neo:<method-specific-id>。",
+  consoleProviderInvalid: { en: "Choose a provider from the catalog.", zh: "请从目录中选择提供方。" },
+  consoleClaimInvalid: { en: "Choose a claim type from the provider catalog.", zh: "请从提供方目录中选择声明类型。" },
+  resolverFailed: { en: "The resolver did not return a usable DID document.", zh: "解析器没有返回可用的 DID 文档。" },
+  resolverSubjectMismatch: { en: "The resolver returned a different DID. Old evidence was cleared.", zh: "解析器返回了不同的 DID；旧证据已清除。" },
+  resolverUnavailable: { en: "The same-origin NeoDID resolver is unavailable. Try again from the host platform.", zh: "同源 NeoDID 解析器不可用；请从宿主平台重试。" },
+  shaUnavailable: { en: "SHA-256 is unavailable, so no evidence snapshot was created.", zh: "当前不支持 SHA-256，因此未创建证据快照。" },
+  evidenceTooLarge: { en: "The returned evidence is too large to store safely.", zh: "返回证据过大，无法安全存储。" },
+  evidenceInvalid: {
+    en: "The evidence snapshot no longer matches its digest. Resolve the DID again.",
+    zh: "证据快照与其摘要不再匹配；请重新解析 DID。",
   },
-  didReadyHint: {
-    en: "DID shape is ready for preview.",
-    zh: "DID 形态已可用于预览。",
+  requestTimedOut: { en: "The evidence read timed out. Old evidence was cleared.", zh: "证据读取超时；旧证据已清除。" },
+  digestPlaceholder: { en: "None yet", zh: "暂无" },
+  factAwait: { en: "Not read yet", zh: "尚未读取" },
+  evidenceMapSubtitleIdle: {
+    en: "Four boundary checks await the first read",
+    zh: "四项边界检查等待首次读取",
   },
-  callbackValid: { en: "Callback hash valid", zh: "回调哈希有效" },
-  callbackInvalid: {
-    en: "Callback must be a 0x hash160",
-    zh: "回调必须是 0x hash160",
-  },
-  callbackInvalidHint: {
-    en: "Optional, but when present it must be a 0x hash160.",
-    zh: "可选；填写时必须是 0x hash160。",
-  },
-  callbackReadyHint: {
-    en: "Callback is optional and format-safe.",
-    zh: "回调为可选项，当前格式安全。",
-  },
-  callbackOptional: { en: "No callback", zh: "无回调" },
-  claimReadyHint: { en: "Claim type is present.", zh: "声明类型已填写。" },
-  claimMissingHint: {
-    en: "Choose the claim type to verify.",
-    zh: "请选择要验证的声明类型。",
-  },
-  yes: { en: "Yes", zh: "是" },
-  no: { en: "No", zh: "否" },
-  inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
-  inputRequiredSummary: {
-    en: "Enter a DID and claim before building a NeoDID preview.",
-    zh: "请输入 DID 和声明字段后再生成 NeoDID 预览。",
-  },
-  verifyReady: { en: "Verification request ready", zh: "校验请求已准备" },
-  verifySummary: {
-    en: "Claim '{claim}' prepared for review",
-    zh: "声明“{claim}”已准备复核",
-  },
-  ready: { en: "Ready", zh: "已就绪" },
-  validationBlocked: { en: "Validation blocked", zh: "校验已阻止" },
   statNetwork: { en: "Network", zh: "网络" },
-  statEndpoint: { en: "Mode", zh: "模式" },
-  statRequests: { en: "Requests", zh: "请求数" },
-  statDigest: { en: "Digest", zh: "摘要" },
-  digestPlaceholder: { en: "—", zh: "—" },
-  lastStatus: { en: "Last Status", zh: "最近状态" },
-  neodidHeroAlt: {
-    en: "Abstract identity credential flowing through an oracle verifier",
-    zh: "抽象身份凭证流经预言机校验器",
-  },
-  neodidHeroCopy: {
-    en: "Prepare the subject, provider, claim, and callback as one reviewable identity request before any live Morpheus dispatch.",
-    zh: "在任何 Morpheus 实时分发前，将主体、提供方、声明和回调整理成一个可复核的身份请求。",
-  },
-  neodidStatusLabel: { en: "NeoDID request status", zh: "NeoDID 请求状态" },
-  neodidFlowTitle: { en: "NeoDID verification flow", zh: "NeoDID 校验流程" },
-  neodidFlowSubject: { en: "Subject DID", zh: "主体 DID" },
-  neodidFlowSubjectDesc: {
-    en: "Check the DID shape first",
-    zh: "先检查 DID 形态",
-  },
-  neodidFlowProvider: { en: "Provider catalog", zh: "提供方目录" },
-  neodidFlowProviderDesc: {
-    en: "Match the live claim source",
-    zh: "匹配实时声明来源",
-  },
-  neodidFlowReceipt: { en: "Digest receipt", zh: "摘要回执" },
-  neodidFlowReceiptDesc: { en: "Review package", zh: "复核包" },
-  neodidPlan: { en: "Verification workspace", zh: "校验工作台" },
-  neodidPlanCopy: {
-    en: "Build the request from identity context, not from a raw form.",
-    zh: "从身份上下文组织请求，而不是填写裸表单。",
-  },
-  neodidCatalogTitle: { en: "Review mode", zh: "复核模式" },
-  neodidCatalogCopy: {
-    en: "Provider and claim options are examples. Check GET /neodid/providers before dispatching a real request.",
-    zh: "提供方与声明选项为示例。分发真实请求前请检查 GET /neodid/providers。",
-  },
-  neodidIdentityTrackTitle: {
-    en: "Identity verification track",
-    zh: "身份校验轨道",
-  },
-  neodidTrackSubject: { en: "Subject", zh: "主体" },
-  neodidTrackProvider: { en: "Provider", zh: "提供方" },
-  neodidTrackClaim: { en: "Claim", zh: "声明" },
-  neodidTrackReceipt: { en: "Receipt", zh: "回执" },
-  neodidSubjectTitle: { en: "Identity subject", zh: "身份主体" },
-  neodidSubjectCopy: {
-    en: "Start with the DID that the oracle should evaluate.",
-    zh: "先确认预言机需要评估的 DID。",
-  },
-  neodidProviderTitle: { en: "Evidence source", zh: "证明来源" },
-  neodidProviderCopy: {
-    en: "Choose the example provider lane that matches the claim.",
-    zh: "选择与声明匹配的示例提供方通道。",
-  },
-  neodidClaimTitle: { en: "Claim and callback", zh: "声明与回调" },
-  neodidClaimCopy: {
-    en: "Bind the claim type and optional callback contract.",
-    zh: "绑定声明类型和可选回调合约。",
-  },
-  neodidReceipt: { en: "Verification receipt", zh: "校验回执" },
-  neodidValidationReady: { en: "Ready to preview", zh: "可预览" },
-  neodidEmptyTitle: { en: "No receipt yet", zh: "尚无回执" },
-  neodidEmptyCopy: {
-    en: "Preview the request to see the digest, validation rows, and copyable payload.",
-    zh: "预览请求后可查看摘要、校验行和可复制载荷。",
-  },
-  dispatchReady: { en: "Dispatch ready", zh: "可分发" },
-  payload: { en: "Payload", zh: "载荷" },
-  previewReady: { en: "Preview ready", zh: "预览已就绪" },
-  neodidBuildActive: { en: "Building preview...", zh: "正在生成预览..." },
+  statEvidence: { en: "Evidence", zh: "证据" },
+  statProviders: { en: "Providers", zh: "提供方" },
+  statRegistry: { en: "Registry", zh: "注册表" },
+  evidenceNotReady: { en: "Not resolved", zh: "尚未解析" },
   docsSubtitle: {
-    en: "A clean control surface for identity verification oracle requests.",
-    zh: "面向身份校验预言机请求的清晰控制台。",
+    en: "A read-only NeoDID document and network-evidence inspector. It is not an identity verifier or attestation issuer.",
+    zh: "只读 NeoDID 文档与网络证据检查器；它不是身份验证器或证明签发方。",
   },
-  docSubtitle: {
-    en: "A clean control surface for identity verification oracle requests.",
-    zh: "面向身份校验预言机请求的清晰控制台。",
-  },
-  feature1Name: { en: "DID Focused", zh: "聚焦 DID" },
-  feature1Desc: {
-    en: "DID, provider, claim, and callback fields are grouped together.",
-    zh: "DID、提供方、声明和回调字段集中展示。",
-  },
-  feature2Name: { en: "Dispatch Aware", zh: "分发感知" },
-  feature2Desc: {
-    en: "The payload mirrors the subject, claim, provider, and callback fields needed later.",
-    zh: "载荷映射后续所需的 subject、claim、provider 和 callback 字段。",
-  },
-  feature3Name: { en: "Reviewable", zh: "可复核" },
-  feature3Desc: {
-    en: "A local digest helps catch mismatched identity requests.",
-    zh: "本地摘要有助于发现身份请求不一致。",
-  },
+  feature1Name: { en: "Resolver truth", zh: "解析器真值" },
+  feature1Desc: { en: "Rejects mismatched subjects and never equates a returned document with verified identity.", zh: "拒绝主体不匹配的返回，并且绝不把返回文档等同于身份验证。" },
+  feature2Name: { en: "Network evidence", zh: "网络证据" },
+  feature2Desc: { en: "Separates canonical registry deployment checks from resolver-declared metadata.", zh: "将规范注册表部署检查与解析器声明的元数据明确分开。" },
+  feature3Name: { en: "Recoverable reads", zh: "可恢复读取" },
+  feature3Desc: { en: "Restores only short-lived, digest-checked, network-matched evidence and resumes safe GET reads.", zh: "只恢复短期、摘要校验且网络匹配的证据，并可恢复安全的 GET 读取。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

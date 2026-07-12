@@ -18,7 +18,7 @@ import {
   type PlayMetric,
   type PlayTone,
 } from "./shared-helpers";
-import { useEmbeddedWalletBridge } from "./bridge";
+import { useEmbeddedStorageBridge, useEmbeddedWalletBridge } from "./bridge";
 
 export {
   buildEmbeddedDappUrl,
@@ -94,6 +94,7 @@ export function PlayShell({
   title,
   subtitle,
   tone = "emerald",
+  immersive = false,
   children,
   side,
   footer,
@@ -102,6 +103,7 @@ export function PlayShell({
   title: string;
   subtitle: string;
   tone?: PlayTone;
+  immersive?: boolean;
   children: React.ReactNode;
   side?: React.ReactNode;
   footer?: React.ReactNode;
@@ -111,24 +113,26 @@ export function PlayShell({
   void styles;
   return (
     <div className="focus-play-shell bg-white">
-      <div className="border-b border-gray-100 px-4 py-4 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-              Focus workspace
-            </p>
-            <h2 className="m-0 truncate text-xl font-semibold tracking-normal text-gray-900 sm:text-2xl">
-              {title}
-            </h2>
-            <p className="m-0 mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-              {subtitle}
-            </p>
+      {!immersive && (
+        <div className="border-b border-gray-100 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
+                Focus workspace
+              </p>
+              <h2 className="m-0 truncate text-xl font-semibold tracking-normal text-gray-900 sm:text-2xl">
+                {title}
+              </h2>
+              <p className="m-0 mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+                {subtitle}
+              </p>
+            </div>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+              {app.name}
+            </span>
           </div>
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-            {app.name}
-          </span>
         </div>
-      </div>
+      )}
       <div className="p-0 sm:p-1">
         <div className="min-w-0">{children}</div>
         {side && (
@@ -486,6 +490,7 @@ export function EmbeddedDappSurface({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEmbeddedWalletBridge({ appId, iframeRef, network });
+  useEmbeddedStorageBridge({ appId, iframeRef });
 
   useEffect(() => {
     setFrameLoaded(false);
@@ -533,6 +538,12 @@ export function EmbeddedDappSurface({
 
   const retryFrameLoad = () => setFrameAttempt((attempt) => attempt + 1);
   const showLoadFailure = showLoading && loadTimedOut && !frameLoaded;
+  // Automation Copilot is a first-party built-in whose gateway client reads
+  // the host session credential from same-origin storage. Keep that capability
+  // app-scoped; every other generic MiniApp stays on the opaque-origin policy.
+  const sandboxPolicy = appId === "miniapp-automation-copilot"
+    ? "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+    : "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox";
 
   return (
     <section className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
@@ -547,10 +558,9 @@ export function EmbeddedDappSurface({
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
         <span className="hidden sm:inline">New window</span>
       </a>
-      {/* Audit fix C-4: miniapps run in the host's origin and must be sandboxed.
-          allow-scripts is required for the dApp to function; allow-same-origin is
-          intentionally omitted so a malicious miniapp cannot read window.parent.* or
-          lift sb-access-token from sessionStorage. */}
+      {/* Miniapps run inside a sandbox. Generic catalog apps receive an opaque
+          origin; the canonical first-party Automation Copilot receives the
+          app-scoped same-origin capability required by its signed host gateway. */}
       <iframe
         key={`${url}#${frameAttempt}`}
         ref={iframeRef}
@@ -563,16 +573,20 @@ export function EmbeddedDappSurface({
         loading="eager"
         onLoad={() => setFrameLoaded(true)}
         referrerPolicy="no-referrer-when-downgrade"
-        /* allow-same-origin is intentionally omitted (Audit fix C-4): with
-           allow-scripts it would defeat the sandbox, letting a miniapp reach
-           window.parent.* and lift the host's wallet session. The wallet session
-           reaches miniapps over the postMessage wallet bridge (data-wallet-bridge),
-           not via shared same-origin storage. */
-        sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+        /* The sandbox intentionally creates an opaque origin. A wildcard
+           container policy is therefore required for the trusted goose game's
+           opt-in motion gesture; named/src origins cannot match opaque origins.
+           Other MiniApps receive no sensor delegation. */
+        allow={appId === "miniapp-zhuada-e" ? "accelerometer *; gyroscope *" : undefined}
+        /* Generic MiniApps use an opaque origin. Automation Copilot is the one
+           first-party exception because its host automation gateway needs the
+           existing signed-in session; the exception is keyed to its canonical
+           app id and is not inherited by profiles or catalog apps. */
+        sandbox={sandboxPolicy}
       />
       {showLoadFailure ? (
         <div
-          className="absolute inset-0 grid place-items-center bg-[#f7f8fb] px-6 text-center"
+          className="absolute inset-0 grid place-items-center bg-[#faf9f7] px-6 text-center"
           data-testid={`${testId}-load-error`}
           aria-live="polite"
         >
@@ -613,7 +627,7 @@ export function EmbeddedDappSurface({
         </div>
       ) : showLoading ? (
         <div
-          className="absolute inset-0 grid place-items-center bg-[#f7f8fb] px-6 text-center"
+          className="absolute inset-0 grid place-items-center bg-[#faf9f7] px-6 text-center"
           data-testid={`${testId}-loading`}
           aria-live="polite"
         >

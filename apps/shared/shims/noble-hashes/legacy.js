@@ -278,4 +278,3 @@ export class _RIPEMD160 extends HashMD {
  * * https://homes.esat.kuleuven.be/~bosselae/ripemd160/pdf/AB-9601/AB-9601.pdf
  */
 export const ripemd160 = /* @__PURE__ */ createHasher(() => new _RIPEMD160());
-//# sourceMappingURL=legacy.js.map

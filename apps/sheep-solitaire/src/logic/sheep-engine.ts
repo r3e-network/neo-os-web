@@ -2,10 +2,11 @@
  * Deterministic card layout engine for Sheep Solitaire (羊了个羊).
  *
  * The layout has 3 layers of cards stacked in a staggered grid. Cards on
- * higher layers block access to cards directly underneath. The engine is
- * purely deterministic from a seed — the same seed always produces the same
- * layout — so the TEE can generate it and the client never needs to see the
- * full state, only the CardView[].
+ * higher layers block access to cards directly underneath. The local practice
+ * engine is deterministic from a seed — the same seed always produces the same
+ * layout. This always-solvable generator is the frontend reference the
+ * Morpheus worker must match before paid play is published; the released guest
+ * game does not call the TEE.
  *
  * Each symbol type appears in multiples of 3 to allow match-3 elimination.
  */
@@ -58,6 +59,35 @@ export interface LayoutResult {
   cardTypes: number;
 }
 
+type Layer = 0 | 1 | 2;
+
+interface LayerConfig {
+  layer: Layer;
+  cols: number;
+  rows: number;
+  /** Maximum complete match-3 symbol groups that fit on this layer. */
+  symbolCapacity: number;
+}
+
+/**
+ * Layer capacities deliberately count COMPLETE triples. Keeping every copy of a
+ * symbol on one layer gives the generator a constructive solution proof:
+ *
+ *   1. every top-layer symbol is an immediately exposed triple;
+ *   2. clearing all top triples exposes every middle-layer triple;
+ *   3. clearing all middle triples exposes every bottom-layer triple.
+ *
+ * A player following that order never holds more than MATCH_COUNT (3) cards in
+ * the seven-slot tray. This replaces the old one-copy-per-layer layout, whose
+ * easy board opened with eight different exposed symbols and therefore forced a
+ * loss before any triple could be completed.
+ */
+const LAYER_CONFIGS: readonly LayerConfig[] = [
+  { layer: 0, cols: 4, rows: 3, symbolCapacity: 4 },
+  { layer: 1, cols: 5, rows: 4, symbolCapacity: 6 },
+  { layer: 2, cols: 6, rows: 5, symbolCapacity: 10 },
+];
+
 /**
  * Simple seeded PRNG (mulberry32).
  */
@@ -95,83 +125,51 @@ function shuffle<T>(arr: T[], rand: () => number): T[] {
 export function generateCardLayout(seed: number, cardTypes: number): LayoutResult {
   const rand = mulberry32(seed);
 
-  // Each type appears in multiples of 3 for match-3.
-  // We create 3 groups of each type, distributed across layers.
-  const types = Math.min(cardTypes, ALL_SYMBOLS.length);
+  const requestedTypes = Number.isFinite(cardTypes) ? Math.floor(cardTypes) : 0;
+  const types = Math.max(0, Math.min(requestedTypes, ALL_SYMBOLS.length));
+  if (types === 0) return { cards: [], totalCards: 0, cardTypes: 0 };
 
-  // Layer 0 (top): 1 card of each type = types cards
-  // Layer 1 (middle): 1 card of each type = types cards
-  // Layer 2 (bottom): 1 card of each type = types cards
-  // Total = 3 * types cards (each type appears exactly 3 times)
-  const cardsPerLayer = types;
-
-  // Build symbol assignments per layer
-  const layer0Symbols: number[] = [];
-  const layer1Symbols: number[] = [];
-  const layer2Symbols: number[] = [];
-
-  for (let t = 0; t < types; t++) {
-    layer0Symbols.push(t);
-    layer1Symbols.push(t);
-    layer2Symbols.push(t);
-  }
-
-  // Shuffle each layer independently for varied placement
-  const shuffled0 = shuffle(layer0Symbols, rand);
-  const shuffled1 = shuffle(layer1Symbols, rand);
-  const shuffled2 = shuffle(layer2Symbols, rand);
-
-  // Define grid dimensions for each layer.
-  // Bottom layer is largest, top layer is smallest.
-  // Cards are staggered so higher-layer cards overlap multiple lower-layer cards.
-  const layerConfigs = [
-    { cols: 4, rows: 3, offsetX: 2, offsetY: 2 }, // layer 0 (top) - 4x3 grid
-    { cols: 5, rows: 4, offsetX: 1, offsetY: 1 }, // layer 1 (middle) - 5x4 grid
-    { cols: 6, rows: 5, offsetX: 0, offsetY: 0 }, // layer 2 (bottom) - 6x5 grid
+  // Start from the intended clear order, then shuffle identities/positions with
+  // the deterministic seed. Easy/medium/hard use all three layers while each
+  // symbol's three copies remain together on exactly one layer.
+  const symbols = shuffle(Array.from({ length: types }, (_, symbol) => symbol), rand);
+  const topCount = Math.min(LAYER_CONFIGS[0]!.symbolCapacity, types);
+  const remaining = types - topCount;
+  const middleCount = Math.min(
+    LAYER_CONFIGS[1]!.symbolCapacity,
+    Math.ceil(remaining / 2),
+  );
+  const layerSymbols: number[][] = [
+    symbols.slice(0, topCount),
+    symbols.slice(topCount, topCount + middleCount),
+    symbols.slice(topCount + middleCount),
   ];
 
   const cards: CardData[] = [];
   let id = 0;
 
-  // Layer 2 (bottom) first
-  const lc2 = layerConfigs[2]!;
-  for (let i = 0; i < cardsPerLayer && i < shuffled2.length; i++) {
-    const col = i % lc2.cols;
-    const row = Math.floor(i / lc2.cols);
-    cards.push({
-      id: id++,
-      symbol: shuffled2[i]!,
-      layer: 2,
-      col,
-      row,
-    });
-  }
+  for (const config of LAYER_CONFIGS) {
+    const assignedSymbols = layerSymbols[config.layer] ?? [];
+    if (assignedSymbols.length > config.symbolCapacity) {
+      throw new Error(`layer ${config.layer} exceeds match-group capacity`);
+    }
 
-  // Layer 1 (middle)
-  const lc1 = layerConfigs[1]!;
-  for (let i = 0; i < cardsPerLayer && i < shuffled1.length; i++) {
-    const col = i % lc1.cols;
-    const row = Math.floor(i / lc1.cols);
-    cards.push({
-      id: id++,
-      symbol: shuffled1[i]!,
-      layer: 1,
-      col,
-      row,
-    });
-  }
+    const assignments = shuffle(
+      assignedSymbols.flatMap((symbol) => [symbol, symbol, symbol]),
+      rand,
+    );
+    if (assignments.length > config.cols * config.rows) {
+      throw new Error(`layer ${config.layer} exceeds grid capacity`);
+    }
 
-  // Layer 0 (top)
-  const lc0 = layerConfigs[0]!;
-  for (let i = 0; i < cardsPerLayer && i < shuffled0.length; i++) {
-    const col = i % lc0.cols;
-    const row = Math.floor(i / lc0.cols);
-    cards.push({
-      id: id++,
-      symbol: shuffled0[i]!,
-      layer: 0,
-      col,
-      row,
+    assignments.forEach((symbol, index) => {
+      cards.push({
+        id: id++,
+        symbol,
+        layer: config.layer,
+        col: index % config.cols,
+        row: Math.floor(index / config.cols),
+      });
     });
   }
 
@@ -194,7 +192,11 @@ export function generateCardLayout(seed: number, cardTypes: number): LayoutResul
  * region centered on its position.
  */
 export function computeExposed(cards: CardData[]): boolean[] {
-  const exposed = new Array(cards.length).fill(true);
+  // During play card ids become sparse as picked cards leave the pile. Size the
+  // lookup by max id, not remaining-card count, so `exposed[card.id]` is always
+  // an explicit boolean for every card still in play.
+  const maxId = cards.reduce((max, card) => Math.max(max, card.id), -1);
+  const exposed = new Array(maxId + 1).fill(true);
   const byLayer: CardData[][] = [[], [], []];
   for (const c of cards) {
     byLayer[c.layer]?.push(c);

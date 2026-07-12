@@ -3,7 +3,6 @@
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";
-import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -36,30 +35,23 @@ defineMiniApp({
     let lastAddress = ctx.framework.wallet.address() ?? "";
     const stopAddressSync = ctx.framework.wallet.observe().subscribe(() => {
       const next = ctx.framework.wallet.address() ?? "";
-      if (next && next !== lastAddress) {
-        void health.refreshBalances();
-      }
+      if (next === lastAddress) return;
+      health.handleAddressChange(next || null);
       lastAddress = next;
+      if (next) void health.refreshBalances().catch(() => undefined);
     });
 
-    registerActions(ctx, {
-      connectWallet: {
-        handler: health.connectWallet,
-        errorKey: "walletNotConnected",
-      },
-      refreshBalances: {
-        handler: health.refreshBalances,
-        errorKey: "refreshFailed",
-      },
-      toggleChecklist: {
-        handler: (...args: unknown[]) => {
-          const [id] = args;
-          if (typeof id === "string") {
-            health.toggleChecklist(id);
-          }
-        },
-        errorKey: "error",
-      },
+    ctx.framework.actions.register("connectWallet", health.connectWallet, {
+      errorKey: "walletNotConnected",
+    });
+    ctx.framework.actions.register("refreshBalances", health.refreshBalances, {
+      errorKey: "refreshFailed",
+    });
+    ctx.framework.actions.register("toggleChecklist", async (...args: unknown[]) => {
+      const [id] = args;
+      if (typeof id === "string") health.toggleChecklist(id);
+    }, {
+      errorKey: "error",
     });
 
     // Copy via app.clipboard so we keep the execCommand fallback (which
@@ -79,6 +71,16 @@ defineMiniApp({
         isConnected: health.isConnected,
         isConnecting: health.isConnecting,
         isRefreshing: health.isRefreshing,
+        dataStatus: health.dataStatus,
+        lastUpdatedAt: health.lastUpdatedAt,
+        lastError: health.lastError,
+        neoObservedAt: health.neoObservedAt,
+        gasObservedAt: health.gasObservedAt,
+        neoReadStatus: health.neoReadStatus,
+        gasReadStatus: health.gasReadStatus,
+        networkReadStatus: health.networkReadStatus,
+        walletNetworkLabel: health.walletNetworkLabel,
+        networkMismatch: health.networkMismatch,
         connectionStatus: health.connectionStatus,
         networkLabel: health.networkLabel,
         neoDisplay: health.neoDisplay,
@@ -87,6 +89,7 @@ defineMiniApp({
         riskLabel: health.riskLabel,
         riskClass: health.riskClass,
         riskIcon: health.riskIcon,
+        storageAvailable: health.storageAvailable,
         healthStats: health.healthStats,
         checklistItems: health.checklistItems,
         completedChecklistCount: health.completedChecklistCount,

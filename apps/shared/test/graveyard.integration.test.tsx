@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../graveyard/src/PlayArea";
@@ -67,7 +67,26 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     historyTruncated: false,
     history: [],
     isDestroying: false,
+    isHashing: false,
     isLoading: false,
+    showConfirm: false,
+    showWarningShake: false,
+    walletConnected: false,
+    walletAddress: "",
+    sourceError: "",
+    fileName: "",
+    fileSize: 0,
+    feesReady: true,
+    contractPaused: false,
+    contractStateReady: true,
+    burialRecoveryPhase: "",
+    burialRecoveryTxid: "",
+    forgetRecoveryPhase: "",
+    forgetRecoveryMemoryId: "",
+    epitaphRecoveryPhase: "",
+    epitaphRecoveryMemoryId: "",
+    epitaphRecoveryTxid: "",
+    storageHealthy: true,
     showAllHistory: false,
     forgetConfirmId: "",
     forgettingId: "",
@@ -87,22 +106,48 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
   return Object.fromEntries(Object.entries(b).map(([k, v]) => [k, createObservable(v)]));
 }
 describe("graveyard integration: dispatch params", () => {
-  it("dispatchs setMemoryText + executeDestroy on destroy", () => {
+  it("prepares the latest note and opens review without spending", async () => {
     const d = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />);
-    fireEvent.change(container.querySelector(".graveyard-artifact__editor") as Element, { target: { value: "My token" } });
-    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    expect(d).toHaveBeenCalledWith("executeDestroy", expect.objectContaining({
+    const hash = "ab".repeat(32);
+    const { container } = render(<PlayArea t={t} state={state({ assetHash: hash, memoryText: "My memory" })} dispatch={d} />);
+    await act(async () => {
+      fireEvent.click(container.querySelector(".graveyard-review-button") as Element);
+    });
+
+    expect(d).toHaveBeenCalledWith("initiateDestroy");
+    expect(d).toHaveBeenCalledWith("setMemoryText", expect.objectContaining({
       composeMode: "write",
-      memoryText: "My token",
-      memoryType: 1,
+      memoryText: "My memory",
     }));
+    expect(d).not.toHaveBeenCalledWith("executeDestroy", expect.anything());
   });
-  it("disables destroy when no memory text", () => {
+
+  it("only dispatches the paid action from the explicit confirmation", () => {
+    const d = vi.fn().mockResolvedValue(undefined);
+    const hash = "cd".repeat(32);
+    const { container } = render(
+      <PlayArea t={t} state={state({ showConfirm: true, assetHash: hash, memoryText: "Ready", memoryType: 2 })} dispatch={d} />,
+    );
+    fireEvent.click(container.querySelector(".graveyard-confirm__actions button:last-child") as Element);
+    // The final action uses the already-reviewed observable state. Raw private
+    // text is not copied into the paid action payload or host action log.
+    expect(d).toHaveBeenCalledWith("executeDestroy");
+    expect(d.mock.calls.find(([name]) => name === "executeDestroy")).toEqual(["executeDestroy"]);
+  });
+
+  it("disables review until a complete SHA-256 exists", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
-    const btn = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+    const btn = container.querySelector(".graveyard-review-button") as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
   });
+
+  it("offers a real local-file source", () => {
+    const d = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={d} />);
+    fireEvent.click(container.querySelectorAll(".graveyard-source-tabs button")[1] as Element);
+    expect(d).toHaveBeenCalledWith("setComposeMode", "file");
+  });
+
   it("dispatches requestForget for a concrete history item", () => {
     const d = vi.fn().mockResolvedValue(undefined);
     const item = { id: "7", hash: "0xabcdef1234567890", time: "2026-06-29", forgotten: false };

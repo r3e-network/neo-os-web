@@ -56,3 +56,4 @@ export {
 } from "./request-handler";
 
 export { useEmbeddedWalletBridge } from "./use-embedded-wallet-bridge";
+export { useEmbeddedStorageBridge } from "./use-embedded-storage-bridge";

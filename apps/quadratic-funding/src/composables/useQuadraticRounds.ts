@@ -17,12 +17,14 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { MiniAppFramework } from "@shared/react";
+import { FrameworkPrepaidActionError, type MiniAppFramework } from "@shared/react";
 import { parseBigInt, parseDateInput } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
+import { eventStateValue } from "@shared/utils/chain-events";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { QuadraticFlowKit, Translator } from "./quadraticFlowKit";
 import type { RoundItem } from "./quadraticTypes";
+import type { QuadraticPendingTracker } from "./quadraticPending";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
@@ -35,9 +37,21 @@ export interface UseQuadraticRoundsOptions {
   t: Translator;
   /** Shared flow plumbing (guard/banner/preconditions/scaler). */
   kit: QuadraticFlowKit;
+  /** Fail-closed capability gate for prepaid money-moving actions. */
+  ensureFundingWritesEnabled?: () => Promise<boolean>;
+  /** Reject finalization unless every live project is loaded and represented exactly once. */
+  validateFinalizationSnapshot?: (projectIds: string[]) => boolean;
+  pending?: QuadraticPendingTracker;
 }
 
-export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
+export function useQuadraticRounds({
+  app,
+  t,
+  kit,
+  ensureFundingWritesEnabled = async () => true,
+  validateFinalizationSnapshot = () => true,
+  pending,
+}: UseQuadraticRoundsOptions) {
   const { arg } = app.chain;
   const address = app.chain.address as Observable<string | null>;
 
@@ -52,6 +66,18 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
   // Display-order 0x hex of the platform admin (the only address the deployed
   // contract authorizes for FinalizeRound — see Methods.cs CheckWitness(Admin)).
   const adminHash = createObservable<string>("");
+
+  const reservePendingWrite = (): string | undefined | null => {
+    if (!pending) return undefined;
+    const reservation = pending.reserve();
+    if (!reservation) kit.setStatus(t("pendingBlocksWrites"), "error");
+    return reservation;
+  };
+  const revalidateFundingWriteScope = async () => {
+    if (!(await ensureFundingWritesEnabled())) {
+      throw new Error(t("fundingWriteScopeChanged"));
+    }
+  };
 
   const selectedRound = createDerived(
     () => rounds.get().find((round) => round.id === selectedRoundId.get()) || null,
@@ -84,7 +110,7 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
   const canFinalizeSelectedRound = createDerived(() => {
     const round = selectedRound.get();
     if (!round || !isAdmin.get()) return false;
-    return !round.cancelled && !round.finalized;
+    return !round.cancelled && !round.finalized && Date.now() >= round.endTime;
   }, [selectedRound, isAdmin]);
 
   // CancelRound is creator-only AND requires the round to be pre-start with zero
@@ -101,7 +127,20 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     const round = selectedRound.get();
     if (!round || !isSelectedRoundCreator.get()) return false;
     return round.finalized && !round.cancelled && round.matchingRemaining > 0n;
-  }, []);
+  }, [selectedRound, isSelectedRoundCreator]);
+
+  const eventInteger = (event: unknown, index: number): bigint | null => {
+    const value = eventStateValue(event, index);
+    if (typeof value === "bigint") return value;
+    if (typeof value !== "string" && typeof value !== "number") return null;
+    const text = String(value).trim();
+    if (!/^-?\d+$/.test(text)) return null;
+    try {
+      return BigInt(text);
+    } catch {
+      return null;
+    }
+  };
 
   const refreshAdmin = async () => {
     try {
@@ -146,15 +185,32 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
   };
 
   const fetchRoundIds = async () => {
-    const parsed = await app.chain.readRaw("getRounds", [
-      arg.integer(0),
-      arg.integer(30),
-    ]);
-    if (!Array.isArray(parsed)) return [] as string[];
-    return parsed
-      .map((value) => Number.parseInt(String(value || "0"), 10))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .map((value) => String(value));
+    const totalRaw = await app.chain.readRaw("totalRounds", []);
+    if (totalRaw === null || totalRaw === undefined || !/^\d+$/.test(String(totalRaw))) {
+      throw new Error(t("chainSnapshotUnavailable"));
+    }
+    const total = parseBigInt(totalRaw);
+    const maxRounds = 5_000n;
+    if (total < 0n || total > maxRounds) throw new Error(t("collectionTooLarge"));
+    const ids: string[] = [];
+    const pageSize = 30;
+    for (let offset = 0; BigInt(offset) < total; offset += pageSize) {
+      const parsed = await app.chain.readRaw("getRounds", [
+        arg.integer(offset),
+        arg.integer(pageSize),
+      ]);
+      if (!Array.isArray(parsed)) throw new Error(t("chainSnapshotUnavailable"));
+      const page = parsed
+        .map((value) => String(value ?? "").trim())
+        .filter((value) => /^[1-9]\d*$/.test(value));
+      ids.push(...page);
+      if (parsed.length < pageSize && BigInt(ids.length) < total) {
+        throw new Error(t("chainSnapshotUnavailable"));
+      }
+    }
+    const unique = [...new Set(ids)];
+    if (BigInt(unique.length) !== total) throw new Error(t("chainSnapshotUnavailable"));
+    return unique;
   };
 
   const fetchRoundDetails = async (roundId: string) => {
@@ -169,13 +225,24 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
       isRefreshingRounds.set(true);
       if (!adminHash.get()) await refreshAdmin();
       const ids = await fetchRoundIds();
-      const details = await Promise.all(ids.map(fetchRoundDetails));
-      rounds.set(details.filter(Boolean) as RoundItem[]);
-      const firstRound = rounds.get()[0];
-      if (!selectedRoundId.get() && firstRound) {
-        selectedRoundId.set(firstRound.id);
+      const details: Array<RoundItem | null> = [];
+      for (let offset = 0; offset < ids.length; offset += 25) {
+        details.push(...await Promise.all(ids.slice(offset, offset + 25).map(fetchRoundDetails)));
+      }
+      if (details.some((round) => !round)) throw new Error(t("chainSnapshotUnavailable"));
+      const next = (details as RoundItem[]).sort((left, right) => {
+        const priority: Record<string, number> = { active: 0, upcoming: 1, ended: 2, finalized: 3, cancelled: 4 };
+        const rank = (priority[left.status] ?? 5) - (priority[right.status] ?? 5);
+        return rank || Number(right.id) - Number(left.id);
+      });
+      rounds.set(next);
+      const currentStillExists = next.some((round) => round.id === selectedRoundId.get());
+      if (!currentStillExists) {
+        selectedRoundId.set(next[0]?.id ?? "");
       }
     } catch (e) {
+      rounds.set([]);
+      selectedRoundId.set("");
       kit.reportError(e);
     } finally {
       isRefreshingRounds.set(false);
@@ -204,11 +271,14 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     memo: string,
     operation: string,
     args: ReturnType<typeof arg.integer>[],
+    eventName: string,
+    matches: (event: unknown) => boolean,
+    onTransactionSent?: (txid: string) => void,
   ) => {
     // The deposit lane resolves the transfer recipient from the same
     // contract-address accessor — fail with this app's copy before any funds move.
     await kit.ensureContract();
-    await app.funds.prepayAndCall({
+    const result = await app.funds.prepayAndCall({
       operation,
       args,
       amountFixed8: amount,
@@ -217,8 +287,13 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
         scriptHash: assetHash,
         confirm: (txid) => kit.settleDeposit(txid, assetHash),
       },
+      waitForEvent: eventName,
+      waitTimeoutMs: 30_000,
+      ...(onTransactionSent ? { onTransactionSent } : {}),
       notify: "silent",
     });
+    kit.requireVerifiedTransaction(result, matches);
+    return result;
   };
 
   const createRound = async (data: {
@@ -266,6 +341,13 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
       return false;
     }
     const matchingPool = matchingPoolResult.value;
+    if (data.asset === "GAS" && BigInt(matchingPool) < 10_000_000n) {
+      kit.setStatus(t("matchingPoolMinimumGas"), "error");
+      return false;
+    }
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
 
     isCreatingRound.set(true);
     try {
@@ -273,36 +355,89 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
         const caller = await kit.ensureCaller();
         const assetHash = data.asset === "NEO" ? NEO_HASH : GAS_HASH;
         const description = data.description.trim().slice(0, 240);
+        let createdRoundId = "";
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "create-round",
+              eventName: "RoundCreated",
+              wallet: caller,
+              asset: data.asset === "NEO" ? "NEO" : "GAS",
+              assetHash,
+              amount: matchingPool,
+              name: title,
+              description,
+              startTime: startTime.toString(),
+              endTime: endTime.toString(),
+            })
+          : null;
 
-        await prepayThenInvoke(
-          assetHash,
-          matchingPool,
-          `${APP_ID}:create`,
-          "createRound",
-          [
-            arg.hash160(caller),
-            arg.hash160(assetHash),
-            arg.integer(matchingPool),
-            arg.integer(startTime.toString()),
-            arg.integer(endTime.toString()),
-            arg.string(title),
-            arg.string(description),
-          ],
-        );
+        await revalidateFundingWriteScope();
+
+        let result;
+        try {
+          result = await prepayThenInvoke(
+            assetHash,
+            matchingPool,
+            `${APP_ID}:create`,
+            "createRound",
+            [
+              arg.hash160(caller),
+              arg.hash160(assetHash),
+              arg.integer(matchingPool),
+              arg.integer(startTime.toString()),
+              arg.integer(endTime.toString()),
+              arg.string(title),
+              arg.string(description),
+            ],
+            "RoundCreated",
+            (event) => {
+              const eventId = eventInteger(event, 0);
+              if (eventId && eventId > 0n) createdRoundId = eventId.toString();
+              return Boolean(createdRoundId)
+                && ownerMatchesAddress(eventStateValue(event, 1), caller)
+                && ownerMatchesAddress(eventStateValue(event, 2), assetHash)
+                && eventInteger(event, 3) === BigInt(matchingPool);
+            },
+            pendingDraft
+              ? (txid) => pending?.persistBroadcast(reservation!, pendingDraft, txid)
+              : undefined,
+          );
+        } catch (error) {
+          if (error instanceof FrameworkPrepaidActionError && pendingDraft) {
+            pending?.persistDeposit(reservation!, pendingDraft, error.txid);
+          }
+          throw error;
+        }
+
+        const readback = await fetchRoundDetails(createdRoundId);
+        if (
+          !readback
+          || !ownerMatchesAddress(readback.creator, caller)
+          || readback.assetSymbol !== data.asset
+          || readback.matchingPool !== BigInt(matchingPool)
+          || readback.startTime !== startTime
+          || readback.endTime !== endTime
+          || readback.title !== title
+        ) {
+          throw new Error(t("chainReadbackMismatch"));
+        }
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "roundCreated");
       if (ok) await refreshRounds();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       isCreatingRound.set(false);
     }
   };
 
   const addMatching = async (amount: string): Promise<boolean> => {
     if (!(await kit.onNeoChain())) return false;
-    if (!selectedRound.get() || isAddingMatching.get()) return false;
+    const targetRound = selectedRound.get();
+    if (!targetRound || isAddingMatching.get()) return false;
 
     const parsedAmountResult = kit.scaleAssetAmount(
-      selectedRound.get()!.assetSymbol,
+      targetRound.assetSymbol,
       amount,
     );
     if (!parsedAmountResult.ok) {
@@ -313,27 +448,83 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
       return false;
     }
     const parsedAmount = parsedAmountResult.value;
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
 
     isAddingMatching.set(true);
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
-        const assetHash = selectedRound.get()!.assetSymbol === "NEO" ? NEO_HASH : GAS_HASH;
-        await prepayThenInvoke(
-          assetHash,
-          parsedAmount,
-          `${APP_ID}:matching`,
-          "addMatchingPool",
-          [
-            arg.hash160(caller),
-            arg.integer(selectedRound.get()!.id),
-            arg.integer(parsedAmount),
-          ],
-        );
+        const liveRound = await fetchRoundDetails(targetRound.id);
+        if (
+          !liveRound
+          || liveRound.cancelled
+          || liveRound.finalized
+          || liveRound.assetSymbol !== targetRound.assetSymbol
+        ) {
+          throw new Error(t("roundStateChanged"));
+        }
+        const assetHash = liveRound.assetSymbol === "NEO" ? NEO_HASH : GAS_HASH;
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "add-matching",
+              eventName: "MatchingPoolAdded",
+              wallet: caller,
+              roundId: liveRound.id,
+              asset: liveRound.assetSymbol === "NEO" ? "NEO" : "GAS",
+              assetHash,
+              amount: parsedAmount,
+              expectedPool: (liveRound.matchingPool + BigInt(parsedAmount)).toString(),
+            })
+          : null;
+        await revalidateFundingWriteScope();
+        let eventTotalPool: bigint | null = null;
+        let result;
+        try {
+          result = await prepayThenInvoke(
+            assetHash,
+            parsedAmount,
+            `${APP_ID}:matching`,
+            "addMatchingPool",
+            [
+              arg.hash160(caller),
+              arg.integer(liveRound.id),
+              arg.integer(parsedAmount),
+            ],
+            "MatchingPoolAdded",
+            (event) => {
+              eventTotalPool = eventInteger(event, 3);
+              return eventInteger(event, 0) === BigInt(liveRound.id)
+                && ownerMatchesAddress(eventStateValue(event, 1), caller)
+                && eventInteger(event, 2) === BigInt(parsedAmount)
+                && eventTotalPool !== null
+                && eventTotalPool >= liveRound.matchingPool + BigInt(parsedAmount);
+            },
+            pendingDraft
+              ? (txid) => pending?.persistBroadcast(reservation!, pendingDraft, txid)
+              : undefined,
+          );
+        } catch (error) {
+          if (error instanceof FrameworkPrepaidActionError && pendingDraft) {
+            pending?.persistDeposit(reservation!, pendingDraft, error.txid);
+          }
+          throw error;
+        }
+        const readback = await fetchRoundDetails(liveRound.id);
+        if (
+          !readback
+          || eventTotalPool === null
+          || readback.matchingPool < eventTotalPool
+        ) {
+          throw new Error(t("chainReadbackMismatch"));
+        }
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "matchingAdded");
       if (ok) await refreshRounds();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       isAddingMatching.set(false);
     }
   };
@@ -366,13 +557,15 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
       return false;
     }
 
-    const projectIds = projectIdsArray
-      .map((value) => Number.parseInt(String(value), 10))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .map((value) => String(value));
+    const projectIds = projectIdsArray.map((value) => String(value).trim());
+
+    if (new Set(projectIds).size !== projectIds.length) {
+      kit.setStatus(t("invalidRound"), "error");
+      return false;
+    }
 
     const matchedResults = matchedArray.map((value) =>
-      kit.scaleAssetAmount(selectedRound.get()!.assetSymbol, String(value)),
+      kit.scaleAssetAmount(selectedRound.get()!.assetSymbol, String(value), { allowZero: true }),
     );
     if (matchedResults.some((result) => !result.ok && result.reason === "fractionalNeo")) {
       kit.setStatus(t("neoNoFractional"), "error");
@@ -385,6 +578,7 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     // client-side instead of surfacing a confusing invoke failure.
     if (
       projectIds.length !== projectIdsArray.length ||
+      projectIds.some((value) => !/^[1-9]\d*$/.test(value)) ||
       matchedAmounts.some((value) => !/^\d+$/.test(value))
     ) {
       kit.setStatus(t("invalidRound"), "error");
@@ -402,14 +596,12 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     if (!(await kit.onNeoChain())) return false;
     if (!selectedRound.get() || isFinalizing.get()) return false;
 
-    const projectIds = entries
-      .map((entry) => Number.parseInt(String(entry.id), 10))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .map((value) => String(value));
+    const projectIds = entries.map((entry) => String(entry.id).trim());
     const matchedAmounts = entries.map((entry) => entry.matchBaseUnits);
     if (
       projectIds.length === 0 ||
       projectIds.length !== entries.length ||
+      projectIds.some((value) => !/^[1-9]\d*$/.test(value)) ||
       matchedAmounts.some((value) => !/^\d+$/.test(value))
     ) {
       kit.setStatus(t("invalidRound"), "error");
@@ -422,20 +614,99 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     projectIds: string[],
     matchedAmounts: string[],
   ): Promise<boolean> => {
+    const round = selectedRound.get();
+    if (!round || !canFinalizeSelectedRound.get()) {
+      kit.setStatus(t("finalizeAdminOnly"), "error");
+      return false;
+    }
+    const totalMatched = matchedAmounts.reduce((sum, value) => sum + BigInt(value), 0n);
+    if (!validateFinalizationSnapshot(projectIds)) {
+      kit.setStatus(t("incompleteProjectSnapshot"), "error");
+      return false;
+    }
+    if (totalMatched > round.matchingPool) {
+      kit.setStatus(t("matchExceedsPool"), "error");
+      return false;
+    }
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
     isFinalizing.set(true);
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
-        await app.chain.invoke("finalizeRound", [
+        const [liveRound, liveProjects] = await Promise.all([
+          fetchRoundDetails(round.id),
+          Promise.all(projectIds.map(async (projectId) => {
+            const raw = await app.chain.readRaw("getProjectDetails", [arg.integer(projectId)]);
+            return Boolean(raw && typeof raw === "object" && !Array.isArray(raw)
+              && String((raw as Record<string, unknown>).roundId ?? "") === round.id);
+          })),
+        ]);
+        if (
+          !liveRound
+          || liveRound.status !== "ended"
+          || liveRound.cancelled
+          || liveRound.finalized
+          || liveRound.matchingPool !== round.matchingPool
+          || liveRound.projectCount !== BigInt(projectIds.length)
+          || !liveProjects.every(Boolean)
+        ) {
+          throw new Error(t("incompleteProjectSnapshot"));
+        }
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "finalize-round",
+              eventName: "RoundFinalized",
+              wallet: caller,
+              roundId: round.id,
+              projectIds: [...projectIds],
+              matchedAmounts: [...matchedAmounts],
+              expectedAllocated: totalMatched.toString(),
+            })
+          : null;
+        await revalidateFundingWriteScope();
+        const result = await app.chain.invoke("finalizeRound", [
           arg.hash160(caller),
-          arg.integer(selectedRound.get()!.id),
+          arg.integer(round.id),
           arg.array(projectIds.map((value) => arg.integer(value))),
           arg.array(matchedAmounts.map((value) => arg.integer(value))),
+        ], {
+          waitForEvent: "RoundFinalized",
+          waitTimeoutMs: 30_000,
+          ...(pendingDraft
+            ? { onTransactionSent: (txid: string) => pending?.persistBroadcast(reservation!, pendingDraft, txid) }
+            : {}),
+        });
+        kit.requireVerifiedTransaction(
+          result,
+          (event) =>
+            eventInteger(event, 0) === BigInt(round.id)
+            && eventInteger(event, 1) === totalMatched,
+        );
+        const [readback, allocationReadbacks] = await Promise.all([
+          fetchRoundDetails(round.id),
+          Promise.all(projectIds.map(async (projectId, index) => {
+            const raw = await app.chain.readRaw("getProjectDetails", [arg.integer(projectId)]);
+            if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+            const project = raw as Record<string, unknown>;
+            return String(project.roundId ?? "") === round.id
+              && parseBigInt(project.matchedAmount) === BigInt(matchedAmounts[index]!);
+          })),
         ]);
+        if (
+          !readback?.finalized
+          || readback.matchingRemaining !== round.matchingPool - totalMatched
+          || !allocationReadbacks.every(Boolean)
+        ) {
+          throw new Error(t("chainReadbackMismatch"));
+        }
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "roundFinalized");
       if (ok) await refreshRounds();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       isFinalizing.set(false);
     }
   };
@@ -444,18 +715,55 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     if (!(await kit.onNeoChain())) return false;
     if (!selectedRound.get() || isClaimingUnused.get()) return false;
 
+    const round = selectedRound.get()!;
+    if (!canClaimUnused.get()) {
+      kit.setStatus(t("roundStateChanged"), "error");
+      return false;
+    }
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
     isClaimingUnused.set(true);
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
-        await app.chain.invoke("claimUnusedMatching", [
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "claim-unused",
+              eventName: "MatchingWithdrawn",
+              wallet: caller,
+              roundId: round.id,
+              amount: round.matchingRemaining.toString(),
+            })
+          : null;
+        await revalidateFundingWriteScope();
+        const result = await app.chain.invoke("claimUnusedMatching", [
           arg.hash160(caller),
-          arg.integer(selectedRound.get()!.id),
-        ]);
+          arg.integer(round.id),
+        ], {
+          waitForEvent: "MatchingWithdrawn",
+          waitTimeoutMs: 30_000,
+          ...(pendingDraft
+            ? { onTransactionSent: (txid: string) => pending?.persistBroadcast(reservation!, pendingDraft, txid) }
+            : {}),
+        });
+        kit.requireVerifiedTransaction(
+          result,
+          (event) =>
+            eventInteger(event, 0) === BigInt(round.id)
+            && ownerMatchesAddress(eventStateValue(event, 1), caller)
+            && eventInteger(event, 2) === round.matchingRemaining,
+        );
+        const readback = await fetchRoundDetails(round.id);
+        if (!readback || readback.matchingRemaining !== 0n) {
+          throw new Error(t("chainReadbackMismatch"));
+        }
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "unusedClaimed");
       if (ok) await refreshRounds();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       isClaimingUnused.set(false);
     }
   };
@@ -464,18 +772,51 @@ export function useQuadraticRounds({ app, t, kit }: UseQuadraticRoundsOptions) {
     if (!(await kit.onNeoChain())) return false;
     if (!selectedRound.get() || isCancelling.get()) return false;
 
+    const round = selectedRound.get()!;
+    if (!canCancelSelectedRound.get()) {
+      kit.setStatus(t("roundStateChanged"), "error");
+      return false;
+    }
+    if (!(await ensureFundingWritesEnabled())) return false;
+    const reservation = reservePendingWrite();
+    if (reservation === null) return false;
     isCancelling.set(true);
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
-        await app.chain.invoke("cancelRound", [
+        const pendingDraft = pending
+          ? await pending.prepare(reservation!, {
+              kind: "cancel-round",
+              eventName: "RoundCancelled",
+              wallet: caller,
+              roundId: round.id,
+            })
+          : null;
+        await revalidateFundingWriteScope();
+        const result = await app.chain.invoke("cancelRound", [
           arg.hash160(caller),
-          arg.integer(selectedRound.get()!.id),
-        ]);
+          arg.integer(round.id),
+        ], {
+          waitForEvent: "RoundCancelled",
+          waitTimeoutMs: 30_000,
+          ...(pendingDraft
+            ? { onTransactionSent: (txid: string) => pending?.persistBroadcast(reservation!, pendingDraft, txid) }
+            : {}),
+        });
+        kit.requireVerifiedTransaction(
+          result,
+          (event) =>
+            eventInteger(event, 0) === BigInt(round.id)
+            && ownerMatchesAddress(eventStateValue(event, 1), caller),
+        );
+        const readback = await fetchRoundDetails(round.id);
+        if (!readback?.cancelled) throw new Error(t("chainReadbackMismatch"));
+        if (pending) pending.complete(reservation!, result.txid ?? "");
       }, "roundCancelled");
       if (ok) await refreshRounds();
       return ok;
     } finally {
+      if (pending && reservation) pending.release(reservation);
       isCancelling.set(false);
     }
   };

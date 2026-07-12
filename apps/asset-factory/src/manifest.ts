@@ -2,55 +2,44 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Asset Factory",
-  description: "Create NEP-17 assets from governed on-chain templates",
+  description:
+    "Design, validate, and sign deterministic NEP-17 issuance blueprints",
   icon: "coins",
   category: "tool",
   shell: "console",
   theme: {
-    family: "default",
-    accentColor: "#16c784",
+    family: "finance",
+    accentColor: "#0d8a5f",
     density: "comfortable",
   },
-  tabs: [
-    { key: "play", labelKey: "playTab", icon: "coins", default: true },
-    { key: "activity", labelKey: "activityTab", icon: "history" },
-  ],
-  stats: [
-    { labelKey: "planStatus", valueKey: "planStatus", format: "text", variant: "success", icon: "check-circle" },
-    { labelKey: "packageDigest", valueKey: "shortDigest", format: "text", variant: "accent", icon: "hash" },
-    { labelKey: "blockingIssues", valueKey: "blockingIssueCount", format: "number", variant: "warning", icon: "alert" },
-    { labelKey: "generatedPackages", valueKey: "generatedCount", format: "number", icon: "archive" },
-  ],
+  // The app-owned Token Studio already renders the object, workflow, status,
+  // signature, and record-recovery surfaces. Empty shell chrome prevents a
+  // second generic dashboard/sign form from competing with the primary task.
+  tabs: [],
+  stats: [],
   sidebar: {
-    titleKey: "factoryOverview",
-    items: [
-      { labelKey: "activeTemplate", valueKey: "activeTemplateLabel", format: "text" },
-      { labelKey: "targetNetwork", valueKey: "targetNetwork", format: "text" },
-      { labelKey: "planStatus", valueKey: "planStatus", format: "text" },
-      { labelKey: "signatureState", valueKey: "signatureState", format: "text" },
-    ],
+    items: [],
   },
-  operations: [
-    {
-      key: "signCurrentPlan",
-      titleKey: "signPlanTitle",
-      descriptionKey: "signPlanDescription",
-      actionKey: "signPlanAction",
-      actionMethod: "signCurrentPlan",
-      fields: [],
-    },
-  ],
+  operations: [],
   docs: [
     { titleKey: "docWhatItIs", contentKey: "docWhatItIsBody", type: "text" },
-    { titleKey: "docSupportedTemplates", contentKey: "docSupportedTemplatesBody", type: "features" },
-    { titleKey: "docSafetyModel", contentKey: "docSafetyModelBody", type: "text" },
+    {
+      titleKey: "docSupportedTemplates",
+      contentKey: "docSupportedTemplatesBody",
+      type: "features",
+    },
+    {
+      titleKey: "docSafetyModel",
+      contentKey: "docSafetyModelBody",
+      type: "text",
+    },
   ],
   features: {
     walletRequired: false,
     chainWarning: true,
     comments: true,
     reviews: true,
-    activityFeed: true,
+    activityFeed: false,
   },
   contract: {
     mode: "template",

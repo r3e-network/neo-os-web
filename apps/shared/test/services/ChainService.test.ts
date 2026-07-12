@@ -122,6 +122,27 @@ describe("ChainService read cache", () => {
 });
 
 describe("ChainService event-wait honesty", () => {
+  it("exposes the exact target txid before direct/payment event waits", async () => {
+    const { chain } = makeChain(makeInteraction());
+    stubEventWait(chain, null);
+    const directSent = vi.fn();
+    const paymentSent = vi.fn();
+
+    await chain.invoke("claim", [], {
+      waitForEvent: "Claimed",
+      onTransactionSent: directSent,
+    });
+    await chain.invokeWithPayment("10000000", "memo", "commit", [], {
+      waitForEvent: "Committed",
+      onTransactionSent: paymentSent,
+    });
+
+    expect(directSent).toHaveBeenCalledOnce();
+    expect(directSent).toHaveBeenCalledWith("0xtx");
+    expect(paymentSent).toHaveBeenCalledOnce();
+    expect(paymentSent).toHaveBeenCalledWith("0xtx");
+  });
+
   it("defaults the event wait to ~2 blocks + indexer margin", async () => {
     const { chain } = makeChain(makeInteraction());
     const waitForEvent = stubEventWait(chain, null);
@@ -463,12 +484,13 @@ describe("ChainService.invokeMultiple batch lane", () => {
     const signers = [
       { account: "NAddr", scopes: 16, allowedContracts: ["0xgas", "0xmkt"] },
     ];
+    const onTransactionSent = vi.fn();
     const result = await chain.invokeMultiple(
       [
         { scriptHash: "0xgas", operation: "transfer", args: [] },
         { scriptHash: "0xmkt", operation: "settleListing", args: [] },
       ],
-      { signers },
+      { signers, onTransactionSent },
     );
 
     expect(walletInvoke).toHaveBeenCalledWith({
@@ -484,8 +506,21 @@ describe("ChainService.invokeMultiple batch lane", () => {
       verified: true,
       state: "HALT",
     });
+    expect(onTransactionSent).toHaveBeenCalledOnce();
+    expect(onTransactionSent).toHaveBeenCalledWith("0xbatch");
     // The batch reports the consuming call (last op) as its operation.
     expect(sent).toEqual([{ txid: "0xbatch", operation: "settleListing" }]);
+  });
+
+  it("does not turn a broadcast batch into a failure when tx persistence throws", async () => {
+    const interaction = makeInteraction();
+    const { chain } = makeChain(interaction);
+    stubWalletBatch(chain, { txid: "0xpersist", state: "HALT" });
+
+    await expect(chain.invokeMultiple(
+      [{ scriptHash: "0xgame", operation: "buyKeys", args: [] }],
+      { onTransactionSent: () => { throw new Error("storage denied"); } },
+    )).resolves.toMatchObject({ txid: "0xpersist", success: true });
   });
 
   it("passes state/exception through untouched so the framework surface owns FAULT handling", async () => {

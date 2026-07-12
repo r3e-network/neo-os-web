@@ -7,7 +7,8 @@
  *
  * Neo Convert is a CLIENT-SIDE tool — no on-chain transactions needed.
  * It generates Neo N3 accounts locally and converts between key formats
- * (WIF, private key, public key, script hex). All operations run on-device.
+ * (WIF, private key, public key, script hex). Those conversion operations run
+ * on-device; the optional connected-wallet snapshot is read-only RPC.
  *
  * Key design decisions:
  *   - No onMounted/onUnmounted — lifecycle is managed by defineMiniApp
@@ -18,10 +19,9 @@
  */
 
 import { createObservable, createDerived } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
-import { generateAccount } from "@/services/neo";
-import type { NeoAccount } from "@/services/neo";
+import { generateAccount } from "../services/neo";
+import type { NeoAccount } from "../services/neo";
 import { useConverter } from "./useConverter";
 
 // ============================================================================
@@ -29,6 +29,16 @@ import { useConverter } from "./useConverter";
 // ============================================================================
 
 const APP_ID = "miniapp-neo-convert";
+
+function formatUnits(raw: bigint, decimals: number): string {
+  const negative = raw < 0n;
+  const magnitude = negative ? -raw : raw;
+  if (decimals === 0) return `${negative ? "-" : ""}${magnitude.toString()}`;
+  const base = 10n ** BigInt(decimals);
+  const whole = magnitude / base;
+  const fraction = (magnitude % base).toString().padStart(decimals, "0").replace(/0+$/, "");
+  return `${negative ? "-" : ""}${whole.toString()}${fraction ? `.${fraction}` : ""}`;
+}
 
 // ============================================================================
 // Types
@@ -60,12 +70,17 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
 
   // ── Converter (delegates to existing useConverter) ──────────────────
   const converter = useConverter(t as (key: string) => string, app.clipboard);
+  const unsubscribeConverterInput = converter.inputKey.subscribe(() => {
+    showConversionSecrets.set(false);
+  });
 
   // ── Wallet Balances (reactive, auto-refresh on wallet connect) ──────
-  const neoBalance = createObservable(0);
-  const gasBalance = createObservable(0);
+  const neoBalance = createObservable("");
+  const gasBalance = createObservable("");
   const balancesLoading = createObservable(false);
+  const balanceStatus = createObservable<"idle" | "loading" | "ready" | "error">("idle");
   let balanceCleanups: Array<() => void> = [];
+  let balanceLoadGeneration = 0;
 
   // Whether a wallet is connected — drives the hero tiles to show an em-dash
   // (rather than misleading "0 NEO / 0 GAS" zeros that read as real balances)
@@ -74,7 +89,19 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   const unsubscribeAddress = app.wallet.observe().subscribe(() => {
     const connected = app.wallet.isConnected();
     walletConnected.set(connected);
-    if (connected) void loadBalances();
+    // Invalidate and clear the previous identity's snapshot immediately. A
+    // newly connected wallet must never spend a loading interval beside the
+    // balances that belonged to the address it replaced.
+    balanceLoadGeneration += 1;
+    cleanupBalances();
+    neoBalance.set("");
+    gasBalance.set("");
+    balancesLoading.set(false);
+    balanceStatus.set("idle");
+    if (connected) {
+      setupReactiveBalances();
+      void loadBalances();
+    }
   });
 
   // ── Formatted values for manifest stat/sidebar bindings ─────────────
@@ -84,11 +111,11 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   );
 
   const formattedNeoBalance = createDerived(
-    () => `${neoBalance.get()} NEO`,
+    () => neoBalance.get() ? `${neoBalance.get()} NEO` : "—",
     [neoBalance],
   );
   const formattedGasBalance = createDerived(
-    () => `${gasBalance.get().toFixed(gasBalance.get() % 1 === 0 ? 0 : 4)} GAS`,
+    () => gasBalance.get() ? `${gasBalance.get()} GAS` : "—",
     [gasBalance],
   );
   const formattedAccountsGenerated = createDerived(
@@ -112,27 +139,48 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   // (not the raw "generate" key) and reflects the section the user is in:
   // once a conversion result exists, the user is on the Convert tab.
   const activeTab = createDerived(
-    () => (hasConversionResult.get() ? t("tabConvert") : t("tabGenerate")),
-    [hasConversionResult],
+    () => (converter.inputKey.get().trim() || hasConversionResult.get() ? t("tabConvert") : t("tabGenerate")),
+    [converter.inputKey, hasConversionResult],
   );
 
   // ── Data Loading ────────────────────────────────────────────────────
 
   const loadBalances = async () => {
-    if (!app.wallet.isConnected()) return;
+    const address = app.wallet.address();
+    const generation = ++balanceLoadGeneration;
+    if (!address) {
+      neoBalance.set("");
+      gasBalance.set("");
+      balancesLoading.set(false);
+      balanceStatus.set("idle");
+      return;
+    }
 
     balancesLoading.set(true);
+    balanceStatus.set("loading");
     try {
       const [neo, gas] = await Promise.all([
-        app.wallet.neo(),
-        app.wallet.gas(),
+        app.wallet.raw("NEO", address),
+        app.wallet.raw("GAS", address),
       ]);
-      neoBalance.set(neo);
-      gasBalance.set(gas);
+      if (neo < 0n || gas < 0n) throw new Error("negative wallet balance");
+      if (generation !== balanceLoadGeneration) return;
+      if (app.wallet.address() !== address) {
+        balanceStatus.set("idle");
+        return;
+      }
+      neoBalance.set(formatUnits(neo, 0));
+      gasBalance.set(formatUnits(gas, 8));
+      balanceStatus.set("ready");
     } catch (e) {
-      console.warn(`[${APP_ID}] loadBalances failed:`, e instanceof Error ? e.message : String(e));
+      if (generation === balanceLoadGeneration) {
+        neoBalance.set("");
+        gasBalance.set("");
+        balanceStatus.set("error");
+        console.warn(`[${APP_ID}] loadBalances failed:`, e instanceof Error ? e.message : String(e));
+      }
     } finally {
-      balancesLoading.set(false);
+      if (generation === balanceLoadGeneration) balancesLoading.set(false);
     }
   };
 
@@ -151,17 +199,11 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
     const neoWatcher = app.wallet.observeBalance("NEO");
     const gasWatcher = app.wallet.observeBalance("GAS");
 
-    // Sync reactive refs
-    const syncNeo = () => { neoBalance.set(Number(neoWatcher.balance.get()) || 0); };
-    const syncGas = () => { gasBalance.set(Number(gasWatcher.balance.get()) || 0); };
-
-    // Initial sync
-    syncNeo();
-    syncGas();
-
-    // Mirror watcher updates into the local refs
-    const unsubNeo = neoWatcher.balance.subscribe(syncNeo);
-    const unsubGas = gasWatcher.balance.subscribe(syncGas);
+    // Watcher values can be number-backed in service hosts. Treat them only as
+    // invalidation signals and re-read raw base units for exact display.
+    const refreshExactBalances = () => { void loadBalances(); };
+    const unsubNeo = neoWatcher.balance.subscribe(refreshExactBalances);
+    const unsubGas = gasWatcher.balance.subscribe(refreshExactBalances);
 
     balanceCleanups = [
       neoWatcher.cleanup,
@@ -184,8 +226,8 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   const loadAll = async () => {
     isLoading.set(true);
     try {
-      await loadBalances();
       setupReactiveBalances();
+      await loadBalances();
     } finally {
       isLoading.set(false);
     }
@@ -200,6 +242,7 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   const generateNewAccount = () => {
     // Failures propagate to the host action wrapper (errorKey toast); the
     // earlier "convert:generated"/"convert:error" emits had no subscriber.
+    converter.reset();
     generatedAccount.set(generateAccount());
     accountsGenerated.set(accountsGenerated.get() + 1);
     showGeneratedSecrets.set(false);
@@ -235,8 +278,15 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   /**
    * Copy text to clipboard with a status notification.
    */
-  const copyToClipboard = (text: string) => {
-    converter.copy(text);
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    return converter.copy(text);
+  };
+
+  const resetWorkbench = () => {
+    converter.reset();
+    generatedAccount.set(null);
+    showGeneratedSecrets.set(false);
+    showConversionSecrets.set(false);
   };
 
   /**
@@ -246,9 +296,12 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   const downloadPaperWallet = async () => {
     const account = generatedAccount.get();
     if (!account) {
-      // Throw so the registerActions wrapper surfaces a localized error
+      // Throw so the framework action wrapper surfaces a localized error
       // toast instead of resolving (which would show a false success).
       throw new Error(t("genEmptyState"));
+    }
+    if (!showGeneratedSecrets.get()) {
+      throw new Error(t("paperWalletRequiresReveal"));
     }
     const [{ default: QRCode }, { useWalletPdf }] = await Promise.all([
       import("qrcode"),
@@ -265,6 +318,7 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   // ── Cleanup ─────────────────────────────────────────────────────────
 
   const cleanup = () => {
+    balanceLoadGeneration += 1;
     cleanupBalances();
     unsubscribeAddress();
   };
@@ -281,6 +335,9 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   }
 
   const destroy = () => {
+    resetWorkbench();
+    unsubscribeConverterInput();
+    converter.dispose();
     cleanup();
     resizeCleanup?.();
   };
@@ -304,12 +361,14 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
     conversionStatus: converter.statusMsg,
     conversionStatusType: converter.statusType,
     copyStatus: converter.copyStatus,
+    copyStatusType: converter.copyStatusType,
     hasConversionResult,
 
     // ── Wallet Balances ─────────────────────────────────────────────
     neoBalance,
     gasBalance,
     balancesLoading,
+    balanceStatus,
     walletConnected,
 
     // ── Formatted values (for manifest stat/sidebar bindings) ────────
@@ -324,6 +383,7 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
     toggleGeneratedSecrets,
     toggleConversionSecrets,
     copyToClipboard,
+    resetWorkbench,
     downloadPaperWallet,
     loadAll,
     destroy,

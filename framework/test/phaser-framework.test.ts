@@ -11,12 +11,15 @@ import {
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const phaserSceneApps = [
   ["aim-master", "AimMasterScene"],
+  ["arrow-escape", "ArrowEscapeScene"],
+  ["bead-workshop", "BeadWorkshopScene"],
   ["burn-league", "BurnLeagueScene"],
   ["color-clash", "ColorClashScene"],
   ["curve-arrow", "CurveArrowScene"],
   ["dice-game", "DiceScene"],
   ["flappy-dash", "FlappyScene"],
   ["fogplay", "FogplayScene"],
+  ["fruit-funnel", "FruitFunnelScene"],
   ["game-2048", "Game2048Scene"],
   ["gas-lucky-pool", "GasLuckyPoolScene"],
   ["jump-rush", "JumpRushScene"],
@@ -27,6 +30,7 @@ const phaserSceneApps = [
   ["red-envelope", "RedEnvelopeScene"],
   ["sheep-solitaire", "SheepScene"],
   ["snake-bounty", "SnakeScene"],
+  ["screw-sort", "ScrewSortScene"],
   ["sudoku", "SudokuScene"],
 ] as const;
 
@@ -71,6 +75,68 @@ describe("root Phaser framework", () => {
 
   it("normalizes unknown errors into a product-safe fallback", () => {
     expect(formatBridgeError({})).toBe("The game action could not be completed.");
+  });
+
+  it("mounts Phaser canvases in a dedicated cleaned host layer", () => {
+    const source = readFileSync(
+      resolve(repoRoot, "framework/phaser/PhaserGameComponent.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain("const mountRef");
+    expect(source).toContain("className=\"phaser-game-mount\"");
+    expect(source).toContain("mount.replaceChildren()");
+    expect(source).toContain("parent: mount");
+    expect(source).not.toContain("parent: containerRef.current");
+  });
+
+  it("publishes scene readiness only after the child stage can finish building", () => {
+    const source = readFileSync(
+      resolve(repoRoot, "framework/phaser/BaseScene.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("private readyTimer");
+    expect(source).toContain("this.readyTimer = this.time.delayedCall(0");
+    expect(source).toContain("!this.cleanedUp && this.sys.isActive()");
+    expect(source.indexOf('this.scale.on("resize", this.onResize, this)')).toBeLessThan(
+      source.indexOf("this.readyTimer = this.time.delayedCall(0"),
+    );
+    expect(source).toContain("this.readyTimer.remove(false)");
+  });
+
+  it("hosts the shared Phaser sound toggle inside the game surface", () => {
+    const component = readFileSync(
+      resolve(repoRoot, "framework/phaser/PhaserGameComponent.tsx"),
+      "utf8",
+    );
+    const audio = readFileSync(
+      resolve(repoRoot, "framework/phaser/SceneAudio.ts"),
+      "utf8",
+    );
+
+    expect(component).toContain("data-phaser-audio-muted");
+    expect(component).toContain(`import { Volume2, VolumeX } from "lucide-react"`);
+    expect(component).toContain("setSceneAudioMuted(nextMuted)");
+    expect(component).toContain("SCENE_AUDIO_MUTE_EVENT");
+    expect(component).toContain("aria-pressed={!audioMuted}");
+    expect(component).toContain("<AudioIcon aria-hidden=\"true\"");
+    expect(component).toContain("zIndex: 2");
+    expect(component).not.toContain("function AudioToggleIcon");
+    expect(audio).toContain("SCENE_AUDIO_MUTE_STORAGE_KEY");
+    expect(audio).toContain("if (this.muted) return;");
+  });
+
+  it("declares runtime icon dependencies used by the shared Phaser chrome", () => {
+    const pkg = JSON.parse(
+      readFileSync(resolve(repoRoot, "framework/package.json"), "utf8"),
+    ) as {
+      dependencies?: Record<string, string>;
+      peerDependencies?: Record<string, string>;
+    };
+
+    expect(pkg.dependencies?.["lucide-react"]).toBe("^0.562.0");
+    expect(pkg.peerDependencies?.["lucide-react"]).toBeUndefined();
   });
 
   it("keeps Phaser game scenes on the root framework public API", () => {
@@ -150,7 +216,7 @@ describe("root Phaser framework", () => {
           "./logo.webp",
           "officialGasTokenPhaserUrl",
         ],
-        usage: ["BURN_ASSETS", "gasTokens", "brazierBody", "dispatch(\"burn\""],
+        usage: ["BURN_ASSETS", "gasTokens", "coreMachine", "dispatch(\"burn\""],
       },
       {
         app: "gas-lucky-pool",
@@ -203,17 +269,20 @@ describe("root Phaser framework", () => {
         app: "on-chain-tarot",
         scene: "TarotScene",
         assets: [
-          "./tarot-reading-table.webp",
+          "./ritual/ritual-table.webp",
+          "./logo.webp",
+          "./intentions/clarity-token.webp",
+          "./intentions/choice-token.webp",
+          "./intentions/momentum-token.webp",
           "TAROT_CARD_BACK",
-          "TAROT_DECK",
         ],
         usage: [
           "TAROT_ASSETS",
-          "TAROT_DECK.forEach",
-          "this.load.image(cardKey",
-          "dispatch(\"setQuestion\"",
+          "this.load.image(key, url)",
+          "dispatch(\"setIntent\"",
           "dispatch(\"draw\"",
           "dispatch(\"flipCard\"",
+          "dispatch(\"flipTarotReading\"",
           "dispatch(\"reset\"",
         ],
       },
@@ -287,9 +356,9 @@ describe("root Phaser framework", () => {
         scene: "Game2048Scene",
         assets: [
           "./tile-felt.webp",
-          "./art/tile-e1.webp",
-          "./art/tile-e11.webp",
-          "./art/tile-e12.webp",
+          "./art/building-e1.webp",
+          "./art/building-e11.webp",
+          "./art/building-e12.webp",
         ],
         usage: [
           "RUSH_ASSETS",
@@ -413,7 +482,6 @@ describe("root Phaser framework", () => {
           "./art/cell-conflict.webp",
           "./art/note-token.webp",
           "./art/pencil.webp",
-          "./art/reward-trophy.webp",
           "./art/seal-easy.webp",
           "./art/seal-medium.webp",
           "./art/seal-hard.webp",
@@ -427,7 +495,7 @@ describe("root Phaser framework", () => {
           "this.cellArt",
           "SUDOKU_ASSETS.seals",
           "SUDOKU_ASSETS.noteToken",
-          "SUDOKU_ASSETS.rewardTrophy",
+          "SUDOKU_ASSETS.solvedBadge",
           "dispatch(\"startGame\"",
           "dispatch(\"recordMove\"",
           "dispatch(\"submitSolution\"",
@@ -450,8 +518,11 @@ describe("root Phaser framework", () => {
       expect(source, `${app}: scene should not draw dice pips by hand`).not.toContain(
         "DOT_POSITIONS",
       );
-      expect(source, `${app}: scene should not use text-only coin placeholders`).not.toContain(
-        'coinMark',
+      // Forbids the historical `const coinMark = this.add.text(... "G" ...)`
+      // glyph placeholder. Word-bounded so `coinMarks` — arrays of LOADED
+      // image sprites (gas-lucky-pool) — stay allowed.
+      expect(source, `${app}: scene should not use text-only coin placeholders`).not.toMatch(
+        /coinMark\b/,
       );
       if (app === "flappy-dash") {
         expect(source, `${app}: bird should be a loaded sprite, not a Graphics drawing`).not.toContain(
@@ -624,8 +695,8 @@ describe("root Phaser framework", () => {
         expect(source, `${app}: Phaser scene should not keep the old procedural card-face helper`).not.toContain(
           "drawCardFaceBlank",
         );
-        expect(source, `${app}: intent chips should dispatch the registered question action`).not.toContain(
-          "setIntent",
+        expect(source, `${app}: intent chips should dispatch the stable registered intent action`).toContain(
+          'dispatch("setIntent"',
         );
       }
       if (app === "pet-potion") {
@@ -694,9 +765,44 @@ describe("root Phaser framework", () => {
     expect(baseScene).toContain("this.time.delayedCall(0");
     expect(baseScene).not.toContain("this.onStateUpdate(this.state);\n    });");
     expect(diceScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
-    expect(tarotScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+    // Deck/card, intent-token loop, and primary action all use the shared
+    // interaction helper. The intent loop represents three physical buttons.
+    expect(tarotScene.match(/this\.bindGameButton/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     for (const scene of migratedScenes) {
       expect(scene).toContain("this.bindGameButton");
+    }
+  });
+
+  it("defers the Phaser runtime and root scene for production game miniapps", () => {
+    const lazyHost = readFileSync(
+      resolve(repoRoot, "framework/phaser/LazyPhaserGameComponent.tsx"),
+      "utf8",
+    );
+
+    expect(lazyHost).toContain('import("./PhaserGameComponent")');
+    expect(lazyHost).toContain("loadScene()");
+    expect(lazyHost).toContain("data-runtime-error");
+    expect(lazyHost).not.toContain('import * as Phaser from "phaser"');
+
+    for (const [app, sceneName] of phaserSceneApps) {
+      if (app === "curve-arrow") continue;
+      const wrapper = readFileSync(
+        resolve(repoRoot, `apps/${app}/src/PhaserPlayArea.tsx`),
+        "utf8",
+      );
+
+      expect(wrapper, `${app}: game runtime should use the deferred host`).toContain(
+        "LazyPhaserGameComponent as PhaserGameComponent",
+      );
+      expect(wrapper, `${app}: root scene should be dynamically imported`).toContain(
+        `import("./scenes/${sceneName}")`,
+      );
+      expect(wrapper, `${app}: deferred scene loader should be passed to the host`).toMatch(
+        /loadScene=\{load[A-Za-z0-9]+Scene\}/,
+      );
+      expect(wrapper, `${app}: root scene must not stay in the entry bundle`).not.toContain(
+        `from "./scenes/${sceneName}"`,
+      );
     }
   });
 });

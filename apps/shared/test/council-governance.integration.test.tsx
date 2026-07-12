@@ -33,10 +33,29 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     isVoting: false,
     isCreating: false,
     votingPower: "100",
-    address: "",
-    isCandidate: false,
-    candidateLoaded: false,
+    governanceOverview: {
+      loaded: true,
+      network: "mainnet",
+      contract: "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
+      paused: false,
+      committeeSize: 21,
+      quorumPercent: 30,
+      thresholdPercent: 50,
+      minDurationMs: 86_400,
+      maxDurationMs: 2_592_000,
+      totalProposals: 0,
+      totalVotes: 0,
+      passedProposals: 0,
+      totalMembers: 0,
+    },
+    currentNetwork: "mainnet",
+    councilCandidates: [],
+    councilRosterLoaded: true,
+    address: "NconnectedCouncilMember",
+    isCandidate: true,
+    candidateLoaded: true,
     hasVotedMap: {},
+    hasVotedKnownMap: {},
     ...o,
   };
   return Object.fromEntries(Object.entries(b).map(([k, v]) => [k, createObservable(v)]));
@@ -92,6 +111,7 @@ describe("council-governance integration: dispatch params", () => {
       address: "Nabc",
       isCandidate: true,
       candidateLoaded: true,
+      hasVotedKnownMap: { 1: true },
     })} dispatch={dispatch} />);
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("vote", {

@@ -38,6 +38,7 @@ function t(key: string) {
     vaultIdPlaceholder: "Vault ID",
     loadVault: "Load Vault",
     attemptFee: "Fee",
+    selectVaultFee: "Select a vault",
     bountyLabel: "Bounty",
     attempts: "Attempts",
     active: "Active",
@@ -70,6 +71,15 @@ function t(key: string) {
     difficultyMediumHint: "Balanced",
     difficultyHardHint: "High stakes",
     vaultStatus: "Status",
+    vaultHeroImageAlt: "Bright glass GAS bounty vault",
+    winnerShare: "98% of escrow",
+    riskSummaryTitle: "Asset and risk summary",
+    netPayoutCompact: "net settlement",
+    attemptRiskCompact: "non-refundable per attempt",
+    expiryRiskCompact: "creator reclaim window",
+    daysUnit: "days",
+    writeUnavailableTitle: "Transactions unavailable",
+    writeUnavailable: "Read-only network",
   };
   return messages[key] ?? key;
 }
@@ -79,7 +89,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     address: "",
     vaultIdInput: "",
     attemptSecret: "",
-    attemptFeeDisplay: "0.1 GAS",
+    attemptFeeDisplay: "",
     createdVaultId: "",
     vaultDetails: null,
     recentVaults: [],
@@ -89,6 +99,15 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     isClaiming: false,
     canAttempt: false,
     canReclaim: false,
+    chainReady: true,
+    writeReady: true,
+    writeBlockReason: "",
+    networkName: "testnet",
+    isRecovering: false,
+    recoveryStorageHealthy: true,
+    pendingOperation: null,
+    catalogReadError: "",
+    myVaultsReadError: "",
     ...overrides,
   };
   return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
@@ -119,39 +138,34 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
     expect(container.querySelector(".vault-brk-scene")).toBeTruthy();
-    expect(container.querySelector(".mx2-cat-game")).toBeTruthy();
+    expect(container.querySelector(".mx2-cat-defi")).toBeTruthy();
     expect(container.querySelector(".vault-brk-scene__image")).toBeNull();
     expect(container.querySelector(".vault-brk-scene__wash")).toBeNull();
     expect((container.querySelector(".vault-brk-scene__artwork") as HTMLImageElement)?.src).toContain("vault-challenge.webp");
-    expect(container.querySelector(".vault-core")).toBeTruthy();
-    expect(container.querySelector(".vault-crack-route")).toBeTruthy();
+    expect(container.querySelector(".vault-brk-scene__asset-caption")).toBeTruthy();
+    expect(container.querySelector(".vault-brk-scene__asset-caption .mx2-coin")).toBeTruthy();
+    expect(container.querySelector(".vault-asset-journey")).toBeTruthy();
+    expect(container.querySelector(".vault-core")).toBeNull();
+    expect(container.querySelector(".vault-crack-route")).toBeNull();
     expect(container.querySelector(".vault-blueprint-art")).toBeNull();
   });
 
-  it("starts on the create desk when there is no live target to break", () => {
+  it("starts with the asset challenge as the primary desk instead of a create form", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(container.querySelector(".mx2-stage__title")?.textContent).toBe("Create Vault");
-    expect(container.querySelector(".vault-mode-card--active")?.textContent).toContain("Create");
+    expect(container.querySelector(".mx2-stage__title")?.textContent).toBe("Break Vault");
+    expect(container.querySelector(".vault-mode-card--active")?.textContent).toContain("Break");
     expect(container.querySelector(".vault-mode-switch .semi-radio")).toBeNull();
-    expect(container.querySelector(".mx2-btn--primary")?.textContent).toContain("Seal Vault");
-    expect(container.querySelector(".mx2-btn--primary")?.textContent).not.toContain("bounty");
-    expect(container.querySelector(".vault-work-card--create")).toBeTruthy();
-    expect(container.querySelector(".vault-secret-console")).toBeTruthy();
-    expect(container.querySelector(".vault-secret-console .vault-create-dossier")).toBeTruthy();
-    expect(container.querySelector(".vault-tuning-grid")).toBeTruthy();
-    expect(container.querySelectorAll(".vault-tuning-card")).toHaveLength(2);
-    expect(container.querySelector(".vault-secret-console__status")?.textContent).toContain("Keys unarmed");
-    expect(container.querySelector(".vault-key-grid--create")).toBeTruthy();
-    expect(container.querySelectorAll(".vault-key-grid--create .vault-key-slot input")).toHaveLength(2);
-    expect((container.querySelector(".vault-field--create-secret input") as HTMLInputElement)?.placeholder).toBe("Secret");
-    expect((container.querySelector(".vault-field--confirm-secret input") as HTMLInputElement)?.placeholder).toBe("Confirm secret");
+    expect(container.querySelector(".mx2-btn--primary")?.textContent).toContain("Attempt Break");
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector(".vault-work-card--break")).toBeTruthy();
+    expect(container.querySelector(".vault-work-card--create")).toBeNull();
+    expect(container.querySelector(".vault-risk-summary")?.textContent).toContain("non-refundable");
     expect(container.querySelector(".vault-brk-scene__art-card")).toBeTruthy();
     expect(container.querySelector(".vault-blueprint-art")).toBeNull();
-    expect(container.querySelector(".vault-core__door")?.textContent).toContain("Vault blueprint");
-    expect(container.querySelector(".vault-crack-route")?.textContent).toContain("Secret");
-    expect(container.querySelector(".vault-target-card--empty")).toBeNull();
-    expect(container.querySelector(".vault-target-lock")).toBeNull();
+    expect(container.querySelector(".vault-asset-journey")?.textContent).toContain("Load Vault");
+    expect(container.querySelector(".vault-target-card--empty")).toBeTruthy();
+    expect(container.querySelector(".vault-target-lock")).toBeTruthy();
   });
 
   it("starts on the break desk when a target is already loaded", () => {
@@ -195,7 +209,9 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
     fireEvent.click(container.querySelector(".vault-secondary-action") as Element);
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("loadVault", "42"));
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("attemptBreak"));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("attemptBreak", {
+      receiptId: undefined,
+    }));
   });
 
   it("dispatches createVault with full contract payload", async () => {
@@ -231,8 +247,6 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
   it("keeps the secondary drawer as compact vault operation panels", () => {
     const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-    expect(container.querySelector(".vault-target-card--empty")).toBeNull();
-    fireEvent.click(optionByText(container, ".vault-mode-card", "Break"));
     expect(container.querySelector(".vault-target-card--empty")?.textContent).toContain("Arm both key slots");
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
 
@@ -247,6 +261,124 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
     expect(container.querySelector(".vault-drawer-field--title input.semi-input")).toBeTruthy();
     expect(container.querySelector(".vault-drawer-field--wide input.semi-input")).toBeTruthy();
     expect(container.querySelector(".mx2-drawer__body h4")).toBeNull();
+  });
+
+  it("keeps bounty top-up secondary and dispatches the reviewed vault and amount", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ vaultIdInput: "42", vaultDetails: vault })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const amount = container.querySelector(".vault-drawer-field--topup input") as HTMLInputElement;
+    fireEvent.change(amount, { target: { value: "2.5" } });
+    fireEvent.click(container.querySelector(".vault-topup-action") as Element);
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("increaseBounty", {
+      vaultId: "42",
+      amountGas: "2.5",
+      receiptId: undefined,
+    }));
+  });
+
+  it("blocks duplicate writes and exposes one recovery action for a pending payment", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          vaultIdInput: "42",
+          attemptSecret: "guess",
+          vaultDetails: vault,
+          canAttempt: true,
+          pendingOperation: {
+            kind: "attempt",
+            stage: "payment",
+            paymentTxid: `0x${"a".repeat(64)}`,
+            vaultId: "42",
+          },
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector(".vault-operation-notice")?.textContent).toContain("paymentRecoveryReady");
+    fireEvent.click(container.querySelector(".vault-recovery-action") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("recoverPendingVault"));
+    expect(dispatch).not.toHaveBeenCalledWith("attemptBreak", expect.anything());
+  });
+
+  it("restores the exact journal before recovery when post-broadcast storage is unhealthy", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          recoveryStorageHealthy: false,
+          pendingOperation: {
+            kind: "attempt",
+            stage: "action",
+            txid: `0x${"b".repeat(64)}`,
+            vaultId: "42",
+          },
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(container.querySelector(".vault-recovery-action")?.textContent).toContain(
+      "retryRecoveryStorage",
+    );
+    fireEvent.click(container.querySelector(".vault-recovery-action") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("refreshVaultRecoveryStorage"));
+    expect(dispatch).not.toHaveBeenCalledWith("recoverPendingVault");
+  });
+
+  it("distinguishes an unavailable live list from a verified empty list", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          catalogReadError: "The latest vault list could not be verified.",
+          recentVaults: [],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".vault-operation-notice--read")?.textContent).toContain(
+      "The latest vault list could not be verified.",
+    );
+    expect(container.querySelector(".vault-target-card--empty")).toBeTruthy();
+  });
+
+  it("keeps mainnet readable but blocks wallet actions when PaymentHub is unavailable", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          networkName: "mainnet",
+          writeReady: false,
+          writeBlockReason: "Mainnet PaymentHub is not configured",
+          vaultIdInput: "42",
+          attemptSecret: "guess",
+          vaultDetails: vault,
+          canAttempt: true,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".vault-operation-notice")?.textContent).toContain(
+      "Mainnet PaymentHub is not configured",
+    );
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector(".vault-field--receipt")).toBeNull();
+    expect(container.querySelector(".vault-brk-scene__artwork")).toBeTruthy();
   });
 
   it("keeps motion and low-noise vault hierarchy backed by tests", () => {
@@ -265,25 +397,30 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
     );
     expect(source).not.toContain("OpenUiSegmented");
     expect(source).toContain("vault-mode-card");
+    expect(source).toContain("mx2-cat-defi");
+    expect(source).toContain("vault-brk-scene__asset-caption");
+    expect(source).toContain("vault-risk-summary");
+    expect(source).not.toContain("vault-core");
+    expect(source).not.toContain("vault-crack-route");
     expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
     expect(styles).toMatch(/\.unbreakable-vault-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
     expect(styles).toMatch(/\.unbreakable-vault-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*#d97706/);
     expect(styles).toMatch(/\.unbreakable-vault-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/vault-brk-scene\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(styles).toMatch(/vault-brk-scene\s*\{[\s\S]*background:\s*#fffdf8/);
     expect(styles).toMatch(/vault-brk-scene\s*\{[\s\S]*box-shadow:\s*none/);
     expect(styles).not.toMatch(/vault-brk-scene__image|vault-brk-scene__wash|vault-brk-scene-art|var\(--mx2-scene-art-opacity|background-image:\s*url/);
     expect(styles).toMatch(/vault-brk-scene__art-card\s*\{[\s\S]*background:\s*#ffffff/);
     expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[^}]*opacity:\s*0\.82/);
+    expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[^}]*opacity:\s*1/);
     expect(styles).toMatch(/vault-brk-scene__artwork\s*\{[^}]*filter:\s*none/);
     expect(styles).toMatch(/vault-mode-switch\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/vault-mode-card\s*\{[\s\S]*min-height:\s*72px/);
     expect(styles).toMatch(/vault-mode-card--active\s*\{[\s\S]*inset 4px 0 0 #0f766e/);
     expect(styles).not.toMatch(/vault-mode-segmented|semi-radioGroup|semi-radio-checked/);
-    expect(styles).toMatch(/vault-core__door\s*\{[\s\S]*background:\s*#fffef8/);
-    expect(styles).toMatch(/vault-core__laser\s*\{[\s\S]*opacity:\s*0;/);
-    expect(styles).toMatch(/vault-core__laser\s*\{[\s\S]*filter:\s*none/);
-    expect(styles).toMatch(/vault-brk-scene\[data-state="attempting"\] \.vault-core__laser[\s\S]*opacity:\s*0\.38/);
+    expect(styles).not.toContain("vault-core");
+    expect(styles).not.toContain("vault-crack-route");
+    expect(styles).toMatch(/vault-brk-scene__asset-caption\s*\{[\s\S]*background:\s*rgba\(255,\s*255,\s*255,\s*0\.96\)/);
+    expect(styles).toMatch(/vault-risk-summary\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).not.toMatch(/backdrop-filter/);
     expect(styles).not.toContain("vault-blueprint-art");
     expect(styles).not.toMatch(/vault-brk-scene__artwork\s*\{[^}]*filter:\s*saturate/);
@@ -313,10 +450,10 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
     expect(styles).not.toContain("vault-drawer-panel__head");
     expect(styles).not.toContain("vault-drawer-input");
     expect(styles).toMatch(/vault-drawer-field \.mx2-open-field__control\s*\{[\s\S]*min-height:\s*40px/);
-    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-drawer-action-row,\s*\n\s*\.vault-drawer-form-row\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene\s*\{[\s\S]*min-height:\s*300px/);
-    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene__art-card\s*\{[\s\S]*height:\s*128px/);
-    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-crack-route\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-drawer-action-row,[\s\S]*\.vault-drawer-form-row,[\s\S]*\.vault-topup-row[\s\S]*\{[\s\S]*grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene\s*\{[\s\S]*min-height:\s*0/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene__art-card\s*\{[\s\S]*height:\s*190px/);
+    expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-asset-journey\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-brk-scene__status\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-mode-card\s*\{[\s\S]*min-height:\s*54px/);
     expect(styles).toMatch(/@media \(max-width:\s*680px\)[\s\S]*\.vault-target-card--empty\s*\{[\s\S]*display:\s*none/);

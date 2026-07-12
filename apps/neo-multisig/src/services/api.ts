@@ -1,19 +1,9 @@
-/**
- * Neo Multisig — on-chain vault service.
- *
- * Thin wrapper around the framework chain surface (app.chain) that talks to
- * the deployed MiniAppMultisig custody-vault contract (resolved from the app
- * manifest).
- * Every method is a direct contract read or invoke — there is no off-chain
- * store. State (vault balances, request status, approval counts) is read back
- * from the contract via getVault / getRequest / balanceOf.
- *
- *   write: createVault, deposit, createRequest, approve, cancel
- *   read:  getVault, getRequest, balanceOf, hasApproved, lastVaultId,
- *          lastRequestId, requestUnfunded (RequestUnfunded event lookup)
- */
-
 import type { MiniAppFramework } from "@shared/react";
+import {
+  MULTISIG_EVENT_WAIT_MS,
+  requireCanonicalMultisigContext,
+  type MultisigChainContext,
+} from "../multisig-safety";
 import {
   assetHash,
   buildApproveArgs,
@@ -53,133 +43,157 @@ export interface CreateRequestInput {
   memo: string;
 }
 
-function toNumber(value: unknown): number {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  if (typeof value === "bigint") return Number(value);
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
+export interface MultisigWriteOptions {
+  onTransactionSent?: (txid: string) => void;
 }
 
-export function createVaultApi(app: MiniAppFramework) {
-  /** Resolve the deployed custody-vault contract hash from the chain layer. */
-  function contractHash(): string {
-    const hash = app.chain.contractAddress.get();
-    if (!hash) {
-      throw new Error("Vault contract is not configured for this network.");
-    }
-    return hash;
+function safeInteger(value: unknown, label: string): number {
+  const raw = String(value ?? "").trim();
+  if (!/^\d+$/.test(raw)) throw new Error(`Malformed ${label} response.`);
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) throw new Error(`Malformed ${label} response.`);
+  return parsed;
+}
+
+function baseString(value: unknown, label: string): string {
+  const raw = String(value ?? "").trim();
+  if (!/^\d+$/.test(raw)) throw new Error(`Malformed ${label} response.`);
+  try {
+    const parsed = BigInt(raw);
+    if (parsed < 0n) throw new Error();
+    return parsed.toString();
+  } catch {
+    throw new Error(`Malformed ${label} response.`);
   }
+}
+
+function strictBoolean(value: unknown, label: string): boolean {
+  if (value === true || value === 1 || value === "1" || String(value).toLowerCase() === "true") return true;
+  if (value === false || value === 0 || value === "0" || String(value).toLowerCase() === "false") return false;
+  throw new Error(`Malformed ${label} response.`);
+}
+
+export function createVaultApi(app: MiniAppFramework, contextErrorMessage = "multisigChainContextMismatch") {
+  const context = () => requireCanonicalMultisigContext(app, contextErrorMessage);
 
   return {
-    // -- Writes -------------------------------------------------------------
+    context,
 
-    /**
-     * createVault(creator, signers[], threshold) — connected wallet witnesses.
-     * The signer list is a nested Array arg (the shape `app.chain.arg.array`
-     * builds), which `FrameworkContractArg` now types first-class — no
-     * widened-cast boundary needed.
-     */
-    async createVault(input: CreateVaultInput) {
-      const set = validateSignerSet(input.signers, input.threshold);
-      return app.chain.invoke("createVault", buildCreateVaultArgs(input.creator, set));
+    async createVault(input: CreateVaultInput, options: MultisigWriteOptions = {}) {
+      const signerSet = validateSignerSet(input.signers, input.threshold);
+      const chain = await context();
+      return app.chain.invoke("createVault", buildCreateVaultArgs(input.creator, signerSet), {
+        scriptHash: chain.contractHash,
+        waitForEvent: "VaultCreated",
+        waitTimeoutMs: MULTISIG_EVENT_WAIT_MS,
+        onTransactionSent: options.onTransactionSent,
+      });
     },
 
-    /**
-     * Deposit GAS/NEO into a vault via a NEP-17 transfer to the contract with
-     * the vaultId as the transfer `data`. Targets the TOKEN contract.
-     */
-    async deposit(input: DepositInput) {
+    async deposit(input: DepositInput, options: MultisigWriteOptions = {}) {
+      const chain = await context();
       const args = buildDepositArgs({
         from: input.from,
-        contractHash: contractHash(),
+        contractHash: chain.contractHash,
         vaultId: input.vaultId,
         amount: input.amount,
         asset: input.asset,
       });
-      // Wait for the contract's Deposited event so the success toast and the
-      // refreshVault read reflect a CONFIRMED, in-block balance change — a
-      // fire-and-forget transfer otherwise reports success while balances are
-      // still stale (the user has to reload to see the deposit).
       return app.chain.invoke("transfer", args, {
         scriptHash: assetHash(input.asset),
         waitForEvent: "Deposited",
+        waitTimeoutMs: MULTISIG_EVENT_WAIT_MS,
+        onTransactionSent: options.onTransactionSent,
       });
     },
 
-    /** createRequest(vaultId, creator, recipient, asset, amount, memo). */
-    async createRequest(input: CreateRequestInput) {
-      return app.chain.invoke("createRequest", buildCreateRequestArgs(input));
+    async createRequest(input: CreateRequestInput, options: MultisigWriteOptions = {}) {
+      const chain = await context();
+      return app.chain.invoke("createRequest", buildCreateRequestArgs(input), {
+        scriptHash: chain.contractHash,
+        waitForEvent: "RequestCreated",
+        waitTimeoutMs: MULTISIG_EVENT_WAIT_MS,
+        onTransactionSent: options.onTransactionSent,
+      });
     },
 
-    /** approve(reqId, signer) — releases funds at threshold. */
-    async approve(reqId: number, signer: string) {
-      return app.chain.invoke("approve", buildApproveArgs(reqId, signer));
+    async approve(reqId: number, signer: string, options: MultisigWriteOptions = {}) {
+      const chain = await context();
+      return app.chain.invoke("approve", buildApproveArgs(reqId, signer), {
+        scriptHash: chain.contractHash,
+        waitForEvent: "Approved",
+        waitTimeoutMs: MULTISIG_EVENT_WAIT_MS,
+        onTransactionSent: options.onTransactionSent,
+      });
     },
 
-    /** cancel(reqId, caller) — ANY vault signer (v2), pending requests only. */
-    async cancel(reqId: number, caller: string) {
-      return app.chain.invoke("cancel", buildCancelArgs(reqId, caller));
+    async cancel(reqId: number, caller: string, options: MultisigWriteOptions = {}) {
+      const chain = await context();
+      return app.chain.invoke("cancel", buildCancelArgs(reqId, caller), {
+        scriptHash: chain.contractHash,
+        waitForEvent: "RequestCancelled",
+        waitTimeoutMs: MULTISIG_EVENT_WAIT_MS,
+        onTransactionSent: options.onTransactionSent,
+      });
     },
 
-    // -- Reads --------------------------------------------------------------
-
-    async getVault(vaultId: number): Promise<VaultView | null> {
-      const raw = await app.chain.readRaw("getVault", [
-        app.chain.arg.integer(vaultId),
-      ]);
-      return parseVault(raw);
+    async getVault(vaultId: number, existing?: MultisigChainContext): Promise<VaultView | null> {
+      const chain = existing ?? await context();
+      const raw = await app.chain.readRaw("getVault", [app.chain.arg.integer(vaultId)], { scriptHash: chain.contractHash });
+      if (raw === null || raw === undefined) return null;
+      const parsed = parseVault(raw);
+      if (!parsed) throw new Error("Malformed vault response.");
+      return parsed;
     },
 
-    async getRequest(reqId: number): Promise<RequestView | null> {
-      const raw = await app.chain.readRaw("getRequest", [
-        app.chain.arg.integer(reqId),
-      ]);
-      return parseRequest(raw);
+    async getRequest(reqId: number, existing?: MultisigChainContext): Promise<RequestView | null> {
+      const chain = existing ?? await context();
+      const raw = await app.chain.readRaw("getRequest", [app.chain.arg.integer(reqId)], { scriptHash: chain.contractHash });
+      if (raw === null || raw === undefined) return null;
+      const parsed = parseRequest(raw);
+      if (!parsed) throw new Error("Malformed request response.");
+      return parsed;
     },
 
-    async balanceOf(vaultId: number, asset: VaultAsset): Promise<number> {
+    async balanceOf(vaultId: number, asset: VaultAsset, existing?: MultisigChainContext): Promise<string> {
+      const chain = existing ?? await context();
       const raw = await app.chain.readRaw("balanceOf", [
         app.chain.arg.integer(vaultId),
         app.chain.arg.hash160(assetHash(asset)),
-      ]);
-      return toNumber(raw);
+      ], { scriptHash: chain.contractHash });
+      return baseString(raw, "vault balance");
     },
 
-    async hasApproved(reqId: number, signer: string): Promise<boolean> {
+    async hasApproved(reqId: number, signer: string, existing?: MultisigChainContext): Promise<boolean> {
+      const chain = existing ?? await context();
       const raw = await app.chain.readRaw("hasApproved", [
         app.chain.arg.integer(reqId),
         app.chain.arg.hash160(signer),
-      ]);
-      return Boolean(raw);
+      ], { scriptHash: chain.contractHash });
+      return strictBoolean(raw, "approval");
     },
 
-    async lastVaultId(): Promise<number> {
-      return toNumber(await app.chain.readRaw("lastVaultId"));
+    async lastVaultId(existing?: MultisigChainContext): Promise<number> {
+      const chain = existing ?? await context();
+      return safeInteger(await app.chain.readRaw("lastVaultId", [], { scriptHash: chain.contractHash }), "last vault id");
     },
 
-    async lastRequestId(): Promise<number> {
-      return toNumber(await app.chain.readRaw("lastRequestId"));
+    async lastRequestId(existing?: MultisigChainContext): Promise<number> {
+      const chain = existing ?? await context();
+      return safeInteger(await app.chain.readRaw("lastRequestId", [], { scriptHash: chain.contractHash }), "last request id");
     },
 
-    /**
-     * Look up the RequestUnfunded(requestId, required, available) event for a
-     * request (v2 contract): a threshold approval that found the vault balance
-     * below the request amount auto-cancelled it. Returns the parsed amounts
-     * (BASE UNITS) or null when no event exists / events are unavailable —
-     * callers fall back to a generic auto-cancel notice.
-     */
     async requestUnfunded(reqId: number): Promise<RequestUnfundedEvent | null> {
+      await context();
       try {
         const events = await app.chain.events("RequestUnfunded", { limit: 50 });
         for (const entry of events ?? []) {
           const parsed = parseRequestUnfundedEvent(entry);
-          if (parsed && parsed.requestId === reqId) return parsed;
+          if (parsed?.requestId === reqId) return parsed;
         }
       } catch {
-        // Event indexing is best-effort; the caller shows a generic notice.
+        // This event only improves cancelled-request copy. The authoritative
+        // request status still comes from getRequest.
       }
       return null;
     },

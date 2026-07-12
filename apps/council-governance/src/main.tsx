@@ -8,6 +8,13 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useGovernance } from "./composables/useGovernance";
 
+function normalizeNetworkId(value: unknown): string | null {
+  const text = String(value ?? "").trim().toLowerCase();
+  if (text.includes("testnet")) return "neo-n3-testnet";
+  if (text.includes("mainnet")) return "neo-n3-mainnet";
+  return null;
+}
+
 defineMiniApp({
   appId: "miniapp-council-governance",
   playArea: PlayArea,
@@ -15,10 +22,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const initialNetwork =
-      ctx.launchContext.network === "testnet"
-        ? "neo-n3-testnet"
-        : "neo-n3-mainnet";
+    const initialNetwork = normalizeNetworkId(ctx.launchContext.network) ?? "neo-n3-mainnet";
     const currentChainId = createObservable<string>(initialNetwork);
     const isCreating = createObservable(false);
 
@@ -29,12 +33,26 @@ defineMiniApp({
       currentChainId,
     });
 
+    const syncNetwork = async () => {
+      try {
+        const detected = normalizeNetworkId(await app.chain.detectNetwork());
+        if (detected) gov.setNetwork(detected);
+      } catch {
+        // Keep the manifest/launch-selected network. Reads and writes still
+        // fail closed if that lane has no configured contract.
+      }
+    };
+
     gov.setAddress(app.chain.address.get() ?? "");
-    app.chain.address.subscribe(() => {
+    const unsubscribeAddress = app.chain.address.subscribe(() => {
       gov.setAddress(app.chain.address.get() ?? "");
-      void gov.refreshCandidateStatus();
-      void gov.refreshHasVoted();
+      void Promise.allSettled([
+        gov.refreshCandidateStatus(),
+        gov.refreshHasVoted(),
+        gov.refreshWalletBalances(),
+      ]);
     });
+    app.lifecycle.cleanup(unsubscribeAddress);
 
     ctx.framework.actions.register("createProposal", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as {
@@ -65,6 +83,14 @@ defineMiniApp({
       );
     });
 
+    ctx.framework.actions.register("connectWallet", async () => {
+      const connected = await app.chain.ensureWallet();
+      await syncNetwork();
+      gov.setAddress(connected || app.chain.address.get() || "");
+      await gov.init();
+      return connected;
+    });
+
     ctx.framework.actions.register("vote", async (...args: unknown[]) => {
       const data = (args[0] ?? {}) as {
         proposalId?: number | string;
@@ -88,7 +114,7 @@ defineMiniApp({
 
     ctx.framework.actions.register("finalizeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
-      if (!proposalId) return;
+      if (!Number.isSafeInteger(proposalId) || proposalId <= 0) return;
       return app.notify.guard(
         () => gov.finalizeProposal(proposalId),
         { successKey: "proposalFinalized" },
@@ -97,7 +123,7 @@ defineMiniApp({
 
     ctx.framework.actions.register("executeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
-      if (!proposalId) return;
+      if (!Number.isSafeInteger(proposalId) || proposalId <= 0) return;
       return app.notify.guard(
         () => gov.executeProposal(proposalId),
         { successKey: "proposalExecuted" },
@@ -106,7 +132,7 @@ defineMiniApp({
 
     ctx.framework.actions.register("revokeProposal", async (...args: unknown[]) => {
       const proposalId = Number(args[0] ?? 0);
-      if (!proposalId) return;
+      if (!Number.isSafeInteger(proposalId) || proposalId <= 0) return;
       return app.notify.guard(
         () => gov.revokeProposal(proposalId),
         { successKey: "proposalRevoked" },
@@ -119,9 +145,15 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("refresh", async () => {
-      await gov.loadProposals();
-      await gov.refreshCandidateStatus();
-      await gov.refreshHasVoted();
+      await syncNetwork();
+      await gov.init();
+    });
+
+    ctx.framework.actions.register("recoverPendingGovernance", async () => {
+      return app.notify.guard(
+        () => gov.recoverPendingWrite(),
+        { successKey: "governanceRecoveryConfirmed" },
+      );
     });
 
     // Surface synthetic stats expected by the manifest.
@@ -149,9 +181,27 @@ defineMiniApp({
         isCandidate: gov.isCandidate,
         candidateLoaded: gov.candidateLoaded,
         hasVotedMap: gov.hasVotedMap,
+        hasVotedKnownMap: gov.hasVotedKnownMap,
+        governanceOverview: gov.governanceOverview,
+        governanceOverviewError: gov.governanceOverviewError,
+        councilCandidates: gov.councilCandidates,
+        councilRosterLoaded: gov.councilRosterLoaded,
+        councilRosterError: gov.councilRosterError,
+        neoBalance: gov.neoBalance,
+        gasBalance: gov.gasBalance,
+        balancesLoaded: gov.balancesLoaded,
+        balancesError: gov.balancesError,
+        currentNetwork: gov.currentNetwork,
         address: gov.address,
+        loadError: gov.loadError,
+        candidateError: gov.candidateError,
+        pendingWrite: gov.pendingWrite,
+        pendingStorageHealthy: gov.pendingStorageHealthy,
+        isRecovering: gov.isRecovering,
+        lastConfirmation: gov.lastConfirmation,
       },
       loadData: async () => {
+        await syncNetwork();
         gov.setAddress(app.chain.address.get() ?? "");
         await gov.init();
       },

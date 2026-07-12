@@ -1,340 +1,65 @@
-# Neo Sign Anything Neo 任意签
+# Neo Signature Desk
 
-Sign any message with your Neo address securely.
+Neo Signature Desk prepares exact UTF-8 payloads for Neo N3 wallet message signing. It supports plain text and local SHA-256 file digests, shows the exact wallet payload before approval, and exports the accepted wallet response as a portable JSON signature record.
 
-## Overview
+## Runtime contract
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-neo-sign-anything` |
-| **Category** | Utility |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea |
+- App ID: `miniapp-neo-sign-anything`
+- Version: `1.1.0`
+- Networks: Neo N3 mainnet and testnet
+- Permission: `wallet:sign-message`
+- Transactions: none
+- App contract: none
 
-## Summary
+## Signing modes
 
-Cryptographic message signing for Neo N3
+Purpose-bound envelope is the default. The signed v1 envelope binds:
 
-Sign any text message with your Neo wallet to prove ownership of an address, authenticate to services, or create verifiable commitments. Messages can also be broadcast to the blockchain for permanent, timestamped proof.
+- signing domain;
+- Neo N3 network;
+- signer address captured for the wallet request;
+- content kind, UTF-8 byte count, and SHA-256;
+- file name, byte size, media type, and file SHA-256 when a file digest is loaded.
 
-## Features
+Exact text mode signs the textarea value byte-for-byte as UTF-8. It is intended for third-party challenge strings that must not be wrapped or modified.
 
-- **✍️ Message Signing**: Sign arbitrary text messages with your Neo private key
-- **📜 On-Chain Broadcasting**: Permanently record messages on the Neo blockchain
-- **📋 Easy Copy**: One-click copying of signatures and transaction hashes
-- **🔐 Address Verification**: Prove ownership without revealing private keys
-- **⚡ Quick Actions**: Sign and broadcast with minimal steps
-- **🎨 Modern UI**: Clean, accessible interface with clear visual feedback
-- **🔒 Secure**: Private keys never leave your wallet
+In exact text mode, the captured account and network are request context only. They are not included in the signed bytes. The exact payload and its SHA-256 can be reviewed before connecting a wallet; a confirmed Neo N3 account and network are still required to sign.
 
-## Usage
+## File handling
 
-### Getting Started
+Files up to 64 MB are read and hashed in the browser with Web Crypto. The file is never uploaded. Only `sha256:<lowercase hex digest>` is placed in the editor and signed. The purpose-bound envelope also includes the file metadata shown in the UI.
 
-1. **Open the App**: Open Neo Sign Anything from your Neo MiniApp dashboard
-2. **Connect Wallet**: Connect your Neo wallet to begin signing
-3. **Enter Message**: Type or paste the message you want to sign
+## Signature-record semantics
 
-### Signing a Message
+The JSON artifact includes the exact signed text, its byte count and SHA-256, the captured account and network, normalized signature encoding, and the wallet-returned public key when available. Its `signer.binding` field distinguishes a `signed-envelope` from `observed-request-context`.
 
-1. **Enter Your Message**:
-   - Type in the message textarea (max 1000 characters)
-   - Character counter shows remaining space
-   - Supports any text content
+The assurance status is deliberately `wallet-returned`. This miniapp does not claim local cryptographic verification because Neo wallet providers use wallet-specific message-signing transport and verification conventions. A verifier must apply the convention used by the signing wallet.
 
-2. **Click "Sign Message"**:
-   - Wallet will prompt for signature confirmation
-   - Review the message in your wallet
-   - Approve the signature request
+If the account, network, content, domain, or file context changes while the wallet prompt is open, the returned signature is discarded. When the wallet provider reports the account that actually signed, it must match the prepared account (address or script-hash form) or the response is rejected. Editing any signed input also clears the current record immediately. A failed replacement file selection clears any previous file digest so it cannot be mistaken for the newly selected file.
 
-3. **View Results**:
-   - Signature displayed in result card
-   - Format varies by wallet implementation
-   - May include signature, public key, and salt
+## Chain and oracle boundaries
 
-4. **Copy Signature**:
-   - Click "Copy" button next to result
-   - Use for verification or authentication
-   - Share with requesting parties
+- The active network is read from the connected wallet and normalized to `neo-n3-mainnet` or `neo-n3-testnet`; any other value fails closed and clears the displayed network.
+- The app calls only the framework wallet connection, network detection, and message-signing services.
+- It has no contract, RPC read, oracle request, transaction construction, broadcast, token transfer, or network fee path.
+- Signing and file hashing failures keep user-entered text available for correction, while stale or ambiguous signing results are discarded.
 
-### Broadcasting a Message
+## Local history
 
-For permanent, on-chain proof:
-
-1. **Enter Your Message**:
-   - Same as signing process
-   - Keep under 1024 bytes for successful broadcast
-
-2. **Click "Broadcast Message"**:
-   - Creates a 0 GAS transfer to yourself
-   - Embeds message in transaction data
-   - Wallet prompts for transaction confirmation
-
-3. **View Transaction**:
-   - Transaction hash displayed
-   - Permanently recorded on Neo N3 blockchain
-   - Timestamped and immutable
-
-4. **Verify on Explorer**:
-   - Copy transaction hash
-   - View on Neo3Scan or other explorers
-   - Message visible in transaction data
-
-### Common Use Cases
-
-**Proving Ownership:**
-1. Service requests message signed with your address
-2. Enter the requested message in the app
-3. Sign and copy the signature
-4. Submit signature to the service for verification
-
-**Commitments:**
-1. Create a statement or prediction
-2. Broadcast it to the blockchain
-3. Later prove you made the statement at that time
-4. Useful for contests, predictions, or public commitments
-
-**Authentication:**
-1. dApp requests signed message for login
-2. Sign the provided challenge message
-3. dApp verifies signature matches your address
-4. Authenticated without exposing private key
-
-**Notarization:**
-1. Write a document hash or summary
-2. Broadcast to blockchain
-3. Creates timestamped proof of existence
-4. Legally useful in many jurisdictions
-
-## How It Works
-
-### Cryptographic Signing
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  Message Signing Flow                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   ┌─────────────┐                                           │
-│   │   Message   │                                           │
-│   │  (Text)     │                                           │
-│   └──────┬──────┘                                           │
-│          │                                                  │
-│          ▼                                                  │
-│   ┌─────────────────┐                                       │
-│   │  Wallet         │                                       │
-│   │  (Sign Message) │                                       │
-│   └────────┬────────┘                                       │
-│            │                                                │
-│            ▼                                                │
-│   ┌─────────────────┐      ┌──────────────┐                │
-│   │  Private Key    │─────►│  Signature   │                │
-│   │  (in wallet)    │      │  Generated   │                │
-│   └─────────────────┘      └──────┬───────┘                │
-│                                   │                         │
-│                                   ▼                         │
-│                          ┌──────────────┐                  │
-│                          │  Signature   │                  │
-│                          │  Output      │                  │
-│                          └──────────────┘                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### On-Chain Broadcasting
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│               On-Chain Broadcast Flow                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   ┌─────────────┐                                           │
-│   │   Message   │                                           │
-│   │  (Text)     │                                           │
-│   └──────┬──────┘                                           │
-│          │                                                  │
-│          ▼                                                  │
-│   ┌─────────────────────────────────────────────┐          │
-│   │  Neo N3 Transaction                         │          │
-│   │  ┌─────────────────────────────────────┐   │          │
-│   │  │  From: Your Address                 │   │          │
-│   │  │  To: Your Address                   │   │          │
-│   │  │  Amount: 0 GAS                      │   │          │
-│   │  │  Data: "Your message text here..."  │   │          │
-│   │  └─────────────────────────────────────┘   │          │
-│   └─────────────────────┬───────────────────────┘          │
-│                         │                                   │
-│                         ▼                                   │
-│   ┌─────────────────────────────────────────────┐          │
-│   │  Neo N3 Blockchain                          │          │
-│   │  (Permanent, Immutable Record)              │          │
-│   └─────────────────────────────────────────────┘          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Technical Details
-
-**Signing Algorithm:**
-- Uses Neo N3's standard message signing
-- ECDSA with secp256r1 curve
-- Compatible with all Neo N3 wallets
-
-**Broadcast Mechanism:**
-- Sends 0 GAS transfer to self
-- Embeds message in transaction data field
-- Uses GAS contract: `0xd2a4cff31913016155e38e474a2c06d08be276cf`
-
-**Signature Format:**
-- Varies by wallet implementation
-- May include:
-  - Signature (hex string)
-  - Public key
-  - Salt/nonce
-  - Wallet-specific metadata
-
-## Permissions
-
-| Permission | Required |
-|------------|----------|
-| Wallet | ✅ Yes |
-| Payments | ❌ No |
-| RNG | ❌ No |
-| Data Feed | ❌ No |
-| Governance | ❌ No |
-| Automation | ❌ No |
-| Confidential | ✅ Yes |
-
-## On-chain behavior
-
-- No on-chain contract is deployed; the app relies on off-chain APIs and wallet signing flows.
-
-## Network Configuration
-
-No on-chain contract is deployed.
-
-## Runtime Notes
-
-- No miniapp contract is deployed for this app.
-- Signing and verification flows happen through wallet or local browser cryptography.
-- The runtime does not use legacy receipt relays or Morpheus callback contracts.
+The app stores up to eight history rows in framework-scoped local storage. History contains only record metadata and hashes, not the raw message, signature, public key, or full JSON record. Malformed local rows are ignored and the UI reports degraded history storage without blocking signing.
 
 ## Assets
 
-- **Allowed Assets**: None
+The production desk illustration and catalog media are repository-local resources with no runtime network fetch. See [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md) for source and usage details.
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
 npm run build
 ```
 
-### Project Structure
+No deployment, wallet signing, or on-chain transaction is needed for deterministic local validation.
 
-```
-apps/neo-sign-anything/
-├── src/
-│   ├── pages/
-│   │   ├── index/
-│   │   │   ├── index.vue              # Main signing interface
-│   │   │   └── neo-sign-anything-theme.scss
-│   │   └── docs/
-│   │       └── index.vue              # Documentation
-│   ├── composables/
-│   │   └── useI18n.ts
-│   └── static/
-├── package.json
-└── README.md
-```
-
-### Key Components
-
-**Message Input:**
-- Textarea with character limit (1000)
-- Real-time character counter
-- Placeholder with example
-
-**Action Buttons:**
-- Sign Message: Triggers wallet signature
-- Broadcast Message: Creates on-chain transaction
-- Loading states for async operations
-
-**Result Cards:**
-- Signature display with copy button
-- Transaction hash display (for broadcasts)
-- Success/error messaging
-
-## Security Considerations
-
-**Message Safety:**
-- Always review messages before signing
-- Never sign messages you don't understand
-- Be cautious of phishing attempts
-- Verify message source when possible
-
-**Broadcast Costs:**
-- Broadcasting requires GAS for network fees
-- Signing alone is free
-- Fees are standard Neo N3 transaction fees
-
-**Signature Verification:**
-- Services should always verify signatures
-- Use proper Neo N3 signature verification libraries
-- Confirm address matches expected signer
-
-## Troubleshooting
-
-**Wallet not connecting:**
-- Ensure Neo wallet extension is installed
-- Check you're on the correct network
-- Try refreshing the page
-
-**Sign button disabled:**
-- Enter a message first
-- Connect wallet before signing
-- Check message length (max 1000 chars)
-
-**Broadcast failing:**
-- Ensure sufficient GAS balance
-- Message may exceed 1024 bytes
-- Check network connection
-
-**Signature format varies:**
-- Different wallets return different formats
-- Some include metadata, others just signature
-- All are valid for verification
-
-## Use Cases by Sector
-
-**DeFi:**
-- Prove ownership for airdrops
-- Sign loan agreements
-- Authenticate trading positions
-
-**Gaming:**
-- Sign game moves for verification
-- Prove tournament participation
-- Verify item ownership
-
-**Governance:**
-- Sign voting commitments
-- Create proposal attestations
-- Timestamp governance decisions
-
-**Legal:**
-- Document notarization
-- Contract acknowledgments
-- Timestamped proof of existence
-
-## Support
-
-For signature verification questions, consult the Neo N3 developer documentation.
-
-For app issues, contact the Neo MiniApp team.
+Production verification and the remaining real-wallet compatibility boundary
+are recorded in [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md) and
+[NETWORK_STATUS.md](./NETWORK_STATUS.md).

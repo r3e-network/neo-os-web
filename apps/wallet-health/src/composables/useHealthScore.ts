@@ -30,6 +30,7 @@ export interface UseHealthScoreReturn {
   riskLabel: Observable<string>;
   riskClass: Observable<string>;
   riskIcon: Observable<string>;
+  storageAvailable: Observable<boolean>;
   recommendations: Observable<string[]>;
   loadChecklist: () => void;
   saveChecklist: () => void;
@@ -37,7 +38,7 @@ export interface UseHealthScoreReturn {
 }
 
 /**
- * Computes wallet health score from a security checklist with persistent state.
+ * Computes device-local checklist review progress with persistent state.
  *
  * Checklist state persists synchronously via `app.storage.local` (safe-storage
  * backed localStorage). The app passes `storagePrefix: "miniapp-wallet-health:"`
@@ -47,7 +48,7 @@ export interface UseHealthScoreReturn {
  */
 export function useHealthScore(
   gasOk: Observable<boolean>,
-  isConnected: Observable<boolean>,
+  hasBalanceEvidence: Observable<boolean>,
   storage: ChecklistStore,
 ): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
@@ -56,6 +57,7 @@ export function useHealthScore(
   // Composed with the app's storagePrefix this resolves to the legacy
   // "miniapp-wallet-health:checklist" localStorage key, byte-for-byte.
   const checklistStorageKey = "checklist";
+  const storageAvailable = createObservable(true);
   const checklistRevision = createObservable(0);
   const notifyChecklistChanged = () => {
     checklistRevision.set(checklistRevision.get() + 1);
@@ -69,10 +71,13 @@ export function useHealthScore(
     { id: "hardware", titleKey: "checklistHardware", descKey: "checklistHardwareDesc" },
     { id: "twofa", titleKey: "checklist2fa", descKey: "checklist2faDesc" },
   ] as const;
+  const manualChecklistIds: ReadonlySet<string> = new Set(
+    checklistBase.filter((item) => item.id !== "gas").map((item) => item.id),
+  );
 
   const checklistItems = createDerived<ChecklistItem[]>(
     () => {
-      const connected = isConnected.get();
+      const balanceObserved = hasBalanceEvidence.get();
       return checklistBase.map((item) => {
         if (item.id === "gas") {
           // The auto GAS check can only be evaluated once a wallet is connected.
@@ -81,10 +86,10 @@ export function useHealthScore(
           return {
             id: item.id,
             title: t(item.titleKey),
-            desc: connected ? t(item.descKey) : t("checklistGasPending"),
-            done: connected ? gasOk.get() : false,
+            desc: balanceObserved ? t(item.descKey) : t("checklistGasPending"),
+            done: balanceObserved ? gasOk.get() : false,
             auto: true,
-            pending: !connected,
+            pending: !balanceObserved,
           };
         }
         return {
@@ -96,7 +101,7 @@ export function useHealthScore(
         };
       });
     },
-    [checklistRevision, gasOk, isConnected],
+    [checklistRevision, gasOk, hasBalanceEvidence],
   );
 
   const completedChecklistCount = createDerived(
@@ -104,7 +109,7 @@ export function useHealthScore(
     [checklistItems],
   );
   // Pending auto items (gas before connect) are excluded from the denominator so
-  // the score reflects only items that can actually be evaluated/acted on.
+  // progress reflects only items that can actually be evaluated or acted on.
   const totalChecklistCount = createDerived(
     () => checklistItems.get().filter((item) => !item.pending).length,
     [checklistItems],
@@ -117,25 +122,24 @@ export function useHealthScore(
   }, [completedChecklistCount, totalChecklistCount]);
 
   const riskLabel = createDerived(() => {
-    if (safetyScore.get() >= 80) return t("riskLow");
-    if (safetyScore.get() >= 50) return t("riskMedium");
-    return t("riskHigh");
-  }, [safetyScore]);
+    if (completedChecklistCount.get() === 0) return t("reviewNotStarted");
+    if (completedChecklistCount.get() >= totalChecklistCount.get()) return t("reviewComplete");
+    return t("reviewInProgress");
+  }, [completedChecklistCount, totalChecklistCount]);
 
   const riskClass = createDerived(() => {
-    if (safetyScore.get() >= 80) return "risk-low";
-    if (safetyScore.get() >= 50) return "risk-medium";
-    return "risk-high";
-  }, [safetyScore]);
+    if (completedChecklistCount.get() === 0) return "review-empty";
+    if (completedChecklistCount.get() >= totalChecklistCount.get()) return "review-complete";
+    return "review-progress";
+  }, [completedChecklistCount, totalChecklistCount]);
 
   const riskIcon = createDerived(() => {
-    if (safetyScore.get() >= 80) return "check-circle";
-    if (safetyScore.get() >= 50) return "alert-circle";
-    return "alert-circle";
-  }, [safetyScore]);
+    if (completedChecklistCount.get() >= totalChecklistCount.get()) return "check-circle";
+    return "clipboard-check";
+  }, [completedChecklistCount, totalChecklistCount]);
 
-  // Per-item recommendation keys so the panel and the score/risk chip always
-  // agree: every unchecked (non-pending) item contributes a recommendation.
+  // Per-item recommendation keys so the panel and progress status always agree:
+  // every unchecked (non-pending) item contributes a recommendation.
   const RECOMMENDATION_KEY_BY_ID = {
     backup: "recommendationBackup",
     permissions: "recommendationPermissions",
@@ -148,7 +152,7 @@ export function useHealthScore(
     const items: string[] = [];
     // The auto GAS item is only actionable once connected; surface its
     // recommendation only then (a disconnected user can't act on balance).
-    if (isConnected.get() && !gasOk.get()) items.push(t("recommendationGasLow"));
+    if (hasBalanceEvidence.get() && !gasOk.get()) items.push(t("recommendationGasLow"));
     for (const item of checklistBase) {
       if (item.id === "gas") continue;
       const key = RECOMMENDATION_KEY_BY_ID[item.id as keyof typeof RECOMMENDATION_KEY_BY_ID];
@@ -157,24 +161,39 @@ export function useHealthScore(
       }
     }
     return items;
-  }, [checklistRevision, gasOk, isConnected]);
+  }, [checklistRevision, gasOk, hasBalanceEvidence]);
 
   const loadChecklist = () => {
-    const result = storage.get<Record<string, unknown>>(checklistStorageKey);
-    if (result && typeof result === "object") {
-      Object.keys(result).forEach((key) => {
-        checklistState[key] = Boolean(result[key]);
-      });
-      notifyChecklistChanged();
+    try {
+      const result = storage.get<Record<string, unknown>>(checklistStorageKey);
+      if (result && typeof result === "object" && !Array.isArray(result)) {
+        for (const id of manualChecklistIds) {
+          if (typeof result[id] === "boolean") checklistState[id] = result[id];
+        }
+        notifyChecklistChanged();
+      }
+      storageAvailable.set(true);
+    } catch {
+      storageAvailable.set(false);
     }
   };
 
   const saveChecklist = () => {
-    storage.set(checklistStorageKey, { ...checklistState });
+    try {
+      const persisted = Object.fromEntries(
+        [...manualChecklistIds]
+          .filter((id) => id in checklistState)
+          .map((id) => [id, checklistState[id] === true]),
+      );
+      storage.set(checklistStorageKey, persisted);
+      storageAvailable.set(true);
+    } catch {
+      storageAvailable.set(false);
+    }
   };
 
   const toggleChecklist = (id: string) => {
-    if (id === "gas") return;
+    if (!manualChecklistIds.has(id)) return;
     checklistState[id] = !checklistState[id];
     notifyChecklistChanged();
     saveChecklist();
@@ -188,6 +207,7 @@ export function useHealthScore(
     riskLabel,
     riskClass,
     riskIcon,
+    storageAvailable,
     recommendations,
     loadChecklist,
     saveChecklist,

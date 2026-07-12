@@ -12,3 +12,8 @@ Included files:
 - platform-grass-small.webp
 - cloud.webp
 - carrot-gold.webp
+
+Project compositions derived from the same CC0 artwork:
+
+- `../banner.webp` and `../banner.avif`
+- `../logo.webp` and `../logo.avif`

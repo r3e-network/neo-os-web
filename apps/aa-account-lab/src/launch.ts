@@ -14,7 +14,6 @@ export function getAccountLabLaunchDefaults(
       "accountId",
       "accountIdHash",
       "account",
-      "seed",
     ]),
     verifierHash: getLaunchParam(launchContext, [
       "verifierHash",

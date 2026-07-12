@@ -63,3 +63,36 @@ test(
     assert.deepEqual(generatedCatalog, canonicalCatalog);
   }
 );
+
+test(
+  'generated Morpheus signer roles stay synchronized with the canonical public identities',
+  { skip: !fs.existsSync(oracleRoot) },
+  () => {
+    const generated = parseGeneratedJsonExport(
+      path.join(repoRoot, 'apps/shared/constants/generated-morpheus-signer-registry.ts'),
+      'MORPHEUS_PUBLIC_SIGNER_REGISTRY'
+    );
+    const source = JSON.parse(
+      fs.readFileSync(path.join(oracleRoot, 'config/signer-identities.json'), 'utf8')
+    );
+    const canonical = Object.fromEntries(['mainnet', 'testnet'].map((network) => {
+      const roles = source.neo_n3[network].roles;
+      const role = (name) => ({
+        address: roles[name].address,
+        scriptHash: roles[name].script_hash.toLowerCase(),
+        publicKey: roles[name].public_key.toLowerCase(),
+      });
+      return [network, {
+        worker: role('worker'),
+        oracleVerifier: role('oracle_verifier'),
+      }];
+    }));
+
+    assert.deepEqual(generated, canonical);
+    assert.notEqual(
+      generated.mainnet.worker.publicKey,
+      generated.mainnet.oracleVerifier.publicKey,
+      'mainnet result signer and fulfillment verifier are intentionally separate roles'
+    );
+  }
+);

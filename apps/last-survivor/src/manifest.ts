@@ -10,7 +10,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // ── Identity ─────────────────────────────────────────────────────────
   name: "Last Survivor",
-  description: "Last buyer wins the entire prize pool",
+  description: "Reclaim the final seat from local rivals before the clock reaches zero",
   icon: "skull",
   category: "game",
   // "game" shell renders the focused two-CTA launcher entry (the only shell the
@@ -18,9 +18,44 @@ export const manifest: MiniAppManifest = {
   // reach players, and consistent with every other guest-enabled game.
   shell: "game",
 
-  // Two-mode entry: primary "Earn GAS" (GameFi) + secondary "Play free" (Guest).
-  // Guest is a purely local doomsday-clock drill — no token, oracle, or chain.
+  // The free local drill is production-ready. New paid rounds remain hidden
+  // until the refreshed frontend wallet/recovery build receives a complete
+  // two-wallet browser pass. The v1.1 contract itself has already passed the
+  // TestNet buy -> expiry -> settle -> withdraw harness; runtime guards remain
+  // independent of launcher visibility.
+  supportsGameFi: false,
   supportsGuest: true,
+
+  gamePage: {
+    categoryColor: "#F59E0B",
+    appIcon: "skull",
+    modes: { guest: true, gamefi: false },
+    heroBadgeKey: "guestBadge",
+    heroTitleKey: "guestStageTitle",
+    heroTitleAccent: "guestStageTitle",
+    heroDescKey: "guestStageSubtitle",
+    primaryLabelKey: "guestPressToStay",
+    ghostLabelKey: "rulesTitle",
+    featuresEyebrowKey: "guestBadge",
+    featuresTitleKey: "guestBoardTitle",
+    features: [
+      {
+        titleKey: "guestRuleDeposit",
+        descKey: "guestRuleDepositDesc",
+        large: true,
+        gradient: "linear-gradient(135deg, #FFF8E7 0%, #FDE68A 48%, #FB923C 100%)",
+      },
+      { titleKey: "ruleTimer", descKey: "guestRuleTimerDesc" },
+      { titleKey: "guestYouLeader", descKey: "guestRuleWinDesc" },
+    ],
+    lbEyebrowKey: "guestBadge",
+    lbTitleKey: "guestBoardTitle",
+    lbScoreLabelKey: "guestStreakLabel",
+    ctaTitleKey: "guestStageTitle",
+    ctaDescKey: "guestStageSubtitle",
+    ctaLabelKey: "guestPressToStay",
+    trustBadgeKeys: ["guestBadge", "gameFiValidationShort", "guestStreakLabel"],
+  },
 
   // ── Tabs ──────────────────────────────────────────────────────────────
   tabs: [
@@ -52,8 +87,8 @@ export const manifest: MiniAppManifest = {
   // ── Features ──────────────────────────────────────────────────────────
   features: {
     fireworks: true,
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
   },
 
   // ── Docs ──────────────────────────────────────────────────────────────
@@ -68,6 +103,6 @@ export const manifest: MiniAppManifest = {
 
   // ── Permissions ───────────────────────────────────────────────────────
   permissions: {
-    payments: true,
+    payments: false,
   },
 };

@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="snake-bounty-phaser-host" />;
     },
@@ -40,9 +38,22 @@ function t(key: string, params?: Record<string, string | number>) {
     difficulty_hard: "Apex Trail",
     drawerTitle: "Leaderboard & rules",
     drawerTitleShort: "Rules",
+    directionUp: "Move up",
+    directionLeft: "Move left",
+    directionDown: "Move down",
+    directionRight: "Move right",
     expiredBanner: "That game expired",
     fairnessCopy: "TEE food placements stay private.",
     fairnessShort: "TEE food placements stay private.",
+    gameAriaLabel: "Snake Bounty arcade game",
+    gameLoadingLabel: "Opening bounty trail",
+    guestGameOverBtn: "Play again",
+    guestModeLine: "Free local play",
+    guestRewardBadge: "Local practice run",
+    guestTargetMetric: "Target",
+    guestBestMetric: "Best",
+    guestBestLabel: "Best length",
+    guestCells: "{count} cells",
     lobbyTitle: "Open the bounty trail",
     networkBadge: "Neo N3",
     playingTitle: "{difficulty} game in play",
@@ -68,6 +79,7 @@ function t(key: string, params?: Record<string, string | number>) {
     submitAction: "Submit win",
     timeUpAction: "Time is up",
     timeUpHint: "Release this expired run.",
+    touchControlsLabel: "Snake direction controls",
     withdrawAction: "Withdraw {amount} GAS",
     withdrawHint: "Withdraw winnings.",
   };
@@ -99,6 +111,9 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     progressionReady: true,
     progressionRequiredDifficulty: 0,
     walletConnected: true,
+    appMode: "gamefi",
+    currentLength: 3,
+    snakeDead: false,
   };
   return Object.fromEntries(
     Object.entries({ ...base, ...overrides }).map(([key, value]) => [key, createObservable(value)]),
@@ -172,9 +187,50 @@ describe("snake-bounty Phaser playarea", () => {
     expect(queryByText("Release game")).toBeNull();
     fireEvent.click(getByRole("button", { name: /Rules/i }));
     expect(container.querySelector(".snake-ingame-drawer")).toBeTruthy();
+    const scrim = container.querySelector<HTMLElement>(".snake-ingame-scrim");
+    expect(scrim).toBeTruthy();
+    const pausedProps = mocks.phaserGame.mock.calls.at(-1)?.[0] as { state: Record<string, unknown> };
+    expect(pausedProps.state.uiPaused).toBe(true);
     expect(getByText("Retry sealing")).toBeTruthy();
-    expect(getByText("Release game")).toBeTruthy();
+    expect(queryByText("Release game")).toBeNull();
     expect(queryByText("Start hunt")).toBeNull();
+    fireEvent.mouseDown(scrim!);
+    expect(container.querySelector(".snake-ingame-drawer")).toBeNull();
+  });
+
+  it("exposes semantic mobile steering and a keyboard-accessible guest restart", () => {
+    const dispatch = vi.fn();
+    const { getByRole, rerender } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          gameStatus: "dealt",
+          deadline: Date.now() + 120_000,
+          dealtAt: Date.now(),
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Move up" }));
+    expect(dispatch).toHaveBeenCalledWith("steerSnake", { dir: 0 });
+
+    rerender(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          gameStatus: "dealt",
+          deadline: Date.now() + 120_000,
+          dealtAt: Date.now(),
+          snakeDead: true,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(getByRole("button", { name: "Play again" }));
+    expect(dispatch).toHaveBeenCalledWith("expireGame", {});
   });
 
   it("keeps the score strip and secondary controls inside the centered stage shell", () => {
@@ -182,15 +238,51 @@ describe("snake-bounty Phaser playarea", () => {
       ? process.cwd()
       : resolve(process.cwd(), "apps/shared");
     const styles = readFileSync(
-      resolve(sharedRoot, "../snake-bounty/src/PlayArea.scss"),
+      resolve(sharedRoot, "../snake-bounty/src/PhaserPlayArea.scss"),
       "utf8",
     );
 
     expect(styles).toContain(".snake-stage-shell");
     expect(styles).toContain(".snake-stage-hud");
     expect(styles).toContain(".snake-ingame-drawer");
+    expect(styles).toContain(".snake-playarea .mx2-stage__head");
+    expect(styles).toContain("display: none");
     expect(styles).toContain("min-height: 100dvh");
     expect(styles).not.toContain(".snake-playstage > .mx2-score");
     expect(styles).not.toContain(".snake-playstage > .mx2-action-rail");
+  });
+
+  it("renders the core snake from authored sprite resources with safe motion cleanup", () => {
+    const sharedRoot = process.cwd().endsWith("/apps/shared")
+      ? process.cwd()
+      : resolve(process.cwd(), "apps/shared");
+    const scene = readFileSync(
+      resolve(sharedRoot, "../snake-bounty/src/scenes/SnakeScene.ts"),
+      "utf8",
+    );
+    const drawSnake = scene.slice(
+      scene.indexOf("private drawSnake("),
+      scene.indexOf("// ── Draw: food"),
+    );
+
+    expect(scene).toContain('this.load.image(SNAKE_ASSETS.head, "./art/snake-head.webp")');
+    expect(scene).toContain('this.load.image(SNAKE_ASSETS.body, "./art/snake-body-straight.webp")');
+    expect(scene).toContain('this.load.image(SNAKE_ASSETS.tail, "./art/snake-tail.webp")');
+    expect(scene).toContain('this.load.image(SNAKE_ASSETS.boundary, "./art/boundary-wall.jpg")');
+    expect(scene).toContain("SNAKE_ASSETS.reward");
+    expect(scene).toContain("SNAKE_ASSETS.target");
+    expect(scene).toContain(".setDepth(200)");
+    expect(drawSnake).toContain("this.add.image(0, 0, SNAKE_ASSETS.body)");
+    expect(drawSnake).toContain(".setTexture(SNAKE_ASSETS.head)");
+    expect(drawSnake).toContain(".setTexture(SNAKE_ASSETS.tail)");
+    expect(drawSnake).toContain("configureTurnBranch");
+    expect(drawSnake).toContain("duration: SNAKE_MOVE_MS");
+    expect(drawSnake).toContain("if (this.reducedMotion)");
+    expect(drawSnake).toContain("!this.tweens.isTweening(view.container)");
+    expect(drawSnake).not.toMatch(/fill(?:Rounded)?Rect\(/);
+    expect(scene).toContain("Phaser.Scenes.Events.SHUTDOWN, this.destroySnakeSprites");
+    expect(scene).toContain("Phaser.Scenes.Events.DESTROY, this.destroySnakeSprites");
+    expect(scene).toContain("this.tweens?.killTweensOf(view.container)");
+    expect(scene).toContain("view.container.destroy(true)");
   });
 });

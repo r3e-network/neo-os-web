@@ -8,122 +8,16 @@
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
-  name: "Neo Pay",
+  name: "NeoPay",
   description: "Create and manage streaming payment vaults",
   icon: "credit-card",
   category: "defi",
   shell: "launcher",
 
-  tabs: [
-    { key: "create", labelKey: "createTab", icon: "plus", default: true },
-  ],
-
-  stats: [
-    { labelKey: "myCreated", valueKey: "createdStreamCount", format: "number", icon: "upload" },
-    { labelKey: "beneficiaryVaults", valueKey: "beneficiaryStreamCount", format: "number", icon: "download" },
-    { labelKey: "statusActive", valueKey: "activeCount", format: "number", variant: "accent", icon: "play" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "myCreated", valueKey: "createdStreamCount", format: "number" },
-      { labelKey: "beneficiaryVaults", valueKey: "beneficiaryStreamCount", format: "number" },
-      { labelKey: "statusActive", valueKey: "activeCount", format: "number" },
-    ],
-  },
-
-  operations: [
-    {
-      key: "createStream",
-      titleKey: "createStream",
-      descriptionKey: "createStreamDescription",
-      actionKey: "createStream",
-      actionMethod: "createStream",
-      priority: "primary",
-      fields: [
-        {
-          key: "recipient",
-          type: "address",
-          labelKey: "recipient",
-          placeholder: "N...",
-          required: true,
-        },
-        {
-          key: "amount",
-          type: "amount",
-          labelKey: "amount",
-          placeholder: "0.03",
-          required: true,
-          validation: { min: 0.00000001 },
-        },
-        {
-          key: "duration",
-          type: "number",
-          labelKey: "duration",
-          placeholder: "7",
-          required: true,
-          validation: { min: 1, max: 365 },
-        },
-        {
-          // GAS and NEO are both supported by the standalone MiniAppNeoPay
-          // contract: it takes base-unit deposits for either token (GAS scaled
-          // by 1e8, NEO as an indivisible integer count). GAS is the default.
-          key: "token",
-          type: "select",
-          labelKey: "token",
-          default: "GAS",
-          required: true,
-          options: [
-            { value: "GAS", label: "GAS" },
-            { value: "NEO", label: "NEO" },
-          ],
-        },
-        {
-          key: "notes",
-          type: "text",
-          labelKey: "notes",
-          placeholder: "Optional context",
-        },
-      ],
-    },
-    {
-      key: "claimStream",
-      titleKey: "claim",
-      descriptionKey: "claimStreamDescription",
-      actionKey: "claim",
-      actionMethod: "claimStream",
-      priority: "secondary",
-      fields: [
-        {
-          key: "streamId",
-          type: "number",
-          labelKey: "streamId",
-          placeholder: "1",
-          required: true,
-          validation: { min: 1 },
-        },
-      ],
-    },
-    {
-      key: "cancelStream",
-      titleKey: "cancel",
-      descriptionKey: "cancelStreamDescription",
-      actionKey: "cancel",
-      actionMethod: "cancelStream",
-      priority: "operator",
-      fields: [
-        {
-          key: "streamId",
-          type: "number",
-          labelKey: "streamId",
-          placeholder: "1",
-          required: true,
-          validation: { min: 1 },
-        },
-      ],
-    },
-  ],
+  // The designed payment ticket owns creation, claiming, cancellation, and
+  // recovery. Generic operation forms would duplicate the same writes and
+  // flatten the first screen back into a questionnaire.
+  operations: [],
 
   features: { walletRequired: true, chainWarning: true },
 

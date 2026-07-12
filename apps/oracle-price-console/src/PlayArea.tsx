@@ -4,7 +4,7 @@
  * a clean market visual, and a compact watchlist. Fetch is primary; contract
  * and reference details stay tucked behind drawer tabs.
  */
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { LineChart, RadioTower, ShieldCheck, type LucideIcon } from "lucide-react";
 import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -12,7 +12,7 @@ import type { Observable } from "@shared/react/context";
 import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, PlayStage } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
-interface PlayAreaProps { t: (key: string, p?: Record<string, string | number>) => string; state: Record<string, Observable>; dispatch: (n: string, ...a: unknown[]) => Promise<void>; }
+interface PlayAreaProps { t: (key: string, p?: Record<string, string | number>) => string; state: Record<string, Observable>; dispatch: (n: string, ...a: unknown[]) => Promise<unknown>; }
 
 const ASSETS = ["NEO", "GAS", "BTC"];
 const MARKET_STAGE_IMAGE = "oracle-market-stage.webp";
@@ -43,6 +43,9 @@ function assetCoinVariant(symbol: string): "neo" | "gas" | null {
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("signal");
+  const dispatchSafely = useCallback((name: string, ...args: unknown[]) => {
+    void dispatch(name, ...args).catch(() => undefined);
+  }, [dispatch]);
   const asset = str("asset", "NEO");
   const priceDisplay = str("priceDisplay", t("notAvailable"));
   const networkDisplay = str("networkDisplay", "");
@@ -51,17 +54,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const sourceLabel = str("sourceLabel", "");
   const errorMsg = str("errorMsg", "");
   const isRequesting = bool("isRequesting");
+  const freshness = str("freshness", "idle");
   const freshnessLabel = str("freshnessLabel", t("priceStatusReady"));
   const freshnessTimestamp = str("freshnessTimestamp", "");
+  const sourceFreshness = str("sourceFreshness", "idle");
+  const sourceFreshnessLabel = str("sourceFreshnessLabel", t("sourceTimestampPending"));
+  const sourceTimestampDisplay = str("sourceTimestampDisplay", "");
+  const feedKey = str("feedKey", "");
+  const rpcEndpoint = str("rpcEndpoint", "");
   const availablePairs = (val("availablePairs") ?? []) as string[];
-  const pairOptions = (availablePairs.length > 0 ? availablePairs : ASSETS).slice(0, 6);
+  const pairOptions = [...new Set([asset, ...(availablePairs.length > 0 ? availablePairs : ASSETS)])]
+    .filter((symbol) => /^[A-Z0-9]{1,12}$/.test(symbol))
+    .slice(0, 6);
   const feedContractLabel = datafeedShort || datafeedHash || t("priceRouteFeedPending");
   const activeCoinVariant = assetCoinVariant(asset);
   const routeState = isRequesting
     ? t("priceRouteReading")
-    : freshnessTimestamp
+    : freshness === "fresh"
       ? t("priceStatusLive")
-      : t("priceRouteQueued");
+      : freshness === "stale"
+        ? freshnessLabel
+        : t("priceRouteQueued");
   const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; icon: LucideIcon }> = [
     { mode: "signal", label: t("priceSignalTitle"), value: priceDisplay, icon: LineChart },
     { mode: "contract", label: t("feedTicketContract"), value: feedContractLabel, icon: RadioTower },
@@ -75,7 +88,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const ActiveDrawerIcon = activeDrawerMode.icon;
 
   const scene = (
-    <div className="price-station" data-state={isRequesting ? "fetching" : errorMsg ? "error" : freshnessTimestamp ? "live" : "idle"}>
+    <div
+      className="price-station"
+      data-state={isRequesting ? "fetching" : errorMsg ? "error" : freshness === "fresh" ? "live" : freshness === "stale" ? "stale" : "idle"}
+      aria-busy={isRequesting}
+    >
       <section className="price-ticket" aria-label={t("marketBoardTitle")}>
         {activeCoinVariant && <CoinArt className="price-ticket__watermark" size={116} variant={activeCoinVariant} decorative />}
         <div className="price-ticket__head">
@@ -94,7 +111,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="price-ticket__dot" />
             {freshnessLabel}
           </span>
-          <span>{sourceLabel || t("priceRouteSourceFallback")}</span>
+          <span data-tone={sourceFreshness === "stale" ? "warning" : undefined}>{sourceFreshnessLabel || sourceLabel || t("priceRouteSourceFallback")}</span>
         </div>
         {errorMsg && <p className="price-ticket__error" role="alert">{errorMsg}</p>}
       </section>
@@ -123,8 +140,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               key={sym}
               type="button"
               className={["price-pair-card", active ? "price-pair-card--active" : null].filter(Boolean).join(" ")}
-              onClick={() => void dispatch("updateAsset", sym)}
-              disabled={isRequesting}
+              onClick={() => dispatchSafely("updateAsset", sym)}
               aria-pressed={active}
             >
               <span className="price-pair-card__icon">
@@ -148,14 +164,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div><dt>{t("latestPrice")}</dt><dd>{priceDisplay}</dd></div>
         <div><dt>{t("freshnessLabel")}</dt><dd>{freshnessLabel}</dd></div>
         <div><dt>{t("sourceLabel")}</dt><dd>{sourceLabel || t("priceRouteSourceFallback")}</dd></div>
-        {freshnessTimestamp && <div><dt>{t("ageJustNow")}</dt><dd>{freshnessTimestamp}</dd></div>}
+        <div><dt>{t("resolvedFeedKey")}</dt><dd>{feedKey ? <code>{feedKey}</code> : t("feedRoutePending")}</dd></div>
+        {freshnessTimestamp && <div><dt>{t("recordTimestampLabel")}</dt><dd>{freshnessTimestamp}</dd></div>}
+        <div data-tone={sourceFreshness === "stale" ? "warning" : undefined}><dt>{t("sourceTimestampLabel")}</dt><dd>{sourceTimestampDisplay || sourceFreshnessLabel}</dd></div>
       </dl>
     ),
     contract: (
       <dl className="price-drawer-list">
-        <div><dt>{t("feedTicketContract")}</dt><dd>{feedContractLabel}</dd></div>
-        <div><dt>{t("priceReferenceContract")}</dt><dd>{datafeedHash ? <code>{datafeedShort || datafeedHash}</code> : t("priceRouteFeedPending")}</dd></div>
-        <div><dt>{t("priceRouteFeed")}</dt><dd>{datafeedHash || t("priceRouteFeedPending")}</dd></div>
+        <div><dt>{t("priceMetricNetwork")}</dt><dd>{networkDisplay || "—"}</dd></div>
+        <div><dt>{t("priceReferenceContract")}</dt><dd>{datafeedHash ? <code>{datafeedHash}</code> : t("priceRouteFeedPending")}</dd></div>
+        <div><dt>{t("resolvedFeedKey")}</dt><dd>{feedKey ? <code>{feedKey}</code> : t("feedRoutePending")}</dd></div>
+        <div><dt>{t("rpcEndpointLabel")}</dt><dd>{rpcEndpoint ? <code>{rpcEndpoint}</code> : t("priceRouteFeedPending")}</dd></div>
       </dl>
     ),
     reference: (
@@ -179,16 +198,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {networkDisplay || "—"}</span>,
           }}
           scene={<div className="price-stage-stack">{scene}{controls}</div>}
-          actions={{ primary: { label: isRequesting ? t("readingPair", { pair: asset }) : t("fetchPair", { pair: asset }), onClick: () => void dispatch("fetchPrice"), loading: isRequesting, disabled: isRequesting } }}
-          drawerToggleLabel={t("feedTicketContract")}
+          actions={{ primary: { label: isRequesting ? t("readingPair", { pair: asset }) : t("fetchPair", { pair: asset }), onClick: () => dispatchSafely("fetchPrice"), loading: isRequesting, disabled: isRequesting } }}
+          drawerToggleLabel={t("feedDetails")}
           drawer={{
-            title: t("feedTicketContract"),
+            title: t("feedDetails"),
             children: (
               <div className="price-drawer">
                 <OpenUiSegmented
                   className="price-drawer-tabs"
                   segmentedClassName="price-drawer-tabs__group"
-                  label={t("feedTicketContract")}
+                  label={t("feedDetails")}
                   value={drawerMode}
                   onChange={setDrawerModeSafe}
                   options={drawerModes.map((item) => ({

@@ -3,9 +3,9 @@
   "id": "miniapp-explorer",
   "name": "Block Explorer",
   "name_zh": "区块浏览器",
-  "version": "1.0.0",
-  "description": "Explore Neo N3 blockchain - transactions, addresses, contracts",
-  "description_zh": "区块链浏览器 — Neo N3 链上数据查询与交易追踪工具",
+  "version": "1.1.0",
+  "description": "Search Neo N3 blocks, transactions, addresses, and contracts with source-qualified live data.",
+  "description_zh": "查询 Neo N3 区块、交易、地址和合约，并明确展示实时数据来源。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -22,7 +22,8 @@
   },
   "contracts": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
@@ -31,7 +32,6 @@
     "banner": "/miniapps/explorer/banner.webp"
   },
   "permissions": [
-    "invoke:primary",
     "read:blockchain"
   ],
   "features": {
@@ -42,46 +42,17 @@
   "stateSource": {
     "type": "api",
     "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
-  "operation_panel": {
-    "title": "Explorer Search",
-    "subtitle": "Run a live chain lookup from the right console. Results render in the central playarea.",
-    "operations": [
-      {
-        "name": "Search Chain",
-        "method": "explorerSearch",
-        "description": "Search a block height, transaction hash, address, or contract hash against the selected network.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "network",
-            "type": "select",
-            "label": "Network",
-            "default_value": "mainnet",
-            "options": [
-              { "label": "Mainnet", "value": "mainnet" },
-              { "label": "Testnet", "value": "testnet" }
-            ]
-          },
-          {
-            "name": "query",
-            "type": "string",
-            "label": "Search query",
-            "placeholder": "Block height, tx hash, address, or contract",
-            "required": true
-          }
-        ]
-      }
+      "https://neomini.app/api/explorer",
+      "https://mainnet2.neo.coz.io:443",
+      "https://testnet1.neo.coz.io:443"
     ]
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-28T21:07:41Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

@@ -5,7 +5,7 @@
  * set a time lock, then seal. Lists, tips, and recovery actions stay tucked in
  * the drawer so the first screen feels like an app, not a survey form.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   CalendarClock,
   Eye,
@@ -19,17 +19,19 @@ import {
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
+import { CoinArt } from "@shared/art";
 import {
-  OpenUiPanel,
-  OpenUiProvider,
-  OpenUiSegmented,
-  OpenUiTextArea,
-  OpenUiTextField,
-  PlayStage,
-} from "@shared/components-react/v2";
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextArea as OpenUiTextArea,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import type { Capsule, CapsuleFormData } from "./composables/useTimeCapsule";
-import tokenArtUrl from "./time-capsule-token-cutout.webp";
 import "./PlayArea.scss";
+
+const stageArtUrl = new URL("../public/time-capsule-stage.webp", import.meta.url).href;
 
 interface PlayAreaProps {
   t: (key: string, p?: Record<string, string | number>) => string;
@@ -55,7 +57,7 @@ const CATEGORY_OPTIONS = [
   { value: 5, key: "categorySecretShort", hintKey: "categorySecretHint", icon: EyeOff },
 ];
 
-const DAY_PRESETS = ["30", "90", "365", "1825"];
+const DAY_PRESETS = ["30", "365", "1825"];
 const MIN_DAYS = 1;
 const MAX_DAYS = 3650;
 
@@ -102,6 +104,16 @@ function shortDate(timestamp: unknown): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+function remainingTime(timestamp: number, now: number, t: PlayAreaProps["t"]): string {
+  const milliseconds = Math.max(0, timestamp - now);
+  if (milliseconds <= 0) return t("readyToOpen");
+  const days = Math.floor(milliseconds / 86_400_000);
+  const hours = Math.floor((milliseconds % 86_400_000) / 3_600_000);
+  if (days > 0) return t("countdownDaysHours", { days, hours });
+  const minutes = Math.max(1, Math.ceil(milliseconds / 60_000));
+  return t("countdownHoursMinutes", { hours, minutes: minutes % 60 });
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
   const isLoading = bool("isLoading");
@@ -114,24 +126,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const capsules = val<Capsule[]>("capsules", []) ?? [];
   const fishCandidates = val<Capsule[]>("fishCandidates", []) ?? [];
   const isLoadingCandidates = bool("isLoadingCandidates");
+  const isRecovering = bool("isRecovering");
+  const capsulesSource = str("capsulesSource", "none");
+  const candidatesSource = str("candidatesSource", "none");
+  const creditSource = str("creditSource", "none");
+  const transactionNotice = str("transactionNotice", "");
+  const storageHealthy = bool("storageHealthy");
+  const pendingOperation = val<{ kind?: string; txid?: string; paymentTxid?: string } | null>("pendingOperation", null);
 
   const [form, setForm] = useState<CapsuleFormData>(() =>
     normalizeCapsuleForm(state.newCapsule?.get()),
   );
-  const [createPreview, setCreatePreview] = useState(false);
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("settings");
-  const createPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const unsubscribe = state.newCapsule?.subscribe(() => {
       const next = normalizeCapsuleForm(state.newCapsule?.get());
       setForm((current) => (formsEqual(current, next) ? current : next));
     });
-    return () => {
-      unsubscribe?.();
-      if (createPreviewTimeout.current) clearTimeout(createPreviewTimeout.current);
-    };
+    return () => unsubscribe?.();
   }, [state]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     state.newCapsule?.set(form);
@@ -157,9 +177,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
   };
 
-  const canCreate = form.title.trim() !== "" && form.content.trim() !== "";
+  const writeLocked = isCreating || Boolean(pendingOperation);
+  const canCreate = storageHealthy && !pendingOperation && form.title.trim() !== "" && form.content.trim() !== "";
   const contentChars = form.content.trim().length;
-  const isSealing = isCreating || createPreview;
+  const isSealing = isCreating;
   const sceneState = isSealing
     ? "sealing"
     : canCreate
@@ -172,27 +193,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const SelectedCategoryIcon = selectedCategory?.icon ?? UserRound;
   const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; Icon: LucideIcon }> = [
     { mode: "settings", label: t("drawerSeal"), value: `${daysNumber} ${t("daysShort")}`, Icon: CalendarClock },
-    { mode: "capsules", label: t("drawerCapsules"), value: String(totalCapsules || capsules.length), Icon: ScrollText },
-    { mode: "public", label: t("drawerPublic"), value: String(fishCandidates.length), Icon: Sparkles },
-    { mode: "deposit", label: t("drawerDeposit"), value: hasCredit ? `${reusableCredit} GAS` : t("depositShortNote"), Icon: Gift },
+    { mode: "capsules", label: t("drawerCapsules"), value: capsulesSource === "chain" ? String(totalCapsules) : t("unavailableShort"), Icon: ScrollText },
+    { mode: "public", label: t("drawerPublic"), value: candidatesSource === "chain" ? String(fishCandidates.length) : t("unavailableShort"), Icon: Sparkles },
+    { mode: "deposit", label: t("drawerDeposit"), value: creditSource === "failed" ? t("unavailableShort") : hasCredit ? `${reusableCredit} GAS` : t("depositShortNote"), Icon: Gift },
   ];
   // drawerModes is a fixed 4-entry literal — index 0 always exists; the
   // assertion satisfies noUncheckedIndexedAccess.
   const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.Icon;
 
-  const startCreatePreview = () => {
-    if (createPreviewTimeout.current) clearTimeout(createPreviewTimeout.current);
-    setCreatePreview(true);
-    createPreviewTimeout.current = setTimeout(() => {
-      setCreatePreview(false);
-      createPreviewTimeout.current = null;
-    }, 1300);
-  };
-
   const handleCreate = () => {
     if (!canCreate || isBusy) return;
-    startCreatePreview();
     void dispatch("createCapsule", form);
   };
 
@@ -200,17 +211,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     <div className="capsule-scene" data-state={sceneState}>
       <div className="capsule-scene__chamber" aria-label={t("heroStageAlt")}>
         <img
-          className="capsule-scene__token"
-          src={tokenArtUrl}
-          alt={t("title")}
+          className="capsule-scene__stage-image"
+          src={stageArtUrl}
+          alt={t("heroStageAlt")}
           draggable={false}
         />
-        <div className="capsule-scene__orbit" aria-hidden="true" />
-      </div>
-      <div className="capsule-scene__lock-strip" aria-hidden="true">
-        <span className="capsule-scene__lock-dot" />
-        <span className="capsule-scene__lock-line" />
-        <span className="capsule-scene__lock-dot" />
       </div>
       <div className="capsule-scene__hud" aria-label={t("sealPreview")}>
         <span><CalendarClock size={14} />{daysNumber} {t("daysShort")}</span>
@@ -243,7 +248,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onChange={(event) => updateForm("title", event.target.value)}
               placeholder={t("titlePlaceholder")}
               label={t("titleLabel")}
-              disabled={isCreating}
+              disabled={writeLocked}
               maxLength={100}
             />
             <OpenUiTextArea
@@ -253,7 +258,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               onChange={(event) => updateForm("content", event.target.value)}
               placeholder={t("secretMessagePlaceholder")}
               label={t("secretMessage")}
-              disabled={isCreating}
+              disabled={writeLocked}
               rows={3}
             />
           </div>
@@ -274,7 +279,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           onChange={setDayPreset}
           options={DAY_PRESETS.map((days) => ({
             value: days,
-            disabled: isCreating,
+            disabled: writeLocked,
             label: (
               <span className="capsule-lock-option">
                 <strong>{days}</strong>
@@ -284,29 +289,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           }))}
           segmentedClassName="capsule-lock-presets__group"
           value={form.days}
-        />
-        <OpenUiSegmented
-          className="capsule-visibility capsule-visibility--compact"
-          label={t("visibility")}
-          onChange={setVisibility}
-          options={[
-            { value: "private", label: t("private"), icon: EyeOff },
-            { value: "public", label: t("public"), icon: Eye },
-          ].map((option) => {
-            const Icon = option.icon;
-            return {
-              value: option.value,
-              disabled: isCreating,
-              label: (
-                <span className="capsule-visibility-option">
-                  <Icon size={15} />
-                  <span>{option.label}</span>
-                </span>
-              ),
-            };
-          })}
-          segmentedClassName="capsule-visibility__group"
-          value={form.isPublic ? "public" : "private"}
         />
         <div className="capsule-seal-summary">
           <span><CalendarClock size={13} />{daysNumber} {t("daysShort")}</span>
@@ -329,7 +311,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             type="button"
             aria-label={t("decreaseLockDuration")}
             onClick={() => updateForm("days", String(Math.max(MIN_DAYS, daysNumber - 1)))}
-            disabled={isCreating || daysNumber <= MIN_DAYS}
+            disabled={writeLocked || daysNumber <= MIN_DAYS}
           >
             -
           </button>
@@ -340,13 +322,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             value={form.days}
             onChange={(event) => updateForm("days", event.target.value)}
             inputMode="numeric"
-            disabled={isCreating}
+            disabled={writeLocked}
           />
           <button
             type="button"
             aria-label={t("increaseLockDuration")}
             onClick={() => updateForm("days", String(Math.min(MAX_DAYS, daysNumber + 1)))}
-            disabled={isCreating || daysNumber >= MAX_DAYS}
+            disabled={writeLocked || daysNumber >= MAX_DAYS}
           >
             +
           </button>
@@ -357,7 +339,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           onChange={setDayPreset}
           options={DAY_PRESETS.map((days) => ({
             value: days,
-            disabled: isCreating,
+            disabled: writeLocked,
             label: (
               <span className="capsule-chip-option">
                 {days}
@@ -383,7 +365,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             const Icon = cat.icon;
             return {
               value: String(cat.value),
-              disabled: isCreating,
+              disabled: writeLocked,
               label: (
                 <span className="capsule-category-option">
                   <Icon size={16} />
@@ -412,7 +394,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             { value: "public", label: t("public"), hint: t("publicHint") },
           ].map((option) => ({
             value: option.value,
-            disabled: isCreating,
+            disabled: writeLocked,
             label: (
               <span className="capsule-visibility-option capsule-visibility-option--stacked">
                 <span>{option.label}</span>
@@ -443,14 +425,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span>{t("yourCapsules")}</span>
           <strong>{capsules.length}</strong>
         </div>
-        {capsules.length > 0 ? (
+        {capsulesSource === "failed" ? (
+          <div className="capsule-source-error">
+            <strong>{t("capsuleDataUnavailable")}</strong>
+            <span>{t("capsuleDataUnavailableHint")}</span>
+          </div>
+        ) : capsules.length > 0 ? (
           <ul className="capsule-list">
             {capsules.slice(0, 10).map((cap) => (
               <li key={cap.id} className="capsule-list__item" data-revealed={cap.revealed ? "true" : undefined}>
                 <div>
                   <strong>{capsuleTitle(cap, t("untitledCapsule"))}</strong>
                   <span>
-                    {cap.revealed ? t("revealed") : cap.locked ? t("locked") : t("unlocked")}
+                    {cap.revealed ? t("revealed") : cap.locked ? remainingTime(cap.unlockTime, now, t) : t("readyToOpen")}
                     {cap.unlockTime ? ` · ${shortDate(cap.unlockTime)}` : ""}
                   </span>
                 </div>
@@ -459,8 +446,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                     type="button"
                     className="mx2-btn mx2-btn--ghost"
                     onClick={() => void dispatch("openCapsule", cap)}
+                    disabled={cap.locked || isProcessing || Boolean(pendingOperation) || !storageHealthy}
                   >
-                    {t("open")}
+                    {cap.locked ? t("sealed") : t("openAndReclaim", { amount: cap.amount })}
                   </button>
                 )}
               </li>
@@ -484,7 +472,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {isLoadingCandidates ? t("fishCandidatesLoading") : t("fishCandidatesRefresh")}
           </button>
         </div>
-        {fishCandidates.length > 0 ? (
+        {candidatesSource === "failed" ? (
+          <div className="capsule-source-error">
+            <strong>{t("publicDataUnavailable")}</strong>
+            <span>{t("publicDataUnavailableHint")}</span>
+          </div>
+        ) : fishCandidates.length > 0 ? (
           <ul className="capsule-list capsule-list--fish">
             {fishCandidates.slice(0, 6).map((cap) => (
               <li key={cap.id} className="capsule-list__item">
@@ -499,7 +492,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   type="button"
                   className="mx2-btn mx2-btn--ghost"
                   onClick={() => void dispatch("fishCapsule", cap.id)}
-                  disabled={isProcessing}
+                  disabled={isProcessing || Boolean(pendingOperation) || !storageHealthy}
                 >
                   {t("fishTipThis")}
                 </button>
@@ -514,9 +507,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     deposit: (
       <div className="capsule-drawer__panel-body" data-mode="deposit">
         <div className="capsule-deposit-card">
-          <span className="capsule-deposit-card__icon"><Gift size={18} /></span>
+          <span className="capsule-deposit-card__icon"><CoinArt variant="gas" size={24} decorative /></span>
           <span>{t("depositLabel")}</span>
-          <strong>{hasCredit ? `${reusableCredit} GAS` : t("depositShortNote")}</strong>
+          <strong>{creditSource === "failed" ? t("creditDataUnavailable") : hasCredit ? `${reusableCredit} GAS` : t("depositShortNote")}</strong>
         </div>
         <div className="capsule-drawer__summary">
           <span>{t("depositNote")}</span>
@@ -527,19 +520,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               type="button"
               className="mx2-btn mx2-btn--ghost"
               onClick={() => void dispatch("withdrawCredit")}
-              disabled={isProcessing}
+              disabled={isProcessing || Boolean(pendingOperation) || !storageHealthy}
             >
               {t("withdrawCredit")}
             </button>
           )}
-          <button
-            type="button"
-            className="mx2-btn mx2-btn--ghost"
-            onClick={() => void dispatch("withdrawFishRevenue")}
-            disabled={isProcessing}
-          >
-            {t("collectTips")}
-          </button>
         </div>
       </div>
     ),
@@ -547,9 +532,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <OpenUiProvider>
-      <div className="time-capsule-play-area mx2 mx2-cat-nft">
+      <div className="time-capsule-play-area mx2 mx2-cat-social">
         <PlayStage
-          category="nft"
+          category="social"
           stage={{
             eyebrow: t("vaultEyebrow"),
             title: isSealing ? t("creatingCapsule") : t("createCapsule"),
@@ -567,6 +552,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           scene={
             <div className="capsule-stage-stack">
               {scene}
+              {(pendingOperation || transactionNotice) && (
+                <section className="capsule-recovery" aria-live="polite">
+                  <div>
+                    <strong>{t("recoveryTitle")}</strong>
+                    <span>{transactionNotice || t("transactionPending")}</span>
+                  </div>
+                  {pendingOperation && (
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--ghost"
+                      onClick={() => void dispatch("recoverPending")}
+                      disabled={isRecovering || isBusy}
+                    >
+                      {isRecovering ? t("recoveringTransaction") : t("recoverTransaction")}
+                    </button>
+                  )}
+                </section>
+              )}
+              {!storageHealthy && (
+                <section className="capsule-storage-warning" aria-live="polite">
+                  <strong>{t("recoveryStorageUnavailableTitle")}</strong>
+                  <span>{t("recoveryStorageUnavailable")}</span>
+                </section>
+              )}
               {composer}
             </div>
           }
@@ -574,19 +583,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             primary: {
               label: isSealing ? t("creatingCapsule") : t("sealCapsuleCta"),
               onClick: handleCreate,
-              disabled: !canCreate || isBusy || createPreview,
+              disabled: !canCreate || isBusy,
               loading: isSealing,
               hint: t("depositShortNote"),
             },
-            secondary: [
-              {
-                label: t("fishCandidatesRefresh"),
-                onClick: () => void dispatch("loadFishCandidates"),
-                loading: isLoadingCandidates,
-                disabled: isProcessing,
-                hint: t("fishCandidatesHint"),
-              },
-            ],
           }}
           drawerToggleLabel={t("sealSettings")}
           drawer={{

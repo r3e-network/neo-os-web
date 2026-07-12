@@ -10,7 +10,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "Oracle Price Console",
-  description: "Query Morpheus price feed from MiniApps",
+  description: "Read exact six-decimal Morpheus price signals with inspectable aggregate and provider routes",
   icon: "trending-up",
   category: "oracle",
   shell: "console",
@@ -52,13 +52,8 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
 
-  // -- Contract ---------------------------------------------------------------
-  contract: {
-    mode: "custom",
-  },
-
   // -- Permissions ------------------------------------------------------------
   permissions: {
-    compute: true,
+    datafeed: true,
   },
 };

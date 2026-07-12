@@ -63,7 +63,7 @@ describe("Anchor stake memo alignment", () => {
       "utf8",
     );
 
-    expect(customMain).toContain("`stake:${target}`");
+    expect(customMain).toContain("`stake:${pending.intent.anchorAppId}`");
     expect(hostInvoke).toContain("`stake:${anchorOperationAppId}`");
   });
 });

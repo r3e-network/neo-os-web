@@ -15,6 +15,20 @@ function t(key: string, params?: Record<string, string | number>) {
     adminHeroTitle: "Move. Target. Vote.",
     adminHeroSubtitle: "Manual NEO routing only.",
     adminCommandCenter: "Operator command center",
+    agentTopologyTitle: "21-agent topology",
+    agentTopologySubtitle: "Every route visible at once",
+    topologyCount: "{count} routes",
+    topologyNetworkLabel: "Selectable agent topology",
+    topologyLegendLabel: "Topology legend",
+    sourceLegend: "Source",
+    targetLegend: "Target",
+    activeRouteLegend: "Active",
+    inactiveRouteLegend: "Inactive",
+    anchorHubTitle: "ProfitAnchor capital hub",
+    routePlannerTitle: "Route planner",
+    operatorVerified: "Operator verified",
+    checkingAuthority: "Checking authority",
+    agentNodeLabel: "Agent {agent}, {status}, {balance}",
     adminScope: "Admin scope",
     statsAwaitConnect: "Live route loads once an operator connects.",
     operatorRequiredEyebrow: "Read-only",
@@ -56,6 +70,8 @@ function t(key: string, params?: Record<string, string | number>) {
     selectedRoute: "Selected route",
     agentCount: "Agents",
     agentDirectoryEmpty: "No agents.",
+    agentDirectoryEmptyHint: "No routes are available.",
+    agentDirectoryLoading: "Verifying agents…",
     noneFallback: "None",
   };
   return (messages[key] ?? key).replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? ""));
@@ -88,6 +104,8 @@ describe("profitanchor-admin PlayArea", () => {
     expect(container.querySelector(".admin-scene")).toBeTruthy();
     expect(container.querySelector(".admin-command")).toBeTruthy();
     expect(container.querySelector(".admin-ledger")).toBeTruthy();
+    expect(container.querySelector(".admin-topology__network")).toBeTruthy();
+    expect(container.querySelectorAll(".admin-agent-node")).toHaveLength(3);
     expect(container.querySelector(".admin-amount-console")).toBeTruthy();
     expect(container.querySelector(".admin-amount-console__stepper")).toBeTruthy();
     expect(container.querySelector(".admin-scene__backdrop")).toBeFalsy();
@@ -96,16 +114,35 @@ describe("profitanchor-admin PlayArea", () => {
     expect(container.textContent).toContain("12 NEO");
   });
 
+  it("renders the complete 21-agent topology instead of truncating the roster", () => {
+    const agentAccounts = Array.from({ length: 21 }, (_, index) => ({
+      agentId: index + 1,
+      label: `Agent ${String(index + 1).padStart(2, "0")}`,
+      accountAddress: `Nagent${String(index + 1).padStart(27, "0")}`,
+      candidateTarget: `02${"a".repeat(64)}`,
+      neoBalance: index + 1,
+      active: true,
+    }));
+    const { container } = render(<PlayArea t={t} state={state({ agentAccounts, agentCountDisplay: "21 / 21" })} dispatch={vi.fn()} />);
+
+    expect(container.querySelectorAll(".admin-agent-node")).toHaveLength(21);
+    expect(container.querySelectorAll(".admin-topology__row")).toHaveLength(3);
+    expect(container.querySelector('.admin-agent-node strong')?.textContent).toBe("01");
+    expect(container.querySelectorAll('.admin-agent-node strong')[20]?.textContent).toBe("21");
+  });
+
   it("keeps the admin surface foreground-led and free of global backdrop patches", () => {
-    const styles = readFileSync(`${process.cwd()}/../profitanchor-admin/src/PlayArea.scss`, "utf8");
+    const styles = readFileSync(`${process.cwd()}/components-react/v2/anchor-admin/_workspace.scss`, "utf8");
+    const theme = readFileSync(`${process.cwd()}/../profitanchor-admin/src/PlayArea.scss`, "utf8");
     const source = readFileSync(`${process.cwd()}/../profitanchor-admin/src/PlayArea.tsx`, "utf8");
 
-    expect(styles).toContain('@use "@shared/components-react/v2/v2" as *;');
-    expect(styles).toMatch(/\.admin-workspace\s*\{[\s\S]*background:\s*#ffffff;/);
-    expect(styles).toMatch(/\.admin-workspace\s*\{[\s\S]*box-shadow:\s*none;/);
-    expect(styles).toMatch(/\.admin-operation-ticket\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*0\.74fr\) minmax\(260px,\s*1fr\)/);
-    expect(styles).toMatch(/\.admin-amount-console\s*,[\s\S]*\.admin-candidate-console\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.admin-amount-console__stepper\s*\{[\s\S]*grid-template-columns:\s*34px minmax\(0,\s*1fr\) 34px/);
+    expect(theme).toContain('@use "@shared/components-react/v2/anchor-admin/workspace" as *;');
+    expect(theme).toContain('--admin-canvas: #fffaf3;');
+    expect(styles).toMatch(/\.admin-workspace\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1\.28fr\) minmax\(340px,\s*0\.72fr\)/);
+    expect(styles).toMatch(/\.admin-topology__row\s*\{[\s\S]*grid-template-columns:\s*repeat\(7,/);
+    expect(styles).toContain("@container anchor-admin-surface (max-width: 620px)");
+    expect(styles).toMatch(/\.admin-agent-inspector\s*\{/);
+    expect(styles).toMatch(/\.admin-amount-console__stepper\s*\{[\s\S]*grid-template-columns:\s*36px minmax\(0,\s*1fr\) 36px/);
     expect(styles).toMatch(/\.admin-amount-console__quick\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/\.admin-candidate-console__preview strong\s*\{[\s\S]*font-family:\s*ui-monospace/);
     expect(styles).not.toMatch(/AI-generated scene backdrop|admin-scene__backdrop|backdrop-filter|radial-gradient/);
@@ -113,7 +150,7 @@ describe("profitanchor-admin PlayArea", () => {
   });
 
   it("has reduced-motion guards for the route workspace", () => {
-    const styles = readFileSync(`${process.cwd()}/../profitanchor-admin/src/PlayArea.scss`, "utf8");
+    const styles = readFileSync(`${process.cwd()}/components-react/v2/anchor-admin/_workspace.scss`, "utf8");
 
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(/animation-duration:\s*0\.001ms/);

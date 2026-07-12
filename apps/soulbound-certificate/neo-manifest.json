@@ -1,8 +1,8 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "social",
-  "category_name": "Social",
-  "category_name_zh": "社交",
+  "category": "nft",
+  "category_name": "NFT",
+  "category_name_zh": "NFT",
   "contracts": {
     "neo-n3-mainnet": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
     "neo-n3-testnet": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b"
@@ -18,6 +18,11 @@
       "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with template/issue/revoke.",
       "status": "deployed",
       "verified_at": "2026-05-08T12:10:43Z"
+    },
+    "neo-n3-testnet": {
+      "reason": "Read-only getcontractstate and getPlatformStats verification confirmed the deployed contract name, NEP-11 declaration, create/update/activate/issue/revoke workflow ABI, exact events, and a HALT state read. A fresh funded write sequence remains pending.",
+      "status": "deployed",
+      "verified_at": "2026-07-11T19:46:16Z"
     }
   },
   "description": "Issue non-transferable NEP-11 certificates.",
@@ -62,11 +67,11 @@
     "certificate",
     "nft"
   ],
-  "updatedAt": "2026-05-08T12:10:43Z",
+  "updatedAt": "2026-07-11T19:46:16Z",
   "urls": {
     "banner": "/miniapps/soulbound-certificate/banner.webp",
     "entry": "/miniapps/soulbound-certificate/index.html",
     "icon": "/miniapps/soulbound-certificate/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.2.0"
 }

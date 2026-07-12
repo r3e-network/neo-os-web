@@ -115,7 +115,7 @@ async function freshSound(opts: { muteStored?: string; suspended?: boolean; noWe
   vi.resetModules();
   const mod = await import("./sound");
   const env: Env = { record, storage };
-  return { sound: mod.sound, SFX_NAMES: mod.SFX_NAMES, env };
+  return { sound: mod.sound, SFX_NAMES: mod.SFX_NAMES, SFX_ASSET_URLS: mod.SFX_ASSET_URLS, env };
 }
 
 afterEach(() => {
@@ -126,10 +126,12 @@ afterEach(() => {
 
 describe("SoundEngine (synthesized WebAudio)", () => {
   it("cue table is complete: SFX_NAMES lists all 12 cues including tick + unlock + shake", async () => {
-    const { SFX_NAMES } = await freshSound();
+    const { SFX_NAMES, SFX_ASSET_URLS } = await freshSound();
     expect([...SFX_NAMES].sort()).toEqual([...ALL_CUES].sort());
     expect(SFX_NAMES).toContain("tick");
     expect(SFX_NAMES).toContain("shake");
+    expect(Object.keys(SFX_ASSET_URLS).sort()).toEqual([...ALL_CUES].sort());
+    for (const cue of ALL_CUES) expect(SFX_ASSET_URLS[cue]).toBe(`./audio/${cue}.wav`);
   });
 
   it("every cue synthesizes at least one voice (no silent switch cases)", async () => {
@@ -156,9 +158,17 @@ describe("SoundEngine (synthesized WebAudio)", () => {
     expect(env.record.started).toBe(afterFirst);
   });
 
+  it("dense collision bursts collapse to one land cue instead of stacking dozens of thuds", async () => {
+    const { sound, env } = await freshSound();
+    for (let i = 0; i < 36; i += 1) sound.play("land", 0.9);
+    expect(env.record.started).toBe(2); // one noise buffer + one low thud tone
+  });
+
   it("boots muted when localStorage has the persisted mute flag", async () => {
     const { sound } = await freshSound({ muteStored: "1" });
     expect(sound.muted).toBe(true);
+    expect(sound.qaSnapshot().muted).toBe(true);
+    expect(sound.qaSnapshot().contextState).toBe("not-created");
   });
 
   it("muted play is fully gated: no AudioContext is even constructed", async () => {
@@ -181,6 +191,18 @@ describe("SoundEngine (synthesized WebAudio)", () => {
     expect(master.gain.value).toBe(0.5);
   });
 
+  it("stops gameplay voices immediately after muting an already-created context", async () => {
+    const { sound, env } = await freshSound();
+    sound.play("match");
+    const beforeMute = env.record.started;
+    expect(beforeMute).toBeGreaterThan(0);
+
+    sound.setMuted(true);
+    for (const cue of ALL_CUES) sound.play(cue);
+
+    expect(env.record.started).toBe(beforeMute);
+  });
+
   it("toggleMuted flips the state, returns it, and persists each flip", async () => {
     const { sound, env } = await freshSound();
     expect(sound.toggleMuted()).toBe(true);
@@ -195,11 +217,58 @@ describe("SoundEngine (synthesized WebAudio)", () => {
     first.sound.unlock();
     expect(first.env.record.constructed).toBe(1);
     expect(first.env.record.resumes).toBe(1);
+    expect(first.sound.qaSnapshot().contextState).toBe("running");
     // A play() on a still-suspended context also requests a resume.
     const second = await freshSound({ suspended: true });
     second.sound.play("click");
     expect(second.env.record.resumes).toBeGreaterThan(0);
     expect(second.env.record.started).toBeGreaterThan(0);
+  });
+
+  it("pauses ambience while hidden and resumes only for an active, unmuted run", async () => {
+    const listeners = new Map<string, () => void>();
+    const fakeDocument = {
+      hidden: false,
+      addEventListener: (name: string, listener: () => void) => listeners.set(name, listener),
+    };
+    const audioRecord = { plays: 0, pauses: 0 };
+    class FakeHtmlAudio {
+      loop = false;
+      preload = "";
+      volume = 1;
+      muted = false;
+      constructor(_src: string) {}
+      play(): Promise<void> {
+        audioRecord.plays += 1;
+        return Promise.resolve();
+      }
+      pause(): void {
+        audioRecord.pauses += 1;
+      }
+    }
+    vi.stubGlobal("document", fakeDocument);
+    vi.stubGlobal("Audio", FakeHtmlAudio);
+    const { sound } = await freshSound();
+    sound.setTheme("garden");
+    sound.setPlaying(true);
+    expect(audioRecord.plays).toBeGreaterThan(0);
+
+    fakeDocument.hidden = true;
+    listeners.get("visibilitychange")?.();
+    expect(audioRecord.pauses).toBeGreaterThan(0);
+
+    const beforeResume = audioRecord.plays;
+    fakeDocument.hidden = false;
+    listeners.get("visibilitychange")?.();
+    expect(audioRecord.plays).toBeGreaterThan(beforeResume);
+
+    sound.setMuted(true);
+    const mutedPlayCount = audioRecord.plays;
+    fakeDocument.hidden = true;
+    listeners.get("visibilitychange")?.();
+    fakeDocument.hidden = false;
+    listeners.get("visibilitychange")?.();
+    expect(audioRecord.plays).toBe(mutedPlayCount);
   });
 
   it("is inert without WebAudio: unlock/play/toggle never throw and start nothing", async () => {

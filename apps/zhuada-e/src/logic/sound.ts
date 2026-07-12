@@ -1,9 +1,10 @@
 /**
- * sound.ts — tiny WebAudio SFX engine for Catch the Goose.
+ * sound.ts — WebAudio SFX engine for Goose Basket Shuffle.
  *
- * Every sound is SYNTHESIZED at runtime (oscillators + filtered noise) — there
- * are no audio files, so nothing is copyrighted and the bundle stays tiny. The
- * engine is a singleton: the React shell (UI clicks), the guest engine
+ * The primary cue bank is a deterministic, original set of mastered PCM assets
+ * under public/audio. A compact WebAudio synthesizer remains as an immediate
+ * first-play/offline fallback while samples decode. The engine is a singleton:
+ * the React shell (UI clicks), the guest engine
  * (match/combo), and the Three scene (land/pick/win/fail) all call the same
  * instance so the mute state is shared everywhere.
  *
@@ -12,6 +13,8 @@
  *    on the first user gesture (Start button / first canvas tap).
  *  - Mute is persisted to localStorage and applied to the master gain.
  */
+
+import { gameStorage } from "./game-storage";
 
 export type Sfx =
   | "land" // item settles in the pen (velocity-scaled thud)
@@ -27,11 +30,32 @@ export type Sfx =
   | "unlock" // limited-edition goose unlocked (collection fanfare)
   | "shake"; // pen jolt (G3 晃一晃) — rattling noise bursts
 
+export type Ambience = "garden" | "kitchen" | "night";
+export interface SoundQaSnapshot {
+  muted: boolean;
+  contextState: AudioContextState | "unavailable" | "not-created";
+  decodedSamples: number;
+  loadingSamples: number;
+  ambienceName: Ambience;
+  ambiencePlaying: boolean;
+  pageVisible: boolean;
+}
+
 /** Every cue name — kept in sync with `Sfx` (compile-checked below) so tests
  * can assert cue-table completeness without duplicating the union. */
 export const SFX_NAMES = [
   "land", "pick", "match", "combo", "win", "fail", "powerup", "shuffle", "click", "tick", "unlock", "shake",
 ] as const satisfies readonly Sfx[];
+
+export const SFX_ASSET_URLS = Object.fromEntries(
+  SFX_NAMES.map((name) => [name, `./audio/${name}.wav`]),
+) as Record<Sfx, string>;
+
+export const AMBIENCE_ASSET_URLS: Record<Ambience, string> = {
+  garden: "./audio/ambient-garden.wav",
+  kitchen: "./audio/ambient-kitchen.wav",
+  night: "./audio/ambient-night.wav",
+};
 
 /** Compile-time exhaustiveness: a new `Sfx` member missing from SFX_NAMES
  * violates the `extends never` constraint and fails the build. */
@@ -46,18 +70,46 @@ class SoundEngine {
   private master: GainNode | null = null;
   private _muted = false;
   private lastLandAt = 0;
+  private buffers = new Map<Sfx, AudioBuffer>();
+  private loading = new Set<Sfx>();
+  private ambienceName: Ambience = "garden";
+  private ambience: HTMLAudioElement | null = null;
+  private ambiencePlaying = false;
+  private pageVisible = typeof document === "undefined" || !document.hidden;
 
   constructor() {
     try {
-      this._muted = globalThis.localStorage?.getItem(MUTE_KEY) === "1";
+      this._muted = gameStorage.getItem(MUTE_KEY) === "1";
     } catch {
       /* best-effort */
+    }
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", this.onVisibilityChange);
+    }
+  }
+
+  private onVisibilityChange = (): void => {
+    this.pageVisible = !document.hidden;
+    this.applyAmbienceState();
+  };
+
+  private applyAmbienceState(): void {
+    if (!this.ambience) return;
+    this.ambience.muted = this._muted;
+    if (this.ambiencePlaying && this.pageVisible && !this._muted) {
+      void this.ambience.play().catch(() => {});
+    } else {
+      this.ambience.pause();
     }
   }
 
   /** Lazily create the context. Returns false if WebAudio is unavailable. */
   private ensure(): boolean {
     if (this.ctx) return true;
+    // Delayed fanfare timers can outlive a detached React/game surface during
+    // SSR, tests, or an iframe teardown. Treat that exactly like an
+    // unsupported WebAudio environment instead of touching a missing window.
+    if (typeof window === "undefined") return false;
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return false;
     try {
@@ -77,16 +129,38 @@ class SoundEngine {
   unlock(): void {
     if (!this.ensure()) return;
     if (this.ctx && this.ctx.state === "suspended") void this.ctx.resume();
+    this.preloadSamples();
   }
 
   get muted(): boolean {
     return this._muted;
   }
 
+  qaSnapshot(): SoundQaSnapshot {
+    return {
+      muted: this._muted,
+      contextState: this.ctx?.state ?? (typeof window === "undefined" ? "unavailable" : "not-created"),
+      decodedSamples: this.buffers.size,
+      loadingSamples: this.loading.size,
+      ambienceName: this.ambienceName,
+      ambiencePlaying: this.ambiencePlaying,
+      pageVisible: this.pageVisible,
+    };
+  }
+
+  /** Re-read after the opaque-iframe host bridge hydrates its sync mirror. */
+  reloadStoredPreference(): void {
+    try {
+      this.setMuted(gameStorage.getItem(MUTE_KEY) === "1");
+    } catch {
+      /* best-effort */
+    }
+  }
+
   setMuted(m: boolean): void {
     this._muted = m;
     try {
-      globalThis.localStorage?.setItem(MUTE_KEY, m ? "1" : "0");
+      gameStorage.setItem(MUTE_KEY, m ? "1" : "0");
     } catch {
       /* best-effort */
     }
@@ -95,11 +169,37 @@ class SoundEngine {
       this.master.gain.cancelScheduledValues(now);
       this.master.gain.setTargetAtTime(m ? 0 : MASTER_GAIN, now, 0.02);
     }
+    this.applyAmbienceState();
   }
 
   toggleMuted(): boolean {
     this.setMuted(!this._muted);
     return this._muted;
+  }
+
+  setTheme(name: Ambience): void {
+    if (this.ambienceName === name && this.ambience) return;
+    this.ambienceName = name;
+    this.ambience?.pause();
+    this.ambience = null;
+    if (typeof Audio === "undefined") return;
+    try {
+      const audio = new Audio(AMBIENCE_ASSET_URLS[name]);
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.volume = 0.14;
+      audio.muted = this._muted;
+      this.ambience = audio;
+      this.applyAmbienceState();
+    } catch {
+      this.ambience = null;
+    }
+  }
+
+  setPlaying(playing: boolean): void {
+    this.ambiencePlaying = playing;
+    if (!this.ambience) this.setTheme(this.ambienceName);
+    this.applyAmbienceState();
   }
 
   // ── Low-level voices ────────────────────────────────────────────────────────
@@ -139,6 +239,43 @@ class SoundEngine {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
+  private preloadSamples(): void {
+    if (!this.ctx || typeof this.ctx.decodeAudioData !== "function" || typeof fetch !== "function") return;
+    for (const name of SFX_NAMES) {
+      if (this.buffers.has(name) || this.loading.has(name)) continue;
+      this.loading.add(name);
+      void fetch(SFX_ASSET_URLS[name])
+        .then((response) => {
+          if (!response.ok) throw new Error(`SFX ${name} returned ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then((bytes) => this.ctx?.decodeAudioData(bytes))
+        .then((decoded) => {
+          if (decoded) this.buffers.set(name, decoded);
+        })
+        .catch(() => {
+          /* synthesized fallback below remains available */
+        })
+        .finally(() => this.loading.delete(name));
+    }
+  }
+
+  private playSample(name: Sfx, velocity: number): boolean {
+    if (!this.ctx || !this.master) return false;
+    const buffer = this.buffers.get(name);
+    if (!buffer) {
+      this.preloadSamples();
+      return false;
+    }
+    const source = this.ctx.createBufferSource();
+    const gain = this.ctx.createGain();
+    source.buffer = buffer;
+    gain.gain.value = Math.max(0.08, Math.min(1, velocity));
+    source.connect(gain).connect(this.master);
+    source.start();
+    return true;
+  }
+
   play(name: Sfx, vel = 1): void {
     if (this._muted) return;
     if (!this.ensure()) return;
@@ -146,11 +283,15 @@ class SoundEngine {
     if (this.ctx.state === "suspended") void this.ctx.resume();
     const t = this.ctx.currentTime;
 
+    if (name === "land") {
+      const now = performance.now();
+      if (now - this.lastLandAt < 45) return;
+      this.lastLandAt = now;
+    }
+    if (this.playSample(name, vel)) return;
+
     switch (name) {
       case "land": {
-        const now = performance.now();
-        if (now - this.lastLandAt < 45) return; // throttle cascades
-        this.lastLandAt = now;
         const v = Math.max(0.15, Math.min(1, vel));
         this.noise(t, 0.09, 0.16 * v, 420 + 500 * v);
         this.tone(90 + 40 * v, t, 0.1, "sine", 0.12 * v);

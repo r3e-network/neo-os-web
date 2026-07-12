@@ -2,44 +2,24 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "NFT Factory",
-  description: "Create NEP-11 collections from governed on-chain templates",
+  description: "Design and sign deterministic NEP-11 collection packages",
   icon: "image",
-  category: "tool",
+  category: "social",
   shell: "console",
   theme: {
-    family: "default",
-    accentColor: "#16c784",
+    family: "social",
+    accentColor: "#168f72",
     density: "comfortable",
   },
-  tabs: [
-    { key: "play", labelKey: "playTab", icon: "image", default: true },
-    { key: "activity", labelKey: "activityTab", icon: "history" },
-  ],
-  stats: [
-    { labelKey: "planStatus", valueKey: "planStatus", format: "text", variant: "success", icon: "check-circle" },
-    { labelKey: "packageDigest", valueKey: "shortDigest", format: "text", variant: "accent", icon: "hash" },
-    { labelKey: "blockingIssues", valueKey: "blockingIssueCount", format: "number", variant: "warning", icon: "alert" },
-    { labelKey: "generatedPackages", valueKey: "generatedCount", format: "number", icon: "archive" },
-  ],
+  // The app-owned studio already presents the complete creator workflow.
+  // Empty shell chrome avoids repeating its status, actions, and history as a
+  // generic dashboard around the artwork.
+  tabs: [],
+  stats: [],
   sidebar: {
-    titleKey: "factoryOverview",
-    items: [
-      { labelKey: "activeTemplate", valueKey: "activeTemplateLabel", format: "text" },
-      { labelKey: "targetNetwork", valueKey: "targetNetwork", format: "text" },
-      { labelKey: "planStatus", valueKey: "planStatus", format: "text" },
-      { labelKey: "signatureState", valueKey: "signatureState", format: "text" },
-    ],
+    items: [],
   },
-  operations: [
-    {
-      key: "signCurrentPlan",
-      titleKey: "signPlanTitle",
-      descriptionKey: "signPlanDescription",
-      actionKey: "signPlanAction",
-      actionMethod: "signCurrentPlan",
-      fields: [],
-    },
-  ],
+  operations: [],
   docs: [
     { titleKey: "docWhatItIs", contentKey: "docWhatItIsBody", type: "text" },
     { titleKey: "docSupportedTemplates", contentKey: "docSupportedTemplatesBody", type: "features" },
@@ -50,13 +30,14 @@ export const manifest: MiniAppManifest = {
     chainWarning: true,
     comments: true,
     reviews: true,
-    activityFeed: true,
+    activityFeed: false,
   },
   contract: {
     mode: "template",
     recipeId: "factory.nep11.collection.v1",
   },
   permissions: {
-    storage: true,
+    payments: false,
+    storage: false,
   },
 };

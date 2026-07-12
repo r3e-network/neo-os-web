@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Award } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 interface CertificatePreviewProps {
   /** Issuer / organisation name shown along the top of the credential. */
@@ -60,6 +60,7 @@ export default function CertificatePreview({
   return (
     <figure
       className={`certificate-artifact${draft ? " certificate-artifact--draft" : ""}`}
+      data-verification-state={draft ? "preview" : "verified"}
     >
       <div className="certificate-artifact__frame">
         {textureSrc && (
@@ -101,10 +102,10 @@ export default function CertificatePreview({
         </div>
 
         <div className="certificate-artifact__foot">
-          <span className="certificate-artifact__seal" aria-hidden="true">
-            <Award size={34} strokeWidth={1.9} />
+          <span className="certificate-artifact__seal-label">
+            <ShieldCheck size={16} strokeWidth={2.2} aria-hidden="true" />
+            {sealLabel}
           </span>
-          <span className="certificate-artifact__seal-label">{sealLabel}</span>
         </div>
       </div>
       {footer && <figcaption className="certificate-artifact__meta">{footer}</figcaption>}

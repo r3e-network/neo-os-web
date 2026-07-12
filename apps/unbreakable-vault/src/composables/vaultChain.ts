@@ -19,16 +19,12 @@
  */
 
 import type { MiniAppFramework } from "@shared/react";
-import { toSafeNumber } from "@shared/utils/format";
 
 /** Deposit memo for createVault — prepays the bounty. */
 export const CREATE_MEMO = "miniapp-unbreakablevault:create";
 
 /** Deposit memo for attemptBreak — prepays the attempt fee. */
 export const ATTEMPT_MEMO = "miniapp-unbreakablevault:attempt";
-
-/** Default attempt fee fallback in GAS base units (0.1 GAS = Easy tier). */
-export const DEFAULT_ATTEMPT_FEE_BASE = "10000000";
 
 /** How many of the newest vaults to enumerate for the public catalog. */
 export const MAX_RECENT_VAULTS = 12;
@@ -53,11 +49,13 @@ export function isContractAddressUnavailableError(error: unknown): boolean {
 export interface ChainVaultDetails {
   id: string;
   creator: string;
-  bounty: number;
+  /** GAS base units. Kept as a decimal string so large values never round. */
+  bounty: string;
   attemptCount: number;
   difficulty: number;
   difficultyName: string;
-  attemptFee: number;
+  /** GAS base units. Kept as a decimal string so large values never round. */
+  attemptFee: string;
   createdTime: number;
   expiryTime: number;
   hintsRevealed: number;
@@ -77,6 +75,38 @@ function isZeroHash(value: string): boolean {
 }
 
 /**
+ * Preserve exact non-negative contract integers without turning malformed reads
+ * into a believable zero. Large values must arrive as decimal strings/bigints;
+ * unsafe JavaScript numbers are rejected because they have already rounded.
+ */
+export function exactUnsignedInteger(value: unknown): string | null {
+  if (typeof value === "bigint") return value >= 0n ? value.toString() : null;
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? String(value) : null;
+  }
+  const normalized = String(value ?? "").trim();
+  return /^\d+$/.test(normalized) ? BigInt(normalized).toString() : null;
+}
+
+function exactSafeUnsignedInteger(value: unknown): number | null {
+  const exact = exactUnsignedInteger(value);
+  if (exact === null) return null;
+  const parsed = BigInt(exact);
+  return parsed <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(parsed) : null;
+}
+
+function exactBoolean(value: unknown): boolean | null {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return null;
+}
+
+/**
  * Coerce a getVaultDetails() Map into a ChainVaultDetails. Returns null when the
  * vault does not exist (no creator / zeroed creator hash).
  */
@@ -87,29 +117,58 @@ export function parseVaultDetails(
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const record = raw as Record<string, unknown>;
 
+  const requestedId = exactUnsignedInteger(vaultId);
+  const returnedId = exactUnsignedInteger(record.id ?? vaultId);
+  const bounty = exactUnsignedInteger(record.bounty);
+  const attemptFee = exactUnsignedInteger(record.attemptFee);
+  const attemptCount = exactSafeUnsignedInteger(record.attemptCount);
+  const difficulty = exactSafeUnsignedInteger(record.difficulty);
+  const createdTime = exactSafeUnsignedInteger(record.createdTime);
+  const expiryTime = exactSafeUnsignedInteger(record.expiryTime);
+  const hintsRevealed = exactSafeUnsignedInteger(record.hintsRevealed);
+  const broken = exactBoolean(record.broken);
+  const expired = exactBoolean(record.expired);
+  if (
+    !requestedId
+    || requestedId === "0"
+    || !returnedId
+    || returnedId !== requestedId
+    || bounty === null
+    || attemptFee === null
+    || attemptCount === null
+    || difficulty === null
+    || difficulty < 1
+    || difficulty > 3
+    || createdTime === null
+    || expiryTime === null
+    || expiryTime < createdTime
+    || hintsRevealed === null
+    || broken === null
+    || expired === null
+  ) return null;
+
   const creatorRaw = String(record.creator ?? "");
   if (!creatorRaw || isZeroHash(creatorRaw)) return null;
 
   const winnerRaw = String(record.winner ?? "");
   const winner = isZeroHash(winnerRaw) ? "" : winnerRaw;
 
-  const broken = Boolean(record.broken);
-  const expired = Boolean(record.expired);
-  const status =
-    String(record.status ?? "") ||
-    (broken ? "broken" : expired ? "expired" : "active");
+  const rawStatus = String(record.status ?? "").trim().toLowerCase();
+  const allowedStatuses = ["active", "broken", "expired", "claimable", "reclaimed"];
+  if (rawStatus && !allowedStatuses.includes(rawStatus)) return null;
+  const status = rawStatus || (broken ? "broken" : expired ? "expired" : "active");
 
   return {
-    id: String(record.id ?? vaultId),
+    id: returnedId,
     creator: creatorRaw,
-    bounty: toSafeNumber(record.bounty),
-    attemptCount: toSafeNumber(record.attemptCount),
-    difficulty: toSafeNumber(record.difficulty),
+    bounty,
+    attemptCount,
+    difficulty,
     difficultyName: String(record.difficultyName ?? ""),
-    attemptFee: toSafeNumber(record.attemptFee),
-    createdTime: toSafeNumber(record.createdTime),
-    expiryTime: toSafeNumber(record.expiryTime),
-    hintsRevealed: toSafeNumber(record.hintsRevealed),
+    attemptFee,
+    createdTime,
+    expiryTime,
+    hintsRevealed,
     broken,
     expired,
     winner,
@@ -123,10 +182,11 @@ export function parseVaultDetails(
 export async function readVaultDetails(
   app: MiniAppFramework,
   vaultId: string,
+  scriptHash?: string,
 ): Promise<ChainVaultDetails | null> {
   const raw = await app.chain.readRaw("getVaultDetails", [
     app.chain.arg.integer(vaultId),
-  ]);
+  ], scriptHash ? { scriptHash } : undefined);
   return parseVaultDetails(vaultId, raw);
 }
 
@@ -134,25 +194,40 @@ export async function readVaultDetails(
  * Enumerate the newest `limit` vaults from the contract.
  *
  * Vaults are sequential ids 1..totalVaults(); we read from the highest id down.
- * A failed/empty read for an individual id is skipped rather than failing the
- * whole list.
+ * A failed/empty read for an individual id makes the snapshot incomplete. The
+ * caller keeps its last verified catalog and surfaces a read error instead of
+ * presenting a partial list as authoritative or mistaking it for zero vaults.
  */
 export async function readRecentVaultDetails(
   app: MiniAppFramework,
   limit: number,
+  scriptHash?: string,
 ): Promise<ChainVaultDetails[]> {
-  const total = toSafeNumber(await app.chain.readRaw("totalVaults", []));
-  const top = Math.min(total, MAX_ENUMERATE);
-  if (top <= 0) return [];
+  const totalRaw = await app.chain.readRaw(
+    "totalVaults",
+    [],
+    scriptHash ? { scriptHash } : undefined,
+  );
+  const total = exactUnsignedInteger(totalRaw);
+  if (total === null) throw new Error("Vault catalog total is malformed");
+  const highestId = BigInt(total);
+  const requested = Number.isFinite(limit)
+    ? Math.min(Math.max(0, Math.trunc(limit)), MAX_ENUMERATE)
+    : 0;
+  const count = Number(
+    highestId < BigInt(requested) ? highestId : BigInt(requested),
+  );
+  if (count <= 0) return [];
 
-  const ids: string[] = [];
-  const lowest = Math.max(1, top - limit + 1);
-  for (let id = top; id >= lowest; id -= 1) ids.push(String(id));
+  const ids = Array.from(
+    { length: count },
+    (_, index) => (highestId - BigInt(index)).toString(),
+  );
 
   const results = await Promise.all(
     ids.map(async (id) => {
       try {
-        return await readVaultDetails(app, id);
+        return await readVaultDetails(app, id, scriptHash);
       } catch (e) {
         console.warn(
           "[unbreakable-vault] getVaultDetails failed for",
@@ -164,6 +239,10 @@ export async function readRecentVaultDetails(
       }
     }),
   );
+
+  if (results.some((detail) => detail === null)) {
+    throw new Error("Vault catalog read incomplete");
+  }
 
   return results.filter(
     (detail): detail is ChainVaultDetails => detail !== null,

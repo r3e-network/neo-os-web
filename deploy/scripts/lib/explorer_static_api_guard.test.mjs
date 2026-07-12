@@ -19,6 +19,11 @@ test("Explorer skips host API fetches when opened from local static public minia
   assert.match(source, /function isLocalStaticExplorer/);
   assert.match(source, /function shouldUseExplorerApi/);
   assert.match(source, /window\.location\.pathname\.includes\("\/miniapps\/explorer\/"\)/);
-  assert.match(source, /if \(!shouldUseExplorerApi\(\)\) return;/);
-  assert.match(source, /if \(!shouldUseExplorerApi\(\)\) return null;/);
+  assert.equal(
+    (source.match(/if \(!shouldUseExplorerApi\(\)\)/g) ?? []).length,
+    3,
+    "stats, recent transactions, and search should all fail closed in static previews",
+  );
+  assert.match(source, /if \(!shouldUseExplorerApi\(\)\)\s*\{[\s\S]*?statsStatus\.set\("unavailable"\);[\s\S]*?return;/);
+  assert.match(source, /if \(!shouldUseExplorerApi\(\)\)\s*\{[\s\S]*?searchResult\.set\(\{ type: "unavailable"/);
 });

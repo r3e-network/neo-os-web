@@ -353,4 +353,3 @@ class KeccakPRG extends Keccak {
     }
 }
 export const keccakprg = (capacity = 254) => new KeccakPRG(capacity);
-//# sourceMappingURL=sha3-addons.js.map

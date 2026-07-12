@@ -341,6 +341,18 @@ const appMessages = {
         en: "Invalid format",
         zh: "格式无效"
     },
+    invalidScript: {
+        en: "The NeoVM script is truncated or malformed.",
+        zh: "NeoVM 脚本不完整或格式错误。"
+    },
+    scriptTooLarge: {
+        en: "This script is too large for the browser workbench.",
+        zh: "该脚本过大，无法在浏览器工作台中处理。"
+    },
+    sourceTooLarge: {
+        en: "This source is too large for the local workbench.",
+        zh: "该输入过大，无法在本地工作台中处理。"
+    },
     copied: {
         en: "Copied!",
         zh: "已复制!"
@@ -359,13 +371,14 @@ const appMessages = {
         en: "Click Generate to create a new offline wallet",
         zh: "点击生成以创建一个新的离线钱包"
     },
-    sidebarActiveTab: { en: "Active Tab", zh: "当前标签" },
+    sidebarWorkspace: { en: "Workspace", zh: "当前工作流" },
     sidebarMode: { en: "Mode", zh: "模式" },
     sidebarMobile: { en: "Mobile", zh: "移动端" },
     sidebarDesktop: { en: "Desktop", zh: "桌面端" },
     quickTools: { en: "Quick Tools", zh: "快捷工具" },
     loading: { en: "Loading...", zh: "加载中..." },
     loadingBalances: { en: "Loading balances...", zh: "正在加载余额…" },
+    loadingShort: { en: "Loading", zh: "读取中" },
     connectForBalances: {
         en: "Connect a wallet to see live NEO / GAS balances.",
         zh: "连接钱包以查看实时 NEO / GAS 余额。"
@@ -505,6 +518,14 @@ const appMessages = {
         en: "Private fields stay hidden outside the explicit export flow.",
         zh: "私密字段只会在明确导出流程中显示。"
     },
+    generatedAccountRevealWarning: {
+        en: "Secrets are visible on this screen. Back them up offline, then hide them before continuing.",
+        zh: "密钥当前已显示。请离线备份，并在继续操作前重新隐藏。"
+    },
+    secretHidden: {
+        en: "Hidden until you reveal",
+        zh: "显示后方可查看"
+    },
     conversionResultLabel: { en: "Result", zh: "结果" },
     readyShort: { en: "Ready", zh: "就绪" },
     inspectDetails: { en: "Inspect", zh: "检查" },
@@ -515,6 +536,15 @@ const appMessages = {
         en: "Balances are read live from a Neo RPC node — this is the only feature that uses the network.",
         zh: "余额通过 Neo RPC 节点实时读取——这是唯一使用网络的功能。"
     },
+    walletSnapshotTitle: { en: "Optional wallet snapshot", zh: "可选钱包概览" },
+    balanceReadOnly: { en: "Read-only RPC", zh: "只读 RPC" },
+    balanceReadFailed: { en: "Balance unavailable", zh: "余额暂不可用" },
+    showSource: { en: "Show source material", zh: "显示源材料" },
+    hideSource: { en: "Hide source material", zh: "隐藏源材料" },
+    clearWorkbench: { en: "Clear sensitive session data", zh: "清除本次会话敏感数据" },
+    workbenchCleared: { en: "Workbench cleared.", zh: "工作台已清空。" },
+    accountGeneratedToast: { en: "New account generated locally.", zh: "新账户已在本地生成。" },
+    accountGenerationFailed: { en: "Could not generate a new account.", zh: "无法生成新账户。" },
     showSecrets: { en: "Show secrets", zh: "显示密钥" },
     hideSecrets: { en: "Hide secrets", zh: "隐藏密钥" },
     copyAddress: { en: "Copy address", zh: "复制地址" },

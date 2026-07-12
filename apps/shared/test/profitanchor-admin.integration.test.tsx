@@ -8,6 +8,8 @@ import PlayArea from "../../profitanchor-admin/src/PlayArea";
 
 afterEach(() => cleanup());
 
+const VALID_CANDIDATE = `03${"d".repeat(64)}`;
+
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
     appName: "ProfitAnchor Admin",
@@ -73,6 +75,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     agentCountDisplay: "3 / 21",
     adminState: "admin",
     expectedAdminDisplay: "Noperator",
+    agentsLive: true,
     ...overrides,
   };
   return Object.fromEntries(
@@ -132,13 +135,90 @@ describe("profitanchor-admin integration", () => {
 
     fireEvent.click(getByRole("button", { name: /Update candidate/i }));
     expect(container.querySelector(".admin-candidate-console")).toBeTruthy();
-    fireEvent.change(getByLabelText("Candidate public key"), { target: { value: "02dddd" } });
-    expect(container.textContent).toContain("02dddd");
+    const candidateInput = getByLabelText("Candidate public key") as HTMLInputElement;
+    fireEvent.change(candidateInput, { target: { value: VALID_CANDIDATE } });
+    expect(candidateInput.value).toBe(VALID_CANDIDATE);
     fireEvent.click(container.querySelector(".mx2-btn--primary") as HTMLButtonElement);
 
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("setAgentCandidate", {
       agentId: 1,
-      candidate: "02dddd",
+      candidate: VALID_CANDIDATE,
     }));
+  });
+
+  it("selects source and target directly on the topology before dispatch", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const nodes = container.querySelectorAll<HTMLButtonElement>(".admin-agent-node");
+
+    fireEvent.click(nodes[1]);
+    fireEvent.click(nodes[2]);
+    expect(nodes[1].getAttribute("data-source")).toBe("true");
+    expect(nodes[2].getAttribute("data-target")).toBe("true");
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as HTMLButtonElement);
+
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("transferAgentNeo", {
+      fromAgentId: 2,
+      toAgentId: 3,
+      amount: 1,
+    }));
+  });
+
+  it("locks every write while authority or the on-chain roster is unresolved", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByRole } = render(
+      <PlayArea t={t} state={state({ adminState: "loading", agentsLive: false })} dispatch={dispatch} />,
+    );
+    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+
+    expect(container.querySelectorAll(".admin-agent-node")).toHaveLength(3);
+    expect(container.querySelector(".admin-topology__count")?.getAttribute("data-ready")).toBe("false");
+    expect(primary.disabled).toBe(true);
+    fireEvent.click(getByRole("button", { name: /Sync vote/i }));
+    expect(primary.disabled).toBe(true);
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed and unchanged candidate drafts before dispatch", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const currentCandidate = `02${"a".repeat(64)}`;
+    const agentAccounts = [
+      { agentId: 1, label: "Agent 01", accountAddress: "Nagent111111111", candidateTarget: currentCandidate, neoBalance: 12, active: true },
+      { agentId: 2, label: "Agent 02", accountAddress: "Nagent222222222", candidateTarget: `03${"b".repeat(64)}`, neoBalance: 4, active: true },
+    ];
+    const { container, getByLabelText, getByRole } = render(
+      <PlayArea t={t} state={state({ agentAccounts })} dispatch={dispatch} />,
+    );
+    fireEvent.click(getByRole("button", { name: /Update candidate/i }));
+    const input = getByLabelText("Candidate public key") as HTMLInputElement;
+    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+
+    fireEvent.change(input, { target: { value: "02dead" } });
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(primary.disabled).toBe(true);
+    fireEvent.change(input, { target: { value: currentCandidate } });
+    expect(primary.disabled).toBe(true);
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("prevents duplicate submission and preserves the route for recovery", async () => {
+    let rejectDispatch: ((reason?: unknown) => void) | undefined;
+    const dispatch = vi.fn(() => new Promise<void>((_, reject) => {
+      rejectDispatch = reject;
+    }));
+    const { container, getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const primary = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
+
+    fireEvent.click(primary);
+    fireEvent.click(primary);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(primary.getAttribute("aria-busy")).toBe("true");
+
+    rejectDispatch?.(new Error("wallet rejected"));
+    await waitFor(() => expect(getByRole("alert").textContent).toBe("operationRetryHint"));
+    expect(container.textContent).toContain("Agent 01");
+    expect(container.textContent).toContain("Agent 02");
   });
 });

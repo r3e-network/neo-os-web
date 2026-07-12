@@ -10,10 +10,12 @@ import { BaseScene } from "@framework/phaser";
 import type { GameBridgeError, GameState } from "@framework/phaser";
 import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 import { formatGas } from "@shared/utils/format";
+import { GAS_LUCKY_REWARD_PLANS } from "../logic/game-rules";
 
 const GAS_POOL_ASSETS = {
   vaultStage: "gas-pool-vault-stage",
   gasIcon: "gas-pool-gas-icon",
+  guestIcon: "gas-pool-guest-icon",
 } as const;
 
 const C = {
@@ -37,39 +39,6 @@ const MODE_BUTTON_W = 134;
 const MODE_BUTTON_H = 34;
 
 type Mode = "create" | "claim";
-
-const REWARD_PLANS = [
-  {
-    key: "small",
-    titleKey: "packStarter",
-    title: "Starter",
-    amount: "20",
-    minClaim: "1",
-    maxClaim: "3",
-    maxClaims: "10",
-    expiryHours: "24",
-  },
-  {
-    key: "balanced",
-    titleKey: "packParty",
-    title: "Party",
-    amount: "50",
-    minClaim: "1",
-    maxClaim: "5",
-    maxClaims: "25",
-    expiryHours: "72",
-  },
-  {
-    key: "jackpot",
-    titleKey: "packJackpot",
-    title: "Jackpot",
-    amount: "100",
-    minClaim: "5",
-    maxClaim: "20",
-    maxClaims: "10",
-    expiryHours: "168",
-  },
-] as const;
 
 // English fallbacks used before the localized bridge bundle arrives.
 const PROGRESS_LABEL: Record<string, string> = {
@@ -107,7 +76,9 @@ function compactError(value: string): string {
 export class GasLuckyPoolScene extends BaseScene {
   private heroImage!: Phaser.GameObjects.Image;
   private vaultGlow!: Phaser.GameObjects.Ellipse;
+  private backgroundGlows: Phaser.GameObjects.Ellipse[] = [];
   private coinStream: Phaser.GameObjects.Container[] = [];
+  private coinMarks: Phaser.GameObjects.Image[] = [];
 
   private createPanel!: Phaser.GameObjects.Container;
   private claimPanel!: Phaser.GameObjects.Container;
@@ -142,10 +113,13 @@ export class GasLuckyPoolScene extends BaseScene {
   private hasClaimKey = false;
   private busy = false;
   private autoSelectedMode = false;
-  private lastRewardText = "";
+  private lastRewardEventKey = "";
   private lastProgressKey = "";
   private lastErrorCue = "";
   private rewardRolling = false;
+  private rewardRevealSequence = 0;
+  private rewardBurstCoins: Phaser.GameObjects.Container[] = [];
+  private lastA11yPlanRevision = 0;
 
   constructor() {
     super("GasLuckyPoolScene");
@@ -168,6 +142,7 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private applyLocale(): void {
+    const isGuest = this.str("appMode", "gamefi") === "guest";
     const fundText = this.modeButtons.get("create")?.getData("text") as Phaser.GameObjects.Text | undefined;
     const claimText = this.modeButtons.get("claim")?.getData("text") as Phaser.GameObjects.Text | undefined;
     fundText?.setText(this.txt("tabFund", "Fund vault"));
@@ -179,21 +154,24 @@ export class GasLuckyPoolScene extends BaseScene {
     const slotsTemplate = this.txt("slotsTemplate", "{count} claims");
     const gasUnit = this.txt("gasUnit", "GAS");
     this.planCards.forEach((card, index) => {
-      const plan = REWARD_PLANS[index]!;
+      const plan = GAS_LUCKY_REWARD_PLANS[index]!;
       (card.getData("title") as Phaser.GameObjects.Text | undefined)?.setText(
-        this.txt(plan.titleKey, plan.title),
+        this.txt(plan.sceneTitleKey, plan.fallbackTitle),
       );
       (card.getData("detail") as Phaser.GameObjects.Text | undefined)?.setText(
         this.fmt(slotsTemplate, { count: plan.maxClaims }),
       );
       (card.getData("gas") as Phaser.GameObjects.Text | undefined)?.setText(gasUnit);
+      (card.getData("amount") as Phaser.GameObjects.Text | undefined)?.setText(
+        isGuest ? plan.maxClaim : plan.amount,
+      );
     });
 
     this.updatePlanSummary();
   }
 
   private updatePlanSummary(): void {
-    const plan = REWARD_PLANS[this.selectedPlanIndex]!;
+    const plan = GAS_LUCKY_REWARD_PLANS[this.selectedPlanIndex]!;
     this.createSummaryText?.setText(
       this.fmt(this.txt("summaryTemplate", "{claims} claims · {min}-{max} GAS each · {hours}h expiry"), {
         claims: plan.maxClaims,
@@ -215,6 +193,7 @@ export class GasLuckyPoolScene extends BaseScene {
   preload(): void {
     this.load.image(GAS_POOL_ASSETS.vaultStage, "./gas-vault-stage.webp");
     this.load.image(GAS_POOL_ASSETS.gasIcon, officialGasTokenPhaserUrl);
+    this.load.image(GAS_POOL_ASSETS.guestIcon, "./onegate-logo.webp");
   }
 
   create(): void {
@@ -248,6 +227,29 @@ export class GasLuckyPoolScene extends BaseScene {
     const lastTxid = this.str("lastTxid", "");
     const amount = this.str("lastClaimAmount", "0");
     const luck = this.str("lastClaimLuckPercent", "");
+    const appMode = this.str("appMode", "gamefi");
+    const isGuest = appMode === "guest";
+    const guestDraws = this.num("guestDraws", 0);
+    const a11yPlanRevision = this.num("a11yPlanRevision", 0);
+    const coinTexture = appMode === "guest" ? GAS_POOL_ASSETS.guestIcon : GAS_POOL_ASSETS.gasIcon;
+    this.coinMarks = this.coinMarks.filter((mark) => mark.active);
+    this.coinMarks.forEach((mark) => mark.setTexture(coinTexture));
+
+    for (const button of this.modeButtons.values()) button.setVisible(!isGuest);
+    this.createPanel.setY(isGuest ? -18 : 0);
+    if (isGuest && this.activeMode !== "create") this.switchMode("create");
+
+    if (a11yPlanRevision > this.lastA11yPlanRevision) {
+      this.lastA11yPlanRevision = a11yPlanRevision;
+      const requestedIndex = Math.max(
+        0,
+        Math.min(
+          GAS_LUCKY_REWARD_PLANS.length - 1,
+          Math.round(this.num("a11yPlanIndex", this.selectedPlanIndex)),
+        ),
+      );
+      this.selectPlan(requestedIndex, false, false);
+    }
 
     this.hasClaimContext = Boolean(claimKey || poolId);
     this.hasClaimKey = Boolean(claimKey);
@@ -264,7 +266,12 @@ export class GasLuckyPoolScene extends BaseScene {
       ? `  ${this.fmt(this.txt("luckTemplate", "{percent}% luck"), { percent: luck })}`
       : "";
     const rewardKey = rewardStr ? `+${rewardStr} ${gasUnit}` : "";
-    const isNewReward = Boolean(rewardStr) && rewardKey !== this.lastRewardText;
+    const rewardEventKey = rewardStr
+      ? appMode === "guest"
+        ? `${rewardKey}:draw:${guestDraws}`
+        : `${rewardKey}:claim:${lastTxid || claimKey || poolId}`
+      : "";
+    const isNewReward = Boolean(rewardEventKey) && rewardEventKey !== this.lastRewardEventKey;
 
     this.setResultState(Boolean(rewardStr), Boolean(lastError));
 
@@ -306,8 +313,9 @@ export class GasLuckyPoolScene extends BaseScene {
       // The signature lucky-draw beat: roll the reward number up and shimmer the
       // ticket coin before it settles (reduced-motion falls back to the final
       // value instantly via animateCounter / this.tween).
-      this.lastRewardText = rewardKey;
+      this.lastRewardEventKey = rewardEventKey;
       this.sfx.play("win");
+      this.playVaultReveal();
       this.spawnRewardBurst();
       this.revealReward(rewardStr, luckSuffix);
     } else if (!this.rewardRolling) {
@@ -316,12 +324,14 @@ export class GasLuckyPoolScene extends BaseScene {
           ? `+${rewardStr} ${gasUnit}${luckSuffix}`
           : this.txt("tagline", "Pack a vault. Share a claim. Let GAS land."),
       );
-      if (!rewardStr) this.lastRewardText = "";
+      if (!rewardStr) this.lastRewardEventKey = "";
     }
   }
 
   protected onBridgeError(error: GameBridgeError): void {
-    this.statusText.setText(compactError(error.message) || "The vault action could not be completed.");
+    this.statusText.setText(
+      compactError(error.message) || this.txt("actionError", "The vault action could not be completed."),
+    );
     this.setResultState(false, true);
   }
 
@@ -330,8 +340,15 @@ export class GasLuckyPoolScene extends BaseScene {
 
     const topGlow = this.add.ellipse(W / 2, 112, 390, 250, 0xffe1a3, 0.34);
     const lowerGlow = this.add.ellipse(W / 2, 360, 380, 260, 0xd8f6df, 0.22);
+    this.backgroundGlows = [topGlow, lowerGlow];
+    this.startBackgroundMotion();
+  }
+
+  private startBackgroundMotion(): void {
+    if (this.reducedMotion || this.backgroundGlows.length === 0) return;
+    this.tweens.killTweensOf(this.backgroundGlows);
     this.animate({
-      targets: [topGlow, lowerGlow],
+      targets: this.backgroundGlows,
       alpha: { from: 0.24, to: 0.42 },
       duration: 2400,
       yoyo: true,
@@ -339,9 +356,6 @@ export class GasLuckyPoolScene extends BaseScene {
       ease: "Sine.easeInOut",
     });
 
-    const frame = this.add.graphics();
-    frame.lineStyle(2, C.stroke, 0.72);
-    frame.strokeRoundedRect(10, 10, W - 20, H - 20, 26);
   }
 
   private buildHero(W: number): void {
@@ -352,6 +366,24 @@ export class GasLuckyPoolScene extends BaseScene {
       .setDisplaySize(330, 218)
       .setOrigin(0.5);
 
+    this.startVaultGlowMotion();
+
+    // A restrained 3-coin foreground tray at the podium base. Fewer coins at
+    // lower opacity read as a distinct front accent instead of competing with
+    // the spilling coins already in the stock hero photo.
+    for (let i = 0; i < 3; i += 1) {
+      const coin = this.makeGasBadge(W / 2 + (i - 1) * 34, 220 + (i % 2 === 0 ? 6 : 0), 22)
+        .setAlpha(0.5);
+      coin.setData("restY", coin.y);
+      this.coinStream.push(coin);
+      this.startCoinIdleMotion(coin, i);
+    }
+  }
+
+  private startVaultGlowMotion(): void {
+    if (this.reducedMotion || !this.vaultGlow) return;
+    this.tweens.killTweensOf(this.vaultGlow);
+    this.vaultGlow.setScale(1).setAlpha(0.18);
     this.animate({
       targets: this.vaultGlow,
       scaleX: { from: 1, to: 1.08 },
@@ -362,40 +394,35 @@ export class GasLuckyPoolScene extends BaseScene {
       repeat: -1,
       ease: "Sine.easeInOut",
     });
+  }
 
-    // A restrained 3-coin foreground tray at the podium base. Fewer coins at
-    // lower opacity read as a distinct front accent instead of competing with
-    // the spilling coins already in the stock hero photo.
-    for (let i = 0; i < 3; i += 1) {
-      const coin = this.makeGasBadge(W / 2 + (i - 1) * 34, 220 + (i % 2 === 0 ? 6 : 0), 22)
-        .setAlpha(0.5);
-      this.coinStream.push(coin);
-      this.animate({
-        targets: coin,
-        y: coin.y - 7,
-        angle: i % 2 === 0 ? 8 : -8,
-        duration: 1200 + i * 110,
-        delay: i * 90,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
-    }
+  private startCoinIdleMotion(coin: Phaser.GameObjects.Container, index: number): void {
+    if (this.reducedMotion || !coin.active) return;
+    this.tweens.killTweensOf(coin);
+    const restY = Number(coin.getData("restY") ?? coin.y);
+    coin.setY(restY);
+    this.animate({
+      targets: coin,
+      y: restY - 7,
+      angle: index % 2 === 0 ? 8 : -8,
+      duration: 1200 + index * 110,
+      delay: index * 90,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   private makeGasBadge(x: number, y: number, size: number): Phaser.GameObjects.Container {
     const badge = this.add.container(x, y);
-    const coin = this.add.graphics();
-    coin.fillStyle(0xffcf63, 0.98);
-    coin.fillCircle(0, 0, size / 2);
-    coin.fillStyle(0xffffff, 0.24);
-    coin.fillCircle(-size * 0.14, -size * 0.16, size * 0.17);
-    coin.lineStyle(Math.max(1.2, size * 0.08), 0xbf8220, 0.58);
-    coin.strokeCircle(0, 0, size / 2 - 1);
-    const mark = this.add.image(0, 0, GAS_POOL_ASSETS.gasIcon)
-      .setDisplaySize(size * 0.58, size * 0.58)
+    const texture = this.str("appMode", "guest") === "guest"
+      ? GAS_POOL_ASSETS.guestIcon
+      : GAS_POOL_ASSETS.gasIcon;
+    const mark = this.add.image(0, 0, texture)
+      .setDisplaySize(size, size)
       .setOrigin(0.5);
-    badge.add([coin, mark]);
+    this.coinMarks.push(mark);
+    badge.add(mark);
     return badge;
   }
 
@@ -467,12 +494,13 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private switchMode(mode: Mode): void {
-    this.activeMode = mode;
-    this.createPanel?.setVisible(mode === "create");
-    this.claimPanel?.setVisible(mode === "claim");
+    const nextMode = this.str("appMode", "gamefi") === "guest" ? "create" : mode;
+    this.activeMode = nextMode;
+    this.createPanel?.setVisible(nextMode === "create");
+    this.claimPanel?.setVisible(nextMode === "claim");
 
     for (const [key, button] of this.modeButtons) {
-      const active = key === mode;
+      const active = key === nextMode;
       const bg = button.getData("bg") as Phaser.GameObjects.Graphics;
       const text = button.getData("text") as Phaser.GameObjects.Text;
       bg.clear();
@@ -494,7 +522,7 @@ export class GasLuckyPoolScene extends BaseScene {
     }).setOrigin(0.5);
     this.createPanel.add(this.createHeadingText);
 
-    REWARD_PLANS.forEach((_, index) => {
+    GAS_LUCKY_REWARD_PLANS.forEach((_, index) => {
       const card = this.makePlanCard(70 + index * 140, 415, index);
       this.planCards.push(card);
       this.createPanel.add(card);
@@ -523,11 +551,11 @@ export class GasLuckyPoolScene extends BaseScene {
     });
     this.createPanel.add(this.createButton);
 
-    this.selectPlan(this.selectedPlanIndex, false);
+    this.selectPlan(this.selectedPlanIndex, false, false);
   }
 
   private makePlanCard(x: number, y: number, index: number): Phaser.GameObjects.Container {
-    const plan = REWARD_PLANS[index]!;
+    const plan = GAS_LUCKY_REWARD_PLANS[index]!;
     const card = this.add.container(x, y);
     const bg = this.add.graphics();
     bg.setInteractive(new Phaser.Geom.Rectangle(-56, -48, 112, 96), Phaser.Geom.Rectangle.Contains);
@@ -536,23 +564,24 @@ export class GasLuckyPoolScene extends BaseScene {
       pressScale: 0.96,
       onPress: () => {
         this.sfx.play("select");
-        this.selectPlan(index, true);
+        this.selectPlan(index, true, true);
       },
     });
 
-    const title = this.add.text(0, -30, plan.title, {
+    const title = this.add.text(0, -33, plan.fallbackTitle, {
       fontFamily: FONT,
       fontSize: "12px",
       color: "#6f5a37",
       fontStyle: "600",
     }).setOrigin(0.5);
-    const amount = this.add.text(0, -4, `${plan.amount}`, {
+    const planCoin = this.makeGasBadge(-24, -7, 23);
+    const amount = this.add.text(15, -8, `${plan.amount}`, {
       fontFamily: FONT,
       fontSize: "21px",
       color: "#2a2117",
       fontStyle: "600",
     }).setOrigin(0.5);
-    const gas = this.add.text(0, 17, "GAS", {
+    const gas = this.add.text(15, 12, "GAS", {
       fontFamily: FONT,
       fontSize: "10px",
       color: "#7a623a",
@@ -565,7 +594,7 @@ export class GasLuckyPoolScene extends BaseScene {
       color: "#7a623a",
     }).setOrigin(0.5);
 
-    card.add([bg, title, amount, gas, detail]);
+    card.add([bg, title, planCoin, amount, gas, detail]);
     card.setData("bg", bg);
     card.setData("title", title);
     card.setData("amount", amount);
@@ -574,11 +603,14 @@ export class GasLuckyPoolScene extends BaseScene {
     return card;
   }
 
-  private selectPlan(index: number, animate: boolean): void {
+  private selectPlan(index: number, animate: boolean, syncSemanticControl: boolean): void {
     this.selectedPlanIndex = index;
     this.planCards.forEach((card, cardIndex) => this.renderPlanCard(card, cardIndex === index));
 
     this.updatePlanSummary();
+    if (syncSemanticControl && this.str("appMode", "gamefi") === "guest") {
+      this.dispatch("selectGuestPlan", { index });
+    }
     if (animate) {
       this.animate({
         targets: this.vaultGlow,
@@ -604,7 +636,7 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private dispatchCreate(): void {
-    const plan = REWARD_PLANS[this.selectedPlanIndex]!;
+    const plan = GAS_LUCKY_REWARD_PLANS[this.selectedPlanIndex]!;
     this.dispatch("createPool", {
       totalAmount: plan.amount,
       minClaim: plan.minClaim,
@@ -806,15 +838,54 @@ export class GasLuckyPoolScene extends BaseScene {
     this.coinStream.forEach((coin, index) => {
       const active = this.busy || this.activeMode === "claim";
       coin.setAlpha(active ? 0.85 : 0.5);
-      if (!active) return;
+      if (!active || this.reducedMotion) {
+        coin.setRotation(0);
+        return;
+      }
       coin.setRotation(Phaser.Math.DegToRad((this.time.now / 28 + index * 36) % 360));
     });
   }
 
+  private playVaultReveal(): void {
+    this.tweens.killTweensOf([this.heroImage, this.vaultGlow]);
+    this.heroImage.setScale(1).setAngle(0);
+    this.vaultGlow.setScale(1).setAlpha(0.22);
+    if (this.reducedMotion) return;
+
+    this.cameras.main.flash(170, 255, 235, 174, false);
+    this.tween({
+      targets: this.heroImage,
+      scaleX: { from: 0.985, to: 1.045 },
+      scaleY: { from: 0.985, to: 1.045 },
+      angle: { from: -0.8, to: 0.8 },
+      duration: 240,
+      yoyo: true,
+      ease: "Back.easeOut",
+      onComplete: () => this.heroImage.setScale(1).setAngle(0),
+    });
+    this.tween({
+      targets: this.vaultGlow,
+      scaleX: { from: 0.9, to: 1.18 },
+      scaleY: { from: 0.9, to: 1.18 },
+      alpha: { from: 0.18, to: 0.38 },
+      duration: 360,
+      yoyo: true,
+      ease: "Sine.easeOut",
+      onComplete: () => this.startVaultGlowMotion(),
+    });
+  }
+
   private spawnRewardBurst(): void {
+    this.rewardBurstCoins.forEach((coin) => coin.destroy());
+    this.rewardBurstCoins = [];
+    if (this.reducedMotion) {
+      this.resultPill.setScale(1);
+      return;
+    }
     for (let i = 0; i < 16; i += 1) {
       const coin = this.makeGasBadge(DESIGN_W / 2, 248, 24)
         .setAlpha(0.95);
+      this.rewardBurstCoins.push(coin);
       this.animate({
         targets: coin,
         x: DESIGN_W / 2 + Phaser.Math.Between(-145, 145),
@@ -824,7 +895,10 @@ export class GasLuckyPoolScene extends BaseScene {
         duration: 900 + i * 22,
         delay: i * 35,
         ease: "Cubic.easeOut",
-        onComplete: () => coin.destroy(),
+        onComplete: () => {
+          coin.destroy();
+          this.rewardBurstCoins = this.rewardBurstCoins.filter((item) => item !== coin);
+        },
       });
     }
     this.animate({
@@ -843,6 +917,7 @@ export class GasLuckyPoolScene extends BaseScene {
    * to the end state), so no motion is forced on users who opted out.
    */
   private revealReward(finalStr: string, luckSuffix: string): void {
+    const revealSequence = ++this.rewardRevealSequence;
     const gasUnit = this.txt("gasUnit", "GAS");
     const finalNum = Number(finalStr);
     const setLine = (text: string): void => {
@@ -865,10 +940,12 @@ export class GasLuckyPoolScene extends BaseScene {
       duration: 720,
       ease: "Cubic.easeOut",
       onUpdate: (tween) => {
+        if (revealSequence !== this.rewardRevealSequence) return;
         const value = Number(tween.getValue());
         setLine(value >= finalNum ? finalStr : value.toFixed(value < 10 ? 2 : 1));
       },
       onComplete: () => {
+        if (revealSequence !== this.rewardRevealSequence) return;
         this.rewardRolling = false;
         setLine(finalStr);
       },
@@ -889,6 +966,53 @@ export class GasLuckyPoolScene extends BaseScene {
       duration: 460,
       ease: "Back.easeOut",
     });
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    if (!this.heroImage || !this.resultPill) return;
+
+    if (!enabled) {
+      this.startBackgroundMotion();
+      this.startVaultGlowMotion();
+      this.coinStream.forEach((coin, index) => this.startCoinIdleMotion(coin, index));
+      return;
+    }
+
+    this.rewardRevealSequence += 1;
+    this.rewardRolling = false;
+    this.tweens.killTweensOf([
+      this.heroImage,
+      this.vaultGlow,
+      this.resultPill,
+      this.resultCoin,
+      this.claimTicketCoin,
+      ...this.backgroundGlows,
+      ...this.coinStream,
+      ...this.rewardBurstCoins,
+    ]);
+    this.rewardBurstCoins.forEach((coin) => coin.destroy());
+    this.rewardBurstCoins = [];
+    this.heroImage.setScale(1).setAngle(0);
+    this.vaultGlow.setScale(1).setAlpha(0.22);
+    this.backgroundGlows.forEach((glow) => glow.setScale(1).setAlpha(0.3));
+    this.coinStream.forEach((coin) => {
+      coin.setY(Number(coin.getData("restY") ?? coin.y)).setAngle(0);
+    });
+    this.resultPill.setScale(1);
+    this.resultCoin.setScale(1).setAngle(0);
+    this.claimTicketCoin?.setScale(1).setAngle(0);
+
+    const amount = this.str("lastClaimAmount", "0");
+    const reward = amount && amount !== "0" ? formatGas(amount, 4) : "";
+    const luck = this.str("lastClaimLuckPercent", "");
+    const suffix = luck
+      ? `  ${this.fmt(this.txt("luckTemplate", "{percent}% luck"), { percent: luck })}`
+      : "";
+    this.resultText.setText(
+      reward
+        ? `+${reward} ${this.txt("gasUnit", "GAS")}${suffix}`
+        : this.txt("tagline", "Pack a vault. Share a claim. Let GAS land."),
+    );
   }
 
   private fitCameraToHost(): void {

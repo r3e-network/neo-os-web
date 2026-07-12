@@ -1,9 +1,9 @@
 /**
- * Sudoku Arena — sprite-led premium puzzle table.
+ * Sudoku Arena — compact Phaser-first game shell.
  *
- * The live board is the product: real tile sprites carry the placements,
- * state frames carry interaction feedback, and every non-gameplay detail sits
- * below the puzzle instead of competing with it.
+ * The canvas owns the playable board. React only supplies the readable stage
+ * heading, a compact local HUD, recovery/rules drawer, and focus-revealed
+ * semantic controls for keyboard and assistive-technology users.
  */
 @use "@shared/styles/v2/tokens" as *;
 @use "@shared/styles/v2/motion" as *;
@@ -12,70 +12,70 @@
 .sudoku-playarea {
   display: block;
   --mx2-stage-floor: #faf9f7;
-  // Accent tokens — fall back to brand values when no per-app override is set.
   --sudoku-accent: var(--mx2-accent, #00af92);
   --sudoku-accent-dark: var(--mx2-accent-dark, #067a5b);
-  --sudoku-accent-wash: rgba(0, 175, 146, 0.1);
+  --sudoku-ink: #2d2114;
+  --sudoku-muted: #76551f;
+  --sudoku-line: rgba(155, 121, 62, 0.18);
 }
 
 .sudoku-playarea .mx2-stage {
   width: min(100%, 760px);
   max-width: 760px;
-  margin-inline: auto;
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  margin-inline: auto;
   padding: 8px 16px 12px;
 }
 
 .sudoku-playarea .mx2-stage__scene {
-  flex: 1 1 auto;
   min-height: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
   padding: 8px 12px 10px;
-}
-
-.sudoku-playarea .phaser-game-host {
-  margin-inline: auto;
-}
-
-.sudoku-phaser-canvas {
-  flex: 0 0 auto;
 }
 
 .sudoku-stage-shell {
   position: relative;
   width: 100%;
-  min-height: calc(100dvh - 72px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
   overflow: hidden;
-  border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(250, 244, 229, 0.9)),
-    #fffaf0;
   border: 1px solid rgba(155, 121, 62, 0.14);
+  border-radius: 20px;
+  padding: 8px 8px 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(250, 244, 229, 0.92)),
+    #fffaf0;
+}
+
+.sudoku-playarea .phaser-game-host {
+  flex: 0 0 auto;
+  margin-inline: auto;
+}
+
+.sudoku-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .sudoku-stage-hud {
-  position: absolute;
-  left: 50%;
-  bottom: 10px;
+  position: relative;
   z-index: 12;
   width: min(100%, 440px);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  transform: translateX(-50%);
-  border: 1px solid rgba(155, 121, 62, 0.16);
+  border: 1px solid var(--sudoku-line);
   border-radius: 16px;
   padding: 7px;
-  background: rgba(255, 253, 248, 0.94);
+  background: rgba(255, 253, 248, 0.96);
   box-shadow: 0 10px 24px rgba(88, 64, 28, 0.08);
 }
 
@@ -83,9 +83,9 @@
 .sudoku-stage-hud__drawer {
   min-width: 0;
   min-height: 48px;
-  border: 1px solid rgba(155, 121, 62, 0.14);
+  border: 1px solid var(--sudoku-line);
   border-radius: 12px;
-  background: #ffffff;
+  background: #fff;
   padding: 7px 8px;
 }
 
@@ -96,23 +96,22 @@
 }
 
 .sudoku-stage-hud__metric[data-accent="true"] {
-  border-color: rgba(0, 175, 146, 0.36);
-  box-shadow: inset 2px 0 0 var(--sudoku-accent);
+  border-color: rgba(0, 122, 91, 0.38);
+  box-shadow: inset 3px 0 0 var(--sudoku-accent-dark);
 }
 
 .sudoku-stage-hud__metric span {
-  color: #7a5a28;
-  font-size: 0.58rem;
-  font-weight: 680;
-  letter-spacing: 0;
+  color: var(--sudoku-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
   line-height: 1.05;
   text-transform: uppercase;
 }
 
 .sudoku-stage-hud__metric strong {
-  color: #2d2114;
+  color: var(--sudoku-ink);
   font-size: 0.82rem;
-  font-weight: 680;
+  font-weight: 700;
   line-height: 1.1;
 }
 
@@ -124,8 +123,15 @@
   color: var(--sudoku-accent-dark);
   font: inherit;
   font-size: 0.74rem;
-  font-weight: 680;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.sudoku-stage-hud__drawer:focus-visible,
+.sudoku-ingame-drawer button:focus-visible,
+.sudoku-a11y-controls button:focus-visible {
+  outline: 3px solid #047857;
+  outline-offset: 2px;
 }
 
 .sudoku-stage-hud__drawer svg {
@@ -140,39 +146,35 @@
 .sudoku-ingame-drawer {
   position: absolute;
   left: 50%;
-  bottom: 10px;
-  z-index: 18;
-  width: min(640px, calc(100% - 18px));
-  max-height: min(72vh, 580px);
+  bottom: 8px;
+  z-index: 24;
+  width: min(640px, calc(100% - 16px));
+  max-height: min(76vh, 580px);
   overflow-y: auto;
   transform: translateX(-50%);
-  border: 1px solid rgba(155, 121, 62, 0.2);
-  border-radius: 14px;
+  border: 1px solid rgba(155, 121, 62, 0.24);
+  border-radius: 16px;
   background: #fffdf8;
   padding: 16px;
-  box-shadow: 0 18px 48px rgba(88, 64, 28, 0.18);
-}
-
-.sudoku-ingame-drawer__head,
-.sudoku-ingame-drawer__fairness {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
+  box-shadow: 0 18px 48px rgba(88, 64, 28, 0.2);
 }
 
 .sudoku-ingame-drawer__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
   margin-bottom: 12px;
 }
 
-.sudoku-ingame-drawer__head svg,
-.sudoku-ingame-drawer__fairness svg {
+.sudoku-ingame-drawer__head > svg,
+.sudoku-ingame-drawer__fairness > svg {
   color: var(--sudoku-accent-dark);
 }
 
 .sudoku-ingame-drawer__head h3 {
   margin: 0 0 3px;
-  color: #2d2114;
+  color: var(--sudoku-ink);
   font-size: 1rem;
   line-height: 1.18;
 }
@@ -180,9 +182,21 @@
 .sudoku-ingame-drawer__head p,
 .sudoku-ingame-drawer__fairness p {
   margin: 0;
-  color: var(--mx2-text-muted);
+  color: #6f5a40;
   font-size: 0.78rem;
-  line-height: 1.38;
+  line-height: 1.42;
+}
+
+.sudoku-ingame-drawer__close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--sudoku-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--sudoku-ink);
+  cursor: pointer;
 }
 
 .sudoku-ingame-drawer__grid {
@@ -195,19 +209,19 @@
   min-width: 0;
   display: grid;
   gap: 4px;
-  border: 1px solid rgba(155, 121, 62, 0.14);
+  border: 1px solid var(--sudoku-line);
   border-radius: 12px;
   padding: 9px 10px;
-  background: #ffffff;
+  background: #fff;
 }
 
 .sudoku-ingame-drawer__grid small {
-  color: var(--mx2-text-muted);
+  color: #6f5a40;
   font-size: 0.68rem;
 }
 
 .sudoku-ingame-drawer__grid strong {
-  color: #2d2114;
+  color: var(--sudoku-ink);
   font-size: 0.85rem;
 }
 
@@ -219,976 +233,132 @@
 }
 
 .sudoku-ingame-drawer__actions button {
-  min-height: 38px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid rgba(0, 175, 146, 0.2);
+  border: 1px solid rgba(4, 120, 87, 0.24);
   border-radius: 999px;
   background: #e8f8f1;
   color: var(--sudoku-accent-dark);
   padding: 8px 12px;
   font: inherit;
   font-size: 0.78rem;
-  font-weight: 680;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .sudoku-ingame-drawer__fairness {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
   margin-top: 12px;
-  border: 1px solid rgba(0, 175, 146, 0.12);
+  border: 1px solid rgba(4, 120, 87, 0.15);
   border-radius: 12px;
   padding: 10px;
-  background: rgba(0, 175, 146, 0.06);
+  background: rgba(4, 120, 87, 0.06);
 }
 
-.sudoku-scene {
-  position: relative;
-  width: 100%;
-  min-height: 520px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
-  border: 1px solid rgba(155, 121, 62, 0.16);
-  border-radius: 24px;
-  overflow: hidden;
-  padding: 20px 18px 18px;
-  background: var(--mx2-stage-floor);
-  isolation: isolate;
-}
-
-// Subordinate paper layer: the texture sits behind the live board at low
-// opacity so the interaction surface stays the foreground.
-.sudoku-scene__paper {
+/* Semantic board controls stay visually quiet for pointer users. Keyboard
+ * focus reveals the complete board in a high-contrast paper panel. */
+.sudoku-a11y-controls {
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: url("../public/paper-grid.webp");
-  background-size: 340px 340px;
-  opacity: 0.13;
-  pointer-events: none;
-}
-
-.sudoku-scene[data-state="dealing"] .sudoku-shuffle__asset {
-  animation: sudoku-shuffle 900ms ease-in-out infinite alternate;
-}
-
-.sudoku-scene[data-state="placing"] .sudoku-board {
-  animation: sudoku-board-tick 300ms ease-out;
-}
-
-.sudoku-scene[data-state="submitting"] .sudoku-board {
-  animation: sudoku-board-breathe 1200ms ease-in-out infinite;
-}
-
-.sudoku-scene[data-state="won"] .sudoku-lobby__result[data-state="won"] {
-  animation: sudoku-win-glow 900ms ease-out 1 both;
-}
-
-.sudoku-scene__status {
-  margin: -6px 0 0;
-  font-size: 0.78rem;
-  color: var(--mx2-text-muted);
-  text-align: center;
-  min-height: 1.2em;
-}
-
-/* ---------------------------------------------------------------- lobby -- */
-
-.sudoku-lobby {
-  width: 100%;
-  max-width: 760px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: stretch;
-}
-
-.sudoku-lobby__stage {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(320px, 1.18fr) minmax(230px, 0.82fr);
-  gap: 20px;
-  align-items: center;
-  min-height: 386px;
-  padding: 24px;
-  border-radius: 24px;
-  border: 1px solid rgba(155, 121, 62, 0.18);
-  background:
-    radial-gradient(circle at 16% 16%, rgba(255, 255, 255, 0.9), transparent 32%),
-    linear-gradient(135deg, rgba(255, 252, 244, 0.98), rgba(246, 242, 233, 0.94));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  top: 10px;
+  left: 10px;
+  z-index: 30;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 16px;
-    border-radius: 20px;
-    border: 1px solid rgba(232, 230, 225, 0.72);
-    pointer-events: none;
-  }
-}
-
-.sudoku-lobby__board {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  min-height: 336px;
-}
-
-// Deliberate wax-seal motif pinned to the board's top-left corner (clipped by
-// the stage) instead of floating behind the mini-grid.
-.sudoku-lobby__seal {
-  position: absolute;
-  top: -22px;
-  left: -22px;
-  width: 148px;
-  height: 148px;
-  object-fit: contain;
-  opacity: 0.2;
-  transform: rotate(-8deg);
-  filter: drop-shadow(0 16px 24px rgba(55, 43, 22, 0.14));
-}
-
-.sudoku-lobby__mini-grid {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(9, minmax(26px, 36px));
-  grid-template-rows: repeat(9, minmax(26px, 36px));
-  gap: 0;
-  padding: 8px;
-  border-radius: 18px;
-  border: 3px solid rgba(45, 52, 56, 0.82);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 241, 229, 0.96)),
-    #fffaf0;
-  box-shadow:
-    0 16px 32px rgba(62, 48, 25, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-
-  .sudoku-lobby__mini-grid__cell {
-    position: relative;
-    display: grid;
-    place-items: center;
-    min-width: 0;
-    border-radius: 0;
-    border: 1px solid rgba(75, 63, 43, 0.13);
-    background: rgba(255, 255, 255, 0.56);
-    overflow: hidden;
-
-    &.is-open {
-      background:
-        linear-gradient(135deg, rgba(245, 241, 230, 0.7), rgba(255, 252, 244, 0.84));
-    }
-
-    &.is-box-right {
-      border-right: 2.5px solid rgba(45, 52, 56, 0.82);
-    }
-
-    &.is-box-bottom {
-      border-bottom: 2.5px solid rgba(45, 52, 56, 0.82);
-    }
-  }
-
-  img {
-    position: absolute;
-    inset: 2px;
-    width: calc(100% - 4px);
-    height: calc(100% - 4px);
-    object-fit: contain;
-  }
-
-  b {
-    position: relative;
-    z-index: 1;
-    font-size: 0.86rem;
-    color: var(--mx2-text-primary);
-    font-weight: 650;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-.sudoku-lobby__hud {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-self: stretch;
-  justify-content: center;
-  min-width: 0;
-}
-
-.sudoku-lobby__route {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-  padding: 22px;
-  border-radius: 18px;
-  border: 1px solid rgba(232, 230, 225, 0.92);
-  background: rgba(255, 255, 255, 0.78);
-
-  strong {
-    color: var(--mx2-text-heading);
-    font-size: clamp(1.24rem, 2.2vw, 1.58rem);
-    font-weight: 650;
-    line-height: 1.18;
-  }
-
-  p {
-    margin: 0;
-    max-width: 300px;
-    color: var(--mx2-text-secondary);
-    font-size: 0.88rem;
-    line-height: 1.5;
-  }
-}
-
-.sudoku-lobby__eyebrow {
-  width: max-content;
-  max-width: 100%;
-  border-radius: 999px;
-  padding: 4px 9px;
-  background: var(--sudoku-accent-wash);
-  color: var(--sudoku-accent-dark);
-  font-size: 0.68rem;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.sudoku-lobby__ribbon {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-
-  span {
-    min-height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    border-radius: 12px;
-    padding: 9px 12px;
-    background: rgba(255, 255, 255, 0.78);
-    border: 1px solid rgba(232, 230, 225, 0.9);
-    color: var(--mx2-text-secondary);
-    font-size: 0.78rem;
-    font-weight: 650;
-    box-shadow: none;
-  }
-
-  img {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-  }
-}
-
-.sudoku-lobby__ribbon-prize {
-  color: var(--sudoku-accent-dark) !important;
-}
-
-.sudoku-lobby__cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-// Seal in the left column, name + reward stacked beside it — one clean text
-// hierarchy at 3-up width instead of two wrapping flex rows.
-.sudoku-route-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-items: center;
-  align-content: center;
-  column-gap: 10px;
-  row-gap: 2px;
-  min-height: 76px;
-  padding: 10px 12px;
-  border: 1px solid rgba(155, 121, 62, 0.18);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(249, 244, 229, 0.84)),
-    #fffaf0;
-  cursor: pointer;
-  text-align: left;
-  box-shadow: none;
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  }
-
-  &:focus-visible {
-    outline: 2px solid rgba(var(--sudoku-accent, #00af92), 0.55);
-    outline-offset: 2px;
-  }
-
-  &--active {
-    border-color: rgba(0, 175, 146, 0.6);
-    background:
-      linear-gradient(180deg, rgba(232, 248, 241, 0.92), rgba(255, 251, 238, 0.94)),
-      #fffaf0;
-    box-shadow: 0 4px 12px rgba(0, 175, 146, 0.14);
-    animation: sudoku-card-pop 240ms ease-out;
-  }
-}
-
-.sudoku-route-card__seal {
-  grid-row: 1 / span 2;
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 8px 10px rgba(55, 43, 22, 0.14));
-  transition: transform 180ms ease;
-}
-
-.sudoku-route-card:hover:not(:disabled) .sudoku-route-card__seal,
-.sudoku-route-card--active .sudoku-route-card__seal {
-  transform: translateY(-2px) scale(1.04);
-}
-
-.sudoku-route-card__name {
-  grid-column: 2;
-  color: var(--mx2-text-primary);
-  font-weight: 600;
-  font-size: 0.84rem;
-  letter-spacing: 0;
-}
-
-.sudoku-route-card__reward {
-  grid-column: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
-  color: var(--sudoku-accent-dark);
-
-  img {
-    width: 16px;
-    height: 16px;
-    object-fit: contain;
-  }
 }
 
-.sudoku-lobby__pool {
-  margin: 0;
-  text-align: center;
+.sudoku-a11y-controls:focus-within {
+  width: calc(100% - 20px);
+  height: auto;
+  max-height: calc(100% - 20px);
+  overflow: auto;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+  border: 2px solid #76551f;
+  border-radius: 16px;
+  padding: 12px;
+  background: #fffdf8;
+  box-shadow: 0 18px 48px rgba(88, 64, 28, 0.22);
+}
+
+.sudoku-a11y-controls button {
+  min-height: 40px;
+  border: 1px solid rgba(118, 85, 31, 0.28);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--sudoku-ink);
+  font: inherit;
   font-size: 0.78rem;
-  color: var(--mx2-text-muted);
-
-  // Empty reward pool is a deliberate gate, not a broken default — surface it
-  // as a warm amber pill instead of a whisper of muted text.
-  &[data-low="true"] {
-    width: max-content;
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background: rgba(180, 83, 9, 0.08);
-    color: #b45309;
-    font-weight: 620;
-  }
+  font-weight: 700;
 }
 
-.sudoku-lobby__result {
-  position: relative;
-  border-radius: var(--mx2-r-md);
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-
-  &[data-state="won"] {
-    background: linear-gradient(180deg, rgba(0, 175, 146, 0.12), rgba(0, 175, 146, 0.05));
-    border: 1px solid rgba(0, 175, 146, 0.4);
-
-    strong {
-      font-size: 1.15rem;
-      font-weight: 650;
-      color: var(--sudoku-accent-dark);
-    }
-  }
-
-  &[data-state="expired"] {
-    background: rgba(31, 41, 55, 0.05);
-    border: 1px solid rgba(31, 41, 55, 0.12);
-  }
-
-  strong {
-    font-size: 1.02rem;
-  }
-
-  > img {
-    width: 58px;
-    height: 58px;
-    object-fit: contain;
-    filter: drop-shadow(0 8px 12px rgba(31, 41, 55, 0.16));
-  }
-
-  span {
-    font-size: 0.78rem;
-    color: var(--mx2-text-muted);
-  }
+.sudoku-a11y-controls button[aria-checked="true"],
+.sudoku-a11y-controls button[aria-pressed="true"] {
+  border-color: #047857;
+  background: #e8f8f1;
+  box-shadow: inset 0 0 0 1px #047857;
 }
 
-/* -------------------------------------------------------------- shuffle -- */
-
-.sudoku-shuffle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 30px 0 12px;
-
-  p {
-    margin: 0;
-    font-size: 0.82rem;
-    color: var(--mx2-text-muted);
-    max-width: 320px;
-    text-align: center;
-  }
+.sudoku-a11y-controls button:disabled {
+  opacity: 0.52;
 }
 
-.sudoku-shuffle__kit {
-  position: relative;
-  width: min(92%, 420px);
-  min-height: 190px;
+.sudoku-a11y-controls [role="radiogroup"],
+.sudoku-a11y-actions {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  align-items: end;
-  justify-items: center;
-  padding: 18px 22px 12px;
-  border-radius: 28px;
-  background: rgba(255, 253, 246, 0.72);
-  border: 1px solid rgba(155, 121, 62, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72), 0 18px 42px rgba(99, 75, 38, 0.1);
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 18px 28px;
-    border-radius: 20px;
-    border: 1px dashed rgba(0, 175, 146, 0.22);
-    pointer-events: none;
-  }
-}
-
-.sudoku-shuffle__asset {
-  position: relative;
-  z-index: 1;
-  width: clamp(48px, 11vw, 78px);
-  height: clamp(48px, 11vw, 78px);
-  object-fit: contain;
-  filter: drop-shadow(0 12px 14px rgba(43, 33, 18, 0.18));
-
-  &:first-child,
-  &:last-child {
-    width: clamp(76px, 17vw, 118px);
-    height: clamp(76px, 17vw, 118px);
-  }
-}
-
-/* ---------------------------------------------------------------- table -- */
-
-.sudoku-table {
-  width: 100%;
-  max-width: 560px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.sudoku-timer {
-  width: 100%;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 10px;
-
-  // Final minute: a steady urgent color + weight and a single entry pulse —
-  // no perpetual blinking against the solver's concentration.
-  &[data-low="true"] .sudoku-timer__clock {
-    color: #b42318;
-    font-weight: 650;
-    animation: sudoku-timer-alarm 250ms ease-out 1 both;
-  }
-}
-
-.sudoku-timer__clock {
-  font-variant-numeric: tabular-nums;
-  font-weight: 680;
-  font-size: 1.05rem;
-}
-
-.sudoku-timer__track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(31, 41, 55, 0.08);
-  overflow: hidden;
-
-  i {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #00af92, #7ed9c6);
-    transition: width 900ms linear;
-  }
-}
-
-.sudoku-timer__reward {
-  font-size: 0.78rem;
-  font-weight: 620;
-  color: var(--sudoku-accent-dark);
-}
-
-.sudoku-board {
-  display: grid;
-  grid-template-columns: repeat(9, minmax(30px, 52px));
-  padding: 6px;
-  border: 2px solid rgba(65, 72, 76, 0.82);
-  border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(244, 236, 214, 0.94)),
-    #fffaf0;
-  outline: none;
-  box-shadow: 0 18px 42px rgba(62, 48, 25, 0.14);
-
-  &:focus-visible {
-    box-shadow: 0 0 0 3px rgba(0, 175, 146, 0.35);
-  }
-}
-
-.sudoku-cell {
-  position: relative;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid rgba(75, 63, 43, 0.14);
-  background: rgba(255, 255, 255, 0.56);
-  padding: 0;
-  cursor: pointer;
-  font-size: 1.15rem;
-
-  &--box-right {
-    border-right: 2.5px solid rgba(45, 52, 56, 0.86);
-  }
-
-  &--box-bottom {
-    border-bottom: 2.5px solid rgba(45, 52, 56, 0.86);
-  }
-
-  &--line {
-    background: rgba(0, 175, 146, 0.08);
-  }
-
-  &--twin .sudoku-cell__digit {
-    color: var(--sudoku-accent-dark);
-    text-shadow: 0 0 12px rgba(0, 175, 146, 0.35);
-  }
-
-  &--selected {
-    background: rgba(0, 175, 146, 0.18);
-    box-shadow: inset 0 0 0 2px rgba(0, 175, 146, 0.5);
-  }
-
-  &--given .sudoku-cell__digit {
-    font-weight: 680;
-    color: var(--mx2-text-primary);
-  }
-
-  &--placed .sudoku-cell__digit {
-    font-weight: 650;
-    color: var(--sudoku-accent-dark);
-  }
-
-  &--landing .sudoku-cell__digit {
-    animation: sudoku-digit-land 220ms ease-out;
-  }
-
-  &--conflict {
-    animation: sudoku-conflict-shake 240ms ease-in-out;
-    background: rgba(180, 35, 24, 0.08);
-  }
-}
-
-.sudoku-cell__tile,
-.sudoku-cell__mark {
-  position: absolute;
-  pointer-events: none;
-  user-select: none;
-}
-
-.sudoku-cell__tile {
-  inset: 1px;
-  z-index: 1;
-  width: calc(100% - 2px);
-  height: calc(100% - 2px);
-  object-fit: contain;
-  filter: drop-shadow(0 4px 5px rgba(42, 31, 17, 0.12));
-}
-
-.sudoku-cell__tile--note {
-  inset: 8%;
-  width: 84%;
-  height: 84%;
-  opacity: 0.72;
-  filter: drop-shadow(0 2px 4px rgba(42, 31, 17, 0.12));
-}
-
-.sudoku-cell__mark {
-  inset: -13%;
-  z-index: 4;
-  width: 126%;
-  height: 126%;
-  object-fit: contain;
-}
-
-.sudoku-cell__mark--conflict {
-  opacity: 0.82;
-}
-
-.sudoku-cell__digit {
-  position: relative;
-  z-index: 3;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
-}
-
-.sudoku-cell__notes {
-  position: relative;
-  z-index: 3;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  width: 78%;
-  height: 78%;
-  padding: 3px;
-  border-radius: 10px;
-  background: rgba(255, 253, 246, 0.72);
-
-  i {
-    font-style: normal;
-    font-size: 0.52rem;
-    line-height: 1.35;
-    color: rgba(31, 41, 55, 0.55);
-
-    &[data-on="true"] {
-      color: var(--sudoku-accent-dark);
-      font-weight: 620;
-      animation: sudoku-note-pop 200ms ease-out;
-    }
-  }
-}
-
-/* ----------------------------------------------------------------- pad --- */
-
-.sudoku-pad {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
-  width: 100%;
+  margin-bottom: 8px;
 }
 
-.sudoku-pad__key {
-  aspect-ratio: 1;
-  border-radius: 15px;
-  border: 1px solid rgba(155, 121, 62, 0.2);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 238, 219, 0.92)),
-    #fffaf0;
-  font-size: 1.05rem;
-  font-weight: 650;
-  color: var(--mx2-text-primary);
-  cursor: pointer;
-  box-shadow: 0 7px 14px rgba(99, 75, 38, 0.08);
-  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    background: linear-gradient(180deg, #f2fffb, #fff6df);
-    box-shadow: 0 12px 22px rgba(99, 75, 38, 0.13);
-  }
-
-  &:active:not(:disabled) {
-    animation: sudoku-key-press 160ms ease-out;
-  }
-
-  &--note {
-    border-style: dashed;
-    color: var(--sudoku-accent-dark);
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-}
-
-.sudoku-pad__toggle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  aspect-ratio: 1;
-  border-radius: 15px;
-  border: 1px solid rgba(0, 175, 146, 0.28);
-  background: rgba(255, 253, 246, 0.76);
-  font-size: 0.68rem;
-  font-weight: 650;
-  cursor: pointer;
-  color: var(--mx2-text-muted);
-  transition: border-color 150ms ease-out, background 150ms ease-out, color 150ms ease-out;
-
-  img {
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    filter: drop-shadow(0 3px 5px rgba(42, 31, 17, 0.12));
-  }
-
-  &--on {
-    border-color: rgba(0, 175, 146, 0.7);
-    color: var(--sudoku-accent-dark);
-    background: var(--sudoku-accent-wash);
-    animation: sudoku-note-pop 200ms ease-out;
-  }
-}
-
-.sudoku-hint {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--mx2-text-muted);
-  text-align: center;
-
-  &--expired {
-    color: #b42318;
-    font-weight: 620;
-  }
-}
-
-/* --------------------------------------------------------------- drawer -- */
-
-.sudoku-drawer__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  img {
-    border-radius: 10px;
-    border: 1px solid rgba(31, 41, 55, 0.12);
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.8rem;
-    color: var(--mx2-text-muted);
-  }
-}
-
-.sudoku-ranks {
-  list-style: none;
-  margin: 8px 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sudoku-ranks__row {
+.sudoku-a11y-board,
+.sudoku-a11y-pad {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
-  gap: 8px;
-  align-items: baseline;
-  padding: 6px 10px;
-  border-radius: var(--mx2-r-md);
-  background: rgba(31, 41, 55, 0.03);
-  font-size: 0.8rem;
-
-  &[data-me="true"] {
-    background: rgba(0, 175, 146, 0.1);
-    border: 1px solid rgba(0, 175, 146, 0.35);
-  }
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 2px;
 }
 
-.sudoku-ranks__rank {
-  font-weight: 680;
+.sudoku-a11y-board {
+  margin-bottom: 8px;
 }
 
-.sudoku-ranks__addr {
-  font-family: var(--mx2-font-mono, monospace);
-  font-size: 0.72rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sudoku-ranks__solves {
-  color: var(--mx2-text-muted);
+.sudoku-a11y-board button,
+.sudoku-a11y-pad button {
+  min-height: 34px;
+  padding: 2px;
   font-size: 0.72rem;
 }
 
-.sudoku-ranks__won {
-  font-weight: 620;
-  color: var(--sudoku-accent-dark);
+.sudoku-a11y-pad {
+  margin-bottom: 8px;
 }
 
-.sudoku-ranks__me {
-  font-size: 0.66rem;
-  font-weight: 680;
-  color: var(--sudoku-accent-dark);
+.sudoku-a11y-controls > p {
+  margin: 8px 0 0;
+  color: var(--sudoku-muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
 }
 
-.sudoku-drawer__seed {
-  font-size: 0.72rem;
-  color: var(--mx2-text-muted);
-  font-family: var(--mx2-font-mono, monospace);
-  word-break: break-all;
-}
-
-/* ------------------------------------------------------------ keyframes -- */
-
-@keyframes sudoku-shuffle {
-  from {
-    opacity: 0.25;
-    transform: translateY(0) scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-4px) scale(1);
-  }
-}
-
-@keyframes sudoku-digit-land {
-  0% {
-    transform: scale(1.3);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes sudoku-conflict-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20%,
-  60% {
-    transform: translateX(-2px);
-  }
-  40%,
-  80% {
-    transform: translateX(2px);
-  }
-}
-
-@keyframes sudoku-board-tick {
-  0% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(1.006);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes sudoku-board-breathe {
-  0%,
-  100% {
-    box-shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
-  }
-  50% {
-    box-shadow: 0 10px 34px rgba(0, 175, 146, 0.28);
-  }
-}
-
-@keyframes sudoku-win-glow {
-  0% {
-    box-shadow: 0 0 0 rgba(0, 175, 146, 0);
-  }
-  55% {
-    box-shadow: 0 0 26px rgba(0, 175, 146, 0.35);
-  }
-  100% {
-    box-shadow: 0 0 18px rgba(0, 175, 146, 0.22);
-  }
-}
-
-@keyframes sudoku-card-pop {
-  0% {
-    transform: scale(0.96);
-  }
-  60% {
-    transform: scale(1.02);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes sudoku-key-press {
-  0% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(2px) scale(0.96);
-  }
-  100% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes sudoku-note-pop {
-  from {
-    transform: scale(0.6);
-    opacity: 0.4;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes sudoku-timer-alarm {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.08);
-  }
-  100% {
-    transform: scale(1);
-  }
+.sudoku-a11y-submit-proxy {
+  border-color: #047857 !important;
+  background: #dff7ea !important;
+  color: #065f46 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sudoku-scene *,
-  .sudoku-scene *::before,
-  .sudoku-scene *::after {
+  .sudoku-stage-shell *,
+  .sudoku-stage-shell *::before,
+  .sudoku-stage-shell *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -1196,41 +366,30 @@
 }
 
 @media (max-width: 560px) {
-  .sudoku-playarea .mx2-playstage.mx2-cat-game {
-    min-height: 100dvh;
-  }
-
-  .sudoku-playarea .mx2-cat-game.mx2-stage,
-  .sudoku-playarea .mx2-cat-game .mx2-stage__scene {
-    flex: 0 0 auto;
-  }
-
   .sudoku-playarea .mx2-stage {
     width: 100%;
     min-height: 100dvh;
-    padding: 8px 8px 10px;
+    padding: 6px 6px 8px;
   }
 
   .sudoku-playarea .mx2-stage__scene {
-    padding: 6px 0 8px;
+    padding: 4px 0 6px;
   }
 
   .sudoku-stage-shell {
-    min-height: calc(100dvh - 52px);
-    justify-content: space-between;
-    gap: 8px;
+    min-height: 0;
+    gap: 6px;
     border-radius: 18px;
+    padding: 6px;
   }
 
   .sudoku-phaser-canvas {
-    --phaser-mobile-height-ratio: 2.08;
+    --phaser-mobile-height-ratio: 1.62;
+    --phaser-mobile-bottom-reserve: 72px;
   }
 
   .sudoku-stage-hud {
-    // Keep a small horizontal inset so the first tile's accent left-border
-    // does not read as clipped against the viewport edge.
-    width: min(calc(100% - 16px), 378px);
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: min(100%, 378px);
     gap: 5px;
     padding: 6px;
     border-radius: 14px;
@@ -1238,153 +397,60 @@
 
   .sudoku-stage-hud__metric,
   .sudoku-stage-hud__drawer {
-    min-height: 46px;
-    padding: 6px 7px;
-    border-radius: 11px;
+    min-height: 44px;
+    padding: 6px;
+    border-radius: 10px;
   }
 
   .sudoku-stage-hud__metric span {
-    font-size: 0.54rem;
+    font-size: 0.62rem;
   }
 
-  .sudoku-stage-hud__metric strong {
-    font-size: 0.76rem;
-  }
-
+  .sudoku-stage-hud__metric strong,
   .sudoku-stage-hud__drawer {
-    font-size: 0.68rem;
+    font-size: 0.7rem;
   }
 
   .sudoku-ingame-drawer {
-    bottom: 10px;
-    width: calc(100% - 14px);
-    max-height: min(77vh, 650px);
-    padding: 16px;
+    bottom: 6px;
+    width: calc(100% - 12px);
+    max-height: min(78vh, 650px);
+    padding: 14px;
   }
 
   .sudoku-ingame-drawer__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sudoku-scene {
-    min-height: 500px;
-    padding: 12px 8px 12px;
+  .sudoku-a11y-controls [role="radiogroup"],
+  .sudoku-a11y-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 650px) and (max-width: 560px) {
+  .sudoku-playarea .mx2-stage {
+    min-height: calc(100dvh - 20px);
+    padding-top: 3px;
+    padding-bottom: 0;
   }
 
-  .sudoku-lobby__stage {
-    grid-template-columns: 1fr;
-    min-height: 0;
-    padding: 16px;
-    gap: 14px;
+  .sudoku-playarea .mx2-stage__scene {
+    padding-bottom: 0;
   }
 
-  .sudoku-lobby__board {
-    min-height: 274px;
+  .sudoku-stage-shell {
+    padding-top: 3px;
+    padding-bottom: 3px;
   }
 
-  .sudoku-lobby__seal {
-    top: -16px;
-    left: -16px;
-    width: 106px;
-    height: 106px;
-    transform: rotate(-8deg);
+  .sudoku-phaser-canvas {
+    --phaser-mobile-height-ratio: 1.45;
+    --phaser-mobile-bottom-reserve: 90px;
   }
 
-  .sudoku-lobby__mini-grid {
-    width: min(100%, 310px);
-    aspect-ratio: 1;
-    grid-template-columns: repeat(9, minmax(0, 1fr));
-    grid-template-rows: repeat(9, minmax(0, 1fr));
-    border-radius: 16px;
-
-    b {
-      font-size: 0.68rem;
-    }
-  }
-
-  .sudoku-lobby__hud {
-    gap: 10px;
-  }
-
-  .sudoku-lobby__route {
-    padding: 16px;
-
-    p {
-      max-width: 320px;
-      font-size: 0.78rem;
-    }
-  }
-
-  .sudoku-lobby__ribbon {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-
-    span {
-      min-height: 27px;
-      justify-content: center;
-      padding: 6px 7px;
-      font-size: 0.62rem;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    // The 18px trophy forces the prize cell onto two lines at this width —
-    // the teal prize color already carries the emphasis.
-    img {
-      display: none;
-    }
-  }
-
-  .sudoku-pad {
-    grid-template-columns: repeat(5, 1fr);
-
-    &__toggle {
-      grid-column: span 1;
-      aspect-ratio: 1;
-    }
-  }
-
-  .sudoku-lobby__cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .sudoku-route-card {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-    justify-items: center;
-    row-gap: 4px;
-    min-height: 92px;
-    padding: 8px 4px;
-    border-radius: 14px;
-    text-align: center;
-  }
-
-  .sudoku-route-card__seal {
-    grid-row: 1;
-    width: 38px;
-    height: 38px;
-  }
-
-  .sudoku-route-card__name,
-  .sudoku-route-card__reward {
-    grid-column: 1;
-  }
-
-  .sudoku-route-card__name {
-    font-size: 0.7rem;
-    line-height: 1.12;
-  }
-
-  .sudoku-route-card__reward {
-    gap: 2px;
-    font-size: 0.66rem;
-    line-height: 1.1;
-    white-space: nowrap;
-
-    img {
-      width: 13px;
-      height: 13px;
-    }
+  .sudoku-stage-hud__metric,
+  .sudoku-stage-hud__drawer {
+    min-height: 40px;
   }
 }

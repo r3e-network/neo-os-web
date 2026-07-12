@@ -14,7 +14,7 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
 describe("automation-copilot integration: dispatch params", () => {
   it("dispatchs registerTrigger on primary action", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+    const { container } = render(<PlayArea t={t} state={state({ currentPrice: "$18.4200", priceFreshnessState: "fresh" })} dispatch={dispatch} />);
     const btn = container.querySelector(".mx2-btn--primary");
     if (btn) {
       fireEvent.click(btn);

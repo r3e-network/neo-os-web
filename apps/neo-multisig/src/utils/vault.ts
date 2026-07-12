@@ -46,8 +46,8 @@ export interface VaultView {
   threshold: number;
   signers: string[];
   createdTime: number;
-  neoBalance: number;
-  gasBalance: number;
+  neoBalance: string;
+  gasBalance: string;
 }
 
 /** Request lifecycle status as stored on-chain. */
@@ -60,8 +60,8 @@ export interface RequestView {
   creator: string;
   recipient: string;
   asset: string;
-  assetSymbol: VaultAsset | "UNKNOWN";
-  amount: number;
+  assetSymbol: VaultAsset;
+  amount: string;
   approvalCount: number;
   status: RequestStatus;
   createdTime: number;
@@ -94,7 +94,8 @@ export function isValidAddress(address: unknown): boolean {
 export function toHash160(value: unknown, label = "Address"): string {
   const raw = String(value ?? "").trim();
   if (/^(0x)?[0-9a-fA-F]{40}$/.test(raw)) {
-    return raw.startsWith("0x") ? raw.toLowerCase() : `0x${raw.toLowerCase()}`;
+    const normalized = raw.startsWith("0x") ? raw.toLowerCase() : `0x${raw.toLowerCase()}`;
+    if (!/^0x0{40}$/.test(normalized)) return normalized;
   }
   const converted = addressToScriptHash(raw);
   if (/^0x[0-9a-fA-F]{40}$/.test(converted)) return converted;
@@ -152,9 +153,12 @@ export function fromBaseUnits(
   baseUnits: number | string | bigint,
   asset: VaultAsset,
 ): string {
-  const value = BigInt(
-    typeof baseUnits === "bigint" ? baseUnits : Math.trunc(Number(baseUnits) || 0),
-  );
+  let value = 0n;
+  try {
+    value = typeof baseUnits === "bigint" ? baseUnits : BigInt(String(baseUnits).trim() || "0");
+  } catch {
+    return "0";
+  }
   if (asset === "NEO") return value.toString();
 
   const whole = value / GAS_FACTOR;
@@ -172,9 +176,10 @@ export function assetHash(asset: VaultAsset): string {
 
 /** Map a stored asset Hash160 to its symbol (GAS / NEO / UNKNOWN). */
 export function assetSymbol(hash: unknown): VaultAsset | "UNKNOWN" {
-  const normalized = String(hash ?? "").trim().toLowerCase();
-  if (normalized.endsWith(GAS_HASH.slice(2))) return "GAS";
-  if (normalized.endsWith(NEO_HASH.slice(2))) return "NEO";
+  const raw = String(hash ?? "").trim().toLowerCase();
+  const normalized = /^[0-9a-f]{40}$/.test(raw) ? `0x${raw}` : raw;
+  if (normalized === GAS_HASH) return "GAS";
+  if (normalized === NEO_HASH) return "NEO";
   return "UNKNOWN";
 }
 
@@ -185,6 +190,11 @@ export function assetSymbol(hash: unknown): VaultAsset | "UNKNOWN" {
 export interface SignerSet {
   signers: string[];
   threshold: number;
+}
+
+/** Canonical policy order used for deterministic creation and readback. */
+export function canonicalSignerHashes(signers: string[]): string[] {
+  return signers.map((signer) => addressToScriptHash(signer)).sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -223,6 +233,11 @@ export function validateSignerSet(
     throw new Error("Threshold must be between 1 and the number of signers.");
   }
 
+  // The contract treats signer order as semantically irrelevant. Sorting by
+  // canonical script hash makes an M-of-N policy deterministic across devices
+  // and prevents two visually identical member sets from being encoded in
+  // different orders.
+  signers.sort((left, right) => addressToScriptHash(left).localeCompare(addressToScriptHash(right)));
   return { signers, threshold };
 }
 
@@ -284,7 +299,7 @@ export function buildCreateRequestArgs(params: {
     { type: "Hash160", value: toHash160(params.recipient, "Recipient") },
     { type: "Hash160", value: assetHash(params.asset) },
     { type: "Integer", value: toBaseUnits(params.amount, params.asset) },
-    { type: "String", value: String(params.memo ?? "").slice(0, 256) },
+    { type: "String", value: String(params.memo ?? "").slice(0, 160) },
   ];
 }
 
@@ -318,6 +333,28 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
+function toSafeInteger(value: unknown): number | null {
+  if (typeof value === "number") return Number.isSafeInteger(value) ? value : null;
+  if (typeof value === "bigint") {
+    const parsed = Number(value);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
+  if (typeof value !== "string" || !/^-?\d+$/.test(value.trim())) return null;
+  const parsed = Number(value.trim());
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function toBaseString(value: unknown): string | null {
+  const raw = String(value ?? "").trim();
+  if (!/^\d+$/.test(raw)) return null;
+  try {
+    const parsed = BigInt(raw);
+    return parsed >= 0n ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 function toStringValue(value: unknown): string {
   if (typeof value === "string") return value;
   if (value === null || value === undefined) return "";
@@ -331,26 +368,39 @@ const STATUS_BY_CODE: Record<number, RequestStatus> = {
 };
 
 /** Map a numeric status code from the contract to its label. */
-export function statusFromCode(code: unknown): RequestStatus {
-  return STATUS_BY_CODE[toNumber(code)] ?? "pending";
+export function statusFromCode(code: unknown): RequestStatus | null {
+  const parsed = toSafeInteger(code);
+  return parsed === null ? null : STATUS_BY_CODE[parsed] ?? null;
 }
 
 /** Parse a getVault(vaultId) Map read into a VaultView, or null when absent. */
 export function parseVault(raw: unknown): VaultView | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const data = raw as Record<string, unknown>;
-  const id = toNumber(data.id);
-  if (id <= 0) return null;
+  const id = toSafeInteger(data.id);
+  const threshold = toSafeInteger(data.threshold);
+  const neoBalance = toBaseString(data.neoBalance);
+  const gasBalance = toBaseString(data.gasBalance);
+  if (id === null || id <= 0 || threshold === null || neoBalance === null || gasBalance === null) return null;
 
   const signersRaw = Array.isArray(data.signers) ? data.signers : [];
+  const signers = signersRaw.map(toStringValue).filter(Boolean);
+  const creator = toStringValue(data.creator);
+  const validAccount = (value: string) => /^0x[0-9a-fA-F]{40}$/.test(value) || isValidAddress(value);
+  if (
+    !validAccount(creator) || !signers.every(validAccount) ||
+    signers.length < MIN_SIGNERS || signers.length > MAX_SIGNERS ||
+    new Set(signers.map((signer) => signer.toLowerCase())).size !== signers.length ||
+    !Number.isInteger(threshold) || threshold < 1 || threshold > signers.length
+  ) return null;
   return {
     id,
-    creator: toStringValue(data.creator),
-    threshold: toNumber(data.threshold),
-    signers: signersRaw.map(toStringValue).filter(Boolean),
+    creator,
+    threshold,
+    signers,
     createdTime: toNumber(data.createdTime),
-    neoBalance: toNumber(data.neoBalance),
-    gasBalance: toNumber(data.gasBalance),
+    neoBalance,
+    gasBalance,
   };
 }
 
@@ -362,20 +412,22 @@ export function parseVault(raw: unknown): VaultView | null {
  */
 export interface RequestUnfundedEvent {
   requestId: number;
-  required: number;
-  available: number;
+  required: string;
+  available: string;
 }
 
 /** Parse a RequestUnfunded event entry, or null when it is not one. */
 export function parseRequestUnfundedEvent(
   entry: unknown,
 ): RequestUnfundedEvent | null {
-  const requestId = toNumber(eventValue(entry, 0));
-  if (requestId <= 0) return null;
+  const requestId = toSafeInteger(eventValue(entry, 0));
+  const required = toBaseString(eventValue(entry, 1));
+  const available = toBaseString(eventValue(entry, 2));
+  if (requestId === null || requestId <= 0 || required === null || available === null) return null;
   return {
     requestId,
-    required: toNumber(eventValue(entry, 1)),
-    available: toNumber(eventValue(entry, 2)),
+    required,
+    available,
   };
 }
 
@@ -383,20 +435,32 @@ export function parseRequestUnfundedEvent(
 export function parseRequest(raw: unknown): RequestView | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const data = raw as Record<string, unknown>;
-  const id = toNumber(data.id);
-  if (id <= 0) return null;
+  const id = toSafeInteger(data.id);
+  const vaultId = toSafeInteger(data.vaultId);
+  const amount = toBaseString(data.amount);
+  const approvalCount = toSafeInteger(data.approvalCount);
+  const status = statusFromCode(data.status);
+  if (
+    id === null || id <= 0 || vaultId === null || vaultId <= 0 ||
+    amount === null || BigInt(amount) <= 0n || approvalCount === null || approvalCount < 0 || !status
+  ) return null;
 
   const asset = toStringValue(data.asset);
+  const creator = toStringValue(data.creator);
+  const recipient = toStringValue(data.recipient);
+  const symbol = assetSymbol(asset);
+  const validAccount = (value: string) => /^0x[0-9a-fA-F]{40}$/.test(value) || isValidAddress(value);
+  if (symbol === "UNKNOWN" || !validAccount(creator) || !validAccount(recipient)) return null;
   return {
     id,
-    vaultId: toNumber(data.vaultId),
-    creator: toStringValue(data.creator),
-    recipient: toStringValue(data.recipient),
+    vaultId,
+    creator,
+    recipient,
     asset,
-    assetSymbol: assetSymbol(asset),
-    amount: toNumber(data.amount),
-    approvalCount: toNumber(data.approvalCount),
-    status: statusFromCode(data.status),
+    assetSymbol: symbol,
+    amount,
+    approvalCount,
+    status,
     createdTime: toNumber(data.createdTime),
     memo: toStringValue(data.memo),
   };

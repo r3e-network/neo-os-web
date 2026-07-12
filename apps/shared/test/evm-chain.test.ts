@@ -1,9 +1,11 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
+  EVM_ACCOUNT_CHANGED_ERROR,
   gasToWei,
   isEvmNetwork,
   detectEvmNetwork,
   evmInvoke,
+  evmPersonalSign,
   NEO_X_CONFIG,
 } from "../utils/evm-chain";
 
@@ -68,14 +70,22 @@ describe("detectEvmNetwork", () => {
 describe("evmInvoke", () => {
   it("encodes selector+uint args, sends value, and extracts the event id", async () => {
     const calls: Array<{ method: string; params?: unknown }> = [];
+    const order: string[] = [];
     mockEthereum(async ({ method, params }) => {
       calls.push({ method, params });
       if (method === "eth_accounts") return ["0x622ae03BDB6d7E2A29BE853c75d625bB25c0139C"];
-      if (method === "eth_sendTransaction") return "0xtxhash";
+      if (method === "eth_sendTransaction") {
+        order.push("broadcast");
+        return "0xtxhash";
+      }
       if (method === "eth_getTransactionReceipt") {
+        order.push("receipt");
         return {
           status: "0x1",
-          logs: [{ topics: ["0xevttopic", "0x000000000000000000000000000000000000000000000000000000000000002a"] }],
+          logs: [{
+            address: "0xFA795F814d38F218153d21838360096f3F5cb774",
+            topics: ["0xevttopic", "0x000000000000000000000000000000000000000000000000000000000000002a"],
+          }],
         };
       }
       return null;
@@ -87,10 +97,12 @@ describe("evmInvoke", () => {
       uintArgs: [6],
       valueWei: gasToWei("0.1").toString(),
       eventTopic: "0xEVTTOPIC",
+      onTransactionSent: (txid) => order.push(`persist:${txid}`),
     });
 
     expect(res.txid).toBe("0xtxhash");
     expect(res.eventId).toBe("42"); // 0x2a
+    expect(order).toEqual(["broadcast", "persist:0xtxhash", "receipt"]);
 
     const sent = calls.find((c) => c.method === "eth_sendTransaction")!;
     const tx = (sent.params as Array<Record<string, string>>)[0];
@@ -98,6 +110,35 @@ describe("evmInvoke", () => {
     // selector + uint8(6) padded to 32 bytes
     expect(tx.data).toBe("0x43046844" + "6".padStart(64, "0"));
     expect(tx.value).toBe("0x16345785d8a0000"); // 0.1e18 wei
+  });
+
+  it("does not accept an ambiguous or foreign-contract event as confirmation", async () => {
+    const target = "0x1111111111111111111111111111111111111111";
+    const topic = `0x${"aa".repeat(32)}`;
+    const indexed = `0x${(7n).toString(16).padStart(64, "0")}`;
+    let duplicate = false;
+    mockEthereum(async ({ method }) => {
+      if (method === "eth_accounts") return ["0x2222222222222222222222222222222222222222"];
+      if (method === "eth_sendTransaction") return `0x${"33".repeat(32)}`;
+      if (method === "eth_getTransactionReceipt") {
+        return {
+          status: "0x1",
+          logs: duplicate
+            ? [
+                { address: target, topics: [topic, indexed] },
+                { address: target, topics: [topic, indexed] },
+              ]
+            : [{ address: "0x4444444444444444444444444444444444444444", topics: [topic, indexed] }],
+        };
+      }
+      return null;
+    });
+
+    await expect(evmInvoke({ address: target, selector: "0x12345678", eventTopic: topic }))
+      .resolves.toMatchObject({ eventId: undefined });
+    duplicate = true;
+    await expect(evmInvoke({ address: target, selector: "0x12345678", eventTopic: topic }))
+      .resolves.toMatchObject({ eventId: undefined });
   });
 
   it("throws on a reverted receipt", async () => {
@@ -110,6 +151,46 @@ describe("evmInvoke", () => {
     await expect(
       evmInvoke({ address: "0xdice", selector: "0x43046844", uintArgs: [3] }),
     ).rejects.toThrow(/reverted/i);
+  });
+
+  it("stops before broadcast when the active account changed", async () => {
+    const send = vi.fn();
+    mockEthereum(async ({ method, params }) => {
+      if (method === "eth_accounts") return ["0x2222222222222222222222222222222222222222"];
+      if (method === "eth_sendTransaction") {
+        send(params);
+        return "0xtx";
+      }
+      return null;
+    });
+
+    await expect(evmInvoke({
+      address: "0xdice",
+      selector: "0x43046844",
+      uintArgs: [3],
+      expectedFrom: "0x1111111111111111111111111111111111111111",
+    })).rejects.toThrow(EVM_ACCOUNT_CHANGED_ERROR);
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
+describe("evmPersonalSign", () => {
+  it("stops before personal_sign when the expected account is no longer active", async () => {
+    const sign = vi.fn();
+    mockEthereum(async ({ method, params }) => {
+      if (method === "eth_accounts") return ["0x2222222222222222222222222222222222222222"];
+      if (method === "personal_sign") {
+        sign(params);
+        return `0x${"ab".repeat(65)}`;
+      }
+      return null;
+    });
+
+    await expect(evmPersonalSign(
+      "Open this sealed note",
+      "0x1111111111111111111111111111111111111111",
+    )).rejects.toThrow(EVM_ACCOUNT_CHANGED_ERROR);
+    expect(sign).not.toHaveBeenCalled();
   });
 });
 

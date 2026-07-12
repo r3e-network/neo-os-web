@@ -1,131 +1,56 @@
-# Dev Tipping
+# Developer Tipping
 
-Support ecosystem developers with tips
+Developer Tipping is a recipient-first GAS payment MiniApp backed by the deployed `MiniAppTipJar` contract.
 
-## Overview
+## Product flow
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-dev-tipping` |
-| **Category** | Social |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea
+1. Load and verify the published contract generation for the active Neo N3 network.
+2. Select a registered developer from the support board. Direct developer ID entry stays in the secondary drawer.
+3. Choose a GAS preset or enter a custom amount with at most eight decimals.
+4. Review the registered recipient identity, wallet, amount, visibility, and verified wallet GAS balance.
+5. Confirm the funded tip once in the wallet.
+6. Treat the txid as pending until the exact `Tipped` event and recipient state readback agree.
 
+The deployed contract stores the developer ID, tipper address, Fixed8 amount, and anonymous flag. It does **not** store a free-form message or tipper display name.
 
-## How It Works
+## Transaction and recovery model
 
-1. **Connect Wallet**: Developers connect their Neo wallet to receive tips
-2. **Share Address**: Share your tipping address or QR code
-3. **Receive Tips**: Anyone can send GAS tokens as appreciation
-4. **Track Stats**: Tip amounts and frequencies are tracked on-chain
-5. **Withdraw Funds**: Developers can withdraw accumulated tips at any time
-## Features
+- Minimum tip: `0.001 GAS` (`100000` Fixed8 base units), verified against `minTip()`.
+- Existing prepaid credit is read before payment. An RPC failure never falls back to zero and cannot authorize another deposit.
+- When prepaid credit covers only part of the tip, the wallet deposits the exact shortfall rather than the full tip amount.
+- The wallet GAS balance is read from the official GAS NEP-17 contract before payment.
+- A pending receipt is scoped to network, contract, and sender and persisted before confirmation completes.
+- A confirmed receipt requires the exact sender, developer ID, amount, visibility flag, and a matching `getDeveloper` total/count readback.
+- Exact `FAULT`, pending, HALT-without-event, readback lag, expired receipt, and stranded-credit states have distinct recovery copy.
+- A deposit that lands while `tip()` fails remains withdrawable through the contract credit path.
+- Registration, developer withdrawal, and unused-credit withdrawal use the same exact-txid journal, event verification, and state-readback recovery model as tips.
+- A stale receipt remains locked until it is conclusively reconciled; elapsed time alone never authorizes a duplicate action.
 
-- **Direct Tipping**: Send GAS directly to recognized developers
-- **Verified Recipients**: All recipients are verified ecosystem contributors
-- **Instant Delivery**: Tips are delivered immediately on-chain
-- **Transparent History**: All tips are recorded on the blockchain
-- **Low Fees**: Minimal transaction costs
+## Live bindings
 
-## Usage
+Both deployments were read-only verified on 2026-07-11:
 
-### Sending a Tip
+| Network | Magic | Contract | NEF checksum | Update counter |
+| --- | ---: | --- | ---: | ---: |
+| MainNet | `860833102` | `0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec` | `2483335541` | `0` |
+| TestNet | `894710606` | `0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec` | `2483335541` | `0` |
 
-1. **Connect Wallet**: Link your Neo N3 wallet
-2. **Select Developer**: Browse the list of verified developers
-3. **Enter Amount**: Choose how much GAS to send (0.01 - 100 GAS)
-4. **Add Message** (optional): Include a note of appreciation
-5. **Confirm**: Review and sign the transaction
-6. **Done**: Your tip is delivered instantly
+The runtime attestation also checks the `MiniAppTipJar` name plus the required method and event signatures before enabling a write.
 
-## Funding Model
+## Assets
 
-- direct prepaid GAS to the MiniApp contract
-- direct contract invocation only
-- wallet signs the transfer first, then calls `Tip`
-
-### Finding Developers
-
-- **By Project**: Filter by the project the developer works on
-- **By Contribution**: See developers ranked by community support
-- **By Recent Activity**: Find active contributors
-
-### Best Practices
-
-- Small tips add up - every contribution matters
-- Leave encouraging messages for developers
-- Support multiple developers working on projects you use
-
-### Tips History
-
-- View all tips you've sent and received
-- Export history for accounting purposes
-- Share your contribution proof
-
-## Limits
-
-| Limit Type | Value |
-|------------|-------|
-| Minimum Tip | 0.01 GAS |
-| Maximum per Transaction | 100 GAS |
-| Daily Limit | 1000 GAS |
-
-## Permissions
-
-| Permission | Required |
-|------------|----------|
-| Payments | ✅ Yes |
-| RNG | ❌ No |
-| Data Feed | ❌ No |
-| Governance | ❌ No |
-
-## Network Configuration
-
-### Testnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x389aa2c619f0cfed5b495dd8638107d20f37e086` |
-| **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x389aa2c619f0cfed5b495dd8638107d20f37e086) |
-| **Network Magic** | `894710606` |
-
-### Mainnet
-
-| Property | Value |
-|----------|-------|
-| **Contract** | `0x1d476b067a180bc54ee4f90c91489ffa123759a4` |
-| **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x1d476b067a180bc54ee4f90c91489ffa123759a4) |
-| **Network Magic** | `860833102` |
-
-## Platform Contracts
-
-### Current Integration Surface
-
-- direct prepaid GAS to the MiniApp contract
-- direct contract invocation only
-- optional Oracle / AA integrations are external to this repo and configured by environment
+- `public/support-board-stage.webp` is the app's existing warm developer support artwork and the selected catalog/Open Graph cover.
+- GAS amounts use shared `CoinArt`, which is pinned by `apps/shared/test/official-token-assets.test.tsx` to the official Neo Press Kit GAS asset.
+- UI icons come from the repository's existing Lucide system and are controls, not fake avatars or token art.
 
 ## Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
+npm test
+npx tsc -p tsconfig.json --noEmit
 npm run build
 ```
 
-## Assets
+No Oracle, TEE, AA relay, deployment, or server-side custody is part of this release.
 
-- **Allowed Assets**: GAS
-- **Max per TX**: 100 GAS
-- **Daily Cap**: 1000 GAS
-
-## License
-
-MIT License - R3E Network
+See `PRODUCTION_STATUS.md`, `NETWORK_STATUS.md`, and `ASSET_PROVENANCE.md` for the current implementation, network acceptance boundary, and asset record.

@@ -1,366 +1,254 @@
 import { mergeMessages } from "@shared/locale/base-messages";
-import type { ConsoleToolConfig } from "@shared/components-react";
-import { previewId } from "@shared/components-react";
 import { getNetwork } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-vrf-console";
-const DEFAULT_CONSUMER = appId;
-const DEFAULT_SALT = "vrf:miniapp-round";
-// Upper bound for the repeat count; surfaced to the user as the "1-10" field
-// hint and enforced in buildResult so an out-of-range entry is honestly clamped.
-const MAX_ROUNDS = 10;
 
-/**
- * Resolve the network label from the launched network instead of a hardcoded
- * "Morpheus Testnet". vrf/random is live on the mainnet nitro worker while the
- * testnet runtime is still degraded (getNetwork() defaults to mainnet).
- */
 export function resolveNetworkLabel(): string {
-  return getNetwork() === "testnet" ? "Morpheus Testnet" : "Morpheus Mainnet";
+  return getNetwork() === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
 }
 
-export const appMeta = {
-  networkLabel: resolveNetworkLabel(),
-  // The console only builds a request payload locally; it never dispatches a
-  // draw. Mark the endpoint stat as a preview builder so the live network label
-  // doesn't read as "a randomness draw was requested on mainnet".
-  endpointLabel: "Request builder (preview)",
-};
-
 export const manifest: MiniAppManifest = {
-  name: "Oracle VRF Console",
-  description: "Prepare Morpheus verifiable randomness requests.",
-  icon: "dice",
+  name: "Oracle VRF Workbench",
+  description:
+    "Build an exact Morpheus randomness request, inspect live network bindings, and verify a response against the selected network's pinned Morpheus worker signer.",
+  icon: "shield-check",
   category: "oracle",
   shell: "console",
-  theme: { family: "default", accentColor: "#16c784", density: "comfortable" },
-  tabs: [{ key: "vrf", labelKey: "tabVrf", icon: "dice", default: true }],
+  theme: { family: "default", accentColor: "#0f9f8f", density: "comfortable" },
+  tabs: [{ key: "vrf", labelKey: "tabVrf", icon: "shield-check", default: true }],
   stats: [
-    {
-      labelKey: "statNetwork",
-      valueKey: "networkLabel",
-      format: "text",
-      icon: "globe",
-    },
-    {
-      labelKey: "statEndpoint",
-      valueKey: "endpointLabel",
-      format: "text",
-      icon: "dice",
-    },
-    {
-      labelKey: "statDigest",
-      valueKey: "lastDigest",
-      format: "text",
-      icon: "key",
-    },
+    { labelKey: "statNetwork", valueKey: "networkLabel", format: "text", icon: "globe" },
+    { labelKey: "statService", valueKey: "serviceLabel", format: "text", icon: "activity" },
+    { labelKey: "statRequest", valueKey: "lastDigest", format: "text", icon: "key" },
   ],
   sidebar: {
     titleKey: "appName",
     items: [
       { labelKey: "statNetwork", valueKey: "networkLabel", format: "text" },
+      { labelKey: "statService", valueKey: "serviceLabel", format: "text" },
       { labelKey: "lastStatus", valueKey: "lastStatus", format: "text" },
-      { labelKey: "statDigest", valueKey: "lastDigest", format: "text" },
     ],
   },
   features: { walletRequired: false, chainWarning: true },
   docs: [
-    { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
+    { titleKey: "docsTitle", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { randomness: true },
-};
-
-const clean = (value: string | undefined, fallback: string) => {
-  const text = String(value ?? "").trim();
-  return text.length > 0 ? text : fallback;
-};
-
-export const consoleConfig: ConsoleToolConfig = {
-  titleKey: "panelTitle",
-  eyebrowKey: "panelEyebrow",
-  descriptionKey: "panelDescription",
-  primaryActionKey: "runAction",
-  resetActionKey: "reset",
-  copyActionKey: "copy",
-  copiedKey: "copied",
-  // The session "Requests" tally carries no business meaning here (it counts
-  // local previews, not on-chain draws). The app's manifest already omits
-  // statRequests; hiding it in the shared hero is the supported replacement for
-  // the old (now dead) CSS nth-child hide rule.
-  hideRequestCount: true,
-  fields: [
-    {
-      key: "consumer",
-      labelKey: "consumer",
-      placeholderKey: "consumerPlaceholder",
-      type: "text",
-      defaultValue: DEFAULT_CONSUMER,
-    },
-    {
-      key: "salt",
-      labelKey: "salt",
-      placeholderKey: "saltPlaceholder",
-      type: "text",
-      defaultValue: DEFAULT_SALT,
-    },
-    {
-      // Field label carries the supported "1-10" range as an always-visible hint
-      // (the placeholder is hidden because the field defaults to "1"). The plain
-      // `rounds` key is kept for the result-row label so it reads "Rounds: 3".
-      key: "rounds",
-      labelKey: "roundsLabel",
-      placeholderKey: "roundsPlaceholder",
-      type: "number",
-      defaultValue: "1",
-    },
-    {
-      key: "mode",
-      labelKey: "mode",
-      type: "select",
-      defaultValue: "single-proof",
-      options: [
-        { value: "single-proof", labelKey: "modeSingle" },
-        { value: "batch-proof", labelKey: "modeBatch" },
-      ],
-    },
-  ],
-  buildResult(values, t) {
-    const consumer = clean(values.consumer, "");
-    const salt = clean(values.salt, "");
-    const mode = clean(values.mode, "single-proof");
-    if (!consumer || !salt) {
-      return {
-        status: t("inputRequired"),
-        summary: t("inputRequiredSummary"),
-        rows: [],
-        payload: {
-          kind: "oracle.vrf.request",
-          status: "input_required",
-          required: ["consumer", "salt"],
-        },
-      };
-    }
-    // Clamp rounds to the supported 1-10 window so an invalid entry (0, -5, 2.5,
-    // 50, blank, or a non-numeric string) never produces a semantically broken
-    // request payload that downstream consumers would carry unchecked.
-    const rawRounds = clean(values.rounds, "1");
-    const parsedRounds = Number(rawRounds);
-    const rounds = String(
-      Number.isFinite(parsedRounds)
-        ? Math.min(MAX_ROUNDS, Math.max(1, Math.floor(parsedRounds)))
-        : 1,
-    );
-    // Tell the user when their entry was silently adjusted, so a "0 rounds"
-    // request reads honestly as "adjusted to 1" rather than appearing honored.
-    const roundsAdjusted = rawRounds !== rounds;
-    const requestId = previewId(`${consumer}|${salt}|${rounds}|${mode}`);
-
-    return {
-      status: t("vrfReady"),
-      summary: t("vrfSummary", { rounds }),
-      rows: [
-        { label: t("consumer"), value: consumer },
-        { label: t("salt"), value: salt },
-        { label: t("rounds"), value: rounds },
-        ...(roundsAdjusted
-          ? [
-              {
-                label: t("roundsAdjusted"),
-                value: t("roundsAdjustedValue", { raw: rawRounds, rounds }),
-              },
-            ]
-          : []),
-        { label: t("clientDigest"), value: requestId },
-      ],
-      payload: {
-        kind: "oracle.vrf.request",
-        consumer,
-        salt,
-        rounds,
-        roundsAdjusted,
-        mode,
-        // `digest` is what the shared ConsoleToolPanel.runPreview() reads to
-        // populate the bound `lastDigest` observable (hero "Request ID" stat +
-        // sidebar). `client_digest` is kept for payload backward-compatibility.
-        digest: requestId,
-        client_digest: requestId,
-      },
-    };
-  },
+  permissions: { storage: true },
 };
 
 const appMessages = {
-  appName: { en: "Oracle VRF Console", zh: "预言机随机数控制台" },
-  title: { en: "Oracle VRF", zh: "预言机 VRF" },
-  tabVrf: { en: "VRF", zh: "VRF" },
-  panelEyebrow: { en: "Verifiable randomness", zh: "可验证随机数" },
-  panelTitle: { en: "VRF Request Builder", zh: "VRF 请求构建器" },
-  buildRequest: { en: "Build Request", zh: "构建请求" },
-  panelDescription: {
-    en: "Prepare randomness requests with consumer, salt, proof mode, and repeat count. This request id is what you submit to the Morpheus VRF lane (or your consumer contract); the returned proof matches back to this id — the draw and verification happen there, not in this preview.",
-    zh: "用消费者、盐值、证明模式和轮次准备随机数请求。此请求 ID 即你提交给 Morpheus VRF 通道（或你的消费者合约）的标识；返回的证明会与该 ID 对应——抽取与验证发生在那里，而非本预览中。",
+  appName: { en: "Oracle VRF Workbench", zh: "预言机随机数工作台" },
+  title: { en: "Oracle VRF", zh: "预言机随机数" },
+  tabVrf: { en: "VRF Workbench", zh: "随机数工作台" },
+  panelEyebrow: { en: "Morpheus randomness operations", zh: "Morpheus 随机数运维" },
+  panelTitle: { en: "VRF Verification Workbench", zh: "随机数验证工作台" },
+  heroCopy: {
+    en: "Create the exact Morpheus request body, hand it to an authenticated consumer integration, then verify the returned randomness against the selected network's pinned response signer.",
+    zh: "生成准确的 Morpheus 请求体，交给已认证的消费者集成提交，再使用所选网络固定的回执签名密钥验证随机数。",
   },
-  vrfHeroAlt: {
-    en: "A bright randomness machine preparing verifiable proof capsules.",
-    zh: "明亮的随机性机器正在准备可验证证明胶囊。",
+  heroAlt: {
+    en: "A bright Oracle verification studio with a signed randomness capsule and network instruments.",
+    zh: "明亮的预言机验证工作室，配有签名随机数胶囊和网络仪表。",
   },
-  vrfHeroCopy: {
-    en: "Compose a consumer seed, choose proof mode, and produce a request id that your game, raffle, or app flow can verify later.",
-    zh: "组合消费者种子、选择证明模式，并生成可供游戏、抽奖或应用流程后续验证的请求 ID。",
+  workspaceCaption: { en: "Randomness control room", zh: "随机数控制室" },
+  workspaceTitle: { en: "Request, bind, verify", zh: "请求、绑定、验证" },
+
+  statNetwork: { en: "Network", zh: "网络" },
+  statService: { en: "Service boundary", zh: "服务边界" },
+  statRequest: { en: "Request", zh: "请求" },
+  lastStatus: { en: "Current state", zh: "当前状态" },
+  digestPlaceholder: { en: "No draft", zh: "尚无草稿" },
+  networkMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
+  networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
+
+  serviceChecking: { en: "Checking bindings", zh: "正在检查绑定" },
+  serviceProtected: { en: "Integration only", zh: "仅限集成调用" },
+  serviceMismatch: { en: "Network mismatch", zh: "网络不匹配" },
+  serviceDegraded: { en: "Degraded", zh: "服务降级" },
+  serviceUnavailable: { en: "Unavailable", zh: "不可用" },
+  serviceStale: { en: "Cached status", zh: "缓存状态" },
+  serviceBoundaryTitle: { en: "Live service boundary", zh: "实时服务边界" },
+  serviceBoundaryCopy: {
+    en: "This page performs read-only health, key, contract, and callback checks. It never POSTs to /vrf/random.",
+    zh: "本页面仅执行健康、密钥、合约和回调的只读检查，绝不会向 /vrf/random 发起 POST。",
   },
-  vrfStatusLabel: { en: "VRF request status", zh: "VRF 请求状态" },
-  runAction: { en: "Build VRF Request", zh: "生成 VRF 请求" },
-  buildingRequest: { en: "Rolling request...", zh: "请求滚动中..." },
-  copyingPayload: { en: "Copying payload...", zh: "正在复制 payload..." },
-  consumer: { en: "Consumer", zh: "消费者" },
-  consumerPlaceholder: {
-    en: "MiniApp contract hash or app id",
-    zh: "小程序合约哈希或 app id",
+  serviceRuntime: { en: "Runtime", zh: "运行时" },
+  serviceNetwork: { en: "Reported network", zh: "上报网络" },
+  responseSigner: { en: "Response signer", zh: "回执签名密钥" },
+  fulfillmentVerifier: { en: "On-chain fulfillment key", zh: "链上履约密钥" },
+  serviceKey: { en: "Fulfillment key binding", zh: "履约密钥绑定" },
+  serviceCallback: { en: "Callback binding", zh: "回调绑定" },
+  callbackConsumer: { en: "Callback consumer", zh: "回调消费者" },
+  serviceQueue: { en: "Contract requests", zh: "合约请求" },
+  serviceFee: { en: "Request fee", zh: "请求费用" },
+  serviceReady: { en: "Ready", zh: "正常" },
+  serviceNotReady: { en: "Not ready", zh: "未就绪" },
+  serviceBound: { en: "Bound", zh: "已绑定" },
+  serviceNotBound: { en: "Not bound", zh: "未绑定" },
+  servicePinned: { en: "Network-pinned", zh: "已按网络固定" },
+  serviceNotPinned: { en: "Not pinned", zh: "尚未固定" },
+  serviceRoleSeparation: {
+    en: "Response signatures use the worker key; contract fulfillment uses the separate Oracle verifier key.",
+    zh: "回执签名使用 worker 密钥；合约履约使用独立的预言机验证密钥。",
   },
-  salt: { en: "Salt", zh: "盐值" },
-  saltPlaceholder: {
-    en: "Unique round or request salt",
-    zh: "唯一回合或请求盐值",
+  serviceWorkflowMissing: { en: "VRF is not advertised in the public workflow catalog", zh: "公开工作流目录未声明 VRF" },
+  serviceAuthRequired: { en: "Submission requires an authenticated consumer or contract integration", zh: "提交需要已认证的消费者或合约集成" },
+  serviceFreshAt: { en: "Checked {time}", zh: "检查于 {time}" },
+  serviceCachedAt: { en: "Last live check {time}; refresh before trusting a key", zh: "上次实时检查于 {time}；信任密钥前请刷新" },
+  refreshService: { en: "Refresh bindings", zh: "刷新绑定" },
+  refreshingService: { en: "Refreshing bindings", zh: "正在刷新绑定" },
+
+  pipelineTitle: { en: "One clear verification path", zh: "一条清晰的验证路径" },
+  stepDraft: { en: "1. Draft", zh: "1. 草稿" },
+  stepDraftCopy: { en: "Create the exact request_id + target_chain body.", zh: "生成准确的 request_id + target_chain 请求体。" },
+  stepSubmit: { en: "2. Submit externally", zh: "2. 外部提交" },
+  stepSubmitCopy: { en: "Use a protected Morpheus consumer path; this app does not dispatch.", zh: "使用受保护的 Morpheus 消费者通道；本应用不负责提交。" },
+  stepVerify: { en: "3. Verify response", zh: "3. 验证回执" },
+  stepVerifyCopy: { en: "Paste the signed JSON and verify key, hash, signature, and request correlation.", zh: "粘贴签名 JSON，验证密钥、哈希、签名和请求关联。" },
+  pipelinePending: { en: "Pending", zh: "待处理" },
+  pipelineComplete: { en: "Complete", zh: "已完成" },
+  pipelineExternal: { en: "External", zh: "外部完成" },
+
+  useCaseTitle: { en: "Randomness use case", zh: "随机数使用场景" },
+  useCaseGame: { en: "Game outcome", zh: "游戏结果" },
+  useCaseGameHint: { en: "Loot, map, matchmaking", zh: "掉落、地图、匹配" },
+  useCaseRaffle: { en: "Raffle draw", zh: "抽奖开奖" },
+  useCaseRaffleHint: { en: "Winner selection", zh: "赢家选择" },
+  useCaseAllocation: { en: "Fair allocation", zh: "公平分配" },
+  useCaseAllocationHint: { en: "Order or seat assignment", zh: "顺序或席位分配" },
+  draftTitle: { en: "Request package", zh: "请求包" },
+  draftNotSubmitted: { en: "Draft only · not submitted", zh: "仅草稿 · 尚未提交" },
+  draftSaved: { en: "Draft saved · not submitted", zh: "草稿已保存 · 尚未提交" },
+  draftLocalOnly: { en: "Local-only draft", zh: "仅限当前会话的草稿" },
+  draftReadyCopy: {
+    en: "The package is recoverable on this device. Copy it into your authenticated integration; no randomness has been requested yet.",
+    zh: "请求包会保存在本设备，可复制到已认证的集成中；此时尚未请求任何随机数。",
   },
-  rounds: { en: "Rounds", zh: "轮次" },
-  roundsLabel: { en: "Rounds (1-10)", zh: "轮次（1-10）" },
-  roundsPlaceholder: { en: "1-10", zh: "1-10" },
-  roundsAdjusted: { en: "Rounds adjusted", zh: "轮次已调整" },
-  roundsAdjustedValue: {
-    en: "{raw} -> {rounds} (1-10, whole number)",
-    zh: "{raw} -> {rounds}（1-10，整数）",
+  draftLocalOnlyCopy: {
+    en: "This request exists only in the current session. Copy it now or retry after local recovery storage is available; no randomness has been requested.",
+    zh: "此请求仅存在于当前会话。请立即复制，或在本地恢复存储可用后重试；此时尚未请求任何随机数。",
   },
-  mode: { en: "Proof Mode", zh: "证明模式" },
-  modeSingle: { en: "Single proof", zh: "单次证明" },
-  modeBatch: { en: "Batch proof", zh: "批量证明" },
-  modeSingleHint: {
-    en: "Best for one round, one winner, or one callback.",
-    zh: "适合单回合、单赢家或单次回调。",
+  storageUnavailableCopy: {
+    en: "The workbench remains usable, but this device did not confirm an exact local write and delete readback. A draft or pasted response may not survive reload.",
+    zh: "工作台仍可使用，但本设备未能确认本地写入与删除的精确回读。草稿或粘贴的回执可能无法在刷新后恢复。",
   },
-  modeBatchHint: {
-    en: "Package repeat draws with the same consumer seed.",
-    zh: "用同一消费者种子打包多轮抽取。",
+  buildDraft: { en: "Build request draft", zh: "生成请求草稿" },
+  buildingDraft: { en: "Building draft", zh: "正在生成草稿" },
+  clearDraft: { en: "Clear draft", zh: "清除草稿" },
+  copyRequest: { en: "Copy request", zh: "复制请求" },
+  copied: { en: "Copied", zh: "已复制" },
+  copyUnavailable: {
+    en: "Clipboard access is unavailable. Select the payload and copy it manually.",
+    zh: "剪贴板不可用，请选中请求载荷并手动复制。",
   },
   requestId: { en: "Request ID", zh: "请求 ID" },
-  clientDigest: { en: "Client Digest", zh: "客户端摘要" },
-  inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
-  inputRequiredSummary: {
-    en: "Enter a consumer and salt before building a VRF request.",
-    zh: "请输入消费者和盐值后再生成 VRF 请求。",
+  endpoint: { en: "Endpoint", zh: "端点" },
+  method: { en: "Method", zh: "方法" },
+  targetChain: { en: "Target chain", zh: "目标链" },
+
+  drawerRequest: { en: "Request", zh: "请求" },
+  drawerService: { en: "Service", zh: "服务" },
+  drawerVerify: { en: "Verify", zh: "验证" },
+  drawerPayload: { en: "Payload", zh: "载荷" },
+  advancedContext: { en: "Local request context", zh: "本地请求上下文" },
+  advancedContextCopy: {
+    en: "These labels help your team identify the draft. They are not fields in the Morpheus /vrf/random body and are not signed by the response.",
+    zh: "这些标签用于团队识别草稿，不属于 Morpheus /vrf/random 请求体，也不会被回执签名。",
   },
-  vrfConsumerRequired: { en: "Consumer seed missing", zh: "缺少消费者种子" },
-  vrfSaltRequired: { en: "Salt missing", zh: "缺少盐值" },
-  vrfReady: { en: "VRF request ready", zh: "VRF 请求已准备" },
-  vrfSummary: {
-    en: "{rounds} randomness round(s) prepared",
-    zh: "{rounds} 轮随机数已准备",
+  consumer: { en: "Consumer label", zh: "消费者标签" },
+  consumerPlaceholder: { en: "miniapp-oracle-vrf-console", zh: "miniapp-oracle-vrf-console" },
+  reference: { en: "Round or job reference", zh: "回合或任务标识" },
+  referencePlaceholder: { en: "season-7-final", zh: "season-7-final" },
+  exactPayloadTitle: { en: "Exact service request", zh: "准确的服务请求" },
+  exactPayloadCopy: {
+    en: "Only this JSON body is submitted to POST /vrf/random. Building or copying it is not a service request.",
+    zh: "仅此 JSON 请求体会提交到 POST /vrf/random。生成或复制它不代表已发起服务请求。",
   },
-  statNetwork: { en: "Network", zh: "网络" },
-  statEndpoint: { en: "Endpoint", zh: "端点" },
-  statRequests: { en: "Requests", zh: "请求数" },
-  statDigest: { en: "Request ID", zh: "请求 ID" },
-  digestPlaceholder: { en: "—", zh: "—" },
-  lastStatus: { en: "Last Status", zh: "最近状态" },
-  vrfFlowTitle: { en: "VRF proof flow", zh: "VRF 证明流程" },
-  vrfFlowSeed: { en: "Seed", zh: "种子" },
-  vrfFlowSeedDesc: {
-    en: "Consumer and salt define the request identity.",
-    zh: "消费者和盐值定义请求身份。",
+
+  verifyTitle: { en: "Signed response verifier", zh: "签名回执验证器" },
+  verifyCopy: {
+    en: "Paste the complete Morpheus JSON response. Verification pins the signature to the selected network's worker key and recomputes the canonical randomness hash; the chain fulfillment key is checked separately.",
+    zh: "粘贴完整的 Morpheus JSON 回执。验证器会把签名绑定到所选网络的 worker 密钥并重新计算随机数规范哈希；链上履约密钥会单独检查。",
   },
-  vrfFlowDraw: { en: "Draw", zh: "抽取" },
-  vrfFlowDrawDesc: {
-    en: "Rounds decide how many random values are requested.",
-    zh: "轮次决定请求多少个随机值。",
+  responseLabel: { en: "Response JSON", zh: "回执 JSON" },
+  responsePlaceholder: { en: "Paste the signed /vrf/random response…", zh: "粘贴已签名的 /vrf/random 回执…" },
+  verifyResponse: { en: "Verify signed response", zh: "验证签名回执" },
+  verifyingResponse: { en: "Verifying response", zh: "正在验证回执" },
+  verificationEmpty: { en: "No response verified", zh: "尚未验证回执" },
+  verificationEmptyCopy: { en: "Build a draft, submit it through your integration, then paste the returned JSON here.", zh: "先生成草稿，通过您的集成提交，再把返回的 JSON 粘贴到这里。" },
+  verificationVerified: { en: "Signed randomness verified", zh: "随机数签名已验证" },
+  verificationUnbound: { en: "Valid signature, wrong request", zh: "签名有效，但请求不匹配" },
+  verificationInvalid: { en: "Response rejected", zh: "回执已拒绝" },
+  verificationBlocked: { en: "Refresh key evidence first", zh: "请先刷新密钥证据" },
+  verificationSignedScope: {
+    en: "The signature covers only the canonical randomness value. request_id and timestamp are correlation metadata, not signed fields.",
+    zh: "签名仅覆盖规范化的 randomness 值。request_id 与 timestamp 是关联元数据，不属于签名字段。",
   },
-  vrfFlowVerify: { en: "Verify", zh: "验证" },
-  vrfFlowVerifyDesc: {
-    en: "The returned proof matches back to the digest.",
-    zh: "返回的证明会匹配回摘要。",
+  attestationLimited: {
+    en: "Attestation hash binding is inspected, but this client does not independently validate the complete Nitro certificate/PCR chain.",
+    zh: "客户端会检查证明哈希绑定，但不会独立验证完整的 Nitro 证书/PCR 链。",
   },
-  vrfRequestPlan: { en: "Request plan", zh: "请求方案" },
-  vrfRequestPlanCopy: {
-    en: "Tune the seed, rounds, and proof mode before creating the digest.",
-    zh: "生成摘要前，先调整种子、轮次和证明模式。",
-  },
-  vrfTicketTitle: { en: "Randomness ticket", zh: "随机性票据" },
-  vrfTicketCopy: {
-    en: "Lock the seed, draw count, and proof style as one verifiable request.",
-    zh: "把种子、抽取轮次和证明方式锁定为一个可验证请求。",
-  },
-  vrfTicketReady: { en: "Ticket ready", zh: "票据已准备" },
-  vrfPresetTitle: { en: "Use case presets", zh: "使用场景预设" },
-  vrfPresetGame: { en: "Game round", zh: "游戏回合" },
-  vrfPresetGameHint: {
-    en: "Final match, several random picks.",
-    zh: "决赛回合，多次随机选取。",
-  },
-  vrfPresetRaffle: { en: "Raffle draw", zh: "抽奖开奖" },
-  vrfPresetRaffleHint: {
-    en: "One winner, one callback.",
-    zh: "一个赢家，一次回调。",
-  },
-  vrfPresetLoot: { en: "Loot drop", zh: "掉落发放" },
-  vrfPresetLootHint: {
-    en: "Batch proofs for reward packs.",
-    zh: "奖励包使用批量证明。",
-  },
-  vrfSeedIdentity: { en: "Seed identity", zh: "种子身份" },
-  vrfSeedIdentityCopy: {
-    en: "Use stable values so proofs can be matched after callback.",
-    zh: "使用稳定值，方便回调后匹配证明。",
-  },
-  vrfConsumerHint: {
-    en: "App id, contract hash, or consumer lane that will receive the callback.",
-    zh: "接收回调的 app id、合约哈希或消费者通道。",
-  },
-  vrfSaltHint: {
-    en: "Make it unique per round, draw, raffle, or game match.",
-    zh: "每个回合、抽取、抽奖或比赛都应唯一。",
-  },
-  vrfRoundsTitle: { en: "Draw rounds", zh: "抽取轮次" },
-  vrfRoundsHint: {
-    en: "Clamp to 1-10 whole rounds for a valid preview package.",
-    zh: "限制为 1-10 的整数轮次，确保预览包有效。",
-  },
-  vrfDecreaseRounds: { en: "Decrease rounds", zh: "减少轮次" },
-  vrfIncreaseRounds: { en: "Increase rounds", zh: "增加轮次" },
-  vrfProofModeTitle: { en: "Proof mode", zh: "证明模式" },
-  vrfProofModeHint: {
-    en: "Choose whether the request stands alone or batches repeat draws.",
-    zh: "选择单次请求，或批量打包重复抽取。",
-  },
-  vrfProofPreview: { en: "Proof preview", zh: "证明预览" },
-  vrfEmptyTitle: { en: "No digest yet", zh: "尚未生成摘要" },
-  vrfEmptyCopy: {
-    en: "Build the request to mint a preview digest and inspect the payload before you send it to a VRF lane.",
-    zh: "生成请求后会创建预览摘要，并可在发送到 VRF 通道前检查 payload。",
-  },
+  checkSchema: { en: "Canonical response schema", zh: "规范回执结构" },
+  checkRequest: { en: "Request correlation", zh: "请求关联" },
+  checkMethod: { en: "CSPRNG signed method", zh: "CSPRNG 签名方式" },
+  checkNetworkKey: { en: "Pinned response signer", zh: "固定的回执签名密钥" },
+  checkOutputHash: { en: "Randomness output hash", zh: "随机数输出哈希" },
+  checkSignature: { en: "secp256r1 signature", zh: "secp256r1 签名" },
+  checkAttestation: { en: "Attestation scope", zh: "证明范围" },
+  checkPass: { en: "Pass", zh: "通过" },
+  checkFail: { en: "Fail", zh: "失败" },
+  checkInfo: { en: "Limited", zh: "有限验证" },
+
+  reasonServiceKey: { en: "The selected network's pinned Morpheus response signer is unavailable.", zh: "所选网络固定的 Morpheus 回执签名密钥不可用。" },
+  reasonTooLarge: { en: "The response exceeds the 64 KB verification limit.", zh: "回执超过 64 KB 的验证上限。" },
+  reasonJson: { en: "The response is not valid JSON.", zh: "回执不是有效 JSON。" },
+  reasonSchema: { en: "Required canonical envelope fields are missing or inconsistent.", zh: "规范信封字段缺失或不一致。" },
+  reasonRequest: { en: "The response request_id does not match the active draft.", zh: "回执 request_id 与当前草稿不匹配。" },
+  reasonMethod: { en: "Only csprng-signed responses are accepted.", zh: "仅接受 csprng-signed 回执。" },
+  reasonSigner: { en: "The signer does not match the selected network's Morpheus worker key.", zh: "签名者与所选网络的 Morpheus worker 密钥不匹配。" },
+  reasonHash: { en: "The canonical randomness hash does not match the envelope.", zh: "随机数规范哈希与信封不匹配。" },
+  reasonSignature: { en: "The secp256r1 signature is invalid.", zh: "secp256r1 签名无效。" },
+
+  statusReady: { en: "Ready for a request draft", zh: "可以生成请求草稿" },
+  statusCheckingService: { en: "Checking service and chain bindings", zh: "正在检查服务与链上绑定" },
+  statusServiceRefreshed: { en: "Service boundary refreshed", zh: "服务边界已刷新" },
+  statusServiceRefreshFailed: { en: "Live refresh failed; cached evidence is marked stale", zh: "实时刷新失败；缓存证据已标记为过期" },
+  statusDraftReady: { en: "Draft ready — nothing submitted", zh: "草稿已生成 — 尚未提交" },
+  statusDraftReadyLocalOnly: { en: "Draft ready in this session; local recovery is unavailable", zh: "草稿已在当前会话生成；本地恢复不可用" },
+  statusDraftRecovered: { en: "Recovered a local draft — nothing submitted", zh: "已恢复本地草稿 — 尚未提交" },
+  statusDraftCleared: { en: "Local draft cleared", zh: "本地草稿已清除" },
+  statusDraftClearUnconfirmed: { en: "Draft cleared in this session; stored deletion could not be confirmed", zh: "当前会话中的草稿已清除；无法确认已删除存储记录" },
+  statusOperationBusy: { en: "Finish the current workbench action first", zh: "请先完成当前工作台操作" },
+  statusVerificationContextChanged: { en: "The draft or response signer changed; verify the response again", zh: "草稿或回执签名密钥已变化；请重新验证回执" },
+  secureNonceUnavailable: { en: "Secure request identity is unavailable in this browser context", zh: "当前浏览器环境无法生成安全的请求标识" },
+  statusResponseVerified: { en: "Signed randomness verified against the network-pinned worker key", zh: "随机数签名已使用网络固定的 worker 密钥验证" },
+  statusResponseUnbound: { en: "Signature is valid, but the response belongs to a different request", zh: "签名有效，但回执属于另一个请求" },
+  statusResponseInvalid: { en: "Response verification failed", zh: "回执验证失败" },
+  statusVerificationBlocked: { en: "The network-pinned response signer is unavailable", zh: "网络固定的回执签名密钥不可用" },
+
+  docsTitle: { en: "What this workbench proves", zh: "本工作台能证明什么" },
   docsSubtitle: {
-    en: "A compact console for Morpheus randomness request planning.",
-    zh: "面向 Morpheus 随机数请求规划的轻量控制台。",
+    en: "This is a read-only request and verification workbench. It does not connect a wallet, submit a transaction, POST to the protected VRF route, or claim a local draft is fulfilled.",
+    zh: "这是只读的请求与验证工作台。它不会连接钱包、提交交易、向受保护的 VRF 路由发起 POST，也不会把本地草稿声称为已完成请求。",
   },
-  docSubtitle: {
-    en: "A compact console for Morpheus randomness request planning.",
-    zh: "面向 Morpheus 随机数请求规划的轻量控制台。",
-  },
-  feature1Name: { en: "Unambiguous", zh: "无歧义" },
+  feature1Name: { en: "Exact request", zh: "准确请求" },
   feature1Desc: {
-    en: "Consumer, salt, mode, and count are part of the request ID.",
-    zh: "消费者、盐值、模式和轮次都会参与请求 ID。",
+    en: "The service body contains only request_id and target_chain=neo_n3. Use-case labels remain local context.",
+    zh: "服务请求体只包含 request_id 与 target_chain=neo_n3；使用场景标签仅保留为本地上下文。",
   },
-  feature2Name: { en: "Game Ready", zh: "游戏就绪" },
+  feature2Name: { en: "Live binding checks", zh: "实时绑定检查" },
   feature2Desc: {
-    en: "Use case presets cover game rounds, raffles, loot drops, and randomized app flows.",
-    zh: "场景预设覆盖游戏回合、抽奖、掉落发放和随机化应用流程。",
+    en: "Health, runtime status, the worker response signer, the separate fulfillment verifier, request counters, and callback binding are checked without writes.",
+    zh: "以只读方式检查健康状态、运行时状态、worker 回执签名密钥、独立履约验证密钥、请求计数和回调绑定。",
   },
-  feature3Name: { en: "Proof Aware", zh: "证明感知" },
+  feature3Name: { en: "Bound signature verification", zh: "绑定式签名验证" },
   feature3Desc: {
-    en: "Proof mode is explicit in the payload. Submit this request id to the Morpheus VRF lane; the returned randomness proof can be matched back to it. The draw and proof verification happen on that lane, not here.",
-    zh: "载荷中明确包含证明模式。把此请求 ID 提交到 Morpheus VRF 通道；返回的随机数证明可与之对应。抽取与证明验证在该通道完成，而非此处。",
+    en: "The verifier recomputes SHA-256 over the canonical randomness object, pins the secp256r1 signer to the selected network, and separately checks the unsigned request correlation. Full Nitro attestation-chain validation is outside this client.",
+    zh: "验证器会重新计算规范 randomness 对象的 SHA-256，把 secp256r1 签名者绑定到所选网络，并单独检查未签名的请求关联。完整 Nitro 证明链验证不在本客户端范围内。",
   },
 } as const;
 

@@ -104,16 +104,16 @@ type RangeLayout = {
 
 const C = {
   // Range / backdrop
-  pine:        0x2f7d4e,   // deep pine green
-  pineDark:    0x1f5636,
-  pineDeep:    0x17402a,
-  meadow:      0x3d8f5d,
-  skyFallback: 0xbfe3d2,
+  pine:        0x4f8a49,
+  pineDark:    0x315f36,
+  pineDeep:    0x784521,
+  meadow:      0x8fcf69,
+  skyFallback: 0xffd7a0,
 
   // Gold accents
-  gold:        0xd9a441,
-  goldLight:   0xf3cf7f,
-  goldDeep:    0xa87722,
+  gold:        0xf09a42,
+  goldLight:   0xffcf79,
+  goldDeep:    0x9b4d1f,
 
   // Arrow / trail
   trail:       0xf3cf7f,
@@ -129,22 +129,22 @@ const C = {
   ringBlue:    0x4a7bd8,
 
   // HUD
-  hudBg:       0x1d4a30,
-  chipBg:      0x163a25,
-  timerFill:   0x59c98a,
+  hudBg:       0xfff3d7,
+  chipBg:      0xffd597,
+  timerFill:   0x65b95b,
   timerLow:    0xf97066,
 
   // Lobby cards
-  cardBg:      0x1c4a2f,
-  cardBorder:  0x66a97e,
-  cardActive:  0xd9a441,
-  cardActiveBg:0x235a39,
+  cardBg:      0xfff2d4,
+  cardBorder:  0xc2763c,
+  cardActive:  0xe07a2d,
+  cardActiveBg:0xffd7a2,
   white:       0xffffff,
   cream:       0xfff6e0,
-  muted:       0xcdeed8,
+  muted:       0x8db77b,
 
   // Overlay
-  overlay:     0x000000,
+  overlay:     0xfff7e8,
   win:         0x2f9e63,
   lose:        0xe25d4d,
 };
@@ -257,6 +257,7 @@ export class CurveArrowScene extends BaseScene {
   // ── Input sampling ───────────────────────────────────────────────────────
   private pointerHeld = false;
   private spaceHeld = false;
+  private prevControlPressNonce = 0;
 
   // ── Timers ───────────────────────────────────────────────────────────────
   private clockTimer: Phaser.Time.TimerEvent | null = null;
@@ -361,6 +362,40 @@ export class CurveArrowScene extends BaseScene {
     return this.layout.fieldY + y * this.layout.k;
   }
 
+  // ── Localization helpers ──────────────────────────────────────────────────
+
+  private sceneTextMap(): Record<string, unknown> {
+    const raw = this.state.sceneText;
+    return raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  }
+
+  private txt(
+    key: string,
+    fallback: string,
+    params?: Record<string, string | number>,
+  ): string {
+    const raw = this.sceneTextMap()[key];
+    let value = typeof raw === "string" && raw.length > 0 ? raw : fallback;
+    if (params) {
+      for (const [param, replacement] of Object.entries(params)) {
+        value = value.replaceAll(`{${param}}`, String(replacement));
+      }
+    }
+    return value;
+  }
+
+  private txtList(key: string, fallback: readonly string[]): string[] {
+    const raw = this.sceneTextMap()[key];
+    return Array.isArray(raw) && raw.length > 0
+      ? raw.map((entry) => String(entry))
+      : [...fallback];
+  }
+
+  private diffLabel(difficulty: number): string {
+    const labels = this.txtList("diffLabels", DIFF_LABELS);
+    return labels[difficulty] ?? DIFF_LABELS[difficulty] ?? "";
+  }
+
   // ── Phaser lifecycle ──────────────────────────────────────────────────────
 
   preload(): void {
@@ -382,6 +417,8 @@ export class CurveArrowScene extends BaseScene {
 
     this.buildScene();
     this.setupInput();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupInput, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupInput, this);
 
     this.sceneReady = true;
     this.onStateUpdate(this.state);
@@ -456,8 +493,14 @@ export class CurveArrowScene extends BaseScene {
     const isDealing  = this.bool("isDealing");
     const isSubmitting = this.bool("isSubmitting");
     const lastStatus = this.str("lastStatus", "");
+    const controlPressNonce = this.num("controlPressNonce", 0);
 
     this.statusLabel?.setText(lastStatus);
+
+    if (controlPressNonce !== this.prevControlPressNonce) {
+      this.prevControlPressNonce = controlPressNonce;
+      if (!this.flight && this.canShoot()) this.launchArrow();
+    }
 
     const statusChanged = gameStatus !== this.prevGameStatus;
     const cluesChanged  = clues !== this.prevClues;
@@ -490,7 +533,10 @@ export class CurveArrowScene extends BaseScene {
     this.timerText.setVisible(inPlay);
     this.controlsHintText.setVisible(inPlay);
     this.hintLabel.setVisible(inPlay);
-    this.shootBtn.setVisible(inPlay);
+    // The DOM press-and-hold control is overlaid on this exact canvas slot so
+    // touch and keyboard users share one semantic control instead of seeing a
+    // duplicate Phaser button.
+    this.shootBtn.setVisible(false);
     this.statusLabel.setVisible(true);
     // Footer status rides at the very bottom in play, but tucks directly under
     // the difficulty cards in the lobby so it reads as their caption.
@@ -503,27 +549,91 @@ export class CurveArrowScene extends BaseScene {
     }
 
     // ── Overlay ───────────────────────────────────────────────────────────
-    if (isDealing || (gameStatus === "committed" && !inPlay)) {
-      this.showOverlay("Dealing", "Sealing your wall layouts");
+    const deadline = this.num("deadline", 0);
+    const timeUp = gameStatus === "dealt" && deadline > 0 && this.nowMs >= deadline;
+    if (this.bool("isRecovering")) {
+      this.showOverlay(
+        this.txt("ovRecoveringTitle", "Recovering range"),
+        this.txt("ovRecoveringSub", "Checking the authoritative game state."),
+      );
+    } else if (this.bool("inputSyncFailed") && gameStatus === "dealt") {
+      this.showOverlay(
+        this.txt("ovSyncTitle", "Range paused"),
+        this.txt("ovSyncSub", "A shot could not be verified. Recover before continuing."),
+        {
+          label: this.txt("ovRecoverBtn", "Recover run"),
+          onPress: () => this.dispatch("recoverGame"),
+        },
+      );
+    } else if (isDealing || (gameStatus === "committed" && !inPlay)) {
+      this.showOverlay(
+        this.txt("ovDealingTitle", "Preparing range"),
+        this.txt("ovDealingSub", "Setting the targets and stone walls."),
+      );
     } else if (isSubmitting) {
-      this.showOverlay("Submitting", "Enclave verifying your shots");
+      this.showOverlay(
+        this.txt("ovSubmittingTitle", "Saving run"),
+        this.txt("ovSubmittingSub", "Checking every recorded shot."),
+      );
+    } else if (timeUp && gameStatus === "dealt") {
+      this.showOverlay(
+        this.txt("ovTimeTitle", "Time up"),
+        this.txt("ovTimeSub", "The range clock has ended."),
+        {
+          label: this.isGuest()
+            ? this.txt("ovEndRunBtn", "See score")
+            : this.txt("ovRecoverBtn", "Check run"),
+          onPress: () => this.dispatch(this.isGuest() ? "submitSolution" : "recoverGame"),
+        },
+      );
     } else if (this.run?.done && !this.run.won && gameStatus === "dealt") {
-      this.showOverlay("Out of Arrows", "Every arrow is spent.", {
-        label: this.isGuest() ? "See Score" : "Settle Run",
+      this.showOverlay(
+        this.txt("ovOutTitle", "Out of arrows"),
+        this.txt("ovOutSub", "Every arrow is spent."),
+        {
+        label: this.isGuest()
+          ? this.txt("ovScoreBtn", "See score")
+          : this.txt("ovSettleBtn", "Settle run"),
         onPress: () => this.dispatch("submitSolution"),
       });
     } else if (this.run?.done && this.run.won && gameStatus === "dealt") {
       const canSubmit = this.canSubmitRun();
-      this.showOverlay("Range Cleared", this.submitGateMessage(canSubmit), {
-        label: canSubmit ? (this.isGuest() ? "Save Score" : "Submit Win") : "Waiting",
+      this.showOverlay(this.txt("ovClearedTitle", "Range cleared"), this.submitGateMessage(canSubmit), {
+        label: canSubmit
+          ? (this.isGuest() ? this.txt("ovSaveBtn", "Save score") : this.txt("ovSubmitBtn", "Submit win"))
+          : this.txt("ovWaitingBtn", "Waiting"),
         disabled: !canSubmit,
         onPress: () => this.dispatch("submitSolution"),
         icon: true,
       });
     } else if (gameStatus === "solved") {
-      this.showOverlay("Solved", "Congratulations, you won.", { icon: true });
-    } else if (gameStatus === "expired") {
-      this.showOverlay("Expired", "Time ran out.");
+      this.showOverlay(
+        this.txt("ovSolvedTitle", "Range cleared"),
+        this.txt("ovSolvedSub", "A clean shot trail for the record book."),
+        {
+          label: this.txt("ovPlayAgain", "Play again"),
+          onPress: () => this.dispatch("returnToLobby"),
+          icon: true,
+        },
+      );
+    } else if (gameStatus === "expired" || gameStatus === "refunded") {
+      this.showOverlay(
+        this.txt("ovExpiredTitle", "Run complete"),
+        this.txt("ovExpiredSub", "Take another shot at the range."),
+        {
+          label: this.txt("ovPlayAgain", "Play again"),
+          onPress: () => this.dispatch("returnToLobby"),
+        },
+      );
+    } else if (gameStatus === "unknown") {
+      this.showOverlay(
+        this.txt("ovPendingTitle", "Result pending"),
+        this.txt("ovPendingSub", "The final result is still being confirmed."),
+        {
+          label: this.txt("ovRecoverBtn", "Check again"),
+          onPress: () => this.dispatch("recoverGame"),
+        },
+      );
     } else {
       this.overlayContainer.setVisible(false);
     }
@@ -545,7 +655,19 @@ export class CurveArrowScene extends BaseScene {
       return;
     }
     this.levels = parsed.levels;
-    this.run = createRun(parsed.levels, this.num("gameDifficulty", 0));
+    let recoveredRun = createRun(parsed.levels, this.num("gameDifficulty", 0));
+    try {
+      const rawHistory = JSON.parse(this.str("shotHistory", "[]")) as unknown;
+      if (Array.isArray(rawHistory)) {
+        for (const rawHolds of rawHistory) {
+          if (!Array.isArray(rawHolds) || recoveredRun.done) break;
+          recoveredRun = applyShot(recoveredRun, parsed.levels, rawHolds as number[]).run;
+        }
+      }
+    } catch {
+      /* A malformed local cache never crashes the range; recovery remains available. */
+    }
+    this.run = recoveredRun;
     this.flight = null;
     this.buildLevelVisuals();
     this.resetArrowToBow();
@@ -581,7 +703,7 @@ export class CurveArrowScene extends BaseScene {
   }
 
   private isHoldInputActive(): boolean {
-    return this.pointerHeld || this.spaceHeld;
+    return this.pointerHeld || this.spaceHeld || this.bool("controlHeld");
   }
 
   /**
@@ -747,13 +869,13 @@ export class CurveArrowScene extends BaseScene {
   private onTargetHit(outcome: ShotOutcome, endX: number, endY: number): void {
     if (outcome.ring === 0) {
       this.sfx.play("combo");
-      this.showRingPopup("BULLSEYE!", endX, endY, "#ffd97a");
+      this.showRingPopup(this.txt("bullseye", "BULLSEYE!"), endX, endY, "#7b3515");
     } else if (outcome.ring === 1) {
       this.sfx.play("score");
-      this.showRingPopup("Inner ring!", endX, endY, "#ffe9b8");
+      this.showRingPopup(this.txt("innerRing", "Inner ring!"), endX, endY, "#7b3515");
     } else {
       this.sfx.play("score");
-      this.showRingPopup("On target!", endX, endY, "#e9f5ee");
+      this.showRingPopup(this.txt("onTarget", "On target!"), endX, endY, "#245730");
     }
     this.spawnImpactPuff(endX, endY, C.goldLight);
     this.animate({
@@ -795,8 +917,8 @@ export class CurveArrowScene extends BaseScene {
       fontSize: "15px",
       fontStyle: "bold",
       color,
-      stroke: "#17402a",
-      strokeThickness: 3,
+      stroke: "#fff7e6",
+      strokeThickness: 4,
     }).setOrigin(0.5).setDepth(30);
 
     if (this.reducedMotion) {
@@ -835,7 +957,12 @@ export class CurveArrowScene extends BaseScene {
     if (!this.sceneReady || this.flight || !this.run || !this.levels) return false;
     if (this.run.done) return false;
     if (this.str("gameStatus", "") !== "dealt") return false;
-    if (this.bool("isSubmitting")) return false;
+    if (
+      this.bool("isSubmitting") ||
+      this.bool("inputSyncPending") ||
+      this.bool("inputSyncFailed") ||
+      this.bool("isRecovering")
+    ) return false;
     const deadline = this.num("deadline", 0);
     if (deadline > 0 && deadline - this.nowMs <= 0) return false;
     return true;
@@ -940,7 +1067,7 @@ export class CurveArrowScene extends BaseScene {
     // Backdrop panel behind the letterboxed field strip.
     this.fieldFrameGfx = this.add.graphics();
     const frame = this.fieldFrameGfx;
-    frame.fillStyle(C.pineDeep, 1);
+    frame.fillStyle(0xffe6b9, 1);
     frame.fillRoundedRect(fieldX - 6, fieldY - 6, fieldW + 12, fieldH + 12, 12);
 
     this.skyImage = this.add.image(fieldX + fieldW / 2, fieldY + fieldH / 2, ARROW_ASSETS.sky)
@@ -949,7 +1076,7 @@ export class CurveArrowScene extends BaseScene {
     // Meadow strip along the bottom of the field + frame rim.
     frame.fillStyle(C.meadow, 0.5);
     frame.fillRect(fieldX, fieldY + fieldH * 0.9, fieldW, fieldH * 0.1);
-    frame.lineStyle(2, C.pineDark, 0.9);
+    frame.lineStyle(2, C.goldDeep, 0.52);
     frame.strokeRoundedRect(fieldX - 6, fieldY - 6, fieldW + 12, fieldH + 12, 12);
 
     this.wallsContainer = this.add.container(0, 0);
@@ -1058,7 +1185,7 @@ export class CurveArrowScene extends BaseScene {
     let index = 0;
     for (let x = startX; x <= endX; x += step) {
       const alpha = 0.55 * (1 - (x - startX) / (endX - startX));
-      gfx.fillStyle(C.cream, Math.max(0.08, alpha));
+      gfx.fillStyle(C.goldDeep, Math.max(0.16, alpha));
       gfx.fillCircle(x, y, index % 4 === 0 ? 2.4 : 1.6);
       index += 1;
     }
@@ -1079,20 +1206,20 @@ export class CurveArrowScene extends BaseScene {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
       fontStyle: "bold",
-      color: "#f3cf7f",
+      color: "#6d3215",
     }).setOrigin(0, 0.5).setVisible(false);
 
     this.arrowsText = this.add.text(fieldX + 10, hudTop + 33, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
-      color: "#cdeed8",
+      color: "#315f36",
     }).setOrigin(0, 0.5).setVisible(false);
 
     this.timerText = this.add.text(fieldX + fieldW - 12, hudTop + hudH / 2, "00:00", {
       fontFamily: FONT_FAMILY,
       fontSize: "15px",
       fontStyle: "bold",
-      color: "#cdeed8",
+      color: "#4a2816",
     }).setOrigin(1, 0.5).setVisible(false);
   }
 
@@ -1112,7 +1239,7 @@ export class CurveArrowScene extends BaseScene {
     gfx.clear();
     gfx.fillStyle(C.hudBg, 0.92);
     gfx.fillRoundedRect(fieldX, hudTop, fieldW, hudH, 10);
-    gfx.lineStyle(1, C.pineDark, 0.9);
+    gfx.lineStyle(1, C.goldDeep, 0.42);
     gfx.strokeRoundedRect(fieldX, hudTop, fieldW, hudH, 10);
 
     // Timer chip
@@ -1127,7 +1254,7 @@ export class CurveArrowScene extends BaseScene {
     for (let i = 0; i < dots; i += 1) {
       const cleared = i < this.run.cleared;
       const current = i === this.run.levelIndex && !this.run.done;
-      gfx.fillStyle(cleared ? C.gold : current ? C.cream : C.pineDark, cleared || current ? 1 : 0.9);
+      gfx.fillStyle(cleared ? C.pine : current ? C.gold : 0xd7b78d, cleared || current ? 1 : 0.72);
       gfx.fillCircle(dotsX + i * dotGap, hudTop + 15, current ? 5 : 4);
       if (current) {
         gfx.lineStyle(1, C.goldLight, 0.9);
@@ -1141,7 +1268,7 @@ export class CurveArrowScene extends BaseScene {
     for (let i = 0; i < this.run.budget; i += 1) {
       const live = i < arrowsLeft;
       const x = quiverX + i * 9;
-      gfx.lineStyle(2, live ? C.goldLight : C.pineDark, live ? 1 : 0.7);
+      gfx.lineStyle(2, live ? C.goldDeep : 0xc6a982, live ? 1 : 0.58);
       gfx.lineBetween(x, hudTop + 27, x, hudTop + 39);
       if (live) {
         gfx.fillStyle(C.gold, 1);
@@ -1150,12 +1277,18 @@ export class CurveArrowScene extends BaseScene {
     }
 
     this.levelText.setText(
-      `Target ${Math.min(this.run.cleared + 1, this.levels.length)} / ${this.levels.length}`,
+      this.txt("targetReadout", "Target {current} / {total}", {
+        current: Math.min(this.run.cleared + 1, this.levels.length),
+        total: this.levels.length,
+      }),
     );
-    this.arrowsText.setText(`Arrows ${arrowsLeft} / ${this.run.budget}`);
+    this.arrowsText.setText(this.txt("arrowsReadout", "Arrows {left} / {total}", {
+      left: arrowsLeft,
+      total: this.run.budget,
+    }));
     this.timerText
       .setText(formatClock(Math.max(0, remainingMs)))
-      .setColor(isLow ? "#ffd166" : "#cdeed8");
+      .setColor(isLow ? "#a93f27" : "#4a2816");
 
     // Hint label
     const elapsedMs = dealtAt > 0 ? this.nowMs - dealtAt : 0;
@@ -1165,18 +1298,20 @@ export class CurveArrowScene extends BaseScene {
       gameStatus === "dealt" && deadline > 0 && remainingMs <= SUBMIT_BUFFER_MS;
 
     if (this.run.done && !this.run.won) {
-      this.hintLabel.setText("Out of arrows.");
+      this.hintLabel.setText(this.txt("hintOutOfArrows", "Out of arrows."));
     } else if (timeUp) {
-      this.hintLabel.setText("Time's up.");
+      this.hintLabel.setText(this.txt("hintTimeUp", "Time's up."));
     } else if (submitWindowClosed && !timeUp) {
-      this.hintLabel.setText("Closing soon — submit now!");
+      this.hintLabel.setText(this.txt("hintClosingSoon", "Closing soon — submit now!"));
     } else if (this.run.won && !minSolveReached) {
       const wait = rule.minSolveMs + MIN_SOLVE_BUFFER_MS - elapsedMs;
-      this.hintLabel.setText(`Wait ${formatClock(wait)} to submit`);
+      this.hintLabel.setText(this.txt("hintWaitSubmit", "Wait {clock} to submit", {
+        clock: formatClock(wait),
+      }));
     } else if (this.run.won && minSolveReached) {
-      this.hintLabel.setText("All targets cleared. Submit now.");
+      this.hintLabel.setText(this.txt("hintSubmit", "All targets cleared. Submit now."));
     } else if (this.flight) {
-      this.hintLabel.setText("Hold to curve the arrow");
+      this.hintLabel.setText(this.txt("hintFlight", "Hold to curve the arrow"));
     } else {
       this.hintLabel.setText("");
     }
@@ -1191,7 +1326,7 @@ export class CurveArrowScene extends BaseScene {
       .setStrokeStyle(1, C.goldLight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    this.shootBtnLabel = this.add.text(0, 0, "SHOOT", {
+    this.shootBtnLabel = this.add.text(0, 0, this.txt("shoot", "SHOOT"), {
       fontFamily: FONT_FAMILY,
       fontSize: "15px",
       fontStyle: "bold",
@@ -1213,7 +1348,9 @@ export class CurveArrowScene extends BaseScene {
     const enabled = this.canShoot();
     this.shootBtnBg.setFillStyle(enabled ? C.gold : 0x627268);
     this.shootBtnBg.setStrokeStyle(1, enabled ? C.goldLight : 0x87938b);
-    this.shootBtnLabel.setText(this.flight ? "HOLD TO CURVE" : "SHOOT");
+    this.shootBtnLabel.setText(
+      this.flight ? this.txt("holdToCurve", "HOLD TO CURVE") : this.txt("shoot", "SHOOT"),
+    );
     this.shootBtn.setAlpha(enabled || this.flight ? 1 : 0.68);
   }
 
@@ -1221,11 +1358,11 @@ export class CurveArrowScene extends BaseScene {
     this.controlsHintText = this.add.text(
       this.scW / 2,
       this.layout.hintY,
-      "Tap to shoot · hold anywhere to curve · release to level out",
+      this.txt("controlsHint", "Tap to shoot · hold anywhere to curve · release to level out"),
       {
         fontFamily: FONT_FAMILY,
         fontSize: "11px",
-        color: "#cdeed8",
+        color: "#4f3a24",
         align: "center",
         wordWrap: { width: this.layout.fieldW },
       },
@@ -1238,7 +1375,7 @@ export class CurveArrowScene extends BaseScene {
       {
         fontFamily: FONT_FAMILY,
         fontSize: "11px",
-        color: "#ffd166",
+        color: "#934216",
         fontStyle: "bold",
         wordWrap: { width: this.layout.fieldW },
       },
@@ -1263,8 +1400,8 @@ export class CurveArrowScene extends BaseScene {
   private buildOverlay(): void {
     this.overlayContainer = this.add.container(this.scW / 2, this.scH / 2).setDepth(40);
 
-    this.overlayBg = this.add.rectangle(0, 0, 272, 150, C.overlay, 200)
-      .setStrokeStyle(2, C.gold)
+    this.overlayBg = this.add.rectangle(0, 0, 292, 164, C.overlay, 0.98)
+      .setStrokeStyle(2, C.goldDeep, 0.68)
       .setOrigin(0.5);
 
     this.overlayIcon = this.add.image(0, -46, ARROW_ASSETS.medal)
@@ -1275,13 +1412,13 @@ export class CurveArrowScene extends BaseScene {
       fontFamily: FONT_FAMILY,
       fontSize: "22px",
       fontStyle: "bold",
-      color: "#ffffff",
+      color: "#4a2816",
     }).setOrigin(0.5);
 
     this.overlaySub = this.add.text(0, 16, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
-      color: "#d9f2e1",
+      color: "#6b4a31",
       align: "center",
       wordWrap: { width: 240 },
     }).setOrigin(0.5);
@@ -1290,10 +1427,10 @@ export class CurveArrowScene extends BaseScene {
       .setStrokeStyle(1, C.goldLight)
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
-    this.overlayBtnTxt = this.add.text(0, 52, "Play Again", {
+    this.overlayBtnTxt = this.add.text(0, 52, this.txt("ovPlayAgain", "Play again"), {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
-      color: "#17402a",
+      color: "#3b1d0d",
       fontStyle: "bold",
     }).setOrigin(0.5);
     this.overlayBtnBg.on("pointerdown", () => {
@@ -1323,12 +1460,15 @@ export class CurveArrowScene extends BaseScene {
     this.overlayIcon.setVisible(Boolean(button?.icon));
     const actionable = Boolean(button?.label && button.onPress);
     this.overlayAction = actionable && !button?.disabled ? button?.onPress ?? null : null;
-    this.overlayBtn.setVisible(actionable);
+    // React overlays one semantic, keyboard/touch-operable action in this exact
+    // slot. Keep the canvas copy hidden so terminal and recovery states never
+    // render duplicate controls or strand assistive-technology users.
+    this.overlayBtn.setVisible(false);
     if (actionable && button) {
       this.overlayBtnTxt.setText(button.label ?? "");
       this.overlayBtnBg
-        .setFillStyle(button.disabled ? 0x627268 : C.gold)
-        .setStrokeStyle(1, button.disabled ? 0x87938b : C.goldLight);
+        .setFillStyle(button.disabled ? 0xd8c5ab : C.gold)
+        .setStrokeStyle(1, button.disabled ? 0xb6a185 : C.goldLight);
       if (this.overlayBtnBg.input) this.overlayBtnBg.input.enabled = !button.disabled;
       this.overlayBtn.setAlpha(button.disabled ? 0.68 : 1);
     }
@@ -1362,23 +1502,23 @@ export class CurveArrowScene extends BaseScene {
     const titleMark = this.add.image(this.scW / 2 - 82, layout.lobbyTitleY, ARROW_ASSETS.bow)
       .setDisplaySize(28, 38);
 
-    const title = this.add.text(this.scW / 2 + 14, layout.lobbyTitleY, "Curve Arrow", {
+    const title = this.add.text(this.scW / 2 + 14, layout.lobbyTitleY, this.txt("title", "Curve Arrow"), {
       fontFamily: FONT_FAMILY,
       fontSize: "21px",
       fontStyle: "bold",
-      color: "#f3cf7f",
+      color: "#6d3215",
     }).setOrigin(0.5);
 
     const sub = this.add.text(
       this.scW / 2,
       layout.lobbySubY,
-      this.isGuest()
+      this.txt("tagline", this.isGuest()
         ? "Curve arrows over the walls and clear every target"
-        : "Curve arrows over the walls to win GAS",
+        : "Curve arrows over the walls to win GAS"),
       {
         fontFamily: FONT_FAMILY,
         fontSize: "12px",
-        color: "#cdeed8",
+        color: "#315f36",
       },
     ).setOrigin(0.5);
 
@@ -1412,21 +1552,29 @@ export class CurveArrowScene extends BaseScene {
     const previewH = layout.lobbyPanelH - 26;
     const preview = this.buildMiniRangePreview(previewCx, previewCy, previewW, previewH);
 
-    const arenaTitle = this.add.text(copyX, layout.lobbyPanelY + 20, "How to Play", {
+    const arenaTitle = this.add.text(
+      copyX,
+      layout.lobbyPanelY + 20,
+      this.txt("howToTitle", "How to Play"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#ffe066",
+      color: "#6d3215",
     });
-    const arenaCopy = this.add.text(copyX, layout.lobbyPanelY + 46, [
-      "• Tap SHOOT to loose an arrow",
-      "• Hold to curve the arrow up",
-      "• Release to level it out",
-      "• Clear every target to win",
-    ].join("\n"), {
+    const arenaCopy = this.add.text(
+      copyX,
+      layout.lobbyPanelY + 46,
+      this.txtList("howToSteps", [
+        "Tap SHOOT to loose an arrow",
+        "Hold to curve the arrow up",
+        "Release to level it out",
+        "Clear every target to win",
+      ]).map((step) => `• ${step}`).join("\n"),
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
-      color: "#d9f2e1",
+      color: "#513720",
       lineSpacing: 6,
       wordWrap: { width: copyW },
     });
@@ -1498,7 +1646,7 @@ export class CurveArrowScene extends BaseScene {
     const insetX = cx - w / 2;
     const insetY = cy - h / 2;
     const frame = this.add.graphics();
-    frame.fillStyle(C.pineDeep, 0.6);
+    frame.fillStyle(0xffdfad, 0.82);
     frame.fillRoundedRect(insetX, insetY, w, h, 10);
     frame.lineStyle(1, C.cardBorder, 0.5);
     frame.strokeRoundedRect(insetX, insetY, w, h, 10);
@@ -1551,29 +1699,35 @@ export class CurveArrowScene extends BaseScene {
     const badge = this.add.image(0, -30, ARROW_ASSETS.badges[difficulty])
       .setDisplaySize(40, 40);
 
-    const label = this.add.text(0, -6, DIFF_LABELS[difficulty], {
+    const label = this.add.text(0, -6, this.diffLabel(difficulty), {
       fontFamily: FONT_FAMILY,
       fontSize: "13px",
       fontStyle: "bold",
-      color: "#f3cf7f",
+      color: "#6d3215",
     }).setOrigin(0.5);
 
-    const targetTxt = this.add.text(0, 12, `${rule.targetLevels} targets`, {
+    const targetTxt = this.add.text(0, 12, this.txt("targetCount", "{count} targets", {
+      count: rule.targetLevels,
+    }), {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
-      color: "#d9f2e1",
+      color: "#315f36",
     }).setOrigin(0.5);
 
-    const entryTxt = this.add.text(0, 28, this.isGuest() ? "Free play" : `${gasDisplay(rule.entryFixed8)} GAS`, {
+    const entryTxt = this.add.text(
+      0,
+      28,
+      this.isGuest() ? this.txt("freePlay", "Free play") : `${gasDisplay(rule.entryFixed8)} GAS`,
+      {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
-      color: "#8fe6b6",
+      color: "#8b431d",
     }).setOrigin(0.5);
 
-    const lockTxt = this.add.text(0, 42, "Cleared", {
+    const lockTxt = this.add.text(0, 42, this.txt("completed", "Completed"), {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
-      color: "#f9d27a",
+      color: "#8b431d",
       fontStyle: "bold",
     }).setOrigin(0.5).setVisible(false);
 
@@ -1617,16 +1771,16 @@ export class CurveArrowScene extends BaseScene {
       const lock     = card.list[5] as Phaser.GameObjects.Text;
       const locked   = this.isDifficultyLocked(i as Difficulty);
       const isActive = i === this.pickedDifficulty;
-      bg.setFillStyle(locked ? 0x183226 : isActive ? C.cardActiveBg : C.cardBg);
-      bg.setStrokeStyle(2, locked ? 0x425846 : isActive ? C.cardActive : C.cardBorder);
-      label.setColor(locked ? "#9fb7a6" : "#f3cf7f");
-      target.setColor(locked ? "#8aa493" : "#d9f2e1");
+      bg.setFillStyle(locked ? 0xeadcc8 : isActive ? C.cardActiveBg : C.cardBg);
+      bg.setStrokeStyle(2, locked ? 0xb9aa95 : isActive ? C.cardActive : C.cardBorder);
+      label.setColor(locked ? "#8d806f" : "#6d3215");
+      target.setColor(locked ? "#8d806f" : "#315f36");
       entry.setText(
         this.isGuest()
-          ? "Free play"
-          : locked ? "Completed" : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`,
+          ? this.txt("freePlay", "Free play")
+          : locked ? this.txt("completed", "Completed") : `${gasDisplay(ruleOf(i as Difficulty).entryFixed8)} GAS`,
       );
-      entry.setColor(locked ? "#9fb7a6" : "#8fe6b6");
+      entry.setColor(locked ? "#8d806f" : "#8b431d");
       lock.setVisible(locked);
       card.setAlpha(locked ? 0.58 : 1);
       if (bg.input) bg.input.enabled = !locked;
@@ -1646,24 +1800,27 @@ export class CurveArrowScene extends BaseScene {
         const time = Math.round(rule.limitMs / 60000);
         this.lobbyStatusText.setText(
           busy
-            ? "Setting up your range"
-            : `Tap a range to play  ·  ${rule.targetLevels} targets  ·  ${time} min`,
+            ? this.txt("preparing", "Setting up your range")
+            : this.txt("guestLobbyStatus", "Tap a range to play · {targets} targets · {minutes} min", {
+                targets: rule.targetLevels,
+                minutes: time,
+              }),
         );
         this.lobbyStatusText.setColor("#266542");
       } else {
-        const reward  = gasDisplay(rule.rewardFixed8);
-        const time    = Math.round(rule.limitMs / 60000);
-        const statusText = busy
-          ? "Preparing your archery range"
-          : !walletConnected
-            ? "Connect wallet to start a range"
-            : !progressionReady
-              ? "Checking account range history"
-              : locked
-                ? `Range cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
-                : ready
-                  ? `Tap a range to start  ·  Win: ${reward} GAS  ·  ${time} min`
-                  : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
+        const statusText = !this.bool("newPaidRunsEnabled")
+          ? this.txt("paidModeLocked", "Paid ranges are temporarily closed. Free play is open.")
+          : busy
+            ? this.txt("preparing", "Preparing your archery range")
+            : !walletConnected
+              ? "Connect wallet to start a range"
+              : !progressionReady
+                ? "Checking account range history"
+                : locked
+                  ? `Range cleared. Play ${this.routeName(this.requiredDifficulty())} next.`
+                  : ready
+                    ? "Tap a range to start"
+                    : `Pool low (${poolFree.toFixed(2)} / ${needed} GAS reward needed)`;
         this.lobbyStatusText.setText(statusText);
         // Caption sits on the pale shell just above the cards — use dark-on-light
         // tones (pine when ready, deep amber for a wait/warn state).
@@ -1699,6 +1856,7 @@ export class CurveArrowScene extends BaseScene {
     if (this.bool("isStarting") || this.bool("isDealing") || this.bool("isSubmitting")) return false;
     // Guest is a local run: no wallet, no reward pool, no progression gate.
     if (this.isGuest()) return !this.isDifficultyLocked(difficulty);
+    if (!this.bool("newPaidRunsEnabled")) return false;
     if (!this.bool("walletConnected")) return false;
     if (!this.bool("progressionReady")) return false;
     if (this.isDifficultyLocked(difficulty)) return false;
@@ -1727,19 +1885,21 @@ export class CurveArrowScene extends BaseScene {
   private submitGateMessage(canSubmit: boolean): string {
     if (this.isGuest()) {
       return canSubmit
-        ? "Save your local run score."
-        : "Clear every target to finish the run.";
+        ? this.txt("gateSubmitReady", "Save your local run score.")
+        : this.txt("gateUnlockChecking", "Clear every target to finish the run.");
     }
-    if (canSubmit) return "Submit for GAS before time runs out.";
+    if (canSubmit) return this.txt("gateSubmitReady", "Submit before time runs out.");
     const deadline = this.num("deadline", 0);
     const dealtAt = this.num("dealtAt", 0);
     const difficulty = this.num("gameDifficulty", 0);
     const rule = ruleOf(difficulty as Difficulty);
     const remainingMs = deadline > 0 ? deadline - this.nowMs : Number.POSITIVE_INFINITY;
-    if (remainingMs <= SUBMIT_BUFFER_MS) return "Too close to the deadline.";
-    if (dealtAt <= 0) return "Settlement unlock is being checked.";
+    if (remainingMs <= SUBMIT_BUFFER_MS) return this.txt("gateTooClose", "Too close to the deadline.");
+    if (dealtAt <= 0) return this.txt("gateUnlockChecking", "Settlement unlock is being checked.");
     const waitMs = rule.minSolveMs + MIN_SOLVE_BUFFER_MS - (this.nowMs - dealtAt);
-    return `Settlement unlocks in ${formatClock(waitMs)}.`;
+    return this.txt("gateUnlockIn", "Settlement unlocks in {clock}.", {
+      clock: formatClock(waitMs),
+    });
   }
 
   // ── Clock timer (drives HUD countdown each second) ────────────────────────
@@ -1773,34 +1933,58 @@ export class CurveArrowScene extends BaseScene {
 
   // ── Input ─────────────────────────────────────────────────────────────────
 
-  private setupInput(): void {
-    this.input.on("pointerdown", () => {
-      this.sfx.unlock();
-      this.pointerHeld = true;
-      if (!this.flight && this.canShoot()) {
-        this.launchArrow();
-      }
-    });
-    this.input.on("pointerup", () => {
-      this.pointerHeld = false;
-    });
-    this.input.on("pointerupoutside", () => {
-      this.pointerHeld = false;
-    });
+  private readonly onPointerDown = (): void => {
+    this.sfx.unlock();
+    this.pointerHeld = true;
+    if (!this.flight && this.canShoot()) this.launchArrow();
+  };
 
-    if (this.input.keyboard) {
-      this.input.keyboard.on("keydown-SPACE", (event: KeyboardEvent) => {
-        event.preventDefault?.();
-        this.sfx.unlock();
-        if (!this.spaceHeld) {
-          this.spaceHeld = true;
-          if (!this.flight && this.canShoot()) {
-            this.launchArrow();
-          }
-        }
-      });
-      this.input.keyboard.on("keyup-SPACE", () => {
-        this.spaceHeld = false;
+  private readonly onPointerUp = (): void => { this.pointerHeld = false; };
+
+  private readonly onSpaceDown = (event: KeyboardEvent): void => {
+    event.preventDefault?.();
+    this.sfx.unlock();
+    if (this.spaceHeld) return;
+    this.spaceHeld = true;
+    if (!this.flight && this.canShoot()) this.launchArrow();
+  };
+
+  private readonly onSpaceUp = (): void => { this.spaceHeld = false; };
+
+  private setupInput(): void {
+    this.input.on("pointerdown", this.onPointerDown);
+    this.input.on("pointerup", this.onPointerUp);
+    this.input.on("pointerupoutside", this.onPointerUp);
+    this.input.keyboard?.on("keydown-SPACE", this.onSpaceDown);
+    this.input.keyboard?.on("keyup-SPACE", this.onSpaceUp);
+  }
+
+  private cleanupInput(): void {
+    this.input.off("pointerdown", this.onPointerDown);
+    this.input.off("pointerup", this.onPointerUp);
+    this.input.off("pointerupoutside", this.onPointerUp);
+    this.input.keyboard?.off("keydown-SPACE", this.onSpaceDown);
+    this.input.keyboard?.off("keyup-SPACE", this.onSpaceUp);
+    this.pointerHeld = false;
+    this.spaceHeld = false;
+  }
+
+  protected onReducedMotionChange(enabled: boolean): void {
+    this.tweens.killTweensOf([
+      this.lobbyPreviewArrow,
+      this.overlayContainer,
+      this.bowImage,
+      this.targetContainer,
+      this.wallsContainer,
+    ].filter(Boolean));
+    if (!enabled && this.lobbyPreviewArrow && this.str("gameStatus", "idle") === "idle") {
+      this.tween({
+        targets: this.lobbyPreviewArrow,
+        y: this.lobbyPreviewArrow.y - 5,
+        duration: 1500,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1,
       });
     }
   }
@@ -1808,6 +1992,7 @@ export class CurveArrowScene extends BaseScene {
   // ── Cleanup ───────────────────────────────────────────────────────────────
 
   override destroy(fromScene = false): void {
+    this.cleanupInput();
     this.stopClockTimer();
     if (this.previewTimer !== null) {
       window.clearTimeout(this.previewTimer);

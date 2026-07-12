@@ -1,14 +1,52 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-last-survivor",
-  "name": "LastSurvivor",
-  "name_zh": "最后生还者",
-  "version": "2.0.0",
-  "description": "Prize pool grows with every contribution; each key purchase extends the live countdown. Last contributor wins when the timer reaches zero. Pure game-theory tension.",
-  "description_zh": "最后生还者 — 每次投入都让奖池增长，每把钥匙为倒计时增加 30 秒（最多 24 小时）；如果计时归零，最后一个购买的人赢得全部奖池。一场纯粹的人性博弈。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
+  "contract_domains": {
+    "neo-n3-mainnet": "lastsurvivor.miniapp.neo"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
+    "neo-n3-testnet": "0xff122a6cf7f22a88d059d61a9d9c07e84a2b56b9"
+  },
+  "createdAt": "2026-01-01T00:00:00Z",
+  "default_network": "neo-n3-mainnet",
+  "description": "A bright Phaser last-seat duel: local rivals steal the lead on an unpredictable rhythm, small packs score higher, and only the leader at zero survives. The paid contract lane remains hidden until the refreshed wallet flow is revalidated.",
+  "description_zh": "明亮的 Phaser 最后席位对决：本地对手会以不可预测的节奏抢占领先，小包装填得分更高，归零时只有领先者生还。新版钱包流程完成重新验证前，付费合约入口保持隐藏。",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
+  },
+  "featured": true,
+  "featured_order": 5,
+  "features": {
+    "deeplink": "neomainapp://last-survivor",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-last-survivor",
+  "name": "LastSurvivor",
+  "name_zh": "最后生还者",
+  "permissions": [],
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "stateSource": {
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
   "tags": [
     "tontine",
     "social-experiment",
@@ -16,97 +54,32 @@
     "countdown",
     "pvp"
   ],
-  "developer": {
-    "name": "Yiwu",
-    "email": "dev@r3e.network",
-    "website": "https://neomini.app"
-  },
-  "contracts": {
-    "neo-n3-mainnet": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
-    "neo-n3-testnet": "0x8e1e432e966357de8d7642564b744d3274a81bd0"
-  },
-  "contract_domains": {
-    "neo-n3-mainnet": "lastsurvivor.miniapp.neo"
-  },
-  "runtime": {
-    "mode": "platform",
-    "modules": [
-      {
-        "binding": "countdown-auction",
-        "platform": "PlatformGame",
-        "appId": "miniapp-last-survivor",
-        "moduleType": 1,
-        "registration": {
-          "method": "registerGame",
-          "type": 1
-        },
-        "operations": {
-          "start_round": "startCountdownRound",
-          "buy_keys": "buyCountdownKeys",
-          "rollover": "checkAndEndCountdownRound",
-          "status": "getCountdownStatus"
-        },
-        "networks": {
-          "neo-n3-mainnet": {
-            "contract_hash": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
-            "registered": true,
-            "domain": "lastsurvivor.miniapp.neo"
-          },
-          "neo-n3-testnet": {
-            "contract_hash": "0x8e1e432e966357de8d7642564b744d3274a81bd0",
-            "registered": true
-          }
-        }
-      }
-    ]
-  },
-  "supported_networks": [
-    "neo-n3-mainnet",
-    "neo-n3-testnet"
-  ],
-  "default_network": "neo-n3-mainnet",
-  "urls": {
-    "entry": "/miniapps/last-survivor/index.html",
-    "icon": "/miniapps/last-survivor/logo.webp",
-    "banner": "/miniapps/last-survivor/banner.webp"
-  },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain"
-  ],
-  "features": {
-    "stateless": true,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://last-survivor"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": true
-  },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-05-08T13:07:29Z",
-  "featured": true,
-  "featured_order": 5,
   "technologies": {
+    "aa": {
+      "description": "AA social onboarding is planned but is not the live testnet flow",
+      "enabled": false
+    },
     "keeper": {
-      "enabled": false,
-      "description": "Settlement is permissionless: once the countdown expires anyone can call settle() to pay the last buyer the entire pot on-chain and open the next round",
       "conditions": [
         "timer_expiry"
-      ]
+      ],
+      "description": "Settlement is permissionless: once the countdown expires anyone can call settle() to credit the last buyer's withdrawable balance and open the next round",
+      "enabled": false
     },
-    "aa": {
-      "enabled": false,
-      "description": "AA social onboarding is planned but is not the live testnet flow"
+    "oracle": {
+      "description": "The winner is the deterministic on-chain last buyer, so no randomness or off-chain oracle is required.",
+      "enabled": false
+    },
+    "tee": {
+      "description": "The game has no private player input; contract state and signed wallet actions are authoritative.",
+      "enabled": false
     }
-  }
+  },
+  "updatedAt": "2026-07-11T00:00:00Z",
+  "urls": {
+    "banner": "/miniapps/last-survivor/banner.webp",
+    "entry": "/miniapps/last-survivor/index.html",
+    "icon": "/miniapps/last-survivor/logo.webp"
+  },
+  "version": "2.2.0"
 }

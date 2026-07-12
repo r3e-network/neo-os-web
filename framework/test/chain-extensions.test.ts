@@ -95,12 +95,17 @@ describe("S7 chain.signMessage normalization", () => {
 
   it("falls back to the data field and keeps it exposed", async () => {
     const { app } = makeFramework({
-      signMessage: vi.fn(async () => ({ data: "datasig", pubkey: "pk2" })),
+      signMessage: vi.fn(async () => ({
+        data: "datasig",
+        pubkey: "pk2",
+        account: ADDRESS,
+      })),
     });
     await expect(app.chain.signMessage("hello")).resolves.toEqual({
       signature: "datasig",
       publicKey: "pk2",
       data: "datasig",
+      account: ADDRESS,
     });
   });
 
@@ -123,14 +128,15 @@ describe("S7 chain.invokeMultiple", () => {
     { scriptHash: "0xmarket", operation: "settleListing", args: [] as FrameworkContractArg[] },
   ];
 
-  it("forwards calls and custom signers to the host", async () => {
+  it("forwards calls, custom signers, and tx persistence to the host", async () => {
     const invokeMultiple = vi.fn(async () => ({ txid: "0xmulti", success: true }));
     const { app } = makeFramework({ invokeMultiple });
     const signers = [{ account: ADDRESS, scopes: 16, allowedContracts: ["0xgas", "0xmarket"] }];
-    await expect(app.chain.invokeMultiple(calls, { signers })).resolves.toMatchObject({
+    const onTransactionSent = vi.fn();
+    await expect(app.chain.invokeMultiple(calls, { signers, onTransactionSent })).resolves.toMatchObject({
       txid: "0xmulti",
     });
-    expect(invokeMultiple).toHaveBeenCalledWith(calls, { signers });
+    expect(invokeMultiple).toHaveBeenCalledWith(calls, { signers, onTransactionSent });
   });
 
   it("sanitizes FAULT-state exceptions: short asserts pass, dumps are replaced", async () => {

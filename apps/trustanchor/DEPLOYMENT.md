@@ -26,8 +26,10 @@ pre-registration griefing.
   AA core; there is no agent WIF.
 - Agent vote sync uses the same AA `executeUserOp` path.
 
-## Status
+## Current Status
 
-The shared contract compiles to `contracts/build/PlatformAnchor.nef`. Mainnet
-and testnet hashes remain intentionally empty until deployment is performed and
-the app is registered on-chain.
+As read-only verified on 2026-07-12, the app is already registered as mode `1`
+on mainnet `0x02beeef6f65c6989a121c0a0e6b23190333edb98` and testnet
+`0xab079b4f9a0a2471d136392e25eb8e99898dcad0`. Both registrations are live and
+unpaused. See `NETWORK_STATUS.md`. This frontend pass did not deploy or update
+either contract.

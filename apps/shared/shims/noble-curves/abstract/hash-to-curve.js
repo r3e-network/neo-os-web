@@ -159,4 +159,3 @@ export function createHasher(Point, mapToCurve, def) {
         },
     };
 }
-//# sourceMappingURL=hash-to-curve.js.map

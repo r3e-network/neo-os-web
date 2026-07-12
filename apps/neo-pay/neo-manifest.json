@@ -3,7 +3,7 @@
   "id": "miniapp-neo-pay",
   "name": "NeoPay",
   "name_zh": "流式支付",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Create recurring GAS or NEO payment streams for payroll, subscriptions, allowances, or treasury releases. Funds lock on-chain, vest over time, and beneficiaries claim when available.",
   "description_zh": "流式支付用于创建周期性的 GAS 或 NEO 资金流，可用于工资、订阅、津贴或金库释放。资金锁定在链上，按周期释放，受益人可在可领取时提取。",
   "category": "finance",
@@ -25,6 +25,20 @@
     "neo-n3-mainnet": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
     "neo-n3-testnet": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e"
   },
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deployed",
+      "contract_hash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+      "reason": "MiniAppNeoPay ABI (8 required methods and 3 confirmation events), totalStreams=12, isPaused=false, and stream 12 were verified through read-only N3Index RPC.",
+      "verified_at": "2026-07-11T00:00:00Z"
+    },
+    "neo-n3-testnet": {
+      "status": "deployed",
+      "contract_hash": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
+      "reason": "MiniAppNeoPay ABI (8 required methods and 3 confirmation events), totalStreams=2126, isPaused=false, and stream 2126 were verified through read-only N3Index RPC; no funded write was submitted in this pass.",
+      "verified_at": "2026-07-11T00:00:00Z"
+    }
+  },
   "contract_domains": {
     "neo-n3-mainnet": "neopay.miniapp.neo"
   },
@@ -40,10 +54,11 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "write:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-pay"
   },
@@ -54,6 +69,11 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "NeoPay",
+    "subtitle": "Create, claim, cancel, and recover directly in the designed payment-stream desk.",
+    "operations": []
+  },
   "platform": {
     "analytics": true,
     "comments": true,
@@ -61,7 +81,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-16T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "featured": true,
   "featured_order": 6,
   "technologies": {

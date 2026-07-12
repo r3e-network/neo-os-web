@@ -12,9 +12,15 @@ describe("/api/morpheus/confidential/store", () => {
     delete process.env.MORPHEUS_TESTNET_PUBLIC_API_URL;
     delete process.env.MORPHEUS_PUBLIC_API_URL;
     delete process.env.NEXT_PUBLIC_MORPHEUS_PUBLIC_API_URL;
+    delete process.env.MORPHEUS_TESTNET_CONFIDENTIAL_STORE_TOKEN;
+    delete process.env.MORPHEUS_CONFIDENTIAL_STORE_TOKEN;
+    delete process.env.MORPHEUS_TESTNET_PROVIDER_CONFIG_API_KEY;
+    delete process.env.MORPHEUS_PROVIDER_CONFIG_API_KEY;
+    delete process.env.MORPHEUS_TESTNET_CONFIDENTIAL_STORE_PROJECT_SLUG;
+    delete process.env.MORPHEUS_CONFIDENTIAL_STORE_PROJECT_SLUG;
   });
 
-  it("rejects non-POST requests", async () => {
+  it("reports an unavailable read-only capability when server integration is absent", async () => {
     const handler = require("@/pages/api/morpheus/confidential/store").default as (
       req: NextApiRequest,
       res: NextApiResponse,
@@ -23,7 +29,28 @@ describe("/api/morpheus/confidential/store", () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: "GET" });
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(405);
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toEqual({
+      available: false,
+      network: "testnet",
+      target_chain: "neo_n3",
+    });
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+  });
+
+  it("answers opaque-frame preflight without contacting Morpheus", async () => {
+    const handler = require("@/pages/api/morpheus/confidential/store").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({ method: "OPTIONS" });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(204);
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe("GET, POST, OPTIONS");
+    expect(res.getHeader("Access-Control-Allow-Headers")).toBe("Accept, Content-Type");
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("requires ciphertext", async () => {
@@ -46,6 +73,8 @@ describe("/api/morpheus/confidential/store", () => {
 
   it("forwards the request body to Morpheus confidential store", async () => {
     process.env.MORPHEUS_TESTNET_PUBLIC_API_URL = "https://oracle.example";
+    process.env.MORPHEUS_TESTNET_CONFIDENTIAL_STORE_TOKEN = "server-store-token";
+    process.env.MORPHEUS_TESTNET_CONFIDENTIAL_STORE_PROJECT_SLUG = "neo-miniapps";
     mockFetch.mockResolvedValue({
       status: 200,
       headers: new Headers({ "content-type": "application/json" }),
@@ -62,6 +91,7 @@ describe("/api/morpheus/confidential/store", () => {
       network: "testnet",
       target_chain: "neo_n3",
       name: "demo",
+      public_envelope: { encryption_algorithm: "X25519-HKDF-SHA256-AES-256-GCM" },
     };
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "POST",
@@ -74,8 +104,16 @@ describe("/api/morpheus/confidential/store", () => {
       "https://oracle.example/api/confidential/store",
       expect.objectContaining({
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Api-Key": "server-store-token",
+        },
+        body: JSON.stringify({
+          ...payload,
+          project_slug: "neo-miniapps",
+          metadata: { public_envelope: payload.public_envelope },
+          encryption_algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
+        }),
       }),
     );
     expect(res._getStatusCode()).toBe(200);
@@ -84,6 +122,8 @@ describe("/api/morpheus/confidential/store", () => {
 
   it("returns an inline fallback envelope when upstream storage rejects the request", async () => {
     process.env.MORPHEUS_TESTNET_PUBLIC_API_URL = "https://oracle.example";
+    process.env.MORPHEUS_TESTNET_CONFIDENTIAL_STORE_TOKEN = "server-store-token";
+    process.env.MORPHEUS_TESTNET_CONFIDENTIAL_STORE_PROJECT_SLUG = "neo-miniapps";
     mockFetch.mockResolvedValue({
       ok: false,
       status: 401,

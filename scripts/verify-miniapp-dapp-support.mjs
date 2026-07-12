@@ -40,6 +40,33 @@ function sourceDeclaresAppId(source, appId) {
   return patterns.some((pattern) => pattern.test(source));
 }
 
+function sourceDefinesAppIdConstant(source, appId) {
+  const escaped = escapeRegExp(appId);
+  return new RegExp(
+    `\\b(?:export\\s+)?const\\s+[A-Za-z_$][\\w$]*(?:\\s*:[^=;]+)?\\s*=\\s*["']${escaped}["']`,
+  ).test(source);
+}
+
+function sourceUsesAppIdOption(source) {
+  return /\bappId\s*(?::|,)/.test(source);
+}
+
+async function sourceTreeDefinesAppId(directory, appId) {
+  if (!(await exists(directory))) return false;
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      if (await sourceTreeDefinesAppId(entryPath, appId)) return true;
+      continue;
+    }
+    if (!/\.(?:[cm]?[jt]sx?)$/.test(entry.name)) continue;
+    const source = await fs.readFile(entryPath, "utf8");
+    if (sourceDefinesAppIdConstant(source, appId)) return true;
+  }
+  return false;
+}
+
 async function readJson(filePath) {
   const text = await fs.readFile(filePath, "utf8");
   return JSON.parse(text);
@@ -114,10 +141,18 @@ async function main() {
       const appConfigSource = (await exists(appConfigPath))
         ? await fs.readFile(appConfigPath, "utf8")
         : "";
+      const sourceTreeHasAppId = appId
+        ? await sourceTreeDefinesAppId(path.join(appDir, "src"), appId)
+        : false;
       if (!mainSource.includes("defineMiniApp")) {
         failures.push({ slug, reason: "src/main.tsx must use the shared defineMiniApp runtime" });
       }
-      if (appId && !sourceDeclaresAppId(mainSource, appId) && !sourceDeclaresAppId(appConfigSource, appId)) {
+      if (
+        appId &&
+        !sourceDeclaresAppId(mainSource, appId) &&
+        !sourceDeclaresAppId(appConfigSource, appId) &&
+        !(sourceUsesAppIdOption(mainSource) && sourceTreeHasAppId)
+      ) {
         failures.push({
           slug,
           reason: `defineMiniApp runtime appId must match manifest.id (${appId})`,

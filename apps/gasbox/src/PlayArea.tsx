@@ -1,31 +1,76 @@
 /**
- * PlayArea.tsx — GasBox Studio (v2 scene-driven rebuild)
- * Game/tool identity. The slot machine IS the scene: a GasBox machine with
- * pull/reveal animation. Pull is primary; machine list + studio + revenue tucked
- * in drawer. Full state + all 11 dispatch actions preserved.
+ * GasBox production play surface.
+ *
+ * The capsule machine remains the dominant game object. Exact wallet, credit,
+ * pool, reservation and recovery evidence sits in a compact HUD/drawer instead
+ * of turning the experience into a transaction form.
  */
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
-import { ParticleBurst } from "@shared/art";
-import { PlayStage } from "@shared/components-react/v2";
+import { CoinArt, ParticleBurst } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import { addressToScriptHash } from "@shared/utils/neo";
 import machineArtUrl from "./gasbox-capsule-machine-cutout.webp";
 import prizeCapsuleUrl from "./gasbox-prize-capsule-cutout.webp";
 import "./PlayArea.scss";
 
-interface P { t: (k: string, p?: Record<string, string|number>) => string; state: ObservableState; dispatch: (n: string, ...a: unknown[]) => Promise<void>; }
-interface MachineItem { name?: string; rarity?: string; displayProbability?: number; amountDisplay?: string; available?: boolean; [k: string]: unknown; }
-interface Machine { id: string; name?: string; active?: boolean; inventoryReady?: boolean; poolReady?: boolean; price?: string; plays?: number; items?: MachineItem[]; topPrize?: string; poolBalance?: string; maxPrize?: string; creatorHash?: string; revenue?: string; revenueRaw?: number; [k: string]: unknown; }
-interface PullResult { id?: string; name?: string; rarity?: string; amountDisplay?: string; [k: string]: unknown; }
+interface Props {
+  t: (key: string, params?: Record<string, string | number>) => string;
+  state: ObservableState;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+}
 
-function translation(t: P["t"], key: string, fallback: string): string {
+interface MachineItem {
+  name?: string;
+  rarity?: string;
+  displayProbability?: number;
+  probability?: number;
+  amountDisplay?: string;
+  available?: boolean;
+  [key: string]: unknown;
+}
+
+interface Machine {
+  id: string;
+  name?: string;
+  active?: boolean;
+  inventoryReady?: boolean;
+  poolReady?: boolean;
+  price?: string;
+  items?: MachineItem[];
+  topPrize?: string;
+  prizeAsset?: "GAS" | "NEO";
+  poolBalance?: string;
+  reservedPool?: string;
+  freePool?: string;
+  maxPrize?: string;
+  creatorHash?: string;
+  revenue?: string;
+  revenueBaseUnits?: string;
+  [key: string]: unknown;
+}
+
+interface PullResult extends MachineItem {
+  id?: string;
+}
+
+interface StudioItemDraft {
+  name: string;
+  weight: string;
+  amount: string;
+}
+
+function translation(t: Props["t"], key: string, fallback: string): string {
   const value = t(key);
   return value && value !== key ? value : fallback;
 }
 
-function prizeLabel(item: MachineItem | PullResult | null | undefined, fallback: string): string {
+function prizeLabel(
+  item: MachineItem | PullResult | null | undefined,
+  fallback: string,
+): string {
   if (!item) return fallback;
   return String(item.name || item.rarity || item.amountDisplay || fallback);
 }
@@ -37,82 +82,175 @@ function probabilityLabel(item: MachineItem | null | undefined): string {
     : "";
 }
 
-export default function PlayArea({ t, state, dispatch }: P) {
+function shortHash(value: string): string {
+  const text = String(value ?? "").trim();
+  return text.length > 16 ? `${text.slice(0, 8)}…${text.slice(-6)}` : text || "—";
+}
+
+export default function PlayArea({ t, state, dispatch }: Props) {
   const { str, bool, num, val } = useStateBindings(state);
   const machines = (val("machines") ?? []) as Machine[];
   const selectedMachine = val<Machine | null>("selectedMachine", null);
-  const isLoading = bool("isLoading"); const isPulling = bool("isPulling");
   const pullResult = val<PullResult | null>("pullResult", null);
-  const machineCount = num("machineCount");
-  const totalPulls = num("totalPulls");
-  const userPulls = num("userPulls");
-  const selectedMachineName = str("selectedMachineName", "");
+  const isLoading = bool("isLoading");
+  const isPulling = bool("isPulling");
+  const isCreating = bool("isCreating");
+  const studioOpen = bool("studioOpen");
   const showResult = bool("showResult");
-  const hasPlayCredit = bool("hasPlayCredit");
-  const formattedPlayCredit = str("formattedPlayCredit", "0");
-  const betPhase = str("betPhase", "");
   const isAwaitingReveal = bool("isAwaitingReveal");
+  const hasPlayCredit = bool("hasPlayCredit");
+  const isWithdrawingCredit = bool("isWithdrawingCredit");
+  const isWithdrawingPool = bool("isWithdrawingPool");
+  const machineCount = num("machineCount");
+  const selectedMachineName = str("selectedMachineName");
+  const formattedPlayCredit = str("formattedPlayCredit", "0");
+  const formattedWalletGas = str("formattedWalletGas", "0");
+  const formattedWalletNeo = str("formattedWalletNeo", "0");
+  const betPhase = str("betPhase");
+  const pendingBetId = str("pendingBetId");
   const walletAddress = str("walletAddress");
+  const walletStatus = str("walletStatus", walletAddress ? "ready" : "disconnected");
+  const runtimeStatus = str("runtimeStatus", "ready");
+  const runtimeNetwork = str("runtimeNetwork", "Neo N3");
+  const runtimeContract = str("runtimeContract");
+  const runtimeError = str("runtimeError");
+  const catalogStatus = str("catalogStatus", isLoading ? "loading" : "ready");
+  const catalogError = str("catalogError");
 
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  // Immediate local action preview: the machine acknowledges the tap with a
+  // short nudge the moment the player commits a pull. The authoritative
+  // capsule-reel motion still comes only from the real isPulling state.
   const [pullPreview, setPullPreview] = useState(false);
-  const pullPreviewTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (pullPreviewTimeout.current) clearTimeout(pullPreviewTimeout.current); }, []);
-  const startPullPreview = () => { if (pullPreviewTimeout.current) clearTimeout(pullPreviewTimeout.current); setPullPreview(true); pullPreviewTimeout.current = setTimeout(() => { setPullPreview(false); pullPreviewTimeout.current = null; }, 1400); };
+  const pullPreviewTimeout = useRef<number | null>(null);
+  const startPullPreview = () => {
+    if (pullPreviewTimeout.current !== null) window.clearTimeout(pullPreviewTimeout.current);
+    setPullPreview(true);
+    pullPreviewTimeout.current = window.setTimeout(() => {
+      setPullPreview(false);
+      pullPreviewTimeout.current = null;
+    }, 1_400);
+  };
+  useEffect(
+    () => () => {
+      if (pullPreviewTimeout.current !== null) window.clearTimeout(pullPreviewTimeout.current);
+    },
+    [],
+  );
+  const [studioName, setStudioName] = useState("");
+  const [studioPrice, setStudioPrice] = useState("0.1");
+  const [studioAsset, setStudioAsset] = useState<"GAS" | "NEO">("GAS");
+  const [studioItems, setStudioItems] = useState<StudioItemDraft[]>([
+    { name: "", weight: "", amount: "" },
+  ]);
 
   const isConnected = walletAddress.length > 0;
-  const pulling = isPulling || pullPreview;
-  const connectedScriptHash = addressToScriptHash(walletAddress).toLowerCase();
-  const selectedName = selectedMachineName.trim();
-  const hasDisplayName =
-    selectedName.length > 0 &&
-    !["-", "n/a", "none", "null", "undefined", "无"].includes(selectedName.toLowerCase());
-  const displayMachineName = selectedMachine && hasDisplayName ? selectedName : "";
-
-  const machineId = selectedMachine?.id || machines[0]?.id || "";
+  const runtimeReady = runtimeStatus === "ready";
+  const runtimeIncompatible = runtimeStatus === "incompatible";
   const selectedItems = Array.isArray(selectedMachine?.items) ? selectedMachine.items : [];
   const availableItems = selectedItems.filter((item) => item.available !== false);
   const focusPrize = availableItems[0] ?? null;
-  const selectedReady = Boolean(selectedMachine && selectedMachine.active !== false && selectedMachine.inventoryReady !== false && selectedMachine.poolReady !== false);
-  const canPull = Boolean(selectedMachine && selectedReady && (isConnected || hasPlayCredit));
-  const selectedMachineId = selectedMachine?.id || "";
+  const selectedReady = Boolean(
+    selectedMachine &&
+      selectedMachine.active !== false &&
+      selectedMachine.inventoryReady !== false &&
+      selectedMachine.poolReady !== false,
+  );
+  const canPull = Boolean(
+    selectedMachine && selectedReady && runtimeReady && isConnected && !isAwaitingReveal,
+  );
+  const machineId = selectedMachine?.id || machines[0]?.id || "";
+  const connectedScriptHash = addressToScriptHash(walletAddress).toLowerCase();
   const creatorHash = String(selectedMachine?.creatorHash || "").toLowerCase();
-  const isCreator = Boolean(selectedMachine && connectedScriptHash && creatorHash && connectedScriptHash === creatorHash);
-  const selectedRevenueRaw = Number(selectedMachine?.revenueRaw ?? 0);
-  const hasWithdrawableRevenue = isCreator && Number.isFinite(selectedRevenueRaw) && selectedRevenueRaw > 0;
+  const isCreator = Boolean(
+    selectedMachine && connectedScriptHash && creatorHash && connectedScriptHash === creatorHash,
+  );
+  const hasWithdrawableRevenue =
+    isCreator && /^\d+$/.test(String(selectedMachine?.revenueBaseUnits ?? "0")) &&
+    BigInt(String(selectedMachine?.revenueBaseUnits ?? "0")) > 0n;
   const hasMachines = machines.length > 0;
-  const sceneState = pulling ? "pulling" : showResult ? "result" : isAwaitingReveal ? "pending" : isLoading && !selectedMachine ? "syncing" : selectedMachine ? "ready" : "empty";
+  const selectedName = selectedMachineName.trim();
+  const displayMachineName =
+    selectedMachine && selectedName && !["none", "null", "undefined", "-"].includes(selectedName.toLowerCase())
+      ? selectedName
+      : "";
+  const hasLoadError = runtimeStatus === "error" || catalogStatus === "error";
+  const studioReady =
+    studioName.trim().length > 0 &&
+    /^\d+(?:\.\d+)?$/.test(studioPrice.trim()) &&
+    Number(studioPrice) > 0 &&
+    studioItems.length > 0 &&
+    studioItems.every((item) =>
+      item.name.trim().length > 0 &&
+      /^\d+$/.test(item.weight.trim()) && BigInt(item.weight) > 0n &&
+      (studioAsset === "NEO" ? /^\d+$/.test(item.amount.trim()) : /^\d+(?:\.\d+)?$/.test(item.amount.trim())) &&
+      Number(item.amount) > 0,
+    );
+  const sceneState = isPulling
+    ? "pulling"
+    : showResult
+      ? "result"
+      : isAwaitingReveal
+        ? "pending"
+        : runtimeIncompatible
+          ? "paused"
+          : hasLoadError
+          ? "error"
+          : isLoading && !selectedMachine
+            ? "syncing"
+            : selectedMachine
+              ? "ready"
+              : "empty";
 
-  const machineStatusLabel = (machine: Machine | null | undefined) => {
+  const machineStatusLabel = (machine: Machine | null | undefined): string => {
     if (!machine) return translation(t, "gasboxPending", "Sync pending");
     if (machine.active === false) return translation(t, "inactive", "Inactive");
     if (machine.inventoryReady === false || machine.poolReady === false) {
-      return translation(t, "gasboxMachineNeedsFunding", "Needs funding");
+      return translation(t, "gasboxMachineNeedsFunding", "Needs free pool");
     }
     return translation(t, "gasboxMachineLive", "Live");
   };
 
-  const handlePull = () => {
-    if (!canPull || !machineId) return;
-    startPullPreview();
-    void dispatch("pull", machineId);
+  const updateStudioItem = (
+    index: number,
+    field: keyof StudioItemDraft,
+    value: string,
+  ): void => {
+    setStudioItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      ),
+    );
   };
-  const handleReveal = () => void dispatch("reveal");
-  const handlePrimaryEmpty = () => void dispatch("refreshMachines");
-  const handleWithdrawRevenue = () => {
-    if (!hasWithdrawableRevenue || !selectedMachineId) return;
-    void dispatch("withdrawRevenue", selectedMachineId);
+
+  const publishStudioMachine = (): void => {
+    if (!studioReady || isCreating) return;
+    void dispatch("publishMachine", {
+      name: studioName.trim(),
+      price: studioPrice.trim(),
+      prizeAsset: studioAsset,
+      items: studioItems.map((item) => ({
+        name: item.name.trim(),
+        weight: item.weight.trim(),
+        amount: item.amount.trim(),
+      })),
+    });
   };
 
   const statusText = (() => {
-    if (betPhase === "committing") return translation(t, "gasboxCommitting", "Placing bet...");
-    if (betPhase === "settling") return translation(t, "gasboxRevealing", "Revealing your prize...");
-    if (pulling) return translation(t, "pulling", "Pulling...");
-    if (showResult) return translation(t, "pullSuccess", "Reveal complete. Your prize is shown below.");
-    if (isAwaitingReveal) return translation(t, "gasboxCommitted", "Bet placed - reveal on the next block.");
-    if (isLoading && !selectedMachine) return translation(t, "gasboxSyncingMachines", "Syncing live machines and escrowed capsules...");
-    if (!selectedMachine) return translation(t, "gasboxEmptyStageHint", "Live capsules appear here after the market syncs.");
-    if (!selectedReady) return translation(t, "gasboxPullBlockedTitle", "Pull unavailable");
-    return translation(t, "gasboxPullReadyTitle", "Ready for pull");
+    if (betPhase === "committing") return translation(t, "gasboxCommitting", "Committing the wager…");
+    if (betPhase === "settling") return translation(t, "gasboxRevealing", "Reading the fixed reveal block…");
+    if (isPulling) return translation(t, "pulling", "Capsules are moving…");
+    if (showResult) return translation(t, "pullSuccess", "Prize paid. The result is final on-chain.");
+    if (isAwaitingReveal) return translation(t, "gasboxCommitted", "Wager committed. Reveal is safe to retry.");
+    if (runtimeIncompatible) return translation(t, "gasboxDeploymentIncompatible", "Paid pulls are paused until the fixed-beacon contract is deployed.");
+    if (hasLoadError) return runtimeError || catalogError || translation(t, "gasboxLoadFailed", "Live contract data is unavailable.");
+    if (isLoading && !selectedMachine) return translation(t, "gasboxSyncingMachines", "Syncing the live capsule counter…");
+    if (!selectedMachine) return translation(t, "gasboxEmptyStageHint", "No live machines are published on this network yet.");
+    if (!selectedReady) return translation(t, "gasboxPullBlockedTitle", "This machine needs an unreserved prize pool.");
+    if (!isConnected) return translation(t, "gasboxConnectToPull", "Connect a wallet to commit a pull.");
+    return translation(t, "gasboxPullReadyTitle", "Machine ready. One pull, one later-block reveal.");
   })();
 
   const prizeName = showResult
@@ -120,26 +258,107 @@ export default function PlayArea({ t, state, dispatch }: P) {
     : focusPrize
       ? prizeLabel(focusPrize, selectedMachine?.topPrize || translation(t, "unknownPrize", "Unknown prize"))
       : selectedMachine
-        ? translation(t, "gasboxPrizeDeckPending", "Prize reel syncing")
-        : translation(t, "gasboxMarketSyncTitle", "Market sync in progress");
+        ? translation(t, "gasboxPrizeDeckPending", "Prize reel unavailable")
+        : translation(t, "gasboxMarketSyncTitle", "Capsule counter ready");
   const prizeOdds = probabilityLabel(focusPrize);
-  const prizeCopy = (() => {
-    if (showResult) return translation(t, "gasboxOnChainPrizeNote", "The prize was drawn and paid on-chain.");
-    if (focusPrize) return prizeOdds ? `${translation(t, "gasboxPrizeFocusOdds", "Drop chance")} ${prizeOdds}` : translation(t, "gasboxReelHint", "Ready to spin");
-    if (selectedMachine) return translation(t, "gasboxPrizeDeckPendingCopy", "This machine needs escrow-ready prizes before players can pull.");
-    return translation(t, "gasboxMarketSyncCopy", "Refreshing checks live machines, escrowed inventory, and readable odds.");
+  const prizeCopy = showResult
+    ? translation(t, "gasboxOnChainPrizeNote", "The contract paid this prize from the reserved pool.")
+    : focusPrize
+      ? prizeOdds
+        ? `${translation(t, "gasboxPrizeFocusOdds", "Drop chance")} ${prizeOdds}`
+        : translation(t, "gasboxReelHint", "Ready to spin")
+      : selectedMachine
+        ? translation(t, "gasboxPrizeDeckPendingCopy", "The creator must fund items before play.")
+        : translation(t, "gasboxMarketSyncCopy", "Refresh to read real machines; no sample inventory is fabricated.");
+
+  const primaryAction = (() => {
+    if (isAwaitingReveal) {
+      return {
+        label: translation(t, "gasboxRevealAction", "Reveal result"),
+        onClick: () => void dispatch("reveal"),
+        loading: isPulling,
+        hint: translation(t, "gasboxRevealHint", "Safe to retry — settlement pays exactly once."),
+      };
+    }
+    if (hasLoadError) {
+      return {
+        label: isLoading
+          ? translation(t, "loadingMachines", "Checking contract…")
+          : translation(t, "gasboxFindMachines", "Refresh live counter"),
+        onClick: () => void dispatch("refreshMachines"),
+        disabled: isLoading,
+        loading: isLoading,
+        hint: translation(t, "gasboxRetryHint", "Retry the network and contract checks."),
+      };
+    }
+    if (!selectedMachine) {
+      return {
+        label: isLoading
+          ? translation(t, "loadingMachines", "Checking contract…")
+          : translation(t, "gasboxFindMachines", "Refresh live counter"),
+        onClick: () => void dispatch("refreshMachines"),
+        disabled: isLoading,
+        loading: isLoading,
+        hint: runtimeIncompatible
+          ? translation(t, "gasboxBrowseOnlyHint", "Browsing and fund recovery remain available; new paid writes are paused.")
+          : translation(t, "gasboxMarketEmptyTeaser", "This network currently has no published machines."),
+      };
+    }
+    if (runtimeIncompatible) {
+      return {
+        label: translation(t, "gasboxPaidPullsPaused", "Paid pulls paused"),
+        onClick: () => undefined,
+        disabled: true,
+        hint: translation(t, "gasboxDeploymentRecoveryCondition", "Resume after a fixed-beacon contract is deployed and the manifest binding is updated."),
+      };
+    }
+    if (!isConnected) {
+      return {
+        label: translation(t, "gasboxConnectAction", "Connect wallet"),
+        onClick: () => void dispatch("connectWallet"),
+        hint: translation(t, "gasboxConnectHint", "Balances are read only after you choose to connect."),
+      };
+    }
+    return {
+      label: isPulling ? translation(t, "pulling", "Pulling…") : translation(t, "pull", "Pull capsule"),
+      onClick: () => {
+        if (!canPull || !machineId) return;
+        startPullPreview();
+        void dispatch("pull", machineId);
+      },
+      disabled: isPulling || !canPull,
+      loading: isPulling,
+      hint: selectedReady
+        ? translation(t, "gasboxTwoStepNote", "Commit the GAS wager, then reveal from the next fixed block.")
+        : translation(t, "gasboxInventoryActionRequired", "Free pool must cover the largest prize."),
+    };
   })();
-  const scoreItems = (selectedMachine || hasMachines || machineCount > 0 || totalPulls > 0 || userPulls > 0 || hasPlayCredit)
-    ? [
-        { label: t("totalMachines"), value: String(machineCount), accent: true },
-        { label: translation(t, "yourPulls", "Your Pulls"), value: String(userPulls) },
-        { label: translation(t, "totalPulls", "Total Pulls"), value: String(totalPulls) },
-        { label: t("collect") || "Credit", value: formattedPlayCredit },
-      ]
-    : undefined;
 
   const scene = (
-    <div className="gasbox-scene" data-state={sceneState} data-ready={selectedReady ? "true" : "false"}>
+    <div
+      className="gasbox-scene"
+      data-state={sceneState}
+      data-preview={pullPreview ? "true" : undefined}
+      data-ready={selectedReady ? "true" : "false"}
+    >
+      <div className="gasbox-finance-strip" aria-label={translation(t, "gasboxLiveEconomy", "Live machine economy")}>
+        <article>
+          <CoinArt size={24} variant="gas" decorative />
+          <span>{translation(t, "gasboxPullPrice", "Pull price")}</span>
+          <strong>{selectedMachine?.price ?? "—"} GAS</strong>
+        </article>
+        <article>
+          <CoinArt size={24} variant={selectedMachine?.prizeAsset === "NEO" ? "neo" : "gas"} decorative />
+          <span>{translation(t, "gasboxFreePool", "Free pool")}</span>
+          <strong>{selectedMachine?.freePool ?? "—"} {selectedMachine?.prizeAsset ?? ""}</strong>
+        </article>
+        <article>
+          <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+          <span>{translation(t, "gasboxReservedPool", "Reserved")}</span>
+          <strong>{selectedMachine?.reservedPool ?? "—"} {selectedMachine?.prizeAsset ?? ""}</strong>
+        </article>
+      </div>
+
       <div className="gasbox-scene__cabinet" aria-label={translation(t, "title", "GasBox")}>
         <img className="gasbox-scene__machine-art" src={machineArtUrl} alt={translation(t, "title", "GasBox")} />
         <div className="gasbox-scene__capsule-track" aria-hidden="true">
@@ -157,8 +376,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
             />
           ))}
         </div>
-        <div className="gasbox-scene__chute" aria-hidden={!pulling && !showResult}>
-          {(pulling || showResult) && (
+        <div className="gasbox-scene__chute" aria-hidden={!isPulling && !showResult}>
+          {(isPulling || showResult) && (
             <img className="gasbox-scene__capsule gasbox-scene__capsule--drop" src={prizeCapsuleUrl} alt="" />
           )}
         </div>
@@ -171,7 +390,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <img className="gasbox-scene__result-art" src={prizeCapsuleUrl} alt="" aria-hidden="true" />
             <div>
               <span className="gasbox-scene__result-kicker">
-                {showResult ? translation(t, "congratulations", "Prize revealed") : translation(t, "gasboxPrizeFocus", "Prize focus")}
+                {showResult
+                  ? translation(t, "congratulations", "Prize revealed")
+                  : translation(t, "gasboxPrizeFocus", "Prize focus")}
               </span>
               <strong>{prizeName}</strong>
               <small>{prizeCopy}</small>
@@ -185,12 +406,12 @@ export default function PlayArea({ t, state, dispatch }: P) {
               ))}
             </div>
             <span className="gasbox-scene__result-kicker">{translation(t, "gasboxCapsuleStation", "Capsule station")}</span>
-            <strong>{prizeName}</strong>
+            <strong>{hasLoadError ? translation(t, "gasboxCounterOffline", "Counter needs attention") : prizeName}</strong>
             <p>{prizeCopy}</p>
             <ol className="gasbox-scene__route" aria-label={translation(t, "gasboxPlayerRoute", "Player route")}>
-              <li>{translation(t, "gasboxEmptyRouteRefresh", "Find machines")}</li>
-              <li>{translation(t, "gasboxEmptyRoutePick", "Pick a machine")}</li>
-              <li>{translation(t, "gasboxEmptyRouteReveal", "Reveal prize")}</li>
+              <li>{translation(t, "gasboxEmptyRouteRefresh", "Read live machines")}</li>
+              <li>{translation(t, "gasboxEmptyRoutePick", "Choose a capsule")}</li>
+              <li>{translation(t, "gasboxEmptyRouteReveal", "Reveal on-chain")}</li>
             </ol>
           </div>
         )}
@@ -204,107 +425,290 @@ export default function PlayArea({ t, state, dispatch }: P) {
     </div>
   );
 
-  const controls = (
+  const controls = hasMachines ? (
     <div className="gasbox-controls">
-      {machines.length > 0 && (
-        <div className="gasbox-controls__machines">
-          {machines.slice(0, 5).map((m) => (
-            <button key={m.id} type="button" className={["gasbox-machine-chip", selectedMachine?.id === m.id ? "gasbox-machine-chip--active" : null].filter(Boolean).join(" ")} onClick={() => void dispatch("selectMachine", m.id)} disabled={pulling}>
-              <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
-              <span>{m.name || m.id}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="gasbox-controls__machines">
+        {machines.slice(0, 5).map((machine) => (
+          <button
+            key={machine.id}
+            type="button"
+            className={["gasbox-machine-chip", selectedMachine?.id === machine.id ? "gasbox-machine-chip--active" : null].filter(Boolean).join(" ")}
+            onClick={() => void dispatch("selectMachine", machine.id)}
+            disabled={isPulling}
+          >
+            <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+            <span>{machine.name || machine.id}</span>
+          </button>
+        ))}
+      </div>
     </div>
-  );
+  ) : null;
 
   return (
-    <div className="gasbox-play-area mx2 mx2-cat-game">
-      <PlayStage category="game" stage={{ eyebrow: t("title"), title: displayMachineName || translation(t, "gasboxHeroTitle", "Pick a GasBox machine"), subtitle: selectedMachine ? translation(t, "gasboxWalletIntent", "The wallet confirms the GAS bet; the prize reveals on the next block.") : translation(t, "docSubtitle", "On-chain blind boxes with escrowed prizes"), badges: (
-        <>
-          <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {machineCount} {translation(t, "totalMachines", "Machines").toLowerCase()}</span>
-          {hasPlayCredit && <span className="mx2-badge">{formattedPlayCredit} GAS</span>}
-          {selectedMachine && <span className="mx2-badge">{selectedReady ? translation(t, "readyToPlay", "Ready") : translation(t, "inactive", "Inactive")}</span>}
-        </>
-      ) }}
-        scene={<div className="gasbox-stage-stack">{scene}{controls}</div>}
-        score={scoreItems}
-        actions={{
-          primary: isAwaitingReveal
-            ? { label: translation(t, "gasboxRevealAction", "Reveal result"), onClick: () => void handleReveal(), loading: isPulling, hint: translation(t, "gasboxRevealHint", "Safe to retry - the reveal pays exactly once.") }
+    <div className="gasbox-play-area mx2 mx2-cat-game" aria-busy={isPulling || pullPreview}>
+      <PlayStage
+        category="game"
+        stage={{
+          eyebrow: t("title"),
+          title: displayMachineName || translation(t, "gasboxHeroTitle", "GasBox capsule counter"),
+          subtitle: runtimeIncompatible
+            ? translation(t, "gasboxBrowseOnlyHint", "Browsing and fund recovery remain available; new paid writes are paused.")
             : selectedMachine
-              ? { label: pulling ? translation(t, "pulling", "Pulling...") : translation(t, "pull", "Pull"), onClick: () => void handlePull(), disabled: pulling || !canPull, loading: pulling, hint: selectedReady ? translation(t, "gasboxTwoStepNote", "Pulls are two steps: place the bet, then reveal on the next block.") : translation(t, "gasboxInventoryActionRequired", "Inventory needs funding before players can pull.") }
-              : { label: isLoading ? translation(t, "loadingMachines", "Loading machines...") : translation(t, "gasboxFindMachines", "Find Machines"), onClick: () => void handlePrimaryEmpty(), disabled: isLoading, loading: isLoading, hint: translation(t, "gasboxMarketEmptyTeaser", "Active capsule machines land here. Refresh to pull one.") },
-          secondary: [
-            ...(selectedMachine ? [{ label: translation(t, "refreshMachines", "Refresh Machines"), onClick: () => void dispatch("refreshMachines"), hint: translation(t, "gasboxMachineLive", "Live") }] : []),
-          ],
+            ? translation(t, "gasboxWalletIntent", "Commit once, reveal once, receive the reserved NEO or GAS prize.")
+            : translation(t, "docSubtitle", "Live on-chain capsule machines"),
+          badges: (
+            <>
+              <span className="mx2-badge" data-tone={runtimeReady ? "accent" : runtimeIncompatible ? "warning" : undefined}>
+                <span className="mx2-badge__dot" /> {runtimeReady ? runtimeNetwork : runtimeIncompatible ? translation(t, "gasboxBrowseOnly", "Browse only") : translation(t, "gasboxRuntimeCheck", "Contract check")}
+              </span>
+              <span className="mx2-badge">{machineCount} {translation(t, "totalMachines", "machines").toLowerCase()}</span>
+              {pendingBetId && <span className="mx2-badge" data-tone="warning">#{pendingBetId} {translation(t, "gasboxPendingShort", "pending")}</span>}
+            </>
+          ),
         }}
-        drawerToggleLabel={t("allMachines")} drawer={{ title: t("allMachines"), children: (
-          <div className="gasbox-drawer">
-            <section className="gasbox-drawer-card gasbox-drawer-card--machines">
-              <div className="gasbox-drawer-card__head">
-                <div>
-                  <h4>{translation(t, "gasboxDrawerMarketTitle", "Machine counter")}</h4>
-                  <p>{translation(t, "gasboxDrawerMarketCopy", "Pick a live machine or refresh the market before pulling.")}</p>
+        scene={<div className="gasbox-stage-stack">{scene}{controls}</div>}
+        actions={{
+          primary: primaryAction,
+          secondary: selectedMachine
+            ? [{
+                label: translation(t, "refreshMachines", "Refresh live data"),
+                onClick: () => void dispatch("refreshMachines"),
+                hint: translation(t, "gasboxRefreshHint", "Re-read wallet, contract and pool state."),
+              }]
+            : [],
+        }}
+        drawerToggleLabel={translation(t, "gasboxDetails", "Wallet & machines")}
+        drawer={{
+          title: translation(t, "gasboxDetails", "Wallet & machines"),
+          children: (
+            <div className="gasbox-drawer">
+              <section className="gasbox-drawer-card gasbox-wallet-card">
+                <div className="gasbox-drawer-card__head">
+                  <div>
+                    <h4>{translation(t, "gasboxWalletTitle", "Wallet cabinet")}</h4>
+                    <p>{isConnected ? shortHash(walletAddress) : translation(t, "gasboxWalletDisconnected", "Connect only when you are ready to pull.")}</p>
+                  </div>
+                  <span data-state={walletStatus}>{isConnected ? translation(t, "connected", "Connected") : translation(t, "disconnected", "Offline")}</span>
                 </div>
-                <span>{hasMachines ? `${machines.length}` : "0"}</span>
-              </div>
-              {hasMachines ? (
-                <ul className="gasbox-machine-list">{machines.slice(0, 10).map((m) => (
-                  <li key={m.id} className="gasbox-machine-list__item" data-active={selectedMachine?.id === m.id ? "true" : undefined}>
-                    <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
-                    <div>
-                      <strong>{m.name || m.id}</strong>
-                      <small>{machineStatusLabel(m)}</small>
-                    </div>
-                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("selectMachine", m.id)}>{t("tapToPlay")}</button>
-                  </li>
-                ))}</ul>
-              ) : (
-                <div className="gasbox-drawer-empty">
-                  <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
-                  <p>{translation(t, "gasboxDrawerMarketEmpty", "No active machines are loaded yet. Refresh the market to fill the counter.")}</p>
+                <div className="gasbox-wallet-assets">
+                  <article><CoinArt size={34} variant="gas" decorative /><span>GAS</span><strong>{formattedWalletGas}</strong></article>
+                  <article><CoinArt size={34} variant="neo" decorative /><span>NEO</span><strong>{formattedWalletNeo}</strong></article>
+                  <article><img src={prizeCapsuleUrl} alt="" aria-hidden="true" /><span>{translation(t, "gasboxPlayCreditLabel", "Play credit")}</span><strong>{formattedPlayCredit} GAS</strong></article>
                 </div>
-              )}
-            </section>
-
-            <section className="gasbox-drawer-card">
-              <div className="gasbox-drawer-card__head">
-                <div>
-                  <h4>{t("createMachineAction")}</h4>
-                  <p>{t("createPanelHint")}</p>
-                </div>
-              </div>
-              <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("openStudio")}>{t("create")}</button>
-            </section>
-
-            {hasPlayCredit && (
-              <section className="gasbox-drawer-card">
-                <h4>{translation(t, "gasboxPlayCreditLabel", "Prepaid credit")}</h4>
-                <p>{formattedPlayCredit} GAS. {translation(t, "gasboxPlayCreditHint", "Your next pull uses it automatically.")}</p>
-              </section>
-            )}
-            {selectedMachine && isCreator && (
-              <section className="gasbox-creator-panel" aria-label={translation(t, "gasboxCreatorEarningsTitle", "Creator earnings")}>
-                <div>
-                  <h4>{translation(t, "gasboxCreatorEarningsTitle", "Creator earnings")}</h4>
-                  <p>
-                    {hasWithdrawableRevenue
-                      ? translation(t, "gasboxRevenueAvailable", "Accrued play revenue is available to withdraw to your wallet.")
-                      : translation(t, "gasboxRevenueNone", "No withdrawable revenue yet. Earnings accrue as players pull this machine.")}
-                  </p>
-                </div>
-                <div className="gasbox-creator-panel__row">
-                  <strong>{selectedMachine.revenue || "0"} GAS</strong>
-                  <button type="button" className="mx2-btn mx2-btn--ghost" onClick={handleWithdrawRevenue} disabled={!hasWithdrawableRevenue}>
-                    {translation(t, "withdrawRevenue", "Withdraw Revenue")}
+                {isConnected ? (
+                  <button
+                    type="button"
+                    className="mx2-btn mx2-btn--ghost"
+                    onClick={() => void dispatch("withdrawPlayCredit")}
+                    disabled={!hasPlayCredit || isWithdrawingCredit}
+                  >
+                    {isWithdrawingCredit
+                      ? translation(t, "gasboxWithdrawing", "Withdrawing…")
+                      : translation(t, "gasboxWithdrawCredit", "Return unused credit")}
                   </button>
-                </div>
+                ) : (
+                  <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("connectWallet")}>
+                    {translation(t, "gasboxConnectAction", "Connect wallet")}
+                  </button>
+                )}
               </section>
-            )}
-          </div>
-        ) }}
+
+              {isAwaitingReveal && (
+                <section className="gasbox-drawer-card gasbox-recovery-card">
+                  <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                  <div>
+                    <h4>{translation(t, "gasboxRecoveryTitle", "Committed pull ready to recover")}</h4>
+                    <p>{translation(t, "gasboxRecoveryCopy", "This wallet-scoped record survives refresh. Reveal never repeats the wager.")}</p>
+                  </div>
+                  <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("reveal")} disabled={isPulling}>
+                    {translation(t, "gasboxRevealAction", "Reveal result")}
+                  </button>
+                </section>
+              )}
+
+              <section className="gasbox-drawer-card gasbox-drawer-card--machines">
+                <div className="gasbox-drawer-card__head">
+                  <div>
+                    <h4>{translation(t, "gasboxDrawerMarketTitle", "Live capsule counter")}</h4>
+                    <p>{translation(t, "gasboxDrawerMarketCopy", "Only machines read from the selected network appear here.")}</p>
+                  </div>
+                  <span>{machines.length}</span>
+                </div>
+                {hasMachines ? (
+                  <ul className="gasbox-machine-list">
+                    {machines.slice(0, 10).map((machine) => (
+                      <li key={machine.id} className="gasbox-machine-list__item" data-active={selectedMachine?.id === machine.id ? "true" : undefined}>
+                        <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                        <div><strong>{machine.name || machine.id}</strong><small>{machineStatusLabel(machine)}</small></div>
+                        <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("selectMachine", machine.id)}>{t("tapToPlay")}</button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="gasbox-drawer-empty">
+                    <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                    <p>{translation(t, "gasboxDrawerMarketEmpty", "No live machines on this network. The studio remains available for creators.")}</p>
+                  </div>
+                )}
+              </section>
+
+              {selectedMachine && isCreator && (
+                <section className="gasbox-creator-panel" aria-label={translation(t, "gasboxCreatorEarningsTitle", "Creator console")}>
+                  <div>
+                    <h4>{translation(t, "gasboxCreatorEarningsTitle", "Creator console")}</h4>
+                    <p>{translation(t, "gasboxCreatorEconomyCopy", "Revenue is GAS. Bankroll uses the machine prize asset; reserved funds cannot be withdrawn.")}</p>
+                  </div>
+                  <div className="gasbox-creator-ledger">
+                    <article><span>{translation(t, "gasboxRevenue", "Revenue")}</span><strong>{selectedMachine.revenue || "0"} GAS</strong></article>
+                    <article><span>{translation(t, "gasboxFreePool", "Free pool")}</span><strong>{selectedMachine.freePool || "0"} {selectedMachine.prizeAsset}</strong></article>
+                    <article><span>{translation(t, "gasboxReservedPool", "Reserved")}</span><strong>{selectedMachine.reservedPool || "0"} {selectedMachine.prizeAsset}</strong></article>
+                  </div>
+                  <div className="gasbox-creator-panel__row">
+                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("withdrawRevenue", selectedMachine.id)} disabled={!hasWithdrawableRevenue}>
+                      {translation(t, "withdrawRevenue", "Withdraw revenue")}
+                    </button>
+                    <button
+                      type="button"
+                      className="mx2-btn mx2-btn--ghost"
+                      onClick={() => void dispatch("setMachineActive", selectedMachine.id, selectedMachine.active === false)}
+                      disabled={selectedMachine.active === false && !runtimeReady}
+                    >
+                      {selectedMachine.active === false
+                        ? translation(t, "gasboxActivateAction", "Activate machine")
+                        : translation(t, "gasboxDeactivateAction", "Pause machine")}
+                    </button>
+                  </div>
+                  <div className="gasbox-creator-money-row">
+                    <label>
+                      <span>{translation(t, "gasboxPoolAmount", "Pool amount")}</span>
+                      <input value={topUpAmount} onChange={(event) => setTopUpAmount(event.target.value)} inputMode="decimal" placeholder={`0 ${selectedMachine.prizeAsset ?? "GAS"}`} />
+                    </label>
+                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("topUpPool", selectedMachine.id, topUpAmount)} disabled={!topUpAmount || isWithdrawingPool || !runtimeReady}>
+                      {translation(t, "gasboxTopUp", "Top up")}
+                    </button>
+                  </div>
+                  <div className="gasbox-creator-money-row">
+                    <label>
+                      <span>{translation(t, "gasboxFreePoolAmount", "Free pool to return")}</span>
+                      <input value={withdrawAmount} onChange={(event) => setWithdrawAmount(event.target.value)} inputMode="decimal" placeholder={`0 ${selectedMachine.prizeAsset ?? "GAS"}`} />
+                    </label>
+                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("withdrawPool", selectedMachine.id, withdrawAmount)} disabled={!withdrawAmount || isWithdrawingPool}>
+                      {isWithdrawingPool ? translation(t, "gasboxWithdrawing", "Withdrawing…") : translation(t, "gasboxWithdrawPool", "Return bankroll")}
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              <section className="gasbox-drawer-card gasbox-studio-card" data-open={studioOpen ? "true" : undefined}>
+                {!studioOpen || runtimeIncompatible ? (
+                  <>
+                    <div className="gasbox-drawer-card__head">
+                      <div>
+                        <h4>{t("createMachineAction")}</h4>
+                        <p>{translation(t, "createPanelHint", "Build the prize reel, fund its largest prize, then activate it.")}</p>
+                      </div>
+                    </div>
+                    <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch(isConnected ? "openStudio" : "connectWallet")} disabled={runtimeIncompatible}>
+                      {runtimeIncompatible ? translation(t, "gasboxPublishingPaused", "Publishing paused") : isConnected ? t("create") : translation(t, "gasboxConnectAction", "Connect wallet")}
+                    </button>
+                  </>
+                ) : (
+                  <div className="gasbox-studio-builder">
+                    <header>
+                      <div>
+                        <span>{translation(t, "gasboxStudioEyebrow", "Creator workshop")}</span>
+                        <h4>{translation(t, "gasboxStudioTitle", "Build a capsule machine")}</h4>
+                        <p>{translation(t, "gasboxStudioCopy", "Shape one real machine, load its weighted capsules, then fund the largest prize.")}</p>
+                      </div>
+                      <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => void dispatch("closeStudio")} disabled={isCreating}>
+                        {translation(t, "dismiss", "Close")}
+                      </button>
+                    </header>
+
+                    <div className="gasbox-studio-blueprint">
+                      <img src={machineArtUrl} alt="" aria-hidden="true" />
+                      <div>
+                        <strong>{studioName.trim() || translation(t, "studioPreviewMachineName", "Unnamed capsule machine")}</strong>
+                        <span>{studioPrice || "—"} GAS · {studioAsset} {translation(t, "gasboxPrizePool", "prize pool")}</span>
+                        <div className="gasbox-studio-blueprint__capsules" aria-hidden="true">
+                          {studioItems.slice(0, 6).map((_, index) => <img key={index} src={prizeCapsuleUrl} alt="" />)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="gasbox-studio-core">
+                      <label>
+                        <span>{translation(t, "machineNameLabel", "Machine name")}</span>
+                        <input value={studioName} onChange={(event) => setStudioName(event.target.value)} maxLength={60} placeholder={translation(t, "machineNamePlaceholder", "Aurora capsule")} />
+                      </label>
+                      <label>
+                        <span>{translation(t, "pricePerPlayLabel", "Price per pull (GAS)")}</span>
+                        <input value={studioPrice} onChange={(event) => setStudioPrice(event.target.value)} inputMode="decimal" placeholder="0.1" />
+                      </label>
+                      <fieldset>
+                        <legend>{translation(t, "prizeAssetLabel", "Prize asset")}</legend>
+                        <div className="gasbox-studio-asset-switch">
+                          {(["GAS", "NEO"] as const).map((asset) => (
+                            <button key={asset} type="button" data-active={studioAsset === asset ? "true" : undefined} onClick={() => setStudioAsset(asset)}>
+                              <CoinArt size={28} variant={asset === "GAS" ? "gas" : "neo"} decorative />
+                              <span>{asset}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </fieldset>
+                    </div>
+
+                    <div className="gasbox-studio-capsules">
+                      <div className="gasbox-studio-capsules__head">
+                        <div><h5>{translation(t, "inventoryAndOdds", "Capsules & odds")}</h5><p>{translation(t, "gasboxWeightsHint", "Weights become readable drop chances after publish.")}</p></div>
+                        <button type="button" className="mx2-btn mx2-btn--ghost" onClick={() => setStudioItems((current) => [...current, { name: "", weight: "", amount: "" }])} disabled={studioItems.length >= 20 || isCreating}>
+                          {translation(t, "addItem", "Add capsule")}
+                        </button>
+                      </div>
+                      <div className="gasbox-studio-capsules__list">
+                        {studioItems.map((item, index) => (
+                          <article key={index}>
+                            <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                            <label><span>{translation(t, "prizeLabel", "Prize")}</span><input value={item.name} onChange={(event) => updateStudioItem(index, "name", event.target.value)} maxLength={60} /></label>
+                            <label><span>{translation(t, "weightLabel", "Weight")}</span><input value={item.weight} onChange={(event) => updateStudioItem(index, "weight", event.target.value)} inputMode="numeric" /></label>
+                            <label><span>{translation(t, "prizePerWinLabel", "Amount")}</span><input value={item.amount} onChange={(event) => updateStudioItem(index, "amount", event.target.value)} inputMode={studioAsset === "NEO" ? "numeric" : "decimal"} /></label>
+                            {studioItems.length > 1 && (
+                              <button type="button" className="gasbox-studio-capsules__remove" onClick={() => setStudioItems((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={translation(t, "removeItem", `Remove capsule ${index + 1}`)}>{translation(t, "gasboxRemoveCapsule", "Remove")}</button>
+                            )}
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+
+                    <footer>
+                      <p>{translation(t, "gasboxPublishRoute", "Wallet route: create machine → add capsules → fund max prize → activate.")}</p>
+                      <button type="button" className="mx2-btn mx2-btn--primary" onClick={publishStudioMachine} disabled={!studioReady || isCreating}>
+                        {isCreating ? translation(t, "publishing", "Publishing…") : translation(t, "gasboxPublishMachine", "Publish machine")}
+                      </button>
+                    </footer>
+                  </div>
+                )}
+              </section>
+
+              {runtimeIncompatible && (
+                <section className="gasbox-compatibility-card">
+                  <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
+                  <div>
+                    <h4>{translation(t, "gasboxDeploymentPausedTitle", "Paid play is temporarily paused")}</h4>
+                    <p>{translation(t, "gasboxDeploymentPausedCopy", "The bound deployment uses an older settle-block draw. You can still browse, reveal an existing committed pull, and return wallet or creator funds.")}</p>
+                    <small>{translation(t, "gasboxDeploymentRecoveryCondition", "Resume after a fixed-beacon contract is deployed and the manifest binding is updated.")}</small>
+                  </div>
+                </section>
+              )}
+
+              <section className="gasbox-runtime-card" data-state={runtimeStatus}>
+                <div><span>{translation(t, "gasboxNetwork", "Network")}</span><strong>{runtimeNetwork || "—"}</strong></div>
+                <div><span>{translation(t, "gasboxContract", "Contract")}</span><strong>{shortHash(runtimeContract)}</strong></div>
+                <div><span>{translation(t, "gasboxCatalog", "Catalog")}</span><strong>{catalogStatus}</strong></div>
+              </section>
+            </div>
+          ),
+        }}
       />
     </div>
   );

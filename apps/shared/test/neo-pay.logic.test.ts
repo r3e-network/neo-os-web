@@ -25,17 +25,18 @@ function t(key: string) {
     rateTooHigh: "Release amount exceeds total",
     walletNotConnected: "Wallet not connected",
     contractMissing: "Contract address not configured",
-    depositStrandedRecoverable: "prepaid credit held, retry",
     streamListUnavailable: "The payment stream index could not be loaded right now.",
+    streamActionUnavailable: "The stream action could not be completed right now.",
   };
   return messages[key] ?? key;
 }
 
 /**
- * Minimal ChainService stand-in. Records read/readArray/invoke calls so tests
- * can assert the direct-contract deposit + createStream argument shapes.
+ * Minimal ChainService stand-in. Records read/readArray/invoke/invokeMultiple
+ * calls so tests can assert the atomic deposit + createStream transaction.
  */
 function makeChain() {
+  let batchSubmitted = false;
   const invoke = vi.fn(
     async (_op: string, _args: ContractArg[], _opts?: unknown): Promise<unknown> => ({
       txid: "0xtx",
@@ -46,25 +47,38 @@ function makeChain() {
     async (_op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown> => ({}),
   );
   const readArray = vi.fn(
-    async (_op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown[]> => [],
+    async (op: string, _args?: ContractArg[], _opts?: unknown): Promise<unknown[]> =>
+      op === "getUserStreams" && batchSubmitted ? ["1"] : [],
+  );
+  const invokeMultiple = vi.fn(
+    async (_calls: unknown[], _opts?: unknown): Promise<unknown> => {
+      batchSubmitted = true;
+      return {
+        txid: "0xbatch",
+        success: true,
+        verified: true,
+      };
+    },
   );
 
   const chain = {
     contractAddress: { get: () => CONTRACT },
     address: { get: () => OWNER },
     invoke,
+    invokeMultiple,
     read,
     readArray,
   } as unknown as ChainService & {
     invoke: typeof invoke;
+    invokeMultiple: typeof invokeMultiple;
     read: typeof read;
     readArray: typeof readArray;
   };
-  return { chain, invoke, read, readArray };
+  return { chain, invoke, invokeMultiple, read, readArray };
 }
 
 function setup() {
-  const { chain, invoke, read, readArray } = makeChain();
+  const { chain, invoke, invokeMultiple, read, readArray } = makeChain();
   // The composable consumes the framework SDK for every chain/arg/amount
   // touchpoint (incl. app.chain.readArray). Build the framework from the same
   // mock chain so recorded read/readArray/invoke calls are byte-identical.
@@ -73,7 +87,7 @@ function setup() {
     { appId: "miniapp-neo-pay" },
   );
   const app = useNeoPayApp({ app: framework, t });
-  return { app, chain, invoke, read, readArray };
+  return { app, framework, chain, invoke, invokeMultiple, read, readArray };
 }
 
 function streamItem(overrides: Partial<StreamItem> = {}): StreamItem {
@@ -102,9 +116,18 @@ function callFor(invoke: ReturnType<typeof vi.fn>, op: string) {
   return invoke.mock.calls.find((c) => c[0] === op);
 }
 
+function batchCallFor(invokeMultiple: ReturnType<typeof vi.fn>, op: string) {
+  const calls = (invokeMultiple.mock.calls[0]?.[0] ?? []) as Array<{
+    scriptHash?: string;
+    operation: string;
+    args: ContractArg[];
+  }>;
+  return calls.find((call) => call.operation === op);
+}
+
 describe("useNeoPayApp (direct contract)", () => {
-  it("deposits then creates a GAS stream with base-unit (1e8) integers and the asset memo", async () => {
-    const { app, invoke } = setup();
+  it("atomically funds and creates a GAS stream with base-unit integers and the asset memo", async () => {
+    const { app, invoke, invokeMultiple } = setup();
 
     // 2 GAS total, 0.5 GAS per day over a 7-day interval-days choice.
     await app.handleCreateVault({
@@ -119,20 +142,20 @@ describe("useNeoPayApp (direct contract)", () => {
 
     // Step 1: NEP-17 deposit transfer to the contract, targeting the GAS token
     // (scriptHash override), with the required memo. 2 GAS = 200_000_000 base.
-    const deposit = callFor(invoke, "transfer");
+    const deposit = batchCallFor(invokeMultiple, "transfer");
     expect(deposit).toBeTruthy();
-    expect(deposit![1]).toEqual([
+    expect(deposit!.args).toEqual([
       { type: "Hash160", value: OWNER_HASH },
       { type: "Hash160", value: CONTRACT },
       { type: "Integer", value: "200000000" },
       { type: "String", value: PAYMENT_MEMO },
     ]);
-    expect(deposit![2]).toMatchObject({ scriptHash: GAS_HASH });
+    expect(deposit!.scriptHash).toBe(GAS_HASH);
 
     // Step 2: createStream with base-unit integers, asset Hash160, actor-first.
-    const create = callFor(invoke, "createStream");
+    const create = batchCallFor(invokeMultiple, "createStream");
     expect(create).toBeTruthy();
-    const args = create![1] as ContractArg[];
+    const args = create!.args;
     expect(args[0]).toEqual({ type: "Hash160", value: OWNER_HASH });
     expect(args[1]).toEqual({ type: "Hash160", value: BENEFICIARY_HASH });
     expect(args[2]).toEqual({ type: "Hash160", value: GAS_HASH });
@@ -141,13 +164,17 @@ describe("useNeoPayApp (direct contract)", () => {
     expect(args[5]).toEqual({ type: "Integer", value: String(7 * 86400) }); // intervalSeconds
     expect(args[6]).toEqual({ type: "String", value: "Payroll stream" });
 
-    // The deposit must precede createStream.
-    const order = invoke.mock.calls.map((c) => c[0]);
-    expect(order.indexOf("transfer")).toBeLessThan(order.indexOf("createStream"));
+    // Both scripts ride one transaction, in deposit-before-create order.
+    const order = (invokeMultiple.mock.calls[0]?.[0] as Array<{ operation: string }>).map((call) => call.operation);
+    expect(order).toEqual(["transfer", "createStream"]);
+    expect(invokeMultiple.mock.calls[0]?.[1]).toMatchObject({
+      signers: [{ account: OWNER, scopes: 1 }],
+    });
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("creates a NEO stream with the NEO token + integer count (no scaling)", async () => {
-    const { app, invoke } = setup();
+    const { app, invokeMultiple } = setup();
 
     // 5 NEO total, 1 NEO per day.
     await app.handleCreateVault({
@@ -160,13 +187,13 @@ describe("useNeoPayApp (direct contract)", () => {
       notes: "",
     });
 
-    const deposit = callFor(invoke, "transfer");
+    const deposit = batchCallFor(invokeMultiple, "transfer");
     // NEO is indivisible: 5 base units, NOT 5e8.
-    expect(deposit![1]).toContainEqual({ type: "Integer", value: "5" });
-    expect(deposit![2]).toMatchObject({ scriptHash: NEO_HASH });
+    expect(deposit!.args).toContainEqual({ type: "Integer", value: "5" });
+    expect(deposit!.scriptHash).toBe(NEO_HASH);
 
-    const create = callFor(invoke, "createStream");
-    const args = create![1] as ContractArg[];
+    const create = batchCallFor(invokeMultiple, "createStream");
+    const args = create!.args;
     expect(args[2]).toEqual({ type: "Hash160", value: NEO_HASH });
     expect(args[3]).toEqual({ type: "Integer", value: "5" }); // total
     expect(args[4]).toEqual({ type: "Integer", value: "1" }); // rate
@@ -174,7 +201,7 @@ describe("useNeoPayApp (direct contract)", () => {
   });
 
   it("rejects fractional NEO amounts (NEO is indivisible)", async () => {
-    const { app, invoke } = setup();
+    const { app, invoke, invokeMultiple } = setup();
 
     await expect(
       app.handleCreateVault({
@@ -189,10 +216,11 @@ describe("useNeoPayApp (direct contract)", () => {
     ).rejects.toThrow("Enter a valid amount");
 
     expect(invoke).not.toHaveBeenCalled();
+    expect(invokeMultiple).not.toHaveBeenCalled();
   });
 
   it("rejects a rate greater than the total before any chain call", async () => {
-    const { app, invoke } = setup();
+    const { app, invoke, invokeMultiple } = setup();
 
     await expect(
       app.handleCreateVault({
@@ -207,10 +235,11 @@ describe("useNeoPayApp (direct contract)", () => {
     ).rejects.toThrow("Release amount exceeds total");
 
     expect(invoke).not.toHaveBeenCalled();
+    expect(invokeMultiple).not.toHaveBeenCalled();
   });
 
   it("rejects an out-of-range interval before any chain call", async () => {
-    const { app, invoke } = setup();
+    const { app, invoke, invokeMultiple } = setup();
 
     await expect(
       app.handleCreateVault({
@@ -225,10 +254,11 @@ describe("useNeoPayApp (direct contract)", () => {
     ).rejects.toThrow("Interval out of range");
 
     expect(invoke).not.toHaveBeenCalled();
+    expect(invokeMultiple).not.toHaveBeenCalled();
   });
 
   it("rejects a malformed beneficiary address before any chain call", async () => {
-    const { app, invoke } = setup();
+    const { app, invoke, invokeMultiple } = setup();
 
     await expect(
       app.handleCreateVault({
@@ -243,16 +273,12 @@ describe("useNeoPayApp (direct contract)", () => {
     ).rejects.toThrow("Invalid beneficiary address");
 
     expect(invoke).not.toHaveBeenCalled();
+    expect(invokeMultiple).not.toHaveBeenCalled();
   });
 
-  it("surfaces a prepaid-credit-held error if createStream fails after deposit", async () => {
-    const { app, invoke } = setup();
-
-    // Deposit succeeds, createStream throws — credit is held under the creator.
-    invoke.mockImplementation(async (op: string) => {
-      if (op === "createStream") throw new Error("on-chain revert");
-      return { txid: "0xtx", success: true };
-    });
+  it("keeps funding and creation atomic when the batch faults", async () => {
+    const { app, invoke, invokeMultiple } = setup();
+    invokeMultiple.mockRejectedValue(new Error("on-chain revert"));
 
     await expect(
       app.handleCreateVault({
@@ -264,10 +290,52 @@ describe("useNeoPayApp (direct contract)", () => {
         intervalDays: "1",
         notes: "",
       }),
-    ).rejects.toThrow("prepaid credit held, retry");
+    ).rejects.toThrow("on-chain revert");
 
-    // The deposit transfer was still broadcast.
-    expect(callFor(invoke, "transfer")).toBeTruthy();
+    expect(invokeMultiple).toHaveBeenCalledTimes(1);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty batch result instead of claiming the stream was created", async () => {
+    const { app, invokeMultiple } = setup();
+    invokeMultiple.mockResolvedValue({ txid: "", success: false, verified: false });
+
+    await expect(
+      app.handleCreateVault({
+        name: "No broadcast",
+        beneficiary: BENEFICIARY,
+        asset: "GAS",
+        total: "1",
+        rate: "1",
+        intervalDays: "1",
+        notes: "",
+      }),
+    ).rejects.toThrow("The stream action could not be completed right now.");
+  });
+
+  it("persists an unknown confirmation and blocks duplicate funding on retry", async () => {
+    const { app, framework, invokeMultiple, readArray } = setup();
+    readArray.mockResolvedValue([]);
+    vi.spyOn(framework.chain, "waitForState").mockResolvedValue(null);
+
+    const form = {
+      name: "Pending",
+      beneficiary: BENEFICIARY,
+      asset: "GAS",
+      total: "1",
+      rate: "1",
+      intervalDays: "1",
+      notes: "",
+    };
+
+    await expect(app.handleCreateVault(form)).rejects.toThrow("streamConfirmationPending");
+    expect(app.pendingCreateTxid.get()).toBe("0xbatch");
+    expect(invokeMultiple).toHaveBeenCalledTimes(1);
+
+    await expect(app.handleCreateVault(form)).rejects.toThrow("streamConfirmationPending");
+    expect(invokeMultiple).toHaveBeenCalledTimes(1);
+
+    localStorage.removeItem("neo:miniapp-neo-pay:pending-create");
   });
 
   it("claims with the beneficiary witness first (actor-first)", async () => {
@@ -358,16 +426,17 @@ describe("useNeoPayApp (direct contract)", () => {
   });
 
   it("tracks creation with a dedicated isCreating flag, leaving isLoading for the list spinners", async () => {
-    const { app, invoke } = setup();
+    const { app, invokeMultiple, readArray } = setup();
 
     // isCreating must flip true during the create flow and back to false after,
     // without ever touching isLoading (which drives the created/incoming list
     // spinners — those must NOT flash while a stream is being created).
     let sawCreatingDuringInvoke = false;
-    invoke.mockImplementation(async () => {
+    invokeMultiple.mockImplementation(async () => {
       if (app.isCreating.get()) sawCreatingDuringInvoke = true;
       expect(app.isLoading.get()).toBe(false);
-      return { txid: "0xtx", success: true };
+      readArray.mockResolvedValue(["1"]);
+      return { txid: "0xbatch", success: true, verified: true };
     });
 
     expect(app.isCreating.get()).toBe(false);
@@ -451,7 +520,7 @@ describe("deriveSchedule (form -> contract rate)", () => {
  */
 describe("create flow accepts derived GAS rates (regression)", () => {
   it("creates a 5 GAS / 30 day stream via the derived rate without rejecting", async () => {
-    const { app, invoke } = setup();
+    const { app, invokeMultiple } = setup();
 
     const { rate, intervalDays } = deriveSchedule("5", "30", "GAS");
     await app.handleCreateVault({
@@ -464,14 +533,14 @@ describe("create flow accepts derived GAS rates (regression)", () => {
       notes: "",
     });
 
-    const deposit = callFor(invoke, "transfer");
+    const deposit = batchCallFor(invokeMultiple, "transfer");
     expect(deposit).toBeTruthy();
     // 5 GAS = 500_000_000 base units.
-    expect(deposit![1]).toContainEqual({ type: "Integer", value: "500000000" });
+    expect(deposit!.args).toContainEqual({ type: "Integer", value: "500000000" });
 
-    const create = callFor(invoke, "createStream");
+    const create = batchCallFor(invokeMultiple, "createStream");
     expect(create).toBeTruthy();
-    const args = create![1] as ContractArg[];
+    const args = create!.args;
     expect(args[3]).toEqual({ type: "Integer", value: "500000000" }); // total
     // 0.16666667 GAS rate -> 16666667 base units (no float-string rejection).
     expect(args[4]).toEqual({ type: "Integer", value: "16666667" });

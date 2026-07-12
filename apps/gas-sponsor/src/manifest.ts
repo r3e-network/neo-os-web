@@ -9,36 +9,16 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Gas Sponsor",
-  description: "Request GAS sponsorship for low-balance wallets",
-  icon: "gift",
-  category: "tool",
-  shell: "launcher",
+  description: "Operate transparent on-chain GAS sponsorship pools",
+  icon: "fuel",
+  category: "defi",
+  shell: "market",
 
-  tabs: [
-    { key: "sponsor", labelKey: "tabSponsor", icon: "gift", default: true },
-    { key: "donate", labelKey: "tabDonate", icon: "heart" },
-    { key: "send", labelKey: "tabSend", icon: "send" },
-    { key: "stats", labelKey: "tabStats", icon: "bar-chart" },
-  ],
+  tabs: [],
+  stats: [],
+  sidebar: { titleKey: "title", items: [] },
 
-  stats: [
-    { labelKey: "sidebarTankLevel", valueKey: "tankLevelDisplay", format: "text", variant: "accent", icon: "fuel" },
-    { labelKey: "gasBalance", valueKey: "gasBalanceDisplay", format: "text", icon: "zap" },
-    { labelKey: "sidebarRemainingQuota", valueKey: "remainingQuotaDisplay", format: "text", icon: "target" },
-    { labelKey: "sidebarEligible", valueKey: "eligibleDisplay", format: "text", icon: "check" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "sidebarTankLevel", valueKey: "tankLevelDisplay", format: "text" },
-      { labelKey: "gasBalance", valueKey: "gasBalanceDisplay", format: "text" },
-      { labelKey: "sidebarRemainingQuota", valueKey: "remainingQuotaDisplay", format: "text" },
-      { labelKey: "sidebarEligible", valueKey: "eligibleDisplay", format: "text" },
-    ],
-  },
-
-  features: { walletRequired: true, chainWarning: true },
+  features: { walletRequired: false, chainWarning: true },
 
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },

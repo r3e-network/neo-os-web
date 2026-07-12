@@ -686,6 +686,45 @@
   padding: 12px;
 }
 
+.oracle-http-copy-action {
+  width: fit-content;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 4px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: #f2fbf7;
+  color: #0f766e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+  transition:
+    border-color var(--mx2-t-fast) var(--mx2-ease),
+    background var(--mx2-t-fast) var(--mx2-ease),
+    transform var(--mx2-t-fast) var(--mx2-ease-snap);
+}
+
+.oracle-http-copy-action:hover:not(:disabled) {
+  border-color: rgba(15, 118, 110, 0.34);
+  background: #e7f8f0;
+  transform: translateY(-1px);
+}
+
+.oracle-http-copy-action:focus-visible {
+  outline: 3px solid rgba(13, 148, 136, 0.18);
+  outline-offset: 2px;
+}
+
+.oracle-http-copy-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
 @keyframes oracle-http-pulse {
   from {
     transform: translateY(0);
@@ -893,8 +932,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .oracle-http-request,
-  .oracle-http-track__icon {
+  .oracle-http-track__icon,
+  .oracle-http-copy-action {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .oracle-http-copy-action:hover:not(:disabled) {
+    transform: none;
   }
 }

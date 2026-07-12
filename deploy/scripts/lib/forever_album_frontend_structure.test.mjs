@@ -16,7 +16,7 @@ test("Forever Album renders a clean v2 local memory workbench", () => {
   const main = read("apps/forever-album/src/main.tsx");
   const messages = read("apps/forever-album/src/locale/messages.ts");
 
-  assertPlayStage(playArea, "nft", "Forever Album");
+  assertPlayStage(playArea, "social", "Forever Album");
   assertClasses(playArea, [
     "album-play-area",
     "album-stage-stack",
@@ -26,6 +26,8 @@ test("Forever Album renders a clean v2 local memory workbench", () => {
     "album-workbench__frames",
     "album-import",
     "album-privacy-toggle",
+    "album-device-note",
+    "album-library",
     "album-gallery",
     "album-modal",
   ], "Forever Album");
@@ -37,10 +39,12 @@ test("Forever Album renders a clean v2 local memory workbench", () => {
     "refreshPhotos",
     "closeViewer",
     "handleDecrypt",
+    "resetDamagedAlbum",
   ], "Forever Album");
-  assert.match(playArea, /type="file"[\s\S]*accept="image\/\*"/);
+  assert.match(playArea, /type="file"[\s\S]*accept="image\/jpeg,image\/png,image\/webp,image\/avif,image\/gif"/);
   assert.match(playArea, /type="checkbox"[\s\S]*checked=\{isEncrypted\}/);
   assert.match(main, /ctx\.framework\.actions\.register\("refreshPhotos"/);
+  assert.match(main, /app\.wallet\.observe\(\)\.subscribe/);
   assertAssets(["apps/forever-album/public/forever-album-memory-stage.webp"]);
   assertMessageKeys(messages, [
     "vaultHeroTitle",
@@ -51,6 +55,10 @@ test("Forever Album renders a clean v2 local memory workbench", () => {
     "stageEmptyTitle",
     "stageReadyTitle",
     "stageSealingTitle",
+    "deviceOnlyTitle",
+    "storageUnavailable",
+    "passwordRecoveryWarning",
+    "invalidImageContent",
   ], "Forever Album");
   assert.match(styles, /\.album-workbench__page\s*\{/);
   assert.match(styles, /@media \(max-width:/);

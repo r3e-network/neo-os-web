@@ -32,6 +32,7 @@ import {
   normalizeNeoAddress,
   normalizePoolId,
   parsePool,
+  parsePoolAccount,
   type ClaimLaunchIdentity,
   type CreatePoolForm,
   type GasLuckyClaim,
@@ -59,6 +60,8 @@ export function useGasLuckyPool({
   app,
   launchContext,
   t,
+  paidLaneEnabled = false,
+  oneGateClaimEnabled = false,
 }: UseGasLuckyPoolOptions) {
   const launchClaimKey = normalizeClaimKey(
     getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], ""),
@@ -81,9 +84,10 @@ export function useGasLuckyPool({
     walletAddress: walletAddressFromParams(launchContext) || undefined,
   };
   if (
-    launchClaimKey ||
-    launchContext.source === "onegate" ||
-    launchIdentity.oneGateAppId
+    oneGateClaimEnabled &&
+    (Boolean(launchClaimKey) ||
+      launchContext.source === "onegate" ||
+      Boolean(launchIdentity.oneGateAppId))
   ) {
     startOneGateDapiProviderDiscovery();
   }
@@ -121,6 +125,18 @@ export function useGasLuckyPool({
   const lastSuccessType = createObservable<GasPoolSuccessType>("");
   const lastError = createObservable("");
   const gasCredit = createObservable<bigint>(0n);
+
+  function assertPaidLane(): void {
+    if (!paidLaneEnabled) {
+      throw new Error(t("gameFiMaintenanceBody"));
+    }
+  }
+
+  function assertOneGateLane(): void {
+    if (!oneGateClaimEnabled) {
+      throw new Error(t("gameFiMaintenanceBody"));
+    }
+  }
 
   const poolCount = createDerived(
     () => recentPools.get().length,
@@ -167,6 +183,7 @@ export function useGasLuckyPool({
   }, [currentPool]);
 
   async function loadPool(poolId = currentPoolId.get()) {
+    assertPaidLane();
     const id = normalizePoolId(poolId);
     if (!id) {
       currentPool.set(null);
@@ -182,6 +199,7 @@ export function useGasLuckyPool({
   }
 
   async function loadRecentPools() {
+    assertPaidLane();
     try {
       const events = await app.chain.events("RangeGasPoolCreated", {
         limit: 10,
@@ -194,7 +212,7 @@ export function useGasLuckyPool({
           if (!poolId) return null;
           return {
             id: poolId,
-            creator: String(eventValue(event, 2) ?? ""),
+            creator: parsePoolAccount(eventValue(event, 2)),
             totalAmount: asBigInt(eventValue(event, 3)),
             minClaimAmount: asBigInt(eventValue(event, 4)),
             maxClaimAmount: asBigInt(eventValue(event, 5)),
@@ -217,6 +235,7 @@ export function useGasLuckyPool({
   }
 
   async function loadRecentClaims() {
+    assertPaidLane();
     try {
       const events = await app.chain.events("RangeGasPoolClaimed", {
         limit: 12,
@@ -226,7 +245,8 @@ export function useGasLuckyPool({
           const appId = String(eventValue(event, 0) ?? "");
           if (appId !== APP_ID) return null;
           const poolId = String(eventValue(event, 1) ?? "");
-          const claimer = String(eventValue(event, 2) ?? "");
+          const claimer = parsePoolAccount(eventValue(event, 2));
+          if (!poolId || !claimer) return null;
           return {
             id: `${poolId}:${claimer}`,
             poolId,
@@ -243,6 +263,7 @@ export function useGasLuckyPool({
   }
 
   async function loadAll() {
+    assertPaidLane();
     if (isLoading.get()) return;
     isLoading.set(true);
     lastError.set("");
@@ -295,6 +316,7 @@ export function useGasLuckyPool({
   }
 
   async function createPool(form: CreatePoolForm) {
+    assertPaidLane();
     if (isCreating.get()) return null;
     const parsed = validateCreateForm(form);
     isCreating.set(true);
@@ -348,6 +370,7 @@ export function useGasLuckyPool({
   }
 
   async function loadGasCredit() {
+    assertPaidLane();
     if (isCreditLoading.get()) return gasCredit.get();
     isCreditLoading.set(true);
     lastError.set("");
@@ -368,6 +391,7 @@ export function useGasLuckyPool({
   }
 
   async function withdrawGasCredit(amount = gasCredit.get()) {
+    assertPaidLane();
     if (isWithdrawingCredit.get()) return null;
     const credit = asBigInt(amount);
     if (credit <= 0n) throw new Error(t("noGasCredit"));
@@ -532,6 +556,7 @@ export function useGasLuckyPool({
     address: string,
     identity: ClaimLaunchIdentity = launchIdentity,
   ) {
+    assertOneGateLane();
     const search = new URLSearchParams({
       claimKey,
       address,
@@ -562,6 +587,7 @@ export function useGasLuckyPool({
     claimKey: string,
     identity: ClaimLaunchIdentity = launchIdentity,
   ) {
+    assertOneGateLane();
     if (isClaiming.get()) return null;
     isClaiming.set(true);
     lastError.set("");
@@ -654,6 +680,7 @@ export function useGasLuckyPool({
     address: string,
     identity: ClaimLaunchIdentity = launchIdentity,
   ) {
+    assertOneGateLane();
     for (let attempt = 0; attempt < 6; attempt += 1) {
       if (attempt > 0) {
         await new Promise((resolve) => setTimeout(resolve, 2500));
@@ -691,6 +718,7 @@ export function useGasLuckyPool({
   }
 
   async function checkClaimStatus(input: unknown = currentClaimKey.get()) {
+    assertOneGateLane();
     const explicitClaimKey =
       input && typeof input === "object"
         ? (input as Record<string, unknown>).claimKey
@@ -736,12 +764,14 @@ export function useGasLuckyPool({
   async function claimPool(
     input: unknown = currentClaimKey.get() || currentPoolId.get(),
   ) {
+    assertPaidLane();
     const explicitClaimKey =
       input && typeof input === "object"
         ? (input as Record<string, unknown>).claimKey
         : currentClaimKey.get() || (!normalizePoolId(input) ? input : "");
     const claimKey = normalizeClaimKey(explicitClaimKey);
     if (claimKey) {
+      assertOneGateLane();
       return claimKeyThroughBackend(claimKey, claimIdentityFromInput(input));
     }
 
@@ -799,6 +829,7 @@ export function useGasLuckyPool({
   }
 
   async function refundPool(poolId = currentPoolId.get()) {
+    assertPaidLane();
     const id = normalizePoolId(poolId);
     if (!id) throw new Error(t("poolIdRequired"));
     if (isRefunding.get()) return null;
@@ -840,6 +871,7 @@ export function useGasLuckyPool({
   }
 
   async function topUpPool(form: TopUpPoolForm = {}) {
+    assertPaidLane();
     const id = normalizePoolId(form.poolId ?? currentPoolId.get());
     if (!id) throw new Error(t("poolIdRequired"));
     const amount = parseGasAmountFixed8(form.amount);

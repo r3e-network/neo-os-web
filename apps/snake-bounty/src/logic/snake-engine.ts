@@ -49,6 +49,16 @@ export interface SnakeState {
   eaten: number;
 }
 
+function pointOf(value: unknown, label: string): Point {
+  if (!value || typeof value !== "object") throw new Error(`${label} must be a point`);
+  const raw = value as { x?: unknown; y?: unknown };
+  const point = { x: Number(raw.x), y: Number(raw.y) };
+  if (!Number.isInteger(point.x) || !Number.isInteger(point.y) || !inBounds(point)) {
+    throw new Error(`${label} is outside the snake grid`);
+  }
+  return point;
+}
+
 /**
  * Parse the initial game state from the TEE clues JSON.
  * Expected format:
@@ -62,19 +72,45 @@ export interface SnakeState {
  * ```
  */
 export function parseInitialState(cluesJson: string): SnakeState {
-  const data = JSON.parse(cluesJson) as {
-    body: Point[];
-    direction: Direction;
-    food: Point;
-    foodQueue?: Point[];
-  };
+  const data = JSON.parse(cluesJson) as Record<string, unknown>;
+  if (!Array.isArray(data.body) || data.body.length === 0) throw new Error("snake body is missing");
+  if (data.body.length > GRID_SIZE * GRID_SIZE) throw new Error("snake body is too long");
+  const body = data.body.map((point, index) => pointOf(point, `body[${index}]`));
+  const occupied = new Set<string>();
+  for (let index = 0; index < body.length; index += 1) {
+    const point = body[index]!;
+    const key = `${point.x},${point.y}`;
+    if (occupied.has(key)) throw new Error("snake body contains overlapping segments");
+    occupied.add(key);
+    const previous = body[index - 1];
+    if (previous && Math.abs(previous.x - point.x) + Math.abs(previous.y - point.y) !== 1) {
+      throw new Error("snake body contains disconnected segments");
+    }
+  }
+  const direction = Number(data.direction);
+  if (!Number.isInteger(direction) || direction < 0 || direction > 3) {
+    throw new Error("snake direction must be 0..3");
+  }
+  const foodQueue = data.foodQueue === undefined
+    ? []
+    : Array.isArray(data.foodQueue)
+      ? data.foodQueue.map((point, index) => pointOf(point, `foodQueue[${index}]`))
+      : (() => { throw new Error("foodQueue must be an array"); })();
+  if (foodQueue.length > GRID_SIZE * GRID_SIZE) throw new Error("foodQueue is too long");
+  const eaten = data.eaten === undefined ? 0 : Number(data.eaten);
+  if (!Number.isInteger(eaten) || eaten < 0 || eaten > GRID_SIZE * GRID_SIZE) {
+    throw new Error("snake eaten count is invalid");
+  }
+  if (data.dead !== undefined && typeof data.dead !== "boolean") {
+    throw new Error("snake dead flag is invalid");
+  }
   return {
-    body: data.body,
-    direction: data.direction,
-    food: data.food,
-    foodQueue: data.foodQueue ?? [],
-    dead: false,
-    eaten: 0,
+    body,
+    direction: direction as Direction,
+    food: pointOf(data.food, "food"),
+    foodQueue,
+    dead: data.dead === true,
+    eaten,
   };
 }
 
@@ -109,9 +145,14 @@ export function step(state: SnakeState, direction: Direction): SnakeState {
   if (!head) return { ...state };
   const newHead: Point = { x: head.x + vec.x, y: head.y + vec.y };
 
+  // Match the authoritative Morpheus engine: a reversal into the neck is an
+  // ignored input, not a fatal move and not an applied replay operation.
+  const neck = state.body[1];
+  if (neck && newHead.x === neck.x && newHead.y === neck.y) return { ...state };
+
   // Wall collision
   if (!inBounds(newHead)) {
-    return { ...state, dead: true };
+    return { ...state, direction, dead: true };
   }
 
   // Self collision (check against all body segments except the tail, which will move)
@@ -124,15 +165,16 @@ export function step(state: SnakeState, direction: Direction): SnakeState {
     // When eating, the snake grows: we prepend newHead and keep the tail. Check
     // collision against the entire current body (excluding newHead). The head is
     // still advanced into the collided cell so the render/replay sees the move.
-    const newBody = [newHead, ...state.body];
     if (overlapsBody(newHead, state.body, false)) {
-      return { ...state, body: newBody, dead: true };
+      return { ...state, direction, dead: true };
     }
+    const newBody = [newHead, ...state.body.map((point) => ({ ...point }))];
     const nextFood = state.foodQueue.length > 0 ? state.foodQueue[0]! : state.food;
     const newFoodQueue = state.foodQueue.length > 0 ? state.foodQueue.slice(1) : [];
     return {
       ...state,
       body: newBody,
+      direction,
       food: nextFood,
       foodQueue: newFoodQueue,
       eaten: state.eaten + 1,
@@ -142,12 +184,40 @@ export function step(state: SnakeState, direction: Direction): SnakeState {
     // without the tail (since the tail will vacate). A 180° reversal into the neck
     // still advances the head — the run is dead, but the move executed.
     const bodyWithoutTail = state.body.slice(0, -1);
-    const newBody = [newHead, ...bodyWithoutTail];
     if (overlapsBody(newHead, bodyWithoutTail, false)) {
-      return { ...state, body: newBody, dead: true };
+      return { ...state, direction, dead: true };
     }
-    return { ...state, body: newBody };
+    const newBody = [newHead, ...bodyWithoutTail.map((point) => ({ ...point }))];
+    return { ...state, body: newBody, direction };
   }
+}
+
+/** Replay accepted tick directions from a revealed opening state. */
+export function replayDirections(initial: SnakeState, directions: readonly number[]): SnakeState {
+  let current: SnakeState = {
+    ...initial,
+    body: initial.body.map((point) => ({ ...point })),
+    food: { ...initial.food },
+    foodQueue: initial.foodQueue.map((point) => ({ ...point })),
+  };
+  for (const rawDirection of directions) {
+    if (current.dead) break;
+    if (!Number.isInteger(rawDirection) || rawDirection < 0 || rawDirection > 3) continue;
+    current = step(current, rawDirection as Direction);
+  }
+  return current;
+}
+
+/** Serialize a current board so a recovered Phaser scene resumes exact progress. */
+export function stateToClues(state: SnakeState): string {
+  return JSON.stringify({
+    body: state.body,
+    direction: state.direction,
+    food: state.food,
+    foodQueue: state.foodQueue,
+    dead: state.dead,
+    eaten: state.eaten,
+  });
 }
 
 /**

@@ -12,28 +12,14 @@ export const manifest: MiniAppManifest = {
   icon: "shield",
   category: "governance",
   shell: "launcher",
+  theme: { family: "finance", accentColor: "#0b7d5d", density: "comfortable" },
 
-  tabs: [
-    { key: "rent", labelKey: "rent", icon: "dollar-sign", default: true },
-    { key: "stats", labelKey: "stats", icon: "bar-chart" },
-  ],
-
-  stats: [
-    { labelKey: "totalPool", valueKey: "totalPoolDisplay", format: "text", variant: "success", icon: "layers" },
-    { labelKey: "currentEpoch", valueKey: "currentEpoch", format: "number", icon: "clock" },
-    { labelKey: "yourDeposits", valueKey: "userDepositsDisplay", format: "text", variant: "accent", icon: "wallet" },
-    { labelKey: "activeBids", valueKey: "bidCount", format: "number", icon: "trending-up" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "totalPool", valueKey: "totalPoolDisplay", format: "text" },
-      { labelKey: "currentEpoch", valueKey: "currentEpoch", format: "number" },
-      { labelKey: "yourDeposits", valueKey: "userDepositsDisplay", format: "text" },
-      { labelKey: "activeBids", valueKey: "bidCount", format: "number" },
-    ],
-  },
+  // The resource-led market desk owns the live round, balances and recovery.
+  // Empty shell chrome prevents a second generic dashboard/form from repeating it.
+  tabs: [],
+  stats: [],
+  sidebar: { titleKey: "title", items: [] },
+  operations: [],
 
   features: {
     walletRequired: true,

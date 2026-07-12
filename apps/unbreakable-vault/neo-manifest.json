@@ -3,13 +3,13 @@
   "id": "miniapp-unbreakablevault",
   "name": "Unbreakable Vault",
   "name_zh": "无法破碎的金库",
-  "version": "1.0.0",
-  "description": "Hacker bounty vaults secured by secret hashes.",
+  "version": "1.3.0",
+  "description": "A verified DeFi bounty vault with local secret hashing, exact asset accounting and idempotent transaction recovery.",
   "description_zh": "黑客悬赏保险库：创建者用密钥哈希锁定 GAS 悬赏，挑战者按难度支付尝试费来破解，错误尝试会增加悬赏，过期未破解可由创建者取回。",
-  "category": "tools",
-  "category_name": "Tools",
-  "category_name_zh": "工具",
-  "tags": [],
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "去中心化金融",
+  "tags": ["defi", "escrow", "bounty", "gas", "hash-lock"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
@@ -37,220 +37,14 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://unbreakable-vault"
   },
   "operation_panel": {
-    "title": "Create or Break Vault",
-    "subtitle": "Submit the funded wallet transactions used by the Unbreakable Vault contract.",
-    "operations": [
-      {
-        "name": "Create Vault",
-        "method": "createVault",
-        "description": "Prepay the GAS bounty and create a SHA-256 hash-locked vault in one wallet-confirmed batch.",
-        "button_style": "primary",
-        "priority": "primary",
-        "confirm_message": "Prepay this bounty and create the vault on-chain?",
-        "params": [
-          {
-            "name": "creator",
-            "type": "hash160",
-            "label": "Creator",
-            "required": true,
-            "default_value": "$wallet",
-            "hidden": true
-          },
-          {
-            "name": "secretHash",
-            "type": "string",
-            "label": "Secret SHA-256 hash",
-            "required": true,
-            "placeholder": "64-character SHA-256 hex hash"
-          },
-          {
-            "name": "bountyGas",
-            "type": "amount",
-            "label": "Bounty",
-            "required": true,
-            "default_value": "1.00",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "1",
-                "value": "1",
-                "helper": "GAS"
-              },
-              {
-                "label": "5",
-                "value": "5",
-                "helper": "GAS"
-              },
-              {
-                "label": "10",
-                "value": "10",
-                "helper": "GAS"
-              }
-            ]
-          },
-          {
-            "name": "difficulty",
-            "type": "select",
-            "label": "Difficulty",
-            "required": true,
-            "default_value": "1",
-            "options": [
-              {
-                "label": "Easy",
-                "value": "1"
-              },
-              {
-                "label": "Medium",
-                "value": "2"
-              },
-              {
-                "label": "Hard",
-                "value": "3"
-              }
-            ]
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "label": "Vault title",
-            "required": true,
-            "placeholder": "Crack me if you can"
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "label": "Public hint",
-            "placeholder": "Optional clue for breakers"
-          },
-          {
-            "name": "receiptId",
-            "type": "integer",
-            "label": "Payment receipt ID",
-            "placeholder": "Required only for mainnet receipt flows"
-          }
-        ]
-      },
-      {
-        "name": "Attempt Break",
-        "method": "attemptBreak",
-        "description": "Prepay the attempt fee and submit a secret attempt against an active vault.",
-        "button_style": "danger",
-        "priority": "secondary",
-        "confirm_message": "Pay the attempt fee and try to break this vault?",
-        "params": [
-          {
-            "name": "vaultId",
-            "type": "integer",
-            "label": "Vault ID",
-            "required": true,
-            "placeholder": "1"
-          },
-          {
-            "name": "secret",
-            "type": "string",
-            "label": "Break secret",
-            "required": true,
-            "placeholder": "Secret phrase"
-          },
-          {
-            "name": "attemptFeeGas",
-            "type": "amount",
-            "label": "Attempt fee",
-            "required": true,
-            "default_value": "0.10",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "0.10",
-                "value": "0.10",
-                "helper": "Easy"
-              },
-              {
-                "label": "0.50",
-                "value": "0.50",
-                "helper": "Medium"
-              },
-              {
-                "label": "1.00",
-                "value": "1.00",
-                "helper": "Hard"
-              }
-            ]
-          },
-          {
-            "name": "receiptId",
-            "type": "integer",
-            "label": "Payment receipt ID",
-            "placeholder": "Required only for mainnet receipt flows"
-          }
-        ]
-      },
-      {
-        "name": "Increase Bounty",
-        "method": "increaseBounty",
-        "description": "Prepay additional GAS and increase an active vault bounty.",
-        "button_style": "secondary",
-        "priority": "secondary",
-        "confirm_message": "Add this GAS amount to the vault bounty?",
-        "params": [
-          {
-            "name": "vaultId",
-            "type": "integer",
-            "label": "Vault ID",
-            "required": true,
-            "placeholder": "1"
-          },
-          {
-            "name": "bountyGas",
-            "type": "amount",
-            "label": "Bounty top-up",
-            "required": true,
-            "default_value": "1.00",
-            "scale": 8,
-            "presets": [
-              {
-                "label": "1",
-                "value": "1",
-                "helper": "GAS"
-              },
-              {
-                "label": "5",
-                "value": "5",
-                "helper": "GAS"
-              }
-            ]
-          },
-          {
-            "name": "receiptId",
-            "type": "integer",
-            "label": "Payment receipt ID",
-            "placeholder": "Required only for mainnet receipt flows"
-          }
-        ]
-      },
-      {
-        "name": "Claim Expired Vault",
-        "method": "claimExpiredVault",
-        "description": "Claim an expired vault refund as the creator.",
-        "button_style": "secondary",
-        "priority": "operator",
-        "confirm_message": "Claim this expired vault refund?",
-        "params": [
-          {
-            "name": "vaultId",
-            "type": "integer",
-            "label": "Vault ID",
-            "required": true,
-            "placeholder": "1"
-          }
-        ]
-      }
-    ]
+    "title": "Vault asset desk",
+    "subtitle": "Inspect escrow, risk and settlement state before using the designed in-app controls.",
+    "operations": []
   },
   "stateSource": {
     "type": "n3index",
@@ -266,5 +60,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

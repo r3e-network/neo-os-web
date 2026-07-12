@@ -205,16 +205,9 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    const fogPlay = getApp(apps, "miniapp-fogplay");
-    const flipAmount = fogPlay?.operations
-      ?.find((operation) => operation.method === "placeCoinFlipBet")
-      ?.params?.find((param) => param.name === "amount");
-    expect(flipAmount).toEqual(
-      expect.objectContaining({
-        type: "amount",
-        scale: 8,
-      }),
-    );
+    // Guest-only releases must not inherit an old paid template merely because
+    // the catalog still knows the historical contract binding.
+    expect(getApp(apps, "miniapp-fogplay")?.operations ?? []).toEqual([]);
 
     const redEnvelope = getApp(apps, "miniapp-redenvelope");
     const createAmount = redEnvelope?.operations
@@ -280,88 +273,27 @@ describe("miniapp-definitions loader", () => {
     );
 
     const devTipping = getApp(apps, "miniapp-dev-tipping");
-    const sendTip = devTipping?.operations?.find(
-      (operation) => operation.method === "sendTip",
-    );
     expect(devTipping?.manifest?.supported_networks).toContain(
       "neo-n3-testnet",
     );
-    expect(sendTip).toEqual(
-      expect.objectContaining({
-        name: "Send Tip",
-        priority: "primary",
-      }),
-    );
-    expect(sendTip?.params?.find((param) => param.name === "amount")).toEqual(
-      expect.objectContaining({
-        type: "amount",
-        placeholder: "0.05",
-        scale: 8,
-      }),
-    );
+    // Recipient selection, Fixed8 amount validation, payment recovery, and
+    // exact event/readback confirmation live in the designed embedded app.
+    expect(devTipping?.operations ?? []).toEqual([]);
 
     const timeCapsule = getApp(apps, "miniapp-time-capsule");
-    const sealCapsule = timeCapsule?.operations?.find(
-      (operation) => operation.method === "sealCapsule",
-    );
     expect(timeCapsule?.manifest?.supported_networks).toContain(
       "neo-n3-testnet",
     );
-    expect(sealCapsule).toEqual(
-      expect.objectContaining({
-        name: "Seal Capsule",
-        priority: "primary",
-      }),
-    );
-    expect(
-      sealCapsule?.params?.find((param) => param.name === "contentHash"),
-    ).toEqual(
-      expect.objectContaining({
-        type: "string",
-        required: true,
-      }),
-    );
-    expect(
-      sealCapsule?.params?.find((param) => param.name === "sealFeeGas"),
-    ).toEqual(
-      expect.objectContaining({
-        type: "amount",
-        default_value: "0.20",
-        scale: 8,
-      }),
-    );
+    // The standalone capsule owns its draft, lock-period presets, prepay,
+    // exact event/readback confirmation, and recovery journal. The host must
+    // not recreate that flow as a seven-field operation form.
+    expect(timeCapsule?.operations ?? []).toEqual([]);
 
     const vault = getApp(apps, "miniapp-unbreakablevault");
-    const vaultMethods = vault?.operations?.map((operation) => operation.method);
     expect(vault?.manifest?.supported_networks).toContain("neo-n3-testnet");
-    expect(vaultMethods).toEqual([
-      "createVault",
-      "attemptBreak",
-      "increaseBounty",
-      "claimExpiredVault",
-    ]);
-    expect(
-      vault?.operations
-        ?.find((operation) => operation.method === "createVault")
-        ?.params?.find((param) => param.name === "bountyGas"),
-    ).toEqual(
-      expect.objectContaining({
-        type: "amount",
-        default_value: "1.00",
-        scale: 8,
-      }),
-    );
-    expect(
-      vault?.operations
-        ?.find((operation) => operation.method === "attemptBreak")
-        ?.params?.find((param) => param.name === "attemptFeeGas"),
-    ).toEqual(
-      expect.objectContaining({
-        type: "amount",
-        default_value: "0.10",
-        scale: 8,
-      }),
-    );
+    // The standalone vault owns its multi-step create/break/recover workflow.
+    // Its explicit empty host panel must suppress the old generic proof form.
+    expect(vault?.operations ?? []).toEqual([]);
   });
 
   it("exposes oracle fee funding before VRF game actions for oracle-backed apps", async () => {
@@ -395,15 +327,22 @@ describe("miniapp-definitions loader", () => {
     );
 
     const apps = await loadMiniAppDefinitions();
-    // FogPlay/Dice settle atomically on-chain via Neo's native randomness
-    // (oracle disabled), so the oracle fee-funding action must NOT render —
-    // it would waste GAS funding an oracle the game never calls.
-    for (const appId of ["miniapp-fogplay", "miniapp-dice-game"]) {
-      const app = getApp(apps, appId);
-      const methods = app?.operations?.map((operation) => operation.method) ?? [];
-      expect(methods).toContain("fundGameCredit");
-      expect(methods).not.toContain("fundOracleRequestFee");
-    }
+    // FogPlay's current release is guest-only until its paid settlement path is
+    // revalidated, so the host must not resurrect any historical funding form.
+    const fogplayMethods =
+      getApp(apps, "miniapp-fogplay")?.operations?.map(
+        (operation) => operation.method,
+      ) ?? [];
+    expect(fogplayMethods).toEqual([]);
+
+    // Dice is fail-closed while its bound Neo N3 settlement bytecode is
+    // incompatible with the audited source artifact. The host must expose no
+    // GAS-funding or paid-roll operation until a compatible deployment is bound.
+    const diceMethods =
+      getApp(apps, "miniapp-dice-game")?.operations?.map(
+        (operation) => operation.method,
+      ) ?? [];
+    expect(diceMethods).toEqual([]);
   });
 
   it("preserves modular contract composition metadata in bundled definitions", async () => {
@@ -601,6 +540,22 @@ describe("miniapp-definitions loader", () => {
         name: "Neo Swap",
       }),
     );
+  });
+
+  it("keeps Graveyard mutations inside the designed embedded Memory Garden", async () => {
+    const app = await loadBundledMiniAppById("miniapp-graveyard");
+
+    expect(app).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-graveyard",
+        dapp_url: "/miniapps/graveyard/index.html",
+      }),
+    );
+    expect(app?.operations ?? []).toEqual([]);
+    expect(app?.detail_template?.operation_panel?.operations ?? []).toEqual([]);
+    expect(
+      (app?.manifest?.operation_panel as { operations?: unknown[] })?.operations,
+    ).toEqual([]);
   });
 
   it("resolves the current network contract hash from manifest contracts", async () => {
@@ -813,45 +768,51 @@ describe("miniapp-definitions loader", () => {
     );
   });
 
-  it("keeps LastSurvivor lifecycle maintenance automatic instead of user-operated", async () => {
+  it("keeps LastSurvivor's retired paid lifecycle out of the guest release", async () => {
     delete process.env.MINIAPP_DEFINITIONS_DIR;
 
     const app = await loadBundledMiniAppById("miniapp-last-survivor");
-    const byMethod = new Map(app?.operations?.map((operation) => [operation.method, operation]));
-    const runtime = app?.manifest?.runtime as { modules?: Array<{ operations?: Record<string, string> }> } | undefined;
-
-    expect(byMethod.has("checkAndEndCountdownRound")).toBe(false);
-    expect(runtime?.modules?.[0]?.operations?.rollover).toBe("checkAndEndCountdownRound");
-    expect(byMethod.get("buyCountdownKeys")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["player", "hash160"],
-      ["keyCount", "integer"],
-    ]);
+    expect(app?.operations ?? []).toEqual([]);
+    expect(app?.manifest?.runtime).toBeUndefined();
+    expect(app?.manifest?.platform).toEqual(
+      expect.objectContaining({ transactions: false }),
+    );
   });
 
-  it("uses a buffered LastSurvivor funding preset in public definitions", async () => {
-    process.env.MINIAPP_DEFINITIONS_DIR = path.resolve(
-      __dirname,
-      "../../public/miniapp-definitions",
+  it("does not let a stale public definition re-enable LastSurvivor funding", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-stale-last-survivor");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+    fs.writeFileSync(
+      path.join(definitionsDir, "last-survivor.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-last-survivor",
+          name: "Stale paid LastSurvivor",
+          operations: [
+            {
+              name: "Fund Keys",
+              method: "fundGameCredit",
+              params: [{ name: "amount", type: "amount", scale: 8 }],
+            },
+          ],
+          manifest: {
+            runtime: {
+              mode: "platform",
+              modules: [{ appId: "miniapp-last-survivor" }],
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
     );
 
     const apps = await loadMiniAppDefinitions();
     const app = getApp(apps, "miniapp-last-survivor");
-    const fundAmount = app?.operations
-      ?.find((operation) => operation.method === "fundGameCredit")
-      ?.params?.find((param) => param.name === "amount");
-
-    expect(fundAmount).toEqual(
-      expect.objectContaining({
-        placeholder: "0.11",
-        scale: 8,
-      }),
-    );
-    expect(fundAmount?.presets?.[0]).toEqual(
-      expect.objectContaining({
-        label: "0.11",
-        value: "0.11",
-      }),
-    );
+    expect(app?.operations ?? []).toEqual([]);
+    expect(app?.manifest?.runtime).toBeUndefined();
   });
 
   it("does not expose LastSurvivor lifecycle settlement as a standalone DApp action", () => {
@@ -918,11 +879,15 @@ describe("miniapp-definitions loader", () => {
   it("loads platform runtime metadata for platform-backed flagship apps", async () => {
     delete process.env.MINIAPP_DEFINITIONS_DIR;
 
+    const guestOnly = await loadBundledMiniAppById("miniapp-last-survivor");
+    expect(guestOnly?.manifest?.runtime).toBeUndefined();
+
+    const standaloneSelfLoan = await loadBundledMiniAppById("miniapp-self-loan");
+    expect(standaloneSelfLoan?.manifest?.runtime).toBeUndefined();
+
     const apps = await Promise.all([
-      loadBundledMiniAppById("miniapp-last-survivor"),
       loadBundledMiniAppById("miniapp-profitanchor"),
       loadBundledMiniAppById("miniapp-trustanchor"),
-      loadBundledMiniAppById("miniapp-self-loan"),
     ]);
 
     for (const app of apps) {
@@ -942,6 +907,77 @@ describe("miniapp-definitions loader", () => {
       );
       const runtime = app?.manifest?.runtime as { modules?: Array<{ appId?: string }> } | undefined;
       expect(runtime?.modules?.[0]?.appId).toBe(app?.app_id);
+    }
+  });
+
+  it("keeps raw public definitions non-interactive for transaction-free releases", () => {
+    const appsDir = path.resolve(process.cwd(), "../../apps");
+    const definitionsDir = path.resolve(
+      process.cwd(),
+      "public/miniapp-definitions",
+    );
+    const hasInteractivePermission = (
+      value: unknown,
+      key = "",
+    ): boolean => {
+      const normalizedKey = key.toLowerCase();
+      const readOnlyKey = normalizedKey.startsWith("read")
+        || normalizedKey.startsWith("view");
+      if (typeof value === "boolean") return value && !readOnlyKey;
+      if (typeof value === "number") return value !== 0 && !readOnlyKey;
+      if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        return Boolean(normalized)
+          && !normalized.startsWith("read:")
+          && !normalized.startsWith("view:");
+      }
+      if (Array.isArray(value)) {
+        return value.some((entry) => hasInteractivePermission(entry));
+      }
+      if (!value || typeof value !== "object") return false;
+      return Object.entries(value).some(([entryKey, entry]) =>
+        hasInteractivePermission(entry, entryKey),
+      );
+    };
+
+    for (const fileName of fs.readdirSync(definitionsDir)) {
+      if (!fileName.endsWith(".json")) continue;
+      const slug = path.basename(fileName, ".json");
+      const manifestPath = path.join(appsDir, slug, "neo-manifest.json");
+      if (!fs.existsSync(manifestPath)) continue;
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+      if (manifest?.platform?.transactions !== false) continue;
+
+      const definition = JSON.parse(
+        fs.readFileSync(path.join(definitionsDir, fileName), "utf-8"),
+      );
+      const operationGroups = [
+        definition.operations,
+        definition?.frontend_spec?.operation_panel?.operations,
+        definition?.detail_template?.operation_panel?.operations,
+        definition?.manifest?.operations,
+        definition?.manifest?.operation_panel?.operations,
+      ];
+      const operations = operationGroups.flatMap((group) =>
+        Array.isArray(group) ? group : [],
+      );
+
+      expect({ slug, operations }).toEqual({ slug, operations: [] });
+      expect({
+        slug,
+        runtime: definition.runtime ?? definition?.manifest?.runtime,
+      }).toEqual({ slug, runtime: undefined });
+      expect({
+        slug,
+        deployment:
+          definition.deployment ?? definition?.manifest?.deployment,
+      }).toEqual({ slug, deployment: undefined });
+      expect({
+        slug,
+        interactivePermissions:
+          hasInteractivePermission(definition.permissions)
+          || hasInteractivePermission(definition?.manifest?.permissions),
+      }).toEqual({ slug, interactivePermissions: false });
     }
   });
 });

@@ -1,91 +1,46 @@
 # Neo 多重签名
 
-创建多签转账请求并安全收集签名。
+Neo 多重签名是已部署 `MiniAppMultisig` 托管合约的生产化阈值批准界面。
 
-## 概览
+> 该应用**不会**构造 Neo 原生多签地址，也不会拼接原生多签见证。资金由一个规范合约地址托管，不同金库由链上金库 ID 隔离；签名人使用各自钱包调用合约来批准请求。
 
-| 属性 | 值 |
-|------|-----|
-| **App ID** | `miniapp-neo-multisig` |
-| **分类** | utilities |
-| **版本** | 1.0.0 |
-| **框架** | Host-native React playarea |
+## 使用流程
 
-## 摘要
+1. 连接 Neo N3 钱包，使用 2–16 个互不重复的签名人地址和 1-of-N 至 N-of-N 阈值创建金库；创建者必须在签名人列表中。
+2. 向已加载金库存入整数 NEO 或最多 8 位小数的 GAS。
+3. 填写接收地址、资产、金额和可选的 160 字符备注，创建支出请求。
+4. 分享请求 ID。每位签名人只能批准一次；任一签名人都可取消待处理请求。
+5. 达到阈值时合约自动转账。待处理请求不会预留余额；如果另一请求先行支出，当前请求会因余额不足自动取消。
 
-安全的多签转账
+首屏是有主次关系的共管金库工作台，而不是大面积参数表单：使用真实金库/提案资源、官方 NEO/GAS 图标、签名人名单、已验证余额、批准进度和单一上下文主操作；详细输入收纳在次级工具抽屉。
 
-创建多签交易、收集批准，达到阈值后广播。
+## 交易正确性
 
-## 功能亮点
+- 所有读写都绑定当前网络的规范合约哈希。
+- 钱包网络与启动网络不一致时阻止访问合约。
+- 不会仅凭交易 ID 或 relay 返回值宣告成功。
+- 每个写操作都等待精确合约事件，并回读受影响的金库/请求。
+- 超时或刷新后可使用本地保存的交易上下文恢复确认。
+- 应用日志为 `FAULT` 时清理待处理状态，且不会写入成功结果。
+- 批准前重新读取 `hasApproved`，阻止重复批准。
+- ID、余额和 token 基础单位使用整数安全路径，展示转换不经过 JavaScript 浮点数。
 
-- **链上安全**：使用 Neo N3 多签见证完成执行。
-- **签名人控制**：仅列表中的公钥可签名。
+## 已部署合约
 
-## 使用步骤
-
-1. 填写签名人公钥并设置阈值。
-2. 准备转账并确认手续费。
-3. 将请求 ID 分享给其他签名人。
-4. 签名满足阈值后广播交易。
-
-## 权限
-
-| 权限 | 是否需要 |
-|------|----------|
-| 钱包 | ✅ 是 |
-| 支付 | ❌ 否 |
-| 随机数 | ❌ 否 |
-| 数据源 | ❌ 否 |
-| 治理 | ❌ 否 |
-| 自动化 | ❌ 否 |
-| 机密 | ✅ 是 |
-
-## 链上行为
-
-- 无链上合约部署，主要使用链下 API 或钱包签名流程。
-
-## 网络配置
-
-无链上合约部署。
-
-## 平台合约
-
-### 测试网 (Testnet)
-
-| 合约 | 地址 |
+| 网络 | 合约 |
 | --- | --- |
-| Governance | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` |
-| PriceFeed | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` |
-| RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
-| AppRegistry | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` |
-| AutomationAnchor | `0x1c888d699ce76b0824028af310d90c3c18adeab5` |
-| Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
+| Neo N3 主网 | `0xa361cdc792e97c4d8ddf42048cf48f3283ea7178` |
+| Neo N3 测试网 | `0xa361cdc792e97c4d8ddf42048cf48f3283ea7178` |
 
-### 主网 (Mainnet)
+线上 ABI 包含 `createVault`、`createRequest`、`approve`、`cancel`、`balanceOf`、`getVault`、`getRequest`、`hasApproved`、`lastVaultId`、`lastRequestId` 与 `onNEP17Payment`。界面会核验金库创建、存入、请求创建、批准、执行、取消和余额不足事件。
 
-| 合约 | 地址 |
-| --- | --- |
-| Governance | `0x705615e903d92abf8f6f459086b83f51096aa413` |
-| PriceFeed | `0x9e889922d2f64fa0c06a28d179c60fe1af915d27` |
-| RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
-| AppRegistry | `0x583cabba8beff13e036230de844c2fb4118ee38c` |
-| AutomationAnchor | `0x0fd51557facee54178a5d48181dcfa1b61956144` |
-| Morpheus Oracle | `0x5b492098fc094c760402e01f7e0b631b939d2bea` |
-
-## 资产
-
-- **允许资产**：NEO, GAS
+当前测试边界见 [TESTNET_STATUS.md](./TESTNET_STATUS.md)。
 
 ## 开发
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
-npm run build
+npm run test --workspace apps/neo-multisig
+npm run build --workspace apps/neo-multisig
 ```
+
+该应用使用 Vite、React 和平台共享小程序设计系统实现。

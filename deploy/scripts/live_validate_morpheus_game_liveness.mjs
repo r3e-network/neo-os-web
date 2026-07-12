@@ -55,12 +55,28 @@ function normalizeHash160(value) {
   const raw = String(value || "").trim().toLowerCase();
   const prefixed = raw && !raw.startsWith("0x") ? `0x${raw}` : raw;
   if (!/^0x[0-9a-f]{40}$/.test(prefixed)) return "";
+  if (prefixed === "0x0000000000000000000000000000000000000000") return "";
   return prefixed;
 }
 
+function appManifest(slug) {
+  return readJson(path.join(repoRoot, "apps", slug, "neo-manifest.json"));
+}
+
 function manifestHash(slug) {
-  const manifest = readJson(path.join(repoRoot, "apps", slug, "neo-manifest.json"));
+  const manifest = appManifest(slug);
   return normalizeHash160(manifest?.contracts?.["neo-n3-testnet"]);
+}
+
+function isPublishedGuestOnly(slug) {
+  const manifest = appManifest(slug);
+  const permissions = Array.isArray(manifest?.permissions) ? manifest.permissions : [];
+  const operations = Array.isArray(manifest?.operation_panel?.operations)
+    ? manifest.operation_panel.operations
+    : [];
+  return manifest?.platform?.transactions === false
+    && permissions.length === 0
+    && operations.length === 0;
 }
 
 function generatedRegistryText() {
@@ -163,6 +179,22 @@ function stackPublicKey(item) {
   return "";
 }
 
+export function evaluateRuntimeHealth(url, response, json) {
+  const expectedNetwork = new URL(url).pathname.split("/").filter(Boolean)[0] || "";
+  const actualNetwork = String(json?.network || "").trim().toLowerCase();
+  const ready = response.ok
+    && json?.ready !== false
+    && json?.status !== "error"
+    && actualNetwork === expectedNetwork;
+  return {
+    url,
+    status: response.status,
+    ready,
+    expectedNetwork,
+    actualNetwork,
+  };
+}
+
 async function checkRuntimeHealth() {
   const urls = [
     "https://oracle.meshmini.app/testnet/health",
@@ -173,8 +205,7 @@ async function checkRuntimeHealth() {
     const { response, json } = await fetchJson(url, {
       headers: { accept: "application/json" },
     });
-    const ready = response.ok && json?.ready !== false && json?.status !== "error";
-    results.push({ url, status: response.status, ready });
+    results.push(evaluateRuntimeHealth(url, response, json));
   }
   return results;
 }
@@ -198,16 +229,22 @@ async function main() {
   console.log(`[morpheus-game-liveness] rpc=${rpcUrl}`);
   const health = await checkRuntimeHealth();
   for (const row of health) {
-    console.log(`[health] ${row.url} status=${row.status} ready=${row.ready}`);
+    console.log(
+      `[health] ${row.url} status=${row.status} ready=${row.ready} network=${row.actualNetwork || "(missing)"} expected=${row.expectedNetwork}`,
+    );
   }
   if (!health.every((row) => row.ready)) {
-    throw new Error("one or more public Morpheus runtime health endpoints are not ready");
+    throw new Error("one or more public Morpheus runtime health endpoints are not ready for the requested network");
   }
 
   const failures = [];
   for (const [slug, expectedName] of targetGames) {
     const hash = manifestHash(slug);
     if (!hash) {
+      if (isPublishedGuestOnly(slug)) {
+        console.log(`[skip] ${slug} is published guest-only with no deployed contract`);
+        continue;
+      }
       failures.push(`${slug}: missing neo-n3-testnet contract hash`);
       continue;
     }
@@ -244,7 +281,9 @@ async function main() {
   console.log("RESULT: PASS - Morpheus game contracts, oracle/TEE config, and runtime health are reachable.");
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (path.resolve(process.argv[1] || "") === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

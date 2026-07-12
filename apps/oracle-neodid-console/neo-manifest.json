@@ -3,9 +3,9 @@
   "id": "miniapp-oracle-neodid-console",
   "name": "Oracle NeoDID Console",
   "name_zh": "预言机 NeoDID 控制台",
-  "version": "1.0.0",
-  "description": "Preview NeoDID verification requests for Morpheus oracle flows.",
-  "description_zh": "为 Morpheus 预言机流程预览 NeoDID 校验请求。",
+  "version": "2.1.0",
+  "description": "Inspect Morpheus NeoDID resolver, provider catalog, and registry evidence without claiming identity verification.",
+  "description_zh": "检查 Morpheus NeoDID 解析器、提供方目录与注册表证据，不宣称身份已验证。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -13,7 +13,8 @@
     "oracle",
     "morpheus",
     "neodid",
-    "identity"
+    "identity",
+    "evidence"
   ],
   "developer": {
     "name": "Yiwu",
@@ -29,92 +30,16 @@
   "urls": {
     "entry": "/miniapps/oracle-neodid-console/index.html",
     "icon": "/miniapps/oracle-neodid-console/logo.webp",
-    "banner": "/miniapps/oracle-neodid-console/banner.webp"
+    "banner": "/miniapps/oracle-neodid-console/oracle-workspace-stage.webp"
   },
   "permissions": [
     "read:blockchain",
-    "oracle",
-    "compute",
-    "confidential"
+    "oracle"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://oracle-neodid-console"
-  },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
-  "operation_panel": {
-    "title": "NeoDID Preview",
-    "subtitle": "Build or seal NeoDID verification previews with an explicit subject and claim.",
-    "operations": [
-      {
-        "name": "Seal DID Request",
-        "method": "sealOracleRequest",
-        "description": "Encrypt the NeoDID subject and claim for Morpheus confidential handling.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "endpoint",
-            "type": "string",
-            "label": "DID subject",
-            "placeholder": "did:neo:testnet:sample-user",
-            "default_value": "did:neo:testnet:sample-user",
-            "sensitive": true,
-            "required": true
-          },
-          {
-            "name": "claim",
-            "type": "string",
-            "label": "Claim",
-            "placeholder": "profile.kyc",
-            "default_value": "profile.kyc",
-            "required": true
-          },
-          {
-            "name": "callback",
-            "type": "hash160",
-            "label": "Callback contract",
-            "placeholder": "0x..."
-          }
-        ]
-      },
-      {
-        "name": "Build Preview",
-        "method": "buildOraclePackage",
-        "description": "Build a visible NeoDID preview package without sealing.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "endpoint",
-            "type": "string",
-            "label": "DID subject",
-            "placeholder": "did:neo:testnet:sample-user",
-            "default_value": "did:neo:testnet:sample-user",
-            "required": true
-          },
-          {
-            "name": "claim",
-            "type": "string",
-            "label": "Claim",
-            "placeholder": "profile.kyc",
-            "default_value": "profile.kyc",
-            "required": true
-          },
-          {
-            "name": "callback",
-            "type": "hash160",
-            "label": "Callback contract",
-            "placeholder": "0x..."
-          }
-        ]
-      }
-    ]
   },
   "platform": {
     "analytics": true,
@@ -123,5 +48,5 @@
     "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-05-01T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

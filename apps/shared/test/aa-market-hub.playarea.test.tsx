@@ -7,26 +7,67 @@ import PlayArea from "../../aa-market-hub/src/PlayArea";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
+const WALLET = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const MARKET = "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf";
+const AA_CORE = "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
+const ACCOUNT = "0x0102030405060708090a0b0c0d0e0f1011121314";
+
 afterEach(() => cleanup());
 
-function t(k: string) { return k; }
-
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, createObservable(v)])) as ObservableState;
+function t(key: string) {
+  return key;
 }
 
-describe("aa-market-hub PlayArea (v2)", () => {
-  it("renders a foreground escrow desk with marketplace listings", () => {
+function state(values: Partial<Record<string, unknown>> = {}): ObservableState {
+  const defaults: Record<string, unknown> = {
+    mode: "explore",
+    network: "testnet",
+    marketHash: MARKET,
+    aaContractHash: AA_CORE,
+    walletAddress: WALLET,
+    walletDisplay: "NR3E4D8N…Nih32",
+    listings: [],
+    dataSource: "chain",
+    pendingOperation: null,
+  };
+  return Object.fromEntries(
+    Object.entries({ ...defaults, ...values }).map(([key, value]) => [key, createObservable(value)]),
+  ) as ObservableState;
+}
+
+function listing(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "7",
+    title: "Fresh AA shell",
+    priceRaw: "150000000",
+    priceGas: "1.5",
+    status: "active",
+    isMine: false,
+    isCanonicalAA: true,
+    pendingPaymentKnown: true,
+    myPendingPayment: "0",
+    accountIdHash: ACCOUNT,
+    seller: "0xaabbccddeeff00112233445566778899aabbccdd",
+    metadataUri: "ipfs://fresh-aa",
+    ...overrides,
+  };
+}
+
+describe("aa-market-hub designed marketplace", () => {
+  it("renders real escrow art, a product shelf, and a focused checkout", () => {
+    const first = listing();
+    const second = listing({
+      id: "8",
+      title: "Plugin-ready account",
+      accountIdHash: "0x14131211100f0e0d0c0b0a090807060504030201",
+      priceGas: "2",
+    });
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          walletAddress: "NWallet111111111111111111111111111111",
-          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
-          listings: [
-            { id: "1", title: "Clean AA shell", priceGas: "1.5", status: "active" },
-            { id: "2", title: "Fresh plugins", priceGas: "2", status: "active" },
-          ],
+          listings: [first, second],
+          selectedListing: first,
           totalListingsDisplay: 2,
           activeListingsDisplay: 2,
         })}
@@ -34,103 +75,141 @@ describe("aa-market-hub PlayArea (v2)", () => {
       />,
     );
 
-    expect(container.querySelector(".market-scene")).toBeTruthy();
-    expect(container.querySelector(".market-scene__backdrop")).toBeNull();
-    expect(container.querySelector<HTMLImageElement>(".market-scene__desk-image")?.getAttribute("src")).toContain("market-escrow-desk.webp");
-    expect(container.querySelector(".market-scene__desk-card")).toBeTruthy();
-    expect(container.querySelector(".market-scene__trade-panel")).toBeTruthy();
-    expect(container.querySelector(".market-scene__route")).toBeTruthy();
-    expect(container.querySelector(".market-scene__shelf")).toBeTruthy();
-    expect(container.querySelectorAll(".market-scene__shelf button").length).toBe(2);
+    expect(container.querySelector(".aa-market-scene")).toBeTruthy();
+    expect(container.querySelector<HTMLImageElement>(".aa-market-hero__image")?.src).toContain(
+      "market-escrow-desk.webp",
+    );
+    expect(container.querySelector(".aa-market-hero")).toBeTruthy();
+    expect(container.querySelector(".aa-market-workbench")).toBeTruthy();
+    expect(container.querySelector(".aa-market-listings")).toBeTruthy();
+    expect(container.querySelectorAll(".aa-market-listing")).toHaveLength(2);
+    expect(container.querySelector(".aa-market-checkout")?.textContent).toContain("Fresh AA shell");
+    expect(container.querySelector(".aa-market-checkout")?.textContent).toContain("1.5");
   });
 
-  it("loads listings with the actual market hash instead of an undefined argument", () => {
+  it("selects product cards and keeps non-canonical inventory visibly unavailable", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
+    const unverified = listing({ id: "9", title: "Unverified shell", isCanonicalAA: false });
+    const { container } = render(
       <PlayArea
         t={t}
-        state={state({
-          walletAddress: "NWallet111111111111111111111111111111",
-          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
-          listings: [],
-        })}
+        state={state({ listings: [unverified], selectedListing: unverified })}
         dispatch={dispatch}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /loadListings/ }));
-    expect(dispatch).toHaveBeenCalledWith("loadListings", "0x1234567890abcdef1234567890abcdef12345678");
+    const product = screen.getByRole("button", { name: /Unverified shell/ });
+    expect(product.classList.contains("is-unavailable")).toBe(true);
+    fireEvent.click(product);
+    expect(dispatch).toHaveBeenCalledWith("selectListing", "9");
+    expect(container.querySelector(".aa-market-checkout")?.textContent).toContain("nonCanonicalListing");
+    expect(container.querySelector<HTMLButtonElement>(".mx2-btn--primary")?.textContent).toContain("refreshMarket");
   });
 
-  it("selects listing cards from the marketplace shelf", () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    render(
-      <PlayArea
-        t={t}
-        state={state({
-          walletAddress: "NWallet111111111111111111111111111111",
-          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
-          listings: [{ id: "2", title: "Fresh plugins", priceGas: "2", status: "active" }],
-        })}
-        dispatch={dispatch}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /Fresh plugins/ }));
-    expect(dispatch).toHaveBeenCalledWith("selectListing", "2");
-  });
-
-  it("keeps market hash and settlement controls in shared drawer panels", () => {
+  it("uses a seller studio and live asset preview instead of a host parameter sheet", () => {
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
-          walletAddress: "NWallet111111111111111111111111111111",
-          walletDisplay: "NWallet...1111",
-          marketHash: "0x1234567890abcdef1234567890abcdef12345678",
-          listings: [],
+          mode: "sell",
+          accountIdHash: ACCOUNT,
+          priceGas: "10",
+          listingTitle: "Treasury-ready AA",
+          metadataUri: "ipfs://treasury-aa",
+          canCreateListing: true,
         })}
         dispatch={vi.fn()}
       />,
     );
 
-    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
-    const drawer = container.querySelector(".market-drawer");
+    expect(container.querySelector(".aa-market-workbench--sell")).toBeTruthy();
+    expect(container.querySelector(".aa-market-builder")).toBeTruthy();
+    expect(container.querySelector(".aa-market-preview")?.textContent).toContain("Treasury-ready AA");
+    expect(container.querySelector(".aa-market-preview")?.textContent).toContain("10");
+    expect(container.querySelectorAll(".aa-market-price-presets button")).toHaveLength(3);
+    expect(container.querySelector<HTMLInputElement>(`input[value="${MARKET}"]`)).toBeNull();
+    expect(container.querySelector<HTMLInputElement>(`input[value="${AA_CORE}"]`)).toBeNull();
+
+    const advanced = container.querySelector<HTMLDetailsElement>(".aa-market-advanced");
+    expect(advanced).toBeTruthy();
+    fireEvent.click(advanced!.querySelector("summary")!);
+    expect(advanced?.textContent).toContain("aaContractLabel");
+    expect(advanced?.textContent).toContain("marketHash");
+  });
+
+  it("keeps listing management and trust evidence in three secondary drawer panels", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const mine = listing({ isMine: true });
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          listings: [mine],
+          selectedListing: mine,
+          canManageSelectedListing: true,
+          cancelConfirmationId: "7",
+          nextPriceGas: "2",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle")!);
+    const drawer = container.querySelector(".aa-market-drawer");
     expect(drawer).toBeTruthy();
-    expect(drawer?.querySelectorAll(".market-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
-    expect(drawer?.querySelector("h4")).toBeNull();
-    expect(drawer?.querySelectorAll(".market-drawer__notice.mx2-open-notice.semi-banner")).toHaveLength(1);
-    expect(drawer?.querySelectorAll(".market-drawer__field.mx2-open-field .mx2-open-field__control input.semi-input")).toHaveLength(2);
-    expect(drawer?.querySelector<HTMLInputElement>(".market-drawer__field input")?.value).toBe("0x1234567890abcdef1234567890abcdef12345678");
+    expect(drawer?.querySelectorAll(".aa-market-drawer__panel.mx2-open-panel.semi-card")).toHaveLength(3);
+    expect(drawer?.querySelector(".aa-market-trust-list")?.textContent).toContain("canonicalMarket");
+    expect(drawer?.querySelector<HTMLInputElement>(`input[value="${MARKET}"]`)).toBeNull();
+    expect(drawer?.querySelector<HTMLInputElement>(`input[value="${AA_CORE}"]`)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "confirmCancellation" }));
+    expect(dispatch).toHaveBeenCalledWith("cancelSelected");
   });
 
-  it("has reduced-motion", () => {
-    const styles = readFileSync(`${process.cwd()}/../aa-market-hub/src/PlayArea.scss`, "utf8");
-    expect(styles).toMatch(/prefers-reduced-motion/);
-  });
+  it("surfaces durable pending confirmation without hiding the transaction", () => {
+    const txid = `0x${"ab".repeat(32)}`;
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          transactionNotice: "transactionPending",
+          pendingOperation: { kind: "buy", txid, createdAt: Date.now() },
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
 
-  it("keeps the marketplace as a clean foreground shelf, not a backdrop wash", () => {
+    const feedback = container.querySelector(".aa-market-feedback.is-pending");
+    expect(feedback).toBeTruthy();
+    expect(feedback?.textContent).toContain("transactionPending");
+    expect(feedback?.textContent).toContain("checkConfirmation");
+    expect(container.querySelector<HTMLButtonElement>(".mx2-btn--primary")?.textContent).toContain("checkConfirmation");
+  });
+});
+
+describe("aa-market-hub visual production locks", () => {
+  it("uses a bright high-contrast responsive marketplace composition", () => {
     const styles = readFileSync(`${process.cwd()}/../aa-market-hub/src/PlayArea.scss`, "utf8");
     const source = readFileSync(`${process.cwd()}/../aa-market-hub/src/PlayArea.tsx`, "utf8");
 
-    expect(styles).toMatch(/\.market-scene\s*\{[\s\S]*background:\s*transparent/);
-    expect(styles).toMatch(/\.market-scene__desk-card,[\s\S]*\.market-scene__trade-panel\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.market-scene__desk-image\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(styles).toMatch(/\.market-scene__shelf\s*\{[\s\S]*background:\s*#ffffff/);
-    expect(styles).toMatch(/\.market-drawer\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.market-drawer__panel--wide > \.semi-card-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(260px,\s*520px\)\s+minmax\(160px,\s*220px\)/);
-    expect(styles).not.toMatch(/\.market-drawer__panel h4/);
-    expect(styles).toMatch(/\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 188px/);
-    expect(styles).toMatch(/\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary:not\(:disabled\)\s*\{[\s\S]*background:\s*var\(--mx2-brand-hover\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__desk-card\s*\{[\s\S]*grid-template-rows:\s*92px auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__desk-caption small\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__route\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__empty\s*\{[\s\S]*min-height:\s*74px/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.aa-market-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.market-scene__status\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex-basis:\s*184px/);
-    expect(source).toMatch(/<img className="market-scene__desk-image" src="\.\/market-escrow-desk\.webp"/);
-    expect(styles).not.toMatch(/market-scene__backdrop|market-scene__escrow|var\(--mx2-scene-wash|background-image:\s*url/);
-    expect(source).not.toMatch(/market-scene__backdrop|market-scene__escrow/);
+    expect(styles).toMatch(/\.aa-market-scene\s*\{[\s\S]*?background:\s*transparent/);
+    expect(styles).toMatch(/\.aa-market-layout\s*\{[\s\S]*?grid-template-columns:/);
+    expect(styles).toMatch(/\.aa-market-hero,[\s\S]*?\.aa-market-workbench\s*\{[\s\S]*?background:\s*#fff/);
+    expect(styles).toMatch(/\.aa-market-hero__image\s*\{[\s\S]*?object-fit:\s*cover/);
+    expect(styles).toMatch(/\.aa-market-hero__shade\s*\{[\s\S]*?rgba\(11,\s*54,\s*42,\s*0\.84\)/);
+    expect(styles).toMatch(/\.aa-market-hero__copy\s*\{[\s\S]*?color:\s*#fff/);
+    expect(styles).toMatch(/\.aa-market-listing\s*\{[\s\S]*?background:\s*#fbfefc/);
+    expect(styles).toMatch(/\.aa-market-checkout\s*\{[\s\S]*?background:\s*var\(--market-cream\)/);
+    expect(styles).toMatch(/\.aa-market-preview\s*\{[\s\S]*?linear-gradient/);
+    expect(styles).toMatch(/\.aa-market-drawer\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,/);
+    expect(styles).toMatch(/\.aa-market-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*?flex:\s*0 0 194px/);
+    expect(styles).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.aa-market-listings\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+    expect(styles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)/);
+
+    expect(source).toMatch(/className="aa-market-hero__image"[\s\S]*?src="\.\/market-escrow-desk\.webp"/);
+    expect(source).toMatch(/dispatch\("loadListings"\)/);
+    expect(source).not.toMatch(/dispatch\("loadListings",/);
+    expect(source).not.toMatch(/setMarketInput|syncMarketInput|marketHashPlaceholder/);
+    expect(source).not.toMatch(/market-scene__backdrop|market-scene__route|market-scene__shelf/);
   });
 });

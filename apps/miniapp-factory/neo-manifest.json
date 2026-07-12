@@ -3,9 +3,9 @@
   "id": "miniapp-miniapp-factory",
   "name": "MiniApp Factory",
   "name_zh": "小程序工厂",
-  "version": "1.0.0",
-  "description": "Register a platform miniapp instance from an audited on-chain template — this writes an on-chain registry record and a catalog patch (not a token contract). You pay only the Neo network fee. After registering, an operator syncs the catalog patch and wires the app to make it launchable.",
-  "description_zh": "基于已审计链上模板登记平台小程序实例——这会写入链上注册记录和目录补丁（而非代币合约）。只需支付 Neo 网络费用。登记后由运营者同步目录补丁并接入应用，使其可启动。",
+  "version": "1.1.0",
+  "description": "A bright visual studio for deterministic MiniApp starter packages, testnet template verification, wallet registration, refresh recovery, and operator handoff. Registration writes a Factory record; it does not deploy or publish a finished app.",
+  "description_zh": "明亮直观的小程序创建工作台，支持确定性启动包、测试网模板核验、钱包登记、刷新恢复和运营交接。登记只会写入 Factory 记录，不会部署或发布完整应用。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
@@ -15,8 +15,10 @@
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {},
-  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "contracts": {
+    "neo-n3-testnet": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49"
+  },
+  "supported_networks": ["neo-n3-testnet"],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/miniapp-factory/index.html",
@@ -25,8 +27,8 @@
   },
   "permissions": ["invoke:primary", "wallet:sign-message", "read:blockchain"],
   "features": {
-    "stateless": true,
-    "offlineSupport": true,
+    "stateless": false,
+    "offlineSupport": false,
     "deeplink": "neomainapp://miniapp-factory"
   },
   "platform": {
@@ -50,6 +52,6 @@
     }
   },
   "createdAt": "2026-05-07T00:00:00Z",
-  "updatedAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-07-12T00:00:00Z",
   "featured": false
 }

@@ -135,8 +135,8 @@ describe("burn-league guest engine", () => {
 
     expect(h.seasonId.get()).toBe(0);
     expect(h.seasonEndMs.get()).toBe(0);
-    expect(h.rewardPool.get()).toBe(0);
-    expect(h.totalBurned.get()).toBe(0);
+    expect(h.rewardPool.get()).toBe(31);
+    expect(h.totalBurned.get()).toBe(31);
     expect(h.userBurned.get()).toBe(0);
     expect(h.rank.get()).toBe(0);
     expect(h.burnCount.get()).toBe(0);
@@ -169,8 +169,8 @@ describe("burn-league guest engine", () => {
     expect(h.isBurning.get()).toBe(false);
     expect(h.guestStreak.get()).toBe(1);
     expect(h.userBurned.get()).toBeGreaterThan(0);
-    expect(h.rewardPool.get()).toBe(h.userBurned.get());
-    expect(h.totalBurned.get()).toBe(h.rewardPool.get());
+    expect(h.rewardPool.get()).toBe(0);
+    expect(h.totalBurned.get()).toBe(0);
     expect(h.burnCount.get()).toBe(1);
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.setStatus).toHaveBeenCalledWith(expect.stringContaining("guestStoked"), "success");
@@ -189,8 +189,73 @@ describe("burn-league guest engine", () => {
     expect(h.submit).not.toHaveBeenCalled();
   });
 
-  it("banks the current heat to the guest board on a flare-out", async () => {
-    // Four successful stokes build a run; the fifth flare check rolls 0 and banks it.
+  it("cancels an in-flight stoke when the local engine is disposed", async () => {
+    stubRand([0.5, 0.5]);
+    const h = setup();
+    await h.engine.enter();
+
+    h.engine.stoke("5");
+    expect(h.isBurning.get()).toBe(true);
+    h.engine.dispose();
+    await vi.advanceTimersByTimeAsync(280);
+
+    expect(h.isBurning.get()).toBe(false);
+    expect(h.guestStreak.get()).toBe(0);
+    expect(h.userBurned.get()).toBe(0);
+    expect(h.burnCount.get()).toBe(0);
+  });
+
+  it("banks a live run only when the player chooses to lock it", async () => {
+    stubRand([0.5, 0.5]);
+    const h = setup();
+    await h.engine.enter();
+
+    h.engine.stoke("5");
+    await vi.advanceTimersByTimeAsync(280);
+    const banked = h.userBurned.get();
+
+    expect(h.engine.bank()).toBe(true);
+    await vi.runAllTimersAsync();
+    expect(h.submit).toHaveBeenCalledWith(banked);
+    expect(h.userBurned.get()).toBe(0);
+    expect(h.guestStreak.get()).toBe(0);
+    expect(h.rewardPool.get()).toBe(banked);
+    expect(h.setStatus).toHaveBeenLastCalledWith(
+      expect.stringContaining("guestBanked"),
+      "success",
+    );
+  });
+
+  it("starts flare risk on the fourth stoke after three safe successes", async () => {
+    stubRand([
+      0.5, 0.5,
+      0.5, 0.5,
+      0.5, 0.5,
+      0,
+    ]);
+    const h = setup();
+    await h.engine.enter();
+
+    for (let i = 0; i < 3; i += 1) {
+      h.engine.stoke("5");
+      await vi.advanceTimersByTimeAsync(280);
+    }
+    expect(h.guestStreak.get()).toBe(3);
+    expect(h.userBurned.get()).toBeGreaterThan(0);
+
+    h.engine.stoke("5");
+    await vi.advanceTimersByTimeAsync(280);
+
+    expect(h.guestStreak.get()).toBe(0);
+    expect(h.userBurned.get()).toBe(0);
+    expect(h.setStatus).toHaveBeenLastCalledWith(
+      expect.stringContaining("guestFlareOut"),
+      "warning",
+    );
+  });
+
+  it("loses unbanked heat on a flare-out instead of silently banking it", async () => {
+    // Four successful stokes build a run; the fifth flare check rolls 0.
     stubRand([
       0.5, 0.5,
       0.5, 0.5,
@@ -211,10 +276,29 @@ describe("burn-league guest engine", () => {
     h.engine.stoke("5");
     await vi.advanceTimersByTimeAsync(280);
 
-    expect(h.submit).toHaveBeenCalledTimes(1);
-    expect(h.submit).toHaveBeenCalledWith(heatBeforeFlare);
+    expect(h.submit).not.toHaveBeenCalled();
     expect(h.guestStreak.get()).toBe(0);
     expect(h.userBurned.get()).toBe(0);
     expect(h.setStatus).toHaveBeenLastCalledWith(expect.stringContaining("guestFlareOut"), "warning");
+  });
+
+  it("fails closed when Web Crypto is unavailable without changing the run", async () => {
+    const h = setup();
+    await h.engine.enter();
+    vi.stubGlobal("crypto", undefined);
+
+    h.engine.stoke("5");
+    await vi.advanceTimersByTimeAsync(280);
+
+    expect(h.isBurning.get()).toBe(false);
+    expect(h.userBurned.get()).toBe(0);
+    expect(h.guestStreak.get()).toBe(0);
+    expect(h.burnCount.get()).toBe(0);
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.burnValidationError.get()).toBe("guestSecureRandomUnavailable");
+    expect(h.setStatus).toHaveBeenLastCalledWith(
+      "guestSecureRandomUnavailable",
+      "error",
+    );
   });
 });

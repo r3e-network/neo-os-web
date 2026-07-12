@@ -1,18 +1,32 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { GAS_HASH } from "@shared/constants/rpc";
+import { createMiniAppFramework } from "@shared/react";
+import { createObservable } from "@shared/react/context";
+import { addressToScriptHash } from "@shared/utils/neo";
 import {
   buyAddressListing,
   createAddressListing,
+  formatGasFractions,
+  getDefaultAAContractHash,
   getDefaultMarketHash,
   listAddressListings,
+  parseGasToFractions,
 } from "../../aa-market-hub/src/utils/aa-market";
 import {
   relativeTime,
   statusLabel,
 } from "../../aa-market-hub/src/components/ListingCard";
-import { createMiniAppFramework } from "@shared/react";
-import { createObservable } from "@shared/react/context";
-import { addressToScriptHash } from "@shared/utils/neo";
+
+const ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
+const MY_HASH = addressToScriptHash(ADDRESS).toLowerCase();
+const OTHER_SELLER = "0xaabbccddeeff00112233445566778899aabbccdd";
+const AA_CORE = "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
+const ACCOUNT_1 = "0x0102030405060708090a0b0c0d0e0f1011121314";
+const ACCOUNT_2 = "0x14131211100f0e0d0c0b0a090807060504030201";
+const MARKET = "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf";
+const INVOKE_TXID = `0x${"11".repeat(32)}`;
+const MULTI_TXID = `0x${"22".repeat(32)}`;
 
 const t = (key: string, params?: Record<string, string | number>) => {
   const map: Record<string, string> = {
@@ -26,73 +40,80 @@ const t = (key: string, params?: Record<string, string | number>) => {
     timeDaysAgo: "{count}d ago",
   };
   let value = map[key] ?? key;
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      value = value.replace(`{${k}}`, String(v));
-    }
+  for (const [name, replacement] of Object.entries(params ?? {})) {
+    value = value.replace(`{${name}}`, String(replacement));
   }
   return value;
 };
 
-describe("AA Market Hub utils", () => {
-  it("defaults the market hash to the canonical AAAddressMarket per network", () => {
-    // The app's manifest declares both; the runtime registry lacks the testnet
-    // entry, so the manifest fallback must still resolve a normalized hash.
-    expect(getDefaultMarketHash("mainnet")).toBe(
-      "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
-    );
-    expect(getDefaultMarketHash("testnet")).toBe(
-      "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf",
-    );
+type RpcRequest = {
+  id: string | number;
+  params: [string, string, unknown[]];
+};
+
+function integer(value: string | number) {
+  return { type: "Integer", value: String(value) };
+}
+
+function byteString(value: string) {
+  return { type: "ByteString", value: Buffer.from(value, "utf8").toString("base64") };
+}
+
+function hash160(displayHash: string) {
+  const bytes = Buffer.from(displayHash.replace(/^0x/i, ""), "hex");
+  return {
+    type: "ByteString",
+    value: Buffer.from([...bytes].reverse()).toString("base64"),
+  };
+}
+
+function listingStack(
+  id: number,
+  seller: string,
+  account: string,
+  price: number,
+  title: string,
+  metadataUri = "",
+) {
+  return {
+    type: "Struct",
+    value: [
+      integer(id),
+      hash160(AA_CORE),
+      hash160(account),
+      hash160(seller),
+      integer(price),
+      byteString(title),
+      byteString(metadataUri),
+      integer(1),
+      { type: "ByteString", value: "" },
+      integer(1_700_000_000),
+      integer(1_700_000_000),
+    ],
+  };
+}
+
+function rpcResponse(request: RpcRequest, stackItem: unknown, state = "HALT") {
+  return {
+    jsonrpc: "2.0",
+    id: request.id,
+    result: { state, stack: [stackItem] },
+  };
+}
+
+function mockRpc(
+  resolve: (request: RpcRequest) => ReturnType<typeof rpcResponse>,
+) {
+  return vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+    const payload = JSON.parse(String(init?.body)) as RpcRequest | RpcRequest[];
+    const body = Array.isArray(payload)
+      ? payload.map((request) => resolve(request))
+      : resolve(payload);
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   });
-
-  it("localizes listing status, with an unknown fallback", () => {
-    expect(statusLabel("active", t)).toBe("active");
-    expect(statusLabel("sold", t)).toBe("sold");
-    expect(statusLabel("cancelled", t)).toBe("cancelled");
-    expect(statusLabel("weird", t)).toBe("unknown");
-  });
-
-  it("renders contract timestamps as localized relative time", () => {
-    const now = Math.floor(Date.now() / 1000);
-    expect(relativeTime("0", t)).toBe("");
-    expect(relativeTime("", t)).toBe("");
-    expect(relativeTime(String(now - 10), t)).toBe("just now");
-    expect(relativeTime(String(now - 120), t)).toBe("2m ago");
-    expect(relativeTime(String(now - 7200), t)).toBe("2h ago");
-    expect(relativeTime(String(now - 172800), t)).toBe("2d ago");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Framework-lane behavior locks (Wave 5 migration): the market reads/writes
-// now ride app.chain (readRaw / enumerate / invoke / invokeMultiple). These
-// tests pin the user-visible contracts the raw wallet-sdk lane had — decoded
-// listing shapes, FAULT error branching, and the exact wallet payloads
-// (scopes-16 create signer, transfer-then-settle batch with the Any/null
-// transfer data argument).
-// ---------------------------------------------------------------------------
-
-const ADDRESS = "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
-const MY_HASH = addressToScriptHash(ADDRESS);
-const OTHER_SELLER = "0xaabbccddeeff00112233445566778899aabbccdd";
-const AA_CORE = "0x1234567890abcdef1234567890abcdef12345678";
-const ACCOUNT_1 = "0x0102030405060708090a0b0c0d0e0f1011121314";
-const ACCOUNT_2 = "0x14131211100f0e0d0c0b0a090807060504030201";
-const MARKET = "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf";
-
-/**
- * UInt160 ByteStrings reach the app from the parsed host lane as CHAIN-order
- * 0x-hex; the decoders must flip them back to the display order the raw lane
- * produced.
- */
-function chainOrderHex(displayHex: string): string {
-  const bare = displayHex.replace(/^0x/i, "");
-  let out = "";
-  for (let index = bare.length; index > 0; index -= 2) {
-    out += bare.slice(index - 2, index);
-  }
-  return `0x${out}`;
 }
 
 type MarketApp = Parameters<typeof listAddressListings>[0];
@@ -100,123 +121,155 @@ type MarketApp = Parameters<typeof listAddressListings>[0];
 function makeMarketApp(chainOverrides: Record<string, unknown> = {}) {
   const chain = {
     address: createObservable<string | null>(ADDRESS),
+    contractAddress: createObservable<string | null>(MARKET),
+    detectNetwork: vi.fn(async () => "testnet"),
     ensureWallet: vi.fn(async () => ADDRESS),
     read: vi.fn(async () => null),
-    invoke: vi.fn(async () => ({ txid: "0xinvoke", success: true })),
-    invokeWithPayment: vi.fn(async () => ({ txid: "0xpay", success: true })),
-    invokeMultiple: vi.fn(async () => ({ txid: "0xmulti", success: true })),
+    invoke: vi.fn(async () => ({ txid: INVOKE_TXID, success: true })),
+    invokeWithPayment: vi.fn(async () => ({ txid: INVOKE_TXID, success: true })),
+    invokeMultiple: vi.fn(async () => ({ txid: MULTI_TXID, success: true })),
     ...chainOverrides,
   };
   const notify = { success: vi.fn(), error: vi.fn() };
-  const ctx = {
+  const app = createMiniAppFramework({
     services: { chain, notify },
+    launchContext: { appId: "miniapp-aa-market-hub", network: "neo-n3-testnet" },
     t: (key: string) => key,
-  } as unknown as Parameters<typeof createMiniAppFramework>[0];
-  const app = createMiniAppFramework(ctx, { appId: "miniapp-aa-market-hub" });
+  } as never, { appId: "miniapp-aa-market-hub" });
   return { app: app as MarketApp, chain, notify };
 }
 
-/** Parsed getListing row in contract field order. */
-function listingRow(
-  id: number,
-  seller: string,
-  account: string,
-  price: number,
-  title: string,
-  metadataUri = "",
-): unknown[] {
-  return [
-    id,
-    chainOrderHex(AA_CORE),
-    chainOrderHex(account),
-    chainOrderHex(seller),
-    price,
-    title,
-    metadataUri,
-    1, // active
-    "", // unsold: empty buyer ByteString parses to ""
-    1700000000,
-    1700000000,
-  ];
-}
+afterEach(() => vi.restoreAllMocks());
 
-describe("AA Market Hub framework read lane", () => {
-  it("decodes parsed listing rows byte-identically to the raw-stack decoder", async () => {
-    const read = vi.fn(async (operation: string, args?: { value: unknown }[]) => {
-      if (operation === "getListingCount") return 2;
+describe("AA Market Hub display and amount helpers", () => {
+  it("pins the independent canonical market and AA Core pairs", () => {
+    expect(getDefaultMarketHash("mainnet")).toBe(
+      "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
+    );
+    expect(getDefaultMarketHash("testnet")).toBe(MARKET);
+    expect(getDefaultAAContractHash("mainnet")).toBe(
+      "0x0268a387913b250166ddec032b03332690a1ef78",
+    );
+    expect(getDefaultAAContractHash("testnet")).toBe(AA_CORE);
+  });
+
+  it("keeps GAS conversion integer-safe and enforces deployed price limits", () => {
+    expect(parseGasToFractions("0.01")).toBe("1000000");
+    expect(parseGasToFractions("1.50000001")).toBe("150000001");
+    expect(parseGasToFractions("1000")).toBe("100000000000");
+    expect(formatGasFractions("150000001")).toBe("1.50000001");
+    expect(() => parseGasToFractions("0.00999999")).toThrow(/0\.01 and 1000 GAS/);
+    expect(() => parseGasToFractions("1000.00000001")).toThrow(/0\.01 and 1000 GAS/);
+    expect(() => parseGasToFractions("1.000000001")).toThrow(/8 decimal/);
+  });
+
+  it("localizes listing status and contract timestamps", () => {
+    const now = Math.floor(Date.now() / 1000);
+    expect(statusLabel("active", t)).toBe("active");
+    expect(statusLabel("sold", t)).toBe("sold");
+    expect(statusLabel("cancelled", t)).toBe("cancelled");
+    expect(statusLabel("weird", t)).toBe("unknown");
+    expect(relativeTime("0", t)).toBe("");
+    expect(relativeTime(String(now - 120), t)).toBe("2m ago");
+  });
+});
+
+describe("AA Market Hub wallet-free discovery", () => {
+  it("decodes strict RPC rows newest-first without requiring a wallet", async () => {
+    const fetchSpy = mockRpc((request) => {
+      const [, operation, args] = request.params;
+      if (operation === "getListingCount") return rpcResponse(request, integer(2));
       if (operation === "getListing") {
-        return String(args?.[0]?.value) === "2"
-          ? listingRow(2, MY_HASH, ACCOUNT_2, 200000000, "My listing", "ipfs://meta")
-          : listingRow(1, OTHER_SELLER, ACCOUNT_1, 150000000, "Starter account");
+        const id = Number((args[0] as { value: string }).value);
+        return rpcResponse(request, id === 2
+          ? listingStack(2, MY_HASH, ACCOUNT_2, 200_000_000, "My listing", "ipfs://meta")
+          : listingStack(1, OTHER_SELLER, ACCOUNT_1, 150_000_000, "Starter account"));
       }
-      if (operation === "getPendingPaymentOf") {
-        return String(args?.[0]?.value) === "2" ? 25000000 : 0;
-      }
-      return null;
+      throw new Error(`Unexpected RPC operation: ${operation}`);
     });
-    const { app } = makeMarketApp({ read });
+    const { app } = makeMarketApp();
 
-    const result = await listAddressListings(app, MARKET, ADDRESS);
+    const result = await listAddressListings(app, MARKET);
 
-    expect(result.total).toBe(2);
-    expect(result.truncated).toBe(false);
-    // Newest-first ordering, same as the hand-rolled sort.
-    expect(result.listings.map((l) => l.id)).toEqual(["2", "1"]);
-
-    const [mine, other] = result.listings;
-    expect(mine).toMatchObject({
-      id: "2",
+    expect(result).toMatchObject({ total: 2, truncated: false, failedReads: 0, source: "chain" });
+    expect(result.listings.map((listing) => listing.id)).toEqual(["2", "1"]);
+    expect(result.listings[0]).toMatchObject({
       aaContractHash: AA_CORE,
       accountIdHash: ACCOUNT_2,
-      seller: MY_HASH.toLowerCase(),
-      buyer: "",
+      seller: MY_HASH,
       priceRaw: "200000000",
       priceGas: "2",
       title: "My listing",
       metadataUri: "ipfs://meta",
-      statusCode: 1,
       status: "active",
-      createdAt: "1700000000",
-      updatedAt: "1700000000",
-      myPendingPayment: "25000000",
-      isMine: true,
-    });
-    expect(other).toMatchObject({
-      id: "1",
-      seller: OTHER_SELLER,
-      priceGas: "1.5",
-      title: "Starter account",
+      pendingPaymentKnown: true,
       myPendingPayment: "0",
       isMine: false,
+      isCanonicalAA: true,
     });
-    // Bare display-order hex, exactly what the raw decoder exposed.
-    expect(mine.sellerScriptHash).toBe(MY_HASH.replace(/^0x/i, "").toLowerCase());
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the FAULTed count read on the error path (no silent empty board)", async () => {
-    // The parsed host lane renders a FAULTed read as null; the legacy lane
-    // threw the sanitized generic. The load flow must still reject so the
-    // loadListingsFailed toast branch fires.
-    const { app } = makeMarketApp({ read: vi.fn(async () => null) });
-    await expect(listAddressListings(app, MARKET, ADDRESS)).rejects.toThrow(
-      "Contract operation failed",
+  it("rejects a FAULTed count instead of presenting a fake empty board", async () => {
+    mockRpc((request) => rpcResponse(request, integer(0), "FAULT"));
+    const { app } = makeMarketApp();
+    await expect(listAddressListings(app, MARKET)).rejects.toThrow(
+      "AA market contract read failed",
     );
+  });
+
+  it("labels a partial board instead of silently pretending every row loaded", async () => {
+    mockRpc((request) => {
+      const [, operation, args] = request.params;
+      if (operation === "getListingCount") return rpcResponse(request, integer(2));
+      const id = Number((args[0] as { value: string }).value);
+      return id === 2
+        ? rpcResponse(request, listingStack(2, OTHER_SELLER, ACCOUNT_2, 200_000_000, "Visible"))
+        : rpcResponse(request, integer(0), "FAULT");
+    });
+    const { app } = makeMarketApp();
+
+    await expect(listAddressListings(app, MARKET)).resolves.toMatchObject({
+      total: 2,
+      failedReads: 1,
+      source: "partial",
+      listings: [{ id: "2" }],
+    });
+  });
+
+  it("marks a payer read unknown instead of converting an RPC failure into a trusted zero", async () => {
+    mockRpc((request) => {
+      const [, operation] = request.params;
+      if (operation === "getListingCount") return rpcResponse(request, integer(1));
+      if (operation === "getListing") {
+        return rpcResponse(request, listingStack(1, OTHER_SELLER, ACCOUNT_1, 150_000_000, "Starter"));
+      }
+      if (operation === "getPendingPaymentOf") return rpcResponse(request, integer(0), "FAULT");
+      throw new Error(`Unexpected RPC operation: ${operation}`);
+    });
+    const { app } = makeMarketApp();
+
+    const result = await listAddressListings(app, MARKET, ADDRESS);
+    expect(result.listings[0]).toMatchObject({
+      myPendingPayment: "0",
+      pendingPaymentKnown: false,
+    });
   });
 });
 
-describe("AA Market Hub framework write lane", () => {
-  it("creates listings with the scopes-16 allowedContracts escrow signer", async () => {
+describe("AA Market Hub direct-wallet writes", () => {
+  it("creates a canonical AA listing with the scoped escrow signer", async () => {
+    const onTransactionSent = vi.fn();
     const { app, chain } = makeMarketApp();
 
-    const result = await createAddressListing(app, MARKET, ADDRESS, {
+    await expect(createAddressListing(app, MARKET, ADDRESS, {
       aaContractHash: AA_CORE,
       accountIdHash: ACCOUNT_1,
       priceGas: "1.5",
       title: " Starter ",
       metadataUri: "",
-    });
+    }, { onTransactionSent })).resolves.toEqual({ txid: INVOKE_TXID });
 
-    expect(result).toEqual({ txid: "0xinvoke" });
     expect(chain.invoke).toHaveBeenCalledWith(
       "createListing",
       [
@@ -228,71 +281,74 @@ describe("AA Market Hub framework write lane", () => {
       ],
       {
         scriptHash: MARKET,
-        signers: [
-          {
-            account: ADDRESS,
-            scopes: 16,
-            allowedContracts: [MARKET, AA_CORE],
-          },
-        ],
+        signers: [{
+          account: ADDRESS,
+          scopes: 16,
+          allowedContracts: [MARKET, AA_CORE],
+        }],
+        notify: "silent",
+        onTransactionSent,
       },
     );
   });
 
-  it("buys via ONE transfer-then-settle batch with the Any/null transfer data arg", async () => {
+  it("buys atomically with Integer listingId as GAS transfer data", async () => {
+    const onTransactionSent = vi.fn();
     const { app, chain } = makeMarketApp();
-    const myHashNormalized = MY_HASH.toLowerCase();
 
-    const result = await buyAddressListing(
+    await expect(buyAddressListing(
       app,
       MARKET,
       ADDRESS,
       { id: "7", priceRaw: "150000000" },
-      {},
-    );
+      { onTransactionSent },
+    )).resolves.toEqual({ txid: MULTI_TXID });
 
-    expect(result).toEqual({ txid: "0xmulti" });
     expect(chain.invokeMultiple).toHaveBeenCalledTimes(1);
-    const [calls, options] = (chain.invokeMultiple as ReturnType<typeof vi.fn>)
-      .mock.calls[0] as [
-      { scriptHash: string; operation: string; args: unknown[] }[],
-      { signers?: unknown[] },
-    ];
-    expect(calls).toHaveLength(2);
-    expect(calls[0].operation).toBe("transfer");
-    expect(calls[0].args).toEqual([
-      { type: "Hash160", value: myHashNormalized },
-      { type: "Hash160", value: MARKET },
-      { type: "Integer", value: "150000000" },
-      { type: "Any", value: null },
+    const [calls, options] = (chain.invokeMultiple as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(calls).toEqual([
+      {
+        scriptHash: GAS_HASH,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: MY_HASH },
+          { type: "Hash160", value: MARKET },
+          { type: "Integer", value: "150000000" },
+          { type: "Integer", value: "7" },
+        ],
+      },
+      {
+        scriptHash: MARKET,
+        operation: "settleListing",
+        args: [
+          { type: "Integer", value: "7" },
+          { type: "Hash160", value: MY_HASH },
+          { type: "Hash160", value: MY_HASH },
+        ],
+      },
     ]);
-    expect(calls[1]).toEqual({
-      scriptHash: MARKET,
-      operation: "settleListing",
-      args: [
-        { type: "Integer", value: "7" },
-        { type: "Hash160", value: myHashNormalized },
-        { type: "Hash160", value: myHashNormalized },
-      ],
+    expect(options).toEqual({
+      signers: [{ account: ADDRESS, scopes: 1 }],
+      onTransactionSent,
     });
-    // The buy signer stays CalledByEntry (scopes 1); notify:'silent' is
-    // consumed by the framework and never reaches the host.
-    expect(options).toEqual({ signers: [{ account: ADDRESS, scopes: 1 }] });
   });
 
-  it("surfaces a FAULTed batch as a sanitized throw without toasting (silent lane)", async () => {
+  it("surfaces a FAULTed atomic batch without a false success toast", async () => {
     const { app, notify } = makeMarketApp({
       invokeMultiple: vi.fn(async () => ({
-        txid: "0x1",
+        txid: MULTI_TXID,
         state: "FAULT",
         exception: "listing not active",
       })),
     });
 
-    await expect(
-      buyAddressListing(app, MARKET, ADDRESS, { id: "7", priceRaw: "1" }, {}),
-    ).rejects.toThrow("listing not active");
-    // The buy operation owns the toast — the silent chain lane must not.
-    expect(notify.error).not.toHaveBeenCalled();
+    await expect(buyAddressListing(
+      app,
+      MARKET,
+      ADDRESS,
+      { id: "7", priceRaw: "150000000" },
+      {},
+    )).rejects.toThrow("listing not active");
+    expect(notify.success).not.toHaveBeenCalled();
   });
 });

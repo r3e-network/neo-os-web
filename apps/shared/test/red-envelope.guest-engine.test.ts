@@ -222,4 +222,29 @@ describe("red-envelope guest engine", () => {
     expect(board[0]?.score).toBeCloseTo(3.2, 6);
     expect(board[1]?.score).toBeCloseTo(1.5, 6);
   });
+
+  it("serializes local actions and cancels delayed writes when guest mode exits", async () => {
+    const h = setup();
+
+    h.engine.createEnvelope({ amount: "1", count: "8", expiryHours: "24" });
+    h.engine.createEnvelope({ amount: "5", count: "20", expiryHours: "72" });
+
+    expect(h.setStatus).toHaveBeenLastCalledWith("operationBusy", "info");
+    h.engine.leave();
+    await vi.advanceTimersByTimeAsync(LATENCY);
+
+    expect(h.isLoading.get()).toBe(false);
+    expect(h.envelopes.get()).toHaveLength(0);
+
+    await h.engine.enter();
+    const env = h.envelopes.get()[0]!;
+    h.engine.claimEnvelope(env.id);
+    h.engine.claimEnvelope(env.id);
+    expect(h.setStatus).toHaveBeenLastCalledWith("operationBusy", "info");
+
+    h.engine.destroy();
+    await vi.advanceTimersByTimeAsync(LATENCY);
+    expect(h.openingId.get()).toBeNull();
+    expect(h.claims.get()).toHaveLength(0);
+  });
 });

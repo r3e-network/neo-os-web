@@ -5,242 +5,243 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../oracle-neodid-console/src/PlayArea";
+import { messages } from "../../oracle-neodid-console/src/appConfig";
+import type {
+  NeoDidEvidenceSnapshot,
+  ProviderCatalogSnapshot,
+} from "../../oracle-neodid-console/src/neodid-console";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
 
-function t(key: string) {
-  const messages: Record<string, string> = {
-    buildRequest: "Build Request",
-    callbackOptional: "No callback",
-    callbackReadyHint: "Callback is optional and format-safe.",
-    callbackInvalid: "Callback must be a 0x hash160",
-    callbackInvalidHint: "Optional, but when present it must be a 0x hash160.",
-    callbackShort: "Callback",
-    callbackPlaceholder: "Optional callback contract hash",
-    claim: "Claim",
-    claimPlaceholder: "e.g. profile.kyc",
-    claimMissingHint: "Choose the claim type to verify.",
-    claimReadyHint: "Claim type is present.",
-    detailsLabel: "Details",
-    did: "DID",
-    didPlaceholder: "did:neo:testnet:sample-user",
-    didInvalid: "Enter a valid did:neo identifier",
-    didInvalidHint: "Use did:neo:<method-specific-id>.",
-    didReadyHint: "DID shape is ready for preview.",
-    digestPlaceholder: "No digest",
-    lastStatus: "Last Status",
-    neodidCatalogCopy: "Provider and claim options are examples.",
-    neodidCatalogTitle: "Review mode",
-    neodidBuildActive: "Building preview...",
-    neodidEmptyTitle: "No receipt yet",
-    neodidEmptyCopy: "Preview the request to see the digest.",
-    neodidFlowTitle: "NeoDID verification flow",
-    neodidIdentityTrackTitle: "Identity verification track",
-    neodidPlan: "Verification workspace",
-    neodidPlanCopy: "Build the request from identity context.",
-    neodidReceipt: "Verification receipt",
-    neodidSubjectTitle: "Identity subject",
-    neodidTrackClaim: "Claim",
-    neodidTrackProvider: "Provider",
-    neodidTrackReceipt: "Receipt",
-    neodidTrackSubject: "Subject",
-    neodidValidationReady: "Ready to preview",
-    panelEyebrow: "Oracle",
-    panelTitle: "NeoDID",
-    previewReady: "Preview ready",
-    providerRegistry: "NeoDID registry",
-    providerRegistryHint: "Registry-backed credential lookup",
-    providerShort: "Provider",
-    providerWallet: "Wallet signature",
-    providerWalletHint: "Wallet-controlled proof check",
-    providerSocial: "Social attestation",
-    providerSocialHint: "External attestation signal",
-    ready: "Ready",
-    reset: "Reset",
-    runAction: "Preview Verification",
-    statDigest: "Digest",
-    statEndpoint: "Mode",
-    statNetwork: "Network",
-    statRequests: "Requests",
-    statusReady: "Ready",
-    validationBlocked: "Validation blocked",
-  };
-  return messages[key] ?? key;
+type LocalizedMessage = { en: string; zh: string };
+const localized = messages as Record<string, LocalizedMessage>;
+
+function t(key: string, params: Record<string, string | number> = {}) {
+  let text = localized[key]?.en ?? key;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.replace(`{${name}}`, String(value));
+  }
+  return text;
 }
 
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
+const DID = "did:morpheus:neo_n3:service:neodid";
+const REGISTRY = "0xb81f31ea81e279793b30411b82c2e82078b63105";
+const CATALOG: ProviderCatalogSnapshot = {
+  endpoint: "/api/morpheus/neodid/providers?network=mainnet",
+  network: "mainnet",
+  status: "providers-returned",
+  source: "host-runtime",
+  warning: "",
+  providers: [{
+    id: "web3auth",
+    category: "identity",
+    aliases: ["w3a"],
+    authModes: ["aggregate_oauth", "mfa"],
+    claimTypes: ["Web3Auth_PrimaryIdentity", "Web3Auth_LinkedSocials"],
+    derivesProviderUidInTee: true,
+  }],
+  loadedAt: "2099-07-11T00:00:00.000Z",
+  raw: { providers: [{ id: "web3auth" }] },
+};
+
+const EVIDENCE: NeoDidEvidenceSnapshot = {
+  kind: "oracle.neodid.evidence",
+  formatVersion: 1,
+  network: "mainnet",
+  subject: DID,
+  createdAt: "2099-07-11T00:00:00.000Z",
+  expiresAt: "2099-07-11T00:15:00.000Z",
+  resolver: {
+    endpoint: `/api/morpheus/neodid/resolve?did=${encodeURIComponent(DID)}&network=mainnet`,
+    status: "document-returned",
+    contentType: "application/json",
+    snapshot: { didDocument: { id: DID } },
+  },
+  catalog: CATALOG,
+  registry: {
+    network: "mainnet",
+    status: "verified",
+    contract: REGISTRY,
+    contractName: "NeoDIDRegistry",
+    networkMagic: 860833102,
+    checkedAt: "2099-07-11T00:00:00.000Z",
+    reason: "verified-deployment",
+  },
+  didDocument: {
+    id: DID,
+    controller: [DID],
+    versionId: "unversioned",
+    anchorContract: REGISTRY,
+    serviceTypes: ["DIDResolutionService", "MorpheusOracleGateway"],
+    serviceCount: 4,
+    verificationMethodCount: 0,
+    runtimeVerifierMetadata: "unavailable",
+    oracleGateway: "declared",
+  },
+  context: {
+    requestedProvider: "web3auth",
+    requestedClaim: "Web3Auth_PrimaryIdentity",
+    matchedProviderId: "web3auth",
+    providerCategory: "identity",
+    matchedBy: "id",
+    status: "claim-listed",
+  },
+  boundaries: {
+    identityVerification: "not-performed",
+    claimAttestation: "not-performed",
+    signatureVerification: "not-performed",
+    oracleDispatch: "not-performed",
+    providerCatalog: "metadata-only",
+  },
+  digest: "ab".repeat(32),
+};
+
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
-    endpointLabel: "Preview",
-    lastDigest: "No digest",
-    lastStatus: "Ready",
-    networkLabel: "Mainnet",
+    network: "mainnet",
+    networkLabel: "Morpheus Mainnet",
+    endpointLabel: "Host resolver + provider catalog",
+    lastStatus: "Ready to resolve",
+    lastError: "",
+    lastDigest: "—",
+    evidenceStatus: "Not resolved",
+    registryStatus: "Not checked",
+    providerCount: 0,
     requestCount: 0,
-    ...o,
+    isResolving: false,
+    isCatalogLoading: false,
+    storageHealthy: true,
+    recoveryStatus: "",
+    recoveryForm: {
+      did: DID,
+      provider: "web3auth",
+      claim: "Web3Auth_PrimaryIdentity",
+    },
+    evidence: null,
+    providerCatalog: null,
+    registryProbe: null,
+    ...overrides,
   };
   return Object.fromEntries(
     Object.entries(base).map(([key, value]) => [key, createObservable(value)]),
   );
 }
 
-function playAreaStyles(app: string): string {
+function appFile(file: string) {
   const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
     ? path.resolve(process.cwd(), "..")
     : path.resolve(process.cwd(), "apps");
-  return readFileSync(path.join(appsRoot, app, "src/PlayArea.scss"), "utf8");
+  return readFileSync(path.join(appsRoot, "oracle-neodid-console", file), "utf8");
 }
 
-function playAreaSource(app: string): string {
-  const appsRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
-    ? path.resolve(process.cwd(), "..")
-    : path.resolve(process.cwd(), "apps");
-  return readFileSync(path.join(appsRoot, app, "src/PlayArea.tsx"), "utf8");
-}
+describe("Oracle NeoDID Console resource-led PlayArea", () => {
+  it("leads with the warm Oracle workspace and one foreground evidence object", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
-describe("oracle-neodid-console PlayArea (v2)", () => {
-  it("renders a clean identity workspace instead of a backdrop terminal", () => {
-    const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={vi.fn()} />,
-    );
-
-    expect(container.querySelector(".neodid-workspace")).toBeTruthy();
-    expect(container.querySelector(".neodid-request-card")).toBeTruthy();
-    expect(container.querySelectorAll(".neodid-track__item")).toHaveLength(4);
-    expect(container.querySelector(".neodid-stage-art img")?.getAttribute("src"))
-      .toBe("neodid-identity-stage.webp");
-    expect(container.querySelector(".oracle-console-scene__backdrop")).toBeNull();
-    expect(container.textContent).not.toContain("⚡");
+    expect(container.querySelector(".neodid-console-stage__art")?.getAttribute("src"))
+      .toContain("oracle-workspace-stage.webp");
+    expect(container.querySelector(".neodid-evidence-pass")).toBeTruthy();
+    expect(container.querySelector(".neodid-evidence-map")).toBeTruthy();
+    expect(container.querySelectorAll(".neodid-evidence-map__list > div")).toHaveLength(4);
+    expect(container.querySelector(".mx2-stage__scene input, .mx2-stage__scene select")).toBeNull();
+    expect(container.textContent).toContain("Identity not verified");
   });
 
-  it("keeps Preview Verification wired to the preview action", () => {
+  it("makes Resolve DID immediately usable with a resolver-supported default", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Preview Verification/ }));
-
-    expect(dispatch).toHaveBeenCalledWith("buildRequest", {
-      callback: "",
-      claim: "profile.kyc",
-      did: "did:neo:testnet:sample-user",
-      provider: "neodid-registry",
+    fireEvent.click(screen.getByRole("button", { name: "Resolve DID" }));
+    expect(dispatch).toHaveBeenCalledWith("resolveEvidence", {
+      did: DID,
+      provider: "web3auth",
+      claim: "Web3Auth_PrimaryIdentity",
     });
   });
 
-  it("keeps identity parameters in the drawer and dispatches the edited preview", () => {
+  it("keeps technical parameters in the secondary drawer and blocks an invalid DID", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={dispatch} />,
-    );
+    render(<PlayArea t={t} state={state({ providerCatalog: CATALOG, providerCount: 1 })} dispatch={dispatch} />);
 
-    expect(container.querySelector(".mx2-stage__scene input, .mx2-stage__scene textarea")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Inspect details" }));
+    const didInput = screen.getByLabelText("Morpheus NeoDID") as HTMLInputElement;
+    fireEvent.change(didInput, { target: { value: "did:web:example.com" } });
 
-    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
-    expect(container.querySelector(".neodid-drawer h4")).toBeNull();
-    expect(container.querySelector(".neodid-composer")).toBeTruthy();
-
-    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".neodid-composer input.semi-input"));
-    expect(inputs).toHaveLength(3);
-
-    fireEvent.change(inputs[0], { target: { value: "did:neo:testnet:merchant-42" } });
-    fireEvent.click(screen.getByText("Wallet signature"));
-    fireEvent.change(inputs[1], { target: { value: "profile.accredited" } });
-    fireEvent.change(inputs[2], { target: { value: "0x1234567890abcdef1234567890abcdef12345678" } });
-    fireEvent.click(screen.getByRole("button", { name: /Preview Verification/ }));
-
-    expect(container.textContent).toContain("Wallet-controlled proof check");
-    expect(container.textContent).not.toContain("Wallet signatureRegistry-backed credential lookup");
-    expect(dispatch).toHaveBeenCalledWith("buildRequest", {
-      callback: "0x1234567890abcdef1234567890abcdef12345678",
-      claim: "profile.accredited",
-      did: "did:neo:testnet:merchant-42",
-      provider: "wallet-signature",
-    });
+    const primary = screen.getByRole("button", { name: "Resolve DID" }) as HTMLButtonElement;
+    expect(primary.disabled).toBe(true);
+    expect(screen.getByText(/Use a supported did:morpheus:neo_n3/)).toBeTruthy();
+    fireEvent.click(primary);
+    expect(dispatch).not.toHaveBeenCalledWith("resolveEvidence", expect.anything());
   });
 
-  it("blocks malformed identity inputs before dispatching preview", () => {
+  it("shows exact evidence boundaries and exposes copy only after a matching result", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(
-      <PlayArea t={t} state={state()} dispatch={dispatch} />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /Details/ }));
-    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".neodid-composer input.semi-input"));
-    const primary = screen.getByRole("button", { name: /Preview Verification/ }) as HTMLButtonElement;
-
-    fireEvent.change(inputs[0], { target: { value: "did:web:example.com" } });
-    expect(primary.disabled).toBe(true);
-    expect(container.textContent).toContain("Enter a valid did:neo identifier");
-    fireEvent.click(primary);
-    expect(dispatch).not.toHaveBeenCalled();
-
-    fireEvent.change(inputs[0], { target: { value: "did:neo:testnet:merchant-42" } });
-    fireEvent.change(inputs[2], { target: { value: "0x1234" } });
-    expect(primary.disabled).toBe(true);
-    expect(container.textContent).toContain("Callback must be a 0x hash160");
-    fireEvent.click(primary);
-    expect(dispatch).not.toHaveBeenCalled();
-  });
-
-  it("surfaces digest state without turning art into the foreground", () => {
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({ lastDigest: "0x1234567890abcdef1234567890abcdef" })}
-        dispatch={vi.fn()}
+        state={state({
+          evidence: EVIDENCE,
+          providerCatalog: CATALOG,
+          providerCount: 1,
+          lastDigest: "ab12345678…12345678",
+          registryProbe: EVIDENCE.registry,
+          registryStatus: "Canonical deployment found",
+        })}
+        dispatch={dispatch}
       />,
     );
 
-    expect(container.querySelector(".neodid-workspace")?.getAttribute("data-state"))
-      .toBe("ready");
-    expect(container.textContent).toContain("0x1234567890ab...7890abcdef");
-    expect(container.querySelector(".neodid-stage-art")?.getAttribute("aria-hidden"))
-      .toBe("true");
+    expect(container.querySelector(".neodid-evidence-pass")?.getAttribute("data-ready")).toBe("true");
+    expect(container.textContent).toContain("Document returned — identity not verified");
+    expect(container.textContent).toContain("Provider and claim listed");
+    expect(container.textContent).toContain("Gateway declared in DID services");
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy evidence JSON" }));
+    expect(dispatch).toHaveBeenCalledWith("copyEvidence");
+
+    fireEvent.click(screen.getByRole("button", { name: "Inspect details" }));
+    expect(screen.getAllByText("Not performed")).toHaveLength(4);
+    expect(screen.getByTitle(EVIDENCE.digest)).toBeTruthy();
   });
 
-  it("keeps the scene scoped, clean, and motion-accessible", () => {
-    const styles = playAreaStyles("oracle-neodid-console");
-    const source = playAreaSource("oracle-neodid-console");
+  it("removes an expired snapshot from the active product surface", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const expired = {
+      ...EVIDENCE,
+      createdAt: "2000-01-01T00:00:00.000Z",
+      expiresAt: "2000-01-01T00:15:00.000Z",
+    };
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ evidence: expired, providerCatalog: CATALOG, registryProbe: expired.registry })}
+        dispatch={dispatch}
+      />,
+    );
 
+    expect(dispatch).toHaveBeenCalledWith("expireEvidence");
+    expect(container.querySelector(".neodid-evidence-pass")?.getAttribute("data-ready")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Copy evidence JSON" })).toBeNull();
+  });
+
+  it("uses scoped warm contrast, compact actions, responsive hierarchy, and reduced motion", () => {
+    const styles = appFile("src/PlayArea.scss");
+    const source = appFile("src/PlayArea.tsx");
+
+    expect(styles).toMatch(/--mx2-stage-floor:\s*#faf9f7/);
+    expect(styles).toMatch(/\.neodid-console-stage__art\s*\{[\s\S]*object-fit:\s*cover/);
+    expect(styles).toMatch(/\.neodid-evidence-pass\s*\{[\s\S]*background:\s*rgba\(255, 253, 248, 0\.95\)/);
+    expect(styles).toMatch(/\.mx2-btn--primary\s*\{[\s\S]*max-width:\s*188px/);
+    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-evidence-map__list\s*\{[\s\S]*grid-template-columns:\s*1fr/);
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(/animation-duration:\s*0\.001ms/);
-    expect(styles).toMatch(
-      /\.oracle-neodid-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/,
-    );
-    expect(styles).toMatch(
-      /\.oracle-neodid-play-area \.mx2-stage__scene\s*\{[\s\S]*background:\s*#ffffff/,
-    );
-    expect(styles).toMatch(/\.neodid-stage-art\s*\{[\s\S]*background:\s*#eef8ff/);
-    expect(styles).toMatch(/\.neodid-stage-art\s*\{[\s\S]*padding:\s*0/);
-    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*position:\s*absolute/);
-    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*inset:\s*0/);
-    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*object-position:\s*center bottom/);
-    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*opacity:\s*1/);
-    expect(styles).toMatch(/\.neodid-stage-art img\s*\{[\s\S]*filter:\s*saturate\(1\.08\) contrast\(1\.03\)/);
-    expect(styles).toMatch(/\.neodid-stage-art::after\s*\{[\s\S]*content:\s*none/);
-    expect(styles).toMatch(/\.neodid-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.neodid-provider-switch__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/\.neodid-composer__grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(230px,\s*0\.9fr\)/);
-    expect(styles).toMatch(/\.neodid-input \.semi-input\s*\{[\s\S]*height:\s*42px/);
-    expect(source).toContain("if (!formatReady) return;");
-    expect(source).toContain("disabled: !formatReady || actionPreview");
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-request-card__copy\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-track\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-track__item strong\s*\{[\s\S]*white-space:\s*normal/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-track__item small\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-stage-art\s*\{[\s\S]*display:\s*grid/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-stage-art\s*\{[\s\S]*height:\s*112px/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-catalog-card__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-catalog-card__facts dd\s*\{[\s\S]*white-space:\s*normal/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-route-card\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-provider-switch__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.neodid-composer__grid,[\s\S]*\.neodid-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*1fr/);
-    expect(styles).toMatch(/@media \(max-width:\s*640px\)[\s\S]*\.oracle-neodid-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(styles).not.toMatch(/\.neodid-stage-art img\s*\{[\s\S]*opacity:\s*0\.34/);
-    expect(styles).not.toMatch(/AI-generated scene backdrop/);
-    expect(styles).not.toMatch(/__backdrop/);
-    expect(styles).not.toMatch(/\.tool-scene__backdrop/);
-    expect(styles).not.toMatch(/oracle-console-scene__icon/);
+    expect(source).toContain("oracle-workspace-stage.webp");
+    expect(source).toContain('dispatchSafely("resolveEvidence", form)');
+    expect(source).toContain(".catch(() => undefined)");
+    expect(source).not.toMatch(/neodid-identity-stage|neodid-scene-art|useTransientFlag|callback/);
+    expect(source).not.toContain("Preview Verification");
+    expect(source).not.toMatch(/[⚡🎮🎲🔮]/u);
   });
 });

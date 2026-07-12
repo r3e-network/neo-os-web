@@ -37,23 +37,25 @@ defineMiniApp({
     // NEO.balanceOf(agentAccount) via app.wallet's arbitrary-address lane. This
     // turns the blind Move-NEO form into one where the operator sees source
     // balances.
-    const agentBalances = createObservable<Record<string, number>>({});
+    const agentBalances = createObservable<Record<string, number | null>>({});
     const loadAgentBalances = async () => {
       const live = anchor.agents.get();
       if (live.length === 0) return;
       try {
         const entries = await Promise.all(
           live.map(async (agent) => {
-            if (!agent.account) return [agent.account, 0] as const;
+            if (!agent.account) return [agent.account, null] as const;
             try {
               const balance = await ctx.framework.wallet.balance("NEO", agent.account);
               return [agent.account, balance] as const;
             } catch {
-              return [agent.account, 0] as const;
+              // A failed advisory read is unknown, not a zero balance. Keeping
+              // it nullable avoids falsely blocking a valid operator route.
+              return [agent.account, null] as const;
             }
           }),
         );
-        const next: Record<string, number> = {};
+        const next: Record<string, number | null> = {};
         for (const [account, balance] of entries) {
           if (account) next[account] = balance;
         }
@@ -63,18 +65,25 @@ defineMiniApp({
       }
     };
     const totalNeoDisplay = createDerived(
-      () => `${formatNum(anchor.stats.get()?.totalStaked ?? 0)} NEO`,
+      () => {
+        const stats = anchor.stats.get();
+        return stats ? `${formatNum(stats.totalStaked)} NEO` : "—";
+      },
       [anchor.stats],
     );
     const reserveDisplay = createDerived(
-      () => `${formatNum(anchor.stats.get()?.rewardReserve ?? 0)} GAS`,
+      () => {
+        const stats = anchor.stats.get();
+        return stats ? `${formatNum(stats.rewardReserve)} GAS` : "—";
+      },
       [anchor.stats],
     );
     const selectedAgentDisplay = createDerived(
-      () =>
-        anchor.stats.get()?.selectedAgentId
-          ? `#${anchor.stats.get()?.selectedAgentId}`
-          : ctx.t("noneFallback"),
+      () => {
+        const stats = anchor.stats.get();
+        if (!stats) return "—";
+        return stats.selectedAgentId ? `#${stats.selectedAgentId}` : ctx.t("noneFallback");
+      },
       [anchor.stats],
     );
     const agentCountDisplay = createDerived(
@@ -83,12 +92,13 @@ defineMiniApp({
         // Only fall back to the static roster size before stats load
         // (undefined). A real on-chain count of 0 must render as 0, not be
         // masked by the 21-entry static array via a falsy-OR.
+        const liveCount = anchor.agents.get().length;
         const count = Number.isFinite(onChainCount)
           ? (onChainCount as number)
-          : agentAccounts.length;
+          : (liveCount || agentAccounts.length);
         return `${count} / 21`;
       },
-      [anchor.stats],
+      [anchor.stats, anchor.agents],
     );
     // On-chain agent directory (ground truth) with the static roster as a
     // pre-load fallback so the directory is never empty on first paint. Live
@@ -104,9 +114,16 @@ defineMiniApp({
             neoBalance: agent.account ? (balances[agent.account] ?? null) : null,
           }));
         }
+        // The configured 21-agent directory remains a degraded topology when
+        // the live read is empty or unavailable. It is never treated as
+        // verified chain state; `agentsLive` keeps all writes fail-closed.
         return agentAccounts.map((agent) => ({ ...agent }));
       },
       [anchor.agents, agentBalances],
+    );
+    const agentsLive = createDerived<boolean>(
+      () => anchor.agents.get().length > 0,
+      [anchor.agents],
     );
     // Admin-role state: null while loading, true/false once admin() + getAppAdmin
     // resolve. Drives the read-only banner for non-operators.
@@ -158,6 +175,7 @@ defineMiniApp({
       state: {
         stats: anchor.stats,
         agentAccounts: agentDirectory as Observable,
+        agentsLive,
         totalNeoDisplay,
         reserveDisplay,
         selectedAgentDisplay,

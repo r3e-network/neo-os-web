@@ -1,31 +1,37 @@
-/**
- * PlayArea.tsx - Oracle Compute Lab.
- *
- * Clean task desk: the compute package is the foreground, while the generated
- * art is kept as a small supporting resource preview instead of a full backdrop.
- */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  Braces,
-  CheckCircle2,
+  ArrowRight,
+  Boxes,
+  CircleSlash2,
+  Copy,
   Cpu,
-  Eye,
+  FileJson2,
+  FileUp,
   Fingerprint,
+  LockKeyhole,
   Network,
   ShieldCheck,
-  type LucideIcon,
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
-import { useTransientFlag } from "@shared/components-react";
 import type { ObservableState } from "@shared/react/context";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import {
-  OpenUiPanel,
-  OpenUiProvider,
-  OpenUiSegmented,
-  OpenUiTextArea,
-  PlayStage,
-} from "@shared/components-react/v2";
-import { consoleConfig, appMeta } from "./appConfig";
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextArea as OpenUiTextArea,
+} from "@shared/components-react/v2/OpenUiLite";
+import {
+  appMeta,
+  DEFAULT_COMPUTE_SOURCE,
+  DISCLOSURE_OPTIONS,
+  PROFILE_OPTIONS,
+} from "./appConfig";
+import {
+  inspectComputeSource,
+  type ComputeProfile,
+  type SourceDisclosure,
+} from "./compute-workbench";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
@@ -34,422 +40,344 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-interface PipelineItem {
-  key: string;
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  detail: string;
-  active?: boolean;
+type DrawerMode = "source" | "package" | "route";
+
+const COMPUTE_STAGE_IMAGE = new URL(
+  "../public/compute-privacy-stage.webp",
+  import.meta.url,
+).href;
+
+function compactDigest(value: string, fallback: string): string {
+  const digest = String(value || "").trim();
+  if (!digest) return fallback;
+  if (digest.length <= 34) return digest;
+  return `${digest.slice(0, 18)}…${digest.slice(-12)}`;
 }
 
-const COMPUTE_STAGE_IMAGE = new URL("../public/compute-privacy-stage.webp", import.meta.url).href;
-type DrawerMode = "receipt" | "route" | "payload";
-const WORKFLOW_HINT_KEYS: Record<string, string> = {
-  "risk-score": "workflowRiskHint",
-  "proof-check": "workflowProofHint",
-  "batch-transform": "workflowBatchHint",
-};
-
-function defaultFieldValue(key: string): string {
-  const field = consoleConfig.fields.find((item) => item.key === key);
-  return String(field?.defaultValue ?? "");
-}
-
-function optionLabel(
-  fieldKey: string,
+function optionText(
+  options: Array<{ value: string; labelKey: string; hintKey: string }>,
   value: string,
-  t: (key: string, p?: Record<string, string | number>) => string,
+  key: "labelKey" | "hintKey",
+  t: PlayAreaProps["t"],
 ): string {
-  const field = consoleConfig.fields.find((item) => item.key === fieldKey);
-  const option = field?.options?.find((item) => item.value === value);
-  if (option?.labelKey) return t(option.labelKey);
-  if (option?.label) return option.label;
-  return value || t("notAvailable");
+  const option = options.find((candidate) => candidate.value === value) ?? options[0];
+  return option ? t(option[key]) : value;
 }
 
-function compactDigest(value: string, placeholder: string): string {
-  const text = String(value || "").trim();
-  if (!text || text === placeholder) return placeholder;
-  if (text.length <= 28) return text;
-  return `${text.slice(0, 14)}...${text.slice(-10)}`;
-}
-
-function compactPayload(value: string): string {
-  const text = String(value || "").trim();
-  if (!text) return "{}";
-  if (text.length <= 72) return text;
-  return `${text.slice(0, 42)}...${text.slice(-20)}`;
-}
-
-function isValidJson(value: string): boolean {
-  try {
-    JSON.parse(value);
-    return true;
-  } catch {
-    return false;
+function shapeText(shape: string, t: PlayAreaProps["t"]): string {
+  if (shape.startsWith("object:")) {
+    const keys = shape.slice("object:".length);
+    return t("sourceShapeObject", { keys: keys === "empty" ? "—" : keys.replaceAll(",", " · ") });
   }
+  if (shape.startsWith("array:")) {
+    return t("sourceShapeArray", { count: shape.slice("array:".length) });
+  }
+  return t("sourceShapeValue");
+}
+
+function sourceErrorText(
+  inspection: ReturnType<typeof inspectComputeSource>,
+  t: PlayAreaProps["t"],
+): string {
+  if (inspection.valid) return "";
+  if (inspection.error === "source_required") return t("sourceRequired");
+  if (inspection.error === "source_too_large") return t("sourceTooLarge");
+  if (inspection.error === "source_too_deep") return t("sourceTooDeep");
+  if (inspection.error === "source_unsafe_number") return t("sourceUnsafeNumber");
+  return t("sourceInvalidJson");
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, num } = useStateBindings(state);
-  const networkLabel = str("networkLabel");
-  const endpointLabel = str("endpointLabel");
-  const lastStatus = str("lastStatus", t("statusReady"));
-  const digestPlaceholder = t("digestPlaceholder");
-  const lastDigest = str("lastDigest", digestPlaceholder);
+  const { str, num, bool } = useStateBindings(state);
+  const [profile, setProfile] = useState<ComputeProfile>("risk-signal");
+  const [disclosure, setDisclosure] = useState<SourceDisclosure>("digest-only");
+  const [source, setSource] = useState(DEFAULT_COMPUTE_SOURCE);
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("source");
+
+  const inspection = useMemo(() => inspectComputeSource(source), [source]);
+  const packageState = str("packageState", "draft");
+  const isPreparing = bool("isPreparing");
+  const requestDigest = str("requestDigest");
+  const inputDigest = str("inputDigest");
+  const requestPackage = str("requestPackage");
   const requestCount = num("requestCount");
+  const lastStatus = str("lastStatus", t("statusReady"));
+  const networkLabel = str("networkLabel", appMeta.networkLabel);
+  const endpointLabel = str("endpointLabel", appMeta.endpointLabel);
+  const runtimeBaseUrl = str("runtimeBaseUrl", appMeta.runtimeBaseUrl);
+  const oracleContract = str("oracleContract", appMeta.oracleContract);
+  const envelopeVersion = str("envelopeVersion", appMeta.envelopeVersion);
+  const workflow = str("workflow", appMeta.workflow);
+  const route = str("route", appMeta.route);
+  const policiesLabel = str("policiesLabel", appMeta.policiesLabel);
+  const teeRequired = bool("teeRequired");
+  const deliveryMode = str("deliveryMode", appMeta.deliveryMode);
+  const requestDigestScope = str("requestDigestScope", appMeta.requestDigestScope);
+  const packageReady = packageState === "ready" && Boolean(requestPackage);
+  const sourceError = sourceErrorText(inspection, t);
 
-  // Shared transient "previewing" pulse (console kernel §S14) — replaces the
-  // hand-rolled useState + timeout-ref + unmount-cleanup trio.
-  const previewFlag = useTransientFlag(1200);
-  const actionPreview = previewFlag.active;
-  const [drawerMode, setDrawerMode] = useState<DrawerMode>("receipt");
-  const [workflow, setWorkflow] = useState(defaultFieldValue("workflow") || "risk-score");
-  const [privacy, setPrivacy] = useState(defaultFieldValue("privacy") || "sealed");
-  const [inputPayload, setInputPayload] = useState(defaultFieldValue("input") || "{}");
-
-  const handleBuild = () => {
-    previewFlag.trigger();
-    void dispatch("buildRequest", { workflow, privacy, input: inputPayload });
+  const dispatchSafely = (name: string, ...args: unknown[]) => {
+    void dispatch(name, ...args).catch(() => undefined);
   };
 
-  const inputReady = isValidJson(inputPayload);
-  const workflowLabel = optionLabel("workflow", workflow, t);
-  const privacyLabel = optionLabel("privacy", privacy, t);
-  const workflowOptions = consoleConfig.fields.find((field) => field.key === "workflow")?.options ?? [];
-  const privacyOptions = consoleConfig.fields.find((field) => field.key === "privacy")?.options ?? [];
-  const capsuleModeLabel = t("computePreviewOnly");
-  const digestReady = Boolean(lastDigest && lastDigest !== digestPlaceholder);
-  const visibleDigest = compactDigest(lastDigest, digestPlaceholder);
-  const pipelineStatus = actionPreview
-    ? t("computePipelineReady")
-    : digestReady
-      ? t("computePipelineBuilt")
-      : inputReady
-        ? t("computePipelineReady")
-        : t("computePipelineDraft");
-  const primaryLabel = actionPreview
-    ? t("computeBuildActive")
-    : t(consoleConfig.primaryActionKey || "buildRequest");
-  const inputVisibility = privacy === "public" ? t("inputPublic") : t("inputRedacted");
-  const inputVisibilityCopy = privacy === "public"
-    ? t("computeInputPublicCopy")
-    : t("computeInputSealedCopy");
-  const payloadPreview = privacy === "public" ? compactPayload(inputPayload) : t("inputRedacted");
-  const drawerModes: Array<{ id: DrawerMode; label: string; value: string }> = [
-    { id: "receipt", label: t("computeReceipt"), value: visibleDigest },
-    { id: "route", label: t("computeDrawerRouteTitle"), value: endpointLabel || appMeta.endpointLabel },
-    { id: "payload", label: t("computeInputTitle"), value: t("computeInputBytes", { count: inputPayload.length }) },
-  ];
-  const setDrawerModeSafe = (mode: string) => {
-    if (drawerModes.some((item) => item.id === mode)) setDrawerMode(mode as DrawerMode);
+  const invalidatePrepared = () => {
+    // Always invalidate on edit. Observable updates can render one frame after
+    // a hash starts, so checking a captured packageState here can otherwise let
+    // the old result land after the user has already changed the source.
+    dispatchSafely("invalidateRequest");
   };
 
-  const pipeline: PipelineItem[] = [
-    {
-      key: "workflow",
-      icon: Cpu,
-      label: t("computePipelineWorkflow"),
-      value: workflowLabel,
-      detail: t(WORKFLOW_HINT_KEYS[workflow] ?? "workflowRiskHint"),
-      active: true,
-    },
-    {
-      key: "privacy",
-      icon: ShieldCheck,
-      label: t("computePipelinePrivacy"),
-      value: privacyLabel,
-      detail:
-        privacy === "public" ? t("privacyPublicHint") : t("privacySealedHint"),
-      active: privacy !== "public",
-    },
-    {
-      key: "input",
-      icon: Braces,
-      label: t("computePipelineInput"),
-      value: inputReady ? t("yes") : t("no"),
-      detail: inputReady ? t("computeInputReadyHint") : t("computeInputInvalidHint"),
-      active: inputReady,
-    },
-    {
-      key: "digest",
-      icon: Fingerprint,
-      label: t("computePipelineDigest"),
-      value: visibleDigest,
-      detail: digestReady ? lastDigest : t("computeEmptyCopy"),
-      active: digestReady,
-    },
-  ];
+  const updateProfile = (value: string) => {
+    if (!PROFILE_OPTIONS.some((option) => option.value === value)) return;
+    invalidatePrepared();
+    setProfile(value as ComputeProfile);
+  };
+
+  const updateDisclosure = (value: string) => {
+    if (!DISCLOSURE_OPTIONS.some((option) => option.value === value)) return;
+    invalidatePrepared();
+    setDisclosure(value as SourceDisclosure);
+  };
+
+  const updateSource = (value: string) => {
+    invalidatePrepared();
+    setSource(value);
+  };
+
+  const prepareRequest = () => {
+    if (!inspection.valid || isPreparing) return;
+    dispatchSafely("prepareRequest", { profile, disclosure, source });
+  };
+
+  const profileHint = optionText(PROFILE_OPTIONS, profile, "hintKey", t);
+  const disclosureLabel = optionText(DISCLOSURE_OPTIONS, disclosure, "labelKey", t);
+  const disclosureHint = optionText(DISCLOSURE_OPTIONS, disclosure, "hintKey", t);
+  const visibleRequestDigest = compactDigest(requestDigest, t("noDigest"));
+  const visibleInputDigest = compactDigest(inputDigest, t("noDigest"));
 
   const scene = (
-    <div
-      className="oracle-compute-desk"
-      data-state={actionPreview ? "building" : digestReady ? "ready" : "idle"}
-    >
-      <section className="compute-request-card" aria-label={t("computePlan")}>
-        <header className="compute-request-card__head">
-          <span className="compute-request-card__icon" aria-hidden="true">
-            <Cpu size={22} strokeWidth={2.3} />
+    <div className="compute-workbench" data-state={packageState}>
+      <section className="compute-source-stage" aria-labelledby="compute-source-stage-title">
+        <figure className="compute-source-stage__visual">
+          <img src={COMPUTE_STAGE_IMAGE} alt={t("sourceImageAlt")} loading="eager" decoding="async" />
+          <figcaption className="compute-source-stage__badge" data-disclosure={disclosure}>
+            {disclosure === "digest-only"
+              ? <LockKeyhole size={15} strokeWidth={2.35} aria-hidden="true" />
+              : <FileUp size={15} strokeWidth={2.35} aria-hidden="true" />}
+            {disclosure === "digest-only" ? t("sourceLocalBadge") : t("sourcePublicBadge")}
+          </figcaption>
+        </figure>
+        <div className="compute-source-stage__copy">
+          <span className="compute-section-icon" aria-hidden="true">
+            <FileJson2 size={19} strokeWidth={2.25} />
           </span>
           <div>
-            <span>{t("computePipelineKicker")}</span>
-            <strong>{lastStatus}</strong>
+            <span>{t("sourceStageTitle")}</span>
+            <strong id="compute-source-stage-title">{t("sourceStageCopy")}</strong>
           </div>
-          <span className="compute-request-card__badge">
-            <span className="compute-status-dot" />
-            {pipelineStatus}
-          </span>
-        </header>
-
-        <p className="compute-request-card__copy">{t("computePlanCopy")}</p>
-
-        <div className="compute-control-deck" aria-label={t("computeControlsLabel")}>
-          <section className="compute-choice-panel" aria-label={t("workflow")}>
-            <div className="compute-choice-panel__head">
-              <Cpu size={15} strokeWidth={2.35} aria-hidden="true" />
-              <span>{t("computeWorkflowTitle")}</span>
-            </div>
-            <OpenUiSegmented
-              className="compute-option-grid"
-              segmentedClassName="compute-option-grid__group"
-              label={t("workflow")}
-              value={workflow}
-              onChange={setWorkflow}
-              options={workflowOptions.map((option) => ({
-                value: option.value,
-                label: (
-                  <span className="compute-option-card">
-                    <strong>{optionLabel("workflow", option.value, t)}</strong>
-                    <small>{t(WORKFLOW_HINT_KEYS[option.value] ?? "workflowRiskHint")}</small>
-                  </span>
-                ),
-              }))}
-            />
-          </section>
-
-          <section className="compute-choice-panel" aria-label={t("privacy")}>
-            <div className="compute-choice-panel__head">
-              <ShieldCheck size={15} strokeWidth={2.35} aria-hidden="true" />
-              <span>{t("computePrivacyTitle")}</span>
-            </div>
-            <OpenUiSegmented
-              className="compute-privacy-switch"
-              segmentedClassName="compute-privacy-switch__group"
-              label={t("privacy")}
-              value={privacy}
-              onChange={setPrivacy}
-              options={privacyOptions.map((option) => {
-                const Icon = option.value === "public" ? Eye : ShieldCheck;
-                return {
-                  value: option.value,
-                  label: (
-                    <span className="compute-privacy-card">
-                      <Icon size={16} strokeWidth={2.35} aria-hidden="true" />
-                      <span>
-                        <strong>{optionLabel("privacy", option.value, t)}</strong>
-                        <small>{option.value === "public" ? t("privacyPublicHint") : t("privacySealedHint")}</small>
-                      </span>
-                    </span>
-                  ),
-                };
-              })}
-            />
-          </section>
-
-          <section
-            className="compute-payload-card"
-            data-valid={inputReady ? "true" : "false"}
-            data-visibility={privacy}
-          >
-            <div className="compute-payload-card__head">
-              <span>
-                <Braces size={15} strokeWidth={2.35} aria-hidden="true" />
-                {t("computeInputTitle")}
-              </span>
-              <strong>{inputVisibility}</strong>
-            </div>
-            <div className="compute-payload-card__preview">
-              <span>{t("computeVisibility")}</span>
-              <code>{payloadPreview}</code>
-            </div>
-            <div className="compute-payload-card__metric">
-              <span>{t("computeInputBytes", { count: inputPayload.length })}</span>
-              <strong>{inputReady ? t("yes") : t("no")}</strong>
-            </div>
-            <small>{inputReady ? t("computeInputReadyHint") : t("computeInputInvalidHint")}</small>
-          </section>
-        </div>
-
-        <div className="compute-pipeline" aria-label={t("computePipelineLabel")}>
-          {pipeline.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article
-                key={item.key}
-                className="compute-pipeline__item"
-                data-active={item.active ? "true" : "false"}
-              >
-                <span className="compute-pipeline__icon" aria-hidden="true">
-                  <Icon size={17} strokeWidth={2.35} />
-                </span>
-                <span className="compute-pipeline__label">{item.label}</span>
-                <strong>{item.value}</strong>
-                <small>{item.detail}</small>
-              </article>
-            );
-          })}
-        </div>
-
-        <div className="compute-receipt-strip" aria-label={t("computeReceipt")}>
-          <span>{t("statDigest")}</span>
-          <code>{visibleDigest}</code>
         </div>
       </section>
 
-      <aside className="compute-side-panel" aria-label={t("computeCapsuleTitle")}>
-        <figure className="compute-stage-art" aria-hidden="true">
-          <img src={COMPUTE_STAGE_IMAGE} alt="" loading="eager" decoding="async" />
-        </figure>
-
-        <section className="compute-capsule-card">
-          <div className="compute-capsule-card__head">
-            <span className="compute-capsule-card__icon" aria-hidden="true">
-              <CheckCircle2 size={18} strokeWidth={2.35} />
-            </span>
-            <div>
-              <span>{t("computeCapsuleTitle")}</span>
-              <strong>{t("computeVisibility")}: {privacyLabel}</strong>
-            </div>
+      <section className="compute-policy-board" aria-label={t("policyTitle")}>
+        <header className="compute-policy-board__head">
+          <div>
+            <span>{t("policyTitle")}</span>
+            <strong>{lastStatus}</strong>
           </div>
-          <p>{t("computeCapsuleCopy")}</p>
-          <dl className="compute-capsule-card__facts">
-            <div>
-              <dt>{t("statRequests")}</dt>
-              <dd>{requestCount}</dd>
-            </div>
-            <div>
-              <dt>{t("statEndpoint")}</dt>
-              <dd>{capsuleModeLabel}</dd>
-            </div>
-            <div>
-              <dt>{t("statNetwork")}</dt>
-              <dd>{networkLabel || appMeta.networkLabel}</dd>
-            </div>
-          </dl>
-        </section>
+          <span className="compute-policy-board__state" data-ready={inspection.valid ? "true" : "false"}>
+            {inspection.valid ? t("sourceValid") : t("sourceNeedsFix")}
+          </span>
+        </header>
 
-        <section className="compute-route-card" aria-label={t("computePipelineLabel")}>
-          <Network size={17} strokeWidth={2.35} aria-hidden="true" />
-          <span>{t("statEndpoint")}</span>
-          <strong>{endpointLabel || appMeta.endpointLabel}</strong>
-        </section>
-      </aside>
+        <article className="compute-source-ticket" data-valid={inspection.valid ? "true" : "false"}>
+          <span className="compute-source-ticket__icon" aria-hidden="true">
+            <FileJson2 size={18} strokeWidth={2.25} />
+          </span>
+          <div>
+            <span>{t("sourceJson")}</span>
+            <strong>{inspection.valid ? shapeText(inspection.shape, t) : t("sourceNeedsFix")}</strong>
+          </div>
+          <small>{t("sourceBytes", { count: inspection.byteLength })}</small>
+        </article>
+        {sourceError && <p className="compute-source-error" role="alert">{sourceError}</p>}
+
+        <div className="compute-policy-control">
+          <div className="compute-policy-control__label">
+            <Cpu size={15} strokeWidth={2.25} aria-hidden="true" />
+            <span>{t("profileLabel")}</span>
+          </div>
+          <OpenUiSegmented
+            className="compute-profile-switch"
+            segmentedClassName="compute-profile-switch__group"
+            label={t("profileLabel")}
+            value={profile}
+            onChange={updateProfile}
+            options={PROFILE_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.labelKey),
+            }))}
+          />
+          <small>{profileHint}</small>
+        </div>
+
+        <div className="compute-policy-control compute-policy-control--disclosure">
+          <div className="compute-policy-control__label">
+            <ShieldCheck size={15} strokeWidth={2.25} aria-hidden="true" />
+            <span>{t("disclosureLabel")}</span>
+          </div>
+          <OpenUiSegmented
+            className="compute-disclosure-switch"
+            segmentedClassName="compute-disclosure-switch__group"
+            label={t("disclosureLabel")}
+            value={disclosure}
+            onChange={updateDisclosure}
+            options={DISCLOSURE_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.labelKey),
+            }))}
+          />
+          <small>{disclosureHint}</small>
+        </div>
+
+        <article className="compute-package-ticket" data-ready={packageReady ? "true" : "false"}>
+          <span className="compute-package-ticket__icon" aria-hidden="true">
+            <Fingerprint size={19} strokeWidth={2.25} />
+          </span>
+          <div>
+            <span>{t("packageDigestLabel")}</span>
+            <code>{visibleRequestDigest}</code>
+          </div>
+          <strong>{packageReady ? t("flowPrepared") : t("flowDraft")}</strong>
+        </article>
+      </section>
+
+      <ol className="compute-flow" aria-label={t("flowLabel")}>
+        <li data-complete={inspection.valid ? "true" : "false"}>
+          <span>01</span>
+          <div><strong>{t("flowSource")}</strong><small>{inspection.valid ? t("flowReady") : t("flowDraft")}</small></div>
+        </li>
+        <ArrowRight className="compute-flow__arrow" size={17} aria-hidden="true" />
+        <li data-complete="true">
+          <span>02</span>
+          <div><strong>{t("flowPolicy")}</strong><small>{disclosureLabel}</small></div>
+        </li>
+        <ArrowRight className="compute-flow__arrow" size={17} aria-hidden="true" />
+        <li data-complete={packageReady ? "true" : "false"}>
+          <span>03</span>
+          <div><strong>{t("flowPackage")}</strong><small>{packageReady ? t("flowPrepared") : t("flowDraft")}</small></div>
+        </li>
+        <ArrowRight className="compute-flow__arrow" size={17} aria-hidden="true" />
+        <li data-boundary="true">
+          <span>04</span>
+          <div><strong>{t("flowBoundary")}</strong><small>{t("flowNotRun")}</small></div>
+        </li>
+      </ol>
+
+      <section className="compute-runtime-boundary" aria-labelledby="compute-runtime-boundary-title">
+        <span className="compute-runtime-boundary__icon" aria-hidden="true">
+          <CircleSlash2 size={22} strokeWidth={2.2} />
+        </span>
+        <div className="compute-runtime-boundary__copy">
+          <span>{t("boundaryTitle")}</span>
+          <strong id="compute-runtime-boundary-title">{t("boundaryHeadline")}</strong>
+          <p>{t("boundaryCopy")}</p>
+        </div>
+        <dl className="compute-runtime-boundary__facts">
+          <div><dt>{t("boundaryResult")}</dt><dd>{t("unavailable")}</dd></div>
+          <div><dt>{t("boundaryProof")}</dt><dd>{t("unavailable")}</dd></div>
+          <div><dt>{t("boundaryAttestation")}</dt><dd>{t("unavailable")}</dd></div>
+        </dl>
+        <small className="compute-runtime-boundary__recovery">{t("boundaryRecovery")}</small>
+      </section>
     </div>
   );
+
+  const drawerModes: Array<{ value: DrawerMode; label: string }> = [
+    { value: "source", label: t("drawerSource") },
+    { value: "package", label: t("drawerPackage") },
+    { value: "route", label: t("drawerRoute") },
+  ];
 
   const drawer = (
     <div className="compute-drawer">
       <OpenUiSegmented
         className="compute-drawer__switcher"
         segmentedClassName="compute-drawer__switcher-group"
-        label={t("detailsLabel")}
+        label={t("workbenchDetails")}
         value={drawerMode}
-        onChange={setDrawerModeSafe}
-        options={drawerModes.map((mode) => ({
-          value: mode.id,
-          label: (
-            <span className="compute-drawer-tab">
-              <span>{mode.label}</span>
-              <strong>{mode.value}</strong>
-            </span>
-          ),
-        }))}
+        onChange={(value) => {
+          if (drawerModes.some((mode) => mode.value === value)) setDrawerMode(value as DrawerMode);
+        }}
+        options={drawerModes.map((mode) => ({ value: mode.value, label: mode.label }))}
       />
 
-      {drawerMode === "receipt" && (
+      {drawerMode === "source" && (
         <OpenUiPanel
           className="compute-drawer__panel"
-          icon={<CheckCircle2 size={18} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("computeReceipt")}
-          subtitle={digestReady ? t("computePipelineBuilt") : t("computeDrawerNoDigest")}
+          icon={<FileJson2 size={18} strokeWidth={2.25} aria-hidden="true" />}
+          title={t("sourceEditorTitle")}
+          subtitle={t("sourceEditorHint")}
         >
-          <dl className="compute-drawer__facts">
-            <div>
-              <dt>{t("computePipelineWorkflow")}</dt>
-              <dd>{workflowLabel}</dd>
-            </div>
-            <div>
-              <dt>{t("computePipelinePrivacy")}</dt>
-              <dd>{privacyLabel}</dd>
-            </div>
-            <div>
-              <dt>{t("computePipelineInput")}</dt>
-              <dd>{inputReady ? t("computeValidationReady") : t("computePipelineDraft")}</dd>
-            </div>
-            <div>
-              <dt>{t("computePipelineDigest")}</dt>
-              <dd><code>{visibleDigest}</code></dd>
-            </div>
+          <div className="compute-source-editor">
+            <OpenUiTextArea
+              className="compute-source-editor__field"
+              textareaClassName="compute-source-editor__input"
+              label={t("sourceJson")}
+              value={source}
+              onChange={(event) => updateSource(event.target.value)}
+              placeholder="{}"
+              spellCheck={false}
+              hint={sourceError || t("sourceBytes", { count: inspection.byteLength })}
+            />
+            <aside className="compute-source-editor__boundary" data-disclosure={disclosure}>
+              <ShieldCheck size={20} strokeWidth={2.2} aria-hidden="true" />
+              <span>{t("sourcePreviewTitle")}</span>
+              <strong>{disclosureLabel}</strong>
+              <p>{disclosure === "digest-only"
+                ? t("sourceRedacted")
+                : inspection.valid ? shapeText(inspection.shape, t) : t("sourceNeedsFix")}</p>
+              <small>{disclosureHint}</small>
+            </aside>
+          </div>
+        </OpenUiPanel>
+      )}
+
+      {drawerMode === "package" && (
+        <OpenUiPanel
+          className="compute-drawer__panel"
+          icon={<Boxes size={18} strokeWidth={2.25} aria-hidden="true" />}
+          title={t("packageTitle")}
+          subtitle={packageReady ? t("packageCopyReady") : t("packageEmpty")}
+        >
+          <dl className="compute-package-facts">
+            <div><dt>{t("inputDigestLabel")}</dt><dd><code>{visibleInputDigest}</code></dd></div>
+            <div><dt>{t("packageDigestLabel")}</dt><dd><code>{visibleRequestDigest}</code></dd></div>
+            <div><dt>{t("packageCountLabel")}</dt><dd>{requestCount}</dd></div>
+            <div><dt>{t("packageScopeLabel")}</dt><dd title={requestDigestScope}>{t("packageScopeValue")}</dd></div>
           </dl>
+          <pre className="compute-package-json" data-empty={packageReady ? "false" : "true"}>
+            {packageReady ? requestPackage : t("packageEmpty")}
+          </pre>
         </OpenUiPanel>
       )}
 
       {drawerMode === "route" && (
         <OpenUiPanel
           className="compute-drawer__panel"
-          icon={<Network size={18} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("computeDrawerRouteTitle")}
-          subtitle={endpointLabel || appMeta.endpointLabel}
+          icon={<Network size={18} strokeWidth={2.25} aria-hidden="true" />}
+          title={t("routeTitle")}
+          subtitle={t("routeCopy")}
         >
-          <div className="compute-drawer__route">
-            <span>
-              <small>{t("statNetwork")}</small>
-              <strong>{networkLabel || appMeta.networkLabel}</strong>
-            </span>
-            <span>
-              <small>{t("statEndpoint")}</small>
-              <strong>{capsuleModeLabel}</strong>
-            </span>
-            <span>
-              <small>{t("statRequests")}</small>
-              <strong>{requestCount}</strong>
-            </span>
-          </div>
-        </OpenUiPanel>
-      )}
-
-      {drawerMode === "payload" && (
-        <OpenUiPanel
-          className="compute-drawer__panel"
-          icon={<Braces size={18} strokeWidth={2.35} aria-hidden="true" />}
-          title={t("computeInputTitle")}
-          subtitle={inputVisibilityCopy}
-        >
-          <div className="compute-drawer__payload-grid">
-            <OpenUiTextArea
-              className="compute-drawer__payload"
-              textareaClassName="compute-drawer__payload-input"
-              label={t("computeInputTitle")}
-              value={inputPayload}
-              onChange={(event) => setInputPayload(event.target.value)}
-              placeholder={t("inputPlaceholder")}
-              spellCheck={false}
-              hint={inputReady ? t("computeInputReadyHint") : t("computeInputInvalidHint")}
-            />
-            <div
-              className="compute-drawer__json"
-              data-valid={inputReady ? "true" : "false"}
-              data-visibility={privacy}
-            >
-              <div className="compute-drawer__json-head">
-                <span>{inputVisibility}</span>
-                <strong>{t("computeInputBytes", { count: inputPayload.length })}</strong>
-              </div>
-              <pre>{privacy === "public" ? inputPayload : t("inputRedacted")}</pre>
-              <small>{inputVisibilityCopy}</small>
-            </div>
-          </div>
+          <dl className="compute-route-facts">
+            <div><dt>{t("routeWorkflow")}</dt><dd><code>{workflow}</code></dd></div>
+            <div><dt>{t("routeEndpoint")}</dt><dd><code>{route}</code></dd></div>
+            <div><dt>{t("routeRuntime")}</dt><dd>{runtimeBaseUrl}</dd></div>
+            <div><dt>{t("routeEnvelope")}</dt><dd>{envelopeVersion}</dd></div>
+            <div><dt>{t("routePolicies")}</dt><dd>{policiesLabel}</dd></div>
+            <div><dt>{t("routeTee")}</dt><dd>{t(teeRequired ? "yes" : "no")}</dd></div>
+            <div><dt>{t("routeDelivery")}</dt><dd>{deliveryMode}</dd></div>
+            <div className="compute-route-facts__wide"><dt>{t("routeContract")}</dt><dd><code>{oracleContract}</code></dd></div>
+          </dl>
         </OpenUiPanel>
       )}
     </div>
@@ -461,29 +389,40 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <PlayStage
           category="tool"
           stage={{
-            eyebrow: t(consoleConfig.eyebrowKey || "panelEyebrow"),
-            title: t(consoleConfig.titleKey || "panelTitle"),
-            subtitle: endpointLabel || "",
+            eyebrow: t("panelEyebrow"),
+            title: t("panelTitle"),
+            subtitle: t("panelSubtitle"),
             badges: (
               <span className="mx2-badge" data-tone="accent">
-                <span className="mx2-badge__dot" /> {networkLabel || appMeta.networkLabel}
+                <span className="mx2-badge__dot" />
+                {t("networkTargetBadge")} · {networkLabel}
               </span>
             ),
           }}
           scene={scene}
           score={[
-            { label: t("statRequests"), value: String(requestCount), accent: true },
-            { label: t("lastStatus"), value: lastStatus },
+            { label: t("packageCountLabel"), value: String(requestCount), accent: packageReady },
+            { label: t("routeWorkflow"), value: endpointLabel },
           ]}
           actions={{
             primary: {
-              label: primaryLabel,
-              onClick: () => void handleBuild(),
-              loading: actionPreview,
+              label: isPreparing ? t("preparingAction") : t("prepareAction"),
+              onClick: prepareRequest,
+              disabled: !inspection.valid || isPreparing,
+              loading: isPreparing,
+              icon: <Boxes size={18} strokeWidth={2.35} aria-hidden="true" />,
             },
+            secondary: [
+              {
+                label: t("copyPackage"),
+                onClick: () => dispatchSafely("copyRequestPackage"),
+                disabled: !packageReady,
+                icon: <Copy size={17} strokeWidth={2.25} aria-hidden="true" />,
+              },
+            ],
           }}
-          drawerToggleLabel={t("detailsLabel")}
-          drawer={{ title: t("detailsLabel"), children: drawer }}
+          drawerToggleLabel={t("workbenchDetails")}
+          drawer={{ title: t("workbenchDetails"), children: drawer }}
         />
       </div>
     </OpenUiProvider>

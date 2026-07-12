@@ -12,11 +12,9 @@ const mocks = vi.hoisted(() => ({
   phaserGame: vi.fn(),
 }));
 
-vi.mock("@framework/phaser", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@framework/phaser")>();
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => {
   return {
-    ...actual,
-    PhaserGameComponent: (props: unknown) => {
+    LazyPhaserGameComponent: (props: unknown) => {
       mocks.phaserGame(props);
       return <div data-testid="curve-arrow-phaser-host" />;
     },
@@ -38,12 +36,17 @@ function t(key: string, params?: Record<string, string | number>) {
     difficulty_easy: "Meadow Range",
     difficulty_medium: "Forest Range",
     difficulty_hard: "Summit Range",
+    diffEasyShort: "Meadow",
+    diffMediumShort: "Forest",
+    diffHardShort: "Summit",
+    difficultyTitle: "Choose a range",
     drawerTitle: "Leaderboard & rules",
     drawerTitleShort: "Rules",
     expiredBanner: "That game expired",
     fairnessCopy: "TEE wall layouts stay private.",
     fairnessShort: "TEE wall layouts stay private.",
     lobbyTitle: "Open the archery range",
+    lobbyPreviewLabel: "{difficulty} range preview, {target} targets to clear",
     networkBadge: "Neo N3",
     playingTitle: "{difficulty} game in play",
     progressionNextRoute: "Next: {difficulty}",
@@ -72,6 +75,11 @@ function t(key: string, params?: Record<string, string | number>) {
     withdrawHint: "Withdraw winnings.",
     creditLabel: "Withdrawable credit",
     routeSummary: "Selected range reward, entry, targets, and clock",
+    gameAriaLabel: "Curve Arrow archery game",
+    gameLoadingLabel: "Opening the sunlit archery range",
+    closeDrawer: "Close rules",
+    ovRecoverBtn: "Check run",
+    ovEndRunBtn: "End run",
   };
   let value = messages[key] ?? key;
   if (params) {
@@ -133,7 +141,7 @@ describe("curve-arrow Phaser playarea", () => {
 
     expect(props.className).toBe("curve-arrow-phaser-canvas");
     expect(props.ariaLabel).toBe("Curve Arrow archery game");
-    expect(props.loadingLabel).toBe("Opening archery range");
+    expect(props.loadingLabel).toBe("Opening the sunlit archery range");
     expect(props.config?.width).toBe(440);
     expect(props.config?.height).toBe(580);
     expect(props.state.activeGameId).toBe("0");
@@ -175,8 +183,43 @@ describe("curve-arrow Phaser playarea", () => {
     fireEvent.click(getByRole("button", { name: /Rules/i }));
     expect(container.querySelector(".curve-arrow-ingame-drawer")).toBeTruthy();
     expect(getByText("Retry sealing")).toBeTruthy();
-    expect(getByText("Release game")).toBeTruthy();
+    expect(queryByText("Release game")).toBeNull();
     expect(queryByText("Start range")).toBeNull();
+  });
+
+  it("hides GameFi withdrawal controls for guest play even if stale credit exists", () => {
+    const { getByRole, queryByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest", credit: 1.5 })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as {
+      state: Record<string, unknown>;
+    };
+
+    expect(props.state.appMode).toBe("guest");
+    fireEvent.click(getByRole("button", { name: /Rules/i }));
+    expect(queryByText("Withdraw 1.50 GAS")).toBeNull();
+  });
+
+  it("exposes the illustrated range cards to touch and keyboard users", () => {
+    const dispatch = vi.fn();
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", {
+      name: "Forest range preview, 5 targets to clear",
+    }));
+    expect(dispatch).toHaveBeenNthCalledWith(1, "selectDifficulty", { difficulty: 1 });
+    expect(dispatch).toHaveBeenNthCalledWith(2, "startGame", { difficulty: 1 });
   });
 
   it("keeps the score strip and secondary controls inside the centered stage shell", () => {

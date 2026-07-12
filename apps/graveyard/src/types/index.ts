@@ -5,8 +5,9 @@ export interface HistoryItem {
   forgotten?: boolean;
   memoryType?: number;
   /**
-   * Optional epitaph attached to a buried memory via addEpitaph (a free,
-   * non-deposit call). Read from getMemoryDetails; "" when none is set.
+   * Optional epitaph attached through addEpitaph. No Graveyard deposit is used,
+   * though the signed Neo invocation can still incur a network fee. Read from
+   * getMemoryDetails; "" when none is set.
    */
   epitaph?: string;
 }

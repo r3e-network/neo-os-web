@@ -65,7 +65,7 @@ describe("neo-multisig vault validation", () => {
 
   it("validates the signer set (2..16 distinct, threshold range)", () => {
     expect(validateSignerSet([SIGNER_A, SIGNER_B], 2)).toEqual({
-      signers: [SIGNER_A, SIGNER_B],
+      signers: [SIGNER_B, SIGNER_A],
       threshold: 2,
     });
 
@@ -92,6 +92,7 @@ describe("neo-multisig vault validation", () => {
     expect(fromBaseUnits("3000000", "GAS")).toBe("0.03");
     expect(fromBaseUnits("100000000", "GAS")).toBe("1");
     expect(fromBaseUnits("7", "NEO")).toBe("7");
+    expect(fromBaseUnits("900719925474099300000001", "GAS")).toBe("9007199254740993.00000001");
   });
 });
 
@@ -195,11 +196,12 @@ describe("neo-multisig read parsing", () => {
     expect(vault).toMatchObject({
       id: 7,
       threshold: 2,
-      neoBalance: 5,
-      gasBalance: 100000000,
+      neoBalance: "5",
+      gasBalance: "100000000",
     });
     expect(vault?.signers).toHaveLength(2);
     expect(parseVault({ id: 0 })).toBeNull();
+    expect(parseVault({ ...vault!, gasBalance: undefined })).toBeNull();
     expect(parseVault(null)).toBeNull();
   });
 
@@ -210,7 +212,7 @@ describe("neo-multisig read parsing", () => {
       creator: addressToScriptHash(SIGNER_A),
       recipient: addressToScriptHash(RECIPIENT),
       asset: GAS_HASH,
-      amount: 50000000,
+      amount: "50000000",
       approvalCount: 1,
       status: 0,
       createdTime: 1700000000000,
@@ -221,13 +223,15 @@ describe("neo-multisig read parsing", () => {
       id: 4,
       vaultId: 7,
       assetSymbol: "GAS",
-      amount: 50000000,
+      amount: "50000000",
       approvalCount: 1,
       status: "pending",
     });
 
     expect(statusFromCode(1)).toBe("executed");
     expect(statusFromCode(2)).toBe("cancelled");
+    expect(statusFromCode(99)).toBeNull();
+    expect(parseRequest({ ...request!, status: undefined })).toBeNull();
   });
 
   it("parses RequestUnfunded(requestId, required, available) event payloads (v2)", () => {
@@ -239,7 +243,7 @@ describe("neo-multisig read parsing", () => {
         { type: "Integer", value: "10000000" },
       ],
     });
-    expect(parsed).toEqual({ requestId: 4, required: 50000000, available: 10000000 });
+    expect(parsed).toEqual({ requestId: 4, required: "50000000", available: "10000000" });
 
     // Malformed / non-matching entries are rejected, not coerced.
     expect(parseRequestUnfundedEvent(null)).toBeNull();
@@ -261,22 +265,23 @@ describe("neo-multisig vault service", () => {
       threshold: 2,
     });
 
-    // The framework chain layer forwards an (empty) options slot as `undefined`,
-    // which is on-chain-identical to omitting it.
+    const signerSet = validateSignerSet([SIGNER_A, SIGNER_B], 2);
     expect(chain.invoke).toHaveBeenCalledWith(
       "createVault",
       [
         { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
         {
           type: "Array",
-          value: [
-            { type: "Hash160", value: addressToScriptHash(SIGNER_A) },
-            { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
-          ],
+          value: signerSet.signers.map((signer) => ({ type: "Hash160", value: addressToScriptHash(signer) })),
         },
         { type: "Integer", value: "2" },
       ],
-      undefined,
+      {
+        scriptHash: VAULT_CONTRACT,
+        waitForEvent: "VaultCreated",
+        waitTimeoutMs: 30_000,
+        onTransactionSent: undefined,
+      },
     );
   });
 
@@ -307,7 +312,7 @@ describe("neo-multisig vault service", () => {
         { type: "Integer", value: "100000000" },
         { type: "Integer", value: "7" },
       ],
-      { scriptHash: GAS_HASH, waitForEvent: "Deposited" },
+      { scriptHash: GAS_HASH, waitForEvent: "Deposited", waitTimeoutMs: 30_000, onTransactionSent: undefined },
     );
   });
 
@@ -333,7 +338,7 @@ describe("neo-multisig vault service", () => {
         { type: "Integer", value: "50000000" },
         { type: "String", value: "rent" },
       ],
-      undefined,
+      { scriptHash: VAULT_CONTRACT, waitForEvent: "RequestCreated", waitTimeoutMs: 30_000, onTransactionSent: undefined },
     );
 
     await api.approve(4, SIGNER_B);
@@ -343,7 +348,7 @@ describe("neo-multisig vault service", () => {
         { type: "Integer", value: "4" },
         { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
       ],
-      undefined,
+      { scriptHash: VAULT_CONTRACT, waitForEvent: "Approved", waitTimeoutMs: 30_000, onTransactionSent: undefined },
     );
   });
 
@@ -359,7 +364,7 @@ describe("neo-multisig vault service", () => {
         { type: "Integer", value: "4" },
         { type: "Hash160", value: addressToScriptHash(SIGNER_B) },
       ],
-      undefined,
+      { scriptHash: VAULT_CONTRACT, waitForEvent: "RequestCancelled", waitTimeoutMs: 30_000, onTransactionSent: undefined },
     );
   });
 
@@ -386,8 +391,8 @@ describe("neo-multisig vault service", () => {
 
     expect(await api.requestUnfunded(4)).toEqual({
       requestId: 4,
-      required: 50000000,
-      available: 10000000,
+      required: "50000000",
+      available: "10000000",
     });
     expect(listEvents).toHaveBeenCalledWith("RequestUnfunded", { limit: 50 });
     // A request with no RequestUnfunded event resolves to null.
@@ -420,17 +425,17 @@ describe("neo-multisig vault service", () => {
         { type: "Integer", value: "4" },
         { type: "Hash160", value: signerHash },
       ],
-      undefined,
+      { scriptHash: VAULT_CONTRACT },
     );
 
-    expect(await api.balanceOf(7, "GAS")).toBe(42);
+    expect(await api.balanceOf(7, "GAS")).toBe("42");
     expect(chain.read).toHaveBeenCalledWith(
       "balanceOf",
       [
         { type: "Integer", value: "7" },
         { type: "Hash160", value: GAS_HASH },
       ],
-      undefined,
+      { scriptHash: VAULT_CONTRACT },
     );
   });
 
@@ -461,7 +466,7 @@ describe("neo-multisig vault service", () => {
     const api = makeApi(chain);
 
     const vault = await api.getVault(7);
-    expect(vault?.gasBalance).toBe(100000000);
+    expect(vault?.gasBalance).toBe("100000000");
 
     const request = await api.getRequest(4);
     expect(request?.status).toBe("executed");

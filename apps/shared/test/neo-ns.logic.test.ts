@@ -97,6 +97,10 @@ function mockNnsRpc(options: {
                   type: "Map",
                   value: [
                     {
+                      key: { type: "ByteString", value: btoa("name") },
+                      value: { type: "ByteString", value: btoa(Buffer.from(idHex, "hex").toString("utf8")) },
+                    },
+                    {
                       key: { type: "ByteString", value: btoa("expiration") },
                       value: { type: "Integer", value: String(token?.expiration ?? 0) },
                     },

@@ -9,6 +9,8 @@ export type Difficulty = 0 | 1 | 2;
 
 export const ENTRY_MEMO = "miniapp-curve-arrow:entry";
 export const FUND_MEMO = "miniapp-curve-arrow:fund";
+/** Contract-enforced delay before an abandoned active/settling game can expire. */
+export const SETTLEMENT_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: Difficulty;
@@ -77,7 +79,7 @@ export function formatClock(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded";
+export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded" | "unknown";
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
@@ -89,7 +91,14 @@ export function statusOf(raw: number): GameStatus {
       return "expired";
     case 4:
       return "refunded";
+    case 5:
+      return "unknown";
     default:
-      return "committed";
+      return raw === 0 ? "committed" : "unknown";
   }
+}
+
+/** Expiry is valid only strictly after the on-chain deadline plus grace. */
+export function canExpireAfterGrace(deadline: number, nowMs = Date.now()): boolean {
+  return Number.isFinite(deadline) && deadline > 0 && nowMs > deadline + SETTLEMENT_GRACE_MS;
 }

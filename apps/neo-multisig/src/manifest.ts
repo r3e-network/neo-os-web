@@ -6,29 +6,10 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Neo Multisig",
-  description: "Create and manage multi-signature transactions",
+  description: "Create and operate threshold-approved Neo contract-custody vaults",
   icon: "key",
   category: "tool",
   shell: "launcher",
-
-  tabs: [
-    { key: "home", labelKey: "tabHome", icon: "home", default: true },
-  ],
-
-  stats: [
-    { labelKey: "sidebarTotalTxs", valueKey: "vaultCount", format: "number", icon: "hash" },
-    { labelKey: "statPending", valueKey: "pendingCount", format: "number", variant: "warning", icon: "clock" },
-    { labelKey: "statCompleted", valueKey: "completedCount", format: "number", variant: "success", icon: "check-circle" },
-  ],
-
-  sidebar: {
-    titleKey: "appTitle",
-    items: [
-      { labelKey: "sidebarTotalTxs", valueKey: "vaultCount", format: "number" },
-      { labelKey: "statPending", valueKey: "pendingCount", format: "number" },
-      { labelKey: "statCompleted", valueKey: "completedCount", format: "number" },
-    ],
-  },
 
   features: {
     walletRequired: true,

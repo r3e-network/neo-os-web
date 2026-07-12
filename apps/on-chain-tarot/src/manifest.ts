@@ -2,7 +2,8 @@
  * On-Chain Tarot Manifest
  *
  * Declarative configuration for the blockchain-powered tarot reading miniapp.
- * Provides three-card readings using on-chain VRF for verifiable randomness.
+ * Provides the animated three-card reading surface. GameFi stays gated until
+ * its randomness contract is migrated to the advertised VRF settlement path.
  */
 
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
@@ -10,18 +11,27 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "On-Chain Tarot",
-  description: "Blockchain-powered divination",
+  description: "Animated local three-card tarot ritual with no wallet or GAS at risk",
   icon: "star",
   category: "game",
   // Game shell → focused two-choice launch page (the two-mode guest entry is
   // rendered only for shell "game"). Matches every other guest-enabled game
   // (color-clash, fogplay, dice-game, ...).
   shell: "game",
+  // The selected ritual-table design is itself the launch experience. Avoid
+  // placing the generic banner/card chooser in front of the playable objects.
+  directPlay: true,
 
   // Two-mode launcher entry: primary "Earn GAS" (GameFi, unchanged) + secondary
   // "Play free" (Guest — a purely local tarot reading). On-Chain Tarot has no
   // gamePage block, so it opts in via the top-level supportsGuest flag.
   supportsGuest: true,
+  // Production gate: the asynchronous MiniAppTarotVrf contract and frontend
+  // flow are built, but the replacement is not deployed/allowlisted/funded and
+  // the published .miniapp.neo domain still points at a legacy ABI. Keep the
+  // complete guest ritual playable until the live wallet settlement matrix and
+  // exact manifest/domain binding pass on testnet.
+  supportsGameFi: false,
 
   // -- Tabs -------------------------------------------------------------------
   tabs: [
@@ -48,26 +58,19 @@ export const manifest: MiniAppManifest = {
 
   // -- Features ---------------------------------------------------------------
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
   },
 
   // -- Docs -------------------------------------------------------------------
   docs: [
-    { titleKey: "title", contentKey: "docSubtitle", type: "text" },
-    { titleKey: "docDescription", contentKey: "step1", type: "steps" },
-    { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
-    { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
-    { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
+    { titleKey: "guestVerificationTitle", contentKey: "guestReadingIntentCopy", type: "text" },
+    { titleKey: "readingFlowTitle", contentKey: "guestFairnessCopy", type: "text" },
   ],
-
-  // -- Contract ---------------------------------------------------------------
-  contract: {
-    mode: "custom",
-  },
 
   // -- Permissions ------------------------------------------------------------
   permissions: {
-    payments: true,
+    payments: false,
+    randomness: false,
   },
 };

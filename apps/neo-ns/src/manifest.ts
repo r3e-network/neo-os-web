@@ -18,21 +18,16 @@ export const manifest: MiniAppManifest = {
     { key: "register", labelKey: "tabRegister", icon: "plus", default: true },
   ],
 
-  stats: [
-    { labelKey: "tabDomains", valueKey: "domainCount", format: "number", icon: "globe" },
-    { labelKey: "sidebarExpiringSoon", valueKey: "expiringSoon", format: "number", variant: "warning", icon: "alert-triangle" },
-  ],
+  // The designed registry desk already owns availability, wallet state,
+  // owned names, expiry, and lifecycle actions. Generic stat/sidebar blocks
+  // would duplicate that hierarchy and turn the app back into a dashboard.
+  stats: [],
+  sidebar: { titleKey: "title", items: [] },
+  operations: [],
 
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "tabDomains", valueKey: "domainCount", format: "number" },
-      { labelKey: "sidebarWallet", valueKey: "walletStatus", format: "text" },
-      { labelKey: "sidebarExpiringSoon", valueKey: "expiringSoon", format: "number" },
-    ],
-  },
-
-  features: { walletRequired: true, chainWarning: true },
+  // Search and price inspection are public, read-only journeys. Wallet
+  // connection is requested only at register/renew/route/transfer boundaries.
+  features: { walletRequired: false, chainWarning: true },
 
   docs: [
     { titleKey: "title", contentKey: "docSubtitle", type: "text" },

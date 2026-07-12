@@ -171,9 +171,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.Native.GAS.Transfer(creator, env.Hash, 1L * GAS, "miniapp-redenvelope:create");
             AssertRevert("packet count 1..100", () => env.createEnvelope(creator, 1L * GAS, 0, 3600));
             AssertRevert("packet count 1..100", () => env.createEnvelope(creator, 1L * GAS, 101, 3600));
+            AssertRevert("total amount must be > 0", () => env.createEnvelope(creator, 0, 1, 3600));
+            AssertRevert("total amount exceeds 20 GAS", () => env.createEnvelope(creator, 21L * GAS, 2, 3600));
             AssertRevert("total must cover one base unit per packet", () =>
                 env.createEnvelope(creator, 5, 10, 3600));
-            AssertRevert("duration must be > 0", () => env.createEnvelope(creator, 1L * GAS, 2, 0));
+            AssertRevert("duration 60..604800 seconds", () => env.createEnvelope(creator, 1L * GAS, 2, 59));
+            AssertRevert("duration 60..604800 seconds", () => env.createEnvelope(creator, 1L * GAS, 2, 604801));
 
             // The failed attempts consumed nothing.
             Assert.Equal(new BigInteger(1L * GAS), env.creditOf(creator));

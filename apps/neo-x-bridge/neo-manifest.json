@@ -3,17 +3,19 @@
   "id": "miniapp-neo-x-bridge",
   "name": "Neo X Bridge",
   "name_zh": "Neo X 跨链桥",
-  "version": "1.0.0",
-  "description": "Prepare official Neo N3 / Neo X bridge handoffs and preview the cross-chain lifecycle. No funds move here — you submit the prepared intent on the official bridge.",
-  "description_zh": "准备官方 Neo N3 / Neo X 跨链桥交接载荷并预览跨链生命周期。此处不转移任何资金——你需在官方跨链桥提交已准备的意图。",
+  "version": "1.2.0",
+  "description": "Review a Neo N3 / Neo X GAS or NEO route, verify source-wallet readiness, continue on the official bridge, and check source receipts without guessing delivery.",
+  "description_zh": "核对 Neo N3 / Neo X 的 GAS 或 NEO 路径与源钱包准备度，前往官方跨链桥继续，并诚实检查源链回执。",
   "category": "defi",
   "category_name": "DeFi",
   "category_name_zh": "DeFi",
   "tags": [
     "bridge",
     "neo-x",
-    "message-bridge",
-    "transfer",
+    "gas",
+    "neo",
+    "wallet",
+    "route",
     "defi"
   ],
   "developer": {
@@ -38,98 +40,21 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-x-bridge"
   },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "operation_panel": {
     "title": "Bridge Console",
-    "subtitle": "Asset bridge, Message Bridge, and status tracking share one official bridge handoff flow.",
-    "operations": [
-      {
-        "name": "Bridge Asset",
-        "method": "bridgeAsset",
-        "description": "Prepare a Neo N3 / Neo X asset bridge handoff and mirror it in the playarea route board.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "direction",
-            "type": "select",
-            "label": "Direction",
-            "default_value": "n3-to-neox",
-            "options": [
-              { "label": "Neo N3 → Neo X", "value": "n3-to-neox" },
-              { "label": "Neo X → Neo N3", "value": "neox-to-n3" }
-            ]
-          },
-          {
-            "name": "amount",
-            "type": "amount",
-            "label": "Amount",
-            "placeholder": "0.00",
-            "required": true
-          },
-          {
-            "name": "recipient",
-            "type": "string",
-            "label": "Destination address",
-            "placeholder": "Neo N3 or Neo X address",
-            "required": true
-          }
-        ]
-      },
-      {
-        "name": "Send Message",
-        "method": "bridgeMessage",
-        "description": "Prepare a Message Bridge payload for the selected target contract.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "targetContract",
-            "type": "hash160",
-            "label": "Target contract",
-            "placeholder": "0x...",
-            "required": true
-          },
-          {
-            "name": "message",
-            "type": "string",
-            "label": "Message",
-            "placeholder": "sync:miniapp-state",
-            "required": true
-          }
-        ]
-      },
-      {
-        "name": "Lifecycle Preview",
-        "method": "trackBridgeOperation",
-        "description": "Preview the local lifecycle for a lock, relay, or release transaction. This is not a live status lookup — confirm real progress on the official bridge.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "txHash",
-            "type": "hash256",
-            "label": "Transaction hash",
-            "placeholder": "0x...",
-            "required": true
-          }
-        ]
-      }
-    ]
+    "subtitle": "Use the designed bridge workspace below. It verifies source-wallet readiness, prepares a local GAS or NEO review ticket, hands execution to the official bridge, and checks source evidence without implying delivery.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-05-03T00:00:00Z"
+  "updatedAt": "2026-07-12T00:00:00Z"
 }

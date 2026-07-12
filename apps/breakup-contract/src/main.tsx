@@ -24,14 +24,16 @@ defineMiniApp({
     const breakup = useBreakup({
       app,
       t: ctx.t,
+      network: String(app.platform.launch.network ?? ""),
     });
 
     // Wire the connected wallet address into the composable so per-contract
     // Sign / Break controls (gated on ContractList.isParty) render for the
     // live user. Seed the initial value and keep it in sync on wallet change.
-    breakup.address.set(app.chain.address.get() ?? "");
+    breakup.setWalletAddress(app.chain.address.get() ?? "");
     app.chain.address.subscribe(() => {
-      breakup.address.set(app.chain.address.get() ?? "");
+      breakup.setWalletAddress(app.chain.address.get() ?? "");
+      void breakup.loadContracts();
     });
 
     ctx.framework.actions.register("createContract", async (...args: unknown[]) => {
@@ -50,11 +52,14 @@ defineMiniApp({
       // Surface the guard result so PlayArea only clears its (local) form fields
       // on an actual success — a validation/chain failure keeps the user's input
       // for retry (guard swallows failures into error toasts).
-      const result = await app.notify.guard(
-        () => breakup.createContract(),
-        { successKey: "contractCreated" },
-      );
-      return result === true;
+      const result = await app.notify.guardResult(() => breakup.createContract());
+      if (!result.ok) return false;
+      if (result.value.metadataSaved) {
+        app.notify.success("contractCreated", { id: result.value.pactId });
+      } else {
+        app.notify.warn("contractCreatedMetadataWarning", { id: result.value.pactId });
+      }
+      return true;
     });
     ctx.framework.actions.register("signContract", (contract: unknown) =>
       app.notify.guard(
@@ -64,7 +69,7 @@ defineMiniApp({
     );
     ctx.framework.actions.register("breakContract", (contract: unknown) =>
       app.notify.guard(
-        () => breakup.breakContract(contract as { id?: number; pactId?: string }),
+        () => breakup.breakContract(contract as { id?: number; pactId?: string }, "break"),
         { successKey: "contractBroken" },
       ),
     );
@@ -78,7 +83,7 @@ defineMiniApp({
     // contract, so the pending-cancel affordance reuses breakContract.
     ctx.framework.actions.register("cancelContract", (contract: unknown) =>
       app.notify.guard(
-        () => breakup.breakContract(contract as { id?: number; pactId?: string }),
+        () => breakup.breakContract(contract as { id?: number; pactId?: string }, "cancel"),
         { successKey: "contractCancelled" },
       ),
     );
@@ -101,10 +106,14 @@ defineMiniApp({
         pendingCount: breakup.pendingCount,
         brokenCount: breakup.brokenCount,
         isLoading: breakup.isLoading,
+        actionPhase: breakup.actionPhase,
+        hasPendingAction: breakup.hasPendingAction,
         serviceNotice: breakup.serviceNotice,
         actionNotice: breakup.actionNotice,
+        pendingNotice: breakup.pendingNotice,
         lastSubmittedTitle: breakup.lastSubmittedTitle,
         creditBalance: breakup.creditBalance,
+        creditKnown: breakup.creditKnown,
         hasCredit: breakup.hasCredit,
       }),
       loadData: breakup.loadContracts,

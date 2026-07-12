@@ -1,190 +1,59 @@
-# Neo Explorer Neo 浏览器
+# Neo Explorer
 
-Explore Neo N3 blockchain - transactions, addresses, contracts
+Neo Explorer is a read-only Neo N3 chain workspace for Mainnet and Testnet. It searches real block heights, transaction or block hashes, Neo addresses, and contract hashes, then presents the returned chain object with its network and data-source context.
 
-## Overview
+## Product boundary
 
-| Property | Value |
-|----------|-------|
-| **App ID** | `miniapp-explorer` |
-| **Category** | tools |
-| **Version** | 1.0.0 |
-| **Framework** | Host-native React playarea |
+- No wallet connection, signature, payment, or miniapp contract is required.
+- Mainnet and Testnet are separate query lanes. Changing networks clears the previous result and reloads that network's recent transactions.
+- A result is never invented from the query. The UI distinguishes a found record, a valid identifier with no record on the selected network, an invalid identifier, and an unavailable explorer service.
+- Search, network telemetry, recent transactions, cached snapshots, and raw API records are separate states and surfaces.
 
-## Summary
+## Supported identifiers
 
-Browse Neo N3 blockchain data in real-time
+| Identifier | Accepted form | Resolution path |
+| --- | --- | --- |
+| Block height | 1–10 decimal digits | Neo N3 RPC `getblock` |
+| Transaction or block hash | `0x` plus 64 hexadecimal characters | Indexer transaction lookup, then RPC transaction/block fallback |
+| Neo address | Valid 34-character Neo N3 address | Indexed address activity |
+| Contract hash | `0x` plus 40 hexadecimal characters | Indexed calls, with RPC `getcontractstate` fallback |
 
-Explorer provides a comprehensive view of the Neo N3 blockchain. Search transactions, inspect addresses, and analyze smart contracts with a sleek Matrix-themed interface.
+Client validation mirrors the production explorer API before a request is made. Hashes are not shortened in the record detail; compact forms are used only in the recent-transaction rail.
 
-## Features
+## Data-source semantics
 
-- **🔍 Universal Search**: Search by transaction hash, wallet address, or contract hash across both MainNet and TestNet
-- **📊 Network Statistics**: Real-time display of block height and total transaction counts for both networks
-- **📜 Transaction History**: View recent transactions with automatic caching for offline access
-- **🔎 Detailed Results**: Comprehensive transaction and address information with related interactions
-- **🎨 Matrix Theme**: Cyberpunk-inspired interface with retro terminal aesthetics
-- **📱 Responsive Design**: Optimized for both desktop and mobile viewing
+- Block heights come from Neo N3 RPC through the platform explorer API.
+- Transaction totals come from indexer sync state and render unavailable when the indexer does not supply a valid count.
+- Transaction details, address activity, traces, and contract calls use the indexer when configured. Transaction and contract lookups fall back to Neo RPC where the API supports it.
+- Recent transactions prefer the indexer and fall back to scanning recent RPC blocks.
+- Network statistics refresh every 15 seconds. Recent transactions refresh every 30 seconds while the miniapp is visible.
+- Cached data is labeled as a cached snapshot. Cached values are not relabeled as live when a fresh request fails.
 
-## Usage
+## Interface hierarchy
 
-### Getting Started
+1. One compact search command bar with network selection. The embedded workspace owns this flow end to end; the release manifest intentionally does not add a second host-generated parameter form.
+2. A primary result surface that renders the actual transaction, block, address, or contract fields.
+3. A secondary telemetry rail for the selected network and recent transactions.
+4. A drawer for the complete recent list, raw API record, and data-source explanations.
 
-1. **Open the App**: Open Neo Explorer from your Neo MiniApp dashboard
-2. **Select Network**: Choose between MainNet or TestNet using the network selector
-3. **Search Blockchain Data**: Enter any of the following in the search box:
-   - Transaction hash (e.g., `0x...`)
-   - Wallet address (e.g., `N...`)
-   - Smart contract hash (e.g., `0x...`)
+The idle state uses the repository's existing WebP explorer artwork. Found records replace the illustration rather than appearing as another decorative card. Asset integrity and provenance are documented in [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md).
 
-### Exploring the Interface
+## Recovery behavior
 
-**Search Tab:**
-1. Enter your query in the search field
-2. Click the search button or press enter
-3. View detailed information about the searched item
-4. Copy relevant data to clipboard for further analysis
+- Invalid input stays local and explains the accepted Neo N3 formats.
+- A valid identifier with no record keeps the query visible and reports the selected-network miss.
+- API, RPC, or indexer failures remain retryable and never become an empty success state.
+- Switching networks or starting a newer search invalidates late responses from an older request.
+- A network switch that occurs during a recent-transaction fetch queues the newly selected network instead of waiting for the next polling interval.
 
-**Network Tab:**
-1. View live statistics for both MainNet and TestNet
-2. Monitor block height progression
-3. Track total transaction counts
-4. Data refreshes automatically every 15 seconds
-
-**History Tab:**
-1. Browse recently searched transactions
-2. Click any transaction to view details again
-3. Access cached data even when offline
-4. Clear history by refreshing the page
-
-**Documentation Tab:**
-1. Read comprehensive app documentation
-2. Learn about available features
-3. Understand how to interpret blockchain data
-
-### Tips for Effective Searching
-
-- **Transaction Hashes**: Always include the `0x` prefix for best results
-- **Addresses**: Use the complete Neo address starting with `N`
-- **Contract Hashes**: Include the full 40-character hash with `0x` prefix
-- **Network Selection**: Ensure you're searching on the correct network (MainNet vs TestNet)
-
-## How It Works
-
-### Architecture
-
-Neo Explorer operates as a lightweight blockchain data viewer with the following components:
-
-**Frontend (Host-native React):**
-- Responsive layout with tab-based navigation
-- Matrix-themed UI with custom CSS animations
-- Client-side caching for improved performance
-
-**Data Layer:**
-- Fetches data via `/api/explorer` endpoints
-- Automatic fallback to cached data when network is unavailable
-- 15-second polling interval for live statistics
-
-**Caching System:**
-- Local storage for network statistics
-- Transaction history caching
-- Offline-first design for better user experience
-
-### Data Flow
-
-1. **User Input**: Search query entered and validated
-2. **API Request**: Query sent to backend explorer API
-3. **Data Processing**: Response parsed and formatted for display
-4. **Cache Update**: Results stored locally for future reference
-5. **UI Rendering**: Data displayed in themed card components
-
-### Security Considerations
-
-- No private keys or sensitive data is handled
-- Read-only access to blockchain data
-- All data is publicly available on-chain information
-- No user data is stored on external servers
-
-## Permissions
-
-| Permission | Required |
-|------------|----------|
-| Wallet | ❌ No |
-| Payments | ❌ No |
-| RNG | ❌ No |
-| Data Feed | ✅ Yes |
-| Governance | ❌ No |
-| Automation | ❌ No |
-
-## On-chain behavior
-
-- No miniapp contract is deployed.
-- The app reads chain data from public RPC / indexer sources and does not depend on legacy receipt relays or Morpheus callbacks.
-
-## Network Configuration
-
-No on-chain contract is deployed.
-
-## Assets
-
-- **Allowed Assets**: None
-
-## Development
+## Development and verification
 
 ```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for H5
-npm run build
+npm --prefix apps/explorer run dev -- --port 5362
+npm --prefix apps/explorer run build
+npx tsc --noEmit -p apps/explorer/tsconfig.json
+npx eslint apps/explorer/src --ext .ts,.tsx
+cd apps/shared && npx vitest run test/explorer.logic.test.ts test/explorer.playarea.test.tsx test/explorer.integration.test.tsx test/explorer.test.tsx test/explorer.production.test.ts
 ```
 
-### Project Structure
-
-```
-apps/explorer/
-├── src/
-│   ├── pages/
-│   │   └── index/
-│   │       ├── index.vue           # Main app component
-│   │       ├── components/         # Sub-components
-│   │       │   ├── NetworkStats.vue
-│   │       │   ├── SearchPanel.vue
-│   │       │   ├── SearchResult.vue
-│   │       │   └── RecentTransactions.vue
-│   │       └── explorer-theme.scss # Matrix theme styles
-│   ├── locale/                     # i18n translations
-│   └── static/                     # Static assets
-├── package.json
-└── README.md
-```
-
-### Customization
-
-The Matrix theme can be customized by modifying CSS variables in `explorer-theme.scss`:
-- `--matrix-green`: Primary accent color
-- `--matrix-bg`: Background color
-- `--matrix-scanlines`: Scanline overlay effect
-
-## Troubleshooting
-
-**Search returns no results:**
-- Verify the hash/address format is correct
-- Check that you're searching on the right network
-- Ensure the transaction has been confirmed on-chain
-
-**Statistics not updating:**
-- Check your internet connection
-- Data updates every 15 seconds - wait for the next refresh cycle
-- Try switching between tabs to force a refresh
-
-**Slow loading:**
-- Cached data will display first while fresh data loads
-- Large transactions may take longer to process
-
-## Support
-
-For issues or feature requests, please contact the Neo MiniApp team.
+Read-only network evidence and remaining limits are recorded in [NETWORK_STATUS.md](./NETWORK_STATUS.md) and [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md).

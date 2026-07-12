@@ -4,6 +4,7 @@ import {
   estimateFactoryFeeGas,
   fetchFactoryDeployments,
   fetchTemplateArtifactPresence,
+  inspectFactoryRecord,
   readFactoryRecord,
 } from "../factory/factoryChain";
 
@@ -228,5 +229,36 @@ describe("factoryChain", () => {
     expect(
       await readFactoryRecord("neo-n3-testnet", FACTORY_HASH, "nep17", "pkg-missing"),
     ).toBeNull();
+  });
+
+  it("preserves not-found versus unavailable outcomes for recovery UI", async () => {
+    mockRpc(() => ({
+      state: "FAULT",
+      exception: "deployment not found",
+      stack: [],
+    }));
+    expect(
+      await inspectFactoryRecord(
+        "neo-n3-testnet",
+        FACTORY_HASH,
+        "nep17",
+        "pkg-missing",
+      ),
+    ).toEqual({ status: "not-found" });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("offline");
+      }),
+    );
+    await expect(
+      inspectFactoryRecord(
+        "neo-n3-testnet",
+        FACTORY_HASH,
+        "nep17",
+        "pkg-unknown",
+      ),
+    ).resolves.toMatchObject({ status: "unavailable" });
   });
 });

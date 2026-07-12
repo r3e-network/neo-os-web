@@ -3,16 +3,17 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Flappy Dash",
   description:
-    "Tap to fly through TEE-generated pipes in this on-chain Flappy Bird-style challenge. Pick a flight route, clear the target pipes before the clock runs out, and win a fixed GAS reward — 0.1 Meadow Hop (5 pipes), 0.5 Sky Sprint (10 pipes), 1 Pipe Gauntlet (20 pipes). Every completed run climbs a global leaderboard rebuilt from chain events.",
+    "A polished Flappy-style arcade challenge with real bird and pipe artwork, responsive controls, sound, three distinct difficulty curves, instant restarts, and free local practice. The wallet-backed reward route stays gated until Morpheus replay and deployed settlement timing pass production validation.",
   icon: "cloud",
   category: "game",
   shell: "game",
+  supportsGuest: true,
+  supportsGameFi: false,
 
   // ── Steam-style Game Landing Page ──────────────────────────────────
   gamePage: {
-    appIcon: "🐦",
     categoryColor: "#10B981",
-    modes: { guest: true },
+    modes: { guest: true, gamefi: false },
     heroBadgeKey: "homeBadge",
     heroTitleKey: "homeTitle",
     heroTitleAccent: "homeTitleAccent",
@@ -20,15 +21,15 @@ export const manifest: MiniAppManifest = {
     primaryLabelKey: "startAction",
     ghostLabelKey: "homeHowToPlay",
     featuresEyebrowKey: "homeBadge",
-    featuresTitleKey: "homeFeatureTee",
+    featuresTitleKey: "homeFeatureFlightFeel",
     features: [
       {
-        icon: "🔒", titleKey: "homeFeatureTee", descKey: "homeFeatureTeeDesc",
+        titleKey: "homeFeatureFlightFeel", descKey: "homeFeatureFlightFeelDesc",
         large: true,
         gradient: "linear-gradient(135deg, #064E3B 0%, #059669 40%, #10B981 100%)",
       },
-      { icon: "⚡", titleKey: "homeFeatureDifficulty", descKey: "homeFeatureDifficultyDesc" },
-      { icon: "🏆", titleKey: "homeFeatureRank", descKey: "homeFeatureRankDesc" },
+      { titleKey: "homeFeatureDifficulty", descKey: "homeFeatureDifficultyDesc" },
+      { titleKey: "homeFeatureRank", descKey: "homeFeatureRankDesc" },
     ],
     lbEyebrowKey: "homeLbEyebrow",
     lbTitleKey: "homeLbTitle",
@@ -45,8 +46,7 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "homePoolStat", valueKey: "poolFree", format: "text", variant: "accent", icon: "coins" },
-    { labelKey: "homeWonStat", valueKey: "myTotalWon", format: "text", icon: "coin" },
+    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
     { labelKey: "homeSolvesStat", valueKey: "mySolves", format: "text", icon: "check-circle" },
     { labelKey: "homeRankStat", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
   ],
@@ -54,46 +54,16 @@ export const manifest: MiniAppManifest = {
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "scoreWon", valueKey: "myTotalWon", format: "text" },
+      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text" },
       { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "creditLabel", valueKey: "credit", format: "text" },
+      { labelKey: "homeSolvesStat", valueKey: "mySolves", format: "text" },
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Meadow Hop — pass 5 pipes, win 0.1 GAS" },
-            { value: "1", label: "Sky Sprint — pass 10 pipes, win 0.5 GAS" },
-            { value: "2", label: "Pipe Gauntlet — pass 20 pipes, win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  // The reward implementation remains in source for testnet validation, but
+  // no stale host should be able to render a wallet/payment operation while
+  // the published GameFi lane is intentionally gated.
+  operations: [],
 
   docs: [
     { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
@@ -101,8 +71,8 @@ export const manifest: MiniAppManifest = {
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -110,10 +80,10 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    oracle: false,
   },
 
   contract: {

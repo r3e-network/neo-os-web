@@ -51,6 +51,10 @@ const appMessages = {
     en: "Claiming calls the Red Envelope contract directly: it draws one random packet and pays GAS to your wallet atomically in the same transaction. Creating first deposits GAS to the contract, then opens the envelope from that prepaid credit.",
     zh: "领取直接调用红包合约：在同一笔交易中抽取一个随机红包并原子地把 GAS 支付到你的钱包。创建时先把 GAS 存入合约，再用该预付额度开启红包。",
   },
+  publicPoolDisclosure: {
+    en: "This is a public bearer-link lucky pool: any wallet that learns the id may claim once. The link is not private access control.",
+    zh: "这是公开的链接型拼手气红包：任何知道 ID 的钱包都可领取一次；分享链接不是私密访问权限。",
+  },
   osGuarded: { en: "On-chain contract", zh: "链上合约" },
   contractRoute: { en: "Contract route", zh: "合约路径" },
   claimContractRoute: { en: "claim -> atomic GAS payout", zh: "claim -> 原子 GAS 支付" },
@@ -150,14 +154,56 @@ const appMessages = {
   envelopeExpired: { en: "Envelope expired", zh: "红包已过期" },
   envelopeEmpty: { en: "Envelope is empty", zh: "红包已领完" },
   alreadyOpened: { en: "You already opened this envelope", zh: "你已打开过该红包" },
+  connectWalletFirst: {
+    en: "Connect your wallet first. The next click will ask for the transaction.",
+    zh: "请先连接钱包；下一次点击才会请求交易。",
+  },
+  operationBusy: { en: "Another envelope action is still running", zh: "另一个红包操作仍在处理中" },
+  transactionConfirmationPending: {
+    en: "Transaction broadcast. Confirmation is still pending; refresh to recover it safely.",
+    zh: "交易已广播，仍在等待确认；刷新后可安全恢复确认状态。",
+  },
+  transactionRecovered: {
+    en: "The previously broadcast transaction is now confirmed.",
+    zh: "此前广播的交易现已确认。",
+  },
+  transactionRecoveryUnavailable: {
+    en: "Transaction recovery is unavailable. No transaction was requested.",
+    zh: "暂时无法建立交易恢复记录，本次未请求交易。",
+  },
+  transactionExecutionFailed: {
+    en: "The exact transaction failed on-chain. Nothing was marked as paid; you can retry safely.",
+    zh: "该笔交易已在链上失败，界面没有把它标记为成功；可以安全重试。",
+  },
+  contractCompatibilityUnproven: {
+    en: "The active network contract could not be verified. Paid actions are paused; no wallet request was made.",
+    zh: "无法验证当前网络的红包合约，付费操作已暂停，本次未请求钱包交易。",
+  },
+  claimEligibilityUnavailable: {
+    en: "Claim eligibility could not be verified. No wallet request was made.",
+    zh: "暂时无法核验领取资格，本次未请求钱包交易。",
+  },
+  chainReadUnavailable: {
+    en: "Network data is unavailable. Your confirmed funds are unchanged.",
+    zh: "暂时无法读取网络数据，已确认资金不会受到影响。",
+  },
+  retryData: { en: "Retry data", zh: "重试数据" },
+  envelopeNotReclaimable: {
+    en: "This envelope is not reclaimable by the connected wallet.",
+    zh: "当前钱包无法回收这个红包。",
+  },
   depositPrepaidNoEnvelope: {
     en: "Deposit succeeded but the envelope was not created. Your GAS is held as prepaid credit on the contract and is reused automatically the next time you create an envelope.",
     zh: "存款成功，但红包未创建。您的 GAS 已作为预付额度保存在合约中，下次创建红包时会自动复用。",
   },
-  invalidAmount: { en: "Enter at least 0.1 GAS", zh: "至少 0.1 GAS" },
+  invalidAmount: { en: "Enter 0.1-20 GAS", zh: "请输入 0.1-20 GAS" },
   invalidPackets: { en: "Enter 1-100 packets", zh: "请输入 1-100 个红包" },
   invalidPerPacket: { en: "Each packet must be at least 0.01 GAS", zh: "每个红包至少 0.01 GAS" },
-  invalidExpiry: { en: "Enter a valid expiry in hours", zh: "请输入有效的过期小时数" },
+  invalidExpiry: { en: "Enter an expiry from 1 to 168 hours", zh: "请输入 1-168 小时的过期时长" },
+  createContractUpgradeRequired: {
+    en: "This network still uses the unbounded legacy contract. New envelopes are paused; existing envelopes can still be claimed or reclaimed.",
+    zh: "当前网络仍使用未设限的旧版合约，已暂停创建新红包；已有红包仍可领取或回收。",
+  },
   nameRequired: { en: "Envelope name is required", zh: "请输入红包名称" },
   amountRequired: { en: "Total GAS amount is required", zh: "请输入总 GAS 数量" },
   countRequired: { en: "Number of packets is required", zh: "请输入红包数量" },
@@ -223,6 +269,20 @@ const appMessages = {
     en: "Created envelope #{id}. Copy the claim link and send it to recipients.",
     zh: "已创建红包 #{id}。复制领取链接并发送给领取者。",
   },
+  shareHintNetwork: {
+    en: "Envelope #{id} on {network}. The copied claim link stays on this network.",
+    zh: "{network} 红包 #{id}；复制的领取链接将锁定在这个网络。",
+  },
+  networkMainnet: { en: "Neo N3 MainNet", zh: "Neo N3 主网" },
+  networkTestnet: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },
+  shareNetworkUnavailable: {
+    en: "The active network is not verified, so a claim link was not created.",
+    zh: "当前网络尚未验证，因此没有生成领取链接。",
+  },
+  shareLinkNetworkRequired: {
+    en: "This older claim link does not specify a network. Ask the sender for a new network-bound link.",
+    zh: "这个旧领取链接没有指定网络。请让发送者重新分享带网络的新链接。",
+  },
   copyShareLink: { en: "Copy claim link", zh: "复制领取链接" },
   shareLinkCopied: { en: "Claim link copied", zh: "领取链接已复制" },
   dismiss: { en: "Done", zh: "完成" },
@@ -264,6 +324,23 @@ const appMessages = {
   // Every display string the RedEnvelopeScene renders is resolved here and
   // passed into the scene via the `sceneCopy` bridge key so zh users read
   // localized text inside the canvas instead of hardcoded English.
+  sceneAriaLabel: { en: "Interactive red-envelope game", zh: "互动红包游戏" },
+  sceneKeyboardHint: {
+    en: "Red-envelope game. Press Enter or Space to open the selected packet; open More actions for every keyboard control.",
+    zh: "红包游戏。按回车键或空格键打开选中的红包；在“更多操作”中可使用全部键盘操作。",
+  },
+  sceneLoadingLabel: { en: "Preparing the red-envelope table", zh: "正在准备红包桌面" },
+  sceneLoadError: { en: "The red-envelope table could not load", zh: "红包桌面加载失败" },
+  sceneRetry: { en: "Try again", zh: "重试" },
+  sceneContinue: { en: "Continue", zh: "继续" },
+  sceneEnableSound: { en: "Turn on red-envelope sounds", zh: "开启红包音效" },
+  sceneMuteSound: { en: "Mute red-envelope sounds", zh: "关闭红包音效" },
+  closeDrawer: { en: "Close envelope details", zh: "关闭红包详情" },
+  accessibleActionsTitle: { en: "Keyboard actions", zh: "键盘操作" },
+  accessibleActionsHint: {
+    en: "The same open and bundle actions as the game table, available as standard buttons.",
+    zh: "使用标准按钮完成与游戏桌面相同的开红包和套餐操作。",
+  },
   sceneModeSend: { en: "Send", zh: "发送" },
   sceneModeClaim: { en: "Claim", zh: "领取" },
   sceneSendHeading: { en: "Pick a packet bundle", zh: "选择红包套餐" },
@@ -273,7 +350,11 @@ const appMessages = {
   scenePlanFestival: { en: "Festival 50", zh: "节庆 50" },
   scenePacketsTpl: { en: "{count} packets", zh: "{count} 个红包" },
   sceneCreate: { en: "Create", zh: "创建" },
+  sceneCreateUnavailable: { en: "Upgrade required", zh: "等待合约升级" },
+  sceneGameFiUnavailable: { en: "GameFi paused", zh: "GameFi 暂停" },
   sceneWorking: { en: "Working...", zh: "处理中..." },
+  sceneConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  sceneConfirming: { en: "Confirming...", zh: "确认中..." },
   sceneShare: { en: "Share", zh: "分享" },
   sceneOpen: { en: "Open envelope", zh: "打开红包" },
   sceneOpening: { en: "Opening...", zh: "开启中..." },
@@ -340,6 +421,8 @@ const appMessages = {
   guestBestLabel: { en: "Best luck", zh: "最佳手气" },
   guestTotalLabel: { en: "Total grabbed", zh: "累计抢到" },
   guestOpenedLabel: { en: "Packets opened", zh: "已开红包" },
+  guestPointsUnit: { en: "PTS", zh: "分" },
+  guestPointsValue: { en: "{amount} pts", zh: "{amount} 分" },
   guestBoardTitle: { en: "Local luck board", zh: "本地手气榜" },
   guestBoardEmpty: { en: "Open packets to post your luck score.", zh: "开红包即可上榜。" },
   guestHowTitle: { en: "Local practice", zh: "本地练习" },
@@ -352,7 +435,7 @@ const appMessages = {
     en: "Local envelope ready — {count} packets to open",
     zh: "本地红包已就绪 — {count} 个待开",
   },
-  guestGrabbed: { en: "You grabbed {amount} GAS!", zh: "你抢到了 {amount} GAS！" },
+  guestGrabbed: { en: "You opened {amount} luck points!", zh: "你开出了 {amount} 分手气！" },
   guestReclaimed: { en: "Local envelope cleared", zh: "本地红包已清除" },
   guestNoCredit: { en: "Guest mode has no credit to withdraw", zh: "游客模式没有可提取额度" },
   guestShareLocal: {
@@ -387,7 +470,12 @@ const appMessages = {
     zh: "可直接打开 — 无需钱包。",
   },
   sceneClaimHeadingGuest: { en: "Open a local packet", zh: "打开本地红包" },
-  sceneResultReceivedTplGuest: { en: "+{amount} GAS luck!", zh: "手气 +{amount} GAS！" },
+  sceneResultReceivedTplGuest: { en: "+{amount} luck points!", zh: "手气 +{amount} 分！" },
+  sceneResultClaimReadyGuest: {
+    en: "Envelope ready. Open once for luck points.",
+    zh: "红包已就绪，打开一份获得幸运积分。",
+  },
+  sceneLuckLeftTplGuest: { en: "{amount} points left", zh: "剩余 {amount} 分" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

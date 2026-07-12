@@ -4,21 +4,33 @@ import {
   COLOR_GLOW,
   COLOR_HEX,
   COLOR_NAMES,
+  CUE_TIMINGS,
   DIFFICULTY_RULES,
+  SETTLEMENT_GRACE_MS,
+  canReleaseExpiredGame,
+  cueTimingOf,
   formatClock,
   gasDisplay,
   payoutFixed8,
+  releaseAtOf,
   rewardPctAfterUndos,
   ruleOf,
   statusOf,
 } from "../../color-clash/src/logic/game-rules";
+import {
+  applyColorPress,
+  createColorRun,
+  hasColorDeadlinePassed,
+  markColorSequenceShown,
+  normalizeColorSequence,
+  requireColorSequence,
+} from "../../color-clash/src/logic/color-engine";
 
 /**
  * Color Clash engine tests.
  *
- * The engine logic lives in game-rules.ts — there is no separate engine file.
- * These tests cover difficulty rules, payout math, clock formatting, status
- * mapping, and the colour constants.
+ * Covers the pure progressive-Simon state machine plus difficulty, payout,
+ * clock, status, and colour rules.
  */
 
 describe("color-clash difficulty rules", () => {
@@ -57,6 +69,85 @@ describe("color-clash difficulty rules", () => {
 
   it("ruleOf throws for an unknown difficulty", () => {
     expect(() => ruleOf(99)).toThrow("unknown difficulty 99");
+  });
+
+  it("speeds up cue playback across the three arcade modes", () => {
+    expect(CUE_TIMINGS).toHaveLength(3);
+    expect(cueTimingOf(0).litMs).toBeGreaterThan(cueTimingOf(1).litMs);
+    expect(cueTimingOf(1).litMs).toBeGreaterThan(cueTimingOf(2).litMs);
+    expect(cueTimingOf(0).gapMs).toBeGreaterThan(cueTimingOf(1).gapMs);
+    expect(cueTimingOf(1).gapMs).toBeGreaterThan(cueTimingOf(2).gapMs);
+  });
+
+  it("matches the contract recovery boundary before enabling release", () => {
+    const deadline = 1_000;
+    expect(releaseAtOf(deadline)).toBe(deadline + SETTLEMENT_GRACE_MS);
+    expect(canReleaseExpiredGame(deadline, SETTLEMENT_GRACE_MS, deadline + SETTLEMENT_GRACE_MS)).toBe(false);
+    expect(canReleaseExpiredGame(deadline, SETTLEMENT_GRACE_MS, deadline + SETTLEMENT_GRACE_MS + 1)).toBe(true);
+    expect(canReleaseExpiredGame(0, SETTLEMENT_GRACE_MS, Number.MAX_SAFE_INTEGER)).toBe(false);
+  });
+});
+
+describe("color-clash authoritative Simon run", () => {
+  it("starts with one visible cue and locks input until playback finishes", () => {
+    const run = createColorRun("0123", 4);
+    expect(run.visibleSequence).toBe("0");
+    expect(run.round).toBe(1);
+    expect(run.phase).toBe("watching");
+    expect(applyColorPress(run, 0).outcome).toBe("ignored");
+  });
+
+  it("grows the visible pattern one cue after each completed round", () => {
+    let run = markColorSequenceShown(createColorRun("0123", 4));
+    const first = applyColorPress(run, 0);
+    expect(first.outcome).toBe("round-complete");
+    expect(first.state.visibleSequence).toBe("01");
+    expect(first.state.achieved).toBe(1);
+    expect(first.state.round).toBe(2);
+    expect(first.state.phase).toBe("watching");
+
+    run = markColorSequenceShown(first.state);
+    run = applyColorPress(run, 0).state;
+    const second = applyColorPress(run, 1);
+    expect(second.outcome).toBe("round-complete");
+    expect(second.state.visibleSequence).toBe("012");
+    expect(second.state.achieved).toBe(2);
+  });
+
+  it("keeps the longest completed round when the next round is wrong", () => {
+    let run = markColorSequenceShown(createColorRun("012", 3));
+    run = applyColorPress(run, 0).state;
+    run = markColorSequenceShown(run);
+    const wrong = applyColorPress(run, 3);
+    expect(wrong.outcome).toBe("wrong");
+    expect(wrong.expected).toBe(0);
+    expect(wrong.state.achieved).toBe(1);
+    expect(wrong.state.phase).toBe("wrong");
+  });
+
+  it("marks the final complete sequence as authoritative score", () => {
+    let run = markColorSequenceShown(createColorRun("01", 2));
+    run = applyColorPress(run, 0).state;
+    run = markColorSequenceShown(run);
+    run = applyColorPress(run, 0).state;
+    const completed = applyColorPress(run, 1);
+    expect(completed.outcome).toBe("complete");
+    expect(completed.state.achieved).toBe(2);
+    expect(completed.state.phase).toBe("complete");
+  });
+
+  it("normalizes malformed sequences and fails closed on incomplete secrets", () => {
+    expect(normalizeColorSequence("0x1-2349", 4)).toBe("0123");
+    expect(() => createColorRun("01x", 3)).toThrow("complete 0..3 secret sequence");
+    expect(() => createColorRun("0x123", 4)).toThrow("complete 0..3 secret sequence");
+    expect(() => requireColorSequence("01x", 3)).toThrow("invalid-color-sequence");
+    expect(requireColorSequence("012", 3)).toBe("012");
+  });
+
+  it("treats only positive elapsed deadlines as expired", () => {
+    expect(hasColorDeadlinePassed(0, 100)).toBe(false);
+    expect(hasColorDeadlinePassed(101, 100)).toBe(false);
+    expect(hasColorDeadlinePassed(100, 100)).toBe(true);
   });
 });
 

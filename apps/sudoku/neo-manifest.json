@@ -8,8 +8,8 @@
   },
   "createdAt": "2026-07-02T00:00:00Z",
   "default_network": "neo-n3-testnet",
-  "description": "Timed on-chain Sudoku with provably fair puzzle deals. Pay a small GAS entry, receive a puzzle seeded from an immutable block beacon, and solve it before the deadline to win a fixed GAS reward: 0.1 for Easy, 0.5 for Medium, 1 for Hard. Placements are final — each on-chain undo rescues your board but burns 30% of the base reward (three max). Winnings accrue as withdrawable credit and every solve is ranked on a global leaderboard rebuilt from chain events.",
-  "description_zh": "限时链上数独，牌局可验证公平。支付少量 GAS 报名费后，合约用不可变的区块信标派发谜题种子，在截止时间内完成即可赢取固定 GAS 奖励：简单 0.1、中等 0.5、困难 1。落子即锁定——每次链上撤回可挽救棋盘，但会扣除基础奖励的 30%（最多三次）。奖金以可提取余额累计，每次通关都会进入由链上事件重建的全网积分榜。",
+  "description": "A complete local Sudoku game with three difficulty routes, pencil candidates, correction and erase controls, conflict feedback, hints, pause, restart, refresh recovery, and an off-chain practice leaderboard.",
+  "description_zh": "完整的本地数独游戏，包含三档难度、候选笔记、改数与擦除、冲突反馈、提示、暂停、重开、刷新恢复和离线练习榜。",
   "developer": {
     "email": "dev@r3e.network",
     "name": "Yiwu",
@@ -18,67 +18,18 @@
   "featured": false,
   "features": {
     "deeplink": "neomainapp://sudoku",
-    "offlineSupport": false,
+    "offlineSupport": true,
     "stateless": false
   },
   "id": "miniapp-sudoku",
   "name": "Sudoku Arena",
   "name_zh": "数独竞技场",
-  "operation_panel": {
-    "operations": [
-      {
-        "button_style": "primary",
-        "description": "Pay the entry fee and deal a provably fair puzzle. Easy 0.02 GAS entry wins 0.1; Medium 0.10 wins 0.5; Hard 0.20 wins 1.",
-        "method": "startGame",
-        "name": "Start Puzzle",
-        "params": [
-          {
-            "default_value": "0",
-            "label": "Difficulty",
-            "name": "difficulty",
-            "options": [
-              {
-                "label": "Easy — win 0.1 GAS",
-                "value": "0"
-              },
-              {
-                "label": "Medium — win 0.5 GAS",
-                "value": "1"
-              },
-              {
-                "label": "Hard — win 1 GAS",
-                "value": "2"
-              }
-            ],
-            "required": true,
-            "type": "select"
-          }
-        ],
-        "priority": "primary"
-      },
-      {
-        "button_style": "success",
-        "description": "Pull your accumulated GAS winnings and any unused entry credit back to your wallet.",
-        "method": "withdrawWinnings",
-        "name": "Withdraw Winnings",
-        "params": [],
-        "priority": "secondary"
-      }
-    ],
-    "subtitle": "Deposit the entry, start a timed puzzle, and submit your finished board before the deadline to win GAS.",
-    "title": "Sudoku Arena"
-  },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain",
-    "compute",
-    "oracle"
-  ],
+  "permissions": [],
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "supported_networks": [
     "neo-n3-testnet"
@@ -86,29 +37,29 @@
   "tags": [
     "sudoku",
     "puzzle",
-    "leaderboard",
-    "gas",
+    "offline",
+    "practice",
     "game"
   ],
   "technologies": {
     "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+      "description": "Wallet access is not required for the active local game mode.",
       "enabled": false
     },
     "oracle": {
-      "description": "Puzzle seeds come from a fixed block-beacon commit/reveal: the seed hashes the first block after the start transaction with the player and game id, so neither side can pick a puzzle. Seed grinding cannot mint rewards here — any seed still yields a puzzle that must be solved within the same limits. Morpheus VRF + TEE puzzle sealing is the planned upgrade path for server-private deals.",
-      "enabled": true
+      "description": "The matching testnet contract references the canonical Morpheus Oracle, but the active local release makes no oracle request and paid entry is disabled.",
+      "enabled": false
     },
     "tee": {
-      "enabled": true,
-      "description": "The play session is verified by Morpheus TEE compute before settlement, with the contract bound to the configured Morpheus oracle kernel on testnet."
+      "description": "The active local game generates and verifies unique puzzles in-browser without a TEE call; the paid TEE settlement path is not published.",
+      "enabled": false
     }
   },
-  "updatedAt": "2026-07-02T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z",
   "urls": {
     "banner": "/miniapps/sudoku/banner.webp",
     "entry": "/miniapps/sudoku/index.html",
     "icon": "/miniapps/sudoku/logo.webp"
   },
-  "version": "1.0.0"
+  "version": "1.2.0"
 }

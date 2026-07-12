@@ -7,25 +7,12 @@ export const manifest: MiniAppManifest = {
   category: "social",
   shell: "launcher",
 
-  tabs: [
-    { key: "memorials", labelKey: "memorials", icon: "candle", default: true },
-    { key: "tributes", labelKey: "myTributes", icon: "heart" },
-  ],
-
-  stats: [
-    { labelKey: "memorials", valueKey: "memorialCount", format: "number", icon: "candle" },
-    { labelKey: "myTributes", valueKey: "tributeCount", format: "number", icon: "heart" },
-    { labelKey: "sidebarObituaries", valueKey: "obituaryCount", format: "number", icon: "scroll" },
-  ],
-
-  sidebar: {
-    titleKey: "title",
-    items: [
-      { labelKey: "memorials", valueKey: "memorialCount", format: "number" },
-      { labelKey: "myTributes", valueKey: "tributeCount", format: "number" },
-      { labelKey: "sidebarObituaries", valueKey: "obituaryCount", format: "number" },
-    ],
-  },
+  // PlayStage owns the one primary memorial/tribute flow. Do not duplicate it
+  // as launcher tabs, stat cards, sidebar rows, or generic operation forms.
+  tabs: [],
+  stats: [],
+  sidebar: { items: [] },
+  operations: [],
 
   features: { walletRequired: true, chainWarning: true },
 

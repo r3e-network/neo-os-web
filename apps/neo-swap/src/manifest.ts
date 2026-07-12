@@ -10,7 +10,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   // -- Identity ---------------------------------------------------------------
   name: "Neo Swap",
-  description: "Token swap interface for Neo N3 — swap NEO, GAS, and NEP-17 tokens",
+  description: "Timestamped NEO/GAS quote desk with slippage and settlement guards",
   icon: "repeat",
   category: "defi",
   shell: "launcher",
@@ -18,7 +18,6 @@ export const manifest: MiniAppManifest = {
   // -- Tabs -------------------------------------------------------------------
   tabs: [
     { key: "swap", labelKey: "tabSwap", icon: "repeat", default: true },
-    { key: "pool", labelKey: "tabPool", icon: "droplet" },
   ],
 
   // -- Stats Grid -------------------------------------------------------------
@@ -40,7 +39,9 @@ export const manifest: MiniAppManifest = {
 
   // -- Features ---------------------------------------------------------------
   features: {
-    walletRequired: true,
+    // Public Morpheus quotes do not require a wallet. A wallet is requested
+    // only for optional balance reads or a future verified settlement route.
+    walletRequired: false,
     chainWarning: true,
   },
 
@@ -53,13 +54,9 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
 
-  // -- Contract ---------------------------------------------------------------
-  contract: {
-    mode: "custom",
-  },
-
   // -- Permissions ------------------------------------------------------------
   permissions: {
-    payments: true,
+    payments: false,
+    datafeed: true,
   },
 };

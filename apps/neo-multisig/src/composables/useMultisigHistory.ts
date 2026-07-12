@@ -13,6 +13,9 @@ export interface HistoryItem {
   kind: "vault" | "request";
   /** On-chain id (vaultId or reqId). */
   id: number;
+  /** Network and contract binding prevent cross-network ID attribution. */
+  network?: "mainnet" | "testnet";
+  contractHash?: string;
   /** For requests: the parent vault id. */
   vaultId?: number;
   /** For requests: last-known lifecycle status. */
@@ -40,17 +43,17 @@ export function useMultisigHistory(app: MiniAppFramework) {
 
   const vaultCount = createDerived(
     () => history.get().filter((h) => h.kind === "vault").length,
-    [],
+    [history],
   );
 
   const pendingCount = createDerived(
     () => history.get().filter((h) => h.kind === "request" && h.status === "pending").length,
-    [],
+    [history],
   );
 
   const completedCount = createDerived(
     () => history.get().filter((h) => h.kind === "request" && h.status === "executed").length,
-    [],
+    [history],
   );
 
   const loadHistory = () => {

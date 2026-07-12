@@ -2,6 +2,7 @@ import React from "react";
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { createObservable, type ObservableState } from "../react/context";
 import PlayArea from "../../memorial-shrine/src/PlayArea";
@@ -9,6 +10,9 @@ import PlayArea from "../../memorial-shrine/src/PlayArea";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 afterEach(() => cleanup());
+const REPO_ROOT = process.cwd().endsWith("/apps/shared")
+  ? resolve(process.cwd(), "../..")
+  : process.cwd();
 
 function t(key: string, params?: Record<string, string | number>) {
   const messages: Record<string, string> = {
@@ -31,6 +35,10 @@ function t(key: string, params?: Record<string, string | number>) {
     incense: "Incense", candle: "Candle", flower: "Flowers", fruit: "Fruit", wine: "Wine", feast: "Feast",
     tributeMessagePlaceholder: "Leave a message...", receiptIdPlaceholder: "Receipt ID",
     placeholderName: "Name", placeholderRelation: "Relationship", placeholderBirthYear: "Birth year", placeholderDeathYear: "Death year", placeholderBio: "Biography",
+    retry: "Retry", catalogLoadingTitle: "Opening the memorial garden", catalogLoadingBody: "Reading memorials.",
+    catalogLoadFailedTitle: "The garden could not be refreshed", catalogLoadFailed: "Check the connection and retry.",
+    photoInvalid: "Use a valid HTTPS image or IPFS CID.",
+    recoveryStorageUnavailable: "Reliable transaction recovery is unavailable.",
   };
   let value = messages[key] ?? key;
   if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
@@ -43,6 +51,10 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     memorials: [{ id: 1, name: "John Doe", birthYear: 1950, deathYear: 2024, relationship: "Father" }],
     visitedMemorials: [], recentObituaries: [], myTributes: [], selectedMemorial: null,
     shareStatus: null, lastTx: null, obituaryCount: 0,
+    catalogStatus: "ready", catalogError: "",
+    networkStatus: "ready", networkMessage: "", writePhase: "idle",
+    writeNotice: "", writeError: "", confirmationChecking: false, pendingWrite: null,
+    storageHealthy: true,
     ...overrides,
   };
   return Object.fromEntries(Object.entries(base).map(([k, v]) => [k, createObservable(v)]));
@@ -114,6 +126,86 @@ describe("Memorial Shrine PlayArea (v2 scene-driven)", () => {
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("createMemorial", expect.objectContaining({ name: "Jane" })));
   });
 
+  it("turns the sole primary action into recovery while a broadcast is pending", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const pendingWrite = {
+      network: "testnet",
+      contractHash: `0x${"12".repeat(20)}`,
+      txid: `0x${"ab".repeat(32)}`,
+      intent: { kind: "create" },
+    };
+    const { container } = render(
+      <PlayArea t={t} state={state({ pendingWrite, writePhase: "broadcast" })} dispatch={dispatch} />,
+    );
+
+    expect(container.querySelectorAll(".mx2-btn--primary")).toHaveLength(1);
+    expect(container.querySelectorAll(".mx2-action-rail__secondary")).toHaveLength(0);
+    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
+    expect(dispatch).toHaveBeenCalledWith("recoverPendingWrite");
+    expect(dispatch).not.toHaveBeenCalledWith("createMemorial", expect.anything());
+    expect(dispatch).not.toHaveBeenCalledWith("payTribute", expect.anything());
+  });
+
+  it("keeps an RPC failure distinct from an empty garden and offers recovery", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          memorials: [],
+          selectedMemorial: null,
+          memorialCount: 0,
+          catalogStatus: "error",
+          catalogError: "Previously verified entries are retained.",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    expect(container.querySelector('.shrine-recovery[data-state="recovery"]')).toBeTruthy();
+    expect(container.querySelector(".shrine-create-card")).toBeNull();
+    fireEvent.click(getByText("Retry"));
+    expect(dispatch).toHaveBeenCalledWith("refreshMemorials");
+  });
+
+  it("shows partial catalog truth and blocks writes when recovery storage is unavailable", () => {
+    const { container, getByText } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          catalogStatus: "partial",
+          catalogError: "One memorial is temporarily unavailable.",
+          storageHealthy: false,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByText("Reliable transaction recovery is unavailable.")).toBeTruthy();
+    expect(container.querySelector<HTMLButtonElement>(".mx2-btn--primary")?.disabled).toBe(true);
+  });
+
+  it("keeps invalid media guidance secondary and blocks an unusable draft", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ memorials: [], selectedMemorial: null, memorialCount: 0 })}
+        dispatch={vi.fn()}
+      />,
+    );
+    fireEvent.change(container.querySelector(".shrine-name-plaque input") as Element, {
+      target: { value: "Jane" },
+    });
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const photo = Array.from(container.querySelectorAll<HTMLInputElement>("input"))
+      .find((input) => input.placeholder === "IPFS or HTTPS image");
+    fireEvent.change(photo as Element, { target: { value: "local portrait" } });
+    expect(container.querySelector(".shrine-draft-hint")?.textContent).toContain(
+      "Use a valid HTTPS image or IPFS CID.",
+    );
+    expect(container.querySelector<HTMLButtonElement>(".mx2-btn--primary")?.disabled).toBe(true);
+  });
+
   it("keeps create mode as a memorial card workspace with quick memory presets", () => {
     const { container } = render(
       <PlayArea t={t} state={state({ memorials: [], selectedMemorial: null, memorialCount: 0 })} dispatch={vi.fn()} />,
@@ -179,14 +271,14 @@ describe("Memorial Shrine PlayArea (v2 scene-driven)", () => {
   });
 
   it("keeps motion backed by reduced-motion fallbacks", () => {
-    const styles = readFileSync(`${process.cwd()}/../memorial-shrine/src/PlayArea.scss`, "utf8");
+    const styles = readFileSync(resolve(REPO_ROOT, "apps/memorial-shrine/src/PlayArea.scss"), "utf8");
     expect(styles).toContain("@use \"@shared/styles/v2/motion\"");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(styles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/);
   });
 
   it("keeps garden art subordinate to the memorial workflow", () => {
-    const styles = readFileSync(`${process.cwd()}/../memorial-shrine/src/PlayArea.scss`, "utf8");
+    const styles = readFileSync(resolve(REPO_ROOT, "apps/memorial-shrine/src/PlayArea.scss"), "utf8");
     expect(styles).toMatch(/\.shrine-workbench\s*\{[\s\S]*grid-template-columns:\s*minmax\(240px,\s*0\.68fr\) minmax\(340px,\s*1\.32fr\)/);
     expect(styles).toMatch(/\.shrine-workbench\[data-mode="create"\]\s*\{[\s\S]*grid-template-columns:\s*1fr/);
     expect(styles).toMatch(/\.shrine-workbench\[data-mode="create"\] \.shrine-garden-panel\s*\{[\s\S]*display:\s*none/);
@@ -233,7 +325,7 @@ describe("Memorial Shrine PlayArea (v2 scene-driven)", () => {
   });
 
   it("keeps the playarea source free of visible emoji resources and form tabs", () => {
-    const source = readFileSync(`${process.cwd()}/../memorial-shrine/src/PlayArea.tsx`, "utf8");
+    const source = readFileSync(resolve(REPO_ROOT, "apps/memorial-shrine/src/PlayArea.tsx"), "utf8");
     expect(source).toContain("memorial-garden.webp");
     expect(source).toContain("shrine-scene-art.webp");
     expect(source).toContain("shrine-memorial-rail");
@@ -244,5 +336,6 @@ describe("Memorial Shrine PlayArea (v2 scene-driven)", () => {
     expect(source).not.toContain("🍷");
     expect(source).not.toContain("role=\"tab\"");
     expect(source).not.toContain("<h4>{t(\"memoryStudio\")}</h4>");
+    expect(source).toContain('category="social"');
   });
 });

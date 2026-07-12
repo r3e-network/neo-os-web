@@ -16,15 +16,13 @@
  *     getStreamDetails(streamId)                        -> Map of fields
  *     totalStreams()                                    -> Integer
  *
- *   MUTATIONS (app.chain.invoke):
- *     1. DEPOSIT — a NEP-17 transfer to the contract, targeting the *asset*
- *        token (scriptHash override), with a memo that MUST start with the app
- *        id + ":" so OnNEP17Payment credits the depositor's prepaid balance:
- *          transfer(from, CONTRACT, totalBaseUnits, "miniapp-neo-pay:fund")
- *          { scriptHash: <GAS_HASH | NEO_HASH> }
+ *   CREATE MUTATION (app.chain.invokeMultiple, one atomic transaction):
+ *     1. transfer(from, CONTRACT, totalBaseUnits, "miniapp-neo-pay:fund")
+ *        against the selected GAS/NEO token contract
  *     2. createStream(creator, beneficiary, asset, totalAmount, rateAmount,
  *        intervalSeconds, title, notes) -> streamId
- *        Consumes the creator's prepaid credit, so the deposit MUST land first.
+ *     OnNEP17Payment credits the creator before createStream consumes that
+ *     credit in the same VM transaction. A fault rolls both scripts back.
  *     claimStream(beneficiary, streamId)  — beneficiary-first witness
  *     cancelStream(creator, streamId)     — creator-first witness
  *
@@ -72,6 +70,10 @@ const LIST_PAGE_LIMIT = 200;
 const MIN_INTERVAL_DAYS = 1;
 const MAX_INTERVAL_DAYS = 365;
 
+/** Local recovery record for an atomically submitted but not-yet-observed stream. */
+const PENDING_CREATE_KEY = "pending-create";
+const PENDING_CREATE_EXPIRY_MS = 10 * 60 * 1000;
+
 /** Resolve the NEP-17 token script hash for an asset symbol. */
 const assetHash = (asset: "NEO" | "GAS"): string =>
   asset === "NEO" ? BLOCKCHAIN_CONSTANTS.NEO_HASH : BLOCKCHAIN_CONSTANTS.GAS_HASH;
@@ -95,6 +97,29 @@ export interface UseNeoPayAppOptions {
   app: MiniAppFramework;
   /** Translation function. */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+interface PendingCreateRecord {
+  txid: string;
+  creatorHash: string;
+  contractHash: string;
+  baselineIds: string[];
+  submittedAt: number;
+}
+
+type PendingRecoveryStatus = "none" | "pending" | "confirmed" | "expired";
+type NeoPayDataState = "idle" | "live" | "partial" | "unavailable";
+
+function isPendingCreateRecord(value: unknown): value is PendingCreateRecord {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Partial<PendingCreateRecord>;
+  return Boolean(
+    record.txid
+    && record.creatorHash
+    && record.contractHash
+    && Array.isArray(record.baselineIds)
+    && Number.isFinite(record.submittedAt),
+  );
 }
 
 // ============================================================================
@@ -197,6 +222,12 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
   const createdStreams = createObservable<StreamItem[]>([]);
   const beneficiaryStreams = createObservable<StreamItem[]>([]);
   const serviceNotice = createObservable("");
+  const dataState = createObservable<NeoPayDataState>("idle");
+  const failedDetailReads = createObservable(0);
+  const storedPendingCreate = app.storage.local.get<PendingCreateRecord>(PENDING_CREATE_KEY, null);
+  const pendingCreate = createObservable<PendingCreateRecord | null>(
+    isPendingCreateRecord(storedPendingCreate) ? storedPendingCreate : null,
+  );
 
   // ── Computed (manifest stat / sidebar bindings) ─────────────────────────
   const allStreams = createDerived(
@@ -213,6 +244,10 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
     () => createdStreams.get().length + beneficiaryStreams.get().length,
     [createdStreams, beneficiaryStreams],
   );
+  const pendingCreateTxid = createDerived(
+    () => pendingCreate.get()?.txid ?? "",
+    [pendingCreate],
+  );
 
   // ── Data Loading (direct chain reads) ───────────────────────────────────
 
@@ -224,6 +259,7 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
   const readStreamsForRole = async (
     op: "getUserStreams" | "getBeneficiaryStreams",
     addr: string,
+    onDetailFailure?: () => void,
   ): Promise<StreamItem[]> => {
     const hash = addressToScriptHash(addr);
     if (!hash) return [];
@@ -246,6 +282,7 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
           ]);
           return parseStreamDetails(raw, id);
         } catch (e) {
+          onDetailFailure?.();
           console.warn(
             "[useNeoPayApp] getStreamDetails failed for",
             id,
@@ -260,6 +297,52 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
     return items.filter((item): item is StreamItem => item !== null);
   };
 
+  const readCreatorStreamIds = async (creatorHash: string): Promise<string[]> => {
+    const idsRaw = await app.chain.readArray("getUserStreams", [
+      app.chain.arg.hash160(creatorHash),
+      app.chain.arg.integer(0),
+      app.chain.arg.integer(LIST_PAGE_LIMIT),
+    ]);
+    return (Array.isArray(idsRaw) ? idsRaw : [])
+      .map(toIdString)
+      .filter((id) => id && id !== "0");
+  };
+
+  const persistPendingCreate = (record: PendingCreateRecord | null) => {
+    pendingCreate.set(record);
+    if (record) app.storage.local.set(PENDING_CREATE_KEY, record);
+    else app.storage.local.delete(PENDING_CREATE_KEY);
+  };
+
+  const recoverPendingCreate = async (): Promise<PendingRecoveryStatus> => {
+    const record = pendingCreate.get();
+    if (!record) return "none";
+    if (normalizeScriptHash(app.chain.contractAddress.get() ?? "") !== normalizeScriptHash(record.contractHash)) {
+      return "pending";
+    }
+
+    try {
+      const ids = await readCreatorStreamIds(record.creatorHash);
+      const baseline = new Set(record.baselineIds);
+      if (ids.some((id) => !baseline.has(id))) {
+        persistPendingCreate(null);
+        return "confirmed";
+      }
+      if (Date.now() - record.submittedAt >= PENDING_CREATE_EXPIRY_MS) {
+        // The direct contract read succeeded and still shows no new creator
+        // stream after the recovery window. Because funding + creation are one
+        // VM transaction, a failed batch retained no transfer and retry is safe.
+        persistPendingCreate(null);
+        return "expired";
+      }
+      return "pending";
+    } catch {
+      // An RPC/indexer outage cannot prove failure; preserve the txid and keep
+      // resubmission locked until a later read resolves the uncertainty.
+      return "pending";
+    }
+  };
+
   /**
    * Refresh created + beneficiary streams for the current user, straight from
    * the contract. Newest first (highest stream id). The beneficiary bucket
@@ -272,15 +355,21 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
     if (!addr) {
       createdStreams.set([]);
       beneficiaryStreams.set([]);
+      failedDetailReads.set(0);
+      dataState.set("idle");
       return;
     }
 
     try {
       isRefreshing.set(true);
+      let detailFailures = 0;
+      const noteDetailFailure = () => {
+        detailFailures += 1;
+      };
 
       const [created, incoming] = await Promise.all([
-        readStreamsForRole("getUserStreams", addr),
-        readStreamsForRole("getBeneficiaryStreams", addr),
+        readStreamsForRole("getUserStreams", addr, noteDetailFailure),
+        readStreamsForRole("getBeneficiaryStreams", addr, noteDetailFailure),
       ]);
 
       const sortNewestFirst = (list: StreamItem[]): StreamItem[] =>
@@ -298,12 +387,15 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
 
       createdStreams.set(sortNewestFirst(created));
       beneficiaryStreams.set(sortNewestFirst(beneficiaryOnly));
-      serviceNotice.set("");
+      failedDetailReads.set(detailFailures);
+      dataState.set(detailFailures > 0 ? "partial" : "live");
+      serviceNotice.set(detailFailures > 0 ? t("streamListPartial") : "");
     } catch (e) {
       console.warn(
         "[useNeoPayApp] refreshStreams failed:",
         e instanceof Error ? e.message : String(e),
       );
+      dataState.set("unavailable");
       serviceNotice.set(t("streamListUnavailable"));
     } finally {
       isRefreshing.set(false);
@@ -315,14 +407,10 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
   /**
    * Create a payment stream against the standalone contract.
    *
-   * Two-step, both signed by the creator:
-   *   1. DEPOSIT — transfer the total to the contract on the asset token, with
-   *      the required memo, crediting the creator's prepaid balance.
-   *   2. createStream — consumes that credit and opens the stream.
-   *
-   * If step 1 succeeds but step 2 fails, the prepaid credit remains on the
-   * contract under (asset, creator) and can be reused on retry — we surface a
-   * "prepaid credit held, retry" message rather than claiming a total loss.
+   * One wallet confirmation submits the asset transfer and createStream call
+   * as an ordered multi-script transaction. Neo VM atomicity means a failing
+   * create also reverts the transfer, so retry cannot duplicate a deposit or
+   * strand prepaid credit.
    *
    * AMOUNTS ARE BASE UNITS: GAS total * 1e8; NEO is an integer count (no
    * scaling, fractional NEO rejected). rateAmount <= totalAmount;
@@ -382,52 +470,116 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
       throw new Error(t("contractMissing"));
     }
 
+    const recovery = await recoverPendingCreate();
+    if (recovery === "confirmed") {
+      await refreshStreams();
+      serviceNotice.set(t("streamRecovered"));
+      return;
+    }
+    if (recovery === "pending") {
+      serviceNotice.set(t("streamConfirmationPending"));
+      throw new Error(t("streamConfirmationPending"));
+    }
+    if (recovery === "expired") {
+      serviceNotice.set(t("streamConfirmationExpired"));
+    }
+
     const title = formData.name.trim().slice(0, 60);
     const notes = formData.notes.trim().slice(0, 240);
 
     try {
       isCreating.set(true);
 
-      // Step 1: DEPOSIT — NEP-17 transfer to the contract on the asset token.
-      // The scriptHash override targets the token contract (not the app), and
-      // the memo must start with the app id so OnNEP17Payment credits us.
-      await app.chain.invoke(
-        "transfer",
-        [
-          app.chain.arg.hash160(creatorHash),
-          app.chain.arg.hash160(contractHash),
-          app.chain.arg.integer(totalAmount),
-          app.chain.arg.string(PAYMENT_MEMO),
-        ],
-        { scriptHash: assetHash(asset) },
-      );
-
-      // Step 2: createStream — consumes the prepaid credit and opens the
-      // stream. If this fails, the credit stays on the contract under the
-      // creator and the asset, recoverable by retrying create.
+      let baselineIds: string[];
       try {
-        await app.chain.invoke(
-          "createStream",
-          [
-            app.chain.arg.hash160(creatorHash),
-            app.chain.arg.hash160(beneficiaryHash),
-            app.chain.arg.hash160(assetHash(asset)),
-            app.chain.arg.integer(totalAmount),
-            app.chain.arg.integer(rateAmount),
-            app.chain.arg.integer(intervalSeconds),
-            app.chain.arg.string(title),
-            app.chain.arg.string(notes),
-          ],
-          { waitForEvent: "StreamCreated" },
-        );
-      } catch (createError) {
-        console.error(
-          "[useNeoPayApp] createStream failed after deposit succeeded:",
-          createError instanceof Error ? createError.message : String(createError),
-        );
-        // Deposit landed, stream did not — credit is held under the creator.
-        throw new Error(t("depositStrandedRecoverable"));
+        baselineIds = await readCreatorStreamIds(creatorHash);
+      } catch {
+        throw new Error(t("streamActionUnavailable"));
       }
+      const submittedAt = Date.now();
+
+      let result;
+      try {
+        result = await app.chain.invokeMultiple(
+          [
+            {
+              scriptHash: assetHash(asset),
+              operation: "transfer",
+              args: [
+                app.chain.arg.hash160(creatorHash),
+                app.chain.arg.hash160(contractHash),
+                app.chain.arg.integer(totalAmount),
+                app.chain.arg.string(PAYMENT_MEMO),
+              ],
+            },
+            {
+              scriptHash: contractHash,
+              operation: "createStream",
+              args: [
+                app.chain.arg.hash160(creatorHash),
+                app.chain.arg.hash160(beneficiaryHash),
+                app.chain.arg.hash160(assetHash(asset)),
+                app.chain.arg.integer(totalAmount),
+                app.chain.arg.integer(rateAmount),
+                app.chain.arg.integer(intervalSeconds),
+                app.chain.arg.string(title),
+                app.chain.arg.string(notes),
+              ],
+            },
+          ],
+          {
+            signers: [{ account: creatorAddr, scopes: 1 }],
+            notify: "silent",
+            onTransactionSent: (txid) => {
+              if (!txid) return;
+              persistPendingCreate({
+                txid,
+                creatorHash,
+                contractHash,
+                baselineIds,
+                submittedAt,
+              });
+            },
+          },
+        );
+      } catch (error) {
+        // invokeMultiple throws a known VM FAULT after the batch result is
+        // available. Atomicity proves the transfer rolled back, so a persisted
+        // txid from onTransactionSent must not keep retry locked in that case.
+        persistPendingCreate(null);
+        throw error;
+      }
+      if (!result.success || !result.txid) {
+        persistPendingCreate(null);
+        throw new Error(t("streamActionUnavailable"));
+      }
+
+      if (!pendingCreate.get()) {
+        persistPendingCreate({
+          txid: result.txid,
+          creatorHash,
+          contractHash,
+          baselineIds,
+          submittedAt,
+        });
+      }
+
+      const baseline = new Set(baselineIds);
+      const readConfirmedIds = () => readCreatorStreamIds(creatorHash);
+      let confirmedIds = await readConfirmedIds().catch(() => null);
+      if (!confirmedIds?.some((id) => !baseline.has(id))) {
+        confirmedIds = await app.chain.waitForState(
+          readConfirmedIds,
+          (ids) => ids.some((id) => !baseline.has(id)),
+          { attempts: 4, firstDelayMs: 4_000, delayMs: 5_000 },
+        );
+      }
+      if (!confirmedIds?.some((id) => !baseline.has(id))) {
+        serviceNotice.set(t("streamConfirmationPending"));
+        throw new Error(t("streamConfirmationPending"));
+      }
+
+      persistPendingCreate(null);
 
       await refreshStreams();
     } finally {
@@ -495,7 +647,11 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
   const loadAll = async () => {
     isLoading.set(true);
     try {
+      const recovery = await recoverPendingCreate();
       await refreshStreams();
+      if (recovery === "pending") serviceNotice.set(t("streamConfirmationPending"));
+      if (recovery === "confirmed") serviceNotice.set(t("streamRecovered"));
+      if (recovery === "expired") serviceNotice.set(t("streamConfirmationExpired"));
     } finally {
       isLoading.set(false);
     }
@@ -511,6 +667,9 @@ export function useNeoPayApp({ app, t }: UseNeoPayAppOptions) {
     claimingId,
     cancellingId,
     serviceNotice,
+    dataState,
+    failedDetailReads,
+    pendingCreateTxid,
 
     // ── Computed ──────────────────────────────────────────────────────
     allStreams,

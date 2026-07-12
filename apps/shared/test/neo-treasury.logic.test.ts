@@ -7,11 +7,22 @@ import { createMiniAppFramework } from "../react";
 import { createObservable } from "../react/context";
 import { addressToScriptHash } from "../utils/neo";
 import {
+  assertTreasurySpendableBalance,
+  assertTreasuryWalletNetwork,
+  buildPendingTreasuryTransfer,
   buildTreasuryDisbursementPreview,
   buildTreasuryTransferIntent,
+  inspectPendingTreasuryTransfer,
+  matchesPendingTreasuryTransfer,
+  parsePendingTreasuryTransfer,
   scaleTreasuryAmount,
 } from "../../neo-treasury/src/utils/treasuryOperations";
-import { fetchDaHongfeiData } from "../../neo-treasury/src/utils/treasury";
+import {
+  DA_HONGFEI_ADDRESSES,
+  ERIK_ZHANG_ADDRESSES,
+  fetchDaHongfeiData,
+  formatTreasuryTokenAmount,
+} from "../../neo-treasury/src/utils/treasury";
 import type { PriceData } from "../../neo-treasury/src/utils/treasury";
 
 const SENDER = "NgebdUkFxSbzLMruXopuBw4aKsXX8sTyxw";
@@ -78,6 +89,152 @@ describe("neo-treasury treasury operations", () => {
     });
     expect(preview.senderHash).toBeUndefined();
   });
+
+  it("binds review to network, token contract, signer, recipient, amount, and memo", () => {
+    const now = 1_800_000_000_000;
+    const intent = buildTreasuryTransferIntent(SENDER, {
+      asset: "GAS",
+      amount: "01.2500",
+      recipient: RECIPIENT,
+      memo: "ops-42",
+    }, "testnet", now);
+
+    expect(intent).toMatchObject({
+      version: 1,
+      network: "testnet",
+      asset: "GAS",
+      amount: "1.25",
+      scaledAmount: "125000000",
+      scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      senderHash: addressToScriptHash(SENDER).toLowerCase(),
+      recipientHash: addressToScriptHash(RECIPIENT).toLowerCase(),
+      memo: "ops-42",
+      createdAt: now,
+    });
+    expect(intent).not.toHaveProperty("reviewExpiresAt");
+    expect(intent.bindingKey).toContain('"testnet"');
+    expect(intent.bindingKey).toContain('"125000000"');
+  });
+
+  it("fails closed on unknown/mismatched wallet networks and self transfers", () => {
+    expect(assertTreasuryWalletNetwork("testnet", "neo-n3-testnet")).toBe("testnet");
+    expect(() => assertTreasuryWalletNetwork("testnet", "neo-n3-mainnet")).toThrow("switch");
+    expect(() => assertTreasuryWalletNetwork("testnet", "neo-n3")).toThrow("could not be verified");
+    expect(() => assertTreasuryWalletNetwork("testnet", "neo-x-testnet")).toThrow("could not be verified");
+    expect(() => buildTreasuryTransferIntent(SENDER, {
+      asset: "NEO",
+      amount: "1",
+      recipient: SENDER,
+    }, "mainnet")).toThrow("different from the connected wallet");
+  });
+
+  it("checks spendability and preserves GAS fee headroom", () => {
+    const gasIntent = buildTreasuryTransferIntent(SENDER, {
+      asset: "GAS",
+      amount: "1",
+      recipient: RECIPIENT,
+    });
+    expect(() => assertTreasurySpendableBalance(gasIntent, "100000000")).toThrow("network fees");
+    expect(assertTreasurySpendableBalance(gasIntent, "100000001")).toBe(100000001n);
+    expect(() => assertTreasurySpendableBalance(gasIntent, "99999999")).toThrow("Insufficient GAS");
+  });
+
+  it("persists and validates an exact immutable recovery binding", () => {
+    const intent = buildTreasuryTransferIntent(SENDER, {
+      asset: "NEO",
+      amount: "3",
+      recipient: RECIPIENT,
+      memo: "grant",
+    }, "mainnet", 1_800_000_000_000);
+    const pending = buildPendingTreasuryTransfer(
+      intent,
+      `${"ab".repeat(32)}`,
+      "10",
+      "2",
+      1_800_000_000_100,
+    );
+    // Pin `now` just after the fixture's broadcast so the fail-closed
+    // future-timestamp skew guard evaluates the record the way production
+    // does (records created at wall-clock time, parsed at wall-clock time),
+    // and so the mutation cases below reject for the mutated field rather
+    // than incidentally via clock skew.
+    const parseNow = 1_800_000_000_200;
+    expect(parsePendingTreasuryTransfer(pending, parseNow)).toEqual(pending);
+    expect(pending.txid).toBe(`0x${"ab".repeat(32)}`);
+    expect(parsePendingTreasuryTransfer({ ...pending, recipientHash: `0x${"1".repeat(40)}` }, parseNow)).toBeNull();
+    expect(parsePendingTreasuryTransfer({ ...pending, txid: "0xshort" }, parseNow)).toBeNull();
+  });
+
+  it("matches the indexed native Transfer event on every bound field", () => {
+    const intent = buildTreasuryTransferIntent(SENDER, {
+      asset: "GAS",
+      amount: "0.1",
+      recipient: RECIPIENT,
+    }, "testnet", 1_800_000_000_000);
+    const pending = buildPendingTreasuryTransfer(intent, `0x${"cd".repeat(32)}`, "50000000", "2", 1_800_000_000_100);
+    const row = {
+      txid: pending.txid,
+      network: "testnet",
+      contract_hash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      from_address: SENDER,
+      to_address: RECIPIENT,
+      amount_raw: "10000000",
+    };
+    expect(matchesPendingTreasuryTransfer(row, pending)).toBe(true);
+    expect(matchesPendingTreasuryTransfer({ ...row, amount_raw: "10000001" }, pending)).toBe(false);
+    expect(matchesPendingTreasuryTransfer({ ...row, to_address: SENDER }, pending)).toBe(false);
+    expect(matchesPendingTreasuryTransfer({ ...row, contract_hash: BLOCKCHAIN_CONSTANTS.NEO_HASH }, pending)).toBe(false);
+  });
+
+  it("requires both an exact Transfer event and authoritative balance readback", async () => {
+    const intent = buildTreasuryTransferIntent(SENDER, {
+      asset: "NEO",
+      amount: "3",
+      recipient: RECIPIENT,
+    }, "mainnet", 1_800_000_000_000);
+    const pending = buildPendingTreasuryTransfer(intent, `0x${"ef".repeat(32)}`, "10", "2", 1_800_000_000_100);
+    const exactRow = {
+      txid: pending.txid,
+      network: "mainnet",
+      contract_hash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
+      from_address: SENDER,
+      to_address: RECIPIENT,
+      amount_raw: "3",
+    };
+
+    await expect(inspectPendingTreasuryTransfer(pending, {
+      listTransfers: async () => [exactRow],
+      readRecipientBalance: async () => "5",
+      readSenderBalance: async () => "7",
+    })).resolves.toEqual({ status: "confirmed", eventMatched: true, stateReadback: true });
+
+    await expect(inspectPendingTreasuryTransfer(pending, {
+      listTransfers: async () => [exactRow],
+      readRecipientBalance: async () => "2",
+      readSenderBalance: async () => "10",
+    })).resolves.toEqual({ status: "readback-pending", eventMatched: true, stateReadback: false });
+
+    // One-sided movement is not enough: both native balances must be
+    // consistent with the saved pre-transfer baseline before the UI can use
+    // confirmed-success language.
+    await expect(inspectPendingTreasuryTransfer(pending, {
+      listTransfers: async () => [exactRow],
+      readRecipientBalance: async () => "5",
+      readSenderBalance: async () => "10",
+    })).resolves.toEqual({ status: "readback-pending", eventMatched: true, stateReadback: false });
+
+    await expect(inspectPendingTreasuryTransfer(pending, {
+      listTransfers: async () => [exactRow],
+      readRecipientBalance: async () => "2",
+      readSenderBalance: async () => "7",
+    })).resolves.toEqual({ status: "readback-pending", eventMatched: true, stateReadback: false });
+
+    await expect(inspectPendingTreasuryTransfer(pending, {
+      listTransfers: async () => [{ ...exactRow, amount_raw: "4" }],
+      readRecipientBalance: async () => "6",
+      readSenderBalance: async () => "6",
+    })).resolves.toEqual({ status: "binding-mismatch", eventMatched: false, stateReadback: false });
+  });
 });
 
 /**
@@ -119,6 +276,22 @@ describe("neo-treasury balance fetching resilience", () => {
     );
   });
 
+  it("keeps the two 22-address founder groups complete, valid, unique, and disjoint", () => {
+    expect(DA_HONGFEI_ADDRESSES).toHaveLength(22);
+    expect(ERIK_ZHANG_ADDRESSES).toHaveLength(22);
+    const combined = [...DA_HONGFEI_ADDRESSES, ...ERIK_ZHANG_ADDRESSES];
+    expect(new Set(combined).size).toBe(44);
+    for (const account of combined) {
+      expect(addressToScriptHash(account)).toMatch(/^0x[0-9a-f]{40}$/);
+    }
+  });
+
+  it("formats native balances above Number.MAX_SAFE_INTEGER without rounding", () => {
+    expect(formatTreasuryTokenAmount("9007199254740993", 0)).toBe("9,007,199,254,740,993");
+    expect(formatTreasuryTokenAmount("9007199254740993", 8)).toBe("90,071,992.54740993");
+    expect(formatTreasuryTokenAmount("100000000", 8)).toBe("1");
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -147,6 +320,13 @@ describe("neo-treasury balance fetching resilience", () => {
 
     const negative = await fetchDaHongfeiData({ neo: -1, gas: 1 } as PriceData);
     expect(negative.totalUsd).toBeNull();
+
+    // A good NEO leg cannot paper over a missing/zero GAS leg; doing so would
+    // make every GAS holding disappear from a plausible-looking USD total.
+    const missingGas = await fetchDaHongfeiData({ neo: 5 } as PriceData);
+    expect(missingGas.totalUsd).toBeNull();
+    const zeroGas = await fetchDaHongfeiData({ neo: 5, gas: 0 } as PriceData);
+    expect(zeroGas.totalUsd).toBeNull();
 
     // A positive quote still produces a real total.
     const live = await fetchDaHongfeiData({ neo: 5, gas: 1 } as PriceData);
@@ -258,6 +438,11 @@ describe("neo-treasury framework migration invariants", () => {
     expect(main).not.toContain("@shared/utils/runtime-cache");
     expect(main).toContain('storagePrefix: "neo_treasury_"');
     expect(main).toContain('notify: "silent"');
+    expect(main).toContain("assertTreasuryWalletNetwork(transferNetwork, walletNetwork)");
+    expect(main).toContain("onTransactionSent: rememberBroadcast");
+    expect(main).toContain("inspectPendingTreasuryTransfer(recovery");
+    expect(main).toContain('verified: settlement?.status === "confirmed"');
+    expect(main).toContain('ctx.framework.actions.register("recoverDisbursement"');
     // §3.6: the external-address multi-endpoint RPC balance sweep stays raw
     // (no framework surface until n3index lands) and must carry the tag.
     expect(treasury).toContain("framework-exempt: external-wallet RPC balance failover");

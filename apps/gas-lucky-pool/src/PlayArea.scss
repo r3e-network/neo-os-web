@@ -1,429 +1,233 @@
-/**
- * OneGate Vault (gas-lucky-pool) — resource-led vault workspace.
- *
- * The stage uses real generated assets for the vault and keeps form-like
- * parameters in compact controls or the drawer. The main screen is for choosing
- * a reward plan, charging the vault, and seeing the claim flow.
- */
 @use "@shared/styles/v2/tokens" as *;
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* domain-theme (auto) — warm gold vault accent (was alarm-red, which read as an
- * error against the all-gold + mint canvas). Brand now matches the vault's own
- * gold so the range badge and accent score card read as "lucky", not "danger". */
 :root,
 .mx2 {
   --mx2-brand: #b77915;
   --mx2-brand-hover: #955f0f;
   --mx2-brand-light: #fbeccb;
   --mx2-brand-subtle: #f2ddab;
-  --mx2-ring: rgba(0, 0, 0, 0.06);
   --mx2-accent: #d97706;
   --mx2-accent-strong: #92400e;
   --mx2-accent-soft: #fdf1e0;
   --mx2-accent-ink: #6b3410;
 }
 
-
 .gas-pool-playarea {
   display: block;
+  --mx2-stage-floor: #faf9f7;
 }
 
 .gas-pool-playarea .mx2-stage {
   box-sizing: border-box;
   width: min(100%, 760px);
   max-width: 760px;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   margin-inline: auto;
+  overflow: hidden;
+  padding: 8px 16px 12px;
+  background: #fffdf8;
+}
+
+.gas-pool-playarea .mx2-playstage.mx2-cat-game {
+  min-height: 0;
 }
 
 .gas-pool-playarea .mx2-stage__scene {
-  align-items: flex-start;
-  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 10px 12px 0;
 }
 
 .gas-pool-playarea .phaser-game-host {
+  flex: 0 0 auto;
   margin-inline: auto;
 }
 
-.vault-workspace {
-  display: grid;
-  grid-template-columns: minmax(300px, 1.08fr) minmax(280px, 0.92fr);
-  align-items: stretch;
-  gap: 18px;
+.gas-pool-playarea .mx2-score,
+.gas-pool-playarea .mx2-action-rail {
+  display: none;
 }
 
-.vault-workspace .vault-scene {
-  min-height: 430px;
-}
-
-.vault-scene {
+.gas-pool-stage-shell {
   position: relative;
-  min-height: 318px;
-  display: grid;
-  place-items: center;
-  gap: 12px;
-  padding: 22px;
-  border: 1px solid rgba(13, 148, 136, 0.10);
-  border-radius: var(--mx2-r-lg);
-  overflow: hidden;
-  background: #ffffff;
-  box-shadow: none;
-}
-
-.vault-scene__vault-shell {
-  position: relative;
-  z-index: 2;
-  width: min(372px, 76vw);
-  aspect-ratio: 4 / 3;
-  box-sizing: border-box;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  padding: 10px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
-  border-radius: 28px;
-  background: var(--mx2-surface-2);
-  transform: translateY(-4px);
-  filter: none;
-  box-shadow: 0 8px 32px rgba(13, 148, 136, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: box-shadow var(--mx2-t) var(--mx2-ease), border-color var(--mx2-t) var(--mx2-ease);
-}
-
-.vault-scene__vault-shell::before {
-  content: none;
-}
-
-.vault-scene__vault-art {
-  position: relative;
-  z-index: 1;
-  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center;
-  border: 0;
-  border-radius: 22px;
-  background: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 -2px 8px rgba(13, 148, 136, 0.05);
-  opacity: 1;
-  filter: none;
-  transform: none;
-}
-
-.vault-scene__vault-badge {
-  position: absolute;
-  z-index: 3;
-  right: 12px;
-  bottom: 12px;
-  width: 54px;
-  height: 54px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(13, 148, 136, 0.16);
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.vault-scene__vault-shell--funding,
-.vault-scene__vault-shell--claiming {
-  animation: vaultCharge 1.1s var(--mx2-ease) infinite;
-}
-
-.vault-scene__vault-shell--ready,
-.vault-scene__vault-shell--success {
-  border-color: rgba(250, 204, 21, 0.42);
-  background: #fffbeb;
-  box-shadow: 0 0 48px rgba(250, 204, 21, 0.24), 0 8px 32px rgba(13, 148, 136, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.vault-scene__hud {
-  position: absolute;
-  z-index: 3;
-  inset: 18px 18px auto;
+  height: clamp(420px, calc(100dvh - 136px), 700px);
+  min-height: 0;
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  pointer-events: none;
-}
-
-.vault-scene__readout,
-.vault-scene__ticket {
-  min-width: 118px;
-  display: grid;
-  gap: 2px;
-  padding: 9px 12px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  color: var(--mx2-ink);
-}
-
-.vault-scene__readout span,
-.vault-scene__ticket span {
-  font-size: 10px;
-  font-weight: 620;
-  color: var(--mx2-text-muted);
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.vault-scene__readout strong,
-.vault-scene__ticket strong {
-  font-size: 16px;
-  color: #064e3b;
-}
-
-.vault-scene__ticket {
-  position: relative;
-  z-index: 3;
-  min-width: min(230px, 82%);
-  text-align: center;
-  margin-top: -8px;
-}
-
-.vault-scene__meter {
-  position: relative;
-  z-index: 3;
-  width: min(320px, 86%);
-  height: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(13, 148, 136, 0.18);
-  border-radius: var(--mx2-r-pill);
-  background: rgba(255, 255, 255, 0.80);
-  box-shadow: inset 0 1px 4px rgba(15, 118, 110, 0.12), 0 1px 2px rgba(255, 255, 255, 0.8);
-}
-
-.vault-scene__meter span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #2dd4bf 0%, #34d399 30%, #facc15 70%, #fb923c 100%);
-  box-shadow: 0 0 12px rgba(250, 204, 21, 0.5), 0 0 24px rgba(45, 212, 191, 0.3);
-  transition: width var(--mx2-t) var(--mx2-ease);
-}
-
-.vault-scene__route {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  max-width: 94%;
-  font-size: 12px;
-  font-weight: 620;
-  color: #0f766e;
+  overflow: hidden;
+  border: 1px solid rgba(183, 121, 21, 0.16);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(240, 253, 250, 0.86)),
+    #fffdf8;
+  box-shadow:
+    inset 0 0 0 1px rgba(20, 184, 166, 0.05),
+    0 12px 34px rgba(96, 68, 22, 0.06);
 }
 
-.vault-scene__route span:nth-child(odd) {
-  padding: 6px 10px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
-  border-radius: var(--mx2-r-pill);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.08);
+.gas-pool-phaser-canvas {
+  flex: 0 0 auto;
+  --phaser-mobile-height-ratio: 1.38;
+  --phaser-mobile-bottom-reserve: 104;
 }
 
-.vault-scene__status {
-  position: relative;
-  z-index: 3;
-  max-width: min(560px, 92%);
-  margin: 0;
-  padding: 8px 16px;
-  border: 1px solid rgba(13, 148, 136, 0.16);
-  border-radius: var(--mx2-r-pill);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  color: #12352f;
-  font-size: 13px;
-  font-weight: 620;
-  line-height: 1.35;
-  text-align: center;
-  transition: background var(--mx2-t) var(--mx2-ease), border-color var(--mx2-t) var(--mx2-ease), color var(--mx2-t) var(--mx2-ease);
-}
-
-/* Error state — visible red accent on the status pill */
-.vault-scene[data-state="error"] .vault-scene__status {
-  border-color: rgba(220, 38, 38, 0.28);
-  background: rgba(254, 242, 242, 0.96);
-  color: #991b1b;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-/* Success state — golden accent */
-.vault-scene[data-state="success"] .vault-scene__status {
-  border-color: rgba(250, 204, 21, 0.38);
-  background: rgba(255, 251, 235, 0.96);
-  color: #78350f;
-  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.vault-scene__coin-stream {
+.gas-pool-stage-hud {
   position: absolute;
-  z-index: 4;
-  inset: 50% auto auto 50%;
-  pointer-events: none;
-}
-
-.vault-scene__coin {
-  position: absolute;
-  animation: vaultCoinFlight 1.3s var(--mx2-ease) infinite;
-}
-
-.vault-scene__coin--1 { --x: -118px; --y: -82px; animation-delay: 0ms; }
-.vault-scene__coin--2 { --x: -72px; --y: -132px; animation-delay: 90ms; }
-.vault-scene__coin--3 { --x: 52px; --y: -126px; animation-delay: 180ms; }
-.vault-scene__coin--4 { --x: 106px; --y: -74px; animation-delay: 270ms; }
-.vault-scene__coin--5 { --x: 0; --y: -158px; animation-delay: 360ms; }
-
-.vault-controls {
-  width: 100%;
-  margin-top: 16px;
+  left: 50%;
+  bottom: 10px;
+  z-index: 12;
+  width: min(660px, calc(100% - 20px));
   display: grid;
-  gap: 12px;
-}
-
-.vault-controls__intro {
-  display: grid;
-  gap: 4px;
-  padding: 13px 14px 13px 18px;
-  border: 1px solid rgba(13, 148, 136, 0.16);
-  border-left: 3px solid #14b8a6;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 70%);
-  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.vault-controls__intro span {
-  color: #0f766e;
-  font-size: 11px;
-  font-weight: 680;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.vault-controls__intro strong {
-  color: #12352f;
-  font-size: 21px;
-  line-height: 1.12;
-}
-
-.vault-controls__intro small {
-  color: var(--mx2-text-muted);
-  font-size: 12px;
-  font-weight: 680;
-  line-height: 1.35;
-}
-
-.vault-plan-grid {
-  display: grid;
-  gap: 8px;
-}
-
-.vault-plan-card {
-  min-height: 78px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 11px;
-  padding: 11px 12px;
-  border: 1px solid rgba(13, 148, 136, 0.16);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(183, 121, 21, 0.16);
   border-radius: 16px;
-  background: #ffffff;
-  color: var(--mx2-ink);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(13, 148, 136, 0.04);
-  transition: transform var(--mx2-t-fast) var(--mx2-ease-snap), border-color var(--mx2-t-fast) var(--mx2-ease-snap), box-shadow var(--mx2-t-fast) var(--mx2-ease-snap), background var(--mx2-t-fast) var(--mx2-ease-snap);
+  padding: 7px;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 10px 24px rgba(83, 57, 17, 0.12);
+  backdrop-filter: blur(10px);
 }
 
-.vault-plan-card:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: rgba(20, 184, 166, 0.58);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
-  background: #f0fdfa;
+.gas-pool-stage-hud[data-metrics="4"] {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.vault-plan-card--active {
-  border-color: #14b8a6;
-  background: #ffffff;
-  box-shadow: inset 4px 0 0 #14b8a6, 0 4px 14px rgba(13, 148, 136, 0.14), 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-.vault-plan-card__coin {
-  width: 46px;
-  height: 46px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(13, 148, 136, 0.14);
-  border-radius: 16px;
-  background: #fffbeb;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.10), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
-.vault-plan-card__coin .mx2-coin {
-  box-shadow: none !important;
-}
-
-.vault-plan-card__copy {
+.gas-pool-stage-hud__metric,
+.gas-pool-stage-hud__drawer {
   min-width: 0;
+  min-height: 48px;
+  border: 1px solid rgba(183, 121, 21, 0.12);
+  border-radius: 12px;
+  padding: 7px 8px;
+  background: #ffffff;
+}
+
+.gas-pool-stage-hud__metric {
   display: grid;
+  align-content: center;
   gap: 3px;
 }
 
-.vault-plan-card__label {
-  font-size: 11px;
-  font-weight: 680;
-  color: #0f766e;
-  letter-spacing: 0;
-  text-transform: uppercase;
+.gas-pool-stage-hud__metric[data-accent="true"] {
+  border-color: rgba(217, 119, 6, 0.34);
+  box-shadow: inset 2px 0 0 #d97706;
 }
 
-.vault-plan-card strong {
-  font-size: 21px;
-  line-height: 1;
-  color: #12352f;
-}
-
-.vault-plan-card__copy > span:last-child {
-  min-width: 0;
+.gas-pool-stage-hud__metric span {
   overflow: hidden;
-  color: var(--mx2-text-muted);
-  font-size: 12px;
-  font-weight: 680;
+  color: #6b5a3e;
+  font-size: 0.58rem;
+  font-weight: 720;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gas-pool-stage-hud__metric strong {
+  overflow: hidden;
+  color: #332718;
+  font-size: 0.8rem;
+  font-weight: 720;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.vault-controls__console {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.gas-pool-stage-hud__drawer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #8a5209;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 720;
+  cursor: pointer;
 }
 
-.vault-info-drawer,
-.vault-drawer-grid {
-  min-width: 0;
-  display: grid;
+.gas-pool-stage-hud__drawer svg {
+  flex: 0 0 auto;
+  transition: transform var(--mx2-t-fast) var(--mx2-ease);
+}
+
+.gas-pool-stage-hud__drawer svg[data-open="true"] {
+  transform: rotate(180deg);
+}
+
+.gas-pool-ingame-drawer {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 18;
+  width: min(690px, calc(100% - 18px));
+  max-height: min(72vh, 620px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateX(-50%);
+  border: 1px solid rgba(183, 121, 21, 0.2);
+  border-radius: 14px;
+  padding: 16px;
+  background: #fffdf8;
+  box-shadow: 0 22px 55px rgba(68, 47, 16, 0.18);
+  animation: gas-pool-drawer-enter 180ms var(--mx2-ease-snap) both;
+}
+
+.gas-pool-ingame-drawer__head {
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  margin: -16px -16px 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(183, 121, 21, 0.16);
+  background: rgba(255, 253, 248, 0.98);
 }
 
-.vault-drawer-grid {
-  align-content: start;
-}
-
-.vault-drawer-tabs {
-  min-width: 0;
+.gas-pool-ingame-drawer__head h3 {
   margin: 0;
+  color: #332718;
+  font-size: 0.94rem;
+  font-weight: 760;
 }
 
-.vault-drawer-tabs > .mx2-open-field__label,
-.vault-preset-field > .mx2-open-field__label,
-.vault-drawer__chips-field > .mx2-open-field__label {
+.gas-pool-ingame-drawer__head button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(183, 121, 21, 0.22);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #6b3410;
+  cursor: pointer;
+}
+
+.gas-pool-ingame-drawer__head button:focus-visible,
+.gas-pool-stage-hud__drawer:focus-visible,
+.gas-pool-a11y-controls :focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.gas-pool-a11y-controls,
+.gas-pool-sr-status {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -433,386 +237,60 @@
   white-space: nowrap;
 }
 
-.vault-drawer-tabs__group.mx2-open-segmented.semi-radioGroup {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-  padding: 5px;
-  border: 1px solid rgba(13, 148, 136, 0.13);
-  border-radius: 18px;
-  background: #f0fdfa;
+.gas-pool-a11y-controls {
+  top: 10px;
+  left: 10px;
+  z-index: 24;
 }
 
-.vault-drawer-tabs__group .semi-radio,
-.vault-controls__presets .semi-radio,
-.vault-drawer__chips .semi-radio {
-  min-width: 0;
-  width: auto !important;
-  flex: 1 1 0 !important;
-  margin: 0;
-  padding: 0;
-}
-
-.vault-drawer-tabs__group .semi-radio-inner-buttonRadio,
-.vault-controls__presets .semi-radio-inner-buttonRadio,
-.vault-drawer__chips .semi-radio-inner-buttonRadio {
-  display: none;
-}
-
-.vault-drawer-tabs__group .semi-radio-content,
-.vault-controls__presets .semi-radio-content,
-.vault-drawer__chips .semi-radio-content {
-  min-width: 0;
-  width: 100%;
-  display: grid;
-  place-items: stretch;
-  padding: 0;
-}
-
-.vault-drawer-tabs__group .semi-radio-addon-buttonRadio,
-.vault-controls__presets .semi-radio-addon-buttonRadio,
-.vault-drawer__chips .semi-radio-addon-buttonRadio {
-  min-width: 0;
+.gas-pool-a11y-controls:focus-within {
+  width: min(340px, calc(100% - 20px));
   height: auto;
-  border: 0;
-  border-radius: inherit;
-  padding: 0;
-  background: transparent !important;
-  color: inherit;
-  box-shadow: none !important;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
 }
 
-.vault-drawer-tab {
-  min-width: 0;
-  width: 100%;
-  min-height: 40px;
-  display: grid;
-  place-items: center;
-  padding: 8px 10px;
-  border-radius: 13px;
-  background: transparent;
-  color: var(--mx2-text-2);
-  font-size: 12px;
-  font-weight: 680;
-  line-height: 1.2;
-  text-align: center;
-  cursor: pointer;
-}
-
-.vault-drawer-tab:hover {
-  color: #0f766e;
-}
-
-.vault-drawer-tabs__group .semi-radio-checked .vault-drawer-tab {
-  background: #ffffff;
-  color: #0f766e;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
-  font-weight: 680;
-}
-
-.vault-info-drawer__panel.mx2-open-panel.semi-card,
-.vault-drawer-panel.mx2-open-panel.semi-card {
-  border-color: rgba(13, 148, 136, 0.13);
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.vault-info-drawer__panel.mx2-open-panel.semi-card .semi-card-body,
-.vault-drawer-panel.mx2-open-panel.semi-card .semi-card-body {
-  display: grid;
-  gap: 12px;
-}
-
-.vault-info-drawer__panel p {
-  margin: 0;
-  color: var(--mx2-text-2);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.vault-drawer__advanced {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 0;
-}
-
-.vault-tuner,
-.vault-controls__group {
+.gas-pool-a11y-controls fieldset {
   display: grid;
   gap: 8px;
-  justify-items: center;
+  margin: 0;
   padding: 12px;
-  border: 1px solid rgba(15, 118, 110, 0.14);
-  border-radius: 18px;
-  background: linear-gradient(145deg, #f0fdfa 0%, #ffffff 60%);
-  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 2px solid #b77915;
+  border-radius: 14px;
+  background: #fffdf8;
+  box-shadow: 0 14px 34px rgba(68, 47, 16, 0.18);
 }
 
-.vault-controls__group--range {
-  padding: 14px;
+.gas-pool-a11y-controls legend {
+  padding-inline: 4px;
+  color: #332718;
+  font-size: 0.8rem;
+  font-weight: 760;
 }
 
-.vault-drawer__advanced .vault-controls__group--range,
-.vault-drawer__advanced .vault-drawer__setting {
-  grid-column: 1 / -1;
-}
-
-.vault-controls__label {
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-weight: 680;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.vault-stepper {
-  width: 100%;
-  max-width: 250px;
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 42px;
+.gas-pool-a11y-controls label {
+  min-height: 42px;
+  display: flex;
   align-items: center;
-  overflow: hidden;
-  border: 1.5px solid rgba(13, 148, 136, 0.24);
-  border-radius: var(--mx2-r-pill);
+  gap: 8px;
+  border-radius: 10px;
+  padding: 6px 8px;
+  color: #4d4030;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.08), inset 0 1px 3px rgba(15, 118, 110, 0.06);
+  font-size: 0.78rem;
 }
 
-.vault-stepper button {
-  width: 42px;
-  height: 42px;
-  border: 0;
-  background: linear-gradient(180deg, #f0fdfa, #ccfbf1);
-  color: #0f766e;
+.gas-pool-a11y-controls button {
+  min-height: 44px;
+  border: 1px solid #b77915;
+  border-radius: 12px;
+  background: #f5b640;
+  color: #2a2117;
   font: inherit;
-  font-size: 20px;
-  font-weight: 680;
+  font-weight: 760;
   cursor: pointer;
-}
-
-.vault-stepper button:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ccfbf1, #99f6e4);
-}
-
-.vault-stepper button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.vault-stepper output {
-  min-width: 0;
-  padding: 0 10px;
-  color: #12352f;
-  font-size: 16px;
-  font-weight: 680;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.vault-controls__presets {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-}
-
-.vault-controls__presets--range.mx2-open-segmented.semi-radioGroup {
-  width: 100%;
-  max-width: 520px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  padding: 6px;
-  border: 1px solid rgba(13, 148, 136, 0.12);
-  border-radius: 18px;
-  background: var(--mx2-surface-2);
-}
-
-.vault-preset-field {
-  min-width: 0;
-  margin: 0;
-}
-
-.vault-preset {
-  min-height: 36px;
-  display: grid;
-  place-items: center;
-  padding: 7px 14px;
-  border: 1.5px solid rgba(13, 148, 136, 0.2);
-  border-radius: var(--mx2-r-pill);
-  background: #ffffff;
-  color: #12352f;
-  font-size: 13px;
-  font-weight: 680;
-  cursor: pointer;
-  transition: transform var(--mx2-t-fast) var(--mx2-ease-snap), border-color var(--mx2-t-fast) var(--mx2-ease-snap), background var(--mx2-t-fast) var(--mx2-ease-snap);
-}
-
-.vault-controls__presets .semi-radio:hover .vault-preset {
-  transform: translateY(-1px);
-  border-color: #14b8a6;
-}
-
-.vault-controls__presets .semi-radio-checked .vault-preset {
-  border-color: #0f766e;
-  background: #0f766e;
-  color: #ffffff !important;
-}
-
-.vault-controls__presets .semi-radio-checked .vault-preset * {
-  color: #ffffff !important;
-}
-
-.vault-preset--range {
-  display: grid;
-  min-width: 0;
-  width: 100%;
-  gap: 2px;
-  border-radius: 16px;
-  padding: 8px 8px;
-  text-align: center;
-}
-
-.vault-preset--range small {
-  color: currentColor;
-  font-size: 11px;
-  font-weight: 620;
-  opacity: 0.76;
-}
-
-.vault-controls__presets .semi-radio-disabled .vault-preset {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.vault-drawer__setting {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid rgba(13, 148, 136, 0.16);
-  border-radius: 16px;
-  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 70%);
-  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.05);
-  margin-bottom: 12px;
-}
-
-.vault-drawer__setting > span {
-  color: var(--mx2-ink);
-  font-size: 13px;
-  font-weight: 680;
-}
-
-.vault-drawer__setting p {
-  margin: 0;
-  color: var(--mx2-text-muted);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.vault-drawer__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.vault-drawer__chips-field {
-  min-width: 0;
-  margin: 0;
-}
-
-.vault-drawer__chip {
-  min-height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
-  border-radius: var(--mx2-r-pill);
-  background: #ffffff;
-  color: var(--mx2-ink);
-  font-size: 12px;
-  font-weight: 620;
-  cursor: pointer;
-}
-
-.vault-drawer__chips .semi-radio-checked .vault-drawer__chip {
-  border-color: #0f766e;
-  background: #0f766e;
-  color: #ffffff !important;
-}
-
-.vault-drawer-field-row {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  gap: 10px;
-}
-
-.vault-drawer-field.mx2-open-field {
-  min-width: 0;
-}
-
-.vault-drawer-field .mx2-open-field__control.semi-input-wrapper {
-  border-color: rgba(13, 148, 136, 0.18);
-  background: #ffffff;
-}
-
-.vault-drawer-field .mx2-open-field__control.semi-input-wrapper:hover,
-.vault-drawer-field .mx2-open-field__control.semi-input-wrapper:focus-within {
-  border-color: rgba(15, 118, 110, 0.48);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
-}
-
-.vault-drawer__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 0;
-}
-
-.vault-drawer-credit {
-  margin: 0;
-  padding: 16px;
-  border: 1px solid rgba(13, 148, 136, 0.14);
-  border-radius: 16px;
-  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
-  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.06);
-}
-
-.vault-drawer-credit div {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.vault-drawer-credit dt {
-  color: var(--mx2-text-muted);
-  font-size: 12px;
-  font-weight: 680;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.vault-drawer-credit dd {
-  margin: 0;
-  color: #0f766e;
-  font-size: 22px;
-  font-weight: 680;
-}
-
-.vault-drawer-docs {
-  display: grid;
-  gap: 10px;
-}
-
-.vault-drawer-notice.mx2-open-notice.semi-banner {
-  border-color: rgba(13, 148, 136, 0.16);
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .gas-pool-drawer {
@@ -824,514 +302,312 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
 
-  span {
-    min-width: 0;
-    display: grid;
-    gap: 2px;
-    padding: 9px 10px;
-    border: 1px solid rgba(13, 148, 136, 0.14);
-    border-radius: 8px;
-    background: #ffffff;
-  }
+.gas-pool-drawer__summary > span,
+.gas-pool-drawer__notice,
+.gas-pool-drawer__actions,
+.gas-pool-drawer__section,
+.gas-pool-drawer__credit,
+.gas-pool-drawer__guide {
+  border: 1px solid rgba(183, 121, 21, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
+}
 
-  small {
-    color: var(--mx2-text-muted);
-    font-size: 0.68rem;
-    font-weight: 680;
-  }
+.gas-pool-drawer__summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
 
-  strong {
-    min-width: 0;
-    overflow: hidden;
-    color: #0f766e;
-    font-size: 0.94rem;
-    font-weight: 680;
-    font-variant-numeric: tabular-nums;
-    text-overflow: ellipsis;
-  }
+.gas-pool-drawer small {
+  color: #796b58;
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
+.gas-pool-drawer strong {
+  overflow: hidden;
+  color: #332718;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gas-pool-drawer__notice {
-  display: grid;
-  gap: 3px;
-  border: 1px solid rgba(13, 148, 136, 0.18);
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: #f0fdfa;
+  padding: 11px 12px;
+}
 
-  &[data-tone="error"] {
-    border-color: rgba(220, 38, 38, 0.22);
-    background: #fff1ec;
-  }
+.gas-pool-drawer__notice[data-tone="success"] {
+  border-color: rgba(22, 168, 107, 0.26);
+  background: #f0fdf4;
+}
 
-  strong {
-    color: #12352f;
-    font-size: 0.88rem;
-  }
+.gas-pool-drawer__notice[data-tone="error"] {
+  border-color: rgba(216, 77, 63, 0.28);
+  background: #fff7ed;
+}
 
-  p,
-  small {
-    margin: 0;
-    color: var(--mx2-text-muted);
-    font-size: 0.78rem;
-    line-height: 1.35;
-  }
+.gas-pool-drawer__notice[data-tone="warning"] {
+  border-color: rgba(217, 119, 6, 0.3);
+  background: #fffbeb;
+}
+
+.gas-pool-drawer__notice p,
+.gas-pool-drawer__section p,
+.gas-pool-drawer__guide p {
+  margin: 5px 0 0;
+  color: #685b49;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.gas-pool-drawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+}
+
+.gas-pool-drawer__actions .mx2-btn {
+  min-height: 40px;
+  padding: 8px 12px;
 }
 
 .gas-pool-drawer__section,
 .gas-pool-drawer__credit,
 .gas-pool-drawer__guide {
-  display: grid;
-  gap: 9px;
-  border: 1px solid rgba(13, 148, 136, 0.12);
-  border-radius: 8px;
   padding: 12px;
-  background: #ffffff;
-
-  p {
-    margin: 0;
-    color: var(--mx2-text-muted);
-    font-size: 0.8rem;
-    line-height: 1.45;
-  }
 }
 
 .gas-pool-drawer__section-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+}
 
-  h4 {
-    margin: 0;
-  }
-
-  span {
-    color: var(--mx2-text-muted);
-    font-size: 0.72rem;
-    font-weight: 620;
-  }
+.gas-pool-drawer h4 {
+  margin: 0;
+  color: #332718;
+  font-size: 0.84rem;
+  font-weight: 740;
 }
 
 .gas-pool-current {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
+  margin-top: 9px;
+}
 
-  span {
-    min-width: 0;
-    display: grid;
-    gap: 2px;
-    padding: 8px 9px;
-    border-radius: 8px;
-    background: #f0fdfa;
-  }
-
-  small {
-    color: var(--mx2-text-muted);
-    font-size: 0.66rem;
-    font-weight: 650;
-  }
-
-  strong {
-    overflow: hidden;
-    color: #12352f;
-    font-size: 0.84rem;
-    font-weight: 680;
-    font-variant-numeric: tabular-nums;
-    text-overflow: ellipsis;
-  }
+.gas-pool-current > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: #fffaf0;
 }
 
 .gas-pool-share {
-  min-width: 0;
   width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  min-height: 42px;
+  display: flex;
   align-items: center;
-  border: 1px solid rgba(13, 148, 136, 0.14);
-  border-radius: 8px;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  border: 1px dashed rgba(183, 121, 21, 0.34);
+  border-radius: 9px;
   padding: 8px 10px;
-  background: #f8fffd;
-  color: #0f766e;
+  color: #5f4a2a;
+  background: #fffdf8;
+  font: inherit;
   cursor: pointer;
-  text-align: left;
+}
 
-  span {
-    min-width: 0;
-    overflow: hidden;
-    font-family: var(--mx2-font-mono, monospace);
-    font-size: 0.72rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  small {
-    color: #0f766e;
-    font-size: 0.68rem;
-    font-weight: 680;
-  }
+.gas-pool-share span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gas-pool-list {
   list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
   gap: 6px;
+  margin: 9px 0 0;
+  padding: 0;
 }
 
 .gas-pool-list li {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: minmax(42px, auto) minmax(90px, 0.8fr) minmax(0, 1fr);
   align-items: center;
+  gap: 8px;
   border-radius: 8px;
-  padding: 7px 9px;
-  background: rgba(15, 118, 110, 0.055);
-  font-size: 0.78rem;
-
-  span {
-    color: #12352f;
-    font-weight: 680;
-  }
-
-  strong {
-    color: #0f766e;
-    font-variant-numeric: tabular-nums;
-  }
-
-  small {
-    color: var(--mx2-text-muted);
-  }
+  padding: 8px 10px;
+  background: #fffaf0;
+  color: #5f4a2a;
+  font-size: 0.76rem;
 }
 
 .gas-pool-drawer__credit {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  background: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
-
-  > span {
-    display: grid;
-    gap: 2px;
-  }
-
-  small {
-    color: var(--mx2-text-muted);
-    font-size: 0.7rem;
-    font-weight: 680;
-  }
-
-  strong {
-    color: #0f766e;
-    font-size: 1rem;
-    font-weight: 680;
-  }
-
-  div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-    justify-content: flex-end;
-  }
+  gap: 10px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
 }
 
-.gas-pool-drawer__guide h4 {
-  margin: 0;
-  color: #12352f;
-  font-size: 0.86rem;
+.gas-pool-drawer__credit > span {
+  display: grid;
+  gap: 3px;
+}
+
+.gas-pool-drawer__credit > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
 }
 
 .gas-pool-drawer__seed {
   display: flex;
-  gap: 7px;
   align-items: flex-start;
-  border-top: 1px solid rgba(13, 148, 136, 0.12);
-  padding-top: 9px;
-  color: #0f766e !important;
-
-  svg {
-    flex: 0 0 auto;
-    margin-top: 2px;
-  }
+  gap: 6px;
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: #f0fdf4;
+  color: #186048 !important;
 }
 
-@keyframes vaultCharge {
-  0%, 100% {
-    transform: translateY(-6px) scale(1);
-    box-shadow: 0 8px 32px rgba(13, 148, 136, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  }
-  50% {
-    transform: translateY(-12px) scale(1.035);
-    box-shadow: 0 0 48px rgba(20, 184, 166, 0.32), 0 12px 40px rgba(13, 148, 136, 0.16), 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-}
-
-@keyframes vaultCoinFlight {
-  0% {
+@keyframes gas-pool-drawer-enter {
+  from {
     opacity: 0;
-    transform: translate(0, 0) scale(0.72) rotate(0deg);
+    transform: translate(-50%, 14px);
   }
-  18% {
+
+  to {
     opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--x), var(--y)) scale(1.05) rotate(220deg);
+    transform: translate(-50%, 0);
   }
 }
 
 @media (max-width: 720px) {
-  .gas-pool-playarea .mx2-playstage.mx2-cat-game {
-    min-height: 0;
+  .gas-pool-playarea .mx2-stage {
+    padding: 6px;
   }
 
-  .gas-pool-playarea .mx2-cat-game.mx2-stage,
-  .gas-pool-playarea .mx2-cat-game .mx2-stage__scene {
-    flex: 0 0 auto;
+  .gas-pool-playarea .mx2-stage__scene {
+    padding-inline: 0;
   }
 
-  .gas-pool-playstage--creator .mx2-stage {
-    padding: 16px 14px 18px;
-  }
-
-  .gas-pool-playstage--creator .mx2-stage__head {
-    margin-bottom: 10px;
-  }
-
-  .gas-pool-playstage--creator .mx2-stage__subtitle {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
-  .vault-workspace {
-    grid-template-columns: 1fr;
-    gap: 9px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene {
-    min-height: 256px;
-    gap: 7px;
-    padding: 10px;
-  }
-
-  .gas-pool-playstage--creator .vault-workspace .vault-scene {
-    min-height: 286px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__hud {
-    position: relative;
-    inset: auto;
-    width: 100%;
-    order: -1;
-    gap: 8px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__readout {
-    min-width: 0;
-    flex: 1 1 0;
-    padding: 7px 10px;
-    border-radius: 14px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__readout span {
-    font-size: 9px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__readout strong {
-    font-size: 15px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__vault-shell {
-    width: min(244px, 72vw);
-    padding: 8px;
-    border-radius: 22px;
-    transform: none;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__vault-art {
-    border-radius: 17px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__vault-badge {
-    right: 8px;
-    bottom: 8px;
-    width: 42px;
-    height: 42px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__meter {
-    width: min(292px, 90%);
-    height: 10px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__route {
-    gap: 5px;
-    font-size: 11px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__route span:nth-child(odd) {
-    padding: 4px 8px;
-  }
-
-  .gas-pool-playstage--creator .vault-scene__status {
-    max-width: 94%;
-    padding: 7px 10px;
-    font-size: 12px;
-    line-height: 1.25;
-  }
-
-  .gas-pool-playstage--creator .vault-controls {
-    margin-top: 0;
-    gap: 8px;
-  }
-
-  .gas-pool-playstage--creator .vault-controls__intro {
-    gap: 3px;
-    padding: 10px 12px;
+  .gas-pool-stage-shell {
+    height: clamp(420px, calc(100dvh - 136px), 700px);
     border-radius: 16px;
   }
 
-  .gas-pool-playstage--creator .vault-controls__intro strong {
-    font-size: 18px;
+  .gas-pool-stage-shell .phaser-game-host {
+    --phaser-mobile-bottom-reserve: 92px;
+    transform: translateY(-34px);
   }
 
-  .gas-pool-playstage--creator .vault-controls__intro small {
-    display: none;
-  }
-
-  .gas-pool-playstage--creator .vault-plan-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px;
-  }
-
-  .vault-controls__console,
-  .vault-drawer__advanced,
-  .vault-drawer-field-row {
-    grid-template-columns: 1fr;
-  }
-
-  .vault-info-drawer,
-  .vault-drawer-grid {
-    gap: 10px;
-  }
-
-  .vault-drawer-tabs__group.mx2-open-segmented.semi-radioGroup {
+  .gas-pool-stage-hud,
+  .gas-pool-stage-hud[data-metrics="4"] {
+    bottom: 6px;
+    width: calc(100% - 12px);
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    padding: 6px;
+    border-radius: 14px;
   }
 
-  .vault-drawer__actions {
-    display: grid;
-    grid-template-columns: 1fr;
+  .gas-pool-stage-hud__metric,
+  .gas-pool-stage-hud__drawer {
+    min-height: 42px;
+    padding: 6px 7px;
   }
 
-  .gas-pool-drawer__summary,
+  .gas-pool-stage-hud__metric span {
+    font-size: 0.54rem;
+  }
+
+  .gas-pool-stage-hud__metric strong,
+  .gas-pool-stage-hud__drawer {
+    font-size: 0.72rem;
+  }
+
+  .gas-pool-ingame-drawer {
+    bottom: 6px;
+    width: calc(100% - 12px);
+    max-height: min(74vh, 560px);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .gas-pool-ingame-drawer__head {
+    top: -12px;
+    margin: -12px -12px 10px;
+  }
+
+  .gas-pool-drawer__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .gas-pool-drawer__actions,
   .gas-pool-current,
   .gas-pool-drawer__credit {
     grid-template-columns: 1fr;
   }
 
-  .gas-pool-list li {
-    grid-template-columns: 1fr;
+  .gas-pool-drawer__actions {
+    display: grid;
   }
 
-  .gas-pool-playstage--creator .vault-plan-card {
-    min-height: 84px;
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 5px;
-    padding: 8px 6px;
-    border-radius: 14px;
-    text-align: center;
+  .gas-pool-drawer__credit > div {
+    justify-content: stretch;
   }
 
-  .gas-pool-playstage--creator .vault-plan-card__coin {
-    width: 32px;
-    height: 32px;
-    border-radius: 12px;
+  .gas-pool-drawer__credit .mx2-btn {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 720px) and (max-height: 680px) {
+  .gas-pool-playarea .mx2-stage {
+    padding-top: 4px;
   }
 
-  .gas-pool-playstage--creator .vault-plan-card__coin .mx2-coin {
-    width: 24px !important;
-    height: 24px !important;
-  }
-
-  .gas-pool-playstage--creator .vault-plan-card__copy {
-    justify-items: center;
-    gap: 1px;
-  }
-
-  .gas-pool-playstage--creator .vault-plan-card__label {
-    max-width: 100%;
-    overflow: hidden;
-    font-size: 9px;
-    letter-spacing: 0;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .gas-pool-playstage--creator .vault-plan-card strong {
-    font-size: 18px;
-  }
-
-  .gas-pool-playstage--creator .vault-plan-card__copy > span:last-child {
-    display: -webkit-box;
-    overflow: hidden;
-    max-width: 100%;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    font-size: 10px;
-    line-height: 1.12;
-    text-overflow: clip;
-    white-space: normal;
-  }
-
-  .gas-pool-playstage--creator .mx2-score {
+  .gas-pool-playarea .mx2-stage__subtitle {
     display: none;
   }
 
-  .gas-pool-playstage--creator .mx2-action-rail {
-    margin-top: 8px;
-    padding: 0 14px;
+  .gas-pool-stage-shell {
+    height: max(360px, calc(100dvh - 96px));
   }
 
-  .gas-pool-playstage--creator .mx2-action-rail__row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 118px;
-    gap: 8px;
+  .gas-pool-stage-shell .phaser-game-host {
+    --phaser-mobile-bottom-reserve: 78px;
+    transform: translateY(-28px);
   }
 
-  .gas-pool-playstage--creator .mx2-action-rail__row .mx2-btn--primary {
-    flex: none;
-    width: 100%;
-    max-width: none;
-    min-height: 50px;
-  }
-
-  .gas-pool-playstage--creator .mx2-action-rail__drawer-toggle {
-    margin-left: 0;
-    width: 118px;
-    min-width: 0;
-    min-height: 50px;
-    padding: 0.6em 0.85em;
-  }
-
-  .gas-pool-playstage--creator .mx2-action-rail__drawer-toggle > span:first-child {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .gas-pool-stage-hud__metric,
+  .gas-pool-stage-hud__drawer {
+    min-height: 36px;
+    padding-block: 4px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vault-scene__vault-shell,
-  .vault-scene__coin {
+  .gas-pool-ingame-drawer,
+  .gas-pool-stage-hud__drawer svg {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

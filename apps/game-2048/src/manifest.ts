@@ -3,14 +3,20 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "2048 Rush",
   description:
-    "Race the clock in provably fair 2048. Every tile spawn is seeded from an immutable block beacon and your whole move log is replayed on-chain — reach 512 in 4 minutes for 0.1 GAS, 1024 in 8 for 0.5, or 2048 in 15 for 1. Moves are final: each on-chain undo burns 30% of the base reward (three max). Every verified run climbs a global leaderboard rebuilt from chain events.",
+    "A polished local 2048 game with tactile tile merges, three target lanes, keyboard and swipe controls, and no wallet or GAS at risk.",
   icon: "layout",
   category: "game",
   shell: "game",
+  directPlay: true,
+  supportsGuest: true,
+  // Contract, oracle, and TEE liveness pass on testnet, but freePool() is 0.
+  // Hide and fail-close paid starts until the pool is funded and a complete
+  // wallet -> TEE -> settlement run is revalidated.
+  supportsGameFi: false,
 
   gamePage: {
     categoryColor: "#F59E0B",
-    modes: { guest: true },
+    modes: { guest: true, gamefi: false },
     heroBadgeKey: "networkBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
@@ -58,49 +64,15 @@ export const manifest: MiniAppManifest = {
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "512 in 4 min — win 0.1 GAS" },
-            { value: "1", label: "1024 in 8 min — win 0.5 GAS" },
-            { value: "2", label: "2048 in 15 min — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  operations: [],
 
   docs: [
-    { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
-    { titleKey: "fairnessTitle", contentKey: "fairnessCopy", type: "text" },
+    { titleKey: "rulesTitle", contentKey: "guestRulesCopy", type: "steps" },
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -108,10 +80,11 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    confidential: false,
+    oracle: false,
   },
 
   contract: {

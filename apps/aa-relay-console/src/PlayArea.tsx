@@ -1,414 +1,412 @@
-/**
- * PlayArea.tsx -- AA Relay Console (v2 scene-driven rebuild)
- *
- * Tool identity. The relay pipeline IS the scene: an AA account flows through a
- * paymaster sponsorship gate, then a relayer broadcasts the validated payload on
- * chain (paid by the paymaster). The three pipeline segments light up
- * segment-by-segment as the account is set, sponsorship resolves, and the relay
- * response lands. The AA address is visible in the primary stage; sponsor
- * preflight + the full payload JSON live in the drawer so the stage shows the
- * relay path, not a parameter form. Real state from useAARelayConsole is bound
- * throughout; the generic "Execute/Ready" template is gone.
- */
-import { type ReactNode, useState, useEffect, useRef, useMemo } from "react";
-import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import type { ObservableState } from "@shared/react/context";
+import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { CoinArt } from "@shared/art";
+import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import {
-  OpenUiNotice,
-  OpenUiPanel,
-  OpenUiProvider,
-  OpenUiSegmented,
-  OpenUiTextArea,
-  OpenUiTextField,
-  PlayStage,
-} from "@shared/components-react/v2";
-import { AlertTriangle, CheckCircle2, Code2, Fuel, LoaderCircle, RadioTower, SendHorizontal, type LucideIcon } from "lucide-react";
+  OpenUiLiteNotice as OpenUiNotice,
+  OpenUiLitePanel as OpenUiPanel,
+  OpenUiLiteProvider as OpenUiProvider,
+  OpenUiLiteSegmented as OpenUiSegmented,
+  OpenUiLiteTextArea as OpenUiTextArea,
+  OpenUiLiteTextField as OpenUiTextField,
+} from "@shared/components-react/v2/OpenUiLite";
+import {
+  CheckCircle2,
+  ClipboardCheck,
+  FileCheck2,
+  LoaderCircle,
+  LockKeyhole,
+  RadioTower,
+  RotateCcw,
+  SearchCheck,
+  ShieldCheck,
+} from "lucide-react";
+import { resolveNeoNetwork } from "@shared/constants/rpc";
+import { draftFingerprint, parseRelayDraft } from "./relay-job";
 import "./PlayArea.scss";
 
 interface P {
-  t: (k: string, p?: Record<string, string | number>) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   state: ObservableState;
-  dispatch: (n: string, ...a: unknown[]) => Promise<void>;
+  dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
+
+type DrawerMode = "request" | "package" | "receipt";
 
 const RELAY_STATION_ART = "aa-relay-station.webp";
-type DrawerMode = "route" | "sponsor" | "payload";
 
-function compactHash(value: string): string {
-  const v = String(value || "").trim();
-  if (!v || v === "—" ) return "—";
-  if (v.length <= 14) return v;
-  return `${v.slice(0, 8)}…${v.slice(-6)}`;
+function compact(value: string, head = 8, tail = 6): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "—";
+  return raw.length <= head + tail + 1 ? raw : `${raw.slice(0, head)}…${raw.slice(-tail)}`;
 }
 
-/** Parse the stringified sponsor/relay result JSON enough to light the gate. */
-function parseSponsor(raw: string): { present: boolean; eligible: boolean } {
-  const v = String(raw || "").trim();
-  if (!v || v === "{}") return { present: false, eligible: false };
-  try {
-    const obj = JSON.parse(v);
-    if (!obj || typeof obj !== "object") return { present: false, eligible: false };
-    const present = true;
-    // Tolerate the multiple shapes the AA service returns across envs.
-    const eligible =
-      obj.approved === true ||
-      obj.eligible === true ||
-      obj.sponsored === true ||
-      obj.ok === true ||
-      (typeof obj.txid === "string" && obj.txid.length > 0) ||
-      (typeof obj.tx === "string" && obj.tx.length > 0);
-    return { present, eligible };
-  } catch {
-    return { present: false, eligible: false };
-  }
+function stateCopy(t: P["t"], value: string): string {
+  if (value === "review-ready") return t("reviewReady");
+  if (value === "needs-authorization") return t("reviewNeedsAuthorization");
+  if (value === "needs-chain-preview") return t("reviewNeedsPreview");
+  if (value === "blocked") return t("reviewBlocked");
+  return t("reviewDraft");
+}
+
+function outcomeCopy(t: P["t"], value: string): string {
+  if (value === "confirmed") return t("chainConfirmed");
+  if (value === "fault") return t("chainFault");
+  if (value === "mismatch") return t("chainMismatch");
+  if (value === "unreachable") return t("chainUnreachable");
+  if (value === "pending") return t("chainPending");
+  if (value === "accepted") return t("receiptAccepted");
+  return t("chainNotTracked");
 }
 
 export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool } = useStateBindings(state);
-
-  // Live relay runtime state
-  const aaAddressDisplay = str("aaAddressDisplay");
-  const paymasterDisplay = str("paymasterDisplay");
+  const sourceAa = str("aaAddressInput");
+  const sourceDapp = str("dappIdInput");
+  const sourcePayload = str("payloadInput");
+  const reviewPackageJson = str("reviewPackageJson");
+  const reviewJobId = str("reviewJobId");
+  const reviewDigest = str("reviewDigest");
+  const reviewReadiness = str("reviewReadiness");
+  const previewState = str("previewState");
+  const targetDisplay = str("targetDisplay");
+  const methodDisplay = str("methodDisplay");
+  const preparedFingerprint = str("preparedFingerprint");
   const sponsorState = str("sponsorState");
-  const relayResponse = str("relayResponse");
+  const sponsorSummary = str("sponsorSummary");
+  const relayReceiptJson = str("relayReceiptJson");
+  const receiptStatus = str("receiptStatus");
+  const txidDisplay = str("txidDisplay");
+  const chainStatus = str("chainStatus");
+  const chainReason = str("chainReason");
+  const confirmationsDisplay = str("confirmationsDisplay");
   const aaCoreDisplay = str("aaCoreDisplay");
-  const relayUrlDisplay = str("relayUrlDisplay");
+  const paymasterDisplay = str("paymasterDisplay");
   const networkDisplay = str("networkDisplay");
+  const runtimeMode = str("runtimeMode");
+  const hasReview = bool("hasReview");
+  const hasReceipt = bool("hasReceipt");
+  const hasTrackableReceipt = bool("hasTrackableReceipt");
+  const isPreparing = bool("isPreparing");
   const isCheckingSponsorship = bool("isCheckingSponsorship");
-  const isRelaying = bool("isRelaying");
+  const isTracking = bool("isTracking");
 
-  // Draft relay inputs (local UI state — the real form lives in the composable,
-  // populated by dispatch args; this mirrors it for the pipeline preview).
-  const [draftAa, setDraftAa] = useState("");
-  const [draftDapp, setDraftDapp] = useState("");
-  const [draftAmount, setDraftAmount] = useState("0.1");
-  const [draftPayload, setDraftPayload] = useState("{}");
-  const [drawerMode, setDrawerMode] = useState<DrawerMode>("route");
+  const [draftAa, setDraftAa] = useState(sourceAa);
+  const [draftDapp, setDraftDapp] = useState(sourceDapp);
+  const [draftPayload, setDraftPayload] = useState(sourcePayload);
+  const [receiptDraft, setReceiptDraft] = useState("");
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>("request");
+  const [dirty, setDirty] = useState(false);
 
-  // Broadcast pulse: walks the packet down the pipeline on submit, then fires
-  // the real submitRelay dispatch.
-  const [pulseStep, setPulseStep] = useState(0);
-  const pulseTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (pulseTimeout.current) clearTimeout(pulseTimeout.current); }, []);
+  useEffect(() => {
+    if (dirty) return;
+    setDraftAa(sourceAa);
+    setDraftDapp(sourceDapp);
+    setDraftPayload(sourcePayload);
+  }, [dirty, sourceAa, sourceDapp, sourcePayload]);
 
-  const sponsor = useMemo(() => parseSponsor(sponsorState), [sponsorState]);
-  const relay = useMemo(() => parseSponsor(relayResponse), [relayResponse]);
+  const fingerprint = draftFingerprint(draftAa, draftDapp, draftPayload);
+  const reviewStale = hasReview && preparedFingerprint !== fingerprint;
+  const busy = isPreparing || isCheckingSponsorship || isTracking;
+  const validation = useMemo(() => {
+    try {
+      const parsed = parseRelayDraft({
+        network: resolveNeoNetwork(networkDisplay),
+        aaCore: aaCoreDisplay,
+        paymaster: paymasterDisplay,
+        aaAddress: draftAa,
+        dappId: draftDapp,
+        payloadJson: draftPayload,
+      });
+      return { valid: true, message: t("requestLocallyValid"), parsed };
+    } catch (error) {
+      return {
+        valid: false,
+        message: error instanceof Error ? error.message : t("requestInvalid"),
+        parsed: null,
+      };
+    }
+  }, [aaCoreDisplay, draftAa, draftDapp, draftPayload, networkDisplay, paymasterDisplay, t]);
 
-  // Payload must be valid JSON before the relay leg is "ready" (the composable
-  // parses it; a syntactically-valid default keeps the broadcast from faulting).
-  const payloadValid = useMemo(() => {
-    try { JSON.parse(draftPayload); return true; } catch { return false; }
-  }, [draftPayload]);
+  const canUseReview = hasReview && !reviewStale;
+  const primaryTracks = canUseReview && hasTrackableReceipt;
+  const primaryLabel = primaryTracks
+    ? isTracking ? t("trackingReceipt") : t("trackReceipt")
+    : isPreparing ? t("preparingReview") : hasReview ? t("refreshReview") : t("prepareReview");
+  const primaryDisabled = busy || (!primaryTracks && !validation.valid);
 
-  const hasAa = draftAa.trim().length >= 6;
-  const sponsorReady = sponsor.present && sponsor.eligible;
-  const relayDone = relay.present && (relay.eligible || /\b(txid|tx|hash)\b/i.test(relayResponse));
-  const submitReady = hasAa && payloadValid;
-
-  // Pipeline segment readiness — drives lit/unlit.
-  const seg = {
-    aa: hasAa,
-    paymaster: sponsorReady,
-    broadcast: relayDone || submitReady,
+  const handlePrepare = () => {
+    if (!validation.valid || busy) return;
+    void dispatch("prepareReview", draftAa, draftDapp, draftPayload);
+  };
+  const handlePrimary = () => {
+    if (primaryTracks) void dispatch("trackReceipt");
+    else handlePrepare();
+  };
+  const handleSponsor = () => {
+    if (!canUseReview || busy) return;
+    void dispatch("checkSponsor", draftAa, draftDapp, draftPayload);
+  };
+  const handleImport = () => {
+    if (!canUseReview || !receiptDraft.trim() || busy) return;
+    void dispatch("importReceipt", receiptDraft);
+  };
+  const handleClear = () => {
+    void dispatch("clearRelayJob");
+    setReceiptDraft("");
+    setDirty(true);
+  };
+  const selectDrawer = (value: string) => {
+    if (["request", "package", "receipt"].includes(value)) setDrawerMode(value as DrawerMode);
+  };
+  const edit = (setter: (value: string) => void) => (value: string) => {
+    setDirty(true);
+    setter(value);
   };
 
-  const busy = isCheckingSponsorship || isRelaying;
-
-  const handleCheckSponsor = () => {
-    void dispatch("checkSponsor", draftAa, draftDapp);
-  };
-  const handleRequestSponsor = () => {
-    void dispatch("requestSponsor", draftAa, draftDapp, draftAmount);
-  };
-  const handleSubmitRelay = () => {
-    if (!submitReady || busy) return;
-    if (pulseTimeout.current) clearTimeout(pulseTimeout.current);
-    setPulseStep(1);
-    const step = (n: number) => {
-      setPulseStep(n);
-      if (n < 3) {
-        pulseTimeout.current = setTimeout(() => step(n + 1), 300);
-      } else {
-        pulseTimeout.current = setTimeout(() => {
-          setPulseStep(0);
-          void dispatch("submitRelay", draftAa, draftDapp, draftPayload);
-        }, 320);
-      }
-    };
-    step(1);
-  };
-
-  const sceneState = isRelaying
-    ? "relaying"
-    : isCheckingSponsorship
-      ? "checking"
-      : relayDone
-        ? "submitted"
-        : sponsorReady
-          ? "funded"
-          : hasAa
-            ? "ready"
-            : "idle";
-
-  const statusText = busy
-    ? isRelaying ? t("relayBoardRelaying") : t("relayBoardChecking")
-    : !hasAa
-      ? t("relayBoardDraft")
-      : !payloadValid
-        ? t("payloadInvalid")
-        : relayDone
-          ? t("relayBoardSubmitted")
-          : sponsorReady
-            ? t("relayBoardReady")
-            : sponsor.present
-              ? t("relayBoardFunding")
-              : t("relayBoardSponsor");
-  const stateTitle = relayDone
-    ? t("relayTxLabel")
-    : sponsorReady
-      ? t("relayStateTitle")
-      : submitReady
-        ? t("relaySubmitTitle")
-        : hasAa
-          ? t("relayNeedsPayload")
-          : t("relayNeedsAA");
-  const guardCopy = !hasAa
-    ? t("relayBlocked")
-    : !payloadValid
-      ? t("payloadInvalid")
-      : t("relaySubmitExplainer");
-  const accountCapsuleTitle = hasAa ? t("relayAccountReady") : t("relayAccountWaiting");
-  const accountCapsuleDetail = hasAa ? compactHash(draftAa) : t("relayAccountCapsuleHint");
-  const drawerModes = [
-    { mode: "route" as const, label: t("relayAccountEyebrow"), ready: hasAa },
-    { mode: "sponsor" as const, label: t("sponsorCheck"), ready: sponsorReady },
-    { mode: "payload" as const, label: t("payloadJson"), ready: payloadValid },
+  const lifecycle = [
+    {
+      key: "prepare",
+      icon: FileCheck2,
+      label: t("stepPrepare"),
+      detail: reviewStale ? t("stepPrepareStale") : stateCopy(t, reviewReadiness),
+      active: canUseReview,
+      locked: false,
+    },
+    {
+      key: "submit",
+      icon: LockKeyhole,
+      label: t("stepSubmit"),
+      detail: t("stepSubmitExternal"),
+      active: hasReceipt,
+      locked: !hasReceipt,
+    },
+    {
+      key: "receipt",
+      icon: RadioTower,
+      label: t("stepReceipt"),
+      detail: hasReceipt ? (txidDisplay ? compact(txidDisplay) : receiptStatus) : t("stepReceiptWaiting"),
+      active: hasReceipt,
+      locked: false,
+    },
+    {
+      key: "track",
+      icon: chainStatus === "confirmed" ? CheckCircle2 : SearchCheck,
+      label: t("stepTrack"),
+      detail: outcomeCopy(t, chainStatus),
+      active: ["confirmed", "fault", "mismatch", "unreachable", "pending"].includes(chainStatus),
+      locked: !hasTrackableReceipt,
+    },
   ];
-  const setDrawerModeSafe = (mode: string) => {
-    if (drawerModes.some((item) => item.mode === mode)) setDrawerMode(mode as DrawerMode);
-  };
-
-  const renderNode = (
-    label: string,
-    value: string,
-    lit: boolean,
-    Icon: LucideIcon,
-    pulse: boolean,
-    tone: "account" | "paymaster" | "payload",
-  ) => (
-    <div
-      className={[
-        "relay-scene__node",
-        `relay-scene__node--${tone}`,
-        lit ? "is-lit" : "",
-        pulse ? "is-pulsing" : "",
-      ].filter(Boolean).join(" ")}
-      data-active={lit ? "true" : undefined}
-      data-pulse={pulse ? "true" : undefined}
-    >
-      <span className="relay-scene__node-icon" aria-hidden="true">
-        <Icon size={18} strokeWidth={2.4} />
-      </span>
-      <span className="relay-scene__node-body">
-        <span className="relay-scene__node-label">{label}</span>
-        <span className="relay-scene__node-value">{value || "—"}</span>
-      </span>
-    </div>
-  );
 
   const scene = (
-    <div className="relay-scene" data-state={sceneState}>
-      <div className="relay-scene__board">
-        <div className="relay-scene__account-panel">
-          <div className="relay-scene__account-heading">
-            <RadioTower size={18} aria-hidden="true" />
-            <span>{t("relayAccountEyebrow")}</span>
-          </div>
-          <div className="relay-scene__account-capsule" data-ready={hasAa ? "true" : undefined}>
-            <span className="relay-scene__account-orb" aria-hidden="true">
-              <RadioTower size={20} strokeWidth={2.4} />
-            </span>
-            <span className="relay-scene__account-copy">
-              <span>{t("relayAccountCapsule")}</span>
-              <strong>{accountCapsuleTitle}</strong>
-              <small>{accountCapsuleDetail}</small>
-            </span>
-          </div>
-          <OpenUiSegmented
-            className="relay-scene__mode-strip"
-            segmentedClassName="relay-scene__mode-strip-group"
-            label={t("relayFlowLabel")}
-            value={drawerMode}
-            onChange={setDrawerModeSafe}
-            options={drawerModes.map((item) => ({
-              value: item.mode,
-              label: (
-                <span className="relay-scene__mode-chip" data-ready={item.ready ? "true" : undefined}>
-                  <span>{item.label}</span>
-                </span>
-              ),
-            }))}
-          />
-          <p>{hasAa ? t("aaAddressHint") : t("relayAccountTitle")}</p>
-        </div>
+    <div className="aa-relay-scene" data-busy={busy ? "true" : undefined}>
+      <figure className="aa-relay-scene__art">
+        <img src={RELAY_STATION_ART} alt={t("relayHeroVisualAlt")} loading="eager" decoding="async" />
+        <figcaption>
+          <span>{t("relayDeskEyebrow")}</span>
+          <strong>{t("relayDeskTitle")}</strong>
+          <small>{t("relayDeskCopy")}</small>
+        </figcaption>
+        <span className="aa-relay-scene__mode"><ShieldCheck size={14} />{runtimeMode || "review-only"}</span>
+      </figure>
 
-        <figure className="relay-scene__station-card" aria-label={t("relayStationLabel")}>
-          <img src={RELAY_STATION_ART} alt="" aria-hidden="true" loading="eager" decoding="async" />
-          <figcaption>
-            <span>{t("relayStationLabel")}</span>
-            <strong>{t("relayStationCaption")}</strong>
-          </figcaption>
-        </figure>
+      <div className="aa-relay-scene__workspace">
+        <section className="aa-relay-scene__route" aria-label={t("requestSummary") }>
+          <div className="aa-relay-scene__route-head">
+            <span className="aa-relay-scene__route-icon"><ClipboardCheck size={21} /></span>
+            <div><span>{t("requestSummary")}</span><strong>{validation.parsed?.targetMethod || t("requestWaiting")}</strong></div>
+            {busy ? <LoaderCircle className="aa-relay-scene__spinner" size={18} /> : <ShieldCheck size={18} />}
+          </div>
+          <dl>
+            <div><dt>{t("aaAccount")}</dt><dd>{compact(validation.parsed?.accountId || draftAa)}</dd></div>
+            <div><dt>{t("targetContract")}</dt><dd>{compact(validation.parsed?.targetContract || targetDisplay)}</dd></div>
+            <div><dt>{t("targetMethod")}</dt><dd>{validation.parsed?.targetMethod || methodDisplay || "—"}</dd></div>
+            <div><dt>{t("network")}</dt><dd>{networkDisplay || "—"}</dd></div>
+          </dl>
+          <p data-valid={validation.valid ? "true" : undefined}>
+            {reviewStale
+              ? t("reviewStale")
+              : validation.valid
+                ? validation.message
+                : t("requestInvalid")}
+          </p>
+        </section>
 
-        <div className="relay-scene__line-card">
-          <div className="relay-scene__line-heading">
-            <CoinArt size={34} variant="gas" decorative />
-            <div>
-              <span>{t("relayBoardKicker")}</span>
-              <strong>{t("relayFlowLabel")}</strong>
-            </div>
-            <span className="relay-scene__line-status" aria-hidden="true">
-              {busy ? <LoaderCircle size={18} /> : <CheckCircle2 size={18} />}
-            </span>
+        <section className="aa-relay-scene__lifecycle" aria-label={t("relayLifecycle") }>
+          <header>
+            <CoinArt size={36} variant="gas" decorative />
+            <div><span>{t("relayLifecycle")}</span><strong>{t("lifecycleTitle")}</strong></div>
+          </header>
+          <div className="aa-relay-scene__steps">
+            {lifecycle.map(({ key, icon: Icon, label, detail, active, locked }) => (
+              <article key={key} data-active={active ? "true" : undefined} data-locked={locked ? "true" : undefined}>
+                <span><Icon size={18} /></span>
+                <div><strong>{label}</strong><small>{detail}</small></div>
+              </article>
+            ))}
           </div>
-          <div className="relay-scene__track">
-            <div className="relay-scene__rail" aria-hidden="true" />
-            {renderNode(t("relayBoardAA"), compactHash(draftAa || aaAddressDisplay), seg.aa, RadioTower, pulseStep === 1, "account")}
-            {renderNode(t("relayBoardPaymaster"), paymasterDisplay && paymasterDisplay !== t("unset") ? paymasterDisplay : "", seg.paymaster, Fuel, pulseStep === 2, "paymaster")}
-            {renderNode(t("relayBoardPayload"), payloadValid ? t("relayPayloadReady") : t("payloadInvalid"), seg.broadcast, SendHorizontal, pulseStep === 3, "payload")}
-          </div>
-        </div>
+        </section>
 
-        <div className="relay-scene__state-card">
-          <Code2 size={19} aria-hidden="true" />
-          <div>
-            <span>{t("relayStateLabel")}</span>
-            <strong>{stateTitle}</strong>
-          </div>
-          <p>{statusText}</p>
-          <small>
-            <AlertTriangle size={14} aria-hidden="true" />
-            {guardCopy}
-          </small>
-        </div>
+        <aside className="aa-relay-scene__status" data-state={chainStatus}>
+          <span>{t("currentState")}</span>
+          <strong>{hasReceipt ? outcomeCopy(t, chainStatus) : stateCopy(t, reviewReadiness)}</strong>
+          <p>{chainReason || t("runtimeBoundaryCopy")}</p>
+          <dl>
+            <div><dt>{t("jobId")}</dt><dd>{reviewJobId || "—"}</dd></div>
+            <div><dt>{t("confirmations")}</dt><dd>{confirmationsDisplay || "0"}</dd></div>
+          </dl>
+        </aside>
       </div>
     </div>
   );
 
-  // Payload form + sponsor preflight live in the drawer so the stage stays
-  // primary/clean. Fields mirror the composable form; dispatch carries them.
-  const drawerPanels: Record<DrawerMode, ReactNode> = {
-    route: (
-      <OpenUiPanel
-        className="relay-drawer__panel relay-drawer__panel--route"
-        icon={<RadioTower size={18} strokeWidth={2.4} aria-hidden="true" />}
-        title={t("relayAccountEyebrow")}
-        subtitle={t("relayStageTitle")}
-      >
+  const requestPanel = (
+    <OpenUiPanel
+      className="aa-relay-drawer__panel"
+      icon={<FileCheck2 size={18} aria-hidden="true" />}
+      title={t("requestBuilder")}
+      subtitle={t("requestBuilderCopy")}
+    >
+      <div className="aa-relay-drawer__grid">
         <OpenUiTextField
-          className="relay-drawer__field"
-          label={t("aaAddress")}
+          className="aa-relay-drawer__field"
+          label={t("aaAccount")}
           value={draftAa}
-          onChange={(e) => setDraftAa(e.target.value)}
-          placeholder={t("aaAddressPlaceholder")}
-          hint={t("aaAddressHint")}
+          onChange={(event) => edit(setDraftAa)(event.target.value)}
+          placeholder={t("aaAccountPlaceholder")}
+          hint={t("aaAccountHint")}
           mono
           spellCheck={false}
         />
         <OpenUiTextField
-          className="relay-drawer__field"
+          className="aa-relay-drawer__field"
           label={t("dappId")}
           value={draftDapp}
-          onChange={(e) => setDraftDapp(e.target.value)}
+          onChange={(event) => edit(setDraftDapp)(event.target.value)}
           placeholder={t("dappIdPlaceholder")}
           hint={t("dappIdHint")}
           mono
           spellCheck={false}
         />
-        <dl className="relay-drawer__facts" aria-label={t("relayMetricsLabel")}>
-          <div><dt>{t("network")}</dt><dd>{networkDisplay || "—"}</dd></div>
-          <div><dt>{t("aaCoreLabel")}</dt><dd>{compactHash(aaCoreDisplay)}</dd></div>
-          <div><dt>{t("relayEndpointMetric")}</dt><dd>{relayUrlDisplay || "—"}</dd></div>
-          <div><dt>{t("relayBoardAA")}</dt><dd>{(aaAddressDisplay && aaAddressDisplay !== t("notAvailable")) ? compactHash(aaAddressDisplay) : "—"}</dd></div>
-        </dl>
-      </OpenUiPanel>
-    ),
-
-    sponsor: (
-      <OpenUiPanel
-        className="relay-drawer__panel"
-        icon={<Fuel size={18} strokeWidth={2.4} aria-hidden="true" />}
-        title={t("sponsorCheck")}
-        subtitle={t("sponsorDirectionNote")}
-      >
-        <OpenUiTextField
-          className="relay-drawer__field"
-          label={t("sponsorAmount")}
-          value={draftAmount}
-          onChange={(e) => setDraftAmount(e.target.value)}
-          placeholder={t("sponsorAmountPlaceholder")}
-          hint={t("sponsorAmountHint")}
-          inputMode="decimal"
-        />
-        <div className="relay-drawer__row">
-          <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleCheckSponsor} disabled={!hasAa}>{t("sponsorCheck")}</button>
-          <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleRequestSponsor} disabled={!hasAa}>{t("sponsorRequest")}</button>
-        </div>
-      </OpenUiPanel>
-    ),
-
-    payload: (
-      <OpenUiPanel
-        className="relay-drawer__panel relay-drawer__panel--payload"
-        icon={<Code2 size={18} strokeWidth={2.4} aria-hidden="true" />}
-        title={t("payloadJson")}
-        subtitle={payloadValid ? t("relayPayloadReady") : t("payloadInvalid")}
-      >
-        <OpenUiTextArea
-          className="relay-drawer__field relay-drawer__payload mx2-open-field--compact"
-          label={t("payloadJson")}
-          value={draftPayload}
-          onChange={(e) => setDraftPayload(e.target.value)}
-          placeholder={t("payloadJsonPlaceholder")}
-          hint={payloadValid ? t("relayPayloadReady") : t("payloadInvalid")}
-          rows={3}
-          spellCheck={false}
-        />
-        <OpenUiNotice
-          className="relay-drawer__notice"
-          icon={<SendHorizontal size={18} strokeWidth={2.4} aria-hidden="true" />}
-          title={t("relaySubmitTitle")}
-          type={payloadValid ? "info" : "warning"}
-        >
-          {t("relaySubmitExplainer")}
-        </OpenUiNotice>
-      </OpenUiPanel>
-    ),
-  };
-
-  const drawer = (
-    <div className="relay-drawer">
-      <OpenUiSegmented
-        className="relay-drawer-tabs"
-        segmentedClassName="relay-drawer-tabs__group"
-        label={t("relayFlowLabel")}
-        value={drawerMode}
-        onChange={setDrawerModeSafe}
-        options={drawerModes.map((item) => ({
-          value: item.mode,
-          label: <span className="relay-drawer-tab">{item.label}</span>,
-        }))}
-      />
-      <div className="relay-drawer__panel-shell" data-mode={drawerMode}>
-        {drawerPanels[drawerMode]}
       </div>
+      <OpenUiTextArea
+        className="aa-relay-drawer__field aa-relay-drawer__payload"
+        label={t("advancedCallData")}
+        value={draftPayload}
+        onChange={(event) => edit(setDraftPayload)(event.target.value)}
+        placeholder={t("payloadJsonPlaceholder")}
+        hint={t("advancedCallDataHint")}
+        rows={10}
+        spellCheck={false}
+      />
+      <OpenUiNotice
+        className="aa-relay-drawer__notice"
+        icon={validation.valid ? <ShieldCheck size={18} /> : <FileCheck2 size={18} />}
+        title={validation.valid ? t("requestLocallyValid") : t("requestNeedsWork")}
+        type={validation.valid ? "info" : "warning"}
+      >
+        {validation.message}
+      </OpenUiNotice>
+    </OpenUiPanel>
+  );
+
+  const packagePanel = (
+    <OpenUiPanel
+      className="aa-relay-drawer__panel"
+      icon={<ShieldCheck size={18} aria-hidden="true" />}
+      title={t("reviewPackage")}
+      subtitle={t("reviewPackageCopy")}
+    >
+      {hasReview ? (
+        <>
+          <dl className="aa-relay-drawer__facts">
+            <div><dt>{t("jobId")}</dt><dd>{reviewJobId}</dd></div>
+            <div><dt>{t("previewState")}</dt><dd>{previewState}</dd></div>
+            <div><dt>{t("packageDigest")}</dt><dd>{compact(reviewDigest, 12, 8)}</dd></div>
+            <div><dt>{t("sponsorStatus")}</dt><dd title={sponsorSummary}>{sponsorState}</dd></div>
+          </dl>
+          <textarea className="aa-relay-drawer__readonly" value={reviewPackageJson} readOnly aria-label={t("reviewPackageJson")} />
+          <OpenUiNotice
+            className="aa-relay-drawer__notice"
+            icon={<LockKeyhole size={18} />}
+            title={t("authorizedSubmitRequired")}
+            type="warning"
+          >
+            {t("runtimeBoundaryCopy")}
+          </OpenUiNotice>
+        </>
+      ) : (
+        <OpenUiNotice icon={<FileCheck2 size={18} />} title={t("reviewDraft")} type="info">
+          {t("reviewPackageEmpty")}
+        </OpenUiNotice>
+      )}
+    </OpenUiPanel>
+  );
+
+  const receiptPanel = (
+    <OpenUiPanel
+      className="aa-relay-drawer__panel"
+      icon={<SearchCheck size={18} aria-hidden="true" />}
+      title={t("receiptRecovery")}
+      subtitle={t("receiptRecoveryCopy")}
+    >
+      <OpenUiTextArea
+        className="aa-relay-drawer__field aa-relay-drawer__receipt"
+        label={t("receiptJson")}
+        value={receiptDraft}
+        onChange={(event) => setReceiptDraft(event.target.value)}
+        placeholder={t("receiptJsonPlaceholder")}
+        hint={t("receiptJsonHint")}
+        rows={6}
+        spellCheck={false}
+      />
+      <div className="aa-relay-drawer__actions">
+        <button className="mx2-btn mx2-btn--primary" type="button" onClick={handleImport} disabled={!canUseReview || !receiptDraft.trim() || busy}>
+          {t("importReceipt")}
+        </button>
+        <button className="mx2-btn mx2-btn--ghost" type="button" onClick={handleClear} disabled={!hasReview || busy}>
+          <RotateCcw size={15} />{t("clearRecoveredJob")}
+        </button>
+      </div>
+      {hasReceipt && (
+        <>
+          <textarea className="aa-relay-drawer__readonly aa-relay-drawer__readonly--receipt" value={relayReceiptJson} readOnly aria-label={t("currentReceipt")} />
+          <OpenUiNotice icon={<RadioTower size={18} />} title={outcomeCopy(t, chainStatus)} type={chainStatus === "fault" || chainStatus === "mismatch" ? "warning" : "info"}>
+            {chainReason}
+          </OpenUiNotice>
+        </>
+      )}
+    </OpenUiPanel>
+  );
+
+  const panels: Record<DrawerMode, ReactNode> = {
+    request: requestPanel,
+    package: packagePanel,
+    receipt: receiptPanel,
+  };
+  const drawer = (
+    <div className="aa-relay-drawer">
+      <OpenUiSegmented
+        className="aa-relay-drawer__tabs"
+        segmentedClassName="aa-relay-drawer__tab-group"
+        label={t("workspaceSections")}
+        value={drawerMode}
+        onChange={selectDrawer}
+        options={[
+          { value: "request", label: t("requestBuilder") },
+          { value: "package", label: t("reviewPackage") },
+          { value: "receipt", label: t("receiptRecovery") },
+        ]}
+      />
+      {panels[drawerMode]}
     </div>
   );
 
   return (
     <OpenUiProvider>
-      <div className="relay-play-area mx2 mx2-cat-tool">
+      <div className="aa-relay-play-area mx2 mx2-cat-tool">
         <PlayStage
           category="tool"
           stage={{
@@ -419,15 +417,21 @@ export default function PlayArea({ t, state, dispatch }: P) {
           scene={scene}
           actions={{
             primary: {
-              label: t("submitRelay"),
-              onClick: handleSubmitRelay,
-              loading: busy,
-              disabled: !submitReady,
+              label: primaryLabel,
+              onClick: handlePrimary,
+              loading: primaryTracks ? isTracking : isPreparing,
+              disabled: primaryDisabled,
             },
-            secondary: [{ label: t("sponsorCheck"), onClick: handleCheckSponsor, disabled: !hasAa || busy }],
+            secondary: [
+              {
+                label: isCheckingSponsorship ? t("checkingSponsor") : t("checkSponsorEvidence"),
+                onClick: handleSponsor,
+                disabled: !canUseReview || busy,
+              },
+            ],
           }}
-          drawerToggleLabel={t("relayFlowLabel")}
-          drawer={{ title: t("relayFlowLabel"), children: drawer }}
+          drawerToggleLabel={t("openJobWorkspace")}
+          drawer={{ title: t("jobWorkspace"), children: drawer }}
         />
       </div>
     </OpenUiProvider>

@@ -488,12 +488,66 @@ async function loadBundledManifest(slug: string): Promise<Dict | null> {
 function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict {
   const obj = asObject(raw);
   if (!bundledManifest) return obj;
-  return {
+  const merged = {
     ...bundledManifest,
     ...obj,
     manifest: {
       ...bundledManifest,
       ...asObject(obj.manifest),
+    },
+  };
+
+  const bundledPlatform = asObject(bundledManifest.platform);
+  const bundledPermissions = Array.isArray(bundledManifest.permissions)
+    ? bundledManifest.permissions
+    : [];
+  const hasInteractiveBundledPermission = bundledPermissions.some(
+    (permission) => {
+      const normalized = asString(permission).toLowerCase();
+      return Boolean(normalized) &&
+        !normalized.startsWith("read:") &&
+        !normalized.startsWith("view:");
+    },
+  );
+  const bundledOperationPanel = asObject(bundledManifest.operation_panel);
+  const bundledOperations = Array.isArray(bundledOperationPanel.operations)
+    ? bundledOperationPanel.operations
+    : [];
+  const bundledRuntime = asObject(bundledManifest.runtime);
+  const isAuthoritativeGuestOnlyRelease =
+    bundledPlatform.transactions === false &&
+    !hasInteractiveBundledPermission &&
+    bundledOperations.length === 0 &&
+    Object.keys(bundledRuntime).length === 0;
+
+  if (!isAuthoritativeGuestOnlyRelease) return merged;
+
+  // A current app manifest can intentionally retire a stale paid/runtime lane
+  // while keeping historical hashes for provenance. Public catalog definition
+  // files are additive metadata, not authority to re-enable transactions. Make
+  // the bundled release manifest authoritative for every capability-bearing
+  // field so an old operation recipe or runtime binding cannot resurrect a
+  // form that the playable app has explicitly closed.
+  return {
+    ...merged,
+    platform: bundledManifest.platform,
+    permissions: bundledPermissions,
+    operations: [],
+    operation_panel: bundledManifest.operation_panel,
+    runtime: undefined,
+    detail_template: undefined,
+    page_template: undefined,
+    frontend_spec: bundledManifest.frontend_spec,
+    manifest: {
+      ...asObject(merged.manifest),
+      platform: bundledManifest.platform,
+      permissions: bundledPermissions,
+      operations: [],
+      operation_panel: bundledManifest.operation_panel,
+      runtime: undefined,
+      detail_template: undefined,
+      page_template: undefined,
+      frontend_spec: bundledManifest.frontend_spec,
     },
   };
 }

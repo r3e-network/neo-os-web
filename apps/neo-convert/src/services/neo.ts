@@ -14,6 +14,8 @@ const WIF_PREFIX = 0x80;
 const WIF_SUFFIX = 0x01;
 // Neo N3 address version byte (0x35 → addresses start with 'N').
 const ADDRESS_VERSION = 0x35;
+export const MAX_SCRIPT_BYTES = 65_536;
+export const MAX_SOURCE_CHARS = MAX_SCRIPT_BYTES * 2 + 2;
 
 const OPCODE_NAME_BY_VALUE = Object.entries(OpCode).reduce<Record<number, string>>((acc, [name, value]) => {
   if (typeof value === "number") {
@@ -55,7 +57,14 @@ const concatBytes = (...values: Uint8Array[]): Uint8Array => {
 const encodeBase58Check = (payload: Uint8Array): string => bs58.encode(concatBytes(payload, checksum(payload)));
 
 const decodeBase58Check = (value: string): Uint8Array => {
-  const decoded = Uint8Array.from(bs58.decode(value));
+  const normalized = value.trim();
+  // The only products decoded here are a 34-character N3 address and a
+  // 52-character WIF. Bound the decoder before its expensive base conversion
+  // so a pasted oversized script cannot monopolize the UI thread.
+  if (!normalized || normalized.length > 64) {
+    throw new Error("invalid base58check length");
+  }
+  const decoded = Uint8Array.from(bs58.decode(normalized));
   if (decoded.length < 5) {
     throw new Error("invalid base58check payload");
   }
@@ -69,6 +78,18 @@ const decodeBase58Check = (value: string): Uint8Array => {
 };
 
 const takeBytes = (bytes: Uint8Array, offset: number, length: number) => bytes.slice(offset, offset + length);
+
+const requireBytes = (bytes: Uint8Array, offset: number, length: number): void => {
+  if (
+    !Number.isSafeInteger(offset)
+    || !Number.isSafeInteger(length)
+    || offset < 0
+    || length < 0
+    || offset + length > bytes.length
+  ) {
+    throw new Error("truncated NeoVM operand");
+  }
+};
 
 const readLittleEndian = (bytes: Uint8Array, offset: number, length: number): number => {
   // Use an unsigned accumulator. Bitwise `<<` would overflow at 32 bits and
@@ -213,13 +234,40 @@ export const generateAccount = (): NeoAccount => {
   };
 };
 
+const privateKeyFromHex = (value: string): PrivateKey => {
+  const normalized = normalizeHex(value);
+  if (normalized.length !== 64 || !HEX_PATTERN.test(normalized)) {
+    throw new Error("invalid private key");
+  }
+  const privateKey = new PrivateKey(normalized);
+  // The SDK constructor accepts any 32-byte value. Deriving the public key is
+  // what enforces the secp256r1 scalar range (rejecting zero and n-or-higher).
+  privateKey.publicKey();
+  return privateKey;
+};
+
+const publicKeyFromCompressedHex = (value: string): PublicKey => {
+  const normalized = normalizeHex(value);
+  if (!/^(02|03)[0-9a-f]{64}$/i.test(normalized)) {
+    throw new Error("invalid compressed public key");
+  }
+  const publicKey = new PublicKey(normalized);
+  // Force curve-point decoding; the constructor alone accepts malformed
+  // compressed points and only fails later during address derivation.
+  publicKey.getAddress();
+  return publicKey;
+};
+
 export const validateWif = (value: string): boolean => {
   try {
-    const payload = decodeBase58Check(value.trim());
+    const normalized = value.trim();
+    if (normalized.length !== 52) return false;
+    const payload = decodeBase58Check(normalized);
     if (payload.length !== 34 || payload[0] !== WIF_PREFIX || payload[33] !== WIF_SUFFIX) {
       return false;
     }
-    new PrivateKey(payload.slice(1, 33));
+    const privateKey = new PrivateKey(payload.slice(1, 33));
+    privateKey.publicKey();
     return true;
   } catch (_error: unknown) {
     return false;
@@ -228,7 +276,7 @@ export const validateWif = (value: string): boolean => {
 
 export const validatePrivateKey = (value: string): boolean => {
   try {
-    new PrivateKey(value.trim());
+    privateKeyFromHex(value);
     return true;
   } catch (_error: unknown) {
     return false;
@@ -237,7 +285,7 @@ export const validatePrivateKey = (value: string): boolean => {
 
 export const validatePublicKey = (value: string): boolean => {
   try {
-    new PublicKey(value.trim());
+    publicKeyFromCompressedHex(value);
     return true;
   } catch (_error: unknown) {
     return false;
@@ -246,15 +294,20 @@ export const validatePublicKey = (value: string): boolean => {
 
 export const validateHexScript = (value: string): boolean => {
   const cleaned = normalizeHex(value);
-  return isHex(cleaned);
+  return cleaned.length <= MAX_SCRIPT_BYTES * 2 && isHex(cleaned);
+};
+
+export const isOversizedHexScript = (value: string): boolean => {
+  const cleaned = normalizeHex(value);
+  return cleaned.length > MAX_SCRIPT_BYTES * 2 && HEX_PATTERN.test(cleaned);
 };
 
 export const convertPrivateKeyToWif = (privateKey: string): string => {
-  const normalized = new PrivateKey(privateKey.trim()).toBytes();
+  const normalized = privateKeyFromHex(privateKey).toBytes();
   return encodeBase58Check(concatBytes(Uint8Array.of(WIF_PREFIX), normalized, Uint8Array.of(WIF_SUFFIX)));
 };
 
-export const convertPublicKeyToAddress = (publicKey: string): string => new PublicKey(publicKey.trim()).getAddress();
+export const convertPublicKeyToAddress = (publicKey: string): string => publicKeyFromCompressedHex(publicKey).getAddress();
 
 /**
  * A Neo N3 address is base58check(version 0x35 ‖ scriptHash[20]). Validate the
@@ -263,7 +316,9 @@ export const convertPublicKeyToAddress = (publicKey: string): string => new Publ
  */
 export const validateAddress = (value: string): boolean => {
   try {
-    const payload = decodeBase58Check(value.trim());
+    const normalized = value.trim();
+    if (normalized.length !== 34) return false;
+    const payload = decodeBase58Check(normalized);
     return payload.length === 21 && payload[0] === ADDRESS_VERSION;
   } catch (_error: unknown) {
     return false;
@@ -302,7 +357,7 @@ export const addressToScriptHash = (address: string): AddressScriptHash => {
 
 export const disassembleScript = (script: string): string[] => {
   const cleaned = normalizeHex(script);
-  if (!isHex(cleaned)) return [];
+  if (!isHex(cleaned) || cleaned.length > MAX_SCRIPT_BYTES * 2) return [];
 
   try {
     const bytes = bytesFromHex(cleaned);
@@ -320,7 +375,9 @@ export const disassembleScript = (script: string): string[] => {
 
       // Length-prefixed data pushes — handled FIRST so they are reachable.
       if (opcode === OpCode.PUSHDATA1) {
+        requireBytes(bytes, cursor + 1, 1);
         const length = bytes[cursor + 1] ?? 0;
+        requireBytes(bytes, cursor + 2, length);
         const data = takeBytes(bytes, cursor + 2, length);
         tokens.push(`PUSHDATA1 ${bytesToHex(data)}`);
         cursor += 1 + length;
@@ -328,7 +385,9 @@ export const disassembleScript = (script: string): string[] => {
       }
 
       if (opcode === OpCode.PUSHDATA2) {
+        requireBytes(bytes, cursor + 1, 2);
         const length = readLittleEndian(bytes, cursor + 1, 2);
+        requireBytes(bytes, cursor + 3, length);
         const data = takeBytes(bytes, cursor + 3, length);
         tokens.push(`PUSHDATA2 ${bytesToHex(data)}`);
         cursor += 2 + length;
@@ -336,7 +395,9 @@ export const disassembleScript = (script: string): string[] => {
       }
 
       if (opcode === OpCode.PUSHDATA4) {
+        requireBytes(bytes, cursor + 1, 4);
         const length = readLittleEndian(bytes, cursor + 1, 4);
+        requireBytes(bytes, cursor + 5, length);
         const data = takeBytes(bytes, cursor + 5, length);
         tokens.push(`PUSHDATA4 ${bytesToHex(data)}`);
         cursor += 4 + length;
@@ -348,6 +409,7 @@ export const disassembleScript = (script: string): string[] => {
       // parentheses) so the reader doesn't have to byte-swap by hand.
       const pushIntSize = PUSHINT_OPERAND_SIZE[opcode];
       if (pushIntSize !== undefined) {
+        requireBytes(bytes, cursor + 1, pushIntSize);
         const decimal = readSignedLittleEndian(bytes, cursor + 1, pushIntSize);
         const data = takeBytes(bytes, cursor + 1, pushIntSize);
         tokens.push(`${opcodeName} ${decimal.toString()} (0x${bytesToHex(data)})`);
@@ -358,6 +420,7 @@ export const disassembleScript = (script: string): string[] => {
       // SYSCALL: resolve the 4-byte interop hash to its service name where
       // known, keeping the raw hash in parentheses for reference.
       if (opcode === OpCode.SYSCALL) {
+        requireBytes(bytes, cursor + 1, 4);
         const data = takeBytes(bytes, cursor + 1, 4);
         const hashHex = bytesToHex(data);
         const name = SYSCALL_NAME_BY_HASH[hashHex];
@@ -369,6 +432,7 @@ export const disassembleScript = (script: string): string[] => {
       // Opcodes carrying a fixed immediate operand (jumps, slots…).
       const operandSize = FIXED_OPERAND_SIZE[opcode];
       if (operandSize !== undefined && opcodeName) {
+        requireBytes(bytes, cursor + 1, operandSize);
         const data = takeBytes(bytes, cursor + 1, operandSize);
         tokens.push(`${opcodeName} ${bytesToHex(data)}`);
         cursor += operandSize;
@@ -385,12 +449,14 @@ export const disassembleScript = (script: string): string[] => {
   }
 };
 
-export const getPublicKey = (privateKey: string): string => new PrivateKey(privateKey.trim()).publicKey().toString();
+export const getPublicKey = (privateKey: string): string => privateKeyFromHex(privateKey).publicKey().toString();
 
 export const getPrivateKeyFromWIF = (wif: string): string => {
   const payload = decodeBase58Check(wif.trim());
   if (payload.length !== 34 || payload[0] !== WIF_PREFIX || payload[33] !== WIF_SUFFIX) {
     throw new Error("invalid WIF");
   }
-  return bytesToHex(payload.slice(1, 33));
+  const privateKey = new PrivateKey(payload.slice(1, 33));
+  privateKey.publicKey();
+  return bytesToHex(privateKey.toBytes());
 };

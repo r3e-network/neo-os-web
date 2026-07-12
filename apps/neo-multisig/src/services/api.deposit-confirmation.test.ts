@@ -11,7 +11,7 @@ import {
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
-const CONTRACT = "0xa89f8dd133b6f1a87d9a93b4d4cb6e2b4c4c5b6a";
+const CONTRACT = "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178";
 
 // 17 distinct, verified-valid Neo N3 addresses (checked against isValidAddress)
 // so the up-to-16-signer dynamic-slot tests exercise validateSignerSet for real.
@@ -50,6 +50,7 @@ function makeChain() {
   const read = vi.fn(async () => null);
   const chain = {
     contractAddress: { get: () => CONTRACT },
+    detectNetwork: vi.fn(async () => "mainnet"),
     invoke,
     read,
   };

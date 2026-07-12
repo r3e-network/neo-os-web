@@ -92,7 +92,14 @@ const ADDRESSES = {
   breakup: "0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8",
   burnleague: "0x0946e3c3db8abdd2fa14bbae4978992015473c09",
   devtipping: "0x389aa2c619f0cfed5b495dd8638107d20f37e086",
-  tarot: "0x5cdf29c30727ce06696736ae0fb49abd9fd79730",
+  tarot: String(
+    JSON.parse(
+      fs.readFileSync(
+        path.join(ROOT, "apps", "on-chain-tarot", "neo-manifest.json"),
+        "utf8",
+      ),
+    ).contracts["neo-n3-testnet"],
+  ),
   vault: "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
 };
 
@@ -388,35 +395,59 @@ async function runDevTipping() {
 async function runOnChainTarot() {
   const hash = ADDRESSES.tarot;
   const userContract = appContract(hash, user);
-  await topUpOracleCallbackCredit(hash);
-  await transferGAS(user, hash, "10000000", "miniapp-onchaintarot:reading");
+  const account = Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`);
+  const fee = BigInt(String(await invokeRead(hash, "drawFee") || "0"));
+  if (fee <= 0n) throw new Error("tarot draw fee is not positive");
 
-  const tx = await userContract.invoke("requestReading", [
-    Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
-    Neon.sc.ContractParam.string(uniqueLabel("Tarot question")),
-    Neon.sc.ContractParam.integer("2"),
-    Neon.sc.ContractParam.integer("1"),
-  ]);
+  const creditBefore = BigInt(
+    String(await invokeRead(hash, "creditOf", [account]) || "0"),
+  );
+  const shortfall = creditBefore < fee ? fee - creditBefore : 0n;
+  const depositTx = shortfall > 0n
+    ? await transferGAS(user, hash, shortfall.toString(), "miniapp-tarot:draw")
+    : null;
+
+  const tx = await userContract.invoke("draw", [account]);
   const log = await waitForLog(tx);
-  if (log.execution.vmstate !== "HALT") throw new Error(log.execution.exception || "requestReading failed");
-  const requested = findNotification(log.execution, hash, "ReadingRequested");
-  const oracleRequested = findNotification(log.execution, ORACLE_HASH, "OracleRequested");
-  const readingId = String(stackValue(requested?.state?.value?.[0]));
-  const requestId = String(stackValue(oracleRequested?.state?.value?.[0] || ""));
-  if (!requestId) throw new Error("oracle request id missing from ReadingRequested flow");
-  const totalBefore = await invokeRead(hash, "totalReadings");
-  const deadline = Date.now() + 60000;
-  let details = await invokeRead(hash, "getReadingDetails", [{ type: "Integer", value: readingId }]);
-  while (details.completed !== true && Date.now() < deadline) {
-    const request = await getOracleRequest(requestId).catch(() => null);
-    if (request && !oracleRequestCompleted(request)) {
-      await ensureOracleRequestFulfilled(requestId, "rng", crypto.randomBytes(32));
-    }
-    await sleep(2000);
-    details = await invokeRead(hash, "getReadingDetails", [{ type: "Integer", value: readingId }]);
+  if (log.execution.vmstate !== "HALT") {
+    throw new Error(log.execution.exception || "tarot draw failed");
   }
-  if (details.completed !== true) throw new Error("tarot reading did not complete");
-  return { contractHash: hash, tx: asTxid(tx), readingId, requestId, totalBefore, details };
+  const drawn = findNotification(log.execution, hash, "ReadingDrawn");
+  const values = drawn?.state?.value || [];
+  const readingId = String(stackValue(values[0]) || "");
+  const cards = values.slice(2, 5).map((item) => Number(stackValue(item)));
+  if (!/^\d+$/.test(readingId) || BigInt(readingId) <= 0n) {
+    throw new Error("tarot ReadingDrawn id missing");
+  }
+  if (
+    cards.length !== 3 ||
+    new Set(cards).size !== 3 ||
+    cards.some((card) => !Number.isInteger(card) || card < 0 || card >= 78)
+  ) {
+    throw new Error(`tarot ReadingDrawn cards invalid: ${cards.join(",")}`);
+  }
+
+  const details = await invokeRead(hash, "getReading", [
+    { type: "Integer", value: readingId },
+  ]);
+  const storedCards = Array.isArray(details?.cards)
+    ? details.cards.map((card) => Number(card))
+    : [];
+  if (storedCards.join(",") !== cards.join(",")) {
+    throw new Error("tarot stored reading does not match ReadingDrawn");
+  }
+  const creditAfter = String(await invokeRead(hash, "creditOf", [account]) || "0");
+  return {
+    contractHash: hash,
+    depositTx,
+    drawTx: asTxid(tx),
+    readingId,
+    cards,
+    fee: fee.toString(),
+    creditBefore: creditBefore.toString(),
+    creditAfter,
+    details,
+  };
 }
 
 async function runVault() {

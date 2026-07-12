@@ -2,15 +2,14 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-fogplay",
   "name": "FogPlay",
-  "description": "Provably-fair coin flips with commit/reveal on-chain settlement and direct GAS wagering.",
+  "description": "A tactile local Phaser coin-flip table with secure streak play. Wallet-funded flips remain disabled until the Neo N3 deployment compatibility gate passes.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
     "fogplay",
-    "fogplay",
-    "oracle",
-    "betting",
-    "gas"
+    "coin-flip",
+    "guest",
+    "practice"
   ],
   "version": "2.0.0",
   "status": "active",
@@ -28,213 +27,45 @@
     "banner": "/miniapp-assets/fogplay/banner.webp"
   },
   "permissions": {
-    "payments": true,
-    "randomness": true
+    "payments": false,
+    "randomness": false
   },
   "frontend_spec": {
     "layout": "default",
-    "hero": {
-      "eyebrow": "FogPlay"
-    },
-    "tabs": [
-      {
-        "id": "overview",
-        "label": "Overview",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "notice",
-            "tone": "info",
-            "content": "FogPlay is a provably-fair coin flip. Pick a side and place your bet — it commits on-chain, then the outcome is revealed from a later block's native randomness. Win and walk away with 2× your stake."
-          },
-          {
-            "type": "key_value",
-            "title": "Quick Facts",
-            "items": [
-              {
-                "key": "Asset",
-                "value": "GAS"
-              },
-              {
-                "key": "Payout",
-                "value": "2× on win"
-              },
-              {
-                "key": "Randomness",
-                "value": "Neo native (later block)"
-              },
-              {
-                "key": "Settlement",
-                "value": "On-chain commit / reveal"
-              }
-            ]
-          },
-          {
-            "type": "bullet_list",
-            "title": "How to play",
-            "items": [
-              "Pick Heads or Tails and set your wager (0.05 – 100 GAS).",
-              "Place the bet — your GAS is escrowed and the bet commits on-chain (the outcome is not yet decided).",
-              "On the next block the result is revealed from native randomness and winners are paid 2× automatically."
-            ]
-          }
-        ]
-      },
-      {
-        "id": "history",
-        "label": "History",
-        "type": "content",
-        "blocks": [
-          {
-            "type": "notice",
-            "tone": "info",
-            "content": "Every flip is recorded on-chain. Inspect individual bets by opening the contract on NeoTube — notifications carry bet id, player, amount, and outcome."
-          }
-        ]
-      },
-      {
-        "id": "reviews",
-        "label": "Reviews",
-        "type": "reviews"
-      }
-    ],
     "operation_panel": {
-      "title": "Place Bet",
-      "subtitle": "Pick a side, set your wager, flip — 2x payout.",
-      "cta_label": "Open FogPlay",
+      "title": "Free FogPlay Table",
+      "subtitle": "Pick heads or tails and flip locally. Wallet-funded GameFi remains disabled until the reviewed N3 artifact is deployed and verified.",
       "operations": []
     }
   },
-  "operations": [
-    {
-      "name": "Fund Wager",
-      "method": "fundGameCredit",
-      "description": "Send GAS credit to the game contract before flipping.",
-      "button_style": "primary",
-      "priority": "primary",
-      "params": [
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "GAS credit",
-          "required": true,
-          "placeholder": "1",
-          "scale": 8,
-          "presets": [
-            {
-              "label": "0.10",
-              "value": "0.10",
-              "helper": "GAS"
-            },
-            {
-              "label": "1.00",
-              "value": "1.00",
-              "helper": "GAS"
-            },
-            {
-              "label": "5.00",
-              "value": "5.00",
-              "helper": "GAS"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Flip",
-      "method": "placeCoinFlipBet",
-      "button_style": "primary",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-fogplay",
-          "hidden": true
-        },
-        {
-          "name": "player",
-          "type": "hash160",
-          "label": "Player",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
-        },
-        {
-          "name": "choice",
-          "type": "boolean",
-          "label": "Heads",
-          "required": true,
-          "default_value": "true"
-        },
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "Wager (GAS)",
-          "required": true,
-          "placeholder": "1",
-          "scale": 8
-        }
-      ]
-    }
-  ],
+  "operations": [],
   "integration": {
     "news_integration": true,
     "reviews_enabled": true,
     "forum_enabled": false,
-    "activity_feed": true,
-    "stats_display": [
-      "total_transactions",
-      "daily_active_users",
-      "total_gas_used"
-    ]
+    "activity_feed": false,
+    "stats_display": []
   },
   "docs_url": "https://docs.r3e.network/fogplay",
-  "detail_template": {
-    "operation_panel": {
-      "title": "Place Bet",
-      "subtitle": "Pick a side, set your wager, flip — 2x payout."
-    }
-  },
   "manifest": {
-    "runtime": {
-      "mode": "platform",
-      "modules": [
-        {
-          "binding": "coin-flip",
-          "platform": "PlatformGame",
-          "appId": "miniapp-fogplay",
-          "moduleType": 2,
-          "registration": {
-            "method": "registerGame",
-            "type": 2
-          },
-          "operations": {
-            "place_bet": "placeCoinFlipBet",
-            "limits": "getCoinFlipBetLimits",
-            "bet": "getCoinFlipBet"
-          },
-          "networks": {
-            "neo-n3-mainnet": {
-              "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
-              "registered": true,
-              "domain": "fogplay.miniapp.neo"
-            },
-            "neo-n3-testnet": {
-              "contract_hash": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
-              "registered": true
-            }
-          }
-        }
-      ]
-    },
     "contracts": {
       "neo-n3-mainnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
       "neo-n3-testnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda"
     },
     "contract_domains": {
       "neo-n3-mainnet": "fogplay.miniapp.neo"
+    },
+    "platform": {
+      "analytics": true,
+      "comments": true,
+      "ratings": true,
+      "transactions": false
+    },
+    "permissions": [
+      "read:blockchain"
+    ],
+    "operation_panel": {
+      "operations": []
     }
   }
 }

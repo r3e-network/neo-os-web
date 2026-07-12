@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChainService } from "../services/ChainService";
 import { createMiniAppFramework } from "../react";
+import { addressToScriptHash } from "../utils/neo";
 import { useSelfLoan } from "../../self-loan/src/composables/useSelfLoan";
 
 // A funded testnet account; addressToScriptHash resolves it without external deps.
@@ -35,6 +36,7 @@ function t(key: string, params?: Record<string, string | number>) {
     notAvailable: "N/A",
     healthFactor: "Health Factor",
     collateralRatio: "Collateral Ratio",
+    coverageRatio: "Coverage Ratio",
     yes: "Yes",
     no: "No",
     tokenNeo: "NEO",
@@ -55,6 +57,7 @@ interface ChainState {
   neoPrice?: bigint; // GAS base units per 1 NEO (0 / undefined = unset)
   pool?: bigint; // GAS base units available to disburse (undefined = use DEFAULT_POOL)
   neoBalance?: bigint; // WHOLE NEO (integer)
+  gasBalance?: bigint; // GAS base units
   loan?: {
     collateral: bigint; // WHOLE NEO
     borrowed: bigint; // GAS base units
@@ -74,7 +77,14 @@ interface ContractArg {
 }
 
 function makeChain(state: ChainState = {}) {
-  const read = vi.fn(async (op: string, _args?: ContractArg[], _opts?: unknown) => {
+  let liveCollateralCredit = state.collateralCredit ?? 0n;
+  let liveRepayCredit = state.repayCredit ?? 0n;
+  let liveNeoBalance = state.neoBalance ?? 0n;
+  let liveGasBalance = state.gasBalance ?? 1_000n * GAS;
+  let liveLoan = state.loan
+    ? { ...state.loan }
+    : { collateral: 0n, borrowed: 0n, ltvBps: 0n, active: false };
+  const read = vi.fn(async (op: string, _args?: ContractArg[], _opts?: { scriptHash?: string }) => {
     switch (op) {
       case "ltvTierBps": {
         const tier = Number((_args?.[0]?.value ?? "1"));
@@ -87,16 +97,17 @@ function makeChain(state: ChainState = {}) {
       case "pool":
         return state.pool ?? DEFAULT_POOL;
       case "balanceOf":
-        return state.neoBalance ?? 0n;
+        return _opts?.scriptHash === "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+          ? liveGasBalance
+          : liveNeoBalance;
       case "getLoan": {
-        const l = state.loan;
-        if (!l) return { collateral: 0n, borrowed: 0n, ltvBps: 0n, active: false };
+        const l = liveLoan;
         return { collateral: l.collateral, borrowed: l.borrowed, ltvBps: l.ltvBps, active: l.active };
       }
       case "collateralCreditOf":
-        return state.collateralCredit ?? 0n;
+        return liveCollateralCredit;
       case "repayCreditOf":
-        return state.repayCredit ?? 0n;
+        return liveRepayCredit;
       case "totalLoans":
         return state.totalLoans ?? 0n;
       case "totalBorrowed":
@@ -108,27 +119,139 @@ function makeChain(state: ChainState = {}) {
     }
   });
 
-  const invoke = vi.fn(async (_op: string, _args: ContractArg[], _opts?: unknown) => ({
-    txid: "0xtx",
-    success: true,
-  }));
+  let transactionSequence = 0;
+  let lastBatchEvent: unknown = null;
+  const invoke = vi.fn(async (
+    op: string,
+    args: ContractArg[],
+    rawOptions?: {
+      scriptHash?: string;
+      waitForEvent?: string;
+      onTransactionSent?: (txid: string) => void;
+    },
+  ) => {
+    transactionSequence += 1;
+    const txid = `0x${transactionSequence.toString(16).padStart(64, "0")}`;
+    rawOptions?.onTransactionSent?.(txid);
+    let eventState: Array<{ value: unknown }> = [];
+    if (op === "transfer") {
+      const amount = BigInt(String(args[2]?.value ?? "0"));
+      if (rawOptions?.scriptHash === "0xd2a4cff31913016155e38e474a2c06d08be276cf") {
+        liveGasBalance -= amount;
+        liveRepayCredit += amount;
+        eventState = [
+          { value: addressToScriptHash(OWNER) },
+          { value: amount.toString() },
+          { value: liveRepayCredit.toString() },
+        ];
+      } else {
+        liveNeoBalance -= amount;
+        liveCollateralCredit += amount;
+        eventState = [
+          { value: addressToScriptHash(OWNER) },
+          { value: amount.toString() },
+          { value: liveCollateralCredit.toString() },
+        ];
+      }
+    } else if (op === "borrow") {
+      const tier = Number(args[1]?.value ?? 1);
+      const ltvBps = BigInt(tier === 1 ? 2000 : tier === 2 ? 3000 : 4000);
+      const gross = liveCollateralCredit * (state.neoPrice ?? 0n) * ltvBps / 10_000n;
+      const disbursed = gross - gross * 50n / 10_000n;
+      liveLoan = { collateral: liveCollateralCredit, borrowed: gross, ltvBps, active: true };
+      liveCollateralCredit = 0n;
+      eventState = [
+        { value: addressToScriptHash(OWNER) },
+        { value: liveLoan.collateral.toString() },
+        { value: gross.toString() },
+        { value: disbursed.toString() },
+      ];
+    } else if (op === "addCollateral") {
+      const added = liveCollateralCredit;
+      liveLoan = { ...liveLoan, collateral: liveLoan.collateral + added };
+      liveCollateralCredit = 0n;
+      eventState = [
+        { value: addressToScriptHash(OWNER) },
+        { value: added.toString() },
+        { value: liveLoan.collateral.toString() },
+      ];
+    } else if (op === "repay") {
+      const applied = liveRepayCredit > liveLoan.borrowed ? liveLoan.borrowed : liveRepayCredit;
+      const remaining = liveLoan.borrowed - applied;
+      liveRepayCredit = 0n;
+      liveLoan = remaining === 0n
+        ? { collateral: 0n, borrowed: 0n, ltvBps: 0n, active: false }
+        : { ...liveLoan, borrowed: remaining };
+      eventState = [
+        { value: addressToScriptHash(OWNER) },
+        { value: applied.toString() },
+        { value: remaining.toString() },
+      ];
+    } else if (op === "withdraw") {
+      const amount = liveCollateralCredit;
+      liveCollateralCredit = 0n;
+      eventState = [{ value: addressToScriptHash(OWNER) }, { value: amount.toString() }];
+    } else if (op === "withdrawRepayCredit") {
+      const amount = liveRepayCredit;
+      liveRepayCredit = 0n;
+      eventState = [{ value: addressToScriptHash(OWNER) }, { value: amount.toString() }];
+    }
+    return {
+      txid,
+      success: true,
+      verified: true,
+      event: {
+        event_name: rawOptions?.waitForEvent,
+        tx_hash: txid,
+        state: eventState,
+      },
+    };
+  });
+
+  const invokeMultiple = vi.fn(async (
+    calls: Array<{ scriptHash?: string; operation: string; args: ContractArg[] }>,
+    options?: { onTransactionSent?: (txid: string) => void },
+  ) => {
+    const txid = `0x${"f".repeat(64)}`;
+    options?.onTransactionSent?.(txid);
+    let finalEvent: unknown = null;
+    for (const call of calls) {
+      const result = await invoke(call.operation, call.args, {
+        scriptHash: call.scriptHash,
+        waitForEvent: call.operation === "repay" ? "Repaid" : undefined,
+      });
+      if (call.operation === "repay" && result.event && typeof result.event === "object") {
+        finalEvent = { ...(result.event as Record<string, unknown>), tx_hash: txid };
+      }
+    }
+    lastBatchEvent = finalEvent;
+    return { txid, success: true, verified: true };
+  });
+  const waitForEvent = vi.fn(async (txid: string, eventName: string) => {
+    const row = lastBatchEvent as Record<string, unknown> | null;
+    return row?.tx_hash === txid && row?.event_name === eventName ? row : null;
+  });
 
   const chain = {
     read,
     invoke,
+    invokeMultiple,
+    waitForEvent,
     ensureWallet: vi.fn(async () => OWNER),
     contractAddress: { get: () => CONTRACT, set: () => {}, subscribe: () => () => {} },
     address: { get: () => OWNER, set: () => {}, subscribe: () => () => {} },
   } as unknown as ChainService;
 
-  return { chain, read, invoke };
+  return { chain, read, invoke, invokeMultiple, waitForEvent };
 }
 
 /** Wrap a mock chain in the MiniApp framework SDK the composable now consumes. */
+let appSequence = 0;
 function makeApp(chain: ChainService) {
+  appSequence += 1;
   return createMiniAppFramework(
     { services: { chain }, t } as never,
-    { appId: "miniapp-self-loan" },
+    { appId: `miniapp-self-loan-test-${appSequence}` },
   );
 }
 
@@ -264,8 +387,9 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     await app.loadAll();
 
     // First invoke (transfer) succeeds, second (borrow) reverts.
+    const invokeDefault = invoke.getMockImplementation()!;
     invoke
-      .mockResolvedValueOnce({ txid: "0xdep", success: true })
+      .mockImplementationOnce(invokeDefault)
       .mockRejectedValueOnce(new Error("insufficient pool liquidity"));
 
     app.collateralAmount.set("10");
@@ -351,6 +475,52 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     await expect(app.takeLoan()).rejects.toThrow(/Pool can't cover this borrow/);
     expect(invoke).not.toHaveBeenCalled();
   });
+
+  it("fails closed before any transfer when a critical market read fails", async () => {
+    const { chain, read, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const originalRead = read.getMockImplementation()!;
+    read.mockImplementation(async (op: string, args?: ContractArg[], options?: unknown) => {
+      if (op === "pool") throw new Error("RPC unavailable");
+      return originalRead(op, args, options);
+    });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    app.collateralAmount.set("10");
+
+    await expect(app.takeLoan()).rejects.toThrow("criticalDataUnavailable");
+    expect(invoke).not.toHaveBeenCalled();
+    expect(app.marketStatus.get()).toBe("error");
+  });
+
+  it("does not send borrow when the collateral deposit is broadcast but unconfirmed", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    invoke.mockImplementation(async (op: string) => op === "transfer"
+      ? { txid: "0xdeposit", success: true, verified: false }
+      : { txid: "0xborrow", success: true, verified: true });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    app.collateralAmount.set("10");
+
+    await expect(app.takeLoan()).resolves.toBe("pending");
+    expect(invokeCalls(invoke).some((call) => call.op === "borrow")).toBe(false);
+    expect(app.pendingConfirmation.get()).toBe("collateralDepositPending");
+  });
+
+  it("rejects a stale reviewed quote before moving collateral", async () => {
+    const { chain, invoke } = makeChain({ neoPrice: 5n * GAS, neoBalance: 100n });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+
+    await expect(app.borrow({
+      collateralAmount: "10",
+      ltvTier: 1,
+      expectedPriceBase: String(4n * GAS),
+      expectedFeeBps: 50,
+      expectedLtvBps: 2000,
+      expectedDisbursedBase: String(995n * GAS / 100n),
+    })).rejects.toThrow("quoteChanged");
+    expect(invoke).not.toHaveBeenCalled();
+  });
 });
 
 describe("useSelfLoan repay flow (self-loan-2)", () => {
@@ -416,17 +586,49 @@ describe("useSelfLoan repay flow (self-loan-2)", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("surfaces a held-credit error when the GAS deposit lands but repay reverts", async () => {
-    const { chain, invoke } = makeChain(activeLoan);
+  it("keeps repayment atomic when the transfer-and-repay batch is rejected", async () => {
+    const { chain, invoke, invokeMultiple } = makeChain(activeLoan);
     const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
-    invoke
-      .mockResolvedValueOnce({ txid: "0xdep", success: true })
-      .mockRejectedValueOnce(new Error("no repay credit"));
+    invokeMultiple.mockRejectedValueOnce(new Error("batch rejected"));
 
-    await expect(app.repay("5")).rejects.toThrow(t("repayCreditHeld"));
+    await expect(app.repay("5")).rejects.toThrow("batch rejected");
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("tops up only the repay-credit shortfall", async () => {
+    const { chain, invoke } = makeChain({
+      ...activeLoan,
+      repayCredit: 2n * GAS,
+      gasBalance: 100n * GAS,
+    });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await app.repay("5");
+
+    const transfer = invokeCalls(invoke).find((call) => call.op === "transfer");
+    expect(transfer?.args[2]).toMatchObject({ type: "Integer", value: String(3n * GAS) });
+    expect(invokeCalls(invoke).some((call) => call.op === "repay")).toBe(true);
+  });
+
+  it("journals an atomic repayment until its exact Repaid event is available", async () => {
+    const { chain, invokeMultiple } = makeChain({ ...activeLoan, gasBalance: 100n * GAS });
+    invokeMultiple.mockImplementationOnce(async (_calls, options) => {
+      const txid = `0x${"d".repeat(64)}`;
+      options?.onTransactionSent?.(txid);
+      return { txid, success: true, verified: true };
+    });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    await expect(app.repay("5")).resolves.toBe("pending");
+    expect(invokeMultiple).toHaveBeenCalledOnce();
+    expect(app.pendingConfirmation.get()).toBe("repayPendingConfirmation");
   });
 });
 
@@ -531,7 +733,9 @@ describe("useSelfLoan reclaim affordances (self-loan-reclaim)", () => {
     expect(app.repayCredit.get()).toBe(3);
 
     await app.reclaimRepayCredit();
-    expect(invokeCalls(invoke).some((c) => c.op === "withdrawRepayCredit")).toBe(true);
+    const reclaim = invokeCalls(invoke).find((c) => c.op === "withdrawRepayCredit");
+    expect(reclaim).toBeTruthy();
+    expect(reclaim?.opts).toMatchObject({ waitForEvent: "RepayCreditWithdrawn" });
   });
 
   it("rejects reclaim when there is no credit", async () => {
@@ -545,7 +749,7 @@ describe("useSelfLoan reclaim affordances (self-loan-reclaim)", () => {
   });
 });
 
-describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
+describe("useSelfLoan coverage/LTV value normalization (self-loan-3)", () => {
   beforeEach(() => vi.clearAllMocks());
 
   // collateral 100 NEO, debt 20 GAS.
@@ -553,7 +757,7 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
     loan: { collateral: 100n, borrowed: 20n * GAS, ltvBps: 2000n, active: true },
   } as const;
 
-  it("falls back to a same-unit collateral ratio when no price is configured", async () => {
+  it("does not invent a same-unit ratio when no cross-asset price is configured", async () => {
     const { chain } = makeChain(loanOpts);
     const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
@@ -563,12 +767,12 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
     expect(app.neoPrice.get()).toBe(0);
     expect(app.isPriceNormalized.get()).toBe(false);
 
-    // Same-unit fallback: each NEO counts as 1 unit of collateral value, so
-    // collateralValue = 100, healthFactor = 100 / 20 = 5, LTV = 20%.
-    expect(app.collateralValueGas.get()).toBe(100);
-    expect(app.healthFactor.get()).toBe(5);
-    expect(app.currentLTV.get()).toBe(20);
-    expect(app.healthMetricLabel.get()).toBe(t("collateralRatio"));
+    // NEO and GAS cannot be compared without the configured price. The app
+    // renders the coverage metric as unavailable instead of assuming 1:1.
+    expect(app.collateralValueGas.get()).toBe(0);
+    expect(app.healthFactor.get()).toBe(0);
+    expect(app.currentLTV.get()).toBe(0);
+    expect(app.healthMetricLabel.get()).toBe(t("coverageRatio"));
   });
 
   it("value-normalizes collateral to GAS via neoPrice when configured", async () => {
@@ -585,17 +789,17 @@ describe("useSelfLoan health/LTV value normalization (self-loan-3)", () => {
     expect(app.collateralValueGas.get()).toBe(50);
     expect(app.healthFactor.get()).toBe(2.5);
     expect(app.currentLTV.get()).toBe(40);
-    expect(app.healthMetricLabel.get()).toBe(t("healthFactor"));
+    expect(app.healthMetricLabel.get()).toBe(t("coverageRatio"));
   });
 
-  it("reports a neutral health factor when there is no debt", async () => {
+  it("reports unavailable coverage when there is no debt", async () => {
     const { chain } = makeChain({ neoBalance: 100n, loan: null });
     const app = useSelfLoan({ app: makeApp(chain), t });
     app.setAddress(OWNER);
     await app.loadAll();
 
     expect(app.loan.get().borrowed).toBe(0);
-    expect(app.healthFactor.get()).toBe(999);
+    expect(app.healthFactor.get()).toBe(0);
     expect(app.currentLTV.get()).toBe(0);
   });
 });

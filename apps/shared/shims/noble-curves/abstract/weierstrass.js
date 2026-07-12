@@ -1059,4 +1059,3 @@ export function mapToCurveSimpleSWU(Fp, opts) {
         return { x, y };
     };
 }
-//# sourceMappingURL=weierstrass.js.map

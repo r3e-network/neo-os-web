@@ -9,6 +9,7 @@ export const ENTRY_MEMO = "miniapp-flappy-dash:entry";
 export const FUND_MEMO = "miniapp-flappy-dash:fund";
 
 export const BEACON_BLOCKS = 1;
+export const SETTLE_GRACE_MS = 600_000;
 
 export interface DifficultyRule {
   difficulty: number;
@@ -77,7 +78,13 @@ export function formatClock(ms: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-export type GameStatus = "committed" | "dealt" | "solved" | "expired" | "refunded";
+export type GameStatus =
+  | "committed"
+  | "dealt"
+  | "solved"
+  | "expired"
+  | "refunded"
+  | "unknown";
 
 export function statusOf(raw: number): GameStatus {
   switch (raw) {
@@ -89,7 +96,11 @@ export function statusOf(raw: number): GameStatus {
       return "expired";
     case 4:
       return "refunded";
+    case 5:
+      // Contract status 5 means the finalize request was broadcast and the
+      // oracle callback is still pending. Never reopen or duplicate that run.
+      return "unknown";
     default:
-      return "committed";
+      return raw === 0 ? "committed" : "unknown";
   }
 }

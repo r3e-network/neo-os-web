@@ -1,10 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable } from "../react/context";
 import { createGameSessionObservables } from "@framework/game";
-import { createGuestEngine } from "../../merge-kingdom/src/logic/guest-engine";
-import type { GuestEngineDeps } from "../../merge-kingdom/src/logic/guest-engine";
-import { ruleOf } from "../../merge-kingdom/src/logic/game-rules";
+import { createGuestEngine, secureRandomInt } from "../../merge-kingdom/src/logic/guest-engine";
+import type {
+  GuestEngineDeps,
+  LocalStore,
+  MergeGuestHistoryRow,
+} from "../../merge-kingdom/src/logic/guest-engine";
+import { guestRuleOf } from "../../merge-kingdom/src/logic/game-rules";
 
 /**
  * Guest engine tests for Merge Kingdom.
@@ -24,8 +28,24 @@ function countTiles(board: number[][]): number {
   return board.reduce((sum, row) => sum + row.filter((v) => v > 0).length, 0);
 }
 
-function setup() {
-  const obs = createGameSessionObservables();
+class MemoryStore implements LocalStore {
+  readonly values = new Map<string, unknown>();
+
+  get<T>(key: string, fallback?: T | null): T | null {
+    return (this.values.has(key) ? this.values.get(key) : fallback ?? null) as T | null;
+  }
+
+  set(key: string, value: unknown): void {
+    this.values.set(key, structuredClone(value));
+  }
+
+  delete(key: string): void {
+    this.values.delete(key);
+  }
+}
+
+function setup(storage: LocalStore = new MemoryStore()) {
+  const obs = createGameSessionObservables<MergeGuestHistoryRow>();
   const board = makeObs<number[][]>([]);
   const tileAchieved = makeObs<number>(0);
   const moveCount = makeObs<number>(0);
@@ -47,12 +67,31 @@ function setup() {
     moveCount,
     lastPayoutFixed8,
     guestLeaderboard,
+    storage,
     t,
     setStatus,
+    // Stable board placement with 2-valued spawns for deterministic assertions.
+    randomInt: (maxExclusive) => maxExclusive === 8 ? 1 : 0,
   };
   const engine = createGuestEngine(deps);
-  return { engine, obs, board, tileAchieved, moveCount, lastPayoutFixed8, submit, get, boardRows, setStatus };
+  return {
+    engine,
+    obs,
+    board,
+    tileAchieved,
+    moveCount,
+    lastPayoutFixed8,
+    submit,
+    get,
+    boardRows,
+    setStatus,
+    storage,
+  };
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("merge-kingdom guest engine", () => {
   it("deals a fully local board on startGame with no leaderboard writes", () => {
@@ -65,8 +104,8 @@ describe("merge-kingdom guest engine", () => {
     const b = h.board.get();
     expect(b).toHaveLength(4);
     expect(b.every((row) => row.length === 4)).toBe(true);
-    expect(countTiles(b)).toBe(3); // three seeded starting tiles
-    expect(h.obs.deadline.get() - h.obs.dealtAt.get()).toBe(ruleOf(0).limitMs);
+    expect(countTiles(b)).toBe(4); // four seeded starting buildings
+    expect(h.obs.deadline.get() - h.obs.dealtAt.get()).toBe(guestRuleOf(0).limitMs);
     // Dealing a board never touches the off-chain board.
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.get).not.toHaveBeenCalled();
@@ -77,7 +116,7 @@ describe("merge-kingdom guest engine", () => {
     h.engine.startGame(0);
     // Override with a controlled board (board is an injected observable).
     h.board.set([
-      [2, 2, 0, 0],
+      [2, 2, 4, 4],
       [0, 0, 0, 0],
       [0, 0, 0, 0],
       [0, 0, 0, 0],
@@ -89,7 +128,7 @@ describe("merge-kingdom guest engine", () => {
     expect(after[0]?.[1]).toBe(4); // merged tile
     expect(h.tileAchieved.get()).toBe(4);
     expect(h.moveCount.get()).toBe(1);
-    expect(countTiles(after)).toBe(2); // merged pair (1) + one spawn (1)
+    expect(countTiles(after)).toBe(4); // merge removes one tile, then one fresh tile spawns
     // A normal move never hits the off-chain board (guard-never-fires analog).
     expect(h.submit).not.toHaveBeenCalled();
   });
@@ -98,7 +137,7 @@ describe("merge-kingdom guest engine", () => {
     const h = setup();
     h.engine.startGame(1);
     h.board.set([
-      [8, 0, 0, 0],
+      [8, 0, 8, 0],
       [0, 0, 0, 0],
       [0, 0, 0, 0],
       [0, 0, 0, 0],
@@ -110,6 +149,22 @@ describe("merge-kingdom guest engine", () => {
     expect(after[0]?.[1]).toBe(8); // relocated tile
     expect(h.moveCount.get()).toBe(1);
     expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it("ends and records a run when a valid move leaves no future merge", () => {
+    const h = setup();
+    h.engine.startGame(1);
+    h.board.set([
+      [8, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ]);
+
+    h.engine.recordMove(0, 0, 0, 1);
+
+    expect(h.obs.gameStatus.get()).toBe("expired");
+    expect(h.submit).toHaveBeenCalledWith(8);
   });
 
   it("ignores illegal moves (non-adjacent, empty source, mismatched merge)", () => {
@@ -132,8 +187,8 @@ describe("merge-kingdom guest engine", () => {
 
   it("submitSolution requires the target tile before it settles", async () => {
     const h = setup();
-    h.engine.startGame(0); // target 64
-    h.tileAchieved.set(32); // below target
+    h.engine.startGame(0); // target 32
+    h.tileAchieved.set(16); // below target
 
     await h.engine.submitSolution();
 
@@ -143,8 +198,8 @@ describe("merge-kingdom guest engine", () => {
 
   it("submitSolution settles a win, submits the best tile off-chain, and refreshes", async () => {
     const h = setup();
-    h.engine.startGame(0); // target 64
-    h.tileAchieved.set(64); // target reached
+    h.engine.startGame(0); // target 32
+    h.tileAchieved.set(32); // target reached
 
     await h.engine.submitSolution();
 
@@ -152,9 +207,9 @@ describe("merge-kingdom guest engine", () => {
     expect(h.obs.activeGameId.get()).toBe("0");
     expect(h.lastPayoutFixed8.get()).toBe(0n); // no GAS payout in guest
     expect(h.submit).toHaveBeenCalledTimes(1);
-    expect(h.submit).toHaveBeenCalledWith(64); // highest tile value
+    expect(h.submit).toHaveBeenCalledWith(32); // highest tile value
     expect(h.get).toHaveBeenCalled(); // guest board refreshed after settle
-    expect(h.obs.myTotalWon.get()).toBe(64); // best tile, not GAS
+    expect(h.obs.myTotalWon.get()).toBe(32); // best tile, not GAS
   });
 
   it("expireGame settles a dealt run as a game over and records the best tile", async () => {
@@ -167,6 +222,25 @@ describe("merge-kingdom guest engine", () => {
     expect(h.obs.gameStatus.get()).toBe("expired");
     expect(h.obs.activeGameId.get()).toBe("0");
     expect(h.submit).toHaveBeenCalledWith(16);
+  });
+
+  it("ignores moves after the deadline and supports a clean restart after failure", async () => {
+    const h = setup();
+    h.engine.startGame(0);
+    const before = h.board.get().map((row) => [...row]);
+    h.obs.deadline.set(Date.now() - 1);
+
+    h.engine.recordMove(0, 0, 0, 1);
+    expect(h.board.get()).toEqual(before);
+    expect(h.moveCount.get()).toBe(0);
+
+    await h.engine.expireGame();
+    expect(h.obs.gameStatus.get()).toBe("expired");
+    h.engine.startGame(1);
+    expect(h.obs.gameStatus.get()).toBe("dealt");
+    expect(h.obs.gameDifficulty.get()).toBe(1);
+    expect(countTiles(h.board.get())).toBe(4);
+    expect(h.moveCount.get()).toBe(0);
   });
 
   it("enter() zeroes on-chain counters and loads the off-chain board", async () => {
@@ -199,5 +273,64 @@ describe("merge-kingdom guest engine", () => {
     expect(ranked[0]?.totalWon).toBe(512);
     expect(ranked[0]?.rank).toBe(1);
     expect(ranked[1]?.rank).toBe(2);
+  });
+
+  it("persists and restores the exact unfinished local kingdom", async () => {
+    const storage = new MemoryStore();
+    const first = setup(storage);
+    first.engine.startGame(1);
+    first.board.set([
+      [8, 0, 8, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ]);
+    first.tileAchieved.set(8);
+    first.engine.recordMove(0, 0, 0, 1);
+    const savedBoard = first.board.get().map((row) => [...row]);
+    const savedDeadline = first.obs.deadline.get();
+
+    const restored = setup(storage);
+    await restored.engine.enter();
+
+    expect(restored.obs.gameStatus.get()).toBe("dealt");
+    expect(restored.obs.activeGameId.get()).toBe("guest");
+    expect(restored.obs.gameDifficulty.get()).toBe(1);
+    expect(restored.obs.deadline.get()).toBe(savedDeadline);
+    expect(restored.board.get()).toEqual(savedBoard);
+    expect(restored.moveCount.get()).toBe(1);
+    expect(restored.obs.lastStatus.get()).toBe("guestRunRecovered");
+  });
+
+  it("persists the best building, clear count, and local history after refresh", async () => {
+    const storage = new MemoryStore();
+    const first = setup(storage);
+    first.engine.startGame(0);
+    first.board.set([
+      [32, 2, 2, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ]);
+    first.tileAchieved.set(32);
+    await first.engine.submitSolution();
+
+    const restored = setup(storage);
+    await restored.engine.enter();
+
+    expect(restored.obs.gameStatus.get()).toBe("idle");
+    expect(restored.obs.myTotalWon.get()).toBe(32);
+    expect(restored.obs.mySolves.get()).toBe(1);
+    expect(restored.obs.myHistory.get()).toHaveLength(1);
+    expect(restored.obs.myHistory.get()[0]).toMatchObject({
+      difficulty: 0,
+      tileAchieved: 32,
+      won: true,
+    });
+  });
+
+  it("fails closed when secure local randomness is unavailable", () => {
+    vi.stubGlobal("crypto", undefined);
+    expect(() => secureRandomInt(16)).toThrow("secureRandomUnavailable");
   });
 });

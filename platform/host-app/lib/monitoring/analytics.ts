@@ -6,13 +6,36 @@
  * preserved so existing call-sites continue to work unchanged.
  */
 
-import {
-  initPostHog,
-  trackEvent as phTrackEvent,
-  trackPageView as phTrackPageView,
-  identifyUser,
-  resetUser,
-} from "./posthog";
+type PostHogModule = typeof import("./posthog");
+
+let postHogModulePromise: Promise<PostHogModule> | null = null;
+
+function loadPostHog(): Promise<PostHogModule> | null {
+  if (
+    typeof window === "undefined" ||
+    !process.env.NEXT_PUBLIC_POSTHOG_KEY
+  ) {
+    return null;
+  }
+  postHogModulePromise ??= import("./posthog");
+  return postHogModulePromise;
+}
+
+function withPostHog(run: (module: PostHogModule) => void): void {
+  const modulePromise = loadPostHog();
+  if (!modulePromise) return;
+  void modulePromise
+    .then((module) => {
+      module.initPostHog();
+      run(module);
+    })
+    .catch((error: unknown) => {
+      console.warn(
+        "[analytics] PostHog failed to load:",
+        error instanceof Error ? error.message : String(error),
+      );
+    });
+}
 
 // ---------- types (kept for external consumers) ----------
 
@@ -51,14 +74,14 @@ export interface UserSession {
 // ---------- initialization ----------
 
 export function initAnalytics(): void {
-  initPostHog();
+  withPostHog(() => {});
 }
 
 // ---------- core tracking ----------
 
 export function trackPageView(path?: string): void {
   const p = path || (typeof window !== "undefined" ? window.location.pathname : "/");
-  phTrackPageView(p);
+  withPostHog((module) => module.trackPageView(p));
 }
 
 export function trackEvent(
@@ -71,13 +94,15 @@ export function trackEvent(
     metadata?: Record<string, unknown>;
   } = {},
 ): string {
-  phTrackEvent(name, {
-    type: options.type,
-    category: options.category,
-    label: options.label,
-    value: options.value,
-    ...options.metadata,
-  });
+  withPostHog((module) =>
+    module.trackEvent(name, {
+      type: options.type,
+      category: options.category,
+      label: options.label,
+      value: options.value,
+      ...options.metadata,
+    }),
+  );
   return ""; // callers that capture the id can safely ignore it
 }
 
@@ -121,10 +146,12 @@ export function trackMiniAppOpen(
 // ---------- user identity ----------
 
 export function setUserId(userId: string): void {
-  identifyUser(userId);
+  withPostHog((module) => module.identifyUser(userId));
 }
 
-export { resetUser };
+export function resetUser(): void {
+  withPostHog((module) => module.resetUser());
+}
 
 // ---------- session helpers (no-ops; PostHog manages sessions) ----------
 

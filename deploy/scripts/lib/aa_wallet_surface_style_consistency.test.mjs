@@ -30,7 +30,7 @@ const WALLET_SURFACES = [
     component: "apps/aa-permissions-lab/src/PlayArea.tsx",
     file: "apps/aa-permissions-lab/src/PlayArea.scss",
     root: "perms-play-area",
-    scene: "perms-scene",
+    scene: "perms-workspace",
     drawer: "perms-drawer",
     mobileMaxWidth: 720,
   },
@@ -111,7 +111,7 @@ test("AA and recovery wallet surfaces stay compact inside embedded miniapp conso
     const component = read(surface.component);
     const styles = read(surface.file);
 
-    assert.match(component, /from "@shared\/components-react\/v2"/);
+    assert.match(component, /from "@shared\/components-react\/v2(?:\/[^"]+)?"/);
     assert.match(component, /<PlayStage/);
     assert.match(component, new RegExp(`className="[^"]*${surface.root}[^"]*mx2`));
     assert.match(component, new RegExp(surface.scene));

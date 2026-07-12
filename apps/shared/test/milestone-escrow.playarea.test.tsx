@@ -70,12 +70,57 @@ function t(key: string, params?: Record<string, string | number>) {
     forYou: "For you",
     emptyEscrows: "No escrows.",
     approve: "Approve",
+    acceptAndUnlock: "Accept & unlock",
     approving: "Approving...",
     claim: "Claim",
+    claimFunds: "Claim funds",
     claiming: "Claiming...",
     cancel: "Cancel",
     cancelling: "Cancelling...",
     confirmCancelRefund: "Cancel and refund {amount}?",
+    reviewRefund: "Review refund",
+    refundReviewTitle: "Final cancellation refund",
+    refundReviewCopy: "Only remaining funds return.",
+    keepEscrow: "Keep escrow",
+    confirmRefund: "Cancel & refund",
+    settledOnChain: "Settled on-chain",
+    readyToClaim: "Ready to claim",
+    awaitingAcceptance: "Awaiting acceptance",
+    releaseProgress: "{progress}% settled",
+    evidenceOffchainShort: "Evidence stays off-chain.",
+    cancelBlockedByApproved: "Approved milestone must be claimed.",
+    onChainSnapshot: "Verified contract snapshot",
+    refreshing: "Refreshing...",
+    loadingEscrows: "Reading escrow ledger",
+    chainDataUnavailableTitle: "Ledger locked",
+    chainSnapshotUnavailable: "Snapshot unavailable",
+    deploymentChecking: "Checking deployment",
+    deploymentReady: "Contract verified",
+    deploymentLegacy: "Legacy recovery deployment",
+    manageExistingDeskTitle: "Manage existing milestone escrows",
+    legacyIntroLede: "Manage existing escrows.",
+    connectToManageExisting: "Connect to manage existing escrows.",
+    deploymentUnavailableTitle: "Escrow writes locked",
+    deploymentUnavailable: "Deployment unavailable",
+    recoveryPocketTitle: "Recovery pocket",
+    recoveryPocketCopy: "Unresolved funds stay visible.",
+    checkChainState: "Check chain state",
+    pendingWriteTitle: "Transaction pending",
+    pendingWriteCopy: "{operation} was broadcast.",
+    pendingOperation_create: "Escrow creation",
+    unconsumedCredit: "Unconsumed credit",
+    recoverCredit: "Recover to wallet",
+    recoveringCredit: "Recovering...",
+    acceptanceBrief: "Acceptance brief",
+    noAcceptanceBrief: "No acceptance brief.",
+    evidenceHandoffBoundary: "Evidence stays off-chain.",
+    reclaimAfterGrace: "Recover expired tranche",
+    reclaimingMilestone: "Reclaiming...",
+    graceRecoveryDate: "Recovery opens {date}",
+    reclaimMilestone: "Reclaim M{n} — {amount}",
+    graceRecoveryUnavailable: "Recovery requires a contract update.",
+    emptyCreatorEscrows: "No creator escrows.",
+    emptyBeneficiaryEscrows: "No beneficiary escrows.",
     howItWorks: "How it works",
     step1: "Define milestones.",
     step2: "Deposit + create.",
@@ -97,7 +142,21 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     address: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs",
     contractReady: true,
     isRefreshing: false,
+    isLoading: false,
     isCreating: false,
+    dataError: "",
+    deploymentStatus: "ready",
+    deploymentMessage: "Contract verified",
+    deploymentReady: true,
+    fundingWritesEnabled: true,
+    recoveryCapable: true,
+    recoveryCreditError: "",
+    gasRecoveryCredit: 0n,
+    neoRecoveryCredit: 0n,
+    isRecoveringCredit: "",
+    reclaimingId: null,
+    pendingTxid: "",
+    pendingOperation: "",
     approvingId: null,
     claimingId: null,
     cancellingId: null,
@@ -189,7 +248,7 @@ describe("Milestone Escrow PlayArea (v2 scene-driven)", () => {
     expect((container.querySelector(".escrow-gate__input") as HTMLInputElement).disabled).toBe(true);
   });
 
-  it("shows created escrows with approve/cancel in the drawer", () => {
+  it("shows created escrows with explicit milestone approval in the drawer", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
       <PlayArea
@@ -201,8 +260,10 @@ describe("Milestone Escrow PlayArea (v2 scene-driven)", () => {
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
     expect(container.textContent).toContain("Project X");
-    const approveBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Approve");
+    const approveBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Accept & unlock");
     expect(approveBtn).toBeTruthy();
+    fireEvent.click(approveBtn as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("approveMilestone", expect.objectContaining({ id: "e1" }), 1));
   });
 
   it("uses designed Open UI panels and deal cards in the drawer", () => {
@@ -238,23 +299,23 @@ describe("Milestone Escrow PlayArea (v2 scene-driven)", () => {
     expect(container.querySelector("section.escrow-drawer__panel")).toBeNull();
   });
 
-  it("confirms cancel with the refund amount", async () => {
+  it("reviews the exact remaining refund before cancellation", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const { container } = render(
       <PlayArea
         t={t}
-        state={state({ creatorEscrows: [{ id: "e1", status: "active", title: "Project X", assetSymbol: "GAS", totalAmount: 200000000n, milestoneApproved: [false], milestoneClaimed: [false] }] })}
+      state={state({ creatorEscrows: [{ id: "e1", status: "active", title: "Project X", assetSymbol: "GAS", totalAmount: 200000000n, releasedAmount: 100000000n, milestoneAmounts: [100000000n, 100000000n], milestoneApproved: [true, false], milestoneClaimed: [true, false] }] })}
         dispatch={dispatch}
       />,
     );
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
-    const cancelBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Cancel") as HTMLButtonElement;
-    fireEvent.click(cancelBtn);
-    expect(confirmSpy).toHaveBeenCalledWith("Cancel and refund 2 GAS?");
+    const reviewBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Review refund") as HTMLButtonElement;
+    fireEvent.click(reviewBtn);
+    expect(container.querySelector(".escrow-cancel-review")?.textContent).toContain("1 GAS");
+    const confirmBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Cancel & refund") as HTMLButtonElement;
+    fireEvent.click(confirmBtn);
     await waitFor(() => expect(dispatch).toHaveBeenCalledWith("cancelEscrow", expect.objectContaining({ id: "e1" })));
-    confirmSpy.mockRestore();
   });
 
   it("shows beneficiary escrows with claim in the drawer", () => {
@@ -269,8 +330,113 @@ describe("Milestone Escrow PlayArea (v2 scene-driven)", () => {
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("For you")) as Element);
     expect(container.textContent).toContain("For me");
-    const claimBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Claim");
+    const claimBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent === "Claim funds");
     expect(claimBtn).toBeTruthy();
+    fireEvent.click(claimBtn as Element);
+    expect(dispatch).toHaveBeenCalledWith("claimMilestone", expect.objectContaining({ id: "e2" }), 0);
+  });
+
+  it("shows checksum validation before a wallet signature can be requested", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const input = container.querySelector(".escrow-recipient-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "not-a-neo-address" } });
+    fireEvent.change(container.querySelector(".escrow-gate__input") as Element, { target: { value: "0.1" } });
+
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(container.querySelector("#escrow-recipient-hint")?.textContent).toBe("invalidAddress");
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("locks financial actions when the verified chain snapshot is unavailable", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ dataError: "Snapshot unavailable" })} dispatch={vi.fn()} />,
+    );
+    expect((container.querySelector(".mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("locks only new deposits on the legacy deployment and keeps existing exits actionable", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          deploymentStatus: "legacy",
+          deploymentMessage: "Legacy recovery deployment",
+          deploymentReady: true,
+          fundingWritesEnabled: false,
+          recoveryCapable: false,
+          creatorEscrows: [{
+            id: "legacy-1",
+            status: "active",
+            title: "Existing project",
+            assetSymbol: "GAS",
+            totalAmount: 10_000_000n,
+            releasedAmount: 0n,
+            milestoneAmounts: [10_000_000n],
+            milestoneApproved: [false],
+            milestoneClaimed: [false],
+          }],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+    expect(container.textContent).toContain("Manage existing milestone escrows");
+    expect((container.querySelector(".mx2-action-rail__row .mx2-btn--primary") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
+    const approve = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Accept & unlock") as HTMLButtonElement;
+    expect(approve.disabled).toBe(false);
+  });
+
+  it("keeps a broadcast and unconsumed credit visible in the recovery pocket", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          gasRecoveryCredit: 10_000_000n,
+          pendingTxid: `0x${"a".repeat(64)}`,
+          pendingOperation: "create",
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    expect(container.querySelector(".escrow-recovery-pocket")?.textContent).toContain("Recovery pocket");
+    expect(container.querySelector(".escrow-pending-write")?.textContent).toContain("Escrow creation");
+    expect(container.querySelector(".escrow-recovery-assets__row")?.textContent).toContain("0.1 GAS");
+    fireEvent.click(Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Recover to wallet") as Element);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("reclaimDirectAssetCredit", "GAS"));
+  });
+
+  it("shows the recorded acceptance brief and the deployed 30-day recovery action", async () => {
+    const dispatch = vi.fn().mockResolvedValue(true);
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          creatorEscrows: [{
+            id: "e3",
+            status: "active",
+            title: "Project evidence",
+            notes: "Signed design checklist and testnet release notes",
+            assetSymbol: "GAS",
+            totalAmount: 10_000_000n,
+            releasedAmount: 0n,
+            milestoneAmounts: [10_000_000n],
+            milestoneApproved: [true],
+            milestoneClaimed: [false],
+            milestoneApprovedTimes: [BigInt(Date.now() - 2_700_000_000)],
+          }],
+        })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    fireEvent.click(Array.from(container.querySelectorAll(".escrow-drawer-tabs button")).find((button) => button.textContent?.includes("Created by you")) as Element);
+    fireEvent.click(container.querySelector(".escrow-evidence-brief summary") as Element);
+    expect(container.querySelector(".escrow-evidence-brief")?.textContent).toContain("Signed design checklist");
+    const reclaim = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Recover expired tranche") as Element;
+    fireEvent.click(reclaim);
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("reclaimApprovedMilestone", expect.objectContaining({ id: "e3" }), 0));
   });
 
   it("keeps motion and clean escrow foreground hierarchy backed by tests", () => {

@@ -36,12 +36,10 @@ function executeParams(
 
 describe("resolveInvokeRecipe", () => {
   it("resolves exact appId:method entries", () => {
-    expect(resolveInvokeRecipe("miniapp-dev-tipping", "sendTip")).toBe(
-      MINIAPP_INVOKE_RECIPES["miniapp-dev-tipping:sendTip"],
-    );
     expect(resolveInvokeRecipe("miniapp-dailycheckin", "checkIn")).toBe(
       MINIAPP_INVOKE_RECIPES["miniapp-dailycheckin:checkIn"],
     );
+    expect(resolveInvokeRecipe("miniapp-dev-tipping", "sendTip")).toBeNull();
   });
 
   it("falls back to wildcard *:method entries for any app", () => {

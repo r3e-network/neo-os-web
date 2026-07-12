@@ -29,6 +29,13 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     submitting: false,
     neoCredit: "0",
     gasCredit: "0",
+    dataStatus: "ready",
+    creditStatus: "ready",
+    networkStatus: "bound",
+    storageStatus: "ready",
+    pendingOperation: null,
+    pendingState: "none",
+    errorDetail: "",
     discoveredAnchors: [{ appId: "custom-anchor:alpha:001", mode: 2 }],
     ...o,
   };
@@ -117,6 +124,75 @@ describe("custom-anchor PlayArea (v2)", () => {
     expect(container.querySelector(".anchor-register-disclosure")).toBeNull();
   });
 
+  it("turns the single primary action into recovery while a transaction is pending", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const pendingOperation = {
+      version: 2,
+      kind: "stake",
+      stage: "stake",
+      phase: "broadcast",
+      network: "testnet",
+      contractHash: "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      aaCoreHash: "",
+      walletHash: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      txid: `0x${"ab".repeat(32)}`,
+      intent: { anchorAppId: "custom-anchor:team:nonce", amountBase: "1", beforeValue: "5", expectedValue: "6" },
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    const { container, getByRole } = render(<PlayArea
+      t={t}
+      state={state({ pendingOperation, pendingState: "pending", lastTxid: pendingOperation.txid })}
+      dispatch={dispatch}
+    />);
+
+    expect(container.querySelector(".anchor-pending")).toBeTruthy();
+    expect(container.querySelector(".mx2-action-rail__row")?.textContent).not.toContain("withdrawAction");
+    expect(container.querySelector(".mx2-action-rail__row")?.textContent).not.toContain("claimAction");
+    fireEvent.click(getByRole("button", { name: "pendingCheck" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("recoverPending"));
+    expect(dispatch).not.toHaveBeenCalledWith("stake", expect.anything());
+  });
+
+  it("shows unavailable credit as a secondary state instead of a fake zero balance", () => {
+    const { container, getByRole } = render(<PlayArea
+      t={t}
+      state={state({ neoCredit: "—", gasCredit: "—", creditStatus: "unavailable" })}
+      dispatch={vi.fn()}
+    />);
+    fireEvent.click(getByRole("button", { name: /discoverLabel/ }));
+    fireEvent.click(getByRole("tab", { name: /docSafety/ }));
+    expect(container.querySelector(".anchor-credit-unavailable")?.textContent).toContain("creditUnavailableTitle");
+    expect(container.querySelector(".anchor-credit-card")).toBeNull();
+  });
+
+  it("keeps clearing an unbroadcast wallet rejection in the safety drawer", async () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const pendingOperation = {
+      version: 2,
+      kind: "stake",
+      stage: "stake",
+      phase: "attempted",
+      network: "testnet",
+      contractHash: "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      aaCoreHash: "",
+      walletHash: "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      txid: "",
+      intent: { anchorAppId: "custom-anchor:team:nonce", amountBase: "1", beforeValue: "5", expectedValue: "6" },
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    const { getByRole } = render(<PlayArea
+      t={t}
+      state={state({ pendingOperation, pendingState: "attempted" })}
+      dispatch={dispatch}
+    />);
+    fireEvent.click(getByRole("button", { name: /discoverLabel/ }));
+    fireEvent.click(getByRole("tab", { name: /docSafety/ }));
+    fireEvent.click(getByRole("button", { name: "pendingClearRejected" }));
+    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("clearUnbroadcastPending"));
+  });
+
   it("keeps legacy backdrop art and default browser controls out of the PlayArea", () => {
     const styles = readFileSync(path.join(appRoot, "src/PlayArea.scss"), "utf8");
     const source = readFileSync(path.join(appRoot, "src/PlayArea.tsx"), "utf8");
@@ -175,6 +251,8 @@ describe("custom-anchor PlayArea (v2)", () => {
     expect(styles).not.toMatch(/\.anchor-visual__image\s*\{[\s\S]*object-fit:\s*cover/);
     expect(styles).not.toMatch(/\.anchor-visual__image\s*\{[\s\S]*filter:\s*saturate/);
     expect(source).toContain("custom-anchor-stage.webp");
+    expect(source).toContain('from "@shared/components-react/v2/OpenUiLite"');
+    expect(source).toContain('from "@shared/components-react/v2/PlayStage"');
     expect(source).not.toContain("anchor-scene__backdrop");
     expect(source).not.toContain("anchor-stake-chip");
   });

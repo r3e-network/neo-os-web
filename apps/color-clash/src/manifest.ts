@@ -3,14 +3,20 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Color Clash",
   description:
-    "Timed on-chain arcade memory game with provably fair TEE-generated color sequences. Choose a mode, watch the lights, repeat the pattern before the deadline — one wrong press ends the run. Win a fixed GAS reward: 0.1 Pulse, 0.5 Neon, 1 Master. Every solve climbs a global leaderboard rebuilt from chain events.",
+    "Polished local Simon-style memory arcade with progressive color patterns, tactile feedback, and no wallet or GAS at risk.",
   icon: "eye",
   category: "game",
   shell: "game",
+  directPlay: true,
+  supportsGuest: true,
+  // Testnet wiring and runtime health pass, but the deployed reward pool is
+  // currently 0 GAS. Keep paid starts hidden and fail closed until the pool is
+  // funded and a complete wallet -> TEE -> settlement run is revalidated.
+  supportsGameFi: false,
 
   gamePage: {
     categoryColor: "#EC4899",
-    modes: { guest: true },
+    modes: { guest: true, gamefi: false },
     heroBadgeKey: "networkBadge",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
@@ -58,49 +64,16 @@ export const manifest: MiniAppManifest = {
     ],
   },
 
-  operations: [
-    {
-      key: "startGame",
-      titleKey: "startAction",
-      descriptionKey: "startDescription",
-      actionKey: "startAction",
-      actionMethod: "startGame",
-      priority: "primary",
-      fields: [
-        {
-          key: "difficulty",
-          type: "select",
-          labelKey: "difficultyTitle",
-          hidden: true,
-          required: true,
-          default: "0",
-          options: [
-            { value: "0", label: "Pulse Arcade — win 0.1 GAS" },
-            { value: "1", label: "Neon Rush — win 0.5 GAS" },
-            { value: "2", label: "Master Circuit — win 1 GAS" },
-          ],
-        },
-      ],
-    },
-    {
-      key: "withdrawWinnings",
-      titleKey: "withdrawTitle",
-      descriptionKey: "withdrawHint",
-      actionKey: "withdrawTitle",
-      actionMethod: "withdrawWinnings",
-      priority: "secondary",
-      fields: [],
-    },
-  ],
+  operations: [],
 
   docs: [
-    { titleKey: "rulesTitle", contentKey: "rulesCopy", type: "steps" },
-    { titleKey: "fairnessTitle", contentKey: "fairnessCopy", type: "text" },
+    { titleKey: "rulesTitle", contentKey: "guestRulesCopy", type: "steps" },
+    { titleKey: "guestFairnessTitle", contentKey: "guestFairnessCopy", type: "text" },
   ],
 
   features: {
-    walletRequired: true,
-    chainWarning: true,
+    walletRequired: false,
+    chainWarning: false,
     fireworks: true,
     activityFeed: true,
     reviews: true,
@@ -108,10 +81,11 @@ export const manifest: MiniAppManifest = {
   },
 
   permissions: {
-    payments: true,
-    randomness: true,
-    compute: true,
-    oracle: true,
+    payments: false,
+    randomness: false,
+    compute: false,
+    confidential: false,
+    oracle: false,
   },
 
   contract: {

@@ -17,7 +17,7 @@ import { DetailDrawer, type DetailDrawerProps } from "./DetailDrawer";
  * The drawer is managed internally (open state) but apps pass its content.
  */
 export interface PlayStageProps {
-  category?: "game" | "defi" | "nft" | "tool";
+  category?: "game" | "defi" | "nft" | "tool" | "social" | "governance";
   className?: string;
   /** Stage scene config (eyebrow/title/subtitle/badges). */
   stage: Omit<StageProps, "category" | "children">;

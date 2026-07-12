@@ -104,7 +104,7 @@ describe("breakup-contract integration: dispatch params", () => {
 
   it("dispatches signContract from drawer", () => {
     const d = vi.fn().mockResolvedValue(undefined);
-    const { container, getByRole, getByText } = render(<PlayArea t={t} state={state({ contracts:[{ id: 1, pactId: "c1", status: "pending", stake: 1, partner: "Npartner" }] })} dispatch={d} />);
+    const { container, getByRole, getByText } = render(<PlayArea t={t} state={state({ contracts:[{ id: 1, pactId: "c1", status: "pending", stake: 1, partner: "Npartner", isPartner: true }] })} dispatch={d} />);
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     fireEvent.click(getByRole("radio", { name: "Contracts" }));
     fireEvent.click(getByText("Sign Contract"));

@@ -1,15 +1,15 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
   "id": "miniapp-oracle-vrf-console",
-  "name": "Oracle VRF Console",
-  "name_zh": "预言机随机数控制台",
-  "version": "1.0.0",
-  "description": "Prepare Morpheus verifiable randomness requests.",
-  "description_zh": "准备 Morpheus 可验证随机数请求。",
+  "name": "Oracle VRF Workbench",
+  "name_zh": "预言机随机数工作台",
+  "version": "1.1.0",
+  "description": "Build exact Morpheus randomness request drafts, inspect live Oracle and callback bindings, and verify signed responses against the selected network's pinned worker signer. This read-only workbench never submits the protected VRF request for you.",
+  "description_zh": "生成准确的 Morpheus 随机数请求草稿，检查实时预言机与回调绑定，并使用所选网络固定的 worker 密钥验证签名回执。本只读工作台不会代您提交受保护的 VRF 请求。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["oracle", "morpheus", "vrf", "randomness"],
+  "tags": ["oracle", "morpheus", "vrf", "randomness", "verification", "csprng"],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
@@ -21,71 +21,23 @@
   "urls": {
     "entry": "/miniapps/oracle-vrf-console/index.html",
     "icon": "/miniapps/oracle-vrf-console/logo.webp",
-    "banner": "/miniapps/oracle-vrf-console/banner.webp"
+    "banner": "/miniapps/oracle-vrf-console/oracle-workspace-stage.webp"
   },
   "permissions": ["read:blockchain"],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://oracle-vrf-console"
   },
   "stateSource": {
     "type": "api",
-    "chain": "neo-n3-testnet",
-    "endpoints": ["https://api.n3index.dev"]
-  },
-  "operation_panel": {
-    "title": "VRF Request",
-    "subtitle": "Prepare randomness request metadata and inspect the verifiable envelope.",
-    "operations": [
-      {
-        "name": "Build VRF Request",
-        "method": "buildOraclePackage",
-        "description": "Prepare a Morpheus VRF request package.",
-        "button_style": "secondary",
-        "params": [
-          {
-            "name": "consumer",
-            "type": "string",
-            "label": "Consumer",
-            "placeholder": "MiniApp contract hash or app id",
-            "default_value": "miniapp-oracle-vrf-console",
-            "required": true
-          },
-          {
-            "name": "salt",
-            "type": "string",
-            "label": "Salt",
-            "placeholder": "vrf:campaign-or-game-round",
-            "default_value": "vrf:miniapp-round",
-            "required": true
-          },
-          {
-            "name": "rounds",
-            "type": "integer",
-            "label": "Rounds",
-            "default_value": "1",
-            "required": true
-          },
-          {
-            "name": "mode",
-            "type": "select",
-            "label": "Proof mode",
-            "default_value": "single-proof",
-            "options": [
-              {
-                "label": "Single proof",
-                "value": "single-proof"
-              },
-              {
-                "label": "Batch proof",
-                "value": "batch-proof"
-              }
-            ],
-            "required": true
-          }
-        ]
-      }
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://neomini.app/api/morpheus/vrf/status",
+      "https://oracle.meshmini.app/mainnet",
+      "https://oracle.meshmini.app/testnet",
+      "https://api.n3index.dev/mainnet",
+      "https://api.n3index.dev/testnet"
     ]
   },
   "platform": {
@@ -95,5 +47,5 @@
     "transactions": false
   },
   "createdAt": "2026-05-01T00:00:00Z",
-  "updatedAt": "2026-05-01T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

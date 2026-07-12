@@ -3,86 +3,55 @@
   "id": "miniapp-onchaintarot",
   "name": "On-chain Tarot",
   "name_zh": "链上塔罗牌",
-  "version": "1.0.0",
-  "description": "On-Chain Tarot - Neo MiniApp",
-  "description_zh": "链上塔罗牌 — 用区块链随机数进行塔罗占卜，结果链上永存",
+  "version": "2.0.0",
+  "description": "A polished local three-card tarot ritual with animated dealing and reveals. No wallet or GAS is used while the GameFi contract and domain binding are rebuilt and verified.",
+  "description_zh": "精心设计的本地三张塔罗仪式，包含发牌与翻牌动画。GameFi 合约和域名绑定完成重建与验证前，不会连接钱包，也不会使用 GAS。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
-  "tags": [],
+  "tags": [
+    "tarot",
+    "cards",
+    "local",
+    "game"
+  ],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {
-    "neo-n3-mainnet": "0xb680225a1be276b03ecd7de82ea985dcc7435cec",
-    "neo-n3-testnet": "0xb680225a1be276b03ecd7de82ea985dcc7435cec"
-  },
-  "contract_domains": {
-    "neo-n3-mainnet": "onchaintarot.miniapp.neo"
-  },
   "supported_networks": [
-    "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-mainnet",
+  "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/on-chain-tarot/index.html",
     "icon": "/miniapps/on-chain-tarot/logo.webp",
     "banner": "/miniapps/on-chain-tarot/banner.webp"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain"
-  ],
+  "permissions": [],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://on-chain-tarot"
   },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "operation_panel": {
-    "title": "Reading Console",
-    "subtitle": "Draw or flip the reading from OneGate while the playarea stays focused on the three-card table.",
-    "operations": [
-      {
-        "name": "Draw Reading",
-        "method": "drawTarotReading",
-        "description": "Draw a fresh three-card spread in the native playarea.",
-        "button_style": "success",
-        "params": [
-          {
-            "name": "spread",
-            "type": "select",
-            "label": "Spread",
-            "default_value": "past-signal-path",
-            "options": [
-              { "label": "Past / Signal / Path", "value": "past-signal-path" }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "Flip Reading",
-        "method": "flipTarotReading",
-        "description": "Reveal the current reading cards.",
-        "button_style": "secondary"
-      }
-    ]
+    "title": "Local Tarot Ritual",
+    "subtitle": "Choose an intention, shuffle, deal, and reveal locally. Wallet-funded GameFi remains disabled until the replacement contract and domain binding pass the compatibility gate.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
-    "transactions": true
+    "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-01-26T12:00:00Z"
+  "updatedAt": "2026-07-10T06:16:00Z",
+  "technologies": {
+    "oracle": {
+      "enabled": false,
+      "description": "Guest readings use local secure randomness. No wallet-funded oracle or settlement path is advertised until a compatible deployment is verified."
+    }
+  }
 }

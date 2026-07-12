@@ -3,7 +3,7 @@
   "id": "miniapp-neo-convert",
   "name": "Neo Convert",
   "name_zh": "Neo 转换器",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generate Neo N3 accounts locally, convert WIF/private/public keys, derive addresses, and disassemble NeoVM scripts.",
   "description_zh": "Neo 转换器 — 在本地生成 Neo N3 账户，转换 WIF/私钥/公钥，派生地址并反汇编 NeoVM 脚本。",
   "category": "tools",
@@ -27,7 +27,7 @@
   "urls": {
     "entry": "/miniapps/neo-convert/index.html",
     "icon": "/miniapps/neo-convert/logo.webp",
-    "banner": "/miniapps/neo-convert/banner.webp"
+    "banner": "/miniapps/neo-convert/key-workbench-stage.webp"
   },
   "permissions": [
     "read:blockchain"
@@ -37,12 +37,6 @@
     "offlineSupport": false,
     "deeplink": "neomainapp://neo-convert"
   },
-  "stateSource": {
-    "type": "api",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
@@ -50,5 +44,5 @@
     "transactions": false
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

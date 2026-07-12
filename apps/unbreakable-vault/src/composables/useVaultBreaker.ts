@@ -37,13 +37,22 @@ import { ownerMatchesAddress } from "@shared/utils/neo";
 import { formatGas } from "@shared/utils/format";
 import {
   ATTEMPT_MEMO,
-  DEFAULT_ATTEMPT_FEE_BASE,
   MAX_RECENT_VAULTS,
   isContractAddressUnavailableError,
   readRecentVaultDetails,
   readVaultDetails,
   type ChainVaultDetails,
 } from "./vaultChain";
+import {
+  VaultVerificationError,
+  VAULT_EVENT_WAIT_MS,
+  requireCanonicalVaultContext,
+  requireWritableVaultContext,
+  utf8ToBase64,
+  type PendingVaultOperation,
+  type VaultFinalization,
+} from "./vaultSafety";
+import type { createVaultSafety } from "./vaultSafety";
 
 // ============================================================================
 // Types
@@ -52,13 +61,15 @@ import {
 export interface VaultDetails {
   id: string;
   creator: string;
-  bounty: number;
+  /** GAS base units. */
+  bounty: string;
   attempts: number;
   broken: boolean;
   expired: boolean;
   status: string;
   winner: string;
-  attemptFee: number;
+  /** GAS base units. */
+  attemptFee: string;
   difficultyName: string;
   expiryTime: number;
   remainingDays: number;
@@ -71,7 +82,8 @@ export interface VaultDetails {
 export interface RecentVault {
   id: string;
   creator: string;
-  bounty: number;
+  /** GAS base units. */
+  bounty: string;
   status: string;
 }
 
@@ -80,47 +92,20 @@ export interface UseVaultBreakerOptions {
   app: MiniAppFramework;
   /** Translation function. */
   t: (key: string) => string;
+  safety: ReturnType<typeof createVaultSafety>;
 }
+
+export type VaultAttemptOutcome =
+  | { status: "confirmed"; broken: boolean; finalization: VaultFinalization }
+  | { status: "pending"; pending: PendingVaultOperation };
+
+export type VaultReclaimOutcome =
+  | { status: "confirmed"; finalization: VaultFinalization }
+  | { status: "pending"; pending: PendingVaultOperation };
 
 // ============================================================================
 // Helpers
 // ============================================================================
-
-function base64FromBytes(bytes: number[]): string {
-  const alphabet =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  let output = "";
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] ?? 0;
-    const b = bytes[i + 1] ?? 0;
-    const c = bytes[i + 2] ?? 0;
-    const triplet = (a << 16) | (b << 8) | c;
-    output += alphabet[(triplet >> 18) & 63];
-    output += alphabet[(triplet >> 12) & 63];
-    output += i + 1 < bytes.length ? alphabet[(triplet >> 6) & 63] : "=";
-    output += i + 2 < bytes.length ? alphabet[triplet & 63] : "=";
-  }
-  return output;
-}
-
-function utf8Bytes(value: string): number[] {
-  const encoded = encodeURIComponent(value);
-  const bytes: number[] = [];
-  for (let i = 0; i < encoded.length; i += 1) {
-    if (encoded[i] === "%" && i + 2 < encoded.length) {
-      bytes.push(parseInt(encoded.slice(i + 1, i + 3), 16));
-      i += 2;
-    } else {
-      bytes.push(encoded.charCodeAt(i));
-    }
-  }
-  return bytes;
-}
-
-/** Encode a UTF-8 secret string as base64 for the ByteArray contract arg. */
-function utf8ToBase64(value: string): string {
-  return base64FromBytes(utf8Bytes(value));
-}
 
 /** Milliseconds in one day — vault times are unix epoch milliseconds. */
 const DAY_MS = 86_400_000;
@@ -167,13 +152,17 @@ function toRecentVault(detail: ChainVaultDetails): RecentVault {
 export function useVaultBreaker({
   app,
   t,
+  safety,
 }: UseVaultBreakerOptions) {
   const vaultIdInput = createObservable("");
   const attemptSecret = createObservable("");
   const vaultDetails = createObservable<VaultDetails | null>(null);
   const recentVaults = createObservable<RecentVault[]>([]);
+  const catalogReadError = createObservable("");
   const isLoading = createObservable(false);
   const isClaiming = createObservable(false);
+  let vaultLoadEpoch = 0;
+  let recentLoadEpoch = 0;
 
   const canAttempt = createDerived(() => {
     const vault = vaultDetails.get();
@@ -183,6 +172,8 @@ export function useVaultBreaker({
       attemptSecret.get().trim() &&
       vault &&
       String(vault.id) === String(vaultIdInput.get()) &&
+      /^\d+$/.test(vault.attemptFee) &&
+      BigInt(vault.attemptFee) > 0n &&
       st === "active",
     );
   }, [vaultIdInput, attemptSecret, vaultDetails]);
@@ -199,8 +190,10 @@ export function useVaultBreaker({
     if (!wallet) return false;
     const reclaimable =
       vault.status === "claimable" || vault.status === "expired";
+    const hasEscrow = /^\d+$/.test(vault.bounty) && BigInt(vault.bounty) > 0n;
     return (
       reclaimable &&
+      hasEscrow &&
       Boolean(vault.creator) &&
       ownerMatchesAddress(vault.creator, wallet)
     );
@@ -215,13 +208,13 @@ export function useVaultBreaker({
    */
   const resolveAttemptFeeBase = (): string => {
     const fee = vaultDetails.get()?.attemptFee;
-    return Number.isFinite(fee) && (fee as number) > 0
-      ? String(Math.trunc(fee as number))
-      : DEFAULT_ATTEMPT_FEE_BASE;
+    if (fee && /^\d+$/.test(fee) && BigInt(fee) > 0n) return fee;
+    return "";
   };
 
   const attemptFeeDisplay = createDerived(() => {
-    return formatGas(resolveAttemptFeeBase());
+    const fee = resolveAttemptFeeBase();
+    return fee ? formatGas(fee) : "";
   }, [vaultDetails]);
 
   // ── Data Loading (direct chain reads) ──────────────────────────────
@@ -231,17 +224,30 @@ export function useVaultBreaker({
    * os.storage list entirely.
    */
   const loadRecentVaults = async () => {
+    const epoch = ++recentLoadEpoch;
     try {
+      const context = await requireCanonicalVaultContext(app, t("chainContextMismatch"));
       const details = await readRecentVaultDetails(
         app,
         MAX_RECENT_VAULTS,
+        context.contractHash,
       );
+      const current = await requireCanonicalVaultContext(app, t("chainContextMismatch"));
+      if (
+        epoch !== recentLoadEpoch
+        || current.network !== context.network
+        || current.contractHash !== context.contractHash
+      ) return;
       recentVaults.set(details.map(toRecentVault));
+      catalogReadError.set("");
     } catch (e) {
+      if (epoch !== recentLoadEpoch) return;
       if (isContractAddressUnavailableError(e)) {
         recentVaults.set([]);
+        catalogReadError.set("");
         return;
       }
+      catalogReadError.set(t("catalogReadFailed"));
       console.error(
         "[unbreakable-vault] loadRecentVaults error:",
         e instanceof Error ? e.message : String(e),
@@ -257,13 +263,27 @@ export function useVaultBreaker({
    * success or when there is no vault id to load.
    */
   const loadVault = async (): Promise<{ error: string } | undefined> => {
-    const id = vaultIdInput.get();
+    const epoch = ++vaultLoadEpoch;
+    const id = vaultIdInput.get().trim();
     if (!id) return undefined;
+    if (!/^[1-9]\d*$/.test(id)) {
+      vaultDetails.set(null);
+      return { error: t("invalidVaultId") };
+    }
     try {
-      const detail = await readVaultDetails(app, id);
+      const context = await requireCanonicalVaultContext(app, t("chainContextMismatch"));
+      const detail = await readVaultDetails(app, id, context.contractHash);
       if (!detail) throw new Error(t("vaultNotFound"));
+      const current = await requireCanonicalVaultContext(app, t("chainContextMismatch"));
+      if (
+        epoch !== vaultLoadEpoch
+        || vaultIdInput.get().trim() !== id
+        || current.network !== context.network
+        || current.contractHash !== context.contractHash
+      ) return undefined;
       vaultDetails.set(toVaultDetails(detail));
     } catch (e) {
+      if (epoch !== vaultLoadEpoch || vaultIdInput.get().trim() !== id) return undefined;
       const message = e instanceof Error ? e.message : t("loadFailed");
       vaultDetails.set(null);
       return { error: message };
@@ -284,63 +304,105 @@ export function useVaultBreaker({
    * Returns `{ success }` so the registered host action can surface a status
    * toast. Returns `undefined` when the attempt is skipped (guard not satisfied).
    */
-  const attemptBreak = async (): Promise<
-    { success: boolean; confirming?: boolean } | undefined
-  > => {
+  const attemptBreak = async (receiptId?: string): Promise<VaultAttemptOutcome | undefined> => {
     if (!canAttempt.get() || isLoading.get()) return undefined;
+    const releaseOperation = safety.beginOperation();
     isLoading.set(true);
     try {
-      const attemptFee = resolveAttemptFeeBase();
+      safety.assertNoPending();
+      const targetId = vaultIdInput.get().trim();
+      const normalizedSecret = attemptSecret.get().trim();
+      const loadedAtStart = vaultDetails.get();
+      const assertAttemptSnapshot = () => {
+        const current = vaultDetails.get();
+        if (
+          !targetId
+          || !normalizedSecret
+          || loadedAtStart?.id !== targetId
+          || vaultIdInput.get().trim() !== targetId
+          || attemptSecret.get().trim() !== normalizedSecret
+          || current?.id !== targetId
+          || current.status !== "active"
+        ) throw new Error(t("operationContextChanged"));
+      };
+      assertAttemptSnapshot();
       const attacker = await app.chain.ensureWallet();
-      const targetId = vaultIdInput.get();
-
-      // The attacker Hash160 carries the RAW wallet address exactly as the
-      // pre-framework call did — arg.hash160Raw passes it through unconverted.
-      const result = await app.chain.invokeWithPayment(
-        attemptFee,
-        ATTEMPT_MEMO,
-        "attemptBreak",
-        [
-          app.chain.arg.integer(targetId),
-          app.chain.arg.hash160Raw(attacker),
-          app.chain.arg.byteArray(utf8ToBase64(attemptSecret.get().trim())),
-        ],
-        { waitForEvent: "AttemptMade" },
-      );
-
-      attemptSecret.set("");
-      await loadVault();
-      await loadRecentVaults();
-
-      // AttemptMade(vaultId, attacker, success, attemptNumber) — slot 2 is the
-      // boolean success flag, definitive at HALT.
-      if (result.event) {
-        const successSlot = app.events.value(result.event, 2);
-        const success =
-          successSlot === true ||
-          successSlot === "true" ||
-          successSlot === 1 ||
-          successSlot === "1";
-
-        return { success };
+      const context = await requireWritableVaultContext(app, t);
+      const before = await readVaultDetails(app, targetId, context.contractHash);
+      if (!before || before.id !== targetId || before.status !== "active") {
+        throw new Error(t("vaultNotActive"));
       }
-
-      // The event wait timed out (indexer lag) — the tx may have HALTed and even
-      // WON. Do NOT declare a failed (wrong-secret) attempt. Re-read the vault and
-      // check whether THIS wallet became the winner before deciding.
-      const refreshed = vaultDetails.get();
-      const wonByMe =
-        !!refreshed &&
-        refreshed.status === "broken" &&
-        Boolean(refreshed.winner) &&
-        ownerMatchesAddress(refreshed.winner, attacker);
-      if (wonByMe) {
-        return { success: true };
+      const attemptFee = String(before.attemptFee);
+      if (!/^\d+$/.test(attemptFee) || BigInt(attemptFee) <= 0n) {
+        throw new Error(t("attemptFeeUnavailable"));
       }
-      // Outcome still unconfirmed — surface a "confirming" state, not "failed".
-      return { success: false, confirming: true };
+      vaultDetails.set(toVaultDetails(before));
+      assertAttemptSnapshot();
+      const draft = await safety.prepare("attempt", attacker, {
+        vaultId: targetId,
+        amountFixed8: attemptFee,
+        beforeAttempts: String(before.attemptCount),
+        beforeBounty: String(before.bounty),
+      });
+      assertAttemptSnapshot();
+      const args = [
+        app.chain.arg.integer(targetId),
+        app.chain.arg.hash160(attacker),
+        app.chain.arg.byteArray(utf8ToBase64(normalizedSecret)),
+      ];
+      const onTransactionSent = (id: string) => safety.persistAction(draft, id);
+
+      const result = context.network === "mainnet"
+        ? await (() => {
+            const normalizedReceipt = String(receiptId ?? "").trim();
+            if (!/^[1-9]\d*$/.test(normalizedReceipt)) throw new Error(t("receiptIdRequired"));
+            return app.funds.receiptPay({
+              operation: "attemptBreak",
+              args,
+              receiptId: normalizedReceipt,
+              scriptHash: context.contractHash,
+              waitForEvent: "AttemptMade",
+              waitTimeoutMs: VAULT_EVENT_WAIT_MS,
+              onTransactionSent,
+              notify: "silent",
+            });
+          })()
+        : await app.chain.invokeWithPayment(
+            attemptFee,
+            ATTEMPT_MEMO,
+            "attemptBreak",
+            args,
+            {
+              scriptHash: context.contractHash,
+              waitForEvent: "AttemptMade",
+              waitTimeoutMs: VAULT_EVENT_WAIT_MS,
+              onPaymentSent: (id) => safety.persistPayment(draft, id),
+              onTransactionSent,
+            },
+          );
+      if (result.txid) safety.persistAction(draft, result.txid);
+      const pending = safety.pendingOperation.get();
+      if (!pending) throw new Error(t("transactionIdUnavailable"));
+      if (result.verified === true && result.event && pending) {
+        const finalization = await safety.finalize(pending, result.event);
+        attemptSecret.set("");
+        vaultDetails.set(toVaultDetails(finalization.vault));
+        await loadRecentVaults();
+        return {
+          status: "confirmed",
+          broken: finalization.broken === true,
+          finalization,
+        };
+      }
+      return { status: "pending", pending: pending! };
+    } catch (error) {
+      if (error instanceof VaultVerificationError) throw error;
+      const pending = safety.pendingOperation.get();
+      if (pending) return { status: "pending", pending };
+      throw error;
     } finally {
       isLoading.set(false);
+      releaseOperation();
     }
   };
 
@@ -360,27 +422,62 @@ export function useVaultBreaker({
    * Returns `{ success }` so the registered host action can surface a status
    * toast, or `undefined` when no reclaim was attempted.
    */
-  const settleVault = async (): Promise<{ success: boolean } | undefined> => {
+  const settleVault = async (): Promise<VaultReclaimOutcome | undefined> => {
     if (isClaiming.get() || isLoading.get()) return undefined;
     if (!canReclaim.get()) return undefined;
-
+    const releaseOperation = safety.beginOperation();
     isClaiming.set(true);
     try {
-      await app.chain.ensureWallet();
+      safety.assertNoPending();
+      const id = vaultIdInput.get().trim();
+      const selectedAtStart = vaultDetails.get();
+      if (!id || selectedAtStart?.id !== id) throw new Error(t("operationContextChanged"));
+      const player = await app.chain.ensureWallet();
+      const context = await requireWritableVaultContext(app, t);
+      const before = await readVaultDetails(app, id, context.contractHash);
+      if (
+        !before
+        || before.id !== id
+        || !["claimable", "expired"].includes(before.status)
+        || !/^\d+$/.test(before.bounty)
+        || BigInt(before.bounty) <= 0n
+        || !ownerMatchesAddress(before.creator, player)
+      ) throw new Error(t("vaultNotReclaimable"));
+      const draft = await safety.prepare("reclaim", player, {
+        vaultId: id,
+        beforeBounty: String(before.bounty),
+      });
+      if (vaultIdInput.get().trim() !== id || vaultDetails.get()?.id !== id) {
+        throw new Error(t("operationContextChanged"));
+      }
       const result = await app.chain.invoke(
         "claimExpiredVault",
-        [app.chain.arg.integer(vaultIdInput.get())],
-        { waitForEvent: "VaultExpired" },
+        [app.chain.arg.integer(id)],
+        {
+          scriptHash: context.contractHash,
+          waitForEvent: "VaultExpired",
+          waitTimeoutMs: VAULT_EVENT_WAIT_MS,
+          onTransactionSent: (targetTxid) => safety.persistAction(draft, targetTxid),
+        },
       );
-      // The VaultExpired event firing at HALT proves the refund settled; the
-      // base TxResult.success only reflects that a txid was broadcast.
-      const success = Boolean(result.event) || Boolean(result.success);
-
-      await loadVault();
-      await loadRecentVaults();
-      return { success };
+      if (result.txid) safety.persistAction(draft, result.txid);
+      const pending = safety.pendingOperation.get();
+      if (!pending) throw new Error(t("transactionIdUnavailable"));
+      if (result.verified === true && result.event && pending) {
+        const finalization = await safety.finalize(pending, result.event);
+        vaultDetails.set(toVaultDetails(finalization.vault));
+        await loadRecentVaults();
+        return { status: "confirmed", finalization };
+      }
+      return { status: "pending", pending: pending! };
+    } catch (error) {
+      if (error instanceof VaultVerificationError) throw error;
+      const pending = safety.pendingOperation.get();
+      if (pending) return { status: "pending", pending };
+      throw error;
     } finally {
       isClaiming.set(false);
+      releaseOperation();
     }
   };
 
@@ -389,6 +486,7 @@ export function useVaultBreaker({
     attemptSecret,
     vaultDetails,
     recentVaults,
+    catalogReadError,
     canAttempt,
     canReclaim,
     attemptFeeDisplay,

@@ -19,6 +19,7 @@ const appMessages = {
   },
   tipAmount: { en: "How much GAS?", zh: "打赏多少 GAS？" },
   customAmount: { en: "Custom", zh: "自定义" },
+  walletGasBalance: { en: "Verified wallet balance", zh: "已验证钱包余额" },
   quickTipLabel: { en: "Quick tip", zh: "快捷打赏" },
   tipPresetLabel: { en: "Tip amount presets", zh: "打赏金额快捷选项" },
   tipPreviewTitle: { en: "Tip preview", zh: "打赏预览" },
@@ -32,7 +33,7 @@ const appMessages = {
   anonymousLabel: { en: "Send Anonymously", zh: "匿名发送" },
   tipVisibility: { en: "Tip visibility", zh: "打赏署名" },
   anonymousOn: { en: "Anonymous", zh: "匿名" },
-  anonymousOff: { en: "Show my name", zh: "显示我的名字" },
+  anonymousOff: { en: "Show wallet address", zh: "显示钱包地址" },
   sending: { en: "Sending...", zh: "发送中..." },
   sendTipBtn: { en: "Send Tip", zh: "发送打赏" },
   sendTipBtnIdle: { en: "Pick a developer & amount", zh: "选择开发者和金额" },
@@ -43,6 +44,13 @@ const appMessages = {
   tipSent: { en: "Tip sent successfully!", zh: "打赏发送成功！" },
   invalidAmount: { en: "Invalid amount", zh: "无效金额" },
   minTip: { en: "Minimum tip is 0.001 GAS", zh: "最低打赏为 0.001 GAS" },
+  insufficientGas: { en: "Your verified GAS balance is too low for this tip.", zh: "已验证的 GAS 余额不足以完成本次打赏。" },
+  operationBusy: { en: "Another wallet action is still in progress.", zh: "另一项钱包操作仍在进行中。" },
+  walletChangedDuringAction: {
+    en: "The connected wallet changed. Review the current account before trying again.",
+    zh: "连接的钱包已变化；请核对当前账户后再操作。",
+  },
+  invalidVisibility: { en: "Choose a valid visibility setting.", zh: "请选择有效的署名设置。" },
   recentTips: { en: "Recent Tips", zh: "最近打赏" },
   totalDonated: { en: "Total Donated", zh: "总打赏额" },
   wallet: { en: "Wallet", zh: "钱包" },
@@ -70,6 +78,16 @@ const appMessages = {
   noDevelopersHint: {
     en: "No public builders yet. Open Support options to enter a registered developer ID.",
     zh: "暂无公开建设者。打开「支持选项」即可输入已注册开发者 ID。",
+  },
+  noRecentTips: { en: "No tips recorded yet", zh: "暂无打赏记录" },
+  noRecentTipsHint: {
+    en: "Confirmed tips will appear here after the event index catches up.",
+    zh: "确认后的打赏会在事件索引同步后显示在这里。",
+  },
+  activityUnavailable: { en: "Tip activity is temporarily unavailable", zh: "打赏动态暂时不可用" },
+  activityUnavailableHint: {
+    en: "The support board is still available. Retry before treating this history as complete.",
+    zh: "支持看板仍可浏览；请重试后再将这里视为完整历史。",
   },
   supportBoardTitle: { en: "Support board is waiting", zh: "支持榜单等待点亮" },
   supportBoardHint: {
@@ -126,6 +144,11 @@ const appMessages = {
   registered: { en: "Registered successfully!", zh: "注册成功！" },
   invalidDevName: { en: "Name must be 1-64 characters", zh: "名称需为 1-64 个字符" },
   invalidDevRole: { en: "Role must be 64 characters or fewer", zh: "角色不超过 64 个字符" },
+  alreadyRegistered: { en: "This wallet is already registered as a developer.", zh: "该钱包已注册为开发者。" },
+  developerWalletMismatch: {
+    en: "This developer profile belongs to another wallet.",
+    zh: "该开发者档案属于另一个钱包。",
+  },
   registeredAs: { en: "Registered as developer", zh: "已注册为开发者" },
   claimableBalance: { en: "Claimable Tips", zh: "可领取打赏" },
   withdrawTipsBtn: { en: "Withdraw Tips", zh: "领取打赏" },
@@ -140,6 +163,108 @@ const appMessages = {
     en: "Deposit landed but the tip did not settle. Your credit is held on the contract and reused on your next tip.",
     zh: "已存入但打赏未结算。您的余额已保留在合约中，将用于下次打赏。",
   },
+  registryUnavailable: {
+    en: "The developer registry could not be read. Existing data is not being replaced with an empty list.",
+    zh: "暂时无法读取开发者名录；现有数据不会被错误替换为空列表。",
+  },
+  walletSnapshotUnavailable: {
+    en: "Wallet GAS, credit, and developer balances could not be verified. No zero balance is being assumed.",
+    zh: "暂时无法验证钱包 GAS、预存额度和开发者余额；不会将其假定为零。",
+  },
+  runtimeNetworkMismatch: {
+    en: "The wallet network does not match this Dev Tipping launch.",
+    zh: "钱包网络与当前开发者打赏入口不一致。",
+  },
+  runtimeBindingMismatch: {
+    en: "The live Tip Jar contract generation or ABI does not match this release.",
+    zh: "线上 Tip Jar 合约版本或 ABI 与当前版本不匹配。",
+  },
+  runtimeUnavailable: {
+    en: "The Tip Jar runtime could not be verified. Payments remain disabled until retry succeeds.",
+    zh: "暂时无法验证 Tip Jar 运行环境；重试成功前将保持关闭支付。",
+  },
+  pendingTipBlocksAction: {
+    en: "Check the pending tip receipt before sending another payment.",
+    zh: "请先核对待确认的打赏收据，再发起下一笔支付。",
+  },
+  pendingActionBlocksAction: {
+    en: "Check the pending wallet receipt before starting another action.",
+    zh: "请先核对待确认的钱包收据，再发起其他操作。",
+  },
+  recoveryStorageUnavailable: {
+    en: "This browser cannot safely save a transaction recovery receipt. Free storage or change browser before continuing.",
+    zh: "当前浏览器无法安全保存交易恢复收据；请释放存储空间或更换浏览器后再继续。",
+  },
+  transactionIdInvalid: {
+    en: "The wallet did not return an exact 0x-prefixed 64-byte transaction id.",
+    zh: "钱包未返回精确的 0x 前缀 64 字节交易哈希。",
+  },
+  transactionIdConflict: {
+    en: "The wallet returned conflicting transaction ids. The first saved receipt remains authoritative.",
+    zh: "钱包返回了冲突的交易哈希；首个已保存收据仍作为核对依据。",
+  },
+  receiptPending: {
+    en: "Transaction broadcast. Waiting for the exact contract event and authoritative state readback.",
+    zh: "交易已广播，正在等待精确合约事件与权威状态读回。",
+  },
+  receiptReadbackPending: {
+    en: "The event was found, but the recipient balance readback is not ready. Check again before retrying.",
+    zh: "已找到事件，但接收方余额读回尚未就绪；请再次核对后再决定是否重试。",
+  },
+  receiptEventMissing: {
+    en: "The transaction halted, but its exact Tipped event is not indexed yet. Keep this receipt pending.",
+    zh: "交易已执行，但精确的 Tipped 事件尚未完成索引；请保留待确认收据。",
+  },
+  receiptEventMismatch: {
+    en: "The observed event does not match this recipient, sender, amount, or visibility choice.",
+    zh: "已观察到的事件与本次接收方、发送方、金额或署名设置不匹配。",
+  },
+  receiptConfirmed: {
+    en: "Tip confirmed by its exact event and recipient balance readback.",
+    zh: "打赏已通过精确事件与接收方余额读回确认。",
+  },
+  receiptFault: {
+    en: "The transaction FAULTed. No tip was confirmed; correct the input before retrying.",
+    zh: "交易执行失败（FAULT），未确认打赏；请修正后再重试。",
+  },
+  receiptExpired: {
+    en: "No confirming record was found after 24 hours. The receipt remains locked to prevent a duplicate action; verify it on-chain.",
+    zh: "24 小时后仍未找到确认记录；为避免重复操作，收据仍保持锁定，请先在链上核对。",
+  },
+  receiptCleanupPending: {
+    en: "The transaction is confirmed, but its local recovery lock could not be cleared. Retry the receipt check before starting another wallet action.",
+    zh: "交易已确认，但本地恢复锁尚未清除。发起下一次钱包操作前，请重试收据检查。",
+  },
+  receiptUnavailableAfterBroadcast: {
+    en: "The transaction was broadcast, but its recovery receipt could not be saved. Record the wallet txid before leaving.",
+    zh: "交易已广播，但无法保存恢复收据；离开前请记录钱包中的交易哈希。",
+  },
+  secondaryActionPending: {
+    en: "Transaction broadcast and saved. Check its receipt after the expected event is indexed.",
+    zh: "交易已广播并保存；请在预期事件完成索引后核对收据。",
+  },
+  secondaryActionConfirmed: {
+    en: "The expected event and authoritative state readback agree.",
+    zh: "预期事件与权威状态读回一致。",
+  },
+  dataRefreshPending: {
+    en: "The transaction is confirmed, but the latest board data still needs a refresh.",
+    zh: "交易已确认，但最新看板数据仍需刷新。",
+  },
+  operation_deposit: { en: "Recovered tip credit", zh: "已恢复打赏额度" },
+  operation_tip: { en: "Developer tip", zh: "开发者打赏" },
+  operation_register: { en: "Developer registration", zh: "开发者注册" },
+  operation_withdrawTips: { en: "Tip withdrawal", zh: "打赏领取" },
+  operation_withdrawCredit: { en: "Credit withdrawal", zh: "额度取回" },
+  checkReceipt: { en: "Check receipt", zh: "核对收据" },
+  checkingReceipt: { en: "Checking receipt…", zh: "正在核对收据…" },
+  dataNeedsRetry: { en: "Live data needs attention", zh: "线上数据需要重试" },
+  receiptStatus_pending: { en: "Awaiting confirmation", zh: "等待链上确认" },
+  receiptStatus_readback: { en: "Awaiting balance readback", zh: "等待余额读回" },
+  receiptStatus_confirmed: { en: "Transaction confirmed", zh: "交易已确认" },
+  receiptStatus_fault: { en: "Transaction failed", zh: "交易执行失败" },
+  receiptStatus_credit: { en: "Credit held for recovery", zh: "额度已保留待恢复" },
+  receiptStatus_expired: { en: "Receipt check expired", zh: "收据核对已过期" },
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
   contractNotReady: { en: "Contract not ready", zh: "合约未就绪" },
   error: { en: "Something went wrong", zh: "出现错误" },
@@ -178,10 +303,10 @@ const appMessages = {
     en: "All tips are recorded on-chain with full transparency.",
     zh: "所有打赏都记录在链上，完全透明。",
   },
-  feature3Name: { en: "Optional Notes", zh: "可选留言" },
+  feature3Name: { en: "Contract-backed visibility", zh: "合约记录署名设置" },
   feature3Desc: {
-    en: "Attach a short note or stay anonymous.",
-    zh: "可附上简短留言或匿名打赏。",
+    en: "Choose a public sender address or anonymous mode; the deployed contract stores no free-form message.",
+    zh: "可选择公开发送地址或匿名模式；已部署合约不会存储自由文本留言。",
   },
 } as const;
 

@@ -14,7 +14,20 @@ function t(key: string, params?: Record<string, string | number>) {
     title: "Forever Album",
     albumTab: "Album",
     vaultHeroTitle: "Forever Album",
-    vaultHeroSubtitle: "Your memories, sealed.",
+    vaultHeroSubtitle: "Your memories stay on this device.",
+    deviceAlbumEyebrow: "ON-DEVICE ALBUM",
+    deviceOnlyBadge: "This device only",
+    deviceOnlyTitle: "Kept on this device",
+    durabilityWarning: "Back up originals elsewhere; clearing site data removes this album.",
+    deviceStorage: "Device storage",
+    memories: "memories",
+    selectPhotos: "Select photos",
+    chooseMemories: "Choose memories",
+    saveToDevice: "Save to device",
+    savingLocally: "Saving locally",
+    preparingPhotos: "Preparing photos",
+    reduceSelection: "Reduce selection",
+    reviewPassword: "Check password",
     uploading: "Uploading...",
     upload: "Upload",
     emptyTitle: "No photos",
@@ -27,7 +40,7 @@ function t(key: string, params?: Record<string, string | number>) {
     selectMore: "Select",
     uploadHint: "{count} selected · Up to {max}",
     stagePrivateMode: "Private seal",
-    stagePublicMode: "Public album",
+    stageOpenMode: "Open on device",
     stageDraftCount: "{count} ready",
     stageSavedCount: "{count} saved",
     stageEmptyCount: "No draft",
@@ -43,17 +56,25 @@ function t(key: string, params?: Record<string, string | number>) {
     stageArchiveTitle: "Album archive is ready",
     stageArchiveCopy: "Saved memories stay here.",
     privacyModePrivateHint: "Password-protected local storage",
-    privacyModePublicHint: "Visible on this device",
+    privacyModeOpenHint: "Stored without a password",
     galleryStageTitle: "Album sealing workbench",
     albumMemoryStageLabel: "Memory stage",
     albumMemoryStageAlt: "Warm album scene",
     encrypted: "Encrypted",
     remove: "Remove",
     passwordPlaceholder: "Password",
+    encryptionPassword: "Encryption password",
+    confirmPasswordLabel: "Confirm password",
+    confirmPasswordPlaceholder: "Enter it again",
+    passwordRecoveryWarning: "There is no password recovery.",
     sidebarEncrypted: "Encrypted",
     sidebarPublic: "Public",
     refreshAlbum: "Refresh",
-    vaultPrivacyTitle: "Privacy",
+    privacyAndStorage: "Privacy & storage",
+    walletPartitionTitle: "Wallet separated",
+    encryptionTitle: "Local encryption",
+    noSyncTitle: "No sync",
+    encryptionNote: "Encrypted photos are ciphertext.",
     localStorageNote: "Photos are saved on your device.",
     step1: "Step 1",
     step2: "Step 2",
@@ -65,10 +86,26 @@ function t(key: string, params?: Record<string, string | number>) {
     decrypt: "Decrypt",
     decrypting: "Decrypting...",
     decryptTitle: "Enter password",
+    decryptHelp: "The password stays in this browser.",
+    password: "Password",
+    cancel: "Cancel",
     deletePhoto: "Delete",
-    createdAt: "Created",
+    deletePhotoConfirm: "Delete this memory?",
+    memoryPreview: "Memory preview",
     albumPhoto: "Photo",
     close: "Close",
+    walletNotConnected: "Connect on save",
+    selectedMemories: "Selected memories",
+    yourMemories: "Your memories",
+    savedOnThisDevice: "{count} saved on this device",
+    privateMemory: "Protected memory",
+    openMemoryLabel: "Device memory",
+    openMemory: "Open memory",
+    openEncryptedMemory: "Unlock encrypted memory",
+    storageNeedsAttention: "Local album needs attention",
+    retry: "Retry",
+    resetAlbum: "Reset local album",
+    resetAlbumConfirm: "Reset this album?",
   };
   let value = messages[key] ?? key;
   if (params) for (const [k, v] of Object.entries(params)) value = value.replaceAll(`{${k}}`, String(v));
@@ -78,6 +115,7 @@ function t(key: string, params?: Record<string, string | number>) {
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
     loadingPhotos: false,
+    processingFiles: false,
     uploading: false,
     showViewer: false,
     showDecrypt: false,
@@ -87,9 +125,17 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     encryptedCount: 0,
     publicCount: 0,
     totalPayloadSize: 0,
-    maxTotalBytes: 61440,
+    maxTotalBytes: 2 * 1024 * 1024,
+    albumPayloadSize: 0,
+    maxAlbumBytes: 3 * 1024 * 1024,
     password: "",
+    passwordConfirm: "",
+    decryptPassword: "",
+    walletAddress: "",
     uploadError: "",
+    storageIssue: "",
+    storageMessage: "",
+    storageNotice: "",
     decryptedPreview: "",
     decryptError: "",
     photos: [],
@@ -111,13 +157,14 @@ describe("Forever Album PlayArea (v2 scene-driven)", () => {
     expect(container.querySelector(".album-dropzone")).toBeNull();
     expect(container.querySelector(".album-workbench__library")).toBeNull();
     expect(container.textContent).toContain("Start with a few light memories");
+    expect(container.textContent).toContain("Back up originals elsewhere");
     expect(container.textContent).not.toContain("📷");
     expect(container.textContent).not.toContain("📎");
   });
 
   it("renders the gallery with saved photos", () => {
     const { container } = render(
-      <PlayArea t={t} state={state({ photos: [{ id: "p1", data: "data:image/png;base64,abc", encrypted: false, createdAt: "2026-01-01" }], photosCount: 1, publicCount: 1 })} dispatch={vi.fn()} />,
+      <PlayArea t={t} state={state({ photos: [{ id: "p1", data: "data:image/png;base64,abc", encrypted: false, createdAt: Date.UTC(2026, 0, 1) }], photosCount: 1, publicCount: 1 })} dispatch={vi.fn()} />,
     );
     expect(container.querySelector(".album-gallery")).toBeTruthy();
     expect(container.querySelectorAll(".album-gallery__item").length).toBe(1);
@@ -126,7 +173,7 @@ describe("Forever Album PlayArea (v2 scene-driven)", () => {
   it("dispatches viewPhoto on gallery click", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
-      <PlayArea t={t} state={state({ photos: [{ id: "p1", data: "data:image/png;base64,abc", encrypted: false, createdAt: "2026-01-01" }] })} dispatch={dispatch} />,
+      <PlayArea t={t} state={state({ photos: [{ id: "p1", data: "data:image/png;base64,abc", encrypted: false, createdAt: Date.UTC(2026, 0, 1) }] })} dispatch={dispatch} />,
     );
     fireEvent.click(container.querySelector(".album-gallery__item") as Element);
     expect(dispatch).toHaveBeenCalledWith("viewPhoto", expect.objectContaining({ id: "p1" }));
@@ -139,7 +186,7 @@ describe("Forever Album PlayArea (v2 scene-driven)", () => {
 
   it("shows selected image frames in the sealing workbench", () => {
     const { container } = render(
-      <PlayArea t={t} state={state({ selectedImages: [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 1024 }] })} dispatch={vi.fn()} />,
+      <PlayArea t={t} state={state({ selectedImages: [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 1024, payloadBytes: 25 }] })} dispatch={vi.fn()} />,
     );
     expect(container.querySelector('.album-workbench[data-state="ready"]')).toBeTruthy();
     expect(container.querySelectorAll(".album-workbench__frame").length).toBe(1);
@@ -158,7 +205,7 @@ describe("Forever Album PlayArea (v2 scene-driven)", () => {
   it("keeps import, privacy, and thumbnail actions wired to state and dispatch", async () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const albumState = state({
-      selectedImages: [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 1024 }],
+      selectedImages: [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 1024, payloadBytes: 25 }],
     });
     const { container } = render(<PlayArea t={t} state={albumState} dispatch={dispatch} />);
 
@@ -180,6 +227,68 @@ describe("Forever Album PlayArea (v2 scene-driven)", () => {
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     expect(container.querySelector(".mx2-drawer--open")).toBeTruthy();
     expect(container.textContent).toContain("device");
+  });
+
+  it("uses the dominant action to open photo selection before a draft exists", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const click = vi.spyOn(input, "click").mockImplementation(() => {});
+    fireEvent.click(container.querySelector(".mx2-action-rail .mx2-btn--primary") as Element);
+    expect(click).toHaveBeenCalledOnce();
+    expect(input.accept).toBe("image/jpeg,image/png,image/webp,image/avif,image/gif");
+  });
+
+  it("keeps encrypted save disabled until both passwords match", () => {
+    const draft = [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 25, payloadBytes: 25 }];
+    const { container, rerender } = render(
+      <PlayArea t={t} state={state({ selectedImages: draft, isEncrypted: true, password: "one", passwordConfirm: "two", totalPayloadSize: 120 })} dispatch={vi.fn()} />,
+    );
+    expect(container.querySelector(".mx2-action-rail .mx2-btn--primary")?.hasAttribute("disabled")).toBe(true);
+
+    rerender(
+      <PlayArea t={t} state={state({ selectedImages: draft, isEncrypted: true, password: "one", passwordConfirm: "one", totalPayloadSize: 120 })} dispatch={vi.fn()} />,
+    );
+    expect(container.querySelector(".mx2-action-rail .mx2-btn--primary")?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it.each(["uploading", "processingFiles"])("freezes file and thumbnail controls while %s is active", (busyState) => {
+    const draft = [{ id: "s1", dataUrl: "data:image/png;base64,abc", size: 25, payloadBytes: 25 }];
+    const { container } = render(
+      <PlayArea t={t} state={state({ selectedImages: draft, [busyState]: true })} dispatch={vi.fn()} />,
+    );
+
+    expect((container.querySelector("input[type='file']") as HTMLInputElement).disabled).toBe(true);
+    expect((container.querySelector(".album-controls__thumb-remove") as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector(".album-import")?.getAttribute("data-disabled")).toBe("true");
+  });
+
+  it("uses the social design token category instead of NFT semantics", () => {
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    expect(container.querySelector(".album-play-area.mx2-cat-social")).toBeTruthy();
+    expect(container.querySelector(".mx2-playstage.mx2-cat-social")).toBeTruthy();
+    expect(container.querySelector(".mx2-cat-nft")).toBeNull();
+  });
+
+  it("renders retry and wallet-scoped reset for damaged storage", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ storageIssue: "corrupt", storageMessage: "Album data is damaged." })} dispatch={dispatch} />,
+    );
+    const buttons = Array.from(container.querySelectorAll(".album-recovery button"));
+    expect(buttons).toHaveLength(2);
+    fireEvent.click(buttons[0]);
+    expect(dispatch).toHaveBeenCalledWith("refreshPhotos");
+  });
+
+  it("uses a separate decrypt password and submits the unlock action", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <PlayArea t={t} state={state({ showDecrypt: true, decryptPassword: "unlock-me", password: "draft-password" })} dispatch={dispatch} />,
+    );
+    const decryptInput = container.querySelector(".album-modal__field input") as HTMLInputElement;
+    expect(decryptInput.value).toBe("unlock-me");
+    fireEvent.submit(container.querySelector(".album-modal__card--decrypt") as HTMLFormElement);
+    expect(dispatch).toHaveBeenCalledWith("handleDecrypt", "unlock-me");
   });
 
   it("keeps motion backed by reduced-motion fallbacks", () => {

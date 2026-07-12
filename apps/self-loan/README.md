@@ -1,116 +1,70 @@
-# SelfLoan — Borrow Against Your Future, Repay With Time
+# SelfLoan
 
-> Lock NEO. Borrow GAS instantly. Your staking rewards repay the loan automatically. Zero liquidation risk, ever.
+SelfLoan is a standalone Neo N3 collateral-loan desk: deposit whole NEO, choose a 20%, 30%, or 40% LTV tier, and receive GAS from an owner-funded pool. The debt has no interest and the deployed contract has no liquidation method. Collateral remains in contract custody until the borrower fully repays the GAS debt.
 
-## What is SelfLoan?
+This is not an auto-repaying or yield-bearing loan. The deployed contract does not vote with collateral, harvest NEO rewards, run a keeper, or consume a live market oracle. New debt is sized from an operator-configured `neoPrice` value stored on-chain.
 
-SelfLoan is an Alchemix-style self-repaying lending protocol built natively on Neo N3. Lock your NEO as collateral, instantly receive GAS against it, and let time do the rest — your NEO continues generating staking rewards (GAS) while locked, and those rewards automatically pay down your loan. When the loan is fully repaid, your NEO unlocks.
+## Product flow
 
-The elegance of SelfLoan is that it's impossible to get liquidated. Unlike traditional DeFi lending where a price drop can wipe out your collateral, SelfLoan's debt is denominated in the same yield your collateral produces. There is no price oracle dependency, no margin calls, no cascading liquidations. You're simply borrowing from your own future yield.
+1. Connect a Neo N3 wallet. The app reads NEO/GAS balances, the active position, recovery credits, LTV tiers, fee, configured price, and pool liquidity.
+2. Choose whole-number NEO collateral and one LTV tier.
+3. Review the exact gross debt, 0.5% origination fee, net GAS disbursement, configured quote, and two-wallet-confirmation route.
+4. Confirm the NEO deposit (`selfloan:collateral`) and then `borrow(borrower, tier)`.
+5. Manage the single active position by partially/fully repaying GAS or adding NEO collateral.
+6. A full repayment releases all locked NEO. A partial repayment reduces debt while collateral stays locked.
 
-Three LTV (Loan-to-Value) tiers let you choose your risk profile: Conservative (20%), Balanced (30%), or Aggressive (40%). Higher LTV means more GAS upfront but slower repayment. A small platform fee (0.5%) is deducted at origination. Keeper automation monitors health factors and sends alerts if anything needs attention.
+Native NEO/GAS transfers do not use an ERC-20-style allowance. Borrow/add-collateral use up to two wallet confirmations. Repayment batches the GAS transfer and `repay` call atomically in one transaction, so a failed second script cannot leave a new standalone repay credit.
 
-## How to Use
+## Fail-closed behavior
 
-1. **Connect Wallet** — Link your Neo N3 wallet containing NEO.
-2. **Choose LTV Tier** — Select Conservative (20%), Balanced (30%), or Aggressive (40%) based on how much GAS you want upfront versus how quickly you want repayment.
-3. **Enter Collateral** — Specify how many NEO to lock (must be whole numbers).
-4. **Take Loan** — Confirm the transaction. GAS is credited to your wallet immediately, minus the 0.5% platform fee.
-5. **Wait & Watch** — Your locked NEO generates GAS staking rewards that automatically repay the loan balance. Monitor progress on the dashboard.
-6. **Manage & Auto-Unlock** — The current miniapp UI focuses on opening and monitoring loans. The contract also supports manual repayment, and your NEO unlocks automatically once debt reaches zero.
+- Quote, fee, pool, wallet balance, position, and recovery-credit reads are validated separately from real zero values. A failed or malformed read disables writes.
+- Every money-moving action refreshes its critical reads before the first transfer.
+- Borrow reviews carry the exact price, fee, LTV, and net disbursement. If any value changes before signing, the action stops for a new review.
+- Existing collateral or repay credit is read exactly. The app transfers only the shortfall and never treats a failed credit read as zero.
+- If a deposit is broadcast but not confirmed, the second contract call is not sent.
+- Broadcast-but-unconfirmed calls are shown as pending, never as success.
+- Before any wallet request, the app pins the selected network, script hash, live NEF checksum `927006627`, update counter `0`, contract name, ABI, and events. Same-address deployment drift disables writes.
+- Every broadcast txid is persisted immediately. Refresh recovery requires the exact event and matching contract-state readback before clearing the journal or enabling another write.
+- A failed borrow/add second step leaves recoverable NEO credit; `withdraw(account)` returns it. The published v1 ABI has `withdrawRepayCredit` but omits its confirmation event, so that legacy GAS-credit recovery control is fail-closed. New repayment no longer creates this risk because it is atomic.
 
-The live borrow path is a two-step wallet flow under the hood:
+## Deployed contract model
 
-1. `NEO.transfer(..., "miniapp-self-loan:collateral")`
-2. `createLoan(...)`
+Both manifest networks currently point to:
 
-The frontend executes both steps for you.
+`0x87f94598c78cb954ca8200d3964ded9b584d7250`
 
-## Key Features
+The live ABI was read from Neo mainnet and testnet on 2026-07-11. User-facing methods are:
 
-- **Zero Liquidation**: Debt is repaid by yield from the same collateral. No price oracle risk, no margin calls.
-- **Instant GAS Liquidity**: Borrow GAS immediately against locked NEO — no waiting for staking rewards to accumulate.
-- **Three LTV Tiers**: Conservative (20%), Balanced (30%), Aggressive (40%) — choose your tradeoff between immediate liquidity and repayment speed.
-- **Self-Repaying**: The loan repays itself over time through NEO staking rewards. Set it and forget it.
-- **Health Factor Dashboard**: Real-time view of your loan health, current LTV, collateral utilization, and repayment progress.
-- **Keeper Monitoring**: Automated health factor monitoring with alerts if intervention is needed.
-- **Low Fee**: Only 0.5% origination fee, deducted at loan creation.
+| Kind | Methods |
+| --- | --- |
+| Reads | `neoPrice`, `pool`, `collateralCreditOf`, `repayCreditOf`, `getLoan`, `ltvTierBps`, `feeBps`, `totalLoans`, `totalBorrowed`, `totalRepaid` |
+| Borrower writes | `borrow(borrower, tier)`, `addCollateral(borrower)`, `repay(borrower)`, `withdraw(account)`, `withdrawRepayCredit(account)` |
+| Token callback | `onNEP17Payment(from, amount, data)` |
+| Owner writes | `setNeoPrice(gasPerNeo)`, `withdrawPool(to, amount)` |
 
-## Technical Architecture
+The live LTV tiers are 2000/3000/4000 bps and the origination fee is 50 bps. `neoPrice` is GAS base units per whole NEO; GAS amounts use 8 decimals while NEO is indivisible.
 
-### Smart Contract
+The published MainNet contract currently reports `3 GAS / NEO` and `5 GAS` of pool liquidity; TestNet reports `5 GAS / NEO` and `2 GAS`. See [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md) and [TESTNET_STATUS.md](./TESTNET_STATUS.md). The current local NEF checksum is different from the published generation and is not represented as deployed.
 
-| Component         | Details                               |
-| ----------------- | ------------------------------------- |
-| **Contract Name** | `MiniAppSelfLoan`                     |
-| **Language**      | C# (Neo N3 Smart Contract)            |
-| **Blockchain**    | Neo N3                                |
-| **LTV Tiers**     | Tier 1: 20%, Tier 2: 30%, Tier 3: 40% |
-| **Platform Fee**  | 0.5% (50 bps) origination, retained by the lending pool |
-| **Min Duration**  | None — repay anytime, no interest     |
-| **Collateral**    | NEO (whole numbers only); held in custody and returned on repayment (no third-party voting) |
-| **Borrow Asset**  | GAS                                   |
+## Recovery semantics
 
-### Service Layer Technologies
+- NEO deposit memo: `selfloan:collateral`
+- GAS repayment memo: `selfloan:repay` (executed in the same transaction as `repay`)
+- Borrow/add consumes all collateral credit associated with the borrower.
+- Repay consumes all GAS repay credit, caps the applied amount at outstanding debt, and refunds excess on-chain. The frontend atomically batches any required shortfall transfer with this call.
+- One active loan is allowed per borrower address.
 
-- **Keeper (Automation)**: Continuously monitors health factors across all active loans. Triggers alerts when health factors approach thresholds and auto-unlocks collateral when loans are fully repaid by accumulated yield.
-
-### Contract Methods
-
-| Method             | Type   | Parameters                          | Description                                     |
-| ------------------ | ------ | ----------------------------------- | ----------------------------------------------- |
-| `CreateLoan`       | Action | `borrower`, `collateral`, `ltvTier` | Lock NEO and receive GAS                        |
-| `GetLoanDetails`   | Query  | `loanId`                            | Get loan status (collateral, debt, active, LTV) |
-| `GetPlatformStats` | Query  | —                                   | Get platform LTV tiers, min duration, fee       |
-| `RepayDebt`        | Action | `loanId`, `payer`, `amount` | Contract-level manual repayment path using direct prepaid GAS |
-
-## Getting Started
+## Local development
 
 ```bash
-# Navigate to the app directory
-cd miniapps/apps/self-loan
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production (H5)
+cd apps/self-loan
+npm run test
 npm run build
+npm run dev -- --port 5346
 ```
 
-## Contract Addresses
-
-| Network | Address                                      |
-| ------- | -------------------------------------------- |
-| Testnet | `0xd097c63ea89251d23632826ebed99a7e7ce536f7` |
-| Mainnet | `0x942da575b31f39cbb59e64b5813b128739b44c25` |
-
-### Explorer Links
-
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xd097c63ea89251d23632826ebed99a7e7ce536f7)
-- **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x942da575b31f39cbb59e64b5813b128739b44c25)
-
-## Domains
-
-- Mainnet domain: `selfloan.miniapp.neo`
-
-## Tech Stack
-
-| Layer             | Technology                   |
-| ----------------- | ---------------------------- |
-| Frontend          | Host-native React + TypeScript |
-| Smart Contract    | C# / Neo N3                  |
-| Health Monitoring | Keeper (Automated Alerts)    |
-| Collateral        | NEO (Staking Yield → GAS)    |
-
-## Latest Testnet Validation
-
-- Borrow collateral transfer tx: `0xb2597e1f0ccb16e14b5b97b0f1788084ea83c6fbd2da185323cdb002783e9ac9`
-- Borrow create-loan tx: `0xd3efe7e23da846911b45784737f2c754eb866f3ad81b6724630f0bbaf2892f3f`
-- Result: `loanId = 1`, `collateral = 1 NEO`, `debt = 0.2 GAS`
+The UI uses the shared Neo Press Kit NEO/GAS token assets. The old generated scene files in `public/` are not used because they contain non-official token marks.
 
 ## License
 
-MIT License — R3E Network
+MIT — R3E Network

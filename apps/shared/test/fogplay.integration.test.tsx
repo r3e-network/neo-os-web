@@ -1,51 +1,112 @@
 import React from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservable, type ObservableState } from "../react/context";
-import PlayArea from "../../fogplay/src/PlayArea";
+
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
-afterEach(() => cleanup());
-function t(k: string) { const m: Record<string,string> = { title:"Coin Flip", heads:"Heads", tails:"Tails", wager:"Flip", tapToPlay:"Pull", totalMachines:"M", wins:"W", totalGames:"G", totalWon:"Won", choiceHeader:"Pick", betHeader:"Bet", committing:"Flipping", youWon:"Won", youLost:"Lost", timelineResultReady:"Reveal", commitPendingRetry:"Pending", displayOutcome:"Result", betPlacedRevealing:"Revealing", pull:"Pull", pulling:"Pulling", commitRevealTimeline:"Flow", timelineCommit:"Commit", timelineReveal:"Reveal", timelineNeedsRetry:"Retry", wagerRange:"Max", resetGame:"Reset", creditWithdrawn:"Withdrawn", withdrawCredit:"Withdraw" }; return m[k] ?? k; }
-function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
-  const b: Record<string, unknown> = { wins:0, losses:0, totalGames:0, formattedTotalWon:"0", betAmount:"0.5", choice:"heads", isFlipping:false, revealing:false, result:"", displayOutcome:"", showWinOverlay:false, winAmount:"", validationError:"", canBet:true, hasPendingBet:false, revealFailed:false, gameHistory:[], formattedCredit:"0", hasCredit:false, formattedMaxPayable:"5", ...o };
-  return Object.fromEntries(Object.entries(b).map(([k, v]) => [k, createObservable(v)]));
+
+const mocks = vi.hoisted(() => ({ phaserGame: vi.fn() }));
+vi.mock("@framework/phaser/LazyPhaserGameComponent", () => ({
+  LazyPhaserGameComponent: (props: unknown) => {
+    mocks.phaserGame(props);
+    return <div data-testid="fogplay-phaser-host" />;
+  },
+}));
+
+import PlayArea from "../../fogplay/src/PlayArea";
+
+afterEach(() => {
+  cleanup();
+  mocks.phaserGame.mockClear();
+});
+
+function t(key: string): string {
+  const messages: Record<string, string> = {
+    appEyebrow: "FogPlay",
+    guestSubtitle: "Local coin streak",
+    guestModeBadge: "Local play",
+    choiceHeader: "Pick",
+    heads: "Heads",
+    tails: "Tails",
+    guestStreak: "Streak",
+    wins: "Wins",
+    losses: "Losses",
+    totalGames: "Games",
+    gameHistory: "Recent games",
+    flipCta: "Flip",
+    playAgain: "Again",
+    revealResult: "Reveal",
+    title: "FogPlay",
+  };
+  return messages[key] ?? key;
 }
-describe("fogplay integration: dispatch params + state", () => {
-  it("dispatches placeBet when user flips with bet amount 0.5 and choice heads", async () => {
+
+function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+  const base: Record<string, unknown> = {
+    mode: "guest",
+    streak: 0,
+    wins: 0,
+    losses: 0,
+    totalGames: 0,
+    formattedTotalWon: "0 GAS",
+    betAmount: "1",
+    choice: "heads",
+    isFlipping: false,
+    revealing: false,
+    result: null,
+    displayOutcome: "",
+    showWinOverlay: false,
+    winAmount: "",
+    validationError: "",
+    canBet: true,
+    hasPendingBet: false,
+    revealFailed: false,
+    gameHistory: [],
+    formattedCredit: "0 GAS",
+    hasCredit: false,
+    formattedMaxPayable: "0 GAS",
+    bankrollAvailable: true,
+  };
+  return Object.fromEntries(
+    Object.entries({ ...base, ...overrides }).map(([key, value]) => [key, createObservable(value)]),
+  );
+}
+
+describe("FogPlay Phaser integration", () => {
+  it("dispatches the semantic heads/tails and primary controls", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("placeBet"));
-  });
-  it("dispatches setChoice with 'tails' when tails selected", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    fireEvent.click(container.querySelectorAll(".fogplay-choice-btn")[1]);
+    const { getByRole } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
+
+    fireEvent.click(getByRole("radio", { name: "Tails" }));
+    fireEvent.click(getByRole("button", { name: "Flip" }));
+
     expect(dispatch).toHaveBeenCalledWith("setChoice", "tails");
+    expect(dispatch).toHaveBeenCalledWith("placeBet");
   });
-  it("dispatchs setBetAmount with preset value", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state()} dispatch={dispatch} />);
-    fireEvent.click(container.querySelectorAll(".fogplay-bet-chip")[3]); // "50"
-    expect(dispatch).toHaveBeenCalledWith("setBetAmount", "50");
+
+  it("routes settled and pending states to the correct recovery action", () => {
+    const reset = vi.fn().mockResolvedValue(undefined);
+    const settled = render(
+      <PlayArea t={t} state={state({ result: { won: true, outcome: "HEADS" }, displayOutcome: "heads" })} dispatch={reset} />,
+    );
+    fireEvent.click(settled.getByRole("button", { name: "Again" }));
+    expect(reset).toHaveBeenCalledWith("resetGame");
+    settled.unmount();
+
+    const reveal = vi.fn().mockResolvedValue(undefined);
+    const pending = render(
+      <PlayArea t={t} state={state({ hasPendingBet: true, revealFailed: true, canBet: false })} dispatch={reveal} />,
+    );
+    fireEvent.click(pending.getByRole("button", { name: "Reveal" }));
+    expect(reveal).toHaveBeenCalledWith("revealResult");
   });
-  it("dispatchs revealResult when hasPendingBet is true", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state({ hasPendingBet:true, canBet:false })} dispatch={dispatch} />);
-    fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
-    await waitFor(() => expect(dispatch).toHaveBeenCalledWith("revealResult"));
-  });
-  it("dispatchs withdrawCredit when hasCredit", async () => {
-    const dispatch = vi.fn().mockResolvedValue(undefined);
-    const { container } = render(<PlayArea t={t} state={state({ hasCredit:true, showResult:true, result:"won" })} dispatch={dispatch} />);
-    const withdrawBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Withdraw"));
-    expect(withdrawBtn).toBeTruthy();
-    fireEvent.click(withdrawBtn!);
-    expect(dispatch).toHaveBeenCalledWith("withdrawCredit");
-  });
-  it("disables bet when canBet is false", () => {
-    const { container } = render(<PlayArea t={t} state={state({ canBet:false })} dispatch={vi.fn()} />);
-    const btn = container.querySelector(".mx2-btn--primary") as HTMLButtonElement;
-    expect(btn.disabled).toBe(true);
+
+  it("passes localized recovery and sound controls to the Phaser host", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const props = mocks.phaserGame.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(props.continueLabel).toBe("Continue");
+    expect(props.enableSoundLabel).toBe("Enable game sound");
+    expect(props.muteSoundLabel).toBe("Mute game sound");
+    expect((props.state as Record<string, unknown>).isGuest).toBe(true);
   });
 });

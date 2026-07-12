@@ -436,4 +436,3 @@ export const hashToRistretto255 = (msg, options) => {
     return P;
 };
 export const hash_to_ristretto255 = hashToRistretto255; // legacy
-//# sourceMappingURL=ed25519.js.map

@@ -5,6 +5,7 @@ import { createGuestEngine } from "../../jump-rush/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../jump-rush/src/logic/guest-engine";
 import type { LeaderEntry, RunRow } from "../../jump-rush/src/main";
 import { MAX_UNDOS, ruleOf } from "../../jump-rush/src/logic/game-rules";
+import type { Platform } from "../../jump-rush/src/logic/jump-engine";
 
 /**
  * Guest engine tests for Jump Rush.
@@ -20,11 +21,11 @@ function makeObs<T>(initial: T) {
   return createObservable<T>(initial);
 }
 
-function setup() {
+function setup(sharedStorage = new Map<string, unknown>()) {
   const gameStatus = makeObs("idle");
   const activeGameId = makeObs("0");
   const gameDifficulty = makeObs(0);
-  const platformsView = makeObs<number[]>([]);
+  const platformsView = makeObs<Platform[]>([]);
   const commitment = makeObs("");
   const dealtAt = makeObs(0);
   const deadline = makeObs(0);
@@ -54,6 +55,14 @@ function setup() {
   const board: Array<{ user: string; score: string }> = [];
   const get = vi.fn(async (_limit?: number) => board.slice());
   const guestLeaderboard = { submit, get };
+  const storageData = sharedStorage;
+  const storage = {
+    get<T>(key: string, fallback?: T | null): T | null {
+      return (storageData.has(key) ? storageData.get(key) : (fallback ?? null)) as T | null;
+    },
+    set: vi.fn((key: string, value: unknown) => { storageData.set(key, value); }),
+    delete: vi.fn((key: string) => { storageData.delete(key); }),
+  };
 
   const setStatus = vi.fn();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -89,6 +98,7 @@ function setup() {
     isJumping,
     missedPlatform,
     guestLeaderboard,
+    storage,
     t,
     setStatus,
   };
@@ -97,7 +107,8 @@ function setup() {
     engine, submit, get, board, setStatus,
     gameStatus, activeGameId, commitment, platformsView, dealtAt, deadline,
     undosUsed, lastPayout, lastElapsedMs, leaderboard, myRank, myTotalWon,
-    myRuns, myHistory, jumpCount,
+    myRuns, myHistory, jumpCount, currentPlatform, perfectCount, comboCount,
+    missedPlatform, storage, storageData,
   };
 }
 
@@ -110,8 +121,9 @@ describe("jump-rush guest engine", () => {
     expect(h.activeGameId.get()).toBe("guest");
     expect(h.commitment.get()).toBe(""); // no on-chain commitment in guest
     const view = h.platformsView.get();
-    expect(view.length).toBe(Math.min(15, ruleOf(0).targetJumps)); // easy → 10 bytes
-    expect(view.every((b) => b >= 0 && b <= 255)).toBe(true);
+    expect(view.length).toBe(ruleOf(0).targetJumps + 1);
+    expect(view[0]).toMatchObject({ x: 60, width: 120, gap: 0 });
+    expect(view.slice(1).every((platform) => platform.gap >= 60 && platform.gap <= 120)).toBe(true);
     expect(h.deadline.get() - h.dealtAt.get()).toBe(ruleOf(0).limitMs);
     // Dealing a route never touches the off-chain board.
     expect(h.submit).not.toHaveBeenCalled();
@@ -121,24 +133,55 @@ describe("jump-rush guest engine", () => {
   it("generates a distinct route each run (local RNG seed)", () => {
     const h = setup();
     h.engine.startGame(2);
-    const first = h.platformsView.get().join(",");
+    const first = JSON.stringify(h.platformsView.get());
     // Force a re-deal from a clean lobby.
     h.engine.expireGame();
     h.engine.startGame(2);
-    const second = h.platformsView.get().join(",");
+    const second = JSON.stringify(h.platformsView.get());
     expect(second).not.toBe(first);
   });
 
-  it("tracks cleared jumps forward-only and writes nothing while jumping", () => {
+  it("does not repeat the first 16-platform pattern on long local routes", () => {
+    const h = setup();
+    h.engine.startGame(2);
+    const route = h.platformsView.get();
+    const firstBand = route.slice(1, 15).map(({ width, gap }) => ({ width, gap }));
+    const secondBand = route.slice(17, 31).map(({ width, gap }) => ({ width, gap }));
+
+    expect(secondBand).not.toEqual(firstBand);
+  });
+
+  it.each([
+    { difficulty: 0, minGap: 60, maxGap: 120 },
+    { difficulty: 1, minGap: 100, maxGap: 180 },
+    { difficulty: 2, minGap: 140, maxGap: 260 },
+  ])(
+    "deals the full target route for difficulty $difficulty",
+    ({ difficulty, minGap, maxGap }) => {
+      const h = setup();
+      h.engine.startGame(difficulty);
+      const route = h.platformsView.get();
+
+      expect(route).toHaveLength(ruleOf(difficulty).targetJumps + 1);
+      expect(route.slice(1).every((platform) => platform.gap >= minGap && platform.gap <= maxGap)).toBe(true);
+    },
+  );
+
+  it("accepts only sequential landed jumps and tracks perfect combos", () => {
     const h = setup();
     h.engine.startGame(0);
-    h.engine.recordJump(3);
-    expect(h.jumpCount.get()).toBe(3);
-    // A lower/replayed index never rewinds the tracked progress.
-    h.engine.recordJump(2);
-    expect(h.jumpCount.get()).toBe(3);
-    h.engine.recordJump(5);
-    expect(h.jumpCount.get()).toBe(5);
+    h.engine.recordJump(3, true, false); // cannot skip ahead
+    expect(h.jumpCount.get()).toBe(0);
+    h.engine.recordJump(1, true, true);
+    expect(h.jumpCount.get()).toBe(1);
+    expect(h.currentPlatform.get()).toBe(1);
+    expect(h.perfectCount.get()).toBe(1);
+    expect(h.comboCount.get()).toBe(1);
+    h.engine.recordJump(1, true, true); // replay ignored
+    expect(h.jumpCount.get()).toBe(1);
+    h.engine.recordJump(2, true, false);
+    expect(h.jumpCount.get()).toBe(2);
+    expect(h.comboCount.get()).toBe(0);
     // Jumping is a local, off-chain-free operation (guard-never-fires analog).
     expect(h.submit).not.toHaveBeenCalled();
   });
@@ -158,34 +201,59 @@ describe("jump-rush guest engine", () => {
     expect(h.submit).not.toHaveBeenCalled();
   });
 
+  it("marks a miss and lets undo re-arm the local run", () => {
+    const h = setup();
+    h.engine.startGame(0);
+    h.engine.recordJump(1, false, false);
+    expect(h.missedPlatform.get()).toBe(true);
+    expect(h.jumpCount.get()).toBe(0);
+    h.engine.useUndo();
+    expect(h.missedPlatform.get()).toBe(false);
+    expect(h.undosUsed.get()).toBe(1);
+  });
+
   it("submitRun records the cleared-jump count off-chain and returns to lobby", async () => {
     const h = setup();
     h.engine.startGame(0);
-    h.engine.recordJump(7);
+    for (let index = 1; index <= ruleOf(0).targetJumps; index += 1) {
+      h.engine.recordJump(index, true, index % 2 === 0);
+    }
 
     await h.engine.submitRun();
 
     expect(h.gameStatus.get()).toBe("solved");
     expect(h.activeGameId.get()).toBe("0");
     expect(h.submit).toHaveBeenCalledTimes(1);
-    expect(h.submit).toHaveBeenCalledWith(7); // jumps cleared, not GAS
+    expect(h.submit).toHaveBeenCalledWith(ruleOf(0).targetJumps); // jumps cleared, not GAS
     expect(h.get).toHaveBeenCalled(); // guest board refreshed after settle
-    expect(h.lastPayout.get()).toBe("7");
-    expect(h.myTotalWon.get()).toBe(7); // best run, not GAS
+    expect(h.lastPayout.get()).toBe(String(ruleOf(0).targetJumps));
+    expect(h.myTotalWon.get()).toBe(ruleOf(0).targetJumps); // best run, not GAS
     expect(h.myRuns.get()).toBe(1);
+    expect(h.storage.set).toHaveBeenCalledWith("guest:profile", {
+      bestJumps: ruleOf(0).targetJumps,
+      runs: 1,
+      history: [expect.objectContaining({
+        difficulty: 0,
+        jumps: ruleOf(0).targetJumps,
+        perfects: 5,
+      })],
+    });
+    expect(h.myHistory.get()).toHaveLength(1);
   });
 
-  it("falls back to the route length when no jumps were recorded on submit", async () => {
+  it("blocks an incomplete direct submit instead of awarding the route length", async () => {
     const h = setup();
-    h.engine.startGame(1); // medium → 15-byte route
+    h.engine.startGame(1);
     await h.engine.submitRun();
-    expect(h.submit).toHaveBeenCalledWith(Math.min(15, ruleOf(1).targetJumps));
+    expect(h.submit).not.toHaveBeenCalled();
+    expect(h.gameStatus.get()).toBe("dealt");
+    expect(h.setStatus).toHaveBeenCalledWith("statusBoardIncomplete", "info");
   });
 
   it("expireGame resets to a clean local lobby", () => {
     const h = setup();
     h.engine.startGame(0);
-    h.engine.recordJump(4);
+    h.engine.recordJump(1, true, false);
     h.engine.expireGame();
     expect(h.gameStatus.get()).toBe("idle");
     expect(h.activeGameId.get()).toBe("0");
@@ -213,6 +281,51 @@ describe("jump-rush guest engine", () => {
     expect(h.submit).not.toHaveBeenCalled();
   });
 
+  it("restores local best and runs from framework storage", async () => {
+    const h = setup();
+    h.storageData.set("guest:profile", { bestJumps: 20, runs: 4 });
+    await h.engine.enter();
+    expect(h.myTotalWon.get()).toBe(20);
+    expect(h.myRuns.get()).toBe(4);
+  });
+
+  it("restores an unfinished local run with progress, miss state, and deadline", async () => {
+    const sharedStorage = new Map<string, unknown>();
+    const first = setup(sharedStorage);
+    first.engine.startGame(0);
+    first.engine.recordJump(1, true, true);
+    first.engine.recordJump(2, true, false);
+    first.engine.recordJump(3, false, false);
+    const originalRoute = first.platformsView.get();
+    const originalDeadline = first.deadline.get();
+
+    const recovered = setup(sharedStorage);
+    await recovered.engine.enter();
+
+    expect(recovered.gameStatus.get()).toBe("dealt");
+    expect(recovered.activeGameId.get()).toBe("guest");
+    expect(recovered.platformsView.get()).toEqual(originalRoute);
+    expect(recovered.deadline.get()).toBe(originalDeadline);
+    expect(recovered.jumpCount.get()).toBe(2);
+    expect(recovered.currentPlatform.get()).toBe(2);
+    expect(recovered.perfectCount.get()).toBe(1);
+    expect(recovered.missedPlatform.get()).toBe(true);
+  });
+
+  it("discards malformed or expired recovery data instead of reviving a broken run", async () => {
+    const sharedStorage = new Map<string, unknown>([[
+      "guest:active-run/v1",
+      { version: 1, difficulty: 0, deadline: Date.now() - 1 },
+    ]]);
+    const h = setup(sharedStorage);
+
+    await h.engine.enter();
+
+    expect(h.gameStatus.get()).toBe("idle");
+    expect(h.activeGameId.get()).toBe("0");
+    expect(sharedStorage.has("guest:active-run/v1")).toBe(false);
+  });
+
   it("maps the off-chain guest board into ranked leaderboard entries", async () => {
     const h = setup();
     h.board.push({ user: "NplayerA", score: "8" });
@@ -226,5 +339,19 @@ describe("jump-rush guest engine", () => {
     expect(ranked[0]?.totalWon).toBe(15);
     expect(ranked[0]?.rank).toBe(1);
     expect(ranked[1]?.rank).toBe(2);
+  });
+
+  it("drops malformed off-chain scores instead of rendering impossible rankings", async () => {
+    const h = setup();
+    h.board.push({ user: "Nvalid", score: "12" });
+    h.board.push({ user: "Ninfinite", score: "Infinity" });
+    h.board.push({ user: "Nnegative", score: "-4" });
+    h.board.push({ user: "", score: "9" });
+
+    await h.engine.refreshLeaderboard();
+
+    expect(h.leaderboard.get()).toEqual([
+      expect.objectContaining({ rank: 1, address: "Nvalid", totalWon: 12 }),
+    ]);
   });
 });

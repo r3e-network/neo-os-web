@@ -3,9 +3,9 @@
   "id": "miniapp-gasbox",
   "name": "GASBOX",
   "name_zh": "GASBOX",
-  "version": "2.0.0",
-  "description": "Ultra-low-cost pulls (e.g. 0.1 GAS) for a chance to win NEO or GAS from on-chain prize pools. Addictive gacha-style fun with provably-fair, weighted on-chain draws.",
-  "description_zh": "GAS盲盒 — 超低成本抽取（0.1 GAS 起），从链上奖池中赢取 NEO 或 GAS。可验证公平、按权重链上抽取的去中心化盲盒玩法。",
+  "version": "2.1.0",
+  "description": "An on-chain NEO/GAS capsule counter in browse-and-recovery mode. New paid writes remain paused until the fixed-beacon GasBox contract is deployed and this binding is updated.",
+  "description_zh": "链上 NEO/GAS 扭蛋柜台当前处于浏览与恢复模式。固定区块信标版 GasBox 合约部署并更新绑定前，新的付费写操作保持暂停。",
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
@@ -42,7 +42,7 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://gasbox"
   },
@@ -53,6 +53,11 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "GasBox capsule counter",
+    "subtitle": "Browse exact machine economics and recover existing player or creator funds. New pulls, publishing, pool top-ups and activation are paused for this deployment.",
+    "operations": []
+  },
   "platform": {
     "analytics": true,
     "comments": true,
@@ -60,59 +65,25 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-05-08T13:07:29Z",
-  "featured": true,
+  "updatedAt": "2026-07-12T00:00:00Z",
+  "featured": false,
   "featured_order": 7,
   "technologies": {
     "oracle": {
       "enabled": false,
-      "description": "No off-chain oracle. The draw uses on-chain commit/reveal randomness (a later block's Runtime.GetRandom), settled by a permissionless reveal."
+      "description": "No off-chain oracle. The replacement source uses a fixed commitIndex+1 block hash, but that artifact is not the currently bound deployment."
     },
     "vrf": {
-      "enabled": true,
-      "description": "Provably-fair on-chain randomness via commit/reveal: the outcome is fixed by a later block's Runtime.GetRandom, so it is unknowable at bet time and cannot be aborted on a loss"
+      "enabled": false,
+      "description": "The live contract does not use VRF. Paid writes are paused because the bound deployment predates the fixed-beacon replacement source."
     },
     "aa": {
       "enabled": false,
       "description": "AA rapid-draw integration is planned but is not the live testnet flow"
     },
     "keeper": {
-      "enabled": true,
-      "description": "Auto-broadcasts big win announcements and triggers fireworks",
-      "conditions": [
-        "big_win_event"
-      ]
+      "enabled": false,
+      "description": "Settlement is permissionless and the frontend exposes explicit reveal recovery; no production keeper is advertised."
     }
-  },
-  "runtime": {
-    "mode": "platform",
-    "modules": [
-      {
-        "binding": "gacha",
-        "platform": "PlatformGame",
-        "appId": "miniapp-gasbox",
-        "moduleType": 3,
-        "registration": {
-          "method": "registerGame",
-          "type": 3
-        },
-        "operations": {
-          "create_machine": "createGachaMachine",
-          "pull": "pullGacha",
-          "machine": "getGachaMachine"
-        },
-        "networks": {
-          "neo-n3-mainnet": {
-            "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
-            "registered": true,
-            "domain": "gasbox.miniapp.neo"
-          },
-          "neo-n3-testnet": {
-            "contract_hash": "0x30e9d4a4758827361c3b51a0e8460b067e58b1db",
-            "registered": true
-          }
-        }
-      }
-    ]
   }
 }

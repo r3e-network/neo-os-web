@@ -3,9 +3,9 @@
   "id": "miniapp-automation-copilot",
   "name": "Automation Copilot",
   "name_zh": "自动化副驾驶",
-  "version": "1.0.0",
-  "description": "User-facing console for creating and operating datafeed-backed automation triggers.",
-  "description_zh": "用于创建并操作数据驱动自动化触发器的用户侧控制台。",
+  "version": "1.1.0",
+  "description": "Visual studio for composing and operating Morpheus price-triggered automation recipes.",
+  "description_zh": "用于编排并操作 Morpheus 价格触发自动化配方的可视化工作室。",
   "category": "data",
   "category_name": "Data",
   "category_name_zh": "数据",
@@ -36,17 +36,14 @@
     "automation:trigger"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://automation-copilot"
   },
-  "stateSource": {
-    "type": "api",
-    "chain": "neo-n3-mainnet",
-    "endpoints": [
-      "/api/edge/automation-triggers",
-      "https://api.n3index.dev"
-    ]
+  "operation_panel": {
+    "title": "Automation studio",
+    "subtitle": "Choose, tune, register, and operate recipes inside the designed MiniApp workspace.",
+    "operations": []
   },
   "platform": {
     "analytics": true,
@@ -55,5 +52,5 @@
     "transactions": false
   },
   "createdAt": "2026-03-27T00:00:00Z",
-  "updatedAt": "2026-06-01T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

@@ -1,13 +1,4 @@
-/**
- * Dev Tipping — Entry Point (React)
- *
- * Drives the standalone on-chain contract (MiniAppTipJar) directly via the
- * framework chain layer. The earlier path read a developer registry from
- * ctx.os.storage that no contract wrote and deposited tips through
- * ctx.os.payment (which moved nothing once the kernel degraded). The registry,
- * tip ledger, and totals are now read straight from chain, and tips/register/
- * withdraw are signed contract calls.
- */
+/** Developer Tipping standalone entrypoint. */
 
 import { defineMiniApp, createObservable, refsToObservables } from "@shared/react";
 import { ownerMatchesAddress } from "@shared/utils/neo";
@@ -15,7 +6,14 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useDevTippingStats } from "./composables/useDevTippingStats";
-import { useDevTippingWallet } from "./composables/useDevTippingWallet";
+import {
+  useDevTippingWallet,
+  type DevTippingActionOutcome,
+} from "./composables/useDevTippingWallet";
+import {
+  attestDevTippingContract,
+  readDevTippingExecutionState,
+} from "./dev-tipping-rpc";
 
 defineMiniApp({
   appId: "miniapp-dev-tipping",
@@ -25,128 +23,238 @@ defineMiniApp({
 
   setup(ctx) {
     const t = ctx.t as (key: string, params?: Record<string, string | number>) => string;
-
-    const stats = useDevTippingStats({
-      app: ctx.framework,
-      t,
-    });
-
+    const stats = useDevTippingStats({ app: ctx.framework, t });
     const wallet = useDevTippingWallet({
       app: ctx.framework,
       t,
+      launchNetwork: ctx.launchContext?.network,
+      attestContract: attestDevTippingContract,
+      readExecutionState: readDevTippingExecutionState,
     });
 
     const developerCount = createObservable(0);
-    const totalDonatedDisplay = createObservable("0 GAS");
+    const totalDonatedDisplay = createObservable("—");
     const recentTipCount = createObservable(0);
-    // The devId owned by the connected wallet (0 = not registered) and that
-    // developer's claimable balance in human GAS — drive the register/withdraw UI.
     const myDeveloperId = createObservable(0);
     const myClaimableBalance = createObservable(0);
-    // Connected wallet's stranded tip credit (human GAS) — drives the reclaim row.
+    const myClaimableBalanceDisplay = createObservable("—");
+    const hasClaimableBalance = createObservable(false);
     const myCredit = createObservable(0);
-    // Drives the in-card Connect Wallet button's loading state in the Developer
-    // Zone (the connect prompt was previously a dead label).
+    const myCreditDisplay = createObservable("—");
+    const hasCredit = createObservable(false);
+    const gasBalanceDisplay = createObservable("—");
+    const walletReadStatus = createObservable<"idle" | "loading" | "ready" | "error">("idle");
+    const walletReadError = createObservable("");
     const isConnecting = createObservable(false);
+    let refreshGeneration = 0;
 
-    const syncMyDeveloper = () => {
-      const addr = wallet.address.get();
-      const devId = myDeveloperId.get();
-      const mine = devId > 0 ? stats.developers.get().find((dev) => dev.id === devId) : undefined;
-      myClaimableBalance.set(mine ? mine.balance : 0);
-      // Defensive: if the registry resolves the wallet's dev by address but the
-      // id lookup hasn't run yet, keep balance consistent with the registry. The
-      // developer wallet comes back as a Hash160 ('0x…' hex) while addr is the
-      // base58 address — ownerMatchesAddress normalizes both before comparing (a
-      // raw `dev.wallet === addr` never matched, so this branch was dead).
-      if (devId <= 0 && addr) {
-        const byWallet = stats.developers.get().find(
-          (dev) => dev.wallet && ownerMatchesAddress(dev.wallet, addr),
+    const clearWalletSnapshot = () => {
+      myDeveloperId.set(0);
+      myClaimableBalance.set(0);
+      myClaimableBalanceDisplay.set("—");
+      hasClaimableBalance.set(false);
+      myCredit.set(0);
+      myCreditDisplay.set("—");
+      hasCredit.set(false);
+      gasBalanceDisplay.set("—");
+      walletReadStatus.set("idle");
+      walletReadError.set("");
+    };
+
+    const syncMyDeveloper = (address: string) => {
+      const developerId = myDeveloperId.get();
+      let registered = developerId > 0
+        ? stats.developers.get().find((developer) => developer.id === developerId)
+        : undefined;
+      if (!registered && address) {
+        registered = stats.developers.get().find(
+          (developer) => developer.wallet && ownerMatchesAddress(developer.wallet, address),
         );
-        if (byWallet) {
-          myDeveloperId.set(byWallet.id);
-          myClaimableBalance.set(byWallet.balance);
+        if (registered) myDeveloperId.set(registered.id);
+      }
+      if (!registered) {
+        myClaimableBalance.set(0);
+        myClaimableBalanceDisplay.set("0 GAS");
+        hasClaimableBalance.set(false);
+        return;
+      }
+      const balanceBase = BigInt(registered.balanceBase);
+      myClaimableBalance.set(registered.balance);
+      myClaimableBalanceDisplay.set(
+        `${ctx.framework.amount.fixed8ToGas(balanceBase, 8)} GAS`,
+      );
+      hasClaimableBalance.set(balanceBase > 0n);
+    };
+
+    const loadWalletSnapshot = async (
+      address: string,
+      generation: number,
+    ): Promise<boolean> => {
+      walletReadStatus.set("loading");
+      walletReadError.set("");
+      try {
+        const snapshot = await stats.loadWalletSnapshot(address);
+        if (
+          generation !== refreshGeneration
+          || !ownerMatchesAddress(ctx.framework.chain.address.get() ?? "", address)
+        ) return false;
+        myDeveloperId.set(snapshot.developerId);
+        const creditGas = Number(snapshot.creditBase) / 1e8;
+        myCredit.set(Number.isFinite(creditGas) ? creditGas : Number.MAX_VALUE);
+        myCreditDisplay.set(`${ctx.framework.amount.fixed8ToGas(snapshot.creditBase, 8)} GAS`);
+        hasCredit.set(snapshot.creditBase > 0n);
+        gasBalanceDisplay.set(`${ctx.framework.amount.fixed8ToGas(snapshot.gasBalanceBase, 8)} GAS`);
+        walletReadStatus.set("ready");
+        return true;
+      } catch (error) {
+        if (generation === refreshGeneration) {
+          walletReadStatus.set("error");
+          walletReadError.set(t("walletSnapshotUnavailable"));
         }
+        throw error;
       }
     };
 
-    const refresh = async () => {
+    const refresh = async (): Promise<boolean> => {
+      const generation = ++refreshGeneration;
+      const addressAtStart = wallet.address.get() ?? "";
+      await wallet.refreshRuntime(addressAtStart || null);
+      if (generation !== refreshGeneration) return false;
+      if (!wallet.runtimeCompatible.get()) {
+        throw new Error(wallet.runtimeError.get() || t("runtimeUnavailable"));
+      }
+
       await stats.loadDevelopers();
+      if (generation !== refreshGeneration) return false;
       await stats.loadRecentTips();
+      if (generation !== refreshGeneration) return false;
       developerCount.set(stats.developers.get().length);
-      totalDonatedDisplay.set(`${stats.formatNum(stats.totalDonated.get())} GAS`);
+      totalDonatedDisplay.set(
+        `${ctx.framework.amount.fixed8ToGas(stats.totalDonatedBase.get(), 8)} GAS`,
+      );
       recentTipCount.set(stats.recentTips.get().length);
 
-      const addr = wallet.address.get();
-      if (addr) {
-        myDeveloperId.set(await stats.developerIdOf(addr));
-        myCredit.set(await stats.creditOf(addr));
-      } else {
-        myDeveloperId.set(0);
-        myCredit.set(0);
+      if (!addressAtStart) {
+        clearWalletSnapshot();
+        wallet.clearRecoveryView();
+        return true;
       }
-      syncMyDeveloper();
+      if (!ownerMatchesAddress(wallet.address.get() ?? "", addressAtStart)) return false;
+      if (!await loadWalletSnapshot(addressAtStart, generation)) return false;
+      syncMyDeveloper(addressAtStart);
+      await wallet.restoreRecovery();
+      return generation === refreshGeneration;
     };
 
-    // Connect the wallet from the Developer Zone. Reuses the existing wallet
-    // connect mechanism (app.chain.ensureWallet — the same path the
-    // tip/register/withdraw flows already drive); no new connect logic.
+    const refreshAfterWrite = async () => {
+      try {
+        await refresh();
+      } catch {
+        ctx.framework.notify.info("dataRefreshPending");
+      }
+    };
+
+    const runWrite = async (
+      work: () => Promise<DevTippingActionOutcome>,
+      successKey: string,
+    ): Promise<DevTippingActionOutcome | false> => {
+      if (isConnecting.get()) {
+        ctx.framework.notify.info("operationBusy");
+        return false;
+      }
+      const result = await ctx.framework.notify.guardResult(work);
+      if (!result.ok) return false;
+      if (result.value === "confirmed") {
+        ctx.framework.notify.success(successKey);
+        await refreshAfterWrite();
+      } else {
+        ctx.framework.notify.info("receiptPending");
+      }
+      return result.value;
+    };
+
     ctx.framework.actions.register("connect", async () => {
-      if (isConnecting.get()) return false;
+      if (
+        isConnecting.get()
+        || wallet.isLoading.get()
+        || wallet.isRegistering.get()
+        || wallet.isWithdrawing.get()
+        || wallet.isRecovering.get()
+      ) {
+        ctx.framework.notify.info("operationBusy");
+        return false;
+      }
       isConnecting.set(true);
       try {
-        const addr = await ctx.framework.notify.guard(
-          () => ctx.framework.chain.ensureWallet(),
-          { successKey: "walletConnected", errorKey: "connectFailed" },
-        );
-        if (addr) await refresh();
-        return Boolean(addr);
+        const result = await ctx.framework.notify.guardResult(async () => {
+          const address = await ctx.framework.chain.ensureWallet();
+          if (!address) throw new Error(t("walletNotConnected"));
+          return address;
+        });
+        if (!result.ok) return false;
+        ctx.framework.notify.success("walletConnected");
+        await refreshAfterWrite();
+        return true;
       } finally {
         isConnecting.set(false);
       }
     });
 
-    ctx.framework.actions.register("sendTip", async (...args: unknown[]) => {
-      const devId = args[0] as number;
-      const amount = args[1] as string;
-      const anonymous = args[2] as boolean;
-      // The contract stores no message/tipper name (those inputs were removed);
-      // pass empty strings for the composable's UI-only parameters. Surface the
-      // guard result so PlayArea resets the form only on success.
-      const result = await ctx.framework.notify.guard(
-        () => wallet.sendTip(devId, amount, "", "", anonymous, () => void refresh()),
-        { successKey: "tipSent" },
+    ctx.framework.actions.register("sendTip", async (...args: unknown[]) =>
+      runWrite(
+        () => wallet.sendTip(
+          Number(args[0]),
+          String(args[1] ?? ""),
+          "",
+          "",
+          args[2] === true,
+        ),
+        "tipSent",
+      ),
+    );
+
+    ctx.framework.actions.register("registerDeveloper", async (...args: unknown[]) =>
+      runWrite(
+        () => wallet.registerDeveloper(String(args[0] ?? ""), String(args[1] ?? "")),
+        "registered",
+      ),
+    );
+
+    ctx.framework.actions.register("withdrawTips", async (...args: unknown[]) =>
+      runWrite(() => wallet.withdrawTips(Number(args[0])), "tipsWithdrawn"),
+    );
+
+    ctx.framework.actions.register("withdrawCredit", async () =>
+      runWrite(() => wallet.withdrawCredit(), "creditWithdrawn"),
+    );
+
+    ctx.framework.actions.register("recoverTip", async () => {
+      if (isConnecting.get()) {
+        ctx.framework.notify.info("operationBusy");
+        return false;
+      }
+      const result = await ctx.framework.notify.guardResult(
+        () => wallet.recoverPendingOperation(),
       );
-      return result === true;
+      if (!result.ok) return false;
+      if (["confirmed", "credit", "fault"].includes(result.value)) {
+        await refreshAfterWrite();
+      } else if (result.value !== "none") {
+        ctx.framework.notify.info("receiptPending");
+      }
+      return result.value;
     });
 
-    ctx.framework.actions.register("registerDeveloper", async (...args: unknown[]) => {
-      const name = args[0] as string;
-      const role = args[1] as string;
-      const result = await ctx.framework.notify.guard(
-        () => wallet.registerDeveloper(name, role, () => void refresh()),
-        { successKey: "registered" },
-      );
-      // registerDeveloper resolves to the new devId (>0) on success.
-      return typeof result === "number" && result > 0;
+    ctx.framework.actions.register("refresh", async () => {
+      const result = await ctx.framework.notify.guardResult(refresh);
+      return result.ok;
     });
 
-    ctx.framework.actions.register("withdrawTips", async (...args: unknown[]) => {
-      const devId = args[0] as number;
-      const result = await ctx.framework.notify.guard(
-        () => wallet.withdrawTips(devId, () => void refresh()),
-        { successKey: "tipsWithdrawn" },
-      );
-      // withdrawTips resolves to the amount paid (>0) on success.
-      return typeof result === "number" && result > 0;
-    });
-
-    ctx.framework.actions.register("withdrawCredit", async () => {
-      const result = await ctx.framework.notify.guard(
-        () => wallet.withdrawCredit(() => void refresh()),
-        { successKey: "creditWithdrawn" },
-      );
-      return typeof result === "number" && result > 0;
+    const stopWalletSync = ctx.framework.wallet.observe().subscribe(() => {
+      refreshGeneration += 1;
+      clearWalletSnapshot();
+      wallet.clearRecoveryView();
+      void refresh().catch(() => undefined);
     });
 
     return {
@@ -157,16 +265,40 @@ defineMiniApp({
         isLoading: wallet.isLoading,
         isRegistering: wallet.isRegistering,
         isWithdrawing: wallet.isWithdrawing,
+        isRecovering: wallet.isRecovering,
         address: wallet.address,
         developerCount,
         totalDonatedDisplay,
         recentTipCount,
         myDeveloperId,
         myClaimableBalance,
+        myClaimableBalanceDisplay,
+        hasClaimableBalance,
         myCredit,
+        myCreditDisplay,
+        hasCredit,
+        gasBalanceDisplay,
+        walletReadStatus,
+        walletReadError,
+        registryStatus: stats.registryStatus,
+        activityStatus: stats.activityStatus,
+        readError: stats.readError,
+        runtimeStatus: wallet.runtimeStatus,
+        runtimeCompatible: wallet.runtimeCompatible,
+        activeNetwork: wallet.activeNetwork,
+        runtimeChecksum: wallet.runtimeChecksum,
+        runtimeError: wallet.runtimeError,
+        pendingOperation: wallet.pendingOperation,
+        pendingTip: wallet.pendingOperation,
+        lastReceipt: wallet.lastReceipt,
+        actionNotice: wallet.actionNotice,
+        recoveryStorageHealthy: wallet.recoveryStorageHealthy,
         isConnecting,
       }),
-      loadData: refresh,
+      loadData: async () => {
+        await refresh();
+      },
+      cleanup: stopWalletSync,
     };
   },
 });

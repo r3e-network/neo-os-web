@@ -274,15 +274,19 @@ export function GasLuckyPoolPlayArea(props: PlayAreaRegistryProps) {
     onRefresh,
   } = props;
   const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
+  const gameFiPublished = app.permissions.payments === true
+    || app.permissions.randomness === true;
 
   return (
     <PlayShell
       app={app}
       title="OneGate Vault"
-      subtitle="Scan with OneGate, claim once, and receive a random GAS reward directly in your wallet."
+      subtitle={gameFiPublished
+        ? "Scan with OneGate, claim once, and receive a random GAS reward directly in your wallet."
+        : "Choose a prize tier, open the animated vault, and chase a better local score — free, with no wallet or GAS."}
       tone="emerald"
-      side={<ActivityPanel activity={activity} />}
-      footer={
+      side={gameFiPublished ? <ActivityPanel activity={activity} /> : undefined}
+      footer={gameFiPublished ? (
         <ChainStateStrip
           loading={loading}
           error={error}
@@ -290,11 +294,11 @@ export function GasLuckyPoolPlayArea(props: PlayAreaRegistryProps) {
           network={network}
           onRefresh={onRefresh}
         />
-      }
+      ) : undefined}
     >
       <EmbeddedDappSurface
         title="OneGate Vault"
-        subtitle="OneGate Vault dApp"
+        subtitle={gameFiPublished ? "OneGate Vault dApp" : "Free local Phaser lucky draw"}
         url={dappUrl}
         tone="emerald"
         frameTitle={`${app.name} dApp`}

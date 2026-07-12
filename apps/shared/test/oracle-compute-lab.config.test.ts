@@ -2,124 +2,93 @@ import { describe, expect, it } from "vitest";
 
 import oracleComputeManifest from "../../oracle-compute-lab/neo-manifest.json";
 import {
-  consoleConfig,
+  appMeta,
+  DEFAULT_COMPUTE_SOURCE,
+  DISCLOSURE_OPTIONS,
   manifest,
   messages,
+  PROFILE_OPTIONS,
 } from "../../oracle-compute-lab/src/appConfig";
 
-type LocalizedMessage = {
-  en: string;
-  zh: string;
-};
-
+type LocalizedMessage = { en: string; zh: string };
 const appMessages = messages as Record<string, LocalizedMessage>;
 
-function t(key: string, params: Record<string, string | number> = {}) {
-  let text = appMessages[key]?.en ?? key;
-  for (const [param, value] of Object.entries(params)) {
-    text = text.replace(`{${param}}`, String(value));
-  }
-  return text;
-}
-
-describe("Oracle Compute Lab config", () => {
-  it("redacts raw input from sealed previews", () => {
-    const result = consoleConfig.buildResult(
-      {
-        workflow: "risk-score",
-        privacy: "sealed",
-        input: "{\"secret\":\"do-not-leak\",\"asset\":\"GAS\"}",
-      },
-      t,
-    );
-
-    const payloadText = JSON.stringify(result.payload);
-
-    expect(result.payload).toMatchObject({
-      kind: "oracle.compute.request",
-      workflow: "risk-score",
-      privacy: "sealed",
-      inputVisibility: "redacted",
-      sealedInputRequired: true,
-      dispatchReady: false,
-      execution: "preview_only",
-    });
-    expect(result.payload).not.toHaveProperty("input");
-    expect(payloadText).not.toContain("do-not-leak");
-    expect(payloadText).toContain("inputDigest");
+describe("Oracle Compute Lab product configuration", () => {
+  it("keeps one designed play surface instead of manifest-generated form chrome", () => {
+    expect(manifest.tabs).toBeUndefined();
+    expect(manifest.stats).toBeUndefined();
+    expect(manifest.operations).toBeUndefined();
+    expect(manifest.sidebar).toBeUndefined();
+    expect(manifest.permissions).toEqual({});
+    expect(oracleComputeManifest.permissions).toEqual([]);
+    expect(oracleComputeManifest).not.toHaveProperty("operation_panel");
+    expect(oracleComputeManifest).not.toHaveProperty("stateSource");
   });
 
-  it("only includes raw input when the user explicitly chooses public mode", () => {
-    const result = consoleConfig.buildResult(
-      {
-        workflow: "proof-check",
-        privacy: "public",
-        input: "{\"sample\":\"public-data\"}",
-      },
-      t,
-    );
-
-    expect(result.payload).toMatchObject({
-      privacy: "public",
-      input: "{\"sample\":\"public-data\"}",
-      inputVisibility: "public",
-    });
+  it("labels profile choices as intent presets and disclosure as a separate policy", () => {
+    expect(PROFILE_OPTIONS.map((option) => option.value)).toEqual([
+      "risk-signal",
+      "proof-review",
+      "batch-transform",
+    ]);
+    expect(DISCLOSURE_OPTIONS.map((option) => option.value)).toEqual([
+      "digest-only",
+      "public-input",
+    ]);
+    expect(DEFAULT_COMPUTE_SOURCE).toContain('"signals"');
+    expect(appMessages.profileProofHint.en).toMatch(/no proof is verified here/i);
+    expect(appMessages.policyDigestOnlyHint.en).toMatch(/not encryption/i);
   });
 
-  it("keeps standalone and manifest copy honest about preview-only compute", () => {
-    const visibleCopy = [
+  it("uses canonical route metadata while labeling it as a registry target", () => {
+    expect(appMeta.endpointLabel).toBe("compute.execute · /compute/execute");
+    expect(appMeta.runtimeBaseUrl).toMatch(/^https:\/\/oracle\.meshmini\.app\/(mainnet|testnet)$/);
+    expect(appMeta.envelopeVersion).toBe("2026-04-tee-v1");
+    expect(appMeta.policiesLabel).toBe("tenant · risk");
+    expect(appMeta.teeRequired).toBe(true);
+    expect(appMeta.deliveryMode).toBe("api_response");
+    expect(appMeta.requestDigestScope).toBe("oracle-compute-lab/payload+route-snapshot-v1");
+    expect(appMessages.networkTargetBadge.en).toBe("Registry target");
+    expect(appMessages.routeCopy.en).toMatch(/not a live service check/i);
+  });
+
+  it("keeps every visible result claim inside the implemented boundary", () => {
+    const copy = [
       manifest.description,
       oracleComputeManifest.description,
-      oracleComputeManifest.operation_panel.title,
-      oracleComputeManifest.operation_panel.subtitle,
-      ...oracleComputeManifest.operation_panel.operations.map(
-        (operation) => operation.description,
-      ),
-      appMessages.panelDescription.en,
-      appMessages.feature1Desc.en,
-      appMessages.feature3Desc.en,
+      appMessages.panelSubtitle.en,
+      appMessages.boundaryHeadline.en,
+      appMessages.boundaryCopy.en,
+      appMessages.docsBoundaryCopy.en,
+      appMessages.docsRecoveryCopy.en,
     ].join(" ");
 
-    expect(visibleCopy).toMatch(/preview/i);
-    expect(visibleCopy).not.toMatch(/dispatchers/i);
-    expect(visibleCopy).not.toMatch(/confidential execution/i);
-    expect(visibleCopy).not.toMatch(/verify the confidential package/i);
+    expect(copy).toMatch(/no compute job|does not execute compute|not pretending/i);
+    expect(copy).toMatch(/proof/i);
+    expect(copy).toMatch(/attestation/i);
+    expect(copy).toMatch(/no pending transaction|no write exists/i);
+    expect(copy).not.toMatch(/compute complete|proof verified|attestation verified/i);
   });
 
-  it("surfaces a JSON validity row and gates invalid input as input_required", () => {
-    const valid = consoleConfig.buildResult(
-      { workflow: "risk-score", privacy: "sealed", input: "{\"asset\":\"GAS\"}" },
-      t,
-    );
-    const validRow = valid.rows.find((row) => row.label === t("inputValid"));
-    expect(validRow?.value).toBe(t("yes"));
-    expect(valid.payload.inputValid).toBe(true);
-    expect(valid.payload.status).toBeUndefined();
-    expect(valid.status).toBe("Compute preview ready");
-
-    const invalid = consoleConfig.buildResult(
-      { workflow: "risk-score", privacy: "sealed", input: "{not json" },
-      t,
-    );
-    const invalidRow = invalid.rows.find((row) => row.label === t("inputValid"));
-    expect(invalidRow?.value).toBe(t("no"));
-    expect(invalid.payload.inputValid).toBe(false);
-    // A malformed payload must NOT count as a success — the shared panel gates on
-    // payload.status === "input_required".
-    expect(invalid.payload.status).toBe("input_required");
-    expect(invalid.status).toBe("Enter a valid JSON input payload");
-  });
-
-  it("renders localized workflow/privacy labels in the summary instead of raw enum values", () => {
-    const result = consoleConfig.buildResult(
-      { workflow: "risk-score", privacy: "sealed", input: "{}" },
-      t,
-    );
-    // The summary must use the human labels ("Risk score", "Sealed"), never the
-    // raw enum slugs ("risk-score", "sealed") that produced mixed-language zh.
-    expect(result.summary).toBe("Risk score Sealed preview prepared");
-    expect(result.summary).not.toContain("risk-score");
-    const workflowRow = result.rows.find((row) => row.label === t("workflow"));
-    expect(workflowRow?.value).toBe("Risk score");
+  it("ships complete English and Chinese boundary copy", () => {
+    for (const [key, value] of Object.entries(appMessages)) {
+      expect(value.en, `${key} is missing English copy`).toBeTruthy();
+      expect(value.zh, `${key} is missing Chinese copy`).toBeTruthy();
+    }
+    for (const key of [
+      "panelTitle",
+      "panelSubtitle",
+      "policyDigestOnlyHint",
+      "boundaryHeadline",
+      "boundaryCopy",
+      "boundaryRecovery",
+      "routeCopy",
+      "sourcePublicBadge",
+      "sourceTooDeep",
+      "digestUnavailable",
+    ]) {
+      expect(appMessages[key]?.en).toBeTruthy();
+      expect(appMessages[key]?.zh).toBeTruthy();
+    }
   });
 });

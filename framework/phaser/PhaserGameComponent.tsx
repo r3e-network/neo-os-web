@@ -29,9 +29,16 @@
  * viewport while preserving the configured game aspect ratio.
  */
 
-import { useEffect, useRef, useId, useState } from "react";
+import { useEffect, useRef, useId, useState, type CSSProperties } from "react";
 import * as Phaser from "phaser";
+import { Volume2, VolumeX } from "lucide-react";
 import { GameBridge } from "./GameBridge";
+import {
+  SCENE_AUDIO_MUTE_EVENT,
+  SCENE_AUDIO_MUTE_STORAGE_KEY,
+  isSceneAudioMuted,
+  setSceneAudioMuted,
+} from "./SceneAudio";
 import type { PhaserGameProps } from "./types";
 
 type AutoMobileSize = {
@@ -54,10 +61,13 @@ export function PhaserGameComponent({
   errorLabel = "Game action failed",
   retryLabel = "Retry",
   continueLabel = "Continue",
+  enableSoundLabel = "Enable game sound",
+  muteSoundLabel = "Mute game sound",
   preserveLogicalSize = false,
   onReady,
 }: PhaserGameProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mountRef     = useRef<HTMLDivElement>(null);
   const gameRef      = useRef<Phaser.Game | null>(null);
   const bridgeRef    = useRef<GameBridge>(new GameBridge());
   const onReadyRef   = useRef(onReady);
@@ -72,12 +82,14 @@ export function PhaserGameComponent({
     mode: "dismiss" | "retry";
   } | null>(null);
   const [autoMobileSizePx, setAutoMobileSizePx] = useState<AutoMobileSize | null>(null);
+  const [audioMuted, setAudioMuted] = useState(() => isSceneAudioMuted());
   // Unique game ID for bridge registry — stable across re-renders
   const gameId       = useId();
   const fallbackWidth = numericDimension(config.width, 400);
   const fallbackHeight = numericDimension(config.height, 560);
   const resolvedWidth = autoMobileSizePx?.width ?? fallbackWidth;
   const resolvedHeight = autoMobileSizePx?.height ?? fallbackHeight;
+  const AudioIcon = audioMuted ? VolumeX : Volume2;
 
   autoMobileSizeRef.current = autoMobileSizePx;
   fallbackSizeRef.current = { width: fallbackWidth, height: fallbackHeight };
@@ -86,13 +98,31 @@ export function PhaserGameComponent({
     onReadyRef.current = onReady;
   }, [onReady]);
 
+  useEffect(() => {
+    const syncAudioMuted = () => setAudioMuted(isSceneAudioMuted());
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === SCENE_AUDIO_MUTE_STORAGE_KEY) syncAudioMuted();
+    };
+
+    window.addEventListener(SCENE_AUDIO_MUTE_EVENT, syncAudioMuted);
+    window.addEventListener("storage", onStorage);
+    syncAudioMuted();
+
+    return () => {
+      window.removeEventListener(SCENE_AUDIO_MUTE_EVENT, syncAudioMuted);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
   // Boot Phaser once on mount, and again only after an explicit retry.
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !mountRef.current) return;
 
     const bridge = bridgeRef.current;
+    const mount = mountRef.current;
     setReady(false);
     setError(null);
+    mount.replaceChildren();
 
     // Wire dispatch from React → bridge → scene
     bridge.setDispatch(dispatch);
@@ -114,7 +144,7 @@ export function PhaserGameComponent({
     const mergedConfig: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
       ...restConfig,
-      parent: containerRef.current,
+      parent: mount,
       scene: sceneConfig as Phaser.Types.Core.GameConfig["scene"],
       backgroundColor: "transparent",
       transparent: true,
@@ -144,6 +174,7 @@ export function PhaserGameComponent({
       bridge.destroy();
       gameRef.current?.destroy(true);
       gameRef.current = null;
+      mount.replaceChildren();
       // Clean up global bridge reference if it's ours
       if (window.__phaserBridge === bridge) {
         delete window.__phaserBridge;
@@ -197,13 +228,22 @@ export function PhaserGameComponent({
         const viewportHeight = viewport?.height ?? window.innerHeight;
         const viewportTop = viewport?.offsetTop ?? 0;
         const hostTop = Math.max(0, hostRect.top - viewportTop);
-        const bottomReserve = viewportHeight < 620 ? 0 : 6;
+        const computedStyle = window.getComputedStyle(host);
+        const configuredBottomReserve = Number.parseFloat(
+          computedStyle.getPropertyValue("--phaser-mobile-bottom-reserve"),
+        );
+        const bottomReserve =
+          Number.isFinite(configuredBottomReserve) && configuredBottomReserve >= 0
+            ? configuredBottomReserve
+            : viewportHeight < 620
+              ? 0
+              : 6;
         const availableViewportHeight = Math.max(
           MIN_MOBILE_GAME_HEIGHT,
           viewportHeight - hostTop - bottomReserve,
         );
         const mobileHeightRatio = Number.parseFloat(
-          window.getComputedStyle(host).getPropertyValue("--phaser-mobile-height-ratio"),
+          computedStyle.getPropertyValue("--phaser-mobile-height-ratio"),
         );
         const heightRatio =
           Number.isFinite(mobileHeightRatio) && mobileHeightRatio > 0
@@ -278,12 +318,46 @@ export function PhaserGameComponent({
         WebkitUserSelect: "none",
       }}
     >
+      <div
+        ref={mountRef}
+        className="phaser-game-mount"
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          overflow: "hidden",
+          pointerEvents: "auto",
+        }}
+      />
+      <button
+        type="button"
+        aria-label={audioMuted ? enableSoundLabel : muteSoundLabel}
+        aria-pressed={!audioMuted}
+        title={audioMuted ? enableSoundLabel : muteSoundLabel}
+        data-phaser-audio-muted={audioMuted ? "true" : "false"}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const nextMuted = !audioMuted;
+          setAudioMuted(nextMuted);
+          setSceneAudioMuted(nextMuted);
+        }}
+        style={AUDIO_TOGGLE_BUTTON_STYLE}
+      >
+        <AudioIcon aria-hidden="true" size={18} strokeWidth={2.2} />
+      </button>
       {!ready && !error && (
         <div
           aria-hidden="true"
           style={{
             position: "absolute",
             inset: 0,
+            zIndex: 1,
             display: "grid",
             placeItems: "center",
             color: "rgba(12, 33, 46, 0.72)",
@@ -304,6 +378,7 @@ export function PhaserGameComponent({
           style={{
             position: "absolute",
             inset: 0,
+            zIndex: 1,
             display: "grid",
             alignContent: "center",
             justifyItems: "center",
@@ -378,3 +453,23 @@ function numericDimension(value: unknown, fallback: number): number {
   }
   return fallback;
 }
+
+const AUDIO_TOGGLE_BUTTON_STYLE: CSSProperties = {
+  position: "absolute",
+  top: 8,
+  right: 8,
+  zIndex: 2,
+  width: 34,
+  height: 34,
+  display: "inline-grid",
+  placeItems: "center",
+  border: "1px solid rgba(132, 105, 54, 0.2)",
+  borderRadius: 999,
+  background: "rgba(255, 253, 248, 0.88)",
+  color: "#183a34",
+  boxShadow: "0 8px 18px rgba(31, 41, 55, 0.12)",
+  cursor: "pointer",
+  padding: 0,
+  pointerEvents: "auto",
+  touchAction: "manipulation",
+};

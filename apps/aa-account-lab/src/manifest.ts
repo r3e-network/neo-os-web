@@ -1,59 +1,35 @@
-/**
- * AA Account Lab Manifest
- *
- * Declarative configuration for the platform-rendered sections.
- * The miniapp provides only PlayArea.vue (inspect + register forms)
- * and useAAAccountLab.ts (domain logic). Everything else is driven here.
- */
-
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
-  // -- Identity --
   name: "AA Account Lab",
-  description: "Register and inspect Neo AA accounts",
+  description: "Inspect and register recoverable Neo AA account shells with exact chain confirmation",
   icon: "badge",
-  category: "console",
+  category: "tool",
   shell: "console",
-
-  // -- Tabs --
-  tabs: [
-    { key: "register", labelKey: "register", icon: "badge", default: true },
-  ],
-
-  // -- Stats --
-  stats: [
-    { labelKey: "aaCore", valueKey: "aaCoreDisplay", format: "text", icon: "cpu" },
-    { labelKey: "defaultVerifier", valueKey: "defaultVerifierDisplay", format: "text", icon: "shield" },
-    { labelKey: "network", valueKey: "networkDisplay", format: "text", icon: "globe" },
-  ],
-
-  // -- Sidebar --
-  sidebar: {
-    titleKey: "appName",
-    items: [
-      { labelKey: "currentVerifier", valueKey: "currentVerifier", format: "text" },
-      { labelKey: "currentHook", valueKey: "currentHook", format: "text" },
-      { labelKey: "currentBackupOwner", valueKey: "currentBackupOwner", format: "text" },
-    ],
+  theme: {
+    family: "finance",
+    accentColor: "#0f8f70",
+    density: "comfortable",
   },
-
-  // -- Features --
+  // The account control center owns its hierarchy, live state, recovery and
+  // write actions. Empty shell chrome prevents a duplicate generic dashboard.
+  tabs: [],
+  stats: [],
+  sidebar: { items: [] },
+  operations: [],
   features: {
     walletRequired: false,
     chainWarning: true,
+    comments: true,
+    reviews: true,
+    activityFeed: false,
   },
-
-  // -- Docs --
   docs: [
     { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-
-  // -- Permissions --
-  permissions: {
-    aa: true,
-  },
+  contract: { mode: "custom" },
+  permissions: { aa: true, storage: true },
 };

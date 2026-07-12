@@ -2,7 +2,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Graveyard",
-  description: "Anchor encrypted memory hashes with paid on-chain forgetting records",
+  description: "Create local SHA-256 memory commitments with paid on-chain forgetting records",
   icon: "history",
   category: "tool",
   shell: "launcher",
@@ -12,7 +12,7 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "totalDestroyed", valueKey: "totalDestroyed", format: "number", icon: "skull" },
+    { labelKey: "totalDestroyed", valueKey: "totalDestroyed", format: "number", icon: "archive" },
     { labelKey: "gasReclaimed", valueKey: "gasReclaimedDisplay", format: "text", variant: "success", icon: "zap" },
     { labelKey: "history", valueKey: "historyCount", format: "number", icon: "clock" },
   ],
@@ -27,7 +27,7 @@ export const manifest: MiniAppManifest = {
   },
 
   features: {
-    fireworks: true,
+    fireworks: false,
     walletRequired: true,
     chainWarning: true,
   },

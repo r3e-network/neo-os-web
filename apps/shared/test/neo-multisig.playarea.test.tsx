@@ -117,6 +117,15 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     connectedHasApproved: false,
     activeVault: null,
     activeRequest: null,
+    signerApprovals: [],
+    vaultSource: "none",
+    requestSource: "none",
+    approvalSource: "none",
+    historySource: "none",
+    pendingOperation: null,
+    transactionNotice: "",
+    contractHash: "",
+    isRecovering: false,
     unfundedNotice: "",
     isCreatingVault: false,
     isDepositing: false,
@@ -235,20 +244,21 @@ describe("Neo Multisig PlayArea (v3)", () => {
     const tsx = fs.readFileSync(`${process.cwd()}/../neo-multisig/src/PlayArea.tsx`, "utf8");
     expect(s).toMatch(/prefers-reduced-motion/);
     expect(s).toMatch(/0\.001ms/);
-    expect(s).toMatch(/\.neo-multisig-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff/);
+    // #faf9f7 is the v4 canvas value the playarea-background-clarity governance
+    // test allows for stage floors (the previous #fffdf7 pin violated it).
+    expect(s).toMatch(/\.neo-multisig-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#faf9f7/);
     expect(s).toMatch(/\.neo-multisig-play-area \.mx2-action-rail,[\s\S]*\.neo-multisig-play-area \.mx2-drawer\s*\{[\s\S]*width:\s*min\(100%,\s*820px\)/);
-    expect(s).toMatch(/\.multisig-workbench\s*\{[\s\S]*background:\s*#ffffff/);
+    expect(s).toMatch(/\.multisig-workbench\s*\{[\s\S]*background:\s*#fffaf2/);
     expect(s).toMatch(/\.multisig-vault-card\s*\{[\s\S]*background:\s*#ffffff/);
     expect(s).toMatch(/\.multisig-vault-card::before\s*\{[\s\S]*content:\s*none/);
     expect(s).toMatch(/\.multisig-signer-board\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.multisig-vault-card__art\s*\{[\s\S]*grid-template-rows:\s*minmax\(172px,\s*1fr\) auto/);
     expect(s).toMatch(/\.multisig-vault-card__art\s*\{[\s\S]*background:\s*#ffffff/);
     expect(s).toMatch(/\.multisig-vault-card__art::after\s*\{[\s\S]*content:\s*none/);
     expect(s).toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*object-fit:\s*cover/);
-    expect(s).toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*object-position:\s*62% center/);
+    expect(s).toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*object-position:\s*center/);
     expect(s).toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*opacity:\s*1/);
     expect(s).toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*filter:\s*none/);
-    expect(s).toMatch(/\.multisig-keyring\s*\{[\s\S]*position:\s*relative/);
+    expect(s).not.toMatch(/\.multisig-keyring\s*\{/);
     expect(s).not.toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*opacity:\s*0\.44/);
     expect(s).not.toMatch(/\.multisig-vault-card__image\s*\{[\s\S]*filter:\s*saturate/);
     expect(s).toMatch(/\.multisig-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/);
@@ -258,7 +268,12 @@ describe("Neo Multisig PlayArea (v3)", () => {
     expect(s).toMatch(/\.multisig-amount-console__quick\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/\.multisig-ticket-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/\.neo-multisig-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 190px/);
-    expect(tsx).toContain('import { CoinArt } from "@shared/art";');
+    expect(tsx).toContain("multisig-vault-stage.webp");
+    expect(tsx).toContain("multisig-proposal-card.webp");
+    expect(tsx).toContain('import { CoinArt } from "@shared/art"');
+    expect(tsx).toContain('variant="gas"');
+    expect(tsx).toContain('variant="neo"');
+    expect(tsx).not.toMatch(/assets\/tokens\/(?:neo|gas)-icon/);
     expect(tsx).toContain('dispatch("approveRequest", requestId)');
     expect(tsx).toContain('dispatch("createVault", createPayload)');
     expect(tsx).not.toContain('dispatch("createVault", {})');

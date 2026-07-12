@@ -3,17 +3,17 @@
   "id": "miniapp-gas-sponsor",
   "name": "Gas Sponsor",
   "name_zh": "Gas 赞助商",
-  "version": "1.0.0",
-  "description": "Free gas sponsorship for new users with low balance",
-  "description_zh": "Gas 赞助 — 为新用户代付 Gas 费，降低链上操作门槛",
-  "category": "tools",
-  "category_name": "Tools",
-  "category_name_zh": "工具",
+  "version": "2.0.0",
+  "description": "Create, discover and operate transparent on-chain GAS sponsorship pools on Neo N3.",
+  "description_zh": "在 Neo N3 上创建、发现并管理透明可验证的链上 GAS 社区赞助池。",
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "去中心化金融",
   "tags": [
     "gas",
     "sponsor",
-    "onboarding",
-    "free"
+    "community-pool",
+    "claim"
   ],
   "developer": {
     "name": "Yiwu",
@@ -42,7 +42,7 @@
     "read:blockchain"
   ],
   "features": {
-    "stateless": true,
+    "stateless": false,
     "offlineSupport": false,
     "deeplink": "neomainapp://gas-sponsor"
   },
@@ -53,6 +53,11 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Community refill station",
+    "subtitle": "Browse, claim, sponsor and manage pools inside the designed on-chain station.",
+    "operations": []
+  },
   "platform": {
     "analytics": true,
     "comments": true,
@@ -60,5 +65,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T00:00:00Z"
+  "updatedAt": "2026-07-11T00:00:00Z"
 }

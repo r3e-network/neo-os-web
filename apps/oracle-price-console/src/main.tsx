@@ -9,7 +9,7 @@ import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { usePriceConsole } from "./hooks/usePriceConsole";
+import { launchAssetSymbol, usePriceConsole } from "./hooks/usePriceConsole";
 
 /**
  * app.oracle.dataFeed lane config: the deployed MorpheusDataFeed contract and
@@ -26,14 +26,9 @@ const integration = EXTERNAL_INTEGRATIONS[network];
  * clean localized "feed not found" error on fetch rather than a silent no-op.
  */
 function launchAsset(params: Record<string, string>) {
-  const raw = String(
+  return launchAssetSymbol(
     params.asset || params.symbol || params.feed || params.endpoint || "",
-  )
-    .trim()
-    .replace(/^TWELVEDATA:/i, "")
-    .toUpperCase();
-  const asset = raw.split(/[-/]/)[0] || "";
-  return /^[A-Z0-9]{1,12}$/.test(asset) ? asset : "";
+  );
 }
 
 defineMiniApp({
@@ -53,7 +48,8 @@ defineMiniApp({
     const app = ctx.framework;
     const price = usePriceConsole({ app, t: ctx.t });
     const requestedAsset = launchAsset(ctx.launchContext.params);
-    if (requestedAsset) price.asset.set(requestedAsset);
+    if (requestedAsset) price.selectAsset(requestedAsset);
+    app.lifecycle.cleanup(price.cleanup);
 
     app.actions.register("fetchPrice", async () => {
       // price.fetchPrice() never throws — it catches internally and returns
@@ -61,6 +57,7 @@ defineMiniApp({
       // success toast, even on RPC failure. Branch on the result instead so
       // exactly one (correct) toast is shown.
       const result = await price.fetchPrice();
+      if (result.ignored) return;
       if (result.success) {
         app.notify.success("priceLoaded");
       } else {
@@ -69,7 +66,7 @@ defineMiniApp({
     });
 
     ctx.framework.actions.register("updateAsset", async (val: unknown) => {
-      price.asset.set(String(val));
+      price.selectAsset(val);
     });
 
     return {
@@ -79,11 +76,17 @@ defineMiniApp({
         freshness: price.freshness,
         freshnessLabel: price.freshnessLabel,
         freshnessTimestamp: price.freshnessTimestamp,
+        sourceFreshness: price.sourceFreshness,
+        sourceFreshnessLabel: price.sourceFreshnessLabel,
+        sourceTimestampDisplay: price.sourceTimestampDisplay,
+        feedRoute: price.feedRoute,
+        feedKey: price.feedKey,
         availablePairs: price.availablePairs,
         networkDisplay: price.networkDisplay,
         datafeedHash: price.datafeedHash,
         datafeedShort: price.datafeedShort,
         sourceLabel: price.sourceLabel,
+        rpcEndpoint: price.rpcEndpoint,
         errorMsg: price.errorMsg,
         isRequesting: price.isRequesting,
       },

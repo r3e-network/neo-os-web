@@ -6,7 +6,6 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
@@ -16,6 +15,7 @@ import {
   getNativePlayAreaOperationFallback,
   hasNativePlayArea,
 } from "../../components/playarea/PlayAreaRegistry";
+import { isChainRelevant } from "../../components/playarea/PlayAreaFallbacks";
 import {
   buildEmbeddedDappUrl,
   buildEmbeddedWalletBridgeResultDetail,
@@ -84,6 +84,16 @@ function loadActiveMiniAppManifests() {
     .sort((left, right) => left.appId.localeCompare(right.appId));
 }
 
+function loadBundledManifest(slug: string): Record<string, unknown> {
+  const repoRoot = path.resolve(__dirname, "../../../..");
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(repoRoot, "apps", slug, "neo-manifest.json"),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+}
+
 const ACTIVE_MINIAPP_MANIFESTS = loadActiveMiniAppManifests();
 const ACTIVE_MINIAPP_IDS = ACTIVE_MINIAPP_MANIFESTS.map(
   (manifest) => manifest.appId,
@@ -101,9 +111,6 @@ const baseApp: MiniAppInfo = {
   entry_url: "mf://manifest?app=miniapp-last-survivor",
   permissions: {},
 };
-const PRIVATE_TRANSFER_VALID_NEO_ADDRESS =
-  "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32";
-
 function renderPlayarea(
   app: Partial<MiniAppInfo>,
   launchContext?: React.ComponentProps<typeof PlayAreaRegistry>["launchContext"],
@@ -443,15 +450,16 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("TWELVEDATA:NEO-USD")).not.toBeInTheDocument();
   });
 
-  it("builds Oracle VRF packages from consumer, salt, rounds, and proof mode launch params", async () => {
+  it("opens the real Oracle VRF workbench instead of rebuilding its request as a host form", () => {
     render(
       <PlayAreaRegistry
         app={{
           ...baseApp,
           app_id: "miniapp-oracle-vrf-console",
-          name: "Oracle VRF Console",
+          name: "Oracle VRF Workbench",
           category: "utility",
-          description: "Prepare randomness requests",
+          description: "Prepare and verify signed randomness requests",
+          dapp_url: "/miniapps/oracle-vrf-console/index.html",
         }}
         stats={[]}
         statsMap={{}}
@@ -481,21 +489,24 @@ describe("PlayAreaRegistry", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "VRF Request Console" }),
+      screen.getByRole("heading", { name: "Oracle VRF workbench" }),
     ).toBeVisible();
-    expect(screen.getByText("Consumer")).toBeVisible();
-    expect(screen.getAllByText("miniapp-fogplay").length).toBeGreaterThan(0);
-    expect(screen.getByText("Request salt")).toBeVisible();
-    expect(screen.getAllByText("round-42").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("batch-proof").length).toBeGreaterThan(0);
-    expect(
-      screen.queryByText("https://oracle.meshmini.app/testnet/health"),
-    ).not.toBeInTheDocument();
-
-    await waitFor(() =>
-      expect(screen.getByText(/oracle.vrf.request/)).toBeInTheDocument(),
+    const frame = screen.getByTestId("oracle-vrf-dapp-frame");
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringContaining(
+        "/miniapps/oracle-vrf-console/index.html?network=testnet&source=embed",
+      ),
     );
-    expect(screen.getByText(/"rounds": "3"/)).toBeInTheDocument();
+    expect(frame).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox",
+    );
+    expect(screen.queryByText("Consumer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Request salt")).not.toBeInTheDocument();
+    expect(screen.queryByText("batch-proof")).not.toBeInTheDocument();
+    expect(getNativePlayAreaOperationFallback("miniapp-oracle-vrf-console"))
+      .toEqual([]);
   });
 
   it("presents confidential Oracle consoles as network-key-backed local actions", () => {
@@ -529,22 +540,43 @@ describe("PlayAreaRegistry", () => {
 
     expect(hasNativePlayArea("miniapp-forever-album")).toBe(true);
     expect(
-      screen.getByRole("heading", { name: "Forever Album photo vault" }),
-    ).toBeVisible();
-    expect(screen.getByText("Upload photos")).toBeVisible();
-    expect(screen.getByText("View gallery")).toBeVisible();
-    expect(screen.getByTitle("Forever Album uploader")).toHaveAttribute(
+      screen.queryByRole("heading", { name: "Forever Album · device memory album" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
+    expect(screen.getByTitle("Forever Album local photo workspace")).toHaveAttribute(
       "src",
       expect.stringContaining("/miniapps/forever-album/index.html?"),
     );
-    expect(
-      getNativePlayAreaOperationFallback("miniapp-forever-album")[0],
-    ).toMatchObject({
-      name: "Open upload workspace",
-      method: "prepareMiniAppOperation",
-    });
+    expect(screen.getByTitle("Forever Album local photo workspace")).toHaveAttribute(
+      "sandbox",
+      expect.stringContaining("allow-same-origin"),
+    );
+    expect(getNativePlayAreaOperationFallback("miniapp-forever-album")).toEqual([]);
+    expect(screen.queryByText("Sign storage write")).not.toBeInTheDocument();
     expect(screen.queryByText("Stage album entry")).not.toBeInTheDocument();
     expect(screen.queryByText("Wallet album preview")).not.toBeInTheDocument();
+  });
+
+  it("opens Automation Copilot with its first-party host-session capability", () => {
+    renderPlayarea({
+      app_id: "miniapp-automation-copilot",
+      name: "Automation Copilot",
+      category: "data",
+      description: "Visual automation recipe studio",
+      dapp_url: "/miniapps/automation-copilot/index.html",
+    });
+
+    const frame = screen.getByTestId(
+      "profiled-dapp-frame-miniapp-automation-copilot",
+    );
+    expect(frame).toHaveAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox",
+    );
+    expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Enable automation")).not.toBeInTheDocument();
+    expect(screen.queryByText("NEO price > 25")).not.toBeInTheDocument();
+    expect(getNativePlayAreaOperationFallback("miniapp-automation-copilot")).toEqual([]);
   });
 
   it("opens Burn League through the embedded burn desk with amount presets", () => {
@@ -922,8 +954,12 @@ describe("PlayAreaRegistry", () => {
     });
 
     expect(
-      screen.getByText("Stake-backed agreement desk"),
-    ).toBeInTheDocument();
+      screen.queryByText("Stake-backed agreement desk"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-breakupcontract"),
+    ).toBeVisible();
+    fireEvent.click(screen.getByText("Activity and details"));
     expect(screen.getByText("Stake")).toBeInTheDocument();
     expect(screen.queryByText("Party A share")).not.toBeInTheDocument();
     expect(
@@ -931,7 +967,7 @@ describe("PlayAreaRegistry", () => {
     ).toHaveClass("h-[1700px]", "sm:h-[1450px]", "lg:h-[1180px]");
   });
 
-  it("renders the confidential transfer miniapp as a Morpheus-backed private payment desk", () => {
+  it("renders the real confidential-transfer privacy airlock instead of a duplicate host form", () => {
     expect(hasNativePlayArea("miniapp-private-transfer")).toBe(true);
 
     renderPlayarea({
@@ -943,91 +979,30 @@ describe("PlayAreaRegistry", () => {
         confidential: true,
         datafeed: false,
         governance: false,
-        payments: true,
+        payments: false,
         randomness: false,
         aa: false,
       },
     });
 
     expect(
-      screen.getByRole("heading", { name: "Confidential transfer desk" }),
+      screen.getByRole("heading", { name: "Confidential transfer workspace" }),
     ).toBeVisible();
-    expect(
-      screen.getAllByText("Morpheus confidential compute").length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getByText(
-        /sealed locally for Morpheus confidential compute before submission/i,
-      ),
-    ).toBeVisible();
-    expect(screen.getByText("Recipient")).toBeVisible();
-    expect(screen.getByText("Amount")).toBeVisible();
-    expect(screen.getByText("Private memo")).toBeVisible();
-    expect(screen.queryByText("N...recipient")).not.toBeInTheDocument();
-    expect(
-      screen.queryByDisplayValue("private payment"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("normalizes Morpheus sealing errors in the native confidential transfer playarea", async () => {
-    const warnSpy = jest
-      .spyOn(console, "warn")
-      .mockImplementation(() => undefined);
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      json: async () => ({
-        error: "DATABASE_PASSWORD=secret raw Morpheus stack trace",
-      }),
-    }) as unknown as typeof fetch;
-
-    const { container } = renderPlayarea(
-      {
-        app_id: "miniapp-private-transfer",
-        name: "Confidential Transfer",
-        category: "defi",
-        description:
-          "Private transfer powered by Morpheus confidential compute",
-        permissions: {
-          confidential: true,
-          datafeed: false,
-          governance: false,
-          payments: true,
-          randomness: false,
-          aa: false,
-        },
-      },
-      {
-        appId: "miniapp-private-transfer",
-        source: "url",
-        operation: "sealPrivateTransfer",
-        tab: null,
-        network: "testnet",
-        params: {
-          recipient: PRIVATE_TRANSFER_VALID_NEO_ADDRESS,
-          amount: "1",
-          asset: "GAS",
-          memo: "browser validation",
-        },
-        keys: ["amount", "asset", "memo", "recipient"],
-        hasParams: true,
-        signature: "amount=1&asset=GAS&memo=browser&recipient=valid",
-      },
+    const frame = screen.getByTestId("private-transfer-dapp-frame");
+    expect(frame).toHaveAttribute(
+      "src",
+      "/miniapps/private-transfer/index.html?network=testnet&source=embed",
     );
-
-    await waitFor(() => {
-      expect(
-        screen.getAllByText(
-          "Morpheus sealing is unavailable for this network. Your transfer details remain local.",
-        ).length,
-      ).toBeGreaterThan(0);
-    });
-
-    expect(container.textContent).not.toContain("DATABASE_PASSWORD");
-    expect(container.textContent).not.toContain("raw Morpheus stack trace");
-    expect(warnSpy).toHaveBeenCalled();
+    expect(frame).toHaveClass(
+      "h-[1680px]",
+      "sm:h-[1420px]",
+      "lg:h-[1120px]",
+    );
+    expect(screen.queryByText("Recipient")).not.toBeInTheDocument();
+    expect(screen.queryByText("Private memo")).not.toBeInTheDocument();
   });
 
-  it("renders OneGate Vault as a QR claim desk prefilled from OneGate launch params", () => {
+  it("renders OneGate Vault as the current free Phaser game without stale chain diagnostics", () => {
     expect(hasNativePlayArea("miniapp-gas-lucky-pool")).toBe(true);
 
     render(
@@ -1038,8 +1013,9 @@ describe("PlayAreaRegistry", () => {
           name: "OneGate Vault",
           category: "social",
           description:
-            "Create a bounded GAS reward pool and let OneGate users scan to claim once.",
-          permissions: { payments: true, randomness: true },
+            "A free local lucky-draw game with three prize tiers.",
+          contracts: {},
+          permissions: { payments: false, randomness: false },
         }}
         stats={[
           { label: "Status", value: "Active", accent: true },
@@ -1080,6 +1056,11 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.getByRole("heading", { name: "OneGate Vault" }),
     ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Choose a prize tier, open the animated vault, and chase a better local score — free, with no wallet or GAS.",
+      ),
+    ).toBeVisible();
     // The OneGate Vault native play area now embeds the actual dApp iframe,
     // so the platform-side "Reward ready" / "Reward range" status cards no
     // longer render — those facts live inside the dApp itself.
@@ -1089,6 +1070,8 @@ describe("PlayAreaRegistry", () => {
     expect(screen.queryByText("OneGate QR key")).not.toBeInTheDocument();
     expect(screen.queryByText("Single-use guard")).not.toBeInTheDocument();
     expect(screen.queryByText("Campaign setup")).not.toBeInTheDocument();
+    expect(screen.queryByText("Context and diagnostics")).not.toBeInTheDocument();
+    expect(screen.queryByText("0x1234567890abcdef1234567890abcdef12345678")).not.toBeInTheDocument();
   });
 
   it("renders explorer as a real live search console instead of a static profiled preview", () => {
@@ -1113,6 +1096,9 @@ describe("PlayAreaRegistry", () => {
 
   it.each([
     ["miniapp-aa-account-lab", "AA account registration lab"],
+    ["miniapp-arrow-escape", "Garden Arrowworks board"],
+    ["miniapp-bead-workshop", "Bead Workshop board"],
+    ["miniapp-fruit-funnel", "Fruit Funnel orchard"],
     ["miniapp-gas-sponsor", "Gas sponsor policy desk"],
     ["miniapp-milestone-escrow", "Milestone escrow board"],
     ["miniapp-neo-multisig", "Multisig signing room"],
@@ -1127,12 +1113,172 @@ describe("PlayAreaRegistry", () => {
     });
 
     expect(screen.getByTestId(`native-playarea-${appId}`)).toBeVisible();
-    expect(screen.getByRole("heading", { name: heading })).toBeVisible();
+    expect(
+      screen.getByTestId(`profiled-dapp-frame-${appId}`),
+    ).toBeVisible();
+    expect(screen.queryByRole("heading", { name: heading })).not.toBeInTheDocument();
+    expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
     expect(screen.getByText("Activity and details")).toBeVisible();
     expect(screen.getByText("Workflow")).not.toBeVisible();
     fireEvent.click(screen.getByText("Activity and details"));
     expect(screen.getByText("Workflow")).toBeVisible();
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["miniapp-arrow-escape", "arrow-escape", "Garden Arrowworks board"],
+    ["miniapp-bead-workshop", "bead-workshop", "Bead Workshop board"],
+    ["miniapp-fruit-funnel", "fruit-funnel", "Fruit Funnel orchard"],
+  ])(
+    "keeps transaction-free guest app %s focused on its local runtime",
+    (appId, slug, heading) => {
+      const manifest = loadBundledManifest(slug);
+      const app: MiniAppInfo = {
+        ...baseApp,
+        app_id: appId,
+        name: heading,
+        category: "gaming",
+        entry_url: `/miniapps/${slug}/index.html`,
+        contract_hash: null,
+        contracts: {},
+        operations: [],
+        permissions: {},
+        manifest,
+      };
+
+      expect(isChainRelevant(app)).toBe(false);
+      renderPlayarea(app, {
+        appId,
+        source: "url",
+        operation: "play",
+        tab: null,
+        network: null,
+        params: { difficulty: "expert" },
+        keys: ["difficulty"],
+        hasParams: true,
+        signature: "difficulty=expert",
+      });
+
+      expect(
+        screen.queryByRole("heading", { name: heading }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId(`profiled-dapp-frame-${appId}`),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Live state")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("chain-technical-details"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Activity and details"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("URL launch parameters"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Workflow")).not.toBeInTheDocument();
+    },
+  );
+
+  it("keeps a guest-only game local even when its manifest retains a historical testnet hash", () => {
+    const manifest = loadBundledManifest("game-2048");
+    const contracts = manifest.contracts as Record<string, unknown>;
+    const app: MiniAppInfo = {
+      ...baseApp,
+      app_id: "miniapp-game-2048",
+      name: "2048 strategy board",
+      category: "gaming",
+      entry_url: "/miniapps/game-2048/index.html",
+      contract_hash: String(contracts["neo-n3-testnet"] ?? ""),
+      contracts,
+      operations: [],
+      permissions: {},
+      manifest,
+    };
+
+    expect(isChainRelevant(app)).toBe(false);
+    renderPlayarea(app);
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-game-2048"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Slide illustrated building tiles, merge the kingdom upward, and resume the exact local board after a refresh.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Focus workspace")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/deterministic verification/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Live state")).not.toBeInTheDocument();
+    expect(screen.queryByText("Activity and details")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chain-technical-details")).not.toBeInTheDocument();
+  });
+
+  it("does not turn a guest game into a wallet workflow for read-only chain access", () => {
+    const manifest = loadBundledManifest("fogplay");
+    const contracts = manifest.contracts as Record<string, unknown>;
+    const app: MiniAppInfo = {
+      ...baseApp,
+      app_id: "miniapp-fogplay",
+      name: "FogPlay",
+      category: "gaming",
+      entry_url: "/miniapps/fogplay/index.html",
+      contract_hash: String(contracts["neo-n3-testnet"] ?? ""),
+      contracts,
+      operations: [],
+      permissions: {},
+      manifest,
+    };
+
+    expect(manifest.permissions).toEqual(["read:blockchain"]);
+    expect(isChainRelevant(app)).toBe(false);
+  });
+
+  it("keeps the transactional Gas Sponsor profile on the chain-aware fallback path", () => {
+    const manifest = loadBundledManifest("gas-sponsor");
+    const app: MiniAppInfo = {
+      ...baseApp,
+      app_id: "miniapp-gas-sponsor",
+      name: "Gas Sponsor",
+      category: "utility",
+      entry_url: "/miniapps/gas-sponsor/index.html",
+      contract_hash: "0x31888679572bf2de61462ff9934b6265d60284f2",
+      contracts: manifest.contracts as Record<string, unknown>,
+      operations: [
+        {
+          name: "Enable sponsor policy",
+          method: "enableSponsor",
+          priority: "primary",
+        },
+      ],
+      permissions: { payments: true },
+      manifest,
+    };
+
+    expect(isChainRelevant(app)).toBe(true);
+    renderPlayarea(app, {
+      appId: app.app_id,
+      source: "url",
+      operation: "enableSponsor",
+      tab: null,
+      network: "testnet",
+      params: { contract: "0x1234567890abcdef" },
+      keys: ["contract"],
+      hasParams: true,
+      signature: "contract=0x1234567890abcdef",
+    });
+
+    expect(
+      screen.getByTestId("profiled-dapp-frame-miniapp-gas-sponsor"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Live state")).toBeVisible();
+    expect(screen.getByTestId("chain-technical-details")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Activity and details"));
+    expect(screen.getByText("Sponsorship rules")).toBeVisible();
+    expect(screen.getByText("Workflow")).toBeVisible();
+    expect(screen.getByText("URL launch parameters")).toBeVisible();
   });
 
   it("uses scoped AA relay params in the profiled host fallback", () => {
@@ -1304,24 +1450,16 @@ describe("PlayAreaRegistry", () => {
     ).toBeUndefined();
   });
 
-  it("exposes a host action for the Forever Album embedded upload workspace", () => {
-    const [operation] = getNativePlayAreaOperationFallback(
-      "miniapp-forever-album",
-      "testnet",
-    );
+  it("does not duplicate Forever Album with a host operation form", () => {
+    expect(
+      getNativePlayAreaOperationFallback("miniapp-forever-album", "testnet"),
+    ).toEqual([]);
+  });
 
-    expect(operation?.name).toBe("Open upload workspace");
-    expect(operation?.method).toBe("prepareMiniAppOperation");
-    expect(operation?.description).toContain("embedded Forever Album uploader");
-    expect(operation?.params?.map((param) => param.name)).toEqual(["privacy"]);
-    expect(operation?.params?.[0]).toMatchObject({
-      type: "select",
-      default_value: "public",
-      options: [
-        { label: "Public album record", value: "public" },
-        { label: "Encrypted local privacy", value: "encrypted" },
-      ],
-    });
+  it("does not duplicate Breakup Contract with a host operation form", () => {
+    expect(
+      getNativePlayAreaOperationFallback("miniapp-breakupcontract", "testnet"),
+    ).toEqual([]);
   });
 
   it("exposes NeoPay stream actions as real wallet operations", () => {
@@ -1452,68 +1590,27 @@ describe("PlayAreaRegistry", () => {
     });
   });
 
-  it("renders On-chain Tarot as a draw and flip table using the 78-card deck index", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: async () => [
-          {
-            id: 0,
-            name: "The Fool",
-            keyword: "Spark",
-            meaning: "Leap",
-            image: "./cards/00-the-fool.webp",
-          },
-          {
-            id: 1,
-            name: "The Magician",
-            keyword: "Protocol",
-            meaning: "Intent",
-            image: "./cards/01-the-magician.webp",
-          },
-          {
-            id: 2,
-            name: "The High Priestess",
-            keyword: "Oracle",
-            meaning: "Signal",
-            image: "./cards/02-the-high-priestess.webp",
-          },
-        ],
-      } as Response),
-    ) as typeof fetch;
-
+  it("renders On-chain Tarot through the real option-3 Phaser ritual", () => {
     renderPlayarea({
       app_id: "miniapp-onchaintarot",
       name: "On-chain Tarot",
       category: "gaming",
       description: "Tarot reading",
+      entry_url: "/miniapps/on-chain-tarot/index.html",
     });
 
     expect(
-      screen.getByRole("heading", { name: "Neo tarot table" }),
+      screen.getByRole("heading", { name: "On-chain Tarot ritual" }),
     ).toBeVisible();
-    await waitFor(() =>
-      expect(screen.getByText("3 card spread source")).toBeInTheDocument(),
-    );
-    expect(screen.getByAltText("Past sealed card")).toHaveAttribute(
+    expect(screen.getByTestId("tarot-dapp-frame")).toHaveAttribute(
       "src",
-      "/miniapps/on-chain-tarot/cards/back.webp",
+      expect.stringContaining("/miniapps/on-chain-tarot/index.html"),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Reveal Past card" }));
     expect(
-      screen.getAllByText(/The Fool|The Magician|The High Priestess/).length,
-    ).toBeGreaterThan(0);
-    const revealedImages = screen.getAllByAltText(
-      /The Fool|The Magician|The High Priestess/,
-    );
-    expect(revealedImages[0]).toHaveAttribute(
-      "src",
-      expect.stringContaining("/miniapps/on-chain-tarot/cards/"),
-    );
-    expect(revealedImages[0]).toHaveAttribute(
-      "src",
-      expect.stringContaining(".webp"),
-    );
+      screen.queryByText("0.1 GAS draw"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Neo on-chain draw")).not.toBeInTheDocument();
+    expect(screen.queryByText("Draw again")).not.toBeInTheDocument();
   });
 
   it("renders tool miniapps as native consoles", () => {
@@ -1523,16 +1620,12 @@ describe("PlayAreaRegistry", () => {
       category: "defi",
       description: "Bridge console",
     });
-    expect(
-      screen.getByRole("heading", { name: "Neo X bridge control console" }),
-    ).toBeVisible();
-    expect(screen.getAllByText(/Message Bridge/).length).toBeGreaterThan(0);
-    expect(screen.getByText("Target contract")).toBeVisible();
-    expect(screen.getByText("Message")).toBeVisible();
-    expect(screen.queryByDisplayValue("0xAxLabs...")).not.toBeInTheDocument();
-    expect(
-      screen.queryByDisplayValue("sync:miniapp-state"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("neo-x-bridge-dapp-frame")).toHaveAttribute(
+      "src",
+      expect.stringContaining("/miniapps/neo-x-bridge/index.html"),
+    );
+    expect(screen.queryByText("Target contract")).not.toBeInTheDocument();
+    expect(screen.queryByText("Message Bridge")).not.toBeInTheDocument();
     bridgeView.unmount();
 
     renderPlayarea({
@@ -1567,16 +1660,15 @@ describe("PlayAreaRegistry", () => {
         launchContext={{
           appId: "miniapp-neo-x-bridge",
           source: "onegate",
-          operation: "messageBridge",
+          operation: "prepareAssetBridge",
           tab: null,
           network: "testnet",
           params: {
             amount: "3.5",
             direction: "Neo X -> Neo N3",
-            targetContract: "0xabcdef",
-            message: "sync state",
+            recipient: "NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke",
           },
-          keys: ["amount", "direction", "targetContract", "message"],
+          keys: ["amount", "direction", "recipient"],
           hasParams: true,
           signature: "amount=3.5&direction=Neo%20X%20-%3E%20Neo%20N3",
         }}
@@ -1584,15 +1676,22 @@ describe("PlayAreaRegistry", () => {
       />,
     );
 
-    expect(screen.getAllByText("3.5 GAS")[0]).toBeVisible();
-    expect(screen.getByText("Target contract")).toBeVisible();
-    expect(screen.getAllByText("0xabcdef").length).toBeGreaterThan(0);
-    expect(screen.getByText("Message")).toBeVisible();
-    expect(screen.getByText("sync state")).toBeVisible();
-    expect(screen.getAllByText("Neo X -> Neo N3").length).toBeGreaterThan(0);
-    expect(screen.getByText("Additional metrics")).toBeVisible();
-    expect(screen.getByText("Amount")).not.toBeVisible();
-    fireEvent.click(screen.getByText("Additional metrics"));
-    expect(screen.getByText("Amount")).toBeVisible();
+    const frame = screen.getByTestId("neo-x-bridge-dapp-frame");
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringContaining("operation=prepareAssetBridge"),
+    );
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringContaining("amount=3.5"),
+    );
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringContaining("direction=Neo+X+-%3E+Neo+N3"),
+    );
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringContaining("recipient=NLnyLtep7jwyq1qhNPkwXbJpurC4jUT8ke"),
+    );
   });
 });

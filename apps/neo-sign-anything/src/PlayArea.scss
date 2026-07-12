@@ -2,43 +2,49 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* domain-theme (auto) */
 :root,
 .mx2 {
-  --mx2-brand: #0891b2;
-  --mx2-brand-hover: #0e7490;
-  --mx2-brand-light: #e2f4f9;
-  --mx2-brand-subtle: #ade0ec;
-  --mx2-ring: rgba(0, 0, 0, 0.06);
-  --mx2-accent: #6366f1;
-  --mx2-accent-strong: #4338ca;
-  --mx2-accent-soft: #ebebfe;
-  --mx2-accent-ink: #312e81;
+  --mx2-brand: #17734b;
+  --mx2-brand-hover: #0f5c3a;
+  --mx2-brand-light: #e6f5eb;
+  --mx2-brand-subtle: #c7e8d2;
+  --mx2-accent: #1d7a52;
+  --mx2-accent-strong: #0f5c3a;
+  --mx2-accent-soft: #e8f6ed;
+  --mx2-accent-ink: #103f2a;
 }
-
 
 .tool-play-area {
   display: block;
-  --mx2-stage-floor: #ffffff;
+  --mx2-stage-floor: #faf9f7;
 }
 
 .tool-play-area .mx2-score {
   display: none;
 }
 
+.tool-play-area .mx2-stage,
 .tool-play-area .mx2-action-rail,
 .tool-play-area .mx2-drawer {
-  width: min(100%, 920px);
+  width: min(100%, 960px);
   margin-inline: auto;
 }
 
+.tool-play-area .mx2-stage__head {
+  align-items: flex-start;
+}
+
 .tool-play-area .mx2-stage__title {
-  font-weight: 620;
+  color: #173e2b;
+  font-weight: 720;
+  letter-spacing: 0;
 }
 
 .tool-play-area .mx2-stage__subtitle {
-  font-weight: 420;
-  line-height: 1.45;
+  max-width: 680px;
+  color: #4d6658;
+  font-weight: 470;
+  line-height: 1.52;
 }
 
 .tool-play-area .mx2-stage__scene {
@@ -46,216 +52,290 @@
   padding: 0;
 }
 
+.tool-play-area .mx2-action-rail__row {
+  gap: 10px;
+}
+
 .tool-play-area .mx2-action-rail__row .mx2-btn--primary {
-  flex: 0 0 156px;
-  max-width: min(100%, 156px);
-  font-weight: 620;
+  flex: 0 0 172px;
+  max-width: min(100%, 172px);
+  font-weight: 720;
+}
+
+.tool-play-area .mx2-action-rail__row .mx2-btn--ghost {
+  flex: 0 0 auto;
+  min-width: 116px;
 }
 
 .sign-desk {
   position: relative;
   width: 100%;
-  min-height: 360px;
+  min-height: 426px;
   overflow: hidden;
-  border: 1px solid var(--mx2-border);
-  border-radius: var(--mx2-r-lg);
-  background: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  border: 1px solid #dfe9e2;
+  border-radius: 26px;
+  background: #fffefa;
+  box-shadow: 0 18px 48px rgba(39, 69, 50, 0.08);
 }
 
 .sign-desk__workspace {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(360px, 1.18fr) minmax(280px, 0.82fr);
-  gap: 18px;
-  align-items: start;
-  min-height: 360px;
-  padding: 16px;
-  background: #ffffff;
+  grid-template-columns: minmax(390px, 1.16fr) minmax(290px, 0.84fr);
+  gap: 20px;
+  align-items: stretch;
+  min-height: 426px;
+  padding: 18px;
+  background: #fffefa;
 }
 
 .sign-desk__paper,
 .sign-desk__proof {
   min-width: 0;
-  border: 1px solid rgba(31, 41, 55, 0.085);
+  border: 1px solid #e2ebe5;
   background: #ffffff;
-  box-shadow: 0 10px 24px rgba(31, 41, 55, 0.055);
+  box-shadow: 0 10px 28px rgba(42, 76, 54, 0.065);
 }
 
 .sign-desk__paper {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 12px;
-  min-height: 100%;
+  gap: 11px;
   border-radius: 22px;
   padding: 16px;
 }
 
 .sign-desk__paper-head {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
   align-items: center;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.sign-desk__paper-head span,
-.sign-desk__paper-head strong,
-.sign-desk__payload-sheet > span {
-  color: #58685d;
-  font-size: 11px;
-  font-weight: 680;
+.sign-desk__paper-head > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: #175d3d;
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.sign-desk__paper-head span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: #246044;
+.sign-desk__mode-chip {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 1px solid #cfe6d7;
+  border-radius: 999px;
+  color: #174f35;
+  background: #edf8f0;
+  font-size: 11px;
+  font-weight: 730;
 }
 
-.sign-desk__paper-head strong {
+.sign-desk__message-field.mx2-open-field {
+  gap: 7px;
+  margin: 0;
+}
+
+.sign-desk__message-field .mx2-open-field__label {
+  color: #425a4b;
+  font-size: 11px;
+  font-weight: 740;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.sign-desk__message-field .mx2-open-field__control {
+  min-height: 108px;
+  border: 1px solid #cfe2d5;
+  border-radius: 16px;
+  padding: 11px 12px;
+  background: #fffefb;
+  box-shadow: inset 0 -1px 0 rgba(35, 115, 75, 0.08);
+}
+
+.sign-desk__message-field .mx2-open-field__control:focus-within {
+  border-color: #69a982;
+  box-shadow: 0 0 0 4px rgba(69, 151, 103, 0.13);
+}
+
+.sign-desk__message-field textarea.semi-input-textarea {
+  width: 100%;
+  min-height: 84px;
+  max-height: 132px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  color: #1e3428;
+  background: transparent;
+  font: 590 14px/1.48 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.sign-desk__message-field textarea::placeholder {
+  color: #829389;
+}
+
+.sign-desk__message-field .mx2-open-field__hint {
+  color: #64796c;
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.35;
+}
+
+.sign-desk__file-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid #d7e8dc;
+  border-radius: 13px;
+  color: #1d6643;
+  background: #f2faf4;
+}
+
+.sign-desk__file-chip > span {
+  display: grid;
+  min-width: 0;
+}
+
+.sign-desk__file-chip strong,
+.sign-desk__file-chip small {
   overflow: hidden;
-  padding: 7px 10px;
-  border-radius: var(--mx2-r-pill);
-  color: #244a34;
-  background: rgba(229, 244, 226, 0.78);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sign-desk__payload-sheet {
+.sign-desk__file-chip strong {
+  color: #214733;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.sign-desk__file-chip small {
+  color: #688174;
+  font-size: 10px;
+  font-weight: 590;
+}
+
+.sign-desk__payload-card {
   display: grid;
-  grid-template-rows: auto minmax(132px, auto);
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
-  border: 1px solid rgba(31, 138, 83, 0.14);
-  border-radius: 18px;
-  padding: 12px 14px;
-  background: #ffffff;
-  box-shadow: inset 0 -1px 0 rgba(31, 138, 83, 0.1);
+  margin-top: auto;
+  border: 1px solid #e0e8e2;
+  border-radius: 17px;
+  padding: 11px 12px;
+  background: #f8faf8;
 }
 
-.sign-desk__textarea {
-  width: 100%;
-  min-height: 132px;
-  max-height: 188px;
-  resize: none;
-  border: 0;
-  color: #1e2f25;
-  background: transparent;
-  font: 620 14px/1.48 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
-  overflow: auto;
+.sign-desk__payload-card[data-ready="true"] {
+  border-color: #cde4d4;
+  background: #f4faf5;
 }
 
-.sign-desk__textarea:focus {
-  outline: none;
-}
-
-.sign-desk__payload-sheet:focus-within {
-  box-shadow:
-    inset 0 -2px 0 rgba(31, 138, 83, 0.52),
-    0 0 0 4px rgba(60, 177, 112, 0.15);
-}
-
-.sign-desk__textarea::placeholder {
-  color: rgba(58, 76, 65, 0.52);
-}
-
-.sign-desk__payload-preview {
-  display: grid;
-  gap: 6px;
+.sign-desk__payload-head,
+.sign-desk__digest {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   min-width: 0;
-  border: 1px solid rgba(31, 41, 55, 0.08);
-  border-radius: 16px;
-  padding: 10px 12px;
-  background: var(--mx2-surface-2);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
 }
 
-.sign-desk__payload-preview[data-empty="true"] {
-  background: #ffffff;
+.sign-desk__payload-head {
+  justify-content: space-between;
 }
 
-.sign-desk__payload-preview span {
+.sign-desk__payload-head span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #246044;
-  font-size: 11px;
-  font-weight: 680;
+  color: #315e45;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.sign-desk__payload-preview code {
+.sign-desk__payload-head strong {
+  color: #486052;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sign-desk__payload-card pre {
+  min-height: 48px;
+  max-height: 76px;
+  margin: 0;
+  overflow: auto;
+  border-radius: 11px;
+  padding: 8px 9px;
+  color: #253c2e;
+  background: #ffffff;
+  font: 570 10px/1.42 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.sign-desk__digest {
+  color: #4c6a58;
+}
+
+.sign-desk__digest code {
   min-width: 0;
   overflow: hidden;
-  color: #1e2f25;
-  font: 800 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #204d35;
+  font: 700 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .sign-desk__meter {
   width: 100%;
-  height: 10px;
+  height: 5px;
   overflow: hidden;
   border-radius: 999px;
-  background: #eef3ef;
+  background: #e6ece8;
 }
 
 .sign-desk__meter span {
   display: block;
   height: 100%;
-  min-width: 6px;
   border-radius: inherit;
-  background: linear-gradient(90deg, #34b875, #7ccf8c);
-  transition:
-    width 260ms var(--mx2-ease-settle),
-    background 180ms var(--mx2-ease);
+  background: #42a86f;
+  transition: width 220ms var(--mx2-ease-settle);
 }
 
-.sign-desk__meter[data-over="true"] span {
-  background: linear-gradient(90deg, #d85f47, #f0a04b);
-}
-
-.sign-desk__paper-note {
-  min-height: 34px;
-  margin: 0;
-  color: #526657;
-  font-size: 12px;
-  font-weight: 680;
-  line-height: 1.42;
+.sign-desk__meter[data-error="true"] span {
+  background: #d86c52;
 }
 
 .sign-desk__handoff {
   position: absolute;
   z-index: 3;
   top: 50%;
-  left: calc(58% - 24px);
-  width: 48px;
-  height: 48px;
+  left: calc(57.5% - 23px);
   display: grid;
+  width: 46px;
+  height: 46px;
   place-items: center;
-  border: 1px solid rgba(31, 138, 83, 0.18);
-  border-radius: 18px;
+  border: 1px solid #cfe3d5;
+  border-radius: 16px;
+  color: #1c7048;
   background: #ffffff;
-  color: #246044;
-  box-shadow: 0 10px 22px rgba(31, 41, 55, 0.08);
+  box-shadow: 0 9px 22px rgba(37, 83, 52, 0.11);
   transform: translateY(-50%);
 }
 
 .sign-desk__handoff span {
   position: absolute;
-  inset: 50% auto auto 50%;
-  width: 88px;
+  width: 76px;
   height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(31, 138, 83, 0.08), rgba(31, 138, 83, 0.34), rgba(31, 138, 83, 0.08));
-  transform: translate(-50%, -50%);
+  border-radius: 99px;
+  background: #c6decf;
 }
 
 .sign-desk__handoff svg {
@@ -263,203 +343,194 @@
   z-index: 1;
 }
 
-.sign-desk--signing .sign-desk__handoff,
-.sign-desk--broadcasting .sign-desk__handoff {
-  animation: sign-desk-handoff 1s var(--mx2-ease-settle) infinite alternate;
+.sign-desk[data-state="wallet"] .sign-desk__handoff {
+  animation: sign-handoff 820ms var(--mx2-ease-settle) infinite alternate;
 }
 
 .sign-desk__proof {
-  display: grid;
-  grid-template-rows: 132px auto auto auto auto auto;
-  gap: 12px;
-  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  border-radius: 22px;
   padding: 14px;
 }
 
 .sign-desk__photo {
-  position: relative;
-  min-height: 0;
+  height: 126px;
   overflow: hidden;
-  border-radius: 20px;
-  padding: 10px;
-  background: #ffffff;
-  box-shadow:
-    inset 0 0 0 1px rgba(31, 41, 55, 0.08),
-    0 10px 24px rgba(31, 41, 55, 0.06);
+  border: 1px solid #dfe9e2;
+  border-radius: 17px;
+  background: #fffefa;
 }
 
 .sign-desk__photo img {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 0;
-  border: 1px solid rgba(67, 133, 84, 0.12);
-  border-radius: 16px;
   object-fit: cover;
-  object-position: center;
+  object-position: 64% 66%;
   opacity: 1;
   filter: none;
 }
 
-.sign-desk__photo::after {
-  content: none;
-}
-
-.sign-desk__mode {
-  width: fit-content;
-  border-radius: var(--mx2-r-pill);
-  padding: 7px 10px;
-  color: #244a34;
-  background: #ffffff;
-  font-size: 11px;
-  font-weight: 680;
-  box-shadow: inset 0 0 0 1px rgba(67, 133, 84, 0.15);
+.sign-desk__proof-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
 }
 
 .sign-desk__seal {
+  flex: 0 0 auto;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    "icon label"
-    "icon value";
-  column-gap: 11px;
-  align-items: center;
-  border: 1px solid rgba(31, 41, 55, 0.08);
-  border-radius: 18px;
-  padding: 12px;
-  color: #20382a;
-  background: #fbfdf9;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #d8e5dc;
+  border-radius: 14px;
+  color: #4a6d59;
+  background: #f4f8f5;
 }
 
 .sign-desk__seal[data-active="true"] {
-  background: #f1fbf4;
-  box-shadow: inset 0 0 0 1px rgba(46, 155, 89, 0.16);
+  border-color: #b9ddc5;
+  color: #176640;
+  background: #e8f7ed;
+  box-shadow: 0 0 0 4px rgba(65, 160, 103, 0.09);
 }
 
-.sign-desk__seal-icon {
-  grid-area: icon;
-  width: 46px;
-  height: 46px;
+.sign-desk__proof-status > div {
   display: grid;
-  place-items: center;
-  border-radius: 15px;
-  color: #ffffff;
-  background: #3c7b54;
-  box-shadow: 0 8px 18px rgba(42, 96, 61, 0.16);
+  min-width: 0;
 }
 
-.sign-desk__seal > span:not(.sign-desk__seal-icon) {
-  grid-area: label;
-  color: #5b6b60;
-  font-size: 11px;
-  font-weight: 680;
+.sign-desk__proof-status small {
+  color: #728478;
+  font-size: 9px;
+  font-weight: 740;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.sign-desk__seal strong {
-  grid-area: value;
-  min-width: 0;
-  overflow: hidden;
-  color: #1f3f2d;
-  font-size: 16px;
-  font-weight: 680;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sign-desk__proof-status strong {
+  color: #1d3d2b;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.3;
 }
 
-.sign-desk--signing .sign-desk__seal-icon,
-.sign-desk--broadcasting .sign-desk__seal-icon {
-  animation: sign-desk-review 1.15s var(--mx2-ease-settle) infinite;
+.sign-desk__proof-status p {
+  margin: 3px 0 0;
+  color: #5c7063;
+  font-size: 11px;
+  font-weight: 530;
+  line-height: 1.38;
 }
 
 .sign-desk__route {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .sign-desk__route span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 34px;
-  border-radius: 999px;
-  color: #5a6a60;
-  background: rgba(47, 83, 61, 0.08);
-  font-size: 12px;
-  font-weight: 620;
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  gap: 3px;
+  padding: 7px 4px;
+  border: 1px solid #e4ebe6;
+  border-radius: 11px;
+  color: #7b8c81;
+  background: #fafbfa;
+}
+
+.sign-desk__route span[data-active="true"] {
+  border-color: #c8e2d1;
+  color: #226746;
+  background: #eef8f1;
 }
 
 .sign-desk__route em {
   min-width: 0;
   overflow: hidden;
+  font-size: 9px;
   font-style: normal;
+  font-weight: 690;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sign-desk__route span[data-active="true"] {
-  color: #1f5138;
-  background: rgba(76, 190, 116, 0.17);
-  box-shadow: inset 0 0 0 1px rgba(65, 141, 88, 0.18);
-}
-
-.sign-desk__status {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 13px 14px;
-  border-radius: 16px;
-  color: #1f3227;
-  background: #f7faf8;
-  box-shadow: inset 0 0 0 1px rgba(63, 97, 74, 0.1);
-}
-
-.sign-desk__status strong {
-  font-size: 15px;
-}
-
-.sign-desk__status span {
-  color: #57675d;
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.42;
-}
-
-.sign-desk__outputs {
+.sign-desk__context {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
 }
 
-.sign-desk__outputs button {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
+.sign-desk__context div {
+  display: grid;
   min-width: 0;
-  border: 1px solid rgba(56, 86, 67, 0.15);
-  border-radius: 14px;
-  padding: 10px 12px;
-  color: #253d2d;
-  background: #ffffff;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 620;
+  gap: 2px;
+  padding: 8px 9px;
+  border-radius: 11px;
+  background: #f7f9f7;
+}
+
+.sign-desk__context dt {
+  color: #718177;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sign-desk__context dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #294534;
+  font: 660 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-desk__signature {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  margin-top: auto;
+  border: 1px solid #d8e6dc;
+  border-radius: 13px;
+  padding: 9px 10px;
+  text-align: left;
+  background: #f4f9f5;
   cursor: pointer;
 }
 
-.sign-desk__outputs button:disabled {
-  cursor: not-allowed;
-  opacity: 0.64;
+.sign-desk__signature:not(:disabled):hover {
+  border-color: #9cc8ab;
+  background: #edf8f0;
 }
 
-.sign-desk__outputs code {
+.sign-desk__signature:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.sign-desk__signature span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #226743;
+  font-size: 10px;
+  font-weight: 730;
+}
+
+.sign-desk__signature code {
   min-width: 0;
   overflow: hidden;
-  color: #4b6153;
-  font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #344e3e;
+  font: 650 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -469,7 +540,7 @@
   width: 1px;
   height: 1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip: rect(0 0 0 0);
   clip-path: inset(50%);
 }
 
@@ -481,155 +552,110 @@
 .sign-details__tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  border: 1px solid rgba(31, 41, 55, 0.075);
-  border-radius: 20px;
+  gap: 7px;
   padding: 6px;
-  background: var(--mx2-surface-2);
+  border: 1px solid #e1e9e3;
+  border-radius: 16px;
+  background: #f4f7f5;
 }
 
 .sign-details__tabs button {
-  min-width: 0;
-  min-height: 56px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas:
-    "icon label"
-    "icon meta";
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 8px;
-  row-gap: 2px;
+  gap: 7px;
+  min-width: 0;
+  min-height: 42px;
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: 11px;
+  padding: 8px 10px;
+  color: #5d7064;
   background: transparent;
-  color: var(--mx2-text-muted);
-  padding: 9px 10px;
-  text-align: left;
-  font: inherit;
   cursor: pointer;
 }
 
-.sign-details__tabs button.is-active,
-.sign-details__tabs button:hover {
-  border-color: var(--mx2-brand-subtle);
+.sign-details__tabs button:hover,
+.sign-details__tabs button.is-active {
+  border-color: #d5e4d9;
+  color: #1e6140;
   background: #ffffff;
-  color: var(--mx2-brand-hover);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.045);
+  box-shadow: 0 5px 14px rgba(45, 78, 56, 0.06);
 }
 
-.sign-details__tabs svg {
-  grid-area: icon;
-}
-
-.sign-details__tabs span,
-.sign-details__tabs em {
+.sign-details__tabs button span {
   min-width: 0;
   overflow: hidden;
+  font-size: 11px;
+  font-weight: 720;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sign-details__tabs span {
-  grid-area: label;
-  color: inherit;
-  font-size: 12px;
-  font-weight: 620;
-}
-
-.sign-details__tabs em {
-  grid-area: meta;
-  color: var(--mx2-text-muted);
-  font-size: 11px;
+.sign-details__tabs button em {
+  max-width: 90px;
+  overflow: hidden;
+  color: #76877c;
+  font-size: 9px;
   font-style: normal;
-  font-weight: 560;
-}
-
-.sign-details__active {
-  min-width: 0;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sign-details__panel.mx2-open-panel.semi-card {
-  border-color: rgba(31, 138, 83, 0.12);
-  border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(250, 253, 250, 0.98), #ffffff) padding-box,
-    linear-gradient(135deg, rgba(52, 184, 117, 0.18), rgba(31, 41, 55, 0.06)) border-box;
-  box-shadow: 0 10px 22px rgba(31, 41, 55, 0.055);
+  border: 1px solid #e0e9e2;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: none;
 }
 
-.sign-details__panel.mx2-open-panel > .semi-card-body {
-  gap: 12px;
-  padding: 12px;
+.sign-details__panel .semi-card-header,
+.sign-details__panel .semi-card-body {
+  padding-inline: 16px;
 }
 
-.sign-details__panel.mx2-open-panel .mx2-open-panel__copy strong,
-.sign-details__panel.mx2-open-panel .mx2-open-panel__copy span {
-  white-space: normal;
+.sign-details__panel .semi-card-header {
+  padding-top: 15px;
+  padding-bottom: 11px;
 }
 
-.sign-details__panel.mx2-open-panel .mx2-open-panel__copy span {
-  line-height: 1.3;
+.sign-details__panel .semi-card-body {
+  padding-top: 0;
+  padding-bottom: 16px;
 }
 
-.sign-details__summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+.sign-details__panel .mx2-open-panel__copy strong {
+  color: #234331;
+  font-weight: 750;
 }
 
-.sign-details__status-chip {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 40px;
-  border: 1px solid rgba(47, 83, 61, 0.1);
-  border-radius: 14px;
-  padding: 9px 10px;
-  color: #516255;
-  background: #f8faf8;
-  font-size: 12px;
-  font-weight: 640;
-}
-
-.sign-details__status-chip[data-active="true"] {
-  color: #1f5138;
-  background: var(--mx2-brand-light);
-  box-shadow: inset 0 0 0 1px rgba(52, 184, 117, 0.16);
-}
-
-.sign-details__status-chip svg {
-  flex: 0 0 auto;
-}
-
-.sign-details__status-chip span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sign-details__panel .mx2-open-panel__copy span {
+  color: #65796c;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .sign-details__facts {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin: 0;
+  margin: 0 0 12px;
 }
 
 .sign-details__facts div {
   display: grid;
-  gap: 3px;
   min-width: 0;
-  border-radius: 13px;
-  padding: 9px 10px;
-  background: var(--mx2-surface-2);
-  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.055);
+  gap: 4px;
+  border-radius: 12px;
+  padding: 10px 11px;
+  background: #f5f8f6;
 }
 
-.sign-details__facts dt,
-.sign-details__artifact span {
-  color: var(--mx2-text-muted);
-  font-size: 11px;
-  font-weight: 620;
+.sign-details__facts dt {
+  color: #6d7f73;
+  font-size: 9px;
+  font-weight: 720;
   text-transform: uppercase;
 }
 
@@ -637,149 +663,200 @@
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  color: var(--mx2-ink);
-  font-size: 12px;
-  font-weight: 620;
+  color: #2b4937;
+  font: 650 10px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sign-details__artifact {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-  border: 1px solid rgba(31, 41, 55, 0.08);
-  border-radius: 16px;
-  padding: 10px;
-  background: var(--mx2-surface-2);
+.sign-details__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.sign-details__artifact[data-empty="true"] {
-  color: #627168;
-  background: #ffffff;
-}
-
-.sign-details__artifact code {
-  display: block;
-  max-height: 112px;
-  overflow: auto;
-  border-radius: 12px;
-  padding: 10px;
-  color: #203428;
-  background: #ffffff;
-  font: 650 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  word-break: break-all;
-  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.07);
-}
-
-.sign-details__copy.mx2-btn {
-  justify-self: start;
-  min-height: 38px;
+.sign-details__actions .mx2-btn {
+  flex: 0 0 auto;
+  min-width: 136px;
 }
 
 .sign-details__notice.mx2-open-notice.semi-banner {
-  min-height: 72px;
-  background: #f8fffd;
+  min-height: 64px;
+  border-radius: 13px;
+  color: #354f40;
 }
 
-@keyframes sign-desk-review {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-1deg);
-  }
-  50% {
-    transform: translateY(-5px) rotate(1.5deg);
-  }
+.sign-details__empty {
+  display: flex;
+  min-height: 96px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed #d6e2d9;
+  border-radius: 14px;
+  color: #6b7e71;
+  background: #fafbfa;
+  font-size: 12px;
+  font-weight: 620;
 }
 
-@keyframes sign-desk-handoff {
-  from {
-    transform: translateY(-50%) translateX(-2px);
-  }
+.sign-details__mode-control,
+.sign-details__domain-field {
+  margin-bottom: 12px;
+}
 
-  to {
-    transform: translateY(-50%) translateX(3px);
-  }
+.sign-details__mode-control .mx2-open-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 430px;
+}
+
+.sign-details__domain-field {
+  max-width: 520px;
+}
+
+.sign-details__domain-field .mx2-open-field__control {
+  border-radius: 11px;
+}
+
+.sign-history {
+  display: grid;
+  gap: 7px;
+}
+
+.sign-history article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  border: 1px solid #e2eae4;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: #fafbfa;
+}
+
+.sign-history__icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  color: #236a46;
+  background: #eaf6ee;
+}
+
+.sign-history article > div {
+  display: grid;
+  min-width: 0;
+}
+
+.sign-history strong {
+  color: #294936;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.sign-history code {
+  min-width: 0;
+  overflow: hidden;
+  color: #607468;
+  font: 590 9px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sign-history small {
+  color: #77877d;
+  font-size: 9px;
+  font-weight: 580;
+  white-space: nowrap;
+}
+
+.sign-history__clear {
+  justify-self: start;
+  margin-top: 3px;
+}
+
+@keyframes sign-handoff {
+  from { transform: translateY(-50%) translateX(-3px); }
+  to { transform: translateY(-50%) translateX(3px); }
 }
 
 @media (max-width: 760px) {
-  .sign-desk,
-  .sign-desk__workspace {
-    min-height: auto;
-  }
-
   .sign-desk__workspace {
     grid-template-columns: 1fr;
-    padding: 14px;
-  }
-
-  .sign-desk__paper,
-  .sign-desk__proof {
-    padding: 14px;
-  }
-
-  .sign-desk__payload-sheet {
-    grid-template-rows: auto minmax(118px, auto);
-  }
-
-  .sign-desk__textarea {
-    min-height: 118px;
-  }
-
-  .sign-desk__proof {
-    grid-template-rows: 116px auto auto auto auto auto;
   }
 
   .sign-desk__handoff {
     display: none;
   }
 
-  .sign-details {
-    grid-template-columns: 1fr;
+  .sign-desk__photo {
+    height: 150px;
   }
 
-  .sign-details__tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    padding: 5px;
-  }
-
-  .sign-details__tabs button {
-    min-height: 50px;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "icon"
-      "label";
-    justify-items: center;
-    padding: 8px 6px;
-    text-align: center;
-  }
-
-  .sign-details__tabs em {
-    display: none;
+  .sign-desk__proof {
+    min-height: 390px;
   }
 }
 
-@media (max-width: 480px) {
-  .sign-desk__paper-head {
-    align-items: stretch;
-    flex-direction: column;
+@media (max-width: 560px) {
+  .tool-play-area .mx2-stage,
+  .tool-play-area .mx2-action-rail,
+  .tool-play-area .mx2-drawer {
+    width: 100%;
   }
 
-  .sign-desk__outputs button {
-    align-items: flex-start;
-    flex-direction: column;
+  .tool-play-area .mx2-action-rail__row .mx2-btn--primary,
+  .tool-play-area .mx2-action-rail__row .mx2-btn--ghost {
+    flex: 1 1 140px;
+    max-width: none;
+  }
+
+  .sign-desk {
+    border-radius: 20px;
+  }
+
+  .sign-desk__workspace {
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .sign-desk__paper,
+  .sign-desk__proof {
+    border-radius: 17px;
+    padding: 12px;
+  }
+
+  .sign-details__tabs button {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sign-details__tabs button em {
+    display: none;
+  }
+
+  .sign-details__facts {
+    grid-template-columns: 1fr;
+  }
+
+  .sign-history article {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sign-history small {
+    grid-column: 2;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sign-desk--signing .sign-desk__seal-icon,
-  .sign-desk--broadcasting .sign-desk__seal-icon {
+  .sign-desk *,
+  .sign-details * {
     animation-duration: 0.001ms !important;
-  }
-
-  .sign-desk--signing .sign-desk__handoff,
-  .sign-desk--broadcasting .sign-desk__handoff {
-    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
   }
 }

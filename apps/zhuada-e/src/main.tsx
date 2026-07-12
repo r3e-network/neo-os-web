@@ -1,5 +1,5 @@
 /**
- * Catch the Goose (抓大鹅) — B-class physics-extraction edition.
+ * Goose Basket Shuffle · 鹅篮翻翻乐 — physics-extraction edition.
  *
  * Free local mode (no blockchain). The guest engine owns the logical item list
  * + tray + timer + scoring; the Three.js scene renders the physics pile and
@@ -12,13 +12,22 @@ import { messages } from "./locale/messages";
 import { createGuestEngine, loadTimedPref, type FailReason, type PowerupCounts } from "./logic/guest-engine";
 import { TOTAL_LEVELS } from "./logic/game-rules";
 import { EMPTY_PROGRESS, bestOverall, clearedLevels, type GooseProgress } from "./logic/progress";
+import { EMPTY_DAILY, type DailyState } from "./logic/daily-reward";
 import { SCENES } from "./logic/scenes";
 import { sound } from "./logic/sound";
-import type { ItemInstance } from "./logic/engine-zhuada";
+import { haptics } from "./logic/haptics";
+import { EMPTY_EXTRACT_RECEIPT, type ItemInstance } from "./logic/engine-zhuada";
+import { isGameThemeId, loadThemePref, saveThemePref, themeOf, type GameThemeId } from "./logic/themes";
+import { initializeGameStorage } from "./logic/game-storage";
 
 const appId = "miniapp-zhuada-e";
 
-defineMiniApp({
+async function boot(): Promise<void> {
+  await initializeGameStorage();
+  sound.reloadStoredPreference();
+  haptics.reloadStoredPreference();
+
+  defineMiniApp({
   appId,
   playArea: PlayArea,
   manifest,
@@ -32,10 +41,15 @@ defineMiniApp({
 
     // ── Game-specific observables ──────────────────────────────────────────────
     const items = createObservable<ItemInstance[]>([]);
+    const reserveCount = createObservable(0);
     const tray = createObservable<(number | null)[]>(Array(7).fill(null));
     const shelf = createObservable<(number | null)[]>(Array(3).fill(null));
     const score = createObservable(0);
     const comboCount = createObservable(0);
+    // R6 Frenzy: free-pull charges (armed after a combo climax) + a monotonic
+    // nonce bumped on each frenzy pulse so the UI can flash a burst.
+    const frenzyCharges = createObservable(0);
+    const frenzyFx = createObservable(0);
     const timeLeftMs = createObservable(0);
     const level = createObservable(1);
     const isPlaying = createObservable(false);
@@ -53,11 +67,26 @@ defineMiniApp({
     // Untimed by default (parity G1); persisted timed-challenge preference.
     const timedMode = createObservable(loadTimedPref());
     const shakeReadyAt = createObservable(0);
+    const dealNonce = createObservable(0);
     const shakeNonce = createObservable(0);
+    const shakeStrength = createObservable(1);
     const shuffleNonce = createObservable(0);
     const hintNonce = createObservable(0);
+    const extractReceipt = createObservable({ ...EMPTY_EXTRACT_RECEIPT });
+    const themeId = createObservable<GameThemeId>(loadThemePref());
+    const resumeAvailable = createObservable(false);
+    const resumeLevel = createObservable(0);
+    const continueAvailable = createObservable(false);
+    sound.setTheme(themeOf(themeId.get()).ambience);
     // Meta progression (G4): persisted unlocks / wins / best / goose collection.
     const progress = createObservable<GooseProgress>(EMPTY_PROGRESS);
+    // R4 — daily sign-in / streak state (persisted separately, see daily-reward).
+    const dailyState = createObservable<DailyState>(EMPTY_DAILY);
+    const dailyClaimable = createObservable(false);
+    const dailyGrants = createObservable<PowerupCounts>({
+      shuffle: 0, hint: 0, remove: 0, undo: 0, addTime: 0,
+    });
+    const dailyMilestoneFx = createObservable(0);
     // Scene id of the goose unlocked by the LAST win (-1 = none) — transient.
     const unlockNotice = createObservable(-1);
 
@@ -84,10 +113,13 @@ defineMiniApp({
     const guest = createGuestEngine({
       obs,
       items,
+      reserveCount,
       tray,
       shelf,
       score,
       comboCount,
+      frenzyCharges,
+      frenzyFx,
       timeLeftMs,
       level,
       isPlaying,
@@ -98,12 +130,22 @@ defineMiniApp({
       undoable,
       timedMode,
       shakeReadyAt,
+      dealNonce,
       shakeNonce,
+      shakeStrength,
       shuffleNonce,
       hintNonce,
+      extractReceipt,
+      themeId,
+      resumeAvailable,
+      resumeLevel,
+      continueAvailable,
+      dailyState,
+      dailyClaimable,
+      dailyGrants,
+      dailyMilestoneFx,
       progress,
       unlockNotice,
-      guestLeaderboard: app.mode.guestLeaderboard,
       t: ctx.t,
       setStatus: ctx.setStatus,
     });
@@ -191,11 +233,46 @@ defineMiniApp({
       guest.undo();
     });
 
-    app.actions.register("shake", async () => {
+    app.actions.register("shake", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as {
+        intensity?: unknown;
+        magnitude?: unknown;
+        strength?: unknown;
+        source?: unknown;
+      };
+      const intensity = Math.max(0.65, Math.min(1.35, Number(form.intensity) || 1));
       const before = shakeNonce.get();
-      guest.shake();
+      guest.shake(intensity);
+      const accepted = shakeNonce.get() !== before;
       // The rattle only plays when the shake actually fired (not on cooldown).
-      if (shakeNonce.get() !== before) sound.play("shake");
+      if (accepted) {
+        sound.play("shake", intensity);
+        haptics.play("shake");
+      }
+      if (
+        import.meta.env.VITE_DEVICE_QA === "1"
+        && new URLSearchParams(window.location.search).get("deviceQa") === "1"
+      ) {
+        window.dispatchEvent(new CustomEvent("zhuada-e:device-qa-shake", {
+          detail: {
+            source: form.source === "device-motion" ? "device-motion" : "screen",
+            accepted,
+            strength: typeof form.strength === "string" ? form.strength : undefined,
+            intensity,
+            magnitude: Number(form.magnitude) || 0,
+          },
+        }));
+      }
+    });
+
+    app.actions.register("setTheme", async (...args: unknown[]) => {
+      if (isPlaying.get()) return;
+      const form = (args[0] ?? {}) as { id?: unknown };
+      if (!isGameThemeId(form.id)) return;
+      themeId.set(form.id);
+      saveThemePref(form.id);
+      sound.setTheme(themeOf(form.id).ambience);
+      sound.play("click");
     });
 
     app.actions.register("setTimedMode", async (...args: unknown[]) => {
@@ -204,26 +281,86 @@ defineMiniApp({
       guest.setTimedMode(form.on === true || form.on === "true");
     });
 
-    // Debug-only playtest shortcuts (used by the ?debug=1 panel).
-    app.actions.register("debugWin", async () => {
-      guest.debugWin();
+    app.actions.register("resumeRun", async () => {
+      sound.unlock();
+      sound.play("click");
+      guest.resumeRun();
     });
-    app.actions.register("debugLose", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as { reason?: unknown };
-      guest.debugLose(form.reason === "trayFull" ? "trayFull" : "timeout");
+
+    app.actions.register("discardRun", async () => {
+      sound.play("click");
+      guest.discardRun();
     });
+
+    app.actions.register("continueRun", async () => {
+      sound.unlock();
+      guest.continueAfterFailure();
+    });
+
+    app.actions.register("claimDaily", async () => {
+      sound.unlock();
+      sound.play("click");
+      guest.claimDaily();
+    });
+
+    app.actions.register("startDaily", async () => {
+      if (isStarting.get()) return;
+      sound.unlock();
+      sound.play("click");
+      isStarting.set(true);
+      guest.startDailyChallenge();
+      isStarting.set(false);
+    });
+
+    // Playtest shortcuts are removed from production bundles, not merely
+    // hidden behind ?debug=1. A public dispatch surface must never be able to
+    // mint a real win/progress record without playing the level.
+    if (import.meta.env.DEV) {
+      const debugWin = guest.debugWin;
+      const debugLose = guest.debugLose;
+      if (debugWin && debugLose) {
+        app.actions.register("debugWin", async () => {
+          debugWin();
+        });
+        app.actions.register("debugLose", async (...args: unknown[]) => {
+          const form = (args[0] ?? {}) as { reason?: unknown };
+          debugLose(form.reason === "trayFull" ? "trayFull" : "timeout");
+        });
+        app.actions.register("debugShake", async (...args: unknown[]) => {
+          const form = (args[0] ?? {}) as { intensity?: unknown };
+          const intensity = Math.max(0.65, Math.min(1.35, Number(form.intensity) || 1));
+          shakeStrength.set(intensity);
+          shakeNonce.set(shakeNonce.get() + 1);
+        });
+      }
+    }
 
     app.actions.register("enter", async () => {
       guest.enter();
     });
 
+    if (
+      import.meta.env.DEV &&
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("simQa") === "1"
+    ) {
+      window.setTimeout(() => {
+        app.mode.set("guest");
+        guest.enter();
+        guest.startLevel(progress.get().lastPlayedLevel || 1);
+      }, 0);
+    }
+
     return {
       state: {
         items,
+        reserveCount,
         tray,
         shelf,
         score,
         comboCount,
+        frenzyCharges,
+        frenzyFx,
         timeLeftMs,
         level,
         isPlaying,
@@ -234,9 +371,20 @@ defineMiniApp({
         undoable,
         timedMode,
         shakeReadyAt,
+        dealNonce,
         shakeNonce,
+        shakeStrength,
         shuffleNonce,
         hintNonce,
+        extractReceipt,
+        themeId,
+        resumeAvailable,
+        resumeLevel,
+        continueAvailable,
+        dailyState,
+        dailyClaimable,
+        dailyGrants,
+        dailyMilestoneFx,
         progress,
         unlockNotice,
         statWins,
@@ -252,4 +400,7 @@ defineMiniApp({
       },
     };
   },
-});
+  });
+}
+
+void boot();

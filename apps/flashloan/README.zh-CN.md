@@ -1,94 +1,78 @@
 # 闪电贷
 
-无抵押即时贷款，用于套利交易
+面向生产的 Neo N3 DeFi 闪电贷工作台，以 GAS 为资产，通过原子回调完成借入、执行与归还。
 
-## 概述
-
-| 属性 | 值 |
-|------|-----|
-| **应用 ID** | `miniapp-flashloan` |
-| **分类** | 去中心化金融 |
-| **版本** | 1.0.0 |
-| **框架** | Host-native React playarea |
-
-## 功能特性
-
-- Flashloan
-- Lending
-- Defi
-
-## 权限要求
-
-| 权限 | 是否需要 |
-|------|----------|
-| 支付 | ✅ 是 |
-| 随机数 | ❌ 否 |
-| 数据源 | ❌ 否 |
-| 治理 | ❌ 否 |
-
-## 网络配置
-
-### 测试网 (Testnet)
+## 产品模型
 
 | 属性 | 值 |
-|------|-----|
-| **合约地址** | `0xde8e595d8d3c293731db499367ee2a768e1e458b` |
-| **RPC 节点** | `https://testnet1.neo.coz.io:443` |
-| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xde8e595d8d3c293731db499367ee2a768e1e458b) |
-| **网络魔数** | `894710606` |
-
-### 主网 (Mainnet)
-
-| 属性 | 值 |
-|------|-----|
-| **合约地址** | `0xb5d8fb0dc2319edc4be3104304b4136b925df6e4` |
-| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
-| **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xb5d8fb0dc2319edc4be3104304b4136b925df6e4) |
-| **网络魔数** | `860833102` |
-
-## 平台合约
-
-### 测试网 (Testnet)
-
-| 合约 | 地址 |
 | --- | --- |
-| Governance | `0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05` |
-| PriceFeed | `0xc5d9117d255054489d1cf59b2c1d188c01bc9954` |
-| RandomnessLog | `0x76dfee17f2f4b9fa8f32bd3f4da6406319ab7b39` |
-| AppRegistry | `0x79d16bee03122e992bb80c478ad4ed405f33bc7f` |
-| AutomationAnchor | `0x1c888d699ce76b0824028af310d90c3c18adeab5` |
-| Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
+| 应用 ID | `miniapp-flashloan` |
+| 分类 | DeFi |
+| 版本 | 1.1.0 |
+| 资产 | GAS |
+| 回调模型 | Neo 专用四参数回调 |
 
-### 主网 (Mainnet)
+首屏是资金执行台，而不是参数表单：本金、实时池余额、手续费、精确归还额、回调路线、风险边界和本地预演结果处于同一主视图。回调配置、流动性管理、贷款查询、历史和合约参数按需放入工具抽屉。
 
-| 合约 | 地址 |
-| --- | --- |
-| Governance | `0x705615e903d92abf8f6f459086b83f51096aa413` |
-| PriceFeed | `0x9e889922d2f64fa0c06a28d179c60fe1af915d27` |
-| RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
-| AppRegistry | `0x583cabba8beff13e036230de844c2fb4118ee38c` |
-| AutomationAnchor | `0x0fd51557facee54178a5d48181dcfa1b61956144` |
-| Morpheus Oracle | `0x5b492098fc094c760402e01f7e0b631b939d2bea` |
+## 已部署合约
 
-## 开发指南
+| 网络 | 合约 | 当前池余额 | 当前写入能力 |
+| --- | --- | ---: | --- |
+| Neo N3 主网 | `0xb5d8fb0dc2319edc4be3104304b4136b925df6e4` | `0 GAS` | 无可借流动性；`paymentHub()` 为零，因此禁用存入 |
+| Neo N3 测试网 | `0xde8e595d8d3c293731db499367ee2a768e1e458b` | `5.0009 GAS` | 实时检查全部通过后，可执行回调贷款和预付款存入 |
 
-```bash
-# 安装依赖
-npm install
+2026-07-11 的只读核验使用 `https://mainnet1.neo.coz.io:443` 与
+`https://testnet1.neo.coz.io:443`，未连接账户、未签名，也未广播交易。
 
-# 开发服务器
-npm run dev
+## 原子资金路线
 
-# 构建 H5 版本
-npm run build
+1. 借款人调用 `requestLoan(borrower, amount, callbackContract, callbackMethod)`。
+2. 放款合约把 GAS 本金转入回调合约。
+3. 同一笔交易内调用 `callbackMethod(borrower, amount, fee, loanId)`。
+4. 回调必须精确归还本金和合约报告的手续费。
+5. 回调缺失、执行失败或少还款时，交易整体 FAULT，贷款不会执行。
+
+该 ABI 不是 ERC-3156。当前链上常量为：
+
+- 最小贷款：`1 GAS`
+- 配置上限：`100,000 GAS`，还会受到实时池余额和借款人资格限制
+- 手续费：`9` 个基点（`0.09%`）
+- 冷却时间：`300` 秒
+- 每日上限：`10` 笔
+- 流动性提供者手续费分成：`80%`
+
+所有 GAS 数值在校验、钱包参数、事件和回读阶段都保持为 Fixed8 整数基准单位，仅在界面展示时转换成小数。
+
+## 已验证的测试网回调
+
+内置测试网回调合约：
+
+```text
+0x7aa01290d33f6b2313a7efd6acde58f3e64b636f
 ```
 
-## 资产配置
+其 ABI 暴露：
 
-- **允许的资产**: GAS
-- **单笔最大**: 1000 GAS
-- **每日上限**: 10000 GAS
+```text
+execute(borrower: Hash160, amount: Integer, fee: Integer, loanId: Integer)
+```
 
-## 许可证
+带签名者上下文的只读 `invokefunction` 模拟中，`execute` 返回 `HALT`，并产生本金转出、精确还款与 `LoanExecuted`；把方法换成 `onFlashLoan` 则因方法不存在返回 `FAULT`。这只是兼容性证据，不是广播、回执或用户贷款成功。
 
-MIT License - R3E Network
+## 交易与恢复规则
+
+- 每次写入都会在钱包提示前、提示后以及调用前再次核对钱包网络与官方双网合约绑定，并在该边界内刷新暂停状态和实时合约数据。
+- 借款、存入、仅完成入池恢复和提取全局串行；任何已提交操作尚未解决时，不能开始另一种资金流程。
+- 打开钱包前，本地恢复存储必须完成写入、回读和删除测试。
+- 本地 payload、回调、等待超时或单独的交易 ID 都不能代表成功。
+- 钱包回调与最终返回若给出冲突交易 ID，将保留首个广播记录等待核对，不会静默选择其中一个。
+- 贷款成功必须同时具备精确交易绑定的 `LoanExecuted` 事件、匹配的 `getLoanDetails` 与最新平台回读。
+- 存入和提取成功必须具备精确交易绑定的流动性事件与匹配的提供者/平台回读。
+- 应用日志中的 `FAULT` 会明确提示；原子贷款或提取 FAULT 后不会显示成功。
+- 测试网预付 GAS 不会重复发送。只有确认精确 GAS 转账进入本合约后，才开放“只完成入池”；若后续入池调用 FAULT，已确认预付款仍可在不再次付款的情况下恢复。
+- 待处理期间切换钱包、网络或合约会阻止新写入，直到恢复原始上下文。
+
+本地仅保存非秘密恢复元数据，不保存钱包密钥或回调秘密。
+
+ABI 与冻结的只读链上证据见 [NETWORK_STATUS.md](./NETWORK_STATUS.md)，当前离线验收状态见
+[PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)。

@@ -18,3 +18,12 @@ test("part1 live harness resolves DevTipping manager from all configured live ac
   assert.match(source, /const tipperAccount = chooseDistinctLiveActor\("devtipping tipper", \[managerAccount\]\)/);
   assert.doesNotMatch(source, /return \{ skipped: true, reason: "admin mismatch" \}/);
 });
+
+test("part1 live harness validates the deployed standalone Tarot ABI", () => {
+  assert.match(source, /apps", "on-chain-tarot", "neo-manifest\.json"/);
+  assert.match(source, /"miniapp-tarot:draw"/);
+  assert.match(source, /userContract\.invoke\("draw"/);
+  assert.match(source, /findNotification\(log\.execution, hash, "ReadingDrawn"\)/);
+  assert.match(source, /invokeRead\(hash, "getReading"/);
+  assert.doesNotMatch(source, /userContract\.invoke\("requestReading"/);
+});

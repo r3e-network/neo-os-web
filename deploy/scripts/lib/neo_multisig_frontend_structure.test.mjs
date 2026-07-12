@@ -22,7 +22,7 @@ test("Neo Multisig renders a v2 approval vault workspace", () => {
     "neo-multisig-play-area",
     "multisig-workbench",
     "multisig-vault-card",
-    "multisig-keyring",
+    "multisig-signer-board",
     "multisig-approval-card",
     "multisig-approval-meter",
     "multisig-route",

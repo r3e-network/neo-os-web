@@ -180,6 +180,60 @@ function getFormatter(format?: string): FormatFn {
   return FORMAT_MAP[format ?? "text"] ?? FORMAT_MAP.text!;
 }
 
+type GameEntryMode = "guest" | "gamefi";
+
+const GAME_ENTRY_MODE_PARAM_KEYS = new Set(["mode", "appmode", "playmode"]);
+const PASSIVE_ONEGATE_PARAM_KEYS = new Set([
+  "verify",
+  "lang",
+  "locale",
+  "hl",
+  "theme",
+]);
+
+function supportsGuestMode(manifest: MiniAppManifest): boolean {
+  return manifest.gamePage?.modes?.guest === true || manifest.supportsGuest === true;
+}
+
+function supportsGameFiMode(manifest: MiniAppManifest): boolean {
+  return manifest.gamePage?.modes?.gamefi !== false && manifest.supportsGameFi !== false;
+}
+
+function normalizedLaunchParamKey(key: string): string {
+  return key.replace(/[-_.:]/g, "").toLowerCase();
+}
+
+function getNormalizedLaunchParam(
+  launchContext: MiniAppLaunchContext,
+  normalizedKeys: ReadonlySet<string>,
+): string {
+  for (const [key, value] of Object.entries(launchContext.params)) {
+    if (normalizedKeys.has(normalizedLaunchParamKey(key))) return value;
+  }
+  return "";
+}
+
+function explicitLaunchGameMode(
+  launchContext: MiniAppLaunchContext,
+  guestSupported: boolean,
+  gameFiSupported: boolean,
+): GameEntryMode | null {
+  const raw = getNormalizedLaunchParam(launchContext, GAME_ENTRY_MODE_PARAM_KEYS);
+  const mode = String(raw).trim().toLowerCase();
+
+  if (mode === "guest" && guestSupported) return "guest";
+  if ((mode === "gamefi" || mode === "game-fi") && gameFiSupported) return "gamefi";
+  return null;
+}
+
+function hasOneGateBusinessLaunchIntent(launchContext: MiniAppLaunchContext): boolean {
+  if (launchContext.operation) return true;
+  return Object.keys(launchContext.params).some((key) => {
+    const normalized = normalizedLaunchParamKey(key);
+    return !GAME_ENTRY_MODE_PARAM_KEYS.has(normalized) && !PASSIVE_ONEGATE_PARAM_KEYS.has(normalized);
+  });
+}
+
 // ============================================================================
 // Component
 // ============================================================================
@@ -213,6 +267,22 @@ export function MiniAppRoot({
   }
   const services = servicesRef.current;
   const launchContext = useMemo(() => readMiniAppLaunchContext(appId), [appId]);
+  const guestSupported = supportsGuestMode(manifest);
+  const gameFiSupported = supportsGameFiMode(manifest);
+  const oneGateLaunch =
+    launchContext.source.trim().toLowerCase() === "onegate";
+  const oneGateBusinessLaunchIntent =
+    oneGateLaunch && hasOneGateBusinessLaunchIntent(launchContext);
+  const requestedLaunchGameMode = explicitLaunchGameMode(
+    launchContext,
+    guestSupported,
+    gameFiSupported,
+  );
+  const launchGameMode = !gameFiSupported && guestSupported
+    ? "guest"
+    : oneGateBusinessLaunchIntent
+      ? "gamefi"
+      : requestedLaunchGameMode;
   const frameworkLaunchContext = useMemo<FrameworkLaunchContext>(
     () => ({
       ...launchContext,
@@ -294,6 +364,9 @@ export function MiniAppRoot({
       launchContext: frameworkLaunchContext,
       registerAction,
     }, { appId, storagePrefix, oracle });
+    if (launchGameMode !== null) {
+      frameworkRef.current.mode.set(launchGameMode);
+    }
   }
   const framework = frameworkRef.current;
 
@@ -552,10 +625,12 @@ export function MiniAppRoot({
   }, [sidebarDefs, tFn, status, stateVersion]);
 
   const sidebarTitle = tFn(manifest.sidebar?.titleKey ?? "overview");
-  const hasOperations = (manifest.operations?.length ?? 0) > 0;
+  const hasOperations = gameFiSupported && (manifest.operations?.length ?? 0) > 0;
   const standaloneDappMode = isStandaloneDappLaunch(launchContext);
   const shouldShowGameHomePage = manifest.shell === "game";
-  const oneGateDirectPlay = launchContext.source.trim().toLowerCase() === "onegate";
+  const oneGateDirectPlay =
+    oneGateLaunch &&
+    (!guestSupported || launchGameMode !== null || oneGateBusinessLaunchIntent);
 
   const handleBoundaryError = useCallback(
     (error: Error) => {
@@ -991,8 +1066,8 @@ function GameHomePageWrapper({
   // mode on their first render (no race). Guest additionally reloads data so
   // the off-chain guest board replaces the on-chain read that ran on mount
   // under the default "gamefi" mode.
-  const guestSupported =
-    manifest.gamePage?.modes?.guest === true || manifest.supportsGuest === true;
+  const guestSupported = supportsGuestMode(manifest);
+  const gameFiSupported = supportsGameFiMode(manifest);
   const enterWithMode = useCallback(
     (mode: "guest" | "gamefi") => {
       framework.mode.set(mode);
@@ -1029,7 +1104,12 @@ function GameHomePageWrapper({
 
   // In OneGate the native wallet already owns the container and app listing.
   // Open directly into the dApp so users see the game itself, not host chrome.
-  if (skipLaunchPage || showGame || (gameStatus && gameStatus !== "idle")) {
+  if (
+    skipLaunchPage ||
+    manifest.directPlay === true ||
+    showGame ||
+    (gameStatus && gameStatus !== "idle")
+  ) {
     return <>{children}</>;
   }
 
@@ -1048,6 +1128,12 @@ function GameHomePageWrapper({
       ? translate(gamePage.heroDescKey, manifest.description ?? "")
       : manifest.description ?? "Play the game, connect your wallet, and submit verified results when the run is complete.",
   );
+  const launchDescription = gameFiSupported
+    ? heroDesc
+    : `${heroDesc} ${translate(
+        "entryGuestMaintenanceCopy",
+        "Free play is available while verified GAS rewards are under maintenance.",
+      )}`;
   const primaryLabel = gamePage
     ? translate(gamePage.primaryLabelKey, translate("startAction", "Start game"))
     : translate("startAction", "Start game");
@@ -1084,12 +1170,18 @@ function GameHomePageWrapper({
       heroBadge={gamePage ? translate(gamePage.heroBadgeKey, translate("playTab", "Game")) : translate("playTab", "Game")}
       heroTitle={heroTitle}
       heroTitleAccent={heroTitleAccent}
-      heroDesc={heroDesc}
+      heroDesc={launchDescription}
       primaryLabel={
-        guestSupported ? translate("entryGameFiCta", "Earn GAS") : primaryLabel
+        guestSupported && gameFiSupported
+          ? translate("entryGameFiCta", "Earn GAS")
+          : guestSupported
+            ? translate("entryGuestCta", "Play free")
+            : primaryLabel
       }
       secondaryLabel={
-        guestSupported ? translate("entryGuestCta", "Play free") : undefined
+        guestSupported && gameFiSupported
+          ? translate("entryGuestCta", "Play free")
+          : undefined
       }
       ghostLabel={
         gamePage?.ghostLabelKey
@@ -1099,10 +1191,12 @@ function GameHomePageWrapper({
             : undefined
       }
       onPrimaryClick={
-        guestSupported ? () => enterWithMode("gamefi") : () => setShowGame(true)
+        guestSupported
+          ? () => enterWithMode(gameFiSupported ? "gamefi" : "guest")
+          : () => setShowGame(true)
       }
       onSecondaryClick={
-        guestSupported ? () => enterWithMode("guest") : undefined
+        guestSupported && gameFiSupported ? () => enterWithMode("guest") : undefined
       }
       onGhostClick={() => setShowGame(true)}
       stats={[]}
@@ -1128,8 +1222,13 @@ function GameHomePageWrapper({
       ctaDesc={ctaDesc}
       ctaLabel={ctaLabel}
       trustBadges={
-        gamePage?.trustBadgeKeys?.map((key) => translate(key)).filter(Boolean) ??
-        ["Neo N3", "Wallet signed", "Verified result"]
+        [
+          ...(!gameFiSupported
+            ? [translate("entryGameFiUnavailable", "Earn GAS temporarily unavailable")]
+            : []),
+          ...(gamePage?.trustBadgeKeys?.map((key) => translate(key)).filter(Boolean) ??
+            ["Neo N3", "Wallet signed", "Verified result"]),
+        ]
       }
       rulesPreview={rulesPreview}
     />

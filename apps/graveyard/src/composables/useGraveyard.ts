@@ -50,6 +50,7 @@
 
 import { createObservable, createDerived } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
+import { DepositConfirmedActionFailedError } from "@shared/composables/useContractInteraction";
 import { eventValue } from "@shared/utils/chain-events";
 import { addressToScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
@@ -67,7 +68,7 @@ export interface UseGraveyardOptions {
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-type ComposeMode = "hash" | "write";
+export type ComposeMode = "hash" | "write" | "file";
 
 export interface BurialDraftInput {
   composeMode?: unknown;
@@ -75,6 +76,26 @@ export interface BurialDraftInput {
   assetHash?: unknown;
   memoryType?: unknown;
 }
+
+type PrepaidRecoveryOperation = "buryMemory" | "forgetMemory" | "addEpitaph";
+type PrepaidRecoveryPhase = "deposit-broadcast" | "target-broadcast";
+
+interface PrepaidRecovery {
+  version: 1;
+  operation: PrepaidRecoveryOperation;
+  phase: PrepaidRecoveryPhase;
+  ownerAddress: string;
+  amountBaseUnits: string;
+  depositTxid: string;
+  targetTxid: string;
+  contentHash?: string;
+  memoryType?: number;
+  memoryId?: string;
+  epitaph?: string;
+  updatedAt: string;
+}
+
+type PrepaidRecoveryLedger = Record<string, PrepaidRecovery>;
 
 // ============================================================================
 // Constants
@@ -103,6 +124,12 @@ const HISTORY_EVENT_LIMIT = 200;
 /** Max history rows surfaced to the UI (newest first). */
 const HISTORY_DISPLAY_LIMIT = 20;
 
+/** Device-local recovery journal for deposits broadcast before a target call settles. */
+const PREPAID_RECOVERY_KEY = "prepaid-recovery/v1";
+const PREPAID_RECOVERY_LIMIT = 12;
+const RECOVERY_STORAGE_PROBE_KEY = "prepaid-recovery/storage-probe-v1";
+const EPITAPH_MAX = 120;
+
 const EXPECTED_LOCAL_READ_FAILURES = [
   "Contract address not configured",
   "MiniApp contract address unavailable",
@@ -124,13 +151,14 @@ function warnIfUnexpectedReadFailure(context: string, error: unknown): void {
 }
 
 /**
- * The burial target is an encrypted content hash or token identifier written
- * on-chain. We reject obviously-malformed input (whitespace / control chars)
- * before the paid deposit so the fee is never spent on a target the chain
- * cannot store. Length is gated in the view (>= 12 chars); this guards only the
- * character set.
+ * The only supported burial target is a SHA-256 digest. Keeping this strict
+ * prevents a paid transaction from anchoring an accidental filename, plaintext
+ * fragment, or malformed token identifier.
  */
-const VALID_BURIAL_TARGET = /^[\x21-\x7e]+$/;
+const VALID_BURIAL_TARGET = /^[0-9a-f]{64}$/i;
+
+/** File hashing is intentionally bounded so a dropped file cannot exhaust the tab. */
+export const MAX_MEMORY_FILE_BYTES = 25 * 1024 * 1024;
 
 // ============================================================================
 // Parsing helpers
@@ -142,11 +170,35 @@ const asNumber = (value: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+const normaliseSha256 = (value: string): string =>
+  value.trim().replace(/^0x/i, "").toLowerCase();
 
-const parseComposeMode = (value: unknown, fallback: ComposeMode): ComposeMode =>
-  value === "hash" ? "hash" : value === "write" ? "write" : fallback;
+const isMemoryType = (value: unknown): value is number => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 5;
+};
+
+const bytesToHex = (bytes: Uint8Array): string => {
+  let result = "";
+  for (const byte of bytes) result += byte.toString(16).padStart(2, "0");
+  return result;
+};
+
+const readBlobBytes = async (blob: Blob): Promise<ArrayBuffer> => {
+  if (typeof blob.arrayBuffer === "function") return blob.arrayBuffer();
+  if (typeof FileReader !== "undefined") {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error ?? new Error("File read failed"));
+      reader.onload = () => {
+        if (reader.result instanceof ArrayBuffer) resolve(reader.result);
+        else reject(new Error("File read did not produce bytes"));
+      };
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+  return new Response(blob).arrayBuffer();
+};
 
 /** Format a GAS base-unit amount as a trimmed decimal string (e.g. "0.1"). */
 const formatGasAmount = (base: bigint): string => {
@@ -159,19 +211,80 @@ const formatGasAmount = (base: bigint): string => {
 
 /**
  * Decode a base64 ByteString event value (content hashes are stored as the raw
- * UTF-8 bytes of the hash string). Returns "" for empty / non-decodable values.
+ * UTF-8 bytes of the hash string). Already-decoded adapter strings pass through.
  */
 const decodeEventString = (value: unknown): string => {
   if (typeof value !== "string" || value.length === 0) return "";
+  const literal = value.trim();
+  if (/^(?:0x)?[0-9a-f]{64}$/i.test(literal)) {
+    return literal.replace(/^0x/i, "");
+  }
   try {
-    const decoded = atob(value);
+    const decoded = atob(literal);
     // Content hashes are printable ASCII; reject anything else so a malformed
     // byte blob does not surface as garbage in the record list.
     if (/^[\x20-\x7e]*$/.test(decoded)) return decoded;
-    return "";
+    try {
+      const bytes = Uint8Array.from(decoded, (char) => char.charCodeAt(0));
+      const utf8 = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      if (utf8 && !/[\u0000-\u001f\u007f]/u.test(utf8)) return utf8;
+    } catch {
+      // The adapter may already have returned decoded text; keep it below.
+    }
+    // Some adapters already decode Neo ByteStrings. If treating that plain
+    // text as base64 produces binary noise, keep the adapter's literal value.
+    return literal;
   } catch {
-    return String(value);
+    return literal;
   }
+};
+
+const recoveryLedgerKey = (
+  ownerAddress: string,
+  operation: PrepaidRecoveryOperation,
+): string => `${ownerAddress.trim().toLowerCase()}:${operation}`;
+
+const isPrepaidRecovery = (value: unknown): value is PrepaidRecovery => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entry = value as Partial<PrepaidRecovery>;
+  const baseValid = entry.version === 1
+    && (
+      entry.operation === "buryMemory"
+      || entry.operation === "forgetMemory"
+      || entry.operation === "addEpitaph"
+    )
+    && (entry.phase === "deposit-broadcast" || entry.phase === "target-broadcast")
+    && typeof entry.ownerAddress === "string"
+    && entry.ownerAddress.trim().length > 0
+    && typeof entry.amountBaseUnits === "string"
+    && /^\d+$/.test(entry.amountBaseUnits)
+    && typeof entry.depositTxid === "string"
+    && typeof entry.targetTxid === "string"
+    && typeof entry.updatedAt === "string";
+  if (!baseValid) return false;
+  if (entry.operation !== "addEpitaph") return true;
+  return entry.phase === "target-broadcast"
+    && entry.amountBaseUnits === "0"
+    && entry.depositTxid === ""
+    && typeof entry.memoryId === "string"
+    && /^[1-9]\d*$/.test(entry.memoryId)
+    && typeof entry.epitaph === "string"
+    && entry.epitaph.trim().length > 0
+    && entry.epitaph.length <= EPITAPH_MAX;
+};
+
+const sanitizeRecoveryLedger = (value: unknown): PrepaidRecoveryLedger => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([, entry]) => isPrepaidRecovery(entry))
+      .sort(([, left], [, right]) =>
+        String((right as PrepaidRecovery).updatedAt).localeCompare(
+          String((left as PrepaidRecovery).updatedAt),
+        ),
+      )
+      .slice(0, PREPAID_RECOVERY_LIMIT),
+  ) as PrepaidRecoveryLedger;
 };
 
 // ============================================================================
@@ -194,11 +307,69 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const showWarningShake = createObservable(false);
   const forgettingId = createObservable<string | null>(null);
   const isLoading = createObservable(false);
+  const isHashing = createObservable(false);
+  const sourceError = createObservable("");
+  const fileName = createObservable("");
+  const fileSize = createObservable(0);
+  // Paid actions remain disabled until both current contract fees have been
+  // read successfully. The seeded values are display fallbacks only; using a
+  // stale fee can deposit GAS and then fault the business call.
+  const feesReady = createObservable(false);
+  const contractPaused = createObservable(false);
+  const contractStateReady = createObservable(false);
+  const storageHealthy = createObservable(true);
 
-  // Compose mode: "hash" = the user pastes a pre-made content hash (legacy);
-  // "write" = the user types their memory and we sha256 it locally, so the raw
-  // text never leaves the device — the same on-device-hash pattern as
-  // time-capsule, giving first-time users a way to produce a burial target.
+  const safeStorageGet = <T,>(key: string, fallback: T): T => {
+    try {
+      return app.storage.local.get<T>(key, fallback) ?? fallback;
+    } catch {
+      storageHealthy.set(false);
+      return fallback;
+    }
+  };
+
+  const safeStorageSet = (key: string, value: unknown): boolean => {
+    try {
+      app.storage.local.set(key, value);
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      return false;
+    }
+  };
+
+  const safeStorageDelete = (key: string): boolean => {
+    try {
+      app.storage.local.delete(key);
+      return true;
+    } catch {
+      storageHealthy.set(false);
+      return false;
+    }
+  };
+
+  const assertRecoveryStorage = () => {
+    const probe = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    if (!safeStorageSet(RECOVERY_STORAGE_PROBE_KEY, probe)) {
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+    const restored = safeStorageGet(RECOVERY_STORAGE_PROBE_KEY, "");
+    if (restored !== probe || !safeStorageDelete(RECOVERY_STORAGE_PROBE_KEY)) {
+      storageHealthy.set(false);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+    storageHealthy.set(true);
+  };
+
+  const prepaidRecoveries = createObservable<PrepaidRecoveryLedger>(
+    sanitizeRecoveryLedger(
+      safeStorageGet<PrepaidRecoveryLedger>(PREPAID_RECOVERY_KEY, {}),
+    ),
+  );
+
+  // Compose source: a private note, a local file, or an existing SHA-256 digest.
+  // Notes and files are digested locally; only the 64-character hash can reach
+  // the paid contract call.
   const composeMode = createObservable<ComposeMode>("write");
   // Plaintext memory the user types in "write" mode. Hashed locally; never sent.
   const memoryText = createObservable("");
@@ -208,7 +379,8 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const forgetConfirmId = createObservable<string | null>(null);
 
   // Inline epitaph editor: the row id whose epitaph is being edited (or null),
-  // and the in-progress epitaph text. addEpitaph is a free, non-deposit call.
+  // and the in-progress epitaph text. addEpitaph uses no app deposit; the wallet
+  // can still quote the normal Neo network fee for the signed invocation.
   const epitaphDraftId = createObservable<string | null>(null);
   const epitaphText = createObservable("");
   const epitaphSavingId = createObservable<string | null>(null);
@@ -222,7 +394,86 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const buryFee = createObservable<bigint>(DEFAULT_BURY_FEE);
   const forgetFee = createObservable<bigint>(DEFAULT_FORGET_FEE);
 
+  const walletAddress = createDerived(
+    () => app.chain.address.get() || "",
+    [app.chain.address],
+  );
+  const walletConnected = createDerived(
+    () => Boolean(app.chain.address.get()),
+    [app.chain.address],
+  );
+
   let shakeTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastHistoryOwner = "";
+  let confirmedBurial: {
+    hash: string;
+    memoryType: number;
+    buryFee: bigint;
+  } | null = null;
+  let confirmedForgetFee: bigint | null = null;
+
+  const persistRecoveries = (next: PrepaidRecoveryLedger) => {
+    const sanitized = sanitizeRecoveryLedger(next);
+    if (!safeStorageSet(PREPAID_RECOVERY_KEY, sanitized)) {
+      prepaidRecoveries.set(sanitized);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+    const restored = sanitizeRecoveryLedger(
+      safeStorageGet<PrepaidRecoveryLedger>(PREPAID_RECOVERY_KEY, {}),
+    );
+    if (JSON.stringify(restored) !== JSON.stringify(sanitized)) {
+      storageHealthy.set(false);
+      prepaidRecoveries.set(sanitized);
+      throw new Error(t("recoveryStorageUnavailable"));
+    }
+    storageHealthy.set(true);
+    prepaidRecoveries.set(restored);
+  };
+
+  const getRecovery = (
+    ownerAddress: string,
+    operation: PrepaidRecoveryOperation,
+  ): PrepaidRecovery | null => (
+    prepaidRecoveries.get()[recoveryLedgerKey(ownerAddress, operation)] ?? null
+  );
+
+  const saveRecovery = (entry: PrepaidRecovery) => {
+    persistRecoveries({
+      ...prepaidRecoveries.get(),
+      [recoveryLedgerKey(entry.ownerAddress, entry.operation)]: entry,
+    });
+  };
+
+  const clearRecovery = (
+    ownerAddress: string,
+    operation: PrepaidRecoveryOperation,
+  ) => {
+    const key = recoveryLedgerKey(ownerAddress, operation);
+    if (!prepaidRecoveries.get()[key]) return;
+    const next = { ...prepaidRecoveries.get() };
+    delete next[key];
+    persistRecoveries(next);
+  };
+
+  const updateRecoveryPhase = (
+    ownerAddress: string,
+    operation: PrepaidRecoveryOperation,
+    targetTxid: string,
+  ) => {
+    const current = getRecovery(ownerAddress, operation);
+    if (!current) return;
+    saveRecovery({
+      ...current,
+      phase: "target-broadcast",
+      targetTxid,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const activeRecovery = (operation: PrepaidRecoveryOperation) => {
+    const ownerAddress = app.chain.address.get() || "";
+    return ownerAddress ? getRecovery(ownerAddress, operation) : null;
+  };
 
   const memoryTypeOptions = createDerived(() => [
     { value: 1, label: t("memoryTypeSecret") },
@@ -231,6 +482,54 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     { value: 4, label: t("memoryTypeConfession") },
     { value: 5, label: t("memoryTypeOther") },
   ], []);
+  const burialRecoveryPhase = createDerived(
+    () => activeRecovery("buryMemory")?.phase ?? "",
+    [prepaidRecoveries, app.chain.address],
+  );
+  const burialRecoveryTxid = createDerived(
+    () => {
+      const recovery = activeRecovery("buryMemory");
+      return recovery?.targetTxid || recovery?.depositTxid || "";
+    },
+    [prepaidRecoveries, app.chain.address],
+  );
+  const forgetRecoveryPhase = createDerived(
+    () => activeRecovery("forgetMemory")?.phase ?? "",
+    [prepaidRecoveries, app.chain.address],
+  );
+  const forgetRecoveryMemoryId = createDerived(
+    () => activeRecovery("forgetMemory")?.memoryId ?? "",
+    [prepaidRecoveries, app.chain.address],
+  );
+  const epitaphRecoveryPhase = createDerived(
+    () => activeRecovery("addEpitaph")?.phase ?? "",
+    [prepaidRecoveries, app.chain.address],
+  );
+  const epitaphRecoveryMemoryId = createDerived(
+    () => activeRecovery("addEpitaph")?.memoryId ?? "",
+    [prepaidRecoveries, app.chain.address],
+  );
+  const epitaphRecoveryTxid = createDerived(
+    () => activeRecovery("addEpitaph")?.targetTxid ?? "",
+    [prepaidRecoveries, app.chain.address],
+  );
+
+  const restoreBurialDraftFromRecovery = () => {
+    if (assetHash.get()) return;
+    const recovery = activeRecovery("buryMemory");
+    const recoveredHash = normaliseSha256(recovery?.contentHash ?? "");
+    if (!VALID_BURIAL_TARGET.test(recoveredHash)) return;
+    composeMode.set("hash");
+    memoryText.set(recoveredHash);
+    assetHash.set(recoveredHash);
+    if (isMemoryType(recovery?.memoryType)) {
+      memoryType.set(Number(recovery?.memoryType));
+    }
+  };
+  const unsubscribeRecoveryRestore = app.chain.address.subscribe(
+    restoreBurialDraftFromRecovery,
+  );
+  restoreBurialDraftFromRecovery();
 
   // "Burial Fees" total. The contract keeps no per-burial fee history, so this
   // is an ESTIMATE (count × current buryFee) — prefix "~" so it never reads as
@@ -266,72 +565,137 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     shakeTimer = setTimeout(() => { showWarningShake.set(false); shakeTimer = null; }, 500);
   };
 
+  const requireWritableContract = () => {
+    if (contractPaused.get()) throw new Error(t("contractPausedAction"));
+    if (!contractStateReady.get() || !feesReady.get()) {
+      throw new Error(t("liveFeeUnavailable"));
+    }
+  };
+
   // Monotonic token so a stale async sha256 (user kept typing) can't overwrite a
   // newer one when it resolves out of order.
   let memoryHashSeq = 0;
 
   /**
-   * "Write" mode: the user types their memory; we sha256 it LOCALLY and set that
-   * 64-char hex as the burial target (assetHash). The raw text never leaves the
-   * device — only the hash is ever written on-chain. Empty text clears the
-   * target. This gives a first-time user an in-app way to produce a hash (the
-   * legacy "hash" mode only accepted a pre-made one).
+   * Hash a private note on this device. Existing-hash mode only normalises the
+   * supplied digest; it never hashes that digest a second time.
    */
   const setMemoryText = async (text: string, mode: ComposeMode = composeMode.get()) => {
     memoryText.set(text);
+    sourceError.set("");
     const seq = ++memoryHashSeq;
-    const trimmed = text.trim();
-    if (!trimmed) {
-      if (seq === memoryHashSeq) assetHash.set("");
+    if (!text.trim()) {
+      if (seq === memoryHashSeq) {
+        assetHash.set("");
+        isHashing.set(false);
+      }
       return;
     }
     if (mode === "hash") {
-      if (seq === memoryHashSeq) assetHash.set(trimmed);
+      if (seq === memoryHashSeq) {
+        assetHash.set(normaliseSha256(text));
+        isHashing.set(false);
+      }
       return;
     }
-    const digest = await sha256Hex(trimmed);
-    // Ignore if a newer keystroke or mode switch superseded this one mid-hash.
-    if (seq === memoryHashSeq && composeMode.get() === "write") assetHash.set(digest);
+    if (mode !== "write") return;
+
+    isHashing.set(true);
+    assetHash.set("");
+    try {
+      // Hash the exact note bytes, including deliberate leading/trailing spaces.
+      const digest = await sha256Hex(text);
+      if (seq === memoryHashSeq && composeMode.get() === "write") {
+        assetHash.set(digest);
+      }
+    } catch {
+      if (seq === memoryHashSeq) sourceError.set(t("hashUnavailable"));
+    } finally {
+      if (seq === memoryHashSeq) isHashing.set(false);
+    }
   };
 
-  /** Switch compose mode, clearing the other mode's input so the target is unambiguous. */
+  /** Hash a local file without uploading or retaining its bytes. */
+  const hashMemoryFile = async (file: File) => {
+    if (!(file instanceof Blob)) throw new Error(t("fileRequired"));
+    if (composeMode.get() !== "file") setComposeMode("file");
+    const seq = ++memoryHashSeq;
+    fileName.set(file.name || t("localFile"));
+    fileSize.set(file.size);
+    sourceError.set("");
+    assetHash.set("");
+    isHashing.set(false);
+    if (file.size <= 0) {
+      sourceError.set(t("fileEmpty"));
+      throw new Error(t("fileEmpty"));
+    }
+    if (file.size > MAX_MEMORY_FILE_BYTES) {
+      sourceError.set(t("fileTooLarge"));
+      throw new Error(t("fileTooLarge"));
+    }
+    isHashing.set(true);
+
+    try {
+      const bytes = await readBlobBytes(file);
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      if (seq === memoryHashSeq && composeMode.get() === "file") {
+        assetHash.set(bytesToHex(digest));
+      }
+    } catch (error) {
+      if (seq === memoryHashSeq) {
+        sourceError.set(t("fileHashFailed"));
+        fileName.set("");
+        fileSize.set(0);
+      }
+      throw error;
+    } finally {
+      if (seq === memoryHashSeq) isHashing.set(false);
+    }
+  };
+
+  /** Switch source, clearing the previous source so the target is unambiguous. */
   const setComposeMode = (mode: ComposeMode) => {
     if (composeMode.get() === mode) return;
     memoryHashSeq += 1;
     composeMode.set(mode);
     memoryText.set("");
     assetHash.set("");
+    fileName.set("");
+    fileSize.set(0);
+    sourceError.set("");
+    isHashing.set(false);
     showConfirm.set(false);
   };
 
-  const applyBurialDraft = async (draft: unknown) => {
-    if (!isRecord(draft)) return;
-    const nextMode = parseComposeMode(draft.composeMode, composeMode.get());
-    if (composeMode.get() !== nextMode) setComposeMode(nextMode);
-
-    const nextType = Number(draft.memoryType);
-    if (Number.isInteger(nextType) && nextType > 0) memoryType.set(nextType);
-
-    if (nextMode === "hash") {
-      await setMemoryText(String(draft.assetHash ?? draft.memoryText ?? ""), "hash");
-      return;
-    }
-
-    if ("memoryText" in draft) {
-      await setMemoryText(String(draft.memoryText ?? ""), "write");
-    }
-  };
-
   const initiateDestroy = () => {
-    if (!assetHash.get().trim()) {
+    if (isHashing.get()) throw new Error(t("hashingInProgress"));
+    const currentHash = normaliseSha256(assetHash.get());
+    if (!currentHash) {
       triggerMissingHash();
       throw new Error(t("enterAssetHash"));
     }
+    if (!VALID_BURIAL_TARGET.test(currentHash)) {
+      throw new Error(t("invalidHash"));
+    }
+    const currentType = memoryType.get();
+    if (!isMemoryType(currentType)) {
+      throw new Error(t("invalidMemoryType"));
+    }
+    requireWritableContract();
+    if (activeRecovery("buryMemory")?.phase === "target-broadcast") {
+      throw new Error(t("burialPendingResolution"));
+    }
+    confirmedBurial = {
+      hash: currentHash,
+      memoryType: currentType,
+      buryFee: buryFee.get(),
+    };
     showConfirm.set(true);
   };
 
   const cancelDestroy = () => {
     showConfirm.set(false);
+    confirmedBurial = null;
   };
 
   // ── Wallet helper ────────────────────────────────────────────────────
@@ -354,13 +718,11 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
    * the memory type are anchored on-chain in the same paid flow; the memoryId is
    * read back from the MemoryBuried event.
    */
-  const executeDestroy = async (draft?: BurialDraftInput) => {
-    await applyBurialDraft(draft);
-    showConfirm.set(false);
+  const executeDestroy = async () => {
     // In-flight guard: throw (not silent return) so the host surfaces a busy
     // message instead of a misleading success toast for the dropped click.
     if (isDestroying.get()) throw new Error(t("actionBusy"));
-    const currentHash = assetHash.get().trim();
+    const currentHash = normaliseSha256(assetHash.get());
     if (!currentHash) {
       triggerMissingHash();
       throw new Error(t("enterAssetHash"));
@@ -370,47 +732,180 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     if (!VALID_BURIAL_TARGET.test(currentHash)) {
       throw new Error(t("invalidHash"));
     }
+    const buriedType = memoryType.get();
+    if (!isMemoryType(buriedType)) {
+      throw new Error(t("invalidMemoryType"));
+    }
+    requireWritableContract();
+
+    // The paid action is intentionally unavailable without the explicit review
+    // sheet. This is a logic boundary, not only a UI convention: a stray action
+    // dispatch cannot skip the fee/hash/permanence confirmation.
+    const reviewedBurial = confirmedBurial;
+    if (!showConfirm.get() || !reviewedBurial) {
+      throw new Error(t("burialConfirmationRequired"));
+    }
+    if (
+      reviewedBurial.hash !== currentHash
+      || reviewedBurial.memoryType !== buriedType
+      || reviewedBurial.buryFee !== buryFee.get()
+    ) {
+      // Re-arm the snapshot to the values now visible in the sheet. The user
+      // must press the final action again to accept the changed target or fee.
+      confirmedBurial = {
+        hash: currentHash,
+        memoryType: buriedType,
+        buryFee: buryFee.get(),
+      };
+      throw new Error(t("burialReviewChanged"));
+    }
     isDestroying.set(true);
 
     try {
-      const { hash: ownerHash } = await requireWallet();
-      const buriedType = memoryType.get();
+      // Re-read immediately before requesting a signature. A fee that changed
+      // after the review sheet opened must be shown and accepted explicitly;
+      // never silently transfer a newer amount than the user reviewed.
+      const liveFeesAvailable = await loadStats();
+      if (!liveFeesAvailable) {
+        throw new Error(t(contractPaused.get() ? "contractPausedAction" : "liveFeeUnavailable"));
+      }
+      if (reviewedBurial.buryFee !== buryFee.get()) {
+        confirmedBurial = {
+          hash: currentHash,
+          memoryType: buriedType,
+          buryFee: buryFee.get(),
+        };
+        throw new Error(t("burialReviewChanged"));
+      }
+      const { address: ownerAddress, hash: ownerHash } = await requireWallet();
+      assertRecoveryStorage();
+      const args = [
+        app.chain.arg.hash160(ownerHash),
+        app.chain.arg.string(currentHash),
+        app.chain.arg.integer(buriedType),
+      ];
+      const existingRecovery = getRecovery(ownerAddress, "buryMemory");
+      if (existingRecovery?.phase === "target-broadcast") {
+        throw new Error(t("burialPendingResolution"));
+      }
+      let result: Awaited<ReturnType<typeof app.chain.invoke>>;
+      try {
+        if (existingRecovery) {
+          // A previous GAS transfer was already broadcast for this wallet. A
+          // retry invokes the target directly, so recovery can never charge a
+          // second deposit while the first credit remains unresolved.
+          saveRecovery({
+            ...existingRecovery,
+            contentHash: currentHash,
+            memoryType: buriedType,
+            updatedAt: new Date().toISOString(),
+          });
+          result = await app.chain.invoke("buryMemory", args, {
+            waitForEvent: "MemoryBuried",
+            onTransactionSent: (txid) =>
+              updateRecoveryPhase(ownerAddress, "buryMemory", txid),
+          });
+        } else {
+          result = await app.chain.invokeWithPayment(
+            buryFee.get().toString(),
+            MEMORY_DEPOSIT_MEMO,
+            "buryMemory",
+            args,
+            {
+              waitForEvent: "MemoryBuried",
+              onPaymentSent: (depositTxid) => saveRecovery({
+                version: 1,
+                operation: "buryMemory",
+                phase: "deposit-broadcast",
+                ownerAddress,
+                amountBaseUnits: buryFee.get().toString(),
+                depositTxid,
+                targetTxid: "",
+                contentHash: currentHash,
+                memoryType: buriedType,
+                updatedAt: new Date().toISOString(),
+              }),
+              onTransactionSent: (txid) =>
+                updateRecoveryPhase(ownerAddress, "buryMemory", txid),
+            },
+          );
+        }
+      } catch (error) {
+        if (error instanceof DepositConfirmedActionFailedError) {
+          saveRecovery({
+            version: 1,
+            operation: "buryMemory",
+            phase: "deposit-broadcast",
+            ownerAddress,
+            amountBaseUnits: buryFee.get().toString(),
+            depositTxid: error.depositTxid,
+            targetTxid: "",
+            contentHash: currentHash,
+            memoryType: buriedType,
+            updatedAt: new Date().toISOString(),
+          });
+          throw new Error(t("prepaidBurialRecovery"));
+        }
+        if (existingRecovery) throw new Error(t("prepaidBurialRetryFailed"));
+        throw error;
+      }
 
-      const result = await app.chain.invokeWithPayment(
-        buryFee.get().toString(),
-        MEMORY_DEPOSIT_MEMO,
-        "buryMemory",
-        [
-          app.chain.arg.hash160(ownerHash),
-          app.chain.arg.string(currentHash),
-          app.chain.arg.integer(buriedType),
-        ],
-        { waitForEvent: "MemoryBuried" },
-      );
+      // ChainService deliberately distinguishes "broadcast" from "verified".
+      // A timeout returns success:true/verified:false, so never treat txid alone
+      // as burial success and never clear the private source on that path.
+      if (result.verified !== true || !result.event) {
+        showConfirm.set(false);
+        confirmedBurial = null;
+        throw new Error(t("burialUnverified"));
+      }
 
       // Resolve the on-chain memoryId from the MemoryBuried event (slot 0).
       const eventMemoryId = parseBigInt(eventValue(result.event, 0));
-      const memoryId =
-        eventMemoryId > 0n ? eventMemoryId.toString() : String(result.txid || Date.now());
+      const eventOwner = eventValue(result.event, 1);
+      const eventHash = normaliseSha256(
+        decodeEventString(eventValue(result.event, 2)),
+      );
+      const eventMemoryType = asNumber(eventValue(result.event, 3));
+      if (
+        eventMemoryId <= 0n
+        || !ownerMatchesAddress(String(eventOwner ?? ""), ownerAddress)
+        || eventHash !== currentHash
+        || eventMemoryType !== buriedType
+      ) {
+        showConfirm.set(false);
+        confirmedBurial = null;
+        throw new Error(t("burialUnverified"));
+      }
+      const memoryId = eventMemoryId.toString();
+      clearRecovery(ownerAddress, "buryMemory");
 
       const buriedTime = new Intl.DateTimeFormat(undefined).format(new Date());
-      history.set([
-        {
-          id: memoryId,
-          hash: currentHash,
-          time: buriedTime,
-          forgotten: false,
-          memoryType: buriedType,
-        },
-        ...history.get(),
-      ]);
+      const confirmedEntry: HistoryItem = {
+        id: memoryId,
+        hash: currentHash,
+        time: buriedTime,
+        forgotten: false,
+        memoryType: buriedType,
+      };
+      history.set([confirmedEntry, ...history.get()]);
 
       assetHash.set("");
       memoryText.set("");
+      fileName.set("");
+      fileSize.set(0);
+      sourceError.set("");
+      showConfirm.set(false);
+      confirmedBurial = null;
 
       // Refresh stats + history from chain so counters and the record list
       // reflect the settled burial (and pick up any other wallets' activity).
       await loadAll();
+      // The confirming event can arrive a moment before the broad event-list
+      // endpoint catches up. Keep the event-verified row visible instead of
+      // letting that short indexer lag make a successful burial disappear.
+      if (!history.get().some((entry) => entry.id === memoryId)) {
+        history.set([confirmedEntry, ...history.get()]);
+      }
     } finally {
       isDestroying.set(false);
     }
@@ -424,16 +919,71 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
    */
   const loadStats = async () => {
     try {
-      const raw = await app.chain.readRaw("getPlatformStats", []);
-      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+      contractStateReady.set(false);
+      const [raw, pausedRaw] = await Promise.all([
+        app.chain.readRaw("getPlatformStats", []),
+        app.chain.readRaw("isPaused", []),
+      ]);
+      if (typeof pausedRaw !== "boolean") {
+        contractPaused.set(false);
+        feesReady.set(false);
+        return false;
+      }
+      contractPaused.set(pausedRaw);
+      contractStateReady.set(true);
+      if (pausedRaw) {
+        feesReady.set(false);
+        return false;
+      }
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        feesReady.set(false);
+        return false;
+      }
       const stats = raw as Record<string, unknown>;
 
       const bury = parseBigInt(stats.buryFee);
       const forget = parseBigInt(stats.forgetFee);
-      if (bury > 0n) buryFee.set(bury);
-      if (forget > 0n) forgetFee.set(forget);
+      if (bury <= 0n || forget <= 0n) {
+        feesReady.set(false);
+        return false;
+      }
+      buryFee.set(bury);
+      forgetFee.set(forget);
+      feesReady.set(true);
+      return true;
     } catch (e) {
-      warnIfUnexpectedReadFailure("[useGraveyard] getPlatformStats failed:", e);
+      feesReady.set(false);
+      contractStateReady.set(false);
+      contractPaused.set(false);
+      warnIfUnexpectedReadFailure("[useGraveyard] contract readiness failed:", e);
+      return false;
+    }
+  };
+
+  const reconcileRecoveries = (ownerAddress: string, entries: HistoryItem[]) => {
+    const burial = getRecovery(ownerAddress, "buryMemory");
+    if (
+      burial?.contentHash
+      && entries.some((entry) => normaliseSha256(entry.hash) === burial.contentHash)
+    ) {
+      clearRecovery(ownerAddress, "buryMemory");
+    }
+    const forgetting = getRecovery(ownerAddress, "forgetMemory");
+    if (
+      forgetting?.memoryId
+      && entries.some((entry) => entry.id === forgetting.memoryId && entry.forgotten)
+    ) {
+      clearRecovery(ownerAddress, "forgetMemory");
+    }
+    const epitaph = getRecovery(ownerAddress, "addEpitaph");
+    if (
+      epitaph?.memoryId
+      && epitaph.epitaph
+      && entries.some((entry) => (
+        entry.id === epitaph.memoryId && entry.epitaph === epitaph.epitaph
+      ))
+    ) {
+      clearRecovery(ownerAddress, "addEpitaph");
     }
   };
 
@@ -449,10 +999,19 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const loadHistory = async () => {
     const addr = app.chain.address.get();
     if (!addr) {
+      lastHistoryOwner = "";
       history.set([]);
       totalDestroyed.set(0);
       burialFeesPaid.set(0);
       return;
+    }
+    if (lastHistoryOwner !== addr) {
+      // Never leave another wallet's records visible while the new owner's
+      // reads are loading or failing.
+      lastHistoryOwner = addr;
+      history.set([]);
+      totalDestroyed.set(0);
+      burialFeesPaid.set(0);
     }
     const ownerHash = addressToScriptHash(addr);
 
@@ -518,10 +1077,18 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
               }
               const ct = asNumber(d.memoryType);
               if (ct > 0) chainType = ct;
-              const ep = typeof d.epitaph === "string" ? d.epitaph : "";
-              // The epitaph comes back as raw printable text via parseByteLike;
-              // keep only printable values so a byte blob never renders garbage.
-              if (ep && /^[\x20-\x7e -]*$/.test(ep)) epitaph = ep;
+              const ep = typeof d.epitaph === "string"
+                ? decodeEventString(d.epitaph)
+                : "";
+              // Keep multilingual text but reject control bytes and oversized
+              // values so malformed adapter output never reaches the record UI.
+              if (
+                ep
+                && ep.length <= EPITAPH_MAX
+                && !/[\u0000-\u001f\u007f]/u.test(ep)
+              ) {
+                epitaph = ep;
+              }
             }
           } catch (e) {
             warnIfUnexpectedReadFailure(
@@ -541,6 +1108,7 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
       );
 
       history.set(entries);
+      reconcileRecoveries(addr, entries);
     } catch (e) {
       warnIfUnexpectedReadFailure(
         "[useGraveyard] MemoryBuried history fetch failed:",
@@ -557,12 +1125,18 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const requestForget = (item: HistoryItem) => {
     if (!item.id || item.forgotten) return;
     if (forgettingId.get()) throw new Error(t("actionBusy"));
+    requireWritableContract();
+    if (activeRecovery("forgetMemory")?.phase === "target-broadcast") {
+      throw new Error(t("forgetPendingResolution"));
+    }
+    confirmedForgetFee = forgetFee.get();
     forgetConfirmId.set(item.id);
   };
 
   /** Dismiss the forget confirmation without paying. */
   const cancelForget = () => {
     forgetConfirmId.set(null);
+    confirmedForgetFee = null;
   };
 
   /**
@@ -574,47 +1148,123 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
    * proceeds for the row the user confirmed, so a 1-GAS spend is never silent.
    */
   const forgetMemory = async (item: HistoryItem) => {
-    // Legitimate no-ops: nothing to forget. Return silently (no toast).
-    if (!item.id || item.forgotten) return;
+    if (!item.id) throw new Error(t("memoryRecordMissing"));
+    if (item.forgotten) throw new Error(t("memoryAlreadyForgotten"));
     // Require the explicit confirmation for THIS row before paying.
     if (forgetConfirmId.get() !== item.id) {
-      requestForget(item);
-      return;
+      throw new Error(t("forgetConfirmationRequired"));
     }
     // Busy case: a forget is already in flight. Throw so the host surfaces a
     // busy message instead of a misleading "forgotten" success toast — only the
     // in-flight row shows a spinner, so other rows look broken otherwise.
     if (forgettingId.get()) throw new Error(t("actionBusy"));
+    requireWritableContract();
+    if (confirmedForgetFee === null) throw new Error(t("forgetConfirmationRequired"));
 
-    forgetConfirmId.set(null);
     forgettingId.set(item.id);
     try {
-      const { hash: ownerHash } = await requireWallet();
+      const reviewedFee = confirmedForgetFee;
+      const liveFeesAvailable = await loadStats();
+      if (!liveFeesAvailable) {
+        throw new Error(t(contractPaused.get() ? "contractPausedAction" : "liveFeeUnavailable"));
+      }
+      if (reviewedFee !== forgetFee.get()) {
+        confirmedForgetFee = forgetFee.get();
+        throw new Error(t("forgetReviewChanged"));
+      }
+      const { address: ownerAddress, hash: ownerHash } = await requireWallet();
+      assertRecoveryStorage();
+      const args = [
+        app.chain.arg.hash160(ownerHash),
+        app.chain.arg.integer(item.id),
+      ];
+      const existingRecovery = getRecovery(ownerAddress, "forgetMemory");
+      if (existingRecovery?.phase === "target-broadcast") {
+        throw new Error(t("forgetPendingResolution"));
+      }
+      let result: Awaited<ReturnType<typeof app.chain.invoke>>;
+      try {
+        if (existingRecovery) {
+          saveRecovery({
+            ...existingRecovery,
+            memoryId: item.id,
+            updatedAt: new Date().toISOString(),
+          });
+          result = await app.chain.invoke("forgetMemory", args, {
+            waitForEvent: "MemoryForgotten",
+            onTransactionSent: (txid) =>
+              updateRecoveryPhase(ownerAddress, "forgetMemory", txid),
+          });
+        } else {
+          result = await app.chain.invokeWithPayment(
+            forgetFee.get().toString(),
+            MEMORY_DEPOSIT_MEMO,
+            "forgetMemory",
+            args,
+            {
+              waitForEvent: "MemoryForgotten",
+              onPaymentSent: (depositTxid) => saveRecovery({
+                version: 1,
+                operation: "forgetMemory",
+                phase: "deposit-broadcast",
+                ownerAddress,
+                amountBaseUnits: forgetFee.get().toString(),
+                depositTxid,
+                targetTxid: "",
+                memoryId: item.id,
+                updatedAt: new Date().toISOString(),
+              }),
+              onTransactionSent: (txid) =>
+                updateRecoveryPhase(ownerAddress, "forgetMemory", txid),
+            },
+          );
+        }
+      } catch (error) {
+        if (error instanceof DepositConfirmedActionFailedError) {
+          saveRecovery({
+            version: 1,
+            operation: "forgetMemory",
+            phase: "deposit-broadcast",
+            ownerAddress,
+            amountBaseUnits: forgetFee.get().toString(),
+            depositTxid: error.depositTxid,
+            targetTxid: "",
+            memoryId: item.id,
+            updatedAt: new Date().toISOString(),
+          });
+          throw new Error(t("prepaidForgetRecovery"));
+        }
+        if (existingRecovery) throw new Error(t("prepaidForgetRetryFailed"));
+        throw error;
+      }
 
-      await app.chain.invokeWithPayment(
-        forgetFee.get().toString(),
-        MEMORY_DEPOSIT_MEMO,
-        "forgetMemory",
-        [
-          app.chain.arg.hash160(ownerHash),
-          app.chain.arg.integer(item.id),
-        ],
-        { waitForEvent: "MemoryForgotten" },
-      );
+      const forgottenMemoryId = parseBigInt(eventValue(result.event, 0));
+      const forgottenOwner = eventValue(result.event, 1);
+      if (
+        result.verified !== true
+        || !result.event
+        || forgottenMemoryId.toString() !== item.id
+        || !ownerMatchesAddress(String(forgottenOwner ?? ""), ownerAddress)
+      ) {
+        forgetConfirmId.set(null);
+        confirmedForgetFee = null;
+        throw new Error(t("forgetUnverified"));
+      }
+      clearRecovery(ownerAddress, "forgetMemory");
 
       history.set(
         history.get().map((entry) =>
           entry.id === item.id ? { ...entry, forgotten: true } : entry,
         ),
       );
+      forgetConfirmId.set(null);
+      confirmedForgetFee = null;
     } finally {
       forgettingId.set(null);
     }
   };
 
-  // ── Epitaph (free, non-deposit) ─────────────────────────────────────
-
-  const EPITAPH_MAX = 120;
+  // ── Epitaph (no app deposit; network fee can still apply) ───────────
 
   /** Open the inline epitaph editor for a row, seeded with any existing epitaph. */
   const startEpitaph = (item: HistoryItem) => {
@@ -628,15 +1278,77 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     epitaphText.set("");
   };
 
+  const readEpitaph = async (memoryId: string): Promise<string | null> => {
+    try {
+      const details = await app.chain.readRaw("getMemoryDetails", [
+        app.chain.arg.integer(memoryId),
+      ]);
+      if (!details || typeof details !== "object" || Array.isArray(details)) {
+        return null;
+      }
+      const raw = (details as Record<string, unknown>).epitaph;
+      return typeof raw === "string" ? decodeEventString(raw) : null;
+    } catch (error) {
+      warnIfUnexpectedReadFailure(
+        `[useGraveyard] epitaph readback failed for ${memoryId}:`,
+        error,
+      );
+      return null;
+    }
+  };
+
+  const applyConfirmedEpitaph = (item: HistoryItem, text: string) => {
+    const confirmedItem: HistoryItem = { ...item, epitaph: text };
+    const current = history.get();
+    history.set(
+      current.some((entry) => entry.id === item.id)
+        ? current.map((entry) => (
+          entry.id === item.id ? { ...entry, epitaph: text } : entry
+        ))
+        : [confirmedItem, ...current],
+    );
+    if (epitaphDraftId.get() === item.id) {
+      epitaphDraftId.set(null);
+      epitaphText.set("");
+    }
+  };
+
+  /**
+   * Reconcile an already-broadcast epitaph from canonical contract state.
+   * This is intentionally read-only: it never opens another wallet request.
+   */
+  const recoverEpitaph = async () => {
+    const ownerAddress = app.chain.address.get() || "";
+    if (!ownerAddress) throw new Error(t("connectWallet"));
+    const recovery = getRecovery(ownerAddress, "addEpitaph");
+    if (!recovery?.memoryId || !recovery.epitaph) {
+      throw new Error(t("epitaphRecoveryMissing"));
+    }
+    const canonical = await readEpitaph(recovery.memoryId);
+    if (canonical !== recovery.epitaph) {
+      throw new Error(t("epitaphStillPending"));
+    }
+    clearRecovery(ownerAddress, "addEpitaph");
+    applyConfirmedEpitaph(
+      history.get().find((entry) => entry.id === recovery.memoryId) ?? {
+        id: recovery.memoryId,
+        hash: "",
+        time: "",
+        forgotten: false,
+      },
+      recovery.epitaph,
+    );
+  };
+
   /**
    * Attach an epitaph to a buried memory via addEpitaph(memoryId, epitaph). This
-   * is a FREE, non-deposit call (no GAS transfer) — only the owner's witness is
-   * required, supplied by the connected wallet's signature. The new epitaph is
-   * read back into the row on the post-call reload.
+   * uses no Graveyard prepaid-GAS deposit. It is still a signed Neo invocation,
+   * so the wallet may quote a normal network fee. The owner's witness is
+   * supplied by the connected wallet, and the canonical epitaph is reloaded.
    */
   const saveEpitaph = async (item: HistoryItem) => {
     const text = epitaphText.get().trim();
-    if (!item.id) return;
+    if (!item.id) throw new Error(t("memoryRecordMissing"));
     if (!text) throw new Error(t("epitaphRequired"));
     if (text.length > EPITAPH_MAX) throw new Error(t("epitaphTooLong"));
     if (epitaphSavingId.get()) throw new Error(t("actionBusy"));
@@ -644,24 +1356,62 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     epitaphSavingId.set(item.id);
     try {
       // Ensure a wallet is connected to sign the owner witness.
-      await requireWallet();
-      await app.chain.invoke(
+      const { address: ownerAddress } = await requireWallet();
+      assertRecoveryStorage();
+      const existingRecovery = getRecovery(ownerAddress, "addEpitaph");
+      if (existingRecovery) {
+        const canonical = existingRecovery.memoryId
+          ? await readEpitaph(existingRecovery.memoryId)
+          : null;
+        if (
+          existingRecovery.memoryId === item.id
+          && existingRecovery.epitaph === text
+          && canonical === text
+        ) {
+          clearRecovery(ownerAddress, "addEpitaph");
+          applyConfirmedEpitaph(item, text);
+          return;
+        }
+        throw new Error(t("epitaphPendingResolution"));
+      }
+      const result = await app.chain.invoke(
         "addEpitaph",
         [
           app.chain.arg.integer(item.id),
           app.chain.arg.string(text),
         ],
-        { waitForEvent: "EpitaphAdded" },
+        {
+          waitForEvent: "EpitaphAdded",
+          onTransactionSent: (txid) => saveRecovery({
+            version: 1,
+            operation: "addEpitaph",
+            phase: "target-broadcast",
+            ownerAddress,
+            amountBaseUnits: "0",
+            depositTxid: "",
+            targetTxid: txid,
+            memoryId: item.id,
+            epitaph: text,
+            updatedAt: new Date().toISOString(),
+          }),
+        },
       );
-      // Optimistically reflect locally, then reload for the canonical value.
-      history.set(
-        history.get().map((entry) =>
-          entry.id === item.id ? { ...entry, epitaph: text } : entry,
-        ),
-      );
-      epitaphDraftId.set(null);
-      epitaphText.set("");
-      await loadHistory();
+      if (
+        result.verified !== true
+        || !result.event
+      ) {
+        throw new Error(t("epitaphUnverified"));
+      }
+      const eventMemoryId = parseBigInt(eventValue(result.event, 0));
+      const eventEpitaph = decodeEventString(eventValue(result.event, 1));
+      if (eventMemoryId.toString() !== item.id || eventEpitaph !== text) {
+        throw new Error(t("epitaphUnverified"));
+      }
+      const canonical = await readEpitaph(item.id);
+      if (canonical !== text) throw new Error(t("epitaphUnverified"));
+
+      clearRecovery(ownerAddress, "addEpitaph");
+      applyConfirmedEpitaph(item, text);
     } finally {
       epitaphSavingId.set(null);
     }
@@ -678,6 +1428,19 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   const loadAll = async () => {
     isLoading.set(true);
     try {
+      try {
+        assertRecoveryStorage();
+        const restored = sanitizeRecoveryLedger(
+          safeStorageGet<PrepaidRecoveryLedger>(PREPAID_RECOVERY_KEY, {}),
+        );
+        const merged = sanitizeRecoveryLedger({
+          ...restored,
+          ...prepaidRecoveries.get(),
+        });
+        persistRecoveries(merged);
+      } catch {
+        // The observable already carries the blocked state; reads can still load.
+      }
       // Stats first so loadHistory can price burial-fees-paid off the live fee.
       await loadStats();
       await loadHistory();
@@ -688,18 +1451,25 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
 
   const cleanupTimers = () => {
     if (shakeTimer) { clearTimeout(shakeTimer); shakeTimer = null; }
+    unsubscribeRecoveryRestore();
   };
 
   return {
     totalDestroyed, burialFeesPaid, assetHash, memoryType, history,
     showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,
+    isHashing, sourceError, fileName, fileSize, feesReady, contractPaused,
+    contractStateReady, storageHealthy, walletAddress, walletConnected,
+    burialRecoveryPhase, burialRecoveryTxid, forgetRecoveryPhase,
+    forgetRecoveryMemoryId, epitaphRecoveryPhase, epitaphRecoveryMemoryId,
+    epitaphRecoveryTxid,
     memoryTypeOptions, gasReclaimedDisplay, burialFeeDisplay, historyCount,
-    // Compose mode (write/hash) + local-hash text
-    composeMode, memoryText, setComposeMode, setMemoryText,
+    // Compose source (write/file/hash) + local SHA-256 processing
+    composeMode, memoryText, setComposeMode, setMemoryText, hashMemoryFile,
     // Forget confirmation + fee
     forgetFeeDisplay, forgetConfirmId, requestForget, cancelForget,
-    // Epitaph editor (free, non-deposit)
-    epitaphDraftId, epitaphText, epitaphSavingId, startEpitaph, cancelEpitaph, saveEpitaph,
+    // Epitaph editor (no app deposit; normal network fee may apply)
+    epitaphDraftId, epitaphText, epitaphSavingId, startEpitaph, cancelEpitaph,
+    saveEpitaph, recoverEpitaph,
     // History pagination
     showAllHistory, historyTruncated, setShowAllHistory,
     initiateDestroy, cancelDestroy, executeDestroy, loadStats, loadHistory, forgetMemory,

@@ -23,29 +23,29 @@ namespace NeoMiniAppPlatform.Contracts
     ///     moves it into the pool and adds to the player's season total).
     ///   * The leaderboard is the players ranked by season total; the contract tracks the
     ///     single top burner in O(1). Front-ends rebuild the full board from Burned events.
-    ///   * After the season deadline anyone may call settle(): the whole pool is paid to
-    ///     the top burner (winner-takes-all), the season is recorded settled, and the next
+    ///   * After the season deadline anyone may call settle(): the whole pool is credited
+    ///     to the top burner for withdrawal (winner-takes-all), the season is recorded settled, and the next
     ///     season begins lazily on the next burn. No external settler, no oracle.
     ///
     /// Seasons start LAZILY on the first burn (the clock begins when play begins), so the
-    /// lifecycle is independent of deploy time. SEASON_DURATION is intentionally short on
-    /// testnet for fast demo rounds; a mainnet deployment would widen it.
+    /// lifecycle is independent of deploy time. Production seasons run for 24 hours,
+    /// giving wallets time to confirm deposits/burns while keeping a daily competition cadence.
     ///
-    /// No GAS is strandable: burned GAS rests only as the season pool (paid to the winner
+    /// No GAS is strandable: burned GAS rests only as the season pool (credited to the winner
     /// at settle) or as a player's reclaimable deposit credit (Withdraw).
     /// </summary>
     [DisplayName("MiniAppBurnLeague")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Self-contained on-chain burn league: burn GAS into a season pool, top burner wins it via permissionless settle — no oracle.")]
+    [ManifestExtra("Version", "1.1.0")]
+    [ManifestExtra("Description", "Daily on-chain burn league: burn GAS into a 24-hour season pool, top burner wins pull-payment credit via permissionless settle — no oracle.")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "transfer")] // GAS
     public partial class MiniAppBurnLeague : SmartContract
     {
         #region Constants
         private const long MIN_BURN = 1_00000000;          // 1 GAS
         private const long MAX_BURN = 1000_00000000;       // 1000 GAS (per burn)
-        private const ulong SEASON_DURATION = 120000;      // 2 minutes (ms) — short for testnet demo rounds
+        private const ulong SEASON_DURATION = 86_400_000;  // 24 hours (ms)
         private const string BURN_MEMO = "miniapp-burnleague:burn";
         #endregion
 
@@ -150,8 +150,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region Settle
         /// <summary>
-        /// After the season deadline, pay the whole pool to the top burner and end the
-        /// season. Permissionless. The next season starts lazily on the next burn.
+        /// After the season deadline, credit the whole pool to the top burner and end
+        /// the season. Permissionless. The winner claims via Withdraw; the next season
+        /// starts lazily on the next burn.
         /// </summary>
         public static void Settle()
         {

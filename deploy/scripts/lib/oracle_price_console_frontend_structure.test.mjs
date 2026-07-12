@@ -53,9 +53,8 @@ test("Oracle Price Console renders a clean v2 market station backed by Morpheus 
   assert.doesNotMatch(playArea, /NeoCard/);
   assert.doesNotMatch(playArea, /StateView/);
 
-  assert.match(hook, /useMorpheusDataFeed/);
-  assert.match(hook, /datafeed\.getPriceWithMeta\(asset\.get\(\)\)/);
-  assert.match(hook, /datafeed\.listPairs\(\)/);
+  assert.match(hook, /app\.oracle\.dataFeed\.price\(requestedAsset, \{ meta: true \}\)/);
+  assert.match(hook, /app\.oracle\.dataFeed\.listPairs\(\)/);
   assert.match(hook, /sourceLabel[\s\S]*t\("sourceOnChain", \{ network \}\)/);
   assert.doesNotMatch(hook, /sourceLabel[\s\S]*integration\.rpcUrl/);
 

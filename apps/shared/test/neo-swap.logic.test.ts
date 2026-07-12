@@ -10,68 +10,154 @@ const feedState = {
   dataTimestamp: Math.floor(Date.now() / 1000), // fresh by default
   // recordTimestamp tracks dataTimestamp unless a test overrides it (e.g. to 0).
   recordTimestamp: null as number | null,
+  delayMs: 0,
+  fail: false,
+  canonicalZero: false,
 };
+
+function feedSymbol(asset: string): string {
+  return asset.toUpperCase().replace(/^TWELVEDATA:/, "").split("-")[0] ?? "";
+}
 
 vi.mock("@shared/composables/useMorpheusDataFeed", () => ({
   useMorpheusDataFeed: () => ({
     network: "mainnet",
     error: createObservable<string | null>(null),
-    getPrice: vi.fn(async (asset: string) => feedState.prices[asset.toUpperCase()] ?? 0),
-    getPriceWithMeta: vi.fn(async (asset: string) => ({
-      price: feedState.prices[asset.toUpperCase()] ?? 0,
-      dataTimestamp: feedState.dataTimestamp,
-      recordTimestamp:
-        feedState.recordTimestamp === null ? feedState.dataTimestamp : feedState.recordTimestamp,
-    })),
+    getPrice: vi.fn(async (asset: string) => feedState.prices[feedSymbol(asset)] ?? 0),
+    getPriceWithMeta: vi.fn(async (asset: string) => {
+      const isCanonicalRequest = !asset.includes(":");
+      const canonicalZero = feedState.canonicalZero && isCanonicalRequest;
+      const snapshot = {
+        price: canonicalZero ? 0 : feedState.prices[feedSymbol(asset)] ?? 0,
+        dataTimestamp: canonicalZero ? 0 : feedState.dataTimestamp,
+        recordTimestamp:
+          canonicalZero
+            ? 0
+            : feedState.recordTimestamp === null
+              ? feedState.dataTimestamp
+              : feedState.recordTimestamp,
+      };
+      if (feedState.delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, feedState.delayMs));
+      }
+      if (feedState.fail) throw new Error("RPC unavailable");
+      return snapshot;
+    }),
     listPairs: vi.fn(async () => ["NEO", "GAS"]),
   }),
 }));
 
 import { useSwapEngine } from "../../neo-swap/src/hooks/useSwapEngine";
+import { parseDecimalUnits } from "../../neo-swap/src/quoteMath";
 import { createMiniAppFramework } from "../../../framework";
-import { BLOCKCHAIN_CONSTANTS } from "../constants";
 
 const ALICE = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
+const ROUTER = `0x${"1".repeat(40)}`;
+const SWAP_TXID = `0x${"a".repeat(64)}`;
 
 function t(key: string, params?: Record<string, string | number>) {
   if (!params) return key;
   return `${key}:${JSON.stringify(params)}`;
 }
 
-function makeChain(opts: { router?: string | null; address?: string } = {}) {
-  const invoke = vi.fn(async () => ({ txid: "0xswap", success: true }));
+function makeChain(opts: {
+  router?: string | null;
+  address?: string;
+  verified?: boolean;
+  network?: string;
+  recoveryEvent?: unknown;
+  confirmationEvent?: unknown;
+  invokeError?: Error;
+} = {}) {
+  const configuredRouter = opts.router === "0xrouter" ? ROUTER : opts.router;
+  const invoke = vi.fn(async (_operation: unknown, _args: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) => {
+    if (opts.invokeError) throw opts.invokeError;
+    invokeOptions?.onTransactionSent?.(SWAP_TXID);
+    return {
+      txid: SWAP_TXID,
+      success: true,
+      verified: opts.verified !== false,
+      event: opts.verified === false ? null : opts.confirmationEvent ?? { event_name: "SwapExecuted" },
+    };
+  });
   return {
     address: createObservable(opts.address ?? ALICE),
-    contractAddress: createObservable<string | null>(opts.router ?? null),
+    contractAddress: createObservable<string | null>(configuredRouter ?? null),
     isConnected: createObservable(Boolean(opts.address ?? ALICE)),
     ensureWallet: vi.fn(async () => opts.address ?? ALICE),
+    detectNetwork: vi.fn(async () => opts.network ?? "neo-n3-mainnet"),
+    waitForEvent: vi.fn(async () => opts.recoveryEvent ?? { event_name: "SwapExecuted" }),
     invoke,
   } as never;
 }
 
-// Balances flow through app.wallet, backed by the injected platform
-// BalanceService (getBalance is the only method the wallet shorthands hit).
-function makeBalance(neo: number, gas: number) {
+function balanceUnits(value: string | number, decimals: number): bigint {
+  const raw = typeof value === "number" && Number.isFinite(value)
+    ? value.toFixed(decimals)
+    : String(value);
+  const units = parseDecimalUnits(raw, decimals, { allowZero: true });
+  if (units === null) throw new Error("invalid test balance");
+  return units;
+}
+
+// Balances flow through app.wallet.raw so the production engine never routes
+// an 8-decimal GAS amount through JavaScript floating point.
+function makeBalance(neo: string | number, gas: string | number) {
   return {
-    getBalance: vi.fn(async (asset: string) => (asset === "NEO" ? neo : gas)),
+    getRawBalance: vi.fn(async (asset: string) => asset === "NEO"
+      ? balanceUnits(neo, 0)
+      : balanceUnits(gas, 8)),
   } as never;
 }
 
-function setup(opts: { router?: string | null; address?: string; neo?: number; gas?: number } = {}) {
+function setup(opts: {
+  router?: string | null;
+  address?: string;
+  neo?: string | number;
+  gas?: string | number;
+  verified?: boolean;
+  network?: string;
+  recoveryEvent?: unknown;
+  confirmationEvent?: unknown;
+  invokeError?: Error;
+  approved?: boolean;
+} = {}) {
   const chain = makeChain(opts);
   const balance = makeBalance(opts.neo ?? 100, opts.gas ?? 50);
   const app = createMiniAppFramework(
     { services: { chain, balance }, t } as never,
     { appId: "miniapp-neo-swap" },
   );
-  const swap = useSwapEngine({ app, t });
+  const configuredRouter = (chain as unknown as { contractAddress: { get(): string | null } }).contractAddress.get();
+  const swap = useSwapEngine({
+    app,
+    t,
+    settlementBinding: configuredRouter && opts.approved !== false
+      ? {
+          network: "mainnet",
+          scriptHash: configuredRouter,
+          operation: "swapTokenInForTokenOut",
+          confirmationEvent: "SwapExecuted",
+          abiVersion: "test-only",
+          validateConfirmation: (event) => (
+            typeof event === "object"
+            && event !== null
+            && (event as { event_name?: unknown }).event_name === "SwapExecuted"
+          ),
+        }
+      : null,
+  });
   return { swap, chain };
 }
 
 beforeEach(() => {
+  localStorage.clear();
   feedState.prices = { NEO: 2.182, GAS: 1.101 };
   feedState.dataTimestamp = Math.floor(Date.now() / 1000);
   feedState.recordTimestamp = null;
+  feedState.delayMs = 0;
+  feedState.fail = false;
+  feedState.canonicalZero = false;
 });
 
 describe("useSwapEngine — honest router state", () => {
@@ -93,6 +179,18 @@ describe("useSwapEngine — honest router state", () => {
     await swap.executeSwap();
     // No throw, no invoke — the CTA is disabled in the UI via canSwap.
     expect(swap.canSwap.get()).toBe(false);
+  });
+
+  it("does not enable settlement from an unapproved contract address alone", async () => {
+    const { swap, chain } = setup({ router: "0xrouter", approved: false });
+    await swap.loadAll();
+    swap.setFromAmount("2");
+
+    expect(swap.routerAvailable.get()).toBe(false);
+    expect(swap.canSwap.get()).toBe(false);
+    await swap.executeSwap();
+    expect((chain as unknown as { invoke: ReturnType<typeof vi.fn> }).invoke).not.toHaveBeenCalled();
+    swap.cleanup();
   });
 
   it("labels the CTA to connect when the wallet is disconnected (router present)", async () => {
@@ -139,6 +237,17 @@ describe("useSwapEngine — staleness guard", () => {
     expect(swap.swapButtonText.get()).toBe("rateStale");
   });
 
+  it("rejects an implausibly future on-chain record timestamp", async () => {
+    feedState.recordTimestamp = Math.floor(Date.now() / 1000) + 5 * 60;
+    const { swap } = setup({ router: "0xrouter" });
+    await swap.loadAll();
+    swap.setFromAmount("2");
+
+    expect(swap.rateStale.get()).toBe(true);
+    expect(swap.canSwap.get()).toBe(false);
+    swap.cleanup();
+  });
+
   it("rejects executeSwap when the feed has a 0 record timestamp", async () => {
     feedState.recordTimestamp = 0;
     const { swap, chain } = setup({ router: "0xrouter" });
@@ -156,6 +265,164 @@ describe("useSwapEngine — staleness guard", () => {
     const { swap } = setup({ router: "0xrouter" });
     // No loadAll() → no quote fetched; exchangeRate stays empty.
     expect(swap.rateStale.get()).toBe(false);
+  });
+
+  it("reactively expires a once-fresh quote after ten minutes", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-07-11T00:00:00Z"));
+      feedState.dataTimestamp = Math.floor(Date.now() / 1000);
+      const { swap } = setup({ router: "0xrouter" });
+      await swap.loadAll();
+      swap.setFromAmount("2");
+
+      expect(swap.rateStale.get()).toBe(false);
+      expect(swap.canSwap.get()).toBe(true);
+
+      vi.advanceTimersByTime(10 * 60 * 1000);
+
+      expect(swap.rateStale.get()).toBe(true);
+      expect(swap.canSwap.get()).toBe(false);
+      swap.cleanup();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("useSwapEngine — quote recovery and pair binding", () => {
+  it("falls back from an uninitialized zero AGG record to the explicit provider record", async () => {
+    feedState.canonicalZero = true;
+    const { swap } = setup({ router: null });
+
+    await swap.loadExchangeRate();
+
+    expect(swap.exchangeRate.get()).toBe("1.981834");
+    expect(swap.rateError.get()).toBe("");
+    expect(swap.rateStale.get()).toBe(false);
+    swap.cleanup();
+  });
+
+  it("clears an unverifiable quote, exposes retry copy, and recovers on refresh", async () => {
+    const { swap } = setup({ router: null });
+    feedState.fail = true;
+    await swap.loadExchangeRate();
+
+    expect(swap.exchangeRate.get()).toBe("");
+    expect(swap.rateError.get()).toBe("rateRefreshFailed");
+    expect(swap.canSwap.get()).toBe(false);
+
+    feedState.fail = false;
+    await swap.loadExchangeRate();
+    expect(swap.rateError.get()).toBe("");
+    expect(Number(swap.exchangeRate.get())).toBeGreaterThan(0);
+    swap.cleanup();
+  });
+
+  it("ignores an older in-flight response after the pair changes", async () => {
+    const { swap } = setup({ router: "0xrouter" });
+    feedState.delayMs = 12;
+
+    const oldPairRequest = swap.loadExchangeRate();
+    const neo = swap.fromToken.get();
+    const gas = swap.toToken.get();
+    swap.fromToken.set(gas);
+    swap.toToken.set(neo);
+    const newPairRequest = swap.loadExchangeRate();
+
+    await Promise.all([oldPairRequest, newPairRequest]);
+
+    expect(swap.selectedPairDisplay.get()).toBe("GAS/NEO");
+    expect(swap.exchangeRate.get()).toBe("0.504582");
+    expect(swap.rateError.get()).toBe("");
+    swap.cleanup();
+  });
+});
+
+describe("useSwapEngine — amount intent and precision", () => {
+  it("rejects fractional NEO without silently truncating the requested amount", async () => {
+    const { swap, chain } = setup({ router: "0xrouter", neo: 10, gas: 10 });
+    await swap.loadAll();
+    swap.setFromAmount("1.5");
+
+    expect(swap.fromAmount.get()).toBe("1.5");
+    expect(swap.amountError.get()).toBe("neoIntegerOnly");
+    expect(swap.canSwap.get()).toBe(false);
+    await swap.executeSwap();
+    expect((chain as unknown as { invoke: { mock: { calls: unknown[] } } }).invoke.mock.calls).toHaveLength(0);
+    swap.cleanup();
+  });
+
+  it("rejects GAS precision beyond fixed8", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 10, gas: 10 });
+    await swap.loadAll();
+    swap.swapTokens();
+    swap.setFromAmount("1.123456789");
+
+    expect(swap.fromAmount.get()).toBe("1.123456789");
+    expect(swap.amountError.get()).toContain("tokenPrecisionExceeded");
+    expect(swap.canSwap.get()).toBe(false);
+    swap.cleanup();
+  });
+
+  it("rejects a pathologically long dispatch amount before BigInt quote work", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 10, gas: 10 });
+    await swap.loadAll();
+    swap.setFromAmount("9".repeat(200));
+
+    expect(swap.amountError.get()).toBe("invalidAmount");
+    expect(swap.canSwap.get()).toBe(false);
+    swap.cleanup();
+  });
+
+  it("does not trust a dispatched token hash or precision override", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 10, gas: 10 });
+    await swap.loadAll();
+    swap.selectToken({
+      symbol: "GAS",
+      hash: `0x${"f".repeat(40)}`,
+      balance: "999999999",
+      balanceUnits: "99999999999999999",
+      decimals: 1,
+    });
+
+    expect(swap.fromToken.get()).toMatchObject({
+      symbol: "GAS",
+      decimals: 8,
+      hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+      balanceUnits: "1000000000",
+    });
+    swap.cleanup();
+  });
+});
+
+describe("useSwapEngine — verified wallet balances", () => {
+  it("fails closed when a wallet balance cannot be verified", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: Number.NaN, gas: 5 });
+    await swap.loadAll();
+    swap.setFromAmount("1");
+
+    expect(swap.walletConnected.get()).toBe(true);
+    expect(swap.balancesVerified.get()).toBe(false);
+    expect(swap.canSwap.get()).toBe(false);
+    expect(swap.swapButtonText.get()).toBe("balanceUnavailable");
+    swap.cleanup();
+  });
+
+  it("hides an old account's balances immediately after the wallet address changes", async () => {
+    const { swap, chain } = setup({ router: "0xrouter", neo: 10, gas: 5 });
+    await swap.loadAll();
+    swap.setFromAmount("1");
+    expect(swap.balancesVerified.get()).toBe(true);
+    expect(swap.canSwap.get()).toBe(true);
+
+    (chain as unknown as { address: { set: (value: string) => void } }).address.set(
+      "NQRLhQW9GjMAMHE9JKTKEKfTzQKT7A7y1Z",
+    );
+
+    expect(swap.balancesVerified.get()).toBe(false);
+    expect(swap.canSwap.get()).toBe(false);
+    swap.cleanup();
   });
 });
 
@@ -183,14 +450,27 @@ describe("useSwapEngine — output quantization + slippage floor", () => {
     expect(min).toBeLessThan(parseFloat(swap.toAmount.get()));
   });
 
+  it("quotes output from exact fixed-six price integers, not a rounded display rate", async () => {
+    feedState.prices = { NEO: 0.1, GAS: 0.3 };
+    const { swap } = setup({ router: "0xrouter", neo: 10, gas: 0 });
+    await swap.loadAll();
+    swap.setFromAmount("1");
+
+    expect(swap.exchangeRate.get()).toBe("0.333333");
+    expect(swap.toAmount.get()).toBe("0.33333333");
+    swap.cleanup();
+  });
+
   it("does not collapse a tiny output to a zero slippage floor", async () => {
     // A tiny GAS output (2 base units) would underflow float scientific
     // notation if minReceived were computed via .toString(). The BigInt floor
     // keeps 1 base unit instead of rounding the whole thing to "0".
+    feedState.prices = { NEO: 0.000001, GAS: 50 };
     const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0 });
     await swap.loadAll();
+    swap.setFromAmount("1");
     // The receiving token is GAS (8 decimals). 0.00000002 GAS = 2 base units.
-    swap.toAmount.set("0.00000002");
+    expect(swap.toAmount.get()).toBe("0.00000002");
     // minReceived = floor(2 * 995 / 1000) = 1 base unit = "0.00000001", not "0".
     expect(swap.minReceived.get()).toBe("0.00000001");
   });
@@ -255,10 +535,94 @@ describe("useSwapEngine — interactive slippage", () => {
     const invoke = (chain as unknown as { invoke: { mock: { calls: unknown[][] } } }).invoke;
     expect(invoke.mock.calls.length).toBe(1);
     const args = invoke.mock.calls[0][1] as Array<{ type: string; value: string }>;
+    expect(invoke.mock.calls[0][2]).toMatchObject({
+      scriptHash: ROUTER,
+      waitForEvent: "SwapExecuted",
+      waitTimeoutMs: 60_000,
+    });
     // minOutput is the 3rd positional arg (sender, amountIn, minOut, path, deadline).
     const minOutInt = BigInt(args[2].value);
     // Displayed minReceived (GAS, 8 decimals) equals the integer base units sent.
-    expect(minOutInt).toBe(BigInt(Math.round(parseFloat(displayedMin) * 1e8)));
+    expect(minOutInt).toBe(parseDecimalUnits(displayedMin, 8));
+  });
+
+  it("keeps the user's intent when a broadcast has no verified SwapExecuted event", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 100, gas: 0, verified: false });
+    await swap.loadAll();
+    swap.setFromAmount("10");
+
+    await expect(swap.executeSwap()).rejects.toThrow("swapConfirmationPending");
+    expect(swap.fromAmount.get()).toBe("10");
+    expect(swap.toAmount.get()).not.toBe("");
+    expect(swap.pendingTxid.get()).toBe(SWAP_TXID);
+    expect(swap.transactionStatus.get()).toBe("unverified");
+    swap.cleanup();
+  });
+
+  it("keeps the intent pending when an event name is present but its binding validator rejects it", async () => {
+    const { swap } = setup({
+      router: "0xrouter",
+      neo: 100,
+      gas: 0,
+      confirmationEvent: { event_name: "DifferentSwap" },
+    });
+    await swap.loadAll();
+    swap.setFromAmount("10");
+
+    await expect(swap.executeSwap()).rejects.toThrow("swapConfirmationPending");
+    expect(swap.pendingTxid.get()).toBe(SWAP_TXID);
+    expect(swap.transactionStatus.get()).toBe("unverified");
+    swap.cleanup();
+  });
+
+  it("keeps raw wallet/RPC failure text out of the product recovery panel", async () => {
+    const { swap } = setup({
+      router: "0xrouter",
+      neo: 100,
+      gas: 0,
+      invokeError: new Error("VM FAULT: internal provider dump"),
+    });
+    await swap.loadAll();
+    swap.setFromAmount("10");
+
+    await expect(swap.executeSwap()).rejects.toThrow("internal provider dump");
+    expect(swap.pendingTxid.get()).toBe("");
+    expect(swap.transactionStatus.get()).toBe("failed");
+    expect(swap.transactionError.get()).toBe("swapFailedRecoveryHint");
+    swap.cleanup();
+  });
+
+  it("recovers the exact persisted transaction before allowing another swap", async () => {
+    const { swap, chain } = setup({ router: "0xrouter", neo: 100, gas: 0, verified: false });
+    await swap.loadAll();
+    swap.setFromAmount("10");
+
+    await expect(swap.executeSwap()).rejects.toThrow("swapConfirmationPending");
+    expect(swap.canSwap.get()).toBe(false);
+
+    await expect(swap.recoverPendingSwap()).resolves.toBe(true);
+    expect((chain as unknown as { waitForEvent: ReturnType<typeof vi.fn> }).waitForEvent)
+      .toHaveBeenCalledWith(SWAP_TXID, "SwapExecuted", 45_000);
+    expect(swap.pendingTxid.get()).toBe("");
+    expect(swap.transactionStatus.get()).toBe("confirmed");
+    expect(swap.fromAmount.get()).toBe("");
+    swap.cleanup();
+  });
+});
+
+describe("useSwapEngine — wallet network binding", () => {
+  it("does not expose balances or settlement when the wallet is on a different network", async () => {
+    const { swap } = setup({ router: "0xrouter", network: "neo-n3-testnet", neo: 100, gas: 50 });
+    await swap.loadAll();
+    swap.setFromAmount("2");
+
+    expect(swap.quoteNetwork.get()).toBe("mainnet");
+    expect(swap.walletNetwork.get()).toBe("");
+    expect(swap.networkVerified.get()).toBe(false);
+    expect(swap.networkError.get()).toContain("walletNetworkMismatch");
+    expect(swap.balancesVerified.get()).toBe(false);
+    expect(swap.canSwap.get()).toBe(false);
+    swap.cleanup();
   });
 });
 
@@ -272,6 +636,17 @@ describe("useSwapEngine — MAX headroom", () => {
     swap.setMaxAmount();
     // 5 GAS − 0.1 headroom = 4.9.
     expect(parseFloat(swap.fromAmount.get())).toBeCloseTo(4.9, 6);
+  });
+
+  it("keeps MAX exact above Number.MAX_SAFE_INTEGER base units", async () => {
+    const { swap } = setup({ router: "0xrouter", neo: 0, gas: "90071992.54740991" });
+    await swap.loadAll();
+    swap.swapTokens();
+    await Promise.resolve();
+    swap.setMaxAmount();
+
+    expect(swap.fromAmount.get()).toBe("90071992.44740991");
+    swap.cleanup();
   });
 
   it("floors MAX to a whole number for NEO (indivisible)", async () => {

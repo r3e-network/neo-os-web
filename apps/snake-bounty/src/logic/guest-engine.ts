@@ -18,8 +18,15 @@
  * that reaches submitSolution, so the guest score equals the trail target.
  */
 import type { GameSessionObservables, LeaderEntry } from "@framework/game";
-import { GRID_SIZE } from "./snake-engine";
-import type { Point } from "./snake-engine";
+import {
+  GRID_SIZE,
+  hasReachedTarget,
+  parseInitialState,
+  snakeLength,
+  stateToClues,
+  step,
+} from "./snake-engine";
+import type { Direction, Point, SnakeState } from "./snake-engine";
 import { ruleOf } from "./game-rules";
 
 /** Structural (method-syntax, so bivariant) observable handle. */
@@ -35,18 +42,28 @@ interface GuestLeaderboardApi {
   get(limit?: number): Promise<Array<{ user: string; score: string }>>;
 }
 
+interface GuestStorage {
+  get<T>(key: string, fallback?: T | null): T | null;
+  set(key: string, value: unknown): void;
+  delete?(key: string): void;
+}
+
 export interface GuestEngineDeps {
   obs: GameSessionObservables;
   clues: Obs<string>;
+  currentLength: Obs<number>;
+  snakeDead: Obs<boolean>;
   guestLeaderboard: GuestLeaderboardApi;
   t: (key: string, params?: Record<string, string | number>) => string;
   setStatus: (msg: string, type: "success" | "error" | "warning" | "info") => void;
+  storage?: GuestStorage;
+  createClues?: (targetLength: number) => string;
 }
 
 export interface GuestEngine {
   startGame(difficulty: number): void;
   selectDifficulty(difficulty: number): void;
-  /** No-op: the scene simulates the snake locally, so moves need no recording. */
+  /** Apply one authoritative local tick. The scene mirrors this same engine. */
   recordMove(dir: number): void;
   submitSolution(): Promise<void>;
   expireGame(): void;
@@ -57,23 +74,33 @@ export interface GuestEngine {
 }
 
 const GUEST_GAME_ID = "guest";
+const GUEST_PROFILE_KEY = "miniapp-snake-bounty:guest-profile:v1";
+const GUEST_RUN_KEY = "miniapp-snake-bounty:guest-active-run:v1";
 /** A few extra queued foods beyond the growth target keep the run playable. */
 const FOOD_QUEUE_BUFFER = 4;
+
+interface PersistedGuestRun {
+  difficulty?: unknown;
+  dealtAt?: unknown;
+  deadline?: unknown;
+  state?: unknown;
+}
 
 function clampDifficulty(value: number): number {
   return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
-/** Web-Crypto (Math.random fallback) integer in [0, bound). */
+/** Uniform integer in [0, bound). Local board generation fails closed without Web Crypto. */
 function randomBelow(bound: number): number {
-  if (bound <= 0) return 0;
+  if (bound <= 1) return 0;
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    const buf = new Uint32Array(1);
+  if (!webCrypto?.getRandomValues) throw new Error("secureRandomUnavailable");
+  const buf = new Uint32Array(1);
+  const ceiling = Math.floor(0x1_0000_0000 / bound) * bound;
+  do {
     webCrypto.getRandomValues(buf);
-    return buf[0]! % bound;
-  }
-  return Math.floor(Math.random() * bound);
+  } while ((buf[0] ?? 0) >= ceiling);
+  return (buf[0] ?? 0) % bound;
 }
 
 /** In-place Fisher–Yates shuffle seeded from the Web-Crypto RNG. */
@@ -91,7 +118,7 @@ function shuffleInPlace<T>(items: T[]): void {
  * 3-segment snake in the middle heading right, plus enough distinct random
  * empty cells to grow to the target length and beyond.
  */
-function buildInitialClues(targetLength: number): string {
+export function buildInitialClues(targetLength: number): string {
   const body: Point[] = [
     { x: 10, y: 10 },
     { x: 9, y: 10 },
@@ -116,9 +143,114 @@ function buildInitialClues(targetLength: number): string {
 }
 
 export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
-  const { obs, clues, guestLeaderboard, t, setStatus } = deps;
+  const { obs, clues, currentLength, snakeDead, guestLeaderboard, t, setStatus } = deps;
+  const storage: GuestStorage | undefined = deps.storage ?? (() => {
+    try {
+      const local = globalThis.localStorage;
+      return {
+        get<T>(key: string, fallback: T | null = null): T | null {
+          const raw = local.getItem(key);
+          return raw === null ? fallback : JSON.parse(raw) as T;
+        },
+        set(key: string, value: unknown): void { local.setItem(key, JSON.stringify(value)); },
+        delete(key: string): void { local.removeItem(key); },
+      };
+    } catch {
+      return undefined;
+    }
+  })();
+  let guestState: SnakeState | null = null;
 
-  const resetToLobby = (): void => {
+  const readProfile = (): { bestLength: number; solves: number } => {
+    try {
+      const parsed = storage?.get<{
+        bestLength?: unknown;
+        solves?: unknown;
+      }>(GUEST_PROFILE_KEY, null) ?? null;
+      return {
+        bestLength: Math.max(0, Math.floor(Number(parsed?.bestLength) || 0)),
+        solves: Math.max(0, Math.floor(Number(parsed?.solves) || 0)),
+      };
+    } catch {
+      return { bestLength: 0, solves: 0 };
+    }
+  };
+
+  const writeProfile = (bestLength: number, solves: number): void => {
+    try {
+      storage?.set(GUEST_PROFILE_KEY, { bestLength, solves });
+    } catch {
+      /* Private-mode/local quota failures must never break a free run. */
+    }
+  };
+
+  const clearActiveRun = (): void => {
+    try {
+      if (storage?.delete) storage.delete(GUEST_RUN_KEY);
+      else storage?.set(GUEST_RUN_KEY, null);
+    } catch {
+      /* A terminal local run is already complete even if storage cleanup fails. */
+    }
+  };
+
+  const saveActiveRun = (): void => {
+    if (!guestState || obs.gameStatus.get() !== "dealt") return;
+    try {
+      storage?.set(GUEST_RUN_KEY, {
+        difficulty: obs.gameDifficulty.get(),
+        dealtAt: obs.dealtAt.get(),
+        deadline: obs.deadline.get(),
+        state: stateToClues(guestState),
+      } satisfies PersistedGuestRun);
+    } catch {
+      /* Private-mode/quota failures must not interrupt an active local run. */
+    }
+  };
+
+  const restoreActiveRun = (): boolean => {
+    try {
+      const raw = storage?.get<PersistedGuestRun>(GUEST_RUN_KEY, null) ?? null;
+      if (!raw || typeof raw.state !== "string") return false;
+      const difficulty = clampDifficulty(Number(raw.difficulty));
+      const dealtAt = Math.floor(Number(raw.dealtAt));
+      const deadline = Math.floor(Number(raw.deadline));
+      const rule = ruleOf(difficulty);
+      if (
+        !Number.isFinite(dealtAt)
+        || !Number.isFinite(deadline)
+        || dealtAt <= 0
+        || deadline <= Date.now()
+        || deadline <= dealtAt
+        || deadline - dealtAt !== rule.limitMs
+      ) {
+        clearActiveRun();
+        return false;
+      }
+      const restored = parseInitialState(raw.state);
+      if (restored.body.length < 3 || restored.body.length > GRID_SIZE * GRID_SIZE) {
+        clearActiveRun();
+        return false;
+      }
+      guestState = restored;
+      obs.gameDifficulty.set(difficulty);
+      obs.activeGameId.set(GUEST_GAME_ID);
+      obs.commitment.set("");
+      obs.dealtAt.set(dealtAt);
+      obs.deadline.set(deadline);
+      obs.gameStatus.set("dealt");
+      clues.set(stateToClues(restored));
+      currentLength.set(snakeLength(restored));
+      snakeDead.set(restored.dead);
+      obs.lastStatus.set(t("guestRunRecovered"));
+      return true;
+    } catch {
+      clearActiveRun();
+      return false;
+    }
+  };
+
+  const resetToLobby = (clearPersisted = true): void => {
+    if (clearPersisted) clearActiveRun();
     obs.gameStatus.set("idle");
     obs.activeGameId.set("0");
     obs.commitment.set("");
@@ -130,6 +262,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     obs.isStarting.set(false);
     obs.isDealing.set(false);
     obs.isSubmitting.set(false);
+    guestState = null;
+    currentLength.set(3);
+    snakeDead.set(false);
     clues.set("");
     obs.lastStatus.set(t("statusReady"));
   };
@@ -168,48 +303,88 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       const diff = clampDifficulty(difficulty);
       const rule = ruleOf(diff);
       obs.isStarting.set(true);
-      obs.lastStatus.set(t("guestStatusDealt"));
-      obs.gameDifficulty.set(diff);
-      obs.activeGameId.set(GUEST_GAME_ID);
-      obs.commitment.set("");
-      obs.undosUsed.set(0);
-      obs.lastPayout.set("");
-      obs.lastElapsedMs.set(0);
-      clues.set(buildInitialClues(rule.targetLength));
-      const now = Date.now();
-      obs.dealtAt.set(now);
-      obs.deadline.set(now + rule.limitMs);
-      obs.gameStatus.set("dealt");
-      obs.isStarting.set(false);
+      try {
+        const initialClues = (deps.createClues ?? buildInitialClues)(rule.targetLength);
+        guestState = parseInitialState(initialClues);
+        const now = Date.now();
+        obs.lastStatus.set(t("guestStatusDealt"));
+        obs.gameDifficulty.set(diff);
+        obs.activeGameId.set(GUEST_GAME_ID);
+        obs.commitment.set("");
+        obs.undosUsed.set(0);
+        obs.lastPayout.set("");
+        obs.lastElapsedMs.set(0);
+        clues.set(initialClues);
+        currentLength.set(snakeLength(guestState));
+        snakeDead.set(false);
+        obs.dealtAt.set(now);
+        obs.deadline.set(now + rule.limitMs);
+        obs.gameStatus.set("dealt");
+        saveActiveRun();
+      } catch (error) {
+        resetToLobby();
+        const message = error instanceof Error && error.message === "secureRandomUnavailable"
+          ? t("secureRandomUnavailable")
+          : t("statusFailed");
+        obs.lastStatus.set(message);
+        setStatus(message, "error");
+        throw error;
+      } finally {
+        obs.isStarting.set(false);
+      }
     },
 
     selectDifficulty(difficulty: number): void {
       obs.gameDifficulty.set(clampDifficulty(difficulty));
     },
 
-    recordMove(_dir: number): void {
-      /* The scene owns the local snake simulation; nothing to record off-chain. */
+    recordMove(dir: number): void {
+      if (
+        obs.gameStatus.get() !== "dealt"
+        || !guestState
+        || guestState.dead
+        || Date.now() > obs.deadline.get()
+        || !Number.isInteger(dir)
+        || dir < 0
+        || dir > 3
+      ) return;
+      guestState = step(guestState, dir as Direction);
+      currentLength.set(snakeLength(guestState));
+      snakeDead.set(guestState.dead);
+      saveActiveRun();
     },
 
     async submitSolution(): Promise<void> {
-      // Only the target-reached overlay reaches submitSolution in guest mode
-      // (a crash routes to expireGame → lobby), so the run score is the trail
-      // target length — the exact length the snake grew to on a clean clear.
       if (obs.gameStatus.get() !== "dealt" || obs.isSubmitting.get()) return;
-      obs.isSubmitting.set(true);
       const rule = ruleOf(obs.gameDifficulty.get());
-      const score = rule.targetLength;
+      const state = guestState;
+      if (
+        !state
+        || state.dead
+        || Date.now() > obs.deadline.get()
+        || !hasReachedTarget(state, rule.targetLength)
+      ) {
+        const msg = t("guestRunIncomplete");
+        obs.lastStatus.set(msg);
+        setStatus(msg, "warning");
+        return;
+      }
+      obs.isSubmitting.set(true);
+      const score = snakeLength(state);
       obs.lastElapsedMs.set(Math.max(0, Date.now() - obs.dealtAt.get()));
       obs.lastPayout.set(String(score));
       obs.myTotalWon.set(Math.max(obs.myTotalWon.get(), score));
       obs.mySolves.set(obs.mySolves.get() + 1);
+      writeProfile(obs.myTotalWon.get(), obs.mySolves.get());
       obs.gameStatus.set("solved");
       obs.activeGameId.set("0");
+      guestState = null;
+      clearActiveRun();
       obs.lastStatus.set(t("guestRunComplete", { count: score }));
+      obs.isSubmitting.set(false);
+      setStatus(t("guestRunComplete", { count: score }), "success");
       await submitScore(score);
       await refreshLeaderboard();
-      setStatus(t("guestRunComplete", { count: score }), "success");
-      obs.isSubmitting.set(false);
     },
 
     expireGame(): void {
@@ -223,17 +398,20 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     refreshLeaderboard,
 
     async enter(): Promise<void> {
-      resetToLobby();
+      resetToLobby(false);
       // Guest never reads chain — zero the on-chain-only counters so a prior
       // gamefi read (from the mount-time loadData) never bleeds into the guest
       // surface, then load the off-chain guest board.
       obs.credit.set(0);
       obs.poolFree.set(0);
       obs.myRank.set(0);
-      obs.myTotalWon.set(0);
-      obs.mySolves.set(0);
+      const profile = readProfile();
+      obs.myTotalWon.set(profile.bestLength);
+      obs.mySolves.set(profile.solves);
       obs.myHistory.set([]);
+      const restored = restoreActiveRun();
       await refreshLeaderboard();
+      if (!restored) obs.lastStatus.set(t("statusReady"));
     },
   };
 }

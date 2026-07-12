@@ -66,9 +66,9 @@ export interface GuestEngineDeps {
 
 export interface GuestEngine {
   /** Roll a local prize inside `range` and reveal it on the canvas. */
-  draw(range: GuestRange): void;
+  draw(range: GuestRange): boolean;
   /** Reset to a clean local lobby + load the off-chain guest board. */
-  enter(): Promise<void>;
+  enter(options?: { preserveClaimContext?: boolean }): Promise<void>;
   /** Reload the off-chain guest board into the guest board observable. */
   refreshLeaderboard(): Promise<void>;
 }
@@ -76,17 +76,64 @@ export interface GuestEngine {
 const ONE_POINT_FIXED8 = 100000000n;
 /** Board scores are stored as centi-points integers to keep the board clean. */
 const SCORE_SCALE = 100;
+const MIN_GUEST_POINT = 1;
+const MAX_GUEST_POINT = 50;
 
-/** Web-Crypto (Math.random fallback) uniform float in [0, 1). */
-function randomUnit(): number {
+/** Keep every caller — including host-dispatched payloads — inside game rules. */
+export function normalizeGuestRange(range: GuestRange): GuestRange {
+  const rawMin = Number(range.min);
+  const rawMax = Number(range.max);
+  const min = Math.max(
+    MIN_GUEST_POINT,
+    Math.min(MAX_GUEST_POINT, Number.isFinite(rawMin) ? rawMin : MIN_GUEST_POINT),
+  );
+  const max = Math.max(
+    min,
+    Math.min(MAX_GUEST_POINT, Number.isFinite(rawMax) ? rawMax : min),
+  );
+  return { min, max };
+}
+
+/**
+ * Web Crypto uniform float in [0, 1).
+ *
+ * A chance game must never silently downgrade to Math.random. Embedded
+ * WebViews without a working CSPRNG fail closed and leave the previous score
+ * untouched; the caller can then show a recoverable error instead of a result
+ * that looks secure but is not.
+ */
+function secureRandomUint32(): number {
   const buffer = new Uint32Array(1);
   const webCrypto = globalThis.crypto;
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(buffer);
-  } else {
-    buffer[0] = Math.floor(Math.random() * 0xffffffff);
+  if (!webCrypto?.getRandomValues) {
+    throw new Error("secure-random-unavailable");
   }
-  return (buffer[0] ?? 0) / 0x100000000;
+  try {
+    webCrypto.getRandomValues(buffer);
+  } catch {
+    throw new Error("secure-random-unavailable");
+  }
+  return buffer[0] ?? 0;
+}
+
+export function secureRandomUnit(): number {
+  return secureRandomUint32() / 0x100000000;
+}
+
+/** Uniform integer selection with rejection sampling (no modulo bias). */
+export function secureRandomIntegerInclusive(min: number, max: number): number {
+  const lower = Math.ceil(min);
+  const upper = Math.floor(max);
+  const span = upper - lower + 1;
+  if (!Number.isSafeInteger(lower) || !Number.isSafeInteger(upper) || span < 1 || span > 0x100000000) {
+    throw new Error("invalid-secure-random-range");
+  }
+  const limit = Math.floor(0x100000000 / span) * span;
+  for (let attempt = 0; attempt < 128; attempt += 1) {
+    const value = secureRandomUint32();
+    if (value < limit) return lower + (value % span);
+  }
+  throw new Error("secure-random-unavailable");
 }
 
 /** Points (with up to 2 decimals) → fixed8 bigint the scene formats via formatGas. */
@@ -118,6 +165,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     t,
     setStatus,
   } = deps;
+  let leaderboardSync = Promise.resolve();
 
   const submitScore = async (points: number): Promise<void> => {
     if (!(points > 0)) return;
@@ -154,12 +202,24 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   };
 
   return {
-    draw(range: GuestRange): void {
-      const min = Number.isFinite(range.min) && range.min > 0 ? range.min : 1;
-      const max =
-        Number.isFinite(range.max) && range.max >= min ? range.max : min;
-      const raw = min + randomUnit() * (max - min);
-      const prize = Math.round(raw * 100) / 100; // 2-decimal points
+    draw(range: GuestRange): boolean {
+      const { min, max } = normalizeGuestRange(range);
+      let prizeCenti: number;
+      try {
+        prizeCenti = secureRandomIntegerInclusive(
+          Math.ceil(min * 100),
+          Math.floor(max * 100),
+        );
+      } catch {
+        resetRewardState();
+        lastClaimAmount.set(0n);
+        lastClaimLuckPercent.set("");
+        const message = t("guestSecureRandomUnavailable");
+        lastError.set(message);
+        setStatus(message, "error");
+        return false;
+      }
+      const prize = prizeCenti / 100;
       const luck =
         max > min
           ? Math.max(
@@ -170,9 +230,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
       resetRewardState();
       lastClaimLuckPercent.set(String(luck));
-      // Setting the amount drives the scene's signature reward reveal (roll-up +
-      // coin burst); the scene compares against its own last value, so an equal
-      // consecutive draw simply stays put (no spurious re-reveal needed).
+      // guestDraws is also bridged as the reveal nonce, so equal consecutive
+      // prizes still get their own complete roll-up and coin-burst beat.
       lastClaimAmount.set(pointsToFixed8(prize));
 
       guestLast.set(prize);
@@ -183,23 +242,27 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         "success",
       );
 
-      void (async () => {
+      leaderboardSync = leaderboardSync.then(async () => {
         await submitScore(prize);
         await refreshLeaderboard();
-      })();
+      });
+      void leaderboardSync;
+      return true;
     },
 
     refreshLeaderboard,
 
-    async enter(): Promise<void> {
-      // Clean local lobby: no claim context (keeps the scene in the draw panel),
-      // and zero every on-chain-only surface so a prior gamefi mount-time read
-      // never bleeds into the guest view.
+    async enter(options = {}): Promise<void> {
+      // Clean the local lobby and every on-chain-only surface so a prior
+      // gamefi mount-time read never bleeds into guest play. A maintenance
+      // launch may retain its claim identity for a later safe retry.
       resetRewardState();
       lastClaimAmount.set(0n);
       lastClaimLuckPercent.set("");
-      currentClaimKey.set("");
-      currentPoolId.set("");
+      if (!options.preserveClaimContext) {
+        currentClaimKey.set("");
+        currentPoolId.set("");
+      }
       currentPool.set(null);
       recentPools.set([]);
       recentClaims.set([]);
