@@ -54,7 +54,7 @@ export function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
             className="block h-[720px] w-full border-0 bg-white"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+            sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
           />
         </section>
       </div>
