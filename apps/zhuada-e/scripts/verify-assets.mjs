@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const sourceDir = path.join(root, "art-src");
 const themes = ["fresh-market", "farm-kitchen", "night-market"];
+const itemCount = 18;
 const cues = [
   "land", "pick", "match", "combo", "win", "fail", "powerup", "shuffle",
   "click", "tick", "unlock", "shake",
@@ -133,7 +134,7 @@ for (const theme of themes) {
   await verifyImage(`art/theme-${theme}.webp`, 768, 1152);
   await verifyImage(`art/mascot-${theme}.webp`, 512, 512);
   await verifyImage(`art/container-${theme}.webp`, 1024, 1024);
-  for (let index = 0; index < 12; index += 1) {
+  for (let index = 0; index < itemCount; index += 1) {
     await verifyImage(
       `art/items/${theme}/item-${String(index).padStart(2, "0")}.webp`,
       256,
@@ -143,11 +144,11 @@ for (const theme of themes) {
   }
 }
 
-for (let index = 0; index < 6; index += 1) {
+for (let index = 0; index < 9; index += 1) {
   await verifyTransparentPortrait(`art/geese/goose-${String(index).padStart(2, "0")}.webp`);
 }
 
 for (const cue of cues) await verifyWav(`audio/${cue}.wav`, 0.05);
 for (const ambience of ambiences) await verifyWav(`audio/${ambience}.wav`, 5.5);
 
-console.log(`Asset gate passed: 57 images + ${cues.length + ambiences.length} PCM audio files · v${packageJson.version}`);
+console.log(`Asset gate passed: 78 images + ${cues.length + ambiences.length} PCM audio files · v${packageJson.version}`);

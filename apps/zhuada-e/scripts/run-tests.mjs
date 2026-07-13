@@ -41,6 +41,7 @@ const groups = [
   ["src/ThreeGameComponent.test.tsx", "src/GooseChip.test.ts"],
   [
     "src/scenes/model-cache.test.ts",
+    "src/scenes/pile-dynamics.test.ts",
     "src/scenes/pick-lock.test.ts",
     "src/scenes/physics-profiles.test.ts",
     "src/scenes/pick-raycast.test.ts",

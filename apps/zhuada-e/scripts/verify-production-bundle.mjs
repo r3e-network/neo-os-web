@@ -38,7 +38,7 @@ export const requiredProductionFiles = Object.freeze([
     `art/theme-${theme}.webp`,
     `art/mascot-${theme}.webp`,
     `art/container-${theme}.webp`,
-    ...Array.from({ length: 12 }, (_, index) => (
+    ...Array.from({ length: 18 }, (_, index) => (
       `art/items/${theme}/item-${String(index).padStart(2, "0")}.webp`
     )),
   ]),

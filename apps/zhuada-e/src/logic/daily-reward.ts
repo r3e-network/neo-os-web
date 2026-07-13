@@ -42,7 +42,7 @@ export const EMPTY_DAILY: DailyState = {
   dailyBonus: { shuffle: 0, hint: 0, remove: 0, undo: 0, addTime: 0 },
 };
 
-// ── Tuning constants (all [PLACEHOLDER] — validate in playtest) ──────────────
+// ── Tuning constants ([ACCEPTED-SIM] — daily economy solvency validated by balance-frenzy.mjs §3; values match GDD §9.1 Proposed defaults. Human feel-test still recommended.) ──
 // These are hypotheses, not settled values. The daily bonus must feel like a
 // welcome gift, not a balance-breaking drip; the cap exists precisely so a long
 // streak can't turn powerups into a trivialized resource.

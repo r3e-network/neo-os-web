@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createGuestEngine, type GuestEngineDeps, type PowerupCounts } from "./guest-engine";
+import { createGuestEngine, isStoredRunState, type GuestEngineDeps, type PowerupCounts } from "./guest-engine";
 import { EMPTY_EXTRACT_RECEIPT, type ItemInstance } from "./engine-zhuada";
 import { EMPTY_PROGRESS, type GooseProgress } from "./progress";
 import { EMPTY_DAILY, type DailyState } from "./daily-reward";
-import { specOf } from "./game-rules";
+import { TOTAL_LEVELS, specOf } from "./game-rules";
 
 class TestObservable<T> {
   constructor(private value: T) {}
@@ -36,9 +36,9 @@ function createHarness(factory: typeof createGuestEngine = createGuestEngine) {
   const undoable = observable(false);
   const progress = observable<GooseProgress>({
     ...EMPTY_PROGRESS,
-    highestUnlockedLevel: 15,
-    lastPlayedLevel: 15,
-    level: 15,
+    highestUnlockedLevel: TOTAL_LEVELS,
+    lastPlayedLevel: TOTAL_LEVELS,
+    level: TOTAL_LEVELS,
     levels: {},
     best: {},
     geese: [],
@@ -86,6 +86,7 @@ function createHarness(factory: typeof createGuestEngine = createGuestEngine) {
     engine: factory(deps), items, reserveCount, tray, shelf,
     gameStatus, dealNonce, resumeAvailable, resumeLevel, continueAvailable,
     timeLeftMs: deps.timeLeftMs,
+    score: deps.score,
     comboCount: deps.comboCount,
     frenzyCharges: deps.frenzyCharges,
     frenzyFx: deps.frenzyFx,
@@ -93,6 +94,7 @@ function createHarness(factory: typeof createGuestEngine = createGuestEngine) {
     powerups: deps.powerups,
     undoable,
     shuffleNonce,
+    shakeReadyAt: deps.shakeReadyAt,
     hintNonce,
     progress,
     unlockNotice: deps.unlockNotice,
@@ -160,7 +162,7 @@ describe("fresh deal boundary", () => {
     expect(items.get().filter((item) => item.spawnMode === "reservoir")).toHaveLength(9);
   });
 
-  it.each(Array.from({ length: 15 }, (_, index) => index + 1))(
+  it.each(Array.from({ length: TOTAL_LEVELS }, (_, index) => index + 1))(
     "drains every L%s reserve wave and wins only with box, reserve, tray and shelf empty",
     (level) => {
     vi.stubGlobal("window", {});
@@ -286,6 +288,27 @@ describe("fresh deal boundary", () => {
     expect(restored.reserveCount.get()).toBe(reserveBefore);
     expect(restored.tray.get()).toEqual(trayBefore);
     expect(restored.resumeAvailable.get()).toBe(false);
+  });
+
+  it("accepts the expanded kind catalog in resumable run snapshots", () => {
+    const base = {
+      level: 2,
+      themeId: "fresh-market" as const,
+      timedMode: false,
+      active: [{ id: 1, kind: 17, px: 0, py: 1, pz: 0 }],
+      reserve: [],
+      tray: [17, null, null, null, null, null, null],
+      shelf: [null, null, null],
+      score: 0,
+      powerups: { shuffle: 1, hint: 3, remove: 1, undo: 1, addTime: 0 },
+      lastGrab: { itemId: 1, kind: 17, slot: 0 },
+      timeLeftMs: 0,
+      elapsedMs: 100,
+      shakeCooldownMs: 0,
+      continueUsed: false,
+    };
+    expect(isStoredRunState(base)).toBe(true);
+    expect(isStoredRunState({ ...base, active: [{ ...base.active[0], kind: 18 }] })).toBe(false);
   });
 
   it("lets the lobby discard a resumable run", () => {
@@ -766,6 +789,165 @@ describe("terminal state machine", () => {
       // The date seed is deterministic: re-running reproduces the SAME layout.
       h2.engine.startDailyChallenge();
       expect(h2.items.get().map((it) => it.kind).join(",")).toBe(dailyLayout);
+    });
+  });
+
+  describe("R3 goose passive bonuses", () => {
+    function findTripleOf(list: ItemInstance[]): number[] {
+      const groups = new Map<number, number[]>();
+      for (const it of list) {
+        const g = groups.get(it.kind) ?? [];
+        g.push(it.id);
+        groups.set(it.kind, g);
+      }
+      for (const ids of groups.values()) if (ids.length >= 3) return ids.slice(0, 3);
+      return [];
+    }
+
+    it("folds collected-geese power-ups into the per-run grant", () => {
+      vi.stubGlobal("window", {});
+      const base = createHarness();
+      base.engine.startLevel(1);
+      const baseHint = base.powerups.get().hint;
+      const baseRemove = base.powerups.get().remove;
+      const baseUndo = base.powerups.get().undo;
+      const baseShuffle = base.powerups.get().shuffle;
+
+      const { engine, powerups, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [0, 1, 4] }); // +hint, +remove, +undo
+      engine.startLevel(1);
+
+      expect(powerups.get().hint).toBe(baseHint + 1);
+      expect(powerups.get().remove).toBe(baseRemove + 1);
+      expect(powerups.get().undo).toBe(baseUndo + 1);
+      // Untouched levers stay at the base grant.
+      expect(powerups.get().shuffle).toBe(baseShuffle);
+      expect(powerups.get().addTime).toBe(0); // untimed default → no add-time base
+    });
+
+    it("shortens the shake cooldown with the pond goose", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("window", {});
+      vi.setSystemTime(new Date(2_000_000));
+      const base = createHarness();
+      base.engine.startLevel(1);
+      base.engine.shake();
+      const cdBase = base.shakeReadyAt.get() - 2_000_000; // SHAKE_CD_MS = 5000
+
+      const { engine, shakeReadyAt, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [2] }); // −1s cooldown
+      engine.startLevel(1);
+      engine.shake();
+      const cdPond = shakeReadyAt.get() - 2_000_000; // 4000
+
+      expect(cdBase).toBe(5000);
+      expect(cdPond).toBe(4000);
+    });
+
+    it("breaks the combo chain across a 2300ms gap without the farm goose", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("window", {});
+      vi.setSystemTime(new Date(1_000_000));
+      const { engine, items, comboCount, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [] });
+      engine.startLevel(1);
+      // Three triples, each 2300ms apart. The base window is 2200ms, so each
+      // triple's match lands AFTER the window → the chain resets every time.
+      for (let n = 0; n < 3; n += 1) {
+        for (const id of findTripleOf(items.get())) engine.extract(id);
+        expect(comboCount.get()).toBe(1); // one isolated match = combo 1
+        if (n < 2) vi.setSystemTime(new Date(1_000_000 + (n + 1) * 2300));
+      }
+      // Every gap exceeded the base window → never chained.
+      expect(comboCount.get()).toBe(1);
+    });
+
+    it("keeps the chain alive across 2300ms gaps with the farm goose (+200ms window)", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("window", {});
+      vi.setSystemTime(new Date(1_000_000));
+      const { engine, items, comboCount, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [3] }); // +200ms → 2400ms window
+      engine.startLevel(1);
+      // Same 2300ms gaps, but the extended window keeps each match inside the
+      // chain window → the combo climbs 1, 2, 3.
+      for (let n = 0; n < 3; n += 1) {
+        for (const id of findTripleOf(items.get())) engine.extract(id);
+        if (n < 2) vi.setSystemTime(new Date(1_000_000 + (n + 1) * 2300));
+      }
+      expect(comboCount.get()).toBe(3);
+    });
+  });
+
+  describe("R7 goose passive bonuses (content expansion)", () => {
+    function findTripleOf(list: ItemInstance[]): number[] {
+      const groups = new Map<number, number[]>();
+      for (const it of list) {
+        const g = groups.get(it.kind) ?? [];
+        g.push(it.id);
+        groups.set(it.kind, g);
+      }
+      for (const ids of groups.values()) if (ids.length >= 3) return ids.slice(0, 3);
+      return [];
+    }
+
+    it("folds the volcano goose shuffle bonus into the per-run grant", () => {
+      vi.stubGlobal("window", {});
+      const base = createHarness();
+      base.engine.startLevel(1);
+      const baseShuffle = base.powerups.get().shuffle; // GRANT_SHUFFLE = 1
+
+      const { engine, powerups, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [6] }); // +1 shuffle
+      engine.startLevel(1);
+      expect(powerups.get().shuffle).toBe(baseShuffle + 1);
+      // Other levers stay at the base grant.
+      expect(powerups.get().hint).toBe(base.powerups.get().hint);
+    });
+
+    it("applies the cloud goose score bonus to a match", () => {
+      vi.stubGlobal("window", {});
+      const base = createHarness();
+      base.engine.startLevel(1);
+      for (const id of findTripleOf(base.items.get())) base.engine.extract(id);
+      const baseScore = base.score.get(); // 10
+
+      const { engine, items, score, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [7] }); // +5%
+      engine.startLevel(1);
+      for (const id of findTripleOf(items.get())) engine.extract(id);
+      const cloudScore = score.get(); // 11
+
+      expect(baseScore).toBe(10);
+      expect(cloudScore).toBe(11);
+    });
+
+    it("does not arm frenzy at combo 4 without the abyss goose", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("window", {});
+      vi.setSystemTime(new Date(1_000_000));
+      const { engine, items, frenzyCharges, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [] });
+      engine.startLevel(1);
+      for (let n = 0; n < 4; n += 1) {
+        for (const id of findTripleOf(items.get())) engine.extract(id);
+        if (n < 3) vi.setSystemTime(new Date(1_000_000 + (n + 1) * 200));
+      }
+      expect(frenzyCharges.get()).toBe(0);
+    });
+
+    it("arms frenzy one combo earlier with the abyss goose", () => {
+      vi.useFakeTimers();
+      vi.stubGlobal("window", {});
+      vi.setSystemTime(new Date(1_000_000));
+      const { engine, items, frenzyCharges, progress } = createHarness();
+      progress.set({ ...progress.get(), geese: [8] }); // trigger 5 → 4
+      engine.startLevel(1);
+      for (let n = 0; n < 4; n += 1) {
+        for (const id of findTripleOf(items.get())) engine.extract(id);
+        if (n < 3) vi.setSystemTime(new Date(1_000_000 + (n + 1) * 200));
+      }
+      expect(frenzyCharges.get()).toBeGreaterThan(0);
     });
   });
 });

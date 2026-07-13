@@ -114,20 +114,72 @@ describe("production model geometry cache", () => {
     }
   });
 
-  it("keeps translucent containers closed with a depth-writing solid heel", () => {
+  it("keeps every visible production surface opaque so the basket never shows through", () => {
+    for (const theme of GAME_THEMES) {
+      for (let kind = 0; kind < theme.items.length; kind += 1) {
+        const item = theme.items[kind]!;
+        const model = buildThemeModelMesh(theme.id, kind, item.color);
+        for (const mesh of productionMeshesOf(model)) {
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          expect(materials.every((material) => !material.transparent && material.opacity === 1), `${theme.id}/${kind}`).toBe(true);
+          expect(materials.every((material) => material.depthWrite), `${theme.id}/${kind} depth write`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("keeps formerly glass containers closed with a solid heel", () => {
     for (const kind of [1, 4]) {
       const item = themeItem("farm-kitchen", kind);
       const model = buildThemeModelMesh("farm-kitchen", kind, item.color);
       const meshes = meshesOf(model);
-      const translucent = meshes.filter((mesh) => {
-        const material = mesh.material as THREE.Material;
-        return material.transparent;
-      });
       const heel = meshes.find((mesh) => String(mesh.userData.detailLayer).endsWith("heel"));
 
-      expect(translucent.length).toBeGreaterThan(0);
-      expect(translucent.every((mesh) => (mesh.material as THREE.Material).depthWrite)).toBe(true);
       expect(heel).toBeDefined();
+    }
+  });
+
+  it("fills the fresh-market pastry center instead of exposing the basket", () => {
+    const item = themeItem("fresh-market", 10);
+    const model = buildThemeModelMesh("fresh-market", 10, item.color);
+    model.updateMatrixWorld(true);
+    const visibleMeshes = productionMeshesOf(model);
+    // Geometry occupancy is the contract here, independent of Three's
+    // front-face-only raycast culling. Double-sided test materials let the
+    // same center ray detect closed volume from the underside as the model
+    // rotates in physics; a torus would still miss through its actual hole.
+    visibleMeshes.forEach((mesh) => {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      materials.forEach((material) => { material.side = THREE.DoubleSide; });
+    });
+    const directions = [
+      new THREE.Vector3(0, 3, 0),
+      new THREE.Vector3(0, -3, 0),
+      new THREE.Vector3(3, 0, 0),
+      new THREE.Vector3(-3, 0, 0),
+      new THREE.Vector3(0, 0, 3),
+      new THREE.Vector3(0, 0, -3),
+    ];
+
+    for (const origin of directions) {
+      const ray = new THREE.Raycaster(origin, origin.clone().negate().normalize());
+      expect(ray.intersectObjects(visibleMeshes, false), `solid from ${origin.toArray().join(",")}`).not.toHaveLength(0);
+    }
+  });
+
+  it("seals every large lathe opening that used to expose the basket", () => {
+    const requiredLayers: ReadonlyArray<readonly ["farm-kitchen" | "night-market", number, string]> = [
+      ["farm-kitchen", 0, "kettle-base-seal"],
+      ["farm-kitchen", 9, "jug-base-seal"],
+      ["night-market", 1, "bao-base-seal"],
+      ["night-market", 2, "can-bottom-seal"],
+      ["night-market", 10, "bell-interior-seal"],
+    ];
+
+    for (const [themeId, kind, layer] of requiredLayers) {
+      const item = themeItem(themeId, kind);
+      const meshes = meshesOf(buildThemeModelMesh(themeId, kind, item.color));
+      expect(meshes.some((mesh) => mesh.userData.detailLayer === layer), `${themeId}/${kind} ${layer}`).toBe(true);
     }
   });
 

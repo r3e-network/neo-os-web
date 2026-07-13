@@ -4,6 +4,7 @@ import { TRAY_SLOTS, type ExtractReceipt } from "./logic/engine-zhuada";
 import {
   advanceTrayMotion,
   createTrayMotionState,
+  settleNonMatchEntry,
   startTrayMotion,
   trayFromTokens,
   trayMotionPhaseDuration,
@@ -57,12 +58,38 @@ export function AnimatedTray({
           const settled = createTrayMotionState(receipt.settledTray, ++generationRef.current);
           return { ...settled, receiptNonce: receipt.nonce };
         }
-        if (current.phase !== "idle") {
+        if (current.phase !== "idle" && current.matched) {
           if (!pendingReceiptsRef.current.some((pending) => pending.nonce === receipt.nonce)) {
             pendingReceiptsRef.current = [...pendingReceiptsRef.current, receipt]
               .sort((a, b) => a.nonce - b.nonce);
           }
           return current;
+        }
+
+        // If a completed triple already queued later taps, consume those
+        // receipts in order. Ordinary entries will immediately hand off to
+        // the next queued entry, while a queued match naturally becomes the
+        // next non-interruptible confirmation beat.
+        if (pendingReceiptsRef.current.length > 0) {
+          if (!pendingReceiptsRef.current.some((pending) => pending.nonce === receipt.nonce)) {
+            pendingReceiptsRef.current = [...pendingReceiptsRef.current, receipt]
+              .sort((a, b) => a.nonce - b.nonce);
+          }
+          pendingReceiptsRef.current = pendingReceiptsRef.current
+            .filter((pending) => pending.accepted && pending.nonce > current.receiptNonce);
+          const nextReceipt = pendingReceiptsRef.current.shift();
+          if (nextReceipt) {
+            return startTrayMotion(settleNonMatchEntry(current), nextReceipt);
+          }
+        }
+
+        // Ordinary picks are intentionally interruptible. A player can tap
+        // several different objects in quick succession; each new receipt
+        // takes over the entry beat while the prior chips keep gliding to
+        // their destinations. Only a completed triple is serialized so its
+        // confirmation / clear / compact beat remains readable.
+        if (current.phase !== "idle") {
+          return startTrayMotion(settleNonMatchEntry(current), receipt);
         }
         return startTrayMotion(current, receipt);
       }

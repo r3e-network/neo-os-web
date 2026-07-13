@@ -7,6 +7,7 @@ import {
   MAX_UNDOS,
   SCREW_COLORS,
   allScrews,
+  computeStars,
   currentBoxColor,
   isBoardCleared,
   isScrewUnlocked,
@@ -49,8 +50,11 @@ type SceneLabels = {
   caseComplete: string;
   winTitle: string;
   winCopy: string;
-  loseTitle: string;
-  loseCopy: string;
+  starsThree: string;
+  starsTwo: string;
+  starsOne: string;
+  efficiencyCopy: string;
+  bestStarsLabel: string;
   pausedTitle: string;
   pausedCopy: string;
   newPuzzle: string;
@@ -68,8 +72,11 @@ const FALLBACK_LABELS: SceneLabels = {
   caseComplete: "Done",
   winTitle: "Workshop clear!",
   winCopy: "Every screw is home.",
-  loseTitle: "Overflow jammed",
-  loseCopy: "Five sockets are safe. The sixth unmatched screw ends the run.",
+  starsThree: "★★★",
+  starsTwo: "★★☆",
+  starsOne: "★☆☆",
+  efficiencyCopy: "No undo, no overflow — a perfect clear.",
+  bestStarsLabel: "Best",
   pausedTitle: "Take a workshop break",
   pausedCopy: "Your seeded puzzle is saved on this device.",
   newPuzzle: "New puzzle",
@@ -104,9 +111,10 @@ export class ScrewSortScene extends BaseScene {
   private boxCounts: Phaser.GameObjects.Text[] = [];
   private boxMarkers: Phaser.GameObjects.Image[][] = [];
   private boardVisuals = new Map<string, BoardVisual>();
-  private bufferSprites: Phaser.GameObjects.Image[] = [];
+  private bufferSprites: Phaser.GameObjects.GameObject[] = [];
   private overlay!: Phaser.GameObjects.Container;
   private overlayTitle!: Phaser.GameObjects.Text;
+  private overlayStars!: Phaser.GameObjects.Text;
   private overlayCopy!: Phaser.GameObjects.Text;
   private overlayButtonText!: Phaser.GameObjects.Text;
   private overlayAction: string | null = null;
@@ -402,6 +410,12 @@ export class ScrewSortScene extends BaseScene {
       wordWrap: { width: this.scaleX(270) },
       lineSpacing: this.scaleY(3),
     }).setOrigin(0.5, 0);
+    this.overlayStars = this.add.text(this.widthPx / 2, this.y(364), "", {
+      fontFamily: FONT,
+      fontSize: `${Math.max(26, this.scaleX(32))}px`,
+      color: "#e7a51a",
+      align: "center",
+    }).setOrigin(0.5);
     const button = this.add.rectangle(
       this.widthPx / 2,
       this.y(456),
@@ -432,6 +446,7 @@ export class ScrewSortScene extends BaseScene {
       shade,
       panel,
       this.overlayTitle,
+      this.overlayStars,
       this.overlayCopy,
       button,
       this.overlayButtonText,
@@ -450,15 +465,42 @@ export class ScrewSortScene extends BaseScene {
       const plank = this.add.image(0, 0, ASSETS.plank)
         .setDisplaySize(this.scaleX(board.width), this.scaleY(board.height))
         .setTint(board.woodTint);
+      // 2.5D — board drop shadow for stacked depth.
+      const plankShadow = this.add.ellipse(
+        0,
+        this.scaleY(board.height * 0.5 + 7),
+        this.scaleX(board.width * 0.96),
+        this.scaleY(board.height * 0.5),
+        0x2a1606,
+        0.18,
+      );
+      container.add(plankShadow);
       container.add(plank);
 
       const screws = new Map<string, Phaser.GameObjects.Image>();
       const hitZones = new Map<string, Phaser.GameObjects.Zone>();
       for (const screw of board.screws) {
         const localX = this.scaleX((screw.slot - 1) * board.width * 0.31);
+        // 2.5D — per-screw drop shadow + metallic specular highlight.
+        const shadow = this.add.ellipse(
+          localX + this.scaleX(2),
+          this.scaleY(7),
+          this.scaleX(30),
+          this.scaleY(14),
+          0x2a1606,
+          0.22,
+        );
         const image = this.add.image(localX, 0, ASSETS.screw)
           .setTint(this.colorHex(screw.color));
         const baseScale = this.sizeScrew(image, 31);
+        const spec = this.add.ellipse(
+          localX - this.scaleX(5),
+          this.scaleY(-6),
+          this.scaleX(11),
+          this.scaleY(8),
+          0xffffff,
+          0.5,
+        );
         const hit = this.add.zone(localX, 0, this.scaleX(48), this.scaleY(52))
           .setInteractive({ useHandCursor: true });
         this.bindGameButton(hit, {
@@ -470,7 +512,7 @@ export class ScrewSortScene extends BaseScene {
         });
         screws.set(screw.id, image);
         hitZones.set(screw.id, hit);
-        container.add([image, hit]);
+        container.add([shadow, image, spec, hit]);
       }
       this.boardVisuals.set(board.id, { board, container, plank, screws, hitZones });
     }
@@ -491,6 +533,17 @@ export class ScrewSortScene extends BaseScene {
       });
       this.dispatch("selectScrew", screw.id);
       return;
+    }
+    if (!this.reducedMotion) {
+      // 2.5D — quick "unscrew" prep wiggle before the screw flies out.
+      this.animate({
+        targets: image,
+        angle: { from: -10, to: 10 },
+        yoyo: true,
+        repeat: 1,
+        duration: 55,
+        onComplete: () => image.setAngle(0),
+      });
     }
     this.requestScrewMove(screw);
   }
@@ -611,12 +664,21 @@ export class ScrewSortScene extends BaseScene {
     this.bufferSprites = [];
     session.core.buffer.forEach((item, index) => {
       const position = this.bufferPosition(index);
-      this.bufferSprites.push(
-        this.add.image(position.x, position.y, ASSETS.screw)
-          .setDisplaySize(this.scaleX(25), this.scaleY(34))
-          .setTint(this.colorHex(item.color))
-          .setDepth(170),
-      );
+      const sprite = this.add.image(position.x, position.y, ASSETS.screw)
+        .setDisplaySize(this.scaleX(25), this.scaleY(34))
+        .setTint(this.colorHex(item.color))
+        .setDepth(170);
+      const overflowing = index >= BUFFER_CAPACITY;
+      if (overflowing) sprite.setAlpha(0.78);
+      const spec = this.add.ellipse(
+        position.x - this.scaleX(4),
+        position.y - this.scaleY(6),
+        this.scaleX(9),
+        this.scaleY(7),
+        0xffffff,
+        0.5,
+      ).setDepth(171).setAlpha(overflowing ? 0.4 : 1);
+      this.bufferSprites.push(sprite, spec);
     });
   }
 
@@ -631,19 +693,13 @@ export class ScrewSortScene extends BaseScene {
       return;
     }
     if (session.core.status === "won") {
+      const stars = computeStars(session.core);
       this.overlayTitle.setText(labels.winTitle);
-      this.overlayCopy.setText(labels.winCopy);
+      this.overlayStars.setText(stars === 3 ? labels.starsThree : stars === 2 ? labels.starsTwo : labels.starsOne);
+      const demerits = session.core.undosUsed + session.core.overflows;
+      this.overlayCopy.setText(demerits === 0 ? labels.efficiencyCopy : labels.winCopy);
       this.overlayButtonText.setText(labels.newPuzzle);
       this.overlayAction = "newPuzzle";
-      this.overlay.setVisible(true);
-      return;
-    }
-    if (session.core.status === "lost") {
-      this.overlayTitle.setText(labels.loseTitle);
-      this.overlayCopy.setText(labels.loseCopy);
-      const canUndo = session.history.length > 0 && session.core.undosUsed < MAX_UNDOS;
-      this.overlayButtonText.setText(canUndo ? labels.resume : labels.restart);
-      this.overlayAction = canUndo ? "useUndo" : "restartGame";
       this.overlay.setVisible(true);
       return;
     }
@@ -667,22 +723,13 @@ export class ScrewSortScene extends BaseScene {
       .setDepth(260));
     const flightScale = this.sizeScrew(flight, 31);
 
-    if (event.destination === "loss") {
-      this.sfx.play("lose");
-      this.cameras.main.shake(this.reducedMotion ? 0 : 180, 0.006);
-      this.animate({
-        targets: flight,
-        angle: 120,
-        alpha: 0,
-        scaleX: flightScale * 1.3,
-        scaleY: flightScale * 1.3,
-        duration: 260,
-        onComplete: () => {
-          this.destroyMoveSprite(flight);
-          this.releaseMoveLock();
-        },
-      });
-      return;
+    const overflowed = event.destination === "buffer"
+      && previous !== null
+      && session.core.overflows > previous.core.overflows;
+    if (overflowed && !this.reducedMotion) {
+      // Soft-fail feedback only: the tray overflowed, but the run continues.
+      this.cameras.main.shake(80, 0.003);
+      this.sfx.play("move");
     }
 
     const destination = event.destination === "box" && event.lane !== null

@@ -18,7 +18,7 @@ npm run dev
 
 `npm run build` uses npm's `prebuild` lifecycle to regenerate every runtime
 image and audio file from the checked-in sources before the build script itself
-verifies all 57 image dimensions/alpha requirements and all 15 PCM audio
+verifies all 75 image dimensions/alpha requirements and all 15 PCM audio
 headers/durations, then type-checks and bundles. This makes a clean checkout
 fail loudly if an approved source asset is missing or malformed.
 
@@ -28,7 +28,7 @@ Before staging a release, run the complete local gate:
 npm run verify:release
 ```
 
-It runs the full test suite, ESLint, the 15-level Monte-Carlo balance gate,
+It runs the full test suite, ESLint, the 24-level Monte-Carlo balance gate,
 the product release audit, the production-dependency audit, deterministic asset
 regeneration, the production build, and the production bundle scan that rejects
 leaked Device QA or playtest debug runtime code. It also prints a fresh

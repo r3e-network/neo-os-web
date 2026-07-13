@@ -85,7 +85,7 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   invariant(packageJson.scripts["verify:release"]?.includes("npm run shims:verify"),
     "verify:release must include vendored shim verification");
   invariant(packageJson.scripts["verify:release"]?.includes("node scripts/tune.mjs"),
-    "verify:release must include the 15-level balance audit");
+    "verify:release must include the 24-level balance audit");
   invariant(packageJson.scripts["verify:release"]?.includes("npm audit --omit=dev"),
     "verify:release must include production dependency audit");
   invariant(packageJson.scripts["verify:release"]?.includes("npm run build"),
@@ -118,10 +118,10 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
     "must keep all three selectable themes");
   for (const theme of ["freshItems", "farmItems", "nightItems"]) {
     const itemBlock = read("src/logic/themes.ts").match(new RegExp(`const ${theme}:[\\s\\S]*?\\];`))?.[0] ?? "";
-    invariant((itemBlock.match(/nameKey:/g) ?? []).length === 12, `${theme} must keep exactly 12 item definitions`);
+    invariant((itemBlock.match(/nameKey:/g) ?? []).length === 18, `${theme} must keep exactly 18 item definitions`);
   }
   includes(read, "src/logic/game-rules.ts", "Logical runs grow from 18 to");
-  includes(read, "src/logic/game-rules.ts", "432 items");
+  includes(read, "src/logic/game-rules.ts", "576 items");
   includes(read, "src/logic/game-rules.ts", "only 40–54 live Cannon bodies");
   includes(read, "src/logic/game-rules.ts", "randomizedSpecOf");
   includes(read, "src/logic/item-stream.ts", "reserve");
@@ -129,6 +129,8 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/logic/item-stream.test.ts", "keeps complete triple counts inside the initial pile and every refill wave");
   includes(read, "src/logic/item-stream.test.ts", "waits for excavation, then activates one capped bottom-up batch");
   includes(read, "src/logic/guest-engine.test.ts", "increments for every start/retry and publishes a different layout");
+  includes(read, "src/logic/guest-engine.test.ts", "accepts the expanded kind catalog in resumable run snapshots");
+  includes(read, "src/logic/guest-engine.ts", "Number(item.kind) < THEME_ITEM_COUNT");
   includes(read, "src/logic/guest-engine.test.ts", "keeps a 210-item level behind a 48-body window and refills from below");
   includes(read, "src/logic/guest-engine.test.ts", "drains every L%s reserve wave and wins only with box, reserve, tray and shelf empty");
   includes(read, "src/logic/guest-engine.test.ts", "survives twenty consecutive late-level redeals without exceeding the live-body ceiling");
@@ -198,6 +200,8 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/ThreeGameComponent.test.tsx", "sizes the mobile board from measured tray and tool footer height");
   includes(read, "src/ThreeGameComponent.test.tsx", "shows a real-asset Android fallback pile when Chrome renders a blank WebGL canvas");
   includes(read, "src/scenes/model-cache.test.ts", "keeps every production 3D item as a layered multi-material mesh with a pick proxy");
+  includes(read, "src/scenes/model-cache.test.ts", "keeps every visible production surface opaque so the basket never shows through");
+  includes(read, "src/scenes/model-cache.test.ts", "seals every large lathe opening that used to expose the basket");
   includes(read, "src/scenes/model-cache.test.ts", "material variety");
   includes(read, "src/scenes/model-cache.test.ts", "mobile shadow budget");
   includes(read, "src/PlayArea.scss", ".goose-overlay__card[data-wide=\"true\"]::-webkit-scrollbar");
@@ -208,9 +212,11 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/PlayArea.scss", "flex-basis: min(45%, 142px)");
   includes(read, "src/PlayArea.scss", "[data-game-status=\"idle\"]");
   includes(read, "src/PlayArea.accessibility.test.tsx", "keeps the in-game lobby immersive");
+  includes(read, "src/PlayArea.accessibility.test.tsx", "turns a recoverable full tray into an assertive last-stand prompt");
+  includes(read, "src/PlayArea.accessibility.test.tsx", "names terminal tray failure directly and offers a concrete recovery action");
 
   // Resource and audio completeness.
-  includes(read, "scripts/verify-assets.mjs", "57 images");
+  includes(read, "scripts/verify-assets.mjs", "78 images");
   const assetVerifier = read("scripts/verify-assets.mjs");
   invariant((assetVerifier.match(/"ambient-/g) ?? []).length === 3,
     "verify-assets.mjs must check three ambience loops");
@@ -224,10 +230,10 @@ export function runReleaseAudit({ root = defaultRoot, overrides = {} } = {}) {
   includes(read, "src/logic/sound.test.ts", "dense collision bursts collapse to one land cue instead of stacking dozens of thuds");
   includes(read, "src/logic/sound.test.ts", "stops gameplay voices immediately after muting an already-created context");
   includes(read, "scripts/image-quality.test.mjs", "keeps every item icon visible, padded, transparent, and visually detailed");
-  includes(read, "scripts/image-quality.test.mjs", "36 runtime item icons unique");
+  includes(read, "scripts/image-quality.test.mjs", "54 runtime item icons unique");
   includes(read, "scripts/image-quality.test.mjs", "expected 25-68% visible subject coverage");
   includes(read, "scripts/run-tests.mjs", "scripts/image-quality.test.mjs");
-  includes(read, "README.md", "57 image");
+  includes(read, "README.md", "75 image");
   includes(read, "README.md", "15 PCM");
   includes(read, "README.md", "Long levels use a streamed bottom reservoir");
   includes(read, "README.md", "`npm run build` uses npm's `prebuild` lifecycle");

@@ -128,4 +128,49 @@ describe("AnimatedTray", () => {
     act(() => vi.advanceTimersByTime(TRAY_MOTION_TIMINGS.approachMs));
     expect(tray.dataset.motionPhase).toBe("grouping");
   }, 20_000);
+
+  it("lets a newer ordinary pick take over without waiting for the prior entry timer", async () => {
+    const common = {
+      themeId: "fresh-market" as const,
+      label: "Tray",
+      emptyLabel: "Empty",
+      itemName: (kind: number) => `Kind ${kind}`,
+    };
+    const first: ExtractReceipt = {
+      nonce: 1,
+      itemId: 11,
+      kind: 1,
+      accepted: true,
+      placedIndex: 0,
+      matched: false,
+      landingTray: [1, null, null, null, null, null, null],
+      settledTray: [1, null, null, null, null, null, null],
+      clearedTray: [],
+    };
+    const second: ExtractReceipt = {
+      nonce: 2,
+      itemId: 12,
+      kind: 2,
+      accepted: true,
+      placedIndex: 1,
+      matched: false,
+      landingTray: [1, 2, null, null, null, null, null],
+      settledTray: [1, 2, null, null, null, null, null],
+      clearedTray: [],
+    };
+    const view = render(<AnimatedTray {...common} tray={[]} receipt={null} />);
+    const tray = view.getByRole("list", { name: "Tray" });
+
+    view.rerender(<AnimatedTray {...common} tray={first.settledTray} receipt={first} />);
+    await act(async () => undefined);
+    expect(tray.dataset.motionPhase).toBe("approach");
+
+    view.rerender(<AnimatedTray {...common} tray={second.settledTray} receipt={second} />);
+    await act(async () => undefined);
+
+    expect(tray.dataset.motionPhase).toBe("approach");
+    expect(view.container.querySelectorAll(".goose-tray__item")).toHaveLength(2);
+    expect(view.container.querySelector('[data-kind="1"]')?.getAttribute("data-incoming")).toBeNull();
+    expect(view.container.querySelector('[data-kind="2"]')?.getAttribute("data-incoming")).toBe("true");
+  });
 });

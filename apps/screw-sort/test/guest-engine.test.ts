@@ -27,7 +27,7 @@ function memoryStorage(): GuestStorage & { values: Map<string, unknown> } {
 
 function harness(storage = memoryStorage()) {
   const session = createObservable(createSession("boot"));
-  const stats = createObservable<ScrewSortStats>({ wins: 0, bestMoves: 0, lastSeed: "" });
+  const stats = createObservable<ScrewSortStats>({ wins: 0, bestMoves: 0, bestStars: 0, lastSeed: "" });
   const lastStatus = createObservable("");
   const setStatus = vi.fn();
   const submitScore = vi.fn(async () => undefined);
@@ -124,7 +124,7 @@ describe("screw-sort local guest engine", () => {
     expect(restoreSession(oversizedTrace)).toBeNull();
   });
 
-  it("preserves a failed run for undo-based recovery", () => {
+  it("keeps an overflowing run recoverable via undo (no hard fail)", () => {
     const app = harness();
     app.engine.startGame("fail-recover");
     const active = app.session.get();
@@ -137,7 +137,9 @@ describe("screw-sort local guest engine", () => {
     });
     const top = app.session.get().level.solutionOrder.slice(0, 6);
     for (const screwId of top) app.engine.selectScrew(screwId);
-    expect(app.session.get().core.status).toBe("lost");
+    // Soft-fail: the tray overflows but the run stays playable, not "lost".
+    expect(app.session.get().core.status).toBe("playing");
+    expect(app.session.get().core.overflows).toBeGreaterThan(0);
     expect(app.engine.undo()).toBe(true);
     expect(app.session.get().core.status).toBe("playing");
   });

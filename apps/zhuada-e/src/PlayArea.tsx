@@ -30,6 +30,7 @@ import { RefreshCw, Shuffle, Lightbulb, Clock, Volume2, VolumeX, Vibrate, Vibrat
 import { sound } from "./logic/sound";
 import { haptics } from "./logic/haptics";
 import { GooseChip } from "./GooseChip";
+import { GoosePerkIcon } from "./GoosePerkIcon";
 import { ThemeItemChip } from "./ThemeItemChip";
 import { GAME_THEMES, colorToCss, themeOf, type GameThemeId } from "./logic/themes";
 import { useDeviceShake } from "./logic/use-device-shake";
@@ -339,12 +340,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hudItems: HudItem[] = [
     { kind: "level", label: t("scoreLevel"), value: `${level}` },
     { kind: "score", label: t("scoreLabel"), value: `${score}`, accent: true },
-    {
-      kind: "time",
-      label: t("scoreTime"),
-      value: !isPlaying ? "–" : timedMode ? `${Math.max(0, secs)}s` : "∞",
-      danger: timeDanger,
-    },
+    timedMode
+      ? {
+          kind: "time",
+          label: t("scoreTime"),
+          value: !isPlaying ? "–" : `${Math.max(0, secs)}s`,
+          danger: timeDanger,
+        }
+      : {
+          kind: "untimed",
+          label: t("scoreTime"),
+          value: t("untimedHud"),
+        },
     { kind: "combo", label: t("scoreCombo"), value: combo > 1 ? `x${combo}` : "–" },
     // R6 Frenzy: while charges remain, surface a live "free pull" counter so
     // the player knows the next eliminations are auto-assisted.
@@ -438,6 +445,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const shelfFree = shelf.every((s) => s === null);
   const trayCount = tray.filter((s) => s !== null).length;
   const shelfCount = shelf.filter((s) => s !== null).length;
+  // A seven-item tray is intentionally recoverable while Remove or Undo is
+  // available. Without a dedicated state it looks exactly like broken input:
+  // every board tap is rejected, yet the player sees no modal. Surface this
+  // last-stand state beside the tray and point directly at the rescue tools.
+  const isTrayJammed = isPlaying && trayCount >= TRAY_SLOTS;
   const accessibleStatus = `${lastStatus}. ${t("scoreLabel")}: ${score}. ${t("scoreTray")}: ${trayCount}/${TRAY_SLOTS}.`;
   const shakeOnCd = shakeCdLeft > 0;
   const powerActions = isPlaying
@@ -533,13 +545,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     onPrimary = () => runGameAction("nextLevel", {});
   } else if (gameStatus === "expired") {
     overlayTone = "fail";
-    overlayTitle = t("statusFailedTitle");
+    overlayTitle = failReason === "trayFull"
+      ? t("statusFailedTrayFullTitle")
+      : t("statusFailedTitle");
     // Failure is readable: the copy names WHAT went wrong (clock vs tray).
     const failureCopy = failReason === "trayFull" ? t("statusFailedTrayFull") : t("statusFailedTimeout");
     overlayBody = continueAvailable
       ? `${failureCopy} ${t("continueAvailableHint")}`
       : failureCopy;
-    primaryLabel = continueAvailable ? t("continueRunAction") : t("statusRetry");
+    primaryLabel = continueAvailable
+      ? t(failReason === "trayFull" ? "continueTrayAction" : "continueRunAction")
+      : t("statusRetry");
     onPrimary = () => runGameAction(continueAvailable ? "continueRun" : "retry", {});
   }
 
@@ -566,6 +582,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       data-action-preview={actionPreview ? "true" : undefined}
       data-game-theme={themeId}
       data-game-status={gameStatus}
+      data-tray-jammed={isTrayJammed ? "true" : undefined}
       style={themeStyle}
     >
       <p
@@ -670,6 +687,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <div
                     className="goose-overlay__card"
                     data-wide={gameStatus === "idle" || isAllClear ? "true" : undefined}
+                    data-tone={overlayTone}
                   >
                     <img
                       className="goose-overlay__mascot"
@@ -740,10 +758,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                                     ? t(scene.nameKey)
                                     : t("collectionLockedHint", { level: scene.levels[1] })}
                                 </span>
-                                {/* R3 — collected geese surface their passive bonus in the book. */}
+                                {/* R3 — collected geese surface their passive bonus in the book.
+                                    R8b — the bonus now leads with a glyph for at-a-glance reading. */}
                                 {unlocked && (() => {
                                   const perk = goosePerkKey(scene.id);
-                                  return perk ? <em className="goose-collection__perk">{t(perk)}</em> : null;
+                                  return perk ? (
+                                    <em className="goose-collection__perk">
+                                      <GoosePerkIcon perkKey={perk} />
+                                      {t(perk)}
+                                    </em>
+                                  ) : null;
                                 })()}
                               </figcaption>
                               </figure>
@@ -1050,7 +1074,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {/* One persistent tray under the pen. The rescue shelf stays hidden
                 while empty so normal play never presents a duplicate tray row;
                 it appears only after the player explicitly uses 移出. */}
-            <div className="goose-tray-row">
+            <div className="goose-tray-row" data-jammed={isTrayJammed ? "true" : undefined}>
+              {isTrayJammed && (
+                <div
+                  className="goose-tray-jam-alert"
+                  id="goose-tray-jam-alert"
+                  role="alert"
+                  aria-live="assertive"
+                  aria-atomic="true"
+                >
+                  <CircleAlert size={22} strokeWidth={2.6} aria-hidden="true" />
+                  <span>
+                    <strong>{t("statusTrayJammedTitle")}</strong>
+                    <small>{t("statusTrayJammedHint")}</small>
+                  </span>
+                </div>
+              )}
               <AnimatedTray
                 tray={tray}
                 receipt={extractReceipt}
@@ -1090,13 +1129,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {/* Power-up bar — original trio (remove/undo/shuffle) + hint,
                 +15s in timed mode only, and the cooldown-based shake. */}
             {powerActions.length > 0 && (
-              <div className="goose-powerbar" role="group" aria-label={t("puTitle")}>
+              <div
+                className="goose-powerbar"
+                role="group"
+                aria-label={t("puTitle")}
+                data-jammed={isTrayJammed ? "true" : undefined}
+              >
                 {powerActions.map((action) => (
                   <button
                     key={action.key}
                     type="button"
                     className="goose-powerbar__btn"
                     data-empty={action.disabled ? "true" : undefined}
+                    data-rescue={isTrayJammed && !action.disabled && (action.key === "remove" || action.key === "undo") ? "true" : undefined}
+                    aria-describedby={isTrayJammed && !action.disabled && (action.key === "remove" || action.key === "undo") ? "goose-tray-jam-alert" : undefined}
                     disabled={action.disabled}
                     onClick={action.onClick}
                     title={action.label}

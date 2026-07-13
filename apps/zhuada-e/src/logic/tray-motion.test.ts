@@ -3,6 +3,7 @@ import type { ExtractReceipt } from "./engine-zhuada";
 import {
   advanceTrayMotion,
   createTrayMotionState,
+  settleNonMatchEntry,
   startTrayMotion,
   trayFromTokens,
   trayMotionPhaseDuration,
@@ -84,5 +85,34 @@ describe("tray motion choreography", () => {
     expect(rejected).toBe(state);
     const started = startTrayMotion(state, receipt());
     expect(startTrayMotion(started, receipt())).toBe(started);
+  });
+
+  it("settles only an ordinary entry beat so a newer rapid pick can take over", () => {
+    const first = startTrayMotion(
+      createTrayMotionState([1, null, null, null, null, null, null]),
+      receipt({
+        nonce: 1,
+        itemId: 10,
+        kind: 2,
+        placedIndex: 1,
+        landingTray: [1, 2, null, null, null, null, null],
+        settledTray: [1, 2, null, null, null, null, null],
+      }),
+    );
+    const settled = settleNonMatchEntry(first);
+
+    expect(settled.phase).toBe("idle");
+    expect(trayFromTokens(settled.tokens)).toEqual([1, 2, null, null, null, null, null]);
+    expect(settled.tokens.every((token) => !token.incoming)).toBe(true);
+
+    const match = startTrayMotion(createTrayMotionState([2, 2, null, null, null, null, null]), receipt({
+      matched: true,
+      kind: 2,
+      placedIndex: 2,
+      landingTray: [2, 2, 2, null, null, null, null],
+      settledTray: empty(),
+      clearedTray: [0, 1, 2],
+    }));
+    expect(settleNonMatchEntry(match)).toBe(match);
   });
 });

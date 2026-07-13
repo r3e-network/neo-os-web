@@ -93,6 +93,15 @@ function buildBao(color: number): THREE.Group {
   body.scale.y = 0.86;
   group.add(body);
 
+  // Close the small polar opening left by the lathe profile. When the bun
+  // rolled onto its side, that opening previously exposed the bamboo basket
+  // and looked like a missing-texture hole.
+  const baseSeal = part(new THREE.SphereGeometry(0.18, 14, 10), dough);
+  baseSeal.scale.set(1, 0.42, 1);
+  baseSeal.position.y = -0.59;
+  baseSeal.userData.detailLayer = "bao-base-seal";
+  group.add(baseSeal);
+
   const knot = part(new THREE.SphereGeometry(0.18, 16, 12), dough);
   knot.scale.y = 0.62;
   knot.position.y = 0.64;
@@ -127,6 +136,10 @@ function buildSodaCan(color: number): THREE.Group {
   const top = part(new THREE.CylinderGeometry(0.41, 0.41, 0.055, 28), aluminum);
   top.position.y = 0.77;
   group.add(top);
+  const bottomSeal = part(new THREE.CylinderGeometry(0.4, 0.4, 0.055, 28), aluminum);
+  bottomSeal.position.y = -0.765;
+  bottomSeal.userData.detailLayer = "can-bottom-seal";
+  group.add(bottomSeal);
   const bottom = part(new THREE.TorusGeometry(0.43, 0.035, 7, 28), aluminum);
   bottom.rotation.x = Math.PI / 2;
   bottom.position.y = -0.74;
@@ -432,6 +445,14 @@ function buildBell(color: number): THREE.Group {
   rim.position.y = -0.58;
   group.add(rim);
 
+  // The bell keeps a dark recessed mouth instead of a literal through-hole.
+  // This preserves depth and the clapper silhouette while preventing the
+  // basket weave from appearing inside the object as it tumbles.
+  const interiorSeal = part(new THREE.CylinderGeometry(0.62, 0.62, 0.07, 28), darkMetal);
+  interiorSeal.position.y = -0.555;
+  interiorSeal.userData.detailLayer = "bell-interior-seal";
+  group.add(interiorSeal);
+
   const handle = lathe([
     [0.16, -0.2],
     [0.22, -0.05],
@@ -483,6 +504,183 @@ function buildPastryTin(color: number): THREE.Group {
   return finishModel(group);
 }
 
+function buildJadeTeapot(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const jade = surface(color, "ceramic", { clearcoat: 0.9 });
+  const pale = surface(tint(color, 0.18), "ceramic");
+  const gold = surface(GOLD, "metal");
+  group.add(lathe([
+    [0.26, -0.58], [0.55, -0.5], [0.67, -0.1], [0.58, 0.34], [0.35, 0.48],
+  ], jade, 28));
+  const lid = part(new THREE.CylinderGeometry(0.38, 0.43, 0.13, 24), pale);
+  lid.position.y = 0.48;
+  group.add(lid);
+  const knob = part(new THREE.SphereGeometry(0.13, 14, 10), gold);
+  knob.position.y = 0.64;
+  group.add(knob);
+  const spout = part(new THREE.ConeGeometry(0.21, 0.75, 18), jade);
+  spout.rotation.z = -Math.PI / 2 + 0.24;
+  spout.position.set(0.61, 0.1, 0);
+  group.add(spout);
+  group.add(tube([
+    new THREE.Vector3(-0.5, 0.24, 0),
+    new THREE.Vector3(-0.83, 0.36, 0),
+    new THREE.Vector3(-0.86, -0.24, 0),
+    new THREE.Vector3(-0.48, -0.32, 0),
+  ], 0.075, gold, 20, 8));
+  const seal = petalRing(4, 0.14, 0.22, gold);
+  seal.rotation.x = Math.PI / 2;
+  seal.position.set(0, -0.05, 0.62);
+  group.add(seal);
+  return finishModel(group);
+}
+
+function buildFestivalFan(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const paper = surface(color, "paper", { clearcoat: 0.14 });
+  const gold = surface(GOLD, "metal");
+  const bamboo = surface(BAMBOO, "wood");
+  for (let i = 0; i < 7; i += 1) {
+    const angle = -0.72 + i * 0.24;
+    const panel = extrudedShape([[-0.11, -0.58], [0.11, -0.58], [0.27, 0.65], [-0.27, 0.65]], 0.055, 0.025, i % 2 ? surface(tint(color, 0.08), "paper") : paper);
+    panel.position.y = 0.22;
+    panel.rotation.z = angle;
+    group.add(panel);
+    const rib = capsule(0.025, 1.25, bamboo);
+    rib.position.y = 0.16;
+    rib.rotation.z = angle;
+    rib.position.x = Math.sin(-angle) * 0.05;
+    group.add(rib);
+  }
+  const pivot = part(new THREE.SphereGeometry(0.13, 14, 10), gold);
+  pivot.position.y = -0.43;
+  group.add(pivot);
+  const tassel = tube([
+    new THREE.Vector3(0, -0.52, 0),
+    new THREE.Vector3(0.2, -0.72, 0),
+    new THREE.Vector3(0.12, -0.92, 0),
+  ], 0.035, gold, 14, 6);
+  group.add(tassel);
+  return finishModel(group);
+}
+
+function buildLuckyCat(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const fur = surface(color, "ceramic");
+  const red = surface(0xd6483f, "glaze");
+  const gold = surface(GOLD, "metal");
+  const dark = surface(DARK, "matte");
+  const body = part(new THREE.SphereGeometry(0.52, 22, 16), fur);
+  body.scale.set(0.82, 1.15, 0.74);
+  body.position.y = -0.16;
+  group.add(body);
+  const head = part(new THREE.SphereGeometry(0.38, 20, 14), fur);
+  head.position.y = 0.48;
+  group.add(head);
+  for (const x of [-0.22, 0.22]) {
+    const ear = part(new THREE.ConeGeometry(0.15, 0.34, 4), x < 0 ? red : fur);
+    ear.position.set(x, 0.82, 0);
+    ear.rotation.z = x < 0 ? -0.15 : 0.15;
+    group.add(ear);
+    const eye = part(new THREE.SphereGeometry(0.035, 9, 6), dark);
+    eye.position.set(x * 0.55, 0.54, 0.34);
+    group.add(eye);
+  }
+  const raisedPaw = capsule(0.12, 0.82, fur);
+  raisedPaw.position.set(0.47, 0.27, 0.04);
+  raisedPaw.rotation.z = -0.18;
+  group.add(raisedPaw);
+  const collar = part(new THREE.TorusGeometry(0.34, 0.055, 8, 24), red);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 0.16;
+  group.add(collar);
+  const coin = part(new THREE.CylinderGeometry(0.27, 0.27, 0.08, 20), gold);
+  coin.rotation.x = Math.PI / 2;
+  coin.position.set(0, -0.22, 0.48);
+  group.add(coin);
+  const stamp = roundedBox(0.1, 0.24, 0.045, 0.025, red, 2);
+  stamp.position.set(0, -0.22, 0.54);
+  group.add(stamp);
+  return finishModel(group);
+}
+
+function buildNoodleBowl(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const bowl = surface(color, "ceramic");
+  const rimMat = surface(0xc6473b, "glaze");
+  const broth = surface(0x8c4e25, "glaze");
+  const noodle = surface(0xf4d184, "produce");
+  const bamboo = surface(BAMBOO, "wood");
+  group.add(lathe([[0.3, -0.55], [0.58, -0.48], [0.72, 0.25], [0.7, 0.34]], bowl, 28));
+  const rim = part(new THREE.TorusGeometry(0.69, 0.055, 8, 26), rimMat);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.34;
+  group.add(rim);
+  const soup = part(new THREE.CylinderGeometry(0.63, 0.63, 0.055, 24), broth);
+  soup.position.y = 0.33;
+  group.add(soup);
+  for (let i = 0; i < 5; i += 1) {
+    const curl = part(new THREE.TorusGeometry(0.22 + i * 0.04, 0.025, 6, 28), noodle);
+    curl.rotation.x = Math.PI / 2;
+    curl.position.set((i - 2) * 0.06, 0.38 + i * 0.006, 0);
+    group.add(curl);
+  }
+  for (const x of [-0.11, 0.11]) {
+    const stick = capsule(0.022, 1.35, bamboo);
+    stick.position.set(x, 0.56, 0.04);
+    stick.rotation.z = -0.36;
+    group.add(stick);
+  }
+  return finishModel(group);
+}
+
+function buildLotusLamp(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const outer = surface(color, "paper", { emissive: tint(color, -0.14), emissiveIntensity: 0.12 });
+  const inner = surface(tint(color, 0.18), "glaze", { emissive: tint(color, 0.05), emissiveIntensity: 0.16 });
+  const gold = surface(GOLD, "metal");
+  const base = part(new THREE.CylinderGeometry(0.42, 0.5, 0.2, 22), gold);
+  base.position.y = -0.55;
+  group.add(base);
+  const lower = petalRing(10, 0.43, 0.46, outer);
+  lower.position.y = -0.25;
+  group.add(lower);
+  const upper = petalRing(8, 0.28, 0.4, inner);
+  upper.position.y = 0.03;
+  upper.rotation.y = Math.PI / 8;
+  group.add(upper);
+  const heart = part(new THREE.SphereGeometry(0.24, 16, 12), inner);
+  heart.position.y = 0.17;
+  group.add(heart);
+  const finial = capsule(0.045, 0.62, gold);
+  finial.position.y = 0.52;
+  group.add(finial);
+  return finishModel(group);
+}
+
+function buildMahjongTile(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const ivory = surface(color, "ceramic");
+  const jade = surface(0x4e9874, "glaze");
+  const red = surface(0xc43d36, "glaze");
+  const dark = surface(0x24493d, "matte");
+  const tile = roundedBox(0.9, 1.25, 0.46, 0.12, jade, 5);
+  group.add(tile);
+  const face = roundedBox(0.78, 1.1, 0.12, 0.09, ivory, 5);
+  face.position.z = 0.23;
+  group.add(face);
+  const frame = roundedBox(0.6, 0.85, 0.04, 0.08, surface(tint(color, -0.04), "ceramic"), 4);
+  frame.position.z = 0.31;
+  group.add(frame);
+  [[-0.18, 0.25, red], [0.18, 0.25, dark], [-0.18, -0.08, dark], [0.18, -0.08, red], [0, -0.36, dark]].forEach(([x, y, material]) => {
+    const dot = part(new THREE.CylinderGeometry(0.075, 0.075, 0.045, 14), material as THREE.Material);
+    dot.rotation.x = Math.PI / 2;
+    dot.position.set(x as number, y as number, 0.36);
+    group.add(dot);
+  });
+  return finishModel(group);
+}
+
 const BUILDERS: readonly Builder[] = [
   buildLantern,
   buildBao,
@@ -496,9 +694,15 @@ const BUILDERS: readonly Builder[] = [
   buildBowl,
   buildBell,
   buildPastryTin,
+  buildJadeTeapot,
+  buildFestivalFan,
+  buildLuckyCat,
+  buildNoodleBowl,
+  buildLotusLamp,
+  buildMahjongTile,
 ];
 
-/** Build one original, fully modeled Lantern Night object (logical kinds 0..11). */
+/** Build one original, fully modeled Lantern Night object (logical kinds 0..17). */
 export function buildNightMarketModel(kind: number, color: number): THREE.Group {
   const safeKind = Math.max(0, Math.min(BUILDERS.length - 1, Math.floor(kind)));
   return BUILDERS[safeKind]!(color);

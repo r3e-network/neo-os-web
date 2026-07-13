@@ -22,7 +22,7 @@ const loadScrewSortScene = () =>
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, str } = useStateBindings(state);
   const session = val<ScrewSession>("gameSession");
-  const stats = val<ScrewSortStats>("stats", { wins: 0, bestMoves: 0, lastSeed: "" });
+  const stats = val<ScrewSortStats>("stats", { wins: 0, bestMoves: 0, bestStars: 0, lastSeed: "" });
   const lastStatus = str("lastStatus", t("statusReady"));
   const [moveRequestRevision, setMoveRequestRevision] = useState<number | null>(null);
 
@@ -36,8 +36,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     caseComplete: t("caseCompleteLabel"),
     winTitle: t("winTitle"),
     winCopy: t("winCopy"),
-    loseTitle: t("loseTitle"),
-    loseCopy: t("loseCopy"),
+    starsThree: t("starsThree"),
+    starsTwo: t("starsTwo"),
+    starsOne: t("starsOne"),
+    efficiencyCopy: t("efficiencyCopy"),
+    bestStarsLabel: t("bestStarsLabel"),
     pausedTitle: t("pausedTitle"),
     pausedCopy: t("pausedCopy"),
     newPuzzle: t("newPuzzleAction"),
@@ -93,6 +96,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   }, [dispatch]);
 
   const core = session?.core;
+  const bestStars = stats?.bestStars ?? 0;
   useEffect(() => {
     if (
       moveRequestRevision !== null
@@ -106,7 +110,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const movePending = moveRequestRevision !== null;
   const canUndo = Boolean(core && session.history.length > 0 && core.undosUsed < MAX_UNDOS);
   const paused = core?.paused ?? false;
-  const finished = core?.status === "won" || core?.status === "lost";
+  const finished = core?.status === "won";
 
   return (
     <section
@@ -165,6 +169,11 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       <p className="screw-sort-live" aria-live="polite" aria-atomic="true">
         {lastStatus}
       </p>
+      {bestStars > 0 && (
+        <p className="screw-sort-best">
+          {t("bestStarsLabel")} {"★".repeat(bestStars)}{"☆".repeat(3 - bestStars)}
+        </p>
+      )}
     </section>
   );
 }

@@ -2,7 +2,7 @@
  * models.ts — original low-poly item + goose models for Goose Basket Shuffle.
  *
  * Every shape here is an original production model recipe built from composed
- * Three.js geometry. The three player-selectable themes expose 36 distinct
+ * Three.js geometry. The three player-selectable themes expose 54 distinct
  * objects; matching dedicated transparent item renders are used by the React
  * tray while these recipes drive the physical pile. No third-party game art
  * is reproduced.
@@ -15,7 +15,7 @@
 import * as THREE from "three";
 import type { ModelKind } from "../logic/engine-zhuada";
 import type { GooseVariant } from "../logic/scenes";
-import type { GameThemeId } from "../logic/themes";
+import { themeOf, type GameThemeId } from "../logic/themes";
 import { buildFarmKitchenModel } from "./farm-kitchen-models";
 import { buildFreshMarketModel } from "./fresh-market-models";
 import { buildNightMarketModel } from "./night-market-models";
@@ -258,7 +258,7 @@ export function buildModelMesh(kind: ModelKind, color: number, scale = 0.62): TH
 }
 
 
-/** Build one of the 36 production physical objects for the WebGL pile.
+/** Build one of the 54 production physical objects for the WebGL pile.
  *
  * Every catalog entry is a real multi-surface 3D mesh. Its quaternion follows
  * the cannon body, so the player sees honest rolling, tumbling and settling —
@@ -269,7 +269,7 @@ export function buildThemeModelMesh(
   color: number,
   scale?: number,
 ): THREE.Group {
-  const safeKind = Math.max(0, Math.min(11, Math.floor(kind)));
+  const safeKind = Math.max(0, Math.min(themeOf(themeId).items.length - 1, Math.floor(kind)));
   const normalizedColor = color & 0xffffff;
   const templateKey = `${themeId}:${safeKind}:${normalizedColor}`;
   let template = THEME_MODEL_TEMPLATES.get(templateKey);
