@@ -67,8 +67,13 @@ describe("On-Chain Tarot card assets", () => {
     expect(new Set(index.map((card) => card.id)).size).toBe(78);
     expect(existsSync(path.join(cardsDir, "back.webp"))).toBe(true);
     expect(isWebp(path.join(cardsDir, "back.webp"))).toBe(true);
-    // Real detailed back art (still 825x1425), after near-lossless WebP compression.
-    expect(statSync(path.join(cardsDir, "back.webp")).size).toBeGreaterThan(200_000);
+    // The P3 redesign replaced the heavy photographic back with a deliberately
+    // light, programmatically generated back (scripts/generate-card-back.mjs:
+    // SVG -> sharp -> WebP, original artwork, still 825x1425 — verified valid
+    // WebP with correct portrait dimensions). It is ~32KB rather than ~289KB.
+    // The floor now only guards against an empty/placeholder/corrupt asset
+    // rather than pinning the old heavy-art byte weight.
+    expect(statSync(path.join(cardsDir, "back.webp")).size).toBeGreaterThan(8_000);
 
     for (const card of index) {
       expect(card.image).toMatch(/^\.\/cards\/\d{2}-[a-z0-9-]+\.webp$/);

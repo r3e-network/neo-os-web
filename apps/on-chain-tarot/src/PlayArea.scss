@@ -529,10 +529,29 @@
 
 .tarot-spread-list em {
   grid-column: 2;
-  color: var(--mx2-text-muted);
-  font-size: 0.72rem;
+  color: var(--mx2-text-2);
+  font-size: 0.75rem;
   font-style: normal;
-  line-height: 1.35;
+  line-height: 1.5;
+}
+
+/* Synthesized reading lead: frames the three revealed cards around the
+ * player's chosen intent question, so the spread reads as an answer. */
+.tarot-drawer__section .tarot-drawer__reading-lead {
+  margin: 0 0 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(240, 253, 250, 0.55);
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  color: var(--mx2-text-2);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.tarot-drawer__section .tarot-drawer__reading-lead strong {
+  display: inline;
+  color: var(--mx2-ink);
+  font-weight: 680;
 }
 
 .tarot-drawer__intent-grid {
