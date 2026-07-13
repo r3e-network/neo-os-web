@@ -84,12 +84,6 @@ export function buildRedEnvelopeShareUrl(
   return url.toString();
 }
 
-export function expectedRedEnvelopeBinding(
-  network: RedEnvelopeNetwork,
-): Readonly<ExpectedBinding> {
-  return EXPECTED_BINDINGS[network];
-}
-
 type RpcEnvelope<T> = {
   result?: T;
   error?: { code?: number; message?: string };

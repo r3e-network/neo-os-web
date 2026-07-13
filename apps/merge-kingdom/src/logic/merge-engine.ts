@@ -131,24 +131,6 @@ export function classifyMove(
   return destination === source ? "merge" : null;
 }
 
-/** True when at least one move can be made immediately. */
-export function hasImmediateMove(board: readonly (readonly number[])[]): boolean {
-  for (let row = 0; row < BOARD_SIZE; row += 1) {
-    for (let col = 0; col < BOARD_SIZE; col += 1) {
-      if ((board[row]?.[col] ?? 0) <= 0) continue;
-      const from = { row, col };
-      const neighbours = [
-        { row: row - 1, col },
-        { row: row + 1, col },
-        { row, col: col - 1 },
-        { row, col: col + 1 },
-      ];
-      if (neighbours.some((to) => classifyMove(board, from, to) !== null)) return true;
-    }
-  }
-  return false;
-}
-
 /**
  * True when the position can still produce a future merge.
  *

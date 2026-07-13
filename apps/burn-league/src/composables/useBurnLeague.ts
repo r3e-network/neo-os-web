@@ -1396,11 +1396,3 @@ export type UseBurnLeagueReturn = ReturnType<typeof useBurnLeague>;
 
 /** Format a number for display with 2 decimal places */
 export { formatNum } from "@shared/utils/format";
-
-/** Get medal icon name for top-3 leaderboard ranks */
-export const getMedalIcon = (rank: number): string => {
-  if (rank === 1) return "medal_gold";
-  if (rank === 2) return "medal_silver";
-  if (rank === 3) return "medal_bronze";
-  return "";
-};

@@ -39,16 +39,6 @@ export const BEAD_COLORS = [
   0xf36593, // raspberry
 ] as const;
 
-export const BEAD_COLOR_CSS = [
-  "#ff6255",
-  "#ffc532",
-  "#37bd83",
-  "#38a9df",
-  "#ff8b38",
-  "#754225",
-  "#f36593",
-] as const;
-
 export const BEAD_COLOR_KEYS = [
   "colorCoral",
   "colorSunflower",

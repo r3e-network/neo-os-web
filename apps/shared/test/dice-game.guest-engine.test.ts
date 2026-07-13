@@ -8,10 +8,6 @@ import {
 } from "../../dice-game/src/logic/guest-engine";
 import type { DiceGuestEngineDeps } from "../../dice-game/src/logic/guest-engine";
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function stubDieRoll(roll: number): void {
   const raw = Math.max(0, Math.floor(roll - 1));
   vi.stubGlobal("crypto", {
@@ -24,15 +20,15 @@ function stubDieRoll(roll: number): void {
 
 function setup() {
   const tracker = createBetTracker();
-  const selectedFace = makeObs("6");
-  const stakeAmount = makeObs("0.10 GAS");
-  const payoutPreview = makeObs("0.57 GAS");
-  const lastStatus = makeObs("");
-  const isSubmitting = makeObs(false);
-  const chainLabel = makeObs("Neo N3");
-  const houseLiquidity = makeObs(99);
-  const directCredit = makeObs(3);
-  const maxPayableStake = makeObs(20);
+  const selectedFace = createObservable("6");
+  const stakeAmount = createObservable("0.10 GAS");
+  const payoutPreview = createObservable("0.57 GAS");
+  const lastStatus = createObservable("");
+  const isSubmitting = createObservable(false);
+  const chainLabel = createObservable("Neo N3");
+  const houseLiquidity = createObservable(99);
+  const directCredit = createObservable(3);
+  const maxPayableStake = createObservable(20);
   const submit = vi.fn(async (_score: number | string) => {});
   const get = vi.fn(async (_limit?: number) => []);
   const setStatus = vi.fn();

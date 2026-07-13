@@ -5,10 +5,6 @@ import { createGuestEngine } from "../../fogplay/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../fogplay/src/logic/guest-engine";
 import type { GameHistoryItem, GameResult } from "../../fogplay/src/composables/useCoinFlip";
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function stubCoin(byte: number): void {
   vi.stubGlobal("crypto", {
     getRandomValues(array: Uint8Array) {
@@ -19,23 +15,23 @@ function stubCoin(byte: number): void {
 }
 
 function setup() {
-  const betAmount = makeObs("5");
-  const choice = makeObs<"heads" | "tails">("heads");
-  const isFlipping = makeObs(false);
-  const revealing = makeObs(false);
-  const result = makeObs<GameResult | null>(null);
-  const displayOutcome = makeObs<"heads" | "tails" | null>(null);
-  const showWinOverlay = makeObs(false);
-  const winAmount = makeObs("old");
-  const validationError = makeObs<string | null>("old error");
-  const wins = makeObs(0);
-  const losses = makeObs(0);
-  const totalWon = makeObs(12);
-  const gameHistory = makeObs<GameHistoryItem[]>([]);
-  const streak = makeObs(0);
-  const bankrollBase = makeObs(100n);
-  const freeBankrollBase = makeObs(50n);
-  const creditBase = makeObs(25n);
+  const betAmount = createObservable("5");
+  const choice = createObservable<"heads" | "tails">("heads");
+  const isFlipping = createObservable(false);
+  const revealing = createObservable(false);
+  const result = createObservable<GameResult | null>(null);
+  const displayOutcome = createObservable<"heads" | "tails" | null>(null);
+  const showWinOverlay = createObservable(false);
+  const winAmount = createObservable("old");
+  const validationError = createObservable<string | null>("old error");
+  const wins = createObservable(0);
+  const losses = createObservable(0);
+  const totalWon = createObservable(12);
+  const gameHistory = createObservable<GameHistoryItem[]>([]);
+  const streak = createObservable(0);
+  const bankrollBase = createObservable(100n);
+  const freeBankrollBase = createObservable(50n);
+  const creditBase = createObservable(25n);
   const submit = vi.fn(async (_score: number | string) => {});
   const get = vi.fn(async (_limit?: number) => []);
   const t = (key: string, params?: Record<string, string | number>) =>

@@ -20,10 +20,6 @@ import { guestRuleOf } from "../../merge-kingdom/src/logic/game-rules";
  * settle/refresh, never during play).
  */
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function countTiles(board: number[][]): number {
   return board.reduce((sum, row) => sum + row.filter((v) => v > 0).length, 0);
 }
@@ -46,10 +42,10 @@ class MemoryStore implements LocalStore {
 
 function setup(storage: LocalStore = new MemoryStore()) {
   const obs = createGameSessionObservables<MergeGuestHistoryRow>();
-  const board = makeObs<number[][]>([]);
-  const tileAchieved = makeObs<number>(0);
-  const moveCount = makeObs<number>(0);
-  const lastPayoutFixed8 = makeObs<bigint>(0n);
+  const board = createObservable<number[][]>([]);
+  const tileAchieved = createObservable<number>(0);
+  const moveCount = createObservable<number>(0);
+  const lastPayoutFixed8 = createObservable<bigint>(0n);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const boardRows: Array<{ user: string; score: string }> = [];
