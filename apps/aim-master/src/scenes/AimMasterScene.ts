@@ -59,12 +59,12 @@ const RING_OUTER_RADII = [14, 28, 42, 56, 70, BASE_TARGET_RADIUS] as const;
 // Tuned to the actual target-board.webp art (gold / coral / cream / teal) so a
 // hit pulse blends with the board instead of flashing foreign archery colors.
 const RING_COLORS: readonly number[] = [
-  0xf2b23a, // gold  — bullseye
-  0xe8705d, // coral — ring 1
-  0xf3e6cb, // cream — ring 2
-  0x49b6a6, // teal  — ring 3
-  0xf3e6cb, // cream — ring 4
-  0xe7cf98, // soft gold rim — ring 5
+  0xd93b3b, // red   — bullseye
+  0xffffff, // white — ring 1
+  0xd93b3b, // red   — ring 2
+  0xffffff, // white — ring 3
+  0xd93b3b, // red   — ring 4
+  0xffffff, // white — ring 5
 ];
 
 // Gauge strip

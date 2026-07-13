@@ -157,7 +157,10 @@ describe("graveyard PlayArea (v2)", () => {
     expect(s).not.toContain("@shared/components-react/v2/v2");
     expect(s).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-ritual__review\s*\{[\s\S]*padding:/);
     expect(s).not.toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.graveyard-ritual__review\s*\{[^}]*display:\s*none/);
-    expect(s).toMatch(/\.graveyard-review-button\s*\{[\s\S]*background:\s*\$moss-deep/);
+    // PlayArea.scss migrated its palette from Sass `$moss-deep` etc. to the
+    // `:root/.graveyard-app` `--gy-*` CSS custom-property design tokens; the
+    // primary review button's brand fill is now `var(--gy-moss-deep)`.
+    expect(s).toMatch(/\.graveyard-review-button\s*\{[\s\S]*background:\s*var\(--gy-moss-deep\)/);
     expect(s).toMatch(/\.graveyard-garden__header > div\s*\{[\s\S]*background:\s*rgb\(255 253 246 \/ 94%\)/);
     expect(tsx).toContain('variant="gas"');
     expect(tsx).toContain("memory-garden.webp");

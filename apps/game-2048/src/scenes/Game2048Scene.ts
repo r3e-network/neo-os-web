@@ -1412,16 +1412,15 @@ export class Game2048Scene extends BaseScene {
         .setOrigin(0.5);
     }
 
-    // Tile value text
+    // Tile value text — drawn directly on the tile (no box), using the
+    // palette's own text colour so high tiles read white-on-colour like 2048.
     const label = this.add.text(x, y, `${tileValue(exp)}`, {
       fontFamily: FONT_FAMILY,
       fontSize: tileFontSize(exp, cellSize),
       fontStyle: "bold",
-      color: "#2d261f",
-      backgroundColor: "rgba(255, 253, 244, 0.9)",
+      color: tileColors(exp).text,
     }).setOrigin(0.5)
-      .setPadding(5, 2, 5, 2)
-      .setShadow(0, 1, "rgba(255, 255, 255, 0.75)", 2);
+      .setPadding(5, 2, 5, 2);
 
     [shadow, art, label].forEach((object) => {
       if (!this.children.exists(object)) {
@@ -1458,11 +1457,9 @@ export class Game2048Scene extends BaseScene {
 
       tile.label
       .setText(`${tileValue(exp)}`)
-      .setColor("#2d261f")
+      .setColor(tileColors(exp).text)
       .setFontSize(tileFontSize(exp, cellSize))
-      .setBackgroundColor("rgba(255, 253, 244, 0.9)")
-      .setPadding(5, 2, 5, 2)
-      .setShadow(0, 1, "rgba(255, 255, 255, 0.75)", 2);
+      .setPadding(5, 2, 5, 2);
   }
 
   private playSfx(kind: SfxKind): void {

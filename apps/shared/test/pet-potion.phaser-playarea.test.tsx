@@ -452,7 +452,10 @@ describe("pet-potion Phaser playarea", () => {
     expect(scene).not.toContain("this.actionCue.setAlpha(0).setScale");
     expect(scene).toContain("private isRunTimedOut");
     expect(scene).toContain("this.dispatch(\"connectWallet\")");
-    expect(scene).toContain("this.updatePotion(activeMode.badge");
+    // The brewed potion now renders a dedicated potion-bottle asset
+    // (PET_ASSETS.potion -> ./art/potion-bottle.webp) instead of reusing the
+    // difficulty mode badge, so the reveal shows an actual potion.
+    expect(scene).toContain("this.updatePotion(PET_ASSETS.potion");
     expect(wrapper).toContain("sceneText");
     expect(wrapper).toContain("releaseAt");
     expect(main).toContain(`app.actions.register("connectWallet"`);

@@ -151,6 +151,7 @@ type SnakeSegmentView = {
   container: Phaser.GameObjects.Container;
   primary: Phaser.GameObjects.Image;
   secondary: Phaser.GameObjects.Image;
+  eyeGfx: Phaser.GameObjects.Graphics;
 };
 
 // ── Scene class ───────────────────────────────────────────────────────────────
@@ -1519,8 +1520,9 @@ export class SnakeScene extends BaseScene {
     while (this.snakeSprites.length < count) {
       const primary = this.add.image(0, 0, SNAKE_ASSETS.body).setOrigin(0.5);
       const secondary = this.add.image(0, 0, SNAKE_ASSETS.body).setOrigin(0.5).setVisible(false);
-      const container = this.add.container(0, 0, [primary, secondary]).setVisible(false);
-      this.snakeSprites.push({ container, primary, secondary });
+      const eyeGfx = this.add.graphics().setVisible(false);
+      const container = this.add.container(0, 0, [primary, secondary, eyeGfx]).setVisible(false);
+      this.snakeSprites.push({ container, primary, secondary, eyeGfx });
     }
   }
 
@@ -1535,12 +1537,22 @@ export class SnakeScene extends BaseScene {
     view.container.setDepth(30 + bodyLength - index).setAlpha(crashed ? 0.72 : 1);
     view.primary.clearTint().setPosition(0, 0).setVisible(true);
     view.secondary.clearTint().setPosition(0, 0).setVisible(false);
+    view.eyeGfx.clear().setVisible(false);
 
     if (pose.role === "head") {
       view.primary
         .setTexture(SNAKE_ASSETS.head)
         .setDisplaySize(cell * 2.05, cell * 2.05)
         .setAngle(DIRECTION_DEGREES[this.localDir]);
+      // Direction-aware eyes so the head reads clearly (audit P3: distinguish head).
+      // eyeGfx is rotated with the head; local +x is the forward axis.
+      view.eyeGfx.setAngle(DIRECTION_DEGREES[this.localDir] ?? 0).setVisible(true);
+      const fwd = cell * 0.5, side = cell * 0.4, r = cell * 0.2;
+      for (const s of [-1, 1]) {
+        const ly = side * s;
+        view.eyeGfx.fillStyle(0xffffff, 1).fillCircle(fwd, ly, r);
+        view.eyeGfx.fillStyle(0x14241a, 1).fillCircle(fwd + r * 0.45, ly, r * 0.5);
+      }
     } else if (pose.role === "tail") {
       view.primary
         .setTexture(SNAKE_ASSETS.tail)

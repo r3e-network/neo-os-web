@@ -877,6 +877,10 @@ export class CurveArrowScene extends BaseScene {
       this.sfx.play("score");
       this.showRingPopup(this.txt("onTarget", "On target!"), endX, endY, "#245730");
     }
+    if (outcome.ring === 0 && !this.reducedMotion) {
+      this.cameras.main.shake(160, 0.008);
+      this.cameras.main.flash(120, 255, 240, 180);
+    }
     this.spawnImpactPuff(endX, endY, C.goldLight);
     this.animate({
       targets: this.targetContainer,
