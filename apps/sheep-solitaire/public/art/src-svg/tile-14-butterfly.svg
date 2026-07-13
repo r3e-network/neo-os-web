@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: butterfly -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Upper wings (larger) -->
+    <path d="M96,104
+             C92,82 60,72 62,98
+             C64,114 86,112 96,104
+             Z"
+          fill="#16C784" stroke="#3A3530" stroke-width="2"/>
+    <path d="M104,104
+             C108,82 140,72 138,98
+             C136,114 114,112 104,104
+             Z"
+          fill="#16C784" stroke="#3A3530" stroke-width="2"/>
+    <!-- Lower wings (smaller) -->
+    <path d="M96,106
+             C94,114 72,128 76,116
+             C80,108 90,110 96,106
+             Z"
+          fill="#FFD36B" stroke="#3A3530" stroke-width="2"/>
+    <path d="M104,106
+             C106,114 128,128 124,116
+             C120,108 110,110 104,106
+             Z"
+          fill="#FFD36B" stroke="#3A3530" stroke-width="2"/>
+    <!-- Wing patterns (dots) -->
+    <circle cx="78" cy="92" r="4" fill="#FFFFFF"
+            />
+    <circle cx="122" cy="92" r="4" fill="#FFFFFF"
+            />
+    <circle cx="84" cy="114" r="3" fill="#FFFFFF"
+            />
+    <circle cx="116" cy="114" r="3" fill="#FFFFFF"
+            />
+    <!-- Body -->
+    <ellipse cx="100" cy="106" rx="3.5" ry="18"
+             fill="#3A3530" stroke="#3A3530" stroke-width="1"/>
+    <!-- Antennae -->
+    <path d="M98.5,88 Q90,72 94,68"
+          fill="none" stroke="#3A3530" stroke-width="2" stroke-linecap="round"/>
+    <path d="M101.5,88 Q110,72 106,68"
+          fill="none" stroke="#3A3530" stroke-width="2" stroke-linecap="round"/>
+    <!-- Antenna tips -->
+    <circle cx="94" cy="68" r="2.5" fill="#16C784"
+            />
+    <circle cx="106" cy="68" r="2.5" fill="#16C784"
+            />
+  
+    </g>
+</svg>

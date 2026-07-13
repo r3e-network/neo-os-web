@@ -141,6 +141,10 @@ defineMiniApp({
     const isRecovering = createObservable(false);
     const isFinancialAction = createObservable(false);
     const newPaidRunsEnabled = createObservable(NEW_PAID_RUNS_ENABLED);
+    const level = createObservable(1);
+    const dailyDate = createObservable(0);
+    const revivesLeft = createObservable(0);
+    const playMode = createObservable<string>("practice");
     const lastStatus = createObservable(ctx.t("statusReady"));
     // Current play mode, mirrored from app.mode so the PlayArea can branch its
     // GAS-centric copy to local framing in guest. Kept in sync via onChange.
@@ -223,6 +227,10 @@ defineMiniApp({
       credit,
       poolFree,
       lastStatus,
+      level,
+      dailyDate,
+      revivesLeft,
+      mode: playMode,
       guestLeaderboard: app.mode.guestLeaderboard,
       storage: {
         get: <T,>(key: string, fallback: T): T => app.storage.local.get<T>(key, fallback) ?? fallback,
@@ -698,7 +706,15 @@ defineMiniApp({
 
     ctx.framework.actions.register("startGame", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as { difficulty?: unknown };
-      if (app.mode.isGuest()) { guest.startGame(Number(form.difficulty ?? 0)); return; }
+      if (app.mode.isGuest()) {
+        const f = (args[0] ?? {}) as { difficulty?: unknown; mode?: unknown; level?: unknown };
+        guest.startGame({
+          mode: f.mode === "daily" ? "daily" : "practice",
+          level: f.level === 2 ? 2 : 1,
+          difficulty: Number(f.difficulty ?? 0),
+        });
+        return;
+      }
       if (!NEW_PAID_RUNS_ENABLED || manifest.supportsGameFi === false) {
         ctx.setStatus(ctx.t("paidRunsUnavailable"), "info");
         return;
@@ -1109,6 +1125,14 @@ defineMiniApp({
       await withFinancialLock(() => recoverCurrentGame(undefined, true, true));
     });
 
+    ctx.framework.actions.register("advanceLevel", async () => {
+      if (app.mode.isGuest()) { guest.advanceLevel(); return; }
+    });
+
+    ctx.framework.actions.register("revive", async () => {
+      if (app.mode.isGuest()) { guest.revive(); return; }
+    });
+
     ctx.framework.actions.register("refreshLeaderboard", async () => {
       if (app.mode.isGuest()) { await guest.refreshLeaderboard(); return; }
       await Promise.all([loadLeaderboard(), refreshStats()]);
@@ -1149,6 +1173,10 @@ defineMiniApp({
         isRecovering,
         isFinancialAction,
         newPaidRunsEnabled,
+        level,
+        dailyDate,
+        revivesLeft,
+        playMode,
         lastStatus,
         appMode,
       },

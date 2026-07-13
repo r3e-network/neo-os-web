@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: flower -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Petals (8 around center) -->
+    <ellipse cx="126" cy="100" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(0,126,100)"/>
+    <ellipse cx="118.38477631085024" cy="118.38477631085024" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(45,118.38477631085024,118.38477631085024)"/>
+    <ellipse cx="100" cy="126" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(90,100,126)"/>
+    <ellipse cx="81.61522368914976" cy="118.38477631085024" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(135,81.61522368914976,118.38477631085024)"/>
+    <ellipse cx="74" cy="100" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(180,74,100)"/>
+    <ellipse cx="81.61522368914976" cy="81.61522368914976" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(225,81.61522368914976,81.61522368914976)"/>
+    <ellipse cx="100" cy="74" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(270,100,74)"/>
+    <ellipse cx="118.38477631085023" cy="81.61522368914976" rx="14" ry="20"
+                fill="#FFFFFF" stroke="#3A3530" stroke-width="1.8"
+                transform="rotate(315,118.38477631085023,81.61522368914976)"/>
+    <!-- Center disc -->
+    <circle cx="100" cy="100" r="14" fill="#FFD36B"
+           stroke="#3A3530" stroke-width="2" />
+    <!-- Center dots -->
+    <circle cx="96" cy="97" r="2" fill="#FF8A4C"
+            />
+    <circle cx="104" cy="102" r="2" fill="#FF8A4C"
+            />
+    <circle cx="99" cy="105" r="1.5" fill="#FF8A4C"
+            />
+    <!-- Stem -->
+    <line x1="100" y1="128" x2="100" y2="144"
+          stroke="#4CA86A" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- Small leaves -->
+    <path d="M100,136 Q88,132 90,142"
+          fill="#4CA86A" stroke="#3A3530" stroke-width="1.2"/>
+    <path d="M100,138 Q112,134 110,144"
+          fill="#4CA86A" stroke="#3A3530" stroke-width="1.2"/>
+  
+    </g>
+</svg>

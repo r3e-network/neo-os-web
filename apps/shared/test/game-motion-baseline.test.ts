@@ -759,7 +759,11 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("./art/meadow-table.webp");
     expect(scene).toContain("./art/slot-tray.webp");
     expect(scene).toContain("./art/mascot-sheep.webp");
-    expect(scene).toContain("./art/tile-00-wool-flower.webp");
+    // P1 redesign: tiles are the original sheep-themed set loaded via a dynamic
+    // per-symbol loop (SheepScene.preload builds `./art/tile-NN-<sym>.webp` from
+    // ALL_SYMBOLS) instead of hardcoded literal paths, so we assert the real
+    // asset-led loader the scene now uses rather than a since-renamed tile file.
+    expect(scene).toContain('`./art/tile-${String(i).padStart(2, "0")}-${sym}.webp`');
     expect(scene).toContain(`this.dispatch("startGame", { difficulty });`);
     expect(scene).toContain(`this.dispatch("pickCard", { cardId: card.id });`);
     expect(scene).toContain(`this.dispatch("submitRun");`);

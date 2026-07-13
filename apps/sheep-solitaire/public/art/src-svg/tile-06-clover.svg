@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: clover -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Four leaves (heart-shaped) -->
+    <path d="M100,94
+             C98,78 76,80 80,96
+             C84,104 94,98 100,94
+             Z"
+          fill="#4CA86A" stroke="#3A3530" stroke-width="2"/>
+    <path d="M100,94
+             C102,78 124,80 120,96
+             C116,104 106,98 100,94
+             Z"
+          fill="#7CC47F" stroke="#3A3530" stroke-width="2"/>
+    <path d="M94,100
+             C78,98 80,120 96,116
+             C104,112 98,102 94,100
+             Z"
+          fill="#7CC47F" stroke="#3A3530" stroke-width="2"/>
+    <path d="M106,100
+             C122,98 120,120 104,116
+             C96,112 102,102 106,100
+             Z"
+          fill="#4CA86A" stroke="#3A3530" stroke-width="2"/>
+    <!-- Stem -->
+    <line x1="100" y1="110" x2="100" y2="136"
+          stroke="#4CA86A" stroke-width="2.5" stroke-linecap="round"/>
+  
+    </g>
+</svg>

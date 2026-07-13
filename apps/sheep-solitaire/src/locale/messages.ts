@@ -302,6 +302,20 @@ const appMessages = {
     zh: "倒计时已结束。准备好后重置，即可开启新的草地牌局。",
   },
 
+  // ── P1 — daily two-level challenge (羊了个羊 soul) ─────────────────────────
+  dailyChallengeTitle: { en: "Today's Challenge", zh: "今日挑战" },
+  dailyChallengeSub: { en: "Level 1 easy · Level 2 devil · refreshes daily", zh: "第1关超易 · 第2关魔鬼 · 每日刷新" },
+  level1ClearedTitle: { en: "Level 1 cleared!", zh: "第1关清空！" },
+  level1ClearedSub: { en: "On to the devil level — ready?", zh: "进入魔鬼第2关，准备好了吗？" },
+  enterLevel2: { en: "Enter Level 2", zh: "进入第2关" },
+  dailyFullyClearedTitle: { en: "Daily clear!", zh: "今日全清！" },
+  dailyFullyClearedAny: { en: "Fully cleared today — share your win!", zh: "今日全清——晒出你的战绩！" },
+  reviveSub: { en: "Tray full — use your revive to keep going?", zh: "卡槽已满——用一次复活继续挑战？" },
+  reviveAction: { en: "Revive ({left} left)", zh: "复活（剩 {left} 次）" },
+  retryLevel2Sub: { en: "Out of revives — retry the devil level?", zh: "复活已用完——再战魔鬼第2关？" },
+  retryLevel2: { en: "Retry Level 2", zh: "重战第2关" },
+  guestRevived: { en: "Revived — same board, go!", zh: "已复活——同一牌面，继续！" },
+
   // ── In-canvas (Phaser scene) strings ──────────────────────────────────────
   boardTagline: {
     en: "Match 3 tiles to clear the board",
@@ -319,6 +333,8 @@ const appMessages = {
     zh: "时间 {clock}  ·  牌堆 {pile}  ·  卡槽 {tray}/{cap}",
   },
   matchedStat: { en: "Matched {matched}/{total}", zh: "已消除 {matched}/{total}" },
+  matchCleared: { en: "Cleared!", zh: "消除！" },
+  matchCombo: { en: "Combo x{n}!", zh: "连消 x{n}！" },
   wonTitle: { en: "You Won", zh: "你赢了" },
   creditedTitle: { en: "Reward Credited", zh: "奖励已入账" },
   gameOverTitle: { en: "Game Over", zh: "游戏结束" },

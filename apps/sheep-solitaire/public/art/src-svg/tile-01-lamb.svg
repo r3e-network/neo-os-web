@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: lamb -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Body/head (more rounded than sheep) -->
+    <ellipse cx="100" cy="106" rx="38" ry="42" fill="#F8F2E6"
+            stroke="#3A3530" stroke-width="3" />
+    <!-- Ears (smaller, rounder) -->
+    <ellipse cx="64" cy="78" rx="12" ry="18" fill="#F8F2E6"
+            stroke="#3A3530" stroke-width="2.5" />
+    <ellipse cx="136" cy="78" rx="12" ry="18" fill="#F8F2E6"
+            stroke="#3A3530" stroke-width="2.5" />
+    <ellipse cx="64" cy="79" rx="6.5" ry="13" fill="#FFB5BA"
+             />
+    <ellipse cx="136" cy="79" rx="6.5" ry="13" fill="#FFB5BA"
+             />
+    <!-- Face (larger relative to head = baby look) -->
+    <ellipse cx="100" cy="108" rx="30" ry="28" fill="#F4E1CE"
+            stroke="#3A3530" stroke-width="2" />
+    <!-- Big cute eyes -->
+    <circle cx="89" cy="100" r="6" fill="#3A3530"
+            />
+    <circle cx="111" cy="100" r="6" fill="#3A3530"
+            />
+    <circle cx="88" cy="99" r="2" fill="#FFFFFF"
+            />
+    <circle cx="110" cy="99" r="2" fill="#FFFFFF"
+            />
+    <!-- Tiny nose -->
+    <circle cx="100" cy="112" r="4" fill="#FFB5BA"
+           stroke="#3A3530" stroke-width="1.5" />
+    <!-- Small smile curve -->
+    <path d="M94,117 Q100,123 106,117" fill="none"
+          stroke="#3A3530" stroke-width="2" stroke-linecap="round"/>
+    <!-- Fluffy wool top tufts -->
+    <circle cx="82" cy="68" r="11" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="118" cy="68" r="11" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="100" cy="60" r="13" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="92" cy="75" r="9" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="1.5" />
+    <circle cx="108" cy="75" r="9" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="1.5" />
+    <!-- Big blush -->
+    <ellipse cx="74" cy="112" rx="10" ry="7" fill="#FFB5BA" opacity="0.4" />
+    <ellipse cx="126" cy="112" rx="10" ry="7" fill="#FFB5BA" opacity="0.4" />
+  
+    </g>
+</svg>

@@ -334,30 +334,33 @@ describe("sheep-solitaire card exposure logic", () => {
 
 describe("sheep-solitaire utility functions", () => {
   it("ALL_SYMBOLS uses stable semantic tile keys", () => {
+    // The P1 redesign replaced the old generic fruit/token set with the original
+    // sheep-themed "meadow farm" tiles (redesign changelog 2026-07-13); these keys
+    // are the source of the tile-NN-<key>.webp sprite filenames on disk.
     expect(ALL_SYMBOLS).toEqual([
-      "wool-flower",
-      "apple",
-      "orange",
-      "lemon",
-      "grape",
-      "strawberry",
-      "peach",
-      "cherry",
+      "sheep-face",
+      "lamb",
+      "wool-ball",
+      "bell-collar",
+      "hoof-print",
+      "carrot",
+      "clover",
+      "flower",
+      "milk-bottle",
+      "fence",
+      "sun",
+      "cloud",
       "star",
-      "bell",
-      "target",
-      "ribbon",
-      "crystal",
-      "tent",
-      "carousel",
+      "heart",
+      "butterfly",
     ]);
   });
 
   it("symbolLabel returns accessible labels for valid tile indices", () => {
-    expect(symbolLabel(0)).toBe("wool flower");
-    expect(symbolLabel(1)).toBe("apple");
-    expect(symbolLabel(8)).toBe("star charm");
-    expect(symbolLabel(14)).toBe("carousel horse");
+    expect(symbolLabel(0)).toBe("sheep face");
+    expect(symbolLabel(1)).toBe("lamb");
+    expect(symbolLabel(8)).toBe("milk bottle");
+    expect(symbolLabel(14)).toBe("butterfly");
   });
 
   it("symbolLabel returns a neutral fallback for out-of-range indices", () => {
@@ -367,10 +370,10 @@ describe("sheep-solitaire utility functions", () => {
   });
 
   it("symbolAsset returns the generated tile sprite path for valid tile indices", () => {
-    expect(symbolAsset(0)).toBe("./art/tile-00-wool-flower.webp");
-    expect(symbolAsset(1)).toBe("./art/tile-01-apple.webp");
-    expect(symbolAsset(8)).toBe("./art/tile-08-star.webp");
-    expect(symbolAsset(14)).toBe("./art/tile-14-carousel.webp");
+    expect(symbolAsset(0)).toBe("./art/tile-00-sheep-face.webp");
+    expect(symbolAsset(1)).toBe("./art/tile-01-lamb.webp");
+    expect(symbolAsset(8)).toBe("./art/tile-08-milk-bottle.webp");
+    expect(symbolAsset(14)).toBe("./art/tile-14-butterfly.webp");
   });
 
   it("symbolAsset returns an empty path for out-of-range indices", () => {
