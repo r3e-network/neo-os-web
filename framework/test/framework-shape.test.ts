@@ -112,7 +112,6 @@ describe("framework runtime shape snapshot", () => {
       "contractReady",
       "detectNetwork",
       "ensureWallet",
-      "enumerate",
       "eventValue",
       "events",
       "invoke",

@@ -40,8 +40,6 @@ export function getDefaultRelayPayload(network: NeoNetwork = getNetwork()) {
   );
 }
 
-export const DEFAULT_RELAY_PAYLOAD = getDefaultRelayPayload("mainnet");
-
 function getRelayLaunchNetwork(
   launchContext:
     | (Pick<MiniAppLaunchContext, "params"> &

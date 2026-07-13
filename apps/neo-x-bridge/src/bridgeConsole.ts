@@ -300,11 +300,6 @@ const DIRECTION_META: Record<
 const EVM_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
 const NEO_N3_ADDRESS_PATTERN = /^N[1-9A-HJ-NP-Za-km-z]{33}$/;
 
-/** Accepts an EVM address / script hash (0x + 40 hex) or a Neo N3 base58 address. */
-export function isSupportedBridgeAddress(value: unknown): boolean {
-  return isNeoXAddress(value) || isNeoN3Address(value);
-}
-
 /** True when `value` is an EVM (Neo X) `0x...` address. */
 export function isNeoXAddress(value: unknown): boolean {
   const text = String(value ?? "").trim();

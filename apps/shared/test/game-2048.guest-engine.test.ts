@@ -21,10 +21,6 @@ import { ruleOf } from "../../game-2048/src/logic/game-rules";
  * settle/refresh, never during play).
  */
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function memoryStorage() {
   const values = new Map<string, unknown>();
   return {
@@ -42,12 +38,12 @@ function memoryStorage() {
 
 function setup(overrides: Partial<GuestEngineDeps> = {}) {
   const obs = createGameSessionObservables();
-  const runBoard = makeObs<number[]>([]);
-  const runMoveCount = makeObs<number>(0);
-  const runMaxExp = makeObs<number>(0);
-  const moveTransition = makeObs<MoveTransition | null>(null);
-  const isMoving = makeObs<boolean>(false);
-  const balancesReady = makeObs<boolean>(false);
+  const runBoard = createObservable<number[]>([]);
+  const runMoveCount = createObservable<number>(0);
+  const runMaxExp = createObservable<number>(0);
+  const moveTransition = createObservable<MoveTransition | null>(null);
+  const isMoving = createObservable<boolean>(false);
+  const balancesReady = createObservable<boolean>(false);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];

@@ -16,19 +16,8 @@
  * off-chain touch is the best-effort guest leaderboard after a deliberate bank.
  */
 import type { LeaderEntry } from "../composables/useBurnLeague";
-
-/** Structural (method-syntax, so bivariant) observable handle. */
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-  subscribe(listener: () => void): () => void;
-}
-
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
+import type { Observable as Obs } from "@framework/reactive";
+import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
 interface SettleResult {
   won: boolean;

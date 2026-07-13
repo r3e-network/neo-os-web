@@ -129,8 +129,3 @@ export function formatSlippageBps(bps: number): string {
 export function safeUnits(raw: string): bigint {
   return /^\d{1,80}$/.test(raw) ? BigInt(raw) : 0n;
 }
-
-export const QUOTE_MATH = {
-  priceDecimals: PRICE_DECIMALS,
-  basisPointDenominator: BPS_DENOMINATOR,
-} as const;

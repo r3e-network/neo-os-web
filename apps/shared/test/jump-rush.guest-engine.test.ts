@@ -17,39 +17,35 @@ import type { Platform } from "../../jump-rush/src/logic/jump-engine";
  * never while dealing or jumping).
  */
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function setup(sharedStorage = new Map<string, unknown>()) {
-  const gameStatus = makeObs("idle");
-  const activeGameId = makeObs("0");
-  const gameDifficulty = makeObs(0);
-  const platformsView = makeObs<Platform[]>([]);
-  const commitment = makeObs("");
-  const dealtAt = makeObs(0);
-  const deadline = makeObs(0);
-  const undosUsed = makeObs(0);
-  const lastPayout = makeObs("");
-  const lastElapsedMs = makeObs(0);
-  const leaderboard = makeObs<LeaderEntry[]>([]);
-  const myRank = makeObs(0);
-  const myTotalWon = makeObs(0);
-  const myRuns = makeObs(0);
-  const myHistory = makeObs<RunRow[]>([]);
-  const isStarting = makeObs(false);
-  const isDealing = makeObs(false);
-  const isSubmitting = makeObs(false);
-  const isUndoing = makeObs(false);
-  const lastStatus = makeObs("");
-  const jumpCount = makeObs(0);
-  const currentPlatform = makeObs(0);
-  const perfectCount = makeObs(0);
-  const comboCount = makeObs(0);
-  const chargeLevel = makeObs(0);
-  const isCharging = makeObs(false);
-  const isJumping = makeObs(false);
-  const missedPlatform = makeObs(false);
+  const gameStatus = createObservable("idle");
+  const activeGameId = createObservable("0");
+  const gameDifficulty = createObservable(0);
+  const platformsView = createObservable<Platform[]>([]);
+  const commitment = createObservable("");
+  const dealtAt = createObservable(0);
+  const deadline = createObservable(0);
+  const undosUsed = createObservable(0);
+  const lastPayout = createObservable("");
+  const lastElapsedMs = createObservable(0);
+  const leaderboard = createObservable<LeaderEntry[]>([]);
+  const myRank = createObservable(0);
+  const myTotalWon = createObservable(0);
+  const myRuns = createObservable(0);
+  const myHistory = createObservable<RunRow[]>([]);
+  const isStarting = createObservable(false);
+  const isDealing = createObservable(false);
+  const isSubmitting = createObservable(false);
+  const isUndoing = createObservable(false);
+  const lastStatus = createObservable("");
+  const jumpCount = createObservable(0);
+  const currentPlatform = createObservable(0);
+  const perfectCount = createObservable(0);
+  const comboCount = createObservable(0);
+  const chargeLevel = createObservable(0);
+  const isCharging = createObservable(false);
+  const isJumping = createObservable(false);
+  const missedPlatform = createObservable(false);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];

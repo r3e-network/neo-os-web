@@ -460,13 +460,6 @@ export function verifyConstructiveSolution(level: ScrewLevel): boolean {
   return session.core.status === "won" && session.core.buffer.length === 0;
 }
 
-export function unlockedScrewIds(level: ScrewLevel, core: CoreRunState): string[] {
-  const removed = new Set(core.removedScrewIds);
-  return allScrews(level)
-    .filter((screw) => !removed.has(screw.id) && isScrewUnlocked(level, core, screw))
-    .map(({ id }) => id);
-}
-
 export function deriveSeed(now = Date.now(), entropy?: Uint32Array): string {
   const value = entropy?.[0] ?? Math.floor(Math.random() * 0xffffffff);
   return `${now.toString(36)}-${value.toString(36)}`;

@@ -22,10 +22,6 @@ import { ruleOf } from "../../sudoku/src/logic/game-rules";
 const FIXED_SEED = new Uint8Array(32);
 for (let i = 0; i < 32; i += 1) FIXED_SEED[i] = (i * 7 + 3) & 0xff;
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function memoryStorage(): BoardStorage {
   const values = new Map<string, unknown>();
   return {
@@ -43,13 +39,13 @@ function memoryStorage(): BoardStorage {
 
 function setup(storage: BoardStorage = memoryStorage()) {
   const obs = createGameSessionObservables();
-  const clues = makeObs<string>("");
-  const walletConnected = makeObs<boolean>(false);
-  const isPaused = makeObs(false);
-  const hintsUsed = makeObs(0);
-  const hintCell = makeObs(-1);
-  const hintDigit = makeObs(0);
-  const hintNonce = makeObs(0);
+  const clues = createObservable<string>("");
+  const walletConnected = createObservable<boolean>(false);
+  const isPaused = createObservable(false);
+  const hintsUsed = createObservable(0);
+  const hintCell = createObservable(-1);
+  const hintDigit = createObservable(0);
+  const hintNonce = createObservable(0);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];

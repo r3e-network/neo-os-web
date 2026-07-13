@@ -15,17 +15,8 @@ import {
   type ColorUiPhase,
 } from "./color-engine";
 import { ruleOf } from "./game-rules";
-
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-  subscribe(listener: () => void): () => void;
-}
-
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
+import type { Observable as Obs } from "@framework/reactive";
+import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
 export interface GuestEngineDeps {
   obs: GameSessionObservables;

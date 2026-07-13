@@ -101,14 +101,6 @@ export function recipeReady(counts: IngredientCounts): boolean {
   return ACTION_NAMES.every((action) => counts[action] >= POTION_RECIPE[action]);
 }
 
-/** Human-readable labels for each action */
-export const ACTION_LABELS: Record<string, { en: string; zh: string }> = {
-  feed: { en: "Feed", zh: "喂食" },
-  play: { en: "Play", zh: "玩耍" },
-  pet: { en: "Pet", zh: "抚摸" },
-  rest: { en: "Rest", zh: "休息" },
-};
-
 /** Pet evolution stages */
 export const EVOLUTION_STAGES = ["baby", "child", "adult"] as const;
 

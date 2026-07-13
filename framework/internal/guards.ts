@@ -26,11 +26,6 @@
 export interface FrameworkWritePolicy {
   /** S11 permission required, or `null` for the deliberate ungated lanes. */
   permission: string | null;
-  /**
-   * Guest-mode guard (default `true`). Named `false` only for documented
-   * exemptions — a new lane that skips the guest guard is a review rejection.
-   */
-  guestGuard?: boolean;
 }
 
 /** The two guard dependencies every write lane threads (credits.ts pattern). */
@@ -86,7 +81,7 @@ export function guardedWrite<A extends unknown[], R>(
   run: (...args: A) => Promise<R>,
 ): (...args: A) => Promise<R> {
   return async (...args: A): Promise<R> => {
-    if (policy.guestGuard !== false) deps.assertNotGuest();
+    deps.assertNotGuest();
     if (policy.permission !== null) deps.requirePermission(policy.permission);
     return run(...args);
   };

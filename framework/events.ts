@@ -54,8 +54,8 @@ const EVENT_PAGE_SIZE = 50;
 
 /**
  * Default `listAll` bound. Matches the defensive cap the count-then-page
- * apps hand-roll (plan §S7 chain.enumerate uses the same default) so an
- * unbounded indexer walk can never balloon a recovery scan.
+ * apps hand-roll so an unbounded indexer walk can never balloon a
+ * recovery scan.
  */
 const DEFAULT_LIST_ALL_CAP = 500;
 

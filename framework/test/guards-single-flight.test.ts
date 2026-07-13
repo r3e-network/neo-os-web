@@ -85,7 +85,7 @@ describe("guardedWrite", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it("named exemptions: permission null skips the gate; guestGuard false skips the guard", async () => {
+  it("named exemption: permission null skips the S11 gate but keeps the guest guard", async () => {
     const assertNotGuest = vi.fn();
     const requirePermission = vi.fn();
     const deps = { assertNotGuest, requirePermission };
@@ -94,8 +94,8 @@ describe("guardedWrite", () => {
     expect(assertNotGuest).toHaveBeenCalledTimes(1);
     expect(requirePermission).not.toHaveBeenCalled();
 
-    await guardedWrite(deps, { permission: "x", guestGuard: false }, async () => "ok")();
-    expect(assertNotGuest).toHaveBeenCalledTimes(1); // unchanged
+    await guardedWrite(deps, { permission: "x" }, async () => "ok")();
+    expect(assertNotGuest).toHaveBeenCalledTimes(2);
     expect(requirePermission).toHaveBeenCalledWith("x");
   });
 });

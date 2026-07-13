@@ -20,19 +20,8 @@ import type { GameSessionObservables, LeaderEntry } from "@framework/game";
 import { ruleOf } from "./game-rules";
 import { forgetBoard, type BoardStorage } from "./board-store";
 import { dealPuzzle, hexToBytes, type Difficulty } from "./sudoku-engine";
-
-/** Structural (method-syntax, so bivariant) observable handle. */
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-  subscribe(listener: () => void): () => void;
-}
-
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
+import type { Observable as Obs } from "@framework/reactive";
+import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
 export interface GuestEngineDeps {
   obs: GameSessionObservables;

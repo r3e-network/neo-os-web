@@ -11,7 +11,7 @@
  * `guardedWrite` + the injected `runWithNotify`.
  */
 
-import { createObservable, type Observable } from "./reactive";
+import { type Observable } from "./reactive";
 import { createQueryResult } from "./chain-query";
 import type { FrameworkQueryResult, FrameworkReadOptions } from "./chain-query";
 import { guardedWrite, WRITE_PRIMARY } from "./internal/guards";
@@ -24,7 +24,6 @@ import type {
   FrameworkArgBuilder,
   FrameworkChainSurface,
   FrameworkContractArg,
-  FrameworkEnumerateSpec,
   FrameworkInvokeCall,
   FrameworkInvokeOptions,
   FrameworkMultiInvokeOptions,
@@ -37,20 +36,6 @@ import type {
   FrameworkWriteSpec,
   MiniAppFrameworkChain,
 } from "./types";
-
-/** Run `work` over `items` in fixed-size parallel chunks, preserving order. */
-async function runChunked<TIn, TOut>(
-  items: readonly TIn[],
-  chunkSize: number,
-  work: (item: TIn) => Promise<TOut>,
-): Promise<TOut[]> {
-  const results: TOut[] = [];
-  for (let start = 0; start < items.length; start += chunkSize) {
-    const chunk = items.slice(start, start + chunkSize);
-    results.push(...(await Promise.all(chunk.map((item) => work(item)))));
-  }
-  return results;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -423,56 +408,6 @@ export function createChainSurface(deps: ChainSurfaceDeps): FrameworkChainSurfac
         }
       }
       return null;
-    },
-    /**
-     * Count-then-page enumeration (S7): read the item count (ids assumed
-     * 1..count) or take an explicit id list, fetch details under a
-     * defensive cap (newest ids win), swallow per-id read/decode failures,
-     * and return decoded rows sorted by numeric id — newest first by
-     * default. The fan-out ~12 apps hand-roll.
-     * @deprecated 0 fleet consumers — use {@link query} with an explicit
-     * loop (or `readArray`) instead; kept for back-compat.
-     */
-    async enumerate<T>(spec: FrameworkEnumerateSpec<T>): Promise<T[]> {
-      const cap = Math.max(1, Math.trunc(spec.cap ?? 500));
-      let ids: Array<number | string>;
-      if (spec.ids) {
-        ids = spec.ids.length > cap
-          ? [...spec.ids].slice(spec.ids.length - cap)
-          : [...spec.ids];
-      } else if (spec.countOp) {
-        const rawCount = await chain.read(spec.countOp, spec.countArgs, {
-          scriptHash: spec.scriptHash,
-        });
-        const count = Math.trunc(Number(String(rawCount ?? "0")));
-        if (!Number.isFinite(count) || count <= 0) return [];
-        const fetchCount = Math.min(count, cap);
-        const startId = count - fetchCount + 1;
-        ids = Array.from({ length: fetchCount }, (_, index) => startId + index);
-      } else {
-        return [];
-      }
-      const rows = await runChunked(ids, 10, async (id) => {
-        try {
-          const raw = await chain.read(
-            spec.detailOp,
-            spec.detailArgs ? spec.detailArgs(id) : [arg.integer(id)],
-            { scriptHash: spec.scriptHash },
-          );
-          const item = spec.decode(raw, id);
-          return item === null ? null : { id, item };
-        } catch {
-          return null; // per-id swallow: one bad row never sinks the page
-        }
-      });
-      const decoded: Array<{ id: number | string; item: T }> = [];
-      for (const row of rows) {
-        if (row !== null) decoded.push({ id: row.id, item: row.item as T });
-      }
-      const direction = (spec.order ?? "newest") === "newest" ? -1 : 1;
-      return decoded
-        .sort((left, right) => direction * (Number(left.id) - Number(right.id)))
-        .map((row) => row.item);
     },
   };
 }

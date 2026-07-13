@@ -97,9 +97,6 @@ export { sha256Hex, sha256HexFromHex } from "./hash";
 // parsers.ts
 export { parseBigInt, parseBool, encodeTokenId, parseDateInput } from "./parsers";
 
-// createSidebarItems.ts
-export { createSidebarItems } from "./createSidebarItems";
-
 // n3index.ts — re-export all public API functions, types, and constants
 export type {
   Network,
