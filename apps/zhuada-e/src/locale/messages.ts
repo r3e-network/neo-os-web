@@ -123,11 +123,24 @@ const appMessages = {
     en: "Tray jammed! Use Remove or Undo to rescue the run",
     zh: "托盘卡住了！快用移出或撤回自救",
   },
+  statusTrayJammedTitle: {
+    en: "Tray full — stop picking items",
+    zh: "托盘已满，别再点物品",
+  },
+  statusTrayJammedHint: {
+    en: "Use Remove or Undo below to free space and keep playing",
+    zh: "立即使用下方「移出」或「撤回」腾出空位",
+  },
   // Failure is READABLE: timeout vs jammed tray get distinct copy (+ stamps).
   statusFailedTimeout: { en: "Time ran out — the goose got away", zh: "时间到了，大鹅溜走了" },
-  statusFailedTrayFull: { en: "Tray jammed — the goose got away", zh: "托盘塞满卡死，大鹅溜走了" },
+  statusFailedTrayFull: {
+    en: "All 7 tray slots filled without a match. This run is over.",
+    zh: "7 格托盘全部塞满且无法凑成三连，本局结束。",
+  },
+  statusFailedTrayFullTitle: { en: "Tray full — run over", zh: "托盘已满，本局结束" },
   statusFailedTitle: { en: "The goose got away", zh: "大鹅溜走了" },
   continueRunAction: { en: "Use recovery feather", zh: "使用救援羽毛" },
+  continueTrayAction: { en: "Free 3 slots and continue", zh: "腾出 3 格继续" },
   continueAvailableHint: {
     en: "Your one recovery feather can reopen three tray slots or grant 30 extra seconds.",
     zh: "本局唯一一枚救援羽毛可腾回 3 格托盘，或在超时时追加 30 秒。",
@@ -152,6 +165,9 @@ const appMessages = {
   sceneFarm: { en: "Old Farm", zh: "农场" },
   sceneSnowfield: { en: "Snowfield", zh: "雪原" },
   sceneNightMarket: { en: "Night Market", zh: "夜市" },
+  sceneVolcano: { en: "Ember Volcano", zh: "火山" },
+  sceneCloud: { en: "Drifting Clouds", zh: "云端" },
+  sceneAbyss: { en: "Sunless Abyss", zh: "深海" },
 
   // ── Limited-edition goose collection (G4) ──
   gooseGarden: { en: "Gardener Goose", zh: "菜园鹅" },
@@ -160,6 +176,9 @@ const appMessages = {
   gooseFarm: { en: "Farmhand Goose", zh: "农场鹅" },
   gooseSnowfield: { en: "Snowfield Goose", zh: "雪原鹅" },
   gooseNightMarket: { en: "Night Market Goose", zh: "夜市鹅" },
+  gooseVolcano: { en: "Lava Goose", zh: "火山鹅" },
+  gooseCloud: { en: "Cloud Goose", zh: "云端鹅" },
+  gooseAbyss: { en: "Abyss Goose", zh: "深海鹅" },
   gooseUnlocked: { en: "Limited goose unlocked: {name}!", zh: "解锁限定大鹅：{name}！" },
   collectionTitle: { en: "Goose collection", zh: "大鹅收藏册" },
   collectionCount: { en: "{have}/{total} collected", zh: "已收集 {have}/{total}" },
@@ -173,6 +192,9 @@ const appMessages = {
   goosePerkFarm: { en: "Combo window +200ms", zh: "连击窗口 +200 毫秒" },
   goosePerkSnowfield: { en: "Start each level with +1 undo", zh: "每局开局额外 +1 撤回" },
   goosePerkNightMarket: { en: "Milestone rewards arrive 10% earlier", zh: "里程碑返还提前 10%" },
+  goosePerkVolcano: { en: "Start each level with +1 shuffle", zh: "每局开局额外 +1 洗牌" },
+  goosePerkCloud: { en: "Score +5% (collection prestige)", zh: "得分 +5%（收藏荣誉加成）" },
+  goosePerkAbyss: { en: "Frenzy triggers one combo earlier", zh: "狂潮触发门槛 −1 连击" },
 
   // ── Level select map (G4) ──
   levelSelectTitle: { en: "Pick a pen", zh: "选择鹅栏" },
@@ -217,6 +239,7 @@ const appMessages = {
   shelfTitle: { en: "Shelf", zh: "暂存" },
   shelfEmptySlot: { en: "Empty shelf slot", zh: "暂存空位" },
   untimedBadge: { en: "Relaxed", zh: "无倒计时" },
+  untimedHud: { en: "Relaxed · No timer", zh: "休闲 · 不限时" },
 
   soundOn: { en: "Sound on", zh: "音效开" },
   soundOff: { en: "Sound off", zh: "音效关" },
@@ -227,7 +250,7 @@ const appMessages = {
   hapticsEnableAction: { en: "Enable vibration", zh: "开启振动" },
   hapticsDisableAction: { en: "Disable vibration", zh: "关闭振动" },
 
-  // Fresh Market atlas (logical kind ids 0..11).
+  // Fresh Market catalog (logical kind ids 0..17).
   freshApple: { en: "Green apple", zh: "青苹果" },
   freshOrange: { en: "Orange", zh: "橙子" },
   freshLemon: { en: "Lemon", zh: "柠檬" },
@@ -240,6 +263,12 @@ const appMessages = {
   freshPear: { en: "Green pear", zh: "青梨" },
   freshDonut: { en: "Donut", zh: "甜甜圈" },
   freshEgg: { en: "White egg", zh: "白鸡蛋" },
+  freshStrawberry: { en: "Strawberry basket", zh: "草莓篮" },
+  freshWatermelon: { en: "Watermelon slice", zh: "西瓜切片" },
+  freshHoney: { en: "Honey jar", zh: "蜂蜜罐" },
+  freshCheese: { en: "Picnic cheese", zh: "野餐奶酪" },
+  freshFlowerPot: { en: "Daisy flowerpot", zh: "雏菊花盆" },
+  freshJuice: { en: "Pear juice carton", zh: "青梨果汁盒" },
 
   // Farm Kitchen atlas.
   farmKettle: { en: "Enamel kettle", zh: "搪瓷水壶" },
@@ -254,6 +283,12 @@ const appMessages = {
   farmJug: { en: "Cream jug", zh: "奶油陶瓷壶" },
   farmCookie: { en: "Heart cookie", zh: "心形曲奇" },
   farmMug: { en: "Blue mug", zh: "蓝陶杯" },
+  farmRollingPin: { en: "Rolling pin", zh: "木擀面杖" },
+  farmPot: { en: "Enamel cooking pot", zh: "搪瓷煮锅" },
+  farmBread: { en: "Country loaf", zh: "乡村面包" },
+  farmButter: { en: "Butter crock", zh: "黄油罐" },
+  farmRooster: { en: "Rooster figurine", zh: "公鸡摆件" },
+  farmYarn: { en: "Wool yarn", zh: "羊毛线团" },
 
   // Lantern Night atlas.
   nightLantern: { en: "Paper lantern", zh: "红纸灯笼" },
@@ -268,6 +303,12 @@ const appMessages = {
   nightBowl: { en: "Rice bowl", zh: "米白小碗" },
   nightBell: { en: "Brass bell", zh: "黄铜铃" },
   nightSnackTin: { en: "Snack tin", zh: "点心铁盒" },
+  nightTeapot: { en: "Jade teapot", zh: "青玉茶壶" },
+  nightFan: { en: "Festival folding fan", zh: "节庆折扇" },
+  nightLuckyCat: { en: "Lucky cat", zh: "招财猫" },
+  nightNoodles: { en: "Noodle bowl", zh: "汤面碗" },
+  nightLotusLamp: { en: "Lotus lamp", zh: "莲花灯" },
+  nightMahjong: { en: "Mahjong tile", zh: "麻将牌" },
 
   // Item kind names (tray tooltips + accessible labels), keyed by ModelKind.
   kindTomato: { en: "Tomato", zh: "番茄" },

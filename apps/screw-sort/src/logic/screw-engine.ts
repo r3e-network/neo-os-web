@@ -6,6 +6,10 @@ export const BOARDS_PER_PHASE = 4;
 export const SCREWS_PER_BOARD = 3;
 export const MAX_UNDOS = 3;
 
+// Soft-fail efficiency scoring. [PLACEHOLDER] — calibrate on real-device playtest.
+// demerits = undosUsed + overflows; this is the threshold for a 2-star (vs 3-star) clear.
+export const STAR_DEMERIT_TWO = 3;
+
 export const SCREW_COLORS = [
   { id: "red", hex: 0xe34e3f },
   { id: "gold", hex: 0xe7a51a },
@@ -16,7 +20,7 @@ export const SCREW_COLORS = [
 ] as const;
 
 export type ScrewColor = (typeof SCREW_COLORS)[number]["id"];
-export type RunStatus = "playing" | "won" | "lost";
+export type RunStatus = "playing" | "won";
 
 export interface ScrewDefinition {
   id: string;
@@ -70,7 +74,7 @@ export type MoveEvent =
   | {
       kind: "move";
       screwId: string;
-      destination: "box" | "buffer" | "loss";
+      destination: "box" | "buffer";
       lane: number | null;
       flushed: FlushedScrew[];
       completedLanes: number[];
@@ -87,6 +91,7 @@ export interface CoreRunState {
   paused: boolean;
   moves: number;
   undosUsed: number;
+  overflows: number;
   revision: number;
   lastEvent: MoveEvent | null;
 }
@@ -246,6 +251,7 @@ export function createCoreState(): CoreRunState {
     paused: false,
     moves: 0,
     undosUsed: 0,
+    overflows: 0,
     revision: 0,
     lastEvent: null,
   };
@@ -298,6 +304,7 @@ function cloneCore(core: CoreRunState): CoreRunState {
     removedScrewIds: [...core.removedScrewIds],
     boxes: core.boxes.map((box) => ({ ...box })),
     buffer: core.buffer.map((item) => ({ ...item })),
+    overflows: core.overflows,
     lastEvent: core.lastEvent
       ? JSON.parse(JSON.stringify(core.lastEvent)) as MoveEvent
       : null,
@@ -391,8 +398,12 @@ export function applyScrewMove(session: ScrewSession, screwId: string): MoveResu
     core.removedScrewIds.push(screwId);
     core.buffer.push({ screwId, color: screw.color, lane: screw.lane });
   } else {
-    destination = "loss";
-    core.status = "lost";
+    // Soft-fail: the safe tray is full, but we never lose. The screw still
+    // lands in the tray and only erodes the efficiency star rating.
+    destination = "buffer";
+    core.removedScrewIds.push(screwId);
+    core.buffer.push({ screwId, color: screw.color, lane: screw.lane });
+    core.overflows += 1;
   }
 
   core.moves += 1;
@@ -463,4 +474,16 @@ export function verifyConstructiveSolution(level: ScrewLevel): boolean {
 export function deriveSeed(now = Date.now(), entropy?: Uint32Array): string {
   const value = entropy?.[0] ?? Math.floor(Math.random() * 0xffffffff);
   return `${now.toString(36)}-${value.toString(36)}`;
+}
+
+/**
+ * Efficiency star rating for a cleared run. Replaces the removed hard-fail:
+ * every clear earns at least 1 star; a flawless clear (no undo, no overflow)
+ * earns 3. [PLACEHOLDER] STAR_DEMERIT_TWO needs real-device calibration.
+ */
+export function computeStars(core: CoreRunState): 1 | 2 | 3 {
+  const demerits = core.undosUsed + core.overflows;
+  if (demerits === 0) return 3;
+  if (demerits <= STAR_DEMERIT_TWO) return 2;
+  return 1;
 }

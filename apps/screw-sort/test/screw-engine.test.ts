@@ -6,6 +6,7 @@ import {
   MAX_UNDOS,
   allScrews,
   applyScrewMove,
+  computeStars,
   createSession,
   currentBoxColor,
   generateLevel,
@@ -93,7 +94,7 @@ describe("screw-sort rules and recovery", () => {
     expect(session.core.boxes[lane]!.count).toBe(0);
   });
 
-  it("allows five unmatched screws and fails closed on the sixth", () => {
+  it("absorbs five unmatched screws and overflows softly on the sixth", () => {
     let session = createSession("buffer-limit");
     const core = {
       ...session.core,
@@ -113,9 +114,12 @@ describe("screw-sort rules and recovery", () => {
     const sixthScrew = available[BUFFER_CAPACITY]!;
     const sixth = applyScrewMove(session, sixthScrew.id);
     expect(sixth.ok).toBe(true);
-    expect(sixth.session.core.status).toBe("lost");
-    expect(sixth.session.core.buffer).toHaveLength(BUFFER_CAPACITY);
-    expect(sixth.session.core.removedScrewIds).not.toContain(sixthScrew.id);
+    // Soft-fail: the sixth unmatched screw no longer ends the run — it lands in
+    // the (now overflowing) tray and only erodes the efficiency star rating.
+    expect(sixth.session.core.status).toBe("playing");
+    expect(sixth.session.core.buffer).toHaveLength(BUFFER_CAPACITY + 1);
+    expect(sixth.session.core.overflows).toBe(1);
+    expect(sixth.session.core.removedScrewIds).toContain(sixthScrew.id);
   });
 
   it("flushes buffered screws when their color box rotates into view", () => {
@@ -169,5 +173,34 @@ describe("screw-sort rules and recovery", () => {
     expect(restarted.level).toEqual(generateLevel("recovery"));
     expect(restarted.core.removedScrewIds).toEqual([]);
     expect(restarted.history).toEqual([]);
+  });
+
+  describe("computeStars (soft-fail efficiency)", () => {
+    const base = () => ({ ...createSession("stars-seed").core });
+
+    it("awards 3 stars for a flawless clear", () => {
+      const core = base();
+      expect(computeStars(core)).toBe(3);
+    });
+
+    it("awards 2 stars for a few demerits", () => {
+      const core = base();
+      core.undosUsed = 1;
+      core.overflows = 1; // demerits = 2 <= STAR_DEMERIT_TWO (3)
+      expect(computeStars(core)).toBe(2);
+    });
+
+    it("awards 1 star when demerits exceed the 2-star threshold", () => {
+      const core = base();
+      core.overflows = 5; // demerits = 5 > 3
+      expect(computeStars(core)).toBe(1);
+    });
+
+    it("never returns below 1 star", () => {
+      const core = base();
+      core.undosUsed = MAX_UNDOS;
+      core.overflows = 20;
+      expect(computeStars(core)).toBe(1);
+    });
   });
 });

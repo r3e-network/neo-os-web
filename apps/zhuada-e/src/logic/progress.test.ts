@@ -18,7 +18,7 @@ import {
 } from "./progress";
 import { LEVEL_CURVE, TOTAL_LEVELS, randomizedSpecOf, specOf } from "./game-rules";
 import { SCENES, isSceneFinalLevel, sceneIndexOfLevel, sceneOfLevel } from "./scenes";
-import { ITEM_DEFS, generateItems, makeRng } from "./engine-zhuada";
+import { ITEM_DEFS, TRAY_SLOTS, generateItems, makeRng } from "./engine-zhuada";
 
 describe("progress schema + migration", () => {
   it("defaults on null / garbage payloads", () => {
@@ -222,8 +222,8 @@ describe("pure progress transitions", () => {
 });
 
 describe("scene catalog invariants (G4/G5)", () => {
-  it("covers all levels 1..TOTAL_LEVELS in 6 contiguous scenes of 2-3 levels", () => {
-    expect(SCENES).toHaveLength(6);
+  it("covers all levels 1..TOTAL_LEVELS in 9 contiguous scenes of 2-3 levels", () => {
+    expect(SCENES).toHaveLength(9);
     let cursor = 1;
     for (const s of SCENES) {
       expect(s.levels[0]).toBe(cursor);
@@ -244,20 +244,37 @@ describe("scene catalog invariants (G4/G5)", () => {
     }
   });
 
-  it("every scene kind pool is a permutation of the 12 item ids", () => {
+  it("gives all nine scenes distinct 12-kind series spanning the 18-item catalog", () => {
+    const validIds = new Set(ITEM_DEFS.map((def) => def.id));
+    const signatures = new Set<string>();
+    const catalog = new Set<number>();
     for (const s of SCENES) {
-      expect([...s.kindPool].sort((a, b) => a - b)).toEqual(ITEM_DEFS.map((d) => d.id));
+      expect(s.kindPool).toHaveLength(12);
+      expect(new Set(s.kindPool).size).toBe(12);
+      s.kindPool.forEach((kind) => {
+        expect(validIds.has(kind), `${s.nameKey}/${kind}`).toBe(true);
+        catalog.add(kind);
+      });
+      signatures.add([...s.kindPool].sort((a, b) => a - b).join(","));
     }
+    expect(signatures.size).toBe(SCENES.length);
+    expect([...catalog].sort((a, b) => a - b)).toEqual(ITEM_DEFS.map((def) => def.id));
   });
 
-  it("L1 keeps the tutorial win floor (3 kinds cannot jam a 7-slot tray)", () => {
-    expect(LEVEL_CURVE[0]!.kinds).toBe(3);
-    // pigeonhole: 3 kinds × ≤2 copies buffered = 6 < 7 slots → a triple always
-    // completes before the tray fills. L2 must then spike noticeably.
-    expect(LEVEL_CURVE[1]!.kinds).toBeGreaterThanOrEqual(5);
-    expect(LEVEL_CURVE[1]!.kinds * LEVEL_CURVE[1]!.perKind * 3).toBeGreaterThanOrEqual(
-      2 * LEVEL_CURVE[0]!.kinds * LEVEL_CURVE[0]!.perKind * 3,
-    );
+  it("keeps L1 unjammable, then makes L2 an intentional difficulty cliff", () => {
+    const l1 = LEVEL_CURVE[0]!;
+    const l2 = LEVEL_CURVE[1]!;
+    const l1Items = l1.kinds * l1.perKind * 3;
+    const l2Items = l2.kinds * l2.perKind * 3;
+
+    expect(l1.kinds).toBe(3);
+    expect(l1Items).toBe(18);
+    // With at most two unmatched copies of each L1 kind, the seven-slot tray
+    // cannot jam: 3 kinds × 2 buffered copies = 6 occupied slots.
+    expect(l1.kinds * 2).toBeLessThan(TRAY_SLOTS);
+
+    expect(l2.kinds).toBeGreaterThanOrEqual(l1.kinds * 3);
+    expect(l2Items).toBeGreaterThanOrEqual(l1Items * 8);
   });
 
   it("specOf slices the scene pool and generateItems draws from it (multiple of 3 each)", () => {

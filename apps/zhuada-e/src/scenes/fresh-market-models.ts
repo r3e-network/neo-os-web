@@ -322,18 +322,28 @@ function buildDonut(color: number): THREE.Group {
   const icing = surface(0xf09ab5, "glaze", { clearcoat: 0.7 });
   const dark = surface(tint(color, -0.2), "matte");
 
-  const body = part(new THREE.TorusGeometry(0.48, 0.25, 12, 28), dough);
-  body.rotation.x = Math.PI / 2;
+  // Filled doughnut / soft pastry: the previous torus exposed the basket
+  // through its center from both face-on and rolled angles, reading as a
+  // missing texture. A closed, pillowy body keeps the pastry silhouette while
+  // a raised icing cap and center rosette preserve its visual identity.
+  const body = sphere(0.7, dough, 24, 18);
+  body.scale.set(1, 0.48, 1);
   group.add(body);
-  const glaze = part(new THREE.TorusGeometry(0.48, 0.21, 10, 28), icing);
-  glaze.rotation.x = Math.PI / 2;
-  glaze.scale.y = 0.74;
-  glaze.position.y = 0.12;
+
+  const glaze = sphere(0.62, icing, 22, 16);
+  glaze.scale.set(0.96, 0.2, 0.96);
+  glaze.position.y = 0.31;
   group.add(glaze);
+
+  const rosette = sphere(0.14, dark, 12, 9);
+  rosette.scale.set(1, 0.25, 1);
+  rosette.position.y = 0.445;
+  rosette.userData.detailLayer = "filled-pastry-center";
+  group.add(rosette);
   for (let i = 0; i < 6; i += 1) {
     const angle = (i / 6) * Math.PI * 2 + 0.18;
     const sprinkle = capsule(0.018, 0.16, i % 2 === 0 ? dark : surface(0xfff0a8, "glaze"), "x");
-    sprinkle.position.set(Math.cos(angle) * 0.48, 0.31, Math.sin(angle) * 0.48);
+    sprinkle.position.set(Math.cos(angle) * 0.43, 0.445, Math.sin(angle) * 0.43);
     sprinkle.rotation.y = angle + 0.7;
     group.add(sprinkle);
   }
@@ -363,6 +373,169 @@ function buildEgg(color: number): THREE.Group {
   return finishModel(group);
 }
 
+function buildStrawberryBasket(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const berry = surface(color, "produce", { clearcoat: 0.42 });
+  const seed = surface(0xffe5a6, "matte");
+  const leafMat = surface(LEAF_GREEN, "produce");
+  const wicker = surface(0xa86c39, "wood");
+  const basket = roundedBox(1.25, 0.36, 0.9, 0.18, wicker, 4);
+  basket.position.y = -0.42;
+  group.add(basket);
+  group.add(tube([
+    new THREE.Vector3(-0.48, -0.28, 0),
+    new THREE.Vector3(-0.42, 0.52, 0),
+    new THREE.Vector3(0.42, 0.52, 0),
+    new THREE.Vector3(0.48, -0.28, 0),
+  ], 0.06, wicker, 20, 7));
+  ([[-0.36, 0.03, 0.14], [0.02, 0.11, -0.1], [0.35, -0.02, 0.16], [0.14, -0.04, 0.3]] as const).forEach(([x, y, z], index) => {
+    const fruit = sphere(0.28, berry);
+    fruit.scale.y = 1.14;
+    fruit.position.set(x, y, z);
+    group.add(fruit);
+    const crown = petalRing(5, 0.095, 0.13, leafMat);
+    crown.position.set(x, y + 0.3, z);
+    group.add(crown);
+    for (let s = 0; s < 3; s += 1) {
+      const dot = sphere(0.018, seed, 7, 5);
+      dot.position.set(x + (s - 1) * 0.07, y + 0.05, z + 0.255 + index * 0.002);
+      group.add(dot);
+    }
+  });
+  return finishModel(group);
+}
+
+function buildWatermelonSlice(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const rind = surface(tint(color, -0.2), "produce");
+  const paleRind = surface(0xd8e89a, "produce");
+  const flesh = surface(0xf46b68, "produce", { clearcoat: 0.34 });
+  const seedMat = surface(0x4a2e2b, "matte");
+  const triangle: ReadonlyArray<readonly [number, number]> = [[-0.76, -0.42], [0.76, -0.42], [0, 0.67]];
+  const base = extrudedShape(triangle, 0.48, 0.06, rind);
+  group.add(base);
+  const inner = extrudedShape([[-0.66, -0.32], [0.66, -0.32], [0, 0.59]], 0.5, 0.045, paleRind);
+  inner.position.z = 0.01;
+  group.add(inner);
+  const face = extrudedShape([[-0.58, -0.23], [0.58, -0.23], [0, 0.51]], 0.52, 0.04, flesh);
+  face.position.z = 0.02;
+  group.add(face);
+  ([[-0.24, -0.03], [0.22, -0.04], [0, 0.22]] as const).forEach(([x, y]) => {
+    const pip = sphere(0.055, seedMat, 9, 6);
+    pip.scale.set(0.56, 1, 0.25);
+    pip.position.set(x, y, 0.3);
+    group.add(pip);
+  });
+  return finishModel(group);
+}
+
+function buildHoneyJar(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const honey = surface(color, "glaze", { clearcoat: 0.88, roughness: 0.22 });
+  const lidMat = surface(GOLD, "metal");
+  const labelMat = surface(CREAM, "paper");
+  const markMat = surface(0x8a5a24, "matte");
+  group.add(lathe([[0.34, -0.66], [0.52, -0.54], [0.56, 0.36], [0.43, 0.53], [0.36, 0.6]], honey, 26));
+  const lid = cylinder(0.43, 0.43, 0.18, lidMat, 24);
+  lid.position.y = 0.64;
+  group.add(lid);
+  const label = roundedBox(0.72, 0.48, 0.045, 0.1, labelMat, 4);
+  label.position.set(0, -0.02, 0.54);
+  group.add(label);
+  const honeycomb = petalRing(6, 0.14, 0.18, markMat);
+  honeycomb.rotation.x = Math.PI / 2;
+  honeycomb.position.set(0, -0.02, 0.58);
+  group.add(honeycomb);
+  for (const x of [-0.25, 0, 0.25]) {
+    const ridge = capsule(0.022, 0.15, markMat, "y");
+    ridge.position.set(x, 0.64, 0.42);
+    group.add(ridge);
+  }
+  return finishModel(group);
+}
+
+function buildPicnicCheese(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const cheese = surface(color, "produce", { roughness: 0.4 });
+  const rind = surface(tint(color, -0.14), "matte");
+  const hole = surface(0xb77822, "matte");
+  const wedge: ReadonlyArray<readonly [number, number]> = [[-0.72, -0.46], [0.72, -0.46], [-0.54, 0.5]];
+  group.add(extrudedShape(wedge, 0.72, 0.08, rind));
+  const center = extrudedShape([[-0.61, -0.36], [0.6, -0.36], [-0.47, 0.4]], 0.75, 0.065, cheese);
+  center.position.z = 0.02;
+  group.add(center);
+  ([[-0.32, -0.05, 0.39], [0.08, -0.19, 0.4], [-0.18, 0.24, 0.4], [0.35, -0.28, 0.4]] as const).forEach(([x, y, z], index) => {
+    const dimple = sphere(index % 2 ? 0.08 : 0.11, hole, 12, 8);
+    dimple.scale.z = 0.22;
+    dimple.position.set(x, y, z);
+    group.add(dimple);
+  });
+  return finishModel(group);
+}
+
+function buildDaisyPot(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const ceramic = surface(color, "ceramic");
+  const dark = surface(tint(color, -0.2), "ceramic");
+  const soil = surface(0x5b3825, "matte");
+  const green = surface(LEAF_GREEN, "produce");
+  const petal = surface(0xfff8df, "glaze");
+  const centerMat = surface(0xf2bd3c, "produce");
+  group.add(lathe([[0.34, -0.62], [0.48, -0.58], [0.56, 0.18], [0.61, 0.3]], ceramic, 24));
+  const rim = horizontalRing(0.58, 0.07, dark);
+  rim.position.y = 0.29;
+  group.add(rim);
+  const soilDisk = cylinder(0.5, 0.5, 0.08, soil, 20);
+  soilDisk.position.y = 0.31;
+  group.add(soilDisk);
+  const stem = capsule(0.045, 0.72, green);
+  stem.position.set(0, 0.67, 0);
+  group.add(stem);
+  for (const [x, y, angle] of [[-0.18, 0.62, -0.7], [0.2, 0.78, 0.74]] as const) {
+    const sprout = leaf(0.38, 0.22, green);
+    sprout.rotation.set(-Math.PI / 2, 0, angle);
+    sprout.position.set(x, y, 0);
+    group.add(sprout);
+  }
+  const bloom = petalRing(8, 0.23, 0.3, petal);
+  bloom.position.y = 1.05;
+  group.add(bloom);
+  const heart = sphere(0.15, centerMat);
+  heart.position.y = 1.06;
+  group.add(heart);
+  return finishModel(group);
+}
+
+function buildPearJuice(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const carton = surface(color, "paper");
+  const fold = surface(tint(color, -0.12), "paper");
+  const label = surface(0xfff8dc, "paper");
+  const green = surface(LEAF_GREEN, "produce");
+  const strawMat = surface(0xe46f6a, "paper");
+  group.add(roundedBox(0.86, 1.2, 0.64, 0.1, carton, 4));
+  const roofLeft = roundedBox(0.46, 0.28, 0.66, 0.06, fold, 3);
+  roofLeft.position.set(-0.19, 0.68, 0);
+  roofLeft.rotation.z = -0.48;
+  group.add(roofLeft);
+  const roofRight = roofLeft.clone();
+  roofRight.position.x = 0.19;
+  roofRight.rotation.z = 0.48;
+  group.add(roofRight);
+  const badge = roundedBox(0.58, 0.52, 0.04, 0.12, label, 4);
+  badge.position.set(0, -0.05, 0.34);
+  group.add(badge);
+  const pear = sphere(0.16, green);
+  pear.scale.y = 1.22;
+  pear.position.set(0, -0.06, 0.38);
+  group.add(pear);
+  const straw = capsule(0.035, 0.72, strawMat);
+  straw.position.set(0.25, 0.84, 0.08);
+  straw.rotation.z = -0.18;
+  group.add(straw);
+  return finishModel(group);
+}
+
 const BUILDERS: readonly Builder[] = [
   buildApple,
   buildOrange,
@@ -376,9 +549,15 @@ const BUILDERS: readonly Builder[] = [
   buildPear,
   buildDonut,
   buildEgg,
+  buildStrawberryBasket,
+  buildWatermelonSlice,
+  buildHoneyJar,
+  buildPicnicCheese,
+  buildDaisyPot,
+  buildPearJuice,
 ];
 
-/** Build one original, fully modeled Fresh Market object (logical kinds 0..11). */
+/** Build one original, fully modeled Fresh Market object (logical kinds 0..17). */
 export function buildFreshMarketModel(kind: number, color: number): THREE.Group {
   const safeKind = Math.max(0, Math.min(BUILDERS.length - 1, Math.floor(kind)));
   return BUILDERS[safeKind]!(color);

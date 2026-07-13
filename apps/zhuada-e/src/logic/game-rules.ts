@@ -9,13 +9,15 @@
 import { TRAY_SLOTS, type LevelSpec } from "./engine-zhuada";
 import { sceneOfLevel } from "./scenes";
 
-export const TOTAL_LEVELS = 15;
+export const TOTAL_LEVELS = 24;
 
 /**
- * Level curve — 6 themed scenes (see logic/scenes.ts), difficulty shaped per
- * the parity spec G5: L1 is a tutorial with a mathematical win floor (3 kinds ×
- * ≤2 tray copies = 6 < 7 slots, so the tray can never jam), L2 is a deliberate
- * bridge (kinds 3→5, total items 18→60), then each scene ramps the
+ * Level curve — 9 themed scenes (see logic/scenes.ts; chapter 2 of three new
+ * scenes — Volcano / Cloud / Abyss — added 2026-07-12), difficulty shaped per
+ * the parity spec G5: L1 is a forgiving visual tutorial with only three
+ * recognisable kinds and an unjammable 18-item pile. L2 deliberately creates
+ * the game's signature difficulty cliff (kinds 3→9, total items 18→162), then
+ * each scene ramps the
  * bottom-reserve depth while the live physics window stays mobile-safe.
  *
  * Design constraints (GDD §4/§6, re-validated by scripts/tune.mjs in S5):
@@ -24,14 +26,17 @@ export const TOTAL_LEVELS = 15;
  *  - Time scales WITH item count: budget = picks × 1.5s + 12s buffer (rounded
  *    up to 5s), so a focused player wins with margin while occlusion + variety
  *    supply the challenge — never an unfair clock.
- *  - Variety reaches 10 kinds by L3 and 12 within each later scene so normal
- *    play already reads as a rich mixed pile. Logical runs grow from 18 to
- *    432 items, while item-stream.ts keeps only 40–54 live Cannon bodies.
+ *  - Variety starts at 3 kinds, jumps to 9 on L2, reaches 10 by L3 and 12 within
+ *    each later scene. Logical runs grow from 18 to
+ *    576 items (chapter 2 peak, L24); item-stream.ts keeps only 40–54 live Cannon bodies.
+ *    New chapter 2 levels hold variety at the max of 12 (no L1→L2-style cliff)
+ *    and deepen only perKind, so a returning player steps straight into the new
+ *    scenes at their existing skill level.
  */
 export const LEVEL_CURVE: LevelSpec[] = [
-  // Scene 1 · Garden (tutorial → bridge)
+  // Scene 1 · Garden (safe tutorial → intentional challenge cliff)
   { level: 1, kinds: 3, perKind: 2, timeMs: 40000, boxSize: 9 },
-  { level: 2, kinds: 5, perKind: 4, timeMs: 140000, boxSize: 10 }, // softened from 7 kinds (R2)
+  { level: 2, kinds: 9, perKind: 6, timeMs: 255000, boxSize: 10 },
   // Scene 2 · Orchard
   { level: 3, kinds: 10, perKind: 7, timeMs: 330000, boxSize: 10 },
   { level: 4, kinds: 11, perKind: 8, timeMs: 410000, boxSize: 10 },
@@ -50,6 +55,18 @@ export const LEVEL_CURVE: LevelSpec[] = [
   // Scene 6 · Night market
   { level: 14, kinds: 12, perKind: 11, timeMs: 610000, boxSize: 12 },
   { level: 15, kinds: 12, perKind: 12, timeMs: 660000, boxSize: 12 },
+  // ── Chapter 2 · Volcano (soft handoff — L16 matches L15, no cliff) ──
+  { level: 16, kinds: 12, perKind: 12, timeMs: 660000, boxSize: 12 },
+  { level: 17, kinds: 12, perKind: 13, timeMs: 715000, boxSize: 12 },
+  { level: 18, kinds: 12, perKind: 14, timeMs: 770000, boxSize: 12 }, // Volcano finale (504 items)
+  // ── Chapter 2 · Cloud (opener = previous finale, breather) ──
+  { level: 19, kinds: 12, perKind: 14, timeMs: 770000, boxSize: 12 },
+  { level: 20, kinds: 12, perKind: 15, timeMs: 825000, boxSize: 12 },
+  { level: 21, kinds: 12, perKind: 15, timeMs: 825000, boxSize: 12 }, // Cloud finale (540 items)
+  // ── Chapter 2 · Abyss (opener = previous finale, breather) ──
+  { level: 22, kinds: 12, perKind: 15, timeMs: 825000, boxSize: 12 },
+  { level: 23, kinds: 12, perKind: 16, timeMs: 880000, boxSize: 12 },
+  { level: 24, kinds: 12, perKind: 16, timeMs: 880000, boxSize: 12 }, // Abyss finale — global peak (576 items)
 ];
 
 /** Level spec composed with its scene's themed kind pool (first `kinds`). */
@@ -62,7 +79,7 @@ export function specOf(level: number): LevelSpec {
 /**
  * Runtime deal spec with a seeded, freshly shuffled theme pool. The level
  * still controls how many match kinds exist, while every new run may draw a
- * different subset and order from all 12 theme models. Supplying the run RNG
+ * different order from its scene's curated 12-of-18 theme series. Supplying the run RNG
  * keeps the result reproducible for tests/debugging without turning normal
  * retries into a fixed pattern.
  */

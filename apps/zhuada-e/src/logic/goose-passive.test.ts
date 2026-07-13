@@ -74,3 +74,42 @@ describe("R3 — goose passive aggregation", () => {
     expect(goosePerkKey(99)).toBeNull();
   });
 });
+
+describe("R7 — chapter 2 goose passives (content expansion)", () => {
+  it("maps the three new scene geese to three distinct new levers", () => {
+    expect(computeGoosePassive([6]).extraShuffle).toBe(1);
+    expect(computeGoosePassive([7]).scoreBonus).toBeCloseTo(0.05, 5);
+    expect(computeGoosePassive([8]).frenzyTriggerDelta).toBe(1);
+  });
+
+  it("sums chapter-2 bonuses alongside the originals without distortion", () => {
+    const p = computeGoosePassive([0, 6, 7, 8]);
+    expect(p.extraHint).toBe(1);
+    expect(p.extraShuffle).toBe(1);
+    expect(p.scoreBonus).toBeCloseTo(0.05, 5);
+    expect(p.frenzyTriggerDelta).toBe(1);
+    // Originals' scalar levers untouched by these four geese.
+    expect(p.shakeCdDeltaMs).toBe(0);
+    expect(p.comboWindowDeltaMs).toBe(0);
+    expect(p.milestoneThresholdScale).toBe(1);
+  });
+
+  it("clamps the score-bonus prestige to its ceiling", () => {
+    const p = computeGoosePassive([7]);
+    expect(p.scoreBonus).toBeLessThanOrEqual(GOOSE_PASSIVE_LIMITS.maxScoreBonus);
+    expect(p.scoreBonus).toBeCloseTo(0.05, 5);
+  });
+
+  it("clamps the frenzy-trigger reduction to its floor", () => {
+    const p = computeGoosePassive([8]);
+    expect(p.frenzyTriggerDelta).toBeLessThanOrEqual(GOOSE_PASSIVE_LIMITS.maxFrenzyTriggerReduction);
+    expect(p.frenzyTriggerDelta).toBeGreaterThanOrEqual(0);
+    expect(p.frenzyTriggerDelta).toBe(1);
+  });
+
+  it("exposes perk copy keys for the chapter-2 geese", () => {
+    expect(goosePerkKey(6)).toBe("goosePerkVolcano");
+    expect(goosePerkKey(7)).toBe("goosePerkCloud");
+    expect(goosePerkKey(8)).toBe("goosePerkAbyss");
+  });
+});

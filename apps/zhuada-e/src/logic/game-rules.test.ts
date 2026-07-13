@@ -39,11 +39,11 @@ describe("milestonesFor", () => {
     }
   });
 
-  it("lands the L1 tutorial refunds early (hint at 20, add-time at 40)", () => {
+  it("lands the tutorial L1 refunds early (hint at 20, add-time at 40)", () => {
     const plan = milestonesFor(specOf(1));
     expect(plan.hintStep).toBe(20);
     expect(plan.addTimeStep).toBe(40);
-    // L1 ceiling is 60: two hint refunds + one add-time refund are reachable.
+    // L1 ceiling is 60: three hint refunds + one add-time refund are reachable.
     expect(baseCeiling(1)).toBe(60);
   });
 
@@ -70,6 +70,21 @@ describe("milestonesFor", () => {
     for (let level = 1; level <= TOTAL_LEVELS; level += 1) {
       expect(milestonesFor(specOf(level)).untimedRefund).toBe("remove");
     }
+  });
+
+  it("R3 — night-market scale pulls both refund thresholds earlier", () => {
+    const base = milestonesFor(specOf(15));
+    const scaled = milestonesFor(specOf(15), 0.9);
+    expect(scaled.hintStep).toBeLessThan(base.hintStep);
+    expect(scaled.addTimeStep).toBeLessThan(base.addTimeStep);
+    // Straight multiplier on the 30% / 60% steps, floored to a multiple of 5.
+    expect(scaled.hintStep).toBeLessThanOrEqual(Math.floor(base.hintStep * 0.9) + 5);
+    expect(scaled.addTimeStep).toBeLessThanOrEqual(Math.floor(base.addTimeStep * 0.9) + 5);
+  });
+
+  it("R3 — a non-positive scale falls back to 1 (no threshold inversion)", () => {
+    expect(milestonesFor(specOf(8), -1)).toEqual(milestonesFor(specOf(8), 1));
+    expect(milestonesFor(specOf(8), 0)).toEqual(milestonesFor(specOf(8)));
   });
 });
 

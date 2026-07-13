@@ -179,6 +179,28 @@ export function advanceTrayMotion(current: TrayMotionState): TrayMotionState {
   };
 }
 
+/**
+ * Finish a non-matching entry beat immediately so a newer rapid pick can take
+ * over without waiting behind the full grouping timer. The already-visible
+ * tokens keep their identity and destination, which lets CSS continue their
+ * in-flight transform instead of snapping the whole tray.
+ *
+ * Match beats are deliberately not fast-forwarded: the completed triple still
+ * gets its highlight, clear and compact sequence before queued picks resume.
+ */
+export function settleNonMatchEntry(current: TrayMotionState): TrayMotionState {
+  if (current.matched || current.phase === "idle") return current;
+  return {
+    ...current,
+    phase: "idle",
+    tokens: current.tokens.map((token) => ({
+      ...token,
+      incoming: false,
+      matched: false,
+    })),
+  };
+}
+
 export function trayMotionPhaseDuration(phase: TrayMotionPhase): number | null {
   switch (phase) {
     case "approach": return TRAY_MOTION_TIMINGS.approachMs;

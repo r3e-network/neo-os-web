@@ -33,7 +33,7 @@ export interface ItemDef {
   color: number;
 }
 
-/** 12 logical kind ids shared by every selectable theme. Runtime 2D art comes
+/** 18 logical kind ids shared by every selectable theme. Runtime 2D art comes
  * from optimized ImageGen atlases and 3D art from the matching model catalog. */
 export const ITEM_DEFS: ItemDef[] = [
   { id: 0, name: "Tomato", nameZh: "番茄", geometry: "sphere", model: "tomato", color: 0xef4444 },
@@ -48,6 +48,12 @@ export const ITEM_DEFS: ItemDef[] = [
   { id: 9, name: "Melon", nameZh: "西瓜", geometry: "sphere", model: "melon", color: 0x0ea371 },
   { id: 10, name: "Egg", nameZh: "鸡蛋", geometry: "cylinder", model: "egg", color: 0xfde68a },
   { id: 11, name: "Fish", nameZh: "小鱼干", geometry: "box", model: "fish", color: 0x38bdf8 },
+  { id: 12, name: "Berry", nameZh: "莓果", geometry: "sphere", model: "tomato", color: 0xd94c52 },
+  { id: 13, name: "Slice", nameZh: "切片", geometry: "cylinder", model: "melon", color: 0x63a55b },
+  { id: 14, name: "Jar", nameZh: "罐子", geometry: "cylinder", model: "mushroom", color: 0xe5a72f },
+  { id: 15, name: "Wedge", nameZh: "楔形物", geometry: "box", model: "corn", color: 0xf2c84b },
+  { id: 16, name: "Keepsake", nameZh: "摆件", geometry: "icosa", model: "broccoli", color: 0xc86f4a },
+  { id: 17, name: "Carton", nameZh: "纸盒", geometry: "box", model: "eggplant", color: 0xf0d78a },
 ];
 
 export const TRAY_SLOTS = 7;

@@ -152,6 +152,59 @@ describe("PlayArea accessibility contract", () => {
     expect((view.getByRole("button", { name: "puShake" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("labels relaxed play explicitly instead of showing an unexplained infinity symbol", () => {
+    const view = render(<PlayArea {...props({ gameStatus: "dealt", timedMode: false })} />);
+    const relaxed = view.getByRole("group", { name: "scoreTime: untimedHud" });
+
+    expect(relaxed.getAttribute("data-kind")).toBe("untimed");
+    expect(relaxed.textContent).toContain("untimedHud");
+    expect(view.container.textContent).not.toContain("∞");
+    expect(view.queryByRole("timer")).toBeNull();
+  });
+
+  it("reserves the prominent timer treatment for an active timed challenge", () => {
+    const view = render(<PlayArea {...props({
+      gameStatus: "dealt",
+      timedMode: true,
+      timeLeftMs: 42_000,
+    })} />);
+    const timer = view.getByRole("timer", { name: "scoreTime: 42s" });
+
+    expect(timer.getAttribute("data-kind")).toBe("time");
+    expect(timer.textContent).toContain("42s");
+    expect(view.queryByText("untimedHud")).toBeNull();
+  });
+
+  it("turns a recoverable full tray into an assertive last-stand prompt", () => {
+    const view = render(<PlayArea {...props({
+      gameStatus: "dealt",
+      tray: [0, 1, 2, 3, 4, 5, 6],
+      powerups: { shuffle: 1, hint: 3, remove: 1, undo: 1, addTime: 0 },
+      undoable: true,
+    })} />);
+
+    const alert = view.getByRole("alert");
+    expect(alert.textContent).toContain("statusTrayJammedTitle");
+    expect(alert.textContent).toContain("statusTrayJammedHint");
+    expect(alert.getAttribute("aria-live")).toBe("assertive");
+    expect(view.container.querySelector(".goose-tray-row")?.getAttribute("data-jammed")).toBe("true");
+    expect(view.getByRole("button", { name: "puRemove ×1" }).getAttribute("data-rescue")).toBe("true");
+    expect(view.getByRole("button", { name: "puUndo ×1" }).getAttribute("data-rescue")).toBe("true");
+  });
+
+  it("names terminal tray failure directly and offers a concrete recovery action", () => {
+    const view = render(<PlayArea {...props({
+      gameStatus: "expired",
+      failReason: "trayFull",
+      continueAvailable: true,
+    })} />);
+
+    const dialog = view.getByRole("dialog", { name: "statusFailedTrayFullTitle" });
+    expect(dialog.textContent).toContain("statusFailedTrayFull");
+    expect(view.getByRole("button", { name: "continueTrayAction" })).toBeTruthy();
+    expect(dialog.querySelector(".goose-overlay__card")?.getAttribute("data-tone")).toBe("fail");
+  });
+
   it("keeps coarse-pointer targets at 44px and globally suppresses optional motion", () => {
     expect(playAreaStyles).toContain("@media (pointer: coarse), (max-width: 760px)");
     expect(playAreaStyles).toMatch(/goose-stage-hud__sound[\s\S]*?width:\s*44px/);

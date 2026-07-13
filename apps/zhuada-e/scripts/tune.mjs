@@ -51,9 +51,10 @@
  *   A. greedySolve wins 100% of trials on every level — logical solvability:
  *      no level is mathematically dead (occlusion losses are skill/luck, the
  *      intended lategame pressure, not broken data).
- *   B. L1 randomWin ≥ 95% — the tutorial win floor (3 kinds × ≤2 tray copies
- *      = 6 < 7 slots means L1 literally cannot jam).
- *   C. The L2 difficulty spike is visible: stuckRate(L2) − stuckRate(L1) ≥ 15pp.
+ *   B. L1 random win ≥ 95% and its unmatched-kind ceiling stays below seven
+ *      slots — the opening teaches selection/matching without a trap state.
+ *   C. L2 is the intentional challenge cliff: at least 3× type variety, 8×
+ *      logical depth, and +15pp random jam risk over L1.
  *   D. Difficulty rises monotonically INSIDE each scene (2pp slack):
  *      stuckRate non-decreasing AND occlusion greedyWin non-increasing.
  *   E. Scene-average difficulty rises across scenes (2pp slack), same signals.
@@ -134,16 +135,16 @@ const STREAM_REFILL_TRIGGER = extractIntConst(streamSrc, "STREAM_REFILL_TRIGGER"
 const STREAM_REFILL_BATCH = extractIntConst(streamSrc, "STREAM_REFILL_BATCH", "item-stream.ts");
 const STREAM_VISIBLE_CEILING = extractIntConst(streamSrc, "STREAM_VISIBLE_CEILING", "item-stream.ts");
 const SCORE_PER_MATCH_DEFAULT = 10; // default of readTuneNum("score", 10, …)
-const KIND_COUNT = 12; // ITEM_DEFS size
+const SCENE_KIND_COUNT = 12;
+const CATALOG_KIND_COUNT = (engineSrc.match(/\{ id: \d+, name:/g) ?? []).length;
 
 // Shipped-data invariants (fail fast — a broken catalog invalidates every row).
 {
   const covered = new Array(CURVE.length + 1).fill(false);
   for (const s of SCENES) {
-    if (s.kindPool.length !== KIND_COUNT) die(`scene kindPool is not ${KIND_COUNT} ids`);
-    if ([...s.kindPool].sort((a, b) => a - b).some((v, i) => v !== i)) {
-      die("scene kindPool is not a permutation of 0..11");
-    }
+    if (s.kindPool.length !== SCENE_KIND_COUNT) die(`scene kindPool is not ${SCENE_KIND_COUNT} ids`);
+    if (new Set(s.kindPool).size !== SCENE_KIND_COUNT) die("scene kindPool contains duplicate ids");
+    if (s.kindPool.some((id) => id < 0 || id >= CATALOG_KIND_COUNT)) die("scene kindPool contains an unknown catalog id");
     for (let l = s.first; l <= s.last; l += 1) covered[l] = true;
   }
   for (let l = 1; l <= CURVE.length; l += 1) {
@@ -609,11 +610,16 @@ const failures = [];
 for (const r of rows) {
   if (r.solveWin < 0.999) failures.push(`GATE A: L${r.level} full-info greedy solve ${pct(r.solveWin).trim()} < 100%`);
 }
-// B. Tutorial win floor.
-if (rows[0].randomWin < 0.95) failures.push(`GATE B: L1 randomWin ${pct(rows[0].randomWin).trim()} < 95%`);
-// C. L2 spike visible in stuckRate.
-if (rows[1].stuckRate - rows[0].stuckRate < 0.15) {
-  failures.push(`GATE C: L2 stuckRate spike ${pct(rows[1].stuckRate).trim()} − ${pct(rows[0].stuckRate).trim()} < 15pp`);
+// B. L1 is a true tutorial floor: random play almost always clears, and even
+//    two buffered copies of every kind cannot occupy all seven tray slots.
+if (rows[0].randomWin < 0.95) failures.push(`GATE B: L1 random win ${pct(rows[0].randomWin).trim()} < 95%`);
+if (rows[0].kinds * 2 >= TRAY_SLOTS) failures.push(`GATE B: L1 can jam (${rows[0].kinds} kinds × 2 unmatched ≥ ${TRAY_SLOTS} slots)`);
+// C. L2 must feel immediately and measurably harder, not like a gentle bridge.
+if (rows[1].kinds < rows[0].kinds * 3 || rows[1].total < rows[0].total * 8) {
+  failures.push(`GATE C: L2 cliff ${rows[0].kinds} kinds/${rows[0].total} items → ${rows[1].kinds} kinds/${rows[1].total} items is too small`);
+}
+if (rows[1].stuckRate < rows[0].stuckRate + 0.15) {
+  failures.push(`GATE C: L2 random jam risk ${pct(rows[1].stuckRate).trim()} is not at least 15pp above L1 ${pct(rows[0].stuckRate).trim()}`);
 }
 // D. Difficulty rises monotonically inside each scene (2pp slack):
 //    stuckRate must not fall, occlusion greedyWin must not rise.
@@ -658,4 +664,4 @@ if (failures.length > 0) {
   for (const f of failures) console.error(`  - ${f}`);
   process.exit(1);
 }
-console.log("\nALL GATES PASS ✅  (A solvability 100% · B L1 floor · C L2 spike · D/E monotonic difficulty · F fair clock)");
+console.log("\nALL GATES PASS ✅  (A solvability 100% · B safe L1 floor · C deliberate L2 challenge cliff · D/E monotonic difficulty · F fair clock)");

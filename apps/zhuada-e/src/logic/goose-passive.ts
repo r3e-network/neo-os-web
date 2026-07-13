@@ -29,6 +29,14 @@ export interface GoosePassive {
   comboWindowDeltaMs: number;
   /** Milestone-threshold multiplier (1 = unchanged, <1 = refunds arrive earlier). Multiplicative across geese. */
   milestoneThresholdScale: number;
+  /** Extra shuffle (洗牌) power-ups at level start. Additive across geese. */
+  extraShuffle: number;
+  /** Score prestige bonus, additive fraction (0.05 = +5%). Applied as
+   *  final = base × (1 + scoreBonus). Clamped on sum. */
+  scoreBonus: number;
+  /** Frenzy trigger reduction (positive = fewer combo needed). Synergy with
+   *  R6; lowers FRENZY_TRIGGER_COMBO. Clamped on sum. */
+  frenzyTriggerDelta: number;
 }
 
 export interface GoosePassiveDef {
@@ -38,7 +46,8 @@ export interface GoosePassiveDef {
   perkKey: string;
 }
 
-// ── Tuning table (all [PLACEHOLDER] — validate in playtest) ───────────────────
+// ── Tuning table ([ACCEPTED-SIM] — balance validated by balance-frenzy.mjs gate; values match GDD §9 Proposed defaults. Human feel-test still recommended before locking.) ──
+// Proposed ship values: volcano shuffle +1, cloud score +0.05, abyss frenzyΔ +1, caps score 0.5 / frenzyΔ 2.
 // Each scene's final-level goose maps to ONE independent lever so collected
 // bonuses never conflict or compound into something snowballing:
 //   garden(0)   → +1 提示      (information, always welcome)
@@ -53,6 +62,11 @@ const GOOSE_PASSIVE_POND_SHAKE_CD_MS = -1000;
 const GOOSE_PASSIVE_FARM_COMBO_MS = 200;
 const GOOSE_PASSIVE_SNOWFIELD_UNDO = 1;
 const GOOSE_PASSIVE_NIGHT_THRESHOLD_SCALE = 0.9;
+// Chapter 2 geese (content expansion, 2026-07-12) — three NEW independent
+// levers so collected bonuses stay distinct from the original six:
+const GOOSE_PASSIVE_VOLCANO_SHUFFLE = 1; // 7th power-up lever, mirrors hint/remove/undo
+const GOOSE_PASSIVE_CLOUD_SCORE_BONUS = 0.05; // +5% score (prestige)
+const GOOSE_PASSIVE_ABYSS_FRENZY_DELTA = 1; // Frenzy trigger 5 → 4
 
 export const GOOSE_PASSIVES: Record<number, GoosePassiveDef> = {
   0: { passive: { extraHint: GOOSE_PASSIVE_GARDEN_HINT }, perkKey: "goosePerkGarden" },
@@ -61,6 +75,10 @@ export const GOOSE_PASSIVES: Record<number, GoosePassiveDef> = {
   3: { passive: { comboWindowDeltaMs: GOOSE_PASSIVE_FARM_COMBO_MS }, perkKey: "goosePerkFarm" },
   4: { passive: { extraUndo: GOOSE_PASSIVE_SNOWFIELD_UNDO }, perkKey: "goosePerkSnowfield" },
   5: { passive: { milestoneThresholdScale: GOOSE_PASSIVE_NIGHT_THRESHOLD_SCALE }, perkKey: "goosePerkNightMarket" },
+  // Chapter 2 — three new independent levers (content expansion, 2026-07-12):
+  6: { passive: { extraShuffle: GOOSE_PASSIVE_VOLCANO_SHUFFLE }, perkKey: "goosePerkVolcano" },
+  7: { passive: { scoreBonus: GOOSE_PASSIVE_CLOUD_SCORE_BONUS }, perkKey: "goosePerkCloud" },
+  8: { passive: { frenzyTriggerDelta: GOOSE_PASSIVE_ABYSS_FRENZY_DELTA }, perkKey: "goosePerkAbyss" },
 };
 
 /** Hard caps so the sum of collected geese can never distort handfeel. */
@@ -69,6 +87,10 @@ export const GOOSE_PASSIVE_LIMITS = {
   maxShakeCdReductionMs: 3000,
   /** Combo window may extend at most 4s. */
   maxComboWindowDeltaMs: 4000,
+  /** Score prestige bonus may sum to at most +50% (base ×1.5). */
+  maxScoreBonus: 0.5,
+  /** Frenzy trigger may drop at most 2 (combo 5 → min 3). */
+  maxFrenzyTriggerReduction: 2,
 } as const;
 
 export const EMPTY_GOOSE_PASSIVE: GoosePassive = {
@@ -78,6 +100,9 @@ export const EMPTY_GOOSE_PASSIVE: GoosePassive = {
   shakeCdDeltaMs: 0,
   comboWindowDeltaMs: 0,
   milestoneThresholdScale: 1,
+  extraShuffle: 0,
+  scoreBonus: 0,
+  frenzyTriggerDelta: 0,
 };
 
 /**
@@ -98,6 +123,9 @@ export function computeGoosePassive(geese: number[]): GoosePassive {
     if (p.shakeCdDeltaMs) result.shakeCdDeltaMs += p.shakeCdDeltaMs;
     if (p.comboWindowDeltaMs) result.comboWindowDeltaMs += p.comboWindowDeltaMs;
     if (p.milestoneThresholdScale !== undefined) scale *= p.milestoneThresholdScale;
+    if (p.extraShuffle) result.extraShuffle += p.extraShuffle;
+    if (p.scoreBonus) result.scoreBonus += p.scoreBonus;
+    if (p.frenzyTriggerDelta) result.frenzyTriggerDelta += p.frenzyTriggerDelta;
   }
   result.shakeCdDeltaMs = Math.max(
     -GOOSE_PASSIVE_LIMITS.maxShakeCdReductionMs,
@@ -106,6 +134,12 @@ export function computeGoosePassive(geese: number[]): GoosePassive {
   result.comboWindowDeltaMs = Math.max(
     0,
     Math.min(GOOSE_PASSIVE_LIMITS.maxComboWindowDeltaMs, result.comboWindowDeltaMs),
+  );
+  // Chapter 2 levers — clamp so a full collection can never distort handfeel.
+  result.scoreBonus = Math.max(0, Math.min(GOOSE_PASSIVE_LIMITS.maxScoreBonus, result.scoreBonus));
+  result.frenzyTriggerDelta = Math.max(
+    0,
+    Math.min(GOOSE_PASSIVE_LIMITS.maxFrenzyTriggerReduction, result.frenzyTriggerDelta),
   );
   result.milestoneThresholdScale = scale;
   return result;

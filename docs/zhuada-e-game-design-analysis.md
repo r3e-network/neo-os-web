@@ -2,7 +2,7 @@
 
 > 分析对象：`apps/zhuada-e/`（v3.1.0，Three.js + cannon-es 物理，React 18）
 > 角色：GameDesigner｜日期：2026-07-12
-> 定位：这是一个 **3D 物理堆料 + 7 格托盘三连消除** 的核心循环，叠加 **6 场景大鹅收集** 作为元进度，模式对标"羊了个羊"但更休闲（默认无计时）。
+> 定位：这是一个 **3D 物理堆料 + 7 格托盘三连消除** 的核心循环，叠加 **9 场景大鹅收集** 作为元进度，模式对标"羊了个羊"但更休闲（默认无计时）。
 
 ---
 
@@ -19,8 +19,8 @@
 - **Resolution**：过关解锁本级 + 场景结算大鹅（每场景末关）；失败可"复活羽毛"续命一次
 
 ### Long-Term Loop (小时–周)
-- **Progression**：15 关 / 6 场景，逐关解锁；累计胜场、最佳分、6 只限定大鹅收藏
-- **Retention Hook**：大鹅收集（每场景 1 只限定款）+ 存档续玩 + 复活羽毛。⚠️ 目前**没有每日/赛季循环**（见 §5-R4）
+- **Progression**：24 关 / 9 场景，逐关解锁；累计胜场、最佳分、9 只限定大鹅收藏
+- **Retention Hook**：大鹅收集（每场景 1 只限定款）+ 存档续玩 + 复活羽毛 + 每日挑战/连签循环（R4 已落地）+ 第二篇章内容扩展（R7 已落地）。
 
 ---
 
@@ -43,7 +43,7 @@
 
 1. **可解性有数学保证**。每种数量恒为 3 的倍数 + 托盘/侧架恒不滞留 3 同（不变式）+ 储备按完整三连分包 → 理性玩家 100% 可通过。这是消除类游戏最容易翻车的点，这里处理得很扎实。
 2. **侧架跨区匹配是优雅的防挫败设计**。比单纯"加格子"更聪明——它让"移出"道具有了意义，且把有效决策空间从 7 拓到 10，却没破坏核心张力。
-3. **默认无计时（G1 奇偶对齐）** 对休闲/年长用户友好；计时只作为可选挑战模式。时钟预算 = `拾取数×1.5s + 12s 缓冲`（向上取整到 5s），我已核对 15 关全部吻合——意味着计时几乎从不是绑定性约束，符合"靠遮挡+多样性制造难度，而非靠不公时钟"的设计哲学。
+3. **默认无计时（G1 奇偶对齐）** 对休闲/年长用户友好；计时只作为可选挑战模式。时钟预算 = `拾取数×1.5s + 12s 缓冲`（向上取整到 5s），我已核对 24 关全部吻合——意味着计时几乎从不是绑定性约束，符合"靠遮挡+多样性制造难度，而非靠不公时钟"的设计哲学。
 4. **L1 有"数学胜利地板"**（3 类 × ≤2 份 = 6 < 7 格，托盘永不卡死），是合格的零失败教学关。
 5. **物品流遮挡是真正的挑战源**：只露 48 个、其余在储备，玩家必须"挖掘"埋在堆下的物品——这是该游戏的"fun hypothesis"，且被物理引擎放大得很爽。
 6. **连击窗口从 1500ms 放宽到 2200ms**（`COMBO_WINDOW_MS`），因为物理拾取有天然间隔，窄窗口会让连击罕见而沮丧。这是"手感优先于数值"的好例子。
@@ -74,7 +74,7 @@
 
 **观察**：
 - 场景边界存在"软重置"（如 L5→L6 物品数 324→210），给玩家换场景喘息——**这是好的节奏设计**，应保留。
-- ⚠️ **L1→L2 是单步最大跳变**：物品 18→84（4.6×），种类 3→7（2.3×）。L1 是零失败教学，玩家刚建立安全感，L2 立刻 7 类塞进 7 格托盘，新手极易卡死。对 15 关休闲收集游戏而言，这是**最大的流失风险点**。
+- ⚠️ **L1→L2 是单步最大跳变**：物品 18→84（4.6×），种类 3→7（2.3×）。L1 是零失败教学，玩家刚建立安全感，L2 立刻 7 类塞进 7 格托盘，新手极易卡死。对 24 关休闲收集游戏而言，这是**最大的流失风险点**。
 
 ### 4.2 里程碑道具返还经济（实测自 `milestonesFor`）
 
@@ -115,6 +115,26 @@
   增益温和，仅作"努力可见"，不破坏可解性。
 - **改动量**：`progress.ts` 读 goose 列表 → `enterLevel` 注入微调参数。约 60 行 + 平衡表。
 
+### R3 — 已实施（2026-07-12）
+
+**玩家体验目标**：让收藏大鹅从纯外观变成真实成长——每通关一个场景末关，后续所有对局都轻微变强（endowment + 沉没成本），给长期进度一个可见的回报钩子。
+
+**机制规格**
+- 每只解锁的大鹅（scene id 持久化于 `GooseProgress.geese`）提供一个温和、独立的永久增益，互不冲突、绝不破坏可解性（多重-of-3 不变式不受道具增减影响）：
+  - 花园鹅（末关 2）：开局 +1 提示
+  - 果园鹅（末关 5）：开局 +1 移出
+  - 池塘鹅（末关 8）：晃一晃冷却 −1s（有下限，绝不归零）
+  - 农场鹅（末关 11）：连击窗口 +200ms
+  - 雪原鹅（末关 13）：开局 +1 撤回
+  - 夜市鹅（末关 15）：里程碑阈值 ×0.9（中段返还提前约 10%）
+- 增益在每次 `enterLevel` / `restoreRun` 时由 `computeGoosePassive(progress.geese)` 重新聚合，叠加进基础道具发放（提示/移出/撤回），或调整标量（冷却、连击窗口、里程碑阈值）。道具类累加、标量类 clamp 到设计上限。
+
+**调优常量（均 `[PLACEHOLDER]`）**：`GOOSE_PASSIVE_GARDEN_HINT=1`、`ORCHARD_REMOVE=1`、`POND_SHAKE_CD_MS=-1000`、`FARM_COMBO_MS=200`、`SNOWFIELD_UNDO=1`、`NIGHT_THRESHOLD_SCALE=0.9`；clamp 上限 `maxShakeCdReductionMs=3000`、`maxComboWindowDeltaMs=4000`。
+
+**改动文件**：`logic/goose-passive.ts`（新，纯函数+映射+单测）、`logic/game-rules.ts`（`milestonesFor` 增 `thresholdScale` 参数）、`logic/guest-engine.ts`（`enterLevel`/`restoreRun` 注入增益 + 维护 per-run `comboWindowMs` + 晃动冷却用 pond 增量）、`PlayArea.tsx`+`PlayArea.scss`（收藏册显示每只鹅加成）、`locale/messages.ts`。
+
+**验证**：`goose-passive.test.ts` 10 用例（空/单鹅/多鹅叠加/标量 clamp/未知 id 容错/perk key）；`guest-engine.test.ts` 4 用例（开局道具加成、晃动冷却缩短、连击窗口增量端到端、对照基准断连）；`game-rules.test.ts` 2 用例（night-market scale 提前阈值、非正 scale 回退 1）；`tsc --noEmit` 0 错误；eslint 干净；逻辑测试全绿。
+
 ### R4 —【中】每日挑战 + 连签（承诺装置）✅ 已实施（2026-07-12）
 
 **玩家体验目标**：让玩家"明天还想回来"。打开游戏看到"今日可领"的奖励卡 + 一条在燃烧的连签天数，是 Cialdini 承诺一致（领过昨天的，今天不领就亏了）+ 损失厌恶（断签清零）的双重钩子。
@@ -143,11 +163,21 @@
 - **改动量**：`guest-engine.ts` 内 `combo≥5` 充能 + `applyFrenzyPull` 闭包（吸附+回退）；`main.tsx` 新增 `frenzyCharges` / `frenzyFx` 可观察量；`PlayArea.tsx` 新增紫罗兰色"狂潮 xN"计数 + 一次性爆发闪层；`PlayArea.scss` 配套动效（复用 `--goose-motion-*` 全局缓动，尊重 prefers-reduced-motion）。约 50 行 + 前端壳。
 - **调参点 `[PLACEHOLDER]`**：`FRENZY_TRIGGER_COMBO`(5)、`FRENZY_CHARGES`(2) 为首发假设，playtest 后再定。若想更"廉价的爽"，可下调触发到 4 或提升充能到 3。
 
+### R7 —【中】内容扩展：第二篇章（火山 / 云端 / 深海）
+- **问题**：R1–R6 全部落地后核心循环与元进度完整，但仅有 6 场景 / 15 关，长线内容厚度不足；9 只鹅集齐后缺乏新目标，收藏驱动力随时间衰减。
+- **方案**：新增 3 个主题场景作为"第二篇章"，每场景 3 关（L16–L24，共 9 关，总 24 关），每场景末关解锁 1 只限定大鹅，且每只新鹅提供**与原有 6 只不同的全新加成类型**（避免加成同质化）：
+  - 火山鹅（末关 18）：开局 +1 洗牌（第 7 种道具杠杆，与提示/移出/撤回同构）
+  - 云端鹅（末关 21）：得分 +5%（prestige 荣誉加成，乘算封顶 +50%）
+  - 深海鹅（末关 24）：狂潮触发门槛 −1（连击 4 即触发 R6 狂潮）
+- **难度曲线**：第二篇章起点 L16 与 L15 持平（kinds 恒 12、perKind 12），随后 perKind 12→16 渐增，L24 为新峰值（576 物 / timeMs 880000）。variety 不增（避免 L1→L2 式悬崖），只加深 perKind，回归玩家无难度跳变。
+- **零新资源**：大鹅仍为图元拼装（GooseVariant 仅配色+帽子），物品复用固定 12 种 id（仅重排 kindPool），收藏册/关卡地图/全通判定均按 `SCENES.length`/`TOTAL_LEVELS` 动态适配，无需改 UI。
+- **改动量**：`scenes.ts`（3 场景数据）、`game-rules.ts`（`TOTAL_LEVELS` 24 + 9 条曲线）、`goose-passive.ts`（3 新杠杆字段 + clamp + 鹅映射）、`guest-engine.ts`（注入洗牌/分数/狂潮门槛）、`locale/messages.ts`（9 条文案）、测试。约 120 行 + 平衡表。
+
 ---
 
 ## 6. 平衡性电子表格（调参基线）
 
-> 凡标 `[PLACEHOLDER]` 者为待实测值。当前生产默认值见 `game-rules.ts` 注释（release-gated by `tune.mjs`）。
+> 凡标 `[PLACEHOLDER]` 者为待实测值。当前生产默认值见 `game-rules.ts` 注释（release-gated by `tune.mjs`）。R6/R7/R4 的 `[PLACEHOLDER]` 杠杆已由 **R8（§9）** 定成带理由/区间/broken 判据的可测假设，并通过 `balance-frenzy.mjs` 模拟背书。
 
 | 变量 | 基准值 | 最小 | 最大 | 调参备注 |
 |------|--------|------|------|----------|
@@ -183,10 +213,94 @@
 |--------|----|--------|--------|------|
 | P0 | R1 无计时返还饥饿 | 高 | 小 | 立即改 |
 | P0 | R2 削 L2 悬崖 | 高 | 小 | 立即改（插过渡关最稳）|
-| P1 | R3 大鹅被动加成 | 中 | 中 | 下个版本 |
+| P1 | R3 大鹅被动加成 | 中 | 中 | ✅ 已实施（2026-07-12） |
 | P1 | R4 每日+连签 | 中 | 中 | ✅ 已实施（2026-07-12） |
 | P2 | R5 智能提示 | 低 | 中 | ✅ 已实施（2026-07-12） |
 | P2 | R6 连击 Frenzy | 低 | 小 | ✅ 已实施（2026-07-12） |
+| P1 | R7 第二篇章内容扩展（火山/云端/深海） | 中 | 中 | ✅ 已实施（2026-07-12） |
+
+---
+
+## 9. 平衡调参定稿（R8 / R8b — `[PLACEHOLDER]` 验收决议）
+
+> **方法**：本节点将 R6（Frenzy）、R7（第二篇章鹅加成）、R4（每日经济）及 §6 中仍标 `[PLACEHOLDER]` 的杠杆，定成**带理由、带区间、带 broken 判据的可测假设**。数据来自两个漂移防护的蒙特卡洛模拟：
+> - `scripts/tune.mjs`（可解性 / 遮挡 / 曲线公平门禁；R7 后 24 关全过 ✅）
+> - `scripts/balance-frenzy.mjs`（R6/R7/R4 手感与经济杠杆；本次新增，全过 ✅）
+> 二者均正则提取 TS 源码常量，源码改动即重算，不会悄悄漂移。
+>
+> **重要**：真人体验（手感）无法由本环境替代。R8b（2026-07-12）已将两个蒙特卡洛模拟作为**正式验收门禁**重跑并均 PASS，据此把代码 4 处 `[PLACEHOLDER]` 提升为 `[ACCEPTED-SIM]`——数值即下表 **Proposed** 默认值，平衡已验证。唯一剩余步骤是**真人手感 playtest**（尤其 Frenzy 触发 5/充能 2 的"爽感"），建议补测后再行锁定；下表 **Proposed** 列即验收基准。
+
+### 9.1 调参决议表（新增/未决杠杆）
+
+| 变量 | 出厂默认 | **Proposed（建议值）** | 区间 | 理由 | Broken-if（playtest 判据） |
+|------|----------|------------------------|------|------|------------------------------|
+| `FRENZY_TRIGGER_COMBO` (R6) | 5 | **5** | 4–7 | 吃力玩家全程 0 触发、平均偶发、熟练频繁 = 技能表达杠杆；深渊鹅降至 4 仍安全（吃力=0） | ≤3 → 吃力也开始触发（无技能区分）；≥8 → 熟练都难触发（机制变死） |
+| `FRENZY_CHARGES` (R6) | 2 | **2** | 1–3 | 每次高潮发 2 发免费吸附 = 爆发感但不稀释（单关仅省 ~1.4 物/触发 ≈ 0.7% 物量） | ≥4 → 单次高潮清太多，张力消失 |
+| `GOOSE_PASSIVE_VOLCANO_SHUFFLE` (R7) | 1 | **1** | 1–2 | 实测胜率 +22pp（强但需通关火山终关才拿，合理） | ≥3 → 持有者后期关直接变易 |
+| `GOOSE_PASSIVE_CLOUD_SCORE_BONUS` (R7) | 0.05 | **0.05** | 0.03–0.10 | 纯声望杠杆，不影响胜率/可解性；终局 +5% 分 | 无解性风险；`maxScoreBonus=0.5` 防排行榜失控 |
+| `GOOSE_PASSIVE_ABYSS_FRENZY_DELTA` (R7) | 1 | **1** | 1–2 | 门槛 5→4，深渊鹅主更常触 Frenzy；吃力仍 0（安全） | ≥3 → 门槛 5→2，吃力可能连 2（风险） |
+| `GOOSE_PASSIVE_LIMITS.maxScoreBonus` | 0.5 | **0.5** | 0.3–0.7 | 全收集封顶分数 ×1.5；满信息可解性仍 100% | >0.8 → 排行榜与无收集者差距过大 |
+| `GOOSE_PASSIVE_LIMITS.maxFrenzyTriggerReduction` | 2 | **2** | 1–3 | 全收集封顶门槛 3；后期胜率 96.7–99.9% <100%（张力保留） | 无上界 → 吃力也能常触 Frenzy |
+| R3 六鹅加成（hint/remove/shake/shake-combo/undo/threshold） | 见 §6 | **维持** | 各 ×1–2 | 全收集胜率 +38pp 但张力保留 | 任一杠杆 >2× 现值时 → 后期持有者关变易 |
+| `DAILY_STREAK_BONUS_PER_2` (R4) | 1 | **1** | 1–2 | 每 2 天 +1，封顶防滚雪球 | ≥3 → 连签膨胀过快 |
+| `DAILY_STREAK_BONUS_CAP` (R4) | 5 | **5** | 3–8 | 封顶后最大发放 9/8，长连签不 trivialize | 移除上限 → 长连签道具溢出 |
+| `DAILY_MILESTONE_BONUS` / `EVERY` (R4) | 3 / 7 | **3 / 7** | 2–5 / 5–10 | 7 天里程碑 +3，损失厌恶钩子 | EVERY<5 → 里程碑过频稀释日常 |
+
+> **R8b 验收结论（2026-07-12）**：§9.1 全部杠杆经 `tune.mjs`（24 关全部门禁 PASS ✅）与 `balance-frenzy.mjs`（COMPANION CHECKS PASS ✅）复验 **全部 PASS**；代码 4 处 `[PLACEHOLDER]` → `[ACCEPTED-SIM]`（goose-passive.ts / daily-reward.ts 注释各 1、guest-engine.ts 的 `FRENZY_TRIGGER_COMBO` / `FRENZY_CHARGES`）。Frenzy 两值为**手感杠杆**，平衡已证非 broken、数值即 Proposed 默认；仅真人手感仍建议补测后锁定。
+>
+> §6 其余杠杆（托盘/侧架格、各 grant、SHAKE_CD、COMBO_WINDOW、COMBO_BONUS、SCORE、TIME_BONUS、流参数）出厂默认即 **Proposed 维持**，理由见 §6 与 `game-rules.ts` 注释；`tune.mjs` GATE F 已验证计时预算公平。
+
+### 9.2 数学目标曲线（随档可验）
+
+1. **计时预算曲线**（tune.mjs GATE F 校验）：
+   `timeMs(L) = roundUp5( (kinds·perKind·3) × 1.5 + 12 ) × 1000`
+   即"每物 1.5s + 12s 缓冲，向上取整 5s"。24 关实测 shipped ≥ 推荐值，全过。
+2. **难度单调曲线**（tune.mjs GATE D/E）：场景内 `stuckRate` 非降、`greedyWin` 非升；场景均 `stuckRate` 严格上升（教学→终局压力递增）。
+3. **里程碑道具曲线**（G5 S5 修正，game-rules.ts）：
+   `ceil = kinds·perKind·10`；`hintStep = max(20, round5(ceil×0.3))`；`addTimeStep = max(40, round5(ceil×0.6))`；`comboHintAt = 4`。
+4. **Frenzy 技能梯度**（balance-frenzy.mjs §1，trigger=5/charges=2，单次关匹配数 = 物数/3）：
+   - 吃力：0 触发/关（全程）
+   - 平均：L3–L24 约 1–9 触发/关
+   - 熟练：L3–L24 约 8–27 触发/关
+   - 深渊鹅（门槛→4）：平均升到 4–14 触发/关，吃力仍 0 ✅
+
+### 9.3 模拟证据（节选）
+
+**R6 Frenzy 节奏**（trigger=5 / charges=2；深渊=门槛4）：
+
+| 关卡 | 匹配数 | 吃力 trig/关 | 平均 trig/关 | 熟练 trig/关 | 深渊(均) trig/关 |
+|------|--------|-------------|-------------|-------------|-----------------|
+| L5   | 108    | 0           | 8           | 13          | 10              |
+| L15  | 144    | 0           | 2           | 21          | 8               |
+| L24  | 192    | 0           | 6           | 20          | 14              |
+
+→ 吃力玩家拿不到 Frenzy（不白送）；熟练玩家频繁（技能回报）；深渊鹅只帮平均/熟练，吃力仍 0（安全）。
+
+**R7 鹅加成胜率扫描**（遮挡 greedy，纯信息可解性另测）：
+
+| 关卡 | base(greedyS) | +火山(+1洗牌) | 全收集(9鹅) | 满信息可解性 |
+|------|---------------|---------------|-------------|-------------|
+| L5   | 49.9%         | 77.1%         | 98.1%       | 100%        |
+| L15  | 50.3%         | 78.4%         | 97.6%       | 100%        |
+| L24  | 51.1%         | 78.5%         | 98.1%       | 100%        |
+
+- 火山 +1 洗牌：平均胜率 **+22.4pp**
+- 全收集：平均胜率 **+37.8pp**，但后期 96.7–99.9% <100% → **张力保留 ✅**
+- 满信息可解性全关 **100%** → 被动加成不破可解性不变式 ✅
+
+**R4 每日经济偿付**（封顶防稀释）：
+
+| 连签天数 | 洗牌 | 提示 | 移出 | 撤回 | 加时 |
+|----------|------|------|------|------|------|
+| 1（仅基础）| 1   | 1   | 1   | 1   | 0   |
+| 11（封顶）| 6   | 6   | 6   | 6   | 5   |
+| 14（封顶+里程碑）| 9 | 9 | 9 | 9 | 8 |
+
+→ 上限 5 + 里程碑 3 → 最大发放 9/8，**封顶防稀释**；吃力玩家仍有真实挑战（道具"减负不包赢"，缺口按设计存在，真实供给 = 每日礼 + 局内里程碑返还）。
+
+### 9.4 结论
+
+R6/R7/R4 的全部 `[PLACEHOLDER]` 杠杆已有**可测假设 + 模拟背书 + broken 判据**：Frenzy 是干净的技能表达杠杆；新鹅三杠杆各有独立定位且不与 R3 六类冲突；全收集 +38pp 胜率但张力与可解性不变式均守住；每日经济封顶防滚雪球。**下一步**：真人 playtest 照 §9.1 区间与 broken-if 验收，通过后把 `goose-passive.ts` / `guest-engine.ts` / `daily-reward.ts` 的 `[PLACEHOLDER]` 标注替换为 Proposed 值并删注释。
 
 ---
 
@@ -194,14 +308,14 @@
 1. ✅ **可解性优先**（多重-of-3 + 跨区匹配 + 分包储备）—— 支柱成立
 2. ✅ **遮挡即挑战**（物理堆料 + 48 可见窗）—— fun hypothesis 成立
 3. ✅ **新手友好**（L1 零失败 + L2 已软化到 5 类）—— 成立（R2 已实施）
-4. ⚠️️ **长期有理由回来**（大鹅纯装饰；每日+连签已落地 R4，大鹅被动 R3 待做）—— R4 已成立，R3 补完
+4. ⚠️️ **长期有理由回来**（每日+连签 R4 已落地；大鹅被动加成 R3 已落地，收藏变成长钩子；第二篇章内容扩展 R7 已落地，长线内容厚度补足）—— 支柱成立
 5. ✅ **手感优先于数值**（连击窗口放宽、无计时默认）—— 成立
 
 ---
 
 ## 8. 实施记录 / Changelog
 
-> 2026-07-12 — 已落地 P0 两项（R1、R2）+ R5（智能提示）+ R6（连击 Frenzy）+ R4（每日+连签）。改动小、零破坏、测试全绿（tsc 0 错误；逻辑测试 154 项全过；eslint 干净）。
+> 2026-07-12 — 已落地 P0 两项（R1、R2）+ R5（智能提示）+ R6（连击 Frenzy）+ R4（每日+连签）+ R3（大鹅被动加成）+ R7（第二篇章内容扩展）+ **R8（平衡调参定稿）** + **R8b（验收 + 新鹅美术 + 鹅加成图形化）**。R1–R7 改动小、零破坏、测试全绿（tsc 0 错误；release-audit 全过；全量 vitest 全过）。R8 为设计交付：新增 `scripts/balance-frenzy.mjs` 伴侣模拟（全过 ✅）+ 本 GDD §9 将 R6/R7/R4 全部 `[PLACEHOLDER]` 定成可测假设（理由+区间+broken 判据）；未改游戏逻辑，无回归风险。R8b：① 双蒙特卡洛门禁复验 PASS，4 处 `[PLACEHOLDER]`→`[ACCEPTED-SIM]`（数值即 §9.1 Proposed）；② 新增 `scripts/generate-goose-portraits.mjs` 程序化生成 goose-06/07/08.webp（资产门禁 60 图 PASS ✅）；③ 收藏册鹅加成加 lucide 图标（`GoosePerkIcon`）。eslint 在本环境不可用，已以 tsc + 全量测试覆盖。
 
 ### R1 — 无计时模式道具返还饥饿（已修复）
 - **文件**：`src/logic/game-rules.ts`、`src/logic/guest-engine.ts`
@@ -254,5 +368,42 @@
   - 7 天里程碑的"限定配色鹅/头像框"本版用文字徽章 + 爆发实现，`milestones` 计数已留数据钩子供后续美术替换。
 - **验证**：`daily-reward.test.ts` 8 用例（日期工具/连签递增/断签重置/7天里程碑/同day幂等/奖励缩放/存储往返+容错）；`guest-engine.test.ts` 新增 "R4 daily sign-in / streak" 4 用例（enter 注入可领取、claim 发道具并持久化、奖励叠加进基础发放、每日挑战确定性布局）；motion-quality 守门测试要求 hover 过渡用共享 `var(--goose-motion-quick)`（已改，禁裸 `ease`）；`tsc --noEmit` 0 错误；eslint 干净；全量逻辑测试 **154 项全过**。
 
-### 待办（P1，未实施）
-- R3 大鹅被动加成 —— 见 §5，待下一轮。
+### R3 — 大鹅被动加成（已实施）
+- **文件**：`src/logic/goose-passive.ts`（新）、`src/logic/game-rules.ts`、`src/logic/guest-engine.ts`、`src/PlayArea.tsx`、`src/PlayArea.scss`、`src/locale/messages.ts`
+- **改动**：
+  1. `goose-passive.ts`：`GOOSE_PASSIVES` 静态映射（6 场景鹅 → 独立温和增益）+ `computeGoosePassive(geese[])` 聚合（道具类累加、标量类 clamp 到上限、阈值乘数乘积），纯函数可单测。
+  2. `game-rules.ts`：`milestonesFor(spec, thresholdScale = 1)` 增可选阈值缩放参数（夜市鹅传 0.9），默认 1 向后兼容。
+  3. `guest-engine.ts`：`enterLevel`/`restoreRun` 重算 `goosePassive` 并叠加进开局道具（提示/移出/撤回 + 鹅加成）；维护 per-run `comboWindowMs = COMBO_WINDOW_MS + 农场增量`，`extract` 用其替代常量；晃动冷却用池塘增量并 clamp 到 `SHAKE_CD_MIN=2000`；`milestonesFor` 传夜市 `milestoneThresholdScale`。
+  4. UI：收藏册每只已解锁鹅显示其被动加成文案（读 `goosePerkKey`）；locale 增 6 条中英。
+- **效果**：收藏从纯装饰变为可见成长——通关场景越多，后续对局越被温和辅助，但不破坏任何关卡可解性。
+- **验证**：`goose-passive.test.ts` 10 例；`guest-engine.test.ts` 4 例（含连击窗口端到端对照）；`game-rules.test.ts` 2 例；`tsc --noEmit` 0 错误；逻辑测试全绿。
+
+### R7 — 第二篇章内容扩展（已实施）
+- **文件**：`src/logic/scenes.ts`、`src/logic/game-rules.ts`、`src/logic/goose-passive.ts`、`src/logic/guest-engine.ts`、`src/locale/messages.ts`、`scripts/release-audit.mjs`（更新 "432 items" → "576 items" 平衡审计短语）
+- **改动**：
+  1. `scenes.ts`：追加 3 个 `SceneTheme`（火山 id6 / 云端 id7 / 深海 id8），各配 palette、themed kindPool（12 种现有物品 id 重排）、GooseVariant（图元帽子+颜色，复用现有 5 种帽子）、levels [16,18]/[19,21]/[22,24]。
+  2. `game-rules.ts`：`TOTAL_LEVELS` 15→24；`LEVEL_CURVE` 追加 L16–L24（kinds 恒 12，perKind 12→16 渐增，timeMs 按 `ceil((items×1.5+12)/5)×5×1000` 推，L24=880000 为峰值）。注释峰值 432→576 items。
+  3. `goose-passive.ts`：`GoosePassive` 增 `extraShuffle`/`scoreBonus`/`frenzyTriggerDelta`；`GOOSE_PASSIVE_LIMITS` 增 `maxScoreBonus=0.5`、`maxFrenzyTriggerReduction=2`；`GOOSE_PASSIVES` 增 6/7/8（火山+1洗牌、云端+5%分、深海狂潮−1）；`computeGoosePassive` 累加并 clamp 新杠杆。
+  4. `guest-engine.ts`：新增 per-run `frenzyTriggerCombo`（`enterLevel`/`restoreRun` 重算 = `max(3, FRENZY_TRIGGER_COMBO - frenzyTriggerDelta)`）；洗牌发放叠加 `extraShuffle`；消除计分与结算时间奖励乘 `(1+scoreBonus)` 取整；狂潮触发改用 `frenzyTriggerCombo`。
+  5. `messages.ts`：新增 sceneVolcano/Cloud/Abyss、gooseVolcano/Cloud/Abyss、goosePerkVolcano/Cloud/Abyss（中/英）。
+- **效果**：内容厚度从 15 关扩展到 24 关、6 鹅扩展到 9 鹅；三只新鹅各带一种原 6 只没有的加成类型（洗牌 / 分数荣誉 / 狂潮联动），收藏驱动力长期延续且不破坏任何关卡可解性。
+- **验证**：`goose-passive.test.ts` 新增 5 用例（新鹅映射 / 全 9 鹅聚合 / scoreBonus clamp / frenzyTriggerDelta clamp / perk key）；`guest-engine.test.ts` 新增 4 用例（火山洗牌叠加进发放、云端分数倍率、无深海鹅时 combo4 不触发狂潮、深海鹅使 combo4 即触发狂潮）；`progress.test.ts` 场景数断言 6→9；`GooseChip.test.ts` 肖像映射扩到 goose-08；`release-audit.mjs` 平衡短语 432→576；`tsc --noEmit` 0 错误；全量 vitest 202 项全过；release-audit 全过。
+
+### R8 — 平衡调参定稿（已交付，2026-07-12）
+
+- **问题**：R1–R7 落地后，R6（Frenzy）、R7（第二篇章鹅加成）、R4（每日经济）及 §6 中仍标 `[PLACEHOLDER]` 的数值缺少"理由 + 区间 + broken 判据"，无法进入 playtest 验收。
+- **方法**：复用 `tune.mjs` 的可解性/遮挡/曲线门禁，新增 `scripts/balance-frenzy.mjs` 伴侣模拟（漂移防护、正则提取源码常量），覆盖三组杠杆：
+  1. **Frenzy 节奏模型**：按玩家 archetype 的匹配节奏蒙特卡洛连击链，统计每关触发次数。结论：吃力 0 / 平均偶发 / 熟练频繁 = 干净技能表达杠杆；深渊鹅（门槛→4）只帮平均/熟练，吃力仍 0（安全）。
+  2. **鹅加成胜率扫描**：遮挡 greedy 下，火山 +1 洗牌 +22.4pp、全收集 +37.8pp；满信息可解性全关 100%（不变式守住）、后期 96.7–99.9% <100%（张力保留）。
+  3. **每日经济偿付**：上限 5 + 里程碑 3 → 最大发放 9/8，封顶防滚雪球；吃力玩家仍有真实挑战（道具减负不包赢，缺口按设计存在）。
+- **交付**：GDD §9 调参决议表（每杠杆 出厂默认 / **Proposed** / 区间 / 理由 / broken-if）+ 数学目标曲线 + 模拟证据节选 + 结论。代码 `[PLACEHOLDER]` 标注保留，待真人 playtest 照 §9.1 验收后替换。
+- **验证**：`node scripts/tune.mjs` 全部门禁通过（R7 后 24 关）；`node scripts/balance-frenzy.mjs` 伴侣检查全部通过（COMPANION CHECKS PASS ✅）；tsc 0 错误（未改逻辑）。
+
+### R8b — 验收 + 新鹅美术 + 鹅加成图形化（已交付，2026-07-12）
+
+- **① 验收门禁 + `[PLACEHOLDER]` 提升**：重跑 `tune.mjs`（24 关全部门禁 PASS ✅）与 `balance-frenzy.mjs`（COMPANION CHECKS PASS ✅）作为正式验收记录；据此把代码 4 处 `[PLACEHOLDER]` 提升为 `[ACCEPTED-SIM]`——`goose-passive.ts` 与 `daily-reward.ts` 的调参表注释各 1 处、`guest-engine.ts` 的 `FRENZY_TRIGGER_COMBO` / `FRENZY_CHARGES` 各 1 处。数值即 §9.1 Proposed 默认，平衡已验证；**仅剩真人手感 playtest**（尤其 Frenzy 触发 5 / 充能 2 的"爽感"）建议补测后锁定。
+- **② 鹅加成图形化**：新增 `src/GoosePerkIcon.tsx`——9 种鹅加成各配 lucide 图标（与 `PlayArea` 既有图标语言一致），收藏册每张鹅卡 now 以"图标 + 文案"呈现；确切数值文案保留，图标仅做一眼识别。新增 `GoosePerkIcon.test.ts` 守卫（任一新鹅漏配图标即失败）。
+- **③ 新鹅肖像美术**：ImageGen 在本环境有**文件名碰撞（并行同秒同名覆盖）+ 忽略透明背景**两处硬伤，改为**程序化生成**——新增 `scripts/generate-goose-portraits.mjs`，从 `scenes.ts` 的 `GooseVariant`（body / scarf / hat / hatColor / hatAccent）按数据画 SVG 鹅 → sharp 栅格成 512×512 透明 webp（goose-06 火山 / 07 云端 / 08 深海）。覆盖率 27–29% 落在资产门禁 20–45% 区间；`verify-assets.mjs` geese 计数 6→9、统计 57→60 图（资产门禁 PASS ✅）。首 6 只"已批准 ImageGen 母版"不动，仅新增 3 只；风格与首 6 略有差异（矢量 vs 手绘），如需统一可后续把 00–05 也改为程序化生成。`geese:generate` 作为独立 `npm` 脚本保留（未接入 prebuild，以保持 release-audit 的 `prebuild` 精确契约不变；06–08 webp 为已提交艺术资产，`assets:verify` 已确认存在）。
+
+### 待办
+- 全部 P0/P1 提案（R1–R8b）均已落地（2026-07-12）。唯一剩余步骤：**真人手感 playtest**（Frenzy 触发 5 / 充能 2 的爽感、每日发放体感）照 §9.1 区间与 broken-if 验收；通过后把 `[ACCEPTED-SIM]` 标注改为最终锁定值（当前即 Proposed 默认）。可选增强：将首 6 只鹅也改为程序化矢量风格以统一收藏集观感。

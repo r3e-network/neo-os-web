@@ -109,8 +109,8 @@ describe("screw-sort production safety", () => {
     expect(scene).toContain('image.setData("screwBaseScale", baseScale)');
     expect(scene).toContain("hoverScale: baseScale * 1.08");
     expect(scene).toContain("pressScale: baseScale * 0.9");
-    expect(scene).toContain("scaleX: flightScale * 1.3");
     expect(scene).toContain("scaleX: flightScale * 0.64");
+    expect(scene).not.toContain('"lost"');
     expect(requestFlow).toContain('this.dispatch("selectScrew", screw.id)');
     expect(requestFlow).not.toContain("delayedCall");
     expect(requestFlow).not.toContain("this.animate");

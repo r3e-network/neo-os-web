@@ -73,6 +73,10 @@ function buildKettle(color: number): THREE.Group {
   const base = horizontalRing(0.55, 0.055, blackMetal);
   base.position.y = -0.54;
   group.add(base);
+  const baseSeal = cylinder(0.53, 0.53, 0.07, blackMetal, 22);
+  baseSeal.position.y = -0.57;
+  baseSeal.userData.detailLayer = "kettle-base-seal";
+  group.add(baseSeal);
 
   const lid = cylinder(0.39, 0.44, 0.11, p.light, 20);
   lid.position.y = 0.49;
@@ -435,6 +439,10 @@ function buildJug(color: number): THREE.Group {
   const band = horizontalRing(0.56, 0.035, blue, 22);
   band.position.y = -0.02;
   group.add(band);
+  const baseSeal = cylinder(0.34, 0.34, 0.07, cream, 20);
+  baseSeal.position.y = -0.66;
+  baseSeal.userData.detailLayer = "jug-base-seal";
+  group.add(baseSeal);
   return finishModel(group);
 }
 
@@ -500,6 +508,175 @@ function buildMug(color: number): THREE.Group {
   return finishModel(group);
 }
 
+function buildRollingPin(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const wood = surface(color, "wood");
+  const light = surface(tint(color, 0.14), "wood");
+  const dark = surface(tint(color, -0.2), "wood");
+  const roller = cylinder(0.38, 0.38, 1.45, wood, 24);
+  roller.rotation.z = Math.PI / 2;
+  group.add(roller);
+  for (const x of [-0.94, 0.94]) {
+    const axle = cylinder(0.15, 0.15, 0.48, dark, 18);
+    axle.rotation.z = Math.PI / 2;
+    axle.position.x = x;
+    group.add(axle);
+    const grip = capsule(0.19, 0.56, light, "x");
+    grip.position.x = x + Math.sign(x) * 0.27;
+    group.add(grip);
+  }
+  for (const x of [-0.62, 0.62]) {
+    const band = part(new THREE.TorusGeometry(0.39, 0.035, 7, 24), dark);
+    band.rotation.y = Math.PI / 2;
+    band.position.x = x;
+    group.add(band);
+  }
+  return finishModel(group);
+}
+
+function buildCookingPot(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const enamel = surface(color, "metal", { metalness: 0.38, clearcoat: 0.62 });
+  const cream = surface(0xfff1cf, "ceramic");
+  const dark = surface(0x2d3235, "metal");
+  group.add(lathe([[0.48, -0.52], [0.64, -0.44], [0.67, 0.32], [0.61, 0.42]], enamel, 26));
+  const rim = horizontalRing(0.64, 0.05, cream, 24);
+  rim.position.y = 0.42;
+  group.add(rim);
+  const lid = cylinder(0.57, 0.62, 0.14, cream, 24);
+  lid.position.y = 0.5;
+  group.add(lid);
+  const knob = sphere(0.14, dark, 14, 10);
+  knob.position.y = 0.68;
+  group.add(knob);
+  for (const x of [-0.78, 0.78]) {
+    const handle = roundedBox(0.34, 0.15, 0.23, 0.07, dark, 3);
+    handle.position.set(x, 0.14, 0);
+    group.add(handle);
+  }
+  const badge = roundedBox(0.38, 0.32, 0.04, 0.09, cream, 3);
+  badge.position.set(0, -0.05, 0.66);
+  group.add(badge);
+  return finishModel(group);
+}
+
+function buildCountryLoaf(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const crust = surface(color, "produce", { roughness: 0.72, clearcoat: 0.08 });
+  const crumb = surface(tint(color, 0.19), "paper");
+  const score = surface(tint(color, -0.18), "matte");
+  const loaf = roundedBox(1.28, 0.72, 0.86, 0.32, crust, 6);
+  loaf.position.y = -0.02;
+  group.add(loaf);
+  const belly = roundedBox(1.08, 0.34, 0.89, 0.16, crumb, 5);
+  belly.position.set(0, -0.25, 0.02);
+  group.add(belly);
+  for (const x of [-0.36, 0, 0.36]) {
+    const slash = capsule(0.045, 0.55, score, "z");
+    slash.position.set(x, 0.34, 0);
+    slash.rotation.y = -0.45;
+    group.add(slash);
+  }
+  for (const [x, z] of [[-0.42, 0.35], [0.18, 0.39], [0.48, -0.31]] as const) {
+    const flour = sphere(0.04, crumb, 8, 6);
+    flour.scale.y = 0.3;
+    flour.position.set(x, 0.37, z);
+    group.add(flour);
+  }
+  return finishModel(group);
+}
+
+function buildButterCrock(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const ceramic = surface(color, "ceramic");
+  const blue = surface(0x3e79ad, "glaze");
+  const butter = surface(0xf4ce55, "produce");
+  group.add(cylinder(0.54, 0.5, 0.78, ceramic, 24));
+  const foot = horizontalRing(0.46, 0.045, blue, 22);
+  foot.position.y = -0.4;
+  group.add(foot);
+  const lid = cylinder(0.57, 0.57, 0.15, blue, 24);
+  lid.position.y = 0.45;
+  group.add(lid);
+  const knob = sphere(0.14, butter, 14, 10);
+  knob.position.y = 0.64;
+  group.add(knob);
+  const plaque = roundedBox(0.55, 0.3, 0.045, 0.1, butter, 3);
+  plaque.position.set(0, -0.03, 0.51);
+  group.add(plaque);
+  for (const y of [-0.19, 0.18]) {
+    const stripe = capsule(0.025, 0.72, blue, "x");
+    stripe.position.set(0, y, 0.51);
+    group.add(stripe);
+  }
+  return finishModel(group);
+}
+
+function buildRooster(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const bodyMat = surface(color, "produce");
+  const cream = surface(0xffe6b8, "produce");
+  const red = surface(0xb8392f, "produce");
+  const beak = surface(0xf1ad35, "glaze");
+  const dark = surface(0x332d2a, "matte");
+  const body = sphere(0.52, bodyMat, 20, 14);
+  body.scale.set(0.9, 1.12, 0.78);
+  body.position.y = -0.18;
+  group.add(body);
+  const chest = sphere(0.34, cream);
+  chest.scale.z = 0.45;
+  chest.position.set(0, -0.05, 0.43);
+  group.add(chest);
+  const head = sphere(0.3, bodyMat);
+  head.position.set(0, 0.52, 0.08);
+  group.add(head);
+  const bill = part(new THREE.ConeGeometry(0.13, 0.35, 5), beak);
+  bill.rotation.x = Math.PI / 2;
+  bill.position.set(0, 0.5, 0.38);
+  group.add(bill);
+  for (const x of [-0.14, 0, 0.14]) {
+    const comb = sphere(0.1, red, 10, 7);
+    comb.position.set(x, 0.82 + (x === 0 ? 0.05 : 0), 0.04);
+    group.add(comb);
+  }
+  for (const x of [-0.11, 0.11]) {
+    const eye = sphere(0.04, dark, 9, 6);
+    eye.position.set(x, 0.61, 0.28);
+    group.add(eye);
+  }
+  for (let i = 0; i < 3; i += 1) {
+    const tail = leaf(0.82 - i * 0.1, 0.28, i === 1 ? red : dark);
+    tail.position.set((i - 1) * 0.12, 0.03 + i * 0.08, -0.5);
+    tail.rotation.x = 0.72 + i * 0.14;
+    group.add(tail);
+  }
+  return finishModel(group);
+}
+
+function buildYarnBall(color: number): THREE.Group {
+  const group = new THREE.Group();
+  const yarn = surface(color, "fabric");
+  const light = surface(tint(color, 0.18), "fabric");
+  const needle = surface(0xc6b28f, "wood");
+  group.add(sphere(0.62, yarn, 22, 16));
+  for (let i = 0; i < 7; i += 1) {
+    const strand = part(new THREE.TorusGeometry(0.54 - (i % 2) * 0.05, 0.025, 6, 28), i % 2 ? light : yarn);
+    strand.rotation.set(i * 0.37, i * 0.52, i * 0.24);
+    group.add(strand);
+  }
+  const loose = tube([
+    new THREE.Vector3(0.4, -0.2, 0.32),
+    new THREE.Vector3(0.75, -0.45, 0.18),
+    new THREE.Vector3(0.92, -0.5, -0.2),
+  ], 0.035, light, 18, 7);
+  group.add(loose);
+  const pin = capsule(0.025, 1.45, needle, "x");
+  pin.position.set(0.05, 0.15, 0.12);
+  pin.rotation.z = 0.42;
+  group.add(pin);
+  return finishModel(group);
+}
+
 const BUILDERS: ReadonlyArray<(color: number) => THREE.Group> = [
   buildKettle,
   buildMilkBottle,
@@ -513,9 +690,15 @@ const BUILDERS: ReadonlyArray<(color: number) => THREE.Group> = [
   buildJug,
   buildHeartCookie,
   buildMug,
+  buildRollingPin,
+  buildCookingPot,
+  buildCountryLoaf,
+  buildButterCrock,
+  buildRooster,
+  buildYarnBall,
 ];
 
-/** Build one production farm-kitchen object (logical kinds 0..11). */
+/** Build one production farm-kitchen object (logical kinds 0..17). */
 export function buildFarmKitchenModel(kind: number, color: number): THREE.Group {
   const safeKind = Number.isFinite(kind)
     ? THREE.MathUtils.clamp(Math.floor(kind), 0, BUILDERS.length - 1)

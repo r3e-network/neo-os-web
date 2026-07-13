@@ -11,6 +11,9 @@ describe("collectionPortraitFor", () => {
       "./art/geese/goose-03.webp",
       "./art/geese/goose-04.webp",
       "./art/geese/goose-05.webp",
+      "./art/geese/goose-06.webp",
+      "./art/geese/goose-07.webp",
+      "./art/geese/goose-08.webp",
     ]);
   });
 
