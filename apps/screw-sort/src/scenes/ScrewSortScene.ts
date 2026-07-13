@@ -50,9 +50,6 @@ type SceneLabels = {
   caseComplete: string;
   winTitle: string;
   winCopy: string;
-  starsThree: string;
-  starsTwo: string;
-  starsOne: string;
   efficiencyCopy: string;
   bestStarsLabel: string;
   pausedTitle: string;
@@ -72,9 +69,6 @@ const FALLBACK_LABELS: SceneLabels = {
   caseComplete: "Done",
   winTitle: "Workshop clear!",
   winCopy: "Every screw is home.",
-  starsThree: "★★★",
-  starsTwo: "★★☆",
-  starsOne: "★☆☆",
   efficiencyCopy: "No undo, no overflow — a perfect clear.",
   bestStarsLabel: "Best",
   pausedTitle: "Take a workshop break",
@@ -114,7 +108,7 @@ export class ScrewSortScene extends BaseScene {
   private bufferSprites: Phaser.GameObjects.GameObject[] = [];
   private overlay!: Phaser.GameObjects.Container;
   private overlayTitle!: Phaser.GameObjects.Text;
-  private overlayStars!: Phaser.GameObjects.Text;
+  private overlayStars!: Phaser.GameObjects.Graphics;
   private overlayCopy!: Phaser.GameObjects.Text;
   private overlayButtonText!: Phaser.GameObjects.Text;
   private overlayAction: string | null = null;
@@ -410,12 +404,7 @@ export class ScrewSortScene extends BaseScene {
       wordWrap: { width: this.scaleX(270) },
       lineSpacing: this.scaleY(3),
     }).setOrigin(0.5, 0);
-    this.overlayStars = this.add.text(this.widthPx / 2, this.y(364), "", {
-      fontFamily: FONT,
-      fontSize: `${Math.max(26, this.scaleX(32))}px`,
-      color: "#e7a51a",
-      align: "center",
-    }).setOrigin(0.5);
+    this.overlayStars = this.add.graphics();
     const button = this.add.rectangle(
       this.widthPx / 2,
       this.y(456),
@@ -688,6 +677,7 @@ export class ScrewSortScene extends BaseScene {
       this.overlayTitle.setText(labels.pausedTitle);
       this.overlayCopy.setText(labels.pausedCopy);
       this.overlayButtonText.setText(labels.resume);
+      this.drawOverlayStars(0);
       this.overlayAction = "togglePause";
       this.overlay.setVisible(true);
       return;
@@ -695,7 +685,7 @@ export class ScrewSortScene extends BaseScene {
     if (session.core.status === "won") {
       const stars = computeStars(session.core);
       this.overlayTitle.setText(labels.winTitle);
-      this.overlayStars.setText(stars === 3 ? labels.starsThree : stars === 2 ? labels.starsTwo : labels.starsOne);
+      this.drawOverlayStars(stars);
       const demerits = session.core.undosUsed + session.core.overflows;
       this.overlayCopy.setText(demerits === 0 ? labels.efficiencyCopy : labels.winCopy);
       this.overlayButtonText.setText(labels.newPuzzle);
@@ -705,6 +695,46 @@ export class ScrewSortScene extends BaseScene {
     }
     this.overlayAction = null;
     this.overlay.setVisible(false);
+  }
+
+  // Star rating drawn as real vector polygons (not glyph text) so the win
+  // overlay reads as crafted art and stays free of emoji/text placeholders.
+  private drawOverlayStars(earned: number): void {
+    const g = this.overlayStars;
+    g.clear();
+    const total = 3;
+    const cy = this.y(364);
+    const outer = Math.max(12, this.scaleX(15));
+    const inner = outer * 0.44;
+    const gap = outer * 2.35;
+    const stroke = Math.max(1, this.scaleX(1.5));
+    for (let i = 0; i < total; i++) {
+      const cx = this.widthPx / 2 + (i - (total - 1) / 2) * gap;
+      const pts = this.starPolygon(cx, cy, outer, inner);
+      if (i < earned) {
+        g.fillStyle(0xe7a51a, 1);
+        g.fillPoints(pts, true);
+        g.lineStyle(stroke, 0xb9791a, 1);
+        g.strokePoints(pts, true, true);
+      } else {
+        g.lineStyle(stroke, 0xd8c39a, 1);
+        g.strokePoints(pts, true, true);
+      }
+    }
+  }
+
+  private starPolygon(cx: number, cy: number, outer: number, inner: number): Phaser.Geom.Point[] {
+    const pts: Phaser.Geom.Point[] = [];
+    const spikes = 5;
+    const step = Math.PI / spikes;
+    let rot = -Math.PI / 2;
+    for (let i = 0; i < spikes; i++) {
+      pts.push(new Phaser.Geom.Point(cx + Math.cos(rot) * outer, cy + Math.sin(rot) * outer));
+      rot += step;
+      pts.push(new Phaser.Geom.Point(cx + Math.cos(rot) * inner, cy + Math.sin(rot) * inner));
+      rot += step;
+    }
+    return pts;
   }
 
   private playMoveAnimation(
