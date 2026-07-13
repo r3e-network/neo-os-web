@@ -23,7 +23,7 @@
   },
   "id": "miniapp-sheep-solitaire",
   "name": "Sheep Solitaire",
-  "name_zh": "羊了个羊",
+  "name_zh": "小羊接龙",
   "operation_panel": {
     "operations": [],
     "subtitle": "Choose a meadow route, pick exposed tiles into the seven-slot tray, and match triples before time runs out. Free play never opens a wallet prompt or writes to chain.",

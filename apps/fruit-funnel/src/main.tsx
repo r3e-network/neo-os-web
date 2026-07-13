@@ -2,20 +2,29 @@ import { createObservable, defineMiniApp } from "@shared/react";
 
 import PhaserPlayArea from "./PhaserPlayArea";
 import { messages } from "./locale/messages";
-import { FruitFunnelEngine, findSafeFruitHint } from "./logic/fruit-engine";
-import type { FruitMoveResult, FruitSnapshot } from "./logic/fruit-engine";
-import { clearFruitRun, persistFruitRun, restoreFruitEngine } from "./logic/storage";
+import { SuikaEngine } from "./logic/suika-engine";
+import type { SuikaSnapshot } from "./logic/suika-engine";
+import {
+  clearSuikaRun,
+  persistSuikaRun,
+  restoreSuikaEngine,
+} from "./logic/storage";
 import { manifest } from "./manifest";
 
 const APP_ID = "miniapp-fruit-funnel";
 const STORAGE_CHECKPOINT_MS = 5_000;
+const AIM_STEP = 20;
+const AIM_MIN = 34;
+const AIM_MAX = 356;
 
-function laneArg(args: unknown[]): number | null {
-  const value = args[0] && typeof args[0] === "object"
-    ? (args[0] as { lane?: unknown }).lane
-    : args[0];
-  const lane = Number(value);
-  return Number.isInteger(lane) ? lane : null;
+function numArg(args: unknown[], index: number): number | null {
+  const value = args[index];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
 }
 
 defineMiniApp({
@@ -26,93 +35,127 @@ defineMiniApp({
 
   setup(ctx) {
     const app = ctx.framework;
-    // This migration is deliberately local-only. Keep wallet, settlement,
-    // oracle, reward and chain surfaces closed until a real contract path is
-    // deployed and verified end to end.
+    // Local-only: keep wallet/settlement/oracle surfaces closed until a real
+    // contract path is deployed and verified end to end.
     app.mode.set("guest");
     const storage = app.storage.local;
-    let engine = restoreFruitEngine(storage) ?? FruitFunnelEngine.fresh();
-    const game = createObservable<FruitSnapshot>(engine.snapshot());
-    const hintLanes = createObservable<number[]>([]);
-    const hintMessageKey = createObservable<string | null>(null);
+
+    const best = readBest(storage);
+    let engine = restoreSuikaEngine(storage) ?? SuikaEngine.fresh(undefined, best);
+    const game = createObservable<SuikaSnapshot>(engine.snapshot());
+    const aimX = createObservable<number>((390) / 2);
     const storageHealthy = createObservable(true);
     let lastPersistAt = 0;
 
     const publish = (
       announce = true,
       shouldPersist = true,
-      prepared?: FruitSnapshot,
-    ): FruitSnapshot => {
+      prepared?: SuikaSnapshot,
+    ): SuikaSnapshot => {
       const snapshot = prepared ?? engine.snapshot();
       game.set(snapshot);
-      if (shouldPersist) {
-        storageHealthy.set(persistFruitRun(storage, snapshot));
+      if (shouldPersist && snapshot.phase !== "gameover") {
+        storageHealthy.set(persistSuikaRun(storage, snapshot));
         lastPersistAt = snapshot.savedAt;
       }
       if (announce) {
-        const tone = snapshot.phase === "lost" || snapshot.phase === "timeout" ? "error" : "info";
+        const tone = snapshot.phase === "gameover" ? "error" : "info";
         ctx.setStatus(ctx.t(snapshot.messageKey), tone);
       }
       return snapshot;
     };
 
-    const apply = (action: () => FruitMoveResult): FruitMoveResult => {
-      hintLanes.set([]);
-      hintMessageKey.set(null);
-      const result = action();
+    const apply = (action: () => SuikaSnapshot): SuikaSnapshot => {
+      const snapshot = action();
       publish(true);
-      return result;
+      return snapshot;
     };
 
-    app.actions.register("tapLane", (...args: unknown[]) => {
-      const lane = laneArg(args);
-      if (lane === null) return undefined;
-      return apply(() => engine.tapLane(lane));
+    app.actions.register("dropCurrent", (...args: unknown[]) => {
+      if (engine.snapshot().phase !== "playing") return undefined;
+      const x = numArg(args, 0);
+      const y = numArg(args, 1);
+      if (x === null || y === null) return undefined;
+      return apply(() => {
+        const level = engine.snapshot().currentLevel;
+        return engine.dropFruit(level, x, y).snapshot;
+      });
     });
 
-    app.actions.register("undoMove", () => apply(() => engine.undo()));
-    app.actions.register("togglePause", () => apply(() => engine.togglePause()));
-    app.actions.register("tickClock", () => {
+    app.actions.register("mergeFruits", (...args: unknown[]) => {
+      const idA = args[0];
+      const idB = args[1];
+      const newLevel = numArg(args, 2);
+      const x = numArg(args, 3);
+      const y = numArg(args, 4);
+      if (
+        typeof idA !== "string" || typeof idB !== "string"
+        || newLevel === null || x === null || y === null
+      ) return undefined;
+      return apply(() => engine.mergeFruits(idA, idB, newLevel, x, y).snapshot);
+    });
+
+    app.actions.register("setGameOver", () => apply(() => engine.setGameOver()));
+
+    app.actions.register("syncBoard", (...args: unknown[]) => {
+      const positions = Array.isArray(args[0])
+        ? (args[0] as Array<{ id: string; x: number; y: number }>)
+          .filter((entry) => entry && typeof entry.id === "string"
+            && Number.isFinite(entry.x) && Number.isFinite(entry.y))
+        : [];
+      if (positions.length === 0) return undefined;
+      engine.syncBoard(positions);
       const now = Date.now();
-      if (!engine.tick(now)) return;
+      const checkpointDue = now - lastPersistAt >= STORAGE_CHECKPOINT_MS;
       const snapshot = engine.snapshot(now);
-      const checkpointDue = now - lastPersistAt >= STORAGE_CHECKPOINT_MS
-        || snapshot.phase !== "playing";
-      publish(false, checkpointDue, snapshot);
+      game.set(snapshot);
+      if (checkpointDue) {
+        storageHealthy.set(persistSuikaRun(storage, snapshot));
+        lastPersistAt = snapshot.savedAt;
+      }
+      return undefined;
     });
-    app.actions.register("requestHint", () => {
-      const snapshot = engine.snapshot();
-      const hint = findSafeFruitHint(snapshot);
-      hintLanes.set(hint);
-      const messageKey = hint.length > 0
-        ? "statusHintReady"
-        : snapshot.history.length > 0
-          ? "statusHintUndo"
-          : "statusHintRestart";
-      hintMessageKey.set(messageKey);
-      ctx.setStatus(ctx.t(messageKey), "info");
-      return hint;
+
+    app.actions.register("setAim", (...args: unknown[]) => {
+      const x = numArg(args, 0);
+      if (x === null) return undefined;
+      aimX.set(Math.max(AIM_MIN, Math.min(AIM_MAX, x)));
+      game.set(engine.snapshot());
+      return undefined;
     });
+
+    app.actions.register("nudgeAim", (...args: unknown[]) => {
+      const dir = numArg(args, 0);
+      if (dir === null) return undefined;
+      aimX.set(Math.max(AIM_MIN, Math.min(AIM_MAX, aimX.get() + dir * AIM_STEP)));
+      game.set(engine.snapshot());
+      return undefined;
+    });
+
+    app.actions.register("togglePause", () => apply(() => engine.togglePause()));
+
     app.actions.register("restartGame", () => {
-      clearFruitRun(storage);
-      engine = FruitFunnelEngine.fresh(undefined, game.get().level + 1);
-      hintLanes.set([]);
-      hintMessageKey.set(null);
+      clearSuikaRun(storage);
+      const currentBest = engine.getBest();
+      engine = SuikaEngine.fresh(undefined, currentBest);
+      aimX.set(390 / 2);
       return publish(true);
     });
 
     const onVisibilityChange = () => {
       if (document.visibilityState !== "hidden") return;
-      if (engine.pauseForVisibility()) publish(false);
+      if (engine.snapshot().phase === "playing") {
+        engine.togglePause();
+        publish(false);
+      }
     };
     if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisibilityChange);
 
     return {
-      state: { game, hintLanes, hintMessageKey, storageHealthy },
+      state: { game, aimX, storageHealthy },
       loadData: async () => {
-        engine = restoreFruitEngine(storage) ?? FruitFunnelEngine.fresh();
-        hintLanes.set([]);
-        hintMessageKey.set(null);
+        engine = restoreSuikaEngine(storage) ?? SuikaEngine.fresh(undefined, readBest(storage));
+        aimX.set(390 / 2);
         const snapshot = publish(false);
         ctx.setStatus(ctx.t(snapshot.messageKey), "info");
       },
@@ -123,3 +166,8 @@ defineMiniApp({
     };
   },
 });
+
+function readBest(storage: { get<T>(key: string, fallback?: T | null): T | null }): number {
+  const raw = storage.get<number>("suika:best", 0);
+  return typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : 0;
+}

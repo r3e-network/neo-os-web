@@ -5,46 +5,50 @@ import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phase
 import type { PlayAreaProps } from "@shared/react";
 import { useStateBindings } from "@shared/react";
 
-import type { FruitSnapshot } from "./logic/fruit-engine";
-import { createFruitSceneCopy } from "./scene-copy";
+import type { SuikaSnapshot } from "./logic/suika-engine";
+import { GRAVITY_Y } from "./logic/suika-engine";
+import { createSuikaSceneCopy } from "./suika-copy";
 import "./PlayArea.scss";
 
 const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   width: 390,
   height: 844,
-  backgroundColor: "#fff4c7",
   transparent: true,
+  physics: {
+    default: "matter",
+    matter: {
+      gravity: { x: 0, y: GRAVITY_Y },
+      debug: false,
+    },
+  },
 };
 
-const loadFruitFunnelScene = () =>
-  import("./scenes/FruitFunnelScene").then((module) => module.FruitFunnelScene);
+const loadSuikaScene = () =>
+  import("./scenes/SuikaScene").then((module) => module.SuikaScene);
 
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, bool } = useStateBindings(state);
-  const game = val<FruitSnapshot>("game");
-  const hintLanes = val<number[]>("hintLanes");
-  const hintMessageKey = val<string | null>("hintMessageKey", null);
+  const game = val<SuikaSnapshot>("game");
+  const aimX = val<number>("aimX", 195);
   const storageHealthy = bool("storageHealthy");
 
   const sceneText = useMemo(
-    () => createFruitSceneCopy(t),
+    () => createSuikaSceneCopy(t),
     [t],
   );
 
   const bridgeState = useMemo(
-    () => ({ game, hintLanes: hintLanes ?? [], hintMessageKey, storageHealthy, sceneText }),
-    [game, hintLanes, hintMessageKey, sceneText, storageHealthy],
+    () => ({ game, aimX, sceneText }),
+    [game, aimX, sceneText],
   );
 
   const dispatchAction = useCallback((action: string, ...args: unknown[]) => {
     void dispatch(action, ...args);
   }, [dispatch]);
 
-  const liveStatus = hintMessageKey
-    ? t(hintMessageKey)
-    : game
-      ? t(game.messageKey)
-      : t("statusReady");
+  const liveStatus = game
+    ? t(game.messageKey)
+    : t("statusReady");
 
   return (
     <section className="fruit-funnel" aria-label={t("gameAriaLabel")}>
@@ -52,7 +56,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         <PhaserGameComponent
           className="fruit-funnel__canvas"
           config={GAME_CONFIG}
-          loadScene={loadFruitFunnelScene}
+          loadScene={loadSuikaScene}
           state={bridgeState}
           dispatch={dispatch}
           ariaLabel={t("gameAriaLabel")}
@@ -66,23 +70,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       </div>
 
       <div className="fruit-funnel__a11y-controls" aria-label={t("keyboardHelp")}>
-        {Array.from({ length: 6 }, (_, lane) => (
-          <button key={lane} type="button" onClick={() => dispatchAction("tapLane", lane)}>
-            {lane + 1}
-          </button>
-        ))}
-        <button type="button" onClick={() => dispatchAction("undoMove")}>{t("undoAction")}</button>
-        <button type="button" onClick={() => dispatchAction("requestHint")}>{t("hintAction")}</button>
+        <button type="button" onClick={() => dispatchAction("nudgeAim", -1)} aria-label="◀">{t("aimLeftAction")}</button>
+        <button type="button" onClick={() => dispatchAction("dropCurrent")} aria-label={t("dropAction")}>{t("dropAction")}</button>
+        <button type="button" onClick={() => dispatchAction("nudgeAim", 1)} aria-label="▶">{t("aimRightAction")}</button>
         <button type="button" onClick={() => dispatchAction("togglePause")}>
           {game?.phase === "paused" ? t("resumeAction") : t("pauseAction")}
         </button>
-        <button type="button" onClick={() => dispatchAction("restartGame")}>{t("newOrchardAction")}</button>
+        <button type="button" onClick={() => dispatchAction("restartGame")}>{t("newGameAction")}</button>
       </div>
 
       <p className="fruit-funnel__live" aria-live="polite" aria-atomic="true">
         {liveStatus}. {!storageHealthy ? t("storageWarning") : ""}
       </p>
-      <span className="fruit-funnel__heartbeat" aria-hidden="true" />
     </section>
   );
 }

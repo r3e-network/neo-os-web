@@ -1,5 +1,5 @@
-import { FruitFunnelEngine, isValidFruitSnapshot } from "./fruit-engine";
-import type { FruitSnapshot } from "./fruit-engine";
+import { SuikaEngine, isValidSuikaSnapshot } from "./suika-engine";
+import type { SuikaSnapshot } from "./suika-engine";
 
 export interface FruitStorage {
   get<T>(key: string, fallback?: T | null): T | null;
@@ -7,30 +7,30 @@ export interface FruitStorage {
   remove?(key: string): void;
 }
 
-export const FRUIT_RUN_STORAGE_KEY = "run:v1";
+export const SUIKA_RUN_STORAGE_KEY = "run:suika:v1";
 
-export function restoreFruitEngine(storage: FruitStorage, now = Date.now()): FruitFunnelEngine | null {
+export function restoreSuikaEngine(storage: FruitStorage, now = Date.now()): SuikaEngine | null {
   try {
-    const raw = storage.get<unknown>(FRUIT_RUN_STORAGE_KEY, null);
-    if (!isValidFruitSnapshot(raw)) return null;
-    return FruitFunnelEngine.restore(raw, now);
+    const raw = storage.get<unknown>(SUIKA_RUN_STORAGE_KEY, null);
+    if (!isValidSuikaSnapshot(raw)) return null;
+    return SuikaEngine.restore(raw, 0, now);
   } catch {
     return null;
   }
 }
 
-export function persistFruitRun(storage: FruitStorage, snapshot: FruitSnapshot): boolean {
+export function persistSuikaRun(storage: FruitStorage, snapshot: SuikaSnapshot): boolean {
   try {
-    storage.set(FRUIT_RUN_STORAGE_KEY, snapshot);
+    storage.set(SUIKA_RUN_STORAGE_KEY, snapshot);
     return true;
   } catch {
     return false;
   }
 }
 
-export function clearFruitRun(storage: FruitStorage): void {
+export function clearSuikaRun(storage: FruitStorage): void {
   try {
-    storage.remove?.(FRUIT_RUN_STORAGE_KEY);
+    storage.remove?.(SUIKA_RUN_STORAGE_KEY);
   } catch {
     // A blocked storage surface must not block a fresh local round.
   }

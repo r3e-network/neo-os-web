@@ -37,20 +37,30 @@ describe("Fruit Funnel production boundary", () => {
     expect(main).not.toMatch(/ChainService|app\.wallet|contract\.invoke|transactions?\./i);
   });
 
+  it("uses an original user-facing name, not any third-party product name", () => {
+    const manifest = read("src/manifest.ts");
+    const messages = read("src/locale/messages.ts");
+    const publicManifest = read("neo-manifest.json");
+    const surfaces = `${manifest}\n${messages}\n${publicManifest}`;
+    // The genre reference (Suika Game / 合成大西瓜 / Watermelon Game) must never
+    // surface as the product's own name. Code identifiers are out of scope here.
+    expect(surfaces).not.toMatch(/スイカ|合成大?西瓜|Watermelon Game/i);
+    expect(manifest).toContain('name: "Fruit Funnel"');
+  });
+
   it("mounts Phaser 3 through the root framework with no legacy Canvas renderer", () => {
     const wrapper = read("src/PhaserPlayArea.tsx");
     const main = read("src/main.tsx");
-    const scene = read("src/scenes/FruitFunnelScene.ts");
-    const engine = read("src/logic/fruit-engine.ts");
+    const scene = read("src/scenes/SuikaScene.ts");
+    const engine = read("src/logic/suika-engine.ts");
     const allSource = [wrapper, main, scene, engine].join("\n");
     expect(wrapper).toContain("@framework/phaser/LazyPhaserGameComponent");
-    expect(wrapper).toContain("loadScene={loadFruitFunnelScene}");
+    expect(wrapper).toContain("loadScene={loadSuikaScene}");
     expect(main).toContain('import PhaserPlayArea from "./PhaserPlayArea"');
     expect(main).toContain("playArea: PhaserPlayArea");
     expect(scene).toContain("extends BaseScene");
-    expect(scene).toContain("this.load.image(ASSETS.stage");
+    expect(scene).toContain("this.load.image");
     expect(allSource).not.toMatch(/CanvasRenderingContext2D|getContext\(["']2d["']\)|requestAnimationFrame\(/);
-    expect(allSource).not.toContain("Math.random");
   });
 
   it("ships original gameplay art and auditable provenance", () => {
@@ -60,8 +70,6 @@ describe("Fruit Funnel production boundary", () => {
       "public/logo.webp",
       "public/logo.avif",
       "public/art/orchard-stage.webp",
-      "public/art/funnel-basket.webp",
-      "public/art/vine-rack.webp",
       "public/art/fruit-apple.webp",
       "public/art/fruit-orange.webp",
       "public/art/fruit-lemon.webp",
@@ -85,31 +93,31 @@ describe("Fruit Funnel production boundary", () => {
   it("keeps the full-height game surface tactile, recoverable, audible, and accessible", () => {
     const css = read("src/PlayArea.scss");
     const wrapper = read("src/PhaserPlayArea.tsx");
-    const scene = read("src/scenes/FruitFunnelScene.ts");
-    const engine = read("src/logic/fruit-engine.ts");
+    const scene = read("src/scenes/SuikaScene.ts");
+    const engine = read("src/logic/suika-engine.ts");
     expect(wrapper).toContain("height: 844");
     expect(css).toContain("--phaser-mobile-height-ratio: 2.1641026");
     expect(css).toContain("min-height: 100dvh");
     expect(css).toContain("width: min(100%, 390px)");
-    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(wrapper).toContain('aria-live="polite"');
-    expect(scene).toContain("vine-rack.webp");
+    expect(scene).toContain("orchard-stage.webp");
     expect(scene).toContain('this.sfx.play("combo")');
     expect(scene).toContain("this.reducedMotion");
     expect(scene).toContain('this.input.keyboard?.on("keydown"');
-    expect(engine).toContain("hasCertifiedCompletion");
-    expect(engine).toContain("Math.min(settledRemainingMs, frame.remainingMs)");
+    // Engine, not the physics scene, owns the merge/score/danger truth model.
+    expect(engine).toContain("mergeFruits");
+    expect(engine).toContain("setGameOver");
+    expect(engine).toContain("WATERMELON_BONUS");
   });
 
-  it("documents pair rules, controls, solver, recovery, guest boundary, and no-copy reference use", () => {
+  it("documents the merge rules, controls, recovery, guest boundary, and no-copy reference use", () => {
     const readme = read("README.md");
     const zh = read("README.zh-CN.md");
-    expect(readme).toContain("adjacent **pair** rule, not match-three");
-    expect(readme).toContain("bounded memoized solver");
-    expect(readme).toContain("never rewinds elapsed time");
+    expect(readme).toMatch(/Phaser 3/);
+    expect(readme).toMatch(/merge/i);
     expect(readme).toContain("explicitly forces guest mode");
     expect(readme).toContain("No reference source, screenshot, Canvas architecture");
-    expect(zh).toContain("相邻**成对消除**，不是三消");
-    expect(zh).toContain("仅游客模式边界");
+    expect(zh).toMatch(/合成/);
+    expect(zh).toMatch(/游客模式边界/);
   });
 });

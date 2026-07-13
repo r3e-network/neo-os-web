@@ -9,50 +9,49 @@ const scenePath = resolve(
   "..",
   "..",
   "fruit-funnel",
-  "src/scenes/FruitFunnelScene.ts",
+  "src/scenes/SuikaScene.ts",
 );
 const scene = readFileSync(scenePath, "utf8");
 
 describe("Fruit Funnel Phaser scene contract", () => {
-  it("uses authored orchard, rack, funnel, and six independent fruit resources as gameplay objects", () => {
-    expect(scene).toContain('stage: "fruit-funnel-stage"');
-    expect(scene).toContain('rack: "fruit-funnel-vine-rack"');
-    expect(scene).toContain('funnel: "fruit-funnel-basket"');
-    for (const color of ["apple", "orange", "lemon", "grape", "berry", "peach"]) {
-      expect(scene).toContain(`${color}: "fruit-${color}"`);
-    }
-    expect(scene).toContain("this.add.image(DESIGN_W / 2, 215, ASSETS.rack)");
-    expect(scene).toContain("this.add.image(DESIGN_W / 2, 600, ASSETS.funnel)");
-    expect(scene).toContain("ASSETS.fruit[token.color]");
+  it("runs a real Matter physics world with gravity, bounds, and collision merging", () => {
+    expect(scene).toContain("extends BaseScene");
+    expect(scene).toContain('from "@framework/phaser"');
+    expect(scene).toContain("this.matter.world.setGravity");
+    expect(scene).toContain("this.matter.world.setBounds");
+    expect(scene).toContain('this.matter.world.on("collisionstart"');
+    expect(scene).toContain("this.matter.add.circle");
   });
 
-  it("keeps the core release, pair burst, overflow recovery, clock, keyboard, audio, and reduced-motion loop alive", () => {
-    expect(scene).toContain('this.dispatch("tapLane", laneIndex)');
-    expect(scene).toContain("this.playPairBurst(previous, actionColor, ghost, targetX)");
-    expect(scene).toContain('this.dispatch("undoMove")');
-    expect(scene).toContain('this.dispatch("requestHint")');
+  it("keeps the drop, merge, danger-line game over, aim, pause, and restart loop wired to the engine", () => {
+    expect(scene).toContain('this.dispatch("dropCurrent"');
+    expect(scene).toContain('this.dispatch("mergeFruits"');
+    expect(scene).toContain('this.dispatch("setGameOver")');
+    expect(scene).toContain('this.dispatch("setAim"');
     expect(scene).toContain('this.dispatch("togglePause")');
-    expect(scene).toContain("delay: 1_000");
-    expect(scene).toContain('this.sfx.play("throw")');
-    expect(scene).toContain('this.sfx.play("combo")');
-    expect(scene).toContain("if (!this.reducedMotion) this.cameras.main.flash");
-    expect(scene).toContain("hoverScale: baseScale * 1.05");
-    expect(scene).toContain("scale: pairScale * 1.34");
-    expect(scene).toContain("scale: sparkleScale * 0.35");
-    expect(scene).not.toMatch(/targets:\s*\[incoming, partner\][\s\S]{0,80}scale:\s*1\.34/);
-    expect(scene).toContain('this.input.keyboard?.on("keydown"');
-    expect(scene).toContain("Phaser.Scenes.Events.SHUTDOWN");
+    expect(scene).toContain('this.dispatch("restartGame")');
+    expect(scene).toContain("this.drawDangerLine");
   });
 
-  it("puts the seven authored basket compartments at center stage without fake slot art", () => {
-    expect(scene).toContain("const CHANNEL_X = [64, 108, 151, 195, 239, 282, 326]");
-    expect(scene).toContain("const CHANNEL_Y = 642");
-    const renderChannel = scene.slice(
-      scene.indexOf("private renderChannel"),
-      scene.indexOf("private updateHud"),
-    );
-    expect(renderChannel).toContain("game.channel.length");
-    expect(renderChannel).toContain("ASSETS.fruit[token.color]");
-    expect(renderChannel).not.toContain("this.add.circle");
+  it("keeps keyboard, audio, and reduced-motion accessibility alive", () => {
+    expect(scene).toContain('this.input.keyboard?.on("keydown"');
+    expect(scene).toContain('this.sfx.play("combo")');
+    expect(scene).toContain("this.reducedMotion");
+    expect(scene).toContain("if (!this.reducedMotion) this.cameras.main.flash");
+  });
+
+  it("loads real illustrated art and draws it, not emoji or text placeholders", () => {
+    expect(scene).toContain("this.load.image");
+    expect(scene).toContain("orchard-stage.webp");
+    expect(scene).toContain("fruit-berry.webp");
+    expect(scene).toContain("this.textures.exists");
+    // fruit sprites are placed through the loaded texture keys
+    expect(scene).toContain("FRUIT_TEXTURE_KEYS");
+    expect(scene).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
+  });
+
+  it("presents a resolved run outcome on game over", () => {
+    expect(scene).toMatch(/outcome|newRecord/);
+    expect(scene).toContain('this.loc("gameOverTitle"');
   });
 });

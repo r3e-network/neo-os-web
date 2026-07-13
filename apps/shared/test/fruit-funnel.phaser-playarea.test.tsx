@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
-import { FruitFunnelEngine } from "../../fruit-funnel/src/logic/fruit-engine";
+import { SuikaEngine } from "../../fruit-funnel/src/logic/suika-engine";
 import { messages } from "../../fruit-funnel/src/locale/messages";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -31,9 +31,8 @@ function t(key: string): string {
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const base: Record<string, unknown> = {
-    game: FruitFunnelEngine.fresh(42, 1, 1_000).snapshot(1_000),
-    hintLanes: [1],
-    hintMessageKey: "statusHintReady",
+    game: SuikaEngine.fresh(42, 0, 1_000).snapshot(1_000),
+    aimX: 195,
     storageHealthy: false,
   };
   return Object.fromEntries(
@@ -42,7 +41,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
 }
 
 describe("Fruit Funnel Phaser playarea", () => {
-  it("bridges the certified run and complete localized copy into a 390 by 844 Phaser scene", () => {
+  it("bridges the run snapshot and localized scene copy into a 390 by 844 Phaser scene", () => {
     render(<PhaserPlayArea t={t} state={state()} dispatch={vi.fn()} />);
     expect(screen.getByTestId("fruit-funnel-phaser-host")).toBeTruthy();
     const props = mocks.phaserGame.mock.calls[0]?.[0] as {
@@ -51,30 +50,27 @@ describe("Fruit Funnel Phaser playarea", () => {
       ariaLabel: string;
     };
     expect(props.config).toMatchObject({ width: 390, height: 844 });
-    expect(props.ariaLabel).toBe("可交互的果园漏斗配对游戏");
+    expect(props.ariaLabel).toBe("可交互的水果合成小游戏");
     expect((props.state.game as { seed: number }).seed).toBe(42);
-    expect(props.state.hintLanes).toEqual([1]);
-    expect(props.state.hintMessageKey).toBe("statusHintReady");
-    expect(props.state.storageHealthy).toBe(false);
+    expect(props.state.aimX).toBe(195);
     expect(props.state.sceneText).toMatchObject({
-      appEyebrow: "阳光果园配对游戏",
-      statusUnknownLane: "请选择六条果藤之一",
-      statusCannotResume: "请开启新果园继续游玩",
-      statusHintUndo: "当前没有可验证的安全放果——请撤回上一步",
+      appTitle: "果园漏斗",
+      statusReady: "放下水果开始",
+      newRecordCopy: "创造新纪录！",
     });
   });
 
   it("keeps touch-equivalent controls available to keyboard and assistive technology", () => {
     const dispatch = vi.fn(async () => undefined);
     render(<PhaserPlayArea t={t} state={state()} dispatch={dispatch} />);
-    fireEvent.click(screen.getByRole("button", { name: "1" }));
-    fireEvent.click(screen.getByRole("button", { name: "撤回" }));
-    fireEvent.click(screen.getByRole("button", { name: "提示" }));
+    fireEvent.click(screen.getByRole("button", { name: "◀" }));
+    fireEvent.click(screen.getByRole("button", { name: "放下水果" }));
+    fireEvent.click(screen.getByRole("button", { name: "▶" }));
     fireEvent.click(screen.getByRole("button", { name: "暂停" }));
-    fireEvent.click(screen.getByRole("button", { name: "新果园" }));
-    expect(dispatch).toHaveBeenCalledWith("tapLane", 0);
-    expect(dispatch).toHaveBeenCalledWith("undoMove");
-    expect(dispatch).toHaveBeenCalledWith("requestHint");
+    fireEvent.click(screen.getByRole("button", { name: "新游戏" }));
+    expect(dispatch).toHaveBeenCalledWith("nudgeAim", -1);
+    expect(dispatch).toHaveBeenCalledWith("dropCurrent");
+    expect(dispatch).toHaveBeenCalledWith("nudgeAim", 1);
     expect(dispatch).toHaveBeenCalledWith("togglePause");
     expect(dispatch).toHaveBeenCalledWith("restartGame");
     expect(screen.getByText(/此设备当前无法保存进度/)).toBeTruthy();
