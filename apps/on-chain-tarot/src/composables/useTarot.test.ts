@@ -363,7 +363,7 @@ describe("useTarot (asynchronous MiniAppTarotVrf contract)", () => {
     await tarot.reconcilePendingReading();
     await expect(tarot.copyReading()).resolves.toBe(true);
     expect(clipboardMock.copy).toHaveBeenCalledWith(
-      "Past: The Hierophant · Present: Knight of Wands · Future: Seven of Pentacles",
+      "Past（The Hierophant）：Seek guidance from trusted tradition; it gives you a steady root. · Present（Knight of Wands）：Charged with passion, you ride — speed breaks through, but watch the road. · Future（Seven of Pentacles）：Sown long ago, not yet ripe; trust the pace, don't pull it early.",
       "readingCopied",
     );
   });

@@ -203,6 +203,18 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
       actionDrawing: t("drawing"),
       actionCheck: t("checkOracleResult"),
       actionRecover: t("recoverReadingFee"),
+      detailClose: t("detailClose"),
+      detailPosition: t("detailPosition"),
+      detailElement: t("detailElement"),
+      detailKeywords: t("detailKeywords"),
+      detailPastFrame: t("detailPastFrame"),
+      detailPresentFrame: t("detailPresentFrame"),
+      detailFutureFrame: t("detailFutureFrame"),
+      elementFire: t("elementFire"),
+      elementWater: t("elementWater"),
+      elementAir: t("elementAir"),
+      elementEarth: t("elementEarth"),
+      elementNone: t("elementNone"),
     },
     drawn: localizedDrawn,
     isLoading,
@@ -326,6 +338,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
             <History size={16} aria-hidden="true" />
             <h4>{t("currentSpreadTitle")}</h4>
           </div>
+          {allFlipped && drawn.length === 3 && (
+            <p className="tarot-drawer__reading-lead">
+              {t("readingLeadLabel")}
+              <strong>{activeIntent.question}</strong>
+            </p>
+          )}
           <ol className="tarot-spread-list" data-empty={drawn.length === 0 ? "true" : undefined}>
             {SPREAD_KEYS.map((key, index) => {
               const card = localizedDrawn[index];
@@ -333,7 +351,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
                 <li key={key} data-revealed={card?.flipped ? "true" : undefined}>
                   <span>{t(key)}</span>
                   <strong>{card ? (card.flipped ? card.name : t("hiddenCard")) : t("awaitingDraw")}</strong>
-                  <em>{card ? (card.flipped ? cardKeywords(card) : t("sealedReadingHint")) : t("notDrawnYet")}</em>
+                  <em>{card ? (card.flipped ? (card.reading ?? cardKeywords(card)) : t("sealedReadingHint")) : t("notDrawnYet")}</em>
                 </li>
               );
             })}

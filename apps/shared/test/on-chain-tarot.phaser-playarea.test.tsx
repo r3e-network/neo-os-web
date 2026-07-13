@@ -470,7 +470,14 @@ describe("on-chain-tarot Phaser playarea", () => {
     expect(spread).toContain("愚者");
     expect(spread).toContain("魔术师");
     expect(spread).toContain("女祭司");
-    expect(spread).toContain("启示 / 大阿卡纳");
+    // The redesign added a per-card upright interpretation (the "解答" layer in
+    // tarot-data.ts). The drawer spread now shows each flipped card's localized
+    // `reading` (PhaserPlayArea renders `card.reading ?? cardKeywords(card)`),
+    // so the bare "启示 / 大阿卡纳" keyword tag is now only the fallback for
+    // cards without a meaning. The card's keyword data is still "启示"/"大阿卡纳"
+    // (asserted above at drawn[0].keywords); here we assert the drawer renders
+    // the localized zh reading for The Fool rather than the old keyword tag.
+    expect(spread).toContain("愚者邀你放下计划");
     expect(spread).not.toContain("The Fool");
   });
 

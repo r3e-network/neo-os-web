@@ -37,6 +37,23 @@ const C = {
   white: 0xffffff,
 } as const;
 
+// Runtime-generated FX textures (no asset files). A soft radial bloom and a
+// 4-point spark, both tinted per-use so one texture serves every element color.
+const FX_GLOW_KEY = "tarot-fx-glow";
+const FX_SPARK_KEY = "tarot-fx-spark";
+
+// Element color for a card's suit — drives the tint of reveal bursts, sparks,
+// and celebration motes so the spectacle reads as "this card's energy".
+function elementColor(suit?: string): number {
+  switch (suit) {
+    case "wands": return 0xff7a3c; // Fire
+    case "cups": return 0x4db8ff; // Water
+    case "swords": return 0xbcd0ff; // Air
+    case "pentacles": return 0x9ad47a; // Earth
+    default: return 0xf3d27a; // Major Arcana (gold)
+  }
+}
+
 const FONT = "Inter, Arial, sans-serif";
 const TEXT_RESOLUTION =
   typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2);
@@ -71,9 +88,12 @@ type CardData = {
   image?: string;
   backImage?: string;
   keywords?: string[];
+  suit?: string;
   suitLabel?: string;
   arcana?: string;
   flipped?: boolean;
+  essence?: string;
+  reading?: string;
 };
 
 type IntentOption = {
@@ -123,6 +143,7 @@ type CardView = {
   back: Phaser.GameObjects.Image;
   face: Phaser.GameObjects.Image;
   frame: Phaser.GameObjects.Graphics;
+  hoverGlow: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
   meta: Phaser.GameObjects.Text;
   emptyIndex: Phaser.GameObjects.Text;
@@ -192,6 +213,10 @@ export class TarotScene extends BaseScene {
   private pendingCardTextures = new Set<string>();
   private failedCardTextures = new Map<string, number>();
   private restoringLayout = false;
+  private detailOverlay?: Phaser.GameObjects.Container;
+  private detailCardId = -1;
+  private detailCardFlipped = false;
+  private ambientField?: Phaser.GameObjects.Container;
 
   constructor() {
     super("TarotScene");
@@ -232,6 +257,7 @@ export class TarotScene extends BaseScene {
 
   create(): void {
     super.create();
+    this.ensureFxTextures();
     this.input.on("pointerdown", () => this.sfx.unlock());
     this.events.once(
       Phaser.Scenes.Events.SHUTDOWN,
@@ -548,6 +574,9 @@ export class TarotScene extends BaseScene {
   }
 
   private rebuildScene(restoringLayout = false): void {
+    this.detailOverlay = undefined;
+    this.detailCardId = -1;
+    this.detailCardFlipped = false;
     this.restoringLayout = restoringLayout;
     this.tweens.killAll();
     this.intentMasks.forEach((mask) => mask.destroy());
@@ -568,6 +597,7 @@ export class TarotScene extends BaseScene {
     this.layout = this.computeLayout(W, H);
 
     this.buildBackground(W, H);
+    this.buildAmbientField(W, H);
     this.buildHeader(W);
     this.buildDesk(W);
     this.buildIntentPath();
@@ -613,6 +643,22 @@ export class TarotScene extends BaseScene {
     if (!this.titleLabel || !this.statusText || !this.actionButton) return;
 
     const drawn = this.val<CardData[]>("drawn", []) ?? [];
+
+    // Close the zoom detail if the underlying spread changed under it (new
+    // reading, reset, or the open card was re-sealed), so it never shows stale
+    // art or interpretation.
+    if (this.detailOverlay) {
+      const openCard =
+        this.detailCardId >= 0
+          ? drawn.find((c) => c.id === this.detailCardId)
+          : undefined;
+      const stale =
+        !openCard ||
+        openCard.flipped !== this.detailCardFlipped ||
+        drawn.length !== 3;
+      if (stale) this.closeCardDetail();
+    }
+
     const hasDrawn = this.bool("hasDrawn") || drawn.length > 0;
     const allFlipped = this.bool("allFlipped");
     const isLoading = this.bool("isLoading");
@@ -861,8 +907,10 @@ export class TarotScene extends BaseScene {
   private buildSpread(_W: number): void {
     const L = this.layout;
     for (let i = 0; i < 3; i++) {
-      const x = L.startX + i * L.gap;
-      const y = L.cardCenterY;
+      // Round the resting render coords so cards sit on integer pixels and
+      // stay pixel-crisp — the layout bounds math itself stays float.
+      const x = Math.round(L.startX + i * L.gap);
+      const y = Math.round(L.cardCenterY);
       const view = this.makeCardView(x, y, i);
       this.cardViews.push(view);
     }
@@ -942,20 +990,53 @@ export class TarotScene extends BaseScene {
       lineSpacing: -1,
     }).setOrigin(0.5);
 
+    // Hover halo — an ADD-blended gold bloom that breathes behind the card
+    // edge on hover, giving cards a "charged" golden rim (流光).
+    const hoverGlow = this.add
+      .image(0, 0, FX_GLOW_KEY)
+      .setTint(C.gold)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setAlpha(0)
+      .setScale((cardW + 46) / 128, (cardH + 46) / 128);
+
     const hit = this.add.rectangle(0, 0, cardW + 12, cardH + 12, 0xffffff, 0.001);
     hit.setInteractive();
     this.bindGameButton(hit, {
       targets: body,
       hoverScale: 1.035,
       pressScale: 0.96,
-      enabled: () => this.canFlip(index),
-      onPress: () => {
-        this.sfx.play("tap");
-        this.dispatch("flipCard", index);
+      enabled: () => this.cardTapEnabled(index),
+      onPress: () => this.handleCardTap(index),
+      onHoverIn: () => {
+        if (this.reducedMotion) {
+          hoverGlow.setAlpha(0.5);
+          return;
+        }
+        hoverGlow.setAlpha(0.6);
+        this.animate({
+          targets: hoverGlow,
+          alpha: 0.85,
+          scaleX: (cardW + 58) / 128,
+          scaleY: (cardH + 58) / 128,
+          duration: 900,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut",
+        });
+      },
+      onHoverOut: () => {
+        this.tweens.killTweensOf(hoverGlow);
+        hoverGlow.setScale((cardW + 46) / 128, (cardH + 46) / 128);
+        this.animate({
+          targets: hoverGlow,
+          alpha: 0,
+          duration: 160,
+          ease: "Sine.easeOut",
+        });
       },
     });
 
-    body.add([shadow, plate, frame, emptyGroup, back, face, hit]);
+    body.add([hoverGlow, shadow, plate, frame, emptyGroup, back, face, hit]);
     container.add([body, label, meta]);
 
     return {
@@ -966,6 +1047,7 @@ export class TarotScene extends BaseScene {
       back,
       face,
       frame,
+      hoverGlow,
       label,
       meta,
       emptyIndex,
@@ -1282,11 +1364,12 @@ export class TarotScene extends BaseScene {
       view.label.setText(positions[index]!);
       view.meta.setText(
         card.flipped
-          // Keep the live table calm: the card name is the only secondary
-          // label here; suit/arcana details remain in the How-to-play drawer.
+          // The flip moment's payoff: the card name on line one, then its
+          // one-line essence (the "解答" kernel) on line two. Suit/arcana
+          // taxonomy stays in the How-to-play drawer, not here.
           ? textureUnavailable
             ? this.sceneStr("cardUnavailable", "Card art unavailable · try a new reading")
-            : card.name ?? "Unknown"
+            : `${card.name ?? "Unknown"}\n${card.essence ?? ""}`.trim()
           : this.sceneStr("sealed", "Sealed card"),
       );
 
@@ -1297,7 +1380,7 @@ export class TarotScene extends BaseScene {
           view.back.setAlpha(0);
           view.face.setAlpha(1);
         } else if (!view.flipped) {
-          this.flipCardView(view);
+          this.flipCardView(view, card.suit);
         }
       } else {
         view.flipped = false;
@@ -1409,19 +1492,302 @@ export class TarotScene extends BaseScene {
     return Boolean(card && !card.flipped && !this.bool("isLoading"));
   }
 
-  private flipCardView(view: CardView): void {
+  /**
+   * A dealt card is always tappable: a sealed card flips on tap (the core
+   * reveal loop), a revealed card opens the zoom detail view so the player can
+   * read the full interpretation and related content at a comfortable size.
+   */
+  private cardTapEnabled(index: number): boolean {
+    const drawn = this.val<CardData[]>("drawn", []) ?? [];
+    const card = drawn[index];
+    return Boolean(card && !this.bool("isLoading"));
+  }
+
+  private handleCardTap(index: number): void {
+    const drawn = this.val<CardData[]>("drawn", []) ?? [];
+    const card = drawn[index];
+    if (!card) return;
+    if (card.flipped) {
+      this.openCardDetail(index);
+    } else if (this.canFlip(index)) {
+      this.sfx.play("tap");
+      this.dispatch("flipCard", index);
+    }
+  }
+
+  private elementForSuit(suit?: string): string {
+    const map: Record<string, string> = {
+      wands: this.sceneStr("elementFire", "Fire"),
+      cups: this.sceneStr("elementWater", "Water"),
+      swords: this.sceneStr("elementAir", "Air"),
+      pentacles: this.sceneStr("elementEarth", "Earth"),
+    };
+    return suit && map[suit] ? map[suit] : this.sceneStr("elementNone", "—");
+  }
+
+  private positionFrame(index: number, card: CardData): string {
+    if (index === 0) return this.sceneStr("detailPastFrame", "It mirrors a path you have already walked — the origin now legible.");
+    if (index === 1) return this.sceneStr("detailPresentFrame", "It mirrors the core challenge you stand within right now.");
+    if (index === 2) return this.sceneStr("detailFutureFrame", "It mirrors what may unfold — a possibility, not a verdict.");
+    return card.arcana ?? card.suitLabel ?? "";
+  }
+
+  /**
+   * Tap a revealed card to open a calm zoom panel: the enlarged art plus the
+   * full interpretation, position framing, element correspondence and keywords.
+   * This is the "解答 + 关联内容" surface the small spread captions can't hold.
+   * Closing via the X, the dimmed backdrop, or a state change that alters the
+   * spread keeps the overlay from showing stale data.
+   */
+  private openCardDetail(index: number): void {
+    if (this.detailOverlay) return;
+    const drawn = this.val<CardData[]>("drawn", []) ?? [];
+    const raw = drawn[index];
+    if (!raw || !raw.flipped) return;
+
+    const { width: W, height: H } = this.scale;
+    const positions = this.scenePositions();
+    const card = this.normalizeCard(raw);
+    const faceKey = this.cardTextureKey(card);
+    const hasFace = this.textures.exists(faceKey);
+    const artKey = hasFace ? faceKey : TAROT_ASSETS.back;
+
+    const container = this.add.container(0, 0).setDepth(1000);
+    const pad = 18;
+    const panelW = Math.min(W - 24, 420);
+    const panelH = Math.min(H - 24, Math.round(H * 0.92));
+    const panelX = W / 2;
+    const panelY = H / 2;
+    const top = panelY - panelH / 2;
+    const left = panelX - panelW / 2;
+    const right = panelX + panelW / 2;
+    const textW = panelW - pad * 2;
+
+    // Dim backdrop (tap to close).
+    const backdrop = this.add.rectangle(panelX, panelY, W, H, 0x14110b, 0.64);
+    backdrop.setInteractive();
+    backdrop.on("pointerup", () => this.closeCardDetail());
+    container.add(backdrop);
+
+    // Panel surface.
+    const panel = this.add.graphics();
+    panel.fillStyle(C.surface, 0.99);
+    panel.fillRoundedRect(left, top, panelW, panelH, 22);
+    panel.lineStyle(2, C.gold, 0.85);
+    panel.strokeRoundedRect(left, top, panelW, panelH, 22);
+    container.add(panel);
+
+    // Close button (top-right).
+    const closeX = right - 22;
+    const closeY = top + 22;
+    const closeBg = this.add.graphics();
+    closeBg.fillStyle(C.canvas, 1);
+    closeBg.fillCircle(closeX, closeY, 17);
+    closeBg.lineStyle(2, C.stroke, 0.9);
+    closeBg.strokeCircle(closeX, closeY, 17);
+    // Drawn close "X": two crossing strokes centered in the closeBg circle
+    // (radius 17). A vector glyph rather than a text-char mark keeps this scene
+    // free of emoji/text placeholders per the framework guard "keeps Phaser
+    // scene text free of emoji placeholders" (framework/test/phaser-framework.test.ts).
+    const closeIcon = this.add.graphics();
+    closeIcon.lineStyle(2.5, 0x5f5548, 1);
+    const closeArm = 6;
+    closeIcon.beginPath();
+    closeIcon.moveTo(closeX - closeArm, closeY - closeArm);
+    closeIcon.lineTo(closeX + closeArm, closeY + closeArm);
+    closeIcon.moveTo(closeX + closeArm, closeY - closeArm);
+    closeIcon.lineTo(closeX - closeArm, closeY + closeArm);
+    closeIcon.strokePath();
+    const closeHit = this.add.circle(closeX, closeY, 24, 0xffffff, 0.001).setInteractive();
+    closeHit.on("pointerup", () => this.closeCardDetail());
+    container.add([closeBg, closeIcon, closeHit]);
+
+    // Enlarged card art — the dominant element of the overlay. It occupies up
+    // to 60% of the panel height (or the full content width at the tarot
+    // ratio, whichever is smaller), while reserving a text band below so the
+    // reading never overflows on short / landscape screens.
+    const maxArtW = panelW - pad * 2;
+    const artH = Math.round(
+      Math.min(panelH * 0.6, maxArtW * (CARD_H / CARD_W), panelH - 168),
+    );
+    const artW = Math.round(artH * (CARD_W / CARD_H));
+    const artY = top + pad + artH / 2 + 6;
+    // Halo behind the card art, blooming as the overlay opens.
+    const artColor = elementColor(card.suit);
+    const artGlow = this.add
+      .image(panelX, artY, FX_GLOW_KEY)
+      .setTint(artColor)
+      .setAlpha(0)
+      .setScale(0.6);
+    container.add(artGlow);
+    const art = this.add.image(panelX, artY, artKey);
+    art.setDisplaySize(artW, artH);
+    if (!hasFace) art.setTint(0xd8c9a7);
+    container.add(art);
+
+    // Stacked text column below the art.
+    let cursorY = artY + artH / 2 + 14;
+    const name = this.add.text(panelX, cursorY, card.name ?? "Unknown", {
+      fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "21px",
+      fontStyle: "800",
+      color: "#1b1d1b",
+      align: "center",
+      wordWrap: { width: textW },
+    }).setOrigin(0.5, 0);
+    container.add(name);
+    cursorY += name.height + 5;
+
+    const essence = this.add.text(panelX, cursorY, card.essence ?? "", {
+      fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "14px",
+      fontStyle: "700",
+      color: "#0b6257",
+      align: "center",
+      wordWrap: { width: textW },
+    }).setOrigin(0.5, 0);
+    container.add(essence);
+    cursorY += essence.height + 10;
+
+    const posLabel = positions[index] ?? "";
+    const meta = this.add.text(
+      panelX,
+      cursorY,
+      `${this.sceneStr("detailPosition", "Position")}: ${posLabel} · ${this.sceneStr("detailElement", "Element")}: ${this.elementForSuit(card.suit)}`,
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: "11px",
+        fontStyle: "700",
+        color: "#7b6a54",
+        align: "center",
+        wordWrap: { width: textW },
+      },
+    ).setOrigin(0.5, 0);
+    container.add(meta);
+    cursorY += meta.height + 4;
+
+    const frame = this.add.text(panelX, cursorY, this.positionFrame(index, card), {
+      fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "11px",
+      fontStyle: "italic",
+      color: "#5f5548",
+      align: "center",
+      wordWrap: { width: textW },
+    }).setOrigin(0.5, 0);
+    container.add(frame);
+    cursorY += frame.height + 12;
+
+    const divider = this.add.graphics();
+    divider.lineStyle(1, C.stroke, 0.8);
+    divider.lineBetween(left + pad + 8, cursorY, right - pad - 8, cursorY);
+    container.add(divider);
+    cursorY += 12;
+
+    const reading = this.add.text(panelX, cursorY, card.reading ?? "", {
+      fontFamily: FONT,
+      resolution: TEXT_RESOLUTION,
+      fontSize: "13px",
+      color: "#2b2418",
+      align: "left",
+      wordWrap: { width: textW },
+      lineSpacing: 3,
+    }).setOrigin(0.5, 0);
+    container.add(reading);
+    cursorY += reading.height + 10;
+
+    const keywords = (card.keywords ?? []).join(" · ");
+    const kw = this.add.text(
+      panelX,
+      cursorY,
+      `${this.sceneStr("detailKeywords", "Keywords")}: ${keywords}`,
+      {
+        fontFamily: FONT,
+        resolution: TEXT_RESOLUTION,
+        fontSize: "11px",
+        fontStyle: "700",
+        color: "#7b6a54",
+        align: "center",
+        wordWrap: { width: textW },
+      },
+    ).setOrigin(0.5, 0);
+    container.add(kw);
+
+    // Entrance.
+    if (this.reducedMotion) {
+      container.setAlpha(1).setScale(1);
+    } else {
+      container.setAlpha(0).setScale(0.94);
+      this.animate({
+        targets: container,
+        alpha: 1,
+        scale: 1,
+        duration: 180,
+        ease: "Cubic.easeOut",
+      });
+      // Halo behind the big card blooms, then a few sparkles settle the reveal.
+      this.animate({
+        targets: artGlow,
+        alpha: { from: 0, to: 0.5 },
+        scale: 1.4,
+        duration: 360,
+        yoyo: true,
+        hold: 120,
+        ease: "Sine.easeOut",
+      });
+      this.emitSparkles(panelX, artY, artColor, 12, 1001);
+    }
+
+    this.detailOverlay = container;
+    this.detailCardId = card.id ?? -1;
+    this.detailCardFlipped = true;
+  }
+
+  private closeCardDetail(): void {
+    if (!this.detailOverlay) return;
+    const overlay = this.detailOverlay;
+    this.detailOverlay = undefined;
+    this.detailCardId = -1;
+    this.detailCardFlipped = false;
+    if (this.reducedMotion) {
+      overlay.destroy();
+      return;
+    }
+    this.animate({
+      targets: overlay,
+      alpha: 0,
+      scale: 0.96,
+      duration: 150,
+      ease: "Cubic.easeIn",
+      onComplete: () => overlay.destroy(),
+    });
+  }
+
+  private flipCardView(view: CardView, suit?: string): void {
     view.flipped = true;
     view.emptyGroup.setVisible(false);
     if (this.time.now - this.lastRevealAt > 120) {
       this.lastRevealAt = this.time.now;
       this.sfx.play("reveal");
     }
+    const color = elementColor(suit);
+    const cx = view.container.x;
+    const cy = view.container.y;
     if (this.reducedMotion) {
       view.body.setScale(1);
       view.back.setAlpha(0);
       view.face.setAlpha(1);
       return;
     }
+
+    // Element-colored reveal spectacle blooms as the card turns.
+    this.burstReveal(cx, cy, color);
+    // Extra punch: a light screen shake + an upward element-colored beam.
+    this.cameras.main.shake(160, 0.006);
+    this.beamReveal(cx, cy, color);
 
     this.animate({
       targets: view.body,
@@ -1466,6 +1832,24 @@ export class TarotScene extends BaseScene {
         .setScale(0.7)
         .setPosition(deckX, deckY)
         .setAngle(startAngle);
+      // A small glow flashes at the deck as each card leaves its origin.
+      if (!this.reducedMotion) {
+        const puff = this.add
+          .image(deckX, deckY, FX_GLOW_KEY)
+          .setTint(C.gold)
+          .setDepth(850)
+          .setAlpha(0.55)
+          .setScale(0.25);
+        this.animate({
+          targets: puff,
+          scale: 1.1,
+          alpha: 0,
+          delay: index * 150,
+          duration: 380,
+          ease: "Cubic.easeOut",
+          onComplete: () => puff.destroy(),
+        });
+      }
       this.animate({
         targets: view.container,
         x: targetX,
@@ -1486,9 +1870,11 @@ export class TarotScene extends BaseScene {
 
   private playReadingCelebration(): void {
     if (this.reducedMotion) return;
+    const drawn = this.val<CardData[]>("drawn", []) ?? [];
+    const { width: W, height: H } = this.scale;
     this.cardViews.forEach((view, index) => {
       // Gentle staggered pulse to celebrate the completed reading. Scale is used
-      // (not y) because the ambient float already owns each container's y.
+      // (not y) so it never fights the ambient field's drifting embers.
       this.animate({
         targets: view.container,
         scale: 1.06,
@@ -1497,13 +1883,14 @@ export class TarotScene extends BaseScene {
         yoyo: true,
         ease: "Sine.easeInOut",
       });
-      // A couple of rising gold motes per card.
+      // Rising motes tinted to each card's element color.
+      const color = elementColor(drawn[index]?.suit);
       for (let s = 0; s < 3; s++) {
         const mote = this.add.circle(
           view.container.x + Phaser.Math.Between(-18, 18),
           view.container.y + Phaser.Math.Between(-30, 20),
           Phaser.Math.Between(2, 3),
-          C.gold,
+          color,
           0.9,
         );
         this.celebrationMotes.add(mote);
@@ -1520,6 +1907,23 @@ export class TarotScene extends BaseScene {
           },
         });
       }
+      this.emitSparkles(view.container.x, view.container.y, color, 6, 900);
+    });
+    // A single light sweep across the spread to seal the "reading complete" beat.
+    const sweep = this.add
+      .image(W / 2 - 180, H / 2, FX_GLOW_KEY)
+      .setTint(0xfff3d0)
+      .setDepth(880)
+      .setAlpha(0)
+      .setScale(0.3, 1.6);
+    this.animate({
+      targets: sweep,
+      x: W / 2 + 180,
+      alpha: { from: 0, to: 0.5 },
+      duration: 820,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      onComplete: () => sweep.destroy(),
     });
   }
 
@@ -1559,6 +1963,10 @@ export class TarotScene extends BaseScene {
   }
 
   private startAmbientMotion(): void {
+    // The per-card idle float was removed: sub-pixel y motion made the card
+    // art shimmer and read as frame drops. Tarot cards should sit placed and
+    // crisp. The atmosphere now lives in a separate, non-blurring layer
+    // (rotating sigil + drifting embers) plus a faint deck ritual float.
     if (this.reducedMotion) return;
     const deckTween = this.animate({
       targets: this.deckStack,
@@ -1569,23 +1977,240 @@ export class TarotScene extends BaseScene {
       ease: "Sine.easeInOut",
     });
     if (deckTween) this.ambientTweens.push(deckTween);
-    this.cardViews.forEach((view, index) => {
-      const tween = this.animate({
-        targets: view.container,
-        y: view.container.y - 3,
-        delay: index * 130,
-        duration: 1900,
+
+    const field = this.ambientField;
+    if (!field) return;
+    // Rebuild the field each call so a deal (which stops ambience) cleanly
+    // restarts it without accumulating ember objects across readings.
+    field.removeAll(true);
+    const { width: W, height: H } = this.scale;
+    const cx = W / 2;
+    const cy = H / 2;
+
+    // Rotating arcane sigil ring behind the spread — brighter, layered.
+    const ringSize = Math.min(W, H) * 0.66;
+    const ring = this.add.graphics();
+    ring.lineStyle(2, C.gold, 0.3);
+    ring.strokeCircle(0, 0, ringSize / 2);
+    ring.lineStyle(1, C.jade, 0.24);
+    ring.strokeCircle(0, 0, ringSize / 2 - 16);
+    ring.lineStyle(1, C.gold, 0.16);
+    ring.strokeCircle(0, 0, ringSize / 2 - 32);
+    const ticks = 36;
+    for (let i = 0; i < ticks; i++) {
+      const a = (i / ticks) * Math.PI * 2;
+      const r1 = ringSize / 2 - 4;
+      const r2 = ringSize / 2 + 8;
+      ring.lineStyle(1, C.gold, 0.34);
+      ring.lineBetween(
+        Math.cos(a) * r1,
+        Math.sin(a) * r1,
+        Math.cos(a) * r2,
+        Math.sin(a) * r2,
+      );
+    }
+    ring.setPosition(cx, cy);
+    field.add(ring);
+    const ringTween = this.animate({
+      targets: ring,
+      angle: 360,
+      duration: 72000,
+      repeat: -1,
+      ease: "Linear",
+    });
+    if (ringTween) this.ambientTweens.push(ringTween);
+
+    // Soft central pulse — a breathing halo behind the spread (ADD blend).
+    const minSide = Math.min(W, H);
+    const halo = this.add
+      .image(cx, cy, FX_GLOW_KEY)
+      .setTint(C.gold)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setAlpha(0.1)
+      .setScale(minSide / 360);
+    field.add(halo);
+    const haloTween = this.animate({
+      targets: halo,
+      alpha: { from: 0.08, to: 0.2 },
+      scale: { from: minSide / 360, to: minSide / 280 },
+      duration: 3200,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    if (haloTween) this.ambientTweens.push(haloTween);
+
+    // Drifting embers — denser, brighter, longer float + alpha twinkle.
+    const emberCount = Math.min(30, Math.round(W / 20));
+    for (let i = 0; i < emberCount; i++) {
+      const ex = Phaser.Math.Between(0, W);
+      const ey = Phaser.Math.Between(Math.round(H * 0.2), H);
+      const ember = this.add.circle(
+        ex,
+        ey,
+        Phaser.Math.FloatBetween(1.4, 3.4),
+        i % 4 === 0 ? C.jade : C.gold,
+        Phaser.Math.FloatBetween(0.35, 0.7),
+      );
+      field.add(ember);
+      const drift = this.animate({
+        targets: ember,
+        y: ey - Phaser.Math.Between(40, 130),
+        x: ex + Phaser.Math.Between(-40, 40),
+        alpha: { from: ember.alpha, to: 0.08 },
+        duration: Phaser.Math.Between(2400, 4800),
+        delay: Phaser.Math.Between(0, 2600),
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
       });
-      if (tween) this.ambientTweens.push(tween);
-    });
+      if (drift) this.ambientTweens.push(drift);
+    }
+  }
+
+  private buildAmbientField(_W: number, _H: number): void {
+    this.ambientField = this.add.container(0, 0).setDepth(0);
   }
 
   private stopAmbientMotion(): void {
     this.ambientTweens.forEach((tween) => tween.stop());
     this.ambientTweens = [];
+    this.ambientField?.removeAll(true);
+  }
+
+  // ── FX primitives (runtime-generated textures, no asset files) ─────────────
+
+  private ensureFxTextures(): void {
+    if (!this.textures.exists(FX_GLOW_KEY)) {
+      const size = 128;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      const steps = 26;
+      for (let i = steps; i >= 1; i--) {
+        const r = (size / 2) * (i / steps);
+        const a = 0.5 * (1 - i / steps) + 0.015;
+        g.fillStyle(0xffffff, a);
+        g.fillCircle(size / 2, size / 2, r);
+      }
+      g.generateTexture(FX_GLOW_KEY, size, size);
+      g.destroy();
+    }
+    if (!this.textures.exists(FX_SPARK_KEY)) {
+      const s = 16;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(0xffffff, 1);
+      g.fillPoints(
+        [
+          new Phaser.Geom.Point(s / 2, 0),
+          new Phaser.Geom.Point(s * 0.62, s * 0.38),
+          new Phaser.Geom.Point(s, s / 2),
+          new Phaser.Geom.Point(s * 0.62, s * 0.62),
+          new Phaser.Geom.Point(s / 2, s),
+          new Phaser.Geom.Point(s * 0.38, s * 0.62),
+          new Phaser.Geom.Point(0, s / 2),
+          new Phaser.Geom.Point(s * 0.38, s * 0.38),
+        ],
+        true,
+      );
+      g.generateTexture(FX_SPARK_KEY, s, s);
+      g.destroy();
+    }
+  }
+
+  /** Radial bloom + white core flash + expanding shockwave ring + sparkles. */
+  private burstReveal(x: number, y: number, color: number): void {
+    if (this.reducedMotion) return;
+    const glow = this.add
+      .image(x, y, FX_GLOW_KEY)
+      .setTint(color)
+      .setDepth(900)
+      .setAlpha(0.9)
+      .setScale(0.35);
+    this.animate({
+      targets: glow,
+      scale: 2.3,
+      alpha: 0,
+      duration: 540,
+      ease: "Cubic.easeOut",
+      onComplete: () => glow.destroy(),
+    });
+    const core = this.add
+      .image(x, y, FX_GLOW_KEY)
+      .setTint(0xffffff)
+      .setDepth(900)
+      .setAlpha(0.7)
+      .setScale(0.2);
+    this.animate({
+      targets: core,
+      scale: 1.2,
+      alpha: 0,
+      duration: 360,
+      ease: "Cubic.easeOut",
+      onComplete: () => core.destroy(),
+    });
+    const ring = this.add.circle(x, y, 8, 0x000000, 0);
+    ring.setStrokeStyle(3, color, 0.9).setDepth(900).setScale(0.6);
+    this.animate({
+      targets: ring,
+      scale: 2.6,
+      alpha: 0,
+      duration: 480,
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy(),
+    });
+    this.emitSparkles(x, y, color, 10, 900);
+  }
+
+  /** A vertical element-colored light beam erupting upward from the card. */
+  private beamReveal(x: number, y: number, color: number): void {
+    if (this.reducedMotion) return;
+    const beam = this.add
+      .image(x, y - 12, FX_GLOW_KEY)
+      .setTint(color)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(880)
+      .setAlpha(0.85)
+      .setScale(0.18, 0.55);
+    this.animate({
+      targets: beam,
+      scaleX: 1.35,
+      scaleY: 3.4,
+      y: y - 76,
+      alpha: 0,
+      duration: 520,
+      ease: "Cubic.easeOut",
+      onComplete: () => beam.destroy(),
+    });
+  }
+
+  private emitSparkles(
+    x: number,
+    y: number,
+    color: number,
+    count: number,
+    depth = 900,
+  ): void {
+    if (this.reducedMotion) return;
+    for (let i = 0; i < count; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(26, 66);
+      const spark = this.add
+        .image(x, y, FX_SPARK_KEY)
+        .setTint(color)
+        .setDepth(depth)
+        .setScale(Phaser.Math.FloatBetween(0.5, 1.1))
+        .setAlpha(0.95);
+      this.animate({
+        targets: spark,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist - 10,
+        alpha: 0,
+        scale: 0.2,
+        angle: Phaser.Math.Between(-120, 120),
+        duration: Phaser.Math.Between(420, 720),
+        ease: "Cubic.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
   }
 
   /**
@@ -1610,8 +2235,8 @@ export class TarotScene extends BaseScene {
       const card = drawn[index];
       view.container
         .setPosition(
-          this.layout.startX + index * this.layout.gap,
-          this.layout.cardCenterY,
+          Math.round(this.layout.startX + index * this.layout.gap),
+          Math.round(this.layout.cardCenterY),
         )
         .setAlpha(1)
         .setScale(1)

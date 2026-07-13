@@ -387,7 +387,14 @@ export function useTarot({ app, clipboard, t }: UseTarotOptions) {
     const cards = drawn.get();
     if (cards.length !== CARDS_PER_READING) return t("readingText");
     const localized = cards.map((card) => localizeTarotCard(card, t("localeCode")));
-    return `${t("past")}: ${localized[0]!.name} · ${t("present")}: ${localized[1]!.name} · ${t("future")}: ${localized[2]!.name}`;
+    const positionKeys = ["past", "present", "future"] as const;
+    return localized
+      .map((card, index) => {
+        const position = t(positionKeys[index]!);
+        const meaning = card.reading ? `：${card.reading}` : "";
+        return `${position}（${card.name}）${meaning}`;
+      })
+      .join(" · ");
   };
 
   /**
