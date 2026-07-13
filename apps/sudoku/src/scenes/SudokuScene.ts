@@ -74,10 +74,10 @@ const MIN_SOLVE_BUFFER_MS = 10_000;
 const C = {
   appBg:         0xfff8ea,
   appBgWarm:     0xffefd0,
-  paper:         0xfffbf1,
-  paperEdge:     0xe8c982,
-  gridLine:      0xd7c4a2,
-  boxLine:       0x6c5230,
+  paper:         0xffffff,   // crisp white grid paper (closer to classic Sudoku)
+  paperEdge:     0xcccccc,   // neutral grey frame instead of gold
+  gridLine:      0xcccccc,   // light-grey thin cell lines
+  boxLine:       0x1a1a1a,   // near-black 3×3 box separators
   selRing:       0xf0b733,
   selRingInner:  0xffe9a6,
   digitGiven:    0x2d2114,

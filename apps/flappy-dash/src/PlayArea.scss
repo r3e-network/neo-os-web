@@ -568,7 +568,7 @@ $game-accent: #00af92;
 }
 
 .flappy-scene[data-state="dealing"] .flappy-shuffle__anim span {
-  animation: flappy-shuffle-bounce 700ms ease-in-out infinite alternate;
+  animation: flappy-shuffle 2.6s ease-in-out infinite alternate;
 }
 
 .flappy-scene[data-state="submitting"] .flappy-canvas-wrapper {
@@ -968,7 +968,7 @@ $game-accent: #00af92;
     border-radius: 50%;
     background: linear-gradient(135deg, $pipe-body, $pipe-cap);
     opacity: 0.3;
-    animation: flappy-shuffle-bounce 700ms ease-in-out infinite alternate;
+    animation: flappy-shuffle 2.6s ease-in-out infinite alternate;
   }
 }
 
@@ -1356,7 +1356,7 @@ $game-accent: #00af92;
   }
 }
 
-@keyframes flappy-shuffle-bounce {
+@keyframes flappy-shuffle {
   from {
     opacity: 0.2;
     transform: translateY(0) scale(0.8);

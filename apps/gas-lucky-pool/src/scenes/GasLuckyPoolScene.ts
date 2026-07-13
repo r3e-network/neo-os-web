@@ -14,6 +14,7 @@ import { GAS_LUCKY_REWARD_PLANS } from "../logic/game-rules";
 
 const GAS_POOL_ASSETS = {
   vaultStage: "gas-pool-vault-stage",
+  wheel: "gas-pool-wheel",
   gasIcon: "gas-pool-gas-icon",
   guestIcon: "gas-pool-guest-icon",
 } as const;
@@ -33,6 +34,8 @@ const C = {
 } as const;
 
 const FONT = "Inter, Arial, sans-serif";
+const FX_GLOW_KEY = "gas-pool-fx-glow";
+const FX_SPARK_KEY = "gas-pool-fx-spark";
 const DESIGN_W = 420;
 const DESIGN_H = 580;
 const MODE_BUTTON_W = 134;
@@ -73,6 +76,7 @@ function compactError(value: string): string {
 
 export class GasLuckyPoolScene extends BaseScene {
   private heroImage!: Phaser.GameObjects.Image;
+  private vaultBg!: Phaser.GameObjects.Image;
   private vaultGlow!: Phaser.GameObjects.Ellipse;
   private backgroundGlows: Phaser.GameObjects.Ellipse[] = [];
   private coinStream: Phaser.GameObjects.Container[] = [];
@@ -190,6 +194,7 @@ export class GasLuckyPoolScene extends BaseScene {
 
   preload(): void {
     this.load.image(GAS_POOL_ASSETS.vaultStage, "./gas-vault-stage.webp");
+    this.load.image(GAS_POOL_ASSETS.wheel, "./wheel.webp");
     this.load.image(GAS_POOL_ASSETS.gasIcon, officialGasTokenPhaserUrl);
     this.load.image(GAS_POOL_ASSETS.guestIcon, "./onegate-logo.webp");
   }
@@ -198,6 +203,7 @@ export class GasLuckyPoolScene extends BaseScene {
     super.create();
 
     this.buildBackground(DESIGN_W, DESIGN_H);
+    this.ensureFxTextures();
     this.buildHero(DESIGN_W);
     this.buildResultPill(DESIGN_W);
     this.buildModeTabs(DESIGN_W);
@@ -218,7 +224,7 @@ export class GasLuckyPoolScene extends BaseScene {
 
     const claimKey = this.str("currentClaimKey", "");
     const poolId = this.str("currentPoolId", "");
-    const range = this.str("currentRange", "") || this.txt("rangeDefault", "1-50 GAS");
+    const range = this.str("currentRange", "") || this.txt("rangeDefault", "0–50 GAS");
     const progress = this.str("claimProgress", "");
     const status = this.str("claimStatus", "");
     const lastError = this.str("lastError", "");
@@ -315,6 +321,7 @@ export class GasLuckyPoolScene extends BaseScene {
       this.sfx.play("win");
       this.playVaultReveal();
       this.spawnRewardBurst();
+      if (!this.reducedMotion) this.cameras.main.shake(180, 0.005);
       this.revealReward(rewardStr, luckSuffix);
     } else if (!this.rewardRolling) {
       this.resultText.setText(
@@ -334,8 +341,12 @@ export class GasLuckyPoolScene extends BaseScene {
   }
 
   private buildBackground(W: number, H: number): void {
-    this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+    // Real vault stage art (mint-gold treasure chest) as background layer
+    this.vaultBg = this.add.image(W / 2, H / 2, GAS_POOL_ASSETS.vaultStage)
+      .setDisplaySize(W, H)
+      .setDepth(-10);
 
+    // Atmospheric glow overlays for depth (kept from original design)
     const topGlow = this.add.ellipse(W / 2, 112, 390, 250, 0xffe1a3, 0.34);
     const lowerGlow = this.add.ellipse(W / 2, 360, 380, 260, 0xd8f6df, 0.22);
     this.backgroundGlows = [topGlow, lowerGlow];
@@ -359,9 +370,9 @@ export class GasLuckyPoolScene extends BaseScene {
   private buildHero(W: number): void {
     // Hero is scaled down a touch (aspect preserved — 330/360 ≈ 218/238) so a
     // clean gap opens between the photo's bottom rim and the result pill below.
-    this.vaultGlow = this.add.ellipse(W / 2, 136, 268, 158, C.gold, 0.18);
-    this.heroImage = this.add.image(W / 2, 138, GAS_POOL_ASSETS.vaultStage)
-      .setDisplaySize(330, 218)
+    this.vaultGlow = this.add.ellipse(W / 2, 134, 232, 232, C.gold, 0.18);
+    this.heroImage = this.add.image(W / 2, 134, GAS_POOL_ASSETS.wheel)
+      .setDisplaySize(142, 142)
       .setOrigin(0.5);
 
     this.startVaultGlowMotion();
@@ -850,26 +861,113 @@ export class GasLuckyPoolScene extends BaseScene {
     this.vaultGlow.setScale(1).setAlpha(0.22);
     if (this.reducedMotion) return;
 
-    this.cameras.main.flash(170, 255, 235, 174, false);
+    // NO scale pulse — the wheel must not appear to "grow" on reveal.
+    // Suspenseful, clearly-decelerating spin: 2 turns over 3.2s.
     this.tween({
       targets: this.heroImage,
-      scaleX: { from: 0.985, to: 1.045 },
-      scaleY: { from: 0.985, to: 1.045 },
-      angle: { from: -0.8, to: 0.8 },
-      duration: 240,
-      yoyo: true,
-      ease: "Back.easeOut",
-      onComplete: () => this.heroImage.setScale(1).setAngle(0),
+      angle: 720,
+      duration: 3200,
+      ease: "Cubic.easeOut",
+      onComplete: () => this.heroImage.setAngle(0),
     });
     this.tween({
       targets: this.vaultGlow,
-      scaleX: { from: 0.9, to: 1.18 },
-      scaleY: { from: 0.9, to: 1.18 },
-      alpha: { from: 0.18, to: 0.38 },
-      duration: 360,
+      scaleX: { from: 1, to: 1.06 },
+      scaleY: { from: 1, to: 1.06 },
+      alpha: { from: 0.22, to: 0.34 },
+      duration: 900,
       yoyo: true,
-      ease: "Sine.easeOut",
+      ease: "Sine.easeInOut",
       onComplete: () => this.startVaultGlowMotion(),
+    });
+  }
+
+  // ── FX primitives (runtime-generated textures, no asset files) ─────────────
+  private ensureFxTextures(): void {
+    if (!this.textures.exists(FX_GLOW_KEY)) {
+      const size = 128;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      const steps = 26;
+      for (let i = steps; i >= 1; i--) {
+        const r = (size / 2) * (i / steps);
+        const a = 0.5 * (1 - i / steps) + 0.015;
+        g.fillStyle(0xffffff, a);
+        g.fillCircle(size / 2, size / 2, r);
+      }
+      g.generateTexture(FX_GLOW_KEY, size, size);
+      g.destroy();
+    }
+    if (!this.textures.exists(FX_SPARK_KEY)) {
+      const s = 16;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(0xffffff, 1);
+      g.fillPoints(
+        [
+          new Phaser.Geom.Point(s / 2, 0),
+          new Phaser.Geom.Point(s * 0.62, s * 0.38),
+          new Phaser.Geom.Point(s, s / 2),
+          new Phaser.Geom.Point(s * 0.62, s * 0.62),
+          new Phaser.Geom.Point(s / 2, s),
+          new Phaser.Geom.Point(s * 0.38, s * 0.62),
+          new Phaser.Geom.Point(0, s / 2),
+          new Phaser.Geom.Point(s * 0.38, s * 0.38),
+        ],
+        true,
+      );
+      g.generateTexture(FX_SPARK_KEY, s, s);
+      g.destroy();
+    }
+  }
+
+  private emitSparkles(
+    x: number,
+    y: number,
+    color: number,
+    count: number,
+    depth = 900,
+  ): void {
+    if (this.reducedMotion) return;
+    for (let i = 0; i < count; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(26, 66);
+      const spark = this.add
+        .image(x, y, FX_SPARK_KEY)
+        .setTint(color)
+        .setDepth(depth)
+        .setScale(Phaser.Math.FloatBetween(0.5, 1.1))
+        .setAlpha(0.95);
+      this.animate({
+        targets: spark,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist - 10,
+        alpha: 0,
+        scale: 0.2,
+        angle: Phaser.Math.Between(-120, 120),
+        duration: Phaser.Math.Between(420, 720),
+        ease: "Cubic.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  private beamReveal(x: number, y: number, color: number): void {
+    if (this.reducedMotion) return;
+    const beam = this.add
+      .image(x, y - 12, FX_GLOW_KEY)
+      .setTint(color)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(880)
+      .setAlpha(0.85)
+      .setScale(0.18, 0.55);
+    this.animate({
+      targets: beam,
+      scaleX: 1.35,
+      scaleY: 3.4,
+      y: y - 76,
+      alpha: 0,
+      duration: 520,
+      ease: "Cubic.easeOut",
+      onComplete: () => beam.destroy(),
     });
   }
 
@@ -906,6 +1004,9 @@ export class GasLuckyPoolScene extends BaseScene {
       duration: 260,
       ease: "Back.easeOut",
     });
+    // Golden sparkle crown + an upward light beam for extra win punch.
+    this.emitSparkles(DESIGN_W / 2, 134, C.gold, 14, 900);
+    this.beamReveal(DESIGN_W / 2, 134, C.gold);
   }
 
   /**

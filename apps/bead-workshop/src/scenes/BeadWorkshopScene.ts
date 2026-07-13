@@ -29,8 +29,8 @@ const C = {
   coralDark: 0xc94136,
   yellow: 0xffcc4d,
   mint: 0x37bd83,
-  border: 0xe9cfa9,
-  cocoa: 0x754225,
+  border: 0xd8b27a,
+  cocoa: 0x5a3420,
   scrim: 0x56392b,
   danger: 0xc43b37,
 };

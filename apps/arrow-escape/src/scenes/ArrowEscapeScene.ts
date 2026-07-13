@@ -171,6 +171,11 @@ export class ArrowEscapeScene extends BaseScene {
       shaft.setRotation(horizontal ? 0 : Math.PI / 2);
       container.add(shaft);
 
+      // Brass collar at the joint — mechanical "pipe" flavour (audit P3)
+      container.add(
+        this.add.circle(start.x, start.y, CELL_SIZE * 0.22).setStrokeStyle(2.5, 0xc8973f, 0.9),
+      );
+
       if (index > 0) {
         const previous = arrow.segments[index - 1]!;
         const current = arrow.segments[index]!;
