@@ -1553,10 +1553,47 @@
   }
 }
 
+/* ===== Language toggle (zh / en) ===== */
+.sheep-lang-toggle {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  min-width: 38px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(63, 98, 18, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.9);
+  color: var(--sheep-green-deep, #3f6212);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(56, 42, 20, 0.1);
+  transition:
+    transform 140ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.sheep-lang-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(132, 204, 22, 0.6);
+  box-shadow: 0 8px 18px rgba(63, 98, 18, 0.14);
+}
+
+.sheep-lang-toggle:focus-visible {
+  outline: 3px solid rgba(63, 98, 18, 0.45);
+  outline-offset: 2px;
+}
+
 /* ===== Reduced motion ===== */
 @media (prefers-reduced-motion: reduce) {
   .sheep-card,
   .sheep-route-card,
+  .sheep-lang-toggle,
   .sheep-timer__track i {
     transition: none;
   }

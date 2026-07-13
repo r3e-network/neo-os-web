@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: hoof-print -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Main pad (bottom) -->
+    <path d="M78,118
+             Q74,136 88,138
+             L112,138
+             Q126,136 122,118
+             Z"
+          fill="#A67B5B" stroke="#3A3530" stroke-width="2.5"/>
+    <!-- Left toe -->
+    <ellipse cx="84" cy="106" rx="12" ry="18"
+             fill="#A67B5B" stroke="#3A3530" stroke-width="2.5"
+             transform="rotate(-12,84,106)"/>
+    <!-- Right toe -->
+    <ellipse cx="116" cy="106" rx="12" ry="18"
+             fill="#A67B5B" stroke="#3A3530" stroke-width="2.5"
+             transform="rotate(12,116,106)"/>
+    <!-- Toe cleft line -->
+    <line x1="100" y1="114" x2="100" y2="134"
+          stroke="#7D5A3E" stroke-width="2" stroke-linecap="round"/>
+    <!-- Pad highlight -->
+    <ellipse cx="100" cy="129" rx="8" ry="4" fill="#7D5A3E" opacity="0.3"/>
+  
+    </g>
+</svg>

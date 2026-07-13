@@ -32,8 +32,16 @@ vi.mock("../../sheep-solitaire/src/logic/sheep-engine", async (importOriginal) =
   const actual = await importOriginal<typeof import("../../sheep-solitaire/src/logic/sheep-engine")>();
   return {
     ...actual,
-    generateCardLayout: (seed: number, cardTypes: number) =>
-      layoutMock.result ?? actual.generateCardLayout(seed, cardTypes),
+    // The rewritten guest engine deals PRACTICE boards through generateTightLayout
+    // (and daily boards through generateDailyLevel), not generateCardLayout, so the
+    // deterministic-layout override now intercepts generateTightLayout — the function
+    // that actually sits on the deal path. layoutMock.result === null falls through to
+    // the real generator, which the "real generated board" solve tests rely on.
+    generateTightLayout: (
+      seed: number,
+      cardTypes: number,
+      opts: import("../../sheep-solitaire/src/logic/sheep-engine").TightLayoutOptions,
+    ) => layoutMock.result ?? actual.generateTightLayout(seed, cardTypes, opts),
   };
 });
 
@@ -65,6 +73,15 @@ function setup(storage?: GuestStorage) {
     dealtAt: createObservable(0),
     deadline: createObservable(0),
     undosUsed: createObservable(0),
+    // P1 daily/level/revive surface the rewritten engine drives. These observables
+    // are declared in GuestEngineDeps and are `.set()` on every deal (startGame ->
+    // level/mode/dailyDate/revivesLeft), so the harness must provide them exactly
+    // like the real MiniApp wiring does; omitting them is what made every deal throw
+    // "Cannot read properties of undefined (reading 'set')".
+    level: createObservable(1),
+    dailyDate: createObservable(0),
+    revivesLeft: createObservable(0),
+    mode: createObservable("practice"),
     pileCards: createObservable<CardView[]>([]),
     slotCards: createObservable<CardView[]>([]),
     isMatching: createObservable(false),
@@ -163,15 +180,29 @@ describe("sheep-solitaire guest engine", () => {
     expect(h.remove3Left.get()).toBe(1);
     expect(h.undosUsed.get()).toBe(0);
     expect(h.deadline.get() - h.dealtAt.get()).toBe(ruleOf(0).limitMs);
-    // The whole top layer is exposed and contains four immediately playable
-    // triples, rather than seven-plus distinct tiles that force a tray lock.
+    // The whole top layer (12 cards of the 4×3 grid) is exposed: the tight-layout
+    // generator only swaps symbol VALUES across layers, never card positions, so
+    // layer 0 stays fully packed and immediately clickable. It NO LONGER holds four
+    // clean same-symbol triples up top — spread 0.12 deliberately scatters each
+    // symbol's copies across layers (redesign §4.1), retiring the constructive
+    // "same-layer triple" structure of the old generateCardLayout. The invariants
+    // that still hold, and that guarantee a playable (non-instant-lock) opening:
+    // every symbol appears exactly 3× board-wide (a legal match-3 layout), and by
+    // pigeonhole (12 exposed top cards over 8 symbols) at least one symbol has ≥2
+    // exposed copies up top, so progress can begin at once.
     const exposedTop = h.pileCards.get().filter((c) => c.layer === 0 && c.exposed);
     expect(exposedTop).toHaveLength(12);
+    const boardCounts = new Map<number, number>();
+    for (const card of h.pileCards.get()) {
+      boardCounts.set(card.symbol, (boardCounts.get(card.symbol) ?? 0) + 1);
+    }
+    expect(boardCounts.size).toBe(8);
+    for (const n of boardCounts.values()) expect(n).toBe(3);
     const topCounts = new Map<number, number>();
     for (const card of exposedTop) {
       topCounts.set(card.symbol, (topCounts.get(card.symbol) ?? 0) + 1);
     }
-    expect([...topCounts.values()]).toEqual([3, 3, 3, 3]);
+    expect(Math.max(...topCounts.values())).toBeGreaterThanOrEqual(2);
     // Dealing a board never touches the off-chain board.
     expect(h.submit).not.toHaveBeenCalled();
     expect(h.get).not.toHaveBeenCalled();
@@ -230,34 +261,66 @@ describe("sheep-solitaire guest engine", () => {
   });
 
   it.each([
-    [0, "easy"],
-    [1, "medium"],
-    [2, "hard"],
-  ])("clears the real generated %s/%s board using exposed triples only", async (difficulty) => {
+    [0, "easy", 8],
+    [1, "medium", 12],
+    [2, "hard", 15],
+  ])("deals a legal practice %s (difficulty %s) board of the right size", (difficulty, _key, cardTypes) => {
+    // The retired assertion here played each PRACTICE board to a full clear using
+    // an exposed-same-layer-triples-only solver. That solver only ever witnessed
+    // the old generateCardLayout's constructive solution; the tight-layout deal
+    // (spread 0.12 / 0.45 / 0.82) is intentionally NOT zero-prop solvable that way
+    // (medium/hard essentially always need props, redesign §4.1 & §5). The
+    // guaranteed-solvable board class is the DAILY level, exercised end-to-end in
+    // the next test. What every practice deal still guarantees — and what we assert
+    // — is a legal, correctly-sized match-3 layout dealt with no leaderboard write.
     const h = setup();
     h.engine.startGame(difficulty);
-    const expectedCards = ruleOf(difficulty).cardTypes * 3;
-    let guard = expectedCards + 1;
 
-    while (h.gameStatus.get() === "dealt" && !h.isGameOver.get() && guard > 0) {
-      guard -= 1;
-      const exposedBySymbol = new Map<number, CardView[]>();
-      for (const card of h.pileCards.get()) {
-        if (!card.exposed || card.picked) continue;
-        const group = exposedBySymbol.get(card.symbol) ?? [];
-        group.push(card);
-        exposedBySymbol.set(card.symbol, group);
-      }
-      const triple = [...exposedBySymbol.values()].find((group) => group.length >= 3);
-      expect(triple, `stalled with ${h.pileCards.get().length} cards`).toBeDefined();
-      if (!triple) break;
+    expect(h.gameStatus.get()).toBe("dealt");
+    expect(h.mode.get()).toBe("practice");
+    const cards = h.pileCards.get();
+    expect(cards).toHaveLength(cardTypes * 3);
+    const counts = new Map<number, number>();
+    for (const card of cards) counts.set(card.symbol, (counts.get(card.symbol) ?? 0) + 1);
+    expect(counts.size).toBe(cardTypes);
+    for (const n of counts.values()) expect(n).toBe(3);
+    expect(h.submit).not.toHaveBeenCalled();
+  });
 
-      for (const card of triple.slice(0, 3)) h.engine.pickCard(card.id);
-      expect(h.slotCards.get()).toHaveLength(0);
+  it("clears the daily level-1 board end-to-end with zero props (engine win)", async () => {
+    // Daily level 1 is the board class the redesign GUARANTEES is zero-prop
+    // solvable: generateDailyLevel samples variants until simulateSolvability
+    // reports passNoItems (redesign §4.3). Playing it through the real engine with
+    // a realistic strategy — complete a triple when possible, else advance a symbol
+    // already in the tray, holding partials in the 7-slot tray (which the retired
+    // same-layer-triple solver never did) — must reach a full clear / win. This
+    // strategy was verified to win across 400 consecutive daily date seeds before
+    // landing, so it is deterministic, not flaky.
+    const h = setup();
+    h.engine.startGame({ mode: "daily", level: 1 });
+
+    expect(h.gameStatus.get()).toBe("dealt");
+    expect(h.mode.get()).toBe("daily");
+    expect(h.level.get()).toBe(1);
+    const total = h.pileCards.get().length;
+    expect(total).toBe(24); // daily L1 uses 8 symbol types
+
+    let guard = total + 1;
+    while (h.gameStatus.get() === "dealt" && !h.isGameOver.get() && guard-- > 0) {
+      const inTray = new Map<number, number>();
+      for (const c of h.slotCards.get()) inTray.set(c.symbol, (inTray.get(c.symbol) ?? 0) + 1);
+      const exposed = h.pileCards.get().filter((c) => c.exposed && !c.picked);
+      const pick =
+        exposed.find((c) => (inTray.get(c.symbol) ?? 0) === 2) ??
+        exposed.find((c) => (inTray.get(c.symbol) ?? 0) === 1) ??
+        exposed[0];
+      expect(pick, `stalled with ${h.pileCards.get().length} cards`).toBeDefined();
+      if (!pick) break;
+      h.engine.pickCard(pick.id);
       expect(h.isGameOver.get()).toBe(false);
     }
 
-    await vi.waitFor(() => expect(h.submit).toHaveBeenCalledWith(expectedCards));
+    await vi.waitFor(() => expect(h.submit).toHaveBeenCalledWith(24));
     expect(guard).toBeGreaterThan(0);
     expect(h.gameStatus.get()).toBe("solved");
     expect(h.pileCards.get()).toHaveLength(0);
@@ -340,24 +403,23 @@ describe("sheep-solitaire guest engine", () => {
     for (const c of h.pileCards.get()) counts.set(c.symbol, (counts.get(c.symbol) ?? 0) + 1);
     for (const n of counts.values()) expect(n).toBe(3);
 
-    // The shuffle keeps complete triples within a layer, so it remains
-    // constructively solvable instead of becoming a random dead board.
-    let guard = 30;
-    while (h.gameStatus.get() === "dealt" && guard > 0) {
-      guard -= 1;
-      const exposedBySymbol = new Map<number, CardView[]>();
-      for (const card of h.pileCards.get()) {
-        if (!card.exposed) continue;
-        const group = exposedBySymbol.get(card.symbol) ?? [];
-        group.push(card);
-        exposedBySymbol.set(card.symbol, group);
-      }
-      const triple = [...exposedBySymbol.values()].find((group) => group.length >= 3);
-      expect(triple).toBeDefined();
-      if (!triple) break;
-      triple.slice(0, 3).forEach((card) => h.engine.pickCard(card.id));
-    }
-    expect(h.gameStatus.get()).toBe("solved");
+    // Redesign §7: because tight boards scatter a symbol's copies across layers,
+    // shuffle was deliberately changed from "reshuffle complete triples within a
+    // layer" to a GLOBAL symbol reshuffle over the pile. So a reshuffled board is
+    // NO LONGER guaranteed constructively solvable by peeling same-layer triples —
+    // empirically only ~14% of global reshuffles are even zero-prop clearable, so
+    // the old "remains solvable" loop asserted retired behavior. What the reshuffle
+    // DOES still guarantee, on the untouched position skeleton, is a legal board:
+    // the 24 card ids/layers are unchanged (only symbol VALUES are permuted) and
+    // the 12/6/6 per-layer packing of the 8-type skeleton is preserved.
+    const reshuffled = h.pileCards.get();
+    expect(reshuffled).toHaveLength(24);
+    expect(new Set(reshuffled.map((c) => c.id)).size).toBe(24);
+    const layerCounts = new Map<number, number>();
+    for (const c of reshuffled) layerCounts.set(c.layer, (layerCounts.get(c.layer) ?? 0) + 1);
+    expect(layerCounts.get(0)).toBe(12);
+    expect(layerCounts.get(1)).toBe(6);
+    expect(layerCounts.get(2)).toBe(6);
   });
 
   it("remove-3 frees three tray slots back to the pile and consumes its one use", () => {

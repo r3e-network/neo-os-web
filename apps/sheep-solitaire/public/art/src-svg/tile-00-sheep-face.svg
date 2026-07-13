@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: sheep-face -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Wool fluff (head shape) -->
+    <circle cx="100" cy="102" r="42" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="3" />
+    <!-- Ears -->
+    <ellipse cx="64" cy="68" rx="16" ry="24" fill="#F8F2E6"
+            stroke="#3A3530" stroke-width="2.5" />
+    <ellipse cx="136" cy="68" rx="16" ry="24" fill="#F8F2E6"
+            stroke="#3A3530" stroke-width="2.5" />
+    <ellipse cx="64" cy="69" rx="9" ry="16" fill="#FFB5BA"
+             />
+    <ellipse cx="136" cy="69" rx="9" ry="16" fill="#FFB5BA"
+             />
+    <!-- Face area -->
+    <ellipse cx="100" cy="106" rx="28" ry="26" fill="#F4E1CE"
+            stroke="#3A3530" stroke-width="2" />
+    <!-- Eyes -->
+    <circle cx="88" cy="98" r="4.5" fill="#3A3530"
+            />
+    <circle cx="112" cy="98" r="4.5" fill="#3A3530"
+            />
+    <circle cx="87" cy="97" r="1.5" fill="#FFFFFF"
+            />
+    <circle cx="111" cy="97" r="1.5" fill="#FFFFFF"
+            />
+    <!-- Nose/mouth -->
+    <ellipse cx="100" cy="110" rx="8" ry="5.5" fill="#FFB5BA"
+            stroke="#3A3530" stroke-width="1.5" />
+    <!-- Wool tuft top -->
+    <circle cx="80" cy="70" r="13" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="120" cy="70" r="13" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="100" cy="62" r="15" fill="#F8F2E6"
+           stroke="#3A3530" stroke-width="2" />
+    <!-- Cheek blush -->
+    <ellipse cx="72" cy="108" rx="9" ry="6" fill="#FFB5BA" opacity="0.45" />
+    <ellipse cx="128" cy="108" rx="9" ry="6" fill="#FFB5BA" opacity="0.45" />
+  
+    </g>
+</svg>

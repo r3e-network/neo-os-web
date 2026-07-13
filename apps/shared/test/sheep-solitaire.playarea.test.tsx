@@ -313,9 +313,11 @@ describe("sheep-solitaire playarea (TEE mode)", () => {
     const slotSprites = Array.from(
       container.querySelectorAll<HTMLImageElement>(".sheep-slot__art"),
     ).map((img) => img.getAttribute("src"));
+    // SAMPLE_PILE[0]/[1] are symbols 0 and 1, whose sprites are the redesign's
+    // original sheep-themed tiles (sheep-face / lamb), replacing the old fruit set.
     expect(slotSprites).toEqual([
-      "./art/tile-00-wool-flower.webp",
-      "./art/tile-01-apple.webp",
+      "./art/tile-00-sheep-face.webp",
+      "./art/tile-01-lamb.webp",
     ]);
   });
 
