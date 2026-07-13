@@ -25,19 +25,8 @@ import {
   isValidBoard,
   type Cell,
 } from "./merge-engine";
-
-/** Structural (method-syntax, so bivariant) observable handle. */
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-  subscribe(listener: () => void): () => void;
-}
-
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
+import type { Observable as Obs } from "@framework/reactive";
+import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
 /** Framework-owned, app-namespaced local persistence surface. */
 export interface LocalStore {

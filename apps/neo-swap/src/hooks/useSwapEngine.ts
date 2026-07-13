@@ -67,9 +67,6 @@ const DEFAULT_SLIPPAGE_BPS = 50;
 // meaningful, 50% ceiling so a fat-finger entry cannot zero out the floor.
 const MIN_SLIPPAGE_BPS = 1;
 const MAX_SLIPPAGE_BPS = 5000;
-/** Preset slippage chips, in basis points, surfaced as 0.1% / 0.5% / 1%. */
-export const SLIPPAGE_PRESET_BPS: ReadonlyArray<number> = [10, 50, 100];
-
 /** Canonical list of swappable pairs surfaced in the playarea + manifest stats. */
 export const POPULAR_PAIRS: ReadonlyArray<{ id: string; name: string }> = [
   { id: "neo-gas", name: "NEO/GAS" },

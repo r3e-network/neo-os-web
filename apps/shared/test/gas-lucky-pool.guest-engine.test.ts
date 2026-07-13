@@ -8,10 +8,6 @@ import {
 } from "../../gas-lucky-pool/src/logic/guest-engine";
 import type { GuestEngineDeps, GuestBoardRow } from "../../gas-lucky-pool/src/logic/guest-engine";
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function stubRandomUnit(value: number): void {
   const raw = Math.max(0, Math.min(0xffffffff, Math.floor(value * 0x100000000)));
   vi.stubGlobal("crypto", {
@@ -28,23 +24,23 @@ async function flushAsyncWork() {
 }
 
 function setup(boardRows: Array<{ user: string; score: string }> = []) {
-  const lastClaimAmount = makeObs(10n);
-  const lastClaimLuckPercent = makeObs("old");
-  const lastError = makeObs("old error");
-  const lastTxid = makeObs("0xold");
-  const lastSuccessType = makeObs("claim");
-  const claimStatus = makeObs("paid");
-  const claimProgress = makeObs("waiting");
-  const currentClaimKey = makeObs("claim-key");
-  const currentPoolId = makeObs("pool-1");
-  const currentPool = makeObs<unknown>({ id: "pool-1" });
-  const recentPools = makeObs<unknown[]>([{ id: "pool-1" }]);
-  const recentClaims = makeObs<unknown[]>([{ id: "claim-1" }]);
-  const gasCredit = makeObs(99n);
-  const guestBest = makeObs(7);
-  const guestLast = makeObs(4);
-  const guestDraws = makeObs(2);
-  const guestBoard = makeObs<GuestBoardRow[]>([]);
+  const lastClaimAmount = createObservable(10n);
+  const lastClaimLuckPercent = createObservable("old");
+  const lastError = createObservable("old error");
+  const lastTxid = createObservable("0xold");
+  const lastSuccessType = createObservable("claim");
+  const claimStatus = createObservable("paid");
+  const claimProgress = createObservable("waiting");
+  const currentClaimKey = createObservable("claim-key");
+  const currentPoolId = createObservable("pool-1");
+  const currentPool = createObservable<unknown>({ id: "pool-1" });
+  const recentPools = createObservable<unknown[]>([{ id: "pool-1" }]);
+  const recentClaims = createObservable<unknown[]>([{ id: "claim-1" }]);
+  const gasCredit = createObservable(99n);
+  const guestBest = createObservable(7);
+  const guestLast = createObservable(4);
+  const guestDraws = createObservable(2);
+  const guestBoard = createObservable<GuestBoardRow[]>([]);
   const rows = [...boardRows];
   const submit = vi.fn(async (score: number | string) => {
     rows.push({ user: "Nyou", score: String(score) });

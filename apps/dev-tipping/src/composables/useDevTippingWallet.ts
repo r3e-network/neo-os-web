@@ -38,7 +38,6 @@ import {
   type TipOperationScope,
 } from "../dev-tipping-operation-store";
 
-export const MIN_TIP = 0.001;
 const MIN_TIP_BASE = 100_000n;
 const MAX_NAME_LEN = 64;
 const MAX_ROLE_LEN = 64;

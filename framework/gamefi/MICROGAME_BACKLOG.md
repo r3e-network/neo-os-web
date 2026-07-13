@@ -18,10 +18,8 @@ work behind the framework.
 
 ## Candidate Games
 
-The executable registry lives in
-[`microgame-archetypes.ts`](./microgame-archetypes.ts). Keep this table aligned
-with that file so new games can be scaffolded from a real product/game pattern
-instead of an ad hoc form.
+This table is the canonical record of candidate games so new games can be
+scaffolded from a real product/game pattern instead of an ad hoc form.
 
 | Candidate | Familiar Pattern | Core Verb | TEE Verification | GameFi Fit | Notes |
 | --- | --- | --- | --- | --- | --- |

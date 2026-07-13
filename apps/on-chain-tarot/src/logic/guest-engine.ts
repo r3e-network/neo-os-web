@@ -20,12 +20,7 @@ import {
   type Card,
   type TarotReadingMode,
 } from "../composables/useTarot";
-
-/** Structural (method-syntax → bivariant) observable handle. */
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-}
+import type { Observable as Obs } from "@framework/reactive";
 
 /** app.storage.local surface (framework-owned, localStorage-backed). */
 interface LocalStore {

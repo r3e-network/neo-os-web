@@ -143,26 +143,6 @@ export interface FrameworkWaitForStateOptions {
   delayMs?: number;
 }
 
-/** Count-then-page enumeration spec (see chain.enumerate). */
-export interface FrameworkEnumerateSpec<T> {
-  /** Contract read returning the total item count; ids are assumed 1..count. */
-  countOp?: string;
-  countArgs?: FrameworkContractArg[];
-  /** Explicit id list — takes precedence over `countOp`. */
-  ids?: ReadonlyArray<number | string>;
-  /** Per-id detail read operation. */
-  detailOp: string;
-  /** Args for the detail read; defaults to a single Integer id argument. */
-  detailArgs?: (id: number | string) => FrameworkContractArg[];
-  /** Decode one detail read; return `null` to skip the row. */
-  decode: (raw: unknown, id: number | string) => T | null;
-  /** Defensive cap on ids fetched (default 500) — the newest ids win. */
-  cap?: number;
-  /** Result ordering by numeric id (default 'newest' = descending). */
-  order?: "newest" | "oldest";
-  scriptHash?: string;
-}
-
 export interface MiniAppFrameworkChain {
   address: Observable<string | null>;
   contractAddress?: Observable<string | null>;
@@ -917,12 +897,6 @@ export interface FrameworkChainSurface {
     until: (value: T) => boolean,
     waitOptions?: FrameworkWaitForStateOptions,
   ): Promise<T | null>;
-  /**
-   * Count-then-page enumeration (S7).
-   * @deprecated 0 fleet consumers — use {@link query} with an explicit loop
-   * (or `readArray`) instead; kept for back-compat.
-   */
-  enumerate<T>(spec: FrameworkEnumerateSpec<T>): Promise<T[]>;
 }
 
 /** app.funds — payment-carrying invoke lanes (S3). */

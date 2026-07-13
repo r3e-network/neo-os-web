@@ -124,11 +124,6 @@ export function appendSealedIntent(store: SealedIntentStore, intent: SealedInten
   return next;
 }
 
-/** Drop all persisted sealed intents. */
-export function clearSealedIntents(store: SealedIntentStore): void {
-  store.delete(STORAGE_KEY);
-}
-
 function isPendingSealedIntent(value: unknown): value is PendingSealedIntent {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;

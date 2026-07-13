@@ -247,10 +247,6 @@ export function normalizePassportForm(
   };
 }
 
-export function isMorpheusDid(value: string) {
-  return Boolean(canonicalMorpheusDid(value));
-}
-
 export function validatePassportForm(form: PassportForm) {
   if (!canonicalMorpheusDid(form.subject)) return "passportInvalidDid";
   if (!form.claim || CONTROL_PATTERN.test(form.claim) || byteLength(form.claim) > MAX_CLAIM_BYTES) {

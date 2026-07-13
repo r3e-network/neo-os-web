@@ -5,10 +5,6 @@ import { createGuestEngine } from "../../burn-league/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../burn-league/src/logic/guest-engine";
 import type { LeaderEntry } from "../../burn-league/src/composables/useBurnLeague";
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function stubRand(values: number[]): void {
   const queue = values.map((value) =>
     Math.max(0, Math.min(0xffffffff, Math.floor(value * 4294967296))),
@@ -22,32 +18,32 @@ function stubRand(values: number[]): void {
 }
 
 function setup(boardRows: Array<{ user: string; score: string }> = []) {
-  const rewardPool = makeObs(12);
-  const totalBurned = makeObs(12);
-  const userBurned = makeObs(4);
-  const rank = makeObs(3);
-  const burnCount = makeObs(9);
-  const leaderboard = makeObs<LeaderEntry[]>([]);
-  const isBurning = makeObs(false);
-  const isSettling = makeObs(true);
-  const seasonId = makeObs(7);
-  const seasonEndMs = makeObs(Date.now() + 1000);
-  const topBurnerAddress = makeObs<string | null>("Nold");
-  const topBurnedGas = makeObs(12);
-  const prepaidCredit = makeObs(5);
-  const actionNotice = makeObs("old notice");
-  const serviceNotice = makeObs("old service");
-  const burnValidationError = makeObs<string | null>("old error");
-  const lastSettleResult = makeObs<{ won: boolean; amount: string; token: number } | null>({
+  const rewardPool = createObservable(12);
+  const totalBurned = createObservable(12);
+  const userBurned = createObservable(4);
+  const rank = createObservable(3);
+  const burnCount = createObservable(9);
+  const leaderboard = createObservable<LeaderEntry[]>([]);
+  const isBurning = createObservable(false);
+  const isSettling = createObservable(true);
+  const seasonId = createObservable(7);
+  const seasonEndMs = createObservable(Date.now() + 1000);
+  const topBurnerAddress = createObservable<string | null>("Nold");
+  const topBurnedGas = createObservable(12);
+  const prepaidCredit = createObservable(5);
+  const actionNotice = createObservable("old notice");
+  const serviceNotice = createObservable("old service");
+  const burnValidationError = createObservable<string | null>("old error");
+  const lastSettleResult = createObservable<{ won: boolean; amount: string; token: number } | null>({
     won: true,
     amount: "1",
     token: 1,
   });
-  const burnAmount = makeObs("5");
-  const minBurnGas = makeObs(1);
-  const maxBurnGas = makeObs(1000);
-  const guestStreak = makeObs(2);
-  const address = makeObs<string | null>("Nyou");
+  const burnAmount = createObservable("5");
+  const minBurnGas = createObservable(1);
+  const maxBurnGas = createObservable(1000);
+  const guestStreak = createObservable(2);
+  const address = createObservable<string | null>("Nyou");
   const rows = [...boardRows];
   const submit = vi.fn(async (score: number | string) => {
     rows.push({ user: "Nyou", score: String(score) });

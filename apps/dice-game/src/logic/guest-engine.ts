@@ -15,6 +15,8 @@
  * faithful single-player RNG simulation of the dice mechanic.
  */
 import type { BetTracker } from "../bet-tracker";
+import type { Observable as Obs } from "@framework/reactive";
+import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
 // Mirrors the deployed 5.70x payout (see main.tsx / DiceScene PAYOUT_MULT).
 const PAYOUT_MULT = 5.7;
@@ -24,18 +26,6 @@ const REVEAL_MS = 1100;
 const REDUCED_MOTION_REVEAL_MS = 120;
 const MIN_STAKE = 0.05;
 const MAX_STAKE = 20;
-
-/** Structural (method-syntax → bivariant) observable handle. */
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-}
-
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
 
 export interface DiceGuestEngineDeps {
   tracker: BetTracker;

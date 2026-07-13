@@ -8,10 +8,6 @@ import type {
   TarotReadingMode,
 } from "../../on-chain-tarot/src/composables/useTarot";
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function stubRandomInts(values: number[]): void {
   const queue = [...values];
   vi.stubGlobal("crypto", {
@@ -36,12 +32,12 @@ function makeStorage(initial: Record<string, unknown> = {}) {
 }
 
 function setup(initialStorage: Record<string, unknown> = {}) {
-  const drawn = makeObs<Card[]>([]);
-  const readingMode = makeObs<TarotReadingMode>("idle");
-  const readingsCount = makeObs(0);
-  const prepaidCredit = makeObs(1.5);
-  const isLoading = makeObs(false);
-  const question = makeObs("Will I win?");
+  const drawn = createObservable<Card[]>([]);
+  const readingMode = createObservable<TarotReadingMode>("idle");
+  const readingsCount = createObservable(0);
+  const prepaidCredit = createObservable(1.5);
+  const isLoading = createObservable(false);
+  const question = createObservable("Will I win?");
   const storage = makeStorage(initialStorage);
   const setStatus = vi.fn();
   const t = (key: string, params?: Record<string, string | number>) =>

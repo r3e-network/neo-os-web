@@ -25,22 +25,18 @@ import {
  * on settle / refresh / enter, never during play).
  */
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function setup(overrides: Partial<GuestEngineDeps> = {}) {
   const obs = createGameSessionObservables();
-  const actionsUsed = makeObs<number>(0);
-  const happinessAchieved = makeObs<number>(0);
-  const petHappiness = makeObs<number>(50);
-  const petHunger = makeObs<number>(50);
-  const petEnergy = makeObs<number>(50);
-  const petStage = makeObs<number>(0);
-  const actionHistory = makeObs<string[]>([]);
-  const ingredientCounts = makeObs<IngredientCounts>(emptyIngredientCounts());
-  const potionBrewed = makeObs(false);
-  const lastPayoutFixed8 = makeObs<bigint>(0n);
+  const actionsUsed = createObservable<number>(0);
+  const happinessAchieved = createObservable<number>(0);
+  const petHappiness = createObservable<number>(50);
+  const petHunger = createObservable<number>(50);
+  const petEnergy = createObservable<number>(50);
+  const petStage = createObservable<number>(0);
+  const actionHistory = createObservable<string[]>([]);
+  const ingredientCounts = createObservable<IngredientCounts>(emptyIngredientCounts());
+  const potionBrewed = createObservable(false);
+  const lastPayoutFixed8 = createObservable<bigint>(0n);
 
   const submit = vi.fn(async (_score: number | string) => {});
   const board: Array<{ user: string; score: string }> = [];

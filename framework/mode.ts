@@ -37,7 +37,7 @@ const GUEST_BLOCKED_MESSAGE = "guest-mode: on-chain/oracle operations are disabl
  * Rows scanned from the OS board per guest read. The board can mix guest
  * and non-guest rows (stats.leaderboard shares it), so a `limit`-sized
  * window could miss every guest row; scan a defensive window instead
- * (same 500 cap chain.enumerate / events.listAll use) before filtering.
+ * (same 500 cap events.listAll uses) before filtering.
  */
 const GUEST_BOARD_SCAN_LIMIT = 500;
 
