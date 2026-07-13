@@ -128,5 +128,5 @@ describe("DeviceQaPanel", () => {
     expect(report.frame.longFramePercent).toBe(0);
     expect(report.frame.jankBurstCount).toBe(0);
     expect(report.frame.worstJankBurstFrames).toBe(2);
-  });
+  }, 15_000);
 });

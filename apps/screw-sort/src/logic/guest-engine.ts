@@ -2,6 +2,7 @@ import type { Observable } from "@shared/react";
 import {
   allScrews,
   applyScrewMove,
+  computeStars,
   createSession,
   deriveSeed,
   generateLevel,
@@ -18,6 +19,7 @@ export const STATS_STORAGE_KEY = "stats:v1";
 export interface ScrewSortStats {
   wins: number;
   bestMoves: number;
+  bestStars: number;
   lastSeed: string;
 }
 
@@ -37,7 +39,7 @@ export interface GuestEngineDeps {
   submitScore?: (score: number) => Promise<void>;
 }
 
-const EMPTY_STATS: ScrewSortStats = { wins: 0, bestMoves: 0, lastSeed: "" };
+const EMPTY_STATS: ScrewSortStats = { wins: 0, bestMoves: 0, bestStars: 0, lastSeed: "" };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -61,7 +63,7 @@ function validCore(levelSeed: string, value: unknown): value is CoreRunState {
     Number.isInteger(box.queueIndex) && Number(box.queueIndex) >= 0 && Number(box.queueIndex) <= 3 &&
     Number.isInteger(box.count) && Number(box.count) >= 0 && Number(box.count) < 3
   )) return false;
-  if (!Array.isArray(buffer) || buffer.length > 5) return false;
+  if (!Array.isArray(buffer) || buffer.length > 64) return false;
   if (!buffer.every((item) =>
     isRecord(item) &&
     typeof item.screwId === "string" &&
@@ -70,7 +72,7 @@ function validCore(levelSeed: string, value: unknown): value is CoreRunState {
     typeof item.color === "string" &&
     Number.isInteger(item.lane)
   )) return false;
-  if (!(["playing", "won", "lost"] as unknown[]).includes(value.status)) return false;
+  if (!(["playing", "won"] as unknown[]).includes(value.status)) return false;
   return (
     typeof value.paused === "boolean" &&
     Number.isInteger(value.moves) && Number(value.moves) >= 0 &&
@@ -137,6 +139,7 @@ function restoreStats(value: unknown): ScrewSortStats {
   return {
     wins: Math.max(0, Math.floor(Number(value.wins) || 0)),
     bestMoves: Math.max(0, Math.floor(Number(value.bestMoves) || 0)),
+    bestStars: Math.max(0, Math.min(3, Math.floor(Number(value.bestStars) || 0))),
     lastSeed: typeof value.lastSeed === "string" ? value.lastSeed : "",
   };
 }
@@ -255,11 +258,13 @@ export function createGuestEngine(deps: GuestEngineDeps) {
       const after = result.session;
       if (after.core.status === "won" && before.core.status !== "won") {
         const current = deps.stats.get();
+        const stars = computeStars(after.core);
         const next = {
           wins: current.wins + 1,
           bestMoves: current.bestMoves === 0
             ? after.core.moves
             : Math.min(current.bestMoves, after.core.moves),
+          bestStars: Math.max(current.bestStars, stars),
           lastSeed: after.level.seed,
         };
         deps.stats.set(next);
@@ -270,13 +275,15 @@ export function createGuestEngine(deps: GuestEngineDeps) {
           deps.lastStatus.set(message);
           deps.setStatus(message, "warning");
         });
-      } else if (after.core.status === "lost") {
-        publish(after, "statusLost", "error");
       } else if (after.core.lastEvent?.kind === "move") {
-        publish(
-          after,
-          after.core.lastEvent.destination === "buffer" ? "statusBuffered" : "statusSorted",
-        );
+        if (after.core.lastEvent.destination === "buffer" && after.core.overflows > before.core.overflows) {
+          publish(after, "statusOverflow", "info");
+        } else {
+          publish(
+            after,
+            after.core.lastEvent.destination === "buffer" ? "statusBuffered" : "statusSorted",
+          );
+        }
       } else {
         publish(after);
       }

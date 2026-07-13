@@ -10,13 +10,14 @@
  *   pick  → 10          (light tap acknowledging a successful pull)
  *   match → 30          (three-of-a-kind cleared)
  *   win   → 30,50,80    (rising celebratory triplet)
+ *   jam   → 55,35,90    (urgent two-stage tray-full warning)
  *   fail  → 100         (single firm buzz)
  *   shake → 18,35,28    (two-stage basket jolt)
  */
 
 import { gameStorage } from "./game-storage";
 
-export type HapticCue = "pick" | "match" | "win" | "fail" | "shake";
+export type HapticCue = "pick" | "match" | "win" | "jam" | "fail" | "shake";
 export interface HapticsQaSnapshot {
   supported: boolean;
   enabled: boolean;
@@ -28,6 +29,7 @@ const PATTERNS: Record<HapticCue, number | number[]> = {
   pick: 10,
   match: 30,
   win: [30, 50, 80],
+  jam: [55, 35, 90],
   fail: 100,
   shake: [18, 35, 28],
 };

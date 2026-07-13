@@ -3,7 +3,7 @@
  *
  * A theme is a complete presentation contract, not a color filter: it owns the
  * scene backdrop, container treatment, object catalog, UI tokens and ambience.
- * Logical kind ids remain 0..11 so the deterministic matching engine is shared
+ * Logical kind ids remain 0..17 so the deterministic matching engine is shared
  * across every theme.
  */
 import type { GeometryKind } from "./engine-zhuada";
@@ -62,6 +62,12 @@ const freshItems: readonly ThemeItem[] = [
   { nameKey: "freshPear", color: 0xa6bd45, geometry: "sphere" },
   { nameKey: "freshDonut", color: 0xd49a6a, geometry: "torus" },
   { nameKey: "freshEgg", color: 0xf4efe4, geometry: "cylinder" },
+  { nameKey: "freshStrawberry", color: 0xd94c52, geometry: "sphere" },
+  { nameKey: "freshWatermelon", color: 0x63a55b, geometry: "cylinder" },
+  { nameKey: "freshHoney", color: 0xe5a72f, geometry: "cylinder" },
+  { nameKey: "freshCheese", color: 0xf2c84b, geometry: "box" },
+  { nameKey: "freshFlowerPot", color: 0xc86f4a, geometry: "cylinder" },
+  { nameKey: "freshJuice", color: 0xf0d78a, geometry: "box" },
 ];
 
 const farmItems: readonly ThemeItem[] = [
@@ -77,6 +83,12 @@ const farmItems: readonly ThemeItem[] = [
   { nameKey: "farmJug", color: 0xf1e1bd, geometry: "cylinder" },
   { nameKey: "farmCookie", color: 0xc9945a, geometry: "cylinder" },
   { nameKey: "farmMug", color: 0x5f8dac, geometry: "cylinder" },
+  { nameKey: "farmRollingPin", color: 0xb77943, geometry: "cylinder" },
+  { nameKey: "farmPot", color: 0x4f83a2, geometry: "cylinder" },
+  { nameKey: "farmBread", color: 0xc9894d, geometry: "box" },
+  { nameKey: "farmButter", color: 0xe4d1a5, geometry: "cylinder" },
+  { nameKey: "farmRooster", color: 0xc84f3b, geometry: "icosa" },
+  { nameKey: "farmYarn", color: 0x8d6aa8, geometry: "sphere" },
 ];
 
 const nightItems: readonly ThemeItem[] = [
@@ -92,7 +104,15 @@ const nightItems: readonly ThemeItem[] = [
   { nameKey: "nightBowl", color: 0xe8d4ba, geometry: "cylinder" },
   { nameKey: "nightBell", color: 0xc99a3d, geometry: "cone" },
   { nameKey: "nightSnackTin", color: 0x6f4d94, geometry: "box" },
+  { nameKey: "nightTeapot", color: 0x3f8b78, geometry: "sphere" },
+  { nameKey: "nightFan", color: 0xd84b54, geometry: "box" },
+  { nameKey: "nightLuckyCat", color: 0xf2e1c2, geometry: "icosa" },
+  { nameKey: "nightNoodles", color: 0xe8c27a, geometry: "cylinder" },
+  { nameKey: "nightLotusLamp", color: 0xe86c87, geometry: "sphere" },
+  { nameKey: "nightMahjong", color: 0xe8e2cf, geometry: "box" },
 ];
+
+export const THEME_ITEM_COUNT = 18;
 
 export const GAME_THEMES: readonly GameTheme[] = [
   {

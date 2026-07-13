@@ -8,6 +8,7 @@ import sharp from "sharp";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = path.join(root, "public");
 const themes = ["fresh-market", "farm-kitchen", "night-market"];
+const itemCount = 18;
 
 async function readRgba(relative) {
   return sharp(path.join(publicDir, relative))
@@ -65,7 +66,7 @@ async function fingerprint(relative) {
 describe("generated item icon quality gate", () => {
   it("keeps every item icon visible, padded, transparent, and visually detailed", async () => {
     for (const theme of themes) {
-      for (let index = 0; index < 12; index += 1) {
+      for (let index = 0; index < itemCount; index += 1) {
         const relative = `art/items/${theme}/item-${String(index).padStart(2, "0")}.webp`;
         const { data, info } = await readRgba(relative);
         const stats = analyzeIcon(data, info);
@@ -86,10 +87,10 @@ describe("generated item icon quality gate", () => {
     }
   });
 
-  it("keeps the 36 runtime item icons unique instead of reusing placeholders", async () => {
+  it("keeps the 54 runtime item icons unique instead of reusing placeholders", async () => {
     const seen = new Map();
     for (const theme of themes) {
-      for (let index = 0; index < 12; index += 1) {
+      for (let index = 0; index < itemCount; index += 1) {
         const relative = `art/items/${theme}/item-${String(index).padStart(2, "0")}.webp`;
         const hash = await fingerprint(relative);
         assert.equal(seen.has(hash), false,
@@ -97,6 +98,6 @@ describe("generated item icon quality gate", () => {
         seen.set(hash, relative);
       }
     }
-    assert.equal(seen.size, 36, "all three themes must ship 36 unique item icons");
+    assert.equal(seen.size, 54, "all three themes must ship 54 unique item icons");
   });
 });

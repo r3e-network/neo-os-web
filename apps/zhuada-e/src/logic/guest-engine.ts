@@ -59,7 +59,7 @@ import { computeGoosePassive, EMPTY_GOOSE_PASSIVE, type GoosePassive } from "./g
 import { createItemStream, refillItemStream } from "./item-stream";
 import { sound } from "./sound";
 import { haptics } from "./haptics";
-import { isGameThemeId, themeOf, type GameThemeId } from "./themes";
+import { isGameThemeId, themeOf, THEME_ITEM_COUNT, type GameThemeId } from "./themes";
 import { gameStorage } from "./game-storage";
 import {
   clearRunSnapshot,
@@ -119,14 +119,14 @@ function isStoredItem(value: unknown): value is ItemInstance {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<ItemInstance>;
   return Number.isInteger(item.id) && Number(item.id) >= 0
-    && Number.isInteger(item.kind) && Number(item.kind) >= 0 && Number(item.kind) < 12
+    && Number.isInteger(item.kind) && Number(item.kind) >= 0 && Number(item.kind) < THEME_ITEM_COUNT
     && Number.isFinite(item.px) && Number.isFinite(item.py) && Number.isFinite(item.pz)
     && (item.spawnMode === undefined || item.spawnMode === "drop" || item.spawnMode === "reservoir");
 }
 
 function isSlotList(value: unknown, length: number): value is (number | null)[] {
   return Array.isArray(value) && value.length === length && value.every((slot) =>
-    slot === null || (Number.isInteger(slot) && Number(slot) >= 0 && Number(slot) < 12));
+    slot === null || (Number.isInteger(slot) && Number(slot) >= 0 && Number(slot) < THEME_ITEM_COUNT));
 }
 
 function isPowerupCounts(value: unknown): value is PowerupCounts {
@@ -151,7 +151,7 @@ export function isStoredRunState(value: unknown): value is StoredRunState {
   if (!isPowerupCounts(run.powerups)) return false;
   if (run.lastGrab !== null) {
     if (!run.lastGrab || !Number.isInteger(run.lastGrab.itemId) || Number(run.lastGrab.itemId) < 0
-      || !Number.isInteger(run.lastGrab.kind) || Number(run.lastGrab.kind) < 0 || Number(run.lastGrab.kind) >= 12
+      || !Number.isInteger(run.lastGrab.kind) || Number(run.lastGrab.kind) < 0 || Number(run.lastGrab.kind) >= THEME_ITEM_COUNT
       || !Number.isInteger(run.lastGrab.slot) || Number(run.lastGrab.slot) < 0 || Number(run.lastGrab.slot) >= TRAY_SLOTS) return false;
   }
   return [run.timeLeftMs, run.elapsedMs, run.shakeCooldownMs].every((amount) =>
@@ -261,8 +261,8 @@ const RUN_SAVE_DEBOUNCE_MS = 140;
 // of the just-cleared kind from the box into the tray (a saved click + burst).
 // Bounded by charges; re-arms every time the combo climbs back to the trigger
 // after a reset, so a sustained chain keeps pulsing every few steps.
-const FRENZY_TRIGGER_COMBO = 5;
-const FRENZY_CHARGES = 2;
+const FRENZY_TRIGGER_COMBO = 5; // [ACCEPTED-SIM] Proposed 5 (band 4–7); balance-frenzy.mjs gate PASS (struggling 0 triggers, skilled frequent) — see GDD §9.1; human feel-test still recommended
+const FRENZY_CHARGES = 2; // [ACCEPTED-SIM] Proposed 2 (band 1–3); gate PASS — see GDD §9.1; human feel-test still recommended
 
 /** Power-ups granted at the start of every level (tune.mjs models this grant). */
 const GRANT_SHUFFLE = 1;
@@ -336,6 +336,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   let goosePassive: GoosePassive = { ...EMPTY_GOOSE_PASSIVE };
   /** R3 — per-run combo window, extended by the farm goose's bonus. */
   let comboWindowMs = COMBO_WINDOW_MS;
+  /** R7 — per-run Frenzy trigger, lowered by the abyss goose's bonus (min 3). */
+  let frenzyTriggerCombo = FRENZY_TRIGGER_COMBO;
   /** Hundreds of logical items can back a run without becoming live Cannon bodies. */
   let reserveItems: ItemInstance[] = [];
   let refillRng: () => number = makeRng(1);
@@ -565,12 +567,13 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     // (a win can unlock one), so computing here — before the grant — is enough.
     goosePassive = computeGoosePassive(progress.get().geese);
     comboWindowMs = COMBO_WINDOW_MS + goosePassive.comboWindowDeltaMs;
+    frenzyTriggerCombo = Math.max(3, FRENZY_TRIGGER_COMBO - goosePassive.frenzyTriggerDelta);
     // R4 — fold today's sign-in bonus on top of the base per-run grant. The
     // bonus is bounded by streak (recomputed each claim), so it can never
     // snowball into a trivialized resource across many days.
     const bonus = dailyState.get().dailyBonus;
     powerups.set({
-      shuffle: GRANT_SHUFFLE + bonus.shuffle,
+      shuffle: GRANT_SHUFFLE + bonus.shuffle + goosePassive.extraShuffle,
       hint: GRANT_HINT + bonus.hint + goosePassive.extraHint,
       remove: GRANT_REMOVE + bonus.remove + goosePassive.extraRemove,
       undo: GRANT_UNDO + bonus.undo + goosePassive.extraUndo,
@@ -639,6 +642,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     shakeStrength.set(1);
     goosePassive = computeGoosePassive(progress.get().geese);
     comboWindowMs = COMBO_WINDOW_MS + goosePassive.comboWindowDeltaMs;
+    frenzyTriggerCombo = Math.max(3, FRENZY_TRIGGER_COMBO - goosePassive.frenzyTriggerDelta);
     milestones = milestonesFor(specOf(saved.level), goosePassive.milestoneThresholdScale);
     nextHintAt = (Math.floor(saved.score / milestones.hintStep) + 1) * milestones.hintStep;
     nextAddTimeAt = (Math.floor(saved.score / milestones.addTimeStep) + 1) * milestones.addTimeStep;
@@ -662,7 +666,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     // the score is pure match+combo skill (no clock dimension to reward).
     const timed = timedMode.get();
     const leftSec = timed ? Math.max(0, Math.round((deadline - Date.now()) / 1000)) : 0;
-    const timeBonus = leftSec * TIME_BONUS_PER_SEC;
+    const timeBonus = Math.round(leftSec * TIME_BONUS_PER_SEC * (1 + goosePassive.scoreBonus));
     const finalScore = score.get() + timeBonus;
     score.set(finalScore);
     obs.gameStatus.set("solved");
@@ -1030,7 +1034,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         if (now - lastExtractAt <= comboWindowMs) comboCount.set(comboCount.get() + 1);
         else comboCount.set(1);
         lastExtractAt = now;
-        const gained = SCORE_PER_MATCH + (comboCount.get() - 1) * COMBO_BONUS_PER_STEP;
+        const gained = Math.round(
+          (SCORE_PER_MATCH + (comboCount.get() - 1) * COMBO_BONUS_PER_STEP) * (1 + goosePassive.scoreBonus),
+        );
         score.set(score.get() + gained);
         obs.lastStatus.set(t("statusMatched", { gained, combo: comboCount.get() }));
         // Match / combo SFX (timing-correct here: comboCount is already updated).
@@ -1067,7 +1073,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         // mid-frenzy) arms FRENZY_CHARGES free pulls and flashes a burst. The
         // trigger match itself does NOT pull — only the next N matches do, so
         // "the next 2 eliminations" are exactly the post-trigger ones.
-        const frenzyTriggered = comboCount.get() >= FRENZY_TRIGGER_COMBO && frenzyCharges.get() === 0;
+        const frenzyTriggered = comboCount.get() >= frenzyTriggerCombo && frenzyCharges.get() === 0;
         if (frenzyTriggered) {
           frenzyCharges.set(FRENZY_CHARGES);
           frenzyFx.set(frenzyFx.get() + 1);
@@ -1134,6 +1140,12 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         if (canRescue()) {
           setStatus(t("statusTrayRescue"), "warning");
           obs.lastStatus.set(t("statusTrayRescue"));
+          // This is a deliberate last-stand state, not frozen input. A sharp
+          // audio tick plus a distinct two-stage vibration makes the state
+          // change impossible to miss while the React shell highlights the
+          // exact Remove / Undo rescue buttons.
+          sound.play("tick");
+          haptics.play("jam");
         } else {
           failLevel("trayFull");
         }

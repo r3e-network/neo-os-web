@@ -47,6 +47,7 @@ describe("haptics feedback engine", () => {
     haptics.play("pick");
     haptics.play("match");
     haptics.play("win");
+    haptics.play("jam");
     haptics.play("fail");
     haptics.play("shake");
 
@@ -54,6 +55,7 @@ describe("haptics feedback engine", () => {
       10,
       30,
       [30, 50, 80],
+      [55, 35, 90],
       100,
       [18, 35, 28],
     ]);

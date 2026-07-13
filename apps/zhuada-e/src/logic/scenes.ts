@@ -55,7 +55,8 @@ export interface SceneTheme {
 }
 
 // Item ids (ITEM_DEFS): 0 tomato · 1 carrot · 2 corn · 3 eggplant · 4 apple ·
-// 5 broccoli · 6 mushroom · 7 onion · 8 pepper · 9 melon · 10 egg · 11 fish.
+// 5 broccoli · 6 mushroom · 7 onion · 8 pepper · 9 melon · 10 egg · 11 fish ·
+// 12 berry · 13 slice · 14 jar · 15 wedge · 16 keepsake · 17 carton.
 export const SCENES: SceneTheme[] = [
   {
     id: 0,
@@ -63,7 +64,7 @@ export const SCENES: SceneTheme[] = [
     gooseNameKey: "gooseGarden",
     levels: [1, 2],
     palette: { bg: 0xeef6e6, floor: 0xdcead0, wall: 0xe9f2dc, rim: 0x3fa34d, hemiGround: 0xd4e6c3 },
-    kindPool: [0, 1, 5, 8, 3, 7, 2, 6, 4, 9, 10, 11],
+    kindPool: [0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17],
     goose: { body: 0xf7f7f2, scarf: 0x3fa34d, hat: "straw", hatColor: 0xd9b45b, hatAccent: 0x3fa34d },
   },
   {
@@ -72,7 +73,7 @@ export const SCENES: SceneTheme[] = [
     gooseNameKey: "gooseOrchard",
     levels: [3, 5],
     palette: { bg: 0xfdf3e3, floor: 0xf2dfc0, wall: 0xf8ecd6, rim: 0xe8823a, hemiGround: 0xf0dcb8 },
-    kindPool: [4, 9, 0, 3, 8, 1, 2, 5, 7, 6, 10, 11],
+    kindPool: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
     goose: { body: 0xf7f7f2, scarf: 0xe8823a, hat: "beret", hatColor: 0xd9534f, hatAccent: 0xb03a30 },
   },
   {
@@ -81,7 +82,7 @@ export const SCENES: SceneTheme[] = [
     gooseNameKey: "goosePond",
     levels: [6, 8],
     palette: { bg: 0xe6f3f8, floor: 0xcfe7f0, wall: 0xdeeef5, rim: 0x2f9ec7, hemiGround: 0xc9e2ec },
-    kindPool: [11, 10, 9, 5, 6, 7, 4, 0, 2, 1, 3, 8],
+    kindPool: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
     goose: { body: 0xf7f7f2, scarf: 0x2f9ec7, hat: "cap", hatColor: 0xf7f7f2, hatAccent: 0x2f9ec7 },
   },
   {
@@ -90,7 +91,7 @@ export const SCENES: SceneTheme[] = [
     gooseNameKey: "gooseFarm",
     levels: [9, 11],
     palette: { bg: 0xf9efe2, floor: 0xe6d2b4, wall: 0xf1e3cd, rim: 0xb35a2e, hemiGround: 0xe0cbaa },
-    kindPool: [10, 2, 6, 1, 7, 0, 8, 5, 4, 3, 9, 11],
+    kindPool: [0, 2, 4, 6, 8, 10, 12, 13, 14, 15, 16, 17],
     goose: { body: 0xf7f7f2, scarf: 0xc0392b, hat: "straw", hatColor: 0x8d6e63, hatAccent: 0xc0392b },
   },
   {
@@ -99,7 +100,7 @@ export const SCENES: SceneTheme[] = [
     gooseNameKey: "gooseSnowfield",
     levels: [12, 13],
     palette: { bg: 0xeff4fa, floor: 0xe2eaf3, wall: 0xebf1f8, rim: 0x5f97c9, hemiGround: 0xd8e3ef },
-    kindPool: [10, 6, 11, 7, 5, 4, 0, 1, 2, 3, 8, 9],
+    kindPool: [1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16, 17],
     goose: { body: 0xfbfbf8, scarf: 0xe74c3c, hat: "beanie", hatColor: 0xe74c3c, hatAccent: 0xf7f7f2 },
   },
   {
@@ -108,8 +109,39 @@ export const SCENES: SceneTheme[] = [
     gooseNameKey: "gooseNightMarket",
     levels: [14, 15],
     palette: { bg: 0x252838, floor: 0x3a3d55, wall: 0x45486a, rim: 0xf2c14e, hemiGround: 0x30324a },
-    kindPool: [8, 11, 10, 2, 6, 3, 9, 0, 4, 7, 1, 5],
+    kindPool: [0, 1, 4, 5, 8, 9, 12, 13, 14, 15, 16, 17],
     goose: { body: 0xf7f7f2, scarf: 0xf2c14e, hat: "party", hatColor: 0x8e44ad, hatAccent: 0xf2c14e },
+  },
+  // ── Chapter 2 · three new themed scenes (content expansion, 2026-07-12) ──
+  // Every chapter scene curates a different 12-kind series from the 18-model
+  // theme catalog. Levels 16–24 keep simultaneous variety at 12 for readable
+  // matching while introducing genuinely different silhouettes and materials.
+  {
+    id: 6,
+    nameKey: "sceneVolcano",
+    gooseNameKey: "gooseVolcano",
+    levels: [16, 18],
+    palette: { bg: 0x2a1714, floor: 0x43241d, wall: 0x371d18, rim: 0xff6b35, hemiGround: 0x3a201a },
+    kindPool: [2, 3, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17],
+    goose: { body: 0xf7f7f2, scarf: 0xff6b35, hat: "party", hatColor: 0xc0392b, hatAccent: 0xff6b35 },
+  },
+  {
+    id: 7,
+    nameKey: "sceneCloud",
+    gooseNameKey: "gooseCloud",
+    levels: [19, 21],
+    palette: { bg: 0xdff1fb, floor: 0xcfe6f5, wall: 0xe2f0fb, rim: 0x6fb7e8, hemiGround: 0xcfdff0 },
+    kindPool: [0, 3, 4, 7, 8, 11, 12, 13, 14, 15, 16, 17],
+    goose: { body: 0xfbfdff, scarf: 0x6fb7e8, hat: "beanie", hatColor: 0x6fb7e8, hatAccent: 0xffffff },
+  },
+  {
+    id: 8,
+    nameKey: "sceneAbyss",
+    gooseNameKey: "gooseAbyss",
+    levels: [22, 24],
+    palette: { bg: 0x0f2a33, floor: 0x15414f, wall: 0x103341, rim: 0x2fd6c9, hemiGround: 0x123038 },
+    kindPool: [1, 2, 5, 6, 9, 10, 12, 13, 14, 15, 16, 17],
+    goose: { body: 0xf7f7f2, scarf: 0x2fd6c9, hat: "cap", hatColor: 0x0f2a33, hatAccent: 0x2fd6c9 },
   },
 ];
 

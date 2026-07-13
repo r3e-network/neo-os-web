@@ -22,7 +22,7 @@ defineMiniApp({
     app.mode.set("guest");
 
     const gameSession = createObservable(createSession("welcome-workshop"));
-    const stats = createObservable<ScrewSortStats>({ wins: 0, bestMoves: 0, lastSeed: "" });
+    const stats = createObservable<ScrewSortStats>({ wins: 0, bestMoves: 0, bestStars: 0, lastSeed: "" });
     const lastStatus = createObservable(ctx.t("statusReady"));
     const appMode = createObservable(app.mode.get());
 

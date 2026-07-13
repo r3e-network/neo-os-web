@@ -189,7 +189,18 @@ export function finishModel(source: THREE.Group, targetMax = 1.38): THREE.Group 
     mesh.castShadow = false;
     mesh.receiveShadow = false;
     const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-    if (!(material as THREE.Material | undefined)?.transparent) shadowCandidates.push(mesh);
+    // Runtime items must never reveal the basket through semi-transparent
+    // shells. Glass-like bottles keep their glossy tint and layered labels,
+    // but are rendered as solid collectibles from every rolling angle.
+    const productionMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    productionMaterials.forEach((entry) => {
+      entry.transparent = false;
+      entry.opacity = 1;
+      entry.depthWrite = true;
+      const physical = entry as THREE.MeshPhysicalMaterial;
+      if (physical.isMeshPhysicalMaterial) physical.transmission = 0;
+    });
+    if (material) shadowCandidates.push(mesh);
   });
   // Two silhouette-defining parts are enough for grounded contact shadows.
   // Small seams, sprinkles and handles remain lit PBR geometry but no longer

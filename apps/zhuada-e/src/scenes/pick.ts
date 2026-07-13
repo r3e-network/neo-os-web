@@ -44,3 +44,41 @@ export function pickItemAt<T>(
   if (hits.length === 0) return null;
   return resolveItemRoot(hits[0]!.object, roots);
 }
+
+/**
+ * Forgiving screen-space fallback for thin or fast-moving models. Exact mesh
+ * raycasts remain authoritative; this is used only when the pointer lands in
+ * the small visual gap around an item. A slight depth penalty favors the item
+ * closest to the camera when projected centres overlap.
+ */
+export function pickItemNearPointer<T>(
+  camera: THREE.Camera,
+  roots: ReadonlyMap<THREE.Object3D, T>,
+  pointerNdc: THREE.Vector2,
+  viewport: { width: number; height: number },
+  radiusPx: number,
+): T | null {
+  if (roots.size === 0 || viewport.width <= 0 || viewport.height <= 0 || radiusPx <= 0) return null;
+
+  const world = new THREE.Vector3();
+  const projected = new THREE.Vector3();
+  const radiusSq = radiusPx * radiusPx;
+  let best: { value: T; score: number } | null = null;
+
+  for (const [root, value] of roots) {
+    root.getWorldPosition(world);
+    projected.copy(world).project(camera);
+    if (projected.z < -1 || projected.z > 1) continue;
+
+    const dx = (projected.x - pointerNdc.x) * viewport.width * 0.5;
+    const dy = (projected.y - pointerNdc.y) * viewport.height * 0.5;
+    const distanceSq = dx * dx + dy * dy;
+    if (distanceSq > radiusSq) continue;
+
+    const depth01 = (projected.z + 1) * 0.5;
+    const score = distanceSq + depth01 * radiusSq * 0.12;
+    if (!best || score < best.score) best = { value, score };
+  }
+
+  return best?.value ?? null;
+}

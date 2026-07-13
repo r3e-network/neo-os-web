@@ -1,4 +1,4 @@
-import type { GameThemeId } from "./logic/themes";
+import { THEME_ITEM_COUNT, type GameThemeId } from "./logic/themes";
 
 export interface ThemeItemChipProps {
   themeId: GameThemeId;
@@ -8,7 +8,7 @@ export interface ThemeItemChipProps {
 
 /** A dedicated transparent production asset for tray and temporary shelf. */
 export function ThemeItemChip({ themeId, kind, className }: ThemeItemChipProps) {
-  const safeKind = Math.max(0, Math.min(11, Math.floor(kind)));
+  const safeKind = Math.max(0, Math.min(THEME_ITEM_COUNT - 1, Math.floor(kind)));
   return (
     <img
       className={["goose-theme-item", className].filter(Boolean).join(" ")}

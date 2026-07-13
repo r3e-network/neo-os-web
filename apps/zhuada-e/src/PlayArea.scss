@@ -99,6 +99,28 @@
   animation: goose-overlay-card 0.4s var(--goose-motion-soft) both;
 }
 
+.goose-overlay__card[data-tone="fail"] {
+  background: color-mix(in srgb, var(--goose-surface, #fff) 92%, #fff0e8);
+  box-shadow:
+    0 24px 54px rgba(98, 32, 20, 0.34),
+    inset 0 0 0 2px #e05a42;
+  animation: goose-overlay-fail-card 0.48s var(--goose-motion-pop) both;
+}
+
+.goose-overlay__card[data-tone="fail"] .goose-overlay__title {
+  color: #a92f24;
+}
+
+.goose-overlay__card[data-tone="fail"] .goose-overlay__body {
+  color: color-mix(in srgb, var(--goose-text, #19313a) 86%, #a92f24);
+  font-weight: 700;
+}
+
+.goose-overlay__card[data-tone="fail"] .goose-overlay__btn {
+  background: #d94735;
+  box-shadow: 0 12px 28px rgba(217, 71, 53, 0.34);
+}
+
 .goose-overlay__mascot {
   width: 58px;
   height: 58px;
@@ -426,6 +448,62 @@
   width: 100%;
   max-width: 560px;
   flex-wrap: nowrap;
+}
+
+.goose-tray-jam-alert {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(100% + 7px);
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 2px solid #ffb15c;
+  border-radius: 14px;
+  color: #fff9ec;
+  background: linear-gradient(135deg, #b52f28, #de5b32 58%, #c83d28);
+  box-shadow: 0 10px 26px rgba(99, 25, 17, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  text-align: left;
+  pointer-events: none;
+  animation: goose-tray-jam-alert 0.62s var(--goose-motion-pop) both;
+}
+
+.goose-tray-jam-alert > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.goose-tray-jam-alert strong {
+  font: 900 13px/1.2 system-ui, sans-serif;
+}
+
+.goose-tray-jam-alert small {
+  font: 700 10.5px/1.25 system-ui, sans-serif;
+  color: #fff2cc;
+}
+
+.goose-tray-row[data-jammed="true"] .goose-tray {
+  box-shadow:
+    inset 0 0 0 2px #e34d35,
+    0 0 0 3px rgba(255, 177, 92, 0.42),
+    0 8px 22px rgba(126, 38, 24, 0.28);
+  animation: goose-tray-jam-shake 0.48s var(--goose-motion-quick) 2;
+}
+
+.goose-powerbar[data-jammed="true"] .goose-powerbar__btn[data-rescue="true"] {
+  color: #3a170d;
+  background: linear-gradient(180deg, #ffe7a6, #ffad52);
+  box-shadow:
+    inset 0 0 0 2px #d94735,
+    0 0 0 3px rgba(255, 210, 102, 0.45),
+    0 8px 20px rgba(126, 38, 24, 0.3);
+  animation: goose-rescue-button-pulse 0.9s var(--goose-motion-loop) infinite;
 }
 
 .goose-tray {
@@ -967,6 +1045,30 @@
   }
 }
 
+@keyframes goose-overlay-fail-card {
+  0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+  55% { opacity: 1; transform: translateY(0) scale(1.035); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes goose-tray-jam-alert {
+  0% { opacity: 0; transform: translateY(12px) scale(0.92); }
+  65% { opacity: 1; transform: translateY(-2px) scale(1.025); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes goose-tray-jam-shake {
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(-5px) rotate(-0.5deg); }
+  48% { transform: translateX(5px) rotate(0.5deg); }
+  72% { transform: translateX(-3px); }
+}
+
+@keyframes goose-rescue-button-pulse {
+  0%, 100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  50% { transform: translateY(-2px) scale(1.045); filter: brightness(1.08); }
+}
+
 @keyframes goose-overlay-mascot {
   0%,
   100% {
@@ -1279,11 +1381,19 @@
 
 /* R3 — collected geese surface their passive perk in the collection book. */
 .goose-collection__perk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-style: normal;
   font-size: 10.5px;
   line-height: 1.2;
   color: var(--goose-accent-strong, #16c784);
   margin-top: 2px;
+}
+
+.goose-perk__icon {
+  flex: 0 0 auto;
+  margin-top: -1px;
 }
 
 .goose-collection__chip {
@@ -1520,7 +1630,9 @@
   .goose-level-progress__track > span,
   .goose-three-canvas.three-game-host,
   .goose-tray,
+  .goose-tray-jam-alert,
   .goose-tray__slot,
+  .goose-powerbar__btn[data-rescue="true"],
   .goose-stage-hud__metric[data-accent="true"] strong,
   .goose-stage-hud__metric[data-danger="true"] strong,
   .goose-stage-hud__drawer,
@@ -2503,6 +2615,33 @@
   color: #fff !important;
   font-size: 18px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+// Untimed is context, not a primary control. Keep it readable but quiet; the
+// large gold center card is reserved for a real countdown in timed challenge.
+.goose-playarea .goose-stage-hud__metric[data-kind="untimed"] {
+  top: 5px;
+  left: 50%;
+  width: auto;
+  height: 28px;
+  padding: 0 10px;
+  transform: translateX(-50%);
+  border-color: color-mix(in srgb, var(--goose-border) 72%, white);
+  background: color-mix(in srgb, var(--goose-surface-strong) 88%, transparent);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--goose-shadow) 28%, transparent);
+}
+
+.goose-playarea .goose-stage-hud__metric[data-kind="untimed"] strong {
+  color: var(--goose-muted) !important;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.goose-playarea[data-game-theme="night-market"] .goose-stage-hud__metric[data-kind="untimed"] strong {
+  color: #f7dfab !important;
 }
 
 .goose-playarea .goose-stage-hud__metric[data-kind="combo"] {

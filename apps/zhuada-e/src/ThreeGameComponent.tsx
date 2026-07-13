@@ -20,6 +20,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { GameBridge } from "@framework/phaser/GameBridge";
 import type { DispatchFn, GameState } from "@framework/phaser/types";
+import { THEME_ITEM_COUNT } from "./logic/themes";
 
 export interface ThreeGameProps {
   /** A ready-to-use Three.js scene controller (owns renderer + loop). */
@@ -149,7 +150,7 @@ function AndroidCanvasFallback({
             onClick={() => { void dispatch("extract", { itemId: item.id }); }}
           >
             <img
-              src={`./art/items/${themeId}/item-${String(Math.max(0, Math.min(11, item.kind))).padStart(2, "0")}.webp`}
+              src={`./art/items/${themeId}/item-${String(Math.max(0, Math.min(THEME_ITEM_COUNT - 1, item.kind))).padStart(2, "0")}.webp`}
               alt=""
               draggable={false}
             />

@@ -17,7 +17,7 @@ npm ci
 npm run verify:release
 ```
 
-`verify:release` is the authoritative local gate. It runs tests, ESLint, vendored-shim hygiene, the 15-level Monte-Carlo balance audit, the product release audit, the production dependency audit, deterministic art/audio regeneration through the `prebuild` lifecycle, asset verification, TypeScript checking, the production Vite build, the production bundle scan that rejects leaked Device QA or playtest debug runtime code, the gzip bundle budget gate for the entry, scene, Three.js and physics chunks, `npm run dist:digest` for a fresh release artifact hash, `npm run dist:stage` to synchronize the exact generated `dist/` tree into the host-served miniapp directory, and `npm run staged:verify` for staged host parity.
+`verify:release` is the authoritative local gate. It runs tests, ESLint, vendored-shim hygiene, the 24-level Monte-Carlo balance audit, the product release audit, the production dependency audit, deterministic art/audio regeneration through the `prebuild` lifecycle, asset verification, TypeScript checking, the production Vite build, the production bundle scan that rejects leaked Device QA or playtest debug runtime code, the gzip bundle budget gate for the entry, scene, Three.js and physics chunks, `npm run dist:digest` for a fresh release artifact hash, `npm run dist:stage` to synchronize the exact generated `dist/` tree into the host-served miniapp directory, and `npm run staged:verify` for staged host parity.
 
 No release should be staged from a dirty or partially generated `public/` directory without rerunning this command.
 
@@ -34,15 +34,15 @@ Latest verified repository build (2026-07-11):
 | Core game rules | `engine-zhuada.test.ts`, `guest-engine.test.ts`, `game-rules.test.ts` | Seven-slot matching, rescue rules, terminal outcomes, timed/untimed paths and all 15 levels draining to solved are regression-covered. |
 | Long-level streaming | `item-stream.test.ts`, `guest-engine.test.ts` | 18–432 logical objects, complete-triple packets, 48-object opening, refill at ≤42, +9 bottom waves and ≤54 live ceiling are asserted. |
 | Fresh random runs | `game-rules.test.ts`, `guest-engine.test.ts` | New-run theme-pool order, packet order and repeated L15 redeals are not fixed while injected RNG remains reproducible in tests. |
-| Physics catalogue | `physics-profiles.test.ts`, `model-cache.test.ts` | All three themes × 12 objects have mass/surface/collision profiles; geometry reuse does not share mutable materials or dispose shared buffers. |
+| Physics catalogue | `physics-profiles.test.ts`, `model-cache.test.ts` | All three themes × 18 objects have mass/surface/collision profiles; geometry reuse does not share mutable materials or dispose shared buffers. |
 | Picking | `pick-raycast.test.ts` | Recursive child-mesh hit resolution, nearest-surface ordering and item-root recovery are asserted. |
 | Tray choreography and 3D motion | `tray-motion.test.ts`, `AnimatedTray.test.tsx`, `motion-quality.test.ts`, `scene-motion.ts` | Holes compact left, same-kind items group together, right-side items shift, triple matches visually land, highlight, clear and compact in separate timed phases, 3D pick flight and tray handoff share smooth easing, and the motion guardrail keeps tray movement on `translate3d`/opacity while locking 3D pick press, tray-flight arc, camera kick and pan-toss timings to readable capped values. |
 | Motion detection | `device-motion.test.ts`, `shake-dynamics.test.ts` | Permission states, soft-pair/strong thresholds, hysteresis, refractory behavior, 0.65–1.35 mapping and impulse/velocity caps are asserted without pretending to emulate hardware sensors. |
 | Audio logic | `sound.test.ts`, `scripts/verify-assets.mjs` | Cue table completeness, mute/unlock/fallback behavior, PCM headers, sample format and minimum duration are checked. |
 | Persistence | `progress.test.ts`, `progress-store.test.ts`, `guest-engine.test.ts` | v1/v2→v3 migration, backup writes, future-version protection, mode-specific local records, 24h run snapshot TTL, resume and discard are covered. |
 | UI/accessibility | `PlayArea.accessibility.test.tsx`, `ThreeGameComponent.test.tsx`, `scripts/release-audit.mjs` | Keyboard activation, semantic regions/live status, 44px touch targets, reduced motion, measured mobile game-fit sizing, immersive/compact mobile lobby composition and WebGL context-loss recovery are covered. |
-| Content and reference compliance | `scripts/verify-assets.mjs`, `ASSET_PROVENANCE.md`, `REFERENCE-IMPLEMENTATION-COMPLIANCE.md` | 20 source hashes, 57 public images, alpha on all 36 item icons, six transparent goose portraits, 15 PCM files, manifest/package/app-version parity, required notices, and public-reference no-copy/license boundaries are checked. |
-| Balance | `scripts/tune.mjs` | The current 15-level curve and mathematical triple invariants are parsed from source and audited before release. |
+| Content and reference compliance | `scripts/verify-assets.mjs`, `ASSET_PROVENANCE.md`, `REFERENCE-IMPLEMENTATION-COMPLIANCE.md` | 20 source hashes, 75 production images, alpha on all 54 item icons, six transparent goose portraits, 15 PCM files, manifest/package/app-version parity, required notices, and public-reference no-copy/license boundaries are checked. |
+| Balance | `scripts/tune.mjs` | The current 24-level curve and mathematical triple invariants are parsed from source and audited before release. |
 | Dependency risk | `npm audit --omit=dev` | Production dependency advisories fail the release command. |
 | Compile/package | `tsc --noEmit`, Vite build | Type errors or bundling failures fail the release command. |
 | Bundle hygiene | `scripts/verify-production-bundle.mjs`, `scripts/verify-bundle-budget.mjs`, `scripts/verify-vendored-shims.mjs`, shared Vite chunks | Production runtime rejects leaked Device QA/playtest shortcuts, Three.js and cannon-es are split into cacheable chunks, and gzip budgets cover the entry, scene, Three.js and physics chunks. |
@@ -57,8 +57,8 @@ Browser visual evidence is recorded separately in `design-qa.md` and `REFERENCE-
 - 20 reviewed PNG masters live under `art-src/` and are pinned by SHA-256 in `art-src/SOURCE_MANIFEST.md`.
 - The masters were generated specifically for this project with OpenAI ImageGen and then selected/refined locally.
 - The workspace did not receive generation job IDs or verbatim prompts; provenance documents state this limitation explicitly.
-- Runtime generation produces 57 checked images: six logo/banner variants, three backdrops, three mascots, three container textures, six transparent goose portraits and 36 transparent per-item icons.
-- 36 runtime pile objects are code-built multi-mesh 3D models; they are not extracted GLTFs, commercial-game sprites or screenshot crops. The current model audit includes transparent vessels with closed/thick bases and the night-market zongzi as layered leaves, folds, veins, cord wraps, knot and tails rather than a single flat shell.
+- Runtime generation produces 75 checked production images: six logo/banner variants, three backdrops, three mascots, three container textures, six transparent goose portraits and 54 transparent per-item icons.
+- 54 runtime pile objects are code-built multi-mesh 3D models; they are not extracted GLTFs, commercial-game sprites or screenshot crops. The current model audit includes transparent vessels with closed/thick bases and the night-market zongzi as layered leaves, folds, veins, cord wraps, knot and tails rather than a single flat shell.
 
 ### Audio assets
 
@@ -191,7 +191,7 @@ Evidence should record device model, OS/browser version, build hash, date, theme
 
 ### Ready in repository/browser scope
 
-- Three complete selectable themes and 36 distinct object catalogues are wired end to end.
+- Three complete selectable themes and 54 distinct objects are wired end to end; nine scene bands curate different 12-kind series from each 18-item theme catalogue.
 - The level curve, streamed reserve, random new-run generation, grouped/left-compacting tray rules, tools, progress v3 and interrupted-run resume have automated coverage.
 - Deterministic image/audio generation, immutable source hashes, public notices, package/manifest parity, vendored-shim hygiene, dependency audit, type-check, production build, bundle leak scan, gzip bundle budgets and staged host parity are part of one release command.
 - Browser design QA reports no open P0/P1/P2 visual defects for the audited viewports.

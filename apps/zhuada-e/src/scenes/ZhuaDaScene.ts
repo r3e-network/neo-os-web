@@ -43,7 +43,7 @@ import {
   type ItemInstance,
 } from "../logic/engine-zhuada";
 import { buildGoose, buildThemeModelMesh } from "./models";
-import { pickItemAt } from "./pick";
+import { pickItemAt, pickItemNearPointer } from "./pick";
 import { sound } from "../logic/sound";
 import { haptics } from "../logic/haptics";
 import { specOf, tuneGravity } from "../logic/game-rules";
@@ -65,6 +65,11 @@ import {
 import { disposeObject } from "./scene-resources";
 import { SCENE_MOTION } from "./scene-motion";
 import { duplicatePickGuardUntil } from "./pick-lock";
+import {
+  initialPileEuler,
+  resettlePileAfterSupportRemoval,
+  tipUprightSideRestBody,
+} from "./pile-dynamics";
 
 // Logical scene size (CSS pixels of the canvas host on desktop).
 const SCENE_W = 400;
@@ -127,7 +132,7 @@ export class ZhuaDaScene {
 
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
-  private camera!: THREE.PerspectiveCamera;
+  private camera!: THREE.OrthographicCamera;
   private world!: World;
   private raycaster = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -278,8 +283,8 @@ export class ZhuaDaScene {
     this.containerGroup = new THREE.Group();
     this.playfieldGroup.add(this.containerGroup);
 
-    this.camera = new THREE.PerspectiveCamera(34, w / h, 0.1, 100);
-    this.camera.position.set(0, 15, 1.15);
+    this.camera = new THREE.OrthographicCamera(-4, 4, 4, -4, 0.1, 100);
+    this.camera.position.set(0, 14, 0.9);
     this.camera.lookAt(0, 0.58, 0);
     this.cameraBase.copy(this.camera.position);
 
@@ -665,14 +670,25 @@ export class ZhuaDaScene {
   }
 
   private frameCamera(half: number, height: number): void {
-    // Near-vertical camera modeled after the supplied gameplay video. Compute
-    // distance from the horizontal FOV so the pan stays equally legible on a
-    // narrow phone and a wider desktop preview.
-    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * this.camera.aspect);
-    const distance = (half + 0.56) / Math.max(0.12, Math.tan(horizontalFov / 2));
-    this.camera.position.set(0, Math.max(10.5, distance), 1.05);
+    // A true top-view orthographic camera keeps an object's authored size
+    // stable whether it is on the floor or resting high in a full pile. This
+    // removes the old perspective "giant foreground object" effect while
+    // preserving real body overlap, rolling and depth ordering.
+    const aspect = Math.max(
+      0.5,
+      (this.renderer?.domElement.clientWidth || SCENE_W)
+        / Math.max(1, this.renderer?.domElement.clientHeight || SCENE_H),
+    );
+    const radius = half + 0.58;
+    const horizontalHalf = aspect >= 1 ? radius * aspect : radius;
+    const verticalHalf = aspect >= 1 ? radius : radius / aspect;
+    this.camera.left = -horizontalHalf;
+    this.camera.right = horizontalHalf;
+    this.camera.top = verticalHalf;
+    this.camera.bottom = -verticalHalf;
+    this.camera.position.set(0, 14, 0.9);
     this.camera.lookAt(0, Math.max(0.42, height * 0.46), 0);
+    this.camera.updateProjectionMatrix();
     this.cameraBase.copy(this.camera.position);
   }
 
@@ -908,9 +924,12 @@ export class ZhuaDaScene {
 
     const body = makeItemBody(physics, this.physicsMaterials.get(physics.surface));
     body.position.set(sx, sy, sz);
-    const rx = deterministicUnit(it.id, it.px) * Math.PI;
-    const ry = deterministicUnit(it.id + 17, it.py) * Math.PI;
-    const rz = deterministicUnit(it.id + 31, it.pz) * Math.PI;
+    const [rx, ry, rz] = initialPileEuler(
+      physics,
+      deterministicUnit(it.id, it.px),
+      deterministicUnit(it.id + 17, it.py),
+      deterministicUnit(it.id + 31, it.pz),
+    );
     body.quaternion.setFromEuler(rx, ry, rz);
     body.velocity.set(0, fromReservoir ? 0.62 : -2, 0);
     const spin = 3.8 / Math.sqrt(Math.max(0.28, physics.mass));
@@ -971,6 +990,17 @@ export class ZhuaDaScene {
     const target = slotIdx >= 0 ? this.traySlots[slotIdx]?.position.clone() : new THREE.Vector3(0, this.boxHeight + 1.1, 0);
     vis.extracting = true;
     this.world.removeBody(vis.body);
+    // Cannon does not wake sleeping bodies when their supporting body is
+    // removed. Rebuild the pile's contact chain immediately so unsupported
+    // objects fall instead of remaining frozen in mid-air.
+    resettlePileAfterSupportRemoval(
+      [...this.itemVisuals.values()].map((visual) => ({
+        body: visual.body,
+        profile: physicsProfileOf(this.themeId, visual.kind),
+        seed: visual.id,
+      })),
+      vis.body,
+    );
     // Animate the mesh up to the tray then remove (the HUD slot is re-rendered by React state).
     const start = vis.mesh.position.clone();
     // Shrink relative to the model's current scale (base 0.62 from
@@ -1396,7 +1426,13 @@ export class ZhuaDaScene {
     for (const v of this.itemVisuals.values()) {
       if (!v.extracting) roots.set(v.mesh, v);
     }
-    const picked = pickItemAt(this.raycaster, roots);
+    const picked = pickItemAt(this.raycaster, roots) ?? pickItemNearPointer(
+      this.camera,
+      roots,
+      this.pointer,
+      { width: rect.width, height: rect.height },
+      this.mobileQuality ? 34 : 22,
+    );
     if (!picked) return;
     // Synchronous in-flight guard: flag the visual BEFORE the async React
     // round-trip so a same-frame double-tap can't dispatch a duplicate
@@ -1468,6 +1504,15 @@ export class ZhuaDaScene {
     // Sync mesh transforms from bodies (skip extracting items).
     for (const vis of this.itemVisuals.values()) {
       if (vis.extracting) continue;
+      const nearlySettled = vis.body.velocity.lengthSquared() < 0.045
+        && vis.body.angularVelocity.lengthSquared() < 0.035;
+      if (vis.body.sleepState === Body.SLEEPING || nearlySettled) {
+        tipUprightSideRestBody(
+          vis.body,
+          physicsProfileOf(this.themeId, vis.kind),
+          vis.id,
+        );
+      }
       vis.mesh.position.set(vis.body.position.x, vis.body.position.y, vis.body.position.z);
       vis.mesh.quaternion.set(
         vis.body.quaternion.x, vis.body.quaternion.y,
@@ -1542,8 +1587,6 @@ export class ZhuaDaScene {
   resize(width: number, height: number): void {
     if (!this.renderer || width <= 0 || height <= 0) return;
     this.renderer.setSize(width, height, true);
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
     this.frameCamera(this.boxHalf, this.boxHeight);
   }
 }
@@ -1576,9 +1619,13 @@ function makeItemBody(profile: ItemPhysicsProfile, material?: CannonMaterial): C
     angularDamping: profile.angularDamping,
   });
   for (const spec of profile.shapes) {
-    const shape = cannonShapeOf(spec);
+    const shape = cannonShapeOf(spec, profile.sizeMultiplier);
     const [ox, oy, oz] = spec.offset ?? [0, 0, 0];
-    const offset = new Vec3(ox, oy, oz);
+    const offset = new Vec3(
+      ox * profile.sizeMultiplier,
+      oy * profile.sizeMultiplier,
+      oz * profile.sizeMultiplier,
+    );
     let orientation: CannonQuaternion | undefined;
     if (spec.kind !== "sphere" && spec.rotation) {
       orientation = new CannonQuaternion();
@@ -1594,14 +1641,14 @@ function makeItemBody(profile: ItemPhysicsProfile, material?: CannonMaterial): C
   return body;
 }
 
-function cannonShapeOf(spec: CollisionShapeSpec): Sphere | Box | Cylinder {
+function cannonShapeOf(spec: CollisionShapeSpec, scale = 1): Sphere | Box | Cylinder {
   switch (spec.kind) {
     case "sphere":
-      return new Sphere(spec.radius);
+      return new Sphere(spec.radius * scale);
     case "box":
-      return new Box(new Vec3(spec.half[0], spec.half[1], spec.half[2]));
+      return new Box(new Vec3(spec.half[0] * scale, spec.half[1] * scale, spec.half[2] * scale));
     case "cylinder":
-      return new Cylinder(spec.radiusTop, spec.radiusBottom, spec.height, 12);
+      return new Cylinder(spec.radiusTop * scale, spec.radiusBottom * scale, spec.height * scale, 12);
   }
 }
 

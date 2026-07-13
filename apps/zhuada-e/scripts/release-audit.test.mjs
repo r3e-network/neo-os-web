@@ -347,7 +347,7 @@ describe("release audit script", () => {
     packageJson.scripts["verify:release"] = packageJson.scripts["verify:release"]
       .replace(" && node scripts/tune.mjs", "");
     overrides["package.json"] = JSON.stringify(packageJson);
-    expectAuditFailure(overrides, "verify:release must include the 15-level balance audit");
+    expectAuditFailure(overrides, "verify:release must include the 24-level balance audit");
   });
 
   it("rejects a release command that skips production dependency audit", () => {

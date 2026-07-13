@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_THEME_ID,
   GAME_THEMES,
+  THEME_ITEM_COUNT,
   THEME_STORAGE_KEY,
   isGameThemeId,
   loadThemePref,
@@ -20,8 +21,8 @@ describe("player-selectable themes", () => {
     for (const theme of GAME_THEMES) {
       expect(theme.backdrop).toMatch(/^\.\/art\/theme-.+\.webp$/);
       expect(theme.mascot).toMatch(/^\.\/art\/mascot-.+\.webp$/);
-      expect(theme.items).toHaveLength(12);
-      expect(new Set(theme.items.map((item) => item.nameKey)).size).toBe(12);
+      expect(theme.items).toHaveLength(THEME_ITEM_COUNT);
+      expect(new Set(theme.items.map((item) => item.nameKey)).size).toBe(THEME_ITEM_COUNT);
       expect(theme.css.accent).not.toBe(theme.css.accentStrong);
     }
   });

@@ -1,4 +1,4 @@
-/** Raster collection chip backed by six approved original goose portraits. */
+/** Raster collection chip backed by the approved goose portraits (goose-00..goose-08.webp). */
 import type { CSSProperties } from "react";
 import { SCENES, type GooseVariant } from "./logic/scenes";
 import { colorToCss } from "./logic/themes";
