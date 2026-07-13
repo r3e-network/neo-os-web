@@ -19,7 +19,10 @@ const phaserSceneApps = [
   ["dice-game", "DiceScene"],
   ["flappy-dash", "FlappyScene"],
   ["fogplay", "FogplayScene"],
-  ["fruit-funnel", "FruitFunnelScene"],
+  // fruit-funnel was rebuilt into a real-physics fruit-merge game; its root
+  // scene is now SuikaScene.ts (the deleted FruitFunnelScene.ts belonged to the
+  // retired match-2 build). This cross-app registry must track the real scene.
+  ["fruit-funnel", "SuikaScene"],
   ["game-2048", "Game2048Scene"],
   ["gas-lucky-pool", "GasLuckyPoolScene"],
   ["jump-rush", "JumpRushScene"],
@@ -457,15 +460,19 @@ describe("root Phaser framework", () => {
           "./art/badge-easy.webp",
           "./art/badge-medium.webp",
           "./art/badge-hard.webp",
-          "./art/tile-00-wool-flower.webp",
-          "./art/tile-14-carousel.webp",
+          // P1 sheep redesign: the generic tile set was replaced by 15 sheep-
+          // themed tiles loaded via a dynamic per-symbol loop, so the literal
+          // old filenames no longer appear; assert the real asset-led loader
+          // (the "./art/tile-" prefix built over ALL_SYMBOLS) instead.
+          "./art/tile-",
+          "ALL_SYMBOLS",
         ],
         usage: [
           "SHEEP_ASSETS",
           "this.load.image(SHEEP_ASSETS.table",
           "this.load.image(SHEEP_ASSETS.tray",
           "this.load.image(SHEEP_ASSETS.mascot",
-          "this.load.image(SHEEP_ASSETS.tiles[0]",
+          "SHEEP_ASSETS.tiles[i]",
           "this.tileAssetKey(card.symbol)",
           "dispatch(\"startGame\"",
           "dispatch(\"pickCard\"",

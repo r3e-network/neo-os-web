@@ -5,15 +5,6 @@
     <rect x="6" y="6" width="188" height="188"
           rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
           stroke-width="3.5999999999999996" />
-    <!-- Corner gems – green diamonds -->
-    <polygon points="22,10 30,4 38,10 30,18"
-             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
-    <polygon points="162,10 170,4 178,10 170,18"
-             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
-    <polygon points="22,190 30,206 38,190 30,182"
-             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
-    <polygon points="162,190 170,206 178,190 170,182"
-             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
   
     <!-- Icon: hoof-print -->
     <g transform="translate(0, 0)">
