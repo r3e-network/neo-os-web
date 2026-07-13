@@ -574,7 +574,7 @@ export class ColorClashScene extends BaseScene {
     // Four authored cabinet quadrants plus one shared annular hit area.
     for (let i = 0; i < 4; i++) {
       // Glow halo (behind pad)
-      const glow = this.add.ellipse(cx, cy, R * 1.9, R * 1.9, PAD_LIT[i]!, 0.0);
+      const glow = this.add.ellipse(cx, cy, R * 2.3, R * 2.3, PAD_LIT[i]!, 0.0);
       glow.setDepth(3);
       this.padGlows.push(glow);
 
@@ -643,7 +643,7 @@ export class ColorClashScene extends BaseScene {
     const endRad   = Phaser.Math.DegToRad(endDeg);
 
     const color = PAD_LIT[index]!;
-    g.fillStyle(color, 0.58);
+    g.fillStyle(color, 0.7);
 
     // Build the pie ring shape
     g.beginPath();
@@ -665,7 +665,7 @@ export class ColorClashScene extends BaseScene {
     const R = this.boardRadius(W, H);
     const innerR = R * 0.18;
     this.drawPad(this.padGraphics[index]!, cx, cy, R, innerR, 5, index, on);
-    this.padGlows[index]?.setVisible(on).setAlpha(on ? alpha * 0.12 : 0);
+    this.padGlows[index]?.setVisible(on).setAlpha(on ? alpha * 0.22 : 0);
   }
 
   // ── Center hub ─────────────────────────────────────────────────────────────
@@ -708,7 +708,7 @@ export class ColorClashScene extends BaseScene {
 
     for (let index = 0; index < 4; index++) {
       const container = this.add.container(startX + index * gap, y);
-      const glow = this.add.ellipse(0, 0, glowSize, glowSize, PAD_LIT[index]!, 0.16);
+      const glow = this.add.ellipse(0, 0, glowSize, glowSize, PAD_LIT[index]!, 0.34);
       // Use the authored pad resource so the tactile controls match the cabinet
       // artwork instead of approximating the material with vector circles.
       const chip = this.add.image(0, 0, CLASH_ASSETS.pads[index]!)

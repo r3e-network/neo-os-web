@@ -1554,6 +1554,9 @@ export class JumpRushScene extends BaseScene {
     this.isJumping = true;
     this.setBunnyPose("jump");
     this.sfx.play("flap");
+    if (!this.reducedMotion) {
+      this.cameras.main.zoomTo(1.04, 160, "Sine.easeOut");
+    }
 
     // Restore bunny scale from charge squish
     this.tween({
@@ -1617,11 +1620,18 @@ export class JumpRushScene extends BaseScene {
     }
     this.currentPlatformIndex += 1;
 
+    if (!this.reducedMotion) {
+      this.cameras.main.zoomTo(1, 200, "Sine.easeOut");
+    }
+
     if (isPerfect) {
       this.comboCount += 1;
       this.sfx.play("combo");
       this.showPerfectLabel();
       this.addGoldGlow();
+      if (!this.reducedMotion) {
+        this.cameras.main.flash(120, 255, 240, 180);
+      }
     } else {
       this.comboCount = 0;
       this.sfx.play("land");
@@ -1652,6 +1662,9 @@ export class JumpRushScene extends BaseScene {
     this.hasMissed = true;
     this.comboCount = 0;
     this.sfx.play("lose");
+    if (!this.reducedMotion) {
+      this.cameras.main.shake(180, 0.012);
+    }
     this.chargeLevel = 0;
     this.refreshChargeFill();
     this.refreshCombo();

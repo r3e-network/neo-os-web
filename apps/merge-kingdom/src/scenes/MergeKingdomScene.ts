@@ -1053,9 +1053,11 @@ export class MergeKingdomScene extends BaseScene {
   private makeTileObj(x: number, y: number, value: number): TileObj {
     const container = this.add.container(x, y);
 
+    const shadow = this.add.rectangle(3, 3, TILE_SIZE, TILE_SIZE, C.boardBorder, 0.3)
+      .setOrigin(0.5);
     const fill = TILE_FILL[value] ?? C.empty;
     const bg   = this.add.rectangle(0, 0, TILE_SIZE, TILE_SIZE, fill)
-      .setStrokeStyle(1, C.boardBorder)
+      .setStrokeStyle(2, C.boardBorder)
       .setOrigin(0.5);
     const art = this.add.image(0, -2, this.tileAssetKey(2))
       .setDisplaySize(TILE_SIZE - 10, TILE_SIZE - 10)
@@ -1082,7 +1084,7 @@ export class MergeKingdomScene extends BaseScene {
       color: "#6e4a12",
     }).setOrigin(0.5);
 
-    container.add([bg, art, nameText, valBadgeBg, valBadge]);
+    container.add([shadow, bg, art, nameText, valBadgeBg, valBadge]);
     this.setTileValue({ container, bg, art, nameText, valBadge, valBadgeBg }, value);
     return { container, bg, art, nameText, valBadge, valBadgeBg };
   }

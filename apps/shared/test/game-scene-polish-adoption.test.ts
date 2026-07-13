@@ -15,7 +15,9 @@ const PHASER_GAMES = [
   { app: "dice-game", scene: "DiceScene.ts" },
   { app: "flappy-dash", scene: "FlappyScene.ts" },
   { app: "fogplay", scene: "FogplayScene.ts" },
-  { app: "fruit-funnel", scene: "FruitFunnelScene.ts" },
+  // fruit-funnel's root scene is now SuikaScene.ts after its rebuild into a
+  // real-physics fruit-merge game (retired match-2 FruitFunnelScene.ts deleted).
+  { app: "fruit-funnel", scene: "SuikaScene.ts" },
   { app: "game-2048", scene: "Game2048Scene.ts" },
   { app: "gas-lucky-pool", scene: "GasLuckyPoolScene.ts" },
   { app: "jump-rush", scene: "JumpRushScene.ts" },

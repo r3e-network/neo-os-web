@@ -814,7 +814,7 @@ export class FlappyScene extends BaseScene {
         y,
         Phaser.Math.Between(10, 18),
         4,
-        index % 2 === 0 ? 0xe25d4d : 0x173247,
+        index % 2 === 0 ? 0x5ec43f : 0x3a9e2a,
         0.72,
       ).setAngle(Phaser.Math.Between(-38, 38)).setDepth(34);
 

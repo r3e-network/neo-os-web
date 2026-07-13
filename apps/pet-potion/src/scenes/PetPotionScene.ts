@@ -22,6 +22,7 @@ const PET_ASSETS = {
     rest: "pet-potion-action-rest",
   },
   badges: ["pet-potion-badge-easy", "pet-potion-badge-medium", "pet-potion-badge-hard"],
+  potion: "pet-potion-potion",
 } as const;
 
 const DESIGN_W = 420;
@@ -55,6 +56,8 @@ const C = {
 } as const;
 
 const FONT = "Inter, Arial, sans-serif";
+const FX_GLOW_KEY = "pet-potion-fx-glow";
+const FX_SPARK_KEY = "pet-potion-fx-spark";
 const ACTIONS = [
   { key: "feed", labelKey: "actionFeed", fallback: "Feed", asset: PET_ASSETS.actions.feed, color: C.orange },
   { key: "play", labelKey: "actionPlay", fallback: "Play", asset: PET_ASSETS.actions.play, color: C.purple },
@@ -123,6 +126,7 @@ export class PetPotionScene extends BaseScene {
   private subtitleText!: Phaser.GameObjects.Text;
   private petGlow!: Phaser.GameObjects.Ellipse;
   private petShadow!: Phaser.GameObjects.Ellipse;
+  private sealRing!: Phaser.GameObjects.Graphics;
   private petImage!: Phaser.GameObjects.Image;
   private actionCue!: Phaser.GameObjects.Image;
   private potionHalo!: Phaser.GameObjects.Ellipse;
@@ -136,6 +140,7 @@ export class PetPotionScene extends BaseScene {
   private goalTrack!: Phaser.GameObjects.Rectangle;
   private goalFill!: Phaser.GameObjects.Rectangle;
   private brewBubbles: Phaser.GameObjects.Ellipse[] = [];
+  private petMotes: Phaser.GameObjects.Image[] = [];
   private statBars: StatBar[] = [];
   private actionButtons: Phaser.GameObjects.Container[] = [];
   private ingredientCountLabels: Phaser.GameObjects.Text[] = [];
@@ -186,6 +191,7 @@ export class PetPotionScene extends BaseScene {
     this.load.image(PET_ASSETS.badges[0], "./art/badge-easy.webp");
     this.load.image(PET_ASSETS.badges[1], "./art/badge-medium.webp");
     this.load.image(PET_ASSETS.badges[2], "./art/badge-hard.webp");
+    this.load.image(PET_ASSETS.potion, "./art/potion-bottle.webp");
   }
 
   create(): void {
@@ -195,6 +201,7 @@ export class PetPotionScene extends BaseScene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupScene, this);
     this.fitCameraToHost();
     this.buildBackground(DESIGN_W, DESIGN_H);
+    this.ensureFxTextures();
     this.buildHeader(DESIGN_W);
     this.buildPetStage(DESIGN_W, DESIGN_H);
     this.buildGoalMeter(DESIGN_W, DESIGN_H);
@@ -306,7 +313,7 @@ export class PetPotionScene extends BaseScene {
     if (runLive) {
       this.updateGoal(Math.max(achieved, happiness), activeMode.target);
     }
-    this.updatePotion(activeMode.badge, potionBrewed || status === "solved");
+    this.updatePotion(PET_ASSETS.potion, potionBrewed || status === "solved");
     this.updatePrimaryButton(status, isPlaying, isLoading, targetReached, recipeComplete, potionBrewed, timeUp);
     this.updateRecoveryButtons();
 
@@ -352,18 +359,23 @@ export class PetPotionScene extends BaseScene {
   }
 
   private buildBackground(W: number, H: number): void {
+    // Branded warm base (Neo cream + soft mint tint).
     this.add.rectangle(W / 2, H / 2, W, H, C.canvas);
+    this.add.rectangle(W / 2, H / 2, W, H, C.warm, 0.42).setDepth(0);
 
-    this.labImage = this.add.image(W / 2, H / 2, PET_ASSETS.lab);
-    this.coverImage(this.labImage, W, H);
-    this.labImage.setAlpha(0.44).setDepth(0);
+    // Landscape lab panorama shown CONTAINED as a sunlit window band behind
+    // the pet — more prominent now (was 0.6 → 0.72).
+    this.labImage = this.add.image(W / 2, 80, PET_ASSETS.lab);
+    this.containImage(this.labImage, W - 24, Math.round((W - 24) * (430 / 1440)));
+    this.labImage.setAlpha(0.72).setDepth(1);
 
-    this.labOverlay = this.add.rectangle(W / 2, H / 2, W, H, C.canvas, 0.52).setDepth(1);
+    // Light veil — thinner than before so the lab shows through.
+    this.labOverlay = this.add.rectangle(W / 2, H / 2, W, H, C.canvas, 0.14).setDepth(2);
     this.add.rectangle(W / 2, H - 42, W - 34, 116, C.warm, 0.88)
       .setStrokeStyle(1, C.stroke, 0.7)
-      .setDepth(2);
+      .setDepth(3);
 
-    const frame = this.add.graphics().setDepth(3);
+    const frame = this.add.graphics().setDepth(4);
     frame.lineStyle(2, C.stroke, 0.65);
     frame.strokeRoundedRect(12, 12, W - 24, H - 24, 22);
   }
@@ -395,9 +407,32 @@ export class PetPotionScene extends BaseScene {
   private buildPetStage(W: number, H: number): void {
     const cx = W / 2;
     const cy = H * 0.34;
+    const eggR = 100; // visual ring radius (egg is ~95px at 190 display)
 
-    this.petGlow = this.add.ellipse(cx, cy + 8, 224, 168, C.jade, 0.12).setDepth(4);
+    // ── Pedestal / ground shadow (grounds the egg visually) ──
+    this.add.ellipse(cx, cy + 102, 180, 32, 0xc9b896, 0.35).setDepth(4);
     this.petShadow = this.add.ellipse(cx, cy + 92, 164, 34, 0x5c4b2c, 0.16).setDepth(4);
+
+    // ── Magical seal ring (gold + jade glow) — makes the plain egg
+    //   read as an "enchanted sealed artifact" not a bare circle ──
+    this.sealRing = this.add.graphics().setDepth(5);
+    this.sealRing.lineStyle(2.5, C.gold, 0.75);
+    this.sealRing.strokeCircle(cx, cy, eggR + 8);
+    // Inner thin ring for depth
+    this.sealRing.lineStyle(1, C.jade, 0.45);
+    this.sealRing.strokeCircle(cx, cy, eggR - 4);
+
+    // Four rune markers on the seal ring (decorative dots)
+    const runeAngle = [ -Math.PI/4, Math.PI/4, 3*Math.PI/4, 5*Math.PI/4 ];
+    runeAngle.forEach((a, i) => {
+      const rx = cx + (eggR + 8) * Math.cos(a);
+      const ry = cy + (eggR + 8) * Math.sin(a);
+      this.add.circle(rx, ry, 3.5, i % 2 === 0 ? C.gold : C.jade, 0.7).setDepth(6);
+    });
+
+    // ── Enhanced ambient glow behind egg ──
+    this.petGlow = this.add.ellipse(cx, cy + 8, 224, 168, C.jade, 0.22).setDepth(4);
+
     this.buildBrewBubbles(cx, cy);
     this.petImage = this.add.image(cx, cy, PET_ASSETS.egg)
       .setDisplaySize(190, 190)
@@ -410,7 +445,7 @@ export class PetPotionScene extends BaseScene {
       .setStrokeStyle(1, C.white, 0.72)
       .setVisible(false)
       .setDepth(6);
-    this.potionImage = this.add.image(cx + 104, cy + 24, PET_ASSETS.badges[0])
+    this.potionImage = this.add.image(cx + 104, cy + 24, PET_ASSETS.potion)
       .setDisplaySize(94, 94)
       .setVisible(false)
       .setDepth(8);
@@ -730,6 +765,7 @@ export class PetPotionScene extends BaseScene {
     if (stage !== this.currentStage || this.petImage.texture.key !== texture) {
       if (stage > this.currentStage && stage >= 0) {
         this.sfx.play(this.currentStage < 0 ? "spawn" : "combo");
+        this.evolveFx(stage);
       }
       this.currentStage = stage;
       this.petImage.setTexture(texture);
@@ -819,6 +855,11 @@ export class PetPotionScene extends BaseScene {
     this.potionText.setVisible(true);
     if (this.potionRevealed) return;
     this.potionRevealed = true;
+
+    const fxX = DESIGN_W / 2 + 104;
+    const fxY = DESIGN_H * 0.34 + 24;
+    this.emitSparkles(fxX, fxY, C.gold, 12, 900);
+    this.beamReveal(fxX, fxY, C.gold);
 
     const targetY = DESIGN_H * 0.34 + 24;
     this.potionImage.setDisplaySize(58, 58).setAlpha(0).setY(targetY + 14);
@@ -977,6 +1018,106 @@ export class PetPotionScene extends BaseScene {
     });
   }
 
+  // ── FX primitives (runtime-generated textures, no asset files) ─────────────
+  private ensureFxTextures(): void {
+    if (!this.textures.exists(FX_GLOW_KEY)) {
+      const size = 128;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      const steps = 26;
+      for (let i = steps; i >= 1; i--) {
+        const r = (size / 2) * (i / steps);
+        const a = 0.5 * (1 - i / steps) + 0.015;
+        g.fillStyle(0xffffff, a);
+        g.fillCircle(size / 2, size / 2, r);
+      }
+      g.generateTexture(FX_GLOW_KEY, size, size);
+      g.destroy();
+    }
+    if (!this.textures.exists(FX_SPARK_KEY)) {
+      const s = 16;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(0xffffff, 1);
+      g.fillPoints(
+        [
+          new Phaser.Geom.Point(s / 2, 0),
+          new Phaser.Geom.Point(s * 0.62, s * 0.38),
+          new Phaser.Geom.Point(s, s / 2),
+          new Phaser.Geom.Point(s * 0.62, s * 0.62),
+          new Phaser.Geom.Point(s / 2, s),
+          new Phaser.Geom.Point(s * 0.38, s * 0.62),
+          new Phaser.Geom.Point(0, s / 2),
+          new Phaser.Geom.Point(s * 0.38, s * 0.38),
+        ],
+        true,
+      );
+      g.generateTexture(FX_SPARK_KEY, s, s);
+      g.destroy();
+    }
+  }
+
+  private emitSparkles(
+    x: number,
+    y: number,
+    color: number,
+    count: number,
+    depth = 900,
+  ): void {
+    if (this.reducedMotion) return;
+    for (let i = 0; i < count; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const dist = Phaser.Math.Between(26, 66);
+      const spark = this.add
+        .image(x, y, FX_SPARK_KEY)
+        .setTint(color)
+        .setDepth(depth)
+        .setScale(Phaser.Math.FloatBetween(0.5, 1.1))
+        .setAlpha(0.95);
+      this.animate({
+        targets: spark,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist - 10,
+        alpha: 0,
+        scale: 0.2,
+        angle: Phaser.Math.Between(-120, 120),
+        duration: Phaser.Math.Between(420, 720),
+        ease: "Cubic.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  private beamReveal(x: number, y: number, color: number): void {
+    if (this.reducedMotion) return;
+    const beam = this.add
+      .image(x, y - 12, FX_GLOW_KEY)
+      .setTint(color)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(880)
+      .setAlpha(0.85)
+      .setScale(0.18, 0.55);
+    this.animate({
+      targets: beam,
+      scaleX: 1.35,
+      scaleY: 3.4,
+      y: y - 76,
+      alpha: 0,
+      duration: 520,
+      ease: "Cubic.easeOut",
+      onComplete: () => beam.destroy(),
+    });
+  }
+
+  /** Light burst + sparkles + beam when the pet hatches or evolves. */
+  private evolveFx(stage: number): void {
+    if (this.reducedMotion) return;
+    const cx = DESIGN_W / 2;
+    const cy = DESIGN_H * 0.34;
+    const color = stage === 0 ? C.jade : stage === 1 ? C.blue : C.gold;
+    this.cameras.main.shake(160, 0.005);
+    this.emitSparkles(cx, cy, color, 16, 900);
+    this.beamReveal(cx, cy, color);
+  }
+
   private startAmbientMotion(): void {
     // Reduced-motion aware: this.animate() no-ops (leaving a still pet, glow,
     // and overlay) when prefers-reduced-motion is on.
@@ -991,14 +1132,27 @@ export class PetPotionScene extends BaseScene {
     });
     this.animate({
       targets: this.petGlow,
-      scaleX: 1.08,
-      scaleY: 1.08,
-      alpha: 0.18,
+      scaleX: 1.1,
+      scaleY: 1.1,
+      alpha: 0.28,
       duration: 2200,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
     });
+    // Seal ring gentle pulse — makes it feel alive/magical
+    if (this.sealRing) {
+      this.animate({
+        targets: this.sealRing,
+        alpha: { from: 0.6, to: 1 },
+        duration: 2600,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
+    // Ambient floating sparkles around the pet area
+    this.startPetMotes();
     this.animate({
       targets: this.labOverlay,
       alpha: 0.6,
@@ -1035,7 +1189,45 @@ export class PetPotionScene extends BaseScene {
 
   private stopAmbientMotion(): void {
     if (!this.petImage || !this.petGlow || !this.labOverlay) return;
-    this.tweens.killTweensOf([this.petImage, this.petGlow, this.labOverlay, ...this.brewBubbles]);
+    this.tweens.killTweensOf([this.petImage, this.petGlow, this.labOverlay, ...this.brewBubbles, ...this.petMotes]);
+  }
+
+  // ── Floating ambient sparkles around the pet area (uses fx-spark texture) ──
+  private startPetMotes(): void {
+    if (this.reducedMotion) return;
+    const cx = DESIGN_W / 2;
+    const cy = DESIGN_H * 0.34;
+    const COUNT = 8;
+
+    for (let i = 0; i < COUNT; i++) {
+      const angle = (Math.PI * 2 / COUNT) * i + Math.random() * 0.4;
+      const dist = 110 + Math.random() * 40;
+      const mx = cx + Math.cos(angle) * dist;
+      const my = cy + Math.sin(angle) * dist;
+
+      const mote = this.add.image(mx, my, FX_SPARK_KEY)
+        .setTint(C.jade)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setScale(0.5 + Math.random() * 0.6)
+        .setAlpha(0)
+        .setDepth(7);
+
+      this.petMotes.push(mote);
+
+      // Each mote drifts in a small orbit with staggered timing.
+      this.animate({
+        targets: mote,
+        x: mx + (Math.random() - 0.5) * 30,
+        y: my + (Math.random() - 0.5) * 24,
+        alpha: { from: 0, to: 0.55 + Math.random() * 0.35 },
+        scale: mote.scaleX * (1.15 + Math.random() * 0.35),
+        duration: 2000 + Math.random() * 1800,
+        yoyo: true,
+        repeat: -1,
+        delay: i * 180,
+        ease: "Sine.easeInOut",
+      });
+    }
   }
 
   protected onReducedMotionChange(enabled: boolean): void {
@@ -1288,6 +1480,14 @@ export class PetPotionScene extends BaseScene {
     const sourceW = Number(source.width) || W;
     const sourceH = Number(source.height) || H;
     const scale = Math.max(W / sourceW, H / sourceH);
+    image.setScale(scale);
+  }
+
+  private containImage(image: Phaser.GameObjects.Image, W: number, H: number): void {
+    const source = image.texture.getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+    const sourceW = Number(source.width) || W;
+    const sourceH = Number(source.height) || H;
+    const scale = Math.min(W / sourceW, H / sourceH);
     image.setScale(scale);
   }
 

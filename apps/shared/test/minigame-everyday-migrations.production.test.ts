@@ -16,7 +16,9 @@ const MIGRATIONS = [
   { slug: "bead-workshop", scene: "BeadWorkshopScene.ts" },
   { slug: "screw-sort", scene: "ScrewSortScene.ts" },
   { slug: "arrow-escape", scene: "ArrowEscapeScene.ts" },
-  { slug: "fruit-funnel", scene: "FruitFunnelScene.ts" },
+  // fruit-funnel's root scene is now SuikaScene.ts after its rebuild into a
+  // real-physics fruit-merge game (retired match-2 FruitFunnelScene.ts deleted).
+  { slug: "fruit-funnel", scene: "SuikaScene.ts" },
 ] as const;
 
 function appPath(slug: string, path: string): string {

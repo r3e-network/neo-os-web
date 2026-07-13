@@ -12,8 +12,8 @@ import { officialGasTokenPhaserUrl } from "@shared/art/token-assets";
 // ── Casino color palette ─────────────────────────────────────────────────────
 // Bright mint felt keeps the table game-like without turning the entire mobile
 // viewport into a dark slab. Warm gold rails and ivory dice stay foregrounded.
-const FELT_GREEN   = 0xa7e8ce;
-const FELT_DARK    = 0x78cfae;
+const FELT_GREEN   = 0x0b6b3a;
+const FELT_DARK    = 0x095a31;
 const FELT_SHADOW  = 0x2f8064;
 const GOLD         = 0xd4a843;
 const GOLD_LIGHT   = 0xf0c866;

@@ -6,14 +6,10 @@ import { createGuestEngine } from "../../flappy-dash/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../flappy-dash/src/logic/guest-engine";
 import { ruleOf } from "../../flappy-dash/src/logic/game-rules";
 
-function makeObs<T>(initial: T) {
-  return createObservable<T>(initial);
-}
-
 function setup() {
   const obs = createGameSessionObservables();
-  const seed = makeObs("");
-  const pipesPassed = makeObs(0);
+  const seed = createObservable("");
+  const pipesPassed = createObservable(0);
   const board: Array<{ user: string; score: string }> = [];
   const submit = vi.fn(async (_score: number | string) => {});
   const get = vi.fn(async (_limit?: number) => board.slice());
