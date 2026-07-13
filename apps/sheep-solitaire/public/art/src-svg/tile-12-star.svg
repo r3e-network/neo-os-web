@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: star -->
+    <g transform="translate(0, 0)">
+      
+    <polygon points="100.0,64.0 108.8,87.9 134.2,88.9 114.3,104.6 121.2,129.1 100.0,115.0 78.8,129.1 85.7,104.6 65.8,88.9 91.2,87.9" fill="#FFD36B"
+             stroke="#3A3530" stroke-width="2.5" />
+    <!-- Star highlight (upper left facet) -->
+    <polygon points="100,64 85.7,104.6 78.8,70.9 108.8,87.9" fill="#FFE580"
+              />
+    <!-- Center dot -->
+    <circle cx="100" cy="100" r="4" fill="#D4A033"
+            />
+  
+    </g>
+</svg>

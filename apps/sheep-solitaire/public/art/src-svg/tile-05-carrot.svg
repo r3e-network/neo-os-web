@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: carrot -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Carrot body (diagonal) -->
+    <path d="M94,134
+             Q80,110 104,70
+             Q114,66 110,76
+             Q96,118 106,134
+             Z"
+          fill="#FF8A4C" stroke="#3A3530" stroke-width="2.5"/>
+    <!-- Carrot texture lines -->
+    <line x1="92" y1="118" x2="98" y2="122"
+          stroke="#E06A28" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+    <line x1="96" y1="106" x2="102" y2="110"
+          stroke="#E06A28" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+    <line x1="102" y1="92" x2="106" y2="96"
+          stroke="#E06A28" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+    <!-- Leafy top -->
+    <path d="M104,70 Q92,52 84,56"
+          fill="#4CA86A" stroke="#3A3530" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M106,70 Q104,48 102,50"
+          fill="#7CC47F" stroke="#3A3530" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M108,73 Q120,54 124,62"
+          fill="#4CA86A" stroke="#3A3530" stroke-width="2" stroke-linejoin="round"/>
+    <!-- Highlight -->
+    <path d="M98,120 Q102,108 106,94"
+          fill="none" stroke="#FFAA70" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  
+    </g>
+</svg>

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: cloud -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Cloud body (overlapping circles) -->
+    <circle cx="82" cy="106" r="28" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="118" cy="106" r="28" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="94" cy="92" r="30" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="114" cy="96" r="22" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+    <circle cx="100" cy="110" r="26" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+    <!-- Sky-blue tint overlay (bottom) -->
+    <clipPath id="cloudClip">
+      <use href="#cloudBody"/>
+    </clipPath>
+    <defs>
+      <g id="cloudBody">
+        <circle cx="82" cy="106" r="28" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+        <circle cx="118" cy="106" r="28" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+        <circle cx="94" cy="92" r="30" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+        <circle cx="114" cy="96" r="22" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+        <circle cx="100" cy="110" r="26" fill="#FFFFFF"
+           stroke="#3A3530" stroke-width="2" />
+      </g>
+    </defs>
+    <rect x="60" y="100" width="80" height="40"
+          fill="#C5E8F4" opacity="0.25" clip-path="url(#cloudClip)"/>
+    <!-- Cute face -->
+    <circle cx="90" cy="98" r="2.5" fill="#3A3530"
+            />
+    <circle cx="110" cy="98" r="2.5" fill="#3A3530"
+            />
+    <path d="M95,104 Q100,108 105,104"
+          fill="none" stroke="#3A3530" stroke-width="2" stroke-linecap="round"/>
+    <!-- Cheeks -->
+    <ellipse cx="82" cy="104" rx="5" ry="3.5" fill="#FFB5BA" opacity="0.35"/>
+    <ellipse cx="118" cy="104" rx="5" ry="3.5" fill="#FFB5BA" opacity="0.35"/>
+  
+    </g>
+</svg>

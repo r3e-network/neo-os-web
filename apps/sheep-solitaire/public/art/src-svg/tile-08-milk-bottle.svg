@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 200 200" width="200" height="200">
+    
+    <!-- Card background -->
+    <rect x="6" y="6" width="188" height="188"
+          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
+          stroke-width="3.5999999999999996" />
+    <!-- Corner gems – green diamonds -->
+    <polygon points="22,10 30,4 38,10 30,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,10 170,4 178,10 170,18"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="22,190 30,206 38,190 30,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+    <polygon points="162,190 170,206 178,190 170,182"
+             fill="#16C784" stroke="#0E9E68" stroke-width="1" />
+  
+    <!-- Icon: milk-bottle -->
+    <g transform="translate(0, 0)">
+      
+    <!-- Bottle body -->
+    <rect x="78" y="90" width="44" height="48" rx="6"
+          fill="#FFFFFF" stroke="#3A3530" stroke-width="2.5"/>
+    <!-- Bottle neck -->
+    <rect x="88" y="76" width="24" height="16" rx="3"
+          fill="#FFFFFF" stroke="#3A3530" stroke-width="2.5"/>
+    <!-- Bottle cap -->
+    <rect x="86" y="68" width="28" height="10" rx="4"
+          fill="#16C784" stroke="#3A3530" stroke-width="2"/>
+    <!-- Cap detail lines -->
+    <line x1="92" y1="73" x2="108" y2="73"
+          stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <!-- Milk label area -->
+    <rect x="84" y="100" width="32" height="24" rx="3"
+          fill="#F0F6FF" stroke="#C5E8F4" stroke-width="1.2"/>
+    <!-- Milk drop icon on label -->
+    <path d="M100,105 Q93,116 100,120 Q107,116 100,105 Z"
+          fill="#C5E8F4" opacity="0.7"/>
+    <!-- Bottle shine -->
+    <rect x="83" y="94" width="5" height="40" rx="2.5"
+          fill="#FFFFFF" opacity="0.35"/>
+  
+    </g>
+</svg>

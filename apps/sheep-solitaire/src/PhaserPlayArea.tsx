@@ -11,6 +11,7 @@ import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
 import { DEAL_TTL_MS, SETTLE_GRACE_MS } from "./logic/game-rules";
+import { getLocale, type Locale } from "@shared/utils/i18n";
 import "./PlayArea.scss";
 
 const GAME_CONFIG = {
@@ -19,6 +20,8 @@ const GAME_CONFIG = {
   backgroundColor: "transparent",
   transparent: true,
 } as const;
+
+const LANG_STORAGE_KEY = "sheep-lang";
 
 const loadSheepScene = () =>
   import("./scenes/SheepScene").then((module) => module.SheepScene);
@@ -39,6 +42,32 @@ function formatCountdown(ms: number): string {
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Player-facing language switch (zh / en). A local copy forces a re-render
+  // that re-resolves every `t(...)` call and the Phaser `loc` dictionary; the
+  // `languageChange` event keeps the shared framework locale in sync.
+  const [lang, setLang] = useState<Locale>(() => {
+    const saved =
+      typeof localStorage !== "undefined" ? localStorage.getItem(LANG_STORAGE_KEY) : null;
+    return saved === "zh" || saved === "en" ? saved : getLocale();
+  });
+  useEffect(() => {
+    const sync = (e: Event) => {
+      const next = String((e as CustomEvent<{ language?: string }>).detail?.language ?? "");
+      setLang(next.startsWith("zh") ? "zh" : "en");
+    };
+    window.addEventListener("languageChange", sync);
+    return () => window.removeEventListener("languageChange", sync);
+  }, []);
+  const toggleLang = (): void => {
+    const next: Locale = lang === "zh" ? "en" : "zh";
+    setLang(next);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, next);
+    } catch {
+      /* storage may be unavailable; the in-session toggle still works */
+    }
+    window.dispatchEvent(new CustomEvent("languageChange", { detail: { language: next } }));
+  };
   const [nowMs, setNowMs] = useState(() => Date.now());
   const drawerToggleRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
@@ -132,6 +161,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       : isGuest ? t("guestModeLine") : t("securingPuzzle"),
     progress:  t("progressStat"),
     matched:   t("matchedStat"),
+    matchCleared: t("matchCleared"),
+    matchCombo:   t("matchCombo"),
     wonTitle:      isGuest ? t("guestClearedTitle") : t("wonTitle"),
     creditedTitle: isGuest ? t("guestClearedTitle") : t("creditedTitle"),
     gameOverTitle: t("gameOverTitle"),
@@ -237,6 +268,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const showRelease = isGuest
     ? canRelease
     : activeGameId !== "0" && (gameStatus === "committed" || deadlineExpired || isGameOver || canRelease);
+
   const drawerActions = [
     ...(showRelease
       ? [{
@@ -284,6 +316,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         }}
         scene={
           <div className="sheep-stage-shell">
+            <button
+              type="button"
+              className="sheep-lang-toggle"
+              onClick={toggleLang}
+              aria-label={lang === "zh" ? "Switch to English" : "切换到中文"}
+              title={lang === "zh" ? "Switch to English" : "切换到中文"}
+            >
+              {lang === "zh" ? "EN" : "中"}
+            </button>
             <PhaserGameComponent
               config={GAME_CONFIG}
               loadScene={loadSheepScene}
