@@ -2,15 +2,14 @@
 
 :root,
 .fruit-funnel {
-  /* Domain theme — fruit-funnel (warm citrus). Centralized for themeability;
-     --fruit-* brand ramp is defined on .fruit-funnel below. */
-  --ff-bg: #f7d98e;
-  --ff-stage: #fff4c7;
-  --ff-a11y-bg: #fffdf5;
-  --ff-a11y-btn: #fff2bd;
-  --ff-grad-1: #fff3bd;
-  --ff-grad-2: #f8db91;
-  --ff-grad-3: #e5ae5b;
+  /* Domain theme — Fruit Funnel orchard (juicy greens). Centralized for themeability. */
+  --ff-bg: #cdeccd;
+  --ff-stage: #f3fbf2;
+  --ff-a11y-bg: #ffffff;
+  --ff-a11y-btn: #e7f7ec;
+  --ff-grad-1: #eafaf0;
+  --ff-grad-2: #bdeed2;
+  --ff-grad-3: #7fd6a6;
 }
 
 html,
@@ -27,8 +26,8 @@ body,
 }
 
 .fruit-funnel {
-  --fruit-ink: #3f2a1f;
-  --fruit-coral: #ef6637;
+  --fruit-ink: #234b34;
+  --fruit-coral: #16c784;
   --fruit-leaf: #3f8d4e;
   position: relative;
   display: grid;
@@ -122,24 +121,10 @@ body,
   white-space: nowrap;
 }
 
-.fruit-funnel__heartbeat {
-  display: none;
-  animation: fruit-funnel-heartbeat 1.2s ease-in-out infinite;
-}
-
-@keyframes fruit-funnel-heartbeat {
-  0%, 100% { opacity: 0.48; }
-  50% { opacity: 1; }
-}
-
 @media (max-width: 520px) {
   .fruit-funnel__stage {
     width: 100%;
     border-radius: 18px;
-    box-shadow: 0 10px 26px rgba(120, 72, 25, 0.1);
+    box-shadow: 0 10px 26px rgba(35, 75, 52, 0.1);
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fruit-funnel__heartbeat { animation: none; }
 }

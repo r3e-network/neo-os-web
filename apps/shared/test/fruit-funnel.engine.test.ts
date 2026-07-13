@@ -1,274 +1,227 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CHANNEL_CAPACITY,
-  FRUIT_COLORS,
-  FRUIT_ENGINE_MESSAGE_KEYS,
-  FruitFunnelEngine,
-  LANE_COUNT,
-  PAIRS_PER_COLOR,
-  TOKENS_PER_LANE,
-  TOTAL_PAIRS,
-  TOTAL_TOKENS,
-  createFruitDeal,
-  findSafeFruitHint,
-  isValidFruitSnapshot,
-  verifyFruitWitness,
-} from "../../fruit-funnel/src/logic/fruit-engine";
+  MAX_DROPPABLE_LEVEL,
+  MAX_LEVEL,
+  SCORE_PER_MERGE,
+  SNAPSHOT_VERSION,
+  SUIKA_ENGINE_MESSAGE_KEYS,
+  SuikaEngine,
+  WATERMELON_BONUS,
+  isValidSuikaSnapshot,
+} from "../../fruit-funnel/src/logic/suika-engine";
+import type { SuikaSnapshot } from "../../fruit-funnel/src/logic/suika-engine";
 import { messages } from "../../fruit-funnel/src/locale/messages";
-import { FRUIT_SCENE_COPY_KEYS } from "../../fruit-funnel/src/scene-copy";
+import { createSuikaSceneCopy } from "../../fruit-funnel/src/suika-copy";
 
-function solveSeed(seed: number) {
-  const deal = createFruitDeal(seed);
-  const engine = FruitFunnelEngine.fresh(seed, 1, 1_000);
-  let now = 1_000;
-  for (const pair of deal.witness) {
-    for (const token of pair) {
-      const snapshot = engine.snapshot(now);
-      expect(snapshot.lanes[token.lane]?.[0]?.id).toBe(token.id);
-      now += 1;
-      expect(engine.tapLane(token.lane, now).ok).toBe(true);
-    }
-  }
-  return engine.snapshot(now);
-}
+// The retired match-2 build shipped a deterministic 48-fruit deal with a
+// constructive win witness. The rebuilt game is an emergent real-physics
+// merge game whose truth model is the SuikaEngine: a fruit board (id + level +
+// position), a drop queue, score, best, and phase. These tests pin that model.
 
-describe("fruit-funnel deterministic deal", () => {
-  it("creates balanced 48-fruit boards with a constructive witness", () => {
-    for (let seed = 1; seed <= 2_000; seed += 1) {
-      const deal = createFruitDeal(seed);
-      expect(deal.lanes).toHaveLength(LANE_COUNT);
-      expect(deal.lanes.every((lane) => lane.length === TOKENS_PER_LANE)).toBe(true);
-      expect(new Set(deal.lanes.flat().map((token) => token.id)).size).toBe(TOTAL_TOKENS);
-      expect(deal.witness).toHaveLength(TOTAL_PAIRS);
-      expect(verifyFruitWitness(deal)).toBe(true);
+describe("fruit-funnel Suika engine — fresh state", () => {
+  it("starts a valid, playing, empty board with a droppable queue", () => {
+    const engine = SuikaEngine.fresh(42, 7, 1_000);
+    const snapshot = engine.snapshot(1_000);
 
-      const counts = new Map(FRUIT_COLORS.map((color) => [color, 0]));
-      for (const token of deal.lanes.flat()) counts.set(token.color, (counts.get(token.color) ?? 0) + 1);
-      expect([...counts.values()]).toEqual(FRUIT_COLORS.map(() => PAIRS_PER_COLOR * 2));
-    }
+    expect(snapshot.version).toBe(SNAPSHOT_VERSION);
+    expect(snapshot.phase).toBe("playing");
+    expect(snapshot.board).toEqual([]);
+    expect(snapshot.score).toBe(0);
+    expect(snapshot.best).toBe(7);
+    expect(snapshot.messageKey).toBe("statusReady");
+    expect(snapshot.currentLevel).toBeGreaterThanOrEqual(0);
+    expect(snapshot.currentLevel).toBeLessThanOrEqual(MAX_DROPPABLE_LEVEL);
+    expect(snapshot.nextLevel).toBeGreaterThanOrEqual(0);
+    expect(snapshot.nextLevel).toBeLessThanOrEqual(MAX_DROPPABLE_LEVEL);
+    expect(isValidSuikaSnapshot(snapshot)).toBe(true);
   });
 
-  it("replays the witness to an empty winning board", () => {
-    for (const seed of [1, 2, 7, 42, 20260710, 0xffffffff]) {
-      const result = solveSeed(seed);
-      expect(result.phase).toBe("won");
-      expect(result.matchedPairs).toBe(TOTAL_PAIRS);
-      expect(result.channel).toEqual([]);
-      expect(result.lanes.every((lane) => lane.length === 0)).toBe(true);
-      expect(result.score).toBeGreaterThan(0);
-      expect(isValidFruitSnapshot(result)).toBe(true);
-    }
-  });
-
-  it("is stable for the same seed and distinct for other seeds", () => {
-    expect(createFruitDeal(42)).toEqual(createFruitDeal(42));
-    expect(createFruitDeal(42).lanes).not.toEqual(createFruitDeal(43).lanes);
+  it("returns defensive snapshot copies so callers cannot mutate engine state", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const level = engine.snapshot().currentLevel;
+    engine.dropFruit(level, 100, 100, 1_000);
+    const first = engine.snapshot(1_000);
+    first.board[0]!.x = -999;
+    expect(engine.snapshot(1_000).board[0]!.x).toBe(100);
   });
 });
 
-describe("fruit-funnel play and recovery", () => {
-  it("clears only the last adjacent same-color pair", () => {
-    const deal = createFruitDeal(91);
-    const engine = FruitFunnelEngine.fresh(91, 1, 1_000);
-    const [first, second] = deal.witness[0]!;
-
-    expect(engine.tapLane(first.lane, 1_001).action).toBe("released");
-    expect(engine.snapshot(1_001).channel).toHaveLength(1);
-    const result = engine.tapLane(second.lane, 1_002);
-    expect(result.action).toBe("matched");
-    expect(result.cleared?.map((token) => token.color)).toEqual([first.color, first.color]);
-    expect(engine.snapshot(1_002).channel).toEqual([]);
-  });
-
-  it("loses exactly when the deterministic chute reaches capacity", () => {
-    let chosen: FruitFunnelEngine | undefined;
-    let now = 10_000;
-    for (let seed = 1; seed < 100 && !chosen; seed += 1) {
-      const candidate = FruitFunnelEngine.fresh(seed, 1, now);
-      for (let move = 0; move < CHANNEL_CAPACITY; move += 1) {
-        const snapshot = candidate.snapshot(now);
-        const previous = snapshot.channel.at(-1)?.color;
-        const lane = snapshot.lanes.findIndex((items) => items[0] && items[0].color !== previous);
-        if (lane < 0) break;
-        candidate.tapLane(lane, now += 1);
-      }
-      if (candidate.snapshot(now).phase === "lost") chosen = candidate;
-    }
-    expect(chosen).toBeTruthy();
-    const snapshot = chosen!.snapshot(now);
-    expect(snapshot.channel).toHaveLength(CHANNEL_CAPACITY);
-    expect(snapshot.phase).toBe("lost");
-  });
-
-  it("undo recovers the exact pre-move state, including a full chute loss", () => {
-    const engine = FruitFunnelEngine.fresh(77, 1, 5_000);
-    const before = engine.snapshot(5_000);
-    const lane = before.lanes.findIndex((items) => items.length > 0);
-    engine.tapLane(lane, 5_001);
-    expect(engine.undo(5_002).ok).toBe(true);
-    const restored = engine.snapshot(5_002);
-    expect(restored.lanes).toEqual(before.lanes);
-    expect(restored.channel).toEqual(before.channel);
-    expect(restored.moves).toBe(before.moves);
-  });
-
-  it("restores active runs paused without charging background time", () => {
-    const engine = FruitFunnelEngine.fresh(123, 1, 10_000);
-    const snapshot = engine.snapshot(11_000);
-    const restored = FruitFunnelEngine.restore(snapshot, 999_000);
-    expect(restored).not.toBeNull();
-    const paused = restored!.snapshot(1_999_000);
-    expect(paused.phase).toBe("paused");
-    expect(paused.remainingMs).toBe(snapshot.remainingMs);
-    expect(restored!.togglePause(2_000_000).action).toBe("resume");
-  });
-
-  it("returns a playable, concise hint without mutating the run", () => {
-    const engine = FruitFunnelEngine.fresh(404, 1, 1_000);
+describe("fruit-funnel Suika engine — drop", () => {
+  it("drops the current fruit, advances the queue, and records the action", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
     const before = engine.snapshot(1_000);
-    const hint = findSafeFruitHint(before);
-    expect(hint.length).toBeGreaterThan(0);
-    expect(hint.every((lane) => before.lanes[lane]?.[0])).toBe(true);
-    expect(engine.snapshot(1_000)).toEqual(before);
+    const expectedNext = before.nextLevel;
+
+    const { snapshot, fruitId } = engine.dropFruit(before.currentLevel, 120, 90, 1_001);
+    expect(fruitId).not.toBe("");
+    expect(snapshot.board).toHaveLength(1);
+    expect(snapshot.board[0]).toMatchObject({ id: fruitId, level: before.currentLevel, x: 120, y: 90 });
+    expect(snapshot.currentLevel).toBe(expectedNext);
+    expect(snapshot.lastAction.kind).toBe("dropped");
+    expect(snapshot.messageKey).toBe("statusDropped");
+    expect(isValidSuikaSnapshot(snapshot)).toBe(true);
   });
 
-  it("replays certified hints to completion across varied seeds", () => {
-    for (let seed = 1; seed <= 20; seed += 1) {
-      const engine = FruitFunnelEngine.fresh(seed, 1, 1_000);
-      let now = 1_000;
-      for (let move = 0; move < TOTAL_TOKENS; move += 1) {
-        const snapshot = engine.snapshot(now);
-        if (snapshot.phase === "won") break;
-        const hint = findSafeFruitHint(snapshot);
-        expect(hint, `seed ${seed} move ${move}`).toHaveLength(1);
-        expect(engine.tapLane(hint[0]!, now += 1).ok).toBe(true);
-      }
-      expect(engine.snapshot(now).phase, `seed ${seed}`).toBe("won");
-    }
+  it("ignores a drop whose level is not the queued current fruit", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const current = engine.snapshot().currentLevel;
+    const wrong = current === 0 ? 1 : 0;
+    const { fruitId, snapshot } = engine.dropFruit(wrong, 100, 100, 1_001);
+    expect(fruitId).toBe("");
+    expect(snapshot.board).toHaveLength(0);
   });
 
-  it("never labels a guaranteed seven-slot overflow as safe", () => {
-    let trapped: ReturnType<FruitFunnelEngine["snapshot"]> | null = null;
-    for (let seed = 1; seed <= 500 && !trapped; seed += 1) {
-      const engine = FruitFunnelEngine.fresh(seed, 1, 1_000);
-      let now = 1_000;
-      for (let move = 0; move < CHANNEL_CAPACITY - 1; move += 1) {
-        const snapshot = engine.snapshot(now);
-        const top = snapshot.channel.at(-1)?.color;
-        const lane = snapshot.lanes.findIndex((items) => items[0] && items[0].color !== top);
-        if (lane < 0) break;
-        engine.tapLane(lane, now += 1);
-      }
-      const snapshot = engine.snapshot(now);
-      const top = snapshot.channel.at(-1)?.color;
-      if (snapshot.phase === "playing"
-        && snapshot.channel.length === CHANNEL_CAPACITY - 1
-        && snapshot.lanes.every((lane) => !lane[0] || lane[0].color !== top)) {
-        trapped = snapshot;
-      }
-    }
-    expect(trapped).not.toBeNull();
-    expect(findSafeFruitHint(trapped!)).toEqual([]);
+  it("ignores drops above the droppable ceiling", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const { fruitId } = engine.dropFruit(MAX_DROPPABLE_LEVEL + 1, 100, 100, 1_001);
+    expect(fruitId).toBe("");
+    expect(engine.snapshot().board).toHaveLength(0);
+  });
+});
+
+describe("fruit-funnel Suika engine — merge and scoring", () => {
+  it("merges two fruit into the next tier and awards the triangular score", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const a = engine.dropFruit(engine.snapshot().currentLevel, 60, 80, 1_001).fruitId;
+    const b = engine.dropFruit(engine.snapshot().currentLevel, 64, 80, 1_002).fruitId;
+
+    const { snapshot, newFruitId } = engine.mergeFruits(a, b, 3, 62, 82, 1_003);
+    expect(newFruitId).not.toBeNull();
+    expect(snapshot.board).toHaveLength(1);
+    expect(snapshot.board[0]).toMatchObject({ id: newFruitId!, level: 3, x: 62, y: 82 });
+    expect(snapshot.score).toBe(SCORE_PER_MERGE[3]);
+    expect(snapshot.best).toBe(SCORE_PER_MERGE[3]);
+    expect(snapshot.lastAction.kind).toBe("merged");
+    expect(snapshot.messageKey).toBe("statusMerged");
   });
 
-  it("undo restores the board without reclaiming elapsed clock time", () => {
-    const engine = FruitFunnelEngine.fresh(77, 1, 1_000);
-    const initial = engine.snapshot(1_000);
-    const lane = initial.lanes.findIndex((items) => items.length > 0);
-    engine.tapLane(lane, 1_100);
-    const afterMove = engine.snapshot(1_100);
-    expect(engine.undo(6_100).ok).toBe(true);
-    const restored = engine.snapshot(6_100);
-    expect(restored.lanes).toEqual(initial.lanes);
-    expect(restored.remainingMs).toBe(afterMove.remainingMs - 5_000);
-    expect(restored.remainingMs).toBeLessThan(initial.remainingMs);
+  it("clears two watermelons for a bonus and creates no new fruit", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const a = engine.dropFruit(engine.snapshot().currentLevel, 60, 80, 1_001).fruitId;
+    const b = engine.dropFruit(engine.snapshot().currentLevel, 64, 80, 1_002).fruitId;
+
+    const { snapshot, newFruitId } = engine.mergeFruits(a, b, MAX_LEVEL + 1, 62, 82, 1_003);
+    expect(newFruitId).toBeNull();
+    expect(snapshot.board).toHaveLength(0);
+    expect(snapshot.score).toBe(WATERMELON_BONUS);
   });
 
-  it("rejects duplicate, forged, imbalanced, over-capacity, and inconsistent snapshots", () => {
-    const good = FruitFunnelEngine.fresh(55, 1, 1_000).snapshot(1_000);
-    expect(isValidFruitSnapshot(good)).toBe(true);
+  it("ignores a merge referencing an unknown or duplicated id", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const a = engine.dropFruit(engine.snapshot().currentLevel, 60, 80, 1_001).fruitId;
+    expect(engine.mergeFruits(a, "ghost", 2, 60, 80, 1_002).newFruitId).toBeNull();
+    expect(engine.mergeFruits(a, a, 2, 60, 80, 1_003).newFruitId).toBeNull();
+    expect(engine.snapshot().board).toHaveLength(1);
+    expect(engine.snapshot().score).toBe(0);
+  });
+});
 
-    const duplicate = structuredClone(good);
-    duplicate.lanes[1]![0] = { ...duplicate.lanes[0]![0]! };
-    expect(isValidFruitSnapshot(duplicate)).toBe(false);
-
-    const forged = structuredClone(good);
-    forged.lanes[0]![0]!.color = forged.lanes[0]![0]!.color === "apple" ? "lemon" : "apple";
-    expect(isValidFruitSnapshot(forged)).toBe(false);
-
-    const missing = structuredClone(good);
-    missing.lanes[0]!.shift();
-    expect(isValidFruitSnapshot(missing)).toBe(false);
-
-    const overflow = structuredClone(good);
-    overflow.channel = good.lanes.flat().slice(0, CHANNEL_CAPACITY + 1);
-    expect(isValidFruitSnapshot(overflow)).toBe(false);
-
-    const fakeWin = structuredClone(good);
-    fakeWin.phase = "won";
-    expect(isValidFruitSnapshot(fakeWin)).toBe(false);
-
-    const reorderedSuffix = structuredClone(good);
-    [reorderedSuffix.lanes[0]![0], reorderedSuffix.lanes[0]![1]] = [
-      reorderedSuffix.lanes[0]![1]!,
-      reorderedSuffix.lanes[0]![0]!,
-    ];
-    expect(isValidFruitSnapshot(reorderedSuffix)).toBe(false);
-
-    const wrongMoves = structuredClone(good);
-    wrongMoves.moves = 1;
-    expect(isValidFruitSnapshot(wrongMoves)).toBe(false);
-
-    const zeroClockPlaying = structuredClone(good);
-    zeroClockPlaying.remainingMs = 0;
-    expect(isValidFruitSnapshot(zeroClockPlaying)).toBe(false);
-
-    const moved = FruitFunnelEngine.fresh(55, 1, 1_000);
-    const firstPair = createFruitDeal(55).witness[0]!;
-    moved.tapLane(firstPair[0].lane, 1_001);
-    moved.tapLane(firstPair[1].lane, 1_002);
-    const autoCleared = moved.snapshot(1_002);
-    const impossibleAdjacentPair = structuredClone(autoCleared);
-    impossibleAdjacentPair.channel = [firstPair[0], firstPair[1]];
-    impossibleAdjacentPair.matchedPairs = 0;
-    impossibleAdjacentPair.score = 0;
-    impossibleAdjacentPair.streak = 0;
-    expect(isValidFruitSnapshot(impossibleAdjacentPair)).toBe(false);
-
-    const impossibleAction = structuredClone(autoCleared);
-    impossibleAction.lastAction = {
-      nonce: autoCleared.lastAction.nonce,
-      kind: "released",
-      tokenId: firstPair[1].id,
-      lane: firstPair[1].lane,
-      color: firstPair[1].color,
-    };
-    impossibleAction.messageKey = "statusFruitReleased";
-    expect(isValidFruitSnapshot(impossibleAction)).toBe(false);
-
-    const pausedHistory = FruitFunnelEngine.fresh(56, 1, 1_000);
-    pausedHistory.tapLane(0, 1_001);
-    const badHistory = pausedHistory.snapshot(1_001);
-    badHistory.history[0]!.phase = "paused";
-    expect(isValidFruitSnapshot(badHistory)).toBe(false);
+describe("fruit-funnel Suika engine — pause, game over, sync", () => {
+  it("toggles pause and resume with matching status keys", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    expect(engine.togglePause(1_001).phase).toBe("paused");
+    expect(engine.snapshot().messageKey).toBe("statusPaused");
+    expect(engine.togglePause(1_002).phase).toBe("playing");
+    expect(engine.snapshot().messageKey).toBe("statusResumed");
   });
 
-  it("keeps every engine status key present in the typed localized scene copy", () => {
+  it("ends the run, freezes further transitions, and keeps the best score", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const a = engine.dropFruit(engine.snapshot().currentLevel, 60, 80, 1_001).fruitId;
+    const b = engine.dropFruit(engine.snapshot().currentLevel, 64, 80, 1_002).fruitId;
+    engine.mergeFruits(a, b, 4, 62, 82, 1_003);
+    const scored = engine.snapshot().score;
+
+    const over = engine.setGameOver(1_004);
+    expect(over.phase).toBe("gameover");
+    expect(over.messageKey).toBe("statusGameOver");
+    expect(over.best).toBe(scored);
+
+    // No transition is allowed after game over.
+    expect(engine.dropFruit(engine.snapshot().currentLevel, 10, 10, 1_005).fruitId).toBe("");
+    expect(engine.togglePause(1_006).phase).toBe("gameover");
+  });
+
+  it("syncs physics positions into the board only while playing", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const id = engine.dropFruit(engine.snapshot().currentLevel, 60, 80, 1_001).fruitId;
+    engine.syncBoard([{ id, x: 200, y: 500 }], 1_002);
+    expect(engine.snapshot().board[0]).toMatchObject({ x: 200, y: 500 });
+
+    engine.togglePause(1_003);
+    engine.syncBoard([{ id, x: 10, y: 10 }], 1_004);
+    expect(engine.snapshot().board[0]).toMatchObject({ x: 200, y: 500 });
+  });
+});
+
+describe("fruit-funnel Suika engine — restore and validation", () => {
+  it("restores an active run paused and lifts the best from the stored run", () => {
+    const engine = SuikaEngine.fresh(42, 3, 1_000);
+    const a = engine.dropFruit(engine.snapshot().currentLevel, 60, 80, 1_001).fruitId;
+    const b = engine.dropFruit(engine.snapshot().currentLevel, 64, 80, 1_002).fruitId;
+    const saved = engine.mergeFruits(a, b, 5, 62, 82, 1_003).snapshot;
+
+    const restored = SuikaEngine.restore(saved, 0, 5_000);
+    expect(restored).not.toBeNull();
+    const resumed = restored!.snapshot(5_000);
+    expect(resumed.phase).toBe("paused");
+    expect(resumed.best).toBeGreaterThanOrEqual(saved.score);
+    expect(resumed.board).toHaveLength(1);
+  });
+
+  it("keeps a stored game over as game over on restore", () => {
+    const engine = SuikaEngine.fresh(42, 0, 1_000);
+    const saved = engine.setGameOver(1_001);
+    const restored = SuikaEngine.restore(saved, 0, 5_000);
+    expect(restored!.snapshot(5_000).phase).toBe("gameover");
+    expect(restored!.snapshot(5_000).messageKey).toBe("statusGameOver");
+  });
+
+  it("rejects malformed snapshots", () => {
+    const good = SuikaEngine.fresh(42, 0, 1_000).snapshot(1_000);
+    expect(isValidSuikaSnapshot(good)).toBe(true);
+    expect(SuikaEngine.restore({ version: 1 }, 0, 1_000)).toBeNull();
+
+    const badVersion = structuredClone(good) as SuikaSnapshot;
+    (badVersion as { version: number }).version = 99;
+    expect(isValidSuikaSnapshot(badVersion)).toBe(false);
+
+    const badSeed = structuredClone(good) as SuikaSnapshot;
+    (badSeed as { seed: number }).seed = 0;
+    expect(isValidSuikaSnapshot(badSeed)).toBe(false);
+
+    const badLevel = structuredClone(good) as SuikaSnapshot;
+    badLevel.board = [{ id: "x", level: MAX_LEVEL + 5, x: 1, y: 1 }];
+    expect(isValidSuikaSnapshot(badLevel)).toBe(false);
+
+    const badPosition = structuredClone(good) as SuikaSnapshot;
+    badPosition.board = [{ id: "x", level: 0, x: Number.NaN, y: 1 }];
+    expect(isValidSuikaSnapshot(badPosition)).toBe(false);
+
+    const negativeScore = structuredClone(good) as SuikaSnapshot;
+    negativeScore.score = -1;
+    expect(isValidSuikaSnapshot(negativeScore)).toBe(false);
+
+    const badPhase = structuredClone(good) as SuikaSnapshot;
+    (badPhase as { phase: string }).phase = "won";
+    expect(isValidSuikaSnapshot(badPhase)).toBe(false);
+
+    const badDroppable = structuredClone(good) as SuikaSnapshot;
+    badDroppable.currentLevel = MAX_DROPPABLE_LEVEL + 3;
+    expect(isValidSuikaSnapshot(badDroppable)).toBe(false);
+  });
+});
+
+describe("fruit-funnel Suika engine — localized status coverage", () => {
+  it("keeps every engine status key present in messages and the scene copy bag", () => {
     const messageKeys = new Set(Object.keys(messages));
-    const sceneKeys = new Set<string>(FRUIT_SCENE_COPY_KEYS);
-    for (const key of FRUIT_ENGINE_MESSAGE_KEYS) {
+    const sceneKeys = new Set(Object.keys(createSuikaSceneCopy((key) => key)));
+    for (const key of SUIKA_ENGINE_MESSAGE_KEYS) {
       expect(messageKeys.has(key), key).toBe(true);
       expect(sceneKeys.has(key), key).toBe(true);
-      expect(messages[key].en, key).toBeTruthy();
-      expect(messages[key].zh, key).toBeTruthy();
+      expect(messages[key as keyof typeof messages].en, key).toBeTruthy();
+      expect(messages[key as keyof typeof messages].zh, key).toBeTruthy();
     }
-  });
-
-  it("times out through the engine clock without native interval semantics", () => {
-    const engine = FruitFunnelEngine.fresh(8, 1, 1_000);
-    const before = engine.snapshot(1_000);
-    expect(engine.tick(1_000 + before.remainingMs)).toBe(true);
-    expect(engine.snapshot(1_000 + before.remainingMs).phase).toBe("timeout");
   });
 });

@@ -2,14 +2,14 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Fruit Funnel",
-  description: "A sunny deterministic Phaser pair puzzle with 48 playable fruit, a seven-slot chute, full recovery, and no wallet dependency.",
+  description: "A real-physics fruit-merge game: drop fruit, let gravity stack them, and merge matching pairs into bigger fruit without letting the pile cross the danger line.",
   icon: "sparkles",
   category: "game",
   shell: "game",
   supportsGuest: true,
   supportsGameFi: false,
   gamePage: {
-    categoryColor: "#F26B3A",
+    categoryColor: "#16C784",
     modes: { guest: true, gamefi: false },
     heroBadgeKey: "localOnly",
     heroTitleKey: "appTitle",
@@ -24,7 +24,7 @@ export const manifest: MiniAppManifest = {
         titleKey: "featureBoardTitle",
         descKey: "featureBoardCopy",
         large: true,
-        gradient: "linear-gradient(135deg, #FFF8D8 0%, #FFD36D 48%, #F26B3A 100%)",
+        gradient: "linear-gradient(135deg, #E8F9EF 0%, #9BE7C4 48%, #16C784 100%)",
       },
       { titleKey: "featureRecoveryTitle", descKey: "featureRecoveryCopy" },
       { titleKey: "featureInputTitle", descKey: "featureInputCopy" },

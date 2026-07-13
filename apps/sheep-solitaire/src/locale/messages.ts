@@ -1,7 +1,7 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
-  appEyebrow: { en: "Sheep Solitaire", zh: "羊了个羊" },
+  appEyebrow: { en: "Sheep Solitaire", zh: "小羊接龙" },
   appSubtitle: {
     en: "Pick cards from the pile into your slot bar — three matching cards auto-eliminate. Clear the board before the slots fill up to win!",
     zh: "从牌堆选取卡片放入卡槽——三张相同卡片自动消除。在卡槽满溢前清空所有卡片即可获胜！",
@@ -14,7 +14,7 @@ const appMessages = {
   playTab: { en: "Play", zh: "对局" },
   ranksTab: { en: "Ranks", zh: "排行" },
   lobbyTitle: { en: "Clear the meadow board", zh: "清空草地牌局" },
-  playingTitle: { en: "Sheep Solitaire", zh: "羊了个羊" },
+  playingTitle: { en: "Sheep Solitaire", zh: "小羊接龙" },
   statusWonTitle: { en: "All cards cleared!", zh: "全部消除！" },
   networkBadge: { en: "Neo N3", zh: "Neo N3" },
   rankBadge: { en: "Rank #{rank}", zh: "第 {rank} 名" },
@@ -351,9 +351,9 @@ const appMessages = {
     en: "The board is locked. A paid game stays recoverable until its settlement window closes.",
     zh: "牌局已锁定。付费牌局会保留，直到结算窗口结束后可安全释放。",
   },
-  gameAriaLabel: { en: "Sheep Solitaire tile game", zh: "羊了个羊三消牌局" },
-  gameLoadingLabel: { en: "Opening sheep board", zh: "正在打开羊了个羊牌局" },
-  gameLoadError: { en: "The sheep board could not load", zh: "羊了个羊牌局加载失败" },
+  gameAriaLabel: { en: "Sheep Solitaire tile game", zh: "小羊接龙三消牌局" },
+  gameLoadingLabel: { en: "Opening sheep board", zh: "正在打开小羊接龙牌局" },
+  gameLoadError: { en: "The sheep board could not load", zh: "小羊接龙牌局加载失败" },
   retryLoadAction: { en: "Retry loading", zh: "重试加载" },
   keyboardControls: { en: "Keyboard game controls", zh: "键盘游戏控制" },
   pickTileAction: {
