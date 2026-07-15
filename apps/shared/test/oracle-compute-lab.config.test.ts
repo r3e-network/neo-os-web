@@ -20,7 +20,11 @@ describe("Oracle Compute Lab product configuration", () => {
     expect(manifest.operations).toBeUndefined();
     expect(manifest.sidebar).toBeUndefined();
     expect(manifest.permissions).toEqual({});
-    expect(oracleComputeManifest.permissions).toEqual([]);
+    // Audit finding H1 (commit a7c65461e): the empty permission array this
+    // previously pinned was the defect — it left the host privacy gate unable
+    // to coerce permissions.confidential for an app that builds Morpheus
+    // compute requests. Declared tokens are product truth, not form chrome.
+    expect(oracleComputeManifest.permissions).toEqual(["oracle", "compute", "confidential"]);
     expect(oracleComputeManifest).not.toHaveProperty("operation_panel");
     expect(oracleComputeManifest).not.toHaveProperty("stateSource");
   });

@@ -598,17 +598,6 @@
   padding: 0;
 }
 
-.treasury-ticket__asset-group .semi-radio > input,
-.treasury-ticket__presets-group .semi-radio > input,
-.treasury-drawer-tabs__group .semi-radio > input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .treasury-ticket__asset-group .semi-radio:focus-within .treasury-asset-option,
 .treasury-ticket__presets-group .semi-radio:focus-within .treasury-preset-option,
 .treasury-drawer-tabs__group .semi-radio:focus-within .treasury-drawer-tab {

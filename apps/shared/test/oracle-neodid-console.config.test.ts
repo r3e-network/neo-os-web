@@ -20,7 +20,10 @@ describe("Oracle NeoDID Console product configuration", () => {
   it("declares a read-only, stateful product with no fake host operations", () => {
     expect(neoDidManifest.version).toBe("2.1.0");
     expect(neoDidManifest.default_network).toBe("neo-n3-mainnet");
-    expect(neoDidManifest.permissions).toEqual(["read:blockchain", "oracle"]);
+    // Audit finding H1 (commit a7c65461e): the "neodid" token was added so the
+    // host privacy gate coerces this console's confidential NeoDID lane; it
+    // declares a capability the app actually calls, not a host operation.
+    expect(neoDidManifest.permissions).toEqual(["read:blockchain", "oracle", "neodid"]);
     expect(neoDidManifest.features.stateless).toBe(false);
     expect(neoDidManifest.platform.transactions).toBe(false);
     expect(neoDidManifest.urls.banner).toBe(

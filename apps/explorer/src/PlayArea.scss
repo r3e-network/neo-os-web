@@ -113,15 +113,6 @@
   padding: 0;
 }
 
-.explorer-controls__net-group .semi-radio > input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .explorer-controls__net-group .semi-radio-addon-buttonRadio {
   display: block;
   border: 0;

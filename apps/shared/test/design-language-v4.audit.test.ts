@@ -66,6 +66,17 @@ describe("Neo MiniApps design language v4 foundation", () => {
     expect(styles).toMatch(/\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*var\(--mx2-r-lg\)/);
     expect(styles).toMatch(/\.mx2-open-panel\.semi-card\s*\{[\s\S]*box-shadow:\s*var\(--mx2-shadow\)/);
     expect(styles).toMatch(/\.mx2-open-panel > \.semi-card-body\s*\{[\s\S]*padding:\s*16px 24px 24px/);
+    // OpenUiLiteSegmented paints its control with .semi-radio-addon-buttonRadio
+    // and leaves a bare <input type="radio"> in the label. semi-theme-default
+    // ships tokens only (no component CSS), so v2.scss owns hiding that input —
+    // without it every consumer draws a native OS dot over each segment. Guard
+    // the hide AND its focusability: display:none/visibility:hidden would drop
+    // the control out of the tab order. Hoisted here from four hand-rolled
+    // per-app copies (explorer, neo-pay, neo-treasury, time-capsule).
+    expect(styles).toMatch(/\.mx2-open-segmented \.semi-radio > input\s*\{[\s\S]*opacity:\s*0;/);
+    expect(styles).not.toMatch(
+      /\.mx2-open-segmented \.semi-radio > input\s*\{[^}]*(display:\s*none|visibility:\s*hidden)/,
+    );
     expect(styles).toMatch(/\.mx2-open-field__control\s*\{[\s\S]*min-height:\s*40px/);
     expect(styles).toMatch(/\.mx2-open-field__control\s*\{[\s\S]*border:\s*1px solid var\(--mx2-border-strong\)/);
     expect(styles).toMatch(/\.mx2-open-field__control\s*\{[\s\S]*border-radius:\s*var\(--mx2-r\)/);
