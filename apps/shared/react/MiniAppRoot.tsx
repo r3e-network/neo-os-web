@@ -1199,11 +1199,16 @@ function GameHomePageWrapper({
       ? translate(gamePage.heroDescKey, manifest.description ?? "")
       : manifest.description ?? "Play the game, connect your wallet, and submit verified results when the run is complete.",
   );
+  // A guest-only build ships one complete mode, so the launcher sells that mode
+  // instead of narrating the absence of the other one. The GameFi CTA is not
+  // rendered at all in this branch, so there is no missing button to explain —
+  // "under maintenance" copy here only told a first-time visitor the product
+  // was broken before they had touched it.
   const launchDescription = gameFiSupported
     ? heroDesc
     : `${heroDesc} ${translate(
-        "entryGuestMaintenanceCopy",
-        "Free play is available while verified GAS rewards are under maintenance.",
+        "entryGuestOnlyCopy",
+        "Free to play — no wallet needed.",
       )}`;
   const primaryLabel = gamePage
     ? translate(gamePage.primaryLabelKey, translate("startAction", "Start game"))
@@ -1292,14 +1297,15 @@ function GameHomePageWrapper({
       ctaTitle={ctaTitle}
       ctaDesc={ctaDesc}
       ctaLabel={ctaLabel}
+      // Trust badges are the app's own selling points. A guest-only build used
+      // to get "Earn GAS temporarily unavailable" prepended here, which made
+      // the FIRST chip on a store-facing hero an apology for a mode this
+      // release does not claim to ship — and, on apps that already badge
+      // "Free", a contradiction next to it. The absent GameFi CTA needs no
+      // caption; `entryGuestOnlyCopy` in the subtitle states the mode plainly.
       trustBadges={
-        [
-          ...(!gameFiSupported
-            ? [translate("entryGameFiUnavailable", "Earn GAS temporarily unavailable")]
-            : []),
-          ...(gamePage?.trustBadgeKeys?.map((key) => translate(key)).filter(Boolean) ??
-            ["Neo N3", "Wallet signed", "Verified result"]),
-        ]
+        gamePage?.trustBadgeKeys?.map((key) => translate(key)).filter(Boolean) ??
+        ["Neo N3", "Wallet signed", "Verified result"]
       }
       rulesPreview={rulesPreview}
     />

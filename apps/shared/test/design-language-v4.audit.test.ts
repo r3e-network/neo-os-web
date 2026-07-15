@@ -77,6 +77,19 @@ describe("Neo MiniApps design language v4 foundation", () => {
     expect(styles).not.toMatch(
       /\.mx2-open-segmented \.semi-radio > input\s*\{[^}]*(display:\s*none|visibility:\s*hidden)/,
     );
+    // Each segment is sized from the real option count, published inline by
+    // OpenUiLiteSegmented. The old `max(104px, calc(33.333% - 4px))` basis made
+    // every segment reserve a third of the row with a 104px floor, so a
+    // two-option toggle in a narrow column demanded 2*104px + gap and wrapped
+    // into a vertical stack (explorer Mainnet/Testnet, gas-sponsor
+    // Refill/Sponsor). Guard that the share is count-derived and that the floor
+    // stays under it, so an over-full row still wraps instead of squeezing
+    // labels to slivers.
+    expect(styles).toMatch(
+      /\.mx2-open-segmented\.semi-radioGroup \.semi-radio\s*\{[\s\S]*flex:\s*1 1 max\(76px,\s*calc\(100% \/ var\(--mx2-segmented-count\) - 4px\)\)/,
+    );
+    expect(styles).toMatch(/\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*--mx2-segmented-count:\s*3;/);
+    expect(styles).not.toMatch(/flex:\s*1 1 max\(104px,\s*calc\(33\.333% - 4px\)\)/);
     expect(styles).toMatch(/\.mx2-open-field__control\s*\{[\s\S]*min-height:\s*40px/);
     expect(styles).toMatch(/\.mx2-open-field__control\s*\{[\s\S]*border:\s*1px solid var\(--mx2-border-strong\)/);
     expect(styles).toMatch(/\.mx2-open-field__control\s*\{[\s\S]*border-radius:\s*var\(--mx2-r\)/);
