@@ -206,7 +206,11 @@ describe("NFT Factory production contract", () => {
     expect(styles).toContain("background: rgba(255, 255, 255, 0.9)");
     expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
     expect(messages).toContain("Token #1 JSON verified");
-    expect(messages).toContain("Local preview only");
+    // Re-pinned 2026-07-15: the artwork disclosure was rewritten to production
+    // voice ("Local preview only …" read as staging/status language in the
+    // playarea-functionality audit). The guard's intent is unchanged — the
+    // copy must still say the artwork stays on-device and is never uploaded.
+    expect(messages).toContain("Stays on this device");
     expect(messages).toContain("deployed testnet Factory lacks");
     expect(messages).toContain("ownerWalletRequired");
     expect(attribution).toContain("019f4e01-96c2-75d0-a5e6-9ca5a60f7100");

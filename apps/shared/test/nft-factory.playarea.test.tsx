@@ -130,9 +130,13 @@ describe("NFT Factory collection studio", () => {
     expect(
       screen.getByText("Checked when the package is locked"),
     ).toBeTruthy();
+    // Re-pinned 2026-07-15: production-voice rewrite of the on-device artwork
+    // disclosure (was "Local preview only · not uploaded or added to the
+    // package", flagged as staging/status language). Same meaning guarded:
+    // artwork stays on-device, never uploaded, never written into the package.
     expect(
       screen.getByText(
-        "Local preview only · not uploaded or added to the package",
+        "Stays on this device · never uploaded or written into the package",
       ),
     ).toBeTruthy();
     expect(
@@ -185,7 +189,9 @@ describe("NFT Factory collection studio", () => {
       document.querySelectorAll('img[src="blob:nft-artwork-preview"]').length,
     ).toBeGreaterThan(2);
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove local preview" }));
+    // Re-pinned 2026-07-15: button copy rewritten to production voice
+    // (was "Remove local preview"); behavior under guard is unchanged.
+    fireEvent.click(screen.getByRole("button", { name: "Remove artwork" }));
     expect(
       document.querySelectorAll('img[src="./nft-drop-preview.webp"]').length,
     ).toBeGreaterThan(2);

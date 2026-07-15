@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   appTitle: { en: "Fruit Funnel", zh: "果园漏斗" },
   appEyebrow: { en: "PHYSICS FRUIT MERGE", zh: "物理合成小游戏" },
   appSubtitle: {
@@ -69,3 +71,5 @@ export const messages = {
   statusPaused: { en: "Paused — your orchard is safe", zh: "已暂停——进度安全保存" },
   statusResumed: { en: "Back to the orchard", zh: "继续果园" },
 } as const;
+
+export const messages = mergeMessages(appMessages);
