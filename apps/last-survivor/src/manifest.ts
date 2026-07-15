@@ -54,7 +54,12 @@ export const manifest: MiniAppManifest = {
     ctaTitleKey: "guestStageTitle",
     ctaDescKey: "guestStageSubtitle",
     ctaLabelKey: "guestPressToStay",
-    trustBadgeKeys: ["guestBadge", "gameFiValidationShort", "guestStreakLabel"],
+    // Launcher chips are this release's selling points. "GameFi validation in
+    // progress" (gameFiValidationShort) captioned an absent mode on a
+    // store-facing hero; ruleTimer states an actual mechanic instead. The key
+    // itself stays — PhaserPlayArea still uses it for the in-game
+    // "paid-disabled" status, which fires on a real attempted action.
+    trustBadgeKeys: ["guestBadge", "ruleTimer", "guestStreakLabel"],
   },
 
   // ── Tabs ──────────────────────────────────────────────────────────────

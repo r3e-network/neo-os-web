@@ -382,6 +382,23 @@
   white-space: nowrap;
 }
 
+/**
+ * The beneficiary row's value is a status phrase ("Recipient pending"), not an
+ * amount, but it inherited the amount cap above: 172px with nowrap + ellipsis.
+ * "Recipient pending" measures ~180px at 21px/680, so the very first screen
+ * rendered "Recipient pendi..." at 1365px — with an entire empty column to its
+ * left. Mobile never showed the bug because its stacked override lifts the cap
+ * to 100%.
+ *
+ * The `auto` track sizes to this element and the body track is minmax(0, 1fr),
+ * so letting the phrase take the width it needs shrinks the input rather than
+ * overflowing the card. The min() keeps a ceiling for pathological content
+ * while clearing every real status string in both en and zh.
+ */
+.escrow-token-row--beneficiary > strong {
+  max-width: min(100%, 240px);
+}
+
 .escrow-token-row__identity {
   grid-area: body;
   min-width: 0;

@@ -262,18 +262,23 @@
 
 @media (min-width: 721px) {
   .neopay-ticket-board__hero {
-    grid-template-columns: minmax(230px, 0.9fr) minmax(0, 1.1fr);
-  }
-
-  .neopay-terminal__art {
-    height: 210px;
+    grid-template-columns: minmax(200px, 0.72fr) minmax(0, 1.28fr);
   }
 }
 
 .neopay-ticket-board__media {
   min-width: 0;
   display: grid;
-  place-items: center;
+  /* `place-items: center` stopped the artwork from stretching into its grid
+     area, so the img's `width: 100%` resolved against a max-content track and
+     the art floated at ~155px inside a ~305x245 white card — thick dead margin
+     on all four sides, reading as a failed image load rather than framing.
+     The frame now takes the source art's 1:1 ratio (960x960) and the art fills
+     it, so there is no dead space to explain. `align-self: start` keeps the
+     square frame from being stretched to the taller console beside it. */
+  place-items: stretch;
+  aspect-ratio: 1;
+  align-self: start;
   border: 1px solid rgba(15, 118, 110, 0.1);
   border-radius: 18px;
   padding: 10px;
@@ -289,8 +294,17 @@
 }
 
 .neopay-terminal__art {
+  /* Fills the square frame above. `object-fit: contain` stays as pinned — with
+     a matched frame it now has nothing to letterbox, so it simply guarantees
+     the art is never cropped or distorted. */
+  display: block;
+  /* A grid item's `min-width: auto` resolves against the img's 960px intrinsic
+     width and would push the frame past its track. */
+  min-width: 0;
+  min-height: 0;
   width: 100%;
-  height: 154px;
+  height: 100%;
+  border-radius: 12px;
   object-fit: contain;
   object-position: center;
   filter: none;
@@ -955,18 +969,17 @@
     grid-template-columns: 92px minmax(0, 1fr);
   }
 
+  /* The narrow board can only spare a 92px column beside the amount console, so
+     the frame is small here — but it stays square and full, rather than a
+     134px-tall portrait box holding a letterboxed square (which also overflowed
+     the 92px track and was sliced at the card edge). Heights come from
+     `aspect-ratio` now; re-adding one here would fight it. */
   .neopay-ticket-board__media {
-    align-self: start;
-    height: 134px;
     padding: 8px;
   }
 
   .neopay-ticket-board__details {
     grid-template-columns: 1fr;
-  }
-
-  .neopay-terminal__art {
-    height: 116px;
   }
 
   .neopay-amount-console__main {

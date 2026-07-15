@@ -20,6 +20,15 @@ const appMessages = {
   creditShort: { en: "Credit", zh: "余额" },
 
   difficultyTitle: { en: "Jump route", zh: "跳跃路线" },
+  /**
+   * Launcher chips. They previously reused `guestModeValue` and
+   * `gameplayFeatureTitle`, which the hero badge and the features header
+   * already render — "Local" appeared three times and "A real platform-jumping
+   * game" twice on one screen. Insisting a game is "a real game" also reads as
+   * a defence rather than a feature. These name what the player actually does.
+   */
+  controlBadge: { en: "Hold and release to jump", zh: "按住蓄力，松手起跳" },
+  recoveryBadge: { en: "Recover from a miss", zh: "落空可恢复" },
   gameplayFeatureTitle: { en: "A real platform-jumping game", zh: "真正的平台跳跃游戏" },
   gameplayFeatureCopy: {
     en: "Guide an illustrated bunny across grass islands, learn each gap through hold-and-release power, chase center landings, collect the golden carrot, and recover from a miss without leaving the arena.",

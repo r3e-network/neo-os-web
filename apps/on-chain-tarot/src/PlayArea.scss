@@ -442,8 +442,16 @@
   color: var(--tarot-ink-deep);
   font-size: 0.9rem;
   font-weight: 680;
+  /* The reading layer renders in a ~390px portrait frame, where the auto-fit
+     grid above packs three 108px tiles — leaving ~98px of inner width for a
+     value. `white-space: nowrap` then clipped this app's own default state,
+     "Awaiting draw", to "Awaiting d…": a tile too small for the string it is
+     built to show. These are short status words, not hashes, so let them wrap
+     to a second line rather than ellipsing. (`text-overflow` is intentionally
+     left in place: it still catches a genuinely unbreakable single token.) */
+  overflow-wrap: anywhere;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .tarot-drawer__section {

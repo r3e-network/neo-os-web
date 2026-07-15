@@ -32,7 +32,12 @@ function appPath(file: string): string {
   return path.join(appsRoot, "miniapp-factory", file);
 }
 
-function renderStudio() {
+const LAUNCH_WITH_OWNER =
+  "https://neomini.app/miniapps/miniapp-factory/index.html?network=testnet&owner=NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+/** A cold store visit: no host params at all, so `admin` starts empty. */
+const LAUNCH_COLD = "https://neomini.app/miniapps/miniapp-factory/index.html";
+
+function renderStudio(launchUrl: string = LAUNCH_WITH_OWNER) {
   const dispatch = vi.fn().mockResolvedValue(undefined);
   const view = render(
     <PlayArea
@@ -47,13 +52,14 @@ function renderStudio() {
         registrationState: "idle",
       })}
       dispatch={dispatch}
-      launchContext={parseMiniAppLaunchContext(
-        "https://neomini.app/miniapps/miniapp-factory/index.html?network=testnet&owner=NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-        "miniapp-miniapp-factory",
-      )}
+      launchContext={parseMiniAppLaunchContext(launchUrl, "miniapp-miniapp-factory")}
     />,
   );
   return { ...view, dispatch };
+}
+
+function adminInput(container: HTMLElement): HTMLInputElement {
+  return container.querySelector(".miniapp-studio__admin-field input") as HTMLInputElement;
 }
 
 describe("MiniApp Studio PlayArea", () => {
@@ -96,6 +102,64 @@ describe("MiniApp Studio PlayArea", () => {
     expect(artifacts).toBeTruthy();
     expect(history).toBeTruthy();
     expect(container.querySelector(".miniapp-studio__artifact-panel header button")?.hasAttribute("disabled")).toBe(true);
+  });
+
+  // A pristine required field is a normal first-run state, not a mistake the
+  // visitor has made. The studio used to open with the admin input already
+  // outlined red and "Admin must be a Neo N3 address or Hash160." printed under
+  // it before a single keystroke.
+  it("opens a cold visit with no error styling on the untouched admin field", () => {
+    const { container } = renderStudio(LAUNCH_COLD);
+    const input = adminInput(container);
+
+    expect(input.value).toBe("");
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+    // Neutral hint, not the blocking-error string.
+    expect(container.querySelector(".miniapp-studio__admin-field small")?.textContent).toBe(
+      "adminHint",
+    );
+    // The placeholder names the accepted formats; a literal "N..." read as
+    // truncated/broken text.
+    expect(input.placeholder).toBe("adminPlaceholder");
+    // The section that holds the outstanding detail is still revealed.
+    expect(
+      (container.querySelector(".miniapp-studio__advanced") as HTMLDetailsElement).open,
+    ).toBe(true);
+    // ...and the CTA hint names the field instead of pointing at a highlight
+    // that does not exist yet.
+    expect(container.querySelector(".miniapp-studio__primary-hint")?.textContent).toBe(
+      "adminNeededHint",
+    );
+  });
+
+  it("raises the admin error once the field is touched, and for a non-empty bad value", () => {
+    const { container } = renderStudio(LAUNCH_COLD);
+    const input = adminInput(container);
+
+    fireEvent.change(input, { target: { value: "not-an-address" } });
+
+    expect(adminInput(container).getAttribute("aria-invalid")).toBe("true");
+    expect(container.querySelector(".miniapp-studio__admin-field small")?.textContent).toBe(
+      "errAdminAddress",
+    );
+    expect(container.querySelector(".miniapp-studio__primary-hint")?.textContent).toBe(
+      "fixHighlightedFields",
+    );
+  });
+
+  // Store-facing entry chrome must not headline a TESTNET badge. The precise
+  // network still appears where it is load-bearing (register CTA, wallet
+  // guard) — this guard only pins the entry surface.
+  it("keeps testnet branding off the entry chrome", () => {
+    const { container } = renderStudio(LAUNCH_COLD);
+
+    expect(container.querySelector(".miniapp-studio__network")?.textContent).toContain(
+      "registryScope",
+    );
+    expect(container.querySelector(".miniapp-studio__fixed-network")?.textContent).toContain(
+      "fixedRegistryTarget",
+    );
+    expect(container.textContent).not.toContain("testnetOnly");
   });
 
   it("owns the app surface instead of importing the generic Factory form runtime", () => {

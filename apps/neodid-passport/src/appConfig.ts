@@ -41,6 +41,18 @@ const appMessages = {
   },
   mainnet: { en: "Mainnet", zh: "主网" },
   testnet: { en: "Testnet", zh: "测试网" },
+  // The entry surface used to carry the bare network name twice — as the
+  // stage-head badge and again as the hero chip — so a cold visit (no host
+  // network param -> the `normalizeNetwork` testnet default) opened under two
+  // TESTNET staleness chips before the visitor did anything.
+  //
+  // The head badge now states this app's scope in product voice. The network
+  // is NOT hidden: it stays on the hero chip, where it is load-bearing (it
+  // selects the resolver and the registry probe, and a signing wallet on the
+  // other network is rejected), but labelled with its role so it reads as
+  // information rather than a build stamp.
+  reviewScopeBadge: { en: "Local review", zh: "本地核对" },
+  resolverNetwork: { en: "Resolver · {network}", zh: "解析网络 · {network}" },
   details: { en: "Review details", zh: "核对详情" },
   reviewDetailsTitle: { en: "Passport review details", zh: "护照核对详情" },
   heroVisualAlt: {

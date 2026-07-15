@@ -45,9 +45,14 @@ const appMessages = {
     zh: "先命名藏品、选择发行规模，再确定持有人权利。",
   },
   deploymentSetup: { en: "Provenance & ownership", zh: "来源与所有权" },
+  // The target network is a constant for this release and the NETWORK fact tile
+  // already states it, so naming it again here only doubled the testnet stamp on
+  // the first screen — the same reasoning that removed the pipeline chip in
+  // acec39136. This panel is about the metadata origin and the owner; let it say
+  // that.
   deploymentSetupHint: {
-    en: "Testnet, an HTTPS metadata origin ending in '/', and the collection owner. Token #1 is read before signing is enabled.",
-    zh: "测试网、以“/”结尾的 HTTPS 元数据来源，以及藏品 Owner。启用签名前会实际读取 Token #1。",
+    en: "An HTTPS metadata origin ending in '/', and the collection owner. Token #1 is read before signing is enabled.",
+    zh: "以“/”结尾的 HTTPS 元数据来源，以及藏品 Owner。启用签名前会实际读取 Token #1。",
   },
   previewTitle: { en: "Collector preview", zh: "收藏者预览" },
   previewHint: {
@@ -156,13 +161,20 @@ const appMessages = {
     en: "Contract deployment (locked)",
     zh: "合约部署（已锁定）",
   },
+  // Scope boundary in product voice, matching the wording asset-factory settled
+  // on in acec39136. This release ships the package pipeline; contract creation
+  // is simply not in it. The previous copy announced the studio's core flow as
+  // "unavailable" and then explained the Factory's missing ABI to a collector —
+  // an engineering status note wearing a failure label. The requirement detail
+  // stays in `stepDeployUniqueArtifactRequired` below, which only surfaces in
+  // the release-readiness drawer.
   nftUniqueArtifactRequired: {
-    en: "Deployment is unavailable. The deployed testnet Factory lacks the creator-artifact method and its NEP-11 template has no artifact; an upgraded Factory plus a package-bound NEF/manifest builder are required.",
-    zh: "当前无法部署。测试网 Factory 尚无创作者工件方法，且 NEP-11 模板没有工件；需要升级 Factory，并补齐与发行包绑定的 NEF/manifest 构建器。",
+    en: "Contract creation is not part of this release. Design, verify, lock, and sign the collection package here — the signed package is the deliverable.",
+    zh: "合约创建不在当前版本范围内。你可以在这里设计、校验、锁定并签名藏品发行包——签名后的发行包即为交付物。",
   },
   stepDeployUniqueArtifactRequired: {
-    en: "Locked: upgrade the Factory ABI, build a creator-unique NEF/manifest bound to this package, then add transaction persistence, event confirmation, and deployment-record readback.",
-    zh: "已锁定：需升级 Factory ABI，构建与本发行包绑定的创作者独立 NEF/manifest，再补齐交易持久化、事件确认与部署记录回读。",
+    en: "Out of scope for this release: contract creation needs an upgraded Factory ABI, a creator-unique NEF/manifest bound to this package, then transaction persistence, event confirmation, and deployment-record readback.",
+    zh: "不在当前版本范围内：合约创建需要升级 Factory ABI、构建与本发行包绑定的创作者独立 NEF/manifest，再补齐交易持久化、事件确认与部署记录回读。",
   },
   artifactStatusMetadataOnly: {
     en: "Template read · no NEP-11 artifact",

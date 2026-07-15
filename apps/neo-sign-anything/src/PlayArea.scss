@@ -802,6 +802,23 @@
   }
 }
 
+/* The shared stage head is one flex row with `flex-shrink: 0` badges. This app
+   ships two of them ("Wallet needed" + "0 local signatures"), which at phone
+   widths leave the title/intro column ~35% of the row — the headline rendered
+   as a one-word-per-line ribbon on the very first mobile screen. Stack the head
+   instead, matching the fix committed for oracle-vrf-console. */
+@media (max-width: 680px) {
+  .tool-play-area .mx2-stage__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tool-play-area .mx2-stage__badges {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 560px) {
   .tool-play-area .mx2-stage,
   .tool-play-area .mx2-action-rail,

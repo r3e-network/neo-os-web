@@ -128,17 +128,21 @@
   text-transform: uppercase;
 }
 
+/* A static five-item legend, not a browsable collection. As a horizontally
+   scrolling flex rail of fixed 104px chips it sliced the last chip vertically
+   at the card edge on every viewport — clipped text with no fade or arrow to
+   suggest the rail scrolled at all. A wrapping auto-fit grid fits the room
+   that is actually available and reflows instead of clipping. */
 .convert-format-rail__items {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 6px;
   max-width: 100%;
-  overflow-x: auto;
   padding: 2px 2px 6px;
-  scrollbar-width: thin;
 }
 
 .convert-format-rail__items span {
-  flex: 0 0 104px;
+  min-width: 0;
   min-height: 42px;
   display: grid;
   align-content: center;
@@ -710,8 +714,13 @@
     font-size: 17px;
   }
 
+  /* Narrow viewports drop the hint line, so the chips only need to hold a
+     label — let more of them share a row rather than forcing a 108px basis. */
+  .convert-format-rail__items {
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  }
+
   .convert-format-rail__items span {
-    flex-basis: 108px;
     min-height: 34px;
   }
 

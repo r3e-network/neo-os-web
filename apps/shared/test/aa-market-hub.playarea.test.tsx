@@ -196,7 +196,15 @@ describe("aa-market-hub visual production locks", () => {
     expect(styles).toMatch(/\.aa-market-layout\s*\{[\s\S]*?grid-template-columns:/);
     expect(styles).toMatch(/\.aa-market-hero,[\s\S]*?\.aa-market-workbench\s*\{[\s\S]*?background:\s*#fff/);
     expect(styles).toMatch(/\.aa-market-hero__image\s*\{[\s\S]*?object-fit:\s*cover/);
-    expect(styles).toMatch(/\.aa-market-hero__shade\s*\{[\s\S]*?rgba\(11,\s*54,\s*42,\s*0\.84\)/);
+    // Renamed from __shade: shared v2.scss zeroes `.mx2-stage__scene
+    // [class$="__shade"]` with opacity:0 !important, so the old name silently
+    // killed this scrim at runtime and left the white hero copy at ~2:1 over
+    // bright art. The gradient must still bottom out opaque enough to carry
+    // that copy, so pin the final stop rather than just the class.
+    expect(styles).toMatch(
+      /\.aa-market-hero__legibility\s*\{[\s\S]*?rgba\(9,\s*38,\s*30,\s*0\.9\)/,
+    );
+    expect(styles).not.toMatch(/\.aa-market-hero__shade\s*\{/);
     expect(styles).toMatch(/\.aa-market-hero__copy\s*\{[\s\S]*?color:\s*#fff/);
     expect(styles).toMatch(/\.aa-market-listing\s*\{[\s\S]*?background:\s*#fbfefc/);
     expect(styles).toMatch(/\.aa-market-checkout\s*\{[\s\S]*?background:\s*var\(--market-cream\)/);

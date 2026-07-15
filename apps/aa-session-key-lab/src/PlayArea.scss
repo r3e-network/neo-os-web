@@ -714,18 +714,21 @@
     max-height: 190px;
   }
 
+  /*
+   * These three presets used to sit in a nowrap overflow-x scroller with the
+   * scrollbar hidden. Three 122px cards cannot fit a 390px viewport, so the
+   * third one ("Ops delegate") was simply sliced by the panel edge mid-word,
+   * with no affordance saying it could be scrolled to — it read as a broken
+   * layout, not a carousel. Three items is few enough to wrap: two on the first
+   * row, one on the second, all fully readable and tappable.
+   */
   .sess-preset-grid {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .sess-preset-grid::-webkit-scrollbar {
-    display: none;
+    flex-wrap: wrap;
   }
 
   .sess-preset-card {
-    flex: 1 0 122px;
+    flex: 1 1 calc(50% - 7px);
+    min-width: 0;
     grid-template-columns: 1fr;
     grid-template-areas: "label" "meta";
   }

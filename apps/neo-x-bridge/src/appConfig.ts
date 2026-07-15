@@ -73,9 +73,23 @@ const appMessages = {
   bridgeStageAria: { en: "Cross-chain route stage", zh: "跨链路径舞台" },
   testnet: { en: "Testnet", zh: "测试网" },
   mainnet: { en: "Mainnet", zh: "主网" },
-  testnetRoute: { en: "Neo N3 T5 ↔ Neo X T4", zh: "Neo N3 T5 ↔ Neo X T4" },
+  // "T5"/"T4" are internal net numbers that mean nothing to a store visitor.
+  // Name the networks plainly instead; the exact chain id still travels with
+  // every wallet attestation and route payload.
+  testnetRoute: { en: "Neo N3 TestNet ↔ Neo X TestNet", zh: "Neo N3 测试网 ↔ Neo X 测试网" },
   mainnetRoute: { en: "Neo N3 MainNet ↔ Neo X MainNet", zh: "Neo N3 主网 ↔ Neo X 主网" },
-  workspaceEnvironment: { en: "{environment} workspace", zh: "{environment} 工作区" },
+  // The headline badge used to stamp "{environment} workspace" on the entry
+  // surface. With no host-provided network the app follows its deliberate
+  // never-promote-to-mainnet default (see `resolveBridgeEnvironment`), so a
+  // cold store visit was branded "Testnet workspace" before the visitor did
+  // anything — a staleness chip on a funds-bridging surface.
+  //
+  // The badge now names what this app IS (a review console; every quote,
+  // approval and signature happens on the official bridge). The network is not
+  // hidden: it stays one glance away in the route card, which is the surface
+  // that is actually about the route and states the target network for both
+  // environments.
+  reviewWorkspace: { en: "Review workspace", zh: "核对工作区" },
   liveRoute: { en: "Configured official route", zh: "已配置的官方路径" },
   sourceChain: { en: "Source chain", zh: "源链" },
   destinationChain: { en: "Destination chain", zh: "目标链" },

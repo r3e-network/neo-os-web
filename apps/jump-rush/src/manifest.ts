@@ -2,8 +2,12 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Jump Rush",
+  // Store-facing description: what ships, not what is gated. The trailing
+  // "reward lane stays gated until its deployed contract and Morpheus session
+  // protocol pass end-to-end production validation" put release-engineering
+  // status into store metadata.
   description:
-    "A polished Phaser platform-jumping game with illustrated bunny, carrot, cloud, and grass-platform artwork; tactile hold-and-release controls; three route lengths; recovery after a missed landing; and free local play. The wallet-backed reward lane stays gated until its deployed contract and Morpheus session protocol pass end-to-end production validation.",
+    "A polished Phaser platform-jumping game with illustrated bunny, carrot, cloud, and grass-platform artwork; tactile hold-and-release controls; three route lengths; recovery after a missed landing; and free local play. No wallet, fee, or chain write is involved.",
   icon: "zap",
   category: "game",
   shell: "game",
@@ -37,7 +41,10 @@ export const manifest: MiniAppManifest = {
     ctaTitleKey: "lobbyTitle",
     ctaDescKey: "guestStartDescription",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["guestModeValue", "gameplayFeatureTitle", "rankLabel"],
+    // Distinct from heroBadgeKey (guestModeValue) and featuresTitleKey
+    // (gameplayFeatureTitle) — reusing those rendered "Local" three times and
+    // "A real platform-jumping game" twice on the same launcher.
+    trustBadgeKeys: ["controlBadge", "recoveryBadge", "rankLabel"],
   },
 
   tabs: [

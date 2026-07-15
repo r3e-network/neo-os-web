@@ -307,7 +307,17 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-track,\s*\n\s*\.oracle-http-receipt__facts\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-request__copy\s*\{[\s\S]*display:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-track__item small\s*\{[\s\S]*display:\s*none/);
-    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-lane__art\s*\{[\s\S]*height:\s*92px/);
+    // Re-pinned 2026-07-15: this pinned `height: 92px`, which was the defect —
+    // against `object-fit: contain` a fixed 92px band letterboxed the 16:9
+    // pipeline art down to a ~140px-wide stamp adrift in a ~334px white card,
+    // reading as a broken image rather than art. The guard's intent is kept
+    // (the mobile band is deliberately sized here, not left unbounded), but
+    // stated as the picture's own ratio so the art meets both edges of the card
+    // at every width instead of depending on one magic number.
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-lane__art\s*\{[\s\S]*aspect-ratio:\s*1672\s*\/\s*941/);
+    // The values in the 3-up pipeline tiles must stay wrappable at 390px: with
+    // `white-space: nowrap` they each ellipsised ("Not prepare…", "oracle.mesh…").
+    expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-source-strip code\s*\{[\s\S]*white-space:\s*normal/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-drawer__facts\s*\{[\s\S]*grid-template-columns:\s*1fr/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.oracle-http-composer__grid\s*\{[\s\S]*grid-template-columns:\s*1fr/);

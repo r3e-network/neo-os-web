@@ -277,7 +277,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
         <img className="did-identity-stage__art" src={PASSPORT_DESK} alt={t("heroVisualAlt")} loading="eager" decoding="async" />
         <div className="did-identity-stage__veil" aria-hidden="true" />
         <div className="did-identity-stage__meta">
-          <span>{networkLabel}</span>
+          <span>{t("resolverNetwork", { network: networkLabel })}</span>
           <strong>{t("localReviewBoundary")}</strong>
         </div>
 
@@ -483,7 +483,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           stage={{
             title: t("title"),
             subtitle: t("passportProductSubtitle"),
-            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{network === "mainnet" ? t("mainnet") : t("testnet")}</span>,
+            badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{t("reviewScopeBadge")}</span>,
           }}
           scene={scene}
           actions={{

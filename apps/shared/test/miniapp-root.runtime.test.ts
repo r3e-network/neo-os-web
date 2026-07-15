@@ -388,7 +388,14 @@ describe("MiniAppRoot runtime-owned services", () => {
       expect(modeDuringSetup).toBe("guest");
       expect(container.innerHTML).toContain("Play free");
       expect(container.innerHTML).not.toContain("Earn GAS</button>");
-      expect(container.innerHTML).toContain("Earn GAS temporarily unavailable");
+      // The guard here is that a `supportsGameFi: false` build cannot reach the
+      // paid lane even from `?mode=gamefi` — proven by modeDuringSetup above and
+      // by the absent Earn GAS button, not by a degraded-state badge. This used
+      // to assert the launcher SHOWED "Earn GAS temporarily unavailable"; that
+      // chip made the first thing a store visitor read an apology for a mode
+      // this release never claims to ship. Re-pinned to the inverse: the lane
+      // stays closed AND the entry surface stays in product voice.
+      expect(container.innerHTML).not.toMatch(/temporarily unavailable|under maintenance/i);
       expect(container.querySelector('[data-testid="play-area-mode"]')).toBeNull();
     });
 
