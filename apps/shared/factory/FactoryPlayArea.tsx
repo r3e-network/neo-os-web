@@ -504,6 +504,7 @@ function FactoryStudioFlow({
   eyebrow,
   hint,
   networkLabel,
+  showNetworkLabel,
   stats,
   steps,
   nep11ArtworkUrl,
@@ -514,6 +515,7 @@ function FactoryStudioFlow({
   eyebrow: string;
   hint: string;
   networkLabel: string;
+  showNetworkLabel: boolean;
   stats: StudioFlowStat[];
   steps: StudioFlowStep[];
   nep11ArtworkUrl: string;
@@ -576,7 +578,11 @@ function FactoryStudioFlow({
       <div className="domain-factory-studio-flow__pipeline">
         <div className="domain-factory-studio-flow__pipeline-head">
           <span>{t("studioPipeline")}</span>
-          <strong>{networkLabel}</strong>
+          {/* Only worth a chip when the pipeline can actually target more than
+              one network. A single fixed network is already stated in the
+              network fact tile and the issuer/network panel, so repeating it
+              here just brands the first screen with a constant. */}
+          {showNetworkLabel ? <strong>{networkLabel}</strong> : null}
         </div>
         <ol className="domain-factory-studio-flow__steps">
           {steps.map((step) => {
@@ -1120,7 +1126,11 @@ export function FactoryPlayArea({
         storedPlan && draftHasBlockingIssues
           ? readinessDetail
           : kind === "nep17"
-            ? `${t("owner")}: ${compactIdentity(nep17.owner, "—")}`
+            ? // An Owner the issuer has not entered yet is a normal first-run
+              // state, so prompt for it instead of rendering an em-dash void.
+              nep17.owner.trim()
+              ? `${t("owner")}: ${compactIdentity(nep17.owner, "")}`
+              : t("draftOwnerPending")
             : kindLabel,
       state: storedPlan ? "done" : "active",
       icon: PackagePlus,
@@ -1151,26 +1161,33 @@ export function FactoryPlayArea({
             : "waiting",
       icon: ShieldCheck,
     },
-    {
-      key: "execute",
-      label: t(
-        kind === "miniapp" ? "executeRecordAction" : "executeDeployAction",
-      ),
-      detail:
-        lastTxid || alreadyExecuted
-          ? t("executeConfirmed")
-          : artifactStatusLabel,
-      state: isExecuting
-        ? "active"
-        : lastTxid || alreadyExecuted
-          ? "done"
-          : storedPlan
-            ? canExecute
+    // An app that declares `showExecuteAction={false}` has no execute stage at
+    // all, so advertising a permanently blocked one contradicts its own
+    // declaration and makes a working studio read as broken on first paint.
+    ...(showExecuteAction
+      ? [
+          {
+            key: "execute",
+            label: t(
+              kind === "miniapp" ? "executeRecordAction" : "executeDeployAction",
+            ),
+            detail:
+              lastTxid || alreadyExecuted
+                ? t("executeConfirmed")
+                : artifactStatusLabel,
+            state: isExecuting
               ? "active"
-              : "blocked"
-            : "waiting",
-      icon: Network,
-    },
+              : lastTxid || alreadyExecuted
+                ? "done"
+                : storedPlan
+                  ? canExecute
+                    ? "active"
+                    : "blocked"
+                  : "waiting",
+            icon: Network,
+          } satisfies StudioFlowStep,
+        ]
+      : []),
   ];
 
   function renderUseMyAddress(currentValue: string, apply: () => void) {
@@ -1256,6 +1273,7 @@ export function FactoryPlayArea({
         eyebrow={studioEyebrow}
         hint={studioHint}
         networkLabel={networkLabel}
+        showNetworkLabel={supportedNetworks.length > 1}
         stats={studioStats}
         steps={studioSteps}
         nep11ArtworkUrl={nep11ArtworkUrl}

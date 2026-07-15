@@ -371,6 +371,10 @@ export const factoryMessages = {
     zh: "{bps} bps = 每笔销售的 {percent}%",
   },
   draft: { en: "Draft", zh: "草稿" },
+  draftOwnerPending: {
+    en: "Set the issuer Owner address",
+    zh: "设置发行方 Owner 地址",
+  },
   networkTestnet: { en: "Testnet", zh: "测试网" },
   networkMainnet: { en: "Mainnet", zh: "主网" },
   networkOptionTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
