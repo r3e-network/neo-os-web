@@ -1,11 +1,13 @@
 import React, { useEffect } from "react";
 
-const STORAGE_REQUEST = "neo-miniapp-storage:request";
-const STORAGE_RESPONSE = "neo-miniapp-storage:response";
-const STORAGE_PROTOCOL_VERSION = 1;
+// Exported so apps/shared/test/embedded-bridge-protocol-parity.test.ts can
+// assert the app-side copies of these wire constants never drift.
+export const STORAGE_REQUEST = "neo-miniapp-storage:request";
+export const STORAGE_RESPONSE = "neo-miniapp-storage:response";
+export const STORAGE_PROTOCOL_VERSION = 1;
 const MAX_KEY_LENGTH = 160;
 
-interface EmbeddedStorageAppConfig {
+export interface EmbeddedStorageAppConfig {
   /** Every wire key must start with this app namespace. */
   appKeyPrefix: string;
   /** Host localStorage prefix prepended to the wire key. */
@@ -33,7 +35,7 @@ interface EmbeddedStorageAppConfig {
  *   lives under "forever-album:". Albums are large (multi-photo envelopes),
  *   hence the higher value ceiling.
  */
-const SUPPORTED_APPS: Readonly<Record<string, EmbeddedStorageAppConfig>> = {
+export const SUPPORTED_APPS: Readonly<Record<string, EmbeddedStorageAppConfig>> = {
   "miniapp-zhuada-e": {
     appKeyPrefix: "zhuada-e:",
     hostKeyPrefix: "neo-miniapp-storage:miniapp-zhuada-e:",

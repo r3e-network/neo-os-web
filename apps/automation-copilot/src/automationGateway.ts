@@ -101,11 +101,13 @@ function readRuntimeValue(keys: string[]) {
 // signed-in gateway credential to this one canonical app over postMessage.
 // These wire constants must stay identical to the host side
 // (platform/host-app/components/playarea/bridge/use-embedded-credential-bridge.ts).
-const CREDENTIAL_BRIDGE_REQUEST = "neo-miniapp-credential:request";
-const CREDENTIAL_BRIDGE_RESPONSE = "neo-miniapp-credential:response";
-const CREDENTIAL_BRIDGE_PROTOCOL_VERSION = 1;
-const CREDENTIAL_BRIDGE_APP_ID = "miniapp-automation-copilot";
-const CREDENTIAL_BRIDGE_SCOPE = "automation-gateway";
+// Exported so apps/shared/test/embedded-bridge-protocol-parity.test.ts pins
+// that parity — drift on either side is a test failure.
+export const CREDENTIAL_BRIDGE_REQUEST = "neo-miniapp-credential:request";
+export const CREDENTIAL_BRIDGE_RESPONSE = "neo-miniapp-credential:response";
+export const CREDENTIAL_BRIDGE_PROTOCOL_VERSION = 1;
+export const CREDENTIAL_BRIDGE_APP_ID = "miniapp-automation-copilot";
+export const CREDENTIAL_BRIDGE_SCOPE = "automation-gateway";
 const CREDENTIAL_BRIDGE_TIMEOUT_MS = 1_500;
 
 type BridgeCredential = { token: string; apiKey: string };
