@@ -40,9 +40,15 @@ defineMiniApp({
     app.mode.set("guest");
     const storage = app.storage.local;
 
-    const best = readBest(storage);
-    let engine = restoreSuikaEngine(storage) ?? SuikaEngine.fresh(undefined, best);
-    const game = createObservable<SuikaSnapshot>(engine.snapshot());
+    // A run only exists once the player is actually standing on the play
+    // surface. Building one during setup() would checkpoint an untouched
+    // in-flight run to storage while the launch page was still up, so the
+    // first real entry would restore it through SuikaEngine.restore's
+    // crash-recovery lane (playing→paused) and open on the "Paused" modal
+    // before a single fruit had been dropped. No entry, no run.
+    let engine: SuikaEngine | null = null;
+    let entered = false;
+    const game = createObservable<SuikaSnapshot | null>(null);
     const aimX = createObservable<number>((390) / 2);
     const storageHealthy = createObservable(true);
     let lastPersistAt = 0;
@@ -51,7 +57,8 @@ defineMiniApp({
       announce = true,
       shouldPersist = true,
       prepared?: SuikaSnapshot,
-    ): SuikaSnapshot => {
+    ): SuikaSnapshot | null => {
+      if (!engine) return null;
       const snapshot = prepared ?? engine.snapshot();
       game.set(snapshot);
       if (shouldPersist && snapshot.phase !== "gameover") {
@@ -65,20 +72,44 @@ defineMiniApp({
       return snapshot;
     };
 
-    const apply = (action: () => SuikaSnapshot): SuikaSnapshot => {
-      const snapshot = action();
+    /**
+     * Deal the run. Idempotent, so whichever of loadData()/`enterPlay` lands
+     * first after the launcher hand-off wins and the other is a no-op.
+     *
+     * A snapshot found in storage here is a genuinely interrupted run (the
+     * player entered, dropped fruit, and the tab went away), so the restore
+     * path's playing→paused recovery is honest and the resume modal is earned.
+     */
+    const ensureRun = (): SuikaSnapshot | null => {
+      if (!entered || engine) return game.get();
+      engine = restoreSuikaEngine(storage)
+        ?? SuikaEngine.fresh(undefined, readBest(storage));
+      aimX.set(390 / 2);
+      return publish(true);
+    };
+
+    const apply = (action: (live: SuikaEngine) => SuikaSnapshot): SuikaSnapshot | null => {
+      const live = engine;
+      if (!live) return null;
+      const snapshot = action(live);
       publish(true);
       return snapshot;
     };
 
+    app.actions.register("enterPlay", () => {
+      entered = true;
+      ensureRun();
+      return undefined;
+    });
+
     app.actions.register("dropCurrent", (...args: unknown[]) => {
-      if (engine.snapshot().phase !== "playing") return undefined;
+      if (engine?.snapshot().phase !== "playing") return undefined;
       const x = numArg(args, 0);
       const y = numArg(args, 1);
       if (x === null || y === null) return undefined;
-      return apply(() => {
-        const level = engine.snapshot().currentLevel;
-        return engine.dropFruit(level, x, y).snapshot;
+      return apply((live) => {
+        const level = live.snapshot().currentLevel;
+        return live.dropFruit(level, x, y).snapshot;
       });
     });
 
@@ -92,12 +123,13 @@ defineMiniApp({
         typeof idA !== "string" || typeof idB !== "string"
         || newLevel === null || x === null || y === null
       ) return undefined;
-      return apply(() => engine.mergeFruits(idA, idB, newLevel, x, y).snapshot);
+      return apply((live) => live.mergeFruits(idA, idB, newLevel, x, y).snapshot);
     });
 
-    app.actions.register("setGameOver", () => apply(() => engine.setGameOver()));
+    app.actions.register("setGameOver", () => apply((live) => live.setGameOver()));
 
     app.actions.register("syncBoard", (...args: unknown[]) => {
+      if (!engine) return undefined;
       const positions = Array.isArray(args[0])
         ? (args[0] as Array<{ id: string; x: number; y: number }>)
           .filter((entry) => entry && typeof entry.id === "string"
@@ -120,7 +152,7 @@ defineMiniApp({
       const x = numArg(args, 0);
       if (x === null) return undefined;
       aimX.set(Math.max(AIM_MIN, Math.min(AIM_MAX, x)));
-      game.set(engine.snapshot());
+      if (engine) game.set(engine.snapshot());
       return undefined;
     });
 
@@ -128,21 +160,22 @@ defineMiniApp({
       const dir = numArg(args, 0);
       if (dir === null) return undefined;
       aimX.set(Math.max(AIM_MIN, Math.min(AIM_MAX, aimX.get() + dir * AIM_STEP)));
-      game.set(engine.snapshot());
+      if (engine) game.set(engine.snapshot());
       return undefined;
     });
 
-    app.actions.register("togglePause", () => apply(() => engine.togglePause()));
+    app.actions.register("togglePause", () => apply((live) => live.togglePause()));
 
     app.actions.register("restartGame", () => {
       clearSuikaRun(storage);
-      const currentBest = engine.getBest();
+      const currentBest = engine?.getBest() ?? readBest(storage);
       engine = SuikaEngine.fresh(undefined, currentBest);
       aimX.set(390 / 2);
       return publish(true);
     });
 
     const onVisibilityChange = () => {
+      if (!engine) return;
       if (document.visibilityState !== "hidden") return;
       if (engine.snapshot().phase === "playing") {
         engine.togglePause();
@@ -154,10 +187,10 @@ defineMiniApp({
     return {
       state: { game, aimX, storageHealthy },
       loadData: async () => {
-        engine = restoreSuikaEngine(storage) ?? SuikaEngine.fresh(undefined, readBest(storage));
-        aimX.set(390 / 2);
-        const snapshot = publish(false);
-        ctx.setStatus(ctx.t(snapshot.messageKey), "info");
+        const snapshot = ensureRun();
+        // Pre-entry there is no run to describe — the launch page's status
+        // chip stays on the inviting "drop fruit to begin" zero-state.
+        ctx.setStatus(ctx.t(snapshot?.messageKey ?? "statusReady"), "info");
       },
       cleanup: () => {
         if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onVisibilityChange);

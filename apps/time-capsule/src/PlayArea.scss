@@ -1,3 +1,16 @@
+/**
+ * Time Capsule — play area styles.
+ *
+ * PlayArea.tsx composes the shared v2 shell (PlayStage → Stage / ScoreReadout /
+ * ActionRail / DetailDrawer) and the OpenUiLite fields. Those components ship
+ * their markup only; every `.mx2-*` rule they rely on lives in the v2
+ * stylesheet, which each app pulls in from its own PlayArea.scss (the fleet
+ * convention — see color-clash, aim-master, daily-checkin). Without this @use
+ * the shell chrome renders as unstyled native controls, and the overrides
+ * further down this file have nothing to override.
+ */
+@use "@shared/components-react/v2/v2" as *;
+
 .time-capsule-play-area {
   --capsule-ink: #173a38;
   --capsule-muted: #5f7470;
@@ -300,6 +313,7 @@
 .capsule-visibility .semi-radio,
 .capsule-drawer-tabs .semi-radio {
   min-width: 0;
+  position: relative;
 }
 
 .capsule-lock-presets .semi-radio-addon-buttonRadio,
