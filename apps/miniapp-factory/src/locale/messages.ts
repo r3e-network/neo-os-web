@@ -5,8 +5,8 @@ const appMessages = {
   ...factoryMessages,
   title: { en: "MiniApp Studio", zh: "小程序创建工作台" },
   subtitle: {
-    en: "Shape a starter package, verify its testnet template, then register an explicit Factory record for operator handoff.",
-    zh: "设计小程序启动包、核验测试网模板，再明确登记 Factory 记录并交给运营者接入。",
+    en: "Shape a starter package, verify its template, then register an explicit Factory record for operator handoff.",
+    zh: "设计小程序启动包、核验模板，再明确登记 Factory 记录并交给运营者接入。",
   },
   chooseTemplate: { en: "Choose an app experience", zh: "选择小程序体验" },
   templateKindRewardVault: { en: "Reward vault", zh: "奖励金库" },
@@ -45,10 +45,18 @@ const appMessages = {
     en: "Implement the app surface and sync its catalog entry",
     zh: "实现应用界面并同步目录条目",
   },
-  testnetOnly: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },
-  testnetOnlyHint: {
-    en: "This release has one configured Factory registry and never switches to mainnet silently.",
-    zh: "当前版本只配置了一个 Factory 注册表，不会静默切换到主网。",
+  // Store-facing entry chrome must not headline a TESTNET badge. The studio
+  // still targets exactly one configured Factory registry and that fact still
+  // matters, so the chip names the *capability* and the scope explainer below
+  // states the target network once, in a sentence, where the user is actually
+  // deciding. The precise network keeps appearing at the moment it is
+  // load-bearing: the register CTA (`registerTestnetRecord`) and the wallet
+  // guard (`testnetRequired`).
+  registryScope: { en: "Factory registry", zh: "Factory 注册表" },
+  fixedRegistryTarget: { en: "Fixed registry target", zh: "固定注册目标" },
+  fixedRegistryTargetHint: {
+    en: "This release registers to one configured Neo N3 TestNet Factory and never switches networks silently.",
+    zh: "当前版本只登记到一个已配置的 Neo N3 测试网 Factory，不会静默切换网络。",
   },
   shapeYourMiniApp: { en: "Shape your MiniApp", zh: "设计你的小程序" },
   shapeYourMiniAppHint: {
@@ -63,6 +71,17 @@ const appMessages = {
   advancedSetup: { en: "Admin and capabilities", zh: "管理员与能力" },
   advancedSetupHint: { en: "Wallet owner, fixed network and optional services", zh: "钱包管理员、固定网络和可选服务" },
   adminHint: { en: "The account authorized in the generated registration parameters.", zh: "写入生成登记参数的授权账户。" },
+  // A literal "N..." placeholder reads as truncated/broken text rather than a
+  // format hint. Name the accepted formats instead.
+  adminPlaceholder: { en: "Neo N3 address or Hash160", zh: "Neo N3 地址或 Hash160" },
+  // Shown instead of `fixHighlightedFields` while the admin field is still
+  // pristine: nothing is highlighted yet, so point at the field by name in
+  // guidance voice rather than telling the user to fix an error they have not
+  // made.
+  adminNeededHint: {
+    en: "Add an admin address under Admin and capabilities to generate the package.",
+    zh: "在“管理员与能力”中填写管理员地址后即可生成启动包。",
+  },
   useMyAddress: { en: "Use connected wallet", zh: "使用已连接钱包" },
   needsOneGate: { en: "OneGate launch", zh: "OneGate 启动" },
   needsOneGateHint: { en: "Include a OneGate launch binding in the package.", zh: "在启动包中加入 OneGate 启动绑定。" },
@@ -88,15 +107,20 @@ const appMessages = {
   draftPreview: { en: "Live draft", zh: "实时草稿" },
   nextAction: { en: "Next", zh: "下一步" },
   templateStatus: { en: "Template record", zh: "模板记录" },
-  templateRecordVerified: { en: "Verified on testnet", zh: "测试网已核验" },
+  templateRecordVerified: { en: "Verified on chain", zh: "链上已核验" },
   templateRecordMissing: { en: "Not registered", zh: "尚未登记" },
-  templateRecordUnverified: { en: "Verification unavailable", zh: "暂时无法核验" },
+  // `unverified` is the default for an offline plan build: on first paint the
+  // template artifact has simply not been probed yet. "Verification
+  // unavailable" stamped a failure-shaped badge on the entry surface for a
+  // normal pre-read state. Say what is actually true instead. (Same reframing
+  // as asset-factory's `artifactStatusUnverified`.)
+  templateRecordUnverified: { en: "Not checked yet", zh: "尚未核对" },
   estimatedFee: { en: "Estimated network fee", zh: "预估网络费" },
   generateRegistrationPackage: { en: "Generate starter package", zh: "生成小程序启动包" },
   generatingPackage: { en: "Generating package…", zh: "正在生成启动包…" },
   generatePackageHint: {
-    en: "Creates deterministic files locally and checks the selected testnet template. No wallet transaction yet.",
-    zh: "在本地生成确定性文件并核验所选测试网模板，此时不会发起钱包交易。",
+    en: "Creates deterministic files locally and checks the selected template. No wallet transaction yet.",
+    zh: "在本地生成确定性文件并核验所选模板，此时不会发起钱包交易。",
   },
   registerTestnetRecord: { en: "Register testnet record", zh: "登记测试网记录" },
   registerRecordHint: {
@@ -145,7 +169,9 @@ const appMessages = {
   registrationRecoveryHint: { en: "A saved submission can be checked again after refresh.", zh: "已保存的提交可在刷新后重新核对。" },
   checkRegistration: { en: "Check record", zh: "核对记录" },
   registryHistory: { en: "Recent registry records", zh: "最近登记记录" },
-  registryHistoryHint: { en: "{count} total testnet records", zh: "测试网共 {count} 条记录" },
+  // Count-agnostic shape: this summary renders with count=1 on a fresh visit,
+  // and "1 registry records" is broken English.
+  registryHistoryHint: { en: "Registry records · {count}", zh: "注册记录 · {count}" },
   loadingDeployments: { en: "Loading registry records…", zh: "正在加载注册记录…" },
   deploymentsCount: { en: "Showing recent records · {count} total", zh: "显示最近记录 · 共 {count} 条" },
   refreshAction: { en: "Refresh", zh: "刷新" },
@@ -155,8 +181,8 @@ const appMessages = {
   validationDetailsHint: { en: "Only details that need review", zh: "仅展示需要复核的细节" },
   productionBoundaryTitle: { en: "What this studio produces", zh: "本工作台的实际产物" },
   productionBoundaryBody: {
-    en: "It generates starter files and can register one testnet Factory record. It does not implement the final PlayArea, deploy a contract, sync the platform catalog or publish a working app.",
-    zh: "它会生成启动文件，并可登记一条测试网 Factory 记录；不会实现最终 PlayArea、部署合约、同步平台目录或发布可运行应用。",
+    en: "It generates starter files and can register one Factory registry record. It does not implement the final PlayArea, deploy a contract, sync the platform catalog or publish a working app.",
+    zh: "它会生成启动文件，并可登记一条 Factory 注册记录；不会实现最终 PlayArea、部署合约、同步平台目录或发布可运行应用。",
   },
   packageReady: { en: "Starter package ready", zh: "启动包已就绪" },
   packageBlocked: { en: "Package needs attention", zh: "启动包需要处理" },

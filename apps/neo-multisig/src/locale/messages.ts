@@ -86,9 +86,22 @@ const appMessages = {
   multisigRouteSign: { en: "Propose spend", zh: "发起支出" },
   multisigRouteBroadcast: { en: "Approve & release", zh: "批准放行" },
 
+  // The full instruction, for the signer-summary chip.
   multisigNeedSigners: {
     en: "Add at least two signer addresses before creating a vault.",
     zh: "至少添加两个签名人地址后才能创建金库。",
+  },
+  // The roster's own empty state. It sits ~40px under the chip above, so it
+  // describes the empty list rather than repeating that instruction verbatim.
+  multisigNoSignersYet: {
+    en: "No signer addresses yet",
+    zh: "尚未添加签名人地址",
+  },
+  // Zero-state for the vault balance tiles before a vault is loaded. Replaces a
+  // bare em-dash, which read as broken data instead of "nothing to read yet".
+  multisigBalanceIdle: {
+    en: "Load a vault",
+    zh: "加载金库",
   },
   multisigTooManySigners: {
     en: "A vault supports at most 16 signer addresses.",

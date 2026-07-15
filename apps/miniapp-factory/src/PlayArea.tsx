@@ -246,6 +246,9 @@ export default function MiniAppFactoryPlayArea({
   const [artifactTab, setArtifactTab] = useState<ArtifactTab>("catalog");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Pristine-form guard: true once the visitor has edited or left the admin
+  // field. Gates error styling only — validation itself is unchanged.
+  const [adminTouched, setAdminTouched] = useState(false);
 
   const storedPlan = val<FactoryPlan>("currentPlan") ?? null;
   const restoredDraft = val<MiniAppDraft>("restoredDraft") ?? null;
@@ -307,7 +310,16 @@ export default function MiniAppFactoryPlayArea({
   const planBlockedReason = storedPlan?.execution.blockedReasonKey
     ? t(storedPlan.execution.blockedReasonKey)
     : "";
-  const adminFieldError = fieldError(fallbackPlan, "admin_address", t);
+  // `admin` is the one field that starts empty, so it is the one field whose
+  // blocking error fires on a pristine form. An untouched empty required field
+  // is a normal first-run state, not a mistake the visitor has made: red
+  // outline + red error copy before a single keystroke reads as a broken app.
+  // A value that is present but malformed IS an actionable error, whatever its
+  // origin (typed now, restored from a draft, or passed in via launch params),
+  // so surface that immediately.
+  const adminMissing = fallbackPlan.blockingErrors.includes("admin_address");
+  const adminFieldError =
+    adminTouched || draft.admin.trim().length > 0 ? fieldError(fallbackPlan, "admin_address", t) : "";
 
   useEffect(() => {
     if (restoredApplied || draftJournalState !== "restored" || !restoredDraft) return;
@@ -340,9 +352,12 @@ export default function MiniAppFactoryPlayArea({
     void dispatch("discardPlan").catch(() => undefined);
   }, [dispatch, storedPlan, storedPlanMatchesDraft]);
 
+  // Reveal the section that holds the one outstanding detail. Keyed off the
+  // plan's blocking error, not the (touch-gated) error string, so the field is
+  // still surfaced on a pristine form — just without the red styling.
   useEffect(() => {
-    if (adminFieldError) setAdvancedOpen(true);
-  }, [adminFieldError]);
+    if (adminMissing) setAdvancedOpen(true);
+  }, [adminMissing]);
 
   const updateDraft = (patch: Partial<MiniAppDraft>) => {
     setDraft((current) => ({ ...current, ...patch, network: TESTNET }));
@@ -458,7 +473,7 @@ export default function MiniAppFactoryPlayArea({
             </div>
             <span className="miniapp-studio__network">
               <Network size={14} aria-hidden="true" />
-              {t("testnetOnly")}
+              {t("registryScope")}
             </span>
           </header>
           <ol>
@@ -559,8 +574,12 @@ export default function MiniAppFactoryPlayArea({
                     maxLength={64}
                     disabled={busy || hydrating}
                     aria-invalid={Boolean(adminFieldError)}
-                    onChange={(event) => updateDraft({ admin: event.target.value })}
-                    placeholder="N..."
+                    onChange={(event) => {
+                      setAdminTouched(true);
+                      updateDraft({ admin: event.target.value });
+                    }}
+                    onBlur={() => setAdminTouched(true)}
+                    placeholder={t("adminPlaceholder")}
                     spellCheck={false}
                   />
                   <small>{adminFieldError || t("adminHint")}</small>
@@ -574,7 +593,7 @@ export default function MiniAppFactoryPlayArea({
 
               <div className="miniapp-studio__fixed-network">
                 <Network size={18} aria-hidden="true" />
-                <span><strong>{t("testnetOnly")}</strong><small>{t("testnetOnlyHint")}</small></span>
+                <span><strong>{t("fixedRegistryTarget")}</strong><small>{t("fixedRegistryTargetHint")}</small></span>
               </div>
 
               <div className="miniapp-studio__capabilities">
@@ -663,7 +682,12 @@ export default function MiniAppFactoryPlayArea({
                     : planBlockedReason || t("templateVerificationRequired")
                 : canGenerate
                   ? t("generatePackageHint")
-                  : t("fixHighlightedFields")}
+                  : adminMissing && !adminFieldError
+                    ? // Nothing is highlighted yet on a pristine form, so
+                      // "Complete the highlighted detail first" would point at
+                      // nothing. Name the outstanding field instead.
+                      t("adminNeededHint")
+                    : t("fixHighlightedFields")}
             </p>
           </section>
 

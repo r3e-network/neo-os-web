@@ -260,15 +260,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     { key: "projects", label: t("tabProjects"), ready: hasRound && hasFundingChoices },
     { key: "donate", label: t("quickContribute"), ready: donationPrepared },
   ];
+  // "awaiting-context" is the pre-connect state, not a fault: no contract has
+  // been resolved, so nothing failed to verify. It gets plain browsing copy
+  // rather than the "live funding status is unavailable" line, which described
+  // a read that never happened.
   const compactAvailabilityMessage = fundingWritesEnabled
     ? t("fundingReadyShort")
     : isCheckingDeployment
       ? t("fundingCheckingShort")
-      : deploymentStatus === "paused"
-        ? t("fundingPausedShort")
-        : deploymentStatus === "unavailable"
-          ? t("fundingUnavailableShort")
-          : t("fundingBrowseShort");
+      : deploymentStatus === "awaiting-context"
+        ? t("fundingAwaitingContextShort")
+        : deploymentStatus === "paused"
+          ? t("fundingPausedShort")
+          : deploymentStatus === "unavailable"
+            ? t("fundingUnavailableShort")
+            : t("fundingBrowseShort");
 
   useEffect(() => {
     if (contributableProjects.length === 0) {

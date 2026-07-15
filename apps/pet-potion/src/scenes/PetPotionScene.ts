@@ -33,7 +33,12 @@ const DESIGN_H = 580;
 const GUTTER_L = 46;               // shared left edge for every label column
 const GUTTER_R = DESIGN_W - 46;    // shared right edge for stat values
 const STAT_BAR_L = 108;            // stat bars start after the label column
-const STAT_BAR_W = GUTTER_R - 26 - STAT_BAR_L; // 240
+// Right gutter reserved for the stat value. It has to fit the widest thing that
+// column ever prints: not a 3-digit number, but the sealed-state word ("Sealed"
+// / "封存") that stands in before a run is dealt. The old 26px only ever fit the
+// "--" it replaced.
+const STAT_VALUE_W = 46;
+const STAT_BAR_W = GUTTER_R - STAT_VALUE_W - STAT_BAR_L; // 220
 const GOAL_BAR_W = GUTTER_R - GUTTER_L;        // 328
 const STAGE_BADGE_DY = 94;         // stage pill offset below the pet centre
 const GOAL_Y = 330;                // care-goal / progress-meter band centre
@@ -576,7 +581,7 @@ export class PetPotionScene extends BaseScene {
       const fill = this.add.rectangle(STAT_BAR_L, y, 1, 8, def.color, 0.95)
         .setOrigin(0, 0.5)
         .setDepth(7);
-      const value = this.add.text(GUTTER_R, y, "--", {
+      const value = this.add.text(GUTTER_R, y, this.copy("statSealed", "Sealed"), {
         fontFamily: FONT,
         fontSize: "11px",
         color: "#2f291f",
@@ -812,8 +817,12 @@ export class PetPotionScene extends BaseScene {
         stat.value.setText(String(Math.round(value)));
         stat.value.setColor("#2f291f");
       } else {
-        // Sealed preview: empty, faded bar + dash so the enclave's secret
-        // starting stats never read as live known values before the run.
+        // Sealed preview: empty, faded bar so the enclave's secret starting
+        // stats never read as live known values before the run. That intent is
+        // unchanged — printing "0" here would be fabricated data. What changed
+        // is the placeholder: a bare "--" made three finished meters look
+        // broken next to a "Raise happiness to 50" goal line. Naming the state
+        // says the same thing honestly, and matches the "Sealed egg" badge.
         this.animate({
           targets: stat.fill,
           displayWidth: 0,
@@ -822,7 +831,7 @@ export class PetPotionScene extends BaseScene {
         });
         stat.fill.setAlpha(0.35);
         stat.label.setAlpha(0.72);
-        stat.value.setText("--");
+        stat.value.setText(this.copy("statSealed", "Sealed"));
         stat.value.setColor("#b6a68c");
       }
     });

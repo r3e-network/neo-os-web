@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CoinArt } from "@shared/art";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2";
 import type { ObservableState } from "@shared/react/context";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { HistoryItem } from "./types";
@@ -111,6 +112,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const fileName = str("fileName");
   const fileSize = num("fileSize");
   const feesReady = bool("feesReady");
+  const feesSettled = bool("feesSettled");
   const contractPaused = bool("contractPaused");
   const storageHealthy = bool("storageHealthy");
   const burialRecoveryPhase = str("burialRecoveryPhase");
@@ -206,8 +208,27 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const recordTotal = Math.max(totalDestroyed, historyCount);
   const selectedMeta = MEMORY_TYPE_META[memoryType] ?? MEMORY_TYPE_META[5]!;
   const SelectedIcon = selectedMeta.Icon;
-  const visibleBurialFee = feesReady ? burialFeeDisplay : t("feePending");
-  const visibleForgetFee = feesReady ? forgetFeeDisplay : t("feePending");
+  /**
+   * Fee rails across the three honest phases. Previously both values rendered
+   * `feePending` ("Checking…") whenever `feesReady` was false — including after
+   * the read had settled with nothing, which is how the first screen managed to
+   * say "Checking…" on the rails and "Live contract fees are unavailable" in
+   * the panel below at the same time.
+   */
+  const feePhase = resolvePhase({
+    loading: isLoading,
+    settled: feesSettled,
+    hasData: feesReady,
+  });
+  const renderFee = (value: string) => (
+    <PhaseValue
+      phase={feePhase}
+      placeholder={t("feeNeedsConnection")}
+      skeletonWidth="4.5em"
+    >
+      {value}
+    </PhaseValue>
+  );
   const hasBurialRecovery = Boolean(burialRecoveryPhase);
   const burialTargetPending = burialRecoveryPhase === "target-broadcast";
 
@@ -408,26 +429,49 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 <span className="graveyard-fee__radio"><Check size={14} /></span>
                 <CoinArt size={30} variant="gas" />
                 <span><strong>{t("buryNow")}</strong><em>{t("payOnce")}</em></span>
-                <b>{visibleBurialFee}</b>
+                <b>{renderFee(burialFeeDisplay)}</b>
               </div>
               <div className="graveyard-fee">
                 <span className="graveyard-fee__radio" />
                 <Archive size={25} />
                 <span><strong>{t("forgetLater")}</strong><em>{t("futureAction")}</em></span>
-                <b>{visibleForgetFee}</b>
+                <b>{renderFee(forgetFeeDisplay)}</b>
               </div>
             </div>
 
-            {!feesReady ? (
-              <div className="graveyard-fee-status" role="status" aria-live="polite">
+            {/*
+              * A fee read that has not returned yet is not a fault, and neither
+              * is one that settles empty because no wallet/network is bound —
+              * that is simply the first-paint state of this app. The panel used
+              * to render the amber "Live contract fees are unavailable. No GAS
+              * will move until they are verified." warning plus a Retry button
+              * on that state, so a visitor's very first screen accused the
+              * product of being broken before they had touched it. The warning
+              * tone is now reserved for a real settled failure (`feesSettled`
+              * with no fees, and no contract-paused explanation); a pending read
+              * just narrates itself, and the paused contract states its own case.
+              */}
+            {!feesReady && (feePhase === "loading" || feesSettled) ? (
+              <div
+                className="graveyard-fee-status"
+                data-tone={feePhase === "loading" ? "pending" : "notice"}
+                role="status"
+                aria-live="polite"
+              >
                 <RefreshCw className={isLoading ? "graveyard-spin" : undefined} size={17} />
                 <span>
-                  <strong>{isLoading ? t("checkingLiveFees") : contractPaused ? t("contractPaused") : t("liveFeeUnavailable")}</strong>
-                  <em>{contractPaused ? t("contractPausedHint") : t("liveFeeUnavailableHint")}</em>
+                  <strong>{feePhase === "loading"
+                    ? t("checkingLiveFees")
+                    : contractPaused ? t("contractPaused") : t("feeNeedsConnectionTitle")}</strong>
+                  <em>{feePhase === "loading"
+                    ? t("checkingLiveFeesHint")
+                    : contractPaused ? t("contractPausedHint") : t("feeNeedsConnectionHint")}</em>
                 </span>
-                <button type="button" onClick={() => void dispatch("refreshRecords")} disabled={isLoading}>
-                  {t("retryFeeCheck")}
-                </button>
+                {feePhase === "loading" ? null : (
+                  <button type="button" onClick={() => void dispatch("refreshRecords")} disabled={isLoading}>
+                    {t("retryFeeCheck")}
+                  </button>
+                )}
               </div>
             ) : null}
 
@@ -648,7 +692,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <dl>
               <div><dt>{t("hashPreview")}</dt><dd>{compactHash(assetHash)}</dd></div>
               <div><dt>{t("selectedType")}</dt><dd>{selectedType.label}</dd></div>
-              <div><dt>{t("burialFee")}</dt><dd><CoinArt size={22} variant="gas" /> {hasBurialRecovery ? t("prepaidCreditNoNewGas") : visibleBurialFee}</dd></div>
+              <div><dt>{t("burialFee")}</dt><dd><CoinArt size={22} variant="gas" /> {hasBurialRecovery ? t("prepaidCreditNoNewGas") : renderFee(burialFeeDisplay)}</dd></div>
               <div><dt>{t("walletAction")}</dt><dd>{walletConnected ? compactAddress(walletAddress) : t("connectAtWallet")}</dd></div>
             </dl>
             <div className="graveyard-confirm__route">

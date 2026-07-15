@@ -42,8 +42,18 @@
   border: 1px solid var(--mx2-scene-rim);
 }
 
+/**
+ * A catalog read that has not produced machines is the expected first paint on
+ * any device that cannot reach the chain yet — it is not a fault of the app,
+ * and the scene now says so in product voice ("Machines aren't loaded yet").
+ * Ringing the entire entry surface in red contradicted that copy and made an
+ * ordinary cold start look like a broken product. The genuine diagnostic
+ * (contract identity, network, catalog errors) keeps its red treatment on
+ * `.gasbox-runtime-card[data-state="error"]` inside the Wallet & machines
+ * drawer, which is where someone goes to find out what is wrong.
+ */
 .gasbox-scene[data-state="error"] {
-  border-color: rgba(185, 28, 28, 0.32);
+  border-color: var(--mx2-border);
 }
 
 .gasbox-scene[data-state="paused"] {

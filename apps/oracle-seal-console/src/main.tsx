@@ -245,7 +245,13 @@ defineMiniApp({
       }
     };
 
-    const refreshRuntimeInternal = async (): Promise<boolean> => {
+    /**
+     * @param passive True for the probe `loadData` fires on open, where the
+     * visitor has asked for nothing. A passive failure is just "we have not
+     * reached the key yet" and must read that way; only an explicit
+     * "Check service" click has earned a diagnosis.
+     */
+    const refreshRuntimeInternal = async (passive = false): Promise<boolean> => {
       runtimeState.set("checking");
       storageReady.set(false);
       runtimeStateLabel.set(hasPending.get() ? runtimeStateLabel.get() : ctx.t("runtimeChecking"));
@@ -282,9 +288,16 @@ defineMiniApp({
         const localized = localizeError(error);
         // A failed availability check is not a failed seal: keep specific
         // diagnoses (storage, algorithm, key) but never a seal-outcome message.
-        const message = localized.key === "sealErrorGeneric" || localized.key === "sealErrorEncrypt"
-          ? ctx.t("statusRuntimeUnavailable")
-          : localized.message;
+        // On the passive open-probe the visitor has attempted nothing at all, so
+        // even a specific diagnosis is the wrong register — "could not be
+        // verified" reads as a fault the visitor caused, on a console they have
+        // not touched. The probe simply has not reached the key yet; say that,
+        // and let the explicit Check service button report the diagnosis.
+        const message = passive
+          ? ctx.t("statusRuntimeUnverified")
+          : localized.key === "sealErrorGeneric" || localized.key === "sealErrorEncrypt"
+            ? ctx.t("statusRuntimeUnverified")
+            : localized.message;
         if (!hasPending.get()) lastStatus.set(message);
         return false;
       }
@@ -484,7 +497,8 @@ defineMiniApp({
         syncHistory();
         const inspection = inspectPendingOracleSeal(app.storage.local);
         syncPending(inspection.pending, inspection.malformed);
-        await runOperation("refresh", refreshRuntimeInternal, true);
+        // Passive: this fires on open, before the visitor has asked for anything.
+        await runOperation("refresh", () => refreshRuntimeInternal(true), true);
       },
     };
   },

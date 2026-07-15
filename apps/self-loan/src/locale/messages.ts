@@ -191,6 +191,17 @@ const appMessages = {
     en: "A prior two-step action left funds credited on the contract. You can reclaim them without opening a new position.",
     zh: "之前的两步操作在合约中留下了已入账资金；无需新建仓位即可取回。",
   },
+  // --- Honest zero-state copy for values that need a wallet or a live read ---
+  // These stand in for values a visitor cannot see yet. They are placeholders,
+  // never error strings: no wallet is the expected way to arrive at this desk.
+  phaseConnect: { en: "Connect to load", zh: "连接后加载" },
+  // Stage-head chip. Deliberately worded differently from the "Wallet required"
+  // notice below it — the chip states what the pool readout is waiting on, the
+  // notice states the action. Printing the same sentence twice reads as a bug.
+  phaseAwaitingPool: { en: "Live pool after connect", zh: "连接后显示实时资金池" },
+  phaseEnterAmount: { en: "Enter NEO amount", zh: "输入 NEO 数量" },
+  phaseAwaitingQuote: { en: "Awaiting live quote", zh: "等待实时报价" },
+  phaseLoading: { en: "Loading", zh: "加载中" },
   dataUnavailableTitle: { en: "Live data unavailable", zh: "实时数据不可用" },
   criticalDataUnavailable: {
     en: "Price, liquidity, balance, position, or recovery data could not be verified. Writes are disabled until a refresh succeeds.",

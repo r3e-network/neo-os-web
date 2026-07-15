@@ -127,6 +127,12 @@ const appMessages = {
   scoreTime: { en: "Time left", zh: "剩余时间" },
   scoreHappiness: { en: "Happiness", zh: "快乐值" },
   scoreWon: { en: "Total won", zh: "累计赢取" },
+  // Nursery stat meters before a run exists. The egg's starting stats are chosen
+  // inside the enclave and are genuinely unknown until the run is dealt, so we
+  // must not print a number here — "0" would be fabricated data, and the bare
+  // "--" this replaced read as a broken meter. Name the state instead: it is the
+  // same sealed egg the stage badge above already calls out.
+  statSealed: { en: "Sealed", zh: "封存" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },
   leaderboardIntro: {

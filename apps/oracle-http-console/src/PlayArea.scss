@@ -797,10 +797,28 @@
     letter-spacing: 0;
   }
 
+  /* At 390px a 3-up tile is ~91px of inner width, so `white-space: nowrap`
+     (here, plus the base rules on `__facts dd` and `__source-strip code`)
+     guaranteed an ellipsis on every value longer than one short word: the
+     primary pipeline card opened with "Not prepare…", "oracle.mesh…", a clipped
+     draft digest and a clipped source URL — four ellipses, none of them
+     readable. All three already carry `overflow-wrap: anywhere` from the base
+     rules, and every container here is an auto-height grid, so letting them wrap
+     costs nothing and makes the values legible. */
+  .oracle-http-track__item strong,
+  .oracle-http-receipt__facts dd,
+  .oracle-http-source-strip code {
+    white-space: normal;
+    /* `overflow-wrap` is on the base rule for the tile values but not for the
+       source URL, and a URL offers almost no natural break points — without this
+       it stays one unbreakable word and clips again despite wrapping being
+       allowed. */
+    overflow-wrap: anywhere;
+  }
+
   .oracle-http-track__item strong {
     font-size: 11px;
     line-height: 1.1;
-    white-space: nowrap;
   }
 
   .oracle-http-track__item small {
@@ -821,7 +839,14 @@
   }
 
   .oracle-http-lane__art {
-    height: 92px;
+    /* The art is 1672x941 (16:9) and the img is `object-fit: contain`, so a
+       fixed 92px band letterboxed it to ~140px wide inside a ~334px white card
+       — a postage stamp adrift in empty space that reads as a failed image, not
+       as art. Give the band the picture's own ratio instead of a magic height:
+       the art then meets both edges at any width and `contain` has nothing left
+       to letterbox. */
+    height: auto;
+    aspect-ratio: 1672 / 941;
     padding: 6px;
   }
 

@@ -56,6 +56,7 @@ export function useQuadraticFundingPage({
     app,
     t,
     setStatus: sm.setStatus,
+    clearStatus: sm.clearStatus,
     confirmDeposit,
   });
   const safety = useQuadraticSafety({ app, t, kit, approvedRecoveryDeployments });
@@ -193,18 +194,23 @@ export function useQuadraticFundingPage({
     [rounds],
   );
   const projectCount = createDerived(() => projects.get().length, [projects]);
+  // Every readout below describes THE SELECTED ROUND, and no round is selected
+  // until one is loaded — the state the desk opens in and explicitly asks the
+  // visitor to resolve ("Select a round before contributing"). Rendering that
+  // as "N/A" put three dead abbreviations on the entry surface for a condition
+  // the headline already names. Say what is true instead: no round yet.
   const selectedRoundDisplay = createDerived(() => {
     const round = selectedRound.get();
-    return round ? round.title || `#${round.id}` : t("notAvailable");
+    return round ? round.title || `#${round.id}` : t("qfNoRoundSelected");
   }, [rounds, selectedRoundId]);
   const matchingPoolDisplay = createDerived(() => {
     const round = selectedRound.get();
-    if (!round) return t("notAvailable");
+    if (!round) return t("qfMatchingAwaitsRound");
     return `${formatAmount(round.assetSymbol || "GAS", round.matchingPool)} ${round.assetSymbol || "GAS"}`;
   }, [rounds, selectedRoundId]);
   const matchingRemainingDisplay = createDerived(() => {
     const round = selectedRound.get();
-    if (!round) return t("notAvailable");
+    if (!round) return t("qfMatchingAwaitsRound");
     return `${formatAmount(round.assetSymbol || "GAS", round.matchingRemaining)} ${round.assetSymbol || "GAS"}`;
   }, [rounds, selectedRoundId]);
   const matchPreviewMode = createDerived(

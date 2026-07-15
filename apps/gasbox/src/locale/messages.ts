@@ -484,7 +484,15 @@ const appMessages = {
         en: "No withdrawable revenue yet. Earnings accrue as players pull this machine.",
         zh: "暂无可提取收益。玩家抽取该机器时收益会逐步累积。",
     },
-    gasboxContractMissing: { en: "GasBox contract is not configured for this network.", zh: "当前网络未配置 GasBox 合约。" },
+    /**
+     * Shown as the centred status line under the cabinet. The old wording —
+     * "GasBox contract is not configured for this network." — surfaced a
+     * deployment-configuration fault to a player as the first thing they read,
+     * which is neither actionable nor true from their side: nothing about their
+     * device or wallet is wrong. State the effect in product voice and point at
+     * the one control that can change it.
+     */
+    gasboxContractMissing: { en: "No GasBox machines are available on this network yet. Try another network, or refresh.", zh: "该网络暂时没有可用的 GasBox 机台。可切换网络或刷新重试。" },
     gasboxContractIdentityMismatch: { en: "The configured contract did not expose the GasBox V2 identity.", zh: "已配置合约未提供 GasBox V2 身份信息。" },
     gasboxUnsupportedNetwork: { en: "Switch to Neo N3 MainNet or TestNet to use GasBox.", zh: "请切换到 Neo N3 主网或测试网使用 GasBox。" },
     gasboxDeploymentIncompatible: { en: "Paid pulls are paused until the fixed-beacon GasBox contract is deployed.", zh: "付费抽取暂时停用，等待固定区块信标版 GasBox 合约完成部署。" },
@@ -507,7 +515,16 @@ const appMessages = {
     gasboxPullPrice: { en: "Pull price", zh: "抽取价格" },
     gasboxFreePool: { en: "Free pool", zh: "空闲奖池" },
     gasboxReservedPool: { en: "Reserved", zh: "已预留" },
-    gasboxCounterOffline: { en: "Counter needs attention", zh: "柜台需要处理" },
+    /**
+     * Headline of the capsule-station card when a read has not produced a
+     * catalog. "Counter needs attention" read as a fault report about the
+     * product and was the literal first-screen centrepiece on any device that
+     * could not reach the chain. This names the state and implies the retry the
+     * card's own route already offers.
+     */
+    gasboxCounterOffline: { en: "Machines aren't loaded yet", zh: "机台尚未加载" },
+    /** Economy tile placeholder before any machine resolves (never an em dash). */
+    gasboxTileNoMachine: { en: "No machine yet", zh: "暂无机台" },
     gasboxRuntimeCheck: { en: "Contract check", zh: "合约检查" },
     gasboxPendingShort: { en: "pending", zh: "待揭晓" },
     gasboxDetails: { en: "Wallet & machines", zh: "钱包与机台" },
