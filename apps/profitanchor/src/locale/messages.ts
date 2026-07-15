@@ -367,8 +367,18 @@ const appMessages = {
   },
   diagnostics: { en: "Technical diagnostics", zh: "技术诊断" },
   networkUnknown: { en: "Network unknown", zh: "网络未知" },
+  // Honest zero-states for values this pool cannot resolve yet. A visitor who
+  // has just opened it has no wallet and no completed chain read — the expected
+  // first paint, not a failure. Each names the next step; none is an error, and
+  // none is an em-dash. Wording matches the sibling TrustAnchor pool and the
+  // anchor admin consoles (46f03791d) so the whole anchor family reads the same.
+  valueConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  valueAwaitingNetwork: { en: "Awaiting network", zh: "等待网络" },
   modeBadge: { en: "Anchor mode {mode}", zh: "Anchor 模式 {mode}" },
   stakeAmount: { en: "Stake {amount} NEO", zh: "质押 {amount} NEO" },
+  // Primary CTA for the pre-wallet state. Named for the step it performs, not
+  // for the staking it unlocks, so the button never over-promises.
+  connectWallet: { en: "Connect wallet", zh: "连接钱包" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

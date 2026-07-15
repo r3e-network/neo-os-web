@@ -275,6 +275,18 @@ const appMessages = {
   selectedRouteValue: { en: "Agent route {id}", zh: "Agent 路由 {id}" },
   selectedRouteNone: { en: "Route not selected", zh: "尚未选定路由" },
   routeCountValue: { en: "{count} registered AA routes", zh: "{count} 条已注册 AA 路由" },
+  // Honest zero-states for values this pool cannot resolve yet. A visitor who
+  // has just opened it has no wallet and no completed chain read — the expected
+  // first paint, not a failure. Each names the next step; none is an error, and
+  // none is an em-dash. `valueConnectWallet`/`valueAwaitingNetwork` deliberately
+  // match the wording the anchor admin consoles already ship (see 46f03791d) so
+  // the whole anchor family reads the same.
+  valueConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  valueAwaitingNetwork: { en: "Awaiting network", zh: "等待网络" },
+  routeCountPending: {
+    en: "Registered AA routes load with the network",
+    zh: "接入网络后加载已注册 AA 路由",
+  },
   stakeWorkspace: { en: "TrustAnchor stake command", zh: "TrustAnchor 质押操作台" },
   stakePlan: { en: "Stake plan", zh: "质押计划" },
   chooseStakeAmount: { en: "Choose whole NEO", zh: "选择整数 NEO" },
@@ -348,6 +360,7 @@ const appMessages = {
   networkUnknown: { en: "Network unknown", zh: "网络未知" },
   modeBadge: { en: "Anchor mode {mode}", zh: "Anchor 模式 {mode}" },
   stakeAmount: { en: "Stake {amount} NEO", zh: "质押 {amount} NEO" },
+  connectWallet: { en: "Connect wallet", zh: "连接钱包" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
