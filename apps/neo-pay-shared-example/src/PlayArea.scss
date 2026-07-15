@@ -181,6 +181,20 @@
   white-space: nowrap;
 }
 
+/* The headline scale above is sized for a numeral. The awaiting-amount state
+ * puts a short phrase in the same slot, which at 42px would dominate the card
+ * and clip; drop it to prompt scale and weight so it reads as the invitation it
+ * is rather than as a value. */
+.stream-studio__receipt > strong[data-empty="true"] {
+  overflow: visible;
+  color: #4c6a5f;
+  font-size: clamp(15px, 1.7vw, 18px);
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  white-space: normal;
+}
+
 .stream-studio__receipt > div {
   min-width: 0;
   display: grid;

@@ -414,9 +414,15 @@
   box-shadow: 0 0 0 5px #fffaf0;
 }
 
+/* Exactly four tiles, always, inside the reading layer's ~390px portrait frame
+ * (which stays portrait at desktop too). `auto-fit` + a 108px floor can only
+ * ever pack three of them across that width, so the fourth was pushed onto a row
+ * of its own with two thirds of it empty. The count is fixed in the markup, so
+ * lay them out as the 2x2 they are: no orphan at any width, and each tile gets
+ * roughly 170px — comfortably more than the 98px that was clipping values. */
 .tarot-drawer__summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 

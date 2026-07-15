@@ -19,13 +19,17 @@
 
 .neo-pay-play-area {
   display: block;
-  --mx2-stage-floor: #ffffff;
 }
 
+/* The scene keeps the shared stage floor. Overriding it to #ffffff painted the
+ * full 1317px panel pure white and then centred a 760px *white* ticket card in
+ * it: the card had no edge to read against, and its ~280px side margins looked
+ * like an unfinished panel rather than the framing of a card. Every sibling
+ * (neo-multisig, neo-treasury) leaves the floor alone and lets its cards carry
+ * the white, which is what makes them read as cards. */
 .neo-pay-play-area .mx2-stage__scene {
   display: block;
   padding-inline: 0;
-  background: #ffffff;
 }
 
 .neo-pay-play-area .mx2-action-rail__row .mx2-btn--primary {

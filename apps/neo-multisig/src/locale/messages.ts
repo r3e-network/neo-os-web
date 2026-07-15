@@ -46,6 +46,14 @@ const appMessages = {
   multisigApprovalBoard: { en: "Approval board", zh: "批准看板" },
   multisigAmountPreview: { en: "Amount to release", zh: "待放行金额" },
   multisigRecipientPreview: { en: "Recipient pending", zh: "待填写接收方" },
+  // Docket zero-state. `multisigAmountPreview` above is a field label and still
+  // labels that field in the propose-spend form; these two are the docket's
+  // honest first-run *values*, for when no vault (and so no proposal) exists.
+  multisigProposalNone: { en: "No proposal yet", zh: "暂无提案" },
+  multisigProposalNoneHint: {
+    en: "Create a vault, then propose a spend to open a docket.",
+    zh: "先创建金库，再发起支出提案即可开单。",
+  },
 
   multisigVaultTitle: { en: "Custody vault", zh: "共管金库" },
   multisigVaultCopy: {

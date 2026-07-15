@@ -22,6 +22,7 @@ function t(key: string, params?: Record<string, string | number>) {
     connectForBalances: "Connect wallet to view balances",
     connectToPreview: "Connect wallet",
     dismiss: "Dismiss",
+    awaitingAmount: "Awaiting amount",
     docSubtitle: "Swap tokens with a protected route.",
     enterAmount: "Amount",
     exchangeRate: "Rate",
@@ -143,9 +144,15 @@ describe("Neo Swap PlayArea (v2)", () => {
     expect(container.querySelector(".swap-route-rail")).toBeTruthy();
     expect(container.querySelectorAll(".swap-route-rail__checks > div")).toHaveLength(5);
     expect(container.querySelector(".swap-route-rail .swap-route-steps")).toBeTruthy();
-    // First-run receive leg is a neutral awaiting-input em-dash, never a fake zero.
+    // First-run receive leg is a neutral awaiting-input state, never a fake zero:
+    // with no quote there is no figure to print. That intent is unchanged; only
+    // the treatment moved from an em-dash void to honest copy, so pin the intent
+    // (flagged empty, names its own state, never a bare zero or dash glyph)
+    // rather than the specific glyph it used to print.
     expect(container.querySelector(".swap-receive-value")?.getAttribute("data-empty")).toBe("true");
-    expect(container.querySelector(".swap-receive-value strong")?.textContent).toBe("—");
+    const receiveValue = container.querySelector(".swap-receive-value strong")?.textContent ?? "";
+    expect(receiveValue).toBe("Awaiting amount");
+    expect(receiveValue).not.toMatch(/^[\s0—–-]*$/);
     expect(container.querySelector(".swap-token-list")).toBeNull();
     expect(container.querySelector(".swap-slippage-grid")).toBeNull();
     expect(container.querySelector(".swap-amount-field")).toBeTruthy();

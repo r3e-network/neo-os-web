@@ -307,7 +307,12 @@ export default function PlayArea({ t, state, dispatch }: P) {
             </span>
           </div>
           <footer className="did-passport__footer">
-            <span>{t("documentVersion")}: <strong>{visiblePayload ? compact(documentVersion) : "—"}</strong></span>
+            {/* Its two neighbours already degrade to an honest 0 rather than a
+                dash, and the evidence list states this very condition as "Not
+                resolved" (see the resolverStatus row above). Nothing is in
+                flight before the visitor resolves, so name the settled state in
+                the app's own vocabulary instead of voiding the chip. */}
+            <span>{t("documentVersion")}: <strong>{visiblePayload ? compact(documentVersion) : t("resolverNotCheckedStatus")}</strong></span>
             <span>{t("services")}: <strong>{visiblePayload ? serviceCount : 0}</strong></span>
             <span>{t("verificationMethods")}: <strong>{visiblePayload ? verificationMethodCount : 0}</strong></span>
           </footer>

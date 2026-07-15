@@ -260,16 +260,27 @@
   border-left: 1px solid #e1eae7;
 }
 
+/* These three cells are 1fr of a three-up strip: about 130px of inner width on
+ * the desktop card. Their values are readable hyphenated slugs and a plain
+ * phrase ("wallet-signature-context", "10 minutes after creation"), not hashes,
+ * and every one of them is longer than that — so nowrap + ellipsis clipped all
+ * three at once on the widest viewport, while the <=560px single-column layout
+ * showed the same strings in full. The strip has vertical room, so let the
+ * values wrap into it; the clamp bounds a long localization, and overflow-wrap
+ * breaks the one genuinely unbreakable token if a DID id ever lands here. */
 .did-passport__fields strong {
   min-width: 0;
+  display: -webkit-box;
   overflow: hidden;
   color: #173d3b;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
   font-weight: 690;
   line-height: 1.32;
+  overflow-wrap: anywhere;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .did-passport__footer {

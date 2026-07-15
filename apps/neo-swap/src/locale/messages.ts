@@ -27,6 +27,11 @@ title: { en: "Neo Swap — NEO/GAS liquidity desk", zh: "Neo 兑换 — NEO/GAS 
   minReceivedShort: { en: "Min received", zh: "最少收到" },
   planningFloor: { en: "Planning floor (not enforced)", zh: "规划下限（未执行）" },
   enterAmount: { en: "Enter amount", zh: "输入数量" },
+  // Readout zero-state for the estimated receive amount and the planning floor.
+  // Distinct from `enterAmount`, which is the engine's action-label for the same
+  // condition: this one stands where a value would be, so it reads as a value
+  // ("Awaiting amount") rather than as an instruction on a button.
+  awaitingAmount: { en: "Awaiting amount", zh: "等待输入数量" },
   max: { en: "MAX", zh: "最大" },
   rateUnavailable: { en: "Rate unavailable", zh: "汇率不可用" },
   loadingRate: { en: "Loading rate...", zh: "正在加载汇率..." },

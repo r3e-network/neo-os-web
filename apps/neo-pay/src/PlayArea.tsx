@@ -239,9 +239,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="neopay-terminal__eyebrow">{t("streamTicket")}</span>
             <strong>{ticketStatusLabel}</strong>
           </div>
+          {/* This slot leads with a TokenIcon, so its subject is the asset being
+              streamed — it was printing `draftStatus` instead, which is what the
+              PlayStage badge already says, so a GAS coin icon sat next to the
+              words "Stream ticket draft" and the same string appeared three
+              times on one screen. Name the asset the icon is showing. */}
           <span className="neopay-terminal__status">
             <TokenIcon asset={asset} size={30} />
-            {draftStatus}
+            {asset}
           </span>
         </header>
 
@@ -383,7 +388,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </section>
 
         <footer className="neopay-ticket__review">
-          <strong>{draftStatus}</strong>
+          {/* The lead chip labels the three facts beside it (network fee, release
+              schedule, live streams) rather than repeating the draft status the
+              PlayStage badge already carries — the third of the three identical
+              "Stream ticket draft" chips this screen used to show. */}
+          <strong>{t("reviewBeforeSigning")}</strong>
           <span><ShieldCheck size={15} /> {t("transactionPreviewHint")}</span>
           <span><HandCoins size={15} /> {releaseLabel}</span>
           <span><Clock3 size={15} /> {hasChainView

@@ -105,7 +105,14 @@ defineMiniApp({
       network: createObservable(network),
       networkLabel: createObservable(network === "mainnet" ? "Morpheus Mainnet" : appMeta.networkLabel),
       endpointLabel: createObservable(appMeta.endpointLabel),
-      lastStatus: createObservable(ctx.t("statusReady")),
+      // Seeded with the *idle* status, not "statusReady". This observable feeds
+      // an aria-live status line that reports what just happened; seeding it
+      // with "Passport review ready" announced a finished review on a first
+      // paint where none exists, directly contradicting the passport stamp's
+      // "Awaiting DID resolution" on the same screen. `statusReady` is still the
+      // honest status after a successful reset (see resetPassport below), which
+      // is the one moment the workspace really is ready and empty.
+      lastStatus: createObservable(ctx.t("statusIdle")),
       lastDigest: createObservable(ctx.t("digestPlaceholder")),
       requestCount: createObservable(0),
       resolverStatus: createObservable(ctx.t("resolverNotCheckedStatus")),

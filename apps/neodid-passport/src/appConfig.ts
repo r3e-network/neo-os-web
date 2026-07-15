@@ -174,6 +174,11 @@ const appMessages = {
   byteLimitHint: { en: "{count}/{max} UTF-8 bytes", zh: "{count}/{max} UTF-8 字节" },
 
   statusReady: { en: "Passport review ready", zh: "护照核对已就绪" },
+  // First-paint status. Distinct from both `statusReady` (a review exists) and
+  // the passport stamp's `reviewNotBuilt` ("Awaiting DID resolution", which
+  // names the card's state): this line names the visitor's next step, so the
+  // two chips on screen say different, true things instead of contradicting.
+  statusIdle: { en: "Resolve a DID to build a passport review", zh: "解析 DID 以生成护照核对记录" },
   passportReviewReady: {
     en: "Review envelope created; resolver and registry metadata are available",
     zh: "核对包已创建；解析器与注册表元数据可用",

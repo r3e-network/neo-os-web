@@ -193,10 +193,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const minReceivedLabel = routerAvailable
     ? shortLabel("minReceivedShort", t("minReceived"))
     : t("planningFloor");
-  // Awaiting-input state: with no quoted output the engine's derived floor is
-  // a meaningless "0", so the readout stays an em-dash until an amount exists.
-  // A genuine 0 floor (NEO indivisibility) still renders once quoted.
-  const minReceivedDisplay = toAmount && minReceived ? `${minReceived} ${toToken.symbol}` : "—";
+  // Awaiting-input state: with no quoted output the engine's derived floor is a
+  // meaningless "0", so the readout must not print one until an amount exists.
+  // A genuine 0 floor (NEO indivisibility) still renders once quoted. The
+  // suppressed state is the visitor's own next step, not missing data, so it
+  // says so rather than showing an em-dash void.
+  const minReceivedDisplay = toAmount && minReceived
+    ? `${minReceived} ${toToken.symbol}`
+    : t("awaitingAmount");
   const slippageLabel = shortLabel("slippageShort", t("slippage"));
   const exchangeRateLabel = shortLabel("exchangeRateShort", t("exchangeRate"));
   const drawerModes: Array<{ mode: DrawerMode; label: string }> = [
@@ -382,7 +386,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onClick={() => dispatchSafely("openToSelector")}
                 disabled={loading || isSwapping}
               >
-                <strong>{toAmount || "—"}</strong>
+                <strong>{toAmount || t("awaitingAmount")}</strong>
                 <em>{toToken.symbol}</em>
               </button>
               <span className="swap-leg__balance" aria-live="polite">{t("balance")}: {balanceText(toToken)}</span>

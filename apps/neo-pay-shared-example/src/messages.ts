@@ -43,6 +43,10 @@ const studioMessages = {
   streamAmount: { en: "Stream amount", zh: "资金流金额" },
   amountPresets: { en: "Amount presets", zh: "金额快捷选项" },
   amountEmptyHint: { en: "Choose an amount to fund.", zh: "选择要注资的金额。" },
+  // Zero-state for the ticket-overlay headline. Kept short and distinct from
+  // `amountEmptyHint` (the sentence under the input): this one stands in a
+  // 42px headline slot, so it is a phrase, not a sentence.
+  amountEmptyValue: { en: "Enter an amount", zh: "输入金额" },
   neoWholeAmountRequired: {
     en: "NEO is indivisible. Enter a positive whole-token amount; your draft was not changed.",
     zh: "NEO 不可分割，请输入正整数金额；当前草稿不会被自动修改。",
@@ -53,6 +57,10 @@ const studioMessages = {
   },
   recipientRoute: { en: "Recipient route", zh: "收款路线" },
   recipientEmptyHint: { en: "Enter a valid Neo N3 address.", zh: "输入有效的 Neo N3 地址。" },
+  // Endpoint label in the compact GAS -> recipient route diagram. The diagram
+  // row is too narrow for `recipientEmptyHint`'s full sentence (which already
+  // sits directly below it), so the unset endpoint names its own state.
+  routeRecipientPending: { en: "Recipient pending", zh: "待填收款方" },
   durationDays: { en: "Release duration", zh: "释放周期" },
   durationRangeRequired: { en: "Use a whole number from 1 to 365 days.", zh: "请输入 1 至 365 的整数天数。" },
   daysValue: { en: "{days} days", zh: "{days} 天" },

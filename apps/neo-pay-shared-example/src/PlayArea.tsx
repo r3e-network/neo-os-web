@@ -218,7 +218,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
           <div className="stream-studio__receipt" aria-label={t("releasePreview")}>
             <span>{t("paymentTicket")}</span>
-            <strong>{amount.trim() || "—"} {asset}</strong>
+            {/* The ticket headline is the first thing the overlay says. With no
+                amount yet there is no figure to print and nothing is loading —
+                the visitor simply has not typed one — so it asks for the amount
+                instead of heading the card with an em-dash. The asset suffix is
+                dropped with it: "— GAS" claimed a denomination for a value that
+                does not exist. */}
+            <strong data-empty={amount.trim() ? undefined : "true"}>
+              {amount.trim() ? `${amount.trim()} ${asset}` : t("amountEmptyValue")}
+            </strong>
             <div>
               <small>{t("recipientRoute")}</small>
               <b>{compact(recipient, t("recipientEmptyHint"))}</b>
@@ -312,7 +320,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="stream-studio__route-preview" aria-hidden="true">
               <span><HandCoins size={17} /> {asset}</span>
               <ArrowRight size={18} />
-              <span><UserRound size={17} /> {compact(recipient, "—")}</span>
+              <span><UserRound size={17} /> {compact(recipient, t("routeRecipientPending"))}</span>
             </div>
             <p role={recipient.trim() && !validation.recipientValid ? "alert" : undefined}>
               {!recipient.trim()
