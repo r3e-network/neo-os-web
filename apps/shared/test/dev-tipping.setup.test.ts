@@ -305,6 +305,39 @@ describe("Dev Tipping setup", () => {
     expect(setupResult.state.myClaimableBalance?.get()).toBe(0.4);
   });
 
+  it("does not throw from loadData while merely waiting for a wallet", async () => {
+    // Pre-connect, refreshRuntime parks in "awaiting-wallet" with no error.
+    // loadData used to rethrow that as a load failure, which the framework
+    // logged as a console error on every cold open and toasted as a red
+    // "wallet network does not match" — with no wallet to mismatch.
+    harness.state.address.set("");
+    harness.state.runtimeStatus.set("awaiting-wallet");
+    harness.state.runtimeCompatible.set(false);
+    harness.state.runtimeError.set("");
+
+    const registeredActions = new Map<string, (...args: unknown[]) => Promise<unknown>>();
+    const setup = harness.state.definition?.setup;
+    const result = await setup?.(buildCtx(registeredActions));
+    const setupResult = result as { loadData: () => Promise<void> };
+
+    await expect(setupResult.loadData()).resolves.toBeUndefined();
+  });
+
+  it("still surfaces a real runtime incompatibility as a load failure", async () => {
+    // The awaiting-wallet bypass must not swallow genuine faults.
+    harness.state.address.set(ALICE);
+    harness.state.runtimeStatus.set("error");
+    harness.state.runtimeCompatible.set(false);
+    harness.state.runtimeError.set("Tip Jar ABI does not match this release.");
+
+    const registeredActions = new Map<string, (...args: unknown[]) => Promise<unknown>>();
+    const setup = harness.state.definition?.setup;
+    const result = await setup?.(buildCtx(registeredActions));
+    const setupResult = result as { loadData: () => Promise<void> };
+
+    await expect(setupResult.loadData()).rejects.toThrow("Tip Jar ABI does not match this release.");
+  });
+
   it("does not let an old-wallet snapshot overwrite a newer wallet refresh", async () => {
     harness.state.address.set(ALICE);
     let resolveOld: ((value: { developerId: number; creditBase: bigint; gasBalanceBase: bigint }) => void) | undefined;

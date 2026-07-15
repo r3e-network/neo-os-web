@@ -739,6 +739,12 @@
   color: #8d3434;
 }
 
+/* Pre-host state: an invitation to connect, not a sealing failure. */
+.pt-runtime-block--awaiting {
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+}
+
 .pt-runtime-block > span {
   min-width: 0;
   display: grid;

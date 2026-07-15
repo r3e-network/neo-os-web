@@ -10,6 +10,7 @@ import { useVaultBreaker } from "./composables/useVaultBreaker";
 import { useVaultCreator } from "./composables/useVaultCreator";
 import {
   createVaultSafety,
+  probeVaultChainContext,
   requireCanonicalVaultContext,
   requireWritableVaultContext,
 } from "./composables/vaultSafety";
@@ -24,7 +25,15 @@ defineMiniApp({
     const t = ctx.t as (key: string) => string;
     const safety = createVaultSafety(ctx.framework, t);
     const networkName = createObservable(String(ctx.framework.platform.launch.network ?? ""));
+    // Tri-state, not a boolean: "probing" is the honest first-paint value. A
+    // plain `false` made the pre-probe surface indistinguishable from a real
+    // contract mismatch, so the vault declared itself locked before it had
+    // asked the network anything.
+    const chainStatus = createObservable<
+      "probing" | "ready" | "mismatch" | "awaiting-context"
+    >("probing");
     const chainReady = createObservable(false);
+    const writeStatus = createObservable<"probing" | "ready" | "blocked">("probing");
     const writeReady = createObservable(false);
     const writeBlockReason = createObservable("");
 
@@ -41,18 +50,33 @@ defineMiniApp({
     });
 
     const refreshContext = async () => {
+      // Classify first so the surface can tell "nothing handed to us yet" apart
+      // from "this network is bound to the wrong contract". The hard gate below
+      // still runs and still rejects both.
+      const probe = await probeVaultChainContext(ctx.framework);
+      if (probe.status === "awaiting-context") {
+        chainStatus.set("awaiting-context");
+        chainReady.set(false);
+        writeStatus.set("blocked");
+        writeReady.set(false);
+        writeBlockReason.set("");
+        return false;
+      }
       try {
         const context = await requireCanonicalVaultContext(
           ctx.framework,
           t("chainContextMismatch"),
         );
         networkName.set(context.network);
+        chainStatus.set("ready");
         chainReady.set(true);
         try {
           await requireWritableVaultContext(ctx.framework, t);
+          writeStatus.set("ready");
           writeReady.set(true);
           writeBlockReason.set("");
         } catch (error) {
+          writeStatus.set("blocked");
           writeReady.set(false);
           writeBlockReason.set(
             ctx.framework.errors.messageOf(error, t("writeUnavailable")),
@@ -60,7 +84,9 @@ defineMiniApp({
         }
         return true;
       } catch {
+        chainStatus.set("mismatch");
         chainReady.set(false);
+        writeStatus.set("blocked");
         writeReady.set(false);
         writeBlockReason.set(t("chainContextMismatch"));
         return false;
@@ -212,7 +238,9 @@ defineMiniApp({
         catalogReadError: breaker.catalogReadError,
         myVaultsReadError: creator.myVaultsReadError,
         networkName,
+        chainStatus,
         chainReady,
+        writeStatus,
         writeReady,
         writeBlockReason,
       }),

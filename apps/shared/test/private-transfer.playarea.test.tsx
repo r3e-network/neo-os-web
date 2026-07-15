@@ -164,6 +164,30 @@ describe("private-transfer privacy airlock", () => {
     expect((container.querySelector(".pt-primary-action") as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("invites a connect instead of declaring the sealing lane broken outside a host", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<PlayArea t={t} state={state({
+      phase: "draft",
+      networkState: "ready",
+      oracleState: "awaiting-context",
+    })} dispatch={dispatch} />);
+
+    // No red "lane is not ready" block, and the Oracle chip reads as pending.
+    expect(container.querySelector(".pt-runtime-block--awaiting")).toBeTruthy();
+    expect(container.textContent).not.toContain("statusRuntimeUnavailable");
+    expect(container.textContent).not.toContain("serviceOracleBlocked");
+    expect(container.textContent).toContain("serviceOracleAwaiting");
+    const oracleChip = container.querySelectorAll(".pt-service-strip > div")[1];
+    expect(oracleChip.getAttribute("data-tone")).toBe("checking");
+
+    // The primary CTA must be live and move the visitor forward, not sit dead.
+    const cta = container.querySelector(".pt-primary-action") as HTMLButtonElement;
+    expect(cta.disabled).toBe(false);
+    expect(cta.textContent).toContain("connectCta");
+    fireEvent.click(cta);
+    expect(dispatch).toHaveBeenCalledWith("connectWallet");
+  });
+
   it("keeps recovery storage fail-closed until the testnet Oracle lane is ready", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     const { container } = render(<PlayArea t={t} state={state({

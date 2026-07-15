@@ -394,6 +394,50 @@ export function isPendingVaultOperation(value: unknown): value is PendingVaultOp
   return /^\d+$/.test(clean(pending.beforeBounty));
 }
 
+/** Display-only classification of the read boundary. See {@link probeVaultChainContext}. */
+export type VaultChainProbe =
+  | { status: "ready"; network: VaultNetwork; contractHash: string }
+  | { status: "mismatch" }
+  | { status: "awaiting-context" };
+
+/**
+ * Classify the chain context for DISPLAY only. This is deliberately not a
+ * security gate: requireCanonicalVaultContext below remains the sole read/write
+ * boundary and still rejects every case this reports as "awaiting-context".
+ *
+ * The split exists because a boolean cannot tell two very different situations
+ * apart, and the vault used to render both as "Vault locked":
+ *   - "mismatch": the host launched us on one network while the wallet reports
+ *     another, or the configured contract genuinely disagrees with the
+ *     canonical one. That is a real fault and the visitor should be warned.
+ *   - "awaiting-context": no network or no contract has been handed to us yet.
+ *     Nothing has disagreed with anything — there is simply nothing to compare.
+ *     This is the normal pre-wallet first paint and must read as an invitation.
+ */
+export async function probeVaultChainContext(
+  app: MiniAppFramework,
+): Promise<VaultChainProbe> {
+  const launchNetwork = explicitNetwork(app.platform.launch.network);
+  let detectedNetwork: VaultNetwork | "" = "";
+  try {
+    detectedNetwork = explicitNetwork(await app.chain.detectNetwork?.());
+  } catch {
+    // Detection unavailable is not a conflict; fall back to the launch network.
+  }
+  if (launchNetwork && detectedNetwork && launchNetwork !== detectedNetwork) {
+    return { status: "mismatch" };
+  }
+  const network = detectedNetwork || launchNetwork;
+  if (!network) return { status: "awaiting-context" };
+  const configured = normalizedContract(app.chain.contractAddress?.get?.());
+  const expected = normalizedContract(
+    getMiniAppContractHash(VAULT_APP_ID, resolveNeoNetwork(network)),
+  );
+  if (!configured || !expected) return { status: "awaiting-context" };
+  if (configured !== expected) return { status: "mismatch" };
+  return { status: "ready", network, contractHash: configured };
+}
+
 export async function requireCanonicalVaultContext(
   app: MiniAppFramework,
   errorMessage = "chainContextMismatch",

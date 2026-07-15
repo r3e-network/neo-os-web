@@ -138,6 +138,12 @@
   color: #b42318;
 }
 
+/* Pre-wallet: nothing to verify against yet, so stay neutral rather than red. */
+.stream-studio__network-ticket > em[data-state="awaiting"] {
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+}
+
 .stream-studio__receipt {
   right: 16px;
   bottom: 16px;

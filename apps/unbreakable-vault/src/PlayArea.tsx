@@ -14,6 +14,7 @@ import {
   Crown,
   Gauge,
   KeyRound,
+  Loader2,
   LockKeyhole,
   Radar,
   RefreshCw,
@@ -21,6 +22,7 @@ import {
   Sparkles,
   Trophy,
   Vault,
+  Wallet,
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -111,6 +113,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isClaiming = bool("isClaiming");
   const isRecovering = bool("isRecovering");
   const recoveryStorageHealthy = val<boolean>("recoveryStorageHealthy", true) ?? true;
+  const chainStatus = val<"probing" | "ready" | "mismatch" | "awaiting-context">(
+    "chainStatus",
+    "probing",
+  ) ?? "probing";
+  const writeStatus = val<"probing" | "ready" | "blocked">("writeStatus", "probing") ?? "probing";
   const chainReady = bool("chainReady");
   const writeReady = bool("writeReady");
   const writeBlockReason = str("writeBlockReason", "");
@@ -353,13 +360,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const controls = (
     <div className="vault-brk-controls">
-      {!chainReady && (
+      {chainStatus === "probing" && (
+        <div className="vault-operation-notice vault-operation-notice--probing" role="status">
+          <Loader2 size={18} className="vault-operation-notice__spinner" aria-hidden="true" />
+          <span><strong>{t("chainProbingTitle")}</strong>{t("chainProbing")}</span>
+        </div>
+      )}
+      {chainStatus === "awaiting-context" && (
+        <div className="vault-operation-notice vault-operation-notice--connect" role="status">
+          <Wallet size={18} aria-hidden="true" />
+          <span><strong>{t("chainAwaitingTitle")}</strong>{t("chainAwaiting")}</span>
+        </div>
+      )}
+      {chainStatus === "mismatch" && (
         <div className="vault-operation-notice vault-operation-notice--error" role="alert">
           <AlertTriangle size={18} />
           <span><strong>{t("chainUnavailableTitle")}</strong>{t("chainContextMismatch")}</span>
         </div>
       )}
-      {chainReady && !writeReady && (
+      {chainStatus === "ready" && writeStatus === "blocked" && !writeReady && (
         <div className="vault-operation-notice" role="status">
           <AlertTriangle size={18} />
           <span>

@@ -47,7 +47,18 @@ const TXID_RE = /^0x[0-9a-f]{64}$/;
 
 export type DevTippingActionOutcome = "confirmed" | "pending";
 export type DevTippingRecoveryOutcome = "none" | DevTippingReceiptStatus;
-export type DevTippingRuntimeStatus = "idle" | "loading" | "ready" | "error";
+/**
+ * "awaiting-wallet" is the normal pre-connect state: no wallet means no wallet
+ * network, so there is nothing to compare against the launch network. It is
+ * deliberately NOT "error" — collapsing it into one made a fresh visitor with
+ * no wallet read "The wallet network does not match this Dev Tipping launch."
+ */
+export type DevTippingRuntimeStatus =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "awaiting-wallet"
+  | "error";
 
 export interface UseDevTippingWalletOptions {
   app: MiniAppFramework;
@@ -206,9 +217,19 @@ export function useDevTippingWallet({
     try {
       const detected = normalizeDevTippingNetwork(await app.chain.detectNetwork());
       const contract = normalizeScriptHash(app.chain.contractAddress.get() ?? "");
+      // No resolvable network means no wallet has told us one yet (detectNetwork
+      // reports a bare "neo-n3" until a wallet connects). Nothing mismatches
+      // nothing — hold in a neutral pre-connect state instead of erroring.
+      if (!detected) {
+        if (generation === runtimeGeneration) {
+          runtimeStatus.set("awaiting-wallet");
+          runtimeCompatible.set(false);
+          runtimeError.set("");
+        }
+        return null;
+      }
       if (
-        !detected
-        || (launchNetworkRaw && !expectedLaunchNetwork)
+        (launchNetworkRaw && !expectedLaunchNetwork)
         || (expectedLaunchNetwork && expectedLaunchNetwork !== detected)
       ) {
         throw new Error(t("runtimeNetworkMismatch"));
