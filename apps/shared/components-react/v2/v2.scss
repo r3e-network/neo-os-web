@@ -936,6 +936,12 @@
   align-content: start;
 }
 .mx2-open-segmented.semi-radioGroup {
+  /**
+   * Segment count, set inline by OpenUiLiteSegmented from options.length. The
+   * 3 fallback keeps hand-written .mx2-open-segmented markup (markup that does
+   * not go through the component) on the historical three-up basis.
+   */
+  --mx2-segmented-count: 3;
   width: 100%;
   min-width: 0;
   display: flex;
@@ -947,9 +953,25 @@
   padding: 4px;
   font-family: inherit;
 }
+/**
+ * Size each segment from the real option count, not a hardcoded three-up share.
+ *
+ * The basis was `max(104px, calc(33.333% - 4px))`, which asked every segment to
+ * reserve a third of the row and never go under 104px. A two-option control in
+ * a narrow column then demanded 2*104px + gap and wrapped instead: explorer's
+ * Mainnet/Testnet toggle and gas-sponsor's Refill/Sponsor switch both collapsed
+ * into a vertical blob that overflowed its card. A binary toggle must never
+ * stack - that is the whole affordance of a segmented control.
+ *
+ * The floor stays, so a genuinely over-full row still wraps rather than
+ * squeezing labels to unreadable slivers, but it drops under the equal share so
+ * it only binds when the share is itself too small. At the common widths this
+ * reproduces the old three-up geometry exactly (a third of 400px is 129px, over
+ * the floor either way); it only changes the cases the old formula got wrong.
+ */
 .mx2-open-segmented.semi-radioGroup .semi-radio {
   min-width: 0;
-  flex: 1 1 max(104px, calc(33.333% - 4px));
+  flex: 1 1 max(76px, calc(100% / var(--mx2-segmented-count) - 4px));
   justify-content: center;
   border-radius: var(--mx2-r-sm);
   color: var(--mx2-text-2);

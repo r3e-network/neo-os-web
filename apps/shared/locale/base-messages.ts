@@ -24,13 +24,30 @@ export const baseMessages = {
   // --- Two-mode game entry CTAs (launcher; opt-in via gamePage.modes.guest) ---
   entryGameFiCta: { en: "Earn GAS", zh: "赚取 GAS" },
   entryGuestCta: { en: "Play free", zh: "免费试玩" },
+  /**
+   * Runtime error thrown when a build with `supportsGameFi: false` is somehow
+   * driven down a paid path anyway (stale host, forged URL) — see
+   * red-envelope/on-chain-tarot/game-2048 main.tsx. This is a genuine failure
+   * of an action the visitor actually attempted, so failure voice is correct
+   * HERE. It is deliberately NOT rendered on the launcher: a store-facing
+   * entry surface must never advertise the product as degraded before the
+   * visitor has done anything. See `entryGuestOnlyCopy`.
+   */
   entryGameFiUnavailable: {
     en: "Earn GAS temporarily unavailable",
     zh: "赚取 GAS 暂时不可用",
   },
-  entryGuestMaintenanceCopy: {
-    en: "Free play is available while verified GAS rewards are under maintenance.",
-    zh: "免费模式正常开放；可验证 GAS 奖励正在维护中。",
+  /**
+   * Launcher subtitle tail for a guest-only build (`modes.gamefi: false`).
+   * A release that ships only free play is a complete product, not a broken
+   * one — so this markets what the visitor gets (free, no wallet friction)
+   * rather than narrating the absence of a mode whose CTA is not even
+   * rendered. Guest mode never touches chain/oracle/rewards, so "no wallet
+   * needed" is literally true; a wallet stays optional for the guest board.
+   */
+  entryGuestOnlyCopy: {
+    en: "Free to play — no wallet needed.",
+    zh: "免费畅玩，无需连接钱包。",
   },
 
   // --- Common status / UI keys ---

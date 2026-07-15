@@ -1,5 +1,6 @@
 import {
   useId,
+  type CSSProperties,
   type InputHTMLAttributes,
   type ReactNode,
   type TextareaHTMLAttributes,
@@ -187,6 +188,12 @@ export function OpenUiLiteSegmented({
         className={["mx2-open-segmented", "semi-radioGroup", segmentedClassName].filter(Boolean).join(" ")}
         role="radiogroup"
         aria-labelledby={labelId}
+        /**
+         * v2.scss sizes each segment from the real option count. Publish it so a
+         * two-option toggle claims half the row instead of the hardcoded third
+         * that used to force it to wrap into a vertical stack.
+         */
+        style={{ "--mx2-segmented-count": options.length } as CSSProperties}
       >
         {options.map((option) => {
           const checked = option.value === value;
