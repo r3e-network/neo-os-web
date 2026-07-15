@@ -290,6 +290,11 @@ export function createAssetFactorySetup(appId: string) {
     ).nep17;
     launchDraft.network = ASSET_FACTORY_NETWORK;
     let storedJournal: RestoredAssetFactoryJournal | null = null;
+    // A first run simply has nothing saved yet — a normal, expected state, not
+    // a storage failure. Only a read that actually throws proves refresh
+    // recovery is unavailable; an empty read means storage is reachable, and
+    // persistJournal() re-verifies every write with a readback anyway.
+    let storageReachable = true;
     try {
       storedJournal = restoreAssetFactoryJournal(
         ctx.framework.storage.local.get<unknown>(ASSET_FACTORY_JOURNAL_KEY),
@@ -298,6 +303,7 @@ export function createAssetFactorySetup(appId: string) {
     } catch {
       // Sandboxed/disabled storage must not prevent blueprint design. The UI
       // exposes that refresh recovery is unavailable for this session.
+      storageReachable = false;
     }
     const restoredDraft = createObservable<Nep17Draft>(
       storedJournal?.draft ?? launchDraft,
@@ -322,7 +328,7 @@ export function createAssetFactorySetup(appId: string) {
     const deploymentWritesEnabled = createObservable(
       ASSET_DEPLOYMENT_WRITES_ENABLED,
     );
-    const journalReady = createObservable(Boolean(storedJournal));
+    const journalReady = createObservable(storageReachable);
     const journalRestored = createObservable(Boolean(storedJournal));
 
     if (storedJournal?.plan) {

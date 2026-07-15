@@ -847,6 +847,16 @@
 }
 
 @media (max-width: 680px) {
+  .oracle-vrf-play-area .mx2-stage__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oracle-vrf-play-area .mx2-stage__badges {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .oracle-vrf-play-area .mx2-stage__scene {
     padding-inline: 0;
   }
