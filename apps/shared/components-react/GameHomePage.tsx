@@ -55,10 +55,15 @@ export function GameHomePage(props: GameHomePageProps) {
     shortTitle(ctaTitle) ||
     props.heroBadge ||
     props.appName;
-  const detailHint =
+  // The title and the hint share their last two fallbacks, so a game that
+  // declares only ctaTitleKey resolved both to the same string and printed its
+  // heading twice. A hint that merely repeats the title carries nothing.
+  const detailHintCandidate =
     shortHint(featuresEyebrow) ||
     shortHint(rulesPreview?.title) ||
     shortHint(ctaTitle);
+  const detailHint =
+    detailHintCandidate === detailTitle ? undefined : detailHintCandidate;
   const detailsAvailable =
     Boolean(settingsElement) ||
     features.length > 0 ||

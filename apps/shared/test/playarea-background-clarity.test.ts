@@ -201,6 +201,34 @@ describe("PlayArea background clarity", () => {
     expect(styles).not.toContain("box-shadow: inset 3px 0 0 var(--mx2-accent);");
   });
 
+  it("keeps functional scrims out of the names the stage rule zeroes", () => {
+    // v2.scss deliberately zeroes decorative layers inside a stage scene:
+    // `.mx2-stage__scene [class$="__shade"|"__wash"|"__stage-light"]` gets
+    // opacity:0 !important. Two apps named a LEGIBILITY scrim with a reserved
+    // suffix, so the browser silently switched off a layer their white copy
+    // depended on — aa-market-hub's hero fell to ~2:1 contrast and
+    // daily-checkin's caption became unreadable, while both apps' committed
+    // guards happily asserted the gradient existed in the stylesheet. CSS
+    // presence is not proof of paint. A layer carrying a gradient or a
+    // translucent fill is doing legibility work and must not wear a name the
+    // platform reserves for decoration (use __legibility).
+    const reserved = /\.[\w-]*__(?:shade|wash|stage-light)\b/;
+    const offenders: string[] = [];
+
+    for (const file of trackedFiles("apps/*/src/**/*.scss", "apps/*/src/*.scss")) {
+      // Strip comments first: the fixed apps document the old name in prose,
+      // and a comment naming a reserved class is not a rule that paints.
+      const source = readRepoFile(file).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      for (const { selector, block } of cssBlocks(source, reserved)) {
+        if (/linear-gradient|radial-gradient|background:\s*rgba\(/.test(block)) {
+          offenders.push(`${file}: ${selector.trim()}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps idle background motion finite and non-bouncy", () => {
     const motion = readRepoFile("apps/shared/styles/v2/_motion.scss");
     const sharedStyles = readRepoFile("apps/shared/components-react/v2/v2.scss");
