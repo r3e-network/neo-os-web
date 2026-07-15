@@ -4,6 +4,10 @@ import {
   defineMiniApp,
 } from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
+import {
+  resolvePhase,
+  type DataPhase,
+} from "@shared/components-react/v2/DataPhase";
 import { formatNum } from "@shared/utils/format";
 import {
   PROFITANCHOR_AGENT_ACCOUNTS,
@@ -64,24 +68,38 @@ defineMiniApp({
         // Balances are an advisory display; never block the console on them.
       }
     };
+    // The anchor stat reads are contract reads that need a network the visitor
+    // may not have supplied yet. That pre-data first paint is a normal state,
+    // so the console publishes a phase ("loading" | "unavailable" | "ready")
+    // and renders skeletons or honest zero-state copy from it — never an
+    // em-dash grid. See @shared/components-react/v2/DataPhase.
+    const statsPhase = createDerived<DataPhase>(
+      () =>
+        resolvePhase({
+          loading: anchor.isLoading.get(),
+          settled: anchor.loaded.get(),
+          hasData: anchor.stats.get() !== null,
+        }),
+      [anchor.stats, anchor.isLoading, anchor.loaded],
+    );
     const totalNeoDisplay = createDerived(
       () => {
         const stats = anchor.stats.get();
-        return stats ? `${formatNum(stats.totalStaked)} NEO` : "—";
+        return stats ? `${formatNum(stats.totalStaked)} NEO` : "";
       },
       [anchor.stats],
     );
     const reserveDisplay = createDerived(
       () => {
         const stats = anchor.stats.get();
-        return stats ? `${formatNum(stats.rewardReserve)} GAS` : "—";
+        return stats ? `${formatNum(stats.rewardReserve)} GAS` : "";
       },
       [anchor.stats],
     );
     const selectedAgentDisplay = createDerived(
       () => {
         const stats = anchor.stats.get();
-        if (!stats) return "—";
+        if (!stats) return "";
         return stats.selectedAgentId ? `#${stats.selectedAgentId}` : ctx.t("noneFallback");
       },
       [anchor.stats],
@@ -175,6 +193,7 @@ defineMiniApp({
       state: {
         stats: anchor.stats,
         agentAccounts: agentDirectory as Observable,
+        statsPhase: statsPhase as Observable,
         agentsLive,
         totalNeoDisplay,
         reserveDisplay,

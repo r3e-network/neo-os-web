@@ -23,6 +23,7 @@ import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import { PhaseValue, Skeleton, type DataPhase } from "@shared/components-react/v2/DataPhase";
 import {
   OpenUiLiteNotice as OpenUiNotice,
   OpenUiLitePanel as OpenUiPanel,
@@ -80,17 +81,17 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const anchorAppId = str("anchorAppId");
-  const totalStaked = str("totalStaked", "—");
-  const rewardReserve = str("rewardReserve", "—");
-  const userStake = str("userStake", "—");
-  const pendingRewards = str("pendingRewards", "—");
-  const rewardPerNeo = str("rewardPerNeo", "—");
+  const totalStaked = str("totalStaked", "");
+  const rewardReserve = str("rewardReserve", "");
+  const userStake = str("userStake", "");
+  const pendingRewards = str("pendingRewards", "");
+  const rewardPerNeo = str("rewardPerNeo", "");
   const workflowStatus = str("workflowStatus", t("workflowReady"));
   const lastError = str("lastError");
   const errorDetail = str("errorDetail");
   const lastTxid = str("lastTxid");
-  const neoCredit = str("neoCredit", "—");
-  const gasCredit = str("gasCredit", "—");
+  const neoCredit = str("neoCredit", "");
+  const gasCredit = str("gasCredit", "");
   const dataStatus = str("dataStatus", "idle");
   const creditStatus = str("creditStatus", "idle");
   const networkStatus = str("networkStatus", "bound");
@@ -102,6 +103,27 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const isLoading = bool("isLoading");
   const submitting = bool("submitting");
   const discoveredAnchors = val<DiscoveredAnchor[]>("discoveredAnchors", []) ?? [];
+
+  // ── Honest read phases ───────────────────────────────────────────────────
+  // The console cannot show anchor numbers until the visitor picks an anchor,
+  // and cannot show *their* stake until a wallet is connected. Both are normal
+  // states, so each renders as a skeleton (read in flight) or as inviting
+  // zero-state copy — never an em-dash. `dataStatus` already models this; these
+  // two helpers just map it onto the shared DataPhase vocabulary.
+  const dataPhase: DataPhase =
+    dataStatus === "loading"
+      ? "loading"
+      : dataStatus === "ready" || dataStatus === "missing"
+        ? "ready"
+        : "unavailable";
+  // "idle" means no anchor is chosen yet — that is a call to action, not a
+  // fault. Any other unresolved state is the network not being reachable.
+  const dataPlaceholder = dataStatus === "idle" ? t("valuePickAnchor") : t("valueAwaitingNetwork");
+  /** Phase for one anchor-scoped value: resolved reads with no value need a wallet. */
+  const valuePhase = (raw: string): DataPhase =>
+    dataPhase === "ready" && !raw ? "unavailable" : dataPhase;
+  const valuePlaceholder = (raw: string): string =>
+    dataPhase === "ready" && !raw ? t("valueConnectWallet") : dataPlaceholder;
 
   const [anchorDraft, setAnchorDraft] = useState(anchorAppId);
   const [amountDraft, setAmountDraft] = useState("1");
@@ -276,12 +298,28 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <div className="anchor-route__step" data-ready={agentCount > 0 ? "true" : undefined}>
             <UsersRound size={17} />
             <span>{t("anchorLaneStepAgents")}</span>
-            <strong>{agentCount < 0 ? "—" : `${agentCount}/21`}</strong>
+            <strong>
+              <PhaseValue
+                phase={agentCount < 0 ? dataPhase : "ready"}
+                placeholder={dataPlaceholder}
+                skeletonWidth="3.2em"
+              >
+                {`${agentCount}/21`}
+              </PhaseValue>
+            </strong>
           </div>
           <div className="anchor-route__step" data-ready={hasPositiveAmount(pendingRewards) ? "true" : undefined}>
             <Coins size={17} />
             <span>{t("anchorLaneStepRewards")}</span>
-            <strong>{pendingRewards === "—" ? "—" : `${pendingRewards} GAS`}</strong>
+            <strong>
+              <PhaseValue
+                phase={valuePhase(pendingRewards)}
+                placeholder={valuePlaceholder(pendingRewards)}
+                skeletonWidth="4em"
+              >
+                {`${pendingRewards} GAS`}
+              </PhaseValue>
+            </strong>
           </div>
         </div>
 
@@ -329,23 +367,56 @@ export default function PlayArea({ t, state, dispatch }: P) {
       <section className="anchor-visual" aria-label={t("anchorLaneLabel")}>
         <div className="anchor-visual__media">
           <img className="anchor-visual__image" src={STAGE_IMAGE} alt="" aria-hidden="true" />
+          {/* The chip names the model; the staked total is an addendum that only
+            * exists once an anchor resolves. Suffixing it with a zero-state
+            * phrase ("21-AGENT AA MODEL · PICK AN ANCHOR") reads as a broken
+            * label, so the addendum simply drops until there is a number. */}
           <span className="anchor-visual__chip">
             <Sparkles size={14} />
-            {t("agentModel")} · {totalStaked === "—" ? "—" : `${totalStaked} NEO`}
+            {t("agentModel")}
+            {valuePhase(totalStaked) === "loading" ? (
+              <> · <Skeleton width="4em" /></>
+            ) : totalStaked ? (
+              <> · {`${totalStaked} NEO`}</>
+            ) : null}
           </span>
         </div>
         <div className="anchor-visual__stats">
           <div>
             <span>{t("userStake")}</span>
-            <strong>{userStake === "—" ? "—" : `${userStake} NEO`}</strong>
+            <strong>
+              <PhaseValue
+                phase={valuePhase(userStake)}
+                placeholder={valuePlaceholder(userStake)}
+                skeletonWidth="4em"
+              >
+                {`${userStake} NEO`}
+              </PhaseValue>
+            </strong>
           </div>
           <div>
             <span>{t("rewardReserve")}</span>
-            <strong>{rewardReserve === "—" ? "—" : `${rewardReserve} GAS`}</strong>
+            <strong>
+              <PhaseValue
+                phase={valuePhase(rewardReserve)}
+                placeholder={valuePlaceholder(rewardReserve)}
+                skeletonWidth="4em"
+              >
+                {`${rewardReserve} GAS`}
+              </PhaseValue>
+            </strong>
           </div>
           <div>
             <span>{t("rewardPerNeoLabel")}</span>
-            <strong>{rewardPerNeo}</strong>
+            <strong>
+              <PhaseValue
+                phase={valuePhase(rewardPerNeo)}
+                placeholder={valuePlaceholder(rewardPerNeo)}
+                skeletonWidth="4em"
+              >
+                {rewardPerNeo}
+              </PhaseValue>
+            </strong>
           </div>
         </div>
       </section>
@@ -403,9 +474,21 @@ export default function PlayArea({ t, state, dispatch }: P) {
             />
           </div>
           <div className="anchor-drawer__summary">
-            <span>{t("userStake")} <strong>{userStake === "—" ? "—" : `${userStake} NEO`}</strong></span>
-            <span>{t("pendingRewards")} <strong>{pendingRewards === "—" ? "—" : `${pendingRewards} GAS`}</strong></span>
-            <span>{t("agentCount")} <strong>{agentCount < 0 ? "—" : `${agentCount}/21`}</strong></span>
+            <span>{t("userStake")} <strong>
+              <PhaseValue phase={valuePhase(userStake)} placeholder={valuePlaceholder(userStake)} skeletonWidth="4em">
+                {`${userStake} NEO`}
+              </PhaseValue>
+            </strong></span>
+            <span>{t("pendingRewards")} <strong>
+              <PhaseValue phase={valuePhase(pendingRewards)} placeholder={valuePlaceholder(pendingRewards)} skeletonWidth="4em">
+                {`${pendingRewards} GAS`}
+              </PhaseValue>
+            </strong></span>
+            <span>{t("agentCount")} <strong>
+              <PhaseValue phase={agentCount < 0 ? dataPhase : "ready"} placeholder={dataPlaceholder} skeletonWidth="3.2em">
+                {`${agentCount}/21`}
+              </PhaseValue>
+            </strong></span>
           </div>
           <div className="anchor-drawer__action-strip">
             <button type="button" onClick={refresh} disabled={busy}>
@@ -568,7 +651,15 @@ export default function PlayArea({ t, state, dispatch }: P) {
             badges: (
               <>
                 <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{modeLabel}</span>
-                <span className="mx2-badge">{agentCount < 0 ? "—" : `${agentCount}/21`} {t("agentCount")}</span>
+                {/* The agent-count badge only means something once an anchor is
+                  * chosen. Before that the header already says "Waiting for
+                  * anchor" — a second badge reading "Pick an anchor Agents"
+                  * would be noise, not information. */}
+                {agentCount >= 0 ? (
+                  <span className="mx2-badge">{`${agentCount}/21`} {t("agentCount")}</span>
+                ) : dataPhase === "loading" ? (
+                  <span className="mx2-badge"><Skeleton width="4.5em" /></span>
+                ) : null}
               </>
             ),
           }}

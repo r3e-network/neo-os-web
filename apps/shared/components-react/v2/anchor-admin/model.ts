@@ -54,12 +54,21 @@ export function anchorAgentBalance(agent?: AnchorAgentRecord, pendingLabel = "Ba
   return pendingLabel;
 }
 
+/**
+ * The node-sized balance string, or "" when no balance is known.
+ *
+ * Returns empty rather than a placeholder character on purpose: an unknown
+ * balance is a normal pre-network state, and the caller — not this helper —
+ * owns how that state looks (a skeleton while the read is in flight, nothing
+ * at all once it settles, with a single honest note beside the grid). A "—"
+ * here would stamp all 21 nodes with a void the caller cannot undo.
+ */
 export function compactAnchorAgentBalance(agent?: AnchorAgentRecord): string {
   if (typeof agent?.neoBalance === "number") {
     return Math.max(0, Math.floor(agent.neoBalance)).toLocaleString();
   }
   if (agent?.neo) return agent.neo;
-  return "—";
+  return "";
 }
 
 export function normalizeWholeNeoInput(value: string): string {

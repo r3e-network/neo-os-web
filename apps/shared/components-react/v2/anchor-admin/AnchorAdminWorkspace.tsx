@@ -19,6 +19,7 @@ import {
 import { CoinArt } from "@shared/art";
 import type { ObservableState } from "@shared/react/context";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
+import { PhaseValue, Skeleton, type DataPhase } from "../DataPhase";
 import { PlayStage } from "../PlayStage";
 import {
   anchorAgentBalance,
@@ -51,6 +52,8 @@ interface TopologyProps {
   t: AnchorAdminWorkspaceProps["t"];
   agents: NormalizedAnchorAgent[];
   rosterReady: boolean;
+  rosterPhase: DataPhase;
+  statsPhase: DataPhase;
   mode: AnchorOperationMode;
   activeSlot: AnchorRouteSlot;
   fromId: number;
@@ -65,6 +68,8 @@ function AgentTopology({
   t,
   agents,
   rosterReady,
+  rosterPhase,
+  statsPhase,
   mode,
   activeSlot,
   fromId,
@@ -99,11 +104,29 @@ function AgentTopology({
         </span>
         <div className="admin-topology__hub-copy">
           <span>{t("anchorHubTitle")}</span>
-          <strong>{totalNeoDisplay}</strong>
+          <strong>
+            <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="6.5em">
+              {totalNeoDisplay}
+            </PhaseValue>
+          </strong>
         </div>
         <dl>
-          <div><dt>{t("reserve")}</dt><dd>{reserveDisplay}</dd></div>
-          <div><dt>{t("selectedRoute")}</dt><dd>{selectedAgentDisplay}</dd></div>
+          <div>
+            <dt>{t("reserve")}</dt>
+            <dd>
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="4.5em">
+                {reserveDisplay}
+              </PhaseValue>
+            </dd>
+          </div>
+          <div>
+            <dt>{t("selectedRoute")}</dt>
+            <dd>
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="3em">
+                {selectedAgentDisplay}
+              </PhaseValue>
+            </dd>
+          </div>
         </dl>
       </div>
 
@@ -124,6 +147,13 @@ function AgentTopology({
                   status: statusLabel,
                   balance: balanceLabel,
                 });
+                // A node's balance has three honest looks. While the roster read
+                // is in flight it is a skeleton. Once the read settles without a
+                // network, the line is dropped entirely — 21 nodes each stamped
+                // with a placeholder character (or 21 copies of the same hint)
+                // reads as a broken grid; the single note under the grid carries
+                // that message once. Only a real balance renders as text.
+                const compactBalance = compactAnchorAgentBalance(agent);
                 return (
                   <li key={agent.normalizedId}>
                     <button
@@ -141,7 +171,11 @@ function AgentTopology({
                     >
                       <span className="admin-agent-node__status" aria-hidden="true" />
                       <strong>{String(agent.normalizedId).padStart(2, "0")}</strong>
-                      <small>{compactAnchorAgentBalance(agent)}</small>
+                      {rosterPhase === "loading" ? (
+                        <small><Skeleton width="2.4em" height="0.75em" /></small>
+                      ) : compactBalance ? (
+                        <small>{compactBalance}</small>
+                      ) : null}
                     </button>
                   </li>
                 );
@@ -155,6 +189,12 @@ function AgentTopology({
           <strong>{t("agentDirectoryEmpty")}</strong>
           <span>{t("agentDirectoryEmptyHint")}</span>
         </div>
+      )}
+
+      {rosterPhase === "unavailable" && rows.length > 0 && (
+        <p className="admin-topology__note" role="status">
+          {t("balancesAwaitNetwork")}
+        </p>
       )}
 
       <div className="admin-topology__legend" aria-label={t("topologyLegendLabel")}>
@@ -415,8 +455,22 @@ function RoutePlanner({
           <ChevronDown size={16} aria-hidden="true" />
         </summary>
         <dl>
-          <div><dt>{t("accountAddress")}</dt><dd><code>{getAnchorAgentAddress(focusedAgent) || "—"}</code></dd></div>
-          <div><dt>{t("currentCandidate")}</dt><dd><code>{getAnchorAgentCandidate(focusedAgent) || "—"}</code></dd></div>
+          <div>
+            <dt>{t("accountAddress")}</dt>
+            <dd>
+              {getAnchorAgentAddress(focusedAgent)
+                ? <code>{getAnchorAgentAddress(focusedAgent)}</code>
+                : <span className="mx2-phase-idle">{t("agentAddressUnset")}</span>}
+            </dd>
+          </div>
+          <div>
+            <dt>{t("currentCandidate")}</dt>
+            <dd>
+              {getAnchorAgentCandidate(focusedAgent)
+                ? <code>{getAnchorAgentCandidate(focusedAgent)}</code>
+                : <span className="mx2-phase-idle">{t("candidateUnset")}</span>}
+            </dd>
+          </div>
           <div><dt>{t("agentStatus")}</dt><dd>{focusedAgent?.active === false ? t("agentInactive") : t("agentActive")}</dd></div>
         </dl>
       </details>
@@ -424,8 +478,11 @@ function RoutePlanner({
       <div className="admin-transaction-preview" aria-live="polite">
         <span><CheckCircle2 size={15} aria-hidden="true" />{t("transactionPreview")}</span>
         <strong>{preview}</strong>
+        {/* Guidance, not failure. "Not connected yet" / "still checking" is the
+          * expected state for every first-time visitor, so it carries a neutral
+          * tone. Only a real submit failure below is allowed to read as danger. */}
         {(adminState !== "admin" || !rosterReady) && (
-          <small>{adminState === "admin"
+          <small data-tone="note">{adminState === "admin"
             ? t("rosterUnverifiedBody")
             : adminState === "denied"
               ? (expectedAdminDisplay
@@ -433,7 +490,7 @@ function RoutePlanner({
                   : t("operatorRequiredBodyNoAddress"))
               : t("operatorCheckingBody")}</small>
         )}
-        {submitFailed && <small role="alert">{t("operationRetryHint")}</small>}
+        {submitFailed && <small role="alert" data-tone="danger">{t("operationRetryHint")}</small>}
       </div>
     </section>
   );
@@ -444,8 +501,8 @@ export function AnchorAdminWorkspace({ t, state, dispatch, flavor }: AnchorAdmin
   const rawAgents = val("agentAccounts") as AnchorAgentRecord[] | undefined;
   const agents = useMemo(() => rawAgents ?? EMPTY_AGENTS, [rawAgents]);
   const rosterReadyValue = val("agentsLive");
-  const totalNeoDisplay = str("totalNeoDisplay", "—");
-  const reserveDisplay = str("reserveDisplay", "—");
+  const totalNeoDisplay = str("totalNeoDisplay", "");
+  const reserveDisplay = str("reserveDisplay", "");
   const selectedAgentDisplay = str("selectedAgentDisplay", t("noneFallback"));
   const agentCountDisplay = str("agentCountDisplay", `${agents.length || 0} / 21`);
   const adminState = str("adminState", "loading");
@@ -471,6 +528,18 @@ export function AnchorAdminWorkspace({ t, state, dispatch, flavor }: AnchorAdmin
   const rosterReady = typeof rosterReadyValue === "boolean"
     ? rosterReadyValue
     : rawAgents !== undefined;
+  // The app publishes the read phase; older/partial state falls back to
+  // inferring it from the roster flag so this component never invents a void.
+  const publishedPhase = val("statsPhase");
+  const statsPhase: DataPhase =
+    publishedPhase === "loading" || publishedPhase === "unavailable" || publishedPhase === "ready"
+      ? publishedPhase
+      : totalNeoDisplay
+        ? "ready"
+        : "loading";
+  // Node balances ride the same phase as the roster: they are read per agent
+  // right after the directory resolves.
+  const rosterPhase: DataPhase = rosterReady ? "ready" : statsPhase === "ready" ? "unavailable" : statsPhase;
   const fromAgent = roster.find((agent) => agent.normalizedId === fromAgentId) ?? roster[0];
   const effectiveFromId = fromAgent?.normalizedId ?? fromAgentId;
   const fallbackTarget = roster.find((agent) => agent.normalizedId !== effectiveFromId);
@@ -581,6 +650,8 @@ export function AnchorAdminWorkspace({ t, state, dispatch, flavor }: AnchorAdmin
         t={t}
         agents={roster}
         rosterReady={rosterReady}
+        rosterPhase={rosterPhase}
+        statsPhase={statsPhase}
         mode={mode}
         activeSlot={activeSlot}
         fromId={effectiveFromId}
@@ -633,9 +704,30 @@ export function AnchorAdminWorkspace({ t, state, dispatch, flavor }: AnchorAdmin
       <section>
         <h4><HubIcon size={16} aria-hidden="true" />{t("routeMapTitle")}</h4>
         <dl className="admin-drawer__metrics">
-          <div><dt>{t("trackedNeo")}</dt><dd>{totalNeoDisplay}</dd></div>
-          <div><dt>{t("reserve")}</dt><dd>{reserveDisplay}</dd></div>
-          <div><dt>{t("selectedRoute")}</dt><dd>{selectedAgentDisplay}</dd></div>
+          <div>
+            <dt>{t("trackedNeo")}</dt>
+            <dd>
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="5em">
+                {totalNeoDisplay}
+              </PhaseValue>
+            </dd>
+          </div>
+          <div>
+            <dt>{t("reserve")}</dt>
+            <dd>
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="4.5em">
+                {reserveDisplay}
+              </PhaseValue>
+            </dd>
+          </div>
+          <div>
+            <dt>{t("selectedRoute")}</dt>
+            <dd>
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="3em">
+                {selectedAgentDisplay}
+              </PhaseValue>
+            </dd>
+          </div>
         </dl>
       </section>
       <section>
@@ -684,9 +776,24 @@ export function AnchorAdminWorkspace({ t, state, dispatch, flavor }: AnchorAdmin
         }}
         scene={scene}
         score={[
-          { label: t("trackedNeo"), value: totalNeoDisplay, accent: true },
+          {
+            label: t("trackedNeo"),
+            value: (
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="5em">
+                {totalNeoDisplay}
+              </PhaseValue>
+            ),
+            accent: true,
+          },
           { label: t("agentCount"), value: agentCountDisplay },
-          { label: t("selectedRoute"), value: selectedAgentDisplay },
+          {
+            label: t("selectedRoute"),
+            value: (
+              <PhaseValue phase={statsPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="3em">
+                {selectedAgentDisplay}
+              </PhaseValue>
+            ),
+          },
         ]}
         actions={{
           primary: {

@@ -12,6 +12,11 @@ const appMessages = {
   anchorAppId: { en: "Anchor appId", zh: "Anchor appId" },
   neoAmount: { en: "NEO amount", zh: "NEO 数量" },
   userStake: { en: "Your stake", zh: "我的质押" },
+  // Honest zero-states for values the console cannot resolve yet. Each names
+  // the next step instead of leaving a void — none of these is an error.
+  valuePickAnchor: { en: "Pick an anchor", zh: "先选择锚点" },
+  valueConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  valueAwaitingNetwork: { en: "Awaiting network", zh: "等待网络" },
   pendingRewards: { en: "Claimable GAS", zh: "可领取 GAS" },
   totalStaked: { en: "Total staked", zh: "总质押" },
   rewardReserve: { en: "Reward reserve", zh: "奖励池" },
