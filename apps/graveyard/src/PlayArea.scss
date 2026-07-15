@@ -678,6 +678,20 @@
   color: #704d22;
 }
 
+/**
+ * The amber default above is the warning tone, and it still belongs to the
+ * storage-health alert (role="alert") — a real fault. The fee panel now
+ * declares its own tone: a read still in flight, or one that settled empty
+ * because no wallet is connected yet, is the expected first paint and must not
+ * be dressed as a problem.
+ */
+.graveyard-fee-status[data-tone="pending"],
+.graveyard-fee-status[data-tone="notice"] {
+  border-color: var(--mx2-border);
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-2);
+}
+
 .graveyard-fee-status span,
 .graveyard-fee-status strong,
 .graveyard-fee-status em {

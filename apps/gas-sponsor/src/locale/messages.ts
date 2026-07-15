@@ -50,6 +50,18 @@ const appMessages = {
   fuelPercent: { en: "{percent}% fuel left", zh: "剩余 {percent}%" },
   communityPoolFallback: { en: "Open community GAS pool", zh: "开放式社区 GAS 赞助池" },
   stationReady: { en: "Refill station ready", zh: "补给站已就绪" },
+  /**
+   * Eyebrow while the pool read is still in flight. It names the surface without
+   * claiming readiness, so it cannot contradict the "Finding live pools…"
+   * headline directly beneath it.
+   */
+  stationKicker: { en: "Refill station", zh: "补给站" },
+  /**
+   * Headline stat placeholder once a stats read settles with nothing. Reporting
+   * "0 GAS" here would invent a total we never received; this says what is
+   * actually true.
+   */
+  statsNeedNetwork: { en: "Not loaded yet", zh: "尚未加载" },
   findingPools: { en: "Finding live pools…", zh: "正在寻找可用赞助池…" },
   findingPoolsDetail: {
     en: "Reading the deployed contract without inventing a balance or eligibility result.",

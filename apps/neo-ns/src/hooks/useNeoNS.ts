@@ -250,6 +250,16 @@ export function useNeoNS({ app, t, nnsContractHash }: UseNeoNSOptions) {
     subscribe: (fn) => myDomains.subscribe(fn),
   };
 
+  /**
+   * Thrown when no Neo network can be resolved yet simply because nothing has
+   * bound one: the host supplied no launch network and there is no wallet
+   * provider to detect one from. That is the ordinary state of a cold visit —
+   * no read has failed because none was ever possible. Callers on read paths
+   * must degrade to their idle state instead of reporting a failure; write
+   * paths (which the visitor initiated) still raise a normal error.
+   */
+  class NnsNetworkUnbound extends Error {}
+
   const requireContext = async (requireDetectedNetwork = false): Promise<NnsChainContext> => {
     const launchNetwork = explicitNetwork(app.platform.launch.network);
     let detectedNetwork: NeoNetwork | "" = "";
@@ -264,7 +274,14 @@ export function useNeoNS({ app, t, nnsContractHash }: UseNeoNSOptions) {
       throw new Error(t("networkMismatch"));
     }
     const network = requireDetectedNetwork ? detectedNetwork : detectedNetwork || launchNetwork;
-    if (!network) throw new Error(t("networkUnverified"));
+    if (!network) {
+      // Read path: nothing bound a network, so this is the pre-connect idle
+      // state, not a verification failure. Write path: the visitor asked for
+      // something, so a plain error is correct.
+      throw requireDetectedNetwork
+        ? new Error(t("networkUnverified"))
+        : new NnsNetworkUnbound(t("networkUnverified"));
+    }
     const registryContract = normalizeHash(getMiniAppContractHash(APP_ID, resolveNeoNetwork(network)));
     const expected = overrideContract || registryContract;
     if (!expected || (!overrideContract && expected !== NNS_CONTRACT_HASH)) {
@@ -782,7 +799,15 @@ export function useNeoNS({ app, t, nnsContractHash }: UseNeoNSOptions) {
     try {
       const context = await requireContext();
       await loadMyDomains(context);
-    } catch {
+    } catch (cause) {
+      if (cause instanceof NnsNetworkUnbound) {
+        // Expected on a cold entry: no launch network, no wallet provider. The
+        // surface stays idle and the connect prompt does its job. Printing
+        // "Neo network and NNS contract status could not be verified." here
+        // framed a first paint that had attempted nothing as a failure.
+        domainsStatus.set("idle");
+        return;
+      }
       domainsStatus.set("failed");
       error.set(t("chainContextFailed"));
     } finally {

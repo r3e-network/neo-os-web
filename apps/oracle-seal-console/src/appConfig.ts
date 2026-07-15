@@ -91,9 +91,27 @@ const appMessages = {
     en: "Current Oracle contract key verified. New seals are enabled.",
     zh: "当前预言机合约密钥已核验，可以创建新密封包。",
   },
+  /**
+   * Reserved for a seal the visitor actually asked for and that was blocked
+   * before encryption (main.tsx `sealPayload`). "No new ciphertext was created"
+   * is honest reassurance THERE, because something was in fact attempted.
+   * It must never be the first thing the console says: see
+   * `statusRuntimeUnverified` for the passive probe.
+   */
   statusRuntimeUnavailable: {
     en: "The current Oracle key could not be verified. No new ciphertext was created.",
     zh: "当前预言机密钥无法核验，未创建任何新密文。",
+  },
+  /**
+   * The passive probe that runs on load has not reached the Oracle key yet —
+   * the expected cold first paint, not a failure and not a seal outcome. The
+   * copy this replaced ("could not be verified. No new ciphertext was created")
+   * told a visitor who had opened the studio one second ago that a seal of
+   * theirs had failed. State the pending fact and the next step instead.
+   */
+  statusRuntimeUnverified: {
+    en: "The Oracle encryption key is not verified yet. Run Check service to enable new seals.",
+    zh: "预言机加密密钥尚未核验。运行“检查服务”后即可创建新密封包。",
   },
   statusKey: { en: "Verifying the current Oracle contract key…", zh: "正在核验当前预言机合约密钥…" },
   statusEncrypt: { en: "Encrypting the JSON object in this browser…", zh: "正在此浏览器中加密 JSON 对象…" },

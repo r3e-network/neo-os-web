@@ -28,6 +28,7 @@ import {
   OpenUiLiteSegmented as OpenUiSegmented,
   OpenUiLiteTextField as OpenUiTextField,
 } from "@shared/components-react/v2/OpenUiLite";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import "./PlayArea.scss";
 
@@ -396,6 +397,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? "unavailable"
     : statsStatus;
   const updatedAt = formatUpdatedAt(statsUpdatedAt);
+  /**
+   * Phases for the network rail. `statsStatus` is the settled signal the app
+   * already tracks: anything other than "loading" means a read attempt has come
+   * back. Without this split every absent value rendered an em dash plus an
+   * "unavailable" caption, so the rail asserted a dead chain during its own
+   * first fetch.
+   */
+  const statsLoading = statsStatus === "loading" || isLoading;
+  const statsSettled = statsStatus !== "loading";
+  const heightPhase = resolvePhase({ loading: statsLoading, settled: statsSettled, hasData: hasHeight });
+  const txCountPhase = resolvePhase({ loading: statsLoading, settled: statsSettled, hasData: hasTxCount });
+  const otherHeightPhase = resolvePhase({
+    loading: statsLoading,
+    settled: statsSettled,
+    hasData: Boolean(otherHeight && !["—", "-", notAvailableLabel].includes(otherHeight)),
+  });
 
   const setNetworkSafe = (network: string) => {
     if (network === "mainnet" || network === "testnet") state.selectedNetwork?.set(network);
@@ -459,14 +476,53 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <RadioTower size={18} aria-hidden="true" />
       </header>
 
+      {/*
+        * The rail used to fall straight through to "—" plus an "unavailable"
+        * caption for every value the moment it was absent — including while the
+        * very first read was still in flight. A cold first paint therefore
+        * opened with Block Height "—", Transactions "—", a Testnet height of
+        * "N/A" and two "unavailable" captions, i.e. it reported a degraded
+        * chain before it had finished asking. `railStatsStatus` already knows
+        * the difference, so each value now renders through the shared DataPhase
+        * vocabulary: a shimmer while the read runs, honest zero-state copy once
+        * it settles empty, and the real number when there is one.
+        */}
       <dl className="explorer-network-metrics">
-        <div><dt>{t("blockHeight")}</dt><dd>{hasHeight ? selectedHeight : "—"}</dd><span>{hasHeight ? t("explorerSourceRpc") : t("explorerDataUnavailable")}</span></div>
-        <div><dt>{t("transactions")}</dt><dd>{hasTxCount ? selectedTxCount : "—"}</dd><span>{hasTxCount ? t("explorerSourceIndexer") : t("explorerSourceIndexerUnavailable")}</span></div>
+        <div>
+          <dt>{t("blockHeight")}</dt>
+          <dd>
+            <PhaseValue phase={heightPhase} placeholder={t("explorerValuePending")} skeletonWidth="4.5em">
+              {selectedHeight}
+            </PhaseValue>
+          </dd>
+          {/*
+            * This caption names where the number comes from; it is a source
+            * label, not a status line. Swapping it to "Data temporarily
+            * unavailable" made the rail repeat the same bad news the header dot
+            * already reports, so one unreachable RPC read printed four
+            * degradation messages down a single column. The header owns the
+            * status; the value owns whether it loaded.
+            */}
+          <span>{heightPhase === "loading" ? t("explorerDataLoading") : t("explorerSourceRpc")}</span>
+        </div>
+        <div>
+          <dt>{t("transactions")}</dt>
+          <dd>
+            <PhaseValue phase={txCountPhase} placeholder={t("explorerValuePending")} skeletonWidth="4.5em">
+              {selectedTxCount}
+            </PhaseValue>
+          </dd>
+          <span>{txCountPhase === "loading" ? t("explorerDataLoading") : t("explorerSourceIndexer")}</span>
+        </div>
       </dl>
 
       <div className="explorer-other-network">
         <span>{otherNetworkLabel}</span>
-        <strong>{otherHeight || "—"}</strong>
+        <strong>
+          <PhaseValue phase={otherHeightPhase} placeholder={t("explorerValuePending")} skeletonWidth="3.5em">
+            {otherHeight}
+          </PhaseValue>
+        </strong>
         <em>{t("blockHeight")}</em>
       </div>
 

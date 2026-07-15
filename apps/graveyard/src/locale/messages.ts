@@ -227,6 +227,24 @@ const appMessages = {
   networkAndFee: { en: "Network & fee", zh: "网络与费用" },
   feePending: { en: "Checking…", zh: "核验中…" },
   checkingLiveFees: { en: "Checking live contract fees", zh: "正在核验合约实时费用" },
+  checkingLiveFeesHint: {
+    en: "Reading the burial and forget fees from the contract.",
+    zh: "正在从合约读取埋葬与遗忘费用。",
+  },
+  /**
+   * Settled-but-empty fee state. This is the normal first paint (no wallet or
+   * network bound yet), so it reads as a next step rather than a fault — the
+   * old copy here was the amber "Live contract fees are unavailable. No GAS
+   * will move until they are verified." warning, shown before the visitor had
+   * done anything. `liveFeeUnavailable` keeps its failure voice for the write
+   * guards in useGraveyard, which fire on an action the visitor really took.
+   */
+  feeNeedsConnection: { en: "Connect to load", zh: "连接后加载" },
+  feeNeedsConnectionTitle: { en: "Fees load with your wallet", zh: "连接钱包后加载费用" },
+  feeNeedsConnectionHint: {
+    en: "Nothing is charged until a fee is read and you confirm.",
+    zh: "在读取费用并确认之前，不会产生任何扣费。",
+  },
   liveFeeUnavailable: {
     en: "Live contract fees are unavailable. No GAS will move until they are verified.",
     zh: "暂时无法核验合约实时费用；核验完成前不会转移 GAS。",

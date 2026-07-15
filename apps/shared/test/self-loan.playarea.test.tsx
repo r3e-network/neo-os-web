@@ -148,4 +148,73 @@ describe("self-loan production position desk", () => {
     expect(source).toContain('variant="gas"');
     expect(source).not.toMatch(/neo-icon|gas-icon|<svg|<circle/);
   });
+
+  // A visitor with no wallet is the FIRST person this desk ever meets. That
+  // first paint used to be a red "Live data unavailable / Writes are disabled"
+  // alert over eighteen em-dashes, describing a failure that had not happened:
+  // loadRuntime treated "no wallet has named a network" as a network mismatch.
+  // These pin the reframed pre-connect surface.
+  describe("pre-wallet first paint", () => {
+    function preWalletState() {
+      return state({
+        isConnected: false,
+        runtimeStatus: "awaiting-wallet",
+        marketStatus: "awaiting-wallet",
+        balancesStatus: "awaiting-wallet",
+        positionStatus: "awaiting-wallet",
+        recoveryStatus: "awaiting-wallet",
+        marketReady: false,
+        borrowDataReady: false,
+        manageDataReady: false,
+        runtimeCompatible: false,
+        collateralAmount: "",
+        neoPrice: 0,
+        neoPriceBase: 0n,
+        poolDisplay: "notAvailable",
+        neoBalanceDisplay: "notAvailable",
+        gasBalanceDisplay: "notAvailable",
+        readError: "",
+      });
+    }
+
+    it("raises no error alert when no wallet has named a network", () => {
+      const { container } = render(
+        <PlayArea t={t} state={preWalletState()} dispatch={vi.fn()} />,
+      );
+      expect(container.querySelector('[role="alert"][data-tone="error"]')).toBeNull();
+      expect(container.textContent).not.toContain("criticalDataUnavailable");
+      expect(container.textContent).not.toContain("dataUnavailableTitle");
+    });
+
+    it("renders no em-dash voids, only honest zero-state copy", () => {
+      const { container } = render(
+        <PlayArea t={t} state={preWalletState()} dispatch={vi.fn()} />,
+      );
+      // The em-dash grid is the defect itself: one dead character standing in
+      // for "loading", "needs a wallet" and "type an amount" alike.
+      expect(container.textContent).not.toContain("—");
+      expect(container.querySelectorAll('[data-phase="unavailable"]').length).toBeGreaterThan(0);
+    });
+
+    it("keeps the primary action live so the visitor can connect", () => {
+      const { container } = render(
+        <PlayArea t={t} state={preWalletState()} dispatch={vi.fn()} />,
+      );
+      const primary = container.querySelector<HTMLButtonElement>(".mx2-btn--primary");
+      expect(primary).not.toBeNull();
+      expect(primary?.disabled).toBe(false);
+      expect(primary?.textContent).toContain("connectWallet");
+    });
+
+    it("still raises the alert for a genuine read failure", () => {
+      const { container } = render(
+        <PlayArea
+          t={t}
+          state={state({ isConnected: true, marketStatus: "error", marketReady: false })}
+          dispatch={vi.fn()}
+        />,
+      );
+      expect(container.querySelector('[role="alert"][data-tone="error"]')).not.toBeNull();
+    });
+  });
 });

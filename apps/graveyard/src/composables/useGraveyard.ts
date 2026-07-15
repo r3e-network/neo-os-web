@@ -315,6 +315,17 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   // read successfully. The seeded values are display fallbacks only; using a
   // stale fee can deposit GAS and then fault the business call.
   const feesReady = createObservable(false);
+  /**
+   * True once a fee read has actually completed, successfully or not.
+   *
+   * `feesReady` alone cannot tell "we have not finished asking" from "we asked
+   * and got nothing", so the surface collapsed both into one placeholder: the
+   * fee rails rendered "Checking…" while the panel below already showed the
+   * settled-failure warning, i.e. the first screen claimed to be checking and
+   * to have failed at the same time. This is the `settled` half of the shared
+   * DataPhase vocabulary (apps/shared/components-react/v2/DataPhase.tsx).
+   */
+  const feesSettled = createObservable(false);
   const contractPaused = createObservable(false);
   const contractStateReady = createObservable(false);
   const storageHealthy = createObservable(true);
@@ -1446,6 +1457,10 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
       await loadHistory();
     } finally {
       isLoading.set(false);
+      // The read attempt is over either way. Until this flips, the surface must
+      // stay in its loading state rather than assert an outcome it does not
+      // have yet.
+      feesSettled.set(true);
     }
   };
 
@@ -1457,7 +1472,7 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   return {
     totalDestroyed, burialFeesPaid, assetHash, memoryType, history,
     showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,
-    isHashing, sourceError, fileName, fileSize, feesReady, contractPaused,
+    isHashing, sourceError, fileName, fileSize, feesReady, feesSettled, contractPaused,
     contractStateReady, storageHealthy, walletAddress, walletConnected,
     burialRecoveryPhase, burialRecoveryTxid, forgetRecoveryPhase,
     forgetRecoveryMemoryId, epitaphRecoveryPhase, epitaphRecoveryMemoryId,

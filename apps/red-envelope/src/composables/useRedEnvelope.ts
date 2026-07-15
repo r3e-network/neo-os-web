@@ -295,6 +295,38 @@ export function useRedEnvelope({
   const pendingOperation = createObservable<PendingRedEnvelopeOperation | null>(null);
   const transactionNotice = createObservable("");
   const serviceNotice = createObservable("");
+  /**
+   * Why the contract could not be verified, for DISPLAY only. This is not a
+   * gate: contractCompatible above remains the sole authority over paid actions
+   * and still refuses every case this reports as "awaiting-wallet".
+   *
+   * The split exists because a boolean could not tell two very different
+   * situations apart, and the scene printed both as "The active network
+   * contract could not be verified. Paid actions are paused":
+   *   - "unverified": a network and contract WERE resolved and the attestation
+   *     or the live probe read disagreed. A real fault; say so.
+   *   - "awaiting-wallet": no wallet has named a network yet (a wallet-less
+   *     host reports a bare "neo-n3", which normalizes to null), so no contract
+   *     could be resolved to verify. Nothing failed — this is the first paint
+   *     every visitor sees, and it must read as an invitation.
+   */
+  const contractProbe = createObservable<"awaiting-wallet" | "unverified" | "ready">(
+    "awaiting-wallet",
+  );
+
+  /**
+   * Publish the "contract could not be verified" notice ONLY when there was
+   * actually something to verify. Every caller reaches this after
+   * refreshContractCompatibility() has returned false, but that single false
+   * covers both a real failure and the ordinary pre-wallet state; only the
+   * probe can tell them apart. Pre-wallet the scene's own connect prompt is the
+   * honest thing to show, so the notice stays empty.
+   */
+  const noticeUnverifiedContract = () => {
+    serviceNotice.set(
+      contractProbe.get() === "awaiting-wallet" ? "" : t("contractCompatibilityUnproven"),
+    );
+  };
   const operationStore = createRedEnvelopeOperationStore(
     operationStorage ?? app.storage.local,
   );
@@ -346,21 +378,42 @@ export function useRedEnvelope({
     createAvailable.set(false);
     activeNetwork.set("");
     try {
-      const detected = normalizeRedEnvelopeNetwork(await app.chain.detectNetwork());
+      // Detection being unavailable is not a conflict — a host with no wallet
+      // bridge yet simply cannot answer. Treat a throw the same as an unnamed
+      // network so it lands in the neutral pre-connect branch below rather than
+      // the outer catch, which reports a genuine verification failure.
+      let detectedRaw: unknown = "";
+      try {
+        detectedRaw = await app.chain.detectNetwork();
+      } catch {
+        detectedRaw = "";
+      }
+      const detected = normalizeRedEnvelopeNetwork(detectedRaw);
       const expectedLaunch = normalizeRedEnvelopeNetwork(launchNetwork);
       const contractHash = canonicalHash160(app.chain.contractAddress.get());
-      if (!detected || !contractHash || (expectedLaunch && expectedLaunch !== detected)) {
+      // Nothing named, nothing to verify: hold the neutral pre-connect state.
+      if (!detected || !contractHash) {
+        contractProbe.set("awaiting-wallet");
+        return false;
+      }
+      // A launch/wallet network disagreement IS a real fault worth reporting.
+      if (expectedLaunch && expectedLaunch !== detected) {
+        contractProbe.set("unverified");
         return false;
       }
 
       const attestation = await attestContract(detected, contractHash);
-      if (!attestation.compatible) return false;
+      if (!attestation.compatible) {
+        contractProbe.set("unverified");
+        return false;
+      }
 
       // Exercise one common safe method through the host bridge as a second
       // source of truth: attestation alone must not authorize a stale bridge
       // that is actually bound to another script hash.
       await app.chain.query("lastEnvelopeId", []).asBigInt();
       contractCompatible.set(true);
+      contractProbe.set("ready");
       activeNetwork.set(detected);
 
       if (!attestation.boundedCreate) return true;
@@ -374,7 +427,10 @@ export function useRedEnvelope({
       }
       return true;
     } catch {
+      // A throw means a read we DID attempt against a resolved contract failed.
+      // That is a genuine fault, unlike the pre-wallet path returning above.
       contractCompatible.set(false);
+      contractProbe.set("unverified");
       createAvailable.set(false);
       activeNetwork.set("");
       return false;
@@ -608,7 +664,7 @@ export function useRedEnvelope({
         pools.set([]);
         claims.set([]);
         prepaidCredit.set(0);
-        serviceNotice.set(t("contractCompatibilityUnproven"));
+        noticeUnverifiedContract();
         return;
       }
       const claimerAddr = address.get();
@@ -778,7 +834,7 @@ export function useRedEnvelope({
     serviceNotice.set("");
     try {
       if (!contractCompatible.get() && !(await refreshContractCompatibility())) {
-        serviceNotice.set(t("contractCompatibilityUnproven"));
+        noticeUnverifiedContract();
         return;
       }
       const claimerAddr = address.get();
@@ -1112,7 +1168,7 @@ export function useRedEnvelope({
       return { status: pendingOperation.get() ? "pending" : "none", operation: pendingOperation.get() };
     }
     if (!contractCompatible.get() && !(await refreshContractCompatibility())) {
-      serviceNotice.set(t("contractCompatibilityUnproven"));
+      noticeUnverifiedContract();
       return { status: "none", operation: null };
     }
     beginFinancialAction("recover");
@@ -1720,7 +1776,15 @@ export function useRedEnvelope({
     setAddress(app.chain.address.get() ?? address.get() ?? null);
     const compatible = await refreshContractCompatibility();
     if (!compatible) {
-      transactionNotice.set(t("contractCompatibilityUnproven"));
+      // This is the mount path — the very first thing a visitor triggers. Only
+      // report a verification failure if a network and contract were actually
+      // resolved to verify; pre-wallet there is nothing to verify and nothing
+      // has gone wrong, so the scene shows its connect prompt instead. (The
+      // scene reads transactionNotice ahead of serviceNotice, so an unguarded
+      // set here surfaced the failure copy under every cold first paint.)
+      transactionNotice.set(
+        contractProbe.get() === "awaiting-wallet" ? "" : t("contractCompatibilityUnproven"),
+      );
       envelopes.set([]);
       pools.set([]);
       claims.set([]);
@@ -1748,6 +1812,7 @@ export function useRedEnvelope({
     pendingOperation,
     transactionNotice,
     serviceNotice,
+    contractProbe,
     createAvailable,
     contractCompatible,
     activeNetwork,

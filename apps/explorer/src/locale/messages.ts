@@ -158,6 +158,12 @@ title: { en: "Neo Explorer", zh: "Neo 浏览器" },
   explorerDataCached: { en: "Cached snapshot", zh: "缓存快照" },
   explorerDataEmpty: { en: "No recent transactions", zh: "暂无最近交易" },
   explorerDataUnavailable: { en: "Data temporarily unavailable", zh: "数据暂时不可用" },
+  /**
+   * Rail value placeholder once a stats read settles without a number. Replaces
+   * the em dash the tiles used to fall through to — a dash reads as a broken
+   * cell, and search (the app's actual job) is unaffected either way.
+   */
+  explorerValuePending: { en: "Not loaded", zh: "未加载" },
   explorerDataLoading: { en: "Syncing chain data", zh: "正在同步链上数据" },
   explorerRecentUnavailable: {
     en: "Recent transactions are unavailable. Existing search remains usable.",

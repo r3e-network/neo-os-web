@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { CoinArt, ParticleBurst } from "@shared/art";
 import { PlayStage } from "@shared/components-react/v2";
+import { PhaseValue, resolvePhase, type DataPhase } from "@shared/components-react/v2/DataPhase";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import "./PlayArea.scss";
@@ -53,7 +54,7 @@ interface PlatformStats {
   platformFeeBps?: number;
 }
 
-type LoadStatus = "idle" | "loading" | "ready" | "error";
+type LoadStatus = "idle" | "loading" | "ready" | "awaiting-wallet" | "error";
 type ManageMode = "repay" | "add";
 type Review =
   | {
@@ -73,10 +74,16 @@ type Review =
   | { kind: "repay"; amount: string; requiresDeposit: boolean }
   | { kind: "add"; amount: string; requiresDeposit: boolean };
 
+/**
+ * Fallback tiers used only until the composable's derived ltvOptions arrive.
+ * Labels stay empty rather than an em-dash: the tier percent beside them already
+ * renders its own loading skeleton, and a lone "—" next to a shimmer reads as
+ * two different kinds of nothing.
+ */
 const DEFAULT_LTV_OPTIONS: LtvOption[] = [
-  { tier: 1, percent: 0, label: "—", desc: "—" },
-  { tier: 2, percent: 0, label: "—", desc: "—" },
-  { tier: 3, percent: 0, label: "—", desc: "—" },
+  { tier: 1, percent: 0, label: "", desc: "" },
+  { tier: 2, percent: 0, label: "", desc: "" },
+  { tier: 3, percent: 0, label: "", desc: "" },
 ];
 
 function toFiniteNumber(value: unknown, fallback = 0) {
@@ -258,6 +265,38 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     && addNumber <= availableNeoForAction
     && !busy;
 
+  // ── Read phases ───────────────────────────────────────────────────────
+  // Every value below used to fall through to a bare "—" whenever its read had
+  // not produced data, which collapsed three very different situations into one
+  // dead character: the read is in flight, the read needs a wallet we do not
+  // have, and the visitor simply has not typed an amount yet. Route each value
+  // through resolvePhase/PhaseValue so a shimmer means "coming" and words mean
+  // "here is what this needs".
+  const phaseOfRead = (status: LoadStatus, hasData: boolean): DataPhase =>
+    resolvePhase({
+      loading: status === "idle" || status === "loading",
+      settled: status === "ready" || status === "error" || status === "awaiting-wallet",
+      hasData,
+    });
+  const marketPhase = (hasData: boolean) => phaseOfRead(marketStatus, hasData);
+  const balancesPhase = (hasData: boolean) => phaseOfRead(balancesStatus, hasData);
+  /** True when no wallet has named a network yet — the expected first paint. */
+  const awaitingWallet = runtimeStatus === "awaiting-wallet";
+  const marketReadoutReady = runtimeCompatible && marketStatus === "ready";
+  const connectPlaceholder = t("phaseConnect");
+  const quotePlaceholder = t("phaseAwaitingQuote");
+  const amountPlaceholder = t("phaseEnterAmount");
+  /**
+   * A borrow quote needs a live market read AND a typed collateral amount.
+   * Distinguish the two so the visitor is told which one is missing.
+   */
+  const quotePhase: DataPhase = quoteVerified && collateralValid
+    ? "ready"
+    : marketStatus === "idle" || marketStatus === "loading"
+      ? "loading"
+      : "unavailable";
+  const quoteHint = quoteVerified ? amountPlaceholder : quotePlaceholder;
+
   const riskPercent = hasActiveLoan ? toFiniteNumber(currentLTVDisplay.replace("%", ""), activeLtv) : ltvPercent;
   const riskAvailable = hasActiveLoan
     ? marketStatus === "ready" && neoPrice > 0 && currentLTVDisplay !== t("notAvailable")
@@ -330,6 +369,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     || recoveryStatus === "error";
   const marketDataError = marketStatus === "error";
   const runtimeDataError = runtimeStatus === "error";
+  // "awaiting-wallet" is deliberately absent from every clause above: it is the
+  // expected pre-connect state, not a fault, and must never raise the alert.
   const dataErrorVisible = userDataError || marketDataError || runtimeDataError || Boolean(readError);
   // Repayment and collateral recovery must remain available when only the
   // unrelated new-borrow quote is down.
@@ -356,11 +397,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="selfloan-position__amounts">
           <article>
             <span>{hasActiveLoan ? t("borrowed") : t("estimatedBorrowNet")}</span>
-            <strong>{hasActiveLoan ? formatAmount(activeDebt, 4) : quoteVerified ? formatAmount(netBorrow, 4) : "—"} GAS</strong>
+            <strong>
+              {hasActiveLoan ? (
+                `${formatAmount(activeDebt, 4)} GAS`
+              ) : (
+                <PhaseValue
+                  phase={quoteVerified ? "ready" : marketPhase(false)}
+                  placeholder={quotePlaceholder}
+                  skeletonWidth="6em"
+                >
+                  {`${formatAmount(netBorrow, 4)} GAS`}
+                </PhaseValue>
+              )}
+            </strong>
           </article>
           <article>
             <span>{t("coverageRatio")}</span>
-            <strong>{hasActiveLoan ? coverageRatioDisplay : quoteVerified && ltvPercent > 0 ? formatAmount(100 / ltvPercent, 2) : "—"}×</strong>
+            <strong>
+              {hasActiveLoan ? (
+                `${coverageRatioDisplay}×`
+              ) : (
+                <PhaseValue
+                  phase={quoteVerified && ltvPercent > 0 ? "ready" : marketPhase(false)}
+                  placeholder={quotePlaceholder}
+                  skeletonWidth="3.5em"
+                >
+                  {`${formatAmount(100 / ltvPercent, 2)}×`}
+                </PhaseValue>
+              )}
+            </strong>
           </article>
         </div>
         <footer>
@@ -373,7 +438,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="selfloan-risk__header">
           <div>
             <span>{t("riskBand")}</span>
-            <strong>{riskAvailable ? `${formatAmount(riskPercent, 1)}% LTV` : "—"}</strong>
+            <strong>
+              <PhaseValue
+                phase={riskAvailable ? "ready" : marketPhase(false)}
+                placeholder={quotePlaceholder}
+                skeletonWidth="5em"
+              >
+                {`${formatAmount(riskPercent, 1)}% LTV`}
+              </PhaseValue>
+            </strong>
           </div>
           <span className="selfloan-risk__source"><CircleGauge size={14} /> {t("configuredQuote")}</span>
         </div>
@@ -392,17 +465,41 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="selfloan-market" aria-label={t("marketSnapshot")}>
         <article>
           <span>{t("rateLabel")}</span>
-          <strong>{marketStatus === "ready" && neoPrice > 0 ? `1 NEO = ${formatAmount(neoPrice, 4)} GAS` : "—"}</strong>
+          <strong>
+            <PhaseValue
+              phase={marketPhase(marketStatus === "ready" && neoPrice > 0)}
+              placeholder={connectPlaceholder}
+              skeletonWidth="9em"
+            >
+              {`1 NEO = ${formatAmount(neoPrice, 4)} GAS`}
+            </PhaseValue>
+          </strong>
           <small>{t("configuredNotOracle")}</small>
         </article>
         <article>
           <span>{t("poolAvailable")}</span>
-          <strong>{marketStatus === "ready" ? poolDisplay : "—"}</strong>
+          <strong>
+            <PhaseValue
+              phase={marketPhase(marketStatus === "ready")}
+              placeholder={connectPlaceholder}
+              skeletonWidth="6em"
+            >
+              {poolDisplay}
+            </PhaseValue>
+          </strong>
           <small>{t("availablePool")}</small>
         </article>
         <article>
           <span>{t("originationFeeLabel")}</span>
-          <strong>{marketStatus === "ready" ? `${formatAmount(feePercent, 2)}%` : "—"}</strong>
+          <strong>
+            <PhaseValue
+              phase={marketPhase(marketStatus === "ready")}
+              placeholder={connectPlaceholder}
+              skeletonWidth="3.5em"
+            >
+              {`${formatAmount(feePercent, 2)}%`}
+            </PhaseValue>
+          </strong>
           <small>{t("borrowOnlyFee")}</small>
         </article>
       </section>
@@ -475,7 +572,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 aria-label={t("amountToLock")}
               />
             </label>
-            <div><strong>NEO</strong><small>{balancesStatus === "ready" ? `${neoBalanceDisplay} ${t("available")}` : "—"}</small></div>
+            <div><strong>NEO</strong><small>
+              <PhaseValue
+                phase={balancesPhase(balancesStatus === "ready")}
+                placeholder={connectPlaceholder}
+                skeletonWidth="5em"
+              >
+                {`${neoBalanceDisplay} ${t("available")}`}
+              </PhaseValue>
+            </small></div>
           </div>
           <div className="selfloan-quick-row" aria-label={t("quickCollateral")}>
             {[10, 25, 50].map((amount) => (
@@ -496,16 +601,36 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   aria-pressed={active}
                 >
                   <span>{option.label}</span>
-                  <strong>{option.percent > 0 ? `${formatAmount(option.percent, 1)}%` : "—"}</strong>
+                  <strong>
+                    <PhaseValue
+                      phase={option.percent > 0 ? "ready" : marketPhase(false)}
+                      placeholder={connectPlaceholder}
+                      skeletonWidth="3em"
+                    >
+                      {`${formatAmount(option.percent, 1)}%`}
+                    </PhaseValue>
+                  </strong>
                   <small>{option.desc}</small>
                 </button>
               );
             })}
           </div>
           <div className="selfloan-quote" data-ready={quoteVerified && collateralValid}>
-            <div><span>{t("grossBorrow")}</span><strong>{quoteVerified && collateralValid ? `${formatAmount(grossBorrow, 4)} GAS` : "—"}</strong></div>
-            <div><span>{t("originationFeeLabel")}</span><strong>{quoteVerified && collateralValid ? `−${formatAmount(feeGas, 4)} GAS` : "—"}</strong></div>
-            <div><span>{t("youReceive")}</span><strong>{quoteVerified && collateralValid ? `${formatAmount(netBorrow, 4)} GAS` : "—"}</strong></div>
+            <div><span>{t("grossBorrow")}</span><strong>
+              <PhaseValue phase={quotePhase} placeholder={quoteHint} skeletonWidth="6em">
+                {`${formatAmount(grossBorrow, 4)} GAS`}
+              </PhaseValue>
+            </strong></div>
+            <div><span>{t("originationFeeLabel")}</span><strong>
+              <PhaseValue phase={quotePhase} placeholder={quoteHint} skeletonWidth="6em">
+                {`−${formatAmount(feeGas, 4)} GAS`}
+              </PhaseValue>
+            </strong></div>
+            <div><span>{t("youReceive")}</span><strong>
+              <PhaseValue phase={quotePhase} placeholder={quoteHint} skeletonWidth="6em">
+                {`${formatAmount(netBorrow, 4)} GAS`}
+              </PhaseValue>
+            </strong></div>
           </div>
         </section>
       ) : (
@@ -523,7 +648,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="selfloan-asset-input">
                 <CoinArt size={48} variant="gas" decorative />
                 <label><span>{t("repayAmount")}</span><input value={draftRepay} onChange={(event) => setDraftRepay(decimalInput(event.target.value))} inputMode="decimal" placeholder="0" disabled={busy} aria-label={t("repayAmount")} /></label>
-                <div><strong>GAS</strong><small>{balancesStatus === "ready" ? `${gasBalanceDisplay} ${t("available")}` : "—"}</small></div>
+                <div><strong>GAS</strong><small>
+                  <PhaseValue
+                    phase={balancesPhase(balancesStatus === "ready")}
+                    placeholder={connectPlaceholder}
+                    skeletonWidth="5em"
+                  >
+                    {`${gasBalanceDisplay} ${t("available")}`}
+                  </PhaseValue>
+                </small></div>
               </div>
               <div className="selfloan-quick-row selfloan-quick-row--three">
                 {[0.25, 0.5].map((ratio) => <button key={ratio} type="button" onClick={() => setDraftRepay(plainAmount(activeDebt * ratio))} disabled={busy}>{ratio * 100}%</button>)}
@@ -531,7 +664,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <div className="selfloan-effect-preview">
                 <span>{t("remainingDebt")}</span>
-                <strong>{repayNumber > 0 ? `${formatAmount(Math.max(0, activeDebt - repayNumber), 4)} GAS` : "—"}</strong>
+                <strong>
+                  <PhaseValue
+                    phase={repayNumber > 0 ? "ready" : "unavailable"}
+                    placeholder={t("phaseEnterAmount")}
+                    skeletonWidth="6em"
+                  >
+                    {`${formatAmount(Math.max(0, activeDebt - repayNumber), 4)} GAS`}
+                  </PhaseValue>
+                </strong>
                 <small>{repayNumber >= activeDebt && activeDebt > 0 ? t("fullRepayReleases", { amount: formatAmount(activeCollateral, 0) }) : t("partialRepayKeepsCollateral")}</small>
               </div>
             </>
@@ -540,7 +681,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div className="selfloan-asset-input">
                 <CoinArt size={48} variant="neo" decorative />
                 <label><span>{t("addCollateralAmount")}</span><input value={draftAdd} onChange={(event) => setDraftAdd(wholeNeoInput(event.target.value))} inputMode="numeric" placeholder="0" disabled={busy} aria-label={t("addCollateralAmount")} /></label>
-                <div><strong>NEO</strong><small>{balancesStatus === "ready" ? `${neoBalanceDisplay} ${t("available")}` : "—"}</small></div>
+                <div><strong>NEO</strong><small>
+              <PhaseValue
+                phase={balancesPhase(balancesStatus === "ready")}
+                placeholder={connectPlaceholder}
+                skeletonWidth="5em"
+              >
+                {`${neoBalanceDisplay} ${t("available")}`}
+              </PhaseValue>
+            </small></div>
               </div>
               <div className="selfloan-quick-row selfloan-quick-row--three">
                 {[1, 5].map((amount) => <button key={amount} type="button" onClick={() => setDraftAdd(String(amount))} disabled={busy}>{amount} NEO</button>)}
@@ -548,7 +697,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               </div>
               <div className="selfloan-effect-preview">
                 <span>{t("collateralAfter")}</span>
-                <strong>{addNumber > 0 ? `${formatAmount(activeCollateral + addNumber, 0)} NEO` : "—"}</strong>
+                <strong>
+                  <PhaseValue
+                    phase={addNumber > 0 ? "ready" : "unavailable"}
+                    placeholder={amountPlaceholder}
+                    skeletonWidth="5em"
+                  >
+                    {`${formatAmount(activeCollateral + addNumber, 0)} NEO`}
+                  </PhaseValue>
+                </strong>
                 <small>{t("debtDoesNotIncrease")}</small>
               </div>
             </>
@@ -568,12 +725,44 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="selfloan-source-grid">
         <article data-status={runtimeStatus}>
           <span>{t("deploymentBinding")}</span>
-          <strong>{runtimeCompatible ? `${activeNetwork || "Neo N3"} · ${runtimeChecksum ?? "—"}` : t("notAvailable")}</strong>
+          <strong>
+            <PhaseValue
+              phase={phaseOfRead(runtimeStatus, runtimeCompatible)}
+              placeholder={connectPlaceholder}
+              skeletonWidth="9em"
+            >
+              {`${activeNetwork || "Neo N3"}${runtimeChecksum === null ? "" : ` · ${runtimeChecksum}`}`}
+            </PhaseValue>
+          </strong>
           <small>{t("checksumAbiPinned")}</small>
         </article>
-        <article data-status={marketStatus}><span>{t("marketSnapshot")}</span><strong>{marketStatus === "ready" ? t("verified") : t("notAvailable")}</strong><small>{t("tiersFeePricePool")}</small></article>
-        <article data-status={balancesStatus}><span>{t("walletBalances")}</span><strong>{balancesStatus === "ready" ? `${neoBalanceDisplay} NEO · ${gasBalanceDisplay} GAS` : "—"}</strong><small>{t("walletBalanceSource")}</small></article>
-        <article data-status={positionStatus}><span>{t("positionSource")}</span><strong>{positionStatus === "ready" ? t("verified") : "—"}</strong><small>getLoan(address)</small></article>
+        <article data-status={marketStatus}><span>{t("marketSnapshot")}</span><strong>
+          <PhaseValue
+            phase={marketPhase(marketStatus === "ready")}
+            placeholder={connectPlaceholder}
+            skeletonWidth="5em"
+          >
+            {t("verified")}
+          </PhaseValue>
+        </strong><small>{t("tiersFeePricePool")}</small></article>
+        <article data-status={balancesStatus}><span>{t("walletBalances")}</span><strong>
+          <PhaseValue
+            phase={balancesPhase(balancesStatus === "ready")}
+            placeholder={connectPlaceholder}
+            skeletonWidth="10em"
+          >
+            {`${neoBalanceDisplay} NEO · ${gasBalanceDisplay} GAS`}
+          </PhaseValue>
+        </strong><small>{t("walletBalanceSource")}</small></article>
+        <article data-status={positionStatus}><span>{t("positionSource")}</span><strong>
+          <PhaseValue
+            phase={phaseOfRead(positionStatus, positionStatus === "ready")}
+            placeholder={connectPlaceholder}
+            skeletonWidth="5em"
+          >
+            {t("verified")}
+          </PhaseValue>
+        </strong><small>getLoan(address)</small></article>
         <article data-status={journalReady ? "ready" : "error"}>
           <span>{t("refreshRecovery")}</span>
           <strong>{journalReady ? t("journalReady") : t("notAvailable")}</strong>
@@ -622,13 +811,65 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           eyebrow: t("borrowFlowKicker"),
           title: hasActiveLoan ? t("yourLoan") : t("borrowNow"),
           subtitle: t("note"),
-          badges: <span className="mx2-badge" data-tone={runtimeCompatible && marketStatus === "ready" ? "accent" : "warning"}><span className="mx2-badge__dot" /> {runtimeCompatible && marketStatus === "ready" ? `${t("available")}: ${poolDisplay}` : t("dataChecking")}</span>,
+          // The badge used to fall to a warning tone for every non-ready state,
+          // so a visitor with no wallet was greeted by an amber "Checking live
+          // data" that never resolved. Pre-connect is neutral, not a warning.
+          badges: (
+            <span
+              className="mx2-badge"
+              data-tone={
+                marketReadoutReady ? "accent" : awaitingWallet ? undefined : "warning"
+              }
+            >
+              <span className="mx2-badge__dot" />{" "}
+              {marketReadoutReady
+                ? `${t("available")}: ${poolDisplay}`
+                : awaitingWallet
+                  ? t("phaseAwaitingPool")
+                  : t("dataChecking")}
+            </span>
+          ),
         }}
         scene={<>{scene}{controls}</>}
         score={[
-          { label: t("collateral"), value: hasActiveLoan ? `${formatAmount(activeCollateral, 0)} NEO` : collateralValid ? `${formatAmount(collateralNumber, 0)} NEO` : "—", accent: true },
-          { label: hasActiveLoan ? t("borrowed") : t("youReceive"), value: hasActiveLoan ? `${formatAmount(activeDebt, 4)} GAS` : quoteVerified && collateralValid ? `${formatAmount(netBorrow, 4)} GAS` : "—" },
-          { label: t("selectedLTV"), value: ltvPercent > 0 ? `${formatAmount(ltvPercent, 1)}%` : "—" },
+          {
+            label: t("collateral"),
+            // Collateral is the one readout the visitor drives entirely from the
+            // input above, so its zero-state asks for an amount rather than a
+            // wallet — nothing is loading and nothing has failed.
+            value: (
+              <PhaseValue
+                phase={hasActiveLoan || collateralValid ? "ready" : "unavailable"}
+                placeholder={amountPlaceholder}
+                skeletonWidth="5em"
+              >
+                {`${formatAmount(hasActiveLoan ? activeCollateral : collateralNumber, 0)} NEO`}
+              </PhaseValue>
+            ),
+            accent: true,
+          },
+          {
+            label: hasActiveLoan ? t("borrowed") : t("youReceive"),
+            value: hasActiveLoan ? (
+              `${formatAmount(activeDebt, 4)} GAS`
+            ) : (
+              <PhaseValue phase={quotePhase} placeholder={quoteHint} skeletonWidth="6em">
+                {`${formatAmount(netBorrow, 4)} GAS`}
+              </PhaseValue>
+            ),
+          },
+          {
+            label: t("selectedLTV"),
+            value: (
+              <PhaseValue
+                phase={ltvPercent > 0 ? "ready" : marketPhase(false)}
+                placeholder={quotePlaceholder}
+                skeletonWidth="3.5em"
+              >
+                {`${formatAmount(ltvPercent, 1)}%`}
+              </PhaseValue>
+            ),
+          },
         ]}
         actions={{
           primary: {

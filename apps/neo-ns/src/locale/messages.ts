@@ -80,6 +80,10 @@ const appMessages = {
     zh: "该名称已有所有者。请查看所有者和到期时间，再选择其他名称。",
   },
   resultIdleEyebrow: { en: "Ready to inspect", zh: "准备查询" },
+  // Eyebrow for the pure-idle card, where there is no name and so no
+  // availability to report. Naming the card keeps the eyebrow from echoing the
+  // title (`resultIdleTitle`) directly beneath it.
+  resultIdleStatus: { en: "Name lookup", zh: "名称查询" },
   resultIdleTitle: { en: "Choose a .neo name", zh: "选择一个 .neo 名称" },
   resultIdleCopy: {
     en: "Type a name or tap a suggestion. Availability, owner and annual price will appear here.",
@@ -373,8 +377,13 @@ const appMessages = {
   statusUnknown: { en: "Unknown", zh: "未知" },
   mainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
   testnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
+  // Only honest while a check is actually running. On a cold entry nothing is
+  // being checked and nothing will be until a network is bound, so these two
+  // sat on "Checking…"/"pending" forever next to a red failure banner.
   networkChecking: { en: "Checking network", zh: "正在确认网络" },
   contractChecking: { en: "Contract pending", zh: "正在确认合约" },
+  networkAwaitingWallet: { en: "Connect to confirm network", zh: "连接钱包以确认网络" },
+  contractAwaitingWallet: { en: "Confirmed on connect", zh: "连接后确认" },
   transferReviewCopy: {
     en: "This moves the name NFT to {address}. Its current target does not change automatically, so confirm only after checking the receiver.",
     zh: "这会把域名 NFT 转给 {address}。当前解析目标不会自动改变，请核对接收方后再确认。",

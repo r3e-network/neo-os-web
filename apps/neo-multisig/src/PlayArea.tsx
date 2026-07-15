@@ -31,7 +31,9 @@ import {
   OpenUiSegmented,
   OpenUiTextArea,
   OpenUiTextField,
+  PhaseValue,
   PlayStage,
+  resolvePhase,
 } from "@shared/components-react/v2";
 import {
   fromBaseUnits,
@@ -168,6 +170,16 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const displayedSigners = (signers.length > 0 ? signers : cleanSignerDrafts).slice(0, 6);
   const gasBalance = fromBaseUnits(String(activeVault?.gasBalance ?? "0"), "GAS");
   const neoBalance = fromBaseUnits(String(activeVault?.neoBalance ?? "0"), "NEO");
+  // `vaultSource` is already the (in-flight / settled) signal DataPhase needs:
+  // only "loading" is a read in flight; "none" (nothing loaded yet) and
+  // "failed" are both settled-without-data, and a failed read additionally
+  // raises its own notice below.
+  const balancePhase = resolvePhase({
+    loading: vaultSource === "loading",
+    settled: vaultSource !== "loading",
+    hasData: vaultSource === "chain",
+  });
+  const balancePlaceholder = text(t, "multisigBalanceIdle", "Load a vault");
   const createSignersUnique = new Set(cleanSignerDrafts).size === cleanSignerDrafts.length;
   const createSignersReady = cleanSignerDrafts.length >= MIN_SIGNERS && cleanSignerDrafts.length <= MAX_SIGNERS && cleanSignerDrafts.every(isValidAddress) && createSignersUnique;
   const thresholdReady = Number.isInteger(thresholdDraftValue) && thresholdDraftValue > 0 && thresholdDraftValue <= cleanSignerDrafts.length;
@@ -344,9 +356,14 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 <em>{hasActiveRequest ? approval?.approved ? text(t, "multisigSignerApproved", "Approved") : text(t, "multisigSignerWaiting", "Waiting") : text(t, "multisigSignerMember", "Member")}</em>
               </span>
             );}) : (
+              // The roster's empty slot describes the roster; the signer-summary
+              // chip 40px above already carries the full instruction. Both
+              // pointed at `multisigNeedSigners`, so the identical sentence
+              // printed twice back-to-back (the shorter fallback here never
+              // applied — the locale key always resolves).
               <span className="is-empty">
                 <small>0</small>
-                <strong>{text(t, "multisigNeedSigners", "Add at least two signer addresses")}</strong>
+                <strong>{text(t, "multisigNoSignersYet", "No signer addresses yet")}</strong>
               </span>
             )}
           </div>
@@ -393,9 +410,30 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <strong>{vaultId ? vaultLabel : text(t, "multisigLoadCopy", "Have a vault or request ID? Load it to deposit, propose, or approve.")}</strong>
           <em>{connectedAddress ? `${text(t, "multisigConnectedAs", "Connected as")} ${short(connectedAddress, 8, 6)}` : text(t, "multisigNotConnected", "Connect a wallet to create or sign")}</em>
         </div>
+        {/* Pre-vault these tiles rendered a bare em-dash each, which reads as
+            broken data rather than "there is nothing to read yet". `vaultSource`
+            already distinguishes a read in flight from a settled-empty one, so
+            route both through the shared DataPhase vocabulary: shimmer while
+            loading, honest zero-state copy once settled. */}
         <div className="multisig-balance-strip" aria-label={text(t, "multisigBalanceTitle", "Vault balance")}>
-          <span><CoinArt variant="gas" size={26} decorative /><strong>{vaultSource === "chain" ? gasBalance : "—"}</strong><small>GAS</small></span>
-          <span><CoinArt variant="neo" size={26} decorative /><strong>{vaultSource === "chain" ? neoBalance : "—"}</strong><small>NEO</small></span>
+          <span>
+            <CoinArt variant="gas" size={26} decorative />
+            <strong>
+              <PhaseValue phase={balancePhase} placeholder={balancePlaceholder} skeletonWidth="3.4em">
+                {gasBalance}
+              </PhaseValue>
+            </strong>
+            <small>GAS</small>
+          </span>
+          <span>
+            <CoinArt variant="neo" size={26} decorative />
+            <strong>
+              <PhaseValue phase={balancePhase} placeholder={balancePlaceholder} skeletonWidth="3.4em">
+                {neoBalance}
+              </PhaseValue>
+            </strong>
+            <small>NEO</small>
+          </span>
         </div>
         <p className="multisig-custody-boundary">
           <ShieldCheck size={14} />

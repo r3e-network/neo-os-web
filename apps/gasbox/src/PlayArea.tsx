@@ -6,10 +6,11 @@
  * of turning the experience into a transaction form.
  */
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { CoinArt, ParticleBurst } from "@shared/art";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import { addressToScriptHash } from "@shared/utils/neo";
 import machineArtUrl from "./gasbox-capsule-machine-cutout.webp";
@@ -176,6 +177,34 @@ export default function PlayArea({ t, state, dispatch }: Props) {
       ? selectedName
       : "";
   const hasLoadError = runtimeStatus === "error" || catalogStatus === "error";
+  /**
+   * The headline economy tiles across the three honest phases. They used to
+   * fall through to `selectedMachine?.x ?? "—"`, so the top of the entry
+   * surface opened as a row of three em-dash voids whenever no machine had
+   * resolved — which is every first paint, before any read completes.
+   *
+   * `catalogStatus` already distinguishes "loading" from a finished read, so no
+   * new signal is needed: it is the `settled` half of the shared DataPhase
+   * vocabulary (apps/shared/components-react/v2/DataPhase.tsx).
+   */
+  const machinePhase = resolvePhase({
+    loading: isLoading || catalogStatus === "loading",
+    settled: catalogStatus === "ready" || catalogStatus === "error" || runtimeStatus === "error",
+    hasData: Boolean(selectedMachine),
+  });
+  /**
+   * Wraps the whole value INCLUDING its unit: the unit is a property of real
+   * data, so "— GAS" (or "No machine yet GAS") must never be rendered.
+   */
+  const machineValue = (value: ReactNode) => (
+    <PhaseValue
+      phase={machinePhase}
+      placeholder={translation(t, "gasboxTileNoMachine", "No machine yet")}
+      skeletonWidth="4em"
+    >
+      {value}
+    </PhaseValue>
+  );
   const studioReady =
     studioName.trim().length > 0 &&
     /^\d+(?:\.\d+)?$/.test(studioPrice.trim()) &&
@@ -345,17 +374,17 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         <article>
           <CoinArt size={24} variant="gas" decorative />
           <span>{translation(t, "gasboxPullPrice", "Pull price")}</span>
-          <strong>{selectedMachine?.price ?? "—"} GAS</strong>
+          <strong>{machineValue(<>{selectedMachine?.price} GAS</>)}</strong>
         </article>
         <article>
           <CoinArt size={24} variant={selectedMachine?.prizeAsset === "NEO" ? "neo" : "gas"} decorative />
           <span>{translation(t, "gasboxFreePool", "Free pool")}</span>
-          <strong>{selectedMachine?.freePool ?? "—"} {selectedMachine?.prizeAsset ?? ""}</strong>
+          <strong>{machineValue(<>{selectedMachine?.freePool} {selectedMachine?.prizeAsset}</>)}</strong>
         </article>
         <article>
           <img src={prizeCapsuleUrl} alt="" aria-hidden="true" />
           <span>{translation(t, "gasboxReservedPool", "Reserved")}</span>
-          <strong>{selectedMachine?.reservedPool ?? "—"} {selectedMachine?.prizeAsset ?? ""}</strong>
+          <strong>{machineValue(<>{selectedMachine?.reservedPool} {selectedMachine?.prizeAsset}</>)}</strong>
         </article>
       </div>
 
