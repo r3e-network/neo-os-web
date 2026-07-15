@@ -22,6 +22,12 @@ defineMiniApp({
       },
     });
 
+    ctx.framework.actions.register("connectWallet", async () => {
+      const outcome = await ctx.framework.notify.guardResult(async () => {
+        await runtime.connect();
+      });
+      return outcome.ok;
+    });
     ctx.framework.actions.register("stakeNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;
       return runtime.stake(form.amount);
