@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Activity,
   AlertTriangle,
   AppWindow,
   CheckCircle2,
@@ -14,14 +13,12 @@ import {
   Settings,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Spinner } from "@/components/ui/Spinner";
 import { useServicesHealth } from "@/lib/hooks/useServices";
 import { useMiniApps } from "@/lib/hooks/useMiniApps";
 import { useUsers } from "@/lib/hooks/useUsers";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import type { MiniApp, ServiceHealth } from "@/types";
 
 export default function DashboardPage() {
   const { data: services, isLoading: sLoading, error: sErr } = useServicesHealth();
@@ -37,12 +34,17 @@ export default function DashboardPage() {
   const loading = sLoading || mLoading || uLoading;
   const allHealthy = !sLoading && !sErr && totalSvc > 0 && healthySvc === totalSvc;
   const status = loading ? "Checking" : allHealthy && !hasErr ? "Online" : "Needs Review";
+  const statusLabels: Record<string, string> = {
+    Checking: "检查中",
+    Online: "在线",
+    "Needs Review": "需要关注",
+  };
 
   const stats = [
     { icon: Server, label: "服务健康", value: loading ? "..." : `${healthySvc}/${totalSvc}`, detail: allHealthy ? "全部正常响应" : "需要关注", tone: allHealthy ? "success" : "warning" as const },
     { icon: AppWindow, label: "活跃小程序", value: mLoading ? "..." : activeApps.toLocaleString(), detail: `共 ${totalApps.toLocaleString()} 个`, tone: "info" as const },
     { icon: Users, label: "平台用户", value: uLoading ? "..." : totalUsers.toLocaleString(), detail: "已注册用户", tone: "neutral" as const },
-    { icon: status === "Online" ? CheckCircle2 : AlertTriangle, label: "平台状态", value: status, detail: status === "Online" ? "一切正常运转" : "需要运营关注", tone: status === "Online" ? "success" : "warning" as const },
+    { icon: status === "Online" ? CheckCircle2 : AlertTriangle, label: "平台状态", value: statusLabels[status], detail: status === "Online" ? "一切正常运转" : "需要运营关注", tone: status === "Online" ? "success" : "warning" as const },
   ];
 
   const toneColors: Record<string, string> = {
@@ -78,7 +80,10 @@ export default function DashboardPage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section
+        aria-label="平台运营概览"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
         {stats.map((s) => (
           <div key={s.label} className="card-v3 p-5">
             <div className="flex items-start justify-between">
@@ -93,13 +98,13 @@ export default function DashboardPage() {
             <p className="mt-4 text-xs font-medium text-ink-secondary">{s.detail}</p>
           </div>
         ))}
-      </div>
+      </section>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
-          { icon: AppWindow, label: "发布新版本", desc: "3 个待发布", color: "bg-neo-50 text-neo-600" },
-          { icon: CheckCircle2, label: "审核队列", desc: "7 个待审核", color: "bg-accent-50 text-accent-600" },
+          { icon: AppWindow, label: "发布新版本", desc: "管理构建与发布", color: "bg-neo-50 text-neo-600" },
+          { icon: CheckCircle2, label: "审核队列", desc: "处理待审核提交", color: "bg-accent-50 text-accent-600" },
           { icon: Settings, label: "合约部署", desc: "管理升级与迁移", color: "bg-amber-50 text-amber-600" },
         ].map((qa) => (
           <button key={qa.label} className="card-v3 flex items-center gap-4 p-4 text-left">
@@ -118,7 +123,7 @@ export default function DashboardPage() {
       {/* Two Column */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Service Health */}
-        <div className="card-v3 overflow-hidden">
+        <section aria-label="服务健康面板" className="card-v3 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
               <h3 className="text-sm font-bold text-ink">服务健康</h3>
@@ -149,10 +154,10 @@ export default function DashboardPage() {
               <p className="rounded-xl border border-dashed border-border bg-canvas-alt py-8 text-center text-sm text-ink-muted">暂无服务数据</p>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Recent Miniapps */}
-        <div className="card-v3 overflow-hidden">
+        <section aria-label="最近更新面板" className="card-v3 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
               <h3 className="text-sm font-bold text-ink">最近更新</h3>
@@ -181,7 +186,7 @@ export default function DashboardPage() {
               <p className="rounded-xl border border-dashed border-border bg-canvas-alt py-8 text-center text-sm text-ink-muted">暂无小程序数据</p>
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* All Miniapps Table */}

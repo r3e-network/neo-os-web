@@ -39,7 +39,10 @@ vi.mock("../../../../../shared/i18n/react", () => ({
         "navigation.users": "Users",
         "navigation.analytics": "Analytics",
         "navigation.contracts": "Contracts",
-        "dashboard.title": "Admin Console",
+        // Mirrors the real en locale (shared/i18n/locales/en/admin.json) so the
+        // brand heading stays distinguishable from the static "Admin Console"
+        // eyebrow label rendered below it.
+        "dashboard.title": "Admin Dashboard",
       };
       return map[key] ?? key;
     },
@@ -57,6 +60,10 @@ vi.mock("../../../../../shared/i18n/react", () => ({
 describe("Sidebar Component", () => {
   it("should render sidebar", () => {
     render(<Sidebar />);
+    // Neo v3 brand block: translated product title plus static eyebrow label.
+    expect(
+      screen.getByRole("heading", { name: "Admin Dashboard" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Admin Console")).toBeInTheDocument();
   });
 
@@ -105,7 +112,10 @@ describe("Sidebar Component", () => {
   it("should display version info", () => {
     render(<Sidebar />);
     expect(screen.getByText("Neo Platform")).toBeInTheDocument();
-    expect(screen.getByText("v0.1.0-alpha")).toBeInTheDocument();
+    // The footer version is derived from package.json so the label can never
+    // drift from the shipped package version again (the Neo v3 restyle had
+    // hardcoded a "v3.0.0" design-iteration number that matched no release).
+    expect(screen.getByText("v0.1.0")).toBeInTheDocument();
   });
 
   it("should mark active link with aria-current", () => {
@@ -121,17 +131,24 @@ describe("Sidebar Component", () => {
   });
 
   it("keeps the sidebar restrained and aligned with the light admin shell", () => {
+    // Re-pinned 2026-07-15 to the committed Neo v3 shell (488fa04ec): the
+    // sidebar sits on the shared light `surface` token, the brand tile and
+    // active nav state use flat `neo` accents (`bg-neo-500` / `bg-neo-50`),
+    // uppercase micro-labels use `tracking-wider`, and links carry
+    // `focus-visible:ring-neo-500/40` focus rings — so `bg-neo`,
+    // `tracking-wider`, and `ring-neo` left the ban list as deliberate
+    // conventions. Guard intent is unchanged: no dark-mode styling, no
+    // gradients, no oversized radii, and no arbitrary shadow values.
     const { container } = render(<Sidebar />);
     const sidebar = container.firstChild as HTMLElement;
 
-    expect(sidebar).toHaveClass("bg-white");
+    expect(sidebar).toHaveClass("bg-surface");
     for (const token of [
       "dark:",
+      "glass-card",
+      "bg-gradient",
       "rounded-2xl",
-      "bg-neo",
       "shadow-[",
-      "tracking-wider",
-      "ring-neo",
     ]) {
       expect(container.innerHTML, `sidebar should not include ${token}`).not.toContain(
         token,
