@@ -86,10 +86,14 @@ test("burn league entrypoint matches its chain composable and rendered state sha
   // Migrated off the OS kernel to the standalone MiniAppBurnLeague contract: the
   // composable is wired through the root miniapp framework and exposes a
   // permissionless settle.
-  assert.match(mainSource, /useBurnLeague\(\{\s*app:\s*ctx\.framework/s);
-  assert.match(mainSource, /ctx\.framework\.chain\.address\.get\(\)/);
+  // Re-pinned to the committed guest/gamefi fleet migration (edb06ad0c), which
+  // aliases `const app = ctx.framework` in setup(); the composable and actions
+  // are still wired exclusively through the root framework surface.
+  assert.match(mainSource, /const app = ctx\.framework/);
+  assert.match(mainSource, /useBurnLeague\(\{\s*app,/s);
+  assert.match(mainSource, /app\.chain\.address\.get\(\)/);
   assert.match(mainSource, /burn\.burnTokens/);
-  assert.match(mainSource, /ctx\.framework\.actions\.register\(\s*"settle"/);
+  assert.match(mainSource, /app\.actions\.register\(\s*"settle"/);
   assert.match(mainSource, /burnCount:\s*burn\.burnCount/);
   assert.doesNotMatch(mainSource, /nftService|paymentService|storageService|burnGas/);
   assert.doesNotMatch(mainSource, /ctx\.os\.(game|leaderboard|badge)/);
