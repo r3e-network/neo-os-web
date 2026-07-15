@@ -303,7 +303,12 @@ export class CurveArrowScene extends BaseScene {
     const lobbyCardGap = Math.max(6, Math.floor((width - pad * 2 - lobbyCardW * 3) / 2));
     const lobbyPanelH = Math.max(168, Math.min(214, Math.round(height * 0.3)));
 
-    const lobbyHeaderH = 62;
+    // 62 left only 20px between the title row and the subtitle row, but the bow
+    // mark beside the title is 35px tall and centred on that row, so its lower
+    // limb landed inside the subtitle's line box and collided with its first
+    // words. The band now carries the mark's real height plus a gap; the whole
+    // lobby cluster is centred from clusterH, so the extra rows just recentre.
+    const lobbyHeaderH = 74;
     const gapHeaderPanel = 16;
     const gapPanelStatus = 16;
     const gapStatusCards = 14;
@@ -316,8 +321,8 @@ export class CurveArrowScene extends BaseScene {
       gapStatusCards + lobbyCardH + gapCardsFooter + footerRowH;
     const lobbyHeaderY = Math.max(18, Math.round((height - clusterH) / 2));
 
-    const lobbyTitleY = lobbyHeaderY + 26;
-    const lobbySubY = lobbyHeaderY + 46;
+    const lobbyTitleY = lobbyHeaderY + 27;
+    const lobbySubY = lobbyHeaderY + 55;
     const lobbyPanelY = lobbyHeaderY + lobbyHeaderH + gapHeaderPanel;
     const lobbyStatusY = lobbyPanelY + lobbyPanelH + gapPanelStatus + statusRowH / 2;
     const lobbyCardsY = lobbyStatusY + statusRowH / 2 + gapStatusCards;
@@ -1503,8 +1508,10 @@ export class CurveArrowScene extends BaseScene {
     headerGfx.lineStyle(1, C.cardBorder, 0.55);
     headerGfx.strokeRoundedRect(headerBandX, layout.lobbyHeaderY, headerBandW, layout.lobbyHeaderH, 14);
 
+    // Sized to the title row it sits on: lobbySubY is placed to clear this
+    // mark's lower limb, so keep the two in step if either changes.
     const titleMark = this.add.image(this.scW / 2 - 82, layout.lobbyTitleY, ARROW_ASSETS.bow)
-      .setDisplaySize(28, 38);
+      .setDisplaySize(26, 35);
 
     const title = this.add.text(this.scW / 2 + 14, layout.lobbyTitleY, this.txt("title", "Curve Arrow"), {
       fontFamily: FONT_FAMILY,

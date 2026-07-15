@@ -216,10 +216,18 @@ export class SuikaScene extends BaseScene {
     }).setOrigin(0.5, 0).setDepth(40);
     this.nextPreview = this.add.container(DESIGN_W / 2, 50).setDepth(41);
 
-    this.statusText = this.add.text(DESIGN_W / 2, FLOOR_Y + 22, "", {
-      fontFamily: FONT, fontSize: "12px", fontStyle: "bold", color: "#4d382a",
+    // Anchored to the scene's bottom edge (origin y = 1) rather than to
+    // FLOOR_Y + 22 with a top origin. Growing downward from y=834 meant a
+    // single 12px line already ran to ~849 against a DESIGN_H of 844 and was
+    // sliced mid-glyph; the moment the storage-warning suffix appended, the
+    // line wrapped and the second row fell off the canvas entirely. Anchoring
+    // the bottom pins the last line just inside the edge and lets extra lines
+    // stack upward into the plank band, so the copy survives any suffix and
+    // any locale.
+    this.statusText = this.add.text(DESIGN_W / 2, DESIGN_H - 6, "", {
+      fontFamily: FONT, fontSize: "11px", fontStyle: "bold", color: "#4d382a",
       align: "center", wordWrap: { width: DESIGN_W - 40 },
-    }).setOrigin(0.5, 0).setDepth(50);
+    }).setOrigin(0.5, 1).setDepth(50);
   }
 
   // ── Aim preview ─────────────────────────────────────────────────────────────

@@ -152,7 +152,12 @@ describe("graveyard integration: dispatch params", () => {
     const d = vi.fn().mockResolvedValue(undefined);
     const item = { id: "7", hash: "0xabcdef1234567890", time: "2026-06-29", forgotten: false };
     const { container } = render(<PlayArea t={t} state={state({ history: [item], historyCount: 1 })} dispatch={d} />);
-    const drawerToggle = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Burial Records"));
+    // The records used to be openable from a shortcut card whose label repeated
+    // the "Burial Records" section header sitting right below it. That duplicate
+    // row is gone; the section's own Open toggle is the control now. Intent is
+    // unchanged: reveal the records, then act on an item.
+    // (The t() stub echoes unmapped keys, so the toggle renders as "open".)
+    const drawerToggle = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.trim() === "open");
     expect(drawerToggle).toBeTruthy();
     fireEvent.click(drawerToggle!);
     const forgetBtn = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Forget"));

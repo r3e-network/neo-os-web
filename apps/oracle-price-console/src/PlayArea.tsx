@@ -5,7 +5,7 @@
  * and reference details stay tucked behind drawer tabs.
  */
 import { type ReactNode, useCallback, useState } from "react";
-import { LineChart, RadioTower, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Flame, Gem, LineChart, RadioTower, Sun, ShieldCheck, type LucideIcon } from "lucide-react";
 import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
@@ -26,11 +26,29 @@ function assetHintKey(symbol: string) {
   return "assetHintGeneric";
 }
 
+/**
+ * Watchlist glyphs.
+ *
+ * NEO and GAS render CoinArt (see `assetCoinVariant`); everything else lands
+ * here. This map used to name only BTC, so every other pair the catalog
+ * discovers — FLM, ETH, SOL — collapsed onto the same RadioTower antenna and
+ * the second half of the grid read as unfinished placeholder rows.
+ *
+ * These are mnemonics for the pairs the mainnet catalog actually publishes, not
+ * claims about them: Flamingo's flame, Ethereum's diamond, Solana's sun.
+ * RadioTower stays the honest fallback for a pair we have no glyph for — an
+ * unnamed feed signal is exactly what it depicts.
+ */
+const ASSET_ICONS: Record<string, LucideIcon> = {
+  BTC: LineChart,
+  GAS: ShieldCheck,
+  FLM: Flame,
+  ETH: Gem,
+  SOL: Sun,
+};
+
 function assetIcon(symbol: string): LucideIcon {
-  const key = symbol.trim().toUpperCase();
-  if (key === "BTC") return LineChart;
-  if (key === "GAS") return ShieldCheck;
-  return RadioTower;
+  return ASSET_ICONS[symbol.trim().toUpperCase()] ?? RadioTower;
 }
 
 function assetCoinVariant(symbol: string): "neo" | "gas" | null {

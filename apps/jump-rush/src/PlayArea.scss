@@ -606,3 +606,51 @@
   .jr-stage-shell .phaser-game-host { transform: none; }
   .jr-stage-hud { width: min(52%, 480px); left: auto; right: 8px; transform: none; }
 }
+
+/* ── Desktop: stop reserving a viewport-tall stage for a fixed-size canvas ──
+   The framework only auto-sizes a Phaser host to the viewport on MOBILE (see
+   PhaserGameComponent: `preserveLogicalSize || !isMobileViewport` bails out),
+   so on a desktop pointer the canvas stays pinned at its logical 400x580. The
+   stage/shell, however, were sized at 100dvh regardless — at 1365x900 that gave
+   an 880px shell around a 580px canvas, i.e. 126px of dead band above it and
+   95px between it and the stat HUD pinned to the shell's floor.
+
+   Size the shell to what it actually holds instead: the canvas, plus a bottom
+   reserve for the absolutely-positioned HUD (68px tall at `bottom: 10px`). The
+   -24px nudge that lifted the canvas clear of the HUD inside the roomy shell is
+   no longer needed once the reserve is explicit.
+
+   The two queries below reproduce the framework's own "not a mobile viewport"
+   test exactly — width > 760, unless a coarse pointer at <= 1024 — so this
+   never fires on a viewport where the canvas does grow to fill the shell. */
+@media (min-width: 1025px) {
+  .jr-playarea .mx2-stage {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .jr-stage-shell {
+    height: auto;
+    max-height: none;
+    padding: 24px 0 96px;
+  }
+
+  .jr-stage-shell .phaser-game-host { transform: none; }
+}
+
+@media (min-width: 761px) and (pointer: fine) {
+  .jr-playarea .mx2-stage {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .jr-stage-shell {
+    height: auto;
+    max-height: none;
+    padding: 24px 0 96px;
+  }
+
+  .jr-stage-shell .phaser-game-host { transform: none; }
+}

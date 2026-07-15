@@ -483,7 +483,10 @@ export class AimMasterScene extends BaseScene {
   private buildBackground(): void {
     const w = this.scW;
     const h = this.scH;
-    const rangeH = Math.min(Math.max(270, h * 0.42), 360);
+    // The console is anchored to the foot of the board (buildLobbyContainer), so
+    // the art has to reach it: a fixed 360 cap left a tall desktop board showing
+    // bare fill between the range floor and the panel. Track the height instead.
+    const rangeH = Math.min(Math.max(270, h * 0.52), 460);
     this.add.rectangle(w / 2, h / 2, w, h, C.canvas);
     this.add.image(w / 2, 0, AIM_ASSETS.range)
       .setOrigin(0.5, 0)
@@ -546,12 +549,23 @@ export class AimMasterScene extends BaseScene {
     const gapPoolToHint = 24;
     const gapHintToButton = 34;
     const btnHalf = 22;
+    const panelPadTop = 18;
+    const panelPadBottom = 14;
     const groupH = cardH + gapCardsToPool + gapPoolToHint + gapHintToButton + btnHalf + btnHalf;
     const heroBottom = heroY + heroSize / 2;
     const regionTop = heroBottom + 20;
-    const regionBottom = h - 62;
-    const slack = Math.max(0, (regionBottom - regionTop - groupH) / 2);
-    const groupTop = Math.round(regionTop + slack);
+    // Anchor the range console to the foot of the board rather than centring it
+    // in the region below the hero. Centring split the region's slack evenly, so
+    // half of it landed *under* the status caption with nothing to fill it — on
+    // a tall desktop canvas that was a flat band about a quarter of the board
+    // high. Anchored, the same slack sits above the panel, where the range
+    // backdrop and its fade already paint. The max() keeps the panel clear of
+    // the hero on short boards, where there is no slack to move.
+    const statusReserve = 46;
+    const groupTop = Math.round(Math.max(
+      regionTop + panelPadTop,
+      h - statusReserve - panelPadBottom - groupH,
+    ));
 
     const cardY = groupTop + cardH / 2;
     const poolY = Math.round(cardY + cardH / 2 + gapCardsToPool);
@@ -565,8 +579,8 @@ export class AimMasterScene extends BaseScene {
     const panelLeft = startX - cardW / 2 - panelPadX;
     const panelRight = lastCx + cardW / 2 + panelPadX;
     const panelW = panelRight - panelLeft;
-    const panelTop = cardY - cardH / 2 - 18;
-    const panelBottom = this.lobbyButtonY + btnHalf + 14;
+    const panelTop = cardY - cardH / 2 - panelPadTop;
+    const panelBottom = this.lobbyButtonY + btnHalf + panelPadBottom;
     const panel = this.add.graphics();
     panel.fillStyle(0x1a1a19, 0.06);
     panel.fillRoundedRect(panelLeft + 3, panelTop + 6, panelW, panelBottom - panelTop, 20);

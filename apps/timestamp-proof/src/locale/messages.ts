@@ -320,6 +320,10 @@ const appMessages = {
   totalProofs: { en: "Total Proofs", zh: "总证明数" },
   anchoredProofs: { en: "Anchored", zh: "已锚定" },
   latestId: { en: "Latest ID", zh: "最新编号" },
+  // Honest zero-state for the LATEST ID chip before the first proof is saved.
+  // This is a normal pre-data first paint, not an unavailable value, so it must
+  // not borrow the shared "N/A" placeholder.
+  latestIdNone: { en: "None yet", zh: "尚无" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

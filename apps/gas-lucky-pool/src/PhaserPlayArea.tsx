@@ -205,8 +205,8 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
   const pointsLabel = (value: number): string => `${value.toFixed(2)} ${guestUnit}`;
   const scoreItems = isGuest
     ? [
-        { label: t("guestBestLabel"), value: guestBest > 0 ? pointsLabel(guestBest) : "—", accent: guestBest > 0 },
-        { label: t("guestLastLabel"), value: guestLast > 0 ? pointsLabel(guestLast) : "—" },
+        { label: t("guestBestLabel"), value: guestBest > 0 ? pointsLabel(guestBest) : t("guestNoDrawYet"), accent: guestBest > 0 },
+        { label: t("guestLastLabel"), value: guestLast > 0 ? pointsLabel(guestLast) : t("guestNoDrawYet") },
         { label: t("guestDrawsLabel"), value: String(guestDraws) },
       ]
     : hasClaimContext
@@ -249,11 +249,11 @@ export default function PhaserPlayArea({ t, state, dispatch, launchContext }: Pl
       <div className="gas-pool-drawer__summary">
         <span>
           <small>{t("guestBestLabel")}</small>
-          <strong>{guestBest > 0 ? pointsLabel(guestBest) : "—"}</strong>
+          <strong>{guestBest > 0 ? pointsLabel(guestBest) : t("guestNoDrawYet")}</strong>
         </span>
         <span>
           <small>{t("guestLastLabel")}</small>
-          <strong>{guestLast > 0 ? pointsLabel(guestLast) : "—"}</strong>
+          <strong>{guestLast > 0 ? pointsLabel(guestLast) : t("guestNoDrawYet")}</strong>
         </span>
         <span>
           <small>{t("guestDrawsLabel")}</small>

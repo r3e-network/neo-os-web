@@ -73,8 +73,12 @@ const appMessages = {
   statFingerprint: { en: "Ciphertext", zh: "密文标识" },
   lastStatus: { en: "Last status", zh: "最近状态" },
   fingerprintEmpty: { en: "None yet", zh: "暂无" },
-  networkMainnet: { en: "Neo N3 MainNet", zh: "Neo N3 主网" },
-  networkTestnet: { en: "Neo N3 TestNet", zh: "Neo N3 测试网" },
+  // "Mainnet"/"Testnet", not "MainNet"/"TestNet": the fleet's visible network
+  // chips ("Morpheus Mainnet", "Neo N3 Mainnet") settle on this casing, and a
+  // reviewer reading three consoles side by side should not see three
+  // spellings of one network.
+  networkMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
+  networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
   networkUnknown: { en: "Unsupported network", zh: "不支持的网络" },
   runtimeChecking: { en: "Checking key", zh: "正在核对密钥" },
   runtimeReady: { en: "Contract key verified", zh: "合约密钥已核验" },

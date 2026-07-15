@@ -197,7 +197,25 @@
 }
 
 .merc-wallet-pill {
-  max-width: 130px;
+  /* This pill holds one of exactly two strings: a compact() address, or the
+     "Wallet not connected" idle status. At 10px/700 those measure ~105px and
+     ~109px, and the pill's own chrome (18px padding + 15px icon + 5px gap)
+     eats 38px — so both need ~147px. The old 130px cap fitted neither, and
+     clipped the idle phrase mid-word to "Wallet not connecte". Size the cap to
+     the wider of the two real values, with a little slack for font fallback;
+     the ellipsis below stays as a genuine backstop for an unexpected value,
+     not as the normal rendering path.
+
+     `flex: 0 0 auto` is the half that actually bites: this pill is a flex item
+     in `.merc-command__heading`, whose other child is the wrapping title. With
+     the default `flex-shrink: 1` the pill was squeezed well under its cap
+     whatever that cap said, which is why raising max-width alone changed
+     nothing. The title block already carries `min-width: 0` and wraps, so it is
+     the correct place for the row to absorb pressure. (Below 640px the heading
+     switches to `display: grid`, where this has no effect and the `max-width:
+     100%` override keeps the pill inside its cell.) */
+  max-width: 156px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -337,6 +355,25 @@
   padding: 13px;
   color: var(--merc-green);
   background: var(--merc-green-soft);
+}
+
+/* The command panel is `align-self: stretch`, so it matches the height of the
+   tall market figure beside it. Once connected it fills that height with the
+   role switch and the bid/stake ticket, but the pre-wallet panel only had a
+   small notice card and a status line pinned to the bottom by `margin: auto 0
+   0` — leaving roughly half the panel as a blank white void.
+
+   Rather than invent content for it (the epoch-flow guide already has a home in
+   the drawer, and repeating it here would just duplicate that copy), let the
+   notice grow into the room it already owns and centre itself: the pre-wallet
+   panel then reads as a deliberate full-height empty state instead of a card
+   marooned above a gap. Only the standalone notice stretches — when the panel
+   has real controls the notice sits back down at its natural height. */
+.merc-command > .merc-onboarding:not(.merc-onboarding--pending) {
+  flex: 1 1 auto;
+  align-content: center;
+  justify-content: center;
+  text-align: left;
 }
 
 .merc-onboarding--pending {

@@ -93,7 +93,10 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const formReady = partnerReady && titleReady && stakeReady && durationReady;
   const actionBusy = actionPhase !== "idle";
   const controlsLocked = isLoading || actionBusy || hasPendingAction;
-  const pactTitle = contractTitle.trim() || latestContract?.title || t("contractTitlePlaceholder");
+  // An unnamed draft is an honest zero-state, not a pact called "Our covenant":
+  // contractTitlePlaceholder is the *input* placeholder and reads as real data
+  // once it is promoted into the preview heading.
+  const pactTitle = contractTitle.trim() || latestContract?.title || t("pactPreviewUntitled");
   const pactPartner = partnerReady
     ? compact(partnerAddress)
     : latestContract?.partner
@@ -137,7 +140,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
         <div className="breakup-preview__header">
           <span>{t("pactPreview")}</span>
           <strong>{pactTitle}</strong>
-          <small>{titleReady ? t("titleLabel") : t("contractTitlePlaceholder")}</small>
+          {/* Caption labels the heading; it must never restate it. */}
+          <small>{titleReady ? t("titleLabel") : t("pactPreviewTitleHint")}</small>
         </div>
 
         <div className="breakup-preview__partner" data-ready={partnerReady ? "true" : undefined}>
@@ -178,15 +182,22 @@ export default function PlayArea({ t, state, dispatch }: P) {
         </p>
       </section>
 
-      <section className="breakup-desk" aria-label={t("pactPreview")}>
+      <section className="breakup-desk" aria-label={t("deskOnChainTitle")}>
         <div className="breakup-desk__media">
           <img className="breakup-desk__image" src={PACT_IMAGE} alt={t("heroImageAlt")} />
         </div>
         <span className="breakup-desk__chip"><Sparkles size={14} />{t("heroTagStakeBacked")}</span>
+        {/*
+          The desk is not a second copy of the preview: .breakup-preview above
+          already owns the live draft (eyebrow, title, partner, terms, wallet
+          action). This card answers the one question the draft cannot — which
+          of those fields the contract actually records — so it must carry its
+          own eyebrow and must not restate the title or the wallet-action hint.
+        */}
         <div className="breakup-desk__pact" data-ready={formReady ? "true" : undefined}>
           <div>
-            <span>{t("pactPreview")}</span>
-            <strong>{pactTitle}</strong>
+            <span>{t("deskOnChainTitle")}</span>
+            <p>{t("deskOnChainCopy")}</p>
           </div>
           <dl>
             <div>
@@ -202,7 +213,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
               <dd>{duration} {t("daysSuffix")}</dd>
             </div>
           </dl>
-          <em>{formReady ? t("createHintReady") : createHint}</em>
         </div>
         <div className="breakup-desk__signatures" aria-label={t("contractTitle")}>
           <span data-ready="true"><UserRoundCheck size={16} />{t("builderStepPartner")}</span>

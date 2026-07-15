@@ -24,6 +24,13 @@ const appMessages = {
   priceMetricFeed: { en: "Feed", zh: "价格源" },
   copyFeedHash: { en: "Copy feed contract hash", zh: "复制价格源合约哈希" },
   priceMetricNetwork: { en: "Network", zh: "网络" },
+  // The header chip and the NETWORK stat used to print `getNetwork()`'s raw
+  // enum, so a store-facing console badged itself bare lowercase "mainnet" —
+  // a routing key, not a network name, and a third casing next to siblings
+  // showing "Morpheus Mainnet" / "Neo N3 Mainnet". These are the display
+  // labels; the enum stays internal.
+  networkMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
+  networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
   priceMetricSource: { en: "Source", zh: "来源" },
   priceOracleSource: { en: "Source", zh: "来源" },
   priceActionTitle: { en: "Query feed", zh: "查询价格源" },

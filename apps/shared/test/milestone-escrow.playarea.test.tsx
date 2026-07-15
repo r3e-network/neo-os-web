@@ -483,7 +483,15 @@ describe("Milestone Escrow PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/escrow-gate[\s\S]*background:\s*#ffffff/);
     expect(styles).toMatch(/escrow-token-row[\s\S]*background:\s*var\(--mx2-surface-2\)/);
     expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.milestone-escrow-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
-    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-vault-card\s*\{[\s\S]*grid-template-rows:\s*86px auto/);
+    // This used to pin `grid-template-rows: 86px auto`. That fixed 86px band
+    // squeezed the 16:9 stage render flat and cropped away the vault dome the
+    // art is composed around, so the guard was holding a defect in place. The
+    // row now sizes to the image and the image carries the art's native ratio,
+    // which shows the whole focal subject at ~197px on a 390px viewport.
+    // Intent kept: the mobile card still declares its own compact art row
+    // rather than inheriting the desktop `minmax(260px, 1fr)`.
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-vault-card\s*\{[\s\S]*grid-template-rows:\s*auto auto/);
+    expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-vault-card__image\s*\{[\s\S]*aspect-ratio:\s*16\s*\/\s*9/);
     expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-station-tabs button\s*,[\s\S]*\.escrow-drawer-tabs button\s*\{[\s\S]*grid-template-columns:\s*1fr/);
     expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-route-meter\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(styles).toMatch(/@media \(max-width:\s*560px\)[\s\S]*\.escrow-gate\s*\{[\s\S]*min-height:\s*70px/);

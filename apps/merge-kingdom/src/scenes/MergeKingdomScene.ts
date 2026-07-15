@@ -760,7 +760,11 @@ export class MergeKingdomScene extends BaseScene {
 
     this.diffCards = [];
     const cardW = 104;
-    const cardH = 54;
+    // Tall enough for a two-line goal label. "Target: Watchtower" measures
+    // ~94px at 10px Inter but the card only offers 80px between its insets, so
+    // the longest target wraps rather than crossing the card border. The other
+    // routes ("Market", "Forge") and the zh names still fit on one line.
+    const cardH = 64;
     const startX = 76;
 
     this.routeRules().forEach((rule, i) => {
@@ -825,7 +829,9 @@ export class MergeKingdomScene extends BaseScene {
     });
 
     const targetVal = rule.targetTile;
-    const crest = this.add.image(-w / 2 + 22, -8, this.tileAssetKey(targetVal))
+    // Sits a little higher than the card's mid-line so a wrapped two-line goal
+    // label below it never runs under the crest art.
+    const crest = this.add.image(-w / 2 + 22, -12, this.tileAssetKey(targetVal))
       .setDisplaySize(30, 30);
 
     const nameLabel = this.add.text(
@@ -849,6 +855,9 @@ export class MergeKingdomScene extends BaseScene {
       resolution: TEXT_RESOLUTION,
       fontSize: "10px",
       color: "#765a32",
+      // Wrap inside the card's insets instead of bleeding over its right
+      // border. Without this the longest honest target name overflows by ~2px.
+      wordWrap: { width: w - 24, useAdvancedWrap: true },
       },
     ).setOrigin(0, 0.5);
 

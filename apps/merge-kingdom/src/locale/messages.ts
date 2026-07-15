@@ -22,6 +22,14 @@ const appMessages = {
   // Phaser scene copy. Keep gameplay text in the locale catalog so the canvas
   // never leaks translation keys or falls back to mixed-language UI.
   canvasEyebrow: { en: "Verified merge quest", zh: "可验证合并挑战" },
+  /**
+   * Guest twin of `canvasEyebrow`. A local run is never verified on chain, so
+   * the GameFi "Verified" framing contradicted every other label on the same
+   * screen ("Local run", "Free practice", "no wallet, fees, or GAS at stake").
+   * The tagline below already had this guest/gamefi split; the eyebrow was
+   * simply missed when it was added.
+   */
+  canvasGuestEyebrow: { en: "Local merge practice", zh: "本地合并练习" },
   canvasTagline: {
     en: "Move, merge, and raise the target building.",
     zh: "移动并合并建筑，升级到本局目标。",

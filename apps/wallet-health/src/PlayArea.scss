@@ -511,14 +511,18 @@ body,
   line-height: 1.3;
 }
 
+/*
+ * No line clamp here. These descriptions are the safety instructions the
+ * visitor is being asked to confirm, and a two-line clamp sized for the short
+ * ones ("Avoid signing transactions on shared devices.") cut the longest one —
+ * the connected-apps guidance — mid-word at "revoke any you n…" on BOTH
+ * desktop and mobile, hiding the actual action from a security checklist. The
+ * row is a grid that grows, and the panel has the room; wrap in full instead.
+ */
 .health-check__body span {
-  display: -webkit-box;
-  overflow: hidden;
   color: #64756f;
   font-size: 0.68rem;
   line-height: 1.36;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .health-check__status {
