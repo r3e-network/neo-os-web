@@ -38,18 +38,26 @@ import {
 // (which committed artifact each app must run); every method-level
 // expectation below is generated from that artifact's ABI.
 
+// 2026-07-15 fixture reconciliation against live testnet (audit finding I1):
+//   * dice-game, fogplay, and gasbox completed their intentional V2
+//     migrations — the manifests' testnet hashes resolve on chain to
+//     MiniAppDiceGameV2 / MiniAppCoinFlipV2 / MiniAppGasBoxV2 (commit/settle
+//     house-game pattern), so the bindings pin the V2 build artifacts.
+//   * on-chain-tarot was removed: commit 0dd7c4af1 retired the contracts
+//     key from apps/on-chain-tarot/neo-manifest.json (app under redesign),
+//     so per this file's own guidance the binding is dropped until the
+//     manifest declares a testnet deployment again.
 const CONTRACT_BINDINGS = [
   { slug: "breakup-contract", contractName: "MiniAppBreakupPact" },
   { slug: "custom-anchor", contractName: "PlatformAnchor" },
-  { slug: "dice-game", contractName: "PlatformGame" },
+  { slug: "dice-game", contractName: "MiniAppDiceGameV2" },
   { slug: "event-ticket-pass", contractName: "MiniAppEventTicketPass" },
-  { slug: "fogplay", contractName: "MiniAppCoinFlip" },
-  { slug: "gasbox", contractName: "MiniAppGasBox" },
+  { slug: "fogplay", contractName: "MiniAppCoinFlipV2" },
+  { slug: "gasbox", contractName: "MiniAppGasBoxV2" },
   { slug: "gov-merc", contractName: "MiniAppGovMerc" },
   { slug: "last-survivor", contractName: "MiniAppLastSurvivor" },
   { slug: "milestone-escrow", contractName: "MiniAppMilestoneEscrow" },
   { slug: "neo-multisig", contractName: "MiniAppMultisig" },
-  { slug: "on-chain-tarot", contractName: "MiniAppTarot" },
   { slug: "quadratic-funding", contractName: "MiniAppQuadraticFunding" },
   { slug: "red-envelope", contractName: "MiniAppRedEnvelope" },
   { slug: "self-loan", contractName: "MiniAppSelfLoan" },
@@ -64,6 +72,44 @@ const CONTRACT_BINDINGS = [
 // fixed its tokens() Storage.Find FindOptions bug — tokens() now HALTs.)
 const KNOWN_FAULTING_READS = new Map([]);
 
+// Safe methods that exist in the committed build manifests but are expected
+// to be MISSING from the current testnet deployments, because the committed
+// artifacts are newer than the live NEFs and the fixes only take effect on a
+// one-time redeploy (the pre-upgradability instances cannot be updated in
+// place — see commit ae71cbd69 "make the standalone miniapp contracts
+// upgradable"):
+//   * <Name>.getOwner/0            — upgradability surface (ae71cbd69, 2026-06-17)
+//   * <Name>.directAssetCreditOf/2 — stranded-deposit reclaim reads
+//                                    (2f38f74c3, 2026-06-16); frontends probe
+//                                    this and gate deposits off when absent
+//   * MiniAppGovMerc JIT-stake / MiniAppTimeCapsule fishRevenueOf reads
+//                                    (3c3ad33ce, 2026-06-17)
+// Keys are `<ContractName>.<method>/<argc>`.  Test 2 asserts each entry is
+// still absent on chain, so the moment a contract is redeployed with the new
+// build this list forces its own pruning.  Do NOT add entries for methods a
+// frontend calls unconditionally at runtime — those are product breaks, not
+// pending-redeploy drift.
+const KNOWN_PENDING_REDEPLOY = new Set([
+  "MiniAppBreakupPact.getOwner/0",
+  "MiniAppCoinFlipV2.getOwner/0",
+  "MiniAppEventTicketPass.directAssetCreditOf/2",
+  "MiniAppGovMerc.getOwner/0",
+  "MiniAppGovMerc.eligibleStaked/0",
+  "MiniAppGovMerc.eligibleStakeOf/1",
+  "MiniAppGovMerc.pendingStakeOf/1",
+  "MiniAppGovMerc.pendingStakeEpoch/1",
+  "MiniAppMilestoneEscrow.directAssetCreditOf/2",
+  "MiniAppMultisig.getOwner/0",
+  "MiniAppQuadraticFunding.directAssetCreditOf/2",
+  "MiniAppSoulboundCertificate.directAssetCreditOf/2",
+  "MiniAppTimeCapsule.getOwner/0",
+  "MiniAppTimeCapsule.fishRevenueOf/1",
+]);
+
+function isPendingRedeploy(contractName, method) {
+  return KNOWN_PENDING_REDEPLOY.has(`${contractName}.${methodKey(method)}`);
+}
+
 // Concrete unknown-id lookup expectations (replaces the old HALT-or-FAULT
 // tautology).  Param values are synthesized per the build-manifest ABI type.
 const UNKNOWN_ID_LOOKUPS = [
@@ -73,11 +119,20 @@ const UNKNOWN_ID_LOOKUPS = [
     expect: "fault",
     exceptionPattern: /envelope not found/,
   },
+  // The V2 house-game contracts replaced getGame/1 with getPendingBet/1 and
+  // abort with "bet not found" for unknown ids (verified on testnet
+  // 2026-07-15 against the deployed MiniAppCoinFlipV2/MiniAppDiceGameV2).
   {
-    contractName: "MiniAppCoinFlip",
-    method: "getGame",
+    contractName: "MiniAppCoinFlipV2",
+    method: "getPendingBet",
     expect: "fault",
-    exceptionPattern: /game not found/,
+    exceptionPattern: /bet not found/,
+  },
+  {
+    contractName: "MiniAppDiceGameV2",
+    method: "getPendingBet",
+    expect: "fault",
+    exceptionPattern: /bet not found/,
   },
   {
     contractName: "MiniAppSelfLoan",
@@ -185,6 +240,16 @@ test("deployed ABIs expose every safe method from the committed build manifests"
 
     for (const method of safeMethods(target.build)) {
       const key = methodKey(method);
+      if (isPendingRedeploy(target.contractName, method)) {
+        // Self-cleaning: once the contract is redeployed with the newer
+        // build, the method appears on chain and this forces the
+        // KNOWN_PENDING_REDEPLOY entry to be pruned.
+        assert.ok(
+          !deployedMethods.has(key),
+          `${target.contractName}.${key} is allowlisted as pending redeploy but IS now present on chain (${target.hash}) — remove the KNOWN_PENDING_REDEPLOY entry`,
+        );
+        continue;
+      }
       assert.ok(
         deployedMethods.has(key),
         `${target.contractName}.${key} is safe in the committed manifest but missing from the deployed ABI (${target.hash})`,
@@ -202,6 +267,10 @@ test("deployed ABIs expose every safe method from the committed build manifests"
 test("all committed safe zero-arg read methods HALT on testnet", async () => {
   for (const target of TARGETS) {
     for (const method of zeroArgSafeReads(target.build)) {
+      // Methods absent from the live NEF until the one-time redeploy would
+      // FAULT with "method not found"; test 2 already pins their absence
+      // (and forces pruning once redeployed), so skip invoking them here.
+      if (isPendingRedeploy(target.contractName, method)) continue;
       const key = `${target.contractName}.${method.name}`;
       const known = KNOWN_FAULTING_READS.get(key);
       const result = await invokeRead(target.hash, method.name);
@@ -232,6 +301,9 @@ test("all committed safe zero-arg read methods HALT on testnet", async () => {
 test("manifest-declared admin/owner reads return a non-zero account", async () => {
   for (const target of TARGETS) {
     for (const method of ownerStyleReads(target.build)) {
+      // getOwner/0 only exists after the one-time redeploy to the
+      // upgradable builds (ae71cbd69); test 2 pins the pending state.
+      if (isPendingRedeploy(target.contractName, method)) continue;
       const result = await invokeRead(target.hash, method.name);
       assert.ok(
         isHalt(result),
