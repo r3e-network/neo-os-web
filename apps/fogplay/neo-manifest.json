@@ -24,6 +24,9 @@
     "neo-n3-mainnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda",
     "neo-n3-testnet": "0x611c3d97dd98792a3c31a0e695704c657f143cda"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "fogplay.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-testnet"
   ],
