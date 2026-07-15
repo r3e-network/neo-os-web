@@ -34,7 +34,8 @@
   },
   "permissions": [
     "read:blockchain",
-    "oracle"
+    "oracle",
+    "neodid"
   ],
   "features": {
     "stateless": false,
