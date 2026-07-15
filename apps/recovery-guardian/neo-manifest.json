@@ -65,7 +65,9 @@
     "invoke:primary",
     "read:blockchain",
     "write:blockchain",
-    "aa"
+    "aa",
+    "oracle",
+    "confidential"
   ],
   "features": {
     "stateless": false,

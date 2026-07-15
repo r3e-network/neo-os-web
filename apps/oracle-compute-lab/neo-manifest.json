@@ -31,7 +31,11 @@
     "icon": "/miniapps/oracle-compute-lab/logo.webp",
     "banner": "/miniapps/oracle-compute-lab/banner.webp"
   },
-  "permissions": [],
+  "permissions": [
+    "oracle",
+    "compute",
+    "confidential"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": true,

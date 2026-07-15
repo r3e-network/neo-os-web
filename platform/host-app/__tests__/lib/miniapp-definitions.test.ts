@@ -172,30 +172,28 @@ describe("miniapp-definitions loader", () => {
     );
   });
 
-  it("exposes Memorial Shrine create and tribute wallet operations", async () => {
+  it("keeps Memorial Shrine create and tribute flows inside the embedded shrine app", async () => {
+    // Manifest v1.1.0 intentionally retired the host operation panel: the
+    // createMemorial/payTribute wallet flows (draft validation, offering
+    // prepay, receipt confirmation) moved into the designed embedded app.
+    // This guard used to pin the host form's exact ABI param shapes; its
+    // intent — the shrine's wallet flows stay intact and are not duplicated
+    // by a generic host form — is now enforced against the embedded app.
     delete process.env.MINIAPP_DEFINITIONS_DIR;
 
     const app = await loadBundledMiniAppById("miniapp-memorial-shrine");
-    const operations = app?.operations ?? [];
-    const byMethod = new Map(operations.map((operation) => [operation.method, operation] as const));
+    expect(app?.operations ?? []).toEqual([]);
+    expect(app?.detail_template?.operation_panel?.operations ?? []).toEqual([]);
 
-    expect(byMethod.get("createMemorial")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["creator", "hash160"],
-      ["name", "string"],
-      ["photoHash", "string"],
-      ["relationship", "string"],
-      ["birthYear", "integer"],
-      ["deathYear", "integer"],
-      ["biography", "string"],
-      ["obituary", "string"],
-    ]);
-    expect(byMethod.get("payTribute")?.params?.map((param) => [param.name, param.type])).toEqual([
-      ["visitor", "hash160"],
-      ["memorialId", "integer"],
-      ["offeringType", "select"],
-      ["message", "string"],
-      ["receiptId", "integer"],
-    ]);
+    const embeddedFlow = fs.readFileSync(
+      path.resolve(
+        process.cwd(),
+        "../../apps/memorial-shrine/src/composables/useMemorialShrine.ts",
+      ),
+      "utf-8",
+    );
+    expect(embeddedFlow).toContain('"createMemorial"');
+    expect(embeddedFlow).toContain('"payTribute"');
   });
 
   it("keeps human GAS amount operations scaled to fixed8 units", async () => {
@@ -256,20 +254,13 @@ describe("miniapp-definitions loader", () => {
     );
 
     const aaRelay = getApp(apps, "miniapp-aa-relay-console");
-    expect(aaRelay?.operations?.map((operation) => operation.method)).toEqual([
-      "checkSponsor",
-      "requestSponsor",
-      "submitRelay",
-    ]);
-    expect(
-      aaRelay?.operations
-        ?.find((operation) => operation.method === "submitRelay")
-        ?.params?.find((param) => param.name === "payloadJson"),
-    ).toEqual(
-      expect.objectContaining({
-        type: "string",
-        required: true,
-      }),
+    // AA Relay Console v2.0.0 retired the transactional sponsor/relay console
+    // (manifest platform.transactions=false): review packages, receipt import,
+    // and UserOp verification live in the embedded app. The host must not
+    // expose the old checkSponsor/requestSponsor/submitRelay forms.
+    expect(aaRelay?.operations ?? []).toEqual([]);
+    expect(aaRelay?.detail_template?.operation_panel?.operations ?? []).toEqual(
+      [],
     );
 
     const devTipping = getApp(apps, "miniapp-dev-tipping");
@@ -505,14 +496,13 @@ describe("miniapp-definitions loader", () => {
         }),
       }),
     );
-    expect(app?.operations?.map((operation) => operation.method)).toEqual([
-      "createSharedStream",
-    ]);
-    expect(
-      app?.detail_template?.operation_panel?.operations.map(
-        (operation) => operation.method,
-      ),
-    ).toEqual(["createSharedStream"]);
+    // Manifest v1.1.0 (NeoPay Stream Studio) intentionally retired the
+    // host-side operation panel and top-level operations: the embedded studio
+    // owns stream creation. The shared-runtime composition metadata — the
+    // createSharedStream operation recipe — must still survive the bundled
+    // manifest merge, which is what this guard now pins.
+    expect(app?.operations ?? []).toEqual([]);
+    expect(app?.detail_template?.operation_panel?.operations ?? []).toEqual([]);
     expect(
       (
         app?.manifest?.frontend_composition as {

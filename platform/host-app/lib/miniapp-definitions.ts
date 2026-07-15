@@ -485,6 +485,34 @@ async function loadBundledManifest(slug: string): Promise<Dict | null> {
   }
 }
 
+function stripInteractiveSpecSurfaces(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stripInteractiveSpecSurfaces(entry));
+  }
+  if (!value || typeof value !== "object") return value;
+  const out: Dict = {};
+  for (const [key, entry] of Object.entries(value as Dict)) {
+    if (key === "operation_panel" || key === "operations" || key === "operation_schema") {
+      continue;
+    }
+    out[key] = stripInteractiveSpecSurfaces(entry);
+  }
+  return out;
+}
+
+function resolveGuestOnlyFrontendSpec(obj: Dict, bundledManifest: Dict): unknown {
+  const definitionSpec = obj.frontend_spec ?? asObject(obj.manifest).frontend_spec;
+  // Informational page content (markdown, hero, content tabs) in a catalog
+  // definition stays valid for a guest-only release; only interactive
+  // surfaces (operation panels / operations / operation schemas) must not
+  // survive the merge. String specs can hide structured payloads that this
+  // sanitizer cannot inspect, so they fail closed to the bundled spec.
+  if (definitionSpec && typeof definitionSpec === "object") {
+    return stripInteractiveSpecSurfaces(definitionSpec);
+  }
+  return bundledManifest.frontend_spec;
+}
+
 function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict {
   const obj = asObject(raw);
   if (!bundledManifest) return obj;
@@ -527,7 +555,10 @@ function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict 
   // files are additive metadata, not authority to re-enable transactions. Make
   // the bundled release manifest authoritative for every capability-bearing
   // field so an old operation recipe or runtime binding cannot resurrect a
-  // form that the playable app has explicitly closed.
+  // form that the playable app has explicitly closed. Purely informational
+  // definition content (frontend_spec markdown/tabs) is preserved after
+  // stripping any interactive surfaces embedded in it.
+  const guestOnlyFrontendSpec = resolveGuestOnlyFrontendSpec(obj, bundledManifest);
   return {
     ...merged,
     platform: bundledManifest.platform,
@@ -537,7 +568,7 @@ function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict 
     runtime: undefined,
     detail_template: undefined,
     page_template: undefined,
-    frontend_spec: bundledManifest.frontend_spec,
+    frontend_spec: guestOnlyFrontendSpec,
     manifest: {
       ...asObject(merged.manifest),
       platform: bundledManifest.platform,
@@ -547,7 +578,7 @@ function mergeBundledManifest(raw: unknown, bundledManifest: Dict | null): Dict 
       runtime: undefined,
       detail_template: undefined,
       page_template: undefined,
-      frontend_spec: bundledManifest.frontend_spec,
+      frontend_spec: guestOnlyFrontendSpec,
     },
   };
 }
