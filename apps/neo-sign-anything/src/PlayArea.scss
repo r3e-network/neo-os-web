@@ -19,6 +19,29 @@
   --mx2-stage-floor: #faf9f7;
 }
 
+/**
+ * The standalone shell paints every `*-play-area` with --sd-surface (pure white)
+ * via a runtime <style> rule in apps/shared/react/MiniAppRoot.tsx. That suits an
+ * app whose stage fills the viewport, but this one deliberately caps its stage,
+ * rail and drawer at a 960px reading column (below), so the shell's white only
+ * ever covered the middle of the page and only for the height of the content:
+ * it rendered as two hard white rails either side of the 960px column and a
+ * seam straight across the page where the content stopped, all of it over the
+ * shell root's warm #faf9f7 — which is exactly the letterboxed, unfinished look
+ * reported. (The band below the rail was never the bare one; it is the root's
+ * warm surface. The white was the app's own play area, sized to its content.)
+ *
+ * The page is one continuous warm surface — the same #faf9f7 this file already
+ * hands the stage floor — and the cards carry the white. `!important` is needed
+ * because the shell declares its surface `!important`, so specificity alone
+ * cannot reach it; the doubled class keeps this override above any other
+ * app-level rule. Scoped to this app only: the shell default still governs the
+ * fleet's full-width play areas, which never expose the mismatch.
+ */
+.standalone-dapp-root .tool-play-area.tool-play-area {
+  background-color: transparent !important;
+}
+
 .tool-play-area .mx2-score {
   display: none;
 }

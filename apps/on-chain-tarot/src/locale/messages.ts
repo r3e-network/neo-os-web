@@ -296,7 +296,10 @@ const appMessages = {
   feeLabel: { en: "Draw fee", zh: "抽牌费用" },
   tarotFee: { en: "0.1 GAS on-chain", zh: "0.1 GAS（链上）" },
   readingStateLabel: { en: "Reading state", zh: "读牌状态" },
-  revealed: { en: "revealed", zh: "已揭示" },
+  // Title case to match its three sibling tile labels ("Reading state",
+  // "Readings", "Cards Drawn"). Only ever used as that tile's label, never
+  // inline in a sentence, so the casing is the label's own.
+  revealed: { en: "Revealed", zh: "已揭示" },
   oracleVerifiedShort: { en: "Recorded on-chain", zh: "链上已记录" },
   oraclePendingShort: { en: "Waiting", zh: "等待中" },
   deckPanelTitle: { en: "Neo tarot deck", zh: "Neo 塔罗牌组" },
