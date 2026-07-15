@@ -106,10 +106,12 @@ const appMessages = {
   },
   artworkPreviewLabel: { en: "Artwork preview", zh: "作品预览" },
   chooseArtwork: { en: "Choose local art", zh: "选择本地作品" },
-  resetArtwork: { en: "Remove local preview", zh: "移除本地预览" },
+  resetArtwork: { en: "Remove artwork", zh: "移除作品" },
+  // Production voice for the on-device privacy note: state where the artwork
+  // lives and what never happens to it, without preview/staging phrasing.
   artworkPreviewLocalOnly: {
-    en: "Local preview only · not uploaded or added to the package",
-    zh: "仅本地预览 · 不会上传，也不会写入发行包",
+    en: "Stays on this device · never uploaded or written into the package",
+    zh: "仅保存在本设备 · 不会上传，也不会写入发行包",
   },
   artworkFileInvalid: {
     en: "Choose a PNG, JPEG, WebP, or AVIF image up to 10 MB.",

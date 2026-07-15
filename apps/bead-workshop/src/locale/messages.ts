@@ -1,4 +1,6 @@
-export const messages = {
+import { mergeMessages } from "@shared/locale/base-messages";
+
+const appMessages = {
   appTitle: { en: "Bead Workshop", zh: "拼拼豆工坊" },
   appEyebrow: { en: "SUNLIT PUZZLE STUDIO", zh: "阳光拼豆工作室" },
   appSubtitle: {
@@ -204,3 +206,5 @@ export const messages = {
     zh: "此设备当前无法保存进度",
   },
 } as const;
+
+export const messages = mergeMessages(appMessages);

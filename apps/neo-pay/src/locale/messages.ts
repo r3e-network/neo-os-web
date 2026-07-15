@@ -1,4 +1,5 @@
 import { messages as sharedMessages } from "@shared/composables/neo-pay";
+import { mergeMessages } from "@shared/locale/base-messages";
 
 const productionMessages = {
   neoPayChainContextMismatch: {
@@ -121,7 +122,7 @@ const productionMessages = {
   },
 } as const;
 
-export const messages = {
+export const messages = mergeMessages({
   ...sharedMessages,
   ...productionMessages,
-};
+});
