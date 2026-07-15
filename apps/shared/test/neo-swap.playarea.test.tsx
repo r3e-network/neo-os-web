@@ -39,6 +39,7 @@ function t(key: string, params?: Record<string, string | number>) {
     rateRetryHint: "Refresh the quote",
     retryBalance: "Retry wallet balances",
     rateStale: "Rate stale",
+    rateStaleAsOf: `Rate as of ${params?.time ?? ""} — may be out of date`,
     receiveEstimated: "Receive estimated",
     refreshRate: "Refresh",
     routeModeLive: "Live route",
@@ -390,5 +391,37 @@ describe("Neo Swap PlayArea (v2)", () => {
     expect(scss).not.toMatch(/backdrop-filter/);
     expect(scss).not.toMatch(/:root\s*,\s*\.mx2/);
     expect(scss).not.toMatch(/ticket-scene__backdrop|redenv-scene__backdrop|!important[^;]*(?:ticket|redenv)/);
+  });
+
+  // A stale quote is a real safety signal and must stay visible — but it was
+  // printed as the stage badge, as the swap terminal's TITLE, and again as the
+  // quote card's heading directly above its own "may be out of date" detail
+  // line. Four warnings for one fact made a cold visit read as a broken app.
+  // It now appears exactly twice, in the two slots that are about status: the
+  // stage badge, and the quote card's detail line (which is more specific).
+  it("states a stale rate once as a status badge and once in context, not as the card title", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ rateStale: true, exchangeRate: "1.87", rateAsOf: "07:01 PM" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const header = container.querySelector(".swap-terminal__header") as HTMLElement;
+    const summary = container.querySelector(".swap-quote-card__summary") as HTMLElement;
+
+    // The terminal header names the card, never the quote's health.
+    expect(header.textContent).toContain("NEO/GAS");
+    expect(header.textContent).not.toContain("Rate stale");
+    // The quote card labels the figure and carries the caution tone + detail.
+    expect(summary.getAttribute("data-tone")).toBe("warning");
+    expect(summary.querySelector("span")?.textContent).toBe("Rate");
+    expect(summary.querySelector("small")?.textContent).toContain("07:01 PM");
+    expect(summary.textContent).not.toContain("Rate stale");
+    // Exactly one bare "Rate stale" in the scene (the stage badge lives outside
+    // this subtree, so within the scene the warning must not appear at all).
+    expect(container.querySelector(".swap-scene")?.textContent).not.toContain("Rate stale");
+    expect(container.querySelector(".swap-scene")?.getAttribute("data-state")).toBe("stale");
   });
 });

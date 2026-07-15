@@ -386,7 +386,23 @@ describe("red-envelope Phaser playarea", () => {
     expect(scene).toContain("private activeMode: Mode = \"claim\"");
     expect(scene).toContain("Open a shared link or active pool.");
     expect(scene).toContain('this.val<Claimability>("claimability", undefined)');
-    expect(scene).toContain("paidAvailable && this.claimEnabled && Boolean(this.activeEnvelopeId) && !this.busy");
+    // The guard: opening an envelope must stay gated on the paid lane being
+    // available AND the contract reporting this wallet claim-eligible AND an
+    // envelope actually being selected — never on a subset. That is unchanged.
+    // The clause was re-pinned (it used to also require `&& !this.busy` inline)
+    // because the button now additionally lights up for a wallet-less visitor
+    // to CONNECT: with no wallet they have not reached the paid gate yet, and
+    // opening on "GameFi paused" over a dead button advertised the game as
+    // broken to everyone who had not connected. `!this.busy` still guards the
+    // whole expression one line up, and dispatchClaim re-checks the paid gate.
+    expect(scene).toContain("paidAvailable && this.claimEnabled && Boolean(this.activeEnvelopeId)");
+    expect(scene).toMatch(/const canClaim = !this\.busy/);
+    // The connect affordance must never become a paid-action bypass.
+    const dispatchClaimBody = scene.slice(
+      scene.indexOf("private dispatchClaim(): void"),
+      scene.indexOf("private playOpenAnimation(): void"),
+    );
+    expect(dispatchClaimBody).toContain("this.paidActionsEnabled");
     expect(scene).not.toContain("merged[0]?.id");
     const dispatchClaim = scene.slice(
       scene.indexOf("private dispatchClaim(): void"),

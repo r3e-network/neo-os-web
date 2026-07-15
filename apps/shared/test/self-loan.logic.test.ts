@@ -803,3 +803,47 @@ describe("useSelfLoan coverage/LTV value normalization (self-loan-3)", () => {
     expect(app.currentLTV.get()).toBe(0);
   });
 });
+
+// The desk's first visitor has no wallet. loadRuntime used to treat "no wallet
+// has named a network" as a network MISMATCH, which drove runtimeStatus to
+// "error" and printed a red "Live data unavailable / Writes are disabled until
+// a refresh succeeds" alert over a surface the visitor had not broken. The
+// classifier now separates "nothing to compare" from "the comparison failed".
+// The write gate is unchanged and is pinned here so the reframing can never
+// quietly become a permission.
+describe("useSelfLoan pre-wallet chain context (self-loan-awaiting)", () => {
+  /**
+   * A wallet-less host: ChainService.detectNetwork falls back to a bare
+   * "neo-n3" when no wallet has published a chainType, and normalizeSelfLoan-
+   * Network maps that to null because it names no specific network.
+   */
+  function walletlessChain() {
+    const { chain } = makeChain({ neoBalance: 100n });
+    (chain as unknown as { detectNetwork: () => Promise<string> }).detectNetwork =
+      async () => "neo-n3";
+    return chain;
+  }
+
+  it("classifies an unresolvable network as awaiting-wallet, not error", async () => {
+    const app = useSelfLoan({ app: makeApp(walletlessChain()), t });
+    await app.loadAll();
+
+    expect(app.runtimeStatus.get()).toBe("awaiting-wallet");
+    expect(app.runtimeStatus.get()).not.toBe("error");
+  });
+
+  it("publishes no read error for the expected pre-wallet state", async () => {
+    const app = useSelfLoan({ app: makeApp(walletlessChain()), t });
+    await app.loadAll();
+
+    expect(app.readError.get()).toBe("");
+  });
+
+  it("still refuses to mark the runtime compatible, so writes stay gated", async () => {
+    const app = useSelfLoan({ app: makeApp(walletlessChain()), t });
+    await app.loadAll();
+
+    // Reframing is display-only: an un-named network can never authorize a write.
+    expect(app.runtimeCompatible.get()).toBe(false);
+  });
+});

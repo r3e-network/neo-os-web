@@ -80,6 +80,23 @@ function resolveTreasuryNetwork(value: unknown): TreasuryNetwork | null {
     return null;
   }
 }
+
+/*
+ * NOTE on the payout network's three subjects, which this surface used to blur
+ * into one word and so contradicted itself on first paint:
+ *
+ *   - the PAYOUT network — bound by the launch context, resolved here. Null
+ *     means the host bound no usable Neo N3 network (absent or unrecognised —
+ *     `parseMiniAppLaunchContext` already collapses both to null upstream, so
+ *     the two are genuinely indistinguishable at this layer). Payouts fail
+ *     closed in that state, deliberately.
+ *   - the WALLET network — checked at signing time by
+ *     `assertTreasuryWalletNetwork`. Only meaningful once a wallet exists.
+ *   - the WATCHLIST — a public read of known mainnet addresses over a fixed
+ *     RPC. Independent of both, and honestly live on first paint.
+ *
+ * Copy on each must name its own subject.
+ */
 function formatValuation(value: unknown) {
   const amount = Number(value);
   return Number.isFinite(amount)
@@ -147,7 +164,7 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
     ? t("networkTestnet")
     : payoutNetwork === "mainnet"
       ? t("networkMainnet")
-      : t("networkUnverified");
+      : t("payoutNetworkUnverified");
   const priceRecordTimestamp = Number(data?.prices?.feedRecordTimestamp ?? 0);
   const priceRecordLabel = priceRecordTimestamp > 0 ? formatLastUpdated(priceRecordTimestamp) : "";
   const priceStatus = priceFeedDown ? "unavailable" : isPriceDelayed ? "delayed" : hasUsdValue ? "fresh" : "pending";
@@ -317,16 +334,20 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
       await dispatchSafely("recoverDisbursement");
       return;
     }
+    // Deliberate fail-closed posture for a money app: an unresolved payout
+    // network stops the flow before it starts, rather than letting a visitor
+    // build a ticket that can never be signed. Only the message changes here —
+    // it names the launch, which is the thing that is actually unresolved.
     if (!address) {
       if (!payoutNetwork) {
-        setStatus?.(t("treasuryErrorNetworkUnverified"), "error");
+        setStatus?.(t("treasuryErrorPayoutNetworkUnverified"), "error");
         return;
       }
       await dispatchSafely("connectWallet");
       return;
     }
     if (!payoutNetwork) {
-      setStatus?.(t("treasuryErrorNetworkUnverified"), "error");
+      setStatus?.(t("treasuryErrorPayoutNetworkUnverified"), "error");
       return;
     }
     if (submitBlocked) {
@@ -415,11 +436,21 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
           </section>
         )}
 
-        {(!payoutNetwork || draftReview.error || disbursementError) && (
+        {(draftReview.error || disbursementError) && (
           <p className="treasury-ticket__error" role="alert">
             <CircleAlert size={15} strokeWidth={2.25} aria-hidden="true" />
-            {!payoutNetwork ? t("treasuryErrorNetworkUnverified") : draftReview.error || disbursementError}
+            {draftReview.error || disbursementError}
           </p>
+        )}
+        {/* An unresolved payout network is a launch-configuration precondition,
+            not a runtime failure and not something the visitor did — on a cold
+            visit there is no wallet, so there is no "wallet network" to have
+            failed verification. Payouts still fail closed (the badge says so
+            and submit is blocked); this states which step is outstanding, in
+            the neutral tone the fact deserves, and says plainly that it does
+            not contradict the live watchlist above it. */}
+        {!payoutNetwork && !draftReview.error && !disbursementError && (
+          <p className="treasury-ticket__note">{t("treasuryPayoutNetworkHint")}</p>
         )}
         {lastTxid && !pendingTransfer && presentedSettlementStatus !== "confirmed" && <p className="treasury-ticket__tx">{t("lastTx")}: <code>{compactTxid(lastTxid)}</code></p>}
       </section>

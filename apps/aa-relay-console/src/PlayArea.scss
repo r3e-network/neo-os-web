@@ -254,6 +254,18 @@
   background: #ecfaf5;
 }
 
+/*
+ * An untouched draft is neither valid nor a problem, so it gets neither the
+ * amber warning skin above nor the green pass skin — just quiet neutral text.
+ * Without this the invitation copy would inherit the amber "needs attention"
+ * background and keep reading as a warning.
+ */
+.aa-relay-scene__route > p[data-idle="true"] {
+  color: #5d6f6a;
+  background: #f5f7f6;
+  font-weight: 560;
+}
+
 .aa-relay-scene__lifecycle {
   display: grid;
   gap: 10px;

@@ -41,6 +41,11 @@ function t(key: string, params?: Record<string, string | number>) {
     closeDrawer: "Close round details",
     currentLeader: "Current leader",
     drawerSummaryLabel: "Last Survivor round summary",
+    // Real guest copy (not the key-name fallback) so the pending-round guard
+    // below asserts what a player actually reads.
+    guestRoundPending: "Waiting for first key",
+    guestStatusStart: "Load a key to start the local clock.",
+    guestClockHint: "Watch the leader — rivals can steal the final seat",
     inactiveRound: "Rollover ready",
     keyCapsules: "Key capsules",
     keyChamber: "Clock key chamber",
@@ -192,6 +197,73 @@ describe("last-survivor Phaser playarea", () => {
     fireEvent.click(getAllByText("History & rules")[0]);
     expect(container.textContent).toContain("Wallet notAvailable");
     expect(container.textContent).not.toContain("Wallet 0.00 GAS");
+  });
+
+  it("presents a pending guest round as waiting for the first key, not as a live one", () => {
+    // The guest engine's resetRound sets isRoundActive true (so the arena
+    // renders) while leaving the clock stopped at endTime 0. Reading that flag
+    // literally opened the HUD on a contradiction: "Active" over a 00:00:00
+    // countdown, captioned "Watch the leader — rivals can steal the final seat"
+    // with no leader, no rivals and no keys loaded. guestOutcome "ready" is the
+    // honest signal, so status + timer caption must follow it.
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          guestOutcome: "ready",
+          guestScore: 0,
+          guestLeaderLabel: "Open seat",
+          lastBuyer: "",
+          isRoundActive: true,
+          roundStatusDisplay: "Active",
+          timeRemainingSeconds: 0,
+          totalKeysDisplay: 0,
+          userKeys: 0,
+          viewerAddress: "",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+      state: Record<string, unknown>;
+    };
+    expect(props.state.roundStatusDisplay).toBe("Waiting for first key");
+    expect(props.state.roundStatusDisplay).not.toBe("Active");
+    expect(props.state.dangerLevelText).toBe("Load a key to start the local clock.");
+    expect(props.state.dangerLevelText).not.toBe(
+      "Watch the leader — rivals can steal the final seat",
+    );
+  });
+
+  it("keeps the live guest round on contest copy once the clock is running", () => {
+    // Guard the other side of the pending branch: a running round must still
+    // read as a contest, so the fix above cannot regress into never showing it.
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "guest",
+          guestOutcome: "running",
+          guestLeaderLabel: "Ember Fox",
+          lastBuyer: "guest-rival:ember",
+          isRoundActive: true,
+          roundStatusDisplay: "Active",
+          timeRemainingSeconds: 9,
+          viewerAddress: "",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const props = mocks.phaserGame.mock.calls.at(-1)?.[0] as {
+      state: Record<string, unknown>;
+    };
+    expect(props.state.roundStatusDisplay).toBe("Active");
+    expect(props.state.dangerLevelText).toBe(
+      "Watch the leader — rivals can steal the final seat",
+    );
   });
 
   it("scales guest danger to the 26-second duel instead of showing critical for the whole run", () => {

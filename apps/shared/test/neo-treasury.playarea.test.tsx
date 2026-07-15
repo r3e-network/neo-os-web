@@ -49,6 +49,8 @@ function t(key: string, params?: Record<string, string | number>) {
     networkMainnet: "Mainnet",
     networkTestnet: "Testnet",
     networkUnverified: "Network unverified",
+    payoutNetworkUnverified: "Payout network unverified",
+    treasuryPayoutNetworkHint: "Payouts stay closed until a Neo N3 launch network is bound",
     asset: "Asset",
     amount: "Amount",
     recipient: "Recipient",
@@ -81,6 +83,7 @@ function t(key: string, params?: Record<string, string | number>) {
     treasuryLoadTimeoutHint: "Retry live balances",
     priceFeedSourceNote: "Morpheus on-chain price feed",
     treasuryErrorNetworkUnverified: "Wallet network could not be verified",
+    treasuryErrorPayoutNetworkUnverified: "Payout network could not be verified",
     addresses: "addresses",
   };
   let value = messages[key] ?? key;
@@ -241,10 +244,16 @@ describe("Neo Treasury PlayArea (v2 scene-driven)", () => {
     const { container } = render(
       <PlayArea t={t} state={state({ address: "" })} dispatch={dispatch} launchContext={launch({ network: "neo-n3" })} setStatus={setStatus} />,
     );
-    expect(container.querySelector('.treasury-network-badge[data-verified="false"]')?.textContent).toContain("Network unverified");
+    // Same guard, same fail-closed intent: an unknown launch network must never
+    // be labelled Mainnet, must block every dispatch, and must raise a status.
+    // Only the *subject* of the copy is re-pinned — this condition is about the
+    // payout network the launch failed to bind, not about a wallet's network
+    // (there is no wallet here to have one), and the bare word "Network"
+    // collided with the scene's "Mainnet watchlist" chip right above it.
+    expect(container.querySelector('.treasury-network-badge[data-verified="false"]')?.textContent).toContain("Payout network unverified");
     fireEvent.click(container.querySelector(".mx2-btn--primary") as Element);
     expect(dispatch).not.toHaveBeenCalled();
-    expect(setStatus).toHaveBeenCalledWith("Wallet network could not be verified", "error");
+    expect(setStatus).toHaveBeenCalledWith("Payout network could not be verified", "error");
   });
 
   it("recognizes the canonical neo-n3-testnet launch label", () => {

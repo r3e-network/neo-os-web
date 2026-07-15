@@ -57,6 +57,28 @@ const appMessages = {
     zh: "规范请求结构已通过本地校验。",
   },
   requestInvalid: { en: "Request needs attention.", zh: "请求仍需完善。" },
+  /**
+   * Shown instead of `requestInvalid` while the draft is untouched. The parser
+   * rejects an empty form and a malformed one identically, so without this the
+   * console opened on a warning nobody had earned. Invitation voice, not
+   * failure voice — nothing is wrong yet.
+   */
+  requestPristine: {
+    en: "Add the AA account, target, and call data to build a request.",
+    zh: "填写 AA 账户、目标合约与调用数据即可生成请求。",
+  },
+  /**
+   * Zero-state copy for the request-summary tiles (see `PhaseValue`). These
+   * replace a literal "—": each says which field it is waiting for, so a first
+   * paint reads as a form to fill in rather than a grid of blanks.
+   */
+  // Keep these short: the tiles are a two-column grid whose <dd> clips overflow,
+  // so "Add target contract" truncated to "Add target cont…" at desktop width.
+  aaAccountIdle: { en: "Add AA account", zh: "待填写 AA 账户" },
+  targetContractIdle: { en: "Add target", zh: "待填写目标" },
+  targetMethodIdle: { en: "Add method", zh: "待填写方法" },
+  networkIdle: { en: "Resolving network", zh: "正在解析网络" },
+  jobIdIdle: { en: "Not prepared yet", zh: "尚未生成" },
   reviewStale: {
     en: "The draft changed after preparation. Prepare a new package before importing a receipt.",
     zh: "草稿在准备后已变更。导入回执前请重新生成审核包。",

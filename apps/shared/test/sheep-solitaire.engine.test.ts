@@ -255,80 +255,87 @@ describe("sheep-solitaire card layout generation", () => {
   });
 });
 
-describe("sheep-solitaire card exposure logic", () => {
+describe("sheep-solitaire card exposure logic (§9.2 unified fine grid)", () => {
+  const grid = (id: number, layer: number, col: number, row: number): CardData => ({
+    id,
+    symbol: id,
+    layer,
+    col,
+    row,
+    zone: "grid",
+    stackIndex: 0,
+  });
+
   it("marks all cards on layer 0 (top) as exposed", () => {
-    const cards: CardData[] = [
-      { id: 0, symbol: 0, layer: 0, col: 0, row: 0 },
-      { id: 1, symbol: 1, layer: 0, col: 3, row: 2 },
-      { id: 2, symbol: 2, layer: 0, col: 1, row: 1 },
-    ];
+    const cards: CardData[] = [grid(0, 0, 0, 0), grid(1, 0, 3, 2), grid(2, 0, 1, 1)];
     const exposed = computeExposed(cards);
     expect(exposed[0]).toBe(true);
     expect(exposed[1]).toBe(true);
     expect(exposed[2]).toBe(true);
   });
 
-  it("blocks layer-1 cards that are within 1 cell of a layer-0 card", () => {
+  it("covers a lower card iff the fine-grid unit distance is < 2 on both axes", () => {
+    // Layer-0 anchor at (1,1) → unit (2,2). Layer-1 cards sit at unit
+    // (2c+1, 2r+1) — the half-cell stagger.
     const cards: CardData[] = [
-      { id: 0, symbol: 0, layer: 0, col: 1, row: 1 },
-      // Layer-1 cards at various distances from card 0
-      { id: 1, symbol: 1, layer: 1, col: 1, row: 1 }, // dx=0, dy=0 → blocked
-      { id: 2, symbol: 2, layer: 1, col: 5, row: 3 }, // dx=4, dy=2 → far, exposed
-      { id: 3, symbol: 3, layer: 1, col: 0, row: 1 }, // dx=1, dy=0 → blocked
-      { id: 4, symbol: 4, layer: 1, col: 3, row: 3 }, // dx=2, dy=2 → exposed
+      grid(0, 0, 1, 1),
+      grid(1, 1, 1, 1), // unit (3,3): Δ(1,1) → covered
+      grid(2, 1, 0, 0), // unit (1,1): Δ(1,1) → covered
+      grid(3, 1, 0, 1), // unit (1,3): Δ(1,1) → covered
+      grid(4, 1, 2, 1), // unit (5,3): Δ(3,1) → exposed (x too far)
+      grid(5, 1, 1, 2), // unit (3,5): Δ(1,3) → exposed (y too far)
+      grid(6, 1, 3, 3), // unit (7,7): far → exposed
     ];
     const exposed = computeExposed(cards);
-    expect(exposed[0]).toBe(true); // layer 0
-    expect(exposed[1]).toBe(false);
-    expect(exposed[2]).toBe(true);
-    expect(exposed[3]).toBe(false);
-    expect(exposed[4]).toBe(true);
-  });
-
-  it("blocks layer-2 cards that are within 1 cell of a layer-1 card", () => {
-    const cards: CardData[] = [
-      { id: 0, symbol: 0, layer: 1, col: 2, row: 2 },
-      // Layer-2 cards
-      { id: 1, symbol: 1, layer: 2, col: 2, row: 2 }, // same → blocked
-      { id: 2, symbol: 2, layer: 2, col: 10, row: 10 }, // far → exposed
-      { id: 3, symbol: 3, layer: 2, col: 1, row: 2 }, // dx=1, dy=0 → blocked
-    ];
-    const exposed = computeExposed(cards);
-    expect(exposed[0]).toBe(true); // layer 1 is exposed (blocking only goes downward)
-    expect(exposed[1]).toBe(false);
-    expect(exposed[2]).toBe(true);
-    expect(exposed[3]).toBe(false);
-  });
-
-  it("respects the Manhattan-distance threshold of 1 (dx ≤ 1 and dy ≤ 1)", () => {
-    const cards: CardData[] = [
-      { id: 0, symbol: 0, layer: 0, col: 1, row: 1 },
-      { id: 1, symbol: 1, layer: 1, col: 0, row: 0 }, // dx=1, dy=1 → blocked
-      { id: 2, symbol: 2, layer: 1, col: 2, row: 1 }, // dx=1, dy=0 → blocked
-      { id: 3, symbol: 3, layer: 1, col: 1, row: 2 }, // dx=0, dy=1 → blocked
-      { id: 4, symbol: 4, layer: 1, col: 0, row: 2 }, // dx=1, dy=1 → blocked
-      { id: 5, symbol: 5, layer: 1, col: 3, row: 3 }, // dx=2, dy=2 → exposed
-      { id: 6, symbol: 6, layer: 1, col: 3, row: 0 }, // dx=2, dy=1 → exposed (dx > 1)
-    ];
-    const exposed = computeExposed(cards);
+    expect(exposed[0]).toBe(true);
     expect(exposed[1]).toBe(false);
     expect(exposed[2]).toBe(false);
     expect(exposed[3]).toBe(false);
-    expect(exposed[4]).toBe(false);
+    expect(exposed[4]).toBe(true);
     expect(exposed[5]).toBe(true);
     expect(exposed[6]).toBe(true);
   });
 
-  it("does not have cross-layer-blocking beyond the immediate higher layer", () => {
-    // Layer-0 cards do NOT directly block layer-2 cards — only layer-1 can block layer-2
-    const cards: CardData[] = [
-      { id: 0, symbol: 0, layer: 0, col: 1, row: 1 },
-      { id: 1, symbol: 1, layer: 2, col: 1, row: 1 }, // same position as card 0
-      // but layer 0 does not block layer 2 — only layer 1 blocks layer 2
-    ];
+  it("covers ACROSS layers: a layer-0 tile buries a layer-2 tile straight underneath", () => {
+    // v2 semantics — layers 0 and 2 share parity, so same (col,row) is unit
+    // distance 0. The old adjacent-layer-only rule is retired (§9.2).
+    const cards: CardData[] = [grid(0, 0, 1, 1), grid(1, 2, 1, 1)];
     const exposed = computeExposed(cards);
     expect(exposed[0]).toBe(true);
-    expect(exposed[1]).toBe(true); // not blocked because only layer-1 blocks layer-2
+    expect(exposed[1]).toBe(false);
+  });
+
+  it("never covers within the same layer", () => {
+    const cards: CardData[] = [grid(0, 1, 2, 2), grid(1, 1, 2, 2), grid(2, 1, 3, 2)];
+    const exposed = computeExposed(cards);
+    expect(exposed[0]).toBe(true);
+    expect(exposed[1]).toBe(true);
+    expect(exposed[2]).toBe(true);
+  });
+
+  it("exposes only the top REMAINING card of each side stack", () => {
+    const stack = (id: number, zone: "stackL" | "stackR", stackIndex: number): CardData => ({
+      id,
+      symbol: id,
+      layer: 0,
+      col: 0,
+      row: 0,
+      zone,
+      stackIndex,
+    });
+    const full = [stack(0, "stackL", 0), stack(1, "stackL", 1), stack(2, "stackL", 2), stack(3, "stackR", 0)];
+    const exposed = computeExposed(full);
+    expect(exposed[0]).toBe(false);
+    expect(exposed[1]).toBe(false);
+    expect(exposed[2]).toBe(true); // stackL top
+    expect(exposed[3]).toBe(true); // stackR top (independent zone)
+
+    // Removing the top re-exposes the next card down.
+    const afterPick = full.filter((card) => card.id !== 2);
+    const exposedAfter = computeExposed(afterPick);
+    expect(exposedAfter[0]).toBe(false);
+    expect(exposedAfter[1]).toBe(true);
+    expect(exposedAfter[3]).toBe(true);
   });
 });
 

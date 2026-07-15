@@ -123,6 +123,16 @@ const appMessages = {
   networkMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
   networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
   networkUnverified: { en: "Network unverified", zh: "网络未验证" },
+  // A bare "Network unverified" badge sat directly above the scene's green
+  // "Mainnet watchlist · Live balances synced" chip and read as a flat
+  // contradiction — two different networks, one word. Name the subject: this
+  // badge is about the payout network only. The unverified state itself is
+  // unchanged (payouts still fail closed).
+  payoutNetworkUnverified: { en: "Payout network unverified", zh: "支付网络未验证" },
+  treasuryPayoutNetworkHint: {
+    en: "Payouts stay closed until this app is opened with a Neo N3 Mainnet or Testnet launch network. The watchlist balances above are a public read and are unaffected.",
+    zh: "在以 Neo N3 主网或测试网启动本应用之前，支付保持关闭。上方观察清单余额为公开读取数据，不受影响。",
+  },
   status: { en: "Status", zh: "状态" },
   asset: { en: "Asset", zh: "资产" },
   assetGasHint: { en: "Fee token, fine-grained", zh: "手续费资产，支持小数" },
@@ -200,9 +210,19 @@ const appMessages = {
     en: "Checking this record never signs or broadcasts another transfer.",
     zh: "检查此记录不会再次签名或广播转账。",
   },
+  // Raised by `normalizeTreasuryNetwork` on the WALLET network at signing time
+  // (see assertTreasuryWalletNetwork) — accurate there, where a wallet exists.
   treasuryErrorNetworkUnverified: {
     en: "Wallet network could not be verified as Neo N3 Mainnet or Testnet.",
     zh: "无法确认钱包是否处于 Neo N3 主网或测试网。",
+  },
+  // The launch-context counterpart. The PlayArea used to borrow the wallet
+  // message above for this, so a cold visit with no wallet connected announced
+  // that a wallet's network had failed verification — blaming a wallet that
+  // does not exist for a fact about how the app was opened.
+  treasuryErrorPayoutNetworkUnverified: {
+    en: "Payout network could not be verified as Neo N3 Mainnet or Testnet. Open this app from the Neo MiniApp catalog.",
+    zh: "无法确认支付网络为 Neo N3 主网或测试网。请从 Neo 小程序目录打开本应用。",
   },
   treasuryErrorNetworkMismatch: {
     en: "Wallet is on {current}; switch to Neo N3 {expected} before signing.",

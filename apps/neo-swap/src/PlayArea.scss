@@ -985,12 +985,21 @@
     border-radius: 20px;
   }
 
+  /* The pill packs three facts ("MAINNET · Slippage: 0.5%") into one nowrap
+     line. Sharing a flex row with the title at 390px left it wider than its
+     42% cap allowed, so it was sliced at the card's right edge — losing the
+     slippage value and the pill's own rounded corner. Stack the header and let
+     the pill take its own row, where it fits at full size. */
   .swap-terminal__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
+    gap: 8px;
   }
 
   .swap-terminal__header em {
-    max-width: 42%;
+    max-width: 100%;
+    justify-self: start;
     min-height: 36px;
     padding-inline: 10px;
   }

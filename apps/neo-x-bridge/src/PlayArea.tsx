@@ -626,7 +626,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: P) {
           eyebrow: t("heroEyebrow"),
           title: t("heroTitleShort"),
           subtitle: t("heroNoFundsShort"),
-          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{t("workspaceEnvironment", { environment: bridgeEnvironment === "testnet" ? t("testnet") : t("mainnet") })}</span>,
+          badges: <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{t("reviewWorkspace")}</span>,
         }}
         scene={(
           <div className="nxb-console" data-mode={mode}>

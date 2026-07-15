@@ -11,9 +11,17 @@ const appMessages = {
     en: "New Best",
     zh: "刷新纪录",
   },
+  /**
+   * Launcher hero subtitle (manifest heroDescKey). The trailing "Verified
+   * reward flights stay gated until settlement validation is complete" was
+   * dead weight the 138-char clamp happened to cut — but it is store-facing
+   * copy, so it stayed one wording change away from shipping an outage notice
+   * as the first line of the app. MiniAppRoot appends the shared free-play
+   * line for guest-only builds; this states the game.
+   */
   homeDesc: {
-    en: "A polished Flappy-style arcade run with three real difficulty curves, responsive controls, sound, and instant free practice. Verified reward flights stay gated until settlement validation is complete.",
-    zh: "精心打磨的飞鸟街机玩法，拥有三档真实难度曲线、灵敏操作、音效与即时免费练习。奖励飞行将在结算链路完成验证后开放。",
+    en: "A polished Flappy-style arcade run with three real difficulty curves, responsive controls, sound, and instant free practice.",
+    zh: "精心打磨的飞鸟街机玩法，拥有三档真实难度曲线、灵敏操作、音效与即时免费练习。",
   },
   homeHowToPlay: { en: "How to play", zh: "玩法说明" },
   homePoolStat: { en: "Prize Pool", zh: "奖池金额" },

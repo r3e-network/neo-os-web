@@ -79,6 +79,7 @@ export class LastSurvivorScene extends BaseScene {
   private heroFrame!: Phaser.GameObjects.Graphics;
   private orbitTokens: Phaser.GameObjects.Image[] = [];
   private potIcon!: Phaser.GameObjects.Image;
+  private roundBadgeIcon!: Phaser.GameObjects.Image;
 
   private potText!: Phaser.GameObjects.Text;
   private prizePoolText!: Phaser.GameObjects.Text;
@@ -178,6 +179,8 @@ export class LastSurvivorScene extends BaseScene {
           ? this.str("sceneLiveRound", "Live round")
           : this.str("sceneWaitingRound", "Waiting for round")),
     );
+    // Status width just changed — keep the badge clear of it.
+    this.layoutRoundBadge();
     this.countdownText.setText(needsLifecycleSync ? this.str("sceneSettleWord", "Settle") : countdown);
     this.timerSubtext.setText(
       needsLifecycleSync
@@ -322,6 +325,21 @@ export class LastSurvivorScene extends BaseScene {
     this.heroContainer.add([shadow, this.heroImage, this.heroFrame]);
   }
 
+  /**
+   * Park the round badge immediately left of the round status.
+   *
+   * The status is right-aligned and its width varies with both state and
+   * locale, so a fixed badge x-position can only ever be correct for one
+   * string. Re-run this whenever the status text changes.
+   */
+  private layoutRoundBadge(): void {
+    if (!this.roundBadgeIcon || !this.roundText) return;
+    const GAP = 12;
+    const badgeHalfWidth = this.roundBadgeIcon.displayWidth / 2;
+    const statusLeftEdge = this.roundText.x - this.roundText.width;
+    this.roundBadgeIcon.setX(statusLeftEdge - GAP - badgeHalfWidth);
+  }
+
   private buildHud(W: number): void {
     const card = this.add.graphics();
     card.fillStyle(C.surface, 0.94);
@@ -342,7 +360,7 @@ export class LastSurvivorScene extends BaseScene {
       color: "#806f56",
     });
 
-    this.add.image(W - 148, 57, SURVIVOR_ASSETS.logo).setDisplaySize(30, 30);
+    this.roundBadgeIcon = this.add.image(W - 148, 57, SURVIVOR_ASSETS.logo).setDisplaySize(30, 30);
 
     this.roundText = this.add.text(W - 50, 57, "Live round", {
       fontFamily: FONT,
@@ -350,6 +368,11 @@ export class LastSurvivorScene extends BaseScene {
       fontStyle: "700",
       color: "#0c8150",
     }).setOrigin(1, 0.5);
+    // The badge sat at a fixed W-148 while the status is right-aligned at W-50
+    // and grows leftward. That fits "Active" but not a longer, localized status
+    // ("Waiting for first key"), which then ran straight through the badge. Keep
+    // the badge pinned to the left edge of whatever the status actually is.
+    this.layoutRoundBadge();
 
     this.orbitTokens.push(this.potIcon);
   }

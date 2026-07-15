@@ -75,9 +75,11 @@ title: { en: "Neo Swap — NEO/GAS liquidity desk", zh: "Neo 兑换 — NEO/GAS 
   },
   swapRecovered: { en: "Swap confirmed", zh: "兑换已确认" },
   swapRouterUnavailable: { en: "Swap router unavailable", zh: "兑换路由不可用" },
+  // Same reframing as `routeModePreviewBody`: state the capability first, then
+  // the boundary. Both facts are unchanged.
   swapRouterUnavailableHint: {
-    en: "No on-chain swap router is deployed for this network yet. Quotes are live, but on-chain settlement is not available.",
-    zh: "本网络尚未部署链上兑换路由。报价为实时数据，但暂时无法在链上结算。",
+    en: "Quotes here are live. On-chain settlement opens once a swap router is deployed for this network.",
+    zh: "此处的报价为实时数据。待本网络部署兑换路由后，即可开放链上结算。",
   },
   rateStale: { en: "Rate may be stale", zh: "汇率可能已过期" },
   rateAsOf: { en: "Rate as of {time}", zh: "汇率截至 {time}" },
@@ -147,9 +149,13 @@ title: { en: "Neo Swap — NEO/GAS liquidity desk", zh: "Neo 兑换 — NEO/GAS 
     en: "A router is configured for this network. Review the route and sign only if every figure matches your intent.",
     zh: "本网络已配置兑换路由。请复核路线，并仅在每一项数据符合预期时签名。",
   },
+  // Store-facing: this opens the Route review panel on a cold visit. Leading
+  // with "No router is deployed on this network yet" advertised the app as
+  // non-functional before saying what it does. The gate is real and stays
+  // stated — just after the capability, in product voice.
   routeModePreviewBody: {
-    en: "No router is deployed on this network yet. Use this desk to compare the live quote and prepare the trade.",
-    zh: "本网络尚未部署兑换路由。您可以在这里比较实时报价并规划交易。",
+    en: "Compare the live quote and prepare the trade here. Settlement signing opens once a swap router is configured for this network.",
+    zh: "在这里比较实时报价并规划交易。待本网络配置兑换路由后，即可开放结算签名。",
   },
   routeSourceMorpheus: { en: "Morpheus quote loaded", zh: "Morpheus 报价已加载" },
   routeSourceAwaiting: { en: "Refresh to load the quote", zh: "刷新以加载报价" },

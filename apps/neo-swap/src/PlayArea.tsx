@@ -296,9 +296,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     >
       <section className="swap-terminal" aria-label={t("tabSwap")}>
         <header className="swap-terminal__header">
+          {/* The title slot names the card, not the quote's health. It used to
+              render `routeHealth`, which made "Rate may be stale" the terminal's
+              headline — a third copy of a warning already carried by the stage
+              badge and the quote card, so a cold visit read as "this app's data
+              is broken" before any interaction. The status still shows up in
+              both places that are about status. */}
           <div>
-            <span>{selectedPairDisplay}</span>
-            <strong>{routeHealth}</strong>
+            <span>{t("tabSwap")}</span>
+            <strong>{selectedPairDisplay}</strong>
           </div>
           <em>{quoteNetwork.toUpperCase()} · {slippageLabel}: {slippage}</em>
         </header>
@@ -418,8 +424,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 <TokenIcon symbol={toToken.symbol} size={30} />
               </div>
             </div>
+            {/* `data-tone` already carries the caution styling and `quoteSource`
+                already states the staleness precisely and actionably ("Rate as
+                of {time} — may be out of date"). The label just names the
+                figure; repeating `routeHealth` here printed the same warning
+                twice inside one card. */}
             <div className="swap-quote-card__summary" data-tone={rateError ? "error" : rateStale ? "warning" : "ready"} aria-live="polite">
-              <span>{routeHealth}</span>
+              <span>{t("exchangeRateShort")}</span>
               <strong>{rateDisplay}</strong>
               <small>{quoteSource}</small>
             </div>

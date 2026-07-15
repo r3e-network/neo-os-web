@@ -199,8 +199,19 @@ describe("neo-convert PlayArea (v2)", () => {
     expect(s).toMatch(/\.convert-material--scene\[data-ready="true"\]\s*\{[\s\S]*background:\s*#f8fffd/);
     expect(s).toMatch(/\.convert-entry-input\.mx2-open-field__control\s*\{[\s\S]*border:\s*0/);
     expect(s).toMatch(/\.convert-entry-input \.semi-input\s*\{[\s\S]*font-family:\s*ui-monospace/);
-    expect(s).toMatch(/\.convert-format-rail__items\s*\{[\s\S]*overflow-x:\s*auto/);
-    expect(s).toMatch(/\.convert-format-rail__items span\s*\{[\s\S]*flex:\s*0 0 104px/);
+    // The format legend must stay bounded to its card and must never push the
+    // layout sideways. This was originally pinned as `overflow-x: auto` on a
+    // flex rail of `flex: 0 0 104px` chips — which honoured "bounded" by
+    // slicing the last chip vertically at the card edge on every viewport,
+    // with no fade or arrow to suggest it scrolled. Same intent, re-pinned on
+    // the wrapping auto-fit grid that replaced it: still width-bounded
+    // (max-width: 100%), still a stable chip footprint (the minmax floor),
+    // but it reflows to a second row instead of clipping.
+    expect(s).toMatch(
+      /\.convert-format-rail__items\s*\{[\s\S]*grid-template-columns:\s*repeat\(auto-fit, minmax\(100px, 1fr\)\)[\s\S]*max-width:\s*100%/,
+    );
+    expect(s).not.toMatch(/\.convert-format-rail__items\s*\{[^}]*overflow-x/);
+    expect(s).toMatch(/\.convert-format-rail__items span\s*\{[\s\S]*min-width:\s*0/);
     expect(s).toMatch(/\.convert-resource-card img\s*\{[\s\S]*object-fit:\s*contain/);
     expect(s).toMatch(/\.neo-convert-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 172px/);
     expect(s).toMatch(/\.convert-card--output\s*\{[\s\S]*background:\s*#ffffff/);

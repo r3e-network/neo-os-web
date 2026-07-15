@@ -430,6 +430,13 @@ const appMessages = {
   guestOutcomeLost: { en: "Eliminated", zh: "淘汰" },
   guestClaimReady: { en: "Claim ready", zh: "可领取" },
   guestPotLabel: { en: "Pressure score", zh: "压力分" },
+  /**
+   * Round status while the local arena is armed but the clock has not started.
+   * The guest engine marks `isRoundActive` true on reset so the arena renders,
+   * which made the HUD announce "Active" over a 00:00:00 clock with no keys
+   * loaded. This names the state the player is actually in.
+   */
+  guestRoundPending: { en: "Waiting for first key", zh: "等待首把钥匙" },
   guestClockHint: { en: "Watch the leader — rivals can steal the final seat", zh: "盯住领先者——对手会抢走最后席位" },
   guestYouLeader: { en: "You", zh: "你" },
   guestNoBuyerYet: { en: "Open seat", zh: "席位空缺" },
