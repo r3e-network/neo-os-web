@@ -54,7 +54,10 @@ const appMessages = {
     en: "Owner, treasury, decimals, and blueprint target.",
     zh: "Owner、金库、精度和蓝图目标网络。",
   },
-  executeDeployAction: { en: "Deployment not certified", zh: "部署尚未认证" },
+  // This release has no execute stage (`showExecuteAction={false}`), so the
+  // pipeline no longer renders a deploy step. Kept neutral for any surface that
+  // still names the capability rather than advertising it as failed.
+  executeDeployAction: { en: "Contract creation", zh: "合约创建" },
   stepDeployTitleNep17: {
     en: "Certify unique NEP-17 artifact",
     zh: "认证独立 NEP-17 工件",
@@ -71,6 +74,11 @@ const appMessages = {
     en: "Deployment is locked: the factory contract requires a user-specific NEF, manifest, and artifact-bound digest that this build does not yet generate and verify.",
     zh: "部署已锁定：Factory 合约要求用户专属 NEF、manifest 和工件绑定摘要，而当前版本尚不能完整生成并验证这些内容。",
   },
+  // `unverified` means "no live confirmation from the chain yet" — on first
+  // paint the template artifact has simply not been probed. Say that plainly
+  // instead of stamping a failure-shaped "Unverified" badge on the entry
+  // surface for what is a normal pre-read state.
+  artifactStatusUnverified: { en: "Not checked yet", zh: "尚未核对" },
   artifactNotRegistered: {
     en: "This template is metadata-only. It can support blueprint and registry review, but it cannot create a contract; real deployment requires the separately certified unique-artifact pipeline.",
     zh: "当前模板仅包含元数据，可用于蓝图和注册表复核，但不能创建合约；真实部署需要另行完成独立工件流水线认证。",
@@ -97,12 +105,16 @@ const appMessages = {
   },
   docSafetyModel: { en: "Release model", zh: "发行模式" },
   deploymentSafetyTitle: {
-    en: "Blueprint release mode",
-    zh: "蓝图发行模式",
+    en: "Issuance blueprint studio",
+    zh: "发行蓝图工作室",
   },
+  // Store-facing first screen: lead with what the studio does, and state the
+  // scope boundary once, calmly, in product voice. The engineering detail
+  // (unique-artifact certification against the configured Factory) belongs in
+  // the release notes below, not in the entry banner.
   deploymentSafetyBody: {
-    en: "Design, lock, sign, export, and recover exact records now. Contract creation remains unavailable until the unique-artifact flow is certified against the configured TestNet Factory.",
-    zh: "现在可以设计、锁定、签名、导出蓝图并精确核对链上记录。独立工件流程在配置的测试网 Factory 上完成认证前，合约创建保持不可用。",
+    en: "Design, lock, sign, and export a deterministic NEP-17 blueprint, then match it against the on-chain record. Contract creation is not part of this release.",
+    zh: "设计、锁定、签名并导出确定性的 NEP-17 蓝图，再与链上记录逐项核对。合约创建不在当前版本范围内。",
   },
   deploymentLive: { en: "Deployment live", zh: "部署已开放" },
   blueprintMode: { en: "Blueprint mode", zh: "蓝图模式" },

@@ -310,6 +310,47 @@ describe("Asset Factory production safety", () => {
     expect(sharedPlayArea).toContain('{ label: t("previewSupply"), value: nep17SupplyLabel }');
     expect(sharedPlayArea).toContain('{ label: t("decimals"), value: nep17.decimals.trim() || "—" }');
     expect(sharedPlayArea).toContain('{ label: t("previewMintPolicy"), value: nep17PolicyLabel }');
-    expect(sharedPlayArea).toContain('`${t("owner")}: ${compactIdentity(nep17.owner, "—")}`');
+    expect(sharedPlayArea).toContain('`${t("owner")}: ${compactIdentity(nep17.owner, "")}`');
+  });
+
+  it("prompts for an unset Owner instead of rendering an em-dash void", () => {
+    const sharedPlayArea = readFileSync(
+      resolve(process.cwd(), "factory/FactoryPlayArea.tsx"),
+      "utf8",
+    );
+
+    // An Owner the issuer has not typed yet is a normal first-run state, not a
+    // missing value: the draft step must invite the input rather than paint a
+    // "—" hole on the entry surface.
+    expect(sharedPlayArea).toContain('t("draftOwnerPending")');
+    expect(sharedPlayArea).not.toContain('compactIdentity(nep17.owner, "—")');
+  });
+
+  it("drops the deploy stage from the pipeline when the app has no execute action", () => {
+    const sharedPlayArea = readFileSync(
+      resolve(process.cwd(), "factory/FactoryPlayArea.tsx"),
+      "utf8",
+    );
+
+    // Asset Factory ships `showExecuteAction={false}`; a permanently blocked
+    // "deploy" step would advertise a working blueprint studio as broken.
+    expect(sharedPlayArea).toContain("...(showExecuteAction");
+  });
+
+  it("states the release scope in calm product voice with no testnet branding", () => {
+    const localized = assetMessages as Record<
+      string,
+      { en: string; zh: string }
+    >;
+
+    expect(localized.deploymentSafetyBody.en).not.toMatch(/testnet/i);
+    expect(localized.deploymentSafetyBody.zh).not.toMatch(/测试网/);
+    expect(localized.deploymentSafetyBody.en).not.toMatch(
+      /unavailable|not certified|unique-artifact/i,
+    );
+    expect(localized.deploymentSafetyBody.en).toMatch(
+      /not part of this release/i,
+    );
+    expect(localized.deploymentSafetyBody.zh).toMatch(/不在当前版本范围内/);
   });
 });
