@@ -148,6 +148,36 @@ const nextConfig = {
         ],
       },
       {
+        // Vite emits every file under a miniapp's assets/ with a content hash
+        // in its name, so a given URL's bytes can never change - a new build
+        // means a new URL. Without this these immutable files fell through to
+        // the block below, which sets no Cache-Control, so browsers revalidated
+        // the whole bundle on every launch of every app.
+        //
+        // Scoped to assets/ deliberately: index.html is NOT hashed, and
+        // freezing it would pin visitors to a retired entry point. It keeps
+        // the default revalidating behaviour below.
+        source: "/miniapps/:slug/assets/:file*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Content-Security-Policy", value: MiniAppCSP },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+      {
         source: "/miniapps/:path*",
         headers: [
           // Wildcard CORS for static miniapp assets: dApps load inside a
