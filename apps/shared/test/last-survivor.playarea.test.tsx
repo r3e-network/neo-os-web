@@ -102,7 +102,7 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
 
     expect(container.querySelector(".survivor-scene")).toBeTruthy();
     expect(container.querySelector<HTMLImageElement>(".survivor-scene__arena-art")?.getAttribute("src")).toContain("last-survivor-arena.webp");
-    expect(container.querySelector(".survivor-scene__shade")).toBeTruthy();
+    expect(container.querySelector(".survivor-scene__legibility")).toBeTruthy();
     expect(container.querySelector<HTMLImageElement>(".survivor-scene__relic-art")?.getAttribute("src")).toContain("survivor-scene-art.webp");
     expect(container.querySelector(".survivor-scene__timer")?.textContent).toContain("00:01:30");
     expect(container.querySelector(".survivor-scene__danger-track")).toBeTruthy();
@@ -244,7 +244,7 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/\.survivor-play-area \.mx2-action-rail__drawer-toggle\s*\{[\s\S]*min-width:\s*176px/);
     expect(styles).toMatch(/\.survivor-scene__arena-art\s*\{[\s\S]*object-fit:\s*cover/);
     expect(styles).toMatch(/\.survivor-scene__arena-art\s*\{[\s\S]*opacity:\s*0\.78/);
-    expect(styles).toMatch(/\.survivor-scene__shade\s*\{[\s\S]*linear-gradient/);
+    expect(styles).toMatch(/\.survivor-scene__legibility\s*\{[\s\S]*linear-gradient/);
     expect(styles).not.toMatch(/var\(--mx2-scene-art-opacity|background-image:\s*url/);
     expect(styles).not.toMatch(/radial-gradient/);
     expect(styles).not.toMatch(/backdrop-filter/);
@@ -288,7 +288,7 @@ describe("Last Survivor PlayArea (v2 scene-driven)", () => {
     expect(source).not.toContain("setTimeout(");
     expect(source).toMatch(/ARENA_IMAGE = "last-survivor-arena\.webp"/);
     expect(source).toContain("survivor-scene__arena-art");
-    expect(source).toContain("survivor-scene__shade");
+    expect(source).toContain("survivor-scene__legibility");
     expect(source).toContain("survivor-scene__relic");
     expect(source).toContain("survivor-scene__beats");
     expect(source).toContain("survivor-controls__dock");

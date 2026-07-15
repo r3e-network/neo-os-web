@@ -274,10 +274,6 @@ const appMessages = {
     en: "A matching face pays 5.70x in practice chips. It's just for fun — no real value is at stake.",
     zh: "命中点数按 5.70 倍赔付练习筹码。纯属娱乐——不涉及任何真实价值。",
   },
-  gameFiValidationShort: {
-    en: "GameFi validation in progress",
-    zh: "GameFi 验证中",
-  },
 } as const;
 
 export const messages = mergeMessages(appMessages);

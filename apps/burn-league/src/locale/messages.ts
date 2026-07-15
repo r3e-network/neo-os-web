@@ -12,6 +12,10 @@ const appMessages = {
   },
   launchPrimary: { en: "Enter arena", zh: "进入竞技场" },
   launchCtaTitle: { en: "Ready to fuel the arena?", zh: "准备点燃竞技场？" },
+  // Hint for the collapsed details row — previews what opening it reveals,
+  // rather than repeating launchCtaTitle back to the reader. Kept under the
+  // 56-character limit the launcher applies to this slot.
+  launchDetailsHint: { en: "Season rules, prize and safety", zh: "赛季规则、奖励与安全说明" },
   launchCtaDesc: {
     en: "Practice locally, or review every wallet-signed burn before joining the live season.",
     zh: "可先在本地练习；加入实时赛季前，每次燃烧都会要求你在钱包中单独确认。",
@@ -33,6 +37,10 @@ const appMessages = {
   rewardPool: { en: "Reward Pool", zh: "奖励池" },
   rank: { en: "Rank", zh: "排名" },
   yourRank: { en: "Your Rank", zh: "你的排名" },
+  // Honest zero-state for a wallet that has not burned yet, in place of the
+  // former "--" em-dash void. Read by `formattedRank`, so it lands on the rank
+  // tile, the in-game HUD, the sidebar and the platform stat strip at once.
+  rankUnranked: { en: "Unranked", zh: "未上榜" },
   outOf: { en: "of {total} players", zh: "共 {total} 名玩家" },
   burnTokens: { en: "Ignite GAS into the arena pool", zh: "将 GAS 点燃进竞技场奖池" },
   amount: { en: "Amount", zh: "数量" },

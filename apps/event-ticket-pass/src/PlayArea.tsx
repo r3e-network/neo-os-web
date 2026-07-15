@@ -251,11 +251,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const hasTransferContext = tickets.length > 0 || transferTokenId.trim().length > 0 || transferRecipient.trim().length > 0;
   const ticketsAreVerified = ticketsVerification === "verified";
   const ticketsArePartial = ticketsVerification === "partial";
+  // With no wallet there is no pass inventory to count — the expected first-run
+  // state, not a missing read. This fell through to "—", putting an em-dash void
+  // on the store-facing stat strip next to two honest zeroes. Name the reason
+  // instead; the verified/partial shapes are unchanged.
   const ticketsScore = ticketsAreVerified
     ? String(ticketsCount)
     : ticketsExpectedCount > 0
       ? `${ticketsCount}/${ticketsExpectedCount}`
-      : "—";
+      : t("ticketsNeedWallet");
   const latestTxid = String(latestResult?.txid ?? "").trim();
   const latestExplorerUrl = explorerTxUrl(latestTxid);
   const checkinTokenHasValue = checkinTokenId.trim().length > 0;

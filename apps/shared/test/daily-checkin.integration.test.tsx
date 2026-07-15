@@ -19,10 +19,13 @@ function state(values: Partial<Record<string, unknown>> = {}): ObservableState {
     network: "mainnet",
     contractHash: "0x25db219a701a2b23130788723fcf9a2e76857235",
     dataSource: "chain",
-    currentStreak: "—",
-    highestStreak: "—",
-    unclaimedRewards: "—",
-    totalClaimed: "—",
+    // Unresolved wallet-scoped values are EMPTY, not "—" — see useCheckin: the
+    // composable emits "" and the view resolves it to a skeleton or zero-state
+    // copy via the shared DataPhase helpers.
+    currentStreak: "",
+    highestStreak: "",
+    unclaimedRewards: "",
+    totalClaimed: "",
     checkInFee: "0.001 GAS",
     rewardPoolBalance: "1.002 GAS",
     weekRewardLabel: "0.01 GAS",

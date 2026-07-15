@@ -152,9 +152,14 @@ describe("Daily Check-in ritual-first product surface", () => {
         state={state({
           dataSource: "failed",
           walletAddress: "",
-          currentStreak: "—",
-          highestStreak: "—",
-          unclaimedRewards: "—",
+          // Unresolved values arrive EMPTY from useCheckin now, not as "—": the
+          // composable no longer decides how an unseen value looks, so the view
+          // can tell "read in flight" from "settled, needs a wallet" and render
+          // a skeleton or zero-state copy instead of an em-dash grid. Fixture
+          // kept in step with that contract.
+          currentStreak: "",
+          highestStreak: "",
+          unclaimedRewards: "",
           hasLoadedStatus: false,
           lastError: "Platform state read is unavailable.",
         })}
@@ -175,7 +180,22 @@ describe("Daily Check-in visual production locks", () => {
     expect(styles).toMatch(/\.dci-ritual__layout\s*\{[\s\S]*?grid-template-columns:/);
     expect(styles).toMatch(/\.dci-plaza,[\s\S]*?\.dci-console\s*\{[\s\S]*?background:\s*#fff/);
     expect(styles).toMatch(/\.dci-plaza > img\s*\{[\s\S]*?object-fit:\s*cover/);
-    expect(styles).toMatch(/\.dci-plaza__shade\s*\{[\s\S]*?rgba\(10,\s*55,\s*42,\s*0\.78\)/);
+    // The plaza caption is white, so it REQUIRES an opaque-enough scrim over the
+    // artwork. That intent is unchanged and re-pinned below.
+    //
+    // This assertion used to name the layer `.dci-plaza__shade`, and that is the
+    // bug it hid: the shared clarity guard zeroes
+    // `.mx2-stage__scene [class$="__shade"]` (plus __wash/__backdrop/
+    // __stage-light/__background) with `opacity: 0 !important`, and this figure
+    // renders inside the PlayStage scene. So the scrim was present in the
+    // stylesheet — which is all this test checked — while being switched off in
+    // the browser, leaving the white caption unreadable on the pale artwork. The
+    // guard passed green against a broken surface.
+    //
+    // Re-pinned to the functional name, and tightened: assert the scrim is dark
+    // enough AND that it is not re-introduced under a reserved name.
+    expect(styles).toMatch(/\.dci-plaza__legibility\s*\{[\s\S]*?rgba\(10,\s*55,\s*42,\s*0\.88\)/);
+    expect(styles).not.toMatch(/\.dci-plaza__(shade|wash|backdrop|stage-light|background)\s*\{/);
     expect(styles).toMatch(/\.dci-plaza__caption\s*\{[\s\S]*?color:\s*#fff/);
     expect(styles).toMatch(/\.dci-drawer\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,/);
     expect(styles).toMatch(/\.daily-checkin-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*?flex:\s*0 0 188px/);

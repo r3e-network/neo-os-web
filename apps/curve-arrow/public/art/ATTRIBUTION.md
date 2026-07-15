@@ -12,6 +12,12 @@ MiniApps learning project.
 
 Included assets:
 
+- `../banner.svg` / `../banner.webp` / `../banner.avif` — launcher hero art,
+  regenerated 2026-07-15 by `scripts/generate-banner.mjs`. The previous banner
+  baked the "Curve Arrow" wordmark and tagline into the image; the launcher
+  cover-crops the hero, so that lettering ghosted through the real HTML headline
+  as the fragments "e Arrow" / "t. Split the gold." on desktop and a stray "W"
+  on mobile. The replacement carries no typography — the shell owns the words.
 - `range-sky.webp`
 - `bow.webp`
 - `arrow.webp`

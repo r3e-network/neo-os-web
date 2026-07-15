@@ -416,8 +416,16 @@ export function useBurnLeague({ app, t, getAddress }: UseBurnLeagueOptions) {
     () => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`,
     [rewardPool],
   );
+  /**
+   * Rank 0 means "this wallet has not burned yet" — the expected first-run
+   * state, not a missing read. Collapsing it to "--" printed an em-dash void
+   * into every surface that renders this one value (the Phaser rank tile, the
+   * in-game HUD "Your Rank" tile, the sidebar and the platform stat strip), so
+   * a first-time visitor met a row of dashes before touching anything. State
+   * the zero-state honestly instead; the "#N" shape is unchanged once ranked.
+   */
   const formattedRank = createDerived(
-    () => rank.get() > 0 ? `#${rank.get()}` : "--",
+    () => rank.get() > 0 ? `#${rank.get()}` : t("rankUnranked"),
     [rank],
   );
   const leaderboardSize = createDerived(() => leaderboard.get().length, [leaderboard]);

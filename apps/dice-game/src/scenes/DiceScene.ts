@@ -331,7 +331,24 @@ export class DiceScene extends BaseScene {
       prev = next;
     }
 
-    this.add.text(W / 2, 68, this.copy("tableTitle", "Lucky face table"), {
+    // Header legibility.
+    //
+    // Both lines used to be pinned at fixed y (68 / 88) while the throw mat's
+    // top edge is layout-derived: `matY - matHeight / 2` puts it at 72.6 on the
+    // 520x660 desktop canvas and 85.05 on the 376x756 mobile one. The mat
+    // therefore rose *behind* the header, and the hint — dark teal #35685d at
+    // 0.78 alpha — ended up drawn straight onto the dark FELT_DARK oval, where
+    // it was all but invisible. The title straddled the gold trim on desktop
+    // for the same reason.
+    //
+    // Fix the cause rather than the symptom: derive the title's y from the mat
+    // so it always clears the rim, and caption the hint onto the mat with an
+    // opaque light pill so it stays readable whichever surface the mat's top
+    // edge leaves behind it (dark felt on desktop, part mint on mobile).
+    const matTop = layout.matY - layout.matHeight / 2;
+    const titleY = Math.max(24, Math.min(68, matTop - 12));
+
+    this.add.text(W / 2, titleY, this.copy("tableTitle", "Lucky face table"), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "11px",
@@ -340,12 +357,24 @@ export class DiceScene extends BaseScene {
       letterSpacing: 2,
     }).setOrigin(0.5).setAlpha(0.82);
 
-    this.add.text(W / 2, 88, this.copy("tableHint", "Pick a face, stack a chip, throw once."), {
+    const hint = this.add.text(W / 2, titleY + 26, this.copy("tableHint", "Pick a face, stack a chip, throw once."), {
       fontFamily: FONT_FAMILY,
       resolution: TEXT_RESOLUTION,
       fontSize: "12px",
-      color: "#35685d",
-    }).setOrigin(0.5).setAlpha(0.78);
+      color: "#174c40",
+    }).setOrigin(0.5);
+
+    const padX = 12;
+    const padY = 5;
+    const pillW = hint.width + padX * 2;
+    const pillH = hint.height + padY * 2;
+    const pill = this.add.graphics();
+    pill.fillStyle(0xf3fbf6, 0.93);
+    pill.fillRoundedRect(hint.x - pillW / 2, hint.y - pillH / 2, pillW, pillH, pillH / 2);
+    pill.lineStyle(1, 0xffffff, 0.7);
+    pill.strokeRoundedRect(hint.x - pillW / 2, hint.y - pillH / 2, pillW, pillH, pillH / 2);
+    // The pill is added after the text, so lift the text back above it.
+    this.children.bringToTop(hint);
   }
 
   private buildDice(W: number, H: number): void {

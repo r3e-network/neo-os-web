@@ -276,8 +276,17 @@ describe("Daily Check-in canonical production state", () => {
     expect(app.hasLoadedPlatform.get()).toBe(true);
     expect(app.hasLoadedStatus.get()).toBe(false);
     expect(app.dataSource.get()).toBe("partial");
-    expect(app.formattedCurrentStreak.get()).toBe("—");
-    expect(app.formattedUnclaimed.get()).toBe("—");
+    // Intent unchanged: a malformed user read must stay UNAVAILABLE and must
+    // never render as a trusted zero ("0 days" / "0.00 GAS") the visitor could
+    // act on. Only the marker moved: the composable used to signal unavailable
+    // with an em-dash, which meant it — not the view — decided what an
+    // unresolved value looks like, and printed a dash grid onto the entry
+    // surface. It now emits empty and the view renders a skeleton or localized
+    // zero-state copy. Assert both halves so neither can regress into a zero.
+    expect(app.formattedCurrentStreak.get()).toBe("");
+    expect(app.formattedUnclaimed.get()).toBe("");
+    expect(app.formattedCurrentStreak.get()).not.toContain("0");
+    expect(app.formattedUnclaimed.get()).not.toContain("0");
     app.cleanup();
   });
 
@@ -287,7 +296,10 @@ describe("Daily Check-in canonical production state", () => {
 
     expect(app.hasLoadedPlatform.get()).toBe(false);
     expect(app.dataSource.get()).toBe("failed");
-    expect(app.formattedRewardPool.get()).toBe("—");
+    // Same re-pin as above: unavailable is now "" rather than "—". The load-
+    // bearing half of this guard is that a failed pool read is NOT treated as a
+    // funded/zero balance.
+    expect(app.formattedRewardPool.get()).toBe("");
     expect(app.rewardsUnderfunded.get()).toBe(false);
     app.cleanup();
   });

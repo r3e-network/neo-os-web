@@ -3,7 +3,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 export const manifest: MiniAppManifest = {
   name: "Aim Master",
   description:
-    "Free local target practice: choose a lane, fire anywhere on the range as the moving reticle crosses the bullseye, and chain clean hits before time runs out. No wallet or GAS is required; verified GameFi stays closed until the testnet pool is funded and settlement is proven end to end.",
+    "Free local target practice: choose a lane, fire anywhere on the range as the moving reticle crosses the bullseye, and chain clean hits before time runs out. No wallet or GAS is required, and best scores are saved on your device.",
   icon: "crosshair",
   category: "game",
   shell: "game",
@@ -19,7 +19,9 @@ export const manifest: MiniAppManifest = {
     heroDescKey: "guestSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "guestModeValue",
+    // "Local run" is already the hero badge; reusing it here printed the same
+    // two words a third time (badge, chip, details hint) on one screen.
+    featuresEyebrowKey: "guestOffChainBadge",
     featuresTitleKey: "guestRulesTitle",
     features: [
       {
@@ -37,7 +39,10 @@ export const manifest: MiniAppManifest = {
     ctaTitleKey: "lobbyTitle",
     ctaDescKey: "guestRulesCopy",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["guestModeValue", "gameFiMaintenanceShort", "rankLabel"],
+    // Trust badges are selling points. The maintenance sentence that used to sit
+    // in the middle slot leaked release-engineering detail onto the first screen
+    // a visitor ever sees; "Local run" duplicated the hero badge beside it.
+    trustBadgeKeys: ["guestEntryLabel", "guestOffChainBadge", "rankLabel"],
   },
 
   tabs: [
@@ -62,7 +67,9 @@ export const manifest: MiniAppManifest = {
 
   docs: [
     { titleKey: "guestRulesTitle", contentKey: "guestRulesCopy", type: "steps" },
-    { titleKey: "gameFiMaintenanceShort", contentKey: "gameFiMaintenanceShort", type: "text" },
+    // Was titleKey === contentKey, which printed the same sentence as its own
+    // heading. The gate is real, so it keeps a doc entry — with a real title.
+    { titleKey: "gameFiModeDocTitle", contentKey: "gameFiMaintenanceShort", type: "text" },
   ],
 
   features: {

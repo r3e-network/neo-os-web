@@ -43,7 +43,12 @@ export const manifest: MiniAppManifest = {
     ctaTitleKey: "appTitle",
     ctaDescKey: "guestRulesShort",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["guestBadge", "gameFiValidationShort", "guestFairnessShort"],
+    // Trust badges are selling points. "GameFi validation in progress" sat in
+    // the middle slot and was a pure staleness signal — a store-facing chip
+    // telling a first-time visitor the product was mid-repair before they had
+    // touched it. A guest-only build ships one complete mode; state what the
+    // visitor gets instead.
+    trustBadgeKeys: ["guestBadge", "guestFairnessTitle", "guestPayoutTitle"],
   },
 
   tabs: [
