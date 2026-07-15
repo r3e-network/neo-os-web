@@ -197,6 +197,10 @@ lastsurvivor-*.png
 obsidian-terminal.png
 polymarket-layout.png
 apps/*/dist/
+# `vite build --outDir dist-device-qa` output. The pattern above only matches a
+# directory named exactly `dist`, so 85 files / 4.2MB of build output were being
+# tracked — including a neo-manifest.json that made the fleet count read 78/77.
+apps/*/dist-device-qa/
 
 # Multi-user-sim daemon runtime output (per-iter JSON + logs)
 docs/reports/multi-user-sim/
