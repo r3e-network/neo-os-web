@@ -140,11 +140,30 @@
   object-position: center;
 }
 
-.dci-plaza__shade {
+/* Legibility scrim for the plaza caption.
+ *
+ * This layer MUST NOT be named `shade`. The playarea-background-clarity guard in
+ * the shared v2 stylesheet zeroes `.mx2-stage__scene [class$="__shade"]` (and
+ * `__wash` / `__backdrop` / `__stage-light` / `__background`) with
+ * `opacity: 0 !important` to stop apps fogging their own scene art. This figure
+ * renders inside the PlayStage scene, so the old `.dci-plaza__shade` was being
+ * silently switched off at runtime — which is why the white caption and its
+ * subtitle sat unreadable straight on the palest part of the plaza artwork.
+ *
+ * Named for its function instead, per `.aa-market-hero__legibility`. Keep any
+ * future layer here named the same way: the reserved words are zeroed out.
+ */
+.dci-plaza__legibility {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(15, 62, 47, 0.02) 30%, rgba(10, 55, 42, 0.78) 100%);
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 62, 47, 0) 26%,
+    rgba(12, 58, 44, 0.58) 56%,
+    rgba(10, 55, 42, 0.88) 100%
+  );
 }
 
 .dci-plaza__caption {

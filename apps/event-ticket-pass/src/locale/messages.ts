@@ -41,6 +41,9 @@ const appMessages = {
   creatingEvent: { en: "Creating event...", zh: "创建活动中..." },
   ticketsTab: { en: "Tickets", zh: "票务" },
   ticketsCount: { en: "Tickets", zh: "票数" },
+  // Zero-state for the Tickets stat before a wallet is connected, in place of
+  // the former "—" void. Short: it sits in a narrow stat tile.
+  ticketsNeedWallet: { en: "Connect wallet", zh: "连接钱包" },
   eventSelected: { en: "Event selected", zh: "已选择活动" },
   eventsCountLabel: { en: "{count} events", zh: "{count} 个活动" },
 

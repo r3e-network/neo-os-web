@@ -193,6 +193,13 @@ const appMessages = {
   },
   walletLabel: { en: "Wallet", zh: "钱包" },
   notConnected: { en: "Not connected", zh: "未连接" },
+  // ── First-run zero states (see PlayArea's DataPhase helpers) ──────────────
+  // Copy for values that cannot exist yet. These replace the em-dash grid the
+  // surface used to open with: a pre-wallet first paint is the normal state,
+  // so it reads as an invitation, never as an error or a void.
+  valueStreakNotStarted: { en: "Not started", zh: "未开始" },
+  valueConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  valueAwaitingNetwork: { en: "Awaiting network", zh: "等待网络" },
   chainVerified: { en: "Live chain state", zh: "链上实时状态" },
   chainPartial: { en: "User state unavailable", zh: "用户状态暂不可用" },
   chainUnavailable: { en: "Chain state unavailable", zh: "链上状态暂不可用" },

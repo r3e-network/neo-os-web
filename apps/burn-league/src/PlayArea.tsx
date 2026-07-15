@@ -145,7 +145,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       data-state={sceneState}
     >
       <img className="burn-scene__arena-image" src={ARENA_IMAGE} alt="" aria-hidden="true" />
-      <span className="burn-scene__shade" aria-hidden="true" />
+      <span className="burn-scene__legibility" aria-hidden="true" />
 
       <div className="burn-scene__hud">
         <div className="burn-scene__stat burn-scene__stat--pool">

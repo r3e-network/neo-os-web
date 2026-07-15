@@ -207,7 +207,13 @@ const appMessages = {
   guestProgressLabel: { en: "Local progress", zh: "本地进度" },
   guestBestLabel: { en: "Best local score", zh: "最佳本地成绩" },
   guestModeLabel: { en: "Mode", zh: "模式" },
-  guestModeValue: { en: "No token", zh: "无代币" },
+  // This fills a tile labelled "Mode", so it must name the mode. "No token"
+  // answered a question nobody asked there (and the guest board already says
+  // no GAS is involved), reading as a stray fragment on the stat rail.
+  guestModeValue: { en: "Local play", zh: "本地游玩" },
+  // Honest zero-states, replacing bare "--" voids on the first-run stat rail.
+  guestNoScore: { en: "No runs yet", zh: "暂无成绩" },
+  rankUnranked: { en: "Unranked", zh: "未上榜" },
   guestScoreValue: { en: "{count} cues", zh: "{count} 个灯号" },
 
   drawerTitle: { en: "Leaderboard & rules", zh: "排行榜与规则" },

@@ -154,16 +154,28 @@
   box-shadow: inset 2px 0 0 var(--cclash-teal);
 }
 
+/* Metric LABELS are short phrases, not values.
+ *
+ * Each tile is 1fr of a 5-column, 560px-max grid — roughly 87px of content
+ * width. "Local progress" and "Best local score" need more than that, so
+ * `white-space: nowrap` plus an ellipsis clipped them to "LOCAL PROGRE…" and
+ * "BEST LOCAL S…" even on the wide desktop board, where the rail had room to
+ * spare vertically. Let the phrase use the tile's second line instead of
+ * truncating honest copy; the clamp bounds a long localization.
+ * Values (`strong`) keep nowrap + ellipsis — those are short and must not reflow. */
 .cclash-stage-hud__metric span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   color: var(--cclash-muted);
   font-size: 0.58rem;
   font-weight: 680;
   letter-spacing: 0;
   line-height: 1.05;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .cclash-stage-hud__metric strong {

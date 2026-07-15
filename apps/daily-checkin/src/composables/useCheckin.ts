@@ -264,40 +264,57 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     subscribe: (listener) => now.subscribe(listener),
   };
 
+  /*
+   * Formatted read-outs: a value the visitor cannot see yet is EMPTY here, not
+   * an em-dash.
+   *
+   * Each of these used to resolve to "—" until its load flag flipped, which made
+   * the composable — not the view — decide what an unresolved value looks like,
+   * and left a first-time visitor facing a grid of six dashes on the entry
+   * surface before touching anything. The dash also collapsed two different
+   * honest states into one glyph: "the read is still in flight" and "this needs
+   * a wallet we do not have" are not the same thing.
+   *
+   * Emitting "" hands that decision to the view, which pairs it with the load
+   * flag below (see PlayArea's DataPhase helpers) to render a skeleton while a
+   * read is genuinely in flight and localized zero-state copy once it has
+   * settled empty. `hasLoadedStatus` gates the wallet-scoped values; the
+   * chain-scoped ones further down gate on `hasLoadedPlatform`.
+   */
   const formattedCurrentStreak = derived(
-    () => hasLoadedStatus.get() ? `${currentStreak.get()} ${t("days")}` : "—",
+    () => hasLoadedStatus.get() ? `${currentStreak.get()} ${t("days")}` : "",
     [hasLoadedStatus, currentStreak],
   );
   const formattedHighestStreak = derived(
-    () => hasLoadedStatus.get() ? `${highestStreak.get()} ${t("days")}` : "—",
+    () => hasLoadedStatus.get() ? `${highestStreak.get()} ${t("days")}` : "",
     [hasLoadedStatus, highestStreak],
   );
   const formattedUnclaimed = derived(
-    () => hasLoadedStatus.get() ? `${formatGas(unclaimedRewards.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedStatus.get() ? `${formatGas(unclaimedRewards.get())} ${t("tokenGas")}` : "",
     [hasLoadedStatus, unclaimedRewards],
   );
   const formattedTotalClaimed = derived(
-    () => hasLoadedStatus.get() ? `${formatGas(totalClaimed.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedStatus.get() ? `${formatGas(totalClaimed.get())} ${t("tokenGas")}` : "",
     [hasLoadedStatus, totalClaimed],
   );
   const formattedTotalRewarded = derived(
-    () => hasLoadedPlatform.get() ? `${formatGas(totalGlobalRewarded.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedPlatform.get() ? `${formatGas(totalGlobalRewarded.get())} ${t("tokenGas")}` : "",
     [hasLoadedPlatform, totalGlobalRewarded],
   );
   const formattedRewardPool = derived(
-    () => hasLoadedPlatform.get() ? `${formatGas(rewardPoolBalance.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedPlatform.get() ? `${formatGas(rewardPoolBalance.get())} ${t("tokenGas")}` : "",
     [hasLoadedPlatform, rewardPoolBalance],
   );
   const formattedWeekReward = derived(
-    () => hasLoadedPlatform.get() ? `${formatGas(weekReward.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedPlatform.get() ? `${formatGas(weekReward.get())} ${t("tokenGas")}` : "",
     [hasLoadedPlatform, weekReward],
   );
   const formattedTwoWeekReward = derived(
-    () => hasLoadedPlatform.get() ? `${formatGas(twoWeekReward.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedPlatform.get() ? `${formatGas(twoWeekReward.get())} ${t("tokenGas")}` : "",
     [hasLoadedPlatform, twoWeekReward],
   );
   const formattedCheckInFee = derived(
-    () => hasLoadedPlatform.get() ? `${formatGas(checkInFeeRaw.get())} ${t("tokenGas")}` : "—",
+    () => hasLoadedPlatform.get() ? `${formatGas(checkInFeeRaw.get())} ${t("tokenGas")}` : "",
     [hasLoadedPlatform, checkInFeeRaw],
   );
 
