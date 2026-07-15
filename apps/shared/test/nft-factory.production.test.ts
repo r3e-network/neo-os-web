@@ -211,7 +211,16 @@ describe("NFT Factory production contract", () => {
     // playarea-functionality audit). The guard's intent is unchanged — the
     // copy must still say the artwork stays on-device and is never uploaded.
     expect(messages).toContain("Stays on this device");
-    expect(messages).toContain("deployed testnet Factory lacks");
+    // Re-pinned 2026-07-15: the deployment-gate disclosure was rewritten to
+    // product voice. It used to open "Deployment is unavailable." and then
+    // explain the deployed testnet Factory's missing creator-artifact ABI — a
+    // store-facing studio announcing its own core flow as broken, in engineering
+    // register, and stamping "testnet" on the first screen a second time (same
+    // fix asset-factory took in acec39136). The guard's intent is unchanged and
+    // still enforced below: this release must state plainly that it does not
+    // create the contract, and must never imply that it does.
+    expect(messages).toContain("Contract creation is not part of this release");
+    expect(messages).not.toContain("Deployment is unavailable");
     expect(messages).toContain("ownerWalletRequired");
     expect(attribution).toContain("019f4e01-96c2-75d0-a5e6-9ca5a60f7100");
     expect(attribution).toContain("No upstream game, marketplace");

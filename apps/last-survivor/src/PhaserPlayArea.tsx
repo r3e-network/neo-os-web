@@ -109,6 +109,23 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
         : timeRemainingSeconds <= 12
           ? "medium"
           : "low";
+  /**
+   * The guest round is ARMED, not running, until the first key starts the local
+   * clock: guest-engine `resetRound` leaves `clockRunning` false and
+   * `endTime` 0, but sets `isRoundActive` true so the arena renders. The HUD
+   * read that flag literally and opened on a contradiction — "Active" beside a
+   * 00:00:00 clock and "Watch the leader — rivals can steal the final seat"
+   * with no leader, no rivals and no keys loaded. `guestOutcome` already
+   * carries the honest distinction ("ready" until the first key), so status and
+   * timer caption follow it instead of `isRoundActive`.
+   */
+  const guestRoundPending = isGuest && guestOutcome === "ready";
+  /**
+   * `roundStatusDisplay` from the composable is GameFi vocabulary derived from
+   * `isRoundActive` ("Active" / "Rollover ready"). A pending guest round is
+   * neither: it is armed and waiting on the player's first key.
+   */
+  const roundStatusLabel = guestRoundPending ? t("guestRoundPending") : roundStatusDisplay;
   const guestWon = guestOutcome === "won";
   const guestLost = guestOutcome === "lost";
   const guestFinishAction = guestLost ? t("guestRestartWord") : t("guestBankWord");
@@ -170,7 +187,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     dangerLevel:      isGuest ? guestDangerLevel : str("dangerLevel", "low"),
     // Guest never wants an alarmist "CRITICAL" tier on a compressed local clock —
     // show a friendly local prompt instead; GameFi keeps its danger tier text.
-    dangerLevelText:  isGuest ? t("guestClockHint") : dangerLevelText,
+    // Feeds the scene's timer caption. Before the first key there is no leader
+    // to watch and no rival to lose the seat to, so the pending round says how
+    // to start the clock instead of narrating a contest that has not begun.
+    dangerLevelText:  isGuest
+      ? (guestRoundPending ? t("guestStatusStart") : t("guestClockHint"))
+      : dangerLevelText,
     // Pot → survival streak (key count) in guest; GAS pot in GameFi.
     totalPotDisplay:  potDisplay,
     keyCount,
@@ -190,7 +212,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     paidActionsAvailable: bool("paidActionsAvailable"),
     needsLifecycleSync,
     roundDataAvailable: roundReady,
-    roundStatusDisplay,
+    roundStatusDisplay: roundStatusLabel,
     shouldPulse:      isGuest
       ? guestOutcome === "running" && timeRemainingSeconds > 0 && timeRemainingSeconds <= 3
       : bool("shouldPulse"),
@@ -376,7 +398,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
             <Activity size={16} aria-hidden="true" />
             <h4>{needsLifecycleSync
               ? t("inactiveRound")
-              : roundStatusDisplay || (isRoundActive ? t("activeRound") : t("inactiveRound"))}</h4>
+              : roundStatusLabel || (isRoundActive ? t("activeRound") : t("inactiveRound"))}</h4>
           </div>
           <div className="survivor-state-card">
             <span>{t("currentLeader")}</span>

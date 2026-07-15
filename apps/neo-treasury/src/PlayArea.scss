@@ -136,14 +136,19 @@
   text-transform: uppercase;
 }
 .treasury-scene__gauge-usd {
-  overflow: hidden;
+  /* The headline treasury figure. 34px + nowrap + ellipsis clipped the single
+     most important number on the screen to "$108,988,760…." at 390px, eating
+     the cents. The narrow-viewport step below sizes it to the room instead, so
+     the value stays whole; `min-width: 0` lets it shrink inside its grid parent
+     rather than overflow. (Stepped at a breakpoint, not clamp() — fluid type is
+     banned fleet-wide and pinned by neo-treasury.playarea.test.tsx.) */
+  min-width: 0;
   font-size: 34px;
   font-weight: 680;
   color: var(--mx2-accent-strong);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   line-height: 1.04;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .treasury-scene__tokens {
@@ -1056,6 +1061,18 @@
   color: var(--treasury-danger-ink);
 }
 
+/* Neutral counterpart to __error: an outstanding step, not a failure. */
+.treasury-ticket__note {
+  margin: 0;
+  border-radius: 14px;
+  padding: 8px 10px;
+  background: var(--mx2-surface-2);
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.45;
+  color: var(--mx2-text-muted);
+}
+
 .treasury-ticket__tx {
   margin: 0;
   font-size: 12px;
@@ -1406,6 +1423,12 @@
   .treasury-ticket {
     min-height: auto;
     padding: 16px;
+  }
+
+  /* Fit the whole watchlist figure (14-16 chars incl. cents) in the ~330px the
+     scene has at 390px, rather than ellipsis-clipping the cents off the end. */
+  .treasury-scene__gauge-usd {
+    font-size: 24px;
   }
 
   .treasury-scene {

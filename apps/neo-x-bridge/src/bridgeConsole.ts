@@ -487,16 +487,20 @@ export function bridgeNetworks(
   direction: BridgeDirection,
   environment: BridgeEnvironment,
 ): { source: BoundBridgeNetwork; destination: BoundBridgeNetwork } {
+  // `network` is display copy on the chain cards. The "T5"/"T4" net numbers
+  // read as cryptic staleness markers to a store visitor and add nothing a
+  // wallet cannot confirm — the exact network is still carried unambiguously
+  // by `chainId`, which is what every attestation and comparison uses.
   const n3: BoundBridgeNetwork = {
     key: "neo-n3",
     label: "Neo N3",
-    network: environment === "testnet" ? "Neo N3 TestNet T5" : "Neo N3 MainNet",
+    network: environment === "testnet" ? "Neo N3 TestNet" : "Neo N3 MainNet",
     chainId: environment === "testnet" ? "magic:894710606" : "magic:860833102",
   };
   const neoX: BoundBridgeNetwork = {
     key: "neo-x",
     label: "Neo X",
-    network: environment === "testnet" ? "Neo X TestNet T4" : "Neo X MainNet",
+    network: environment === "testnet" ? "Neo X TestNet" : "Neo X MainNet",
     chainId: environment === "testnet" ? "12227332" : "47763",
   };
   return direction === "n3-to-neox"

@@ -2,8 +2,12 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Flappy Dash",
+  // Store-facing description: what ships, not what is gated. The trailing
+  // "reward route stays gated until Morpheus replay and deployed settlement
+  // timing pass production validation" put release-engineering status into
+  // store metadata.
   description:
-    "A polished Flappy-style arcade challenge with real bird and pipe artwork, responsive controls, sound, three distinct difficulty curves, instant restarts, and free local practice. The wallet-backed reward route stays gated until Morpheus replay and deployed settlement timing pass production validation.",
+    "A polished Flappy-style arcade challenge with real bird and pipe artwork, responsive controls, sound, three distinct difficulty curves, instant restarts, and free local practice. No wallet, fee, or chain write is involved.",
   icon: "cloud",
   category: "game",
   shell: "game",

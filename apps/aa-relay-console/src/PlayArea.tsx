@@ -23,6 +23,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { resolveNeoNetwork } from "@shared/constants/rpc";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2/DataPhase";
 import { draftFingerprint, parseRelayDraft } from "./relay-job";
 import "./PlayArea.scss";
 
@@ -36,10 +37,27 @@ type DrawerMode = "request" | "package" | "receipt";
 
 const RELAY_STATION_ART = "aa-relay-station.webp";
 
+/**
+ * Middle-elide a long identifier. Returns "" — never an em-dash — for an empty
+ * value: "the visitor has not typed this yet" is a phase for <PhaseValue> to
+ * render as zero-state copy, not a character this helper should invent. Every
+ * caller passes the result through `resolvePhase({ hasData: Boolean(...) })`.
+ */
 function compact(value: string, head = 8, tail = 6): string {
   const raw = String(value || "").trim();
-  if (!raw) return "—";
+  if (!raw) return "";
   return raw.length <= head + tail + 1 ? raw : `${raw.slice(0, head)}…${raw.slice(-tail)}`;
+}
+
+/**
+ * Draft-derived values have no read in flight: the console parses whatever is
+ * currently in the local textareas. So a draft field is always "settled" — it
+ * is either filled ("ready") or waiting on the visitor ("unavailable"). Passing
+ * `loading: false` here is a statement of fact, not a shortcut: rendering a
+ * shimmer for a field that is simply blank would be a lie about pending I/O.
+ */
+function draftPhase(value: string) {
+  return resolvePhase({ loading: false, settled: true, hasData: Boolean(value) });
 }
 
 function stateCopy(t: P["t"], value: string): string {
@@ -128,6 +146,20 @@ export default function PlayArea({ t, state, dispatch }: P) {
       };
     }
   }, [aaCoreDisplay, draftAa, draftDapp, draftPayload, networkDisplay, paymasterDisplay, t]);
+
+  // "Nothing entered yet" is the honest first-run state of this console: the
+  // request summary reads a local draft, so before the visitor types there is no
+  // data to show and nothing has failed. Keep it distinct from "typed something
+  // that does not parse", which is the only case that earns a warning.
+  //
+  // Only the account and dApp id count as visitor input. `payloadJson` seeds
+  // itself from `getDefaultRelayPayload(network)` (useAARelayConsole.ts:69), so
+  // it is never empty and testing it here would make this flag dead — the draft
+  // would read as "touched" on a form the visitor has not looked at yet.
+  const pristineDraft = !draftAa.trim() && !draftDapp.trim();
+  const aaAccountValue = compact(validation.parsed?.accountId || draftAa);
+  const targetValue = compact(validation.parsed?.targetContract || targetDisplay);
+  const methodValue = validation.parsed?.targetMethod || methodDisplay || "";
 
   const canUseReview = hasReview && !reviewStale;
   const primaryTracks = canUseReview && hasTrackableReceipt;
@@ -220,17 +252,55 @@ export default function PlayArea({ t, state, dispatch }: P) {
             {busy ? <LoaderCircle className="aa-relay-scene__spinner" size={18} /> : <ShieldCheck size={18} />}
           </div>
           <dl>
-            <div><dt>{t("aaAccount")}</dt><dd>{compact(validation.parsed?.accountId || draftAa)}</dd></div>
-            <div><dt>{t("targetContract")}</dt><dd>{compact(validation.parsed?.targetContract || targetDisplay)}</dd></div>
-            <div><dt>{t("targetMethod")}</dt><dd>{validation.parsed?.targetMethod || methodDisplay || "—"}</dd></div>
-            <div><dt>{t("network")}</dt><dd>{networkDisplay || "—"}</dd></div>
+            <div>
+              <dt>{t("aaAccount")}</dt>
+              <dd>
+                <PhaseValue phase={draftPhase(aaAccountValue)} placeholder={t("aaAccountIdle")}>
+                  {aaAccountValue}
+                </PhaseValue>
+              </dd>
+            </div>
+            <div>
+              <dt>{t("targetContract")}</dt>
+              <dd>
+                <PhaseValue phase={draftPhase(targetValue)} placeholder={t("targetContractIdle")}>
+                  {targetValue}
+                </PhaseValue>
+              </dd>
+            </div>
+            <div>
+              <dt>{t("targetMethod")}</dt>
+              <dd>
+                <PhaseValue phase={draftPhase(methodValue)} placeholder={t("targetMethodIdle")}>
+                  {methodValue}
+                </PhaseValue>
+              </dd>
+            </div>
+            <div>
+              <dt>{t("network")}</dt>
+              <dd>
+                <PhaseValue phase={draftPhase(networkDisplay)} placeholder={t("networkIdle")}>
+                  {networkDisplay}
+                </PhaseValue>
+              </dd>
+            </div>
           </dl>
-          <p data-valid={validation.valid ? "true" : undefined}>
-            {reviewStale
-              ? t("reviewStale")
-              : validation.valid
-                ? validation.message
-                : t("requestInvalid")}
+          {/*
+            A pristine draft is not an invalid one. `parseRelayDraft` throws on an
+            empty form exactly as it does on a malformed one, so this line used to
+            greet every first-time visitor with the amber "Request needs attention."
+            before they had typed a character. Warning tone is reserved for a draft
+            the visitor has actually started; an untouched form gets a neutral
+            invitation instead.
+          */}
+          <p data-valid={validation.valid ? "true" : undefined} data-idle={pristineDraft ? "true" : undefined}>
+            {pristineDraft
+              ? t("requestPristine")
+              : reviewStale
+                ? t("reviewStale")
+                : validation.valid
+                  ? validation.message
+                  : t("requestInvalid")}
           </p>
         </section>
 
@@ -254,7 +324,28 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <strong>{hasReceipt ? outcomeCopy(t, chainStatus) : stateCopy(t, reviewReadiness)}</strong>
           <p>{chainReason || t("runtimeBoundaryCopy")}</p>
           <dl>
-            <div><dt>{t("jobId")}</dt><dd>{reviewJobId || "—"}</dd></div>
+            {/*
+              Unlike the draft tiles above, this one DOES have a read in flight:
+              `isPreparing` covers the round trip that mints the job id, so a
+              shimmer there is truthful. Outside that window an absent job id
+              just means the review has not been prepared yet.
+            */}
+            <div>
+              <dt>{t("jobId")}</dt>
+              <dd>
+                <PhaseValue
+                  phase={resolvePhase({
+                    loading: isPreparing,
+                    settled: !isPreparing,
+                    hasData: Boolean(reviewJobId),
+                  })}
+                  placeholder={t("jobIdIdle")}
+                  skeletonWidth="6em"
+                >
+                  {reviewJobId}
+                </PhaseValue>
+              </dd>
+            </div>
             <div><dt>{t("confirmations")}</dt><dd>{confirmationsDisplay || "0"}</dd></div>
           </dl>
         </aside>

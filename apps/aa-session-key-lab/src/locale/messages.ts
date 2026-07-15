@@ -294,7 +294,27 @@ const appMessages = {
   sessionMetricScope: { en: "Scope", zh: "作用域" },
   sessionCommandTitle: { en: "Key & sponsorship", zh: "密钥与赞助" },
   sessionKeyReady: { en: "ready", zh: "已就绪" },
-  sessionKeyMissing: { en: "missing", zh: "未生成" },
+  /**
+   * Exception text, not display text: thrown from main.tsx when a copy is
+   * attempted with no local key. That is a real failure of an action the
+   * visitor took, so failure voice belongs here — but it used to double as the
+   * SESSION PUBLIC KEY card's value, printing a bare lowercase "missing" on
+   * every first paint. Display sites use `sessionKeyIdle` instead.
+   */
+  sessionKeyMissing: { en: "Session key not generated.", zh: "尚未生成 Session Key。" },
+  /**
+   * Zero-state copy for the permission-draft tiles (see `PhaseValue`). Each
+   * replaces a literal "—" with the piece that is still outstanding, so a cold
+   * open reads as a checklist to work through rather than a grid of blanks.
+   */
+  sessionAccountIdle: { en: "Inspect an account", zh: "待检视账户" },
+  sessionOwnerIdle: { en: "Connect owner wallet", zh: "待连接所有者钱包" },
+  sessionKeyIdle: { en: "Not generated yet", zh: "尚未生成" },
+  sessionExpiryIdle: { en: "Pick a window", zh: "待选择有效期" },
+  sessionAllowanceIdle: { en: "Pick a limit", zh: "待选择额度" },
+  sessionVerifierIdle: { en: "Not resolved yet", zh: "尚未解析" },
+  bindingIdle: { en: "Inspect to load", zh: "检视后加载" },
+  networkIdle: { en: "Resolving network", zh: "正在解析网络" },
   sessionFlowLabel: { en: "Session setup workflow", zh: "Session 设置流程" },
   sessionFlowKey: { en: "Generate key", zh: "生成密钥" },
   sessionFlowKeyDesc: {

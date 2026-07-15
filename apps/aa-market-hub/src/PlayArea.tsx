@@ -227,7 +227,7 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         alt={t("marketHeroVisualAlt")}
         loading="eager"
       />
-      <div className="aa-market-hero__shade" />
+      <div className="aa-market-hero__legibility" />
       <div className="aa-market-hero__copy">
         <span><ShieldCheck size={15} /> {t("canonicalEscrow")}</span>
         <strong>{mode === "sell" ? t("sellHeroTitle") : t("exploreHeroTitle")}</strong>

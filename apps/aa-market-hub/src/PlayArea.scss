@@ -38,7 +38,16 @@
   margin-bottom: 14px;
 }
 
+/**
+ * The mode row is `justify-content: space-between`, so this field only ever got
+ * `max-width` — never a basis. Its intrinsic width collapsed to ~172px, which
+ * is narrower than the shared segment basis below needs, and the pill wrapped
+ * into a vertical stack. Give the field a definite width so the two segments
+ * have a row to sit on; `min()` keeps it from overflowing a narrow viewport.
+ */
 .aa-market-mode {
+  flex: 0 0 auto;
+  width: min(360px, 100%);
   max-width: 360px;
 }
 
@@ -59,8 +68,20 @@
   text-transform: uppercase;
 }
 
-.aa-market-mode .semi-radio {
+/**
+ * Shared v2 gives every segment `flex: 1 1 max(104px, calc(33.333% - 4px))` so a
+ * three-up group keeps equal columns. This group has two options, and that
+ * selector (`.mx2-open-segmented.semi-radioGroup .semi-radio`) is 0-3-0 — a
+ * plain `.aa-market-mode .semi-radio` (0-2-0) silently lost to it, so the basis
+ * stayed 104px per segment and Explore|Sell wrapped onto separate lines. Match
+ * the shared selector's specificity to actually take the basis back to 0.
+ */
+.aa-market-mode .mx2-open-segmented.semi-radioGroup .semi-radio {
   flex: 1 1 0;
+  min-width: 0;
+}
+
+.aa-market-mode .semi-radio {
   min-height: 34px;
   border: 0;
   border-radius: 10px !important;
@@ -81,9 +102,13 @@
   gap: 7px;
 }
 
-.aa-market-mode .semi-radio-inner {
-  display: none;
-}
+/*
+ * `.semi-radio-inner` is dead code here: this app renders OpenUiLiteSegmented,
+ * whose markup is a bare <input> inside the .semi-radio label — there is no
+ * Semi `-inner` wrapper to hide. Shared v2.scss visually hides that input
+ * (keeping it focusable), so the rule below never matched anything. Removed
+ * rather than left behind as a false explanation for the dots it never fixed.
+ */
 
 .aa-market-network {
   display: inline-flex;
@@ -206,11 +231,34 @@
   object-position: 49% center;
 }
 
-.aa-market-hero__shade {
+/**
+ * Text-contrast scrim for the hero photo — NOT a scene backdrop.
+ *
+ * This was `.aa-market-hero__shade`, and shared v2.scss quietly erased it:
+ * `.mx2-stage__scene [class$="__shade"]` forces `opacity: 0 !important;
+ * background: none !important` to stop decorative haze from muddying a play
+ * area. That guard is right, but its subject is full-bleed ornament; this layer
+ * is the legibility floor the white hero copy is composited against, so the
+ * name — not the guard — was the bug. Under the old name the heading and
+ * subtitle rendered white-on-pale-glass at roughly 2:1 contrast.
+ *
+ * The copy block occupies ~53%-82% of the hero height, so the ramp reaches
+ * usable darkness by 54% and holds it to the metrics row, putting the subtitle
+ * near 6:1 against white. Keep any future layer here named for its function:
+ * `backdrop`/`wash`/`shade`/`stage-light`/`background` are all reserved by the
+ * clarity guard and will be zeroed out at runtime.
+ */
+.aa-market-hero__legibility {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(18, 53, 43, 0.02) 24%, rgba(11, 54, 42, 0.84) 100%);
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(11, 44, 35, 0) 26%,
+    rgba(11, 44, 35, 0.62) 54%,
+    rgba(9, 38, 30, 0.9) 100%
+  );
 }
 
 .aa-market-hero__copy {

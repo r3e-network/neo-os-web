@@ -2,8 +2,12 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Merge Kingdom",
+  // Store-facing description: what this release is, not what it withholds. The
+  // trailing "Paid GameFi entry remains unavailable until its pool, oracle
+  // callback, and full testnet flow are verified" put release-engineering
+  // status and testnet internals in store metadata.
   description:
-    "A free, resource-driven kingdom merge game. Drag matching buildings together, raise a stronger realm before time runs out, and resume unfinished local runs on this device. Paid GameFi entry remains unavailable until its pool, oracle callback, and full testnet flow are verified.",
+    "A free, resource-driven kingdom merge game. Drag matching buildings together, raise a stronger realm before time runs out, and resume unfinished local runs on this device. No wallet, fee, or chain write is involved.",
   icon: "swords",
   category: "game",
   shell: "game",
@@ -16,7 +20,8 @@ export const manifest: MiniAppManifest = {
     heroBadgeKey: "guestRunValue",
     heroTitleKey: "appEyebrow",
     heroTitleAccent: "appEyebrow",
-    heroDescKey: "guestRulesCopy",
+    // Hero clamps at 138 chars; guestRulesCopy is 331 and truncated mid-clause.
+    heroDescKey: "guestSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
     featuresEyebrowKey: "guestRunValue",
@@ -35,9 +40,10 @@ export const manifest: MiniAppManifest = {
     lbTitleKey: "leaderboardTitle",
     lbScoreLabelKey: "guestBestLabel",
     ctaTitleKey: "lobbyTitle",
-    ctaDescKey: "guestRulesCopy",
+    // CTA clamps at 160 — same over-long-rules problem as the hero had.
+    ctaDescKey: "guestSubtitle",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["guestRunValue", "gameFiMaintenanceShort", "rankLabel"],
+    trustBadgeKeys: ["guestRunValue", "mergeMechanicBadge", "rankLabel"],
   },
 
   tabs: [
@@ -62,7 +68,7 @@ export const manifest: MiniAppManifest = {
 
   docs: [
     { titleKey: "guestRulesTitle", contentKey: "guestRulesCopy", type: "steps" },
-    { titleKey: "gameFiMaintenanceShort", contentKey: "gameFiMaintenanceBody", type: "text" },
+    { titleKey: "freePlayScopeTitle", contentKey: "freePlayScopeBody", type: "text" },
   ],
 
   features: {

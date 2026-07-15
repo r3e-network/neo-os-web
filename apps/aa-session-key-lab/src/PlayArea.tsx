@@ -7,6 +7,7 @@ import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { CoinArt } from "@shared/art";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2/DataPhase";
 import {
   OpenUiLiteNotice as OpenUiNotice,
   OpenUiLitePanel as OpenUiPanel,
@@ -70,10 +71,26 @@ const EXPIRY_PRESETS = [
 const SPEND_PRESETS = ["0", "0.1", "1"] as const;
 const SESSION_ART = "session-key-control.webp";
 
+/**
+ * Middle-elide a long identifier. Returns "" — never an em-dash — for an empty
+ * value. "Not supplied yet" is a phase for <PhaseValue> to render as zero-state
+ * copy (see `sessionModules` and `readout`), not a character this helper should
+ * invent on a permission draft the visitor has not filled in.
+ */
 function compact(value: string): string {
   const text = String(value || "").trim();
-  if (!text) return "—";
+  if (!text) return "";
   return text.length > 16 ? `${text.slice(0, 8)}…${text.slice(-6)}` : text;
+}
+
+/**
+ * The permission draft is assembled locally, so its fields never have a read in
+ * flight: each is either filled ("ready") or still waiting on the visitor
+ * ("unavailable"). Shimmering a field that is merely blank would imply pending
+ * I/O that does not exist.
+ */
+function draftPhase(value: string) {
+  return resolvePhase({ loading: false, settled: true, hasData: Boolean(value) });
 }
 
 function futureTimestamp(seconds: number): string {
@@ -190,13 +207,18 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const scopeReady = readyCount === 4 && ownerAuthority === "owner" && canConfigure;
   const activeScope = SCOPE_PRESETS.find((preset) => preset.key === activePreset) ?? SCOPE_PRESETS[0];
 
+  // Each module carries its own zero-state line. The `scope` row already worked
+  // this way (`sessionTargetMissing`); the other three fell through to a literal
+  // "—", so a first paint of the permission draft read as three broken values
+  // next to one that politely asked for input. `idle` says which piece is still
+  // outstanding, which is exactly what this readiness grid exists to report.
   const sessionModules = [
-    { key: "account", label: t("sessionObjectAccount"), value: compact(inspectedAccount || currentDraftHash), ready: readiness.account },
-    { key: "owner", label: t("sessionObjectOwner"), value: ownerAuthority === "owner" ? t("ownerVerified") : compact(accountOwner), ready: ownerAuthority === "owner" },
-    { key: "key", label: t("sessionObjectKey"), value: compact(publicKey), ready: readiness.key },
-    { key: "scope", label: t("sessionObjectScope"), value: target ? `${method}@${compact(target)}` : t("sessionTargetMissing"), ready: readiness.target },
-    { key: "expiry", label: t("sessionObjectExpiry"), value: expiry, ready: readiness.expiry },
-    { key: "limit", label: t("sessionObjectAllowance"), value: allowance, ready: !allowanceSupported || Boolean(onChainView) || readiness.expiry },
+    { key: "account", label: t("sessionObjectAccount"), value: compact(inspectedAccount || currentDraftHash), idle: t("sessionAccountIdle"), ready: readiness.account },
+    { key: "owner", label: t("sessionObjectOwner"), value: ownerAuthority === "owner" ? t("ownerVerified") : compact(accountOwner), idle: t("sessionOwnerIdle"), ready: ownerAuthority === "owner" },
+    { key: "key", label: t("sessionObjectKey"), value: compact(publicKey), idle: t("sessionKeyIdle"), ready: readiness.key },
+    { key: "scope", label: t("sessionObjectScope"), value: target ? `${method}@${compact(target)}` : "", idle: t("sessionTargetMissing"), ready: readiness.target },
+    { key: "expiry", label: t("sessionObjectExpiry"), value: expiry, idle: t("sessionExpiryIdle"), ready: readiness.expiry },
+    { key: "limit", label: t("sessionObjectAllowance"), value: allowance, idle: t("sessionAllowanceIdle"), ready: !allowanceSupported || Boolean(onChainView) || readiness.expiry },
   ];
 
   const applyPreset = (preset: (typeof SCOPE_PRESETS)[number]) => {
@@ -298,7 +320,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
           {sessionModules.map((item) => (
             <div key={item.key} className={["sess-object__module", item.ready ? "is-ready" : ""].filter(Boolean).join(" ")}>
               <span>{item.label}</span>
-              <strong>{item.value || "—"}</strong>
+              <strong>
+                <PhaseValue phase={draftPhase(item.value)} placeholder={item.idle}>
+                  {item.value}
+                </PhaseValue>
+              </strong>
             </div>
           ))}
         </div>
@@ -360,7 +386,19 @@ export default function PlayArea({ t, state, dispatch }: P) {
       <div className="sess-control-grid">
         <div className="sess-status-card">
           <span>{t("sessionPublicKey")}</span>
-          <strong>{publicKey ? compact(publicKey) : t("sessionKeyMissing")}</strong>
+          {/*
+            `sessionKeyMissing` is an exception message ("Session key not
+            generated." — thrown from main.tsx when a copy is attempted with no
+            key). Rendering it here printed a bare lowercase "missing" in
+            monospace as this card's headline value on every first paint. Not
+            having generated a key yet is the expected opening state, so it gets
+            the card's own zero-state line instead.
+          */}
+          <strong>
+            <PhaseValue phase={draftPhase(publicKey)} placeholder={t("sessionKeyIdle")}>
+              {compact(publicKey)}
+            </PhaseValue>
+          </strong>
           <button type="button" onClick={handleGenerate} disabled={busy || liveRecord}>{publicKey ? t("replaceLocalKey") : t("sessionNextGenerate")}</button>
         </div>
         <div className="sess-chip-card">
@@ -375,7 +413,11 @@ export default function PlayArea({ t, state, dispatch }: P) {
         </div>
         <div className="sess-endpoint-card">
           <span>{t("targetContract")}</span>
-          <strong>{target ? compact(target) : t("sessionTargetMissing")}</strong>
+          <strong>
+            <PhaseValue phase={draftPhase(target)} placeholder={t("sessionTargetMissing")}>
+              {compact(target)}
+            </PhaseValue>
+          </strong>
           <em>{t("sessionTargetHint")}</em>
         </div>
       </div>
@@ -385,8 +427,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const readout = [
     { label: t("sessionMetricStatus"), value: t(liveRecord ? (effectiveSessionStatus === "expired" ? "sessionExpired" : "sessionActive") : `sessionAccount${accountStatus[0]?.toUpperCase()}${accountStatus.slice(1)}`), accent: liveRecord },
     { label: t("accountOwner"), value: ownerAuthority === "owner" ? t("ownerVerified") : ownerAuthority === "mismatch" ? t("ownerMismatch") : t("ownerNotVerified") },
-    { label: t("sessionVerifier"), value: compact(accountVerifier || sessionVerifier) },
-    { label: t("network"), value: network || "—" },
+    { label: t("sessionVerifier"), value: compact(accountVerifier || sessionVerifier) || t("sessionVerifierIdle") },
+    { label: t("network"), value: network || t("networkIdle") },
   ];
 
   const drawer = (
@@ -418,9 +460,9 @@ export default function PlayArea({ t, state, dispatch }: P) {
           {allowanceSupported && <OpenUiTextField className="sess-drawer__field" label={t("spendingLimit")} value={draftLimit} onChange={(event) => setDraftLimit(event.target.value)} placeholder={t("spendingLimitPlaceholder")} hint={t("spendingLimitHint")} inputMode="decimal" mono />}
         </div>
         <dl className="sess-binding-detail">
-          <div><dt>{t("aaCore")}</dt><dd>{compact(aaCore)}</dd></div>
-          <div><dt>{t("sessionVerifier")}</dt><dd>{compact(sessionVerifier)}</dd></div>
-          <div><dt>{t("accountOwner")}</dt><dd>{compact(accountOwner)}</dd></div>
+          <div><dt>{t("aaCore")}</dt><dd><PhaseValue phase={draftPhase(compact(aaCore))} placeholder={t("bindingIdle")}>{compact(aaCore)}</PhaseValue></dd></div>
+          <div><dt>{t("sessionVerifier")}</dt><dd><PhaseValue phase={draftPhase(compact(sessionVerifier))} placeholder={t("bindingIdle")}>{compact(sessionVerifier)}</PhaseValue></dd></div>
+          <div><dt>{t("accountOwner")}</dt><dd><PhaseValue phase={draftPhase(compact(accountOwner))} placeholder={t("sessionOwnerIdle")}>{compact(accountOwner)}</PhaseValue></dd></div>
         </dl>
       </OpenUiPanel>
     </div>

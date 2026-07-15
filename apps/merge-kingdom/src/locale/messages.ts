@@ -328,6 +328,33 @@ const appMessages = {
     zh: "对局结束——最高方块 {tile}。",
   },
   guestRulesTitle: { en: "How guest mode works", zh: "游客模式说明" },
+  /**
+   * Launcher hero subtitle. Deliberately separate from `guestRulesCopy`: the
+   * hero slot clamps at 138 chars, and pointing it at the 331-char rules
+   * paragraph truncated it mid-clause ("...or combine two matching...") on a
+   * 1365px desktop. Rules belong in the docs accordion and the in-game panel,
+   * which render `guestRulesCopy` in full; the hero gets one sentence that
+   * fits, leaving room for the shared free-play tail appended by MiniAppRoot.
+   */
+  guestSubtitle: {
+    en: "Drag matching buildings together and raise a stronger realm before the route timer runs out. Runs resume on this device.",
+    zh: "拖动合并相同建筑，在路线倒计时结束前建起更强大的王国。未完成的对局会保存在本设备。",
+  },
+  /** Launcher chip: a gameplay hook, not a caption about an absent mode. */
+  mergeMechanicBadge: { en: "Merge to build", zh: "合并升级" },
+  /**
+   * Docs entry describing what this release includes. It replaces a
+   * "GameFi entry paused" / "...until the reward pool, oracle callback
+   * allowlist, and full testnet settlement flow are verified" accordion, which
+   * put maintenance status and testnet internals on a store-facing surface.
+   * The in-game `gameFiMaintenance*` keys keep their failure voice — they fire
+   * on a real attempted action, not on first paint.
+   */
+  freePlayScopeTitle: { en: "What this release includes", zh: "本次发布包含的内容" },
+  freePlayScopeBody: {
+    en: "This release is the complete free game: every route, building tier, and the local leaderboard. It runs entirely on this device — no wallet, no fee, and no chain write. GAS rewards are not part of this release.",
+    zh: "本次发布包含完整的免费游戏：全部路线、建筑等级与本地排行榜。游戏完全在本设备运行——无需钱包、无需费用、不写入链上。本次发布不包含 GAS 奖励。",
+  },
   guestRulesCopy: {
     en: "Free local play uses real kingdom resources: drag or select a building, move it to an adjacent empty plot, or combine two matching buildings to raise the next tier. Reach the route target before time runs out. No wallet, fee, oracle, or chain write is used; your active board, best building, and recent results stay on this device.",
     zh: "免费本地玩法使用真实王国资源：拖动或点选建筑，将其移动到相邻空地，或合并两个相同建筑以升级到下一阶。在倒计时结束前达成路线目标。无需钱包、费用、预言机或链上写入；当前棋盘、最高建筑和最近结果保存在本设备。",
