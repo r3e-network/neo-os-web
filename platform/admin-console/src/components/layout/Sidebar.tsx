@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AdminNavIcon } from "./AdminNavIcon";
 import { useTranslation } from "../../../../shared/i18n/react";
+import packageJson from "../../../package.json";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -73,7 +74,7 @@ export function Sidebar() {
         <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted">
           Neo Platform
         </p>
-        <p className="mt-0.5 font-mono text-[11px] text-ink-faint">v3.0.0</p>
+        <p className="mt-0.5 font-mono text-[11px] text-ink-faint">v{packageJson.version}</p>
       </div>
     </aside>
   );

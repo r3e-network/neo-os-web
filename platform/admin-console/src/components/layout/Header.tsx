@@ -63,7 +63,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-surface/80 backdrop-blur-xl">
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-2.5 sm:px-6 md:min-h-20">
         <div className="min-w-0">
           <h2 className="truncate text-sm font-black tracking-tight text-ink sm:text-base">
             {sectionTitle}
