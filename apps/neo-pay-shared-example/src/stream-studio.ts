@@ -78,6 +78,30 @@ export function normalizeStudioNetwork(value: unknown): StudioNetwork | null {
   return null;
 }
 
+/** Display classification of the contract binding. See {@link classifyNeoPayBinding}. */
+export type NeoPayBindingState = "verified" | "mismatch" | "awaiting-context";
+
+/**
+ * Classify the NeoPay binding for DISPLAY. hasCanonicalNeoPayBinding below stays
+ * the wallet-action gate and still refuses everything that is not "verified".
+ *
+ * The boolean alone could not distinguish "the host told us a network and the
+ * contract genuinely disagrees" (a real fault worth an alarm) from "no network
+ * or contract has been handed to us yet" (the normal pre-wallet first paint).
+ * Collapsing the second into the first is what made a fresh visitor read
+ * "contract does not match this network. Wallet actions are locked."
+ */
+export function classifyNeoPayBinding(
+  network: unknown,
+  contractHash: unknown,
+): NeoPayBindingState {
+  const normalizedNetwork = normalizeStudioNetwork(network);
+  if (!normalizedNetwork) return "awaiting-context";
+  const rawContract = String(contractHash ?? "").trim();
+  if (!rawContract) return "awaiting-context";
+  return hasCanonicalNeoPayBinding(network, contractHash) ? "verified" : "mismatch";
+}
+
 export function hasCanonicalNeoPayBinding(network: unknown, contractHash: unknown): boolean {
   const normalizedNetwork = normalizeStudioNetwork(network);
   if (!normalizedNetwork) return false;

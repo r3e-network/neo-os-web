@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   NEOPAY_CONTRACTS,
+  classifyNeoPayBinding,
   hasCanonicalNeoPayBinding,
   normalizeStudioNetwork,
   validAmountForAsset,
@@ -48,6 +49,29 @@ describe("NeoPay Stream Studio input and binding logic", () => {
     expect(hasCanonicalNeoPayBinding("neo-n3-testnet", NEOPAY_CONTRACTS.testnet)).toBe(true);
     expect(hasCanonicalNeoPayBinding("neo-n3-mainnet", NEOPAY_CONTRACTS.testnet)).toBe(false);
     expect(hasCanonicalNeoPayBinding("unknown", NEOPAY_CONTRACTS.mainnet)).toBe(false);
+  });
+
+  it("separates an absent chain context from a genuine contract mismatch", () => {
+    // Real fault: the host named a network and the contract disagrees.
+    expect(classifyNeoPayBinding("neo-n3-mainnet", NEOPAY_CONTRACTS.testnet)).toBe("mismatch");
+    // Normal pre-wallet paint: nothing has been handed over, so nothing disagrees.
+    expect(classifyNeoPayBinding("", NEOPAY_CONTRACTS.mainnet)).toBe("awaiting-context");
+    expect(classifyNeoPayBinding(undefined, NEOPAY_CONTRACTS.mainnet)).toBe("awaiting-context");
+    expect(classifyNeoPayBinding("neo-n3-mainnet", "")).toBe("awaiting-context");
+    expect(classifyNeoPayBinding("neo-n3-mainnet", undefined)).toBe("awaiting-context");
+    expect(classifyNeoPayBinding("neo-n3-mainnet", NEOPAY_CONTRACTS.mainnet)).toBe("verified");
+  });
+
+  it("keeps the wallet-action gate closed for every non-verified binding", () => {
+    // The display split must not widen what is allowed to write.
+    for (const [network, contract] of [
+      ["", NEOPAY_CONTRACTS.mainnet],
+      ["neo-n3-mainnet", ""],
+      ["neo-n3-mainnet", NEOPAY_CONTRACTS.testnet],
+    ] as const) {
+      expect(classifyNeoPayBinding(network, contract)).not.toBe("verified");
+      expect(hasCanonicalNeoPayBinding(network, contract)).toBe(false);
+    }
   });
 });
 

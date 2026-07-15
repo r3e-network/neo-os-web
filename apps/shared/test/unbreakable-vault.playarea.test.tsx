@@ -80,6 +80,12 @@ function t(key: string) {
     daysUnit: "days",
     writeUnavailableTitle: "Transactions unavailable",
     writeUnavailable: "Read-only network",
+    chainProbingTitle: "Checking network",
+    chainProbing: "Confirming the vault contract on this network.",
+    chainAwaitingTitle: "Connect to load vaults",
+    chainAwaiting: "Connect a wallet to browse live bounties and challenge a vault.",
+    chainUnavailableTitle: "Vault locked",
+    chainContextMismatch: "The selected network is not bound to the canonical contract.",
   };
   return messages[key] ?? key;
 }
@@ -99,7 +105,9 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     isClaiming: false,
     canAttempt: false,
     canReclaim: false,
+    chainStatus: "ready",
     chainReady: true,
+    writeStatus: "ready",
     writeReady: true,
     writeBlockReason: "",
     networkName: "testnet",
@@ -356,12 +364,74 @@ describe("Unbreakable Vault PlayArea (v2)", () => {
     expect(container.querySelector(".vault-target-card--empty")).toBeTruthy();
   });
 
+  it("does not declare the vault locked before the network probe has answered", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ chainStatus: "probing", chainReady: false, writeStatus: "probing", writeReady: false })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    // Pre-probe is a normal state: neutral status, never an alert.
+    expect(container.querySelector(".vault-operation-notice--error")).toBeNull();
+    expect(container.querySelector("[role='alert']")).toBeNull();
+    expect(container.textContent).not.toContain("Vault locked");
+    expect(container.textContent).not.toContain("Reads and writes are disabled");
+    const probing = container.querySelector(".vault-operation-notice--probing");
+    expect(probing).toBeTruthy();
+    expect(probing?.getAttribute("role")).toBe("status");
+    expect(probing?.textContent).toContain("Checking network");
+  });
+
+  it("invites a connect instead of locking when the host handed over no network context", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          chainStatus: "awaiting-context",
+          chainReady: false,
+          writeStatus: "blocked",
+          writeReady: false,
+          writeBlockReason: "",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector(".vault-operation-notice--error")).toBeNull();
+    expect(container.querySelector("[role='alert']")).toBeNull();
+    expect(container.textContent).not.toContain("Vault locked");
+    const connect = container.querySelector(".vault-operation-notice--connect");
+    expect(connect).toBeTruthy();
+    expect(connect?.textContent).toContain("Connect to load vaults");
+    // An empty block reason must not fall back to the "Transactions unavailable"
+    // notice while we are merely waiting for a wallet.
+    expect(container.textContent).not.toContain("Transactions unavailable");
+  });
+
+  it("shows the locked alert only once the probe reports a real contract mismatch", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ chainStatus: "mismatch", chainReady: false, writeStatus: "blocked", writeReady: false })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    const alert = container.querySelector(".vault-operation-notice--error");
+    expect(alert).toBeTruthy();
+    expect(alert?.textContent).toContain("Vault locked");
+    expect(container.querySelector(".vault-operation-notice--probing")).toBeNull();
+  });
+
   it("keeps mainnet readable but blocks wallet actions when PaymentHub is unavailable", () => {
     const { container } = render(
       <PlayArea
         t={t}
         state={state({
           networkName: "mainnet",
+          writeStatus: "blocked",
           writeReady: false,
           writeBlockReason: "Mainnet PaymentHub is not configured",
           vaultIdInput: "42",

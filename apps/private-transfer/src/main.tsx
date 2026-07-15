@@ -51,7 +51,12 @@ defineMiniApp({
     const privacyMode = createObservable(ctx.t("privacyModeLabel"));
     const networkLabel = createObservable(ctx.t("networkChecking"));
     const networkState = createObservable<"checking" | "ready" | "blocked">("checking");
-    const oracleState = createObservable<"checking" | "ready" | "unavailable">("checking");
+    // "awaiting-context": the Morpheus lane is host-proxied (/api/morpheus/*),
+    // so a standalone visitor has no lane to probe. That is a normal pre-host
+    // state, distinct from "unavailable" (the lane answered and is faulty).
+    const oracleState = createObservable<
+      "checking" | "ready" | "unavailable" | "awaiting-context"
+    >("checking");
     const oracleContract = createObservable("");
     const oracleChecksum = createObservable(PRIVATE_TRANSFER_TESTNET_ORACLE_NEF_CHECKSUM);
     const oracleCheckedAt = createObservable(0);
@@ -163,6 +168,17 @@ defineMiniApp({
         }
 
         networkState.set("ready");
+
+        // The Morpheus key/store endpoints are host-proxied (/api/morpheus/*).
+        // Standalone there is no lane to probe: nothing has failed, so this
+        // must read as "open this in the host", not "the oracle key is broken".
+        if (app.platform.host === "standalone") {
+          oracleState.set("awaiting-context");
+          phase.set(hasPending.get() ? "recovery" : "draft");
+          lastStatus.set(ctx.t("statusAwaitingHost"));
+          return false;
+        }
+
         const key = await probePrivateTransferRuntime({
           network: SUPPORTED_NETWORK,
           seal: app.oracle.seal,
@@ -181,9 +197,25 @@ defineMiniApp({
       }
     };
 
+    // Standard connect lane (RFC P1-3). Connecting inside a host re-probes the
+    // confidential lane, which is what the pre-host prompt invites the visitor
+    // to do instead of staring at a dead, disabled seal button.
+    app.actions.registerConnectWallet({
+      refresh: [async () => { await refreshRuntime(); }],
+    });
+
     app.actions.register("refreshRuntime", async () => {
       const ready = await refreshRuntime();
-      ctx.setStatus(ctx.t(ready ? "statusRuntimeReady" : "statusRuntimeUnavailable"), ready ? "success" : "error");
+      if (ready) {
+        ctx.setStatus(ctx.t("statusRuntimeReady"), "success");
+        return;
+      }
+      // Waiting for a host is not a failure — do not raise an error toast.
+      if (oracleState.get() === "awaiting-context") {
+        ctx.setStatus(ctx.t("statusAwaitingHost"), "info");
+        return;
+      }
+      ctx.setStatus(ctx.t("statusRuntimeUnavailable"), "error");
     });
 
     app.actions.register("prepareTransfer", async (payload: unknown) => {

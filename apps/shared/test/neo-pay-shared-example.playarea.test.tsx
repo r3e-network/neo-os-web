@@ -162,6 +162,35 @@ describe("neo-pay-shared-example PlayArea", () => {
     expect(dispatch).toHaveBeenCalledWith("cancelStream", "42");
   });
 
+  it("reads as a connect invitation, not a locked contract, before any chain context", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ chainBindingState: "awaiting-context", serviceState: "disconnected", network: "" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(container.textContent).not.toContain("Wallet actions are locked");
+    expect(container.textContent).not.toContain("Network unavailable");
+    expect(container.textContent).not.toContain("Live stream data unavailable");
+    expect(container.querySelector('.stream-studio__network-ticket > em[data-state="mismatch"]')).toBeNull();
+    expect(container.querySelector('.stream-studio__network-ticket > em[data-state="awaiting"]')).toBeTruthy();
+  });
+
+  it("announces the service state once per screen", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ serviceState: "unavailable" })} dispatch={vi.fn()} />,
+    );
+    // The PlayStage badge is the single owner of this copy; the composer header
+    // used to repeat it verbatim, so the same chip appeared twice at once.
+    const rendered = container.textContent ?? "";
+    const label = t("serviceUnavailable");
+    const occurrences = rendered.split(label).length - 1;
+    expect(occurrences).toBe(1);
+    expect(container.querySelector(".stream-studio__service")).toBeNull();
+  });
+
   it("does not turn a failed read into a zero-stream success state", () => {
     const { container } = render(
       <PlayArea t={t} state={state({ serviceState: "unavailable" })} dispatch={vi.fn()} />,

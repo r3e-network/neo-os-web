@@ -10,7 +10,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./messages";
 import {
-  hasCanonicalNeoPayBinding,
+  classifyNeoPayBinding,
   validateStreamDraft,
   type StudioAsset,
   type StudioServiceState,
@@ -28,11 +28,13 @@ defineMiniApp({
     const network = createObservable(String(app.platform.launch.network ?? ""));
     const contractHash = app.chain.contractAddress;
     const chainBindingState = createDerived(
-      () => hasCanonicalNeoPayBinding(network.get(), contractHash.get()) ? "verified" : "mismatch",
+      () => classifyNeoPayBinding(network.get(), contractHash.get()),
       [network, contractHash],
     );
     const serviceState = createDerived<StudioServiceState>(
       () => {
+        // No network/contract yet is the pre-wallet state, not a dead service.
+        if (chainBindingState.get() === "awaiting-context") return "disconnected";
         if (chainBindingState.get() !== "verified") return "unavailable";
         if (pay.pendingCreateTxid.get()) return "pending";
         if (pay.isLoading.get() || pay.isRefreshing.get()) return "loading";

@@ -176,6 +176,9 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
   const hasMemorials = memorials.length > 0 || Boolean(selectedMemorial);
   const catalogUnavailable = !hasMemorials && catalogStatus === "error";
   const catalogLoading = !hasMemorials && catalogStatus === "loading";
+  // Pre-connect the garden is simply unread, so fall through to the normal
+  // studio surface (with a connect prompt) rather than the recovery scene.
+  const catalogAwaiting = !hasMemorials && catalogStatus === "awaiting-context";
   const mode: "tribute" | "create" | "recovery" | "loading" = catalogUnavailable
     ? "recovery"
     : catalogLoading
@@ -330,6 +333,10 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
     </div>
   ) : null;
 
+  // The PlayStage header above already carries the title and body for both the
+  // loading and recovery modes; repeating them here printed the same two lines
+  // twice on one screen. This scene keeps the artwork, the state icon, and the
+  // only thing the header cannot show: the specific underlying error.
   const recoveryScene = (
     <div className="shrine-recovery" data-state={mode}>
       <img src={GARDEN_IMAGE} alt={t("gardenAlt")} loading="eager" decoding="async" />
@@ -337,8 +344,6 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
         {mode === "loading"
           ? <LoaderCircle className="shrine-recovery__spinner" size={24} aria-hidden="true" />
           : <CircleAlert size={24} aria-hidden="true" />}
-        <strong>{mode === "loading" ? t("catalogLoadingTitle") : t("catalogLoadFailedTitle")}</strong>
-        <p>{mode === "loading" ? t("catalogLoadingBody") : t("catalogLoadFailed")}</p>
         {mode === "recovery" && catalogError && catalogError !== t("catalogLoadFailed") && (
           <small>{catalogError}</small>
         )}

@@ -159,6 +159,10 @@ const appMessages = {
   mainnetTributeUnavailable: { en: "Mainnet memorial creation remains available, but tributes are disabled because the deployed payment hub is not configured.", zh: "主网仍可创建纪念记录，但已部署合约尚未配置支付中枢，因此祭拜暂不可用。" },
   walletAddressInvalid: { en: "The wallet did not return a valid Neo N3 address.", zh: "钱包未返回有效的 Neo N3 地址。" },
   walletNetworkUnknown: { en: "Choose an explicit Neo N3 MainNet or TestNet session before writing.", zh: "写入前请明确选择 Neo N3 主网或测试网。" },
+  walletNetworkAwaiting: {
+    en: "Connect a wallet to visit the garden and publish this memorial on-chain.",
+    zh: "连接钱包即可浏览纪念花园，并将这份纪念上链留存。",
+  },
   walletNetworkMismatch: { en: "The connected wallet network does not match this memorial garden.", zh: "当前钱包网络与纪念花园所用网络不一致。" },
   contractBindingMismatch: { en: "The loaded contract does not match the pinned Memorial Shrine deployment.", zh: "当前加载的合约与纪念堂固定部署不一致。" },
   recoveryStorageUnavailable: { en: "Durable transaction recovery storage is unavailable. No wallet request was opened.", zh: "持久交易恢复存储不可用，未打开钱包请求。" },
