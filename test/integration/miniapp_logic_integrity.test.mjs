@@ -49,15 +49,17 @@ const OPERATION_TYPE_TO_ABI = new Map([
 // They must not silently drift to UInt160.Zero or another Oracle hash.
 //
 // Migration note: fogplay, gasbox, and red-envelope moved to standalone
-// contracts (MiniAppCoinFlip/MiniAppGasBox/MiniAppRedEnvelope) that use
-// Runtime.GetRandom and expose no oracle() method at all.  Other migrated
+// contracts (MiniAppCoinFlipV2/MiniAppGasBoxV2/MiniAppRedEnvelope) that use
+// on-chain randomness and expose no oracle() method at all.  Other migrated
 // contracts (event-ticket-pass, milestone-escrow, quadratic-funding,
 // soulbound-certificate) declare an optional oracle() admin slot that is
-// intentionally unset (UInt160.Zero).  Only dice-game's PlatformGame still
-// settles via Morpheus Oracle VRF.
-const KNOWN_ORACLE_CONSUMERS = [
-  "dice-game",
-];
+// intentionally unset (UInt160.Zero).  dice-game completed the same
+// migration on 2026-07: its testnet hash now resolves to MiniAppDiceGameV2
+// (commit/settle multi-block beacon randomness, no oracle() ABI — verified
+// via getcontractstate 2026-07-15), so no bundled MiniApp currently settles
+// via Morpheus Oracle VRF.  The list is kept (empty) so future consumers
+// are pinned here again.
+const KNOWN_ORACLE_CONSUMERS = [];
 
 // Host-app definition operations that still describe the pre-migration
 // platform/kernel contract generation.  The migrated standalone contracts
@@ -66,20 +68,30 @@ const KNOWN_ORACLE_CONSUMERS = [
 // manifest operation schemas) against the deployed ABIs.  Entries are exact
 // `<slug>.<operation>` keys so any NEW definition drift still fails this
 // test; prune entries as the definitions are regenerated.
+// 2026-07-15 reconciliation (audit finding I1), verified against the live
+// testnet ABIs and the app runtimes:
+//   * pruned entries whose operations are no longer declared by any
+//     definition/manifest (dice-game.fundOracleRequestFee,
+//     fogplay.fundOracleRequestFee, fogplay.placeCoinFlipBet,
+//     last-survivor.buyCountdownKeys, self-loan.createLoan,
+//     self-loan.repayLoan, self-loan.syncProfitAnchorVote);
+//   * daily-checkin.checkIn — deployed MiniAppDailyCheckin has no checkIn
+//     ABI; the app checks in via a GAS transfer (onNEP17Payment), so the
+//     definition operation is stale metadata only;
+//   * self-loan.borrow / self-loan.repay — deployed MiniAppSelfLoan exposes
+//     borrow(Hash160,Integer) and repay(Hash160); the app runtime
+//     (apps/self-loan/src/self-loan-rpc.ts) already matches the deployed
+//     ABI, only the definition's parameter schema is stale.
 const KNOWN_STALE_DEFINITION_OPERATIONS = new Set([
   "aa-relay-console.checkSponsor",
   "aa-relay-console.requestSponsor",
   "aa-relay-console.submitRelay",
-  "dice-game.fundOracleRequestFee",
-  "fogplay.fundOracleRequestFee",
-  "fogplay.placeCoinFlipBet",
-  "last-survivor.buyCountdownKeys",
+  "daily-checkin.checkIn",
   "neo-pay-shared-example.createSharedStream",
   "red-envelope.fundOracleRequestFee",
-  "self-loan.createLoan",
-  "self-loan.repayLoan",
+  "self-loan.borrow",
+  "self-loan.repay",
   "self-loan.addCollateral",
-  "self-loan.syncProfitAnchorVote",
 ]);
 
 function readJson(filePath) {

@@ -83,10 +83,13 @@ test("oracle accruedRequestFees returns a non-negative integer", async () => {
 // ── Fee credit balance for a known miniapp contract ────────────────────────
 
 test("oracle feeCreditOf returns a non-negative balance for a known contract", async () => {
-  // FogPlay testnet contract — an oracle consumer with funded credits.
-  const fogplayTestnet = "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07";
+  // Legacy pre-V2 FogPlay CoinFlip testnet contract — a historical oracle
+  // consumer whose fee-credit account still exists on the Oracle.  (FogPlay
+  // itself migrated to MiniAppCoinFlipV2, which no longer uses the Oracle;
+  // this address is kept purely as a known feeCreditOf lookup key.)
+  const legacyFogplayTestnet = "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07";
   const result = await invokeRead(ORACLE_HASH, "feeCreditOf", [
-    hashParam(fogplayTestnet),
+    hashParam(legacyFogplayTestnet),
   ]);
   assert.ok(isHalt(result), `expected HALT, got ${result.state}`);
 
