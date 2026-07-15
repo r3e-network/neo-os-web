@@ -15,9 +15,12 @@ import { getMiniAppContractHash } from "../constants/rpc";
  *   4. MiniAppError("Contract address not configured")
  */
 describe("wallet-sdk getContractAddress resolution", () => {
-  // A real registry-backed app id whose manifest historically shipped without
-  // a contracts entry — the case the registry fallback exists for.
-  const APP_ID = "miniapp-gas-lucky-pool";
+  // A real registry-backed app id used purely as the registry-fallback
+  // exemplar (the manifest fetch below is stubbed, so any id with a mainnet
+  // registry entry preserves the guard). This was miniapp-gas-lucky-pool
+  // until commit 0dd7c4af1 intentionally emptied its manifest contracts for
+  // the guest-mode pivot, which removed it from the generated registry.
+  const APP_ID = "miniapp-redenvelope";
   const REGISTRY_HASH = getMiniAppContractHash(APP_ID, "mainnet");
 
   function stubManifestFetch(manifest: unknown, ok = true) {
@@ -34,7 +37,7 @@ describe("wallet-sdk getContractAddress resolution", () => {
     __resetWalletForTests();
     invalidateManifestCache();
     // A static miniapp runtime path (slug form) so the manifest is loaded.
-    window.history.replaceState({}, "", "/miniapps/gas-lucky-pool/index.html");
+    window.history.replaceState({}, "", "/miniapps/red-envelope/index.html");
   });
 
   afterEach(() => {
@@ -67,7 +70,7 @@ describe("wallet-sdk getContractAddress resolution", () => {
     window.history.replaceState(
       {},
       "",
-      `/miniapps/gas-lucky-pool/index.html?app_id=${APP_ID}`,
+      `/miniapps/red-envelope/index.html?app_id=${APP_ID}`,
     );
 
     const wallet = useWallet();

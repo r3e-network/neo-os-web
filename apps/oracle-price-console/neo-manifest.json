@@ -24,6 +24,9 @@
     "neo-n3-mainnet": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
     "neo-n3-testnet": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "pricefeed.morpheus.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

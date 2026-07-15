@@ -75,18 +75,26 @@ test('shared rpc constants consume the generated registry (no hand-maintained ma
   );
 });
 
-test('gas-lucky-pool manifest declares its deployed contracts (registry coverage)', async () => {
+test('gas-lucky-pool registry coverage matches its manifest (guest-mode: intentionally absent)', async () => {
+  // Guard intent unchanged: gas-lucky-pool's registry coverage must be a
+  // deliberate decision, never silent drift. Commit 0dd7c4af1 (fleet WIP
+  // landing, manifest v1.2.0) intentionally emptied the manifest `contracts`
+  // block while the RangeGasPool deployment / GameFi settlement path is under
+  // validation — the app runs as a free local game with no wallet or contract
+  // calls, so publishing a routable contract binding would be wrong. When the
+  // deployment is re-validated, restore the manifest contracts
+  // (mainnet 0x5f371cc50116bb13d79554d96ccdd6e246cd5d59,
+  //  testnet 0xfa1b7240fead2a63999c02defa3aec5eb274a919), re-run the
+  // generator, and flip these pins back to the hashes.
   const { buildMiniAppContractRegistry } = await loadGenerator();
   const canonical = buildMiniAppContractRegistry({ repoRoot });
 
-  assert.equal(
-    canonical.mainnet['miniapp-gas-lucky-pool'],
-    '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59'
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, 'apps/gas-lucky-pool/neo-manifest.json'), 'utf8')
   );
-  assert.equal(
-    canonical.testnet['miniapp-gas-lucky-pool'],
-    '0xfa1b7240fead2a63999c02defa3aec5eb274a919'
-  );
+  assert.deepEqual(manifest.contracts, {}, 'gas-lucky-pool manifest must stay contract-free while RangeGasPool validation is pending');
+  assert.equal(canonical.mainnet['miniapp-gas-lucky-pool'], undefined);
+  assert.equal(canonical.testnet['miniapp-gas-lucky-pool'], undefined);
 });
 
 // ---------------------------------------------------------------------------

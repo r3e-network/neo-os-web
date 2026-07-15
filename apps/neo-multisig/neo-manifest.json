@@ -23,6 +23,9 @@
     "neo-n3-testnet": "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178",
     "neo-n3-mainnet": "0xa361cdc792e97c4d8ddf42048cf48f3283ea7178"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "neomultisig.miniapp.neo"
+  },
   "deployment": {
     "neo-n3-mainnet": {
       "status": "deployed",

@@ -13,18 +13,22 @@ import {
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-// The six single-contract live validators that previously hardcoded stale
+// The single-contract live validators that previously hardcoded stale
 // hashes (MP-W3-05). Resolution must equal the app manifest byte-for-byte.
+// on-chain-tarot was one of the original six: commit 0dd7c4af1 (fleet WIP
+// landing, manifest v2.0.0) intentionally removed its `contracts` block for
+// the guest-mode pivot (testnet-only, permissions []), so it can no longer be
+// a manifest-resolved validator target. A dedicated guard below pins that
+// state so re-adding tarot contracts forces a conscious re-listing here.
 const VALIDATOR_SLUGS = [
   "red-envelope",
   "time-capsule",
-  "on-chain-tarot",
   "breakup-contract",
   "last-survivor",
   "fogplay",
 ];
 
-test("resolved hash equals the app manifest for all six validator targets (testnet + mainnet)", () => {
+test("resolved hash equals the app manifest for all validator targets (testnet + mainnet)", () => {
   for (const slug of VALIDATOR_SLUGS) {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(repoRoot, "apps", slug, "neo-manifest.json"), "utf8")
@@ -41,6 +45,26 @@ test("resolved hash equals the app manifest for all six validator targets (testn
       );
     }
   }
+});
+
+test("on-chain-tarot stays out of the validator list while its manifest is contract-free", () => {
+  // Guard intent preserved: tarot's exit from the validator list must remain
+  // deliberate. Its guest-mode manifest (commit 0dd7c4af1) declares no
+  // contracts, so manifest resolution must fail loudly rather than fall back
+  // to a hardcoded hash. If contracts are re-declared, this fails and tarot
+  // must be re-added to VALIDATOR_SLUGS above.
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "apps", "on-chain-tarot", "neo-manifest.json"), "utf8")
+  );
+  assert.equal(
+    manifest.contracts,
+    undefined,
+    "on-chain-tarot re-declared contracts: re-add it to VALIDATOR_SLUGS"
+  );
+  assert.throws(
+    () => getManifestContractHash("on-chain-tarot", { network: "testnet", env: {} }),
+    /has no contracts\["neo-n3-testnet"\] entry/
+  );
 });
 
 test("selected-miniapps targets resolve from their sources of truth", () => {

@@ -25,6 +25,9 @@
     "neo-n3-testnet": "0xef1fac0247ccbad5810e3fcfa1a0885d44efde39",
     "neo-x-mainnet": "0xFA795F814d38F218153d21838360096f3F5cb774"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "dicegame.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet",
