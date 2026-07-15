@@ -49,13 +49,25 @@ test("On-Chain Tarot renders the selected Phaser reading-table experience", () =
   assert.match(scene, /this\.load\.image\(TAROT_ASSETS\.momentum/);
   assert.match(scene, /private playDealMotion\(\)/);
   assert.match(scene, /delay: index \* 150/);
-  assert.match(scene, /private flipCardView\(view: CardView\)/);
+  // Re-pinned to the committed reading-layer scene redesign (6c07f3dcd):
+  // flipCardView now takes the card suit so reveal FX tint per element.
+  assert.match(scene, /private flipCardView\(view: CardView, suit\?: string\)/);
   assert.match(scene, /scaleX: 0/);
   assert.match(scene, /this\.dispatch\("flipTarotReading"\)/);
   assert.match(scene, /private playReadingCelebration\(\)/);
   assert.match(scene, /if \(this\.reducedMotion\) return/);
   assert.match(scene, /buildCriticalAssetRecovery\(\)/);
-  assert.doesNotMatch(scene, /generateTexture\(/);
+  // The redesign (6c07f3dcd) generates two runtime FX-only textures (soft
+  // glow + spark) instead of shipping asset files for them. The original
+  // ban's intent stands: card faces, tokens, and table art must remain real
+  // loaded assets — so generateTexture is allowed only for FX_* keys.
+  const generatedTextureKeys = [...scene.matchAll(/generateTexture\(\s*([A-Za-z0-9_]+)/g)]
+    .map((match) => match[1]);
+  assert.deepEqual(
+    generatedTextureKeys.filter((key) => !key.startsWith("FX_")),
+    [],
+    "generateTexture may only build FX_* helper textures, never card/table art",
+  );
 
   const publicRoot = path.join(ROOT, "apps/on-chain-tarot/public");
   for (const asset of [
