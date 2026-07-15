@@ -36,7 +36,16 @@ describe("neo-pay PlayArea (v2)", () => {
     expect((container.querySelector(".neopay-terminal__art") as HTMLImageElement)?.src).toContain("payment-stream-desk.webp");
     expect(container.querySelector(".neopay-stream")).toBeTruthy();
     expect(container.querySelector(".neopay-stream__rail")).toBeTruthy();
-    expect(container.querySelector(".neopay-terminal__status")?.textContent).toContain("streamDraftIdle");
+    // The terminal header's status slot still renders live ticket state and is
+    // never empty — that intent is unchanged. What changed is *which* state: the
+    // slot leads with a TokenIcon, so it names the asset being streamed. It used
+    // to print `streamDraftIdle`, which the PlayStage badge already carries, so
+    // that one string rendered three times on one screen (badge, this slot, and
+    // the footer's lead chip). The count below pins the de-duplication itself,
+    // which the old assertion was too loose to catch: the draft status belongs
+    // to exactly one slot.
+    expect(container.querySelector(".neopay-terminal__status")?.textContent).toContain("GAS");
+    expect(container.textContent?.match(/streamDraftIdle/g) ?? []).toHaveLength(1);
     expect(container.querySelector(".neopay-ticket-board")).toBeTruthy();
     expect(container.querySelector(".neopay-ticket-board__hero")).toBeTruthy();
     expect(container.querySelector(".neopay-ticket-board__details")).toBeTruthy();
@@ -89,7 +98,13 @@ describe("neo-pay PlayArea (v2)", () => {
     expect(playAreaSource).not.toContain('role="radiogroup"');
     expect(container.querySelector(".neopay-scene__image")).toBeNull();
     expect(container.querySelector(".neopay-scene__shade")).toBeNull();
-    expect(s).toMatch(/\.neo-pay-play-area\s*\{[\s\S]*--mx2-stage-floor:\s*#ffffff;/);
+    // This used to pin --mx2-stage-floor: #ffffff on the play area — a token
+    // that could never reach the thing it named, since .mx2-stage__scene is an
+    // ANCESTOR of the play area and custom properties only inherit downward.
+    // The white actually came from a descendant background override, now gone.
+    // Pin the outcome instead: the app leaves the stage floor alone so its
+    // white cards have a warm surface to read against, like every sibling.
+    expect(s).not.toMatch(/--mx2-stage-floor/);
     expect(s).toMatch(/\.neo-pay-play-area \.mx2-action-rail__row \.mx2-btn--primary\s*\{[\s\S]*flex:\s*0 0 240px;/);
     expect(s).toMatch(/\.neo-pay-play-area \.mx2-stage__scene\s*\{[\s\S]*display:\s*block;/);
     expect(s).toMatch(/\.neopay-scene\s*\{[\s\S]*width:\s*min\(100%,\s*760px\);/);

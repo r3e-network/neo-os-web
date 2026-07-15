@@ -123,9 +123,15 @@
   box-shadow: 0 0 0 4px rgba(179, 74, 63, 0.12);
 }
 
+/* These carry whole sentences, not values: the artwork note is the app's
+ * on-device privacy promise ("Stays on this device · never uploaded or written
+ * into the package"), which needed 365px in a 237px cell and so lost the half
+ * that says what does NOT happen to the visitor's file. A privacy statement is
+ * exactly the copy that must not be shortened or clipped, and the header has
+ * room for a second line, so wrap into it. */
 .nft-factory-release-scope__status small,
 .nft-factory-release-scope__artwork dd > small {
-  display: block;
+  display: -webkit-box;
   max-width: 100%;
   margin-top: 4px;
   overflow: hidden;
@@ -133,8 +139,8 @@
   font-size: 0.7rem;
   font-style: normal;
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .nft-factory-release-scope__art-actions {
@@ -531,6 +537,25 @@
   color: var(--nft-ink);
 }
 
+/* The art overlay pairs the "NEP-11" tag with the collection's monogram — the
+ * symbol's first letter. Rendered as bare bold text hard against the far edge of
+ * the card, that lone "N" read as a word that had been cut off rather than as a
+ * deliberate mark: nothing on screen said "this is meant to be one character".
+ * An enclosure does. The disc is fixed-size and never shrinks, so the letter
+ * stays centred and legibly a monogram at every card width. */
+.nft-factory-app .domain-factory-preview__art-overlay strong {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(104, 78, 50, 0.2);
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.82);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+}
+
 .nft-factory-app .domain-factory--nep11 .domain-factory-preview__hint,
 .nft-factory-app .domain-factory--nep11 .domain-factory-preview__stat span {
   color: var(--nft-ink-soft);
@@ -596,6 +621,34 @@
   color: var(--nft-muted);
   font-size: 0.68rem;
   line-height: 1.25;
+}
+
+/* The shared shell clamps a policy card's detail line to ONE line, which suits a
+ * short label but not this app's policy copy: "Collectors can move tokens after
+ * mint." and "Tokens stay bound to the first owner." both need ~2 lines in the
+ * 106px card and were cut to "Collectors can…" / "Tokens stay bou…" — losing the
+ * verb that distinguishes the two choices the visitor is picking between. The
+ * cards are a fixed-height pair in a two-up rail with vertical room to spare, so
+ * give the sentences the lines they need: three, which is what the longer of the
+ * two ("Collectors can move tokens after mint.") measures at this width — two
+ * still cut it to "…tokens aft…". The clamp stays as a bound on a runaway
+ * localization. Scoped to .nft-factory-app: the shared rule still governs
+ * asset-factory / miniapp-factory, whose own copy fits a single line. */
+.nft-factory-app .domain-factory-drop-policy__copy small {
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+}
+
+/* Same shell rule, other axis: the drop-field head right-aligns a value with
+ * nowrap + ellipsis, sized for a symbol like "NBP". The collection field puts
+ * the collection *name* there, so this app's own default ("Neo Builder Pass",
+ * 116px) never fit its 86px slot and always rendered as "Neo Build…" while the
+ * identical name sat in full immediately below it. Let the name wrap onto a
+ * second line instead of clipping a field the visitor just typed. */
+.nft-factory-app .domain-factory-drop-field--collection .domain-factory-drop-field__head strong {
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 @media (max-width: 860px) {

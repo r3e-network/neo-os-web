@@ -448,7 +448,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           score={[
             { label: t("sidebarMode"), value: modeLabel, accent: true },
             { label: t("accountsGenerated"), value: accountsGenerated },
-            { label: t("conversionResultLabel"), value: hasVisibleResult ? t("readyShort") : "-" },
+            { label: t("conversionResultLabel"), value: hasVisibleResult ? t("readyShort") : t("conversionResultNone") },
           ]}
           actions={{
             primary: {

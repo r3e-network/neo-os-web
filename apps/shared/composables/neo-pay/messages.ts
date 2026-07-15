@@ -245,6 +245,10 @@ const appMessages = {
   walletFunding: { en: "Funding wallet", zh: "付款钱包" },
   recipientVessel: { en: "Recipient vault", zh: "收款金库" },
   streamDraftIdle: { en: "Stream ticket draft", zh: "资金流票据草稿" },
+  // Label for the ticket footer's fact strip (network fee, release schedule,
+  // live streams). The footer used to lead with `streamDraftIdle`, which the
+  // PlayStage badge already shows — this names what the strip is for instead.
+  reviewBeforeSigning: { en: "Before you sign", zh: "签名前请确认" },
   streamDraftReady: { en: "Ready for wallet review", zh: "准备钱包确认" },
   streamDraftSigning: { en: "Wallet signing in progress", zh: "钱包签名中" },
   streamDraftPending: { en: "Confirming on-chain…", zh: "链上确认中……" },

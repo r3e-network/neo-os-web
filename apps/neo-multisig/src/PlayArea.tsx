@@ -153,12 +153,18 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const requestStatus = requestStatusKey
     ? text(t, `status${requestStatusKey[0]?.toUpperCase()}${requestStatusKey.slice(1)}`, requestStatusKey)
     : text(t, "multisigCreateReady", "Ready to deploy");
+  // Pre-vault there is no proposal to docket, and the panel must not borrow the
+  // shape of a live one. `multisigAmountPreview` ("Amount to release") is a
+  // field label; standing it in the headline's *value* slot announced a release
+  // that cannot exist yet, and "Recipient pending" implied a recipient was being
+  // waited on. Nothing is loading here and nothing failed — no vault has been
+  // created — so the docket names that state and points at the next step.
   const requestAmount = hasActiveRequest
     ? `${fromBaseUnits(String(activeRequest?.amount ?? "0"), requestAsset)} ${requestAsset}`
-    : text(t, "multisigAmountPreview", "Amount to release");
+    : text(t, "multisigProposalNone", "No proposal yet");
   const requestRecipient = hasActiveRequest
     ? short(activeRequest?.recipient, 8, 6)
-    : text(t, "multisigRecipientPreview", "Recipient pending");
+    : text(t, "multisigProposalNoneHint", "Create a vault, then propose a spend to open a docket.");
   const vaultLabel = vaultId ? `Vault #${vaultId}` : text(t, "multisigVaultTitle", "Custody vault");
   const requestLabel = requestId ? `Request #${requestId}` : text(t, "multisigProposalPreview", "Proposal docket");
   const signerSummary = signerCount > 0
@@ -384,15 +390,22 @@ export default function PlayArea({ t, state, dispatch }: P) {
             <strong>{requestAmount}</strong>
             <span>{requestRecipient}</span>
           </div>
-          <div className="multisig-approval-meter" style={{ "--approval": `${approvalPercent}%` } as CSSProperties}>
-            <div className="multisig-approval-meter__label">
-              <span>{text(t, "approvalProgress", "Approval progress", { count: approvalCount, total: approvalTotal })}</span>
-              <strong>{approvalCount}/{approvalTotal}</strong>
+          {/* The meter measures approvals against a live request's quorum. With
+              no request it counted 0 against a threshold guessed from the signer
+              drafts, so a pristine first run showed "0 / 2 approvals collected"
+              and an empty progress bar for a proposal nobody had made. It
+              appears with the proposal it measures. */}
+          {hasActiveRequest && (
+            <div className="multisig-approval-meter" style={{ "--approval": `${approvalPercent}%` } as CSSProperties}>
+              <div className="multisig-approval-meter__label">
+                <span>{text(t, "approvalProgress", "Approval progress", { count: approvalCount, total: approvalTotal })}</span>
+                <strong>{approvalCount}/{approvalTotal}</strong>
+              </div>
+              <div className="multisig-approval-meter__track">
+                <div className="multisig-approval-meter__bar" />
+              </div>
             </div>
-            <div className="multisig-approval-meter__track">
-              <div className="multisig-approval-meter__bar" />
-            </div>
-          </div>
+          )}
           <div className="multisig-route">
             {[text(t, "multisigRouteCreate", "Create vault"), text(t, "multisigRouteSign", "Propose spend"), text(t, "multisigRouteBroadcast", "Approve & release")].map((label, index) => (
               <span key={label} className={index === activeRouteIndex ? "is-current" : undefined}>

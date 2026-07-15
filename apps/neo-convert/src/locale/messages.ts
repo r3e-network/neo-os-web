@@ -528,6 +528,12 @@ const appMessages = {
     },
     conversionResultLabel: { en: "Result", zh: "结果" },
     readyShort: { en: "Ready", zh: "就绪" },
+    // Zero-state for the RESULT score tile. Conversion runs on-device and
+    // synchronously, so there is no in-flight phase to distinguish: the tile is
+    // either showing a result or honestly reporting that none exists yet. Its
+    // siblings (MODE, ACCOUNTS) show real values on first paint, so a bare dash
+    // here read as a void rather than as the empty state it actually is.
+    conversionResultNone: { en: "None yet", zh: "暂无" },
     inspectDetails: { en: "Inspect", zh: "检查" },
     conversionDetails: { en: "Conversion details", zh: "转换详情" },
     // Inline caveat on the balance tiles: this is the one feature that talks to

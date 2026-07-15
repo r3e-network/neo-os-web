@@ -504,25 +504,40 @@
   background: #ffffff;
 }
 
+/* These tiles are narrow by design, but their labels are not all short: the
+ * planning-floor label is a five-word qualified phrase ("Planning floor (not
+ * enforced)") that nowrap + ellipsis clipped to "PLANNING FLO…" at 390px, hiding
+ * exactly the qualifier that keeps the figure honest. The tile has room for a
+ * second line, so let the phrase wrap into it; the clamp bounds a long
+ * localization without letting it grow the card. */
 .swap-quote-card__metrics small {
+  display: -webkit-box;
   overflow: hidden;
   color: var(--mx2-text-muted);
   font-size: 10px;
   font-weight: 580;
   letter-spacing: 0;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
+/* Values are usually a short amount ("1.87 GAS"), but the awaiting-input state
+ * puts an honest phrase here instead, which the old nowrap + ellipsis would have
+ * clipped. Wrap on the same two-line budget as the label. */
 .swap-quote-card__metrics strong {
   min-width: 0;
+  display: -webkit-box;
   overflow: hidden;
   color: var(--mx2-ink);
   font-size: 13px;
   font-weight: 620;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .swap-station__review {
