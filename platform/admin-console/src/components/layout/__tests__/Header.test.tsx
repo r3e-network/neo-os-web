@@ -98,17 +98,24 @@ describe("Header Component", () => {
     expect(header).toHaveClass("top-0");
   });
 
-  it("keeps the header on the solid light operator-console chrome", () => {
+  it("keeps the header on the light operator-console chrome", () => {
+    // Re-pinned 2026-07-15 to the committed Neo v3 shell (488fa04ec): the
+    // header now sits on the shared light `surface` token with a translucent
+    // sticky treatment (`bg-surface/80 backdrop-blur-xl`), and interactive
+    // items carry brand focus rings (`focus-visible:ring-neo-500/40`) for
+    // keyboard accessibility — so `backdrop-blur` and `ring-neo` left the ban
+    // list. Guard intent is unchanged: no dark-mode chrome, no gradients, and
+    // no heavy legacy shadows on the operator console shell.
     const { container } = render(<Header />);
     const header = screen.getByRole("banner");
 
-    expect(header.className).toContain("bg-white");
+    expect(header.className).toContain("bg-surface");
     for (const token of [
       "dark:",
-      "bg-white/95",
-      "backdrop-blur",
+      "bg-black",
+      "glass-card",
+      "bg-gradient",
       "rounded-md",
-      "ring-neo",
       "shadow-lg",
     ]) {
       expect(container.innerHTML, `header should not include ${token}`).not.toContain(

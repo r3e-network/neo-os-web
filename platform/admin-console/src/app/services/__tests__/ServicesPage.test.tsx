@@ -93,13 +93,16 @@ describe("ServicesPage", () => {
     expect(mobileList).toHaveTextContent("catalog-sync");
     expect(mobileList).toHaveTextContent("Heartbeat overdue");
 
-    expect(
-      screen.getByRole("link", {
-        name: "Configure morpheus-relayer-feed",
-      }),
-    )
-      .toHaveAttribute("href", "/services/morpheus-relayer-feed")
-      .toHaveClass("w-full");
+    const configureLink = screen.getByRole("link", {
+      name: "Configure morpheus-relayer-feed",
+    });
+    // jest-dom matchers return void, so each assertion gets its own expect —
+    // the previous chained form only typechecked by accident.
+    expect(configureLink).toHaveAttribute(
+      "href",
+      "/services/morpheus-relayer-feed",
+    );
+    expect(configureLink).toHaveClass("w-full");
   });
 
   it("keeps data failures friendly and does not render stale service rows", () => {

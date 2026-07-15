@@ -98,8 +98,8 @@ export function AdminNavIcon({
       className={cn(
         "inline-grid h-8 w-8 shrink-0 place-items-center rounded-lg border transition-colors",
         active
-          ? "border-emerald-200 bg-white text-emerald-700 shadow-sm"
-          : "border-gray-200 bg-gray-50 text-gray-500",
+          ? "border-neo-200 bg-surface text-neo-700 shadow-sm"
+          : "border-border bg-canvas-alt text-ink-muted",
         className,
       )}
       data-testid={`${testIdPrefix}-${icon}`}
