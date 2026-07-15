@@ -23,8 +23,17 @@ export function assertClasses(source, classNames, label = "source") {
 }
 
 export function assertDispatches(source, actionNames, label = "source") {
+  // The fleet's committed v2 rebuilds (e.g. neo-treasury / oracle consoles,
+  // landed in 0dd7c4af1) route actions through a local error-safe
+  // `dispatchSafely` wrapper around the same `dispatch(name, ...)` bridge.
+  // The guard's intent is unchanged: the PlayArea must dispatch each named
+  // action; the wrapper spelling is accepted alongside the raw call.
   for (const action of actionNames) {
-    assert.match(source, new RegExp(`dispatch\\("${action}"`), `${label} missing dispatch("${action}")`);
+    assert.match(
+      source,
+      new RegExp(`dispatch(?:Safely)?\\("${action}"`),
+      `${label} missing dispatch("${action}")`,
+    );
   }
 }
 
