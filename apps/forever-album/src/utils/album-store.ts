@@ -22,13 +22,17 @@
  * quota-rejected write must surface to the user, never silently drop photos.
  */
 
-const STORAGE_REQUEST = "neo-miniapp-storage:request";
-const STORAGE_RESPONSE = "neo-miniapp-storage:response";
-const STORAGE_PROTOCOL_VERSION = 1;
-const ALBUM_APP_ID = "miniapp-forever-album";
+// Wire constants of the host storage bridge. Exported so
+// apps/shared/test/embedded-bridge-protocol-parity.test.ts pins them against
+// the host-side declarations (use-embedded-storage-bridge.ts) — drift on
+// either side is a test failure.
+export const STORAGE_REQUEST = "neo-miniapp-storage:request";
+export const STORAGE_RESPONSE = "neo-miniapp-storage:response";
+export const STORAGE_PROTOCOL_VERSION = 1;
+export const ALBUM_APP_ID = "miniapp-forever-album";
 // Matches the defineMiniApp storagePrefix — bridged keys must stay
 // byte-identical to the direct-mode framework keys.
-const ALBUM_KEY_PREFIX = "forever-album:";
+export const ALBUM_KEY_PREFIX = "forever-album:";
 const REQUEST_TIMEOUT_MS = 4_000;
 
 /**
