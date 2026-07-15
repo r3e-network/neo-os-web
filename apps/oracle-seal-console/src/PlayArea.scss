@@ -100,18 +100,26 @@
   text-transform: uppercase;
 }
 
+/*
+ * The chamber status chip carries a PHRASE ("Awaiting a private JSON object"),
+ * not a one-word token, so nowrap + ellipsis cut it to "Awaiting a private
+ * JSON …" at 390px — the chamber's whole first-run instruction, clipped. The
+ * 58% cap stays so the SEAL CHAMBER label keeps its half of the flex row, but
+ * the phrase now wraps inside the pill rather than being amputated by it.
+ */
 .seal-object__head > strong {
+  min-width: 0;
   max-width: 58%;
   border: 1px solid #cfe7df;
-  border-radius: 999px;
+  border-radius: 14px;
   padding: 6px 10px;
-  overflow: hidden;
   background: var(--seal-mint);
   color: #0e655f;
   font-size: 11.5px;
   font-weight: 730;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
 }
 
 .seal-object__body {

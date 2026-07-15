@@ -488,6 +488,14 @@ const appMessagesBase = {
   guestBestLabel: { en: "Best draw", zh: "最佳一抽" },
   guestLastLabel: { en: "Last draw", zh: "上一抽" },
   guestDrawsLabel: { en: "Draws", zh: "抽奖次数" },
+  /**
+   * Honest zero-state for the guest best/last draw tiles. Both values are held
+   * in a local observable and only move when a draw resolves, so a zero here is
+   * settled fact ("you have not drawn yet"), never a read in flight — plain copy,
+   * no skeleton. Replaces a bare em-dash that read as a broken tile next to the
+   * sibling "Draws 0".
+   */
+  guestNoDrawYet: { en: "No draws yet", zh: "暂无抽奖" },
   guestBoardTitle: { en: "Local luck board", zh: "本地手气榜" },
   guestBoardEmpty: {
     en: "Draw a prize to start your local board.",
@@ -794,6 +802,7 @@ const jaMessages = {
   guestBestLabel: "ベストドロー",
   guestLastLabel: "直近のドロー",
   guestDrawsLabel: "ドロー数",
+  guestNoDrawYet: "ドローなし",
   guestBoardTitle: "ローカル運ランキング",
   guestBoardEmpty: "1回引くとローカルボードが始まります。",
   guestDrawerTitle: "遊び方とスコア",

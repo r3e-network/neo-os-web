@@ -23,7 +23,13 @@ export const manifest: MiniAppManifest = {
     heroDescKey: "appSubtitle",
     primaryLabelKey: "startAction",
     ghostLabelKey: "rulesTitle",
-    featuresEyebrowKey: "guestRunValue",
+    // GameHomePage renders this as the collapsed detail panel's hint next to
+    // the "How to play" title. It pointed at `guestRunValue`, so the panel
+    // read "How to play / Free" — the third printing of "Free" on one screen
+    // (eyebrow badge + shared guest-only subtitle tail) and a hint that says
+    // nothing about what the panel opens into. `startHint` previews the
+    // actual rule and stays inside GameHomePage's 56-char shortHint budget.
+    featuresEyebrowKey: "startHint",
     featuresTitleKey: "rulesTitle",
     features: [
       {
@@ -36,7 +42,7 @@ export const manifest: MiniAppManifest = {
     ctaTitleKey: "lobbyTitle",
     ctaDescKey: "startDescription",
     ctaLabelKey: "startAction",
-    trustBadgeKeys: ["guestRunValue", "scoreLevel", "creditLabel"],
+    trustBadgeKeys: ["trustUntimedBadge", "trustThemesBadge", "trustLocalProgressBadge"],
   },
 
   tabs: [

@@ -993,15 +993,24 @@
   white-space: nowrap;
 }
 
+/*
+ * Wrap, don't ellipsize. These tiles hold multi-word values (a scope phrase, a
+ * "method · value" policy pair) in a third-of-a-row column: nowrap sized the
+ * value for "Text"/"15 Minutes" and cut every longer sibling mid-phrase. Two
+ * lines fit the tile's own row without disturbing the short values.
+ */
 .council-motion-paper__summary-card strong {
   grid-area: value;
   min-width: 0;
+  display: -webkit-box;
   overflow: hidden;
   color: var(--mx2-ink);
   font-size: 12px;
   font-weight: 620;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .council-motion-paper__seal {

@@ -16,4 +16,8 @@ Included derivatives:
 - `badge-easy.webp`
 - `badge-medium.webp`
 - `badge-hard.webp`
-- `arcade-table.webp`
+- `arcade-table-source.webp` — the ungraded arcade-hall plate.
+- `arcade-table.webp` — `arcade-table-source.webp` with a vertical alpha ramp
+  baked into its top and bottom edges, so the backdrop band dissolves into the
+  board instead of ending in a hard seam. Regenerate with
+  `node scripts/generate-arcade-table.mjs`.

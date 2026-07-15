@@ -27,10 +27,17 @@ defineMiniApp({
       [proofContract.proofs],
     );
     const anchoredProofs = proofContract.anchoredCount;
+    // The data layer reports "no proof saved yet" as an empty string and lets
+    // each view decide how that reads. It used to emit ctx.t("notAvailable")
+    // ("N/A"), which put a placeholder void on two first-run surfaces at once
+    // — the DEVICE PROOF route tile and the LATEST ID footer chip — and, worse,
+    // defeated their `|| fallback` guards, because "N/A" is a truthy string.
+    // A visitor who has simply not saved anything yet is not looking at an
+    // unavailable value; the views below say "Waiting" / "None yet" instead.
     const latestId: Observable<string> = {
       get: () => {
         const all = proofContract.proofs.get();
-        return all.length > 0 ? `#${all[0]?.id ?? 0}` : ctx.t("notAvailable");
+        return all.length > 0 ? `#${all[0]?.id ?? 0}` : "";
       },
       set: () => {},
       subscribe: (listener) => proofContract.proofs.subscribe(listener),

@@ -239,6 +239,13 @@ const appMessages = {
   },
   guestJumpsValue: { en: "{count} jumps", zh: "{count} 跳" },
   guestBestLabel: { en: "Best run", zh: "最佳" },
+  /**
+   * Honest zero-state for the guest best-run readouts. The guest best is read
+   * synchronously from the local profile, so a zero is settled fact ("you have
+   * not finished a run"), never a read still in flight — hence plain copy and
+   * no skeleton. Replaces a bare "--" that read as a broken tile on first entry.
+   */
+  guestBestEmpty: { en: "No runs yet", zh: "暂无记录" },
   guestRouteLabel: { en: "Route", zh: "路线" },
   guestJumpsLabel: { en: "Jumps", zh: "跳跃" },
   guestModeLabel: { en: "Mode", zh: "模式" },

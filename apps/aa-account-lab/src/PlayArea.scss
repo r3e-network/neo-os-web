@@ -50,7 +50,13 @@
 .aa-workspace {
   display: grid;
   grid-template-columns: minmax(430px, 0.95fr) minmax(0, 1.05fr);
-  align-items: start;
+  /*
+   * stretch, not start: the controls column carries about half the assembly
+   * column's content (332px against 659px), so anchoring it to the top left the
+   * whole lower-right quadrant of the first screen blank. Stretched, the column
+   * is handed the full height and .aa-controls below spends it on the plan list.
+   */
+  align-items: stretch;
   gap: 16px;
 }
 
@@ -360,11 +366,15 @@
 /* === Main controls: strategy cards instead of raw fields === */
 .aa-controls {
   display: grid;
+  /* The plan list absorbs the column's spare height; recovery keeps its size. */
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: stretch;
   gap: 14px;
 }
 
 .aa-plan-panel {
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
   padding: 12px;
   border: 1px solid rgba(13, 148, 136, 0.14);
@@ -422,9 +432,16 @@
   line-height: 1.35;
 }
 
+/*
+ * One option per row, at every width. As a wrap-row these three cards sat side
+ * by side in a 683px column, so the panel was 196px tall against a 659px
+ * assembly column and each option's description was squeezed onto three lines.
+ * The <=820px rule below already stacked them; the wide layout wanted the same
+ * shape for the same reason. The rows share the panel's spare height.
+ */
 .aa-plan-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-auto-rows: minmax(62px, 1fr);
   gap: 8px;
   padding: 6px;
   border: 1px solid rgba(13, 148, 136, 0.1);
@@ -433,7 +450,6 @@
 }
 
 .aa-plan-card {
-  flex: 1 1 150px;
   min-height: 62px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -441,6 +457,10 @@
     "label window"
     "copy window";
   align-items: center;
+  /* Keep the label and its copy together as one block and centre the pair in
+     the row. Without this the two rows stretch to the card's full height and
+     the option's name drifts away from the line that explains it. */
+  align-content: center;
   column-gap: 10px;
   row-gap: 3px;
   padding: 10px 12px;
@@ -644,8 +664,10 @@
     min-height: 160px;
   }
 
+  /* .aa-plan-grid is a one-per-row grid at every width now, so the old
+     flex-basis:100% that forced this stack is inert — only the height floor
+     still belongs here. */
   .aa-plan-card {
-    flex-basis: 100%;
     min-height: 62px;
   }
 }
@@ -787,6 +809,10 @@
   .aa-plan-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Reset the wide layout's row floor: this band is a compact three-up chip
+       rail with the copy hidden, so its rows must size to .aa-plan-card's own
+       50px minimum, not inherit the 62px one meant for full-copy rows. */
+    grid-auto-rows: auto;
     gap: 5px;
     padding: 4px;
   }

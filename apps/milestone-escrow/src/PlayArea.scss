@@ -1539,13 +1539,20 @@
   }
 
   .escrow-vault-card {
-    grid-template-rows: 86px auto;
+    /* The art row used to be pinned to 86px, which squeezed the 16:9 stage
+       render into a thin band and cropped away the vault dome it is composed
+       around. Letting the row size to the image and giving the image its
+       native ratio shows the whole focal subject at ~197px on a 390px
+       viewport. */
+    grid-template-rows: auto auto;
     gap: 7px;
   }
 
   .escrow-vault-card__image {
     border-radius: 13px;
-    object-position: center 42%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    object-position: center;
   }
 
   .escrow-vault {

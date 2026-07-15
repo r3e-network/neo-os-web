@@ -129,7 +129,14 @@ export default function PlayArea({ t, state, dispatch }: P) {
       : activeDigest
         ? shortHash(activeDigest)
         : t("pendingDigest");
-  const sourceStateLabel = hasDigestDraft ? t("documentTypeHash") : hasDraft ? t("documentTypeText") : t("documentPreviewEmptyTitle");
+  // The `.tsp-proof-sheet__source` row is a label -> value pair, and this is the
+  // LABEL half: it names which kind of source the sheet holds. Its empty branch
+  // used to borrow `documentPreviewEmptyTitle`, so on first run the card header
+  // and this row both printed "Ready for content" ~150px apart, reading as a
+  // rendering glitch. An empty sheet has no third source *type* — it is still a
+  // source-content sheet — and the row's value half already carries the state
+  // ("Waiting"), so the label stays the plain category name.
+  const sourceStateLabel = documentType;
   const sceneState = isCreating
     ? "creating"
     : isAnchoring
@@ -349,7 +356,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <li data-active={proofs.length > 0 ? "true" : undefined}>
             <ShieldCheck size={17} strokeWidth={2.25} />
             <span>{t("proofRouteSave")}</span>
-            <strong>{latestId || "--"}</strong>
+            <strong>{latestId || t("proofRouteWaiting")}</strong>
           </li>
           <li data-active={anchoredCount > 0 ? "true" : undefined}>
             <Link2 size={17} strokeWidth={2.25} />
@@ -409,7 +416,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const score = [
     { label: t("totalProofs"), value: storageBlocked ? t("notAvailable") : String(proofs.length), accent: true },
     { label: t("anchoredProofs"), value: storageBlocked ? t("notAvailable") : String(anchoredCount) },
-    { label: t("latestId"), value: storageBlocked ? t("notAvailable") : latestId || "--" },
+    { label: t("latestId"), value: storageBlocked ? t("notAvailable") : latestId || t("latestIdNone") },
   ];
 
   const drawer = (

@@ -20,7 +20,7 @@ function t(key: string, params: Record<string, string | number> = {}) {
 
 function state(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
   const values: Record<string, unknown> = {
-    networkLabel: "Neo N3 TestNet",
+    networkLabel: "Neo N3 Testnet",
     runtimeState: "ready",
     runtimeStateLabel: "Contract key verified",
     phase: "draft",

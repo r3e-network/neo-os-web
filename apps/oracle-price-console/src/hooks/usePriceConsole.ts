@@ -112,6 +112,30 @@ export function launchAssetSymbol(value: unknown): string {
   return match?.[1] ?? "";
 }
 
+/**
+ * Render a quantized feed price as a headline figure.
+ *
+ * PRICE_SCALE_DECIMALS is the CONTRACT scale — the on-chain integer carries six
+ * decimal places — not a display decision. Printing it verbatim made the
+ * flagship LATEST PRICE stat read "$1.967000": the storage format, machine-
+ * dumped onto the hero. The zeros the scale pads on carry no information.
+ *
+ * This trims that padding without ever dropping a digit the feed actually
+ * published: `exactPriceQuote` has already quantized `price` to exactly six
+ * decimals, and a six-decimal maximum reproduces it exactly, so a genuine
+ * $1.984001 still prints in full while $1.967000 becomes $1.967. The
+ * two-decimal minimum keeps round figures reading as money ($1.04, not $1.04
+ * collapsing to $1), and grouping keeps four-figure pairs legible.
+ */
+export function formatPriceForDisplay(price: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: PRICE_SCALE_DECIMALS,
+  }).format(price);
+}
+
 /** Keep the framework's six-decimal integer semantics exact at the app edge. */
 export function exactPriceQuote(value: unknown): ExactPriceQuote | null {
   if (!value || typeof value !== "object") return null;
@@ -214,7 +238,7 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
       const price = latestPrice.get();
       return price == null || price <= 0
         ? t("notAvailable")
-        : `$${price.toFixed(PRICE_SCALE_DECIMALS)}`;
+        : formatPriceForDisplay(price);
     },
     set: () => {},
     subscribe: (fn) => latestPrice.subscribe(fn),
@@ -334,7 +358,10 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
   };
 
   const networkDisplay: Observable<string> = {
-    get: () => network,
+    // `network` is getNetwork()'s internal routing enum ("mainnet"/"testnet"),
+    // not a name to show a visitor. Emitting it verbatim badged the header chip
+    // bare lowercase "mainnet". Resolve it to the localized label instead.
+    get: () => (network === "testnet" ? t("networkTestnet") : t("networkMainnet")),
     set: () => {},
     subscribe: () => () => {},
   };

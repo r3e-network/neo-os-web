@@ -1926,3 +1926,43 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ── Desktop: let the stage hug the scene instead of the viewport ───────────
+   The framework only auto-sizes a Phaser host to the viewport on MOBILE (see
+   PhaserGameComponent: `preserveLogicalSize || !isMobileViewport` bails out),
+   so on a desktop pointer this canvas stays pinned at its logical 420x600 and
+   can never grow into a viewport-tall stage. At 1365x900 the stage's
+   `min-height: 100dvh` floor plus the shell's clamp left ~90px of empty scene
+   below the shell and ~50px above the canvas — a portrait column sitting in a
+   pool of beige.
+
+   Size both to their contents: the shell to the canvas plus a reserve for the
+   stat HUD it pins to its own floor (68px tall at `bottom: 10px`), and the
+   stage to the scene. The queries reproduce the framework's own "not a mobile
+   viewport" test (width > 760, unless a coarse pointer at <= 1024), so this
+   never fires where the canvas does fill the shell. */
+@media (min-width: 1025px) {
+  .survivor-play-area .mx2-stage {
+    min-height: 0;
+  }
+
+  .survivor-stage-shell {
+    height: auto;
+    padding: 22px 0 96px;
+  }
+
+  .survivor-stage-shell .phaser-game-host { transform: none; }
+}
+
+@media (min-width: 761px) and (pointer: fine) {
+  .survivor-play-area .mx2-stage {
+    min-height: 0;
+  }
+
+  .survivor-stage-shell {
+    height: auto;
+    padding: 22px 0 96px;
+  }
+
+  .survivor-stage-shell .phaser-game-host { transform: none; }
+}

@@ -277,6 +277,13 @@ const appMessages = {
     en: "Set the event identity first; timing and supply stay one tap away.",
     zh: "先确定活动识别信息；时间和票量收进下一层设置。",
   },
+  // Own copy for the event-catalog zero-state. It used to borrow
+  // modeCreateTitle/modeCreateHint, which the create wizard already prints.
+  catalogEmptyTitle: { en: "No events published yet", zh: "尚未发布活动" },
+  catalogEmptyHint: {
+    en: "This contract has no active events to browse. Design a pass to publish the first one.",
+    zh: "该合约上暂无可浏览的进行中活动。设计票面即可发布第一个。",
+  },
   eventBlueprintsLabel: { en: "Ticket event blueprints", zh: "票务活动蓝图" },
   blueprintSummitName: { en: "Builder summit", zh: "开发者峰会" },
   blueprintSummitVenue: { en: "Main hall", zh: "主会场" },

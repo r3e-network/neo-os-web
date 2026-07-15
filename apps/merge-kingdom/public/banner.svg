@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 640" width="1440" height="640" role="img" aria-label="">
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#fdf6e6"/>
+      <stop offset="0.52" stop-color="#f5ead2"/>
+      <stop offset="1" stop-color="#eaddb8"/>
+    </linearGradient>
+    <radialGradient id="glowRight" cx="0.78" cy="0.42" r="0.52">
+      <stop offset="0" stop-color="#f0c866" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#f0c866" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowLeft" cx="0.16" cy="0.34" r="0.46">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="plotShadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#9a7040" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#9a7040" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="grassSheen" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#7d9c5b" stop-opacity="0.3"/>
+    </linearGradient>
+    <!-- Calms the lower-centre so the description copy always has a quiet bed,
+         independent of whatever sits behind it. -->
+    <linearGradient id="copyCalm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f5ead2" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fdf7ea" stop-opacity="0.72"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="640" fill="url(#field)"/>
+  <rect width="1440" height="640" fill="url(#glowLeft)"/>
+  <rect width="1440" height="640" fill="url(#glowRight)"/>
+
+  <!-- Distant, heavily receded plots: texture without contrast. Positioned so
+       nothing lands in the mobile band below y=330. -->
+  <g opacity="0.4"><ellipse cx="232" cy="244.01" rx="42.24" ry="11" fill="url(#plotShadow)"/><polygon points="188,214 232,236 232,247.44 188,225.44" fill="#9a7040" opacity="0.5"/><polygon points="276,214 232,236 232,247.44 276,225.44" fill="#c9a96e" opacity="0.55"/><polygon points="232,192 276,214 232,236 188,214" fill="#9dbd76"/><polygon points="232,192 276,214 232,236 188,214" fill="url(#grassSheen)" opacity="0.5"/><rect x="221" y="179.02" width="22" height="31.68" rx="1.76" fill="#e6d7b4"/><rect x="221" y="179.02" width="9.24" height="31.68" fill="#c8b489" opacity="0.5"/><polygon points="232,165.38 246.52,179.02 217.48,179.02" fill="#7fa87f"/><polygon points="232,165.38 246.52,179.02 232,179.02" fill="#5f8760" opacity="0.55"/></g>
+  <g opacity="0.34"><ellipse cx="404" cy="193.92" rx="36.48" ry="9.5" fill="url(#plotShadow)"/><polygon points="366,168 404,187 404,196.88 366,177.88" fill="#9a7040" opacity="0.5"/><polygon points="442,168 404,187 404,196.88 442,177.88" fill="#c9a96e" opacity="0.55"/><polygon points="404,149 442,168 404,187 366,168" fill="#9dbd76"/><polygon points="404,149 442,168 404,187 366,168" fill="url(#grassSheen)" opacity="0.5"/><rect x="394.5" y="146.15" width="19" height="19" rx="1.52" fill="#e6d7b4"/><rect x="394.5" y="146.15" width="7.98" height="19" fill="#c8b489" opacity="0.5"/><polygon points="404,134.37 416.54,146.15 391.46,146.15" fill="#7fa87f"/><polygon points="404,134.37 416.54,146.15 404,146.15" fill="#5f8760" opacity="0.55"/></g>
+  <g opacity="0.42"><ellipse cx="1268" cy="224.64" rx="40.32" ry="10.5" fill="url(#plotShadow)"/><polygon points="1226,196 1268,217 1268,227.92 1226,206.92" fill="#9a7040" opacity="0.5"/><polygon points="1310,196 1268,217 1268,227.92 1310,206.92" fill="#c9a96e" opacity="0.55"/><polygon points="1268,175 1310,196 1268,217 1226,196" fill="#9dbd76"/><polygon points="1268,175 1310,196 1268,217 1226,196" fill="url(#grassSheen)" opacity="0.5"/><rect x="1257.5" y="166.81" width="21" height="26.04" rx="1.68" fill="#e6d7b4"/><rect x="1257.5" y="166.81" width="8.82" height="26.04" fill="#c8b489" opacity="0.5"/><polygon points="1268,153.79 1281.86,166.81 1254.14,166.81" fill="#7fa87f"/><polygon points="1268,153.79 1281.86,166.81 1268,166.81" fill="#5f8760" opacity="0.55"/></g>
+
+  <!-- The one keep inside the mobile band, held high (y ~150..300) and pushed
+       back toward the parchment so it reads as depth, not as clutter. -->
+  <g opacity="0.55"><ellipse cx="720" cy="278.28" rx="59.52" ry="15.5" fill="url(#plotShadow)"/><polygon points="658,236 720,267 720,283.12 658,252.12" fill="#9a7040" opacity="0.5"/><polygon points="782,236 720,267 720,283.12 782,252.12" fill="#c9a96e" opacity="0.55"/><polygon points="720,205 782,236 720,267 658,236" fill="#9dbd76"/><polygon points="720,205 782,236 720,267 658,236" fill="url(#grassSheen)" opacity="0.5"/><rect x="704.5" y="182.99" width="31" height="48.36" rx="2.48" fill="#e6d7b4"/><rect x="704.5" y="182.99" width="13.02" height="48.36" fill="#c8b489" opacity="0.5"/><polygon points="720,163.77 740.46,182.99 699.54,182.99" fill="#7fa87f"/><polygon points="720,163.77 740.46,182.99 720,182.99" fill="#5f8760" opacity="0.55"/></g>
+
+  <!-- Foreground plots, left and right of the mobile band. -->
+  <g opacity="0.9"><ellipse cx="300" cy="520.47" rx="71.04" ry="18.5" fill="url(#plotShadow)"/><polygon points="226,470 300,507 300,526.24 226,489.24" fill="#9a7040" opacity="0.5"/><polygon points="374,470 300,507 300,526.24 374,489.24" fill="#c9a96e" opacity="0.55"/><polygon points="300,433 374,470 300,507 226,470" fill="#9dbd76"/><polygon points="300,433 374,470 300,507 226,470" fill="url(#grassSheen)" opacity="0.5"/><rect x="281.5" y="418.57" width="37" height="45.88" rx="2.96" fill="#e6d7b4"/><rect x="281.5" y="418.57" width="15.54" height="45.88" fill="#c8b489" opacity="0.5"/><polygon points="300,395.63 324.42,418.57 275.58,418.57" fill="#7fa87f"/><polygon points="300,395.63 324.42,418.57 300,418.57" fill="#5f8760" opacity="0.55"/></g>
+  <g opacity="0.72"><ellipse cx="478" cy="441.56" rx="55.68" ry="14.5" fill="url(#plotShadow)"/><polygon points="420,402 478,431 478,446.08 420,417.08" fill="#9a7040" opacity="0.5"/><polygon points="536,402 478,431 478,446.08 536,417.08" fill="#c9a96e" opacity="0.55"/><polygon points="478,373 536,402 478,431 420,402" fill="#9dbd76"/><polygon points="478,373 536,402 478,431 420,402" fill="url(#grassSheen)" opacity="0.5"/><rect x="463.5" y="370.97" width="29" height="26.68" rx="2.32" fill="#e6d7b4"/><rect x="463.5" y="370.97" width="12.18" height="26.68" fill="#c8b489" opacity="0.5"/><polygon points="478,352.99 497.14,370.97 458.86,370.97" fill="#7fa87f"/><polygon points="478,352.99 497.14,370.97 478,370.97" fill="#5f8760" opacity="0.55"/></g>
+  <g opacity="0.86"><ellipse cx="1150" cy="533.74" rx="67.2" ry="17.5" fill="url(#plotShadow)"/><polygon points="1080,486 1150,521 1150,539.2 1080,504.2" fill="#9a7040" opacity="0.5"/><polygon points="1220,486 1150,521 1150,539.2 1220,504.2" fill="#c9a96e" opacity="0.55"/><polygon points="1150,451 1220,486 1150,521 1080,486" fill="#9dbd76"/><polygon points="1150,451 1220,486 1150,521 1080,486" fill="url(#grassSheen)" opacity="0.5"/><rect x="1132.5" y="442.95" width="35" height="37.8" rx="2.8" fill="#e6d7b4"/><rect x="1132.5" y="442.95" width="14.7" height="37.8" fill="#c8b489" opacity="0.5"/><polygon points="1150,421.25 1173.1,442.95 1126.9,442.95" fill="#7fa87f"/><polygon points="1150,421.25 1173.1,442.95 1150,442.95" fill="#5f8760" opacity="0.55"/></g>
+
+  <!-- Focal castle: right-of-centre, outside the mobile crop (x 536..904),
+       inside the desktop zone where the shell's white scrim has faded out. -->
+  <g><ellipse cx="1010" cy="400.48" rx="156" ry="41.6" fill="url(#plotShadow)"/><g opacity="1"><ellipse cx="1010" cy="455.86" rx="124.8" ry="32.5" fill="url(#plotShadow)"/><polygon points="880,367.2 1010,432.2 1010,466 880,401" fill="#9a7040" opacity="0.5"/><polygon points="1140,367.2 1010,432.2 1010,466 1140,401" fill="#c9a96e" opacity="0.55"/><polygon points="1010,302.2 1140,367.2 1010,432.2 880,367.2" fill="#9dbd76"/><polygon points="1010,302.2 1140,367.2 1010,432.2 880,367.2" fill="url(#grassSheen)" opacity="0.5"/></g><rect x="927.84" y="261.12" width="35.36" height="93.6" rx="3.54" fill="#e6d7b4"/><rect x="927.84" y="261.12" width="14.14" height="93.6" fill="#c8b489" opacity="0.45"/><rect x="925.01" y="256.17" width="41.02" height="6.36" fill="#c8b489"/><polygon points="945.52,226.47 966.74,256.17 924.3,256.17" fill="#d4a843"/><polygon points="945.52,226.47 966.74,256.17 945.52,256.17" fill="#a07030" opacity="0.5"/><circle cx="945.52" cy="223.64" r="3.18" fill="#f0c866"/><rect x="1053.68" y="245.52" width="37.44" height="109.2" rx="3.74" fill="#e6d7b4"/><rect x="1053.68" y="245.52" width="14.98" height="109.2" fill="#c8b489" opacity="0.45"/><rect x="1050.68" y="240.28" width="43.43" height="6.74" fill="#c8b489"/><polygon points="1072.4,208.83 1094.86,240.28 1049.94,240.28" fill="#d4a843"/><polygon points="1072.4,208.83 1094.86,240.28 1072.4,240.28" fill="#a07030" opacity="0.5"/><circle cx="1072.4" cy="205.83" r="3.37" fill="#f0c866"/><rect x="986.08" y="198.72" width="47.84" height="156" rx="4.78" fill="#e6d7b4"/><rect x="986.08" y="198.72" width="19.14" height="156" fill="#c8b489" opacity="0.45"/><rect x="982.25" y="192.02" width="55.49" height="8.61" fill="#c8b489"/><polygon points="1010,151.84 1038.7,192.02 981.3,192.02" fill="#d4a843"/><polygon points="1010,151.84 1038.7,192.02 1010,192.02" fill="#a07030" opacity="0.5"/><circle cx="1010" cy="148.01" r="4.31" fill="#f0c866"/></g>
+
+  <circle cx="526.73" cy="1.93" r="1.87" fill="#fff8e6" opacity="0.52"/><circle cx="1417.55" cy="410.68" r="2.42" fill="#fff8e6" opacity="0.41"/><circle cx="1380.3" cy="241.78" r="3.39" fill="#fff8e6" opacity="0.58"/><circle cx="417.92" cy="125.08" r="1.88" fill="#fff8e6" opacity="0.43"/><circle cx="1301.59" cy="585.39" r="3.97" fill="#fff8e6" opacity="0.33"/><circle cx="285.46" cy="444.95" r="1.75" fill="#fff8e6" opacity="0.28"/><circle cx="331.49" cy="366.74" r="2.98" fill="#fff8e6" opacity="0.44"/><circle cx="1407.16" cy="498.36" r="2.89" fill="#fff8e6" opacity="0.34"/><circle cx="43" cy="26.92" r="2.88" fill="#fff8e6" opacity="0.5"/><circle cx="212.86" cy="619.84" r="3.86" fill="#fff8e6" opacity="0.34"/><circle cx="936.21" cy="419.01" r="1.79" fill="#fff8e6" opacity="0.41"/><circle cx="45.6" cy="357.63" r="3.36" fill="#fff8e6" opacity="0.42"/><circle cx="644.66" cy="313.19" r="4.09" fill="#fff8e6" opacity="0.43"/><circle cx="49.63" cy="58.03" r="1.6" fill="#fff8e6" opacity="0.46"/><circle cx="1038.47" cy="169.08" r="3.79" fill="#fff8e6" opacity="0.53"/><circle cx="331.07" cy="179.59" r="3.28" fill="#fff8e6" opacity="0.45"/><circle cx="848.2" cy="97.87" r="1.97" fill="#fff8e6" opacity="0.5"/><circle cx="575.82" cy="275.34" r="3.14" fill="#fff8e6" opacity="0.37"/><circle cx="14.17" cy="398.94" r="4.2" fill="#fff8e6" opacity="0.43"/><circle cx="53.53" cy="356.25" r="3.63" fill="#fff8e6" opacity="0.53"/><circle cx="998.63" cy="272.24" r="2.73" fill="#fff8e6" opacity="0.47"/><circle cx="842.75" cy="238.43" r="2.88" fill="#fff8e6" opacity="0.51"/>
+
+  <!-- Keeps the copy bed calm across the full width, strongest at the base. -->
+  <rect x="0" y="300" width="1440" height="340" fill="url(#copyCalm)"/>
+</svg>

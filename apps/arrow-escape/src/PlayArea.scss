@@ -23,6 +23,12 @@
   box-sizing: border-box;
   display: grid;
   width: 100%;
+  /* Own the viewport and centre the board in it. The root used to be only as
+     tall as the shell, so on a desktop the board sat hard against the top and
+     everything below it was an unexplained blank band. Any leftover height is
+     now split evenly above and below, which reads as framing rather than a gap. */
+  min-height: 100dvh;
+  align-content: center;
   justify-items: center;
   padding: 0;
   overflow: hidden;
@@ -33,7 +39,16 @@
 
 .arrow-escape-shell {
   position: relative;
-  width: min(390px, 100%, calc(100dvh * 0.4621));
+  /*
+   * Height-led: 0.4621 is 390/844, so the dvh term is the width at which the
+   * board is exactly as tall as the viewport allows. The first term used to be
+   * a hard 390px — the board's authored width — which capped it below that on
+   * every desktop and left the spare height unused under the card. Track the
+   * viewport instead, and keep a ceiling so a very tall window cannot scale the
+   * 390x844 canvas far past its authored size.
+   */
+  --ae-shell-inset: 0px;
+  width: min(460px, 100%, calc((100dvh - var(--ae-shell-inset)) * 0.4621));
   aspect-ratio: 390 / 844;
   overflow: hidden;
   border: 1px solid rgba(114, 79, 23, 0.26);
@@ -405,6 +420,19 @@
     border-width: 0;
     border-radius: 0;
     box-shadow: none;
+  }
+}
+
+/*
+ * Breathing room above and below the board, but only where there is height to
+ * spare. A phone is meant to be full-bleed (see the rule above, which drops the
+ * frame entirely), and on a 390x844 phone the dvh term already lands exactly on
+ * the board's authored size — subtracting an inset there would shrink it off the
+ * edges it is supposed to meet.
+ */
+@media (min-width: 421px) {
+  .arrow-escape-shell {
+    --ae-shell-inset: 24px;
   }
 }
 
