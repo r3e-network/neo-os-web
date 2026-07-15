@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type * as Phaser from "phaser";
 
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
@@ -32,14 +32,26 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const aimX = val<number>("aimX", 195);
   const storageHealthy = bool("storageHealthy");
 
+  // The play surface mounts only once the player has left the launch page —
+  // via its CTA, or straight through it under directPlay/OneGate. That mount
+  // is the one honest "the player is here" signal, so it is what deals the
+  // run. `enterPlay` is idempotent.
+  useEffect(() => {
+    void dispatch("enterPlay");
+  }, [dispatch]);
+
   const sceneText = useMemo(
     () => createSuikaSceneCopy(t),
     [t],
   );
 
+  // `storageHealthy` must ride the bridge: SuikaScene renders the "progress
+  // cannot be saved" tail off `bool("storageHealthy") === false`, and
+  // BaseScene.bool() coerces an ABSENT key to false — so leaving it out of
+  // this object made a healthy orchard permanently claim it could not save.
   const bridgeState = useMemo(
-    () => ({ game, aimX, sceneText }),
-    [game, aimX, sceneText],
+    () => ({ game, aimX, sceneText, storageHealthy }),
+    [game, aimX, sceneText, storageHealthy],
   );
 
   const dispatchAction = useCallback((action: string, ...args: unknown[]) => {
