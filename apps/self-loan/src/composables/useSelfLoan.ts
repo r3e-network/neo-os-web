@@ -162,7 +162,17 @@ const gasFromBaseUnits = (base: bigint): number => Number(base) / 1e8;
 // ============================================================================
 
 export type Terms = { ltvPercent: number; minDurationHours: number };
-export type LoadStatus = "idle" | "loading" | "ready" | "error";
+/**
+ * "awaiting-wallet" is the normal pre-connect state: with no wallet there is no
+ * wallet network, so there is nothing to compare against the launch network and
+ * no chain context to read the market through. It is deliberately NOT "error" —
+ * collapsing the two made a fresh visitor with no wallet open the desk under a
+ * red "Live data unavailable / Writes are disabled" alert describing a fault
+ * that had not happened. Every write gate still treats it exactly like a
+ * failure (loadRuntime keeps returning false), so this only changes what the
+ * visitor is told, never what they are allowed to do.
+ */
+export type LoadStatus = "idle" | "loading" | "ready" | "awaiting-wallet" | "error";
 export type ActionOutcome = "confirmed" | "pending";
 export interface BorrowQuoteGuard {
   priceBase: bigint;
@@ -319,9 +329,9 @@ export function useSelfLoan({
       loanBorrowedBase.set(0n);
       collateralCredit.set(0);
       repayCredit.set(0);
-      balancesStatus.set(next ? "loading" : "idle");
-      positionStatus.set(next ? "loading" : "idle");
-      recoveryStatus.set(next ? "loading" : "idle");
+      balancesStatus.set(next ? "loading" : "awaiting-wallet");
+      positionStatus.set(next ? "loading" : "awaiting-wallet");
+      recoveryStatus.set(next ? "loading" : "awaiting-wallet");
       pendingOperation.set(null);
       pendingConfirmation.set("");
     }
@@ -544,7 +554,16 @@ export function useSelfLoan({
       const detected = normalizeSelfLoanNetwork(await app.chain.detectNetwork());
       const expectedLaunch = normalizeSelfLoanNetwork(launchNetwork);
       const contract = normalizeScriptHash(app.chain.contractAddress.get() ?? "");
-      if (!detected || (expectedLaunch && expectedLaunch !== detected)) {
+      // No resolvable network means no wallet has named one yet (a wallet-less
+      // host reports a bare "neo-n3", which normalizes to null). Nothing
+      // mismatches nothing — hold the neutral pre-connect state instead of
+      // raising a network mismatch the visitor did not cause. Returning false
+      // keeps every write gate closed exactly as before.
+      if (!detected) {
+        runtimeStatus.set("awaiting-wallet");
+        return false;
+      }
+      if (expectedLaunch && expectedLaunch !== detected) {
         throw new Error(t("runtimeNetworkMismatch"));
       }
       const expected = SELF_LOAN_BINDINGS[detected];
@@ -623,7 +642,7 @@ export function useSelfLoan({
       neoBalance.set(0);
       gasBalance.set(0);
       gasBalanceBase.set(0n);
-      balancesStatus.set("idle");
+      balancesStatus.set("awaiting-wallet");
       return false;
     }
     balancesStatus.set("loading");
@@ -656,7 +675,7 @@ export function useSelfLoan({
     if (!hash) {
       loan.set({ borrowed: 0, collateralLocked: 0, active: false });
       loanBorrowedBase.set(0n);
-      positionStatus.set("idle");
+      positionStatus.set("awaiting-wallet");
       return false;
     }
     positionStatus.set("loading");
@@ -707,7 +726,7 @@ export function useSelfLoan({
     if (!hash) {
       collateralCredit.set(0);
       repayCredit.set(0);
-      recoveryStatus.set("idle");
+      recoveryStatus.set("awaiting-wallet");
       return false;
     }
     recoveryStatus.set("loading");
@@ -1500,8 +1519,20 @@ export function useSelfLoan({
     isRefreshing.set(true);
     readError.set("");
     try {
-      const [runtimeOk, marketOk, balancesOk, positionOk, recoveryOk] = await Promise.all([
-        loadRuntime(),
+      const runtimeOk = await loadRuntime();
+      if (!runtimeOk && runtimeStatus.get() === "awaiting-wallet") {
+        // Pre-wallet first paint: with no network there is no chain context to
+        // read the market, balances or position through. Park every lane in the
+        // same neutral state instead of firing reads that can only fail and
+        // then reporting those expected failures as "Live data unavailable".
+        marketStatus.set("awaiting-wallet");
+        balancesStatus.set("awaiting-wallet");
+        positionStatus.set("awaiting-wallet");
+        recoveryStatus.set("awaiting-wallet");
+        lastRefreshAt.set(Date.now());
+        return;
+      }
+      const [marketOk, balancesOk, positionOk, recoveryOk] = await Promise.all([
         loadMarket(),
         loadBalances(),
         loadLoanPosition(),

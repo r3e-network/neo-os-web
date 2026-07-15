@@ -190,6 +190,21 @@ const appMessages = {
     en: "Funding writes are paused on-chain. Browsing remains available.",
     zh: "链上资金写入已暂停，仍可浏览轮次与项目。",
   },
+  // Honest zero-states for the selected-round readouts. No round selected is
+  // the desk's opening state, not a missing value.
+  qfNoRoundSelected: { en: "No round selected", zh: "尚未选择轮次" },
+  qfMatchingAwaitsRound: { en: "Select a round", zh: "请选择轮次" },
+  // The pre-connect state: no contract resolved, so no snapshot to verify.
+  // Neutral product voice — nothing has failed, and browsing genuinely is the
+  // whole experience until a wallet arrives.
+  fundingSafetyAwaitingContext: {
+    en: "Browse rounds and projects freely. Connect a wallet to contribute.",
+    zh: "可自由浏览轮次与项目；连接钱包后即可捐助。",
+  },
+  fundingAwaitingContextShort: {
+    en: "Browsing · connect a wallet to contribute",
+    zh: "浏览模式 · 连接钱包后可捐助",
+  },
   fundingSafetyUnavailable: {
     en: "The contract snapshot could not be verified. Funding writes remain blocked; refresh to check again.",
     zh: "暂时无法验证合约快照，资金写入保持禁用；请刷新后重试检查。",

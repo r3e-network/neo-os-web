@@ -288,6 +288,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     statHappy: t("statHappiness"),
     statFed: t("sceneStatFed"),
     statEnergy: t("statEnergy"),
+    statSealed: t("statSealed"),
     stageEgg: t("sceneStageEgg"),
     stageResting: t("sceneStageResting"),
     stageBaby: t("stage_baby"),
@@ -394,7 +395,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       ? [
           // Guest has no stake — local framing instead of "REWARD AT STAKE" / pool / credit.
           { label: t("guestRunLabel"), value: t("guestRunValue"), accent: true },
-          { label: t("scoreHappiness"), value: `0/${rule.targetHappiness}` },
+          // Lobby: no run has been dealt, so there is no current happiness to
+          // report. This used to hard-code "0/{target}", which both invented a
+          // reading and contradicted the nursery meters right above it — those
+          // correctly show the egg's stats as sealed. State the goal instead,
+          // which is what this chip is actually for before a run starts.
+          { label: t("scoreHappiness"), value: t("happinessTarget", { happiness: rule.targetHappiness }) },
           { label: t("scoreTime"), value: formatClock(rule.limitMs) },
         ]
       : [

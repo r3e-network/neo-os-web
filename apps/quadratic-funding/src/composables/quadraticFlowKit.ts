@@ -59,6 +59,8 @@ export interface QuadraticFlowKitOptions {
    * pre-rewrite copy, in addition to the platform notify channel.
    */
   setStatus: StatusSetter;
+  /** Clear the in-card banner (see QuadraticFlowKit.clearStatus). */
+  clearStatus: () => void;
   /**
    * Override the deposit-confirmation wait used by the deposit-then-act
    * flows. Defaults to {@link waitForDepositConfirmation} polling the N3Index
@@ -80,6 +82,12 @@ const N3_CHAIN_TYPES = new Set(["neo-n3", "neo-n3-mainnet", "neo-n3-testnet"]);
 
 export interface QuadraticFlowKit {
   setStatus: StatusSetter;
+  /**
+   * Drop the in-card banner entirely. Distinct from setStatus: there is no
+   * honest "success"/"error" tone for "there is nothing to report", which is
+   * exactly the state a pre-connect read leaves behind.
+   */
+  clearStatus(): void;
   /** Banner an error with the legacy formatErrorMessage + contractMissing fallback. */
   reportError(error: unknown): void;
   /**
@@ -90,6 +98,20 @@ export interface QuadraticFlowKit {
    * framework read/invoke still rejects a genuinely wrong network.
    */
   onNeoChain(): Promise<boolean>;
+  /**
+   * Whether a contract this app can read has actually been resolved yet.
+   *
+   * DISPLAY ONLY — this is not a gate; ensureContract() below remains the sole
+   * write boundary and still throws for every case this reports false. The
+   * split exists because a chain read that fails has two very different causes
+   * and the desk reported both as "Contract address not configured":
+   *   - a resolved contract whose read genuinely broke (a real fault), and
+   *   - no host bridge / no wallet, so no contract could be resolved at all.
+   * The second is what EVERY first-time visitor sees before connecting. There
+   * is nothing misconfigured about it, and the desk's own empty-round copy
+   * ("Load or create a round before donation") already says the right thing.
+   */
+  hasChainContext(): Promise<boolean>;
   /**
    * app.notify.guardResult around a chain flow: toasts the outcome on the
    * platform notify channel AND mirrors it into the in-card banner with the
@@ -132,6 +154,7 @@ export function createQuadraticFlowKit({
   app,
   t,
   setStatus,
+  clearStatus,
   confirmDeposit,
 }: QuadraticFlowKitOptions): QuadraticFlowKit {
   const reportError = (error: unknown): void => {
@@ -140,10 +163,20 @@ export function createQuadraticFlowKit({
 
   const kit: QuadraticFlowKit = {
     setStatus,
+    clearStatus,
     reportError,
 
     async onNeoChain() {
       return N3_CHAIN_TYPES.has(await app.chain.detectNetwork());
+    },
+
+    async hasChainContext() {
+      if (app.chain.contractAddress.get()) return true;
+      // The framework fills the accessor on the first default-contract read;
+      // nudge it once, exactly like ensureContract does, before concluding
+      // there is no contract to talk to.
+      await app.chain.readRaw("admin", []).catch(() => undefined);
+      return Boolean(app.chain.contractAddress.get());
     },
 
     async guard(fn, successKey) {

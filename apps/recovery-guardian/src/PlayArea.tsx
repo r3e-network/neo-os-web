@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { PlayStage } from "@shared/components-react/v2";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2/DataPhase";
 import type { ObservableState } from "@shared/react/context";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { formatHash } from "@shared/utils/format";
@@ -200,7 +201,28 @@ export default function PlayArea({ t, state, dispatch }: Props) {
           : 3;
   const reviewWindowValue = profile?.pending.active && executableAt > 0
     ? now >= executableAt ? t("recoveryReadyNow") : formatCountdown(executableAt, now)
-    : profile?.configured ? formatDelay(profile.timelockMs, t) : "—";
+    : profile?.configured ? formatDelay(profile.timelockMs, t) : "";
+
+  // Every readout below describes ONE account's on-chain guardian policy, and
+  // this console reads it only once a profile ID has been entered. Before that
+  // there is nothing to report — the expected first paint, since the surface
+  // opens on an empty ID field and says so ("Find your guardian circle"). The
+  // three tiles used to render that normal state as an em-dash apiece, which
+  // reads as three broken readouts rather than one un-started lookup.
+  const profilePhase = resolvePhase({
+    loading: journey === "loading",
+    settled: journey !== "loading",
+    hasData: Boolean(profile),
+  });
+  const profileStat = (value: ReactNode, skeletonWidth?: string) => (
+    <PhaseValue
+      phase={profilePhase}
+      placeholder={t("valueEnterProfileId")}
+      skeletonWidth={skeletonWidth}
+    >
+      {value}
+    </PhaseValue>
+  );
 
   const setField = (field: string, value: string) => void dispatch("setField", field, value);
   const load = () => void dispatch("loadProfile");
@@ -549,9 +571,22 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         }}
         scene={scene}
         score={[
-          { label: t("guardianMetricPolicy"), value: profile?.configured ? t("guardianPolicy", { threshold, total: guardianCount }) : "—", accent: true },
-          { label: t("guardianMetricProgress"), value: profile?.pending.active ? `${approvedCount}/${threshold}` : profile?.configured ? t("noRecoveryOpen") : "—" },
-          { label: t("guardianMetricDelay"), value: reviewWindowValue },
+          {
+            label: t("guardianMetricPolicy"),
+            value: profileStat(
+              profile?.configured ? t("guardianPolicy", { threshold, total: guardianCount }) : t("guardianPolicyNone"),
+              "5em",
+            ),
+            accent: true,
+          },
+          {
+            label: t("guardianMetricProgress"),
+            value: profileStat(
+              profile?.pending.active ? `${approvedCount}/${threshold}` : t("noRecoveryOpen"),
+              "4em",
+            ),
+          },
+          { label: t("guardianMetricDelay"), value: profileStat(reviewWindowValue, "5em") },
         ]}
         actions={{ primary, secondary }}
         drawerToggleLabel={t("guardianDetails")}

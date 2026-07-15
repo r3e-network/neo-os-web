@@ -164,6 +164,12 @@ const appMessages = {
   guardianMetricProgress: { en: "Current recovery", zh: "当前恢复" },
   guardianMetricDelay: { en: "Review window", zh: "观察期" },
   noRecoveryOpen: { en: "No recovery open", zh: "没有进行中的恢复" },
+  // Honest zero-states for the three guardian readouts. This console reads one
+  // account's policy only after a profile ID is entered, so an empty field is
+  // the expected first paint, not a failure — say what the readout is waiting
+  // for instead of printing an em-dash apiece.
+  valueEnterProfileId: { en: "Enter account ID", zh: "输入账户 ID" },
+  guardianPolicyNone: { en: "No policy set", zh: "尚未设置策略" },
   guardianDetails: { en: "Details & controls", zh: "详情与控制" },
   protectionDetails: { en: "Protection details", zh: "守护详情" },
   notChecked: { en: "Not checked yet", zh: "尚未检查" },

@@ -48,6 +48,16 @@ const C = {
   gold:       0xedc22e,
   scoreText:  "#776e65",
   headerText: "#35322e",
+  /**
+   * Header chip fill. The chips reused `gridBg` (0xbbada0), which is the right
+   * value for the board — a large field behind dark tiles — but wrong behind
+   * the chips' own light text: #f9f6f2 caps on 0xbbada0 measure 2.03:1, and the
+   * chip itself only reached 1.7:1 against the cream page, so the whole chip
+   * read washed out. This is 2048's own dark warm brown (the same value as
+   * `scoreText`), which carries the caption at 4.64:1, the value at 5.0:1, and
+   * separates from the page at 4.75:1.
+   */
+  chipBg:     0x776e65,
 };
 
 interface TileColors { bg: number; text: string }
@@ -124,6 +134,13 @@ function tileFontSize(exp: number, cellSize: number): string {
   const base = v >= 1000 ? 20 : v >= 100 ? 26 : 32;
   return `${Math.round(base * scale)}px`;
 }
+
+/**
+ * Horizontal space the shared shell's audio toggle occupies at the canvas's
+ * top-right corner: 8px inset + 34px button + a 6px breathing gap. Kept in sync
+ * with AUDIO_TOGGLE_BUTTON_STYLE in framework/phaser/PhaserGameComponent.tsx.
+ */
+const AUDIO_TOGGLE_CLEARANCE = 48;
 
 // ── Swipe threshold ────────────────────────────────────────────────────────────
 const SWIPE_THRESHOLD = 30;
@@ -261,6 +278,19 @@ export class Game2048Scene extends BaseScene {
     const scoreBoxW = sceneW < 380 ? 58 : 70;
     const bestBoxW = sceneW < 380 ? 56 : 60;
     const headerBoxY = sceneW < 380 ? 18 : 20;
+    /**
+     * Right inset for the header chips.
+     *
+     * The shared Phaser shell paints a 34px circular audio toggle at top:8 /
+     * right:8 of the canvas host (AUDIO_TOGGLE_BUTTON_STYLE in
+     * framework/phaser/PhaserGameComponent.tsx), so the top-right 42px of the
+     * scene is not ours to draw in. The chips were pinned flush at
+     * `sceneW - sidePad`, which put the MOVES chip under that button — its value
+     * was fully covered on mobile and its caption clipped. Scene units track the
+     * canvas CSS size (sceneW comes from `this.scale.width`), so the button's
+     * DOM footprint can be reserved directly here.
+     */
+    const headerRightPad = Math.max(sidePad, AUDIO_TOGGLE_CLEARANCE);
     const lobbyCardGap = sceneW < 380 ? 8 : 10;
     const lobbyCardW = Math.max(94, Math.min(108, Math.floor((sceneW - sidePad * 2 - lobbyCardGap * 2) / 3)));
     const lobbyCardH = sceneH < 620 ? 124 : 132;
@@ -291,8 +321,8 @@ export class Game2048Scene extends BaseScene {
       titleX: sidePad + 4,
       titleY: sceneW < 380 ? 12 : 14,
       titleFontSize: sceneW < 380 ? "30px" : "36px",
-      scoreX: sceneW - sidePad - scoreBoxW / 2,
-      bestX: sceneW - sidePad - scoreBoxW - 8 - bestBoxW / 2,
+      scoreX: sceneW - headerRightPad - scoreBoxW / 2,
+      bestX: sceneW - headerRightPad - scoreBoxW - 8 - bestBoxW / 2,
       scoreBoxW,
       bestBoxW,
       headerBoxY,
@@ -421,7 +451,10 @@ export class Game2048Scene extends BaseScene {
 
     // ── Score area ─────────────────────────────────────────────────────────────
     this.scoreLabel.setText(`${moveCount}`);
-    this.bestLabel.setText(maxExp > 0 ? `${tileValue(maxExp)}` : "–");
+    // A fresh session has reached no tile yet. That is a real zero, not a
+    // missing value: the dash it used to render was a first-run void sitting
+    // next to MOVES 0, and read as "unavailable" rather than "none yet".
+    this.bestLabel.setText(maxExp > 0 ? `${tileValue(maxExp)}` : "0");
     this.statusLabel.setText(lastStatus);
 
     // ── Lobby buttons ──────────────────────────────────────────────────────────
@@ -537,7 +570,7 @@ export class Game2048Scene extends BaseScene {
 
     // Moves box (the run's move counter — the only "score" 2048 tracks)
     const scoreBox = this.add.container(l.scoreX, l.headerBoxY);
-    const scoreBg = this.add.rectangle(0, 0, l.scoreBoxW, 52, 0xbbada0).setOrigin(0.5);
+    const scoreBg = this.add.rectangle(0, 0, l.scoreBoxW, 52, C.chipBg).setOrigin(0.5);
     this.scoreCaption = this.add.text(0, -10, this.str("scoreMovesCaption", "MOVES"), {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
@@ -554,14 +587,14 @@ export class Game2048Scene extends BaseScene {
 
     // Best tile box
     const bestBox = this.add.container(l.bestX, l.headerBoxY);
-    const bestBg = this.add.rectangle(0, 0, l.bestBoxW, 52, 0xbbada0).setOrigin(0.5);
+    const bestBg = this.add.rectangle(0, 0, l.bestBoxW, 52, C.chipBg).setOrigin(0.5);
     this.bestCaption = this.add.text(0, -10, this.str("scoreBestCaption", "BEST"), {
       fontFamily: FONT_FAMILY,
       fontSize: "10px",
       color: "#f9f6f2",
       fontStyle: "bold",
     }).setOrigin(0.5);
-    this.bestLabel = this.add.text(0, 8, "–", {
+    this.bestLabel = this.add.text(0, 8, "0", {
       fontFamily: FONT_FAMILY,
       fontSize: "18px",
       fontStyle: "bold",

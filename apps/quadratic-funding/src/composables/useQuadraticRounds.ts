@@ -243,7 +243,14 @@ export function useQuadraticRounds({
     } catch (e) {
       rounds.set([]);
       selectedRoundId.set("");
-      kit.reportError(e);
+      // This runs on mount, so it is the first thing a visitor triggers. With
+      // no wallet or host bridge there is no contract to read and this throw
+      // was inevitable — reporting it as "Contract address not configured"
+      // greeted every new visitor with an amber fault they had not caused and
+      // could not fix. An empty round list is the honest outcome, and the desk
+      // already renders it as an invitation to load or create a round.
+      if (await kit.hasChainContext()) kit.reportError(e);
+      else kit.clearStatus();
     } finally {
       isRefreshingRounds.set(false);
     }

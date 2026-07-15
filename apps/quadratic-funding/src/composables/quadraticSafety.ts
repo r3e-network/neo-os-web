@@ -10,6 +10,15 @@ export type QuadraticDeploymentStatus =
   | "paused"
   | "legacy"
   | "unverified"
+  /**
+   * No contract has been resolved yet, so there was no snapshot to verify.
+   * Deliberately NOT "unavailable": that means "we asked and could not get a
+   * trustworthy answer", a real fault. This means "we have not been given
+   * anything to ask about", which is what every visitor sees before they
+   * connect. Both still block funding writes (fundingWritesEnabled requires
+   * "ready"); only the copy differs.
+   */
+  | "awaiting-context"
   | "unavailable";
 
 const deploymentKey = (network: unknown, contract: unknown, fingerprint: unknown) =>
@@ -59,6 +68,11 @@ export function useQuadraticSafety({
     deploymentMessage.set(t("fundingSafetyChecking"));
 
     try {
+      if (!(await kit.hasChainContext())) {
+        deploymentStatus.set("awaiting-context");
+        deploymentMessage.set(t("fundingSafetyAwaitingContext"));
+        return "awaiting-context";
+      }
       const stats = await app.chain.readRaw("getPlatformStats", []);
       if (!stats || typeof stats !== "object" || Array.isArray(stats)) {
         deploymentStatus.set("unavailable");
@@ -142,6 +156,13 @@ export function useQuadraticSafety({
       deploymentMessage.set(t("fundingSafetyReady"));
       return "ready";
     } catch {
+      // A throw with no resolvable contract is the pre-connect state, not a
+      // failed verification of something real.
+      if (!(await kit.hasChainContext().catch(() => false))) {
+        deploymentStatus.set("awaiting-context");
+        deploymentMessage.set(t("fundingSafetyAwaitingContext"));
+        return "awaiting-context";
+      }
       deploymentStatus.set("unavailable");
       deploymentMessage.set(t("fundingSafetyUnavailable"));
       return "unavailable";

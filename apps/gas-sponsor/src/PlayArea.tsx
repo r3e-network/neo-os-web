@@ -21,6 +21,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { CoinArt } from "@shared/art";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import {
   OpenUiLiteProvider,
@@ -220,6 +221,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const statsActiveCount = clean(platformStats.activePools) || String(activePools.length);
   const totalSponsored = formatFixed8(platformStats.totalSponsoredRaw);
   const totalClaimed = formatFixed8(platformStats.totalClaimedRaw);
+  /**
+   * Platform aggregates across the three honest phases. `formatFixed8` falls
+   * back to an em dash, so the headline stat rail opened as "SPONSORED — GAS"
+   * next to "ACTIVE POOLS 0" on every cold start. A settled-empty read cannot
+   * honestly claim 0 GAS sponsored either — that is a number we do not have —
+   * so it renders zero-state copy rather than a fabricated total.
+   */
+  const statsPhase = resolvePhase({
+    loading: poolsLoading,
+    settled: !poolsLoading,
+    hasData: Boolean(String(platformStats.totalSponsoredRaw ?? "").trim()),
+  });
   const expiryValue = platformStats.defaultExpiryMs ?? platformStats.defaultExpirySeconds;
   const networkLabel = network === "testnet" ? t("testnet") : network === "mainnet" ? t("mainnet") : t("networkUnknown");
 
@@ -270,7 +283,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </>
           ) : (
             <>
-              <div className="sponsor-hero__kicker"><Sparkles size={15} /> {t("stationReady")}</div>
+              {/*
+                * The eyebrow used to assert `stationReady` unconditionally, so a
+                * cold start read "REFILL STATION READY" directly above the
+                * headline "Finding live pools…" — claiming to be ready and still
+                * searching in the same breath. While the read is in flight the
+                * eyebrow names the surface and lets the headline carry the state.
+                */}
+              <div className="sponsor-hero__kicker">
+                <Sparkles size={15} /> {poolsLoading ? t("stationKicker") : t("stationReady")}
+              </div>
               <h3>{poolsLoading ? t("findingPools") : t("noActivePools")}</h3>
               <p>{poolsLoading ? t("findingPoolsDetail") : t("noActivePoolsDetail")}</p>
             </>
@@ -589,7 +611,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           scene={scene}
           score={[
             { label: <span><Fuel size={14} /> {t("activePools")}</span>, value: statsActiveCount, accent: true },
-            { label: <span><HandCoins size={14} /> {t("sponsored")}</span>, value: `${totalSponsored} GAS` },
+            {
+              label: <span><HandCoins size={14} /> {t("sponsored")}</span>,
+              value: (
+                <PhaseValue phase={statsPhase} placeholder={t("statsNeedNetwork")} skeletonWidth="4.5em">
+                  {`${totalSponsored} GAS`}
+                </PhaseValue>
+              ),
+            },
             { label: <span><Users size={14} /> {t("beneficiaries")}</span>, value: clean(platformStats.totalBeneficiaries) || "0" },
           ]}
           actions={{ primary, secondary }}

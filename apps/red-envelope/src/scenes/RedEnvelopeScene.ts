@@ -644,6 +644,11 @@ export class RedEnvelopeScene extends BaseScene {
   }
 
   private defaultStatusCopy(): string {
+    // Same ordering as the button labels: a missing wallet is the expected
+    // first paint, not the paid-action gate.
+    if (!this.isGuest && !this.walletConnected) {
+      return this.activeMode === "claim" ? this.copy.statusClaimIdle : this.copy.statusSendIdle;
+    }
     if (!this.isGuest && !this.paidActionsEnabled) return this.copy.gameFiUnavailable;
     return this.activeMode === "claim" ? this.copy.statusClaimIdle : this.copy.statusSendIdle;
   }
@@ -913,20 +918,32 @@ export class RedEnvelopeScene extends BaseScene {
   private updateButtons(): void {
     const guest = this.str("appMode", "gamefi") === "guest";
     const paidAvailable = guest || this.paidActionsEnabled;
-    const canCreate = !this.busy && paidAvailable && (guest || this.bool("createAvailable"));
+    // Connecting a wallet is not itself a paid action, so the button stays live
+    // for it. Every paid path beyond the connect is still gated on
+    // paidActionsEnabled by both the checks below and dispatchCreate/Claim.
+    const needsWallet = !guest && !this.walletConnected;
+    const canCreate = !this.busy
+      && (needsWallet || (paidAvailable && (guest || this.bool("createAvailable"))));
     const canShare = Boolean(this.lastCreatedEnvelopeId) && !this.busy;
-    const canClaim = paidAvailable && this.claimEnabled && Boolean(this.activeEnvelopeId) && !this.busy;
+    const canClaim = !this.busy
+      && (needsWallet
+        || (paidAvailable && this.claimEnabled && Boolean(this.activeEnvelopeId)));
+    // A visitor with no wallet has not hit the paid-action gate — they have not
+    // reached it yet. Asking them to connect comes FIRST, so the entry surface
+    // invites instead of opening on "GameFi paused" over a dead button. The
+    // gate copy still shows for a connected wallet whose contract really failed
+    // verification, which is the only case where it says something true.
     this.createButtonLabel.setText(
       this.busy
         ? this.val("pendingOperation", null) || this.bool("isRecovering")
           ? this.copy.confirming
           : this.copy.working
+        : !guest && !this.walletConnected
+          ? this.copy.connectWallet
         : !paidAvailable
           ? this.copy.gameFiUnavailable
         : !guest && !this.bool("createAvailable")
           ? this.copy.createUnavailable
-        : !this.walletConnected
-          ? this.copy.connectWallet
           : this.copy.create,
     );
     this.shareButtonLabel.setText(this.copy.share);
@@ -935,12 +952,12 @@ export class RedEnvelopeScene extends BaseScene {
         ? this.val("pendingOperation", null) || this.bool("isRecovering")
           ? this.copy.confirming
           : this.copy.opening
+        : !guest && !this.walletConnected
+          ? this.copy.connectWallet
         : !paidAvailable
           ? this.copy.gameFiUnavailable
         : this.activeEnvelopeId
-          ? !this.walletConnected
-            ? this.copy.connectWallet
-            : this.copy.open
+          ? this.copy.open
           : this.copy.noEnvelope,
     );
     this.renderActionButton(this.createButton, canCreate);
@@ -950,6 +967,13 @@ export class RedEnvelopeScene extends BaseScene {
 
   private dispatchCreate(): void {
     if (this.busy) return;
+    // Connect first: with no wallet there is no paid action to gate yet, and
+    // the paid gates below still stand for every path that follows.
+    if (!this.isGuest && !this.walletConnected) {
+      this.sfx.play("tap");
+      this.dispatch("connectWallet");
+      return;
+    }
     if (!this.isGuest && !this.paidActionsEnabled) return;
     if (
       this.str("appMode", "gamefi") !== "guest" &&
@@ -1155,6 +1179,13 @@ export class RedEnvelopeScene extends BaseScene {
       color: "#765230",
       fixedWidth: 342,
       align: "center",
+      // fixedWidth alone only reserves the box — Phaser still lays a long
+      // status out as ONE line and lets it run past the edge, so a full
+      // sentence was rendered cut mid-word ("...Paid actions are pau"). Wrap at
+      // the same width so the whole sentence is readable. compactError already
+      // clamps thrown-error text; service notices are full sentences by design
+      // and need the extra line.
+      wordWrap: { width: 342, useAdvancedWrap: true },
     }).setOrigin(0.5);
   }
 

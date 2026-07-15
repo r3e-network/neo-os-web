@@ -136,11 +136,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canRegisterResult = Boolean(searchResult?.available && resultStillMatchesQuery && !pendingOperation);
   const resultRestricted = Boolean(searchResult?.restricted && resultStillMatchesQuery);
   const domainLabel = resultDomain || queryDomain || t("resultIdleTitle");
+  // The eyebrow is the availability status of the name in `domainLabel`. With
+  // no query neither exists yet, and falling back to `resultIdleTitle` here
+  // printed the same sentence as the eyebrow AND the title, stacked. Name the
+  // card in that slot instead.
   const availabilityLabel = searchResult && resultStillMatchesQuery
     ? (searchResult.available ? t("available") : resultRestricted ? t("nameRestricted") : t("domainTaken"))
     : queryDomain
       ? t("resultIdleEyebrow")
-      : t("resultIdleTitle");
+      : t("resultIdleStatus");
   const resultCopy = searchResult && resultStillMatchesQuery
     ? (searchResult.available ? t("resultAvailableCopy") : resultRestricted ? t("resultRestrictedCopy") : t("resultTakenCopy"))
     : t("resultIdleCopy");
@@ -169,11 +173,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         : t("readyToSearch");
   const searchExpiry = searchResult?.expiry ? formatExpiry(searchResult.expiry, t("notSet")) : "";
   const showSearchOwner = Boolean(searchResult && !searchResult.available && !resultRestricted && resultStillMatchesQuery);
+  // "Checking network" is only true while a check is in flight. Once the read
+  // has settled without binding a network (no wallet, no launch network), the
+  // honest state is "waiting for a wallet", not a probe that never ends.
+  const chainProbeSettled = !loading && domainsStatus !== "loading";
   const networkLabel = activeNetwork === "mainnet"
     ? t("mainnet")
     : activeNetwork === "testnet"
       ? t("testnet")
-      : t("networkChecking");
+      : chainProbeSettled && !address
+        ? t("networkAwaitingWallet")
+        : t("networkChecking");
+  const contractLabel = compact(
+    activeContract,
+    chainProbeSettled && !address ? t("contractAwaitingWallet") : t("contractChecking"),
+  );
   const drawerModes: Array<{ mode: DrawerMode; label: string; count?: number }> = [
     { mode: "domains", label: t("drawerDomains"), count: domainCount },
     { mode: "expiring", label: t("drawerExpiring"), count: expiringCount },
@@ -315,7 +329,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
           <div className="ns-chain-route">
             <span>{networkLabel}</span>
-            <small>{compact(activeContract, t("contractChecking"))}</small>
+            <small>{contractLabel}</small>
           </div>
           <p className="ns-result-note"><CircleAlert size={15} /> {t("searchHint")}</p>
         </div>

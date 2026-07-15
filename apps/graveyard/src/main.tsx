@@ -126,6 +126,7 @@ defineMiniApp({
         fileName: graveyard.fileName,
         fileSize: graveyard.fileSize,
         feesReady: graveyard.feesReady,
+        feesSettled: graveyard.feesSettled,
         contractPaused: graveyard.contractPaused,
         contractStateReady: graveyard.contractStateReady,
         storageHealthy: graveyard.storageHealthy,

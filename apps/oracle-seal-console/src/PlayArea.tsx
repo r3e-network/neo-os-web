@@ -528,7 +528,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     : hasPending
       ? t(pendingStored ? "recoveryStoredCopy" : "recoveryCopy")
     : !payloadState.valid ? payloadStateLabel
-      : runtimeState !== "ready" ? t("statusRuntimeUnavailable") : t("panelDescription");
+      // A hint under the CTA describes what to do next; nothing has been sealed
+      // at this point, so it must not carry the "No new ciphertext was created"
+      // seal-outcome line that `statusRuntimeUnavailable` is reserved for.
+      : runtimeState !== "ready" ? t("statusRuntimeUnverified") : t("panelDescription");
 
   return (
     <OpenUiProvider>
