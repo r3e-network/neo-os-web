@@ -45,7 +45,14 @@ function toChainArgs(args: AnchorContractArg[]): FrameworkContractArg[] {
 
 const MODE_TRUST = 1;
 const REGISTERED_EVENTS_LIMIT = 100;
-const UNKNOWN_VALUE = "—";
+/**
+ * A value the console has not resolved yet. Empty, never a placeholder glyph:
+ * the PlayArea owns how an unresolved value looks (a skeleton while a read is
+ * in flight, honest zero-state copy when it needs an anchor or a wallet the
+ * visitor has not supplied). A "—" here would hard-code a void the view cannot
+ * undo. Numeric guards read this as 0/false exactly as they did before.
+ */
+const UNKNOWN_VALUE = "";
 
 function isStrictAnchorId(value: string): boolean {
   return /^custom-anchor:[a-z0-9-]{1,24}:[a-z0-9-]{1,24}$/.test(value.trim());

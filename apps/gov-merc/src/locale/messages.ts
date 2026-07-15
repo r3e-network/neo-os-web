@@ -13,6 +13,20 @@ const appMessages = {
   marketReady: { en: "Ready", zh: "就绪" },
   valueUnavailable: { en: "Unavailable", zh: "暂不可用" },
   dataUnavailableShort: { en: "Data unavailable", zh: "数据不可用" },
+  // Honest zero-states. A visitor who has just opened the desk has no wallet and
+  // no chain reads yet — the expected first paint, not a failure. Each of these
+  // names the next step; none of them reads as an error.
+  valueAwaitingNetwork: { en: "Awaiting network", zh: "等待网络" },
+  valueConnectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  epochAwaitNetworkShort: { en: "Epoch pending", zh: "轮次待加载" },
+  epochOpensOnNetwork: {
+    en: "The epoch window opens once the desk reaches the network.",
+    zh: "接入网络后即显示本轮竞价窗口。",
+  },
+  marketPlateNoBidYet: {
+    en: "No bid has opened this epoch yet — the first bid starts the window.",
+    zh: "本轮尚无出价——首次出价将开启竞价窗口。",
+  },
   walletStatusIdle: { en: "Wallet not connected", zh: "钱包未连接" },
   marketArtAlt: {
     en: "Bright civic auction chamber with NEO and GAS lanes meeting at the settlement desk",

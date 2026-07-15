@@ -361,6 +361,20 @@
   font-weight: 700;
 }
 
+/* One honest line for the whole grid when balances need a network the visitor
+ * has not supplied. Reads as guidance, not as an error — no alert tone. */
+.admin-topology__note {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--mx2-border);
+  border-radius: var(--mx2-r-sm);
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .admin-topology__legend {
   display: flex;
   flex-wrap: wrap;
@@ -789,11 +803,18 @@
   line-height: 1.35;
 }
 
+/* Default to a neutral note. A visitor who has not connected a wallet yet is in
+ * the expected state, not a failed one — only a real submit failure earns the
+ * danger tone below. */
 .admin-transaction-preview small {
-  color: var(--admin-danger);
+  color: var(--admin-muted);
   font-size: 9px;
   font-weight: 620;
   line-height: 1.4;
+}
+
+.admin-transaction-preview small[data-tone="danger"] {
+  color: var(--admin-danger);
 }
 
 .admin-drawer {

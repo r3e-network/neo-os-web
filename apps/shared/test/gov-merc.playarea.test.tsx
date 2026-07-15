@@ -160,17 +160,43 @@ describe("Gov Merc PlayArea production hierarchy", () => {
     expect(dispatch).toHaveBeenCalledWith("recoverPendingOperation");
   });
 
-  it("labels failed reads unavailable instead of rendering zero market values", () => {
+  // An unresolved read must never be drawn as a real zero. How it *looks*
+  // depends on the phase: a skeleton while the read is in flight, honest
+  // zero-state copy once it settles. Neither is an error and neither is a void.
+  it("shows skeletons rather than zero market values while reads are in flight", () => {
     const { container } = render(<PlayArea t={t} state={state({
+      dataLoading: true,
+      loaded: false,
       marketAvailable: false,
       windowAvailable: false,
       highestBidAvailable: false,
       walletAvailable: false,
       bidsAvailable: false,
     })} dispatch={vi.fn()} />);
-    expect(container.textContent).toContain("Unavailable");
+    expect(container.querySelectorAll(".mx2-skeleton").length).toBeGreaterThan(0);
     expect(container.textContent).not.toContain("0 NEO");
     expect(container.textContent).not.toContain("0 GAS");
+    expect(container.textContent).not.toContain("—");
+  });
+
+  it("gives settled empty reads honest zero-state copy, not an error or a void", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      dataLoading: false,
+      loaded: true,
+      marketAvailable: false,
+      windowAvailable: false,
+      highestBidAvailable: false,
+      walletAvailable: false,
+      bidsAvailable: false,
+    })} dispatch={vi.fn()} />);
+    expect(container.querySelectorAll(".mx2-phase-idle").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll(".mx2-skeleton").length).toBe(0);
+    expect(container.textContent).not.toContain("0 NEO");
+    expect(container.textContent).not.toContain("0 GAS");
+    expect(container.textContent).not.toContain("—");
+    // The disconnected visitor is invited to connect, never told data failed.
+    expect(container.textContent).toContain("valueConnectWallet");
+    expect(container.textContent).not.toContain("loadFailed");
   });
 
   it("keeps every wallet write disabled when recovery storage is unavailable", () => {

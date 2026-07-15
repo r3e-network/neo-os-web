@@ -108,6 +108,15 @@ const appMessages = {
   agentBalanceLabel: { en: "NEO", zh: "NEO" },
   agentBalanceUnknown: { en: "—", zh: "—" },
   agentBalancePending: { en: "Balance pending", zh: "余额待加载" },
+  // Honest pre-network states. A console that has not reached the chain yet is
+  // a normal, expected surface — never an error, never an em-dash.
+  valueAwaitingNetwork: { en: "Awaiting network", zh: "等待网络" },
+  balancesAwaitNetwork: {
+    en: "Agent balances load once this console reaches the Neo network.",
+    zh: "控制台接入 Neo 网络后即加载各代理余额。",
+  },
+  agentAddressUnset: { en: "No account on record", zh: "尚无账户记录" },
+  candidateUnset: { en: "No candidate set", zh: "尚未设置候选人" },
   agentActive: { en: "Active", zh: "已启用" },
   agentInactive: { en: "Inactive", zh: "未启用" },
   agentCandidateLabel: { en: "Candidate", zh: "候选人" },
