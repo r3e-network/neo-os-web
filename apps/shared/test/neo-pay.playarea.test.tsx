@@ -110,7 +110,10 @@ describe("neo-pay PlayArea (v2)", () => {
     expect(s).toMatch(/\.neopay-token-option\.is-active,[\s\S]*\.neopay-preset-option\.is-active,[\s\S]*background:\s*var\(--mx2-brand-light\);/);
     expect(s).toMatch(/\.neopay-ticket__review\s*\{[\s\S]*display:\s*flex;/);
     expect(s).toMatch(/\.neopay-drawer-tabs__group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/);
-    expect(s).toMatch(/\.neopay-drawer-tabs__group \.semi-radio > input\s*\{[\s\S]*opacity:\s*0;/);
+    // The native-radio hide this used to pin per-app now lives in the shared
+    // v2 layer (.mx2-open-segmented .semi-radio > input) and is guarded by
+    // design-language-v4.audit — every OpenUiLiteSegmented consumer inherits
+    // it, so restating it here would re-fork the rule this app no longer owns.
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neopay-ticket-board__hero\s*\{[\s\S]*grid-template-columns:\s*92px minmax\(0,\s*1fr\);/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neopay-ticket-board__details\s*\{[\s\S]*grid-template-columns:\s*1fr;/);
     expect(s).toMatch(/@media \(max-width:\s*720px\)[\s\S]*\.neo-pay-play-area \.mx2-score\s*\{[\s\S]*display:\s*none;/);
