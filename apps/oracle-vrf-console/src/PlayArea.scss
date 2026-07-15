@@ -897,11 +897,17 @@
     padding: 10px;
   }
 
+  /*
+   * This slot holds a status PHRASE ("Ready for a request draft"), not a short
+   * token, so it must never be nowrap-clipped. A 55% cap plus ellipsis cut it
+   * to "Ready for a request…" at 390px — the panel announced a state the
+   * visitor could not finish reading. The header is a flex row with room to
+   * grow downward; let the phrase wrap and stay right-aligned instead.
+   */
   .vrf-path > header strong {
-    max-width: 55%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 0;
+    text-align: right;
+    white-space: normal;
   }
 
   .vrf-path li {

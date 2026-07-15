@@ -19,6 +19,20 @@ const appMessages = {
   sidebarTitle: { en: "My record", zh: "我的战绩" },
   creditLabel: { en: "Levels cleared", zh: "已通关数" },
 
+  // ── Launcher trust chips ──
+  // These three chips are the hero's only free-standing claims, so each must
+  // carry information the visitor does not already have. They used to be
+  // ["guestRunValue", "scoreLevel", "creditLabel"], which printed "Free" a
+  // third time (the eyebrow badge and the shared `entryGuestOnlyCopy` subtitle
+  // tail already say it) and then two bare HUD nouns — "Level" and "Levels
+  // cleared" — that are stat LABELS with no value attached, meaningless as
+  // trust signals. Each chip below states a distinct, verifiable property of
+  // this build: untimed default (G1, see timedModeHint), the three entries in
+  // GAME_THEMES, and the guest-only local progress store.
+  trustUntimedBadge: { en: "Untimed by default", zh: "默认不限时" },
+  trustThemesBadge: { en: "Three complete themes", zh: "三套完整主题" },
+  trustLocalProgressBadge: { en: "Progress stays on this device", zh: "进度只存本机" },
+
   startAction: { en: "Start level", zh: "开始关卡" },
   moreActions: { en: "More", zh: "更多" },
 

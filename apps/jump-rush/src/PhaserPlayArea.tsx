@@ -328,7 +328,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // no GAS-at-stake / pool / credit framing; gamefi keeps the reward economy.
   const guestScoreItems = gameStatus === "idle"
     ? [
-        { label: t("guestBestLabel"), value: myTotalWon > 0 ? t("guestJumpsValue", { count: myTotalWon }) : "--", accent: true },
+        { label: t("guestBestLabel"), value: myTotalWon > 0 ? t("guestJumpsValue", { count: myTotalWon }) : t("guestBestEmpty"), accent: true },
         { label: t("guestRouteLabel"), value: t("guestJumpsValue", { count: rule.targetJumps }) },
         { label: t("guestModeLabel"), value: t("guestModeValue") },
       ]
@@ -368,7 +368,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           <span>{isGuest ? t("guestBestLabel") : t("scoreWon")}</span>
           <strong>
             {isGuest
-              ? (myTotalWon > 0 ? t("guestJumpsValue", { count: myTotalWon }) : "--")
+              ? (myTotalWon > 0 ? t("guestJumpsValue", { count: myTotalWon }) : t("guestBestEmpty"))
               : gasLabel(myTotalWon)}
           </strong>
         </div>

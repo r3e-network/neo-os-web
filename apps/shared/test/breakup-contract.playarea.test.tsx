@@ -25,6 +25,8 @@ const translations: Record<string, string> = {
   createHintPartner: "Partner slot empty",
   createHintReady: "Ready for wallet",
   daysSuffix: "Days",
+  deskOnChainTitle: "Recorded on-chain",
+  deskOnChainCopy: "These three fields are written into the pact contract.",
   docSubtitle: "Stake-backed agreements",
   duration: "Duration",
   durationLabel: "Contract Duration",
@@ -36,6 +38,7 @@ const translations: Record<string, string> = {
   pactPreviewPartner: "Partner address appears here",
   pactPreviewRule: "If the pact is honored, both stakes can be refunded.",
   pactPreviewTerms: "Only stake and duration are enforced on-chain.",
+  pactPreviewTitleHint: "Name it in Pact details",
   pactPreviewUntitled: "Untitled pact",
   pactDetails: "Pact details",
   partner: "Partner",
@@ -80,7 +83,7 @@ const appRoot = process.cwd().endsWith(`${path.sep}apps${path.sep}shared`)
 
 describe("breakup-contract PlayArea (v2)", () => {
   it("renders a function-first pact workspace with bounded foreground art", () => {
-    const { container, getAllByText } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    const { container, getAllByText, queryAllByText } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
 
     expect(container.querySelector(".breakup-scene")).toBeTruthy();
     expect(container.querySelector(".breakup-preview")).toBeTruthy();
@@ -95,7 +98,17 @@ describe("breakup-contract PlayArea (v2)", () => {
     expect(container.querySelector(".breakup-desk__media")).toBeTruthy();
     expect(container.querySelector(".breakup-desk__pact")).toBeTruthy();
     expect(container.querySelector<HTMLImageElement>(".breakup-desk__image")?.src).toContain("pact-table.webp");
-    expect(getAllByText("Live pact preview").length).toBeGreaterThanOrEqual(1);
+    // Exactly one, not ">= 1": the loose bound let the desk card wear the same
+    // eyebrow as .breakup-preview, so the entry screen printed "Live pact
+    // preview" over two near-identical panels. The desk now carries its own
+    // label ("Recorded on-chain"). Intent is unchanged — the preview eyebrow
+    // must be present — but it may only resolve once.
+    expect(getAllByText("Live pact preview")).toHaveLength(1);
+    expect(getAllByText("Recorded on-chain")).toHaveLength(1);
+    // The heading of an unnamed draft is an honest zero-state, and its caption
+    // labels it rather than restating it.
+    expect(getAllByText("Untitled pact")).toHaveLength(1);
+    expect(queryAllByText("Our covenant")).toHaveLength(0);
     expect(container.querySelector('[aria-label="Build pact"]')).toBeTruthy();
 
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
@@ -189,7 +202,10 @@ describe("breakup-contract PlayArea (v2)", () => {
     expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-status-card span\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-desk\s*\{[\s\S]*grid-template-rows:\s*minmax\(108px,\s*auto\)/);
     expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-desk__media,[\s\S]*\.breakup-desk__image\s*\{[\s\S]*min-height:\s*108px/);
-    expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-desk__chip,[\s\S]*\.breakup-desk__pact,[\s\S]*\.breakup-desk__pact em,[\s\S]*\.breakup-desk__signatures\s*\{[\s\S]*display:\s*none/);
+    // Intent unchanged (phone keeps only the media strip), but the desk card no
+    // longer has an <em> — the wallet-action hint it held was already rendered
+    // by .breakup-status-card. Its own display:none covers any descendant.
+    expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-desk__chip,[\s\S]*\.breakup-desk__pact,[\s\S]*\.breakup-desk__signatures\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-drawer-editor__grid\s*\{[\s\S]*background:\s*#fffaf3/);
     expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-field--stake,[\s\S]*\.breakup-field--duration\s*\{[\s\S]*grid-column:\s*auto/);
     expect(styles).toMatch(/@media \(max-width: 560px\)[\s\S]*\.breakup-field \.mx2-open-field__control\s*\{[\s\S]*min-height:\s*36px/);

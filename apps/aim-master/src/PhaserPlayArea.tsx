@@ -216,8 +216,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     : gameStatus === "expired" ? t("expiredBanner")
     : t("lobbyTitle");
 
-  // Before a round exists (idle/solved/expired) the timer and hit counters are
-  // not live, so show a neutral placeholder instead of implying a running clock.
+  // Before a round exists (idle/solved/expired) the clock is not counting, but
+  // both values are still known and honest: remainingMs falls back to the
+  // selected lane's full limitMs above, and ringsHit is a real 0. The strip used
+  // to drop them for "—", printing two em-dash voids beside "BEST SCORE 0" on
+  // the entry HUD — and the in-game drawer below already renders exactly these
+  // expressions unconditionally. `timeUp` still keys the accent off a live round.
   const roundLive = gameStatus === "dealt" || gameStatus === "committed" || settlementPending;
   const hudItems = [
     isGuest
@@ -235,12 +239,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         },
     {
       label: t("timeMetric"),
-      value: roundLive ? formatClock(remainingMs) : "—",
+      value: formatClock(remainingMs),
       accent: timeUp,
     },
     {
       label: t("hitsMetric"),
-      value: roundLive ? `${ringsHit}/${targetAccuracy}` : "—",
+      value: `${ringsHit}/${targetAccuracy}`,
       accent: false,
     },
   ];
@@ -317,7 +321,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     void dispatch("selectDifficulty", { difficulty: next.difficulty });
   };
 
-  const a11yStatus = `${stageTitle}. ${t("hitsMetric")}: ${ringsHit}/${targetAccuracy}. ${t("scenePointsUnit")}: ${scorePoints}. ${t("timeMetric")}: ${roundLive ? formatClock(remainingMs) : "—"}.`;
+  const a11yStatus = `${stageTitle}. ${t("hitsMetric")}: ${ringsHit}/${targetAccuracy}. ${t("scenePointsUnit")}: ${scorePoints}. ${t("timeMetric")}: ${formatClock(remainingMs)}.`;
 
   return (
     <div className="aim-playarea mx2 mx2-cat-game" aria-busy={isDealing || isSubmitting || undefined}>

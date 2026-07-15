@@ -184,7 +184,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   };
 
   const sceneLabels = {
-    eyebrow: t("canvasEyebrow"),
+    eyebrow: isGuest ? t("canvasGuestEyebrow") : t("canvasEyebrow"),
     title: t("appEyebrow"),
     tagline: isGuest ? t("canvasGuestTagline") : t("canvasTagline"),
     difficultyNames: DIFFICULTY_KEYS.map((key) => t(`difficulty_${key}`)),

@@ -297,7 +297,17 @@ describe("oracle-http-console PlayArea (v2)", () => {
     expect(s).toMatch(/\.oracle-http-workbench\s*\{[\s\S]*border:\s*0/);
     expect(s).toMatch(/\.oracle-http-workbench\s*\{[\s\S]*background:\s*transparent/);
     expect(s).toMatch(/\.oracle-http-track\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-    expect(s).toMatch(/\.oracle-http-lane__art\s*\{[\s\S]*height:\s*214px/);
+    // Re-pinned 2026-07-16: this pinned `height: 214px` — the same defect the
+    // mobile band had (see the aspect-ratio guard below), one breakpoint up. At
+    // the desktop column width the 16:9 art wants ~298px, so a fixed 214px band
+    // cropped the illustration via `overflow: hidden`, AND left the workbench
+    // 84px short inside the 628px desktop scene, whose `align-items: center`
+    // split the shortfall into ~127px of dead white above the cards and ~128px
+    // below. The guard's intent is kept — the desktop band is deliberately
+    // sized here, not left unbounded — but stated as "the figure takes the
+    // picture's height" rather than a magic number that fights the art.
+    expect(s).toMatch(/\.oracle-http-lane__art\s*\{[\s\S]*height:\s*auto/);
+    expect(s).toMatch(/\.oracle-http-lane__art img\s*\{[\s\S]*height:\s*auto/);
     expect(s).toMatch(/\.oracle-http-lane__art img\s*\{[\s\S]*object-fit:\s*contain/);
     expect(s).toMatch(/\.oracle-http-drawer__switcher-group\.mx2-open-segmented\.semi-radioGroup\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
     expect(s).toMatch(/\.oracle-http-drawer__panel\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*20px/);

@@ -569,13 +569,20 @@ export class PetPotionScene extends BaseScene {
     ] as const;
     defs.forEach((def, index) => {
       const y = STAT_Y0 + index * STAT_ROW_DY;
+      // 11px on the #fffbef canvas: #7b6d5a only cleared 4.86:1, and the sealed
+      // branch below then knocked it back further with alpha, so the meter
+      // names read as washed-out gray. #5f5340 is the same warm brown at 7.25:1
+      // and stays plainly subordinate to the #2f291f live value (13.92:1).
       const label = this.add.text(GUTTER_L, y, def.label, {
         fontFamily: FONT,
         fontSize: "11px",
-        color: "#7b6d5a",
+        color: "#5f5340",
         fontStyle: "bold",
       }).setOrigin(0, 0.5).setDepth(6);
-      this.add.rectangle(STAT_BAR_L, y, STAT_BAR_W, 8, 0xeadfc8, 0.88)
+      // The empty track was 0xeadfc8 at 0.88 — 1.28:1 against the canvas, i.e.
+      // very nearly invisible. With no fill drawn before the first run, this
+      // groove IS the meter, so it has to be visible enough to read as one.
+      this.add.rectangle(STAT_BAR_L, y, STAT_BAR_W, 8, 0xc9ac79, 1)
         .setOrigin(0, 0.5)
         .setDepth(6);
       const fill = this.add.rectangle(STAT_BAR_L, y, 1, 8, def.color, 0.95)
@@ -830,9 +837,16 @@ export class PetPotionScene extends BaseScene {
           ease: "Sine.easeOut",
         });
         stat.fill.setAlpha(0.35);
-        stat.label.setAlpha(0.72);
+        // "Sealed" is an honest STATE, not a disabled control, and the meter
+        // names are true whether or not a run has started. Dimming the label to
+        // 0.72 alpha and the value to #b6a68c (2.3:1 — an AA failure at 11px)
+        // rendered the whole block as greyed-out chrome on the first view, so a
+        // visitor read three broken meters rather than three sealed ones. Keep
+        // the label at full strength and give the value a legible muted brown
+        // (5.06:1) that still sits clearly below the live #2f291f reading.
+        stat.label.setAlpha(1);
         stat.value.setText(this.copy("statSealed", "Sealed"));
-        stat.value.setColor("#b6a68c");
+        stat.value.setColor("#7a6a52");
       }
     });
   }

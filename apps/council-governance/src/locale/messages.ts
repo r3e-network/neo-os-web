@@ -338,10 +338,14 @@ const appMessages = {
   proposalBrief: { en: "Proposal brief", zh: "提案简报" },
   proposalDraft: { en: "Draft", zh: "草案" },
   proposalDraftEmpty: { en: "Untitled proposal", zh: "未命名提案" },
+  proposalScope: { en: "Scope", zh: "适用范围" },
   textProposalScope: {
     en: "For discussion, signaling, and non-executing council decisions.",
     zh: "用于讨论、表态和不直接执行的议会决策。",
   },
+  // Tile-sized value for the dossier summary card. The sentence above is the
+  // review rail's job — a summary tile cannot hold it without clipping.
+  textProposalScopeShort: { en: "Discussion and signaling", zh: "讨论与表态" },
   policyProposalScope: {
     en: "For executable Neo policy parameter changes after approval.",
     zh: "用于通过后可执行的 Neo 策略参数变更。",

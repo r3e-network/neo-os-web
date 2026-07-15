@@ -488,12 +488,18 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </button>
         );
       })}
+      {/*
+        The zero-state of the event catalog, not a second copy of the create
+        wizard's header: it borrowed modeCreateTitle/modeCreateHint, and since
+        "create" is the default mode both slots rendered the same card on the
+        entry screen. It says what is empty; the button still opens the wizard.
+      */}
       {catalogEvents.length === 0 && (
         <button type="button" className="ticket-event-card ticket-event-card--empty" onClick={() => setMode("create")}>
           <span className="ticket-event-card__icon"><Wand2 size={18} /></span>
           <span className="ticket-event-card__copy">
-            <strong>{t("modeCreateTitle")}</strong>
-            <em>{t("modeCreateHint")}</em>
+            <strong>{t("catalogEmptyTitle")}</strong>
+            <em>{t("catalogEmptyHint")}</em>
           </span>
         </button>
       )}

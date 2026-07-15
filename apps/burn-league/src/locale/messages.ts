@@ -273,9 +273,12 @@ const appMessages = {
     en: "League state cannot be verified, so paid burns are paused. Refresh the arena or play locally.",
     zh: "联赛状态暂时无法验证，付费燃烧已暂停。请刷新竞技场或先进行本地对局。",
   },
+  // Player-facing gate on the first scene: say what they can and cannot do
+  // here. The contract-binding detail behind it ("not bound to the reviewed
+  // Burn League v1.1 deployment") is release vocabulary, not a player's.
   burnDeploymentUnverified: {
-    en: "Paid burns are paused because this network is not bound to the reviewed Burn League v1.1 deployment. Local play remains available.",
-    zh: "当前网络未绑定经审计的 Burn League v1.1 合约，付费燃烧已暂停；本地对局仍可使用。",
+    en: "Paid burns are unavailable on this network. Local play is open — your runs stay on this device.",
+    zh: "当前网络暂不支持付费燃烧。本地对局仍可进行 — 你的记录保存在本设备。",
   },
   burnActionUnavailable: {
     en: "The burn could not be submitted to the contract. Please try again.",

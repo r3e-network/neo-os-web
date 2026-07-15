@@ -28,6 +28,8 @@ function t(key: string, params?: Record<string, string | number>) {
     studioStepCheckin: "Run gate check-in",
     modeCreateTitle: "Design pass",
     modeCreateHint: "Set event identity first.",
+    catalogEmptyTitle: "No events published yet",
+    catalogEmptyHint: "This contract has no active events to browse.",
     eventBlueprintsLabel: "Ticket event blueprints",
     blueprintSummitName: "Builder summit",
     blueprintSummitVenue: "Main hall",
@@ -245,6 +247,20 @@ describe("Event Ticket Pass PlayArea (v2)", () => {
     expect(container.querySelector(".ticket-pass")?.getAttribute("data-provenance")).toBe("preview");
     expect(container.querySelector(".ticket-scene__phone")?.textContent).toContain("Preview");
     expect(container.textContent).not.toContain("1-001");
+  });
+
+  it("gives the empty event catalog its own copy instead of the create wizard's", () => {
+    // "create" is the default mode and the catalog starts empty, so both the
+    // wizard header and the catalog zero-state paint at once. When they shared
+    // modeCreateTitle/modeCreateHint the entry screen printed the same card
+    // twice — the hint must resolve exactly once.
+    const { container, getAllByText } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    const empty = container.querySelector(".ticket-event-card--empty");
+    expect(empty).toBeTruthy();
+    expect(empty?.textContent).toContain("No events published yet");
+    expect(getAllByText("Set event identity first.")).toHaveLength(1);
+    expect(container.querySelector(".ticket-work-card--create")?.textContent).toContain("Design pass");
   });
 
   it("marks a chain-loaded pass as verified and keeps its real token in the hero", () => {

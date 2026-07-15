@@ -746,12 +746,22 @@
     font-size: 10px;
   }
 
-  .neodid-evidence-pass__foot > span {
-    display: none;
-  }
-
+  /*
+   * Keep the label. Hiding `> span` here bought one line of width at the cost
+   * of the row's meaning: the footer collapsed to a bare fingerprint icon with
+   * a right-aligned "Not read yet", an orphan value with nothing naming it,
+   * where desktop reads "EVIDENCE DIGEST — Not read yet". The row has the
+   * vertical room it lacked horizontally, so wrap instead of amputating: icon +
+   * label on the first line, the digest full-width on the second.
+   */
   .neodid-evidence-pass__foot {
     grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 4px;
+  }
+
+  .neodid-evidence-pass__foot code {
+    grid-column: 1 / -1;
+    text-align: left;
   }
 
   .neodid-evidence-map {

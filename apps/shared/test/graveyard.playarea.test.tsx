@@ -326,7 +326,12 @@ describe("graveyard PlayArea (v2)", () => {
       />,
     );
 
-    fireEvent.click(getAllByText("Burial Records")[0]!);
+    // Opens the records. This used to click the first of two "Burial Records"
+    // rows — a shortcut card that duplicated the section header directly below
+    // it. The duplicate is gone, so drive the records section's own Open toggle;
+    // the intent (reveal the records, then assert on them) is unchanged.
+    // (The t() stub echoes unmapped keys, so the toggle renders as "open".)
+    fireEvent.click(getByText("open"));
     expect(getByText("Epitaph awaiting confirmation")).toBeTruthy();
     const editButton = container.querySelector(".graveyard-record__actions button") as HTMLButtonElement;
     expect(editButton.disabled).toBe(true);

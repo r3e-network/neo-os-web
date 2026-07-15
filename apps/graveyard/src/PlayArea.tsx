@@ -264,6 +264,10 @@ export default function PlayArea({ t, state, dispatch }: P) {
     await dispatch("initiateDestroy");
   };
 
+  // Still used by the garden header's compact "N records" chip, which sits far
+  // from the records section and so genuinely needs to scroll to it. (The
+  // removed duplicate was a full-width card rendered directly above that
+  // section.)
   const openRecords = () => {
     setHistoryOpen(true);
     window.setTimeout(() => {
@@ -531,16 +535,23 @@ export default function PlayArea({ t, state, dispatch }: P) {
           </aside>
         </div>
 
-        <button type="button" className="graveyard-records-link" onClick={openRecords}>
-          <History size={19} />
-          <span><strong>{t("recentDestructions")}</strong><em>{t("historyAndEpitaphHint")}</em></span>
-          <span>{recordTotal}</span>
-        </button>
       </section>
 
       <section id="graveyard-records" className="graveyard-records" data-open={historyOpen ? "true" : undefined}>
         <header>
-          <span><History size={20} /><strong>{t("recentDestructions")}</strong><em>{recordTotal}</em></span>
+          {/* This header is the single Burial Records row. A second, identical
+              row used to sit directly above it — a shortcut card that rendered
+              the same `recentDestructions` title and the same `recordTotal`,
+              then scrolled to this very section a few pixels below. Two
+              adjacent "Burial Records 0" rows read as a rendering bug, so the
+              shortcut is gone and its hint copy lives here instead, where it
+              annotates the records the reader is actually looking at. */}
+          <span>
+            <History size={20} />
+            <strong>{t("recentDestructions")}</strong>
+            <em>{recordTotal}</em>
+            <i>{t("historyAndEpitaphHint")}</i>
+          </span>
           <div>
             <button type="button" onClick={() => void dispatch("refreshRecords")} disabled={isLoading}>
               <RefreshCw className={isLoading ? "graveyard-spin" : undefined} size={16} /> {t("refresh")}

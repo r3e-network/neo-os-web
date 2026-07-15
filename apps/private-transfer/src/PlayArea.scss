@@ -972,6 +972,25 @@
   .pt-drawer__facts div { grid-template-columns: minmax(96px, 0.7fr) minmax(0, 1.3fr); }
 }
 
+/*
+ * Below this width the three service tiles cannot share one row honestly. The
+ * strip kept its desktop `repeat(3, 1fr)` all the way down to 390px, leaving
+ * each tile ~95px of text column, and the nowrap+ellipsis rule then clipped the
+ * two that matter most into "Oracle key unav…" and "Storage checked…" — the
+ * failure states, unreadable exactly where the visitor needs them. Stack the
+ * tiles instead so each phrase gets the full width and fits on one line.
+ */
+@media (max-width: 560px) {
+  .pt-service-strip { grid-template-columns: minmax(0, 1fr); }
+
+  .pt-service-strip > div + div {
+    border-top: 1px solid #e4e9e7;
+    border-left: 0;
+  }
+
+  .pt-service-strip strong { white-space: normal; }
+}
+
 @media (max-width: 420px) {
   .private-transfer-play-area .mx2-stage { padding: 10px; }
   .private-transfer-play-area .mx2-stage__title { font-size: 24px; }

@@ -242,7 +242,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
 
     await price.fetchPrice();
 
-    expect(price.priceDisplay.get()).toBe("$2.185000");
+    expect(price.priceDisplay.get()).toBe("$2.185");
     expect(price.freshness.get()).toBe("stale");
     expect(price.freshnessLabel.get()).toContain("unverified");
     expect(price.freshnessLabel.get()).not.toContain("Fresh");
@@ -323,7 +323,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(currentRead.success).toBe(true);
     expect(ignoredRead).toMatchObject({ success: false, ignored: true });
     expect(price.asset.get()).toBe("GAS");
-    expect(price.priceDisplay.get()).toBe("$1.040000");
+    expect(price.priceDisplay.get()).toBe("$1.04");
     expect(readPrice.mock.calls.filter((call) => String(call[0]).includes("NEO"))).toHaveLength(1);
   });
 
@@ -338,7 +338,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     const price = usePriceConsole({ app, t });
 
     await price.fetchPrice();
-    expect(price.priceDisplay.get()).toBe("$2.185000");
+    expect(price.priceDisplay.get()).toBe("$2.185");
     await price.fetchPrice();
 
     expect(price.priceDisplay.get()).toBe(t("notAvailable"));
@@ -385,6 +385,8 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(request.params[2]).toEqual([{ type: "String", value: "AGG:NEO-USD" }]);
     expect(price.feedKey.get()).toBe("AGG:NEO-USD");
     expect(price.feedRoute.get()).toBe("aggregate");
+    // Display trimming must never cost precision: six significant decimals from
+    // the feed survive intact. Only the zeros the contract scale pads on go.
     expect(price.priceDisplay.get()).toBe("$1.984001");
   });
 
@@ -426,7 +428,7 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
       "AGG:NEO-USD",
       "TWELVEDATA:NEO-USD",
     ]);
-    expect(price.priceDisplay.get()).toBe("$2.100000");
+    expect(price.priceDisplay.get()).toBe("$2.10");
     expect(price.feedRoute.get()).toBe("provider");
     expect(price.freshness.get()).toBe("fresh");
   });

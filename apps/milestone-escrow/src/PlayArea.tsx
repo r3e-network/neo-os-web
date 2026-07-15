@@ -815,7 +815,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           }}
           scene={scene}
           score={[
-            { label: t("totalAmount"), value: totalAmount > 0n ? formatBaseUnits(totalAmount, asset) : "-", accent: true },
+            // An empty milestone draft is an honest zero, not an unknown: this
+            // total is a local sum of the amounts typed into the editor, never
+            // an async read, so there is no "loading" phase to stand in for.
+            // Formatting 0n keeps this tile agreeing with the workbench readout
+            // ("0 GAS") and with its own sibling tiles, which already show real
+            // zeros. The old "-" was the only void on the first paint.
+            { label: t("totalAmount"), value: formatBaseUnits(totalAmount, asset), accent: true },
             { label: t("statusActive"), value: String(activeCount) },
             { label: t("statusCompleted"), value: String(completedCount) },
             { label: t("escrowsTab"), value: String(totalEscrows) },

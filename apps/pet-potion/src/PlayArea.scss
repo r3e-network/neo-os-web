@@ -1857,6 +1857,45 @@
   }
 }
 
+/* Desktop framing.
+ *
+ * The framework renders a Phaser host at its LOGICAL size on any non-mobile
+ * viewport (see PhaserGameComponent's `!isMobileViewport` branch) — the auto-fit
+ * path is mobile-only, and deliberately so: Scale.FIT only CSS-scales the
+ * canvas, so stretching this 420x580 scene across a desktop stage would just
+ * upscale a 420x580 backing store and soften every glyph and potion.
+ *
+ * So the canvas is 420x580 here and that is correct. What was wrong is what
+ * surrounded it: a 760px stage and a full-height shell held that 420px column
+ * with ~142px of undifferentiated cream on each side and ~215px of vertical
+ * slack, so the game read as a narrow strip adrift in a pale gradient with
+ * nothing anchoring it. Nothing here scales the game — it brings the shell in
+ * around the content it actually has, so the column reads as a deliberate
+ * portrait play surface with a frame.
+ *
+ * The 716px shell is the content's own height: 580 canvas + 64 HUD + the HUD's
+ * 10px bottom offset + breathing room. The min-height gate keeps `max-height`
+ * above that figure, so the absolutely-positioned HUD can never ride up into
+ * the canvas on a short desktop window. Mobile keeps its own layout untouched.
+ */
+@media (min-width: 900px) and (min-height: 800px) {
+  .pp-playarea .mx2-stage {
+    width: min(100%, 600px);
+    max-width: 600px;
+  }
+
+  .pp-playarea .mx2-stage__scene {
+    padding: 6px 8px 10px;
+    justify-content: center;
+  }
+
+  .pp-stage-shell {
+    height: 716px;
+    max-height: calc(100dvh - 80px);
+    margin-block: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pp-scene *,
   .pp-scene *::before,

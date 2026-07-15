@@ -33,6 +33,7 @@ function t(key: string) {
     digestPassThrough: "Use this digest directly",
     enterContent: "Enter content to timestamp",
     latestId: "Latest ID",
+    latestIdNone: "None yet",
     localHashPending: "Will hash locally on save",
     localOnly: "Local only",
     journalUnavailable: "Existing records are hidden, not deleted.",
@@ -96,7 +97,11 @@ function state(o: Partial<Record<string, unknown>> = {}): ObservableState {
     isCreating: false,
     isRecovering: false,
     isVerifying: false,
-    latestId: "N/A",
+    // Mirrors main.tsx: the latestId observable reports "no proof saved yet" as
+    // an empty string and lets each view name that state. It used to seed "N/A"
+    // here because the composable itself emitted ctx.t("notAvailable"), which
+    // pinned a placeholder void onto the first-run route tile and footer chip.
+    latestId: "",
     proofs: [],
     storageState: "ready",
     totalProofs: 0,
@@ -252,6 +257,27 @@ describe("timestamp-proof PlayArea (v2)", () => {
 
     expect(dispatch).toHaveBeenCalledWith("releasePreparingAnchor", 9);
     expect(dispatch).not.toHaveBeenCalledWith("anchorProof", 9);
+  });
+
+  it("names the first-run proof state honestly instead of printing an N/A void", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    // Storage is ready and the visitor simply has not saved a proof yet — a
+    // normal pre-data first paint. Neither the DEVICE PROOF route tile nor the
+    // LATEST ID footer chip may borrow the shared "N/A" placeholder for it.
+    expect(screen.queryByText("N/A")).toBeNull();
+    expect(screen.getAllByText("Waiting").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("None yet").length).toBeGreaterThan(0);
+  });
+
+  it("does not print the proof-sheet status twice on an empty sheet", () => {
+    render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+
+    // The sheet header owns "Ready for content"; the source row below the
+    // textarea is a label -> value pair that must name the source category, not
+    // repeat the header's status phrase ~150px away.
+    expect(screen.getAllByText("Ready for content")).toHaveLength(1);
+    expect(screen.getAllByText("Source content").length).toBeGreaterThan(0);
   });
 
   it("shows journal failure as unavailable instead of a zero-proof empty state", () => {

@@ -243,11 +243,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const draftDurationLabel = t(DURATION_OPTIONS.find((option) => option.durationMs === draftDurationMs)?.labelKey ?? "duration15Minutes");
   const draftTitlePreview = draftTitle.trim() || t("proposalDraftEmpty");
   const draftDescriptionPreview = draftDescription.trim() || t("proposalDescPlaceholder");
+  // A summary tile holds a value, not a paragraph: the full scope sentence
+  // belongs to the review rail, which states it in one line at full width.
   const draftScopePreview = draftType === "policy"
     ? policyValue.trim()
       ? `${policyMethodLabel} · ${policyValue.trim()}`
       : t("needsPolicyDetails")
-    : t("textProposalScope");
+    : t("textProposalScopeShort");
+  const draftScopeCopy = draftType === "policy" ? t("policyProposalScope") : t("textProposalScope");
   const yesVotes = Number(proposal?.yesVotes ?? 0);
   const noVotes = Number(proposal?.noVotes ?? 0);
   const castVotes = Math.max(Number(proposal?.totalVotes ?? yesVotes + noVotes), yesVotes + noVotes, 0);
@@ -375,7 +378,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             </span>
             <span className="council-motion-paper__summary-card">
               <ShieldCheck size={15} />
-              <em>{draftType === "policy" ? t("policyDetails") : t("proposalBrief")}</em>
+              {/* Not proposalBrief: the tile above already owns that label, so
+                  the two sat side by side under one heading. */}
+              <em>{draftType === "policy" ? t("policyDetails") : t("proposalScope")}</em>
               <strong>{draftScopePreview}</strong>
             </span>
           </div>
@@ -636,7 +641,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {draftComposer("stage")}
       <div className="council-ticket__review">
         <span><Send size={15} /> {draftReady ? t("readyToSubmit") : t("draftReadinessHelp")}</span>
-        <span><FileText size={15} /> {t("textProposalScope")}</span>
+        <span><FileText size={15} /> {draftScopeCopy}</span>
         <span><ShieldCheck size={15} /> {isCandidate ? t("eligibleToVote") : t("connectWalletReadOnly")}</span>
       </div>
     </div>

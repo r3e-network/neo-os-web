@@ -74,6 +74,15 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   notesAdded: { en: "Notes added", zh: "已添加备注" },
   pactPreview: { en: "Live pact preview", zh: "实时约定预览" },
   pactPreviewUntitled: { en: "Untitled pact", zh: "未命名约定" },
+  pactPreviewTitleHint: { en: "Name it in Pact details", zh: "在“约定详情”中命名" },
+  // The desk card renders the fields the contract records. It sits beside the
+  // live preview, so it needs its own label — reusing pactPreview here printed
+  // the same eyebrow twice on one screen.
+  deskOnChainTitle: { en: "Recorded on-chain", zh: "链上记录" },
+  deskOnChainCopy: {
+    en: "These three fields are written into the pact contract. The title and notes stay on this device.",
+    zh: "这三项会写入约定合约；标题与备注仅保存在本设备。",
+  },
   pactPreviewPartner: { en: "Partner address appears here", zh: "伴侣地址将在这里显示" },
   pactPreviewTerms: { en: "Add optional notes, expectations, or exit rules. Only stake and duration are enforced on-chain.", zh: "可补充备注、期待或退出规则。链上强制执行的是质押与期限。" },
   pactPreviewRule: {

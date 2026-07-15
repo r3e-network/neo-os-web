@@ -132,8 +132,7 @@
 }
 
 .breakup-desk__pact span,
-.breakup-desk__pact dt,
-.breakup-desk__pact em {
+.breakup-desk__pact dt {
   color: #8a5a28;
   font-size: 11px;
   font-weight: 650;
@@ -141,15 +140,13 @@
   text-transform: uppercase;
 }
 
-.breakup-desk__pact strong {
+.breakup-desk__pact p {
   min-width: 0;
-  overflow: hidden;
-  color: #2f251d;
-  font-size: 26px;
-  font-weight: 650;
-  line-height: 1.08;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin: 0;
+  color: #4a3a2c;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .breakup-desk__pact dl {
@@ -176,15 +173,6 @@
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.breakup-desk__pact em {
-  width: fit-content;
-  border-radius: var(--mx2-r-pill);
-  padding: 7px 10px;
-  background: #ffffff;
-  font-style: normal;
-  box-shadow: inset 0 0 0 1px rgba(180, 83, 9, 0.12);
 }
 
 .breakup-desk__signatures {
@@ -968,7 +956,6 @@
 
   .breakup-desk__chip,
   .breakup-desk__pact,
-  .breakup-desk__pact em,
   .breakup-desk__signatures {
     display: none;
   }
