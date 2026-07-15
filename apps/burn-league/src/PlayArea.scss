@@ -237,16 +237,28 @@
   box-shadow: inset 2px 0 0 #f59e0b;
 }
 
+/* Metric LABELS are short phrases, not values.
+ *
+ * These tiles are 1fr of a 5-column, 560px-max grid — about 87px of content
+ * width each. "Current leader" needs ~90px at this size, so `white-space: nowrap`
+ * plus an ellipsis clipped an honest two-word label down to "CURRENT LEAD…" on
+ * the desktop HUD. The label has a whole second line available inside the tile's
+ * min-height, so let the phrase wrap into it rather than truncate it; the clamp
+ * keeps a long localization from growing the rail without bound.
+ * Values (`strong`) keep nowrap + ellipsis — those are short and must not reflow. */
 .burn-stage-hud__metric span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   color: #8a5b2d;
   font-size: 0.58rem;
   font-weight: 680;
   letter-spacing: 0;
   line-height: 1.05;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .burn-stage-hud__metric strong {
@@ -320,7 +332,7 @@
 }
 
 .burn-scene__arena-image,
-.burn-scene__shade {
+.burn-scene__legibility {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -336,7 +348,7 @@
   filter: saturate(1.12) contrast(1.05) brightness(1.01);
 }
 
-.burn-scene__shade {
+.burn-scene__legibility {
   z-index: 1;
   background:
     /* top-edge fade — keeps HUD legible against any arena photo */
@@ -1487,7 +1499,7 @@
     opacity: 0.96;
   }
 
-  .burn-scene__shade {
+  .burn-scene__legibility {
     background:
       linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.14) 48%, rgba(255, 249, 233, 0.18) 100%),
       linear-gradient(180deg, rgba(255, 248, 237, 0.36) 0%, rgba(255, 248, 237, 0.04) 43%, rgba(124, 45, 18, 0.12) 100%);

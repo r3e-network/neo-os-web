@@ -522,6 +522,23 @@
   border-radius: var(--mx2-r-pill);
 }
 
+/* Hide the native radio indicator in the buttonRadio variant.
+ *
+ * Semi still renders `.semi-radio-inner-buttonRadio` (the dot/ring) inside each
+ * segment even when the group is styled as a segmented pill. This app restyled
+ * the segments but never hid it, so the raw control showed through the design: a
+ * filled blue dot floated over the checked "Design pass" pill and empty rings sat
+ * above "Issue guest pass" / "Run gate check-in" on both viewports. The selected
+ * state is already carried by `.semi-radio-checked` below, so the indicator is
+ * redundant as well as broken-looking. Same treatment as the segmented controls
+ * in neo-treasury / oracle-http-console / neo-pay.
+ *
+ * The input itself is untouched, so keyboard focus and a11y semantics stay put.
+ */
+.ticket-mode-switch .ticket-mode-segmented.mx2-open-segmented.semi-radioGroup .semi-radio-inner-buttonRadio {
+  display: none;
+}
+
 .ticket-mode-switch .ticket-mode-segmented.mx2-open-segmented.semi-radioGroup .semi-radio-addon-buttonRadio {
   min-height: 40px;
   display: grid;
@@ -2018,6 +2035,19 @@
   }
 
   .ticket-scene__status {
+    /* Collapse to content height.
+     *
+     * The base rule is `flex: 1 1 280px`, written for the desktop ROW footer
+     * where 280px is a sensible flex-basis on the WIDTH. This media query turns
+     * the footer into a column, which swaps the main axis — so that basis became
+     * a 280px minimum HEIGHT and flex-grow stretched it further, rendering the
+     * single word "Ready" at the top of a ~270px dead white box that ate about a
+     * third of the first screen. Overriding `width` alone (as this block used
+     * to) could not fix it, because width is the cross axis here.
+     *
+     * Reset the flex shorthand so the panel is sized by its content, as the
+     * chips below it already are. */
+    flex: 0 0 auto;
     width: 100%;
     border-radius: 14px;
     padding: 7px 12px;

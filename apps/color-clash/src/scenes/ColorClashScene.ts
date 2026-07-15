@@ -457,13 +457,28 @@ export class ColorClashScene extends BaseScene {
     const compact = W < 360;
     const gap = compact ? 6 : 8;
     const sideInset = compact ? 30 : 28;
+    // Mode cards are sized from the space actually available, not a constant.
+    //
+    // cardW used to be a hard 112 on every non-compact canvas (both the 420px
+    // desktop and the 376px mobile board), with a 34px badge and a left-anchored
+    // label that had no wrap and no fitting. That left ~66px for a label that
+    // needs ~92px, so "Pulse Arcade" was clipped mid-glyph by the card border
+    // and "Master Circuit" ran out past the card edge. Widen the card into the
+    // room the dock really has, buy a little more of it back from the badge on
+    // the tightest boards, and let the label wrap (below) rather than truncating
+    // honest copy.
     const cardW = compact
       ? Math.min(92, Math.max(78, (W - sideInset * 2 - gap * 2) / 3))
-      : 112;
+      : Math.min(132, Math.max(96, (W - sideInset * 2 - gap * 2) / 3));
     const cardH = compact ? 48 : 54;
-    const badgeSize = compact ? 28 : 34;
+    const roomy = cardW >= 110;
+    const badgeSize = compact ? 28 : roomy ? 32 : 26;
+    const textPad = compact ? 9 : roomy ? 10 : 7;
     const badgeX = -cardW / 2 + badgeSize / 2 + (compact ? 3 : 4);
-    const textX = -cardW / 2 + badgeSize + (compact ? 9 : 12);
+    const textX = -cardW / 2 + badgeSize + textPad;
+    // Width the label may occupy before it must wrap: card edge, less the text's
+    // own start and a right-hand breathing margin.
+    const labelMaxW = cardW / 2 - 6 - textX;
     const total = cardW * 3 + gap * 2;
     const startX = W / 2 - total / 2 + cardW / 2;
     const y = H * 0.11;
@@ -478,18 +493,19 @@ export class ColorClashScene extends BaseScene {
       const targetKey = MODE_TARGET_KEYS[index] ?? MODE_TARGET_KEYS[0];
       const label = this.add.text(
         textX,
-        compact ? -7 : -8,
+        0,
         this.str(labelKey, MODE_LABELS[index] ?? "Pulse"),
         {
         fontFamily: FONT_FAMILY,
         fontSize: compact ? "11px" : "12px",
         fontStyle: "bold",
         color: "#4f4235",
+        wordWrap: { width: labelMaxW },
         },
       ).setOrigin(0, 0.5);
       const meta = this.add.text(
         textX,
-        compact ? 8 : 9,
+        0,
         this.str(targetKey, MODE_COPY[index] ?? `${rule.targetSeq} cues`),
         {
         fontFamily: FONT_FAMILY,
@@ -497,6 +513,14 @@ export class ColorClashScene extends BaseScene {
         color: TEXT_MUTED,
         },
       ).setOrigin(0, 0.5);
+
+      // The label may now be one or two lines depending on the locale and the
+      // board width, so centre the label+meta pair on the card rather than
+      // pinning both to fixed offsets that only suited a single-line label.
+      const stackGap = compact ? 1 : 2;
+      const stackH = label.height + stackGap + meta.height;
+      label.setY(-stackH / 2 + label.height / 2);
+      meta.setY(stackH / 2 - meta.height / 2);
 
       this.bindGameButton(hit, {
         targets: container,

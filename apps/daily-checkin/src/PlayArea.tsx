@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { CoinArt, ParticleBurst } from "@shared/art";
 import { PlayStage } from "@shared/components-react/v2";
+import { PhaseValue, resolvePhase, type DataPhase } from "@shared/components-react/v2/DataPhase";
 import {
   OpenUiLiteNotice as OpenUiNotice,
   OpenUiLitePanel as OpenUiPanel,
@@ -74,16 +75,26 @@ export default function PlayArea({ t, state, dispatch }: Props) {
   const contractHash = str("contractHash");
   const dataSource = str("dataSource") || "idle";
   const walletAddress = str("walletAddress");
-  const currentStreak = str("currentStreak") || "—";
-  const highestStreak = str("highestStreak") || "—";
+  // First-run values are rendered through the shared DataPhase vocabulary, not
+  // through `|| "—"`.
+  //
+  // Every value below is empty on a cold, pre-wallet first paint — the NORMAL
+  // state — and each one used to collapse to an em-dash, so the entry surface
+  // opened as a grid of six dashes before the visitor had done anything. The
+  // composable already tracks the two flags needed to tell the honest states
+  // apart (`isLoading` = a read is in flight, `hasLoadedStatus` = at least one
+  // read has settled), so a value in flight renders as a skeleton and a value
+  // that settled without a wallet renders as inviting zero-state copy.
+  const currentStreakRaw = str("currentStreak");
+  const highestStreakRaw = str("highestStreak");
   const streakRaw = num("currentStreakRaw", 0);
   const totalUserCheckins = num("totalUserCheckins", 0);
-  const unclaimedRewards = str("unclaimedRewards") || "—";
-  const totalClaimed = str("totalClaimed") || "—";
-  const checkInFee = str("checkInFee") || "—";
-  const rewardPoolBalance = str("rewardPoolBalance") || "—";
-  const weekRewardLabel = str("weekRewardLabel") || "—";
-  const twoWeekRewardLabel = str("twoWeekRewardLabel") || "—";
+  const unclaimedRewardsRaw = str("unclaimedRewards");
+  const totalClaimed = str("totalClaimed") || "0";
+  const checkInFeeRaw = str("checkInFee");
+  const rewardPoolBalance = str("rewardPoolBalance") || "0";
+  const weekRewardLabelRaw = str("weekRewardLabel");
+  const twoWeekRewardLabelRaw = str("twoWeekRewardLabel");
   const utcTime = str("utcTimeDisplay") || "—";
   const nextMidnight = num("nextUtcMidnight", 0);
   const canCheckIn = bool("canCheckIn");
@@ -149,7 +160,25 @@ export default function PlayArea({ t, state, dispatch }: Props) {
     ? 7
     : Math.max(0, Math.min(7, effectiveStreak - chapterStart + 1));
   const nextMilestoneDay = effectiveStreak < 7 ? 7 : effectiveStreak < 14 ? 14 : 14;
-  const nextReward = effectiveStreak < 7 ? weekRewardLabel : twoWeekRewardLabel;
+  const nextRewardRaw = effectiveStreak < 7 ? weekRewardLabelRaw : twoWeekRewardLabelRaw;
+
+  // ── First-run value phases ────────────────────────────────────────────────
+  // Two honest shapes, per the shared DataPhase vocabulary:
+  //  - chain-scoped values (the fee, the milestone reward tiers) are readable
+  //    with no wallet at all, so they are only ever "in flight" or "ready";
+  //  - wallet-scoped values (this visitor's streak, their unclaimed rewards)
+  //    cannot exist before a wallet is connected, which is a settled, expected
+  //    absence — inviting copy, never an error and never a dash.
+  const walletConnected = Boolean(walletAddress);
+  // Chain-scoped values settle with the PLATFORM read (fee + reward tiers),
+  // which is the flag the composable itself gates them on — using the status
+  // flag here would call them settled before their read had happened.
+  const chainPhase = (raw: string): DataPhase =>
+    resolvePhase({ loading: isLoading, settled: hasLoadedPlatform, hasData: Boolean(raw) });
+  const walletPhase = (raw: string): DataPhase =>
+    walletConnected
+      ? resolvePhase({ loading: isLoading, settled: hasLoadedStatus, hasData: Boolean(raw) })
+      : "unavailable";
   const daysToReward = journeyComplete ? 0 : Math.max(0, nextMilestoneDay - effectiveStreak);
   const progressPercent = Math.round((completedInChapter / 7) * 100);
   const waitingForReset = hasLoadedStatus && !canCheckIn && !isPaused && nextMidnight > Date.now();
@@ -290,7 +319,7 @@ export default function PlayArea({ t, state, dispatch }: Props) {
       <div className="dci-ritual__layout">
         <figure className="dci-plaza" aria-label={t("streakStageTitle")}>
           <img src={STREAK_IMAGE} alt={t("streakPlazaAlt")} loading="eager" decoding="async" />
-          <div className="dci-plaza__shade" />
+          <div className="dci-plaza__legibility" />
           <figcaption className="dci-plaza__caption">
             <span><Sparkles size={15} /> {t("dailyRitual")}</span>
             <strong>{journeyComplete ? t("journeyCompleteTitle") : t("journeyTitle", { day: nextMilestoneDay })}</strong>
@@ -300,7 +329,17 @@ export default function PlayArea({ t, state, dispatch }: Props) {
             <CoinArt size={38} variant="gas" />
             <span>
               <small>{journeyComplete ? t("earnedJourney") : t("nextReward")}</small>
-              <strong>{journeyComplete ? t("milestonesComplete") : nextReward}</strong>
+              <strong>
+                {journeyComplete ? t("milestonesComplete") : (
+                  <PhaseValue
+                    phase={chainPhase(nextRewardRaw)}
+                    placeholder={t("valueAwaitingNetwork")}
+                    skeletonWidth="4.5em"
+                  >
+                    {nextRewardRaw}
+                  </PhaseValue>
+                )}
+              </strong>
             </span>
           </div>
         </figure>
@@ -319,8 +358,25 @@ export default function PlayArea({ t, state, dispatch }: Props) {
             <span className="dci-streak-focus__icon"><CalendarCheck size={25} /></span>
             <div>
               <small>{t("currentStreak")}</small>
-              <strong>{currentStreak}</strong>
-              <span>{t("bestStreak")}: {highestStreak}</span>
+              <strong>
+                <PhaseValue
+                  phase={walletPhase(currentStreakRaw)}
+                  placeholder={t("valueStreakNotStarted")}
+                  skeletonWidth="2.4em"
+                >
+                  {currentStreakRaw}
+                </PhaseValue>
+              </strong>
+              <span>
+                {t("bestStreak")}:{" "}
+                <PhaseValue
+                  phase={walletPhase(highestStreakRaw)}
+                  placeholder={t("valueStreakNotStarted")}
+                  skeletonWidth="2em"
+                >
+                  {highestStreakRaw}
+                </PhaseValue>
+              </span>
             </div>
             <div className="dci-streak-focus__clock">
               <small>{canCheckIn ? t("dailyWindow") : t("nextCheckin")}</small>
@@ -369,8 +425,32 @@ export default function PlayArea({ t, state, dispatch }: Props) {
           </div>
 
           <div className="dci-console__facts">
-            <span><CoinArt size={25} variant="gas" /><small>{t("checkInFee")}</small><strong>{checkInFee}</strong></span>
-            <span><Gift size={21} /><small>{t("unclaimed")}</small><strong>{unclaimedRewards}</strong></span>
+            <span>
+              <CoinArt size={25} variant="gas" />
+              <small>{t("checkInFee")}</small>
+              <strong>
+                <PhaseValue
+                  phase={chainPhase(checkInFeeRaw)}
+                  placeholder={t("valueAwaitingNetwork")}
+                  skeletonWidth="4em"
+                >
+                  {checkInFeeRaw}
+                </PhaseValue>
+              </strong>
+            </span>
+            <span>
+              <Gift size={21} />
+              <small>{t("unclaimed")}</small>
+              <strong>
+                <PhaseValue
+                  phase={walletPhase(unclaimedRewardsRaw)}
+                  placeholder={t("valueConnectWallet")}
+                  skeletonWidth="4em"
+                >
+                  {unclaimedRewardsRaw}
+                </PhaseValue>
+              </strong>
+            </span>
             <span><ShieldCheck size={21} /><small>{t("confirmationModel")}</small><strong>{t("eventAndReadback")}</strong></span>
           </div>
         </section>
@@ -387,8 +467,8 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         subtitle={hasLoadedStatus ? t("activityCount", { count: totalUserCheckins }) : t("connectPrompt")}
       >
         <div className="dci-drawer__stats">
-          <span><small>{t("currentStreak")}</small><strong>{currentStreak}</strong></span>
-          <span><small>{t("bestStreak")}</small><strong>{highestStreak}</strong></span>
+          <span><small>{t("currentStreak")}</small><strong><PhaseValue phase={walletPhase(currentStreakRaw)} placeholder={t("valueStreakNotStarted")} skeletonWidth="2.4em">{currentStreakRaw}</PhaseValue></strong></span>
+          <span><small>{t("bestStreak")}</small><strong><PhaseValue phase={walletPhase(highestStreakRaw)} placeholder={t("valueStreakNotStarted")} skeletonWidth="2em">{highestStreakRaw}</PhaseValue></strong></span>
         </div>
         {history.length ? (
           <ol className="dci-history">
@@ -414,9 +494,9 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         subtitle={hasLoadedPlatform ? t("liveContractTerms") : t("chainWaiting")}
       >
         <div className="dci-reward-ledger">
-          <span><small>{t("day7Reward")}</small><strong>{weekRewardLabel}</strong></span>
-          <span><small>{t("day14Reward")}</small><strong>{twoWeekRewardLabel}</strong></span>
-          <span><small>{t("unclaimed")}</small><strong>{unclaimedRewards}</strong></span>
+          <span><small>{t("day7Reward")}</small><strong><PhaseValue phase={chainPhase(weekRewardLabelRaw)} placeholder={t("valueAwaitingNetwork")} skeletonWidth="4.5em">{weekRewardLabelRaw}</PhaseValue></strong></span>
+          <span><small>{t("day14Reward")}</small><strong><PhaseValue phase={chainPhase(twoWeekRewardLabelRaw)} placeholder={t("valueAwaitingNetwork")} skeletonWidth="4.5em">{twoWeekRewardLabelRaw}</PhaseValue></strong></span>
+          <span><small>{t("unclaimed")}</small><strong><PhaseValue phase={walletPhase(unclaimedRewardsRaw)} placeholder={t("valueConnectWallet")} skeletonWidth="4em">{unclaimedRewardsRaw}</PhaseValue></strong></span>
           <span><small>{t("totalClaimed")}</small><strong>{totalClaimed}</strong></span>
           <span className="is-wide"><small>{t("rewardPool")}</small><strong>{rewardPoolBalance}</strong></span>
         </div>
@@ -472,7 +552,17 @@ export default function PlayArea({ t, state, dispatch }: Props) {
           }}
           scene={scene}
           score={[
-            { label: t("currentStreak"), value: currentStreak, accent: true },
+            {
+              label: t("currentStreak"),
+              // Same first-run phases as the console tiles: the platform stat strip
+              // must not be the one surface that still prints a dash.
+              value: (
+                <PhaseValue phase={walletPhase(currentStreakRaw)} placeholder={t("valueStreakNotStarted")} skeletonWidth="2.4em">
+                  {currentStreakRaw}
+                </PhaseValue>
+              ),
+              accent: true,
+            },
             { label: t("utcClock"), value: utcTime },
             { label: t("walletLabel"), value: walletDisplay },
           ]}

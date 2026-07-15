@@ -67,7 +67,11 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     burnAmount: "1",
     burnValidationError: null,
     countdown: "00:01:30",
-    formattedRank: "--",
+    // Unranked zero-state. `formattedRank` is rendered verbatim by the rank
+    // tile, the in-game HUD and the sidebar, so useBurnLeague no longer emits
+    // "--" for rank 0 — it emits localized zero-state copy. Kept in step with
+    // that contract so this fixture keeps exercising the real first-run shape.
+    formattedRank: "Unranked",
     formattedSeason: "#1",
     isBurning: false,
     isLoading: false,
@@ -112,7 +116,7 @@ describe("Burn League PlayArea (v2 scene-driven)", () => {
 
     expect(container.querySelector(".burn-scene")).toBeTruthy();
     expect(container.querySelector<HTMLImageElement>(".burn-scene__arena-image")?.getAttribute("src")).toContain("burn-league-arena.webp");
-    expect(container.querySelector(".burn-scene__shade")).toBeTruthy();
+    expect(container.querySelector(".burn-scene__legibility")).toBeTruthy();
     expect(container.querySelector(".burn-scene__brazier-art")).toBeNull();
     expect(container.querySelector(".burn-scene__torch-medal .mx2-coin")).toBeTruthy();
     expect(container.querySelector(".burn-scene__brazier")).toBeTruthy();
@@ -286,7 +290,7 @@ describe("Burn League PlayArea (v2 scene-driven)", () => {
     expect(styles).toMatch(/burn-scene__arena-image\s*\{[\s\S]*object-fit:\s*cover/);
     expect(styles).toMatch(/burn-league-play-area \.mx2-score\s*\{[\s\S]*display:\s*none/);
     expect(styles).toMatch(/burn-scene__arena-image\s*\{[\s\S]*opacity:\s*1/);
-    expect(styles).toMatch(/burn-scene__shade\s*\{[\s\S]*linear-gradient/);
+    expect(styles).toMatch(/burn-scene__legibility\s*\{[\s\S]*linear-gradient/);
     expect(styles).not.toMatch(/burn-scene__wash|var\(--mx2-scene-art-opacity/);
     expect(styles).toMatch(/burn-scene__readout[\s\S]*display:\s*none/);
     expect(styles).toMatch(/burn-scene__brazier\s*\{[\s\S]*position:\s*absolute/);

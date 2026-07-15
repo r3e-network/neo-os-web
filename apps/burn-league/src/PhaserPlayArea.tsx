@@ -202,6 +202,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
       seasonLabel: t("seasonLabel"),
       burnedLabel: t("youBurned"),
       rankLabel: t("rank"),
+      rankUnranked: t("rankUnranked"),
       boardTitle: t("leaderboard"),
       emptyBoard: t("sceneNoBurns"),
       fuelLabel: t("burnPresets"),

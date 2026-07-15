@@ -110,7 +110,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       style={sceneStyle}
     >
       <img className="survivor-scene__arena-art" src={ARENA_IMAGE} alt="" aria-hidden="true" />
-      <span className="survivor-scene__shade" aria-hidden="true" />
+      <span className="survivor-scene__legibility" aria-hidden="true" />
 
       <div className="survivor-scene__hud">
         <div className="survivor-scene__pot">

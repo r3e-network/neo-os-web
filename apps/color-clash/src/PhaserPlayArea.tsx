@@ -380,8 +380,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
           value: isPlaying && deadline > 0 ? formatClock(remainingMs) : formatClock(rule.limitMs),
         },
         {
+          // No local best yet is the expected first-run state, not a missing
+          // read — say so rather than printing a "--" void on the stat rail.
           label: t("guestBestLabel"),
-          value: guestTopScore > 0 ? t("guestScoreValue", { count: guestTopScore }) : "--",
+          value: guestTopScore > 0 ? t("guestScoreValue", { count: guestTopScore }) : t("guestNoScore"),
         },
         { label: t("guestModeLabel"), value: t("guestModeValue") },
       ]
@@ -429,7 +431,9 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div>
           <span>{isGuest ? t("guestBestLabel") : t("rankLabel")}</span>
-          <strong>{isGuest ? (guestTopScore > 0 ? t("guestScoreValue", { count: guestTopScore }) : "--") : (myRank > 0 ? `#${myRank}` : "--")}</strong>
+          {/* Same first-run zero-states as the stat rail above: an unplayed
+              board and an unranked wallet are expected, not error states. */}
+          <strong>{isGuest ? (guestTopScore > 0 ? t("guestScoreValue", { count: guestTopScore }) : t("guestNoScore")) : (myRank > 0 ? `#${myRank}` : t("rankUnranked"))}</strong>
         </div>
         <div>
           <span>{isGuest ? t("guestModeLabel") : t("solvesCount", { count: mySolves })}</span>

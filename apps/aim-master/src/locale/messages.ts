@@ -256,9 +256,13 @@ const appMessages = {
   },
 
   // ── Guest (free / local) mode copy ──────────────────────────────────────────
+  // Describes the game, not the mode: the launcher already appends the shared
+  // `entryGuestOnlyCopy` ("Free to play — no wallet needed.") for a guest-only
+  // build, and the in-game stage carries a "Local run" badge — so restating
+  // "no wallet needed" here printed the same promise twice in one paragraph.
   guestSubtitle: {
-    en: "Free local target practice — no wallet needed. Best scores are saved off-chain.",
-    zh: "免费的本地打靶练习——无需钱包。最佳成绩离线保存。",
+    en: "Chain clean hits as the moving reticle crosses the bullseye. Best scores are saved on your device.",
+    zh: "在移动准星扫过靶心时连续精准命中。最佳成绩保存在你的设备上。",
   },
   guestModeLine: { en: "Guest mode — local play, scores saved off-chain.", zh: "游客模式——本地游玩，成绩离线保存。" },
   guestBestLabel: { en: "Best score", zh: "最佳成绩" },
@@ -285,10 +289,19 @@ const appMessages = {
     en: "Choose a lane, fire when the moving reticle crosses the center, and land 3, 5, or 7 clean hits before time runs out. Local runs use no wallet, GAS, contract, or oracle.",
     zh: "选择靶道，在移动准星扫过中心时出手，并在倒计时结束前完成 3、5 或 7 次精准命中。本地练习不使用钱包、GAS、合约或预言机。",
   },
+  // Product-voice statement of a deliberate configuration, not an outage. This
+  // string is reached only from the startGame action guard (a REAL attempted
+  // paid start), never from the store-facing launcher — release-engineering
+  // detail ("testnet reward pool", "settlement proven end to end") does not
+  // belong in front of a first-time visitor.
   gameFiMaintenanceShort: {
-    en: "Verified GAS mode stays closed until the testnet reward pool is funded and settlement is proven end to end.",
-    zh: "测试网奖池完成注资并通过端到端结算验收前，GAS 验证模式保持关闭。",
+    en: "Reward mode is paused. Local target practice remains fully available.",
+    zh: "奖励模式暂未开放，本地打靶练习仍可完整游玩。",
   },
+  // Trust-badge selling points for the guest-only build. These replace the
+  // maintenance sentence that used to occupy a store-facing hero chip.
+  guestOffChainBadge: { en: "Scores saved on device", zh: "成绩保存在本机" },
+  gameFiModeDocTitle: { en: "Reward mode", zh: "奖励模式" },
   continue: { en: "Continue", zh: "继续" },
   gameActionFailed: {
     en: "The target range could not continue",

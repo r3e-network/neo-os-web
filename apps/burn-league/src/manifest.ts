@@ -43,6 +43,13 @@ export const manifest: MiniAppManifest = {
     heroDescKey: "launchDescription",
     primaryLabelKey: "launchPrimary",
     ghostLabelKey: "rulesTitle",
+    // The details accordion resolves its title from featuresTitle -> rules title
+    // -> ctaTitle, and its hint from featuresEyebrow -> rules title -> ctaTitle.
+    // Declaring neither meant both fell through to ctaTitle, so the row printed
+    // "Ready to fuel the arena?" in bold with the identical sentence as its hint
+    // directly beneath. Give the hint its own copy: it should preview what the
+    // row opens, not echo the heading.
+    featuresEyebrowKey: "launchDetailsHint",
     ctaTitleKey: "launchCtaTitle",
     ctaDescKey: "launchCtaDesc",
     trustBadgeKeys: ["launchTrustChain", "launchTrustWallet", "launchTrustResult"],

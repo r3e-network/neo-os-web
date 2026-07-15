@@ -51,6 +51,8 @@ type SceneText = {
   seasonLabel?: string;
   burnedLabel?: string;
   rankLabel?: string;
+  /** Zero-state for an unranked wallet — replaces the former "--" rank void. */
+  rankUnranked?: string;
   boardTitle?: string;
   emptyBoard?: string;
   fuelLabel?: string;
@@ -101,8 +103,6 @@ export class BurnLeagueScene extends BaseScene {
   private burnedLabel?: Phaser.GameObjects.Text;
   private boardTitle?: Phaser.GameObjects.Text;
   private leaderList!: Phaser.GameObjects.Container;
-  private ghostRows!: Phaser.GameObjects.Container;
-  private ghostAmounts: Phaser.GameObjects.Text[] = [];
   private emptyLeaderChip!: Phaser.GameObjects.Graphics;
   private emptyLeaderLabel!: Phaser.GameObjects.Text;
   private boardRowWidth = 332;
@@ -215,7 +215,7 @@ export class BurnLeagueScene extends BaseScene {
     const phase = this.str("seasonPhase", "dormant");
     const pot = this.str("prizePoolDisplay", "0");
     const userBurned = this.str("userBurnedDisplay", "0");
-    const rank = this.str("formattedRank", "--");
+    const rank = this.str("formattedRank", this.copy("rankUnranked", "Unranked"));
     const countdown = this.str("countdown", "00:00:00");
     const amount = this.str("burnAmount", this.selectedAmount);
     const serviceNotice = this.str("serviceNotice", "");
@@ -241,8 +241,6 @@ export class BurnLeagueScene extends BaseScene {
     this.boardTitle?.setText(
       guest ? this.str("guestBoardLabel", "Local runs") : this.copy("boardTitle", "Leaderboard"),
     );
-    const tokenLabel = this.str("tokenGasLabel", "GAS");
-    this.ghostAmounts.forEach((txt) => txt.setText(guest ? "--" : `-- ${tokenLabel}`));
 
     this.isBurning = this.bool("isBurning");
     const isSettling = this.bool("isSettling");
@@ -262,9 +260,11 @@ export class BurnLeagueScene extends BaseScene {
 
     this.poolValue.setText(guest ? heatText(pot) : gasText(pot));
     this.burnedValue.setText(guest ? heatText(userBurned) : gasText(userBurned));
-    // formattedRank already carries its own "#". Rendering it verbatim avoids
-    // the former "##2" GameFi label while still accepting plain numeric mocks.
-    this.rankValue.setText(rank === "--" ? "--" : rank.startsWith("#") ? rank : `#${rank}`);
+    // formattedRank already carries its own "#" once ranked. Rendering it
+    // verbatim avoids the former "##2" GameFi label while still accepting plain
+    // numeric mocks. When unranked it now carries honest zero-state copy
+    // ("Unranked") rather than "--", so only a bare number needs the "#".
+    this.rankValue.setText(/^\d+$/.test(rank) ? `#${rank}` : rank);
     this.phaseValue.setText(
       guest
         ? (streak > 0 ? `x${streak}` : this.copy("ready", "Ready"))
@@ -613,18 +613,21 @@ export class BurnLeagueScene extends BaseScene {
 
     const rowsTop = panelTop + (compact ? 29 : 40);
 
-    // Dim ghost rows keep the empty panel dense and legible about its structure.
-    this.ghostRows = this.add.container(0, rowsTop);
-    this.ghostAmounts = [];
-    const ghostCount = compact ? 2 : 3;
-    for (let i = 0; i < ghostCount; i++) {
-      this.ghostRows.add(this.buildGhostRow(width / 2, i * this.boardRowGap, i + 1));
-    }
-
-    // Real rows overlay the ghosts once burns land.
+    // An empty board renders its empty state and nothing else.
+    //
+    // This panel used to fill the pre-burn board with "ghost rows" — dim
+    // "#1  — — —   -- GAS" plates meant to show the structure — and then draw
+    // the "No burns yet" chip on top of them. The result was the first-run void
+    // this codebase has been removing everywhere else: a grid of em-dashes on a
+    // store-facing surface, made worse by the chip landing across row #2 with
+    // the dashes poking out either side of it.
+    //
+    // The rows carry no information before the first burn, so there is nothing
+    // to keep: the chip alone is the honest, complete empty state.
     this.leaderList = this.add.container(0, rowsTop);
 
-    // Centered empty-state chip in front of the ghost structure.
+    // Centered empty-state chip, shown in place of the rows while the board is
+    // empty (see updateLeaderboard).
     this.emptyLeaderChip = this.add.graphics();
     this.emptyLeaderLabel = this.add.text(
       width / 2,
@@ -639,34 +642,6 @@ export class BurnLeagueScene extends BaseScene {
       wordWrap: { width: this.boardRowWidth - 20 },
       },
     ).setOrigin(0.5);
-  }
-
-  private buildGhostRow(x: number, y: number, rank: number): Phaser.GameObjects.Container {
-    const row = this.add.container(x, y);
-    const bg = this.add.graphics();
-    bg.fillStyle(C.surfaceWarm, 0.5);
-    bg.fillRoundedRect(-this.boardRowWidth / 2, -9, this.boardRowWidth, 18, 8);
-    row.add(bg);
-    row.add(this.add.text(this.boardRankX, 0, `#${rank}`, {
-      fontFamily: FONT,
-      fontSize: "10px",
-      fontStyle: "bold",
-      color: "#c2ac82",
-    }).setOrigin(0, 0.5));
-    row.add(this.add.text(this.boardAddressX, 0, "— — —", {
-      fontFamily: FONT,
-      fontSize: "10px",
-      color: "#c2ac82",
-    }).setOrigin(0, 0.5));
-    const amount = this.add.text(this.boardValueX, 0, `-- ${this.str("tokenGasLabel", "GAS")}`, {
-      fontFamily: FONT,
-      fontSize: "10px",
-      fontStyle: "bold",
-      color: "#c2ac82",
-    }).setOrigin(1, 0.5);
-    this.ghostAmounts.push(amount);
-    row.add(amount);
-    return row;
   }
 
   private buildPresets(width: number, height: number): void {
@@ -928,7 +903,6 @@ export class BurnLeagueScene extends BaseScene {
     const guest = this.str("appMode", "gamefi") === "guest";
     const unit = this.str("guestUnit", "heat");
     const empty = entries.length === 0;
-    this.ghostRows.setVisible(empty);
     this.emptyLeaderLabel.setVisible(empty);
     this.emptyLeaderLabel.setText(
       guest
