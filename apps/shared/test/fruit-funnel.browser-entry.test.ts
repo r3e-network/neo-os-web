@@ -16,7 +16,10 @@ describe("Fruit Funnel browser entry", () => {
     const html = readFileSync(resolve(appRoot, "index.html"), "utf8");
     expect(html).toContain('<div id="app"></div>');
     expect(html).not.toContain('<div id="root">');
-    expect(html).toContain('src="/src/main.tsx"');
+    // Relative "./src/main.tsx" is the 77-app fleet convention enforced by the
+    // deploy gate (miniapp_runtime_entrypoints); the absolute Vite-scaffold
+    // "/src/main.tsx" this test previously pinned was the regression.
+    expect(html).toContain('src="./src/main.tsx"');
     expect(html).toContain('rel="icon" href="./logo.webp"');
     expect(html).toContain('property="og:image" content="./banner.webp"');
   });
