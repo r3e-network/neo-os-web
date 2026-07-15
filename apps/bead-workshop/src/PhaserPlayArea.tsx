@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type * as Phaser from "phaser";
 import { useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
@@ -93,6 +93,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, bool } = useStateBindings(state);
   const game = val<BeadSnapshot>("game");
   const storageHealthy = bool("storageHealthy");
+
+  // The play surface mounts only once the player has left the launch page —
+  // via its CTA, or straight through it under directPlay/OneGate. That mount
+  // is the one honest "the player is here" signal, so it is what deals the
+  // round and starts the studio clock. `enterPlay` is idempotent.
+  useEffect(() => {
+    void dispatch("enterPlay");
+  }, [dispatch]);
 
   const sceneText = useMemo(() => {
     const copy = Object.fromEntries(COPY_KEYS.map((key) => [key, t(key)]));

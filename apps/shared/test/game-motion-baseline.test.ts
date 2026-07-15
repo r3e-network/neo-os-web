@@ -746,8 +746,14 @@ describe("Game miniapp motion baseline", () => {
       resolve(appsRoot, "sheep-solitaire/src/PlayArea.scss"),
     );
 
-    expect(scene).toContain("const DESIGN_W = 400");
-    expect(scene).toContain("const DESIGN_H = 640");
+    // P2 rebuild (docs/sheep-solitaire-redesign-2026.md §9.4, 2026-07-14 user
+    // acceptance verdict): the scene moved from a 400×640 cream-panel stage to
+    // a mobile-first 390×844 full-screen meadow, so the design pins and the
+    // background/tray art pins track the new original asset set
+    // (field-meadow/tray-wood replace meadow-table/slot-tray in the SCENE; the
+    // old webps stay on disk for the legacy DOM PlayArea).
+    expect(scene).toContain("const DESIGN_W = 390");
+    expect(scene).toContain("const DESIGN_H = 844");
     expect(scene).toContain("protected onResize()");
     expect(scene).toContain("private fitCameraToHost()");
     expect(scene).toContain(".setViewport(0, 0, viewW, viewH)");
@@ -756,8 +762,8 @@ describe("Game miniapp motion baseline", () => {
     expect(scene).toContain("tallViewportLift");
     expect(scene).toContain("renderResponsiveStage(visibleWorldH, centerY)");
     expect(scene).toContain(".centerOn(DESIGN_W / 2, centerY)");
-    expect(scene).toContain("./art/meadow-table.webp");
-    expect(scene).toContain("./art/slot-tray.webp");
+    expect(scene).toContain("./art/field-meadow.webp");
+    expect(scene).toContain("./art/tray-wood.webp");
     expect(scene).toContain("./art/mascot-sheep.webp");
     // P1 redesign: tiles are the original sheep-themed set loaded via a dynamic
     // per-symbol loop (SheepScene.preload builds `./art/tile-NN-<sym>.webp` from
