@@ -334,7 +334,14 @@ describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => 
       await missing.app.loadData();
       expect(warn).not.toHaveBeenCalled();
       expect(missing.app.marketAvailable.get()).toBe(false);
-      expect(missing.app.readError.get()).toBe("loadFailed");
+      // No contract bound yet is the NORMAL first paint for a visitor who has
+      // not reached the network — it must not raise a user-facing error. The
+      // availability flag alone carries "no data"; the view renders that as
+      // honest zero-state copy.
+      expect(missing.app.readError.get()).toBe("");
+      // The read still settled, so the view shows zero-state rather than an
+      // endless skeleton.
+      expect(missing.app.loaded.get()).toBe(true);
 
       const unexpected = setup({
         readThrows: {
@@ -343,6 +350,8 @@ describe("useGovMerc — on-chain reads (NEO integer vs GAS base units)", () => 
       });
       await unexpected.app.loadData();
       expect(unexpected.app.marketAvailable.get()).toBe(false);
+      // A genuinely unexpected failure still surfaces as an error.
+      expect(unexpected.app.readError.get()).toBe("loadFailed");
       expect(warn).toHaveBeenCalledWith(
         "[useGovMerc] loadData failed:",
         "RPC node unavailable",

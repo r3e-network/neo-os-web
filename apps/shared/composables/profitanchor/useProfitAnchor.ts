@@ -128,6 +128,13 @@ function normalizeHash160OrAddress(input: unknown, t: Translate): string {
 
 export function useProfitAnchor({ app, t }: UseProfitAnchorOptions) {
   const isLoading = createObservable(false);
+  /**
+   * True once `loadAll` has completed at least one round. Distinguishes a cold
+   * first paint (reads in flight — render skeletons) from a settled read that
+   * produced nothing (render honest zero-state copy). Without this, every
+   * nullable read below is indistinguishable from a failure on first paint.
+   */
+  const loaded = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
   const pendingRewards = createObservable(0);
@@ -304,6 +311,10 @@ export function useProfitAnchor({ app, t }: UseProfitAnchorOptions) {
       ]);
     } finally {
       isLoading.set(false);
+      // One read round has now completed, success or not. Until this flips, a
+      // null `stats` means "still asking" — not "unavailable". The console
+      // needs that difference to choose a skeleton over zero-state copy.
+      loaded.set(true);
     }
   };
 
@@ -498,6 +509,7 @@ export function useProfitAnchor({ app, t }: UseProfitAnchorOptions) {
 
   return {
     isLoading,
+    loaded,
     error,
     myStake,
     pendingRewards,

@@ -187,19 +187,26 @@ describe("custom-anchor production orchestration", () => {
     expect(source).not.toContain("ctx.services.");
   });
 
+  // The property under test is that an unresolved read never masquerades as a
+  // real 0 — not the glyph it renders as. The value stays empty and the status
+  // carries the meaning; the PlayArea turns that into a skeleton or honest
+  // zero-state copy (never an em-dash).
   it("does not turn a malformed chain read into a zero-value anchor", async () => {
     const { result } = await setupApp({ malformedMode: true });
     await result.loadData();
     expect(result.state.anchorMode.get()).toBe(-1);
-    expect(result.state.totalStaked.get()).toBe("—");
+    expect(result.state.totalStaked.get()).toBe("");
+    expect(result.state.totalStaked.get()).not.toBe("0");
     expect(result.state.dataStatus.get()).toBe("unavailable");
   });
 
   it("surfaces malformed credit reads as unavailable instead of zero", async () => {
     const { result } = await setupApp({ malformedCredit: true });
     await result.loadData();
-    expect(result.state.neoCredit.get()).toBe("—");
-    expect(result.state.gasCredit.get()).toBe("—");
+    expect(result.state.neoCredit.get()).toBe("");
+    expect(result.state.gasCredit.get()).toBe("");
+    expect(result.state.neoCredit.get()).not.toBe("0");
+    expect(result.state.gasCredit.get()).not.toBe("0");
     expect(result.state.creditStatus.get()).toBe("unavailable");
   });
 

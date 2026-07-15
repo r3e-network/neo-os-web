@@ -42,17 +42,20 @@ defineMiniApp({
       void pool.loadData();
     });
 
+    // An unresolved reading is empty, never "Unavailable": the view decides how
+    // it looks (skeleton while in flight, honest zero-state once settled). A
+    // visitor arriving without a wallet or network is in the expected state.
     const totalPoolDisplay: Observable<string> = {
       get: () => pool.marketAvailable.get()
         ? `${pool.formatNum(pool.totalPool.get(), 0)} ${ctx.t("tokenNeo")}`
-        : ctx.t("valueUnavailable"),
+        : "",
       set: () => {},
       subscribe: (fn) => pool.totalPool.subscribe(fn),
     };
     const userDepositsDisplay: Observable<string> = {
       get: () => pool.walletAvailable.get()
         ? `${pool.formatNum(pool.userDeposits.get(), 0)} ${ctx.t("tokenNeo")}`
-        : ctx.t("valueUnavailable"),
+        : "",
       set: () => {},
       subscribe: (fn) => pool.userDeposits.subscribe(fn),
     };
@@ -188,6 +191,7 @@ defineMiniApp({
         isBusy: pool.isBusy,
         isRecovering: pool.isRecovering,
         dataLoading: pool.dataLoading,
+        loaded: pool.loaded,
         address: pool.address,
         activeAction: pool.activeAction,
         pendingOperation: pool.pendingOperation,

@@ -309,6 +309,13 @@ export function useGovMerc({ app, t, transactionReader = readGovMercTransactionO
 
   // ── UI flags ──────────────────────────────────────────────────────────
   const dataLoading = createObservable(false);
+  /**
+   * True once `loadData` has completed at least one round. Separates a cold
+   * first paint (reads in flight — show skeletons) from a settled read with no
+   * data (show honest zero-state copy). Without it every `*Available` flag
+   * above starts false and is indistinguishable from a failure.
+   */
+  const loaded = createObservable(false);
   const isProcessing = createObservable(false);
   const isRecovering = createObservable(false);
   const address = createObservable("");
@@ -582,9 +589,18 @@ export function useGovMerc({ app, t, transactionReader = readGovMercTransactionO
       bidsAvailable.set(false);
       settlementAvailable.set(false);
       reclaimableAvailable.set(false);
-      readError.set(t("loadFailed"));
+      // An expected local read failure — no contract address bound yet, i.e. the
+      // desk has not reached the network — is the NORMAL first paint for a
+      // visitor, not a fault. Raising "Failed to load data" for it makes a
+      // healthy app look broken on arrival. The availability flags above already
+      // say "no data"; the view renders that as honest zero-state copy. Only a
+      // genuinely unexpected failure earns the error banner.
+      readError.set(isExpectedLocalReadFailure(e) ? "" : t("loadFailed"));
     } finally {
       dataLoading.set(false);
+      // One read round has completed, success or not. Until this flips, "no
+      // data" means "still asking" and the view shows skeletons.
+      loaded.set(true);
     }
   };
 
@@ -1211,6 +1227,7 @@ export function useGovMerc({ app, t, transactionReader = readGovMercTransactionO
 
     // ── Flags ─────────────────────────────────────────────────────────
     dataLoading,
+    loaded,
     isBusy,
     isRecovering,
     address,

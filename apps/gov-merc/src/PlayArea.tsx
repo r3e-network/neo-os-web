@@ -26,6 +26,7 @@ import {
   OpenUiLiteTextField as OpenUiTextField,
 } from "@shared/components-react/v2/OpenUiLite";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import { PhaseValue, resolvePhase, type DataPhase } from "@shared/components-react/v2/DataPhase";
 import { gasToBaseUnits } from "@shared/utils/amounts";
 import { formatNum } from "@shared/utils/format";
 import { epochWindowPhase, EPOCH_DURATION_FALLBACK_MS, MIN_BID } from "./hooks/useGovMerc";
@@ -113,11 +114,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const storageHealthy = bool("storageHealthy");
 
   const isConnected = Boolean(address);
+
+  // ── Honest read phases ───────────────────────────────────────────────────
+  // A visitor who has just opened the desk has no wallet and no chain data yet.
+  // That is the expected first paint, so each reading renders as a skeleton
+  // while its read is in flight and as inviting zero-state copy once the read
+  // settles empty — never a wall of "Unavailable", never an error banner.
+  const dataLoading = bool("dataLoading");
+  const loaded = bool("loaded");
+  const phaseOf = (hasData: boolean): DataPhase =>
+    resolvePhase({ loading: dataLoading, settled: loaded, hasData });
+  const marketPhase = phaseOf(marketAvailable);
+  // Wallet-scoped readings are honest about *why* they are empty: connecting a
+  // wallet is the visitor's next step, not a fault of the desk.
+  const walletPhase = phaseOf(walletAvailable);
+  const walletPlaceholder = isConnected ? t("valueAwaitingNetwork") : t("valueConnectWallet");
+
   const windowPhase = windowAvailable ? epochWindowPhase(epochDeadline, now) : null;
   const biddingClosed = windowPhase === "closed";
   const windowMinutes = Math.max(1, Math.round(epochDurationMs / 60_000));
   const windowLabel = !windowAvailable
-    ? t("valueUnavailable")
+    ? t("valueAwaitingNetwork")
     : windowPhase === "unopened"
       ? t("bidWindowUnopened", { minutes: windowMinutes })
       : windowPhase === "open"
@@ -181,18 +198,29 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     return void dispatch("placeBid");
   };
 
-  const value = (available: boolean, amount: number, digits: number, token: string) =>
-    available ? `${formatNum(amount, digits)} ${token}` : t("valueUnavailable");
+  /** One reading rendered across all three honest phases. */
+  const value = (
+    available: boolean,
+    amount: number,
+    digits: number,
+    token: string,
+    placeholder = t("valueAwaitingNetwork"),
+  ) => (
+    <PhaseValue phase={phaseOf(available)} placeholder={placeholder} skeletonWidth="4.5em">
+      {`${formatNum(amount, digits)} ${token}`}
+    </PhaseValue>
+  );
 
   const sceneStatus = pendingOperation
     ? t("transactionPendingCopy", { txid: compact(pendingTxid) })
     : transactionStatus === "credit-held"
       ? t("creditHeldReady")
       : readError || (!storageHealthy ? t("recoveryStorageUnavailable") :
-        t("marketPlateTopBid", {
-          amount: highestBidAvailable ? formatNum(highestBid, 2) : t("valueUnavailable"),
-          tokenGas: highestBidAvailable ? "GAS" : "",
-        }));
+        highestBidAvailable
+          ? t("marketPlateTopBid", { amount: formatNum(highestBid, 2), tokenGas: "GAS" })
+          // Before the first bid read lands there is no top bid to quote. Invite
+          // the visitor in instead of quoting an "Unavailable" price.
+          : t("marketPlateNoBidYet"));
 
   const scene = (
     <div className="merc-workspace" data-active={connecting ? "connect" : activeAction || (pendingOperation ? "pending" : "idle")}>
@@ -206,8 +234,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         />
         <figcaption className="merc-market-overlay">
           <div className="merc-round-card">
-            <span><Clock3 size={16} /> {marketAvailable ? t("marketPlateEpoch", { epoch: currentEpoch }) : t("valueUnavailable")}</span>
-            <strong>{windowLabel}</strong>
+            <span>
+              <Clock3 size={16} />{" "}
+              <PhaseValue phase={marketPhase} placeholder={t("valueAwaitingNetwork")} skeletonWidth="5em">
+                {t("marketPlateEpoch", { epoch: currentEpoch })}
+              </PhaseValue>
+            </span>
+            <strong>
+              <PhaseValue phase={marketPhase} placeholder={t("epochOpensOnNetwork")} skeletonWidth="7em">
+                {windowLabel}
+              </PhaseValue>
+            </strong>
           </div>
           <div className="merc-market-tape">
             <div>
@@ -223,7 +260,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div>
               <Trophy size={25} />
               <span>{t("bidLeaderboard")}</span>
-              <strong>{bidsAvailable ? String(bidCount || bids.length) : t("valueUnavailable")}</strong>
+              <strong>
+                <PhaseValue phase={phaseOf(bidsAvailable)} placeholder={t("valueAwaitingNetwork")} skeletonWidth="2.5em">
+                  {String(bidCount || bids.length)}
+                </PhaseValue>
+              </strong>
             </div>
           </div>
         </figcaption>
@@ -309,8 +350,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     </div>
   );
 
-  const drawerModes: Array<{ mode: DrawerMode; label: string; Icon: LucideIcon; value: string }> = [
-    { mode: "market", label: t("marketDrawer"), Icon: Trophy, value: bidsAvailable ? String(bids.length) : t("valueUnavailable") },
+  // `value` is a ReactNode, not a string: an unresolved reading renders as a
+  // skeleton or zero-state element rather than placeholder text.
+  const drawerModes: Array<{ mode: DrawerMode; label: string; Icon: LucideIcon; value: ReactNode }> = [
+    { mode: "market", label: t("marketDrawer"), Icon: Trophy, value: bidsAvailable ? String(bids.length) : "" },
     { mode: "wallet", label: t("walletDrawer"), Icon: Wallet, value: value(walletAvailable, userDeposits, 0, "NEO") },
     { mode: "recovery", label: t("recoveryDrawer"), Icon: History, value: pendingOperation ? t("pendingShort") : t("clearShort") },
     { mode: "guide", label: t("flowTitle"), Icon: Landmark, value: t("threeSteps") },
@@ -340,7 +383,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div><CoinArt size={27} variant="neo" /><span>{t("yourDeposits")}</span><strong>{value(walletAvailable, userDeposits, 0, "NEO")}</strong></div>
           <div><CoinArt size={27} variant="gas" /><span>{t("pendingRewards")}</span><strong>{value(walletAvailable, pendingRewards, 4, "GAS")}</strong></div>
           <div><Coins size={23} /><span>{t("unusedCredit")}</span><strong>{value(walletAvailable, gasCredit, 4, "GAS")}</strong></div>
-          <div><Crown size={23} /><span>{t("lastDistributed")}</span><strong>{settlementAvailable ? `${formatNum(lastDistributed, 4)} GAS` : t("valueUnavailable")}</strong></div>
+          <div><Crown size={23} /><span>{t("lastDistributed")}</span><strong>
+            <PhaseValue phase={phaseOf(settlementAvailable)} placeholder={t("valueAwaitingNetwork")} skeletonWidth="5em">
+              {`${formatNum(lastDistributed, 4)} GAS`}
+            </PhaseValue>
+          </strong></div>
         </div>
         <div className="merc-secondary-action">
           <OpenUiTextField
@@ -412,7 +459,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             subtitle: t("govHeroSubtitle"),
             badges: (
               <>
-                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" /> {marketAvailable ? t("marketPlateEpoch", { epoch: currentEpoch }) : t("dataUnavailableShort")}</span>
+                <span className="mx2-badge" data-tone="accent"><span className="mx2-badge__dot" />{" "}
+                  <PhaseValue phase={marketPhase} placeholder={t("epochAwaitNetworkShort")} skeletonWidth="4.5em">
+                    {t("marketPlateEpoch", { epoch: currentEpoch })}
+                  </PhaseValue>
+                </span>
                 <span className="mx2-badge">{windowLabel}</span>
               </>
             ),
@@ -421,7 +472,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           score={[
             { label: t("totalPool"), value: value(marketAvailable, totalPool, 0, "NEO"), accent: true },
             { label: t("currentTopBid"), value: value(highestBidAvailable, highestBid, 2, "GAS") },
-            { label: t("yourDeposits"), value: value(walletAvailable, userDeposits, 0, "NEO") },
+            { label: t("yourDeposits"), value: value(walletAvailable, userDeposits, 0, "NEO", walletPlaceholder) },
           ]}
           actions={{
             primary: {
