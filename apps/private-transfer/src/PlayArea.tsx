@@ -10,6 +10,7 @@ import {
   RotateCcw,
   ShieldCheck,
   Trash2,
+  Wallet,
   WalletCards,
 } from "lucide-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -152,9 +153,20 @@ export default function PlayArea({ t, state, dispatch }: P) {
 
   const serviceTone = (value: string): "ready" | "checking" | "blocked" => {
     if (value === "ready" || value === "stored") return "ready";
-    if (value === "checking" || value === "storing") return "checking";
+    // Pending, not faulted. "awaiting-context" has not reached the lane (no host
+    // to reach it through) and "unknown" is the pre-submit storage state — in
+    // neither case has anything failed, so neither may render as a red fault.
+    if (
+      value === "checking"
+      || value === "storing"
+      || value === "awaiting-context"
+      || value === "unknown"
+    ) return "checking";
     return "blocked";
   };
+
+  /** Waiting on a host shell is a normal pre-flight state, never an error. */
+  const awaitingHost = oracleState === "awaiting-context";
 
   const scene = (
     <div className="pt-airlock" data-phase={phase}>
@@ -192,7 +204,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
           </div>
           <div data-tone={serviceTone(oracleState)}>
             <span className="pt-status-dot" aria-hidden="true" />
-            <span><strong>{t(oracleState === "ready" ? "serviceOracleReady" : oracleState === "checking" ? "serviceOracleChecking" : "serviceOracleBlocked")}</strong><small>{oracleContract ? shortHash(oracleContract) : t("serviceFreshKeyRequired")}</small></span>
+            <span><strong>{t(oracleState === "ready" ? "serviceOracleReady" : oracleState === "checking" ? "serviceOracleChecking" : awaitingHost ? "serviceOracleAwaiting" : "serviceOracleBlocked")}</strong><small>{oracleContract ? shortHash(oracleContract) : t(awaitingHost ? "serviceOracleAwaitingDetail" : "serviceFreshKeyRequired")}</small></span>
           </div>
           <div data-tone={serviceTone(storageState)}>
             <span className="pt-status-dot" aria-hidden="true" />
@@ -319,7 +331,12 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <span><strong>{t("boundaryTitle")}</strong><small>{t("boundaryBody")}</small></span>
         </div>
 
-        {!runtimeReady ? (
+        {awaitingHost ? (
+          <div className="pt-runtime-block pt-runtime-block--awaiting" role="status">
+            <Wallet size={17} aria-hidden="true" />
+            <span><strong>{t("statusAwaitingHostTitle")}</strong><small>{t("statusAwaitingHost")}</small></span>
+          </div>
+        ) : !runtimeReady ? (
           <div className="pt-runtime-block" role="status">
             <CircleAlert size={17} aria-hidden="true" />
             <span><strong>{t("statusRuntimeUnavailable")}</strong><small>{lastStatus}</small></span>
@@ -328,17 +345,31 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <p className="pt-runtime-ready" role="status"><ShieldCheck size={15} aria-hidden="true" /> {lastStatus}</p>
         )}
 
-        <button
-          type="button"
-          className="pt-primary-action"
-          onClick={handleSeal}
-          disabled={!canSeal}
-          aria-busy={isSealing || undefined}
-          title={hasPending ? t("pendingMustResolve") : !runtimeReady ? t("statusRuntimeUnavailable") : undefined}
-        >
-          {isSealing ? <span className="mx2-spinner" aria-hidden="true" /> : <LockKeyhole size={18} aria-hidden="true" />}
-          <span>{isSealing ? t("sealing") : t("sealCtaShort")}</span>
-        </button>
+        {awaitingHost ? (
+          // Pre-host, "Seal" cannot work — but a dead disabled button is not the
+          // honest answer. Offer the action that actually moves the visitor
+          // forward instead.
+          <button
+            type="button"
+            className="pt-primary-action"
+            onClick={() => runAction("connectWallet")}
+          >
+            <Wallet size={18} aria-hidden="true" />
+            <span>{t("connectCta")}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="pt-primary-action"
+            onClick={handleSeal}
+            disabled={!canSeal}
+            aria-busy={isSealing || undefined}
+            title={hasPending ? t("pendingMustResolve") : !runtimeReady ? t("statusRuntimeUnavailable") : undefined}
+          >
+            {isSealing ? <span className="mx2-spinner" aria-hidden="true" /> : <LockKeyhole size={18} aria-hidden="true" />}
+            <span>{isSealing ? t("sealing") : t("sealCtaShort")}</span>
+          </button>
+        )}
       </section>
     </div>
   );

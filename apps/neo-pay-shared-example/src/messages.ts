@@ -18,7 +18,12 @@ const studioMessages = {
   networkMainnet: { en: "Neo N3 Mainnet", zh: "Neo N3 主网" },
   networkTestnet: { en: "Neo N3 Testnet", zh: "Neo N3 测试网" },
   networkUnknown: { en: "Network unavailable", zh: "网络不可用" },
+  networkAwaiting: { en: "Network on connect", zh: "连接后确定网络" },
   bindingVerified: { en: "Canonical NeoPay", zh: "NeoPay 官方合约" },
+  bindingAwaiting: {
+    en: "Connect to verify the NeoPay contract for your network.",
+    zh: "连接后即可校验当前网络的 NeoPay 合约。",
+  },
   bindingMismatch: {
     en: "NeoPay contract does not match this network. Wallet actions are locked.",
     zh: "NeoPay 合约与当前网络不匹配，钱包操作已锁定。",

@@ -168,6 +168,13 @@ export type MemorialCatalogStatus =
   | "ready"
   | "empty"
   | "partial"
+  /**
+   * No network/contract has been handed to us, so the catalog was never read.
+   * Distinct from "error", which means a read was attempted and failed. Only
+   * the latter justifies "The garden could not be refreshed" — the former is
+   * simply a visitor who has not connected yet.
+   */
+  | "awaiting-context"
   | "error";
 
 export type MemorialNetworkStatus =
@@ -382,7 +389,9 @@ export function useMemorialShrine({
     networkMessage.set("");
     if (!network || !contractHash) {
       networkStatus.set("unknown-network");
-      networkMessage.set(t("walletNetworkUnknown"));
+      // Display copy, not the write-gate error: a visitor who has not connected
+      // needs an invitation, not an instruction about explicit sessions.
+      networkMessage.set(t("walletNetworkAwaiting"));
       return false;
     }
     networkStatus.set("loading");
@@ -475,6 +484,14 @@ export function useMemorialShrine({
   const loadMemorials = async (): Promise<boolean> => {
     catalogStatus.set("loading");
     catalogError.set("");
+    // Nothing to read against yet: no launch network means no canonical
+    // contract. Report the honest pre-connect state instead of firing a read
+    // that can only fail and then calling that failure a refresh error.
+    if (!network || !contractHash) {
+      catalogStatus.set("awaiting-context");
+      catalogError.set("");
+      return false;
+    }
     let total = 0;
     try {
       const count = requireNonNegativeInteger(

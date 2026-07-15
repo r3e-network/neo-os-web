@@ -136,11 +136,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       : t("releaseLinear", { amount: schedule.amount, token: asset })
     : t("releaseWaiting");
   const network = normalizeStudioNetwork(networkValue);
+  // No network yet is "we have not been told", not "the network is down".
+  const awaitingContext = chainBindingState === "awaiting-context";
   const networkLabel = network === "mainnet"
     ? t("networkMainnet")
     : network === "testnet"
       ? t("networkTestnet")
-      : t("networkUnknown");
+      : awaitingContext
+        ? t("networkAwaiting")
+        : t("networkUnknown");
   const actionBusy = isCreating || isLoading || isRefreshing;
   const pending = Boolean(pendingCreateTxid);
   const chainReady = chainBindingState === "verified";
@@ -203,9 +207,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <div className="stream-studio__network-ticket">
             <span>{t("liveContract")}</span>
             <strong>{networkLabel}</strong>
-            <em data-state={chainReady ? "verified" : "mismatch"}>
+            <em data-state={chainReady ? "verified" : awaitingContext ? "awaiting" : "mismatch"}>
               <ShieldCheck size={14} />
-              {chainReady ? t("bindingVerified") : t("bindingMismatch")}
+              {chainReady
+                ? t("bindingVerified")
+                : awaitingContext
+                  ? t("bindingAwaiting")
+                  : t("bindingMismatch")}
             </em>
           </div>
           <div className="stream-studio__receipt" aria-label={t("releasePreview")}>
@@ -223,15 +231,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
 
         <section className="stream-studio__composer" aria-label={t("paymentTicket")}>
+          {/* The service state is already announced once by the PlayStage badge;
+              repeating it verbatim here read as a duplicated chip on one screen. */}
           <header className="stream-studio__composer-head">
             <div>
               <span>{t("paymentTicket")}</span>
               <strong>{ticketStatus}</strong>
             </div>
-            <span className="stream-studio__service" data-state={serviceState}>
-              <span className="stream-studio__service-dot" aria-hidden="true" />
-              {t(serviceLabelKey(serviceState))}
-            </span>
           </header>
 
           <OpenUiSegmented

@@ -308,6 +308,36 @@
   color: #991b1b;
 }
 
+/* Pre-probe state: neutral and calm, never alarming. The vault has not asked
+   the network anything yet, so it must not look locked or broken. */
+.vault-operation-notice--probing {
+  grid-template-columns: auto minmax(0, 1fr);
+  border-color: var(--mx2-border);
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+}
+
+/* Pre-wallet state: an invitation, not a fault. */
+.vault-operation-notice--connect {
+  grid-template-columns: auto minmax(0, 1fr);
+  border-color: var(--mx2-border);
+  background: var(--mx2-surface-2);
+  color: var(--mx2-text-muted);
+}
+
+.vault-operation-notice__spinner {
+  animation: vault-notice-spin 1s linear infinite;
+  color: var(--mx2-text-muted);
+}
+
+@keyframes vault-notice-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-operation-notice__spinner { animation: none; }
+}
+
 .vault-operation-notice > span {
   min-width: 0;
   display: grid;

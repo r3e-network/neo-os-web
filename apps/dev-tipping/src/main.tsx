@@ -120,6 +120,9 @@ defineMiniApp({
       const addressAtStart = wallet.address.get() ?? "";
       await wallet.refreshRuntime(addressAtStart || null);
       if (generation !== refreshGeneration) return false;
+      // Waiting for a wallet is the expected first-load state, not a load
+      // failure. Throwing here surfaced a console error on every cold open.
+      if (wallet.runtimeStatus.get() === "awaiting-wallet") return false;
       if (!wallet.runtimeCompatible.get()) {
         throw new Error(wallet.runtimeError.get() || t("runtimeUnavailable"));
       }

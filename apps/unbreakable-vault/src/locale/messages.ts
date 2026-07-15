@@ -194,6 +194,16 @@ const appMessages = {
     en: "Connect the wallet that will own or challenge this vault.",
     zh: "请连接将创建或挑战该保险库的钱包。",
   },
+  chainProbingTitle: { en: "Checking network", zh: "正在检查网络" },
+  chainProbing: {
+    en: "Confirming the Unbreakable Vault contract on this network.",
+    zh: "正在确认该网络上的坚不可摧保险库合约。",
+  },
+  chainAwaitingTitle: { en: "Connect to load vaults", zh: "连接后加载保险库" },
+  chainAwaiting: {
+    en: "Connect a wallet to browse live bounties and challenge a vault.",
+    zh: "连接钱包即可浏览实时赏金并挑战保险库。",
+  },
   chainUnavailableTitle: { en: "Vault locked", zh: "保险库已锁定" },
   chainContextMismatch: {
     en: "The selected network is not bound to the canonical Unbreakable Vault contract. Reads and writes are disabled.",

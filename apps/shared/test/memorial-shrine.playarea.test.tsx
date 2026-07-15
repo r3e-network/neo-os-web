@@ -168,6 +168,51 @@ describe("Memorial Shrine PlayArea (v2 scene-driven)", () => {
     expect(dispatch).toHaveBeenCalledWith("refreshMemorials");
   });
 
+  it("opens on the memorial studio, not a failure screen, before any chain context", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          memorials: [],
+          selectedMemorial: null,
+          memorialCount: 0,
+          catalogStatus: "awaiting-context",
+          catalogError: "",
+          networkStatus: "unknown-network",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    // A visitor who has not connected has not suffered a refresh failure.
+    expect(container.querySelector(".shrine-recovery")).toBeNull();
+    expect(container.textContent).not.toContain("The garden could not be refreshed");
+    expect(container.textContent).not.toContain("Existing memorials were not replaced");
+    // ...and lands on a real product surface instead.
+    expect(container.querySelector(".shrine-create-card")).toBeTruthy();
+  });
+
+  it("states a catalog failure once rather than repeating it under the header", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({
+          memorials: [],
+          selectedMemorial: null,
+          memorialCount: 0,
+          catalogStatus: "error",
+          catalogError: "Previously verified entries are retained.",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    // The PlayStage header owns this copy; the scene used to print it again.
+    const rendered = container.textContent ?? "";
+    expect(rendered.split(t("catalogLoadFailedTitle")).length - 1).toBe(1);
+    expect(rendered.split(t("catalogLoadFailed")).length - 1).toBe(1);
+  });
+
   it("shows partial catalog truth and blocks writes when recovery storage is unavailable", () => {
     const { container, getByText } = render(
       <PlayArea
