@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CoinArt } from "@shared/art";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2/DataPhase";
 import {
   OpenUiLiteNotice as OpenUiNotice,
   OpenUiLitePanel as OpenUiPanel,
@@ -103,11 +104,47 @@ export default function PlayArea({ t, state, dispatch }: Props) {
   const amountReady = /^[1-9]\d*$/.test(amount);
   const writable = readStatus === "ready" && !pending && !busy;
   const readable = readStatus === "ready" || readStatus === "paused";
-  const stakeDisplay = user ? displayInteger(user.stake) : "—";
-  const rewardsDisplay = user ? displayFixed(user.pendingRewards, 8, 5) : "—";
-  const reserveDisplay = stats ? displayFixed(stats.rewardReserve, 8, 4) : "—";
-  const totalDisplay = stats ? displayInteger(stats.totalStaked) : "—";
-  const routesDisplay = stats ? displayInteger(stats.agentCount) : "—";
+  // `readStatus` starts at "loading" before the first loadAll round, and the
+  // `loading` observable covers every later round — together they are this
+  // console's settled signal. Without it, "the chain read is still in flight"
+  // and "the read finished and there is nothing to show" both collapsed into
+  // the same bare em-dash on a cold first paint.
+  const reading = readStatus === "loading" || bool("loading");
+  const statsPhase = resolvePhase({
+    loading: reading,
+    settled: !reading,
+    hasData: Boolean(stats),
+  });
+  // `user` is only read once a wallet hash exists, so a settled-empty user is
+  // the normal pre-wallet state and earns a connect prompt rather than the
+  // pool-scoped "Awaiting network".
+  const userPhase = resolvePhase({
+    loading: reading,
+    settled: !reading,
+    hasData: Boolean(user),
+  });
+  const userPlaceholder = walletConnected
+    ? t("valueAwaitingNetwork")
+    : t("valueConnectWallet");
+  const poolStat = (value: ReactNode, skeletonWidth?: string) => (
+    <PhaseValue
+      phase={statsPhase}
+      placeholder={t("valueAwaitingNetwork")}
+      skeletonWidth={skeletonWidth}
+    >
+      {value}
+    </PhaseValue>
+  );
+  const userStat = (value: ReactNode, skeletonWidth?: string) => (
+    <PhaseValue phase={userPhase} placeholder={userPlaceholder} skeletonWidth={skeletonWidth}>
+      {value}
+    </PhaseValue>
+  );
+  const stakeDisplay = user ? displayInteger(user.stake) : "";
+  const rewardsDisplay = user ? displayFixed(user.pendingRewards, 8, 5) : "";
+  const reserveDisplay = stats ? displayFixed(stats.rewardReserve, 8, 4) : "";
+  const totalDisplay = stats ? displayInteger(stats.totalStaked) : "";
+  const routesDisplay = stats ? displayInteger(stats.agentCount) : "";
   const selectedRoute = stats && stats.selectedAgentId !== "0"
     ? t("selectedRouteValue", { id: stats.selectedAgentId })
     : t("selectedRouteNone");
@@ -132,8 +169,20 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         />
         <div className="trust-visual__plate">
           <span>{t("governanceRoute")}</span>
-          <strong>{selectedRoute}</strong>
-          <small>{t("routeCountValue", { count: routesDisplay })}</small>
+          {/* Both lines are chain facts. Before the read settles we do not know
+              that no route is selected, so asserting "Route not selected" (or a
+              "— registered AA routes" void) over the hero art would be a guess
+              dressed as data. */}
+          <strong>{poolStat(selectedRoute, "8em")}</strong>
+          <small>
+            <PhaseValue
+              phase={statsPhase}
+              placeholder={t("routeCountPending")}
+              skeletonWidth="10em"
+            >
+              {t("routeCountValue", { count: routesDisplay })}
+            </PhaseValue>
+          </small>
         </div>
       </section>
 
@@ -149,8 +198,8 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         </header>
 
         <div className="trust-position-strip">
-          <div><span>{t("myStake")}</span><strong>{stakeDisplay} NEO</strong></div>
-          <div><span>{t("pendingRewards")}</span><strong>{rewardsDisplay} GAS</strong></div>
+          <div><span>{t("myStake")}</span><strong>{userStat(`${stakeDisplay} NEO`, "4.5em")}</strong></div>
+          <div><span>{t("pendingRewards")}</span><strong>{userStat(`${rewardsDisplay} GAS`, "4.5em")}</strong></div>
         </div>
 
         <div className="trust-amount-deck" aria-label={t("stakePresetLabel")}>
@@ -243,7 +292,7 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         {drawerMode === "rewards" && (
           <OpenUiPanel title={t("manageRewards")} subtitle={t("rewardReserveHint")}>
             <div className="trust-reward-actions">
-              <div><span>{t("pendingRewards")}</span><strong>{rewardsDisplay} GAS</strong></div>
+              <div><span>{t("pendingRewards")}</span><strong>{userStat(`${rewardsDisplay} GAS`, "4.5em")}</strong></div>
               <button
                 type="button"
                 className="trust-secondary-action"
@@ -285,10 +334,10 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         {drawerMode === "protocol" && (
           <OpenUiPanel title={t("protocolDetails")} subtitle={t("protocolSubtitle")}>
             <dl className="trust-protocol-grid">
-              <div><dt>{t("networkLabel")}</dt><dd>{network || "—"}</dd></div>
-              <div><dt>{t("modeLabel")}</dt><dd>{stats?.mode ?? "—"}</dd></div>
-              <div><dt>{t("poolTotal")}</dt><dd>{totalDisplay} NEO</dd></div>
-              <div><dt>{t("rewardReserve")}</dt><dd>{reserveDisplay} GAS</dd></div>
+              <div><dt>{t("networkLabel")}</dt><dd>{network || t("valueAwaitingNetwork")}</dd></div>
+              <div><dt>{t("modeLabel")}</dt><dd>{poolStat(stats?.mode, "3em")}</dd></div>
+              <div><dt>{t("poolTotal")}</dt><dd>{poolStat(`${totalDisplay} NEO`, "5em")}</dd></div>
+              <div><dt>{t("rewardReserve")}</dt><dd>{poolStat(`${reserveDisplay} GAS`, "5em")}</dd></div>
               <div><dt>{t("contractLabel")}</dt><dd>{shortHash(contract)}</dd></div>
               <div><dt>{t("storageLabel")}</dt><dd>{storageHealthy ? t("storageReady") : t("storageBlocked")}</dd></div>
             </dl>
@@ -323,17 +372,38 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         }}
         scene={scene}
         score={[
-          { label: t("myStake"), value: `${stakeDisplay} NEO`, accent: true },
-          { label: t("pendingRewards"), value: `${rewardsDisplay} GAS` },
-          { label: t("agentTargetCount"), value: routesDisplay },
+          { label: t("myStake"), value: userStat(`${stakeDisplay} NEO`, "4em"), accent: true },
+          { label: t("pendingRewards"), value: userStat(`${rewardsDisplay} GAS`, "4em") },
+          { label: t("agentTargetCount"), value: poolStat(routesDisplay, "2.5em") },
         ]}
         actions={{
-          primary: {
-            label: pending ? t("transactionPendingShort") : t("stakeAmount", { amount }),
-            onClick: () => run("stakeNeo", { amount }),
-            disabled: !writable || !amountReady,
-            loading: busy,
-          },
+          // `writable` needs a settled chain read, which a disconnected visitor
+          // can never satisfy, so a stake-labelled primary could only render
+          // dead and grey on first paint. Offer the step that IS available.
+          // Pending outranks connect: a durable pending transaction survives a
+          // reload with no wallet attached and is already on chain, so it must
+          // not be buried under a connect prompt. Mirrors profitanchor, which
+          // shares this runtime and had the identical defect.
+          primary: pending
+            ? {
+                label: t("transactionPendingShort"),
+                onClick: () => run("stakeNeo", { amount }),
+                disabled: true,
+                loading: busy,
+              }
+            : walletConnected
+              ? {
+                  label: t("stakeAmount", { amount }),
+                  onClick: () => run("stakeNeo", { amount }),
+                  disabled: !writable || !amountReady,
+                  loading: busy,
+                }
+              : {
+                  label: t("connectWallet"),
+                  onClick: () => run("connectWallet"),
+                  disabled: busy,
+                  loading: busy,
+                },
         }}
         drawerToggleLabel={t("manageAnchor")}
         drawer={{ title: t("manageAnchor"), children: drawer }}

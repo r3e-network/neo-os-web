@@ -44,9 +44,38 @@ describe("trustanchor PlayArea production surface", () => {
 
   it("uses unavailable placeholders instead of zero when live reads are absent", () => {
     const { container } = render(<PlayArea t={t} state={state({ readStatus: "read-unavailable", stats: null, user: null })} dispatch={vi.fn()} />);
-    expect(container.querySelector(".mx2-score")?.textContent).toContain("—");
-    expect(container.querySelector<HTMLButtonElement>(".mx2-btn--primary")?.disabled).toBe(true);
+    const score = container.querySelector(".mx2-score")?.textContent ?? "";
+    // Guard intent is unchanged: an absent live read must never render as a real
+    // number — showing "0 NEO" would tell the visitor they hold nothing when we
+    // simply have not read it. What changed is the placeholder. This used to
+    // assert a bare "—", which on a cold first paint produced a grid of dashes
+    // that read as a broken product; the void is now honest zero-state copy, so
+    // pin that AND keep the no-fabricated-value guard explicit.
+    expect(score).not.toMatch(/\d/);
+    expect(score).not.toContain("—");
+    expect(score).toContain("valueConnectWallet"); // wallet-scoped: stake + rewards
+    expect(score).toContain("valueAwaitingNetwork"); // pool-scoped: route count
+    // The primary used to be pinned disabled here, which codified the defect:
+    // `writable` needs a settled chain read a disconnected visitor can never
+    // satisfy, so a stake CTA could only ever render dead and grey on a
+    // fault-free first paint. The stake action is still correctly withheld —
+    // what replaces it is the step that IS available, and it must be live.
+    const primary = container.querySelector<HTMLButtonElement>(".mx2-btn--primary");
+    expect(primary?.disabled).toBe(false);
+    expect(primary?.textContent).toContain("connectWallet");
+    expect(primary?.textContent).not.toContain("stakeAmount");
     expect(container.querySelector(".trust-binding")?.textContent).toBe("bindingReadUnavailable");
+  });
+
+  it("renders skeletons rather than zero-state copy while the first read is in flight", () => {
+    // The distinction the DataPhase primitive exists for: "still asking" must not
+    // flash "Connect wallet" at a visitor whose data is 200ms away, and must not
+    // fall back to a dash either.
+    const { container } = render(<PlayArea t={t} state={state({ readStatus: "loading", stats: null, user: null })} dispatch={vi.fn()} />);
+    expect(container.querySelectorAll(".mx2-skeleton").length).toBeGreaterThan(0);
+    const score = container.querySelector(".mx2-score")?.textContent ?? "";
+    expect(score).not.toContain("valueConnectWallet");
+    expect(score).not.toContain("—");
   });
 
   it("shows a durable pending state and recovers without exposing another stake action", () => {

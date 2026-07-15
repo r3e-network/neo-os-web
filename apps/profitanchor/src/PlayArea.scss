@@ -164,11 +164,17 @@
   color: #075a4b !important;
 }
 
+/* Amber is for states that need the visitor to act on a real problem: the pool
+   is paused, the deployment does not match, the read broke. `unknown-network`
+   is NOT one of those — it is simply the network the host has not handed over
+   yet, which is exactly what a cold first paint looks like. It keeps the base
+   neutral chip so opening the pool does not greet a first-time visitor with a
+   warning about a state they have not caused and cannot see a fault in. Mirrors
+   the sibling TrustAnchor pool, which shares this ABI. */
 .profit-binding--paused,
 .profit-binding--mode-mismatch,
 .profit-binding--unregistered,
 .profit-binding--read-unavailable,
-.profit-binding--unknown-network,
 .profit-binding--missing-contract {
   border-color: #eccd98;
   background: #fff7e6;
@@ -543,8 +549,23 @@
 }
 
 @media (max-width: 600px) {
+  /* .mx2-stage__head (v2.scss) is a flex row and .mx2-stage__badges never
+     shrinks, so at 390px the "Network unknown" + "Anchor mode 2" chips held the
+     right column and squeezed the titles into a ~45% sliver: "Profit-policy NEO
+     staking" wrapped one word per line and the intro stretched into a 7-line
+     ribbon beside dead space. Stacking the head gives the copy the full width
+     and lets the chips wrap underneath — same fix as oracle-vrf-console
+     (acec39136), same shape trustanchor and the anchor admins already ship.
+     Flipping justify-content alone (the old rule) never did this, because the
+     head stayed a row. */
+  .profitanchor-play-area .mx2-stage__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .profitanchor-play-area .mx2-stage__badges {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .profitanchor-play-area .mx2-action-rail__row .mx2-btn--primary {
