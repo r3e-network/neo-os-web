@@ -6,6 +6,20 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 
+// These adapters wear Semi's class contract, so they must also carry the CSS
+// that contract implies — otherwise every rule the design-system stylesheet
+// does not happen to restate simply never ships, and a native control shows
+// through. That is not hypothetical: the missing radio rule left an OS radio
+// dot over every segment in 17 apps, and .semi-checkbox is still unstyled.
+// Importing the CSS costs no JavaScript, so the "no Semi runtime" goal above
+// is untouched. The sibling OpenUi.tsx gets these for free because the real
+// Semi components import their own CSS; Lite must ask for it explicitly.
+import "@douyinfe/semi-foundation/lib/es/radio/radio.css";
+import "@douyinfe/semi-foundation/lib/es/checkbox/checkbox.css";
+import "@douyinfe/semi-foundation/lib/es/input/input.css";
+import "@douyinfe/semi-foundation/lib/es/card/card.css";
+import "@douyinfe/semi-foundation/lib/es/banner/banner.css";
+
 /**
  * Semantic, dependency-light Open UI adapters.
  *

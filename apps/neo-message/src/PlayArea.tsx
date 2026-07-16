@@ -11,6 +11,10 @@ import { Clock3, LockKeyhole, MailCheck, RadioTower, RefreshCw, SendHorizontal, 
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
+// Was a byte-identical local copy. The copy wore Semi's checkbox class
+// contract without the CSS behind it, so the native OS checkbox rendered on
+// top of the styled card; the shared component carries that CSS.
+import { OpenUiLiteCardCheckbox } from "@shared/components-react/v2/OpenUiLite";
 import {
   MAX_BODY_LENGTH,
   formatUnlock,
@@ -202,37 +206,6 @@ function OpenUiSegmented({
   );
 }
 
-function CardCheckbox({
-  checked,
-  className,
-  children,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  className?: string;
-  children: ReactNode;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label className={[
-      "semi-checkbox",
-      "semi-checkbox-cardType",
-      checked ? "semi-checkbox-checked" : "",
-      className,
-    ].filter(Boolean).join(" ")}>
-      <input
-        type="checkbox"
-        checked={checked}
-        aria-label={label}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className="semi-checkbox-inner" aria-hidden="true" />
-      <span className="semi-checkbox-content semi-checkbox-addon">{children}</span>
-    </label>
-  );
-}
 
 function bodyPreview(body: string, fallback: string): string {
   const trimmed = body.trim();
@@ -610,7 +583,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
                 min={new Date(nowMs - new Date(nowMs).getTimezoneOffset() * 60_000).toISOString().slice(0, 16)}
                 onChange={(event) => updateForm({ revealDate: event.target.value, publicRevealAcknowledged: false })}
               />
-              <CardCheckbox
+              <OpenUiLiteCardCheckbox
                 checked={Boolean(form.publicRevealAcknowledged)}
                 className="neomsg-timed__ack"
                 label={t("timedAcknowledge")}
@@ -620,7 +593,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
                   <ShieldCheck size={15} strokeWidth={2.35} aria-hidden="true" />
                   <span>{t("timedAcknowledge")}</span>
                 </span>
-              </CardCheckbox>
+              </OpenUiLiteCardCheckbox>
               <OpenUiNotice
                 className="neomsg-drawer__notice"
                 icon={<Clock3 size={17} strokeWidth={2.35} aria-hidden="true" />}
