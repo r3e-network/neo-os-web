@@ -34,14 +34,17 @@ namespace NeoMiniAppPlatform.Contracts
             // AppAccount moves treasury GAS through the registry without a
             // memo. Validate against the note and credit NOTHING — the hop
             // is forwarded to the engine by fundEnginePool after this
-            // callback returns, never from inside it.
+            // callback returns, never from inside it. The note is the
+            // in-flight LOCK and is deliberately NOT cleared here (finding 3):
+            // fundEnginePool holds it across the engine forward and clears it
+            // only afterwards, so a reentrant fundEnginePool from a hostile
+            // engine callback trips the "treasury hop in progress" guard.
             ByteString transitRaw = Storage.Get(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT);
             if (transitRaw != null)
             {
                 TransitNote note = (TransitNote)StdLib.Deserialize(transitRaw);
                 ExecutionEngine.Assert(from != null && from == note.Account, "unexpected payer during treasury hop");
                 ExecutionEngine.Assert(amount == note.Amount, "unexpected amount during treasury hop");
-                Storage.Delete(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT);
                 return;
             }
 

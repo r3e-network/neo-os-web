@@ -33,6 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (KeyInNamespace(key, REGISTRY_NAMESPACE))
             {
                 ApplyRegistryDescriptor(appId, key, value);
+                StoreDescriptor(appId, key, value);
             }
             else
             {
@@ -41,9 +42,13 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(KeyInNamespace(key, engineId), "descriptor key outside engine namespace");
                 EngineRow row = GetEngineRow(engineId);
                 ExecutionEngine.Assert(row != null && row.Active, "engine not active");
+                // Checks-effects-interactions: persist the directory copy
+                // BEFORE the external engine call (finding 4). If the engine
+                // rejects, the whole tx aborts and this write rolls back, so
+                // the stored copy only ever reflects an accepted descriptor.
+                StoreDescriptor(appId, key, value);
                 Contract.Call(row.Hash, "validateAndApplyDescriptor", CallFlags.All, appId, key, value);
             }
-            StoreDescriptor(appId, key, value);
             OnDescriptorApplied(appId, key);
         }
 

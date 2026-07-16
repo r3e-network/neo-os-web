@@ -98,7 +98,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.False(AsBool(row[4]));
             Assert.True(AsBool(row[5]));
             Assert.Equal(appAdmin, ctx.Registry.appAdminOf("lite-app"));
-            Assert.Equal(appAdmin, ctx.Registry.payoutAddressOf("lite-app"));
+            // No auto-seeded payout (finding 1): a spend destination must be
+            // installed explicitly through the timelocked setter.
+            Assert.Equal(UInt160.Zero, ctx.Registry.payoutAddressOf("lite-app"));
 
             // Duplicate appIds are rejected (uniqueness is identity).
             DepositCredit(ctx, appAdmin, "lite-app", 2 * GAS_UNIT);
@@ -188,6 +190,25 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var appAdmin = TestEngine.GetNewSigner().Account;
             AssertRevert("engine not active",
                 () => ctx.Registry.registerAppByPlatform("late-app", EngineId, appAdmin, null));
+        }
+
+        [Fact]
+        public void ProposeEngine_RejectsReservedRegistryNamespace()
+        {
+            // Finding 6: an engine named "registry" would make its descriptor
+            // keys ("registry:param") collide with the registry-owned namespace
+            // that SetDescriptor consumes locally, so the engine's own keys
+            // would become unreachable. The reserved id is rejected outright.
+            var ctx = Deploy();
+            AsAdmin(ctx);
+            AssertRevert("engineId reserved",
+                () => ctx.Registry.proposeEngine("registry", ctx.EngineMock.Hash, 1));
+
+            // A non-reserved id still registers normally.
+            ctx.Registry.proposeEngine("registry-lane", ctx.EngineMock.Hash, 1);
+            AdvanceMs(ctx, TIMELOCK_MS + 1_000);
+            ctx.Registry.registerEngine("registry-lane");
+            Assert.True(AsBool(ctx.Registry.getEngine("registry-lane")![2]));
         }
 
         [Fact]

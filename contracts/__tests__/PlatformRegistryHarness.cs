@@ -71,6 +71,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract void cancelPayoutAddress(string appId);
         public abstract UInt160? payoutAddressOf(string appId);
         public abstract BigInteger? spendThresholdOf(string appId);
+        public abstract BigInteger? spentInWindow(string appId);
+        public abstract bool? transitHopInProgress();
+        // shim upgrade (version-bound consent + per-upgrade timelock)
+        public abstract void proposeUpgradeAppAccount(string appId);
+        public abstract void cancelUpgradeAppAccount(string appId);
         // directory
         public abstract object[]? getApp(string appId);
         public abstract UInt160? appAccountOf(string appId);
@@ -91,6 +96,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? poolCreditOf(string appId);
         public abstract string? lastPoolMemoOf(string appId);
         public abstract UInt160? lastPoolPayerOf(string appId);
+    }
+
+    // ABI binding for the hostile reentrant engine counterparty (finding 3).
+    public abstract class ReentrantEngineMockContract : SmartContract
+    {
+        protected ReentrantEngineMockContract(SmartContractInitialize initialize) : base(initialize) { }
+        public abstract void arm(UInt160 registry);
+        public abstract BigInteger? observedHopInProgress();
+        public abstract BigInteger? poolReceived();
     }
 
     // Shared deploy/setup helpers for the PlatformRegistry suites.

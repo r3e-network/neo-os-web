@@ -85,6 +85,13 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(
                 Storage.Get(Storage.CurrentContext, AppKey(PREFIX_APP_ACCOUNT, appId)) == null,
                 "account already minted");
+            // Reentrancy guard (finding 4): the row is recorded only AFTER the
+            // external Deploy + bind handshake, so a nested mint would slip past
+            // the "already minted" check. The in-flight lock forbids it.
+            ExecutionEngine.Assert(
+                Storage.Get(Storage.CurrentContext, PREFIX_MINT_LOCK) == null,
+                "mint in progress");
+            Storage.Put(Storage.CurrentContext, PREFIX_MINT_LOCK, 1);
             UInt160 appAdmin = AppAdminOf(appId);
             if (!IsPlatformAdminWitness())
             {
@@ -102,28 +109,58 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(echo == appId, "bind handshake failed");
             Storage.Put(Storage.CurrentContext, AppKey(PREFIX_APP_ACCOUNT, appId), account);
             Storage.Put(Storage.CurrentContext, AccountKey(PREFIX_APP_ID_BY_ACCOUNT, account), appId);
+            Storage.Delete(Storage.CurrentContext, PREFIX_MINT_LOCK);
             OnAppAccountMinted(appId, account, ArtifactVersion());
             return account;
         }
 
         // ---- double-consent shim upgrades (design section 4 governance) ----
 
-        /// <summary>App-admin consent flag for the NEXT registry-orchestrated
-        /// account upgrade. One-shot: cleared when the upgrade executes.</summary>
+        /// <summary>
+        /// App-admin consent for the NEXT registry-orchestrated account
+        /// upgrade. Consent is bound to the CURRENTLY-active artifact version
+        /// (finding 2): approving an upgrade approves a specific artifact, so a
+        /// later platform-activated artifact cannot ride a stale consent.
+        /// One-shot: cleared when the upgrade executes.
+        /// </summary>
         public static void SetShimUpgradeConsent(string appId, bool consented)
         {
             RequireRegistered(appId);
             RequireAppAdmin(appId);
-            if (consented) Storage.Put(Storage.CurrentContext, AppKey(PREFIX_SHIM_CONSENT, appId), 1);
+            if (consented)
+            {
+                BigInteger version = ArtifactVersion();
+                ExecutionEngine.Assert(version > 0, "no account artifact");
+                Storage.Put(Storage.CurrentContext, AppKey(PREFIX_SHIM_CONSENT, appId), version);
+            }
             else Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_SHIM_CONSENT, appId));
             OnShimUpgradeConsentChanged(appId, consented);
         }
 
         /// <summary>
-        /// Registry-orchestrated account upgrade: needs the platform admin
-        /// (the artifact already served its own 24h timelock) AND the app's
-        /// consent flag — the double-consent rule closing the fleet-repave
-        /// vector. Local account state survives (update path has no re-init).
+        /// Propose a registry-orchestrated account upgrade. Platform-admin
+        /// gated; requires the app's version-bound consent to already match the
+        /// active artifact, and opens a per-upgrade 24h timelock consistent
+        /// with the other registry timelocks (finding 2).
+        /// </summary>
+        public static void ProposeUpgradeAppAccount(string appId)
+        {
+            ValidateAdmin();
+            RequireRegistered(appId);
+            ExecutionEngine.Assert(AccountOf(appId) != UInt160.Zero, "no minted account");
+            RequireFreshConsent(appId);
+            BigInteger executeAfter = Runtime.Time + TIMELOCK_DELAY_MS;
+            Storage.Put(Storage.CurrentContext, AppKey(PREFIX_PENDING_SHIM_UPGRADE, appId), executeAfter);
+            OnAppAccountUpgradeProposed(appId, ArtifactVersion(), executeAfter);
+        }
+
+        /// <summary>
+        /// Execute a matured account upgrade. Needs the platform admin, the
+        /// app's consent bound to the artifact ACTUALLY being applied (the
+        /// stale-consent guard, checked before the timelock so a version swap
+        /// is rejected regardless of maturity), and the per-upgrade timelock.
+        /// Consent + pending slot are one-shot. Local state survives (the
+        /// update path has no re-init).
         /// </summary>
         public static void UpgradeAppAccount(string appId)
         {
@@ -131,38 +168,32 @@ namespace NeoMiniAppPlatform.Contracts
             RequireRegistered(appId);
             UInt160 account = AccountOf(appId);
             ExecutionEngine.Assert(account != UInt160.Zero, "no minted account");
-            ExecutionEngine.Assert(
-                Storage.Get(Storage.CurrentContext, AppKey(PREFIX_SHIM_CONSENT, appId)) != null,
-                "app consent required");
+            RequireFreshConsent(appId);
+            ByteString rawEta = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_PENDING_SHIM_UPGRADE, appId));
+            ExecutionEngine.Assert(rawEta != null, "no pending upgrade");
+            ExecutionEngine.Assert(Runtime.Time >= (BigInteger)rawEta, "timelock active");
             ByteString nef = Storage.Get(Storage.CurrentContext, PREFIX_ARTIFACT_NEF);
             ExecutionEngine.Assert(nef != null, "account artifact not set");
             string manifest = SpliceManifest(appId);
             Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_SHIM_CONSENT, appId));
+            Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_SHIM_UPGRADE, appId));
             Contract.Call(account, "update", CallFlags.All, nef, manifest);
             OnAppAccountUpgraded(appId, ArtifactVersion());
         }
 
-        // ---- advisory hash prediction (section 4.1 rule 2) ----
-
-        /// <summary>
-        /// Advisory sibling of neo-core CreateContractHash for the stored
-        /// artifact checksum: Hash160(ABORT ++ push(sender) ++ push(checksum)
-        /// ++ push(appId)). The registry row remains the address of record;
-        /// this read exists for off-chain precomputation through the fixed
-        /// pipeline deployer lane.
-        /// </summary>
-        [Safe]
-        public static UInt160 PredictedAccountHash(UInt160 deployerSender, string appId)
+        public static void CancelUpgradeAppAccount(string appId)
         {
-            ValidateAddress(deployerSender);
-            ValidateAppIdFormat(appId);
-            ByteString rawChecksum = Storage.Get(Storage.CurrentContext, PREFIX_ARTIFACT_CHECKSUM);
-            ExecutionEngine.Assert(rawChecksum != null, "account artifact not set");
-            ByteString script = (ByteString)new byte[] { 0x38 }; // ABORT
-            script = Helper.Concat(script, EncodePushData((ByteString)deployerSender));
-            script = Helper.Concat(script, EncodePushInteger((BigInteger)rawChecksum));
-            script = Helper.Concat(script, EncodePushData((ByteString)appId));
-            return (UInt160)CryptoLib.Ripemd160(CryptoLib.Sha256(script));
+            ValidateAdmin();
+            Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_SHIM_UPGRADE, appId));
+        }
+
+        // The version-bound consent guard: consent must be present AND equal to
+        // the artifact version that would be applied right now.
+        private static void RequireFreshConsent(string appId)
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_SHIM_CONSENT, appId));
+            ExecutionEngine.Assert(raw != null, "app consent required");
+            ExecutionEngine.Assert((BigInteger)raw == ArtifactVersion(), "consent stale");
         }
 
         // ---- internals ----
@@ -224,38 +255,6 @@ namespace NeoMiniAppPlatform.Contracts
             byte[] raw = (byte[])nef;
             byte[] tail = Helper.Range(raw, raw.Length - 4, 4);
             return (BigInteger)(ByteString)Helper.Concat(tail, new byte[] { 0x00 });
-        }
-
-        // PUSHDATA1 encoding for payloads under 256 bytes (sender + appId).
-        private static ByteString EncodePushData(ByteString data)
-        {
-            ExecutionEngine.Assert(data.Length < 256, "push data too long");
-            return Helper.Concat((ByteString)new byte[] { 0x0C, (byte)data.Length }, data);
-        }
-
-        // ScriptBuilder.EmitPush(BigInteger) for non-negative values: PUSH0-16
-        // for tiny values, else the minimal little-endian form zero-padded to
-        // the 1/2/4/8-byte bucket behind PUSHINT8/16/32/64.
-        private static ByteString EncodePushInteger(BigInteger value)
-        {
-            ExecutionEngine.Assert(value >= 0, "negative push value");
-            if (value <= 16) return (ByteString)new byte[] { (byte)(0x10 + (byte)value) };
-            byte[] raw = value.ToByteArray();
-            if (raw.Length == 1) return Helper.Concat((ByteString)new byte[] { 0x00 }, (ByteString)raw);
-            if (raw.Length == 2) return Helper.Concat((ByteString)new byte[] { 0x01 }, (ByteString)raw);
-            if (raw.Length <= 4) return Helper.Concat((ByteString)new byte[] { 0x02 }, PadUnsigned(raw, 4));
-            ExecutionEngine.Assert(raw.Length <= 8, "push value too large");
-            return Helper.Concat((ByteString)new byte[] { 0x03 }, PadUnsigned(raw, 8));
-        }
-
-        private static ByteString PadUnsigned(byte[] raw, int size)
-        {
-            ByteString padded = (ByteString)raw;
-            for (int i = raw.Length; i < size; i++)
-            {
-                padded = Helper.Concat(padded, (ByteString)new byte[] { 0x00 });
-            }
-            return padded;
         }
     }
 }
