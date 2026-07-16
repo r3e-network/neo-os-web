@@ -8,8 +8,8 @@
  * no edge proxy.
  */
 
-import { createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createDerived, createObservable, createReadCell } from "@shared/react/context";
+import type { Observable, ReadCell } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 
@@ -36,6 +36,23 @@ interface ExactPriceQuote {
   price: number;
   dataTimestamp: number;
   recordTimestamp: number;
+}
+
+/**
+ * One settled feed read: the exact quote plus the route/key that produced it.
+ * This is the read-cell's unit of truth. An explicit `null` is the
+ * settled-empty verdict — a completed read with nothing displayable (a failed
+ * re-read clears the console to it) — distinct from the cell's `undefined`,
+ * which means "not read yet" and keeps the view shimmering.
+ */
+interface FeedReading {
+  price: number;
+  /** On-chain write timestamp of the read; 0 = unverified. */
+  recordTimestamp: number;
+  /** Upstream market-source observation time; 0 = unverified. */
+  sourceTimestamp: number;
+  route: FeedRoute;
+  key: string;
 }
 
 /** Freshness classification for the displayed price's badge. */
@@ -173,25 +190,7 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
   const integration = EXTERNAL_INTEGRATIONS[network];
 
   const asset = createObservable("NEO");
-  const latestPrice = createObservable<number | null>(null);
-  // On-chain write timestamp of the last successful read; 0 = unverified.
-  const lastTimestamp = createObservable(0);
-  // Upstream market-source time is disclosed separately. A fresh contract
-  // write must not hide an old or missing source observation.
-  const sourceTimestamp = createObservable(0);
-  const feedRoute = createObservable<FeedRoute | "">("");
-  const feedKey = createObservable("");
   const isRequesting = createObservable(false);
-  /**
-   * True once a feed read has completed, success or failure. `latestPrice ==
-   * null` alone cannot tell "the feed read is still in flight" from "the feed
-   * read came back with nothing" — both leave it null, so both rendered the
-   * same "N/A". The pair price is a public contract read that fires for every
-   * visitor on arrival, so that ambiguity is the console's first impression.
-   * `isRequesting` cannot stand in for this: it is still false on the very
-   * first frame, before lifecycle mount has called `loadAll`.
-   */
-  const priceSettled = createObservable(false);
   const errorMsg = createObservable<string | null>(null);
   // Available feed pairs (base symbols). Seeded with instant defaults and
   // lazily extended from the on-chain catalog (listPairs) on first load.
@@ -208,14 +207,81 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     }
   }
 
-  function clearDisplayedQuote() {
-    clearFreshnessTimer();
-    latestPrice.set(null);
-    lastTimestamp.set(0);
-    sourceTimestamp.set(0);
-    feedRoute.set("");
-    feedKey.set("");
-  }
+  /**
+   * The ONE feed reading, on the platform read-cell (read-cell pilot). The
+   * cell's `value === undefined` IS the old hand-rolled `priceSettled ===
+   * false` unread state, and a failed read publishes an explicit `null`
+   * settled-empty verdict, so "has a read answered yet?" lives in the value
+   * itself instead of a parallel boolean.
+   *
+   * The pair is a per-call read parameter: the loader captures it (and this
+   * request's generation) when the load STARTS, so a pair switch mid-flight
+   * can never relabel the departing pair's quote — the same guard the
+   * hand-rolled `fetchPrice` carried.
+   */
+  const quoteCell: ReadCell<FeedReading | null> = createReadCell(
+    async (): Promise<FeedReading> => {
+      const requestId = requestGeneration;
+      const requestedAsset = asset.get();
+      const isCurrent = () =>
+        requestId === requestGeneration && asset.get() === requestedAsset;
+      const resolved = await readBoundQuote(requestedAsset, isCurrent);
+      // A stale-but-resolved read must not publish: the cell's epoch already
+      // blocks a publish raced by a newer load()/reset(), and this covers the
+      // remaining supersession source (cleanup mid-flight).
+      if (!isCurrent()) throw new Error("price read superseded");
+      return {
+        price: resolved.quote.price,
+        recordTimestamp: resolved.quote.recordTimestamp,
+        sourceTimestamp: resolved.quote.dataTimestamp,
+        route: resolved.route,
+        key: resolved.key,
+      };
+    },
+  );
+
+  const latestPrice = createDerived<number | null>(
+    () => quoteCell.value.get()?.price ?? null,
+    [quoteCell.value],
+  );
+  // On-chain write timestamp of the last successful read; 0 = unverified.
+  const lastTimestamp = createDerived(
+    () => quoteCell.value.get()?.recordTimestamp ?? 0,
+    [quoteCell.value],
+  );
+  // Upstream market-source time is disclosed separately. A fresh contract
+  // write must not hide an old or missing source observation.
+  const sourceTimestamp = createDerived(
+    () => quoteCell.value.get()?.sourceTimestamp ?? 0,
+    [quoteCell.value],
+  );
+  const feedRoute = createDerived<FeedRoute | "">(
+    () => quoteCell.value.get()?.route ?? "",
+    [quoteCell.value],
+  );
+  const feedKey = createDerived(
+    () => quoteCell.value.get()?.key ?? "",
+    [quoteCell.value],
+  );
+  /**
+   * True once a feed read has completed, success or failure. `latestPrice ==
+   * null` alone cannot tell "the feed read is still in flight" from "the feed
+   * read came back with nothing" — both leave it null, so both rendered the
+   * same "N/A". The pair price is a public contract read that fires for every
+   * visitor on arrival, so that ambiguity is the console's first impression.
+   * `isRequesting` cannot stand in for this: it is still false on the very
+   * first frame, before lifecycle mount has called `loadAll`.
+   *
+   * Derived from the cell's value: a real quote and the explicit `null`
+   * settled-empty verdict both count as "a read has answered"; only the
+   * unread `undefined` keeps the shimmer. Deliberately NOT the cell's status
+   * — a re-read of the same pair flips status back to "loading", but the
+   * console keeps showing the previous verdict until the re-read answers.
+   */
+  const priceSettled = createDerived(
+    () => quoteCell.value.get() !== undefined,
+    [quoteCell.value],
+  );
 
   function scheduleFreshnessBoundary(...timestamps: number[]) {
     clearFreshnessTimer();
@@ -490,12 +556,14 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     if (!/^[A-Z0-9]{1,12}$/.test(next) || next === asset.get()) return false;
     requestGeneration += 1;
     asset.set(next);
-    clearDisplayedQuote();
+    clearFreshnessTimer();
+    // The new pair has not been read yet — back to shimmering, not to a stale
+    // verdict inherited from the pair the visitor just left. reset() returns
+    // the cell to unread (`undefined`, so `priceSettled` reads false) and
+    // invalidates any in-flight load's publish.
+    quoteCell.reset();
     errorMsg.set(null);
     isRequesting.set(false);
-    // The new pair has not been read yet — back to shimmering, not to a stale
-    // "Awaiting read" verdict inherited from the pair the visitor just left.
-    priceSettled.set(false);
     return true;
   }
 
@@ -505,22 +573,17 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     isRequesting.set(true);
     errorMsg.set(null);
     try {
-      const resolved = await readBoundQuote(
-        requestedAsset,
-        () => requestId === requestGeneration && asset.get() === requestedAsset,
-      );
+      // The cell publishes the quote itself (epoch-guarded, so a superseded
+      // read can never land); on success the derived quote observables and
+      // `priceSettled` follow from the published value.
+      const reading = await quoteCell.load();
       if (requestId !== requestGeneration || asset.get() !== requestedAsset) {
         return { success: false, ignored: true };
       }
-      const { quote } = resolved;
-      latestPrice.set(quote.price);
-      const recordTime = quote.recordTimestamp;
-      const marketTime = quote.dataTimestamp;
-      lastTimestamp.set(recordTime);
-      sourceTimestamp.set(marketTime);
-      feedRoute.set(resolved.route);
-      feedKey.set(resolved.key);
-      scheduleFreshnessBoundary(recordTime, marketTime);
+      if (reading) {
+        // The freshness boundary timer is app-side domain logic; it stays here.
+        scheduleFreshnessBoundary(reading.recordTimestamp, reading.sourceTimestamp);
+      }
       return { success: true };
     } catch (e) {
       if (requestId !== requestGeneration || asset.get() !== requestedAsset) {
@@ -530,15 +593,19 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
       // Keep the raw fault text in the dev console; show users a stable message.
       console.error("[oracle-price-console] feed read failed:", raw);
       const localized = t(classifyFeedError(raw));
-      clearDisplayedQuote();
+      // A failed read CLEARS the displayed quote. The cell keeps its last good
+      // value on a throw (stale-but-real stays renderable), but this console's
+      // honesty contract is stricter: a stale quote must not survive a failed
+      // re-read, and must not be replaced by a fabricated zero either. Publish
+      // the explicit `null` settled-empty verdict — one read round has
+      // completed, so "no price" now means "unavailable", not "still asking".
+      clearFreshnessTimer();
+      quoteCell.value.set(null);
       errorMsg.set(localized);
       return { success: false, error: localized };
     } finally {
       if (requestId === requestGeneration && asset.get() === requestedAsset) {
         isRequesting.set(false);
-        // One read round has completed, success or not. Until this flips, "no
-        // price" means "still asking" and the view shows a shimmer.
-        priceSettled.set(true);
       }
     }
   }
@@ -577,6 +644,14 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     requestGeneration += 1;
     catalogGeneration += 1;
     clearFreshnessTimer();
+    // Invalidate any in-flight load's publish (reset joins the cell's epoch)
+    // while handing back the reading unmount found — cleanup has never blanked
+    // the console, it only stops it moving.
+    const reading = quoteCell.value.get();
+    const readingStatus = quoteCell.status.get();
+    quoteCell.reset();
+    quoteCell.value.set(reading);
+    quoteCell.status.set(readingStatus);
     isRequesting.set(false);
   };
 

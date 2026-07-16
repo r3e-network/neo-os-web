@@ -1,4 +1,9 @@
-import { createObservable, type Observable } from "@shared/react/context";
+import {
+  createObservable,
+  createReadCell,
+  type Observable,
+  type ReadCell,
+} from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import { formatGas } from "@shared/utils/format";
 import { eventValue } from "@shared/utils/chain-events";
@@ -81,6 +86,17 @@ export interface DailyCheckinUserSnapshot {
 export interface DailyCheckinSnapshot {
   platform: DailyCheckinPlatformSnapshot;
   user: DailyCheckinUserSnapshot;
+}
+
+/**
+ * One settled user read on the user lane's read-cell: the snapshot plus the
+ * actor it was read FOR. The actor rides along because `loadedActorHash`
+ * (the identity-diff guard consumed by `onAccountChanged`) must clear and
+ * publish in lockstep with the user snapshot itself.
+ */
+interface DailyCheckinUserLane {
+  user: DailyCheckinUserSnapshot;
+  actorHash: string;
 }
 
 export interface UseCheckinOptions {
@@ -171,28 +187,77 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
   const network = createObservable("");
   const contractHash = createObservable("");
   const dataSource = createObservable<DailyCheckinDataSource>("idle");
-  const currentStreak = createObservable(0);
-  const highestStreak = createObservable(0);
-  const lastCheckInDay = createObservable(0);
-  const totalUserCheckins = createObservable(0);
-  const unclaimedRewards = createObservable("");
-  const totalClaimed = createObservable("");
-  const checkInFeeRaw = createObservable("");
-  const totalGlobalCheckins = createObservable(0);
-  const totalGlobalUsers = createObservable(0);
-  const totalGlobalRewarded = createObservable("");
-  const rewardPoolBalance = createObservable("");
-  const totalUnclaimed = createObservable("");
-  const weekReward = createObservable("");
-  const twoWeekReward = createObservable("");
-  const isPaused = createObservable(false);
-  const chainCurrentDay = createObservable(0);
-  const nextEligibleTs = createObservable(0);
-  const chainCanCheckin = createObservable(false);
-  const streakWillReset = createObservable(false);
-  const nextRewardDay = createObservable(7);
-  const hasLoadedPlatform = createObservable(false);
-  const hasLoadedStatus = createObservable(false);
+
+  /**
+   * The two chain read lanes on the platform read-cell (read-cell pilot).
+   *
+   * `value === undefined` IS the old `hasLoadedPlatform`/`hasLoadedStatus`
+   * "no data yet" state, so the per-field observables below become deriveds
+   * of one snapshot each instead of a hand-fanned write per field. Cell throw
+   * semantics reproduce the old flags exactly: a failed platform re-read
+   * keeps the last good snapshot renderable (`hasLoadedPlatform` never
+   * flipped back on a failed refresh), while a failed user read is followed
+   * by `clearUserState()` — now `userLane.reset()` — which wipes value and
+   * flag together, and joins the cell epoch so an in-flight read for a
+   * previous actor can no longer publish over the wipe.
+   *
+   * Loader parameters travel through a request slot that the loader consumes
+   * synchronously — `createReadCell` invokes the loader inline within
+   * `load()`, before any interleaving code can replace the slot.
+   */
+  let platformLaneRequest: DailyCheckinContext | null = null;
+  const platformLane: ReadCell<DailyCheckinPlatformSnapshot> = createReadCell(() => {
+    const current = platformLaneRequest;
+    if (!current) throw new Error("Platform read requested before context resolution.");
+    return readPlatformSnapshot(current);
+  });
+  const loadPlatformLane = (current: DailyCheckinContext) => {
+    platformLaneRequest = current;
+    return platformLane.load();
+  };
+
+  let userLaneRequest: {
+    current: DailyCheckinContext;
+    actorHash: string;
+    platform: DailyCheckinPlatformSnapshot;
+  } | null = null;
+  const userLane: ReadCell<DailyCheckinUserLane> = createReadCell(async () => {
+    const request = userLaneRequest;
+    if (!request) throw new Error("User read requested before context resolution.");
+    const user = await readUserSnapshot(request.current, request.actorHash, request.platform);
+    return { user, actorHash: request.actorHash };
+  });
+  const loadUserLane = (
+    current: DailyCheckinContext,
+    actorHash: string,
+    platform: DailyCheckinPlatformSnapshot,
+  ) => {
+    userLaneRequest = { current, actorHash, platform };
+    return userLane.load();
+  };
+
+  const currentStreak = derived(() => userLane.value.get()?.user.currentStreak ?? 0, [userLane.value]);
+  const highestStreak = derived(() => userLane.value.get()?.user.highestStreak ?? 0, [userLane.value]);
+  const lastCheckInDay = derived(() => userLane.value.get()?.user.lastCheckinDay ?? 0, [userLane.value]);
+  const totalUserCheckins = derived(() => userLane.value.get()?.user.totalUserCheckins ?? 0, [userLane.value]);
+  const unclaimedRewards = derived(() => userLane.value.get()?.user.unclaimedRaw ?? "", [userLane.value]);
+  const totalClaimed = derived(() => userLane.value.get()?.user.totalClaimedRaw ?? "", [userLane.value]);
+  const checkInFeeRaw = derived(() => platformLane.value.get()?.checkInFeeRaw ?? "", [platformLane.value]);
+  const totalGlobalCheckins = derived(() => platformLane.value.get()?.totalGlobalCheckins ?? 0, [platformLane.value]);
+  const totalGlobalUsers = derived(() => platformLane.value.get()?.totalGlobalUsers ?? 0, [platformLane.value]);
+  const totalGlobalRewarded = derived(() => platformLane.value.get()?.totalGlobalRewardedRaw ?? "", [platformLane.value]);
+  const rewardPoolBalance = derived(() => platformLane.value.get()?.rewardPoolRaw ?? "", [platformLane.value]);
+  const totalUnclaimed = derived(() => platformLane.value.get()?.totalUnclaimedRaw ?? "", [platformLane.value]);
+  const weekReward = derived(() => platformLane.value.get()?.weekRewardRaw ?? "", [platformLane.value]);
+  const twoWeekReward = derived(() => platformLane.value.get()?.twoWeekRewardRaw ?? "", [platformLane.value]);
+  const isPaused = derived(() => platformLane.value.get()?.paused ?? false, [platformLane.value]);
+  const chainCurrentDay = derived(() => platformLane.value.get()?.currentDay ?? 0, [platformLane.value]);
+  const nextEligibleTs = derived(() => platformLane.value.get()?.nextMidnight ?? 0, [platformLane.value]);
+  const chainCanCheckin = derived(() => userLane.value.get()?.user.canCheckin ?? false, [userLane.value]);
+  const streakWillReset = derived(() => userLane.value.get()?.user.streakWillReset ?? false, [userLane.value]);
+  const nextRewardDay = derived(() => userLane.value.get()?.user.nextRewardDay ?? 7, [userLane.value]);
+  const hasLoadedPlatform = derived(() => platformLane.value.get() !== undefined, [platformLane.value]);
+  const hasLoadedStatus = derived(() => userLane.value.get() !== undefined, [userLane.value]);
   /**
    * True once a canonical-context resolution has completed, success or failure.
    *
@@ -204,7 +269,7 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
    * settle rather than shimmer forever.
    */
   const hasLoadedContext = createObservable(false);
-  const loadedActorHash = createObservable("");
+  const loadedActorHash = derived(() => userLane.value.get()?.actorHash ?? "", [userLane.value]);
   const isLoading = createObservable(false);
   const isSubmitting = createObservable(false);
   const isRecovering = createObservable(false);
@@ -391,17 +456,12 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
   };
 
   const clearUserState = () => {
-    hasLoadedStatus.set(false);
-    loadedActorHash.set("");
-    currentStreak.set(0);
-    highestStreak.set(0);
-    lastCheckInDay.set(0);
-    totalUserCheckins.set(0);
-    unclaimedRewards.set("");
-    totalClaimed.set("");
-    chainCanCheckin.set(false);
-    streakWillReset.set(false);
-    nextRewardDay.set(7);
+    // reset() IS the old twelve-field wipe: value -> undefined puts every
+    // user derived back on its cleared fallback (streaks 0, raw amounts "",
+    // nextRewardDay 7, hasLoadedStatus false) and joins the cell epoch, so a
+    // user read still in flight for a previous actor cannot publish over the
+    // wipe.
+    userLane.reset();
     checkinHistory.set([]);
   };
 
@@ -493,33 +553,19 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     return { platform, user };
   };
 
+  /**
+   * Blessed publications onto the read lanes (read-cell pilot): every caller
+   * — settlePending's confirmed readback and freshWalletSnapshot's pre-write
+   * baseline — just round-tripped the snapshot from chain reads, so it owns
+   * the truth as much as a load does and publishes straight onto the cell's
+   * value, exactly like timestamp-proof's verified persist path.
+   */
   const applyPlatform = (platform: DailyCheckinPlatformSnapshot) => {
-    totalGlobalCheckins.set(platform.totalGlobalCheckins);
-    totalGlobalUsers.set(platform.totalGlobalUsers);
-    totalGlobalRewarded.set(platform.totalGlobalRewardedRaw);
-    checkInFeeRaw.set(platform.checkInFeeRaw);
-    chainCurrentDay.set(platform.currentDay);
-    nextEligibleTs.set(platform.nextMidnight);
-    weekReward.set(platform.weekRewardRaw);
-    twoWeekReward.set(platform.twoWeekRewardRaw);
-    rewardPoolBalance.set(platform.rewardPoolRaw);
-    totalUnclaimed.set(platform.totalUnclaimedRaw);
-    isPaused.set(platform.paused);
-    hasLoadedPlatform.set(true);
+    platformLane.value.set(platform);
   };
 
   const applyUser = (user: DailyCheckinUserSnapshot, actorHash: string) => {
-    currentStreak.set(user.currentStreak);
-    highestStreak.set(user.highestStreak);
-    lastCheckInDay.set(user.lastCheckinDay);
-    unclaimedRewards.set(user.unclaimedRaw);
-    totalClaimed.set(user.totalClaimedRaw);
-    totalUserCheckins.set(user.totalUserCheckins);
-    chainCanCheckin.set(user.canCheckin);
-    streakWillReset.set(user.streakWillReset);
-    nextRewardDay.set(user.nextRewardDay);
-    loadedActorHash.set(actorHash);
-    hasLoadedStatus.set(true);
+    userLane.value.set({ user, actorHash });
   };
 
   const addHistory = (entry: CheckinHistoryItem) => {
@@ -591,8 +637,7 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     isLoading.set(true);
     try {
       const current = await context();
-      const platform = await readPlatformSnapshot(current);
-      applyPlatform(platform);
+      const platform = await loadPlatformLane(current);
       const actor = await resolveActor(options.prompt === true);
       if (!actor.actorHash) {
         clearUserState();
@@ -602,8 +647,7 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
         return;
       }
       try {
-        const user = await readUserSnapshot(current, actor.actorHash, platform);
-        applyUser(user, actor.actorHash);
+        await loadUserLane(current, actor.actorHash, platform);
         lastError.set("");
         dataSource.set("chain");
         await hydrateHistory(actor.address);
