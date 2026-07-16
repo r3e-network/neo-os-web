@@ -81,7 +81,13 @@ test("flagship miniapp composables stay free of syntax errors", () => {
 
 test("burn league entrypoint matches its chain composable and rendered state shape", () => {
   const mainSource = read("apps/burn-league/src/main.tsx");
-  const playAreaSource = read("apps/burn-league/src/PlayArea.tsx");
+  // Repointed from the deleted src/PlayArea.tsx to the wrapper main.tsx actually
+  // mounts (`playArea: PhaserPlayArea`). The legacy DOM play area was never
+  // reachable from the entrypoint, so the "rendered state shape" it pinned was
+  // not the shape any user rendered. The intent below is unchanged — the
+  // leaderboard entry shape must expose `burned`, never `amount` — it is now
+  // asserted against the surface that actually renders it.
+  const playAreaSource = read("apps/burn-league/src/PhaserPlayArea.tsx");
 
   // Migrated off the OS kernel to the standalone MiniAppBurnLeague contract: the
   // composable is wired through the root miniapp framework and exposes a

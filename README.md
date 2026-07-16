@@ -18,7 +18,7 @@ Yiwu (义乌) is a Neo N3 MiniApp platform inspired by the world's small-commodi
 market: many small, focused, practical apps, each polished for a specific user
 scenario. The platform keeps the **Android OS-style system service architecture**
 (MiniApp-OS v2): host UX, admin tooling, partial C# platform domain contracts,
-41 edge proxy functions, 9 typed frontend OS proxy classes, and integration with the externally deployed
+42 edge proxy functions, 9 typed frontend OS proxy classes, and integration with the externally deployed
 Morpheus Oracle and Abstract Account stacks.
 
 ## Repository Boundary
@@ -35,7 +35,7 @@ This repository should be treated as:
 - the MiniApp host application
 - the admin console
 - **4 partial platform domain contracts** (PlatformAnchor, PlatformDeFi, PlatformGame, PlatformSocial)
-- **41 OS Binder edge functions** for secure service access
+- **42 OS Binder edge functions** for secure service access
 - **9 typed frontend OS proxy classes** with EdgeClient transport
 - platform infrastructure contracts (AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor)
 - Supabase edge gateway functions
@@ -51,7 +51,7 @@ The platform provides:
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
 - **Platform domain contracts** (MiniApp-OS v2): partial C# contracts split by anchor, DeFi, game, and social domains. MiniApps call `ctx.os.<service>()` through platform proxies for storage, payment, game, badge, checkin, leaderboard, escrow, NFT, vesting, and custom script execution.
-- **OS Binder edge layer**: 41 `os-*` Supabase Edge functions enforcing auth, permissions, and rate limits before forwarding to domain contracts or returning wallet intents.
+- **OS Binder edge layer**: 42 `os-*` Supabase Edge functions enforcing auth, permissions, and rate limits before forwarding to domain contracts or returning wallet intents.
 - **Typed frontend proxies**: 9 OS proxy classes in `apps/shared/services/os/` with `EdgeClient` transport.
 - **Platform infrastructure contracts**: AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor, PauseRegistry.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
@@ -95,7 +95,7 @@ Current flagship payment rule:
                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     Supabase Edge / Host Proxies                     │
-│  41 OS Binder functions (os-storage-*, os-payment-*, os-game-*, ...) │
+│  42 OS Binder functions (os-storage-*, os-payment-*, os-game-*, ...) │
 │  + auth, wallet binding, rate limits, usage caps, service routing    │
 └──────────────────────────────────────────────────────────────────────┘
         │                    │                                │
@@ -200,15 +200,26 @@ Current Neo N3 testnet platform contract values from `.env`:
 The repository currently contains **77 Neo N3 miniapp manifests** under `apps/*`.
 Those manifests are the practical source of truth for the current catalog.
 
-Category spread:
+Category spread (the `category` field of each `apps/*/neo-manifest.json`; re-derive with
+the one-liner below and update this list in the same commit as any catalog change):
 
-- `data`: 1
-- `defi`: 12
-- `gaming`: 24
-- `governance`: 4
-- `nft`: 1
+- `games`: 24
+- `tools`: 23
 - `social`: 8
-- `utility`: 27
+- `defi`: 6
+- `finance`: 6
+- `governance`: 4
+- `utility`: 3
+- `nft`: 2
+- `data`: 1
+
+```bash
+# Prints the table above straight from the manifests.
+node -e 'const fs=require("fs"),p=require("path"),c={};
+for(const d of fs.readdirSync("apps").filter(d=>fs.existsSync(p.join("apps",d,"neo-manifest.json"))))
+  {const m=JSON.parse(fs.readFileSync(p.join("apps",d,"neo-manifest.json"),"utf8"));c[m.category]=(c[m.category]||0)+1;}
+Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log(`- \`${k}\`: ${v}`));'
+```
 
 Current featured flagship 7:
 
@@ -408,7 +419,7 @@ flagship admin phase and the selected-user phase.
 │   ├── host-app/           # Next.js host shell
 │   ├── admin-console/      # Admin UX
 │   └── edge/functions/
-│       ├── os-*/           # 41 OS Binder edge functions
+│       ├── os-*/           # 42 OS Binder edge functions
 │       └── ...             # Auth, wallet, policy edge functions
 ├── apps/
 │   ├── shared/
