@@ -1,6 +1,11 @@
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
+import {
+  getLocale,
+  normalizeLocale,
+  type Locale,
+  type TranslationMap,
+} from "../utils/i18n";
 import { commonMessages } from "../locale/common";
 import { baseMessages } from "../locale/base-messages";
 import { getHostOrigin } from "../utils/runtime-origin";
@@ -16,10 +21,15 @@ type InterpolationArgs = Record<string, string | number>;
 type BaseMessages = typeof baseMessages;
 type MergedMessages<T extends TranslationMap> = BaseMessages & T;
 
-const normalizeLocale = (lang?: string | null): Locale => {
-  if (!lang) return "en";
-  return lang.toLowerCase().startsWith("zh") ? "zh" : "en";
-};
+// normalizeLocale is imported from utils/i18n — do not re-declare it here.
+// A local copy used to live at this line and mapped "ja" -> "en", while the
+// `sharedLocale` seed above (getLocale()) resolves "ja" natively. That made this
+// module internally inconsistent: a first paint could settle on "ja" while every
+// later setLocale("ja")/languageChange downgraded it to "en". It was invisible
+// only because this composable's sole consumer (wallet-health) ships no ja
+// catalog, so both branches rendered the same English fallback. utils/i18n is
+// the single source of truth: the platform supports ja (see Locale, getLocale,
+// and gas-lucky-pool's full ja catalog rendered via react/hooks/useI18n).
 
 const interpolate = (value: string, args: InterpolationArgs): string =>
   value.replace(/\{(\w+)\}/g, (_, key) => String(args[key] ?? `{${key}}`));
