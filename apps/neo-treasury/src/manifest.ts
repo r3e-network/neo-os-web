@@ -17,20 +17,26 @@ export const manifest: MiniAppManifest = {
     { key: "erik", labelKey: "tabErik", icon: "user" },
   ],
 
+  // These bind straight into shell chrome that MiniAppRoot renders with no
+  // loading gate, so they must point at the `*StatDisplay` read-outs, never at
+  // the PlayArea's raw pair. The raw ones fall back to "—" (and `founderCount`
+  // to a fabricated `0`) while the watchlist read is in flight — honest only
+  // because the PlayArea pairs them with its own "Reading public chain data"
+  // shimmer, which the chrome has no way to show. See main.tsx.
   stats: [
-    { labelKey: "sidebarTotalUsd", valueKey: "totalUsdDisplay", format: "text", variant: "success", icon: "dollar-sign" },
-    { labelKey: "sidebarTotalNeo", valueKey: "totalNeoDisplay", format: "text", icon: "circle" },
-    { labelKey: "sidebarTotalGas", valueKey: "totalGasDisplay", format: "text", icon: "zap" },
-    { labelKey: "sidebarFounders", valueKey: "founderCount", format: "number", icon: "users" },
+    { labelKey: "sidebarTotalUsd", valueKey: "totalUsdStatDisplay", format: "text", variant: "success", icon: "dollar-sign" },
+    { labelKey: "sidebarTotalNeo", valueKey: "totalNeoStatDisplay", format: "text", icon: "circle" },
+    { labelKey: "sidebarTotalGas", valueKey: "totalGasStatDisplay", format: "text", icon: "zap" },
+    { labelKey: "sidebarFounders", valueKey: "founderCountStatDisplay", format: "text", icon: "users" },
   ],
 
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "sidebarTotalUsd", valueKey: "totalUsdDisplay", format: "text" },
-      { labelKey: "sidebarTotalNeo", valueKey: "totalNeoDisplay", format: "text" },
-      { labelKey: "sidebarTotalGas", valueKey: "totalGasDisplay", format: "text" },
-      { labelKey: "sidebarFounders", valueKey: "founderCount", format: "number" },
+      { labelKey: "sidebarTotalUsd", valueKey: "totalUsdStatDisplay", format: "text" },
+      { labelKey: "sidebarTotalNeo", valueKey: "totalNeoStatDisplay", format: "text" },
+      { labelKey: "sidebarTotalGas", valueKey: "totalGasStatDisplay", format: "text" },
+      { labelKey: "sidebarFounders", valueKey: "founderCountStatDisplay", format: "text" },
     ],
   },
 

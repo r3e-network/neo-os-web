@@ -144,6 +144,62 @@ defineMiniApp({
       subscribe: (listener) => data.subscribe(listener),
     };
 
+    // ── Shell chrome read-outs ───────────────────────────────────────────────
+    // The four observables above are the PlayArea's, and the PlayArea gates
+    // them: it owns `loading` and paints "Reading public chain data" while the
+    // watchlist sweep is in flight. The manifest's stat rail and sidebar bind
+    // by name straight out of this state bag, and MiniAppRoot renders whatever
+    // string it gets with no loading gate of its own — so the careful gating
+    // two inches away in the PlayArea was bypassed, and the chrome published
+    // the ungated fallbacks as if they were readings:
+    //
+    //   Total USD  —      Total NEO  —      Total GAS  —      Founders  0
+    //
+    // The dashes are voids; `Founders 0` is worse than a void, because it is a
+    // number, and it asserts this watchlist tracks nobody. All four are simply
+    // "the read has not come back yet".
+    //
+    // The chrome cannot shimmer, so — as oracle-price-console's priceStatDisplay
+    // established — the honest phase has to reach it as words. These are that
+    // reading for the chrome only; the PlayArea keeps consuming the raw pair
+    // above, where a real skeleton is available.
+    const hasTreasuryData = () => data.get() != null;
+    const statAwaitingRead = () => ctx.t("treasuryStatAwaitingRead");
+
+    const totalUsdStatDisplay: Observable<string> = {
+      get: () => {
+        const d = data.get();
+        if (!d) return statAwaitingRead();
+        // Settled, but the independent price feed had nothing. That is a fact
+        // about the valuation, not about the read — and it is NOT the same
+        // state as "still reading", so it must not borrow that copy. The
+        // balances below stay real and keep rendering.
+        return typeof d.totalUsd === "number"
+          ? `${ctx.t("currencySymbol")}${formatAmount(d.totalUsd, 2)}`
+          : ctx.t("treasuryPriceUnavailableShort");
+      },
+      set: () => {},
+      subscribe: (listener) => data.subscribe(listener),
+    };
+    const totalNeoStatDisplay: Observable<string> = {
+      get: () => (hasTreasuryData() ? totalNeoDisplay.get() : statAwaitingRead()),
+      set: () => {},
+      subscribe: (listener) => data.subscribe(listener),
+    };
+    const totalGasStatDisplay: Observable<string> = {
+      get: () => (hasTreasuryData() ? totalGasDisplay.get() : statAwaitingRead()),
+      set: () => {},
+      subscribe: (listener) => data.subscribe(listener),
+    };
+    // A string, not a number: the unread state has no number to report, and the
+    // manifest binding is retargeted to `format: "text"` to match. `founderCount`
+    // stays exported as a number for any numeric consumer.
+    const founderCountStatDisplay: Observable<string> = {
+      get: () => (hasTreasuryData() ? String(founderCount.get()) : statAwaitingRead()),
+      set: () => {},
+      subscribe: (listener) => data.subscribe(listener),
+    };
+
     const loadData = async () => {
       const requestId = ++loadRequestId;
       if (disposed) return;
@@ -491,6 +547,10 @@ defineMiniApp({
         totalNeoDisplay,
         totalGasDisplay,
         founderCount,
+        totalUsdStatDisplay,
+        totalNeoStatDisplay,
+        totalGasStatDisplay,
+        founderCountStatDisplay,
       },
       loadData,
       cleanup: () => {

@@ -33,6 +33,13 @@ const appMessages = {
   sidebarTotalNeo: { en: "Total NEO", zh: "总 NEO" },
   sidebarTotalGas: { en: "Total GAS", zh: "总 GAS" },
   sidebarFounders: { en: "Founders", zh: "创始人" },
+  // Honest read-out for the shell's stat rail and sidebar while the public
+  // watchlist sweep is still in flight. That chrome prints whatever string the
+  // manifest binding hands it and has no skeleton vocabulary, so the unread
+  // state has to arrive there as words. Deliberately short: it renders inside a
+  // narrow stat tile beside its own label ("Total NEO", "Founders"), where the
+  // PlayArea's fuller "Reading public chain data" would truncate.
+  treasuryStatAwaitingRead: { en: "Reading…", zh: "读取中…" },
   treasuryInfo: { en: "Treasury Info", zh: "国库信息" },
   treasuryLiveStatus: { en: "Live balance status", zh: "实时余额状态" },
   treasuryLiveSynced: { en: "Live balances synced", zh: "实时余额已同步" },
