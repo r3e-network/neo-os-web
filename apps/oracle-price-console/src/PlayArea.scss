@@ -163,8 +163,14 @@
 }
 
 .price-ticket__head span,
-.price-ticket__quote span,
-.price-watchlist__head span {
+/* Direct-child only: this styles the "LATEST PRICE" caption, which is a child
+ * of the quote block. As a descendant selector it also caught the shimmer
+ * span the shared DataPhase skeleton renders *inside* the 52px <strong>,
+ * collapsing its em-based box to this 10px caption size — a 40x10px sliver
+ * standing in for a headline figure. The skeleton must occupy the value's real
+ * footprint, so the caption rule stays scoped to the caption. */
+.price-ticket__quote > span,
+.price-watchlist__head > span {
   color: var(--mx2-text-muted);
   font-size: 10px;
   font-weight: 620;

@@ -461,6 +461,13 @@ const appMessages = {
   // full "connect a council wallet" guidance lives once in the access banner, so
   // the tile stays a clean single-word status like the other stat tiles.
   seatNotConnected: { en: "Not connected", zh: "未连接" },
+  // Honest zero-states for values a visitor cannot see yet. The council rules
+  // are contract config, so their read starts for every arrival and shimmers
+  // until it lands; if it settles with nothing, this names the reason instead
+  // of leaving an em-dash to imply the rule itself is blank. Balances name the
+  // visitor's next step rather than pretending the wallet holds nothing.
+  rulesUnread: { en: "Not read yet", zh: "尚未读取" },
+  balanceConnect: { en: "Connect", zh: "连接" },
   // Council size used as the quorum denominator when the contract returns none.
   councilOf21: { en: "Council of 21", zh: "21 人议会" },
   tokenNeo: { en: "NEO", zh: "NEO" },

@@ -437,12 +437,29 @@ export function useGovernance({
   const hasVotedKnownMap = createObservable<Record<number, boolean>>({});
   const governanceOverview = createObservable<GovernanceOverview>(emptyOverview());
   const governanceOverviewError = createObservable("");
+  /**
+   * True once a governance-rules read has completed, success or failure.
+   * `governanceOverview.loaded` alone cannot tell "the rules read is still in
+   * flight" from "the rules read came back empty" — both leave it false. The
+   * council rules are contract config, so every visitor triggers that read on
+   * arrival and sees whatever the false state renders. Splitting the two lets
+   * the view shimmer while asking and speak plainly once it knows.
+   */
+  const governanceOverviewSettled = createObservable(false);
   const councilCandidates = createObservable<CouncilCandidate[]>([]);
   const councilRosterLoaded = createObservable(false);
   const councilRosterError = createObservable("");
-  const neoBalance = createObservable("—");
-  const gasBalance = createObservable("—");
+  /**
+   * Balances carry the value only. An empty string means "nothing to show yet";
+   * what that absence should LOOK like is the view's call, not the data layer's
+   * — a composable that emits "—" has already decided, and decided wrong for
+   * the in-flight case.
+   */
+  const neoBalance = createObservable("");
+  const gasBalance = createObservable("");
   const balancesLoaded = createObservable(false);
+  /** True once a balance read has completed, or once we know there is no wallet to read for. */
+  const balancesSettled = createObservable(false);
   const balancesError = createObservable("");
   const isVoting = createObservable(false);
   const isRecovering = createObservable(false);
@@ -744,6 +761,7 @@ export function useGovernance({
       if (run === overviewRun) {
         governanceOverview.set(emptyOverview());
         governanceOverviewError.set(app.errors.messageOf(error, t("governanceRulesUnavailable")));
+        governanceOverviewSettled.set(true);
       }
       return null;
     }
@@ -752,12 +770,14 @@ export function useGovernance({
       if (run === overviewRun && currentChainId.get() === chainId) {
         governanceOverview.set(overview);
         governanceOverviewError.set("");
+        governanceOverviewSettled.set(true);
       }
       return overview;
     } catch {
       if (run === overviewRun && currentChainId.get() === chainId) {
         governanceOverview.set(emptyOverview());
         governanceOverviewError.set(t("governanceRulesUnavailable"));
+        governanceOverviewSettled.set(true);
       }
       return null;
     }
@@ -1163,13 +1183,16 @@ export function useGovernance({
     const chainId = currentChainId.get();
     const run = ++balanceRun;
     if (!walletAddress) {
-      neoBalance.set("—");
-      gasBalance.set("—");
+      neoBalance.set("");
+      gasBalance.set("");
       balancesLoaded.set(false);
+      // There is no wallet to read for: that question is answered, not pending.
+      balancesSettled.set(true);
       balancesError.set("");
       return;
     }
     balancesLoaded.set(false);
+    balancesSettled.set(false);
     balancesError.set("");
     try {
       const [neoRaw, gasRaw] = await Promise.all([
@@ -1180,10 +1203,12 @@ export function useGovernance({
       neoBalance.set(neoRaw.toString());
       gasBalance.set(fixed8Display(gasRaw));
       balancesLoaded.set(true);
+      balancesSettled.set(true);
     } catch {
       if (run === balanceRun && address.get() === walletAddress && currentChainId.get() === chainId) {
-        neoBalance.set("—");
-        gasBalance.set("—");
+        neoBalance.set("");
+        gasBalance.set("");
+        balancesSettled.set(true);
         balancesError.set(t("walletBalancesUnavailable"));
       }
     }
@@ -1351,9 +1376,12 @@ export function useGovernance({
     votingPower.set(0);
     hasVotedMap.set({});
     hasVotedKnownMap.set({});
-    neoBalance.set("—");
-    gasBalance.set("—");
+    neoBalance.set("");
+    gasBalance.set("");
     balancesLoaded.set(false);
+    // A wallet was just supplied: its balances are pending, not answered. With
+    // no wallet the answer is already known — there is nothing to read.
+    balancesSettled.set(!next);
     balancesError.set("");
     lastTx.set(null);
     lastConfirmation.set(null);
@@ -1375,6 +1403,8 @@ export function useGovernance({
     loadError.set("");
     governanceOverview.set(emptyOverview());
     governanceOverviewError.set("");
+    // The new network's rules have not been read yet — back to shimmering.
+    governanceOverviewSettled.set(false);
     councilCandidates.set([]);
     councilRosterLoaded.set(false);
     councilRosterError.set("");
@@ -1384,9 +1414,10 @@ export function useGovernance({
     votingPower.set(0);
     hasVotedMap.set({});
     hasVotedKnownMap.set({});
-    neoBalance.set("—");
-    gasBalance.set("—");
+    neoBalance.set("");
+    gasBalance.set("");
     balancesLoaded.set(false);
+    balancesSettled.set(!address.get());
     balancesError.set("");
     lastTx.set(null);
     lastConfirmation.set(null);
@@ -1407,12 +1438,14 @@ export function useGovernance({
     hasVotedKnownMap,
     governanceOverview,
     governanceOverviewError,
+    governanceOverviewSettled,
     councilCandidates,
     councilRosterLoaded,
     councilRosterError,
     neoBalance,
     gasBalance,
     balancesLoaded,
+    balancesSettled,
     balancesError,
     currentNetwork,
     isVoting,

@@ -73,6 +73,11 @@ const appMessages = {
   supportTabDirect: { en: "Direct ID", zh: "直接 ID" },
   supportTabCreator: { en: "Creator tools", zh: "创作者工具" },
   supportTabHistory: { en: "History", zh: "历史" },
+  // Honest zero-state for the board's lifetime total. A visitor without a
+  // wallet has no network bound, so the board cannot be read — that is a fact
+  // to state, not a void to paper over, and emphatically not a "0 GAS" that
+  // would assert nobody has ever tipped.
+  totalDonatedUnread: { en: "Connect to load", zh: "连接后加载" },
   directSupportTitle: { en: "Direct support ID", zh: "直接支持 ID" },
   noDevelopers: { en: "Be the first to say thanks", zh: "成为第一个道谢的人" },
   noDevelopersHint: {
