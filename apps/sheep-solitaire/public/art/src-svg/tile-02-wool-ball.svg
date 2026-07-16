@@ -1,31 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 200 200" width="200" height="200">
+                  viewBox="0 0 200 232" width="200" height="232">
     
-    <!-- Card background -->
-    <rect x="6" y="6" width="188" height="188"
-          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
-          stroke-width="3.5999999999999996" />
+    <!-- Hard offset sticker shadow (flat, no blur) -->
+    <rect x="17" y="20" width="180" height="208"
+          rx="28" ry="28" fill="#26221E" opacity="0.30" />
+    <!-- Gray-green thickness strip (card stack edge) -->
+    <rect x="10" y="26" width="180" height="192"
+          rx="28" ry="28" fill="#97A886" stroke="#26221E" stroke-width="4.5" />
+    <!-- Cream tile face -->
+    <rect x="10" y="10" width="180" height="192"
+          rx="26" ry="26" fill="#F8F6E8" stroke="#26221E" stroke-width="4.5" />
   
     <!-- Icon: wool-ball -->
-    <g transform="translate(0, 0)">
+    <g transform="translate(100, 107) scale(1.16) translate(-100, -100)">
       
-    <!-- Yarn ball body -->
-    <circle cx="100" cy="102" r="40" fill="#F8F2E6"
-           stroke="#3A3530" stroke-width="3" />
-    <!-- Wrapped yarn lines (latitude curves) -->
-    <ellipse cx="100" cy="82" rx="36" ry="10" fill="none"
-              stroke="#E5D7C1" stroke-width="2.5" opacity="0.55"/>
-    <ellipse cx="100" cy="96" rx="39" ry="12" fill="none"
-              stroke="#E5D7C1" stroke-width="2.5" opacity="0.5"/>
-    <ellipse cx="100" cy="114" rx="36" ry="9" fill="none"
-              stroke="#E5D7C1" stroke-width="2.5" opacity="0.45"/>
+    <!-- Soft ground shadow so the ball reads as an object, not a blank face -->
+    <ellipse cx="100" cy="152" rx="33" ry="6.5" fill="#26221E" opacity="0.16"/>
+    <!-- Yarn ball body — warm gray so it separates from the cream card face -->
+    <circle cx="100" cy="102" r="41" fill="#E5D7C1"
+           stroke="#26221E" stroke-width="4.5" />
+    <!-- Wound yarn strands, clipped to the ball -->
+    <defs>
+      <clipPath id="woolBallClip"><circle cx="100" cy="102" r="39"/></clipPath>
+    </defs>
+    <g clip-path="url(#woolBallClip)">
+      <!-- Bold rose latitude strands -->
+      <ellipse cx="100" cy="84" rx="41" ry="13" fill="none"
+               stroke="#D94F70" stroke-width="7"/>
+      <ellipse cx="100" cy="102" rx="43" ry="15" fill="none"
+               stroke="#D94F70" stroke-width="7"/>
+      <ellipse cx="100" cy="120" rx="41" ry="12" fill="none"
+               stroke="#D94F70" stroke-width="7"/>
+      <!-- Amber cross strands (wound diagonals) -->
+      <ellipse cx="100" cy="102" rx="15" ry="43" fill="none"
+               stroke="#E8942A" stroke-width="6" transform="rotate(30,100,102)"/>
+      <ellipse cx="100" cy="102" rx="15" ry="43" fill="none"
+               stroke="#E8942A" stroke-width="6" transform="rotate(-26,100,102)"/>
+    </g>
+    <!-- Re-assert the ball outline over the clipped strands -->
+    <circle cx="100" cy="102" r="41" fill="none" stroke="#26221E" stroke-width="4.5"/>
     <!-- Highlight -->
-    <ellipse cx="86" cy="86" rx="12" ry="8" fill="#FFFFFF" opacity="0.35"/>
-    <!-- Tail end sticking out -->
-    <path d="M136,106 Q158,96 152,118"
-          fill="none" stroke="#F8F2E6" stroke-width="6" stroke-linecap="round"/>
-    <path d="M136,106 Q158,96 152,118"
-          fill="none" stroke="#3A3530" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <ellipse cx="85" cy="85" rx="12" ry="8" fill="#FFFFFF" opacity="0.5"/>
+    <!-- Loose tail strand with a curl -->
+    <path d="M133,110 Q157,98 149,120 Q143,134 159,130"
+          fill="none" stroke="#D94F70" stroke-width="6.5" stroke-linecap="round"/>
   
     </g>
 </svg>

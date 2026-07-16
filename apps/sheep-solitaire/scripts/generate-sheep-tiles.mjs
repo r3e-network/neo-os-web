@@ -2,12 +2,14 @@
 /**
  * generate-sheep-tiles.mjs
  *
- * Generates 15 sheep-themed tile SVGs (with shared card-frame template) and
- * rasterizes them to webp via sharp. Replaces the generic fruit/object grab-bag
- * with a cohesive "sheep's meadow farm" icon set.
+ * Generates 15 sheep-themed tile SVGs (with shared card-frame template) plus
+ * the mascot sticker, and rasterizes them to webp via sharp. Replaces the
+ * generic fruit/object grab-bag with a cohesive "sheep's meadow farm" icon set.
  *
  * Usage:   cd apps/sheep-solitaire && node scripts/generate-sheep-tiles.mjs
  * Output:  public/art/tile-00-{name}.webp … tile-14-{name}.webp
+ *          public/art/mascot-sheep.webp (die-cut sticker reframe of the
+ *          in-house public/logo.webp character, 560×560, with alpha)
  * Sources: public/art/src-svg/ (keeps original SVGs for future editing)
  */
 
@@ -20,7 +22,10 @@ import { fileURLToPath } from "url";
 
 const SRC_DIR = join(dirname(fileURLToPath(import.meta.url)), "../public/art/src-svg");
 const WEBP_DIR = join(dirname(fileURLToPath(import.meta.url)), "../public/art");
-const SIZE = 200; // output px (displayed at 54px → ~3.7× crisp)
+const SIZE = 200; // icon coordinate space (icons are authored in a 200×200 box)
+// P2 mahjong-tile template — portrait card with a visible 3D bottom edge.
+const TILE_W = 200;
+const TILE_H = 232;
 
 // ─── Palette (cohesive warm meadow + Neo green brand) ─────────────
 
@@ -28,14 +33,14 @@ const C = {
   // Card frame (matches existing tile style)
   cardBg:      "#F5EDD9",
   cardBorder:  "#D4B88E",
-  gemFill:     "#16C784", // Neo green — corner gems
-  gemStroke:   "#0E9E68",
-  // Icon ink & base tones
-  ink:         "#3A3530",    // warm dark outline / fill
+  // Icon ink & base tones — §9.4 v2 sticker language: near-black outlines
+  ink:         "#26221E",    // near-black outline / fill (sticker style)
   wool:        "#F8F2E6",    // cream-white wool
   woolDark:    "#E5D7C1",    // wool shadow
   pink:        "#FFB5BA",    // inner ear / nose / cheek
   skin:        "#F4E1CE",    // face skin
+  yarnRose:    "#D94F70",    // saturated rose — wool-ball yarn strands
+  yarnAmber:   "#E8942A",    // amber — wool-ball cross strands
   // Themed fills
   gold:        "#F6C453",
   goldDark:    "#D4A033",
@@ -54,28 +59,27 @@ const C = {
   wingYellow:  "#FFD36B",
 };
 
-// ─── Shared card frame (cream bg + tan border + 4 green gems) ────
+// ─── Shared card frame — §9.4 v2 sticker/papercraft template ──────
+// Calibrated against the user's real screenshots of the original: cream face
+// (≈#F8F6E8) rounded square, thin NEAR-BLACK outline, a gray-green "thickness"
+// strip along the bottom edge, and a HARD offset black shadow (no blur, flat
+// fills, zero gradients). Replaces the earlier mahjong-white template.
 function cardFrame() {
-  const r = 22; // corner radius (proportional to SIZE)
-  const pad = 6;
-  const g = 14; // gem size (diamond half-diagonal)
-  const cx = SIZE;
-  const cy = SIZE;
+  const r = 28;   // corner radius
+  const pad = 10; // side padding
+  const faceH = 192;      // cream face height
+  const edgeDrop = 16;    // gray-green thickness strip below the face
 
   return `
-    <!-- Card background -->
-    <rect x="${pad}" y="${pad}" width="${cx - 2*pad}" height="${cy - 2*pad}"
-          rx="${r}" ry="${r}" fill="${C.cardBg}" stroke="${C.cardBorder}"
-          stroke-width="${SIZE * 0.018}" />
-    <!-- Corner gems – green diamonds -->
-    <polygon points="${pad+g+2},${pad+4} ${pad+g+10},${pad-2} ${pad+g+18},${pad+4} ${pad+g+10},${pad+12}"
-             fill="${C.gemFill}" stroke="${C.gemStroke}" stroke-width="1" />
-    <polygon points="${cx-pad-g-18},${pad+4} ${cx-pad-g-10},${pad-2} ${cx-pad-g-2},${pad+4} ${cx-pad-g-10},${pad+12}"
-             fill="${C.gemFill}" stroke="${C.gemStroke}" stroke-width="1" />
-    <polygon points="${pad+g+2},${cy-pad-4} ${pad+g+10},${cy-pad+12} ${pad+g+18},${cy-pad-4} ${pad+g+10},${cy-pad-12}"
-             fill="${C.gemFill}" stroke="${C.gemStroke}" stroke-width="1" />
-    <polygon points="${cx-pad-g-18},${cy-pad-4} ${cx-pad-g-10},${cy-pad+12} ${cx-pad-g-2},${cy-pad-4} ${cx-pad-g-10},${cy-pad-12}"
-             fill="${C.gemFill}" stroke="${C.gemStroke}" stroke-width="1" />
+    <!-- Hard offset sticker shadow (flat, no blur) -->
+    <rect x="${pad + 7}" y="${pad + 10}" width="${TILE_W - 2 * pad}" height="${faceH + edgeDrop}"
+          rx="${r}" ry="${r}" fill="#26221E" opacity="0.30" />
+    <!-- Gray-green thickness strip (card stack edge) -->
+    <rect x="${pad}" y="${pad + edgeDrop}" width="${TILE_W - 2 * pad}" height="${faceH}"
+          rx="${r}" ry="${r}" fill="#97A886" stroke="#26221E" stroke-width="4.5" />
+    <!-- Cream tile face -->
+    <rect x="${pad}" y="${pad}" width="${TILE_W - 2 * pad}" height="${faceH}"
+          rx="${r - 2}" ry="${r - 2}" fill="#F8F6E8" stroke="#26221E" stroke-width="4.5" />
   `;
 }
 
@@ -117,88 +121,126 @@ function poly(points, fill, sw = 0, sc = null) {
 // Each returns an SVG <g> string centered in a 200x200 viewBox.
 // Icons should occupy roughly a 120×120–140×140 area centered at (100,100).
 
-function iconSheepFace() {
-  const s = 42; // head radius
+// Sheep face + lamb — redrawn 2026-07-14 as flat sticker derivatives of the
+// in-house logo character (public/logo.webp, July 2026 refresh): the old pink
+// -dominant versions (pink teardrop ears, dot eyes, pink oval snout) read as
+// PIG faces at board size (user verdict). New craft bar: cream scalloped wool
+// crown framing a cream face, big GREEN eyes with white highlights, small pink
+// INNER ears only, tiny pink nose + smile, soft blush — judged at 40px.
+const FACE_CREAM = "#FBEEDC"; // warm cream face (NOT pink)
+const WOOL_WHITE = "#FFFDF6"; // near-white wool (separates from cream card)
+
+/** Shared cute-sheep head. cyOff shifts the whole head; k scales features. */
+function sheepHead({ headY = cy - 6, faceY = cy + 8, k = 1 } = {}) {
+  // Scallop ring around the top of the head (wool crown).
+  const crownR = 39 * k;
+  const crown = [
+    { a: 150, r: 17 }, { a: 120, r: 18 }, { a: 90, r: 19 },
+    { a: 60, r: 18 }, { a: 30, r: 17 }, { a: 172, r: 14 }, { a: 8, r: 14 },
+  ].map(({ a, r }) => {
+    const rad = (a * Math.PI) / 180;
+    const px = cx + Math.cos(rad) * crownR;
+    const py = headY - Math.sin(rad) * crownR * 0.92;
+    return circ(px, py, r * k, WOOL_WHITE, 4.5, C.ink);
+  }).join("\n    ");
   return `
-    <!-- Wool fluff (head shape) -->
-    ${circ(cx, cy + 2, s, C.wool, 3, C.ink)}
-    <!-- Ears -->
-    ${ell(cx - s + 6, cy - s + 10, 16, 24, C.wool, 2.5, C.ink)}
-    ${ell(cx + s - 6, cy - s + 10, 16, 24, C.wool, 2.5, C.ink)}
-    ${ell(cx - s + 6, cy - s + 11, 9, 16, C.pink, 0)}
-    ${ell(cx + s - 6, cy - s + 11, 9, 16, C.pink, 0)}
-    <!-- Face area -->
-    ${ell(cx, cy + 6, 28, 26, C.skin, 2, C.ink)}
-    <!-- Eyes -->
-    ${circ(cx - 12, cy - 2, 4.5, C.ink, 0)}
-    ${circ(cx + 12, cy - 2, 4.5, C.ink, 0)}
-    ${circ(cx - 13, cy - 3, 1.5, C.milkWhite, 0)}
-    ${circ(cx + 11, cy - 3, 1.5, C.milkWhite, 0)}
-    <!-- Nose/mouth -->
-    ${ell(cx, cy + 10, 8, 5.5, C.pink, 1.5, C.ink)}
-    <!-- Wool tuft top -->
-    ${circ(cx - 20, cy - 30, 13, C.wool, 2, C.ink)}
-    ${circ(cx + 20, cy - 30, 13, C.wool, 2, C.ink)}
-    ${circ(cx, cy - 38, 15, C.wool, 2, C.ink)}
-    <!-- Cheek blush -->
-    <ellipse cx="${cx - 28}" cy="${cy + 8}" rx="9" ry="6" fill="${C.pink}" opacity="0.45" />
-    <ellipse cx="${cx + 28}" cy="${cy + 8}" rx="9" ry="6" fill="${C.pink}" opacity="0.45" />
+    <!-- Soft ground shadow lifts the head off the cream card -->
+    <ellipse cx="${cx}" cy="${faceY + 44 * k}" rx="${42 * k}" ry="7" fill="${C.ink}" opacity="0.14"/>
+    <!-- Cream scalloped wool crown -->
+    ${crown}
+    <!-- Droopy ears (cream outer, pink inner) — NOT pink teardrops -->
+    <ellipse cx="${cx - 45 * k}" cy="${faceY - 4}" rx="${12.5 * k}" ry="${21 * k}" fill="${WOOL_WHITE}"
+             stroke="${C.ink}" stroke-width="4.5" transform="rotate(32,${cx - 45 * k},${faceY - 4})"/>
+    <ellipse cx="${cx + 45 * k}" cy="${faceY - 4}" rx="${12.5 * k}" ry="${21 * k}" fill="${WOOL_WHITE}"
+             stroke="${C.ink}" stroke-width="4.5" transform="rotate(-32,${cx + 45 * k},${faceY - 4})"/>
+    <ellipse cx="${cx - 46 * k}" cy="${faceY - 2}" rx="${6 * k}" ry="${12 * k}" fill="${C.pink}"
+             transform="rotate(32,${cx - 46 * k},${faceY - 2})"/>
+    <ellipse cx="${cx + 46 * k}" cy="${faceY - 2}" rx="${6 * k}" ry="${12 * k}" fill="${C.pink}"
+             transform="rotate(-32,${cx + 46 * k},${faceY - 2})"/>
+    <!-- Face (covers the crown interior, hiding inner scallop strokes) -->
+    <ellipse cx="${cx}" cy="${faceY}" rx="${34 * k}" ry="${32 * k}" fill="${FACE_CREAM}"
+             stroke="${C.ink}" stroke-width="4.5"/>
+    <!-- Wool fringe over the forehead (three bumps dipping into the face) -->
+    ${circ(cx - 17 * k, faceY - 26 * k, 11 * k, WOOL_WHITE, 4, C.ink)}
+    ${circ(cx + 17 * k, faceY - 26 * k, 11 * k, WOOL_WHITE, 4, C.ink)}
+    ${circ(cx, faceY - 30 * k, 12.5 * k, WOOL_WHITE, 4, C.ink)}
+    <!-- Big green eyes with white highlights -->
+    ${circ(cx - 15 * k, faceY - 2, 10.5 * k, C.leafGreen, 3, C.ink)}
+    ${circ(cx + 15 * k, faceY - 2, 10.5 * k, C.leafGreen, 3, C.ink)}
+    ${circ(cx - 15 * k, faceY - 1, 5 * k, C.ink, 0)}
+    ${circ(cx + 15 * k, faceY - 1, 5 * k, C.ink, 0)}
+    ${circ(cx - 18 * k, faceY - 6, 3.4 * k, C.milkWhite, 0)}
+    ${circ(cx + 12 * k, faceY - 6, 3.4 * k, C.milkWhite, 0)}
+    ${circ(cx - 12 * k, faceY + 2, 1.6 * k, C.milkWhite, 0)}
+    ${circ(cx + 18 * k, faceY + 2, 1.6 * k, C.milkWhite, 0)}
+    <!-- Tiny pink nose + smile -->
+    <ellipse cx="${cx}" cy="${faceY + 13 * k}" rx="${5 * k}" ry="${3.6 * k}" fill="${C.pink}"
+             stroke="${C.ink}" stroke-width="2.5"/>
+    <path d="M${cx - 8 * k},${faceY + 20 * k} Q${cx},${faceY + 26 * k} ${cx + 8 * k},${faceY + 20 * k}"
+          fill="none" stroke="${C.ink}" stroke-width="3" stroke-linecap="round"/>
+    <!-- Soft blush dots -->
+    <ellipse cx="${cx - 27 * k}" cy="${faceY + 10 * k}" rx="${7.5 * k}" ry="${5 * k}" fill="${C.pink}" opacity="0.5"/>
+    <ellipse cx="${cx + 27 * k}" cy="${faceY + 10 * k}" rx="${7.5 * k}" ry="${5 * k}" fill="${C.pink}" opacity="0.5"/>
   `;
+}
+
+function iconSheepFace() {
+  return sheepHead({ headY: cy - 8, faceY: cy + 8, k: 1 });
 }
 
 function iconLamb() {
-  const s = 38;
+  // Smaller head + green hair bow (a bell would clash with tile-03). The bow
+  // rides ON TOP of the crown silhouette with only the knot overlapping the
+  // wool — merged loops read as leaves at 40px (round-1 fail).
+  const knotY = cy - 47;
   return `
-    <!-- Body/head (more rounded than sheep) -->
-    ${ell(cx, cy + 6, s, s + 4, C.wool, 3, C.ink)}
-    <!-- Ears (smaller, rounder) -->
-    ${ell(cx - s + 2, cy - s + 16, 12, 18, C.wool, 2.5, C.ink)}
-    ${ell(cx + s - 2, cy - s + 16, 12, 18, C.wool, 2.5, C.ink)}
-    ${ell(cx - s + 2, cy - s + 17, 6.5, 13, C.pink, 0)}
-    ${ell(cx + s - 2, cy - s + 17, 6.5, 13, C.pink, 0)}
-    <!-- Face (larger relative to head = baby look) -->
-    ${ell(cx, cy + 8, 30, 28, C.skin, 2, C.ink)}
-    <!-- Big cute eyes -->
-    ${circ(cx - 11, cy, 6, C.ink, 0)}
-    ${circ(cx + 11, cy, 6, C.ink, 0)}
-    ${circ(cx - 12, cy - 1, 2, C.milkWhite, 0)}
-    ${circ(cx + 10, cy - 1, 2, C.milkWhite, 0)}
-    <!-- Tiny nose -->
-    ${circ(cx, cy + 12, 4, C.pink, 1.5, C.ink)}
-    <!-- Small smile curve -->
-    <path d="M${cx-6},${cy+17} Q${cx},${cy+23} ${cx+6},${cy+17}" fill="none"
-          stroke="${C.ink}" stroke-width="2" stroke-linecap="round"/>
-    <!-- Fluffy wool top tufts -->
-    ${circ(cx - 18, cy - 32, 11, C.wool, 2, C.ink)}
-    ${circ(cx + 18, cy - 32, 11, C.wool, 2, C.ink)}
-    ${circ(cx, cy - 40, 13, C.wool, 2, C.ink)}
-    ${circ(cx - 8, cy - 25, 9, C.wool, 1.5, C.ink)}
-    ${circ(cx + 8, cy - 25, 9, C.wool, 1.5, C.ink)}
-    <!-- Big blush -->
-    <ellipse cx="${cx - 26}" cy="${cy + 12}" rx="10" ry="7" fill="${C.pink}" opacity="0.4" />
-    <ellipse cx="${cx + 26}" cy="${cy + 12}" rx="10" ry="7" fill="${C.pink}" opacity="0.4" />
+    ${sheepHead({ headY: cy - 2, faceY: cy + 12, k: 0.88 })}
+    <!-- Green hair bow — the lamb's differentiator -->
+    <path d="M${cx - 5},${knotY} C${cx - 14},${knotY - 14} ${cx - 34},${knotY - 12} ${cx - 31},${knotY + 2}
+             C${cx - 29},${knotY + 12} ${cx - 13},${knotY + 10} ${cx - 5},${knotY} Z"
+          fill="${C.leafGreen}" stroke="${C.ink}" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M${cx + 5},${knotY} C${cx + 14},${knotY - 14} ${cx + 34},${knotY - 12} ${cx + 31},${knotY + 2}
+             C${cx + 29},${knotY + 12} ${cx + 13},${knotY + 10} ${cx + 5},${knotY} Z"
+          fill="${C.leafGreen}" stroke="${C.ink}" stroke-width="4" stroke-linejoin="round"/>
+    ${circ(cx, knotY, 7.5, C.grassGreen, 3.5, C.ink)}
   `;
 }
 
+// Redesigned for contrast: the first version was cream-on-cream with hairline
+// wraps and read as a BLANK card at board/tray size (~40-54px). Now: warm-gray
+// ball, thick ink outline, bold saturated rose/amber yarn strands, soft shadow.
 function iconWoolBall() {
-  const r = 40;
+  const r = 41;
   return `
-    <!-- Yarn ball body -->
-    ${circ(cx, cy + 2, r, C.wool, 3, C.ink)}
-    <!-- Wrapped yarn lines (latitude curves) -->
-    <ellipse cx="${cx}" cy="${cy - 18}" rx="${r - 4}" ry="10" fill="none"
-              stroke="${C.woolDark}" stroke-width="2.5" opacity="0.55"/>
-    <ellipse cx="${cx}" cy="${cy - 4}" rx="${r - 1}" ry="12" fill="none"
-              stroke="${C.woolDark}" stroke-width="2.5" opacity="0.5"/>
-    <ellipse cx="${cx}" cy="${cy + 14}" rx="${r - 4}" ry="9" fill="none"
-              stroke="${C.woolDark}" stroke-width="2.5" opacity="0.45"/>
+    <!-- Soft ground shadow so the ball reads as an object, not a blank face -->
+    <ellipse cx="${cx}" cy="${cy + r + 11}" rx="${r - 8}" ry="6.5" fill="${C.ink}" opacity="0.16"/>
+    <!-- Yarn ball body — warm gray so it separates from the cream card face -->
+    ${circ(cx, cy + 2, r, C.woolDark, 4.5, C.ink)}
+    <!-- Wound yarn strands, clipped to the ball -->
+    <defs>
+      <clipPath id="woolBallClip"><circle cx="${cx}" cy="${cy + 2}" r="${r - 2}"/></clipPath>
+    </defs>
+    <g clip-path="url(#woolBallClip)">
+      <!-- Bold rose latitude strands -->
+      <ellipse cx="${cx}" cy="${cy - 16}" rx="${r}" ry="13" fill="none"
+               stroke="${C.yarnRose}" stroke-width="7"/>
+      <ellipse cx="${cx}" cy="${cy + 2}" rx="${r + 2}" ry="15" fill="none"
+               stroke="${C.yarnRose}" stroke-width="7"/>
+      <ellipse cx="${cx}" cy="${cy + 20}" rx="${r}" ry="12" fill="none"
+               stroke="${C.yarnRose}" stroke-width="7"/>
+      <!-- Amber cross strands (wound diagonals) -->
+      <ellipse cx="${cx}" cy="${cy + 2}" rx="15" ry="${r + 2}" fill="none"
+               stroke="${C.yarnAmber}" stroke-width="6" transform="rotate(30,${cx},${cy + 2})"/>
+      <ellipse cx="${cx}" cy="${cy + 2}" rx="15" ry="${r + 2}" fill="none"
+               stroke="${C.yarnAmber}" stroke-width="6" transform="rotate(-26,${cx},${cy + 2})"/>
+    </g>
+    <!-- Re-assert the ball outline over the clipped strands -->
+    <circle cx="${cx}" cy="${cy + 2}" r="${r}" fill="none" stroke="${C.ink}" stroke-width="4.5"/>
     <!-- Highlight -->
-    <ellipse cx="${cx - 14}" cy="${cy - 14}" rx="12" ry="8" fill="#FFFFFF" opacity="0.35"/>
-    <!-- Tail end sticking out -->
-    <path d="M${cx + r - 4},${cy + 6} Q${cx + r + 18},${cy - 4} ${cx + r + 12},${cy + 18}"
-          fill="none" stroke="${C.wool}" stroke-width="6" stroke-linecap="round"/>
-    <path d="M${cx + r - 4},${cy + 6} Q${cx + r + 18},${cy - 4} ${cx + r + 12},${cy + 18}"
-          fill="none" stroke="${C.ink}" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+    <ellipse cx="${cx - 15}" cy="${cy - 15}" rx="12" ry="8" fill="#FFFFFF" opacity="0.5"/>
+    <!-- Loose tail strand with a curl -->
+    <path d="M${cx + r - 8},${cy + 10} Q${cx + r + 16},${cy - 2} ${cx + r + 8},${cy + 20} Q${cx + r + 2},${cy + 34} ${cx + r + 18},${cy + 30}"
+          fill="none" stroke="${C.yarnRose}" stroke-width="6.5" stroke-linecap="round"/>
   `;
 }
 
@@ -573,11 +615,14 @@ if (!existsSync(SRC_DIR)) mkdirSync(SRC_DIR, { recursive: true });
 
 for (let i = 0; i < SYMBOLS.length; i++) {
   const sym = SYMBOLS[i];
+  // Icons are authored around (100,100) in a 200×200 box; the portrait tile's
+  // white face is centred at (100,107), and the icon group is scaled up ~1.08
+  // so glyphs stay chunky/readable at 40px board size (§9.4 "图案加粗").
   const svg = `<svg xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 ${SIZE} ${SIZE}" width="${SIZE}" height="${SIZE}">
+                  viewBox="0 0 ${TILE_W} ${TILE_H}" width="${TILE_W}" height="${TILE_H}">
     ${cardFrame()}
     <!-- Icon: ${sym.name} -->
-    <g transform="translate(0, 0)">
+    <g transform="translate(100, 107) scale(1.16) translate(-100, -100)">
       ${sym.icon()}
     </g>
 </svg>`;
@@ -596,12 +641,285 @@ for (let i = 0; i < SYMBOLS.length; i++) {
   const svgPath = join(SRC_DIR, `tile-${String(i).padStart(2, "0")}-${sym.name}.svg`);
   const webpPath = join(WEBP_DIR, `tile-${String(i).padStart(2, "0")}-${sym.name}.webp`);
 
+  // Saturation bump on the raster (§9.4 "提饱和") — white face/gray edge are
+  // saturation-invariant, so only the icon inks get punchier.
   await sharp(svgPath)
-    .resize(SIZE, SIZE)
+    .resize(TILE_W, TILE_H)
+    .modulate({ saturation: 1.2 })
     .webp({ quality: 92 })
     .toFile(webpPath);
 
   console.log(`  [WEBP] tile-${String(i).padStart(2, "0")}-${sym.name}.webp`);
+}
+
+// ─── Mascot sprite (reframed in-house logo character) ────────────
+// The previous mascot was a circle-composite SVG sheep drawn in this script;
+// the 2026-07-14 user verdict retired it ("羊太吓人了…居然是一堆圆圈拼的").
+// The platform already owns a genuinely cute PAINTED sheep character from the
+// July 2026 visual refresh (public/logo.webp — sticker-card framing with a
+// gold border). The mascot is now that logo REFRAMED as a die-cut sticker:
+// rounded-corner mask + near-black ink outline + hard offset shadow (§9.4
+// sticker tokens), exported with true alpha. Extracting the banner's
+// full-body pose was attempted and rejected: the painterly meadow occludes
+// the hooves with grass blades and shares hue ranges with the wool/scarf, so
+// no clean matte exists (details in ATTRIBUTION.md).
+
+const LOGO_SRC = join(dirname(fileURLToPath(import.meta.url)), "../public/logo.webp");
+const M_CANVAS = 560;   // output canvas (card + shadow overhang)
+const M_CARD = 500;     // die-cut card size
+const M_R = 92;         // die-cut corner radius
+const M_X = 14, M_Y = 10;
+const M_SHADOW_DX = 16, M_SHADOW_DY = 20;
+
+console.log("\nGenerating mascot (die-cut sticker from public/logo.webp)...");
+
+const mascotMaskSvg = Buffer.from(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${M_CARD}" height="${M_CARD}">
+     <rect x="0" y="0" width="${M_CARD}" height="${M_CARD}" rx="${M_R}" ry="${M_R}" fill="#ffffff"/>
+   </svg>`,
+);
+const mascotCardPng = await sharp(LOGO_SRC)
+  .resize(M_CARD, M_CARD)
+  .composite([{ input: mascotMaskSvg, blend: "dest-in" }])
+  .png()
+  .toBuffer();
+const mascotShadowSvg = Buffer.from(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${M_CANVAS}" height="${M_CANVAS}">
+     <rect x="${M_X + M_SHADOW_DX}" y="${M_Y + M_SHADOW_DY}" width="${M_CARD}" height="${M_CARD}"
+           rx="${M_R}" ry="${M_R}" fill="#26221E" opacity="0.30"/>
+   </svg>`,
+);
+const mascotOutlineSvg = Buffer.from(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${M_CANVAS}" height="${M_CANVAS}">
+     <rect x="${M_X + 4.5}" y="${M_Y + 4.5}" width="${M_CARD - 9}" height="${M_CARD - 9}"
+           rx="${M_R - 4.5}" ry="${M_R - 4.5}" fill="none" stroke="#26221E" stroke-width="9"/>
+   </svg>`,
+);
+await sharp({
+  create: { width: M_CANVAS, height: M_CANVAS, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+})
+  .composite([
+    { input: mascotShadowSvg, left: 0, top: 0 },
+    { input: mascotCardPng, left: M_X, top: M_Y },
+    { input: mascotOutlineSvg, left: 0, top: 0 },
+  ])
+  .webp({ quality: 92 }) // alpha preserved — no flatten()
+  .toFile(join(WEBP_DIR, "mascot-sheep.webp"));
+console.log("  [WEBP] mascot-sheep.webp (die-cut logo sticker, with alpha)");
+
+// ═══════════════════════════════════════════════════════════════════
+// P2 scene art (§9.4 style tokens) — ALL ORIGINAL, drawn here.
+//   field-meadow.webp  full-screen saturated grass field (tree shadows, flowers)
+//   tray-wood.webp     brown wooden 7-slot tray
+//   logo-sign.webp     wooden home-screen signboard (logo text drawn in-scene)
+//   prop-{undo,remove,shuffle}.webp   prop-button glyphs
+// ═══════════════════════════════════════════════════════════════════
+
+/** Deterministic PRNG so re-running the generator is byte-stable. */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// §9.4 v2 (calibrated against the user's real screenshots of the original):
+// FLAT light lime-green field with sparse two-stroke hand-drawn grass
+// squiggles ONLY — no texture, no tree shadows, no flowers. Very plain.
+const FIELD_W = 780;   // 2× of the 390×844 logical scene
+const FIELD_H = 1688;
+
+function fieldMeadowSvg() {
+  const rng = mulberry32(20260714);
+  const parts = [];
+  parts.push(`<rect x="0" y="0" width="${FIELD_W}" height="${FIELD_H}" fill="#B7E389"/>`);
+
+  // Sparse hand-drawn grass squiggles: a pair of short curved strokes.
+  const tufts = [];
+  for (let i = 0; i < 26; i++) {
+    const gx = 40 + rng() * (FIELD_W - 80);
+    const gy = 40 + rng() * (FIELD_H - 80);
+    const s = 0.8 + rng() * 0.6;
+    const lean = (rng() - 0.5) * 8;
+    tufts.push(`
+      <g stroke="#7FBF5A" stroke-width="${(5 * s).toFixed(1)}" fill="none" stroke-linecap="round" opacity="0.9">
+        <path d="M${(gx - 8 * s).toFixed(0)},${gy.toFixed(0)} q${(2 + lean).toFixed(0)},-${(16 * s).toFixed(0)} ${(8 + lean).toFixed(0)},-${(22 * s).toFixed(0)}"/>
+        <path d="M${(gx + 6 * s).toFixed(0)},${(gy + 2).toFixed(0)} q${(-2 + lean).toFixed(0)},-${(14 * s).toFixed(0)} ${(-7 + lean).toFixed(0)},-${(19 * s).toFixed(0)}"/>
+      </g>`);
+  }
+  parts.push(tufts.join("\n"));
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FIELD_W} ${FIELD_H}" width="${FIELD_W}" height="${FIELD_H}">${parts.join("\n")}</svg>`;
+}
+
+// §9.4 v2 tray: brown wooden trough — rounded, dark-brown + black border, a
+// row of FENCE POSTS along the front edge (signature detail), NO slot
+// dividers, hard offset black shadow. 760×240 → 380×120 logical.
+const TRAY_ART_W = 760;
+const TRAY_ART_H = 240;
+
+function trayWoodSvg() {
+  const posts = [];
+  const postCount = 9;
+  const postW = 34;
+  const span = TRAY_ART_W - 90;
+  for (let i = 0; i < postCount; i++) {
+    const px = 45 + (span / (postCount - 1)) * i - postW / 2;
+    const wobble = i % 2 === 0 ? 0 : 6;
+    posts.push(`
+      <rect x="${px.toFixed(0)}" y="${142 + wobble}" width="${postW}" height="${86 - wobble}" rx="14"
+            fill="#B98A50" stroke="#26221E" stroke-width="6"/>
+      <rect x="${(px + 7).toFixed(0)}" y="${150 + wobble}" width="8" height="${66 - wobble}" rx="4"
+            fill="#8A5A2E" opacity="0.6"/>
+    `);
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${TRAY_ART_W} ${TRAY_ART_H}" width="${TRAY_ART_W}" height="${TRAY_ART_H}">
+    <!-- Hard sticker shadow -->
+    <rect x="16" y="20" width="${TRAY_ART_W - 24}" height="156" rx="34" fill="#26221E" opacity="0.30"/>
+    <!-- Trough body -->
+    <rect x="8" y="8" width="${TRAY_ART_W - 24}" height="156" rx="34"
+          fill="#A9743E" stroke="#26221E" stroke-width="9"/>
+    <!-- Plain darker interior (no slot dividers) -->
+    <rect x="26" y="26" width="${TRAY_ART_W - 60}" height="120" rx="22" fill="#7C512A" stroke="#54320F" stroke-width="5"/>
+    <!-- Fence posts along the front edge -->
+    ${posts.join("\n")}
+  </svg>`;
+}
+
+// §9.4 v2 prop buttons: SKY-BLUE rounded squares, black outline, hard offset
+// black shadow, YELLOW icons. Full button baked per prop (140×150).
+const PROP_W = 140;
+const PROP_H = 150;
+
+function propButtonSvg(glyph) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${PROP_W} ${PROP_H}" width="${PROP_W}" height="${PROP_H}">
+    <rect x="16" y="18" width="116" height="116" rx="28" fill="#26221E" opacity="0.32"/>
+    <rect x="8" y="8" width="116" height="116" rx="28" fill="#5BC2F0" stroke="#26221E" stroke-width="7"/>
+    <g transform="translate(-4, -4)">${glyph}</g>
+  </svg>`;
+}
+
+// Yellow glyph helper: black under-stroke, yellow over-stroke.
+function duoPath(d, wOuter = 24, wInner = 13) {
+  return `
+    <path d="${d}" fill="none" stroke="#26221E" stroke-width="${wOuter}" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${d}" fill="none" stroke="#FFD23E" stroke-width="${wInner}" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function duoPoly(points) {
+  return `
+    <polygon points="${points}" fill="#FFD23E" stroke="#26221E" stroke-width="9" stroke-linejoin="round"/>`;
+}
+
+// Undo — counter-clockwise curved arrow.
+const propUndo = propButtonSvg(`
+  ${duoPath("M100,54 A34,34 0 1 0 104,84")}
+  ${duoPoly("114,32 118,66 86,52")}
+`);
+
+// Remove-3 — out-of-tray arrow.
+const propRemove = propButtonSvg(`
+  ${duoPath("M38,80 v18 a12,12 0 0 0 12,12 h40 a12,12 0 0 0 12,-12 v-18", 22, 12)}
+  ${duoPath("M70,88 v-42", 22, 12)}
+  ${duoPoly("70,20 90,50 50,50")}
+`);
+
+// Shuffle — two crossing arrows.
+const propShuffle = propButtonSvg(`
+  ${duoPath("M34,52 h18 q14,0 22,12 l10,14 q8,12 22,12 h6", 20, 11)}
+  ${duoPath("M34,90 h18 q14,0 22,-12 l10,-14 q8,-12 22,-12 h6", 20, 11)}
+  ${duoPoly("124,52 102,38 102,66")}
+  ${duoPoly("124,90 102,76 102,104")}
+`);
+
+// §9.4 v2 home CTA: WHITE sticker button with a hand-drawn wobbly black
+// border + hard offset shadow (text is drawn in-scene). 560×170.
+const STICKER_W = 560;
+const STICKER_H = 170;
+
+function stickerButtonSvg() {
+  const rng = mulberry32(88);
+  // Sample a rounded-rect perimeter and perturb it for the hand-drawn read.
+  const w = 508, h = 118, r = 44;
+  const ox = 18, oy = 14;
+  const pts = [];
+  const seg = (x0, y0, x1, y1, n) => {
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      pts.push([x0 + (x1 - x0) * t, y0 + (y1 - y0) * t]);
+    }
+  };
+  const arc = (cx, cy, a0, a1, n) => {
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (a1 - a0) * (i / n);
+      pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+    }
+  };
+  seg(ox + r, oy, ox + w - r, oy, 14);
+  arc(ox + w - r, oy + r, -Math.PI / 2, 0, 6);
+  seg(ox + w, oy + r, ox + w, oy + h - r, 4);
+  arc(ox + w - r, oy + h - r, 0, Math.PI / 2, 6);
+  seg(ox + w - r, oy + h, ox + r, oy + h, 14);
+  arc(ox + r, oy + h - r, Math.PI / 2, Math.PI, 6);
+  seg(ox, oy + h - r, ox, oy + r, 4);
+  arc(ox + r, oy + r, Math.PI, Math.PI * 1.5, 6);
+  const wobbly = pts
+    .map(([x, y], i) => {
+      const jx = (rng() - 0.5) * 5;
+      const jy = (rng() - 0.5) * 5;
+      return `${i === 0 ? "M" : "L"}${(x + jx).toFixed(1)},${(y + jy).toFixed(1)}`;
+    })
+    .join(" ") + " Z";
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${STICKER_W} ${STICKER_H}" width="${STICKER_W}" height="${STICKER_H}">
+    <path d="${wobbly}" transform="translate(11, 13)" fill="#26221E" opacity="0.32"/>
+    <path d="${wobbly}" fill="#FFFFFF" stroke="#26221E" stroke-width="8" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+const P2_ART = [
+  { name: "field-meadow", svg: fieldMeadowSvg(), w: FIELD_W, h: FIELD_H, quality: 84 },
+  { name: "tray-wood", svg: trayWoodSvg(), w: TRAY_ART_W, h: TRAY_ART_H, quality: 92 },
+  { name: "btn-sticker", svg: stickerButtonSvg(), w: STICKER_W, h: STICKER_H, quality: 92 },
+  { name: "prop-undo", svg: propUndo, w: PROP_W, h: PROP_H, quality: 92 },
+  { name: "prop-remove", svg: propRemove, w: PROP_W, h: PROP_H, quality: 92 },
+  { name: "prop-shuffle", svg: propShuffle, w: PROP_W, h: PROP_H, quality: 92 },
+];
+
+console.log("\nGenerating P2 scene art...");
+for (const art of P2_ART) {
+  const svgPath = join(SRC_DIR, `${art.name}.svg`);
+  writeFileSync(svgPath, art.svg);
+  await sharp(svgPath)
+    .resize(art.w, art.h)
+    .webp({ quality: art.quality }) // alpha preserved for button/prop/sheep art
+    .toFile(join(WEBP_DIR, `${art.name}.webp`));
+  console.log(`  [WEBP] ${art.name}.webp`);
+}
+
+// Retired art:
+//   logo-sign.webp     pre-§9.4-v2 wooden-sign draft (never shipped)
+//   sheep-grazing.webp circle-composite grazing pose — retired with the home
+//                      flock in the 2026-07-14 mascot verdict (the home now
+//                      shows the single logo-derived hero medallion)
+//   mascot-sheep.svg   circle-composite mascot source — the webp of the same
+//                      name is now generated from public/logo.webp above
+for (const stale of ["logo-sign.webp", "sheep-grazing.webp"]) {
+  const p = join(WEBP_DIR, stale);
+  if (existsSync(p)) {
+    unlinkSync(p);
+    console.log(`  [DEL] ${stale}`);
+  }
+  const s = join(SRC_DIR, stale.replace(".webp", ".svg"));
+  if (existsSync(s)) unlinkSync(s);
+}
+for (const staleSvg of ["mascot-sheep.svg"]) {
+  const s = join(SRC_DIR, staleSvg);
+  if (existsSync(s)) {
+    unlinkSync(s);
+    console.log(`  [DEL] src-svg/${staleSvg}`);
+  }
 }
 
 // ─── Delete old tile webps (the replaced generic set) ────────────
