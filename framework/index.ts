@@ -8,8 +8,8 @@ import { AA_WRITE, guardedWrite } from "./internal/guards";
 import { createOracleSurface } from "./oracle-surface";
 import { createModeModule } from "./mode";
 import { createActionsSurface, createOperationsSurface } from "./actions-surface";
-import { createDbSurface, createStateSurface } from "./app-state";
-import { createAchievementsSurface, createStatsSurface } from "./stats-surface";
+import { createStateSurface } from "./app-state";
+import { createStatsSurface } from "./stats-surface";
 import { createNotifyModule } from "./notify-surface";
 import { createPlatformSurface } from "./platform-surface";
 import { createStorageSurface } from "./storage-surface";
@@ -66,18 +66,17 @@ export function createMiniAppFramework(
   const notify = ctx.services.notify ?? {};
   const storagePrefix = options.storagePrefix ?? `neo:${appId}:`;
 
-  // app.storage — extracted module (RFC P0-1 §2 step 5). `local`/`hybrid`
-  // are also consumed by state.persisted / achievements / db.collection.
+  // app.storage — extracted module (RFC P0-1 §2 step 5). `local` is also
+  // consumed by state.persisted.
   const storageSurface = createStorageSurface({
     prefix: storagePrefix,
     osStorage: () => os.storage,
   });
-  const { local, hybrid } = storageSurface;
+  const { local } = storageSurface;
 
-  // app.state + app.db — extracted module (RFC P0-1 residual split): atoms
-  // registered on the ctx state record; collections over the hybrid lane.
+  // app.state — extracted module (RFC P0-1 residual split): atoms
+  // registered on the ctx state record.
   const stateSurface = createStateSurface({ local, stateHost: ctx });
-  const dbSurface = createDbSurface({ hybrid });
 
   // app.notify + the S1/S2 toast wrappers — extracted module (RFC P0-1 §2
   // step 3). setStatus/t thread as live accessors so late ctx mutation keeps
@@ -310,21 +309,12 @@ export function createMiniAppFramework(
   });
   const operationsSurface = createOperationsSurface({ toastSuccess, notify });
 
-  // app.stats + app.achievements — extracted module (RFC P0-1 residual
-  // split): OS-board leaderboard glue (guest-namespaced) + OS badge helpers.
+  // app.stats — extracted module (RFC P0-1 residual split): OS-board
+  // leaderboard glue (guest-namespaced).
   const statsSurface = createStatsSurface({
-    db: dbSurface,
-    address: chain.address,
-    ensureWallet: () => chain.ensureWallet(),
     leaderboard: () => os.leaderboard,
     mode: modeSurface,
     isGuestBoardRow,
-  });
-  const achievementsSurface = createAchievementsSurface({
-    address: chain.address,
-    ensureWallet: () => chain.ensureWallet(),
-    local,
-    badge: () => os.badge,
   });
 
   const framework: MiniAppFramework = {
@@ -349,9 +339,6 @@ export function createMiniAppFramework(
     state: stateSurface,
 
     storage: storageSurface,
-
-    /** app.db — extracted module (RFC P0-1 residual split). */
-    db: dbSurface,
 
     /** app.actions — extracted module (RFC P0-1 residual split). */
     actions: actionsSurface,
@@ -421,9 +408,6 @@ export function createMiniAppFramework(
     /** app.stats — extracted module (RFC P0-1 residual split). */
     stats: statsSurface,
 
-    /** app.achievements — extracted module (RFC P0-1 residual split). */
-    achievements: achievementsSurface,
-
     /** app.game — extracted module (RFC P0-1 §2 step 10). */
     game: createGameFacade({
       appId,
@@ -476,12 +460,12 @@ export type { GameFacadeDeps } from "./game-facade";
 // RFC P0-1 residual split — the small inline members extracted from index.ts
 export { createPlatformSurface } from "./platform-surface";
 export type { PlatformSurfaceDeps } from "./platform-surface";
-export { createDbSurface, createStateSurface } from "./app-state";
-export type { DbSurfaceDeps, StateSurfaceDeps } from "./app-state";
+export { createStateSurface } from "./app-state";
+export type { StateSurfaceDeps } from "./app-state";
 export { createActionsSurface, createOperationsSurface } from "./actions-surface";
 export type { ActionsSurfaceDeps, OperationsSurfaceDeps } from "./actions-surface";
-export { createAchievementsSurface, createStatsSurface } from "./stats-surface";
-export type { AchievementsSurfaceDeps, StatsSurfaceDeps } from "./stats-surface";
+export { createStatsSurface } from "./stats-surface";
+export type { StatsSurfaceDeps } from "./stats-surface";
 
 // The fleet-standard mm:ss clock. The `app.fmt` accessor this module used to
 // carry (RFC P0-3) was removed as unreachable — see fmt-surface's module doc.

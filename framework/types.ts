@@ -329,15 +329,6 @@ export interface FrameworkActionOptions<TResult = unknown> {
   guestBlocked?: boolean | { statusKey: string };
 }
 
-export interface FrameworkReadSpec<T = unknown> {
-  operation: string;
-  args?: FrameworkContractArg[];
-  scriptHash?: string;
-  cache?: boolean;
-  cacheTtlMs?: number;
-  parse?: (raw: unknown) => T;
-}
-
 export interface FrameworkWriteSpec {
   operation: string;
   args: FrameworkContractArg[];
@@ -527,12 +518,6 @@ export interface SealOracleRequest {
   payload: unknown;
 }
 
-export interface AchievementDefinition {
-  id: string;
-  name: string;
-  criteria: string;
-}
-
 // ───────────────────────────────────────────────────────────────────────────
 // Explicit MiniAppFramework surface interfaces (RFC P0-1)
 // ───────────────────────────────────────────────────────────────────────────
@@ -706,32 +691,9 @@ export interface FrameworkRemoteStorageSurface {
   list(prefix: string, limit?: number): Promise<Record<string, unknown>>;
 }
 
-/** Remote-first read / dual-write lane (`app.storage.hybrid`). */
-export interface FrameworkHybridStorageSurface {
-  get<T>(key: string, fallback?: T | null): Promise<T | null>;
-  set(key: string, value: unknown): Promise<void>;
-  delete(key: string): Promise<void>;
-  list(prefix: string, limit?: number): Promise<Record<string, unknown>>;
-}
-
 export interface FrameworkStorageSurface {
   local: FrameworkLocalStorageSurface;
   remote: FrameworkRemoteStorageSurface;
-  /** @deprecated 0 fleet consumers — prefer `local` or `remote` explicitly. */
-  hybrid: FrameworkHybridStorageSurface;
-}
-
-/** One named document collection over hybrid storage (`app.db.collection`). */
-export interface FrameworkDbCollection<T extends Record<string, unknown>> {
-  get(id: string): Promise<T | null>;
-  set(id: string, value: T): Promise<void>;
-  delete(id: string): Promise<void>;
-  list(limit?: number): Promise<T[]>;
-}
-
-export interface FrameworkDbSurface {
-  /** @deprecated 0 fleet consumers — prefer `app.storage.local`/`remote`. */
-  collection<T extends Record<string, unknown>>(name: string): FrameworkDbCollection<T>;
 }
 
 /** app.actions — registered action handlers with toast wrapping. */
@@ -811,12 +773,6 @@ export interface FrameworkChainSurface {
   ensureWallet(): Promise<string>;
   /** Current network label (e.g. "testnet"/"mainnet") if the host exposes it. */
   detectNetwork(): Promise<string>;
-  /**
-   * Typed read via a spec object.
-   * @deprecated Use {@link query} — `chain.query(op, args).as(parse)` is the
-   * chainable successor (the spec-object form found no adopters).
-   */
-  read<T = unknown>(spec: FrameworkReadSpec<T>): Promise<T>;
   /**
    * Raw contract read by operation + args, for app-specific parse/guard
    * flows. Prefer {@link query} for typed decodes (`readRaw` ≡ `query(...).raw()`).
@@ -1002,11 +958,6 @@ export interface FrameworkOracleSurface {
 
 /** app.stats — OS-board stats + shared leaderboard (guest-namespaced). */
 export interface FrameworkStatsSurface {
-  /**
-   * @deprecated 0 fleet consumers; non-atomic read-modify-write over db
-   * storage — prefer contract-side counters or `app.storage`.
-   */
-  increment(key: string, by?: number, scope?: "global" | "user"): Promise<number>;
   leaderboard: {
     /**
      * Submit a score to the shared OS board. Guest submissions route to the
@@ -1016,14 +967,6 @@ export interface FrameworkStatsSurface {
     /** Top rows of the shared board, guest-namespaced rows filtered out. */
     top(limit?: number): Promise<Array<{ user: string; score: string }>>;
   };
-}
-
-/** app.achievements — OS badge helpers. */
-export interface FrameworkAchievementsSurface {
-  /** @deprecated 0-1 fleet consumers — OS badge lane, kept for back-compat. */
-  awardOnce(definition: AchievementDefinition, user?: string): Promise<{ awarded: boolean }>;
-  /** @deprecated See {@link awardOnce}. */
-  list(user?: string): Promise<unknown[]>;
 }
 
 /** Handle returned by `app.game.reward(config)` — the reward-game SDK bound to the app chain. */
@@ -1216,10 +1159,8 @@ export interface MiniAppFramework {
   platform: FrameworkPlatformSurface;
   /** app.state — observable atoms (optionally persisted). */
   state: FrameworkStateSurface;
-  /** app.storage — local / remote / hybrid keyed storage. */
+  /** app.storage — local / remote keyed storage. */
   storage: FrameworkStorageSurface;
-  /** @deprecated app.db — 0 fleet consumers; prefer app.storage. */
-  db: FrameworkDbSurface;
   /** app.actions — registered actions with toast wrapping + drop-mode single-flight. */
   actions: FrameworkActionsSurface;
   /** app.chain — reads, writes, args, events, signing. */
@@ -1255,8 +1196,6 @@ export interface MiniAppFramework {
   oracle: FrameworkOracleSurface;
   /** app.stats — OS-board stats + shared leaderboard. */
   stats: FrameworkStatsSurface;
-  /** @deprecated app.achievements — OS badge lane, 0-1 fleet consumers. */
-  achievements: FrameworkAchievementsSurface;
   /** app.game — reward-game SDK facade + helpers. */
   game: FrameworkGameSurface;
 }
