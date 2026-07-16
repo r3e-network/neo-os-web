@@ -122,6 +122,13 @@ export interface StatDefinition {
   icon?: string;
   /** Visual variant for styling */
   variant?: StatVariant;
+  /**
+   * i18n key for the copy the chrome shows while this value is UNREAD —
+   * i.e. while the bound observable still holds `undefined`. See
+   * `SidebarItemDefinition.pendingKey` for the full contract; the two fields
+   * are the same mechanism declared on the two binding surfaces.
+   */
+  pendingKey?: string;
 }
 
 // ============================================================================
@@ -197,6 +204,34 @@ export interface SidebarItemDefinition {
   valueKey: string;
   /** Display format for the value */
   format?: SidebarFormat;
+  /**
+   * i18n key for the copy the chrome shows while this value is UNREAD.
+   *
+   * Manifest bindings are an ungated render path: the shell formats whatever
+   * the observable holds at first paint, so an app's DataPhase gating inside
+   * its own PlayArea does not reach the chrome. Without a declared pending
+   * phase the chrome publishes the app's rest-state fallback as if it were a
+   * reading — a void ("Total USD —") or, worse, a fabricated number
+   * ("Founders 0") that asserts something false.
+   *
+   * Bindings are string-valued (the formatter returns a string), so the shell
+   * structurally cannot mount a skeleton element here. Honest words are the
+   * only truthful option, and they are declared here rather than hand-written
+   * as a parallel display-only observable in every app.
+   *
+   * The trigger is `undefined` specifically, and only `undefined`: `null` and
+   * `""` are values an app may legitimately hold and report, whereas
+   * `undefined` uniquely means "nothing has been set yet". An app opts in by
+   * leaving the observable `undefined` until its read settles.
+   *
+   * Omit this field to keep the pre-existing behaviour exactly: with no
+   * `pendingKey`, `undefined` formats as it always has.
+   *
+   * Pick copy that matches the actual phase — "Reading…" while a read is in
+   * flight, "Connect wallet" where there is no wallet to read from. A settled
+   * read of zero is a real reading and must still render as 0.
+   */
+  pendingKey?: string;
 }
 
 export interface SidebarConfig {
