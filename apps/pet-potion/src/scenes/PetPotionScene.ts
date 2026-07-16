@@ -946,6 +946,10 @@ export class PetPotionScene extends BaseScene {
               : this.isGuestMode()
                 ? this.copy("saveScore", "Save score")
                 : this.copy("claimReward", "Claim reward"))
+        // Pool-low copy outranks the lobby launch labels (flappy-dash order):
+        // the disabled start must say why instead of silently eating taps.
+        : !this.rewardPoolReady()
+          ? this.copy("statusPoolLow", "Pool refilling for this nursery path")
         : status === "solved"
           ? this.copy("raiseAnother", "Raise another pet")
           : status === "expired" || status === "refunded"
@@ -1408,6 +1412,10 @@ export class PetPotionScene extends BaseScene {
       this.bool("isActing");
     if (busy) return false;
     const lobby = status === "idle" || status === "solved" || status === "expired" || status === "refunded";
+    // Fleet gate (restored from the deleted DOM PlayArea): a paid run must
+    // never start while the reward pool cannot cover the payout. Guest play
+    // is a free local game and stays exempt inside rewardPoolReady().
+    if (lobby && !this.rewardPoolReady()) return false;
     if (!this.isGuestMode() && !this.bool("walletConnected")) return lobby;
     if (lobby) return this.isGuestMode() || this.bool("newPaidRunsEnabled");
     if (!isPlayingStatus(status)) return false;
@@ -1456,6 +1464,17 @@ export class PetPotionScene extends BaseScene {
 
   private isGuestMode(): boolean {
     return this.str("appMode", "gamefi") === "guest";
+  }
+
+  /**
+   * Paid (gamefi) starts are pool-gated: the free reward pool must cover the
+   * selected path's payout before a run may open. Guest is a free local game
+   * with no reward pool, so it is never gated. Mirrors flappy-dash/snake-bounty.
+   */
+  private rewardPoolReady(): boolean {
+    if (this.isGuestMode()) return true;
+    const mode = modeOf(this.selectedDifficulty);
+    return this.num("poolFree", 0) >= Number(mode.reward);
   }
 
   /**

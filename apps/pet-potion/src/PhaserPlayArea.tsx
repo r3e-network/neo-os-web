@@ -141,6 +141,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const recipeComplete = !isGuest || recipeReady(ingredientCounts);
   const moveCapReached = actionsUsed >= MAX_MOVES;
   const lobbyAvailable = ["idle", "solved", "expired", "refunded"].includes(gameStatus) && !busy;
+  // Fleet gate (restored from the deleted DOM PlayArea): a paid run must never
+  // start while the reward pool cannot cover the payout. Guest play is a free
+  // local game and stays exempt. `rule.reward` is Fixed8, poolFree human GAS.
+  const rewardPoolReady = isGuest || poolFree >= rule.reward / 1e8;
   const careActionsOpen = isPlaying && !busy && !timeUp && !potionBrewed &&
     (!targetReached || !recipeComplete) && actionsUsed < MAX_MOVES && !inputSyncFailed;
 
@@ -230,6 +234,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
             : !potionBrewed
               ? t("brewPotionAction")
               : t("sceneSaveScore")
+          // Pool-low copy outranks the lobby launch labels (flappy-dash
+          // order): the disabled start must say why, not silently eat clicks.
+          : !isGuest && !rewardPoolReady
+            ? t("statusPoolLow")
           : !isGuest && !walletConnected
             ? t("sceneConnectWallet")
             : isGuest
@@ -240,7 +248,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     gameStatus === "committed" ||
     isPending ||
     (isPlaying && (timeUp || moveCapReached || potionBrewed || (targetReached && recipeComplete))) ||
-    (lobbyAvailable && (isGuest || !walletConnected || newPaidRunsEnabled))
+    (lobbyAvailable && (isGuest || (rewardPoolReady && (!walletConnected || newPaidRunsEnabled))))
   );
 
   const handleSemanticPrimary = () => {
@@ -253,6 +261,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       else runAction("brewPotion");
       return;
     }
+    if (!isGuest && !rewardPoolReady) return;
     if (!isGuest && !walletConnected) { runAction("connectWallet"); return; }
     if (isGuest || newPaidRunsEnabled) runAction("startGame", gameDifficulty);
   };
@@ -329,6 +338,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     statusPotionBrewed: t("sceneStatusPotionBrewed"),
     statusInputSyncFailed: t("statusInputSyncFailed"),
     statusReconnectWallet: t("sceneStatusReconnectWallet"),
+    statusPoolLow: t("statusPoolLow"),
   };
 
   const bridgeState = {
