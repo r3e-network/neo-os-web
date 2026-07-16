@@ -111,6 +111,27 @@ export type StatVariant =
   | "danger"
   | "warning";
 
+/**
+ * A stat card in the DESIGN-TIME contract — not a runtime surface.
+ *
+ * Read this before adding one: `manifest.stats` is not rendered by the shell.
+ * `manifestToTemplateConfig` carries it to `templateConfig.stats`, which
+ * `MiniAppPage` receives and never reads; `MiniAppHomeShell` does have a
+ * `stats` prop, but its only caller (`GameHomePage`) passes a hardcoded `[]`.
+ * The plumbing exists and dead-ends at the last inch. Its live consumers are
+ * design-time: the admin-console blueprint preview, `docs.tsx`, and the SDK
+ * example.
+ *
+ * What the shell actually renders is `sidebar.items` — and that one binding
+ * feeds BOTH the sidebar rail and the "stats" tab, which is why apps see stat
+ * cards at all and why this field looks live when it is not.
+ *
+ * So: anything a user must see belongs in `sidebar.items`. A binding declared
+ * only here renders nowhere — a self-loan stat published a fabricated zero for
+ * months precisely because nobody could see it to notice. Keep it truthful
+ * anyway (it is a declared contract, and it is what the blueprint shows), but
+ * do not reach for it expecting pixels.
+ */
 export interface StatDefinition {
   /** i18n key for the stat label */
   labelKey: string;
