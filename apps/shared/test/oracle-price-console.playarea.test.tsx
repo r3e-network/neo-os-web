@@ -58,7 +58,7 @@ function t(key: string, params?: Record<string, string | number>) {
   return value;
 }
 function state(o: Partial<Record<string,unknown>> = {}): ObservableState {
-  const b: Record<string,unknown> = { asset:"NEO", priceDisplay:"—", networkDisplay:"", datafeedShort:"", datafeedHash:"", sourceLabel:"", feedKey:"", rpcEndpoint:"", errorMsg:"", isRequesting:false, freshness:"idle", freshnessLabel:"Fresh", freshnessTimestamp:"", sourceFreshness:"idle", sourceFreshnessLabel:"Market source time pending", sourceTimestampDisplay:"", availablePairs:["NEO","GAS","BTC"], ...o };
+  const b: Record<string,unknown> = { asset:"NEO", priceDisplay:"", priceSettled:true, networkDisplay:"", datafeedShort:"", datafeedHash:"", sourceLabel:"", feedKey:"", rpcEndpoint:"", errorMsg:"", isRequesting:false, freshness:"idle", freshnessLabel:"Fresh", freshnessTimestamp:"", sourceFreshness:"idle", sourceFreshnessLabel:"Market source time pending", sourceTimestampDisplay:"", availablePairs:["NEO","GAS","BTC"], ...o };
   return Object.fromEntries(Object.entries(b).map(([k,v]) => [k, createObservable(v)]));
 }
 describe("Oracle Price Console PlayArea (v2)", () => {
@@ -112,7 +112,7 @@ describe("Oracle Price Console PlayArea (v2)", () => {
     expect(container.querySelector('.price-ticket__meta > span[data-tone="warning"]')?.textContent).toContain("Market source is stale");
   });
   it("keeps secondary oracle details behind drawer tabs", () => {
-    const { container } = render(<PlayArea t={t} state={state({ datafeedShort:"0xabcd…7890", datafeedHash:"0xabcdef7890", sourceLabel:"testnet oracle", feedKey:"AGG:NEO-USD", rpcEndpoint:"https://api.n3index.dev/testnet", freshnessTimestamp:"2026-07-02T12:00:00Z", priceDisplay:"$7.420000" })} dispatch={vi.fn()} />);
+    const { container } = render(<PlayArea t={t} state={state({ datafeedShort:"0xabcd…7890", datafeedHash:"0xabcdef7890", sourceLabel:"testnet oracle", feedKey:"AGG:NEO-USD", rpcEndpoint:"https://api.n3index.dev/testnet", freshnessTimestamp:"2026-07-02T12:00:00Z", priceDisplay:"$7.420000", priceSettled:true })} dispatch={vi.fn()} />);
     fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
     const drawer = container.querySelector(".price-drawer") as HTMLElement;
     expect(drawer).toBeTruthy();
@@ -180,5 +180,68 @@ describe("Oracle Price Console PlayArea (v2)", () => {
     expect(s).toMatch(/@media \(max-width:\s*760px\)[\s\S]*price-station__market[\s\S]*display:\s*none/);
     expect(s).toMatch(/@media \(max-width:\s*760px\)[\s\S]*\.price-drawer-tab strong\s*\{[\s\S]*display:\s*none/);
     expect(s).not.toMatch(/backdrop-filter|price-scene__backdrop|oracle-price-scene-art/);
+  });
+  // The pair price is a public contract read that fires for every visitor on
+  // arrival, so the headline quote is the console's first impression. A single
+  // "is there a price?" test could not tell "still reading" from "read, nothing
+  // there", so both printed "N/A" — beside a "Ready for a fresh read" badge and
+  // a spinning "Reading…" button. These pin the three honest phases apart.
+  it("shimmers the headline quote while the first read is in flight, never a glyph", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      priceDisplay: "", priceSettled: false, isRequesting: true, freshnessLabel: "",
+    })} dispatch={vi.fn()} />);
+
+    const quote = container.querySelector(".price-ticket__quote");
+    expect(quote?.querySelector(".mx2-skeleton")).toBeTruthy();
+    expect(quote?.textContent ?? "").not.toContain("—");
+    expect(quote?.textContent ?? "").not.toContain("N/A");
+    // Never a fabricated zero standing in for a price we have not read.
+    expect(quote?.textContent ?? "").not.toMatch(/\$0/);
+    // The console must not claim it is idle and ready while it is mid-read.
+    expect(container.querySelector(".price-ticket__meta")?.textContent ?? "").not.toContain("Fresh");
+  });
+
+  it("shimmers before the first read even fires, when nothing is requesting yet", () => {
+    // The widest part of the void: lifecycle mount has not called loadAll, so
+    // isRequesting is still false. `settled` is what carries the truth here.
+    const { container } = render(<PlayArea t={t} state={state({
+      priceDisplay: "", priceSettled: false, isRequesting: false, freshnessLabel: "",
+    })} dispatch={vi.fn()} />);
+
+    const quote = container.querySelector(".price-ticket__quote");
+    expect(quote?.querySelector(".mx2-skeleton")).toBeTruthy();
+    expect(quote?.textContent ?? "").not.toContain("N/A");
+  });
+
+  it("says the quote is unread once the read settles empty", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      priceDisplay: "", priceSettled: true, isRequesting: false, freshnessLabel: "",
+    })} dispatch={vi.fn()} />);
+
+    const quote = container.querySelector(".price-ticket__quote");
+    expect(quote?.querySelector(".mx2-skeleton")).toBeNull();
+    expect(quote?.querySelector("[data-phase='unavailable']")).toBeTruthy();
+    expect(quote?.textContent ?? "").not.toContain("N/A");
+    expect(quote?.textContent ?? "").not.toMatch(/\$0/);
+  });
+
+  it("renders a resolved quote as itself", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      priceDisplay: "$1.978", priceSettled: true, isRequesting: false,
+    })} dispatch={vi.fn()} />);
+
+    const quote = container.querySelector(".price-ticket__quote");
+    expect(quote?.querySelector(".mx2-skeleton")).toBeNull();
+    expect(quote?.textContent).toContain("$1.978");
+  });
+
+  it("keeps the shimmer sized like the headline it stands in for", () => {
+    // The caption rule inside the quote block must stay a direct-child selector.
+    // As a descendant selector it also matched the skeleton's own <span>,
+    // collapsing an em-sized shimmer to the 10px caption size.
+    const fs = require("node:fs");
+    const s = fs.readFileSync(`${process.cwd()}/../oracle-price-console/src/PlayArea.scss`, "utf8");
+    expect(s).toMatch(/\.price-ticket__quote > span/);
+    expect(s).not.toMatch(/\.price-ticket__quote span,/);
   });
 });
