@@ -83,12 +83,17 @@ defineMiniApp({
       );
     });
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      const connected = await app.chain.ensureWallet();
-      await syncNetwork();
-      gov.setAddress(connected || app.chain.address.get() || "");
-      await gov.init();
-      return connected;
+    ctx.framework.actions.registerConnectWallet({
+      onAddress: (addr) => gov.setAddress(addr),
+      // Network detection must settle before the governance reads fire, so this
+      // stays one sequential loader rather than a parallel [syncNetwork, init]
+      // pair. Both steps handle their own read failures internally.
+      refresh: [
+        async () => {
+          await syncNetwork();
+          await gov.init();
+        },
+      ],
     });
 
     ctx.framework.actions.register("vote", async (...args: unknown[]) => {

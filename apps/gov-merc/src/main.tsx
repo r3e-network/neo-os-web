@@ -129,10 +129,9 @@ defineMiniApp({
     // Onboarding: explicitly connect a wallet (the stake/bid actions also connect
     // lazily, but a disconnected user gets a clear next-step CTA up front). This
     // only links the wallet and re-propagates the address — no economic logic.
-    ctx.framework.actions.register("connectWallet", async () => {
-      const addr = await ctx.framework.chain.ensureWallet();
-      pool.setAddress(addr ?? ctx.framework.wallet.address() ?? "");
-      await pool.loadData();
+    ctx.framework.actions.registerConnectWallet({
+      onAddress: (addr) => pool.setAddress(addr),
+      refresh: [pool.loadData],
     });
     ctx.framework.actions.register("depositNeo", async () => {
       await ctx.framework.notify.guard(() => pool.depositNeo(), { successKey: "depositSuccess" });

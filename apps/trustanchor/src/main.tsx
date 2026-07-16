@@ -22,11 +22,15 @@ defineMiniApp({
       },
     });
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      const outcome = await ctx.framework.notify.guardResult(async () => {
-        await runtime.connect();
-      });
-      return outcome.ok;
+    // Connecting is the one thing a visitor can always do, so it is deliberately
+    // not routed through the runtime's runAction gate (readable binding + exact
+    // wallet network asserted) — precisely the state a disconnected visitor
+    // cannot satisfy yet. Seeding `walletAddress` keeps the console's
+    // connect-gated placeholders honest even if the host never emits an
+    // account-changed event for an already-authorized wallet.
+    ctx.framework.actions.registerConnectWallet({
+      onAddress: (addr) => runtime.state.walletAddress.set(addr),
+      refresh: [runtime.loadAll],
     });
     ctx.framework.actions.register("stakeNeo", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as Record<string, unknown>;

@@ -793,11 +793,8 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
     if (contractReadable) await restorePendingBet();
   };
 
-  const connectWallet = async (): Promise<void> => {
-    const connected = await app.wallet.ensure();
-    setAddress(connected || app.chain.address.get() || null);
-    await loadAll();
-  };
+  // Connecting lives in main.tsx as `actions.registerConnectWallet`
+  // (ensureWallet → setAddress mirror seed → loadAll) — no composable wrapper.
 
   // ── Machine Selection ──────────────────────────────────────────────
 
@@ -1732,7 +1729,6 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
 
     // ── Actions ─────────────────────────────────────────────────────
     setAddress,
-    connectWallet,
     selectMachine,
     deselectMachine,
     openStudio,
