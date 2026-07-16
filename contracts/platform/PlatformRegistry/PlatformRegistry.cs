@@ -14,6 +14,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void RegistryAppRegisteredHandler(string appId, string engineId, UInt160 appAdmin, UInt160 accountHash);
     public delegate void RegistryAccountMintedHandler(string appId, UInt160 account, BigInteger artifactVersion);
     public delegate void RegistryAccountUpgradedHandler(string appId, BigInteger artifactVersion);
+    public delegate void RegistryUpgradeProposedHandler(string appId, BigInteger artifactVersion, BigInteger executeAfter);
     public delegate void RegistryShimConsentHandler(string appId, bool consented);
     public delegate void RegistryArtifactProposedHandler(BigInteger version, BigInteger executeAfter);
     public delegate void RegistryArtifactActivatedHandler(BigInteger version, BigInteger checksum);
@@ -72,15 +73,17 @@ namespace NeoMiniAppPlatform.Contracts
     //    0x06        scheduled upgrade eta
     //    0x07        scheduled upgrade sha256(nef ++ manifest)
     //    0x08        treasury transit note (fundEnginePool hop)
+    //    0x09        mint reentrancy lock
     //    0x10        appId -> appAdmin (row presence == registered)
     //    0x11        appId -> minted AppAccount hash
     //    0x12        appId -> paused flag
     //    0x13        appId ':' key -> descriptor entry (serialized)
     //    0x14        appId -> attached engineId
     //    0x15        appId -> pending app-admin rotation
-    //    0x16 01-04  payout address / pending payout / spend threshold /
-    //                pending spend
-    //    0x17        appId -> shim-upgrade consent flag
+    //    0x16 01-05  payout address / pending payout / spend threshold /
+    //                pending spend / rolling 24h spend window {anchor, spent}
+    //    0x17        appId -> shim-upgrade consent (approved artifact version)
+    //    0x18        appId -> pending shim-upgrade eta
     //    0x20 01/02  engineId -> engine row / pending engine change
     //    0x21        engineHash -> engineId
     //    0x22        account hash -> appId (permission-anchoring reverse index)
@@ -117,6 +120,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_UPGRADE_TIME = new byte[] { 0x06 };
         private static readonly byte[] PREFIX_UPGRADE_HASH = new byte[] { 0x07 };
         private static readonly byte[] PREFIX_TREASURY_TRANSIT = new byte[] { 0x08 };
+        private static readonly byte[] PREFIX_MINT_LOCK = new byte[] { 0x09 };
 
         // ---- app row prefixes (0x10-0x1F) ----
         private static readonly byte[] PREFIX_APP_ADMIN = new byte[] { 0x10 };
@@ -129,7 +133,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_PENDING_PAYOUT = new byte[] { 0x16, 0x02 };
         private static readonly byte[] PREFIX_SPEND_THRESHOLD = new byte[] { 0x16, 0x03 };
         private static readonly byte[] PREFIX_PENDING_SPEND = new byte[] { 0x16, 0x04 };
+        private static readonly byte[] PREFIX_SPEND_WINDOW = new byte[] { 0x16, 0x05 };
         private static readonly byte[] PREFIX_SHIM_CONSENT = new byte[] { 0x17 };
+        private static readonly byte[] PREFIX_PENDING_SHIM_UPGRADE = new byte[] { 0x18 };
 
         // ---- engine table prefixes (0x20-0x2F) ----
         private static readonly byte[] PREFIX_ENGINE_ROW = new byte[] { 0x20, 0x01 };
@@ -157,17 +163,25 @@ namespace NeoMiniAppPlatform.Contracts
         private const long FEE_LITE_REGISTRATION = 100_000_000;      // 1 GAS
         private const long FEE_ACCOUNT_MINT = 1_000_000_000;         // 10 GAS
 
-        // spendToPayout amounts above the per-app threshold require the
-        // timelocked proposeSpend/executeSpend pair. The threshold itself is
-        // descriptor data under the registry namespace, range-validated.
+        // The per-app spend threshold bounds CUMULATIVE instant-lane outflow
+        // over a rolling 24h window (not per call): spentInWindow + amount <=
+        // threshold. Larger single spends use the timelocked proposeSpend/
+        // executeSpend pair. The threshold itself is descriptor data under the
+        // registry namespace, range-validated.
         private const long DEFAULT_SPEND_THRESHOLD = 10_000_000_000;    // 100 GAS
         private const long MIN_SPEND_THRESHOLD = 100_000_000;           // 1 GAS
         private const long MAX_SPEND_THRESHOLD = 1_000_000_000_000;     // 10000 GAS
+
+        // Rolling window for the cumulative spendToPayout budget, keyed on an
+        // anchor timestamp (the audited PlatformGame.Dice M-4 pattern) so it
+        // never resets on a calendar boundary.
+        private const long SPEND_WINDOW_MS = 86400000; // 24 hours in milliseconds
 
         // ---- events ----
         [DisplayName("AppRegistered")] public static event RegistryAppRegisteredHandler OnAppRegistered;
         [DisplayName("AppAccountMinted")] public static event RegistryAccountMintedHandler OnAppAccountMinted;
         [DisplayName("AppAccountUpgraded")] public static event RegistryAccountUpgradedHandler OnAppAccountUpgraded;
+        [DisplayName("AppAccountUpgradeProposed")] public static event RegistryUpgradeProposedHandler OnAppAccountUpgradeProposed;
         [DisplayName("ShimUpgradeConsentChanged")] public static event RegistryShimConsentHandler OnShimUpgradeConsentChanged;
         [DisplayName("ArtifactProposed")] public static event RegistryArtifactProposedHandler OnArtifactProposed;
         [DisplayName("ArtifactActivated")] public static event RegistryArtifactActivatedHandler OnArtifactActivated;

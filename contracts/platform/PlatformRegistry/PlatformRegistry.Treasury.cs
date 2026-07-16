@@ -55,15 +55,22 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>
         /// Move treasury funds to the registered payout address. App-admin
-        /// witnessed, destination role-bound, pause-immune. Amounts above
-        /// the per-app threshold must use the proposeSpend timelock pair
-        /// so one compromised key cannot instantly drain a large treasury.
+        /// witnessed, destination role-bound, immune to the GLOBAL registry
+        /// pause (respects the account's LOCAL pause). The per-app threshold
+        /// bounds CUMULATIVE outflow over a rolling 24h window, not per call —
+        /// so many sub-threshold spends from a compromised key cannot drain
+        /// the treasury past the threshold in one window. Larger single spends
+        /// must use the timelocked proposeSpend/executeSpend pair.
         /// </summary>
         public static void SpendToPayout(string appId, UInt160 asset, BigInteger amount)
         {
             RequireRegistered(appId);
             RequireAppAdmin(appId);
-            ExecutionEngine.Assert(amount <= SpendThresholdOf(appId), "amount above spend threshold");
+            ExecutionEngine.Assert(amount > 0, "invalid amount");
+            ExecutionEngine.Assert(
+                SpentInWindow(appId) + amount <= SpendThresholdOf(appId),
+                "window spend budget exceeded");
+            RecordWindowSpend(appId, amount);
             RelayPayout(appId, asset, amount);
         }
 
@@ -106,6 +113,13 @@ namespace NeoMiniAppPlatform.Contracts
         /// account -> registry (validated against the transit note by
         /// OnNEP17Payment, credited nowhere) -> engine with memo
         /// "appId:credit" so it lands in the engine's per-app pool.
+        ///
+        /// The transit note is the in-flight LOCK and is held across the
+        /// engine forward (finding 3): OnNEP17Payment validates but does NOT
+        /// clear it, so a hostile engine that reenters fundEnginePool from its
+        /// pool-credit callback trips the still-live "treasury hop in progress"
+        /// guard and the whole hop reverts. The note is cleared only after the
+        /// forward completes.
         /// </summary>
         public static void FundEnginePool(string appId, BigInteger amount)
         {
@@ -125,14 +139,14 @@ namespace NeoMiniAppPlatform.Contracts
                 "treasury hop in progress");
             TransitNote note = new TransitNote { Account = account, Amount = amount };
             Storage.Put(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT, StdLib.Serialize(note));
+            // account -> registry; the callback validates the note and returns
+            // without clearing it, so the lock stays live across the forward.
             Contract.Call(account, "executeTransfer", CallFlags.All, GAS.Hash, Runtime.ExecutingScriptHash, amount);
-            // The callback consumed the note; its absence proves the hop landed.
-            ExecutionEngine.Assert(
-                Storage.Get(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT) == null,
-                "treasury hop not observed");
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + ":credit"),
                 "engine pool transfer failed");
+            // Forward landed without reentrancy: release the in-flight lock.
+            Storage.Delete(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT);
             OnEnginePoolFunded(appId, row.Hash, amount);
         }
 
@@ -159,6 +173,14 @@ namespace NeoMiniAppPlatform.Contracts
 
         // ---- [Safe] treasury reads ----
 
+        /// <summary>Whether a fundEnginePool transit hop is mid-flight (the
+        /// in-flight reentrancy lock is set). Only ever true transiently
+        /// inside a single fundEnginePool transaction; always false between
+        /// transactions.</summary>
+        [Safe]
+        public static bool TransitHopInProgress() =>
+            Storage.Get(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT) != null;
+
         [Safe]
         public static UInt160 PayoutAddressOf(string appId)
         {
@@ -173,7 +195,43 @@ namespace NeoMiniAppPlatform.Contracts
             return raw == null ? DEFAULT_SPEND_THRESHOLD : (BigInteger)raw;
         }
 
+        /// <summary>Cumulative spendToPayout outflow inside the current rolling
+        /// 24h window; zero once the anchor has aged past the window.</summary>
+        [Safe]
+        public static BigInteger SpentInWindow(string appId)
+        {
+            ByteString raw = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_SPEND_WINDOW, appId));
+            if (raw == null) return 0;
+            object[] stored = (object[])StdLib.Deserialize(raw);
+            BigInteger anchor = (BigInteger)stored[0];
+            if (Runtime.Time - anchor >= SPEND_WINDOW_MS) return 0;
+            return (BigInteger)stored[1];
+        }
+
         // ---- internals ----
+
+        // Rolling-window accumulator (the audited PlatformGame.Dice M-4
+        // pattern): keep the anchor while it is younger than the window and
+        // add to the running total; otherwise start a fresh window at now.
+        private static void RecordWindowSpend(string appId, BigInteger amount)
+        {
+            BigInteger now = Runtime.Time;
+            BigInteger anchor = now;
+            BigInteger spent = 0;
+            ByteString existing = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_SPEND_WINDOW, appId));
+            if (existing != null)
+            {
+                object[] stored = (object[])StdLib.Deserialize(existing);
+                BigInteger storedAnchor = (BigInteger)stored[0];
+                if (now - storedAnchor < SPEND_WINDOW_MS)
+                {
+                    anchor = storedAnchor;
+                    spent = (BigInteger)stored[1];
+                }
+            }
+            Storage.Put(Storage.CurrentContext, AppKey(PREFIX_SPEND_WINDOW, appId),
+                StdLib.Serialize(new object[] { anchor, spent + amount }));
+        }
 
         // The single payout relay: destination is ALWAYS the registered
         // payout address, never a caller-supplied value.

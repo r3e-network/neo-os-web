@@ -46,6 +46,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("unexpected payer during treasury hop", body);
             Assert.Contains("unexpected amount during treasury hop", body);
 
+            // Finding 3: the callback does NOT clear the transit note — the
+            // in-flight lock is held across the engine forward so a reentrant
+            // fundEnginePool trips the guard. fundEnginePool clears it after.
+            Assert.DoesNotContain("Storage.Delete(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT)", body);
+
             // The liability counter moves with every credit.
             Assert.Contains("PREFIX_CREDIT_LIABILITY", body);
         }
@@ -91,9 +96,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("UInt160 payout = PayoutAddressOf(appId)", relayBody);
             Assert.Contains("Contract.Call(account, \"executeTransfer\", CallFlags.All, asset, payout, amount)", relayBody);
 
-            // Above-threshold spends are pushed into the timelock pair, and
-            // executeSpend consumes the pending slot BEFORE relaying (CEI).
-            Assert.Contains("amount above spend threshold", spendBody);
+            // Above-threshold (or cumulative-window-exceeding) spends are
+            // pushed into the timelock pair, and executeSpend consumes the
+            // pending slot BEFORE relaying (CEI).
+            Assert.Contains("window spend budget exceeded", spendBody);
             int consume = executeBody.IndexOf("Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_SPEND, appId))", StringComparison.Ordinal);
             int relay = executeBody.IndexOf("RelayPayout(", StringComparison.Ordinal);
             Assert.True(consume >= 0 && relay >= 0 && consume < relay,
@@ -110,18 +116,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // 'appId:credit' grammar — both literal, never parameters.
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":credit\")", body);
 
-            // Transit ordering: note set -> relay -> note consumed assert ->
-            // forward. The forward can never run without an observed hop.
+            // Transit ordering (finding 3): the in-flight lock is HELD across
+            // the forward. Guard -> note set -> relay -> forward -> note delete,
+            // so a reentrant engine callback trips the still-live lock.
+            int guard = body.IndexOf("treasury hop in progress", StringComparison.Ordinal);
             int setNote = body.IndexOf("Storage.Put(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT", StringComparison.Ordinal);
             int relay = body.IndexOf("Contract.Call(account, \"executeTransfer\"", StringComparison.Ordinal);
-            int consumed = body.IndexOf("treasury hop not observed", StringComparison.Ordinal);
             int forward = body.IndexOf("engine pool transfer failed", StringComparison.Ordinal);
-            Assert.True(setNote >= 0 && relay >= 0 && consumed >= 0 && forward >= 0, "expected the full transit sequence");
-            Assert.True(setNote < relay && relay < consumed && consumed < forward,
-                "FundEnginePool ordering: note -> relay -> consumed-assert -> forward");
-
-            // Reentrancy: a hop cannot start while one is in flight.
-            Assert.Contains("treasury hop in progress", body);
+            int clearNote = body.IndexOf("Storage.Delete(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT)", StringComparison.Ordinal);
+            Assert.True(guard >= 0 && setNote >= 0 && relay >= 0 && forward >= 0 && clearNote >= 0,
+                "expected the full transit sequence");
+            Assert.True(guard < setNote && setNote < relay && relay < forward && forward < clearNote,
+                "FundEnginePool ordering: guard -> note -> relay -> forward -> clear-note");
         }
 
         [Fact]

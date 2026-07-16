@@ -67,9 +67,11 @@ namespace NeoMiniAppPlatform.Contracts
                 Storage.Get(Storage.CurrentContext, AppKey(PREFIX_APP_ADMIN, appId)) == null,
                 "appId already registered");
             Storage.Put(Storage.CurrentContext, AppKey(PREFIX_APP_ADMIN, appId), appAdmin);
-            // Default payout destination is the app admin (role-bound); any
-            // change goes through the 24h payout timelock in the treasury.
-            Storage.Put(Storage.CurrentContext, AppKey(PREFIX_PAYOUT, appId), appAdmin);
+            // No payout destination is seeded (finding 1): a compromised
+            // app-admin key must not be an instantly-spendable payout target.
+            // A distinct payout address is installed explicitly through the
+            // 24h-timelocked ProposePayoutAddress/ExecutePayoutAddress pair
+            // before any spend lane works.
             if (engineId != null && engineId.Length > 0)
             {
                 AttachEngineCore(appId, engineId, appAdmin, descriptor);

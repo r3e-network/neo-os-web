@@ -22,6 +22,10 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ValidateEngineIdFormat(engineId);
+            // Finding 6: the reserved "registry" namespace is consumed locally
+            // by SetDescriptor, so an engine named "registry" would make its
+            // own descriptor keys unreachable. Reject it outright.
+            ExecutionEngine.Assert(engineId != REGISTRY_NAMESPACE, "engineId reserved");
             ValidateAddress(engineHash);
             ExecutionEngine.Assert(engineHash != Runtime.ExecutingScriptHash, "engine cannot be the registry");
             ExecutionEngine.Assert(schemaVersion > 0, "invalid schema version");

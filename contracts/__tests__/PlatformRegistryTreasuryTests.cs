@@ -20,28 +20,47 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         {
             public RegistryHarness.Ctx Ctx = null!;
             public UInt160 AppAdmin = null!;
+            public UInt160 Payout = null!;
             public UInt160 Account = null!;
             public AppAccountContract Shim = null!;
         }
 
-        // Registered + minted app whose account is funded with 200 GAS.
-        private static TreasuryCtx DeployTreasury(bool withEngine = false)
+        // Registered + minted app whose account holds 200 GAS. Per finding 1
+        // the registry no longer auto-seeds a payout address; unless setPayout
+        // is false the helper installs an explicit, distinct one through the
+        // 24h timelocked setter so the spend lanes become usable.
+        private static TreasuryCtx DeployTreasury(bool withEngine = false, bool setPayout = true)
         {
             var ctx = Deploy();
             SetArtifact(ctx);
             if (withEngine) RegisterEngine(ctx, EngineId, ctx.EngineMock.Hash);
             var appAdmin = TestEngine.GetNewSigner().Account;
+            var payout = TestEngine.GetNewSigner().Account;
             AsAdmin(ctx);
             ctx.Registry.registerAppByPlatform(AppId, withEngine ? EngineId : "", appAdmin, null);
             UInt160 account = ctx.Registry.mintAccount(AppId)!;
             FundGas(ctx, account, 200 * GAS_UNIT);
-            return new TreasuryCtx
+            var t = new TreasuryCtx
             {
                 Ctx = ctx,
                 AppAdmin = appAdmin,
+                Payout = payout,
                 Account = account,
                 Shim = ctx.Engine.FromHash<AppAccountContract>(account, false),
             };
+            if (setPayout) InstallPayout(t, payout);
+            return t;
+        }
+
+        // The finding-1 default hardening: a spend destination must be set
+        // explicitly through the timelocked payout setter before any spend
+        // lane works.
+        private static void InstallPayout(TreasuryCtx t, UInt160 payout)
+        {
+            As(t.Ctx, t.AppAdmin);
+            t.Ctx.Registry.proposePayoutAddress(AppId, payout);
+            AdvanceMs(t.Ctx, TIMELOCK_MS + 1_000);
+            t.Ctx.Registry.executePayoutAddress(AppId);
         }
 
         [Fact]
@@ -50,8 +69,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var t = DeployTreasury();
             var ctx = t.Ctx;
 
-            // Default payout destination is the app admin (role-bound).
-            Assert.Equal(t.AppAdmin, ctx.Registry.payoutAddressOf(AppId));
+            // The payout destination is the explicitly installed address.
+            Assert.Equal(t.Payout, ctx.Registry.payoutAddressOf(AppId));
 
             // A stranger's witness cannot spend.
             var stranger = TestEngine.GetNewSigner().Account;
@@ -67,9 +86,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             // The app admin's below-threshold spend lands at the payout address.
             As(ctx, t.AppAdmin);
-            BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin) ?? 0;
+            BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.Payout) ?? 0;
             ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 5 * GAS_UNIT);
-            Assert.Equal(before + 5 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin));
+            Assert.Equal(before + 5 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.Payout));
             Assert.Equal(new BigInteger(195 * GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(t.Account));
 
             // Direct calls on the shim itself stay refused: policy lives in
@@ -85,12 +104,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var ctx = t.Ctx;
             As(ctx, t.AppAdmin);
 
-            // Default threshold is 100 GAS.
+            // Default threshold is 100 GAS; the cumulative window budget
+            // rejects an instant spend above it.
             Assert.Equal(new BigInteger(100 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
-            AssertRevert("amount above spend threshold",
+            AssertRevert("window spend budget exceeded",
                 () => ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 101 * GAS_UNIT));
 
-            // The timelocked lane: propose -> wait 24h -> execute.
+            // The timelocked lane: propose -> wait 24h -> execute. It is the
+            // above-threshold single-spend path and bypasses the window.
             AssertRevert("no pending spend", () => ctx.Registry.executeSpend(AppId));
             ctx.Registry.proposeSpend(AppId, ctx.Engine.Native.GAS.Hash, 150 * GAS_UNIT);
             AssertRevert("timelock active", () => ctx.Registry.executeSpend(AppId));
@@ -101,9 +122,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             As(ctx, stranger);
             AssertRevert("unauthorized: not app admin", () => ctx.Registry.executeSpend(AppId));
             As(ctx, t.AppAdmin);
-            BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin) ?? 0;
+            BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.Payout) ?? 0;
             ctx.Registry.executeSpend(AppId);
-            Assert.Equal(before + 150 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin));
+            Assert.Equal(before + 150 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.Payout));
 
             // The pending slot is consumed; cancel clears a fresh proposal.
             AssertRevert("no pending spend", () => ctx.Registry.executeSpend(AppId));
@@ -116,19 +137,25 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PayoutAddressChange_Timelocked()
         {
-            var t = DeployTreasury();
+            var t = DeployTreasury(setPayout: false);
             var ctx = t.Ctx;
             var newPayout = TestEngine.GetNewSigner().Account;
 
+            // No auto-seeded payout: the spend lane is unusable until one is
+            // installed through the timelock (finding 1 default hardening).
+            Assert.Equal(UInt160.Zero, ctx.Registry.payoutAddressOf(AppId));
             As(ctx, t.AppAdmin);
+            AssertRevert("no payout address",
+                () => ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, GAS_UNIT));
+
             AssertRevert("payout cannot be the registry",
                 () => ctx.Registry.proposePayoutAddress(AppId, ctx.Registry.Hash));
             ctx.Registry.proposePayoutAddress(AppId, newPayout);
             AssertRevert("timelock active", () => ctx.Registry.executePayoutAddress(AppId));
 
-            // A compromised key cannot instantly redirect: the old payout
-            // address stays live until the 24h lock matures.
-            Assert.Equal(t.AppAdmin, ctx.Registry.payoutAddressOf(AppId));
+            // A compromised key cannot instantly redirect: no payout is live
+            // until the 24h lock matures.
+            Assert.Equal(UInt160.Zero, ctx.Registry.payoutAddressOf(AppId));
             AdvanceMs(ctx, TIMELOCK_MS + 1_000);
             ctx.Registry.executePayoutAddress(AppId);
             Assert.Equal(newPayout, ctx.Registry.payoutAddressOf(AppId));
@@ -145,7 +172,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             As(ctx, t.AppAdmin);
             ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 5 * GAS_UNIT);
             ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 5 * GAS_UNIT);
-            AssertRevert("amount above spend threshold",
+            AssertRevert("window spend budget exceeded",
                 () => ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 6 * GAS_UNIT));
         }
 
@@ -211,9 +238,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // The witness-gated treasury exit survives the global kill
             // switch (anchor invariant) while non-exit lanes freeze.
             As(ctx, t.AppAdmin);
-            BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin) ?? 0;
+            BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.Payout) ?? 0;
             ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 3 * GAS_UNIT);
-            Assert.Equal(before + 3 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin));
+            Assert.Equal(before + 3 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.Payout));
             AssertRevert("registry paused",
                 () => ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 5 * GAS_UNIT));
         }
@@ -252,6 +279,130 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             BigInteger before = ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin) ?? 0;
             t.Shim.escapeExecute(ctx.Engine.Native.GAS.Hash, 7 * GAS_UNIT);
             Assert.Equal(before + 7 * GAS_UNIT, ctx.Engine.Native.GAS.BalanceOf(t.AppAdmin));
+        }
+
+        [Fact]
+        public void SpendToPayout_CumulativeWindowBudget_BlocksDrainThenResets()
+        {
+            // EXPLOIT (finding 1): the instant spendToPayout lane was bounded
+            // per CALL, not cumulatively. A compromised app-admin key issues
+            // many sub-threshold spends in the same window and drains the
+            // treasury far past the threshold. The fix is a rolling 24h window
+            // budget: spentInWindow + amount <= threshold.
+            var t = DeployTreasury();
+            var ctx = t.Ctx;
+            As(ctx, t.AppAdmin);
+
+            // Threshold defaults to 100 GAS; each 40 GAS spend is sub-threshold.
+            Assert.Equal(new BigInteger(100 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
+            ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 40 * GAS_UNIT);
+            ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 40 * GAS_UNIT);
+
+            // 80 GAS already left this window; a third 40 GAS spend would push
+            // the cumulative outflow to 120 GAS > 100 GAS threshold. Pre-fix it
+            // succeeds (the drain); post-fix it faults.
+            AssertRevert("window spend budget exceeded",
+                () => ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 40 * GAS_UNIT));
+
+            // Exactly the window budget moved, no more.
+            Assert.Equal(new BigInteger(80 * GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(t.Payout));
+            Assert.Equal(new BigInteger(80 * GAS_UNIT), ctx.Registry.spentInWindow(AppId));
+
+            // A fresh 24h window reopens the budget.
+            AdvanceMs(ctx, TIMELOCK_MS + 1_000);
+            Assert.Equal(BigInteger.Zero, ctx.Registry.spentInWindow(AppId));
+            ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, 40 * GAS_UNIT);
+            Assert.Equal(new BigInteger(120 * GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(t.Payout));
+        }
+
+        [Fact]
+        public void SpendToPayout_RequiresExplicitPayout_NoAutoSeededDefault()
+        {
+            // EXPLOIT (finding 1 default hardening): registration auto-seeded
+            // the payout address to the app admin, so a compromised app-admin
+            // key could instantly spend the treasury to itself. The fix drops
+            // the auto-seed; a payout must be installed through the 24h
+            // timelocked setter first.
+            var t = DeployTreasury(setPayout: false);
+            var ctx = t.Ctx;
+
+            Assert.Equal(UInt160.Zero, ctx.Registry.payoutAddressOf(AppId));
+            As(ctx, t.AppAdmin);
+            AssertRevert("no payout address",
+                () => ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, GAS_UNIT));
+
+            // Installed through the timelock, the lane works.
+            InstallPayout(t, t.Payout);
+            ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, GAS_UNIT);
+            Assert.Equal(new BigInteger(GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(t.Payout));
+        }
+
+        [Fact]
+        public void FundEnginePool_TransitLock_HeldAcrossEngineForward()
+        {
+            // EXPLOIT (finding 3): the transit note (the in-flight reentrancy
+            // lock) was cleared inside OnNEP17Payment, BEFORE the registry
+            // forwards the pool credit to the engine. During that forward the
+            // lock is DOWN, so a hostile engine callback can reenter
+            // fundEnginePool and pull a second amount out of the treasury. The
+            // fix holds the lock across the forward.
+            //
+            // A genuine reentrant fundEnginePool aborts inside a native-transfer
+            // callback, which hangs the TestEngine host (the documented money-
+            // contract idiom). So the hostile engine instead OBSERVES the lock
+            // state while it receives the forward: lock-down (1) means the
+            // reentry window is open, lock-held (2) means a reentrant call would
+            // trip the "treasury hop in progress" guard.
+            var ctx = Deploy();
+            SetArtifact(ctx);
+
+            var (rNef, rManifest) = Load("ReentrantEngineMockFixture");
+            var probe = ctx.Engine.Deploy<ReentrantEngineMockContract>(rNef, rManifest);
+            RegisterEngine(ctx, "probe-engine", probe.Hash);
+
+            var appAdmin = TestEngine.GetNewSigner().Account;
+            AsAdmin(ctx);
+            ctx.Registry.registerAppByPlatform(AppId, "probe-engine", appAdmin, null);
+            UInt160 account = ctx.Registry.mintAccount(AppId)!;
+            FundGas(ctx, account, 100 * GAS_UNIT);
+
+            probe.arm(ctx.Registry.Hash);
+            As(ctx, appAdmin);
+            ctx.Registry.fundEnginePool(AppId, 10 * GAS_UNIT);
+
+            // The engine saw the lock HELD while it received the forwarded
+            // credit, so a reentrant fundEnginePool would have faulted. Pre-fix
+            // it saw the lock already released (1).
+            Assert.Equal(new BigInteger(2), probe.observedHopInProgress());
+
+            // Only the intended amount left the treasury; the lock is released
+            // once the honest forward lands.
+            Assert.Equal(new BigInteger(90 * GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(account));
+            Assert.Equal(new BigInteger(10 * GAS_UNIT), probe.poolReceived());
+            Assert.False(ctx.Registry.transitHopInProgress() == true);
+        }
+
+        [Fact]
+        public void SpendToPayout_RespectsLocalAccountPause()
+        {
+            // Finding 5: spendToPayout is immune to the GLOBAL/registry kill
+            // switch (see Exits_ArePauseImmune_...), but it deliberately
+            // respects the app admin's LOCAL account pause — a paused account
+            // choosing not to spend. escapeExecute stays the true immune exit.
+            var t = DeployTreasury();
+            var ctx = t.Ctx;
+
+            // The app admin freezes the account's own spend lane.
+            As(ctx, t.AppAdmin);
+            t.Shim.setPaused(true);
+            Assert.True(t.Shim.isPaused() == true);
+            AssertRevert("account paused",
+                () => ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, GAS_UNIT));
+
+            // Unpausing restores the lane.
+            t.Shim.setPaused(false);
+            ctx.Registry.spendToPayout(AppId, ctx.Engine.Native.GAS.Hash, GAS_UNIT);
+            Assert.Equal(new BigInteger(GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(t.Payout));
         }
 
         [Fact]
