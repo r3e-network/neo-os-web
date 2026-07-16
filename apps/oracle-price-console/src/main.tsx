@@ -73,7 +73,6 @@ defineMiniApp({
       state: {
         asset: price.asset,
         priceDisplay: price.priceDisplay,
-        priceStatDisplay: price.priceStatDisplay,
         priceSettled: price.priceSettled,
         freshness: price.freshness,
         freshnessLabel: price.freshnessLabel,

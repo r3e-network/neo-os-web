@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createObservable } from "../react/context";
 import { createGuestEngine } from "../../jump-rush/src/logic/guest-engine";
 import type { GuestEngineDeps } from "../../jump-rush/src/logic/guest-engine";
+import { formatRankDisplay } from "../../jump-rush/src/main";
 import type { LeaderEntry, RunRow } from "../../jump-rush/src/main";
 import { MAX_UNDOS, ruleOf } from "../../jump-rush/src/logic/game-rules";
 import type { Platform } from "../../jump-rush/src/logic/jump-engine";
@@ -29,9 +30,11 @@ function setup(sharedStorage = new Map<string, unknown>()) {
   const lastPayout = createObservable("");
   const lastElapsedMs = createObservable(0);
   const leaderboard = createObservable<LeaderEntry[]>([]);
-  const myRank = createObservable(0);
-  const myTotalWon = createObservable(0);
-  const myRuns = createObservable(0);
+  // Mirror production main.tsx: `undefined` (unread), not a fabricated 0. The
+  // guest engine only ever SETS these; enter()/submitRun() settle them.
+  const myRank = createObservable<number | undefined>(undefined);
+  const myTotalWon = createObservable<number | undefined>(undefined);
+  const myRuns = createObservable<number | undefined>(undefined);
   const myHistory = createObservable<RunRow[]>([]);
   const isStarting = createObservable(false);
   const isDealing = createObservable(false);
@@ -349,5 +352,42 @@ describe("jump-rush guest engine", () => {
     expect(h.leaderboard.get()).toEqual([
       expect.objectContaining({ rank: 1, address: "Nvalid", totalWon: 12 }),
     ]);
+  });
+
+  // pendingKey migration guard: the stat rail / sidebar bind these observables
+  // with no loading gate, so a `0` at rest is published as "Best run 0 / Runs 0
+  // / Rank 0" before any read runs — a fabricated claim. `undefined` is the
+  // unread state (the shell's pendingKey trigger); a settled 0 is a real
+  // reading; and rank 0 is never printed as "0".
+  const tStub = (key: string) => key;
+
+  it("holds the chrome read-outs unread (undefined), never a fabricated 0, until a read settles", async () => {
+    const h = setup();
+
+    // Before any read has settled: absence, not a zero the app never measured.
+    expect(h.myRank.get()).toBeUndefined();
+    expect(h.myTotalWon.get()).toBeUndefined();
+    expect(h.myRuns.get()).toBeUndefined();
+    expect(formatRankDisplay(h.myRank.get(), tStub)).toBeUndefined();
+
+    // enter() with an empty local profile is a real, SETTLED zero-state read.
+    await h.engine.enter();
+
+    // A settled 0 is a legitimate answer (a player with 0 runs) — renders as 0.
+    expect(h.myRuns.get()).toBe(0);
+    expect(h.myTotalWon.get()).toBe(0);
+    // But rank 0 is not a rank: local guest play holds no global board seat, so
+    // the chrome reads a word, never "0".
+    expect(h.myRank.get()).toBe(0);
+    expect(formatRankDisplay(h.myRank.get(), tStub)).toBe(tStub("rankUnranked"));
+    expect(formatRankDisplay(h.myRank.get(), tStub)).not.toBe("0");
+  });
+
+  it("formatRankDisplay renders three honest ranking phases", () => {
+    expect(formatRankDisplay(undefined, tStub)).toBeUndefined();      // unread → pendingKey
+    expect(formatRankDisplay(0, tStub)).toBe(tStub("rankUnranked"));  // settled, no seat
+    expect(formatRankDisplay(-1, tStub)).toBe(tStub("rankUnranked")); // settled, no seat
+    expect(formatRankDisplay(4, tStub)).toBe("#4");                   // ranked
+    expect(formatRankDisplay(0, tStub)).not.toBe("0");
   });
 });

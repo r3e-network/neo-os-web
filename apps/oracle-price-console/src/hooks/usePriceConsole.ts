@@ -243,32 +243,35 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     return price != null && price > 0;
   }
 
-  // Carries the price only. An empty string means "nothing to show yet"; what
-  // that absence should LOOK like is the view's call, not this layer's — a
-  // getter that returns "N/A" has already decided, and decided wrong for the
-  // in-flight case it cannot see.
-  const priceDisplay: Observable<string> = {
+  // The ONE price reading, for the PlayArea and the shell chrome alike. It used
+  // to have a display-only twin (`priceStatDisplay`) invented before the shell
+  // could express "not read yet"; that twin is gone. The manifest binds this
+  // observable directly and declares `pendingKey`, so the three phases are
+  // distinguished HERE, in one place, rather than duplicated:
+  //
+  //   · unread          → `undefined`. The shell renders the binding's
+  //                       pendingKey copy, and the PlayArea shimmers (it gates
+  //                       on `priceSettled`). `undefined` is the shell's only
+  //                       trigger, and `""`/`null` are values it would print.
+  //   · settled + quote → the formatted price.
+  //   · settled, empty  → a real "unavailable" reading. The read is DONE and
+  //                       the feed had no usable quote — a different answer from
+  //                       "still reading", so it must NOT borrow the pending
+  //                       copy, and must never be a fabricated $0.
+  const priceDisplay: Observable<string | undefined> = {
     get: () => {
-      const price = latestPrice.get();
-      return price == null || price <= 0 ? "" : formatPriceForDisplay(price);
+      if (!priceSettled.get()) return undefined;
+      return hasValidPrice() ? formatPriceForDisplay(latestPrice.get()!) : t("priceUnavailable");
     },
     set: () => {},
-    subscribe: (fn) => latestPrice.subscribe(fn),
-  };
-
-  /**
-   * The same reading for the shell's stat rail and sidebar, which the manifest
-   * binds directly. That chrome has no skeleton vocabulary — it prints whatever
-   * string it is handed — so an unread price must arrive there as honest words
-   * rather than as `priceDisplay`'s empty string (a blank tile is the same void
-   * in a quieter costume). "Awaiting read" is true both while the read is in
-   * flight and after it settles with nothing, which is exactly as much as this
-   * surface can express.
-   */
-  const priceStatDisplay: Observable<string> = {
-    get: () => (hasValidPrice() ? formatPriceForDisplay(latestPrice.get()!) : t("priceSignalIdle")),
-    set: () => {},
-    subscribe: (fn) => latestPrice.subscribe(fn),
+    subscribe: (fn) => {
+      // Reads BOTH the value and the read's phase, so it must wake on either —
+      // a settle with no price moves `priceSettled` while `latestPrice` stays
+      // null, and the chrome would otherwise never leave the pending copy.
+      const priceSubscription = latestPrice.subscribe(fn);
+      const settledSubscription = priceSettled.subscribe(fn);
+      return () => { priceSubscription(); settledSubscription(); };
+    },
   };
 
   function freshnessForTimestamp(timestamp: number): Freshness {
@@ -585,7 +588,6 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     feedRoute,
     feedKey,
     priceDisplay,
-    priceStatDisplay,
     freshness,
     freshnessLabel,
     freshnessTimestamp,
