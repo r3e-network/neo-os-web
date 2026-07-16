@@ -124,15 +124,11 @@ defineMiniApp({
     const verifyFreshOracleKey = async (key: PrivateTransferOracleKey) => {
       try {
         const [contractKey, contractAlgorithm] = await Promise.all([
-          app.chain.read<string>({
-            operation: "oracleEncryptionPublicKey",
-            args: [],
+          app.chain.readRaw("oracleEncryptionPublicKey", [], {
             scriptHash: key.contract,
             cache: false,
           }),
-          app.chain.read<string>({
-            operation: "oracleEncryptionAlgorithm",
-            args: [],
+          app.chain.readRaw("oracleEncryptionAlgorithm", [], {
             scriptHash: key.contract,
             cache: false,
           }),

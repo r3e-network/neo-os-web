@@ -6,8 +6,9 @@
  *    explicit MiniAppFramework interface guards the TYPES; this guards the
  *    RUNTIME shape, getters included).
  * 2. The previously-untested surfaces the internal audit flagged:
- *    achievements, db.collection, stats.increment, state.persisted,
- *    storage.hybrid, platform.host.
+ *    state.persisted, platform.host. (The audit's other flagged surfaces —
+ *    achievements, db.collection, stats.increment, storage.hybrid — were
+ *    removed with their lanes: 0 fleet consumers.)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMiniAppFramework } from "../index";
@@ -74,14 +75,12 @@ describe("framework runtime shape snapshot", () => {
     ].sort();
     expect(keys).toEqual([
       "aa",
-      "achievements",
       "actions",
       "amount",
       "bus",
       "chain",
       "clipboard",
       "credits",
-      "db",
       "errors",
       "events",
       // No "fmt": the app.fmt accessor (RFC P0-3) was removed as unreachable.
@@ -125,7 +124,6 @@ describe("framework runtime shape snapshot", () => {
       "invokeMultiple",
       "invokeWithPayment",
       "query",
-      "read",
       "readArray",
       "readRaw",
       "signMessage",
@@ -155,7 +153,7 @@ describe("framework runtime shape snapshot", () => {
       "seal",
       "vrf",
     ]);
-    expect(Object.keys(app.storage).sort()).toEqual(["hybrid", "local", "remote"]);
+    expect(Object.keys(app.storage).sort()).toEqual(["local", "remote"]);
     // No app.fmt member set — the accessor was removed as unreachable; see the
     // justification on the top-level member set above.
     expect(Object.keys(app.errors).sort()).toEqual(["is", "messageOf"]);
@@ -187,45 +185,6 @@ describe("framework runtime shape snapshot", () => {
   });
 });
 
-describe("achievements (audit gap)", () => {
-  it("awardOnce defines + awards once per user/definition, then dedupes via the local marker", async () => {
-    const { app, os } = makeApp("shape-achievements");
-    const definition = { id: "first-win", name: "First win", criteria: "win once" };
-    await expect(app.achievements.awardOnce(definition)).resolves.toEqual({ awarded: true });
-    expect(os.badge.define).toHaveBeenCalledWith("first-win", "First win", "win once");
-    expect(os.badge.award).toHaveBeenCalledWith("first-win", ADDRESS);
-    await expect(app.achievements.awardOnce(definition)).resolves.toEqual({ awarded: false });
-    expect(os.badge.award).toHaveBeenCalledTimes(1);
-    await expect(app.achievements.list()).resolves.toEqual([{ id: "b1" }]);
-  });
-});
-
-describe("db.collection (audit gap)", () => {
-  it("namespaces documents under db/<name>/ and round-trips through hybrid storage", async () => {
-    const { app, remoteStore } = makeApp("shape-db");
-    const posts = app.db.collection<{ title: string }>("posts");
-    await posts.set("p1", { title: "hello" });
-    expect(remoteStore.get("db/posts/p1")).toEqual({ title: "hello" });
-    await expect(posts.get("p1")).resolves.toEqual({ title: "hello" });
-    await posts.set("p2", { title: "two" });
-    await expect(posts.list()).resolves.toEqual(
-      expect.arrayContaining([{ title: "hello" }, { title: "two" }]),
-    );
-    await posts.delete("p1");
-    await expect(posts.get("p1")).resolves.toBeNull();
-  });
-});
-
-describe("stats.increment (audit gap)", () => {
-  it("increments global and per-user counters through the stats collection", async () => {
-    const { app } = makeApp("shape-stats");
-    await expect(app.stats.increment("plays")).resolves.toBe(1);
-    await expect(app.stats.increment("plays", 4)).resolves.toBe(5);
-    await expect(app.stats.increment("plays", 1, "user")).resolves.toBe(1); // separate key
-    await expect(app.stats.increment("plays")).resolves.toBe(6);
-  });
-});
-
 describe("state.persisted (audit gap)", () => {
   it("hydrates from app.storage.local and persists on every set", () => {
     const first = makeApp("shape-persist");
@@ -238,27 +197,6 @@ describe("state.persisted (audit gap)", () => {
     // A NEW framework instance (same appId prefix) rehydrates the value.
     const second = makeApp("shape-persist");
     expect(second.app.state.persisted("counter", 1).get()).toBe(7);
-  });
-});
-
-describe("storage.hybrid (audit gap)", () => {
-  it("prefers remote reads, falls back to local, and dual-writes", async () => {
-    const { app, os, remoteStore } = makeApp("shape-hybrid");
-    await app.storage.hybrid.set("k", { v: 1 });
-    expect(remoteStore.get("k")).toEqual({ v: 1 });
-    expect(app.storage.local.get("k")).toEqual({ v: 1 });
-
-    // Remote failure → local copy survives.
-    os.storage.get.mockRejectedValueOnce(new Error("os down"));
-    await expect(app.storage.hybrid.get("k")).resolves.toEqual({ v: 1 });
-
-    // Remote value wins over a stale local copy.
-    remoteStore.set("k", { v: 2 });
-    await expect(app.storage.hybrid.get("k")).resolves.toEqual({ v: 2 });
-
-    await app.storage.hybrid.delete("k");
-    expect(app.storage.local.get("k")).toBeNull();
-    expect(remoteStore.has("k")).toBe(false);
   });
 });
 

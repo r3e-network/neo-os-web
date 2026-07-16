@@ -2,9 +2,8 @@
  * framework/chain-query — app.chain.query typed read lane (RFC P0-6).
  *
  * `chain.readRaw` adopters hand-roll a `parse*` function per read (99 local
- * parsers across 39 apps); the typed `chain.read(spec)` object form found no
- * adopters. `query()` keeps the readRaw ergonomics (positional operation +
- * args) and makes the DECODE chainable:
+ * parsers across 39 apps). `query()` keeps the readRaw ergonomics (positional
+ * operation + args) and makes the DECODE chainable:
  *
  *   `parseCount(await app.chain.readRaw("totalGames"))`
  *   → `await app.chain.query("totalGames").asInt()`
@@ -76,7 +75,7 @@ export interface FrameworkQueryResult {
    * coercer's own default applies).
    */
   asMap<T>(shape: { [K in keyof T]: (raw: unknown) => T[K] }): Promise<T>;
-  /** Custom parser — the old `FrameworkReadSpec.parse` lane, chainable. */
+  /** Custom parser — the free-form `(raw) => T` decode lane, chainable. */
   as<T>(parse: (raw: unknown) => T): Promise<T>;
 }
 

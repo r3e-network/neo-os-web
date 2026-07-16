@@ -19,6 +19,17 @@
  * Wallet-change reset is wired internally via `wallet.onAccountChanged`
  * (RFC P0-5): an identity change clears the session/view and lands on
  * `"settlement-pending"` when a settlement was in flight, `"idle"` otherwise.
+ *
+ * ADOPTION CONSTRAINT (do not adopt as-is on a current reward game): this
+ * runner predates three platform waves the fleet's reward games now build on —
+ * (1) the two-mode guest/gamefi wave (`app.mode`, guest guards, the
+ * guest-namespaced leaderboard lane), (2) the shell's `pendingKey` /
+ * `app.operations` phase chrome (the runner keeps its own phase observable
+ * instead of feeding the shell's operation state machine), and (3) the
+ * amount-checked, event-verified withdraw pattern (the runner's withdraw lane
+ * neither pins the expected amount nor verifies the emitted event). Migrating
+ * a current game onto the runner as-is regresses those three lanes; a v2
+ * reshape of the runner must land first.
  */
 
 import { createObservable, type Observable } from "../reactive";
