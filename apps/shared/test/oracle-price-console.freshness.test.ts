@@ -213,15 +213,17 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(result.success).toBe(false);
     expect(price.freshness.get()).toBe("idle");
     expect(price.freshnessLabel.get()).not.toContain("Fresh");
-    // The reading carries no value, and carries it as absence — not as a glyph
-    // the data layer picked. The view decides what absence looks like.
-    expect(price.priceDisplay.get()).toBe("");
+    // The read has SETTLED (fetchPrice completed) with a zero/absent quote.
+    // `priceDisplay` is now the ONE reading for both the PlayArea and the shell
+    // chrome (the display-only `priceStatDisplay` twin is gone), so a settled
+    // empty resolves to a real "unavailable" reading — never a fabricated $0,
+    // and NOT the pending "Awaiting read" copy, which now means only "still in
+    // flight". The old empty-string assertion described the pre-pendingKey twin.
+    expect(price.priceDisplay.get()).toBe(t("priceUnavailable"));
     // The point of this guard: a zero read must never surface as a real price,
     // and never as a plausible $0.
     expect(price.priceDisplay.get()).not.toMatch(/\$/);
-    expect(price.priceStatDisplay.get()).not.toMatch(/\$/);
-    // The shell chrome cannot shimmer, so it gets honest words — never "N/A".
-    expect(price.priceStatDisplay.get()).toBe(t("priceSignalIdle"));
+    expect(price.priceDisplay.get()).not.toBe(t("priceSignalIdle"));
     expect(price.freshnessTimestamp.get()).toBe("");
     expect(price.errorMsg.get()).toBe(t("errorFeedFault"));
   });
@@ -324,9 +326,11 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     const oldRead = price.fetchPrice();
     expect(price.selectAsset("GAS")).toBe(true);
     // The old pair's price is gone the instant the pair changes; the new pair's
-    // read has not settled, so the reading is absent and the phase is unsettled
-    // — the view shimmers rather than showing the pair the visitor just left.
-    expect(price.priceDisplay.get()).toBe("");
+    // read has not settled, so the reading is UNREAD — `priceDisplay` holds
+    // `undefined` (the shell's pendingKey trigger) and the view shimmers rather
+    // than showing the pair the visitor just left. Distinct from a settled-empty
+    // "unavailable" reading.
+    expect(price.priceDisplay.get()).toBeUndefined();
     expect(price.priceSettled.get()).toBe(false);
     const currentRead = await price.fetchPrice();
     resolveNeo({ price: 9.99, dataTimestamp: nowSec, recordTimestamp: nowSec });
@@ -354,10 +358,12 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     await price.fetchPrice();
 
     // A stale-but-real $2.185 must not survive a failed re-read, and must not
-    // be replaced by a fabricated zero either.
-    expect(price.priceDisplay.get()).toBe("");
+    // be replaced by a fabricated zero either. The re-read SETTLED (it failed),
+    // so `priceDisplay` — the one reading the chrome also binds — resolves to a
+    // real "unavailable" reading, not the pending "Awaiting read" copy.
+    expect(price.priceDisplay.get()).toBe(t("priceUnavailable"));
     expect(price.priceDisplay.get()).not.toMatch(/\$/);
-    expect(price.priceStatDisplay.get()).toBe(t("priceSignalIdle"));
+    expect(price.priceDisplay.get()).not.toBe(t("priceSignalIdle"));
     // The read completed (it failed), so the console is settled: the view shows
     // honest zero-state copy, not a shimmer that would imply work in progress.
     expect(price.priceSettled.get()).toBe(true);
@@ -492,5 +498,38 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
 
     expect(price.availablePairs.get().length).toBeLessThanOrEqual(MAX_CATALOG_PAIRS);
     expect(price.availablePairs.get().slice(0, 3)).toEqual(["NEO", "GAS", "BTC"]);
+  });
+
+  // The pendingKey migration collapsed the display-only `priceStatDisplay` twin
+  // into the ONE `priceDisplay` observable the manifest now binds. This pins the
+  // three phases apart at the source, so the twin can never be reinvented and
+  // the shell's stat/sidebar bindings can never publish a void or a fabricated
+  // $0. If any branch regresses to "" or "$0.00" this fails loudly.
+  it("resolves priceDisplay through three honest phases: unread, quote, settled-empty", async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const readPrice = vi.fn()
+      .mockResolvedValueOnce({ price: 2.185, dataTimestamp: nowSec, recordTimestamp: nowSec })
+      .mockResolvedValueOnce({ price: 0, dataTimestamp: nowSec, recordTimestamp: nowSec });
+    const app = {
+      oracle: { dataFeed: { price: readPrice, listPairs: vi.fn(async () => []) } },
+    } as never;
+    const price = usePriceConsole({ app, t });
+
+    // 1) UNREAD — no read has settled. `undefined` is the shell's pendingKey
+    //    trigger, and it is never "" (a void the chrome would print) nor a $0.
+    expect(price.priceDisplay.get()).toBeUndefined();
+    expect(price.priceSettled.get()).toBe(false);
+
+    // 2) SETTLED with a usable quote — the real price.
+    await price.fetchPrice();
+    expect(price.priceDisplay.get()).toBe("$2.185");
+
+    // 3) SETTLED but empty (a zero read) — a real "unavailable" reading that is
+    //    NOT the unread `undefined` and does NOT borrow the pending copy.
+    await price.fetchPrice();
+    expect(price.priceSettled.get()).toBe(true);
+    expect(price.priceDisplay.get()).toBe(t("priceUnavailable"));
+    expect(price.priceDisplay.get()).not.toBe(t("priceSignalIdle"));
+    expect(price.priceDisplay.get()).not.toMatch(/\$/);
   });
 });

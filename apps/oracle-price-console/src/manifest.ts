@@ -21,12 +21,18 @@ export const manifest: MiniAppManifest = {
   ],
 
   // -- Stats ------------------------------------------------------------------
+  // `latestPrice` binds the ONE `priceDisplay` observable and declares
+  // `pendingKey`: the shell renders no gate of its own, so while the feed read
+  // is in flight `priceDisplay` holds `undefined` and the chrome says "Awaiting
+  // read" instead of a void — never the fabricated "N/A" the old display-only
+  // twin printed. A settled-but-empty read arrives as its own "unavailable"
+  // reading, not as this pending copy. See hooks/usePriceConsole.ts.
   stats: [
     // labelKey must resolve in the locale map — "network" had no key and rendered
     // as a blank label in production; use the existing priceMetricNetwork key.
     { labelKey: "priceMetricNetwork", valueKey: "networkDisplay", format: "text", icon: "globe" },
     { labelKey: "heroFeed", valueKey: "datafeedShort", format: "text", icon: "activity" },
-    { labelKey: "latestPrice", valueKey: "priceStatDisplay", format: "text", variant: "accent" },
+    { labelKey: "latestPrice", valueKey: "priceDisplay", format: "text", variant: "accent", pendingKey: "priceSignalIdle" },
     { labelKey: "priceMetricSource", valueKey: "sourceLabel", format: "text" },
   ],
 
@@ -35,7 +41,7 @@ export const manifest: MiniAppManifest = {
     titleKey: "appName",
     items: [
       { labelKey: "asset", valueKey: "asset", format: "text" },
-      { labelKey: "latestPrice", valueKey: "priceStatDisplay", format: "text" },
+      { labelKey: "latestPrice", valueKey: "priceDisplay", format: "text", pendingKey: "priceSignalIdle" },
     ],
   },
 

@@ -213,14 +213,18 @@ describe("Oracle Price Console PlayArea (v2)", () => {
     expect(quote?.textContent ?? "").not.toContain("N/A");
   });
 
-  it("says the quote is unread once the read settles empty", () => {
+  it("shows a real unavailable reading once the read settles empty", () => {
+    // Settled-but-empty now arrives through the ONE `priceDisplay` observable as
+    // its own "unavailable" reading (the display-only twin is gone), not as an
+    // empty string routed to the pending placeholder. The read is DONE, so the
+    // quote reads as a resolved value — never a shimmer, never "N/A", never $0.
     const { container } = render(<PlayArea t={t} state={state({
-      priceDisplay: "", priceSettled: true, isRequesting: false, freshnessLabel: "",
+      priceDisplay: t("priceUnavailable"), priceSettled: true, isRequesting: false, freshnessLabel: "",
     })} dispatch={vi.fn()} />);
 
     const quote = container.querySelector(".price-ticket__quote");
     expect(quote?.querySelector(".mx2-skeleton")).toBeNull();
-    expect(quote?.querySelector("[data-phase='unavailable']")).toBeTruthy();
+    expect(quote?.textContent ?? "").toContain(t("priceUnavailable"));
     expect(quote?.textContent ?? "").not.toContain("N/A");
     expect(quote?.textContent ?? "").not.toMatch(/\$0/);
   });

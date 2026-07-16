@@ -111,6 +111,10 @@ const appMessages = {
   },
   priceSignalTitle: { en: "Feed signal", zh: "价格源信号" },
   priceSignalIdle: { en: "Awaiting read", zh: "等待读取" },
+  // Settled-but-empty: the feed read completed and returned no usable quote. A
+  // real reading, distinct from "Awaiting read" (still in flight) — never a
+  // fabricated $0. Bound where `priceDisplay` resolves the empty settled state.
+  priceUnavailable: { en: "Price unavailable", zh: "暂无价格" },
   priceSignalIdleHint: {
     en: "No price loaded yet. Pick an asset and fetch to read the on-chain feed.",
     zh: "尚未加载价格。请选择资产并查询以读取链上价格源。",

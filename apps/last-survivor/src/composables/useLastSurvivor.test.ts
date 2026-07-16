@@ -849,4 +849,52 @@ describe("useLastSurvivor (direct MiniAppLastSurvivor contract)", () => {
     await expect(game.buyKeys("1")).rejects.toThrow("Chain binding mismatch");
     expect(invoke).not.toHaveBeenCalled();
   });
+
+  // pendingKey migration guard. The stat rail / sidebar bind the round read-outs
+  // with no loading gate, so `roundDataAvailable` alone published "N/A" — a
+  // dashed prize pot on a pot-based game — the instant a visitor arrived, before
+  // any read had run. `roundSettled` separates "not read yet" (→ undefined, the
+  // shell's pendingKey trigger) from "read, and there is genuinely no round"
+  // (→ a real "N/A" reading).
+  it("holds the round read-outs unread (undefined) until a read settles, never a dashed prize pot", async () => {
+    const { game } = setup();
+
+    // Before loadAll: nothing has been read. Absence, not a fabricated "N/A" or
+    // "0" — the shell renders the pendingKey copy for these.
+    expect(game.roundSettled.get()).toBe(false);
+    expect(game.formattedRound.get()).toBeUndefined();
+    expect(game.totalPotDisplay.get()).toBeUndefined();
+    expect(game.lastBuyerLabel.get()).toBeUndefined();
+    expect(game.roundStatusDisplay.get()).toBeUndefined();
+    expect(game.userKeysDisplay.get()).toBeUndefined();
+    expect(game.countdown.get()).toBeUndefined();
+
+    await game.loadAll();
+
+    // Settled with a real round: real values, none of them the "N/A" void.
+    expect(game.roundSettled.get()).toBe(true);
+    expect(game.roundDataAvailable.get()).toBe(true);
+    expect(game.formattedRound.get()).toMatch(/^#/);
+    expect(game.formattedRound.get()).not.toBe(t("notAvailable"));
+    expect(game.totalPotDisplay.get()).toContain(t("tokenGas"));
+    expect(game.totalPotDisplay.get()).not.toBe(t("notAvailable"));
+  });
+
+  it("reads N/A only once a read has SETTLED with no round — never before it runs", async () => {
+    const { game } = setup({ legacyContract: true });
+
+    // Unread first: pendingKey, not "N/A".
+    expect(game.formattedRound.get()).toBeUndefined();
+    expect(game.totalPotDisplay.get()).toBeUndefined();
+
+    await game.loadAll();
+
+    // The read completed and found no usable round → a real, settled "N/A"
+    // reading (kept verbatim), distinct from the unread pending phase.
+    expect(game.roundSettled.get()).toBe(true);
+    expect(game.roundDataAvailable.get()).toBe(false);
+    expect(game.formattedRound.get()).toBe(t("notAvailable"));
+    expect(game.totalPotDisplay.get()).toBe(t("notAvailable"));
+    expect(game.roundStatusDisplay.get()).toBe(t("roundStateUnavailable"));
+  });
 });

@@ -70,22 +70,30 @@ export const manifest: MiniAppManifest = {
   ],
 
   // ── Stats Grid ────────────────────────────────────────────────────────
+  // These bind straight into shell chrome that MiniAppRoot renders with no
+  // loading gate of its own, so each declares `pendingKey`: while the round read
+  // is in flight the bound observable holds `undefined` and the chrome says
+  // "Reading…" instead of publishing "N/A" — a dashed prize pot on a pot-based
+  // game, the first thing a visitor reads. A read that SETTLES with no round
+  // keeps its own honest "N/A" reading. `yourKeys` binds `userKeysDisplay` so
+  // the unread state is a pending phase, never a fabricated 0. See
+  // composables/useLastSurvivor.ts.
   stats: [
-    { labelKey: "round", valueKey: "formattedRound", format: "text", icon: "refresh-cw" },
-    { labelKey: "totalPot", valueKey: "totalPotDisplay", format: "text", variant: "warning", icon: "dollar-sign" },
-    { labelKey: "yourKeys", valueKey: "userKeys", format: "number", icon: "key" },
-    { labelKey: "lastBuyer", valueKey: "lastBuyerLabel", format: "text", icon: "user" },
-    { labelKey: "roundStatus", valueKey: "roundStatusDisplay", format: "text", icon: "activity" },
+    { labelKey: "round", valueKey: "formattedRound", format: "text", icon: "refresh-cw", pendingKey: "statReading" },
+    { labelKey: "totalPot", valueKey: "totalPotDisplay", format: "text", variant: "warning", icon: "dollar-sign", pendingKey: "statReading" },
+    { labelKey: "yourKeys", valueKey: "userKeysDisplay", format: "number", icon: "key", pendingKey: "statReading" },
+    { labelKey: "lastBuyer", valueKey: "lastBuyerLabel", format: "text", icon: "user", pendingKey: "statReading" },
+    { labelKey: "roundStatus", valueKey: "roundStatusDisplay", format: "text", icon: "activity", pendingKey: "statReading" },
   ],
 
   // ── Sidebar ───────────────────────────────────────────────────────────
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "tabStats", valueKey: "formattedRound", format: "text" },
-      { labelKey: "sidebarTotalPot", valueKey: "totalPotDisplay", format: "text" },
-      { labelKey: "sidebarYourKeys", valueKey: "userKeys", format: "number" },
-      { labelKey: "sidebarTimeLeft", valueKey: "countdown", format: "text" },
+      { labelKey: "tabStats", valueKey: "formattedRound", format: "text", pendingKey: "statReading" },
+      { labelKey: "sidebarTotalPot", valueKey: "totalPotDisplay", format: "text", pendingKey: "statReading" },
+      { labelKey: "sidebarYourKeys", valueKey: "userKeysDisplay", format: "number", pendingKey: "statReading" },
+      { labelKey: "sidebarTimeLeft", valueKey: "countdown", format: "text", pendingKey: "statReading" },
     ],
   },
 

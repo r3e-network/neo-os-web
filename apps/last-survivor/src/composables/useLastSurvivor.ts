@@ -304,6 +304,18 @@ export function useLastSurvivor({
   const isLoading = createObservable(false);
   const totalKeysInRound = createObservable(0n);
   const roundDataAvailable = createObservable(false);
+  /**
+   * Has a round read COMPLETED at least once (success or failure)? Distinct from
+   * `roundDataAvailable`, which is false both before the first read and after a
+   * failed one. The shell chrome binds the round read-outs with no loading gate,
+   * so that conflation published `t("notAvailable")` ("N/A") the instant a
+   * visitor arrived — a dashed prize pot on a pot-based game, before any read
+   * had run. This flag separates "not read yet" (→ pendingKey) from "read, and
+   * there is genuinely no round" (→ a real "N/A" reading). Set in loadAll's
+   * finally so even the throw / early-return paths settle it; guest mode never
+   * needs it because the guest engine sets `roundDataAvailable` true directly.
+   */
+  const roundSettled = createObservable(false);
   const userKeysAvailable = createObservable(false);
   const creditAvailable = createObservable(false);
   const historyAvailable = createObservable(false);
@@ -722,13 +734,25 @@ export function useLastSurvivor({
     return Math.max(0, Math.floor((endTime.get() - now.get()) / 1000));
   }, [now, endTime]);
 
+  // Which phase the round read is in, for the chrome read-outs that MiniAppRoot
+  // renders with no loading gate. `roundDataAvailable` alone conflates "not read
+  // yet" with "read, no round"; pairing it with `roundSettled` tells them apart
+  // so an unread binding says nothing (`undefined` → the manifest's pendingKey)
+  // instead of publishing "N/A" the instant a visitor arrives.
+  const roundReadPhase = (): "unread" | "ready" | "unavailable" =>
+    roundDataAvailable.get() ? "ready" : roundSettled.get() ? "unavailable" : "unread";
+
   const countdown = createDerived(() => {
+    // Unread: no round context exists yet (guest sets `roundDataAvailable` true
+    // on enter, so guest is never unread). Say nothing rather than fabricate a
+    // "00:00:00" clock that reads as a round already ended.
+    if (roundReadPhase() === "unread") return undefined;
     const total = timeRemainingSeconds.get();
     const hours = String(Math.floor(total / 3600)).padStart(2, "0");
     const mins = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
     const secs = String(total % 60).padStart(2, "0");
     return `${hours}:${mins}:${secs}`;
-  }, [timeRemainingSeconds]);
+  }, [timeRemainingSeconds, roundDataAvailable, roundSettled]);
 
   const dangerLevel = createDerived(() => {
     const seconds = timeRemainingSeconds.get();
@@ -764,29 +788,58 @@ export function useLastSurvivor({
   const updateNow = () => { now.set(Date.now()); };
 
   // ── Formatted display values ──────────────────────────────────────
+  // Each round read-out resolves three honest phases (see `roundReadPhase`):
+  // `undefined` while unread so the shell shows its pendingKey; the existing
+  // "N/A" / "unavailable" word once a read has SETTLED with no round (a real
+  // reading, kept verbatim); and the real value when the round is available.
   const lastBuyerLabel = createDerived(
-    () => !roundDataAvailable.get()
-      ? t("notAvailable")
-      : lastBuyer.get()
-        ? formatAddress(lastBuyer.get() ?? "")
-        : t("awaitingFirstKey"),
-    [lastBuyer, roundDataAvailable],
+    () => {
+      switch (roundReadPhase()) {
+        case "unread": return undefined;
+        case "unavailable": return t("notAvailable");
+        default: return lastBuyer.get() ? formatAddress(lastBuyer.get() ?? "") : t("awaitingFirstKey");
+      }
+    },
+    [lastBuyer, roundDataAvailable, roundSettled],
   );
   const formattedRound = createDerived(
-    () => roundDataAvailable.get() ? `#${roundId.get()}` : t("notAvailable"),
-    [roundId, roundDataAvailable],
+    () => {
+      switch (roundReadPhase()) {
+        case "unread": return undefined;
+        case "unavailable": return t("notAvailable");
+        default: return `#${roundId.get()}`;
+      }
+    },
+    [roundId, roundDataAvailable, roundSettled],
   );
   const totalPotDisplay = createDerived(
-    () => roundDataAvailable.get()
-      ? `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`
-      : t("notAvailable"),
-    [totalPot, roundDataAvailable],
+    () => {
+      switch (roundReadPhase()) {
+        case "unread": return undefined;
+        case "unavailable": return t("notAvailable");
+        default: return `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`;
+      }
+    },
+    [totalPot, roundDataAvailable, roundSettled],
   );
   const roundStatusDisplay = createDerived(
-    () => !roundDataAvailable.get()
-      ? t("roundStateUnavailable")
-      : isRoundActive.get() ? t("activeRound") : t("inactiveRound"),
-    [isRoundActive, roundDataAvailable],
+    () => {
+      switch (roundReadPhase()) {
+        case "unread": return undefined;
+        case "unavailable": return t("roundStateUnavailable");
+        default: return isRoundActive.get() ? t("activeRound") : t("inactiveRound");
+      }
+    },
+    [isRoundActive, roundDataAvailable, roundSettled],
+  );
+  // The chrome's read-out of the user's key count. `userKeys` stays a plain
+  // number for the PlayArea; this is what the stat rail and sidebar bind. Only
+  // the unread state is `undefined` (→ pendingKey). Once a round is in context
+  // (guest sets it, or a gamefi read settled it), a settled 0 is a real reading
+  // — "you hold 0 keys" — and renders as 0, never as pending copy.
+  const userKeysDisplay = createDerived(
+    () => (roundReadPhase() === "unread" ? undefined : userKeys.get()),
+    [userKeys, roundDataAvailable, roundSettled],
   );
 
   // Round-total keys as a plain number for binding (the raw value is a bigint
@@ -1096,6 +1149,10 @@ export function useLastSurvivor({
       await Promise.all([loadCredit(), loadAuthoritativeQuote()]);
     } finally {
       isLoading.set(false);
+      // A read round has completed — success, failure, or an early return above.
+      // From here `roundDataAvailable === false` means "read, no round" (a real
+      // "N/A" reading), never "not read yet". Runs on every exit path.
+      roundSettled.set(true);
     }
   };
 
@@ -1500,6 +1557,7 @@ export function useLastSurvivor({
     isSettling,
     isLoading,
     roundDataAvailable,
+    roundSettled,
     userKeysAvailable,
     creditAvailable,
     historyAvailable,
@@ -1532,6 +1590,7 @@ export function useLastSurvivor({
     formattedRound,
     totalPotDisplay,
     roundStatusDisplay,
+    userKeysDisplay,
     totalKeysDisplay,
     userSharePercent,
     needsLifecycleSync,

@@ -14,6 +14,11 @@ const appMessages = {
   networkBadge: { en: "Neo N3", zh: "Neo N3" },
   rankBadge: { en: "Rank #{rank}", zh: "第 {rank} 名" },
   rankLabel: { en: "Global rank", zh: "全网排名" },
+  // Chrome pendingKey: the stat rail / sidebar value is still being read.
+  statAwaitingRead: { en: "Reading…", zh: "读取中…" },
+  // Settled ranking with no board position (always so in local guest play).
+  // A real reading — never "0", which is not a rank.
+  rankUnranked: { en: "Unranked", zh: "未上榜" },
   sidebarTitle: { en: "My jumping record", zh: "我的战绩" },
   creditLabel: { en: "Withdrawable credit", zh: "可提取余额" },
   poolShort: { en: "Pool", zh: "奖池" },

@@ -52,18 +52,25 @@ export const manifest: MiniAppManifest = {
     { key: "ranks", labelKey: "ranksTab", icon: "award" },
   ],
 
+  // These bind straight into shell chrome that MiniAppRoot renders with no
+  // loading gate of its own, so each declares `pendingKey`: until a leaderboard
+  // or profile read settles the bound observable holds `undefined`, and the
+  // chrome says "Reading…" instead of publishing a fabricated "0". A settled 0
+  // is a real reading (a player with 0 runs) and still renders as 0. `myRank`
+  // binds `myRankDisplay` so an unranked player reads as a word, never rank 0.
+  // See main.tsx.
   stats: [
-    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy" },
-    { labelKey: "guestRunsLabel", valueKey: "myRuns", format: "text", icon: "zap" },
-    { labelKey: "myRank", valueKey: "myRank", format: "text", variant: "accent", icon: "award" },
+    { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", variant: "success", icon: "trophy", pendingKey: "statAwaitingRead" },
+    { labelKey: "guestRunsLabel", valueKey: "myRuns", format: "text", icon: "zap", pendingKey: "statAwaitingRead" },
+    { labelKey: "myRank", valueKey: "myRankDisplay", format: "text", variant: "accent", icon: "award", pendingKey: "statAwaitingRead" },
   ],
 
   sidebar: {
     titleKey: "sidebarTitle",
     items: [
-      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text" },
-      { labelKey: "rankLabel", valueKey: "myRank", format: "text" },
-      { labelKey: "guestRunsLabel", valueKey: "myRuns", format: "text" },
+      { labelKey: "guestBestLabel", valueKey: "myTotalWon", format: "text", pendingKey: "statAwaitingRead" },
+      { labelKey: "rankLabel", valueKey: "myRankDisplay", format: "text", pendingKey: "statAwaitingRead" },
+      { labelKey: "guestRunsLabel", valueKey: "myRuns", format: "text", pendingKey: "statAwaitingRead" },
     ],
   },
 
