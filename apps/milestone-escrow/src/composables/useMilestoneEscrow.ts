@@ -73,6 +73,41 @@ const MIN_GAS_BASE = 10_000_000n; // 0.1 GAS
 /** Memo prefix the contract requires on the prepay transfer (appId + ":"). */
 const PAYMENT_MEMO = "miniapp-milestone-escrow:fund";
 
+/**
+ * Contract text limits are UTF-8 BYTES, not JS UTF-16 chars: the devpack
+ * compiles C# `string.Length` to the SIZE opcode over the UTF-8 ByteString
+ * (MiniAppMilestoneEscrow.Internal.cs asserts title.Length <= 60 /
+ * notes.Length <= 240 on that unit), so a 21-CJK-char title is 63 bytes and
+ * reverts "title too long". A char-based `.slice(0, 60)` therefore let CJK
+ * titles through at up to 3× the byte budget; because createEscrow runs on
+ * the deposit-then-act lane, the deposit landed FIRST and the consuming call
+ * then deterministically reverted, stranding the total as
+ * reclaimable-but-manual credit. The JS-side unit contract is pinned by
+ * apps/shared/test/milestone-escrow.logic.test.ts ("never sends more title
+ * or notes bytes than the contract accepts").
+ */
+const MAX_TITLE_BYTES = 60;
+const MAX_NOTES_BYTES = 240;
+
+const utf8Encoder = new TextEncoder();
+
+/**
+ * Truncate to at most `maxBytes` UTF-8 bytes on a whole-codepoint boundary
+ * (never splits a surrogate pair or multi-byte sequence). Exported for tests.
+ */
+export const truncateUtf8Bytes = (value: string, maxBytes: number): string => {
+  if (utf8Encoder.encode(value).length <= maxBytes) return value;
+  let out = "";
+  let bytes = 0;
+  for (const codepoint of value) {
+    const size = utf8Encoder.encode(codepoint).length;
+    if (bytes + size > maxBytes) break;
+    out += codepoint;
+    bytes += size;
+  }
+  return out;
+};
+
 /** Exact production deployment used by both current Neo N3 networks. */
 const APPROVED_CONTRACT = "0x442162de25008ac78d4cce62ed8d8a64401b7ece";
 
@@ -911,6 +946,12 @@ export function useMilestoneEscrow({
     }
     const assetArg = app.chain.arg.hash160(assetHash(asset));
 
+    // Truncate by UTF-8 BYTES (the contract's unit), not UTF-16 chars — see
+    // MAX_TITLE_BYTES. Computed once so the sent args and the pending-write
+    // reconciliation record can never disagree.
+    const escrowTitle = truncateUtf8Bytes(data.name.trim(), MAX_TITLE_BYTES);
+    const escrowNotes = truncateUtf8Bytes(String(data.notes ?? ""), MAX_NOTES_BYTES);
+
     isCreating.set(true);
     try {
       // Deposit-then-act on the framework prepay lane (S3):
@@ -944,8 +985,8 @@ export function useMilestoneEscrow({
             app.chain.arg.array(
               milestoneBaseUnits.map((n) => app.chain.arg.integer(n)),
             ),
-            app.chain.arg.string(data.name.trim().slice(0, 60)),
-            app.chain.arg.string((data.notes ?? "").slice(0, 240)),
+            app.chain.arg.string(escrowTitle),
+            app.chain.arg.string(escrowNotes),
           ],
           amountFixed8: totalAmount,
           memo: PAYMENT_MEMO,
@@ -957,7 +998,7 @@ export function useMilestoneEscrow({
           onTransactionSent: (txid) => persistPendingWrite("create", txid, {
             beneficiary: beneficiaryAddr,
             totalAmount: totalAmount.toString(),
-            title: data.name.trim().slice(0, 60),
+            title: escrowTitle,
           }),
           notify: "silent",
         });
