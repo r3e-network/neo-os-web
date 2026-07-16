@@ -47,9 +47,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Theory]
+        [InlineData("AppAccount")]
         [InlineData("PlatformAnchor")]
         [InlineData("PlatformDeFi")]
         [InlineData("PlatformGame")]
+        [InlineData("PlatformRegistry")]
         [InlineData("PlatformSocial")]
         public void PlatformContractsExposeAdminGatedUpdate(string contractName)
         {
