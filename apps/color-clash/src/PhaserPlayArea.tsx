@@ -4,10 +4,11 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useStateBindings } from "@shared/react";
+import { useNowMs, useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
+import { clampDifficulty } from "@framework/game-rules";
 import { ChevronDown, Coins, RefreshCw, ShieldCheck, WalletCards, X } from "lucide-react";
 import {
   canReleaseExpiredGame,
@@ -44,10 +45,6 @@ interface HistoryRow {
   seqAchieved: number;
 }
 
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
-}
-
 function shortAddr(addr: string): string {
   return addr.length > 14 ? `${addr.slice(0, 8)}...${addr.slice(-4)}` : addr;
 }
@@ -67,7 +64,6 @@ function payoutDisplay(value: number | string): string {
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const difficultyRadioRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const gameStatus = str("gameStatus", "idle");
   const gameDifficulty = clampDifficulty(num("gameDifficulty"));
@@ -116,14 +112,20 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isLobby = ["idle", "solved", "expired", "refunded"].includes(gameStatus);
   const activeDifficulty = isLobby ? selectedDifficulty : gameDifficulty;
   const rule = ruleOf(activeDifficulty);
-  const remainingMs = deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
   const isPlaying = gameStatus === "dealt";
   const dealPending = gameStatus === "committed" || lastStatus === "deal-pending";
   const timedSession = isPlaying || dealPending;
-  const timeUp = timedSession && deadline > 0 && remainingMs <= 0;
   const settlementPending = !isGuest && (
     gameStatus === "unknown" || lastStatus === "settlement-pending"
   );
+  // The lobby can stay open for minutes; the clock re-anchors as soon as a
+  // fresh deadline arrives so the first rendered value is never inflated.
+  const nowMs = useNowMs(1_000, {
+    enabled: (timedSession || settlementPending) && deadline > 0,
+    resetKey: `${deadline}|${timedSession}|${settlementPending}`,
+  });
+  const remainingMs = deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
+  const timeUp = timedSession && deadline > 0 && remainingMs <= 0;
   const recoveryPending = !isGuest && (
     settlementPending || (timedSession && (roundPhase === "wrong" || timeUp))
   );
@@ -158,15 +160,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     (best, entry) => Math.max(best, Number(entry.totalWon ?? 0)),
     Math.max(0, myTotalWon),
   );
-
-  useEffect(() => {
-    if ((!timedSession && !settlementPending) || deadline <= 0) return undefined;
-    // The lobby can stay open for minutes; reset the wall-clock anchor as soon
-    // as a fresh deadline arrives so the first rendered value is never inflated.
-    setNowMs(Date.now());
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
-    return () => window.clearInterval(timer);
-  }, [deadline, settlementPending, timedSession]);
 
   useEffect(() => {
     if (!drawerOpen) return undefined;

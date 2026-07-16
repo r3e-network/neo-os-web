@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { CoinArt } from "@shared/art";
 import type { Observable } from "@shared/react/context";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import {
   OpenUiLitePanel as OpenUiPanel,
@@ -69,15 +70,10 @@ function positiveGas(value: string): boolean {
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { val, str, bool, num } = useStateBindings(state);
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNowMs(1_000);
   const [actionMode, setActionMode] = useState<ActionMode>("bid");
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("market");
   const [connecting, setConnecting] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   const totalPool = val<number>("totalPool", 0) ?? 0;
   const currentEpoch = val<number>("currentEpoch", 0) ?? 0;

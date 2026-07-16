@@ -23,7 +23,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type * as Phaser from "phaser";
-import { useStateBindings } from "@shared/react";
+import { useNowMs, useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
@@ -86,7 +86,6 @@ function historyResult(t: PlayAreaProps["t"], row: SolveRow, isGuest: boolean): 
 
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [a11yDifficulty, setA11yDifficulty] = useState(0);
   const [a11ySelectedCell, setA11ySelectedCell] = useState<Cell | null>(null);
@@ -136,6 +135,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // observed GameStarted event, so recovery must stay available before the
   // game id is known locally.
   const settlementPending = status === "unknown";
+  const nowMs = useNowMs(1000, {
+    enabled: status === "dealt" || status === "committed" || status === "unknown",
+    resetKey: `${status}|${deadline}`,
+  });
   const remainingMs = deadline > 0 ? Math.max(0, deadline - nowMs) : 0;
   const elapsedMs = dealtAt > 0 ? Math.max(0, nowMs - dealtAt) : 0;
   const canReleaseStuck =
@@ -145,13 +148,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     && nowMs > deadline + SETTLE_GRACE_MS
     && (isPlaying || isCommitted || settlementPending);
   const busy = isStarting || isDealing || isSubmitting || isMoving || isRecovering || isConnectingWallet;
-
-  useEffect(() => {
-    if (status !== "dealt" && status !== "committed" && status !== "unknown") return undefined;
-    setNowMs(Date.now());
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [status, deadline]);
 
   useEffect(() => {
     if (!drawerOpen) return undefined;

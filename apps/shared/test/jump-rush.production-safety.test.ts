@@ -104,7 +104,8 @@ describe("jump-rush production trust boundary", () => {
     expect(wrapper).toContain("jr-a11y-layer");
     expect(wrapper).toContain('type="range"');
     expect(wrapper).toContain('role="radiogroup"');
-    expect(wrapper).toContain("setInterval");
+    // The countdown clock lives in the shared useNowMs hook now.
+    expect(wrapper).toContain("useNowMs(");
     expect(styles).toContain("--phaser-mobile-height-ratio: 1.45");
     expect(styles).toContain("--phaser-mobile-bottom-reserve: 112");
     expect(styles).not.toContain("min-height: 620px");

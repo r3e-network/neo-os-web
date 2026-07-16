@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, RotateCcw, ShieldCheck, Trophy, WalletCards } from "lucide-react";
-import { useStateBindings } from "@shared/react";
+import { useNowMs, useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
@@ -70,7 +70,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     }
     window.dispatchEvent(new CustomEvent("languageChange", { detail: { language: next } }));
   };
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const drawerToggleRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
 
@@ -104,6 +103,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const dailyDate   = num("dailyDate", 0);
   // Guest grants a single free undo per run; GameFi keeps the contract's 3.
   const maxUndos    = isGuest ? 1 : 3;
+  const hasClock = (gameStatus === "dealt" && deadline > 0 && (!isGuest || !isGameOver)) ||
+    (gameStatus === "committed" && startedAt > 0);
+  const nowMs = useNowMs(1_000, {
+    enabled: hasClock,
+    resetKey: `${deadline}|${gameStatus}|${isGameOver}|${isGuest}|${startedAt}`,
+  });
   const deadlineExpired = gameStatus === "dealt" && deadline > 0 && nowMs >= deadline;
   const releaseAt = gameStatus === "committed"
     ? (startedAt > 0 ? startedAt + DEAL_TTL_MS : 0)
@@ -117,15 +122,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const canWithdraw = !isGuest && credit > 0 && gameStatus !== "dealt" && !isFinancialAction;
   const exposedCards = pileCards.filter((card) => card.exposed && !card.picked).slice(0, 9);
   const boardBusy = isTeeBusy || isRecovering || isFinancialAction;
-
-  useEffect(() => {
-    const hasClock = (gameStatus === "dealt" && deadline > 0 && (!isGuest || !isGameOver)) ||
-      (gameStatus === "committed" && startedAt > 0);
-    if (!hasClock) return undefined;
-    setNowMs(Date.now());
-    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
-    return () => window.clearInterval(timer);
-  }, [deadline, gameStatus, isGameOver, isGuest, startedAt]);
 
   useEffect(() => {
     if (!drawerOpen) return;

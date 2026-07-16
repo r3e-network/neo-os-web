@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import { PlayStage } from "@shared/components-react/v2";
@@ -40,7 +41,6 @@ function cardKeywords(card: Card): string {
 export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const { bool, num, str, val } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [clockNow, setClockNow] = useState(() => Date.now());
   const intentRadioRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const drawerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const runAction = useCallback((name: string, ...args: unknown[]) => {
@@ -70,6 +70,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
   const pendingReadingId = str("pendingReadingId", "");
   const pendingRequestId = str("pendingRequestId", "");
   const pendingExpiresAt = num("pendingExpiresAt");
+  const clockNow = useNowMs(30_000, {
+    enabled: hasPending && pendingExpiresAt > 0,
+    resetKey: pendingExpiresAt,
+  });
   const canRecoverPending = pendingExpired || (
     hasPending && pendingExpiresAt > 0 && clockNow >= pendingExpiresAt
   );
@@ -151,13 +155,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: P) {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [closeDrawer, drawerOpen]);
-
-  useEffect(() => {
-    if (!hasPending || pendingExpiresAt <= 0) return;
-    setClockNow(Date.now());
-    const timer = window.setInterval(() => setClockNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, [hasPending, pendingExpiresAt]);
 
   const bridgeState = {
     hasDrawn,
