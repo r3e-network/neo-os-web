@@ -337,7 +337,10 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     latestRequest.set({ action, status: "pending", summary, at: nowIso(), payload });
   };
   const setFailure = (action: string, error: unknown) => {
-    const summary = error instanceof Error ? error.message : clean(error) || t("workflowFailed");
+    // app.errors.messageOf maps chain/RPC failures onto the localized family
+    // copy notify.error shows, so raw English wallet/VM strings never land in
+    // the user-facing lastError strip.
+    const summary = app.errors.messageOf(error, t("workflowFailed"));
     lastSuccess.set("");
     if (!pendingOperation.get()) transactionNotice.set("");
     lastError.set(summary);
@@ -640,8 +643,9 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     } catch (error) {
       if (options.prompt || options.record) throw error;
       // Background hydration failures stay visible through dataSource/lastError
-      // without producing an unhandled rejection.
-      lastError.set(error instanceof Error ? error.message : clean(error));
+      // without producing an unhandled rejection. messageOf keeps chain/RPC
+      // failures on the localized family copy instead of raw English text.
+      lastError.set(app.errors.messageOf(error, t("statusRefreshFailed")));
     } finally {
       loadPromise = null;
     }

@@ -140,6 +140,21 @@ describe("AA Session Key Lab production logic", () => {
     expect(mock.read).not.toHaveBeenCalled();
   });
 
+  it("maps a raw wallet failure during configure onto the localized family copy, not raw English", async () => {
+    // Wallet/RPC failures carry English prose. That used to flow through
+    // t(errorKey(...)), and t() echoes unknown keys — so the raw sentence
+    // rendered verbatim in lastError. failureMessage now routes non-catalog
+    // messages through app.errors.messageOf, which maps this rejection onto
+    // the userRejected family key (identity translator returns the key).
+    const mock = setupChain();
+    mock.invoke.mockRejectedValue(new Error("User rejected the request"));
+    const lab = useAASessionKeyLab({ app: makeApp(mock.chain), t });
+    populateForm(lab, mock.expiresAt);
+
+    await expect(lab.configureSessionKey()).rejects.toThrow("User rejected the request");
+    expect(lab.lastError.get()).toBe("userRejected");
+  });
+
   it("passes exact paymaster scope and amount", async () => {
     const aa = {
       checkSponsorship: vi.fn().mockResolvedValue({ eligible: true }),

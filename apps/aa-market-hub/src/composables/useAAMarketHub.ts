@@ -85,10 +85,19 @@ function rpcHash(value: string) {
   return { type: "Hash160", value };
 }
 
-function errorText(error: unknown, t: UseAAMarketHubOptions["t"], fallbackKey: string): string {
+function errorText(
+  error: unknown,
+  app: UseAAMarketHubOptions["app"],
+  t: UseAAMarketHubOptions["t"],
+  fallbackKey: string,
+): string {
   const message = error instanceof Error ? clean(error.message) : clean(error);
+  // utils/aa-market throws this one as a bare i18n key — localize it here.
   if (message === "aaMarketChainContextMismatch") return t("aaMarketChainContextMismatch");
-  return message || t(fallbackKey);
+  // messageOf maps chain/RPC failures onto the localized family copy
+  // notify.error shows; internal throws already carry t() copy and pass
+  // through verbatim.
+  return app.errors.messageOf(error, t(fallbackKey));
 }
 
 export function useAAMarketHub({ app, t }: UseAAMarketHubOptions) {
@@ -269,7 +278,7 @@ export function useAAMarketHub({ app, t }: UseAAMarketHubOptions) {
   const setFailure = (error: unknown, fallbackKey = "actionFailed") => {
     lastSuccess.set("");
     if (!pendingOperation.get()) transactionNotice.set("");
-    lastError.set(errorText(error, t, fallbackKey));
+    lastError.set(errorText(error, app, t, fallbackKey));
   };
   const setPendingNotice = (key = "transactionPending") => {
     lastError.set("");

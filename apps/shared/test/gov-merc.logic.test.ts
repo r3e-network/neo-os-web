@@ -647,7 +647,7 @@ describe("useGovMerc — bidding (GAS base units, deposit-then-act via payAndCal
     );
   });
 
-  it("propagates a pre-confirmation deposit failure verbatim (no credit-held copy)", async () => {
+  it("propagates a pre-confirmation deposit failure as the mapped family copy (no credit-held copy)", async () => {
     const { app, invokeWithPayment } = setup({
       epoch: 4,
       gasCredit: "0",
@@ -656,9 +656,13 @@ describe("useGovMerc — bidding (GAS base units, deposit-then-act via payAndCal
     await app.loadData();
 
     app.bidAmount.set("2");
-    // The wallet rejected the GAS transfer — nothing is stranded, so the raw
-    // message (mapped by the notify layer) must survive, not bidDepositHeld.
-    await expect(app.placeBid()).rejects.toThrow("User rejected the request");
+    // The wallet rejected the GAS transfer — nothing is stranded, so the
+    // failure must surface as a rejection, not bidDepositHeld. The hook now
+    // routes the rethrow through app.errors.messageOf, which maps the raw
+    // wallet string onto the localized userRejected family copy (the same
+    // copy notify.error shows) instead of leaking English text verbatim.
+    // The test translator is the identity fn, so the mapped copy is the key.
+    await expect(app.placeBid()).rejects.toThrow("userRejected");
     expect(invokeWithPayment).toHaveBeenCalledTimes(1);
   });
 });
