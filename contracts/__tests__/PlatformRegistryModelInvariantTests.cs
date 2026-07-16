@@ -1,229 +1,115 @@
 using System;
-using System.Collections.Generic;
+using Neo;
 using Xunit;
+using static NeoMiniAppPlatform.Contracts.Tests.RegistryHarness;
 
 namespace NeoMiniAppPlatform.Contracts.Tests
 {
     /// <summary>
-    /// Model-based invariant suite for the PlatformRegistry money flows
-    /// (AnchorRewardAccountingInvariantTest style): a pure C# reference
-    /// model runs randomized register/credit/fee/mint/fund/spend/withdraw
-    /// sequences and asserts, after every step, the conservation laws the
-    /// contract enforces structurally:
-    ///   - registry GAS balance == total credit liability + accrued fees
-    ///   - total credit liability == sum of every (appId, payer) balance
-    ///   - per-app account balance == received - pool-funded - paid-out
-    ///   - engine pool per app == sum of that app's fundEnginePool amounts
-    ///   - no balance ever goes negative.
+    /// Differential model-based invariant suite for the PlatformRegistry
+    /// money flows. Unlike a self-referential pure-C# model check (which can
+    /// never expose a NEF accounting bug), this drives a REAL TestEngine-
+    /// deployed PlatformRegistry: every randomized register/credit/mint/
+    /// receive/fund/spend/withdraw action is applied on chain AND mirrored
+    /// into an independent C# oracle, and after every step the driver asserts
+    /// the contract's on-chain reads agree with the oracle and the §8-DoD
+    /// solvency identity holds:
+    ///   - GAS.BalanceOf(registry) == totalCreditLiability() + accruedFees()
+    ///   - creditOf(app,payer) == oracle per-(app,payer) credit
+    ///   - GAS.BalanceOf(account) == received - pool-funded - paid-out
+    ///   - engine poolCreditOf(app) == sum of that app's fundEnginePool
+    ///   - the transit lock is never stuck set between transactions.
+    /// The oracle re-derives every quantity from first principles, so any
+    /// single perturbed contract accounting write is caught on the next step
+    /// (perturbation evidence recorded in the stage report).
     /// </summary>
     public class PlatformRegistryModelInvariantTests
     {
-        private const long GasUnit = 100_000_000;
-        private const long FeeLite = 1 * GasUnit;
-        private const long FeeMint = 10 * GasUnit;
-
         [Fact]
-        public void RandomizedRegisterFundCreditSpendWithdrawSequencesConserveEveryLedger()
+        public void RandomizedSequencesKeepTheNefLedgerConsistentWithTheOracle()
         {
-            var model = new RegistryModel();
+            var world = new RegistryDifferentialWorld(apps: 3, payers: 3);
             var random = new Random(0x1E9157);
-            string[] apps = { "app-a", "app-b", "app-c", "app-d" };
-            string[] payers = { "alice", "bob", "carol" };
 
-            for (int step = 0; step < 500; step++)
+            world.AssertConsistent();
+
+            for (int step = 0; step < 220; step++)
             {
-                string app = apps[random.Next(apps.Length)];
-                string payer = payers[random.Next(payers.Length)];
-                int action = random.Next(7);
+                string app = world.Apps[random.Next(world.Apps.Length)];
+                UInt160 payer = world.Payers[random.Next(world.Payers.Length)];
 
-                switch (action)
+                switch (random.Next(7))
                 {
                     case 0:
-                        model.DepositCredit(app, payer, random.Next(1, 30) * GasUnit);
+                        world.Deposit(app, payer, random.Next(1, 30) * GAS_UNIT);
                         break;
                     case 1:
-                        if (!model.IsRegistered(app) && model.CreditOf(app, payer) >= FeeLite)
-                        {
-                            model.RegisterApp(app, payer);
-                        }
+                        world.Register(app, payer);
                         break;
                     case 2:
-                        if (model.IsRegistered(app) && !model.IsMinted(app)
-                            && model.CreditOf(app, model.AdminOf(app)) >= FeeMint)
-                        {
-                            model.MintAccount(app);
-                        }
+                        world.Mint(app);
                         break;
                     case 3:
-                        if (model.IsMinted(app)) model.AccountReceive(app, random.Next(1, 50) * GasUnit);
+                        if (world.IsMinted(app)) world.AccountReceive(app, random.Next(1, 50) * GAS_UNIT);
                         break;
                     case 4:
-                        if (model.IsMinted(app) && model.AccountBalance(app) > 0)
-                        {
-                            model.FundEnginePool(app, NextAmount(random, model.AccountBalance(app)));
-                        }
+                        if (world.IsMinted(app))
+                            world.FundEnginePool(app, NextAmount(random, world.AccountBalance(app)));
                         break;
                     case 5:
-                        if (model.IsMinted(app) && model.AccountBalance(app) > 0)
-                        {
-                            model.SpendToPayout(app, NextAmount(random, model.AccountBalance(app)));
-                        }
+                        if (world.IsMinted(app))
+                            world.SpendToPayout(app, NextAmount(random, world.AccountBalance(app)));
                         break;
                     default:
-                        if (model.CreditOf(app, payer) > 0)
-                        {
-                            model.WithdrawCredit(app, payer, NextAmount(random, model.CreditOf(app, payer)));
-                        }
+                        if (world.CreditOf(app, payer) > 0)
+                            world.WithdrawCredit(app, payer, NextAmount(random, world.CreditOf(app, payer)));
                         break;
                 }
 
-                model.AssertInvariants();
+                // The heart of the differential check: after every applied
+                // step the NEF's on-chain reads must match the oracle and the
+                // solvency identity must hold.
+                world.AssertConsistent();
             }
 
-            // The run must have exercised every lane to count as evidence.
-            Assert.True(model.Registrations > 0, "model run never registered an app");
-            Assert.True(model.Mints > 0, "model run never minted an account");
-            Assert.True(model.PoolFundings > 0, "model run never funded an engine pool");
-            Assert.True(model.Spends > 0, "model run never spent to payout");
-            Assert.True(model.Withdrawals > 0, "model run never withdrew credit");
+            // The run must have exercised every money lane to count as evidence.
+            Assert.True(world.Registrations > 0, "run never registered an app");
+            Assert.True(world.Mints > 0, "run never minted an account");
+            Assert.True(world.PoolFundings > 0, "run never funded an engine pool");
+            Assert.True(world.Spends > 0, "run never spent to payout");
+            Assert.True(world.Withdrawals > 0, "run never withdrew credit");
         }
 
         [Fact]
-        public void FeeConsumptionConvertsLiabilityIntoRevenueExactly()
+        public void FeeConsumptionConvertsLiabilityIntoRevenueOnChain()
         {
-            var model = new RegistryModel();
-            model.DepositCredit("solo-app", "alice", 20 * GasUnit);
-            model.RegisterApp("solo-app", "alice");
-            model.MintAccount("solo-app");
-            model.AssertInvariants();
+            var world = new RegistryDifferentialWorld(apps: 1, payers: 1);
+            string app = world.Apps[0];
+            UInt160 payer = world.Payers[0];
 
-            // 11 GAS of the deposit became platform revenue; the rest is
-            // still the payer's liability, all of it withdrawable.
-            Assert.Equal(FeeLite + FeeMint, model.AccruedFees);
-            Assert.Equal(9 * GasUnit, model.CreditOf("solo-app", "alice"));
-            model.WithdrawCredit("solo-app", "alice", 9 * GasUnit);
-            model.AssertInvariants();
-            Assert.Equal(0, model.TotalLiability);
-            Assert.Equal(model.AccruedFees, model.RegistryBalance);
+            world.Deposit(app, payer, 20 * GAS_UNIT);
+            world.AssertConsistent();
+            world.Register(app, payer);
+            world.AssertConsistent();
+            world.Mint(app);
+            world.AssertConsistent();
+
+            // 1 GAS registration + 10 GAS mint became platform revenue on
+            // chain; the remaining 9 GAS is still the payer's withdrawable
+            // liability, and the solvency identity held at every step above.
+            Assert.Equal(new System.Numerics.BigInteger(9 * GAS_UNIT), world.CreditOf(app, payer));
+            world.WithdrawCredit(app, payer, 9 * GAS_UNIT);
+            world.AssertConsistent();
+            Assert.Equal(System.Numerics.BigInteger.Zero, world.CreditOf(app, payer));
         }
 
-        private static long NextAmount(Random random, long max)
+        // Bounded random amount in [1, min(max, 40 GAS)].
+        private static long NextAmount(Random random, System.Numerics.BigInteger max)
         {
-            long bounded = Math.Min(max, 40 * GasUnit);
+            long cap = 40 * GAS_UNIT;
+            long bounded = max < cap ? (long)max : cap;
+            if (bounded <= 1) return 1;
             return 1 + (long)(random.NextDouble() * (bounded - 1));
-        }
-
-        // Pure reference model of the registry + account + engine flows.
-        private sealed class RegistryModel
-        {
-            private readonly Dictionary<(string App, string Payer), long> credit = new();
-            private readonly Dictionary<string, string> adminByApp = new();
-            private readonly HashSet<string> minted = new();
-            private readonly Dictionary<string, long> accountReceived = new();
-            private readonly Dictionary<string, long> accountFunded = new();
-            private readonly Dictionary<string, long> accountPaidOut = new();
-            private readonly Dictionary<string, long> enginePool = new();
-
-            public long RegistryBalance { get; private set; }
-            public long TotalLiability { get; private set; }
-            public long AccruedFees { get; private set; }
-            public int Registrations { get; private set; }
-            public int Mints { get; private set; }
-            public int PoolFundings { get; private set; }
-            public int Spends { get; private set; }
-            public int Withdrawals { get; private set; }
-
-            public bool IsRegistered(string app) => adminByApp.ContainsKey(app);
-            public bool IsMinted(string app) => minted.Contains(app);
-            public string AdminOf(string app) => adminByApp[app];
-            public long CreditOf(string app, string payer) => Get(credit, (app, payer));
-            public long AccountBalance(string app) =>
-                Get(accountReceived, app) - Get(accountFunded, app) - Get(accountPaidOut, app);
-
-            public void DepositCredit(string app, string payer, long amount)
-            {
-                credit[(app, payer)] = CreditOf(app, payer) + amount;
-                TotalLiability += amount;
-                RegistryBalance += amount;
-            }
-
-            public void RegisterApp(string app, string appAdmin)
-            {
-                ConsumeCredit(app, appAdmin, FeeLite);
-                adminByApp[app] = appAdmin;
-                Registrations++;
-            }
-
-            public void MintAccount(string app)
-            {
-                ConsumeCredit(app, AdminOf(app), FeeMint);
-                minted.Add(app);
-                Mints++;
-            }
-
-            public void AccountReceive(string app, long amount) =>
-                accountReceived[app] = Get(accountReceived, app) + amount;
-
-            public void FundEnginePool(string app, long amount)
-            {
-                if (AccountBalance(app) < amount) throw new InvalidOperationException("account underfunded");
-                accountFunded[app] = Get(accountFunded, app) + amount;
-                enginePool[app] = Get(enginePool, app) + amount;
-                PoolFundings++;
-            }
-
-            public void SpendToPayout(string app, long amount)
-            {
-                if (AccountBalance(app) < amount) throw new InvalidOperationException("account underfunded");
-                accountPaidOut[app] = Get(accountPaidOut, app) + amount;
-                Spends++;
-            }
-
-            public void WithdrawCredit(string app, string payer, long amount)
-            {
-                long balance = CreditOf(app, payer);
-                if (balance < amount) throw new InvalidOperationException("insufficient credit");
-                credit[(app, payer)] = balance - amount;
-                TotalLiability -= amount;
-                RegistryBalance -= amount;
-                Withdrawals++;
-            }
-
-            public void AssertInvariants()
-            {
-                // Registry solvency: everything it holds is either user
-                // liability or accrued platform revenue — nothing else.
-                Assert.Equal(TotalLiability + AccruedFees, RegistryBalance);
-
-                // The mandatory liability counter equals the ledger sum.
-                long sum = 0;
-                foreach (long balance in credit.Values)
-                {
-                    Assert.True(balance >= 0, "negative credit balance");
-                    sum += balance;
-                }
-                Assert.Equal(sum, TotalLiability);
-
-                // Per-app conservation across account + engine pool.
-                foreach (string app in adminByApp.Keys)
-                {
-                    Assert.True(AccountBalance(app) >= 0, "negative account balance");
-                    Assert.Equal(Get(accountFunded, app), Get(enginePool, app));
-                }
-                Assert.True(AccruedFees >= 0 && TotalLiability >= 0 && RegistryBalance >= 0);
-            }
-
-            private void ConsumeCredit(string app, string payer, long fee)
-            {
-                long balance = CreditOf(app, payer);
-                if (balance < fee) throw new InvalidOperationException("insufficient credit");
-                credit[(app, payer)] = balance - fee;
-                TotalLiability -= fee;
-                AccruedFees += fee;
-            }
-
-            private static long Get<TKey>(Dictionary<TKey, long> values, TKey key) where TKey : notnull =>
-                values.TryGetValue(key, out long value) ? value : 0;
         }
     }
 }

@@ -218,14 +218,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public void UpgradeAppAccount_RequiresDoubleConsent()
         {
             var ctx = Deploy();
-            SetArtifact(ctx);
+            SetArtifact(ctx);                       // artifact version 1
             var appAdmin = TestEngine.GetNewSigner().Account;
             AsAdmin(ctx);
             ctx.Registry.registerAppByPlatform("upg-app", "", appAdmin, null);
             UInt160 account = ctx.Registry.mintAccount("upg-app")!;
 
-            // Platform admin alone cannot repave the shim (objection 7).
-            AssertRevert("app consent required", () => ctx.Registry.upgradeAppAccount("upg-app"));
+            // Platform admin alone cannot propose the repave (objection 7):
+            // the app's consent flag must be present first.
+            AssertRevert("app consent required", () => ctx.Registry.proposeUpgradeAppAccount("upg-app"));
 
             // Consent is the app admin's own flag.
             AssertRevert("unauthorized: not app admin", () => ctx.Registry.setShimUpgradeConsent("upg-app", true));
@@ -233,12 +234,19 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ctx.Registry.setShimUpgradeConsent("upg-app", true);
             Assert.True(ctx.Registry.shimUpgradeConsentOf("upg-app"));
 
-            // The app admin alone cannot trigger the registry-orchestrated
-            // upgrade either — the lane is platform-admin gated.
+            // The propose/execute lane is platform-admin gated and 24h-timelocked.
+            AssertRevert("unauthorized", () => ctx.Registry.proposeUpgradeAppAccount("upg-app"));
+            AsAdmin(ctx);
+            ctx.Registry.proposeUpgradeAppAccount("upg-app");
+            AssertRevert("timelock active", () => ctx.Registry.upgradeAppAccount("upg-app"));
+            AdvanceMs(ctx, TIMELOCK_MS + 1_000);
+
+            // The app admin alone cannot execute either — platform-admin gated.
+            As(ctx, appAdmin);
             AssertRevert("unauthorized", () => ctx.Registry.upgradeAppAccount("upg-app"));
 
-            // Both consents present: the relay updates the shim in place and
-            // local identity survives (the update path has no re-init).
+            // Both consents present + timelock matured: the relay updates the
+            // shim in place and local identity survives (no re-init).
             AsAdmin(ctx);
             ctx.Registry.upgradeAppAccount("upg-app");
             var shim = ctx.Engine.FromHash<AppAccountContract>(account, false);
@@ -247,7 +255,59 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             // Consent is one-shot: the next upgrade needs a fresh flag.
             Assert.False(ctx.Registry.shimUpgradeConsentOf("upg-app"));
-            AssertRevert("app consent required", () => ctx.Registry.upgradeAppAccount("upg-app"));
+            AssertRevert("app consent required", () => ctx.Registry.proposeUpgradeAppAccount("upg-app"));
+        }
+
+        [Fact]
+        public void ShimUpgradeConsent_StaleVersion_Faults()
+        {
+            // EXPLOIT (finding 2): consent was a version-unbound boolean. The
+            // app admin consents while artifact v1 is active; the platform
+            // activates a DIFFERENT artifact (v2); the upgrade then applies v2
+            // on the stale consent (TOCTOU). The fix binds consent to the
+            // artifact version, so the stale-consent upgrade faults.
+            var ctx = Deploy();
+            SetArtifact(ctx);                       // artifact version 1
+            var appAdmin = TestEngine.GetNewSigner().Account;
+            AsAdmin(ctx);
+            ctx.Registry.registerAppByPlatform("stale-app", "", appAdmin, null);
+            ctx.Registry.mintAccount("stale-app");
+
+            // App admin consents while v1 is active.
+            As(ctx, appAdmin);
+            ctx.Registry.setShimUpgradeConsent("stale-app", true);
+
+            // Platform activates a different artifact -> version 2.
+            SetArtifact(ctx);
+            Assert.Equal(new BigInteger(2), ctx.Registry.artifactVersion());
+
+            // The stale consent (for v1) must not authorize a v2 upgrade.
+            AsAdmin(ctx);
+            AssertRevert("consent stale", () => ctx.Registry.upgradeAppAccount("stale-app"));
+        }
+
+        [Fact]
+        public void UpgradeAppAccount_MidTimelockArtifactSwap_FaultsAtExecute()
+        {
+            // The TOCTOU variant: consent + propose happen while v1 is active,
+            // then the platform activates v2 DURING the upgrade timelock. At
+            // execute the applied version no longer matches the consent.
+            var ctx = Deploy();
+            SetArtifact(ctx);                       // artifact version 1
+            var appAdmin = TestEngine.GetNewSigner().Account;
+            AsAdmin(ctx);
+            ctx.Registry.registerAppByPlatform("swap-app", "", appAdmin, null);
+            ctx.Registry.mintAccount("swap-app");
+
+            As(ctx, appAdmin);
+            ctx.Registry.setShimUpgradeConsent("swap-app", true);   // consent for v1
+            AsAdmin(ctx);
+            ctx.Registry.proposeUpgradeAppAccount("swap-app");      // proposed while v1 active
+
+            // Activating a new artifact bumps the version (and matures the
+            // upgrade timelock); the stale-consent guard still fires at execute.
+            SetArtifact(ctx);                       // artifact version 2
+            AssertRevert("consent stale", () => ctx.Registry.upgradeAppAccount("swap-app"));
         }
 
         [Fact]
