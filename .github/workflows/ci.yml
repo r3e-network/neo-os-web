@@ -68,6 +68,9 @@ jobs:
       - name: Run shared miniapp library tests
         run: npm run -s test:shared
 
+      - name: Verify Goose Basket Shuffle release candidate
+        run: npm --workspace miniapp-zhuada-e run verify:release
+
       - name: Typecheck SDK
         run: npm --prefix platform/sdk run typecheck
 
