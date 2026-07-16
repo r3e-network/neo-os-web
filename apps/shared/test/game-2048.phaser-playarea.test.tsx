@@ -101,6 +101,7 @@ function t(key: string, params?: Record<string, string | number>) {
     statusReady: "Pick a lane, then merge to the glowing tile",
     statusShuffling: "Sealing your run…",
     statusWonTitle: "Target reached!",
+    expiredBanner: "That run got away",
     startOpenRun: "Open run",
     startOpening: "Opening…",
     submitAction: "Submit run",
@@ -245,6 +246,9 @@ describe("game-2048 Phaser playarea", () => {
     expect(props.state.poolFree).toBe(8);
     expect(props.state.runMoveCount).toBe(2);
     expect(props.state.undosUsed).toBe(1);
+    // The dealt board itself has to reach the renderer, not just its counters.
+    expect(props.state.runBoard).toEqual(INIT_BOARD);
+    expect(props.state.runMaxExp).toBe(1);
     expect(queryByText("Start run")).toBeNull();
   });
 
@@ -528,5 +532,100 @@ describe("game-2048 Phaser playarea", () => {
     expect(manifest).toContain("directPlay: true");
     expect(manifest).toContain("supportsGameFi: false");
     expect(manifest).toContain("operations: []");
+  });
+
+  // The engine drops in-flight moves and the scene has its own inputLocked, but
+  // nothing covered the React gate that disables the accessible move buttons.
+  it("locks the accessible move controls while a move is in flight", () => {
+    const dispatch = vi.fn();
+    const { getByRole } = render(
+      <PhaserPlayArea t={t} state={dealtState({ isMoving: true })} dispatch={dispatch} />,
+    );
+
+    const slideLeft = getByRole("button", { name: "Slide left" }) as HTMLButtonElement;
+    expect(slideLeft.disabled).toBe(true);
+
+    fireEvent.click(slideLeft);
+    expect(dispatch).not.toHaveBeenCalledWith("playMove", { dir: 3 });
+  });
+
+  // The drawer test asserts the "you" tag; data-me is the separate attribute
+  // the row highlight (PlayArea.scss `&[data-me="true"]`) hangs off.
+  it("marks the viewer's own leaderboard row for styling", () => {
+    const { container, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "gamefi",
+          leaderboard: [
+            { address: "Ntop1111111111111111111111111111111", rank: 1, totalWon: 2.5, solves: 5, isUser: false },
+            { address: "Nme22222222222222222222222222222222", rank: 2, totalWon: 1.25, solves: 3, isUser: true },
+          ],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(getByText("Leaderboard & rules"));
+
+    const rows = container.querySelectorAll(".rush-ranks__row");
+    expect(rows.length).toBe(2);
+    expect(rows[0]?.getAttribute("data-me")).toBeNull();
+    expect(rows[1]?.getAttribute("data-me")).toBe("true");
+  });
+
+  // canSubmit excludes timeUp. The existing past-deadline case uses INIT_BOARD,
+  // where the target tile is absent anyway — so it never proved the timeUp arm.
+  it("closes submission once the deadline passes even with the target tile on the board", () => {
+    const { queryByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={dealtState({
+          appMode: "gamefi",
+          runBoard: [...WINNING_BOARD],
+          runMaxExp: 9,
+          runMoveCount: 254,
+          deadline: Date.now() - 1_000,
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(queryByRole("button", { name: "Submit run" })).toBeNull();
+  });
+
+  // "refunded" is an alias of "expired" in the wrapper (isExpired).
+  it.each(["expired", "refunded"])(
+    "titles the stage with the expired banner when a GameFi run is %s",
+    (gameStatus) => {
+      const { getByText } = render(
+        <PhaserPlayArea
+          t={t}
+          state={state({ appMode: "gamefi", gameStatus })}
+          dispatch={vi.fn()}
+        />,
+      );
+
+      expect(getByText("That run got away")).toBeTruthy();
+    },
+  );
+
+  it("announces the payout in the drawer after a GameFi win", () => {
+    const { container, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          activeGameId: GAME_ID,
+          appMode: "gamefi",
+          gameStatus: "solved",
+          lastPayout: "0.5",
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(getByText("Leaderboard & rules"));
+
+    expect(container.querySelector(".rush-drawer__seed")?.textContent).toContain("0.5");
   });
 });

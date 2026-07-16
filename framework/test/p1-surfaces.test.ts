@@ -77,7 +77,7 @@ describe("P1-2 game.rules factory", () => {
     expect(rules.canReleaseExpiredGame({ finishedAt: 0 }, Date.now())).toBe(false);
   });
 
-  it("display helpers delegate to app.fmt implementations", () => {
+  it("display helpers delegate to the shared format implementations", () => {
     expect(rules.gasDisplay(2_000_000n)).toBe("0.02");
     expect(rules.formatClock(83_000)).toBe("01:23");
   });

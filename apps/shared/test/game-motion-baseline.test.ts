@@ -1066,8 +1066,12 @@ describe("Game miniapp motion baseline", () => {
     const main = readIfExists(
       resolve(appsRoot, "snake-bounty/src/main.tsx"),
     );
+    // The stylesheet the live wrapper imports. This used to read PlayArea.scss,
+    // which passed only because it carried a stale duplicate of these Phaser
+    // selectors — it was imported solely by the unmounted DOM PlayArea.tsx, and
+    // both are now deleted.
     const styles = readIfExists(
-      resolve(appsRoot, "snake-bounty/src/PlayArea.scss"),
+      resolve(appsRoot, "snake-bounty/src/PhaserPlayArea.scss"),
     );
 
     expect(scene).toContain(`this.dispatch("selectDifficulty", { difficulty })`);

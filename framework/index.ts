@@ -3,7 +3,6 @@ import { createAmountSurface } from "./amounts-surface";
 import { createChainSurface } from "./chain-surface";
 import { createErrorsSurface } from "./errors-surface";
 import { createFundsSurface } from "./funds";
-import { createFmtSurface } from "./fmt-surface";
 import { createGameFacade } from "./game-facade";
 import { AA_WRITE, guardedWrite } from "./internal/guards";
 import { createOracleSurface } from "./oracle-surface";
@@ -336,9 +335,6 @@ export function createMiniAppFramework(
 
     notify: appNotify,
 
-    /** app.fmt (RFC P0-3) — blessed display formatters (delegates to utils/format). */
-    fmt: createFmtSurface(),
-
     /**
      * app.errors (RFC P0-4) — one-liner error→message extraction routed
      * through the same chain-error mapping app.notify.error uses, so the
@@ -487,13 +483,9 @@ export type { ActionsSurfaceDeps, OperationsSurfaceDeps } from "./actions-surfac
 export { createAchievementsSurface, createStatsSurface } from "./stats-surface";
 export type { AchievementsSurfaceDeps, StatsSurfaceDeps } from "./stats-surface";
 
-// RFC P0-3 app.fmt
-export { createFmtSurface, formatClock } from "./fmt-surface";
-export type {
-  FrameworkFmt,
-  FrameworkFmtDecimalsOptions,
-  FrameworkFmtTruncateOptions,
-} from "./fmt-surface";
+// The fleet-standard mm:ss clock. The `app.fmt` accessor this module used to
+// carry (RFC P0-3) was removed as unreachable — see fmt-surface's module doc.
+export { formatClock } from "./fmt-surface";
 
 // RFC P0-4 app.errors (+ the translator-free one-liner from utils/errors)
 export { createErrorsSurface } from "./errors-surface";

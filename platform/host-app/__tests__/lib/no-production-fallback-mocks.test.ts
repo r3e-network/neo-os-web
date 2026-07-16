@@ -116,7 +116,9 @@ describe("Production data guardrails", () => {
     const sources = [
       "platform/host-app/components/playarea/PlayAreaRegistry.tsx",
       "platform/host-app/components/MiniAppPlayfield.tsx",
-      "apps/red-envelope/src/PlayArea.tsx",
+      // The live red-envelope play surface. Was src/PlayArea.tsx, an unmounted
+      // DOM component that has since been deleted; main.tsx mounts this one.
+      "apps/red-envelope/src/PhaserPlayArea.tsx",
     ].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
 
     expect(sources).not.toMatch(/right action console/i);

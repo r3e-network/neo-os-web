@@ -5,8 +5,9 @@
  * real per-game content is the CONSTANTS (stakes, penalty percentages, grace
  * window). This factory keeps the constants in the app (as config) and moves
  * the helper bodies here — `statusOf` delegates to the SDK's
- * `rewardGameStatusOf`, `gasDisplay`/`formatClock` delegate to the app.fmt
- * implementations, and the payout math is bigint-exact.
+ * `rewardGameStatusOf`, `gasDisplay` delegates to `utils/format.formatGas` and
+ * `formatClock` to the fleet-standard clock in `fmt-surface`, and the payout
+ * math is bigint-exact.
  *
  * Migration: replace the game-rules.ts helper bodies with re-exports of
  * `app.game.rules({ ...constants })`; game-specific helpers stay local.

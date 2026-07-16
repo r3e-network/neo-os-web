@@ -7,8 +7,11 @@
 | `public/last-survivor-arena.webp` | Primary Phaser arena background | First appears in repository snapshot commit `488fa04ec` (2026-07-06) | Repository-generated visual; exact generation provider/run metadata was not preserved |
 | `public/logo.webp` / `logo.avif` / `logo.svg` | App mark and local player token | WebP/AVIF lineage appears in `488fa04ec`; SVG/logo-system lineage includes `0098cd946` and `ad52d3e2d` | Repository asset family |
 | `public/banner.webp` / `banner.avif` / `banner.svg` | Catalog artwork | Same repository logo/banner system lineage | Repository asset family |
-| `public/survivor-scene-art.webp` | Legacy React relic art; not the primary Phaser arena | First appears in `488fa04ec` | Repository-generated visual; exact generation provider/run metadata was not preserved |
 | official GAS icon from `@shared/art/token-assets` | GameFi HUD token mark | Shared official-token asset registry and its regression test | Official shared token asset |
+
+`public/survivor-scene-art.webp` was removed along with the unmounted React
+`PlayArea.tsx` that was its only referencer — the app's play surface is the
+Phaser arena, which uses `last-survivor-arena.webp`.
 
 No asset was copied from `IcedSoul/minigame-everyday` in this iteration. That repository has no sufficiently clear per-asset license record for direct reuse.
 
