@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { createObservable, type MiniAppSetupContext, type MiniAppSetupResult, type PlayAreaProps } from "@shared/react/defineMiniApp";
+import { createDerived, createReadCell } from "@shared/react/context";
 import { FactoryPlayArea } from "./FactoryPlayArea";
 import {
   buildFactoryPlan,
@@ -68,13 +69,39 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
     // Live artifact presence per `${network}|${templateId}` so the preview
     // and the stored plan can both render honest template-artifact states.
     const artifactPresence = createObservable<Record<string, FactoryArtifactPresence>>({});
-    const deployments = createObservable<FactoryDeploymentItem[]>([]);
-    const deploymentsTotal = createObservable(0);
-    const deploymentsState = createObservable<"idle" | "loading" | "ready" | "error">("idle");
+    // The deployments read lane on the platform read-cell (read-cell adoption):
+    // one cell owns the {items,total} registry snapshot plus the "have we asked
+    // yet?" status. The cell's status union is the legacy state union verbatim
+    // ("idle" | "loading" | "ready" | "error"), its epoch replaces the
+    // hand-rolled deploymentsToken (last-write-wins on overlapping loads), and
+    // a failed read keeps the last good snapshot renderable — identical
+    // keep-last-good-on-error semantics to the replaced plumbing.
+    let deploymentsNetwork: FactoryNetwork = initialNetwork;
+    const deploymentsCell = createReadCell(
+      async (): Promise<{ items: FactoryDeploymentItem[]; total: number }> => {
+        const network = deploymentsNetwork;
+        const scriptHash = factoryContractFor(kind, network);
+        const { total, items } = await fetchFactoryDeployments(
+          network,
+          scriptHash,
+          kind,
+          DEPLOYMENTS_PAGE_SIZE,
+        );
+        return { items, total };
+      },
+    );
+    const deployments = createDerived<FactoryDeploymentItem[]>(
+      () => deploymentsCell.value.get()?.items ?? [],
+      [deploymentsCell.value],
+    );
+    const deploymentsTotal = createDerived(
+      () => deploymentsCell.value.get()?.total ?? 0,
+      [deploymentsCell.value],
+    );
+    const deploymentsState = deploymentsCell.status;
 
     const presenceCache = new Map<string, { presence: FactoryArtifactPresence; at: number }>();
     let feeEstimateToken = 0;
-    let deploymentsToken = 0;
 
     function presenceKey(network: FactoryNetwork, templateId: string): string {
       return `${network}|${templateId}`;
@@ -114,24 +141,10 @@ export function createFactorySetup(kind: FactoryKind, appId: string) {
     }
 
     async function loadDeployments(network: FactoryNetwork): Promise<void> {
-      const token = ++deploymentsToken;
-      deploymentsState.set("loading");
-      try {
-        const scriptHash = factoryContractFor(kind, network);
-        const { total, items } = await fetchFactoryDeployments(
-          network,
-          scriptHash,
-          kind,
-          DEPLOYMENTS_PAGE_SIZE,
-        );
-        if (token !== deploymentsToken) return;
-        deployments.set(items);
-        deploymentsTotal.set(total);
-        deploymentsState.set("ready");
-      } catch {
-        if (token !== deploymentsToken) return;
-        deploymentsState.set("error");
-      }
+      deploymentsNetwork = network;
+      // Failures surface as deploymentsState === "error" on the cell; the
+      // legacy loader never rejected, so callers must not see this reject.
+      await deploymentsCell.load().catch(() => {});
     }
 
     function activeNetwork(): FactoryNetwork {

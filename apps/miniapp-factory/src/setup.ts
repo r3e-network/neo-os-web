@@ -3,6 +3,7 @@ import {
   type MiniAppSetupContext,
   type MiniAppSetupResult,
 } from "@shared/react/defineMiniApp";
+import { createDerived, createReadCell } from "@shared/react/context";
 import {
   buildFactoryPlan,
   createFactoryDraftFromLaunchContext,
@@ -151,9 +152,34 @@ export function createMiniAppFactorySetup(appId: string) {
     const executedDigest = createObservable("");
     const feeEstimateGas = createObservable("");
     const artifactPresence = createObservable<Record<string, FactoryArtifactPresence>>({});
-    const deployments = createObservable<FactoryDeploymentItem[]>([]);
-    const deploymentsTotal = createObservable(0);
-    const deploymentsState = createObservable<"idle" | "loading" | "ready" | "error">("idle");
+    // The deployments read lane on the platform read-cell (read-cell adoption):
+    // one cell owns the {items,total} registry snapshot plus the "have we asked
+    // yet?" status. The cell's status union is the legacy state union verbatim
+    // ("idle" | "loading" | "ready" | "error"), its epoch replaces the
+    // hand-rolled deploymentsToken (last-write-wins on overlapping loads), and
+    // a failed read keeps the last good snapshot renderable — identical
+    // keep-last-good-on-error semantics to the replaced plumbing.
+    const deploymentsCell = createReadCell(
+      async (): Promise<{ items: FactoryDeploymentItem[]; total: number }> => {
+        const scriptHash = factoryContractFor("miniapp", TESTNET);
+        const result = await fetchFactoryDeployments(
+          TESTNET,
+          scriptHash,
+          "miniapp",
+          DEPLOYMENTS_PAGE_SIZE,
+        );
+        return { items: result.items, total: result.total };
+      },
+    );
+    const deployments = createDerived<FactoryDeploymentItem[]>(
+      () => deploymentsCell.value.get()?.items ?? [],
+      [deploymentsCell.value],
+    );
+    const deploymentsTotal = createDerived(
+      () => deploymentsCell.value.get()?.total ?? 0,
+      [deploymentsCell.value],
+    );
+    const deploymentsState = deploymentsCell.status;
 
     const restoredDraft = createObservable<MiniAppDraft | null>(null);
     const draftJournalState = createObservable<DraftJournalState>("loading");
@@ -165,7 +191,6 @@ export function createMiniAppFactorySetup(appId: string) {
     const presenceCache = new Map<string, { presence: FactoryArtifactPresence; at: number }>();
     let disposed = false;
     let feeEstimateToken = 0;
-    let deploymentsToken = 0;
     let registrationToken = 0;
 
     function presenceKey(network: FactoryNetwork, templateId: string): string {
@@ -232,24 +257,13 @@ export function createMiniAppFactorySetup(appId: string) {
     }
 
     async function loadDeployments(): Promise<void> {
-      const token = ++deploymentsToken;
-      deploymentsState.set("loading");
-      try {
-        const scriptHash = factoryContractFor("miniapp", TESTNET);
-        const result = await fetchFactoryDeployments(
-          TESTNET,
-          scriptHash,
-          "miniapp",
-          DEPLOYMENTS_PAGE_SIZE,
-        );
-        if (disposed || token !== deploymentsToken) return;
-        deployments.set(result.items);
-        deploymentsTotal.set(result.total);
-        deploymentsState.set("ready");
-      } catch {
-        if (disposed || token !== deploymentsToken) return;
-        deploymentsState.set("error");
-      }
+      // Dispose guard on load(): a torn-down setup never starts a new read
+      // (the legacy token bump only suppressed the publish; guarding the load
+      // is the same non-observable outcome with no wasted fetch).
+      if (disposed) return;
+      // Failures surface as deploymentsState === "error" on the cell; the
+      // legacy loader never rejected, so callers must not see this reject.
+      await deploymentsCell.load().catch(() => {});
     }
 
     async function recoverRegistration(snapshot: RegistrationSnapshot): Promise<void> {
@@ -560,7 +574,10 @@ export function createMiniAppFactorySetup(appId: string) {
     const cleanup = () => {
       disposed = true;
       feeEstimateToken += 1;
-      deploymentsToken += 1;
+      // reset() joins the cell's epoch, so an in-flight deployments load at
+      // dispose time can never publish — the cell-owned equivalent of the
+      // legacy deploymentsToken bump.
+      deploymentsCell.reset();
       registrationToken += 1;
     };
 
