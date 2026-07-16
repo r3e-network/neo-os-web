@@ -1,5 +1,5 @@
-import { createDerived, createObservable } from "@shared/react/context";
-import type { Observable } from "@shared/react/context";
+import { createDerived, createObservable, createReadCell } from "@shared/react/context";
+import type { Observable, ReadCell } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import type { FrameworkContractArg, FrameworkTxResult } from "@framework/index";
 import { MINIAPP_CONTRACTS } from "@shared/constants/rpc";
@@ -241,6 +241,41 @@ function emptyOverview(): GovernanceOverview {
   };
 }
 
+/**
+ * Stable unread sentinel: what `governanceOverview` renders while the rules
+ * cell has never published for the current network. One identity so the
+ * derived's get() stays stable across re-reads of the unread state.
+ */
+const UNREAD_OVERVIEW: GovernanceOverview = emptyOverview();
+
+/**
+ * A governance-rules load that failed resolving the chain scope — before the
+ * contract read ever began. Carries the original error because this path
+ * surfaces its own message (network/contract unavailable) while contract-read
+ * failures collapse to governanceRulesUnavailable.
+ */
+class GovernanceScopeError extends Error {
+  readonly original: unknown;
+
+  constructor(original: unknown) {
+    super(original instanceof Error ? original.message : String(original));
+    this.name = "GovernanceScopeError";
+    this.original = original;
+  }
+}
+
+/** One settled wallet-balances read: the values plus the read's verdict. */
+interface WalletBalancesSnapshot {
+  /** Raw NEO units as text; "" until a read has succeeded. */
+  neo: string;
+  /** GAS in fixed-8 display form; "" until a read has succeeded. */
+  gas: string;
+  /** True only when this snapshot carries real read-back balances. */
+  loaded: boolean;
+  /** Non-empty when the snapshot settled as a failed read. */
+  error: string;
+}
+
 function toBase64Utf8(value: string): string {
   if (!value) return "";
   const bytes = new TextEncoder().encode(value);
@@ -435,32 +470,110 @@ export function useGovernance({
   const votingPower = createObservable(0);
   const hasVotedMap = createObservable<Record<number, boolean>>({});
   const hasVotedKnownMap = createObservable<Record<number, boolean>>({});
-  const governanceOverview = createObservable<GovernanceOverview>(emptyOverview());
+  /**
+   * The governance-rules read lane on the platform read-cell (read-cell
+   * pilot). `governanceOverview.loaded` alone cannot tell "the rules read is
+   * still in flight" from "the rules read came back empty" — both leave it
+   * false. The council rules are contract config, so every visitor triggers
+   * that read on arrival and sees whatever the false state renders. The
+   * cell's status carries that missing signal: the view shimmers while
+   * asking and speaks plainly once it knows. Both settle paths publish onto
+   * `value` — success through the cell, failure through the explicit
+   * emptyOverview() reset in loadGovernanceOverview's catch continuation —
+   * and ensureGovernanceWritable re-publishes its verified pre-write
+   * re-read, the owner-write the cell contract blesses.
+   */
+  const overviewCell: ReadCell<GovernanceOverview> = createReadCell(() => {
+    let scope: { network: NeoNetwork; contract: string };
+    try {
+      scope = scopeForChain(currentChainId.get());
+    } catch (error) {
+      throw new GovernanceScopeError(error);
+    }
+    return readGovernanceOverview(scope);
+  });
+  const governanceOverview = createDerived<GovernanceOverview>(
+    () => overviewCell.value.get() ?? UNREAD_OVERVIEW,
+    [overviewCell.value],
+  );
   const governanceOverviewError = createObservable("");
   /**
-   * True once a governance-rules read has completed, success or failure.
-   * `governanceOverview.loaded` alone cannot tell "the rules read is still in
-   * flight" from "the rules read came back empty" — both leave it false. The
-   * council rules are contract config, so every visitor triggers that read on
-   * arrival and sees whatever the false state renders. Splitting the two lets
-   * the view shimmer while asking and speak plainly once it knows.
+   * True once a governance-rules read has completed for the current network,
+   * success or failure. A re-read keeps speaking plainly instead of
+   * re-shimmering — `value` stays published while the cell reloads — and
+   * setNetwork's reset returns the lane to unread.
    */
-  const governanceOverviewSettled = createObservable(false);
+  const governanceOverviewSettled = createDerived(
+    () => {
+      const status = overviewCell.status.get();
+      return status === "ready" || status === "error" || overviewCell.value.get() !== undefined;
+    },
+    [overviewCell.status, overviewCell.value],
+  );
   const councilCandidates = createObservable<CouncilCandidate[]>([]);
   const councilRosterLoaded = createObservable(false);
   const councilRosterError = createObservable("");
   /**
-   * Balances carry the value only. An empty string means "nothing to show yet";
-   * what that absence should LOOK like is the view's call, not the data layer's
-   * — a composable that emits "—" has already decided, and decided wrong for
-   * the in-flight case.
+   * The wallet-balances read lane on the platform read-cell (read-cell
+   * pilot). The loader settles a domain snapshot instead of throwing (the
+   * timestamp-proof verdict idiom): with no wallet there is nothing to read
+   * — that question is answered, not pending — so it publishes an empty
+   * settled snapshot synchronously; a failed read publishes the error
+   * verdict. Balances carry the value only: an empty string means "nothing
+   * to show yet"; what that absence should LOOK like is the view's call, not
+   * the data layer's — a composable that emits "—" has already decided, and
+   * decided wrong for the in-flight case.
    */
-  const neoBalance = createObservable("");
-  const gasBalance = createObservable("");
-  const balancesLoaded = createObservable(false);
+  const balancesCell: ReadCell<WalletBalancesSnapshot> = createReadCell(
+    (): WalletBalancesSnapshot | Promise<WalletBalancesSnapshot> => {
+      const walletAddress = address.get();
+      if (!walletAddress) {
+        return { neo: "", gas: "", loaded: false, error: "" };
+      }
+      return (async (): Promise<WalletBalancesSnapshot> => {
+        try {
+          const [neoRaw, gasRaw] = await Promise.all([
+            app.wallet.raw("NEO", walletAddress),
+            app.wallet.raw("GAS", walletAddress),
+          ]);
+          return {
+            neo: neoRaw.toString(),
+            gas: fixed8Display(gasRaw),
+            loaded: true,
+            error: "",
+          };
+        } catch {
+          return { neo: "", gas: "", loaded: false, error: t("walletBalancesUnavailable") };
+        }
+      })();
+    },
+  );
+  const neoBalance = createDerived(
+    () => balancesCell.value.get()?.neo ?? "",
+    [balancesCell.value],
+  );
+  const gasBalance = createDerived(
+    () => balancesCell.value.get()?.gas ?? "",
+    [balancesCell.value],
+  );
+  // A re-read voids the loaded/error verdicts while it runs but keeps the
+  // last balances renderable — the same asymmetry the pre-cell writes had.
+  const balancesLoaded = createDerived(
+    () => balancesCell.status.get() === "ready" && (balancesCell.value.get()?.loaded ?? false),
+    [balancesCell.status, balancesCell.value],
+  );
   /** True once a balance read has completed, or once we know there is no wallet to read for. */
-  const balancesSettled = createObservable(false);
-  const balancesError = createObservable("");
+  const balancesSettled = createDerived(
+    () => {
+      const status = balancesCell.status.get();
+      return status === "ready" || status === "error";
+    },
+    [balancesCell.status],
+  );
+  const balancesError = createDerived(
+    () => (balancesCell.status.get() === "ready" ? balancesCell.value.get()?.error ?? "" : ""),
+    [balancesCell.status, balancesCell.value],
+  );
   const isVoting = createObservable(false);
   const isRecovering = createObservable(false);
   const address = createObservable("");
@@ -482,7 +595,6 @@ export function useGovernance({
   let voteStatusRun = 0;
   let overviewRun = 0;
   let rosterRun = 0;
-  let balanceRun = 0;
   let writeInFlight = false;
 
   const activeProposals = createDerived(
@@ -751,33 +863,33 @@ export function useGovernance({
     };
   };
 
+  /**
+   * Drive the rules cell and keep the error string beside it. The cell owns
+   * value + settledness; the catch continuation owns what the old error
+   * branches wrote — the explicit emptyOverview() reset plus the per-path
+   * message (a scope failure surfaces its own message, a contract-read
+   * failure collapses to governanceRulesUnavailable). `overviewRun` guards
+   * those continuation writes exactly like the old run guard: setNetwork
+   * bumps it alongside the cell reset, so a superseded call never publishes.
+   */
   const loadGovernanceOverview = async (): Promise<GovernanceOverview | null> => {
     const run = ++overviewRun;
     const chainId = currentChainId.get();
-    let scope: { network: NeoNetwork; contract: string };
     try {
-      scope = scopeForChain(chainId);
-    } catch (error) {
-      if (run === overviewRun) {
-        governanceOverview.set(emptyOverview());
-        governanceOverviewError.set(app.errors.messageOf(error, t("governanceRulesUnavailable")));
-        governanceOverviewSettled.set(true);
-      }
-      return null;
-    }
-    try {
-      const overview = await readGovernanceOverview(scope);
+      const overview = await overviewCell.load();
       if (run === overviewRun && currentChainId.get() === chainId) {
-        governanceOverview.set(overview);
         governanceOverviewError.set("");
-        governanceOverviewSettled.set(true);
       }
       return overview;
-    } catch {
-      if (run === overviewRun && currentChainId.get() === chainId) {
-        governanceOverview.set(emptyOverview());
+    } catch (error) {
+      if (error instanceof GovernanceScopeError) {
+        if (run === overviewRun) {
+          overviewCell.value.set(emptyOverview());
+          governanceOverviewError.set(app.errors.messageOf(error.original, t("governanceRulesUnavailable")));
+        }
+      } else if (run === overviewRun && currentChainId.get() === chainId) {
+        overviewCell.value.set(emptyOverview());
         governanceOverviewError.set(t("governanceRulesUnavailable"));
-        governanceOverviewSettled.set(true);
       }
       return null;
     }
@@ -795,7 +907,9 @@ export function useGovernance({
     ) {
       overview = await readGovernanceOverview(scope);
       if (resolveNetwork(currentChainId.get()) === scope.network) {
-        governanceOverview.set(overview);
+        // Verified pre-write re-read: it just round-tripped the live rules,
+        // so it owns the cell's value as much as a load does (blessed write).
+        overviewCell.value.set(overview);
         governanceOverviewError.set("");
       }
     }
@@ -1178,40 +1292,15 @@ export function useGovernance({
     }
   };
 
+  /**
+   * Re-read both wallet balances through the read-cell. The loader owns the
+   * whole verdict (empty settled snapshot with no wallet, error verdict on a
+   * failed read), and the cell's epoch replaces the old run/address/chain
+   * guards: setAddress and setNetwork reset the cell, so a superseded read
+   * never publishes.
+   */
   const refreshWalletBalances = async () => {
-    const walletAddress = address.get();
-    const chainId = currentChainId.get();
-    const run = ++balanceRun;
-    if (!walletAddress) {
-      neoBalance.set("");
-      gasBalance.set("");
-      balancesLoaded.set(false);
-      // There is no wallet to read for: that question is answered, not pending.
-      balancesSettled.set(true);
-      balancesError.set("");
-      return;
-    }
-    balancesLoaded.set(false);
-    balancesSettled.set(false);
-    balancesError.set("");
-    try {
-      const [neoRaw, gasRaw] = await Promise.all([
-        app.wallet.raw("NEO", walletAddress),
-        app.wallet.raw("GAS", walletAddress),
-      ]);
-      if (run !== balanceRun || address.get() !== walletAddress || currentChainId.get() !== chainId) return;
-      neoBalance.set(neoRaw.toString());
-      gasBalance.set(fixed8Display(gasRaw));
-      balancesLoaded.set(true);
-      balancesSettled.set(true);
-    } catch {
-      if (run === balanceRun && address.get() === walletAddress && currentChainId.get() === chainId) {
-        neoBalance.set("");
-        gasBalance.set("");
-        balancesSettled.set(true);
-        balancesError.set(t("walletBalancesUnavailable"));
-      }
-    }
+    await balancesCell.load();
   };
 
   const loadCouncilRoster = async () => {
@@ -1368,7 +1457,6 @@ export function useGovernance({
     if (next === address.get()) return;
     candidateRun += 1;
     voteStatusRun += 1;
-    balanceRun += 1;
     address.set(next);
     isCandidate.set(false);
     candidateLoaded.set(!next);
@@ -1376,13 +1464,12 @@ export function useGovernance({
     votingPower.set(0);
     hasVotedMap.set({});
     hasVotedKnownMap.set({});
-    neoBalance.set("");
-    gasBalance.set("");
-    balancesLoaded.set(false);
-    // A wallet was just supplied: its balances are pending, not answered. With
-    // no wallet the answer is already known — there is nothing to read.
-    balancesSettled.set(!next);
-    balancesError.set("");
+    // A wallet was just supplied: its balances are pending, not answered —
+    // the reset also invalidates any in-flight read. With no wallet the
+    // answer is already known, so the synchronous no-wallet load settles the
+    // empty snapshot immediately.
+    balancesCell.reset();
+    if (!next) void balancesCell.load();
     lastTx.set(null);
     lastConfirmation.set(null);
   };
@@ -1396,15 +1483,14 @@ export function useGovernance({
     voteStatusRun += 1;
     overviewRun += 1;
     rosterRun += 1;
-    balanceRun += 1;
     currentChainId.set(next);
     proposals.set([]);
     selectedProposal.set(null);
     loadError.set("");
-    governanceOverview.set(emptyOverview());
-    governanceOverviewError.set("");
     // The new network's rules have not been read yet — back to shimmering.
-    governanceOverviewSettled.set(false);
+    // The reset also invalidates any in-flight overview publish.
+    overviewCell.reset();
+    governanceOverviewError.set("");
     councilCandidates.set([]);
     councilRosterLoaded.set(false);
     councilRosterError.set("");
@@ -1414,11 +1500,10 @@ export function useGovernance({
     votingPower.set(0);
     hasVotedMap.set({});
     hasVotedKnownMap.set({});
-    neoBalance.set("");
-    gasBalance.set("");
-    balancesLoaded.set(false);
-    balancesSettled.set(!address.get());
-    balancesError.set("");
+    // Balances are per-network too; with no wallet the question is already
+    // answered, so the synchronous no-wallet load settles immediately.
+    balancesCell.reset();
+    if (!address.get()) void balancesCell.load();
     lastTx.set(null);
     lastConfirmation.set(null);
   };

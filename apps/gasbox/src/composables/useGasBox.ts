@@ -91,7 +91,9 @@
  *   - The won-item read from the Settled event + getItem
  */
 
-import { createObservable, createDerived } from "@shared/react/context";
+import { singleFlight } from "@framework/utils/async-utils";
+import { createObservable, createDerived, createReadCell } from "@shared/react/context";
+import type { ReadCell } from "@shared/react/context";
 import { FrameworkPrepaidActionError, type MiniAppFramework } from "@shared/react";
 import { amountToBaseUnits as toBaseUnits } from "@shared/utils/amounts";
 import { eventValue } from "@shared/utils/chain-events";
@@ -150,6 +152,20 @@ export type BetPhase = "idle" | "committing" | "committed" | "settling" | "settl
 export type CatalogStatus = "idle" | "loading" | "ready" | "empty" | "error";
 export type RuntimeStatus = "idle" | "checking" | "ready" | "incompatible" | "error";
 export type WalletStatus = "disconnected" | "loading" | "ready" | "error";
+
+/**
+ * One settled catalog read: the machines it yielded plus whether any machine
+ * read failed ("partial"). The legacy CatalogStatus / catalogError pair is
+ * DERIVED from this snapshot + the read-cell status (read-cell adoption):
+ * partial → "error" + t("gasboxCatalogPartial"), an empty full read → "empty".
+ */
+interface CatalogSnapshot {
+  machines: Machine[];
+  partial: boolean;
+}
+
+/** Stable empty-catalog identity for the derived machines lane (no churn). */
+const NO_MACHINES: Machine[] = [];
 
 interface PendingBetJournal {
   version: 1;
@@ -277,11 +293,49 @@ const rarityFromShare = (share: number): string => {
 
 export function useGasBox({ app, t }: UseGasBoxOptions) {
   // ── Machine State ──────────────────────────────────────────────────
-  const machines = createObservable<Machine[]>([]);
+  // The machine catalog rides the platform read-cell (read-cell adoption):
+  // `catalog.value` holds the last settled snapshot (undefined until the first
+  // read publishes; a failed re-read keeps the last good machines renderable)
+  // and `catalog.status` is the platform-owned "have we asked yet?" signal.
+  // The loader body lives with the other chain reads (readCatalog, below); the
+  // legacy machines / isLoadingMachines / catalogStatus / catalogError quartet
+  // is DERIVED so every existing binding keeps its Observable shape.
+  const catalog: ReadCell<CatalogSnapshot> = createReadCell(() => readCatalog());
+  const machines = createDerived<Machine[]>(
+    () => catalog.value.get()?.machines ?? NO_MACHINES,
+    [catalog.value],
+  );
   const selectedMachine = createObservable<Machine | null>(null);
-  const isLoadingMachines = createObservable(false);
-  const catalogStatus = createObservable<CatalogStatus>("idle");
-  const catalogError = createObservable<string | null>(null);
+  const isLoadingMachines = createDerived(
+    () => catalog.status.get() === "loading",
+    [catalog.status],
+  );
+  // Cross-lane input: a runtime-check failure stamps the catalog lane in error
+  // WITHOUT a load (the loader never ran, so the cell can't know — see
+  // loadAll), and a total load failure records its message here. A settled
+  // load overwrites the stamp — last-write-wins, exactly like the imperative
+  // status writes this replaces.
+  const catalogFault = createObservable<{ message: string | null } | null>(null);
+  const catalogStatus = createDerived<CatalogStatus>(
+    () => {
+      const status = catalog.status.get();
+      if (status === "loading") return "loading";
+      if (catalogFault.get()) return "error";
+      if (status !== "ready") return status; // "idle" | "error"
+      const snapshot = catalog.value.get();
+      if (snapshot?.partial) return "error";
+      return (snapshot?.machines.length ?? 0) > 0 ? "ready" : "empty";
+    },
+    [catalog.status, catalog.value, catalogFault],
+  );
+  const catalogError = createDerived<string | null>(
+    () => {
+      const fault = catalogFault.get();
+      if (fault) return fault.message;
+      return catalog.value.get()?.partial ? t("gasboxCatalogPartial") : null;
+    },
+    [catalog.value, catalogFault],
+  );
 
   // ── Runtime / Wallet Evidence ─────────────────────────────────────
   const runtimeStatus = createObservable<RuntimeStatus>("idle");
@@ -604,74 +658,84 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
   // ── Data Loading (direct chain reads) ──────────────────────────────
 
   /**
-   * Load the machine catalog straight from the contract. Machines are ids
-   * 1..lastMachineId(); each is read via getMachine + getItem. This replaces
-   * the os.storage catalog entirely. Newest first (highest id).
+   * Read the machine catalog snapshot straight from the contract (the
+   * read-cell's loader). Machines are ids 1..lastMachineId(); each is read via
+   * getMachine + getItem. This replaces the os.storage catalog entirely.
+   * Newest first (highest id). SOME failed machine reads still settle the
+   * snapshot (partial: true — the derived legacy status surfaces it as "error"
+   * + t("gasboxCatalogPartial")); ALL reads failing throws a catalog fault,
+   * never an empty catalog.
    */
-  const loadMachines = async () => {
-    if (isLoadingMachines.get()) return;
-    isLoadingMachines.set(true);
-    catalogStatus.set("loading");
-    catalogError.set(null);
-    try {
-      const last = Math.min(
-        await app.chain.query("lastMachineId", []).asInt(),
-        MAX_MACHINES,
-      );
+  const readCatalog = async (): Promise<CatalogSnapshot> => {
+    const last = Math.min(
+      await app.chain.query("lastMachineId", []).asInt(),
+      MAX_MACHINES,
+    );
 
-      const ids: number[] = [];
-      for (let id = 1; id <= last; id += 1) ids.push(id);
+    const ids: number[] = [];
+    for (let id = 1; id <= last; id += 1) ids.push(id);
 
-      let failedMachineReads = 0;
-      const results = await Promise.all(
-        ids.map(async (id) => {
-          try {
-            return await readMachine(id);
-          } catch (e) {
-            failedMachineReads += 1;
-            console.warn(
-              "[useGasBox] getMachine failed for",
-              id,
-              ":",
-              e instanceof Error ? e.message : String(e),
-            );
-            return null;
-          }
-        }),
-      );
+    let failedMachineReads = 0;
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          return await readMachine(id);
+        } catch (e) {
+          failedMachineReads += 1;
+          console.warn(
+            "[useGasBox] getMachine failed for",
+            id,
+            ":",
+            e instanceof Error ? e.message : String(e),
+          );
+          return null;
+        }
+      }),
+    );
 
-      if (ids.length > 0 && failedMachineReads === ids.length) {
-        throw new Error(t("gasboxCatalogReadFailed"));
-      }
-
-      const collected = results
-        .filter((m): m is Machine => m !== null)
-        .sort((a, b) => b.createdAt - a.createdAt);
-      machines.set(collected);
-      if (failedMachineReads > 0) {
-        catalogError.set(t("gasboxCatalogPartial"));
-        catalogStatus.set("error");
-      } else {
-        catalogStatus.set(collected.length > 0 ? "ready" : "empty");
-      }
-
-      // Sync the selected machine with the reloaded data.
-      const current = selectedMachine.get();
-      if (current) {
-        selectedMachine.set(collected.find((m) => m.id === current.id) || null);
-      }
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      console.warn(
-        "[useGasBox] loadMachines failed:",
-        message,
-      );
-      catalogError.set(message);
-      catalogStatus.set("error");
-    } finally {
-      isLoadingMachines.set(false);
+    if (ids.length > 0 && failedMachineReads === ids.length) {
+      throw new Error(t("gasboxCatalogReadFailed"));
     }
+
+    return {
+      machines: results
+        .filter((m): m is Machine => m !== null)
+        .sort((a, b) => b.createdAt - a.createdAt),
+      partial: failedMachineReads > 0,
+    };
   };
+
+  /**
+   * Load the machine catalog through the read-cell. In-flight dedup keeps the
+   * old isLoadingMachines-guard semantics via the canonical singleFlight
+   * (RFC P0-2 "drop": a re-entrant call resolves without running). A settled
+   * load overwrites any cross-lane runtime stamp (catalogFault); a failed load
+   * records its message there while the cell keeps the last good snapshot.
+   */
+  const loadMachines = singleFlight(
+    () => "catalog",
+    async () => {
+      try {
+        const snapshot = await catalog.load();
+        catalogFault.set(null);
+        // Sync the selected machine with the reloaded data.
+        const current = selectedMachine.get();
+        if (current) {
+          selectedMachine.set(
+            snapshot.machines.find((m) => m.id === current.id) || null,
+          );
+        }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        console.warn(
+          "[useGasBox] loadMachines failed:",
+          message,
+        );
+        catalogFault.set({ message });
+      }
+    },
+    { mode: "drop" },
+  );
 
   /** Verify that the selected network exposes the expected GasBox V2 reads. */
   const checkRuntime = async (): Promise<RuntimeStatus> => {
@@ -787,8 +851,10 @@ export function useGasBox({ app, t }: UseGasBoxOptions) {
       loadWalletBalances(),
     ]);
     if (checkedRuntime === "error") {
-      catalogStatus.set("error");
-      catalogError.set(runtimeError.get());
+      // Cross-lane stamp: the catalog is unreadable because the RUNTIME check
+      // failed before any catalog read ran. Feeds the derived catalogStatus /
+      // catalogError pair through the catalogFault input observable.
+      catalogFault.set({ message: runtimeError.get() });
     }
     if (contractReadable) await restorePendingBet();
   };

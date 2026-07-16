@@ -1,11 +1,12 @@
 /** Developer Tipping standalone entrypoint. */
 
 import { defineMiniApp, createObservable, refsToObservables } from "@shared/react";
+import { createDerived, createReadCell } from "@shared/react/context";
 import { ownerMatchesAddress } from "@shared/utils/neo";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useDevTippingStats } from "./composables/useDevTippingStats";
+import { useDevTippingStats, type WalletSnapshot } from "./composables/useDevTippingStats";
 import {
   useDevTippingWallet,
   type DevTippingActionOutcome,
@@ -46,30 +47,70 @@ defineMiniApp({
      */
     const statsSettled = createObservable(false);
     const recentTipCount = createObservable(0);
-    const myDeveloperId = createObservable(0);
     const myClaimableBalance = createObservable(0);
     const myClaimableBalanceDisplay = createObservable("—");
     const hasClaimableBalance = createObservable(false);
-    const myCredit = createObservable(0);
-    const myCreditDisplay = createObservable("—");
-    const hasCredit = createObservable(false);
-    const gasBalanceDisplay = createObservable("—");
-    const walletReadStatus = createObservable<"idle" | "loading" | "ready" | "error">("idle");
-    const walletReadError = createObservable("");
     const isConnecting = createObservable(false);
     let refreshGeneration = 0;
 
+    /**
+     * The wallet lane on the platform read-cell (read-cell pilot): one cell
+     * owns the snapshot plus the "have we asked yet?" signal that the old
+     * hand-rolled walletReadStatus/walletReadError pair carried, and the
+     * seven per-field observables below become deriveds of it. The address
+     * is threaded through this variable because the loader runs synchronously
+     * inside load(): each caller writes it immediately before loading, so an
+     * overlapping load cannot observe another call's address.
+     */
+    let walletReadAddress = "";
+    const walletCell = createReadCell<WalletSnapshot>(
+      () => stats.loadWalletSnapshot(walletReadAddress),
+    );
+    const myDeveloperId = createDerived(
+      () => walletCell.value.get()?.developerId ?? 0,
+      [walletCell.value],
+    );
+    const myCredit = createDerived(
+      () => {
+        const snapshot = walletCell.value.get();
+        if (!snapshot) return 0;
+        const creditGas = Number(snapshot.creditBase) / 1e8;
+        return Number.isFinite(creditGas) ? creditGas : Number.MAX_VALUE;
+      },
+      [walletCell.value],
+    );
+    const myCreditDisplay = createDerived(
+      () => {
+        const snapshot = walletCell.value.get();
+        return snapshot ? `${ctx.framework.amount.fixed8ToGas(snapshot.creditBase, 8)} GAS` : "—";
+      },
+      [walletCell.value],
+    );
+    const hasCredit = createDerived(
+      () => (walletCell.value.get()?.creditBase ?? 0n) > 0n,
+      [walletCell.value],
+    );
+    const gasBalanceDisplay = createDerived(
+      () => {
+        const snapshot = walletCell.value.get();
+        return snapshot ? `${ctx.framework.amount.fixed8ToGas(snapshot.gasBalanceBase, 8)} GAS` : "—";
+      },
+      [walletCell.value],
+    );
+    const walletReadStatus = walletCell.status;
+    const walletReadError = createDerived(
+      () => (walletCell.status.get() === "error" ? t("walletSnapshotUnavailable") : ""),
+      [walletCell.status],
+    );
+
     const clearWalletSnapshot = () => {
-      myDeveloperId.set(0);
+      // reset() puts every wallet derived back on its pre-read rendering
+      // (id 0, credit 0/"—", gas "—", status "idle", error "") and
+      // invalidates any in-flight read's publish.
+      walletCell.reset();
       myClaimableBalance.set(0);
       myClaimableBalanceDisplay.set("—");
       hasClaimableBalance.set(false);
-      myCredit.set(0);
-      myCreditDisplay.set("—");
-      hasCredit.set(false);
-      gasBalanceDisplay.set("—");
-      walletReadStatus.set("idle");
-      walletReadError.set("");
     };
 
     const syncMyDeveloper = (address: string) => {
@@ -81,7 +122,13 @@ defineMiniApp({
         registered = stats.developers.get().find(
           (developer) => developer.wallet && ownerMatchesAddress(developer.wallet, address),
         );
-        if (registered) myDeveloperId.set(registered.id);
+        if (registered) {
+          // Blessed value.set (read-cell pilot): the registry read just
+          // proved this wallet owns `registered.id`, refining the snapshot's
+          // developerId with equally-verified truth.
+          const snapshot = walletCell.value.get();
+          if (snapshot) walletCell.value.set({ ...snapshot, developerId: registered.id });
+        }
       }
       if (!registered) {
         myClaimableBalance.set(0);
@@ -101,29 +148,19 @@ defineMiniApp({
       address: string,
       generation: number,
     ): Promise<boolean> => {
-      walletReadStatus.set("loading");
-      walletReadError.set("");
-      try {
-        const snapshot = await stats.loadWalletSnapshot(address);
-        if (
-          generation !== refreshGeneration
-          || !ownerMatchesAddress(ctx.framework.chain.address.get() ?? "", address)
-        ) return false;
-        myDeveloperId.set(snapshot.developerId);
-        const creditGas = Number(snapshot.creditBase) / 1e8;
-        myCredit.set(Number.isFinite(creditGas) ? creditGas : Number.MAX_VALUE);
-        myCreditDisplay.set(`${ctx.framework.amount.fixed8ToGas(snapshot.creditBase, 8)} GAS`);
-        hasCredit.set(snapshot.creditBase > 0n);
-        gasBalanceDisplay.set(`${ctx.framework.amount.fixed8ToGas(snapshot.gasBalanceBase, 8)} GAS`);
-        walletReadStatus.set("ready");
-        return true;
-      } catch (error) {
-        if (generation === refreshGeneration) {
-          walletReadStatus.set("error");
-          walletReadError.set(t("walletSnapshotUnavailable"));
-        }
-        throw error;
-      }
+      walletReadAddress = address;
+      await walletCell.load();
+      // KEPT explicit cross-check: reset-on-account-change covers an address
+      // that changed (chain.address notifies synchronously and the handler
+      // resets the cell), but a refresh superseded mid-read WITHOUT a wallet
+      // lane op — runtime turned incompatible, registry read threw — bumps
+      // only refreshGeneration. That generation must still stop this call's
+      // continuation (syncMyDeveloper/restoreRecovery) here.
+      if (
+        generation !== refreshGeneration
+        || !ownerMatchesAddress(ctx.framework.chain.address.get() ?? "", address)
+      ) return false;
+      return true;
     };
 
     const refresh = async (): Promise<boolean> => {
