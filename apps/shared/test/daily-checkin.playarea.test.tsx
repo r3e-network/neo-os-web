@@ -208,3 +208,116 @@ describe("Daily Check-in visual production locks", () => {
     expect(source).not.toMatch(/checkin-scene-art|emoji|marketHashPlaceholder|OpenUiTextField/);
   });
 });
+
+/**
+ * The network and the canonical contract both resolve out of the one canonical-
+ * context read (`requireCanonicalDailyCheckinContext`), which is async: both are
+ * "" until it settles. They were the two values left on `|| "—"` after the rest
+ * of this surface moved to the DataPhase vocabulary — so the header opened as a
+ * literal "Neo N3 —" while the file's own comment claimed first-run values were
+ * routed through DataPhase.
+ *
+ * `hasLoadedContext` is what tells "still resolving" from "resolved to nothing".
+ * It cannot be `hasLoadedPlatform`: that flag never flips when the context read
+ * is the thing that failed, which is exactly the case that must settle to honest
+ * copy rather than shimmer forever.
+ */
+describe("Daily Check-in context-scoped first paint", () => {
+  const cold = {
+    network: "",
+    contractHash: "",
+    hasLoadedContext: false,
+    hasLoadedPlatform: false,
+    hasLoadedStatus: false,
+    isLoading: true,
+    walletAddress: "",
+  };
+
+  it("shimmers the network tail while the context read is in flight, never a dash", () => {
+    const { container } = render(<PlayArea t={t} state={state(cold)} dispatch={vi.fn()} />);
+    const chip = container.querySelector(".dci-network");
+
+    expect(chip?.textContent).not.toContain("—");
+    // "Neo N3" is true before any read — only the specific network is unknown,
+    // so the chip keeps its identity rather than blanking entirely.
+    expect(chip?.textContent).toContain("Neo N3");
+    expect(chip?.querySelector(".mx2-skeleton")).toBeTruthy();
+    // A shimmer is not copy: the settled zero-state must not appear mid-read.
+    expect(chip?.textContent).not.toContain("valueAwaitingNetwork");
+  });
+
+  it("settles the network to honest copy when the context read resolves empty", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ ...cold, hasLoadedContext: true, isLoading: false, dataSource: "failed" })}
+        dispatch={vi.fn()}
+      />,
+    );
+    const chip = container.querySelector(".dci-network");
+
+    expect(chip?.textContent).not.toContain("—");
+    expect(chip?.textContent).toContain("valueAwaitingNetwork");
+    // Settled means settled: the shimmer must not outlive the read.
+    expect(chip?.querySelector(".mx2-skeleton")).toBeFalsy();
+  });
+
+  it("renders the real network once the context read lands", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ hasLoadedContext: true })} dispatch={vi.fn()} />,
+    );
+    const chip = container.querySelector(".dci-network");
+
+    expect(chip?.textContent).toContain("Neo N3");
+    expect(chip?.textContent).toContain("mainnet");
+    expect(chip?.querySelector(".mx2-skeleton")).toBeFalsy();
+  });
+
+  // The trust drawer lives behind PlayStage's own toggle, so it is not in the
+  // tree until opened — which is exactly why a screenshot of the resting entry
+  // surface never caught the dashed contract underneath it.
+  function openDrawer(container: HTMLElement) {
+    const toggle = Array.from(container.querySelectorAll("button")).find((node) =>
+      node.textContent?.includes("ritualDetails"),
+    );
+    expect(toggle, "drawer toggle").toBeTruthy();
+    fireEvent.click(toggle!);
+    expect(container.querySelector(".dci-trust-list"), "drawer content").toBeTruthy();
+  }
+
+  it("phases the canonical contract on the same read instead of dashing it", () => {
+    const { container } = render(<PlayArea t={t} state={state(cold)} dispatch={vi.fn()} />);
+    openDrawer(container);
+
+    const trust = container.querySelector(".dci-trust-list");
+    expect(trust?.textContent).toContain("canonicalContract");
+    expect(trust?.textContent).not.toContain("—");
+    expect(trust?.querySelector(".mx2-skeleton")).toBeTruthy();
+    expect(container.querySelector(".dci-drawer")?.textContent).not.toContain("—");
+  });
+
+  it("settles the canonical contract to honest copy rather than shimmering forever", () => {
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ ...cold, hasLoadedContext: true, isLoading: false, dataSource: "failed" })}
+        dispatch={vi.fn()}
+      />,
+    );
+    openDrawer(container);
+
+    const trust = container.querySelector(".dci-trust-list");
+    expect(trust?.textContent).toContain("valueAwaitingNetwork");
+    expect(trust?.textContent).not.toContain("—");
+    expect(trust?.querySelector(".mx2-skeleton")).toBeFalsy();
+  });
+
+  it("opens the whole cold surface — drawer included — with no em-dash void anywhere", () => {
+    const { container } = render(<PlayArea t={t} state={state(cold)} dispatch={vi.fn()} />);
+    // The regression this whole lane exists for: a first-time visitor must not
+    // be met by dashes before touching anything.
+    expect(container.textContent).not.toContain("—");
+    openDrawer(container);
+    expect(container.textContent).not.toContain("—");
+  });
+});

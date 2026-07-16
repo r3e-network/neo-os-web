@@ -50,6 +50,7 @@ defineMiniApp({
       state: {
         network: checkin.network,
         contractHash: checkin.contractHash,
+        hasLoadedContext: checkin.hasLoadedContext,
         dataSource: checkin.dataSource,
         walletAddress: checkin.walletAddress,
         currentStreak: checkin.formattedCurrentStreak,

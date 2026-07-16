@@ -193,6 +193,17 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
   const nextRewardDay = createObservable(7);
   const hasLoadedPlatform = createObservable(false);
   const hasLoadedStatus = createObservable(false);
+  /**
+   * True once a canonical-context resolution has completed, success or failure.
+   *
+   * `network`/`contractHash` are "" until `requireCanonicalDailyCheckinContext`
+   * resolves, and emptiness alone cannot tell "we are still resolving" from
+   * "resolution failed and there is no network" — so the header rendered both
+   * as `Neo N3 —`. `hasLoadedPlatform` cannot stand in for this: it never flips
+   * when the context read itself throws, which is precisely the case that must
+   * settle rather than shimmer forever.
+   */
+  const hasLoadedContext = createObservable(false);
   const loadedActorHash = createObservable("");
   const isLoading = createObservable(false);
   const isSubmitting = createObservable(false);
@@ -364,9 +375,16 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
     contractHash.set(context.contractHash);
   };
   const context = async () => {
-    const current = await requireCanonicalDailyCheckinContext(app);
-    setContext(current);
-    return current;
+    try {
+      const current = await requireCanonicalDailyCheckinContext(app);
+      setContext(current);
+      return current;
+    } finally {
+      // Flip on every exit, including the throw: a failed resolution is a
+      // settled answer ("no network"), and the surface pairs it with the
+      // dataSource/lastError notice. Only an unsettled read may shimmer.
+      hasLoadedContext.set(true);
+    }
   };
 
   const clearUserState = () => {
@@ -944,6 +962,7 @@ export function useCheckin({ app, t }: UseCheckinOptions) {
   return {
     network,
     contractHash,
+    hasLoadedContext,
     dataSource,
     walletAddress,
     currentStreak,
