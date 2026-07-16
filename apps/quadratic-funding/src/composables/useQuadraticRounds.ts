@@ -22,13 +22,24 @@ import { parseBigInt, parseDateInput } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import type { QuadraticFlowKit, Translator } from "./quadraticFlowKit";
+import { truncateUtf8Bytes, type QuadraticFlowKit, type Translator } from "./quadraticFlowKit";
 import type { RoundItem } from "./quadraticTypes";
 import type { QuadraticPendingTracker } from "./quadraticPending";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const APP_ID = "miniapp-quadratic-funding";
+
+/**
+ * Contract limits in the contract's unit — UTF-8 BYTES, not UTF-16 chars
+ * (MiniAppQuadraticFunding.cs MAX_TITLE_LENGTH / MAX_DESC_LENGTH; see
+ * truncateUtf8Bytes in quadraticFlowKit). createRound runs on the
+ * deposit-then-act lane, so an over-byte title reverting "title too long"
+ * would strand the already-landed matching-pool deposit as
+ * reclaimable-but-manual prepaid credit.
+ */
+const MAX_TITLE_BYTES = 60;
+const MAX_DESC_BYTES = 240;
 
 export interface UseQuadraticRoundsOptions {
   /** MiniApp framework SDK from ctx.framework. */
@@ -314,7 +325,10 @@ export function useQuadraticRounds({
     if (!(await kit.onNeoChain())) return false;
     if (isCreatingRound.get()) return false;
 
-    const title = data.title.trim().slice(0, 60);
+    // Truncate by UTF-8 BYTES (the contract's unit), not UTF-16 chars — see
+    // MAX_TITLE_BYTES. Computed once so the sent args, the pending-write
+    // record and the readback comparison can never disagree.
+    const title = truncateUtf8Bytes(data.title.trim(), MAX_TITLE_BYTES);
     if (!title) {
       kit.setStatus(t("invalidRound"), "error");
       return false;
@@ -361,7 +375,7 @@ export function useQuadraticRounds({
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
         const assetHash = data.asset === "NEO" ? NEO_HASH : GAS_HASH;
-        const description = data.description.trim().slice(0, 240);
+        const description = truncateUtf8Bytes(data.description.trim(), MAX_DESC_BYTES);
         let createdRoundId = "";
         const pendingDraft = pending
           ? await pending.prepare(reservation!, {

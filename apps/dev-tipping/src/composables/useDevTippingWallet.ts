@@ -39,8 +39,24 @@ import {
 } from "../dev-tipping-operation-store";
 
 const MIN_TIP_BASE = 100_000n;
-const MAX_NAME_LEN = 64;
-const MAX_ROLE_LEN = 64;
+/**
+ * Contract text limits are UTF-8 BYTES, not JS UTF-16 chars: the devpack
+ * compiles C# `string.Length` to the SIZE opcode over the UTF-8 ByteString
+ * (MiniAppTipJar.cs asserts name.Length <= 64 / role.Length <= 64 on that
+ * unit), so a 30-CJK-char name is 90 bytes — it passed a char-measured 64
+ * cap and then deterministically reverted "invalid name" on-chain, after the
+ * user already paid the transaction fee. Registration is identity, so
+ * over-budget input is REJECTED (never silently truncated); the validation
+ * must therefore measure bytes. On-chain names always satisfy
+ * UTF-16 length <= UTF-8 bytes <= 64, so the readback check in
+ * {@link parseDeveloper} measuring bytes can never falsely reject a record
+ * the contract accepted.
+ */
+const MAX_NAME_BYTES = 64;
+const MAX_ROLE_BYTES = 64;
+
+const utf8Encoder = new TextEncoder();
+const utf8ByteLength = (value: string): number => utf8Encoder.encode(value).length;
 const TIP_MEMO = "miniapp-devtipping:tip";
 const PENDING_OPERATION_STALE_MS = 24 * 60 * 60 * 1_000;
 const TXID_RE = /^0x[0-9a-f]{64}$/;
@@ -142,8 +158,8 @@ function parseDeveloper(raw: unknown, fallbackId: number): DeveloperRecord {
     !Number.isSafeInteger(id)
     || id !== fallbackId
     || !wallet
-    || name.length > MAX_NAME_LEN
-    || role.length > MAX_ROLE_LEN
+    || utf8ByteLength(name) > MAX_NAME_BYTES
+    || utf8ByteLength(role) > MAX_ROLE_BYTES
     || balanceBase > totalReceivedBase
     || totalReceivedBase < tipCount * MIN_TIP_BASE
   ) {
@@ -817,8 +833,11 @@ export function useDevTippingWallet({
   ): Promise<DevTippingActionOutcome> => {
     const trimmedName = String(name ?? "").trim();
     const trimmedRole = String(role ?? "").trim();
-    if (!trimmedName || trimmedName.length > MAX_NAME_LEN) throw new Error(t("invalidDevName"));
-    if (trimmedRole.length > MAX_ROLE_LEN) throw new Error(t("invalidDevRole"));
+    // Measured in UTF-8 BYTES — the contract's unit (see MAX_NAME_BYTES).
+    // Rejecting here spares the user a doomed transaction whose fee the
+    // deterministic "invalid name"/"invalid role" revert would still charge.
+    if (!trimmedName || utf8ByteLength(trimmedName) > MAX_NAME_BYTES) throw new Error(t("invalidDevName"));
+    if (utf8ByteLength(trimmedRole) > MAX_ROLE_BYTES) throw new Error(t("invalidDevRole"));
     beginOperation("register");
     isRegistering.set(true);
     let scope: TipOperationScope | null = null;

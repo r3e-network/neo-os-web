@@ -147,8 +147,14 @@ const appMessages = {
   registerBtn: { en: "Register as Developer", zh: "注册为开发者" },
   registering: { en: "Registering...", zh: "注册中..." },
   registered: { en: "Registered successfully!", zh: "注册成功！" },
-  invalidDevName: { en: "Name must be 1-64 characters", zh: "名称需为 1-64 个字符" },
-  invalidDevRole: { en: "Role must be 64 characters or fewer", zh: "角色不超过 64 个字符" },
+  invalidDevName: {
+    en: "Name must be 1-64 bytes of UTF-8 (a CJK character uses 3 bytes)",
+    zh: "名称需为 1-64 个 UTF-8 字节（每个中文字符占 3 字节）",
+  },
+  invalidDevRole: {
+    en: "Role must be 64 bytes of UTF-8 or fewer (a CJK character uses 3 bytes)",
+    zh: "角色不超过 64 个 UTF-8 字节（每个中文字符占 3 字节）",
+  },
   alreadyRegistered: { en: "This wallet is already registered as a developer.", zh: "该钱包已注册为开发者。" },
   developerWalletMismatch: {
     en: "This developer profile belongs to another wallet.",
