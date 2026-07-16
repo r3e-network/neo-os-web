@@ -40,3 +40,13 @@ final schema consistent.
   - `miniapp_versions` accepts insert on admin upsert/status/import.
   - `miniapp_releases` keeps one row per `app_id` with draft/published pointers.
   - `miniapp_release_history` records pointer transitions for `save_draft` / `publish` / `disable` / `rollback`.
+
+## MiniApp Credits rollout (078)
+- Apply `078_miniapp_credits.sql` to enable the DB-first credit ledger backing the MiniAppCredits contract.
+- New tables: `credit_balances`, `credit_events` (append log), `credit_epochs`, `credit_indexer_state` (all RLS-enabled, service-role only).
+- New RPCs (SECURITY DEFINER, service-role only): `credits_spend`, `credits_credit_purchase`, `credits_apply_exit`, `credits_prepare_epoch`.
+- Edge functions `credits-ledger`, `credits-indexer`, `credits-settler` depend on this migration; see `docs/MINIAPP_CREDITS_LEDGER.md` for env vars (`CONTRACT_MINIAPP_CREDITS_HASH*`, `CREDITS_CRON_SECRET`) and the reconciliation rule.
+- Verify:
+  - `credits_spend` returns `insufficient_credits` for an unknown wallet and dedupes on a repeated idempotency key.
+  - `credits_credit_purchase` is a no-op (`deduped=true`) when re-run with the same `(tx_hash, event_index)`.
+  - `credits_prepare_epoch` raises on an already-submitted epoch when new spends exist.
