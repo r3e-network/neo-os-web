@@ -419,8 +419,29 @@ export function useSelfLoan({
   }, [loan, neoBalance]);
 
   // ── Computed: display values ─────────────────────────────────────────
-  const collateralDisplay = createDerived(() => fmt(loan.get().collateralLocked, 0), [loan]);
-  const borrowedDisplay = createDerived(() => fmt(loan.get().borrowed), [loan]);
+  /**
+   * Both read straight off `loan`, which rests at
+   * `{ borrowed: 0, collateralLocked: 0 }` — the shape of an empty position,
+   * not a reading. Formatting that resting value published a confident "0" in
+   * the chrome while getLoan was still in flight: a fabricated number telling a
+   * borrower they have borrowed nothing and locked nothing. Same class as
+   * `hasLoanDisplay` below, gated on the same `positionStatus`, so a zero here
+   * is only ever a zero the chain actually reported.
+   */
+  const collateralDisplay = createDerived(() => {
+    const status = positionStatus.get();
+    if (status === "ready") return fmt(loan.get().collateralLocked, 0);
+    if (status === "awaiting-wallet") return t("connectWallet");
+    if (status === "error") return t("notAvailable");
+    return undefined;
+  }, [loan, positionStatus]);
+  const borrowedDisplay = createDerived(() => {
+    const status = positionStatus.get();
+    if (status === "ready") return fmt(loan.get().borrowed);
+    if (status === "awaiting-wallet") return t("connectWallet");
+    if (status === "error") return t("notAvailable");
+    return undefined;
+  }, [loan, positionStatus]);
 
   // Both metrics are computed FROM the loan position, so neither can be stated
   // before that position has been read. Until then they are `undefined` — the
