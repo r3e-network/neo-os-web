@@ -1,34 +1,27 @@
 /**
  * SheepScene — Phaser 3 scene for Sheep Solitaire (羊了个羊 style tile-matching).
  *
- * Renders a meadow-green board with a stacked card pile, a 7-slot tray,
- * tool buttons (Undo/Shuffle/Remove3), and progress & status indicators.
- * A lobby with 3 difficulty cards is shown while the game is idle.
+ * P2 rebuild (docs/sheep-solitaire-redesign-2026.md §9): a full-screen game —
+ * saturated grass field, mahjong-style white tiles positioned by the shared
+ * §9.2 half-grid unit formula, left/right buried stacks, a wooden 7-slot tray
+ * docked near the bottom with three round prop buttons underneath, and a HOME
+ * view (wooden-sign logo + one-tap daily challenge + practice picker overlay)
+ * replacing the old web-style route-card lobby. Zero cream panels in-scene.
  *
  * State received from React (via GameBridge):
  *   gameStatus:     "idle"|"committed"|"dealt"|"solved"|"expired"
- *   pileCards:      CardView[]   cards remaining in the pile
+ *   pileCards:      CardView[]   cards remaining on the board (grid + stacks)
  *   slotCards:      CardView[]   cards in the 7-slot tray (0–7 elements)
- *   shuffleLeft:    number
- *   remove3Left:    number
- *   undosUsed:      number
- *   gameDifficulty: number  0=easy 1=medium 2=hard
- *   isStarting:     boolean
- *   isDealing:      boolean
- *   isSubmitting:   boolean
- *   isMatching:     boolean
- *   isGameOver:     boolean
- *   lastStatus:     string
- *   lastPayout:     string
+ *   shuffleLeft / remove3Left / undosUsed / level / playMode / revivesLeft
+ *   isStarting / isDealing / isSubmitting / isMatching / isGameOver
+ *   lastStatus / lastPayout / …
  *
  * Actions dispatched:
- *   "startGame"  { difficulty: number }
- *   "pickCard"   { cardId: number }
- *   "useUndo"
- *   "useShuffle"
- *   "useRemove3"
- *   "submitRun"
- *   "expireGame"
+ *   "startGame"  { mode: "daily", level } | { difficulty }
+ *   "pickCard"   { cardId } — dispatched IMMEDIATELY on pointerdown; the
+ *                 engine is the validator, the ghost flight is pure cosmetics.
+ *   "useUndo" / "useShuffle" / "useRemove3" / "advanceLevel" / "revive"
+ *   "submitRun" / "expireGame" / "returnToLobby" / "withdrawWinnings"
  */
 
 import * as Phaser from "phaser";
@@ -38,15 +31,21 @@ import { ALL_SYMBOLS } from "../logic/sheep-engine";
 
 // Themed board names (English fallback; localized copy arrives via bridgeState.loc).
 const DIFFICULTY_LABELS = ["Meadow Board", "Festival Board", "Mountain Board"] as const;
-const DIFFICULTY_ENTRY   = ["Entry 0.02 GAS", "Entry 0.10 GAS", "Entry 0.20 GAS"] as const;
-const DIFFICULTY_REWARD  = ["Win 0.10 GAS", "Win 0.50 GAS", "Win 1.00 GAS"] as const;
-const DIFFICULTY_TIMER   = ["5:00",     "8:00",     "12:00"] as const;
+const DIFFICULTY_TILE_TYPES = [8, 12, 15] as const;
+const DIFFICULTY_PREVIEW_SYMBOL = [0, 5, 12] as const;
 
 const SHEEP_ASSETS = {
-  table: "sheep-meadow-table",
-  tray: "sheep-slot-tray",
+  field: "sheep-field-meadow",
+  tray: "sheep-tray-wood",
+  sticker: "sheep-btn-sticker",
+  // Die-cut sticker reframe of the in-house painted logo character
+  // (public/logo.webp) — replaces the retired circle-composite SVG sheep.
   mascot: "sheep-mascot",
-  badges: ["sheep-badge-easy", "sheep-badge-medium", "sheep-badge-hard"],
+  props: {
+    undo: "sheep-prop-undo",
+    remove: "sheep-prop-remove",
+    shuffle: "sheep-prop-shuffle",
+  },
   tiles: [
     "sheep-tile-0",
     "sheep-tile-1",
@@ -66,41 +65,27 @@ const SHEEP_ASSETS = {
   ],
 } as const;
 
+// §9.4 v2 sticker palette — flat fills, near-black outlines, hard shadows.
 const C = {
-  meadow:      0x3a7c47,
-  meadowDark:  0x2a5c34,
-  meadowLight: 0x5aaa65,
-  card:        0xfff8e8,
-  cardBlocked: 0xbdb09a,
-  cardBorder:  0xd4a843,
-  cardBorderB: 0x8a7050,
-  gold:        0xd4a843,
-  goldLight:   0xf0c866,
-  tray:        0x6b4820,
-  traySlot:    0x3a2808,
-  traySlotBdr: 0x8b6030,
-  btnBg:       0xeaf7d0,
-  btnBorder:   0x84cc16,
-  btnDisabled: 0xeee9dd,
-  btnText:     0x365314,
-  white:       0xffffff,
-  red:         0xe25d4d,
-  green:       0x16a34a,
-  muted:       0x7a9a7a,
-  overlayDark: 0x000000,
-  lobbyCard0:  0x2a7a3a,
-  lobbyCard1:  0x7a6020,
-  lobbyCard2:  0x7a2a2a,
-  panel:       0xfff8e8,
-  ink:         0x2f281d,
-  // ── Game-feel tones (羊了个羊 parity) ──
-  cardShadow:  0x2a1c08,  // warm drop-shadow under each stacked tile
-  occlusion:   0x3a2c18,  // warm veil laid over covered (locked) tiles
-  occludedInk: 0xcfc6b4,  // muted tint on covered tile art
-  slotWarn:    0xe0a13c,  // tray slot frame warms at the 5th fill
-  slotDanger:  0xe0663c,  // tray slot frame reddens at the 6th/7th fill
-  trayDanger:  0xffb59a,  // tray frame tint when the tray is nearly full
+  grass:        0xb7e389,  // FLAT light lime field (bleeds past the field art)
+  ink:          0x26221e,  // near-black sticker outline / hard shadow
+  overlayDark:  0x26221e,  // full-screen modal dim
+  // Covered-tile treatment — whole tile tinted dark GRAY-GREEN (icon dimly
+  // visible), exposed tiles stay bright cream. Harsh, one-glance contrast.
+  coverTint:    0x7e8f6e,  // multiply tint on the cream tile face
+  coverVeil:    0x39462f,  // gray-green veil laid over the tinted face
+  stackBlock:   0x97a886,  // ribbed side-stack block (gray-green)
+  stackRidge:   0x6f8060,  // ridge stripes on the stack block
+  wood:         0xa9743e,
+  woodDark:     0x54320f,
+  woodLight:    0xc89a5f,
+  btnGreen:     0x58c24f,
+  btnAmber:     0xf0b03c,
+  gold:         0xffd23e,
+  slotWarn:     0xe0a13c,
+  slotDanger:   0xe0663c,
 } as const;
+const INK = "#26221e";
 
 interface CardView {
   id: number;
@@ -108,104 +93,133 @@ interface CardView {
   layer: number;
   col?: number;
   row?: number;
+  /** §9.1 v2 zone — absent on legacy cards ⇒ treated as "grid". */
+  zone?: "grid" | "stackL" | "stackR" | string;
+  /** §9.1 v2 burial depth in a stack — absent ⇒ 0. */
+  stackIndex?: number;
   exposed: boolean;
   picked: boolean;
 }
 
-// ── Layout constants ─────────────────────────────────────────────────────────
-const CARD_W    = 48;
-const CARD_H    = 58;
-const TILE_ART_SIZE = 54;
-const CARD_STEP_X = 53;
-const CARD_STEP_Y = 63;
-const TRAY_Y_FRAC = 0.625;
-const TOOLS_Y_FRAC = 0.745;
-const STATUS_Y_FRAC = 0.835;
+interface BoardMetrics {
+  tileW: number;
+  tileH: number;
+  originX: number;
+  originY: number;
+}
+
+// ── Layout constants (mobile-first 390×844 logical design) ──────────────────
+const DESIGN_W = 390;
+const DESIGN_H = 844;
+const TILE_RATIO = 232 / 200;     // matches the generated tile art
+const TILE_W_MAX = 66;
 const SLOT_COUNT = 7;
-const DESIGN_W = 400;
-const DESIGN_H = 640;
+const HUD_Y = 32;
+const BOARD_TOP = 100;
+const BOARD_BOTTOM = 556;
+const STACK_Y = 592;
+const STACK_TILE_W = 44;
+const TRAY_Y = 664;
+const TRAY_W = 380;
+const TRAY_H = 120;               // trough + fence posts (760×240 art at 2×)
+const TRAY_TILE_Y = TRAY_Y - 16;  // tile row sits inside the trough interior
+const TRAY_SIDE_PAD = 15;         // trough interior padding (30px on 2× art)
+const PROPS_Y = 766;
+const TOAST_Y = 826;
 const FONT = "Inter, Arial, sans-serif";
 
 // ── SheepScene ────────────────────────────────────────────────────────────────
 
 export class SheepScene extends BaseScene {
-  // ── Group containers (only one visible at a time) ──────────────────────────
-  private lobbyGroup!:  Phaser.GameObjects.Container;
-  private loadGroup!:   Phaser.GameObjects.Container;
-  private gameGroup!:   Phaser.GameObjects.Container;
-  private resultGroup!: Phaser.GameObjects.Container;
+  // ── View containers (only one visible at a time; practice overlays home) ───
+  private homeGroup!:     Phaser.GameObjects.Container;
+  private practiceGroup!: Phaser.GameObjects.Container;
+  private loadGroup!:     Phaser.GameObjects.Container;
+  private gameGroup!:     Phaser.GameObjects.Container;
+  private resultGroup!:   Phaser.GameObjects.Container;
+
+  // ── Background (full-screen meadow) ────────────────────────────────────────
+  private sceneBackdrop!: Phaser.GameObjects.Rectangle;
+  private fieldImage!:    Phaser.GameObjects.Image;
+  private stageFrame!:    Phaser.GameObjects.Graphics;
 
   // ── Game sub-elements ──────────────────────────────────────────────────────
-  private pileContainer!:    Phaser.GameObjects.Container;
-  private trayContainer!:    Phaser.GameObjects.Container;
-  private toolsContainer!:   Phaser.GameObjects.Container;
-  private progressLabel!:    Phaser.GameObjects.Text;
-  private statusLabel!:      Phaser.GameObjects.Text;
-  private matchedLabel!:     Phaser.GameObjects.Text;
-  private sceneBackdrop!:    Phaser.GameObjects.Rectangle;
-  private stagePanel!:       Phaser.GameObjects.Rectangle;
-  private stageFrame!:       Phaser.GameObjects.Graphics;
-  private tallMeadow!:       Phaser.GameObjects.Graphics;
-
-  // Tool button references
-  private undoBtn!:    Phaser.GameObjects.Container;
-  private shuffleBtn!: Phaser.GameObjects.Container;
-  private remove3Btn!: Phaser.GameObjects.Container;
-  private undoCountTxt!:    Phaser.GameObjects.Text;
-  private shuffleCountTxt!: Phaser.GameObjects.Text;
-  private remove3CountTxt!: Phaser.GameObjects.Text;
-  private lobbyCards: Phaser.GameObjects.Container[] = [];
-  private lobbyCardBgs: Phaser.GameObjects.Rectangle[] = [];
-
-  // Result overlay elements
-  private resultTitle!:   Phaser.GameObjects.Text;
-  private resultSub!:     Phaser.GameObjects.Text;
-  private resultActionBg!: Phaser.GameObjects.Rectangle;
-  private resultActionTxt!: Phaser.GameObjects.Text;
-  private resultMascot?:  Phaser.GameObjects.Image;
-
-  // Tray references — used to escalate slot tension as the 7-slot tray fills.
-  private trayBg?:       Phaser.GameObjects.Image;
-  private slotBoxes:     Phaser.GameObjects.Rectangle[] = [];
+  private pileContainer!:  Phaser.GameObjects.Container;
+  private stackContainer!: Phaser.GameObjects.Container;
+  private trayContainer!:  Phaser.GameObjects.Container;
+  private statusLabel!:    Phaser.GameObjects.Text;
+  private hudPillG!:       Phaser.GameObjects.Graphics;
+  private hudLevelTxt!:    Phaser.GameObjects.Text;
+  private hudRemainTxt!:   Phaser.GameObjects.Text;
+  private trayBg?:         Phaser.GameObjects.Image;
+  private slotBoxes:       Phaser.GameObjects.Rectangle[] = [];
   private trayShaking = false;
 
-  // ── Localized text references (updated from React locale via applyLocale) ────
-  private lobbyTitleTxt?:  Phaser.GameObjects.Text;
-  private lobbySubTxt?:    Phaser.GameObjects.Text;
-  private dailyTitleTxt?:  Phaser.GameObjects.Text;
-  private dailySubTxt?:    Phaser.GameObjects.Text;
-  private cardNameTxts:    Phaser.GameObjects.Text[] = [];
-  private cardInfoTxts:    Phaser.GameObjects.Text[] = [];
-  private cardEntryTxts:   Phaser.GameObjects.Text[] = [];
-  private cardRewardTxts:  Phaser.GameObjects.Text[] = [];
-  private undoLabelTxt?:   Phaser.GameObjects.Text;
-  private shuffleLabelTxt?: Phaser.GameObjects.Text;
-  private remove3LabelTxt?: Phaser.GameObjects.Text;
-  private trayLabelTxt?:   Phaser.GameObjects.Text;
-  private loadTitleTxt?:   Phaser.GameObjects.Text;
-  private loadSubTxt?:     Phaser.GameObjects.Text;
+  // Prop buttons (undo / remove-3 / shuffle) — round icon buttons under the tray.
+  private undoBtn!:    Phaser.GameObjects.Container;
+  private remove3Btn!: Phaser.GameObjects.Container;
+  private shuffleBtn!: Phaser.GameObjects.Container;
+  private propCountTxts: Record<"undo" | "remove" | "shuffle", Phaser.GameObjects.Text | null> = {
+    undo: null,
+    remove: null,
+    shuffle: null,
+  };
+  private propLabelTxts: Record<"undo" | "remove" | "shuffle", Phaser.GameObjects.Text | null> = {
+    undo: null,
+    remove: null,
+    shuffle: null,
+  };
 
-  // Loading spinner bob (reduced-motion aware).
-  private spinner?:        Phaser.GameObjects.Container;
+  // ── Home view elements ─────────────────────────────────────────────────────
+  private homeLogoTxts: Phaser.GameObjects.Text[] = [];
+  private homeSubTxt?:   Phaser.GameObjects.Text;
+  private homeDailyTxt?: Phaser.GameObjects.Text;
+  private homeStartTxt?: Phaser.GameObjects.Text;
+  private homePracticeTxt?: Phaser.GameObjects.Text;
+  private homeStartBtn?: Phaser.GameObjects.Container;
+  private homeStartHit?: Phaser.GameObjects.Rectangle;
+  private practiceTitleTxt?: Phaser.GameObjects.Text;
+  private practiceBackTxt?:  Phaser.GameObjects.Text;
+  private practiceNameTxts: Phaser.GameObjects.Text[] = [];
+  private practiceInfoTxts: Phaser.GameObjects.Text[] = [];
+  private practiceOpen = false;
+
+  // ── Load + result elements ─────────────────────────────────────────────────
+  private loadTitleTxt?: Phaser.GameObjects.Text;
+  private loadSubTxt?:   Phaser.GameObjects.Text;
+  private spinner?:      Phaser.GameObjects.Container;
   private spinnerBaseY = 0;
   private spinnerBob: Phaser.Tweens.Tween | null = null;
+  private resultTitleTxts: Phaser.GameObjects.Text[] = [];
+  private resultSub!:      Phaser.GameObjects.Text;
+  private resultActionBg!: Phaser.GameObjects.Rectangle;
+  private resultActionFill!: Phaser.GameObjects.Graphics;
+  private resultActionTxt!: Phaser.GameObjects.Text;
+  private resultMascot?:   Phaser.GameObjects.Image;
 
   // ── State mirrors ──────────────────────────────────────────────────────────
   private prevSlotLen = 0;
   private prevPileLen = 0;
   private currentStatus = "idle";
-  private ghostInFlight = false;
   private resultAnimationKey = "";
   private prevMatching = false;
   private lastResultCue = "";
   private keyboardHandler?: (event: KeyboardEvent) => void;
-  private renderedPileKey = "";
-  private renderedTrayKey = "";
+  private renderedPileKey: string | null = null;
+  private renderedTrayKey: string | null = null;
+  private renderedDealKey = "";
+  private boardMetrics: BoardMetrics | null = null;
+  private prevTrayIds: number[] = [];
+  private traySpritesById = new Map<number, Phaser.GameObjects.Container>();
+  /** Cosmetic tray prediction — replicates the engine's same-symbol insert scan. */
+  private predictedTraySymbols: number[] = [];
+  /** Picks whose cosmetic ghost is still flying (tray sprite hidden meanwhile). */
+  private inFlightPickIds = new Set<number>();
+  private activeGhosts = new Set<Phaser.GameObjects.Container>();
 
   // ── FX state (juice) ───────────────────────────────────────────────────────
   private matchStreak = 0;
   private lastMatchAt = 0;
-  private ambientGlow?: Phaser.GameObjects.Image;
 
   constructor() {
     super("SheepScene");
@@ -229,13 +243,14 @@ export class SheepScene extends BaseScene {
   // ── Phaser lifecycle ───────────────────────────────────────────────────────
 
   preload(): void {
-    this.load.image(SHEEP_ASSETS.table, "./art/meadow-table.webp");
-    this.load.image(SHEEP_ASSETS.tray, "./art/slot-tray.webp");
+    this.load.image(SHEEP_ASSETS.field, "./art/field-meadow.webp");
+    this.load.image(SHEEP_ASSETS.tray, "./art/tray-wood.webp");
+    this.load.image(SHEEP_ASSETS.sticker, "./art/btn-sticker.webp");
     this.load.image(SHEEP_ASSETS.mascot, "./art/mascot-sheep.webp");
-    this.load.image(SHEEP_ASSETS.badges[0], "./art/badge-easy.webp");
-    this.load.image(SHEEP_ASSETS.badges[1], "./art/badge-medium.webp");
-    this.load.image(SHEEP_ASSETS.badges[2], "./art/badge-hard.webp");
-    // P1 Art — sheep-themed tile set (generated by scripts/generate-sheep-tiles.mjs)
+    this.load.image(SHEEP_ASSETS.props.undo, "./art/prop-undo.webp");
+    this.load.image(SHEEP_ASSETS.props.remove, "./art/prop-remove.webp");
+    this.load.image(SHEEP_ASSETS.props.shuffle, "./art/prop-shuffle.webp");
+    // Sheep-themed tile set (generated by scripts/generate-sheep-tiles.mjs)
     for (let i = 0; i < ALL_SYMBOLS.length; i++) {
       const sym = ALL_SYMBOLS[i];
       if (!sym) continue;
@@ -255,8 +270,8 @@ export class SheepScene extends BaseScene {
 
     this.buildBackground(DESIGN_W, DESIGN_H);
     this.ensureFxTextures();
-    this.buildAmbientField(DESIGN_W, DESIGN_H);
-    this.buildLobby(DESIGN_W, DESIGN_H);
+    this.buildHome(DESIGN_W, DESIGN_H);
+    this.buildPracticeOverlay(DESIGN_W, DESIGN_H);
     this.buildLoadScreen(DESIGN_W, DESIGN_H);
     this.buildGameScreen(DESIGN_W, DESIGN_H);
     this.buildResultScreen(DESIGN_W, DESIGN_H);
@@ -274,24 +289,31 @@ export class SheepScene extends BaseScene {
     const isDealing  = this.bool("isDealing");
     const isGameOver = this.bool("isGameOver");
 
-    const showLobby  = (status === "idle" || status === "expired" || status === "refunded") && !isStarting && !isDealing;
+    const showHome   = (status === "idle" || status === "expired" || status === "refunded") && !isStarting && !isDealing;
     const deadlineExpired = this.bool("deadlineExpired");
     const showLoad   = isStarting || isDealing || status === "committed" || status === "unknown";
     const showResult = status === "solved" || (status === "dealt" && (isGameOver || deadlineExpired));
     const showGame   = status === "dealt" && !isGameOver && !deadlineExpired;
 
-    // A new round can reuse the same Phaser scene. Reset the transition
-    // sentinels while we are off the board so the next deal still cascades in
-    // and an old tray/match state cannot trigger a phantom warning or effect.
+    // A new round can reuse the same Phaser scene. Off the board: reset the
+    // transition sentinels (null ⇒ the next update rebuilds unconditionally,
+    // which also clears stale tray/pile sprites from the previous run) and
+    // sweep any in-flight cosmetic ghosts so they can't land on the home view.
     if (!showGame) {
       this.prevPileLen = 0;
       this.prevSlotLen = 0;
       this.prevMatching = false;
-      this.renderedPileKey = "";
-      this.renderedTrayKey = "";
+      this.renderedPileKey = null;
+      this.renderedTrayKey = null;
+      this.prevTrayIds = [];
+      this.inFlightPickIds.clear();
+      this.destroyActiveGhosts();
     }
 
-    this.setGroupActive(this.lobbyGroup, showLobby && !showLoad);
+    // The practice picker fully replaces the home view while open (the dim
+    // alone left the sign/CTA bleeding through the overlay).
+    this.setGroupActive(this.homeGroup, showHome && !showLoad && !this.practiceOpen);
+    this.setGroupActive(this.practiceGroup, showHome && !showLoad && this.practiceOpen);
     this.setGroupActive(this.loadGroup, showLoad);
     this.setGroupActive(this.gameGroup, showGame);
     this.setGroupActive(this.resultGroup, showResult);
@@ -299,7 +321,6 @@ export class SheepScene extends BaseScene {
     else this.stopSpinnerBob();
 
     this.currentStatus = status;
-    this.updateLobbyAvailability();
     if (!showResult) this.resultAnimationKey = "";
 
     const resultCue: "" | "win" | "lose" = showResult ? (status === "solved" ? "win" : "lose") : "";
@@ -309,129 +330,89 @@ export class SheepScene extends BaseScene {
     if (showGame)   this.updateGameScreen();
     if (showResult) this.updateResultScreen();
 
-    // Always keep status visible when game is shown
-    this.statusLabel?.setText(this.str("lastStatus", ""));
+    // Status toast lives on the board only — clear it when returning home so a
+    // stale "reshuffled"/"revived" line never floats over the title screen.
+    this.statusLabel?.setText(showGame ? this.str("lastStatus", "") : "");
   }
 
   /** Push the React-resolved locale strings onto every static scene label. */
   private applyLocale(): void {
-    this.lobbyTitleTxt?.setText(this.locStr("title", "Sheep Solitaire"));
-    this.lobbySubTxt?.setText(this.locStr("subtitle", "Match 3 tiles to clear the board"));
+    const title = this.locStr("title", "Sheep Solitaire");
+    const logoSize = title.length > 6 ? 30 : 46;
+    // The hard-shadow layer offset scales with the glyph size — a fixed 7px
+    // drop reads as a detached echo under the smaller latin logo.
+    const drop = logoSize >= 40 ? { dx: 5, dy: 7 } : { dx: 3, dy: 4 };
+    this.homeLogoTxts.forEach((txt, i) => {
+      txt.setText(title);
+      txt.setFontSize(logoSize);
+      const isShadow = i === 0 && this.homeLogoTxts.length > 1;
+      txt.setPosition(
+        DESIGN_W / 2 + (isShadow ? drop.dx : 0),
+        218 + (isShadow ? drop.dy : 0),
+      );
+    });
+    this.homeSubTxt?.setText(this.locStr("subtitle", "Match 3 tiles to clear the board"));
+    this.homeDailyTxt?.setText(this.locStr("dailyChallengeSub", "Level 1 easy · Level 2 devil · refreshes daily"));
+    this.homeStartTxt?.setText(this.locStr("homeStartDaily", "Start Today's Challenge"));
+    this.homePracticeTxt?.setText(this.locStr("homePractice", "Free Practice"));
+    this.practiceTitleTxt?.setText(this.locStr("practiceTitle", "Choose a practice board"));
+    this.practiceBackTxt?.setText(this.locStr("practiceBack", "Back"));
 
     const names = this.locArr("diffNames", [...DIFFICULTY_LABELS]);
-    const infos = this.locArr("diffInfos", [
-      `8 tile types · ${DIFFICULTY_TIMER[0]}`,
-      `12 tile types · ${DIFFICULTY_TIMER[1]}`,
-      `15 tile types · ${DIFFICULTY_TIMER[2]}`,
-    ]);
-    const entries = this.locArr("diffEntries", [...DIFFICULTY_ENTRY]);
-    const rewards = this.locArr("diffRewards", [...DIFFICULTY_REWARD]);
+    const infos = this.locArr("diffInfos", DIFFICULTY_TILE_TYPES.map((count) => `${count} tile types`));
     for (let d = 0; d < 3; d++) {
-      this.cardNameTxts[d]?.setText(names[d] ?? "");
-      this.cardInfoTxts[d]?.setText(infos[d] ?? "");
-      this.cardEntryTxts[d]?.setText(entries[d] ?? "");
-      this.cardRewardTxts[d]?.setText(rewards[d] ?? "");
+      this.practiceNameTxts[d]?.setText(names[d] ?? "");
+      this.practiceInfoTxts[d]?.setText(infos[d] ?? "");
     }
 
-    this.undoLabelTxt?.setText(this.locStr("undo", "Undo"));
-    this.shuffleLabelTxt?.setText(this.locStr("shuffle", "Shuffle"));
-    this.remove3LabelTxt?.setText(this.locStr("remove3", "Remove 3"));
-    this.trayLabelTxt?.setText(this.locStr("tray", "Tray"));
+    this.propLabelTxts.undo?.setText(this.locStr("undo", "Undo"));
+    this.propLabelTxts.shuffle?.setText(this.locStr("shuffle", "Shuffle"));
+    this.propLabelTxts.remove?.setText(this.locStr("remove3", "Remove 3"));
     this.loadTitleTxt?.setText(this.locStr("loadTitle", "Preparing your board…"));
     this.loadSubTxt?.setText(this.locStr("loadSub", "Securing puzzle on-chain"));
-
-    this.dailyTitleTxt?.setText(this.locStr("dailyChallengeTitle", "Today's Challenge"));
-    this.dailySubTxt?.setText(this.locStr("dailyChallengeSub", "Level 1 easy · Level 2 devil · refreshes daily"));
   }
 
-  // ── Background ─────────────────────────────────────────────────────────────
+  // ── Background — full-screen saturated meadow ───────────────────────────────
 
   private buildBackground(W: number, H: number): void {
-    this.sceneBackdrop = this.add.rectangle(W / 2, H / 2, W, H, 0xfffbef);
-    this.stagePanel = this.add.rectangle(W / 2, H / 2, W - 18, H - 18, 0xf8f0dc)
-      .setStrokeStyle(2, 0xe7d19b);
-
-    const table = this.add.image(W / 2, H * 0.36, SHEEP_ASSETS.table)
-      .setDisplaySize(W - 18, 148)
-      .setAlpha(0.5);
-    table.setDepth(0);
-
-    // Soft cream sheen that lifts the meadow-table art into the light theme so
-    // it reads as a faint pastoral wash behind the cards.
-    // (Alpha must be 0–1; a stray `28` here rendered an opaque white slab that
-    // showed as false "letterbox" bars in the strips flanking the route cards.)
-    this.add.rectangle(W / 2, H * 0.36, W - 24, 150, 0xfffbef, 0.55)
-      .setStrokeStyle(1, 0xffffff, 0.5);
-    this.add.rectangle(W / 2, 78, W - 38, 74, C.panel, 0.95)
-      .setStrokeStyle(1, 0xe7d19b);
-    this.tallMeadow = this.add.graphics();
+    this.sceneBackdrop = this.add.rectangle(W / 2, H / 2, W, H, C.grass);
+    this.fieldImage = this.add.image(W / 2, H / 2, SHEEP_ASSETS.field)
+      .setDisplaySize(W, H);
     this.stageFrame = this.add.graphics();
     this.renderResponsiveStage(H, H / 2);
   }
 
+  /**
+   * Bleed the grass past the 390×844 design so wider/taller host viewports
+   * never expose the React shell as letterbox bars. The field art is scaled
+   * to COVER the visible world; a solid grass rectangle sits underneath as
+   * the final guard for extreme aspect ratios.
+   */
   private renderResponsiveStage(visibleWorldH: number, centerY: number): void {
-    if (!this.sceneBackdrop || !this.stagePanel || !this.stageFrame || !this.tallMeadow) return;
+    if (!this.sceneBackdrop || !this.fieldImage || !this.stageFrame) return;
 
-    const viewTop = centerY - visibleWorldH / 2;
-    const viewBottom = centerY + visibleWorldH / 2;
-    const stageTop = Math.min(0, viewTop - 12);
-    const stageBottom = Math.max(DESIGN_H, Math.min(viewBottom + 10, DESIGN_H + 170));
-    const stageHeight = stageBottom - stageTop;
-    const stageMidY = stageTop + stageHeight / 2;
-
-    // Horizontal extension — mirror the vertical logic. When the host viewport
-    // is wider than the 400:640 design ratio the camera reveals world beyond
-    // DESIGN_W; without this the transparent canvas exposes the white React
-    // shell + its green gradient as letterbox bars beside the cream stage. The
-    // camera always centres on DESIGN_W / 2, so exposure is symmetric.
     const viewW = Math.max(1, Math.round(this.scale.width || DESIGN_W));
     const viewH = Math.max(1, Math.round(this.scale.height || DESIGN_H));
     const zoom = Math.min(viewW / DESIGN_W, viewH / DESIGN_H) || 1;
-    const visibleWorldW = viewW / zoom;
-    // When the host viewport is wider than the 400:640 design ratio (e.g. small
-    // downscaled canvases) the camera reveals world beyond DESIGN_W; bleed the
-    // cream backdrop + panel past it so no transparent letterbox exposes the
-    // white/green React shell. The camera centres on DESIGN_W / 2, so exposure
-    // is symmetric.
-    const wide = visibleWorldW > DESIGN_W + 1;
-    const backdropWidth = wide ? visibleWorldW + 48 : DESIGN_W;
-    const panelWidth = wide ? visibleWorldW + 48 : DESIGN_W - 18;
+    const visibleWorldW = Math.max(DESIGN_W, viewW / zoom);
+    const worldH = Math.max(DESIGN_H, visibleWorldH);
 
     this.sceneBackdrop
-      .setPosition(DESIGN_W / 2, stageMidY)
-      .setDisplaySize(backdropWidth, stageHeight);
-    this.stagePanel
-      .setPosition(DESIGN_W / 2, stageMidY)
-      .setDisplaySize(panelWidth, Math.max(1, stageHeight - 18));
+      .setPosition(DESIGN_W / 2, centerY)
+      .setDisplaySize(visibleWorldW + 48, worldH + 48);
 
-    this.tallMeadow.clear();
-    if (stageBottom > DESIGN_H + 20) {
-      const meadowTop = DESIGN_H - 10;
-      const meadowHeight = stageBottom - meadowTop - 8;
-      this.tallMeadow.fillStyle(0xf4efdb, 0.98);
-      this.tallMeadow.fillRoundedRect(18, meadowTop, DESIGN_W - 36, meadowHeight, {
-        tl: 20,
-        tr: 20,
-        bl: 0,
-        br: 0,
-      });
-      this.tallMeadow.fillStyle(0xd9edb7, 0.72);
-      this.tallMeadow.fillEllipse(DESIGN_W * 0.32, meadowTop + 42, 150, 30);
-      this.tallMeadow.fillEllipse(DESIGN_W * 0.68, meadowTop + 68, 170, 34);
-      this.tallMeadow.lineStyle(1, 0xb5cc85, 0.42);
-      for (let x = 42; x < DESIGN_W - 18; x += 44) {
-        this.tallMeadow.lineBetween(x, meadowTop + 28, x - 18, stageBottom - 28);
-      }
-    }
+    const cover = Math.max((visibleWorldW + 24) / DESIGN_W, (worldH + 24) / DESIGN_H);
+    this.fieldImage
+      .setPosition(DESIGN_W / 2, centerY)
+      .setDisplaySize(DESIGN_W * cover, DESIGN_H * cover);
 
+    // §9.4 v2: the field stays PLAIN — no vignette, no texture overlays.
     this.stageFrame.clear();
-    this.stageFrame.lineStyle(2, 0xe7d19b, 0.9);
-    this.stageFrame.strokeRoundedRect(9, 9, DESIGN_W - 18, stageBottom - 18, 18);
   }
 
   // ── FX helpers (juice) ───────────────────────────────────────────────────────
 
-  /** Generate the two runtime FX textures once. No new asset files. */
+  /** Generate the runtime FX textures once. No new asset files. */
   private ensureFxTextures(): void {
     const glowKey = "sheep-fx-glow";
     const sparkKey = "sheep-fx-spark";
@@ -467,9 +448,8 @@ export class SheepScene extends BaseScene {
       g.destroy();
     }
 
-    // Soft card drop-shadow — a blurred warm rounded rect. Placed behind each
-    // tile so the pile reads as a physically stacked pyramid instead of flat
-    // icons floating on the cream stage (the core depth cue for occlusion).
+    // Soft card drop-shadow — a blurred dark-green rounded rect placed behind
+    // each tile so the pile reads as physically stacked on the field.
     const shadowKey = "sheep-fx-cardshadow";
     if (!this.textures.exists(shadowKey)) {
       const w = 64, h = 72;
@@ -478,16 +458,15 @@ export class SheepScene extends BaseScene {
       for (let i = layers; i > 0; i--) {
         const t = i / layers;                 // 1 (outermost) → ~0 (core)
         const inset = 9 * (1 - t);
-        const a = 0.018 + 0.05 * (1 - t);
-        g.fillStyle(C.cardShadow, a);
+        const a = 0.02 + 0.055 * (1 - t);
+        g.fillStyle(C.ink, a);
         g.fillRoundedRect(inset, inset, w - inset * 2, h - inset * 2, 16 * t + 6);
       }
       g.generateTexture(shadowKey, w, h);
       g.destroy();
     }
 
-    // White rounded-rect used two ways (tinted per use): a warm occlusion veil
-    // over covered tiles, and a crisp lift-chip behind lobby preview tiles.
+    // White rounded-rect, tinted per use (WebGL-only cosmetics).
     const panelKey = "sheep-fx-panel";
     if (!this.textures.exists(panelKey)) {
       const s = 60;
@@ -495,6 +474,21 @@ export class SheepScene extends BaseScene {
       g.fillStyle(0xffffff, 1);
       g.fillRoundedRect(1, 1, s - 2, s - 2, 12);
       g.generateTexture(panelKey, s, s);
+      g.destroy();
+    }
+
+    // Covered-tile veil with the dark gray-green BAKED into the texture —
+    // runtime setTint is silently ignored by Phaser's Canvas renderer
+    // fallback, which turned the old white-texture+tint veil into a white
+    // wash. Baking the color keeps the §9.4 "harsh cover" read on every
+    // renderer.
+    const coverKey = "sheep-fx-cover";
+    if (!this.textures.exists(coverKey)) {
+      const w = 60, h = 70;
+      const g = this.make.graphics({ x: 0, y: 0 }, false);
+      g.fillStyle(C.coverVeil, 1);
+      g.fillRoundedRect(1, 1, w - 2, h - 2, 13);
+      g.generateTexture(coverKey, w, h);
       g.destroy();
     }
 
@@ -557,283 +551,210 @@ export class SheepScene extends BaseScene {
     });
   }
 
-  /** Ambient field: a breathing warm glow + drifting motes behind all UI. */
-  private buildAmbientField(W: number, H: number): void {
-    if (!this.textures.exists("sheep-fx-glow") || !this.textures.exists("sheep-fx-spark")) return;
-    const glow = this.add.image(W / 2, H * 0.4, "sheep-fx-glow")
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setTint(0xfff0c0)
-      .setScale(4)
-      .setAlpha(0.12);
-    this.ambientGlow = glow;
+  // ── Home view (meadow title screen) ─────────────────────────────────────────
+
+  private buildHome(W: number, _H: number): void {
+    this.homeGroup = this.add.container(0, 0);
+
+    // §9.4 v2 logo: big chunky WHITE lettering, near-black outline + HARD
+    // offset black drop shadow (sticker style — no gold, no gradients).
+    const logoY = 218;
+    this.homeLogoTxts = [];
+    const layerSpecs: Array<{ dx: number; dy: number; color: string }> = [
+      { dx: 5, dy: 7, color: INK },
+      { dx: 0, dy: 0, color: "#ffffff" },
+    ];
+    for (const spec of layerSpecs) {
+      const txt = this.add.text(W / 2 + spec.dx, logoY + spec.dy, "Sheep Solitaire", {
+        fontFamily: FONT,
+        fontSize: "46px",
+        fontStyle: "900",
+        color: spec.color,
+      }).setOrigin(0.5);
+      txt.setStroke(INK, 10);
+      this.homeLogoTxts.push(txt);
+      this.homeGroup.add(txt);
+    }
+
+    this.homeSubTxt = this.add.text(W / 2, 292, "Match 3 tiles to clear the board", {
+      fontFamily: FONT,
+      fontSize: "14px",
+      fontStyle: "700",
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: 300 },
+    }).setOrigin(0.5).setStroke(INK, 5);
+    this.homeGroup.add(this.homeSubTxt);
+
+    // Hero mascot — the in-house painted sheep (public/logo.webp, July 2026
+    // refresh) reframed as one big die-cut sticker medallion by
+    // scripts/generate-sheep-tiles.mjs. Replaces the retired circle-composite
+    // flock (2026-07-14 user verdict: the procedural circle sheep read as
+    // creepy, not cute). A gentle idle bob keeps the title screen alive.
+    const heroY = 420;
+    const hero = this.add.image(W / 2, heroY, SHEEP_ASSETS.mascot)
+      .setDisplaySize(196, 196);
+    this.homeGroup.add(hero);
     if (!this.reducedMotion) {
       this.tween({
-        targets: glow,
-        alpha: 0.22,
-        duration: 2600,
+        targets: hero,
+        y: heroY - 6,
+        duration: 1500,
         yoyo: true,
         repeat: -1,
         ease: "Sine.easeInOut",
       });
     }
-    const moteTints = [0xfff0c0, 0xffffff, 0xcfe8b0];
-    const count = this.reducedMotion ? 10 : 16;
-    for (let i = 0; i < count; i++) {
-      const mx = 30 + Math.random() * (W - 60);
-      const my = 60 + Math.random() * (H - 120);
-      const mote = this.add.image(mx, my, "sheep-fx-spark")
-        .setBlendMode(Phaser.BlendModes.ADD)
-        .setTint(moteTints[i % moteTints.length]!)
-        .setScale(0.25 + Math.random() * 0.35)
-        .setAlpha(this.reducedMotion ? 0.18 : 0.32);
-      if (!this.reducedMotion) {
-        this.tween({
-          targets: mote,
-          y: my - (18 + Math.random() * 30),
-          x: mx + (Math.random() * 24 - 12),
-          alpha: 0.12,
-          duration: 3000 + Math.random() * 2600,
-          delay: Math.random() * 2000,
-          yoyo: true,
-          repeat: -1,
-          ease: "Sine.easeInOut",
-        });
-      }
-    }
-  }
 
-  // ── Lobby ──────────────────────────────────────────────────────────────────
-
-  private buildLobby(W: number, H: number): void {
-    this.lobbyGroup = this.add.container(0, 0);
-
-    // Soft pastoral ground filling the band below the route stack so the lower
-    // third reads as intentional meadow rather than dead cream space.
-    this.buildLobbyGround(W, H);
-
-    const mascot = this.add.image(W / 2 - 130, 57, SHEEP_ASSETS.mascot)
-      .setDisplaySize(52, 52);
-
-    const headerTextX = W / 2 + 38;
-    this.lobbyTitleTxt = this.add.text(headerTextX, 52, "Sheep Solitaire", {
+    // Big single-tap entry — WHITE sticker button with wavy black border.
+    const startBtn = this.add.container(W / 2, 566);
+    const stickerImg = this.add.image(0, 0, SHEEP_ASSETS.sticker).setDisplaySize(290, 88);
+    this.homeStartTxt = this.add.text(-4, -6, "Start Game", {
       fontFamily: FONT,
-      fontSize: "21px",
-      fontStyle: "700",
-      color: "#2f281d",
+      fontSize: "26px",
+      fontStyle: "900",
+      color: INK,
     }).setOrigin(0.5);
-
-    this.lobbySubTxt = this.add.text(headerTextX, 82, "Match 3 tiles to clear the board", {
-      fontFamily: FONT,
-      fontSize: "12px",
-      color: "#7a6544",
-      wordWrap: { width: 236 },
-      align: "center",
-    }).setOrigin(0.5);
-
-    this.lobbyGroup.add([mascot, this.lobbyTitleTxt, this.lobbySubTxt]);
-
-    this.buildDailyBanner(W, H);
-
-    // 3 difficulty cards — a touch more breathing room lets the stack reach
-    // lower into the tall canvas. firstCenterY is the centre of the top card.
-    const firstCenterY = 268;
-    const cardH    = 112;
-    const gap      = 12;
-    const cardW    = W - 60;
-    const cx       = W / 2;
-
-    const diffColors  = [0xfffbef, 0xfff7df, 0xffefe2];
-    const diffBorders = [0x9aca76, 0xdab159, 0xe78b77];
-
-    for (let d = 0; d < 3; d++) {
-      const y = firstCenterY + d * (cardH + gap);
-      this.buildLobbyCard(cx, y, cardW, cardH, d, diffColors[d]!, diffBorders[d]!);
-    }
-  }
-
-  /** Subtle meadow ground (ellipses, grass blades, flower dots) in the lower band. */
-  private buildLobbyGround(W: number, H: number): void {
-    const g = this.add.graphics();
-    const baseY = H - 72;
-
-    g.fillStyle(0xd9edb7, 0.55);
-    g.fillEllipse(W * 0.30, baseY, 168, 34);
-    g.fillStyle(0xd9edb7, 0.42);
-    g.fillEllipse(W * 0.70, baseY + 30, 190, 38);
-
-    g.lineStyle(1, 0xa9c877, 0.45);
-    for (let x = 34; x < W - 24; x += 26) {
-      const sway = ((x / 26) % 2 === 0) ? 6 : -6;
-      g.lineBetween(x, baseY + 20, x + sway, baseY - 12);
-    }
-
-    // A few tiny flower dots for warmth.
-    const flowers: Array<[number, number, number]> = [
-      [W * 0.22, baseY - 4, 0xf2b8c6],
-      [W * 0.5, baseY + 20, 0xf6d98a],
-      [W * 0.8, baseY + 8, 0xc7b6ea],
-    ];
-    for (const [fx, fy, color] of flowers) {
-      g.fillStyle(color, 0.7);
-      g.fillCircle(fx, fy, 3.2);
-      g.fillStyle(0xfff8e8, 0.85);
-      g.fillCircle(fx, fy, 1.2);
-    }
-
-    this.lobbyGroup.add(g);
-  }
-
-  /** P1 — "Today's Challenge" banner: a two-level daily board (L1 teaching, L2 devil). */
-  private buildDailyBanner(W: number, _H: number): void {
-    const bw = W - 56;
-    const bh = 86;
-    const card = this.add.container(W / 2, 152);
-    const bg = this.add.rectangle(0, 0, bw, bh, 0xfff3d6).setStrokeStyle(2, 0xe78b77);
-    const title = this.add.text(-bw / 2 + 18, -18, this.locStr("dailyChallengeTitle", "Today's Challenge"), {
-      fontFamily: FONT,
-      fontSize: "17px",
-      fontStyle: "700",
-      color: "#b8432a",
-    }).setOrigin(0, 0.5);
-    const sub = this.add.text(-bw / 2 + 18, 12, this.locStr("dailyChallengeSub", "Level 1 easy · Level 2 devil · refreshes daily"), {
-      fontFamily: FONT,
-      fontSize: "11px",
-      color: "#8f5a20",
-      wordWrap: { width: bw - 36 },
-    }).setOrigin(0, 0.5);
-    card.add([bg, title, sub]);
-    this.dailyTitleTxt = title;
-    this.dailySubTxt = sub;
-    bg.setInteractive({ useHandCursor: true });
-    this.bindGameButton(bg, {
-      targets: card,
+    const startHit = this.add.rectangle(0, 0, 294, 94, 0xffffff, 0.001);
+    startBtn.add([stickerImg, this.homeStartTxt, startHit]);
+    this.homeStartBtn = startBtn;
+    this.homeStartHit = startHit;
+    startHit.setInteractive({ useHandCursor: true });
+    this.bindGameButton(startHit, {
+      targets: startBtn,
       enabled: () => this.canStartNewRun(),
-      hoverScale: 1.018,
-      pressScale: 0.97,
-      onHoverIn: () => bg.setStrokeStyle(3, C.goldLight),
-      onHoverOut: () => bg.setStrokeStyle(2, 0xe78b77),
+      hoverScale: 1.04,
+      pressScale: 0.95,
       onPress: () => {
         if (!this.canStartNewRun()) return;
         this.sfx.play("start");
         this.dispatch("startGame", { mode: "daily", level: 1 });
       },
     });
-    this.lobbyGroup.add(card);
-  }
+    this.homeGroup.add(startBtn);
 
-  private buildLobbyCard(
-    cx: number, cy: number,
-    w: number, h: number,
-    difficulty: number,
-    bgColor: number,
-    borderColor: number,
-  ): void {
-    // Card as a container centred on (cx, cy) so hover/press scale about the
-    // card's own centre and children ride along.
-    const card = this.add.container(cx, cy);
-
-    const bg = this.add.rectangle(0, 0, w, h, bgColor)
-      .setStrokeStyle(2, borderColor);
-
-    const badge = this.add.image(-w / 2 + 44, -h / 2 + 42, SHEEP_ASSETS.badges[difficulty] ?? SHEEP_ASSETS.badges[0])
-      .setDisplaySize(56, 56);
-
-    // Left column: themed board name + tile-type / clock info, left-aligned
-    // beside the badge.
-    const textLeft = -w / 2 + 80;
-    const label = this.add.text(textLeft, -30, DIFFICULTY_LABELS[difficulty]!, {
-      fontFamily: FONT,
-      fontSize: "17px",
-      fontStyle: "700",
-      color: "#2f281d",
-    }).setOrigin(0, 0.5);
-
-    const cardTypes = difficulty === 0 ? 8 : difficulty === 1 ? 12 : 15;
-    const infoText  = `${cardTypes} tile types · ${DIFFICULTY_TIMER[difficulty]}`;
-    const infoLabel = this.add.text(textLeft, -6, infoText, {
+    this.homeDailyTxt = this.add.text(W / 2, 628, "Level 1 easy · Level 2 devil · refreshes daily", {
       fontFamily: FONT,
       fontSize: "12px",
-      color: "#7a6544",
-    }).setOrigin(0, 0.5);
+      fontStyle: "700",
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: 320 },
+    }).setOrigin(0.5).setStroke(INK, 4);
+    this.homeGroup.add(this.homeDailyTxt);
 
-    // Right column: reward + entry, right-aligned so the card reads as a
-    // balanced two-column route card instead of a left-heavy block.
-    const textRight = w / 2 - 16;
-    const rewardLabel = this.add.text(textRight, -30, DIFFICULTY_REWARD[difficulty]!, {
+    // Secondary entry — free practice (opens the picker overlay).
+    const practiceBtn = this.add.container(W / 2, 682);
+    const practiceShadow = this.add.rectangle(3, 4, 176, 44, C.ink, 0.32);
+    const practiceBg = this.add.rectangle(0, 0, 176, 44, 0xffffff, 1)
+      .setStrokeStyle(4, C.ink, 1);
+    this.homePracticeTxt = this.add.text(0, 0, "Free Practice", {
+      fontFamily: FONT,
+      fontSize: "15px",
+      fontStyle: "800",
+      color: INK,
+    }).setOrigin(0.5);
+    practiceBtn.add([practiceShadow, practiceBg, this.homePracticeTxt]);
+    practiceBg.setInteractive({ useHandCursor: true });
+    this.bindGameButton(practiceBg, {
+      targets: practiceBtn,
+      hoverScale: 1.05,
+      pressScale: 0.94,
+      onPress: () => {
+        this.sfx.play("chip");
+        this.practiceOpen = true;
+        this.onStateUpdate(this.state);
+      },
+    });
+    this.homeGroup.add(practiceBtn);
+  }
+
+  // ── Practice picker overlay (secondary IA, tile-icon choices on the field) ──
+
+  private buildPracticeOverlay(W: number, H: number): void {
+    this.practiceGroup = this.add.container(0, 0);
+
+    const dim = this.add.rectangle(W / 2, H / 2, W + 80, H + 80, C.overlayDark, 0.62);
+    dim.setInteractive(); // swallow clicks under the overlay
+    this.practiceGroup.add(dim);
+
+    this.practiceTitleTxt = this.add.text(W / 2, 218, "Choose a practice board", {
+      fontFamily: FONT,
+      fontSize: "21px",
+      fontStyle: "800",
+      color: "#ffffff",
+    }).setOrigin(0.5).setStroke(INK, 5);
+    this.practiceGroup.add(this.practiceTitleTxt);
+
+    // Three tile-icon choices, one column per board (no web cards).
+    const colX = [W / 2 - 122, W / 2, W / 2 + 122];
+    for (let d = 0; d < 3; d++) {
+      const col = this.add.container(colX[d]!, 372);
+      const tile = this.add.image(0, -18, this.tileAssetKey(DIFFICULTY_PREVIEW_SYMBOL[d]!))
+        .setDisplaySize(92, 92 * TILE_RATIO);
+      const name = this.add.text(0, 58, DIFFICULTY_LABELS[d]!, {
+        fontFamily: FONT,
+        fontSize: "14px",
+        fontStyle: "800",
+        color: "#ffffff",
+        align: "center",
+        wordWrap: { width: 110 },
+      }).setOrigin(0.5).setStroke(INK, 4);
+      const info = this.add.text(0, 82, `${DIFFICULTY_TILE_TYPES[d]} tile types`, {
+        fontFamily: FONT,
+        fontSize: "11.5px",
+        fontStyle: "600",
+        color: "#d7f5cf",
+        align: "center",
+      }).setOrigin(0.5).setStroke(INK, 3);
+      col.add([tile, name, info]);
+      this.practiceNameTxts[d] = name;
+      this.practiceInfoTxts[d] = info;
+
+      tile.setInteractive({ useHandCursor: true });
+      this.bindGameButton(tile, {
+        targets: col,
+        enabled: () => this.canStartNewRun(),
+        hoverScale: 1.07,
+        pressScale: 0.93,
+        onPress: () => {
+          if (!this.canStartNewRun()) return;
+          this.practiceOpen = false;
+          this.sfx.play("start");
+          const difficulty = d;
+          this.dispatch("startGame", { difficulty });
+        },
+      });
+      this.practiceGroup.add(col);
+    }
+
+    // Back to the title screen.
+    const backBtn = this.add.container(W / 2, 542);
+    const backBg = this.add.rectangle(0, 0, 132, 42, 0xffffff, 0.14)
+      .setStrokeStyle(2, 0xffffff, 0.6);
+    this.practiceBackTxt = this.add.text(0, 0, "Back", {
       fontFamily: FONT,
       fontSize: "14px",
       fontStyle: "700",
-      color: "#217d4d",
-    }).setOrigin(1, 0.5);
-
-    const entryLabel = this.add.text(textRight, -6, DIFFICULTY_ENTRY[difficulty]!, {
-      fontFamily: FONT,
-      fontSize: "11.5px",
-      color: "#8f6a20",
-    }).setOrigin(1, 0.5);
-
-    // Preview real tile assets along the bottom row. Each preview tile sits on
-    // a crisp white chip with a soft shadow so it reads as a distinct tile
-    // rather than a faint cream-on-cream glyph.
-    const tileCount = Math.min(cardTypes, 8);
-    const tileStep = 32;
-    const tileStartX = -(tileCount / 2 - 0.5) * tileStep;
-    const previewY = h / 2 - 27;
-    const previewLabels: Phaser.GameObjects.Image[] = [];
-    for (let i = 0; i < tileCount; i++) {
-      const px = tileStartX + i * tileStep;
-      const shadow = this.add.image(px, previewY + 3, "sheep-fx-cardshadow")
-        .setDisplaySize(32, 33)
-        .setAlpha(0.2);
-      const chip = this.add.image(px, previewY, "sheep-fx-panel")
-        .setDisplaySize(31, 31)
-        .setTint(0xffffff);
-      const tile = this.add.image(px, previewY, this.tileAssetKey(i))
-        .setDisplaySize(33, 33);
-      previewLabels.push(shadow, chip, tile);
-    }
-
-    card.add([bg, badge, label, infoLabel, entryLabel, rewardLabel, ...previewLabels]);
-
-    // Store refs so applyLocale can retranslate this card.
-    this.cardNameTxts[difficulty]   = label;
-    this.cardInfoTxts[difficulty]   = infoLabel;
-    this.cardEntryTxts[difficulty]  = entryLabel;
-    this.cardRewardTxts[difficulty] = rewardLabel;
-
-    // Reduced-motion-aware hover/press via the framework helper; the whole card
-    // scales, and hover repaints the border.
-    bg.setInteractive({ useHandCursor: true });
-    this.bindGameButton(bg, {
-      targets: card,
-      enabled: () => this.canStartNewRun(),
-      hoverScale: 1.015,
-      pressScale: 0.97,
-      onHoverIn: () => bg.setStrokeStyle(3, C.goldLight),
-      onHoverOut: () => bg.setStrokeStyle(2, borderColor),
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    backBtn.add([backBg, this.practiceBackTxt]);
+    backBg.setInteractive({ useHandCursor: true });
+    this.bindGameButton(backBg, {
+      targets: backBtn,
+      hoverScale: 1.05,
+      pressScale: 0.94,
       onPress: () => {
-        if (!this.canStartNewRun()) return;
-        this.sfx.play("start");
-        this.dispatch("startGame", { difficulty });
+        this.sfx.play("chip");
+        this.practiceOpen = false;
+        this.onStateUpdate(this.state);
       },
     });
-
-    this.lobbyCards[difficulty] = card;
-    this.lobbyCardBgs[difficulty] = bg;
-    this.lobbyGroup.add(card);
+    this.practiceGroup.add(backBtn);
   }
 
   private canStartNewRun(): boolean {
     return this.str("appMode", "guest") === "guest" || this.bool("newPaidRunsEnabled");
-  }
-
-  private updateLobbyAvailability(): void {
-    const enabled = this.canStartNewRun() && !this.bool("isFinancialAction") && !this.bool("isRecovering");
-    this.lobbyCards.forEach((card) => card.setAlpha(enabled ? 1 : 0.62));
-    this.lobbyCardBgs.forEach((bg) => {
-      if (bg.input) bg.input.enabled = enabled;
-      bg.setStrokeStyle(2, enabled ? C.cardBorder : 0xc9bfae);
-    });
   }
 
   // ── Loading screen ─────────────────────────────────────────────────────────
@@ -841,33 +762,32 @@ export class SheepScene extends BaseScene {
   private buildLoadScreen(W: number, H: number): void {
     this.loadGroup = this.add.container(0, 0);
 
-    const bg = this.add.rectangle(W / 2, H / 2, W - 40, 140, C.panel)
-      .setStrokeStyle(2, C.gold);
+    const chip = this.add.rectangle(W / 2, H / 2 + 6, 300, 150, C.ink, 0.78)
+      .setStrokeStyle(3, 0xffffff, 0.4);
 
-    const spinner = this.add.container(W / 2, H / 2 - 28);
+    const spinner = this.add.container(W / 2, H / 2 - 36);
     const spinnerArt = this.add.image(0, 0, SHEEP_ASSETS.mascot)
-      .setDisplaySize(70, 70);
+      .setDisplaySize(74, 74);
     spinner.add(spinnerArt);
     this.spinner = spinner;
     this.spinnerBaseY = spinner.y;
 
-    this.loadTitleTxt = this.add.text(W / 2, H / 2 + 24, "Preparing your board…", {
+    this.loadTitleTxt = this.add.text(W / 2, H / 2 + 26, "Preparing your board…", {
       fontFamily: FONT,
       fontSize: "16px",
-      color: "#2f281d",
-    }).setOrigin(0.5);
+      fontStyle: "700",
+      color: "#ffffff",
+    }).setOrigin(0.5).setStroke(INK, 4);
 
-    this.loadSubTxt = this.add.text(W / 2, H / 2 + 48, "Securing puzzle on-chain", {
+    this.loadSubTxt = this.add.text(W / 2, H / 2 + 52, "Securing puzzle on-chain", {
       fontFamily: FONT,
       fontSize: "12px",
-      color: "#7a6544",
+      color: "#d7f5cf",
     }).setOrigin(0.5);
 
-    // Gentle bob — gated so prefers-reduced-motion users get a static mascot
-    // (no unconditional infinite tween on a core object).
     this.startSpinnerBob();
 
-    this.loadGroup.add([bg, spinner, this.loadTitleTxt, this.loadSubTxt]);
+    this.loadGroup.add([chip, spinner, this.loadTitleTxt, this.loadSubTxt]);
   }
 
   private startSpinnerBob(): void {
@@ -895,193 +815,246 @@ export class SheepScene extends BaseScene {
 
   // ── Game screen scaffold ───────────────────────────────────────────────────
 
-  private buildGameScreen(W: number, H: number): void {
+  private buildGameScreen(W: number, _H: number): void {
     this.gameGroup = this.add.container(0, 0);
 
-    // ── Pile container (cards rendered into it dynamically) ──────────────────
+    // ── Top HUD (§9.4 v2): black rounded pill, top-center, white text — the
+    // daily pill (每日挑战 · 第N关) with a smaller remaining-count pill below.
+    this.hudPillG = this.add.graphics();
+    this.gameGroup.add(this.hudPillG);
+    this.hudLevelTxt = this.add.text(W / 2, HUD_Y, "", {
+      fontFamily: FONT,
+      fontSize: "15px",
+      fontStyle: "800",
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    this.gameGroup.add(this.hudLevelTxt);
+    this.hudRemainTxt = this.add.text(W / 2, HUD_Y + 36, "", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      fontStyle: "800",
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    this.gameGroup.add(this.hudRemainTxt);
+
+    // ── Board containers (grid pile + side stacks, filled dynamically) ────────
     this.pileContainer = this.add.container(0, 0);
     this.gameGroup.add(this.pileContainer);
+    this.stackContainer = this.add.container(0, 0);
+    this.gameGroup.add(this.stackContainer);
 
-    // ── Progress label ───────────────────────────────────────────────────────
-    // Warm dark ink so it reads on the cream stage (retinted from the old
-    // dark-felt pale greens).
-    this.progressLabel = this.add.text(W / 2, 30, "", {
-      fontFamily: FONT,
-      fontSize: "13px",
-      fontStyle: "600",
-      color: "#5a4a37",
-    }).setOrigin(0.5);
-    this.gameGroup.add(this.progressLabel);
-
-    // ── Tray background ──────────────────────────────────────────────────────
-    const trayY = H * TRAY_Y_FRAC;
-    const trayBg = this.add.image(W / 2, trayY, SHEEP_ASSETS.tray)
-      .setDisplaySize(W - 12, 76);
+    // ── Wooden trough tray with fence posts (docked near screen bottom) ───────
+    const trayBg = this.add.image(W / 2, TRAY_Y, SHEEP_ASSETS.tray)
+      .setDisplaySize(TRAY_W, TRAY_H);
     this.trayBg = trayBg;
     this.gameGroup.add(trayBg);
 
-    // Tray label
-    this.trayLabelTxt = this.add.text(16, trayY - 46, "Tray", {
-      fontFamily: FONT,
-      fontSize: "11px",
-      fontStyle: "600",
-      color: "#8f6a20",
-    }).setAlpha(0.9);
-    this.gameGroup.add(this.trayLabelTxt);
-
-    // Slot outlines (7 static slots) — kept as references so the tray can warm
-    // toward danger as it fills (tension escalation).
-    const slotStep = (W - 32) / SLOT_COUNT;
-    const slotStartX = 16 + slotStep / 2;
+    // Slot tension frames — INVISIBLE at rest (§9.4 v2: no slot dividers);
+    // they only light up as warn/danger cues while the tray fills.
     this.slotBoxes = [];
     for (let i = 0; i < SLOT_COUNT; i++) {
-      const sx = slotStartX + i * slotStep;
-      const slotBox = this.add.rectangle(sx, trayY, slotStep - 8, 56, 0xffffff, 8)
-        .setStrokeStyle(1, 0xd8bd81, 0.35)
-        .setAlpha(0.18);
+      const sx = this.slotCenterX(i);
+      const slotBox = this.add.rectangle(sx, TRAY_TILE_Y, 46, 60, 0xffffff, 0)
+        .setStrokeStyle(0, 0xffffff, 0);
+      slotBox.setAlpha(0);
       this.slotBoxes.push(slotBox);
       this.gameGroup.add(slotBox);
     }
 
-    // ── Tray card container (filled dynamically) ─────────────────────────────
     this.trayContainer = this.add.container(0, 0);
     this.gameGroup.add(this.trayContainer);
 
-    // ── Tools row ────────────────────────────────────────────────────────────
-    const toolY = H * TOOLS_Y_FRAC;
-    this.toolsContainer = this.add.container(0, 0);
-    this.gameGroup.add(this.toolsContainer);
-    this.buildToolButtons(W, toolY);
+    // ── Prop buttons directly under the tray — original order: out-of-tray,
+    // undo, shuffle (§9.4 v2).
+    this.remove3Btn = this.makePropBtn(W / 2 - 96, PROPS_Y, SHEEP_ASSETS.props.remove, "remove", () => this.dispatch("useRemove3"));
+    this.undoBtn    = this.makePropBtn(W / 2,      PROPS_Y, SHEEP_ASSETS.props.undo, "undo", () => this.dispatch("useUndo"));
+    this.shuffleBtn = this.makePropBtn(W / 2 + 96, PROPS_Y, SHEEP_ASSETS.props.shuffle, "shuffle", () => this.dispatch("useShuffle"));
+    this.gameGroup.add([this.undoBtn, this.remove3Btn, this.shuffleBtn]);
 
-    // ── Status label ─────────────────────────────────────────────────────────
-    this.statusLabel = this.add.text(W / 2, H * STATUS_Y_FRAC, "", {
-      fontFamily: FONT,
-      fontSize: "12px",
-      color: "#5a4a37",
-      wordWrap: { width: W - 40 },
-      align: "center",
-    }).setOrigin(0.5);
-    this.gameGroup.add(this.statusLabel);
-
-    // ── Matched counter ──────────────────────────────────────────────────────
-    // Deep meadow green (matches the lobby reward ink) — legible on cream.
-    // Centered just under the progress line so it never collides with the
-    // framework mute / language buttons that overlay the canvas top corners.
-    this.matchedLabel = this.add.text(W / 2, 50, "", {
+    // ── Status toast ──────────────────────────────────────────────────────────
+    this.statusLabel = this.add.text(W / 2, TOAST_Y, "", {
       fontFamily: FONT,
       fontSize: "12px",
       fontStyle: "700",
-      color: "#217d4d",
+      color: "#ffffff",
+      wordWrap: { width: W - 40 },
       align: "center",
-    }).setOrigin(0.5);
-    this.gameGroup.add(this.matchedLabel);
+    }).setOrigin(0.5).setStroke(INK, 4);
+    this.gameGroup.add(this.statusLabel);
   }
 
-  // ── Tool buttons ───────────────────────────────────────────────────────────
-
-  private buildToolButtons(W: number, toolY: number): void {
-    const btnW = 96;
-    const gap  = 12;
-    const total = 3 * btnW + 2 * gap;
-    const startX = (W - total) / 2 + btnW / 2;
-
-    this.undoBtn    = this.makeToolBtn(startX,              toolY, "Undo",    "0", () => this.dispatch("useUndo"));
-    this.shuffleBtn = this.makeToolBtn(startX + btnW + gap, toolY, "Shuffle", "1", () => this.dispatch("useShuffle"));
-    this.remove3Btn = this.makeToolBtn(startX + 2*(btnW+gap), toolY, "Remove 3", "1", () => this.dispatch("useRemove3"));
-
-    // Extract count text refs from last item in each container (index 2)
-    this.undoCountTxt    = this.undoBtn.list[2]    as Phaser.GameObjects.Text;
-    this.shuffleCountTxt = this.shuffleBtn.list[2] as Phaser.GameObjects.Text;
-    this.remove3CountTxt = this.remove3Btn.list[2] as Phaser.GameObjects.Text;
-
-    // Extract label text refs (index 1) so applyLocale can retranslate them.
-    this.undoLabelTxt    = this.undoBtn.list[1]    as Phaser.GameObjects.Text;
-    this.shuffleLabelTxt = this.shuffleBtn.list[1] as Phaser.GameObjects.Text;
-    this.remove3LabelTxt = this.remove3Btn.list[1] as Phaser.GameObjects.Text;
-
-    this.toolsContainer.add([this.undoBtn, this.shuffleBtn, this.remove3Btn]);
+  private slotCenterX(index: number): number {
+    const innerW = TRAY_W - TRAY_SIDE_PAD * 2;
+    const step = innerW / SLOT_COUNT;
+    const left = DESIGN_W / 2 - TRAY_W / 2 + TRAY_SIDE_PAD;
+    return left + step * index + step / 2;
   }
 
-  private makeToolBtn(
+  // ── Prop buttons ───────────────────────────────────────────────────────────
+
+  private makePropBtn(
     x: number, y: number,
-    label: string,
-    countStr: string,
+    iconKey: string,
+    slot: "undo" | "remove" | "shuffle",
     onPress: () => void,
   ): Phaser.GameObjects.Container {
-    const c  = this.add.container(x, y);
-    const bg = this.add.rectangle(0, 0, 96, 44, C.btnBg)
-      .setStrokeStyle(2, C.btnBorder)
-      .setOrigin(0.5);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on("pointerover",  () => bg.setStrokeStyle(2, C.goldLight));
-    bg.on("pointerout",   () => bg.setStrokeStyle(2, C.btnBorder));
-    bg.on("pointerdown",  () => {
+    const c = this.add.container(x, y);
+
+    // §9.4 v2: sky-blue sticker button with yellow glyph (baked into the art:
+    // black outline + hard offset shadow). Greying is a tint when spent.
+    const icon = this.add.image(0, 0, iconKey).setDisplaySize(62, 66);
+    const countBg = this.add.circle(24, -24, 11, 0xe0663c).setStrokeStyle(3, C.ink, 1);
+    const count = this.add.text(24, -24, "1", {
+      fontFamily: FONT,
+      fontSize: "12px",
+      fontStyle: "800",
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    const label = this.add.text(0, 44, "", {
+      fontFamily: FONT,
+      fontSize: "11px",
+      fontStyle: "800",
+      color: "#ffffff",
+    }).setOrigin(0.5).setStroke(INK, 4);
+    const hit = this.add.rectangle(0, 4, 70, 92, 0xffffff, 0.001);
+    c.add([icon, countBg, count, label, hit]);
+    this.propCountTxts[slot] = count;
+    this.propLabelTxts[slot] = label;
+
+    hit.setInteractive({ useHandCursor: true });
+    hit.on("pointerdown", () => {
+      if (!hit.input?.enabled) return;
       this.sfx.play("chip");
       onPress();
-      this.pressFeedback(c, { scale: 0.93, duration: 60 });
+      this.pressFeedback(c, { scale: 0.9, duration: 70 });
     });
 
-    const txt = this.add.text(0, -2, label, {
-      fontFamily: FONT,
-      fontSize: "13px",
-      color: "#365314",
-    }).setOrigin(0.5);
-
-    const countTxt = this.add.text(36, -18, countStr, {
-      fontFamily: FONT,
-      fontSize: "10px",
-      color: "#3f6212",
-    }).setOrigin(0.5);
-
-    c.add([bg, txt, countTxt]);
     return c;
   }
 
-  // ── Result screen ──────────────────────────────────────────────────────────
+  private updateTools(): void {
+    const undosUsed   = this.num("undosUsed", 0);
+    const shuffleLeft = this.num("shuffleLeft", 1);
+    const remove3Left = this.num("remove3Left", 1);
+    const status      = this.str("gameStatus", "idle");
+    const slotCount   = (this.val<CardView[]>("slotCards") ?? []).length;
+    const isGuest     = this.str("appMode", "guest") === "guest";
+    const maxUndos    = isGuest ? 1 : 3;
+    const isActive    = status === "dealt" &&
+      !this.bool("isTeeBusy") &&
+      !this.bool("isFinancialAction") &&
+      !this.bool("deadlineExpired");
+
+    const undoAvail    = isActive && slotCount > 0 && undosUsed < maxUndos;
+    // Shuffle re-randomizes the remaining BOARD tiles and leaves the tray
+    // untouched, so it must stay available even with an empty tray.
+    const shuffleAvail = isActive && shuffleLeft > 0;
+    const remove3Avail = isActive && slotCount >= 3 && remove3Left > 0;
+
+    this.setPropBtnActive(this.undoBtn, undoAvail);
+    this.setPropBtnActive(this.shuffleBtn, shuffleAvail);
+    this.setPropBtnActive(this.remove3Btn, remove3Avail);
+
+    this.propCountTxts.undo?.setText(String(Math.max(0, maxUndos - undosUsed)));
+    this.propCountTxts.shuffle?.setText(String(shuffleLeft));
+    this.propCountTxts.remove?.setText(String(remove3Left));
+  }
+
+  private setPropBtnActive(btn: Phaser.GameObjects.Container, active: boolean): void {
+    const icon = btn.list[0] as Phaser.GameObjects.Image;
+    const hit = btn.list[4] as Phaser.GameObjects.Rectangle;
+    // Grey-out via tint on WebGL, but ALSO via alpha so the spent state
+    // survives the Canvas-renderer fallback (which ignores tints).
+    if (active) icon.clearTint().setAlpha(1);
+    else icon.setTint(0x8f8f8f).setAlpha(0.42);
+    if (hit.input) hit.input.enabled = active;
+    btn.setAlpha(active ? 1 : 0.75);
+  }
+
+  // ── Result / interstitial overlay ──────────────────────────────────────────
 
   private buildResultScreen(W: number, H: number): void {
     this.resultGroup = this.add.container(0, 0);
 
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x385b2a, 0.18);
-    const card    = this.add.rectangle(W / 2, H / 2, W - 60, 240, C.panel, 0.98)
-      .setStrokeStyle(3, C.gold);
+    const overlay = this.add.rectangle(W / 2, H / 2, W + 80, H + 80, C.overlayDark, 0.55);
+    overlay.setInteractive(); // swallow board clicks under the overlay
 
-    // Celebration mascot — peeks over the result card and bounces on a win.
-    // Hidden by default; shown/hidden per outcome in updateResultScreen.
-    this.resultMascot = this.add.image(W / 2, H / 2 - 118, SHEEP_ASSETS.mascot)
-      .setDisplaySize(74, 74)
+    // Wooden result panel — sticker style: flat wood, black outline, hard
+    // offset black shadow (not a cream web card).
+    const panel = this.add.graphics();
+    const pw = 316, ph = 288;
+    const px = W / 2 - pw / 2, py = H / 2 - ph / 2 - 10;
+    panel.fillStyle(C.ink, 0.32);
+    panel.fillRoundedRect(px + 7, py + 9, pw, ph, 24);
+    panel.fillStyle(C.wood, 1);
+    panel.fillRoundedRect(px, py, pw, ph, 24);
+    panel.lineStyle(6, C.ink, 1);
+    panel.strokeRoundedRect(px, py, pw, ph, 24);
+    panel.fillStyle(C.woodLight, 0.8);
+    panel.fillRoundedRect(px + 12, py + 10, pw - 24, 16, 8);
+
+    // Celebration mascot — the logo-derived sticker medallion peeks over the
+    // panel and bounces on a win only. 92px (up from 84) compensates for the
+    // shadow margin baked into the die-cut sticker art.
+    this.resultMascot = this.add.image(W / 2, py - 34, SHEEP_ASSETS.mascot)
+      .setDisplaySize(92, 92)
       .setVisible(false);
 
-    this.resultTitle = this.add.text(W / 2, H / 2 - 72, "", {
+    // Chunky white title over a hard black shadow (same language as the logo).
+    this.resultTitleTxts = [];
+    for (const spec of [
+      { dx: 4, dy: 5, color: INK },
+      { dx: 0, dy: 0, color: "#ffffff" },
+    ]) {
+      const txt = this.add.text(W / 2 + spec.dx, py + 66 + spec.dy, "", {
+        fontFamily: FONT,
+        fontSize: "30px",
+        fontStyle: "900",
+        color: spec.color,
+        align: "center",
+      }).setOrigin(0.5).setStroke(INK, 8);
+      this.resultTitleTxts.push(txt);
+    }
+
+    this.resultSub = this.add.text(W / 2, py + 128, "", {
       fontFamily: FONT,
-      fontSize: "32px",
+      fontSize: "14px",
       fontStyle: "700",
-      color: "#365314",
-    }).setOrigin(0.5);
-
-    this.resultSub = this.add.text(W / 2, H / 2 - 18, "", {
-      fontFamily: FONT,
-      fontSize: "15px",
-      color: "#5a4a37",
+      color: "#fff3dc",
       align: "center",
-      wordWrap: { width: W - 108 },
+      wordWrap: { width: pw - 48 },
     }).setOrigin(0.5);
 
-    // Action button
-    this.resultActionBg = this.add.rectangle(W / 2, H / 2 + 52, 180, 46, C.green)
-      .setStrokeStyle(2, 0x20d060)
-      .setOrigin(0.5);
+    // Action button — flat sticker: fill + black outline + hard shadow.
+    const actionY = py + ph - 62;
+    this.resultActionFill = this.add.graphics();
+    this.paintResultAction(C.btnGreen, actionY);
+    this.resultActionTxt = this.add.text(W / 2, actionY, "Play Again", {
+      fontFamily: FONT,
+      fontSize: "17px",
+      fontStyle: "800",
+      color: "#ffffff",
+    }).setOrigin(0.5).setStroke(INK, 4);
+    this.resultActionBg = this.add.rectangle(W / 2, actionY + 2, 228, 66, 0xffffff, 0.001);
     this.resultActionBg.setInteractive({ useHandCursor: true });
     this.resultActionBg.on("pointerdown", () => this.triggerResultAction());
 
-    this.resultActionTxt = this.add.text(W / 2, H / 2 + 52, "Play Again", {
-      fontFamily: FONT,
-      fontSize: "18px",
-      fontStyle: "700",
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    this.resultGroup.add([
+      overlay, panel, this.resultMascot,
+      ...this.resultTitleTxts, this.resultSub,
+      this.resultActionFill, this.resultActionTxt, this.resultActionBg,
+    ]);
+  }
 
-    this.resultGroup.add([overlay, card, this.resultMascot, this.resultTitle, this.resultSub, this.resultActionBg, this.resultActionTxt]);
+  private paintResultAction(fill: number, y: number): void {
+    const g = this.resultActionFill;
+    g.clear();
+    g.fillStyle(C.ink, 0.32);
+    g.fillRoundedRect(DESIGN_W / 2 - 112 + 5, y - 27 + 7, 224, 54, 20);
+    g.fillStyle(fill, 1);
+    g.fillRoundedRect(DESIGN_W / 2 - 112, y - 27, 224, 54, 20);
+    g.lineStyle(5, C.ink, 1);
+    g.strokeRoundedRect(DESIGN_W / 2 - 112, y - 27, 224, 54, 20);
   }
 
   /** Victory shower — falling meadow-colored confetti (reduced-motion gated). */
@@ -1092,13 +1065,13 @@ export class SheepScene extends BaseScene {
     const tints = [0xffd54a, 0x84cc16, 0xff8a4c, 0x16c784, 0xff6f7d, 0xf0c866];
     for (let i = 0; i < 26; i++) {
       const x = DESIGN_W / 2 + (Math.random() * 250 - 125);
-      const startY = DESIGN_H / 2 - 150;
+      const startY = DESIGN_H / 2 - 190;
       const conf = this.add.image(x, startY, key)
         .setTint(tints[i % tints.length]!)
         .setDepth(210)
         .setScale(0.7 + Math.random() * 0.7)
         .setAngle(Math.random() * 360);
-      const fall = 210 + Math.random() * 190;
+      const fall = 240 + Math.random() * 220;
       this.tween({
         targets: conf,
         y: startY + fall,
@@ -1113,18 +1086,23 @@ export class SheepScene extends BaseScene {
     }
   }
 
-  /** Play the celebratory mascot bounce (or reveal statically). */
-  private playResultMascot(win: boolean): void {
+  /**
+   * Win/lose mascot policy: bounce over the panel on a win; on Game Over the
+   * mascot stays HIDDEN (celebrating over a loss read as mockery in the audit).
+   * Called on EVERY result update — setGroupActive force-shows all children of
+   * an activated container, so visibility must be re-asserted afterwards.
+   */
+  private playResultMascot(win: boolean, animate: boolean): void {
     const mascot = this.resultMascot;
     if (!mascot) return;
     if (!win) {
       mascot.setVisible(false);
       return;
     }
-    const baseY = DESIGN_H / 2 - 118;
+    const baseY = DESIGN_H / 2 - 188;
     mascot.setVisible(true).setY(baseY);
     this.tweens.killTweensOf(mascot);
-    if (this.reducedMotion) return;
+    if (this.reducedMotion || !animate) return;
     this.tweens.add({
       targets: mascot,
       y: baseY - 15,
@@ -1144,21 +1122,23 @@ export class SheepScene extends BaseScene {
 
     const currentPileLen = pileCards.length;
     const currentSlotLen = slotCards.length;
-    const initialDeal = this.prevPileLen === 0 && currentPileLen > 0;
+    // A deal is identified by game id + deal timestamp + daily level — board
+    // metrics (origin/tile size) are cached per deal so removing cards never
+    // re-centres the remaining tower.
+    const dealKey = `${this.str("activeGameId", "0")}:${this.num("dealtAt", 0)}:${this.num("level", 1)}`;
+    const isNewDeal = dealKey !== this.renderedDealKey;
     const pileKey = pileCards
-      .map((card) => `${card.id}:${card.symbol}:${card.layer}:${card.col ?? ""}:${card.row ?? ""}:${card.exposed ? 1 : 0}`)
+      .map((card) => `${card.id}:${card.symbol}:${card.layer}:${card.col ?? ""}:${card.row ?? ""}:${card.zone ?? "grid"}:${card.stackIndex ?? 0}:${card.exposed ? 1 : 0}`)
       .join("|");
     const trayKey = slotCards
       .map((card) => `${card.id}:${card.symbol}`)
       .join("|");
 
-    // ── Detect match-3 elimination: slot count dropped by 3 ─────────────────
+    // ── Match-3 elimination: squeeze + burst anchored at the cleared slots ───
     if (isMatching && !this.prevMatching) {
-      this.animateMatchClear();
+      this.animateMatchClear(slotCards);
+      this.sfx.play("merge");
     }
-
-    // Match-3 dopamine hit — isMatching only rises when the TEE confirms a triple.
-    if (isMatching && !this.prevMatching) this.sfx.play("merge");
     this.prevMatching = isMatching;
 
     // Soft warning the moment the 6th tray slot fills.
@@ -1166,147 +1146,233 @@ export class SheepScene extends BaseScene {
       this.sfx.play("error");
     }
 
+    if (isNewDeal) {
+      this.renderedDealKey = dealKey;
+      this.boardMetrics = null;
+      this.inFlightPickIds.clear();
+      this.destroyActiveGhosts();
+    }
+
     if (pileKey !== this.renderedPileKey) {
-      this.rebuildPile(pileCards, initialDeal);
+      this.rebuildBoard(pileCards, isNewDeal || this.renderedPileKey === null);
       this.renderedPileKey = pileKey;
     }
     if (trayKey !== this.renderedTrayKey) {
-      // Pop the freshly landed tile when the tray grows (settle cue).
-      const settleIndex = currentSlotLen > this.prevSlotLen ? currentSlotLen - 1 : -1;
-      this.rebuildTray(slotCards, settleIndex);
+      this.rebuildTray(slotCards);
       this.renderedTrayKey = trayKey;
     }
-    // Escalate slot tension as the tray fills toward the 7-slot ceiling.
     this.updateTrayTension(currentSlotLen);
     this.updateTools();
-    this.updateProgress(pileCards, slotCards);
+    this.updateHud(pileCards, slotCards);
     this.prevPileLen = currentPileLen;
     this.prevSlotLen = currentSlotLen;
   }
 
-  /** Warm the tray slots and shake the tray as it approaches the 7-slot loss. */
-  private updateTrayTension(count: number): void {
-    const danger = count >= SLOT_COUNT - 1; // 6 or 7 filled
-    const warn   = count >= SLOT_COUNT - 2; // 5+ filled
-    this.slotBoxes.forEach((box, i) => {
-      const filled = i < count;
-      if (!filled && danger) {
-        // The last empty slot(s) glow hot — the shrinking runway is the read.
-        box.setStrokeStyle(2.6, C.slotDanger, 0.95).setFillStyle(0xffdccf, 0.6).setAlpha(0.62);
-      } else if (!filled && warn) {
-        box.setStrokeStyle(2.2, C.slotWarn, 0.85).setFillStyle(0xffe9c8, 0.5).setAlpha(0.5);
-      } else if (filled && danger) {
-        box.setStrokeStyle(1.6, C.slotDanger, 0.5).setFillStyle(0xffffff, 0.08).setAlpha(0.28);
-      } else if (filled && warn) {
-        box.setStrokeStyle(1.6, C.slotWarn, 0.45).setFillStyle(0xffffff, 0.08).setAlpha(0.24);
-      } else {
-        box.setStrokeStyle(1, 0xd8bd81, 0.35).setFillStyle(0xffffff, 0.08).setAlpha(0.18);
-      }
-    });
-    this.trayBg?.setTint(danger ? 0xff9e86 : warn ? 0xffe0b0 : 0xffffff);
-    // A subtle shake the moment the tray crosses into the danger zone.
-    if (danger && count > this.prevSlotLen) this.shakeTray();
+  private updateHud(pileCards: CardView[], slotCards: CardView[]): void {
+    const lvl = this.num("level", 1);
+    const isDaily = this.str("playMode", "practice") === "daily";
+    const levelName = this.locStr("hudLevelN", "Level {n}").replace("{n}", String(lvl));
+    this.hudLevelTxt.setText(
+      isDaily
+        ? `${this.locStr("dailyChallengeTitle", "Today's Challenge")} · ${levelName}`
+        : this.locStr("hudLevelPractice", "Practice"),
+    );
+
+    const remaining = pileCards.length + slotCards.length;
+    const deadline = this.num("deadline", 0);
+    const remainLabel = this.locStr("hudRemaining", "{count} left").replace("{count}", String(remaining));
+    this.hudRemainTxt.setText(deadline > 0 ? `${remainLabel} · ${this.formatTimeLeft(deadline)}` : remainLabel);
+
+    // Redraw the two black pills to fit their text.
+    const g = this.hudPillG;
+    g.clear();
+    g.fillStyle(C.ink, 0.82);
+    const mainW = this.hudLevelTxt.width + 40;
+    g.fillRoundedRect(DESIGN_W / 2 - mainW / 2, HUD_Y - 17, mainW, 34, 17);
+    const subW = this.hudRemainTxt.width + 26;
+    g.fillStyle(C.ink, 0.66);
+    g.fillRoundedRect(DESIGN_W / 2 - subW / 2, HUD_Y + 36 - 12, subW, 24, 12);
   }
 
-  private shakeTray(): void {
-    if (this.reducedMotion || this.trayShaking) return;
-    const targets = [this.trayBg, this.trayContainer, this.trayLabelTxt, ...this.slotBoxes]
-      .filter(Boolean) as Phaser.GameObjects.GameObject[];
-    if (targets.length === 0) return;
-    this.trayShaking = true;
-    this.tweens.add({
-      targets,
-      x: "+=4",
-      duration: 44,
-      yoyo: true,
-      repeat: 3,
-      ease: "Sine.easeInOut",
-      onComplete: () => { this.trayShaking = false; },
-    });
+  // ── Board rendering (§9.2 unified unit formula) ─────────────────────────────
+
+  /**
+   * §9.2 unified fine grid: `unit = col * 2 + (layer % 2)` (odd layers are
+   * half-tile staggered) and `px = origin + unit * (tileW / 2)`. The engine
+   * uses the SAME formula for occlusion, so "visually uncovered" and
+   * "logically pickable" can never diverge. Inlined per the §9 contract until
+   * the engine exports it — the math must stay identical.
+   */
+  private unitOf(card: CardView): { ux: number; uy: number } {
+    const off = (card.layer ?? 0) % 2;
+    return {
+      ux: (card.col ?? 0) * 2 + off,
+      uy: (card.row ?? 0) * 2 + off,
+    };
   }
 
-  private rebuildPile(pileCards: CardView[], animateDeal = false): void {
-    // Clear existing pile sprites
+  private computeBoardMetrics(gridCards: CardView[]): BoardMetrics {
+    if (gridCards.length === 0) {
+      return { tileW: 54, tileH: 54 * TILE_RATIO, originX: DESIGN_W / 2, originY: (BOARD_TOP + BOARD_BOTTOM) / 2 };
+    }
+    let minUX = Infinity, maxUX = -Infinity, minUY = Infinity, maxUY = -Infinity;
+    for (const card of gridCards) {
+      const { ux, uy } = this.unitOf(card);
+      if (ux < minUX) minUX = ux;
+      if (ux > maxUX) maxUX = ux;
+      if (uy < minUY) minUY = uy;
+      if (uy > maxUY) maxUY = uy;
+    }
+    const availW = DESIGN_W - 26;
+    const availH = BOARD_BOTTOM - BOARD_TOP;
+    const spanX = (maxUX - minUX) / 2 + 1; // in tile widths
+    const spanY = (maxUY - minUY) / 2 + 1; // in tile heights
+    const tileW = Math.min(TILE_W_MAX, availW / spanX, availH / spanY / TILE_RATIO);
+    const tileH = tileW * TILE_RATIO;
+    return {
+      tileW,
+      tileH,
+      originX: DESIGN_W / 2 - ((minUX + maxUX) / 2) * (tileW / 2),
+      originY: BOARD_TOP + availH / 2 - ((minUY + maxUY) / 2) * (tileH / 2),
+    };
+  }
+
+  private rebuildBoard(pileCards: CardView[], animateDeal = false): void {
     this.pileContainer.removeAll(true);
+    this.stackContainer.removeAll(true);
 
     if (pileCards.length === 0) return;
 
-    const W = DESIGN_W;
-    // Sort: render layer 2 first (back), then 1, then 0 (front)
-    const byLayer: CardView[][] = [[], [], []];
+    const gridCards: CardView[] = [];
+    const stackL: CardView[] = [];
+    const stackR: CardView[] = [];
     for (const card of pileCards) {
-      const l = Math.min(2, Math.max(0, card.layer));
-      byLayer[l]!.push(card);
+      // Legacy cards carry no zone — default zone "grid", stackIndex 0 (§9.1).
+      if (card.zone === "stackL") stackL.push(card);
+      else if (card.zone === "stackR") stackR.push(card);
+      else gridCards.push(card);
     }
 
-    const cx = W / 2;
-    // pile base y — cards stack upward from here
-    const pileBaseY = DESIGN_H * TRAY_Y_FRAC - 46;
+    if (!this.boardMetrics) this.boardMetrics = this.computeBoardMetrics(gridCards);
+    const m = this.boardMetrics;
 
-    // Render order: layer 2 → 1 → 0
-    for (let layerIdx = 2; layerIdx >= 0; layerIdx--) {
-      const layerCards = byLayer[layerIdx] ?? [];
-      if (layerCards.length === 0) continue;
+    // Render bottom layers first (§9.1: layer 0 = topmost) so the top of the
+    // tower is drawn last and overlaps what it covers.
+    const sorted = [...gridCards].sort((a, b) =>
+      (b.layer - a.layer) || ((a.row ?? 0) - (b.row ?? 0)) || ((a.col ?? 0) - (b.col ?? 0)));
 
-      const numCols = layerIdx === 0 ? 4 : layerIdx === 1 ? 5 : 6;
-      const numRows = layerIdx === 0 ? 3 : layerIdx === 1 ? 4 : 5;
+    sorted.forEach((card, idx) => {
+      const { ux, uy } = this.unitOf(card);
+      const x = m.originX + ux * (m.tileW / 2);
+      const y = m.originY + uy * (m.tileH / 2);
+      const sprite = this.makeCardSprite(card, m.tileW, m.tileH);
+      sprite.setPosition(x, y);
+      this.pileContainer.add(sprite);
+      if (animateDeal) {
+        sprite.setAlpha(0).setScale(0.72).setY(y - 18);
+        this.tween({
+          targets: sprite,
+          alpha: 1,
+          scaleX: 1,
+          scaleY: 1,
+          y,
+          duration: 220,
+          delay: Math.min(420, idx * 10),
+          ease: "Back.easeOut",
+        });
+      }
+    });
 
-      // Each layer is shifted slightly up and right for 3-D stacking
-      const layerXShift = (2 - layerIdx) * 3;
-      const layerYShift = (2 - layerIdx) * 16;
+    // §9.2 stack exposure: only the outermost card (max stackIndex) is
+    // pickable; buried cards render face-up as ~22% edge slivers, darkened.
+    this.renderStack(stackL, "L", animateDeal);
+    this.renderStack(stackR, "R", animateDeal);
+  }
 
-      const gridW = numCols * CARD_STEP_X;
-      const gridLeft = cx - gridW / 2 + CARD_STEP_X / 2;
+  /**
+   * §9.4 v2 side stacks: a RIBBED compressed block (vertical ridge stripes =
+   * the edges of a stack of face-down-compressed cards, gray-green) with the
+   * single topmost card (max stackIndex — the only pickable one, §9.2) fully
+   * face-up at the inner end, plus a count badge for the buried depth.
+   */
+  private renderStack(cards: CardView[], side: "L" | "R", animateDeal: boolean): void {
+    if (cards.length === 0) return;
+    const sorted = [...cards].sort((a, b) => (a.stackIndex ?? 0) - (b.stackIndex ?? 0));
+    const top = sorted[sorted.length - 1]!;
+    const buried = sorted.length - 1;
+    const tileW = STACK_TILE_W;
+    const tileH = tileW * TILE_RATIO;
+    const dir = side === "L" ? 1 : -1;
+    const edge = side === "L" ? 20 : DESIGN_W - 20;
 
-      layerCards.forEach((card, idx) => {
-        const col = card.col ?? idx % numCols;
-        const row = card.row ?? Math.floor(idx / numCols);
+    const group = this.add.container(0, 0);
 
-        // Cards in bottom row have larger y (lower on screen)
-        const rowFromBottom = numRows - 1 - row;
-        const x = gridLeft + col * CARD_STEP_X + layerXShift;
-        const y = pileBaseY - rowFromBottom * (CARD_STEP_Y * 0.72) - layerYShift;
+    // Ribbed block for the buried cards (width grows with depth).
+    if (buried > 0) {
+      const blockW = Math.min(96, 16 + buried * 9);
+      const bx = edge + dir * (blockW / 2);
+      const g = this.add.graphics();
+      // hard sticker shadow
+      g.fillStyle(C.ink, 0.3);
+      g.fillRoundedRect(bx - blockW / 2 + 4, STACK_Y - tileH / 2 + 5, blockW, tileH, 10);
+      g.fillStyle(C.stackBlock, 1);
+      g.fillRoundedRect(bx - blockW / 2, STACK_Y - tileH / 2, blockW, tileH, 10);
+      g.lineStyle(3.5, C.ink, 1);
+      g.strokeRoundedRect(bx - blockW / 2, STACK_Y - tileH / 2, blockW, tileH, 10);
+      // vertical ridges (card edges)
+      g.lineStyle(2.5, C.stackRidge, 1);
+      const ridges = Math.min(buried, 9);
+      for (let r = 1; r <= ridges; r++) {
+        const rx = bx - blockW / 2 + (blockW / (ridges + 1)) * r;
+        g.lineBetween(rx, STACK_Y - tileH / 2 + 6, rx, STACK_Y + tileH / 2 - 6);
+      }
+      group.add(g);
 
-        const sprite = this.makeCardSprite(card);
-        sprite.setPosition(x, y);
-        this.pileContainer.add(sprite);
-        if (animateDeal) {
-          sprite.setAlpha(0).setScale(0.72).setY(y - 18);
-          this.tween({
-            targets: sprite,
-            alpha: 1,
-            scaleX: 1,
-            scaleY: 1,
-            y,
-            duration: 220,
-            delay: Math.min(360, idx * 14 + (2 - layerIdx) * 55),
-            ease: "Back.easeOut",
-          });
-        }
+      // Depth badge.
+      const badge = this.add.circle(bx, STACK_Y - tileH / 2 - 2, 11, 0x26221e, 0.85)
+        .setStrokeStyle(2, 0xffffff, 0.7);
+      const badgeTxt = this.add.text(bx, STACK_Y - tileH / 2 - 2, String(buried), {
+        fontFamily: FONT,
+        fontSize: "11px",
+        fontStyle: "800",
+        color: "#ffffff",
+      }).setOrigin(0.5);
+      group.add([badge, badgeTxt]);
+    }
+
+    // Topmost card, fully face-up at the inner end of the block.
+    const blockW = buried > 0 ? Math.min(96, 16 + buried * 9) : 0;
+    const topX = edge + dir * (blockW + tileW / 2 - 2);
+    const sprite = this.makeCardSprite(top, tileW, tileH);
+    sprite.setPosition(topX, STACK_Y);
+    group.add(sprite);
+
+    this.stackContainer.add(group);
+    if (animateDeal) {
+      group.setAlpha(0);
+      this.tween({
+        targets: group,
+        alpha: 1,
+        duration: 220,
+        delay: 340,
+        ease: "Quad.easeOut",
       });
     }
   }
 
-  private makeCardSprite(card: CardView): Phaser.GameObjects.Container {
+  private makeCardSprite(card: CardView, tileW: number, tileH: number): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
     const isExposed = card.exposed;
 
-    // Drop shadow — lifts the card off the cream stage. Exposed (tappable)
-    // cards cast a deeper shadow so the top layer visibly rises above the
-    // dimmed cards it covers.
-    const shadow = this.add.image(1.5, 6, "sheep-fx-cardshadow")
-      .setDisplaySize(CARD_W + 14, CARD_H + 10)
-      .setAlpha(isExposed ? 0.36 : 0.2);
-    c.add(shadow);
-
+    // The hard offset sticker shadow is baked into the tile art (§9.4 v2) —
+    // no per-sprite soft shadow.
     const tile = this.add.image(0, 0, this.tileAssetKey(card.symbol))
-      .setDisplaySize(TILE_ART_SIZE, TILE_ART_SIZE);
+      .setDisplaySize(tileW, tileH);
 
     if (isExposed) {
-      // Hover halo — sits behind the tile and breathes on pointer-over.
       const glow = this.add.image(0, 0, "sheep-fx-glow")
         .setBlendMode(Phaser.BlendModes.ADD)
-        .setTint(0xffd98a)
+        .setTint(0xffe9a8)
         .setScale(0.95)
         .setAlpha(0);
       c.add([glow, tile]);
@@ -1322,9 +1388,9 @@ export class SheepScene extends BaseScene {
         this.animate({ targets: c, scaleX: 1.08, scaleY: 1.08, duration: 90, ease: "Back.easeOut" });
         this.tweens.killTweensOf(glow);
         if (!this.reducedMotion) {
-          this.tween({ targets: glow, alpha: 0.55, duration: 220, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+          this.tween({ targets: glow, alpha: 0.5, duration: 220, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
         } else {
-          glow.setAlpha(0.34);
+          glow.setAlpha(0.3);
         }
       });
       tile.on("pointerout", () => {
@@ -1333,26 +1399,48 @@ export class SheepScene extends BaseScene {
         this.tween({ targets: glow, alpha: 0, duration: 120 });
       });
       tile.on("pointerdown", () => {
-        if (this.ghostInFlight) return;
-        this.handleCardClick(card, c);
+        this.handleCardClick(card, c, tileW, tileH);
       });
     } else {
-      // Covered tiles stay fully opaque (so they never vanish into the cream
-      // background) but are muted and sink under a warm occlusion veil — the
-      // "which tiles are locked underneath" read at the heart of 羊了个羊. They
-      // are non-interactive.
-      tile.setTint(C.occludedInk);
-      const veil = this.add.image(0, 0, "sheep-fx-panel")
-        .setDisplaySize(TILE_ART_SIZE - 2, TILE_ART_SIZE - 2)
-        .setTint(C.occlusion)
-        .setAlpha(0.32);
+      // §9.4 v2 covered read: the WHOLE tile sinks under a dark gray-green
+      // veil (icon dimly visible), fully opaque — harsh one-glance contrast
+      // against the bright cream exposed tiles. The veil color is baked into
+      // the texture (Canvas renderer ignores runtime tints).
+      const veil = this.add.image(0, 1, "sheep-fx-cover")
+        .setDisplaySize(tileW - 3, tileH - 8)
+        .setAlpha(0.62);
       c.add([tile, veil]);
     }
 
     return c;
   }
 
-  private handleCardClick(card: CardView, sprite: Phaser.GameObjects.Container): void {
+  // ── Pick handling (engine-authoritative; ghost flight is pure cosmetics) ────
+
+  /**
+   * Replicate the engine's cluster-insert scan over the current tray: scan
+   * from the tail for the same symbol and insert right after it, else append.
+   * Purely cosmetic — used to aim the ghost flight at the slot where the
+   * authoritative engine will actually put the card.
+   */
+  private predictInsertIndex(symbol: number): number {
+    let insertAt = this.predictedTraySymbols.length;
+    for (let i = this.predictedTraySymbols.length - 1; i >= 0; i -= 1) {
+      if (this.predictedTraySymbols[i] === symbol) {
+        insertAt = i + 1;
+        break;
+      }
+    }
+    this.predictedTraySymbols.splice(insertAt, 0, symbol);
+    return insertAt;
+  }
+
+  private handleCardClick(
+    card: CardView,
+    sprite: Phaser.GameObjects.Container,
+    tileW: number,
+    tileH: number,
+  ): void {
     const slotCards = (this.val<CardView[]>("slotCards") ?? []);
     if (
       slotCards.length >= SLOT_COUNT ||
@@ -1363,54 +1451,59 @@ export class SheepScene extends BaseScene {
 
     this.sfx.play("tap");
 
-    // Calculate target slot position
-    const W = DESIGN_W;
-    const H = DESIGN_H;
-    const trayY   = H * TRAY_Y_FRAC;
-    const slotStep = (W - 32) / SLOT_COUNT;
-    const slotStartX = 16 + slotStep / 2;
-    const targetX = slotStartX + slotCards.length * slotStep;
-    const targetY = trayY;
-    const slotScaleX = (slotStep - 6) / CARD_W;
-    const slotScaleY = 58 / CARD_H;
+    // The engine validates every pick — dispatch IMMEDIATELY so rapid taps are
+    // never serialized behind an animation. Everything below is cosmetic.
+    this.dispatch("pickCard", { cardId: card.id });
 
-    // Reduced motion: no flight — hand the pick to the engine immediately and
-    // restore the source if the authoritative engine rejects a stale pick.
     if (this.reducedMotion) {
       this.sfx.play("select");
-      this.dispatch("pickCard", { cardId: card.id });
-      if (sprite.active) sprite.setAlpha(1);
       return;
     }
 
-    // Source tile lifts (scale pop) as it is plucked from the pile.
+    const insertIdx = Math.min(SLOT_COUNT - 1, this.predictInsertIndex(card.symbol));
+    const targetX = this.slotCenterX(insertIdx);
+    const targetY = TRAY_TILE_Y;
+    const slotScaleX = 44 / tileW;
+    const slotScaleY = 56 / tileH;
+
+    // Source tile lifts, then dims while its ghost flies.
+    this.inFlightPickIds.add(card.id);
     this.tweens.add({
       targets: sprite,
       scaleX: 1.16, scaleY: 1.16,
       duration: 90, yoyo: true, ease: "Sine.easeOut",
     });
-    this.animate({ targets: sprite, alpha: 0.28, duration: 140 });
+    this.animate({ targets: sprite, alpha: 0.25, duration: 140 });
 
-    // Ghost flies from the pile to its tray slot along a smooth arc, shrinking
-    // to slot size and settling with a soft land squash.
-    const worldPos = this.pileContainer.getWorldTransformMatrix().transformPoint(
-      sprite.x, sprite.y,
-    );
+    const parent = sprite.parentContainer ?? this.pileContainer;
+    const worldPos = parent.getWorldTransformMatrix().transformPoint(sprite.x, sprite.y);
     const startX = worldPos.x, startY = worldPos.y;
-    const ghost = this.makeCardSprite({ ...card, exposed: true });
+    const ghost = this.makeCardSprite({ ...card, exposed: true }, tileW, tileH);
     ghost.setPosition(startX, startY);
     this.add.existing(ghost);
     ghost.setDepth(100);
-    this.ghostInFlight = true;
+    this.activeGhosts.add(ghost);
 
     const dx = targetX - startX;
     const dir = dx >= 0 ? 1 : -1;
     const apexLift = 44 + Math.random() * 12;
+    const finishPick = (): void => {
+      this.activeGhosts.delete(ghost);
+      ghost.destroy();
+      this.sfx.play("select");
+      this.revealLandedTraySprite(card.id);
+      // If the authoritative engine rejected a stale pick, no tray sprite
+      // exists — restore the source tile instead of leaving a false fade.
+      if (!this.traySpritesById.has(card.id) && sprite.active) {
+        this.tween({ targets: sprite, alpha: 1, duration: 100, ease: "Quad.easeOut" });
+      }
+    };
     this.tweens.addCounter({
       from: 0, to: 1,
-      duration: 300,
+      duration: 290,
       ease: "Sine.easeInOut",
       onUpdate: (tw) => {
+        if (!ghost.active) return;
         const t = tw.getValue() ?? 0;
         const x = startX + dx * t;
         // Parabolic arc: rises off the pile, then drops cleanly into the slot.
@@ -1420,53 +1513,77 @@ export class SheepScene extends BaseScene {
         ghost.setAngle(dir * 7 * Math.sin(Math.PI * t));
       },
       onComplete: () => {
+        if (!ghost.active) {
+          this.inFlightPickIds.delete(card.id);
+          return;
+        }
         ghost.setAngle(0);
-        // Land squash → settle into the slot.
+        // Land squash → settle into the cluster-insert slot.
         this.tweens.add({
           targets: ghost,
           scaleX: slotScaleX * 1.14, scaleY: slotScaleY * 0.84,
           duration: 72, yoyo: true, ease: "Quad.easeOut",
-          onComplete: () => {
-            ghost.destroy();
-            this.ghostInFlight = false;
-            this.sfx.play("select");
-            this.dispatch("pickCard", { cardId: card.id });
-            // If the authoritative engine rejects a stale/covered pick, restore
-            // the source tile instead of leaving a permanently faded false cue.
-            if (sprite.active) {
-              this.tween({ targets: sprite, alpha: 1, duration: 100, ease: "Quad.easeOut" });
-            }
-          },
+          onComplete: finishPick,
         });
       },
     });
+    // Safety valve: if the ghost is swept (view change), reveal the tray tile.
+    this.time.delayedCall(900, () => this.revealLandedTraySprite(card.id));
   }
 
-  private rebuildTray(slotCards: CardView[], settleIndex = -1): void {
+  private revealLandedTraySprite(cardId: number): void {
+    this.inFlightPickIds.delete(cardId);
+    const traySprite = this.traySpritesById.get(cardId);
+    if (traySprite?.active && traySprite.alpha < 1) {
+      traySprite.setAlpha(1);
+      if (!this.reducedMotion) {
+        traySprite.setScale(0.6);
+        this.tweens.add({
+          targets: traySprite,
+          scaleX: 1, scaleY: 1,
+          duration: 240,
+          ease: "Back.easeOut",
+        });
+      }
+    }
+  }
+
+  private destroyActiveGhosts(): void {
+    for (const ghost of this.activeGhosts) {
+      if (ghost.active) ghost.destroy();
+    }
+    this.activeGhosts.clear();
+  }
+
+  // ── Tray rendering ─────────────────────────────────────────────────────────
+
+  private rebuildTray(slotCards: CardView[]): void {
     this.trayContainer.removeAll(true);
+    this.traySpritesById.clear();
 
-    const W = DESIGN_W;
-    const H = DESIGN_H;
-    const trayY    = H * TRAY_Y_FRAC;
-    const slotStep = (W - 32) / SLOT_COUNT;
-    const slotStartX = 16 + slotStep / 2;
-
-    const slotW = slotStep - 6;
+    const prevIds = this.prevTrayIds;
+    const newIds = slotCards.map((card) => card.id);
 
     slotCards.forEach((card, idx) => {
       if (idx >= SLOT_COUNT) return;
-      const x = slotStartX + idx * slotStep;
-      const c = this.add.container(x, trayY);
+      const x = this.slotCenterX(idx);
+      const c = this.add.container(x, TRAY_TILE_Y);
 
-      const bg = this.add.ellipse(0, 25, slotW * 0.78, 8, 0x000000, 0.1);
+      const ground = this.add.ellipse(0, 27, 38, 8, 0x000000, 0.16);
       const tile = this.add.image(0, 0, this.tileAssetKey(card.symbol))
-        .setDisplaySize(48, 48);
+        .setDisplaySize(44, 56);
 
-      c.add([bg, tile]);
+      c.add([ground, tile]);
       this.trayContainer.add(c);
+      this.traySpritesById.set(card.id, c);
 
-      // Settle bounce on the tile that just landed from the pile.
-      if (idx === settleIndex && !this.reducedMotion) {
+      const isNew = !prevIds.includes(card.id);
+      if (isNew && this.inFlightPickIds.has(card.id)) {
+        // A cosmetic ghost is still flying toward this slot — keep the real
+        // sprite hidden until the ghost lands (revealLandedTraySprite).
+        c.setAlpha(0);
+      } else if (isNew && !this.reducedMotion) {
+        // Settle bounce at the actual insert slot (keyboard / DOM picks).
         c.setScale(0.55);
         this.tweens.add({
           targets: c,
@@ -1476,65 +1593,110 @@ export class SheepScene extends BaseScene {
         });
       }
     });
+
+    this.prevTrayIds = newIds;
+    // Re-seed the cosmetic prediction from the authoritative tray.
+    this.predictedTraySymbols = slotCards.map((card) => card.symbol);
   }
 
-  /** Juice on a match-3 clear: gold pop + star burst + micro shake + combo text. */
-  private animateMatchClear(): void {
-    const H = DESIGN_H;
-    const W = DESIGN_W;
-    const trayY    = H * TRAY_Y_FRAC;
-    const slotStep = (W - 32) / SLOT_COUNT;
-    const slotStartX = 16 + slotStep / 2;
+  /** Warm the tray slots and shake the tray as it approaches the 7-slot loss. */
+  private updateTrayTension(count: number): void {
+    const danger = count >= SLOT_COUNT - 1; // 6 or 7 filled
+    const warn   = count >= SLOT_COUNT - 2; // 5+ filled
+    this.slotBoxes.forEach((box, i) => {
+      const filled = i < count;
+      if (!filled && danger) {
+        // The last empty slot(s) glow hot — the shrinking runway is the read.
+        box.setStrokeStyle(2.6, C.slotDanger, 0.95).setFillStyle(0xffdccf, 0.4).setAlpha(0.85);
+      } else if (!filled && warn) {
+        box.setStrokeStyle(2.2, C.slotWarn, 0.85).setFillStyle(0xffe9c8, 0.3).setAlpha(0.7);
+      } else if (filled && danger) {
+        box.setStrokeStyle(1.6, C.slotDanger, 0.5).setFillStyle(0xffffff, 0.04).setAlpha(0.4);
+      } else if (filled && warn) {
+        box.setStrokeStyle(1.6, C.slotWarn, 0.45).setFillStyle(0xffffff, 0.04).setAlpha(0.35);
+      } else {
+        // §9.4 v2: no visible slot frames at rest.
+        box.setStrokeStyle(0, 0xffffff, 0).setFillStyle(0xffffff, 0).setAlpha(0);
+      }
+    });
+    this.trayBg?.setTint(danger ? 0xff9e86 : warn ? 0xffe0b0 : 0xffffff);
+    // A subtle shake the moment the tray crosses into the danger zone.
+    if (danger && count > this.prevSlotLen) this.shakeTray();
+  }
 
+  private shakeTray(): void {
+    if (this.reducedMotion || this.trayShaking) return;
+    const targets = [this.trayBg, this.trayContainer, ...this.slotBoxes]
+      .filter(Boolean) as Phaser.GameObjects.GameObject[];
+    if (targets.length === 0) return;
+    this.trayShaking = true;
+    this.tweens.add({
+      targets,
+      x: "+=4",
+      duration: 44,
+      yoyo: true,
+      repeat: 3,
+      ease: "Sine.easeInOut",
+      onComplete: () => { this.trayShaking = false; },
+    });
+  }
+
+  /**
+   * Match-3 juice, anchored at the ACTUAL cleared slots: the trio squeezes
+   * toward its own centroid, then bursts. `slotCards` still contains the
+   * matched triple at the isMatching rising edge (the engine removes it on a
+   * short timer), so the cleared indices are read straight from it.
+   */
+  private animateMatchClear(slotCards: CardView[]): void {
     const now = this.time.now;
     this.matchStreak = now - this.lastMatchAt < 2600 ? this.matchStreak + 1 : 1;
     this.lastMatchAt = now;
 
-    // A quick green sweep across the tray confirms the triple cleared.
+    // Locate the completed trio (cluster-insertion keeps it adjacent).
+    const counts = new Map<number, number[]>();
+    let trioIdx: number[] = [];
+    slotCards.forEach((card, idx) => {
+      const arr = counts.get(card.symbol) ?? [];
+      arr.push(idx);
+      counts.set(card.symbol, arr);
+      if (arr.length >= 3 && trioIdx.length === 0) trioIdx = arr.slice(-3);
+    });
+    if (trioIdx.length === 0) trioIdx = [0, 1, 2].filter((i) => i < Math.max(3, slotCards.length));
+
+    const anchors = trioIdx.map((i) => ({ x: this.slotCenterX(i), y: TRAY_TILE_Y }));
+    const cx = anchors.reduce((sum, a) => sum + a.x, 0) / Math.max(1, anchors.length);
+
     if (!this.reducedMotion) {
-      const flash = this.add.image(W / 2, trayY, "sheep-fx-panel")
-        .setDisplaySize(W - 20, 62)
-        .setTint(0x2fd08a)
-        .setBlendMode(Phaser.BlendModes.ADD)
-        .setDepth(118)
-        .setAlpha(0);
-      this.tween({
-        targets: flash,
-        alpha: 0.28,
-        yoyo: true,
-        duration: 190,
-        ease: "Quad.easeOut",
-        onComplete: () => flash.destroy(),
-      });
+      // Squeeze the actual tray sprites toward the trio centre, then burst.
+      for (const i of trioIdx) {
+        const card = slotCards[i];
+        const sprite = card ? this.traySpritesById.get(card.id) : undefined;
+        if (sprite?.active) {
+          this.tweens.add({
+            targets: sprite,
+            x: sprite.x + (cx - sprite.x) * 0.45,
+            scaleX: 0.72,
+            scaleY: 0.72,
+            duration: 130,
+            ease: "Quad.easeIn",
+          });
+        }
+      }
     }
 
-    for (let i = 0; i < 3; i++) {
-      const px = slotStartX + i * slotStep;
-      const pop = this.add.graphics();
-      pop.fillStyle(0xffd700, 0.9);
-      pop.fillCircle(px, trayY, 10);
-      pop.fillStyle(0xfff8e8, 0.8);
-      pop.fillCircle(px, trayY, 4);
-      this.tween({
-        targets: pop,
-        y: trayY - 40,
-        alpha: 0,
-        scaleX: 1.8,
-        scaleY: 1.8,
-        duration: 500,
-        ease: "Quad.easeOut",
-        onComplete: () => pop.destroy(),
-      });
-      this.burstReveal(px, trayY, 0xffd98a);
-      this.emitSparkles(px, trayY, 8, 0xffe9a8, 44);
-    }
+    this.time.delayedCall(this.reducedMotion ? 0 : 130, () => {
+      for (const a of anchors) {
+        this.burstReveal(a.x, a.y, 0xffd98a);
+        this.emitSparkles(a.x, a.y, 7, 0xffe9a8, 40);
+      }
+      this.burstReveal(cx, TRAY_TILE_Y, 0xfff3b0);
+      this.emitSparkles(cx, TRAY_TILE_Y - 8, 10, 0xffd98a, 60);
+    });
 
-    // Escalating audio on a combo streak — the second cue stacks a brighter
-    // arpeggio over the base merge chime played by updateGameScreen.
+    // Escalating audio on a combo streak.
     if (this.matchStreak >= 2) this.sfx.play("combo");
-
     if (!this.reducedMotion) this.cameras.main.shake(140, 0.004);
-    this.showMatchText(trayY, this.matchStreak);
+    this.showMatchText(TRAY_TILE_Y, this.matchStreak);
   }
 
   /** Rising "Cleared!" / "Combo xN!" label on a match. */
@@ -1544,15 +1706,15 @@ export class SheepScene extends BaseScene {
     const label = big
       ? this.locStr("matchCombo", "Combo x{n}!").replace("{n}", String(streak))
       : this.locStr("matchCleared", "Cleared!");
-    const txt = this.add.text(DESIGN_W / 2, trayY - 30, label, {
+    const txt = this.add.text(DESIGN_W / 2, trayY - 52, label, {
       fontFamily: FONT,
-      fontSize: big ? "20px" : "16px",
+      fontSize: big ? "22px" : "17px",
       fontStyle: "800",
-      color: big ? "#ffcf4d" : "#f0c866",
-    }).setOrigin(0.5).setDepth(130).setStroke("#7a4a12", 4);
+      color: big ? "#ffcf4d" : "#ffe08a",
+    }).setOrigin(0.5).setDepth(130).setStroke("#7a4a12", 5);
     this.tween({
       targets: txt,
-      y: trayY - 74,
+      y: trayY - 96,
       alpha: 0,
       scaleX: big ? 1.25 : 1.1,
       scaleY: big ? 1.25 : 1.1,
@@ -1562,67 +1724,7 @@ export class SheepScene extends BaseScene {
     });
   }
 
-  private updateTools(): void {
-    const undosUsed   = this.num("undosUsed", 0);
-    const shuffleLeft = this.num("shuffleLeft", 1);
-    const remove3Left = this.num("remove3Left", 1);
-    const status      = this.str("gameStatus", "idle");
-    const slotCount   = (this.val<CardView[]>("slotCards") ?? []).length;
-    const isActive    = status === "dealt" &&
-      !this.bool("isTeeBusy") &&
-      !this.bool("isFinancialAction") &&
-      !this.bool("deadlineExpired");
-
-    const undoAvail    = isActive && slotCount > 0 && undosUsed < 3;
-    const shuffleAvail = isActive && slotCount > 0 && shuffleLeft > 0;
-    const remove3Avail = isActive && slotCount >= 3 && remove3Left > 0;
-
-    this.setToolBtnActive(this.undoBtn,    undoAvail);
-    this.setToolBtnActive(this.shuffleBtn, shuffleAvail);
-    this.setToolBtnActive(this.remove3Btn, remove3Avail);
-
-    // Update count labels
-    const undosLeft = Math.max(0, 3 - undosUsed);
-    this.undoCountTxt.setText(String(undosLeft)).setColor(undoAvail ? "#3f6212" : "#81796c");
-    this.shuffleCountTxt.setText(String(shuffleLeft)).setColor(shuffleAvail ? "#3f6212" : "#81796c");
-    this.remove3CountTxt.setText(String(remove3Left)).setColor(remove3Avail ? "#3f6212" : "#81796c");
-  }
-
-  private setToolBtnActive(btn: Phaser.GameObjects.Container, active: boolean): void {
-    const bg  = btn.list[0] as Phaser.GameObjects.Rectangle;
-    const txt = btn.list[1] as Phaser.GameObjects.Text;
-    bg.setFillStyle(active ? C.btnBg : C.btnDisabled);
-    bg.setStrokeStyle(2, active ? C.btnBorder : 0x555544);
-    txt.setColor(active ? "#365314" : "#81796c");
-    (bg as Phaser.GameObjects.Rectangle & { input: { enabled: boolean } }).input.enabled = active;
-  }
-
-  private updateProgress(pileCards: CardView[], slotCards: CardView[]): void {
-    const difficulty  = this.num("gameDifficulty", 0);
-    const cardTypes   = difficulty === 2 ? 15 : difficulty === 1 ? 12 : 8;
-    const totalCards  = cardTypes * 3;
-    const remaining   = pileCards.length + slotCards.length;
-    const matched     = totalCards - remaining;
-    const deadline    = this.num("deadline", 0);
-    const clock       = deadline > 0 ? this.formatTimeLeft(deadline) : "--";
-
-    const lvl = this.num("level", 1);
-    const isDaily = this.str("playMode", "practice") === "daily";
-    const levelTag = isDaily ? (lvl === 1 ? "L1 · " : "L2 · ") : "";
-    this.progressLabel.setText(
-      levelTag +
-      this.locStr("progress", "Time {clock}  ·  Pile {pile}  ·  Tray {tray}/{cap}")
-        .replace("{clock}", clock)
-        .replace("{pile}", String(pileCards.length))
-        .replace("{tray}", String(slotCards.length))
-        .replace("{cap}", String(SLOT_COUNT)),
-    );
-    this.matchedLabel.setText(
-      this.locStr("matched", "Matched {matched}/{total}")
-        .replace("{matched}", String(matched))
-        .replace("{total}", String(totalCards)),
-    );
-  }
+  // ── Result routing (unchanged contract, restyled surface) ──────────────────
 
   private updateResultScreen(): void {
     const status  = this.str("gameStatus", "idle");
@@ -1635,37 +1737,32 @@ export class SheepScene extends BaseScene {
     const credit = this.num("credit", 0);
     const canSettle = status === "solved" && activeGameId !== "0";
 
-    // P1 — daily two-level structure
+    // Daily two-level structure
     const playMode = this.str("playMode", "practice");
     const lvl = this.num("level", 1);
     const revives = this.num("revivesLeft", 0);
     const isDaily = playMode === "daily";
 
     let title = "";
-    let titleColor = "#365314";
+    let titleColor = "#ffffff";
     let sub = "";
     let actionTxt = "";
-    let actionColor = "#ffffff";
-    let actionBg: number = C.green;
+    let actionFill: number = C.btnGreen;
     let active = true;
 
     if (status === "solved" && isDaily && lvl === 1) {
+      // L1→L2 interstitial: 「第1关通过！」 → 进入第2关 (one tap).
       title = this.locStr("level1ClearedTitle", "Level 1 cleared!");
-      titleColor = "#f0c866";
       sub = this.locStr("level1ClearedSub", "On to the devil level — ready?");
       actionTxt = this.locStr("enterLevel2", "Enter Level 2");
-      actionBg = C.green; actionColor = "#ffffff";
       active = !this.bool("isFinancialAction");
     } else if (status === "solved" && isDaily && lvl === 2) {
       title = this.locStr("dailyFullyClearedTitle", "Daily clear!");
-      titleColor = "#f0c866";
       sub = this.locStr("dailyFullyClearedAny", "Fully cleared today — share your win!");
       actionTxt = this.locStr("backToRoutesAction", "Back to Routes");
-      actionBg = C.green; actionColor = "#ffffff";
       active = !this.bool("isFinancialAction");
     } else if (status === "solved") {
       title = canSettle ? this.locStr("wonTitle", "You Won") : this.locStr("creditedTitle", "Reward Credited");
-      titleColor = "#f0c866";
       const payoutSub = this.locStr("payoutSub", "Payout: {payout}").replace("{payout}", payout);
       const creditSub = this.locStr("creditReadySub", "{amount} GAS is ready to withdraw").replace("{amount}", credit.toFixed(2));
       sub = canSettle
@@ -1675,25 +1772,23 @@ export class SheepScene extends BaseScene {
         ? this.locStr("claim", "Claim Reward")
         : credit > 0 ? this.locStr("withdraw", "Withdraw")
         : this.locStr("backToRoutes", "Back to Routes");
-      actionBg = C.green; actionColor = "#ffffff";
       active = !this.bool("isFinancialAction");
     } else if ((isGameOver || timedOut) && isDaily && lvl === 2 && revives > 0) {
       title = this.locStr("gameOverTitle", "Game Over");
-      titleColor = "#b83f32";
+      titleColor = "#ffb0a0";
       sub = this.locStr("reviveSub", "Tray full — use your revive to keep going?");
       actionTxt = this.locStr("reviveAction", "Revive ({left} left)").replace("{left}", String(revives));
-      actionBg = C.green; actionColor = "#ffffff";
       active = !this.bool("isFinancialAction");
     } else if ((isGameOver || timedOut) && isDaily && lvl === 2) {
       title = this.locStr("gameOverTitle", "Game Over");
-      titleColor = "#b83f32";
+      titleColor = "#ffb0a0";
       sub = this.locStr("retryLevel2Sub", "Out of revives — retry the devil level?");
       actionTxt = this.locStr("retryLevel2", "Retry Level 2");
-      actionBg = C.btnBg; actionColor = "#365314";
+      actionFill = C.btnAmber;
       active = !this.bool("isFinancialAction");
     } else if (isGameOver || timedOut) {
       title = timedOut ? this.locStr("timeUpTitle", "Time is up") : this.locStr("gameOverTitle", "Game Over");
-      titleColor = timedOut ? "#8a5a16" : "#b83f32";
+      titleColor = "#ffb0a0";
       sub = timedOut
         ? this.locStr("timeUpSub", "The board is locked until it can be released.")
         : this.locStr("trayFullSub", "Tray is full — no more moves!");
@@ -1702,22 +1797,30 @@ export class SheepScene extends BaseScene {
         ? this.locStr("tryAgain", "Try Again")
         : canExpire ? this.locStr("releaseReady", "Release game")
         : this.locStr("releaseWait", "Release later");
-      actionBg = enabled ? C.btnBg : C.btnDisabled;
-      actionColor = enabled ? "#365314" : "#746756";
+      actionFill = enabled ? C.btnAmber : 0x8f8a7c;
       active = enabled && !this.bool("isFinancialAction");
     }
 
-    this.resultTitle.setText(title).setColor(titleColor);
+    const panelY = DESIGN_H / 2 - 288 / 2 - 10;
+    this.resultTitleTxts.forEach((txt, i) => {
+      txt.setText(title);
+      if (i === this.resultTitleTxts.length - 1) txt.setColor(titleColor);
+    });
     this.resultSub.setText(sub);
-    this.resultActionTxt.setText(actionTxt).setColor(actionColor);
-    this.resultActionBg.setFillStyle(actionBg);
+    this.resultActionTxt.setText(actionTxt);
+    this.paintResultAction(actionFill, panelY + 288 - 62);
     this.setResultButtonActive(active);
 
+    const win = status === "solved";
     const animationKey = `${status}:${isGameOver ? "gameover" : "ok"}:${activeGameId}:${credit > 0 ? "credit" : "no-credit"}:${lvl}:${revives}`;
-    if (this.resultAnimationKey !== animationKey) {
+    const isNewCeremony = this.resultAnimationKey !== animationKey;
+    // Mascot policy re-asserted EVERY update (setGroupActive force-shows all
+    // children): visible + bouncing on a win, hidden on Game Over.
+    this.playResultMascot(win, isNewCeremony);
+
+    if (isNewCeremony) {
       this.resultAnimationKey = animationKey;
       this.resultGroup.setAlpha(0).setScale(0.85);
-      // Reduced-motion-aware pop (snaps to the end state when motion is off).
       this.tween({
         targets: this.resultGroup,
         alpha: 1,
@@ -1726,23 +1829,17 @@ export class SheepScene extends BaseScene {
         duration: 280,
         ease: "Back.easeOut",
       });
-      // Win/lose ceremony — mascot bounce + confetti shower + sparkle bloom on
-      // victory; soft red pulse + shake with the mascot hidden on loss.
-      if (status === "solved") {
-        this.playResultMascot(true);
+      if (win) {
         this.emitConfetti();
-        this.emitSparkles(DESIGN_W / 2, DESIGN_H / 2 - 30, 18, 0xffd98a, 120);
-        this.burstReveal(DESIGN_W / 2, DESIGN_H / 2 - 30, 0xffd98a);
+        this.emitSparkles(DESIGN_W / 2, DESIGN_H / 2 - 60, 18, 0xffd98a, 120);
+        this.burstReveal(DESIGN_W / 2, DESIGN_H / 2 - 60, 0xffd98a);
       } else if (isGameOver || timedOut) {
-        this.playResultMascot(false);
         if (!this.reducedMotion) {
           this.cameras.main.shake(180, 0.004);
-          const flash = this.add.rectangle(DESIGN_W / 2, DESIGN_H / 2, DESIGN_W, DESIGN_H, 0xb83f32, 0)
+          const flash = this.add.rectangle(DESIGN_W / 2, DESIGN_H / 2, DESIGN_W + 80, DESIGN_H + 80, 0xb83f32, 0)
             .setDepth(200);
           this.tween({ targets: flash, alpha: 0.18, yoyo: true, duration: 160, onComplete: () => flash.destroy() });
         }
-      } else {
-        this.playResultMascot(false);
       }
     }
   }
@@ -1750,6 +1847,7 @@ export class SheepScene extends BaseScene {
   private setResultButtonActive(active: boolean): void {
     if (this.resultActionBg.input) this.resultActionBg.input.enabled = active;
     this.resultActionBg.setAlpha(active ? 1 : 0.82);
+    this.resultActionTxt.setAlpha(active ? 1 : 0.7);
   }
 
   private triggerResultAction(): void {
@@ -1762,7 +1860,7 @@ export class SheepScene extends BaseScene {
     const revives = this.num("revivesLeft", 0);
     const isDaily = playMode === "daily";
 
-    // P1 — daily two-level routing
+    // Daily two-level routing
     if (isDaily && status === "solved" && lvl === 1) {
       this.dispatch("advanceLevel");
       return;
@@ -1788,6 +1886,8 @@ export class SheepScene extends BaseScene {
     }
   }
 
+  // ── Keyboard controls ──────────────────────────────────────────────────────
+
   private bindKeyboardControls(): void {
     const keyboard = this.input.keyboard;
     if (!keyboard || this.keyboardHandler) return;
@@ -1803,7 +1903,15 @@ export class SheepScene extends BaseScene {
 
       const digitMatch = /^(?:Digit|Numpad)([1-9])$/.exec(event.code);
       const status = this.str("gameStatus", "idle");
-      if ((status === "idle" || status === "expired" || status === "refunded") && digitMatch) {
+      const onHome = status === "idle" || status === "expired" || status === "refunded";
+      if (onHome && event.code === "Enter") {
+        if (this.canStartNewRun()) {
+          this.dispatch("startGame", { mode: "daily", level: 1 });
+          event.preventDefault();
+        }
+        return;
+      }
+      if (onHome && digitMatch) {
         const difficulty = Number(digitMatch[1]) - 1;
         if (difficulty >= 0 && difficulty <= 2 && this.canStartNewRun()) {
           this.dispatch("startGame", { difficulty });

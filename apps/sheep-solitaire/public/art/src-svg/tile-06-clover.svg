@@ -1,35 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 200 200" width="200" height="200">
+                  viewBox="0 0 200 232" width="200" height="232">
     
-    <!-- Card background -->
-    <rect x="6" y="6" width="188" height="188"
-          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
-          stroke-width="3.5999999999999996" />
+    <!-- Hard offset sticker shadow (flat, no blur) -->
+    <rect x="17" y="20" width="180" height="208"
+          rx="28" ry="28" fill="#26221E" opacity="0.30" />
+    <!-- Gray-green thickness strip (card stack edge) -->
+    <rect x="10" y="26" width="180" height="192"
+          rx="28" ry="28" fill="#97A886" stroke="#26221E" stroke-width="4.5" />
+    <!-- Cream tile face -->
+    <rect x="10" y="10" width="180" height="192"
+          rx="26" ry="26" fill="#F8F6E8" stroke="#26221E" stroke-width="4.5" />
   
     <!-- Icon: clover -->
-    <g transform="translate(0, 0)">
+    <g transform="translate(100, 107) scale(1.16) translate(-100, -100)">
       
     <!-- Four leaves (heart-shaped) -->
     <path d="M100,94
              C98,78 76,80 80,96
              C84,104 94,98 100,94
              Z"
-          fill="#4CA86A" stroke="#3A3530" stroke-width="2"/>
+          fill="#4CA86A" stroke="#26221E" stroke-width="2"/>
     <path d="M100,94
              C102,78 124,80 120,96
              C116,104 106,98 100,94
              Z"
-          fill="#7CC47F" stroke="#3A3530" stroke-width="2"/>
+          fill="#7CC47F" stroke="#26221E" stroke-width="2"/>
     <path d="M94,100
              C78,98 80,120 96,116
              C104,112 98,102 94,100
              Z"
-          fill="#7CC47F" stroke="#3A3530" stroke-width="2"/>
+          fill="#7CC47F" stroke="#26221E" stroke-width="2"/>
     <path d="M106,100
              C122,98 120,120 104,116
              C96,112 102,102 106,100
              Z"
-          fill="#4CA86A" stroke="#3A3530" stroke-width="2"/>
+          fill="#4CA86A" stroke="#26221E" stroke-width="2"/>
     <!-- Stem -->
     <line x1="100" y1="110" x2="100" y2="136"
           stroke="#4CA86A" stroke-width="2.5" stroke-linecap="round"/>

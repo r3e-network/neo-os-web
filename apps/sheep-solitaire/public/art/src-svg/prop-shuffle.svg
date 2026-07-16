@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 150" width="140" height="150">
+    <rect x="16" y="18" width="116" height="116" rx="28" fill="#26221E" opacity="0.32"/>
+    <rect x="8" y="8" width="116" height="116" rx="28" fill="#5BC2F0" stroke="#26221E" stroke-width="7"/>
+    <g transform="translate(-4, -4)">
+  
+    <path d="M34,52 h18 q14,0 22,12 l10,14 q8,12 22,12 h6" fill="none" stroke="#26221E" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34,52 h18 q14,0 22,12 l10,14 q8,12 22,12 h6" fill="none" stroke="#FFD23E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  
+    <path d="M34,90 h18 q14,0 22,-12 l10,-14 q8,-12 22,-12 h6" fill="none" stroke="#26221E" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34,90 h18 q14,0 22,-12 l10,-14 q8,-12 22,-12 h6" fill="none" stroke="#FFD23E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  
+    <polygon points="124,52 102,38 102,66" fill="#FFD23E" stroke="#26221E" stroke-width="9" stroke-linejoin="round"/>
+  
+    <polygon points="124,90 102,76 102,104" fill="#FFD23E" stroke="#26221E" stroke-width="9" stroke-linejoin="round"/>
+</g>
+  </svg>

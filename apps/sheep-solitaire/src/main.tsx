@@ -909,8 +909,8 @@ defineMiniApp({
         shuffleLeft.get() <= 0 ||
         (deadline.get() > 0 && Date.now() >= deadline.get())
       ) return;
-      const currentSlots = slotCards.get();
-      if (currentSlots.length === 0) return;
+      // No empty-tray gate: shuffle re-randomizes the remaining BOARD tiles
+      // (it never drains the tray), so it is useful with any tray fill.
       await withTeeLock(async () => {
         try {
           const result = await sendOp({ type: "shuffle" });

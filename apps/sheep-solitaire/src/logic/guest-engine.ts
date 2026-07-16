@@ -14,17 +14,29 @@
  * generator (symbol copies scattered across layers → real slot pressure), a
  * DAILY two-level structure (level 1 teaching / level 2 devil, deterministic
  * per-day seed so everyone shares the same board), and a REVIVE hook (one free
- * retry on a lost level-2 run). No region/province layer — the game stays a
- * simple, globally-playable match-3.
+ * retry per DAY on a lost level-2 run, persisted). No region/province layer —
+ * the game stays a simple, globally-playable match-3. Guest runs are UNTIMED
+ * (original parity): no countdown is armed and no timeout can fail a run — the
+ * GameFi TTL/deadline semantics live untouched in main.tsx.
+ *
+ * P2 (2026-07-14, redesign §9): CardData v2 — boards carry zone ("grid" |
+ * "stackL" | "stackR") and stackIndex. The daily L1 is an 18-card 2-layer
+ * teaching grid; the daily L2 a 90-card 5-layer pyramid with two 9-card side
+ * stacks. Exposure is the engine's unified fine-grid formula (sheep-engine
+ * cardUnitPos/gridCovers — the scene reuses the same helpers for placement),
+ * and stack cards expose top-first. Saves bumped to v3 (strict zone parsing).
  */
 import {
+  DAILY_LEVEL_PRESETS,
+  cardStackIndex,
+  cardZone,
   computeExposed,
   generateTightLayout,
   generateDailyLevel,
   dailyDateSeed,
 } from "./sheep-engine";
-import type { CardData } from "./sheep-engine";
-import { MATCH_COUNT, MAX_SLOTS, MAX_UNDOS, ruleOf } from "./game-rules";
+import type { BoardZone, CardData } from "./sheep-engine";
+import { MATCH_COUNT, MAX_SLOTS, ruleOf } from "./game-rules";
 
 /** Structural (method-syntax, so bivariant) observable handle. */
 interface Obs<T> {
@@ -46,6 +58,14 @@ interface CardView {
   layer: number;
   col?: number;
   row?: number;
+  /**
+   * v2 zone — the scene places stack cards by zone + stackIndex (§9.1). The
+   * guest engine ALWAYS emits both; they stay optional in the view type only
+   * so the frozen GameFi path (tee-session CardView, zone-less grid boards)
+   * keeps satisfying the same observable contract.
+   */
+  zone?: BoardZone;
+  stackIndex?: number;
   exposed: boolean;
   picked: boolean;
 }
@@ -123,7 +143,7 @@ export interface GuestEngine {
   refreshLeaderboard(): Promise<void>;
   /** P1 — advance from a cleared level 1 to the daily level 2. */
   advanceLevel(): void;
-  /** P1 — revive a lost daily level-2 run (one free retry). */
+  /** P1 — revive a lost daily level-2 run (one free retry per DAY). */
   revive(): void;
   /** Reset to a clean local lobby + load the guest board (on entering guest). */
   enter(): Promise<void>;
@@ -142,36 +162,95 @@ const GUEST_GAME_ID = "guest";
 const MATCH_ANIM_MS = 600;
 export const GUEST_RUN_STORAGE_KEY = "guest-run:v1";
 export const GUEST_PROFILE_STORAGE_KEY = "guest-profile:v1";
+export const GUEST_DAILY_STORAGE_KEY = "guest-daily:v1";
 
 // ── P1 tuning constants ([PLACEHOLDER] — lock via playtest) ───────────────────
 /** Practice-mode spread by difficulty: easy / medium / hard. */
 const PRACTICE_SPREADS = [0.12, 0.45, 0.82] as const;
-/** Daily level symbol counts: level 1 (teaching) / level 2 (devil). */
-const DAILY_TYPES = { 1: 8, 2: 15 } as const;
-/** Free revives granted on a daily level-2 run. */
+/** Practice boards use the legacy 3-layer grid (grid-only, layers 0..2). */
+const PRACTICE_MAX_LAYER = 2;
+/** Largest board a guest run can produce (daily L2) — bounds saved profiles. */
+const MAX_BOARD_CARDS = DAILY_LEVEL_PRESETS[2].totalCards;
+/**
+ * Original-parity daily difficulty routing: the level-1 teaching board uses
+ * the easy rule's 8 types, the level-2 devil board the hard rule's 15 types.
+ * Guest never lets a caller-supplied difficulty diverge from the level.
+ */
+const DAILY_DIFFICULTY = { 1: 0, 2: 2 } as const;
+/** Free revives granted per DAY on the daily level-2 board (original parity). */
 const REVIVE_PER_DAILY_L2 = 1;
+/**
+ * Guest undo economy (original parity: ONE undo per run). The contract-side
+ * MAX_UNDOS (3, with a 30% payout penalty each) stays in game-rules.ts for the
+ * GameFi flow — guest is stricter and free.
+ */
+export const GUEST_MAX_UNDOS = 1;
 
 interface SavedGuestRun {
-  version: 1;
+  /** v3 — cards carry the CardData v2 zone/stackIndex fields (§9.1). */
+  version: 3;
   status: "dealt" | "solved";
   difficulty: number;
   // P1 fields
   level: number;
   dailyDate: number;
   mode: "daily" | "practice";
-  revivesUsed: number;
   // board
   pile: CardData[];
   slots: CardData[];
+  /** Ids of the tray tiles in the exact order they were picked (undo stack). */
+  pickOrder: number[];
   totalCards: number;
   dealtAt: number;
-  deadline: number;
   undosUsed: number;
   shuffleLeft: number;
   remove3Left: number;
   isGameOver: boolean;
-  failureReason: "none" | "tray" | "timeout";
+  /** Guest runs are untimed, so "timeout" can never be persisted. */
+  failureReason: "none" | "tray";
   lastElapsedMs: number;
+}
+
+/** Per-run board-shape bounds the stored cards must respect (by mode/level). */
+interface StoredBoardShape {
+  /** Highest legal grid layer index. */
+  maxLayer: number;
+  /** Number of distinct symbols the board class uses (symbol < types). */
+  types: number;
+  /** Copies of each symbol across pile + tray (3, or 6 on the daily L2). */
+  copiesPerSymbol: number;
+  /** Cards in EACH side stack; 0 forbids stack cards entirely. */
+  stackSize: number;
+  /** Exact deal size of the board class. */
+  totalCards: number;
+}
+
+function boardShapeOf(mode: "daily" | "practice", level: number, difficulty: number): StoredBoardShape {
+  if (mode === "daily") {
+    const preset = DAILY_LEVEL_PRESETS[level === 2 ? 2 : 1];
+    return {
+      maxLayer: preset.maxLayer,
+      types: preset.types,
+      copiesPerSymbol: preset.copiesPerSymbol,
+      stackSize: preset.structure.stackSize,
+      totalCards: preset.totalCards,
+    };
+  }
+  const rule = ruleOf(difficulty);
+  return {
+    maxLayer: PRACTICE_MAX_LAYER,
+    types: rule.cardTypes,
+    copiesPerSymbol: MATCH_COUNT,
+    stackSize: 0,
+    totalCards: rule.cardTypes * MATCH_COUNT,
+  };
+}
+
+/** Per-day daily-challenge economy (revive is once per DAY, not per attempt). */
+interface SavedDailyState {
+  version: 1;
+  dailyDate: number;
+  revivesUsed: number;
 }
 
 interface SavedGuestProfile {
@@ -222,26 +301,43 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function parseStoredCards(value: unknown): CardData[] | null {
+function parseStoredCards(value: unknown, shape: StoredBoardShape): CardData[] | null {
   if (!Array.isArray(value)) return null;
   const seen = new Set<number>();
   const cards: CardData[] = [];
   for (const item of value) {
     if (!isRecord(item)) return null;
+    const zone = item.zone;
+    if (zone !== "grid" && zone !== "stackL" && zone !== "stackR") return null;
     const card: CardData = {
       id: Number(item.id),
       symbol: Number(item.symbol),
       layer: Number(item.layer),
       col: Number(item.col),
       row: Number(item.row),
+      zone,
+      stackIndex: Number(item.stackIndex),
     };
     if (
       !Number.isSafeInteger(card.id) || card.id < 0 || seen.has(card.id) ||
-      !Number.isSafeInteger(card.symbol) || card.symbol < 0 || card.symbol > 14 ||
-      !Number.isSafeInteger(card.layer) || card.layer < 0 || card.layer > 2 ||
+      !Number.isSafeInteger(card.symbol) || card.symbol < 0 || card.symbol >= shape.types ||
+      !Number.isSafeInteger(card.layer) || card.layer < 0 ||
       !Number.isSafeInteger(card.col) || card.col < 0 || card.col > 5 ||
-      !Number.isSafeInteger(card.row) || card.row < 0 || card.row > 4
+      !Number.isSafeInteger(card.row) || card.row < 0 || card.row > 4 ||
+      !Number.isSafeInteger(card.stackIndex) || card.stackIndex < 0
     ) return null;
+    if (card.zone === "grid") {
+      // Grid cards never carry a stack depth and stay within the preset tower.
+      if (card.stackIndex !== 0 || card.layer > shape.maxLayer) return null;
+    } else {
+      // Stack cards only exist on boards WITH stacks, sit at the zone anchor,
+      // and their burial depth stays within the stack.
+      if (
+        shape.stackSize === 0 ||
+        card.layer !== 0 || card.col !== 0 || card.row !== 0 ||
+        card.stackIndex >= shape.stackSize
+      ) return null;
+    }
     seen.add(card.id);
     cards.push(card);
   }
@@ -249,54 +345,81 @@ function parseStoredCards(value: unknown): CardData[] | null {
 }
 
 function parseSavedRun(value: unknown): SavedGuestRun | null {
-  if (!isRecord(value) || value.version !== 1) return null;
+  // v3 bump: cards carry the CardData v2 zone/stackIndex fields. Older saves
+  // (v1/v2) are rejected wholesale — a stale board format never restores.
+  if (!isRecord(value) || value.version !== 3) return null;
   const status = value.status;
   const difficulty = Number(value.difficulty);
   const level = Number(value.level);
   const dailyDate = Number(value.dailyDate);
   const mode = value.mode;
-  const revivesUsed = Number(value.revivesUsed);
   if (
     (status !== "dealt" && status !== "solved") ||
     ![0, 1, 2].includes(difficulty) ||
     ![1, 2].includes(level) ||
     !["daily", "practice"].includes(String(mode)) ||
-    !Number.isSafeInteger(revivesUsed) || revivesUsed < 0 || revivesUsed > MAX_UNDOS + 1
+    !Number.isSafeInteger(dailyDate) || dailyDate < 0
   ) return null;
-  const pile = parseStoredCards(value.pile);
-  const slots = parseStoredCards(value.slots);
+  // Mode coherence: daily levels pin their difficulty (L1→easy rule, L2→hard
+  // rule) and carry a real date seed; practice is level 1 with no daily date.
+  if (mode === "daily") {
+    if (dailyDate <= 0) return null;
+    if (difficulty !== DAILY_DIFFICULTY[level as 1 | 2]) return null;
+  } else if (level !== 1 || dailyDate !== 0) {
+    return null;
+  }
+  const shape = boardShapeOf(mode as "daily" | "practice", level, difficulty);
+  const pile = parseStoredCards(value.pile, shape);
+  const slots = parseStoredCards(value.slots, shape);
   if (!pile || !slots) return null;
   const allIds = new Set(pile.map((card) => card.id));
   if (slots.some((card) => allIds.has(card.id))) return null;
 
-  const rule = ruleOf(difficulty);
+  // The undo stack must be exactly the tray ids (unique) in some pick order.
+  if (!Array.isArray(value.pickOrder)) return null;
+  const pickOrder = value.pickOrder.map((id) => Number(id));
+  const slotIds = new Set(slots.map((card) => card.id));
+  if (
+    pickOrder.length !== slots.length ||
+    new Set(pickOrder).size !== pickOrder.length ||
+    pickOrder.some((id) => !Number.isSafeInteger(id) || !slotIds.has(id))
+  ) return null;
+
   const combinedCards = [...pile, ...slots];
   const symbolCounts = new Map<number, number>();
   for (const card of combinedCards) {
     symbolCounts.set(card.symbol, (symbolCounts.get(card.symbol) ?? 0) + 1);
   }
+  // Stack burial depths stay unique per zone across pile + tray (an undo puts
+  // a tray card back at its original depth, so a duplicate is corruption).
+  const stackKeys = new Set<string>();
+  for (const card of combinedCards) {
+    if (card.zone === "grid") continue;
+    const key = `${card.zone}:${card.stackIndex}`;
+    if (stackKeys.has(key)) return null;
+    stackKeys.add(key);
+  }
   const totalCards = Number(value.totalCards);
   const dealtAt = Number(value.dealtAt);
-  const deadline = Number(value.deadline);
   const storedUndos = Number(value.undosUsed);
   const storedShuffle = Number(value.shuffleLeft);
   const storedRemove3 = Number(value.remove3Left);
   const lastElapsed = Number(value.lastElapsedMs);
   const failure = value.failureReason;
   if (
-    totalCards !== rule.cardTypes * MATCH_COUNT ||
+    totalCards !== shape.totalCards ||
     pile.length + slots.length > totalCards ||
     slots.length > MAX_SLOTS ||
-    combinedCards.some((card) => card.id >= totalCards || card.symbol >= rule.cardTypes) ||
-    [...symbolCounts.values()].some((count) => count > MATCH_COUNT) ||
+    combinedCards.some((card) => card.id >= totalCards) ||
+    [...symbolCounts.values()].some((count) => count > shape.copiesPerSymbol) ||
     (status === "solved" && (pile.length !== 0 || slots.length !== 0)) ||
     (status === "dealt" && pile.length === 0 && slots.length === 0) ||
     !Number.isSafeInteger(dealtAt) || dealtAt <= 0 ||
-    !Number.isSafeInteger(deadline) || deadline - dealtAt !== rule.limitMs ||
-    !Number.isSafeInteger(storedUndos) || storedUndos < 0 || storedUndos > MAX_UNDOS ||
+    !Number.isSafeInteger(storedUndos) || storedUndos < 0 || storedUndos > GUEST_MAX_UNDOS ||
     ![0, 1].includes(storedShuffle) || ![0, 1].includes(storedRemove3) ||
     !Number.isSafeInteger(lastElapsed) || lastElapsed < 0 ||
-    !["none", "tray", "timeout"].includes(String(failure)) ||
+    // Guest runs are untimed: a persisted guest run can only fail on a full tray.
+    !["none", "tray"].includes(String(failure)) ||
     typeof value.isGameOver !== "boolean"
   ) return null;
   if (
@@ -306,18 +429,17 @@ function parseSavedRun(value: unknown): SavedGuestRun | null {
   ) return null;
 
   return {
-    version: 1,
+    version: 3,
     status,
     difficulty,
     level,
     dailyDate,
     mode: mode as "daily" | "practice",
-    revivesUsed,
     pile,
     slots,
+    pickOrder,
     totalCards,
     dealtAt,
-    deadline,
     undosUsed: storedUndos,
     shuffleLeft: storedShuffle,
     remove3Left: storedRemove3,
@@ -327,12 +449,23 @@ function parseSavedRun(value: unknown): SavedGuestRun | null {
   };
 }
 
+function parseSavedDailyState(value: unknown): SavedDailyState | null {
+  if (!isRecord(value) || value.version !== 1) return null;
+  const date = Number(value.dailyDate);
+  const revivesUsed = Number(value.revivesUsed);
+  if (
+    !Number.isSafeInteger(date) || date <= 0 ||
+    !Number.isSafeInteger(revivesUsed) || revivesUsed < 0 || revivesUsed > REVIVE_PER_DAILY_L2
+  ) return null;
+  return { version: 1, dailyDate: date, revivesUsed };
+}
+
 function parseSavedProfile(value: unknown): SavedGuestProfile | null {
   if (!isRecord(value) || value.version !== 1) return null;
   const bestCleared = Number(value.bestCleared);
   const solves = Number(value.solves);
   if (
-    !Number.isSafeInteger(bestCleared) || bestCleared < 0 || bestCleared > 45 ||
+    !Number.isSafeInteger(bestCleared) || bestCleared < 0 || bestCleared > MAX_BOARD_CARDS ||
     !Number.isSafeInteger(solves) || solves < 0
   ) return null;
   return {
@@ -386,9 +519,10 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   // ── Local board model (never leaves this closure) ──────────────────────────
   let pile: CardData[] = [];
   let slots: CardData[] = [];
+  /** Ids of the tray tiles in pick order — the undo stack (top = last pick). */
+  let pickOrder: number[] = [];
   let totalCards = 0;
   let matchTimer: ReturnType<typeof setTimeout> | null = null;
-  let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
 
   const storageGet = <T,>(key: string, fallback: T): T => {
     if (!storage) return fallback;
@@ -424,11 +558,32 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     }
   };
 
-  const clearDeadlineTimer = (): void => {
-    if (deadlineTimer !== null) {
-      clearTimeout(deadlineTimer);
-      deadlineTimer = null;
-    }
+  // ── Daily revive economy (once per DAY, original parity) ───────────────────
+  // The persisted record is authoritative; the session copy backstops engines
+  // without storage (or with a rejecting private-mode store) so a retry within
+  // the same session still cannot refresh a consumed revive.
+  let sessionDailyState: SavedDailyState | null = null;
+
+  const dailyRevivesUsed = (dateSeed: number): number => {
+    const stored = parseSavedDailyState(storageGet<unknown>(GUEST_DAILY_STORAGE_KEY, null));
+    const storedUsed = stored && stored.dailyDate === dateSeed ? stored.revivesUsed : 0;
+    const sessionUsed = sessionDailyState && sessionDailyState.dailyDate === dateSeed
+      ? sessionDailyState.revivesUsed
+      : 0;
+    return Math.max(storedUsed, sessionUsed);
+  };
+
+  const dailyRevivesLeft = (dateSeed: number): number =>
+    Math.max(0, REVIVE_PER_DAILY_L2 - dailyRevivesUsed(dateSeed));
+
+  const recordDailyReviveUsed = (dateSeed: number): void => {
+    const next: SavedDailyState = {
+      version: 1,
+      dailyDate: dateSeed,
+      revivesUsed: Math.min(REVIVE_PER_DAILY_L2, dailyRevivesUsed(dateSeed) + 1),
+    };
+    sessionDailyState = next;
+    storageSet<SavedDailyState>(GUEST_DAILY_STORAGE_KEY, next);
   };
 
   /** Exposure over the CURRENT pile only (a blocker removed re-exposes what it covered). */
@@ -441,6 +596,10 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         layer: card.layer,
         col: card.col,
         row: card.row,
+        // cardZone/cardStackIndex default legacy layouts (e.g. mocked deals)
+        // to the grid so the scene always sees complete v2 views.
+        zone: cardZone(card),
+        stackIndex: cardStackIndex(card),
         // computeExposed indexes by card.id and only writes `false` for blocked
         // cards, so anything not explicitly false is exposed.
         exposed: exposedArr[card.id] !== false,
@@ -457,6 +616,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         layer: card.layer,
         col: card.col,
         row: card.row,
+        zone: cardZone(card),
+        stackIndex: cardStackIndex(card),
         exposed: true,
         picked: true,
       })),
@@ -468,7 +629,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   const persistProfile = (): void => {
     storageSet<SavedGuestProfile>(GUEST_PROFILE_STORAGE_KEY, {
       version: 1,
-      bestCleared: Math.max(0, Math.min(45, Math.floor(myTotalWon.get()))),
+      bestCleared: Math.max(0, Math.min(MAX_BOARD_CARDS, Math.floor(myTotalWon.get()))),
       solves: Math.max(0, Math.floor(mySolves.get())),
     });
   };
@@ -480,27 +641,39 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     mySolves.set(profile.solves);
   };
 
+  /** Cards persist with explicit v2 fields even if a legacy layout dealt them. */
+  const storableCard = (card: CardData): CardData => ({
+    id: card.id,
+    symbol: card.symbol,
+    layer: card.layer,
+    col: card.col,
+    row: card.row,
+    zone: cardZone(card),
+    stackIndex: cardStackIndex(card),
+  });
+
   const persistRun = (): void => {
     const status = gameStatus.get();
     if (activeGameId.get() !== GUEST_GAME_ID || (status !== "dealt" && status !== "solved")) return;
+    const failure = failureReason.get();
     storageSet<SavedGuestRun>(GUEST_RUN_STORAGE_KEY, {
-      version: 1,
+      version: 3,
       status,
       difficulty: gameDifficulty.get(),
       level: level.get(),
       dailyDate: dailyDate.get(),
       mode: mode.get() === "daily" ? "daily" : "practice",
-      revivesUsed: REVIVE_PER_DAILY_L2 - revivesLeft.get(),
-      pile,
-      slots,
+      pile: pile.map(storableCard),
+      slots: slots.map(storableCard),
+      pickOrder: [...pickOrder],
       totalCards,
       dealtAt: dealtAt.get(),
-      deadline: deadline.get(),
       undosUsed: undosUsed.get(),
       shuffleLeft: shuffleLeft.get(),
       remove3Left: remove3Left.get(),
       isGameOver: isGameOver.get(),
-      failureReason: failureReason.get(),
+      // Guest runs are untimed — only a full tray can fail a run.
+      failureReason: failure === "tray" ? "tray" : "none",
       lastElapsedMs: lastElapsedMs.get(),
     });
   };
@@ -509,9 +682,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   const resetToLobby = (): void => {
     clearMatchTimer();
-    clearDeadlineTimer();
     pile = [];
     slots = [];
+    pickOrder = [];
     totalCards = 0;
     gameStatus.set("idle");
     activeGameId.set("0");
@@ -576,7 +749,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
   // ── Run-end transitions ────────────────────────────────────────────────────
   const finishWin = (): void => {
     clearMatchTimer();
-    clearDeadlineTimer();
     isMatching.set(false);
     failureReason.set("none");
     lastElapsedMs.set(Math.max(0, Date.now() - dealtAt.get()));
@@ -606,7 +778,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   const finishGameOver = (): void => {
     clearMatchTimer();
-    clearDeadlineTimer();
     isMatching.set(false);
     const cleared = clearedCount();
     myTotalWon.set(Math.max(myTotalWon.get(), cleared));
@@ -621,33 +792,18 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     setStatus(t("gameOverBanner"), "info");
   };
 
-  const finishTimeout = (): void => {
-    if (gameStatus.get() !== "dealt" || isGameOver.get()) return;
-    clearMatchTimer();
-    clearDeadlineTimer();
-    isMatching.set(false);
-    isGameOver.set(true);
-    failureReason.set("timeout");
-    const cleared = clearedCount();
-    myTotalWon.set(Math.max(myTotalWon.get(), cleared));
-    lastStatus.set(t("guestTimeUpHint"));
-    persistProfile();
-    persistRun();
-    void saveAndRefresh(cleared);
-    setStatus(t("guestTimeUpHint"), "info");
-  };
+  // Guest runs are UNTIMED (original parity — no clock in free play): no
+  // deadline is ever armed, so there is no timeout transition. The GameFi flow
+  // keeps its TTL/deadline semantics in main.tsx (chain/TEE constraint).
 
-  const stopIfExpired = (): boolean => {
-    const expiresAt = deadline.get();
-    if (expiresAt <= 0 || Date.now() < expiresAt) return false;
-    finishTimeout();
-    return true;
-  };
-
-  /** Return selected slotted cards to the pile. */
+  /** Return selected slotted cards to the pile (keeps the undo stack in sync). */
   const drainSlotsToPile = (count = Number.POSITIVE_INFINITY): void => {
     const moved = slots.splice(0, Math.min(count, slots.length));
     pile.push(...moved);
+    if (moved.length > 0) {
+      const movedIds = new Set(moved.map((card) => card.id));
+      pickOrder = pickOrder.filter((id) => !movedIds.has(id));
+    }
   };
 
   const restoreRun = (): boolean => {
@@ -656,9 +812,17 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       clearPersistedRun();
       return false;
     }
+    // Cross-day guard: yesterday's daily progression (e.g. a solved L1 that
+    // would advance into yesterday's L2 board) must not leak into today —
+    // invalidate it so the player starts today's challenge fresh at level 1.
+    if (saved.mode === "daily" && saved.dailyDate !== dailyDateSeed()) {
+      clearPersistedRun();
+      return false;
+    }
 
     pile = saved.pile;
     slots = saved.slots;
+    pickOrder = [...saved.pickOrder];
     totalCards = saved.totalCards;
     gameStatus.set(saved.status);
     activeGameId.set(GUEST_GAME_ID);
@@ -666,10 +830,14 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     level.set(saved.level);
     dailyDate.set(saved.dailyDate);
     mode.set(saved.mode);
-    revivesLeft.set(Math.max(0, REVIVE_PER_DAILY_L2 - saved.revivesUsed));
+    // Revive economy is per-day, keyed by the daily date — the run save never
+    // carries it (a retry within the same day must not refresh the revive).
+    revivesLeft.set(
+      saved.mode === "daily" && saved.level === 2 ? dailyRevivesLeft(saved.dailyDate) : 0,
+    );
     commitment.set("");
     dealtAt.set(saved.dealtAt);
-    deadline.set(saved.deadline);
+    deadline.set(0); // guest runs are untimed
     undosUsed.set(saved.undosUsed);
     shuffleLeft.set(saved.shuffleLeft);
     remove3Left.set(saved.remove3Left);
@@ -691,15 +859,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       return true;
     }
     if (saved.isGameOver) {
-      lastStatus.set(t(saved.failureReason === "timeout" ? "guestTimeUpHint" : "gameOverBanner"));
+      lastStatus.set(t("gameOverBanner"));
       return true;
     }
-    if (Date.now() >= saved.deadline) {
-      finishTimeout();
-      return true;
-    }
-    clearDeadlineTimer();
-    deadlineTimer = setTimeout(finishTimeout, Math.max(0, saved.deadline - Date.now()));
     lastStatus.set(t("guestProgressRestored"));
     setStatus(t("guestProgressRestored"), "info");
     return true;
@@ -707,7 +869,11 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
   return {
     startGame(arg: number | StartOpts): void {
-      if (isStarting.get() || isDealing.get() || gameStatus.get() !== "idle") return;
+      // A new deal is allowed from the lobby AND from a finished run — the
+      // daily "Retry Level 2" button redeals over a lost (game-over) board.
+      const status = gameStatus.get();
+      const finished = status === "solved" || isGameOver.get();
+      if (isStarting.get() || isDealing.get() || (status !== "idle" && !finished)) return;
 
       let modeVal: "daily" | "practice" = "practice";
       let levelVal = 1;
@@ -719,17 +885,21 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       } else {
         diff = clampDifficulty(arg);
       }
+      // Daily levels pin their difficulty (mirror advanceLevel): the L2 devil
+      // board is a 90-card 15-type deal (grid + side stacks) and must run
+      // under the hard rule, or the persisted run would be rejected on refresh.
+      if (modeVal === "daily") diff = DAILY_DIFFICULTY[levelVal as 1 | 2];
       const rule = ruleOf(diff);
 
       isStarting.set(true);
       clearMatchTimer();
 
       let layout: ReturnType<typeof generateTightLayout>;
+      const dseed = dailyDateSeed();
       try {
         if (modeVal === "daily") {
-          const types = DAILY_TYPES[levelVal as 1 | 2] ?? 8; // [PLACEHOLDER]
-          const dseed = dailyDateSeed();
-          layout = generateDailyLevel(dseed, levelVal as 1 | 2, types);
+          const preset = DAILY_LEVEL_PRESETS[levelVal === 2 ? 2 : 1];
+          layout = generateDailyLevel(dseed, levelVal as 1 | 2, preset.types);
           if (layout.cards.length === 0) throw new Error("empty daily layout");
         } else {
           const spread = PRACTICE_SPREADS[diff] ?? 0.45; // [PLACEHOLDER]
@@ -744,12 +914,14 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
       pile = [...layout.cards];
       slots = [];
+      pickOrder = [];
       totalCards = layout.totalCards;
       gameDifficulty.set(diff);
       level.set(levelVal);
       mode.set(modeVal);
-      dailyDate.set(modeVal === "daily" ? dailyDateSeed() : 0);
-      revivesLeft.set(modeVal === "daily" && levelVal === 2 ? REVIVE_PER_DAILY_L2 : 0);
+      dailyDate.set(modeVal === "daily" ? dseed : 0);
+      // Revive is once per DAY (persisted), not once per attempt.
+      revivesLeft.set(modeVal === "daily" && levelVal === 2 ? dailyRevivesLeft(dseed) : 0);
       activeGameId.set(GUEST_GAME_ID);
       commitment.set("");
       undosUsed.set(0);
@@ -760,11 +932,8 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       isMatching.set(false);
       isSubmitting.set(false);
       lastPayout.set("");
-      const now = Date.now();
-      dealtAt.set(now);
-      deadline.set(now + rule.limitMs);
-      clearDeadlineTimer();
-      deadlineTimer = setTimeout(finishTimeout, rule.limitMs);
+      dealtAt.set(Date.now());
+      deadline.set(0); // guest runs are untimed (original has no clock)
       emitPile();
       emitSlots();
       gameStatus.set("dealt");
@@ -779,7 +948,7 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       const date = dailyDate.get();
       let layout: ReturnType<typeof generateDailyLevel>;
       try {
-        layout = generateDailyLevel(date, 2, DAILY_TYPES[2]);
+        layout = generateDailyLevel(date, 2, DAILY_LEVEL_PRESETS[2].types);
         if (layout.cards.length === 0) throw new Error("empty level-2 layout");
       } catch {
         lastStatus.set(t("secureRandomUnavailable"));
@@ -788,25 +957,23 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       }
       pile = [...layout.cards];
       slots = [];
+      pickOrder = [];
       totalCards = layout.totalCards;
       level.set(2);
-      gameDifficulty.set(2);
+      gameDifficulty.set(DAILY_DIFFICULTY[2]);
       activeGameId.set(GUEST_GAME_ID);
       undosUsed.set(0);
       shuffleLeft.set(1);
       remove3Left.set(1);
-      revivesLeft.set(REVIVE_PER_DAILY_L2);
+      // Revive is once per DAY (persisted), not once per attempt.
+      revivesLeft.set(dailyRevivesLeft(date));
       isGameOver.set(false);
       failureReason.set("none");
       isMatching.set(false);
       isSubmitting.set(false);
       lastPayout.set("");
-      const now = Date.now();
-      const rule = ruleOf(2);
-      dealtAt.set(now);
-      deadline.set(now + rule.limitMs);
-      clearDeadlineTimer();
-      deadlineTimer = setTimeout(finishTimeout, rule.limitMs);
+      dealtAt.set(Date.now());
+      deadline.set(0); // guest runs are untimed (original has no clock)
       emitPile();
       emitSlots();
       gameStatus.set("dealt");
@@ -823,7 +990,10 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       clearMatchTimer();
       isMatching.set(false);
       drainSlotsToPile();
-      revivesLeft.set(revivesLeft.get() - 1);
+      // Burn the day's revive in persistent storage: a retry (or refresh)
+      // within the same day must not hand it back. A new day resets it.
+      recordDailyReviveUsed(dailyDate.get());
+      revivesLeft.set(dailyRevivesLeft(dailyDate.get()));
       isGameOver.set(false);
       failureReason.set("none");
       emitPile();
@@ -835,7 +1005,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
     pickCard(cardId: number): void {
       if (gameStatus.get() !== "dealt" || isGameOver.get()) return;
-      if (stopIfExpired()) return;
       if (slots.length >= MAX_SLOTS) return;
       const index = pile.findIndex((card) => card.id === cardId);
       if (index < 0) return;
@@ -854,18 +1023,23 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
         }
       }
       slots.splice(insertAt, 0, picked);
+      // Record the pick on the undo stack (cluster-inserting means tray order
+      // is NOT pick order — undo must consult this stack, not the tray tail).
+      pickOrder.push(picked.id);
 
       let matched = false;
       if (slots.filter((c) => c.symbol === picked.symbol).length >= MATCH_COUNT) {
         matched = true;
-        let removed = 0;
+        const removedIds: number[] = [];
         slots = slots.filter((c) => {
-          if (c.symbol === picked.symbol && removed < MATCH_COUNT) {
-            removed += 1;
+          if (c.symbol === picked.symbol && removedIds.length < MATCH_COUNT) {
+            removedIds.push(c.id);
             return false;
           }
           return true;
         });
+        // A cleared triple leaves the tray — its ids leave the undo stack too.
+        pickOrder = pickOrder.filter((id) => !removedIds.includes(id));
       }
 
       emitPile();
@@ -895,13 +1069,19 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
     useUndo(): void {
       if (gameStatus.get() !== "dealt" || isUndoing.get() || isGameOver.get()) return;
-      if (stopIfExpired()) return;
-      if (slots.length === 0 || undosUsed.get() >= MAX_UNDOS) return;
+      if (slots.length === 0 || undosUsed.get() >= GUEST_MAX_UNDOS) return;
       isUndoing.set(true);
       clearMatchTimer();
       isMatching.set(false);
-      const last = slots.pop();
-      if (last) pile.push(last);
+      // Undo the LAST PICK, not the rightmost tray tile: cluster-insertion can
+      // place a fresh pick mid-tray, so the undo stack names the exact tile.
+      const lastPickedId = pickOrder.pop();
+      const undoIndex = lastPickedId === undefined
+        ? slots.length - 1
+        : slots.findIndex((c) => c.id === lastPickedId);
+      const [restored] = slots.splice(undoIndex >= 0 ? undoIndex : slots.length - 1, 1);
+      // CardData keeps layer/col/row, so pushing it back restores its exact cell.
+      if (restored) pile.push(restored);
       undosUsed.set(undosUsed.get() + 1);
       emitPile();
       emitSlots();
@@ -913,16 +1093,19 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
     useShuffle(): void {
       if (gameStatus.get() !== "dealt" || shuffleLeft.get() <= 0 || isGameOver.get()) return;
-      if (stopIfExpired()) return;
       clearMatchTimer();
       isMatching.set(false);
-      drainSlotsToPile();
+      // Original parity: shuffle re-randomizes only the remaining BOARD tiles
+      // and NEVER touches the tray — the player's tray planning survives. The
+      // pile's own symbol multiset is what gets permuted, so every symbol still
+      // totals exactly 3 across pile + tray (tray-held copies stay where they
+      // are; their remaining board copies just move cells).
+      //
       // P1 — tight boards scatter symbol copies across layers, so the old
       // "shuffle triples within each layer" rule no longer applies (it could
       // even turn a valid tight board into an impossible one). Instead we
       // globally reshuffle the symbols across all pile cards, keeping each
-      // card's position/layer — every symbol still appears exactly 3×, so the
-      // board stays legal.
+      // card's position/layer — the board stays legal.
       const symbols = pile.map((card) => card.symbol);
       let shuffled: number[];
       try {
@@ -943,7 +1126,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
 
     useRemove3(): void {
       if (gameStatus.get() !== "dealt" || remove3Left.get() <= 0 || isGameOver.get()) return;
-      if (stopIfExpired()) return;
       if (slots.length < MATCH_COUNT) return;
       clearMatchTimer();
       isMatching.set(false);
@@ -973,6 +1155,9 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     },
 
     expireGame(): void {
+      // Guest runs are untimed, so there is never a deadline to "expire" — in
+      // guest this action is only ever the player's explicit reset ("Try
+      // Again" / drawer reset), which returns to a clean local lobby.
       resetToLobby();
     },
 
@@ -983,7 +1168,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
       // gamefi read never bleeds into the guest surface. Local profile and an
       // active board are restored independently from the app-namespaced cache.
       clearMatchTimer();
-      clearDeadlineTimer();
       credit.set(0);
       poolFree.set(0);
       myRank.set(0);
@@ -998,7 +1182,6 @@ export function createGuestEngine(deps: GuestEngineDeps): GuestEngine {
     dispose(): void {
       persistRun();
       clearMatchTimer();
-      clearDeadlineTimer();
     },
   };
 }
