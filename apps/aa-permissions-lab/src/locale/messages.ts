@@ -32,6 +32,10 @@ const appMessages = {
   wrongWallet: { en: "Different wallet", zh: "非所有者钱包" },
   notInstalled: { en: "Not installed", zh: "尚未安装" },
   notInspected: { en: "Not inspected", zh: "尚未检查" },
+  // A SETTLED reading: this account was inspected and the lane holds the zero
+  // hash, i.e. nothing is bound to it. Distinct from "Not inspected", which
+  // means no read has been taken at all.
+  bindingNone: { en: "None bound", zh: "未绑定" },
   notChecked: { en: "Not checked", zh: "尚未检查" },
   boundToNetwork: { en: "Bound to {network}", zh: "已绑定到 {network}" },
   notBoundToDraft: { en: "Draft is not bound to live state", zh: "当前草稿尚未绑定实时状态" },

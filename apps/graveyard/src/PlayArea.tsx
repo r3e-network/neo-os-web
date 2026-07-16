@@ -97,7 +97,11 @@ function shortTime(value: unknown) {
 
 export default function PlayArea({ t, state, dispatch }: P) {
   const { str, bool, num, val } = useStateBindings(state);
-  const totalDestroyed = num("totalDestroyed");
+  // `totalDestroyed` is `undefined` until the burial read settles, so it is read
+  // raw rather than through `num()`, which coerces that unread state to NaN.
+  // Absence is not zero — but for the record-count arithmetic below, an unread
+  // count simply contributes nothing.
+  const totalDestroyed = val<number>("totalDestroyed") ?? 0;
   const historyCount = num("historyCount");
   const burialFeeDisplay = str("burialFeeDisplay", "0.1 GAS");
   const forgetFeeDisplay = str("forgetFeeDisplay", "1 GAS");

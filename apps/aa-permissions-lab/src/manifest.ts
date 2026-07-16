@@ -11,18 +11,23 @@ export const manifest: MiniAppManifest = {
     { key: "permissions", labelKey: "appName", icon: "shield", default: true },
   ],
 
+  // The chrome renders these with no gate of its own, and these bindings rested
+  // at "" — so an uninspected account published three blank tiles. They bind the
+  // `*Display` read-outs, which distinguish "not inspected" (nothing read yet →
+  // `pendingKey`) from "none bound" (inspected, zero hash → a real reading).
+  // The raw hashes stay bound to nothing here; the PlayArea reads those.
   stats: [
-    { labelKey: "currentVerifier", valueKey: "currentVerifier", format: "text", icon: "shield" },
-    { labelKey: "currentHook", valueKey: "currentHook", format: "text", icon: "link" },
-    { labelKey: "backupOwner", valueKey: "currentBackupOwner", format: "text", icon: "user" },
+    { labelKey: "currentVerifier", valueKey: "currentVerifierDisplay", format: "text", icon: "shield", pendingKey: "notInspected" },
+    { labelKey: "currentHook", valueKey: "currentHookDisplay", format: "text", icon: "link", pendingKey: "notInspected" },
+    { labelKey: "backupOwner", valueKey: "currentBackupOwnerDisplay", format: "text", icon: "user", pendingKey: "notInspected" },
   ],
 
   sidebar: {
     titleKey: "appName",
     items: [
-      { labelKey: "currentVerifier", valueKey: "currentVerifier", format: "text" },
-      { labelKey: "currentHook", valueKey: "currentHook", format: "text" },
-      { labelKey: "backupOwner", valueKey: "currentBackupOwner", format: "text" },
+      { labelKey: "currentVerifier", valueKey: "currentVerifierDisplay", format: "text", pendingKey: "notInspected" },
+      { labelKey: "currentHook", valueKey: "currentHookDisplay", format: "text", pendingKey: "notInspected" },
+      { labelKey: "backupOwner", valueKey: "currentBackupOwnerDisplay", format: "text", pendingKey: "notInspected" },
     ],
   },
 

@@ -180,6 +180,12 @@ const appMessages = {
   chainStateLabel: { en: "Chain state", zh: "链上状态" },
   reviewStateLabel: { en: "Review state", zh: "审核状态" },
   txidLabel: { en: "Transaction ID", zh: "交易 ID" },
+  // Shell chrome read-outs for the states where these values do not exist yet.
+  // Manifest bindings are string-valued, so the chrome cannot render a
+  // placeholder element — the honest phase has to reach it as words, or the
+  // tile renders blank. See manifest.ts.
+  jobIdPending: { en: "No job prepared", zh: "尚未准备任务" },
+  txidPending: { en: "Not submitted", zh: "尚未提交" },
   docsSubtitle: {
     en: "Prepare, bind, recover, and verify AA relay jobs without pretending that an unavailable relay is live.",
     zh: "准备、绑定、恢复并验证 AA Relay 任务，不把不可用的 Relay 伪装成在线。",

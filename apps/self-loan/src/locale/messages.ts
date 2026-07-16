@@ -258,6 +258,10 @@ const appMessages = {
   },
   connectWalletTitle: { en: "Wallet required", zh: "需要连接钱包" },
   connectWallet: { en: "Connect wallet", zh: "连接钱包" },
+  // Shown by the shell chrome while a position/balance read is still in flight.
+  // The chrome cannot show a skeleton (manifest bindings are string-valued), so
+  // the pending phase has to reach it as words — see manifest.ts.
+  selfLoanReading: { en: "Reading…", zh: "读取中…" },
   openPosition: { en: "Open a position", zh: "开立仓位" },
   chooseCollateralAndTier: { en: "Choose collateral and one LTV tier", zh: "选择抵押品与一个 LTV 档位" },
   twoWalletSteps: { en: "Borrow/add: up to 2 confirmations", zh: "借款/追加：最多 2 次确认" },

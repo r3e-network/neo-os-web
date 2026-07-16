@@ -11,18 +11,26 @@ export const manifest: MiniAppManifest = {
     { key: "main", labelKey: "destroy", icon: "trash-2", default: true },
   ],
 
+  // The chrome renders these with no loading gate of its own, so they bind the
+  // `*Display` read-outs, which know which phase the burial read is in, and
+  // declare `pendingKey` for the unread one. The raw `totalDestroyed` /
+  // `historyCount` stay numbers for the PlayArea's arithmetic.
+  //
+  // These counts used to rest at `0`, so the chrome published "Total destroyed
+  // 0" — a number asserting this wallet has destroyed nothing, before any read
+  // had run. A settled zero is a real reading and still renders as 0.
   stats: [
-    { labelKey: "totalDestroyed", valueKey: "totalDestroyed", format: "number", icon: "archive" },
-    { labelKey: "gasReclaimed", valueKey: "gasReclaimedDisplay", format: "text", variant: "success", icon: "zap" },
-    { labelKey: "history", valueKey: "historyCount", format: "number", icon: "clock" },
+    { labelKey: "totalDestroyed", valueKey: "totalDestroyedDisplay", format: "number", icon: "archive", pendingKey: "graveyardReading" },
+    { labelKey: "gasReclaimed", valueKey: "gasReclaimedDisplay", format: "text", variant: "success", icon: "zap", pendingKey: "graveyardReading" },
+    { labelKey: "history", valueKey: "historyCountDisplay", format: "number", icon: "clock", pendingKey: "graveyardReading" },
   ],
 
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "totalDestroyed", valueKey: "totalDestroyed", format: "number" },
-      { labelKey: "gasReclaimed", valueKey: "gasReclaimedDisplay", format: "text" },
-      { labelKey: "history", valueKey: "historyCount", format: "number" },
+      { labelKey: "totalDestroyed", valueKey: "totalDestroyedDisplay", format: "number", pendingKey: "graveyardReading" },
+      { labelKey: "gasReclaimed", valueKey: "gasReclaimedDisplay", format: "text", pendingKey: "graveyardReading" },
+      { labelKey: "history", valueKey: "historyCountDisplay", format: "number", pendingKey: "graveyardReading" },
     ],
   },
 

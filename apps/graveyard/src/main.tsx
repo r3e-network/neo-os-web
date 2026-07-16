@@ -111,6 +111,11 @@ defineMiniApp({
         burialFeeDisplay: graveyard.burialFeeDisplay,
         forgetFeeDisplay: graveyard.forgetFeeDisplay,
         historyCount: graveyard.historyCount,
+        // Chrome read-outs: the same counts, able to say why they have no
+        // number yet. The manifest binds these (see manifest.ts).
+        historyStatus: graveyard.historyStatus,
+        totalDestroyedDisplay: graveyard.totalDestroyedDisplay,
+        historyCountDisplay: graveyard.historyCountDisplay,
         historyTruncated: graveyard.historyTruncated,
         history: graveyard.history,
         isDestroying: graveyard.isDestroying,
