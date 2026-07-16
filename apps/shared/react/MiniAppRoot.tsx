@@ -688,6 +688,19 @@ export function MiniAppRoot({
         const obs = appStateRef.current[item.valueKey];
         if (!obs) return null;
         const raw = obs.get();
+        // Manifest bindings are an ungated render path — the formatter would
+        // happily turn an unread value into a void ("—") or a fabricated
+        // number ("Founders 0"), publishing it as if it were a reading. A
+        // binding may declare `pendingKey` to name that phase instead.
+        //
+        // `undefined` is the trigger, and only `undefined`: `null` and `""`
+        // are values an app may legitimately hold and report, whereas
+        // `undefined` uniquely means "nothing has been set yet". Bindings are
+        // string-valued, so a skeleton cannot be mounted here — honest words
+        // are the only truthful option.
+        //
+        // With no `pendingKey` this is exactly the pre-existing behaviour.
+        if (raw === undefined && item.pendingKey) return tFn(item.pendingKey);
         return getFormatter(item.format)(raw);
       })() as string | number | boolean | null | undefined,
     }));
