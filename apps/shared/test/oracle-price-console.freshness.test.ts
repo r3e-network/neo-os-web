@@ -213,7 +213,15 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(result.success).toBe(false);
     expect(price.freshness.get()).toBe("idle");
     expect(price.freshnessLabel.get()).not.toContain("Fresh");
-    expect(price.priceDisplay.get()).toBe(t("notAvailable"));
+    // The reading carries no value, and carries it as absence — not as a glyph
+    // the data layer picked. The view decides what absence looks like.
+    expect(price.priceDisplay.get()).toBe("");
+    // The point of this guard: a zero read must never surface as a real price,
+    // and never as a plausible $0.
+    expect(price.priceDisplay.get()).not.toMatch(/\$/);
+    expect(price.priceStatDisplay.get()).not.toMatch(/\$/);
+    // The shell chrome cannot shimmer, so it gets honest words — never "N/A".
+    expect(price.priceStatDisplay.get()).toBe(t("priceSignalIdle"));
     expect(price.freshnessTimestamp.get()).toBe("");
     expect(price.errorMsg.get()).toBe(t("errorFeedFault"));
   });
@@ -315,7 +323,11 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
 
     const oldRead = price.fetchPrice();
     expect(price.selectAsset("GAS")).toBe(true);
-    expect(price.priceDisplay.get()).toBe(t("notAvailable"));
+    // The old pair's price is gone the instant the pair changes; the new pair's
+    // read has not settled, so the reading is absent and the phase is unsettled
+    // — the view shimmers rather than showing the pair the visitor just left.
+    expect(price.priceDisplay.get()).toBe("");
+    expect(price.priceSettled.get()).toBe(false);
     const currentRead = await price.fetchPrice();
     resolveNeo({ price: 9.99, dataTimestamp: nowSec, recordTimestamp: nowSec });
     const ignoredRead = await oldRead;
@@ -341,7 +353,14 @@ describe("usePriceConsole — freshness from feed timestamp", () => {
     expect(price.priceDisplay.get()).toBe("$2.185");
     await price.fetchPrice();
 
-    expect(price.priceDisplay.get()).toBe(t("notAvailable"));
+    // A stale-but-real $2.185 must not survive a failed re-read, and must not
+    // be replaced by a fabricated zero either.
+    expect(price.priceDisplay.get()).toBe("");
+    expect(price.priceDisplay.get()).not.toMatch(/\$/);
+    expect(price.priceStatDisplay.get()).toBe(t("priceSignalIdle"));
+    // The read completed (it failed), so the console is settled: the view shows
+    // honest zero-state copy, not a shimmer that would imply work in progress.
+    expect(price.priceSettled.get()).toBe(true);
     expect(price.freshness.get()).toBe("idle");
     expect(price.errorMsg.get()).toBe(t("errorFeedNetwork"));
   });

@@ -9,7 +9,7 @@ import { Flame, Gem, LineChart, RadioTower, Sun, ShieldCheck, type LucideIcon } 
 import { CoinArt } from "@shared/art";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
-import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, PlayStage } from "@shared/components-react/v2";
+import { OpenUiPanel, OpenUiProvider, OpenUiSegmented, PhaseValue, PlayStage, resolvePhase } from "@shared/components-react/v2";
 import "./PlayArea.scss";
 
 interface PlayAreaProps { t: (key: string, p?: Record<string, string | number>) => string; state: Record<string, Observable>; dispatch: (n: string, ...a: unknown[]) => Promise<unknown>; }
@@ -65,15 +65,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     void dispatch(name, ...args).catch(() => undefined);
   }, [dispatch]);
   const asset = str("asset", "NEO");
-  const priceDisplay = str("priceDisplay", t("notAvailable"));
+  const priceDisplay = str("priceDisplay", "");
   const networkDisplay = str("networkDisplay", "");
   const datafeedShort = str("datafeedShort", "");
   const datafeedHash = str("datafeedHash", "");
   const sourceLabel = str("sourceLabel", "");
   const errorMsg = str("errorMsg", "");
   const isRequesting = bool("isRequesting");
+  const priceSettled = bool("priceSettled");
   const freshness = str("freshness", "idle");
-  const freshnessLabel = str("freshnessLabel", t("priceStatusReady"));
+  const freshnessLabel = str("freshnessLabel", "");
   const freshnessTimestamp = str("freshnessTimestamp", "");
   const sourceFreshness = str("sourceFreshness", "idle");
   const sourceFreshnessLabel = str("sourceFreshnessLabel", t("sourceTimestampPending"));
@@ -94,7 +95,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         ? freshnessLabel
         : t("priceRouteQueued");
   const drawerModes: Array<{ mode: DrawerMode; label: string; value: string; icon: LucideIcon }> = [
-    { mode: "signal", label: t("priceSignalTitle"), value: priceDisplay, icon: LineChart },
+    { mode: "signal", label: t("priceSignalTitle"), value: priceDisplay || t("priceSignalIdle"), icon: LineChart },
     { mode: "contract", label: t("feedTicketContract"), value: feedContractLabel, icon: RadioTower },
     { mode: "reference", label: t("priceReferenceTitle"), value: routeState, icon: ShieldCheck },
   ];
@@ -104,6 +105,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // drawerModes is a non-empty literal, so the fallback always exists.
   const activeDrawerMode = drawerModes.find((item) => item.mode === drawerMode) ?? drawerModes[0]!;
   const ActiveDrawerIcon = activeDrawerMode.icon;
+
+  // ── Honest read phase for the headline quote ─────────────────────────────
+  // The pair price is a public contract read that fires for every visitor on
+  // arrival — no wallet, ~300ms. Until it settles, "no price" means "still
+  // asking", so the hero shimmers instead of printing "N/A" beside a "Ready for
+  // a fresh read" badge the console had not earned. `isRequesting` alone cannot
+  // carry this: it is still false on the very first frame, before lifecycle
+  // mount fires the read, which is precisely when the void was widest.
+  const pricePhase = resolvePhase({
+    loading: isRequesting || !priceSettled,
+    settled: priceSettled,
+    hasData: Boolean(priceDisplay),
+  });
 
   const scene = (
     <div
@@ -122,13 +136,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="price-ticket__quote">
           <span>{t("latestPrice")}</span>
-          <strong>{priceDisplay}</strong>
+          <strong>
+            <PhaseValue phase={pricePhase} placeholder={t("priceSignalIdle")} skeletonWidth="4em">
+              {priceDisplay}
+            </PhaseValue>
+          </strong>
         </div>
         <div className="price-ticket__meta">
-          <span className="price-ticket__freshness">
-            <span className="price-ticket__dot" />
-            {freshnessLabel}
-          </span>
+          {freshnessLabel && (
+            <span className="price-ticket__freshness">
+              <span className="price-ticket__dot" />
+              {freshnessLabel}
+            </span>
+          )}
           <span data-tone={sourceFreshness === "stale" ? "warning" : undefined}>{sourceFreshnessLabel || sourceLabel || t("priceRouteSourceFallback")}</span>
         </div>
         {errorMsg && <p className="price-ticket__error" role="alert">{errorMsg}</p>}
@@ -179,8 +199,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     signal: (
       <dl className="price-drawer-list">
         <div><dt>{t("asset")}</dt><dd>{asset}/USD</dd></div>
-        <div><dt>{t("latestPrice")}</dt><dd>{priceDisplay}</dd></div>
-        <div><dt>{t("freshnessLabel")}</dt><dd>{freshnessLabel}</dd></div>
+        <div><dt>{t("latestPrice")}</dt><dd><PhaseValue phase={pricePhase} placeholder={t("priceSignalIdle")} skeletonWidth="4em">{priceDisplay}</PhaseValue></dd></div>
+        <div><dt>{t("freshnessLabel")}</dt><dd>{freshnessLabel || t("priceSignalIdle")}</dd></div>
         <div><dt>{t("sourceLabel")}</dt><dd>{sourceLabel || t("priceRouteSourceFallback")}</dd></div>
         <div><dt>{t("resolvedFeedKey")}</dt><dd>{feedKey ? <code>{feedKey}</code> : t("feedRoutePending")}</dd></div>
         {freshnessTimestamp && <div><dt>{t("recordTimestampLabel")}</dt><dd>{freshnessTimestamp}</dd></div>}

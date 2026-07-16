@@ -25,6 +25,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { CoinArt } from "@shared/art";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2/DataPhase";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import {
   OpenUiLiteNotice as OpenUiNotice,
@@ -170,12 +171,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pendingStorageHealthy = bool("pendingStorageHealthy");
   const governanceOverview = val<GovernanceOverview>("governanceOverview", EMPTY_OVERVIEW) ?? EMPTY_OVERVIEW;
   const governanceOverviewError = str("governanceOverviewError", "");
+  const governanceOverviewSettled = bool("governanceOverviewSettled");
   const councilCandidates = val<CouncilCandidate[]>("councilCandidates", EMPTY_CANDIDATES) ?? EMPTY_CANDIDATES;
   const councilRosterLoaded = bool("councilRosterLoaded");
   const councilRosterError = str("councilRosterError", "");
-  const neoBalance = str("neoBalance", "—");
-  const gasBalance = str("gasBalance", "—");
+  const neoBalance = str("neoBalance", "");
+  const gasBalance = str("gasBalance", "");
   const balancesLoaded = bool("balancesLoaded");
+  const balancesSettled = bool("balancesSettled");
   const balancesError = str("balancesError", "");
   const currentNetwork = str("currentNetwork", "unknown");
   const lastConfirmation = val<GovernanceConfirmation | null>("lastConfirmation", null);
@@ -196,6 +199,26 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const proposalExternal = proposal?.source === "neo-community";
   const alreadyVoted = proposal ? Boolean(hasVotedMap[proposal.id]) : false;
   const voteStatusKnown = Boolean(proposalExternal || (proposal && hasVotedKnownMap[proposal.id]));
+  // ── Honest read phases ───────────────────────────────────────────────────
+  // The council rules are contract config: their read starts for every visitor,
+  // wallet or not. Until it settles, "no rules" means "still asking" — so the
+  // tiles shimmer rather than print an em-dash that reads like a blank rule.
+  // Once settled without data the adjacent notice already names the reason, and
+  // the tile says so plainly too.
+  const rulesPhase = resolvePhase({
+    loading: !governanceOverviewSettled,
+    settled: governanceOverviewSettled,
+    hasData: governanceOverview.loaded,
+  });
+  // Balances are wallet-scoped: with no wallet the answer is known and the
+  // placeholder names the visitor's next step; with a wallet the read is in
+  // flight and a shimmer is the honest picture.
+  const balancesPhase = resolvePhase({
+    loading: Boolean(address) && !balancesSettled,
+    settled: balancesSettled,
+    hasData: balancesLoaded,
+  });
+  const balancePlaceholder = address ? t("rulesUnread") : t("balanceConnect");
   const eligibilityReady = Boolean(address && candidateLoaded && !candidateError && isCandidate);
   const governanceWritable = Boolean(governanceOverview.loaded && governanceOverview.paused === false);
   const canVote = Boolean(
@@ -728,21 +751,21 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </div>
         </div>
         <div className="council-wallet__balances">
-          <span><CoinArt size={25} variant="neo" decorative /><strong>{balancesLoaded ? neoBalance : "—"}</strong><em>NEO</em></span>
-          <span><CoinArt size={25} variant="gas" decorative /><strong>{balancesLoaded ? gasBalance : "—"}</strong><em>GAS</em></span>
+          <span><CoinArt size={25} variant="neo" decorative /><strong><PhaseValue phase={balancesPhase} placeholder={balancePlaceholder} skeletonWidth="2.5em">{neoBalance}</PhaseValue></strong><em>NEO</em></span>
+          <span><CoinArt size={25} variant="gas" decorative /><strong><PhaseValue phase={balancesPhase} placeholder={balancePlaceholder} skeletonWidth="3.5em">{gasBalance}</PhaseValue></strong><em>GAS</em></span>
           <span><Vote size={22} /><strong>{isCandidate ? "1" : "0"}</strong><em>{t("councilVote")}</em></span>
         </div>
         {balancesError && <p>{balancesError}</p>}
       </section>
 
       <section className="council-rules" aria-label={t("governanceRules") }>
-        <article><UsersRound size={17} /><span>{t("committee")}</span><strong>{governanceOverview.loaded ? governanceOverview.committeeSize : "—"}</strong></article>
-        <article><ShieldCheck size={17} /><span>{t("quorum")}</span><strong>{governanceOverview.loaded ? `${governanceOverview.quorumPercent}%` : "—"}</strong></article>
-        <article><CheckCircle2 size={17} /><span>{t("support")}</span><strong>{governanceOverview.loaded ? `${governanceOverview.thresholdPercent}%` : "—"}</strong></article>
-        <article><Clock3 size={17} /><span>{t("votingWindow")}</span><strong>{governanceOverview.loaded ? t("durationRangeMinutes", {
+        <article><UsersRound size={17} /><span>{t("committee")}</span><strong><PhaseValue phase={rulesPhase} placeholder={t("rulesUnread")} skeletonWidth="1.5em">{governanceOverview.committeeSize}</PhaseValue></strong></article>
+        <article><ShieldCheck size={17} /><span>{t("quorum")}</span><strong><PhaseValue phase={rulesPhase} placeholder={t("rulesUnread")} skeletonWidth="2.5em">{`${governanceOverview.quorumPercent}%`}</PhaseValue></strong></article>
+        <article><CheckCircle2 size={17} /><span>{t("support")}</span><strong><PhaseValue phase={rulesPhase} placeholder={t("rulesUnread")} skeletonWidth="2.5em">{`${governanceOverview.thresholdPercent}%`}</PhaseValue></strong></article>
+        <article><Clock3 size={17} /><span>{t("votingWindow")}</span><strong><PhaseValue phase={rulesPhase} placeholder={t("rulesUnread")} skeletonWidth="5em">{t("durationRangeMinutes", {
           min: Math.ceil(governanceOverview.minDurationMs / 60_000),
           max: Math.floor(governanceOverview.maxDurationMs / 60_000),
-        }) : "—"}</strong></article>
+        })}</PhaseValue></strong></article>
       </section>
 
       {governanceOverviewError && (

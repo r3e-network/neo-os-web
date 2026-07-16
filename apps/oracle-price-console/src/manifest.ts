@@ -26,7 +26,7 @@ export const manifest: MiniAppManifest = {
     // as a blank label in production; use the existing priceMetricNetwork key.
     { labelKey: "priceMetricNetwork", valueKey: "networkDisplay", format: "text", icon: "globe" },
     { labelKey: "heroFeed", valueKey: "datafeedShort", format: "text", icon: "activity" },
-    { labelKey: "latestPrice", valueKey: "priceDisplay", format: "text", variant: "accent" },
+    { labelKey: "latestPrice", valueKey: "priceStatDisplay", format: "text", variant: "accent" },
     { labelKey: "priceMetricSource", valueKey: "sourceLabel", format: "text" },
   ],
 
@@ -35,7 +35,7 @@ export const manifest: MiniAppManifest = {
     titleKey: "appName",
     items: [
       { labelKey: "asset", valueKey: "asset", format: "text" },
-      { labelKey: "latestPrice", valueKey: "priceDisplay", format: "text" },
+      { labelKey: "latestPrice", valueKey: "priceStatDisplay", format: "text" },
     ],
   },
 

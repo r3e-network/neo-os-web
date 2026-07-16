@@ -174,4 +174,103 @@ describe("council-governance PlayArea (v2)", () => {
     expect(s).not.toMatch(/backdrop-filter/);
     expect(s).toMatch(/prefers-reduced-motion/);
   });
+
+  // The council rules are contract config, so their read starts for every
+  // visitor — wallet or not — and the council panel paints whatever the
+  // unresolved state renders. A single `loaded` flag could not tell "still
+  // asking" from "asked, got nothing", so both printed an em-dash: an in-flight
+  // rule read looked like a rule that is genuinely blank. These pin the three
+  // honest phases apart. The em-dash assertions are occurrence counts, not
+  // value checks — a real rule value must never be replaced by a glyph, and a
+  // glyph must never stand in for a value the app has not read yet.
+  const openCouncilPanel = () => {
+    fireEvent.click(screen.getByRole("button", { name: /councilDetails/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /council/ }));
+  };
+  const unreadOverview = { loaded: false, network: "mainnet", contract: "", paused: null, committeeSize: 0, quorumPercent: 0, thresholdPercent: 0, minDurationMs: 0, maxDurationMs: 0, totalProposals: 0, totalVotes: 0, passedProposals: 0, totalMembers: 0 };
+
+  it("shimmers the governance rules while their read is in flight, never a glyph", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      governanceOverview: unreadOverview,
+      governanceOverviewSettled: false,
+      governanceOverviewError: "",
+      address: "",
+      balancesSettled: false,
+      balancesLoaded: false,
+      neoBalance: "",
+      gasBalance: "",
+    })} dispatch={vi.fn()} />);
+    openCouncilPanel();
+
+    const rules = container.querySelector(".council-rules");
+    expect(rules?.querySelectorAll(".mx2-skeleton")).toHaveLength(4);
+    expect(rules?.textContent ?? "").not.toContain("—");
+    // No zero-state copy either: the app has not finished asking, so promising
+    // an answer it does not have would be as dishonest as the em-dash was.
+    expect(rules?.textContent ?? "").not.toContain("rulesUnread");
+  });
+
+  it("states plainly that the rules are unread once the read settles empty", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      governanceOverview: unreadOverview,
+      governanceOverviewSettled: true,
+      governanceOverviewError: "governanceRulesUnavailable",
+      address: "",
+      balancesSettled: true,
+      balancesLoaded: false,
+      neoBalance: "",
+      gasBalance: "",
+    })} dispatch={vi.fn()} />);
+    openCouncilPanel();
+
+    const rules = container.querySelector(".council-rules");
+    expect(rules?.querySelector(".mx2-skeleton")).toBeNull();
+    expect(rules?.querySelectorAll("[data-phase='unavailable']")).toHaveLength(4);
+    expect(rules?.textContent ?? "").not.toContain("—");
+    // A settled-empty rule must not be dressed up as a real committee of zero.
+    expect(rules?.textContent ?? "").not.toMatch(/\b0%/);
+
+    // A disconnected visitor is told to connect rather than shown a void; the
+    // balance is genuinely unknowable until a wallet arrives.
+    const balances = container.querySelector(".council-wallet__balances");
+    expect(balances?.textContent ?? "").not.toContain("—");
+    expect(balances?.textContent ?? "").toContain("balanceConnect");
+  });
+
+  it("shimmers a connected visitor's balances instead of voiding them mid-read", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      address: "NconnectedCouncilMember",
+      balancesSettled: false,
+      balancesLoaded: false,
+      neoBalance: "",
+      gasBalance: "",
+    })} dispatch={vi.fn()} />);
+    openCouncilPanel();
+
+    const balances = container.querySelector(".council-wallet__balances");
+    // Two shimmering coin balances; the council-vote tile is a real count.
+    expect(balances?.querySelectorAll(".mx2-skeleton")).toHaveLength(2);
+    expect(balances?.textContent ?? "").not.toContain("—");
+  });
+
+  it("renders resolved rules and balances as themselves", () => {
+    const { container } = render(<PlayArea t={t} state={state({
+      governanceOverviewSettled: true,
+      address: "NconnectedCouncilMember",
+      balancesSettled: true,
+      balancesLoaded: true,
+      neoBalance: "42",
+      gasBalance: "13.5",
+    })} dispatch={vi.fn()} />);
+    openCouncilPanel();
+
+    const rules = container.querySelector(".council-rules");
+    expect(rules?.querySelector(".mx2-skeleton")).toBeNull();
+    expect(rules?.textContent).toContain("21");
+    expect(rules?.textContent).toContain("30%");
+    const balances = container.querySelector(".council-wallet__balances");
+    expect(balances?.textContent).toContain("42");
+    expect(balances?.textContent).toContain("13.5");
+    expect(balances?.querySelector(".mx2-skeleton")).toBeNull();
+  });
 });

@@ -232,4 +232,45 @@ describe("dev-tipping PlayArea (v2)", () => {
     expect(source).not.toMatch(/function OpenUi(?:Provider|Panel|Notice|TextField)/);
     expect(source).not.toMatch(/<form\b|<svg\b|[😀-🙏🌀-🫿]/u);
   });
+  // The board's lifetime total is the History tab's meta. It is a public read,
+  // but `refresh` bails before it whenever the runtime cannot name a network —
+  // i.e. for every wallet-less visitor — so the observable's initial value was
+  // the FINAL value: a permanent em-dash, not a passing one. These pin the
+  // three phases apart, and pin the total to absence rather than a fabricated
+  // zero that would claim nobody has ever tipped.
+  const historyMeta = (container: HTMLElement) =>
+    container.querySelector("#tip-tab-history small");
+
+  it("says why the board total is unread once the wallet question is settled", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ totalDonatedDisplay: "", statsSettled: true })} dispatch={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /supportOptions/i }));
+    const meta = historyMeta(container);
+    expect(meta?.textContent ?? "").not.toContain("—");
+    // Never a fake zero for a total the app never read.
+    expect(meta?.textContent ?? "").not.toContain("0 GAS");
+    expect(meta?.querySelector("[data-phase='unavailable']")).toBeTruthy();
+  });
+
+  it("shimmers the board total while the read is still in flight", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ totalDonatedDisplay: "", statsSettled: false })} dispatch={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /supportOptions/i }));
+    const meta = historyMeta(container);
+    expect(meta?.querySelector(".mx2-skeleton")).toBeTruthy();
+    expect(meta?.textContent ?? "").not.toContain("—");
+    expect(meta?.textContent ?? "").not.toContain("0 GAS");
+  });
+
+  it("renders a resolved board total as itself", () => {
+    const { container } = render(
+      <PlayArea t={t} state={state({ totalDonatedDisplay: "12.50 GAS", statsSettled: true })} dispatch={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /supportOptions/i }));
+    const meta = historyMeta(container);
+    expect(meta?.textContent).toContain("12.50 GAS");
+    expect(meta?.querySelector(".mx2-skeleton")).toBeNull();
+  });
 });

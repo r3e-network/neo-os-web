@@ -182,6 +182,16 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
   const feedRoute = createObservable<FeedRoute | "">("");
   const feedKey = createObservable("");
   const isRequesting = createObservable(false);
+  /**
+   * True once a feed read has completed, success or failure. `latestPrice ==
+   * null` alone cannot tell "the feed read is still in flight" from "the feed
+   * read came back with nothing" — both leave it null, so both rendered the
+   * same "N/A". The pair price is a public contract read that fires for every
+   * visitor on arrival, so that ambiguity is the console's first impression.
+   * `isRequesting` cannot stand in for this: it is still false on the very
+   * first frame, before lifecycle mount has called `loadAll`.
+   */
+  const priceSettled = createObservable(false);
   const errorMsg = createObservable<string | null>(null);
   // Available feed pairs (base symbols). Seeded with instant defaults and
   // lazily extended from the on-chain catalog (listPairs) on first load.
@@ -233,13 +243,30 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     return price != null && price > 0;
   }
 
+  // Carries the price only. An empty string means "nothing to show yet"; what
+  // that absence should LOOK like is the view's call, not this layer's — a
+  // getter that returns "N/A" has already decided, and decided wrong for the
+  // in-flight case it cannot see.
   const priceDisplay: Observable<string> = {
     get: () => {
       const price = latestPrice.get();
-      return price == null || price <= 0
-        ? t("notAvailable")
-        : formatPriceForDisplay(price);
+      return price == null || price <= 0 ? "" : formatPriceForDisplay(price);
     },
+    set: () => {},
+    subscribe: (fn) => latestPrice.subscribe(fn),
+  };
+
+  /**
+   * The same reading for the shell's stat rail and sidebar, which the manifest
+   * binds directly. That chrome has no skeleton vocabulary — it prints whatever
+   * string it is handed — so an unread price must arrive there as honest words
+   * rather than as `priceDisplay`'s empty string (a blank tile is the same void
+   * in a quieter costume). "Awaiting read" is true both while the read is in
+   * flight and after it settles with nothing, which is exactly as much as this
+   * surface can express.
+   */
+  const priceStatDisplay: Observable<string> = {
+    get: () => (hasValidPrice() ? formatPriceForDisplay(latestPrice.get()!) : t("priceSignalIdle")),
     set: () => {},
     subscribe: (fn) => latestPrice.subscribe(fn),
   };
@@ -268,6 +295,12 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
 
   const freshnessLabel: Observable<string> = {
     get: () => {
+      // "Ready for a fresh read" is a claim about a settled, idle console. While
+      // the first read is still in flight it is simply untrue — and it used to
+      // sit beside an "N/A" price and a spinning "Reading…" button, so the page
+      // contradicted itself on arrival. Say nothing until we know; the view
+      // renders the in-flight state as a shimmer.
+      if (!priceSettled.get() || isRequesting.get()) return "";
       if (!hasValidPrice()) return t("priceStatusReady");
       const ts = lastTimestamp.get();
       if (ts <= 0) return t("priceStatusUnverified");
@@ -283,7 +316,11 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     subscribe: (fn) => {
       const timestampSubscription = lastTimestamp.subscribe(fn);
       const tickSubscription = freshnessTick.subscribe(fn);
-      return () => { timestampSubscription(); tickSubscription(); };
+      // The label now reads the read's phase as well as its result, so it must
+      // wake when the phase moves or the shimmer would outlive the read.
+      const settledSubscription = priceSettled.subscribe(fn);
+      const requestingSubscription = isRequesting.subscribe(fn);
+      return () => { timestampSubscription(); tickSubscription(); settledSubscription(); requestingSubscription(); };
     },
   };
 
@@ -453,6 +490,9 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     clearDisplayedQuote();
     errorMsg.set(null);
     isRequesting.set(false);
+    // The new pair has not been read yet — back to shimmering, not to a stale
+    // "Awaiting read" verdict inherited from the pair the visitor just left.
+    priceSettled.set(false);
     return true;
   }
 
@@ -493,6 +533,9 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     } finally {
       if (requestId === requestGeneration && asset.get() === requestedAsset) {
         isRequesting.set(false);
+        // One read round has completed, success or not. Until this flips, "no
+        // price" means "still asking" and the view shows a shimmer.
+        priceSettled.set(true);
       }
     }
   }
@@ -542,6 +585,7 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     feedRoute,
     feedKey,
     priceDisplay,
+    priceStatDisplay,
     freshness,
     freshnessLabel,
     freshnessTimestamp,
@@ -555,6 +599,7 @@ export function usePriceConsole({ app, t }: UsePriceConsoleOptions) {
     rpcEndpoint,
     availablePairs,
     isRequesting,
+    priceSettled,
     errorMsg,
     selectAsset,
     fetchPrice,

@@ -33,7 +33,18 @@ defineMiniApp({
     });
 
     const developerCount = createObservable(0);
-    const totalDonatedDisplay = createObservable("—");
+    // Carries the value only — an empty string means "nothing to show yet".
+    // What that absence looks like is the view's call, not this layer's.
+    const totalDonatedDisplay = createObservable("");
+    /**
+     * True once `refresh` has resolved whether the board's public totals can be
+     * read at all. `totalDonatedDisplay` alone could not say why it was empty:
+     * a wallet-less visitor bails out of `refresh` before the read (the runtime
+     * cannot name a network yet), so the display stayed at its initial value
+     * FOREVER — a permanent em-dash on the support drawer's History tab, with
+     * nothing to explain it. Settling that bail-out lets the view say so.
+     */
+    const statsSettled = createObservable(false);
     const recentTipCount = createObservable(0);
     const myDeveloperId = createObservable(0);
     const myClaimableBalance = createObservable(0);
@@ -122,7 +133,14 @@ defineMiniApp({
       if (generation !== refreshGeneration) return false;
       // Waiting for a wallet is the expected first-load state, not a load
       // failure. Throwing here surfaced a console error on every cold open.
-      if (wallet.runtimeStatus.get() === "awaiting-wallet") return false;
+      if (wallet.runtimeStatus.get() === "awaiting-wallet") {
+        // Not a fault, and not still-loading either: without a wallet the
+        // runtime cannot resolve which network to read the board from, so the
+        // totals are genuinely unreadable rather than pending. Say so, or the
+        // view would shimmer forever waiting for a read that never starts.
+        statsSettled.set(true);
+        return false;
+      }
       if (!wallet.runtimeCompatible.get()) {
         throw new Error(wallet.runtimeError.get() || t("runtimeUnavailable"));
       }
@@ -135,6 +153,7 @@ defineMiniApp({
       totalDonatedDisplay.set(
         `${ctx.framework.amount.fixed8ToGas(stats.totalDonatedBase.get(), 8)} GAS`,
       );
+      statsSettled.set(true);
       recentTipCount.set(stats.recentTips.get().length);
 
       if (!addressAtStart) {
@@ -272,6 +291,7 @@ defineMiniApp({
         address: wallet.address,
         developerCount,
         totalDonatedDisplay,
+        statsSettled,
         recentTipCount,
         myDeveloperId,
         myClaimableBalance,

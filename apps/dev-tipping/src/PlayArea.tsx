@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Code2, HeartHandshake, RefreshCw, Send, Wallet, XCircle } from "lucide-react";
 import { CoinArt, ParticleBurst } from "@shared/art";
+import { PhaseValue, resolvePhase } from "@shared/components-react/v2/DataPhase";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import {
   OpenUiLiteNotice as OpenUiNotice,
@@ -91,7 +92,20 @@ export default function PlayArea({ t, state, dispatch, loadError, retryLoad }: P
   const address = str("address");
   const developers = val<Dev[]>("developers", EMPTY_DEVELOPERS) ?? EMPTY_DEVELOPERS;
   const recentTips = val<RecentTip[]>("recentTips", EMPTY_RECENT_TIPS) ?? EMPTY_RECENT_TIPS;
-  const totalDonatedDisplay = str("totalDonatedDisplay") || gasDisplay(num("totalDonated"));
+  // NOT `|| gasDisplay(num("totalDonated"))`: that fallback was dead while the
+  // display defaulted to a truthy "—", and reviving it now would assert a
+  // fabricated "0 GAS" — "nobody has ever tipped this board" — for a total the
+  // app has not read. An unread total is absent, not zero.
+  const totalDonatedDisplay = str("totalDonatedDisplay", "");
+  const statsSettled = bool("statsSettled");
+  // The board's lifetime total is a public read, but it needs a bound network,
+  // which a wallet-less visitor has not supplied. Shimmer while the read is in
+  // flight; say plainly why it is empty once that question is answered.
+  const totalDonatedPhase = resolvePhase({
+    loading: !statsSettled,
+    settled: statsSettled,
+    hasData: Boolean(totalDonatedDisplay),
+  });
   const myDeveloperId = num("myDeveloperId");
   const myClaimableBalance = num("myClaimableBalance");
   const myClaimableBalanceDisplay = str("myClaimableBalanceDisplay") || gasDisplay(myClaimableBalance);
@@ -183,7 +197,11 @@ export default function PlayArea({ t, state, dispatch, loadError, retryLoad }: P
     {
       mode: "history" as const,
       label: t("supportTabHistory"),
-      meta: totalDonatedDisplay,
+      meta: (
+        <PhaseValue phase={totalDonatedPhase} placeholder={t("totalDonatedUnread")} skeletonWidth="4.5em">
+          {totalDonatedDisplay}
+        </PhaseValue>
+      ),
       icon: <HeartHandshake size={15} />,
     },
   ];
