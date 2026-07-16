@@ -133,7 +133,22 @@ afterEach(() => {
 beforeEach(() => {
   addressRef.value = OWNER;
   chainTypeRef.value = "neo-n3-mainnet";
+  // vi.clearAllMocks() clears calls but NOT implementations, so a test that
+  // installs its own invokeContract behavior (e.g. the stranded-credit test
+  // throwing "boom" on contribute) would otherwise leak it into every later
+  // test. Restore the module-level default before each test.
+  invokeContract.mockImplementation(async (params: { operation: string }) => ({
+    txid: `0x${params.operation}`,
+  }));
 });
+
+/** UTF-8-safe base64 (bare `btoa` throws on non-Latin1, e.g. CJK titles). */
+function b64utf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
 
 /** display-order 0x hex (20 bytes) -> base64 of the chain (reversed) bytes. */
 function displayHashToChainBase64(displayHash: string): string {
@@ -217,8 +232,8 @@ function wireReads(options: WireOptions = {}) {
             startTime: { type: "Integer", value: String(create[3]?.value ?? "0") },
             endTime: { type: "Integer", value: String(create[4]?.value ?? "0") },
             status: { type: "ByteString", value: btoa("upcoming") },
-            title: { type: "ByteString", value: btoa(String(create[5]?.value ?? "")) },
-            description: { type: "ByteString", value: btoa(String(create[6]?.value ?? "")) },
+            title: { type: "ByteString", value: b64utf8(String(create[5]?.value ?? "")) },
+            description: { type: "ByteString", value: b64utf8(String(create[6]?.value ?? "")) },
           });
         }
         if (callFor("addMatchingPool")) {
@@ -271,9 +286,9 @@ function wireReads(options: WireOptions = {}) {
           return stackMap({
             roundId: { type: "Integer", value: String(register[1]?.value ?? "1") },
             owner: { type: "ByteString", value: displayHashToChainBase64(OWNER_HASH) },
-            name: { type: "ByteString", value: btoa(String(register[2]?.value ?? "")) },
-            description: { type: "ByteString", value: btoa(String(register[3]?.value ?? "")) },
-            link: { type: "ByteString", value: btoa(String(register[4]?.value ?? "")) },
+            name: { type: "ByteString", value: b64utf8(String(register[2]?.value ?? "")) },
+            description: { type: "ByteString", value: b64utf8(String(register[3]?.value ?? "")) },
+            link: { type: "ByteString", value: b64utf8(String(register[4]?.value ?? "")) },
             totalContributed: { type: "Integer", value: "0" },
             contributorCount: { type: "Integer", value: "0" },
             matchedAmount: { type: "Integer", value: "0" },
@@ -1138,5 +1153,141 @@ describe("quadratic-funding production safety", () => {
     expect(page.pendingOperation.get()).toEqual(expect.objectContaining({ phase: "deposit" }));
     expect(lastToast()).toEqual({ msg: "pendingDepositMustRecover", type: "error" });
     page.pendingOperation.set(null);
+  });
+});
+
+describe("quadratic-funding contract text limits", () => {
+  /**
+   * The contract asserts every text limit over the UTF-8 ByteString (the
+   * devpack compiles C# string.Length to the SIZE opcode): title <= 60,
+   * round description <= 240, project name <= 60, project description <= 300,
+   * memo <= 160 BYTES (MiniAppQuadraticFunding.Internal.cs). JS `.slice(0, N)`
+   * counts UTF-16 code units, so CJK text passed at up to 3x the byte budget
+   * and the consuming call reverted "... too long" — on the deposit-then-act
+   * lanes (createRound / contribute) AFTER the deposit already landed,
+   * stranding it as reclaimable-but-manual prepaid credit. These pin the unit
+   * the app sends, not the unit JS strings count in.
+   */
+  const utf8 = new TextEncoder();
+
+  it("never sends more round title or description bytes than the contract accepts", async () => {
+    wireReads();
+    const { page, lastToast } = harness();
+
+    // 24 CJK chars = 72 UTF-8 bytes: over the 60-byte budget, under it by chars.
+    const cjkTitle = "公共物品配捐".repeat(4);
+    expect(cjkTitle.length).toBe(24);
+    expect(utf8.encode(cjkTitle).length).toBe(72);
+
+    const ok = await page.handleCreateRound({
+      title: cjkTitle,
+      description: "轮次说明".repeat(30), // 120 chars / 360 bytes — over the 240-byte cap
+      asset: "GAS",
+      matchingPool: "2",
+      startTime: futureLocalTime(30 * 60 * 1000),
+      endTime: futureLocalTime(60 * 60 * 1000),
+    });
+
+    const create = callFor("createRound");
+    expect(create).toBeDefined();
+    const sentTitle = String(create![0].args[5]?.value);
+    const sentDescription = String(create![0].args[6]?.value);
+
+    // The contract's unit: UTF-8 bytes, truncated on codepoint boundaries.
+    expect(utf8.encode(sentTitle).length).toBeLessThanOrEqual(60);
+    expect(utf8.encode(sentDescription).length).toBeLessThanOrEqual(240);
+    expect(sentTitle).toBe("公共物品配捐".repeat(3) + "公共"); // 20 chars / 60 bytes exactly
+    // Never a torn codepoint: re-encoding round-trips losslessly.
+    expect(new TextDecoder().decode(utf8.encode(sentTitle))).toBe(sentTitle);
+    // With the byte budget respected, the deposit-then-act flow completes.
+    expect(ok).toBe(true);
+    expect(lastToast()).toEqual({ msg: "roundCreated", type: "success" });
+  });
+
+  it("never sends more contribute memo bytes than the contract accepts", async () => {
+    wireReads({ projectIds: ["7"] });
+    const { page } = harness();
+    await page.refreshRounds();
+    await page.handleSelectRound({ id: "1" } as never);
+    invokeContract.mockClear();
+
+    const ok = await page.handleContribute({
+      roundId: "1",
+      projectId: "7",
+      amount: "1.5",
+      memo: "感谢你们建设公共物品".repeat(8), // 80 chars / 240 bytes — over the 160-byte cap
+    });
+
+    const contribute = callFor("contribute");
+    expect(contribute).toBeDefined();
+    const sentMemo = String(contribute![0].args[4]?.value);
+    expect(utf8.encode(sentMemo).length).toBeLessThanOrEqual(160);
+    expect(new TextDecoder().decode(utf8.encode(sentMemo))).toBe(sentMemo);
+    expect(ok).toBe(true);
+  });
+
+  it("never sends more project name or description bytes than the contract accepts", async () => {
+    wireReads();
+    const { page, lastToast } = harness();
+    await page.refreshRounds();
+    invokeContract.mockClear();
+
+    const ok = await page.handleRegisterProject({
+      name: "开源浏览器项目".repeat(4), // 28 chars / 84 bytes — over the 60-byte cap
+      description: "项目说明".repeat(30), // 120 chars / 360 bytes — over the 300-byte cap
+      link: "",
+    });
+
+    const register = callFor("registerProject");
+    expect(register).toBeDefined();
+    const sentName = String(register![0].args[2]?.value);
+    const sentDescription = String(register![0].args[3]?.value);
+    expect(utf8.encode(sentName).length).toBeLessThanOrEqual(60);
+    expect(utf8.encode(sentDescription).length).toBeLessThanOrEqual(300);
+    expect(new TextDecoder().decode(utf8.encode(sentName))).toBe(sentName);
+    expect(ok).toBe(true);
+    expect(lastToast()).toEqual({ msg: "projectRegistered", type: "success" });
+  });
+
+  it("rejects a project link over the 200-BYTE budget instead of sending it", async () => {
+    wireReads();
+    const { page, lastToast } = harness();
+    await page.refreshRounds();
+    invokeContract.mockClear();
+
+    // 44 + 60*3 = 224 bytes, but only 44 + 60 = 104 UTF-16 chars: passes a
+    // char-measured 200 cap while the contract reverts "project link too long".
+    const link = `https://example.org/${"路".repeat(60)}?utm=quadratic`;
+    expect(link.length).toBeLessThanOrEqual(200);
+    expect(utf8.encode(link).length).toBeGreaterThan(200);
+
+    const ok = await page.handleRegisterProject({
+      name: "Proj",
+      description: "",
+      link,
+    });
+
+    expect(ok).toBe(false);
+    expect(callFor("registerProject")).toBeUndefined();
+    expect(lastToast()).toEqual({ msg: "invalidProjectLink", type: "error" });
+  });
+
+  it("passes short ASCII text through untouched", async () => {
+    wireReads();
+    const { page } = harness();
+
+    const ok = await page.handleCreateRound({
+      title: "Public Goods",
+      description: "infra",
+      asset: "GAS",
+      matchingPool: "2",
+      startTime: futureLocalTime(30 * 60 * 1000),
+      endTime: futureLocalTime(60 * 60 * 1000),
+    });
+
+    const create = callFor("createRound");
+    expect(String(create![0].args[5]?.value)).toBe("Public Goods");
+    expect(String(create![0].args[6]?.value)).toBe("infra");
+    expect(ok).toBe(true);
   });
 });

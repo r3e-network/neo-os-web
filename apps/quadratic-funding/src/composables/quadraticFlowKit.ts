@@ -80,6 +80,40 @@ export interface QuadraticFlowKitOptions {
  */
 const N3_CHAIN_TYPES = new Set(["neo-n3", "neo-n3-mainnet", "neo-n3-testnet"]);
 
+const utf8Encoder = new TextEncoder();
+
+/**
+ * Contract text limits are UTF-8 BYTES, not JS UTF-16 chars: the devpack
+ * compiles C# `string.Length` to the SIZE opcode over the UTF-8 ByteString
+ * (MiniAppQuadraticFunding.Internal.cs asserts title ≤ 60 / round description
+ * ≤ 240 / project name ≤ 60 / project description ≤ 300 / link ≤ 200 / memo
+ * ≤ 160 on that unit), so a char-based `.slice(0, 60)` let CJK text through
+ * at up to 3× the byte budget and the consuming call reverted "… too long".
+ * On the deposit-then-act lanes (createRound, contribute) that revert lands
+ * AFTER the matching-pool / contribution deposit, stranding it as
+ * reclaimable-but-manual prepaid credit. Measure and truncate in the
+ * contract's unit instead.
+ */
+export const utf8ByteLength = (value: string): number =>
+  utf8Encoder.encode(value).length;
+
+/**
+ * Truncate to at most `maxBytes` UTF-8 bytes on a whole-codepoint boundary
+ * (never splits a surrogate pair or multi-byte sequence).
+ */
+export const truncateUtf8Bytes = (value: string, maxBytes: number): string => {
+  if (utf8Encoder.encode(value).length <= maxBytes) return value;
+  let out = "";
+  let bytes = 0;
+  for (const codepoint of value) {
+    const size = utf8Encoder.encode(codepoint).length;
+    if (bytes + size > maxBytes) break;
+    out += codepoint;
+    bytes += size;
+  }
+  return out;
+};
+
 export interface QuadraticFlowKit {
   setStatus: StatusSetter;
   /**

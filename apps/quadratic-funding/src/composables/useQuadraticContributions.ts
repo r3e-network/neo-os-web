@@ -18,13 +18,22 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
-import type { QuadraticFlowKit, Translator } from "./quadraticFlowKit";
+import { truncateUtf8Bytes, type QuadraticFlowKit, type Translator } from "./quadraticFlowKit";
 import type { QuadraticPendingTracker } from "./quadraticPending";
 import type { ProjectItem, RoundItem } from "./quadraticTypes";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 const APP_ID = "miniapp-quadratic-funding";
+
+/**
+ * Contract limit in the contract's unit — UTF-8 BYTES, not UTF-16 chars
+ * (MiniAppQuadraticFunding.cs MAX_MEMO_LENGTH; see truncateUtf8Bytes in
+ * quadraticFlowKit). contribute runs on the deposit-then-act lane, so an
+ * over-byte memo reverting "memo too long" would strand the already-landed
+ * contribution deposit as reclaimable-but-manual prepaid credit.
+ */
+const MAX_MEMO_BYTES = 160;
 
 export interface UseQuadraticContributionsOptions {
   /** MiniApp framework SDK from ctx.framework. */
@@ -146,7 +155,9 @@ export function useQuadraticContributions({
         // The deposit lane resolves the transfer recipient from the contract
         // accessor — fail with this app's copy before any funds move.
         await kit.ensureContract();
-        const memo = data.memo.trim().slice(0, 160);
+        // Truncate by UTF-8 BYTES (the contract's unit), not UTF-16 chars —
+        // see MAX_MEMO_BYTES.
+        const memo = truncateUtf8Bytes(data.memo.trim(), MAX_MEMO_BYTES);
         const assetHash = round.assetSymbol === "NEO" ? NEO_HASH : GAS_HASH;
         const [liveRoundRaw, liveProjectRaw] = await Promise.all([
           app.chain.readRaw("getRoundDetails", [arg.integer(round.id)]),

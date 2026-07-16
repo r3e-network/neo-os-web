@@ -11,9 +11,25 @@ import type { MiniAppFramework } from "@shared/react";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import { ownerMatchesAddress, parseHash160 } from "@shared/utils/neo";
 import { eventStateValue } from "@shared/utils/chain-events";
-import type { QuadraticFlowKit, Translator } from "./quadraticFlowKit";
+import {
+  truncateUtf8Bytes,
+  utf8ByteLength,
+  type QuadraticFlowKit,
+  type Translator,
+} from "./quadraticFlowKit";
 import type { QuadraticPendingTracker } from "./quadraticPending";
 import type { ProjectItem, RoundItem } from "./quadraticTypes";
+
+/**
+ * Contract limits in the contract's unit — UTF-8 BYTES, not UTF-16 chars
+ * (MiniAppQuadraticFunding.cs MAX_PROJECT_NAME_LENGTH / MAX_PROJECT_DESC_LENGTH /
+ * MAX_PROJECT_LINK_LENGTH; see truncateUtf8Bytes in quadraticFlowKit). A
+ * char-measured value up to 3× the byte budget deterministically reverts
+ * registerProject after the user already paid the transaction fee.
+ */
+const MAX_PROJECT_NAME_BYTES = 60;
+const MAX_PROJECT_DESC_BYTES = 300;
+const MAX_PROJECT_LINK_BYTES = 200;
 
 export interface UseQuadraticProjectsOptions {
   /** MiniApp framework SDK from ctx.framework. */
@@ -32,7 +48,10 @@ export interface UseQuadraticProjectsOptions {
 function normalizeProjectLink(value: string): string | null {
   const raw = value.trim();
   if (!raw) return "";
-  if (raw.length > 200) return null;
+  // The contract asserts link.Length <= 200 over the UTF-8 ByteString — a
+  // link must be rejected (never truncated: a cut URL is a different URL)
+  // when it exceeds that BYTE budget, not a UTF-16 char count.
+  if (utf8ByteLength(raw) > MAX_PROJECT_LINK_BYTES) return null;
   try {
     const url = new URL(raw);
     return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password
@@ -188,7 +207,10 @@ export function useQuadraticProjects({
       return false;
     }
 
-    const name = data.name.trim().slice(0, 60);
+    // Truncate by UTF-8 BYTES (the contract's unit), not UTF-16 chars — see
+    // MAX_PROJECT_NAME_BYTES. Computed once so the sent args, the pending
+    // record and the readback comparison can never disagree.
+    const name = truncateUtf8Bytes(data.name.trim(), MAX_PROJECT_NAME_BYTES);
     if (!name) {
       kit.setStatus(t("invalidProject"), "error");
       return false;
@@ -206,7 +228,7 @@ export function useQuadraticProjects({
     try {
       const ok = await kit.guard(async () => {
         const caller = await kit.ensureCaller();
-        const description = data.description.trim().slice(0, 300);
+        const description = truncateUtf8Bytes(data.description.trim(), MAX_PROJECT_DESC_BYTES);
         const roundId = targetRound.id;
         await kit.ensureContract();
         const liveRoundRaw = await app.chain.readRaw("getRoundDetails", [arg.integer(roundId)]);
