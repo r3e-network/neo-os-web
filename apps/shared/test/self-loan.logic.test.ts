@@ -415,6 +415,31 @@ describe("useSelfLoan borrow flow (self-loan-1)", () => {
     expect(calls.some((c) => c.op === "borrow")).toBe(true);
   });
 
+  it("maps a no-deposit borrow failure onto the chain-error family copy, not raw English", async () => {
+    // 10 NEO already credited so no deposit lands (depositSettled stays
+    // false); the wallet then rejects the borrow. The rethrow must carry the
+    // localized userRejected family copy via app.errors.messageOf — not the
+    // raw English wallet string, and not collateralCreditHeld. The test
+    // translator echoes unknown keys, so the mapped copy is the key itself.
+    const { chain, invoke } = makeChain({
+      neoPrice: 5n * GAS,
+      neoBalance: 100n,
+      collateralCredit: 10n,
+    });
+    const app = useSelfLoan({ app: makeApp(chain), t });
+    app.setAddress(OWNER);
+    await app.loadAll();
+
+    const invokeDefault = invoke.getMockImplementation()!;
+    invoke.mockImplementation(async (op: string, ...rest: unknown[]) => {
+      if (op === "borrow") throw new Error("User rejected the request");
+      return invokeDefault(op, ...rest);
+    });
+
+    app.collateralAmount.set("10");
+    await expect(app.takeLoan()).rejects.toThrow("userRejected");
+  });
+
   it("tops up only the SHORTFALL when residual credit partially covers the amount", async () => {
     // 4 NEO residual credit + typed 10 → transfer just 6; borrow locks 4+6=10,
     // exactly what the user typed (NOT credit + a full 10 re-deposit = 14).

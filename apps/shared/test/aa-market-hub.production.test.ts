@@ -377,6 +377,35 @@ describe("AA Market Hub durable pending records", () => {
     hub.cleanup();
   });
 
+  it("maps a raw wallet rejection onto the chain-error family copy in lastError", async () => {
+    // errorText used to display raw Error.message verbatim, leaking English
+    // wallet/RPC prose to zh users. It now routes through
+    // app.errors.messageOf, which maps this rejection onto the userRejected
+    // family key (the identity translator returns the key).
+    const chain = {
+      address: createObservable<string | null>(null),
+      contractAddress: createObservable<string | null>(MAINNET_MARKET),
+      detectNetwork: vi.fn(async () => "mainnet"),
+      ensureWallet: vi.fn(async () => {
+        throw new Error("User rejected the request");
+      }),
+      read: vi.fn(async () => null),
+      invoke: vi.fn(),
+      invokeWithPayment: vi.fn(),
+      invokeMultiple: vi.fn(),
+    };
+    const app = createMiniAppFramework({
+      services: { chain, notify: {} },
+      launchContext: { appId: "miniapp-aa-market-hub", network: "neo-n3-mainnet" },
+      t: (key: string) => key,
+    } as never, { appId: "miniapp-aa-market-hub", storagePrefix: "aa-market-reject:" });
+    const hub = useAAMarketHub({ app, t: (key) => key });
+
+    await expect(hub.connectWallet()).rejects.toThrow("User rejected the request");
+    expect(hub.lastError.get()).toBe("userRejected");
+    hub.cleanup();
+  });
+
   it("keeps an in-session transaction visible when durable recovery storage fails", async () => {
     const chain = {
       address: createObservable<string | null>(WALLET),

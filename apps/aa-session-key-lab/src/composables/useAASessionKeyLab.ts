@@ -141,6 +141,18 @@ export function useAASessionKeyLab({
   t,
   transactionStateReader = readSessionTransactionState,
 }: UseAASessionKeyLabOptions) {
+  /**
+   * Display copy for a caught error. Internal throws carry bare i18n keys and
+   * localize via t(); anything outside the catalog (t() echoes unknown keys
+   * verbatim, which used to leak raw English chain errors into lastError)
+   * routes through app.errors.messageOf so wallet/VM/RPC failures show the
+   * same localized family copy notify.error uses.
+   */
+  const failureMessage = (error: unknown, fallbackKey: string): string => {
+    const key = errorKey(error, fallbackKey);
+    const localized = t(key);
+    return localized !== key ? localized : app.errors.messageOf(error, t(fallbackKey));
+  };
   const initialNetwork = explicitNeoNetwork(app.platform.launch.network) || resolveNeoNetwork(getNetwork());
   const initialContracts = CANONICAL_SESSION_KEY_CONTRACTS[initialNetwork];
 
@@ -414,7 +426,7 @@ export function useAASessionKeyLab({
     } catch (error) {
       if (requestId === inspectEpoch) {
         clearLiveSnapshot("unavailable");
-        lastError.set(t(errorKey(error, "sessionAccountReadUnavailable")));
+        lastError.set(failureMessage(error, "sessionAccountReadUnavailable"));
       }
       return null;
     } finally {
@@ -602,7 +614,7 @@ export function useAASessionKeyLab({
         walletNetwork.set("");
         clearLiveSnapshot("unavailable");
       }
-      lastError.set(t(key));
+      lastError.set(failureMessage(error, "sessionConfigureFailed"));
       throw error;
     } finally {
       isSubmitting.set(false);
@@ -666,7 +678,7 @@ export function useAASessionKeyLab({
         walletNetwork.set("");
         clearLiveSnapshot("unavailable");
       }
-      lastError.set(t(key));
+      lastError.set(failureMessage(error, "sessionRevokeFailed"));
       throw error;
     } finally {
       isRevoking.set(false);
@@ -728,7 +740,7 @@ export function useAASessionKeyLab({
           : "recoverable",
       );
       walletNetwork.set("");
-      lastError.set(t(key));
+      lastError.set(failureMessage(error, "sessionRecoveryFailed"));
       return {
         status: writePhase.get() === "context-mismatch" ? "context-mismatch" as const : "pending" as const,
         txid: pending.txid,
