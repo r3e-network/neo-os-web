@@ -55,6 +55,13 @@ async function renderChrome(
   appId: string,
   items: Array<Record<string, unknown>>,
   state: Record<string, unknown>,
+  // The chrome paints twice: once before setup hands the state record over
+  // (no observables to read yet) and once after the state-version bump. The
+  // label lands on BOTH frames, so waiting for it alone races the handover —
+  // under full-suite load the assertions can grab the pre-handover frame.
+  // Each test passes an assertion only its settled frame satisfies; we retry
+  // until it holds and hand back that frame's HTML.
+  settled: (html: string) => void,
 ): Promise<{ html: string; teardown: () => void }> {
   // The sidebar chrome only exists on the platform shell; a standalone-dapp
   // launch renders a bare surface with no bindings to assert on.
@@ -83,10 +90,9 @@ async function renderChrome(
     expect(ready).toBe(true);
   });
 
-  // The sidebar re-derives on the setup-driven state version bump; wait for the
-  // label to land so we are asserting on the settled chrome, not first paint.
   await vi.waitFor(() => {
     expect(container.innerHTML).toContain("Founders");
+    settled(container.innerHTML);
   });
 
   return {
@@ -113,6 +119,7 @@ describe("MiniAppRoot pendingKey bindings", () => {
         },
       ],
       { founderCount: createObservable<number | undefined>(undefined) },
+      (frame) => expect(frame).toContain("Reading…"),
     );
 
     expect(html).toContain("Reading…");
@@ -135,6 +142,7 @@ describe("MiniAppRoot pendingKey bindings", () => {
         },
       ],
       { founderCount: createObservable<number | undefined>(0) },
+      (frame) => expect(frame).toMatch(/>\s*0\s*</),
     );
 
     expect(html).not.toContain("Reading…");
@@ -158,6 +166,7 @@ describe("MiniAppRoot pendingKey bindings", () => {
         founderCount: createObservable<number | undefined>(undefined),
         balance: createObservable<number | undefined>(42),
       },
+      (frame) => expect(frame).toContain("42"),
     );
 
     expect(html).not.toContain("Reading…");
@@ -189,9 +198,56 @@ describe("MiniAppRoot pendingKey bindings", () => {
         founderCount: createObservable<string | null>(null),
         balance: createObservable<string>(""),
       },
+      // Settled here means the pending copy is GONE: both observables hold
+      // real (falsy) values, so any frame still showing it is pre-handover.
+      (frame) => expect(frame).not.toContain("Reading…"),
     );
 
     expect(html).not.toContain("Reading…");
     teardown();
+  });
+
+  it("honours the pending phase before setup hands the state record over", async () => {
+    // A setup that has not returned yet is the EARLIEST form of "unread" —
+    // there is no observable to read at all. The chrome used to paint the
+    // not-available placeholder over declared pending bindings for that
+    // window: a claim of absence one frame before the honest copy arrived.
+    // A never-resolving setup pins the chrome in that window, so unlike the
+    // tests above this one has exactly one frame and needs no settled pin.
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/pending-key-prehandover/index.html?source=platform",
+    );
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "pending-key-prehandover",
+        playArea: DummyPlayArea as never,
+        manifest: baseManifest([
+          {
+            labelKey: "foundersLabel",
+            valueKey: "founderCount",
+            format: "number",
+            pendingKey: "readingCopy",
+          },
+        ]) as never,
+        messages,
+        setupFn: () => new Promise(() => {}),
+      } as never),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.innerHTML).toContain("Founders");
+    });
+
+    expect(container.innerHTML).toContain("Reading…");
+    expect(container.innerHTML).not.toContain("N/A");
+
+    root.unmount();
+    container.remove();
   });
 });
