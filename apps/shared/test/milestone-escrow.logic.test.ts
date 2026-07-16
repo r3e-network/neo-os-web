@@ -731,3 +731,63 @@ describe("useMilestoneEscrow (direct contract)", () => {
     expect(app.dataError.get()).toBe("chain snapshot unavailable");
   });
 });
+
+describe("useMilestoneEscrow contract text limits", () => {
+  /**
+   * The contract asserts title.Length <= 60 and notes.Length <= 240 over the
+   * UTF-8 ByteString (SIZE opcode), while JS `.slice(0, 60)` counts UTF-16
+   * code units — so a 21-CJK-char title is 63 bytes and reverts "title too
+   * long" AFTER the deposit already landed on the deposit-then-act lane,
+   * stranding the total as reclaimable-but-manual credit. This pins the unit
+   * the app sends, not the unit JS strings count in.
+   */
+  it("never sends more title or notes bytes than the contract accepts", async () => {
+    const confirmDeposit = vi.fn(async (): Promise<DepositConfirmation> => "confirmed");
+    const { app, invoke } = setup(confirmDeposit);
+    const utf8 = new TextEncoder();
+
+    // 21 CJK chars = 63 UTF-8 bytes: over budget by bytes, under it by chars.
+    const cjkTitle = "里程碑".repeat(7);
+    expect(cjkTitle.length).toBe(21);
+    expect(utf8.encode(cjkTitle).length).toBe(63);
+
+    await app.createEscrow({
+      name: cjkTitle,
+      beneficiary: BENEFICIARY,
+      asset: "GAS",
+      notes: "备注".repeat(60), // 120 chars / 360 bytes — over the 240-byte cap
+      milestones: [{ amount: "0.1" }],
+    });
+
+    const call = invoke.mock.calls.find(([op]) => op === "createEscrow");
+    expect(call).toBeTruthy();
+    const [, args] = call as [string, ContractArg[]];
+    const sentTitle = String(args[5]?.value);
+    const sentNotes = String(args[6]?.value);
+
+    // The contract's unit: UTF-8 bytes, truncated on codepoint boundaries.
+    expect(utf8.encode(sentTitle).length).toBeLessThanOrEqual(60);
+    expect(utf8.encode(sentNotes).length).toBeLessThanOrEqual(240);
+    expect(sentTitle).toBe("里程碑".repeat(6) + "里程"); // 20 chars / 60 bytes exactly
+    // Never a torn codepoint: re-encoding round-trips losslessly.
+    expect(new TextDecoder().decode(utf8.encode(sentTitle))).toBe(sentTitle);
+  });
+
+  it("passes short ASCII text through untouched", async () => {
+    const confirmDeposit = vi.fn(async (): Promise<DepositConfirmation> => "confirmed");
+    const { app, invoke } = setup(confirmDeposit);
+
+    await app.createEscrow({
+      name: "Milestone plan",
+      beneficiary: BENEFICIARY,
+      asset: "GAS",
+      notes: "short note",
+      milestones: [{ amount: "0.1" }],
+    });
+
+    const call = invoke.mock.calls.find(([op]) => op === "createEscrow");
+    const [, args] = call as [string, ContractArg[]];
+    expect(String(args[5]?.value)).toBe("Milestone plan");
+    expect(String(args[6]?.value)).toBe("short note");
+  });
+});

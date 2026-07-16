@@ -251,6 +251,35 @@ describe("Memorial Shrine PlayArea (v2 scene-driven)", () => {
     expect(container.querySelector<HTMLButtonElement>(".mx2-btn--primary")?.disabled).toBe(true);
   });
 
+  it("mirrors the draft-validation hint inside the drawer studio where the fields live", () => {
+    // The year fields live in the drawer (a bottom sheet on mobile that covers
+    // the scene), so a validation message rendered only in the scene card is
+    // invisible at the point of edit. The same hint must render inside the
+    // studio panel itself.
+    const { container } = render(
+      <PlayArea
+        t={t}
+        state={state({ memorials: [], selectedMemorial: null, memorialCount: 0 })}
+        dispatch={vi.fn()}
+      />,
+    );
+    fireEvent.change(container.querySelector(".shrine-name-plaque input") as Element, {
+      target: { value: "Jane" },
+    });
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".shrine-drawer-field input"));
+    const birth = inputs[2];
+    const death = inputs[3];
+    fireEvent.change(birth as Element, { target: { value: "1980" } });
+    fireEvent.change(death as Element, { target: { value: "1950" } });
+    // This t() stub falls back to the raw key for unmapped messages.
+    expect(
+      container.querySelector(".shrine-drawer-panel--studio .shrine-draft-hint")?.textContent,
+    ).toContain("yearOrder");
+    fireEvent.change(death as Element, { target: { value: "2020" } });
+    expect(container.querySelector(".shrine-drawer-panel--studio .shrine-draft-hint")).toBeNull();
+  });
+
   it("keeps create mode as a memorial card workspace with quick memory presets", () => {
     const { container } = render(
       <PlayArea t={t} state={state({ memorials: [], selectedMemorial: null, memorialCount: 0 })} dispatch={vi.fn()} />,

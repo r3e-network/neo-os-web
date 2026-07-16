@@ -445,6 +445,17 @@ export default function PlayArea({ t, state, dispatch }: P) {
             spellCheck={false}
           />
         </div>
+        {/* The build action lives in the PlayStage action bar, far from these
+            fields; when a field goes invalid that button silently disables and
+            the translated reason (runBuild's validation branch) is unreachable
+            because the disabled button can never dispatch it. Surface the same
+            message at the point of edit instead. */}
+        {draftValidationKey ? (
+          <p className="did-draft-error" role="status">
+            <CircleAlert size={14} aria-hidden="true" />
+            <span>{t(draftValidationKey)}</span>
+          </p>
+        ) : null}
       </OpenUiPanel>
 
       <OpenUiPanel

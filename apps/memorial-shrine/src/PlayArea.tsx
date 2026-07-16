@@ -443,6 +443,16 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
             <OpenUiTextArea className="shrine-drawer-field shrine-drawer-field--wide mx2-open-field--compact" label={t("labelBio")} value={form.biography} onChange={(event) => updateForm("biography", event.target.value)} placeholder={t("placeholderBio")} disabled={isSubmitting} rows={3} />
             <OpenUiTextArea className="shrine-drawer-field shrine-drawer-field--wide mx2-open-field--compact" label={t("labelObituary")} value={form.obituary} onChange={(event) => updateForm("obituary", event.target.value)} placeholder={t("placeholderObituary")} disabled={isSubmitting} rows={3} />
           </div>
+          {/* Mirror of the scene card's draft hint: these fields live in the
+              drawer (a bottom sheet on mobile that covers the scene), so a
+              validation message rendered only up in the scene card is invisible
+              at the point of edit. */}
+          {draftErrorKey && (
+            <p className="shrine-draft-hint" role="status">
+              <CircleAlert size={14} aria-hidden="true" />
+              <span>{t(draftErrorKey)}</span>
+            </p>
+          )}
         </OpenUiPanel>
       ) : mode === "tribute" ? (
         <OpenUiPanel
