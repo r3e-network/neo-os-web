@@ -23,6 +23,10 @@ import type { MiniAppFramework } from "../../../framework";
 // SAME function identity and type.
 export type { Observable } from "../../../framework/reactive";
 export { createObservable } from "../../../framework/reactive";
+// Read-cell: the platform-owned "have we asked yet?" signal (see the
+// createReadCell doc comment in framework/reactive.ts for adoption notes).
+export type { ReadCell, ReadCellStatus } from "../../../framework/reactive";
+export { createReadCell } from "../../../framework/reactive";
 
 /**
  * Create a derived (computed) observable from one or more source observables.

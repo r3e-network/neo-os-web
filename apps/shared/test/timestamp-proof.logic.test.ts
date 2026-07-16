@@ -197,6 +197,18 @@ describe("useTimestampProofContract", () => {
     expect(statuses).toContainEqual({ message: "Local save failed", type: "error" });
   });
 
+  it("keeps the journal verdict at 'checking' until the first read settles (read-cell pilot)", async () => {
+    const proofApp = useTimestampProofContract({ app: makeApp(), t });
+
+    // Before loadProofs the storage verdict is NOT a settled answer — a first
+    // paint must never present "ready"/"unavailable" it has not measured.
+    expect(proofApp.storageState.get()).toBe("checking");
+    expect(proofApp.proofs.get()).toEqual([]);
+
+    expect(await proofApp.loadProofs()).toBe(true);
+    expect(proofApp.storageState.get()).toBe("ready");
+  });
+
   it("reports an unavailable journal instead of presenting a failed read as zero proofs", async () => {
     const app = makeApp();
     vi.spyOn(app.storage.local, "set").mockImplementation(() => undefined);
