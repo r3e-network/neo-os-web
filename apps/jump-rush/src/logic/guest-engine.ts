@@ -39,9 +39,12 @@ export interface GuestEngineDeps {
   lastPayout: Obs<string>;
   lastElapsedMs: Obs<number>;
   leaderboard: Obs<LeaderEntry[]>;
-  myRank: Obs<number>;
-  myTotalWon: Obs<number>;
-  myRuns: Obs<number>;
+  // `number | undefined`: these rest at `undefined` (unread) until the guest
+  // profile is loaded, so the shell chrome shows its pendingKey copy instead of
+  // a fabricated 0. The guest engine only ever SETS them (to real numbers).
+  myRank: Obs<number | undefined>;
+  myTotalWon: Obs<number | undefined>;
+  myRuns: Obs<number | undefined>;
   myHistory: Obs<RunRow[]>;
   isStarting: Obs<boolean>;
   isDealing: Obs<boolean>;

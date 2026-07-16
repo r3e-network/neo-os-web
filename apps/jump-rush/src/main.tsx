@@ -1,4 +1,5 @@
 import { createObservable, defineMiniApp } from "@shared/react";
+import type { Observable } from "@shared/react";
 import { fromFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
 import { addressToScriptHash } from "@shared/utils/neo";
@@ -34,6 +35,26 @@ const LEADERBOARD_EVENT_LIMIT = 200;
 function asNumber(value: unknown): number {
   const n = Number(parseBigInt(value));
   return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * The chrome's read-out of a player's global ranking, across three honest
+ * phases. `myRank` stays a plain number for the PlayArea; this is what the
+ * stat rail and sidebar bind, because a bare integer cannot tell the truth:
+ *
+ *   · `undefined` (unread)  → `undefined`, so the shell renders the binding's
+ *                             pendingKey copy. The read has not settled.
+ *   · `>= 1` (ranked)       → "#N", a real place on the board.
+ *   · `<= 0` (unranked)     → an honest word, never "0". Rank 0 does not exist;
+ *                             a settled 0 means no board position (always so in
+ *                             local guest play). A real reading, not an absence.
+ */
+export function formatRankDisplay(
+  rank: number | undefined,
+  t: (key: string) => string,
+): string | undefined {
+  if (rank === undefined) return undefined;
+  return rank >= 1 ? `#${rank}` : t("rankUnranked");
 }
 
 export interface LeaderEntry {
@@ -88,9 +109,15 @@ defineMiniApp({
     const lastPayout = createObservable("");
     const lastElapsedMs = createObservable(0);
     const leaderboard = createObservable<LeaderEntry[]>([]);
-    const myRank = createObservable(0);
-    const myTotalWon = createObservable(0);
-    const myRuns = createObservable(0);
+    // `undefined`, not 0, until a read settles. These bind straight into shell
+    // chrome (stat rail + sidebar) that MiniAppRoot renders with no loading gate
+    // of its own, so a `0` at rest was published as "Best run 0 / Runs 0 / Rank
+    // 0" before any leaderboard or profile read had run — a fabricated claim,
+    // not an absence. `undefined` is the shell's pendingKey trigger; a SETTLED 0
+    // is a real reading (a player with 0 runs) and still renders as 0.
+    const myRank = createObservable<number | undefined>(undefined);
+    const myTotalWon = createObservable<number | undefined>(undefined);
+    const myRuns = createObservable<number | undefined>(undefined);
     const myHistory = createObservable<RunRow[]>([]);
     const isStarting = createObservable(false);
     const isDealing = createObservable(false);
@@ -113,6 +140,24 @@ defineMiniApp({
     // GAS-centric copy can switch to local/practice framing in guest mode. Kept
     // in sync with the launcher-selected framework mode via app.mode.onChange.
     const appMode = createObservable(app.mode.get());
+
+    // The chrome's read-out of the ranking. `myRank` stays a plain number for
+    // the PlayArea's `myRank > 0` arithmetic; this derivation is what the stat
+    // rail and sidebar bind, because "Global rank" cannot be printed as a bare
+    // integer without lying:
+    //
+    //   · unread   → `undefined`. The read has not settled; the shell renders
+    //                the binding's pendingKey copy.
+    //   · ranked   → "#N". A real place on the board.
+    //   · unranked → an honest word, never "0". Rank 0 does not exist; a
+    //                settled `0` means the player holds no board position
+    //                (always so in guest, where play is local, not globally
+    //                ranked). This is a real reading, distinct from unread.
+    const myRankDisplay: Observable<string | undefined> = {
+      get: () => formatRankDisplay(myRank.get(), ctx.t),
+      set: () => {},
+      subscribe: (fn) => myRank.subscribe(fn),
+    };
 
     // TEE session context for the active game (rebuilt idempotently from the
     // deterministic teeStart, so nothing here needs durable storage).
@@ -707,6 +752,7 @@ defineMiniApp({
         lastElapsedMs,
         leaderboard,
         myRank,
+        myRankDisplay,
         myTotalWon,
         myRuns,
         myHistory,

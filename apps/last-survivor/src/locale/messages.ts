@@ -209,6 +209,9 @@ const appMessages = {
   sidebarTotalPot: { en: "Total Pot", zh: "奖池总额" },
   sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
   sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
+  // Chrome pendingKey: the round read-out is still in flight. Distinct from the
+  // settled "N/A" a read returns when there is genuinely no round.
+  statReading: { en: "Reading…", zh: "读取中…" },
   keysSuffix: { en: "Keys", zh: "把钥匙" },
   keySuffixOne: { en: "Key", zh: "把钥匙" },
   tokenGas: { en: "GAS", zh: "GAS" },
