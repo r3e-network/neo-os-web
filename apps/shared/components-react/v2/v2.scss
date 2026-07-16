@@ -980,12 +980,21 @@
 /**
  * OpenUiLiteSegmented renders a bare <input type="radio"> inside the
  * .semi-radio label, next to the .semi-radio-addon-buttonRadio span this file
- * paints as the actual control. Semi hides that input in its own radio.scss,
- * but we only @use semi-theme-default (design tokens, no component CSS) and
- * hand-write the segmented rules here — so without this the native OS dot
- * renders above every segment. Visually hidden but still focusable and
- * label-activated: never display:none/visibility:hidden, which would drop it
- * out of the tab order.
+ * paints as the actual control.
+ *
+ * Semi's own radio.css hides that input, and OpenUiLite now imports it, so
+ * this rule is no longer what stops the native OS dot from rendering — it only
+ * shrinks the input from Semi's 100%x100% click target to a 1px sliver, which
+ * this design needs because the addon span above carries the click.
+ *
+ * (An earlier version of this comment blamed the missing dot on "we only @use
+ * semi-theme-default, no component CSS". That was wrong and sent the next
+ * fixer down the wrong path: the sibling OpenUi.tsx imports real Semi
+ * components, which import their own CSS, so that path always had it. Only
+ * OpenUiLite lacked it, and it now asks for it explicitly.)
+ *
+ * Visually hidden but still focusable and label-activated: never
+ * display:none/visibility:hidden, which would drop it out of the tab order.
  */
 .mx2-open-segmented .semi-radio > input {
   position: absolute;
