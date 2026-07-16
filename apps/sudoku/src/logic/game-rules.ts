@@ -5,6 +5,7 @@
  * for cross-checks).
  */
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
+import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 import type { Difficulty } from "./sudoku-engine";
 
@@ -22,7 +23,7 @@ export const GAMEFI_NEW_ENTRIES_ENABLED = false;
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
-export const SETTLEMENT_GRACE_MS = 600_000;
+export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export interface DifficultyRule {
   difficulty: Difficulty;

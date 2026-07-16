@@ -20,6 +20,7 @@ import {
   type HitResult,
 } from "./aim-engine";
 import { ruleOf } from "./game-rules";
+import { clampDifficulty } from "@framework/game-rules";
 import type { Observable as Obs } from "@framework/reactive";
 import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
@@ -66,10 +67,6 @@ export interface GuestEngine {
 
 const GUEST_GAME_ID = "guest";
 const GUEST_PROFILE_KEY = "miniapp-aim-master:guest-profile:v1";
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
-}
 
 /**
  * Web-Crypto 32-byte hex seed — the local stand-in for the per-game enclave

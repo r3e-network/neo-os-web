@@ -1,6 +1,7 @@
 /**
  * Game rules constants for Pet Potion (virtual pet care).
  */
+import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export const ENTRY_MEMO = "miniapp-pet-potion:entry";
 export const FUND_MEMO = "miniapp-pet-potion:fund";
@@ -9,7 +10,7 @@ export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
 export const MAX_MOVES = 40; // max actions per game
 /** Contract-enforced grace period before an abandoned playing/settling run can be expired. */
-export const SETTLEMENT_GRACE_MS = 600_000;
+export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export interface DifficultyRule {
   difficulty: number;

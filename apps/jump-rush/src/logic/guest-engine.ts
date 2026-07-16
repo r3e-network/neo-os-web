@@ -17,6 +17,7 @@
  */
 import type { LeaderEntry, RunRow } from "../main";
 import { MAX_UNDOS, ruleOf } from "./game-rules";
+import { clampDifficulty } from "@framework/game-rules";
 import type { Platform } from "./jump-engine";
 import type { Observable as Obs } from "@framework/reactive";
 import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
@@ -100,10 +101,6 @@ interface StoredGuestRun {
   comboCount: number;
   undosUsed: number;
   missedPlatform: boolean;
-}
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
 /** Generate a local route with the same difficulty gap ranges as the engine. */
