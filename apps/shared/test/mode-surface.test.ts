@@ -142,7 +142,7 @@ describe("app.mode — guest guard blocks chain/oracle/reward writes", () => {
   it("leaves read-only calls allowed in guest mode", async () => {
     const { app, chain } = makeApp();
     app.mode.set("guest");
-    await expect(app.chain.read({ operation: "getThing" })).resolves.toBe("0");
+    await expect(app.chain.query("getThing").raw()).resolves.toBe("0");
     await expect(app.chain.readRaw("getThing")).resolves.toBe("0");
     await expect(app.chain.readArray("getList")).resolves.toEqual([]);
     await expect(app.chain.events("Solved")).resolves.toEqual([]);

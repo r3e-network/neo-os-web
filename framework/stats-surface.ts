@@ -1,34 +1,19 @@
 /**
- * framework/stats-surface — app.stats OS-board stats/leaderboard glue +
- * app.achievements OS badge helpers (RFC P0-1 residual index.ts split, moved
- * verbatim from index.ts).
+ * framework/stats-surface — app.stats OS-board stats/leaderboard glue
+ * (RFC P0-1 residual index.ts split, moved verbatim from index.ts).
  *
- * - `stats.increment` (deprecated): non-atomic counter over `app.db`.
  * - `stats.leaderboard`: shared OS board with two-sided guest-namespace
  *   isolation (guest submits route to `app.mode.guestLeaderboard`; `top()`
  *   filters guest rows out).
- * - `achievements` (deprecated): award-once markers over `app.storage.local`
- *   plus the OS badge define/award/list lanes.
  */
 
-import type { Observable } from "./reactive";
 import type {
-  AchievementDefinition,
-  FrameworkAchievementsSurface,
-  FrameworkDbSurface,
-  FrameworkLocalStorageSurface,
   FrameworkModeSurface,
   FrameworkStatsSurface,
   MiniAppFrameworkOS,
 } from "./types";
 
 export interface StatsSurfaceDeps {
-  /** The `app.db` surface backing the deprecated `stats.increment` lane. */
-  db: FrameworkDbSurface;
-  /** Wallet-address observable (user-scoped counter ids). */
-  address: Observable<string | null>;
-  /** chain.ensureWallet fallback when no address is connected yet. */
-  ensureWallet(): Promise<string>;
   /** Live accessor for the OS leaderboard (hosts can hydrate late). */
   leaderboard: () => MiniAppFrameworkOS["leaderboard"] | undefined;
   /** app.mode — guest check + the guest-namespaced submit lane. */
@@ -42,20 +27,12 @@ export interface StatsSurfaceDeps {
  *
  * @example
  * ```ts
- * const stats = createStatsSurface({ db, address, ensureWallet, leaderboard, mode, isGuestBoardRow });
+ * const stats = createStatsSurface({ leaderboard, mode, isGuestBoardRow });
  * await stats.leaderboard.submit(1200);
  * ```
  */
 export function createStatsSurface(deps: StatsSurfaceDeps): FrameworkStatsSurface {
   return {
-    async increment(key: string, by = 1, scope: "global" | "user" = "global"): Promise<number> {
-      const id = scope === "user" ? `${deps.address.get() || await deps.ensureWallet()}:${key}` : key;
-      const stats = deps.db.collection<{ value: number }>("stats");
-      const current = await stats.get(id);
-      const next = Number(current?.value ?? 0) + by;
-      await stats.set(id, { value: next });
-      return next;
-    },
     leaderboard: {
       /**
        * Submit a score to the shared OS board.
@@ -84,45 +61,6 @@ export function createStatsSurface(deps: StatsSurfaceDeps): FrameworkStatsSurfac
         // (cross-mode isolation of app.mode.guestLeaderboard).
         return rows.filter((row) => !deps.isGuestBoardRow(row));
       },
-    },
-  };
-}
-
-export interface AchievementsSurfaceDeps {
-  /** Wallet-address observable (default award recipient). */
-  address: Observable<string | null>;
-  /** chain.ensureWallet fallback when no address is connected yet. */
-  ensureWallet(): Promise<string>;
-  /** The `app.storage.local` lane holding the award-once markers. */
-  local: FrameworkLocalStorageSurface;
-  /** Live accessor for the OS badge service (hosts can hydrate late). */
-  badge: () => MiniAppFrameworkOS["badge"] | undefined;
-}
-
-/**
- * Build the `app.achievements` surface (see module doc).
- *
- * @example
- * ```ts
- * const achievements = createAchievementsSurface({ address, ensureWallet, local, badge });
- * await achievements.awardOnce({ id: "first-win", name: "First Win", criteria: "Win once" });
- * ```
- */
-export function createAchievementsSurface(
-  deps: AchievementsSurfaceDeps,
-): FrameworkAchievementsSurface {
-  return {
-    async awardOnce(definition: AchievementDefinition, user?: string): Promise<{ awarded: boolean }> {
-      const recipient = user || deps.address.get() || await deps.ensureWallet();
-      const marker = `achievements/awarded/${recipient}/${definition.id}`;
-      if (deps.local.get<boolean>(marker, false)) return { awarded: false };
-      await deps.badge()?.define(definition.id, definition.name, definition.criteria);
-      await deps.badge()?.award(definition.id, recipient);
-      deps.local.set(marker, true);
-      return { awarded: true };
-    },
-    async list(user?: string): Promise<unknown[]> {
-      return deps.badge()?.list(user) ?? [];
     },
   };
 }

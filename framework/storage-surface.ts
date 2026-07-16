@@ -1,17 +1,15 @@
 /**
- * framework/storage-surface — app.storage local/remote/hybrid lanes
+ * framework/storage-surface — app.storage local/remote lanes
  * (RFC P0-1 §2 step 5, moved verbatim from index.ts).
  *
  * - `local`: synchronous namespaced localStorage (prefix `neo:<appId>:` by
  *   default — apps with pre-framework keys inject their legacy prefix so
  *   stored user data is never orphaned).
  * - `remote`: async OS storage; graceful no-ops when the host has none.
- * - `hybrid`: remote-first read with local fallback, dual writes.
  */
 
 import { localStorageAvailable } from "./utils/safe-storage";
 import type {
-  FrameworkHybridStorageSurface,
   FrameworkLocalStorageSurface,
   FrameworkRemoteStorageSurface,
   FrameworkStorageSurface,
@@ -95,41 +93,5 @@ export function createStorageSurface(deps: StorageSurfaceDeps): FrameworkStorage
     },
   };
 
-  const hybrid: FrameworkHybridStorageSurface = {
-    async get<T>(key: string, fallback: T | null = null): Promise<T | null> {
-      try {
-        const value = await remote.get<T>(key, null);
-        if (value !== null) return value;
-      } catch {
-        /* OneGate/standalone embeds may not expose OS storage; local survives. */
-      }
-      return local.get<T>(key, fallback);
-    },
-    async set(key: string, value: unknown): Promise<void> {
-      local.set(key, value);
-      try {
-        await remote.set(key, value);
-      } catch {
-        /* Keep the local copy; remote sync can be retried by the app later. */
-      }
-    },
-    async delete(key: string): Promise<void> {
-      local.delete(key);
-      try {
-        await remote.delete(key);
-      } catch {
-        /* local delete already completed */
-      }
-    },
-    async list(listPrefix: string, limit = 100): Promise<Record<string, unknown>> {
-      const localValues = local.list(listPrefix);
-      try {
-        return { ...localValues, ...(await remote.list(listPrefix, limit)) };
-      } catch {
-        return localValues;
-      }
-    },
-  };
-
-  return { local, remote, hybrid };
+  return { local, remote };
 }

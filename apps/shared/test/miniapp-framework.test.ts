@@ -135,19 +135,6 @@ describe("MiniApp Framework", () => {
     expect(localStorage.getItem("neo:miniapp-demo:state/visits")).toBe("3");
   });
 
-  it("stores app data through a collection facade with local fallback when OS storage is offline", async () => {
-    const { ctx, os } = makeContext();
-    os.storage.set.mockRejectedValueOnce(new Error("edge offline"));
-    os.storage.get.mockRejectedValueOnce(new Error("edge offline"));
-    const app = createMiniAppFramework(ctx, { appId: "miniapp-demo" });
-    const runs = app.db.collection<{ score: number }>("runs");
-
-    await runs.set("run-1", { score: 88 });
-
-    await expect(runs.get("run-1")).resolves.toEqual({ score: 88 });
-    expect(localStorage.getItem("neo:miniapp-demo:db/runs/run-1")).toBe('{"score":88}');
-  });
-
   it("wraps chain writes, payable calls, reloads, and success notifications", async () => {
     const { ctx, chain, notify } = makeContext();
     const app = createMiniAppFramework(ctx, { appId: "miniapp-demo" });
@@ -294,8 +281,8 @@ describe("MiniApp Framework", () => {
     await expect(app.oracle.http({ url: "file:///etc/passwd" })).rejects.toThrow(/http\(s\)/);
   });
 
-  it("standardizes stats, achievements, leaderboards, and single-flight actions", async () => {
-    const { ctx, os } = makeContext();
+  it("standardizes leaderboards and single-flight actions", async () => {
+    const { ctx } = makeContext();
     const app = createMiniAppFramework(ctx, { appId: "miniapp-demo" });
     const work = vi.fn(async () => "done");
 
@@ -308,23 +295,8 @@ describe("MiniApp Framework", () => {
     await expect(duplicate).resolves.toBeUndefined();
     expect(work).toHaveBeenCalledTimes(1);
 
-    await expect(app.stats.increment("gamesPlayed", 2)).resolves.toBe(2);
     await app.stats.leaderboard.submit(100);
     await expect(app.stats.leaderboard.top()).resolves.toEqual([{ user: "alice", score: "100" }]);
-
-    await expect(app.achievements.awardOnce({
-      id: "first-win",
-      name: "First win",
-      criteria: "Finish one game",
-    })).resolves.toEqual({ awarded: true });
-    await expect(app.achievements.awardOnce({
-      id: "first-win",
-      name: "First win",
-      criteria: "Finish one game",
-    })).resolves.toEqual({ awarded: false });
-
-    expect(os.badge.define).toHaveBeenCalledWith("first-win", "First win", "Finish one game");
-    expect(os.badge.award).toHaveBeenCalledTimes(1);
   });
 
   it("creates a framework-native reward game client with namespaced op-log storage", async () => {

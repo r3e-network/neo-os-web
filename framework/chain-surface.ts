@@ -3,7 +3,7 @@
  * from index.ts).
  *
  * The contract read/write surface: arg builders, raw + typed reads
- * (`readRaw` / `read(spec)` / `query` / `readArray`), the
+ * (`readRaw` / `query` / `readArray`), the
  * guarded broadcast lanes (`invoke` / `invokeWithPayment` / `write` /
  * `invokeMultiple`), message signing, the post-broadcast `waitForState`
  * poll, and the event helpers. Write lanes compose the RFC P0-2 ordering
@@ -29,7 +29,6 @@ import type {
   FrameworkMultiInvokeOptions,
   FrameworkMultiInvokeResult,
   FrameworkPaySpec,
-  FrameworkReadSpec,
   FrameworkSignedMessage,
   FrameworkTxResult,
   FrameworkWaitForStateOptions,
@@ -193,22 +192,8 @@ export function createChainSurface(deps: ChainSurfaceDeps): FrameworkChainSurfac
       return (await chain.detectNetwork?.()) ?? deps.fallbackNetwork();
     },
     /**
-     * Typed read via a spec object.
-     * @deprecated Use {@link query} — `chain.query(op, args).as(parse)` is
-     * the chainable successor (the spec-object form found no adopters).
-     */
-    async read<T = unknown>(spec: FrameworkReadSpec<T>): Promise<T> {
-      const raw = await chain.read(spec.operation, spec.args, {
-        scriptHash: spec.scriptHash,
-        cache: spec.cache,
-        cacheTtlMs: spec.cacheTtlMs,
-      });
-      return spec.parse ? spec.parse(raw) : raw as T;
-    },
-    /**
      * Raw contract read by operation + args, for app-specific parse/guard
-     * flows that don't want the {@link FrameworkReadSpec} envelope.
-     * Prefer {@link query} for typed decodes (`readRaw` ≡ `query(...).raw()`).
+     * flows. Prefer {@link query} for typed decodes (`readRaw` ≡ `query(...).raw()`).
      */
     async readRaw(
       operation: string,
