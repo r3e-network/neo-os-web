@@ -150,6 +150,46 @@ function runtimePlatforms(manifest) {
   return modules.map((module) => String(module?.platform || "").trim()).filter(Boolean);
 }
 
+/**
+ * S11 permissions that authorize a BROADCAST. `read:blockchain` is deliberately
+ * absent: a read-only app has no user workflow a live-chain business-flow script
+ * could exercise beyond what the RPC read itself proves.
+ */
+const CHAIN_WRITE_PERMISSIONS = new Set(["invoke:primary", "write:blockchain"]);
+
+/**
+ * Does this manifest DECLARE a chain surface — i.e. is a live-chain business
+ * flow a thing this app even has?
+ *
+ * This is deliberately DERIVED from facts the manifest already states rather
+ * than read from a dedicated opt-out field. Two prior signals were rejected:
+ *
+ *   - `features.stateless` (what this branch used to read) is OVERLOADED. The
+ *     audit read it as "needs no live-chain harness", but
+ *     apps/shared/test/stateful-manifest-truth.test.ts defines it as "persists
+ *     progress or transaction recovery". The two meanings are orthogonal: 19
+ *     active apps are chainless AND stateful (16 of them land on the ui-only
+ *     branch below), so no single value of the flag can be true for both
+ *     readers at once — which is why this branch reported 16 false gaps.
+ *   - A NEW dedicated field would be one more thing that can drift away from
+ *     the code and lie — which is exactly how `stateless` rotted here.
+ *
+ * A contract binding / `platform.transactions` / a write permission cannot go
+ * stale the same way: they are the facts the runtime itself is gated on, so an
+ * app that starts writing to chain must change one of them to work at all.
+ */
+function declaresChainSurface(manifest) {
+  const contracts = manifest?.contracts;
+  const hasContractBinding =
+    Boolean(contracts) &&
+    typeof contracts === "object" &&
+    Object.values(contracts).some((hash) => String(hash || "").trim());
+  if (hasContractBinding) return true;
+  if (manifest?.platform?.transactions === true) return true;
+  const permissions = Array.isArray(manifest?.permissions) ? manifest.permissions : [];
+  return permissions.some((name) => CHAIN_WRITE_PERMISSIONS.has(String(name || "").trim()));
+}
+
 function readActiveManifests(root = ROOT) {
   const appsDir = path.join(root, "apps");
   return fs
@@ -168,7 +208,6 @@ function classifyCoverage({ slug, manifest }) {
   const id = String(manifest.id || "").trim();
   const testnetHash = asNetworkHash(manifest, "neo-n3-testnet");
   const mainnetHash = asNetworkHash(manifest, "neo-n3-mainnet");
-  const stateless = Boolean(manifest?.features?.stateless);
 
   if (LIVE_CHAIN_FLOWS.has(id)) {
     return {
@@ -212,9 +251,15 @@ function classifyCoverage({ slug, manifest }) {
     };
   }
 
-  if (stateless) {
+  // Derived, NOT declared: an app with no contract binding, no
+  // platform.transactions and no write permission has no chain surface for a
+  // live-chain flow to exercise. Its whole workflow is the UI, which the build
+  // + play-area audits below already cover. Note this branch is reached only
+  // AFTER the contract branches above, so any app with a deployed hash is
+  // already classified as a real gap and can never land here.
+  if (!declaresChainSurface(manifest)) {
     return {
-      coverage: "stateless-ui-flow",
+      coverage: "ui-only-flow",
       harness: {
         script: "npm run verify:miniapp-dapps && npm run build:miniapp-dapps && npm run audit:miniapps:playareas",
         target: "standalone-ui-workflow",
@@ -226,7 +271,8 @@ function classifyCoverage({ slug, manifest }) {
   return {
     coverage: "missing-live-chain-harness",
     harness: null,
-    action: "classify the app as stateless or add a testnet live-flow script",
+    action:
+      "this app declares a chain surface (platform.transactions or a write permission) but binds no contract — add a testnet live-flow script, or drop the undeclared chain surface from the manifest",
   };
 }
 
@@ -240,6 +286,11 @@ function buildCoverageRows({ root = ROOT } = {}) {
       coverage: classified.coverage,
       testnetHash: asNetworkHash(manifest, "neo-n3-testnet") || null,
       mainnetHash: asNetworkHash(manifest, "neo-n3-mainnet") || null,
+      // The signal the classifier actually derives its ui-only branch from.
+      declaresChainSurface: declaresChainSurface(manifest),
+      // Echoed from the manifest for report readers ONLY. This is NOT what the
+      // classifier keys on — see declaresChainSurface() for why the two must
+      // not be conflated.
       stateless: Boolean(manifest?.features?.stateless),
       runtimePlatforms: runtimePlatforms(manifest),
       harness: classified.harness,
