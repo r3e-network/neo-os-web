@@ -839,6 +839,33 @@ describe("useSelfLoan pre-wallet chain context (self-loan-awaiting)", () => {
     expect(app.readError.get()).toBe("");
   });
 
+  /**
+   * `loan` rests at `{ borrowed: 0, collateralLocked: 0 }` — the shape of an
+   * empty position, not a reading — so formatting it straight published a
+   * confident "0" in the chrome: a fabricated number telling a borrower they
+   * have borrowed nothing and locked nothing before getLoan had answered.
+   * These two are the manifest's own stat bindings, so the zero is a claim the
+   * app publishes, not an internal value.
+   */
+  it("never states a borrowed or collateral figure it has not read", async () => {
+    const app = useSelfLoan({ app: makeApp(walletlessChain()), t });
+
+    // Before any read: nothing is known, so nothing is said. `undefined` is what
+    // makes MiniAppRoot render the binding's pendingKey instead of formatting.
+    expect(app.borrowedDisplay.get()).toBeUndefined();
+    expect(app.collateralDisplay.get()).toBeUndefined();
+
+    await app.loadAll();
+
+    // Settled with no wallet: a fact, not a pending read — there is no position
+    // to look up. Either way it must never be the fabricated zero.
+    expect(app.positionStatus.get()).toBe("awaiting-wallet");
+    expect(app.borrowedDisplay.get()).toBe("connectWallet");
+    expect(app.collateralDisplay.get()).toBe("connectWallet");
+    expect(app.borrowedDisplay.get()).not.toMatch(/^0/);
+    expect(app.collateralDisplay.get()).not.toMatch(/^0/);
+  });
+
   it("still refuses to mark the runtime compatible, so writes stay gated", async () => {
     const app = useSelfLoan({ app: makeApp(walletlessChain()), t });
     await app.loadAll();
