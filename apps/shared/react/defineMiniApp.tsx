@@ -56,7 +56,8 @@ export type {
   PlayAreaProps,
 } from "./MiniAppRoot";
 export type { Observable, ObservableState, MiniAppContextValue } from "./context";
-export { createObservable, createDerived, refToObservable, refsToObservables } from "./context";
+export { createObservable, createDerived, createReadCell, refToObservable, refsToObservables } from "./context";
+export type { ReadCell } from "./context";
 export { manifestToTemplateConfig } from "../utils/manifestToTemplateConfig";
 
 // ============================================================================
