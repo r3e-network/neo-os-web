@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="MiniAppTarotVrf.cs" />
+    <Compile Include="MiniAppTarotVrf.Admin.cs" />
+    <Compile Include="MiniAppTarotVrf.Callback.cs" />
+    <Compile Include="MiniAppTarotVrf.Funds.cs" />
+    <Compile Include="MiniAppTarotVrf.Reads.cs" />
+    <Compile Include="MiniAppTarotVrf.Request.cs" />
+    <Compile Include="MiniAppTarotVrf.Storage.cs" />
+  </ItemGroup>
+</Project>
