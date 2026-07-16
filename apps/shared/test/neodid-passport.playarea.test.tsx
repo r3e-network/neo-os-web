@@ -220,6 +220,25 @@ describe("neodid-passport PlayArea production surface", () => {
     expect(container.textContent).not.toMatch(/Email attestation|GitHub attestation|Proof provider/);
   });
 
+  it("surfaces the draft-validation reason beside the fields once an edit disables the build action", () => {
+    // The build button disables on an invalid draft; the only other surfacing
+    // path (runBuild's validation branch) is unreachable because a disabled
+    // button cannot dispatch it. The message must therefore render at the
+    // point of edit, and clear again when the field recovers.
+    const { container } = render(<PlayArea t={t} state={state()} dispatch={vi.fn()} />);
+    fireEvent.click(container.querySelector(".mx2-action-rail__drawer-toggle") as Element);
+    expect(container.querySelector(".did-draft-error")).toBeNull();
+
+    const subject = container.querySelector(".did-drawer__field--wide input") as HTMLInputElement;
+    fireEvent.change(subject, { target: { value: "not-a-did" } });
+    const hint = container.querySelector(".did-draft-error");
+    expect(hint).not.toBeNull();
+    expect(hint?.textContent).toContain("passportInvalidDid");
+
+    fireEvent.change(subject, { target: { value: DID } });
+    expect(container.querySelector(".did-draft-error")).toBeNull();
+  });
+
   it("makes wallet signing secondary and dispatches the exact current draft", () => {
     const dispatch = vi.fn().mockResolvedValue(undefined);
     render(<PlayArea t={t} state={resolvedState()} dispatch={dispatch} />);

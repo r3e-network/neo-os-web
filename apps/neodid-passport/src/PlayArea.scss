@@ -559,6 +559,27 @@
   min-height: 42px;
 }
 
+/* Draft-validation message shown beside the fields when the build action is
+   disabled — same error tone as .did-scene__status[data-error]. */
+.did-draft-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 7px 11px;
+  border: 1px solid #e7bbb4;
+  border-radius: 10px;
+  background: #fff6f4;
+  color: #943f37;
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.4;
+}
+
+.did-draft-error svg {
+  flex-shrink: 0;
+}
+
 .did-evidence-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
