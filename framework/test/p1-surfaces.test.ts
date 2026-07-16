@@ -139,6 +139,42 @@ describe("P1-3 registerConnectWallet", () => {
     expect(notify.success).toHaveBeenCalledWith("walletConnected");
   });
 
+  it("onAddress (new shape) receives the resolved address BEFORE the refresh fan-out", async () => {
+    // Additive-signature guard: the two tests around this one still call the
+    // pre-onAddress shapes ({refresh, successKey} and no-args) unchanged —
+    // together they prove the old call sites compile and behave identically.
+    const { app, chain } = makeApp("p1-connect-onaddress");
+    const order: string[] = [];
+    const reload = vi.fn(async () => {
+      order.push("reload");
+    });
+    app.actions.registerConnectWallet({
+      onAddress: (addr) => {
+        order.push(`addr:${addr}`);
+      },
+      refresh: [reload],
+    });
+
+    await expect(app.actions.run("connectWallet")).resolves.toBe(ADDRESS);
+    expect(chain.ensureWallet).toHaveBeenCalledTimes(1);
+    // The mirror hook must run first so the refresh loaders read a seeded
+    // local address mirror — the exact ordering the ~6 mirror apps hand-roll.
+    expect(order).toEqual([`addr:${ADDRESS}`, "reload"]);
+  });
+
+  it("onAddress never fires when ensureWallet rejects (no stale mirror seed)", async () => {
+    const { app, chain, notify } = makeApp("p1-connect-onaddress-reject");
+    chain.ensureWallet.mockRejectedValueOnce(new Error("user declined"));
+    const onAddress = vi.fn();
+    const reload = vi.fn(async () => {});
+    app.actions.registerConnectWallet({ onAddress, refresh: [reload] });
+
+    await expect(app.actions.run("connectWallet")).resolves.toBeUndefined();
+    expect(onAddress).not.toHaveBeenCalled();
+    expect(reload).not.toHaveBeenCalled();
+    expect(notify.error).toHaveBeenCalled();
+  });
+
   it("collapses double-clicks via the run lane single-flight", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { app, chain } = makeApp("p1-connect-flight");

@@ -754,13 +754,14 @@ export interface FrameworkActionsSurface {
   run<TResult = unknown>(key: string, ...args: unknown[]): Promise<TResult | undefined>;
   /**
    * Register the standard `connectWallet` action body (RFC P1-3 — replaces
-   * the ~26 hand-registered copies): ensureWallet → refresh fan-out (each
-   * loader error-isolated) → optional success toast. Re-entry is collapsed
-   * by the run lane's drop-mode single-flight.
+   * the ~26 hand-registered copies): ensureWallet → `onAddress(addr)` mirror
+   * hook → refresh fan-out (each loader error-isolated) → optional success
+   * toast. Re-entry is collapsed by the run lane's drop-mode single-flight.
    *
    * @example
    * ```ts
    * app.actions.registerConnectWallet({
+   *   onAddress: (addr) => store.setAddress(addr),
    *   refresh: [reloadBalances, reloadHistory],
    *   successKey: "walletConnected",
    * });
@@ -771,6 +772,12 @@ export interface FrameworkActionsSurface {
     refresh?: Array<() => Promise<void>>;
     /** Success-toast key (silent when omitted). */
     successKey?: string;
+    /**
+     * Local address-mirror hook — called with the resolved address BEFORE the
+     * refresh fan-out so `refresh` loaders read a seeded mirror. Not
+     * error-isolated: a throw surfaces through the action error-toast lane.
+     */
+    onAddress?: (addr: string) => void;
   }): void;
 }
 

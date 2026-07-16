@@ -133,11 +133,10 @@ defineMiniApp({
       }
     });
 
-    ctx.framework.actions.register("connectWallet", async () => {
-      await ctx.framework.notify.guard(
-        () => gasbox.connectWallet(),
-        { successKey: "walletConnected" },
-      );
+    ctx.framework.actions.registerConnectWallet({
+      onAddress: (addr) => gasbox.setAddress(addr),
+      refresh: [gasbox.loadAll],
+      successKey: "walletConnected",
     });
 
     // Reveal-retry: re-run settle against the persisted pending betId. Safe to

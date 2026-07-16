@@ -116,18 +116,27 @@ export function createActionsSurface(deps: ActionsSurfaceDeps): FrameworkActions
       deps.registerAction(key, wrapped);
     },
     /**
-     * The standard connectWallet body (RFC P1-3): ensureWallet → refresh
-     * fan-out (each loader error-isolated) → optional success toast.
-     * Re-entry collapses via the run lane's drop-mode single-flight.
+     * The standard connectWallet body (RFC P1-3): ensureWallet →
+     * `onAddress(addr)` mirror hook → refresh fan-out (each loader
+     * error-isolated) → optional success toast. Re-entry collapses via the
+     * run lane's drop-mode single-flight.
+     *
+     * `onAddress` runs BEFORE the refresh fan-out so apps holding a local
+     * address mirror (`ensureWallet → setAddress(addr) → reload`) can seed
+     * the mirror the loaders read. It is NOT error-isolated: a throwing
+     * mirror setter is an app bug and surfaces through the action's normal
+     * error-toast lane instead of silently proceeding with a stale mirror.
      */
     registerConnectWallet(connectOptions: {
       refresh?: Array<() => Promise<void>>;
       successKey?: string;
+      onAddress?: (addr: string) => void;
     } = {}): void {
       actions.register(
         "connectWallet",
         async () => {
           const address = await deps.ensureWallet();
+          connectOptions.onAddress?.(address);
           await Promise.all(
             (connectOptions.refresh ?? []).map((load) =>
               load().catch(() => undefined),
