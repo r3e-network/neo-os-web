@@ -833,18 +833,11 @@ export function createAnchorRuntime(
       walletAddress,
       history,
     },
+    // Connecting lives in main.tsx as `actions.registerConnectWallet` (seeding
+    // `state.walletAddress` then reloading) rather than here: the `runAction`
+    // gate asserts a readable binding and an exact wallet network, which is
+    // precisely the state a disconnected visitor cannot satisfy yet.
     loadAll,
-    // Connecting is the one thing a visitor can always do, so it is deliberately
-    // not routed through `runAction`: that path asserts a readable binding and an
-    // exact wallet network before it will run, which is precisely the state a
-    // disconnected visitor cannot satisfy yet. Seeding `walletAddress` here keeps
-    // the console's connect-gated placeholders honest even if the host never
-    // emits an account-changed event for an already-authorized wallet.
-    connect: async () => {
-      const address = await app.chain.ensureWallet();
-      walletAddress.set(address);
-      await loadAll();
-    },
     stake: (amount: unknown) => runAction("stake", amount),
     withdraw: (amount: unknown) => runAction("withdraw", amount),
     claim: () => runAction("claim"),
