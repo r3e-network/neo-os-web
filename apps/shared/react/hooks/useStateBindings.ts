@@ -109,9 +109,23 @@ export function useStateBindings(state: StateRecord) {
     const bool = (key: string): boolean =>
       Boolean(readStateValue(state, key, false));
 
-    /** Read a number value (defaults to 0) */
-    const num = (key: string, fallback = 0): number =>
-      Number(readStateValue(state, key, fallback));
+    /**
+     * Read a number value (defaults to `fallback`).
+     *
+     * The nullish guard mirrors `str` above, and is the difference between a
+     * fallback and a lie. `readStateValue` returns an observable's value RAW —
+     * its own `?? fallback` only covers a missing key — so an observable
+     * holding `undefined` reached `Number()` directly and rendered `NaN`.
+     * `undefined` is how an app says "not read yet" (see `pendingKey` in
+     * apps/shared/types/miniapp-manifest.ts), so the state every app uses to
+     * mean "nothing known" was the one state this accessor could not survive.
+     * `val` keeps returning the raw value on purpose: callers reach for it
+     * precisely to see the true state, and pass their own default with `??`.
+     */
+    const num = (key: string, fallback = 0): number => {
+      const value = readStateValue(state, key, fallback);
+      return value == null ? fallback : Number(value);
+    };
 
     /** Read a raw value with a typed cast */
     const val = <T,>(key: string, fallback: T | null = null): T | null =>
