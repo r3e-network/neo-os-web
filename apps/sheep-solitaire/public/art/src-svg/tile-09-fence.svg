@@ -1,28 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 200 200" width="200" height="200">
+                  viewBox="0 0 200 232" width="200" height="232">
     
-    <!-- Card background -->
-    <rect x="6" y="6" width="188" height="188"
-          rx="22" ry="22" fill="#F5EDD9" stroke="#D4B88E"
-          stroke-width="3.5999999999999996" />
+    <!-- Hard offset sticker shadow (flat, no blur) -->
+    <rect x="17" y="20" width="180" height="208"
+          rx="28" ry="28" fill="#26221E" opacity="0.30" />
+    <!-- Gray-green thickness strip (card stack edge) -->
+    <rect x="10" y="26" width="180" height="192"
+          rx="28" ry="28" fill="#97A886" stroke="#26221E" stroke-width="4.5" />
+    <!-- Cream tile face -->
+    <rect x="10" y="10" width="180" height="192"
+          rx="26" ry="26" fill="#F8F6E8" stroke="#26221E" stroke-width="4.5" />
   
     <!-- Icon: fence -->
-    <g transform="translate(0, 0)">
+    <g transform="translate(100, 107) scale(1.16) translate(-100, -100)">
       
     <!-- Vertical slats -->
     <rect x="72" y="74" width="10" height="52" rx="2" ry="2" fill="#A67B5B"
-            stroke="#3A3530" stroke-width="2" />
+            stroke="#26221E" stroke-width="2" />
     <rect x="91" y="74" width="10" height="52" rx="2" ry="2" fill="#A67B5B"
-            stroke="#3A3530" stroke-width="2" />
+            stroke="#26221E" stroke-width="2" />
     <rect x="109" y="74" width="10" height="52" rx="2" ry="2" fill="#A67B5B"
-            stroke="#3A3530" stroke-width="2" />
+            stroke="#26221E" stroke-width="2" />
     <rect x="128" y="74" width="10" height="52" rx="2" ry="2" fill="#A67B5B"
-            stroke="#3A3530" stroke-width="2" />
+            stroke="#26221E" stroke-width="2" />
     <!-- Horizontal rails -->
     <rect x="68" y="90" width="64" height="7" rx="2" ry="2" fill="#7D5A3E"
-            stroke="#3A3530" stroke-width="1.5" />
+            stroke="#26221E" stroke-width="1.5" />
     <rect x="68" y="116" width="64" height="7" rx="2" ry="2" fill="#7D5A3E"
-            stroke="#3A3530" stroke-width="1.5" />
+            stroke="#26221E" stroke-width="1.5" />
     <!-- Nail heads -->
     <circle cx="72" cy="93" r="2" fill="#D4A033"
             />

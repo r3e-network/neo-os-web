@@ -173,7 +173,7 @@ const appMessages = {
     zh: "对局 #{gameId} · 密封承诺 {commitment}",
   },
 
-  statusReady: { en: "Choose a board route to open", zh: "选择牌局路线后开启" },
+  statusReady: { en: "Ready for today's challenge", zh: "准备好开始今日挑战" },
   statusStarting: { en: "Paying entry and starting…", zh: "正在支付报名费并开局…" },
   statusStarted: { en: "Game started — sealing the card layout", zh: "对局已开始——正在密封牌面" },
   statusShuffling: { en: "Sealing your game…", zh: "正在密封对局…" },
@@ -305,7 +305,7 @@ const appMessages = {
   // ── P1 — daily two-level challenge (羊了个羊 soul) ─────────────────────────
   dailyChallengeTitle: { en: "Today's Challenge", zh: "今日挑战" },
   dailyChallengeSub: { en: "Level 1 easy · Level 2 devil · refreshes daily", zh: "第1关超易 · 第2关魔鬼 · 每日刷新" },
-  level1ClearedTitle: { en: "Level 1 cleared!", zh: "第1关清空！" },
+  level1ClearedTitle: { en: "Level 1 cleared!", zh: "第1关通过！" },
   level1ClearedSub: { en: "On to the devil level — ready?", zh: "进入魔鬼第2关，准备好了吗？" },
   enterLevel2: { en: "Enter Level 2", zh: "进入第2关" },
   dailyFullyClearedTitle: { en: "Daily clear!", zh: "今日全清！" },
@@ -315,6 +315,15 @@ const appMessages = {
   retryLevel2Sub: { en: "Out of revives — retry the devil level?", zh: "复活已用完——再战魔鬼第2关？" },
   retryLevel2: { en: "Retry Level 2", zh: "重战第2关" },
   guestRevived: { en: "Revived — same board, go!", zh: "已复活——同一牌面，继续！" },
+
+  // ── P2 — full-screen home view + in-game HUD (§9.4 IA flip) ────────────────
+  homeStartDaily: { en: "Start Game", zh: "开始游戏" },
+  homePractice: { en: "Free Practice", zh: "自由练习" },
+  practiceTitle: { en: "Choose a practice board", zh: "选择练习牌局" },
+  practiceBack: { en: "Back", zh: "返回" },
+  hudRemaining: { en: "{count} left", zh: "剩余 {count}" },
+  hudLevelPractice: { en: "Practice", zh: "练习" },
+  hudLevelN: { en: "Level {n}", zh: "第{n}关" },
 
   // ── In-canvas (Phaser scene) strings ──────────────────────────────────────
   boardTagline: {

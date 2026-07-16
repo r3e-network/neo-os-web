@@ -14,9 +14,11 @@ import { DEAL_TTL_MS, SETTLE_GRACE_MS } from "./logic/game-rules";
 import { getLocale, type Locale } from "@shared/utils/i18n";
 import "./PlayArea.scss";
 
+// P2 (§9.4): mobile-first full-screen field — the scene is designed at
+// 390×844 logical and letterbox-bleeds the meadow on other aspect ratios.
 const GAME_CONFIG = {
-  width: 400,
-  height: 640,
+  width: 390,
+  height: 844,
   backgroundColor: "transparent",
   transparent: true,
 } as const;
@@ -95,6 +97,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const undosUsed   = num("undosUsed", 0);
   const shuffleLeft = num("shuffleLeft", 1);
   const remove3Left = num("remove3Left", 1);
+  // P1 — daily two-level challenge surface (the scene branches on these).
+  const level       = num("level", 1);
+  const playMode    = str("playMode", "practice");
+  const revivesLeft = num("revivesLeft", 0);
+  const dailyDate   = num("dailyDate", 0);
+  // Guest grants a single free undo per run; GameFi keeps the contract's 3.
+  const maxUndos    = isGuest ? 1 : 3;
   const deadlineExpired = gameStatus === "dealt" && deadline > 0 && nowMs >= deadline;
   const releaseAt = gameStatus === "committed"
     ? (startedAt > 0 ? startedAt + DEAL_TTL_MS : 0)
@@ -128,15 +137,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   // see translated in-canvas text. English defaults still live in the scene as
   // fallbacks. Interpolated subs (payout/credit) are passed as templates the
   // scene fills with values it already holds.
-  const diffTimers = ["5:00", "8:00", "12:00"];
+  // Guest play is untimed — the old "5:00/8:00/12:00" clock copy is gone.
   const diffTileCounts = [8, 12, 15];
   const loc = {
     title:    t("appEyebrow"),
     subtitle: t("boardTagline"),
     diffNames: [t("easyLabel"), t("mediumLabel"), t("hardLabel")],
-    diffInfos: diffTileCounts.map(
-      (count, i) => `${t("tileTypesLabel", { count })} · ${diffTimers[i]}`,
-    ),
+    diffInfos: diffTileCounts.map((count) => t("tileTypesLabel", { count })),
+    // P2 home view + HUD copy (scene renders these in-canvas).
+    homeStartDaily:   t("homeStartDaily"),
+    homePractice:     t("homePractice"),
+    practiceTitle:    t("practiceTitle"),
+    practiceBack:     t("practiceBack"),
+    hudRemaining:     t("hudRemaining"),
+    hudLevelPractice: t("hudLevelPractice"),
+    hudLevelN:        t("hudLevelN"),
     // Guest boards carry no entry / reward: show the clear goal + a free tag
     // instead of "Entry 0.02 GAS" / "Win 0.10 GAS".
     diffEntries: isGuest
@@ -180,6 +195,19 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     withdraw:     t("withdrawShortAction"),
     backToRoutes: isGuest ? t("guestPlayAgainAction") : t("backToRoutesAction"),
     tryAgain:     t("tryAgainAction"),
+    // P1 — daily two-level challenge copy (the scene renders these in-canvas;
+    // without them the zh locale silently fell back to the English defaults).
+    dailyChallengeTitle:   t("dailyChallengeTitle"),
+    dailyChallengeSub:     t("dailyChallengeSub"),
+    level1ClearedTitle:    t("level1ClearedTitle"),
+    level1ClearedSub:      t("level1ClearedSub"),
+    enterLevel2:           t("enterLevel2"),
+    dailyFullyClearedTitle: t("dailyFullyClearedTitle"),
+    dailyFullyClearedAny:  t("dailyFullyClearedAny"),
+    reviveSub:             t("reviveSub"),
+    reviveAction:          t("reviveAction"),
+    retryLevel2Sub:        t("retryLevel2Sub"),
+    retryLevel2:           t("retryLevel2"),
   };
 
   // Bridge state snapshot: all values must be plain (serializable)
@@ -214,6 +242,12 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     lastPayout:     str("lastPayout", ""),
     credit,
     poolFree,
+    // P1 — daily two-level challenge state (SheepScene branches on playMode /
+    // level / revivesLeft for the L1→L2 / revive / retry flows).
+    level,
+    playMode,
+    revivesLeft,
+    dailyDate,
     loc,
   };
 
@@ -252,7 +286,8 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       accent: gameStatus === "dealt",
     },
     {
-      label: gameStatus === "dealt" ? t("scoreTime") : t("trayMetric"),
+      // Untimed (guest) runs have no clock — surface the tray meter instead.
+      label: gameStatus === "dealt" && deadline > 0 ? t("scoreTime") : t("trayMetric"),
       value: gameStatus === "dealt" && deadline > 0
         ? formatCountdown(deadline - nowMs)
         : `${trayUsed}/7`,
@@ -260,7 +295,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     },
     {
       label: t("toolsMetric"),
-      value: `${Math.max(0, 3 - undosUsed)} + ${shuffleLeft}/${remove3Left}`,
+      value: `${Math.max(0, maxUndos - undosUsed)} + ${shuffleLeft}/${remove3Left}`,
       accent: false,
     },
   ];
@@ -342,6 +377,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
             <section className="sheep-a11y-controls" aria-label={t("keyboardControls")}>
               {(gameStatus === "idle" || gameStatus === "expired" || gameStatus === "refunded") && (
                 <div>
+                  <button
+                    type="button"
+                    disabled={boardBusy || (!isGuest && !newPaidRunsEnabled)}
+                    onClick={() => void dispatch("startGame", { mode: "daily", level: 1 })}
+                  >
+                    {t("dailyChallengeTitle")}
+                  </button>
                   {[t("easyLabel"), t("mediumLabel"), t("hardLabel")].map((route, difficulty) => (
                     <button
                       type="button"
@@ -353,6 +395,15 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                     </button>
                   ))}
                 </div>
+              )}
+              {gameStatus === "solved" && playMode === "daily" && level === 1 && (
+                <button
+                  type="button"
+                  disabled={boardBusy}
+                  onClick={() => void dispatch("advanceLevel")}
+                >
+                  {t("enterLevel2")}
+                </button>
               )}
               {gameStatus === "dealt" && !isGameOver && !deadlineExpired && (
                 <div>
@@ -371,14 +422,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   ))}
                   <button
                     type="button"
-                    disabled={boardBusy || trayUsed === 0 || undosUsed >= 3}
+                    disabled={boardBusy || trayUsed === 0 || undosUsed >= maxUndos}
                     onClick={() => void dispatch("useUndo")}
                   >
-                    {t("undoAction", { left: Math.max(0, 3 - undosUsed) })}
+                    {t("undoAction", { left: Math.max(0, maxUndos - undosUsed) })}
                   </button>
                   <button
                     type="button"
-                    disabled={boardBusy || trayUsed === 0 || shuffleLeft <= 0}
+                    disabled={boardBusy || shuffleLeft <= 0}
                     onClick={() => void dispatch("useShuffle")}
                   >
                     {t("shuffleAction", { left: shuffleLeft })}
@@ -472,7 +523,7 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </span>
                   <span>
                     <small>{t("scoreUndos")}</small>
-                    <strong>{Math.max(0, 3 - undosUsed)}</strong>
+                    <strong>{Math.max(0, maxUndos - undosUsed)}</strong>
                   </span>
                 </div>
                 {drawerActions.length > 0 && (
