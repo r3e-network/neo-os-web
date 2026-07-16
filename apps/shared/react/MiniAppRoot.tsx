@@ -686,7 +686,11 @@ export function MiniAppRoot({
       label: tFn(item.labelKey),
       value: (() => {
         const obs = appStateRef.current[item.valueKey];
-        if (!obs) return null;
+        // Before setup hands the state record over there is no observable to
+        // read — that window is still the "unread" phase a `pendingKey` names,
+        // so honour it here too; `null` otherwise (the pre-existing behaviour,
+        // rendered as the not-available placeholder downstream).
+        if (!obs) return item.pendingKey ? tFn(item.pendingKey) : null;
         const raw = obs.get();
         // Manifest bindings are an ungated render path — the formatter would
         // happily turn an unread value into a void ("—") or a fabricated
