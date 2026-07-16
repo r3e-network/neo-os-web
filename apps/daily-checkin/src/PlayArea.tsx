@@ -71,7 +71,11 @@ function historyReward(item: CheckinHistoryItem): string {
 
 export default function PlayArea({ t, state, dispatch }: Props) {
   const { str, bool, num, val } = useStateBindings(state);
-  const network = str("network") || "—";
+  // Both resolve together, out of the one canonical-context read, and both were
+  // left on `|| "—"` when the rest of this surface moved to DataPhase — so the
+  // header opened as "Neo N3 —" and the footer as a dashed contract, directly
+  // contradicting the comment below. They are phased through `contextPhase`.
+  const network = str("network");
   const contractHash = str("contractHash");
   const dataSource = str("dataSource") || "idle";
   const walletAddress = str("walletAddress");
@@ -105,6 +109,7 @@ export default function PlayArea({ t, state, dispatch }: Props) {
   const isPaused = bool("isPaused");
   const hasLoadedStatus = bool("hasLoadedStatus");
   const hasLoadedPlatform = bool("hasLoadedPlatform");
+  const hasLoadedContext = bool("hasLoadedContext");
   const isLoading = bool("isLoading");
   const isSubmitting = bool("isSubmitting");
   const isRecovering = bool("isRecovering");
@@ -179,12 +184,18 @@ export default function PlayArea({ t, state, dispatch }: Props) {
     walletConnected
       ? resolvePhase({ loading: isLoading, settled: hasLoadedStatus, hasData: Boolean(raw) })
       : "unavailable";
+  // Context-scoped values (the network, the canonical contract) need no wallet
+  // and settle before the platform read does, so they gate on their own flag —
+  // `hasLoadedPlatform` never flips when the context read is what failed, and
+  // would leave these shimmering forever on exactly that path.
+  const contextPhase = (raw: string): DataPhase =>
+    resolvePhase({ loading: isLoading, settled: hasLoadedContext, hasData: Boolean(raw) });
   const daysToReward = journeyComplete ? 0 : Math.max(0, nextMilestoneDay - effectiveStreak);
   const progressPercent = Math.round((completedInChapter / 7) * 100);
   const waitingForReset = hasLoadedStatus && !canCheckIn && !isPaused && nextMidnight > Date.now();
   const countdownText = waitingForReset ? countdown(nextMidnight - Date.now()) : "";
   const walletDisplay = walletAddress ? formatHash(walletAddress, 7) : t("notConnected");
-  const contractDisplay = contractHash ? formatHash(contractHash, 7) : "—";
+  const contractDisplay = contractHash ? formatHash(contractHash, 7) : "";
   const busy = isLoading || isSubmitting || isRecovering || isWalletConnecting;
 
   const sourceLabel = dataSource === "chain"
@@ -351,7 +362,18 @@ export default function PlayArea({ t, state, dispatch }: Props) {
               <strong>{t("todayRitual")}</strong>
               <small>{ritualStatus}</small>
             </div>
-            <span className="dci-network">Neo N3 {network}</span>
+            {/* "Neo N3" is true before any read — only the specific network is
+                unknown, so the chip keeps its identity and phases the tail. */}
+            <span className="dci-network">
+              Neo N3{" "}
+              <PhaseValue
+                phase={contextPhase(network)}
+                placeholder={t("valueAwaitingNetwork")}
+                skeletonWidth="3.4em"
+              >
+                {network}
+              </PhaseValue>
+            </span>
           </header>
 
           <div className="dci-streak-focus">
@@ -520,7 +542,15 @@ export default function PlayArea({ t, state, dispatch }: Props) {
         subtitle={t("directWalletOnly")}
       >
         <div className="dci-trust-list">
-          <span><BadgeCheck size={15} /><strong>{t("canonicalContract")}</strong><small>{contractDisplay}</small></span>
+          <span><BadgeCheck size={15} /><strong>{t("canonicalContract")}</strong><small>
+            <PhaseValue
+              phase={contextPhase(contractDisplay)}
+              placeholder={t("valueAwaitingNetwork")}
+              skeletonWidth="7em"
+            >
+              {contractDisplay}
+            </PhaseValue>
+          </small></span>
           <span><Wallet size={15} /><strong>{t("walletLabel")}</strong><small>{walletDisplay}</small></span>
           <span><ShieldCheck size={15} /><strong>{t("confirmationModel")}</strong><small>{t("eventAndReadback")}</small></span>
         </div>
