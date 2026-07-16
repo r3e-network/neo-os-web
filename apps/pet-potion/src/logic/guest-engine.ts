@@ -28,6 +28,7 @@ import {
   type DifficultyRule,
   type IngredientCounts,
 } from "./game-rules";
+import { clampDifficulty } from "@framework/game-rules";
 import type { Observable as Obs } from "@framework/reactive";
 import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
@@ -114,10 +115,6 @@ function validHistory(value: unknown): SolveRow[] {
 
 function clampStat(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
 /** Matches the reviewed Morpheus pet engine's deterministic starting state. */

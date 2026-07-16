@@ -18,6 +18,7 @@
  */
 import type { GameSessionObservables, LeaderEntry } from "@framework/game";
 import { ruleOf } from "./game-rules";
+import { clampDifficulty as clampDifficulty02 } from "@framework/game-rules";
 import { forgetBoard, type BoardStorage } from "./board-store";
 import { dealPuzzle, hexToBytes, type Difficulty } from "./sudoku-engine";
 import type { Observable as Obs } from "@framework/reactive";
@@ -81,8 +82,7 @@ interface GuestProfileRecord {
 }
 
 function clampDifficulty(value: number): Difficulty {
-  const n = Number.isFinite(value) ? Math.round(value) : 0;
-  return Math.max(0, Math.min(2, n)) as Difficulty;
+  return clampDifficulty02(value) as Difficulty;
 }
 
 /** Web-Crypto 32-byte seed — the local beacon analog. */

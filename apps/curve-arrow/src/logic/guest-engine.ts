@@ -17,6 +17,7 @@
  */
 import type { GameSessionObservables, LeaderEntry, SolveRow } from "@framework/game";
 import { ruleOf } from "./game-rules";
+import { clampDifficulty } from "@framework/game-rules";
 import {
   FIELD_H,
   LEVEL_TARGETS,
@@ -63,10 +64,6 @@ export interface GuestEngine {
 
 const GUEST_GAME_ID = "guest";
 const GUEST_PROFILE_KEY = "miniapp-curve-arrow:guest-profile:v1";
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
-}
 
 /** Web-Crypto (Math.random fallback) integer in [min, max] inclusive. */
 function randInt(min: number, max: number): number {

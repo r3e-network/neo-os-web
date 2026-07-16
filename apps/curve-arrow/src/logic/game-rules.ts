@@ -6,6 +6,7 @@
  */
 
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
+import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 
 export type Difficulty = 0 | 1 | 2;
@@ -13,7 +14,7 @@ export type Difficulty = 0 | 1 | 2;
 export const ENTRY_MEMO = "miniapp-curve-arrow:entry";
 export const FUND_MEMO = "miniapp-curve-arrow:fund";
 /** Contract-enforced delay before an abandoned active/settling game can expire. */
-export const SETTLEMENT_GRACE_MS = 600_000;
+export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export interface DifficultyRule {
   difficulty: Difficulty;

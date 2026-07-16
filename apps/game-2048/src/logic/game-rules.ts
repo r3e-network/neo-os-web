@@ -5,6 +5,7 @@
  * values for cross-checks).
  */
 import { formatClock as fleetFormatClock } from "@framework/fmt-surface";
+import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 import { formatGas } from "@framework/utils/format";
 
 export const ENTRY_MEMO = "miniapp-game-2048:entry";
@@ -15,7 +16,7 @@ export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
 export const MAX_MOVES = 2000;
 /** Must match MiniAppGame2048.SETTLE_GRACE_MS; refreshed from getConfig in GameFi mode. */
-export const SETTLEMENT_GRACE_MS = 600_000;
+export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export type Difficulty = 0 | 1 | 2;
 

@@ -23,6 +23,11 @@ import type { FrameworkGameRuleConfig, FrameworkGameRules } from "./types";
 /** Fleet-standard settlement grace (matches the contracts' SETTLE_GRACE_MS). */
 export const DEFAULT_SETTLEMENT_GRACE_MS = 600_000;
 
+/** Fleet-standard difficulty clamp: nearest integer in 0..2 (non-finite → 0). */
+export function clampDifficulty(value: number): number {
+  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
+}
+
 /**
  * Build the standard game-rules helpers (see {@link FrameworkGameRules}).
  *
