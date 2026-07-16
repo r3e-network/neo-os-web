@@ -335,7 +335,11 @@ describe("game miniapp experience audit", () => {
           expect(
             mainSource,
             `${appName}: disabled paid starts must be guarded before any transaction`,
-          ).toMatch(/if\s*\(\s*!(?:NEW_PAID_RUNS_ENABLED|GAMEFI_NEW_ENTRIES_ENABLED)\s*\)/);
+          ).toMatch(
+            // The guard may be compound — color-clash pairs the flag with a
+            // manifest.supportsGameFi check — so accept `)`, `||` or `&&` after it.
+            /if\s*\(\s*!(?:NEW_PAID_RUNS_ENABLED|GAMEFI_NEW_ENTRIES_ENABLED)\s*(?:\)|\|\||&&)/,
+          );
           expect(
             `${scenes}\n${mainSource}`,
             `${appName}: disabled paid starts need explicit maintenance/unavailable copy`,
@@ -345,7 +349,12 @@ describe("game miniapp experience audit", () => {
         expect(scenes, `${appName}: scene must gate paid starts on the reward pool`).toMatch(
           /poolFree/,
         );
-        expect(scenes, `${appName}: low-pool starts need user-facing copy`).toMatch(/pool low/i);
+        // The requirement is user-facing pool copy, not one exact wording:
+        // flappy-dash deliberately frames an unfunded pool as a waiting state
+        // ("Awaiting pool") rather than an error. Both phrasings qualify.
+        expect(scenes, `${appName}: low-pool starts need user-facing copy`).toMatch(
+          /pool low|awaiting pool/i,
+        );
         expect(mainSource, `${appName}: reward-pool failures need a user-facing status`).toMatch(
           /statusPoolLow/,
         );

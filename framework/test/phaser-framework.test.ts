@@ -454,12 +454,21 @@ describe("root Phaser framework", () => {
         app: "sheep-solitaire",
         scene: "SheepScene",
         assets: [
-          "./art/meadow-table.webp",
-          "./art/slot-tray.webp",
+          // P2 sticker rebuild (docs/sheep-solitaire-redesign-2026.md §9.4):
+          // the lobby-era meadow-table/slot-tray/badge set was replaced by the
+          // full-screen field, wooden fence tray, sticker CTA and prop-button
+          // icons. Mascot pass (2026-07-14 user verdict — the circle-composite
+          // sheep read as creepy): mascot-sheep.webp is now a die-cut sticker
+          // reframe of the in-house public/logo.webp character, and the
+          // grazing-sheep flock pose was retired with it (sheep-grazing.webp
+          // deleted; the home shows one hero medallion instead).
+          "./art/field-meadow.webp",
+          "./art/tray-wood.webp",
+          "./art/btn-sticker.webp",
           "./art/mascot-sheep.webp",
-          "./art/badge-easy.webp",
-          "./art/badge-medium.webp",
-          "./art/badge-hard.webp",
+          "./art/prop-undo.webp",
+          "./art/prop-remove.webp",
+          "./art/prop-shuffle.webp",
           // P1 sheep redesign: the generic tile set was replaced by 15 sheep-
           // themed tiles loaded via a dynamic per-symbol loop, so the literal
           // old filenames no longer appear; assert the real asset-led loader
@@ -469,7 +478,7 @@ describe("root Phaser framework", () => {
         ],
         usage: [
           "SHEEP_ASSETS",
-          "this.load.image(SHEEP_ASSETS.table",
+          "this.load.image(SHEEP_ASSETS.field",
           "this.load.image(SHEEP_ASSETS.tray",
           "this.load.image(SHEEP_ASSETS.mascot",
           "SHEEP_ASSETS.tiles[i]",

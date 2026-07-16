@@ -338,6 +338,29 @@ describe("aim-master Phaser playarea", () => {
     expect(wrapper).not.toContain("secondaryActions");
   });
 
+  // The stage title/subtitle are rendered by the shared PlayStage (Stage.tsx
+  // emits .mx2-stage__title / .mx2-stage__subtitle) inside .aim-playarea — the
+  // wrapper's root class. These rules are live for the Phaser surface; the
+  // shell test above never covers the mx2-stage__* lane.
+  it("styles the shared stage title and hides the subtitle on narrow screens", () => {
+    const styles = appSource("aim-master", "PlayArea.scss");
+
+    expect(styles).toMatch(
+      /\.aim-playarea \.mx2-stage__title \{[^}]*font-weight: 560;[^}]*\}/,
+    );
+    expect(styles).toMatch(
+      /@media \(max-width: 560px\) \{[\s\S]*?\.aim-playarea \.mx2-stage__subtitle \{[^}]*display: none;[^}]*\}/,
+    );
+  });
+
+  it("titles the stage with the expired banner once the game has expired", () => {
+    render(
+      <PhaserPlayArea t={t} state={state({ gameStatus: "expired" })} dispatch={vi.fn()} />,
+    );
+
+    expect(screen.getByText("That game expired")).toBeTruthy();
+  });
+
   it("traps keyboard focus inside the modal rules drawer", async () => {
     render(<PhaserPlayArea t={t} state={state()} dispatch={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: /^rules$/i });

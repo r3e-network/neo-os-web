@@ -479,4 +479,51 @@ describe("last-survivor Phaser playarea", () => {
     expect(styles).toContain(".survivor-stage-hud");
     expect(styles).toContain(".survivor-ingame-drawer");
   });
+
+  // game-motion-baseline.test.ts cannot backstop these: last-survivor already
+  // satisfies its `isPhaserOnly` branch (main.tsx mounts PhaserPlayArea), so
+  // its reduced-motion check reads the SCENE, never this stylesheet. The
+  // wrapper imports PlayArea.scss, so these rules are live for the Phaser
+  // surface — the selectors asserted below are the two the wrapper renders.
+  it("honours reduced motion for the in-stage drawer the wrapper renders", () => {
+    const root = resolve(__dirname, "../..");
+    const styles = readFileSync(resolve(root, "last-survivor/src/PlayArea.scss"), "utf8");
+
+    expect(styles).toContain('@use "@shared/styles/v2/motion"');
+
+    const reducedMotion = styles.slice(styles.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reducedMotion).toContain(".survivor-ingame-drawer");
+    expect(reducedMotion).toContain(".survivor-stage-hud__drawer svg");
+    expect(reducedMotion).toContain("animation-duration: 0.001ms");
+  });
+
+  it("tightens the stage and drops the subtitle on narrow screens", () => {
+    const root = resolve(__dirname, "../..");
+    const styles = readFileSync(resolve(root, "last-survivor/src/PlayArea.scss"), "utf8");
+
+    const narrow = styles.slice(styles.indexOf("@media (max-width: 640px)"));
+    expect(narrow).toMatch(
+      /\.survivor-play-area \.mx2-stage \{[^}]*padding: 8px 6px 10px;[^}]*\}/,
+    );
+    expect(narrow).toMatch(
+      /\.survivor-play-area \.mx2-stage__subtitle \{[^}]*display: none;[^}]*\}/,
+    );
+  });
+
+  // shortValue only truncates above 16 chars; the shared fixture's leader label
+  // is 13, so the truncation branch would otherwise never run.
+  it("shortens a full leader address in the GameFi round summary", () => {
+    const { getAllByText, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ lastBuyerLabel: "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    // The round summary lives in the in-stage drawer.
+    fireEvent.click(getAllByText("History & rules")[0]);
+
+    expect(getByText("NNLi44dJ...zZrNEs")).toBeTruthy();
+  });
 });

@@ -85,11 +85,15 @@ describe("flappy-dash production trust boundary", () => {
 
   it("never presents a placeholder digest as a cryptographic settlement proof", () => {
     const engine = source("src/logic/flappy-engine.ts");
-    const legacy = source("src/PlayArea.tsx");
+    // Was src/PlayArea.tsx, an unmounted DOM component that has been deleted.
+    // The guard belongs on the surface users actually reach.
+    const playSurface = source("src/PhaserPlayArea.tsx");
+    const scene = source("src/scenes/FlappyScene.ts");
 
     expect(engine).not.toContain("computeStateHash");
     expect(engine).not.toContain("simulating SHA");
-    expect(legacy).not.toContain("computeStateHash");
+    expect(playSurface).not.toContain("computeStateHash");
+    expect(scene).not.toContain("computeStateHash");
   });
 
   it("keeps wallet connection and entry payment as two explicit gestures", () => {

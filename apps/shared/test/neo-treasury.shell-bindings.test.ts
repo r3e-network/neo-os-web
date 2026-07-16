@@ -66,6 +66,35 @@ function formatAs(format: string | undefined, value: unknown): string {
   return String(value ?? "");
 }
 
+/**
+ * Mirrors MiniAppRoot's FULL binding render path, which now has two steps.
+ *
+ * The shell grew a pending phase: a binding may declare `pendingKey`, and the
+ * shell renders that copy — BEFORE reaching the formatter — whenever the bound
+ * observable holds `undefined` (the unread state). See MiniAppRoot's
+ * `sidebarItems`.
+ *
+ * This guard previously modelled the render path as the formatter alone, which
+ * was the whole path at the time. That is why this app used to hand the chrome
+ * four parallel display-only observables: with no pending phase in the shell,
+ * an app could only speak honestly by pre-formatting the words itself. Those
+ * four are now deleted and the phase is declared in the manifest instead, so
+ * modelling the formatter alone would read `undefined` as "" and report a void
+ * the visitor never sees.
+ *
+ * The guard's intent is UNCHANGED and its assertions below are untouched: the
+ * chrome must publish honest words — never a void, never a fabricated count —
+ * before the watchlist read lands. Only the model of how those words reach the
+ * screen is updated to match the shell that now renders them.
+ */
+function renderBinding(
+  binding: { format?: string; pendingKey?: string },
+  value: unknown,
+): string {
+  if (value === undefined && binding.pendingKey) return t(binding.pendingKey);
+  return formatAs(binding.format, value);
+}
+
 function buildState() {
   const storage = new Map<string, unknown>();
   const address: Observable<string | null> = {
@@ -99,18 +128,28 @@ function buildState() {
   return result.state;
 }
 
-/** Every valueKey the shell chrome renders, with the format it renders it at. */
-function chromeBindings(): Array<{ where: string; valueKey: string; format?: string }> {
+/**
+ * Every valueKey the shell chrome renders, with the format it renders it at and
+ * the pending phase it declares — the three inputs to MiniAppRoot's render path.
+ */
+function chromeBindings(): Array<{
+  where: string;
+  valueKey: string;
+  format?: string;
+  pendingKey?: string;
+}> {
   return [
     ...(manifest.stats ?? []).map((stat) => ({
       where: "stats",
       valueKey: stat.valueKey,
       format: stat.format,
+      pendingKey: stat.pendingKey,
     })),
     ...(manifest.sidebar?.items ?? []).map((item) => ({
       where: "sidebar",
       valueKey: item.valueKey,
       format: item.format,
+      pendingKey: item.pendingKey,
     })),
   ];
 }
@@ -134,7 +173,7 @@ describe("neo-treasury shell chrome bindings", () => {
     // No load has been triggered: `data` is null. This is the cold first paint
     // every visitor gets, and the state the chrome used to misreport.
     for (const binding of chromeBindings()) {
-      const rendered = formatAs(binding.format, state[binding.valueKey]!.get());
+      const rendered = renderBinding(binding, state[binding.valueKey]!.get());
       const at = `${binding.where}.${binding.valueKey}`;
 
       expect(rendered, at).not.toBe("");
@@ -161,23 +200,26 @@ describe("neo-treasury shell chrome bindings", () => {
       categories: [{ name: "Da Hongfei" }, { name: "Erik Zhang" }],
     } as unknown as TreasuryData);
 
-    // Byte-for-byte the formatting the PlayArea's `totalUsdDisplay` already
-    // used (maximumFractionDigits: 2, no minimum) — the chrome read-out must
-    // report the same number the hero does, not a re-rounded one.
-    expect(state.totalUsdStatDisplay!.get()).toBe("$1,234.56");
-    expect(state.totalUsdStatDisplay!.get()).toBe(state.totalUsdDisplay!.get());
-    expect(state.totalNeoStatDisplay!.get()).toBe("10");
-    expect(state.totalGasStatDisplay!.get()).toBe("20");
-    expect(state.founderCountStatDisplay!.get()).toBe("2");
+    // Byte-for-byte the formatting the PlayArea's hero already used
+    // (maximumFractionDigits: 2, no minimum) — the chrome read-out and the hero
+    // now read the SAME observable, so they cannot drift apart or re-round.
+    expect(state.totalUsdDisplay!.get()).toBe("$1,234.56");
+    expect(state.totalNeoDisplay!.get()).toBe("10");
+    expect(state.totalGasDisplay!.get()).toBe("20");
+    expect(state.founderCount!.get()).toBe(2);
     // A settled count of zero is a real reading and must survive: the guard
-    // above rejects `0` only while the read is unsettled.
+    // above rejects `0` only while the read is unsettled. The pending phase
+    // keys off `undefined` (unread), never off falsiness — so a settled zero
+    // must render as "0" through the real path, not as the pending copy.
     data.set({
       totalUsd: 0,
       totalNeoDisplay: "0",
       totalGasDisplay: "0",
       categories: [],
     } as unknown as TreasuryData);
-    expect(state.founderCountStatDisplay!.get()).toBe("0");
+    expect(state.founderCount!.get()).toBe(0);
+    const foundersBinding = chromeBindings().find((b) => b.valueKey === "founderCount")!;
+    expect(renderBinding(foundersBinding, state.founderCount!.get())).toBe("0");
   });
 
   it("separates a settled price-feed failure from an unsettled read", async () => {
@@ -194,10 +236,13 @@ describe("neo-treasury shell chrome bindings", () => {
       categories: [{ name: "Da Hongfei" }],
     } as unknown as TreasuryData);
 
-    expect(state.totalUsdStatDisplay!.get()).toBe(t("treasuryPriceUnavailableShort"));
-    expect(state.totalUsdStatDisplay!.get()).not.toContain("$");
-    expect(state.totalUsdStatDisplay!.get()).not.toBe(t("treasuryStatAwaitingRead"));
+    expect(state.totalUsdDisplay!.get()).toBe(t("treasuryPriceUnavailableShort"));
+    expect(state.totalUsdDisplay!.get()).not.toContain("$");
+    expect(state.totalUsdDisplay!.get()).not.toBe(t("treasuryStatAwaitingRead"));
+    // A settled price-feed failure is a real value, not the unread state — so
+    // it must not be `undefined`, which would borrow the pending copy.
+    expect(state.totalUsdDisplay!.get()).toBeDefined();
     // The balances beside it are real and keep rendering.
-    expect(state.totalNeoStatDisplay!.get()).toBe("10");
+    expect(state.totalNeoDisplay!.get()).toBe("10");
   });
 });
