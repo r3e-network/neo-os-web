@@ -18,7 +18,7 @@
  *   - Account generation and conversion are pure client-side operations
  */
 
-import { createObservable, createDerived } from "@shared/react/context";
+import { createObservable, createDerived, createReadCell } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import { generateAccount } from "../services/neo";
 import type { NeoAccount } from "../services/neo";
@@ -29,6 +29,17 @@ import { useConverter } from "./useConverter";
 // ============================================================================
 
 const APP_ID = "miniapp-neo-convert";
+
+/**
+ * Thrown by the balance loader when the connected identity changed (or went
+ * away) between the read starting and the response arriving WITHOUT an
+ * account-change emission — e.g. a raw address representation change that
+ * normalizes to the same identity, or a host that swaps the address getter
+ * out-of-band. The response belongs to a wallet that is no longer connected,
+ * so it is discarded before it can publish; real account changes are already
+ * invalidated by the `onAccountChanged` reset.
+ */
+const BALANCE_READ_SUPERSEDED = new Error("wallet identity changed during balance read");
 
 function formatUnits(raw: bigint, decimals: number): string {
   const negative = raw < 0n;
@@ -75,12 +86,34 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   });
 
   // ── Wallet Balances (reactive, auto-refresh on wallet connect) ──────
-  const neoBalance = createObservable("");
-  const gasBalance = createObservable("");
-  const balancesLoading = createObservable(false);
-  const balanceStatus = createObservable<"idle" | "loading" | "ready" | "error">("idle");
+  // Read lane on the platform read-cell (read-cell pilot): the cell owns the
+  // "have we asked yet?" signal and last-write-wins invalidation (`reset()`
+  // joins the load epoch), replacing the hand-rolled balanceLoadGeneration
+  // counter plus the parallel "idle"|"loading"|"ready"|"error" observable.
+  const balancesCell = createReadCell<{ neo: string; gas: string }>(async () => {
+    const address = app.wallet.address();
+    if (!address) throw BALANCE_READ_SUPERSEDED;
+    const [neo, gas] = await Promise.all([
+      app.wallet.raw("NEO", address),
+      app.wallet.raw("GAS", address),
+    ]);
+    if (neo < 0n || gas < 0n) throw new Error("negative wallet balance");
+    // Mid-flight identity change that fired no account-change event (see the
+    // sentinel doc): never publish another identity's snapshot.
+    if (app.wallet.address() !== address) throw BALANCE_READ_SUPERSEDED;
+    return { neo: formatUnits(neo, 0), gas: formatUnits(gas, 8) };
+  });
+  // value === undefined (not read yet / cleared) renders as the same "" the
+  // views always saw — the hero tiles keep their em-dash fallback.
+  const neoBalance = createDerived(() => balancesCell.value.get()?.neo ?? "", [balancesCell.value]);
+  const gasBalance = createDerived(() => balancesCell.value.get()?.gas ?? "", [balancesCell.value]);
+  const balancesLoading = createDerived(() => balancesCell.status.get() === "loading", [balancesCell.status]);
+  const balanceStatus = balancesCell.status;
   let balanceCleanups: Array<() => void> = [];
-  let balanceLoadGeneration = 0;
+  // Scopes the catch continuation's side effects (clear + warn) to the newest
+  // read — a superseded call's failure belongs to an epoch the cell already
+  // invalidated, so it must neither clear the snapshot nor log.
+  let latestBalanceRead: Promise<{ neo: string; gas: string }> | null = null;
 
   // Whether a wallet is connected — drives the hero tiles to show an em-dash
   // (rather than misleading "0 NEO / 0 GAS" zeros that read as real balances)
@@ -93,13 +126,11 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
     walletConnected.set(connected);
     // Invalidate and clear the previous identity's snapshot immediately. A
     // newly connected wallet must never spend a loading interval beside the
-    // balances that belonged to the address it replaced.
-    balanceLoadGeneration += 1;
+    // balances that belonged to the address it replaced. reset() joins the
+    // cell epoch (any in-flight read cannot publish) and returns the value
+    // to undefined ("" balances) and the status to "idle".
     cleanupBalances();
-    neoBalance.set("");
-    gasBalance.set("");
-    balancesLoading.set(false);
-    balanceStatus.set("idle");
+    balancesCell.reset();
     if (connected) {
       setupReactiveBalances();
       void loadBalances();
@@ -148,41 +179,37 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   // ── Data Loading ────────────────────────────────────────────────────
 
   const loadBalances = async () => {
-    const address = app.wallet.address();
-    const generation = ++balanceLoadGeneration;
-    if (!address) {
-      neoBalance.set("");
-      gasBalance.set("");
-      balancesLoading.set(false);
-      balanceStatus.set("idle");
+    if (!app.wallet.address()) {
+      // No connected identity: back to the pristine "not read yet" state.
+      // reset() also invalidates any in-flight read's publish, exactly like
+      // the retired generation bump did.
+      balancesCell.reset();
       return;
     }
 
-    balancesLoading.set(true);
-    balanceStatus.set("loading");
+    const attempt = balancesCell.load();
+    latestBalanceRead = attempt;
     try {
-      const [neo, gas] = await Promise.all([
-        app.wallet.raw("NEO", address),
-        app.wallet.raw("GAS", address),
-      ]);
-      if (neo < 0n || gas < 0n) throw new Error("negative wallet balance");
-      if (generation !== balanceLoadGeneration) return;
-      if (app.wallet.address() !== address) {
-        balanceStatus.set("idle");
+      await attempt;
+    } catch (e) {
+      if (latestBalanceRead !== attempt) return;
+      if (e === BALANCE_READ_SUPERSEDED) {
+        // The read raced an identity change the account-change hook did not
+        // announce; the loader already refused to publish — settle the lane
+        // back to idle instead of surfacing a false balance-read failure.
+        balancesCell.reset();
         return;
       }
-      neoBalance.set(formatUnits(neo, 0));
-      gasBalance.set(formatUnits(gas, 8));
-      balanceStatus.set("ready");
-    } catch (e) {
-      if (generation === balanceLoadGeneration) {
-        neoBalance.set("");
-        gasBalance.set("");
-        balanceStatus.set("error");
+      // status stays untouched ("idle") when a reset invalidated this read
+      // mid-flight — only a failure the cell actually settled may clear+log.
+      if (balancesCell.status.get() === "error") {
+        // The cell keeps last-good data on failure; this app's contract is
+        // the opposite — a failed read must not keep rendering balances it
+        // can no longer vouch for. Clear to the "not read yet" sentinel so
+        // the hero tiles fall back to their em-dash.
+        balancesCell.value.set(undefined);
         console.warn(`[${APP_ID}] loadBalances failed:`, e instanceof Error ? e.message : String(e));
       }
-    } finally {
-      if (generation === balanceLoadGeneration) balancesLoading.set(false);
     }
   };
 
@@ -320,7 +347,9 @@ export function useNeoConvert({ app, t }: UseNeoConvertOptions) {
   // ── Cleanup ─────────────────────────────────────────────────────────
 
   const cleanup = () => {
-    balanceLoadGeneration += 1;
+    // reset() joins the cell epoch, so an in-flight read that settles after
+    // destroy can neither publish nor log (the old generation bump's job).
+    balancesCell.reset();
     cleanupBalances();
     unsubscribeAddress();
   };

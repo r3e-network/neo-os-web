@@ -1,4 +1,4 @@
-import { createDerived, createObservable } from "@shared/react/context";
+import { createDerived, createObservable, createReadCell } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import type { FrameworkContractArg } from "@framework/index";
@@ -82,17 +82,50 @@ export function useAAPermissionsLab({
     hookHash: "",
   };
 
-  // These hold a hash160, or "" for the zero hash — which `parsePermissionHash`
-  // returns to mean "this account has NO binding on that lane". "" is therefore
-  // a real reading, not an absence, and the two must not be conflated: they
-  // start `undefined` (nothing has been inspected yet) so the chrome can tell
-  // "not inspected" apart from "inspected, and nothing is bound".
-  const currentVerifier = createObservable<string | undefined>(undefined);
-  const currentHook = createObservable<string | undefined>(undefined);
-  const currentBackupOwner = createObservable<string | undefined>(undefined);
-  const inspectedAccountId = createObservable("");
-  const permissionSnapshot = createObservable<PermissionSnapshot | null>(null);
-  const hasInspected = createObservable(false);
+  /**
+   * The one on-chain truth this lab renders: the inspected account's
+   * PermissionSnapshot, held in a platform read-cell (read-cell adoption).
+   * `value === undefined` IS "nothing has been inspected yet" — every binding
+   * observable below is a projection of this single cell, so the nine
+   * hand-fanned observables can never drift apart. The cell's epoch guard owns
+   * the read lane's last-write-wins (the job `readEpoch` used to hand-roll);
+   * verified-write paths publish straight onto `value` — they just
+   * round-tripped the new truth, so they own the snapshot as much as a read.
+   */
+  const snapshotCell = createReadCell<PermissionSnapshot>(() =>
+    readPermissionSnapshot(form.accountIdHash),
+  );
+
+  // These project a hash160, or "" for the zero hash — which
+  // `parsePermissionHash` returns to mean "this account has NO binding on that
+  // lane". "" is therefore a real reading, not an absence, and the two must
+  // not be conflated: they stay `undefined` while the cell holds no snapshot
+  // (nothing has been inspected yet) so the chrome can tell "not inspected"
+  // apart from "inspected, and nothing is bound".
+  const currentVerifier = createDerived<string | undefined>(
+    () => snapshotCell.value.get()?.verifier,
+    [snapshotCell.value],
+  );
+  const currentHook = createDerived<string | undefined>(
+    () => snapshotCell.value.get()?.hook,
+    [snapshotCell.value],
+  );
+  const currentBackupOwner = createDerived<string | undefined>(
+    () => snapshotCell.value.get()?.backupOwner,
+    [snapshotCell.value],
+  );
+  const inspectedAccountId = createDerived(
+    () => snapshotCell.value.get()?.accountId ?? "",
+    [snapshotCell.value],
+  );
+  const permissionSnapshot = createDerived<PermissionSnapshot | null>(
+    () => snapshotCell.value.get() ?? null,
+    [snapshotCell.value],
+  );
+  const hasInspected = createDerived(
+    () => snapshotCell.value.get() !== undefined,
+    [snapshotCell.value],
+  );
 
   /**
    * Chrome read-outs for the three bindings above. The shell renders manifest
@@ -116,14 +149,31 @@ export function useAAPermissionsLab({
   const currentVerifierDisplay = bindingDisplay(currentVerifier);
   const currentHookDisplay = bindingDisplay(currentHook);
   const currentBackupOwnerDisplay = bindingDisplay(currentBackupOwner);
-  const hasPendingVerifier = createObservable(false);
-  const hasPendingHook = createObservable(false);
-  const pendingVerifierUnlockAt = createObservable(0);
-  const pendingHookUnlockAt = createObservable(0);
+  const hasPendingVerifier = createDerived(
+    () => snapshotCell.value.get()?.hasPendingVerifier ?? false,
+    [snapshotCell.value],
+  );
+  const hasPendingHook = createDerived(
+    () => snapshotCell.value.get()?.hasPendingHook ?? false,
+    [snapshotCell.value],
+  );
+  const pendingVerifierUnlockAt = createDerived(
+    () => snapshotCell.value.get()?.pendingVerifierUnlockAt ?? 0,
+    [snapshotCell.value],
+  );
+  const pendingHookUnlockAt = createDerived(
+    () => snapshotCell.value.get()?.pendingHookUnlockAt ?? 0,
+    [snapshotCell.value],
+  );
   const proposalVerifier = createObservable<PermissionProposalContext | null>(null);
   const proposalHook = createObservable<PermissionProposalContext | null>(null);
 
-  const isRefreshing = createObservable(false);
+  // "loading" only while a cell read is in flight — the write paths keep their
+  // own busy flags below, exactly as before.
+  const isRefreshing = createDerived(
+    () => snapshotCell.status.get() === "loading",
+    [snapshotCell.status],
+  );
   const isVerifierBusy = createObservable(false);
   const isHookBusy = createObservable(false);
   const isRecovering = createObservable(false);
@@ -136,7 +186,11 @@ export function useAAPermissionsLab({
   const walletNetwork = createObservable("");
   const walletNetworkMatches = createObservable(false);
 
-  let readEpoch = 0;
+  // The cell's epoch owns value/status last-write-wins; this ticket owns the
+  // caller-side effects a superseded refresh must NOT run (readError copy, the
+  // proposal-context continuation, and the resolve-null-instead-of-rethrow
+  // contract).
+  let refreshTicket = 0;
   let disposed = false;
 
   const safeStorageGet = <T,>(key: string, fallback: T): T => {
@@ -212,18 +266,12 @@ export function useAAPermissionsLab({
   };
 
   const clearSnapshot = () => {
-    permissionSnapshot.set(null);
     // Back to unread, NOT to "" — "" would claim this account has no verifier,
-    // hook, or backup owner bound, which is a reading nobody took.
-    currentVerifier.set(undefined);
-    currentHook.set(undefined);
-    currentBackupOwner.set(undefined);
-    inspectedAccountId.set("");
-    hasPendingVerifier.set(false);
-    hasPendingHook.set(false);
-    pendingVerifierUnlockAt.set(0);
-    pendingHookUnlockAt.set(0);
-    hasInspected.set(false);
+    // hook, or backup owner bound, which is a reading nobody took. Setting the
+    // cell's value (rather than reset()) deliberately leaves the cell's epoch
+    // alone: a refresh already in flight keeps its right to publish, exactly
+    // as the fan-out clears behaved before the cell.
+    snapshotCell.value.set(undefined);
     clearProposalObservables();
   };
 
@@ -240,19 +288,18 @@ export function useAAPermissionsLab({
     }
   };
 
-  const applySnapshot = (snapshot: PermissionSnapshot) => {
-    permissionSnapshot.set(snapshot);
-    currentVerifier.set(snapshot.verifier);
-    currentHook.set(snapshot.hook);
-    currentBackupOwner.set(snapshot.backupOwner);
-    inspectedAccountId.set(snapshot.accountId);
-    hasPendingVerifier.set(snapshot.hasPendingVerifier);
-    hasPendingHook.set(snapshot.hasPendingHook);
-    pendingVerifierUnlockAt.set(snapshot.pendingVerifierUnlockAt);
-    pendingHookUnlockAt.set(snapshot.pendingHookUnlockAt);
-    hasInspected.set(true);
+  // Runs after a snapshot lands on the cell — whichever lane published it
+  // (a cell read, or a verified write's blessed `value.set`).
+  const snapshotApplied = (snapshot: PermissionSnapshot) => {
     readError.set("");
     loadProposalContexts(snapshot);
+  };
+
+  const applySnapshot = (snapshot: PermissionSnapshot) => {
+    // Blessed publish: the write paths just round-tripped this snapshot from
+    // chain, so it is as authoritative as a cell read.
+    snapshotCell.value.set(snapshot);
+    snapshotApplied(snapshot);
   };
 
   const readPermissionSnapshot = async (accountInput: string): Promise<PermissionSnapshot> => {
@@ -297,30 +344,35 @@ export function useAAPermissionsLab({
   const refreshState = async (accountInput = form.accountIdHash) => {
     const accountId = requirePermissionHash(accountInput, false);
     form.accountIdHash = accountId;
-    const epoch = ++readEpoch;
-    clearSnapshot();
-    isRefreshing.set(true);
+    const ticket = ++refreshTicket;
+    // reset() invalidates any in-flight read's publish (the cell's epoch) and
+    // returns the snapshot to unread; load() flips status to "loading" (the
+    // isRefreshing projection) and publishes value/status only if this read is
+    // still the newest when it settles.
+    snapshotCell.reset();
+    clearProposalObservables();
     readError.set("");
     try {
-      const snapshot = await readPermissionSnapshot(accountId);
-      if (disposed || epoch !== readEpoch) return null;
-      applySnapshot(snapshot);
+      const snapshot = await snapshotCell.load();
+      if (disposed || ticket !== refreshTicket) return null;
+      snapshotApplied(snapshot);
       return snapshot;
     } catch (error) {
-      if (disposed || epoch !== readEpoch) return null;
+      if (disposed || ticket !== refreshTicket) return null;
+      // A concurrent verified write may have blessed a snapshot onto the cell
+      // while this read was in flight; a failed read clears it all the same
+      // (stale bindings must not survive a read the caller just watched fail).
       clearSnapshot();
       readError.set(t(errorKey(error)));
       throw error;
-    } finally {
-      if (!disposed && epoch === readEpoch) isRefreshing.set(false);
     }
   };
 
   const invalidateBinding = () => {
-    readEpoch += 1;
-    clearSnapshot();
+    refreshTicket += 1;
+    snapshotCell.reset();
+    clearProposalObservables();
     readError.set("");
-    isRefreshing.set(false);
   };
 
   const detectExactWalletNetwork = async () => {
@@ -692,7 +744,7 @@ export function useAAPermissionsLab({
 
   const dispose = () => {
     disposed = true;
-    readEpoch += 1;
+    refreshTicket += 1;
     walletUnsubscribe();
   };
 
