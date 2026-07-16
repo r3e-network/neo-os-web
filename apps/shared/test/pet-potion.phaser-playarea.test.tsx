@@ -95,6 +95,7 @@ function t(key: string, params?: Record<string, string | number>) {
     startAction: "Begin care",
     solvesCount: "{count} solves",
     statusDealPending: "Sealing is taking longer than usual.",
+    statusPoolLow: "Pool refilling for this nursery path",
     statusShuffling: "Sealing pet",
     statusSubmitting: "Settling care",
     statusWonTitle: "Pet happy!",
@@ -476,6 +477,62 @@ describe("pet-potion Phaser playarea", () => {
     expect(styles).toContain(".pp-drawer__credit");
     expect(styles).toContain(".pp-drawer__seed");
     expect(styles).not.toContain(".pp-playarea .mx2-drawer.mx2-drawer--open");
+  });
+
+  // GUARD (restored fleet regression, from the deleted DOM PlayArea): a paid
+  // run must never start while the reward pool cannot cover the payout. The
+  // deleted PlayArea disabled its start action at poolFree: 0 with the
+  // statusPoolLow hint; this pins the same product rule on the semantic
+  // primary of the Phaser wrapper — disabled AND explained.
+  it("blocks the accessible paid start while the reward pool cannot cover the payout", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const paidLobby = {
+      appMode: "gamefi",
+      gameStatus: "idle",
+      newPaidRunsEnabled: true,
+      walletConnected: true,
+    };
+    const { container, getByRole, rerender } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ ...paidLobby, poolFree: 0 })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // Click first: with the gate removed this leaks a paid start on an empty
+    // pool, so the dispatch assertion is the one that names the regression.
+    const blocked = container.querySelector(".pp-a11y-primary") as HTMLButtonElement;
+    fireEvent.click(blocked);
+    expect(dispatch).not.toHaveBeenCalledWith("startGame", expect.anything());
+    expect(blocked.disabled).toBe(true);
+    expect(blocked.textContent).toContain("Pool refilling for this nursery path");
+
+    rerender(
+      <PhaserPlayArea
+        t={t}
+        state={state({ ...paidLobby, poolFree: 25 })}
+        dispatch={dispatch}
+      />,
+    );
+    const funded = getByRole("button", { name: "Paid care unavailable" }) as HTMLButtonElement;
+    expect(funded.disabled).toBe(false);
+    fireEvent.click(funded);
+    expect(dispatch).toHaveBeenCalledWith("startGame", 0);
+  });
+
+  it("keeps guest (free local) starts exempt from the reward pool gate", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest", walletConnected: false, poolFree: 0 })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Begin care" }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", 0);
   });
 
   // "refunded" is an alias of "expired" in the wrapper (isExpired): both share

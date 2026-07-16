@@ -104,6 +104,8 @@ function t(key: string, params?: Record<string, string | number>) {
     expiredBanner: "That run got away",
     startOpenRun: "Open run",
     startOpening: "Opening…",
+    startPoolLow: "Pool low",
+    startCheckingPool: "Checking pool…",
     submitAction: "Submit run",
     submitHint: "Target reached",
     timeUpHint: "The deadline passed.",
@@ -609,6 +611,71 @@ describe("game-2048 Phaser playarea", () => {
       expect(getByText("That run got away")).toBeTruthy();
     },
   );
+
+  // GUARD (restored fleet regression): the canvas start is pool-gated via
+  // canStartPicked, but the accessible primary dispatches startGame itself —
+  // it must carry the same gate so keyboard/screen-reader users cannot open a
+  // paid run the reward pool cannot pay out. Disabled AND explained.
+  it("blocks the accessible paid start while the reward pool cannot cover the payout", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { container, getByRole, rerender } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", poolFree: 0, balancesReady: true })}
+        dispatch={dispatch}
+      />,
+    );
+
+    // Click first: with the gate removed this leaks a paid start on an empty
+    // pool, so the dispatch assertion is the one that names the regression.
+    const blocked = container.querySelector(".rush-a11y-primary") as HTMLButtonElement;
+    fireEvent.click(blocked);
+    expect(dispatch).not.toHaveBeenCalledWith("startGame", expect.anything());
+    expect(blocked.disabled).toBe(true);
+    expect(blocked.textContent).toContain("Pool low");
+
+    rerender(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", poolFree: 25, balancesReady: true })}
+        dispatch={dispatch}
+      />,
+    );
+    fireEvent.click(getByRole("button", { name: "Open run" }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", { difficulty: 0 });
+  });
+
+  // While balances are still loading the press stays gated but the copy is the
+  // scene's inviting "checking" state, mirroring updateStartBtn semantics.
+  it("shows the checking-pool copy while balances are unconfirmed and still gates the press", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", poolFree: 0, balancesReady: false })}
+        dispatch={dispatch}
+      />,
+    );
+
+    const checking = getByRole("button", { name: "Checking pool…" }) as HTMLButtonElement;
+    expect(checking.disabled).toBe(true);
+    fireEvent.click(checking);
+    expect(dispatch).not.toHaveBeenCalledWith("startGame", expect.anything());
+  });
+
+  it("keeps guest (free local) starts exempt from the reward pool gate", () => {
+    const dispatch = vi.fn().mockResolvedValue(undefined);
+    const { getByRole } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest", poolFree: 0 })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: "Open run" }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", { difficulty: 0 });
+  });
 
   it("announces the payout in the drawer after a GameFi win", () => {
     const { container, getByText } = render(

@@ -214,11 +214,25 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
       };
     }
     if (isLobby) {
+      // Mirror the canvas gate (Game2048Scene.canStartPicked) on the
+      // accessible start path: a paid run must never open while the reward
+      // pool cannot cover the payout. Guest (free local) play has no reward
+      // pool and stays exempt. Label semantics match updateStartBtn: while
+      // balances are still unknown the copy stays "checking" instead of the
+      // discouraging "pool low", but the press is gated either way.
+      const startPoolReady = isGuest
+        || poolFree >= Number(gasDisplay(ruleOf(selectedDifficulty).rewardFixed8));
       return {
         action: "startGame",
         args: [{ difficulty: selectedDifficulty }],
-        disabled: busy,
-        label: isStarting ? t("startOpening") : t("startOpenRun"),
+        disabled: busy || !startPoolReady,
+        label: isStarting
+          ? t("startOpening")
+          : startPoolReady
+            ? t("startOpenRun")
+            : balancesReady
+              ? t("startPoolLow")
+              : t("startCheckingPool"),
       };
     }
     if (canSubmit) {

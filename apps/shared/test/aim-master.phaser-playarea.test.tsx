@@ -90,6 +90,7 @@ function t(key: string, params?: Record<string, string | number>) {
     a11yOpeningRange: "Opening target range",
     a11yDifficultyGroup: "Choose target lane",
     a11yShoot: "Fire at the current reticle position",
+    scenePoolNeedsGas: "Reward pool needs GAS before entry",
     close: "Close",
   };
   let value = messages[key] ?? key;
@@ -359,6 +360,78 @@ describe("aim-master Phaser playarea", () => {
     );
 
     expect(screen.getByText("That game expired")).toBeTruthy();
+  });
+
+  // GUARD (restored fleet regression): a paid run must never start while the
+  // reward pool cannot cover the payout. The accessible start path dispatches
+  // startGame directly, so it must carry the same gate as the canvas —
+  // disabled AND explained, never a live-looking control that leaks a start.
+  it("blocks the accessible paid start while the reward pool cannot cover the payout", () => {
+    const dispatch = vi.fn(async () => undefined);
+    const lobby = {
+      activeGameId: "0",
+      gameStatus: "idle",
+      mode: "gamefi",
+      selectedDifficulty: 1,
+      pattern: "",
+      deadline: 0,
+      dealtAt: 0,
+    };
+    const { container, rerender } = render(
+      <PhaserPlayArea t={t} state={state({ ...lobby, poolFree: 0 })} dispatch={dispatch} />,
+    );
+
+    // Click first: with the gate removed this leaks a paid start on an empty
+    // pool, so the dispatch assertion is the one that names the regression.
+    const blocked = container.querySelector(".aim-a11y-start") as HTMLButtonElement;
+    fireEvent.click(blocked);
+    expect(dispatch).not.toHaveBeenCalledWith("startGame", expect.anything());
+    expect(blocked.disabled).toBe(true);
+    expect(blocked.textContent).toContain("Reward pool needs GAS before entry");
+
+    rerender(
+      <PhaserPlayArea t={t} state={state({ ...lobby, poolFree: 25 })} dispatch={dispatch} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /enter range/i }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", { difficulty: 1 });
+  });
+
+  it("keeps guest (free local) starts exempt from the reward pool gate", () => {
+    const dispatch = vi.fn(async () => undefined);
+    render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          activeGameId: "0",
+          gameStatus: "idle",
+          mode: "guest",
+          selectedDifficulty: 2,
+          pattern: "",
+          deadline: 0,
+          dealtAt: 0,
+          poolFree: 0,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /enter range/i }));
+    expect(dispatch).toHaveBeenCalledWith("startGame", { difficulty: 2 });
+  });
+
+  // The in-canvas start button funnels through bindGameButton; its enabled()
+  // gate is what keeps a pointer press from dispatching a paid start while the
+  // pool is short, independent of the syncLobbyCards interactivity toggle.
+  it("pool-gates the canvas start dispatch inside the scene chokepoint", () => {
+    const sceneSource = appSource("aim-master", "scenes/AimMasterScene.ts");
+
+    expect(sceneSource).toContain(
+      'enabled: () => !this.bool("isStarting")',
+    );
+    expect(sceneSource).toContain(
+      'this.selectedPoolIsReady(this.num("poolFree", 0))',
+    );
+    expect(sceneSource).toContain("private selectedPoolIsReady(poolFree: number): boolean");
   });
 
   it("traps keyboard focus inside the modal rules drawer", async () => {
