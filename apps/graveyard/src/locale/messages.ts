@@ -160,6 +160,10 @@ const appMessages = {
   tokenGas: { en: "GAS", zh: "GAS" },
   error: { en: "Something went wrong", zh: "发生错误" },
   connectWallet: { en: "Please connect your wallet", zh: "请连接钱包" },
+  // Shown by the shell chrome while the wallet-scoped burial read is in flight.
+  // The chrome cannot show a skeleton (manifest bindings are string-valued), so
+  // the pending phase has to reach it as words — see manifest.ts.
+  graveyardReading: { en: "Reading…", zh: "读取中…" },
 
   memoryGarden: { en: "Memory Garden", zh: "记忆花园" },
   memorySource: { en: "Choose a memory source", zh: "选择记忆来源" },

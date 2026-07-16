@@ -234,32 +234,70 @@ export function useExplorer({ app, t }: UseExplorerOptions) {
   });
 
   // ── Formatted values for manifest bindings ───────────────────────────
-  const formatNum = (n: number | null) => (typeof n === "number" ? formatNumber(n, 0) : t("notAvailable"));
+  /**
+   * Three states, not two. `statsStatus` is the settled signal this app already
+   * tracks, so absence can say WHICH kind of absence it is:
+   *
+   *   · still reading  → `undefined`. Nothing has been set yet. The manifest
+   *     binding's `pendingKey` turns this into words in the chrome, which has
+   *     no loading gate of its own and would otherwise format the void into a
+   *     dash. The PlayArea reads the same `undefined` as "no data" and shows
+   *     its skeleton, exactly as it already did for the dash.
+   *   · settled, and the chain had nothing → "N/A". A real answer about the
+   *     chain, and NOT the same state as "still reading", so it must not
+   *     borrow that copy.
+   *   · settled with a value → the number.
+   */
+  const formatNum = (n: number | null) => {
+    if (typeof n === "number") return formatNumber(n, 0);
+    return statsStatus.get() === "loading" ? undefined : t("notAvailable");
+  };
+
+  /** Both sources matter: the value lands on `stats`, the phase on `statsStatus`. */
+  const subscribeStats = (listener: () => void) => {
+    const unsubs = [stats.subscribe(listener), statsStatus.subscribe(listener)];
+    return () => unsubs.forEach((unsub) => unsub());
+  };
 
   const mainnetHeight: Observable = {
     get: () => formatNum(stats.get().mainnet.height),
     set: () => {},
-    subscribe: (listener) => stats.subscribe(listener),
+    subscribe: subscribeStats,
   };
   const mainnetTxCount: Observable = {
     get: () => formatNum(stats.get().mainnet.txCount),
     set: () => {},
-    subscribe: (listener) => stats.subscribe(listener),
+    subscribe: subscribeStats,
   };
   const testnetHeight: Observable = {
     get: () => formatNum(stats.get().testnet.height),
     set: () => {},
-    subscribe: (listener) => stats.subscribe(listener),
+    subscribe: subscribeStats,
   };
   const testnetTxCount: Observable = {
     get: () => formatNum(stats.get().testnet.txCount),
     set: () => {},
-    subscribe: (listener) => stats.subscribe(listener),
+    subscribe: subscribeStats,
   };
   const recentTxCount: Observable = {
-    get: () => recentTxs.get().length,
+    // A count is a claim: `Recent TXs 0` asserts this chain is idle. It is only
+    // true when a read actually came back and found nothing. The same three
+    // states as the height/tx tiles above:
+    //   · loading      → `undefined`; nothing has been set yet.
+    //   · unavailable  → "N/A"; the read failed, so the count is unknown —
+    //     reporting the empty list's length as 0 would invent a reading.
+    //   · live/cached/empty → the real length. A settled zero survives.
+    get: () => {
+      const status = recentStatus.get();
+      if (status === "loading") return undefined;
+      if (status === "unavailable") return t("notAvailable");
+      return recentTxs.get().length;
+    },
     set: () => {},
-    subscribe: (listener) => recentTxs.subscribe(listener),
+    subscribe: (listener) => {
+      const unsubs = [recentTxs.subscribe(listener), recentStatus.subscribe(listener)];
+      return () => unsubs.forEach((unsub) => unsub());
+    },
   };
 
   // ── Data Loading ─────────────────────────────────────────────────────

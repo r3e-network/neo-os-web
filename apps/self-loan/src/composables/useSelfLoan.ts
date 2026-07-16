@@ -422,30 +422,68 @@ export function useSelfLoan({
   const collateralDisplay = createDerived(() => fmt(loan.get().collateralLocked, 0), [loan]);
   const borrowedDisplay = createDerived(() => fmt(loan.get().borrowed), [loan]);
 
+  // Both metrics are computed FROM the loan position, so neither can be stated
+  // before that position has been read. Until then they are `undefined` — the
+  // chrome renders the binding's `pendingKey`, and the PlayArea keeps showing
+  // the "N/A" it already passes as its own `str()` fallback.
   const healthFactorDisplay = createDerived(() => {
+    const status = positionStatus.get();
+    if (status === "awaiting-wallet") return t("connectWallet");
+    if (status !== "ready" && status !== "error") return undefined;
     const hf = healthFactor.get();
     if (hf <= 0) return t("notAvailable");
     return fmt(hf, 2);
-  }, [loan, neoPrice, marketStatus]);
+  }, [loan, neoPrice, marketStatus, positionStatus]);
   const coverageRatio = healthFactor;
   const coverageRatioDisplay = healthFactorDisplay;
 
   const currentLTVDisplay = createDerived(() => {
+    const status = positionStatus.get();
+    if (status === "awaiting-wallet") return t("connectWallet");
+    if (status !== "ready" && status !== "error") return undefined;
     const ltv = currentLTV.get();
     if (loan.get().active && !isPriceNormalized.get()) return t("notAvailable");
     if (ltv === 0 && !loan.get().active) return t("notAvailable");
     return `${ltv}%`;
-  }, [loan, neoPrice, marketStatus]);
+  }, [loan, neoPrice, marketStatus, positionStatus]);
 
   /** This contract has no liquidation threshold; the metric is coverage, not health. */
   const healthMetricLabel = createDerived(() => t("coverageRatio"), [neoPrice]);
 
-  const hasLoanDisplay = createDerived(() =>
-    loan.get().active ? t("yes") : t("no"),
-  [loan]);
+  /**
+   * "No" is an answer, and it must not be given before the question has been
+   * asked. `loan` rests at `{ active: false }` — the shape of an empty
+   * position, not a reading — so answering straight off it published a
+   * confident "No" in the chrome while the getLoan read was still in flight: a
+   * fabricated negative telling a borrower they have no loan.
+   *
+   * `positionStatus` is the signal this app already tracks, so each state can
+   * say what it actually knows:
+   *   · ready          → the real answer. "No" here is a reading.
+   *   · awaiting-wallet → "Connect wallet". A settled fact, not a pending read:
+   *     with no wallet there is no position to look up.
+   *   · error          → "N/A". The read came back broken; we do not know.
+   *   · idle/loading   → `undefined`. Nothing has been set yet, so the chrome
+   *     renders the binding's `pendingKey` and says nothing at all.
+   */
+  const hasLoanDisplay = createDerived(() => {
+    const status = positionStatus.get();
+    if (status === "ready") return loan.get().active ? t("yes") : t("no");
+    if (status === "awaiting-wallet") return t("connectWallet");
+    if (status === "error") return t("notAvailable");
+    return undefined;
+  }, [loan, positionStatus]);
 
   const neoBalanceDisplay = createDerived(
-    () => balancesStatus.get() === "ready" ? fmt(neoBalance.get(), 0) : t("notAvailable"),
+    () => {
+      const status = balancesStatus.get();
+      // Same three-way split: only an unread balance is `undefined`. A wallet
+      // that is not connected, and a read that failed, are settled facts.
+      if (status === "ready") return fmt(neoBalance.get(), 0);
+      if (status === "awaiting-wallet") return t("connectWallet");
+      if (status === "error") return t("notAvailable");
+      return undefined;
+    },
     [neoBalance, balancesStatus],
   );
   const gasBalanceDisplay = createDerived(

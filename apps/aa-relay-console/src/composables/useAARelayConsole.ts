@@ -83,7 +83,11 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
   const isTracking = createObservable(false);
 
   const reviewPackageJson = createObservable("");
-  const reviewJobId = createObservable("");
+  // `undefined`, not "": until a review package is prepared there is no job, so
+  // nothing has been set. The chrome binds this and would render "" as a blank
+  // tile — a void wearing a quiet costume — so the manifest declares a
+  // `pendingKey` for this state instead. See manifest.ts.
+  const reviewJobId = createObservable<string | undefined>(undefined);
   const reviewDigest = createObservable("");
   const reviewReadiness = createObservable("draft");
   const previewState = createObservable("not-run");
@@ -94,7 +98,9 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
   const sponsorSummary = createObservable(t("sponsorNotChecked"));
   const relayReceiptJson = createObservable("");
   const receiptStatus = createObservable("none");
-  const txidDisplay = createObservable("");
+  // `undefined` until a relay receipt carries a txid — same reasoning as
+  // `reviewJobId`: no submission has been made, so there is no id to report.
+  const txidDisplay = createObservable<string | undefined>(undefined);
   const chainStatus = createObservable("not-tracked");
   const chainReason = createObservable(t("receiptNotTracked"));
   const confirmationsDisplay = createObservable("0");
@@ -108,7 +114,7 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
     const outcome = chainOutcome.get();
     const sponsor = sponsorEvidence.get();
     reviewPackageJson.set(review ? JSON.stringify(review, null, 2) : "");
-    reviewJobId.set(review?.jobId ?? "");
+    reviewJobId.set(review?.jobId ?? undefined);
     reviewDigest.set(review?.packageDigest ?? "");
     reviewReadiness.set(review?.readiness ?? "draft");
     previewState.set(review?.validationPreview.state ?? "not-run");
@@ -116,7 +122,7 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
     methodDisplay.set(review?.target.method ?? "");
     relayReceiptJson.set(receipt ? JSON.stringify(receipt, null, 2) : "");
     receiptStatus.set(receipt?.status ?? "none");
-    txidDisplay.set(receipt?.txid ?? "");
+    txidDisplay.set(receipt?.txid ?? undefined);
     chainStatus.set(outcome?.status ?? (receipt?.txid ? "pending" : receipt ? "accepted" : "not-tracked"));
     chainReason.set(outcome?.reason ?? (receipt?.txid ? t("receiptPending") : receipt ? t("receiptAcceptedOnly") : t("receiptNotTracked")));
     confirmationsDisplay.set(String(outcome?.confirmations ?? 0));

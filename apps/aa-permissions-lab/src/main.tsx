@@ -168,6 +168,11 @@ defineMiniApp({
         currentVerifier: lab.currentVerifier,
         currentHook: lab.currentHook,
         currentBackupOwner: lab.currentBackupOwner,
+        // Chrome read-outs: the same bindings, able to say "not inspected" and
+        // "none bound" apart instead of rendering a blank tile for both.
+        currentVerifierDisplay: lab.currentVerifierDisplay,
+        currentHookDisplay: lab.currentHookDisplay,
+        currentBackupOwnerDisplay: lab.currentBackupOwnerDisplay,
         inspectedAccountId: lab.inspectedAccountId,
         permissionSnapshot: lab.permissionSnapshot,
         hasInspected: lab.hasInspected,

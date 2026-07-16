@@ -28,12 +28,16 @@ export const manifest: MiniAppManifest = {
   ],
 
   // -- Sidebar --
+  // `reviewJobId` and `txidDisplay` rested at "", so the chrome rendered two
+  // blank tiles before a job was prepared or relayed. They are `undefined`
+  // until they exist, and name that state here instead. `reviewReadiness` holds
+  // a real "draft" value from the first tick and is never unset.
   sidebar: {
     titleKey: "appName",
     items: [
-      { labelKey: "jobId", valueKey: "reviewJobId", format: "text" },
+      { labelKey: "jobId", valueKey: "reviewJobId", format: "text", pendingKey: "jobIdPending" },
       { labelKey: "reviewStateLabel", valueKey: "reviewReadiness", format: "text" },
-      { labelKey: "txidLabel", valueKey: "txidDisplay", format: "text" },
+      { labelKey: "txidLabel", valueKey: "txidDisplay", format: "text", pendingKey: "txidPending" },
     ],
   },
 

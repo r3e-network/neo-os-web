@@ -1,4 +1,5 @@
-import { createObservable } from "@shared/react/context";
+import { createDerived, createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import type { FrameworkContractArg } from "@framework/index";
 import { addressToScriptHash } from "@shared/utils/neo";
@@ -81,12 +82,40 @@ export function useAAPermissionsLab({
     hookHash: "",
   };
 
-  const currentVerifier = createObservable("");
-  const currentHook = createObservable("");
-  const currentBackupOwner = createObservable("");
+  // These hold a hash160, or "" for the zero hash — which `parsePermissionHash`
+  // returns to mean "this account has NO binding on that lane". "" is therefore
+  // a real reading, not an absence, and the two must not be conflated: they
+  // start `undefined` (nothing has been inspected yet) so the chrome can tell
+  // "not inspected" apart from "inspected, and nothing is bound".
+  const currentVerifier = createObservable<string | undefined>(undefined);
+  const currentHook = createObservable<string | undefined>(undefined);
+  const currentBackupOwner = createObservable<string | undefined>(undefined);
   const inspectedAccountId = createObservable("");
   const permissionSnapshot = createObservable<PermissionSnapshot | null>(null);
   const hasInspected = createObservable(false);
+
+  /**
+   * Chrome read-outs for the three bindings above. The shell renders manifest
+   * bindings with no gate of its own, so an uninspected account published three
+   * blank tiles — a void wearing a quiet costume.
+   *
+   * Three states, kept apart:
+   *   · `undefined` — not inspected. The manifest's `pendingKey` says so.
+   *   · ""          — inspected, and the lane holds the zero hash. A real
+   *                   reading, and it gets words rather than a blank tile.
+   *   · a hash      — inspected, and this is the binding.
+   *
+   * The raw observables stay raw: the PlayArea compares them with `sameHash`.
+   */
+  const bindingDisplay = (source: Observable<string | undefined>) =>
+    createDerived(() => {
+      const value = source.get();
+      if (value === undefined) return undefined;
+      return value === "" ? t("bindingNone") : value;
+    }, [source]);
+  const currentVerifierDisplay = bindingDisplay(currentVerifier);
+  const currentHookDisplay = bindingDisplay(currentHook);
+  const currentBackupOwnerDisplay = bindingDisplay(currentBackupOwner);
   const hasPendingVerifier = createObservable(false);
   const hasPendingHook = createObservable(false);
   const pendingVerifierUnlockAt = createObservable(0);
@@ -184,9 +213,11 @@ export function useAAPermissionsLab({
 
   const clearSnapshot = () => {
     permissionSnapshot.set(null);
-    currentVerifier.set("");
-    currentHook.set("");
-    currentBackupOwner.set("");
+    // Back to unread, NOT to "" — "" would claim this account has no verifier,
+    // hook, or backup owner bound, which is a reading nobody took.
+    currentVerifier.set(undefined);
+    currentHook.set(undefined);
+    currentBackupOwner.set(undefined);
     inspectedAccountId.set("");
     hasPendingVerifier.set(false);
     hasPendingHook.set(false);
@@ -672,6 +703,9 @@ export function useAAPermissionsLab({
     currentVerifier,
     currentHook,
     currentBackupOwner,
+    currentVerifierDisplay,
+    currentHookDisplay,
+    currentBackupOwnerDisplay,
     inspectedAccountId,
     permissionSnapshot,
     hasInspected,

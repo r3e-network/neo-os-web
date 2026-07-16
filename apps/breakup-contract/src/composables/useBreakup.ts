@@ -11,6 +11,7 @@
  */
 
 import { createDerived, createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { parseGas } from "@shared/utils/format";
@@ -50,6 +51,15 @@ const STATUS_ACTIVE = 1;
 const STATUS_BROKEN = 2;
 const STATUS_SETTLED = 3;
 const STATUS_CANCELLED = 4;
+
+/**
+ * Phase of the wallet-scoped contract list read.
+ * - `loading`         — a read is in flight; the counts are not known yet.
+ * - `awaiting-wallet` — no wallet, so there is no party to scope a read to.
+ *                       A settled fact, not a pending read.
+ * - `ready`           — the list came back; the counts are real (zero included).
+ */
+export type BreakupReadStatus = "loading" | "awaiting-wallet" | "ready";
 
 export interface UseBreakupOptions {
   app: MiniAppFramework;
@@ -162,6 +172,15 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
   const contractTerms = createObservable("");
 
   const contracts = createObservable<RelationshipContractView[]>([]);
+  /**
+   * Which phase the wallet-scoped contract list read is in.
+   *
+   * `contracts` rests at `[]`, so every count below derived to 0 and the chrome
+   * published "Contracts 0 · Active 0 · Broken 0" before any read had run — and
+   * again for a visitor with no wallet connected. A count is a claim; an empty
+   * list that nobody has filled is not a reading that there are none.
+   */
+  const contractsStatus = createObservable<BreakupReadStatus>("loading");
   const isLoading = createObservable(false);
   const serviceNotice = createObservable("");
   const actionNotice = createObservable("");
@@ -179,6 +198,25 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
   const activeCount = createDerived(() => contracts.get().filter((item) => item.status === "active").length, [contracts]);
   const pendingCount = createDerived(() => contracts.get().filter((item) => item.status === "pending").length, [contracts]);
   const brokenCount = createDerived(() => contracts.get().filter((item) => item.status === "broken").length, [contracts]);
+
+  /**
+   * Chrome read-outs of the same counts. The counts above stay plain numbers
+   * for the PlayArea's arithmetic and badges; these can also say why they have
+   * no number yet. Only the unread state is `undefined` — the manifest
+   * binding's `pendingKey` speaks for it — while "Connect wallet" is a settled
+   * fact and so is a real value.
+   */
+  const countDisplay = (source: Observable<number>) =>
+    createDerived(() => {
+      const status = contractsStatus.get();
+      if (status === "loading") return undefined;
+      if (status === "awaiting-wallet") return t("breakupAwaitingWallet");
+      return source.get();
+    }, [source, contractsStatus]);
+  const contractCountDisplay = countDisplay(contractCount);
+  const activeCountDisplay = countDisplay(activeCount);
+  const pendingCountDisplay = countDisplay(pendingCount);
+  const brokenCountDisplay = countDisplay(brokenCount);
   const hasCredit = createDerived(() => {
     if (!creditKnown.get()) return false;
     const value = parseBreakupInteger(creditBalanceRaw.get());
@@ -476,9 +514,15 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       serviceNotice.set("");
       pendingNotice.set("");
       hasPendingAction.set(false);
-      if (generation === loadGeneration) isLoading.set(false);
+      if (generation === loadGeneration) {
+        isLoading.set(false);
+        // Not "ready": an empty list here means "we have no wallet to look you
+        // up by", not "you have no contracts".
+        contractsStatus.set("awaiting-wallet");
+      }
       return;
     }
+    contractsStatus.set("loading");
 
     try {
       let context: BreakupChainContext;
@@ -544,7 +588,12 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
       else serviceNotice.set("");
       await reconcilePending(context, walletHash);
     } finally {
-      if (generation === loadGeneration) isLoading.set(false);
+      if (generation === loadGeneration) {
+        isLoading.set(false);
+        // The read came back. Whatever the counts now say — zero included — is
+        // a real reading of this wallet's contracts.
+        contractsStatus.set("ready");
+      }
     }
   };
 
@@ -994,6 +1043,11 @@ export function useBreakup({ app, t }: UseBreakupOptions) {
     activeCount,
     pendingCount,
     brokenCount,
+    contractsStatus,
+    contractCountDisplay,
+    activeCountDisplay,
+    pendingCountDisplay,
+    brokenCountDisplay,
     hasCredit,
     loadContracts,
     loadCredit,

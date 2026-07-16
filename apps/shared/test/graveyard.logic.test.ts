@@ -757,7 +757,15 @@ describe("useGraveyard — history pagination", () => {
     await graveyard.loadHistory();
 
     expect(graveyard.history.get()).toEqual([]);
-    expect(graveyard.totalDestroyed.get()).toBe(0);
+    // Intent unchanged: the previous wallet's count must NOT survive into the
+    // replacement wallet's failed read. It previously asserted `0` because that
+    // was the only "cleared" value available — but `0` is itself a claim, and
+    // after a failed read it would tell the new wallet it has destroyed
+    // nothing. The count is now `undefined` (unknown) in exactly that case, so
+    // this asserts both halves of the intent: the stale `1` is gone, and no
+    // fabricated zero took its place.
+    expect(graveyard.totalDestroyed.get()).toBeUndefined();
+    expect(graveyard.historyStatus.get()).toBe("error");
   });
 });
 

@@ -365,7 +365,7 @@ function statusLabel(status: ExplorerDataStatus, t: PlayAreaProps["t"]) {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool, num, val } = useStateBindings(state);
+  const { str, bool, val } = useStateBindings(state);
 
   const mainnetHeight = str("mainnetHeight");
   const mainnetTxCount = str("mainnetTxCount");
@@ -373,7 +373,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const testnetTxCount = str("testnetTxCount");
   const selectedNetworkValue = str("selectedNetwork", "mainnet");
   const selectedNetwork: ExplorerNetwork = selectedNetworkValue === "testnet" ? "testnet" : "mainnet";
-  const recentTxCount = num("recentTxCount");
+  // `recentTxCount` is `undefined` until the recent-tx read settles (see
+  // useExplorer). Read it raw, not through `num()`, which would coerce that
+  // unread state to NaN and print "NaN" in the rail header.
+  const recentTxCount = val<number>("recentTxCount");
   const isLoading = bool("isLoading");
   const isSearching = bool("isSearching");
   const searchQuery = str("searchQuery");
@@ -529,7 +532,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <section className="explorer-recent-rail">
         <header>
           <div><History size={16} /><strong>{t("recentTransactions")}</strong></div>
-          <span>{recentTxCount}</span>
+          {/* Absence is not zero: the count appears once the read settles. */}
+          <span>{recentTxCount ?? t("explorerValuePending")}</span>
         </header>
         {recentTxs.length > 0 ? (
           <ul>
