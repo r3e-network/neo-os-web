@@ -35,6 +35,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         // fixture are intentionally out of scope here.
         public static IEnumerable<object[]> MoneyContracts() => new[]
         {
+            new object[] { "AppAccount", "platform/AppAccount/AppAccount.cs" },
             new object[] { "MiniAppAimMaster", "MiniAppAimMaster/MiniAppAimMaster.cs" },
             new object[] { "MiniAppBreakupPact", "MiniAppBreakupPact/MiniAppBreakupPact.cs" },
             new object[] { "MiniAppBurnLeague", "MiniAppBurnLeague/MiniAppBurnLeague.cs" },
@@ -63,6 +64,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             new object[] { "MiniAppTarotVrf", "MiniAppTarotVrf/MiniAppTarotVrf.Funds.cs" },
             new object[] { "MiniAppTimeCapsule", "MiniAppTimeCapsule/MiniAppTimeCapsule.cs" },
             new object[] { "MiniAppTipJar", "MiniAppTipJar/MiniAppTipJar.cs" },
+            new object[] { "PlatformRegistry", "platform/PlatformRegistry/PlatformRegistry.Credit.cs" },
         };
 
         // Reviewed exceptions: contracts that DO move funds inside OnNEP17Payment by
