@@ -1,0 +1,50 @@
+{
+  "description": "Shared Neo N3 CreateContractHash test vectors (platform-contract-library-v2 sections 4.1 and 8). Consumed by BOTH contracts/__tests__/CreateContractHashVectorTests.cs (xunit, pins neo-core Helper.GetContractHash) and framework/test/aa-account-hash.test.ts (vitest, pins deriveAppAccountHash). The preimage script is: ABORT (0x38) || PUSHDATA1(sender as 20 little-endian bytes) || PUSHINT(nefChecksum, minimal signed little-endian NeoVM integer push) || PUSHDATA1(strict-UTF8 manifest name); the hash is ripemd160(sha256(script)) displayed big-endian with 0x prefix. The sender component is MEASURED transaction-sender semantics for contract-initiated deploys (PlatformRegistryHashSemanticsTests) — the registry row, not this derivation, is the address-of-record.",
+  "vectors": [
+    {
+      "id": "measured-deployer-probe-child",
+      "source": "measured",
+      "notes": "The PlatformRegistryHashSemanticsTests in-engine measurement: TestEngine ValidatorsAddress as transaction sender, the committed contracts/build/DeployerProbeFixture.nef checksum, child manifest name DeployerProbeChild, observed post-deploy hash.",
+      "deployerSender": "0x9f8f056a53e39585c7bb52886418c7bed83d126b",
+      "nefChecksum": 3010983319,
+      "manifestName": "DeployerProbeChild",
+      "expectedHash": "0xd1e0d8ac8fa2faa36809e823b86c858bcb0c63b8"
+    },
+    {
+      "id": "synthetic-push-small-int",
+      "source": "synthetic",
+      "notes": "Checksum in the 0..16 range exercises the single-opcode PUSH7 integer encoding branch.",
+      "deployerSender": "0x53c7aadbd57d1e4e07026b75d2e8a2ac4852fb9c",
+      "nefChecksum": 7,
+      "manifestName": "curve-arrow",
+      "expectedHash": "0x6f831257688072cd681d6b1017f967293330327c"
+    },
+    {
+      "id": "synthetic-pushint8",
+      "source": "synthetic",
+      "notes": "Checksum 100 exercises the PUSHINT8 single-byte encoding branch.",
+      "deployerSender": "0x53c7aadbd57d1e4e07026b75d2e8a2ac4852fb9c",
+      "nefChecksum": 100,
+      "manifestName": "PlatformRegistry",
+      "expectedHash": "0x5d78512f3559e9c7d945a33c9740b572167bd6b7"
+    },
+    {
+      "id": "synthetic-pushint32-sign-pad",
+      "source": "synthetic",
+      "notes": "Checksum 0x00abcdef: the minimal little-endian bytes end with a high bit set, so the signed encoding appends a 0x00 sign byte and the value must STILL be classed as PUSHINT32 (width chosen after sign extension). Dropping the sign byte outright is caught by the >=0x80000000 vectors, which cross the PUSHINT32/PUSHINT64 width boundary.",
+      "deployerSender": "0x201876fd7a8405573d90c29d101ed60fd6f54b7a",
+      "nefChecksum": 11259375,
+      "manifestName": "AppAccount",
+      "expectedHash": "0x78e981dcfb4b0898001e49785eddf8d81de6dc8a"
+    },
+    {
+      "id": "synthetic-pushint64-max-uint32",
+      "source": "synthetic",
+      "notes": "Checksum 0xffffffff (max uint32) does not fit a signed 4-byte integer, so it takes the PUSHINT64 branch; the 64-char manifest name pins the registry's maximum appId length.",
+      "deployerSender": "0x9f8f056a53e39585c7bb52886418c7bed83d126b",
+      "nefChecksum": 4294967295,
+      "manifestName": "curve-arrow-app-account-materialization-vector-64-chars-padded-x",
+      "expectedHash": "0xfc3b1342d0fd0cbbc1a7ba5756b3aeccfb658d24"
+    }
+  ]
+}

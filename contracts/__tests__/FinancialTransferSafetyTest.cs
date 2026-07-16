@@ -5,6 +5,73 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     public class FinancialTransferSafetyTest
     {
         [Fact]
+        public void AppAccountWrapsNativeTransfersInAssert()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "AppAccount");
+            Assert.Contains(
+                "ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, target, amount), \"GAS transfer failed\")",
+                code);
+            Assert.Contains(
+                "ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, target, amount), \"NEO transfer failed\")",
+                code);
+        }
+
+        [Fact]
+        public void AppAccountOutboundLanesAreRoleBound()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "AppAccount");
+
+            // The one normal outbound path is registry-relayed: spend POLICY
+            // (timelocked payout address, engine-bound pool funding) lives in the
+            // registry treasury, never here.
+            Assert.Contains("Runtime.CallingScriptHash == RegistryOf()", code);
+
+            // The escape hatch pays only the stored app admin.
+            Assert.Contains("TransferAsset(asset, admin, amount)", code);
+
+            // No free-destination surface exists on the account shim.
+            Assert.DoesNotContain("UInt160 recipient", code);
+            Assert.DoesNotContain("ContractManagement.Destroy", code);
+        }
+
+        [Fact]
+        public void PlatformRegistryWrapsNativeTransfersInAssert()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformRegistry");
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, payer, amount),\n                \"credit withdrawal failed\")",
+            code);
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":credit\"),\n                \"engine pool transfer failed\")",
+            code);
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, admin, amount),\n                \"fee withdrawal failed\")",
+            code);
+        }
+
+        [Fact]
+        public void PlatformRegistryTreasuryLanesAreRoleBound()
+        {
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformRegistry");
+
+            // Every account relay is destination-bound: the registered payout
+            // address or the registry itself (the fundEnginePool transit hop);
+            // pool forwarding is hard-bound to the registered engine hash.
+            Assert.Contains("Contract.Call(account, \"executeTransfer\", CallFlags.All, asset, payout, amount)", code);
+            Assert.Contains("Contract.Call(account, \"executeTransfer\", CallFlags.All, GAS.Hash, Runtime.ExecutingScriptHash, amount)", code);
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":credit\")", code);
+
+            // Credit exits pay the witnessing payer; fee exits pay the admin.
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, payer, amount)", code);
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, admin, amount)", code);
+
+            // No free-destination surface, no destroy, no wildcard grants.
+            Assert.DoesNotContain("UInt160 recipient", code);
+            Assert.DoesNotContain("ContractManagement.Destroy", code);
+            Assert.DoesNotContain("ContractPermission(\"*\", \"*\")", code);
+        }
+
+        [Fact]
         public void PlatformGameCountdownWrapsGASTransferInAssert()
         {
             string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Countdown*.cs", "contracts", "platform", "PlatformGame");
