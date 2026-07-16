@@ -11,7 +11,7 @@ export const manifest: MiniAppManifest = {
   supportsGameFi: false,
 
   gamePage: {
-    // Matches the app's --mx2-brand override (src/PlayArea.scss); the splash
+    // Matches the app's --mx2-brand override (src/PhaserPlayArea.scss); the splash
     // shell injects this as its --n3h-accent inline, so it must be the same
     // jade the in-game shell renders.
     categoryColor: "#00af92",

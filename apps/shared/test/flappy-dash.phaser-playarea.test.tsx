@@ -365,4 +365,63 @@ describe("flappy-dash Phaser playarea", () => {
     expect(scene).toContain("MAX_CATCH_UP_STEPS");
     expect(scene).toContain("hasSeenA11yPrimaryPulse");
   });
+
+  // The drawer test above asserts the "you" tag; data-me is the separate
+  // attribute the row highlight hangs off, and nothing else pins it.
+  it("marks the viewer's own leaderboard row for styling", () => {
+    const { container, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "gamefi",
+          leaderboard: [
+            { address: "Ntop1111111111111111111111111111111", rank: 1, totalWon: 2.5, solves: 5, isUser: false },
+            { address: "Nme22222222222222222222222222222222", rank: 2, totalWon: 1.25, solves: 3, isUser: true },
+          ],
+        })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(getByText("Rules"));
+
+    const rows = container.querySelectorAll(".flappy-ranks__row");
+    expect(rows.length).toBe(2);
+    expect(rows[0]?.getAttribute("data-me")).toBeNull();
+    expect(rows[1]?.getAttribute("data-me")).toBe("true");
+  });
+
+  // "refunded" is an alias of "expired" in the wrapper (isExpired) — both take
+  // the expiredBanner stage title. Neither status was rendered by any test.
+  it.each(["expired", "refunded"])(
+    "titles the stage with the expired banner when the game is %s",
+    (gameStatus) => {
+      const { getByText } = render(
+        <PhaserPlayArea t={t} state={state({ gameStatus })} dispatch={vi.fn()} />,
+      );
+
+      expect(getByText("That run got away")).toBeTruthy();
+    },
+  );
+
+  it("titles the stage as shuffling while the sealed deal is pending", () => {
+    const { getByText } = render(
+      <PhaserPlayArea t={t} state={state({ gameStatus: "committed" })} dispatch={vi.fn()} />,
+    );
+
+    expect(getByText("Generating your pipes...")).toBeTruthy();
+  });
+
+  // game-motion-baseline.test.ts takes its isPhaserOnly branch for flappy-dash
+  // (main.tsx mounts PhaserPlayArea) and checks the SCENE, so no suite covers
+  // this stylesheet's reduced-motion lane. Only the drawer selector below is
+  // live — the block's .flappy-scene rules style the deleted DOM component.
+  it("disables drawer icon motion under prefers-reduced-motion", () => {
+    const styles = fs.readFileSync(path.join(appsRoot(), "flappy-dash/src/PlayArea.scss"), "utf8");
+
+    const reducedMotion = styles.slice(styles.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reducedMotion).toMatch(
+      /\.flappy-stage-hud__drawer svg \{[^}]*transition: none;[^}]*\}/,
+    );
+  });
 });

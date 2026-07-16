@@ -285,4 +285,55 @@ describe("snake-bounty Phaser playarea", () => {
     expect(scene).toContain("this.tweens?.killTweensOf(view.container)");
     expect(scene).toContain("view.container.destroy(true)");
   });
+
+  it("offers withdrawal in the drawer once credit is available", () => {
+    const dispatch = vi.fn();
+    const { getByRole, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", credit: 1.5, gameStatus: "idle" })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: /Rules/i }));
+    fireEvent.click(getByText("Withdraw 1.50 GAS"));
+
+    expect(dispatch).toHaveBeenCalledWith("withdrawWinnings", {});
+  });
+
+  // The suite only ever asserted that "Release game" is absent. canExpireAfterGrace
+  // needs the deadline to be past by more than SETTLEMENT_GRACE_MS (600_000ms),
+  // so a merely-past deadline would not surface it.
+  it("offers release once the settlement grace has fully elapsed", () => {
+    const dispatch = vi.fn();
+    const { getByRole, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({
+          appMode: "gamefi",
+          activeGameId: "8",
+          deadline: Date.now() - 700_000,
+        })}
+        dispatch={dispatch}
+      />,
+    );
+
+    fireEvent.click(getByRole("button", { name: /Rules/i }));
+    fireEvent.click(getByText("Release game"));
+
+    expect(dispatch).toHaveBeenCalledWith("expireGame", {});
+  });
+
+  it("titles the stage with the expired banner once the game has expired", () => {
+    const { getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", gameStatus: "expired" })}
+        dispatch={vi.fn()}
+      />,
+    );
+
+    expect(getByText("That game expired")).toBeTruthy();
+  });
 });

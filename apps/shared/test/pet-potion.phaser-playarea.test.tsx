@@ -477,4 +477,18 @@ describe("pet-potion Phaser playarea", () => {
     expect(styles).toContain(".pp-drawer__seed");
     expect(styles).not.toContain(".pp-playarea .mx2-drawer.mx2-drawer--open");
   });
+
+  // "refunded" is an alias of "expired" in the wrapper (isExpired): both share
+  // the expiredBanner stage title and both re-open the lobby (lobbyAvailable).
+  // Nothing else pins that aliasing.
+  it.each(["expired", "refunded"])(
+    "titles the stage with the expired banner when the game is %s",
+    (gameStatus) => {
+      const { getByText } = render(
+        <PhaserPlayArea t={t} state={state({ gameStatus })} dispatch={vi.fn()} />,
+      );
+
+      expect(getByText("Game expired")).toBeTruthy();
+    },
+  );
 });

@@ -554,4 +554,19 @@ describe("color-clash Phaser playarea", () => {
     expect(manifest).toContain("supportsGameFi: false");
     expect(manifest).toContain("walletRequired: false");
   });
+
+  // "refunded" is an alias of "expired" throughout the wrapper: it shares the
+  // expiredBanner stage title, and it is one of the four statuses that put the
+  // surface back in the lobby (isLobby) and open the credits-revive offer.
+  // Nothing else pins that aliasing, so both statuses are asserted here.
+  it.each(["expired", "refunded"])(
+    "titles the stage with the release banner when the game is %s",
+    (gameStatus) => {
+      const { getByText } = render(
+        <PhaserPlayArea t={t} state={state({ gameStatus })} dispatch={vi.fn()} />,
+      );
+
+      expect(getByText("Game released")).toBeTruthy();
+    },
+  );
 });

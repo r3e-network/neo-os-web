@@ -1,4 +1,5 @@
-/** Production Phaser shell. Legacy DOM-scene styles stay in PlayArea.scss. */
+/** Production Phaser shell — the app's only stylesheet. The legacy DOM-scene
+ *  PlayArea.scss was deleted with the unmounted PlayArea.tsx that imported it. */
 @use "@shared/styles/v2/tokens" as *;
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;

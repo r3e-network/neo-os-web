@@ -26,7 +26,6 @@ import type { FrameworkPermissionsInput, FrameworkPermissionsSurface } from "./p
 import type { FrameworkResourcesSurface, FrameworkTokenArtUrls } from "./resources";
 import type { FrameworkClipboardSurface, FrameworkShareSurface } from "./clipboard";
 import type { FrameworkWalletSurface, WalletSurfaceBalanceService } from "./wallet";
-import type { FrameworkFmt } from "./fmt-surface";
 import type { FrameworkErrorsSurface } from "./errors-surface";
 import type { FrameworkQueryResult, FrameworkReadOptions } from "./chain-query";
 import type {
@@ -1150,9 +1149,9 @@ export interface FrameworkGameRules {
   };
   /** Contract status decode — delegates to rewardGameStatusOf. */
   statusOf(raw: unknown): RewardGameStatus;
-  /** Fixed8 → display string — delegates to app.fmt.gas (2 decimals). */
+  /** Fixed8 → display string — delegates to utils/format.formatGas (2 decimals). */
   gasDisplay(fixed8: bigint | string): string;
-  /** Elapsed clock — delegates to the fleet-standard mm:ss app.fmt.clock. */
+  /** Elapsed clock — delegates to the fleet-standard mm:ss formatClock. */
   formatClock(ms: number): string;
   /** basePct minus the undo penalty (undos clamped to maxUndos, floor 0). */
   rewardPctAfterUndos(undos: number): number;
@@ -1204,8 +1203,6 @@ export interface MiniAppFramework {
   mode: FrameworkModeSurface;
   /** app.notify (S1) — the single toast surface. */
   notify: FrameworkNotifySurface;
-  /** app.fmt (RFC P0-3) — blessed display formatters. */
-  fmt: FrameworkFmt;
   /** app.errors (RFC P0-4) — error→message extraction + typed code checks. */
   errors: FrameworkErrorsSurface;
   /** app.platform — host detection + launch params. */

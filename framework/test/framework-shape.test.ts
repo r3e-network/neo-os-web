@@ -84,7 +84,14 @@ describe("framework runtime shape snapshot", () => {
       "db",
       "errors",
       "events",
-      "fmt",
+      // No "fmt": the app.fmt accessor (RFC P0-3) was removed as unreachable.
+      // react/MiniAppRoot's PlayAreaProps hands views {t, state, dispatch,
+      // services, status, ...} and no app/framework identifier, so no view
+      // could reach it; it had zero call sites in the fleet and zero in git
+      // history. Its methods only delegated to utils/format, which apps import
+      // as a plain module (the fleet's real canonical). The one implementation
+      // that was not already in utils/format — formatClock — is kept and
+      // exported from framework/fmt-surface.
       "funds",
       "game",
       "lifecycle",
@@ -149,16 +156,8 @@ describe("framework runtime shape snapshot", () => {
       "vrf",
     ]);
     expect(Object.keys(app.storage).sort()).toEqual(["hybrid", "local", "remote"]);
-    expect(Object.keys(app.fmt).sort()).toEqual([
-      "address",
-      "clock",
-      "compact",
-      "countdown",
-      "fixed8",
-      "gas",
-      "hash",
-      "number",
-    ]);
+    // No app.fmt member set — the accessor was removed as unreachable; see the
+    // justification on the top-level member set above.
     expect(Object.keys(app.errors).sort()).toEqual(["is", "messageOf"]);
     expect(Object.keys(app.actions).sort()).toEqual([
       "register",

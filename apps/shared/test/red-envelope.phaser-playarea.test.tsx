@@ -82,6 +82,8 @@ function t(key: string, params?: Record<string, string | number>) {
     sceneOpening: "Opening...",
     sceneConnectWallet: "Connect wallet",
     sceneWorking: "Working...",
+    claimReceivedMessage: "You received {amount} GAS",
+    luckyReceivedClose: "Tap to keep the luck",
     scenePlanLucky: "Lucky 8",
     scenePlanParty: "Party 20",
     scenePlanFestival: "Festival 50",
@@ -434,5 +436,62 @@ describe("red-envelope Phaser playarea", () => {
     expect(styles).toContain(".redenv-drawer__summary-grid");
     expect(styles).toContain(".redenv-share-card");
     expect(styles).toContain(".redenv-credit-card");
+
+    // File-global guards for the stylesheet the live wrapper imports.
+    expect(styles).toContain('@use "@shared/styles/v2/motion"');
+    expect(styles).toMatch(/\.redenv-play-area \{[^}]*--mx2-stage-floor: #ffffff;[^}]*\}/);
+    expect(styles).not.toMatch(/backdrop-filter/);
+
+    // The reduced-motion block's animation rules cover only the deleted DOM
+    // scene; these are the selectors the Phaser wrapper actually renders.
+    const reducedMotion = styles.slice(styles.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reducedMotion).toContain(".redenv-stage-hud__drawer svg");
+    expect(reducedMotion).toContain(".redenv-collect-luck");
+    expect(reducedMotion).toContain("transition: none");
+  });
+
+  // Only the guest (negative) lucky path was covered; the GameFi announcement
+  // and its collect button are a separate branch — the button replaces the
+  // drawer toggle while a win is pending.
+  it("announces a GameFi win and collects it through the lucky button", () => {
+    const dispatch = vi.fn();
+    const { container, getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "gamefi", luckyMessage: { amount: 0.5, from: "NKuyBk" } })}
+        dispatch={dispatch}
+        launchContext={launch()}
+      />,
+    );
+
+    const announcement = container.querySelector(".redenv-sr-only")?.textContent ?? "";
+    expect(announcement).toContain("Lucky you!");
+    expect(announcement).toContain("You received 0.5000 GAS");
+
+    fireEvent.click(getByText("Tap to keep the luck"));
+    expect(dispatch).toHaveBeenCalledWith("dismissOverlay");
+  });
+
+  // The scene's createEnvelope dispatch is source-guarded above, but the
+  // wrapper's own keyboard-reachable plan buttons were never clicked.
+  it("creates an envelope from the accessible plan buttons", () => {
+    const dispatch = vi.fn();
+    const { getByText } = render(
+      <PhaserPlayArea
+        t={t}
+        state={state({ appMode: "guest" })}
+        dispatch={dispatch}
+        launchContext={launch()}
+      />,
+    );
+
+    fireEvent.click(getByText("My Envelopes"));
+    fireEvent.click(getByText("Lucky 8"));
+
+    expect(dispatch).toHaveBeenCalledWith("createEnvelope", {
+      amount: "1",
+      count: "8",
+      expiryHours: "24",
+    });
   });
 });
