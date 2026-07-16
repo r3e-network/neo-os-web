@@ -1,4 +1,5 @@
-import { createDerived, createObservable } from "@shared/react/context";
+import { createDerived, createObservable, createReadCell } from "@shared/react/context";
+import type { ReadCell } from "@shared/react/context";
 import type { MiniAppFramework } from "@shared/react";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { GAS_HASH } from "@shared/constants/rpc";
@@ -29,6 +30,19 @@ export type TimestampProofVerificationSource =
   | "chain"
   | "fault";
 export type TimestampProofStorageState = "checking" | "ready" | "unavailable" | "corrupt";
+
+/**
+ * One settled journal read: the storage verdict plus the rows it yielded.
+ * "checking" is deliberately not representable here — it is not a settled
+ * answer; it is the read-cell's "not read yet" (value === undefined).
+ */
+interface TimestampProofJournalSnapshot {
+  state: Exclude<TimestampProofStorageState, "checking">;
+  items: TimestampProof[];
+}
+
+/** Stable empty journal for the pre-read phase (referential identity matters to the render bridge). */
+const NO_PROOFS: TimestampProof[] = [];
 
 function isSha256Digest(value: string): boolean {
   return /^[0-9a-f]{64}$/i.test(value.trim());
@@ -182,7 +196,32 @@ export interface UseTimestampProofOptions {
 
 export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimestampProofAnchor }: UseTimestampProofOptions) {
   const address = app.chain.address;
-  const proofs = createObservable<TimestampProof[]>([]);
+
+  /**
+   * The proof journal's read lane on the platform read-cell (read-cell pilot).
+   * value === undefined IS the old hand-rolled "checking" state: the first
+   * paint stays "checking" until the first read settles, so a storage fault
+   * never masquerades as an empty journal. A re-read that settles
+   * unavailable/corrupt re-publishes the LAST GOOD items — pending anchor
+   * receipts must never disappear behind a storage fault (the PlayArea shows
+   * them alongside the journal alert).
+   */
+  const journal: ReadCell<TimestampProofJournalSnapshot> = createReadCell(
+    (): TimestampProofJournalSnapshot => {
+      const stored = readStoredProofs();
+      if (stored.state === "ready") return stored;
+      return { state: stored.state, items: journal.value.get()?.items ?? NO_PROOFS };
+    },
+  );
+  const proofs = createDerived<TimestampProof[]>(
+    () => journal.value.get()?.items ?? NO_PROOFS,
+    [journal.value],
+  );
+  const storageState = createDerived<TimestampProofStorageState>(
+    () => journal.value.get()?.state ?? "checking",
+    [journal.value],
+  );
+
   const verifiedProof = createObservable<TimestampProof | null>(null);
   const verificationSource = createObservable<TimestampProofVerificationSource>("none");
   const verifyError = createObservable(false);
@@ -192,7 +231,6 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
   const isRecovering = createObservable(false);
   const anchoringId = createObservable<number | null>(null);
   const network = createObservable<TimestampProofNetwork | "">("");
-  const storageState = createObservable<TimestampProofStorageState>("checking");
   const lastMessage = createObservable("");
 
   const anchoredCount = createDerived(
@@ -213,7 +251,7 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
     lastMessage.set(t(key, params));
   };
 
-  const readStoredProofs = (): { state: TimestampProofStorageState; items: TimestampProof[] } => {
+  const readStoredProofs = (): TimestampProofJournalSnapshot => {
     try {
       // The framework local-storage adapter intentionally degrades to a silent
       // no-op when browser storage is unavailable. Probe + exact readback lets
@@ -249,26 +287,31 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
     }
   };
 
-  /** Write, read back, and compare before publishing a new journal state. */
+  /**
+   * Write, read back, and compare before publishing a new journal state.
+   * The verified write path publishes straight onto the read-cell's value:
+   * it just round-tripped the new truth, so it owns the snapshot as much as
+   * a read does. A failed write settles the verdict to "unavailable" while
+   * keeping the currently rendered items visible.
+   */
   const persistProofs = (items: TimestampProof[]): boolean => {
     const next = normalizeProofs(items);
     try {
       app.storage.local.set(STORAGE_KEY, next);
       const persisted = app.storage.local.get<unknown[]>(STORAGE_KEY);
       if (!Array.isArray(persisted)) {
-        storageState.set("unavailable");
+        journal.value.set({ state: "unavailable", items: proofs.get() });
         return false;
       }
       const roundTrip = normalizeProofs(persisted as LegacyTimestampProof[]);
       if (journalSignature(roundTrip) !== journalSignature(next)) {
-        storageState.set("unavailable");
+        journal.value.set({ state: "unavailable", items: proofs.get() });
         return false;
       }
-      proofs.set(roundTrip);
-      storageState.set("ready");
+      journal.value.set({ state: "ready", items: roundTrip });
       return true;
     } catch {
-      storageState.set("unavailable");
+      journal.value.set({ state: "unavailable", items: proofs.get() });
       return false;
     }
   };
@@ -420,13 +463,11 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
   };
 
   const loadProofs = async () => {
-    const stored = readStoredProofs();
-    storageState.set(stored.state);
-    if (stored.state === "ready") {
-      proofs.set(stored.items);
-    } else {
-      // Do not publish an empty list when the journal could not be read. That
-      // would turn a storage failure into a false "0 proofs" state.
+    // The cell publishes value + settled status; the loader keeps the last
+    // good items on a failed re-read, so a storage failure never turns into
+    // a false "0 proofs" state.
+    const stored = await journal.load();
+    if (stored.state !== "ready") {
       setMessage(stored.state === "corrupt" ? "journalCorrupt" : "journalUnavailable");
       return false;
     }
@@ -464,9 +505,10 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
     }
 
     if (storageState.get() === "checking") {
-      const stored = readStoredProofs();
-      storageState.set(stored.state);
-      if (stored.state === "ready") proofs.set(stored.items);
+      // Synchronous re-probe: the loader is sync, so the cell publishes before
+      // the next line runs — the double-submit guard ordering is unchanged.
+      // (readStoredProofs never throws; it settles faults as "unavailable".)
+      void journal.load();
     }
     if (storageState.get() !== "ready") {
       const key = storageState.get() === "corrupt" ? "journalCorrupt" : "localSaveFailed";
@@ -606,7 +648,15 @@ export function useTimestampProofContract({ app, t, inspectAnchor = inspectTimes
           anchored: false,
         } : item);
         pendingStored = persistProofs(pending);
-        if (!pendingStored) proofs.set(pending);
+        if (!pendingStored) {
+          // The broadcast receipt must stay visible even though the journal
+          // write failed: publish the pending rows over the failed snapshot
+          // without upgrading the storage verdict persistProofs just settled.
+          journal.value.set({
+            state: journal.value.get()?.state ?? "unavailable",
+            items: pending,
+          });
+        }
       };
 
       const result = await app.chain.invoke(
