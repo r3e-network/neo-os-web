@@ -6,7 +6,7 @@ contract model shipped in March 2026.
 
 The key boundary is simple:
 
-- this repo owns the MiniApp platform surface, including **4 partial platform domain contracts** and **41 edge proxy functions**
+- this repo owns the MiniApp platform surface, including **4 partial platform domain contracts** and **42 edge proxy functions**
 - `neo-morpheus-oracle` owns Oracle / DataFeed / VRF / Compute / Paymaster
 - `neo-abstract-account` owns AA core contracts, verifiers, relay UX, and AA runtime
 
@@ -18,7 +18,7 @@ This repo owns:
 
 - `platform/host-app`: end-user host shell that injects `window.MiniAppSDK`
 - `platform/admin-console`: operational/admin UX
-- `platform/edge/functions`: thin gateways for auth, wallet binding, policy enforcement, forwarding to external services, **and 41 OS service Binder proxy functions** (the `os-*` edge functions)
+- `platform/edge/functions`: thin gateways for auth, wallet binding, policy enforcement, forwarding to external services, **and 42 OS service Binder proxy functions** (the `os-*` edge functions)
 - `contracts/platform/Platform*`: **4 partial platform domain contracts** split by anchor, DeFi, game, and social workflows
 - `contracts/`: platform infrastructure contracts (AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor, PauseRegistry)
 - `apps/shared/services/os/`: **9 typed frontend OS proxy classes** with `EdgeClient` transport
@@ -53,7 +53,7 @@ PlatformContext / PlatformServices
   ▼
 Supabase Edge + host-side proxy routes
   ┌──────────────────────────────────────────────────┐
-  │  41 OS Binder edge functions (os-storage-get,    │
+  │  42 OS Binder edge functions (os-storage-get,    │
   │  os-payment-deposit, os-game-bet, etc.)          │
   │  + existing auth / wallet binding / rate limit   │
   │  + API keys / scopes / usage caps                │
@@ -121,7 +121,7 @@ The edge layer is the platform policy boundary. It handles:
 - per-function scopes
 - rate limiting
 
-The **41 OS Binder edge functions** (`os-storage-get`, `os-payment-deposit`,
+The **42 OS Binder edge functions** (`os-storage-get`, `os-payment-deposit`,
 `os-game-bet`, etc.) follow a standardized pattern:
 1. Authenticate via Supabase JWT
 2. Validate app permission for the target OS service

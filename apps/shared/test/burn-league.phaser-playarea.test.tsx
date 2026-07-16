@@ -325,6 +325,35 @@ describe("burn-league Phaser playarea", () => {
     expect(styles).toContain("width: min(100%, 420px);");
   });
 
+  // Migrated from the deleted burn-league.playarea.test.tsx, which asserted this
+  // same reduced-motion contract against the unmounted DOM PlayArea.tsx. The
+  // stylesheet is live (PhaserPlayArea imports it), so the contract is real —
+  // only the classes it must cover changed. The dead `.burn-scene__*` /
+  // `.burn-controls__*` rules went with the component; the fallback now has to
+  // name the classes the production wrapper actually paints, otherwise the
+  // guard would pass over CSS no user can reach.
+  it("keeps motion backed by reduced-motion fallbacks on the live wrapper's classes", () => {
+    const styles = fs.readFileSync(path.join(appsRoot(), "burn-league/src/PlayArea.scss"), "utf8");
+
+    expect(styles).toContain('@use "@shared/styles/v2/motion"');
+    expect(styles).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(styles).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration:\s*0\.001ms/,
+    );
+    const reduced = styles.slice(styles.indexOf("@media (prefers-reduced-motion: reduce)"));
+    for (const live of [".burn-ingame-drawer", ".burn-stage-hud__drawer", ".burn-celebrate__medal"]) {
+      expect(reduced, `${live} must keep a reduced-motion fallback`).toContain(live);
+    }
+  });
+
+  // Pins the deletion: main.tsx mounts PhaserPlayArea, so a reintroduced DOM
+  // PlayArea.tsx would be unreachable code that only tests could "cover".
+  it("keeps the legacy unmounted DOM play area deleted", () => {
+    expect(fs.existsSync(path.join(appsRoot(), "burn-league/src/PlayArea.tsx"))).toBe(false);
+    const styles = fs.readFileSync(path.join(appsRoot(), "burn-league/src/PlayArea.scss"), "utf8");
+    expect(styles).not.toMatch(/\.burn-scene|\.burn-controls|\.burn-stepper|\.burn-preset/);
+  });
+
   it("keeps Burn League settlement wired to the in-canvas primary action", () => {
     const scene = fs.readFileSync(path.join(appsRoot(), "burn-league/src/scenes/BurnLeagueScene.ts"), "utf8");
 
