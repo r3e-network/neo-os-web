@@ -3,7 +3,7 @@
  * from index.ts).
  *
  * The contract read/write surface: arg builders, raw + typed reads
- * (`readRaw` / `read(spec)` / `query` / `readArray` / `enumerate`), the
+ * (`readRaw` / `read(spec)` / `query` / `readArray`), the
  * guarded broadcast lanes (`invoke` / `invokeWithPayment` / `write` /
  * `invokeMultiple`), message signing, the post-broadcast `waitForState`
  * poll, and the event helpers. Write lanes compose the RFC P0-2 ordering

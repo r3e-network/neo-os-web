@@ -693,7 +693,6 @@ use the successor:
 | Deprecated | Successor | Why |
 |---|---|---|
 | `chain.read(spec)` (typed spec-object form) | `chain.query(op, args).as(parse)` | spec-object shape found no adopters |
-| `chain.enumerate(spec)` | `chain.query` + explicit loop, or `readArray` | 0 consumers |
 | `chain.events(name, opts)` | `app.events.list(name, opts)` | one concept, one home |
 | `storage.hybrid` | `storage.local` or `storage.remote` explicitly | 0 consumers |
 | `app.db.collection(name)` | `app.storage.local` / `app.storage.remote` | 0 consumers |
