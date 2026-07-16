@@ -142,6 +142,7 @@ const appMessages = {
   workflowCheckingIn: { en: "Submitting check-in", zh: "正在提交签到" },
   workflowClaiming: { en: "Claiming rewards", zh: "正在领取奖励" },
   workflowFailed: { en: "Action failed", zh: "操作失败" },
+  statusRefreshFailed: { en: "Check-in status could not be refreshed", zh: "签到状态刷新失败" },
   checkinRecorded: { en: "Check-in recorded", zh: "签到已记录" },
   rewardClaimed: { en: "Reward claimed", zh: "奖励已领取" },
   checkinUnavailable: { en: "Already checked in for this UTC day", zh: "当前 UTC 日已完成签到" },

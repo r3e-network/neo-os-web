@@ -1046,7 +1046,9 @@ export function useGovMerc({ app, t, transactionReader = readGovMercTransactionO
           throw new Error(t(depositSettled ? "biddingClosedCreditHeld" : "biddingClosed"));
         }
         if (depositSettled) throw new Error(t("bidDepositHeld"));
-        throw new Error(errorMessage(bidErr) || t("error"));
+        // messageOf keeps chain/RPC failures on the localized family copy
+        // instead of rethrowing the raw English wallet/VM string.
+        throw new Error(app.errors.messageOf(bidErr, t("error")));
       }
 
       bidAmount.set("");

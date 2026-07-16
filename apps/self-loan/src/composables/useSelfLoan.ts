@@ -1268,7 +1268,9 @@ export function useSelfLoan({
         );
       } catch (borrowError) {
         if (depositSettled) throw new Error(t("collateralCreditHeld"));
-        throw new Error(errorMessage(borrowError) || t("error"));
+        // messageOf keeps chain/RPC failures on the localized family copy
+        // instead of rethrowing the raw English wallet/VM string.
+        throw new Error(app.errors.messageOf(borrowError, t("error")));
       }
       await loadAll();
       if (outcome === "pending") return outcome;
@@ -1399,7 +1401,9 @@ export function useSelfLoan({
         );
       } catch (addError) {
         if (depositSettled || credit > 0n) throw new Error(t("collateralCreditHeld"));
-        throw new Error(errorMessage(addError) || t("error"));
+        // messageOf keeps chain/RPC failures on the localized family copy
+        // instead of rethrowing the raw English wallet/VM string.
+        throw new Error(app.errors.messageOf(addError, t("error")));
       }
       await loadAll();
       if (outcome === "pending") return outcome;

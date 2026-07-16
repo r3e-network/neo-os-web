@@ -7,7 +7,6 @@ import type { Observable } from "@shared/react/context";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { fetchTreasuryData, type TreasuryData } from "./utils/treasury";
 import {
   assertTreasurySpendableBalance,
@@ -210,7 +209,9 @@ defineMiniApp({
       } catch (e) {
         if (disposed || requestId !== loadRequestId) return;
         if (!data.get()) {
-          error.set(formatErrorMessage(e, ctx.t("loadFailed")));
+          // messageOf adds the chain-error family mapping formatErrorMessage
+          // lacks, so RPC failures show localized copy instead of raw English.
+          error.set(ctx.framework.errors.messageOf(e, ctx.t("loadFailed")));
         } else {
           // We're rendering day-old cached figures — flag them as stale so the
           // hero shows the amber "cached data" signal, not "live synced".
@@ -479,7 +480,9 @@ defineMiniApp({
         }
         const message = e instanceof TreasuryOperationError
           ? formatTreasuryOperationError(e, ctx.t)
-          : formatErrorMessage(e, ctx.t("disbursementFailed"));
+          // messageOf adds the chain-error family mapping formatErrorMessage
+          // lacks, so wallet/VM failures show localized copy, not raw English.
+          : ctx.framework.errors.messageOf(e, ctx.t("disbursementFailed"));
         disbursementError.set(message);
         disbursementStatus.set(message);
         throw e;
