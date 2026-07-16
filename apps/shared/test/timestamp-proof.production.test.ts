@@ -29,7 +29,14 @@ describe("timestamp-proof production contract", () => {
     expect(logic).toContain("receipt.status === \"confirmed\"");
     expect(logic).toContain("anchorStatus: \"anchored\"");
     expect(logic).toContain("journalSignature(roundTrip) !== journalSignature(next)");
-    expect(logic).toContain('storageState = createObservable<TimestampProofStorageState>("checking")');
+    // Re-pinned (read-cell pilot): the journal's "checking" first paint used to
+    // be a hand-rolled observable initialised to "checking"; it is now the
+    // platform read-cell's "not read yet" (value === undefined) DERIVED back to
+    // "checking". The intent is unchanged and still pinned: before the first
+    // read settles, the storage verdict must be "checking" — never a settled
+    // answer a storage fault could masquerade as.
+    expect(logic).toContain("createReadCell");
+    expect(logic).toContain('journal.value.get()?.state ?? "checking"');
     expect(logic).toContain('anchorStatus: "preparing"');
     expect(logic).toContain("anchorReceiptNotSaved");
     expect(main).toContain("verificationSource: proofContract.verificationSource");
