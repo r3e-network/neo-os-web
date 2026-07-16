@@ -22,8 +22,8 @@ export const manifest: MiniAppManifest = {
 
   // ── Stats Grid ────────────────────────────────────────────────────────
   stats: [
-    { labelKey: "borrowed", valueKey: "borrowedDisplay", format: "gas", variant: "accent", icon: "trending-up" },
-    { labelKey: "collateralLocked", valueKey: "collateralDisplay", format: "text", icon: "lock" },
+    { labelKey: "borrowed", valueKey: "borrowedDisplay", format: "gas", variant: "accent", icon: "trending-up", pendingKey: "selfLoanReading" },
+    { labelKey: "collateralLocked", valueKey: "collateralDisplay", format: "text", icon: "lock", pendingKey: "selfLoanReading" },
     { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text", icon: "shield", pendingKey: "selfLoanReading" },
     { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text", icon: "percent", pendingKey: "selfLoanReading" },
   ],
