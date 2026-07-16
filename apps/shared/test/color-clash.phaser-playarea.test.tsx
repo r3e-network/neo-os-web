@@ -502,7 +502,8 @@ describe("color-clash Phaser playarea", () => {
     expect(source).toContain("cclash-a11y-layer");
     expect(source).toContain('role="radiogroup"');
     expect(source).toContain('dispatch("setDifficulty"');
-    expect(source).toContain("setInterval(() => setNowMs(Date.now()), 1_000)");
+    // The countdown clock lives in the shared useNowMs hook now.
+    expect(source).toContain("useNowMs(");
     expect(source).not.toContain("score={");
     expect(source).not.toContain("drawerToggleLabel=");
     expect(source).not.toContain("drawer={{");

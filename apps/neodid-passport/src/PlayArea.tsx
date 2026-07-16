@@ -21,6 +21,7 @@ import {
 } from "@shared/components-react/v2/OpenUiLite";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import type { ObservableState } from "@shared/react/context";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import {
   canonicalMorpheusDid,
@@ -148,7 +149,7 @@ export default function PlayArea({ t, state, dispatch }: P) {
     recoveredForm.audience || DEFAULT_FORM.audience,
     PASSPORT_FIELD_LIMITS.audience,
   ));
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNowMs(30_000);
   const hydratedRecoveryRef = useRef("");
   const discardedDraftRef = useRef("");
   const busy = isResolving || isSigning;
@@ -160,11 +161,6 @@ export default function PlayArea({ t, state, dispatch }: P) {
   const visiblePayload = payloadMatchesDraft ? payload : null;
   const expired = Boolean(visiblePayload && Date.parse(visiblePayload.expiresAt) <= now);
   const proofAttached = visiblePayload?.proof.status === "attached";
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const fingerprint = JSON.stringify([

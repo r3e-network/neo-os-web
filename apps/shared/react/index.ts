@@ -84,6 +84,8 @@ export type { TFunction } from "./hooks/useT";
 export { useStatusMessage } from "./hooks/useStatusMessage";
 export type { StatusType, StatusMessage } from "./hooks/useStatusMessage";
 export { useStateBindings, useObservable } from "./hooks/useStateBindings";
+export { useNowMs } from "./hooks/useNowMs";
+export type { UseNowMsOptions } from "./hooks/useNowMs";
 
 // Re-export manifest types for convenience
 export type { MiniAppManifest } from "../types/miniapp-manifest";

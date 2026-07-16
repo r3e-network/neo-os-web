@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { ObservableState } from "@shared/react/context";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import {
   OpenUiLiteNotice as OpenUiNotice,
@@ -114,7 +115,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [verifierTarget, setVerifierTarget] = useState(launchForm.verifierHash);
   const [verifierParams, setVerifierParams] = useState(launchForm.verifierParamsHex);
   const [hookTarget, setHookTarget] = useState(launchForm.hookHash);
-  const [now, setNow] = useState(() => Date.now());
   const restoredTxRef = useRef("");
 
   useEffect(() => {
@@ -156,12 +156,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     ? pendingVerifierUnlockAt
     : pendingHookUnlockAt;
 
-  useEffect(() => {
-    if (!selectedPending || selectedUnlockAt <= 0) return;
-    setNow(Date.now());
-    const timer = globalThis.setInterval(() => setNow(Date.now()), 30_000);
-    return () => globalThis.clearInterval(timer);
-  }, [selectedPending, selectedUnlockAt]);
+  const now = useNowMs(30_000, {
+    enabled: selectedPending && selectedUnlockAt > 0,
+    resetKey: selectedUnlockAt,
+  });
 
   const currentBinding = bindingCurrent
     ? lane === "verifier" ? currentVerifier : currentHook

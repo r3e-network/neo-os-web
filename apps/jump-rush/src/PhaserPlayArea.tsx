@@ -13,7 +13,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { useStateBindings } from "@shared/react";
+import { useNowMs, useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
@@ -62,7 +62,6 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [gameReady, setGameReady] = useState(false);
-  const [clockNow, setClockNow] = useState(() => Date.now());
   const [a11yStartPulse, setA11yStartPulse] = useState(0);
   const [a11yJumpPulse, setA11yJumpPulse] = useState(0);
   const [a11yChargeLevel, setA11yChargeLevel] = useState(50);
@@ -106,12 +105,10 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const rawPlatforms    = val<Platform[]>("platformsView", []) ?? [];
 
-  useEffect(() => {
-    if (gameStatus !== "dealt" && gameStatus !== "committed") return undefined;
-    setClockNow(Date.now());
-    const timer = window.setInterval(() => setClockNow(Date.now()), 1_000);
-    return () => window.clearInterval(timer);
-  }, [gameStatus, deadline]);
+  const clockNow = useNowMs(1_000, {
+    enabled: gameStatus === "dealt" || gameStatus === "committed",
+    resetKey: `${gameStatus}|${deadline}`,
+  });
 
   const closeDrawer = useCallback((restoreFocus = true) => {
     setDrawerOpen(false);
