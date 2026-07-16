@@ -193,6 +193,98 @@ export function deriveAnchorAgentAccounts(options: AnchorAgentDerivationOptions)
   });
 }
 
+export type AppAccountHashInput = {
+  /** The mint transaction's sender: Neo N3 address or display-order 0x Hash160. */
+  deployerSender: string;
+  /** The canonical AppAccount NEF checksum (uint32, little-endian tail of the .nef). */
+  nefChecksum: number;
+  /** The spliced manifest name — the registry uses the appId (1–64 chars). */
+  manifestName: string;
+};
+
+/** NeoVM opcodes used by the CreateContractHash preimage script. */
+const NEOVM_ABORT = 0x38;
+const NEOVM_PUSHDATA1 = 0x0c;
+const NEOVM_PUSHDATA2 = 0x0d;
+const NEOVM_PUSH0 = 0x10;
+const NEOVM_PUSHINT_OPCODES: ReadonlyArray<{ opcode: number; width: number }> = [
+  { opcode: 0x00, width: 1 }, // PUSHINT8
+  { opcode: 0x01, width: 2 }, // PUSHINT16
+  { opcode: 0x02, width: 4 }, // PUSHINT32
+  { opcode: 0x03, width: 8 }, // PUSHINT64
+];
+
+/**
+ * NeoVM integer push (ScriptBuilder.EmitPush(BigInteger)) for a uint32 NEF
+ * checksum: 0–16 collapse to a single PUSH<n> opcode; larger values emit the
+ * minimal signed little-endian bytes — appending a 0x00 sign byte when the
+ * top bit is set, so e.g. 0xffffffff widens past PUSHINT32 into PUSHINT64 —
+ * zero-padded to the encoding width.
+ */
+function emitChecksumPush(checksum: number): number[] {
+  if (!Number.isInteger(checksum) || checksum < 0 || checksum > 0xffffffff) {
+    throw new Error("nefChecksum must be a uint32 value");
+  }
+  if (checksum <= 16) return [NEOVM_PUSH0 + checksum];
+  const bytes: number[] = [];
+  let remaining = checksum;
+  while (remaining > 0) {
+    bytes.push(remaining & 0xff);
+    remaining = Math.floor(remaining / 256);
+  }
+  if ((bytes[bytes.length - 1] & 0x80) !== 0) bytes.push(0x00);
+  const encoding = NEOVM_PUSHINT_OPCODES.find(({ width }) => bytes.length <= width);
+  if (!encoding) throw new Error("nefChecksum must be a uint32 value");
+  while (bytes.length < encoding.width) bytes.push(0x00);
+  return [encoding.opcode, ...bytes];
+}
+
+/** NeoVM data push (ScriptBuilder.EmitPush(byte[])) for preimage payloads. */
+function emitDataPush(data: Uint8Array): number[] {
+  if (data.length < 0x100) return [NEOVM_PUSHDATA1, data.length, ...data];
+  if (data.length < 0x10000) {
+    return [NEOVM_PUSHDATA2, data.length & 0xff, (data.length >> 8) & 0xff, ...data];
+  }
+  throw new Error("manifest name payload exceeds NeoVM PUSHDATA2 range");
+}
+
+/**
+ * ADVISORY Neo N3 `CreateContractHash` derivation for registry-minted
+ * AppAccounts (platform-contract-library-v2 §4.1 rule 4):
+ * `hash160(ABORT ‖ PUSHDATA(sender) ‖ PUSHINT(nefChecksum) ‖ PUSHDATA(name))`
+ * — byte-exact with neo-core `Helper.GetContractHash`, pinned by the shared
+ * vector fixture `contracts/__tests__/fixtures/create-contract-hash-vectors.json`
+ * whose measured row comes from the in-engine deploy measurement
+ * (`PlatformRegistryHashSemanticsTests`).
+ *
+ * `deployerSender` is the MINT TRANSACTION'S SENDER — measured fact: a
+ * contract-initiated `ContractManagement.Deploy` folds the transaction
+ * sender, not the calling contract, into the hash. So this prediction only
+ * holds when minting routes through a known fixed sender (the platform
+ * pipeline deployer).
+ *
+ * Advisory-only, per §4.1 rules 2–3: the PlatformRegistry row records the
+ * ACTUAL post-deploy hash and is the address-of-record; never publish a
+ * predicted address before materialization, and never fund one — funds flow
+ * only after the registry row exists.
+ */
+export function deriveAppAccountHash(input: AppAccountHashInput): string {
+  const name = String(input.manifestName ?? "");
+  if (name.length < 1 || name.length > 64) {
+    throw new Error("manifest name must be 1-64 characters (the registry appId rule)");
+  }
+  const senderDisplayHex = normalizeRegistrationHash160(input.deployerSender, "deployer sender");
+  const senderLittleEndian = hexToBytes(senderDisplayHex).reverse();
+  const script = Uint8Array.from([
+    NEOVM_ABORT,
+    ...emitDataPush(senderLittleEndian),
+    ...emitChecksumPush(input.nefChecksum),
+    ...emitDataPush(new TextEncoder().encode(name)),
+  ]);
+  const hashLittleEndian = ripemd160(sha256(script));
+  return `0x${bytesToHex(Uint8Array.from(hashLittleEndian).reverse())}`;
+}
+
 export function generateAASessionKeyPair(): { privateKey: string; publicKey: string } {
   const privateKey = p256.utils.randomPrivateKey();
   const publicKey = p256.getPublicKey(privateKey, true);
