@@ -144,6 +144,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
     && ["dealt", "committed", "unknown"].includes(gameStatus);
   const mode           = str("mode", "guest");
   const isGuest        = mode === "guest";
+  // Fleet pool gate on the accessible start path: a paid run must never open
+  // while the reward pool cannot cover the selected lane's payout. Guest (free
+  // local) play has no reward pool and stays exempt. Mirrors the canvas gate
+  // (AimMasterScene.selectedPoolIsReady) so keyboard users cannot bypass it.
+  const poolFree       = val<number>("poolFree", 0) ?? 0;
+  const startPoolReady = isGuest
+    || poolFree >= Number(gasDisplay(ruleOf(selectedDifficulty).rewardFixed8));
 
   useEffect(() => {
     if (!["dealt", "committed", "unknown"].includes(gameStatus) || deadline <= 0) {
@@ -396,10 +403,13 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
                   <button
                     type="button"
                     className="aim-a11y-hit aim-a11y-start"
-                    aria-label={`${t("startAction")}: ${difficultyOptions[selectedDifficulty]?.label ?? ""}`}
+                    aria-label={startPoolReady
+                      ? `${t("startAction")}: ${difficultyOptions[selectedDifficulty]?.label ?? ""}`
+                      : t("scenePoolNeedsGas")}
+                    disabled={!startPoolReady}
                     onClick={() => void dispatch("startGame", { difficulty: selectedDifficulty })}
                   >
-                    <span>{t("startAction")}</span>
+                    <span>{startPoolReady ? t("startAction") : t("scenePoolNeedsGas")}</span>
                   </button>
                 </>
               )}

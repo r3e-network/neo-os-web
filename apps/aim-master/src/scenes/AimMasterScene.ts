@@ -625,6 +625,11 @@ export class AimMasterScene extends BaseScene {
     this.bindGameButton(this.lobbyStartBtnBg, {
       targets: this.lobbyStartBtnBg,
       pressScale: 0.96,
+      // Fleet pool gate: even if a press lands before syncLobbyCards toggles
+      // interactivity, never dispatch a paid start the pool cannot pay out.
+      // selectedPoolIsReady() exempts guest (free local) play.
+      enabled: () => !this.bool("isStarting")
+        && this.selectedPoolIsReady(this.num("poolFree", 0)),
       onPress: () => this.dispatch("startGame", { difficulty: this.selectedDifficulty }),
     });
     this.lobbyStartBtnBg.on("pointerover", () => this.drawLobbyStartButton(false, true));
