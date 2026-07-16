@@ -8,7 +8,7 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-import { useStateBindings } from "@shared/react";
+import { useNowMs, useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2/PlayStage";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
@@ -40,7 +40,6 @@ const DIFFICULTY_SHORT_KEYS = ["diffEasyShort", "diffMediumShort", "diffHardShor
 export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, val, num } = useStateBindings(state);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [clockNow, setClockNow] = useState(() => Date.now());
   const drawerRef = useRef<HTMLElement>(null);
   const drawerToggleRef = useRef<HTMLButtonElement>(null);
   const controlPressedRef = useRef(false);
@@ -77,17 +76,14 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isGuest = appMode === "guest";
 
   const rule = ruleOf(gameDifficulty);
+  const clockNow = useNowMs(1000, {
+    enabled: gameStatus === "dealt",
+    resetKey: deadline,
+  });
   const remainMs = deadline > 0 ? Math.max(0, deadline - clockNow) : 0;
   const timeUp = gameStatus === "dealt" && deadline > 0 && remainMs <= 0;
   const busy = isStarting || isDealing || isSubmitting || isRecovering;
   const canControl = gameStatus === "dealt" && !timeUp && !runDone && !inputSyncFailed;
-
-  useEffect(() => {
-    if (gameStatus !== "dealt") return;
-    setClockNow(Date.now());
-    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [deadline, gameStatus]);
 
   useEffect(() => {
     if (!drawerOpen) return;

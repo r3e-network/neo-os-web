@@ -14,6 +14,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { ObservableState } from "@shared/react/context";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import {
   OpenUiLiteNotice as OpenUiNotice,
@@ -151,7 +152,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     recoveredForm.claim || DEFAULT_FORM.claim,
     CONSOLE_FIELD_LIMITS.claim,
   ));
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNowMs(30_000);
   const hydratedRecoveryRef = useRef("");
   const discardedDraftRef = useRef("");
   const expiredEvidenceRef = useRef("");
@@ -187,11 +188,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       CONSOLE_FIELD_LIMITS.claim,
     ));
   }, [recoveredForm.claim, recoveredForm.did, recoveredForm.provider]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (!evidenceExpired || !evidence) {

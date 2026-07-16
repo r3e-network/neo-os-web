@@ -405,7 +405,8 @@ describe("jump-rush Phaser playarea", () => {
     expect(wrapper).not.toContain("primaryAction");
     expect(wrapper).not.toContain("secondaryActions");
     expect(wrapper).toContain("jr-a11y-layer");
-    expect(wrapper).toContain("setInterval");
+    // The countdown clock lives in the shared useNowMs hook now.
+    expect(wrapper).toContain("useNowMs(");
     expect(wrapper).toContain("a11yChargeLevel");
     expect(wrapper).toContain("handleDrawerKeyDown");
     expect(wrapper).toContain("interactionPaused");

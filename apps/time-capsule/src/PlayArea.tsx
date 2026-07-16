@@ -17,6 +17,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { CoinArt } from "@shared/art";
@@ -138,7 +139,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     normalizeCapsuleForm(state.newCapsule?.get()),
   );
   const [drawerMode, setDrawerMode] = useState<DrawerMode>("settings");
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNowMs(60_000);
 
   useEffect(() => {
     const unsubscribe = state.newCapsule?.subscribe(() => {
@@ -147,11 +148,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     });
     return () => unsubscribe?.();
   }, [state]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     state.newCapsule?.set(form);

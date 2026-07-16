@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
+import { useNowMs } from "@shared/react/hooks/useNowMs";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { ObservableState } from "@shared/react/context";
 import { CoinArt } from "@shared/art/CoinArt";
@@ -115,7 +116,7 @@ export default function PlayArea({ t, state, dispatch, launchContext }: P) {
   const [amountTouched, setAmountTouched] = useState(false);
   const [recipientTouched, setRecipientTouched] = useState(false);
   const [sourceTxTouched, setSourceTxTouched] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNowMs(30_000);
   const hydratedHandoffRef = useRef("");
   const discardingHandoffRef = useRef(false);
 
@@ -191,11 +192,6 @@ export default function PlayArea({ t, state, dispatch, launchContext }: P) {
   const prepared = handoffMatchesDraft && !handoffExpired;
   const expiredCurrentHandoff = handoffMatchesDraft && handoffExpired;
   const preparedRequestId = prepared ? activeHandoff?.requestId ?? "" : "";
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     if (!activeHandoff) return;
