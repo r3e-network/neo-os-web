@@ -70,6 +70,16 @@ export interface UseGraveyardOptions {
 
 export type ComposeMode = "hash" | "write" | "file";
 
+/**
+ * Phase of the wallet-scoped burial read.
+ * - `loading`         — a read is in flight; nothing is known yet.
+ * - `awaiting-wallet` — no wallet, so there is no owner to scope a read to.
+ *                       A settled fact, not a pending read.
+ * - `ready`           — the count came back and is real (zero included).
+ * - `error`           — the read failed; the count is unknown.
+ */
+export type GraveyardReadStatus = "loading" | "awaiting-wallet" | "ready" | "error";
+
 export interface BurialDraftInput {
   composeMode?: unknown;
   memoryText?: unknown;
@@ -292,7 +302,19 @@ const sanitizeRecoveryLedger = (value: unknown): PrepaidRecoveryLedger => {
 // ============================================================================
 
 export function useGraveyard({ app, t }: UseGraveyardOptions) {
-  const totalDestroyed = createObservable(0);
+  /**
+   * Which phase the wallet-scoped burial read is in. This app previously had no
+   * such signal, so absence and zero were the same value — `totalDestroyed`
+   * rested at `0` and the chrome published "Total destroyed 0", a count
+   * asserting this wallet has destroyed nothing, before any read had run.
+   *
+   * A count is a claim. These four states keep the claim honest, and let the
+   * settled ones stay real values rather than borrowing pending copy.
+   */
+  const historyStatus = createObservable<GraveyardReadStatus>("loading");
+  // `undefined`, not 0: nothing has been read yet. A SETTLED count of zero is a
+  // real reading (a wallet that has buried nothing) and must survive.
+  const totalDestroyed = createObservable<number | undefined>(undefined);
   // Total burial fees PAID across this wallet's burials, in GAS (display:
   // "Burial Fees"). Fees are spent, not reclaimed. This is an ESTIMATE: the
   // contract stores no per-burial fee history, so it is count × the CURRENT
@@ -545,11 +567,40 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   // "Burial Fees" total. The contract keeps no per-burial fee history, so this
   // is an ESTIMATE (count × current buryFee) — prefix "~" so it never reads as
   // an exact, authoritative lifetime figure.
+  /**
+   * Maps the read phase onto what the chrome can truthfully say. Only the
+   * unread state is `undefined` (the manifest binding's `pendingKey` speaks for
+   * it); "Connect wallet" and "N/A" are settled facts and so are real values.
+   * Returns `null` when the caller should use its own settled reading.
+   */
+  const settledFactOr = (): string | undefined | null => {
+    const status = historyStatus.get();
+    if (status === "awaiting-wallet") return t("connectWallet");
+    if (status === "error") return t("notAvailable");
+    if (status === "loading") return undefined;
+    return null; // ready — the caller's real reading stands
+  };
+
+  const totalDestroyedDisplay = createDerived(() => {
+    const fact = settledFactOr();
+    return fact === null ? totalDestroyed.get() : fact;
+  }, [totalDestroyed, historyStatus]);
+
   const gasReclaimedDisplay = createDerived(
-    () => (burialFeesPaid.get() > 0 ? `~${burialFeesPaid.get()} ${t("tokenGas")}` : `0 ${t("tokenGas")}`),
-    [burialFeesPaid],
+    () => {
+      const fact = settledFactOr();
+      if (fact !== null) return fact;
+      return burialFeesPaid.get() > 0 ? `~${burialFeesPaid.get()} ${t("tokenGas")}` : `0 ${t("tokenGas")}`;
+    },
+    [burialFeesPaid, historyStatus],
   );
   const historyCount = createDerived(() => history.get().length, [history]);
+  // The chrome's read-out of the same count. `historyCount` stays a plain number
+  // for the PlayArea's arithmetic; this one can also say why it has no number.
+  const historyCountDisplay = createDerived(() => {
+    const fact = settledFactOr();
+    return fact === null ? history.get().length : fact;
+  }, [history, historyStatus]);
   // Per-burial fee shown on the review panel, derived live from the on-chain
   // buryFee so a contract fee change can't leave a stale value on the paid
   // confirmation surface.
@@ -566,7 +617,9 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
   // True when the on-chain burial count exceeds the rows actually shown, so the
   // UI can footnote that the records list is truncated.
   const historyTruncated = createDerived(
-    () => totalDestroyed.get() > history.get().length,
+    // An unread count cannot prove the list is truncated; `undefined ?? 0`
+    // keeps this false until a real count says otherwise.
+    () => (totalDestroyed.get() ?? 0) > history.get().length,
     [totalDestroyed, history],
   );
 
@@ -1012,8 +1065,11 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     if (!addr) {
       lastHistoryOwner = "";
       history.set([]);
-      totalDestroyed.set(0);
+      // Not zero: with no wallet there is no owner to scope a read to, so the
+      // count is unknown rather than empty.
+      totalDestroyed.set(undefined);
       burialFeesPaid.set(0);
+      historyStatus.set("awaiting-wallet");
       return;
     }
     if (lastHistoryOwner !== addr) {
@@ -1021,9 +1077,10 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
       // reads are loading or failing.
       lastHistoryOwner = addr;
       history.set([]);
-      totalDestroyed.set(0);
+      totalDestroyed.set(undefined);
       burialFeesPaid.set(0);
     }
+    historyStatus.set("loading");
     const ownerHash = addressToScriptHash(addr);
 
     try {
@@ -1036,8 +1093,12 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
       burialFeesPaid.set(
         Number(formatGasAmount(buryFee.get() * BigInt(Math.max(0, userCount)))),
       );
+      historyStatus.set("ready");
     } catch (e) {
       warnIfUnexpectedReadFailure("[useGraveyard] getUserMemoryCount failed:", e);
+      // The read came back broken, so the count stays unknown — it must not
+      // fall back to a zero that claims this wallet has destroyed nothing.
+      historyStatus.set("error");
     }
 
     try {
@@ -1478,6 +1539,7 @@ export function useGraveyard({ app, t }: UseGraveyardOptions) {
     forgetRecoveryMemoryId, epitaphRecoveryPhase, epitaphRecoveryMemoryId,
     epitaphRecoveryTxid,
     memoryTypeOptions, gasReclaimedDisplay, burialFeeDisplay, historyCount,
+    historyStatus, totalDestroyedDisplay, historyCountDisplay,
     // Compose source (write/file/hash) + local SHA-256 processing
     composeMode, memoryText, setComposeMode, setMemoryText, hashMemoryFile,
     // Forget confirmation + fee

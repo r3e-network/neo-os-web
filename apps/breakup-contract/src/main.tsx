@@ -105,6 +105,13 @@ defineMiniApp({
         activeCount: breakup.activeCount,
         pendingCount: breakup.pendingCount,
         brokenCount: breakup.brokenCount,
+        // Chrome read-outs: the same counts, able to say why they have no
+        // number yet instead of publishing a fabricated 0. See manifest.ts.
+        contractsStatus: breakup.contractsStatus,
+        contractCountDisplay: breakup.contractCountDisplay,
+        activeCountDisplay: breakup.activeCountDisplay,
+        pendingCountDisplay: breakup.pendingCountDisplay,
+        brokenCountDisplay: breakup.brokenCountDisplay,
         isLoading: breakup.isLoading,
         actionPhase: breakup.actionPhase,
         hasPendingAction: breakup.hasPendingAction,

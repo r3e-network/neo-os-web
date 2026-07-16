@@ -144,9 +144,18 @@ export default function PlayArea({ t, state, dispatch, launchContext, setStatus 
   const confirmationChecking = bool("confirmationChecking");
   const settlementStatus = str("settlementStatus", "idle");
   const settlementMessage = str("settlementMessage");
+  // These read-outs hold `undefined` until the watchlist sweep lands (see
+  // main.tsx). The token chips render their value unconditionally, so they take
+  // the same "Reading…" copy the chrome's manifest bindings declare — a chip
+  // reading "NEO —" claims a balance was read and found absent.
+  //
+  // `totalUsdDisplay` deliberately takes NO fallback: the gauge below switches
+  // on whether it holds a value, and an empty string routes it to the honest
+  // "Live balance status · NEO / GAS" label rather than captioning the pending
+  // copy as an "Estimated watchlist value".
   const totalUsdDisplay = str("totalUsdDisplay");
-  const totalNeoDisplay = str("totalNeoDisplay");
-  const totalGasDisplay = str("totalGasDisplay");
+  const totalNeoDisplay = str("totalNeoDisplay", t("treasuryStatAwaitingRead"));
+  const totalGasDisplay = str("totalGasDisplay", t("treasuryStatAwaitingRead"));
 
   const hasLiveData = Boolean(data);
   const isBalanceStale = hasLiveData && stale;

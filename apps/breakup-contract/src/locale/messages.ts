@@ -37,6 +37,14 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   termsPlaceholder: { en: "Optional terms (max 2000 chars)", zh: "可选条款（最多2000字符）" },
   contractTermsPlaceholder: { en: "Optional notes, expectations, and exit rules", zh: "可选备注、约定和退出规则" },
   connectWallet: { en: "Connect wallet to sign", zh: "连接钱包以签名" },
+  // Shown by the shell chrome while the wallet-scoped contract read is in
+  // flight. Manifest bindings are string-valued, so the chrome cannot show a
+  // skeleton — the pending phase reaches it as words. See manifest.ts.
+  breakupReading: { en: "Reading…", zh: "读取中…" },
+  // The settled no-wallet state for those same read-outs. `connectWallet` above
+  // is the signing CTA ("Connect wallet to sign"); these tiles are reporting a
+  // count, not asking for a signature.
+  breakupAwaitingWallet: { en: "Connect wallet", zh: "连接钱包" },
   partnerRequired: { en: "Partner address is required", zh: "需要填写伴侣地址" },
   partnerInvalid: { en: "Invalid partner address", zh: "伴侣地址无效" },
   stakeRequired: { en: "Stake amount is required", zh: "需要填写质押金额" },

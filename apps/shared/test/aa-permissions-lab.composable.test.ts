@@ -184,7 +184,14 @@ describe("AA Permissions composable", () => {
     harness.faultedReads.add("getHook");
     await expect(lab.refreshState()).rejects.toThrow("permissionReadInvalid:hook");
     expect(lab.permissionSnapshot.get()).toBeNull();
-    expect(lab.currentVerifier.get()).toBe("");
+    // Intent unchanged: a later read failure must clear the snapshot rather
+    // than leave a stale binding on screen. It previously asserted "" because
+    // that was the cleared value — but "" is what `parsePermissionHash` returns
+    // for the zero hash, i.e. the real reading "nothing is bound to this lane".
+    // Using it as the cleared value made a failed read indistinguishable from a
+    // successful read of an unbound account. Cleared is now `undefined`
+    // (nothing has been read), which is what this asserts.
+    expect(lab.currentVerifier.get()).toBeUndefined();
     expect(lab.hasInspected.get()).toBe(false);
   });
 

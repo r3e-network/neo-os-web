@@ -18,25 +18,26 @@ export const manifest: MiniAppManifest = {
   ],
 
   // These bind straight into shell chrome that MiniAppRoot renders with no
-  // loading gate, so they must point at the `*StatDisplay` read-outs, never at
-  // the PlayArea's raw pair. The raw ones fall back to "—" (and `founderCount`
-  // to a fabricated `0`) while the watchlist read is in flight — honest only
-  // because the PlayArea pairs them with its own "Reading public chain data"
-  // shimmer, which the chrome has no way to show. See main.tsx.
+  // loading gate of its own, so each one declares `pendingKey`: while the
+  // watchlist read is in flight the bound observable holds `undefined`, and the
+  // chrome says "Reading…" instead of formatting the void into a dash — or, for
+  // `founderCount`, into a fabricated `0` asserting this watchlist tracks
+  // nobody. The PlayArea shows its own richer gating for the same phase.
+  // See main.tsx.
   stats: [
-    { labelKey: "sidebarTotalUsd", valueKey: "totalUsdStatDisplay", format: "text", variant: "success", icon: "dollar-sign" },
-    { labelKey: "sidebarTotalNeo", valueKey: "totalNeoStatDisplay", format: "text", icon: "circle" },
-    { labelKey: "sidebarTotalGas", valueKey: "totalGasStatDisplay", format: "text", icon: "zap" },
-    { labelKey: "sidebarFounders", valueKey: "founderCountStatDisplay", format: "text", icon: "users" },
+    { labelKey: "sidebarTotalUsd", valueKey: "totalUsdDisplay", format: "text", variant: "success", icon: "dollar-sign", pendingKey: "treasuryStatAwaitingRead" },
+    { labelKey: "sidebarTotalNeo", valueKey: "totalNeoDisplay", format: "text", icon: "circle", pendingKey: "treasuryStatAwaitingRead" },
+    { labelKey: "sidebarTotalGas", valueKey: "totalGasDisplay", format: "text", icon: "zap", pendingKey: "treasuryStatAwaitingRead" },
+    { labelKey: "sidebarFounders", valueKey: "founderCount", format: "number", icon: "users", pendingKey: "treasuryStatAwaitingRead" },
   ],
 
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "sidebarTotalUsd", valueKey: "totalUsdStatDisplay", format: "text" },
-      { labelKey: "sidebarTotalNeo", valueKey: "totalNeoStatDisplay", format: "text" },
-      { labelKey: "sidebarTotalGas", valueKey: "totalGasStatDisplay", format: "text" },
-      { labelKey: "sidebarFounders", valueKey: "founderCountStatDisplay", format: "text" },
+      { labelKey: "sidebarTotalUsd", valueKey: "totalUsdDisplay", format: "text", pendingKey: "treasuryStatAwaitingRead" },
+      { labelKey: "sidebarTotalNeo", valueKey: "totalNeoDisplay", format: "text", pendingKey: "treasuryStatAwaitingRead" },
+      { labelKey: "sidebarTotalGas", valueKey: "totalGasDisplay", format: "text", pendingKey: "treasuryStatAwaitingRead" },
+      { labelKey: "sidebarFounders", valueKey: "founderCount", format: "number", pendingKey: "treasuryStatAwaitingRead" },
     ],
   },
 

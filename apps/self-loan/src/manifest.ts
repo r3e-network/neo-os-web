@@ -24,18 +24,31 @@ export const manifest: MiniAppManifest = {
   stats: [
     { labelKey: "borrowed", valueKey: "borrowedDisplay", format: "gas", variant: "accent", icon: "trending-up" },
     { labelKey: "collateralLocked", valueKey: "collateralDisplay", format: "text", icon: "lock" },
-    { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text", icon: "shield" },
-    { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text", icon: "percent" },
+    { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text", icon: "shield", pendingKey: "selfLoanReading" },
+    { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text", icon: "percent", pendingKey: "selfLoanReading" },
   ],
 
   // ── Sidebar ───────────────────────────────────────────────────────────
+  // The chrome renders these with no loading gate of its own, so every binding
+  // whose value comes from a chain read declares `pendingKey`: until getLoan /
+  // the balance read settles the bound observable holds `undefined` and the
+  // chrome says "Reading…" instead of answering.
+  //
+  // `hasLoanDisplay` is why this matters most: it used to answer straight off
+  // the resting `{ active: false }` position and tell a borrower "No" — a
+  // confident negative about their own loan, published before the read that
+  // could contradict it. It now says nothing until it knows.
+  //
+  // "Connect wallet" and "N/A" are NOT pending copy: they are settled facts the
+  // observables report as real values. `custodyValue` holds a constant and is
+  // never unread.
   sidebar: {
     titleKey: "title",
     items: [
-      { labelKey: "sidebarHasLoan", valueKey: "hasLoanDisplay", format: "text" },
-      { labelKey: "sidebarNeoBalance", valueKey: "neoBalanceDisplay", format: "number" },
-      { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text" },
-      { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text" },
+      { labelKey: "sidebarHasLoan", valueKey: "hasLoanDisplay", format: "text", pendingKey: "selfLoanReading" },
+      { labelKey: "sidebarNeoBalance", valueKey: "neoBalanceDisplay", format: "number", pendingKey: "selfLoanReading" },
+      { labelKey: "coverageRatio", valueKey: "coverageRatioDisplay", format: "text", pendingKey: "selfLoanReading" },
+      { labelKey: "currentLTV", valueKey: "currentLTVDisplay", format: "text", pendingKey: "selfLoanReading" },
       { labelKey: "custodyStatus", valueKey: "custodyValue", format: "text" },
     ],
   },
