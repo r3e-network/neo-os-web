@@ -24,6 +24,7 @@ import {
 } from "./engine-2048";
 import type { MoveTransition } from "./engine-2048";
 import { MAX_MOVES, MAX_UNDOS, ruleOf } from "./game-rules";
+import { clampDifficulty } from "@framework/game-rules";
 import { applyStepWithTransition, buildRun, trimLastMove } from "./run-store";
 import type { LiveRun, TeeSpawn } from "./run-store";
 import type { Observable as Obs } from "@framework/reactive";
@@ -116,10 +117,6 @@ function validGuestHistory(value: unknown): SolveRow[] {
       won: row.won === true,
     } satisfies SolveRow];
   }).slice(0, 20);
-}
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
 /** Uniform integer in [0, maxExclusive). Local fairness fails closed without Web Crypto. */

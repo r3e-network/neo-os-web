@@ -1,13 +1,15 @@
 /**
  * Game rules constants for Color Clash (Simon Says).
  */
+import { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
+
 export const ENTRY_MEMO = "miniapp-color-clash:entry";
 export const FUND_MEMO = "miniapp-color-clash:fund";
 export const MAX_UNDOS = 3;
 export const UNDO_PENALTY_PCT = 30;
 export const BEACON_BLOCKS = 1;
 /** Must match MiniAppColorClash.SETTLE_GRACE_MS; refreshed from getConfig in GameFi mode. */
-export const SETTLEMENT_GRACE_MS = 600_000;
+export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules";
 
 export interface DifficultyRule {
   difficulty: number;

@@ -17,6 +17,7 @@
  */
 import type { GameSessionObservables, LeaderEntry, SolveRow } from "@framework/game";
 import { emptyBoard, guestRuleOf } from "./game-rules";
+import { clampDifficulty } from "@framework/game-rules";
 import {
   applyMergeMove,
   emptyCells,
@@ -89,10 +90,6 @@ interface PersistedGuestRun {
 }
 
 type RestoreResult = "active" | "expired" | false;
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
-}
 
 function nonNegativeInt(value: unknown, fallback = 0): number {
   const parsed = Number(value);

@@ -37,19 +37,9 @@ import {
 } from "./sheep-engine";
 import type { BoardZone, CardData } from "./sheep-engine";
 import { MATCH_COUNT, MAX_SLOTS, ruleOf } from "./game-rules";
-
-/** Structural (method-syntax, so bivariant) observable handle. */
-interface Obs<T> {
-  get(): T;
-  set(value: T): void;
-  subscribe(listener: () => void): () => void;
-}
-
-/** Off-chain guest leaderboard surface (app.mode.guestLeaderboard). */
-interface GuestLeaderboardApi {
-  submit(score: number | string): Promise<void>;
-  get(limit?: number): Promise<Array<{ user: string; score: string }>>;
-}
+import { clampDifficulty } from "@framework/game-rules";
+import type { Observable as Obs } from "@framework/reactive";
+import type { FrameworkGuestLeaderboard as GuestLeaderboardApi } from "@framework/types";
 
 /** Card as the scene reads it (bridgeState `pileCards` / `slotCards`). */
 interface CardView {
@@ -257,10 +247,6 @@ interface SavedGuestProfile {
   version: 1;
   bestCleared: number;
   solves: number;
-}
-
-function clampDifficulty(value: number): number {
-  return Math.max(0, Math.min(2, Number.isFinite(value) ? Math.round(value) : 0));
 }
 
 /** Web-Crypto seed for the local practice board. Never downgrade to Math.random. */

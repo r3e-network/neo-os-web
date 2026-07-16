@@ -468,7 +468,11 @@ describe("pet-potion Phaser playarea", () => {
     expect(main).toContain("await app.chain.waitForState(");
     expect(main).toContain(`app.chain.readRaw("getGame", [app.chain.arg.integer(row.gameId)])`);
     expect(main).not.toContain(`settled.status === "unknown" ? "solved"`);
-    expect(rules).toContain("SETTLEMENT_GRACE_MS = 600_000");
+    // Client grace must mirror the contract window: the app re-exports the
+    // fleet-standard framework constant (600_000ms) instead of a local copy.
+    expect(rules).toContain(
+      `export { DEFAULT_SETTLEMENT_GRACE_MS as SETTLEMENT_GRACE_MS } from "@framework/game-rules"`,
+    );
     expect(rules).toContain("nowMs > deadline + SETTLEMENT_GRACE_MS");
     expect(styles).toContain(".pp-stage-shell");
     expect(styles).toContain(".pp-stage-hud");
