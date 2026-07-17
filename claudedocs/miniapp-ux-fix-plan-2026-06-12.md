@@ -1,6 +1,6 @@
 # Miniapp UX/Workflow Fix Plan — 2026-06-12
 
-Input: `claudedocs/miniapp-ux-review-2026-06-12.json` (67 reports: 60 apps + 6 OS sections + cross-app sweep; 407 findings; 107 broken/unreachable journeys, 41 partial).
+Input: `claudedocs/archive/miniapp-ux-review-2026-06-12.json` (67 reports: 60 apps + 6 OS sections + cross-app sweep; 407 findings; 107 broken/unreachable journeys, 41 partial).
 
 ## Execution phases
 
