@@ -215,3 +215,6 @@ docs/reports/multi-user-sim/
 /drafts/
 /generated-images/
 /design-qa.md
+
+# Visual-QA screenshots live on disk but are not versioned (owner decision 2026-07-17)
+docs/reports/**/*.png
