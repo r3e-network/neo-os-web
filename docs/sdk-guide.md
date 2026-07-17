@@ -11,10 +11,10 @@ Deeper references:
 
 - `framework/types.ts` — the explicit `MiniAppFramework` interface. Every
   member is JSDoc'd; hover docs in your editor are authoritative.
-- `claudedocs/framework-evolution-rfc.md` — why each surface exists and the
+- `docs/framework-evolution-rfc.md` — why each surface exists and the
   back-compat law (additive only; nothing is ever removed, only deprecated).
 - `claudedocs/guest-mode-adoption.md` — the two-mode (guest/gamefi) contract.
-- `claudedocs/credit-system-design.md` — the platform credits architecture.
+- `docs/credit-system-design.md` — the platform credits architecture.
 
 Trust model, unchanged: miniapps never construct or sign Neo transactions
 directly. All sensitive actions flow through the host SDK and framework:
@@ -629,7 +629,7 @@ namespace, never mixed with on-chain boards.
 
 ### Recipe: credits lane
 
-Architecture: `claudedocs/credit-system-design.md`. Games consume the shared
+Architecture: `docs/credit-system-design.md`. Games consume the shared
 glue, not `app.credits` directly:
 
 ```ts

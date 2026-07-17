@@ -85,6 +85,6 @@ cd framework && npx vitest run   # unit suite (all surfaces)
 npx tsc --noEmit                 # type check
 ```
 
-Design and rationale docs: `claudedocs/framework-evolution-rfc.md` (surface
+Design and rationale docs: `docs/framework-evolution-rfc.md` (surface
 evolution + census), `claudedocs/guest-mode-adoption.md` (two-mode contract),
-`claudedocs/credit-system-design.md` (credits architecture).
+`docs/credit-system-design.md` (credits architecture).
