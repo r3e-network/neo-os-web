@@ -206,3 +206,12 @@ apps/*/dist-device-qa/
 docs/reports/multi-user-sim/
 .vercel
 .gstack/
+
+# Local scratch dirs and generated/AI output (repo hygiene, 2026-07-17)
+.turbo/
+/tmp/
+/scripts_tmp/
+/scripts_local/
+/drafts/
+/generated-images/
+/design-qa.md
