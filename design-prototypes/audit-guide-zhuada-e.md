@@ -11,7 +11,7 @@
 | 类别 | 路径 |
 |------|------|
 | GDD | `design-prototypes/gdd-zhuada-e.md`（v2.3，含 changelog） |
-| 总览 | `overview.md` |
+| 总览 | `docs/archive/overview.md` |
 | 逻辑 | `apps/zhuada-e/src/logic/{engine-zhuada,game-rules,guest-engine,sound}.ts` |
 | 场景 | `apps/zhuada-e/src/scenes/{ZhuaDaScene,models}.ts` |
 | 外壳 | `apps/zhuada-e/src/{PlayArea,main,ThreeGameComponent}.{tsx,ts}` + `PlayArea.scss` |
