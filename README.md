@@ -34,10 +34,10 @@ This repository should be treated as:
 
 - the MiniApp host application
 - the admin console
-- **4 partial platform domain contracts** (PlatformAnchor, PlatformDeFi, PlatformGame, PlatformSocial)
+- **7 platform contracts** under `contracts/platform/` (PlatformAnchor, PlatformDeFi, PlatformGame, PlatformSocial, PlatformRegistry, AppAccount, MiniAppFactory)
+- **34 legacy per-app `MiniApp*` contracts** plus the source-shared `MiniApp.DevPack` base, pending absorption into the Platform Contract Library v2 engine estate
 - **42 OS Binder edge functions** for secure service access
 - **9 typed frontend OS proxy classes** with EdgeClient transport
-- platform infrastructure contracts (AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor)
 - Supabase edge gateway functions
 - deployment and validation scripts
 - the integration surface for external Oracle / AA systems
@@ -50,10 +50,10 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **Platform domain contracts** (MiniApp-OS v2): partial C# contracts split by anchor, DeFi, game, and social domains. MiniApps call `ctx.os.<service>()` through platform proxies for storage, payment, game, badge, checkin, leaderboard, escrow, NFT, vesting, and custom script execution.
+- **Platform domain contracts** (MiniApp-OS v2): partial C# contracts split by anchor, DeFi, game, and social domains. MiniApps call `ctx.os.<service>()` through platform proxies for storage, payment, game, badge, checkin, leaderboard, escrow, NFT, and vesting.
 - **OS Binder edge layer**: 42 `os-*` Supabase Edge functions enforcing auth, permissions, and rate limits before forwarding to domain contracts or returning wallet intents.
 - **Typed frontend proxies**: 9 OS proxy classes in `apps/shared/services/os/` with `EdgeClient` transport.
-- **Platform infrastructure contracts**: AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor, PauseRegistry.
+- **Platform contract suite**: 7 contracts under `contracts/platform/` (anchor, DeFi, game, social, registry, AppAccount, factory) plus 34 legacy per-app `MiniApp*` contracts pending absorption into the Platform Contract Library v2 engine estate (see `docs/platform-contract-library-v2.md`).
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **SaaS integrations**: Sentry (error tracking), PostHog (product analytics), Supabase Realtime (live notifications).
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
@@ -65,11 +65,11 @@ The platform does **not** embed the Morpheus Oracle runtime or the AA runtime an
 
 | Capability | Source of truth | Platform integration path |
 | ---------- | --------------- | ------------------------- |
-| Oracle / custom fetch | `neo-morpheus-oracle` | `oracle-query` edge function |
-| DataFeed | `neo-morpheus-oracle` | `datafeed-price`, on-chain `PriceFeed`, shared config |
-| VRF / randomness | `neo-morpheus-oracle` | `rng-request` |
-| Compute / TEE | `neo-morpheus-oracle` | `compute-execute`, `compute-app-execute` |
-| Paymaster / sponsorship | `neo-morpheus-oracle` | GAS sponsor gateway plus AA relay paymaster metadata |
+| Oracle / custom fetch | `neo-morpheus-oracle` | host-side `/api/morpheus/oracle/*` proxy + shared `useOracle()` |
+| DataFeed | `neo-morpheus-oracle` | host-side `/api/morpheus/*` proxy, on-chain DataFeed contract (external), shared config |
+| VRF / randomness | `neo-morpheus-oracle` | host-side `/api/morpheus/vrf/*` proxy |
+| Compute / TEE | `neo-morpheus-oracle` | host-side `/api/morpheus/*` proxy |
+| Paymaster / sponsorship | `neo-morpheus-oracle` | `gas-sponsor-check` / `gas-sponsor-request` edge functions plus AA relay paymaster metadata |
 | NeoDID public resolution / providers | `neo-morpheus-oracle` | host-side `/api/morpheus/neodid/*` proxy + shared `useOracle()` |
 | AA core / verifiers / relay | `neo-abstract-account` | host `AA_RELAY_URL`, shared `useAbstractAccount()`, canonical domains / hashes |
 
@@ -112,7 +112,8 @@ Current flagship payment rule:
                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                              Neo N3 Chain                            │
-│    OS contracts, platform infra, external Oracle / AA contracts      │
+│   platform + legacy MiniApp contracts, external Morpheus kernel,     │
+│   external Oracle / AA contracts                                     │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -185,15 +186,21 @@ Operational alignment now applied on mainnet:
 
 ## Platform Contracts
 
-Current Neo N3 testnet platform contract values from `.env`:
+The on-chain estate is 7 platform contracts under `contracts/platform/` plus 34
+legacy per-app `MiniApp*` contracts in `contracts/` root; see
+[`contracts/README.md`](contracts/README.md) for the full inventory and
+[`docs/platform-contract-library-v2.md`](docs/platform-contract-library-v2.md)
+for the target architecture.
 
-| Contract            | Hash                                         | Description               |
-| ------------------- | -------------------------------------------- | ------------------------- |
-| Governance          | `0x2ec930202e6d03313d97198259b298cc3c29295e` | NEO staking and voting    |
-| PriceFeed           | `0x5284ef25f1bbbf36d139f6f94356e46b89138602` | Oracle price data         |
-| RandomnessLog       | `0xa24f83dcbafff909d4209ac76ca5d09237c0cda6` | VRF attestation anchoring |
-| AppRegistry         | `0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d` | MiniApp registration      |
-| AutomationAnchor    | `0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b` | Periodic task scheduling  |
+Current Neo N3 testnet deployments (2026-07-17):
+
+| Contract         | Hash                                         | Description                                          |
+| ---------------- | -------------------------------------------- | ---------------------------------------------------- |
+| PlatformRegistry | `0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b` | v2 spine: permissionless `registerApp`, AppAccount minting, timelocked engine table |
+| PlatformGame v2  | `0xc75b181b4561462903bb27d8d9e0b32b637bec12` | multi-tenant game engine; bound to the registry, oracle `0x4b882e94ed766807c4fd728768f972e13008ad52`, AA `0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2` |
+
+The registry's AppAccount-artifact and `registerEngine("platform-game")`
+timelocks are pending execution (24h timelock, executable 2026-07-18).
 
 ## MiniApps
 
@@ -346,36 +353,10 @@ See [`.env.example`](.env.example) for complete list.
 > (`CONTRACT_MODULEREGISTRY_HASH`, `CONTRACT_RECIPEREGISTRY_HASH`,
 > `CONTRACT_MINIAPPINSTANCEREGISTRY_HASH`, `CONTRACT_SERVICEGATEWAY_HASH`)
 > are deprecated. They are commented out in `.env.example` with a deprecation
-> notice pointing to the OS service contract hashes above.
-
-Additional platform infrastructure hashes:
-
-- `CONTRACT_FUNDINGVAULT_HASH`
-- `CONTRACT_STREAMVESTING_HASH`
-
-The canonical example registration plan is:
-
-- [`deploy/config/modular-neopay.shared.example.json`](deploy/config/modular-neopay.shared.example.json)
-
-Validate a shared-mode instance plan before using signer funds:
-
-```bash
-go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
-  --plan deploy/config/modular-neopay.shared.example.json \
-  --validate-only
-```
-
-Negative validation sample for recipe/runtime/binding mismatches:
-
-```bash
-go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
-  --plan deploy/config/modular-neopay.shared.bad-plan.example.json \
-  --validate-only
-```
-
-The bad-plan fixture is expected to fail before RPC or signer setup and demonstrates that
-runtime-mode mismatch, recipe-version drift, and wrong/extra module bindings are blocked
-before `--dry-run` or live registration.
+> notice pointing to the OS service contract hashes above. The matching
+> module contracts, example plans, and registration tooling were removed from
+> the repo; `CONTRACT_FUNDINGVAULT_HASH` / `CONTRACT_STREAMVESTING_HASH`
+> remain in `.env.example` as zero-filled legacy slots only.
 
 Run the full live smoke suite with timestamped reports:
 
@@ -414,7 +395,10 @@ flagship admin phase and the selected-user phase.
 │   ├── platform/PlatformDeFi/    # Lending, flashloan, capsule, treasury flows
 │   ├── platform/PlatformGame/    # Dice, flip, gacha, countdown game flows
 │   ├── platform/PlatformSocial/  # Red envelope, trust, vault, social flows
-│   └── ...                       # Focused MiniApp and platform contracts
+│   ├── platform/PlatformRegistry/ + AppAccount/  # v2 spine + per-app treasury NEF
+│   ├── platform/MiniAppFactory/  # Template registry + verified deploys
+│   ├── MiniApp.DevPack/      # Source-shared contract base
+│   └── MiniApp*/             # 34 legacy per-app contracts (pending v2 absorption)
 ├── platform/
 │   ├── host-app/           # Next.js host shell
 │   ├── admin-console/      # Admin UX
@@ -428,7 +412,6 @@ flagship admin phase and the selected-user phase.
 │   │   ├── utils/          # defineMiniApp.ts
 │   │   └── types/          # MiniAppContext, OSServices
 │   └── miniapp-*/          # MiniApp frontends
-├── _archive/               # Deprecated contracts and legacy code
 ├── test/                   # Contract and layering tests
 ├── docs/                   # Current platform docs and runbooks
 └── scripts/                # Build and deploy scripts

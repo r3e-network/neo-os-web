@@ -28,7 +28,9 @@ const NETWORK_DEFAULTS = {
     oracleHash: (
       process.env.MORPHEUS_ORACLE_TESTNET_HASH
       || process.env.CONTRACT_MORPHEUS_ORACLE_HASH
-      || "0x4b882e94ed766807c4fd728768f972e13008ad52"
+      // Canonical testnet kernel per the Morpheus public registry
+      // (0x4b882e… retired as legacy_v1, 2026-07).
+      || "0xf54d8584ef82315c1800373272ab08ae0db2d5ef"
     ).trim(),
     aaCoreHash: (
       process.env.AA_CORE_HASH_TESTNET

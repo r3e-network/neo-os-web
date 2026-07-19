@@ -422,13 +422,13 @@ export function MiniAppHomeShell(props: MiniAppHomeShellProps) {
         }
 
         .n3h-button--primary {
-          background: var(--sd-brand, #16C784);
+          background: var(--sd-brand-strong, #00805E);
           color: #fff;
           box-shadow: 0 8px 20px rgba(22, 199, 132, 0.2);
         }
 
         .n3h-button--primary:hover {
-          background: var(--sd-brand-hover, #0EA371);
+          background: var(--sd-brand-strong-hover, #00735F);
           transform: translateY(-1px);
         }
 

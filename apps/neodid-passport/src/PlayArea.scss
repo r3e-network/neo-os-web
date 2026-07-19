@@ -4,7 +4,7 @@
 
 :root,
 .mx2 {
-  --mx2-brand: #0b8f83;
+  --mx2-brand: #0a857a; /* WCAG AA 4.5:1 with white (was #0b8f83) */
   --mx2-brand-hover: #08756c;
   --mx2-brand-light: #e9f8f5;
   --mx2-brand-subtle: #bce5dd;
@@ -50,7 +50,7 @@
   flex: 0 1 224px;
   width: auto;
   max-width: min(100%, 224px);
-  background: #0b8f83;
+  background: #0a857a; /* WCAG AA 4.5:1 with white (was #0b8f83) */
   box-shadow: 0 9px 22px rgba(11, 143, 131, 0.18);
   white-space: nowrap;
 }
@@ -419,7 +419,7 @@
 }
 
 .did-template-deck small {
-  color: #657b79;
+  color: #607574; /* WCAG AA 4.5:1 on light fills (was #657b79) */
   font-size: 10px;
   font-weight: 570;
   line-height: 1.3;
@@ -501,7 +501,7 @@
 
 .did-assurance__list small {
   overflow: hidden;
-  color: #687d7a;
+  color: #667a77; /* WCAG AA 4.5:1 on #ffffff (was #687d7a) */
   font-size: 10px;
   font-weight: 590;
   text-overflow: ellipsis;

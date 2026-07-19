@@ -1,10 +1,4 @@
 {
-  "hero": {
-    "title": "Neo Miniapps",
-    "subtitle": "小而美的 Neo 小程序，覆盖真实钱包操作场景",
-    "exploreApps": "探索应用",
-    "launchApp": "启动应用"
-  },
   "features": {
     "title": "功能特性",
     "secureCompute": "安全计算",
@@ -151,5 +145,23 @@
       "start": "开始构建",
       "docs": "阅读文档"
     }
+  },
+  "playArea": {
+    "syncing": "同步中",
+    "cachedState": "缓存状态",
+    "liveState": "实时状态",
+    "refresh": "刷新",
+    "technicalDetails": "链上技术详情",
+    "contractLabel": "合约",
+    "additionalMetrics": "更多指标",
+    "metricsDescription": "应用原始计数与诊断读数。",
+    "itemsSuffix": "项",
+    "recentActivity": "最近动态",
+    "contextDiagnostics": "上下文与诊断",
+    "contextDescription": "回执、原始读数与技术上下文默认收起，需要时再展开。",
+    "openInNewWindow": "在新窗口打开",
+    "newWindow": "新窗口",
+    "resultVerifier": "结果验证器",
+    "modeLabel": "模式"
   }
 }

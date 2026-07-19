@@ -1,72 +1,77 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0x39a16708c9057830718cd813956ebc084a8fafa4"
-  },
-  "createdAt": "2026-07-03T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "A polished Flappy-style arcade challenge with real bird and pipe artwork, responsive input, sound, three distinct difficulty curves, and instant free-practice restarts. The wallet-backed reward route is intentionally hidden until Morpheus replay cadence and deployed settlement timing pass production validation.",
-  "description_zh": "精心打磨的飞鸟街机挑战，拥有真实小鸟与管道资源、灵敏操作、音效、三档不同难度曲线和即时重开的免费练习。钱包奖励路线将在 Morpheus 重放节奏与已部署结算计时通过生产验证后开放。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://flappy-dash",
-    "offlineSupport": false,
-    "stateless": false
-  },
-  "id": "miniapp-flappy-dash",
-  "name": "Flappy Dash",
-  "name_zh": "飞鸟冲刺",
-  "operation_panel": {
-    "operations": [],
-    "subtitle": "Launch the arcade surface to choose a route and play. Free practice never opens a wallet prompt or writes to chain.",
-    "title": "Flappy Dash"
-  },
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "flappy",
-    "bird",
-    "arcade",
-    "leaderboard",
-    "gas",
-    "game",
-    "tee"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A polished Flappy-style arcade challenge with real bird and pipe artwork, responsive input, sound, three distinct difficulty curves, and instant free-practice restarts. The wallet-backed reward route is intentionally hidden until Morpheus replay cadence and deployed settlement timing pass production validation.",
+    "description_zh": "精心打磨的飞鸟街机挑战，拥有真实小鸟与管道资源、灵敏操作、音效、三档不同难度曲线和即时重开的免费练习。钱包奖励路线将在 Morpheus 重放节奏与已部署结算计时通过生产验证后开放。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and the real input replay cadence completes an end-to-end settlement.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://flappy-dash",
+        "offlineSupport": false,
+        "stateless": false
     },
-    "tee": {
-      "enabled": false,
-      "description": "Free practice is local and makes no TEE request. Morpheus replay remains a gated future lane until production validation is complete."
-    }
-  },
-  "updatedAt": "2026-07-10T00:00:00Z",
-  "urls": {
-    "banner": "/miniapps/flappy-dash/banner.webp",
-    "entry": "/miniapps/flappy-dash/index.html",
-    "icon": "/miniapps/flappy-dash/logo.webp"
-  },
-  "version": "1.0.0"
+    "id": "miniapp-flappy-dash",
+    "name": "Flappy Dash",
+    "name_zh": "飞鸟冲刺",
+    "operation_panel": {
+        "operations": [],
+        "subtitle": "Launch the arcade surface to choose a route and play. Free practice never opens a wallet prompt or writes to chain.",
+        "title": "Flappy Dash"
+    },
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "flappy",
+        "bird",
+        "arcade",
+        "leaderboard",
+        "gas",
+        "game",
+        "tee"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and the real input replay cadence completes an end-to-end settlement.",
+            "enabled": false
+        },
+        "tee": {
+            "enabled": false,
+            "description": "Free practice is local and makes no TEE request. Morpheus replay remains a gated future lane until production validation is complete."
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0x39a16708c9057830718cd813956ebc084a8fafa4'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-10T00:00:00Z",
+    "urls": {
+        "banner": "/miniapps/flappy-dash/banner.webp",
+        "entry": "/miniapps/flappy-dash/index.html",
+        "icon": "/miniapps/flappy-dash/logo.webp"
+    },
+    "version": "1.0.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

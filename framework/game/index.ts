@@ -41,3 +41,26 @@ export {
   formatFixed8Gas,
   buildLeaderboard,
 } from "./utils";
+
+// ─── RFC P1-1 guest kit ─────────────────────────────────────────────────────
+export type {
+  GuestLeaderboardAdapter,
+  GuestLeaderboardAdapterOptions,
+  GuestLeaderboardEntry,
+  GuestLeaderboardApi,
+  GuestPersistence,
+  GuestRng,
+  GuestRngCrypto,
+  GuestRngOptions,
+  GuestStorage,
+  Obs,
+} from "./guest-kit";
+
+export {
+  DEFAULT_GUEST_BOARD_LIMIT,
+  clampDifficulty,
+  createGuestLeaderboardAdapter,
+  createGuestPersistence,
+  createGuestRng,
+  guestRowsToLeaderEntries,
+} from "./guest-kit";

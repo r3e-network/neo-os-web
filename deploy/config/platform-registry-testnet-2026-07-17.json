@@ -1,0 +1,32 @@
+{
+  "action": "execute-timelocks",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": true,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "balances": {
+    "gas": "112594.74809099",
+    "neo": "73061"
+  },
+  "transactions": [],
+  "pending_timelocks": [
+    {
+      "kind": "app-account-artifact",
+      "status": "not-executable",
+      "note": "setAppAccountArtifact not executable: at instruction 1144 (ABORTMSG): ABORTMSG is executed. Reason: timelock active"
+    },
+    {
+      "kind": "engine:platform-game",
+      "status": "not-executable",
+      "note": "registerEngine not executable: at instruction 6721 (ABORTMSG): ABORTMSG is executed. Reason: timelock active"
+    }
+  ],
+  "validation": {
+    "artifact_version_before": "0"
+  },
+  "next_steps": [],
+  "generated_at_utc": "2026-07-17T19:14:19Z"
+}

@@ -39,6 +39,7 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void RegistryFeesWithdrawnHandler(UInt160 admin, BigInteger amount);
     public delegate void RegistryUpgradeScheduledHandler(BigInteger executeAfter);
     public delegate void RegistryUpgradedHandler(ByteString nefHash, ByteString manifestHash);
+    public delegate void RegistryThresholdRaiseScheduledHandler(string appId, BigInteger threshold, BigInteger executeAfter);
 
     // ===================================================================
     //  Serialized row types
@@ -99,7 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
     // ContractManagement: account minting, engine existence asserts, self-update.
     [ContractPermission("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", "deploy", "getContract", "update")]
     // Dynamic targets (minted accounts + registered engines): named methods only.
-    [ContractPermission("*", "activateApp", "validateAndApplyDescriptor", "bindRegistry", "onAdminRotated", "executeTransfer", "update")]
+    [ContractPermission("*", "activateApp", "validateAndApplyDescriptor", "bindRegistry", "onAdminRotated", "executeTransfer", "setPaused", "update")]
     public partial class PlatformRegistry : SmartContract
     {
         // ---- registry core prefixes (0x01-0x0F) ----
@@ -134,6 +135,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_SPEND_THRESHOLD = new byte[] { 0x16, 0x03 };
         private static readonly byte[] PREFIX_PENDING_SPEND = new byte[] { 0x16, 0x04 };
         private static readonly byte[] PREFIX_SPEND_WINDOW = new byte[] { 0x16, 0x05 };
+        private static readonly byte[] PREFIX_PENDING_THRESHOLD_VALUE = new byte[] { 0x16, 0x06 };
+        private static readonly byte[] PREFIX_PENDING_THRESHOLD_ETA = new byte[] { 0x16, 0x07 };
         private static readonly byte[] PREFIX_SHIM_CONSENT = new byte[] { 0x17 };
         private static readonly byte[] PREFIX_PENDING_SHIM_UPGRADE = new byte[] { 0x18 };
 
@@ -190,6 +193,7 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("EngineRetired")] public static event RegistryEngineRetiredHandler OnEngineRetired;
         [DisplayName("EngineAttached")] public static event RegistryEngineAttachedHandler OnEngineAttached;
         [DisplayName("DescriptorApplied")] public static event RegistryDescriptorAppliedHandler OnDescriptorApplied;
+        [DisplayName("SpendThresholdRaiseScheduled")] public static event RegistryThresholdRaiseScheduledHandler OnSpendThresholdRaiseScheduled;
         [DisplayName("AdminTimelockProposed")] public static event RegistryAdminTimelockProposedHandler OnAdminTimelockProposed;
         [DisplayName("AdminChanged")] public static event RegistryAdminChangedHandler OnAdminChanged;
         [DisplayName("AppAdminRotationProposed")] public static event RegistryAppAdminProposedHandler OnAppAdminRotationProposed;

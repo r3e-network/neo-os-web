@@ -300,8 +300,10 @@
   color: #8f5504;
 }
 
-.pt-route__step[data-state="outside"] {
-  opacity: 0.68;
+/* WCAG AA: no opacity dimming — 0.68 dropped the small text to 2.7:1 on white.
+   De-emphasis is conveyed by the dashed marker border instead. */
+.pt-route__step[data-state="outside"] .pt-route__copy small {
+  color: #647184; /* 4.96:1 on white */
 }
 
 .pt-route__step[data-state="outside"] .pt-route__marker {
@@ -560,7 +562,7 @@
 }
 
 .pt-asset-option strong { font-size: 14px; font-weight: 780; }
-.pt-asset-option small { color: #687586; font-size: 10px; font-weight: 560; }
+.pt-asset-option small { color: #667384; font-size: 10px; font-weight: 560; } /* WCAG AA 4.56:1 on #f0fbf7 */
 
 .pt-asset-control[data-checked="true"] .pt-asset-option {
   border-color: #0a9873;

@@ -37,6 +37,10 @@ See `platform/edge/functions/`:
 - `vote-bneo`: returns a Governance `vote` invocation (bNEO-only).
 - `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (developer wallet-signed).
+
+The `Governance` and `AppRegistry` contracts targeted by these intents are
+external and env-configured (`CONTRACT_GOVERNANCE_HASH`,
+`CONTRACT_APPREGISTRY_HASH`); their sources are not in this repo.
 - `automation-triggers`: list/create automation triggers via `neoflow` (host-gated).
 - `automation-trigger`: get a trigger via `neoflow` (host-gated; uses `?id=`).
 - `automation-trigger-update`: update a trigger via `neoflow` (host-gated; uses POST in Edge).
@@ -68,12 +72,12 @@ At minimum, these functions expect:
 
 `app-register` and `app-update-manifest` persist canonical manifests into the
 Supabase `miniapps` table for runtime permission/limit enforcement. App metadata
-(name/icon/category/contract_hash/entry_url) is anchored on-chain in AppRegistry
-and mirrored into Supabase as a cache.
+(name/icon/category/contract_hash/entry_url) is anchored on-chain in the
+external AppRegistry contract and mirrored into Supabase as a cache.
 Daily cap enforcement uses the `miniapp_usage` table and the
-`miniapp_usage_bump(...)` RPC (see `migrations/026_miniapp_usage.sql`).
+`miniapp_usage_bump(...)` RPC (see `deploy/migrations/026_miniapp_usage.sql`).
 Set `MINIAPP_USAGE_MODE=check` to use `miniapp_usage_check(...)` for cap-only
-validation (no usage recording; see `migrations/032_miniapp_usage_check.sql`).
+validation (no usage recording; see `deploy/migrations/032_miniapp_usage_check.sql`).
 
 Morpheus routing env vars (required by functions that proxy to runtime services):
 
@@ -111,7 +115,7 @@ implements a simple fixed-window limiter backed by the `public.rate_limits`
 table (service-role only).
 
 It requires the Postgres RPC function `public.rate_limit_bump(...)` (added in
-`migrations/024_rate_limit_bump.sql`).
+`deploy/migrations/024_rate_limit_bump.sql`).
 
 Env vars:
 

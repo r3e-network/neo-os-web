@@ -1,65 +1,70 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0xd4ba00fb7297d08d563d8c281541dbb22725dad1"
-  },
-  "createdAt": "2026-07-02T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "A complete local Sudoku game with three difficulty routes, pencil candidates, correction and erase controls, conflict feedback, hints, pause, restart, refresh recovery, and an off-chain practice leaderboard.",
-  "description_zh": "完整的本地数独游戏，包含三档难度、候选笔记、改数与擦除、冲突反馈、提示、暂停、重开、刷新恢复和离线练习榜。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://sudoku",
-    "offlineSupport": true,
-    "stateless": false
-  },
-  "id": "miniapp-sudoku",
-  "name": "Sudoku Arena",
-  "name_zh": "数独竞技场",
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "sudoku",
-    "puzzle",
-    "offline",
-    "practice",
-    "game"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "Wallet access is not required for the active local game mode.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-02T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A complete local Sudoku game with three difficulty routes, pencil candidates, correction and erase controls, conflict feedback, hints, pause, restart, refresh recovery, and an off-chain practice leaderboard.",
+    "description_zh": "完整的本地数独游戏，包含三档难度、候选笔记、改数与擦除、冲突反馈、提示、暂停、重开、刷新恢复和离线练习榜。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "The matching testnet contract references the canonical Morpheus Oracle, but the active local release makes no oracle request and paid entry is disabled.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://sudoku",
+        "offlineSupport": true,
+        "stateless": false
     },
-    "tee": {
-      "description": "The active local game generates and verifies unique puzzles in-browser without a TEE call; the paid TEE settlement path is not published.",
-      "enabled": false
-    }
-  },
-  "updatedAt": "2026-07-11T00:00:00Z",
-  "urls": {
-    "banner": "/miniapps/sudoku/banner.webp",
-    "entry": "/miniapps/sudoku/index.html",
-    "icon": "/miniapps/sudoku/logo.webp"
-  },
-  "version": "1.2.0"
+    "id": "miniapp-sudoku",
+    "name": "Sudoku Arena",
+    "name_zh": "数独竞技场",
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "sudoku",
+        "puzzle",
+        "offline",
+        "practice",
+        "game"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Wallet access is not required for the active local game mode.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "The matching testnet contract references the canonical Morpheus Oracle, but the active local release makes no oracle request and paid entry is disabled.",
+            "enabled": false
+        },
+        "tee": {
+            "description": "The active local game generates and verifies unique puzzles in-browser without a TEE call; the paid TEE settlement path is not published.",
+            "enabled": false
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0xd4ba00fb7297d08d563d8c281541dbb22725dad1'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-11T00:00:00Z",
+    "urls": {
+        "banner": "/miniapps/sudoku/banner.webp",
+        "entry": "/miniapps/sudoku/index.html",
+        "icon": "/miniapps/sudoku/logo.webp"
+    },
+    "version": "1.2.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

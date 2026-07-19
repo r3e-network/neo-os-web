@@ -275,7 +275,7 @@
 .neomsg-recipient .mx2-open-field__hint em {
   min-width: 0;
   overflow: hidden;
-  color: #87938b;
+  color: #6f7973; /* WCAG AA 4.5:1 on #ffffff (was #87938b) */
   font-size: 12px;
   font-style: normal;
   font-weight: 580;

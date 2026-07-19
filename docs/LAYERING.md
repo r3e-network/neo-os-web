@@ -7,7 +7,7 @@ Current layering is:
 
 1. `apps/`
    - MiniApp frontends using `defineMiniApp()` — all on modern pattern
-   - `apps/shared/services/os/` — 10 typed OS proxy classes + EdgeClient
+   - `apps/shared/services/os/` — 9 typed OS proxy classes + EdgeClient
    - `apps/shared/services/` — PlatformServices, core services (chain, balance, etc.)
    - user-facing app logic calls `ctx.os.*` and `ctx.services.*`
 
@@ -21,23 +21,23 @@ Current layering is:
    - operator UI for manifests, health, services, and contract metadata
 
 4. `platform/edge/functions`
-   - **45 OS Binder proxy functions** (`os-storage-*`, `os-payment-*`, etc.)
+   - **42 OS Binder proxy functions** (`os-storage-*`, `os-payment-*`, etc.)
    - existing thin gateway layer for auth, rate limits, usage caps, policy
    - forwarding to external Oracle / AA systems
 
 5. `contracts/`
-   - **10 OS system service contracts** (`contracts/os-*/`)
-   - platform infrastructure contracts (AppRegistry, Governance, etc.)
-   - direct Oracle / direct AA integrations at the contract boundary
+   - **7 platform contracts** under `contracts/platform/` (PlatformAnchor,
+     PlatformDeFi, PlatformGame, PlatformSocial, PlatformRegistry, AppAccount,
+     MiniAppFactory)
+   - 34 legacy per-app `MiniApp*` contracts pending v2 absorption, plus the
+     source-shared `MiniApp.DevPack` base
+   - OS service execution lives on the external Morpheus kernel contract
+     (`CONTRACT_MORPHEUS_ORACLE_HASH`); there are no in-tree `os-*` contracts
 
 6. `deploy/` and `test/`
    - environment validation
    - cross-repo integration checks
    - deployment helpers
-
-7. `_archive/`
-   - deprecated contracts (ModuleRegistry, RecipeRegistry, etc.)
-   - removed legacy apps and infrastructure
 
 External runtime ownership:
 
@@ -56,8 +56,9 @@ External runtime ownership:
 
 ## Rules
 
-- OS service contracts are the platform's system service layer — MiniApps call
-  them through `ctx.os.*` proxies, not through direct chain invocations.
+- OS services (edge functions backed by the external Morpheus kernel contract)
+  are the platform's system service layer — MiniApps call them through
+  `ctx.os.*` proxies, not through direct chain invocations.
 - Do not reintroduce a second platform-owned service bus on top of Oracle / AA.
 - Prefer OS service calls for new apps; existing direct contract flows remain supported.
 - Keep browser and host code free of service-role secrets and enclave signing logic.

@@ -8,7 +8,7 @@
   "description_zh": "在浏览器本地加密 Neo N3 转账意图字段，仅为后续 Morpheus 处理保存密文。本小程序不会转移资金、验证 TEE 证明或执行结算。",
   "category": "defi",
   "category_name": "DeFi",
-  "category_name_zh": "DeFi",
+  "category_name_zh": "去中心化金融",
   "tags": [
     "privacy",
     "morpheus",

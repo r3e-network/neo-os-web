@@ -428,7 +428,7 @@
 }
 
 .sign-desk__proof-status small {
-  color: #728478;
+  color: #6a7a6f; /* WCAG AA 4.5:1 on #ffffff (was #728478) */
   font-size: 9px;
   font-weight: 740;
   letter-spacing: 0;
@@ -501,7 +501,7 @@
 }
 
 .sign-desk__context dt {
-  color: #718177;
+  color: #68766d; /* WCAG AA 4.5:1 on #f7f9f7 (was #718177) */
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;

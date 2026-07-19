@@ -1,72 +1,77 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0xed26866fb59219db8743c7673df098f363bac9ec"
-  },
-  "createdAt": "2026-07-03T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "Free local target practice. Choose a lane, fire anywhere on the range as the moving reticle crosses the bullseye, and chain 3, 5, or 7 clean hits before time runs out. No wallet, GAS, contract call, or oracle is used; verified GameFi stays closed until the testnet pool is funded and settlement is proven end to end.",
-  "description_zh": "免费的本地打靶练习。选择靶道，在移动准星扫过靶心时点击靶场任意区域出手，并在倒计时结束前连续完成 3、5 或 7 次精准命中。游客模式不使用钱包、GAS、合约调用或预言机；测试网奖池注资并通过端到端结算验收前，GAS 验证模式保持关闭。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://aim-master",
-    "offlineSupport": false,
-    "stateless": false
-  },
-  "id": "miniapp-aim-master",
-  "name": "Aim Master",
-  "name_zh": "瞄准大师",
-  "operation_panel": {
-    "operations": [],
-    "subtitle": "Play directly on the target range. Verified GAS actions stay hidden while the testnet pool is empty and the full settlement path remains unproven.",
-    "title": "Aim Master"
-  },
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "aim",
-    "reflex",
-    "arcade",
-    "leaderboard",
-    "game",
-    "local",
-    "guest"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "Free local target practice. Choose a lane, fire anywhere on the range as the moving reticle crosses the bullseye, and chain 3, 5, or 7 clean hits before time runs out. No wallet, GAS, contract call, or oracle is used; verified GameFi stays closed until the testnet pool is funded and settlement is proven end to end.",
+    "description_zh": "免费的本地打靶练习。选择靶道，在移动准星扫过靶心时点击靶场任意区域出手，并在倒计时结束前连续完成 3、5 或 7 次精准命中。游客模式不使用钱包、GAS、合约调用或预言机；测试网奖池注资并通过端到端结算验收前，GAS 验证模式保持关闭。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "The deployed contract and oracle binding are read-only verified, but the reward pool is empty and no funded start-to-withdraw settlement has been proven; verified GameFi remains disabled.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://aim-master",
+        "offlineSupport": false,
+        "stateless": false
     },
-    "tee": {
-      "enabled": false,
-      "description": "Local guest play does not make TEE requests."
-    }
-  },
-  "updatedAt": "2026-07-10T00:00:00Z",
-  "urls": {
-    "banner": "/miniapps/aim-master/banner.webp",
-    "entry": "/miniapps/aim-master/index.html",
-    "icon": "/miniapps/aim-master/logo.webp"
-  },
-  "version": "1.1.0"
+    "id": "miniapp-aim-master",
+    "name": "Aim Master",
+    "name_zh": "瞄准大师",
+    "operation_panel": {
+        "operations": [],
+        "subtitle": "Play directly on the target range. Verified GAS actions stay hidden while the testnet pool is empty and the full settlement path remains unproven.",
+        "title": "Aim Master"
+    },
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "aim",
+        "reflex",
+        "arcade",
+        "leaderboard",
+        "game",
+        "local",
+        "guest"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "The deployed contract and oracle binding are read-only verified, but the reward pool is empty and no funded start-to-withdraw settlement has been proven; verified GameFi remains disabled.",
+            "enabled": false
+        },
+        "tee": {
+            "enabled": false,
+            "description": "Local guest play does not make TEE requests."
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0xed26866fb59219db8743c7673df098f363bac9ec'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-10T00:00:00Z",
+    "urls": {
+        "banner": "/miniapps/aim-master/banner.webp",
+        "entry": "/miniapps/aim-master/index.html",
+        "icon": "/miniapps/aim-master/logo.webp"
+    },
+    "version": "1.1.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

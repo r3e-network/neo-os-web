@@ -1,6 +1,6 @@
 # Neo Message asset provenance
 
-Last reviewed: 2026-07-11
+Last reviewed: 2026-07-12
 
 | Runtime asset | Role | Dimensions | Repository evidence |
 | --- | --- | ---: | --- |

@@ -13,6 +13,7 @@ import {
   GAS_HASH,
   getMiniAppContractHash,
   getNetwork,
+  getSharedPlatformContractHash,
   MAINNET_MAGIC,
   NEO_HASH,
   TESTNET_MAGIC,
@@ -906,6 +907,32 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   const getContractAddress = async (): Promise<string> => {
     const manifest = await loadCurrentMiniAppManifest();
     const network = getNetwork();
+
+    // ContractBinding mode "shared" (Platform Contract Library v2 §6 item 4):
+    // the manifest explicitly binds a shared platform engine, so resolution
+    // comes from the network's PLATFORM_SHARED_CONTRACTS row — never from a
+    // per-app hash (the engine's appId-first ABI is incompatible with the
+    // per-app clone ABI). An explicit binding beats any legacy contracts
+    // entry; an unknown/undeployed moduleId is a hard "not configured", not
+    // a silent legacy fallback. Manifests without mode "shared" take the
+    // byte-identical legacy path below.
+    const binding = manifest?.contract;
+    if (binding?.mode === "shared") {
+      const moduleId = String(binding.moduleId ?? "").trim();
+      const sharedHash = moduleId ? getSharedPlatformContractHash(moduleId, network) : "";
+      if (sharedHash) return sharedHash;
+      throw new MiniAppError(
+        moduleId
+          ? `Shared platform contract "${moduleId}" not configured for ${network}`
+          : "Contract address not configured",
+        ERROR_CODE_CONTRACT_NOT_CONFIGURED,
+        undefined,
+        undefined,
+        undefined,
+        ERROR_CODE_CONTRACT_NOT_CONFIGURED,
+      );
+    }
+
     const configured =
       manifest?.contracts?.[`neo-n3-${network}`] ||
       manifest?.contracts?.[network] ||

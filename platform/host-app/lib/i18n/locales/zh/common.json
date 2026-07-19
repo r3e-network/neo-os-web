@@ -17,7 +17,8 @@
     "contracts": "合约",
     "main": "主导航",
     "mobile": "移动端导航",
-    "toggleMenu": "打开或关闭导航菜单"
+    "toggleMenu": "打开或关闭导航菜单",
+    "skipToContent": "跳转到主要内容"
   },
   "actions": {
     "connect": "连接",

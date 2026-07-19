@@ -19,7 +19,8 @@ const NEO_TESTNET_RPC = process.env.NEXT_PUBLIC_NEO_RPC_TESTNET
   || "https://api.n3index.dev/testnet";
 
 const MORPHEUS_KERNEL_MAINNET = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
-const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";
+// Canonical testnet kernel per the Morpheus public registry (0x4b882e… retired as legacy_v1, 2026-07).
+const MORPHEUS_KERNEL_TESTNET = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
 
 type NeoNetwork = "mainnet" | "testnet";
 

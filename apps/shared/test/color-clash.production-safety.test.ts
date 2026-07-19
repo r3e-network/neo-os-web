@@ -13,7 +13,11 @@ const COLOR_CLASH_TESTNET_ORACLE = "0x4b882e94ed766807c4fd728768f972e13008ad52";
 describe("color-clash production safety", () => {
   it("keeps the complete local arcade open while every paid surface is closed", () => {
     const neo = JSON.parse(read("apps/color-clash/neo-manifest.json")) as {
-      contracts: Record<string, string>;
+      contracts?: Record<string, string>;
+      moduleId?: string;
+      mode?: string;
+      registry?: string;
+      engine?: string;
       operation_panel: { operations: unknown[] };
       permissions: unknown[];
       platform: { transactions: boolean };
@@ -34,7 +38,7 @@ describe("color-clash production safety", () => {
       confidential: false,
       oracle: false,
     });
-    expect(neo.contracts["neo-n3-testnet"]).toBe(COLOR_CLASH_TESTNET_CONTRACT);
+    expect(neo.contracts?.["neo-n3-testnet"] ?? neo.engine).toBe(COLOR_CLASH_TESTNET_CONTRACT);
     expect(neo.operation_panel.operations).toEqual([]);
     expect(neo.permissions).toEqual([]);
     expect(neo.platform.transactions).toBe(false);

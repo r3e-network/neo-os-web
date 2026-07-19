@@ -1,0 +1,195 @@
+{
+  "$schema": "rewardgame-absorption-v1",
+  "generatedAt": "2026-07-18T06:00:00Z",
+  "engine": {
+    "engineId": "platform-game",
+    "testnetHash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+    "descriptorKeyFormat": "platform-game:<param>",
+    "notes": "All 11 clones share entry=[2M,10M,20M], reward=[10M,50M,100M], dailyCap=8, undoPenalty=3000bps (30%), settleGraceMs=600000 — identical to the engine DefaultEconomics, so ONLY limitMs/minSolveMs/targetScore need descriptor rows (unset keys fall back to defaults). All values verified inside engine bounds (RG_MAX_LIMIT_MS=3.6M, RG_MAX_MIN_SOLVE_MS=3.6M, RG_MAX_TARGET_SCORE=1M, cross-field minSolveMs<=limitMs)."
+  },
+  "apps": {
+    "miniapp-aim-master": {
+      "contract": "MiniAppAimMaster",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 60000,
+        "limitMs1": 90000,
+        "limitMs2": 120000,
+        "minSolveMs0": 10000,
+        "minSolveMs1": 20000,
+        "minSolveMs2": 30000,
+        "targetScore0": 3,
+        "targetScore1": 5,
+        "targetScore2": 7
+      },
+      "readSurfaceRenames": {
+        "ringsHit": "score",
+        "targetAccuracy*": "targetScore*"
+      }
+    },
+    "miniapp-color-clash": {
+      "contract": "MiniAppColorClash",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 120000,
+        "limitMs1": 180000,
+        "limitMs2": 300000,
+        "minSolveMs0": 15000,
+        "minSolveMs1": 30000,
+        "minSolveMs2": 45000,
+        "targetScore0": 8,
+        "targetScore1": 12,
+        "targetScore2": 16
+      },
+      "readSurfaceRenames": {
+        "seqAchieved": "score",
+        "targetSeq*": "targetScore*"
+      }
+    },
+    "miniapp-curve-arrow": {
+      "contract": "MiniAppCurveArrow",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 180000,
+        "limitMs1": 300000,
+        "limitMs2": 600000,
+        "minSolveMs0": 10000,
+        "minSolveMs1": 25000,
+        "minSolveMs2": 45000,
+        "targetScore0": 3,
+        "targetScore1": 5,
+        "targetScore2": 7
+      }
+    },
+    "miniapp-flappy-dash": {
+      "contract": "MiniAppFlappyDash",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 120000,
+        "limitMs1": 180000,
+        "limitMs2": 300000,
+        "minSolveMs0": 20000,
+        "minSolveMs1": 30000,
+        "minSolveMs2": 45000,
+        "targetScore0": 5,
+        "targetScore1": 10,
+        "targetScore2": 20
+      }
+    },
+    "miniapp-game-2048": {
+      "contract": "MiniAppGame2048",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 240000,
+        "limitMs1": 480000,
+        "limitMs2": 900000,
+        "minSolveMs0": 60000,
+        "minSolveMs1": 120000,
+        "minSolveMs2": 240000,
+        "targetScore0": 9,
+        "targetScore1": 10,
+        "targetScore2": 11
+      }
+    },
+    "miniapp-jump-rush": {
+      "contract": "MiniAppJumpRush",
+      "generation": "tee-direct (BindPuzzle + on-chain ECDSA against stored TEE signer — pre-kernel architecture; settlement must migrate to the kernel game.session lane like the other 9)",
+      "descriptors": {
+        "limitMs0": 60000,
+        "limitMs1": 90000,
+        "limitMs2": 120000,
+        "minSolveMs0": 15000,
+        "minSolveMs1": 30000,
+        "minSolveMs2": 45000,
+        "targetScore0": 1,
+        "targetScore1": 1,
+        "targetScore2": 1
+      },
+      "notes": "No score threshold in settle (completion-based, payout = reward * (100 - 30*undos)/100); targetScore=1 mirrors sudoku's completion semantics."
+    },
+    "miniapp-merge-kingdom": {
+      "contract": "MiniAppMergeKingdom",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 180000,
+        "limitMs1": 300000,
+        "limitMs2": 600000,
+        "minSolveMs0": 30000,
+        "minSolveMs1": 60000,
+        "minSolveMs2": 120000,
+        "targetScore0": 64,
+        "targetScore1": 256,
+        "targetScore2": 1024
+      }
+    },
+    "miniapp-pet-potion": {
+      "contract": "MiniAppPetPotion",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 180000,
+        "limitMs1": 300000,
+        "limitMs2": 600000,
+        "minSolveMs0": 30000,
+        "minSolveMs1": 60000,
+        "minSolveMs2": 120000,
+        "targetScore0": 50,
+        "targetScore1": 70,
+        "targetScore2": 100
+      }
+    },
+    "miniapp-sheep-solitaire": {
+      "contract": "MiniAppSheepSolitaire",
+      "generation": "tee-direct (BindPuzzle — see jump-rush note)",
+      "descriptors": {
+        "limitMs0": 300000,
+        "limitMs1": 480000,
+        "limitMs2": 720000,
+        "minSolveMs0": 60000,
+        "minSolveMs1": 120000,
+        "minSolveMs2": 180000,
+        "targetScore0": 1,
+        "targetScore1": 1,
+        "targetScore2": 1
+      },
+      "notes": "Completion-based settle like jump-rush; targetScore=1 mirrors sudoku."
+    },
+    "miniapp-snake-bounty": {
+      "contract": "MiniAppSnakeBounty",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 180000,
+        "limitMs1": 300000,
+        "limitMs2": 600000,
+        "minSolveMs0": 20000,
+        "minSolveMs1": 40000,
+        "minSolveMs2": 60000,
+        "targetScore0": 10,
+        "targetScore1": 20,
+        "targetScore2": 35
+      }
+    },
+    "miniapp-sudoku": {
+      "contract": "MiniAppSudoku",
+      "generation": "kernel-lane",
+      "descriptors": {
+        "limitMs0": 900000,
+        "limitMs1": 1500000,
+        "limitMs2": 2400000,
+        "minSolveMs0": 90000,
+        "minSolveMs1": 150000,
+        "minSolveMs2": 240000,
+        "targetScore0": 1,
+        "targetScore1": 1,
+        "targetScore2": 1
+      }
+    }
+  },
+  "migrationOutline": [
+    "1. Registry cohort-0 lite registration (Phase 2b covers all 77 appIds incl. these 11)",
+    "2. Attach each appId to the platform-game engine (registerAppByPlatform/full registration) with the descriptor set above pushed via activateApp",
+    "3. Kernel lane: register + grant each appId on the private kernel (PRIVATE_KERNEL_APP_IDS) with callbackContract=PlatformGame; TEE session service maps appId -> game logic",
+    "4. Frontend: switch ContractBinding to moduleId 'platform-game' mode 'shared' (PLATFORM_SHARED_CONTRACTS in apps/shared/constants/rpc.ts) and migrate event/stat names per readSurfaceRenames",
+    "5. Verify per-app: start -> finalize -> settle loop on testnet through the private kernel; compare economics against the legacy contract's tables",
+    "6. Decommission: delete contracts/MiniApp<Name>/ sources (~8,907 LOC across 11 contracts) after all 11 verify green"
+  ]
+}

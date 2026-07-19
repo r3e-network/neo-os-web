@@ -1,69 +1,74 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0x3fa9eb983a49ee181748778286a704f1ad55ff75"
-  },
-  "createdAt": "2026-07-03T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "A free local kingdom merge game: drag matching building resources together, upgrade the realm, beat the route target before time runs out, and resume unfinished runs on this device. New paid GameFi entries remain disabled until the reward pool, Morpheus callback allowlist, and complete testnet settlement flow are verified; historical recovery and withdrawal code is retained.",
-  "description_zh": "免费的本地王国合并游戏：拖动并合并相同建筑资源，逐级升级王国，在倒计时结束前达成路线目标，并在本设备恢复未完成对局。奖励池、Morpheus 回调白名单和完整测试网结算流程验证前，新的付费 GameFi 报名保持关闭；历史对局恢复与余额提取代码继续保留。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://merge-kingdom",
-    "offlineSupport": false,
-    "stateless": false
-  },
-  "id": "miniapp-merge-kingdom",
-  "name": "Merge Kingdom",
-  "name_zh": "合并王国",
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "merge",
-    "2048",
-    "puzzle",
-    "leaderboard",
-    "game",
-    "local",
-    "guest",
-    "phaser3",
-    "kingdom"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A free local kingdom merge game: drag matching building resources together, upgrade the realm, beat the route target before time runs out, and resume unfinished runs on this device. New paid GameFi entries remain disabled until the reward pool, Morpheus callback allowlist, and complete testnet settlement flow are verified; historical recovery and withdrawal code is retained.",
+    "description_zh": "免费的本地王国合并游戏：拖动并合并相同建筑资源，逐级升级王国，在倒计时结束前达成路线目标，并在本设备恢复未完成对局。奖励池、Morpheus 回调白名单和完整测试网结算流程验证前，新的付费 GameFi 报名保持关闭；历史对局恢复与余额提取代码继续保留。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "The paid board path is implemented for Morpheus TEE verification, but new entries are not advertised until the deployed oracle allowlists this callback and the full settlement flow passes testnet validation.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://merge-kingdom",
+        "offlineSupport": false,
+        "stateless": false
     },
-    "tee": {
-      "enabled": false,
-      "description": "Local guest play makes no TEE request. Historical paid-session recovery remains in code but the new paid path is disabled."
-    }
-  },
-  "updatedAt": "2026-07-11T00:00:00Z",
-  "urls": {
-    "banner": "/miniapps/merge-kingdom/banner.webp",
-    "entry": "/miniapps/merge-kingdom/index.html",
-    "icon": "/miniapps/merge-kingdom/logo.webp"
-  },
-  "version": "1.1.0"
+    "id": "miniapp-merge-kingdom",
+    "name": "Merge Kingdom",
+    "name_zh": "合并王国",
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "merge",
+        "2048",
+        "puzzle",
+        "leaderboard",
+        "game",
+        "local",
+        "guest",
+        "phaser3",
+        "kingdom"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "The paid board path is implemented for Morpheus TEE verification, but new entries are not advertised until the deployed oracle allowlists this callback and the full settlement flow passes testnet validation.",
+            "enabled": false
+        },
+        "tee": {
+            "enabled": false,
+            "description": "Local guest play makes no TEE request. Historical paid-session recovery remains in code but the new paid path is disabled."
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0x3fa9eb983a49ee181748778286a704f1ad55ff75'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-11T00:00:00Z",
+    "urls": {
+        "banner": "/miniapps/merge-kingdom/banner.webp",
+        "entry": "/miniapps/merge-kingdom/index.html",
+        "icon": "/miniapps/merge-kingdom/logo.webp"
+    },
+    "version": "1.1.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

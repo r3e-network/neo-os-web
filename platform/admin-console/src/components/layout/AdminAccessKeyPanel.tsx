@@ -47,6 +47,7 @@ export function AdminAccessKeyPanel() {
   return (
     <form
       onSubmit={handleSubmit}
+      aria-label="Admin API access"
       className="admin-access-key-panel rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

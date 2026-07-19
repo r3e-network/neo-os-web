@@ -653,6 +653,7 @@
 }
 
 .explorer-network-metrics span {
+  display: block; /* source caption sits on its own line inside the <dt> */
   color: var(--mx2-brand-hover);
   font-size: 9px;
   font-weight: 620;

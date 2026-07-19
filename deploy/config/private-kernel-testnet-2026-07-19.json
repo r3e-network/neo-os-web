@@ -1,0 +1,38 @@
+{
+  "action": "fulfill",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": false,
+  "private_kernel": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+  "balances": {
+    "gas": "112701.56537224",
+    "neo": "73061"
+  },
+  "transactions": [
+    {
+      "label": "Fulfill kernel request 17",
+      "txid": "0x49ee3f24358e92ef145b02a822005821a2fce1c1976705fda90ee36b78ac3d25",
+      "valid_until_block": 17829929
+    }
+  ],
+  "fulfill": {
+    "request_id": "17",
+    "app_id": "miniapp-snake-bounty",
+    "module_id": "game.session",
+    "operation": "session.finalize",
+    "success": true,
+    "result_length": 79,
+    "digest_hex": "b7c3c272b194c663dad978e4ec56ffdc46954fe6e3062a196f0ee6f447c53984",
+    "signature_hex": "ebe28eb6ac17847b38279ae298727538e9131f2dbd320dbff62407fff920367c873b201ba013746b1a1b542501905b24553d66cbd99635cbe89c765d36210657",
+    "txid": "0x49ee3f24358e92ef145b02a822005821a2fce1c1976705fda90ee36b78ac3d25",
+    "status_after": "1"
+  },
+  "validation": {},
+  "next_steps": [
+    "Request is fulfilled. PlatformGame.onMiniAppResult settlement is effects-only (pull payment): a win lands in the player's reward credit, a failed run refunds the entry. Inspect with PRIVATE_KERNEL_ACTION=verify."
+  ],
+  "generated_at_utc": "2026-07-19T18:16:02Z"
+}

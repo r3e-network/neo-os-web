@@ -456,7 +456,7 @@ async function installPlatformApiMocks(context, options) {
       return json({
         network,
         source: "onegate_validation_mock",
-        contract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        contract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
         rpc_url: "mock://onegate-validation",
         algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
         public_key: MOCK_ORACLE_PUBLIC_KEY,

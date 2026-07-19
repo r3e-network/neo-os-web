@@ -388,6 +388,15 @@ test.describe("MiniApp Detail", () => {
       actionPanel.getByText("module.stream_vesting@1.0.0"),
     ).toBeVisible();
 
+    // The host-side operation form is an advanced fallback and lives behind
+    // the collapsed "Host transaction console" disclosure; expand it before
+    // filling the shared-runtime fields. `:scope > summary` targets the
+    // console's own header (the panel inside has nested disclosures).
+    await actionPanel
+      .getByTestId("advanced-operation-console")
+      .locator(":scope > summary")
+      .click();
+
     await page.getByRole("button", { name: /log in \/ sign up/i }).click();
     await page.getByRole("button", { name: "NeoLine" }).click();
 

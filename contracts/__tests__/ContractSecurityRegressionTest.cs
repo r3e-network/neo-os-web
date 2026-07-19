@@ -136,7 +136,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         {
             string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformGame");
             Assert.Contains("GAS.Hash", code);
-            Assert.Contains("NEO.Hash", code);
+            // GAS-only intake (audit low: NEO was credited 1:1 into the
+            // GAS-denominated ledger, silently destroying payer value).
+            Assert.Contains("caller == GAS.Hash, \"only GAS accepted\"", code);
+            Assert.DoesNotContain("caller == NEO.Hash", code);
         }
 
         [Fact]

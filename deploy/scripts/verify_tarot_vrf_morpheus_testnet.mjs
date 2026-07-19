@@ -6,7 +6,7 @@ import pkg from '@cityofzion/neon-js';
 const { wallet } = pkg;
 
 export const TESTNET_RPC = 'https://api.n3index.dev/testnet';
-export const TESTNET_ORACLE = '0x4b882e94ed766807c4fd728768f972e13008ad52';
+export const TESTNET_ORACLE = '0xf54d8584ef82315c1800373272ab08ae0db2d5ef';
 export const TESTNET_MAGIC = 894710606;
 export const MAX_SUPPORTED_FEE = 10_000_000;
 

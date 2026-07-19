@@ -36,6 +36,11 @@
   display: none;
 }
 
+.time-capsule-play-area .mx2-badge[data-tone="accent"] {
+  /* WCAG AA: 4.6:1 on --mx2-brand-light #e8f8f1 (shared default #0ea371 was 2.94:1) */
+  color: #0b7e58;
+}
+
 .capsule-stage-stack {
   display: grid;
   gap: 16px;

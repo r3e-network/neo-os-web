@@ -11,7 +11,11 @@ describe("aim-master production safety", () => {
   it("keeps paid entry closed in runtime and both public manifests", () => {
     const main = read("apps/aim-master/src/main.tsx");
     const neo = JSON.parse(read("apps/aim-master/neo-manifest.json")) as {
-      contracts: Record<string, string>;
+      contracts?: Record<string, string>;
+      moduleId?: string;
+      mode?: string;
+      registry?: string;
+      engine?: string;
       operation_panel: { operations: unknown[] };
       permissions: unknown[];
       platform: { transactions: boolean };
@@ -30,7 +34,7 @@ describe("aim-master production safety", () => {
       compute: false,
       oracle: false,
     });
-    expect(neo.contracts["neo-n3-testnet"])
+    expect(neo.contracts?.["neo-n3-testnet"] ?? neo.engine)
       .toBe("0xed26866fb59219db8743c7673df098f363bac9ec");
     expect(neo.operation_panel.operations).toEqual([]);
     expect(neo.permissions).toEqual([]);

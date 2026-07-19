@@ -86,5 +86,5 @@ npx tsc --noEmit                 # type check
 ```
 
 Design and rationale docs: `docs/framework-evolution-rfc.md` (surface
-evolution + census), `claudedocs/guest-mode-adoption.md` (two-mode contract),
+evolution + census), `docs/archive/claudedocs/guest-mode-adoption.md` (two-mode contract),
 `docs/credit-system-design.md` (credits architecture).

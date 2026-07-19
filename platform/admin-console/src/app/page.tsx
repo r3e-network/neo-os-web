@@ -64,7 +64,7 @@ export default function DashboardPage() {
             <Download className="h-3.5 w-3.5" />
             导出报表
           </button>
-          <button className="inline-flex items-center gap-2 rounded-full bg-neo-500 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-neo-600 hover:shadow-brand">
+          <button className="inline-flex items-center gap-2 rounded-full bg-neo-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-neo-700 hover:shadow-brand">
             <RefreshCw className="h-3.5 w-3.5" />
             刷新数据
           </button>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
         <section aria-label="服务健康面板" className="card-v3 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
-              <h3 className="text-sm font-bold text-ink">服务健康</h3>
+              <h2 className="text-sm font-bold text-ink">服务健康</h2>
               <p className="mt-0.5 text-xs text-ink-muted">平台服务最新状态</p>
             </div>
             <Badge variant={allHealthy ? "success" : "warning"}>
@@ -160,7 +160,7 @@ export default function DashboardPage() {
         <section aria-label="最近更新面板" className="card-v3 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
-              <h3 className="text-sm font-bold text-ink">最近更新</h3>
+              <h2 className="text-sm font-bold text-ink">最近更新</h2>
               <p className="mt-0.5 text-xs text-ink-muted">已注册的应用列表</p>
             </div>
             <Badge variant="info">{totalApps.toLocaleString()} 总计</Badge>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
       <div className="card-v3 overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
           <div>
-            <h3 className="text-sm font-bold text-ink">全部小程序</h3>
+            <h2 className="text-sm font-bold text-ink">全部小程序</h2>
             <p className="mt-0.5 text-xs text-ink-muted">共 {totalApps.toLocaleString()} 个</p>
           </div>
           <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ export default function DashboardPage() {
                   <tr key={app.app_id} className="border-b border-border transition-colors hover:bg-canvas-alt/50 last:border-b-0">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neo-50 text-sm font-bold text-neo-600">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neo-50 text-sm font-bold text-neo-700">
                           {String(app.status || "?").charAt(0).toUpperCase()}
                         </div>
                         <div>

@@ -7,7 +7,20 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { useI18n } from "@/lib/i18n/react";
 import type { MiniAppInfo, MiniAppLaunchContext } from "@/components/types";
+
+// playArea.* translations with English fallbacks: renders localized copy under
+// the provider and keeps default/test renders (no provider, t() echoes keys)
+// on the English literals these components shipped with.
+function usePlayAreaT() {
+  const { t } = useI18n();
+  return (key: string, fallback: string) => {
+    const fullKey = `playArea.${key}`;
+    const translated = t(fullKey, "host");
+    return translated === fullKey ? fallback : translated;
+  };
+}
 // Url/format/tone helpers were moved into ./shared-helpers; the
 // security-critical wallet-bridge pieces were moved into ./bridge. Both are
 // re-exported below so every existing importer + test keeps the same surface.
@@ -112,6 +125,7 @@ export function PlayShell({
   side?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const tp = usePlayAreaT();
   const styles = toneStyle(tone);
 
   void styles;
@@ -142,8 +156,8 @@ export function PlayShell({
         {side && (
           <div className="mt-3 px-2 sm:px-3">
             <SecondaryInfo
-              title="Context and diagnostics"
-              description="Receipts, raw readings, and technical context stay tucked away until needed."
+              title={tp("contextDiagnostics", "Context and diagnostics")}
+              description={tp("contextDescription", "Receipts, raw readings, and technical context stay tucked away until needed.")}
             >
               <div className="min-w-0 space-y-3">{side}</div>
             </SecondaryInfo>
@@ -219,6 +233,7 @@ export function ChainStateStrip({
   // transaction confirms) instead of waiting for the playfield's 15s poll.
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
+  const tp = usePlayAreaT();
   useEffect(() => {
     const handleHostRefresh = () => onRefreshRef.current();
     window.addEventListener(HOST_PLAYFIELD_REFRESH, handleHostRefresh);
@@ -231,7 +246,7 @@ export function ChainStateStrip({
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-gray-700">
           <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold">
             <Radio className="h-3.5 w-3.5 text-emerald-600" />
-            {loading ? "Syncing" : error ? "Cached state" : "Live state"}
+            {loading ? tp("syncing", "Syncing") : error ? tp("cachedState", "Cached state") : tp("liveState", "Live state")}
           </span>
           <span className="font-semibold uppercase text-gray-600">
             {network}
@@ -243,7 +258,7 @@ export function ChainStateStrip({
           className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 font-semibold text-gray-600 transition hover:bg-gray-50"
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          Refresh
+          {tp("refresh", "Refresh")}
         </button>
       </div>
       <details
@@ -251,12 +266,12 @@ export function ChainStateStrip({
         data-testid="chain-technical-details"
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide text-gray-700 marker:content-none">
-          Technical chain details
+          {tp("technicalDetails", "Technical chain details")}
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
         </summary>
         <div className="border-t border-gray-200 px-2.5 py-2">
           <span className="block truncate font-mono text-gray-600">
-            Contract: {shortHash(contractHash)}
+            {tp("contractLabel", "Contract")}: {shortHash(contractHash)}
           </span>
           {error && (
             <span className="mt-1 block text-[11px] font-semibold text-amber-700">
@@ -270,12 +285,13 @@ export function ChainStateStrip({
 }
 
 export function MetricGrid({ stats }: { stats: PlayMetric[] }) {
+  const tp = usePlayAreaT();
   if (!stats.length) return null;
   return (
     <SecondaryInfo
-      title="Additional metrics"
-      description="Raw app counters and diagnostic readings."
-      meta={`${stats.length} items`}
+      title={tp("additionalMetrics", "Additional metrics")}
+      description={tp("metricsDescription", "Raw app counters and diagnostic readings.")}
+      meta={`${stats.length} ${tp("itemsSuffix", "items")}`}
     >
       <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
         {stats.slice(0, 8).map((item) => (
@@ -299,14 +315,15 @@ export function MetricGrid({ stats }: { stats: PlayMetric[] }) {
 }
 
 export function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
+  const tp = usePlayAreaT();
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="m-0 text-sm font-bold text-gray-900">
-          {activity?.title || "Recent activity"}
+          {activity?.title || tp("recentActivity", "Recent activity")}
         </h3>
         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-700">
-          {activity?.rows.length || 0} items
+          {activity?.rows.length || 0} {tp("itemsSuffix", "items")}
         </span>
       </div>
       {activity?.rows.length ? (
@@ -485,6 +502,7 @@ export function EmbeddedDappSurface({
   void title;
   void subtitle;
   void tone;
+  const tp = usePlayAreaT();
   const [frameLoaded, setFrameLoaded] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const [loadTimedOut, setLoadTimedOut] = useState(false);
@@ -559,12 +577,12 @@ export function EmbeddedDappSurface({
         href={url}
         target="_blank"
         rel="noreferrer"
-        aria-label="Open dApp in a new window"
-        title="Open in a new window"
+        aria-label={tp("openInNewWindow", "Open dApp in a new window")}
+        title={tp("openInNewWindow", "Open in a new window")}
         className="m-2 mb-0 ml-auto flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white/95 p-0 text-[11px] font-semibold text-gray-600 opacity-100 shadow-sm backdrop-blur transition hover:text-gray-900 focus:opacity-100 sm:absolute sm:right-2 sm:top-2 sm:z-10 sm:m-0 sm:inline-flex sm:h-auto sm:w-auto sm:gap-1 sm:px-2 sm:py-1 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
-        <span className="hidden sm:inline">New window</span>
+        <span className="hidden sm:inline">{tp("newWindow", "New window")}</span>
       </a>
       {/* Miniapps run inside a sandbox with an opaque origin (audit fix C-4).
           First-party credential needs — the Automation Copilot's signed host
@@ -733,14 +751,15 @@ export function OracleStatusPanel({
   mode: string;
   result: string;
 }) {
+  const tp = usePlayAreaT();
   return (
     <div className="rounded-lg border border-gray-200 bg-slate-950 p-4 text-white">
       <h3 className="m-0 flex items-center gap-2 text-sm font-semibold">
         <ShieldCheck className="h-4 w-4 text-neo" />
-        Result verifier
+        {tp("resultVerifier", "Result verifier")}
       </h3>
       <p className="mt-2 text-xs leading-5 text-slate-300">
-        Mode: <span className="font-bold text-white">{mode}</span>
+        {tp("modeLabel", "Mode")}: <span className="font-bold text-white">{mode}</span>
       </p>
       <pre className="mt-3 max-h-56 overflow-auto rounded-lg bg-black/30 p-3 text-[11px] leading-5 text-emerald-200">
         {result}

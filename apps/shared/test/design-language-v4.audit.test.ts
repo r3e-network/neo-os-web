@@ -60,7 +60,7 @@ describe("Neo MiniApps design language v4 foundation", () => {
     expect(styles).toMatch(/--semi-color-primary:\s*var\(--mx2-brand\)/);
     expect(styles).toMatch(/font-family:\s*var\(--mx2-font-sans\)/);
     expect(styles).toMatch(/\.mx2-btn\s*\{[\s\S]*border-radius:\s*var\(--mx2-r\)/);
-    expect(styles).toMatch(/\.mx2-btn--primary\s*\{[\s\S]*background:\s*var\(--mx2-brand\)/);
+    expect(styles).toMatch(/\.mx2-btn--primary\s*\{[\s\S]*background:\s*var\(--mx2-brand-strong/);
     expect(styles).toMatch(/\.mx2-btn--primary\s*\{[\s\S]*min-height:\s*44px/);
     expect(styles).toMatch(/\.mx2-spinner\s*\{[\s\S]*animation:\s*mx2-spin 1s linear infinite/);
     expect(styles).toMatch(/\.mx2-open-panel\.semi-card\s*\{[\s\S]*border-radius:\s*var\(--mx2-r-lg\)/);

@@ -4,7 +4,7 @@
 
 :root,
 .mx2 {
-  --mx2-brand: #b95f2f;
+  --mx2-brand: #b65d2e; /* WCAG AA 4.57:1 with white */
   --mx2-brand-hover: #984823;
   --mx2-brand-light: #fff1e5;
   --mx2-brand-subtle: #f4cda9;
@@ -289,7 +289,7 @@
 }
 
 .neodid-evidence-map__head small {
-  color: #647a77;
+  color: #627774; /* WCAG AA 4.56:1 on #f7fbf8 */
   text-transform: none;
 }
 

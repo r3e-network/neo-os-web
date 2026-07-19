@@ -14,7 +14,7 @@ import {
 } from "../../private-transfer/src/seal";
 
 const GOLDEN_PUBLIC_KEY_RAW = "X+mfM9Lg+Tm9GBzniOC0vwDcZE857Za9AbdJCD7IsWM=";
-const TEST_ORACLE_CONTRACT = "0x4b882e94ed766807c4fd728768f972e13008ad52";
+const TEST_ORACLE_CONTRACT = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
 
 /** Framework seal lane (app.oracle.seal) wired to an injected transport. */
 function sealClient(fetcher: typeof fetch) {

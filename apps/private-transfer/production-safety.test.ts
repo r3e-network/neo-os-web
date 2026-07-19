@@ -13,7 +13,7 @@ import {
 
 const COMMITMENT = `0x${"ab".repeat(32)}`;
 const NULLIFIER = `0x${"cd".repeat(32)}`;
-const CONTRACT = "0x4b882e94ed766807c4fd728768f972e13008ad52";
+const CONTRACT = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
 const CIPHERTEXT = Buffer.from(JSON.stringify({
   v: 2,
   alg: "X25519-HKDF-SHA256-AES-256-GCM",
@@ -77,8 +77,10 @@ describe("private-transfer production safety", () => {
     const main = fs.readFileSync(new URL("./src/main.tsx", import.meta.url), "utf8");
     expect(main).not.toContain("chain.invoke(");
     expect(main).not.toContain("ensureWallet(");
-    expect(main).toContain('operation: "oracleEncryptionPublicKey"');
-    expect(main).toContain('operation: "oracleEncryptionAlgorithm"');
+    // The oracle key/algorithm are read through the framework readRaw surface
+    // (the declared operation-panel ops were removed by the framework refactor).
+    expect(main).toContain('readRaw("oracleEncryptionPublicKey"');
+    expect(main).toContain('readRaw("oracleEncryptionAlgorithm"');
     expect(main).toContain("verifyKey: verifyFreshOracleKey");
     expect(main).toContain("ctx.launchContext.network ?? SUPPORTED_NETWORK");
     expect(main).toContain("savePendingSealedIntent");

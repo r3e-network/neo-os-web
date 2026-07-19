@@ -84,7 +84,7 @@
 }
 
 .mx2-btn--primary {
-  background: var(--mx2-brand);
+  background: var(--mx2-brand-strong, #00805e);
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(22, 199, 132, 0.25);
   min-height: 44px;
@@ -100,7 +100,7 @@
   transform: none;
 }
 .mx2-btn--primary:not(:disabled):hover {
-  background: var(--mx2-brand-hover);
+  background: var(--mx2-brand-strong-hover, #00735f);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(22, 199, 132, 0.28);
 }
@@ -636,7 +636,7 @@
 .mx2-badge[data-tone="accent"] {
   background: var(--mx2-brand-light);
   border-color: transparent;
-  color: var(--mx2-brand-hover);
+  color: var(--mx2-brand-strong-hover, #00735f);
 }
 .mx2-badge__dot {
   width: 6px;

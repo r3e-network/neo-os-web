@@ -32,8 +32,17 @@ namespace NeoMiniAppPlatform.Contracts
                 "invalid descriptor key");
             if (KeyInNamespace(key, REGISTRY_NAMESPACE))
             {
-                ApplyRegistryDescriptor(appId, key, value);
-                StoreDescriptor(appId, key, value);
+                // The directory copy only advances when the parameter was
+                // actually applied — a spend-threshold RAISE schedules a
+                // timelocked pending row instead and syncs the directory at
+                // execute time (audit: instant raises made the cumulative
+                // instant bound effectively always the 10000 GAS max).
+                if (ApplyRegistryDescriptor(appId, key, value))
+                {
+                    StoreDescriptor(appId, key, value);
+                    OnDescriptorApplied(appId, key);
+                }
+                return;
             }
             else
             {
@@ -62,8 +71,10 @@ namespace NeoMiniAppPlatform.Contracts
         // ---- internals ----
 
         // Registry-owned descriptor parameters, range-validated locally with
-        // the same grammar engines apply to their own namespaces.
-        private static void ApplyRegistryDescriptor(string appId, string key, object value)
+        // the same grammar engines apply to their own namespaces. Returns
+        // true when the parameter was applied (directory copy + event fire);
+        // false when it was scheduled for timelocked execution instead.
+        private static bool ApplyRegistryDescriptor(string appId, string key, object value)
         {
             if (key == KEY_SPEND_THRESHOLD)
             {
@@ -71,10 +82,54 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(
                     threshold >= MIN_SPEND_THRESHOLD && threshold <= MAX_SPEND_THRESHOLD,
                     "spend threshold out of range");
-                Storage.Put(Storage.CurrentContext, AppKey(PREFIX_SPEND_THRESHOLD, appId), threshold);
-                return;
+                if (threshold <= SpendThresholdOf(appId))
+                {
+                    // Tightening is always safe and instant; it also
+                    // supersedes any pending raise.
+                    Storage.Put(Storage.CurrentContext, AppKey(PREFIX_SPEND_THRESHOLD, appId), threshold);
+                    Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_VALUE, appId));
+                    Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_ETA, appId));
+                    return true;
+                }
+                // Raises widen the cumulative instant-spend bound, so they
+                // ride the estate's 24h timelock like every other
+                // authority-widening change.
+                BigInteger executeAfter = Runtime.Time + TIMELOCK_DELAY_MS;
+                Storage.Put(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_VALUE, appId), threshold);
+                Storage.Put(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_ETA, appId), executeAfter);
+                OnSpendThresholdRaiseScheduled(appId, threshold, executeAfter);
+                return false;
             }
             ExecutionEngine.Assert(false, "unknown registry descriptor key");
+            return false;
+        }
+
+        /// <summary>Apply a scheduled spend-threshold raise after its 24h
+        /// timelock. App-admin gated like the descriptor lane itself.</summary>
+        public static void ExecuteSpendThresholdRaise(string appId)
+        {
+            RequireNotGloballyPaused();
+            RequireRegistered(appId);
+            RequireAppNotPaused(appId);
+            RequireAppAdmin(appId);
+            ByteString rawEta = Storage.Get(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_ETA, appId));
+            ExecutionEngine.Assert(rawEta != null, "no pending threshold raise");
+            ExecutionEngine.Assert(Runtime.Time >= (BigInteger)rawEta, "timelock active");
+            BigInteger threshold = (BigInteger)Storage.Get(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_VALUE, appId));
+            Storage.Put(Storage.CurrentContext, AppKey(PREFIX_SPEND_THRESHOLD, appId), threshold);
+            Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_VALUE, appId));
+            Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_ETA, appId));
+            StoreDescriptor(appId, KEY_SPEND_THRESHOLD, threshold);
+            OnDescriptorApplied(appId, KEY_SPEND_THRESHOLD);
+        }
+
+        /// <summary>Cancel a scheduled spend-threshold raise. App-admin gated.</summary>
+        public static void CancelSpendThresholdRaise(string appId)
+        {
+            RequireRegistered(appId);
+            RequireAppAdmin(appId);
+            Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_VALUE, appId));
+            Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_PENDING_THRESHOLD_ETA, appId));
         }
 
         private static void StoreDescriptor(string appId, string key, object value)

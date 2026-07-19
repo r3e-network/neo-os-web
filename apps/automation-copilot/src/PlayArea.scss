@@ -4,7 +4,8 @@
 
 :root,
 .mx2 {
-  --mx2-brand: #0f8f76;
+  /* WCAG AA: white on #0f8f76 was 4.03:1; #0d8471 is 4.61:1 */
+  --mx2-brand: #0d8471;
   --mx2-brand-hover: #087561;
   --mx2-brand-light: #e7f8f1;
   --mx2-brand-subtle: #b9e7d7;

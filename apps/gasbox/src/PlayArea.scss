@@ -2,6 +2,16 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
+/* WCAG AA: shared #16c784/#0ea371 brand gives white button text only
+   2.2:1/3.2:1 — use the contrast-safe strong steps (4.9:1 / 5.8:1).
+   Nested `.mx2` roots (playstage/action-rail) redeclare the tokens, so the
+   override must out-specify `.mx2` there too. */
+.gasbox-play-area,
+.gasbox-play-area .mx2 {
+  --mx2-brand: #00805e;
+  --mx2-brand-hover: #00735f;
+}
+
 .gasbox-play-area {
   // Amber accent family (single source for the machine's gold trim hairlines).
   --gasbox-amber-16: rgba(217, 119, 6, 0.16);

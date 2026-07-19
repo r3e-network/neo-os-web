@@ -28,6 +28,12 @@
   --cclash-submit-ink: #173d38;
 }
 
+/* WCAG AA 5.3:1 on --mx2-brand-light #e8f8f1 (shared default #0ea371 was 2.9:1);
+   must out-specify the inner .mx2 token re-declarations */
+.cclash-playarea .mx2 {
+  --mx2-brand-hover: #00735f;
+}
+
 .cclash-playarea .mx2-stage {
   box-sizing: border-box;
   width: min(100%, 760px);

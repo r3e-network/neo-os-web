@@ -12,7 +12,15 @@ export function requireScopes(req: Request, auth: AuthContext, requiredScopes: s
   if (auth.authType !== "api_key") return null;
 
   const scopes = Array.isArray(auth.scopes) ? auth.scopes : [];
-  if (scopes.length === 0) return null; // default: allow all (legacy keys)
+  if (scopes.length === 0) {
+    // Audit low: scope-less legacy keys must not inherit full access in
+    // production — an endpoint declaring required scopes rejects them there.
+    // Outside production they keep the legacy full-access default.
+    if (isProductionEnv()) {
+      return error(403, `api key missing required scope(s): ${requiredScopes.join(", ")}`, "SCOPE_REQUIRED", req);
+    }
+    return null;
+  }
   if (scopes.includes("*")) return null;
 
   const missing = requiredScopes.filter((scope) => !scopes.includes(scope));

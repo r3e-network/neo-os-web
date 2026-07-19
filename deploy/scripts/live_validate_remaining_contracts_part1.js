@@ -25,7 +25,7 @@ const LIVE_ACTOR_WIFS = Array.from(new Set([
   process.env.FLAGSHIP_LIVE_WIF,
   ADMIN_WIF,
 ].map((value) => String(value || "").trim()).filter(Boolean)));
-const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
+const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0xf54d8584ef82315c1800373272ab08ae0db2d5ef").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const ROOT = path.resolve(__dirname, "../..");
 // NOTE: the directory literal stays "phala" because that is the on-box path

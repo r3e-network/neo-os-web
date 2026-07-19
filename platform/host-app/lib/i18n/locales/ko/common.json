@@ -17,7 +17,8 @@
     "contracts": "컨트랙트",
     "main": "기본 내비게이션",
     "mobile": "모바일 내비게이션",
-    "toggleMenu": "내비게이션 메뉴 전환"
+    "toggleMenu": "내비게이션 메뉴 전환",
+    "skipToContent": "본문으로 건 너뛰기"
   },
   "actions": {
     "connect": "연결",

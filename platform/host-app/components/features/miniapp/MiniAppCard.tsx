@@ -14,11 +14,15 @@ import { cn } from "@/lib/utils";
 import { buildMiniAppDetailHref } from "@/lib/miniapp-routes";
 
 const categoryColors = {
+  games: "bg-purple-100 text-purple-800",
   gaming: "bg-purple-100 text-purple-800",
+  tools: "bg-amber-100 text-amber-800",
+  finance: "bg-emerald-100 text-emerald-800",
   defi: "bg-blue-100 text-blue-800",
   social: "bg-pink-100 text-pink-800",
   governance: "bg-emerald-100 text-emerald-800",
   utility: "bg-gray-100 text-gray-800",
+  operations: "bg-gray-100 text-gray-800",
   nft: "bg-teal-100 text-teal-800",
   data: "bg-cyan-100 text-cyan-800",
   other: "bg-gray-100 text-gray-800",

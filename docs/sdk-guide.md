@@ -13,7 +13,7 @@ Deeper references:
   member is JSDoc'd; hover docs in your editor are authoritative.
 - `docs/framework-evolution-rfc.md` — why each surface exists and the
   back-compat law (additive only; nothing is ever removed, only deprecated).
-- `claudedocs/guest-mode-adoption.md` — the two-mode (guest/gamefi) contract.
+- `docs/archive/claudedocs/guest-mode-adoption.md` — the two-mode (guest/gamefi) contract.
 - `docs/credit-system-design.md` — the platform credits architecture.
 
 Trust model, unchanged: miniapps never construct or sign Neo transactions
@@ -598,7 +598,7 @@ flight lands on `"settlement-pending"`, never lost). Op-logs persist through
 
 ### Recipe: guest / gamefi two-mode games
 
-Contract: `claudedocs/guest-mode-adoption.md`. GUEST is a purely local game —
+Contract: `docs/archive/claudedocs/guest-mode-adoption.md`. GUEST is a purely local game —
 the framework THROWS (`GUEST_MODE_BLOCKED`) from every write/oracle/reward
 entry point as defense-in-depth; correct wiring branches BEFORE any guarded
 call. Reads stay allowed.

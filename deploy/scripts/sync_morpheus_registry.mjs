@@ -12,15 +12,17 @@ const oracleRoot = process.env.MORPHEUS_ORACLE_ROOT
   : defaultOracleRoot;
 
 // Confidential-envelope drift guard. The canonical client implementation
-// lives in the oracle workspace; this repo vendors a browser copy in
-// apps/shared/utils/morpheus-confidential-envelope.ts. When the canonical
-// file changes, its hash changes and this sync fails until the vendored
-// copy is re-verified (apps/shared/test/morpheus-confidential-envelope.test.ts)
+// lives in the oracle workspace; this repo's canonical copy lives in
+// framework/utils/morpheus-confidential-envelope.ts (the former
+// apps/shared/utils/morpheus-confidential-envelope.ts is now a re-export
+// shim). When the canonical file changes, its hash changes and this sync
+// fails until the framework copy is re-verified
+// (apps/shared/test/morpheus-confidential-envelope.test.ts)
 // and the pin below is updated.
 const CANONICAL_ENVELOPE_RELATIVE_PATH = 'packages/shared/src/confidential-envelope.js';
 const CANONICAL_ENVELOPE_SHA256 =
-  '33fd895327ad670b1fa1119396c865afa98bbd7ab773fc2ca115b49114beb943';
-const LOCAL_ENVELOPE_RELATIVE_PATH = 'apps/shared/utils/morpheus-confidential-envelope.ts';
+  '508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129';
+const LOCAL_ENVELOPE_RELATIVE_PATH = 'framework/utils/morpheus-confidential-envelope.ts';
 
 async function loadOracleModule(moduleName, exportName) {
   const modulePath = path.join(oracleRoot, 'scripts', moduleName);

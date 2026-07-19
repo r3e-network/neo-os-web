@@ -2,7 +2,11 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-.profitanchor-play-area {
+/* WCAG AA: tokens must also win on nested .mx2 elements — the shared default
+   (--mx2-brand: #16c784, 2.2:1 with white) is set on .mx2 itself and would
+   otherwise shadow this override via custom-property inheritance. */
+.profitanchor-play-area,
+.profitanchor-play-area .mx2 {
   --mx2-brand: #0a7a66;
   --mx2-brand-hover: #086452;
   --mx2-brand-light: #e9f8f3;
