@@ -87,7 +87,7 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaSocialRecoveryVerifier": "",
       "aaAddressMarket": "",
       "aaPaymaster": "",
-      "morpheusOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      "morpheusOracle": "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
       "oracleCallbackConsumer": "0x8c506f224d82e67200f20d9d5361f767f0756e3b",
       "morpheusDatafeed": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064",
       "morpheusNeoDid": ""

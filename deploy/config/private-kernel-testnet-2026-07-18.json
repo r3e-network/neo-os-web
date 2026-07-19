@@ -1,0 +1,435 @@
+{
+  "action": "wire",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet2.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": false,
+  "private_kernel": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+  "platform_game": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+  "balances": {
+    "gas": "112540.54139457",
+    "neo": "73061"
+  },
+  "transactions": [
+    {
+      "label": "Register miniapp miniapp-aim-master",
+      "txid": "0xb47bd25b00d3200ca0c7e4fe5766a5fd7224c3854b6216b4da922427118d778a",
+      "valid_until_block": 17791668
+    },
+    {
+      "label": "Grant game.session to miniapp-aim-master",
+      "txid": "0xd194c375dc4916b0e7b49afd86d9b32060e44939ed09a0c27c121da57fe11ea8",
+      "valid_until_block": 17791671
+    },
+    {
+      "label": "Register miniapp miniapp-color-clash",
+      "txid": "0xa09903daa2e9d061496c562ad0370bf594a4f981db0ac5615d58caa46d3feb3f",
+      "valid_until_block": 17791674
+    },
+    {
+      "label": "Grant game.session to miniapp-color-clash",
+      "txid": "0x64ef30023219a62e8ce797c207a10c32ec548b742b0449c4004048d9970edea0",
+      "valid_until_block": 17791676
+    },
+    {
+      "label": "Register miniapp miniapp-curve-arrow",
+      "txid": "0x82f9d365c8d9c2e1c5f975f2d365f7e00529b7ffc737eab1bb4fddabd524b271",
+      "valid_until_block": 17791679
+    },
+    {
+      "label": "Grant game.session to miniapp-curve-arrow",
+      "txid": "0xc9b7fab89b07a6eadb293417e0131c516fd7dc0c909913597e3f6814c45bb749",
+      "valid_until_block": 17791683
+    },
+    {
+      "label": "Register miniapp miniapp-flappy-dash",
+      "txid": "0xc4f0bf27ab89066b3c79c44cfe8f9eaf4d3904024a080f08d36638975ea066ae",
+      "valid_until_block": 17791685
+    },
+    {
+      "label": "Grant game.session to miniapp-flappy-dash",
+      "txid": "0x8a6d7c3508b52b81ac4fb7ad13f21db776eaed9bcaec77c8f6e7bbabdbef74b5",
+      "valid_until_block": 17791688
+    },
+    {
+      "label": "Register miniapp miniapp-game-2048",
+      "txid": "0xf50dea61de9270f3b098c7d6320ed1ac96e42af9d213e0b48539efe38d09b712",
+      "valid_until_block": 17791690
+    },
+    {
+      "label": "Grant game.session to miniapp-game-2048",
+      "txid": "0x73dea0dd0321e59d3737277c3f587fdb1a49771d6cba517a9b317aa6e3ae314d",
+      "valid_until_block": 17791693
+    },
+    {
+      "label": "Register miniapp miniapp-jump-rush",
+      "txid": "0xa5f03253e75ec78dc93158cba334e47d21517e5b4d6e3540a4cdc85c302c478e",
+      "valid_until_block": 17791695
+    },
+    {
+      "label": "Grant game.session to miniapp-jump-rush",
+      "txid": "0x30aedf96108f441b7a1333dbb81a357c56b558913c0d2fd907e27018c6ae66d1",
+      "valid_until_block": 17791697
+    },
+    {
+      "label": "Register miniapp miniapp-merge-kingdom",
+      "txid": "0x0fde2dfefe888cc179e140f84841aacc24ce19971e0afc414e779a73fe929c54",
+      "valid_until_block": 17791700
+    },
+    {
+      "label": "Grant game.session to miniapp-merge-kingdom",
+      "txid": "0xc89ff906854b8491a78cd56552e2f0e6500a43a057e161f0c010770dfdb264d3",
+      "valid_until_block": 17791702
+    },
+    {
+      "label": "Register miniapp miniapp-pet-potion",
+      "txid": "0xd2c3538d96ea2ca214d970b054d2e2e44d606340d1ffbc9d0098902afc6cf061",
+      "valid_until_block": 17791705
+    },
+    {
+      "label": "Grant game.session to miniapp-pet-potion",
+      "txid": "0xd2d520b9ff398207c17ab997251c4185cfe79378dcb92add3fbce6717cfd4e8c",
+      "valid_until_block": 17791707
+    },
+    {
+      "label": "Register miniapp miniapp-sheep-solitaire",
+      "txid": "0xe0b19d5ce13d3d3f6a8555f9791a01a57d5a8250ef9658f3452bfadfb59143d7",
+      "valid_until_block": 17791711
+    },
+    {
+      "label": "Grant game.session to miniapp-sheep-solitaire",
+      "txid": "0xd24c49ce14d0a419e500b9987389c08898b6ae11484b701593671f0846da0a86",
+      "valid_until_block": 17791713
+    },
+    {
+      "label": "Register miniapp miniapp-snake-bounty",
+      "txid": "0xb0fb738c1b723f54a45a94919c106b8219e16a2138c85aaa6a4d5cbd9f0ba80b",
+      "valid_until_block": 17791717
+    },
+    {
+      "label": "Grant game.session to miniapp-snake-bounty",
+      "txid": "0x6872def093555e10730e5ed8068acea5f29ab1f06f20a1abc05ff409049f1ad5",
+      "valid_until_block": 17791719
+    },
+    {
+      "label": "Register miniapp miniapp-sudoku",
+      "txid": "0x84f74ea8ad1c97e2bc60d97d096ad31e92218cbcfd06d3570fc48f611ee754ea",
+      "valid_until_block": 17791722
+    },
+    {
+      "label": "Grant game.session to miniapp-sudoku",
+      "txid": "0xd6c0c397e4fa2a4f94ae5cf2b85590569a787b57eb1052459ad001f43acd5b3c",
+      "valid_until_block": 17791724
+    },
+    {
+      "label": "Kernel fee-credit deposit (nil memo)",
+      "txid": "0xab4ed7532f07dc8c526f4072eac0c7c25129ecbedcac3344a8d1676cbc8e2e55",
+      "valid_until_block": 17791727
+    }
+  ],
+  "wire": {
+    "verifier_public_key": "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
+    "updater": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "module_id": "game.session",
+    "app_ids": [
+      "miniapp-aim-master",
+      "miniapp-color-clash",
+      "miniapp-curve-arrow",
+      "miniapp-flappy-dash",
+      "miniapp-game-2048",
+      "miniapp-jump-rush",
+      "miniapp-merge-kingdom",
+      "miniapp-pet-potion",
+      "miniapp-sheep-solitaire",
+      "miniapp-snake-bounty",
+      "miniapp-sudoku"
+    ],
+    "fee_credit_target_gas": "5.00000000",
+    "fee_credit_before": "4.94000000",
+    "fee_credit_after": "5.00000000",
+    "platform_game_oracle_before": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+    "platform_game_oracle_after": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+    "steps": [
+      {
+        "name": "verifier-key",
+        "status": "skipped",
+        "note": "runtimeVerificationPublicKey already matches the verifier WIF"
+      },
+      {
+        "name": "updater",
+        "status": "skipped",
+        "note": "updater already the signer"
+      },
+      {
+        "name": "register-module",
+        "status": "skipped",
+        "note": "module \"game.session\" already registered: [game.session /session/finalize morpheus.module.game.session.v1 true 1784325274946 1784325274946]"
+      },
+      {
+        "name": "register-app:miniapp-aim-master",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-aim-master",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-color-clash",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-color-clash",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-curve-arrow",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-curve-arrow",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-flappy-dash",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-flappy-dash",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-game-2048",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-game-2048",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-jump-rush",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-jump-rush",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-merge-kingdom",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-merge-kingdom",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-pet-potion",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-pet-potion",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-sheep-solitaire",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-sheep-solitaire",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-snake-bounty",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-snake-bounty",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "register-app:miniapp-sudoku",
+        "status": "done",
+        "note": "registered with callbackContract=PlatformGame, feePayer=signer"
+      },
+      {
+        "name": "grant-module:miniapp-sudoku",
+        "status": "done",
+        "note": "module granted"
+      },
+      {
+        "name": "fee-credit",
+        "status": "done",
+        "note": "feeCreditOf(signer) 4.94000000 -\u003e 5.00000000 GAS"
+      },
+      {
+        "name": "platform-game-oracle",
+        "status": "skipped",
+        "note": "PlatformGame oracle() already the private kernel"
+      }
+    ]
+  },
+  "validation": {
+    "kernel_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "miniapp_row_miniapp-aim-master": [
+      "miniapp-aim-master",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364796358",
+      "1784364796358"
+    ],
+    "miniapp_row_miniapp-color-clash": [
+      "miniapp-color-clash",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364811849",
+      "1784364811849"
+    ],
+    "miniapp_row_miniapp-curve-arrow": [
+      "miniapp-curve-arrow",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364831106",
+      "1784364831106"
+    ],
+    "miniapp_row_miniapp-flappy-dash": [
+      "miniapp-flappy-dash",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364850246",
+      "1784364850246"
+    ],
+    "miniapp_row_miniapp-game-2048": [
+      "miniapp-game-2048",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364865851",
+      "1784364865851"
+    ],
+    "miniapp_row_miniapp-jump-rush": [
+      "miniapp-jump-rush",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364881437",
+      "1784364881437"
+    ],
+    "miniapp_row_miniapp-merge-kingdom": [
+      "miniapp-merge-kingdom",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364893926",
+      "1784364893926"
+    ],
+    "miniapp_row_miniapp-pet-potion": [
+      "miniapp-pet-potion",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364909531",
+      "1784364909531"
+    ],
+    "miniapp_row_miniapp-sheep-solitaire": [
+      "miniapp-sheep-solitaire",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364928658",
+      "1784364928658"
+    ],
+    "miniapp_row_miniapp-snake-bounty": [
+      "0x79746e756f622d656b616e732d707061696e696d",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364950998",
+      "1784364950998"
+    ],
+    "miniapp_row_miniapp-sudoku": [
+      "miniapp-sudoku",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784364966265",
+      "1784364966265"
+    ],
+    "module_endpoint": "/session/finalize",
+    "module_row": [
+      "game.session",
+      "/session/finalize",
+      "morpheus.module.game.session.v1",
+      true,
+      "1784325274946",
+      "1784325274946"
+    ],
+    "module_schema": "morpheus.module.game.session.v1",
+    "platform_game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "platform_game_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+    "platform_game_hash_source": "contracts/build/testnet_game_deployment.json",
+    "verifier_address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu"
+  },
+  "next_steps": [
+    "Lane is wired. Drive a real loop: start/finalize a RewardGame on PlatformGame (finalizeGame submits the kernel request), then fulfill it with PRIVATE_KERNEL_ACTION=fulfill PRIVATE_KERNEL_FULFILL_REQUEST_ID=\u003cid\u003e PRIVATE_KERNEL_FULFILL_RESULT_HEX=\u003c79-byte codec\u003e.",
+    "Read-only state check at any time: PRIVATE_KERNEL_ACTION=verify."
+  ],
+  "generated_at_utc": "2026-07-18T08:53:01Z"
+}

@@ -10,14 +10,14 @@ Responsibilities:
 - render MiniApps in the unified host-native three-column product layout
 - resolve catalog manifests into shared information panels, operation panels, and per-app playareas
 - strict CSP for the host runtime and platform APIs
-- surface OneGate/NeoLine wallet binding, intent submission, AppRegistry workflows, Morpheus proxies, and AA relay proxying
+- surface OneGate/NeoLine wallet binding, intent submission, manifest registration workflows (`app-register` / `app-update-manifest`), Morpheus proxies, and AA relay proxying
 
 Current capabilities:
 
 - `/miniapps` lists the active catalog.
 - `/miniapps/<app_id>` renders the Polymarket-style detail surface with host-native playareas.
-- Settings UI includes wallet binding (`wallet-nonce` + `wallet-bind`) and intents (`pay-gas` / `vote-neo`).
-- AppRegistry workflow for `app-register` / `app-update-manifest`.
+- Wallet binding is handled through the `wallet-nonce` + `wallet-bind` edge functions.
+- Manifest registration uses the `app-register` / `app-update-manifest` edge functions; the returned intents target the env-configured external AppRegistry contract (`CONTRACT_APPREGISTRY_HASH`; source not in this repo).
 - CSP headers set via `platform/host-app/middleware.ts` with per-request nonces.
 
 ## Localization
@@ -198,15 +198,12 @@ The host resolves JSON/YAML/Markdown frontend specs and renders UI directly.
 The host expects a Neo N3 browser wallet. The visible wallet choices are **OneGate** and **NeoLine**, and both route contract calls through the standard **NEP-21 dAPI** provider.
 
 1. Install OneGate or NeoLine with NEP-21 dAPI support enabled.
-2. In the Settings panel:
-   - set `Supabase Edge base URL`
-   - paste an `Auth JWT` (Supabase session token; required for wallet binding)
-3. In **Wallet Binding**:
-   - click `Detect Wallet`
-   - click `Get Bind Message`
-   - click `Sign & Bind` (the selected wallet will prompt to sign)
-4. In **On-chain Intents**:
-   - click `Create Intent` for `pay-gas` / `vote-neo`
-   - click `Submit via Wallet` to call NEP-21 `invoke`
+2. Sign in (Supabase Auth), then bind a Neo N3 address to the account through
+   the `wallet-nonce` + `wallet-bind` edge functions (one wallet signature).
+3. Wallet-signed intents are returned by the eponymous edge functions —
+   `pay-gas` (GAS transfer to a MiniApp contract), `vote-bneo` (governance
+   vote against the env-configured external governance contract), and the
+   `app-register` / `app-update-manifest` registration intents — and are
+   submitted via NEP-21 `invoke`.
 
-If `pay-gas` / `vote-neo` returns `WALLET_REQUIRED`, bind a wallet first.
+If an intent call returns `WALLET_REQUIRED`, bind a wallet first.

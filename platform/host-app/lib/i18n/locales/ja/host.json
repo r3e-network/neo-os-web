@@ -1,10 +1,4 @@
 {
-  "hero": {
-    "title": "Neo ミニアプリプラットフォーム",
-    "subtitle": "TEEセキュリティで分散型アプリケーションを構築・デプロイ",
-    "exploreApps": "アプリを探す",
-    "launchApp": "アプリを起動"
-  },
   "features": {
     "title": "機能",
     "secureCompute": "セキュアコンピュート",
@@ -151,5 +145,23 @@
       "start": "構築を開始",
       "docs": "ドキュメントを読む"
     }
+  },
+  "playArea": {
+    "syncing": "同期中",
+    "cachedState": "キャッシュ状態",
+    "liveState": "ライブ状態",
+    "refresh": "更新",
+    "technicalDetails": "チェーン技術詳細",
+    "contractLabel": "コントラクト",
+    "additionalMetrics": "追加メトリクス",
+    "metricsDescription": "アプリの生カウンターと診断値。",
+    "itemsSuffix": "件",
+    "recentActivity": "最近のアクティビティ",
+    "contextDiagnostics": "コンテキストと診断",
+    "contextDescription": "レシート・生値・技術コンテキストは必要時まで折りたたまれています。",
+    "openInNewWindow": "新しいウィンドウで開く",
+    "newWindow": "新しいウィンドウ",
+    "resultVerifier": "結果検証",
+    "modeLabel": "モード"
   }
 }

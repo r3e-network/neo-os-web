@@ -216,7 +216,7 @@ if [[ "${SKIP_PAYMASTER_ALLOWLIST_UPDATE:-}" == "0" ]]; then
 fi
 verify_runtime_catalog_contract "$WORKSPACE_RUNTIME_CATALOG_FILE"
 
-MORPHEUS_PUBLIC_API_URL="${MORPHEUS_PUBLIC_API_URL:-$(cd "$MORPHEUS_DIR" && node -e 'const fs = require("fs"); const path = require("path"); const repoRoot = process.argv[1]; const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "config/networks/testnet.json"), "utf8")); process.stdout.write(String(config?.phala?.public_api_url || ""));' "$MORPHEUS_DIR")}"
+MORPHEUS_PUBLIC_API_URL="${MORPHEUS_PUBLIC_API_URL:-$(cd "$MORPHEUS_DIR" && node -e 'const fs = require("fs"); const path = require("path"); const repoRoot = process.argv[1]; const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "config/networks/testnet.json"), "utf8")); process.stdout.write(String(config?.nitro?.public_api_url || config?.phala?.public_api_url || ""));' "$MORPHEUS_DIR")}"
 if [[ -z "${MORPHEUS_PUBLIC_API_URL:-}" || "$MORPHEUS_PUBLIC_API_URL" == "null" ]]; then
   echo "MORPHEUS public api url missing in network registry" >&2
   exit 1

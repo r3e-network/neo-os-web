@@ -17,7 +17,8 @@
     "contracts": "Contracts",
     "main": "Main navigation",
     "mobile": "Mobile navigation",
-    "toggleMenu": "Toggle navigation menu"
+    "toggleMenu": "Toggle navigation menu",
+    "skipToContent": "Skip to content"
   },
   "actions": {
     "connect": "Connect",

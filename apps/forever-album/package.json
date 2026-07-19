@@ -10,8 +10,8 @@
     "vue-i18n": "^9.1.9"
   },
   "devDependencies": {
-    "sass": "catalog:",
-    "typescript": "catalog:",
-    "vite": "catalog:"
+    "sass": "^1.98.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6"
   }
 }

@@ -1,0 +1,1583 @@
+{
+  "action": "engine-attach",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": false,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "engine_id": "platform-game",
+  "engine_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+  "engine_active": true,
+  "manifest_path": "deploy/config/rewardgame-absorption-manifest.json",
+  "summary": {
+    "manifest_total": 11,
+    "invalid": 0,
+    "attached": 11,
+    "skipped_existing": 0,
+    "planned_attaches": 0,
+    "not_ready": 0,
+    "failed": 0,
+    "descriptors_set": 99,
+    "descriptors_planned": 0,
+    "descriptors_skipped_present": 0,
+    "descriptors_failed": 0,
+    "estimated_tx_fees_gas": "33.00000000"
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aim-master",
+      "contract": "MiniAppAimMaster",
+      "status": "attached",
+      "attach_txid": "0x8091c8c1545369ccc2f0d215c5eaa772b3edfe383e8dd393f9cc3420dd1076ba",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x83731774023622ac518fedcead04f1b0a42629db2116c04870566d1bf0c88fa4"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 90000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x6cf2a7346051f81fcae6634ca0988857251dca1495df87ad7596463719a9cb7b"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x540e16804747425f05877271a00c8eaf3c1af925e9a5d3990055308b3faf39b6"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 10000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xa5aa18e12fed623209f0e0fea136beb7adfe04a8e9eaab2cd5fa84a919196b71"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 20000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x47903b819a760e72c4da57bd01264a9aac6c95fcbdff6d66c1d6e33edb9ff566"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 30000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x890b0d3ccf245fdedadf87bd0e0d71a2c6bc5f3ea14dbdecd816081764931de0"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 3,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x8c2c04793b8c489a5cd14c996faa914e68df5871b60e260e002824285535f6a2"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 5,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xba701cd8124751001e0c177a23269123d738f96b3cf049afc3326292fc591c27"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 7,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x340ebaf0e6e5f9bf3ea120642fa0b18948fb90e8009e07bbb4887f889847be28"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "contract": "MiniAppColorClash",
+      "status": "attached",
+      "attach_txid": "0x56abfec8004151462845f65ba2fa8eb57132cc01679585774a739cfe2640f827",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x4eab46e5326504df5abcd42959e8f575999904ae749fc465d899987a86bfee26"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x36068303e6a328eb997a0abf33ba3529479d94d045389c6e079d53788bbfa516"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x6eacde1d032389a75695966f7af1b0c2b31b5b186b36b8ae8347b1ce63630e24"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 15000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x3058f2f4dd091bd0804c7c81355793712ebe214fd50b2f768dd0e9ff2185e13c"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x4b461685fba268ed548d90f8ce45d519a8a577c69bb4761cde46d73e2f87ba9c"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x147b95bdb8154b87ae9d9366955d313ca2653080a0e0f5f9cf2c66c605a7b122"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 8,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x98799db281a00e37592d361bdf5bb2c36cd3c5314c1cb0b68aa1e346c8e68347"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 12,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x30327a26f0517c394d33097244c20895f4e1f1674fc5377db03e47b45c3bf573"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 16,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x8ce26274b1b1a94e5198bfa1542a04d0c535aaf37256bdbe3bd6d8c93ff44131"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "contract": "MiniAppCurveArrow",
+      "status": "attached",
+      "attach_txid": "0xb0dfd070751ef98d75c4c8a4c380e200b9d166088b4deeaf4359e98e6c249389",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x211e73de3df6908d72c808270672cbf2d1f2508771e911a780631e97ab23d3ac"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x84170976c2b0beaa1cb3735832a4dc5b71b25d8df3204f2a3de9fe9353cde545"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x227b9999397bf11f075c21b667bf60c00176ceb816d124321af9afa4dd066703"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 10000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xe62ec904dde072f12ecf677f72ff0ba638fcf09b432d090f794418422a04c46f"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 25000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x77473a007b61303c5e74448c5ec93a6848d5179c12b8c00afef8cd523dce4e4e"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x3074e01ccc9bc42581476b3b53a58c789f5dc3baedf1a8569384ffd38012eee7"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 3,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x3bacde9ebe4aac25910d1417c2356a981689b9731cdc22fb586b4b50ae0a4df4"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 5,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x7036ded9175788b50133a555348e921cd7590118f90e5c5d93260aec7da2ab85"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 7,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xc77f6c9afd1312538b9abcaea4f08b1b2ff354cf253820fff9c4964f92c01a40"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "contract": "MiniAppFlappyDash",
+      "status": "attached",
+      "attach_txid": "0x4301a293dac559a1786cb4fb9626921fcd3c2ec109d663377d2cac9e0d3f3590",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xddc0326dc9e894b0c1fa499a7403014ca435abb59bd0b1ba656ca59825b1a772"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x5edb650d4c4fd08d4f3919397dadabde75ed8198817483c17ad83ba223dfb7c3"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x4418b4cc4dd93292822405fb6d63b560f60c9310bbca489a009182714c50202f"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xd18746749fb04f55280f0a938a3f20964319fa75d13399cd5bf6fa8689f7a608"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xa95c8dbc47d8f9781dd2c55dee2be2c34052af333252874e8fbd931bd0e7cd99"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xf0c72f99e09c55d60e1f08b6f828d64b9820c0fdf2d960ba4c1018d8beaf379e"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 5,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x250558401a1a7a51ae88b822759af0fcf0ade4f86a10573e138b809a83b98cfc"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 10,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xd86feed220d41ae5cc63016ad2ea013eb4168c4c706c517ad239ae5c0ef6f519"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 20,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x7296d48929230654ca9e6f117f2ab8b471490c5f10d41a91d3bfa6e4fe2343a2"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "contract": "MiniAppGame2048",
+      "status": "attached",
+      "attach_txid": "0x043df22e6f49bee906e3f194d5902daad31de3a1dad9d6bdab60520e3411f7c4",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 240000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x1b710d879a8c1d61d75bbb2376ee4012111be80fb6f1fb6625b02090b80dde82"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 480000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x9e4902e250396b1cc6c74f39b69575c2e41ab4e8e79e62f96111bc6c6e4374b6"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 900000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xc92d795da673e0bdb3bb6c3dd01d9723d4e95a92d229771f20be7ed7f7ca6b62"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xa565f56895ee5cf5644e96542ad210ec3a974a3272f9147b070fb1c98d8f6262"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xfaa784e69c299ce8f5df8221e79b40a0a5cf60fa14be676774031063ba29f815"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 240000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xc63761550f8227867b536c9d1b984725d7d26275961fdb9d7ee2958b7cc9b17d"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 9,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xfdb8648064d72f8aef90831b198ef762db520a3a4d26e71b5e2765b828456ba4"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 10,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x98bcf1ad43240137f3bb8e5ff079795cdf768535ebf39b58315711a1f5c56219"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 11,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x887be7938129fcab568e773435dd8ddae21ac03057d80bbadb33bf02943f60c8"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "contract": "MiniAppJumpRush",
+      "status": "attached",
+      "attach_txid": "0xc4383b51b3e9ec8e3a43c47465c14965139796dcad110b66dfc322014a13f246",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x65b19ed12e0f3e743903f0e3f1bf3643744423b0c56167acc7ec4d083ea58ead"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 90000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x7ee8bedc58a275f560fabe7c70ced20c97f69dc91c0b578747893236342b2978"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x9347d6174a2f325ae3524f2bdf8c7d52cee791c4c9839abedce6e543654ca711"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 15000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x3f8729022578c728bd380fc417ad6786e86d87f5d78286ac28489057e58a5713"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x3566d1ffdb18e275723d10c70edb0096f91141d4dd1ddb6279b7bc1033222cdc"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x64c47c60a07e4268f8fa6ab86ead5ec5b99b0b97a8a2e3ced6f804cdf7d62775"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x6bf9067047a5d70f6add360f4ada39bca42a9e45b727291fff53b150fe200b22"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xc8ad04fde6cfe340195d2a49967f92f7b6d13c2c9d195b29804a1bc9a09161c7"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x83f90d1fa00d2831b0e31b244d1bea85b8643c7c2b96e2228c40c1673b52ee92"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "contract": "MiniAppMergeKingdom",
+      "status": "attached",
+      "attach_txid": "0xa47f759cc58031f39348cc5ca8c4343b5b67784483aae5d34983a28019e93a14",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xcdbeceeaa14796177599fd3a9809ac406355e4ddc568d2545aee61506c40b294"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x61eb43ff363d6a495976fec85e9e2af3c8cba8b531785fc06df2f4baf8bae788"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x1e88906819c3bdcf1b40ebdf577f1bcc49b250a1f8ef087f420352368739262d"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x7b2e6b0bb2fcdec52d3030ab699bcea8b9b0a61a0da57a58d08239766f1f57c9"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xfa55e2477c7f51ae9ef55d7ed4d12ddf9bd1a6610590b6d4a7fd5c4538a67ccf"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xfe95e46b8883923efeb4140e1261fa911bfadb561a96b1b3d0831d199b70b9d4"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 64,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xd598e530947be3e169f5fe1736261260f62b049babaf3c7e27c677d20fc99eab"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 256,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xe3ba718d9f42b88999040e8a91fcfbdaa127acc0446717943bc436adc61cc4bc"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1024,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x228f8d3877d0d124b73c7ad0e22ed89b8622c68543aff1fadecc2cb8533e4f75"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "contract": "MiniAppPetPotion",
+      "status": "attached",
+      "attach_txid": "0x4c868cf8d8e8c6c59f8c0a45895e1ea0280c8cfe79c435588c1ae53b7f50c930",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x261c40a5c82aa37b9fecdd747145ff186eecff3224501b5ca2741e7d7a2934f7"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xafa4c27d01ad11d03aea666f9e40c307c9eb2ab587695d7370ba866d9c497870"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x6d020169bc82c8bb9ca7a7978807b053c7b31f1518ae315c2a9bf15d3054bda6"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xacb72efe0cefcdcfb1aaa8920f50b15226c0095d908343b452278438f9d28148"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x4f49365d609d0607ef978400e480295f3213e471396801d0285d29b5bba26bc0"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x166bd99a2145d49d80aa2a770ee75a6de5ef5cde7843a8f798a28806a19aa810"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 50,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x7bb49db70a71503e4eb78822b87b1915ffd632903babd68af51a72ef206b8d11"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 70,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xf839fea502f0390aa2164cc071a49f33a82a30f6ae40aad28f5f28b3d4ca3255"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 100,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x1c90db92165ff54521e1cad16b639c5d0d9d020767319a500a2e49c28bc541ff"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "contract": "MiniAppSheepSolitaire",
+      "status": "attached",
+      "attach_txid": "0x10358e38e25869a6f09deedb8a2bacb45542b2381c3c780c0fb1aae70cc00f39",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xe930ba5f41db5c2a1a75468e1cb975d3f24b0965795541cc718b95f64a945423"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 480000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xf5ae4f17b58fe9378bcd693f97383174b26961b0f2db1b19c08013f134fd9c0b"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 720000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xc9fd3793d6fb8f5f58cd21217a692082e96513be467eb8095c0804748ccb3ae1"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x27a21efa9b15c64734d7a22551edc1915c80fb3f1b83a1bb3438f974ca78375a"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 120000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x01208d070ddc9e755f7f5d97717d405cc35f7af62b5b366bab0156b4d9cbf682"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x7c87901815f80814fad1d8b7af0a904adc21b5d2f62e2e798ee28dcdbec4f9dc"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x67e8e31545fba1a3e2b56b5ff0c699a13da1ddd8eb10ed4a708726b0cdb544f7"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x3a796f9a3ca758012f42400c14db62df20869d997fab53599c079c05edfaf1cb"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xd5364d78a23f27e6dfceec9b8cec7bd25aede48b225acc890f53fead5d9cdea4"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "contract": "MiniAppSnakeBounty",
+      "status": "attached",
+      "attach_txid": "0xd5d511775dfef733789cd471208df3589945982cc57ce266939cc0715726c56f",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xd7d5745862abc7253e0a5df915d8ad43c78a810b93fd57eea3b63f3505a324d7"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xf2506cf8c91069d764c34cb091e7fb4caf66c340cb34fafc0da0f575bdcb03a2"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x86d30f309a50fc8d08aa283bf7c7030e5c08d7a1e27d5207f29167c4dbf93f0f"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x201d615b372dcfb18e7d06319a6364d888ad2e7c69bb8eb6b81259753dadc950"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 40000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x78992124b4421000ab19ae10199becad474a2c18b4d06b3678791f5fcff00edd"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 60000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x5afdf538933c927d02e2f86000dba1b88e92a15da55f01c37a3b5933ccb7178f"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 10,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xc6c43bb6a7dfd2f705ddaf89344f1a3331e3be0286d39e500bfe114c9d81e5ce"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 20,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x0fb2e112aa4b44540cd1d7df22fb9acfc5a960d8bc2f0245e598d7eeeaef9444"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 35,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x58898a9f03744a1861732f989fb6cb7d7f04f0c65cd06ff3fa0d74a0d7a9dad1"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "contract": "MiniAppSudoku",
+      "status": "attached",
+      "attach_txid": "0x3a14187bc773be53670f3e6ed6432cb3deb7d4aedd66cffc36cbdb1b61a50b3d",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 900000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x99497608957f2ff76a617064e4d2ed1bbe4afba342a2bdfb4593ccd3d1a309c0"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 1500000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x4a2cc2e01d43a54811f9aa83f6163670350e5794229a4bf6c0e48d19c91167d4"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 2400000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x50b0d01d343720586bc4c30927739065efa813fdcfe908e47c635f732f519619"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 90000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x6648e16d8e1a3f7418ecb7a4d57e55b004b558c03efac1649a59bacff36abae9"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 150000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x9c1c9a584eb69f804ee1e72e0bc87de8fbb5df846d1a08b634865e33cdd3d6da"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 240000,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xf37d0836031c71a4263752899ec1155c258c370bf1f50f45084d36473009ff05"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x9d2c9220f4060bd0bfe08624890251e72e267bdf31c2a62761faefc58f2e2832"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0xf484ba0b5bc69214ec9c44ee174c5408f2de0f4603b65ba2ae3c8332083e48f0"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "current": "unset",
+          "status": "set",
+          "txid": "0x25895169ffc7ad65ec9bf2c6a9facb16fde2cb797c1ce53cfd479fed2b58cfb8"
+        }
+      ],
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ],
+      "note": "activateApp push confirmed engine-side (getGameType=5 RewardGame)"
+    }
+  ],
+  "transactions": [
+    {
+      "label": "attachEngine miniapp-aim-master",
+      "txid": "0x8091c8c1545369ccc2f0d215c5eaa772b3edfe383e8dd393f9cc3420dd1076ba",
+      "valid_until_block": 17825720
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-aim-master)",
+      "txid": "0x83731774023622ac518fedcead04f1b0a42629db2116c04870566d1bf0c88fa4",
+      "valid_until_block": 17825723
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-aim-master)",
+      "txid": "0x6cf2a7346051f81fcae6634ca0988857251dca1495df87ad7596463719a9cb7b",
+      "valid_until_block": 17825726
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-aim-master)",
+      "txid": "0x540e16804747425f05877271a00c8eaf3c1af925e9a5d3990055308b3faf39b6",
+      "valid_until_block": 17825728
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-aim-master)",
+      "txid": "0xa5aa18e12fed623209f0e0fea136beb7adfe04a8e9eaab2cd5fa84a919196b71",
+      "valid_until_block": 17825730
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-aim-master)",
+      "txid": "0x47903b819a760e72c4da57bd01264a9aac6c95fcbdff6d66c1d6e33edb9ff566",
+      "valid_until_block": 17825735
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-aim-master)",
+      "txid": "0x890b0d3ccf245fdedadf87bd0e0d71a2c6bc5f3ea14dbdecd816081764931de0",
+      "valid_until_block": 17825737
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-aim-master)",
+      "txid": "0x8c2c04793b8c489a5cd14c996faa914e68df5871b60e260e002824285535f6a2",
+      "valid_until_block": 17825740
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-aim-master)",
+      "txid": "0xba701cd8124751001e0c177a23269123d738f96b3cf049afc3326292fc591c27",
+      "valid_until_block": 17825744
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-aim-master)",
+      "txid": "0x340ebaf0e6e5f9bf3ea120642fa0b18948fb90e8009e07bbb4887f889847be28",
+      "valid_until_block": 17825748
+    },
+    {
+      "label": "attachEngine miniapp-color-clash",
+      "txid": "0x56abfec8004151462845f65ba2fa8eb57132cc01679585774a739cfe2640f827",
+      "valid_until_block": 17825749
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-color-clash)",
+      "txid": "0x4eab46e5326504df5abcd42959e8f575999904ae749fc465d899987a86bfee26",
+      "valid_until_block": 17825752
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-color-clash)",
+      "txid": "0x36068303e6a328eb997a0abf33ba3529479d94d045389c6e079d53788bbfa516",
+      "valid_until_block": 17825756
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-color-clash)",
+      "txid": "0x6eacde1d032389a75695966f7af1b0c2b31b5b186b36b8ae8347b1ce63630e24",
+      "valid_until_block": 17825758
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-color-clash)",
+      "txid": "0x3058f2f4dd091bd0804c7c81355793712ebe214fd50b2f768dd0e9ff2185e13c",
+      "valid_until_block": 17825761
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-color-clash)",
+      "txid": "0x4b461685fba268ed548d90f8ce45d519a8a577c69bb4761cde46d73e2f87ba9c",
+      "valid_until_block": 17825764
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-color-clash)",
+      "txid": "0x147b95bdb8154b87ae9d9366955d313ca2653080a0e0f5f9cf2c66c605a7b122",
+      "valid_until_block": 17825766
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-color-clash)",
+      "txid": "0x98799db281a00e37592d361bdf5bb2c36cd3c5314c1cb0b68aa1e346c8e68347",
+      "valid_until_block": 17825769
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-color-clash)",
+      "txid": "0x30327a26f0517c394d33097244c20895f4e1f1674fc5377db03e47b45c3bf573",
+      "valid_until_block": 17825772
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-color-clash)",
+      "txid": "0x8ce26274b1b1a94e5198bfa1542a04d0c535aaf37256bdbe3bd6d8c93ff44131",
+      "valid_until_block": 17825775
+    },
+    {
+      "label": "attachEngine miniapp-curve-arrow",
+      "txid": "0xb0dfd070751ef98d75c4c8a4c380e200b9d166088b4deeaf4359e98e6c249389",
+      "valid_until_block": 17825777
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-curve-arrow)",
+      "txid": "0x211e73de3df6908d72c808270672cbf2d1f2508771e911a780631e97ab23d3ac",
+      "valid_until_block": 17825779
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-curve-arrow)",
+      "txid": "0x84170976c2b0beaa1cb3735832a4dc5b71b25d8df3204f2a3de9fe9353cde545",
+      "valid_until_block": 17825782
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-curve-arrow)",
+      "txid": "0x227b9999397bf11f075c21b667bf60c00176ceb816d124321af9afa4dd066703",
+      "valid_until_block": 17825785
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-curve-arrow)",
+      "txid": "0xe62ec904dde072f12ecf677f72ff0ba638fcf09b432d090f794418422a04c46f",
+      "valid_until_block": 17825787
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-curve-arrow)",
+      "txid": "0x77473a007b61303c5e74448c5ec93a6848d5179c12b8c00afef8cd523dce4e4e",
+      "valid_until_block": 17825789
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-curve-arrow)",
+      "txid": "0x3074e01ccc9bc42581476b3b53a58c789f5dc3baedf1a8569384ffd38012eee7",
+      "valid_until_block": 17825791
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-curve-arrow)",
+      "txid": "0x3bacde9ebe4aac25910d1417c2356a981689b9731cdc22fb586b4b50ae0a4df4",
+      "valid_until_block": 17825794
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-curve-arrow)",
+      "txid": "0x7036ded9175788b50133a555348e921cd7590118f90e5c5d93260aec7da2ab85",
+      "valid_until_block": 17825797
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-curve-arrow)",
+      "txid": "0xc77f6c9afd1312538b9abcaea4f08b1b2ff354cf253820fff9c4964f92c01a40",
+      "valid_until_block": 17825800
+    },
+    {
+      "label": "attachEngine miniapp-flappy-dash",
+      "txid": "0x4301a293dac559a1786cb4fb9626921fcd3c2ec109d663377d2cac9e0d3f3590",
+      "valid_until_block": 17825803
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-flappy-dash)",
+      "txid": "0xddc0326dc9e894b0c1fa499a7403014ca435abb59bd0b1ba656ca59825b1a772",
+      "valid_until_block": 17825806
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-flappy-dash)",
+      "txid": "0x5edb650d4c4fd08d4f3919397dadabde75ed8198817483c17ad83ba223dfb7c3",
+      "valid_until_block": 17825809
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-flappy-dash)",
+      "txid": "0x4418b4cc4dd93292822405fb6d63b560f60c9310bbca489a009182714c50202f",
+      "valid_until_block": 17825811
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-flappy-dash)",
+      "txid": "0xd18746749fb04f55280f0a938a3f20964319fa75d13399cd5bf6fa8689f7a608",
+      "valid_until_block": 17825813
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-flappy-dash)",
+      "txid": "0xa95c8dbc47d8f9781dd2c55dee2be2c34052af333252874e8fbd931bd0e7cd99",
+      "valid_until_block": 17825815
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-flappy-dash)",
+      "txid": "0xf0c72f99e09c55d60e1f08b6f828d64b9820c0fdf2d960ba4c1018d8beaf379e",
+      "valid_until_block": 17825817
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-flappy-dash)",
+      "txid": "0x250558401a1a7a51ae88b822759af0fcf0ade4f86a10573e138b809a83b98cfc",
+      "valid_until_block": 17825820
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-flappy-dash)",
+      "txid": "0xd86feed220d41ae5cc63016ad2ea013eb4168c4c706c517ad239ae5c0ef6f519",
+      "valid_until_block": 17825823
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-flappy-dash)",
+      "txid": "0x7296d48929230654ca9e6f117f2ab8b471490c5f10d41a91d3bfa6e4fe2343a2",
+      "valid_until_block": 17825825
+    },
+    {
+      "label": "attachEngine miniapp-game-2048",
+      "txid": "0x043df22e6f49bee906e3f194d5902daad31de3a1dad9d6bdab60520e3411f7c4",
+      "valid_until_block": 17825827
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-game-2048)",
+      "txid": "0x1b710d879a8c1d61d75bbb2376ee4012111be80fb6f1fb6625b02090b80dde82",
+      "valid_until_block": 17825829
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-game-2048)",
+      "txid": "0x9e4902e250396b1cc6c74f39b69575c2e41ab4e8e79e62f96111bc6c6e4374b6",
+      "valid_until_block": 17825831
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-game-2048)",
+      "txid": "0xc92d795da673e0bdb3bb6c3dd01d9723d4e95a92d229771f20be7ed7f7ca6b62",
+      "valid_until_block": 17825833
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-game-2048)",
+      "txid": "0xa565f56895ee5cf5644e96542ad210ec3a974a3272f9147b070fb1c98d8f6262",
+      "valid_until_block": 17825835
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-game-2048)",
+      "txid": "0xfaa784e69c299ce8f5df8221e79b40a0a5cf60fa14be676774031063ba29f815",
+      "valid_until_block": 17825837
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-game-2048)",
+      "txid": "0xc63761550f8227867b536c9d1b984725d7d26275961fdb9d7ee2958b7cc9b17d",
+      "valid_until_block": 17825840
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-game-2048)",
+      "txid": "0xfdb8648064d72f8aef90831b198ef762db520a3a4d26e71b5e2765b828456ba4",
+      "valid_until_block": 17825842
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-game-2048)",
+      "txid": "0x98bcf1ad43240137f3bb8e5ff079795cdf768535ebf39b58315711a1f5c56219",
+      "valid_until_block": 17825844
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-game-2048)",
+      "txid": "0x887be7938129fcab568e773435dd8ddae21ac03057d80bbadb33bf02943f60c8",
+      "valid_until_block": 17825847
+    },
+    {
+      "label": "attachEngine miniapp-jump-rush",
+      "txid": "0xc4383b51b3e9ec8e3a43c47465c14965139796dcad110b66dfc322014a13f246",
+      "valid_until_block": 17825850
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-jump-rush)",
+      "txid": "0x65b19ed12e0f3e743903f0e3f1bf3643744423b0c56167acc7ec4d083ea58ead",
+      "valid_until_block": 17825852
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-jump-rush)",
+      "txid": "0x7ee8bedc58a275f560fabe7c70ced20c97f69dc91c0b578747893236342b2978",
+      "valid_until_block": 17825855
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-jump-rush)",
+      "txid": "0x9347d6174a2f325ae3524f2bdf8c7d52cee791c4c9839abedce6e543654ca711",
+      "valid_until_block": 17825857
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-jump-rush)",
+      "txid": "0x3f8729022578c728bd380fc417ad6786e86d87f5d78286ac28489057e58a5713",
+      "valid_until_block": 17825859
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-jump-rush)",
+      "txid": "0x3566d1ffdb18e275723d10c70edb0096f91141d4dd1ddb6279b7bc1033222cdc",
+      "valid_until_block": 17825862
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-jump-rush)",
+      "txid": "0x64c47c60a07e4268f8fa6ab86ead5ec5b99b0b97a8a2e3ced6f804cdf7d62775",
+      "valid_until_block": 17825864
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-jump-rush)",
+      "txid": "0x6bf9067047a5d70f6add360f4ada39bca42a9e45b727291fff53b150fe200b22",
+      "valid_until_block": 17825866
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-jump-rush)",
+      "txid": "0xc8ad04fde6cfe340195d2a49967f92f7b6d13c2c9d195b29804a1bc9a09161c7",
+      "valid_until_block": 17825868
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-jump-rush)",
+      "txid": "0x83f90d1fa00d2831b0e31b244d1bea85b8643c7c2b96e2228c40c1673b52ee92",
+      "valid_until_block": 17825870
+    },
+    {
+      "label": "attachEngine miniapp-merge-kingdom",
+      "txid": "0xa47f759cc58031f39348cc5ca8c4343b5b67784483aae5d34983a28019e93a14",
+      "valid_until_block": 17825872
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-merge-kingdom)",
+      "txid": "0xcdbeceeaa14796177599fd3a9809ac406355e4ddc568d2545aee61506c40b294",
+      "valid_until_block": 17825875
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-merge-kingdom)",
+      "txid": "0x61eb43ff363d6a495976fec85e9e2af3c8cba8b531785fc06df2f4baf8bae788",
+      "valid_until_block": 17825877
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-merge-kingdom)",
+      "txid": "0x1e88906819c3bdcf1b40ebdf577f1bcc49b250a1f8ef087f420352368739262d",
+      "valid_until_block": 17825880
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-merge-kingdom)",
+      "txid": "0x7b2e6b0bb2fcdec52d3030ab699bcea8b9b0a61a0da57a58d08239766f1f57c9",
+      "valid_until_block": 17825883
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-merge-kingdom)",
+      "txid": "0xfa55e2477c7f51ae9ef55d7ed4d12ddf9bd1a6610590b6d4a7fd5c4538a67ccf",
+      "valid_until_block": 17825885
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-merge-kingdom)",
+      "txid": "0xfe95e46b8883923efeb4140e1261fa911bfadb561a96b1b3d0831d199b70b9d4",
+      "valid_until_block": 17825887
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-merge-kingdom)",
+      "txid": "0xd598e530947be3e169f5fe1736261260f62b049babaf3c7e27c677d20fc99eab",
+      "valid_until_block": 17825890
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-merge-kingdom)",
+      "txid": "0xe3ba718d9f42b88999040e8a91fcfbdaa127acc0446717943bc436adc61cc4bc",
+      "valid_until_block": 17825894
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-merge-kingdom)",
+      "txid": "0x228f8d3877d0d124b73c7ad0e22ed89b8622c68543aff1fadecc2cb8533e4f75",
+      "valid_until_block": 17825897
+    },
+    {
+      "label": "attachEngine miniapp-pet-potion",
+      "txid": "0x4c868cf8d8e8c6c59f8c0a45895e1ea0280c8cfe79c435588c1ae53b7f50c930",
+      "valid_until_block": 17825899
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-pet-potion)",
+      "txid": "0x261c40a5c82aa37b9fecdd747145ff186eecff3224501b5ca2741e7d7a2934f7",
+      "valid_until_block": 17825902
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-pet-potion)",
+      "txid": "0xafa4c27d01ad11d03aea666f9e40c307c9eb2ab587695d7370ba866d9c497870",
+      "valid_until_block": 17825905
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-pet-potion)",
+      "txid": "0x6d020169bc82c8bb9ca7a7978807b053c7b31f1518ae315c2a9bf15d3054bda6",
+      "valid_until_block": 17825908
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-pet-potion)",
+      "txid": "0xacb72efe0cefcdcfb1aaa8920f50b15226c0095d908343b452278438f9d28148",
+      "valid_until_block": 17825912
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-pet-potion)",
+      "txid": "0x4f49365d609d0607ef978400e480295f3213e471396801d0285d29b5bba26bc0",
+      "valid_until_block": 17825914
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-pet-potion)",
+      "txid": "0x166bd99a2145d49d80aa2a770ee75a6de5ef5cde7843a8f798a28806a19aa810",
+      "valid_until_block": 17825916
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-pet-potion)",
+      "txid": "0x7bb49db70a71503e4eb78822b87b1915ffd632903babd68af51a72ef206b8d11",
+      "valid_until_block": 17825919
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-pet-potion)",
+      "txid": "0xf839fea502f0390aa2164cc071a49f33a82a30f6ae40aad28f5f28b3d4ca3255",
+      "valid_until_block": 17825922
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-pet-potion)",
+      "txid": "0x1c90db92165ff54521e1cad16b639c5d0d9d020767319a500a2e49c28bc541ff",
+      "valid_until_block": 17825924
+    },
+    {
+      "label": "attachEngine miniapp-sheep-solitaire",
+      "txid": "0x10358e38e25869a6f09deedb8a2bacb45542b2381c3c780c0fb1aae70cc00f39",
+      "valid_until_block": 17825927
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-sheep-solitaire)",
+      "txid": "0xe930ba5f41db5c2a1a75468e1cb975d3f24b0965795541cc718b95f64a945423",
+      "valid_until_block": 17825929
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-sheep-solitaire)",
+      "txid": "0xf5ae4f17b58fe9378bcd693f97383174b26961b0f2db1b19c08013f134fd9c0b",
+      "valid_until_block": 17825931
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-sheep-solitaire)",
+      "txid": "0xc9fd3793d6fb8f5f58cd21217a692082e96513be467eb8095c0804748ccb3ae1",
+      "valid_until_block": 17825934
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-sheep-solitaire)",
+      "txid": "0x27a21efa9b15c64734d7a22551edc1915c80fb3f1b83a1bb3438f974ca78375a",
+      "valid_until_block": 17825936
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-sheep-solitaire)",
+      "txid": "0x01208d070ddc9e755f7f5d97717d405cc35f7af62b5b366bab0156b4d9cbf682",
+      "valid_until_block": 17825939
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-sheep-solitaire)",
+      "txid": "0x7c87901815f80814fad1d8b7af0a904adc21b5d2f62e2e798ee28dcdbec4f9dc",
+      "valid_until_block": 17825941
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-sheep-solitaire)",
+      "txid": "0x67e8e31545fba1a3e2b56b5ff0c699a13da1ddd8eb10ed4a708726b0cdb544f7",
+      "valid_until_block": 17825943
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-sheep-solitaire)",
+      "txid": "0x3a796f9a3ca758012f42400c14db62df20869d997fab53599c079c05edfaf1cb",
+      "valid_until_block": 17825946
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-sheep-solitaire)",
+      "txid": "0xd5364d78a23f27e6dfceec9b8cec7bd25aede48b225acc890f53fead5d9cdea4",
+      "valid_until_block": 17825949
+    },
+    {
+      "label": "attachEngine miniapp-snake-bounty",
+      "txid": "0xd5d511775dfef733789cd471208df3589945982cc57ce266939cc0715726c56f",
+      "valid_until_block": 17825951
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-snake-bounty)",
+      "txid": "0xd7d5745862abc7253e0a5df915d8ad43c78a810b93fd57eea3b63f3505a324d7",
+      "valid_until_block": 17825954
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-snake-bounty)",
+      "txid": "0xf2506cf8c91069d764c34cb091e7fb4caf66c340cb34fafc0da0f575bdcb03a2",
+      "valid_until_block": 17825956
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-snake-bounty)",
+      "txid": "0x86d30f309a50fc8d08aa283bf7c7030e5c08d7a1e27d5207f29167c4dbf93f0f",
+      "valid_until_block": 17825959
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-snake-bounty)",
+      "txid": "0x201d615b372dcfb18e7d06319a6364d888ad2e7c69bb8eb6b81259753dadc950",
+      "valid_until_block": 17825961
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-snake-bounty)",
+      "txid": "0x78992124b4421000ab19ae10199becad474a2c18b4d06b3678791f5fcff00edd",
+      "valid_until_block": 17825963
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-snake-bounty)",
+      "txid": "0x5afdf538933c927d02e2f86000dba1b88e92a15da55f01c37a3b5933ccb7178f",
+      "valid_until_block": 17825966
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-snake-bounty)",
+      "txid": "0xc6c43bb6a7dfd2f705ddaf89344f1a3331e3be0286d39e500bfe114c9d81e5ce",
+      "valid_until_block": 17825968
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-snake-bounty)",
+      "txid": "0x0fb2e112aa4b44540cd1d7df22fb9acfc5a960d8bc2f0245e598d7eeeaef9444",
+      "valid_until_block": 17825970
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-snake-bounty)",
+      "txid": "0x58898a9f03744a1861732f989fb6cb7d7f04f0c65cd06ff3fa0d74a0d7a9dad1",
+      "valid_until_block": 17825973
+    },
+    {
+      "label": "attachEngine miniapp-sudoku",
+      "txid": "0x3a14187bc773be53670f3e6ed6432cb3deb7d4aedd66cffc36cbdb1b61a50b3d",
+      "valid_until_block": 17825975
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs0 (miniapp-sudoku)",
+      "txid": "0x99497608957f2ff76a617064e4d2ed1bbe4afba342a2bdfb4593ccd3d1a309c0",
+      "valid_until_block": 17825979
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs1 (miniapp-sudoku)",
+      "txid": "0x4a2cc2e01d43a54811f9aa83f6163670350e5794229a4bf6c0e48d19c91167d4",
+      "valid_until_block": 17825982
+    },
+    {
+      "label": "setDescriptor platform-game:limitMs2 (miniapp-sudoku)",
+      "txid": "0x50b0d01d343720586bc4c30927739065efa813fdcfe908e47c635f732f519619",
+      "valid_until_block": 17825985
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs0 (miniapp-sudoku)",
+      "txid": "0x6648e16d8e1a3f7418ecb7a4d57e55b004b558c03efac1649a59bacff36abae9",
+      "valid_until_block": 17825988
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs1 (miniapp-sudoku)",
+      "txid": "0x9c1c9a584eb69f804ee1e72e0bc87de8fbb5df846d1a08b634865e33cdd3d6da",
+      "valid_until_block": 17825990
+    },
+    {
+      "label": "setDescriptor platform-game:minSolveMs2 (miniapp-sudoku)",
+      "txid": "0xf37d0836031c71a4263752899ec1155c258c370bf1f50f45084d36473009ff05",
+      "valid_until_block": 17825992
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore0 (miniapp-sudoku)",
+      "txid": "0x9d2c9220f4060bd0bfe08624890251e72e267bdf31c2a62761faefc58f2e2832",
+      "valid_until_block": 17825994
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore1 (miniapp-sudoku)",
+      "txid": "0xf484ba0b5bc69214ec9c44ee174c5408f2de0f4603b65ba2ae3c8332083e48f0",
+      "valid_until_block": 17825997
+    },
+    {
+      "label": "setDescriptor platform-game:targetScore2 (miniapp-sudoku)",
+      "txid": "0x25895169ffc7ad65ec9bf2c6a9facb16fde2cb797c1ce53cfd479fed2b58cfb8",
+      "valid_until_block": 17825999
+    }
+  ],
+  "balances": {
+    "gas": "112690.33194666",
+    "neo": "73061"
+  },
+  "validation": {
+    "engine_deployed_on_chain": true,
+    "engine_hash": "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+    "engine_hash_matches_manifest": true,
+    "engine_id": "platform-game",
+    "engine_row": [
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "1",
+      true
+    ],
+    "manifest_schema": "rewardgame-absorption-v1"
+  },
+  "next_steps": [
+    "Kernel lane: register + grant all 11 appIds on the private kernel with callbackContract=PlatformGame (PRIVATE_KERNEL_ACTION=wire PRIVATE_KERNEL_APP_IDS=\u003ccsv of the 11 appIds\u003e on deploy_private_kernel.go).",
+    "Frontend: switch ContractBinding to moduleId 'platform-game' mode 'shared' and migrate event/stat names per the manifest readSurfaceRenames (migration outline step 4).",
+    "Verify per-app: start -\u003e finalize -\u003e settle loop on testnet through the private kernel and compare economics against the legacy clone tables (migration outline step 5); only then decommission the 11 MiniApp\u003cName\u003e contracts."
+  ],
+  "generated_at_utc": "2026-07-19T14:35:41Z"
+}

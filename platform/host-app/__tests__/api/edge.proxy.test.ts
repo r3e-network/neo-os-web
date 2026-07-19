@@ -299,7 +299,7 @@ describe("/api/edge/[endpoint]", () => {
     expect(JSON.parse(res._getData())).toMatchObject({
       ok: true,
       data: {
-        contract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        contract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
         operation: "putMiniAppState",
         args: [
           { type: "String", value: "miniapp-forever-album" },
@@ -518,7 +518,7 @@ describe("/api/edge/[endpoint]", () => {
             { type: "Hash160", value: "SENDER" },
             {
               type: "Hash160",
-              value: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+              value: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
             },
             { type: "Integer", value: "125000000" },
             {
@@ -569,7 +569,7 @@ describe("/api/edge/[endpoint]", () => {
       ok: true,
       data: {
         intent: "escrow_create",
-        contract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        contract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
         operation: "CreateEscrow",
         args: [
           { type: "String", value: "miniapp-unbreakablevault" },
@@ -619,7 +619,7 @@ describe("/api/edge/[endpoint]", () => {
       ok: true,
       data: {
         intent: "game_bet",
-        contract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        contract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
         operation: "PlaceBet",
         args: [
           { type: "String", value: "miniapp-burn-league" },

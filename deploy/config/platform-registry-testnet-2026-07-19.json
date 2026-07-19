@@ -1,0 +1,38 @@
+{
+  "action": "verify",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": true,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "balances": {
+    "gas": "112704.78813060",
+    "neo": "73061"
+  },
+  "transactions": [],
+  "pending_timelocks": [],
+  "validation": {
+    "accrued_fees_gas": "78.00000000",
+    "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "admin_matches_signer": true,
+    "artifact_checksum": "2055764547",
+    "artifact_checksum_matches_local_nef": true,
+    "artifact_version": "1",
+    "engine_row": [
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "1",
+      true
+    ],
+    "global_pause": [
+      false,
+      "0"
+    ],
+    "total_credit_liability_gas": "0.50000000"
+  },
+  "next_steps": [
+    "Nothing pending in this read-only verification."
+  ],
+  "generated_at_utc": "2026-07-19T17:56:04Z"
+}

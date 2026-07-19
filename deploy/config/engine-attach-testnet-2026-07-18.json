@@ -1,0 +1,919 @@
+{
+  "action": "engine-attach",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet2.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": true,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "engine_id": "platform-game",
+  "engine_active": false,
+  "not_ready_reason": "engine \"platform-game\" is not registered on the registry (the engine registration is proposed but the 24h timelock has not matured (the safe ABI exposes no ETA — see the pending_timelocks section of the newest deploy/config/platform-registry report))",
+  "manifest_path": "deploy/config/rewardgame-absorption-manifest.json",
+  "summary": {
+    "manifest_total": 11,
+    "invalid": 0,
+    "attached": 0,
+    "skipped_existing": 0,
+    "planned_attaches": 0,
+    "not_ready": 11,
+    "failed": 0,
+    "descriptors_set": 0,
+    "descriptors_planned": 0,
+    "descriptors_skipped_present": 0,
+    "descriptors_failed": 0,
+    "estimated_tx_fees_gas": "0.00000000"
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aim-master",
+      "contract": "MiniAppAimMaster",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 90000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 10000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 20000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 30000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 3,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 5,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 7,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "contract": "MiniAppColorClash",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 15000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 8,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 12,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 16,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "contract": "MiniAppCurveArrow",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 10000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 25000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 3,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 5,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 7,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "contract": "MiniAppFlappyDash",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 5,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 10,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 20,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "contract": "MiniAppGame2048",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 240000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 480000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 900000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 240000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 9,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 10,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 11,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "contract": "MiniAppJumpRush",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 90000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 15000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 30000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 45000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "contract": "MiniAppMergeKingdom",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 64,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 256,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1024,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "contract": "MiniAppPetPotion",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 30000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 50,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 70,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 100,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "contract": "MiniAppSheepSolitaire",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 480000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 720000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 120000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "contract": "MiniAppSnakeBounty",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 180000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 300000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 600000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 20000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 40000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 60000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 10,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 20,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 35,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "contract": "MiniAppSudoku",
+      "status": "not-ready",
+      "reason": "engine \"platform-game\" is not registered on the registry",
+      "descriptors": [
+        {
+          "key": "platform-game:limitMs0",
+          "param": "limitMs0",
+          "target": 900000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs1",
+          "param": "limitMs1",
+          "target": 1500000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:limitMs2",
+          "param": "limitMs2",
+          "target": 2400000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs0",
+          "param": "minSolveMs0",
+          "target": 90000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs1",
+          "param": "minSolveMs1",
+          "target": 150000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:minSolveMs2",
+          "param": "minSolveMs2",
+          "target": 240000,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore0",
+          "param": "targetScore0",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore1",
+          "param": "targetScore1",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        },
+        {
+          "key": "platform-game:targetScore2",
+          "param": "targetScore2",
+          "target": 1,
+          "status": "not-ready",
+          "reason": "engine \"platform-game\" is not registered on the registry"
+        }
+      ],
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    }
+  ],
+  "transactions": [],
+  "balances": {
+    "gas": "112540.54139457",
+    "neo": "73061"
+  },
+  "validation": {
+    "engine_id": "platform-game",
+    "engine_row": "not registered",
+    "manifest_schema": "rewardgame-absorption-v1",
+    "register_engine_probe": "the engine registration is proposed but the 24h timelock has not matured (the safe ABI exposes no ETA — see the pending_timelocks section of the newest deploy/config/platform-registry report)"
+  },
+  "next_steps": [
+    "GATE: engine \"platform-game\" is not active on registry 0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b — engine \"platform-game\" is not registered on the registry (the engine registration is proposed but the 24h timelock has not matured (the safe ABI exposes no ETA — see the pending_timelocks section of the newest deploy/config/platform-registry report)) Execute the pending engine-registration timelock first via deploy_platform_registry.go's execute-timelocks action (same dry-run/confirm gates as this tool; maturity per the pending_timelocks section of the newest deploy/config/platform-registry-testnet-*.json — 24h from the proposal).",
+    "Then re-run this script: the dry-run will classify all in-scope apps planned, and a write run attaches + pushes the descriptor sets.",
+    "Kernel lane: register + grant all 11 appIds on the private kernel with callbackContract=PlatformGame (PRIVATE_KERNEL_ACTION=wire PRIVATE_KERNEL_APP_IDS=\u003ccsv of the 11 appIds\u003e on deploy_private_kernel.go).",
+    "Frontend: switch ContractBinding to moduleId 'platform-game' mode 'shared' and migrate event/stat names per the manifest readSurfaceRenames (migration outline step 4).",
+    "Verify per-app: start -\u003e finalize -\u003e settle loop on testnet through the private kernel and compare economics against the legacy clone tables (migration outline step 5); only then decommission the 11 MiniApp\u003cName\u003e contracts.",
+    "Dry-run wrote nothing. To write chain, rerun with: PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false CONFIRM_PLATFORM_REGISTRY_DEPLOY=I_UNDERSTAND_THIS_WRITES_CHAIN NEO_TESTNET_WIF=\u003cwif\u003e go run -tags scripts deploy/scripts/attach_apps_to_platform_game.go"
+  ],
+  "generated_at_utc": "2026-07-18T08:52:06Z"
+}

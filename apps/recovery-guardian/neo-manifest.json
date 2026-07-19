@@ -6,8 +6,8 @@
   "version": "2.0.0",
   "description": "A state-driven AA social recovery app for inspecting and managing existing guardian profiles, approvals, owner review windows, and verified ownership changes.",
   "description_zh": "用于查看和管理已有守护档案、审批、所有者观察期及经验证所有权变更的状态驱动 AA 社交恢复应用。",
-  "category": "utility",
-  "category_name": "Utility",
+  "category": "tools",
+  "category_name": "Tools",
   "category_name_zh": "工具",
   "tags": [
     "morpheus",

@@ -70,7 +70,7 @@
     "icon": "/miniapps/neo-message/logo.webp",
     "banner": "/miniapps/neo-message/sealed-message-desk.webp"
   },
-  "updatedAt": "2026-07-11T00:00:00Z",
+  "updatedAt": "2026-07-12T00:00:00Z",
   "technologies": {
     "oracle": {
       "enabled": true,

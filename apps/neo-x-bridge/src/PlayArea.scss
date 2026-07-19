@@ -4,7 +4,7 @@
 
 :root,
 .mx2 {
-  --mx2-brand: #0f8f70;
+  --mx2-brand: #0e8669; /* WCAG AA 4.5:1 with white (was #0f8f70) */
   --mx2-brand-hover: #0a745b;
   --mx2-brand-light: #e7f7f0;
   --mx2-brand-subtle: #b9e4d5;
@@ -547,7 +547,7 @@
 }
 
 .nxb-recipient label small {
-  color: #71827d;
+  color: #6a7a76; /* WCAG AA 4.5:1 on #ffffff (was #71827d) */
   font-size: 10px;
   font-weight: 650;
 }
@@ -621,7 +621,7 @@
 
 .nxb-bound-summary dt,
 .nxb-detail-list dt {
-  color: #657872;
+  color: #647771; /* WCAG AA 4.5:1 on #f8fbfa (was #657872) */
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.05em;

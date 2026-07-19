@@ -97,9 +97,10 @@ describe("sudoku production PlayArea compatibility", () => {
     };
     const sourceManifest = readFileSync(resolve(appRoot, "src/manifest.ts"), "utf8");
 
-    expect(publicManifest.contracts?.["neo-n3-testnet"]).toBe(
-      "0xd4ba00fb7297d08d563d8c281541dbb22725dad1",
-    );
+    // Migrated to platform-game: contracts removed, engine/moduleId added
+    expect(publicManifest.engine).toBe("0xc75b181b4561462903bb27d8d9e0b32b637bec12");
+    expect(publicManifest.moduleId).toBe("platform-game");
+    expect(publicManifest.mode).toBe("shared");
     expect(publicManifest.permissions).toEqual([]);
     expect(publicManifest.platform?.transactions).toBe(false);
     expect(publicManifest.technologies?.oracle?.enabled).toBe(false);

@@ -271,6 +271,19 @@
   background: rgba(255, 255, 255, 0.95);
 }
 
+/* WCAG AA: shared factory stat labels use var(--ns-brand-strong, #0fb174) —
+   2.77:1 on the white stat cards; #0b8460 passes at 4.68:1 (app-local override). */
+.asset-factory-surface
+  .domain-factory-studio-flow__stage--nep17
+  .domain-factory-studio-flow__stats
+  dt,
+.asset-factory-surface
+  .domain-factory-studio-flow__stage--miniapp
+  .domain-factory-studio-flow__stats
+  dt {
+  color: #0b8460;
+}
+
 .asset-factory-surface .domain-factory-output {
   gap: 12px;
 }

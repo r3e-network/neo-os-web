@@ -8,8 +8,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "typescript": "catalog:",
-    "vite": "catalog:",
-    "sass": "catalog:"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "sass": "^1.98.0"
   }
 }

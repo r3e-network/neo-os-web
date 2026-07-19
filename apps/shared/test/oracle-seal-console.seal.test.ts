@@ -18,7 +18,7 @@ import {
   type PreparedOracleSeal,
 } from "../../oracle-seal-console/src/seal";
 
-const TESTNET_CONTRACT = "0x4b882e94ed766807c4fd728768f972e13008ad52";
+const TESTNET_CONTRACT = "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
 const RAW_X25519_KEY = "X+mfM9Lg+Tm9GBzniOC0vwDcZE857Za9AbdJCD7IsWM=";
 
 function sealClient(fetcher: typeof fetch) {

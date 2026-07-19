@@ -16,6 +16,13 @@ const DEFAULT_REPORT_PATH = path.join(
 const ARCHIVED_APP_SLUGS = new Set(["neoburger", "neo-burger", "flamingo", "flaminggo"]);
 
 const LIVE_CHAIN_FLOWS = new Map([
+  ["miniapp-oracle-price-console", { script: "deploy/scripts/live_validate_oracle_price_console.mjs", target: "pricefeeds" }],
+  ["miniapp-asset-factory", { script: "deploy/scripts/live_validate_miniapp_factory.mjs", target: "factory" }],
+  ["miniapp-miniapp-factory", { script: "deploy/scripts/live_validate_miniapp_factory.mjs", target: "factory" }],
+  ["miniapp-nft-factory", { script: "deploy/scripts/live_validate_miniapp_factory.mjs", target: "factory" }],
+  ["miniapp-timestamp-proof", { script: "deploy/scripts/live_validate_timestamp_proof.mjs", target: "anchor" }],
+  ["miniapp-neo-treasury", { script: "deploy/scripts/live_validate_neo_treasury.mjs", target: "disburse" }],
+  ["miniapp-neo-multisig", { script: "deploy/scripts/live_validate_neo_multisig.mjs", target: "multisig" }],
   ["miniapp-aa-account-lab", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "account" }],
   ["miniapp-aa-market-hub", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "market" }],
   ["miniapp-aa-permissions-lab", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "permissions" }],

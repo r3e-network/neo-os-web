@@ -42,7 +42,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
                 "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, payer, amount),\n                \"credit withdrawal failed\")",
             code);
             Assert.Contains(
-                "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":credit\"),\n                \"engine pool transfer failed\")",
+                "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":fund\"),\n                \"engine pool transfer failed\")",
             code);
             Assert.Contains(
                 "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, admin, amount),\n                \"fee withdrawal failed\")",
@@ -59,7 +59,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             // pool forwarding is hard-bound to the registered engine hash.
             Assert.Contains("Contract.Call(account, \"executeTransfer\", CallFlags.All, asset, payout, amount)", code);
             Assert.Contains("Contract.Call(account, \"executeTransfer\", CallFlags.All, GAS.Hash, Runtime.ExecutingScriptHash, amount)", code);
-            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":credit\")", code);
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":fund\")", code);
 
             // Credit exits pay the witnessing payer; fee exits pay the admin.
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, payer, amount)", code);
@@ -202,6 +202,31 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player, payout)", dice);
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player, bet.Amount)", dice);
             Assert.DoesNotContain("UInt160 recipient", dice);
+        }
+
+        [Fact]
+        public void PlatformGameRewardGameWithdrawalWrapsTransferInAssert()
+        {
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.RewardGame*.cs", "contracts", "platform", "PlatformGame");
+            Assert.Contains(
+                "ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, account, credit),\n                \"withdraw transfer failed\")",
+                code);
+        }
+
+        [Fact]
+        public void PlatformGameRewardGamePayoutsStayRoleBound()
+        {
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.RewardGame*.cs", "contracts", "platform", "PlatformGame");
+
+            // The only outbound lane is the pull-payment withdrawal, which
+            // pays the witnessing credit owner. Winnings settle as credit
+            // (claimed via withdraw), never as a push to a free destination.
+            Assert.Contains("Runtime.CheckWitness(account)", code);
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, account, credit)", code);
+            Assert.Contains("AddRewardCredit(ctx, appId, g.Player, payout);", code);
+            Assert.DoesNotContain("UInt160 recipient", code);
+            Assert.DoesNotContain("ContractManagement.Destroy", code);
+            Assert.DoesNotContain("ContractPermission(\"*\", \"*\")", code);
         }
     }
 }

@@ -109,6 +109,24 @@ export interface MiniAppDefinition {
    * credit UI degrades away cleanly in dev/standalone.
    */
   credits?: MiniAppFrameworkOptions["credits"];
+
+  /**
+   * app.registry config (Platform Contract Library v2 phase 2). Hosts on a
+   * network with a deployed PlatformRegistry inject its contract hash here;
+   * absent ⇒ `app.registry.available` is false and every app.registry read
+   * throws a typed capability error, so registry-aware UI degrades away
+   * cleanly on hosts without the directory.
+   */
+  registry?: MiniAppFrameworkOptions["registry"];
+
+  /**
+   * app.platformGame config (Platform Contract Library v2 phase 2). Hosts on
+   * a network with a deployed PlatformGame (RewardGame engine) inject its
+   * contract hash here; absent ⇒ `app.platformGame.available` is false and
+   * every app.platformGame method throws a typed capability error, so
+   * engine-aware UI degrades away cleanly on hosts without the engine.
+   */
+  platformGame?: MiniAppFrameworkOptions["platformGame"];
 }
 
 /**
@@ -132,6 +150,8 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
     storagePrefix,
     oracle,
     credits,
+    registry,
+    platformGame,
   } = definition;
 
   const container = document.querySelector(mountTo);
@@ -155,6 +175,8 @@ export function defineMiniApp(definition: MiniAppDefinition): Root {
         storagePrefix={storagePrefix}
         oracle={oracle}
         credits={credits}
+        registry={registry}
+        platformGame={platformGame}
       />
     </React.StrictMode>,
   );

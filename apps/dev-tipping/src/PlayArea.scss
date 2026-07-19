@@ -5,7 +5,7 @@
 /* domain-theme (auto) */
 :root,
 .mx2 {
-  --mx2-brand: #16885e;
+  --mx2-brand: #15845c; /* WCAG AA 4.7:1 with white (was #16885e, 4.4:1) */
   --mx2-brand-hover: #0f6849;
   --mx2-brand-light: #e8f6ef;
   --mx2-brand-subtle: #c7e8d8;

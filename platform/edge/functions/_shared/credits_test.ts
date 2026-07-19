@@ -97,7 +97,9 @@ Deno.test("credits: requireCronAuth fails closed when unconfigured", async () =>
 
 Deno.test("credits: requireCronAuth rejects missing and wrong secrets", async () => {
   try {
-    Deno.env.set("CREDITS_CRON_SECRET", "test-secret-value");
+    // >= 32 chars so the test exercises the 401 path under the fail-closed
+    // isProductionEnv default (production rejects short secrets with 503).
+    Deno.env.set("CREDITS_CRON_SECRET", "test-secret-value-padded-to-32-chars");
     const missing = await requireCronAuth(new Request("http://localhost/x", { method: "POST" }));
     assert(missing instanceof Response);
     assertEquals(missing.status, 401);
@@ -109,7 +111,7 @@ Deno.test("credits: requireCronAuth rejects missing and wrong secrets", async ()
     assertEquals(wrong.status, 401);
 
     const ok = await requireCronAuth(
-      new Request("http://localhost/x", { method: "POST", headers: { "X-Cron-Secret": "test-secret-value" } }),
+      new Request("http://localhost/x", { method: "POST", headers: { "X-Cron-Secret": "test-secret-value-padded-to-32-chars" } }),
     );
     assertEquals(ok, null);
   } finally {

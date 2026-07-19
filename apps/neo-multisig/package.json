@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@r3e/neo-js-sdk": "https://codeload.github.com/r3e-network/neo-js-sdk/tar.gz/refs/tags/v0.3.7-r3e.1",
-    "@noble/curves": "catalog:",
-    "@noble/hashes": "catalog:",
+    "@noble/curves": "^1.2.0",
+    "@noble/hashes": "^1.8.0",
     "base-x": "^5.0.1",
     "bn.js": "^5.2.2",
     "brorand": "^1.1.0",
@@ -48,12 +48,12 @@
     "buffer": "^6.0.3",
     "events": "^3.3.0",
     "process": "^0.11.10",
-    "sass": "catalog:",
+    "sass": "^1.98.0",
     "stream-browserify": "^3.0.0",
-    "terser": "catalog:",
-    "typescript": "catalog:",
+    "terser": "^5.44.1",
+    "typescript": "^5.9.3",
     "util": "^0.12.5",
-    "vite": "catalog:",
+    "vite": "^7.3.6",
     "vite-plugin-node-polyfills": "^0.25.0"
   }
 }

@@ -11,6 +11,11 @@
 import type { Observable } from "./reactive";
 import type { FrameworkAaService, FrameworkAaSurface } from "./aa";
 import type { FrameworkCreditsConfig, FrameworkCreditsSurface } from "./credits";
+import type { FrameworkRegistryConfig, FrameworkRegistrySurface } from "./registry-surface";
+import type {
+  FrameworkPlatformGameConfig,
+  FrameworkPlatformGameSurface,
+} from "./platform-game-surface";
 import type {
   FrameworkBusChannel,
   FrameworkBusSurface,
@@ -28,6 +33,11 @@ import type { FrameworkClipboardSurface, FrameworkShareSurface } from "./clipboa
 import type { FrameworkWalletSurface, WalletSurfaceBalanceService } from "./wallet";
 import type { FrameworkErrorsSurface } from "./errors-surface";
 import type { FrameworkQueryResult, FrameworkReadOptions } from "./chain-query";
+import type {
+  FrameworkChainPendingSurface,
+  FrameworkTxOutcome,
+  FrameworkTxOutcomeOptions,
+} from "./chain-pending";
 import type {
   FrameworkRewardRunner,
   FrameworkRewardRunnerHooks,
@@ -303,6 +313,29 @@ export interface MiniAppFrameworkOptions {
    * app.credits method throws a typed FrameworkCapabilityError.
    */
   credits?: FrameworkCreditsConfig;
+  /**
+   * app.registry config (Platform Contract Library v2 phase 2): the network's
+   * deployed PlatformRegistry contract hash (network-specific, so the app
+   * layer injects it — same pattern as `credits`). Absent ⇒ every
+   * app.registry read throws a typed FrameworkCapabilityError; the advisory
+   * `deriveAccountHash` helper stays available (pure offline math).
+   */
+  registry?: FrameworkRegistryConfig;
+  /**
+   * app.platformGame config (Platform Contract Library v2 phase 2): the
+   * network's deployed PlatformGame (RewardGame engine) contract hash
+   * (network-specific, so the app layer injects it — same pattern as
+   * `credits` / `registry`). Absent ⇒ every app.platformGame method throws a
+   * typed FrameworkCapabilityError.
+   */
+  platformGame?: FrameworkPlatformGameConfig;
+  /**
+   * RFC P1-4 chain.pending / chain.readTxOutcome: resolve the JSON-RPC
+   * endpoint for a network label (network-specific, so the app layer injects
+   * it — same pattern as `credits` / `registry`). Absent ⇒ readTxOutcome
+   * resolves "pending" for every tx; track/restore/list/clear unaffected.
+   */
+  rpcUrl?: (network: string) => string;
 }
 
 export interface FrameworkActionOptions<TResult = unknown> {
@@ -859,6 +892,20 @@ export interface FrameworkChainSurface {
     until: (value: T) => boolean,
     waitOptions?: FrameworkWaitForStateOptions,
   ): Promise<T | null>;
+  /**
+   * RFC P1-4 pending-tx durability lane: persist a broadcast tx under a
+   * named lane (survives reload via app.storage.local), poll an app-supplied
+   * `isSettled` predicate with a bounded budget + visibility pausing, and
+   * re-arm the lane after a reload with `restore`. Replaces the per-app
+   * PENDING_STORAGE_KEY persist→poll→restore blocks.
+   */
+  readonly pending: FrameworkChainPendingSurface;
+  /**
+   * Canonical getapplicationlog verdict (RFC P1-4) — see chain-pending.ts.
+   * NEVER rejects: malformed txids, RPC errors and node lag all resolve to
+   * the poll-safe `"pending"` state.
+   */
+  readTxOutcome(txid: string, options?: FrameworkTxOutcomeOptions): Promise<FrameworkTxOutcome>;
 }
 
 /** app.funds — payment-carrying invoke lanes (S3). */
@@ -1143,8 +1190,9 @@ export interface FrameworkGameSurface {
  *
  * Structural note: the lazily-constructed surfaces (`events`, `bus`,
  * `wallet`, `lifecycle`, `clipboard`, `share`, `permissions`, `resources`,
- * `aa`, `credits`) are getters at runtime — constructed on first access and
- * cached, so hosts that never touch one pay nothing.
+ * `aa`, `credits`, `registry`, `platformGame`) are getters at runtime —
+ * constructed on first access and cached, so hosts that never touch one pay
+ * nothing.
  */
 export interface MiniAppFramework {
   /** Amount scalers — protocol math on bigint base units. */
@@ -1192,6 +1240,22 @@ export interface MiniAppFramework {
    * instant DB-first spends, stale-flagged chain-checkpoint fallback reads.
    */
   readonly credits: FrameworkCreditsSurface;
+  /**
+   * app.registry (Platform Contract Library v2 phase 2) — typed reads of the
+   * PlatformRegistry directory (getApp / appAccountOf / appIdOfAccount /
+   * engineOf / pause state) plus the advisory `deriveAccountHash` AppAccount
+   * prediction. Reads only; unconfigured ⇒ typed FrameworkCapabilityError.
+   */
+  readonly registry: FrameworkRegistrySurface;
+  /**
+   * app.platformGame (Platform Contract Library v2 phase 2) — the shared
+   * PlatformGame RewardGame engine with the host appId auto-threaded into
+   * every call: startGame / finalizeGame / expireGame / withdraw (guest guard
+   * + S11 "invoke:primary") plus typed reads (freePool / poolBalance /
+   * reservedPool / heldForApp / creditOf / activeGameOf / statsOf / getGame,
+   * ungated). Unconfigured ⇒ typed FrameworkCapabilityError.
+   */
+  readonly platformGame: FrameworkPlatformGameSurface;
   /** app.oracle — envelope builders + dispatch + S13 dataFeed/seal client. */
   oracle: FrameworkOracleSurface;
   /** app.stats — OS-board stats + shared leaderboard. */

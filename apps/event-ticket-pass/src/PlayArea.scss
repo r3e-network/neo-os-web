@@ -933,7 +933,7 @@
   border-radius: var(--mx2-r-pill);
   padding: 0 14px;
   background: var(--mx2-brand-light);
-  color: var(--mx2-accent);
+  color: var(--mx2-accent-strong); /* WCAG AA: 6.7:1 on --mx2-brand-light (was --mx2-accent, 3.9:1) */
   cursor: pointer;
   font: inherit;
   font-size: 12px;

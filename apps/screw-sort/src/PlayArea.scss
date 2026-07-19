@@ -130,7 +130,8 @@ body {
 .screw-sort-control--primary {
   border-color: #a84d26;
   color: #fff;
-  background: #d76a35;
+  /* WCAG AA: #bd5726 is 4.6:1 with white (#d76a35 was 3.5:1) */
+  background: #bd5726;
   box-shadow: 0 4px 0 #9d4521, 0 10px 20px rgb(187 79 36 / 18%);
 }
 

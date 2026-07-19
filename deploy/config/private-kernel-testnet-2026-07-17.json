@@ -1,0 +1,51 @@
+{
+  "action": "verify",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": true,
+  "private_kernel": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+  "balances": {
+    "gas": "112564.08927014",
+    "neo": "73061"
+  },
+  "transactions": [],
+  "validation": {
+    "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "admin_matches_signer": true,
+    "fee_credit_signer_gas": "5.00000000",
+    "miniapp_row_smoketest-1784285342": [
+      "0x323433353832343837312d74736574656b6f6d73",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+      "",
+      "",
+      true,
+      "1784325281079",
+      "1784325281079"
+    ],
+    "module_granted_smoketest-1784285342": true,
+    "module_row": [
+      "game.session",
+      "/session/finalize",
+      "morpheus.module.game.session.v1",
+      true,
+      "1784325274946",
+      "1784325274946"
+    ],
+    "platform_game_admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "platform_game_admin_matches_signer": true,
+    "platform_game_oracle": "0x2e67d3a62d0020675fd7ba0fa0611fe4d3767a35",
+    "platform_game_oracle_is_private_kernel": true,
+    "runtime_verification_public_key": "03f35d7ba09f0a14f0a0f8fdd2cd2db39647c80270f65a52d03d2cceb36b5250c5",
+    "updater": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "updater_matches_signer": true
+  },
+  "next_steps": [
+    "Nothing pending in this read-only verification."
+  ],
+  "generated_at_utc": "2026-07-17T21:55:19Z"
+}

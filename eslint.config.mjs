@@ -41,7 +41,7 @@ export default tseslint.config(
       "contracts/**",
       // Prose and reports.
       "docs/**",
-      "claudedocs/**",
+      "docs/archive/claudedocs/**",
       // Declaration files (including next-env.d.ts).
       "**/*.d.ts",
       "**/*.min.js",

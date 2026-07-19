@@ -1,0 +1,196 @@
+{
+  "audit": "neo-abstract-account security audit (Phase 1 joint audit)",
+  "repo": "/Users/jinghuiliao/git/r3e/neo-abstract-account",
+  "branch": "main @ f2d3b17",
+  "date": "2026-07-18",
+  "scope": [
+    "frontend/api/relay-transaction.js + relayHelpers/rateLimiter/requestDurability/morpheus-base",
+    "contracts/UnifiedSmartWallet*.cs (V3 core)",
+    "contracts/verifiers/*, contracts/hooks/* (plugin AuthorizedCore invariant)",
+    "contracts/recovery/MorpheusSocialRecoveryVerifier.*",
+    "contracts/paymaster/Paymaster.cs, contracts/market/AAAddressMarket.cs (blast-radius skim)"
+  ],
+  "summary": { "critical": 0, "high": 2, "medium": 6, "low": 12, "total": 20 },
+  "findings": [
+    {
+      "id": "AA-01",
+      "severity": "high",
+      "area": "contracts/recovery",
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs:174-178 (Update); funds held per contracts/recovery/MorpheusSocialRecoveryVerifier.Lifecycle.cs:108-126",
+      "title": "SocialRecoveryVerifier upgrade is instant (no timelock) while the contract holds user GAS",
+      "description": "Update(nef, manifest) requires only the contract-admin witness and applies ContractManagement.Update immediately. Every other plugin in the repo implements the AA-D-01 standard (propose sha256-pinned artifact, wait >= 7 days): core UnifiedSmartWallet.Admin.cs:94-110, VerifierAuthority.cs:120-136, HookAuthority.cs:124-140, PaymasterAuthority.cs:122 (AssertConfirmableUpdate). The recovery verifier is the one plugin that CUSTODIES user funds: OnNEP17Payment accepts GAS earmarked per account (Lifecycle.cs:108-126) and holds it until DepositOracleCredits forwards it (Lifecycle.cs:77-106). A single compromised admin key therefore allows an instant malicious upgrade that drains every account's oracle-credit balance with zero reaction window.",
+      "recommendation": "Port VerifierAuthority-style ProposeUpdate/CancelUpdate/ConfirmUpdate (sha256-pinned, 7-day timelock) to SocialRecoveryVerifier, or reuse VerifierAuthority directly."
+    },
+    {
+      "id": "AA-02",
+      "severity": "high",
+      "area": "contracts/market",
+      "location": "contracts/market/AAAddressMarket.cs:83-87 (Update), 76-81 (SetAdmin); escrowed funds at 245-265 (OnNEP17Payment) and 170-210 (SettleListing/RefundPendingPayment)",
+      "title": "AAAddressMarket upgrade and admin transfer are instant while buyer escrow is in flight",
+      "description": "Update() and SetAdmin() are single-witness instant operations. The market contract custodies buyer GAS between OnNEP17Payment (pending payment escrow, line 245-265) and SettleListing payout / RefundPendingPayment (lines 170-210). A compromised admin key can instantly upgrade the contract and drain all in-flight escrows, or silently transfer the admin role (the exact AA-D-02 scenario the core fixed with ProposeAdminTransfer/ConfirmAdminTransfer, UnifiedSmartWallet.Admin.cs:133-173). Inconsistent with the repo's own hardening standard applied to core/verifiers/hooks/paymaster.",
+      "recommendation": "Add the AA-D-01 propose-then-confirm 7-day update timelock and the AA-D-02 timelocked admin rotation (new admin must confirm in person) to AAAddressMarket."
+    },
+    {
+      "id": "AA-03",
+      "severity": "medium",
+      "area": "contracts/recovery",
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs:16",
+      "title": "SocialRecoveryVerifier declares wildcard ContractPermission(\"*\",\"*\") without justification",
+      "description": "All other plugins use least-privilege manifests (e.g. verifiers declare only canConfigureVerifier/canExecuteVerifier/computeArgsHash; Paymaster declares only GAS.transfer; AAAddressMarket declares 4 specific methods). The recovery verifier's outbound calls are limited to the per-account configured oracle's \"request\" method, GAS.transfer, and ContractManagement, so the wildcard is unnecessary. Combined with the instant Update (AA-01), any upgraded code inherits unrestricted call permission, and any contract it calls (a malicious owner-configured oracle) is reached with CallFlags.All under a wildcard manifest.",
+      "recommendation": "Scope the manifest to the concrete methods used: (\"*\",\"request\") or the pinned Morpheus oracle hash, (GAS.Hash,\"transfer\"), and ContractManagement update methods."
+    },
+    {
+      "id": "AA-04",
+      "severity": "medium",
+      "area": "contracts/recovery",
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs:167-172",
+      "title": "SocialRecoveryVerifier.TransferAdmin is instant (no timelock, no new-admin confirmation)",
+      "description": "TransferAdmin immediately overwrites PREFIX_CONTRACT_ADMIN. The repo fixed this exact pattern as AA-D-02 elsewhere (core Admin.cs:133-173, VerifierAuthority.RotateAdmin/ConfirmAdminRotation, HookAuthority, PaymasterAuthority): a leaked admin key can silently and instantly burn the role to an uncontrolled address, or grab it for an attacker address. The recovery contract still has the pre-fix behavior.",
+      "recommendation": "Replace with Propose/Confirm admin rotation: 7-day window plus CheckWitness(newAdmin) at confirmation."
+    },
+    {
+      "id": "AA-05",
+      "severity": "medium",
+      "area": "contracts/recovery",
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Flows.cs:15-18 (MIN_TIMELOCK), 42 and 65 (asserts); compare contracts/UnifiedSmartWallet.Accounts.cs:69-70",
+      "title": "Recovery timelock bounds are 1 hour minimum / unbounded maximum, not the 7-90 day standard",
+      "description": "MIN_TIMELOCK = 3,600,000 ms (1 hour) is the only bound enforced at SetupRecovery and UpdateRecoveryConfig; there is no maximum. Once guardian approvals reach threshold, ExecutableAt = Runtime.Time + timelock (Lifecycle.cs:252-255) and FinalizeRecovery rotates the account owner after that delay (Lifecycle.cs:262-278). The AA core's escape hatch enforces 7-90 days (RegisterAccount asserts 604800-7776000 s), and the docs describe a 30-day norm. A 1-hour recovery timelock gives an owner effectively no window to cancel a malicious recovery that met threshold (CancelRecovery, Lifecycle.cs:280-292).",
+      "recommendation": "Enforce the same 7-90 day bounds as the core escape hatch (timelock >= 7 days and <= 90 days) in SetupRecovery/UpdateRecoveryConfig."
+    },
+    {
+      "id": "AA-06",
+      "severity": "medium",
+      "area": "contracts/recovery",
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.Flows.cs:20-51 (esp. 44-45)",
+      "title": "SetupRecovery is first-write-wins with no proof of account control (accountId squatting)",
+      "description": "SetupRecovery requires CheckWitness(owner) where owner is a caller-supplied parameter, and asserts only that the accountId is not yet configured. Nothing ties the caller to the claimed accountId (a free-form ByteString, no derivation check against the AA core). An attacker can therefore squat any victim's accountId with themselves as owner: (1) permanent DoS of the victim's legitimate recovery setup — there is no teardown or admin override path; (2) the squatter becomes the authorization root returned by VerifyAdmin/VerifyExecution/VerifyExecutionMetaTx for that accountId (Queries.cs:15-74), misleading any on-chain or off-chain integrator that trusts those views; (3) the squatter configures the guardian nullifiers, threshold, oracle, and Morpheus verifier key for the squatted entry.",
+      "recommendation": "Bind setup to account control, e.g. require the AA core to vouch for the caller (call the AA core's GetBackupOwner(account) and require that witness), or derive/validate accountId against (aaContract, owner) material, and consider an owner-gated teardown."
+    },
+    {
+      "id": "AA-07",
+      "severity": "medium",
+      "area": "frontend/api",
+      "location": "frontend/api/rateLimiter.js:124-145 (in-memory fallback), 72-122 (Redis fail-open)",
+      "title": "Rate limiter degrades to per-instance in-memory buckets; Redis failure is silent fail-open",
+      "description": "On Vercel serverless each function instance has its own inMemoryRequests Map, so the 10 req/min limit (WINDOW_MS=60000, MAX_REQUESTS=10, lines 1-2) becomes 10/min per warm instance — an attacker distributing across instances multiplies the budget against a relay that spends operator GAS. The Map is never pruned of stale keys (only per-key timestamp filtering), so it grows unboundedly in long-lived instances. Additionally, any Redis error or non-OK response makes rateLimitWithRedis return null and silently fall back to in-memory (lines 90, 119-121, 156-158) — a Redis outage invisibly weakens the limit exactly when the system may be under attack.",
+      "recommendation": "Treat Redis as required in production (fail closed or at least alert/log on fallback), cap the in-memory Map size with eviction, and document that the in-memory path is a degraded dev mode."
+    },
+    {
+      "id": "AA-08",
+      "severity": "medium",
+      "area": "frontend/api",
+      "location": "frontend/api/relay-transaction.js:200-222 (resolveRelayNetwork), 240-258; frontend/api/morpheus-base.js:12-21",
+      "title": "Relay network selection is client-controlled, choosing which operator WIF pays",
+      "description": "resolveNetwork accepts morpheus_network from the request query, body, or x-morpheus-network header. An unauthenticated caller can therefore direct the relay to sign and broadcast on mainnet OR testnet at will, spending from whichever AA_RELAY_{MAINNET,TESTNET}_WIF is configured, and reaching the selected network's paymaster endpoint. Blast radius is bounded by the fee ceilings (AA-10 path), the per-network ALLOWED_HASH pin, and paymaster approval, but an operator running a single deployment may not expect both WIFs to be spendable by anonymous traffic.",
+      "recommendation": "Pin the network server-side (env) per deployment, or gate cross-network relaying behind an operator token; at minimum document that both WIFs must be funded/ceilinged whenever both are configured."
+    },
+    {
+      "id": "AA-09",
+      "severity": "low",
+      "area": "contracts/hooks",
+      "location": "contracts/hooks/NeoDIDCredentialHook.cs:62-67",
+      "title": "NeoDIDCredentialHook.SetRegistry is an instant admin action (no timelock)",
+      "description": "The hook admin can instantly repoint the NeoDID registry that PreExecute consults for credential bindings (lines 113-125). Pointing it at a malicious registry that returns active=true for every (accountId, provider, claimType) bypasses the credential gate for ALL accounts using this hook. Repointing the trusted core in the same plugin requires a 7-day timelock (HookAuthority.Propose/ConfirmAuthorizedCore), so the registry — an equally security-critical pointer — is inconsistent with the plugin's own hardening.",
+      "recommendation": "Route SetRegistry through a propose/confirm timelock (or make it a deploy-time constant), mirroring HookAuthority's core-repoint flow."
+    },
+    {
+      "id": "AA-10",
+      "severity": "low",
+      "area": "frontend/api",
+      "location": "frontend/api/relay-transaction.js:399-403 (paymaster authorize), 471-484 (validation preview RPC), 665-674 (raw forward); no timeout/AbortSignal anywhere",
+      "title": "Relay performs upstream fetches with no timeout",
+      "description": "The paymaster authorization POST, the invokefunction preview POST, and the raw sendrawtransaction POST all use bare fetch(). A hung upstream (paymaster endpoint or RPC node) holds the serverless invocation open until the platform timeout, consuming concurrency and, under the in-memory rate limiter, providing a slow-loris-style occupancy vector. Paymaster approval is on the critical path to spending the relay WIF.",
+      "recommendation": "Wrap upstream fetches with AbortController timeouts (e.g. 10-15s) and map timeouts to the existing phase-tagged error surface."
+    },
+    {
+      "id": "AA-11",
+      "severity": "low",
+      "area": "frontend/api",
+      "location": "frontend/api/relay-transaction.js:252-256 (allowRawRelayForwarding), 45-51 (shouldIncludeRawRelayErrors), 829-832 (stack trace leak)",
+      "title": "Server security posture is influenced by client-build (VITE_*) variables",
+      "description": "Raw-transaction forwarding can be enabled by VITE_AA_RELAY_RAW_ENABLED, and verbose error/stack responses by VITE_AA_RELAY_INCLUDE_RAW_ERRORS or AA_RELAY_INCLUDE_RAW_ERRORS; the ALLOWED_HASH pin also falls back to VITE_AA_HASH / VITE_ABSTRACT_ACCOUNT_HASH (lines 224-238). VITE_* vars are frontend build-time configuration; using them as server-side security switches means a frontend build change can silently alter relay authority, and the raw-error mode can return exception messages and stack traces (payload.stack at line 831) to anonymous callers.",
+      "recommendation": "Require the server-only AA_RELAY_* forms for all of these switches; ignore VITE_* variants in API routes, and never return stack traces to clients."
+    },
+    {
+      "id": "AA-12",
+      "severity": "low",
+      "area": "contracts/verifiers",
+      "location": "contracts/verifiers/VerifierPayload.cs:63-83 (Runtime.ExecutingScriptHash = verifier, not core); contracts/verifiers/Web3AuthVerifier.cs:130, 168-181 (EIP-712 verifyingContract = verifier)",
+      "title": "Signature payload domain binds the verifier contract but not the AA core",
+      "description": "VerifierPayload.BuildPayload and the Web3Auth EIP-712 domain separator both domain-bind network + verifier contract + accountId + op fields, but not the AA core contract hash. If the same accountId is registered on a second core sharing the same verifier (e.g. during a future core migration/redeploy, when users re-register identical accounts), an operation signed for core A is replayable on core B whenever the nonce cursor matches, because nothing in the signed payload distinguishes the executing core. Nonce state is per-core, so the replay window is real during co-existence periods.",
+      "recommendation": "Include the AA core hash (available to the core; pass it or read it via a callback) in the signed payload/domain, at minimum for future core versions; document the cross-core replay caveat for migrations."
+    },
+    {
+      "id": "AA-13",
+      "severity": "low",
+      "area": "contracts/verifiers",
+      "location": "contracts/verifiers/ZkLoginVerifier.cs:134-161 (ValidateSignature), 40 (manifest description)",
+      "title": "ZkLoginVerifier performs no zero-knowledge proof verification despite the name",
+      "description": "ValidateSignature checks provider/masterNullifier equality against stored config and a secp256r1 signature over a payload. The \"master nullifier\" is a shared secret compared by equality (it is stored in plaintext contract storage, readable by anyone), and the actionNullifier is embedded in the signed payload but never replay-checked on-chain (replay protection comes solely from the core nonce). This is a delegated-signer scheme, not zkLogin; integrators may over-trust the privacy/identity guarantees implied by the name and the \"Morpheus NeoDID zklogin-style\" manifest description.",
+      "recommendation": "Rename/document the scheme honestly (delegated signer with nullifier binding), note that masterNullifier is public on-chain, or implement actual proof verification before marketing it as zkLogin."
+    },
+    {
+      "id": "AA-14",
+      "severity": "low",
+      "area": "contracts/recovery + verifiers/AllowAllVerifier",
+      "location": "contracts/recovery/MorpheusSocialRecoveryVerifier.*.cs (no validateSignature(UInt160, UserOperation), no setPublicKey, no AuthorizedCore/canConfigureVerifier integration); verifiers/AllowAllVerifier/AllowAllVerifier.cs:36-64 (always-true Verify*)",
+      "title": "Recovery and AllowAll verifiers do not implement the V3 plugin surface; binding them bricks or exposes accounts",
+      "description": "The V3 core invokes verifier \"validateSignature\" and (optionally) \"setPublicKey\"/\"clearAccount\" via the canConfigureVerifier context. SocialRecoveryVerifier implements only the legacy VerifyExecution/VerifyAdmin(ByteString) flow, and AllowAllVerifier implements always-true Verify* methods. Binding either as a V3 account verifier succeeds at RegisterAccount (with empty verifierParams no probe call is made, Accounts.cs:95-106) but then every ExecuteUserOp faults with method-not-found, freezing the account until a 24h verifier rotation or the 7-90 day escape hatch. AllowAllVerifier additionally would authorize any execution if an integrator used its Verify* flow. Both compile into the repo's verification gate without production-use warnings.",
+      "recommendation": "Add a bind-time conformance probe in the core (require a successful read-only validateSignature call or an interface marker method), and label AllowAllVerifier/test contracts as non-production in manifest metadata."
+    },
+    {
+      "id": "AA-15",
+      "severity": "low",
+      "area": "contracts/hooks + contracts/verifiers",
+      "location": "contracts/hooks/WhitelistHook.cs:73-75, contracts/hooks/NeoDIDCredentialHook.cs:135-137, contracts/verifiers/TEEVerifier.cs:69-71, Web3AuthVerifier.cs:106-108, WebAuthnVerifier.cs:67-69, NeoNativeVerifier.cs:103-105, ZkLoginVerifier.cs:189-191",
+      "title": "Empty PostExecute bodies skip the ValidateExecutionCaller check (pattern risk)",
+      "description": "Several plugins expose public PostExecute methods with empty bodies and no HookAuthority/VerifierAuthority.ValidateExecutionCaller guard (the stateful implementations — SessionKeyVerifier, SubscriptionVerifier, MultiSigVerifier, DailyLimitHook, TokenRestrictedHook, MultiHook — all guard correctly). Today the no-ops are harmless, but the unchecked entry points are public and callable by anyone during an active execution window; any future edit that adds logic to these methods without adding the guard would be directly exploitable.",
+      "recommendation": "Add the ValidateExecutionCaller guard (or an explicit comment + test pinning the no-op) to every PostExecute, so the invariant holds uniformly."
+    },
+    {
+      "id": "AA-16",
+      "severity": "low",
+      "area": "frontend/api",
+      "location": "frontend/api/requestDurability.js:95-101 (deriveRequestId), 128-130 (journal key), 196-203 (journal write)",
+      "title": "User-controlled request IDs are used as Redis journal keys without validation",
+      "description": "deriveRequestId accepts x-request-id / x-correlation-id headers or payload request_id verbatim, and buildJournalKey embeds it in aa:request:journal:{route}:{requestId}. There is no length or character validation: a caller can write arbitrarily long Redis keys and can overwrite the journal entries of other requests by reusing/guessing their request IDs, corrupting the operator's audit trail (the journal records accepted/completed/failed phases used for incident forensics).",
+      "recommendation": "Validate/normalize externally supplied request IDs (length cap, charset whitelist) or hash them before use in keys, and prefer server-generated UUIDs for journaling."
+    },
+    {
+      "id": "AA-17",
+      "severity": "low",
+      "area": "frontend/api",
+      "location": "frontend/api/relay-transaction.js:636-697",
+      "title": "Enabled raw-forward mode is an unauthenticated generic transaction proxy",
+      "description": "When AA_RELAY_ALLOW_RAW_FORWARD=1, the raw branch forwards any hex blob to the RPC node's sendrawtransaction with no AA-contract binding, no paymaster check, and no fee ceiling (the relay does not sign these, so its WIF is not at risk, but the deployment becomes an open, rate-limited broadcast proxy for arbitrary transactions — including transactions that interact with the operator's own contracts in ways the meta path deliberately constrains). The only controls are the hex/length validation (lines 647-650) and the global rate limit.",
+      "recommendation": "Keep the default off (current behavior), and when enabled, restrict raw forwarding to transactions whose script invokes the pinned AA contract, or require an operator token."
+    },
+    {
+      "id": "AA-18",
+      "severity": "low",
+      "area": "docs vs contracts",
+      "location": "docs/AA_V3_ARCHITECTURE.en.md:90-98 (design note) vs contracts/UnifiedSmartWallet.Execution.cs:60-72",
+      "title": "Doc/code mismatch: escape is NOT silently auto-cancelled by routine activity",
+      "description": "The V3 architecture note describes the anti-theft property as \"any routine transaction via the TEE silently and automatically interrupts the escape countdown\". The implementation deliberately diverged: an active escape makes ExecuteUserOp require the backup-owner witness, and only then cancels (Execution.cs:66-71), with a comment explaining this prevents attackers from delaying the escape via routine ops. Integrators/operators reading the design doc will misunderstand the account's behavior during an escape (verifier-key-only operations are BLOCKED during an active escape, not escape-cancelling).",
+      "recommendation": "Update the design note (or add a pointer to the current behavior) so the escape model is documented as backup-owner-gated cancellation."
+    },
+    {
+      "id": "AA-19",
+      "severity": "low",
+      "area": "contracts/core",
+      "location": "contracts/UnifiedSmartWallet.cs:41-79 (prefix map), contracts/UnifiedSmartWallet.Admin.cs:22-23, contracts/UnifiedSmartWallet.Internal.cs:28, contracts/UnifiedSmartWallet.MarketEscrow.cs:19-30",
+      "title": "Storage prefix bytes 0x12/0x13 are reused across partials (verified safe today, fragile tomorrow)",
+      "description": "Byte 0x12 is both Admin's bare-key Prefix_PendingUpdateNefHash and Internal's accountId-suffixed Prefix_VerifyScopeTarget; byte 0x13 is both Admin's bare Prefix_PendingUpdateManifestHash and MarketEscrow's accountId-suffixed cancel marker. The shapes (1-byte vs 21-byte keys) cannot alias, the reuse is extensively documented, and StoragePrefixMapTests pins it, so there is no live collision. The fragility is forward-looking: any future prefix addition that reuses a byte with the same shape would silently corrupt state, and the deferred renumber now requires a storage migration.",
+      "recommendation": "Renumber to globally unique prefix bytes at the next planned redeploy/migration (the joint platform-library refactor is a natural window); keep the shape-collision test."
+    },
+    {
+      "id": "AA-20",
+      "severity": "low",
+      "area": "contracts/core",
+      "location": "contracts/UnifiedSmartWallet.cs:23 ([ContractPermission(\"*\",\"*\")]); call path at contracts/UnifiedSmartWallet.Execution.cs:94-98",
+      "title": "Core wildcard permission assessed: required for op dispatch, confused-deputy window closed (informational)",
+      "description": "The core declares wildcard permission because ExecuteUserOp dispatches Contract.Call to arbitrary signed-op targets. Audit of the resulting confused-deputy window found it closed: during the target call, every privileged core method re-checks a witness (AssertBackupOwner/AssertContractAdmin) or a pending-call timelock (CallVerifier/CallHook), ExecuteUserOp is per-account reentrancy-locked (Execution.cs:25,30,128), VerifyContext is set/cleared per op (Execution.cs:94,113-115) and Verify() honors the CallingScriptHash plus a hardened NEO/GAS carve-out (VerifyContext.cs:75-88), and the core holds no NEP-17 balances (no OnNEP17Payment). Residual: any account-signed op can target any contract by design, so account owners must treat op signing as full authorization; the witness-rules scoped-signer surface (VerifyContext.cs:102-174) is admin-gated and shape-strict.",
+      "recommendation": "No code change required; document the trust model (signed op = full account authorization) in the operator/integration guide, and keep the wildcard restricted to the core contract only."
+    }
+  ]
+}

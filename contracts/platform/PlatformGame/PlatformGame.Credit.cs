@@ -37,7 +37,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (from == Runtime.ExecutingScriptHash) return;
 
             UInt160 caller = Runtime.CallingScriptHash;
-            ExecutionEngine.Assert(caller == GAS.Hash || caller == NEO.Hash, "unsupported asset");
+            ExecutionEngine.Assert(caller == GAS.Hash, "only GAS accepted");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
             // Validate memo format: "appId:..."
@@ -142,12 +142,14 @@ namespace NeoMiniAppPlatform.Contracts
         // ===================================================================
 
         /// <summary>
-        /// Receives GAS/NEO payments.  The data parameter must be a string
+        /// Receives GAS payments.  The data parameter must be a string
         /// in the format "appId:..." so the contract can route the credit
         /// to the correct tenant.
         ///
         /// SECURITY:
-        /// - Only accepts GAS or NEO tokens
+        /// - Only accepts GAS (audit: NEO was previously credited 1:1 into
+        ///   the GAS-denominated ledger — 1 NEO, indivisible, landed as one
+        ///   GAS base unit and silently destroyed the payer's value)
         /// - Validates that appId extracted from memo is registered
         /// - Credits stored per-payer, consumed by game operations
         /// </summary>
@@ -158,8 +160,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (from == Runtime.ExecutingScriptHash) return;
 
             UInt160 caller = Runtime.CallingScriptHash;
-            ExecutionEngine.Assert(caller == GAS.Hash || caller == NEO.Hash,
-                "only GAS/NEO accepted");
+            ExecutionEngine.Assert(caller == GAS.Hash, "only GAS accepted");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
             string memo = ReadPaymentMemo(data);
@@ -168,6 +169,15 @@ namespace NeoMiniAppPlatform.Contracts
             // Extract appId (everything before the first ':')
             string appId = ExtractAppId(memo);
             RequireRegistered(appId);
+
+            // RewardGame tenants (gameType 5) route to their own sub-ledgers:
+            // "appId:fund" tops up the reward pool, "appId:entry" prepays the
+            // player's entry credit. Credit-only, like every lane here.
+            if (GetGameType(appId) == GameType_RewardGame)
+            {
+                CreditRewardGamePayment(appId, from, amount, memo);
+                return;
+            }
 
             if (ConsumePendingGachaInventoryPayment(appId, from, amount, data))
             {

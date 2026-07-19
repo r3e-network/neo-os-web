@@ -17,7 +17,8 @@
     "contracts": "コントラクト",
     "main": "メインナビゲーション",
     "mobile": "モバイルナビゲーション",
-    "toggleMenu": "ナビゲーションメニューを切り替え"
+    "toggleMenu": "ナビゲーションメニューを切り替え",
+    "skipToContent": "メインコンテンツへ移動"
   },
   "actions": {
     "connect": "接続",

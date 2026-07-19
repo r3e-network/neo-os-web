@@ -190,11 +190,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ctx.Registry.fundEnginePool(AppId, 40 * GAS_UNIT);
 
             // Destination was hard-bound to the app's registered engine and
-            // the GAS arrived under the 'appId:credit' memo grammar, payer =
+            // the GAS arrived under the 'appId:fund' memo grammar, payer =
             // the registry (the forwarding hop).
             Assert.Equal(new BigInteger(40 * GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(ctx.EngineMock.Hash));
             Assert.Equal(new BigInteger(40 * GAS_UNIT), ctx.EngineMock.poolCreditOf(AppId));
-            Assert.Equal(AppId + ":credit", ctx.EngineMock.lastPoolMemoOf(AppId));
+            Assert.Equal(AppId + ":fund", ctx.EngineMock.lastPoolMemoOf(AppId));
             Assert.Equal(ctx.Registry.Hash, ctx.EngineMock.lastPoolPayerOf(AppId));
 
             // The transit hop is fully accounted: nothing stuck registry-side.
@@ -225,6 +225,106 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ctx.Registry.mintAccount("no-engine-app");
             As(ctx, appAdmin);
             AssertRevert("no engine attached", () => ctx.Registry.fundEnginePool("no-engine-app", GAS_UNIT));
+        }
+
+        [Fact]
+        public void FundEnginePool_RealRewardGameEngine_PoolCredited()
+        {
+            // Cross-contract integration (audit H1): the registry's two-hop
+            // pool funding must speak the REAL PlatformGame deposit grammar
+            // ("appId:fund" tops up the pool). The EngineMockFixture mirrored
+            // a wrong 'appId:credit' grammar, which let the memo mismatch
+            // pass per-contract suites while the real pair was incompatible:
+            // against the deployed engine the same call FAULTs with
+            // "invalid payment memo" and the GAS never moves.
+            var ctx = Deploy();
+            SetArtifact(ctx);
+
+            var (nef, manifest) = Load("PlatformGame");
+            AsAdmin(ctx);
+            var game = ctx.Engine.Deploy<PlatformGameRewardGameContract>(nef, manifest);
+            var oracle = GameOracleMockFixture.Deploy(ctx.Engine, ctx.Engine.ValidatorsAddress);
+            game.setOracle(oracle.Hash);
+            game.setRegistry(ctx.Registry.Hash);
+
+            const string engineId = "platform-game";
+            RegisterEngine(ctx, engineId, game.Hash);
+
+            var appAdmin = TestEngine.GetNewSigner().Account;
+            AsAdmin(ctx);
+            ctx.Registry.registerAppByPlatform(AppId, engineId, appAdmin, null);
+            UInt160 account = ctx.Registry.mintAccount(AppId)!;
+            FundGas(ctx, account, 200 * GAS_UNIT);
+
+            As(ctx, appAdmin);
+            ctx.Registry.fundEnginePool(AppId, 40 * GAS_UNIT);
+
+            // The 40 GAS landed in the app's reward pool on the real engine;
+            // the transit hop left nothing registry-side beyond liabilities.
+            Assert.Equal(new BigInteger(40 * GAS_UNIT), game.poolBalance(AppId));
+            Assert.Equal(new BigInteger(40 * GAS_UNIT), game.heldForApp(AppId));
+            Assert.Equal(new BigInteger(160 * GAS_UNIT), ctx.Engine.Native.GAS.BalanceOf(account));
+        }
+
+        [Fact]
+        public void SetAppPaused_PushesIntoMintedShim()
+        {
+            // Pause-push wiring (audit medium): the registry pause flag must
+            // reach the minted AppAccount shim so its registry-relayed spend
+            // lane freezes — the shim's registry-caller pause branch was
+            // unwired dead capability before this push existed.
+            var t = DeployTreasury();
+            var ctx = t.Ctx;
+
+            Assert.False(t.Shim.isPaused());
+
+            As(ctx, t.AppAdmin);
+            ctx.Registry.setAppPaused(AppId, true);
+            Assert.True(ctx.Registry.isPaused(AppId));
+            Assert.True(t.Shim.isPaused());
+
+            ctx.Registry.setAppPaused(AppId, false);
+            Assert.False(ctx.Registry.isPaused(AppId));
+            Assert.False(t.Shim.isPaused());
+        }
+
+        [Fact]
+        public void SpendThresholdRaise_IsTimelocked_TighteningStaysInstant()
+        {
+            // Audit medium: threshold RAISES widen the cumulative
+            // instant-spend bound, so they ride the 24h timelock; tightenings
+            // stay instant and supersede any pending raise.
+            var t = DeployTreasury();
+            var ctx = t.Ctx;
+
+            As(ctx, t.AppAdmin);
+            Assert.Equal(new BigInteger(100 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
+
+            // Tightening: instant.
+            ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 5 * GAS_UNIT);
+            Assert.Equal(new BigInteger(5 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
+
+            // Raise: schedules, does not apply; range still enforced at propose time.
+            AssertRevert("spend threshold out of range",
+                () => ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 20_000 * GAS_UNIT));
+            ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 500 * GAS_UNIT);
+            Assert.Equal(new BigInteger(5 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
+            AssertRevert("timelock active", () => ctx.Registry.executeSpendThresholdRaise(AppId));
+
+            AdvanceMs(ctx, TIMELOCK_MS + 1_000);
+            ctx.Registry.executeSpendThresholdRaise(AppId);
+            Assert.Equal(new BigInteger(500 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
+
+            // Cancel clears a scheduled raise.
+            ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 600 * GAS_UNIT);
+            ctx.Registry.cancelSpendThresholdRaise(AppId);
+            AssertRevert("no pending threshold raise", () => ctx.Registry.executeSpendThresholdRaise(AppId));
+
+            // A tightening supersedes a pending raise.
+            ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 600 * GAS_UNIT);
+            ctx.Registry.setDescriptor(AppId, "registry:spendThreshold", 400 * GAS_UNIT);
+            Assert.Equal(new BigInteger(400 * GAS_UNIT), ctx.Registry.spendThresholdOf(AppId));
+            AssertRevert("no pending threshold raise", () => ctx.Registry.executeSpendThresholdRaise(AppId));
         }
 
         [Fact]

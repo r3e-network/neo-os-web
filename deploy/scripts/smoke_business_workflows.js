@@ -24,7 +24,7 @@ const HASHES = {
   BadgeService:        "0x9a99d732a9e5aaebcd7fd1bdc928eb2b31868499",
   LeaderboardService:  "0xfc71e7ce9a695bb3f30a045847d046867e56aa97",
   DataFeed:            "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064",
-  Oracle:              "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  Oracle:              "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
   AppRegistry:         "0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d",
   DailyCheckin:        "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
   NeoPay:              "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",

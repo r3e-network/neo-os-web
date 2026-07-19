@@ -29,7 +29,7 @@ export function Sidebar() {
     <aside className="hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface md:flex">
       {/* Logo */}
       <div className="flex h-20 items-center gap-3 border-b border-border px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-500 text-sm font-black text-white shadow-brand-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-neo-600 text-sm font-black text-white shadow-brand-sm">
           N
         </div>
         <div className="min-w-0">

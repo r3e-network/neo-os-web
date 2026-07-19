@@ -196,19 +196,17 @@ function collectRoleClaims(value: unknown, roles: Set<string>) {
   }
 }
 
-function hasAdminClaims(user: { app_metadata?: unknown; user_metadata?: unknown }): boolean {
+export function hasAdminClaims(user: { app_metadata?: unknown; user_metadata?: unknown }): boolean {
   const roles = new Set<string>();
   const appMetadata = user.app_metadata && typeof user.app_metadata === "object"
     ? user.app_metadata as Record<string, unknown>
     : {};
-  const userMetadata = user.user_metadata && typeof user.user_metadata === "object"
-    ? user.user_metadata as Record<string, unknown>
-    : {};
 
+  // Audit H3: only app_metadata is trusted. Supabase user_metadata is
+  // self-service editable by the account holder, so role claims there must
+  // never satisfy the admin gate.
   collectRoleClaims(appMetadata.role, roles);
   collectRoleClaims(appMetadata.roles, roles);
-  collectRoleClaims(userMetadata.role, roles);
-  collectRoleClaims(userMetadata.roles, roles);
 
   return roles.has("admin") || roles.has("super_admin") || roles.has("*");
 }

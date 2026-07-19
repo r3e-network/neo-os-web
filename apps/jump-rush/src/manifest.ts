@@ -101,6 +101,9 @@ export const manifest: MiniAppManifest = {
   },
 
   contract: {
-    mode: "custom",
+    mode: "shared",
+    moduleId: "platform-game",
+    registry: "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    engine: "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
   },
 };

@@ -20,6 +20,7 @@ import type { RunWithNotifyOptions } from "./notify-surface";
 import { eventStateValue } from "./utils/chain-events";
 import { MiniAppError } from "./utils/errors";
 import { addressToScriptHash } from "./utils/neo";
+import type { FrameworkChainPendingSurface, FrameworkTxOutcome, FrameworkTxOutcomeOptions } from "./chain-pending";
 import type {
   FrameworkArgBuilder,
   FrameworkChainSurface,
@@ -139,6 +140,8 @@ export interface ChainSurfaceDeps {
   runWithNotify<T>(work: () => Promise<T>, runOptions?: RunWithNotifyOptions<T>): Promise<T>;
   /** Launch-context network fallback for {@link FrameworkChainSurface.detectNetwork}. */
   fallbackNetwork(): string;
+  /** RFC P1-4 lazy chain.pending / chain.readTxOutcome surface factory. */
+  pending: () => FrameworkChainPendingSurface;
 }
 
 /**
@@ -393,6 +396,27 @@ export function createChainSurface(deps: ChainSurfaceDeps): FrameworkChainSurfac
         }
       }
       return null;
+    },
+    /**
+     * RFC P1-4 pending-tx durability lane: track/restore/list/clear with
+     * persist→poll→restore semantics (chain-pending.ts module doc). Kills
+     * the per-app PENDING_STORAGE_KEY blocks.
+     */
+    get pending(): FrameworkChainPendingSurface {
+      return deps.pending();
+    },
+    /**
+     * Canonical post-broadcast verdict over the getapplicationlog +
+     * getrawtransaction pair (RFC P1-4): `{ state, notifications,
+     * blockIndex, validUntilBlock }`, notifications decoded for the
+     * chain-events helpers. Never rejects — every failure mode resolves
+     * to the poll-safe "pending" state.
+     */
+    async readTxOutcome(
+      txid: string,
+      options?: FrameworkTxOutcomeOptions,
+    ): Promise<FrameworkTxOutcome> {
+      return deps.pending().readTxOutcome(txid, options);
     },
   };
 }

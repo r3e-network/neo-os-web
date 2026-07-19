@@ -1,0 +1,114 @@
+[
+  {
+    "severity": "high",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Treasury.cs:146",
+    "title": "FundEnginePool memo 'appId:credit' is rejected by the RewardGame engine — treasury→pool lane can never succeed",
+    "description": "FundEnginePool forwards treasury GAS to the app's engine with memo `appId + \":credit\"` (Treasury.cs:146). The RewardGame OnNEP17Payment routing only accepts memo `\"appId:fund\"` (pool top-up) or `\"appId:entry\"` (player entry credit) and hits `Assert(false, \"invalid payment memo\")` for anything else (contracts/platform/PlatformGame/PlatformGame.RewardGame.cs:113-136, routing at PlatformGame.Credit.cs:175-179). Consequences: (1) for a gameType-5 tenant — the only intended tenant of the current engine row — the engine callback FAULTs, `GAS.Transfer` returns false, the 'engine pool transfer failed' assert trips and the whole FundEnginePool transaction reverts: the designed 'treasury → reward pool in one call' lane is 100% broken. (2) If a legacy-module appId were attached instead, the same memo passes CreditDirectGasPayment's `StartsWith(appId + \":\")` check (PlatformGame.Credit.cs:35-51) and the GAS is credited to (appId, from = registry) in the engine's direct-credit ledger — stranded forever, because WithdrawGasCredit (PlatformGame.Credit.cs:94-120) is witness-gated to tx.sender and the registry can never be a transaction sender. No funds are currently at risk (no live tenants), but the lane fails its first real use the moment the registerEngine timelock executes and an app funds its pool.",
+    "recommendation": "Align the memo grammars before any tenant attaches: either the registry sends `\"appId:fund\"` for pool funding (preferred — matches the RewardGame pool ledger) or CreditRewardGamePayment learns an `\"appId:credit\"` alias that routes to the pool. Add a TestEngine integration test that runs registerApp → mintAccount → fundEnginePool end-to-end and asserts the engine pool/heldForApp delta; today's per-contract unit suites each pass while the pair is incompatible."
+  },
+  {
+    "severity": "high",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformGame/PlatformGame.Admin.cs:25",
+    "title": "PlatformGame Update() and SetOracle() are instant admin ops — settlement trust root and all future tenant pools sit behind one uncompromised-today key",
+    "description": "`Update(ByteString nef, string manifest)` (Admin.cs:25-37) is gated only by ValidateAdmin and calls ContractManagement.Update with no timelock, and `SetOracle` (Admin.cs:93-98) repoints the RewardGame settlement trust root instantly. The v2 design premise is factually wrong about this contract: docs/platform-contract-library-v2.md §3.3 states 'its 24h-timelocked Update exists precisely for this' — only the admin ROTATION is timelocked (Admin.cs:136-170); the code-upgrade and oracle-repoint powers are not. Once RewardGame tenants hold pooled GAS and player credits, a single compromised platform-admin key can, in one transaction and with zero detection window: (a) replace the engine NEF with arbitrary code that drains every tenant's pool/reserved/credit ledgers, or (b) point Oracle() at an attacker kernel and self-settle fabricated 79-byte results (Settle.cs:76 trusts `Runtime.CallingScriptHash == Oracle()`). Compare PlatformRegistry, whose self-Update is 24h-timelocked AND sha256-pinned (PlatformRegistry.Governance.cs:152-180). Currently no live bindings/funds exist, so present-day risk is low; the estate's own 'every power is timelocked' grammar is violated exactly where pooled funds will sit.",
+    "recommendation": "Before the first tenant onboards, put Update and SetOracle behind a 24h propose/execute timelock (hash-pinned like PlatformRegistry.Governance.cs ScheduleUpdate/Update), or explicitly record an accepted-risk decision. Add the new methods to ContractUpdateCoverageTest-style pins so the timelock cannot regress."
+  },
+  {
+    "severity": "high",
+    "area": "edge",
+    "file": "platform/edge/functions/_shared/supabase.ts:199",
+    "title": "requireAdminRole honors roles from user-writable user_metadata — self-service admin escalation",
+    "description": "hasAdminClaims (supabase.ts:199-214) collects role/roles claims from BOTH `app_metadata` and `user_metadata`, and requireAdminRole (supabase.ts:216-238) accepts them for bearer-JWT callers. Supabase `user_metadata` is writable by the user themselves through the anon client (`supabase.auth.updateUser({ data: { role: 'admin' } })`) unless a custom trigger blocks it — no migration in deploy/supabase references user_metadata, so the default self-service behavior applies. Any signed-up user can therefore pass requireAdminRole. Current consumers are admin-services-health (internal service topology disclosure) and admin-simulations (start/stop of internal simulation workloads), so today's blast radius is moderate, but the helper is the standing admin gate for any future admin endpoint. `app_metadata` is the server-controlled claim bag; user_metadata must never feed authorization decisions.",
+    "recommendation": "Drop the user_metadata branch in hasAdminClaims (keep app_metadata only) or replace role checks with a DB-backed admins table lookup; add a regression test asserting a user who self-assigns role=admin in user_metadata is rejected."
+  },
+  {
+    "severity": "medium",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Descriptor.cs:66",
+    "title": "Spend-threshold raises are instant — the 'cumulative instant-lane bound' is effectively always the 10000 GAS max",
+    "description": "SpendToPayout bounds cumulative outflow per rolling 24h window by SpendThresholdOf(appId) (Treasury.cs:65-75, default 100 GAS at :191-196). But the threshold is ordinary descriptor data: ApplyRegistryDescriptor applies `registry:spendThreshold` immediately (Descriptor.cs:66-78) with only range validation [1, 10000 GAS]. A compromised app-admin key can therefore set the threshold to MAX_SPEND_THRESHOLD (10000 GAS, PlatformRegistry.cs:173) in the same session it starts draining, making the documented per-window bound equal to the max regardless of any conservative configured value. Increases are risk-increasing; decreases are risk-decreasing — they need not share one lane.",
+    "recommendation": "Route threshold INCREASES through a 24h-timelocked propose/execute pair (decreases may stay instant), or lower MAX_SPEND_THRESHOLD to a value the platform genuinely accepts as the instant-lane ceiling; state the effective bound in the treasury docs."
+  },
+  {
+    "severity": "medium",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Governance.cs:120",
+    "title": "Platform has no cancel/freeze lever over a rogue app's treasury lanes; shim registry-pause path is unwired dead capability",
+    "description": "Three facts compose the gap. (1) A malicious ProposePayoutAddress matures in 24h and cannot be cancelled by the platform: CancelPayoutAddress requires the app admin (Treasury.cs:47-52) — i.e., the compromised key itself — and ExecutePayoutAddress is permissionless (Treasury.cs:36-45). The platform's only counter is ProposeAppAdmin rotation, which has the SAME 24h delay (Governance.cs:76-115) and loses the race whenever it starts later. (2) SpendToPayout is deliberately global-pause-immune (Treasury.cs:56-75), so the kill switch does not help. (3) Registry-side SetAppPaused (Governance.cs:120-127) only writes a registry row — it never pushes to the AppAccount shim, yet the shim's SetPaused explicitly accepts `Runtime.CallingScriptHash == RegistryOf()` (AppAccount.cs:135-143): a registry→shim pause push was designed into the shim and never wired (grep confirms no PlatformRegistry partial calls setPaused). Net: against a compromised app-admin key with a payout address already installed (or a 24h head start), the platform cannot halt outflow before the rotation matures; the residual bound is the (instantly raisable, see related finding) window threshold plus matured spends. This is the designed 'pause autonomy' trade-off, but the unwired shim path shows the intended platform lever exists and was never connected.",
+    "recommendation": "Either wire the lever — push pause to the shim from SetAppPaused (one Contract.Call; the shim already accepts the registry caller) or add a platform-admin cancel lane for pending payout/spend proposals — or document explicitly that app-treasury lanes are unfreezable by the platform and the only recovery is the 24h rotation."
+  },
+  {
+    "severity": "medium",
+    "area": "edge",
+    "file": "platform/edge/functions/_shared/env.ts:13",
+    "title": "isProductionEnv() defaults to NON-production — unset env markers fail open three security gates",
+    "description": "isProductionEnv returns true only when EDGE_ENV/DENO_ENV/ENV/NODE_ENV/SUPABASE_ENV is explicitly 'prod'/'production'; an unset (misconfigured) deploy is treated as non-production. Consumers that degrade silently in that state: (1) fetchMiniAppPolicy returns null for unregistered appIds (apps.ts:249-254), and createOSHandler skips the manifest permission gate entirely when policy is null (os-service.ts:376 `opts.permission && policy && ...`) — i.e. any unregistered appId calls any os-* service with no permission check; (2) requireHostScopes accepts plain bearer JWTs on host-only endpoints (scopes.ts:42-46); (3) enforceUsageCaps swallows usage-tracking failures (apps.ts:126-131). The H-8 audit fix made the rate-limit leg fail-closed but left these three keyed on the same fragile heuristic.",
+    "recommendation": "Invert the default: treat the environment as production unless an explicit non-prod marker (e.g. EDGE_ENV=dev) is set, or hard-require one of the markers at function boot; extend the H-8 comment trail so future gates do not reuse the fail-open helper."
+  },
+  {
+    "severity": "low",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformGame/PlatformGame.RewardGame.cs:229",
+    "title": "Expiring a settling game wedges the late kernel callback and leaks the request-context row",
+    "description": "ExpireGame closes Status-5 (settling) games after deadline+grace (RewardGame.cs:229-250) but does not delete the game's RG_PREFIX_REQUEST row. When the in-flight kernel fulfillment later arrives, OnMiniAppResult loads the context, then SettleRewardGame asserts `g.Status == 5` (RewardGame.Settle.cs:94) and the callback FAULTs on every delivery attempt — a permanent faulting callback against the kernel for this contract, storage dust in the engine, and the player forfeits a settlement that was merely slow (their entry stays in the pool; the reservation was already released). No double-settle is possible (status guard), so this is liveness/fairness, not solvency.",
+    "recommendation": "Delete the request-context row inside ExpireGame for Status-5 games and/or make OnMiniAppResult a no-op (event-only) when the located game is already expired instead of faulting; document the grace-window semantics for players."
+  },
+  {
+    "severity": "low",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformGame/PlatformGame.RewardGame.Settle.cs:73",
+    "title": "OnMiniAppResult does not bind moduleId or requester",
+    "description": "The kernel callback asserts caller == Oracle() and operation == 'session.finalize' (Settle.cs:76-77) but ignores the moduleId and requester arguments. Settlement correctness currently rests solely on the (appId, requestId) context row created by FinalizeGame with the right values, so there is no live exploit; but if the kernel ever dispatches same-operation results from another module, or a request context is ever created with a different requester, nothing in this contract rejects it.",
+    "recommendation": "Add `ExecutionEngine.Assert(moduleId == RG_MODULE_ID)` and assert `requester == g.Player` after loading the game — cheap defense in depth matching the engine's own submit arguments."
+  },
+  {
+    "severity": "low",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformGame/PlatformGame.RewardGame.Settle.cs:173",
+    "title": "Solved event fires for failed/refunded runs — phantom leaderboard rows",
+    "description": "SettleRewardGame emits OnRewardSolved unconditionally, including the Status-4 refund path (Settle.cs:146-173) where elapsed/score/payout are all zero. The event's slot order is documented as the leaderboard API the frontend rebuilds rankings from (RewardGame.cs:100-101), so indexers keyed on 'Solved' record phantom zero-score 'solved' entries for runs the kernel could not verify.",
+    "recommendation": "Emit a distinct Refunded (or RunFailed) event on the !success branch, or suppress OnRewardSolved when success is false; keep stats semantics (already correct) unchanged."
+  },
+  {
+    "severity": "low",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformGame/PlatformGame.Credit.cs:160",
+    "title": "Legacy-module deposits accept NEO and credit it 1:1 into the GAS ledger",
+    "description": "PlatformGame.OnNEP17Payment accepts `caller == GAS.Hash || caller == NEO.Hash` (Credit.cs:160-163) and CreditDirectGasPayment credits the raw amount into the GAS-denominated prepaid-credit ledger. NEO has 0 decimals and a very different unit value: a user sending 1 NEO to a Countdown/CoinFlip/Gacha/Dice app receives 1 GAS base unit (0.00000001 GAS) of credit and the engine pockets the NEO — silent user-error loss, and WithdrawGasCredit pays GAS against a mixed-asset ledger. The v2 RewardGame lane already does this right (CreditRewardGamePayment asserts GAS-only, RewardGame.cs:115).",
+    "recommendation": "Restrict the shared OnNEP17Payment to GAS-only (or branch NEO handling explicitly) in line with the platform's GAS-only payments blueprint; if NEO intake is intended for specific modules, document the conversion rule."
+  },
+  {
+    "severity": "low",
+    "area": "edge",
+    "file": "platform/edge/functions/_shared/request.ts:10",
+    "title": "Body-size cap only honors the Content-Length header",
+    "description": "readJsonBody rejects bodies >1 MB solely via the content-length header (request.ts:10-13); chunked requests without the header (or a header that lies small) stream the full body into req.json(). Memory-pressure DoS surface on every os-* endpoint, partially mitigated by the edge platform's own request limits and the post-auth rate limit.",
+    "recommendation": "Enforce a read-time cap (stream and count bytes) or document reliance on the platform limit; reject Transfer-Encoding: chunked explicitly if 1 MB is a real budget."
+  },
+  {
+    "severity": "low",
+    "area": "contracts",
+    "file": "contracts/platform/AppAccount/AppAccount.Spend.cs:44",
+    "title": "escapeExecute comment overstates the hatch: it counters bricking, not capture",
+    "description": "The comment claims escapeExecute ensures 'a bricked or captured registry can never permanently trap the treasury' (Spend.cs:44-47). The design doc's own honesty correction (platform-contract-library-v2.md §4.1) states the opposite for capture: a captured platform admin simply does not pause (or unpauses/re-pauses — SetGlobalPaused records a fresh pausedAt each cycle, PlatformRegistry.Governance.cs:134-148), keeping the 30-day window shut while draining via registry lanes. The hatch's real guarantee is 'bricked or abandoned'. As written, the comment teaches auditors a stronger property than the code provides.",
+    "recommendation": "Reword the comment to 'bricked or abandoned registry' and point at the design section that names the captured-admin bound (24h upgrade timelock + on-chain visibility)."
+  },
+  {
+    "severity": "low",
+    "area": "edge",
+    "file": "platform/edge/functions/_shared/scopes.ts:14",
+    "title": "Scope-less legacy API keys bypass every scope gate",
+    "description": "requireScopes returns null (allow) whenever an API key has an empty scopes array (scopes.ts:14-16) — documented backward compatibility for legacy keys. Any key row issued or migrated with empty scopes therefore holds full access within its user context, voiding the least-privilege grammar the scope checks exist for.",
+    "recommendation": "Backfill explicit scopes on all existing keys (DB migration), then flip the empty-scopes default to deny (or to a minimal read scope set); keep the legacy branch behind a dated env flag if it must survive."
+  },
+  {
+    "severity": "low",
+    "area": "contracts",
+    "file": "contracts/platform/PlatformRegistry/PlatformRegistry.Registry.cs:26",
+    "title": "Permissionless appId namespace permits squatting ahead of rightful operators",
+    "description": "RegisterApp is permissionless: anyone with 1 GAS of prepaid credit can claim any unregistered appId and bind an arbitrary appAdmin (Registry.cs:26-35). Platform-owned appIds not yet claimed via the pipeline lane (RegisterAppByPlatform) can be squat-registered, after which the rightful operator's registration fails with 'appId already registered' and recovery requires the platform admin's 24h rotation lane. The 1 GAS anti-spam fee prices griefing, it does not prevent it. Acknowledged by design (cohort-0 registers all 77 known apps first), recorded here so the ops sequencing is not lost.",
+    "recommendation": "Complete the cohort-0 pipeline registration of all known appIds before publicizing the permissionless lane; consider a reserved-prefix rule (e.g. 'miniapp-*' platform-claimable) in a future schema version."
+  }
+]

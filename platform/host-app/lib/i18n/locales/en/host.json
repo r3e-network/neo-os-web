@@ -1,10 +1,4 @@
 {
-  "hero": {
-    "title": "Neo Miniapps",
-    "subtitle": "Small, focused Neo MiniApps for practical wallet operations",
-    "exploreApps": "Explore Apps",
-    "launchApp": "Launch App"
-  },
   "features": {
     "title": "Features",
     "secureCompute": "Secure Compute",
@@ -151,5 +145,23 @@
       "start": "Start Building",
       "docs": "Read Docs"
     }
+  },
+  "playArea": {
+    "syncing": "Syncing",
+    "cachedState": "Cached state",
+    "liveState": "Live state",
+    "refresh": "Refresh",
+    "technicalDetails": "Technical chain details",
+    "contractLabel": "Contract",
+    "additionalMetrics": "Additional metrics",
+    "metricsDescription": "Raw app counters and diagnostic readings.",
+    "itemsSuffix": "items",
+    "recentActivity": "Recent activity",
+    "contextDiagnostics": "Context and diagnostics",
+    "contextDescription": "Receipts, raw readings, and technical context stay tucked away until needed.",
+    "openInNewWindow": "Open in a new window",
+    "newWindow": "New window",
+    "resultVerifier": "Result verifier",
+    "modeLabel": "Mode"
   }
 }

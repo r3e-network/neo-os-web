@@ -1,72 +1,77 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0xb2d0f46da6981e4613ce8476eadcc1ea26f9858f"
-  },
-  "createdAt": "2026-07-03T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "A polished local Simon-style memory arcade. Watch the progressive colour pattern, repeat it with tactile audio-visual feedback, and master all three difficulty lanes without a wallet or GAS payment. The GameFi lane stays disabled until the deployed testnet reward pool is funded and the complete settlement flow is revalidated.",
-  "description_zh": "精心打磨的本地 Simon 风格记忆街机。观察逐步增长的颜色序列，通过清晰的视听反馈按顺序复现，并挑战三档难度；无需钱包或 GAS。测试网奖励池完成注资且完整结算流程重新验证前，GameFi 通道保持关闭。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://color-clash",
-    "offlineSupport": false,
-    "stateless": false
-  },
-  "id": "miniapp-color-clash",
-  "name": "Color Clash",
-  "name_zh": "色彩对决",
-  "operation_panel": {
-    "operations": [],
-    "subtitle": "Choose a difficulty, watch each progressive pattern, and repeat it locally. Wallet-funded GameFi remains unavailable while the testnet reward pool is empty.",
-    "title": "Color Clash · Local Arcade"
-  },
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "memory",
-    "simon",
-    "arcade",
-    "leaderboard",
-    "local",
-    "game",
-    "practice"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A polished local Simon-style memory arcade. Watch the progressive colour pattern, repeat it with tactile audio-visual feedback, and master all three difficulty lanes without a wallet or GAS payment. The GameFi lane stays disabled until the deployed testnet reward pool is funded and the complete settlement flow is revalidated.",
+    "description_zh": "精心打磨的本地 Simon 风格记忆街机。观察逐步增长的颜色序列，通过清晰的视听反馈按顺序复现，并挑战三档难度；无需钱包或 GAS。测试网奖励池完成注资且完整结算流程重新验证前，GameFi 通道保持关闭。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and an end-to-end settlement succeeds.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://color-clash",
+        "offlineSupport": false,
+        "stateless": false
     },
-    "tee": {
-      "enabled": false,
-      "description": "Local play uses Web-Crypto randomness. TEE settlement remains a gated future lane while production readiness is revalidated."
-    }
-  },
-  "updatedAt": "2026-07-10T10:50:00Z",
-  "urls": {
-    "banner": "/miniapps/color-clash/banner.webp",
-    "entry": "/miniapps/color-clash/index.html",
-    "icon": "/miniapps/color-clash/logo.webp"
-  },
-  "version": "2.0.0"
+    "id": "miniapp-color-clash",
+    "name": "Color Clash",
+    "name_zh": "色彩对决",
+    "operation_panel": {
+        "operations": [],
+        "subtitle": "Choose a difficulty, watch each progressive pattern, and repeat it locally. Wallet-funded GameFi remains unavailable while the testnet reward pool is empty.",
+        "title": "Color Clash · Local Arcade"
+    },
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "memory",
+        "simon",
+        "arcade",
+        "leaderboard",
+        "local",
+        "game",
+        "practice"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and an end-to-end settlement succeeds.",
+            "enabled": false
+        },
+        "tee": {
+            "enabled": false,
+            "description": "Local play uses Web-Crypto randomness. TEE settlement remains a gated future lane while production readiness is revalidated."
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0xb2d0f46da6981e4613ce8476eadcc1ea26f9858f'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-10T10:50:00Z",
+    "urls": {
+        "banner": "/miniapps/color-clash/banner.webp",
+        "entry": "/miniapps/color-clash/index.html",
+        "icon": "/miniapps/color-clash/logo.webp"
+    },
+    "version": "2.0.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

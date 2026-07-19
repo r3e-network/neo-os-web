@@ -206,7 +206,7 @@
 
 .miniapp-studio__journey li small {
   overflow: hidden;
-  color: #718078;
+  color: #697770; /* WCAG AA 4.6:1 on #fbfdfb (was #718078, 4.05:1) */
   font-size: 10px;
   font-weight: 520;
   line-height: 1.35;
@@ -328,7 +328,7 @@
 .miniapp-studio__template-shelf small {
   display: -webkit-box;
   overflow: hidden;
-  color: #6a7c72;
+  color: #64756c; /* WCAG AA 4.6:1 on #f2faf5 (was #6a7c72, 4.17:1) */
   font-size: 9px;
   font-weight: 510;
   line-height: 1.3;
@@ -409,7 +409,7 @@
 
 .miniapp-studio label > small {
   min-height: 26px;
-  color: #708078;
+  color: #697770; /* WCAG AA 4.6:1 on #fbfdfb (was #708078, 4.07:1) */
   font-size: 9px;
   font-weight: 510;
   line-height: 1.4;
@@ -474,7 +474,7 @@
 .miniapp-studio__drawer summary small,
 .miniapp-studio__signature-panel summary small {
   overflow: hidden;
-  color: #718078;
+  color: #697770; /* WCAG AA 4.6:1 on #fbfdfb (was #718078, 4.05:1) */
   font-size: 9px;
   font-weight: 510;
   text-overflow: ellipsis;
@@ -596,7 +596,7 @@
 .miniapp-studio__capability small {
   display: -webkit-box;
   overflow: hidden;
-  color: #6d7e75;
+  color: #66756d; /* WCAG AA 4.6:1 on #f2faf5 (was #6d7e75, 4.04:1) */
   font-size: 8px;
   line-height: 1.3;
   -webkit-box-orient: vertical;
@@ -735,7 +735,7 @@
 }
 
 .miniapp-studio__app-card dt {
-  color: #6a8076;
+  color: #657970; /* WCAG AA 4.6:1 on #fcfefd (was #6a8076, 4.17:1) */
   font-size: 8px;
   font-weight: 650;
 }
@@ -793,7 +793,7 @@
 }
 
 .miniapp-studio__command-status small {
-  color: #75837c;
+  color: #67736d; /* WCAG AA 4.6:1 on #f4f7f5 (was #75837c, 3.67:1) */
   font-size: 8px;
   font-weight: 620;
 }
@@ -1088,7 +1088,7 @@
 .miniapp-studio__history li small,
 .miniapp-studio__history li code,
 .miniapp-studio__history > p {
-  color: #718078;
+  color: #697770; /* WCAG AA 4.6:1 on #fbfdfb (was #718078, 4.05:1) */
   font-size: 9px;
 }
 

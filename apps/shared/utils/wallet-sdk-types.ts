@@ -1,4 +1,5 @@
 import type { RefCompatObservable } from "../react/context";
+import type { ContractBinding } from "../types/miniapp-manifest";
 
 import type { NeoDapiProvider as BaseNeoDapiProvider } from "./nep21-provider";
 
@@ -134,6 +135,12 @@ export type MiniAppManifest = {
   id?: string;
   contracts?: Record<string, string>;
   default_network?: string;
+  /**
+   * Contract binding (Platform Contract Library v2): `mode: "shared"` makes
+   * getContractAddress resolve the network's shared platform engine hash
+   * keyed by `moduleId` instead of a per-app hash.
+   */
+  contract?: ContractBinding;
 };
 
 declare global {

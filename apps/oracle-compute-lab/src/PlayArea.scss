@@ -4,7 +4,7 @@
 
 :root,
 .mx2 {
-  --mx2-brand: #0f9f83;
+  --mx2-brand: #0d866f; /* WCAG AA 4.5:1 with white (was #0f9f83) */
   --mx2-brand-hover: #087963;
   --mx2-brand-light: #e5f8f2;
   --mx2-brand-subtle: #bceade;
@@ -469,7 +469,7 @@
 }
 
 .compute-flow li small {
-  color: #668078;
+  color: #5f7770; /* WCAG AA 4.5:1 on light fills (was #668078) */
   font-size: 10px;
   font-weight: 620;
 }

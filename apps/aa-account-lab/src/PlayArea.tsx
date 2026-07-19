@@ -349,7 +349,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <em>{formatTimelockDays(activePlanDef.timelock)}</em>
         </header>
         <p>{t(activePlanDef.copy)}</p>
-        <div className="aa-plan-grid" role="list" aria-label={t("accountPlanTitle")}>
+        {/* WCAG: role="group" (named, no required children) — cards are <button>s, not listitems */}
+        <div className="aa-plan-grid" role="group" aria-label={t("accountPlanTitle")}>
           {ACCOUNT_PLANS.map((plan) => (
             <button
               key={plan.key}

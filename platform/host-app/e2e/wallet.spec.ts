@@ -67,7 +67,12 @@ test.describe("Wallet Connection", () => {
         rootWidth: rootRect.width,
         navHeight: navRect?.height ?? 0,
         viewportHeight: window.innerHeight,
-        viewportWidth: window.innerWidth,
+        // globals.css sets `scrollbar-gutter: stable` with a 6px custom
+        // scrollbar, so the browser reserves a 6px inline gutter that shrinks
+        // the layout area (while window.innerWidth still reports the full
+        // viewport). document.body spans the gutter-reduced layout area, so it
+        // is the reference width a full-viewport fixed overlay must cover.
+        layoutWidth: document.body.getBoundingClientRect().width,
         zIndex: styles.zIndex,
         bodyOverflow: getComputedStyle(document.body).overflow,
       };
@@ -75,7 +80,7 @@ test.describe("Wallet Connection", () => {
 
     expect(metrics.parentIsBody).toBe(true);
     expect(metrics.rootHeight).toBeGreaterThan(metrics.viewportHeight - 2);
-    expect(metrics.rootWidth).toBeGreaterThan(metrics.viewportWidth - 2);
+    expect(metrics.rootWidth).toBeGreaterThan(metrics.layoutWidth - 2);
     expect(metrics.rootHeight).toBeGreaterThan(metrics.navHeight * 5);
     expect(Number(metrics.zIndex)).toBeGreaterThan(100);
     expect(metrics.bodyOverflow).toBe("hidden");

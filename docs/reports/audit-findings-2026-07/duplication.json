@@ -1,0 +1,48 @@
+{
+  "generated": "2026-07-17",
+  "cloneFamily": {
+    "root": "contracts/",
+    "contracts": 11,
+    "allExist": true,
+    "csFilesPerContract": 4,
+    "totalLoc": 8907,
+    "pctIdentical": 96.8,
+    "pctIdenticalMethod": "diff -U0 of concatenated MiniAppAimMaster/*.cs vs MiniAppColorClash/*.cs: 815 lines total, 26 differing lines => 96.80% identical",
+    "perContract": {
+      "MiniAppAimMaster": 815,
+      "MiniAppColorClash": 815,
+      "MiniAppCurveArrow": 818,
+      "MiniAppFlappyDash": 815,
+      "MiniAppGame2048": 814,
+      "MiniAppJumpRush": 731,
+      "MiniAppMergeKingdom": 815,
+      "MiniAppPetPotion": 815,
+      "MiniAppSheepSolitaire": 843,
+      "MiniAppSnakeBounty": 815,
+      "MiniAppSudoku": 811
+    }
+  },
+  "morpheusEnginePorts": {
+    "dir": "neo-morpheus-oracle/workers/nitro-worker/src/game/engines/",
+    "files": 12,
+    "fileList": ["aim.js", "arrow.js", "color.js", "flappy.js", "game2048.js", "jump.js", "merge.js", "pet.js", "sheep.js", "snake.js", "sudoku-data.js", "sudoku.js"],
+    "totalLoc": 2112,
+    "snakeHeaderReferencesPlatform": true,
+    "snakeHeaderExcerpt": "Deterministic Snake Bounty engine — JS port of neo-miniapps-platform/apps/snake-bounty/src/logic/snake-engine.ts"
+  },
+  "envelopeCopies": {
+    "morpheusFile": "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
+    "aaFile": "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
+    "morpheusSha256": "508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129",
+    "aaSha256": "d967bb9840b0cd08c6ab41fa2982b6c4cf24cd2e3191bedc57fe441101332f6d",
+    "match": false
+  },
+  "sdkGenerations": {
+    "frameworkLoc": 26610,
+    "frameworkNote": "framework/ — 100 .ts files excluding node_modules/dist",
+    "servicesProxyLoc": 829,
+    "servicesProxyNote": "apps/shared/services/PlatformServices.ts (192 LOC) + apps/shared/services/os/*.ts 13 files (637 LOC)",
+    "platformSdkLoc": 3422,
+    "platformSdkNote": "platform/sdk/src — 6 .ts files"
+  }
+}

@@ -1,0 +1,1108 @@
+{
+  "action": "cohort0-register",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "dry_run": true,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "roster_source": "apps/*/neo-manifest.json",
+  "summary": {
+    "roster_total": 77,
+    "filtered_out": 0,
+    "invalid": 0,
+    "already_registered": 76,
+    "newly_registered": 0,
+    "planned_registrations": 0,
+    "failed": 1,
+    "pending": 0,
+    "directory_rows_confirmed": 76,
+    "directory_rows_after_run": 76,
+    "total_credit_top_up_gas": "0.00000000",
+    "estimated_tx_fees_gas": "0.00000000"
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aa-account-lab",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/aa-account-lab/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-market-hub",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/aa-market-hub/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-permissions-lab",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/aa-permissions-lab/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-relay-console",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/aa-relay-console/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-session-key-lab",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/aa-session-key-lab/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aim-master",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/aim-master/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-arrow-escape",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/arrow-escape/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-asset-factory",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/asset-factory/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-automation-copilot",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/automation-copilot/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-bead-workshop",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/bead-workshop/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-breakupcontract",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/breakup-contract/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-burn-league",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/burn-league/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/color-clash/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-council-governance",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/council-governance/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/curve-arrow/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-custom-anchor",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/custom-anchor/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-dailycheckin",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/daily-checkin/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-dev-tipping",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/dev-tipping/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-dice-game",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/dice-game/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-event-ticket-pass",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/event-ticket-pass/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-explorer",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/explorer/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/flappy-dash/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-flashloan",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/flashloan/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-fogplay",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/fogplay/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-forever-album",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/forever-album/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-fruit-funnel",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/fruit-funnel/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/game-2048/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gas-lucky-pool",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/gas-lucky-pool/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gas-sponsor",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/gas-sponsor/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gasbox",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/gasbox/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gov-merc",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/gov-merc/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-graveyard",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/graveyard/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/jump-rush/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-last-survivor",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/last-survivor/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-memorial-shrine",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/memorial-shrine/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/merge-kingdom/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-milestone-escrow",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/milestone-escrow/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-miniapp-factory",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/miniapp-factory/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-convert",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-convert/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-message",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-message/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-multisig",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-multisig/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-ns",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-ns/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-pay-shared-example",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-pay-shared-example/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-pay",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-pay/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-sign-anything",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-sign-anything/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-swap",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-swap/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-treasury",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-treasury/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-x-bridge",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neo-x-bridge/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neodid-passport",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/neodid-passport/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-nft-factory",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/nft-factory/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-onchaintarot",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/on-chain-tarot/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-compute-lab",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/oracle-compute-lab/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-http-console",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/oracle-http-console/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-neodid-console",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/oracle-neodid-console/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-price-console",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/oracle-price-console/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-seal-console",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/oracle-seal-console/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-vrf-console",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/oracle-vrf-console/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/pet-potion/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-private-transfer",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/private-transfer/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-profitanchor-admin",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/profitanchor-admin/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-profitanchor",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/profitanchor/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-quadratic-funding",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/quadratic-funding/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-recovery-guardian",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/recovery-guardian/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-redenvelope",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/red-envelope/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-screw-sort",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/screw-sort/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-self-loan",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/self-loan/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/sheep-solitaire/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/snake-bounty/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-soulbound-certificate",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/soulbound-certificate/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/sudoku/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-time-capsule",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/time-capsule/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-timestamp-proof",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/timestamp-proof/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-trustanchor-admin",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/trustanchor-admin/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-trustanchor",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/trustanchor/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-unbreakablevault",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/unbreakable-vault/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-wallet-health",
+      "status": "failed",
+      "reason": "getApp(miniapp-wallet-health) call: Post \"https://testnet1.neo.coz.io:443\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
+      "source": "apps/wallet-health/neo-manifest.json"
+    },
+    {
+      "app_id": "miniapp-zhuada-e",
+      "status": "skipped",
+      "reason": "already registered",
+      "source": "apps/zhuada-e/neo-manifest.json",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    }
+  ],
+  "transactions": [],
+  "balances": {
+    "gas": "112537.29165265",
+    "neo": "73061"
+  },
+  "next_steps": [
+    "Rows are lite tier (identity + directory only): no engine, no descriptor, no AppAccount. Upgrade an app later with mintAccount(appId) (10 GAS credit, once the AppAccount artifact timelock has executed) and attach engines with attachEngine(appId, engineId).",
+    "Unconsumed per-app credit dust is reclaimable by the signer with withdrawCredit(appId, amount) (witness-gated, pause-immune).",
+    "Cohort 1 starts with curve-arrow: roster id miniapp-curve-arrow is a plain directory row after this run; engine binding is a separate attach step (docs/platform-contract-library-v2.md §7)."
+  ],
+  "generated_at_utc": "2026-07-18T08:06:32Z"
+}

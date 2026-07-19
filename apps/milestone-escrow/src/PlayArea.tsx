@@ -261,10 +261,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           );
         })}
         {milestoneAmounts.length < MAX_MILESTONES && (
-          <button type="button" className="escrow-gate escrow-gate--add" onClick={addMilestone} disabled={isCreating || !contractReady}>
-            <span className="escrow-gate__plus" aria-hidden="true"><Plus size={18} /></span>
-            <span>{t("addMilestone")}</span>
-          </button>
+          /* WCAG: role="list" may only own listitem children — wrap the add
+             button (segment is display:contents, so layout is unchanged). */
+          <div className="escrow-route__segment" role="listitem">
+            <button type="button" className="escrow-gate escrow-gate--add" onClick={addMilestone} disabled={isCreating || !contractReady}>
+              <span className="escrow-gate__plus" aria-hidden="true"><Plus size={18} /></span>
+              <span>{t("addMilestone")}</span>
+            </button>
+          </div>
         )}
       </div>
     </section>

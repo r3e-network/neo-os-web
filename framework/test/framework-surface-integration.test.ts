@@ -19,6 +19,8 @@ import type {
   FrameworkEventsSurface,
   FrameworkLifecycleSurface,
   FrameworkPermissionsSurface,
+  FrameworkPlatformGameSurface,
+  FrameworkRegistrySurface,
   FrameworkResourcesSurface,
   FrameworkShareSurface,
   FrameworkWalletSurface,
@@ -149,9 +151,12 @@ describe("Wave-1 surface reachability", () => {
     const permissions: FrameworkPermissionsSurface = app.permissions;
     const resources: FrameworkResourcesSurface = app.resources;
     const aa: FrameworkAaSurface = app.aa;
+    const registry: FrameworkRegistrySurface = app.registry;
+    const platformGame: FrameworkPlatformGameSurface = app.platformGame;
 
     for (const surface of [
-      events, bus, wallet, lifecycle, clipboard, share, permissions, resources, aa,
+      events, bus, wallet, lifecycle, clipboard, share, permissions, resources, aa, registry,
+      platformGame,
     ]) {
       expect(surface).toBeTruthy();
     }
@@ -159,6 +164,13 @@ describe("Wave-1 surface reachability", () => {
     // Lazy modules cache: repeated access returns the same instance.
     expect(app.events).toBe(app.events);
     expect(app.wallet).toBe(app.wallet);
+    expect(app.registry).toBe(app.registry);
+    expect(app.platformGame).toBe(app.platformGame);
+    // Unconfigured by default: reads throw typed capability errors, the
+    // config-free advisory derivation keeps working.
+    expect(app.registry.available).toBe(false);
+    expect(typeof app.registry.deriveAccountHash).toBe("function");
+    expect(app.platformGame.available).toBe(false);
   });
 });
 
