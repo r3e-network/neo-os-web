@@ -33,12 +33,13 @@ into partial C# files by business workflow so that anchor, DeFi, game, and
 social logic stay reviewable.
 
 The next contract evolution is documented in
-[`contracts/MiniAppFactory/MODULAR_CAPABILITY_COMPOSITION_ARCHITECTURE.md`](../contracts/MiniAppFactory/MODULAR_CAPABILITY_COMPOSITION_ARCHITECTURE.md):
-
-- `NeoPay` is the reference `shared`-mode example, where one app instance binds reusable
-  `funding_vault` + `stream_vesting` modules with no dedicated business contract deployment.
-- `GASBox` is the reference `router`-mode example, where a thin generated orchestrator keeps
-  inventory, randomness, escrow, and settlement atomic while still reusing shared modules.
+[`docs/platform-contract-library-v2.md`](../docs/platform-contract-library-v2.md)
+(Platform Contract Library v2): a registry-anchored engine estate where apps
+register on PlatformRegistry, receive a minted AppAccount treasury contract,
+and bind to shared engines as validated descriptor rows instead of deploying
+dedicated per-app contracts. The first slice (PlatformRegistry + AppAccount)
+landed 2026-07-16/17; the legacy per-app `MiniApp*` contracts are absorbed
+cohort by cohort.
 
 The matching frontend/contract symmetry model was documented in the now-deprecated
 [`_archive/COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md`](./_archive/COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md)

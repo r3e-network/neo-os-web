@@ -181,6 +181,5 @@ SafeMath.Sub(a, b)       // Underflow-safe subtraction
 
 ## Related Documentation
 
-- [MiniAppBase.Core.cs](../contracts/MiniAppBase/MiniAppBase.Core.cs)
-- [MiniAppBase.BetLimits.cs](../contracts/MiniAppBase/MiniAppBase.BetLimits.cs)
-- [Security Scanner](./security/vulnerability-scanner.ts)
+- [MiniAppCompactBase.cs](./MiniApp.DevPack/MiniAppCompactBase.cs) — the shared base most current miniapp contracts build on
+- [ContractSecurityRegressionTest.cs](./__tests__/ContractSecurityRegressionTest.cs) — the test-enforced security regression suite (see also `FinancialTransferSafetyTest` and `OnNep17PaymentConventionTests` in the same directory)

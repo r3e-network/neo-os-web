@@ -135,11 +135,12 @@ function buildRequirement(id, title, evidence, ok, partial = false, notes = []) 
 }
 
 // Known live-harness coverage gaps, mirrored from the audit guard test
-// (deploy/scripts/lib/live_harness_coverage.test.mjs) so the goal gate and the
-// guard test cannot diverge: miniapp-neo-multisig ships a deployed testnet
-// contract but still has no registered live-chain harness in LIVE_CHAIN_FLOWS.
-// Remove an entry once its dedicated live-flow script lands.
-const KNOWN_MISSING_LIVE_HARNESS = ["miniapp-neo-multisig"];
+// The allowlist is EMPTY as of 2026-07-18: all 77 active miniapps have a
+// registered live-chain harness in LIVE_CHAIN_FLOWS (the final six gaps were
+// closed by live_validate_{oracle_price_console,miniapp_factory,timestamp_proof,
+// neo_treasury,neo_multisig}.mjs). A new gap only appears when an app declares a
+// chain surface without a harness — the gate goes red again, by design.
+const KNOWN_MISSING_LIVE_HARNESS = [];
 
 // The expected active-app total is derived from the same source the live
 // harness audit uses (apps/*/neo-manifest.json via buildCoverageRows), not

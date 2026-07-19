@@ -20,7 +20,8 @@ namespace NeoMiniAppPlatform.Contracts
         ///
         /// Parameters:
         ///   appId    - unique string identifier for the tenant
-        ///   gameType - GameType_Countdown(1), GameType_CoinFlip(2), GameType_Gacha(3), GameType_Dice(4)
+        ///   gameType - GameType_Countdown(1), GameType_CoinFlip(2), GameType_Gacha(3),
+        ///              GameType_Dice(4), GameType_RewardGame(5)
         ///   appAdmin - address that controls this app's lifecycle
         ///   config   - serialized configuration blob (game-specific)
         /// </summary>
@@ -34,7 +35,8 @@ namespace NeoMiniAppPlatform.Contracts
                 gameType == GameType_Countdown ||
                 gameType == GameType_CoinFlip ||
                 gameType == GameType_Gacha ||
-                gameType == GameType_Dice,
+                gameType == GameType_Dice ||
+                gameType == GameType_RewardGame,
                 "invalid game type");
 
             // Ensure not already registered

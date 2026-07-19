@@ -112,7 +112,8 @@ namespace NeoMiniAppPlatform.Contracts
         /// account cannot attach a memo, so the GAS makes a two-hop transit:
         /// account -> registry (validated against the transit note by
         /// OnNEP17Payment, credited nowhere) -> engine with memo
-        /// "appId:credit" so it lands in the engine's per-app pool.
+        /// "appId:fund" so it lands in the engine's per-app reward pool
+        /// (the PlatformGame deposit grammar — audit H1).
         ///
         /// The transit note is the in-flight LOCK and is held across the
         /// engine forward (finding 3): OnNEP17Payment validates but does NOT
@@ -143,7 +144,7 @@ namespace NeoMiniAppPlatform.Contracts
             // without clearing it, so the lock stays live across the forward.
             Contract.Call(account, "executeTransfer", CallFlags.All, GAS.Hash, Runtime.ExecutingScriptHash, amount);
             ExecutionEngine.Assert(
-                GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + ":credit"),
+                GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + ":fund"),
                 "engine pool transfer failed");
             // Forward landed without reentrancy: release the in-flight lock.
             Storage.Delete(Storage.CurrentContext, PREFIX_TREASURY_TRANSIT);

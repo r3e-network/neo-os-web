@@ -30,6 +30,9 @@ import type { FrameworkAaService } from "./aa";
 import { createClipboardSurface, createShareSurface } from "./clipboard";
 import { createCreditsSurface } from "./credits";
 import type { FrameworkCreditsConfig } from "./credits";
+import { createRegistrySurface } from "./registry-surface";
+import { createPlatformGameSurface } from "./platform-game-surface";
+import { createChainPendingSurface } from "./chain-pending";
 import { createBusSurface, createEventsSurface } from "./events";
 import type { FrameworkBusChannel } from "./events";
 import { createLifecycleSurface } from "./lifecycle";
@@ -251,6 +254,48 @@ export function createMiniAppFramework(
       config: options.credits,
     }),
   );
+  /**
+   * app.registry (Platform Contract Library v2 phase 2) — typed reads of the
+   * PlatformRegistry directory (getApp / appAccountOf / appIdOfAccount /
+   * engineOf / pause state) plus the advisory AppAccount hash derivation.
+   * Reads only; config comes from `options.registry` (platform config
+   * pattern); absent ⇒ typed FrameworkCapabilityError. Ungated like every
+   * other read lane — no guest guard, no S11 permission.
+   */
+  const getRegistry = lazyModule(() =>
+    createRegistrySurface({
+      appId,
+      chain: {
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+      },
+      config: options.registry,
+    }),
+  );
+  /**
+   * app.platformGame (Platform Contract Library v2 phase 2) — the shared
+   * PlatformGame RewardGame engine lane. The surface auto-threads the host
+   * appId into every call and auto-targets `options.platformGame.gameHash`
+   * (platform config pattern); writes run the RFC P0-2 guarded-write stanza
+   * (guest guard + S11 "invoke:primary" — the same named policy as
+   * app.chain.invoke), reads stay ungated. Absent config ⇒ typed
+   * FrameworkCapabilityError.
+   */
+  const getPlatformGame = lazyModule(() =>
+    createPlatformGameSurface({
+      appId,
+      chain: {
+        address: chain.address,
+        ensureWallet: () => chain.ensureWallet(),
+        read: (operation, args, readOptions) =>
+          chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
+        invoke: (operation, args, invokeOptions) =>
+          chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+      },
+      guards: guardDeps,
+      config: options.platformGame,
+    }),
+  );
 
   // app.amount — extracted module (RFC P0-1 §2 step 9).
   const amount = createAmountSurface();
@@ -271,6 +316,22 @@ export function createMiniAppFramework(
     requirePermission: (name: string) => getPermissions().require(name),
   };
 
+  /**
+   * RFC P1-4 chain.pending + chain.readTxOutcome — lazy: binds the storage
+   * lane + lifecycle cleanup hook only on first use. `rpcUrl` is injected by
+   * the integration layer (options.rpcUrl); absent ⇒ readTxOutcome resolves
+   * "pending" for every tx (track/restore unaffected).
+   */
+  const getChainPending = lazyModule(() =>
+    createChainPendingSurface({
+      storage: storageSurface.local,
+      rpcUrl: (network) => options.rpcUrl?.(network) ?? "",
+      network: async () =>
+        (await chain.detectNetwork?.()) ?? String(ctx.launchContext?.network ?? "testnet"),
+      registerCleanup: (fn) => getLifecycle().cleanup(fn),
+    }),
+  );
+
   // app.chain — extracted module (RFC P0-1 §2 step 6): args/reads/writes/
   // events/signing, write lanes guarded per RFC P0-2.
   const chainSurface = createChainSurface({
@@ -279,6 +340,7 @@ export function createMiniAppFramework(
     guards: guardDeps,
     runWithNotify,
     fallbackNetwork: () => String(ctx.launchContext?.network ?? "testnet"),
+    pending: getChainPending,
   });
 
   // app.funds — extracted module (RFC P0-1 §2 step 7): payment-carrying
@@ -395,6 +457,20 @@ export function createMiniAppFramework(
      */
     get credits() {
       return getCredits();
+    },
+    /**
+     * app.registry (Platform v2 phase 2) — typed PlatformRegistry directory
+     * reads + advisory AppAccount hash derivation. Reads only.
+     */
+    get registry() {
+      return getRegistry();
+    },
+    /**
+     * app.platformGame (Platform v2 phase 2) — shared PlatformGame engine
+     * lane (appId auto-threaded; guarded writes, ungated typed reads).
+     */
+    get platformGame() {
+      return getPlatformGame();
     },
 
     /** app.oracle — extracted module (RFC P0-1 §2 step 8). */
@@ -597,6 +673,47 @@ export type {
   FrameworkCreditsSpendResult,
   FrameworkCreditsSurface,
 } from "./credits";
+
+// Platform v2 app.registry
+export { createRegistrySurface, deriveAppAccountHash } from "./registry-surface";
+export type {
+  AppAccountHashInput,
+  FrameworkRegistryApp,
+  FrameworkRegistryConfig,
+  FrameworkRegistryGlobalPause,
+  FrameworkRegistrySurface,
+  RegistrySurfaceChain,
+  RegistrySurfaceDeps,
+} from "./registry-surface";
+
+// Platform v2 app.platformGame
+export { createPlatformGameSurface } from "./platform-game-surface";
+export type {
+  FrameworkPlatformGameConfig,
+  FrameworkPlatformGameFinalizeResult,
+  FrameworkPlatformGameSnapshot,
+  FrameworkPlatformGameStartResult,
+  FrameworkPlatformGameStats,
+  FrameworkPlatformGameSurface,
+  FrameworkPlatformGameTx,
+  FrameworkPlatformGameWithdrawResult,
+  PlatformGameSurfaceChain,
+  PlatformGameSurfaceDeps,
+} from "./platform-game-surface";
+
+// RFC P1-4 pending-tx durability lane + canonical tx-outcome reader
+export { createChainPendingSurface } from "./chain-pending";
+export type {
+  FrameworkChainPendingDeps,
+  FrameworkChainPendingSurface,
+  FrameworkPendingHandlers,
+  FrameworkPendingPollOptions,
+  FrameworkPendingTx,
+  FrameworkTxNotification,
+  FrameworkTxOutcome,
+  FrameworkTxOutcomeOptions,
+  FrameworkTxOutcomeState,
+} from "./chain-pending";
 
 // S13 app.oracle extensions
 export {

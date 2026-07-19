@@ -2,8 +2,10 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-/* domain-theme (auto) */
-.neo-swap-play-area.mx2 {
+/* domain-theme (auto) — WCAG AA: app-scoped so inner .mx2 nodes inherit the
+   brand ramp without leaking tokens onto other miniapps sharing the page */
+.neo-swap-play-area,
+.neo-swap-play-area .mx2 {
   --mx2-brand: #0f766e;
   --mx2-brand-hover: #0c5f58;
   --mx2-brand-light: #e6f2f0;

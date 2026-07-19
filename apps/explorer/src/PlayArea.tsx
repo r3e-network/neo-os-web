@@ -492,30 +492,35 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         */}
       <dl className="explorer-network-metrics">
         <div>
-          <dt>{t("blockHeight")}</dt>
-          <dd>
-            <PhaseValue phase={heightPhase} placeholder={t("explorerValuePending")} skeletonWidth="4.5em">
-              {selectedHeight}
-            </PhaseValue>
-          </dd>
           {/*
             * This caption names where the number comes from; it is a source
             * label, not a status line. Swapping it to "Data temporarily
             * unavailable" made the rail repeat the same bad news the header dot
             * already reports, so one unreachable RPC read printed four
             * degradation messages down a single column. The header owns the
-            * status; the value owns whether it loaded.
+            * status; the value owns whether it loaded. It lives inside the
+            * <dt> because a <dl> group may only contain <dt>/<dd> children.
             */}
-          <span>{heightPhase === "loading" ? t("explorerDataLoading") : t("explorerSourceRpc")}</span>
+          <dt>
+            {t("blockHeight")}
+            <span>{heightPhase === "loading" ? t("explorerDataLoading") : t("explorerSourceRpc")}</span>
+          </dt>
+          <dd>
+            <PhaseValue phase={heightPhase} placeholder={t("explorerValuePending")} skeletonWidth="4.5em">
+              {selectedHeight}
+            </PhaseValue>
+          </dd>
         </div>
         <div>
-          <dt>{t("transactions")}</dt>
+          <dt>
+            {t("transactions")}
+            <span>{txCountPhase === "loading" ? t("explorerDataLoading") : t("explorerSourceIndexer")}</span>
+          </dt>
           <dd>
             <PhaseValue phase={txCountPhase} placeholder={t("explorerValuePending")} skeletonWidth="4.5em">
               {selectedTxCount}
             </PhaseValue>
           </dd>
-          <span>{txCountPhase === "loading" ? t("explorerDataLoading") : t("explorerSourceIndexer")}</span>
         </div>
       </dl>
 

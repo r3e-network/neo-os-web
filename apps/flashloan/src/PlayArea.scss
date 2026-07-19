@@ -418,7 +418,7 @@
 .flash-ticket__repayment strong {
   display: block;
   margin-top: 4px;
-  color: var(--mx2-accent-strong);
+  color: #047663; /* WCAG AA: 4.85:1 on --mx2-brand-light (was var(--mx2-accent-strong) #047c67, 4.48:1) */
   font-size: 15px;
 }
 

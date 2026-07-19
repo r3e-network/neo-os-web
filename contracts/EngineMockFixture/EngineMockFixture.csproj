@@ -1,2 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <Compile Include="../MiniApp.DevPack/MiniAppEngineBase.cs" Link="MiniAppEngineBase.cs" />
+  </ItemGroup>
 </Project>

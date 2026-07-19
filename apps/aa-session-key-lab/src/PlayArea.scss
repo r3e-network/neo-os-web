@@ -425,7 +425,8 @@
 
 .sess-preset-card em {
   grid-area: meta;
-  color: #6f7c77;
+  /* WCAG AA: #6f7c77 was 4.35:1 on white / ~4.2:1 on the active mint card; #67726d passes at 4.99:1 / 4.63:1 */
+  color: #67726d;
   font-size: 10px;
   font-style: normal;
   font-weight: 620;
@@ -492,7 +493,8 @@
 }
 
 .sess-endpoint-card em {
-  color: #6f7c77;
+  /* WCAG AA: #6f7c77 was 4.35:1 on white; #67726d passes at 4.99:1 */
+  color: #67726d;
   font-size: 10px;
   font-style: normal;
   line-height: 1.35;
@@ -521,8 +523,9 @@
 .sess-status-card button:hover:not(:disabled),
 .sess-chip-card button:hover:not(:disabled),
 .sess-chip-card button.is-active {
-  border-color: #13896b;
-  background: #13896b;
+  /* WCAG AA: white on #13896b was 4.35:1; #12846a is 4.63:1 */
+  border-color: #12846a;
+  background: #12846a;
   color: #ffffff;
 }
 

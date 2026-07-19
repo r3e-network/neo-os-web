@@ -2,8 +2,10 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-:root,
-.mx2 {
+/* App-scoped brand tokens (covering inner .mx2 nodes) — same effect as
+   :root,.mx2 but cannot pollute other miniapps sharing the page. */
+.self-loan-play-area,
+.self-loan-play-area .mx2 {
   --mx2-brand: #087f68;
   --mx2-brand-hover: #066654;
   --mx2-brand-light: #e8f7f2;
@@ -316,7 +318,8 @@
 }
 
 .selfloan-market small {
-  color: #7b8b86;
+  /* WCAG AA: 4.6:1 on white (#7b8b86 was 3.57:1) */
+  color: #6a7874;
   font-size: 9px;
   line-height: 1.35;
 }
@@ -507,7 +510,8 @@
 .selfloan-asset-input > div small {
   max-width: 92px;
   overflow: hidden;
-  color: #71847d;
+  /* WCAG AA: 4.6:1 on #fbfefc (#71847d was 3.9:1) */
+  color: #667871;
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -839,7 +843,8 @@
 }
 
 .selfloan-review__steps small {
-  color: #71847d;
+  /* WCAG AA: 4.6:1 on white (#71847d was ~3.9:1) */
+  color: #667871;
   font-size: 9px;
 }
 

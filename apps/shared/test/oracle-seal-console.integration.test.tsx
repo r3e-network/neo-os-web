@@ -42,7 +42,7 @@ function state(overrides: Partial<Record<string, unknown>> = {}): ObservableStat
     pendingCreatedAt: 0,
     pendingPurpose: "",
     pendingPublicRoute: "",
-    keyContract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+    keyContract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
     ...overrides,
   };
   return Object.fromEntries(

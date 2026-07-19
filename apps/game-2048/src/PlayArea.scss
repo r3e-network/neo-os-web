@@ -19,6 +19,12 @@
   --mx2-color-accent-border: rgba(0, 175, 146, 0.35);
 }
 
+/* WCAG AA: shared accent badge text (--mx2-brand-hover #0ea371) is 2.94:1 on
+   --mx2-brand-light #e8f8f1; #00735f passes at 5.3:1 in the same hue family. */
+.rush-playarea .mx2-badge[data-tone="accent"] {
+  color: #00735f;
+}
+
 .rush-playarea .mx2-stage {
   box-sizing: border-box;
   width: min(100%, 760px);

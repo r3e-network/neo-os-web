@@ -353,7 +353,8 @@ export default function PlayArea({ t, state, dispatch }: P) {
           <em>{activeScope.method}</em>
         </header>
         <p>{t(activeScope.copy)}</p>
-        <div className="sess-preset-grid" role="list" aria-label={t("sessionScopeTitle")}>
+        {/* WCAG: role="group" (named, no required children) — cards are <button>s, not listitems */}
+        <div className="sess-preset-grid" role="group" aria-label={t("sessionScopeTitle")}>
           {SCOPE_PRESETS.map((preset) => (
             <button
               key={preset.key}

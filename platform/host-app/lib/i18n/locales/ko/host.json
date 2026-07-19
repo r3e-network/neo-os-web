@@ -1,10 +1,4 @@
 {
-  "hero": {
-    "title": "Neo 미니앱 플랫폼",
-    "subtitle": "TEE 보안으로 분산 애플리케이션 구축 및 배포",
-    "exploreApps": "앱 탐색",
-    "launchApp": "앱 실행"
-  },
   "features": {
     "title": "기능",
     "secureCompute": "보안 컴퓨팅",
@@ -151,5 +145,23 @@
       "start": "빌드 시작",
       "docs": "문서 읽기"
     }
+  },
+  "playArea": {
+    "syncing": "동기화 중",
+    "cachedState": "캐시된 상태",
+    "liveState": "라이브 상태",
+    "refresh": "새로고침",
+    "technicalDetails": "체인 기술 상세",
+    "contractLabel": "컨트랙트",
+    "additionalMetrics": "추가 지표",
+    "metricsDescription": "앱 원시 카운터와 진단 수치입니다.",
+    "itemsSuffix": "개",
+    "recentActivity": "최근 활동",
+    "contextDiagnostics": "컨텍스트 및 진단",
+    "contextDescription": "영수증, 원시 수치, 기술 컨텍스트는 필요할 때까지 접혀 있습니다.",
+    "openInNewWindow": "새 창에서 열기",
+    "newWindow": "새 창",
+    "resultVerifier": "결과 검증기",
+    "modeLabel": "모드"
   }
 }

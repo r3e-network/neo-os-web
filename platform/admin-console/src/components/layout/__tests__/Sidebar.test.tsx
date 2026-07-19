@@ -133,7 +133,7 @@ describe("Sidebar Component", () => {
   it("keeps the sidebar restrained and aligned with the light admin shell", () => {
     // Re-pinned 2026-07-15 to the committed Neo v3 shell (488fa04ec): the
     // sidebar sits on the shared light `surface` token, the brand tile and
-    // active nav state use flat `neo` accents (`bg-neo-500` / `bg-neo-50`),
+    // active nav state use flat `neo` accents (`bg-neo-600` / `bg-neo-50`),
     // uppercase micro-labels use `tracking-wider`, and links carry
     // `focus-visible:ring-neo-500/40` focus rings — so `bg-neo`,
     // `tracking-wider`, and `ring-neo` left the ban list as deliberate

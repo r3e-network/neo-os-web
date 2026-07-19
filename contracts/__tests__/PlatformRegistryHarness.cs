@@ -53,6 +53,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract UInt160? predictedAccountHash(UInt160 deployerSender, string appId);
         // descriptor
         public abstract void setDescriptor(string appId, string key, object? value);
+        public abstract void executeSpendThresholdRaise(string appId);
+        public abstract void cancelSpendThresholdRaise(string appId);
         public abstract object? getDescriptor(string appId, string key);
         // credit + treasury
         public abstract void onNEP17Payment(UInt160? from, BigInteger amount, object? data);
@@ -88,6 +90,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     public abstract class EngineMockContract : SmartContract
     {
         protected EngineMockContract(SmartContractInitialize initialize) : base(initialize) { }
+        public abstract void setRegistry(UInt160 registry);
         public abstract void setRejectDescriptors(bool reject);
         public abstract BigInteger? activationCountOf(string appId);
         public abstract BigInteger? activationDescriptorKeysOf(string appId);
@@ -148,6 +151,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             var registry = engine.Deploy<PlatformRegistryContract>(regNef, regManifest);
             var (mockNef, mockManifest) = Load("EngineMockFixture");
             var engineMock = engine.Deploy<EngineMockContract>(mockNef, mockManifest);
+            // The mock's activateApp / validateAndApplyDescriptor plumbing
+            // (MiniAppEngineBase) asserts caller == the bound registry.
+            engineMock.setRegistry(registry.Hash);
             return new Ctx
             {
                 Engine = engine,

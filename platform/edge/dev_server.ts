@@ -62,6 +62,10 @@ async function loadHandler(name: string): Promise<EdgeHandler | null> {
 const available = await discoverFunctions();
 const port = Number(Deno.env.get("EDGE_DEV_PORT") ?? DEFAULT_PORT) || DEFAULT_PORT;
 
+// The dev server is an explicit non-production environment: isProductionEnv
+// fails closed (production default) unless a dev marker is declared.
+if (!Deno.env.get("EDGE_ENV")) Deno.env.set("EDGE_ENV", "development");
+
 Deno.serve({ port }, async (req) => {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;

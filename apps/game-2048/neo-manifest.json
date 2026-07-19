@@ -1,70 +1,75 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0x7511eefa066820a440db5f94d9cbc1d711a598f9"
-  },
-  "createdAt": "2026-07-02T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "A polished local 2048 game. Swipe or use the keyboard to slide illustrated power tiles, combine matching values, and reach 512, 1024, or 2048 with clear merge, win, loss, and recovery feedback. No wallet or GAS is required. The GameFi lane remains disabled until the testnet reward pool is funded and settlement is revalidated.",
-  "description_zh": "精心打磨的本地 2048 游戏。通过滑动或键盘移动精美能量方块，合并相同数字并挑战 512、1024 或 2048；合并、胜负与恢复反馈清晰完整。无需钱包或 GAS。测试网奖励池注资并重新验证完整结算前，GameFi 通道保持关闭。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://game-2048",
-    "offlineSupport": false,
-    "stateless": false
-  },
-  "id": "miniapp-game-2048",
-  "name": "2048 Rush",
-  "name_zh": "2048 冲刺",
-  "operation_panel": {
-    "operations": [],
-    "subtitle": "Choose a target lane and play a complete local 2048 run. Wallet-funded GameFi remains unavailable while the testnet reward pool is empty.",
-    "title": "2048 Rush · Local Puzzle"
-  },
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "2048",
-    "puzzle",
-    "leaderboard",
-    "local",
-    "game"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-02T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A polished local 2048 game. Swipe or use the keyboard to slide illustrated power tiles, combine matching values, and reach 512, 1024, or 2048 with clear merge, win, loss, and recovery feedback. No wallet or GAS is required. The GameFi lane remains disabled until the testnet reward pool is funded and settlement is revalidated.",
+    "description_zh": "精心打磨的本地 2048 游戏。通过滑动或键盘移动精美能量方块，合并相同数字并挑战 512、1024 或 2048；合并、胜负与恢复反馈清晰完整。无需钱包或 GAS。测试网奖励池注资并重新验证完整结算前，GameFi 通道保持关闭。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and an end-to-end settlement succeeds.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://game-2048",
+        "offlineSupport": false,
+        "stateless": false
     },
-    "tee": {
-      "enabled": false,
-      "description": "Local play uses Web-Crypto randomness. TEE settlement remains a gated future lane while production readiness is revalidated."
-    }
-  },
-  "updatedAt": "2026-07-10T11:20:00Z",
-  "urls": {
-    "banner": "/miniapps/game-2048/banner.webp",
-    "entry": "/miniapps/game-2048/index.html",
-    "icon": "/miniapps/game-2048/logo.webp"
-  },
-  "version": "2.0.0"
+    "id": "miniapp-game-2048",
+    "name": "2048 Rush",
+    "name_zh": "2048 冲刺",
+    "operation_panel": {
+        "operations": [],
+        "subtitle": "Choose a target lane and play a complete local 2048 run. Wallet-funded GameFi remains unavailable while the testnet reward pool is empty.",
+        "title": "2048 Rush · Local Puzzle"
+    },
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "2048",
+        "puzzle",
+        "leaderboard",
+        "local",
+        "game"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "Direct OneGate and NeoLine signing flow is used for the initial release.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "The deployed oracle wiring is reachable, but no wallet-funded oracle path is advertised until the empty reward pool is funded and an end-to-end settlement succeeds.",
+            "enabled": false
+        },
+        "tee": {
+            "enabled": false,
+            "description": "Local play uses Web-Crypto randomness. TEE settlement remains a gated future lane while production readiness is revalidated."
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0x7511eefa066820a440db5f94d9cbc1d711a598f9'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-10T11:20:00Z",
+    "urls": {
+        "banner": "/miniapps/game-2048/banner.webp",
+        "entry": "/miniapps/game-2048/index.html",
+        "icon": "/miniapps/game-2048/logo.webp"
+    },
+    "version": "2.0.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

@@ -112,6 +112,24 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
   testnet: { ...GENERATED_MINIAPP_CONTRACTS.testnet },
 };
 
+/**
+ * Platform Contract Library v2 shared-engine hashes, keyed by the
+ * `ContractBinding.moduleId` a miniapp manifest declares with
+ * `mode: "shared"` (docs/platform-contract-library-v2.md §6 item 4 — one
+ * shared platform engine replaces the per-app contract; testnet 2026-07-17
+ * per deploy/config/platform-registry-testnet-2026-07-17.json). NOT
+ * generated: platform deployments land via the ops lane, so entries here are
+ * hand-maintained per network — a moduleId absent for a network means "not
+ * deployed there yet" and must NOT fall back to a per-app hash (the shared
+ * engine's appId-first ABI is incompatible with the per-app clone ABI).
+ */
+export const PLATFORM_SHARED_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
+  mainnet: {},
+  testnet: {
+    'platform-game': '0xc75b181b4561462903bb27d8d9e0b32b637bec12',
+  },
+};
+
 function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegrationConfig {
   const registry = MORPHEUS_PUBLIC_REGISTRY[network];
   return {
@@ -217,6 +235,11 @@ export function getExternalIntegrationConfig(network?: NeoNetwork): ExternalInte
 
 export function getMiniAppContractHash(appId: string, network?: NeoNetwork): string {
   return MINIAPP_CONTRACTS[network ?? getNetwork()]?.[String(appId || '').trim()] || '';
+}
+
+/** Shared platform engine hash for a ContractBinding mode:"shared" moduleId ("" when not deployed on the network). */
+export function getSharedPlatformContractHash(moduleId: string, network?: NeoNetwork): string {
+  return PLATFORM_SHARED_CONTRACTS[network ?? getNetwork()]?.[String(moduleId || '').trim()] || '';
 }
 
 export function getAAFrontendBaseUrl(network?: NeoNetwork): string {

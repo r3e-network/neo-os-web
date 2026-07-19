@@ -576,7 +576,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
           <div className="ticket-blueprint-picker">
             <span className="ticket-blueprint-picker__label">{t("eventBlueprintsLabel")}</span>
-            <div className="ticket-blueprint-row" role="list" aria-label={t("eventBlueprintsLabel")}>
+            <div className="ticket-blueprint-row" role="group" aria-label={t("eventBlueprintsLabel")}>
               {EVENT_BLUEPRINTS.map((blueprint) => {
                 const Icon = blueprint.Icon;
                 const active = activeBlueprint === blueprint.key;

@@ -20,5 +20,11 @@ export function isProductionEnv(): boolean {
   ]
     .filter(Boolean)
     .map((v) => String(v).toLowerCase());
-  return candidates.includes("prod") || candidates.includes("production");
+
+  // Fail closed (audit): production is the default. An unset or
+  // unrecognized indicator is treated as production — non-production
+  // (which relaxes host-only scope checks, the manifest permission gate,
+  // usage caps, and ratelimit fail-open) must be declared explicitly.
+  const nonProductionMarkers = ["dev", "development", "local", "test"];
+  return !candidates.some((v) => nonProductionMarkers.includes(v));
 }

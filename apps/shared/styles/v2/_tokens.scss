@@ -45,6 +45,10 @@
   --mx2-brand-light: #e8f8f1;
   --mx2-brand-subtle: #c5f0dd;
   --mx2-ring: rgba(22, 199, 132, 0.12);
+  /* WCAG AA strong ramp for white-on-brand surfaces (white on #16c784 is
+     2.2:1, on #0ea371 3.2:1 — both fail). Mirrors --sd-brand-strong. */
+  --mx2-brand-strong: #00805e;
+  --mx2-brand-strong-hover: #00735f;
 
   /* --- Neutral interactive --- */
   --mx2-action: #1a1a19;

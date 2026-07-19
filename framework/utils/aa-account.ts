@@ -232,7 +232,8 @@ function emitChecksumPush(checksum: number): number[] {
     bytes.push(remaining & 0xff);
     remaining = Math.floor(remaining / 256);
   }
-  if ((bytes[bytes.length - 1] & 0x80) !== 0) bytes.push(0x00);
+  const topByte = bytes[bytes.length - 1];
+  if (topByte === undefined || (topByte & 0x80) !== 0) bytes.push(0x00);
   const encoding = NEOVM_PUSHINT_OPCODES.find(({ width }) => bytes.length <= width);
   if (!encoding) throw new Error("nefChecksum must be a uint32 value");
   while (bytes.length < encoding.width) bytes.push(0x00);

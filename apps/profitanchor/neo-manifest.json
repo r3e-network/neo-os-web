@@ -8,7 +8,7 @@
   "description_zh": "收益优先的 NEO 质押：你的 NEO 由 21 个锚点 agent 按收益策略投票，投票产生的 GAS 按比例分配给质押者（浮动，无固定 APR）。与 TrustAnchor 独立的资金池，其路由可被 SelfLoan 读取且无需转移托管权。21 个 AA agent 的手动调仓由 ProfitAnchor Admin 处理。",
   "category": "defi",
   "category_name": "DeFi",
-  "category_name_zh": "DeFi",
+  "category_name_zh": "去中心化金融",
   "tags": [
     "staking",
     "voting",

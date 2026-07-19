@@ -38,7 +38,7 @@ describe("private-transfer privacy airlock", () => {
       lastDigest: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
       lastSecretRef: "secret-ref-1234567890",
       lastNullifier: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-      oracleContract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      oracleContract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
     })} dispatch={vi.fn()} />);
 
     expect(container.querySelector(".pt-airlock")).toBeTruthy();

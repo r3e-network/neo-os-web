@@ -190,6 +190,6 @@ describe("Oracle Compute Lab request packaging", () => {
       registryOracleContract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
     });
     expect(testnet.runtimeBaseUrl).toBe("https://oracle.meshmini.app/testnet");
-    expect(testnet.registryOracleContract).toBe("0x4b882e94ed766807c4fd728768f972e13008ad52");
+    expect(testnet.registryOracleContract).toBe("0xf54d8584ef82315c1800373272ab08ae0db2d5ef");
   });
 });

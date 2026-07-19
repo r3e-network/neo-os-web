@@ -2,7 +2,11 @@
 @use "@shared/styles/v2/motion" as *;
 @use "@shared/components-react/v2/v2" as *;
 
-.trustanchor-play-area {
+/* WCAG AA: app-scoped brand tokens (covering inner .mx2 nodes) — the shared
+   v2 default (--mx2-brand: #16c784 is only 2.2:1 with white) loses to these,
+   and unlike :root,.mx2 this cannot pollute other miniapps sharing the page. */
+.trustanchor-play-area,
+.trustanchor-play-area .mx2 {
   --mx2-brand: #087f5b;
   --mx2-brand-hover: #06694b;
   --mx2-brand-light: #e8f8f0;
@@ -10,6 +14,9 @@
   --mx2-accent-strong: #074b8f;
   --mx2-accent-soft: #eaf4ff;
   --mx2-stage-floor: #faf9f7;
+}
+
+.trustanchor-play-area {
   color: #17211d;
 }
 

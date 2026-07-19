@@ -110,6 +110,20 @@ interface MiniAppRootProps {
    * credit UI degrades away on hosts without the ledger.
    */
   credits?: MiniAppFrameworkOptions["credits"];
+  /**
+   * app.registry config (Platform Contract Library v2 phase 2): the
+   * network's deployed PlatformRegistry contract hash. Absent ⇒
+   * `app.registry.available` is false (typed capability errors on use), so
+   * registry-aware UI degrades away on hosts without the directory.
+   */
+  registry?: MiniAppFrameworkOptions["registry"];
+  /**
+   * app.platformGame config (Platform Contract Library v2 phase 2): the
+   * network's deployed PlatformGame (RewardGame engine) contract hash. Absent
+   * ⇒ `app.platformGame.available` is false (typed capability errors on use),
+   * so engine-aware UI degrades away on hosts without the engine.
+   */
+  platformGame?: MiniAppFrameworkOptions["platformGame"];
 }
 
 /** Context passed to the miniapp's setup function (React version) */
@@ -297,6 +311,8 @@ export function MiniAppRoot({
   storagePrefix,
   oracle,
   credits,
+  registry,
+  platformGame,
 }: MiniAppRootProps) {
   // --------------------------------------------------------------------------
   // i18n
@@ -431,7 +447,7 @@ export function MiniAppRoot({
       setError,
       launchContext: frameworkLaunchContext,
       registerAction,
-    }, { appId, storagePrefix, oracle, credits });
+    }, { appId, storagePrefix, oracle, credits, registry, platformGame });
     if (launchGameMode !== null) {
       frameworkRef.current.mode.set(launchGameMode);
     }
@@ -925,6 +941,11 @@ function StandaloneDappSurface({
           --sd-brand: #16C784;
           --sd-brand-hover: #0EA371;
           --sd-brand-light: #E8F8F1;
+          /* WCAG AA: white text on #16C784 is only 2.57:1. Buttons and other
+             white-on-brand surfaces use these contrast-safe steps instead
+             (4.9:1 / 5.8:1). The raw brand stays available for accents. */
+          --sd-brand-strong: #00805E;
+          --sd-brand-strong-hover: #00735F;
           --sd-success: #22C55E;
           --sd-warning: #F59E0B;
           --sd-error: #EF4444;

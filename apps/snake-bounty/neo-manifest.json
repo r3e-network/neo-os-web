@@ -1,69 +1,74 @@
 {
-  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "category": "games",
-  "category_name": "Games",
-  "category_name_zh": "游戏",
-  "contracts": {
-    "neo-n3-testnet": "0x33a85b08419be290c7a5c38689c846da1a533131"
-  },
-  "createdAt": "2026-07-03T00:00:00Z",
-  "default_network": "neo-n3-testnet",
-  "description": "A bright, sprite-driven Phaser snake game with three bounty trails, responsive swipe, keyboard, and on-screen steering, animated growth, collision feedback, local best scores, and complete free-play restart and recovery loops. New wallet-funded runs remain gated until the deployed reward pool and full Morpheus settlement path have production evidence; historical recovery stays available in the runtime.",
-  "description_zh": "明亮、资源化的 Phaser 贪吃蛇游戏，拥有三条赏金蛇道、灵敏的滑动、键盘与屏幕方向控制、成长动画、碰撞反馈、本地最佳成绩，以及完整的免费重玩与恢复流程。新的钱包付费对局将在已部署奖励池和完整 Morpheus 结算路径获得生产证据后开放；历史对局恢复能力仍保留在运行时中。",
-  "developer": {
-    "email": "dev@r3e.network",
-    "name": "Yiwu",
-    "website": "https://neomini.app"
-  },
-  "featured": false,
-  "features": {
-    "deeplink": "neomainapp://snake-bounty",
-    "offlineSupport": false,
-    "stateless": false
-  },
-  "id": "miniapp-snake-bounty",
-  "name": "Snake Bounty",
-  "name_zh": "贪吃蛇",
-  "operation_panel": {
-    "operations": [],
-    "subtitle": "Choose a trail, steer the illustrated snake, collect bounty fruit, grow to the target, and save your local best. Free play never opens a wallet prompt or writes to chain.",
-    "title": "Snake Bounty"
-  },
-  "permissions": [],
-  "platform": {
-    "analytics": true,
-    "comments": true,
-    "ratings": true,
-    "transactions": false
-  },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "tags": [
-    "snake",
-    "arcade",
-    "local-progress",
-    "game"
-  ],
-  "technologies": {
-    "aa": {
-      "description": "The guest-first release does not request a wallet or account-abstraction signature.",
-      "enabled": false
+    "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+    "category": "games",
+    "category_name": "Games",
+    "category_name_zh": "游戏",
+    "createdAt": "2026-07-03T00:00:00Z",
+    "default_network": "neo-n3-testnet",
+    "description": "A bright, sprite-driven Phaser snake game with three bounty trails, responsive swipe, keyboard, and on-screen steering, animated growth, collision feedback, local best scores, and complete free-play restart and recovery loops. New wallet-funded runs remain gated until the deployed reward pool and full Morpheus settlement path have production evidence; historical recovery stays available in the runtime.",
+    "description_zh": "明亮、资源化的 Phaser 贪吃蛇游戏，拥有三条赏金蛇道、灵敏的滑动、键盘与屏幕方向控制、成长动画、碰撞反馈、本地最佳成绩，以及完整的免费重玩与恢复流程。新的钱包付费对局将在已部署奖励池和完整 Morpheus 结算路径获得生产证据后开放；历史对局恢复能力仍保留在运行时中。",
+    "developer": {
+        "email": "dev@r3e.network",
+        "name": "Yiwu",
+        "website": "https://neomini.app"
     },
-    "oracle": {
-      "description": "Free local play makes no oracle request. Historical recovery remains available, while new paid runs stay gated until a funded end-to-end settlement has production evidence.",
-      "enabled": false
+    "featured": false,
+    "features": {
+        "deeplink": "neomainapp://snake-bounty",
+        "offlineSupport": false,
+        "stateless": false
     },
-    "tee": {
-      "enabled": false,
-      "description": "Free local play makes no TEE request. Morpheus-backed paid starts are not advertised until live pool and settlement validation is complete."
-    }
-  },
-  "updatedAt": "2026-07-10T00:00:00Z",
-  "urls": {
-    "banner": "/miniapps/snake-bounty/banner.webp",
-    "entry": "/miniapps/snake-bounty/index.html",
-    "icon": "/miniapps/snake-bounty/logo.webp"
-  },
-  "version": "1.1.0"
+    "id": "miniapp-snake-bounty",
+    "name": "Snake Bounty",
+    "name_zh": "贪吃蛇",
+    "operation_panel": {
+        "operations": [],
+        "subtitle": "Choose a trail, steer the illustrated snake, collect bounty fruit, grow to the target, and save your local best. Free play never opens a wallet prompt or writes to chain.",
+        "title": "Snake Bounty"
+    },
+    "permissions": [],
+    "platform": {
+        "analytics": true,
+        "comments": true,
+        "ratings": true,
+        "transactions": false
+    },
+    "supported_networks": [
+        "neo-n3-testnet"
+    ],
+    "tags": [
+        "snake",
+        "arcade",
+        "local-progress",
+        "game"
+    ],
+    "technologies": {
+        "aa": {
+            "description": "The guest-first release does not request a wallet or account-abstraction signature.",
+            "enabled": false
+        },
+        "oracle": {
+            "description": "Free local play makes no oracle request. Historical recovery remains available, while new paid runs stay gated until a funded end-to-end settlement has production evidence.",
+            "enabled": false
+        },
+        "tee": {
+            "enabled": false,
+            "description": "Free local play makes no TEE request. Morpheus-backed paid starts are not advertised until live pool and settlement validation is complete."
+        },
+        "platform": {
+            "enabled": true,
+            "description": "Migrated to platform-game engine (shared mode). Legacy contract {'neo-n3-testnet': '0x33a85b08419be290c7a5c38689c846da1a533131'} deprecated."
+        }
+    },
+    "updatedAt": "2026-07-10T00:00:00Z",
+    "urls": {
+        "banner": "/miniapps/snake-bounty/banner.webp",
+        "entry": "/miniapps/snake-bounty/index.html",
+        "icon": "/miniapps/snake-bounty/logo.webp"
+    },
+    "version": "1.1.0",
+    "moduleId": "platform-game",
+    "mode": "shared",
+    "registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+    "engine": "0xc75b181b4561462903bb27d8d9e0b32b637bec12"
 }

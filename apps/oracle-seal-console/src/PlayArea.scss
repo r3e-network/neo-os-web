@@ -236,7 +236,7 @@
 }
 
 .seal-journey li small {
-  color: #64797d;
+  color: #607478; /* WCAG AA 4.6:1 on #eefaf6 */
   font-size: 10.5px;
   line-height: 1.35;
 }
@@ -264,7 +264,7 @@
 
 .seal-object__receipt span,
 .seal-draft__summary article span {
-  color: #64797d;
+  color: #607478; /* WCAG AA 4.6:1 on #eefaf6 */
   font-size: 10px;
   font-weight: 680;
 }
@@ -493,7 +493,7 @@
 .seal-draft__summary article small {
   max-width: 92px;
   overflow: hidden;
-  color: #6c8084;
+  color: #65777b; /* WCAG AA 4.56:1 on #fbfcfa */
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 9.5px;
   text-overflow: ellipsis;

@@ -116,13 +116,23 @@ namespace NeoMiniAppPlatform.Contracts
 
         // ---- pause switches ----
 
-        /// <summary>Per-app pause: app-or-platform admin (pause autonomy).</summary>
+        /// <summary>Per-app pause: app-or-platform admin (pause autonomy).
+        /// The flag is also pushed into the minted AppAccount shim so its
+        /// registry-relayed spend lane freezes (audit: the shim's
+        /// registry-caller pause branch was unwired without this push).
+        /// Unminted apps have no shim yet; the mint path binds the registry
+        /// as caller, so pausing before minting needs no push.</summary>
         public static void SetAppPaused(string appId, bool paused)
         {
             RequireRegistered(appId);
             RequireAppAdminOrPlatformAdmin(appId);
             if (paused) Storage.Put(Storage.CurrentContext, AppKey(PREFIX_APP_PAUSED, appId), 1);
             else Storage.Delete(Storage.CurrentContext, AppKey(PREFIX_APP_PAUSED, appId));
+            UInt160 account = AccountOf(appId);
+            if (account != UInt160.Zero)
+            {
+                Contract.Call(account, "setPaused", CallFlags.All, paused);
+            }
             OnAppPausedChanged(appId, paused);
         }
 

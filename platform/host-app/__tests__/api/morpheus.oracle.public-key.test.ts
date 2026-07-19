@@ -59,7 +59,7 @@ describe("/api/morpheus/oracle/public-key", () => {
     expect(JSON.parse(res._getData())).toEqual({
       network: "testnet",
       source: "neo_n3_contract",
-      contract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      contract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
       rpc_url: "https://api.n3index.dev/testnet",
       algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
       public_key: "e+NHmFyX5PhEHPWNXbnB7GqaWc6dxEzwkHyT6oCa8gU=",

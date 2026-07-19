@@ -7,10 +7,12 @@ Current workflow note:
 
 - flagship apps now call **OS system services** (`ctx.os.*`) instead of direct
   per-app contract invocations
-- OS services (PaymentService, GameService, CheckinService, etc.) handle
-  payment, settlement, storage, and game logic centrally
-- the OS Binder edge layer (45 `os-*` functions) enforces auth, permissions,
-  and rate limits before forwarding to on-chain contracts
+- OS service operations (payment, game, checkin, storage, etc.) are executed
+  centrally on the external Morpheus kernel contract
+  (`CONTRACT_MORPHEUS_ORACLE_HASH`); there are no in-tree per-service OS
+  contracts
+- the OS Binder edge layer (42 `os-*` functions) enforces auth, permissions,
+  and rate limits before forwarding to the kernel
 - direct Oracle / direct AA integrations remain for Oracle and AA flows
 
 Primary rule:
@@ -28,7 +30,9 @@ Primary rule:
 2. **Register or Update Manifest**
     - Call `app-register` or `app-update-manifest` (Supabase Edge).
     - Edge canonicalizes the manifest, enforces **GAS-only / bNEO-only**, and
-      returns an `AppRegistry` invocation for the developer wallet to sign.
+      returns an invocation against the env-configured external `AppRegistry`
+      contract (`CONTRACT_APPREGISTRY_HASH`; source not in this repo) for the
+      developer wallet to sign.
     - Manifest now declares `permissions` for OS service access (e.g. `storage`, `payment`, `game`).
 3. **On-Chain Registry Approval**
     - Developer wallet signs and submits the `AppRegistry.registerApp` (or
@@ -42,15 +46,11 @@ Primary rule:
     - Users authenticate via Supabase Auth.
     - Users bind a Neo N3 wallet via `wallet-nonce` + `wallet-bind`.
     - MiniApps call OS services via `ctx.os.*` proxies, which route through the
-      45 OS Binder edge functions to on-chain OS contracts.
+      42 OS Binder edge functions to the external Morpheus kernel contract.
     - Oracle / AA flows continue to use direct Oracle / direct AA integrations.
 6. **Platform Indexing**
     - Indexer tracks approved MiniApps and parses platform events.
     - Host UI reads `miniapp-stats` and `miniapp-notifications` for analytics and news.
-7. **Optional: Register ScriptEngine Hooks**
-    - Developers can register custom NeoVM bytecode scripts at hook points
-      (`onCheckin`, `onPaymentReceived`, `onSettlement`, etc.) via the ScriptEngine
-      contract for custom on-chain logic without deploying standalone contracts.
 
 ## Direct Oracle / AA Workflow
 
@@ -64,11 +64,10 @@ This is the preferred runtime path.
     - Host `/api/aa/relay` forwards relay-ready payloads to the external AA relay.
 3. **External Runtime**
     - `neo-morpheus-oracle` handles:
-        - `oracle-query`
-        - `datafeed-price`
-        - `rng-request`
-        - `compute-execute`
-        - `compute-app-execute`
+        - allowlisted Oracle queries
+        - datafeed price reads
+        - VRF / randomness
+        - compute script execution
         - paymaster authorization
     - `neo-abstract-account` handles:
         - relay submission
@@ -120,12 +119,14 @@ Edge Function: os-checkin-checkin (platform/edge/functions/os-checkin-checkin/)
   │  1. validateAuth(req) — Supabase JWT check
   │  2. validatePermission(appId, "checkin") — manifest permission check
   │  3. rateLimit(userId, appId, "os-checkin-checkin")
-  │  4. neoRpc.invokeContract(CHECKINSERVICE_HASH, "CheckIn", [appId, user])
+  │  4. read kernel state (e.g. getPlatformStats) via Neo RPC
   │
   ▼
-CheckinService contract (contracts/os-checkin/)
+Morpheus kernel contract (external, `CONTRACT_MORPHEUS_ORACLE_HASH`)
   │
-  │  Updates streak → Calls ScriptEngine("onCheckin") if registered
+  │  Edge returns a GAS.transfer intent to the kernel with the appId
+  │  encoded in the memo; the user wallet signs it and the kernel's
+  │  OnNEP17Payment routes the call and updates the streak
   │
   ▼
 Result returned to frontend
@@ -133,29 +134,22 @@ Result returned to frontend
 
 ### OS Services Available
 
-| Proxy | Edge Functions | Contract | Typical Use |
-| --- | --- | --- | --- |
-| `ctx.os.storage` | `os-storage-{get,set,delete,list,grant-access,read-shared}` | StorageService | App-scoped KV data |
-| `ctx.os.payment` | `os-payment-{deposit,withdraw,transfer,balance}` | PaymentService | Deposits, balances, prize distribution |
-| `ctx.os.game` | `os-game-{create,join,bet,settle,status}` | GameService | Pool management, betting, settlement |
-| `ctx.os.checkin` | `os-checkin-{checkin,streak,claim}` | CheckinService | Daily check-in, streaks, rewards |
-| `ctx.os.badge` | `os-badge-{define,award,list,revoke,get-stat,update-stat}` | BadgeService | Achievement badges |
-| `ctx.os.leaderboard` | `os-leaderboard-{submit,get,reset}` | LeaderboardService | Ranked scores |
-| `ctx.os.nft` | `os-nft-{mint,transfer,burn,list,validate}` | NFTService | Minting, soulbound, tickets |
-| `ctx.os.escrow` | `os-escrow-{create,fund,complete,refund}` | EscrowService | Milestone-based escrow |
-| `ctx.os.vesting` | `os-vesting-{create,claim,cancel,get,list}` | VestingService | Token vesting schedules |
-| `ctx.os.script` | `os-script-{register,unregister,list,count}` | ScriptEngine | Custom hook scripts (dev only) |
+All rows route to the single external Morpheus kernel contract
+(`CONTRACT_MORPHEUS_ORACLE_HASH`); there are no in-tree per-service OS
+contracts. The ten `CONTRACT_*SERVICE_HASH` slots in `.env.example` are a
+legacy map retained for documentation parity only.
 
-### ScriptEngine Hook Points
-
-OS services call ScriptEngine at predefined hook points when scripts are registered:
-
-- `onPaymentReceived` — triggered after PaymentService deposit
-- `onSettlement` — triggered after GameService settlement
-- `onCheckin` — triggered after CheckinService check-in
-- `onBadgeAwarded` — triggered after BadgeService award
-- `onEscrowStateChange` — triggered on escrow state transitions
-- `onCustom:<name>` — app-defined custom hooks
+| Proxy | Edge Functions | Typical Use |
+| --- | --- | --- |
+| `ctx.os.storage` | `os-storage-{get,set,delete,list,grant-access,read-shared}` | App-scoped KV data |
+| `ctx.os.payment` | `os-payment-{deposit,withdraw,transfer,balance}` | Deposits, balances, prize distribution |
+| `ctx.os.game` | `os-game-{create,join,bet,settle,status}` | Pool management, betting, settlement |
+| `ctx.os.checkin` | `os-checkin-{checkin,streak,claim}` | Daily check-in, streaks, rewards |
+| `ctx.os.badge` | `os-badge-{define,award,list,revoke,get-stat,update-stat}` | Achievement badges |
+| `ctx.os.leaderboard` | `os-leaderboard-{submit,get,reset}` | Ranked scores |
+| `ctx.os.nft` | `os-nft-{mint,transfer,burn,list,validate}` | Minting, soulbound, tickets |
+| `ctx.os.escrow` | `os-escrow-{create,fund,get,complete,refund}` | Milestone-based escrow |
+| `ctx.os.vesting` | `os-vesting-{create,claim,cancel,get,list}` | Token vesting schedules |
 
 ## MiniApp Payment Workflow (Frontend → Contract → Payout)
 
@@ -168,16 +162,15 @@ This is the **correct business workflow** for MiniApps that involve payments
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    MiniApp Payment Workflow (OS v2)                         │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  OS PaymentService flow (preferred for new apps)                           │
+│  OS payment flow (preferred for new apps)                                  │
 │  ctx.os.payment.deposit(appId, amount)                                     │
 │    → Edge: os-payment-deposit (auth + permission + rate limit)             │
-│      → PaymentService.OnNEP17Payment(user, amount, appId)                  │
-│        → ScriptEngine("onPaymentReceived") if registered                   │
+│      → GAS.transfer intent to the Morpheus kernel, appId in memo           │
+│        → kernel OnNEP17Payment routes the deposit                          │
 │                                                                             │
-│  OS GameService settlement                                                 │
+│  OS game settlement                                                        │
 │  ctx.os.game.settle(appId, poolId, results)                                │
-│    → GameService calls PaymentService.DistributePrize internally           │
-│    → ScriptEngine("onSettlement") if registered                            │
+│    → kernel settles the pool and distributes prizes internally             │
 │                                                                             │
 │  Direct prepaid flow (still supported for existing contracts)              │
 │  User wallet ──▶ GAS / asset transfer ──▶ MiniApp contract                 │
@@ -257,7 +250,9 @@ Contract transfers prize and emits PlayResolved
 2. Edge validates:
     - manifest permissions (`governance`)
     - `governance_assets_allowed == ["bNEO"]`
-3. Edge returns a `Governance.vote` invocation.
+3. Edge returns a `Governance.vote` invocation against the env-configured
+   external governance contract (`CONTRACT_GOVERNANCE_HASH`; source not in
+   this repo).
 4. Wallet signs and broadcasts to the network.
 
 ### GasBank (Optional, GAS deposits + fee deduction)
@@ -281,19 +276,9 @@ MiniApp contract directly.
 
 ### Governance (Stake + Vote)
 
-```bash
-# Stake + vote with a small bNEO amount
-go run scripts/test_governance_flow.go
-
-# Optional overrides
-# GOV_PROPOSAL_ID=test-proposal-1
-# GOV_STAKE_AMOUNT=1
-# GOV_VOTE_AMOUNT=1
-# GOV_VOTE_SUPPORT=true
-```
-
-If `GOV_PROPOSAL_ID` is not set, the script auto-generates a unique proposal ID
-based on the latest block timestamp.
+Use `vote-bneo` to obtain a wallet-signed `Governance.vote` intent against the
+env-configured external governance contract. The old standalone
+`test_governance_flow.go` helper was removed with the legacy service layer.
 
 ## Datafeed Workflow (0.1% Threshold)
 
@@ -302,7 +287,8 @@ based on the latest block timestamp.
 3. Triggers on-chain update when `abs(delta) / last` exceeds `NEOFEEDS_PUBLISH_THRESHOLD_BPS` (default `10`, i.e. `0.1%`).
 4. Applies hysteresis + throttling via `NEOFEEDS_PUBLISH_HYSTERESIS_BPS`, `NEOFEEDS_PUBLISH_MIN_INTERVAL`, and `NEOFEEDS_PUBLISH_MAX_PER_MINUTE`.
 5. Optional heartbeat publishes are controlled by `NEOFEEDS_PUBLISH_HEARTBEAT_INTERVAL` when source timestamps advance.
-6. `PriceFeed` stores the update and emits events for subscribers.
+6. The on-chain DataFeed contract (owned by `neo-morpheus-oracle`, not in this
+   repo) stores the update and emits events for subscribers.
 
 Current production/testnet symbol set includes:
 `NEO-USD`, `GAS-USD`, `USDT-USD`, `USDC-USD`, `BTC-USD`, `ETH-USD`, `XRP-USD`,
@@ -314,7 +300,9 @@ Current production/testnet symbol set includes:
 
 1. `neoflow` stores triggers (Supabase).
 2. Scheduler evaluates triggers and executes actions.
-3. If anchoring is enabled, `AutomationAnchor` records execution metadata.
+3. If anchoring is enabled, the external automation stack's on-chain
+   `AutomationAnchor` contract records execution metadata (env-configured via
+   `CONTRACT_AUTOMATIONANCHOR_HASH`; source not in this repo).
 
 ## Failure and Retry Behavior
 
@@ -332,30 +320,23 @@ workflow on Neo N3 testnet.
 1. **Deploy a MiniApp callback contract**
     - Build artifacts are expected in `contracts/build/`.
     - If missing, run: `./contracts/build.sh`.
-    - Run:
-        ```bash
-        # deploy MiniAppLottery (or any MiniApp with callback support)
-        go run scripts/deploy_miniapp.go --contract MiniAppLottery
-        ```
-    - Record the deployed contract hash printed by the script.
+    - Deploy any callback-capable MiniApp contract from `contracts/` (e.g.
+      `MiniAppTarotVrf`) with the current deployment tooling; the old generic
+      `deploy_miniapp.go` helper was removed with the legacy service layer.
+    - Record the deployed contract hash.
 2. **Seed Supabase `miniapps`**
     - Insert a manifest row with:
         - `app_id` matching the request (e.g., `com.test.consumer`).
         - `permissions.rng=true` (or `oracle` / `compute`).
         - `callback_contract` set to the deployed MiniApp contract hash.
-        - `callback_method` set to `onServiceCallback`.
-3. **Register + Approve in AppRegistry**
+        - `callback_method` set to the contract's callback entrypoint (the
+          canonical rich adapter in in-tree apps is `OnMiniAppResult`).
+3. **Register + Approve in AppRegistry** (external contract, env-configured)
     - Use the current deployment/registration toolchain that writes directly from the active manifests and deployment registries.
     - Do not use the removed legacy Supabase registration helpers from older service-layer workflows.
 4. **Trigger a direct service request**
     - Run:
         ```bash
-        # set the MiniApp contract hash from step 1
-        export MINIAPP_CONSUMER_HASH=0x...
-        # wait for the callback to land in the MiniApp contract
-        export MINIAPP_WAIT_CALLBACK=true
-        # optional: override callback wait timeout (default 180s)
-        export MINIAPP_CALLBACK_TIMEOUT_SECONDS=240
         # verify direct Oracle / AA testnet path end-to-end
         export AA_TEST_WIF=<funded-aa-testnet-wif>
         bash deploy/scripts/verify_cross_repo_testnet.sh
@@ -386,27 +367,26 @@ Use the helper scripts to run:
 - direct Oracle / direct AA cross-repo validation
 
 ```bash
-./scripts/verify_cross_repo_testnet.sh
+./deploy/scripts/verify_cross_repo_testnet.sh
 ```
 
 Required environment variables:
 
-- `NEO_TESTNET_WIF`
-- `CONTRACT_GOVERNANCE_HASH`
-- `CONTRACT_SERVICEGATEWAY_HASH`
-- `CONTRACT_APPREGISTRY_HASH`
+- `NEO_TESTNET_WIF` (funded testnet signer for the Oracle smoke path)
+- `AA_TEST_WIF` (funded AA testnet WIF that controls the configured
+  `PAYMASTER_ACCOUNT_ID` for the stable allowlisted paymaster path)
 
-You can also set one of these in `.env` instead of passing `--miniapp-hash`:
-`MINIAPP_CALLBACK_CONTRACT_HASH`, `MINIAPP_CONSUMER_HASH`,
-`MINIAPP_CONTRACT_HASH`, or `CONTRACT_MINIAPP_CONSUMER_HASH`.
+## Automation Workflow (Periodic Tasks)
 
-## Automation Workflow (Periodic Tasks with GAS Deposit Pool)
+The platform's automation system executes periodic tasks via the external
+NeoFlow service. The system supports two modes:
 
-The platform provides a comprehensive automation system for executing periodic tasks
-on-chain. The system supports two modes:
-
-1. **Off-Chain Triggers** (Supabase-based): User-managed triggers via NeoFlow API
-2. **On-Chain Anchored Tasks** (AutomationAnchor V2): Periodic tasks with GAS deposit pools
+1. **Off-Chain Triggers** (Supabase-based): user-managed triggers via the
+   `automation-trigger-*` edge functions documented below
+2. **On-Chain Anchored Tasks**: NeoFlow can optionally anchor periodic-task
+   metadata on-chain via an `AutomationAnchor` contract owned by the external
+   automation stack (`CONTRACT_AUTOMATIONANCHOR_HASH`; source not in this
+   repo — the in-tree copy was removed)
 
 ### Architecture Overview
 
@@ -415,12 +395,11 @@ on-chain. The system supports two modes:
 │                         Automation Architecture                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────────┐  │
-│  │   NeoFlow    │───▶│ AutomationAnchor │───▶│  Target Contract         │  │
-│  │   Service    │    │   (On-Chain)     │    │  (MiniApp/Platform)      │  │
+│  ┌──────────────┐    ┌──────────────────┐    ┌──────────────────────────┐  │
+│  │   NeoFlow    │───▶│ On-Chain Anchor  │───▶│  Target Contract         │  │
+│  │   Service    │    │   (external)     │    │  (MiniApp/Platform)      │  │
 │  │   (TEE)      │    │                  │    │                          │  │
 │  └──────────────┘    └──────────────────┘    └──────────────────────────┘  │
-│         │                     │                                             │
 │         │                     │                                             │
 │         ▼                     ▼                                             │
 │  ┌──────────────┐    ┌──────────────┐                                      │
@@ -431,198 +410,9 @@ on-chain. The system supports two modes:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Periodic Task Registration Flow
-
-#### Step 1: Register Periodic Task
-
-Users register periodic tasks via the AutomationAnchor V2 contract:
-
-```
-User Wallet
-    │
-    ▼
-AutomationAnchor.RegisterPeriodicTask(
-    target: UInt160,           // Target contract to invoke
-    method: string,            // Method name to call
-    triggerType: string,       // "cron" or "interval"
-    schedule: string,          // Cron expression or interval ("hourly", "daily", "weekly", "monthly")
-    gasLimit: BigInteger       // Gas limit per execution
-)
-    │
-    ▼
-Returns: taskId (BigInteger)
-```
-
-**Trigger Types:**
-
-- **interval**: Fixed time intervals
-    - Supported schedules: `"hourly"`, `"daily"`, `"weekly"`, `"monthly"`
-    - Interval seconds: 3600, 86400, 604800, 2592000 respectively
-- **cron**: Cron expressions (parsed off-chain by NeoFlow)
-    - Example: `"0 0 * * *"` (daily at midnight)
-    - Example: `"*/15 * * * *"` (every 15 minutes)
-
-#### Step 2: Deposit GAS to Task Pool
-
-After registration, users must deposit GAS to fund task executions:
-
-```
-User Wallet
-    │
-    ▼
-GAS.transfer(
-    to: AutomationAnchor,
-    amount: BigInteger,        // GAS amount in satoshis (1 GAS = 100000000)
-    data: taskId               // Task ID as BigInteger
-)
-    │
-    ▼
-AutomationAnchor.OnNEP17Payment(from, amount, taskId)
-    │
-    ▼
-Task balance updated
-    │
-    ▼
-Event: TaskDeposited(taskId, from, amount)
-```
-
-**Fee Model:**
-
-- Fixed fee: **1 GAS per execution**
-- Execution fails if balance < 1 GAS
-- Users can deposit any amount to fund multiple executions
-
-#### Step 3: Task Execution by NeoFlow
-
-The NeoFlow service monitors registered tasks and executes them at scheduled intervals:
-
-```
-NeoFlow Scheduler (runs every 10 seconds)
-    │
-    ▼
-Check all registered periodic tasks
-    │
-    ├─▶ Interval tasks: Check if (now - lastExecution) >= intervalSeconds
-    ├─▶ Cron tasks: Parse cron expression and check if execution time reached
-    └─▶ Price tasks: Check if price condition met (via PriceFeed contract)
-    │
-    ▼
-For each task ready to execute:
-    │
-    ├─▶ Check task balance >= 1 GAS
-    │
-    ├─▶ Call AutomationAnchor.ExecutePeriodicTask(taskId, payload)
-    │       │
-    │       ├─▶ Deduct 1 GAS from task balance
-    │       ├─▶ Update lastExecution and nextExecution timestamps
-    │       └─▶ Emit: PeriodicTaskExecuted(taskId, fee, remainingBalance)
-    │
-    └─▶ Target contract method is invoked by platform (off-chain orchestration)
-```
-
-### Task Management Operations
-
-#### Pause Task
-
-Temporarily stop task execution without losing balance:
-
-```
-AutomationAnchor.PauseTask(taskId)
-    │
-    ▼
-Task marked as paused
-    │
-    ▼
-Event: TaskPaused(taskId)
-```
-
-#### Resume Task
-
-Resume a paused task:
-
-```
-AutomationAnchor.ResumeTask(taskId)
-    │
-    ▼
-Task marked as active
-    │
-    ▼
-NextExecution recalculated from current time
-    │
-    ▼
-Event: TaskResumed(taskId)
-```
-
-#### Withdraw GAS
-
-Withdraw unused GAS from task balance:
-
-```
-AutomationAnchor.Withdraw(taskId, amount)
-    │
-    ▼
-Verify: caller is task owner
-    │
-    ▼
-Verify: balance >= amount
-    │
-    ▼
-Transfer GAS to owner
-    │
-    ▼
-Event: TaskWithdrawn(taskId, owner, amount)
-```
-
-#### Cancel Task
-
-Cancel task and refund all remaining GAS:
-
-```
-AutomationAnchor.CancelPeriodicTask(taskId)
-    │
-    ▼
-Verify: caller is task owner
-    │
-    ▼
-Get remaining balance
-    │
-    ▼
-Delete all task data (schedule, balance, ownership)
-    │
-    ▼
-Refund balance to owner (if > 0)
-    │
-    ▼
-Event: TaskCancelled(taskId, refundAmount)
-```
-
-### Error Handling and Edge Cases
-
-#### Insufficient Balance
-
-If task balance < 1 GAS when execution is due:
-
-- NeoFlow logs warning with balance details
-- Task execution is skipped
-- Task remains registered and will retry on next schedule
-- User must deposit more GAS to resume executions
-
-#### Task Execution Failure
-
-If target contract invocation fails:
-
-- NeoFlow logs error with VM state and exception
-- GAS fee is still deducted (execution was attempted)
-- Task remains active and will retry on next schedule
-- User should check target contract logic or cancel task
-
-#### Schedule Drift
-
-For interval tasks:
-
-- Next execution calculated from last successful execution
-- If service is down, tasks execute immediately when service resumes
-- Cron tasks resync to next valid cron time if drift > 1 minute
+The anchored-task deposit pool, task lifecycle operations, and per-execution
+fees are behaviors of the external anchor contract; they are documented with
+the external automation stack, not here.
 
 ### Off-Chain Triggers (NeoFlow API)
 
@@ -732,54 +522,13 @@ Response:
 
 ### Configuration and Environment Variables
 
-#### NeoFlow Service
+#### NeoFlow Service (external)
 
 - `NEOFLOW_TASK_IDS`: Comma-separated list of anchored task IDs to monitor
-- `CONTRACT_AUTOMATIONANCHOR_HASH`: AutomationAnchor contract hash
+- `CONTRACT_AUTOMATIONANCHOR_HASH`: external AutomationAnchor contract hash
+  (source not in this repo)
 - `NEOFLOW_ENABLE_CHAIN_EXEC`: Enable on-chain task execution (default: true)
 
-#### AutomationAnchor Contract
-
-- Admin: Can register V1 tasks and set updater
-- Updater: NeoFlow service address (can execute periodic tasks)
-- Task Owner: User who registered the task (can pause/resume/cancel/withdraw)
-
-### Best Practices
-
-1. **Fund Tasks Adequately**: Deposit enough GAS for multiple executions (e.g., 30 GAS for 30 days of daily tasks)
-2. **Monitor Balance**: Check task balance regularly via `BalanceOf(taskId)`
-3. **Test Target Contract**: Ensure target contract method works correctly before registering task
-4. **Use Appropriate Intervals**: Choose intervals that match your use case (avoid too frequent executions)
-5. **Handle Failures Gracefully**: Target contracts should not revert on expected conditions
-6. **Pause Instead of Cancel**: Use pause for temporary stops to avoid re-registration costs
-
-### Example: Daily Reward Distribution
-
-```
-1. Register task:
-   RegisterPeriodicTask(
-     target: 0x...RewardContract,
-     method: "distributeDaily",
-     triggerType: "interval",
-     schedule: "daily",
-     gasLimit: 10000000
-   )
-   → Returns taskId: 1
-
-2. Deposit GAS for 30 days:
-   GAS.transfer(AutomationAnchor, 30_00000000, taskId: 1)
-
-3. NeoFlow executes daily:
-   - Checks balance (30 GAS available)
-   - Calls ExecutePeriodicTask(1, payload)
-   - Deducts 1 GAS (29 GAS remaining)
-   - Platform invokes RewardContract.distributeDaily()
-
-4. After 30 days:
-   - Balance reaches 0
-   - Executions stop
-   - User deposits more GAS to continue
-```
 # Note
 
 For the current flagship path, **OS service calls** (`ctx.os.*`) are the

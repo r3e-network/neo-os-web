@@ -113,8 +113,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.False(string.IsNullOrEmpty(body), "FundEnginePool body not found");
 
             // Destination is the registered engine row's hash, memo is the
-            // 'appId:credit' grammar — both literal, never parameters.
-            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":credit\")", body);
+            // 'appId:fund' grammar — both literal, never parameters.
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, row.Hash, amount, appId + \":fund\")", body);
 
             // Transit ordering (finding 3): the in-flight lock is HELD across
             // the forward. Guard -> note set -> relay -> forward -> note delete,
@@ -209,7 +209,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.DoesNotContain("ContractPermission(\"*\", \"*\")", core);
             Assert.Contains("[ContractPermission(\"0xd2a4cff31913016155e38e474a2c06d08be276cf\", \"transfer\")]", core);
             Assert.Contains("[ContractPermission(\"0xfffdc93764dbaddd97c48f252a53ea4643faa3fd\", \"deploy\", \"getContract\", \"update\")]", core);
-            Assert.Contains("[ContractPermission(\"*\", \"activateApp\", \"validateAndApplyDescriptor\", \"bindRegistry\", \"onAdminRotated\", \"executeTransfer\", \"update\")]", core);
+            Assert.Contains("[ContractPermission(\"*\", \"activateApp\", \"validateAndApplyDescriptor\", \"bindRegistry\", \"onAdminRotated\", \"executeTransfer\", \"setPaused\", \"update\")]", core);
         }
 
         [Fact]

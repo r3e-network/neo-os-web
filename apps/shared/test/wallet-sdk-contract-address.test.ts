@@ -9,6 +9,12 @@ import { getMiniAppContractHash } from "../constants/rpc";
 
 /**
  * getContractAddress resolution order (matches the events lane):
+ *   0. ContractBinding mode "shared" (Platform Contract Library v2): the
+ *      network's PLATFORM_SHARED_CONTRACTS row keyed by the binding's
+ *      moduleId — an explicit shared binding beats every legacy lane, and an
+ *      unknown/undeployed moduleId is a hard "not configured" error (never a
+ *      silent per-app fallback; the shared engine's appId-first ABI is
+ *      incompatible with the per-app clone ABI)
  *   1. manifest contracts entry (neo-n3-<network> / <network>)
  *   2. generated MINIAPP_CONTRACTS registry keyed by the manifest's app id
  *   3. URL ?app_id registry fallback
@@ -84,5 +90,93 @@ describe("wallet-sdk getContractAddress resolution", () => {
     await expect(wallet.getContractAddress()).rejects.toThrow(
       "Contract address not configured",
     );
+  });
+});
+
+describe('wallet-sdk getContractAddress — ContractBinding mode "shared"', () => {
+  // The platform engine's testnet deployment (Platform Contract Library v2,
+  // deploy/config/platform-registry-testnet-2026-07-17.json).
+  const PLATFORM_GAME_TESTNET = "0xc75b181b4561462903bb27d8d9e0b32b637bec12";
+  const APP_ID = "miniapp-redenvelope";
+
+  function stubManifestFetch(manifest: unknown, ok = true) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok,
+        text: async () => JSON.stringify(manifest),
+      })),
+    );
+  }
+
+  beforeEach(() => {
+    __resetWalletForTests();
+    invalidateManifestCache();
+    window.history.replaceState({}, "", "/miniapps/red-envelope/index.html?network=testnet");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    invalidateManifestCache();
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("resolves the shared engine hash from the injected network config", async () => {
+    stubManifestFetch({
+      id: APP_ID,
+      contract: { mode: "shared", moduleId: "platform-game" },
+    });
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress()).resolves.toBe(PLATFORM_GAME_TESTNET);
+  });
+
+  it("prefers the explicit shared binding over a legacy contracts entry", async () => {
+    stubManifestFetch({
+      id: APP_ID,
+      contract: { mode: "shared", moduleId: "platform-game" },
+      contracts: { "neo-n3-testnet": "0x1111111111111111111111111111111111111111" },
+    });
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress()).resolves.toBe(PLATFORM_GAME_TESTNET);
+  });
+
+  it("throws for a shared module not deployed on the current network (no per-app fallback)", async () => {
+    // No ?network= param → mainnet, where platform-game is not deployed yet.
+    window.history.replaceState({}, "", "/miniapps/red-envelope/index.html");
+    stubManifestFetch({
+      id: APP_ID,
+      contract: { mode: "shared", moduleId: "platform-game" },
+    });
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress()).rejects.toThrow(
+      'Shared platform contract "platform-game" not configured for mainnet',
+    );
+  });
+
+  it("throws for an unknown shared moduleId", async () => {
+    stubManifestFetch({
+      id: APP_ID,
+      contract: { mode: "shared", moduleId: "platform-unknown" },
+    });
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress()).rejects.toThrow(
+      'Shared platform contract "platform-unknown" not configured for testnet',
+    );
+  });
+
+  it("keeps the legacy lanes byte-identical for non-shared binding modes", async () => {
+    const configured = "0x1111111111111111111111111111111111111111";
+    stubManifestFetch({
+      id: APP_ID,
+      contract: { mode: "custom", hash: configured },
+      contracts: { "neo-n3-testnet": configured },
+    });
+
+    const wallet = useWallet();
+    await expect(wallet.getContractAddress()).resolves.toBe(configured);
   });
 });

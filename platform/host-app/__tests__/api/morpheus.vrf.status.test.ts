@@ -42,7 +42,7 @@ describe("/api/morpheus/vrf/status", () => {
     const body = JSON.parse(res._getData());
     expect(body).toMatchObject({
       network: "testnet",
-      oracleContract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      oracleContract: "0xf54d8584ef82315c1800373272ab08ae0db2d5ef",
       health: { ready: true, network: "testnet" },
       status: { runtime: { status: "operational" } },
       key: { verification_public_key: `0x03${"11".repeat(32)}` },

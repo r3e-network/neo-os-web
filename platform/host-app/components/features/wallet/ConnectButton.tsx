@@ -67,6 +67,8 @@ export function ConnectButton() {
   const auth = useAuthStore();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Connect Modal State
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -146,9 +148,35 @@ export function ConnectButton() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
+    // Focus management (WCAG 2.4.3): move focus into the dialog on open,
+    // trap Tab within it while open, and return focus to the trigger on close.
+    const dialog = dialogRef.current;
+    const focusables = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((el) => !el.hasAttribute("disabled"));
+    const initial = focusables()[0] ?? dialog;
+    initial?.focus?.();
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         closeConnectModal();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialog?.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !dialog?.contains(active))) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
@@ -157,6 +185,7 @@ export function ConnectButton() {
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
+      triggerRef.current?.focus();
     };
   }, [showConnectModal, closeConnectModal]);
 
@@ -436,6 +465,7 @@ export function ConnectButton() {
               aria-hidden="true"
             />
             <div
+              ref={dialogRef}
               className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:p-8"
               role="dialog"
               aria-modal="true"
@@ -619,6 +649,7 @@ export function ConnectButton() {
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setShowConnectModal(true)}
         disabled={wallet.loading || auth.loading}

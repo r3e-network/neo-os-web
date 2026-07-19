@@ -411,7 +411,7 @@ export function GameHomePage(props: GameHomePageProps) {
           margin-top: 10px;
           border: 0;
           border-radius: 999px;
-          background: var(--sd-brand, #16c784);
+          background: var(--sd-brand-strong, #00805E);
           color: #fff;
           cursor: pointer;
           font: inherit;

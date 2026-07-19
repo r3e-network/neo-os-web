@@ -3,7 +3,7 @@
 **Status:** Final synthesized architecture (proposal RADE skeleton × Estate-v2-Minimal mechanism corrections × RMAA extension model, per the two judge reports)
 **Audience:** neo-miniapps-platform maintainers
 **Landing path:** `docs/platform-contract-library-v2.md`
-**Ground truth:** the 2026-07-16 estate census (HEAD `020b53d87`, raw lane results in `claudedocs/contract-estate-census-2026-07-16.md`); every number below is cited from it. Trust the tests, not the README — `contracts/README.md` is measurably stale.
+**Ground truth:** the 2026-07-16 estate census (HEAD `020b53d87`, raw lane results in `docs/archive/claudedocs/contract-estate-census-2026-07-16.md`); every number below is cited from it. Trust the tests, not the README — `contracts/README.md` is measurably stale.
 
 ---
 
