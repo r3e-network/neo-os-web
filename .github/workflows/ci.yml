@@ -82,7 +82,7 @@ jobs:
       - name: Set up .NET
         # NOTE: pin to the v5 commit SHA to match this repo's M-22 action-pinning policy
         # before merging (kept as a version tag here because the SHA must be verified).
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
