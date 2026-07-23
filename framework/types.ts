@@ -12,6 +12,7 @@ import type { Observable } from "./reactive";
 import type { FrameworkAaService, FrameworkAaSurface } from "./aa";
 import type { FrameworkCreditsConfig, FrameworkCreditsSurface } from "./credits";
 import type { FrameworkRegistryConfig, FrameworkRegistrySurface } from "./registry-surface";
+import type { FrameworkPlatformAccountSurface } from "./platform-account-surface";
 import type {
   FrameworkPlatformGameConfig,
   FrameworkPlatformGameSurface,
@@ -1273,6 +1274,12 @@ export interface MiniAppFramework {
    * excluded; unconfigured chain calls fail with FrameworkCapabilityError.
    */
   readonly registry: FrameworkRegistrySurface;
+  /**
+   * app.platformAccount — the app's registered directory row, shared
+   * UnifiedSmartWallet identity, and optional isolated treasury shim without
+   * exposing registry storage/ABI details to application code.
+   */
+  readonly platformAccount: FrameworkPlatformAccountSurface;
   /**
    * app.platformGame (Platform Contract Library v2 phase 2) — the shared
    * PlatformGame RewardGame engine with the host appId auto-threaded into

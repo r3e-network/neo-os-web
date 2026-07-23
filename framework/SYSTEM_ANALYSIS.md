@@ -53,6 +53,9 @@ Miniapps should own product logic and presentation:
 - `ctx.framework.registry` owns all 48 current non-control-plane
   PlatformRegistry methods plus GAS-credit prepayment. It auto-threads the host
   app id and excludes platform-admin governance, artifacts, fees, and updates.
+- `ctx.framework.platformAccount` composes the Registry directory, shared
+  UnifiedSmartWallet identity, and optional treasury shim into one typed
+  snapshot so apps do not duplicate or conflate identity/custody routing.
 
 ## Migration Priority
 
@@ -71,14 +74,17 @@ Miniapps should own product logic and presentation:
 5. Anchor apps: use `app.platformAnchor`; the Trust/Profit user runtime is the
    reference migration, while admin consoles keep explicit cross-tenant calls.
 6. DeFi apps: adopt `app.platformDeFi` only through a named ABI/money-path
-   migration; current standalone SelfLoan, FlashLoan, and TimeCapsule flows
-   are not drop-in compatible with the shared engine.
+   migration. SelfLoan is source-ready behind exact v1.3 artifact and profile-1
+   gates while preserving its standalone path; it is not manifest-bound or
+   live-proven. FlashLoan and TimeCapsule remain separate migration work.
 7. Factory apps: route deployment writes through `app.platformFactory`; keep
    direct RPC only for read-only manifest/signers probes the wallet bridge
    cannot represent.
-8. Registry-aware apps: use `app.registry` only after the deployed Registry
-   exactly matches the local ABI and reciprocal AA configuration is complete;
-   the current testnet artifact remains a zero-binding compatibility gate.
+8. Registry-aware apps: consume identity through `app.platformAccount` and use
+   `app.registry` only for lower-level tenant administration, after the deployed
+   Registry exactly matches the local ABI and reciprocal AA configuration is
+   complete; the current testnet artifact remains a zero-binding compatibility
+   gate.
 9. App-specific local persistence: move small state records to `app.db` or
    namespaced `app.storage.hybrid`.
 10. UI feedback: bind operation observables instead of per-app bespoke loading,

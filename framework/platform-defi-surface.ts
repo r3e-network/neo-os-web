@@ -20,6 +20,7 @@ export interface FrameworkPlatformDeFiTx {
   txid: string;
   success?: boolean;
   event?: unknown;
+  verified?: boolean;
 }
 
 export interface FrameworkPlatformDeFiInvokeOptions {
@@ -41,6 +42,16 @@ export interface PlatformDeFiSurfaceChain {
     args: Array<{ type: string; value: unknown }>,
     options?: FrameworkPlatformDeFiInvokeOptions & { scriptHash?: string },
   ): Promise<FrameworkPlatformDeFiTx>;
+  invokeMultiple(
+    calls: Array<{
+      scriptHash: string;
+      operation: string;
+      args: Array<{ type: string; value: unknown }>;
+    }>,
+    options?: {
+      onTransactionSent?: (txid: string) => void;
+    },
+  ): Promise<{ txid: string; state?: string; exception?: string }>;
 }
 
 export interface PlatformDeFiSurfaceDeps {
@@ -100,11 +111,20 @@ export interface FrameworkPlatformDeFiSurface {
   getProfitAnchorContract(): Promise<string>;
   getProfitAnchorAppId(): Promise<unknown>;
   getProfitAnchor(): Promise<unknown>;
+  getLendingProfile(): Promise<bigint>;
+  getActiveLoanId(borrower?: string): Promise<bigint>;
+  getSingleLoanPosition(borrower?: string): Promise<unknown>;
   getLoan(loanId: Amount): Promise<unknown>;
   getHealthFactor(loanId: Amount): Promise<bigint>;
   getLendingStats(): Promise<unknown>;
   createLoan(input: { ltvTier: Amount; collateralAmount: Amount; borrower?: string; options?: FrameworkPlatformDeFiInvokeOptions }): Promise<FrameworkPlatformDeFiTx>;
   repayLoan(loanId: Amount, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
+  repayLoanWithGasDeposit(input: {
+    loanId: Amount;
+    depositAmount: Amount;
+    payer?: string;
+    options?: FrameworkPlatformDeFiInvokeOptions;
+  }): Promise<FrameworkPlatformDeFiTx>;
   addCollateral(loanId: Amount, collateralAmount: Amount, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
   getNeoGasPrice(): Promise<bigint>;
   setNeoGasPrice(price: Amount, options?: FrameworkPlatformDeFiInvokeOptions): Promise<FrameworkPlatformDeFiTx>;
@@ -292,6 +312,13 @@ export function createPlatformDeFiSurface(
     getProfitAnchorContract: async () => parseHash160(await read("getProfitAnchorContract", tenantArgs())),
     getProfitAnchorAppId: async () => read("getProfitAnchorAppId", tenantArgs()),
     getProfitAnchor: async () => read("getProfitAnchor", tenantArgs()),
+    getLendingProfile: async () => parseBigInt(await read("getLendingProfile", tenantArgs())),
+    getActiveLoanId: async (borrower) => parseBigInt(await read("getActiveLoanId", [
+      ...tenantArgs(), accountArg(await account(borrower)),
+    ])),
+    getSingleLoanPosition: async (borrower) => read("getSingleLoanPosition", [
+      ...tenantArgs(), accountArg(await account(borrower)),
+    ]),
     getLoan: async (loanId) => read("getLoan", [...tenantArgs(), amountArg(loanId, "loanId")]),
     getHealthFactor: async (loanId) => parseBigInt(await read("getHealthFactor", [
       ...tenantArgs(), amountArg(loanId, "loanId"),
@@ -304,6 +331,38 @@ export function createPlatformDeFiSurface(
     repayLoan: write(async (loanId, options) => invoke("repayLoan", [
       ...tenantArgs(), amountArg(loanId, "loanId"),
     ], options)),
+    repayLoanWithGasDeposit: write(async (input) => {
+      const payer = await account(input.payer);
+      const depositAmount = parseBigInt(input.depositAmount);
+      if (depositAmount < 0n) throw new Error("depositAmount must be a non-negative integer");
+      const calls = [];
+      if (depositAmount > 0n) {
+        calls.push({
+          scriptHash: gasHash(),
+          operation: "transfer",
+          args: [
+            accountArg(payer),
+            accountArg(defiHash()),
+            amountArg(depositAmount, "depositAmount"),
+            { type: "String", value: `${appId()}:credit` },
+          ],
+        });
+      }
+      calls.push({
+        scriptHash: defiHash(),
+        operation: "repayLoan",
+        args: [...tenantArgs(), amountArg(input.loanId, "loanId")],
+      });
+      const result = await deps.chain.invokeMultiple(calls, {
+        ...(input.options?.onTransactionSent
+          ? { onTransactionSent: input.options.onTransactionSent }
+          : {}),
+      });
+      return {
+        txid: result.txid,
+        success: !String(result.state ?? "").toUpperCase().includes("FAULT"),
+      };
+    }),
     addCollateral: write(async (loanId, collateralAmount, options) => invoke("addCollateral", [
       ...tenantArgs(), amountArg(loanId, "loanId"), amountArg(collateralAmount, "collateralAmount"),
     ], options)),

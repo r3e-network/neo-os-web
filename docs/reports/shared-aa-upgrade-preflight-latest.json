@@ -1,9 +1,9 @@
 {
-  "generated_at_utc": "2026-07-22T23:47:25.517Z",
+  "generated_at_utc": "2026-07-23T07:22:19.172Z",
   "network": {
     "rpc_url": "https://testnet1.neo.coz.io:443",
     "magic": 894710606,
-    "chain_time_ms": 1784764041759
+    "chain_time_ms": 1784791328809
   },
   "contracts": {
     "registry": {

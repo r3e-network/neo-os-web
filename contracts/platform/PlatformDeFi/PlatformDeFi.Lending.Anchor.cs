@@ -111,6 +111,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             stats["minHealthFactor"] = MIN_HEALTH_FACTOR;
             stats["minCollateral"] = MIN_COLLATERAL;
             stats["lendingFeeBps"] = LENDING_FEE_BPS;
+            stats["lendingProfile"] = GetLendingProfile(appId);
             stats["profitAnchor"] = GetProfitAnchor(appId);
             return stats;
         }

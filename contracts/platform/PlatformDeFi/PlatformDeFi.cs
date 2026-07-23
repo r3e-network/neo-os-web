@@ -49,7 +49,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     [DisplayName("PlatformDeFi")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.2.0")]
+    [ManifestExtra("Version", "1.3.0")]
     [ManifestExtra("Description", "Multi-tenant DeFi engine for Neo N3. Consolidates SelfLoan, FlashLoan, and CompoundCapsule products into a single reusable contract with per-app isolation.")]
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "balanceOf", "transfer")]
@@ -60,6 +60,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const int ProductType_Lending = 1;
         private const int ProductType_FlashLoan = 2;
         private const int ProductType_Capsule = 3;
+        private const int LendingProfile_RiskManaged = 0;
+        private const int LendingProfile_SelfLoan = 1;
         #endregion
 
         #region Global Prefixes (0x01-0x0F reserved for platform admin)
@@ -138,6 +140,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // liquidatable against the lowered valuation once LIQUIDATION_GRACE_MS has elapsed
         // since this time, giving borrowers a window to top up collateral or repay.
         private static readonly byte[] PREFIX_PRICE_DROP_TIME = new byte[] { 0x2E };
+        private static readonly byte[] PREFIX_ACTIVE_LOAN = new byte[] { 0x2F };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)

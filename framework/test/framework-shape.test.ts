@@ -100,6 +100,7 @@ describe("framework runtime shape snapshot", () => {
       "oracle",
       "permissions",
       "platform",
+      "platformAccount",
       "platformAnchor",
       "platformDeFi",
       "platformFactory",
