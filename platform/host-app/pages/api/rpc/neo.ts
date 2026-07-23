@@ -40,6 +40,17 @@ const ALLOWED_METHODS = new Set([
 const MAX_BODY_SIZE = 128 * 1024;
 const FETCH_TIMEOUT_MS = 30_000;
 
+function readOnlyFailure(message: string) {
+  return JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    error: {
+      code: -32000,
+      message,
+    },
+  });
+}
+
 function resolveRpcUrl(network: NeoNetwork): string {
   return network === "testnet" ? TESTNET_RPC_URL : MAINNET_RPC_URL;
 }
@@ -149,6 +160,11 @@ export default async function handler(
     }
 
     res.setHeader("Cache-Control", "no-store, private");
+    if (method !== "sendrawtransaction") {
+      res.setHeader("Content-Type", "application/json");
+      res.status(200).send(readOnlyFailure("Neo RPC upstream failed"));
+      return;
+    }
     res.setHeader("Content-Type", lastContentType);
     res.status(lastStatus).send(lastText || JSON.stringify({ error: "Neo RPC upstream failed" }));
   } catch (error) {
@@ -156,6 +172,12 @@ export default async function handler(
       "[neo-rpc] request failed:",
       error instanceof Error ? error.message : String(error),
     );
+    if (method !== "sendrawtransaction") {
+      res
+        .status(200)
+        .send(readOnlyFailure("Neo RPC request failed"));
+      return;
+    }
     res.status(502).json({ error: "Neo RPC request failed" });
   }
 }

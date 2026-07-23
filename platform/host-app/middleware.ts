@@ -57,6 +57,7 @@ export function buildCSP(
     "https://oracle.meshmini.app",
     "https://edge.meshmini.app",
     "https://control.meshmini.app",
+    "https://neoxt4seed1.ngd.network",
   );
   const auth0Issuer = (process.env.AUTH0_ISSUER_BASE_URL || "").trim();
   if (auth0Issuer) {
@@ -114,7 +115,7 @@ export function buildCSP(
     `script-src ${scriptSrc}`,
     `style-src ${styleSources.join(" ")}`,
     `style-src-elem ${styleSources.join(" ")}`,
-    "img-src 'self' data: https:",
+    "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
     `connect-src ${connectSrc}`,
     frameSrc,

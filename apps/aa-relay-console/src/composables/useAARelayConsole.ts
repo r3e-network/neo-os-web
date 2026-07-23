@@ -5,6 +5,11 @@ import {
   getNetwork,
   resolveNeoNetwork,
 } from "@shared/constants/rpc";
+import {
+  safeReadStorage,
+  safeRemoveStorage,
+  safeWriteStorage,
+} from "@shared/utils/safe-storage";
 import { getDefaultRelayPayload } from "../launch";
 import {
   draftFingerprint,
@@ -142,10 +147,9 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
   }
 
   function persist() {
-    if (typeof localStorage === "undefined") return;
     const review = reviewPackage.get();
     if (!review) {
-      localStorage.removeItem(storageKey);
+      safeRemoveStorage(storageKey);
       return;
     }
     const snapshot: PersistedRelayJob = {
@@ -161,11 +165,7 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
       receipt: relayReceipt.get(),
       outcome: chainOutcome.get(),
     };
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(snapshot));
-    } catch {
-      // Recovery is best-effort; a full/disabled storage area must not block review.
-    }
+    safeWriteStorage(storageKey, JSON.stringify(snapshot));
   }
 
   async function prepareReview() {
@@ -288,12 +288,12 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
   }
 
   async function loadAll() {
-    if (typeof localStorage === "undefined" || clean(aaAddress.get())) {
+    if (clean(aaAddress.get())) {
       refreshView();
       return;
     }
     try {
-      const parsed = JSON.parse(localStorage.getItem(storageKey) || "null") as Partial<PersistedRelayJob> | null;
+      const parsed = JSON.parse(safeReadStorage(storageKey) || "null") as Partial<PersistedRelayJob> | null;
       if (!parsed || parsed.version !== 1 || parsed.network !== network) return;
       if (!isRelayReviewPackage(parsed.review, network, integration.contracts.aaCore)) return;
       if (!(await hasValidRelayReviewDigest(parsed.review))) return;
@@ -320,7 +320,7 @@ export function useAARelayConsole({ app, t, fetcher = fetch, now = Date.now }: U
       chainOutcome.set(outcome);
       preparedFingerprint.set(clean(parsed.fingerprint) || draftFingerprint(aaAddress.get(), dappId.get(), payloadJson.get()));
     } catch {
-      localStorage.removeItem(storageKey);
+      safeRemoveStorage(storageKey);
     } finally {
       refreshView();
     }

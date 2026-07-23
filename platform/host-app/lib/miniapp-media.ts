@@ -68,7 +68,6 @@ const BUNDLED_MINIAPP_ASSET_SLUGS = new Set([
   "color-clash",
   "compound-capsule",
   "council-governance",
-  "curve-arrow",
   "custom-anchor",
   "daily-checkin",
   "dev-tipping",
@@ -473,12 +472,18 @@ export function buildMiniAppLogoSources(options: MediaOptions): string[] {
     unique([options.logoURL, ...variants]).filter(isRenderableImageURL),
   );
   const legacy = splitSvgLegacyAssets(explicit.legacy);
+  const candidates = getMiniAppAssetCandidates(
+    "logo",
+    options.appID,
+    options.entryURL,
+  );
+  const fallbackSources = primary.logoURL
+    ? [primary.logoURL, ...candidates, ...legacy.raster]
+    : [...legacy.raster, ...candidates];
   return resolveBundledMiniAppAssetURLs([
     ...explicit.preferred,
     ...legacy.svg,
-    primary.logoURL,
-    ...getMiniAppAssetCandidates("logo", options.appID, options.entryURL),
-    ...legacy.raster,
+    ...fallbackSources,
   ]);
 }
 
@@ -489,12 +494,18 @@ export function buildMiniAppBannerSources(options: MediaOptions): string[] {
     unique([options.bannerURL, ...variants]).filter(isRenderableImageURL),
   );
   const legacy = splitSvgLegacyAssets(explicit.legacy);
+  const candidates = getMiniAppAssetCandidates(
+    "banner",
+    options.appID,
+    options.entryURL,
+  );
+  const fallbackSources = primary.bannerURL
+    ? [primary.bannerURL, ...candidates, ...legacy.raster]
+    : [...legacy.raster, ...candidates];
   return resolveBundledMiniAppAssetURLs([
     ...explicit.preferred,
     ...legacy.svg,
-    primary.bannerURL,
-    ...getMiniAppAssetCandidates("banner", options.appID, options.entryURL),
-    ...legacy.raster,
+    ...fallbackSources,
   ]);
 }
 
