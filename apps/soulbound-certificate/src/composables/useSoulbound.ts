@@ -8,9 +8,12 @@
  */
 
 import { createDerived, createObservable } from "@shared/react/context";
-import type { MiniAppFramework, FrameworkClipboardSurface } from "@shared/react";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type {
+  FrameworkBadgeSurface,
+  FrameworkClipboardSurface,
+  FrameworkRemoteStorageSurface,
+  MiniAppFramework,
+} from "@shared/react";
 import { getLaunchParam, readMiniAppLaunchContext } from "@shared/utils/launch-params";
 import { eventValue } from "@shared/utils/chain-events";
 import { parseHash160 } from "@shared/utils/neo";
@@ -71,8 +74,8 @@ export interface RevokeCertificateForm {
 }
 
 export interface UseSoulboundOptions {
-  storageService: StorageProxy;
-  badgeService: BadgeProxy;
+  storageService: FrameworkRemoteStorageSurface;
+  badgeService: Pick<FrameworkBadgeSurface, "award">;
   /** Copy-with-toast surface (app.clipboard). */
   clipboard: FrameworkClipboardSurface;
   /** MiniApp framework SDK from ctx.framework. */

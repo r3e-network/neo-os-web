@@ -12,6 +12,12 @@ type MiniAppManifest = {
   name?: string;
 };
 
+type CatalogResponse = {
+  apps?: Array<{
+    app_id?: string;
+  }>;
+};
+
 type ButtonSnapshot = {
   index: number;
   label: string;
@@ -76,6 +82,7 @@ const NON_STANDARD_MINIAPP_DETAIL_LAYOUT = new Set([
   "miniapp-gas-lucky-pool",
 ]);
 const SURFACE_LOGS_ENABLED = process.env.SURFACE_LOGS === "1";
+const EXPECTED_ACTIVE_MINIAPP_COUNT = 77;
 
 function readMiniApps() {
   const apps: Array<{ id: string; name: string; slug: string }> = [];
@@ -128,6 +135,62 @@ async function expectHealthyPage(page: Page, route: string) {
     bodyTextLength,
     `${route} should have visible content`,
   ).toBeGreaterThan(20);
+}
+
+async function expectNoHorizontalOverflow(page: Page, route: string) {
+  const failures: string[] = [];
+  for (const frame of page.frames()) {
+    const metrics = await frame
+      .evaluate(() => ({
+        viewportWidth: window.innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        bodyWidth: document.body?.scrollWidth ?? 0,
+      }))
+      .catch(() => null);
+    if (!metrics || metrics.viewportWidth <= 0) continue;
+    const contentWidth = Math.max(metrics.documentWidth, metrics.bodyWidth);
+    const overflow = contentWidth - metrics.viewportWidth;
+    if (overflow > 2) {
+      failures.push(
+        `${frame.url() || "about:blank"}: ${contentWidth}px content in ${metrics.viewportWidth}px viewport`,
+      );
+    }
+  }
+  expect(failures, `${route} should not overflow horizontally`).toEqual([]);
+}
+
+async function expectEmbeddedDappReady(page: Page, route: string) {
+  const playArea = page.getByTestId("miniapp-playarea");
+  const iframes = playArea.locator("iframe[data-wallet-bridge]");
+  const count = await iframes.count();
+  for (let index = 0; index < count; index += 1) {
+    const iframe = iframes.nth(index);
+    await expect(iframe).toHaveAttribute("src", /.+/);
+    const sandbox = await iframe.getAttribute("sandbox");
+    expect(sandbox, `${route} iframe should stay sandboxed`).toBeTruthy();
+    expect(sandbox, `${route} iframe must keep an opaque origin`).not.toContain(
+      "allow-same-origin",
+    );
+
+    const frameBody = iframe.contentFrame().locator("body");
+    await expect(frameBody).toBeVisible({ timeout: 20_000 });
+    const content = await frameBody.evaluate((body) => ({
+      textLength: (body.textContent ?? "").trim().length,
+      visualNodes: body.querySelectorAll("canvas, svg, img, video").length,
+    }));
+    expect(
+      content.textLength + content.visualNodes,
+      `${route} iframe should render meaningful content`,
+    ).toBeGreaterThan(0);
+    await expect(frameBody).not.toContainText("Runtime Error");
+    await expect(frameBody).not.toContainText("Application error");
+    await expect(frameBody).not.toContainText("TypeError:");
+  }
+
+  await expect(
+    playArea.locator('[data-testid$="-load-error"]'),
+    `${route} should not expose the embedded-app recovery shell`,
+  ).toHaveCount(0);
 }
 
 async function disableMotion(page: Page) {
@@ -567,11 +630,21 @@ test.setTimeout(180_000);
 const manifestBackedMiniApps = readMiniApps();
 
 test.describe("Comprehensive frontend surface", () => {
-  test("repo exposes the expected manifest-backed miniapp catalog", () => {
-    expect(
-      manifestBackedMiniApps.length,
-      "repo should expose all manifest-backed miniapps",
-    ).toBeGreaterThanOrEqual(49);
+  test("repo and catalog API expose the exact active manifest-backed miniapp set", async ({
+    request,
+  }) => {
+    expect(manifestBackedMiniApps.length).toBe(EXPECTED_ACTIVE_MINIAPP_COUNT);
+    const manifestIds = manifestBackedMiniApps.map((app) => app.id).sort();
+    expect(new Set(manifestIds).size).toBe(EXPECTED_ACTIVE_MINIAPP_COUNT);
+
+    const response = await request.get("/api/miniapps/catalog?scope=all");
+    expect(response.ok()).toBe(true);
+    const catalog = (await response.json()) as CatalogResponse;
+    const catalogIds = (catalog.apps ?? [])
+      .map((app) => String(app.app_id ?? "").trim())
+      .filter(Boolean)
+      .sort();
+    expect(catalogIds).toEqual(manifestIds);
   });
 
   for (const route of PLATFORM_ROUTES) {
@@ -586,6 +659,7 @@ test.describe("Comprehensive frontend surface", () => {
       await gotoHealthy(page, route);
       await exerciseTabs(page, route);
       await assertImagesLoad(page, route);
+      await expectNoHorizontalOverflow(page, route);
       await expectInternalLinksResolve(
         request,
         route,
@@ -639,8 +713,10 @@ test.describe("Comprehensive frontend surface", () => {
         page.locator("body"),
         `${app.id} should render its display name`,
       ).toContainText(app.name);
+      await expectEmbeddedDappReady(page, route);
       await exerciseTabs(page, route);
       await assertImagesLoad(page, route);
+      await expectNoHorizontalOverflow(page, route);
       await expectInternalLinksResolve(
         request,
         route,

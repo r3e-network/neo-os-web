@@ -1,48 +1,131 @@
 {
-  "generated": "2026-07-17",
+  "schema_version": 2,
+  "generated_at_utc": "2026-07-23T08:27:54.774Z",
   "cloneFamily": {
     "root": "contracts/",
     "contracts": 11,
-    "allExist": true,
-    "csFilesPerContract": 4,
-    "totalLoc": 8907,
-    "pctIdentical": 96.8,
-    "pctIdenticalMethod": "diff -U0 of concatenated MiniAppAimMaster/*.cs vs MiniAppColorClash/*.cs: 815 lines total, 26 differing lines => 96.80% identical",
-    "perContract": {
+    "all_exist": true,
+    "cs_files": 44,
+    "total_loc": 8914,
+    "pair_similarity": {
+      "baseline": "MiniAppAimMaster",
+      "comparison": "MiniAppColorClash",
+      "compared_lines": 815,
+      "identical_lines": 789,
+      "differing_lines": 26,
+      "identical_percent": 96.81
+    },
+    "per_contract": {
       "MiniAppAimMaster": 815,
       "MiniAppColorClash": 815,
       "MiniAppCurveArrow": 818,
       "MiniAppFlappyDash": 815,
       "MiniAppGame2048": 814,
-      "MiniAppJumpRush": 731,
+      "MiniAppJumpRush": 734,
       "MiniAppMergeKingdom": 815,
       "MiniAppPetPotion": 815,
-      "MiniAppSheepSolitaire": 843,
+      "MiniAppSheepSolitaire": 847,
       "MiniAppSnakeBounty": 815,
       "MiniAppSudoku": 811
-    }
+    },
+    "boundary": "All 11 legacy clone contracts remain in-tree for rollback and drain recovery. Framework routing is not deletion proof."
   },
   "morpheusEnginePorts": {
     "dir": "neo-morpheus-oracle/workers/nitro-worker/src/game/engines/",
-    "files": 12,
-    "fileList": ["aim.js", "arrow.js", "color.js", "flappy.js", "game2048.js", "jump.js", "merge.js", "pet.js", "sheep.js", "snake.js", "sudoku-data.js", "sudoku.js"],
-    "totalLoc": 2112,
-    "snakeHeaderReferencesPlatform": true,
-    "snakeHeaderExcerpt": "Deterministic Snake Bounty engine — JS port of neo-miniapps-platform/apps/snake-bounty/src/logic/snake-engine.ts"
+    "source_files": 12,
+    "source_file_list": [
+      "aim.js",
+      "arrow.js",
+      "color.js",
+      "flappy.js",
+      "game2048.js",
+      "jump.js",
+      "merge.js",
+      "pet.js",
+      "sheep.js",
+      "snake.js",
+      "sudoku-data.js",
+      "sudoku.js"
+    ],
+    "source_loc": 1939,
+    "adapter_files": 5,
+    "adapter_file_list": [
+      "arrow.adapter.js",
+      "game2048.adapter.js",
+      "jump.adapter.js",
+      "merge.adapter.js",
+      "snake.adapter.js"
+    ],
+    "sync_pipeline": {
+      "mapped_engines": 12,
+      "generated_engines": 6,
+      "kept_engines": 6,
+      "script_exists": true,
+      "drift_test_exists": true,
+      "parity_goldens_exist": true,
+      "parity_test_exists": true,
+      "git_status": [
+        "A  scripts/sync-miniapp-game-engines.mjs",
+        "A  scripts/sync-miniapp-game-engines.test.mjs",
+        "AM workers/nitro-worker/src/game/engine-parity.goldens.json",
+        "A  workers/nitro-worker/src/game/engine-parity.test.mjs"
+      ]
+    },
+    "boundary": "Six engines are generated from miniapps TypeScript sources; six remain reviewed handwritten ports and five enclave-only adapters remain. Dirty sibling-repo status is worktree evidence, not landed release proof."
   },
   "envelopeCopies": {
-    "morpheusFile": "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
-    "aaFile": "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
-    "morpheusSha256": "508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129",
-    "aaSha256": "d967bb9840b0cd08c6ab41fa2982b6c4cf24cd2e3191bedc57fe441101332f6d",
-    "match": false
+    "morpheus_file": "neo-morpheus-oracle/packages/shared/src/confidential-envelope.js",
+    "aa_file": "neo-abstract-account/frontend/src/utils/morpheusEncryption.js",
+    "morpheus_sha256": "508329d6f14974733d8f1ca5fb7d3ac6e9b1dc21820e3f12131098de4bb3e129",
+    "aa_sha256": "d967bb9840b0cd08c6ab41fa2982b6c4cf24cd2e3191bedc57fe441101332f6d",
+    "byte_match": false,
+    "morpheus_exported": true,
+    "aa_vendored_import_references": 1,
+    "aa_uses_vendored_copy": true,
+    "boundary": "The package export now exists, but AA still imports its guarded wire-compatible vendored implementation. Cross-repo package linking remains an explicit migration."
   },
   "sdkGenerations": {
-    "frameworkLoc": 26610,
-    "frameworkNote": "framework/ — 100 .ts files excluding node_modules/dist",
-    "servicesProxyLoc": 829,
-    "servicesProxyNote": "apps/shared/services/PlatformServices.ts (192 LOC) + apps/shared/services/os/*.ts 13 files (637 LOC)",
-    "platformSdkLoc": 3422,
-    "platformSdkNote": "platform/sdk/src — 6 .ts files"
-  }
+    "framework": {
+      "files": 115,
+      "loc": 30381
+    },
+    "services_proxy": {
+      "files": 25,
+      "loc": 3063
+    },
+    "platform_sdk": {
+      "files": 6,
+      "loc": 3422
+    },
+    "framework_surface_files": [
+      "actions-surface.ts",
+      "amounts-surface.ts",
+      "badge-surface.ts",
+      "chain-surface.ts",
+      "errors-surface.ts",
+      "fmt-surface.ts",
+      "notify-surface.ts",
+      "oracle-surface.ts",
+      "platform-account-surface.ts",
+      "platform-anchor-surface.ts",
+      "platform-defi-surface.ts",
+      "platform-factory-surface.ts",
+      "platform-game-surface.ts",
+      "platform-social-surface.ts",
+      "platform-surface.ts",
+      "registry-surface.ts",
+      "stats-surface.ts",
+      "storage-surface.ts"
+    ],
+    "ctx_os_text_reference_count": 12,
+    "ctx_os_runtime_reference_count": 0,
+    "boundary": "framework/ is canonical app-facing API, apps/shared/services remains the live ctx.os compatibility runtime, and platform/sdk remains the iframe wallet-bridge protocol boundary."
+  },
+  "audit_complete": true,
+  "dedup_complete": false,
+  "unresolved": [
+    "legacy-clone-contracts",
+    "reviewed-handwritten-engine-divergence",
+    "aa-envelope-vendored-copy"
+  ]
 }

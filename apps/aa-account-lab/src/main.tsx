@@ -21,7 +21,7 @@ defineMiniApp({
   setup(ctx) {
     const lab = useAAAccountLab({
       app: ctx.framework,
-      storageService: ctx.os.storage,
+      storageService: ctx.framework.storage.remote,
       t: ctx.t,
     });
     const launchDefaults = getAccountLabLaunchDefaults(ctx.launchContext);

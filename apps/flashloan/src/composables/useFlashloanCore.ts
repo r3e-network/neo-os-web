@@ -18,8 +18,10 @@
  */
 
 import { createDerived, createObservable } from "@shared/react/context";
-import type { MiniAppFramework } from "@shared/react";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type {
+  FrameworkBadgeSurface,
+  MiniAppFramework,
+} from "@shared/react";
 import type { ContractArg } from "@shared/services/ChainService";
 import type { MiniAppLaunchNetwork } from "@shared/utils/launch-params";
 import {
@@ -282,8 +284,8 @@ function isPendingLiquidity(value: unknown): value is PendingLiquidity {
 export interface UseFlashloanCoreOptions {
   /** MiniApp framework SDK from ctx.framework (chain reads/invokes + arg builders) */
   app: MiniAppFramework;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
+  /** Platform badge surface from ctx.framework */
+  badgeService: Pick<FrameworkBadgeSurface, "award">;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
   /** Launch network (mainnet requires an explicit deposit receipt id) */

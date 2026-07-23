@@ -17,8 +17,8 @@ defineMiniApp({
   setup(ctx) {
     const app = ctx.framework;
     const soulbound = useSoulbound({
-      storageService: ctx.os.storage,
-      badgeService: ctx.os.badge,
+      storageService: app.storage.remote,
+      badgeService: app.badge,
       clipboard: app.clipboard,
       app,
       t: ctx.t,

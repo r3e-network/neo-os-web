@@ -40,7 +40,9 @@ describe("self-loan production contract and product truth", () => {
     const entry = readFileSync(path.join(appRoot, "src", "main.tsx"), "utf8");
     const rpc = readFileSync(path.join(appRoot, "src", "self-loan-rpc.ts"), "utf8");
     expect(hook).toContain('marketStatus.set("error")');
-    expect(hook).toContain("onTransactionSent: (txid)");
+    expect(hook).toContain("result = await run((txid) => {");
+    expect(hook).toContain("broadcast = persistBroadcast(draft, txid)");
+    expect(hook).toContain("const tracked = broadcast ?? persistBroadcast(draft, result.txid)");
     expect(hook).toContain("operationReadbackMatches(tracked)");
     expect(hook).toContain("app.events.waitFor(restored.txid, restored.eventName, 1)");
     expect(hook).toContain('app.chain.arg.integer(shortfall)');

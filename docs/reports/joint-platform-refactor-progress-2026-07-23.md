@@ -49,6 +49,11 @@ The three repositories have strong local test baselines, and this pass fixed con
 
 ### Miniapps
 
+- Restored `docs/superpowers/` as versioned architecture authority so the current cross-repository design and Phase 0–5 runbooks are no longer hidden by a broad ignore rule.
+- Removed five tracked `.workbuddy/` memory/output files from the Git index while preserving their ignored local copies, and added a repository-hygiene gate that rejects tracked-ignored files, hidden canonical documents, or exposed local agent state.
+- Replaced the stale hand-maintained cross-repository duplication snapshot with a reproducible audit/check command. The current evidence records 11 retained clone contracts at 8,914 logical LOC, 12 Morpheus engine sources plus 5 enclave adapters, a 6-generated/6-reviewed-handwritten split, the exported-but-still-vendored confidential-envelope boundary, and the Morpheus sibling worktree's uncommitted landing state.
+- Added `app.badge` as the complete platform badge facade with capability-safe fallbacks, migrated AA Account Lab and Soulbound Certificate to `app.storage.remote`, and migrated Soulbound Certificate and Flashloan to `app.badge`. Direct production-code `ctx.os.*` calls are now 0; the remaining 12 text matches are comments/tests and host compatibility remains intentionally available.
+- Updated the SelfLoan production static gate to verify the current tracked-run helper (`persistBroadcast` in the transaction-sent callback plus returned-txid fallback) instead of requiring the retired inline callback syntax; focused SelfLoan tests and the complete shared suite now pass.
 - Updated Aim Master, Color Clash, and Curve Arrow production-safety tests to assert the shared registry/engine architecture instead of obsolete standalone contract hashes or an empty `contracts` object.
 - Regenerated the canonical MiniApp contract registry by removing ten obsolete testnet standalone hashes left behind by the shared-game migration.
 - Updated the host PlayArea regression test to assert that shared Game 2048 has no standalone contract route while remaining a local guest experience.
@@ -96,11 +101,15 @@ The three repositories have strong local test baselines, and this pass fixed con
 | Repository | Command/scope | Result |
 | --- | --- | --- |
 | Miniapps | All shared production-safety tests | 45 passed |
-| Miniapps | Full miniapp aggregate + shared Vitest suite | All 24 per-miniapp suites passed, including the new Timestamp Proof Notary wallet-binding test at 2/2; the shared baseline rerun also passed |
+| Miniapps | Full miniapp aggregate + shared Vitest suite | All 24 per-miniapp suites passed; the current shared rerun passes 396 files and 4,431/4,431 tests, including the new framework badge consumers and tracked SelfLoan transaction recovery guard |
 | Miniapps | AA Session Key Lab targeted suite | 25 passed |
 | Miniapps | AA Session Key Lab production build | Passed; upstream Sass deprecation warnings only |
-| Miniapps | Framework Vitest suite + typecheck | 598 passed and `tsc --noEmit` passed, including complete PlatformRegistry 48/48, PlatformSocial 36/36, PlatformAnchor 32/32, PlatformDeFi 58/58, MiniAppFactory 13/13, and the unified `app.platformAccount` surface with guarded writes, config failure, validation, recovery callbacks, and runtime shape |
-| Miniapps | Deploy-script Node suite | 257 passed |
+| Miniapps | Framework Vitest suite + typecheck | 600 passed across 47 files and `tsc --noEmit` passed, including complete PlatformRegistry 48/48, PlatformSocial 36/36, PlatformAnchor 32/32, PlatformDeFi 58/58, MiniAppFactory 13/13, unified `app.platformAccount`, and the new capability-safe `app.badge` surface |
+| Miniapps | Deploy-script Node suite | 263 passed |
+| Miniapps | Repository structure hygiene | 3 focused tests passed; all canonical `docs/superpowers` specifications/plans are versionable, no tracked file matches `.gitignore`, and `.workbuddy`/`.superpowers` runtime state remains local-only |
+| Three-repo duplication census | `audit:cross-repo:duplication` and freshness check pass; audit evidence is complete but deduplication is explicitly false with 3 residual classes: legacy clone contracts, reviewed handwritten engine divergence, and AA envelope vendoring; direct production `ctx.os` calls are 0 |
+| Morpheus engine single-source pipeline | 3/3 passed: generated engines match a fresh miniapps TypeScript sync, `sudoku-data.js` is semantically identical to its TS twin, and all checked-in behavioral parity goldens reproduce; sibling changes remain dirty/uncommitted |
+| AA Account Lab, Soulbound Certificate, Flashloan framework migration | 10 focused files / 173 tests passed using the canonical `apps/shared` Vitest entrypoint; an earlier root-directory direct Vitest attempt failed before collection because it omitted the shared alias config and is not counted as a product failure |
 | Miniapps | PlatformRegistry contract/framework interface | 48/48 non-control-plane ABI methods plus native GAS credit prepayment covered; generated freshness check passes; live availability is 40/48 with checksum drift, bindings remain 0, and no chain write occurred |
 | Miniapps | PlatformSocial contract/framework interface | 36/36 user-facing ABI methods covered plus one guarded native-transfer lane, including Notary and tenant/global credit liabilities; generated JSON/Markdown freshness check passes; Timestamp Proof dual-path audit passes; live status remains `no-deployment-record`, configured consumers are 0, and no app binding changed |
 | Miniapps | PlatformAnchor contract/framework interface | 32/32 tenant ABI methods plus native NEO staking covered; TrustAnchor/ProfitAnchor user runtimes migrated; focused production recovery tests pass 11/11; live status remains `live-artifact-drift` and no chain write occurred |
@@ -171,6 +180,7 @@ No private key was printed or written. No chain-write confirmation variable was 
 4. Review and deploy the updated Sheep wrapper/session-host pin, update its PlatformGame engine attachment, then run a funded start/finalize/settle/recovery/withdraw lifecycle for all routed apps. Only then define descriptors/Morpheus wrappers and attach the five zero-drain candidates; delete standalone code only after rollback and drain evidence.
 5. Run the per-app desktop/mobile browser and device interaction checklist; the green core Chromium suite, 77-app build, and static PlayArea/layout/media audits do not exercise every app on both viewport classes.
 6. Run AA browser E2E and the DataFeed fuzz lane once their environment requirements are available.
+7. Land the Morpheus engine-sync/parity work as its own reviewed change before claiming single-source completion; resolve the six reviewed handwritten ports through explicit product decisions, and move AA off its vendored confidential-envelope copy only after a supported cross-repository package-linking path exists. Direct app-level `ctx.os` calls are closed, but remove the host compatibility layer only after its composition and test consumers are independently retired.
 
 ## Completion decision
 
