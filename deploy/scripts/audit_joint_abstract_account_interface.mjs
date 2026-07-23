@@ -114,7 +114,6 @@ function writeReport(report) {
     "- The platform registrar creates a zero-plugin account owned by appAdmin; appAdmin can later install verifier/hook modules.",
     "- Registry core activation and disable both use the same 24-hour timelock; disabling preserves existing app identities.",
     "- This report is local artifact evidence only. It does not prove either upgraded contract is deployed or configured on testnet.",
-    "",
   ];
   fs.writeFileSync(markdownPath, `${lines.join("\n")}\n`);
 }

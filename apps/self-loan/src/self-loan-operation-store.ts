@@ -24,6 +24,7 @@ export interface PendingSelfLoanOperation extends SelfLoanOperationScope {
   expectedDebtBase?: string;
   expectedLtvBps?: string;
   expectedDisbursedBase?: string;
+  expectedLoanId?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -98,6 +99,7 @@ export function createPendingSelfLoanOperation(
     expectedDebtBase: optionalInteger(draft.expectedDebtBase),
     expectedLtvBps: optionalInteger(draft.expectedLtvBps),
     expectedDisbursedBase: optionalInteger(draft.expectedDisbursedBase),
+    expectedLoanId: optionalInteger(draft.expectedLoanId),
     ...scope,
     createdAt: now,
     updatedAt: now,
@@ -146,6 +148,7 @@ function parseStored(
         expectedDebtBase: raw.expectedDebtBase,
         expectedLtvBps: raw.expectedLtvBps,
         expectedDisbursedBase: raw.expectedDisbursedBase,
+        expectedLoanId: raw.expectedLoanId,
       },
       raw.txid,
       Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : 0,

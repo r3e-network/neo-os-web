@@ -26,6 +26,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public static void AbandonLoan(string appId, BigInteger loanId)
         {
             ValidateApp(appId, ProductType_Lending);
+            ExecutionEngine.Assert(
+                GetLendingProfile(appId) != LendingProfile_SelfLoan,
+                "abandon disabled for lending profile");
 
             Loan loan = GetLoan(appId, loanId);
             ExecutionEngine.Assert(loan.Active, "loan not active");

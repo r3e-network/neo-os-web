@@ -119,6 +119,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public static void LiquidateLoan(string appId, BigInteger loanId, UInt160 liquidator)
         {
             ValidateApp(appId, ProductType_Lending);
+            ExecutionEngine.Assert(
+                GetLendingProfile(appId) != LendingProfile_SelfLoan,
+                "liquidation disabled for lending profile");
             ExecutionEngine.Assert(Runtime.CheckWitness(liquidator), "unauthorized");
             ValidateAddress(liquidator);
 
@@ -204,6 +207,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [Safe]
         public static bool IsLiquidatable(string appId, BigInteger loanId)
         {
+            if (GetLendingProfile(appId) == LendingProfile_SelfLoan) return false;
             Loan loan = GetLoan(appId, loanId);
             if (!loan.Active || loan.Debt <= 0) return false;
             BigInteger collateralValue = CollateralValueGas(appId, loan.Collateral);

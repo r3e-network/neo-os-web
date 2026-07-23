@@ -18,6 +18,7 @@ import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useSelfLoan, type ActionOutcome } from "./composables/useSelfLoan";
+import { attestPlatformDeFiSelfLoanContract } from "./platform-defi-rpc";
 import { attestSelfLoanContract } from "./self-loan-rpc";
 
 defineMiniApp({
@@ -32,6 +33,7 @@ defineMiniApp({
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
       launchNetwork: ctx.launchContext.network,
       attestContract: attestSelfLoanContract,
+      attestPlatformContract: attestPlatformDeFiSelfLoanContract,
     });
 
     loan.setAddress(ctx.framework.wallet.address() ?? "");

@@ -18,6 +18,7 @@ import type {
   FrameworkAssetSymbol,
   FrameworkContractArg,
   FrameworkGuestLeaderboard,
+  FrameworkInvokeCall,
   FrameworkInvokeOptions,
   FrameworkModeSurface,
   FrameworkNotifyPolicy,
@@ -31,6 +32,7 @@ import { createClipboardSurface, createShareSurface } from "./clipboard";
 import { createCreditsSurface } from "./credits";
 import type { FrameworkCreditsConfig } from "./credits";
 import { createRegistrySurface } from "./registry-surface";
+import { createPlatformAccountSurface } from "./platform-account-surface";
 import { createPlatformGameSurface } from "./platform-game-surface";
 import { createPlatformSocialSurface } from "./platform-social-surface";
 import { createPlatformAnchorSurface } from "./platform-anchor-surface";
@@ -287,6 +289,12 @@ export function createMiniAppFramework(
       config: options.registry,
     }),
   );
+  const getPlatformAccount = lazyModule(() =>
+    createPlatformAccountSurface({
+      appId,
+      registry: getRegistry(),
+    }),
+  );
   /**
    * app.platformGame (Platform Contract Library v2 phase 2) — the shared
    * PlatformGame RewardGame engine lane. The surface auto-threads the host
@@ -296,6 +304,35 @@ export function createMiniAppFramework(
    * app.chain.invoke), reads stay ungated. Absent config ⇒ typed
    * FrameworkCapabilityError.
    */
+  const invokePlatformBatch = async (
+    calls: Array<{
+      scriptHash: string;
+      operation: string;
+      args: Array<{ type: string; value: unknown }>;
+    }>,
+    invokeOptions?: { onTransactionSent?: (txid: string) => void },
+  ) => {
+    if (!chain.invokeMultiple) {
+      throw new Error("Host chain service does not support invokeMultiple");
+    }
+    const result = await chain.invokeMultiple(
+      calls as FrameworkInvokeCall[],
+      invokeOptions,
+    );
+    if (String(result?.state ?? "").toUpperCase().includes("FAULT")) {
+      const exception = result?.exception;
+      throw new Error(
+        typeof exception === "string" && exception.length < 100
+          ? exception
+          : "Contract operation failed",
+      );
+    }
+    return {
+      txid: String(result?.txid ?? ""),
+      state: result?.state,
+      exception: result?.exception,
+    };
+  };
   const getPlatformGame = lazyModule(() =>
     createPlatformGameSurface({
       appId,
@@ -351,6 +388,7 @@ export function createMiniAppFramework(
           chain.read(operation, args as FrameworkContractArg[] | undefined, readOptions),
         invoke: (operation, args, invokeOptions) =>
           chain.invoke(operation, args as FrameworkContractArg[], invokeOptions),
+        invokeMultiple: invokePlatformBatch,
       },
       guards: guardDeps,
       config: options.platformDeFi,
@@ -536,6 +574,13 @@ export function createMiniAppFramework(
      */
     get registry() {
       return getRegistry();
+    },
+    /**
+     * app.platformAccount — one tenant-account snapshot over the Registry
+     * directory, shared UnifiedSmartWallet identity, and optional treasury shim.
+     */
+    get platformAccount() {
+      return getPlatformAccount();
     },
     /**
      * app.platformGame (Platform v2 phase 2) — shared PlatformGame engine
@@ -782,6 +827,13 @@ export type {
   RegistrySurfaceChain,
   RegistrySurfaceDeps,
 } from "./registry-surface";
+
+export { createPlatformAccountSurface } from "./platform-account-surface";
+export type {
+  FrameworkPlatformAccountSnapshot,
+  FrameworkPlatformAccountSurface,
+  PlatformAccountSurfaceDeps,
+} from "./platform-account-surface";
 
 // Platform v2 app.platformGame
 export { createPlatformGameSurface } from "./platform-game-surface";
