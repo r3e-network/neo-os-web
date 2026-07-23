@@ -583,7 +583,6 @@ function writeReport(report) {
     `- After activation: ${report.rollback.after_activation}.`,
     `- Registrar rotation: ${report.rollback.aa_registrar}.`,
     "- This preflight made no chain writes and is not authorization to sign or broadcast.",
-    "",
   ];
   fs.writeFileSync(markdownPath, `${lines.join("\n")}\n`);
 }

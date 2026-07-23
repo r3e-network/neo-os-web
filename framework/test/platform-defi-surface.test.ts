@@ -55,6 +55,7 @@ function makeApp(
     ensureWallet: vi.fn(async () => ADDRESS),
     read: vi.fn(async (_operation: string, _args?: unknown[], _options?: unknown): Promise<unknown> => "1"),
     invoke: vi.fn(async (_operation: string, _args: unknown[], _options?: unknown) => ({ txid: "0xtx", success: true })),
+    invokeMultiple: vi.fn(async () => ({ txid: "0xbatch", state: "HALT" })),
   };
   const ctx = {
     services: { chain },
@@ -105,6 +106,38 @@ describe("app.platformDeFi", () => {
     expect(chain.invoke).toHaveBeenLastCalledWith("transfer", expect.any(Array), { scriptHash: GAS_HASH });
   });
 
+  it("keeps GAS deposit and repayment in one guarded transaction", async () => {
+    const { app, chain } = makeApp();
+    const onTransactionSent = vi.fn();
+
+    await expect(app.platformDeFi.repayLoanWithGasDeposit({
+      loanId: 7,
+      depositAmount: 250,
+      options: { onTransactionSent },
+    })).resolves.toEqual({ txid: "0xbatch", success: true });
+
+    expect(chain.invokeMultiple).toHaveBeenCalledWith([
+      {
+        scriptHash: GAS_HASH,
+        operation: "transfer",
+        args: [
+          { type: "Hash160", value: ACCOUNT },
+          { type: "Hash160", value: DEFI_HASH },
+          { type: "Integer", value: "250" },
+          { type: "String", value: `${APP_ID}:credit` },
+        ],
+      },
+      {
+        scriptHash: DEFI_HASH,
+        operation: "repayLoan",
+        args: [
+          { type: "String", value: APP_ID },
+          { type: "Integer", value: "7" },
+        ],
+      },
+    ], { onTransactionSent });
+  });
+
   it("covers every tenant-facing PlatformDeFi ABI method", async () => {
     const { app, chain } = makeApp();
 
@@ -152,6 +185,9 @@ describe("app.platformDeFi", () => {
     await app.platformDeFi.getProfitAnchorContract();
     await app.platformDeFi.getProfitAnchorAppId();
     await app.platformDeFi.getProfitAnchor();
+    await app.platformDeFi.getLendingProfile();
+    await app.platformDeFi.getActiveLoanId();
+    await app.platformDeFi.getSingleLoanPosition();
     await app.platformDeFi.getLoan(1);
     await app.platformDeFi.getHealthFactor(1);
     await app.platformDeFi.getLendingStats();

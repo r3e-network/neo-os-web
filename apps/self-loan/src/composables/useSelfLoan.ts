@@ -1,16 +1,15 @@
 /**
  * useSelfLoan — Domain logic for the Self-Loan miniapp.
  *
- * Talks DIRECTLY to the app's standalone on-chain contract (MiniAppSelfLoan) via
- * the MiniApp framework SDK (ctx.framework). The earlier path delegated the collateral lock, the GAS
- * disbursement, the debt and the repayment to OS PaymentProxy/EscrowProxy/
- * StorageProxy/BadgeProxy edge functions that no contract enforced — the synchronous
- * escrow id never materialized, so the loan position degraded to a local record and
- * the locked NEO had no contract-backed release path (a latent strand). This
- * composable drives the dedicated contract, where the lock, disbursement, debt and
- * repayment are all authoritative on-chain.
+ * Uses one fail-closed domain model over either the reviewed standalone
+ * MiniAppSelfLoan contract or the PlatformDeFi SelfLoan tenant profile. The
+ * PlatformDeFi path is enabled only when the host supplies that surface, the exact
+ * contract generation passes RPC attestation, and the registered tenant reports
+ * profile 1. The earlier path delegated collateral, disbursement, debt and repayment
+ * to edge functions that no contract enforced; both supported paths here keep those
+ * transitions authoritative on-chain.
  *
- * MODEL (verified against MiniAppSelfLoan.cs / ABI):
+ * MODEL (verified against MiniAppSelfLoan and PlatformDeFi SelfLoan-profile ABIs):
  *   * COLLATERAL is NEO (integer token). DEBT is GAS (base units). The owner funds
  *     a GAS lending pool and sets a configured NEO price (GAS base units per 1 NEO)
  *     — NOT a live oracle, matching the app's static council price.
@@ -30,8 +29,8 @@
  *     against; withdrawRepayCredit(account) reclaims GAS repay-credit never applied.
  *     These are the recovery paths the deposit-then-act model needs.
  *
- *   READS (app.chain.readRaw, default app contract script hash; the two
- *   credit slots go through app.funds.creditOf with the app-named operation):
+ *   READS (standalone names shown first; PlatformDeFi uses the tenant-scoped
+ *   getLending* / getSingleLoanPosition / direct-credit equivalents):
  *     neoPrice()                 -> Integer (GAS base units per 1 NEO; 0 = unset)
  *     pool()                     -> Integer (GAS base units)
  *     collateralCreditOf(user)   -> Integer (WHOLE NEO — never scaled)
@@ -80,6 +79,7 @@ import {
   type SelfLoanAttestation,
   type SelfLoanNetwork,
 } from "../self-loan-rpc";
+import type { PlatformDeFiSelfLoanAttestation } from "../platform-defi-rpc";
 import {
   createPendingSelfLoanOperation,
   createSelfLoanOperationStore,
@@ -103,6 +103,8 @@ const REPAY_MEMO = "selfloan:repay";
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 /** GAS script hash drives repay transfers + the GAS pool. */
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
+const PLATFORM_APP_ID = "miniapp-self-loan";
+const PLATFORM_SELF_LOAN_PROFILE = 1n;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error ?? "");
@@ -216,6 +218,10 @@ export interface UseSelfLoanOptions {
     network: SelfLoanNetwork,
     contract: string,
   ) => Promise<SelfLoanAttestation>;
+  attestPlatformContract?: (
+    network: SelfLoanNetwork,
+    contract: string,
+  ) => Promise<PlatformDeFiSelfLoanAttestation>;
   /** Injectable for deterministic durable-journal tests. */
   operationStorage?: SelfLoanOperationStorage;
 }
@@ -229,10 +235,12 @@ export function useSelfLoan({
   t,
   launchNetwork = null,
   attestContract,
+  attestPlatformContract,
   operationStorage,
 }: UseSelfLoanOptions) {
   // ── Helpers ──────────────────────────────────────────────────────────
   const fmt = (n: number, d = 2) => formatNumber(n, d);
+  const platformMode = app.platformDeFi.available;
 
   // ── Core state ───────────────────────────────────────────────────────
   const isLoading = createObservable(false);
@@ -298,6 +306,7 @@ export function useSelfLoan({
   const selectedTier = createObservable(1);
   const loan = createObservable<Loan>({ borrowed: 0, collateralLocked: 0, active: false });
   const loanBorrowedBase = createObservable(0n);
+  const activeLoanId = createObservable(0n);
   const collateralAmount = createObservable<string>("");
 
   /** Reclaimable NEO collateral-credit (deposited, never borrowed) — WHOLE NEO. */
@@ -327,6 +336,7 @@ export function useSelfLoan({
       gasBalanceBase.set(0n);
       loan.set({ borrowed: 0, collateralLocked: 0, active: false });
       loanBorrowedBase.set(0n);
+      activeLoanId.set(0n);
       collateralCredit.set(0);
       repayCredit.set(0);
       balancesStatus.set(next ? "loading" : "awaiting-wallet");
@@ -625,19 +635,29 @@ export function useSelfLoan({
       if (expectedLaunch && expectedLaunch !== detected) {
         throw new Error(t("runtimeNetworkMismatch"));
       }
-      const expected = SELF_LOAN_BINDINGS[detected];
-      if (contract !== normalizeScriptHash(expected.contract)) {
-        throw new Error(t("runtimeBindingMismatch"));
-      }
-      if (attestContract) {
-        const attestation = await attestContract(detected, contract);
+      if (platformMode) {
+        if (!attestPlatformContract) throw new Error(t("runtimeBindingMismatch"));
+        const attestation = await attestPlatformContract(detected, contract);
         if (!attestation.compatible) throw new Error(t("runtimeBindingMismatch"));
+        const profile = await app.platformDeFi.getLendingProfile();
+        if (profile !== PLATFORM_SELF_LOAN_PROFILE) {
+          throw new Error(t("runtimeBindingMismatch"));
+        }
         runtimeChecksum.set(attestation.checksum);
-        repayRecoveryAvailable.set(Boolean(attestation.repayRecoveryCompatible));
-      } else {
-        // Unit/integration hosts inject no RPC attester; preserve the legacy
-        // complete-capability fixture while production always injects one.
         repayRecoveryAvailable.set(true);
+      } else {
+        const expected = SELF_LOAN_BINDINGS[detected];
+        if (contract !== normalizeScriptHash(expected.contract)) {
+          throw new Error(t("runtimeBindingMismatch"));
+        }
+        if (attestContract) {
+          const attestation = await attestContract(detected, contract);
+          if (!attestation.compatible) throw new Error(t("runtimeBindingMismatch"));
+          runtimeChecksum.set(attestation.checksum);
+          repayRecoveryAvailable.set(Boolean(attestation.repayRecoveryCompatible));
+        } else {
+          repayRecoveryAvailable.set(true);
+        }
       }
       activeNetwork.set(detected);
       runtimeCompatible.set(true);
@@ -654,14 +674,38 @@ export function useSelfLoan({
   const loadMarket = async (): Promise<boolean> => {
     marketStatus.set("loading");
     try {
-      const [t1Raw, t2Raw, t3Raw, feeRaw, priceRaw, poolRaw] = await Promise.all([
-        app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(1)]),
-        app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(2)]),
-        app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(3)]),
-        app.chain.readRaw("feeBps", []),
-        app.chain.readRaw("neoPrice", []),
-        app.chain.readRaw("pool", []),
-      ]);
+      let t1Raw: unknown;
+      let t2Raw: unknown;
+      let t3Raw: unknown;
+      let feeRaw: unknown;
+      let priceRaw: unknown;
+      let poolRaw: unknown;
+      if (platformMode) {
+        const [marketRaw, sharedPrice, sharedPool] = await Promise.all([
+          app.platformDeFi.getLendingStats(),
+          app.platformDeFi.getNeoGasPrice(),
+          app.platformDeFi.getLendingLiquidity(),
+        ]);
+        if (!marketRaw || typeof marketRaw !== "object" || Array.isArray(marketRaw)) {
+          throw new Error("Invalid shared lending stats");
+        }
+        const market = marketRaw as Record<string, unknown>;
+        t1Raw = market.ltvTier1Bps;
+        t2Raw = market.ltvTier2Bps;
+        t3Raw = market.ltvTier3Bps;
+        feeRaw = market.lendingFeeBps;
+        priceRaw = sharedPrice;
+        poolRaw = sharedPool;
+      } else {
+        [t1Raw, t2Raw, t3Raw, feeRaw, priceRaw, poolRaw] = await Promise.all([
+          app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(1)]),
+          app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(2)]),
+          app.chain.readRaw("ltvTierBps", [app.chain.arg.integer(3)]),
+          app.chain.readRaw("feeBps", []),
+          app.chain.readRaw("neoPrice", []),
+          app.chain.readRaw("pool", []),
+        ]);
+      }
 
       const t1 = requireNonNegative(parseExactInteger(t1Raw, "tier 1 LTV"), "tier 1 LTV");
       const t2 = requireNonNegative(parseExactInteger(t2Raw, "tier 2 LTV"), "tier 2 LTV");
@@ -734,12 +778,15 @@ export function useSelfLoan({
     if (!hash) {
       loan.set({ borrowed: 0, collateralLocked: 0, active: false });
       loanBorrowedBase.set(0n);
+      activeLoanId.set(0n);
       positionStatus.set("awaiting-wallet");
       return false;
     }
     positionStatus.set("loading");
     try {
-      const raw = await app.chain.readRaw("getLoan", [app.chain.arg.hash160(hash)]);
+      const raw = platformMode
+        ? await app.platformDeFi.getSingleLoanPosition(hash)
+        : await app.chain.readRaw("getLoan", [app.chain.arg.hash160(hash)]);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
         throw new Error("Invalid loan position response");
       }
@@ -754,13 +801,18 @@ export function useSelfLoan({
         "loan debt",
       );
       const ltvBps = requireNonNegative(parseExactInteger(data.ltvBps, "loan LTV"), "loan LTV");
+      const loanId = platformMode
+        ? requireNonNegative(parseExactInteger(data.loanId, "loan id"), "loan id")
+        : 0n;
       if (active && (collateral <= 0n || borrowed <= 0n || ltvBps <= 0n || ltvBps > 10_000n)) {
         throw new Error("Invalid active loan position");
       }
+      if (platformMode && active && loanId <= 0n) throw new Error("Invalid active loan id");
       if (collateral > BigInt(Number.MAX_SAFE_INTEGER)) {
         throw new Error("Loan collateral exceeds safe display range");
       }
       loanBorrowedBase.set(active ? borrowed : 0n);
+      activeLoanId.set(active ? loanId : 0n);
       loan.set({
         borrowed: active ? gasFromBaseUnits(borrowed) : 0,
         collateralLocked: active ? Number(collateral) : 0,
@@ -790,10 +842,15 @@ export function useSelfLoan({
     }
     recoveryStatus.set("loading");
     try {
-      const [collateralRaw, repayRaw] = await Promise.all([
-        app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
-        app.chain.readRaw("repayCreditOf", [app.chain.arg.hash160(hash)]),
-      ]);
+      const [collateralRaw, repayRaw] = platformMode
+        ? await Promise.all([
+            app.platformDeFi.neoCreditOf(hash),
+            app.platformDeFi.gasCreditOf(hash),
+          ])
+        : await Promise.all([
+            app.chain.readRaw("collateralCreditOf", [app.chain.arg.hash160(hash)]),
+            app.chain.readRaw("repayCreditOf", [app.chain.arg.hash160(hash)]),
+          ]);
       const collateral = requireNonNegative(
         parseExactInteger(collateralRaw, "collateral credit"),
         "collateral credit",
@@ -817,11 +874,25 @@ export function useSelfLoan({
   const loadStats = async (): Promise<boolean> => {
     statsStatus.set("loading");
     try {
-      const [loansRaw, borrowedRaw, repaidRaw] = await Promise.all([
-        app.chain.readRaw("totalLoans", []),
-        app.chain.readRaw("totalBorrowed", []),
-        app.chain.readRaw("totalRepaid", []),
-      ]);
+      let loansRaw: unknown;
+      let borrowedRaw: unknown;
+      let repaidRaw: unknown;
+      if (platformMode) {
+        const statsRaw = await app.platformDeFi.getLendingStats();
+        if (!statsRaw || typeof statsRaw !== "object" || Array.isArray(statsRaw)) {
+          throw new Error("Invalid shared lending stats");
+        }
+        const shared = statsRaw as Record<string, unknown>;
+        loansRaw = shared.totalLoans;
+        borrowedRaw = shared.totalDebt;
+        repaidRaw = shared.totalRepaid;
+      } else {
+        [loansRaw, borrowedRaw, repaidRaw] = await Promise.all([
+          app.chain.readRaw("totalLoans", []),
+          app.chain.readRaw("totalBorrowed", []),
+          app.chain.readRaw("totalRepaid", []),
+        ]);
+      }
       const loans = requireNonNegative(parseExactInteger(loansRaw, "total loans"), "total loans");
       const borrowed = requireNonNegative(
         parseExactInteger(borrowedRaw, "total borrowed"),
@@ -878,7 +949,11 @@ export function useSelfLoan({
   };
 
   const readCreditExact = async (hash: string, operation: "collateralCreditOf" | "repayCreditOf") => {
-    const raw = await app.chain.readRaw(operation, [app.chain.arg.hash160(hash)]);
+    const raw = platformMode
+      ? operation === "collateralCreditOf"
+        ? await app.platformDeFi.neoCreditOf(hash)
+        : await app.platformDeFi.gasCreditOf(hash)
+      : await app.chain.readRaw(operation, [app.chain.arg.hash160(hash)]);
     return requireNonNegative(parseExactInteger(raw, operation), operation);
   };
 
@@ -904,6 +979,9 @@ export function useSelfLoan({
     }
   };
 
+  const eventStringMatches = (event: unknown, index: number, expected: string): boolean =>
+    String(eventValue(event, index) ?? "").trim() === expected;
+
   const eventMatchesOperation = (
     event: unknown,
     operation: PendingSelfLoanOperation,
@@ -916,6 +994,39 @@ export function useSelfLoan({
       row.tx_hash ?? row.txid ?? row.transaction_hash ?? row.transactionHash,
     );
     if (eventTxid && eventTxid !== normalizeTxid(operation.txid)) return false;
+    if (platformMode) {
+      if (!eventStringMatches(event, 0, PLATFORM_APP_ID)) return false;
+      if (operation.phase === "collateral-deposit" || operation.phase === "repay-deposit") {
+        const asset = operation.phase === "collateral-deposit" ? NEO_HASH : GAS_HASH;
+        return eventBorrowerMatches(eventValue(event, 1), operation.borrower)
+          && eventBorrowerMatches(eventValue(event, 2), asset)
+          && eventIntegerMatches(event, 3, operation.eventAmountBase);
+      }
+      if (operation.phase === "reclaim-collateral" || operation.phase === "reclaim-repay") {
+        const asset = operation.phase === "reclaim-collateral" ? NEO_HASH : GAS_HASH;
+        return eventBorrowerMatches(eventValue(event, 1), operation.borrower)
+          && eventBorrowerMatches(eventValue(event, 2), asset)
+          && eventIntegerMatches(event, 3, operation.eventAmountBase);
+      }
+      if (operation.phase === "borrow") {
+        return eventBorrowerMatches(eventValue(event, 2), operation.borrower)
+          && eventIntegerMatches(event, 3, operation.expectedCollateralBase ?? "")
+          && eventIntegerMatches(event, 4, operation.expectedDisbursedBase ?? "");
+      }
+      if (
+        operation.expectedLoanId
+        && !eventIntegerMatches(event, 1, operation.expectedLoanId)
+      ) return false;
+      if (operation.phase === "collateral-add") {
+        return eventIntegerMatches(event, 2, operation.eventAmountBase)
+          && eventIntegerMatches(event, 3, operation.expectedCollateralBase ?? "");
+      }
+      if (operation.phase === "repay") {
+        return eventIntegerMatches(event, 2, operation.eventAmountBase)
+          && eventIntegerMatches(event, 3, operation.expectedDebtBase ?? "");
+      }
+      return true;
+    }
     if (!eventBorrowerMatches(eventValue(event, 0), operation.borrower)) return false;
     if (!eventIntegerMatches(event, 1, operation.eventAmountBase)) return false;
 
@@ -941,12 +1052,17 @@ export function useSelfLoan({
   };
 
   const readLoanExact = async (borrowerHash: string) => {
-    const raw = await app.chain.readRaw("getLoan", [app.chain.arg.hash160(borrowerHash)]);
+    const raw = platformMode
+      ? await app.platformDeFi.getSingleLoanPosition(borrowerHash)
+      : await app.chain.readRaw("getLoan", [app.chain.arg.hash160(borrowerHash)]);
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       throw new Error("Invalid loan readback");
     }
     const row = raw as Record<string, unknown>;
     return {
+      loanId: platformMode
+        ? requireNonNegative(parseExactInteger(row.loanId, "loan id readback"), "loan id readback")
+        : 0n,
       active: parseExactBoolean(row.active, "loan active readback"),
       collateral: requireNonNegative(
         parseExactInteger(row.collateral, "loan collateral readback"),
@@ -983,6 +1099,11 @@ export function useSelfLoan({
       }
 
       const live = await readLoanExact(operation.borrower);
+      if (
+        operation.expectedLoanId
+        && !(operation.phase === "repay" && operation.expectedDebtBase === "0")
+        && live.loanId.toString() !== operation.expectedLoanId
+      ) return false;
       if (operation.phase === "borrow") {
         return live.active
           && live.collateral.toString() === operation.expectedCollateralBase
@@ -1042,21 +1163,27 @@ export function useSelfLoan({
     pendingConfirmation.set("");
   };
 
-  const invokeTracked = async (
-    operationName: string,
-    args: Parameters<typeof app.chain.invoke>[1],
-    options: { scriptHash?: string; waitForEvent: string },
+  const invokeTrackedRun = async (
+    run: (onTransactionSent: (txid: string) => void) =>
+      Promise<{
+        txid: string;
+        success?: boolean;
+        event?: unknown;
+        verified?: boolean;
+      }>,
     draft: PendingSelfLoanDraft,
     pendingKey: string,
   ): Promise<ActionOutcome> => {
     let broadcast: PendingSelfLoanOperation | null = null;
-    let result: Awaited<ReturnType<typeof app.chain.invoke>>;
+    let result: {
+      txid: string;
+      success?: boolean;
+      event?: unknown;
+      verified?: boolean;
+    };
     try {
-      result = await app.chain.invoke(operationName, args, {
-        ...options,
-        onTransactionSent: (txid) => {
-          broadcast = persistBroadcast(draft, txid);
-        },
+      result = await run((txid) => {
+        broadcast = persistBroadcast(draft, txid);
       });
     } catch (error) {
       if (broadcast || pendingOperation.get()) {
@@ -1077,24 +1204,38 @@ export function useSelfLoan({
     return "confirmed";
   };
 
+  const invokeTracked = async (
+    operationName: string,
+    args: Parameters<typeof app.chain.invoke>[1],
+    options: { scriptHash?: string; waitForEvent: string },
+    draft: PendingSelfLoanDraft,
+    pendingKey: string,
+  ): Promise<ActionOutcome> => invokeTrackedRun(
+    (onTransactionSent) => app.chain.invoke(operationName, args, {
+      ...options,
+      onTransactionSent,
+    }),
+    draft,
+    pendingKey,
+  );
+
   /**
    * Atomic transfer + repay. This avoids creating a new standalone GAS credit
    * on the published v1 generation, whose manifest omits a confirmation event
    * for withdrawRepayCredit. If either script faults, the whole Neo transaction
    * reverts; the exact Repaid event and readback still gate success.
    */
-  const invokeTrackedBatch = async (
-    calls: Parameters<typeof app.chain.invokeMultiple>[0],
+  const invokeTrackedBatchRun = async (
+    run: (onTransactionSent: (txid: string) => void) =>
+      Promise<{ txid: string; success?: boolean }>,
     draft: PendingSelfLoanDraft,
     pendingKey: string,
   ): Promise<ActionOutcome> => {
     let broadcast: PendingSelfLoanOperation | null = null;
-    let result: Awaited<ReturnType<typeof app.chain.invokeMultiple>>;
+    let result: { txid: string; success?: boolean };
     try {
-      result = await app.chain.invokeMultiple(calls, {
-        onTransactionSent: (txid) => {
-          broadcast = persistBroadcast(draft, txid);
-        },
+      result = await run((txid) => {
+        broadcast = persistBroadcast(draft, txid);
       });
     } catch (error) {
       if (broadcast || pendingOperation.get()) {
@@ -1117,6 +1258,16 @@ export function useSelfLoan({
     clearPending(tracked);
     return "confirmed";
   };
+
+  const invokeTrackedBatch = async (
+    calls: Parameters<typeof app.chain.invokeMultiple>[0],
+    draft: PendingSelfLoanDraft,
+    pendingKey: string,
+  ): Promise<ActionOutcome> => invokeTrackedBatchRun(
+    (onTransactionSent) => app.chain.invokeMultiple(calls, { onTransactionSent }),
+    draft,
+    pendingKey,
+  );
 
   const recoverPendingOperation = async (): Promise<boolean> => {
     const borrowerHash = myHash();
@@ -1223,24 +1374,34 @@ export function useSelfLoan({
     let depositSettled = false;
     try {
       if (shortfall > 0n) {
-        const depositOutcome = await invokeTracked(
-          "transfer",
-          [
-            app.chain.arg.hash160(hash),
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(shortfall),
-            app.chain.arg.string(COLLATERAL_MEMO),
-          ],
-          { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
-          {
-            ...scope,
-            phase: "collateral-deposit",
-            eventName: "CollateralCredited",
-            eventAmountBase: shortfall.toString(),
-            expectedCreditBase: neoInt.toString(),
-          },
-          "collateralDepositPending",
-        );
+        const depositDraft: PendingSelfLoanDraft = {
+          ...scope,
+          phase: "collateral-deposit",
+          eventName: platformMode ? "CreditDeposited" : "CollateralCredited",
+          eventAmountBase: shortfall.toString(),
+          expectedCreditBase: neoInt.toString(),
+        };
+        const depositOutcome = platformMode
+          ? await invokeTrackedRun(
+              (onTransactionSent) => app.platformDeFi.depositNeo(shortfall, hash, {
+                waitForEvent: "CreditDeposited",
+                onTransactionSent,
+              }),
+              depositDraft,
+              "collateralDepositPending",
+            )
+          : await invokeTracked(
+              "transfer",
+              [
+                app.chain.arg.hash160(hash),
+                app.chain.arg.hash160(contractHash),
+                app.chain.arg.integer(shortfall),
+                app.chain.arg.string(COLLATERAL_MEMO),
+              ],
+              { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
+              depositDraft,
+              "collateralDepositPending",
+            );
         if (depositOutcome === "pending") {
           await loadAll();
           return "pending";
@@ -1250,22 +1411,34 @@ export function useSelfLoan({
 
       let outcome: ActionOutcome;
       try {
-        outcome = await invokeTracked(
-          "borrow",
-          [app.chain.arg.hash160(hash), app.chain.arg.integer(selectedTier.get())],
-          { waitForEvent: "LoanTaken" },
-          {
-            ...scope,
-            phase: "borrow",
-            eventName: "LoanTaken",
-            eventAmountBase: neoInt.toString(),
-            expectedCollateralBase: neoInt.toString(),
-            expectedDebtBase: grossBase.toString(),
-            expectedLtvBps: String(tierBps),
-            expectedDisbursedBase: disbursedBase.toString(),
-          },
-          "loanPendingConfirmation",
-        );
+        const borrowDraft: PendingSelfLoanDraft = {
+          ...scope,
+          phase: "borrow",
+          eventName: platformMode ? "LoanCreated" : "LoanTaken",
+          eventAmountBase: neoInt.toString(),
+          expectedCollateralBase: neoInt.toString(),
+          expectedDebtBase: grossBase.toString(),
+          expectedLtvBps: String(tierBps),
+          expectedDisbursedBase: disbursedBase.toString(),
+        };
+        outcome = platformMode
+          ? await invokeTrackedRun(
+              (onTransactionSent) => app.platformDeFi.createLoan({
+                borrower: hash,
+                ltvTier: selectedTier.get(),
+                collateralAmount: neoInt,
+                options: { waitForEvent: "LoanCreated", onTransactionSent },
+              }),
+              borrowDraft,
+              "loanPendingConfirmation",
+            )
+          : await invokeTracked(
+              "borrow",
+              [app.chain.arg.hash160(hash), app.chain.arg.integer(selectedTier.get())],
+              { waitForEvent: "LoanTaken" },
+              borrowDraft,
+              "loanPendingConfirmation",
+            );
       } catch (borrowError) {
         if (depositSettled) throw new Error(t("collateralCreditHeld"));
         // messageOf keeps chain/RPC failures on the localized family copy
@@ -1338,6 +1511,7 @@ export function useSelfLoan({
     const { hash } = await ensureWalletSnapshot();
     await requireManageSnapshot();
     if (!loan.get().active) throw new Error(t("noActiveLoan"));
+    if (platformMode && activeLoanId.get() <= 0n) throw new Error(t("criticalDataUnavailable"));
     const scope = operationScope(hash);
 
     const credit = await readCreditExact(hash, "collateralCreditOf");
@@ -1358,24 +1532,34 @@ export function useSelfLoan({
     let depositSettled = false;
     try {
       if (shortfall > 0n) {
-        const depositOutcome = await invokeTracked(
-          "transfer",
-          [
-            app.chain.arg.hash160(hash),
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(shortfall),
-            app.chain.arg.string(COLLATERAL_MEMO),
-          ],
-          { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
-          {
-            ...scope,
-            phase: "collateral-deposit",
-            eventName: "CollateralCredited",
-            eventAmountBase: shortfall.toString(),
-            expectedCreditBase: neoInt.toString(),
-          },
-          "collateralDepositPending",
-        );
+        const depositDraft: PendingSelfLoanDraft = {
+          ...scope,
+          phase: "collateral-deposit",
+          eventName: platformMode ? "CreditDeposited" : "CollateralCredited",
+          eventAmountBase: shortfall.toString(),
+          expectedCreditBase: neoInt.toString(),
+        };
+        const depositOutcome = platformMode
+          ? await invokeTrackedRun(
+              (onTransactionSent) => app.platformDeFi.depositNeo(shortfall, hash, {
+                waitForEvent: "CreditDeposited",
+                onTransactionSent,
+              }),
+              depositDraft,
+              "collateralDepositPending",
+            )
+          : await invokeTracked(
+              "transfer",
+              [
+                app.chain.arg.hash160(hash),
+                app.chain.arg.hash160(contractHash),
+                app.chain.arg.integer(shortfall),
+                app.chain.arg.string(COLLATERAL_MEMO),
+              ],
+              { scriptHash: NEO_HASH, waitForEvent: "CollateralCredited" },
+              depositDraft,
+              "collateralDepositPending",
+            );
         if (depositOutcome === "pending") {
           await loadAll();
           return "pending";
@@ -1385,20 +1569,32 @@ export function useSelfLoan({
 
       let outcome: ActionOutcome;
       try {
-        outcome = await invokeTracked(
-          "addCollateral",
-          [app.chain.arg.hash160(hash)],
-          { waitForEvent: "CollateralAdded" },
-          {
-            ...scope,
-            phase: "collateral-add",
-            eventName: "CollateralAdded",
-            eventAmountBase: neoInt.toString(),
-            expectedCollateralBase: (BigInt(Math.trunc(loan.get().collateralLocked)) + neoInt).toString(),
-            expectedDebtBase: loanBorrowedBase.get().toString(),
-          },
-          "collateralAddPendingConfirmation",
-        );
+        const addDraft: PendingSelfLoanDraft = {
+          ...scope,
+          phase: "collateral-add",
+          eventName: "CollateralAdded",
+          eventAmountBase: neoInt.toString(),
+          expectedCollateralBase: (BigInt(Math.trunc(loan.get().collateralLocked)) + neoInt).toString(),
+          expectedDebtBase: loanBorrowedBase.get().toString(),
+          ...(platformMode ? { expectedLoanId: activeLoanId.get().toString() } : {}),
+        };
+        outcome = platformMode
+          ? await invokeTrackedRun(
+              (onTransactionSent) => app.platformDeFi.addCollateral(
+                activeLoanId.get(),
+                neoInt,
+                { waitForEvent: "CollateralAdded", onTransactionSent },
+              ),
+              addDraft,
+              "collateralAddPendingConfirmation",
+            )
+          : await invokeTracked(
+              "addCollateral",
+              [app.chain.arg.hash160(hash)],
+              { waitForEvent: "CollateralAdded" },
+              addDraft,
+              "collateralAddPendingConfirmation",
+            );
       } catch (addError) {
         if (depositSettled || credit > 0n) throw new Error(t("collateralCreditHeld"));
         // messageOf keeps chain/RPC failures on the localized family copy
@@ -1439,6 +1635,7 @@ export function useSelfLoan({
     await requireManageSnapshot();
     const outstanding = loan.get().borrowed;
     if (!loan.get().active || loanBorrowedBase.get() <= 0n) throw new Error(t("repayNoActiveLoan"));
+    if (platformMode && activeLoanId.get() <= 0n) throw new Error(t("criticalDataUnavailable"));
     if (baseAmount > loanBorrowedBase.get()) {
       throw new Error(t("repayExceedsDebt", { amount: fmt(outstanding) }));
     }
@@ -1460,35 +1657,51 @@ export function useSelfLoan({
       const shortfall = baseAmount - credit;
       if (shortfall > gasBalanceBase.get()) throw new Error(t("insufficientGas"));
       assertDurableRecovery(scope);
-      const calls: Parameters<typeof app.chain.invokeMultiple>[0] = [];
-      if (shortfall > 0n) {
+      const repayDraft: PendingSelfLoanDraft = {
+        ...scope,
+        phase: "repay",
+        eventName: platformMode ? "LoanRepaid" : "Repaid",
+        eventAmountBase: baseAmount.toString(),
+        expectedDebtBase: (loanBorrowedBase.get() - baseAmount).toString(),
+        expectedCollateralBase: String(Math.trunc(loan.get().collateralLocked)),
+        ...(platformMode ? { expectedLoanId: activeLoanId.get().toString() } : {}),
+      };
+      let outcome: ActionOutcome;
+      if (platformMode) {
+        outcome = await invokeTrackedBatchRun(
+          (onTransactionSent) => app.platformDeFi.repayLoanWithGasDeposit({
+            loanId: activeLoanId.get(),
+            depositAmount: shortfall,
+            payer: hash,
+            options: { onTransactionSent },
+          }),
+          repayDraft,
+          "repayPendingConfirmation",
+        );
+      } else {
+        const calls: Parameters<typeof app.chain.invokeMultiple>[0] = [];
+        if (shortfall > 0n) {
+          calls.push({
+            scriptHash: GAS_HASH,
+            operation: "transfer",
+            args: [
+              app.chain.arg.hash160(hash),
+              app.chain.arg.hash160(contractHash),
+              app.chain.arg.integer(shortfall),
+              app.chain.arg.string(REPAY_MEMO),
+            ],
+          });
+        }
         calls.push({
-          scriptHash: GAS_HASH,
-          operation: "transfer",
-          args: [
-            app.chain.arg.hash160(hash),
-            app.chain.arg.hash160(contractHash),
-            app.chain.arg.integer(shortfall),
-            app.chain.arg.string(REPAY_MEMO),
-          ],
+          operation: "repay",
+          args: [app.chain.arg.hash160(hash)],
         });
+        outcome = await invokeTrackedBatch(
+          calls,
+          repayDraft,
+          "repayPendingConfirmation",
+        );
       }
-      calls.push({
-        operation: "repay",
-        args: [app.chain.arg.hash160(hash)],
-      });
-      const outcome = await invokeTrackedBatch(
-        calls,
-        {
-          ...scope,
-          phase: "repay",
-          eventName: "Repaid",
-          eventAmountBase: baseAmount.toString(),
-          expectedDebtBase: (loanBorrowedBase.get() - baseAmount).toString(),
-          expectedCollateralBase: String(Math.trunc(loan.get().collateralLocked)),
-        },
-        "repayPendingConfirmation",
-      );
       await loadAll();
       if (outcome === "pending") return outcome;
       repayOkNonce.set(repayOkNonce.get() + 1);
@@ -1515,19 +1728,30 @@ export function useSelfLoan({
 
     isProcessing.set(true);
     try {
-      const outcome = await invokeTracked(
-        "withdraw",
-        [app.chain.arg.hash160(hash)],
-        { waitForEvent: "CollateralWithdrawn" },
-        {
-          ...scope,
-          phase: "reclaim-collateral",
-          eventName: "CollateralWithdrawn",
-          eventAmountBase: credit.toString(),
-          expectedCreditBase: "0",
-        },
-        "recoveryPendingConfirmation",
-      );
+      const draft: PendingSelfLoanDraft = {
+        ...scope,
+        phase: "reclaim-collateral",
+        eventName: platformMode ? "CreditWithdrawn" : "CollateralWithdrawn",
+        eventAmountBase: credit.toString(),
+        expectedCreditBase: "0",
+      };
+      const outcome = platformMode
+        ? await invokeTrackedRun(
+            (onTransactionSent) => app.platformDeFi.withdrawNeoCredit(
+              credit,
+              hash,
+              { waitForEvent: "CreditWithdrawn", onTransactionSent },
+            ),
+            draft,
+            "recoveryPendingConfirmation",
+          )
+        : await invokeTracked(
+            "withdraw",
+            [app.chain.arg.hash160(hash)],
+            { waitForEvent: "CollateralWithdrawn" },
+            draft,
+            "recoveryPendingConfirmation",
+          );
       await loadAll();
       return outcome;
     } finally {
@@ -1553,19 +1777,30 @@ export function useSelfLoan({
 
     isProcessing.set(true);
     try {
-      const outcome = await invokeTracked(
-        "withdrawRepayCredit",
-        [app.chain.arg.hash160(hash)],
-        { waitForEvent: "RepayCreditWithdrawn" },
-        {
-          ...scope,
-          phase: "reclaim-repay",
-          eventName: "RepayCreditWithdrawn",
-          eventAmountBase: credit.toString(),
-          expectedCreditBase: "0",
-        },
-        "recoveryPendingConfirmation",
-      );
+      const draft: PendingSelfLoanDraft = {
+        ...scope,
+        phase: "reclaim-repay",
+        eventName: platformMode ? "CreditWithdrawn" : "RepayCreditWithdrawn",
+        eventAmountBase: credit.toString(),
+        expectedCreditBase: "0",
+      };
+      const outcome = platformMode
+        ? await invokeTrackedRun(
+            (onTransactionSent) => app.platformDeFi.withdrawGasCredit(
+              credit,
+              hash,
+              { waitForEvent: "CreditWithdrawn", onTransactionSent },
+            ),
+            draft,
+            "recoveryPendingConfirmation",
+          )
+        : await invokeTracked(
+            "withdrawRepayCredit",
+            [app.chain.arg.hash160(hash)],
+            { waitForEvent: "RepayCreditWithdrawn" },
+            draft,
+            "recoveryPendingConfirmation",
+          );
       await loadAll();
       return outcome;
     } finally {
@@ -1646,6 +1881,8 @@ export function useSelfLoan({
     repayRecoveryAvailable,
     activeNetwork,
     runtimeChecksum,
+    platformMode,
+    activeLoanId,
     hasActiveLoan,
     borrowOkNonce,
     repayOkNonce,

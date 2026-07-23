@@ -28,6 +28,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? createLoan(string appId, UInt160 borrower, BigInteger ltvTier, BigInteger collateralAmount);
         public abstract void repayLoan(string appId, BigInteger loanId);
         public abstract void withdrawLendingLiquidity(string appId, UInt160 to, BigInteger amount);
+        public abstract BigInteger? getTotalLendingFees(string appId);
+        public abstract void withdrawLendingFees(string appId, UInt160 to);
 
         // FlashLoan
         public abstract void flashDeposit(string appId, UInt160 depositor, BigInteger amount);
@@ -146,10 +148,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             BigInteger loanId = defi.createLoan("app-lend", alice, 1, 10) ?? 0;
             Assert.True(loanId > 0);
 
-            // Lending pool dropped by exactly the NET disbursed (fee stays as revenue).
-            BigInteger expectedLiquidity = 100 * GAS - net;
+            // Lending liquidity excludes the retained fee because that amount is
+            // separately withdrawable protocol revenue.
+            BigInteger expectedLiquidity = 100 * GAS - grossLoan;
             Assert.Equal(expectedLiquidity, defi.getLendingLiquidity("app-lend"));
             Assert.Equal(aliceGasBefore + net, engine.Native.GAS.BalanceOf(alice));
+            Assert.Equal(fee, defi.getTotalLendingFees("app-lend"));
 
             // Repay full gross debt (10 GAS) -> liquidity refilled by the repaid GAS.
             // Fund alice with enough GAS to cover the gross debt (she only received net).
@@ -158,6 +162,44 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             engine.Native.GAS.Transfer(alice, defi.Hash, grossLoan, "app-lend:credit");
             defi.repayLoan("app-lend", loanId);
             Assert.Equal(expectedLiquidity + grossLoan, defi.getLendingLiquidity("app-lend"));
+        }
+
+        [Fact]
+        public void Lending_FeeSweepCannotLeaveLiquidityOverstated()
+        {
+            var engine = new TestEngine(true);
+            var (defi, admin) = Deploy(engine);
+
+            engine.SetTransactionSigners(admin);
+            defi.registerProduct("app-lend", Lending, admin, null);
+            defi.setNeoGasPrice("app-lend", 5 * GAS);
+
+            FundGas(engine, admin, 200 * GAS);
+            engine.SetTransactionSigners(admin);
+            engine.Native.GAS.Transfer(admin, defi.Hash, 100 * GAS, "app-lend:credit");
+            defi.lendingDeposit("app-lend", admin, 100 * GAS);
+
+            var alice = TestEngine.GetNewSigner().Account;
+            FundNeo(engine, alice, 100);
+            engine.SetTransactionSigners(alice);
+            engine.Native.NEO.Transfer(alice, defi.Hash, 10, "app-lend:credit");
+
+            BigInteger grossLoan = 10 * GAS;
+            BigInteger fee = grossLoan * 50 / 10000;
+            defi.createLoan("app-lend", alice, 1, 10);
+
+            Assert.Equal(new BigInteger(90 * GAS), defi.getLendingLiquidity("app-lend"));
+            Assert.Equal(fee, defi.getTotalLendingFees("app-lend"));
+
+            engine.SetTransactionSigners(admin);
+            BigInteger before = engine.Native.GAS.BalanceOf(admin) ?? 0;
+            defi.withdrawLendingFees("app-lend", admin);
+
+            Assert.Equal(before + fee, engine.Native.GAS.BalanceOf(admin));
+            Assert.Equal(BigInteger.Zero, defi.getTotalLendingFees("app-lend"));
+            Assert.Equal(new BigInteger(90 * GAS), defi.getLendingLiquidity("app-lend"));
+            Assert.ThrowsAny<Exception>(() =>
+                defi.withdrawLendingLiquidity("app-lend", admin, 90 * GAS + 1));
         }
 
         [Fact]

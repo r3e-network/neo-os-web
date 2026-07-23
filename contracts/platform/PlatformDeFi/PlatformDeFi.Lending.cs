@@ -46,6 +46,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(borrower), "unauthorized");
             ValidateAddress(borrower);
             ExecutionEngine.Assert(collateralAmount >= MIN_COLLATERAL, "min 1 NEO collateral");
+            EnsureLendingProfileCanOpenLoan(appId, borrower);
 
             BigInteger neoAmount = collateralAmount;
             ConsumeNeoCredit(appId, borrower, collateralAmount);
@@ -92,6 +93,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Active = true
             };
             StoreLoan(appId, loanId, loan);
+            TrackLendingProfileLoan(appId, borrower, loanId);
             AddUserLoan(appId, borrower, loanId);
             UpdateTotalCollateral(appId, neoAmount, true);
             UpdateTotalDebt(appId, loanAmount, true);
@@ -110,10 +112,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // is decremented here BEFORE the transfer. Without this the loan was paid
             // opportunistically from the contract's shared GAS balance, which could
             // strand FlashLoan LP principal (A10) or disburse with no backing (A12).
-            // The retained origination fee stays as protocol revenue (swept via
-            // WithdrawLendingFees) - only netLoan leaves the lending pool here.
+            // Liquidity decreases by the gross debt: netLoan leaves the contract and
+            // the retained fee is reserved as separately sweepable protocol revenue.
             DrawLendingLiquidity(appId, loanAmount);
-            if (fee > 0) RefillLendingLiquidity(appId, fee);
             TransferLoanGasToBorrower(appId, loanId, borrower, netLoan);
 
             OnLoanCreated(appId, loanId, borrower, neoAmount, netLoan);
@@ -228,6 +229,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             loan.Active = false;
             StoreLoan(appId, loanId, loan);
+            ClearLendingProfileLoan(appId, loan.Borrower, loanId);
             UpdateTotalCollateral(appId, loan.Collateral, false);
 
             ReturnLoanCollateralToBorrower(appId, loanId, loan);
