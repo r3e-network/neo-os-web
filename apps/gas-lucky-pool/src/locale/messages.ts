@@ -478,7 +478,10 @@ const appMessagesBase = {
   },
   guestSlots: { en: "tap to draw", zh: "点击抽奖" },
   guestRangeDefault: { en: "Luck draw", zh: "幸运抽奖" },
-  guestEyebrow: { en: "Lucky Draw", zh: "幸运抽奖" },
+  guestEyebrow: {
+    en: "OneGate Vault · Lucky Draw",
+    zh: "OneGate 金库 · 幸运抽奖",
+  },
   guestTitle: { en: "Local Lucky Draw", zh: "本地幸运抽奖" },
   guestSubtitle: {
     en: "Practice your luck locally — pick a tier and draw for points. No GAS, no wallet needed.",
@@ -794,7 +797,7 @@ const jaMessages = {
   guestPackSummary: "1回 {min}-{max} pt",
   guestSlots: "タップで抽選",
   guestRangeDefault: "ラッキードロー",
-  guestEyebrow: "ラッキードロー",
+  guestEyebrow: "OneGate Vault · ラッキードロー",
   guestTitle: "ローカル・ラッキードロー",
   guestSubtitle:
     "ローカルで運試し — 段を選んでポイントを引こう。GASもウォレットも不要。",

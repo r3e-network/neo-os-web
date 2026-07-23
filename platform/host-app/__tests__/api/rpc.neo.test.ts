@@ -197,4 +197,47 @@ describe("/api/rpc/neo", () => {
     });
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  it("degrades read-only upstream failures into a JSON-RPC 200 error", async () => {
+    mockFetch.mockRejectedValue(new Error("network reset"));
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        network: "testnet",
+        method: "invokefunction",
+        params: ["0xabc", "balanceOf", []],
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toEqual({
+      jsonrpc: "2.0",
+      id: 1,
+      error: {
+        code: -32000,
+        message: "Neo RPC request failed",
+      },
+    });
+  });
+
+  it("keeps transaction relay transport failures as HTTP errors", async () => {
+    mockFetch.mockRejectedValue(new Error("network reset"));
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        network: "testnet",
+        method: "sendrawtransaction",
+        params: ["signed-tx"],
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(502);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: "Neo RPC request failed",
+    });
+  });
 });

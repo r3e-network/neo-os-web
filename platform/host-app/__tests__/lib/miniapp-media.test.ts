@@ -87,6 +87,26 @@ describe("miniapp-media helpers", () => {
       });
     });
 
+    it("keeps Curve Arrow on its source-bundled media path", () => {
+      expect(
+        getMiniAppPrimaryAssets(
+          "miniapp-curve-arrow",
+          "/miniapps/curve-arrow/index.html",
+        ),
+      ).toEqual({
+        logoURL: null,
+        bannerURL: null,
+      });
+
+      const sources = buildMiniAppLogoSources({
+        appID: "miniapp-curve-arrow",
+        entryURL: "/miniapps/curve-arrow/index.html",
+        logoURL: "/miniapps/curve-arrow/logo.webp",
+      });
+      expect(sources[0]).toBe("/miniapps/curve-arrow/logo.webp");
+      expect(sources).not.toContain("/miniapp-assets/curve-arrow/logo.webp");
+    });
+
     it.each(["arrow-escape", "bead-workshop", "fruit-funnel", "screw-sort"])(
       "resolves the %s migration to canonical host WebP and AVIF media",
       (slug) => {

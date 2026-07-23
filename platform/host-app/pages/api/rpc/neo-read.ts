@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { isNeoNetwork } from "@/lib/neo-network";
+import { handlePublicReadCors } from "@/lib/public-read-cors";
 
 const MAINNET_RPC_URL =
   process.env.NEO_MAINNET_RPC_URL || "https://api.n3index.dev/mainnet";
@@ -46,6 +47,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (handlePublicReadCors(req, res, { methods: ["POST"] })) return;
+
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;

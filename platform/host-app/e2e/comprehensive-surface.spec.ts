@@ -6,6 +6,7 @@ import {
   type APIRequestContext,
   type Page,
 } from "@playwright/test";
+import { isReadOnlyPostRequest } from "./read-only-request";
 
 type MiniAppManifest = {
   id?: string;
@@ -52,24 +53,6 @@ const SAFE_SURFACE_BUTTON =
 const MUTATING_OR_EXTERNAL_BUTTON =
   /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|connect|disconnect|delete|remove|rollback|publish|deploy|upload|import|export|download|submit miniapp|send email|verify email|performance monitor|monitoring dashboard|open builder|go back|stake|swap|claim|create|verify|request|finalize|repay|withdraw|add collateral|sync|issue)\b/i;
 
-const READ_ONLY_POST_ENDPOINTS = new Set([
-  "/api/rpc/neo-read",
-  // The host app uses POST for some read-only edge proxy calls; treat the
-  // unauthenticated OS read defaults as safe.
-  "/api/edge/os-badge-get-stat",
-  "/api/edge/os-badge-list",
-  "/api/edge/os-checkin-streak",
-  "/api/edge/os-escrow-get",
-  "/api/edge/os-game-status",
-  "/api/edge/os-leaderboard-get",
-  "/api/edge/os-nft-list",
-  "/api/edge/os-payment-balance",
-  "/api/edge/os-storage-get",
-  "/api/edge/os-storage-list",
-  "/api/edge/os-storage-read-shared",
-  "/api/edge/os-vesting-get",
-  "/api/edge/os-vesting-list",
-]);
 const ARCHIVED_MINIAPP_IDS = new Set([
   "miniapp-neoburger",
   "miniapp-neo-burger",
@@ -83,6 +66,93 @@ const NON_STANDARD_MINIAPP_DETAIL_LAYOUT = new Set([
 ]);
 const SURFACE_LOGS_ENABLED = process.env.SURFACE_LOGS === "1";
 const EXPECTED_ACTIVE_MINIAPP_COUNT = 77;
+const DEV_TIPPING_CONTRACT =
+  "0x6fdcf2ff29bde658cdcd9fddd082fe1813dd21ec";
+const PRIVATE_TRANSFER_ORACLE_CONTRACT =
+  "0xf54d8584ef82315c1800373272ab08ae0db2d5ef";
+const TEST_ORACLE_PUBLIC_KEY =
+  "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=";
+
+function devTippingContractState() {
+  const method = (
+    name: string,
+    parameters: string[],
+    returntype: string,
+    safe: boolean,
+  ) => ({
+    name,
+    parameters: parameters.map((type, index) => ({
+      name: `arg${index}`,
+      type,
+    })),
+    returntype,
+    safe,
+  });
+  const event = (name: string, parameters: string[]) => ({
+    name,
+    parameters: parameters.map((type, index) => ({
+      name: `arg${index}`,
+      type,
+    })),
+  });
+
+  return {
+    hash: DEV_TIPPING_CONTRACT,
+    updatecounter: 0,
+    nef: { checksum: 2_483_335_541 },
+    manifest: {
+      name: "MiniAppTipJar",
+      abi: {
+        methods: [
+          method(
+            "onNEP17Payment",
+            ["Hash160", "Integer", "Any"],
+            "Void",
+            false,
+          ),
+          method(
+            "registerDeveloper",
+            ["Hash160", "String", "String"],
+            "Integer",
+            false,
+          ),
+          method(
+            "tip",
+            ["Hash160", "Integer", "Integer", "Boolean"],
+            "Integer",
+            false,
+          ),
+          method("withdrawTips", ["Integer"], "Integer", false),
+          method("withdraw", ["Hash160"], "Integer", false),
+          method("totalDevelopers", [], "Integer", true),
+          method("totalDonated", [], "Integer", true),
+          method("tipsCount", [], "Integer", true),
+          method("minTip", [], "Integer", true),
+          method("creditOf", ["Hash160"], "Integer", true),
+          method("developerIdOf", ["Hash160"], "Integer", true),
+          method("getDeveloper", ["Integer"], "Map", true),
+        ],
+        events: [
+          event("Credited", ["Hash160", "Integer", "Integer"]),
+          event("DeveloperRegistered", [
+            "Integer",
+            "Hash160",
+            "String",
+          ]),
+          event("Tipped", [
+            "Integer",
+            "Integer",
+            "Hash160",
+            "Integer",
+            "Boolean",
+          ]),
+          event("TipsWithdrawn", ["Integer", "Hash160", "Integer"]),
+          event("CreditWithdrawn", ["Hash160", "Integer"]),
+        ],
+      },
+    },
+  };
+}
 
 function readMiniApps() {
   const apps: Array<{ id: string; name: string; slug: string }> = [];
@@ -209,6 +279,108 @@ async function disableMotion(page: Page) {
 }
 
 async function stubVolatileApiFeeds(page: Page) {
+  if (SURFACE_LOGS_ENABLED) {
+    page.context().on("request", (request) => {
+      if (request.method().toUpperCase() !== "GET") {
+        console.log(
+          `[surface] context request ${request.method().toUpperCase()} ${request.url()}`,
+        );
+      }
+    });
+  }
+  await page.context().route("**/api/rpc/neo", async (route) => {
+    let body: { method?: unknown; params?: unknown[] } = {};
+    try {
+      body = route.request().postDataJSON() as typeof body;
+    } catch {
+      await route.continue();
+      return;
+    }
+    const params = Array.isArray(body.params) ? body.params : [];
+    const contract = String(params[0] || "").toLowerCase();
+    const operation = String(params[1] || "");
+    if (SURFACE_LOGS_ENABLED && contract === DEV_TIPPING_CONTRACT) {
+      console.log(`[surface] Tip Jar bridge read ${operation || "<missing>"}`);
+    }
+    if (
+      body.method !== "invokefunction" ||
+      contract !== DEV_TIPPING_CONTRACT
+    ) {
+      await route.continue();
+      return;
+    }
+    const value =
+      operation === "minTip"
+        ? "100000"
+        : ["totalDevelopers", "totalDonated", "tipsCount"].includes(operation)
+          ? "0"
+          : null;
+    if (value === null) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          state: "HALT",
+          gasconsumed: "0",
+          stack: [{ type: "Integer", value }],
+        },
+      }),
+    });
+  });
+  await page.context().route("https://api.n3index.dev/testnet", async (route) => {
+    let body: { method?: unknown; params?: unknown[] } = {};
+    try {
+      body = route.request().postDataJSON() as typeof body;
+    } catch {
+      await route.continue();
+      return;
+    }
+    const contract = String(body.params?.[0] || "").toLowerCase();
+    if (SURFACE_LOGS_ENABLED) {
+      console.log(
+        `[surface] external RPC ${String(body.method || "<missing>")} ${contract || "<missing>"}`,
+      );
+    }
+    if (
+      body.method !== "getcontractstate" ||
+      contract !== DEV_TIPPING_CONTRACT
+    ) {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        result: devTippingContractState(),
+      }),
+    });
+  });
+  await page.route("**/api/morpheus/oracle/public-key?network=testnet", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({
+        network: "testnet",
+        source: "neo_n3_contract",
+        contract: PRIVATE_TRANSFER_ORACLE_CONTRACT,
+        rpc_url: "https://api.n3index.dev/testnet",
+        algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
+        public_key: TEST_ORACLE_PUBLIC_KEY,
+        public_key_format: "raw",
+      }),
+    }),
+  );
   await page.route("**/api/activity/events**", (route) =>
     route.fulfill({
       status: 200,
@@ -580,6 +752,49 @@ async function assertImagesLoad(page: Page, route: string) {
   expect(brokenImages, `${route} should not render broken images`).toEqual([]);
 }
 
+async function expectFocusModeDetailLayout(page: Page, appId: string) {
+  const layout = page.getByTestId("miniapp-detail-layout");
+  const playArea = page.getByTestId("miniapp-playarea");
+  const actionRail = page.getByTestId("miniapp-actions");
+  const mobileActionDock = page.getByTestId("mobile-action-dock");
+
+  await expect(layout).toBeVisible();
+  await expect(playArea).toBeVisible();
+  await expect(page.getByTestId("miniapp-list-rail")).toHaveCount(0);
+
+  const actionRailState = await layout.getAttribute("data-action-rail");
+  expect(
+    actionRailState,
+    `${appId} should declare whether its focus action rail is available`,
+  ).toMatch(/^(visible|hidden)$/);
+  const hasActionRail = actionRailState === "visible";
+  await expect(layout).toHaveJSProperty(
+    "children.length",
+    hasActionRail ? 2 : 1,
+  );
+
+  const desktop = (page.viewportSize()?.width ?? 0) >= 1280;
+  if (hasActionRail) {
+    if (desktop) {
+      await expect(actionRail).toBeVisible();
+      await expect(mobileActionDock).toBeHidden();
+    } else {
+      await expect(actionRail).toBeHidden();
+      await expect(mobileActionDock).toBeVisible();
+    }
+  } else {
+    await expect(actionRail).toHaveCount(0);
+    await expect(mobileActionDock).toHaveCount(0);
+  }
+
+  const referenceSummary = page
+    .locator("summary")
+    .filter({ hasText: "Reference and diagnostics" });
+  await expect(referenceSummary).toBeVisible();
+  await referenceSummary.click();
+  await expect(page.getByTestId("miniapp-info")).toBeVisible();
+}
+
 function attachErrorCapture(page: Page, failures: string[]) {
   page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
   page.on("console", (message) => {
@@ -601,14 +816,16 @@ function attachErrorCapture(page: Page, failures: string[]) {
   });
   page.on("request", (request) => {
     const method = request.method().toUpperCase();
+    if (SURFACE_LOGS_ENABLED && method !== "GET") {
+      console.log(`[surface] request ${method} ${request.url()}`);
+    }
     if (["GET", "HEAD", "OPTIONS"].includes(method)) return;
 
     try {
       const currentUrl = new URL(page.url());
       const requestUrl = new URL(request.url());
       if (requestUrl.origin === currentUrl.origin) {
-        const isReadOnlyPost = method === "POST" && READ_ONLY_POST_ENDPOINTS.has(requestUrl.pathname);
-        if (!isReadOnlyPost) {
+        if (!isReadOnlyPostRequest(request)) {
           failures.push(`mutating request ${method}: ${requestUrl.pathname}`);
         }
       }
@@ -686,28 +903,7 @@ test.describe("Comprehensive frontend surface", () => {
       const route = `/miniapps/${app.id}`;
       await gotoHealthy(page, route);
       if (!NON_STANDARD_MINIAPP_DETAIL_LAYOUT.has(app.id)) {
-        await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
-        await expect(page.getByTestId("miniapp-playarea")).toBeVisible();
-        await expect(page.getByTestId("miniapp-info")).toBeVisible();
-        await expect(page.getByTestId("miniapp-actions")).toBeVisible();
-        await expect(page.getByTestId("miniapp-detail-layout")).toHaveJSProperty(
-          "children.length",
-          3,
-        );
-        await expect(
-          page
-            .getByTestId("miniapp-list-rail")
-            .locator(`a[href="/miniapps/${app.id}"]`),
-          `${app.id} should appear in the shared miniapp list rail`,
-        ).toHaveCount(1);
-        const railLinkCount = await page
-          .getByTestId("miniapp-list-rail")
-          .locator("a")
-          .count();
-        expect(
-          railLinkCount,
-          `${app.id} should expose a populated shared miniapp list rail`,
-        ).toBeGreaterThan(1);
+        await expectFocusModeDetailLayout(page, app.id);
       }
       await expect(
         page.locator("body"),

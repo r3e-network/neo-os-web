@@ -38,6 +38,8 @@ describe("/api/rpc/neo-read", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe("POST,OPTIONS");
     expect(mockFetch).toHaveBeenCalledWith(
       "https://testnet.example",
       expect.objectContaining({ method: "POST" }),
@@ -113,6 +115,19 @@ describe("/api/rpc/neo-read", () => {
     expect(JSON.parse(res._getData())).toEqual({
       error: "network must be explicitly set to mainnet or testnet",
     });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("answers sandboxed iframe preflight without contacting RPC", async () => {
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "OPTIONS",
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(204);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe("POST,OPTIONS");
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });
