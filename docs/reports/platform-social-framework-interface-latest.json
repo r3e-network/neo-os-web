@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-07-23T02:03:54.294Z",
+  "generated_at_utc": "2026-07-23T03:08:47.888Z",
   "passed": true,
   "user_abi_method_count": 36,
   "framework_operation_count": 36,
@@ -97,7 +97,7 @@
   "deployment": {
     "kind": "undeployed",
     "status": "no-deployment-record",
-    "local_nef_checksum": 67671598,
+    "local_nef_checksum": 2068556140,
     "current_local_artifact_match": false
   },
   "boundary": "The framework covers the complete user-facing local PlatformSocial ABI, including tenant-scoped Notary and (appId,payer)-scoped GAS/NEO credits with native prepayment, tenant/global liability reads, and pause-immune exits. Timestamp Proof contains a guarded dual path that uses Notary only when an explicit shared PlatformSocial engine binding exists and otherwise preserves its current zero-GAS self-transfer receipt flow. PlatformSocial has no retained deployment record and configured production consumers remain zero; no app should add the shared binding until deployment, registration, compatibility, and lifecycle gates pass.",

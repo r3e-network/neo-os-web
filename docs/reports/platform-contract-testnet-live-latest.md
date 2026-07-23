@@ -1,6 +1,6 @@
 # Platform Contract Testnet Live Verification
 
-Generated: 2026-07-23T01:33:00.990Z
+Generated: 2026-07-23T03:10:46.183Z
 
 ## Summary
 
@@ -24,4 +24,4 @@ Generated: 2026-07-23T01:33:00.990Z
 | PlatformAnchor | contract | 0xab079b4f9a0a2471d136392e25eb8e99898dcad0 | 0x6d0656f6dd91469db1c90cc1e574380613f43738 | 1528462004 | 1604090204 | 0 | 0 | live-artifact-drift |
 | PlatformGame | contract | 0xc75b181b4561462903bb27d8d9e0b32b637bec12 | 0x13ef519c362973f9a34648a9eac5b71250b2a80a | 2377918952 | 2377918952 | 1 | 0 | live-artifact-match |
 | PlatformDeFi | contract | 0x39d4584ddb0731e48e611647931993ee033bf373 | 0x6d0656f6dd91469db1c90cc1e574380613f43738 | 3365527823 | 3687605410 | 0 | 26 | live-artifact-drift |
-| PlatformSocial | undeployed | none | n/a | 67671598 | n/a | n/a | n/a | no-deployment-record |
+| PlatformSocial | undeployed | none | n/a | 2068556140 | n/a | n/a | n/a | no-deployment-record |
