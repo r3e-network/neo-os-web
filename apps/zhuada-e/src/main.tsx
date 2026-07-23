@@ -395,8 +395,10 @@ async function boot(): Promise<void> {
         ...obs,
       },
       loadData: async () => {
-        // Guest is purely local: skip every chain read.
-        guest.enter();
+        // Guest is purely local: skip every chain read. Entering guest mode
+        // already opens the lobby synchronously; a late framework reload must
+        // never reset a run that the player started or resumed immediately.
+        if (!isPlaying.get()) guest.enter();
       },
     };
   },

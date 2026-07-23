@@ -1,8 +1,11 @@
 //go:build scripts
 
-// Register the cohort-0 roster — every apps/*/neo-manifest.json id — as
-// lite-tier directory rows on the PlatformRegistry (design doc
-// docs/platform-contract-library-v2.md §7 cohort 0, §3.1 registerApp).
+// Reconcile the cohort-0 roster — every apps/*/neo-manifest.json id — with
+// the PlatformRegistry. The default action registers missing lite-tier
+// directory rows; materialize-accounts plans or mints the canonical unique
+// AppAccount for each active row; materialize-abstract-accounts creates the
+// default shared UnifiedSmartWallet identity without deploying a per-app
+// contract (design doc docs/platform-contract-library-v2.md).
 //
 // Per appId: test-invoke getApp(appId) and skip when already registered
 // (idempotent); otherwise top up the signer's prepaid (appId, signer) GAS
@@ -24,16 +27,21 @@
 //     is rewritten after every batch so an interrupted run keeps the txids
 //     confirmed so far. The run aborts early only after 5 CONSECUTIVE app
 //     failures (the signature of a systemic RPC/balance problem).
-//   - A full 77-app write run sends up to ~154 confirmed transactions
+//   - A full 77-app registration write run sends up to ~154 confirmed transactions
 //     (credit top-up + registerApp each) — plan for the better part of an
 //     hour on testnet.
+//   - A full account-materialization write run sends one confirmed
+//     ContractManagement.Deploy-backed mintAccount transaction per missing
+//     account. Review the dry-run system-fee total and predicted hashes first.
 //
 // Key environment:
 //
+//	PLATFORM_REGISTRY_COHORT_ACTION        register (default) | materialize-abstract-accounts | materialize-accounts
 //	PLATFORM_REGISTRY_DEPLOY_DRY_RUN       default dry when unset
 //	CONFIRM_PLATFORM_REGISTRY_DEPLOY       I_UNDERSTAND_THIS_WRITES_CHAIN
 //	PLATFORM_REGISTRY_DEPLOY_NETWORK       testnet (default) | mainnet
 //	NEO_TESTNET_WIF / FLAGSHIP_TESTNET_WIF signer WIF (mainnet: NEO_MAINNET_WIF / FLAGSHIP_MAINNET_WIF)
+//	PLATFORM_REGISTRY_DRY_RUN_SIGNER       public signer address/hash for dry-run simulation when no WIF is configured
 //	NEO_TESTNET_RPC_URL / NEO_RPC_URL      RPC endpoint (default https://testnet1.neo.coz.io:443)
 //	PLATFORM_REGISTRY_TESTNET_HASH         registry hash override (mainnet: PLATFORM_REGISTRY_MAINNET_HASH,
 //	                                       generic: PLATFORM_REGISTRY_HASH); otherwise resolved from the
@@ -46,6 +54,10 @@
 //	PLATFORM_REGISTRY_MIN_GAS              signer GAS floor override (default: computed plan estimate)
 //	PLATFORM_REGISTRY_REGISTER_REPORT_PATH report output override
 //	                                       (default deploy/config/cohort0-registration-<network>-<date>.json)
+//	PLATFORM_REGISTRY_MATERIALIZE_REPORT_PATH account-materialization report override
+//	                                       (default deploy/config/cohort0-account-materialization-<network>-<date>.json)
+//	PLATFORM_REGISTRY_ABSTRACT_ACCOUNT_REPORT_PATH shared-AA materialization report override
+//	                                       (default deploy/config/cohort0-abstract-account-materialization-<network>-<date>.json)
 package main
 
 import (
@@ -62,6 +74,7 @@ import (
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
+	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 	"github.com/nspcc-dev/neo-go/pkg/neorpc/result"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/actor"
@@ -96,22 +109,24 @@ const (
 )
 
 type rrReport struct {
-	Action           string            `json:"action"`
-	Network          string            `json:"network"`
-	RPCURL           string            `json:"rpc_url"`
-	NetworkMagic     uint32            `json:"network_magic"`
-	Signer           string            `json:"signer"`
-	SignerHash       string            `json:"signer_hash"`
-	DryRun           bool              `json:"dry_run"`
-	PlatformRegistry string            `json:"platform_registry"`
-	RosterSource     string            `json:"roster_source"`
-	Filters          map[string]string `json:"filters,omitempty"`
-	Summary          rrSummary         `json:"summary"`
-	Apps             []rrAppRecord     `json:"apps"`
-	Transactions     []rrTxRecord      `json:"transactions"`
-	Balances         map[string]string `json:"balances"`
-	NextSteps        []string          `json:"next_steps"`
-	GeneratedAtUTC   string            `json:"generated_at_utc"`
+	Action              string            `json:"action"`
+	Network             string            `json:"network"`
+	RPCURL              string            `json:"rpc_url"`
+	NetworkMagic        uint32            `json:"network_magic"`
+	Signer              string            `json:"signer"`
+	SignerHash          string            `json:"signer_hash"`
+	SignerInput         string            `json:"signer_input"`
+	DryRun              bool              `json:"dry_run"`
+	PlatformRegistry    string            `json:"platform_registry"`
+	AbstractAccountCore string            `json:"abstract_account_core,omitempty"`
+	RosterSource        string            `json:"roster_source"`
+	Filters             map[string]string `json:"filters,omitempty"`
+	Summary             rrSummary         `json:"summary"`
+	Apps                []rrAppRecord     `json:"apps"`
+	Transactions        []rrTxRecord      `json:"transactions"`
+	Balances            map[string]string `json:"balances"`
+	NextSteps           []string          `json:"next_steps"`
+	GeneratedAtUTC      string            `json:"generated_at_utc"`
 }
 
 type rrSummary struct {
@@ -126,23 +141,43 @@ type rrSummary struct {
 	Pending                int    `json:"pending"`
 	DirectoryRowsConfirmed int    `json:"directory_rows_confirmed"`
 	DirectoryRowsAfterRun  int    `json:"directory_rows_after_run"`
+	ActiveRows             int    `json:"active_rows"`
+	EngineAttachedRows     int    `json:"engine_attached_rows"`
+	MaterializedAccounts   int    `json:"materialized_accounts"`
+	AccountsAlreadyMinted  int    `json:"accounts_already_materialized"`
+	AccountsPlanned        int    `json:"accounts_planned"`
+	AccountsNewlyMinted    int    `json:"accounts_newly_materialized"`
+	AccountRoundTrips      int    `json:"account_round_trips_verified"`
+	UniqueAccountHashes    int    `json:"unique_account_hashes"`
+	DuplicateAccountHashes int    `json:"duplicate_account_hashes"`
 	TotalTopUpGas          string `json:"total_credit_top_up_gas"`
 	EstimatedTxFeesGas     string `json:"estimated_tx_fees_gas"`
+	EstimatedMintSystemGas string `json:"estimated_mint_system_fee_gas"`
 }
 
 type rrAppRecord struct {
-	AppID          string        `json:"app_id"`
-	Status         string        `json:"status"` // pending|planned|registered|skipped|failed|invalid|filtered
-	Reason         string        `json:"reason,omitempty"`
-	Source         string        `json:"source,omitempty"`
-	CreditBefore   string        `json:"credit_before,omitempty"`
-	TopUpFractions int64         `json:"-"`
-	TopUpGas       string        `json:"credit_top_up_gas,omitempty"`
-	CreditAfter    string        `json:"credit_after,omitempty"`
-	CreditTxID     string        `json:"credit_txid,omitempty"`
-	RegisterTxID   string        `json:"register_txid,omitempty"`
-	AppRow         []interface{} `json:"app_row,omitempty"`
-	Note           string        `json:"note,omitempty"`
+	AppID                      string        `json:"app_id"`
+	Status                     string        `json:"status"` // pending|planned|registered|skipped|failed|invalid|filtered
+	Reason                     string        `json:"reason,omitempty"`
+	Source                     string        `json:"source,omitempty"`
+	CreditBefore               string        `json:"credit_before,omitempty"`
+	TopUpFractions             int64         `json:"-"`
+	TopUpGas                   string        `json:"credit_top_up_gas,omitempty"`
+	CreditAfter                string        `json:"credit_after,omitempty"`
+	CreditTxID                 string        `json:"credit_txid,omitempty"`
+	RegisterTxID               string        `json:"register_txid,omitempty"`
+	AccountHash                string        `json:"account_hash,omitempty"`
+	PredictedHash              string        `json:"predicted_account_hash,omitempty"`
+	MintTxID                   string        `json:"mint_txid,omitempty"`
+	MintSystemGas              string        `json:"mint_system_fee_gas,omitempty"`
+	MintSystemFee              int64         `json:"-"`
+	AbstractAccountCore        string        `json:"abstract_account_core,omitempty"`
+	AbstractAccountID          string        `json:"abstract_account_id,omitempty"`
+	PredictedAbstractAccountID string        `json:"predicted_abstract_account_id,omitempty"`
+	AbstractAccountTxID        string        `json:"abstract_account_txid,omitempty"`
+	RoundTripOK                bool          `json:"round_trip_verified,omitempty"`
+	AppRow                     []interface{} `json:"app_row,omitempty"`
+	Note                       string        `json:"note,omitempty"`
 }
 
 type rrTxRecord struct {
@@ -170,6 +205,10 @@ func main() {
 }
 
 func rrRun() error {
+	cohortAction := strings.ToLower(rrFirstNonEmpty(os.Getenv("PLATFORM_REGISTRY_COHORT_ACTION"), "register"))
+	if cohortAction != "register" && cohortAction != "materialize-accounts" && cohortAction != "materialize-abstract-accounts" {
+		return fmt.Errorf("unsupported PLATFORM_REGISTRY_COHORT_ACTION=%q", cohortAction)
+	}
 	// Safest convention (the deploy_platform_registry.go idiom): dry-run
 	// unless PLATFORM_REGISTRY_DEPLOY_DRY_RUN is explicitly set falsy.
 	dryRun := true
@@ -188,10 +227,6 @@ func rrRun() error {
 	if err != nil {
 		return err
 	}
-	if wif == "" {
-		return fmt.Errorf("%s signer WIF is not configured (set NEO_%s_WIF)", network, strings.ToUpper(network))
-	}
-
 	batchSize, err := rrBatchSize()
 	if err != nil {
 		return err
@@ -232,18 +267,50 @@ func rrRun() error {
 		return fmt.Errorf("RPC network magic mismatch: got %d, expected %d for %s", actualMagic, expectedMagic, network)
 	}
 
-	priv, err := keys.NewPrivateKeyFromWIF(wif)
-	if err != nil {
-		return fmt.Errorf("invalid %s signer WIF", network)
-	}
-	acc := wallet.NewAccountFromPrivateKey(priv)
-	signerHash := priv.GetScriptHash()
-	act, err := actor.New(client, []actor.SignerAccount{{
-		Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
-		Account: acc,
-	}})
-	if err != nil {
-		return fmt.Errorf("create actor: %w", err)
+	var (
+		act           *actor.Actor
+		signerHash    util.Uint160
+		signerAddress string
+		signerInput   string
+	)
+	if wif != "" {
+		priv, err := keys.NewPrivateKeyFromWIF(wif)
+		if err != nil {
+			return fmt.Errorf("invalid %s signer WIF", network)
+		}
+		acc := wallet.NewAccountFromPrivateKey(priv)
+		signerHash = priv.GetScriptHash()
+		signerAddress = acc.Address
+		signerInput = "private-key"
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
+			Account: acc,
+		}})
+		if err != nil {
+			return fmt.Errorf("create actor: %w", err)
+		}
+	} else if dryRun {
+		signerHash, err = rrParseSignerIdentity(os.Getenv("PLATFORM_REGISTRY_DRY_RUN_SIGNER"))
+		if err != nil {
+			return fmt.Errorf("dry-run signer: %w", err)
+		}
+		signerAddress = address.Uint160ToString(signerHash)
+		signerInput = "public-identity"
+		watchOnly := &wallet.Account{
+			Address: signerAddress,
+			Contract: &wallet.Contract{
+				Deployed: true,
+			},
+		}
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: signerHash, Scopes: transaction.Global},
+			Account: watchOnly,
+		}})
+		if err != nil {
+			return fmt.Errorf("create watch-only dry-run actor: %w", err)
+		}
+	} else {
+		return fmt.Errorf("%s signer WIF is not configured (set NEO_%s_WIF)", network, strings.ToUpper(network))
 	}
 
 	neoBalance, gasBalance, err := rrSignerBalances(client, signerHash)
@@ -258,18 +325,25 @@ func rrRun() error {
 	if dryRun {
 		mode = "dry-run"
 	}
-	fmt.Printf("Signer: %s\n", acc.Address)
+	fmt.Printf("Signer: %s\n", signerAddress)
 	fmt.Printf("Network: %s (magic %d)\n", networkID, actualMagic)
 	fmt.Printf("Mode: %s\n", mode)
 	fmt.Printf("Balances: %d NEO, %s GAS\n", neoBalance, rrFormatGas(gasBalance))
 	fmt.Printf("PlatformRegistry: 0x%s\n\n", registryHash.StringLE())
 
+	reportAction := "cohort0-register"
+	if cohortAction == "materialize-accounts" {
+		reportAction = "cohort0-materialize-accounts"
+	} else if cohortAction == "materialize-abstract-accounts" {
+		reportAction = "cohort0-materialize-abstract-accounts"
+	}
 	report := rrReport{
-		Action:           "cohort0-register",
+		Action:           reportAction,
 		Network:          networkID,
 		RPCURL:           rpcURL,
 		NetworkMagic:     actualMagic,
-		Signer:           acc.Address,
+		Signer:           signerAddress,
+		SignerInput:      signerInput,
 		SignerHash:       "0x" + signerHash.StringLE(),
 		DryRun:           dryRun,
 		PlatformRegistry: "0x" + registryHash.StringLE(),
@@ -282,7 +356,13 @@ func rrRun() error {
 		GeneratedAtUTC:   time.Now().UTC().Format(time.RFC3339),
 	}
 	report.Summary.DuplicatesDropped = duplicatesDropped
-	reportPath := rrReportPath(network)
+	reportPath := rrReportPath(network, cohortAction)
+	if cohortAction == "materialize-accounts" {
+		return rrRunMaterializeAccounts(ctx, client, act, registryHash, signerHash, signerAddress, gasBalance, dryRun, batchSize, reportPath, &report)
+	}
+	if cohortAction == "materialize-abstract-accounts" {
+		return rrRunMaterializeAbstractAccounts(ctx, client, act, registryHash, signerHash, signerAddress, gasBalance, dryRun, batchSize, reportPath, &report)
+	}
 
 	// Plan: probe every pending appId's directory row and prepaid credit.
 	gasHash, err := rrParseHash(rrGasHashLE)
@@ -342,7 +422,7 @@ func rrRun() error {
 		message := fmt.Sprintf("insufficient GAS: signer %s holds %s GAS, the registration plan requires at least %.8g GAS "+
 			"(%s GAS credit top-ups + ~%s GAS estimated tx fees for %d transactions; tune with PLATFORM_REGISTRY_MIN_GAS). "+
 			"To continue, %s.",
-			acc.Address, rrFormatGas(gasBalance), requiredGas, rrFormatGas(totalTopUp),
+			signerAddress, rrFormatGas(gasBalance), requiredGas, rrFormatGas(totalTopUp),
 			rrFormatGas(txCount*rrPerTxFeeEstimateFractions), txCount, rrTestnetFaucetInstruction)
 		if !dryRun {
 			return fmt.Errorf("%s", message)
@@ -398,6 +478,412 @@ func rrRun() error {
 	if dryRun {
 		fmt.Println("\ndry-run: nothing was written. To write chain, rerun with:")
 		fmt.Printf("  PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false CONFIRM_PLATFORM_REGISTRY_DEPLOY=%s NEO_TESTNET_WIF=<wif> \\\n", rrConfirmPhrase)
+		fmt.Println("    go run -tags scripts deploy/scripts/register_apps_on_platform_registry.go")
+	}
+	return nil
+}
+
+func rrRunMaterializeAccounts(ctx context.Context, client *rpcclient.Client, act *actor.Actor, registry util.Uint160, signerHash util.Uint160, signerAddress string, gasBalance int64, dryRun bool, batchSize int, reportPath string, report *rrReport) error {
+	admin, err := rrCallUint160(act, registry, "admin")
+	if err != nil {
+		return fmt.Errorf("read registry admin: %w", err)
+	}
+	if admin != signerHash {
+		return fmt.Errorf("account materialization requires the platform admin signer 0x%s; got 0x%s", admin.StringLE(), signerHash.StringLE())
+	}
+	artifactVersion, err := rrCallInteger(act, registry, "artifactVersion")
+	if err != nil {
+		return fmt.Errorf("read artifactVersion: %w", err)
+	}
+	if artifactVersion.Sign() <= 0 {
+		return fmt.Errorf("AppAccount artifact is not active")
+	}
+
+	predictedOwners := map[string]string{}
+	planned := 0
+	for i := range report.Apps {
+		rec := &report.Apps[i]
+		if rec.Status != "pending" {
+			continue
+		}
+		row, registered, err := rrProbeApp(act, registry, rec.AppID)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = err.Error()
+			continue
+		}
+		if !registered {
+			rec.Status = "failed"
+			rec.Reason = "app is not registered"
+			continue
+		}
+		rec.AppRow = row
+		if len(row) < 6 {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("getApp returned %d fields, expected 6", len(row))
+			continue
+		}
+		if active, ok := row[5].(bool); !ok || !active {
+			rec.Status = "failed"
+			rec.Reason = "app directory row is not active"
+			continue
+		}
+		materialized, _ := row[4].(bool)
+		if materialized {
+			accountHash, err := rrVerifyAccountRoundTrip(act, registry, rec.AppID)
+			if err != nil {
+				rec.Status = "failed"
+				rec.Reason = err.Error()
+				continue
+			}
+			rec.AccountHash = "0x" + accountHash.StringLE()
+			if rowHash, ok := row[3].(string); !ok || rowHash != rec.AccountHash {
+				rec.Status = "failed"
+				rec.Reason = fmt.Sprintf("getApp account hash %v does not match appAccountOf %s", row[3], rec.AccountHash)
+				continue
+			}
+			rec.RoundTripOK = true
+			if owner, duplicate := predictedOwners[rec.AccountHash]; duplicate {
+				rec.Status = "failed"
+				rec.Reason = fmt.Sprintf("account hash duplicates app %q", owner)
+				continue
+			}
+			predictedOwners[rec.AccountHash] = rec.AppID
+			rec.Status = "skipped"
+			rec.Reason = "AppAccount already materialized and reverse index verified"
+			continue
+		}
+
+		inv, err := act.Call(registry, "mintAccount", rec.AppID)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("simulate mintAccount: %s", err)
+			continue
+		}
+		if inv.State != "HALT" {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("simulate mintAccount fault: %s", inv.FaultException)
+			continue
+		}
+		predictedHash, err := rrInvokeUint160(inv)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("decode predicted AppAccount: %s", err)
+			continue
+		}
+		rec.PredictedHash = "0x" + predictedHash.StringLE()
+		if owner, duplicate := predictedOwners[rec.PredictedHash]; duplicate {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("predicted account hash duplicates app %q", owner)
+			continue
+		}
+		predictedOwners[rec.PredictedHash] = rec.AppID
+		rec.MintSystemFee = inv.GasConsumed
+		rec.MintSystemGas = rrFormatGas(inv.GasConsumed)
+		planned++
+	}
+
+	rrRecomputeMaterializeSummary(report)
+	failures := report.Summary.Failed
+	fmt.Printf("Materialization plan: %d to mint, %d already materialized, %d failed probes; %d unique existing/predicted account hashes\n",
+		planned, report.Summary.AccountsAlreadyMinted, failures, report.Summary.UniqueAccountHashes)
+	fmt.Printf("Estimated mint system fee: %s GAS plus approximately %s GAS transaction fees\n\n",
+		report.Summary.EstimatedMintSystemGas, report.Summary.EstimatedTxFeesGas)
+
+	requiredGas := rrMaterializeRequiredGas(report)
+	if gasBalance < requiredGas {
+		message := fmt.Sprintf("insufficient GAS: signer %s holds %s GAS, account materialization estimates %s GAS total system/network fees; %s",
+			signerAddress, rrFormatGas(gasBalance), rrFormatGas(requiredGas), rrTestnetFaucetInstruction)
+		if !dryRun {
+			return fmt.Errorf("%s", message)
+		}
+		fmt.Println("warning: " + message)
+	}
+
+	processed := 0
+	consecutiveFailures := 0
+	for i := range report.Apps {
+		rec := &report.Apps[i]
+		if rec.Status != "pending" {
+			continue
+		}
+		processed++
+		if dryRun {
+			rec.Status = "planned"
+			rec.Reason = "mintAccount simulation HALT; platform-admin fee exemption applies"
+		} else {
+			txid, _, err := rrSendAndWait(ctx, client, act, registry, "mintAccount", report, "Mint AppAccount "+rec.AppID, rec.AppID)
+			if err != nil {
+				rec.Status = "failed"
+				rec.Reason = err.Error()
+			} else {
+				rec.MintTxID = "0x" + txid.StringLE()
+				accountHash, verifyErr := rrVerifyAccountRoundTrip(act, registry, rec.AppID)
+				if verifyErr != nil {
+					rec.Status = "failed"
+					rec.Reason = verifyErr.Error()
+				} else if actual := "0x" + accountHash.StringLE(); actual != rec.PredictedHash {
+					rec.Status = "failed"
+					rec.Reason = fmt.Sprintf("materialized account %s does not match dry-run prediction %s", actual, rec.PredictedHash)
+				} else {
+					rec.AccountHash = "0x" + accountHash.StringLE()
+					rec.RoundTripOK = true
+					rec.Status = "materialized"
+					rec.Reason = "AppAccount materialized and bidirectional index verified"
+				}
+			}
+		}
+		if rec.Status == "failed" {
+			consecutiveFailures++
+		} else {
+			consecutiveFailures = 0
+		}
+		fmt.Printf("[%d/%d] %s: %s\n", processed, planned, rec.AppID, rrProgressLine(rec))
+		if processed%batchSize == 0 {
+			rrRecomputeMaterializeSummary(report)
+			if err := rrWriteReport(reportPath, *report); err != nil {
+				return err
+			}
+			fmt.Printf("... batch checkpoint: report flushed to %s\n", reportPath)
+		}
+		if consecutiveFailures >= rrMaxConsecutiveFailures {
+			rrRecomputeMaterializeSummary(report)
+			_ = rrWriteReport(reportPath, *report)
+			return fmt.Errorf("aborting after %d consecutive account materialization failures; report flushed to %s", consecutiveFailures, reportPath)
+		}
+	}
+
+	report.NextSteps = []string{
+		"Review the per-app predicted hashes and aggregate system-fee estimate before authorizing any write run.",
+		"A write run sends one ContractManagement.Deploy-backed mintAccount transaction per planned app and verifies appAccountOf/appIdOfAccount after confirmation.",
+		"Materializing AppAccounts creates app-owned treasury addresses; user-owned refundable balances must remain in engine ledgers under the two-ledger doctrine.",
+	}
+	rrRecomputeMaterializeSummary(report)
+	if err := rrWriteReport(reportPath, *report); err != nil {
+		return err
+	}
+	rrPrintMaterializeReconciliation(*report)
+	fmt.Printf("\nSaved: %s\n", reportPath)
+	for _, step := range report.NextSteps {
+		fmt.Println(" - " + step)
+	}
+	if dryRun {
+		fmt.Println("\ndry-run: nothing was written. After reviewing this exact report, a separately approved write run would use:")
+		fmt.Printf("  PLATFORM_REGISTRY_COHORT_ACTION=materialize-accounts PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false CONFIRM_PLATFORM_REGISTRY_DEPLOY=%s NEO_TESTNET_WIF=<wif> \\\n", rrConfirmPhrase)
+		fmt.Println("    go run -tags scripts deploy/scripts/register_apps_on_platform_registry.go")
+	}
+	return nil
+}
+
+func rrRunMaterializeAbstractAccounts(ctx context.Context, client *rpcclient.Client, act *actor.Actor, registry util.Uint160, signerHash util.Uint160, signerAddress string, gasBalance int64, dryRun bool, batchSize int, reportPath string, report *rrReport) error {
+	core, err := rrCallUint160(act, registry, "abstractAccountCore")
+	if err != nil {
+		return fmt.Errorf("PlatformRegistry upgrade required before shared abstract-account materialization: %w", err)
+	}
+	if core == (util.Uint160{}) {
+		return fmt.Errorf("shared abstract-account core is not configured; proposeAbstractAccountCore and execute the timelock before materialization")
+	}
+	report.AbstractAccountCore = "0x" + core.StringLE()
+
+	admin, err := rrCallUint160(act, registry, "admin")
+	if err != nil {
+		return fmt.Errorf("read registry admin: %w", err)
+	}
+	if admin != signerHash {
+		return fmt.Errorf("cohort shared-account materialization requires the platform admin signer 0x%s; got 0x%s", admin.StringLE(), signerHash.StringLE())
+	}
+
+	accountOwners := map[string]string{}
+	planned := 0
+	for i := range report.Apps {
+		rec := &report.Apps[i]
+		if rec.Status != "pending" {
+			continue
+		}
+		row, registered, err := rrProbeApp(act, registry, rec.AppID)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = err.Error()
+			continue
+		}
+		if !registered {
+			rec.Status = "failed"
+			rec.Reason = "app is not registered"
+			continue
+		}
+		rec.AppRow = row
+		if len(row) < 6 {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("getApp returned %d fields, expected 6", len(row))
+			continue
+		}
+		if active, ok := row[5].(bool); !ok || !active {
+			rec.Status = "failed"
+			rec.Reason = "app directory row is not active"
+			continue
+		}
+
+		storedCore, accountID, materialized, err := rrReadAbstractAccountState(act, registry, rec.AppID)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = err.Error()
+			continue
+		}
+		if materialized {
+			if storedCore == (util.Uint160{}) || accountID == (util.Uint160{}) {
+				rec.Status = "failed"
+				rec.Reason = "materialized shared account returned a zero core or account id"
+				continue
+			}
+			if err := rrVerifyAbstractAccountRoundTrip(act, registry, rec.AppID, storedCore, accountID); err != nil {
+				rec.Status = "failed"
+				rec.Reason = err.Error()
+				continue
+			}
+			key := "0x" + storedCore.StringLE() + ":0x" + accountID.StringLE()
+			if owner, duplicate := accountOwners[key]; duplicate {
+				rec.Status = "failed"
+				rec.Reason = fmt.Sprintf("shared account duplicates app %q", owner)
+				continue
+			}
+			accountOwners[key] = rec.AppID
+			rec.AbstractAccountCore = "0x" + storedCore.StringLE()
+			rec.AbstractAccountID = "0x" + accountID.StringLE()
+			rec.RoundTripOK = true
+			rec.Status = "skipped"
+			rec.Reason = "shared abstract account already materialized and reverse index verified"
+			continue
+		}
+
+		inv, err := act.Call(registry, "materializeAbstractAccount", rec.AppID)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("simulate materializeAbstractAccount: %s", err)
+			continue
+		}
+		if inv.State != "HALT" {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("simulate materializeAbstractAccount fault: %s", inv.FaultException)
+			continue
+		}
+		predictedID, err := rrInvokeUint160(inv)
+		if err != nil {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("decode predicted abstract account id: %s", err)
+			continue
+		}
+		if predictedID == (util.Uint160{}) {
+			rec.Status = "failed"
+			rec.Reason = "materializeAbstractAccount predicted a zero account id"
+			continue
+		}
+		key := "0x" + core.StringLE() + ":0x" + predictedID.StringLE()
+		if owner, duplicate := accountOwners[key]; duplicate {
+			rec.Status = "failed"
+			rec.Reason = fmt.Sprintf("predicted shared account duplicates app %q", owner)
+			continue
+		}
+		accountOwners[key] = rec.AppID
+		rec.AbstractAccountCore = "0x" + core.StringLE()
+		rec.PredictedAbstractAccountID = "0x" + predictedID.StringLE()
+		rec.MintSystemFee = inv.GasConsumed
+		rec.MintSystemGas = rrFormatGas(inv.GasConsumed)
+		planned++
+	}
+
+	rrRecomputeMaterializeSummary(report)
+	fmt.Printf("Shared-AA plan: %d to materialize, %d already materialized, %d failed probes; %d unique core/account-id pairs\n",
+		planned, report.Summary.AccountsAlreadyMinted, report.Summary.Failed, report.Summary.UniqueAccountHashes)
+	fmt.Printf("Estimated system fee: %s GAS plus approximately %s GAS transaction fees\n\n",
+		report.Summary.EstimatedMintSystemGas, report.Summary.EstimatedTxFeesGas)
+
+	requiredGas := rrMaterializeRequiredGas(report)
+	if gasBalance < requiredGas {
+		message := fmt.Sprintf("insufficient GAS: signer %s holds %s GAS, shared-account materialization estimates %s GAS total system/network fees; %s",
+			signerAddress, rrFormatGas(gasBalance), rrFormatGas(requiredGas), rrTestnetFaucetInstruction)
+		if !dryRun {
+			return fmt.Errorf("%s", message)
+		}
+		fmt.Println("warning: " + message)
+	}
+
+	processed := 0
+	consecutiveFailures := 0
+	for i := range report.Apps {
+		rec := &report.Apps[i]
+		if rec.Status != "pending" {
+			continue
+		}
+		processed++
+		if dryRun {
+			rec.Status = "planned"
+			rec.Reason = "materializeAbstractAccount simulation HALT; no per-app contract deployment"
+		} else {
+			txid, _, err := rrSendAndWait(ctx, client, act, registry, "materializeAbstractAccount", report, "Materialize shared AA "+rec.AppID, rec.AppID)
+			if err != nil {
+				rec.Status = "failed"
+				rec.Reason = err.Error()
+			} else {
+				rec.AbstractAccountTxID = "0x" + txid.StringLE()
+				storedCore, accountID, materialized, verifyErr := rrReadAbstractAccountState(act, registry, rec.AppID)
+				if verifyErr != nil {
+					rec.Status = "failed"
+					rec.Reason = verifyErr.Error()
+				} else if !materialized {
+					rec.Status = "failed"
+					rec.Reason = "shared abstract account remained unmaterialized after confirmation"
+				} else if actual := "0x" + accountID.StringLE(); actual != rec.PredictedAbstractAccountID {
+					rec.Status = "failed"
+					rec.Reason = fmt.Sprintf("materialized account id %s does not match dry-run prediction %s", actual, rec.PredictedAbstractAccountID)
+				} else if verifyErr := rrVerifyAbstractAccountRoundTrip(act, registry, rec.AppID, storedCore, accountID); verifyErr != nil {
+					rec.Status = "failed"
+					rec.Reason = verifyErr.Error()
+				} else {
+					rec.AbstractAccountCore = "0x" + storedCore.StringLE()
+					rec.AbstractAccountID = "0x" + accountID.StringLE()
+					rec.RoundTripOK = true
+					rec.Status = "materialized"
+					rec.Reason = "shared abstract account materialized and reverse index verified"
+				}
+			}
+		}
+		if rec.Status == "failed" {
+			consecutiveFailures++
+		} else {
+			consecutiveFailures = 0
+		}
+		fmt.Printf("[%d/%d] %s: %s\n", processed, planned, rec.AppID, rrProgressLine(rec))
+		if processed%batchSize == 0 {
+			rrRecomputeMaterializeSummary(report)
+			if err := rrWriteReport(reportPath, *report); err != nil {
+				return err
+			}
+			fmt.Printf("... batch checkpoint: report flushed to %s\n", reportPath)
+		}
+		if consecutiveFailures >= rrMaxConsecutiveFailures {
+			rrRecomputeMaterializeSummary(report)
+			_ = rrWriteReport(reportPath, *report)
+			return fmt.Errorf("aborting after %d consecutive shared-account materialization failures; report flushed to %s", consecutiveFailures, reportPath)
+		}
+	}
+
+	report.NextSteps = []string{
+		"Review every predicted (core, accountId) pair before authorizing a write run; the virtual Neo address is derived deterministically by framework/utils/aa-account.ts.",
+		"A write run stores the registry mapping and registers state in the single shared UnifiedSmartWallet core; it does not deploy 77 per-app contracts.",
+		"Keep materialize-accounts only for apps that explicitly need an isolated deployed treasury shim.",
+	}
+	rrRecomputeMaterializeSummary(report)
+	if err := rrWriteReport(reportPath, *report); err != nil {
+		return err
+	}
+	rrPrintAbstractAccountReconciliation(*report)
+	fmt.Printf("\nSaved: %s\n", reportPath)
+	for _, step := range report.NextSteps {
+		fmt.Println(" - " + step)
+	}
+	if dryRun {
+		fmt.Println("\ndry-run: nothing was written. After reviewing this exact report, a separately approved write run would use:")
+		fmt.Printf("  PLATFORM_REGISTRY_COHORT_ACTION=materialize-abstract-accounts PLATFORM_REGISTRY_DEPLOY_DRY_RUN=false CONFIRM_PLATFORM_REGISTRY_DEPLOY=%s NEO_TESTNET_WIF=<wif> \\\n", rrConfirmPhrase)
 		fmt.Println("    go run -tags scripts deploy/scripts/register_apps_on_platform_registry.go")
 	}
 	return nil
@@ -707,6 +1193,11 @@ func rrProgressLine(rec *rrAppRecord) string {
 	switch rec.Status {
 	case "registered":
 		return "registered tx " + rec.RegisterTxID
+	case "materialized":
+		if rec.AbstractAccountID != "" {
+			return "materialized shared AA " + rec.AbstractAccountID + " tx " + rec.AbstractAccountTxID
+		}
+		return "materialized " + rec.AccountHash + " tx " + rec.MintTxID
 	case "planned":
 		return "planned — " + rec.Reason
 	case "skipped":
@@ -750,12 +1241,101 @@ func rrRecomputeSummary(report *rrReport) {
 				txCount++
 			}
 		}
+		if len(rec.AppRow) >= 6 {
+			if engineID, ok := rec.AppRow[0].(string); ok && engineID != "" {
+				summary.EngineAttachedRows++
+			}
+			if materialized, ok := rec.AppRow[4].(bool); ok && materialized {
+				summary.MaterializedAccounts++
+			}
+			if active, ok := rec.AppRow[5].(bool); ok && active {
+				summary.ActiveRows++
+			}
+		}
 	}
 	summary.DirectoryRowsConfirmed = summary.AlreadyRegistered + summary.NewlyRegistered
 	summary.DirectoryRowsAfterRun = summary.DirectoryRowsConfirmed + summary.Planned + summary.Pending
 	summary.TotalTopUpGas = rrFormatGas(totalTopUp)
 	summary.EstimatedTxFeesGas = rrFormatGas(txCount * rrPerTxFeeEstimateFractions)
 	report.Summary = summary
+}
+
+func rrRecomputeMaterializeSummary(report *rrReport) {
+	summary := rrSummary{
+		RosterTotal:       len(report.Apps),
+		DuplicatesDropped: report.Summary.DuplicatesDropped,
+		TotalTopUpGas:     rrFormatGas(0),
+	}
+	accountOwners := map[string]string{}
+	var systemFee, txCount int64
+	for _, rec := range report.Apps {
+		switch rec.Status {
+		case "invalid":
+			summary.Invalid++
+		case "filtered":
+			summary.Filtered++
+		case "failed":
+			summary.Failed++
+		case "pending":
+			summary.Pending++
+		case "planned":
+			summary.AccountsPlanned++
+		case "materialized":
+			summary.AccountsNewlyMinted++
+		case "skipped":
+			summary.AccountsAlreadyMinted++
+		}
+		if len(rec.AppRow) >= 6 {
+			summary.DirectoryRowsConfirmed++
+			if engineID, ok := rec.AppRow[0].(string); ok && engineID != "" {
+				summary.EngineAttachedRows++
+			}
+			if active, ok := rec.AppRow[5].(bool); ok && active {
+				summary.ActiveRows++
+			}
+			if materialized, ok := rec.AppRow[4].(bool); ok && materialized {
+				summary.MaterializedAccounts++
+			}
+		}
+		if rec.Status == "materialized" {
+			summary.MaterializedAccounts++
+		}
+		if rec.RoundTripOK {
+			summary.AccountRoundTrips++
+		}
+		accountHash := rrFirstNonEmpty(rec.AbstractAccountID, rec.PredictedAbstractAccountID, rec.AccountHash, rec.PredictedHash)
+		if rec.AbstractAccountCore != "" && accountHash != "" {
+			accountHash = rec.AbstractAccountCore + ":" + accountHash
+		}
+		if accountHash != "" {
+			if owner, ok := accountOwners[accountHash]; ok && owner != rec.AppID {
+				summary.DuplicateAccountHashes++
+			} else {
+				accountOwners[accountHash] = rec.AppID
+			}
+		}
+		systemFee += rec.MintSystemFee
+		if rec.Status == "pending" || rec.Status == "planned" || rec.Status == "materialized" {
+			txCount++
+		}
+	}
+	summary.DirectoryRowsAfterRun = summary.DirectoryRowsConfirmed
+	summary.UniqueAccountHashes = len(accountOwners)
+	summary.EstimatedMintSystemGas = rrFormatGas(systemFee)
+	summary.EstimatedTxFeesGas = rrFormatGas(txCount * rrPerTxFeeEstimateFractions)
+	report.Summary = summary
+}
+
+func rrMaterializeRequiredGas(report *rrReport) int64 {
+	var systemFee, txCount int64
+	for _, rec := range report.Apps {
+		if rec.Status != "pending" && rec.Status != "planned" {
+			continue
+		}
+		systemFee += rec.MintSystemFee
+		txCount++
+	}
+	return systemFee + txCount*rrPerTxFeeEstimateFractions
 }
 
 func rrPrintReconciliation(report rrReport) {
@@ -777,6 +1357,9 @@ func rrPrintReconciliation(report rrReport) {
 		fmt.Printf("Newly registered:         %d\n", s.NewlyRegistered)
 	}
 	fmt.Printf("Failed:                   %d\n", s.Failed)
+	fmt.Printf("Active directory rows:    %d/%d\n", s.ActiveRows, s.DirectoryRowsConfirmed)
+	fmt.Printf("Engine-attached rows:     %d/%d\n", s.EngineAttachedRows, s.DirectoryRowsConfirmed)
+	fmt.Printf("Materialized AppAccounts: %d/%d\n", s.MaterializedAccounts, s.DirectoryRowsConfirmed)
 	if report.DryRun {
 		fmt.Printf("Directory rows confirmed: %d/%d on registry %s (+%d planned → %d/%d after a write run)\n",
 			s.DirectoryRowsConfirmed, s.RosterTotal, report.PlatformRegistry,
@@ -785,6 +1368,50 @@ func rrPrintReconciliation(report rrReport) {
 		fmt.Printf("Directory rows confirmed: %d/%d on registry %s\n",
 			s.DirectoryRowsConfirmed, s.RosterTotal, report.PlatformRegistry)
 	}
+}
+
+func rrPrintMaterializeReconciliation(report rrReport) {
+	s := report.Summary
+	fmt.Println()
+	fmt.Println("APPACCOUNT MATERIALIZATION RECONCILIATION")
+	fmt.Println("=========================================")
+	fmt.Printf("Roster source:             %s\n", report.RosterSource)
+	fmt.Printf("Roster apps:               %d\n", s.RosterTotal)
+	fmt.Printf("Active registered rows:    %d/%d\n", s.ActiveRows, s.RosterTotal)
+	fmt.Printf("Already materialized:      %d\n", s.AccountsAlreadyMinted)
+	if report.DryRun {
+		fmt.Printf("Planned materializations:  %d (dry-run — nothing written)\n", s.AccountsPlanned+s.Pending)
+	} else {
+		fmt.Printf("Newly materialized:        %d\n", s.AccountsNewlyMinted)
+	}
+	fmt.Printf("Current materialized rows: %d/%d\n", s.MaterializedAccounts, s.RosterTotal)
+	fmt.Printf("Verified reverse indexes:  %d\n", s.AccountRoundTrips)
+	fmt.Printf("Unique account hashes:     %d (duplicates: %d)\n", s.UniqueAccountHashes, s.DuplicateAccountHashes)
+	fmt.Printf("Estimated system fee:      %s GAS\n", s.EstimatedMintSystemGas)
+	fmt.Printf("Estimated network fees:    %s GAS\n", s.EstimatedTxFeesGas)
+	fmt.Printf("Failed:                    %d\n", s.Failed)
+}
+
+func rrPrintAbstractAccountReconciliation(report rrReport) {
+	s := report.Summary
+	fmt.Println()
+	fmt.Println("SHARED ABSTRACT-ACCOUNT MATERIALIZATION RECONCILIATION")
+	fmt.Println("===================================================")
+	fmt.Printf("Roster source:             %s\n", report.RosterSource)
+	fmt.Printf("Roster apps:               %d\n", s.RosterTotal)
+	fmt.Printf("Shared AA core:            %s\n", report.AbstractAccountCore)
+	fmt.Printf("Active registered rows:    %d/%d\n", s.ActiveRows, s.RosterTotal)
+	fmt.Printf("Already materialized:      %d\n", s.AccountsAlreadyMinted)
+	if report.DryRun {
+		fmt.Printf("Planned materializations:  %d (dry-run — nothing written)\n", s.AccountsPlanned+s.Pending)
+	} else {
+		fmt.Printf("Newly materialized:        %d\n", s.AccountsNewlyMinted)
+	}
+	fmt.Printf("Verified reverse indexes:  %d\n", s.AccountRoundTrips)
+	fmt.Printf("Unique core/account ids:   %d (duplicates: %d)\n", s.UniqueAccountHashes, s.DuplicateAccountHashes)
+	fmt.Printf("Estimated system fee:      %s GAS\n", s.EstimatedMintSystemGas)
+	fmt.Printf("Estimated network fees:    %s GAS\n", s.EstimatedTxFeesGas)
+	fmt.Printf("Failed:                    %d\n", s.Failed)
 }
 
 // ---------------------------------------------------------------------
@@ -913,6 +1540,113 @@ func rrCallInteger(act *actor.Actor, contract util.Uint160, method string, param
 	return inv.Stack[0].TryInteger()
 }
 
+func rrCallUint160(act *actor.Actor, contract util.Uint160, method string, params ...any) (util.Uint160, error) {
+	inv, err := rrCallHALT(act, contract, method, params...)
+	if err != nil {
+		return util.Uint160{}, err
+	}
+	return rrInvokeUint160(inv)
+}
+
+func rrInvokeUint160(inv *result.Invoke) (util.Uint160, error) {
+	if len(inv.Stack) == 0 {
+		return util.Uint160{}, fmt.Errorf("empty result stack")
+	}
+	bytes, err := inv.Stack[0].TryBytes()
+	if err != nil {
+		return util.Uint160{}, err
+	}
+	if len(bytes) != util.Uint160Size {
+		return util.Uint160{}, fmt.Errorf("expected %d-byte UInt160, got %d bytes", util.Uint160Size, len(bytes))
+	}
+	return util.Uint160DecodeBytesBE(bytes)
+}
+
+func rrCallString(act *actor.Actor, contract util.Uint160, method string, params ...any) (string, error) {
+	inv, err := rrCallHALT(act, contract, method, params...)
+	if err != nil {
+		return "", err
+	}
+	if len(inv.Stack) == 0 {
+		return "", nil
+	}
+	bytes, err := inv.Stack[0].TryBytes()
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func rrVerifyAccountRoundTrip(act *actor.Actor, registry util.Uint160, appID string) (util.Uint160, error) {
+	accountHash, err := rrCallUint160(act, registry, "appAccountOf", appID)
+	if err != nil {
+		return util.Uint160{}, fmt.Errorf("read appAccountOf(%s): %w", appID, err)
+	}
+	if accountHash == (util.Uint160{}) {
+		return util.Uint160{}, fmt.Errorf("appAccountOf(%s) returned zero", appID)
+	}
+	echo, err := rrCallString(act, registry, "appIdOfAccount", accountHash)
+	if err != nil {
+		return util.Uint160{}, fmt.Errorf("read appIdOfAccount(0x%s): %w", accountHash.StringLE(), err)
+	}
+	if echo != appID {
+		return util.Uint160{}, fmt.Errorf("appIdOfAccount(0x%s) returned %q, expected %q", accountHash.StringLE(), echo, appID)
+	}
+	return accountHash, nil
+}
+
+func rrReadAbstractAccountState(act *actor.Actor, registry util.Uint160, appID string) (util.Uint160, util.Uint160, bool, error) {
+	inv, err := rrCallHALT(act, registry, "getAppAbstractAccount", appID)
+	if err != nil {
+		return util.Uint160{}, util.Uint160{}, false, fmt.Errorf("read getAppAbstractAccount(%s): %w", appID, err)
+	}
+	if len(inv.Stack) == 0 {
+		return util.Uint160{}, util.Uint160{}, false, fmt.Errorf("getAppAbstractAccount(%s) returned an empty stack", appID)
+	}
+	items, ok := inv.Stack[0].Value().([]stackitem.Item)
+	if !ok || len(items) != 3 {
+		return util.Uint160{}, util.Uint160{}, false, fmt.Errorf("getAppAbstractAccount(%s) returned an invalid tuple", appID)
+	}
+	core, err := rrStackItemUint160(items[0])
+	if err != nil {
+		return util.Uint160{}, util.Uint160{}, false, fmt.Errorf("decode abstract-account core for %s: %w", appID, err)
+	}
+	accountID, err := rrStackItemUint160(items[1])
+	if err != nil {
+		return util.Uint160{}, util.Uint160{}, false, fmt.Errorf("decode abstract account id for %s: %w", appID, err)
+	}
+	materialized, err := items[2].TryBool()
+	if err != nil {
+		return util.Uint160{}, util.Uint160{}, false, fmt.Errorf("decode materialized flag for %s: %w", appID, err)
+	}
+	return core, accountID, materialized, nil
+}
+
+func rrVerifyAbstractAccountRoundTrip(act *actor.Actor, registry util.Uint160, appID string, core util.Uint160, accountID util.Uint160) error {
+	echo, err := rrCallString(act, registry, "appIdOfAbstractAccount", core, accountID)
+	if err != nil {
+		return fmt.Errorf("read appIdOfAbstractAccount(0x%s, 0x%s): %w", core.StringLE(), accountID.StringLE(), err)
+	}
+	if echo != appID {
+		return fmt.Errorf("appIdOfAbstractAccount(0x%s, 0x%s) returned %q, expected %q", core.StringLE(), accountID.StringLE(), echo, appID)
+	}
+	return nil
+}
+
+func rrStackItemUint160(item stackitem.Item) (util.Uint160, error) {
+	bytes, err := item.TryBytes()
+	if err != nil {
+		return util.Uint160{}, err
+	}
+	if len(bytes) == 0 {
+		return util.Uint160{}, nil
+	}
+	if len(bytes) != util.Uint160Size {
+		return util.Uint160{}, fmt.Errorf("expected %d-byte UInt160, got %d bytes", util.Uint160Size, len(bytes))
+	}
+	return util.Uint160DecodeBytesBE(bytes)
+}
+
 func rrStackValues(inv *result.Invoke) []interface{} {
 	out := []interface{}{}
 	if len(inv.Stack) == 0 {
@@ -983,7 +1717,38 @@ func rrParseHash(raw string) (util.Uint160, error) {
 	return util.Uint160DecodeStringLE(trimmed)
 }
 
-func rrReportPath(network string) string {
+func rrParseSignerIdentity(raw string) (util.Uint160, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return util.Uint160{}, fmt.Errorf("public signer identity is required as a Neo address or script hash (set PLATFORM_REGISTRY_DRY_RUN_SIGNER)")
+	}
+	if strings.HasPrefix(trimmed, "0x") || len(trimmed) == 40 {
+		hash, err := rrParseHash(trimmed)
+		if err != nil {
+			return util.Uint160{}, fmt.Errorf("invalid PLATFORM_REGISTRY_DRY_RUN_SIGNER script hash")
+		}
+		return hash, nil
+	}
+	hash, err := address.StringToUint160(trimmed)
+	if err != nil {
+		return util.Uint160{}, fmt.Errorf("invalid PLATFORM_REGISTRY_DRY_RUN_SIGNER Neo address")
+	}
+	return hash, nil
+}
+
+func rrReportPath(network string, cohortAction string) string {
+	if cohortAction == "materialize-abstract-accounts" {
+		if raw := strings.TrimSpace(os.Getenv("PLATFORM_REGISTRY_ABSTRACT_ACCOUNT_REPORT_PATH")); raw != "" {
+			return raw
+		}
+		return filepath.Join("deploy", "config", fmt.Sprintf("cohort0-abstract-account-materialization-%s-%s.json", network, time.Now().UTC().Format("2006-01-02")))
+	}
+	if cohortAction == "materialize-accounts" {
+		if raw := strings.TrimSpace(os.Getenv("PLATFORM_REGISTRY_MATERIALIZE_REPORT_PATH")); raw != "" {
+			return raw
+		}
+		return filepath.Join("deploy", "config", fmt.Sprintf("cohort0-account-materialization-%s-%s.json", network, time.Now().UTC().Format("2006-01-02")))
+	}
 	if raw := strings.TrimSpace(os.Getenv("PLATFORM_REGISTRY_REGISTER_REPORT_PATH")); raw != "" {
 		return raw
 	}

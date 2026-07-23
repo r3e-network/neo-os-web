@@ -1,0 +1,1281 @@
+{
+  "action": "cohort0-materialize-accounts",
+  "network": "neo-n3-testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "signer_input": "public-identity",
+  "dry_run": true,
+  "platform_registry": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+  "roster_source": "apps/*/neo-manifest.json",
+  "summary": {
+    "roster_total": 77,
+    "filtered_out": 0,
+    "invalid": 0,
+    "already_registered": 0,
+    "newly_registered": 0,
+    "planned_registrations": 0,
+    "failed": 0,
+    "pending": 0,
+    "directory_rows_confirmed": 77,
+    "directory_rows_after_run": 77,
+    "active_rows": 77,
+    "engine_attached_rows": 11,
+    "materialized_accounts": 0,
+    "accounts_already_materialized": 0,
+    "accounts_planned": 77,
+    "accounts_newly_materialized": 0,
+    "account_round_trips_verified": 0,
+    "unique_account_hashes": 77,
+    "duplicate_account_hashes": 0,
+    "total_credit_top_up_gas": "0.00000000",
+    "estimated_tx_fees_gas": "23.10000000",
+    "estimated_mint_system_fee_gas": "771.29012379"
+  },
+  "apps": [
+    {
+      "app_id": "miniapp-aa-account-lab",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/aa-account-lab/neo-manifest.json",
+      "predicted_account_hash": "0x43738a9cbc4212d5ececc25f0376a3416f9e1243",
+      "mint_system_fee_gas": "10.01677483",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-market-hub",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/aa-market-hub/neo-manifest.json",
+      "predicted_account_hash": "0x509d68bccfa5994ec454eea22607a6ced1f7a47a",
+      "mint_system_fee_gas": "10.01675323",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-permissions-lab",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/aa-permissions-lab/neo-manifest.json",
+      "predicted_account_hash": "0x9d440140438347654be0007a0eb630c2c534af4a",
+      "mint_system_fee_gas": "10.01686123",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-relay-console",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/aa-relay-console/neo-manifest.json",
+      "predicted_account_hash": "0x01f0814fad36fc5d632ef9f8835bca5b263eb145",
+      "mint_system_fee_gas": "10.01681803",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aa-session-key-lab",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/aa-session-key-lab/neo-manifest.json",
+      "predicted_account_hash": "0x894f9268e8e6fbbde8f50f5ba362aed1df546163",
+      "mint_system_fee_gas": "10.01686160",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-aim-master",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/aim-master/neo-manifest.json",
+      "predicted_account_hash": "0x0328daa52243b8e49bba93164075ce47d2de7b69",
+      "mint_system_fee_gas": "10.01668806",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-arrow-escape",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/arrow-escape/neo-manifest.json",
+      "predicted_account_hash": "0x4b23629850e4f1748e014d6497b50dc8ebe16d1c",
+      "mint_system_fee_gas": "10.01673126",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-asset-factory",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/asset-factory/neo-manifest.json",
+      "predicted_account_hash": "0x53816c91cc48780a53113032ae527d10a377904b",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-automation-copilot",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/automation-copilot/neo-manifest.json",
+      "predicted_account_hash": "0x1a41b93ab43ba117c7517d8aba9d94fe0597f46f",
+      "mint_system_fee_gas": "10.01686086",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-bead-workshop",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/bead-workshop/neo-manifest.json",
+      "predicted_account_hash": "0xb6585d59fd01db9e0d042d9a21b176dab8e32d58",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-breakupcontract",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/breakup-contract/neo-manifest.json",
+      "predicted_account_hash": "0x9255a818547e063bc085152a42d233a3224d873a",
+      "mint_system_fee_gas": "10.01679569",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-burn-league",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/burn-league/neo-manifest.json",
+      "predicted_account_hash": "0xade57f48226dcd26601992eb8325d08cd68ef171",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-color-clash",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/color-clash/neo-manifest.json",
+      "predicted_account_hash": "0x30bb49e511062e96496653f2ea37e0928724229f",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-council-governance",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/council-governance/neo-manifest.json",
+      "predicted_account_hash": "0x19f5036470c65b126fcc7566748a94b1ca2a0edc",
+      "mint_system_fee_gas": "10.01686086",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-curve-arrow",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/curve-arrow/neo-manifest.json",
+      "predicted_account_hash": "0x274adb6b1e719bf97a327c3caf81808ca4200bce",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-custom-anchor",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/custom-anchor/neo-manifest.json",
+      "predicted_account_hash": "0x7a752f17441fd08694528ef1919dd71d1ba82fd2",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-dailycheckin",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/daily-checkin/neo-manifest.json",
+      "predicted_account_hash": "0xc5040bfbb9a9790b2e32bbae32ae220b045502b2",
+      "mint_system_fee_gas": "10.01673089",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-dev-tipping",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/dev-tipping/neo-manifest.json",
+      "predicted_account_hash": "0xe87ec709679557254b49e69c6334fab05b0bd281",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-dice-game",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/dice-game/neo-manifest.json",
+      "predicted_account_hash": "0x46171a05b7ac1bb51ba756a11c58a7612124d8a5",
+      "mint_system_fee_gas": "10.01666646",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-event-ticket-pass",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/event-ticket-pass/neo-manifest.json",
+      "predicted_account_hash": "0xdc487f8b93e296a7636c920a0849c2bd9375b8bc",
+      "mint_system_fee_gas": "10.01683963",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-explorer",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/explorer/neo-manifest.json",
+      "predicted_account_hash": "0x734662cd8d8803a54a713fe9f68bb539c33abfef",
+      "mint_system_fee_gas": "10.01664449",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-flappy-dash",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/flappy-dash/neo-manifest.json",
+      "predicted_account_hash": "0xd00cdba5f77d9a361ce10f8aa93559fc7481cbf0",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-flashloan",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/flashloan/neo-manifest.json",
+      "predicted_account_hash": "0x6fba10f1d140f9bc430c3ee63dd5ae89817ef5d8",
+      "mint_system_fee_gas": "10.01666609",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-fogplay",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/fogplay/neo-manifest.json",
+      "predicted_account_hash": "0x82f37c1622c7199467ee6a2166d77ddab5e147e9",
+      "mint_system_fee_gas": "10.01662289",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-forever-album",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/forever-album/neo-manifest.json",
+      "predicted_account_hash": "0xe5b0a35a2c9e37b0fe3d8ed1d62e2efcd05176b3",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-fruit-funnel",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/fruit-funnel/neo-manifest.json",
+      "predicted_account_hash": "0xdd9bb3cada8dc4a7ba0db547e85a74b0a812ba2d",
+      "mint_system_fee_gas": "10.01673126",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-game-2048",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/game-2048/neo-manifest.json",
+      "predicted_account_hash": "0xb86bdac2fb1597ec29878d86e3c9d79d1a37fc5c",
+      "mint_system_fee_gas": "10.01666698",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gas-lucky-pool",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/gas-lucky-pool/neo-manifest.json",
+      "predicted_account_hash": "0xe53c0de60753668b32a3b76d7b1286ffc741926a",
+      "mint_system_fee_gas": "10.01677483",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gas-sponsor",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/gas-sponsor/neo-manifest.json",
+      "predicted_account_hash": "0xd4b1a682a3b3ef389cbe2f4db8a958d5545b5059",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gasbox",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/gasbox/neo-manifest.json",
+      "predicted_account_hash": "0x4cfea469af801cf33d24b1ecb0733ad5eff758e4",
+      "mint_system_fee_gas": "10.01660129",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-gov-merc",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/gov-merc/neo-manifest.json",
+      "predicted_account_hash": "0x82443bed7cfc1f02b40d0b71dc9396f3f348f9d9",
+      "mint_system_fee_gas": "10.01664486",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-graveyard",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/graveyard/neo-manifest.json",
+      "predicted_account_hash": "0x807453ee75d8c4e4249c756e0e3c92665fac16d6",
+      "mint_system_fee_gas": "10.01666609",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-jump-rush",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/jump-rush/neo-manifest.json",
+      "predicted_account_hash": "0x304ca26fc20b56fc7a00a95af755e83fa76d2cc0",
+      "mint_system_fee_gas": "10.01666646",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-last-survivor",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/last-survivor/neo-manifest.json",
+      "predicted_account_hash": "0x8a59c20383a95c1691c422be6b75e58ed0b8ea91",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-memorial-shrine",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/memorial-shrine/neo-manifest.json",
+      "predicted_account_hash": "0xa624f8c22fec747bb25ce5f2537a8e40a6312bbf",
+      "mint_system_fee_gas": "10.01679606",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-merge-kingdom",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/merge-kingdom/neo-manifest.json",
+      "predicted_account_hash": "0xf1173ecc2ae56ad56af07dbbfbff6603bf90c227",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-milestone-escrow",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/milestone-escrow/neo-manifest.json",
+      "predicted_account_hash": "0xfc70461129fd69aa94ad5cdbecdae3ff2b442a92",
+      "mint_system_fee_gas": "10.01681766",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-miniapp-factory",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/miniapp-factory/neo-manifest.json",
+      "predicted_account_hash": "0xc8afbbb4e13482c77b91df976321e0204c890993",
+      "mint_system_fee_gas": "10.01679606",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-convert",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-convert/neo-manifest.json",
+      "predicted_account_hash": "0x114eaa99a9ebf38d1176acab77dc5a8fc7e45167",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-message",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-message/neo-manifest.json",
+      "predicted_account_hash": "0x977e321161a7679598e2251d8c333a2af5681a5a",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-multisig",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-multisig/neo-manifest.json",
+      "predicted_account_hash": "0xabd4db122231d78a5c84735def95f7ea049a7dc3",
+      "mint_system_fee_gas": "10.01673126",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-ns",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-ns/neo-manifest.json",
+      "predicted_account_hash": "0x7b3df6c2e252fcd464e8b8c33917124818f9f7fe",
+      "mint_system_fee_gas": "10.01660166",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-pay-shared-example",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-pay-shared-example/neo-manifest.json",
+      "predicted_account_hash": "0xb59a8c0b86790326fae420e213dfdaa78d6b9633",
+      "mint_system_fee_gas": "10.01694800",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-pay",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-pay/neo-manifest.json",
+      "predicted_account_hash": "0xafcae993ec681cd6341c5c511b922406b7c98725",
+      "mint_system_fee_gas": "10.01662326",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-sign-anything",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-sign-anything/neo-manifest.json",
+      "predicted_account_hash": "0xb09777ca0beef8c265c7f22ac0b96268c0ed0f52",
+      "mint_system_fee_gas": "10.01683963",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-swap",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-swap/neo-manifest.json",
+      "predicted_account_hash": "0xb401769f176c27d5582644a69320d66abc786618",
+      "mint_system_fee_gas": "10.01664486",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-treasury",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-treasury/neo-manifest.json",
+      "predicted_account_hash": "0x62b7d42bd465fd308d8059749b1a6eeaf96271df",
+      "mint_system_fee_gas": "10.01673126",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neo-x-bridge",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neo-x-bridge/neo-manifest.json",
+      "predicted_account_hash": "0xf9a8d4282abaaaa3fb68a67211dd37f5e8f0fc93",
+      "mint_system_fee_gas": "10.01673163",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-neodid-passport",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/neodid-passport/neo-manifest.json",
+      "predicted_account_hash": "0x4a0e5b896e2f8237e3f4d89f9f2d8ba296b384fa",
+      "mint_system_fee_gas": "10.01679606",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-nft-factory",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/nft-factory/neo-manifest.json",
+      "predicted_account_hash": "0xa41215b1d8b320d387fb563f2d0f06cc9a74a8fd",
+      "mint_system_fee_gas": "10.01670966",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-onchaintarot",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/on-chain-tarot/neo-manifest.json",
+      "predicted_account_hash": "0xfc18dfe019a714df089edb6f5609895faab1fbc6",
+      "mint_system_fee_gas": "10.01673089",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-compute-lab",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/oracle-compute-lab/neo-manifest.json",
+      "predicted_account_hash": "0xd139590eb9d9c2b08f0186f8bac91a62e71e6540",
+      "mint_system_fee_gas": "10.01686123",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-http-console",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/oracle-http-console/neo-manifest.json",
+      "predicted_account_hash": "0x1cd92ea34f73bd69fa08f82be4f2003a9aa03553",
+      "mint_system_fee_gas": "10.01688283",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-neodid-console",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/oracle-neodid-console/neo-manifest.json",
+      "predicted_account_hash": "0x39a5df53917506e91dacf5c1f2856a151d676375",
+      "mint_system_fee_gas": "10.01692603",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-price-console",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/oracle-price-console/neo-manifest.json",
+      "predicted_account_hash": "0x199c37fed136ab766a0971b7c54fa994d5231990",
+      "mint_system_fee_gas": "10.01690443",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-seal-console",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/oracle-seal-console/neo-manifest.json",
+      "predicted_account_hash": "0x4e14625084b488c4ac303e97c86cdf2119bd3737",
+      "mint_system_fee_gas": "10.01688283",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-oracle-vrf-console",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/oracle-vrf-console/neo-manifest.json",
+      "predicted_account_hash": "0x78a434b48f98aab95bdaa07484cf4a82fdab33b4",
+      "mint_system_fee_gas": "10.01686123",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-pet-potion",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/pet-potion/neo-manifest.json",
+      "predicted_account_hash": "0x835bd0ceb108ae7fefa7fd1bed5fabc70acdc82b",
+      "mint_system_fee_gas": "10.01668806",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-private-transfer",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/private-transfer/neo-manifest.json",
+      "predicted_account_hash": "0x4098585fa9662dd5f3e8f0407d5f57fb8597b92e",
+      "mint_system_fee_gas": "10.01681766",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-profitanchor-admin",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/profitanchor-admin/neo-manifest.json",
+      "predicted_account_hash": "0x18ffa55cf1ec63a7302276d3c5012e90742ac87c",
+      "mint_system_fee_gas": "10.01686086",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-profitanchor",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/profitanchor/neo-manifest.json",
+      "predicted_account_hash": "0xcba4c98908e2af1d14d6579a5bce9c05d1b41dae",
+      "mint_system_fee_gas": "10.01673089",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-quadratic-funding",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/quadratic-funding/neo-manifest.json",
+      "predicted_account_hash": "0x3389c1af0a3e3f0c524732fcf264c051c3eacf75",
+      "mint_system_fee_gas": "10.01683926",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-recovery-guardian",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/recovery-guardian/neo-manifest.json",
+      "predicted_account_hash": "0xed8221edb73a9e0e1f30e1193d6525382056a9e8",
+      "mint_system_fee_gas": "10.01683926",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-redenvelope",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/red-envelope/neo-manifest.json",
+      "predicted_account_hash": "0xc638d5da9a82c9a8b714593737df370c7612616e",
+      "mint_system_fee_gas": "10.01670929",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-screw-sort",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/screw-sort/neo-manifest.json",
+      "predicted_account_hash": "0x28acc97b1899f37351e393988840bd3fcdafddba",
+      "mint_system_fee_gas": "10.01668806",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-self-loan",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/self-loan/neo-manifest.json",
+      "predicted_account_hash": "0xcf2aa2bf5cdab4285321da88814effbdbe340be4",
+      "mint_system_fee_gas": "10.01666646",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-sheep-solitaire",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/sheep-solitaire/neo-manifest.json",
+      "predicted_account_hash": "0x7c7dd968e41f22c1c0dd906fd73841dd599a071b",
+      "mint_system_fee_gas": "10.01679606",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-snake-bounty",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/snake-bounty/neo-manifest.json",
+      "predicted_account_hash": "0x573022a909f8e0194480ecc4432a5ee95586fe30",
+      "mint_system_fee_gas": "10.01673126",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-soulbound-certificate",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/soulbound-certificate/neo-manifest.json",
+      "predicted_account_hash": "0xd34b9c4ee001a63ab0c27fbc0e6e259329e964b0",
+      "mint_system_fee_gas": "10.01692566",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-sudoku",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/sudoku/neo-manifest.json",
+      "predicted_account_hash": "0x08c3108c0555b7d50d8e96a928481c8067e95ddb",
+      "mint_system_fee_gas": "10.01660129",
+      "app_row": [
+        "platform-game",
+        "0xc75b181b4561462903bb27d8d9e0b32b637bec12",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-time-capsule",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/time-capsule/neo-manifest.json",
+      "predicted_account_hash": "0x0669a3bbf98cbc713e0d0977f24f296cf44c4f38",
+      "mint_system_fee_gas": "10.01673126",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-timestamp-proof",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/timestamp-proof/neo-manifest.json",
+      "predicted_account_hash": "0x19e9a2023d8c4c54b257f721ee63b1a3965f3690",
+      "mint_system_fee_gas": "10.01679606",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-trustanchor-admin",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/trustanchor-admin/neo-manifest.json",
+      "predicted_account_hash": "0x52312bf88f5a4417ef808342d351b409422a0d73",
+      "mint_system_fee_gas": "10.01683926",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-trustanchor",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/trustanchor/neo-manifest.json",
+      "predicted_account_hash": "0x0435d15fb3879ddbed964c8afeed3f63c77ac9bb",
+      "mint_system_fee_gas": "10.01670929",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-unbreakablevault",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/unbreakable-vault/neo-manifest.json",
+      "predicted_account_hash": "0xc8a2cffe089b87e142c1699501232c7569516ff2",
+      "mint_system_fee_gas": "10.01681729",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-wallet-health",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/wallet-health/neo-manifest.json",
+      "predicted_account_hash": "0xed96e7897409064b2556242f58f3daf6916604e4",
+      "mint_system_fee_gas": "10.01675286",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    },
+    {
+      "app_id": "miniapp-zhuada-e",
+      "status": "planned",
+      "reason": "mintAccount simulation HALT; platform-admin fee exemption applies",
+      "source": "apps/zhuada-e/neo-manifest.json",
+      "predicted_account_hash": "0x7c2fb32f36b1ece08c1376f30e75c661b2022e98",
+      "mint_system_fee_gas": "10.01664486",
+      "app_row": [
+        "",
+        "0x0000000000000000000000000000000000000000",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "0x0000000000000000000000000000000000000000",
+        false,
+        true
+      ]
+    }
+  ],
+  "transactions": [],
+  "balances": {
+    "gas": "113116.98736487",
+    "neo": "73061"
+  },
+  "next_steps": [
+    "Review the per-app predicted hashes and aggregate system-fee estimate before authorizing any write run.",
+    "A write run sends one ContractManagement.Deploy-backed mintAccount transaction per planned app and verifies appAccountOf/appIdOfAccount after confirmation.",
+    "Materializing AppAccounts creates app-owned treasury addresses; user-owned refundable balances must remain in engine ledgers under the two-ledger doctrine."
+  ],
+  "generated_at_utc": "2026-07-22T22:31:59Z"
+}

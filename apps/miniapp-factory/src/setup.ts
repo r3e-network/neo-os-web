@@ -483,13 +483,10 @@ export function createMiniAppFactorySetup(appId: string) {
         if (walletNetwork !== TESTNET) throw new Error(ctx.t("testnetRequired"));
 
         invocationStarted = true;
-        const result = await ctx.framework.chain.invoke(
-          plan.deploymentCall.operation,
-          plan.deploymentCall.args,
-          {
-            scriptHash: plan.deploymentCall.scriptHash,
-            waitForEvent: plan.execution.confirmingEvent,
-          },
+        const result = await ctx.framework.platformFactory.executeDeploymentCall(
+          plan.network,
+          plan.deploymentCall,
+          { waitForEvent: plan.execution.confirmingEvent },
         );
         if (!result.txid) throw new Error(ctx.t("registrationTxMissing"));
 

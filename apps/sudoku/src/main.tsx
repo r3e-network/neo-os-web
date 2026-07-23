@@ -86,7 +86,7 @@ const rewardGameConfig = {
 // gameId(0) player(1) difficulty(2) elapsedMs(3) undos(4) payout(5) totalWon(6)
 const SOLVED_SLOTS = {
   gameId: 0, player: 1, difficulty: 2, elapsedMs: 3,
-  undos: 4, solvedPayout: 5, totalWon: 6,
+  undos: 7, solvedPayout: 5, totalWon: 6,
 };
 
 export type { LeaderEntry, SolveRow };

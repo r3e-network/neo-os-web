@@ -6,7 +6,7 @@ import {
   TRAY_MATCH_MOTION_MS,
   TRAY_MOTION_TIMINGS,
 } from "./tray-motion";
-import { SCENE_MOTION } from "../scenes/scene-motion";
+import { SCENE_MOTION, portraitCameraBias } from "../scenes/scene-motion";
 
 const scssPath = fileURLToPath(new URL("../PlayArea.scss", import.meta.url));
 const playAreaScss = readFileSync(scssPath, "utf8");
@@ -87,6 +87,13 @@ describe("motion quality guardrails", () => {
     expect(SCENE_MOTION.pickPressScale).toBeLessThanOrEqual(1.16);
     expect(SCENE_MOTION.trayFlightEndScale).toBeGreaterThanOrEqual(0.45);
     expect(SCENE_MOTION.qaTelemetryMs).toBe(1_000);
+  });
+
+  it("moves a tall-phone pile down into the reference composition without shifting desktop", () => {
+    expect(portraitCameraBias(1.04)).toBe(0);
+    expect(portraitCameraBias(0.75)).toBeGreaterThan(0.4);
+    expect(portraitCameraBias(308 / 552)).toBeGreaterThan(0.9);
+    expect(portraitCameraBias(0.4)).toBeLessThanOrEqual(0.94);
   });
 
   it("keeps 3D tray flight on the same smooth handoff contract as the tray", () => {

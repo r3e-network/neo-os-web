@@ -91,7 +91,7 @@ export function normalizeAssetFactoryDraft(value: unknown): Nep17Draft | null {
 }
 
 export function assetFactorySignatureMessage(plan: FactoryPlan): string {
-  return `NEP-17 Factory template plan\n${plan.digest}\n${plan.packageId}`;
+  return `NEP-17 Factory template plan\n${plan.digest}\n${plan.packageId}\n${plan.artifactDigest}`;
 }
 
 function planHasOnlyConfigurationErrors(plan: FactoryPlan): boolean {
@@ -201,12 +201,9 @@ function stateObservable<T>(state: StateMap, key: string): Observable<T> {
 }
 
 /**
- * The configured TestNet factory only exposes the legacy deployFromTemplate
- * path, and its NEP-17 template is metadata-only. That call records a package
- * with UInt160.Zero; it does not create a token. The repository's upgraded
- * contract adds DeployArtifactFromTemplate, but this app must keep writes
- * closed until that ABI and the creator-unique artifact pipeline are deployed
- * and certified end to end.
+ * The shared planner now builds the complete creator-unique artifact call.
+ * This app still keeps writes closed until the upgraded TestNet ABI and the
+ * journal/event/readback lifecycle are certified end to end.
  */
 export function enforceAssetPlanSafety(plan: FactoryPlan): FactoryPlan {
   return {
@@ -214,11 +211,11 @@ export function enforceAssetPlanSafety(plan: FactoryPlan): FactoryPlan {
     execution: {
       ...plan.execution,
       available: false,
-      blockedReasonKey: "artifactUnverified",
+      blockedReasonKey: "deploymentCertificationPending",
     },
     steps: plan.steps.map((step) =>
       step.key === "deploy"
-        ? { ...step, status: "blocked", detailKey: "artifactUnverified" }
+        ? { ...step, status: "blocked", detailKey: "stepDeployFactoryUpgradeRequired" }
         : step,
     ),
   };
@@ -279,11 +276,6 @@ export function createAssetFactorySetup(appId: string) {
       "blockingIssueCount",
     );
     const generatedCount = stateObservable<number>(state, "generatedCount");
-    const artifactPresence = stateObservable<Record<string, string>>(
-      state,
-      "artifactPresence",
-    );
-
     const launchDraft = createFactoryDraftFromLaunchContext(
       ctx.launchContext,
       "nep17",
@@ -387,7 +379,10 @@ export function createAssetFactorySetup(appId: string) {
       if (coercingPlan) return;
       resetRecoveryForPlan();
       const plan = currentPlan.get();
-      if (!plan?.execution.available) return;
+      if (
+        !plan ||
+        plan.execution.blockedReasonKey === "deploymentCertificationPending"
+      ) return;
       coercingPlan = true;
       currentPlan.set(enforceAssetPlanSafety(plan));
       coercingPlan = false;
@@ -417,32 +412,6 @@ export function createAssetFactorySetup(appId: string) {
     const stopSignaturePersistence =
       walletSignatureInfo.subscribe(persistJournal);
     const stopSignerPersistence = signedWalletAddress.subscribe(persistJournal);
-    const stopArtifactSync = artifactPresence.subscribe(() => {
-      const plan = currentPlan.get();
-      if (!plan) return;
-      const presence = artifactPresence.get()[
-        `${ASSET_FACTORY_NETWORK}|${plan.templateId}`
-      ] as "present" | "missing" | "not-registered" | "unknown" | undefined;
-      if (!presence) return;
-      const rebuilt = buildFactoryPlan(
-        "nep17",
-        restoredDraft.get() as unknown as Record<string, unknown>,
-        {
-          appId,
-          artifactPresence: presence,
-        },
-      );
-      if (rebuilt.digest !== plan.digest) return;
-      const safePlan = enforceAssetPlanSafety(rebuilt);
-      if (
-        safePlan.templateArtifact.status === plan.templateArtifact.status &&
-        safePlan.execution.blockedReasonKey === plan.execution.blockedReasonKey
-      ) {
-        return;
-      }
-      currentPlan.set(safePlan);
-    });
-
     forceFailClosedPlan();
 
     ctx.framework.actions.register(
@@ -608,7 +577,6 @@ export function createAssetFactorySetup(appId: string) {
         stopPlanPersistence();
         stopSignaturePersistence();
         stopSignerPersistence();
-        stopArtifactSync();
         base.cleanup?.();
       },
     };

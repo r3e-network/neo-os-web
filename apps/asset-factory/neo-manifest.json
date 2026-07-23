@@ -4,7 +4,7 @@
   "name": "Asset Factory",
   "name_zh": "资产工厂",
   "version": "1.2.0",
-  "description": "A visual NEP-17 token studio for deterministic issuance blueprints, exact wallet commitments, refresh recovery, and read-only Factory record verification. Contract creation remains locked until the unique-artifact pipeline is certified.",
+  "description": "A visual NEP-17 token studio for deterministic creator artifacts, exact wallet commitments, refresh recovery, and read-only Factory verification. Contract creation remains locked until the live Factory ABI and transaction lifecycle are certified.",
   "description_zh": "可视化 NEP-17 代币发行工作室，支持确定性发行蓝图、精确钱包承诺、刷新恢复和只读 Factory 记录核对。独立工件流水线完成认证前，合约创建保持锁定。",
   "category": "tools",
   "category_name": "Tools",

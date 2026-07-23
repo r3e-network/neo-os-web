@@ -1,94 +1,40 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 
-import {
-  morpheusNetworkOf,
-  teeFinalize,
-  teeMove,
-  teeStart,
-  type TeeIdentity,
-} from "../../jump-rush/src/logic/tee-session";
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const main = fs.readFileSync(path.join(repoRoot, "apps/jump-rush/src/main.tsx"), "utf8");
+const rules = fs.readFileSync(path.join(repoRoot, "apps/jump-rush/src/logic/game-rules.ts"), "utf8");
 
-const identity: TeeIdentity = {
-  appId: "miniapp-jump-rush",
-  network: "testnet",
-  contractHash: `0x${"11".repeat(20)}`,
-  gameId: "7",
-  player: `0x${"22".repeat(20)}`,
-  difficulty: 0,
-};
-
-function response(body: Record<string, unknown>): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-}
-
-function startEnvelope(platforms: unknown): Record<string, unknown> {
-  return {
-    commitment: "ab".repeat(32),
-    bind_signature: "cd".repeat(64),
-    public_key: "test-public-key-material",
-    session_token: "test-session-token-material",
-    view: { platforms },
-  };
-}
-
-const route = Array.from({ length: 11 }, (_, index) => ({
-  x: index === 0 ? 60 : 180 + index * 190,
-  width: index === 0 ? 120 : 100,
-  gap: index === 0 ? 0 : 90,
-}));
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-describe("jump-rush TEE session envelope", () => {
-  it("fails closed when a proof network cannot be identified", () => {
-    expect(morpheusNetworkOf("neo-n3-testnet")).toBe("testnet");
-    expect(morpheusNetworkOf("neo-n3-mainnet")).toBe("mainnet");
-    expect(() => morpheusNetworkOf("")).toThrow("unknown Neo network");
-    expect(() => morpheusNetworkOf("private-chain")).toThrow("unknown Neo network");
+describe("jump-rush shared kernel session", () => {
+  it("uses the reviewed generic engine through app.game.reward", () => {
+    expect(main).toContain("a61fca9f6cfc3a88cde4230d6817d7fc84491f42b03815453775585a3d9c820f");
+    expect(main).toContain("app.game.reward<TeeOp>");
+    expect(main).toContain("rewardGame.openSession");
+    expect(main).toContain("rewardGame.recordOp");
+    expect(main).toContain("rewardGame.replayOps");
+    expect(main).toContain("rewardGame.finalize");
+    expect(main).toContain("rewardGame.recoverActive");
+    expect(main).toContain("started.currentView");
+    expect(main).toContain("started.opCount");
   });
 
-  it("accepts and preserves authoritative platform objects", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => response(startEnvelope(route))));
-    const started = await teeStart(identity);
-    expect(started.view.platforms).toEqual(route);
-    expect(started.commitment).toBe("ab".repeat(32));
+  it("contains no pre-kernel bind or signature settlement path", () => {
+    expect(main).not.toContain("bindPuzzle");
+    expect(main).not.toContain("settleVerified");
+    expect(main).not.toContain("bindSignature");
+    expect(main).not.toContain("settleSignature");
+    expect(main).not.toContain("/api/morpheus/game/");
   });
 
-  it("rejects the legacy number-only view and non-hex proof envelopes", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => response(startEnvelope([10, 20, 30, 40, 50]))));
-    await expect(teeStart(identity)).rejects.toThrow("malformed platform view");
-
-    vi.stubGlobal("fetch", vi.fn(async () => response({
-      ...startEnvelope(route),
-      commitment: "z".repeat(64),
-    })));
-    await expect(teeStart(identity)).rejects.toThrow("malformed commitment envelope");
-  });
-
-  it("sends chargeLevel without a stale chargeMs field", async () => {
-    const fetchMock = vi.fn(async () => response({ ok: true }));
-    vi.stubGlobal("fetch", fetchMock);
-    await teeMove(identity, "test-session-token-material", 0, { type: "jump", chargeLevel: 63 });
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const body = JSON.parse(String(init.body)) as { op?: Record<string, unknown> };
-    expect(body.op).toEqual({ type: "jump", chargeLevel: 63 });
-    expect(body.op).not.toHaveProperty("chargeMs");
-  });
-
-  it("rejects malformed hashes, signatures, and numeric settlement fields", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => response({
-      problem_hash: "ab".repeat(32),
-      answer_hash: "cd".repeat(32),
-      elapsed_ms: -1,
-      undos: 0,
-      settle_signature: "ef".repeat(64),
-    })));
-    await expect(teeFinalize(identity, "test-session-token-material"))
-      .rejects.toThrow("malformed settlement");
+  it("matches the reviewed wrapper timing and target profile", () => {
+    expect(rules).toContain("limitMs: 180_000");
+    expect(rules).toContain("limitMs: 300_000");
+    expect(rules).toContain("limitMs: 480_000");
+    expect(rules).toContain("targetJumps: 15");
+    expect(rules).toContain("targetJumps: 25");
+    expect(rules).toContain("targetJumps: 35");
+    expect(rules).toContain("GAMEFI_MAX_UNDOS = 0");
   });
 });

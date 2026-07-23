@@ -57,6 +57,38 @@ function harness(mode = "2") {
       ensureWallet: vi.fn(async () => WALLET),
       detectNetwork: vi.fn(async () => "neo-n3-testnet"),
     },
+    platformAnchor: {
+      appMode: () => readRaw("getAppMode"),
+      appPaused: () => readRaw("isAppPaused"),
+      stats: () => readRaw("getAnchorStats"),
+      userStake: () => readRaw("getUserStake"),
+      pendingRewards: () => readRaw("getPendingRewards"),
+      credit: () => readRaw("getCredit"),
+      stakeNeo: (amount: unknown, user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("transfer", [
+          { type: "Hash160", value: String(user) },
+          { type: "Hash160", value: CONTRACT },
+          { type: "Integer", value: String(amount) },
+          { type: "String", value: `stake:${APP_ID}` },
+        ], invokeOptions),
+      withdraw: (amount: unknown, user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("withdraw", [
+          { type: "String", value: APP_ID },
+          { type: "Hash160", value: String(user) },
+          { type: "Integer", value: String(amount) },
+        ], { ...invokeOptions, scriptHash: CONTRACT }),
+      claimRewards: (user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("claimRewards", [
+          { type: "String", value: APP_ID },
+          { type: "Hash160", value: String(user) },
+        ], { ...invokeOptions, scriptHash: CONTRACT }),
+      withdrawCredit: (asset: unknown, amount: unknown, user: unknown, invokeOptions?: { onTransactionSent?: (txid: string) => void }) =>
+        invoke("withdrawCredit", [
+          { type: "Hash160", value: String(user) },
+          { type: "String", value: String(asset) },
+          { type: "Integer", value: String(amount) },
+        ], { ...invokeOptions, scriptHash: CONTRACT }),
+    },
     // Harness mirror of the framework surfaces the runtime adopted in the RFC
     // migration (wallet.onAccountChanged identity diff over chain.address +
     // errors.messageOf Error-message extraction). Assertions are unchanged —

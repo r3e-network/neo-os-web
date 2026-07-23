@@ -51,6 +51,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract BigInteger? artifactVersion();
         public abstract BigInteger? artifactChecksum();
         public abstract UInt160? predictedAccountHash(UInt160 deployerSender, string appId);
+        public abstract void proposeAbstractAccountCore(UInt160 core);
+        public abstract void setAbstractAccountCore();
+        public abstract void cancelAbstractAccountCore();
+        public abstract UInt160? abstractAccountCore();
+        public abstract UInt160? pendingAbstractAccountCore();
+        public abstract BigInteger? abstractAccountCoreAvailableAt();
+        public abstract UInt160? materializeAbstractAccount(string appId);
+        public abstract object[]? getAppAbstractAccount(string appId);
+        public abstract string? appIdOfAbstractAccount(UInt160 core, UInt160 accountId);
         // descriptor
         public abstract void setDescriptor(string appId, string key, object? value);
         public abstract void executeSpendThresholdRaise(string appId);
@@ -108,6 +117,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public abstract void arm(UInt160 registry);
         public abstract BigInteger? observedHopInProgress();
         public abstract BigInteger? poolReceived();
+    }
+
+    public abstract class AbstractAccountCoreMockContract : SmartContract
+    {
+        protected AbstractAccountCoreMockContract(SmartContractInitialize initialize) : base(initialize) { }
+        public abstract void setRegistrar(UInt160 registrar);
+        public abstract UInt160? computePlatformAccountId(byte[] appBinding, UInt160 backupOwner, uint escapeTimelock);
+        public abstract UInt160? getBackupOwner(UInt160 accountId);
     }
 
     // Shared deploy/setup helpers for the PlatformRegistry suites.

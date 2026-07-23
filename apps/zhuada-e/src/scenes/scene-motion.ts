@@ -25,3 +25,14 @@ export const SCENE_MOTION = Object.freeze({
   trayFlightEndScale: 0.46,
   qaTelemetryMs: 1_000,
 });
+
+/**
+ * Portrait canvases need the physical pile lower than the geometric center so
+ * the upper half can carry the HUD/environment while the tray still reads as
+ * one continuous appliance. Landscape/desktop framing remains centered.
+ */
+export function portraitCameraBias(aspect: number): number {
+  if (!Number.isFinite(aspect)) return 0;
+  const t = Math.max(0, Math.min(1, (0.9 - aspect) / 0.3));
+  return Number((t * 0.94).toFixed(3));
+}

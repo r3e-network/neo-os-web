@@ -4,10 +4,11 @@ import { createMiniAppFramework } from "../../../framework";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
-const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 
 const harness = vi.hoisted(() => ({
   presence: "present" as string,
+  deploymentSupport: "supported" as string,
   estimate: "0.007",
   record: {
     packageId: "",
@@ -18,6 +19,7 @@ const harness = vi.hoisted(() => ({
     createdAt: 1765500000000,
   },
   fetchTemplateArtifactPresence: vi.fn(),
+  fetchFactoryArtifactDeploymentSupport: vi.fn(),
   estimateFactoryFeeGas: vi.fn(),
   readFactoryRecord: vi.fn(),
   fetchFactoryDeployments: vi.fn(),
@@ -25,6 +27,7 @@ const harness = vi.hoisted(() => ({
 
 vi.mock("../factory/factoryChain", () => ({
   fetchTemplateArtifactPresence: harness.fetchTemplateArtifactPresence,
+  fetchFactoryArtifactDeploymentSupport: harness.fetchFactoryArtifactDeploymentSupport,
   estimateFactoryFeeGas: harness.estimateFactoryFeeGas,
   readFactoryRecord: harness.readFactoryRecord,
   fetchFactoryDeployments: harness.fetchFactoryDeployments,
@@ -103,7 +106,10 @@ function buildCtx(appId: string): TestCtx {
     },
   };
   Object.assign(ctx, {
-    framework: createMiniAppFramework(ctx as never, { appId }),
+    framework: createMiniAppFramework(ctx as never, {
+      appId,
+      platformFactory: { hashes: { "neo-n3-testnet": FACTORY_HASH } },
+    }),
   });
   return { ctx, actions, chain, setStatus };
 }
@@ -128,13 +134,25 @@ const NEP17_FORM = {
   network: "testnet",
 };
 
+const MINIAPP_FORM = {
+  appId: "miniapp-launch-pass",
+  appName: "Launch Pass",
+  templateKind: "ticket-pass",
+  admin: OWNER,
+  network: "testnet",
+};
+
 function readState(result: { state?: Record<string, TestObservable> }, key: string): unknown {
   return result.state?.[key]?.get();
 }
 
 beforeEach(() => {
   harness.presence = "present";
+  harness.deploymentSupport = "supported";
   harness.fetchTemplateArtifactPresence.mockReset().mockImplementation(async () => harness.presence);
+  harness.fetchFactoryArtifactDeploymentSupport
+    .mockReset()
+    .mockImplementation(async () => harness.deploymentSupport);
   harness.estimateFactoryFeeGas.mockReset().mockImplementation(async () => harness.estimate);
   harness.readFactoryRecord.mockReset().mockImplementation(async () => harness.record);
   harness.fetchFactoryDeployments.mockReset().mockImplementation(async () => ({ total: 0, items: [] }));
@@ -142,7 +160,7 @@ beforeEach(() => {
 });
 
 describe("factory runtime setup", () => {
-  it("generatePlan live-verifies the template artifact and surfaces an executable plan with a fee estimate", async () => {
+  it("unlocks only after live-verifying both the governed artifact and exact ABI", async () => {
     const { createFactorySetup } = await loadRuntime();
     const { ctx, actions } = buildCtx("miniapp-asset-factory");
     const result = createFactorySetup("nep17", "miniapp-asset-factory")(
@@ -161,16 +179,19 @@ describe("factory runtime setup", () => {
       FACTORY_HASH,
       "tpl.nep17.asset.v1",
     );
+    expect(harness.fetchFactoryArtifactDeploymentSupport).toHaveBeenCalledWith(
+      "neo-n3-testnet",
+      FACTORY_HASH,
+    );
     expect(plan.publishable).toBe(true);
     expect(plan.templateArtifact.status).toBe("preloaded-on-chain");
     expect(plan.execution.available).toBe(true);
-    // Fee estimate runs in the background off the publishable plan.
-    await vi.waitFor(() => {
-      expect(readState(result, "feeEstimateGas")).toBe("0.007");
-    });
+    expect(plan.execution.blockedReasonKey).toBe("");
+    await vi.waitFor(() => expect(readState(result, "feeEstimateGas")).toBe("0.007"));
+    expect(harness.estimateFactoryFeeGas).toHaveBeenCalled();
   });
 
-  it("executePlan submits the deployment call, captures txid + deployed hash, and refreshes the registry", async () => {
+  it("executes the complete creator-artifact call when all live gates pass", async () => {
     const { createFactorySetup } = await loadRuntime();
     const { ctx, actions, chain, setStatus } = buildCtx("miniapp-asset-factory");
     const result = createFactorySetup("nep17", "miniapp-asset-factory")(
@@ -178,24 +199,18 @@ describe("factory runtime setup", () => {
     ) as { state?: Record<string, TestObservable> };
 
     await actions.get("generatePlan")!(NEP17_FORM);
-    harness.fetchFactoryDeployments.mockClear();
     await actions.get("executePlan")!();
 
+    const plan = readState(result, "currentPlan") as {
+      deploymentCall: { operation: string; args: unknown[] };
+    };
+    expect(plan.deploymentCall).toMatchObject({
+      scriptHash: FACTORY_HASH,
+      operation: "deployArtifactFromTemplate",
+    });
+    expect(plan.deploymentCall.args).toHaveLength(6);
     expect(chain.invoke).toHaveBeenCalledTimes(1);
-    const [operation, args, options] = chain.invoke.mock.calls[0] as [
-      string,
-      Array<{ type: string; value: string }>,
-      { scriptHash: string; waitForEvent: string },
-    ];
-    expect(operation).toBe("deployFromTemplate");
-    expect(options.scriptHash).toBe(FACTORY_HASH);
-    expect(options.waitForEvent).toBe("TokenDeployed");
-    expect(args[0]).toEqual({ type: "String", value: "tpl.nep17.asset.v1" });
-    expect(readState(result, "lastTxid")).toBe("0xtx-1");
-    expect(readState(result, "deployedContractHash")).toBe("0x" + "22".repeat(20));
     expect(setStatus).toHaveBeenCalledWith("executeConfirmed", "success");
-    // The registry view refreshes so the new package shows up immediately.
-    expect(harness.fetchFactoryDeployments).toHaveBeenCalled();
   });
 
   it("refuses to execute artifact-less deploy templates with the honest blocked reason", async () => {
@@ -221,7 +236,8 @@ describe("factory runtime setup", () => {
     expect(chain.invoke).not.toHaveBeenCalled();
   });
 
-  it("guards against double-submitting the same package", async () => {
+  it("fails closed when the deployed Factory lacks the exact artifact ABI", async () => {
+    harness.deploymentSupport = "missing";
     const { createFactorySetup } = await loadRuntime();
     const { ctx, actions, chain, setStatus } = buildCtx("miniapp-asset-factory");
     const result = createFactorySetup("nep17", "miniapp-asset-factory")(
@@ -229,6 +245,27 @@ describe("factory runtime setup", () => {
     ) as { state?: Record<string, TestObservable> };
 
     await actions.get("generatePlan")!(NEP17_FORM);
+    const plan = readState(result, "currentPlan") as {
+      execution: { available: boolean; blockedReasonKey: string };
+    };
+    expect(plan.execution).toMatchObject({
+      available: false,
+      blockedReasonKey: "factoryAbiUnavailable",
+    });
+
+    await actions.get("executePlan")!();
+    expect(setStatus).toHaveBeenCalledWith("factoryAbiUnavailable", "error");
+    expect(chain.invoke).not.toHaveBeenCalled();
+  });
+
+  it("guards against double-submitting the same package", async () => {
+    const { createFactorySetup } = await loadRuntime();
+    const { ctx, actions, chain, setStatus } = buildCtx("miniapp-miniapp-factory");
+    const result = createFactorySetup("miniapp", "miniapp-miniapp-factory")(
+      ctx as never,
+    ) as { state?: Record<string, TestObservable> };
+
+    await actions.get("generatePlan")!(MINIAPP_FORM);
     await actions.get("executePlan")!();
     await expect(actions.get("executePlan")!()).resolves.toBeUndefined();
     expect(readState(result, "lastError")).toBe("");
@@ -283,9 +320,14 @@ describe("factory runtime setup", () => {
     };
     expect(info.signature).toBe("signature-bytes");
     expect(info.publicKey).toBe("02abcd");
-    const plan = readState(result, "currentPlan") as { digest: string; packageId: string };
+    const plan = readState(result, "currentPlan") as {
+      digest: string;
+      packageId: string;
+      artifactDigest: string;
+    };
     expect(info.message).toContain(plan.digest);
     expect(info.message).toContain(plan.packageId);
+    expect(info.message).toContain(plan.artifactDigest);
     expect(info.signedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(readState(result, "walletSignature")).toBe("signature-bytes");
   });

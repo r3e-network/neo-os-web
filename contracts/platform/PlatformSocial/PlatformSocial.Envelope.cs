@@ -33,10 +33,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(creator != UInt160.Zero && creator.IsValid, "invalid creator");
 
             // Read the creator's GAS credit balance as the envelope amount
-            StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])creator;
-            ByteString existing = gasCredits.Get(creditKey);
-            BigInteger totalAmount = existing == null ? 0 : (BigInteger)existing;
+            BigInteger totalAmount = GetGasCreditBalance(appId, creator);
 
             ExecutionEngine.Assert(totalAmount >= MIN_ENVELOPE_AMOUNT, "min 0.1 GAS");
             ExecutionEngine.Assert(packetCount > 0 && packetCount <= MAX_PACKETS, "1-100 packets");
@@ -44,7 +41,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // expiryMs is the lifetime in milliseconds (Runtime.Time is ms on Neo N3).
             ExecutionEngine.Assert(expiryMs > 0, "expiry required");
 
-            ConsumeGasCredit(creator, totalAmount);
+            ConsumeGasCredit(appId, creator, totalAmount);
 
             // Increment envelope counter for this app
             ByteString idKey = AppKey(appId, PREFIX_ENVELOPE_ID);

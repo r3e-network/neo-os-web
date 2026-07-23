@@ -122,6 +122,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "WithdrawGasCredit");
             Assert.Contains("Runtime.CheckWitness(user)", code);
             Assert.Contains("GasCreditWithdrawn", code);
+            Assert.Contains("memo == appId + \":credit\"", code);
+            Assert.Contains("AppKey(appId, PREFIX_DIRECT_GAS_CREDIT, payer)", code);
+            Assert.Contains("PREFIX_TOTAL_GAS_CREDIT_LIABILITY", code);
+            Assert.Contains("PREFIX_TOTAL_NEO_CREDIT_LIABILITY", code);
+            Assert.DoesNotContain("new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT)", code);
         }
 
         [Fact]

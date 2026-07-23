@@ -117,6 +117,14 @@ else
 fi
 
 npm run test:deploy-scripts
+npm run -s check:platform:contracts
+npm run -s check:factory-template-artifacts
+npm run -s check:platform:game-migration
+npm run -s check:platform:social-framework
+npm run -s check:platform:anchor-framework
+npm run -s check:platform:registry-framework
+npm run -s check:platform:defi-framework
+npm run -s check:platform:factory-framework
 npm run -s test:shared
 npm --prefix platform/admin-console test --silent
 npm --prefix platform/admin-console run typecheck

@@ -35,7 +35,7 @@ Receipt verification uses the exact network recorded in the portable reference o
 
 The chain result is classified as:
 
-- `confirmed`: exact HALT execution, zero-GAS self-transfer, digest marker, and block time all match;
+- `confirmed`: the selected method resolves exactly — either HALT + zero-GAS self-transfer + digest marker, or immutable tenant Notary state with matching digest and submitter — and a chain time is available;
 - `pending`: the transaction is genuinely unknown/not indexed yet;
 - `fault`: the VM execution is `FAULT`;
 - `mismatch`: the execution, wallet, GAS event, or digest binding is wrong;
@@ -49,3 +49,7 @@ trusted from local storage alone.
 ## Live validation boundary
 
 No funded write or live wallet signing was performed in this code-only pass. Mainnet/Testnet support is based on exact runtime binding and deterministic tests; it still requires a release-owner TestNet transaction and receipt check before production sign-off.
+
+The production manifest currently has no PlatformSocial binding. Notary support
+is source-ready only and is not live deployment, registration, or transaction
+evidence.

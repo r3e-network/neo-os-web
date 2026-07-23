@@ -10,7 +10,7 @@ import { useNowMs, useStateBindings } from "@shared/react";
 import type { PlayAreaProps } from "@shared/react";
 import { PlayStage } from "@shared/components-react/v2";
 import { LazyPhaserGameComponent as PhaserGameComponent } from "@framework/phaser/LazyPhaserGameComponent";
-import { DEAL_TTL_MS, SETTLE_GRACE_MS } from "./logic/game-rules";
+import { SETTLE_GRACE_MS } from "./logic/game-rules";
 import { getLocale, type Locale } from "@shared/utils/i18n";
 import "./PlayArea.scss";
 
@@ -103,22 +103,21 @@ export default function PhaserPlayArea({ t, state, dispatch }: PlayAreaProps) {
   const dailyDate   = num("dailyDate", 0);
   // Guest grants a single free undo per run; GameFi keeps the contract's 3.
   const maxUndos    = isGuest ? 1 : 3;
-  const hasClock = (gameStatus === "dealt" && deadline > 0 && (!isGuest || !isGameOver)) ||
-    (gameStatus === "committed" && startedAt > 0);
+  const hasClock = (gameStatus === "dealt" || gameStatus === "solved")
+    && deadline > 0
+    && (!isGuest || !isGameOver);
   const nowMs = useNowMs(1_000, {
     enabled: hasClock,
     resetKey: `${deadline}|${gameStatus}|${isGameOver}|${isGuest}|${startedAt}`,
   });
   const deadlineExpired = gameStatus === "dealt" && deadline > 0 && nowMs >= deadline;
-  const releaseAt = gameStatus === "committed"
-    ? (startedAt > 0 ? startedAt + DEAL_TTL_MS : 0)
-    : (deadline > 0 ? deadline + SETTLE_GRACE_MS : 0);
+  const releaseAt = deadline > 0 ? deadline + SETTLE_GRACE_MS : 0;
   const releaseRemainingMs = Math.max(0, releaseAt - nowMs);
   const cardsLeft   = pileCards.filter((card) => !card?.picked).length + slotCards.length;
   const trayUsed    = slotCards.length;
   const canRelease  = isGuest
     ? (gameStatus === "dealt" || isGameOver)
-    : (gameStatus === "dealt" || gameStatus === "committed") && releaseAt > 0 && nowMs > releaseAt;
+    : (gameStatus === "dealt" || gameStatus === "solved") && releaseAt > 0 && nowMs > releaseAt;
   const canWithdraw = !isGuest && credit > 0 && gameStatus !== "dealt" && !isFinancialAction;
   const exposedCards = pileCards.filter((card) => card.exposed && !card.picked).slice(0, 9);
   const boardBusy = isTeeBusy || isRecovering || isFinancialAction;

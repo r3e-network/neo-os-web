@@ -93,19 +93,19 @@
     },
     "miniapp-jump-rush": {
       "contract": "MiniAppJumpRush",
-      "generation": "tee-direct (BindPuzzle + on-chain ECDSA against stored TEE signer — pre-kernel architecture; settlement must migrate to the kernel game.session lane like the other 9)",
+      "generation": "kernel-lane",
       "descriptors": {
-        "limitMs0": 60000,
-        "limitMs1": 90000,
-        "limitMs2": 120000,
-        "minSolveMs0": 15000,
-        "minSolveMs1": 30000,
-        "minSolveMs2": 45000,
-        "targetScore0": 1,
-        "targetScore1": 1,
-        "targetScore2": 1
+        "limitMs0": 180000,
+        "limitMs1": 300000,
+        "limitMs2": 480000,
+        "minSolveMs0": 20000,
+        "minSolveMs1": 40000,
+        "minSolveMs2": 60000,
+        "targetScore0": 15,
+        "targetScore1": 25,
+        "targetScore2": 35
       },
-      "notes": "No score threshold in settle (completion-based, payout = reward * (100 - 30*undos)/100); targetScore=1 mirrors sudoku's completion semantics."
+      "notes": "Generic kernel wrapper scores platforms cleared and supports no undo; descriptors match wrapper targets and timing windows."
     },
     "miniapp-merge-kingdom": {
       "contract": "MiniAppMergeKingdom",
@@ -139,19 +139,19 @@
     },
     "miniapp-sheep-solitaire": {
       "contract": "MiniAppSheepSolitaire",
-      "generation": "tee-direct (BindPuzzle — see jump-rush note)",
+      "generation": "kernel-lane",
       "descriptors": {
         "limitMs0": 300000,
         "limitMs1": 480000,
         "limitMs2": 720000,
-        "minSolveMs0": 60000,
-        "minSolveMs1": 120000,
-        "minSolveMs2": 180000,
-        "targetScore0": 1,
-        "targetScore1": 1,
-        "targetScore2": 1
+        "minSolveMs0": 30000,
+        "minSolveMs1": 60000,
+        "minSolveMs2": 90000,
+        "targetScore0": 24,
+        "targetScore1": 36,
+        "targetScore2": 45
       },
-      "notes": "Completion-based settle like jump-rush; targetScore=1 mirrors sudoku."
+      "notes": "Generic kernel wrapper scores cards cleared, returns authoritative board and tray views, and preserves tool operations across undo replay."
     },
     "miniapp-snake-bounty": {
       "contract": "MiniAppSnakeBounty",

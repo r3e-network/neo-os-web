@@ -40,13 +40,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 "invalid interval");
 
             // Read the owner's NEO credit balance as the principal
-            StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])owner;
-            ByteString existing = neoCredits.Get(creditKey);
-            BigInteger neoAmount = existing == null ? 0 : (BigInteger)existing;
+            BigInteger neoAmount = GetNeoCreditBalance(appId, owner);
             ExecutionEngine.Assert(neoAmount >= MIN_PRINCIPAL, "below minimum principal");
 
-            ConsumeNeoCredit(owner, neoAmount);
+            ConsumeNeoCredit(appId, owner, neoAmount);
 
             // Increment trust counter for this app
             ByteString idKey = AppKey(appId, PREFIX_TRUST_ID);

@@ -207,7 +207,11 @@ export const GAME_THEMES: readonly GameTheme[] = [
   },
 ] as const;
 
-export const DEFAULT_THEME_ID: GameThemeId = "fresh-market";
+// The public cover and first-run hero are authored around the warm farm
+// kitchen. Start new players in that same art direction so the first playable
+// frame feels like a continuation of the cover instead of an unrelated skin.
+// Returning players still keep their explicit saved theme preference.
+export const DEFAULT_THEME_ID: GameThemeId = "farm-kitchen";
 export const THEME_STORAGE_KEY = "zhuada-e:theme";
 
 export function colorToCss(color: number): string {
@@ -219,7 +223,9 @@ export function isGameThemeId(value: unknown): value is GameThemeId {
 }
 
 export function themeOf(id: unknown): GameTheme {
-  return GAME_THEMES.find((theme) => theme.id === id) ?? GAME_THEMES[0]!;
+  return GAME_THEMES.find((theme) => theme.id === id)
+    ?? GAME_THEMES.find((theme) => theme.id === DEFAULT_THEME_ID)
+    ?? GAME_THEMES[0]!;
 }
 
 export function themeItem(themeId: unknown, kind: number): ThemeItem {

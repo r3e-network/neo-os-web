@@ -1,0 +1,30 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+  "signer_input": "public-identity",
+  "dry_run": true,
+  "targets": [
+    {
+      "name": "PlatformRegistry",
+      "existing_hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+      "route": "timelocked",
+      "on_chain_update_counter": 0,
+      "on_chain_has_update": true,
+      "admin_matches_signer": true,
+      "on_chain_nef_checksum": 372915605,
+      "local_nef_checksum": 2644796843,
+      "artifact_matches": false,
+      "preflight_method": "scheduleUpdate",
+      "preflight_state": "HALT",
+      "preflight_gas": 560736,
+      "updated": false,
+      "skipped_reason": "dry run: schedule eligible; execution requires the separate timelock action"
+    }
+  ],
+  "transactions": [],
+  "validation": {},
+  "generated_at_utc": "2026-07-22T23:29:58Z"
+}

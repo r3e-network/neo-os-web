@@ -13,8 +13,10 @@ import (
 
 	"github.com/nspcc-dev/neo-go/pkg/core/transaction"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
+	"github.com/nspcc-dev/neo-go/pkg/encoding/address"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient"
 	"github.com/nspcc-dev/neo-go/pkg/rpcclient/actor"
+	"github.com/nspcc-dev/neo-go/pkg/smartcontract/nef"
 	"github.com/nspcc-dev/neo-go/pkg/util"
 	"github.com/nspcc-dev/neo-go/pkg/wallet"
 )
@@ -30,6 +32,7 @@ type contractTarget struct {
 	ExistingHash string `json:"existing_hash"`
 	NEFPath      string `json:"nef_path"`
 	ManifestPath string `json:"manifest_path"`
+	Route        string `json:"route"`
 }
 
 type updateReport struct {
@@ -38,6 +41,8 @@ type updateReport struct {
 	NetworkMagic   uint32         `json:"network_magic"`
 	Signer         string         `json:"signer"`
 	SignerHash     string         `json:"signer_hash"`
+	SignerInput    string         `json:"signer_input"`
+	DryRun         bool           `json:"dry_run"`
 	Targets        []targetReport `json:"targets"`
 	Transactions   []txRecord     `json:"transactions"`
 	Validation     map[string]any `json:"validation"`
@@ -47,9 +52,16 @@ type updateReport struct {
 type targetReport struct {
 	Name                 string `json:"name"`
 	ExistingHash         string `json:"existing_hash"`
+	Route                string `json:"route"`
 	OnChainUpdateCounter uint16 `json:"on_chain_update_counter"`
 	OnChainHasUpdate     bool   `json:"on_chain_has_update"`
 	AdminMatchesSigner   bool   `json:"admin_matches_signer"`
+	OnChainNEFChecksum   uint32 `json:"on_chain_nef_checksum"`
+	LocalNEFChecksum     uint32 `json:"local_nef_checksum"`
+	ArtifactMatches      bool   `json:"artifact_matches"`
+	PreflightMethod      string `json:"preflight_method,omitempty"`
+	PreflightState       string `json:"preflight_state,omitempty"`
+	PreflightGas         int64  `json:"preflight_gas,omitempty"`
 	Updated              bool   `json:"updated"`
 	SkippedReason        string `json:"skipped_reason,omitempty"`
 }
@@ -77,9 +89,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if wif == "" {
-		return fmt.Errorf("%s signer WIF is not configured", network)
-	}
 	targets, err := loadTargets(network, deploymentPath)
 	if err != nil {
 		return err
@@ -106,29 +115,58 @@ func run() error {
 		return fmt.Errorf("RPC network magic mismatch: got %d, expected %d for %s", actualMagic, expectedMagic, network)
 	}
 
-	priv, err := keys.NewPrivateKeyFromWIF(wif)
-	if err != nil {
-		return fmt.Errorf("invalid %s signer WIF", network)
-	}
-	acc := wallet.NewAccountFromPrivateKey(priv)
-	signerHash := priv.GetScriptHash()
-	act, err := actor.New(client, []actor.SignerAccount{{
-		Signer: transaction.Signer{
-			Account: acc.Contract.ScriptHash(),
-			Scopes:  transaction.Global,
-		},
-		Account: acc,
-	}})
-	if err != nil {
-		return fmt.Errorf("create actor: %w", err)
+	var (
+		act           *actor.Actor
+		signerHash    util.Uint160
+		signerAddress string
+		signerInput   string
+	)
+	if wif != "" {
+		priv, err := keys.NewPrivateKeyFromWIF(wif)
+		if err != nil {
+			return fmt.Errorf("invalid %s signer WIF", network)
+		}
+		acc := wallet.NewAccountFromPrivateKey(priv)
+		signerHash = priv.GetScriptHash()
+		signerAddress = acc.Address
+		signerInput = "private-key"
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: acc.Contract.ScriptHash(), Scopes: transaction.Global},
+			Account: acc,
+		}})
+		if err != nil {
+			return fmt.Errorf("create actor: %w", err)
+		}
+	} else if dryRun {
+		signerHash, err = parseSignerIdentity(os.Getenv("PLATFORM_UPDATE_DRY_RUN_SIGNER"))
+		if err != nil {
+			return fmt.Errorf("dry-run signer: %w", err)
+		}
+		signerAddress = address.Uint160ToString(signerHash)
+		signerInput = "public-identity"
+		watchOnly := &wallet.Account{
+			Address:  signerAddress,
+			Contract: &wallet.Contract{Deployed: true},
+		}
+		act, err = actor.New(client, []actor.SignerAccount{{
+			Signer:  transaction.Signer{Account: signerHash, Scopes: transaction.Global},
+			Account: watchOnly,
+		}})
+		if err != nil {
+			return fmt.Errorf("create watch-only dry-run actor: %w", err)
+		}
+	} else {
+		return fmt.Errorf("%s signer WIF is not configured", network)
 	}
 
 	report := updateReport{
 		Network:        network,
 		RPCURL:         rpcURL,
 		NetworkMagic:   actualMagic,
-		Signer:         acc.Address,
+		Signer:         signerAddress,
 		SignerHash:     "0x" + signerHash.StringLE(),
+		SignerInput:    signerInput,
+		DryRun:         dryRun,
 		Targets:        []targetReport{},
 		Transactions:   []txRecord{},
 		Validation:     map[string]any{},
@@ -138,7 +176,7 @@ func run() error {
 	if dryRun {
 		mode = "dry-run"
 	}
-	fmt.Printf("network=%s magic=%d signer=%s mode=%s\n", network, actualMagic, acc.Address, mode)
+	fmt.Printf("network=%s magic=%d signer=%s mode=%s\n", network, actualMagic, signerAddress, mode)
 
 	for _, target := range targets {
 		targetHash, err := parseHash(target.ExistingHash)
@@ -152,8 +190,29 @@ func run() error {
 		tr := targetReport{
 			Name:                 target.Name,
 			ExistingHash:         "0x" + targetHash.StringLE(),
+			Route:                target.Route,
 			OnChainUpdateCounter: state.UpdateCounter,
 			OnChainHasUpdate:     state.Manifest.ABI.GetMethod("update", 2) != nil,
+			OnChainNEFChecksum:   state.NEF.Checksum,
+		}
+		nefBytes, err := os.ReadFile(target.NEFPath)
+		if err != nil {
+			return fmt.Errorf("read %s nef: %w", target.Name, err)
+		}
+		nefFile, err := nef.FileFromBytes(nefBytes)
+		if err != nil {
+			return fmt.Errorf("parse %s nef: %w", target.Name, err)
+		}
+		manifestBytes, err := os.ReadFile(target.ManifestPath)
+		if err != nil {
+			return fmt.Errorf("read %s manifest: %w", target.Name, err)
+		}
+		tr.LocalNEFChecksum = nefFile.Checksum
+		tr.ArtifactMatches = tr.OnChainNEFChecksum == tr.LocalNEFChecksum
+		if tr.ArtifactMatches {
+			tr.SkippedReason = "already current"
+			report.Targets = append(report.Targets, tr)
+			continue
 		}
 		admin, err := callUint160(act, targetHash, "admin")
 		if err != nil {
@@ -176,17 +235,37 @@ func run() error {
 			continue
 		}
 		if dryRun {
-			tr.SkippedReason = "dry run: eligible for update"
+			tr.PreflightMethod = "update"
+			if target.Route == "timelocked" {
+				tr.PreflightMethod = "scheduleUpdate"
+				if state.Manifest.ABI.GetMethod("scheduleUpdate", 2) == nil {
+					tr.SkippedReason = "on-chain ABI does not expose scheduleUpdate(nef,manifest)"
+					report.Targets = append(report.Targets, tr)
+					continue
+				}
+			}
+			inv, err := act.Call(targetHash, tr.PreflightMethod, nefBytes, string(manifestBytes))
+			if err != nil {
+				tr.SkippedReason = "preflight RPC failed: " + err.Error()
+				report.Targets = append(report.Targets, tr)
+				continue
+			}
+			tr.PreflightState = inv.State
+			tr.PreflightGas = inv.GasConsumed
+			if inv.State != "HALT" {
+				tr.SkippedReason = "preflight fault: " + inv.FaultException
+			} else if target.Route == "timelocked" {
+				tr.SkippedReason = "dry run: schedule eligible; execution requires the separate timelock action"
+			} else {
+				tr.SkippedReason = "dry run: direct update eligible"
+			}
 			report.Targets = append(report.Targets, tr)
 			continue
 		}
-		nefBytes, err := os.ReadFile(target.NEFPath)
-		if err != nil {
-			return fmt.Errorf("read %s nef: %w", target.Name, err)
-		}
-		manifestBytes, err := os.ReadFile(target.ManifestPath)
-		if err != nil {
-			return fmt.Errorf("read %s manifest: %w", target.Name, err)
+		if target.Route == "timelocked" {
+			tr.SkippedReason = "timelocked Registry write is disabled here; use schedule_platform_registry_update.go"
+			report.Targets = append(report.Targets, tr)
+			continue
 		}
 		txid, vub, err := act.SendCall(targetHash, "update", nefBytes, string(manifestBytes))
 		if err != nil {
@@ -201,7 +280,10 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("read %s after update: %w", target.Name, err)
 		}
-		tr.Updated = true
+		tr.Updated = updatedState.NEF.Checksum == nefFile.Checksum
+		if !tr.Updated {
+			return fmt.Errorf("%s checksum mismatch after update: got %d, expected %d", target.Name, updatedState.NEF.Checksum, nefFile.Checksum)
+		}
 		report.Validation[target.Name+"_update_counter_before"] = state.UpdateCounter
 		report.Validation[target.Name+"_update_counter_after"] = updatedState.UpdateCounter
 		report.Targets = append(report.Targets, tr)
@@ -227,14 +309,14 @@ func networkConfig(network string) (uint32, string, string, string, string, erro
 		return testnetMagic,
 			firstNonEmpty(os.Getenv("NEO_TESTNET_RPC_URL"), os.Getenv("NEO_RPC_URL"), "https://testnet1.neo.coz.io:443"),
 			firstNonEmpty(os.Getenv("NEO_TESTNET_WIF"), os.Getenv("FLAGSHIP_TESTNET_WIF"), os.Getenv("FLAGSHIP_LIVE_WIF")),
-			"contracts/build/testnet_platform_update_latest.json",
+			firstNonEmpty(os.Getenv("PLATFORM_UPDATE_REPORT"), "contracts/build/testnet_platform_update_latest.json"),
 			"contracts/build/testnet_anchor_deployment.json",
 			nil
 	case "mainnet":
 		return mainnetMagic,
 			firstNonEmpty(os.Getenv("NEO_MAINNET_RPC_URL"), "https://mainnet2.neo.coz.io:443"),
 			firstNonEmpty(os.Getenv("NEO_MAINNET_WIF"), os.Getenv("FLAGSHIP_MAINNET_WIF"), os.Getenv("MINIAPP_MAINNET_DEPLOY_WIF")),
-			"contracts/build/mainnet_platform_update_latest.json",
+			firstNonEmpty(os.Getenv("PLATFORM_UPDATE_REPORT"), "contracts/build/mainnet_platform_update_latest.json"),
 			"contracts/build/mainnet_anchor_deployment.json",
 			nil
 	default:
@@ -257,6 +339,26 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 	if data, err := os.ReadFile(fmt.Sprintf("contracts/build/%s_game_deployment.json", network)); err == nil {
 		_ = json.Unmarshal(data, &gameDeployment)
 	}
+	type liveRow struct {
+		Name string `json:"name"`
+		Hash string `json:"hash"`
+	}
+	type liveReport struct {
+		Contracts []liveRow `json:"contracts"`
+	}
+	liveHashes := map[string]string{}
+	if network == "testnet" {
+		if data, err := os.ReadFile("docs/reports/platform-contract-testnet-live-latest.json"); err == nil {
+			var live liveReport
+			if json.Unmarshal(data, &live) == nil {
+				for _, row := range live.Contracts {
+					liveHashes[row.Name] = row.Hash
+				}
+			}
+		}
+	}
+	registryHash := firstNonEmpty(envByNetwork("PLATFORM_REGISTRY", network), liveHashes["PlatformRegistry"])
+	factoryHash := firstNonEmpty(envByNetwork("MINIAPP_FACTORY", network), envByNetwork("CONTRACT_MINIAPP_FACTORY", network), liveHashes["MiniAppFactory"])
 	deployed.PlatformAnchor = firstNonEmpty(envByNetwork("PLATFORM_ANCHOR", network), envByNetwork("CONTRACT_PLATFORM_ANCHOR", network), deployed.PlatformAnchor)
 	deployed.PlatformDeFi = firstNonEmpty(envByNetwork("PLATFORM_DEFI", network), envByNetwork("CONTRACT_PLATFORM_DEFI", network), deployed.PlatformDeFi)
 	deployed.PlatformGame = firstNonEmpty(envByNetwork("PLATFORM_GAME", network), envByNetwork("CONTRACT_PLATFORM_GAME", network), deployed.PlatformGame, gameDeployment.PlatformGame)
@@ -264,16 +366,31 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 	if network == "testnet" && deployed.PlatformDeFi == "" {
 		deployed.PlatformDeFi = "0x39d4584ddb0731e48e611647931993ee033bf373"
 	}
-	if deployed.PlatformAnchor == "" {
+	if network == "testnet" && deployed.PlatformAnchor == "" {
 		deployed.PlatformAnchor = "0xab079b4f9a0a2471d136392e25eb8e99898dcad0"
 	}
 	targets := []contractTarget{}
+	if registryHash != "" {
+		targets = append(targets, contractTarget{
+			Name: "PlatformRegistry", ExistingHash: registryHash,
+			NEFPath: "contracts/build/PlatformRegistry.nef", ManifestPath: "contracts/build/PlatformRegistry.manifest.json",
+			Route: "timelocked",
+		})
+	}
+	if factoryHash != "" {
+		targets = append(targets, contractTarget{
+			Name: "MiniAppFactory", ExistingHash: factoryHash,
+			NEFPath: "contracts/build/MiniAppFactory.nef", ManifestPath: "contracts/build/MiniAppFactory.manifest.json",
+			Route: "direct",
+		})
+	}
 	if deployed.PlatformAnchor != "" {
 		targets = append(targets, contractTarget{
 			Name:         "PlatformAnchor",
 			ExistingHash: deployed.PlatformAnchor,
 			NEFPath:      "contracts/build/PlatformAnchor.nef",
 			ManifestPath: "contracts/build/PlatformAnchor.manifest.json",
+			Route:        "direct",
 		})
 	}
 	if deployed.PlatformDeFi != "" {
@@ -282,6 +399,7 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 			ExistingHash: deployed.PlatformDeFi,
 			NEFPath:      "contracts/build/PlatformDeFi.nef",
 			ManifestPath: "contracts/build/PlatformDeFi.manifest.json",
+			Route:        "direct",
 		})
 	}
 	if deployed.PlatformGame != "" {
@@ -290,6 +408,7 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 			ExistingHash: deployed.PlatformGame,
 			NEFPath:      "contracts/build/PlatformGame.nef",
 			ManifestPath: "contracts/build/PlatformGame.manifest.json",
+			Route:        "direct",
 		})
 	}
 	if deployed.PlatformSocial != "" {
@@ -298,6 +417,7 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 			ExistingHash: deployed.PlatformSocial,
 			NEFPath:      "contracts/build/PlatformSocial.nef",
 			ManifestPath: "contracts/build/PlatformSocial.manifest.json",
+			Route:        "direct",
 		})
 	}
 	return targets, nil
@@ -371,6 +491,25 @@ func waitForTx(ctx context.Context, client *rpcclient.Client, txid util.Uint256)
 func parseHash(raw string) (util.Uint160, error) {
 	trimmed := strings.TrimPrefix(strings.TrimSpace(raw), "0x")
 	return util.Uint160DecodeStringLE(trimmed)
+}
+
+func parseSignerIdentity(raw string) (util.Uint160, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return util.Uint160{}, fmt.Errorf("public signer identity is required as a Neo address or script hash (set PLATFORM_UPDATE_DRY_RUN_SIGNER)")
+	}
+	if strings.HasPrefix(trimmed, "0x") || len(trimmed) == 40 {
+		hash, err := parseHash(trimmed)
+		if err != nil {
+			return util.Uint160{}, fmt.Errorf("invalid PLATFORM_UPDATE_DRY_RUN_SIGNER script hash")
+		}
+		return hash, nil
+	}
+	hash, err := address.StringToUint160(trimmed)
+	if err != nil {
+		return util.Uint160{}, fmt.Errorf("invalid PLATFORM_UPDATE_DRY_RUN_SIGNER Neo address")
+	}
+	return hash, nil
 }
 
 func firstNonEmpty(values ...string) string {

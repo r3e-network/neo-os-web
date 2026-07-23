@@ -19,6 +19,7 @@ import {
 import { LEVEL_CURVE, TOTAL_LEVELS, randomizedSpecOf, specOf } from "./game-rules";
 import { SCENES, isSceneFinalLevel, sceneIndexOfLevel, sceneOfLevel } from "./scenes";
 import { ITEM_DEFS, TRAY_SLOTS, generateItems, makeRng } from "./engine-zhuada";
+import { DEFAULT_THEME_ID } from "./themes";
 
 describe("progress schema + migration", () => {
   it("defaults on null / garbage payloads", () => {
@@ -37,7 +38,7 @@ describe("progress schema + migration", () => {
       level: 7,
       highestUnlockedLevel: 7,
       lastPlayedLevel: 7,
-      lastTheme: "fresh-market",
+      lastTheme: DEFAULT_THEME_ID,
       wins: 0,
       levels: {},
       best: {},

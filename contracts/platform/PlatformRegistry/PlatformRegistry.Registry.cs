@@ -82,6 +82,7 @@ namespace NeoMiniAppPlatform.Contracts
                     descriptor == null || descriptor.Keys.Length == 0,
                     "descriptor requires an engine");
             }
+            EnsureAbstractAccount(appId, appAdmin);
             OnAppRegistered(appId, engineId == null ? "" : engineId, appAdmin, UInt160.Zero);
         }
 

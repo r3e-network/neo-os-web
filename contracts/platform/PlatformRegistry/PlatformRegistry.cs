@@ -40,6 +40,9 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void RegistryUpgradeScheduledHandler(BigInteger executeAfter);
     public delegate void RegistryUpgradedHandler(ByteString nefHash, ByteString manifestHash);
     public delegate void RegistryThresholdRaiseScheduledHandler(string appId, BigInteger threshold, BigInteger executeAfter);
+    public delegate void RegistryAbstractAccountCoreProposedHandler(UInt160 core, BigInteger executeAfter);
+    public delegate void RegistryAbstractAccountCoreChangedHandler(UInt160 previousCore, UInt160 newCore);
+    public delegate void RegistryAbstractAccountCreatedHandler(string appId, UInt160 core, UInt160 accountId, UInt160 appAdmin);
 
     // ===================================================================
     //  Serialized row types
@@ -75,6 +78,7 @@ namespace NeoMiniAppPlatform.Contracts
     //    0x07        scheduled upgrade sha256(nef ++ manifest)
     //    0x08        treasury transit note (fundEnginePool hop)
     //    0x09        mint reentrancy lock
+    //    0x0A 01-03  active AA core / pending AA core / change eta
     //    0x10        appId -> appAdmin (row presence == registered)
     //    0x11        appId -> minted AppAccount hash
     //    0x12        appId -> paused flag
@@ -85,9 +89,12 @@ namespace NeoMiniAppPlatform.Contracts
     //                pending spend / rolling 24h spend window {anchor, spent}
     //    0x17        appId -> shim-upgrade consent (approved artifact version)
     //    0x18        appId -> pending shim-upgrade eta
+    //    0x19        appId -> shared AA accountId
+    //    0x1A        appId -> shared AA core hash
     //    0x20 01/02  engineId -> engine row / pending engine change
     //    0x21        engineHash -> engineId
     //    0x22        account hash -> appId (permission-anchoring reverse index)
+    //    0x23        (AA core, accountId) -> appId
     //    0x70 01/02  (appId, payer) prepaid GAS credit / total liability
     // ===================================================================
     [DisplayName("PlatformRegistry")]
@@ -100,7 +107,7 @@ namespace NeoMiniAppPlatform.Contracts
     // ContractManagement: account minting, engine existence asserts, self-update.
     [ContractPermission("0xfffdc93764dbaddd97c48f252a53ea4643faa3fd", "deploy", "getContract", "update")]
     // Dynamic targets (minted accounts + registered engines): named methods only.
-    [ContractPermission("*", "activateApp", "validateAndApplyDescriptor", "bindRegistry", "onAdminRotated", "executeTransfer", "setPaused", "update")]
+    [ContractPermission("*", "activateApp", "validateAndApplyDescriptor", "bindRegistry", "onAdminRotated", "executeTransfer", "setPaused", "update", "computePlatformAccountId", "registerPlatformAccount")]
     public partial class PlatformRegistry : SmartContract
     {
         // ---- registry core prefixes (0x01-0x0F) ----
@@ -122,6 +129,9 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_UPGRADE_HASH = new byte[] { 0x07 };
         private static readonly byte[] PREFIX_TREASURY_TRANSIT = new byte[] { 0x08 };
         private static readonly byte[] PREFIX_MINT_LOCK = new byte[] { 0x09 };
+        private static readonly byte[] PREFIX_ABSTRACT_ACCOUNT_CORE = new byte[] { 0x0A, 0x01 };
+        private static readonly byte[] PREFIX_PENDING_ABSTRACT_ACCOUNT_CORE = new byte[] { 0x0A, 0x02 };
+        private static readonly byte[] PREFIX_ABSTRACT_ACCOUNT_CORE_ETA = new byte[] { 0x0A, 0x03 };
 
         // ---- app row prefixes (0x10-0x1F) ----
         private static readonly byte[] PREFIX_APP_ADMIN = new byte[] { 0x10 };
@@ -139,12 +149,15 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_PENDING_THRESHOLD_ETA = new byte[] { 0x16, 0x07 };
         private static readonly byte[] PREFIX_SHIM_CONSENT = new byte[] { 0x17 };
         private static readonly byte[] PREFIX_PENDING_SHIM_UPGRADE = new byte[] { 0x18 };
+        private static readonly byte[] PREFIX_APP_ABSTRACT_ACCOUNT_ID = new byte[] { 0x19 };
+        private static readonly byte[] PREFIX_APP_ABSTRACT_ACCOUNT_CORE = new byte[] { 0x1A };
 
         // ---- engine table prefixes (0x20-0x2F) ----
         private static readonly byte[] PREFIX_ENGINE_ROW = new byte[] { 0x20, 0x01 };
         private static readonly byte[] PREFIX_PENDING_ENGINE = new byte[] { 0x20, 0x02 };
         private static readonly byte[] PREFIX_ENGINE_ID_BY_HASH = new byte[] { 0x21 };
         private static readonly byte[] PREFIX_APP_ID_BY_ACCOUNT = new byte[] { 0x22 };
+        private static readonly byte[] PREFIX_APP_ID_BY_ABSTRACT_ACCOUNT = new byte[] { 0x23 };
 
         // ---- credit ledger prefixes (0x70) ----
         private static readonly byte[] PREFIX_CREDIT = new byte[] { 0x70, 0x01 };
@@ -159,6 +172,7 @@ namespace NeoMiniAppPlatform.Contracts
         private const int MAX_APP_ID_LENGTH = 64;
         private const int MAX_DESCRIPTOR_KEY_LENGTH = 128;
         private const int MAX_MANIFEST_LENGTH = 65536;
+        private const uint DEFAULT_ABSTRACT_ACCOUNT_TIMELOCK_SECONDS = 2_592_000;
 
         // Registration fees, consumed from the caller's prepaid (appId, payer)
         // GAS credit — the PlatformAnchor M-11 model. The lite fee is the
@@ -210,6 +224,9 @@ namespace NeoMiniAppPlatform.Contracts
         [DisplayName("PlatformFeesWithdrawn")] public static event RegistryFeesWithdrawnHandler OnPlatformFeesWithdrawn;
         [DisplayName("UpgradeScheduled")] public static event RegistryUpgradeScheduledHandler OnUpgradeScheduled;
         [DisplayName("ContractUpgraded")] public static event RegistryUpgradedHandler OnContractUpgraded;
+        [DisplayName("AbstractAccountCoreProposed")] public static event RegistryAbstractAccountCoreProposedHandler OnAbstractAccountCoreProposed;
+        [DisplayName("AbstractAccountCoreChanged")] public static event RegistryAbstractAccountCoreChangedHandler OnAbstractAccountCoreChanged;
+        [DisplayName("AppAbstractAccountCreated")] public static event RegistryAbstractAccountCreatedHandler OnAppAbstractAccountCreated;
 
         // ===================================================================
         //  Lifecycle

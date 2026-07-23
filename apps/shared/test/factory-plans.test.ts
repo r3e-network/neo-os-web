@@ -8,7 +8,7 @@ import {
 } from "../factory/factoryPlan";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
 
-const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const FACTORY_HASH = "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49";
 const SHA256_DIGEST = /^0x[a-f0-9]{64}$/;
 
@@ -51,14 +51,15 @@ describe("Domain factory plans", () => {
     expect(first.templateArtifact.status).toBe("unverified");
     expect(first.templateArtifact.nefHash).toMatch(/^0x[a-f0-9]{64}$/);
     expect(first.templateArtifact.manifestHash).toMatch(/^0x[a-f0-9]{64}$/);
-    expect(first.deploymentCall.operation).toBe("deployFromTemplate");
+    expect(first.deploymentCall.operation).toBe("deployArtifactFromTemplate");
     expect(first.deploymentCall.scriptHash).toBe("");
-    expect(first.deploymentCall.args).toEqual([
-      { type: "String", value: "tpl.nep17.asset.v1" },
+    expect(first.deploymentCall.args).toHaveLength(6);
+    expect(first.deploymentCall.args.slice(0, 3)).toEqual([
+      { type: "String", value: first.templateId },
       { type: "String", value: first.packageId },
-      { type: "String", value: first.digest },
-      { type: "String", value: JSON.stringify(first.payload.initParams) },
+      { type: "String", value: first.artifactDigest },
     ]);
+    expect(first.artifactDigest).toMatch(/^[A-Za-z0-9+/]{43}=$/);
     expect(first.payload.standard).toBe("NEP-17");
     expect(first.payload.initParams.initialSupplyUnits).toBe("100000025000000");
     expect(first.payload.initParams.symbol).toBe("YIWU");
@@ -111,7 +112,7 @@ describe("Domain factory plans", () => {
     expect(missing.templateArtifact.status).toBe("metadata-only");
   });
 
-  it("blocks the execute path for artifact-less deploy templates and unlocks it for artifact-backed ones", async () => {
+  it("gates creator-artifact deployment on both governed artifact and live ABI", async () => {
     const { buildFactoryPlan: buildConfigured } = await importConfiguredFactoryPlan();
     const input = {
       name: "Yiwu Credits",
@@ -122,7 +123,10 @@ describe("Domain factory plans", () => {
       network: "testnet",
     };
 
-    const missing = buildConfigured("nep17", input, { artifactPresence: "missing" });
+    const missing = buildConfigured("nep17", input, {
+      artifactPresence: "missing",
+      artifactDeploymentSupport: "supported",
+    });
     expect(missing.publishable).toBe(true);
     expect(missing.execution.available).toBe(false);
     expect(missing.execution.blockedReasonKey).toBe("artifactNotRegistered");
@@ -130,13 +134,27 @@ describe("Domain factory plans", () => {
 
     const unverified = buildConfigured("nep17", input);
     expect(unverified.execution.available).toBe(false);
-    expect(unverified.execution.blockedReasonKey).toBe("artifactUnverified");
+    expect(unverified.execution.blockedReasonKey).toBe("factoryAbiUnverified");
     expect(unverified.steps.find((step) => step.key === "deploy")?.status).toBe("manual");
 
-    const present = buildConfigured("nep17", input, { artifactPresence: "present" });
+    const abiMissing = buildConfigured("nep17", input, {
+      artifactPresence: "present",
+      artifactDeploymentSupport: "missing",
+    });
+    expect(abiMissing.execution.available).toBe(false);
+    expect(abiMissing.execution.blockedReasonKey).toBe("factoryAbiUnavailable");
+
+    const present = buildConfigured("nep17", input, {
+      artifactPresence: "present",
+      artifactDeploymentSupport: "supported",
+    });
     expect(present.execution.available).toBe(true);
     expect(present.execution.blockedReasonKey).toBe("");
     expect(present.steps.find((step) => step.key === "deploy")?.status).toBe("ready");
+    expect(present.deploymentCall).toMatchObject({
+      operation: "deployArtifactFromTemplate",
+    });
+    expect(present.deploymentCall.args).toHaveLength(6);
   });
 
   it("treats the miniapp registry record as the designed outcome — executable without an artifact", async () => {
@@ -200,7 +218,9 @@ describe("Domain factory plans", () => {
     expect(plan.payload.initParams.royaltyBps).toBe(250);
     expect(plan.payload.initParams.transferPolicy).toBe("soulbound");
     expect(plan.templateRef).toBe("tpl.nep11.collection.v1");
-    expect(plan.deploymentCall.operation).toBe("deployFromTemplate");
+    expect(plan.deploymentCall.operation).toBe("deployArtifactFromTemplate");
+    expect(plan.deploymentCall.args).toHaveLength(6);
+    expect(plan.artifactDigest).toBe(plan.deploymentCall.args[2]?.value);
     expect(plan.oneGate.url).toContain("appId=miniapp-nft-factory");
     expect(JSON.stringify(plan.payload).toLowerCase()).not.toContain("\"manifest\"");
   });
@@ -237,7 +257,7 @@ describe("Domain factory plans", () => {
 
   it("derives a factory draft from OneGate query parameters", () => {
     const context = parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/asset-factory/index.html?source=onegate&operation=prepareNEP17&template=nep17&symbol=YIWU&name=Yiwu%20Credits&owner=NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3&network=testnet",
+      `https://neomini.app/miniapps/asset-factory/index.html?source=onegate&operation=prepareNEP17&template=nep17&symbol=YIWU&name=Yiwu%20Credits&owner=${OWNER}&network=testnet`,
       "miniapp-asset-factory",
     );
 
@@ -252,7 +272,7 @@ describe("Domain factory plans", () => {
 
   it("keeps domain factory apps focused even when OneGate query parameters include another template", () => {
     const context = parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/asset-factory/index.html?source=onegate&template=miniapp&name=Focused%20Asset&owner=NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3&network=testnet",
+      `https://neomini.app/miniapps/asset-factory/index.html?source=onegate&template=miniapp&name=Focused%20Asset&owner=${OWNER}&network=testnet`,
       "miniapp-asset-factory",
     );
 

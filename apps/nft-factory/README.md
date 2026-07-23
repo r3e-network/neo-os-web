@@ -31,15 +31,17 @@ that browser-local preview is not uploaded, pinned, or included in the package.
    Factory ABI does not expose `deployArtifactFromTemplate`, while the NEP-11
    template is metadata-only (`HasArtifact = false`). Calling the legacy route
    cannot create a usable collection contract.
-6. A complete deployment lane requires an upgraded Factory plus a
-   creator-specific NEF/manifest builder, transaction persistence, event
-   confirmation, and non-zero deployment-record readback. This release sends
-   no deployment or mint transaction and never fabricates a contract hash.
+6. The creator-specific NEF/manifest package and exact six-argument call are
+   generated locally. A complete deployment lane still requires an upgraded
+   Factory, registration of the exact governed artifact, transaction
+   persistence, event confirmation, and non-zero deployment-record readback.
+   This release sends no deployment or mint transaction and never fabricates a
+   contract hash.
 
 When the RPC cannot verify the template, the user can regenerate to retry the
 read. Whether the registry reports metadata-only or a stored artifact, the app
-still exposes only the deterministic export/sign path until its unique-artifact
-builder and matching readback/recovery flow exist.
+still exposes only the deterministic export/sign path until the live ABI,
+governed artifact, and matching readback/recovery flow are certified.
 
 Visual provenance is recorded in
 [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md), and dated network facts are
@@ -78,13 +80,13 @@ NFT Factory 是基于平台受治理 Factory runtime 的生产级 NEP-11 藏品�
 5. 本版本的**部署已锁定**始终保持禁用。已部署的测试网 Factory ABI 并不包含
    `deployArtifactFromTemplate`，同时 NEP-11 模板仅有元数据
    (`HasArtifact = false`)；旧调用无法创建可用的藏品合约。
-6. 完整部署流程需要升级 Factory、补齐创作者独立 NEF/manifest 构建器、交易
-   持久化、事件确认与非零部署记录回读。本版本不会发送部署或铸造交易，也不会
-   伪造合约地址。
+6. 本地已经生成创作者独立 NEF/manifest 发行包与精确六参数调用。完整部署流程
+   仍需升级 Factory、注册精确受治理工件、实现交易持久化、事件确认与非零部署
+   记录回读。本版本不会发送部署或铸造交易，也不会伪造合约地址。
 
 如果 RPC 无法验证模板，用户可以重新生成计划重试读取。无论注册表当前显示
-仅元数据还是已有工件，在独立工件生成器及其回读/恢复流程完成前，应用都只
-提供确定性的导出/签名路径。
+仅元数据还是已有工件，在链上 ABI、受治理工件及其回读/恢复流程完成认证前，
+应用都只提供确定性的导出/签名路径。
 
 视觉资源的生成来源与使用边界记录在
 [ASSET_PROVENANCE.md](./ASSET_PROVENANCE.md)。当前链上工件状态记录在

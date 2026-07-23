@@ -1,0 +1,458 @@
+{
+  "generated_at_utc": "2026-07-23T01:33:29.095Z",
+  "network": "neo-n3-testnet",
+  "network_magic": 894710606,
+  "live_evidence": "docs/reports/platform-contract-testnet-live-latest.json",
+  "summary": {
+    "drifted_contracts": 4,
+    "historical_artifacts_resolved": 4,
+    "additive_or_equal_abi": 3,
+    "breaking_abi_removals": 1,
+    "unchanged_serialized_record_layouts": 4,
+    "changed_prefix_values": 0,
+    "staged_update_candidates": 2,
+    "preflight_halt": 4,
+    "preflight_transactions": 0
+  },
+  "admin_domains": [
+    "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+    "0x6d0656f6dd91469db1c90cc1e574380613f43738"
+  ],
+  "contracts": [
+    {
+      "name": "PlatformRegistry",
+      "order": 1,
+      "hash": "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b",
+      "admin": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "route": "timelocked-in-place-update",
+      "readiness": "staged-update-candidate",
+      "deployed_artifact": {
+        "checksum": 372915605,
+        "update_counter": 0,
+        "source_revision": {
+          "revision": "960d43f67e558768cb1d99d0a87a32f76cf4c9f4",
+          "authored_at": "2026-07-17T07:00:20+08:00",
+          "subject": "fix(contracts): close the money-path findings an adversarial review confirmed"
+        },
+        "matching_revisions": [
+          {
+            "revision": "960d43f67e558768cb1d99d0a87a32f76cf4c9f4",
+            "authored_at": "2026-07-17T07:00:20+08:00",
+            "subject": "fix(contracts): close the money-path findings an adversarial review confirmed"
+          }
+        ]
+      },
+      "candidate_artifact": {
+        "checksum": 2644796843
+      },
+      "preflight": {
+        "report": "docs/reports/platform-update-registry-preflight-latest.json",
+        "generated_at_utc": "2026-07-22T23:29:58Z",
+        "signer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "signer_input": "public-identity",
+        "dry_run": true,
+        "admin_matches_signer": true,
+        "method": "scheduleUpdate",
+        "state": "HALT",
+        "gas_consumed": 560736,
+        "transactions": 0
+      },
+      "abi": {
+        "previous_methods": 63,
+        "current_methods": 74,
+        "added": [
+          "abstractAccountCore",
+          "abstractAccountCoreAvailableAt",
+          "appIdOfAbstractAccount",
+          "cancelAbstractAccountCore",
+          "cancelSpendThresholdRaise",
+          "executeSpendThresholdRaise",
+          "getAppAbstractAccount",
+          "materializeAbstractAccount",
+          "pendingAbstractAccountCore",
+          "proposeAbstractAccountCore",
+          "setAbstractAccountCore"
+        ],
+        "removed": [],
+        "compatibility": "additive-or-equal"
+      },
+      "storage": {
+        "prefixes": {
+          "added": [
+            {
+              "name": "PREFIX_ABSTRACT_ACCOUNT_CORE",
+              "value": "0x0a,0x01"
+            },
+            {
+              "name": "PREFIX_ABSTRACT_ACCOUNT_CORE_ETA",
+              "value": "0x0a,0x03"
+            },
+            {
+              "name": "PREFIX_APP_ABSTRACT_ACCOUNT_CORE",
+              "value": "0x1a"
+            },
+            {
+              "name": "PREFIX_APP_ABSTRACT_ACCOUNT_ID",
+              "value": "0x19"
+            },
+            {
+              "name": "PREFIX_APP_ID_BY_ABSTRACT_ACCOUNT",
+              "value": "0x23"
+            },
+            {
+              "name": "PREFIX_PENDING_ABSTRACT_ACCOUNT_CORE",
+              "value": "0x0a,0x02"
+            },
+            {
+              "name": "PREFIX_PENDING_THRESHOLD_ETA",
+              "value": "0x16,0x07"
+            },
+            {
+              "name": "PREFIX_PENDING_THRESHOLD_VALUE",
+              "value": "0x16,0x06"
+            }
+          ],
+          "removed": [],
+          "changed": []
+        },
+        "stored_records": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "prefix_values_changed": false,
+        "stored_record_layouts_changed": false,
+        "compatibility": "additive-or-unchanged"
+      },
+      "behavior_changes": [
+        "spend-threshold raises become timelocked while reductions remain immediate",
+        "per-app pause is pushed into an already minted AppAccount",
+        "engine-pool funding uses the engine's appId:fund deposit grammar"
+      ],
+      "required_gates": [
+        "add Registry schedule/execute support to the updater",
+        "simulate scheduleUpdate with the exact local NEF and manifest",
+        "wait the on-chain timelock and re-read the pinned hashes before execution",
+        "verify checksum, update counter, Registry rows, artifact checksum, and engine bindings afterward"
+      ]
+    },
+    {
+      "name": "PlatformDeFi",
+      "order": 2,
+      "hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+      "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "route": "direct-in-place-update",
+      "readiness": "staged-update-candidate",
+      "deployed_artifact": {
+        "checksum": 3687605410,
+        "update_counter": 0,
+        "source_revision": {
+          "revision": "5e4d20cdc65f4cb069c6e3bf6a3a01f64b8fb242",
+          "authored_at": "2026-05-08T18:35:44+08:00",
+          "subject": "Harden miniapp UX and platform contract flows"
+        },
+        "matching_revisions": [
+          {
+            "revision": "5e4d20cdc65f4cb069c6e3bf6a3a01f64b8fb242",
+            "authored_at": "2026-05-08T18:35:44+08:00",
+            "subject": "Harden miniapp UX and platform contract flows"
+          },
+          {
+            "revision": "b5372ae0d84adbe15391cc16d612554e4048e1ef",
+            "authored_at": "2026-05-08T18:35:44+08:00",
+            "subject": "Harden miniapp UX and platform contract flows"
+          }
+        ]
+      },
+      "candidate_artifact": {
+        "checksum": 3365527823
+      },
+      "preflight": {
+        "report": "docs/reports/platform-update-shared-admin-preflight-latest.json",
+        "generated_at_utc": "2026-07-22T20:27:21Z",
+        "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "signer_input": "public-identity",
+        "dry_run": true,
+        "admin_matches_signer": true,
+        "method": "update",
+        "state": "HALT",
+        "gas_consumed": 29132042,
+        "transactions": 0
+      },
+      "abi": {
+        "previous_methods": 36,
+        "current_methods": 62,
+        "added": [
+          "abandonLoan",
+          "fundCapsuleYieldReserve",
+          "getCapsuleYieldReserve",
+          "getFlashProviderBalance",
+          "getFlashTotalLpDeposits",
+          "getLastPriceDropTime",
+          "getLendingLiquidity",
+          "getNeoGasPrice",
+          "getTotalAbandonedCollateral",
+          "getTotalCapsuleFees",
+          "getTotalLendingFees",
+          "getUnclaimedFlashLoanFees",
+          "isLiquidatable",
+          "lendingDeposit",
+          "liquidateLoan",
+          "migrateFlashProviderBalance",
+          "setNeoGasPrice",
+          "withdrawAbandonedCollateral",
+          "withdrawCapsuleFees",
+          "withdrawCapsulePenalties",
+          "withdrawCapsuleYieldReserve",
+          "withdrawFlashLoanFees",
+          "withdrawGasCredit",
+          "withdrawLendingFees",
+          "withdrawLendingLiquidity",
+          "withdrawNeoCredit"
+        ],
+        "removed": [],
+        "compatibility": "additive-or-equal"
+      },
+      "storage": {
+        "prefixes": {
+          "added": [
+            {
+              "name": "PREFIX_CAPSULE_GAS_RESERVE",
+              "value": "0x17"
+            },
+            {
+              "name": "PREFIX_FLASH_PROVIDER_BAL",
+              "value": "0x3f"
+            },
+            {
+              "name": "PREFIX_FLASH_TOTAL_LP_DEPOSITS",
+              "value": "0x37"
+            },
+            {
+              "name": "PREFIX_LENDING_GAS_LIQUIDITY",
+              "value": "0x16"
+            },
+            {
+              "name": "PREFIX_NEO_GAS_PRICE",
+              "value": "0x2c"
+            },
+            {
+              "name": "PREFIX_NEO_GAS_PRICE_TIME",
+              "value": "0x2d"
+            },
+            {
+              "name": "PREFIX_PRICE_DROP_TIME",
+              "value": "0x2e"
+            },
+            {
+              "name": "PREFIX_TOTAL_ABANDONED_COLLATERAL",
+              "value": "0x2a"
+            },
+            {
+              "name": "PREFIX_TOTAL_CAPSULE_FEES",
+              "value": "0x49"
+            },
+            {
+              "name": "PREFIX_TOTAL_LENDING_FEES",
+              "value": "0x2b"
+            }
+          ],
+          "removed": [],
+          "changed": []
+        },
+        "stored_records": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "prefix_values_changed": false,
+        "stored_record_layouts_changed": false,
+        "compatibility": "additive-or-unchanged"
+      },
+      "behavior_changes": [
+        "adds lending liquidity, liquidation, fee sweep, abandoned-collateral, pricing, and flash-provider accounting lanes"
+      ],
+      "required_gates": [
+        "simulate update with the DeFi admin identity",
+        "snapshot balances, credits, product rows, loans, capsules, and flash-loan accounting",
+        "verify checksum, update counter, old safe reads, and every new safe read afterward",
+        "run funded lending, capsule, and flash-loan lifecycle probes before binding a live tenant"
+      ]
+    },
+    {
+      "name": "MiniAppFactory",
+      "order": 3,
+      "hash": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
+      "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "route": "direct-in-place-update",
+      "readiness": "live-abi-and-lifecycle-certification-required",
+      "deployed_artifact": {
+        "checksum": 2240313340,
+        "update_counter": 0,
+        "source_revision": {
+          "revision": "16e6fa6abb6e168418c982a2eef9901249cd5f7c",
+          "authored_at": "2026-06-03T14:01:44+08:00",
+          "subject": "feat(factory): add MiniAppFactory contract and fix factory env resolution"
+        },
+        "matching_revisions": [
+          {
+            "revision": "16e6fa6abb6e168418c982a2eef9901249cd5f7c",
+            "authored_at": "2026-06-03T14:01:44+08:00",
+            "subject": "feat(factory): add MiniAppFactory contract and fix factory env resolution"
+          },
+          {
+            "revision": "09faa9a87bdd76e56082ff6dca865c6bc6ff9219",
+            "authored_at": "2026-06-03T14:01:44+08:00",
+            "subject": "feat(factory): add MiniAppFactory contract and fix factory env resolution"
+          }
+        ]
+      },
+      "candidate_artifact": {
+        "checksum": 905792977
+      },
+      "preflight": {
+        "report": "docs/reports/platform-update-shared-admin-preflight-latest.json",
+        "generated_at_utc": "2026-07-22T20:27:21Z",
+        "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "signer_input": "public-identity",
+        "dry_run": true,
+        "admin_matches_signer": true,
+        "method": "update",
+        "state": "HALT",
+        "gas_consumed": 7818730,
+        "transactions": 0
+      },
+      "abi": {
+        "previous_methods": 19,
+        "current_methods": 20,
+        "added": [
+          "deployArtifactFromTemplate"
+        ],
+        "removed": [],
+        "compatibility": "additive-or-equal"
+      },
+      "storage": {
+        "prefixes": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "stored_records": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "prefix_values_changed": false,
+        "stored_record_layouts_changed": false,
+        "compatibility": "additive-or-unchanged"
+      },
+      "behavior_changes": [
+        "deployFromTemplate becomes record-only for templates without artifacts and rejects artifact templates",
+        "artifact-backed deployment moves to deployArtifactFromTemplate with caller-supplied creator-unique artifacts and a digest over NEF, manifest, and init parameters",
+        "caller-supplied NEF must match the governed artifact and the manifest may only vary by its creator-unique contract name"
+      ],
+      "required_gates": [
+        "retain the implemented creator-unique NEF and manifest generator with exact six-argument calls and artifact-digest coverage",
+        "register the exact generated FactoryNep17Token and FactoryNep11Collection artifacts under the governed template IDs",
+        "verify the live contract exposes deployArtifactFromTemplate(String,String,String,String,ByteArray,String) returning Hash160 through getcontractstate",
+        "prove legacy records remain readable and package IDs remain unique",
+        "simulate both record-only and unique-artifact flows before updating",
+        "verify checksum, update counter, template indexes, deployment indexes, and consumer ABI afterward",
+        "execute funded NEP-17 and NEP-11 deployments and verify transaction, event, readback, restart, and recovery behavior"
+      ]
+    },
+    {
+      "name": "PlatformAnchor",
+      "order": 4,
+      "hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "route": "direct-in-place-update",
+      "readiness": "abi-deprecation-decision-required",
+      "deployed_artifact": {
+        "checksum": 1604090204,
+        "update_counter": 0,
+        "source_revision": {
+          "revision": "15873071cf47a4b5488fa84a83ea8f339c896ac1",
+          "authored_at": "2026-05-11T10:35:42+08:00",
+          "subject": "Validate AA miniapps and deploy Vault claim fix"
+        },
+        "matching_revisions": [
+          {
+            "revision": "15873071cf47a4b5488fa84a83ea8f339c896ac1",
+            "authored_at": "2026-05-11T10:35:42+08:00",
+            "subject": "Validate AA miniapps and deploy Vault claim fix"
+          },
+          {
+            "revision": "fc9ec277c8ea150825a343e056435e0a67856e12",
+            "authored_at": "2026-05-11T10:35:42+08:00",
+            "subject": "Validate AA miniapps and deploy Vault claim fix"
+          }
+        ]
+      },
+      "candidate_artifact": {
+        "checksum": 1528462004
+      },
+      "preflight": {
+        "report": "docs/reports/platform-update-shared-admin-preflight-latest.json",
+        "generated_at_utc": "2026-07-22T20:27:21Z",
+        "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "signer_input": "public-identity",
+        "dry_run": true,
+        "admin_matches_signer": true,
+        "method": "update",
+        "state": "HALT",
+        "gas_consumed": 14953972,
+        "transactions": 0
+      },
+      "abi": {
+        "previous_methods": 47,
+        "current_methods": 45,
+        "added": [],
+        "removed": [
+          "setAgentAccounts",
+          "setAgentWeight"
+        ],
+        "compatibility": "breaking-removals"
+      },
+      "storage": {
+        "prefixes": {
+          "added": [],
+          "removed": [
+            {
+              "name": "PREFIX_AGENT_WEIGHT",
+              "value": "0x33"
+            }
+          ],
+          "changed": []
+        },
+        "stored_records": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "prefix_values_changed": false,
+        "stored_record_layouts_changed": false,
+        "compatibility": "review-orphaned-prefixes"
+      },
+      "behavior_changes": [
+        "removes batch agent-account rotation to prevent one-transaction redirection of all agents",
+        "removes unused agent-weight mutation and reporting from the manual AA routing model",
+        "accepts safe plain-string stake memos without deserializing untrusted transfer data"
+      ],
+      "required_gates": [
+        "decide whether removed public methods need deprecated compatibility stubs",
+        "inventory external callers before publishing the reduced ABI",
+        "snapshot app, stake, reward, credit, agent, candidate, and selected-agent state",
+        "verify checksum, update counter, historical reads, withdrawals, claims, transfers, and votes afterward"
+      ]
+    }
+  ],
+  "ordered_plan": [
+    "PlatformRegistry: add timelocked updater support, schedule exact candidate hashes, wait, execute, then reconcile all Registry and AppAccount-artifact invariants.",
+    "PlatformDeFi: take accounting snapshots, simulate a direct in-place update, verify old and new reads, then run funded product lifecycles before tenant binding.",
+    "MiniAppFactory: retain the completed creator-artifact builder and fail-closed consumer cutover, then certify the exact live ABI, governed artifacts, and funded transaction/event/readback recovery lifecycle before updating.",
+    "PlatformAnchor: make an explicit public-ABI deprecation decision before removing setAgentAccounts and setAgentWeight on-chain.",
+    "PlatformSocial: treat first deployment or retirement as a separate architecture decision, not part of this update batch."
+  ],
+  "boundary": "This ledger proves artifact provenance and static ABI/storage deltas. It does not authorize a chain write or prove stateful upgrade safety; exact pre/post state snapshots and funded lifecycle probes remain mandatory."
+}

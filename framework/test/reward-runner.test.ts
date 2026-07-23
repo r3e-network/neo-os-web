@@ -48,6 +48,8 @@ function makeSession(gameId: string, difficulty = 0): RewardGameSession {
     publicKey: "pk",
     sessionToken: `tok-${gameId}`,
     view: {},
+    currentView: {},
+    opCount: 0,
     config: { limitMs: 60_000, minSolveMs: 0, maxUndos: 0, revealPolicy: "", raw: {} },
     identity: {
       appId: config.appId,

@@ -393,7 +393,6 @@ const appMessages = {
   sessionAbsent: { en: "No session on chain", zh: "链上无 Session" },
   sessionUnavailable: { en: "Live state unavailable", zh: "实时状态不可用" },
   sessionNotInspected: { en: "Not inspected", zh: "尚未核对" },
-  sessionAccountIdle: { en: "Account not inspected", zh: "账户尚未核对" },
   sessionAccountLoading: { en: "Inspecting account", zh: "正在核对账户" },
   sessionAccountReady: { en: "AA account verified", zh: "AA 账户已核对" },
   sessionAccountMissing: { en: "AA account not found", zh: "未找到 AA 账户" },

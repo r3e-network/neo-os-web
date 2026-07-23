@@ -46,14 +46,15 @@ The metadata-only legacy write can record a package with `UInt160.Zero`; it cann
 ## Requirements before enabling deployment
 
 1. Deploy and re-read a Factory ABI containing the reviewed `deployArtifactFromTemplate/6` implementation.
-2. Produce a creator-unique NEP-17 NEF and manifest from the reviewed blueprint.
-3. Reproduce the contract's artifact digest exactly over NEF, manifest, and canonical init parameters.
-4. Verify wallet network and connected Owner before invocation.
-5. Persist a durable pending journal before submission, including network, wallet, Factory hash, operation, args digest, package ID, and real txid.
-6. Retry readback by transaction/package identity; never resubmit blindly.
-7. Require a real txid, `TokenDeployed` event, exact `getDeployment` readback, and non-zero deployed hash.
-8. Read the deployed contract and verify its manifest, NEP-17 ABI, name, symbol, decimals, total supply, Owner, and treasury.
-9. Never convert rejection, timeout, RPC failure, or absent readback into a zero/empty success result.
+2. Register the exact generated `FactoryNep17Token` NEF and governed manifest under `tpl.nep17.asset.v1`.
+3. Verify wallet network and connected Owner before invocation.
+4. Persist a durable pending journal before submission, including network, wallet, Factory hash, operation, artifact digest, package ID, and real txid.
+5. Retry readback by transaction/package identity; never resubmit blindly.
+6. Require a real txid, `TokenDeployed` event, exact `getDeployment` readback, and non-zero deployed hash.
+7. Read the deployed contract and verify its manifest, NEP-17 ABI, name, symbol, decimals, total supply, Owner, and treasury.
+8. Prove restart/recovery and never convert rejection, timeout, RPC failure, or absent readback into a zero/empty success result.
+
+Creator-unique NEF/manifest generation and the digest over NEF, manifest, and canonical init parameters are implemented and covered by local tests; they are not live deployment evidence.
 
 ## Verification completed
 

@@ -6,6 +6,8 @@ import { manifest } from "../../aim-master/src/manifest";
 
 const repoRoot = resolve(import.meta.dirname, "../../..");
 const read = (path: string) => readFileSync(resolve(repoRoot, path), "utf8");
+const PLATFORM_REGISTRY_TESTNET = "0x5ec036efaa1fbde3ff7d1587d790768bc098cb2b";
+const PLATFORM_GAME_TESTNET = "0xc75b181b4561462903bb27d8d9e0b32b637bec12";
 
 describe("aim-master production safety", () => {
   it("keeps paid entry closed in runtime and both public manifests", () => {
@@ -34,8 +36,11 @@ describe("aim-master production safety", () => {
       compute: false,
       oracle: false,
     });
-    expect(neo.contracts?.["neo-n3-testnet"] ?? neo.engine)
-      .toBe("0xed26866fb59219db8743c7673df098f363bac9ec");
+    expect(neo.contracts).toBeUndefined();
+    expect(neo.moduleId).toBe("platform-game");
+    expect(neo.mode).toBe("shared");
+    expect(neo.registry).toBe(PLATFORM_REGISTRY_TESTNET);
+    expect(neo.engine).toBe(PLATFORM_GAME_TESTNET);
     expect(neo.operation_panel.operations).toEqual([]);
     expect(neo.permissions).toEqual([]);
     expect(neo.platform.transactions).toBe(false);

@@ -3,9 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 const requiredPlatformContracts = new Set([
+  "AppAccount",
+  "MiniAppFactory",
   "PlatformAnchor",
   "PlatformDeFi",
   "PlatformGame",
+  "PlatformRegistry",
   "PlatformSocial",
 ]);
 

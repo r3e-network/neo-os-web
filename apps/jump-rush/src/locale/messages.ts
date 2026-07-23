@@ -152,13 +152,13 @@ const appMessages = {
 
   rulesTitle: { en: "How it works", zh: "玩法说明" },
   rulesCopy: {
-    en: "1. Pick a jump route and pay the entry (Meadow 0.02, Cloud 0.10, Summit 0.20 GAS). 2. The Morpheus enclave generates a deterministic platform layout and binds its hash commitment on-chain. 3. Hold to charge power, release to jump. Land on the center 30% of each platform for a Perfect! bonus. Missing a platform ends the run. 4. Reach the target number of jumps before the deadline to win. Undos revert your last jump and burn 30% of the base reward (three max). 5. The enclave verifies your run sequence, signs the settlement, and the contract pays out after checking the signature.",
-    zh: "1. 选择跳跃路线并支付报名费（草地 0.02、云端 0.10、山巅 0.20 GAS）。2. Morpheus 飞地生成确定性平台布局，并将其哈希承诺绑定上链。3. 按住蓄力，松开跳跃。落在平台中间 30% 区域可获得「完美着陆」加分。未踩中平台则游戏结束。4. 在截止时间前达到目标跳跃次数即可获胜。撤回会退回上一次跳跃并扣除基础奖励的 30%（最多三次）。5. 飞地验证你的跳跃序列并签署结算，合约核验签名后发奖。",
+    en: "1. Pick a jump route and pay the entry (Meadow 0.02, Cloud 0.10, Summit 0.20 GAS). 2. The Morpheus enclave generates a deterministic platform layout for the shared PlatformGame session. 3. Hold to charge power, release to jump. Land on the center 30% of each platform for a Perfect! bonus. Missing a platform ends the run. 4. Reach the target number of jumps before the deadline to win. Paid runs do not allow undo. 5. Finalization seals the operation log; the kernel replays it in the reviewed engine before PlatformGame credits any payout.",
+    zh: "1. 选择跳跃路线并支付报名费（草地 0.02、云端 0.10、山巅 0.20 GAS）。2. Morpheus 飞地为共享 PlatformGame 会话生成确定性平台布局。3. 按住蓄力，松开跳跃。落在平台中间 30% 区域可获得「完美着陆」加分。未踩中平台则游戏结束。4. 在截止时间前达到目标跳跃次数即可获胜；付费模式不允许撤回。5. 结算时操作日志会被密封，内核使用已审核引擎重放验证后，PlatformGame 才会入账奖励。",
   },
   fairnessTitle: { en: "Provably fair platforms", zh: "可验证公平布局" },
   fairnessCopy: {
-    en: "The platform layout is generated inside the Morpheus TEE from a per-game seed: only its SHA-256 commitment is bound on-chain at the start, so the gap distances cannot be predicted or scripted outside the app. At settlement the enclave signs the result (problem hash, jump count, perfects, time, undos) and the contract verifies both the signature and that the problem hash equals the original commitment before paying.",
-    zh: "平台布局由 Morpheus TEE 用每局独立的种子在飞地内生成：开局时链上只绑定其 SHA-256 承诺，因此平台间距无法预测、也无法在平台之外用脚本预知。结算时飞地对结果（问题哈希、跳跃次数、完美着陆数、用时、撤回次数）签名，合约先核验签名、再核验问题哈希与开局承诺一致后才发奖。",
+    en: "The platform layout is generated inside the Morpheus TEE from a per-game secret. Each input is recorded in the generic confidential session. At finalization the operation log is sealed to the oracle, replayed by the reviewed engine, and delivered through the kernel callback; PlatformGame credits a payout only after that callback passes its app, player, timing, and score checks.",
+    zh: "平台布局由 Morpheus TEE 使用每局独立密钥生成，每次输入都记录在通用机密会话中。结算时操作日志会密封给预言机，由已审核引擎重放，并通过内核回调返回；只有应用、玩家、时限与得分校验全部通过后，PlatformGame 才会入账奖励。",
   },
   commitmentLine: {
     en: "Game #{gameId} · sealed commitment {commitment}",
@@ -176,6 +176,10 @@ const appMessages = {
     zh: "密封比平时慢——请稍后重试。",
   },
   statusSubmitting: { en: "Enclave verifying — settling on-chain…", zh: "飞地验证中——正在链上结算…" },
+  statusSettlementPending: {
+    en: "Settlement is still pending — keep this run open and check again shortly.",
+    zh: "结算仍在确认中——请保留本局并稍后再次检查。",
+  },
   statusSolved: { en: "Run verified! {payout} GAS credited", zh: "成绩验证通过！已入账 {payout} GAS" },
   statusUndoUsed: { en: "Undo recorded — reward now {pct}%", zh: "撤回已记录——奖励降至 {pct}%" },
   undoLimitReached: { en: "No undos left for this run", zh: "本局撤回次数已用完" },

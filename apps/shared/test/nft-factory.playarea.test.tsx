@@ -75,7 +75,7 @@ function lockedPlan(): FactoryPlan {
     operation: "prepareNEP11",
     deploymentCall: {
       scriptHash: `0x${"44".repeat(20)}`,
-      operation: "deployFromTemplate",
+      operation: "deployArtifactFromTemplate",
       args: [],
     },
     execution: {

@@ -29,14 +29,15 @@ namespace NeoMiniAppPlatform.Contracts
     //
     //  The factory miniapps build a deterministic deployment "plan" off-chain
     //  (apps/shared/factory/factoryPlan.ts) whose deploymentCall targets this
-    //  contract with (templateId, packageId, digest, initParamsJson). The user
-    //  signs the plan and the call is executed on-chain (e.g. via OneGate).
+    //  contract with a package-bound artifact call. The user signs the plan and
+    //  the call is executed on-chain (e.g. via OneGate).
     //
     //  Admins preload templates. A template may be:
     //    - metadata-only (nef/manifest/config hashes recorded) -> deploy is
     //      RECORDED (registry coordination), or
-    //    - artifact-backed (full NEF + manifest stored) -> deployFromTemplate
-    //      performs a REAL ContractManagement.Deploy and returns the new hash.
+    //    - artifact-backed (full governed NEF + base manifest stored) ->
+    //      deployArtifactFromTemplate verifies that exact code and allows only
+    //      a packageId manifest-name substitution before deploying.
     //
     //  STORAGE LAYOUT
     //    0x01            admin
@@ -160,9 +161,9 @@ namespace NeoMiniAppPlatform.Contracts
             OnTemplateRegistered(templateId, standard, version);
         }
 
-        // Store the full NEF + manifest so deployFromTemplate can perform a real
-        // ContractManagement.Deploy. Optional: templates without an artifact are
-        // record-only (registry coordination).
+        // Store the governed NEF + base manifest. Unique deployments must retain
+        // this exact executable and may change only the manifest name to packageId.
+        // Templates without an artifact remain record-only registry metadata.
         public static void RegisterTemplateArtifact(string templateId, ByteString nef, string manifest)
         {
             ValidateAdmin();

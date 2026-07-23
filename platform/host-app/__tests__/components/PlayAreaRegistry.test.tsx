@@ -1286,16 +1286,19 @@ describe("PlayAreaRegistry", () => {
     },
   );
 
-  it("keeps a guest-only game local even when its manifest retains a historical testnet hash", () => {
+  it("keeps a shared guest-only game local without a standalone contract route", () => {
     const manifest = loadBundledManifest("game-2048");
-    const contracts = manifest.contracts as Record<string, unknown>;
+    const contracts = (manifest.contracts ?? {}) as Record<string, unknown>;
+    expect(manifest.contracts).toBeUndefined();
+    expect(manifest.moduleId).toBe("platform-game");
+    expect(manifest.mode).toBe("shared");
     const app: MiniAppInfo = {
       ...baseApp,
       app_id: "miniapp-game-2048",
       name: "2048 strategy board",
       category: "gaming",
       entry_url: "/miniapps/game-2048/index.html",
-      contract_hash: String(contracts["neo-n3-testnet"] ?? ""),
+      contract_hash: "",
       contracts,
       operations: [],
       permissions: {},

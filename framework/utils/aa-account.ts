@@ -13,7 +13,7 @@
 import { ripemd160 } from "@noble/hashes/ripemd160";
 import { sha256 } from "@noble/hashes/sha256";
 import { p256 } from "@noble/curves/p256";
-import { addressToScriptHash, normalizeScriptHash } from "./neo";
+import { addressToScriptHash, normalizeScriptHash, scriptHashToAddress } from "./neo";
 
 export const AA_REGISTRATION_ESCAPE_TIMELOCK_SECONDS = 30 * 24 * 60 * 60;
 export const AA_REGISTRATION_MIN_ESCAPE_TIMELOCK_SECONDS = 7 * 24 * 60 * 60;
@@ -44,6 +44,14 @@ export type AnchorAgentAccount = {
   verifierParamsHex: string;
   accountIdHash: string;
   accountId: string;
+};
+
+export type VirtualAAAccount = {
+  coreHash: string;
+  accountId: string;
+  verifyScript: string;
+  scriptHash: string;
+  address: string;
 };
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -135,6 +143,29 @@ export function deriveRegistrationAccountIdHash(options: RegistrationAccountOpti
     toUint32LittleEndianHex(escapeTimelock),
     verifierParams,
   ].join(""));
+}
+
+export function deriveVirtualAAAccount(coreHash: string, accountId: string): VirtualAAAccount {
+  const coreDisplay = normalizeRegistrationHash160(coreHash, "abstract account core");
+  const accountDisplay = normalizeRegistrationHash160(accountId, "abstract account id");
+  const reverseHex = (value: string): string => value.match(/../g)!.reverse().join("");
+  const verifyScript = [
+    "0c14",
+    reverseHex(accountDisplay),
+    "11c01f0c06766572696679",
+    "0c14",
+    reverseHex(coreDisplay),
+    "41627d5b52",
+  ].join("");
+  const scriptHashLittleEndian = ripemd160(sha256(hexToBytes(verifyScript)));
+  const scriptHash = `0x${bytesToHex(Uint8Array.from(scriptHashLittleEndian).reverse())}`;
+  return {
+    coreHash: `0x${coreDisplay}`,
+    accountId: `0x${accountDisplay}`,
+    verifyScript,
+    scriptHash,
+    address: scriptHashToAddress(scriptHash),
+  };
 }
 
 export function buildAnchorAgentVerifierParam({

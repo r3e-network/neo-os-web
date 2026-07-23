@@ -1,0 +1,62 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "signer_input": "public-identity",
+  "dry_run": true,
+  "targets": [
+    {
+      "name": "MiniAppFactory",
+      "existing_hash": "0x03a7c8fc724a575ee739c919ed52cb5e2a2bdc49",
+      "route": "direct",
+      "on_chain_update_counter": 0,
+      "on_chain_has_update": true,
+      "admin_matches_signer": true,
+      "on_chain_nef_checksum": 2240313340,
+      "local_nef_checksum": 2373589468,
+      "artifact_matches": false,
+      "preflight_method": "update",
+      "preflight_state": "HALT",
+      "preflight_gas": 7818730,
+      "updated": false,
+      "skipped_reason": "dry run: direct update eligible"
+    },
+    {
+      "name": "PlatformAnchor",
+      "existing_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "route": "direct",
+      "on_chain_update_counter": 0,
+      "on_chain_has_update": true,
+      "admin_matches_signer": true,
+      "on_chain_nef_checksum": 1604090204,
+      "local_nef_checksum": 1528462004,
+      "artifact_matches": false,
+      "preflight_method": "update",
+      "preflight_state": "HALT",
+      "preflight_gas": 14953972,
+      "updated": false,
+      "skipped_reason": "dry run: direct update eligible"
+    },
+    {
+      "name": "PlatformDeFi",
+      "existing_hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+      "route": "direct",
+      "on_chain_update_counter": 0,
+      "on_chain_has_update": true,
+      "admin_matches_signer": true,
+      "on_chain_nef_checksum": 3687605410,
+      "local_nef_checksum": 3365527823,
+      "artifact_matches": false,
+      "preflight_method": "update",
+      "preflight_state": "HALT",
+      "preflight_gas": 29132042,
+      "updated": false,
+      "skipped_reason": "dry run: direct update eligible"
+    }
+  ],
+  "transactions": [],
+  "validation": {},
+  "generated_at_utc": "2026-07-22T20:27:21Z"
+}
