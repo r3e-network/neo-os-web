@@ -1,0 +1,55 @@
+{
+  "generated_at_utc": "2026-07-23T05:21:42.650Z",
+  "network": "neo-n3-testnet",
+  "network_magic": 894710606,
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "block_count": 17924995,
+  "platform_defi_hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+  "legacy_credit_prefixes": {
+    "neo": {
+      "prefix": "0x14",
+      "key_schema": "prefix || payer Hash160",
+      "rows": [],
+      "total_datoshi": "0",
+      "native_balance_datoshi": "8",
+      "backing_gap_datoshi": "8"
+    },
+    "gas": {
+      "prefix": "0x15",
+      "key_schema": "prefix || payer Hash160",
+      "rows": [
+        {
+          "key_base64": "FQqoslASt8XqqUhGo/lzKTacUe8T",
+          "stored_account_bytes": "0aa8b25012b7c5eaa94846a3f97329369c51ef13",
+          "script_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+          "amount_datoshi": "30000000"
+        },
+        {
+          "key_base64": "FVYcwGPQ7+MGLszUt79C/I7nRjEM",
+          "stored_account_bytes": "561cc063d0efe3062eccd4b7bf42fc8ee746310c",
+          "script_hash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+          "amount_datoshi": "1550000000"
+        },
+        {
+          "key_base64": "FesxOmEzK8J/+dnQlnFd8wlzIqpp",
+          "stored_account_bytes": "eb313a61332bc27ff9d9d096715df3097322aa69",
+          "script_hash": "0x69aa227309f35d7196d0d9f97fc22b33613a31eb",
+          "amount_datoshi": "20000002"
+        }
+      ],
+      "total_datoshi": "1600000002",
+      "native_balance_datoshi": "1465773666",
+      "backing_gap_datoshi": "-134226336"
+    }
+  },
+  "summary": {
+    "legacy_credit_rows": 3,
+    "neo_legacy_credit_rows": 0,
+    "gas_legacy_credit_rows": 3,
+    "has_legacy_credit_rows": true,
+    "underbacked": true,
+    "migration_status": "blocked-nonempty-and-underbacked",
+    "transactions": 0
+  },
+  "boundary": "This is a credential-free read-only RPC snapshot, not an atomic migration lock. A later update still requires deposits to be prevented during an exact final snapshot. Non-empty payer-global rows cannot be assigned to appIds without an explicit reviewed migration."
+}

@@ -132,8 +132,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             string credit = ContractSourceAssertions.ReadSource(
                 "contracts", "platform", "PlatformDeFi", "PlatformDeFi.Credit.cs");
 
-            Assert.Equal(11, code.Split("EnsureGasCreditSolvent();").Length - 1);
-            Assert.Equal(8, code.Split("EnsureNeoCreditSolvent();").Length - 1);
+            Assert.Equal(15, code.Split("EnsureGasCreditSolvent();").Length - 1);
+            Assert.Equal(12, code.Split("EnsureNeoCreditSolvent();").Length - 1);
             Assert.Contains(
                 "ExecutionEngine.Assert(\n                NEO.Transfer(Runtime.ExecutingScriptHash, payer, amount)",
                 credit);

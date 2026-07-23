@@ -1,6 +1,6 @@
 # Platform Contract Acceptance Ledger
 
-Generated: 2026-07-23T03:10:27.311Z
+Generated: 2026-07-23T04:43:25.178Z
 
 ## Summary
 
@@ -23,7 +23,7 @@ Generated: 2026-07-23T03:10:27.311Z
 | MiniAppFactory | 20/6 | 3 | yes | yes | 3 | accepted | live-artifact-drift | consumer-binding | consumer bindings exist; no dedicated deployment report retained |
 | PlatformAnchor | 45/8 | 4 | yes | yes | 5 | accepted | live-artifact-drift | deployment-report | testnet and mainnet deployment reports retained |
 | PlatformGame | 77/36 | 6 | yes | yes | 17 | accepted | live-artifact-match | deployment-report | testnet and mainnet deployment reports retained; testnet Registry row active |
-| PlatformDeFi | 62/30 | 5 | yes | yes | 8 | accepted | live-artifact-drift | deployment-report | testnet hash retained in anchor deployment report; no live app bindings |
+| PlatformDeFi | 80/35 | 5 | yes | yes | 10 | accepted | live-artifact-drift | deployment-report | testnet hash retained in anchor deployment report; no live app bindings |
 | PlatformSocial | 48/25 | 6 | yes | yes | 8 | accepted | no-deployment-record | none | no deployment record |
 
 ## Factory Templates
@@ -79,11 +79,11 @@ Generated: 2026-07-23T03:10:27.311Z
 
 ### PlatformDeFi
 
-- Source files: 17
-- Test files: `contracts/__tests__/AnchorBoundarySafetyTest.cs`, `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/FixV_platformdefiliquidation_Tests.cs`, `contracts/__tests__/Fix_platformdefi_Tests.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
+- Source files: 18
+- Test files: `contracts/__tests__/AnchorBoundarySafetyTest.cs`, `contracts/__tests__/ContractSecurityRegressionTest.cs`, `contracts/__tests__/ContractUpdateCoverageTest.cs`, `contracts/__tests__/FinancialTransferSafetyTest.cs`, `contracts/__tests__/FixV_platformdefiliquidation_Tests.cs`, `contracts/__tests__/Fix_platformdefi_Tests.cs`, `contracts/__tests__/MiniAppContractFunctionalTests.cs`, `contracts/__tests__/PlatformDeFiCreditIsolationTests.cs`, `contracts/__tests__/PlatformDeFiLegacyCreditRecoveryTests.cs`, `contracts/__tests__/platform-contracts-only.test.ts`
 - Deployment evidence: `contracts/build/testnet_anchor_deployment.json`
 - Current testnet artifact: live-artifact-drift
-- Methods missing on current testnet deployment: abandonLoan, fundCapsuleYieldReserve, getCapsuleYieldReserve, getFlashProviderBalance, getFlashTotalLpDeposits, getLastPriceDropTime, getLendingLiquidity, getNeoGasPrice, getTotalAbandonedCollateral, getTotalCapsuleFees, getTotalLendingFees, getUnclaimedFlashLoanFees, isLiquidatable, lendingDeposit, liquidateLoan, migrateFlashProviderBalance, setNeoGasPrice, withdrawAbandonedCollateral, withdrawCapsuleFees, withdrawCapsulePenalties, withdrawCapsuleYieldReserve, withdrawFlashLoanFees, withdrawGasCredit, withdrawLendingFees, withdrawLendingLiquidity, withdrawNeoCredit
+- Methods missing on current testnet deployment: abandonLoan, activateLegacyCreditRecovery, fundCapsuleYieldReserve, gasCreditLiabilityOf, getCapsuleYieldReserve, getDirectGasCredit, getDirectNeoCredit, getFlashProviderBalance, getFlashTotalLpDeposits, getLastPriceDropTime, getLegacyGasCredit, getLegacyNeoCredit, getLendingLiquidity, getNeoGasPrice, getTotalAbandonedCollateral, getTotalCapsuleFees, getTotalLendingFees, getUnclaimedFlashLoanFees, initializeLegacyCreditRecovery, isLiquidatable, legacyCreditRecoveryState, legacyCreditSnapshotHash, legacyGasCreditLiability, legacyGasCreditRows, legacyNeoCreditLiability, legacyNeoCreditRows, lendingDeposit, liquidateLoan, migrateFlashProviderBalance, neoCreditLiabilityOf, setNeoGasPrice, totalGasCreditLiability, totalNeoCreditLiability, withdrawAbandonedCollateral, withdrawCapsuleFees, withdrawCapsulePenalties, withdrawCapsuleYieldReserve, withdrawFlashLoanFees, withdrawGasCredit, withdrawLegacyGasCredit, withdrawLegacyNeoCredit, withdrawLendingFees, withdrawLendingLiquidity, withdrawNeoCredit
 - Failed checks: none
 
 ### PlatformSocial

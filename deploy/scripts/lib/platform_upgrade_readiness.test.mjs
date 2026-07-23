@@ -41,7 +41,10 @@ test("upgrade ledger resolves all drifted artifacts and exposes compatibility ga
   assert.equal(ledger.summary.breaking_abi_removals, 1);
   assert.equal(ledger.summary.unchanged_serialized_record_layouts, 4);
   assert.equal(ledger.summary.changed_prefix_values, 0);
-  assert.equal(ledger.summary.staged_update_candidates, 2);
+  assert.equal(ledger.summary.breaking_storage_key_schemas, 1);
+  assert.equal(ledger.summary.blocking_legacy_credit_rows, 3);
+  assert.equal(ledger.summary.underbacked_legacy_credit_contracts, 1);
+  assert.equal(ledger.summary.staged_update_candidates, 1);
   assert.equal(ledger.summary.preflight_halt, 4);
   assert.equal(ledger.summary.preflight_transactions, 0);
   assert.deepEqual(
@@ -51,6 +54,27 @@ test("upgrade ledger resolves all drifted artifacts and exposes compatibility ga
   assert.deepEqual(
     ledger.contracts.find((contract) => contract.name === "PlatformAnchor")?.abi.removed,
     ["setAgentAccounts", "setAgentWeight"],
+  );
+  const defi = ledger.contracts.find(
+    (contract) => contract.name === "PlatformDeFi",
+  );
+  assert.equal(
+    defi?.readiness,
+    "legacy-credit-recovery-bridge-review-required",
+  );
+  assert.equal(defi?.storage.compatibility, "breaking-key-schema-change");
+  assert.equal(
+    defi?.storage.live_snapshot?.migration_status,
+    "blocked-nonempty-and-underbacked",
+  );
+  assert.equal(defi?.storage.live_snapshot?.gas_backing_gap_datoshi, "-134226336");
+  assert.deepEqual(
+    defi?.storage.key_schemas.map((entry) => entry.prefix),
+    ["0x14", "0x15"],
+  );
+  assert.match(
+    defi?.required_gates.join(" ") ?? "",
+    /automatic pause plus recovery state SnapshotRequired/,
   );
   const factory = ledger.contracts.find(
     (contract) => contract.name === "MiniAppFactory",
@@ -70,6 +94,10 @@ test("upgrade ledger resolves all drifted artifacts and exposes compatibility ga
   assert.match(
     renderUpgradeReadinessMarkdown(ledger),
     /live-abi-and-lifecycle-certification-required/,
+  );
+  assert.match(
+    renderUpgradeReadinessMarkdown(ledger),
+    /breaking-key-schema-change/,
   );
   assert.match(ledger.boundary, /does not authorize a chain write/i);
 });

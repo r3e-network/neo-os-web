@@ -30,6 +30,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
             string memo = ReadPaymentMemo(data);
+            if (memo == LegacyCreditTopUpMemo)
+            {
+                ReceiveLegacyCreditTopUp(from, caller, amount);
+                return;
+            }
             string appId = ExtractAppId(memo);
             ValidateCreditAppId(appId);
             ExecutionEngine.Assert(memo == appId + ":credit", "invalid payment memo");
@@ -182,14 +187,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static void EnsureNeoCreditSolvent()
         {
             ExecutionEngine.Assert(
-                TotalNeoCreditLiability() <= NEO.BalanceOf(Runtime.ExecutingScriptHash),
+                TotalNeoCreditLiability() + LegacyNeoCreditLiability() <=
+                NEO.BalanceOf(Runtime.ExecutingScriptHash),
                 "NEO credit insolvent");
         }
 
         private static void EnsureGasCreditSolvent()
         {
             ExecutionEngine.Assert(
-                TotalGasCreditLiability() <= GAS.BalanceOf(Runtime.ExecutingScriptHash),
+                TotalGasCreditLiability() + LegacyGasCreditLiability() <=
+                GAS.BalanceOf(Runtime.ExecutingScriptHash),
                 "GAS credit insolvent");
         }
 

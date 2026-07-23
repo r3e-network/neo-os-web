@@ -31,6 +31,18 @@ const controlMethods = new Set([
   "setAppPaused",
   "isAppPaused",
   "onNEP17Payment",
+  "legacyCreditRecoveryState",
+  "legacyCreditSnapshotHash",
+  "legacyNeoCreditLiability",
+  "legacyGasCreditLiability",
+  "legacyNeoCreditRows",
+  "legacyGasCreditRows",
+  "getLegacyNeoCredit",
+  "getLegacyGasCredit",
+  "initializeLegacyCreditRecovery",
+  "activateLegacyCreditRecovery",
+  "withdrawLegacyNeoCredit",
+  "withdrawLegacyGasCredit",
 ]);
 
 function makeApp(

@@ -49,7 +49,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     [DisplayName("PlatformDeFi")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
-    [ManifestExtra("Version", "1.1.0")]
+    [ManifestExtra("Version", "1.2.0")]
     [ManifestExtra("Description", "Multi-tenant DeFi engine for Neo N3. Consolidates SelfLoan, FlashLoan, and CompoundCapsule products into a single reusable contract with per-app isolation.")]
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "balanceOf", "transfer")]
@@ -67,6 +67,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_TOTAL_NEO_CREDIT_LIABILITY = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_TOTAL_GAS_CREDIT_LIABILITY = new byte[] { 0x04 };
+        private static readonly byte[] PREFIX_LEGACY_CREDIT_RECOVERY_STATE = new byte[] { 0x05 };
+        private static readonly byte[] PREFIX_LEGACY_CREDIT_SNAPSHOT_HASH = new byte[] { 0x06 };
+        private static readonly byte[] PREFIX_LEGACY_NEO_CREDIT_LIABILITY = new byte[] { 0x07 };
+        private static readonly byte[] PREFIX_LEGACY_GAS_CREDIT_LIABILITY = new byte[] { 0x08 };
+        private static readonly byte[] PREFIX_LEGACY_NEO_CREDIT_ROWS = new byte[] { 0x09 };
+        private static readonly byte[] PREFIX_LEGACY_GAS_CREDIT_ROWS = new byte[] { 0x0A };
 
         // Per-app registration
         private static readonly byte[] PREFIX_APP_TYPE = new byte[] { 0x10 };
