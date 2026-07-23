@@ -1,7 +1,6 @@
 using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
-using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts.Platform
 {
@@ -31,20 +30,5 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             return seizeNeo;
         }
 
-        /// <summary>
-        /// Credit NEO back to a borrower's prepaid-NEO ledger (the same ledger funded via
-        /// OnNEP17Payment and reclaimable via WithdrawNeoCredit). Used to return surplus
-        /// collateral after a partial-seizure liquidation without sending NEO inside the
-        /// liquidation call, keeping checks-effects-interactions clean.
-        /// </summary>
-        private static void CreditNeoToBorrower(UInt160 borrower, BigInteger amount)
-        {
-            if (amount <= 0) return;
-            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-            ByteString key = (ByteString)(byte[])borrower;
-            ByteString existing = credits.Get(key);
-            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-            credits.Put(key, balance + amount);
-        }
     }
 }

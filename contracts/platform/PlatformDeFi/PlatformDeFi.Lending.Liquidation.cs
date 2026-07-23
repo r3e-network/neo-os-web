@@ -145,11 +145,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                     "liquidation grace period active");
             }
 
-            // Liquidator covers the full debt from prepaid GAS credit.
-            StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
-            ByteString creditKey = (ByteString)(byte[])liquidator;
-            ByteString creditData = gasCredits.Get(creditKey);
-            BigInteger credit = creditData == null ? 0 : (BigInteger)creditData;
+            // Liquidator covers the full debt from this app's prepaid GAS credit.
+            BigInteger credit = GetGasCreditBalance(appId, liquidator);
             ExecutionEngine.Assert(credit >= loan.Debt, "insufficient GAS credit to cover debt");
 
             BigInteger debtRepaid = loan.Debt;
@@ -163,9 +160,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger seized = seizeTarget < loan.Collateral ? seizeTarget : loan.Collateral;
             BigInteger surplus = loan.Collateral - seized;
 
-            BigInteger remainingCredit = credit - debtRepaid;
-            if (remainingCredit == 0) gasCredits.Delete(creditKey);
-            else gasCredits.Put(creditKey, remainingCredit);
+            ConsumeGasCredit(appId, liquidator, debtRepaid);
 
             // Effects: close the loan and update the platform aggregates before the NEO transfer.
             UInt160 borrower = loan.Borrower;
@@ -189,7 +184,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             // NEO stays in the contract (no transfer) and is reclaimable via WithdrawNeoCredit.
             if (surplus > 0)
             {
-                CreditNeoToBorrower(borrower, surplus);
+                CreditNeo(appId, borrower, surplus);
                 OnLiquidationSurplusReturned(appId, loanId, borrower, surplus);
             }
 
@@ -197,6 +192,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, liquidator, seized),
                 "collateral seize transfer failed");
+            EnsureNeoCreditSolvent();
 
             OnLoanLiquidated(appId, loanId, borrower, liquidator, debtRepaid, seized);
         }

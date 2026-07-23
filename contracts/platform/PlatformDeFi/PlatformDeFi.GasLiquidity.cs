@@ -53,7 +53,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(funder), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount required");
 
-            ConsumeGasCredit(funder, amount);
+            ConsumeGasCredit(appId, funder, amount);
 
             ByteString key = AppKey(appId, PREFIX_LENDING_GAS_LIQUIDITY);
             BigInteger total = GetBigInteger(key) + amount;
@@ -94,6 +94,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "lending liquidity transfer failed");
+            EnsureGasCreditSolvent();
             OnLendingLiquidityWithdrawn(appId, amount, GetLendingLiquidity(appId));
         }
 
@@ -118,7 +119,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(funder), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount required");
 
-            ConsumeGasCredit(funder, amount);
+            ConsumeGasCredit(appId, funder, amount);
 
             ByteString key = AppKey(appId, PREFIX_CAPSULE_GAS_RESERVE);
             BigInteger total = GetBigInteger(key) + amount;
@@ -151,6 +152,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, to, amount),
                 "capsule yield reserve transfer failed");
+            EnsureGasCreditSolvent();
             OnCapsuleYieldReserveWithdrawn(appId, amount, GetCapsuleYieldReserve(appId));
         }
 

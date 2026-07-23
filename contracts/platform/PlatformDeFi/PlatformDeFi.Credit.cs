@@ -9,143 +9,225 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts.Platform
 {
-    // Audit fix H-2: emitted when a user reclaims unconsumed prepaid credit.
-    public delegate void CreditWithdrawnHandler(UInt160 payer, UInt160 asset, BigInteger amount);
+    public delegate void CreditDepositedHandler(string appId, UInt160 payer, UInt160 asset, BigInteger amount);
+    public delegate void CreditWithdrawnHandler(string appId, UInt160 payer, UInt160 asset, BigInteger amount);
 
     public partial class PlatformDeFiContract
     {
+        [DisplayName("CreditDeposited")]
+        public static event CreditDepositedHandler OnCreditDeposited;
+
         [DisplayName("CreditWithdrawn")]
         public static event CreditWithdrawnHandler OnCreditWithdrawn;
 
-        #region NEP-17 Payment Handler
-
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            if (from == null || from == UInt160.Zero) return;
             if (from == Runtime.ExecutingScriptHash) return;
+
+            UInt160 caller = Runtime.CallingScriptHash;
+            ExecutionEngine.Assert(caller == NEO.Hash || caller == GAS.Hash, "unsupported asset");
+            ExecutionEngine.Assert(from != null && from != UInt160.Zero && from.IsValid, "invalid payer");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
-            if (Runtime.CallingScriptHash == NEO.Hash)
-            {
-                ValidateAddress(from);
-                // Credit NEO for the sender; appId resolved at consume-time
-                StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-                ByteString key = (ByteString)(byte[])from;
-                ByteString existing = credits.Get(key);
-                BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-                credits.Put(key, balance + amount);
-                return;
-            }
+            string memo = ReadPaymentMemo(data);
+            string appId = ExtractAppId(memo);
+            ValidateCreditAppId(appId);
+            ExecutionEngine.Assert(memo == appId + ":credit", "invalid payment memo");
+            ValidateCreditDepositApp(appId);
 
-            if (Runtime.CallingScriptHash == GAS.Hash)
-            {
-                ValidateAddress(from);
-                StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
-                ByteString key = (ByteString)(byte[])from;
-                ByteString existing = credits.Get(key);
-                BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-                credits.Put(key, balance + amount);
-                return;
-            }
-
-            ExecutionEngine.Assert(false, "unsupported asset");
+            if (caller == NEO.Hash) CreditNeo(appId, from, amount);
+            else CreditGas(appId, from, amount);
         }
 
-        #endregion
-
-        #region Credit Consumption Helpers
-
-        private static void ConsumeNeoCredit(UInt160 payer, BigInteger amount)
+        [Safe]
+        public static BigInteger GetDirectNeoCredit(string appId, UInt160 payer)
         {
-            ValidateAddress(payer);
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
-
-            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-            ByteString key = (ByteString)(byte[])payer;
-            ByteString existing = credits.Get(key);
-            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid NEO");
-
-            BigInteger next = balance - amount;
-            if (next == 0) credits.Delete(key);
-            else credits.Put(key, next);
+            ValidateCreditAppId(appId);
+            if (payer == UInt160.Zero || !payer.IsValid) return 0;
+            return GetNeoCreditBalance(appId, payer);
         }
 
-        private static void ConsumeGasCredit(UInt160 payer, BigInteger amount)
+        [Safe]
+        public static BigInteger NeoCreditLiabilityOf(string appId)
         {
-            ValidateAddress(payer);
-            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
-
-            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
-            ByteString key = (ByteString)(byte[])payer;
-            ByteString existing = credits.Get(key);
-            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid GAS");
-
-            BigInteger next = balance - amount;
-            if (next == 0) credits.Delete(key);
-            else credits.Put(key, next);
+            ValidateCreditAppId(appId);
+            return GetBigInteger(AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY));
         }
 
-        #endregion
+        [Safe]
+        public static BigInteger TotalNeoCreditLiability() =>
+            GetBigInteger((ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY);
 
-        #region Credit Withdrawal (audit fix H-2)
-
-        /// <summary>
-        /// Reclaim unconsumed prepaid NEO credit. Witness-gated to the credit
-        /// owner. The Capsule flow refunds unused principal here; without this
-        /// method that NEO was permanently locked. Checks-effects-interactions:
-        /// the ledger is debited before NEO is sent.
-        /// </summary>
-        public static void WithdrawNeoCredit(BigInteger amount)
+        [Safe]
+        public static BigInteger GetDirectGasCredit(string appId, UInt160 payer)
         {
-            UInt160 payer = Runtime.Transaction.Sender;
+            ValidateCreditAppId(appId);
+            if (payer == UInt160.Zero || !payer.IsValid) return 0;
+            return GetGasCreditBalance(appId, payer);
+        }
+
+        [Safe]
+        public static BigInteger GasCreditLiabilityOf(string appId)
+        {
+            ValidateCreditAppId(appId);
+            return GetBigInteger(AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY));
+        }
+
+        [Safe]
+        public static BigInteger TotalGasCreditLiability() =>
+            GetBigInteger((ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY);
+
+        public static BigInteger WithdrawNeoCredit(string appId, UInt160 payer, BigInteger amount)
+        {
+            ValidateCreditAppId(appId);
             ValidateAddress(payer);
             ExecutionEngine.Assert(Runtime.CheckWitness(payer), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
-            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
-            ByteString key = (ByteString)(byte[])payer;
-            ByteString existing = credits.Get(key);
-            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid NEO");
-
-            BigInteger next = balance - amount;
-            if (next == 0) credits.Delete(key);
-            else credits.Put(key, next);
-
+            DebitNeoCredit(appId, payer, amount);
             ExecutionEngine.Assert(
                 NEO.Transfer(Runtime.ExecutingScriptHash, payer, amount),
                 "neo withdrawal failed");
-            OnCreditWithdrawn(payer, NEO.Hash, amount);
+            EnsureNeoCreditSolvent();
+            OnCreditWithdrawn(appId, payer, NEO.Hash, amount);
+            return amount;
         }
 
-        /// <summary>
-        /// Reclaim unconsumed prepaid GAS credit. Witness-gated to the credit owner.
-        /// </summary>
-        public static void WithdrawGasCredit(BigInteger amount)
+        public static BigInteger WithdrawGasCredit(string appId, UInt160 payer, BigInteger amount)
         {
-            UInt160 payer = Runtime.Transaction.Sender;
+            ValidateCreditAppId(appId);
             ValidateAddress(payer);
             ExecutionEngine.Assert(Runtime.CheckWitness(payer), "unauthorized");
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 
-            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
-            ByteString key = (ByteString)(byte[])payer;
-            ByteString existing = credits.Get(key);
-            BigInteger balance = existing == null ? 0 : (BigInteger)existing;
-            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid GAS");
-
-            BigInteger next = balance - amount;
-            if (next == 0) credits.Delete(key);
-            else credits.Put(key, next);
-
+            DebitGasCredit(appId, payer, amount);
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, payer, amount),
                 "gas withdrawal failed");
-            OnCreditWithdrawn(payer, GAS.Hash, amount);
+            EnsureGasCreditSolvent();
+            OnCreditWithdrawn(appId, payer, GAS.Hash, amount);
+            return amount;
         }
 
-        #endregion
+        private static void CreditNeo(string appId, UInt160 payer, BigInteger amount)
+        {
+            ByteString key = AppKey(appId, PREFIX_NEO_CREDIT, payer);
+            Put(key, GetBigInteger(key) + amount);
+            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY);
+            Put(appLiabilityKey, GetBigInteger(appLiabilityKey) + amount);
+            Put((ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY, TotalNeoCreditLiability() + amount);
+            EnsureNeoCreditSolvent();
+            OnCreditDeposited(appId, payer, NEO.Hash, amount);
+        }
+
+        private static void CreditGas(string appId, UInt160 payer, BigInteger amount)
+        {
+            ByteString key = AppKey(appId, PREFIX_GAS_CREDIT, payer);
+            Put(key, GetBigInteger(key) + amount);
+            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY);
+            Put(appLiabilityKey, GetBigInteger(appLiabilityKey) + amount);
+            Put((ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY, TotalGasCreditLiability() + amount);
+            EnsureGasCreditSolvent();
+            OnCreditDeposited(appId, payer, GAS.Hash, amount);
+        }
+
+        private static void ConsumeNeoCredit(string appId, UInt160 payer, BigInteger amount)
+        {
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            DebitNeoCredit(appId, payer, amount);
+        }
+
+        private static void ConsumeGasCredit(string appId, UInt160 payer, BigInteger amount)
+        {
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+            DebitGasCredit(appId, payer, amount);
+        }
+
+        private static void DebitNeoCredit(string appId, UInt160 payer, BigInteger amount)
+        {
+            ByteString key = AppKey(appId, PREFIX_NEO_CREDIT, payer);
+            BigInteger balance = GetBigInteger(key);
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid NEO");
+            PutOrDelete(key, balance - amount);
+
+            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_NEO_CREDIT_LIABILITY);
+            BigInteger appLiability = GetBigInteger(appLiabilityKey) - amount;
+            BigInteger totalLiability = TotalNeoCreditLiability() - amount;
+            ExecutionEngine.Assert(appLiability >= 0 && totalLiability >= 0, "NEO credit liability underflow");
+            PutOrDelete(appLiabilityKey, appLiability);
+            PutOrDelete((ByteString)PREFIX_TOTAL_NEO_CREDIT_LIABILITY, totalLiability);
+        }
+
+        private static void DebitGasCredit(string appId, UInt160 payer, BigInteger amount)
+        {
+            ByteString key = AppKey(appId, PREFIX_GAS_CREDIT, payer);
+            BigInteger balance = GetBigInteger(key);
+            ExecutionEngine.Assert(balance >= amount, "insufficient prepaid GAS");
+            PutOrDelete(key, balance - amount);
+
+            ByteString appLiabilityKey = AppKey(appId, PREFIX_APP_GAS_CREDIT_LIABILITY);
+            BigInteger appLiability = GetBigInteger(appLiabilityKey) - amount;
+            BigInteger totalLiability = TotalGasCreditLiability() - amount;
+            ExecutionEngine.Assert(appLiability >= 0 && totalLiability >= 0, "GAS credit liability underflow");
+            PutOrDelete(appLiabilityKey, appLiability);
+            PutOrDelete((ByteString)PREFIX_TOTAL_GAS_CREDIT_LIABILITY, totalLiability);
+        }
+
+        private static BigInteger GetNeoCreditBalance(string appId, UInt160 payer) =>
+            GetBigInteger(AppKey(appId, PREFIX_NEO_CREDIT, payer));
+
+        private static BigInteger GetGasCreditBalance(string appId, UInt160 payer) =>
+            GetBigInteger(AppKey(appId, PREFIX_GAS_CREDIT, payer));
+
+        private static void EnsureNeoCreditSolvent()
+        {
+            ExecutionEngine.Assert(
+                TotalNeoCreditLiability() <= NEO.BalanceOf(Runtime.ExecutingScriptHash),
+                "NEO credit insolvent");
+        }
+
+        private static void EnsureGasCreditSolvent()
+        {
+            ExecutionEngine.Assert(
+                TotalGasCreditLiability() <= GAS.BalanceOf(Runtime.ExecutingScriptHash),
+                "GAS credit insolvent");
+        }
+
+        private static void PutOrDelete(ByteString key, BigInteger value)
+        {
+            if (value == 0) Delete(key);
+            else Put(key, value);
+        }
+
+        private static void ValidateCreditDepositApp(string appId)
+        {
+            ExecutionEngine.Assert(GetProductType(appId) > 0, "app not registered");
+            ValidateNotPaused();
+            ExecutionEngine.Assert(!IsAppPaused(appId), "app paused");
+        }
+
+        private static void ValidateCreditAppId(string appId)
+        {
+            ExecutionEngine.Assert(
+                appId != null && appId.Length > 0 && appId.Length <= 64,
+                "invalid appId");
+        }
+
+        private static string ReadPaymentMemo(object data)
+        {
+            if (data == null) return "";
+            if (data is string text) return text ?? "";
+            if (data is ByteString byteString) return (string)byteString;
+            return "";
+        }
+
+        private static string ExtractAppId(string memo)
+        {
+            for (int index = 0; index < memo.Length; index++)
+            {
+                if (memo[index] == ':') return memo.Substring(0, index);
+            }
+            return memo;
+        }
     }
 }
